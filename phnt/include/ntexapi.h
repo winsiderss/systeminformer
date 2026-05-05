@@ -1763,7 +1763,7 @@ typedef enum _WNF_STATE_NAME_LIFETIME
 typedef enum _WNF_STATE_NAME_INFORMATION
 {
     WnfInfoStateNameExist,
-    WnfInfoSubscribersPresent,
+    WnfInfoSubscribersPresent,     // ULONG
     WnfInfoIsQuiescent
 } WNF_STATE_NAME_INFORMATION;
 
@@ -2036,22 +2036,22 @@ NtSetWnfProcessNotificationEvent(
 
 typedef enum _WORKERFACTORYINFOCLASS
 {
-    WorkerFactoryTimeout, // LARGE_INTEGER
-    WorkerFactoryRetryTimeout, // LARGE_INTEGER
-    WorkerFactoryIdleTimeout, // s: LARGE_INTEGER
-    WorkerFactoryBindingCount, // s: ULONG
-    WorkerFactoryThreadMinimum, // s: ULONG
-    WorkerFactoryThreadMaximum, // s: ULONG
-    WorkerFactoryPaused, // ULONG or BOOLEAN
-    WorkerFactoryBasicInformation, // q: WORKER_FACTORY_BASIC_INFORMATION
-    WorkerFactoryAdjustThreadGoal,
-    WorkerFactoryCallbackType,
-    WorkerFactoryStackInformation, // 10
-    WorkerFactoryThreadBasePriority, // s: ULONG
-    WorkerFactoryTimeoutWaiters, // s: ULONG, since THRESHOLD
-    WorkerFactoryFlags, // s: ULONG
-    WorkerFactoryThreadSoftMaximum, // s: ULONG
-    WorkerFactoryThreadCpuSets, // since REDSTONE5
+    WorkerFactoryTimeout,               // qs: LARGE_INTEGER
+    WorkerFactoryRetryTimeout,          // qs: LARGE_INTEGER
+    WorkerFactoryIdleTimeout,           // qs: LARGE_INTEGER
+    WorkerFactoryBindingCount,          // qs: ULONG
+    WorkerFactoryThreadMinimum,         // qs: ULONG
+    WorkerFactoryThreadMaximum,         // qs: ULONG
+    WorkerFactoryPaused,                // qs: ULONG or BOOLEAN
+    WorkerFactoryBasicInformation,      // q: WORKER_FACTORY_BASIC_INFORMATION
+    WorkerFactoryAdjustThreadGoal,      // s: ULONG
+    WorkerFactoryCallbackType,          // qs: ULONG
+    WorkerFactoryStackInformation,      // qs: ULONG/ULONG_PTR // 10
+    WorkerFactoryThreadBasePriority,    // qs: ULONG
+    WorkerFactoryTimeoutWaiters,        // qs: ULONG // since THRESHOLD
+    WorkerFactoryFlags,                 // qs: ULONG
+    WorkerFactoryThreadSoftMaximum,     // qs: ULONG
+    WorkerFactoryThreadCpuSets,         // qs: ULONG[] // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 

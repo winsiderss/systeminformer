@@ -12,6 +12,8 @@
 #ifndef _PH_SECWMI_H
 #define _PH_SECWMI_H
 
+#include <mi.h>
+
 EXTERN_C_START
 
 PHLIBAPI
@@ -59,6 +61,29 @@ PVOID
 NTAPI
 PhGetWbemClassObjectUlongPtr(
     _In_ PVOID WbemClassObject,
+    _In_ PCWSTR Name
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhMiResultToNtStatus(
+    _In_ MI_Result Result
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
+PhGetMiClassObjectUlongPtr(
+    _In_ const MI_Instance* MiClassObject,
+    _In_ PCWSTR Name
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetMiClassObjectString(
+    _In_ const MI_Instance* MiClassObject,
     _In_ PCWSTR Name
     );
 

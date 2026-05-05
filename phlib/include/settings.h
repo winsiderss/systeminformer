@@ -132,7 +132,7 @@ PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToDpi,
     _In_ LONG Dpi,
-    _Out_ PPH_SCALABLE_INTEGER_PAIR* ScalableIntegerPair
+    _Out_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair
     );
 
 PHLIBAPI
@@ -274,7 +274,7 @@ PhGetIntegerPairSetting(
 }
 
 FORCEINLINE
-PPH_SCALABLE_INTEGER_PAIR
+PH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
@@ -282,7 +282,7 @@ PhGetScalableIntegerPairSetting(
     _In_ LONG Dpi
     )
 {
-    PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
+    PH_SCALABLE_INTEGER_PAIR scalableIntegerPair = { 0 };
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);

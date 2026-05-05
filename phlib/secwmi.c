@@ -18,6 +18,8 @@
 #include <powersetting.h>
 #include <secwmi.h>
 
+#include <mi.h>
+
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 
@@ -28,6 +30,8 @@ _PowerReadSecurityDescriptor PowerReadSecurityDescriptor_I = NULL;
 _PowerWriteSecurityDescriptor PowerWriteSecurityDescriptor_I = NULL;
 typeof(&WTSGetListenerSecurityW) WTSGetListenerSecurity_I = NULL;
 typeof(&WTSSetListenerSecurityW) WTSSetListenerSecurity_I = NULL;
+typeof(&UpdateDCOMSettings) UpdateDCOMSettings_I = NULL;
+typeof(&MI_Application_Initialize) MI_Application_Initialize_I = NULL;
 
 HRESULT PhGetWbemLocatorClass(
     _Out_ struct IWbemLocator** WbemLocatorClass
@@ -102,6 +106,126 @@ PVOID PhpInitializeRemoteDesktopServiceApi(
     return imageBaseAddress;
 }
 
+PVOID PhpInitializeComSecurityApi(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        imageBaseAddress = PhLoadLibrary(L"ole32.dll");
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+PVOID PhpInitializeManagementInfrastructureApi(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PVOID imageBaseAddress = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        imageBaseAddress = PhLoadLibrary(L"mi.dll");
+        PhEndInitOnce(&initOnce);
+    }
+
+    return imageBaseAddress;
+}
+
+NTSTATUS PhMiResultToNtStatus(
+    _In_ MI_Result Result
+    )
+{
+    switch (Result)
+    {
+    case MI_RESULT_OK:
+        return STATUS_SUCCESS;
+    case MI_RESULT_ACCESS_DENIED:
+        return STATUS_ACCESS_DENIED;
+    case MI_RESULT_INVALID_NAMESPACE:
+        return STATUS_OBJECT_PATH_NOT_FOUND;
+    case MI_RESULT_INVALID_PARAMETER:
+        return STATUS_INVALID_PARAMETER;
+    case MI_RESULT_INVALID_CLASS:
+    case MI_RESULT_NOT_FOUND:
+    case MI_RESULT_METHOD_NOT_FOUND:
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    case MI_RESULT_NOT_SUPPORTED:
+    case MI_RESULT_METHOD_NOT_AVAILABLE:
+    case MI_RESULT_QUERY_LANGUAGE_NOT_SUPPORTED:
+    case MI_RESULT_FILTERED_ENUMERATION_NOT_SUPPORTED:
+    case MI_RESULT_CONTINUATION_ON_ERROR_NOT_SUPPORTED:
+        return STATUS_NOT_SUPPORTED;
+    case MI_RESULT_ALREADY_EXISTS:
+        return STATUS_OBJECT_NAME_COLLISION;
+    case MI_RESULT_NO_SUCH_PROPERTY:
+        return STATUS_NOT_FOUND;
+    case MI_RESULT_TYPE_MISMATCH:
+        return STATUS_OBJECT_TYPE_MISMATCH;
+    case MI_RESULT_INVALID_QUERY:
+        return STATUS_INVALID_INFO_CLASS;
+    case MI_RESULT_INVALID_ENUMERATION_CONTEXT:
+        return STATUS_INVALID_HANDLE;
+    case MI_RESULT_INVALID_OPERATION_TIMEOUT:
+        return STATUS_IO_TIMEOUT;
+    case MI_RESULT_SERVER_LIMITS_EXCEEDED:
+        return STATUS_QUOTA_EXCEEDED;
+    case MI_RESULT_SERVER_IS_SHUTTING_DOWN:
+        return STATUS_SERVER_DISABLED;
+    case MI_RESULT_FAILED:
+    case MI_RESULT_CLASS_HAS_CHILDREN:
+    case MI_RESULT_CLASS_HAS_INSTANCES:
+    case MI_RESULT_INVALID_SUPERCLASS:
+    case MI_RESULT_NAMESPACE_NOT_EMPTY:
+    case MI_RESULT_PULL_HAS_BEEN_ABANDONED:
+    case MI_RESULT_PULL_CANNOT_BE_ABANDONED:
+    default:
+        return STATUS_UNSUCCESSFUL;
+    }
+}
+
+PVOID PhGetMiClassObjectUlongPtr(
+    _In_ const MI_Instance* MiClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    MI_Value value;
+    MI_Type type;
+
+    if (MI_Instance_GetElement(MiClassObject, Name, &value, &type, NULL, NULL) == MI_RESULT_OK)
+    {
+        if (type == MI_UINT64)
+            return (PVOID)(ULONG_PTR)value.uint64;
+        if (type == MI_UINT32)
+            return (PVOID)(ULONG_PTR)value.uint32;
+    }
+
+    return NULL;
+}
+
+PPH_STRING PhGetMiClassObjectString(
+    _In_ const MI_Instance* MiClassObject,
+    _In_ PCWSTR Name
+    )
+{
+    MI_Value value;
+    MI_Type type;
+
+    if (MI_Instance_GetElement(MiClassObject, Name, &value, &type, NULL, NULL) == MI_RESULT_OK)
+    {
+        if (type == MI_STRING && value.string)
+            return PhCreateString(value.string);
+    }
+
+    return NULL;
+}
+
 HRESULT PhCoSetProxyBlanket(
     _In_ IUnknown* InterfacePtr
     )
@@ -128,7 +252,7 @@ HRESULT PhCoSetProxyBlanket(
             NULL,
             EOAC_NONE
             );
-        IClientSecurity_Release(InterfacePtr);
+        IClientSecurity_Release(clientSecurity);
     }
 
     return status;
@@ -170,7 +294,7 @@ HRESULT PhGetWbemClassObjectDependency(
             *WbemClassObjectDependency = dependency;
         }
 
-        SysFreeString(V_BSTR(&variant));
+        VariantClear(&variant);
     }
 
     return status;
@@ -405,6 +529,9 @@ NTSTATUS PhpGetRemoteDesktopSecurityDescriptor(
         }
     }
 
+    if (securityDescriptor)
+        PhFree(securityDescriptor);
+
     return STATUS_INVALID_SECURITY_DESCR;
 }
 
@@ -442,6 +569,7 @@ NTSTATUS PhpSetRemoteDesktopSecurityDescriptor(
 
 // WBEM security descriptors
 
+#if defined(PHLIB_WBEM_DEPRECATED)
 NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
     )
@@ -560,7 +688,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     {
         securityDescriptor = PhAllocateCopy(
             securityDescriptorData,
-            RtlLengthSecurityDescriptor(securityDescriptorData)
+            PhLengthSecurityDescriptor(securityDescriptorData)
             );
     }
 
@@ -603,6 +731,155 @@ CleanupExit:
 
     return STATUS_INVALID_SECURITY_DESCR;
 }
+#else
+NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
+    _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
+    )
+{
+    MI_Result miResult;
+    MI_Application application;
+    MI_Session session;
+    MI_Operation operation = MI_OPERATION_NULL;
+    MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = MI_FALSE;
+    MI_Result operationResult = MI_RESULT_OK;
+    MI_Value value;
+    MI_Type type = 0;
+    PSECURITY_DESCRIPTOR securityDescriptor = NULL;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if (!MI_Application_Initialize_I)
+    {
+        PVOID imageBaseAddress;
+
+        if (imageBaseAddress = PhpInitializeManagementInfrastructureApi())
+        {
+            MI_Application_Initialize_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "MI_Application_InitializeV1", 0);
+        }
+    }
+
+    if (!MI_Application_Initialize_I)
+        return STATUS_DLL_NOT_FOUND;
+
+    miResult = MI_Application_Initialize_I(
+        0,
+        NULL,
+        NULL,
+        &application
+        );
+
+    if (miResult != MI_RESULT_OK)
+        return PhMiResultToNtStatus(miResult);
+
+    miResult = MI_Application_NewSession(
+        &application,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &session
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        MI_Application_Close(&application);
+        return PhMiResultToNtStatus(miResult);
+    }
+
+    MI_Session_Invoke(
+        &session,
+        0,
+        NULL,
+        L"root",
+        L"__SystemSecurity",
+        L"GetSD",
+        NULL,
+        NULL,
+        NULL,
+        &operation
+        );
+
+    for (;;)
+    {
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        status = PhMiResultToNtStatus(operationResult);
+
+        if (miResult != MI_RESULT_OK)
+        {
+            status = PhMiResultToNtStatus(miResult);
+            break;
+        }
+
+        if (!instance)
+            break;
+
+        if (MI_Instance_GetElement(
+            instance,
+            L"ReturnValue",
+            &value,
+            &type,
+            NULL,
+            NULL
+            ) == MI_RESULT_OK && type == MI_UINT32)
+        {
+            if (value.uint32 != ERROR_SUCCESS)
+            {
+                status = PhDosErrorToNtStatus(value.uint32);
+            }
+        }
+
+        if (NT_SUCCESS(status) && MI_Instance_GetElement(
+            instance,
+            L"SD",
+            &value,
+            &type,
+            NULL,
+            NULL
+            ) == MI_RESULT_OK && type == MI_UINT8A && value.uint8a.data && value.uint8a.size)
+        {
+            if (RtlValidSecurityDescriptor(value.uint8a.data))
+            {
+                securityDescriptor = PhAllocateCopy(
+                    value.uint8a.data,
+                    value.uint8a.size
+                    );
+            }
+        }
+
+        if (!moreResults)
+            break;
+    }
+
+    MI_Operation_Close(&operation);
+    MI_Session_Close(&session, NULL, NULL);
+    MI_Application_Close(&application);
+
+    if (NT_SUCCESS(status) && securityDescriptor)
+    {
+        *SecurityDescriptor = securityDescriptor;
+        return STATUS_SUCCESS;
+    }
+
+    if (securityDescriptor)
+        PhFree(securityDescriptor);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return STATUS_INVALID_SECURITY_DESCR;
+}
+#endif
 
 NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
@@ -679,13 +956,13 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
 
     if (RtlValidRelativeSecurityDescriptor(
         SecurityDescriptor,
-        RtlLengthSecurityDescriptor(SecurityDescriptor),
+        PhLengthSecurityDescriptor(SecurityDescriptor),
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
         DACL_SECURITY_INFORMATION | SACL_SECURITY_INFORMATION
         ))
     {
         relativeSecurityDescriptor = SecurityDescriptor;
-        relativeSecurityDescriptorLength = RtlLengthSecurityDescriptor(SecurityDescriptor);
+        relativeSecurityDescriptorLength = PhLengthSecurityDescriptor(SecurityDescriptor);
     }
     else
     {
@@ -731,6 +1008,9 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
         goto CleanupExit;
     }
 
+    V_VT(&variantArrayValue) = VT_ARRAY | VT_UI1;
+    V_ARRAY(&variantArrayValue) = safeArray;
+
     status = SafeArrayAccessData(safeArray, &safeArrayData);
 
     if (HR_FAILED(status))
@@ -746,9 +1026,6 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
 
     if (HR_FAILED(status))
         goto CleanupExit;
-
-    V_VT(&variantArrayValue) = VT_ARRAY | VT_UI1;
-    V_ARRAY(&variantArrayValue) = safeArray;
 
     status = IWbemClassObject_Put(
         wbemClassObject,
@@ -856,7 +1133,13 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
     if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
         return STATUS_INVALID_PARAMETER;
 
-    status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        NULL,
+        &OleKeyName,
+        OBJ_CASE_INSENSITIVE
+        );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -866,7 +1149,7 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
         &OlePermissionValueName[ComSDType],
         KeyValuePartialInformation,
         &value
-    );
+        );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -939,7 +1222,7 @@ NTSTATUS PhGetComSecurityDescriptor(
 
     *SecurityDescriptor = PhAllocateCopy(
         securityDescriptor,
-        RtlLengthSecurityDescriptor(securityDescriptor)
+        PhLengthSecurityDescriptor(securityDescriptor)
         );
 
 CleanupExit:
@@ -970,7 +1253,13 @@ NTSTATUS PhSetComSecurityDescriptor(
     if (ComSDType >= RTL_NUMBER_OF(OlePermissionValueName))
         return STATUS_INVALID_PARAMETER;
 
-    status = PhOpenKey(&keyHandle, KEY_SET_VALUE, NULL, &OleKeyName, OBJ_CASE_INSENSITIVE);
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_SET_VALUE,
+        NULL,
+        &OleKeyName,
+        OBJ_CASE_INSENSITIVE
+        );
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -995,13 +1284,24 @@ NTSTATUS PhSetComSecurityDescriptor(
         &OlePermissionValueName[ComSDType],
         REG_BINARY,
         mergedSecurityDescriptor,
-        RtlLengthSecurityDescriptor(mergedSecurityDescriptor)
+        PhLengthSecurityDescriptor(mergedSecurityDescriptor)
         );
 
     if (NT_SUCCESS(status))
     {
         // Notify RPCSS about the change
-        UpdateDCOMSettings();        
+        if (!UpdateDCOMSettings_I)
+        {
+            PVOID imageBaseAddress;
+
+            if (imageBaseAddress = PhpInitializeComSecurityApi())
+            {
+                UpdateDCOMSettings_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "UpdateDCOMSettings", 0);
+            }
+        }
+
+        if (UpdateDCOMSettings_I)
+            UpdateDCOMSettings_I();
     }
 
 CleanupExit:
@@ -1017,6 +1317,7 @@ CleanupExit:
     return status;
 }
 
+#if defined(PHLIB_WBEM_DEPRECATED)
 HRESULT PhRestartDefenderOfflineScan(
     VOID
     )
@@ -1126,3 +1427,469 @@ CleanupExit:
 
     return status;
 }
+#else
+HRESULT PhRestartDefenderOfflineScan(
+    VOID
+    )
+{
+    MI_Result miResult;
+    MI_Application application;
+    MI_Session session;
+    MI_Operation operation = MI_OPERATION_NULL;
+    MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = MI_FALSE;
+    MI_Result operationResult = MI_RESULT_OK;
+    MI_Value value;
+
+    HRESULT status = S_OK;
+    NTSTATUS subStatus;
+
+    //
+    // Initialize the MI session
+    //
+    if (!MI_Application_Initialize_I)
+    {
+        PVOID imageBaseAddress;
+
+        if (imageBaseAddress = PhpInitializeManagementInfrastructureApi())
+        {
+            MI_Application_Initialize_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "MI_Application_InitializeV1", 0);
+        }
+    }
+
+    if (!MI_Application_Initialize_I)
+        return E_FAIL;
+
+    //
+    // Initialize the MI session
+    //
+    miResult = MI_Application_Initialize_I(
+        0,
+        NULL,
+        NULL,
+        &application
+        );
+
+    if (miResult != MI_RESULT_OK)
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(PhMiResultToNtStatus(miResult)));
+
+    //
+    // Connect to local CIM session
+    //
+    miResult = MI_Application_NewSession(
+        &application,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &session
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        MI_Application_Close(&application);
+        return HRESULT_FROM_WIN32(PhNtStatusToDosError(PhMiResultToNtStatus(miResult)));
+    }
+
+    //
+    // Invoke static method: MSFT_MpWDOScan.Start
+    //
+    MI_Session_Invoke(
+        &session,
+        0,
+        NULL,
+        L"root\\Microsoft\\Windows\\Defender",
+        L"MSFT_MpWDOScan",
+        L"Start",
+        NULL,
+        NULL,
+        NULL,
+        &operation
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        status = E_FAIL;
+        goto Cleanup;
+    }
+
+    //
+    // Pull results
+    //
+    for (;;)
+    {
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        //
+        // Transport or framework failure
+        //
+        if (miResult != MI_RESULT_OK)
+        {
+            subStatus = PhMiResultToNtStatus(miResult);
+            status = HRESULT_FROM_WIN32(PhNtStatusToDosError(subStatus));
+            break;
+        }
+
+        //
+        // Completion reached (no more instances)
+        //
+        if (!instance)
+            break;
+
+        //
+        // Extract ReturnValue
+        //
+        if (MI_Instance_GetElement(
+            instance,
+            L"ReturnValue",
+            &value,
+            NULL,
+            NULL,
+            NULL
+            ) == MI_RESULT_OK)
+        {
+            if (value.uint32 != ERROR_SUCCESS)
+            {
+                status = HRESULT_FROM_WIN32(value.uint32);
+            }
+        }
+
+        if (!moreResults)
+            break;
+    }
+
+    //
+    // Provider-level failure without instance
+    //
+    if (operationResult != MI_RESULT_OK && status == S_OK)
+    {
+        subStatus = PhMiResultToNtStatus(operationResult);
+        status = HRESULT_FROM_WIN32(PhNtStatusToDosError(subStatus));
+    }
+
+Cleanup:
+    MI_Operation_Close(&operation);
+    MI_Session_Close(&session, NULL, NULL);
+    MI_Application_Close(&application);
+
+    return status;
+}
+#endif
+
+#if defined(PHLIB_WBEM_DEPRECATED)
+NTSTATUS PhWbemProcessExecutableRundown(
+    _In_opt_ HANDLE ProcessId,
+    _In_ PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    HRESULT status;
+    BSTR wbemResourceString = NULL;
+    BSTR wbemObjectString = NULL;
+    IWbemLocator* wbemLocator = NULL;
+    IWbemServices* wbemServices = NULL;
+    IEnumWbemClassObject* wbemEnumClassObject = NULL;
+
+    status = PhGetWbemLocatorClass(
+        &wbemLocator
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    wbemResourceString = PhStringZToBSTR(L"Root\\CIMV2");
+    status = IWbemLocator_ConnectServer(
+        wbemLocator,
+        wbemResourceString,
+        NULL,
+        NULL,
+        NULL,
+        WBEM_FLAG_CONNECT_USE_MAX_WAIT,
+        NULL,
+        NULL,
+        &wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    status = PhCoSetProxyBlanket(
+        (IUnknown*)wbemServices
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    wbemObjectString = PhStringZToBSTR(L"CIM_ProcessExecutable"); // KernelRundownGuid EVENT_TRACE_TYPE_FILENAME_RUNDOWN events
+    status = IWbemServices_CreateInstanceEnum(
+        wbemServices,
+        wbemObjectString,
+        WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY,
+        NULL,
+        &wbemEnumClassObject
+        );
+
+    if (HR_FAILED(status))
+        goto CleanupExit;
+
+    while (TRUE)
+    {
+        ULONG wbemClassObjectCount = 0;
+        IWbemClassObject* wbemClassObjectArray[50];
+
+        status = IEnumWbemClassObject_Next(
+            wbemEnumClassObject,
+            WBEM_INFINITE,
+            RTL_NUMBER_OF(wbemClassObjectArray),
+            wbemClassObjectArray,
+            &wbemClassObjectCount
+            );
+
+        if (wbemClassObjectCount == 0)
+            break;
+
+        for (ULONG i = 0; i < wbemClassObjectCount; i++)
+        {
+            PVOID baseAddress;
+            PPH_STRING fileName = NULL;
+            HANDLE processId = NULL;
+            IWbemClassObject* wbemAntecedentObject;
+            IWbemClassObject* wbemDependentObject;
+
+            if (baseAddress = PhGetWbemClassObjectUlongPtr(wbemClassObjectArray[i], L"BaseAddress"))
+            {
+                if (HR_SUCCESS(PhGetWbemClassObjectDependency(
+                    &wbemAntecedentObject,
+                    wbemClassObjectArray[i],
+                    wbemServices,
+                    L"Antecedent" // returns CIM_DataFile & CIM_LogicalFile
+                    )))
+                {
+                    fileName = PhGetWbemClassObjectString(wbemAntecedentObject, L"Name");
+                    IWbemClassObject_Release(wbemAntecedentObject);
+                }
+
+                if (HR_SUCCESS(PhGetWbemClassObjectDependency(
+                    &wbemDependentObject,
+                    wbemClassObjectArray[i],
+                    wbemServices,
+                    L"Dependent" // returns Win32_Process
+                    )))
+                {
+                    processId = PhGetWbemClassObjectUlongPtr(wbemDependentObject, L"ProcessId");
+                    IWbemClassObject_Release(wbemDependentObject);
+                }
+
+                BOOLEAN stop = FALSE;
+
+                if (ProcessId)
+                {
+                    if (ProcessId == processId)
+                    {
+                        if (!Callback(baseAddress, 0, fileName, Context))
+                            stop = TRUE;
+                    }
+                }
+                else
+                {
+                    if (!Callback(baseAddress, 0, fileName, Context))
+                        stop = TRUE;
+                }
+
+                PhClearReference(&fileName);
+
+                if (stop)
+                {
+                    for (ULONG j = i; j < wbemClassObjectCount; j++)
+                    {
+                        IWbemClassObject_Release(wbemClassObjectArray[j]);
+                    }
+                    goto CleanupExit;
+                }
+            }
+
+            IWbemClassObject_Release(wbemClassObjectArray[i]);
+        }
+    }
+
+CleanupExit:
+    if (wbemEnumClassObject)
+        IEnumWbemClassObject_Release(wbemEnumClassObject);
+    if (wbemServices)
+        IWbemServices_Release(wbemServices);
+    if (wbemLocator)
+        IWbemLocator_Release(wbemLocator);
+
+    if (wbemObjectString)
+        SysFreeString(wbemObjectString);
+    if (wbemResourceString)
+        SysFreeString(wbemResourceString);
+
+    if (status == WBEM_E_ACCESS_DENIED)
+        return STATUS_ACCESS_DENIED;
+    if (status == WBEM_E_INVALID_PARAMETER)
+        return STATUS_INVALID_PARAMETER;
+    if (status != WBEM_S_NO_ERROR)
+        return STATUS_UNSUCCESSFUL;
+
+    return STATUS_SUCCESS;
+}
+#else
+NTSTATUS PhWbemProcessExecutableRundown(
+    _In_opt_ HANDLE ProcessId,
+    _In_ PPH_ENUM_PROCESS_MODULES_RUNDOWN_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    MI_Result miResult;
+    MI_Application application;
+    MI_Session session;
+    MI_Operation operation = MI_OPERATION_NULL;
+    MI_Instance* instance = NULL;
+    const MI_Instance* completionDetails = NULL;
+    const MI_Char* errorMessage = NULL;
+    MI_Boolean moreResults = MI_FALSE;
+    MI_Result operationResult = MI_RESULT_OK;
+    NTSTATUS status = STATUS_SUCCESS;
+
+    if (!MI_Application_Initialize_I)
+    {
+        PVOID imageBaseAddress;
+
+        if (imageBaseAddress = PhpInitializeManagementInfrastructureApi())
+            MI_Application_Initialize_I = PhGetDllBaseProcedureAddress(imageBaseAddress, "MI_Application_InitializeV1", 0);
+    }
+
+    if (!MI_Application_Initialize_I)
+        return STATUS_DLL_NOT_FOUND;
+
+    miResult = MI_Application_Initialize_I(
+        0,
+        NULL,
+        NULL,
+        &application
+        );
+
+    if (miResult != MI_RESULT_OK)
+        return PhMiResultToNtStatus(miResult);
+
+    miResult = MI_Application_NewSession(
+        &application,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        NULL,
+        &session
+        );
+
+    if (miResult != MI_RESULT_OK)
+    {
+        MI_Application_Close(&application);
+        return PhMiResultToNtStatus(miResult);
+    }
+
+    MI_Session_QueryInstances(
+        &session,
+        0,
+        NULL,
+        L"root\\CIMV2",
+        L"WQL",
+        L"SELECT * FROM CIM_ProcessExecutable",
+        NULL,
+        &operation
+        );
+
+    for (;;)
+    {
+        miResult = MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            );
+
+        if (miResult != MI_RESULT_OK)
+        {
+            status = PhMiResultToNtStatus(miResult);
+            break;
+        }
+
+        if (!instance)
+            break;
+
+        {
+            PVOID baseAddress;
+            PPH_STRING fileName = NULL;
+            HANDLE processId = NULL;
+            MI_Value value;
+            MI_Type type;
+
+            baseAddress = PhGetMiClassObjectUlongPtr(instance, L"BaseAddress");
+
+            if (baseAddress &&
+                MI_Instance_GetElement(
+                instance,
+                L"Antecedent",
+                &value,
+                &type,
+                NULL,
+                NULL
+                ) == MI_RESULT_OK &&
+                type == MI_REFERENCE &&
+                value.reference)
+            {
+                fileName = PhGetMiClassObjectString(value.reference, L"Name");
+            }
+
+            if (baseAddress &&
+                MI_Instance_GetElement(
+                instance,
+                L"Dependent",
+                &value,
+                &type,
+                NULL,
+                NULL
+                ) == MI_RESULT_OK &&
+                type == MI_REFERENCE &&
+                value.reference)
+            {
+                processId = (HANDLE)PhGetMiClassObjectUlongPtr(value.reference, L"ProcessId");
+            }
+
+            if (baseAddress)
+            {
+                if (!ProcessId || ProcessId == processId)
+                    status = Callback(baseAddress, 0, fileName, Context);
+            }
+
+            PhClearReference(&fileName);
+        }
+
+        if (!NT_SUCCESS(status) || !moreResults)
+            break;
+    }
+
+    if (operationResult != MI_RESULT_OK && NT_SUCCESS(status))
+        status = PhMiResultToNtStatus(operationResult);
+
+    MI_Operation_Close(&operation);
+    MI_Session_Close(&session, NULL, NULL);
+    MI_Application_Close(&application);
+
+    return status;
+}
+
+#endif
