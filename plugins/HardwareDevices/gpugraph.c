@@ -278,7 +278,7 @@ VOID GraphicsDeviceLayoutGraphs(
         Context->FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = Context->GraphMargin;
+    marginRect = Context->GpuGraphMargin;
     PhGetMarginDpiValue(&marginRect, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
     PhGetClientRect(Context->GpuDialog, &clientRect);
