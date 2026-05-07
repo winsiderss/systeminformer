@@ -118,7 +118,15 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS, *PPHYSICAL_ADDRESS;
  */
 typedef struct _LARGE_INTEGER_128
 {
-    LONGLONG QuadPart[2];
+    union
+    {
+        LONGLONG QuadPart[2];
+        struct
+        {
+            ULARGE_INTEGER LowPart;
+            LARGE_INTEGER HighPart;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } LARGE_INTEGER_128, *PLARGE_INTEGER_128;
 
 /**
@@ -126,7 +134,15 @@ typedef struct _LARGE_INTEGER_128
  */
 typedef struct _ULARGE_INTEGER_128
 {
-    ULONGLONG QuadPart[2];
+    union
+    {
+        ULONGLONG QuadPart[2];
+        struct
+        {
+            ULARGE_INTEGER LowPart;
+            ULARGE_INTEGER HighPart;
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } ULARGE_INTEGER_128, *PULARGE_INTEGER_128;
 
 //
