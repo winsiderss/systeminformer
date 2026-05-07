@@ -866,14 +866,14 @@ BOOLEAN GraphicsQueryDeviceInterfaceAdapterIndexUnique(
 
     if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, (PWSTR)DeviceInterface)))
     {
-        GX_ADAPTER_ATTRIBUTES adapterSttributes;
+        GX_ADAPTER_ATTRIBUTES adapterAttributes;
 
         if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
             adapterHandle,
-            &adapterSttributes
+            &adapterAttributes
             )))
         {
-            npuDevice = !!adapterSttributes.TypeNpu;
+            npuDevice = !!adapterAttributes.TypeNpu;
         }
 
         GraphicsCloseAdapterHandle(adapterHandle);
