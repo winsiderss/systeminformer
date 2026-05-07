@@ -34,14 +34,14 @@ PPH_STRING GraphicsDeviceGetAdapterDescription(
 
     if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, NULL, PhGetString(DevicePath))))
     {
-        GX_ADAPTER_ATTRIBUTES adapterSttributes;
+        GX_ADAPTER_ATTRIBUTES adapterAttributes;
 
         if (NT_SUCCESS(GraphicsQueryAdapterAttributes(
             adapterHandle,
-            &adapterSttributes
+            &adapterAttributes
             )))
         {
-            npuDevice = !!adapterSttributes.TypeNpu;
+            npuDevice = !!adapterAttributes.TypeNpu;
         }
 
         GraphicsCloseAdapterHandle(adapterHandle);
