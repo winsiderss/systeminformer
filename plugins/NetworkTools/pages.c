@@ -22,8 +22,8 @@ TASKDIALOG_BUTTON DownloadButtonArray[] =
 };
 
 HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -31,7 +31,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
 {
     PNETWORK_GEODB_UPDATE_CONTEXT context = (PNETWORK_GEODB_UPDATE_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         PhSetEvent(&InitializedEvent);
@@ -73,7 +73,7 @@ HRESULT CALLBACK CheckForUpdatesDbCallbackProc(
         break;
     case TDN_HYPERLINK_CLICKED:
         {
-            PhShellExecute(hwndDlg, L"https://www.maxmind.com", NULL);
+            PhShellExecute(WindowHandle, L"https://www.maxmind.com", NULL);
         }
         break;
     }
@@ -165,6 +165,7 @@ HRESULT CALLBACK FinalDbTaskDialogCallbackProc(
         {
             if (!PhGetOwnTokenAttributes().Elevated)
             {
+                SendMessage(WindowHandle, TDM_SET_BUTTON_ELEVATION_REQUIRED_STATE, IDYES, TRUE);
             }
         }
         break;
