@@ -171,7 +171,7 @@ typedef enum _SUPERFETCH_INFORMATION_CLASS
     SuperfetchPfnQuery,                        // q: PF_PFN_PRIO_REQUEST
     SuperfetchPfnSetPriority,                  // s: PF_PFN_PRIO_REQUEST // MmSetPfnListInfo
     SuperfetchPrivSourceQuery,                 // q: PF_PRIVSOURCE_QUERY_REQUEST
-    SuperfetchSequenceNumberQuery,             // q: ULONG
+    SuperfetchSequenceNumberQuery,             // q: PF_SEQUENCENUMBER_QUERY_REQUEST
     SuperfetchScenarioPhase,                   // s: PF_SCENARIO_PHASE_INFO // 10
     SuperfetchWorkerPriority,                  // s: PF_WORKER_PRIORITY_CONTROL
     SuperfetchScenarioQuery,                   // q: PF_SCENARIO_QUERY_INFO
@@ -490,6 +490,12 @@ typedef struct _PF_PRIVSOURCE_QUERY_REQUEST
     ULONG InfoCount;
     PF_PRIVSOURCE_INFO InfoArray[1];
 } PF_PRIVSOURCE_QUERY_REQUEST, *PPF_PRIVSOURCE_QUERY_REQUEST;
+
+// rev
+typedef struct _PF_SEQUENCENUMBER_QUERY_REQUEST
+{
+    ULONG SequenceNumber;
+} PF_SEQUENCENUMBER_QUERY_REQUEST, *PPF_SEQUENCENUMBER_QUERY_REQUEST;
 
 // rev
 typedef enum _PF_PHASED_SCENARIO_TYPE
