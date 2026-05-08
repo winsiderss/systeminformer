@@ -893,8 +893,8 @@ namespace CustomBuildTool
         /// Executes a CMake command in a Visual Studio environment, initializing the required build tools before
         /// running the command.
         /// </summary>
-        /// <remarks>This method sets up the Visual Studio build environment by calling 'Enter-VsDevShell'
-        /// for the appropriate architecture before executing the CMake command. The exit code can be used to determine
+        /// <remarks>This method sets up the Visual Studio build environment by invoking VsDevCmd.bat for the
+        /// appropriate architecture before executing the CMake command. The exit code can be used to determine
         /// success or failure of the operation.</remarks>
         /// <param name="Arguments">The CMake command line arguments to execute. Must specify the desired build configuration and architecture.</param>
         /// <returns>The exit code returned by the CMake process. Returns <see cref="int.MaxValue"/> if required tools are not
@@ -916,12 +916,12 @@ namespace CustomBuildTool
                 return int.MaxValue;
             }
 
-            string vsDevShell = Path.Join([instance.Path, "Common7\\Tools\\Microsoft.VisualStudio.DevShell.dll"]);
+            string vsDevCmd = Path.Join([instance.Path, "Common7\\Tools\\VsDevCmd.bat"]);
             string arch = null;
 
-            if (!File.Exists(vsDevShell))
+            if (!File.Exists(vsDevCmd))
             {
-                Program.PrintColorMessage("[ExecuteCMakeCommand] Microsoft.VisualStudio.DevShell.dll not found.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ExecuteCMakeCommand] VsDevCmd.bat not found.", ConsoleColor.Red);
                 return int.MaxValue;
             }
 
@@ -942,39 +942,31 @@ namespace CustomBuildTool
 
             arch ??= "amd64";
 
-            string powershellFile = Win32.SearchPath("pwsh.exe") ?? Win32.SearchPath("powershell.exe");
-            if (string.IsNullOrWhiteSpace(powershellFile))
-            {
-                Program.PrintColorMessage("[ExecuteCMakeCommand] PowerShell not found.", ConsoleColor.Red);
-                return int.MaxValue;
-            }
-
-            // We need to run Enter-VsDevShell and then cmake in the same session.
             string command = string.Concat(
-                "$ErrorActionPreference = 'Stop'; $VerbosePreference = 'Continue'; ",
-                "Import-Module ", QuotePowerShellArgument(vsDevShell), "; ",
-                "Enter-VsDevShell -VsInstallPath ", QuotePowerShellArgument(instance.Path), " -Arch ", QuotePowerShellArgument(arch), " -HostArch amd64 -SkipAutomaticLocation; ",
-                "& ", QuotePowerShellArgument(cmakeFile), " @(",
-                string.Join(", ", arguments.Select(QuotePowerShellArgument)),
-                "); exit $LASTEXITCODE"
+                "\"\"",
+                vsDevCmd,
+                "\"",
+                " -arch=",
+                arch,
+                " -host_arch=amd64 && ",
+                QuoteCmdArgument(cmakeFile),
+                " ",
+                string.Join(" ", arguments.Select(QuoteCmdArgument)),
+                "\""
                 );
 
-            string encodedCommand = Convert.ToBase64String(Encoding.Unicode.GetBytes(command));
-
-            //Environment.SetEnvironmentVariable("VSCMD_SKIP_SENDTELEMETRY", "1", EnvironmentVariableTarget.User);
-
             return Win32.CreateProcess(
-                powershellFile,
-                ["-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encodedCommand],
+                "cmd.exe",
+                $"/d /s /c {command}",
                 out _,
                 false,
                 false
                 );
         }
 
-        private static string QuotePowerShellArgument(string Argument)
+        private static string QuoteCmdArgument(string Argument)
         {
-            return $"'{Argument?.Replace("'", "''", StringComparison.OrdinalIgnoreCase)}'";
+            return $"\"{Argument}\"";
         }
 
         /// <summary>

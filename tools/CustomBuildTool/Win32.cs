@@ -128,6 +128,71 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Creates a new process and buffers the output into a string using a raw command-line argument string.
+        /// </summary>
+        /// <param name="FileName">The name of the application to start.</param>
+        /// <param name="Arguments">The raw argument string to pass to the application.</param>
+        /// <param name="OutputString">The output from the application</param>
+        /// <param name="FixNewLines"></param>
+        /// <param name="RedirectOutput"></param>
+        /// <returns>If the creation succeeds, the return value is nonzero.</returns>
+        public static int CreateProcess(string FileName, string Arguments, out string OutputString, bool FixNewLines = true, bool RedirectOutput = true)
+        {
+            int exitcode = int.MaxValue;
+            StringBuilder output = new StringBuilder(0x1000);
+            StringBuilder error = new StringBuilder(0x1000);
+
+            try
+            {
+                using (Process process = new Process())
+                {
+                    process.StartInfo.FileName = FileName;
+                    process.StartInfo.UseShellExecute = false;
+
+                    if (!string.IsNullOrWhiteSpace(Arguments))
+                    {
+                        process.StartInfo.Arguments = Arguments;
+                    }
+
+                    if (RedirectOutput)
+                    {
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.RedirectStandardError = true;
+                        process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
+                        process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
+                        process.OutputDataReceived += (_, e) => { if (e.Data != null) output.AppendLine(e.Data); };
+                        process.ErrorDataReceived += (_, e) => { if (e.Data != null) error.AppendLine(e.Data); };
+                    }
+
+                    process.Start();
+
+                    if (RedirectOutput)
+                    {
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
+                    }
+
+                    process.WaitForExit();
+
+                    exitcode = process.ExitCode;
+                }
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"[CreateProcess] {ex}", ConsoleColor.Red);
+            }
+
+            OutputString = (output.ToString().Trim() + error.ToString().Trim());
+
+            if (FixNewLines)
+            {
+                OutputString = OutputString.Replace("\n\n", "\r\n", StringComparison.OrdinalIgnoreCase).Trim();
+            }
+
+            return exitcode;
+        }
+
+        /// <summary>
         /// Create an empty file.
         /// </summary>
         /// <param name="FileName">The file name or path.</param>
