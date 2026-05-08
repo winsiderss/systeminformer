@@ -773,7 +773,17 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags)) 
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
+                    Environment.Exit(1);
+
+                if (Build.HaveArm64BuildTools)
+                {
+                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                        Environment.Exit(1);
+                }
+
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
                 if (!Build.BuildBinZip(flags)) Environment.Exit(1);
                 if (!Build.CopyTextFiles(false, flags)) Environment.Exit(1);
@@ -798,7 +808,17 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
+                    Environment.Exit(1);
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
+                    Environment.Exit(1);
+
+                if (Build.HaveArm64BuildTools)
+                {
+                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                        Environment.Exit(1);
+                }
+
                 if (!Build.CopyWow64Files(flags)) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
                 if (!Build.BuildBinZip(flags)) Environment.Exit(1);
@@ -835,8 +855,16 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
+                    Environment.Exit(1);
                 if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
                     Environment.Exit(1);
+
+                if (Build.HaveArm64BuildTools)
+                {
+                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
+                        Environment.Exit(1);
+                }
 
                 Build.CopyWow64Files(flags);
                 Build.ShowBuildStats();
