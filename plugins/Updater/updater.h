@@ -209,7 +209,7 @@ VOID StartInitialCheck(
     );
 
 VOID ShowStartupUpdateDialog(
-    _In_ PPH_STRING CacheSttring
+    _In_ PPH_STRING CacheString
     );
 
 ULONG64 ParseVersionString(
