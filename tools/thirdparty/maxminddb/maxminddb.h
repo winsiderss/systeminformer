@@ -2,10 +2,10 @@
 extern "C" {
 #endif
 
+#include <ph.h>
+
 #ifndef MAXMINDDB_H
 #define MAXMINDDB_H
-
-#include <ph.h>
 
 #include "maxminddb_config.h"
 #include <stdarg.h>
@@ -14,20 +14,39 @@ extern "C" {
 #include <stdio.h>
 #include <sys/types.h>
 
+#ifdef __has_include
+    #if __has_include(<endian.h>)
+        #include <endian.h>
+    #elif __has_include(<sys/endian.h>)
+        #include <sys/endian.h>
+    #endif
+#endif
+
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
 /* libmaxminddb package version from configure */
-#define PACKAGE_VERSION "1.12.2"
+#define PACKAGE_VERSION "1.13.3"
 
 #if defined(_MSC_VER)
 /* MSVC doesn't define signed size_t, copy it from configure */
 #define ssize_t SSIZE_T
 #endif
 #else
-#include <netdb.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
+    #include <netdb.h>
+    #include <netinet/in.h>
+    #include <sys/socket.h>
+#endif
+
+#if !defined(MMDB_LITTLE_ENDIAN)
+    #if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__)
+        #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+            #define MMDB_LITTLE_ENDIAN 1
+        #endif
+    #elif defined(_WIN32) || defined(_WIN64)
+        // We assume modern Windows targets are little endian
+        #define MMDB_LITTLE_ENDIAN 1
+    #endif
 #endif
 
 #define MMDB_DATA_TYPE_EXTENDED (0)
@@ -71,12 +90,12 @@ extern "C" {
 #define MMDB_IPV6_LOOKUP_IN_IPV4_DATABASE_ERROR (11)
 
 #if !(MMDB_UINT128_IS_BYTE_ARRAY)
-#if MMDB_UINT128_USING_MODE
+    #if MMDB_UINT128_USING_MODE
 typedef unsigned int mmdb_uint128_t __attribute__((__mode__(TI)));
-#else
+        #else
 typedef unsigned __int128 mmdb_uint128_t;
-#endif
-#endif
+        #endif
+    #endif
 
 /* This is a pointer into the data section for a given IP address lookup */
 typedef struct MMDB_entry_s {
@@ -101,11 +120,11 @@ typedef struct MMDB_entry_data_s {
         uint32_t uint32;
         int32_t int32;
         uint64_t uint64;
-#if MMDB_UINT128_IS_BYTE_ARRAY
+    #if MMDB_UINT128_IS_BYTE_ARRAY
         uint8_t uint128[16];
-#else
+    #else
         mmdb_uint128_t uint128;
-#endif
+    #endif
         bool boolean;
         float float_value;
     };
@@ -176,7 +195,7 @@ typedef struct MMDB_ipv4_start_node_s {
  * library is upgraded */
 typedef struct MMDB_s {
     uint32_t flags;
-    //const char *filename;
+    const char *filename;
     ssize_t file_size;
     const uint8_t *file_content;
     const uint8_t *data_section;
@@ -229,7 +248,7 @@ MMDB_get_entry_data_list(MMDB_entry_s *start,
 extern void
 MMDB_free_entry_data_list(MMDB_entry_data_list_s *const entry_data_list);
 extern void MMDB_close(MMDB_s *const mmdb);
-extern const char *MMDB_lib_version(void);
+//extern const char *MMDB_lib_version(void);
 extern int
 MMDB_dump_entry_data_list(FILE *const stream,
                           MMDB_entry_data_list_s *const entry_data_list,

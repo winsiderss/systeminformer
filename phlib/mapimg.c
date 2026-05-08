@@ -748,7 +748,7 @@ CleanupExit:
 }
 
 /**
- * Maps ped image prefetch.
+ * Maps PE image prefetch.
  *
  * \param MappedImage The MappedImage parameter.
  */
@@ -841,14 +841,6 @@ PIMAGE_SECTION_HEADER PhMappedImageRvaToSection(
  * adjusting for section alignment differences.
  */
 _Success_(return != NULL)
-/**
- * Maps ped image rva to va.
- *
- * \param MappedImage The MappedImage parameter.
- * \param Rva The Rva parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
- */
 PVOID PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -886,14 +878,6 @@ PVOID PhMappedImageRvaToVa(
  * \return A pointer to the address in the mapped view, otherwise NULL.
  */
 _Success_(return != NULL)
-/**
- * Maps ped image va to va.
- *
- * \param MappedImage The MappedImage parameter.
- * \param Va The Va parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
- */
 PVOID PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONGLONG Va,
@@ -933,15 +917,20 @@ PVOID PhMappedImageVaToVa(
         ));
 }
 
-_Success_(return != NULL)
 /**
- * Maps ped image rva to file offset.
+ * Converts a relative virtual address (RVA) to a file offset within the mapped image.
  *
- * \param MappedImage The MappedImage parameter.
- * \param Rva The Rva parameter.
- * \param Section The Section parameter.
- * \return PVOID A pointer to the requested data, or NULL if unavailable.
+ * \param MappedImage A pointer to the mapped image.
+ * \param Rva The relative virtual address to convert.
+ * \param Section An optional pointer that receives the section header containing the RVA.
+ * \return A pointer representing the file offset, or NULL if the RVA is invalid or not found.
+ * \remarks This function differs from PhMappedImageRvaToVa by returning a file offset pointer
+ * rather than a mapped view pointer. For SEC_IMAGE mappings, it returns ViewBase + RVA.
+ * For file mappings (SEC_COMMIT), it calculates the file offset by adjusting for the difference
+ * between the section's virtual address and its raw data pointer. The returned pointer represents
+ * an offset value and should not be dereferenced directly as memory.
  */
+_Success_(return != NULL)
 PVOID PhMappedImageRvaToFileOffset(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG Rva,
@@ -1091,7 +1080,7 @@ PVOID PhGetMappedImageDirectoryEntry(
 }
 
 /**
- * p Get Mapped Image Load Config.
+ * Retrieves the load configuration directory for a mapped PE image (internal helper).
  *
  * \param MappedImage The MappedImage parameter.
  * \param Magic The Magic parameter.
@@ -2987,7 +2976,7 @@ NTSTATUS PhGetMappedImageDelayImports(
     {
         while (TRUE)
         {
-            PhMappedImageProbe(MappedImage, descriptor, sizeof(PIMAGE_DELAYLOAD_DESCRIPTOR));
+            PhMappedImageProbe(MappedImage, descriptor, sizeof(IMAGE_DELAYLOAD_DESCRIPTOR));
 
             if (descriptor->ImportAddressTableRVA == 0 && descriptor->ImportNameTableRVA == 0)
                 break;
@@ -4175,7 +4164,6 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         ULONG currentCount = 0;
         PBYTE currentAddress;
         PBYTE currentEnd;
-        PBYTE offset;
 
         currentAddress = PTR_ADD_OFFSET(richHeaderStart, 0);
         currentEnd = PTR_SUB_OFFSET(richHeaderEnd, 0);
@@ -4211,9 +4199,10 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             PVOID richHeaderContentEnd;
             ULONG richHeaderContentLength;
             PULONG richHeaderContentBuffer;
-            PULONG richHeaderContentOffset;
+            PULONG richHeaderContentBufferEnd;
             PH_HASH_CONTEXT hashContext;
-            UCHAR hash[PH_HASH_MD5_LENGTH];
+            ULONG hashLength = PH_HASH_SHA256_LENGTH;
+            UCHAR hash[PH_HASH_SHA256_LENGTH];
 
             // Recalculate the length needed for the hash since VT doesn't include the remaining entry.
             richHeaderContentEnd = PTR_ADD_OFFSET(MappedImage->ViewBase, richHeaderEndOffset);
@@ -4226,30 +4215,36 @@ NTSTATUS PhGetMappedImageProdIdHeader(
             }
             __except (EXCEPTION_EXECUTE_HANDLER)
             {
+                PhDereferenceObject(hashRawContentString);
                 return GetExceptionCode();
             }
 
             richHeaderContentBuffer = PhAllocateZero(richHeaderContentLength);
-            memcpy(richHeaderContentBuffer, richHeaderStart, richHeaderContentLength);
 
-            // Walk the buffer and decrypt the entire thing. Based on the same loop used by yara:
-            // https://github.com/VirusTotal/yara/blob/master/libyara/modules/pe/pe.c#L251-L259
-            for (
-                richHeaderContentOffset = richHeaderContentBuffer;
-                richHeaderContentOffset < (PULONG)PTR_ADD_OFFSET(richHeaderContentBuffer, richHeaderContentLength);
-                richHeaderContentOffset++
-                )
+            if (!richHeaderContentBuffer)
             {
-                *richHeaderContentOffset ^= richHeaderKey;
+                PhDereferenceObject(hashRawContentString);
+                return STATUS_NO_MEMORY;
+            }
+
+            {
+                richHeaderContentBufferEnd = (PULONG)PTR_ADD_OFFSET(richHeaderContentBuffer, richHeaderContentLength);
+
+                memcpy(richHeaderContentBuffer, richHeaderStart, richHeaderContentLength);
+
+                for (PULONG p = richHeaderContentBuffer; p < richHeaderContentBufferEnd; p++)
+                {
+                    *p ^= richHeaderKey;
+                }
             }
 
             if (NT_SUCCESS(PhInitializeHash(&hashContext, Md5HashAlgorithm)))
             {
                 if (NT_SUCCESS(PhUpdateHash(&hashContext, richHeaderContentBuffer, richHeaderContentLength)))
                 {
-                    if (NT_SUCCESS(PhFinalHash(&hashContext, hash, sizeof(hash), NULL)))
+                    if (NT_SUCCESS(PhFinalHash(&hashContext, hash, hashLength, &hashLength)))
                     {
-                        hashContentString = PhBufferToHexString(hash, sizeof(hash));
+                        hashContentString = PhBufferToHexString(hash, hashLength);
                     }
                 }
             }
@@ -4258,103 +4253,90 @@ NTSTATUS PhGetMappedImageProdIdHeader(
         }
 
         if (PhIsNullOrEmptyString(hashContentString))
-            return STATUS_FAIL_CHECK;
-
-        // Do a scan to determine how many entries there are.
-        for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
         {
-            currentCount++;
+            PhDereferenceObject(hashRawContentString);
+            return STATUS_FAIL_CHECK;
         }
 
+        __try
+        {
+            PhMappedImageProbe(MappedImage, imageDosHeader, richHeaderStartOffset);
+            PhMappedImageProbe(MappedImage, richHeaderStart, richHeaderLength);
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        if (richHeaderLength % sizeof(PRODITEM) != 0)
+            return STATUS_FAIL_CHECK;
+
+        currentCount = richHeaderLength / sizeof(PRODITEM);
+
         // Compute the DOS header and DOS stub checksums.
+
         for (ULONG i = 0; i < richHeaderStartOffset; i++)
         {
             BYTE value;
 
             // Skip the e_lfanew field.
+
             if (i >= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) &&
                 i <= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) + RTL_FIELD_SIZE(IMAGE_DOS_HEADER, e_lfanew) - sizeof(BYTE))
             {
                 continue;
             }
 
-            __try
-            {
-                value = *(PBYTE)PTR_ADD_OFFSET(imageDosHeader, UInt32x32To64(i, sizeof(BYTE)));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                return GetExceptionCode();
-            }
+            value = *(PBYTE)PTR_ADD_OFFSET(imageDosHeader, UInt32x32To64(i, sizeof(BYTE)));
 
             richHeaderValue += _rotl(value, i);
         }
 
-        // Compute each of the RICH entry value checksums.
-        for (ULONG i = 0; i < currentCount; i++)
-        {
-            PPRODITEM entry;
-            ULONG prodid;
-            ULONG count;
-
-            entry = PTR_ADD_OFFSET(currentAddress, UInt32x32To64(i, sizeof(PRODITEM)));
-
-            __try
-            {
-                PhMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                return GetExceptionCode();
-            }
-
-            prodid = entry->dwProdid ^ richHeaderKey;
-            count = entry->dwCount ^ richHeaderKey;
-
-            if (count > 0 && count != richHeaderKey)
-            {
-                richHeaderValue += _rotl((ProdidFromDwProdid(prodid) << 16 | WBuildFromDwProdid(prodid)), count & 0x1F);
-            }
-        }
-
-        // Allocate the number of product entries.
+        // Allocate the product entries.
 
         PhInitializeArray(&richHeaderEntryArray, sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY), currentCount);
 
-        // Add the product entries into our buffer.
+        // Compute checksums and products.
 
         for (ULONG i = 0; i < currentCount; i++)
         {
-            PPRODITEM item = PTR_ADD_OFFSET(currentAddress, UInt32x32To64(i, sizeof(PRODITEM)));
+            PPRODITEM item;
+            ULONG prodid;
+            ULONG count;
+            BOOLEAN markerEntry;
 
-            __try
+            item = PTR_ADD_OFFSET(currentAddress, UInt32x32To64(i, sizeof(PRODITEM)));
+
+            prodid = item->dwProdid ^ richHeaderKey;
+            count = item->dwCount ^ richHeaderKey;
+            markerEntry = (prodid == ProdIdTagEnd || prodid == ProdIdTagStart);
+
+            if (!markerEntry && count > 0 && count != richHeaderKey)
             {
-                PhMappedImageProbe(MappedImage, item, sizeof(PRODITEM));
-            }
-            __except (EXCEPTION_EXECUTE_HANDLER)
-            {
-                return GetExceptionCode();
+                richHeaderValue += _rotl((ProdidFromDwProdid(prodid) << 16 | WBuildFromDwProdid(prodid)), count & 0x1F);
             }
 
-            // The prodid header can include 3 extra checksum values. Ignore these for now (dmex)
-            if ((item->dwCount ^ richHeaderKey) != richHeaderKey)
+            // Include optional checksum-like entries which may appear due to padding/format variants.
+            if (!markerEntry && (prodid != 0 || count != 0))
             {
                 PH_MAPPED_IMAGE_PRODID_ENTRY entry;
 
-                entry.ProductId = ProdidFromDwProdid(item->dwProdid ^ richHeaderKey);
-                entry.ProductBuild = WBuildFromDwProdid(item->dwProdid ^ richHeaderKey);
-                entry.ProductCount = item->dwCount ^ richHeaderKey;
+                entry.ProductId = ProdidFromDwProdid(prodid);
+                entry.ProductBuild = WBuildFromDwProdid(prodid);
+                entry.ProductCount = count;
 
                 PhAddItemArray(&richHeaderEntryArray, &entry);
             }
         }
+
+        assert(richHeaderKey == richHeaderValue);
 
         //PhPrintPointer(ProdIdHeader->Key, UlongToPtr(richHeaderKey));
         ProdIdHeader->Valid = richHeaderKey == richHeaderValue;
         ProdIdHeader->Key = PhFormatString(L"%lx", richHeaderKey);
         ProdIdHeader->RawHash = hashRawContentString;
         ProdIdHeader->Hash = hashContentString;
-        ProdIdHeader->NumberOfEntries = currentCount;
+        ProdIdHeader->NumberOfEntries = PhFinalArrayCount(&richHeaderEntryArray);
         ProdIdHeader->ProdIdEntries = PhFinalArrayItems(&richHeaderEntryArray);
 
         //for (offset = currentAddress; offset < currentEnd; offset += sizeof(PRODITEM))
@@ -4373,12 +4355,16 @@ NTSTATUS PhGetMappedImageProdIdHeader(
 }
 
 /**
- * Gets mapped image prod id extents.
+ * Retrieves the extents (start and end offsets) of the Rich/ProdId header in a mapped PE image.
  *
- * \param MappedImage The MappedImage parameter.
- * \param ProdIdHeaderStart The ProdIdHeaderStart parameter.
- * \param ProdIdHeaderEnd The ProdIdHeaderEnd parameter.
+ * \param MappedImage A pointer to the mapped image.
+ * \param ProdIdHeaderStart A pointer that receives the start offset of the Rich header.
+ * \param ProdIdHeaderEnd A pointer that receives the end offset of the Rich header.
  * \return NTSTATUS Successful or errant status.
+ * \remarks This function locates the Rich header (also known as ProdId header) which contains
+ * metadata about the tools used to build the PE image. The Rich header is located between the
+ * DOS stub and the PE header, starting with "DanS" (0x536E6144 XOR key) and ending with "Rich"
+ * (0x68636952). The function validates the header by computing and verifying the checksum.
  */
 NTSTATUS PhGetMappedImageProdIdExtents(
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -4505,6 +4491,8 @@ NTSTATUS PhGetMappedImageProdIdExtents(
         PBYTE currentAddress;
         PBYTE currentEnd;
         PBYTE offset;
+        ULONG computedChecksum;
+        ULONG i;
 
         currentAddress = PTR_ADD_OFFSET(richHeaderStart, 0);
         currentEnd = PTR_SUB_OFFSET(richHeaderEnd, 0);
@@ -4515,15 +4503,90 @@ NTSTATUS PhGetMappedImageProdIdExtents(
             currentCount++;
         }
 
-        // Calculate rich header and rich header padding. (Todo: Generate richHeaderKey and validate).
+        // Generate and validate the Rich header checksum.
+        // Checksum algorithm:
+        // 1. Initialize the accumulator with the Rich header byte offset from image base.
+        // 2. Add rotated byte values from the DOS header/stub up to Rich start, excluding IMAGE_DOS_HEADER.e_lfanew.
+        // 3. For each decoded Rich entry, add:
+        //     _rotl((ProdidFromDwProdid(prodid) << 16) | WBuildFromDwProdid(prodid), count & 0x1F)
+        //    skipping entries where count is 0 or equals richHeaderKey (these are extra padding).
+        // 4. The computed checksum must match richHeaderKey.
+
+        computedChecksum = richHeaderStartOffset;
+
+        __try
+        {
+            // Compute checksum from DOS header and stub
+            for (i = 0; i < richHeaderStartOffset; i++)
+            {
+                BYTE value;
+
+                // Skip the e_lfanew field (4 bytes at offset 0x3C)
+                if (i >= UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) &&
+                    i < UFIELD_OFFSET(IMAGE_DOS_HEADER, e_lfanew) + sizeof(ULONG))
+                {
+                    continue;
+                }
+
+                value = *(PBYTE)PTR_ADD_OFFSET(imageDosHeader, i);
+                computedChecksum += _rotl(value, i);
+            }
+
+            // Add contribution from each Rich entry
+            for (i = 0; i < currentCount; i++)
+            {
+                PPRODITEM entry = PTR_ADD_OFFSET(currentAddress, UInt32x32To64(i, sizeof(PRODITEM)));
+                ULONG prodid;
+                ULONG count;
+
+                PhMappedImageProbe(MappedImage, entry, sizeof(PRODITEM));
+
+                prodid = entry->dwProdid ^ richHeaderKey;
+                count = entry->dwCount ^ richHeaderKey;
+
+                // Skip padding entries and the key itself
+                if (count > 0 && count != richHeaderKey)
+                {
+                    // Combine product ID (high word) and build number (low word)
+                    ULONG combined = (ProdidFromDwProdid(prodid) << 16) | WBuildFromDwProdid(prodid);
+
+                    // Rotate left by count and add to checksum
+                    computedChecksum += _rotl(combined, count & 0x1F);
+                }
+            }
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            return GetExceptionCode();
+        }
+
+        // Validate the computed checksum against the stored key
+        if (computedChecksum != richHeaderKey)
+        {
+            // Checksum mismatch indicates corrupted or tampered Rich header
+            return STATUS_INVALID_IMAGE_HASH;
+        }
+
+        // Calculate rich header total length including padding
         richHeaderTotalLength = (richHeaderKey >> 5) % 3;
         richHeaderTotalLength += currentCount - 3; // remove 3 fixed checksum entries.
         richHeaderTotalLength *= sizeof(PRODITEM);
         richHeaderTotalLength += sizeof(PRODITEM) * 4; // add 3 fixed checksums and 1 null entry (0x20).
         richHeaderTotalLength += richHeaderStartOffset;
 
-        // If we assert then the image has hidden data or the rich format changed.
-        assert(richHeaderTotalLength == ntHeadersOffset);
+        // Verify the calculated length matches the NT headers offset
+        // If assertion fails, the image may contain hidden data or the Rich format has changed
+        if (richHeaderTotalLength != ntHeadersOffset)
+        {
+            // This is not necessarily an error, but indicates non-standard padding
+            // Some tools deliberately add extra data between Rich header and PE header
+#ifdef DEBUG
+            // In debug builds, assert to catch unexpected cases
+            assert(richHeaderTotalLength == ntHeadersOffset);
+#endif
+            // Use the actual NT headers offset as the end boundary
+            richHeaderTotalLength = ntHeadersOffset;
+        }
 
         *ProdIdHeaderStart = richHeaderStartOffset;
         *ProdIdHeaderEnd = richHeaderTotalLength;
@@ -5368,14 +5431,14 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
 }
 
 /**
- * p Fill Dynamic Relocations.
+ * Fills dynamic relocation entries for a relocation symbol from a base relocation range.
  *
- * \param MappedImage The MappedImage parameter.
- * \param Symbol The Symbol parameter.
- * \param BaseRelocs The BaseRelocs parameter.
- * \param BaseRelocsEnd The BaseRelocsEnd parameter.
- * \param Callback The Callback parameter.
- * \param Context The Context parameter.
+ * \param MappedImage A pointer to the mapped image used for bounds checking and RVA resolution.
+ * \param Symbol The dynamic relocation symbol identifier that determines how entries are interpreted.
+ * \param BaseRelocs A pointer to the first IMAGE_BASE_RELOCATION block to process.
+ * \param BaseRelocsEnd A pointer to the end of the relocation block range (one past the last valid byte).
+ * \param Callback A caller-supplied routine invoked for each decoded dynamic relocation entry.
+ * \param Context Optional caller-defined context passed through to Callback on each invocation.
  * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhpFillDynamicRelocations(
@@ -5504,7 +5567,7 @@ NTSTATUS PhpFillDynamicRelocations(
             prologueBytes = PTR_ADD_OFFSET(header, sizeof(IMAGE_PROLOGUE_DYNAMIC_RELOCATION_HEADER));
 
             // Validate prologue bytes are within block bounds
-            if ((ULONG_PTR)PTR_ADD_OFFSET(prologueBytes, header->PrologueByteCount) > 
+            if ((ULONG_PTR)PTR_ADD_OFFSET(prologueBytes, header->PrologueByteCount) >
                 (ULONG_PTR)PTR_ADD_OFFSET(base, base->SizeOfBlock))
             {
                 break;
@@ -5560,11 +5623,11 @@ NTSTATUS PhpFillDynamicRelocations(
             // Calculate sizes and validate bounds
             descriptorsSize = (SIZE_T)header->BranchDescriptorElementSize * header->BranchDescriptorCount;
             branchDescriptorBitMap = PTR_ADD_OFFSET(branchDescriptors, descriptorsSize);
-            
+
             // Bitmap size: (BranchDescriptorCount + 7) / 8 bytes
             bitMapSize = (header->BranchDescriptorCount + 7) / 8;
 
-            if ((ULONG_PTR)PTR_ADD_OFFSET(branchDescriptorBitMap, bitMapSize) > 
+            if ((ULONG_PTR)PTR_ADD_OFFSET(branchDescriptorBitMap, bitMapSize) >
                 (ULONG_PTR)PTR_ADD_OFFSET(base, base->SizeOfBlock))
             {
                 break;
@@ -6671,7 +6734,7 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
 }
 
 /**
- * Maps ped image update hash data.
+ * Maps PE image update hash data.
  *
  * \param HashContext The HashContext parameter.
  * \param Buffer The Buffer parameter.
@@ -6840,7 +6903,7 @@ NTSTATUS PhGetMappedImageAuthenticodeHash(
 
             if (NT_SUCCESS(status))
             {
-                hashString = PhBufferToHexString(hash, sizeof(hash));
+                hashString = PhBufferToHexString(hash, hashLength);
             }
         }
 
@@ -6970,7 +7033,7 @@ NTSTATUS PhGetMappedImageAuthenticodeLegacy(
 
             if (NT_SUCCESS(status))
             {
-                hashString = PhBufferToHexString(hash, sizeof(hash));
+                hashString = PhBufferToHexString(hash, hashLength);
             }
         }
 
@@ -7174,9 +7237,8 @@ ULONG PhGetMappedImageCHPEVersion(
     return 0;
 }
 
-
 /**
- * Maps ped image parse tlg provider blob.
+ * Maps ETW TraceLogging provider blobs.
  *
  * \param Address The Address parameter.
  * \param EndAddress The EndAddress parameter.
@@ -7256,7 +7318,7 @@ NTSTATUS PhMappedImageParseTlgProviderBlob(
 }
 
 /**
- * Maps ped image parse tlg provider3 blob.
+ * Maps ETW TraceLogging provider3 blobs.
  *
  * \param Address The Address parameter.
  * \param EndAddress The EndAddress parameter.
@@ -7339,7 +7401,7 @@ NTSTATUS PhMappedImageParseTlgProvider3Blob(
 }
 
 /**
- * Maps ped image parse tlg event blob.
+ * Maps ETW TraceLogging event blobs.
  *
  * \param BlobType The BlobType parameter.
  * \param HeaderStart The HeaderStart parameter.
@@ -7475,7 +7537,7 @@ NTSTATUS PhMappedImageParseTlgEventBlob(
 }
 
 /**
- * Maps ped image parse trace logging block.
+ * Maps ETW TraceLogging blocks.
  *
  * \param ViewBase The ViewBase parameter.
  * \param ViewSize The ViewSize parameter.

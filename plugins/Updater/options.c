@@ -26,8 +26,32 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
                 ULONG lastTimeUpdateSeconds;
                 LARGE_INTEGER lastTimeUpdateTicks;
+                HWND comboBoxHandle;
+                ULONG updateInterval;
 
                 Button_SetCheck(GetDlgItem(WindowHandle, IDC_AUTOCHECKBOX), BST_CHECKED);
+
+                comboBoxHandle = GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL);
+                ComboBox_AddString(comboBoxHandle, L"1 day");
+                ComboBox_AddString(comboBoxHandle, L"1 week");
+                ComboBox_AddString(comboBoxHandle, L"1 month");
+
+                updateInterval = PhGetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL);
+                switch (updateInterval)
+                {
+                case 1:
+                    ComboBox_SetCurSel(comboBoxHandle, 0);
+                    break;
+                case 7:
+                    ComboBox_SetCurSel(comboBoxHandle, 1);
+                    break;
+                case 30:
+                    ComboBox_SetCurSel(comboBoxHandle, 2);
+                    break;
+                default:
+                    ComboBox_SetCurSel(comboBoxHandle, 0);
+                    break;
+                }
 
                 if (lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK))
                 {
@@ -52,7 +76,10 @@ INT_PTR CALLBACK OptionsDlgProc(
                         PhGetStringOrEmpty(timeRelativeString)
                         )->Buffer);
 
-                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (7 * PH_TICKS_PER_DAY);
+                    if (updateInterval == 0)
+                        updateInterval = 1;
+
+                    time.QuadPart = lastTimeUpdateTicks.QuadPart + (updateInterval * PH_TICKS_PER_DAY);
                     PhLargeIntegerToLocalSystemTime(&timeFields, &time);
                     timeString = PhaFormatDateTime(&timeFields);
 
@@ -74,6 +101,10 @@ INT_PTR CALLBACK OptionsDlgProc(
                             )->Buffer);
                     }
                 }
+            }
+            else
+            {
+                EnableWindow(GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL), FALSE);
             }
 
             if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
@@ -98,8 +129,35 @@ INT_PTR CALLBACK OptionsDlgProc(
             {
             case IDC_AUTOCHECKBOX:
                 {
-                    PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK,
-                        Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED);
+                    BOOLEAN autoCheck = Button_GetCheck(GET_WM_COMMAND_HWND(wParam, lParam)) == BST_CHECKED;
+                    PhSetIntegerSetting(SETTING_NAME_AUTO_CHECK, autoCheck);
+                    EnableWindow(GetDlgItem(WindowHandle, IDC_UPDATE_INTERVAL), autoCheck);
+                }
+                break;
+            case IDC_UPDATE_INTERVAL:
+                {
+                    if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
+                    {
+                        ULONG updateInterval = 0;
+
+                        switch (ComboBox_GetCurSel(GET_WM_COMMAND_HWND(wParam, lParam)))
+                        {
+                        case 0:
+                            updateInterval = 1;
+                            break;
+                        case 1:
+                            updateInterval = 7;
+                            break;
+                        case 2:
+                            updateInterval = 30;
+                            break;
+                        }
+
+                        if (updateInterval != 0)
+                        {
+                            PhSetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL, updateInterval);
+                        }
+                    }
                 }
                 break;
             case IDC_SHOWSTARTPROMPTCHECK:
@@ -297,10 +355,13 @@ PPH_LIST PhpUpdaterQueryCommitHistory(
 
                 if ((commitMessageAuthorIndex = PhFindStringInString(entry->CommitMessageString, 0, L"Co-Authored-By:")) != SIZE_MAX)
                 {
-                    PhMoveReference(
-                        &entry->CommitMessageString,
-                        PhSubstring(entry->CommitMessageString, 0, (ULONG)commitMessageAuthorIndex - 2) // minus space
-                        );
+                    if (commitMessageAuthorIndex >= 2)
+                    {
+                        PhMoveReference(
+                            &entry->CommitMessageString,
+                            PhSubstring(entry->CommitMessageString, 0, (ULONG)commitMessageAuthorIndex - 2) // minus space
+                            );
+                    }
                 }
             }
 
@@ -450,37 +511,37 @@ VOID PhpUpdaterFreeListViewEntries(
 }
 
 INT_PTR CALLBACK TextDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PPH_UPDATER_COMMIT_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(PH_UPDATER_COMMIT_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_COMMITS);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_COMMITS);
             context->ListViewBoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD);
 
-            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
+            PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, FALSE); // TRUE, TRUE (tooltips)
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -493,20 +554,20 @@ INT_PTR CALLBACK TextDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_CHANGELOG_COLUMNS, context->ListViewHandle);
             PhLoadListViewSortColumnsFromSetting(SETTING_NAME_CHANGELOG_SORTCOLUMN, context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+                PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
-            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDCANCEL));
+            PhSetDialogFocus(WindowHandle, GetDlgItem(WindowHandle, IDCANCEL));
 
             {
                 PPH_UPDATER_CONTEXT updater = ((PPH_UPDATER_CONTEXT)lParam);
-                context->CurrentCommitHash = PhGetPhVersionHash();
+                context->CurrentCommitHash = PhGetBuildCommit();
                 if (updater) context->LatestCommitHash = PhReferenceObject(updater->CommitHash);
 
                 if (
@@ -530,17 +591,17 @@ INT_PTR CALLBACK TextDlgProc(
                 }
             }
 
-            //PhSetWindowText(GetDlgItem(hwndDlg, IDC_TEXT), PhGetString(context->BuildMessage));
-            PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, hwndDlg);
+            //PhSetWindowText(GetDlgItem(WindowHandle, IDC_TEXT), PhGetString(context->BuildMessage));
+            PhCreateThread2(PhpUpdaterQueryCommitHistoryThread, WindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
         {
             PhSaveListViewSortColumnsToSetting(SETTING_NAME_CHANGELOG_SORTCOLUMN, context->ListViewHandle);
             PhSaveListViewColumnsToSetting(SETTING_NAME_CHANGELOG_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_CHANGELOG_WINDOW_POSITION, SETTING_NAME_CHANGELOG_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -556,7 +617,7 @@ INT_PTR CALLBACK TextDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -568,8 +629,12 @@ INT_PTR CALLBACK TextDlgProc(
     case WM_DPICHANGED:
         {
             LONG windowDpi = HIWORD(wParam);
+            HFONT listViewBoldFont;
 
-            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
+            PhSetApplicationWindowIconEx(WindowHandle, windowDpi);
+
+            if (listViewBoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD))
+                PhReplaceWindowFont(&context->ListViewBoldFont, NULL, listViewBoldFont, FALSE);
         }
         break;
     case WM_COMMAND:
@@ -577,7 +642,7 @@ INT_PTR CALLBACK TextDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDCANCEL);
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             }
         }
@@ -603,7 +668,7 @@ INT_PTR CALLBACK TextDlgProc(
                     listview->dwFlags = EMF_CENTERED;
                     wcsncpy_s(listview->szMarkup, RTL_NUMBER_OF(listview->szMarkup), L"Querying changelog...", _TRUNCATE);
 
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                     return TRUE;
                 }
                 break;
@@ -621,7 +686,7 @@ INT_PTR CALLBACK TextDlgProc(
                                 PhGetString(entry->CommitHashString)
                                 ))
                             {
-                                PhShellExecute(hwndDlg, PhGetString(commitHashUrl), NULL);
+                                PhShellExecute(WindowHandle, PhGetString(commitHashUrl), NULL);
                                 PhDereferenceObject(commitHashUrl);
                             }
                         }
@@ -638,7 +703,7 @@ INT_PTR CALLBACK TextDlgProc(
                         {
                         case CDDS_PREPAINT:
                             {
-                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NOTIFYITEMDRAW);
+                                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, CDRF_NOTIFYITEMDRAW);
                                 return CDRF_NOTIFYITEMDRAW;
                             }
                             break;
@@ -682,16 +747,16 @@ INT_PTR CALLBACK TextDlgProc(
 
                                 if (newFont)
                                 {
-                                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NEWFONT);
+                                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, CDRF_NEWFONT);
                                     return CDRF_NEWFONT;
                                 }
                                 else
                                 {
-                                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_DODEFAULT);
+                                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, CDRF_DODEFAULT);
                                     return CDRF_DODEFAULT;
                                 }
 
-                                //SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NOTIFYSUBITEMDRAW);
+                                //SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, CDRF_NOTIFYSUBITEMDRAW);
                                 //return CDRF_NOTIFYSUBITEMDRAW;
                             }
                             break;
@@ -720,7 +785,7 @@ INT_PTR CALLBACK TextDlgProc(
                         //            customDraw->clrText = RGB(0x0, 0x0, 0x0);
                         //        }
                         //
-                        //        SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, CDRF_NEWFONT);
+                        //        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, CDRF_NEWFONT);
                         //        return CDRF_NEWFONT;
                         //    }
                         //    break;
@@ -732,7 +797,7 @@ INT_PTR CALLBACK TextDlgProc(
 
             PhHandleListViewNotifyForCopy(lParam, context->ListViewHandle);
 
-            REFLECT_MESSAGE_DLG(hwndDlg, context->ListViewHandle, uMsg, wParam, lParam);
+            REFLECT_MESSAGE_DLG(WindowHandle, context->ListViewHandle, WindowMessage, wParam, lParam);
         }
         break;
     case WM_CONTEXTMENU:
@@ -763,7 +828,7 @@ INT_PTR CALLBACK TextDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -797,7 +862,7 @@ INT_PTR CALLBACK TextDlgProc(
                                                 PhGetString(entry->CommitHashString)
                                                 ))
                                             {
-                                                PhShellExecute(hwndDlg, PhGetString(commitHashUrl), NULL);
+                                                PhShellExecute(WindowHandle, PhGetString(commitHashUrl), NULL);
                                                 PhDereferenceObject(commitHashUrl);
                                             }
                                         }
@@ -854,11 +919,11 @@ INT_PTR CALLBACK TextDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

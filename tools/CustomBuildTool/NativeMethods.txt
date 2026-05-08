@@ -12,6 +12,7 @@ RegCloseKey
 SafeArrayGetLBound
 SafeArrayGetUBound
 SafeArrayGetElement
+SafeArrayDestroy
 GetFileAttributesEx
 GetCurrentProcess
 GetErrorMode
@@ -40,11 +41,6 @@ IMAGE_DIRECTORY_ENTRY
 IMAGE_EXPORT_DIRECTORY
 IMAGE_NT_HEADERS32
 IMAGE_NT_HEADERS64
-ImageDirectoryEntryToData
-ImageDirectoryEntryToDataEx
-ImageRvaToVa
-MapAndLoad
-UnMapAndLoad
 OpenProcess
 OpenProcessToken
 SetTokenInformation

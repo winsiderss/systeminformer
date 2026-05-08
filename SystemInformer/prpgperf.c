@@ -78,17 +78,17 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             performanceContext->CpuGraphHandle = GetDlgItem(hwndDlg, IDC_CPU);
             PhSetWindowStyle(performanceContext->CpuGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->CpuGraphHandle, TRUE);
-            BringWindowToTop(performanceContext->CpuGraphHandle);
+            PhBringWindowToTop(performanceContext->CpuGraphHandle);
 
             performanceContext->PrivateGraphHandle = GetDlgItem(hwndDlg, IDC_PRIVATEBYTES);
             PhSetWindowStyle(performanceContext->PrivateGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->PrivateGraphHandle, TRUE);
-            BringWindowToTop(performanceContext->PrivateGraphHandle);
+            PhBringWindowToTop(performanceContext->PrivateGraphHandle);
 
             performanceContext->IoGraphHandle = GetDlgItem(hwndDlg, IDC_IO);
             PhSetWindowStyle(performanceContext->IoGraphHandle, WS_BORDER, WS_BORDER);
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
-            BringWindowToTop(performanceContext->IoGraphHandle);
+            PhBringWindowToTop(performanceContext->IoGraphHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -482,12 +482,12 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             LONG width;
             LONG height;
 
-            margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, performanceContext->WindowDpi);
+            margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, performanceContext->WindowDpi);
 
-            innerMargin.top = PhGetDpi(20, performanceContext->WindowDpi);
-            innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, performanceContext->WindowDpi);
+            innerMargin.top = PhScaleToDisplay(20, performanceContext->WindowDpi);
+            innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, performanceContext->WindowDpi);
 
-            between = PhGetDpi(3, performanceContext->WindowDpi);
+            between = PhScaleToDisplay(3, performanceContext->WindowDpi);
 
             performanceContext->CpuGraphState.Valid = FALSE;
             performanceContext->CpuGraphState.TooltipIndex = ULONG_MAX;

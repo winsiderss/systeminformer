@@ -67,7 +67,7 @@ namespace CustomBuildTool
                     return null;            
                 }
 
-                var keyVaultCertificateResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.KeyVaultCertificateResponse);
+                var keyVaultCertificateResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.KeyVaultCertificateResponse, CancellationToken);
                 var keyVaultCertificate = new KeyVaultCertificate();
 
                 if (!string.IsNullOrEmpty(keyVaultCertificateResponse?.CertificateString))
@@ -164,7 +164,7 @@ namespace CustomBuildTool
             }
 
             var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-            var secretResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.SecretResponse);
+            var secretResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.SecretResponse, CancellationToken);
             
             if (string.IsNullOrWhiteSpace(secretResponse.Value))
             {
@@ -340,7 +340,7 @@ namespace CustomBuildTool
                     {
                         var fileList = Utils.EnumerateDirectory(TargetPath, [".exe", ".dll"], ["ksi.dll"]);
 
-                        if (fileList == null || fileList.Count == 0)
+                        if (fileList == null || fileList.Count() == 0)
                         {
                             Program.PrintColorMessage($"No files found to sign.", ConsoleColor.Red);
                         }
@@ -374,7 +374,7 @@ namespace CustomBuildTool
                                 }
                             }
 
-                            Program.PrintColorMessage($"Signing complete. {successCount}/{fileList.Count} files signed.", ConsoleColor.DarkGray);
+                            Program.PrintColorMessage($"Signing complete. {successCount}/{fileList.Count()} files signed.", ConsoleColor.DarkGray);
                         }
                     }
                     else if (File.Exists(TargetPath))
@@ -516,19 +516,35 @@ namespace CustomBuildTool
             try
             {
                 // Build body directly as bytes to minimize secret exposure in string form
-                var clientIdBytes = Encoding.UTF8.GetBytes($"client_id={Uri.EscapeDataString(ClientId)}&");
-                var scopeBytes = Encoding.UTF8.GetBytes($"scope={Uri.EscapeDataString("https://vault.azure.net/.default")}&");
-                var secretBytes = Encoding.UTF8.GetBytes($"client_secret={Uri.EscapeDataString(ClientSecret)}&");
-                var grantBytes = Encoding.UTF8.GetBytes("grant_type=client_credentials");
+                int maxLen = Encoding.UTF8.GetMaxByteCount(ClientId.Length + ClientSecret.Length + 128);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
+                try
+                {
+                    int written = 0;
+                    Span<byte> span = buffer;
 
-                bodyBytes = new byte[clientIdBytes.Length + scopeBytes.Length + secretBytes.Length + grantBytes.Length];
-                Buffer.BlockCopy(clientIdBytes, 0, bodyBytes, 0, clientIdBytes.Length);
-                Buffer.BlockCopy(scopeBytes, 0, bodyBytes, clientIdBytes.Length, scopeBytes.Length);
-                Buffer.BlockCopy(secretBytes, 0, bodyBytes, clientIdBytes.Length + scopeBytes.Length, secretBytes.Length);
-                Buffer.BlockCopy(grantBytes, 0, bodyBytes, clientIdBytes.Length + scopeBytes.Length + secretBytes.Length, grantBytes.Length);
+                    ReadOnlySpan<byte> clientIdPrefix = "client_id="u8;
+                    clientIdPrefix.CopyTo(span[written..]);
+                    written += clientIdPrefix.Length;
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientId), span[written..]);
+                    span[written++] = (byte)'&';
 
-                // Zero intermediate buffers
-                System.Security.Cryptography.CryptographicOperations.ZeroMemory(secretBytes);
+                    ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
+                    scopePrefix.CopyTo(span[written..]);
+                    written += scopePrefix.Length;
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientSecret), span[written..]);
+                    span[written++] = (byte)'&';
+
+                    ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
+                    grantPrefix.CopyTo(span[written..]);
+                    written += grantPrefix.Length;
+
+                    bodyBytes = span[..written].ToArray();
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                }
 
                 int currentAttempt = 0;
                 int delayMs = InitialDelayMs;
@@ -540,7 +556,7 @@ namespace CustomBuildTool
                     try
                     {
                         using var tokenBody = new ByteArrayContent(bodyBytes);
-                        tokenBody.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                        tokenBody.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
                         using HttpResponseMessage responseMessage = await HttpClient.PostAsync(
                             $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
@@ -551,7 +567,7 @@ namespace CustomBuildTool
                         if (responseMessage.IsSuccessStatusCode)
                         {
                             var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-                            var tokenResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.TokenResponse);
+                            var tokenResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken);
 
                             if (tokenResponse.AccessToken == null)
                             {
@@ -738,7 +754,7 @@ namespace CustomBuildTool
                         if (responseMessage.IsSuccessStatusCode)
                         {
                             var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-                            var tokenResponse = JsonSerializer.Deserialize(jsonResponseStream, AzureJsonContext.Default.TokenResponse);
+                            var tokenResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken);
 
                             if (tokenResponse.AccessToken == null)
                             {
@@ -823,16 +839,13 @@ namespace CustomBuildTool
         {
             try
             {
-                // JWT Header
+                var now = DateTimeOffset.UtcNow;
                 var header = new JwtHeader
                 {
                     Alg = "RS256",
                     Typ = "JWT",
                     X5t = Base64UrlEncode(Certificate.GetCertHash())
                 };
-
-                // JWT Payload
-                var now = DateTimeOffset.UtcNow;
                 var payload = new JwtPayload
                 {
                     Aud = $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
@@ -843,11 +856,23 @@ namespace CustomBuildTool
                     Sub = ClientId
                 };
 
-                string headerJson = JsonSerializer.Serialize(header, AzureJsonContext.Default.JwtHeader);
-                string payloadJson = JsonSerializer.Serialize(payload, AzureJsonContext.Default.JwtPayload);
+                var writer = new ArrayBufferWriter<byte>(1024);
+                
+                // Serialize Header
+                using (var jsonWriter = new Utf8JsonWriter(writer))
+                {
+                    JsonSerializer.Serialize(jsonWriter, header, AzureJsonContext.Default.JwtHeader);
+                }
+                string headerBase64 = Base64UrlEncode(writer.WrittenSpan);
+                writer.Clear();
 
-                string headerBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(headerJson));
-                string payloadBase64 = Base64UrlEncode(Encoding.UTF8.GetBytes(payloadJson));
+                // Serialize Payload
+                using (var jsonWriter = new Utf8JsonWriter(writer))
+                {
+                    JsonSerializer.Serialize(jsonWriter, payload, AzureJsonContext.Default.JwtPayload);
+                }
+                string payloadBase64 = Base64UrlEncode(writer.WrittenSpan);
+                writer.Clear();
 
                 string dataToSign = $"{headerBase64}.{payloadBase64}";
                 byte[] dataBytes = Encoding.UTF8.GetBytes(dataToSign);
@@ -875,13 +900,13 @@ namespace CustomBuildTool
         /// <summary>
         /// Encodes binary data to Base64URL format as specified in RFC 4648.
         /// </summary>
-        /// <param name="input">The byte array to encode.</param>
+        /// <param name="input">The read-only byte span to encode.</param>
         /// <returns>A Base64URL-encoded string with padding removed.</returns>
         /// <remarks>
         /// Base64URL encoding replaces '+' with '-', '/' with '_', and removes trailing '=' padding.
         /// This encoding is used in JWT tokens and other web-safe applications.
         /// </remarks>
-        private static string Base64UrlEncode(byte[] input)
+        private static string Base64UrlEncode(ReadOnlySpan<byte> input)
         {
             string base64 = Convert.ToBase64String(input);
             // Convert base64 to base64url
@@ -960,7 +985,7 @@ namespace CustomBuildTool
             // Try to split certs and key; attach the first cert with the private key
             string certificatePem = ExtractPemBlock(PemContent, "CERTIFICATE");
             if (certificatePem is null)
-                throw new CryptographicException("No CERTIFICATE block found in PEM.");
+                throw new System.Security.Cryptography.CryptographicException("No CERTIFICATE block found in PEM.");
 
             string privateKeyPem = ExtractPemBlock(PemContent, "ENCRYPTED PRIVATE KEY")
                          ?? ExtractPemBlock(PemContent, "PRIVATE KEY")
@@ -994,7 +1019,7 @@ namespace CustomBuildTool
             }
             catch { }
 
-            throw new CryptographicException("Unsupported or invalid private key in PEM.");
+            throw new System.Security.Cryptography.CryptographicException("Unsupported or invalid private key in PEM.");
         }
 
         /// <summary>
@@ -1013,18 +1038,26 @@ namespace CustomBuildTool
         /// </remarks>
         private static string ExtractPemBlock(string TextContent, string Label)
         {
-            var beginMarker = $"-----BEGIN {Label}-----";
-            var endMarker = $"-----END {Label}-----";
+            if (string.IsNullOrEmpty(TextContent))
+                return null;
 
-            int startIndex = TextContent.IndexOf(beginMarker, StringComparison.OrdinalIgnoreCase);
+            ReadOnlySpan<char> text = TextContent.AsSpan();
+            
+            // Build markers. String interpolation is fine here as labels are short.
+            string beginMarker = $"-----BEGIN {Label}-----";
+            string endMarker = $"-----END {Label}-----";
+
+            int startIndex = text.IndexOf(beginMarker.AsSpan(), StringComparison.OrdinalIgnoreCase);
             if (startIndex < 0)
                 return null;
-            int endIndex = TextContent.IndexOf(endMarker, startIndex + beginMarker.Length, StringComparison.OrdinalIgnoreCase);
+
+            ReadOnlySpan<char> remaining = text[(startIndex + beginMarker.Length)..];
+            int endIndex = remaining.IndexOf(endMarker.AsSpan(), StringComparison.OrdinalIgnoreCase);
             if (endIndex < 0)
                 return null;
 
-            endIndex += endMarker.Length;
-            return TextContent.Substring(startIndex, endIndex - startIndex);
+            // Materialize the final string once including markers
+            return text.Slice(startIndex, beginMarker.Length + endIndex + endMarker.Length).ToString();
         }
     }
 
@@ -1089,25 +1122,65 @@ namespace CustomBuildTool
     /// <summary>
     /// Represents responses from Azure Key Vault cryptographic operations.
     /// </summary>
-    internal class KeyVaultOperationResponse
+    internal class KeyVaultOperationResponse : IKeyVaultSensitiveData
     {
         /// <summary>
         /// Gets or sets the operation result value.
         /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
         [JsonPropertyName("value")]
-        public string Value { get; set; }
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] Value { get; set; }
         
         /// <summary>
         /// Gets or sets the signature result from sign operations.
         /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
         [JsonPropertyName("signature")]
-        public string Signature { get; set; }
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] Signature { get; set; }
         
         /// <summary>
         /// Gets or sets the plaintext result from decrypt operations.
         /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
         [JsonPropertyName("plaintext")]
-        public string Plaintext { get; set; }
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] Plaintext { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the additional authenticated data used by authenticated encryption operations.
+        /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
+        [JsonPropertyName("aad")]
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] AdditionalAuthenticatedData { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the initialization vector used by authenticated encryption operations.
+        /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
+        [JsonPropertyName("iv")]
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] InitializationVector { get; set; }
+        
+        /// <summary>
+        /// Gets or sets the authentication tag returned by authenticated encryption operations.
+        /// </summary>
+        // Keep char[] buffers instead of string so callers can clear sensitive values.
+        [JsonPropertyName("tag")]
+        [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
+        public char[] AuthenticationTag { get; set; }
+
+        public void ClearSensitiveData()
+        {
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.Value.AsSpan()));
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.Signature.AsSpan()));
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.Plaintext.AsSpan()));
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.AdditionalAuthenticatedData.AsSpan()));
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.InitializationVector.AsSpan()));
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(this.AuthenticationTag.AsSpan()));
+        }
     }
 
     /// <summary>
@@ -1240,6 +1313,25 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(KeyVaultCertificateResponse))]
     [JsonSerializable(typeof(KeyVaultOperationRequest))]
     [JsonSerializable(typeof(KeyVaultOperationResponse))]
+    [JsonSerializable(typeof(KeyVaultVerifyRequest))]
+    [JsonSerializable(typeof(KeyVaultVerifyResponse))]
+    [JsonSerializable(typeof(KeyVaultKeyResponse))]
+    [JsonSerializable(typeof(KeyVaultKeyListResponse))]
+    [JsonSerializable(typeof(KeyVaultJsonWebKey))]
+    [JsonSerializable(typeof(KeyVaultKeyAttributes))]
+    [JsonSerializable(typeof(KeyVaultKeyCreateRequest))]
+    [JsonSerializable(typeof(KeyVaultKeyImportRequest))]
+    [JsonSerializable(typeof(KeyVaultKeyUpdateRequest))]
+    [JsonSerializable(typeof(KeyVaultKeyReleasePolicy))]
+    [JsonSerializable(typeof(KeyVaultBackupResponse))]
+    [JsonSerializable(typeof(KeyVaultRestoreRequest))]
+    [JsonSerializable(typeof(KeyVaultKeyReleaseRequest))]
+    [JsonSerializable(typeof(KeyVaultKeyReleaseResponse))]
+    [JsonSerializable(typeof(KeyVaultKeyRotationPolicy))]
+    [JsonSerializable(typeof(KeyVaultKeyRotationPolicyAttributes))]
+    [JsonSerializable(typeof(KeyVaultKeyLifetimeAction))]
+    [JsonSerializable(typeof(KeyVaultKeyLifetimeActionTrigger))]
+    [JsonSerializable(typeof(KeyVaultKeyLifetimeActionType))]
     [JsonSerializable(typeof(JwtHeader))]
     [JsonSerializable(typeof(JwtPayload))]
     internal partial class AzureJsonContext : JsonSerializerContext

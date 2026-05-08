@@ -384,12 +384,37 @@ VOID Test_PhConvertCopyMemoryUlong64(
 
     // Test alignment
     {
-        // Unaligned input/output
-        ULONG64 input[16 + 1];
+        // Unaligned input/output should still produce correct values.
+        ULONG64 input[16 + 1] =
+        {
+            0,
+            0,
+            0xFFFFFFFFULL,
+            0x100000000ULL,
+            0x1FFFFFFFFULL,
+            0x7FFFFFFFFFFFFFFFULL,
+            0x8000000000000000ULL,
+            0xFFFFFFFF00000001ULL,
+            0xFFFFFFFFFFFFFFFFULL,
+            123456789ULL,
+            9876543210ULL,
+            0xAAAAAAAA55555555ULL,
+            0x55555555AAAAAAAAULL,
+            42ULL,
+            0x0000000200000001ULL,
+            0x0123456789ABCDEFULL,
+            0xFEDCBA9876543210ULL
+        };
         FLOAT output[16 + 1];
+        FLOAT expected[16];
 
         PhConvertCopyMemoryUlong64(input + 1, output + 1, 16);
-        // Should not crash
+
+        for (ULONG i = 0; i < 16; i++)
+        {
+            expected[i] = (FLOAT)input[i + 1];
+            assert(output[i + 1] == expected[i]);
+        }
     }
 
     // Test edge cases

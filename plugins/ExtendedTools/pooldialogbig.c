@@ -24,7 +24,7 @@ VOID EtUpdateBigPoolTable(
 
     for (i = 0; i < bigPoolTable->Count; i++)
     {
-        INT itemIndex;
+        LONG itemIndex;
         SYSTEM_BIGPOOL_ENTRY poolTagInfo;
         WCHAR virtualAddressString[PH_PTR_STR_LEN_1] = L"";
 
@@ -72,40 +72,40 @@ VOID EtUpdateBigPoolTable(
 }
 
 INT_PTR CALLBACK EtBigPoolMonDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PBIGPOOLTAG_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(BIGPOOLTAG_CONTEXT));
         context->TagUlong = ((PPOOL_ITEM)lParam)->TagUlong;
         PhZeroExtendToUtf16Buffer(context->Tag, sizeof(context->Tag), context->TagString);
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_BIGPOOLLIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_BIGPOOLLIST);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
-            PhSetWindowText(hwndDlg, PhaFormatString(L"Large Allocations (%s)", context->TagString)->Buffer);
+            PhSetWindowText(WindowHandle, PhaFormatString(L"Large Allocations (%s)", context->TagString)->Buffer);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -114,17 +114,17 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"NonPaged");
             PhSetExtendedListView(context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION, SETTING_NAME_BIGPOOL_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION, SETTING_NAME_BIGPOOL_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, NULL);
+                PhCenterWindow(WindowHandle, NULL);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtUpdateBigPoolTable(context);
         }
@@ -142,8 +142,8 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION, SETTING_NAME_BIGPOOL_WINDOW_SIZE, hwndDlg);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_BIGPOOL_WINDOW_POSITION, SETTING_NAME_BIGPOOL_WINDOW_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -155,7 +155,7 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(WindowHandle, IDOK);
                 break;
             case IDC_REFRESH:
                 {
@@ -232,11 +232,11 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

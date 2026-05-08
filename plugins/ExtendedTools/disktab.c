@@ -69,7 +69,7 @@ BOOLEAN EtpDiskPageCallback(
     {
     case MainTabPageCreateWindow:
         {
-            HWND hwnd;
+            HWND WindowHandle;
             ULONG thinRows;
             ULONG treelistBorder;
             ULONG treelistCustomColors;
@@ -86,7 +86,7 @@ BOOLEAN EtpDiskPageCallback(
                 treelistCreateParams.SelectionColor = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_COLOR_SELECTION);
             }
 
-            hwnd = CreateWindow(
+            WindowHandle = CreateWindow(
                 PH_TREENEW_CLASSNAME,
                 NULL,
                 WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
@@ -100,13 +100,13 @@ BOOLEAN EtpDiskPageCallback(
                 &treelistCreateParams
                 );
 
-            if (!hwnd)
+            if (!WindowHandle)
                 return FALSE;
 
             if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
-                PhInitializeWindowTheme(hwnd, TRUE); // HACK (dmex)
-                TreeNew_ThemeSupport(hwnd, TRUE);
+                PhInitializeWindowTheme(WindowHandle, TRUE); // HACK (dmex)
+                TreeNew_ThemeSupport(WindowHandle, TRUE);
             }
 
             DiskTreeNewCreated = TRUE;
@@ -119,7 +119,7 @@ BOOLEAN EtpDiskPageCallback(
                 );
             DiskNodeList = PhCreateList(100);
 
-            EtInitializeDiskTreeList(hwnd);
+            EtInitializeDiskTreeList(WindowHandle);
 
             //if (!EtEtwEnabled) // always show status (dmex)
             {
@@ -146,13 +146,13 @@ BOOLEAN EtpDiskPageCallback(
                             );
                     }
 
-                    TreeNew_SetEmptyText(hwnd, &DiskTreeErrorText->sr, 0);
+                    TreeNew_SetEmptyText(WindowHandle, &DiskTreeErrorText->sr, 0);
                 }
                 else
                 {
                     if (!PhGetOwnTokenAttributes().Elevated)
                     {
-                        TreeNew_SetEmptyText(hwnd, &DiskTreeEmptyText, 0);
+                        TreeNew_SetEmptyText(WindowHandle, &DiskTreeEmptyText, 0);
                     }
                 }
             }
@@ -188,7 +188,7 @@ BOOLEAN EtpDiskPageCallback(
 
             if (Parameter1)
             {
-                *(HWND*)Parameter1 = hwnd;
+                *(HWND*)Parameter1 = WindowHandle;
             }
         }
         return TRUE;
@@ -532,7 +532,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Pid),
@@ -544,7 +544,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                     SORT_FUNCTION(ResponseTime),
                     SORT_FUNCTION(OriginalFile),
                 };
-                int (__cdecl *sortFunction)(const void *, const void *);
+                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == ETDSTNC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -1340,27 +1340,27 @@ HWND NTAPI EtpToolStatusGetTreeNewHandle(
 }
 
 //INT_PTR CALLBACK EtpDiskTabErrorDialogProc(
-//    _In_ HWND hwndDlg,
-//    _In_ UINT uMsg,
+//    _In_ HWND WindowHandle,
+//    _In_ UINT WindowMessage,
 //    _In_ WPARAM wParam,
 //    _In_ LPARAM lParam
 //    )
 //{
-//    switch (uMsg)
+//    switch (WindowMessage)
 //    {
 //    case WM_INITDIALOG:
 //        {
 //            if (!PhGetOwnTokenAttributes().Elevated)
 //            {
-//                Button_SetElevationRequiredState(GetDlgItem(hwndDlg, IDC_RESTART), TRUE);
+//                Button_SetElevationRequiredState(GetDlgItem(WindowHandle, IDC_RESTART), TRUE);
 //            }
 //            else
 //            {
-//                PhSetDialogItemText(hwndDlg, IDC_ERROR, L"Unable to start the kernel event tracing session.");
-//                ShowWindow(GetDlgItem(hwndDlg, IDC_RESTART), SW_HIDE);
+//                PhSetDialogItemText(WindowHandle, IDC_ERROR, L"Unable to start the kernel event tracing session.");
+//                ShowWindow(GetDlgItem(WindowHandle, IDC_RESTART), SW_HIDE);
 //            }
 //
-//            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+//            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 //        }
 //        break;
 //    case WM_COMMAND:

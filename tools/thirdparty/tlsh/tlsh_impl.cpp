@@ -213,7 +213,7 @@ void TlshImpl::update(const unsigned char* data, unsigned int len, int tlsh_opti
 	return;
     }
 #endif
-    int j = (int)(this->data_len % RNG_SIZE);
+    int j = static_cast<int>(this->data_len % RNG_SIZE);
 
     for( unsigned int i=0; i<len; i++, fed_len++, j=RNG_IDX(j+1) ) {
         this->slide_window[j] = data[i];
@@ -450,7 +450,7 @@ static void raw_fast_update5(
 	unsigned char *slide_window
 	)
 {
-	int j = (int)(fed_len % RNG_SIZE);
+	int j = static_cast<int>(fed_len % RNG_SIZE);
 	unsigned char checksum = *ret_checksum;
 
 	unsigned int start_i=0;

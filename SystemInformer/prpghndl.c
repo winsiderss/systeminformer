@@ -220,11 +220,11 @@ BOOLEAN PhpHandleTreeFilterCallback(
     PPH_HANDLE_NODE handleNode = (PPH_HANDLE_NODE)Node;
     PPH_HANDLE_ITEM handleItem = handleNode->HandleItem;
 
-    if (handlesContext->ListContext.HideProtectedHandles && handleItem->Attributes & OBJ_PROTECT_CLOSE)
+    if (handlesContext->ListContext.HideProtectedHandles && FlagOn(handleItem->Attributes, OBJ_PROTECT_CLOSE))
         return FALSE;
-    if (handlesContext->ListContext.HideInheritHandles && handleItem->Attributes & OBJ_INHERIT)
+    if (handlesContext->ListContext.HideInheritHandles && FlagOn(handleItem->Attributes, OBJ_INHERIT))
         return FALSE;
-    if (handlesContext->ListContext.HideUnnamedHandles && PhIsNullOrEmptyString(handleItem->BestObjectName))
+    if (handlesContext->ListContext.HideUnnamedHandles && handleItem->NameResolved && PhIsNullOrEmptyString(handleItem->BestObjectName))
         return FALSE;
 
     if (handlesContext->ListContext.HideEtwHandles)
@@ -491,7 +491,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
 
             if (PhTreeWindowFont)
             {
-                handlesContext->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
+                handlesContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(handlesContext->TreeNewHandle, handlesContext->TreeNewFont, FALSE);
             }
 
@@ -594,6 +594,17 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, handlesContext->SearchWindowHandle, dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, handlesContext->TreeNewHandle, dialogItem, PH_ANCHOR_ALL);
                 PhEndPropPageLayout(hwndDlg, propPageContext);
+            }
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            if (PhTreeWindowFont)
+            {
+                HFONT treeNewFont;
+
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
+                    PhReplaceWindowFont(&handlesContext->TreeNewFont, handlesContext->TreeNewHandle, treeNewFont, TRUE);
             }
         }
         break;
@@ -779,6 +790,7 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     PPH_EMENU_ITEM inheritMenuItem;
                     PPH_EMENU_ITEM unnamedMenuItem;
                     PPH_EMENU_ITEM etwMenuItem;
+                    PPH_EMENU_ITEM enableHandleSnapshotMenuItem;
                     PPH_EMENU_ITEM protectedHighlightMenuItem;
                     PPH_EMENU_ITEM inheritHighlightMenuItem;
                     PPH_EMENU_ITEM selectedItem;
@@ -791,6 +803,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                     PhInsertEMenuItem(menu, inheritMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_INHERIT_HANDLES, L"Hide inherit handles", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, unnamedMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_UNNAMED_HANDLES, L"Hide unnamed handles", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, etwMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIDE_ETW_HANDLES, L"Hide etw handles", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    PhInsertEMenuItem(menu, enableHandleSnapshotMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_ENABLE_HANDLE_SNAPSHOT, L"Handle snapshots", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, protectedHighlightMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_PROTECTED_HANDLES, L"Highlight protected handles", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, inheritHighlightMenuItem = PhCreateEMenuItem(0, PH_HANDLE_TREE_MENUITEM_HIGHLIGHT_INHERIT_HANDLES, L"Highlight inherit handles", NULL, NULL), ULONG_MAX);
@@ -805,6 +819,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                         unnamedMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (handlesContext->ListContext.HideEtwHandles)
                         etwMenuItem->Flags |= PH_EMENU_CHECKED;
+                    if (PhCsEnableHandleSnapshot)
+                        enableHandleSnapshotMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (PhCsUseColorProtectedHandles)
                         protectedHighlightMenuItem->Flags |= PH_EMENU_CHECKED;
                     if (PhCsUseColorInheritHandles)
@@ -834,6 +850,11 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                             PhSetIntegerSetting(SETTING_USE_COLOR_INHERIT_HANDLES, !PhCsUseColorInheritHandles);
                             PhCsUseColorInheritHandles = !PhCsUseColorInheritHandles;
                             TreeNew_NodesStructured(handlesContext->TreeNewHandle);
+                        }
+                        else if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_ENABLE_HANDLE_SNAPSHOT)
+                        {
+                            PhSetIntegerSetting(SETTING_ENABLE_HANDLE_SNAPSHOT, !PhCsEnableHandleSnapshot);
+                            PhCsEnableHandleSnapshot = !PhCsEnableHandleSnapshot;
                         }
                         else if (selectedItem->Id == PH_HANDLE_TREE_MENUITEM_HANDLESTATS)
                         {

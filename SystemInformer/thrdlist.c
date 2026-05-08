@@ -253,6 +253,21 @@ VOID PhSetOptionsThreadList(
     case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_SUSPENDED:
         Context->HighlightSuspended = !Context->HighlightSuspended;
         break;
+    case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_DELAYEXECUTION:
+        Context->HighlightDelayExecution = !Context->HighlightDelayExecution;
+        break;
+    case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_USERREQUEST:
+        Context->HighlightUserRequest = !Context->HighlightUserRequest;
+        break;
+    case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_ALERTBYTHREADID:
+        Context->HighlightAlertByThreadId = !Context->HighlightAlertByThreadId;
+        break;
+    case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_QUEUE:
+        Context->HighlightQueue = !Context->HighlightQueue;
+        break;
+    case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_EXECUTIVE:
+        Context->HighlightExecutive = !Context->HighlightExecutive;
+        break;
     case PH_THREAD_TREELIST_MENUITEM_HIGHLIGHT_GUITHREADS:
         Context->HighlightGuiThreads = !Context->HighlightGuiThreads;
         break;
@@ -1384,7 +1399,7 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Tid),
                     SORT_FUNCTION(Cpu),
@@ -2410,19 +2425,19 @@ BOOLEAN NTAPI PhpThreadTreeNewCallback(
             //else if (context->HighlightUnknownStartAddress && threadItem->StartAddressWin32ResolveLevel == PhsrlAddress)
             //    getNodeColor->BackColor = PhCsColorUnknown;
             else if (context->HighlightSuspended && threadItem->WaitReason == Suspended)
-                getNodeColor->BackColor = PhCsColorSuspended;
-            else if (context->HighlightSuspended && threadItem->WaitReason == DelayExecution) // NtDelayExecution
-                getNodeColor->BackColor = PhCsColorImmersiveProcesses;
-            else if (context->HighlightSuspended && threadItem->WaitReason == UserRequest) // NtWaitForSingleObject
-                getNodeColor->BackColor = PhCsColorOwnProcesses;
-            else if (context->HighlightSuspended && threadItem->WaitReason == WrAlertByThreadId)
-                getNodeColor->BackColor = PhCsColorSystemProcesses;
-            else if (context->HighlightSuspended && threadItem->WaitReason == WrQueue) // NtRemoveIoCompletion
-                getNodeColor->BackColor = PhCsColorEfficiencyMode;
-            else if (context->HighlightSuspended && threadItem->WaitReason == Executive)
-                getNodeColor->BackColor = PhCsColorElevatedProcesses;
+                getNodeColor->BackColor = PhCsColorThreadSuspended;
+            else if (context->HighlightDelayExecution && threadItem->WaitReason == DelayExecution) // NtDelayExecution
+                getNodeColor->BackColor = PhCsColorThreadDelayExecution;
+            else if (context->HighlightUserRequest && threadItem->WaitReason == UserRequest) // NtWaitForSingleObject
+                getNodeColor->BackColor = PhCsColorThreadUserRequest;
+            else if (context->HighlightAlertByThreadId && threadItem->WaitReason == WrAlertByThreadId)
+                getNodeColor->BackColor = PhCsColorThreadAlertByThreadId;
+            else if (context->HighlightQueue && threadItem->WaitReason == WrQueue) // NtRemoveIoCompletion
+                getNodeColor->BackColor = PhCsColorThreadQueue;
+            else if (context->HighlightExecutive && threadItem->WaitReason == Executive)
+                getNodeColor->BackColor = PhCsColorThreadExecutive;
             else if (context->HighlightGuiThreads && threadItem->IsGuiThread)
-                getNodeColor->BackColor = PhCsColorGuiThreads;
+                getNodeColor->BackColor = PhCsColorThreadGuiThreads;
 
             getNodeColor->Flags = TN_AUTO_FORECOLOR;
         }

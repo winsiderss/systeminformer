@@ -389,6 +389,13 @@ NTSTATUS PhGetProcessPeb32(
     return status;
 }
 
+/**
+ * Retrieves the primary PEB address for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param PebBaseAddress Receives the base address of the PEB for the process.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessPeb(
     _In_ HANDLE ProcessHandle,
     _Out_ PVOID* PebBaseAddress
@@ -434,6 +441,13 @@ NTSTATUS PhGetProcessDebugObject(
         );
 }
 
+/**
+ * Queries energy usage counters for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param EnergyValues Receives the extended energy values for the process.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessEnergyValues(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_EXTENDED_ENERGY_VALUES EnergyValues
@@ -448,6 +462,13 @@ NTSTATUS PhGetProcessEnergyValues(
         );
 }
 
+/**
+ * Reads the default hard-error mode for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param ErrorMode Receives the current error mode value.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessErrorMode(
     _In_ HANDLE ProcessHandle,
     _Out_ PULONG ErrorMode
@@ -557,6 +578,13 @@ NTSTATUS PhGetProcessPagePriority(
     return status;
 }
 
+/**
+ * Determines whether priority boosting is disabled for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param PriorityBoostDisabled Receives TRUE when priority boost is disabled.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessPriorityBoost(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN PriorityBoostDisabled
@@ -613,6 +641,13 @@ NTSTATUS PhGetProcessCycleTime(
     return status;
 }
 
+/**
+ * Queries uptime information for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param Uptime Receives uptime data for the process.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessUptime(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_UPTIME_INFORMATION Uptime
@@ -637,6 +672,13 @@ NTSTATUS PhGetProcessUptime(
     return status;
 }
 
+/**
+ * Retrieves the console host process ID for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param ConsoleHostProcessId Receives the console host process identifier.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessConsoleHostProcessId(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE ConsoleHostProcessId
@@ -661,6 +703,14 @@ NTSTATUS PhGetProcessConsoleHostProcessId(
     return status;
 }
 
+/**
+ * Retrieves the console host process for a console session.
+ *
+ * \param ProcessHandle A handle to the console process.
+ * \param ConsoleHostProcessId Receives the console host process handle.
+ * \param ConsoleApplication Optionally receives TRUE when running as a console application.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessConsoleHostProcess(
     _In_ HANDLE ProcessHandle,
     _Out_ PHANDLE ConsoleHostProcessId,
@@ -691,6 +741,13 @@ NTSTATUS PhGetProcessConsoleHostProcess(
     return status;
 }
 
+/**
+ * Retrieves the protection level of a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param Protection Receives the PS_PROTECTION information.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessProtection(
     _In_ HANDLE ProcessHandle,
     _Out_ PPS_PROTECTION Protection
@@ -705,6 +762,13 @@ NTSTATUS PhGetProcessProtection(
         );
 }
 
+/**
+ * Retrieves the affinity mask for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param AffinityMask Receives the affinity mask for the process.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessAffinityMask(
     _In_ HANDLE ProcessHandle,
     _Out_ PKAFFINITY AffinityMask
@@ -741,6 +805,14 @@ NTSTATUS PhGetProcessAffinityMask(
     return status;
 }
 
+/**
+ * Retrieves the processor group IDs assigned to a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param GroupCount On input, the size of GroupArray; on output, the retrieved count.
+ * \param GroupArray Receives the group numbers.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessGroupInformation(
     _In_ HANDLE ProcessHandle,
     _Inout_ PUSHORT GroupCount,
@@ -767,6 +839,13 @@ NTSTATUS PhGetProcessGroupInformation(
     return status;
 }
 
+/**
+ * Retrieves the group affinity for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param GroupAffinity Receives the GROUP_AFFINITY structure.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessGroupAffinity(
     _In_ HANDLE ProcessHandle,
     _Out_ PGROUP_AFFINITY GroupAffinity
@@ -804,6 +883,13 @@ NTSTATUS PhGetProcessGroupAffinity(
     return status;
 }
 
+/**
+ * Determines whether Control Flow Guard is enabled for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param IsControlFlowGuardEnabled Receives TRUE when CFG is enabled.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessIsCFGuardEnabled(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsControlFlowGuardEnabled
@@ -831,6 +917,14 @@ NTSTATUS PhGetProcessIsCFGuardEnabled(
     return status;
 }
 
+/**
+ * Queries whether XF Guard and auditing are enabled for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param IsXFGuardEnabled Receives TRUE when XF Guard is enabled.
+ * \param IsXFGuardAuditEnabled Receives TRUE when auditing is enabled.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessIsXFGuardEnabled(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN IsXFGuardEnabled,
@@ -865,6 +959,13 @@ NTSTATUS PhGetProcessIsXFGuardEnabled(
     return status;
 }
 
+/**
+ * Retrieves handle count information for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param HandleInfo Receives the PROCESS_HANDLE_INFORMATION data.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessHandleCount(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_HANDLE_INFORMATION HandleInfo
@@ -879,6 +980,13 @@ NTSTATUS PhGetProcessHandleCount(
         );
 }
 
+/**
+ * Queries whether the process breaks into the debugger on termination.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param BreakOnTermination Receives TRUE when break-on-termination is enabled.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessBreakOnTermination(
     _In_ HANDLE ProcessHandle,
     _Out_ PBOOLEAN BreakOnTermination
@@ -903,6 +1011,13 @@ NTSTATUS PhGetProcessBreakOnTermination(
     return status;
 }
 
+/**
+ * Enables or disables break-on-termination for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param BreakOnTermination TRUE to enable breaking on termination.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhSetProcessBreakOnTermination(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN BreakOnTermination
@@ -920,6 +1035,13 @@ NTSTATUS PhSetProcessBreakOnTermination(
         );
 }
 
+/**
+ * Retrieves memory usage statistics for a process' job.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param JobMemoryInfo Receives the PROCESS_JOB_MEMORY_INFO.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessAppMemoryInformation(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_JOB_MEMORY_INFO JobMemoryInfo
@@ -945,6 +1067,14 @@ NTSTATUS PhGetProcessAppMemoryInformation(
     return status;
 }
 
+/**
+ * Retrieves a mitigation policy for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param Policy The mitigation policy to query.
+ * \param MitigationPolicy Receives the mitigation policy information.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessMitigationPolicy(
     _In_ HANDLE ProcessHandle,
     _In_ PROCESS_MITIGATION_POLICY Policy,
@@ -963,6 +1093,13 @@ NTSTATUS PhGetProcessMitigationPolicy(
         );
 }
 
+/**
+ * Queries network I/O counters for a process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param NetworkIoCounters Receives the PROCESS_NETWORK_COUNTERS data.
+ * \return NTSTATUS Indicates success or failure.
+ */
 NTSTATUS PhGetProcessNetworkIoCounters(
     _In_ HANDLE ProcessHandle,
     _Out_ PPROCESS_NETWORK_COUNTERS NetworkIoCounters
@@ -2051,15 +2188,6 @@ NTSTATUS PhGetProcessEnvironment(
         )))
         return status;
 
-    // Read in the entire region of memory.
-
-#if defined(PH_NATIVE_ENVCHECK)
-
-    environmentLength = (SIZE_T)PTR_SUB_OFFSET(mbi.RegionSize,
-        PTR_SUB_OFFSET(environmentRemote, mbi.BaseAddress));
-
-#else
-
     // Check environment address is valid for the region. (dmex)
 
     status = RtlULongPtrSub(
@@ -2071,7 +2199,7 @@ NTSTATUS PhGetProcessEnvironment(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (environmenOffset > (ULONG_PTR)basicInfo.RegionSize)
+    if ((ULONG_PTR)environmenOffset > (ULONG_PTR)basicInfo.RegionSize)
         return STATUS_FAIL_CHECK;
 
     status = RtlSizeTSub(
@@ -2083,12 +2211,12 @@ NTSTATUS PhGetProcessEnvironment(
     if (!NT_SUCCESS(status))
         return status;
 
-#endif
-
     environment = PhAllocatePage(environmentLength, NULL);
 
     if (!environment)
         return STATUS_NO_MEMORY;
+
+    // Read in the entire region of memory.
 
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,
@@ -2452,20 +2580,21 @@ NTSTATUS PhGetProcessWsCounters(
 
     for (i = 0; i < wsInfo->NumberOfEntries; i++)
     {
+        PMEMORY_WORKING_SET_BLOCK block = &wsInfo->WorkingSetInfo[i];
+
         wsCounters.NumberOfPages++;
 
-        if (wsInfo->WorkingSetInfo[i].ShareCount > 1)
+        if (block->ShareCount > 1)
             wsCounters.NumberOfSharedPages++;
-        if (wsInfo->WorkingSetInfo[i].ShareCount == 0)
+        if (block->ShareCount == 0)
             wsCounters.NumberOfPrivatePages++;
-        if (wsInfo->WorkingSetInfo[i].Shared)
+        if (block->Shared)
             wsCounters.NumberOfShareablePages++;
     }
 
     PhFree(wsInfo);
 
     *WsCounters = wsCounters;
-
     return status;
 }
 
@@ -2682,6 +2811,81 @@ NTSTATUS PhSetProcessQuotaLimits(
             sizeof(QUOTA_LIMITS)
             );
     }
+
+    return status;
+}
+
+/**
+ * Queries the IO counters for the specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param IoCounters Receives the IO_COUNTERS data.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetProcessIoCounters(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PIO_COUNTERS IoCounters
+    )
+{
+    NTSTATUS status;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessIoCounters,
+        IoCounters,
+        sizeof(IO_COUNTERS),
+        NULL
+        );
+
+    return status;
+}
+
+/**
+ * Queries the extended VM counters for the specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param VmCounters Receives the VM_COUNTERS_EX data.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetProcessIoCountersEx(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVM_COUNTERS_EX VmCounters
+    )
+{
+    NTSTATUS status;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessVmCounters,
+        VmCounters,
+        sizeof(VM_COUNTERS_EX),
+        NULL
+        );
+
+    return status;
+}
+
+/**
+ * Queries the IO counters for the specified process.
+ *
+ * \param ProcessHandle A handle to the process.
+ * \param VmCounters A pointer to a variable that receives the IO counters.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetProcessIoCountersEx2(
+    _In_ HANDLE ProcessHandle,
+    _Out_ PVM_COUNTERS_EX2 VmCounters
+    )
+{
+    NTSTATUS status;
+
+    status = NtQueryInformationProcess(
+        ProcessHandle,
+        ProcessVmCounters,
+        VmCounters,
+        sizeof(VM_COUNTERS_EX2),
+        NULL
+        );
 
     return status;
 }

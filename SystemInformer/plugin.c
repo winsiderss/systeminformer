@@ -50,6 +50,12 @@ LONG NTAPI PhpPluginsCompareFunction(
     _In_ PPH_AVL_LINKS Links2
     );
 
+/**
+ * Loads a plugin.
+ *
+ * \param FileName The file name of the plugin.
+ * \return Successful or error status.
+ */
 NTSTATUS PhLoadPlugin(
     _In_ PCPH_STRINGREF FileName
     );
@@ -278,6 +284,14 @@ VOID PhSetPluginDisabled(
 //    return pluginsDirectory;
 //}
 
+/**
+ * Callback for enumerating plugin files in the plugins directory.
+ *
+ * \param RootDirectory Handle to the root directory.
+ * \param Information File information structure.
+ * \param Context Pointer to the plugin load context.
+ * \return TRUE to continue enumeration.
+ */
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN EnumPluginsDirectoryCallback(
     _In_ HANDLE RootDirectory,
@@ -325,6 +339,11 @@ static BOOLEAN EnumPluginsDirectoryCallback(
     return TRUE;
 }
 
+/**
+ * Shows a message box with plugin load errors.
+ *
+ * \param PluginLoadErrors List of plugin load error structures.
+ */
 VOID PhpShowPluginErrorMessage(
     _Inout_ PPH_LIST PluginLoadErrors
     )
@@ -389,6 +408,13 @@ VOID PhpShowPluginErrorMessage(
     PhDeleteStringBuilder(&stringBuilder);
 }
 
+/**
+ * Enumerates and loads plugins from a directory.
+ *
+ * \param PluginsDirectory The plugins directory string reference.
+ * \param Context The plugin load context.
+ * \return NTSTATUS status code.
+ */
 NTSTATUS PhLoadPluginsEnumDirectory(
     _In_ PPH_STRINGREF PluginsDirectory,
     _In_ PPH_LOADPLUGIN_CONTEXT Context
@@ -1233,6 +1259,12 @@ VOID PhPluginEnableTreeNewNotify(
     PhCmSetNotifyPlugin(CmData, Plugin);
 }
 
+/**
+ * Queries plugin phsvc client information.
+ *
+ * \param Client Pointer to the plugin phsvc client structure.
+ * \return Successful or error status.
+ */
 NTSTATUS PhPluginQueryPhSvc(
     _Out_ PPH_PLUGIN_PHSVC_CLIENT Client
     )
@@ -1247,6 +1279,17 @@ NTSTATUS PhPluginQueryPhSvc(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Calls the plugin phsvc service.
+ *
+ * \param Plugin The plugin instance.
+ * \param SubId The sub-identifier for the call.
+ * \param InBuffer Input buffer.
+ * \param InLength Input buffer length.
+ * \param OutBuffer Output buffer.
+ * \param OutLength Output buffer length.
+ * \return Successful or error status.
+ */
 NTSTATUS PhPluginCallPhSvc(
     _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
@@ -1272,6 +1315,12 @@ NTSTATUS PhPluginCallPhSvc(
     return status;
 }
 
+/**
+ * Gets the plugin name.
+ *
+ * \param Plugin The plugin instance.
+ * \return A string containing the plugin name.
+ */
 PPH_STRING PhGetPluginName(
     _In_ PPH_PLUGIN Plugin
     )
@@ -1279,6 +1328,12 @@ PPH_STRING PhGetPluginName(
     return PhCreateString2(&Plugin->Name);
 }
 
+/**
+ * Gets the plugin file name.
+ *
+ * \param Plugin The plugin instance.
+ * \return A string containing the plugin file name, or NULL if failed.
+ */
 PPH_STRING PhGetPluginFileName(
     _In_ PPH_PLUGIN Plugin
     )
@@ -1291,6 +1346,12 @@ PPH_STRING PhGetPluginFileName(
     return fileName;
 }
 
+/**
+ * Enumerates all plugins.
+ *
+ * \param Callback Enumeration callback.
+ * \param Context User-defined context.
+ */
 VOID PhEnumeratePlugins(
     _In_ PPH_PLUGIN_ENUMERATE Callback,
     _In_opt_ PVOID Context

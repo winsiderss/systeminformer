@@ -167,9 +167,6 @@
     <ClCompile Include="maxminddb\maxminddb.c" />
     <ClCompile Include="md5\md5.c" />
     <ClCompile Include="miniz\miniz.c" />
-    <ClCompile Include="miniz\miniz_tdef.c" />
-    <ClCompile Include="miniz\miniz_tinfl.c" />
-    <ClCompile Include="miniz\miniz_zip.c" />
     <ClCompile Include="mxml\mxml-attr.c" />
     <ClCompile Include="mxml\mxml-file.c" />
     <ClCompile Include="mxml\mxml-get.c" />
@@ -252,10 +249,6 @@
     <ClInclude Include="maxminddb\maxminddb_config.h" />
     <ClInclude Include="md5\md5.h" />
     <ClInclude Include="miniz\miniz.h" />
-    <ClInclude Include="miniz\miniz_common.h" />
-    <ClInclude Include="miniz\miniz_tdef.h" />
-    <ClInclude Include="miniz\miniz_tinfl.h" />
-    <ClInclude Include="miniz\miniz_zip.h" />
     <ClInclude Include="mxml\config.h" />
     <ClInclude Include="mxml\mxml-private.h" />
     <ClInclude Include="mxml\mxml.h" />

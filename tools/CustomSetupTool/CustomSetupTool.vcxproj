@@ -87,6 +87,7 @@
     <ClCompile Include="util.c" />
     <ClCompile Include="uninstall.c" />
     <ClCompile Include="update.c" />
+    <ClCompile Include="wizard.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="setup.h" />
@@ -100,6 +101,7 @@
     <Manifest Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\SystemInformer\resources\systeminformer.png" />
     <Image Include="..\..\SystemInformer\SystemInformer.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

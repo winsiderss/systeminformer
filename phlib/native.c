@@ -868,7 +868,13 @@ NTSTATUS PhGetProcessUnloadedDlls(
     if (capturedElementCount > 0x4000)
         capturedElementCount = 0x4000;
 
-    eventTraceSize = capturedElementSize * capturedElementCount;
+    if (!NT_SUCCESS(status = RtlSizeTMult(
+        (SIZE_T)capturedElementSize,
+        (SIZE_T)capturedElementCount,
+        &eventTraceSize
+        )))
+        goto CleanupExit;
+
     capturedEventTrace = PhAllocateSafe(eventTraceSize);
 
     if (!capturedEventTrace)
@@ -4394,6 +4400,8 @@ NTSTATUS PhQueryProcessHeapInformation(
     NTSTATUS status;
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
+    ULONG numberOfHeaps;
+    SIZE_T heapDebugInfoLength;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
     {
@@ -4441,15 +4449,29 @@ NTSTATUS PhQueryProcessHeapInformation(
 
     if (WindowsVersion > WINDOWS_11)
     {
-        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
-        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
+        numberOfHeaps = ((PRTL_PROCESS_HEAPS_V2)debugBuffer->Heaps)->NumberOfHeaps;
     }
     else
     {
-        heapDebugInfo = PhAllocateZero(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY));
-        heapDebugInfo->NumberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
+        numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
+    if ((SIZE_T)numberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    heapDebugInfoLength = sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + (SIZE_T)numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY);
+    heapDebugInfo = PhAllocateZero(heapDebugInfoLength);
+
+    if (!heapDebugInfo)
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return STATUS_NO_MEMORY;
+    }
+
+    heapDebugInfo->NumberOfHeaps = numberOfHeaps;
     heapDebugInfo->DefaultHeap = debugBuffer->ProcessHeap;
 
     for (ULONG i = 0; i < heapDebugInfo->NumberOfHeaps; i++)
@@ -5831,7 +5853,7 @@ NTSTATUS PhGetSystemProcessorPerformanceDistribution(
  * Retrieves the processor performance distribution information for a specified processor group.
  *
  * \param ProcessorGroup The processor group number for which to retrieve performance distribution information.
- * \param Buffer A pointer to a variable that receives a pointer to a SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION 
+ * \param Buffer A pointer to a variable that receives a pointer to a SYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION
  * structure containing the performance distribution data.
  * \return NTSTATUS Successful or errant status.
  */
@@ -5967,7 +5989,7 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
 /**
  * Retrieves information about the logical processor relationships in the system.
  *
- * \param LogicalProcessorInformation A pointer to a PH_LOGICAL_PROCESSOR_INFORMATION structure 
+ * \param LogicalProcessorInformation A pointer to a PH_LOGICAL_PROCESSOR_INFORMATION structure
  * that receives the logical processor relationship information.
  * \return NTSTATUS Successful or errant status.
  */
@@ -6875,9 +6897,9 @@ NTSTATUS PhGetSystemFileCacheSize(
 /**
  * Limits the size of the working set of the virtual memory manager system cache.
  *
- * \param CacheInfo The minimum size of the file cache, in bytes. The virtual memory manager
+ * \param MinimumFileCacheSize The minimum size of the file cache, in bytes. The virtual memory manager
  * attempts to keep at least this much memory resident in the system file cache.
- * \param CacheInfo The maximum size of the file cache, in bytes. The virtual memory manager
+ * \param MaximumFileCacheSize The maximum size of the file cache, in bytes. The virtual memory manager
  * enforces this limit only if this call or a previous call to SetSystemFileCacheSize
  * specifies FILE_CACHE_MAX_HARD_ENABLE.
  * \return NTSTATUS Successful or errant status.
@@ -6903,6 +6925,145 @@ NTSTATUS PhSetSystemFileCacheSize(
         );
 
     return status;
+}
+
+/**
+ * Creates a mutant (mutex) object.
+ *
+ * \param MutantHandle A pointer to a variable that receives the handle to the mutant object.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param RootDirectory Optional handle to the root directory for the object name.
+ * \param ObjectName Optional pointer to a string reference specifying the name of the mutant object.
+ * \param InitialOwner If TRUE, the calling thread obtains initial ownership of the mutant object.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName,
+    _In_ BOOLEAN InitialOwner
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (ObjectName)
+    {
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&objectName, NULL, 0);
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtCreateMutant(
+        MutantHandle,
+        DesiredAccess,
+        &objectAttributes,
+        InitialOwner
+        );
+
+    return status;
+}
+
+/**
+ * Opens an existing mutant (mutex) object.
+ *
+ * \param MutantHandle A pointer to a variable that receives the handle to the mutant object.
+ * \param DesiredAccess The access mask that specifies the requested access to the mutant object.
+ * \param RootDirectory Optional handle to the root directory for the object name.
+ * \param ObjectName Optional pointer to a string reference specifying the name of the mutant object.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhOpenMutant(
+    _Out_ PHANDLE MutantHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PCPH_STRINGREF ObjectName
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (ObjectName)
+    {
+        if (!PhStringRefToUnicodeString(ObjectName, &objectName))
+            return STATUS_NAME_TOO_LONG;
+    }
+    else
+    {
+        RtlInitEmptyUnicodeString(&objectName, NULL, 0);
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectName,
+        OBJ_CASE_INSENSITIVE,
+        RootDirectory,
+        NULL
+        );
+
+    status = NtOpenMutant(
+        MutantHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+
+    return status;
+}
+
+/**
+ * Retrieves basic information about a mutant (mutex) object.
+ *
+ * \param MutantHandle Handle to the mutant object.
+ * \param BasicInformation Pointer to a MUTANT_BASIC_INFORMATION structure that receives the information.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetMutantBasicInformation(
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryMutant(
+        MutantHandle,
+        MutantBasicInformation,
+        BasicInformation,
+        sizeof(MUTANT_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
+ * Retrieves owner information for a mutant (mutex) object.
+ *
+ * \param MutantHandle Handle to the mutant object.
+ * \param OwnerInformation Pointer to a MUTANT_OWNER_INFORMATION structure that receives the information.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetMutantOwnerInformation(
+    _In_ HANDLE MutantHandle,
+    _Out_ PMUTANT_OWNER_INFORMATION OwnerInformation
+    )
+{
+    return NtQueryMutant(
+        MutantHandle,
+        MutantOwnerInformation,
+        OwnerInformation,
+        sizeof(MUTANT_OWNER_INFORMATION),
+        NULL
+        );
 }
 
 /**
@@ -6948,6 +7109,26 @@ NTSTATUS PhCreateEvent(
     }
 
     return status;
+}
+
+/**
+ * Gets basic information for a event.
+ *
+ * \param EventHandle A handle to a event. The handle must have EVENT_QUERY_STATE access.
+ * \param BasicInformation A variable which receives the information.
+ */
+NTSTATUS PhGetEventBasicInformation(
+    _In_ HANDLE EventHandle,
+    _Out_ PEVENT_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQueryEvent(
+        EventHandle,
+        EventBasicInformation,
+        BasicInformation,
+        sizeof(EVENT_BASIC_INFORMATION),
+        NULL
+        );
 }
 
 /**
@@ -8167,14 +8348,13 @@ NTSTATUS PhQueryEvent(
 NTSTATUS PhCreateWaitableTimer(
     _Out_ PHANDLE TimerHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ TIMER_TYPE TimerType,
-    _In_ BOOLEAN HighResolution
+    _In_ TIMER_TYPE TimerType
     )
 {
     NTSTATUS status;
     HANDLE timerHandle = NULL;
 
-    if (HighResolution && NtCreateTimer2_Import())
+    if (PhEnableHighResolution && NtCreateTimer2_Import())
     {
         status = NtCreateTimer2_Import()(
             &timerHandle,
@@ -8244,25 +8424,25 @@ NTSTATUS PhSetWaitableTimer(
     _In_ BOOLEAN ResumeTimer
     )
 {
-    if (NtSetTimer2_Import())
-    {
-        T2_SET_PARAMETERS timerParameters;
-
-        memset(&timerParameters, 0, sizeof(T2_SET_PARAMETERS));
-        timerParameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
-        timerParameters.NoWakeTolerance = 0;
-
-        return NtSetTimer2_Import()(
-            TimerHandle,
-            DueTime,
-            Period,
-            &timerParameters
-            );
-    }
-
-    if (NtSetTimerEx_Import())
+    if (PhEnableHighResolution)
     {
         TIMER_SET_COALESCABLE_TIMER_INFO timerParameters;
+
+        if (NtSetTimer2_Import())
+        {
+            T2_SET_PARAMETERS timer2Parameters;
+
+            memset(&timer2Parameters, 0, sizeof(T2_SET_PARAMETERS));
+            timer2Parameters.Version = TIMER2_SET_PARAMETERS_CURRENT_VERSION;
+            timer2Parameters.NoWakeTolerance = 0;
+
+            return NtSetTimer2_Import()(
+                TimerHandle,
+                DueTime,
+                Period,
+                &timer2Parameters
+                );
+        }
 
         memset(&timerParameters, 0, sizeof(TIMER_SET_COALESCABLE_TIMER_INFO));
         timerParameters.DueTime.QuadPart = DueTime->QuadPart;
@@ -8275,7 +8455,7 @@ NTSTATUS PhSetWaitableTimer(
             TimerHandle,
             TimerSetCoalescableTimer,
             &timerParameters,
-            sizeof(timerParameters)
+            sizeof(TIMER_SET_COALESCABLE_TIMER_INFO)
             );
     }
 
@@ -8288,4 +8468,46 @@ NTSTATUS PhSetWaitableTimer(
         Period ? (LONG)(Period->QuadPart / PH_TIMEOUT_MS) : 0,
         NULL
         );
+}
+
+/**
+ * Creates a timer with the specified time-out value.
+ *
+ * \param WindowHandle A handle to the window to be associated with the timer.
+ * \param TimerID The timer identifier.
+ * \param Elapse The time-out value, in milliseconds.
+ * \param TimerProcedure A pointer to the function to be notified when the time-out value elapses.
+ * \return The timer identifier if successful; otherwise, zero.
+ */
+ULONG_PTR PhSetTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID,
+    _In_ ULONG Elapse,
+    _In_opt_ TIMERPROC TimerProcedure
+    )
+{
+    assert(WindowHandle);
+
+    if (PhEnableHighResolution)
+    {
+        return SetCoalescableTimer(WindowHandle, TimerID, Elapse, TimerProcedure, TIMERV_NO_COALESCING);
+    }
+
+    return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
+}
+
+/**
+ * Destroys a timer.
+ *
+ * \param WindowHandle A handle to the window associated with the timer.
+ * \param TimerID The identifier of the timer to be destroyed.
+ * \return TRUE if the function succeeds, FALSE otherwise.
+ */
+BOOL PhKillTimer(
+    _In_ HWND WindowHandle,
+    _In_ ULONG_PTR TimerID
+    )
+{
+    assert(WindowHandle);
+    return KillTimer(WindowHandle, TimerID);
 }

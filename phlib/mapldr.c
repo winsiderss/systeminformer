@@ -1030,7 +1030,7 @@ PPH_STRING PhLoadIndirectString(
  * returned string.
  * \return The file name of the DLL, or NULL if the DLL could not be found.
  */
-_Success_(return != NULL)
+_Use_decl_annotations_
 PPH_STRING PhGetDllFileName(
     _In_ PVOID DllBase,
     _Out_opt_ PULONG IndexOfFileName
@@ -1135,34 +1135,6 @@ BOOLEAN PhGetLoaderEntryData(
 }
 
 /**
- * Retrieves the base address of a DLL containing the specified address.
- *
- * \param[in] Address An address within the DLL's address space.
- * \return The base address of the DLL, or NULL if not found.
- * \remarks This function searches the loader data table with the loader lock held.
- */
-PVOID PhGetLoaderEntryAddressDllBase(
-    _In_ PVOID Address
-    )
-{
-    PLDR_DATA_TABLE_ENTRY entry;
-    PVOID baseAddress;
-
-    PhAcquireLoaderLock();
-
-    entry = PhFindLoaderEntryAddress(Address);
-
-    if (entry)
-        baseAddress = entry->DllBase;
-    else
-        baseAddress = NULL;
-
-    PhReleaseLoaderLock();
-
-    return baseAddress;
-}
-
-/**
  * Retrieves the base address of a DLL by name.
  *
  * \param[in,opt] FullDllName The full path to the DLL. Specify NULL if not used.
@@ -1171,6 +1143,7 @@ PVOID PhGetLoaderEntryAddressDllBase(
  * \remarks On Windows 8 and later, when only BaseDllName is specified, this function uses
  * hash-based lookup for improved performance. Otherwise it performs a linear search.
  */
+_Use_decl_annotations_
 PVOID PhGetLoaderEntryDllBase(
     _In_opt_ PCPH_STRINGREF FullDllName,
     _In_opt_ PCPH_STRINGREF BaseDllName
@@ -1191,6 +1164,35 @@ PVOID PhGetLoaderEntryDllBase(
     {
         entry = PhFindLoaderEntry(NULL, FullDllName, BaseDllName);
     }
+
+    if (entry)
+        baseAddress = entry->DllBase;
+    else
+        baseAddress = NULL;
+
+    PhReleaseLoaderLock();
+
+    return baseAddress;
+}
+
+/**
+ * Retrieves the base address of a DLL containing the specified address.
+ *
+ * \param[in] Address An address within the DLL's address space.
+ * \return The base address of the DLL, or NULL if not found.
+ * \remarks This function searches the loader data table with the loader lock held.
+ */
+_Use_decl_annotations_
+PVOID PhGetLoaderEntryPcToFileHeader(
+    _In_ PVOID Address
+    )
+{
+    PLDR_DATA_TABLE_ENTRY entry;
+    PVOID baseAddress;
+
+    PhAcquireLoaderLock();
+
+    entry = PhFindLoaderEntryAddress(Address);
 
     if (entry)
         baseAddress = entry->DllBase;

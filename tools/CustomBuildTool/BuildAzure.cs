@@ -212,7 +212,7 @@ namespace CustomBuildTool
                     {
                         var files = Utils.EnumerateDirectory(Path, [".exe", ".dll"], ["ksi.dll"]);
 
-                        if (files == null || files.Count == 0)
+                        if (files == null || files.Count() == 0)
                         {
                             Program.PrintColorMessage($"No files found.", ConsoleColor.Red);
                         }
@@ -278,23 +278,80 @@ namespace CustomBuildTool
         /// <returns>A string containing the access token if authentication is successful; otherwise, null.</returns>
         public static async Task<string> GetAzureADToken(string TenantId, string ClientId, string ClientSecret)
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
+            //using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
+            //{
+            //    Content = new FormUrlEncodedContent(
+            //    [
+            //        new KeyValuePair<string, string>("client_id", ClientId),
+            //        new KeyValuePair<string, string>("client_secret", ClientSecret),
+            //        new KeyValuePair<string, string>("scope", "https://vault.azure.net/.default"),
+            //        new KeyValuePair<string, string>("grant_type", "client_credentials"),
+            //    ])
+            //};
+            //
+            //var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
+            //
+            //if (string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+            //    return null;
+            //
+            //return tokenResponse.AccessToken;
+
+            byte[] bodyBytes = null;
+            try
             {
-                Content = new FormUrlEncodedContent(
-                [
-                    new KeyValuePair<string, string>("client_id", ClientId),
-                    new KeyValuePair<string, string>("client_secret", ClientSecret),
-                    new KeyValuePair<string, string>("scope", "https://vault.azure.net/.default"),
-                    new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                ])
-            };
+                // Build body directly as bytes to minimize secret exposure in string form
+                int maxLen = Encoding.UTF8.GetMaxByteCount(ClientId.Length + ClientSecret.Length + 128);
+                byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
+                try
+                {
+                    int written = 0;
+                    Span<byte> span = buffer;
 
-            var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
-           
-            if (string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-                return null;
+                    ReadOnlySpan<byte> clientIdPrefix = "client_id="u8;
+                    clientIdPrefix.CopyTo(span[written..]);
+                    written += clientIdPrefix.Length;
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientId), span[written..]);
+                    span[written++] = (byte)'&';
 
-            return tokenResponse.AccessToken;
+                    ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
+                    scopePrefix.CopyTo(span[written..]);
+                    written += scopePrefix.Length;
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientSecret), span[written..]);
+                    span[written++] = (byte)'&';
+
+                    ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
+                    grantPrefix.CopyTo(span[written..]);
+                    written += grantPrefix.Length;
+
+                    bodyBytes = span[..written].ToArray();
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+                }
+
+                using var tokenBody = new ByteArrayContent(bodyBytes);
+                tokenBody.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
+
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
+                {
+                    Content = tokenBody
+                };
+
+                var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
+
+                if (string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
+                    return null;
+
+                return tokenResponse.AccessToken;
+            }
+            finally
+            {
+                if (bodyBytes != null)
+                {
+                    System.Security.Cryptography.CryptographicOperations.ZeroMemory(bodyBytes);
+                }
+            }
         }
 
         /// <summary>

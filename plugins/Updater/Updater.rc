@@ -58,6 +58,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Check for updates automatically",IDC_AUTOCHECKBOX,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,37,142,10
+    COMBOBOX        IDC_UPDATE_INTERVAL,153,35,55,14,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Last update check: N/A",IDC_TEXT,7,7,276,8
     LTEXT           "Next update check: N/A",IDC_TEXT2,7,21,276,8
     CONTROL         "Show update prompt before main window",IDC_SHOWSTARTPROMPTCHECK,

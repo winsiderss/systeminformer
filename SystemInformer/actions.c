@@ -306,7 +306,7 @@ VOID PhpGetPhSvcPortName(
  * \param Mode The phsvc mode to start (ElevatedPhSvcMode or Wow64PhSvcMode).
  * \return BOOLEAN TRUE on success (an attempt to start phsvc was made and succeeded), FALSE otherwise.
  */
-BOOLEAN PhpStartPhSvcProcess(
+NTSTATUS PhpStartPhSvcProcess(
     _In_opt_ HWND WindowHandle,
     _In_ PH_PHSVC_MODE Mode
     )
@@ -314,19 +314,22 @@ BOOLEAN PhpStartPhSvcProcess(
     switch (Mode)
     {
     case ElevatedPhSvcMode:
-        if (NT_SUCCESS(PhShellProcessHacker(
-            WindowHandle,
-            L"-phsvc",
-            SW_HIDE,
-            PH_SHELL_EXECUTE_ADMIN,
-            0,
-            0,
-            NULL
-            )))
         {
-            return TRUE;
-        }
+            NTSTATUS status;
 
+            status = PhShellProcessHacker(
+                WindowHandle,
+                L"-phsvc",
+                SW_HIDE,
+                PH_SHELL_EXECUTE_ADMIN,
+                0,
+                0,
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+                return status;
+        }
         break;
     case Wow64PhSvcMode:
         {
@@ -339,13 +342,14 @@ BOOLEAN PhpStartPhSvcProcess(
 #endif
             };
             ULONG i;
+            NTSTATUS status;
             PPH_STRING applicationDirectory;
             PPH_STRING applicationFileName;
 
             if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
             if (!(applicationFileName = PhGetApplicationFileNameWin32()))
-                return FALSE;
+                return STATUS_INSUFFICIENT_RESOURCES;
 
             PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
 
@@ -367,7 +371,7 @@ BOOLEAN PhpStartPhSvcProcess(
 
                 if (PhDoesFileExistWin32(PhGetString(fileName)))
                 {
-                    if (NT_SUCCESS(PhShellProcessHackerEx(
+                    status = PhShellProcessHackerEx(
                         WindowHandle,
                         PhGetString(fileName),
                         L"-phsvc",
@@ -376,12 +380,14 @@ BOOLEAN PhpStartPhSvcProcess(
                         0,
                         0,
                         NULL
-                        )))
+                        );
+
+                    if (NT_SUCCESS(status))
                     {
                         PhDereferenceObject(fileName);
                         PhDereferenceObject(applicationFileName);
                         PhDereferenceObject(applicationDirectory);
-                        return TRUE;
+                        return status;
                     }
                 }
 
@@ -394,7 +400,7 @@ BOOLEAN PhpStartPhSvcProcess(
         break;
     }
 
-    return FALSE;
+    return STATUS_UNSUCCESSFUL;
 }
 
 /**
@@ -432,7 +438,7 @@ BOOLEAN PhUiConnectToPhSvcEx(
     {
         PhAcquireQueuedLockExclusive(&PhSvcStartLock);
 
-        if (_InterlockedExchange(&PhSvcReferenceCount, 0) == 0)
+        if (_InterlockedCompareExchange(&PhSvcReferenceCount, 0, 0) == 0)
         {
             started = FALSE;
             PhpGetPhSvcPortName(Mode, &portName);
@@ -450,12 +456,13 @@ BOOLEAN PhUiConnectToPhSvcEx(
             {
                 // Prompt for elevation, and then try to connect to the server.
 
-                if (PhpStartPhSvcProcess(WindowHandle, Mode))
-                    started = TRUE;
+                status = PhpStartPhSvcProcess(WindowHandle, Mode);
 
-                if (started)
+                if (NT_SUCCESS(status))
                 {
                     ULONG attempts = 10;
+
+                    started = TRUE;
 
                     // Try to connect several times because the server may take
                     // a while to initialize.
@@ -840,7 +847,7 @@ BOOLEAN PhUiRestartComputer(
                 if (status == S_OK)
                     return TRUE;
 
-                if ((status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0))
+                if (HRESULT_FACILITY(status) == FACILITY_WIN32 && HRESULT_SEVERITY(status) == SEVERITY_ERROR)
                 {
                     PhShowStatus(WindowHandle, L"Unable to restart the computer.", 0, HRESULT_CODE(status));
                 }
@@ -3089,7 +3096,7 @@ BOOLEAN PhUiDebugProcess(
         config.cbSize = sizeof(TASKDIALOGCONFIG);
         config.hwndParent = WindowHandle;
         config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_USE_COMMAND_LINKS | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_CAN_BE_MINIMIZED;
-        config.hMainIcon = PhGetApplicationIcon(FALSE);
+        config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(WindowHandle));
         config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
         config.pszWindowTitle = PhApplicationName;
         config.pszMainInstruction = L"Select a system debugger to use for this process:";
@@ -3339,7 +3346,7 @@ BOOLEAN PhUiSetActivityModeration(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_POSITION_RELATIVE_TO_WINDOW;
-    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(WindowHandle));
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Select the process activity moderation throttling state.";
     config.nDefaultButton = IDCANCEL;
@@ -5659,7 +5666,10 @@ BOOLEAN PhUiStopService(
         }
         else
         {
-            PhpShowErrorService(WindowHandle, L"stop", Service, status, 0);
+            if (!cancelled)
+            {
+                PhpShowErrorService(WindowHandle, L"stop", Service, status, 0);
+            }
         }
     }
 
@@ -5723,7 +5733,10 @@ BOOLEAN PhUiDeleteService(
         }
         else
         {
-            PhpShowErrorService(WindowHandle, L"delete", Service, status, 0);
+            if (!cancelled)
+            {
+                PhpShowErrorService(WindowHandle, L"delete", Service, status, 0);
+            }
         }
     }
 
@@ -6268,6 +6281,80 @@ BOOLEAN PhUiResumeThreads(
                 if (!PhpShowErrorThread(WindowHandle, L"resume", Threads[i], status, 0))
                     break;
             }
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiFreezeThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+
+    for (ULONG i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE freezeHandle;
+
+        if (ReadPointerAcquire(&Threads[i]->FreezeHandle))
+            continue;
+
+        status = PhFreezeThreadById(
+            &freezeHandle,
+            Threads[i]->ThreadId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(WindowHandle, L"freeze", Threads[i], status, 0))
+                break;
+        }
+        else if (freezeHandle = InterlockedExchangePointer(&Threads[i]->FreezeHandle, freezeHandle))
+        {
+            NtClose(freezeHandle);
+        }
+    }
+
+    return success;
+}
+
+BOOLEAN PhUiThawThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    )
+{
+    BOOLEAN success = TRUE;
+
+    for (ULONG i = 0; i < NumberOfThreads; i++)
+    {
+        NTSTATUS status;
+        HANDLE freezeHandle;
+
+        if (!(freezeHandle = ReadPointerAcquire(&Threads[i]->FreezeHandle)))
+            continue;
+
+        status = PhThawThreadById(
+            freezeHandle,
+            Threads[i]->ThreadId
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            success = FALSE;
+
+            if (!PhpShowErrorThread(WindowHandle, L"thaw", Threads[i], status, 0))
+                break;
+        }
+        else if (freezeHandle = InterlockedExchangePointer(&Threads[i]->FreezeHandle, NULL))
+        {
+            NtClose(freezeHandle);
         }
     }
 
@@ -7050,33 +7137,66 @@ BOOLEAN PhUiSetAttributesHandle(
 
     if (KsiLevel() < KphLevelMax)
     {
-        PhShowKsiNotConnected(
-            WindowHandle,
-            L"Setting handle attributes requires a connection to the kernel driver."
+        status = PhOpenProcess(
+            &processHandle,
+            PROCESS_ALL_ACCESS,
+            ProcessId
             );
-        return FALSE;
-    }
 
-    if (NT_SUCCESS(status = PhOpenProcess(
-        &processHandle,
-        PROCESS_SET_INFORMATION,
-        ProcessId
-        )))
-    {
-        OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
+        if (NT_SUCCESS(status))
+        {
+            ULONG mask = HANDLE_FLAG_INHERIT | HANDLE_FLAG_PROTECT_FROM_CLOSE;
+            ULONG flags = 0;
 
-        handleFlagInfo.Inherit = !!(Attributes & OBJ_INHERIT);
-        handleFlagInfo.ProtectFromClose = !!(Attributes & OBJ_PROTECT_CLOSE);
+            if (FlagOn(Attributes, OBJ_INHERIT))
+            {
+                SetFlag(flags, HANDLE_FLAG_INHERIT);
+            }
 
-        status = KphSetInformationObject(
-            processHandle,
-            Handle->Handle,
-            KphObjectHandleFlagInformation,
-            &handleFlagInfo,
-            sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
-            );
+            if (FlagOn(Attributes, OBJ_PROTECT_CLOSE))
+            {
+                SetFlag(flags, HANDLE_FLAG_PROTECT_FROM_CLOSE);
+            }
+
+            status = PhSetHandleInformationRemote(
+                processHandle,
+                Handle->Handle,
+                mask,
+                flags,
+                NULL
+                );
+        }
+        else
+        {
+            PhShowStatus(WindowHandle, L"Setting handle attributes requires a connection to the kernel driver.", status, 0);
+            return FALSE;
+        }
 
         NtClose(processHandle);
+    }
+    else
+    {
+        if (NT_SUCCESS(status = PhOpenProcess(
+            &processHandle,
+            PROCESS_SET_INFORMATION,
+            ProcessId
+            )))
+        {
+            OBJECT_HANDLE_FLAG_INFORMATION handleFlagInfo;
+
+            handleFlagInfo.Inherit = !!(Attributes & OBJ_INHERIT);
+            handleFlagInfo.ProtectFromClose = !!(Attributes & OBJ_PROTECT_CLOSE);
+
+            status = KphSetInformationObject(
+                processHandle,
+                Handle->Handle,
+                KphObjectHandleFlagInformation,
+                &handleFlagInfo,
+                sizeof(OBJECT_HANDLE_FLAG_INFORMATION)
+                );
+
+            NtClose(processHandle);
+        }
     }
 
     if (!NT_SUCCESS(status))

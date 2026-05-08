@@ -301,11 +301,14 @@ typedef struct _PV_SYMBOL_NODE
     PV_SYMBOL_TYPE Type;
     ULONG64 Size;
     ULONG64 Address;
+    ULONG64 Offset;
     PPH_STRING Name;
     PPH_STRING SizeText;
+    PPH_STRING Value;
     PPH_STRINGREF Data;
     WCHAR Index[PH_INT64_STR_LEN_1];
     WCHAR Pointer[PH_PTR_STR_LEN_1];
+    WCHAR OffsetText[PH_PTR_STR_LEN_1];
 
     ULONG Characteristics;
     ULONG SectionNameLength;
@@ -332,6 +335,7 @@ typedef enum PV_SYMBOL_TREE_MENU_ITEM
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_EXECUTE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_CODE,
     PV_SYMBOL_TREE_MENU_ITEM_HIDE_READ,
+    PV_SYMBOL_TREE_MENU_ITEM_HIDE_PARAMETERS,
     PV_SYMBOL_TREE_MENU_ITEM_FILTER_TYPES,
     PV_SYMBOL_TREE_MENU_ITEM_FILTER_WRITE,
     PV_SYMBOL_TREE_MENU_ITEM_HIGHLIGHT_WRITE,
@@ -483,7 +487,8 @@ typedef struct _PDB_SYMBOL_CONTEXT
             ULONG HighlightCodeSection : 1;
             ULONG HighlightReadSection : 1;
             ULONG FilterNonWriteSections : 1;
-            ULONG Spare : 22;
+            ULONG HideParameters : 1;
+            ULONG Spare : 21;
         };
     };
 } PDB_SYMBOL_CONTEXT, *PPDB_SYMBOL_CONTEXT;

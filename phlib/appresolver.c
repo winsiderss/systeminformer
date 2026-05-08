@@ -1105,6 +1105,7 @@ static BOOLEAN PhParseStartMenuAppShellItem(
     _In_ PPH_LIST List
     )
 {
+    BOOLEAN result;
     PROPVARIANT packageHostEnvironment;
     PWSTR packageAppUserModelID = NULL;
     PWSTR packageInstallPath = NULL;
@@ -1112,12 +1113,13 @@ static BOOLEAN PhParseStartMenuAppShellItem(
     PWSTR packageSmallLogoPath = NULL;
     PWSTR packageLongDisplayName = NULL;
 
+    result = FALSE;
     PropVariantInit(&packageHostEnvironment);
 
     if (HR_FAILED(IShellItem2_GetProperty(ShellItem, &PKEY_AppUserModel_HostEnvironment, &packageHostEnvironment)))
-        return FALSE;
+        goto CleanupExit;
     if (packageHostEnvironment.vt != VT_UI4 && packageHostEnvironment.ulVal)
-        return FALSE;
+        goto CleanupExit;
 
     IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_ID, &packageAppUserModelID);
     IShellItem2_GetString(ShellItem, &PKEY_AppUserModel_PackageInstallPath, &packageInstallPath);
@@ -1147,10 +1149,10 @@ static BOOLEAN PhParseStartMenuAppShellItem(
         }
 
         PhAddItemList(List, entry);
-
-        return TRUE;
+        result = TRUE;
     }
 
+CleanupExit:
     if (packageAppUserModelID)
         CoTaskMemFree(packageAppUserModelID);
     if (packageInstallPath)
@@ -1161,7 +1163,9 @@ static BOOLEAN PhParseStartMenuAppShellItem(
         CoTaskMemFree(packageSmallLogoPath);
     if (packageLongDisplayName)
         CoTaskMemFree(packageLongDisplayName);
-    return FALSE;
+    PropVariantClear(&packageHostEnvironment);
+
+    return result;
 }
 
 PPH_LIST PhEnumApplicationUserModelIds(
@@ -1383,8 +1387,8 @@ BOOLEAN PhAppResolverGetPackageIcon(
 CleanupExit:
     if (imagePath)
         CoTaskMemFree(imagePath);
-    if (propertyPathValue.bstrVal)
-        CoTaskMemFree(propertyPathValue.bstrVal);
+    PropVariantClear(&propertyColorValue);
+    PropVariantClear(&propertyPathValue);
     if (propertyStore)
         IPropertyStore_Release(propertyStore);
 

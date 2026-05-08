@@ -1214,7 +1214,7 @@ BOOLEAN PhLoadModuleSymbolProvider(
         symbolModule = PhpCreateSymbolModule(SymbolProvider->ProcessHandle, FileName, BaseAddress, Size);
         existingLinks = PhAddElementAvlTree(&SymbolProvider->ModulesSet, &symbolModule->Links);
         assert(!existingLinks);
-        InsertTailList(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
+        InsertTailListNoFence(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
     }
 
     PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);
@@ -1277,7 +1277,7 @@ BOOLEAN PhLoadFileNameSymbolProvider(
 
         existingLinks = PhAddElementAvlTree(&SymbolProvider->ModulesSet, &symbolModule->Links);
         assert(!existingLinks);
-        InsertTailList(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
+        InsertTailListNoFence(&SymbolProvider->ModulesListHead, &symbolModule->ListEntry);
     }
 
     PhReleaseQueuedLockExclusive(&SymbolProvider->ModulesListLock);

@@ -505,7 +505,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
-            context->CXWidth = PhGetDpi(16, context->WindowDpi);
+            context->CXWidth = PhScaleToDisplay(16, context->WindowDpi);
 
             if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
             {
@@ -563,7 +563,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
             context->WindowDpi = LOWORD(wParam);
             if (context->FontHandle) DeleteFont(context->FontHandle);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
-            context->CXWidth = PhGetDpi(16, context->WindowDpi);
+            context->CXWidth = PhScaleToDisplay(16, context->WindowDpi);
             ListBox_SetItemHeight(context->AvailableListHandle, 0, context->CXWidth + 6); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, context->CXWidth + 6); // BitmapHeight
 

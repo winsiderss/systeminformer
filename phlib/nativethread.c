@@ -42,7 +42,7 @@ NTSTATUS PhOpenThread(
 
     level = KsiLevel();
 
-    if ((level >= KphLevelMed) && (DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess)
+    if ((DesiredAccess & KPH_THREAD_READ_ACCESS) == DesiredAccess && (level >= KphLevelMed))
     {
         status = KphOpenThread(
             ThreadHandle,
@@ -52,7 +52,14 @@ NTSTATUS PhOpenThread(
     }
     else
     {
-        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+
         status = NtOpenThread(
             ThreadHandle,
             DesiredAccess,
@@ -62,6 +69,9 @@ NTSTATUS PhOpenThread(
 
         if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
         {
+            clientId.UniqueProcess = NULL;
+            clientId.UniqueThread = ThreadId;
+
             status = KphOpenThread(
                 ThreadHandle,
                 DesiredAccess,
@@ -89,7 +99,11 @@ NTSTATUS PhOpenThreadClientId(
 {
     NTSTATUS status;
     OBJECT_ATTRIBUTES objectAttributes;
+    CLIENT_ID clientId;
     KPH_LEVEL level;
+
+    clientId.UniqueProcess = ClientId->UniqueProcess;
+    clientId.UniqueThread = ClientId->UniqueThread;
 
     level = KsiLevel();
 
@@ -98,25 +112,35 @@ NTSTATUS PhOpenThreadClientId(
         status = KphOpenThread(
             ThreadHandle,
             DesiredAccess,
-            ClientId
+            &clientId
             );
     }
     else
     {
-        InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+        InitializeObjectAttributes(
+            &objectAttributes,
+            NULL,
+            0,
+            NULL,
+            NULL
+            );
+
         status = NtOpenThread(
             ThreadHandle,
             DesiredAccess,
             &objectAttributes,
-            ClientId
+            &clientId
             );
 
         if (status == STATUS_ACCESS_DENIED && (level == KphLevelMax))
         {
+            clientId.UniqueProcess = ClientId->UniqueProcess;
+            clientId.UniqueThread = ClientId->UniqueThread;
+
             status = KphOpenThread(
                 ThreadHandle,
                 DesiredAccess,
-                ClientId
+                &clientId
                 );
         }
     }
@@ -144,7 +168,13 @@ NTSTATUS PhOpenThreadPublic(
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = ThreadId;
 
-    InitializeObjectAttributes(&objectAttributes, NULL, 0, NULL, NULL);
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        0,
+        NULL,
+        NULL
+        );
 
     return NtOpenThread(
         ThreadHandle,
@@ -648,7 +678,7 @@ NTSTATUS PhGetThreadContainerId(
         ThreadHandle,
         ThreadContainerId,
         &threadContainerId,
-        sizeof(ULONG),
+        sizeof(GUID),
         NULL
         );
 

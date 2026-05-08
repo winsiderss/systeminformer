@@ -46,8 +46,8 @@
 
 #define jt_hexdigit(x) (((x) <= '9') ? (x) - '0' : ((x)&7) + 9)
 
-#if !HAVE_STRNCASECMP && defined(_MSC_VER)
-/* MSC has the version as _strnicmp */
+#if !HAVE_STRNCASECMP && defined(_WIN32)
+/* Windows (MSVC and MinGW) have the version as _strnicmp */
 #define strncasecmp _strnicmp
 #elif !HAVE_STRNCASECMP
 #error You do not have strncasecmp on your system.
@@ -1390,7 +1390,7 @@ size_t json_tokener_get_parse_end(struct json_tokener *tok)
 static int json_tokener_parse_double(const unsigned char *buf, size_t len, double *retval)
 {
     unsigned char *end;
-    *retval = strtod(buf, &end);
+    *retval = strtod(buf, (char**)&end);
     if (buf + len == end)
         return 0; // It worked
     return 1;

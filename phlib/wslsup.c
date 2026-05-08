@@ -22,6 +22,14 @@ typedef struct _PH_WSL_ENUM_CONTEXT
     PPH_STRING TranslatedPath;
 } PH_WSL_ENUM_CONTEXT, *PPH_WSL_ENUM_CONTEXT;
 
+/**
+ * Callback function for enumerating WSL distribution names.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The key information.
+ * \param Context The enumeration context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI PhWslDistributionNamesCallback(
     _In_ HANDLE RootDirectory,
@@ -82,6 +90,16 @@ BOOLEAN NTAPI PhWslDistributionNamesCallback(
     return TRUE;
 }
 
+/**
+ * Gets the WSL distribution information from a file path.
+ *
+ * \param FileName The file path.
+ * \param DistributionGuid A variable which receives the distribution GUID.
+ * \param DistributionName A variable which receives the distribution name.
+ * \param DistributionPath A variable which receives the distribution path.
+ * \param TranslatedPath A variable which receives the translated path.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetWslDistributionFromPath(
     _In_ PPH_STRINGREF FileName,
     _Out_opt_ PPH_STRING *DistributionGuid,
@@ -152,6 +170,14 @@ NTSTATUS PhGetWslDistributionFromPath(
     return status;
 }
 
+/**
+ * Gets the command line for executing a command in a WSL distribution.
+ *
+ * \param DistributionGuid The distribution GUID.
+ * \param DistributionName The distribution name.
+ * \param CommandLine The command line to execute.
+ * \return A pointer to a string containing the full command line.
+ */
 PPH_STRING PhGetWslDistributionCommandLine(
     _In_ PPH_STRING DistributionGuid,
     _In_ PPH_STRING DistributionName,
@@ -195,6 +221,12 @@ PPH_STRING PhGetWslDistributionCommandLine(
     return NULL;
 }
 
+/**
+ * Gets the command line for translating a Win32 path to a WSL path.
+ *
+ * \param win32FileName The Win32 file name.
+ * \return A pointer to a string containing the command line.
+ */
 PPH_STRING PhGetWslPathCommandLine(
     _In_ PPH_STRING win32FileName
     )
@@ -208,6 +240,13 @@ PPH_STRING PhGetWslPathCommandLine(
     return PhFormat(format, RTL_NUMBER_OF(format), 0x100);
 }
 
+/**
+ * Translates a DOS path name to a WSL path name.
+ *
+ * \param FileName The DOS path name.
+ * \param LxssFileName A variable which receives the translated WSL path name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhDosPathNameToWslPathName(
     _In_ PPH_STRINGREF FileName,
     _Out_ PPH_STRING* LxssFileName
@@ -272,6 +311,14 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Queries the command line of a process in a WSL distribution.
+ *
+ * \param FileName The file path within the distribution.
+ * \param LxssProcessId The WSL process ID.
+ * \param Result A variable which receives the command line.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWslQueryDistroProcessCommandLine(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
@@ -373,6 +420,14 @@ NTSTATUS PhWslQueryDistroProcessCommandLine(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Queries the environment of a process in a WSL distribution.
+ *
+ * \param FileName The file path within the distribution.
+ * \param LxssProcessId The WSL process ID.
+ * \param Result A variable which receives the environment.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWslQueryDistroProcessEnvironment(
     _In_ PPH_STRINGREF FileName,
     _In_ ULONG LxssProcessId,
@@ -474,6 +529,15 @@ NTSTATUS PhWslQueryDistroProcessEnvironment(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Queries RPM package information for a file in a WSL distribution.
+ *
+ * \param DistributionGuid The distribution GUID.
+ * \param DistributionName The distribution name.
+ * \param LxssFileName The WSL file name.
+ * \param Result A variable which receives the package information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWslQueryRpmPackageFromFileName(
     _In_ PPH_STRING DistributionGuid,
     _In_ PPH_STRING DistributionName,
@@ -508,6 +572,15 @@ NTSTATUS PhWslQueryRpmPackageFromFileName(
     return status;
 }
 
+/**
+ * Queries Debian package information for a file in a WSL distribution.
+ *
+ * \param DistributionGuid The distribution GUID.
+ * \param DistributionName The distribution name.
+ * \param LxssFileName The WSL file name.
+ * \param Result A variable which receives the package information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWslQueryDebianPackageFromFileName(
     _In_ PPH_STRING DistributionGuid,
     _In_ PPH_STRING DistributionName,
@@ -609,6 +682,13 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Parses WSL package version information from a command result.
+ *
+ * \param ImageVersionInfo The image version info structure to populate.
+ * \param LxssCommandResult The command result string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhWslParsePackageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING LxssCommandResult
@@ -645,6 +725,13 @@ NTSTATUS PhWslParsePackageVersionInfo(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Initializes WSL image version information for a file.
+ *
+ * \param ImageVersionInfo The image version info structure to populate.
+ * \param FileName The file name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhInitializeLxssImageVersionInfo(
     _Inout_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRINGREF FileName
@@ -712,6 +799,15 @@ CleanupExit:
     return success;
 }
 
+/**
+ * Creates a WSL process and captures its output.
+ *
+ * \param DistributionGuid The distribution GUID.
+ * \param DistributionName The distribution name.
+ * \param DistributionCommand The command to execute within the distribution.
+ * \param Result A variable which receives the captured output.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCreateProcessLxss(
     _In_ PPH_STRING DistributionGuid,
     _In_ PPH_STRING DistributionName,

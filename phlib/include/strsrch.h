@@ -20,7 +20,7 @@ typedef struct _PH_STRING_SEARCH_RESULT
 {
     PVOID Address;
     SIZE_T Length;
-    PPH_STRING String;
+    PH_STRINGREF String;
     BOOLEAN Unicode;
 } PH_STRING_SEARCH_RESULT, *PPH_STRING_SEARCH_RESULT;
 

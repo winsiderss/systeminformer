@@ -65,6 +65,7 @@ typedef enum _PHP_HANDLE_GENERAL_INDEX
     PH_HANDLE_GENERAL_INDEX_FLAGS,
     PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER,
     PH_HANDLE_GENERAL_INDEX_PORTCONTEXT,
+    PH_HANDLE_GENERAL_INDEX_ALPCSTATE,
 
     PH_HANDLE_GENERAL_INDEX_FILETYPE,
     PH_HANDLE_GENERAL_INDEX_FILEMODE,
@@ -149,6 +150,25 @@ CONST PH_ACCESS_ENTRY AlpcFlags[] =
     { L"ALPC_PORFLG_WAKE_POLICY3", ALPC_PORFLG_WAKE_POLICY3, FALSE, FALSE, L"Wake policy (3)"},
     { L"ALPC_PORFLG_DIRECT_MESSAGE", ALPC_PORFLG_DIRECT_MESSAGE, FALSE, FALSE, L"No shared section (direct)"},
     { L"ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE", ALPC_PORFLG_ALLOW_MULTIHANDLE_ATTRIBUTE, FALSE, FALSE, L"Allow multi-handle attributes"},
+};
+
+CONST PH_ACCESS_ENTRY AlpcStateFlags[] =
+{
+    { L"Initialized", 0x0001UL, FALSE, FALSE, L"Initialized" },
+    { L"ConnectionPending", 0x0008UL, FALSE, FALSE, L"Connection pending" },
+    { L"ConnectionRefused", 0x0010UL, FALSE, FALSE, L"Connection refused" },
+    { L"Disconnected", 0x0020UL, FALSE, FALSE, L"Disconnected" },
+    { L"Closed", 0x0040UL, FALSE, FALSE, L"Closed" },
+    { L"NoFlushOnClose", 0x0080UL, FALSE, FALSE, L"No flush on close" },
+    { L"ReturnExtendedInfo", 0x0100UL, FALSE, FALSE, L"Return extended info" },
+    { L"Waitable", 0x0200UL, FALSE, FALSE, L"Waitable" },
+    { L"DynamicSecurity", 0x0400UL, FALSE, FALSE, L"Dynamic security" },
+    { L"Wow64CompletionList", 0x0800UL, FALSE, FALSE, L"WOW64 completion list" },
+    { L"Lpc", 0x1000UL, FALSE, FALSE, L"LPC" },
+    { L"LpcToLpc", 0x2000UL, FALSE, FALSE, L"LPC-to-LPC" },
+    { L"HasCompletionList", 0x4000UL, FALSE, FALSE, L"Has completion list" },
+    { L"HadCompletionList", 0x8000UL, FALSE, FALSE, L"Had completion list" },
+    { L"EnableCompletionList", 0x10000UL, FALSE, FALSE, L"Enable completion list" },
 };
 
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
@@ -552,6 +572,7 @@ VOID PhpUpdateHandleGeneralListViewGroups(
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_FLAGS, L"Flags");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_SEQUENCENUMBER, L"Sequence Number");
         PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, L"Port Context");
+        PhAddHandleListViewItem(Context->ListViewClass, PH_HANDLE_GENERAL_CATEGORY_ALPC, PH_HANDLE_GENERAL_INDEX_ALPCSTATE, L"State");
 
         if (KsiLevel() >= KphLevelMed)
         {
@@ -828,10 +849,6 @@ VOID PhpUpdateHandleGeneral(
                 Context->ProcessId
                 )))
         {
-            //
-            // TODO this path doesn't use all the ALPC info returned yet
-            // see: KPH_ALPC_BASIC_INFORMATION.State
-            //
             KPH_ALPC_BASIC_INFORMATION basicInfo;
             PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION connectionNames;
             KPH_ALPC_COMMUNICATION_INFORMATION connectionInfo;
@@ -870,6 +887,48 @@ VOID PhpUpdateHandleGeneral(
 
                 PhPrintPointer(string, basicInfo.PortContext);
                 PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_PORTCONTEXT, 1, string);
+
+                {
+                    PCWSTR portTypeString;
+                    PPH_STRING stateFlagsString;
+                    PPH_STRING alpcStateString;
+
+                    switch ((basicInfo.State >> 1) & 0x3)
+                    {
+                    case 1: portTypeString = L"Server connection"; break;
+                    case 2: portTypeString = L"Client communication"; break;
+                    case 3: portTypeString = L"Server communication"; break;
+                    default: portTypeString = L"Unconnected"; break;
+                    }
+
+                    stateFlagsString = PhGetAccessString(
+                        basicInfo.State & ~0x6UL,
+                        (PPH_ACCESS_ENTRY)AlpcStateFlags,
+                        RTL_NUMBER_OF(AlpcStateFlags)
+                        );
+
+                    if (stateFlagsString->Length > 0)
+                    {
+                        alpcStateString = PhFormatString(
+                            L"0x%08lX (%s, %s)",
+                            basicInfo.State,
+                            portTypeString,
+                            stateFlagsString->Buffer
+                            );
+                    }
+                    else
+                    {
+                        alpcStateString = PhFormatString(
+                            L"0x%08lX (%s)",
+                            basicInfo.State,
+                            portTypeString
+                            );
+                    }
+
+                    PhDereferenceObject(stateFlagsString);
+                    PhSetHandleListViewItem(Context, PH_HANDLE_GENERAL_INDEX_ALPCSTATE, 1, PhGetString(alpcStateString));
+                    PhDereferenceObject(alpcStateString);
+                }
             }
 
             if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(
@@ -1750,76 +1809,75 @@ VOID PhpUpdateHandleGeneral(
         KERNEL_USER_TIMES times;
         BOOLEAN haveTimes = FALSE;
 
-        // TODO(jxy-s): Uncomment following code after next driver release (commented out as workaround for KphObjectProcessImageFileName memory leak) (dmex)
-        //if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
-        //        &processHandle,
-        //        PROCESS_QUERY_LIMITED_INFORMATION,
-        //        Context->ProcessId
-        //        )))
-        //{
-        //    ULONG bufferSize;
-        //    ULONG returnLength;
-        //    PUNICODE_STRING buffer;
-        //    NTSTATUS status2;
+        if (KsiLevel() >= KphLevelMed && NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION,
+            Context->ProcessId
+            )))
+        {
+            ULONG bufferSize;
+            ULONG returnLength;
+            PUNICODE_STRING buffer;
+            NTSTATUS status2;
 
-        //    returnLength = 0;
-        //    bufferSize = 0x100;
-        //    buffer = PhAllocate(bufferSize);
+            returnLength = 0;
+            bufferSize = 0x100;
+            buffer = PhAllocate(bufferSize);
 
-        //    if (NT_SUCCESS(KphQueryInformationObject(
-        //        processHandle,
-        //        Context->HandleItem->Handle,
-        //        KphObjectProcessBasicInformation,
-        //        &basicInfo,
-        //        sizeof(basicInfo),
-        //        NULL
-        //        )))
-        //    {
-        //        exitStatus = basicInfo.ExitStatus;
-        //    }
+            if (NT_SUCCESS(KphQueryInformationObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                KphObjectProcessBasicInformation,
+                &basicInfo,
+                sizeof(basicInfo),
+                NULL
+                )))
+            {
+                exitStatus = basicInfo.ExitStatus;
+            }
 
-        //    haveTimes = NT_SUCCESS(KphQueryInformationObject(
-        //        processHandle,
-        //        Context->HandleItem->Handle,
-        //        KphObjectProcessTimes,
-        //        &times,
-        //        sizeof(times),
-        //        NULL
-        //        ));
+            haveTimes = NT_SUCCESS(KphQueryInformationObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                KphObjectProcessTimes,
+                &times,
+                sizeof(times),
+                NULL
+                ));
 
-        //    status2 = KphQueryInformationObject(
-        //        processHandle,
-        //        Context->HandleItem->Handle,
-        //        KphObjectProcessImageFileName,
-        //        buffer,
-        //        bufferSize,
-        //        &returnLength
-        //        );
-        //    if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
-        //    {
-        //        PhFree(buffer);
-        //        bufferSize = returnLength;
-        //        buffer = PhAllocate(returnLength);
+            status2 = KphQueryInformationObject(
+                processHandle,
+                Context->HandleItem->Handle,
+                KphObjectProcessImageFileName,
+                buffer,
+                bufferSize,
+                &returnLength
+                );
+            if (status2 == STATUS_BUFFER_TOO_SMALL && returnLength > 0)
+            {
+                PhFree(buffer);
+                bufferSize = returnLength;
+                buffer = PhAllocate(returnLength);
 
-        //        status2 = KphQueryInformationObject(
-        //            processHandle,
-        //            Context->HandleItem->Handle,
-        //            KphObjectProcessImageFileName,
-        //            buffer,
-        //            bufferSize,
-        //            &returnLength
-        //            );
-        //    }
+                status2 = KphQueryInformationObject(
+                    processHandle,
+                    Context->HandleItem->Handle,
+                    KphObjectProcessImageFileName,
+                    buffer,
+                    bufferSize,
+                    &returnLength
+                    );
+            }
 
-        //    if (NT_SUCCESS(status2))
-        //    {
-        //        fileName = PhCreateStringFromUnicodeString(buffer);
-        //        PhMoveReference(&fileName, PhGetFileName(fileName));
-        //    }
+            if (NT_SUCCESS(status2))
+            {
+                fileName = PhCreateStringFromUnicodeString(buffer);
+                PhMoveReference(&fileName, PhGetFileName(fileName));
+            }
 
-        //    NtClose(processHandle);
-        //}
-        //else
+            NtClose(processHandle);
+        }
+        else
         {
             HANDLE dupHandle = NULL;
 
@@ -2071,11 +2129,11 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ParentWindow = GetParent(hwndDlg);
             context->ListViewClass = PhListView_Initialize(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -2942,12 +3000,12 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewHeader = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ParentWindow = GetParent(hwndDlg);
             //context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -3127,12 +3185,12 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(context->ParentWindow);
-
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             context->ListViewHeader = GetDlgItem(hwndDlg, IDC_SETTINGS);
             context->ParentWindow = GetParent(hwndDlg);
             //context->ListViewClass = PhGetListViewInterface(context->ListViewHandle);
+
+            PhSetApplicationWindowIcon(context->ParentWindow);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");

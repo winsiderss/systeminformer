@@ -42,6 +42,7 @@
 #define PLUGIN_NAME L"UpdateChecker"
 #define SETTING_NAME_AUTO_CHECK (PLUGIN_NAME L".PromptStart")
 #define SETTING_NAME_LAST_CHECK (PLUGIN_NAME L".UpdateCheck")
+#define SETTING_NAME_UPDATE_INTERVAL (PLUGIN_NAME L".UpdateInterval")
 #define SETTING_NAME_UPDATE_MODE (PLUGIN_NAME L".UpdateMode")
 #define SETTING_NAME_UPDATE_AVAILABLE (PLUGIN_NAME L".UpdateAvailable")
 #define SETTING_NAME_UPDATE_DATA (PLUGIN_NAME L".UpdateData")
@@ -77,26 +78,29 @@ typedef struct _PH_UPDATER_CONTEXT
 {
     HWND DialogHandle;
     WNDPROC DefaultWindowProc;
+    LONG WindowDpi;
 
     union
     {
-        BOOLEAN Flags;
+        ULONG Flags;
         struct
         {
-            BOOLEAN StartupCheck : 1;
-            BOOLEAN HaveData : 1;
-            BOOLEAN Cancel : 1;
-            BOOLEAN Cleanup : 1;
-            BOOLEAN ElevationRequired : 1;
-            BOOLEAN ProgressMarquee : 1;
-            BOOLEAN ProgressTimer : 1;
-            BOOLEAN PortableMode : 1;
+            ULONG StartupCheck : 1;
+            ULONG HaveData : 1;
+            ULONG Cancel : 1;
+            ULONG Cleanup : 1;
+            ULONG ElevationRequired : 1;
+            ULONG ProgressMarquee : 1;
+            ULONG ProgressTimer : 1;
+            ULONG PortableMode : 1;
         };
     };
+    BOOLEAN ProgressFinalizing;
 
     ULONG UpdateStatus;
     ULONG64 CurrentVersion;
     ULONG64 LatestVersion;
+    HANDLE SetupFileHandle;
     PPH_STRING SetupFilePath;
     PPH_STRING Version;
     PPH_STRING RelDate;
@@ -113,6 +117,13 @@ typedef struct _PH_UPDATER_CONTEXT
     LONG64 ProgressDownloaded;
     LONG64 ProgressBitsPerSecond;
 } PH_UPDATER_CONTEXT, *PPH_UPDATER_CONTEXT;
+
+typedef struct _UPDATER_DOWNLOAD_RESULT
+{
+    BOOLEAN DownloadSuccess;
+    BOOLEAN HashSuccess;
+    BOOLEAN SignatureSuccess;
+} UPDATER_DOWNLOAD_RESULT, *PUPDATER_DOWNLOAD_RESULT;
 
 #ifdef FORCE_FAST_STATUS_TIMER
 #define SETTING_NAME_STATUS_TIMER_INTERVAL USER_TIMER_MINIMUM
@@ -215,8 +226,8 @@ INT_PTR CALLBACK OptionsDlgProc(
     );
 
 INT_PTR CALLBACK TextDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );

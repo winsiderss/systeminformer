@@ -100,8 +100,7 @@ NTSTATUS PhCreateFilePool(
         Parameters = &localParameters;
     }
 
-    pool = PhAllocate(sizeof(PH_FILE_POOL));
-    memset(pool, 0, sizeof(PH_FILE_POOL));
+    pool = PhAllocateZero(sizeof(PH_FILE_POOL));
 
     pool->FileHandle = FileHandle;
     pool->ReadOnly = ReadOnly;
@@ -192,8 +191,7 @@ NTSTATUS PhCreateFilePool(
 
     PhInitializeFreeList(&pool->ViewFreeList, sizeof(PH_FILE_POOL_VIEW), 32);
     pool->ByIndexSize = 32;
-    pool->ByIndexBuckets = PhAllocate(sizeof(PPH_FILE_POOL_VIEW) * pool->ByIndexSize);
-    memset(pool->ByIndexBuckets, 0, sizeof(PPH_FILE_POOL_VIEW) * pool->ByIndexSize);
+    pool->ByIndexBuckets = PhAllocateZero(sizeof(PPH_FILE_POOL_VIEW) * pool->ByIndexSize);
     PhInitializeAvlTree(&pool->ByBaseSet, PhpFilePoolViewByBaseCompareFunction);
 
     pool->MaximumInactiveViews = Parameters->MaximumInactiveViews;

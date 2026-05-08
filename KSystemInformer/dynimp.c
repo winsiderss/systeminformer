@@ -28,6 +28,15 @@ PLXP_THREAD_GET_CURRENT KphDynLxpThreadGetCurrent = NULL;
 PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE KphDynIoCheckFileObjectOpenedAsCopySource = NULL;
 PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION KphDynIoCheckFileObjectOpenedAsCopyDestination = NULL;
 PFLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA KphDynFltGetCopyInformationFromCallbackData = NULL;
+PPS_GET_SILO_IDENTIFIER KphDynPsGetSiloIdentifier = NULL;
+PPS_GET_EFFECTIVE_SERVER_SILO KphDynPsGetEffectiveServerSilo = NULL;
+PPS_IS_HOST_SILO KphDynPsIsHostSilo = NULL;
+PPS_REGISTER_SILO_MONITOR KphDynPsRegisterSiloMonitor = NULL;
+PPS_START_SILO_MONITOR KphDynPsStartSiloMonitor = NULL;
+PPS_UNREGISTER_SILO_MONITOR KphDynPsUnregisterSiloMonitor = NULL;
+PPS_GET_SERVER_SILO_SERVICE_SESSION_ID KphDynPsGetServerSiloServiceSessionId = NULL;
+PPS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID KphDynPsGetServerSiloActiveConsoleId = NULL;
+PPS_GET_SILO_CONTAINER_ID KphDynPsGetSiloContainerId = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 
 KPH_PAGED_FILE();
@@ -55,6 +64,15 @@ VOID KphDynamicImport(
     KphDynIoCheckFileObjectOpenedAsCopySource = (PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE)KphGetSystemRoutineAddress(L"IoCheckFileObjectOpenedAsCopySource");
     KphDynIoCheckFileObjectOpenedAsCopyDestination = (PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION)KphGetSystemRoutineAddress(L"IoCheckFileObjectOpenedAsCopyDestination");
     KphDynFltGetCopyInformationFromCallbackData = (PFLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA)KphGetRoutineAddress(L"fltMgr.sys", "FltGetCopyInformationFromCallbackData");
+    KphDynPsGetSiloIdentifier = (PPS_GET_SILO_IDENTIFIER)KphGetSystemRoutineAddress(L"PsGetSiloIdentifier");
+    KphDynPsGetEffectiveServerSilo = (PPS_GET_EFFECTIVE_SERVER_SILO)KphGetSystemRoutineAddress(L"PsGetEffectiveServerSilo");
+    KphDynPsIsHostSilo = (PPS_IS_HOST_SILO)KphGetSystemRoutineAddress(L"PsIsHostSilo");
+    KphDynPsRegisterSiloMonitor = (PPS_REGISTER_SILO_MONITOR)KphGetSystemRoutineAddress(L"PsRegisterSiloMonitor");
+    KphDynPsStartSiloMonitor = (PPS_START_SILO_MONITOR)KphGetSystemRoutineAddress(L"PsStartSiloMonitor");
+    KphDynPsUnregisterSiloMonitor = (PPS_UNREGISTER_SILO_MONITOR)KphGetSystemRoutineAddress(L"PsUnregisterSiloMonitor");
+    KphDynPsGetServerSiloServiceSessionId = (PPS_GET_SERVER_SILO_SERVICE_SESSION_ID)KphGetSystemRoutineAddress(L"PsGetServerSiloServiceSessionId");
+    KphDynPsGetServerSiloActiveConsoleId = (PPS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID)KphGetSystemRoutineAddress(L"PsGetServerSiloActiveConsoleId");
+    KphDynPsGetSiloContainerId = (PPS_GET_SILO_CONTAINER_ID)KphGetSystemRoutineAddress(L"PsGetSiloContainerId");
 }
 
 /**

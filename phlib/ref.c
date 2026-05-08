@@ -118,7 +118,7 @@ _May_raise_ PVOID PhCreateObject(
     }
 
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    InsertTailList(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
+    InsertTailListNoFence(&PhDbgObjectListHead, &objectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 
     {
@@ -182,6 +182,8 @@ _May_raise_ PVOID PhReferenceObjectEx(
     objectHeader = PhObjectToObjectHeader(Object);
     // Increase the reference count.
     oldRefCount = _InterlockedExchangeAdd(&objectHeader->RefCount, RefCount);
+
+    assert(oldRefCount >= 0);
 
     return Object;
 }
@@ -492,7 +494,7 @@ VOID PhpFreeObject(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgObjectListLock);
-    RemoveEntryList(&ObjectHeader->ObjectListEntry);
+    RemoveEntryListNoFence(&ObjectHeader->ObjectListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgObjectListLock);
 #endif
 

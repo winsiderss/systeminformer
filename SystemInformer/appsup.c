@@ -991,7 +991,7 @@ VOID PhShellExecuteUserString(
         {
             PPH_STRING stringTemp;
             PPH_STRING stringMiddle;
-           
+
             stringTemp = PhCreateString(String);
             stringMiddle = PhGetFileName(stringTemp);
 
@@ -1011,7 +1011,7 @@ VOID PhShellExecuteUserString(
 
     // Expand environment strings. (dmex)
     PhMoveReference(&executeString, PhExpandEnvironmentStrings(&executeString->sr));
-    
+
     if (!(applicationDirectory = PhGetApplicationDirectoryWin32()))
     {
         PhShowStatus(WindowHandle, L"Unable to locate the application directory.", STATUS_NOT_FOUND, 0);
@@ -1341,12 +1341,17 @@ VOID PhSetWindowOpacity(
     SetLayeredWindowAttributes(
         WindowHandle,
         0,
-        (BYTE)(255 * (100 - OpacityPercent) / 100),
+        (BYTE)PhMultiplyDivide(255, 100 - OpacityPercent, 100),
         LWA_ALPHA
         );
 }
 
-PPH_STRING PhGetPhVersion(
+/**
+ * Gets the full application version string.
+ *
+ * \return A formatted version string in major.minor.build.revision form.
+ */
+PPH_STRING PhGetBuildVersion(
     VOID
     )
 {
@@ -1363,7 +1368,15 @@ PPH_STRING PhGetPhVersion(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
-VOID PhGetPhVersionNumbers(
+/**
+ * Gets the individual application version number components.
+ *
+ * \param MajorVersion Receives the major version number.
+ * \param MinorVersion Receives the minor version number.
+ * \param BuildNumber Receives the build number.
+ * \param RevisionNumber Receives the revision number.
+ */
+VOID PhGetBuildVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
     _Out_opt_ PULONG BuildNumber,
@@ -1380,21 +1393,110 @@ VOID PhGetPhVersionNumbers(
         *RevisionNumber = PHAPP_VERSION_REVISION;
 }
 
-PPH_STRING PhGetPhVersionHash(
+/**
+ * Gets the commit hash for the current build.
+ *
+ * \return The commit hash as a UTF-16 string.
+ */
+PPH_STRING PhGetBuildCommit(
     VOID
     )
 {
     return PhConvertUtf8ToUtf16(PHAPP_VERSION_COMMIT);
 }
 
-PH_RELEASE_CHANNEL PhGetPhReleaseChannel(
+/**
+ * Gets the timestamp for the current build.
+ *
+ * \return A formatted local date/time string for the current version, or
+ * "Unknown" when the encoded values are invalid.
+ * \remarks The timestamp format is determined by the encoded version fields:
+ * PHAPP_VERSION_BUILD uses YDDD (Y = years since 2000, DDD = day of year),
+ * and PHAPP_VERSION_REVISION uses HHMM with an hour offset of +1.
+ */
+PPH_STRING PhGetBuildTime(
+    VOID
+    )
+{
+    static const USHORT DaysInMonth[2][12] =
+    {
+        { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+        { 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+    };
+    ULONG build;
+    ULONG revision;
+    ULONG year;
+    ULONG dayOfYear;
+    USHORT month;
+    ULONG hour;
+    ULONG minute;
+    ULONG leapYear;
+    SYSTEMTIME utcSystemTime;
+    SYSTEMTIME localSystemTime;
+
+    build = PHAPP_VERSION_BUILD;
+    revision = PHAPP_VERSION_REVISION;
+
+    // Decode packed build/revision values into calendar and time components.
+
+    year = 2000 + (build / 1000);
+    dayOfYear = build % 1000;
+    minute = revision % 100;
+    hour = (revision / 100) - 1;
+
+    // Reject impossible day/time values before constructing a timestamp.
+    if (dayOfYear == 0 || dayOfYear > 366 || hour > 23 || minute > 59)
+        return PhCreateString(L"Unknown");
+
+    leapYear = (year % 4 == 0 && ((year % 100 != 0) || (year % 400 == 0))) ? 1 : 0;
+
+    if ((!leapYear && dayOfYear > 365) || year < 2000)
+        return PhCreateString(L"Unknown");
+
+    month = 1;
+
+    // Convert day-of-year to month/day using leap-year-aware month lengths.
+    while (dayOfYear > DaysInMonth[leapYear][month - 1] && month <= 12)
+    {
+        dayOfYear -= DaysInMonth[leapYear][month - 1];
+        month++;
+    }
+
+    if (month > 12)
+        return PhCreateString(L"Unknown");
+
+    // Build a UTC SYSTEMTIME first; convert to local time for display if possible.
+    memset(&utcSystemTime, 0, sizeof(utcSystemTime));
+    utcSystemTime.wYear = (USHORT)year;
+    utcSystemTime.wMonth = month;
+    utcSystemTime.wDay = (USHORT)dayOfYear;
+    utcSystemTime.wHour = (USHORT)hour;
+    utcSystemTime.wMinute = (USHORT)minute;
+
+    if (!PhSystemTimeToTzSpecificLocalTime(&utcSystemTime, &localSystemTime))
+        return PhFormatDateTime(&utcSystemTime);
+
+    return PhFormatDateTime(&localSystemTime);
+}
+
+/**
+ * Gets the configured release update channel.
+ *
+ * \return The configured release channel value.
+ */
+PH_RELEASE_CHANNEL PhGetBuildReleaseChannel(
     VOID
     )
 {
     return PhGetIntegerSetting(SETTING_RELEASE_CHANNEL);
 }
 
-PCWSTR PhGetPhReleaseChannelString(
+/**
+ * Gets the display name for the configured release channel.
+ *
+ * \return A static string describing the current release channel.
+ */
+PCWSTR PhGetBuildReleaseChannelString(
     VOID
     )
 {
@@ -1424,7 +1526,7 @@ VOID PhWritePhTextHeader(
 
     PhWriteStringAsUtf8FileStream2(FileStream, L"System Informer ");
 
-    if (version = PhGetPhVersion())
+    if (version = PhGetBuildVersion())
     {
         PhWriteStringAsUtf8FileStream(FileStream, &version->sr);
         PhDereferenceObject(version);
@@ -1452,7 +1554,7 @@ VOID PhWritePhTextHeader(
 NTSTATUS PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR Parameters,
-    _In_ ULONG ShowWindowType,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
     _In_opt_ ULONG Timeout,
@@ -1492,7 +1594,7 @@ NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR FileName,
     _In_opt_ PCWSTR Parameters,
-    _In_ ULONG ShowWindowType,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
     _In_opt_ ULONG Timeout,
@@ -2681,48 +2783,18 @@ HBITMAP PhGetShieldBitmap(
 }
 
 HICON PhGetApplicationIcon(
-    _In_ BOOLEAN SmallIcon
-    )
-{
-    static HICON smallIcon = NULL;
-    static HICON largeIcon = NULL;
-    static LONG systemDpi = 0;
-
-    if (systemDpi != PhSystemDpi)
-    {
-        if (smallIcon)
-        {
-            DestroyIcon(smallIcon);
-            smallIcon = NULL;
-        }
-        if (largeIcon)
-        {
-            DestroyIcon(largeIcon);
-            largeIcon = NULL;
-        }
-
-        systemDpi = PhSystemDpi;
-    }
-
-    if (!smallIcon || !largeIcon)
-    {
-        if (!smallIcon)
-            smallIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, systemDpi);
-        if (!largeIcon)
-            largeIcon = PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, systemDpi);
-    }
-
-    return SmallIcon ? smallIcon : largeIcon;
-}
-
-HICON PhGetApplicationIconEx(
     _In_ BOOLEAN SmallIcon,
-    _In_opt_ LONG WindowDpi
+    _In_ LONG WindowDpi
     )
 {
+    ULONG iconFlags;
+
     if (SmallIcon)
-        return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_SMALL, 0, 0, WindowDpi);
-    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), PH_LOAD_ICON_SIZE_LARGE, 0, 0, WindowDpi);
+        iconFlags = PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_SMALL;
+    else
+        iconFlags = PH_LOAD_ICON_SHARED | PH_LOAD_ICON_SIZE_LARGE;
+
+    return PhLoadIcon(NtCurrentImageBase(), MAKEINTRESOURCE(IDI_SYSTEMINFORMER), iconFlags, 0, 0, WindowDpi);
 }
 
 VOID PhSetWindowIcon(
@@ -2732,54 +2804,52 @@ VOID PhSetWindowIcon(
     _In_ BOOLEAN CleanupIcon
     )
 {
+    HICON iconSmallHandle = NULL;
+    HICON iconLargeHandle = NULL;
+
     if (SmallIcon)
     {
-        HICON iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)SmallIcon);
-
-        if (iconHandle && CleanupIcon)
-        {
-            DestroyIcon(iconHandle);
-        }
+        iconSmallHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, (LPARAM)SmallIcon);
     }
 
     if (LargeIcon)
     {
-        HICON iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)LargeIcon);
-
-        if (iconHandle && CleanupIcon)
-        {
-            DestroyIcon(iconHandle);
-        }
+        iconLargeHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, (LPARAM)LargeIcon);
     }
+
+    //if (iconSmallHandle && CleanupIcon)
+    //{
+    //    DestroyIcon(iconSmallHandle);
+    //}
+
+    //if (iconLargeHandle && CleanupIcon)
+    //{
+    //    DestroyIcon(iconLargeHandle);
+    //}
 }
 
 VOID PhDestroyWindowIcon(
     _In_ HWND WindowHandle
     )
 {
-    HICON iconHandle;
+    //HICON iconHandle;
 
-    if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
-    {
-        DestroyIcon(iconHandle);
-    }
+    //if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_SMALL, 0))
+    //{
+    //    DestroyIcon(iconHandle);
+    //}
 
-    if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
-    {
-        DestroyIcon(iconHandle);
-    }
+    //if (iconHandle = (HICON)SendMessage(WindowHandle, WM_SETICON, ICON_BIG, 0))
+    //{
+    //    DestroyIcon(iconHandle);
+    //}
 }
 
 VOID PhSetApplicationWindowIcon(
     _In_ HWND WindowHandle
     )
 {
-    PhSetWindowIcon(
-        WindowHandle,
-        PhGetApplicationIcon(TRUE),
-        PhGetApplicationIcon(FALSE),
-        TRUE
-        );
+    PhSetApplicationWindowIconEx(WindowHandle, PhGetWindowDpi(WindowHandle));
 }
 
 VOID PhSetApplicationWindowIconEx(
@@ -2787,12 +2857,16 @@ VOID PhSetApplicationWindowIconEx(
     _In_opt_ LONG WindowDpi
     )
 {
-    PhSetWindowIcon(
-        WindowHandle,
-        PhGetApplicationIconEx(TRUE, WindowDpi),
-        PhGetApplicationIconEx(FALSE, WindowDpi),
-        TRUE
-        );
+    HICON smallIcon;
+    HICON largeIcon;
+
+    smallIcon = PhGetApplicationIcon(TRUE, WindowDpi);
+    largeIcon = PhGetApplicationIcon(FALSE, WindowDpi);
+
+    if (smallIcon && largeIcon)
+    {
+        PhSetWindowIcon(WindowHandle, smallIcon, largeIcon, TRUE);
+    }
 }
 
 VOID PhSetStaticWindowIcon(
@@ -2803,7 +2877,7 @@ VOID PhSetStaticWindowIcon(
     HICON largeIcon;
     HICON destroyIcon;
 
-    if (largeIcon = PhGetApplicationIconEx(FALSE, WindowDpi))
+    if (largeIcon = PhGetApplicationIcon(FALSE, WindowDpi))
     {
         if (destroyIcon = Static_SetIcon(WindowHandle, largeIcon))
         {

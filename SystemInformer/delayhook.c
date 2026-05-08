@@ -348,6 +348,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
 
 typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 {
+    LONG WindowDpi;
     struct
     {
        BOOLEAN Flags;
@@ -524,7 +525,7 @@ VOID ThemeWindowRenderStatusBar(
         RECT sizeGripRect;
         LONG dpi;
 
-        dpi = PhGetWindowDpi(WindowHandle);
+        dpi = Context->WindowDpi;
         sizeGripRect.left = clientRect->right - PhGetSystemMetrics(SM_CXHSCROLL, dpi);
         sizeGripRect.top = clientRect->bottom - PhGetSystemMetrics(SM_CYVSCROLL, dpi);
         sizeGripRect.right = clientRect->right;
@@ -567,7 +568,8 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     if (WindowMessage == WM_NCCREATE)
     {
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_STATUSBAR_CONTEXT));
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, PhGetWindowDpi(WindowHandle));
+        context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
@@ -603,7 +605,8 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
                     context->ThemeHandle = NULL;
                 }
 
-                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, PhGetWindowDpi(WindowHandle));
+                context->WindowDpi = PhGetWindowDpi(WindowHandle);
+                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_STATUS, context->WindowDpi);
             }
             break;
         case WM_ERASEBKGND:
@@ -768,6 +771,7 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
 
 typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
 {
+    LONG WindowDpi;
     HTHEME ThemeHandle;
     BOOLEAN MouseActive;
     POINT CursorPos;
@@ -972,7 +976,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         }
 
         context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_HEADER_CONTEXT));
-        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+        context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
         context->CursorPos.x = LONG_MIN;
         context->CursorPos.y = LONG_MIN;
         PhSetWindowContext(WindowHandle, LONG_MAX, context);
@@ -1010,7 +1015,8 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     context->ThemeHandle = NULL;
                 }
 
-                context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, PhGetWindowDpi(WindowHandle));
+                context->WindowDpi = PhGetWindowDpi(WindowHandle);
+        context->ThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
             }
             break;
         case WM_ERASEBKGND:
@@ -1636,12 +1642,12 @@ BOOL WINAPI PhSystemParametersInfoHook(
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
-    _In_ int     iPartId,
-    _In_ int     iStateId,
+    _In_ LONG    iPartId,
+    _In_ LONG    iStateId,
     _In_ LPCWSTR pszText,
-    _In_ int     cchText,
-    _In_ DWORD   dwTextFlags,
-    _In_ DWORD   dwTextFlags2,
+    _In_ LONG    cchText,
+    _In_ ULONG   dwTextFlags,
+    _In_ ULONG   dwTextFlags2,
     _In_ LPCRECT pRect
     )
 {
@@ -1713,7 +1719,8 @@ int PhDetoursComCtl32DrawTextW(
         {
             if (PhBeginInitOnce(&initOnce))
             {
-                HTHEME hTextTheme = PhOpenThemeData(WindowHandle, VSCLASS_TEXTSTYLE, PhGetWindowDpi(WindowHandle));
+                LONG windowDpi = PhGetWindowDpi(WindowHandle);
+                HTHEME hTextTheme = PhOpenThemeData(WindowHandle, VSCLASS_TEXTSTYLE, windowDpi);
                 if (hTextTheme)
                 {
                     PhGetThemeColor(hTextTheme, TEXT_HYPERLINKTEXT, TS_HYPERLINK_NORMAL, TMT_TEXTCOLOR, &colLinkNormal);
@@ -1790,7 +1797,6 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     )
 {
     WCHAR windowClassName[MAX_PATH];
-    PTASKDIALOG_COMMON_CONTEXT context;
     BOOLEAN windowHasContext = !!PhGetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG);
 
     if (CallbackData && !windowHasContext)
@@ -1820,25 +1826,29 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
 
     GETCLASSNAME_OR_NULL(WindowHandle, windowClassName);
 
-    context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
-    context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
-    PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+    {
+        PTASKDIALOG_COMMON_CONTEXT context;
 
-    if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
-        PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
-    {
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-    }
-    //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
-    //{
-    //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
-    //}
-    else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
-    {
-        //WINDOWPLACEMENT pos = { 0 };
-        //GetWindowPlacement(GetParent(WindowHandle), &pos);
-        PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-        //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        context = PhAllocateZero(sizeof(TASKDIALOG_COMMON_CONTEXT));
+        context->DefaultWindowProc = PhSetWindowProcedure(WindowHandle, ThemeTaskDialogMasterSubclass);
+        PhSetWindowContext(WindowHandle, TASKDIALOG_CONTEXT_TAG, context);
+
+        if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE) ||
+            PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
+        {
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+        }
+        //else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+        //{
+        //    PhAllowDarkModeForWindow(WindowHandle);   // this doesn't work, idk why
+        //}
+        else if (PhEqualStringZ(windowClassName, L"DirectUIHWND", FALSE))
+        {
+            //WINDOWPLACEMENT pos = { 0 };
+            //GetWindowPlacement(GetParent(WindowHandle), &pos);
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            //SetWindowPlacement(GetParent(WindowHandle), &pos);
+        }
     }
 
     return TRUE;

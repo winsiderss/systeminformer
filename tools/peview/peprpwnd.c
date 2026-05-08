@@ -817,10 +817,10 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
 
                 if (!PhExtractIcon(PvFileName->Buffer, &PvImageLargeIcon, &PvImageSmallIcon))
                 {
-                    PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon);
+                    PhGetStockApplicationIcon(&PvImageSmallIcon, &PvImageLargeIcon, PhGetWindowDpi(hwndDlg));
                 }
 
-                PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+                PhGetStockApplicationIcon(&smallIcon, &largeIcon, PhGetWindowDpi(hwndDlg));
 
                 SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
                 SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);

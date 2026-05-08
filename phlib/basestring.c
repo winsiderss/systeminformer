@@ -34,7 +34,7 @@
  * \param String The string.
  */
 SIZE_T PhCountStringZ(
-    _In_ PCWSTR String
+    _In_ PCWSTR PH_RESTRICT String
     )
 {
 #ifndef _ARM64_
@@ -221,9 +221,9 @@ PWSTR PhDuplicateStringZ(
  * if \a InputCount is not -1.
  */
 NTSTATUS PhCopyBytesZ(
-    _In_ PCSTR InputBuffer,
+    _In_ PCSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     )
@@ -283,9 +283,9 @@ NTSTATUS PhCopyBytesZ(
  * if \a InputCount is not -1.
  */
 NTSTATUS PhCopyStringZ(
-    _In_ PCWSTR InputBuffer,
+    _In_ PCWSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PWSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     )
@@ -782,15 +782,15 @@ LONG PhCompareStringZNatural(
  * \a String1 is greater than \a String2, or zero if the strings are equal.
  */
 LONG PhCompareStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
     SIZE_T l1;
     SIZE_T l2;
-    PWCHAR s1;
-    PWCHAR s2;
+    PWCHAR PH_RESTRICT s1;
+    PWCHAR PH_RESTRICT s2;
     WCHAR c1;
     WCHAR c2;
     PWCHAR end;
@@ -966,15 +966,15 @@ CompareCharacters:
  * \return TRUE if the strings are equal, otherwise FALSE
  */
 BOOLEAN PhEqualStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     )
 {
     SIZE_T l1;
     SIZE_T l2;
-    PWSTR s1;
-    PWSTR s2;
+    PWSTR PH_RESTRICT s1;
+    PWSTR PH_RESTRICT s2;
     WCHAR c1;
     WCHAR c2;
     SIZE_T length;
@@ -1715,7 +1715,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                         _mm256_zeroupper();
                         return (buffer - String->Buffer) + index / 2;
                     }
-                    
+
                 } while (--length32 != 0);
 
                 _mm256_zeroupper();
@@ -1750,7 +1750,7 @@ ULONG_PTR PhFindLastCharInStringRef(
                     {
                         return (buffer - String->Buffer) + index / 2;
                     }
-                    
+
                 } while (--length16 != 0);
             }
         }
@@ -5508,9 +5508,9 @@ BOOLEAN PhDoesNameContainWildCards(
     for (SIZE_T i = 0; i < Expression->Length / sizeof(WCHAR); i++)
     {
         WCHAR c = Expression->Buffer[i];
-        
+
         if (c == L'*' ||
-            c == L'?' || 
+            c == L'?' ||
             c == ANSI_DOS_STAR_W ||
             c == ANSI_DOS_DOT_W ||
             c == ANSI_DOS_QM_W
@@ -5519,7 +5519,7 @@ BOOLEAN PhDoesNameContainWildCards(
             return TRUE;
         }
     }
-    
+
     return FALSE;
 }
 
@@ -5643,7 +5643,7 @@ BOOLEAN PhIsNameInExpression(
     while (e < exprLen)
     {
         WCHAR c = Expression->Buffer[e];
-        
+
         if (
             c == L'*' ||
             c == ANSI_DOS_STAR_W ||
@@ -5727,27 +5727,27 @@ BOOLEAN PhIsControlOrFormattingString(
 {
     SIZE_T length;
     BOOLEAN hasVisibleContent = FALSE;
-    
+
     if (!String || String->Length == 0)
         return FALSE;
-    
+
     length = String->Length / sizeof(WCHAR);
-    
+
     for (SIZE_T i = 0; i < length; i++)
     {
         WCHAR c = String->Buffer[i];
-        
+
         // Reject strings with control/formatting characters.
         if (PhIsControlOrFormattingUnicodeChar(c))
             return FALSE;
-        
+
         // Check if we have non-whitespace content.
         if (!PhIsWhiteSpaceUnicodeChar(c))
         {
             hasVisibleContent = TRUE;
         }
     }
-    
+
     // String must have at least one visible character
     return hasVisibleContent;
 }
@@ -5769,12 +5769,12 @@ ULONG PhFilterControlOrFormattingString(
 {
     SIZE_T length;
     ULONG replaced = 0;
-    
+
     if (!String || String->Length == 0)
         return 0;
-    
+
     length = String->Length / sizeof(WCHAR);
-    
+
     for (SIZE_T i = 0; i < length; i++)
     {
         if (PhIsControlOrFormattingUnicodeChar(String->Buffer[i]))
@@ -5783,6 +5783,6 @@ ULONG PhFilterControlOrFormattingString(
             replaced++;
         }
     }
-    
+
     return replaced;
 }

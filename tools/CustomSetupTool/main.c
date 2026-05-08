@@ -19,6 +19,15 @@
 #define SETUP_CMD_NOSTART    6
 #define SETUP_CMD_HIDE       7
 
+/**
+ * Subclass procedure for the setup task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The window message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \return The message result.
+ */
 LRESULT CALLBACK SetupTaskDialogSubclassProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -97,6 +106,16 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
     return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
 }
 
+/**
+ * Callback for initializing the setup task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -138,6 +157,8 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
             PhSetWindowProcedure(hwndDlg, SetupTaskDialogSubclassProc);
 
+            SetupApplyDarkModeToPage(hwndDlg);
+
             switch (context->SetupMode)
             {
             default:
@@ -158,6 +179,11 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     return S_OK;
 }
 
+/**
+ * Shows the legacy Process Hacker version prompt.
+ *
+ * \return The task dialog result.
+ */
 LONG SetupShowMessagePromptForLegacyVersion(
     VOID
     )
@@ -202,6 +228,11 @@ LONG SetupShowMessagePromptForLegacyVersion(
     }
 }
 
+/**
+ * Shows the task dialog setup UI.
+ *
+ * \param Context The setup context.
+ */
 VOID SetupShowDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -237,6 +268,11 @@ VOID SetupShowDialog(
     PhDeleteAutoPool(&autoPool);
 }
 
+/**
+ * Runs setup in silent mode.
+ *
+ * \param Context The setup context.
+ */
 VOID SetupSilent(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -309,6 +345,14 @@ VOID SetupSilent(
     Context->LastStatus = status;
 }
 
+/**
+ * Parses the encoded KSystem Informer settings blob.
+ *
+ * \param KsiSettingsBlob The encoded settings blob.
+ * \param Directory Receives the installation directory.
+ * \param ServiceName Receives the service name.
+ * \return TRUE if the settings blob was parsed, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     _In_ PPH_STRING KsiSettingsBlob,
@@ -367,6 +411,14 @@ BOOLEAN PhParseKsiSettingsBlob( // copied from ksisup.c (dmex)
     return FALSE;
 }
 
+/**
+ * Callback for parsing setup command line options.
+ *
+ * \param Option The command line option.
+ * \param Value The command line option value.
+ * \param Context The setup context.
+ * \return TRUE to continue parsing, FALSE to stop.
+ */
 _Function_class_(PH_COMMAND_LINE_CALLBACK)
 BOOLEAN NTAPI MainPropSheetCommandLineCallback(
     _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
@@ -426,23 +478,15 @@ BOOLEAN NTAPI MainPropSheetCommandLineCallback(
             }
         }
     }
-    else
-    {
-        // Note: PhParseCommandLine requires "-" for commandline parameters
-        // and we already support the -silent parameter however we need to maintain
-        // compatibility with the legacy Inno Setup. (dmex)
-        if (!PhIsNullOrEmptyString(Value))
-        {
-            if (PhEqualString2(Value, L"/silent", TRUE))
-            {
-                context->Silent = TRUE;
-            }
-        }
-    }
 
     return TRUE;
 }
 
+/**
+ * Parses the setup command line.
+ *
+ * \param Context The setup context.
+ */
 VOID SetupParseCommandLine(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -492,40 +536,41 @@ VOID SetupParseCommandLine(
     }
 }
 
+/**
+ * Initializes the setup mutant.
+ */
 VOID SetupInitializeMutant(
     VOID
     )
 {
     HANDLE mutantHandle;
-    PPH_STRING objectName;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectNameUs;
+    SIZE_T returnLength;
     PH_FORMAT format[2];
+    WCHAR formatBuffer[0x100];
 
     PhInitFormatS(&format[0], L"SiSetupMutant_");
     PhInitFormatU(&format[1], HandleToUlong(NtCurrentProcessId()));
 
-    objectName = PhFormat(format, 2, 16);
-    PhStringRefToUnicodeString(&objectName->sr, &objectNameUs);
+    if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), &returnLength))
+    {
+        PH_STRINGREF stringFormat;
 
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectNameUs,
-        OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
-        NULL
-        );
+        stringFormat.Buffer = formatBuffer;
+        stringFormat.Length = returnLength - sizeof(UNICODE_NULL);
 
-    NtCreateMutant(
-        &mutantHandle,
-        MUTANT_QUERY_STATE,
-        &objectAttributes,
-        TRUE
-        );
-
-    PhDereferenceObject(objectName);
+        PhCreateMutant(&mutantHandle, MUTANT_QUERY_STATE, PhGetNamespaceHandle(), &stringFormat, TRUE);
+    }
 }
 
+/**
+ * Setup entry point.
+ *
+ * \param Instance The application instance handle.
+ * \param PrevInstance The previous application instance handle.
+ * \param CmdLine The command line.
+ * \param CmdShow The window show command.
+ * \return The process exit code.
+ */
 INT WINAPI wWinMain(
     _In_ HINSTANCE Instance,
     _In_opt_ HINSTANCE PrevInstance,
@@ -559,7 +604,10 @@ INT WINAPI wWinMain(
     {
         PhGuiSupportInitialization();
 
-        SetupShowDialog(context);
+        //if (context->SetupMode == SetupCommandInstall)
+        //    SetupShowWizard(context);
+        //else
+            SetupShowDialog(context);
     }
 
     if (context->SubProcessHandle)

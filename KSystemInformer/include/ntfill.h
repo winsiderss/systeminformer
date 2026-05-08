@@ -21,7 +21,7 @@ typedef struct _CLIENT_ID64
     ULONGLONG UniqueThread;
 } CLIENT_ID64, *PCLIENT_ID64;
 
-typedef const STRING32 *PCUNICODE_STRING32;
+typedef const UNICODE_STRING32 *PCUNICODE_STRING32;
 
 // EX
 
@@ -151,7 +151,7 @@ ZwQuerySection(
 extern POBJECT_TYPE *IoDriverObjectType;
 extern POBJECT_TYPE *IoDeviceObjectType;
 
-typedef
+typedef // routine: IoCheckFileObjectOpenedAsCopySource
 _Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE)
 BOOLEAN
 NTAPI
@@ -160,7 +160,7 @@ IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE(
     );
 typedef IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE* PIO_CHECK_FILE_OBJECT_OPENED_AS_COPY_SOURCE;
 
-typedef
+typedef // routine: IoCheckFileObjectOpenedAsCopyDestination
 _Function_class_(IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION)
 BOOLEAN
 IO_CHECK_FILE_OBJECT_OPENED_AS_COPY_DESTINATION(
@@ -174,7 +174,7 @@ typedef struct _COPY_INFORMATION
     LONGLONG SourceFileOffset;
 } COPY_INFORMATION, *PCOPY_INFORMATION;
 
-typedef
+typedef // routine: IoGetCopyInformationExtension
 _Function_class_(IO_GET_COPY_INFORMATION_EXTENSION)
 NTSTATUS
 IO_GET_COPY_INFORMATION_EXTENSION(
@@ -185,7 +185,7 @@ typedef IO_GET_COPY_INFORMATION_EXTENSION* PIO_GET_COPY_INFORMATION_EXTENSION;
 
 // FLT
 
-typedef
+typedef // routine: FltGetCopyInformationFromCallbackData
 _Function_class_(FLT_GET_COPY_INFORMATION_FROM_CALLBACK_DATA)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 NTSTATUS
@@ -276,7 +276,7 @@ KeTestAlertThread(
     _In_ KPROCESSOR_MODE Mode
     );
 
-typedef
+typedef // routine: KeRemoveQueueApc
 _Function_class_(KE_REMOVE_QUEUE_APC)
 BOOLEAN
 NTAPI
@@ -678,7 +678,7 @@ PsGetProcessProtection(
     );
 #endif
 
-typedef
+typedef // routine: PsSetLoadImageNotifyRoutineEx
 _Function_class_(PS_SET_LOAD_IMAGE_NOTIFY_ROUTINE_EX)
 NTSTATUS
 NTAPI
@@ -696,7 +696,7 @@ typedef enum _PSCREATEPROCESSNOTIFYTYPE
 } PSCREATEPROCESSNOTIFYTYPE;
 #endif
 
-typedef
+typedef // routine: PsSetCreateProcessNotifyRoutineEx2
 _Function_class_(PS_SET_CREATE_PROCESS_NOTIFY_ROUTINE_EX2)
 NTSTATUS
 NTAPI
@@ -813,18 +813,20 @@ PsGetProcessImageFileName(
     _In_ PEPROCESS Process
     );
 
-typedef
+typedef // routine: PsGetProcessSequenceNumber
 _Function_class_(PS_GET_PROCESS_SEQUENCE_NUMBER)
-_IRQL_requires_max_(DISPATCH_LEVEL)
+//_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONGLONG
 PS_GET_PROCESS_SEQUENCE_NUMBER(
     _In_ PEPROCESS Process
     );
 typedef PS_GET_PROCESS_SEQUENCE_NUMBER* PPS_GET_PROCESS_SEQUENCE_NUMBER;
 
-typedef
+typedef // routine: PsGetProcessStartKey
 _Function_class_(PS_GET_PROCESS_START_KEY)
-_IRQL_requires_max_(DISPATCH_LEVEL)
+//_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONGLONG
 PS_GET_PROCESS_START_KEY(
     _In_ PEPROCESS Process
@@ -854,7 +856,7 @@ typedef struct _PROCESS_TELEMETRY_ID_INFORMATION
 
 #define PROCESS_CREATE_FLAGS_MINIMAL_PROCESS 0x00000800 // NtCreateProcessEx only
 
-typedef
+typedef // routine: ZwCreateProcessEx
 _Function_class_(ZW_CREATE_PROCESS_EX)
 NTSYSCALLAPI
 NTSTATUS
@@ -872,6 +874,122 @@ ZW_CREATE_PROCESS_EX(
     );
 typedef ZW_CREATE_PROCESS_EX* PZW_CREATE_PROCESS_EX;
 
+#if (NTDDI_VERSION < NTDDI_WIN10_RS2)
+typedef struct _EJOB *PESILO;
+typedef struct _SILO_MONITOR *PSILO_MONITOR;
+
+typedef
+NTSTATUS
+(NTAPI *SILO_MONITOR_CREATE_CALLBACK)(
+    _In_ PESILO Silo
+    );
+
+typedef
+VOID
+(NTAPI *SILO_MONITOR_TERMINATE_CALLBACK)(
+    _In_ PESILO Silo
+    );
+
+#define SILO_MONITOR_REGISTRATION_VERSION (1)
+
+typedef struct _SILO_MONITOR_REGISTRATION {
+    UCHAR Version;
+    BOOLEAN MonitorHost;
+    BOOLEAN MonitorExistingSilos;
+    UCHAR Reserved[5];
+    union {
+        PUNICODE_STRING DriverObjectName;
+        PUNICODE_STRING ComponentName;
+    };
+    SILO_MONITOR_CREATE_CALLBACK CreateCallback;
+    SILO_MONITOR_TERMINATE_CALLBACK TerminateCallback;
+} SILO_MONITOR_REGISTRATION, *PSILO_MONITOR_REGISTRATION;
+#endif // (NTDDI_VERSION < NTDDI_WIN10_RS2)
+
+typedef // routine: PsGetSiloIdentifier
+_Function_class_(PS_GET_SILO_IDENTIFIER)
+NTKERNELAPI
+ULONG
+PS_GET_SILO_IDENTIFIER(
+    _In_opt_ PESILO Silo
+    );
+typedef PS_GET_SILO_IDENTIFIER* PPS_GET_SILO_IDENTIFIER;
+
+typedef // routine: PsGetEffectiveServerSilo
+_Function_class_(PS_GET_EFFECTIVE_SERVER_SILO)
+NTKERNELAPI
+_Ret_maybenull_
+PESILO
+PS_GET_EFFECTIVE_SERVER_SILO(
+    _In_opt_ PESILO Silo
+    );
+typedef PS_GET_EFFECTIVE_SERVER_SILO* PPS_GET_EFFECTIVE_SERVER_SILO;
+
+typedef // routine: PsIsHostSilo
+_Function_class_(PS_IS_HOST_SILO)
+NTKERNELAPI
+BOOLEAN
+PS_IS_HOST_SILO(
+    _In_opt_ PESILO Silo
+    );
+typedef PS_IS_HOST_SILO* PPS_IS_HOST_SILO;
+
+typedef // routine: PsRegisterSiloMonitor
+_Function_class_(PS_REGISTER_SILO_MONITOR)
+NTKERNELAPI
+_Must_inspect_result_
+NTSTATUS
+PS_REGISTER_SILO_MONITOR(
+    _In_ PSILO_MONITOR_REGISTRATION Registration,
+    _Outptr_ PSILO_MONITOR *ReturnedMonitor
+    );
+typedef PS_REGISTER_SILO_MONITOR* PPS_REGISTER_SILO_MONITOR;
+
+typedef // routine: PsStartSiloMonitor
+_Function_class_(PS_START_SILO_MONITOR)
+NTKERNELAPI
+_Must_inspect_result_
+NTSTATUS
+PS_START_SILO_MONITOR(
+    _In_ PSILO_MONITOR Monitor
+    );
+typedef PS_START_SILO_MONITOR* PPS_START_SILO_MONITOR;
+
+typedef // routine: PsUnregisterSiloMonitor
+_Function_class_(PS_UNREGISTER_SILO_MONITOR)
+NTKERNELAPI
+VOID
+PS_UNREGISTER_SILO_MONITOR(
+    _In_ _Post_invalid_ PSILO_MONITOR Monitor
+    );
+typedef PS_UNREGISTER_SILO_MONITOR* PPS_UNREGISTER_SILO_MONITOR;
+
+typedef // routine: PsGetServerSiloServiceSessionId
+_Function_class_(PS_GET_SERVER_SILO_SERVICE_SESSION_ID)
+NTKERNELAPI
+ULONG
+PS_GET_SERVER_SILO_SERVICE_SESSION_ID(
+    _In_opt_ PESILO Silo
+    );
+typedef PS_GET_SERVER_SILO_SERVICE_SESSION_ID* PPS_GET_SERVER_SILO_SERVICE_SESSION_ID;
+
+typedef // routine: PsGetServerSiloActiveConsoleId
+_Function_class_(PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID)
+NTKERNELAPI
+ULONG
+PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID(
+    _In_opt_ PESILO Silo
+    );
+typedef PS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID* PPS_GET_SERVER_SILO_ACTIVE_CONSOLE_ID;
+
+typedef // routine: PsGetSiloContainerId
+_Function_class_(PS_GET_SILO_CONTAINER_ID)
+NTKERNELAPI
+GUID*
+PS_GET_SILO_CONTAINER_ID(
+    _In_ PESILO Silo
+    );
+typedef PS_GET_SILO_CONTAINER_ID* PPS_GET_SILO_CONTAINER_ID;
 
 // RTL
 
@@ -929,7 +1047,7 @@ RtlFindExportedRoutineByName(
 
 extern POBJECT_TYPE *MmSectionObjectType;
 
-typedef
+typedef // routine: MmProtectDriverSection
 _Function_class_(MM_PROTECT_DRIVER_SECTION)
 NTSTATUS
 MM_PROTECT_DRIVER_SECTION(
@@ -1100,7 +1218,7 @@ MiGetVadShortEndAddress(
     ULONG_PTR low = Vad->EndingVpn;
     return (PVOID)(((low + 1) | ((high | (higher << 8)) << 32)) << PAGE_SHIFT);
 #else
-    return (PVOID)(((ULONG_PTR)Vad->StartingVpn + 1) << PAGE_SHIFT);
+    return (PVOID)(((ULONG_PTR)Vad->EndingVpn + 1) << PAGE_SHIFT);
 #endif
 }
 
@@ -1362,7 +1480,7 @@ typedef unsigned int ALG_ID;
 
 #ifndef ALG_SID_MD5
 #define ALG_SID_MD5                     3
-#endif ALG_SID_MD5
+#endif
 #ifndef ALG_SID_SHA1
 #define ALG_SID_SHA1                    4
 #endif
@@ -1570,8 +1688,7 @@ typedef struct _MINCRYPT_POLICY_INFO
 } MINCRYPT_POLICY_INFO, *PMINCRYPT_POLICY_INFO;
 
 // rev
-// CiFreePolicyInfo
-typedef
+typedef // routine: CiFreePolicyInfo
 _Function_class_(CI_FREE_POLICY_INFO)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 VOID
@@ -1582,15 +1699,33 @@ CI_FREE_POLICY_INFO(
 typedef CI_FREE_POLICY_INFO* PCI_FREE_POLICY_INFO;
 
 // rev
-// CiCheckSignedFile (pre 6.1.7601.18519)
-typedef
+typedef // routine: CiCheckSignedFile (before 6.1.7601.18519)
+_Function_class_(CI_CHECK_SIGNED_FILE_LEGACY)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+NTSTATUS
+NTAPI
+CI_CHECK_SIGNED_FILE_LEGACY(
+    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PBYTE Hash,
+    _In_bytecount_(SignatureSize) PBYTE Signature,
+    _In_ ULONG SignatureSize,
+    _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
+    _Out_opt_ PLARGE_INTEGER SigningTime,
+    _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
+    );
+typedef CI_CHECK_SIGNED_FILE_LEGACY* PCI_CHECK_SIGNED_FILE_LEGACY;
+
+// rev
+typedef // routine: CiCheckSignedFile (6.1.7601.18519 and later)
 _Function_class_(CI_CHECK_SIGNED_FILE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 NTAPI
 CI_CHECK_SIGNED_FILE(
-    _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PBYTE Hash,
+    _In_bytecount_(HashSize) PBYTE Hash,
+    _In_ ULONG HashSize,
+    _In_ ALG_ID AlgorithmId,
     _In_bytecount_(SignatureSize) PBYTE Signature,
     _In_ ULONG SignatureSize,
     _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
@@ -1600,34 +1735,13 @@ CI_CHECK_SIGNED_FILE(
 typedef CI_CHECK_SIGNED_FILE* PCI_CHECK_SIGNED_FILE;
 
 // rev
-// CiCheckSignedFile
-typedef
-_Function_class_(CI_CHECK_SIGNED_FILE_EX)
+typedef // routine: CiVerifyHashInCatalog (before 6.1.7601.18519)
+_Function_class_(CI_VERIFY_HASH_IN_CATALOG_LEGACY)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 NTAPI
-CI_CHECK_SIGNED_FILE_EX(
-    _In_bytecount_(HashSize) PBYTE Hash,
-    _In_ ULONG HashSize,
-    _In_ ALG_ID AlgorithmId,
-    _In_bytecount_(SignatureSize) PBYTE Signature,
-    _In_ ULONG SignatureSize,
-    _Inout_opt_ PMINCRYPT_POLICY_INFO PolicyInfo,
-    _Out_opt_ PLARGE_INTEGER SigningTime,
-    _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
-    );
-typedef CI_CHECK_SIGNED_FILE_EX* PCI_CHECK_SIGNED_FILE_EX;
-
-// rev
-// CiVerifyHashInCatalog (pre 6.1.7601.18519)
-typedef
-_Function_class_(CI_VERIFY_HASH_IN_CATALOG)
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Must_inspect_result_
-NTSTATUS
-NTAPI
-CI_VERIFY_HASH_IN_CATALOG(
+CI_VERIFY_HASH_IN_CATALOG_LEGACY(
     _In_bytecount_(MINCRYPT_SHA1_HASH_LEN) PBYTE Hash,
     _In_ ULONG ReloadCatalogs,
     _In_ ULONG SecureProcess,
@@ -1637,17 +1751,16 @@ CI_VERIFY_HASH_IN_CATALOG(
     _Out_opt_ PLARGE_INTEGER SigningTime,
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     );
-typedef CI_VERIFY_HASH_IN_CATALOG* PCI_VERIFY_HASH_IN_CATALOG;
+typedef CI_VERIFY_HASH_IN_CATALOG_LEGACY* PCI_VERIFY_HASH_IN_CATALOG_LEGACY;
 
 // rev
-// CiVerifyHashInCatalog
-typedef
-_Function_class_(CI_VERIFY_HASH_IN_CATALOG_EX)
+typedef // routine: CiVerifyHashInCatalog (6.1.7601.18519 and later)
+_Function_class_(CI_VERIFY_HASH_IN_CATALOG)
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 NTSTATUS
 NTAPI
-CI_VERIFY_HASH_IN_CATALOG_EX(
+CI_VERIFY_HASH_IN_CATALOG(
     _In_bytecount_(HashSize) PBYTE Hash,
     _In_ ULONG HashSize,
     _In_ ALG_ID AlgorithmId,
@@ -1659,7 +1772,7 @@ CI_VERIFY_HASH_IN_CATALOG_EX(
     _Out_opt_ PLARGE_INTEGER SigningTime,
     _Inout_opt_ PMINCRYPT_POLICY_INFO TimeStampPolicyInfo
     );
-typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
+typedef CI_VERIFY_HASH_IN_CATALOG* PCI_VERIFY_HASH_IN_CATALOG;
 
 // rev
 #define CI_POLICY_VALID_FLAGS                        0x1BE00078ul
@@ -1675,8 +1788,7 @@ typedef CI_VERIFY_HASH_IN_CATALOG_EX* PCI_VERIFY_HASH_IN_CATALOG_EX;
 #define CI_POLICY_ALLOW_EXPIRED_REVOKED_CERTIFICATE  0x08000000ul
 
 // rev
-// CiValidateFileObject
-typedef
+typedef // routine: CiValidateFileObject
 _Function_class_(CI_VALIDATE_FILE_OBJECT)
 NTSTATUS
 NTAPI
@@ -1694,7 +1806,8 @@ CI_VALIDATE_FILE_OBJECT(
 typedef CI_VALIDATE_FILE_OBJECT* PCI_VALIDATE_FILE_OBJECT;
 
 // rev
-typedef _Function_class_(CI_ALLOCATE_ROUTINE)
+typedef
+_Function_class_(CI_ALLOCATE_ROUTINE)
 PVOID
 NTAPI
 CI_ALLOCATE_ROUTINE(
@@ -1703,8 +1816,7 @@ CI_ALLOCATE_ROUTINE(
 typedef CI_ALLOCATE_ROUTINE* PCI_ALLOCATE_ROUTINE;
 
 // rev
-// CiGetCertPublisherName
-typedef
+typedef // routine: CiGetCertPublisherName
 _Function_class_(CI_GET_CERT_PUBLISHER_NAME)
 NTSTATUS
 NTAPI
@@ -1816,7 +1928,7 @@ ZwAlpcConnectPort(
 
 // LXCORE
 
-typedef
+typedef // routine: LxpProcessGetCurrent
 _Function_class_(LXP_PROCESS_GET_CURRENT)
 _Must_inspect_result_
 BOOLEAN
@@ -1826,7 +1938,7 @@ LXP_PROCESS_GET_CURRENT(
     );
 typedef LXP_PROCESS_GET_CURRENT* PLXP_PROCESS_GET_CURRENT;
 
-typedef
+typedef // routine: LxpThreadGetCurrent
 _Function_class_(LXP_THREAD_GET_CURRENT)
 _Must_inspect_result_
 BOOLEAN
@@ -1933,9 +2045,9 @@ SeGetCachedSigningLevel(
     );
 #endif
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+typedef // routine: SeRegisterImageVerificationCallback
 _Function_class_(SE_REGISTER_IMAGE_VERIFICATION_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTKERNELAPI
 NTSTATUS
 SE_REGISTER_IMAGE_VERIFICATION_CALLBACK(
@@ -1948,9 +2060,9 @@ SE_REGISTER_IMAGE_VERIFICATION_CALLBACK(
     );
 typedef SE_REGISTER_IMAGE_VERIFICATION_CALLBACK* PSE_REGISTER_IMAGE_VERIFICATION_CALLBACK;
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+typedef // routine: SeUnregisterImageVerificationCallback
 _Function_class_(SE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 NTKERNELAPI
 VOID
 SE_UNREGISTER_IMAGE_VERIFICATION_CALLBACK(

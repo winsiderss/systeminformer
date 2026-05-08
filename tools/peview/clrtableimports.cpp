@@ -228,6 +228,7 @@ HRESULT PvGetClrMetaDataInterface(
             // Sort by version?
             qsort_s(directoryList->Items, directoryList->Count, sizeof(PVOID), PvClrCoreNameCompare, nullptr);
 
+            if (directoryList->Count > 0)
             {
                 PPH_STRING directoryName = static_cast<PPH_STRING>(directoryList->Items[directoryList->Count - 1]);
                 PPH_STRING fileName = PhConcatStringRef3(
@@ -502,7 +503,7 @@ HRESULT PvSafeParseAttributeString(
         return META_E_CA_INVALID_BLOB;
 
     offset += sizeof(USHORT);
-    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
@@ -516,7 +517,7 @@ HRESULT PvSafeParseAttributeString(
         return COR_E_OVERFLOW;
 
     offset += skipLength;
-    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(Buffer, offset));
+    data = static_cast<PCCOR_SIGNATURE>(PTR_ADD_OFFSET(const_cast<PVOID>(Buffer), offset));
     if (offset > BufferLength)
         return COR_E_OVERFLOW;
 
@@ -613,12 +614,12 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
 
                 if (runtime)
                 {
-                    version = PhFormatString(L".NET Core %hu.%hu.%hu.%hu", majorVersion, minorVersion, buildVersion, revisionVersion);
+                    version = PhFormatString(L".NET Core %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
                     break;
                 }
                 else if (framework)
                 {
-                    version = PhFormatString(L".NET Framework %hu.%hu.%hu.%hu", majorVersion, minorVersion, buildVersion, revisionVersion);
+                    version = PhFormatString(L".NET Framework %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
                     break;
                 }
             }
@@ -711,7 +712,7 @@ EXTERN_C HRESULT PvGetClrImageImports(
 
             if (SUCCEEDED(metaDataTables->GetRow(TBL_ImplMap, i, &importRowValue)))
             {
-                importOffsetValue = PTR_SUB_OFFSET(importRowValue, PvMappedImage.ViewBase);
+                importOffsetValue = PTR_SUB_OFFSET(importRowValue, reinterpret_cast<ULONG_PTR>(PvMappedImage.ViewBase));
             }
 
             for (ULONG j = 0; j < clrImportsList->Count; j++)
@@ -793,6 +794,7 @@ EXTERN_C HRESULT PvClrImageEnumTables(
     if (!SUCCEEDED(status))
     {
         metaDataTables->Release();
+        metaDataImport->Release();
         return status;
     }
 

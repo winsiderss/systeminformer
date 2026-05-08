@@ -36,15 +36,15 @@ VOID EtpTickGpuDialog(
     );
 
 INT_PTR CALLBACK EtpGpuDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EtpGpuPanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -54,7 +54,7 @@ VOID EtpCreateGpuGraphs(
     );
 
 VOID EtpLayoutGpuGraphs(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 VOID EtpNotifyGpuGraph(
@@ -99,6 +99,15 @@ PPH_STRING EtpGpuGetMaxNodeString(
 
 PPH_STRING EtpGpuGetNameString(
     VOID
+    );
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpGpuSysInfoGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
     );
 
 #endif

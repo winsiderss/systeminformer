@@ -755,15 +755,26 @@ PhfWaitForRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     );
 
+/**
+ * Initializes a rundown protection object.
+ *
+ * \param Protection A pointer to a rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhInitializeRundownProtection(
     _Out_ PPH_RUNDOWN_PROTECT Protection
     )
 {
-    Protection->Value = 0;
+    Protection->Value = 0; // PhfInitializeRundownProtection(Protection);
 }
 
+/**
+ * Attempts to acquire rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ * \return TRUE if rundown protection was acquired, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhAcquireRundownProtection(
@@ -788,6 +799,11 @@ PhAcquireRundownProtection(
     }
 }
 
+/**
+ * Releases rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhReleaseRundownProtection(
@@ -808,6 +824,11 @@ PhReleaseRundownProtection(
     }
 }
 
+/**
+ * Starts rundown and waits for all protected users to finish.
+ *
+ * \param Protection A rundown protection object.
+ */
 FORCEINLINE
 VOID
 PhWaitForRundownProtection(
@@ -866,6 +887,12 @@ PhfEndInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     );
 
+/**
+ * Begins one-time initialization.
+ *
+ * \param InitOnce An init-once object.
+ * \return TRUE if the caller should perform initialization, otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhBeginInitOnce(
@@ -895,9 +922,15 @@ PHLIBAPI
 SIZE_T
 NTAPI
 PhCountStringZ(
-    _In_ PCWSTR String
+    _In_ PCWSTR PH_RESTRICT String
     );
 
+/**
+ * Computes the length of a null-terminated ANSI/UTF-8 string in bytes.
+ *
+ * \param String A pointer to a null-terminated ANSI string.
+ * \return The length of the string in bytes, excluding the null terminator.
+ */
 FORCEINLINE
 SIZE_T
 PhCountBytesZ(
@@ -938,9 +971,9 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyBytesZ(
-    _In_ PCSTR InputBuffer,
+    _In_ PCSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     );
@@ -949,9 +982,9 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 PhCopyStringZ(
-    _In_ PCWSTR InputBuffer,
+    _In_ PCWSTR PH_RESTRICT InputBuffer,
     _In_ SIZE_T InputCount,
-    _Out_writes_opt_z_(OutputCount) PWSTR OutputBuffer,
+    _Out_writes_opt_z_(OutputCount) PWSTR PH_RESTRICT OutputBuffer,
     _In_ SIZE_T OutputCount,
     _Out_opt_ PSIZE_T ReturnCount
     );
@@ -1376,8 +1409,8 @@ PHLIBAPI
 LONG
 NTAPI
 PhCompareStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -1385,8 +1418,8 @@ PHLIBAPI
 BOOLEAN
 NTAPI
 PhEqualStringRef(
-    _In_ PCPH_STRINGREF String1,
-    _In_ PCPH_STRINGREF String2,
+    _In_ PCPH_STRINGREF PH_RESTRICT String1,
+    _In_ PCPH_STRINGREF PH_RESTRICT String2,
     _In_ BOOLEAN IgnoreCase
     );
 
@@ -4063,6 +4096,16 @@ PhNextEnumHashtable(
     return NULL;
 }
 
+/*
+ * 32 bit FNV-1 and FNV-1a non-zero initial basis
+ */
+#define FNV1_32_INIT (ULONG_C(0x811c9dc5))
+
+/*
+ * 32 bit magic FNV-1a prime
+ */
+#define FNV_32_PRIME (ULONG_C(0x01000193))
+
 PHLIBAPI
 ULONG
 NTAPI
@@ -4687,6 +4730,7 @@ PhTlsSetValue(
 // Errors
 //
 
+_Post_equals_last_error_
 PHLIBAPI
 ULONG
 NTAPI

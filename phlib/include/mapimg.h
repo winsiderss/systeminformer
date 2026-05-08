@@ -698,7 +698,7 @@ typedef struct _PH_MAPPED_IMAGE_PRODID
     PPH_STRING Key;
     PPH_STRING RawHash;
     PPH_STRING Hash;
-    ULONG NumberOfEntries;
+    SIZE_T NumberOfEntries;
     PPH_MAPPED_IMAGE_PRODID_ENTRY ProdIdEntries;
 } PH_MAPPED_IMAGE_PRODID, *PPH_MAPPED_IMAGE_PRODID;
 

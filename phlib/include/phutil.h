@@ -447,6 +447,16 @@ PhShowStatus(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhShowStatusHR(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR Message,
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhShowContinueStatus(
@@ -1224,7 +1234,7 @@ PhConvertNtPathSeperatorToAltSeperator(
 {
     if (String)
     {
-        for (ULONG i = 0; i < String->Length / sizeof(WCHAR); i++)
+        for (SIZE_T i = 0; i < String->Length / sizeof(WCHAR); i++)
         {
             if (String->Buffer[i] == OBJ_NAME_PATH_SEPARATOR) // RtlNtPathSeperatorString
                 String->Buffer[i] = OBJ_NAME_ALTPATH_SEPARATOR; // RtlAlternateDosPathSeperatorString
@@ -1233,6 +1243,25 @@ PhConvertNtPathSeperatorToAltSeperator(
 
     return String;
 }
+
+FORCEINLINE
+PPH_STRING
+PhConvertAltSeperatorToNtPathSeperator(
+    _In_ PPH_STRING String
+    )
+{
+    if (String)
+    {
+        for (SIZE_T i = 0; i < String->Length / sizeof(WCHAR); i++)
+        {
+            if (String->Buffer[i] == OBJ_NAME_ALTPATH_SEPARATOR)
+                String->Buffer[i] = OBJ_NAME_PATH_SEPARATOR;
+        }
+    }
+
+    return String;
+}
+
 
 PHLIBAPI
 PPH_STRING
@@ -1452,6 +1481,13 @@ PhGetApplicationDataFileName(
     _In_ BOOLEAN NativeFileName
     );
 
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetHomeDrivePath(
+    _In_ BOOLEAN Elevated
+    );
+
 #define PH_FOLDERID_LocalAppData 1
 #define PH_FOLDERID_RoamingAppData 2
 #define PH_FOLDERID_ProgramFiles 3
@@ -1628,6 +1664,7 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
     _In_opt_ PVOID Environment;
     _In_opt_ PCWSTR DesktopName;
     _In_opt_ ULONG SessionId; // use PH_CREATE_PROCESS_SET_SESSION_ID
+    _In_opt_ ULONG LogonId; // use PH_CREATE_PROCESS_SET_LOGON_ID
     union
     {
         struct
@@ -1643,12 +1680,13 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
     };
 } PH_CREATE_PROCESS_AS_USER_INFO, *PPH_CREATE_PROCESS_AS_USER_INFO;
 
-#define PH_CREATE_PROCESS_USE_PROCESS_TOKEN 0x1000
-#define PH_CREATE_PROCESS_USE_SESSION_TOKEN 0x2000
-#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x10000
-#define PH_CREATE_PROCESS_SET_SESSION_ID 0x20000
-#define PH_CREATE_PROCESS_WITH_PROFILE 0x40000
-#define PH_CREATE_PROCESS_SET_UIACCESS 0x80000
+#define PH_CREATE_PROCESS_USE_PROCESS_TOKEN 0x1
+#define PH_CREATE_PROCESS_USE_SESSION_TOKEN 0x2
+#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x4
+#define PH_CREATE_PROCESS_WITH_PROFILE 0x8
+#define PH_CREATE_PROCESS_SET_SESSION_ID 0x10
+#define PH_CREATE_PROCESS_SET_LOGON_ID 0x20
+#define PH_CREATE_PROCESS_SET_UIACCESS 0x40
 
 PHLIBAPI
 NTSTATUS
@@ -2140,13 +2178,14 @@ PhFinalHashString(
     )
 {
     NTSTATUS status;
+    ULONG hashLength = PH_HASH_SHA256_LENGTH;
     UCHAR hash[PH_HASH_SHA256_LENGTH];
 
-    status = PhFinalHash(Context, hash, sizeof(hash), NULL);
+    status = PhFinalHash(Context, hash, hashLength, &hashLength);
 
     if (NT_SUCCESS(status))
     {
-        *HashString = PhBufferToHexString(hash, sizeof(hash));
+        *HashString = PhBufferToHexString(hash, hashLength);
     }
 
     return status;

@@ -351,6 +351,9 @@
     <ClCompile Include="informerwnd.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="runaspkg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\hidnproc.h">

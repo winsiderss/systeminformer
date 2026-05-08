@@ -175,7 +175,7 @@ VOID PhpSearchControlInitializeTheme(
     Context->RegexButton.Index = 1;
     Context->SearchButton.Index = 2;
 
-    Context->ButtonWidth = PhGetDpi(20, Context->WindowDpi);
+    Context->ButtonWidth = PhScaleToDisplay(20, Context->WindowDpi);
     Context->BorderSize = borderSize;
     Context->FrameBrush = GetSysColorBrush(COLOR_WINDOWFRAME);
     Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
@@ -203,8 +203,8 @@ VOID PhpSearchControlInitializeImages(
 {
     HBITMAP bitmap;
 
-    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi) + PhGetDpi(4, Context->WindowDpi);
-    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi) + PhGetDpi(4, Context->WindowDpi);
+    Context->ImageWidth = PhGetSystemMetrics(SM_CXSMICON, Context->WindowDpi) + PhScaleToDisplay(4, Context->WindowDpi);
+    Context->ImageHeight = PhGetSystemMetrics(SM_CYSMICON, Context->WindowDpi) + PhScaleToDisplay(4, Context->WindowDpi);
 
     if (Context->ImageListHandle)
     {

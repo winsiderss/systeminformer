@@ -40,15 +40,19 @@ BOOLEAN KphProcessRingBuffer(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN more;
     ULONG consumerPos;
+    ULONG producerPos;
+
+    more = TRUE;
 
     WriteULongRelease(&Ring->Consumer->Processing, TRUE);
 
     consumerPos = ReadULongAcquire(&Ring->Consumer->Position);
+    producerPos = consumerPos;
 
     for (BOOLEAN done = FALSE; !done; NOTHING)
     {
-        ULONG producerPos;
         PKPH_RING_HEADER headerPointer;
         KPH_RING_HEADER header;
         PVOID buffer;
@@ -57,8 +61,8 @@ BOOLEAN KphProcessRingBuffer(
 
         if (consumerPos == producerPos)
         {
-            WriteULongRelease(&Ring->Consumer->Processing, FALSE);
-            return FALSE;
+            more = FALSE;
+            goto Exit;
         }
 
         headerPointer = Add2Ptr(Ring->Producer->Buffer, consumerPos);
@@ -81,8 +85,8 @@ BOOLEAN KphProcessRingBuffer(
         //
         if (header.Busy)
         {
-            WriteULongRelease(&Ring->Consumer->Processing, FALSE);
-            return FALSE;
+            more = FALSE;
+            goto Exit;
         }
 
         consumerPos += KPH_RING_BUFFER_HEADER_SIZE;
@@ -92,12 +96,20 @@ BOOLEAN KphProcessRingBuffer(
         if (!header.Discard)
         {
             buffer = Add2Ptr(headerPointer, KPH_RING_BUFFER_HEADER_SIZE);
-
             done = Callback(Context, buffer, (ULONG)header.Length);
         }
 
         WriteULongRelease(&Ring->Consumer->Position, consumerPos);
     }
 
-    return TRUE;
+Exit:
+
+    WriteULongRelease(&Ring->Consumer->Processing, FALSE);
+
+    if (!more && (producerPos != ReadULongAcquire(&Ring->Producer->Position)))
+    {
+        more = TRUE;
+    }
+
+    return more;
 }

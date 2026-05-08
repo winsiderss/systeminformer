@@ -847,7 +847,10 @@ NTSTATUS KsiSvcConnectToServer(
     PhDereferenceObject(fileName);
 
     if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(serviceName);
         return status;
+    }
 
     PhStartService(serviceHandle, 0, NULL);
     PhDeleteService(serviceHandle);
@@ -870,6 +873,7 @@ NTSTATUS KsiSvcConnectToServer(
     } while (--attempts != 0);
 
     PhDereferenceObject(portName);
+    PhDereferenceObject(serviceName);
 
     PhCloseServiceHandle(serviceHandle);
 
@@ -965,7 +969,7 @@ NTSTATUS PhRestartSelf(
 #endif
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);
@@ -988,6 +992,8 @@ NTSTATUS PhRestartSelf(
     {
         PhExitApplication(STATUS_SUCCESS);
     }
+
+CleanupExit:
 
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
@@ -1253,7 +1259,7 @@ VOID KsiActivateDynData(
 #if defined(KSI_ONLINE_PLATFORM_SUPPORT)
         KsiShowKernelSupportCheckDialog(WindowHandle);
 #else
-        if (PhGetPhReleaseChannel() < PhCanaryChannel)
+        if (PhGetBuildReleaseChannel() < PhCanaryChannel)
         {
             PhShowKsiMessageEx(
                 WindowHandle,
@@ -1561,7 +1567,16 @@ NTSTATUS KsiConnect(
         }
     }
 
-    if (status == STATUS_SI_KSIDLL_VERSION_MISMATCH)
+    //
+    // An explicit check for KSIDLL version mismatch or a missing procedure
+    // indicates the loaded KSIDLL is out of date relative to the driver.
+    // STATUS_PROCEDURE_NOT_FOUND could in theory occur if the driver imported
+    // something absent from the kernel, but in practice it means the new
+    // driver depends on a new export from KSIDLL and the updated KSIDLL has
+    // not been loaded yet - the user must reboot.
+    //
+    if ((status == STATUS_SI_KSIDLL_VERSION_MISMATCH) ||
+        (status == STATUS_PROCEDURE_NOT_FOUND))
     {
         PhShowKsiMessageEx(
             NULL,
@@ -1571,7 +1586,7 @@ NTSTATUS KsiConnect(
             L"Unable to load kernel driver",
             L"The last System Informer update requires a reboot."
             );
-            goto CleanupExit;
+        goto CleanupExit;
     }
 
     if (!NT_SUCCESS(status))
@@ -1845,7 +1860,7 @@ VOID KsiShowInitializingSplashScreen(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CAN_BE_MINIMIZED | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.hMainIcon = PhGetApplicationIcon(FALSE, USER_DEFAULT_SCREEN_DPI);
     config.pfCallback = KsiSplashScreenDialogCallbackProc;
     config.pszWindowTitle = PhApplicationName;
     config.pszMainInstruction = L"Initializing System Informer kernel driver...";
@@ -2112,7 +2127,7 @@ PVOID PhCreateKsiSettingsBlob(
  *
  * \param[out] Duration      Total measured duration.
  * \param[out] DurationDown  Time spent sending the request to the kernel.
- * \param[out] DurationUp    Time spent recieving the response from the kernel.
+ * \param[out] DurationUp    Time spent receiving the response from the kernel.
  * \return NTSTATUS from KphQueryPerformanceCounter, or STATUS_UNSUCCESSFUL.
  * \remarks Use this function when you need a kernel-reported high-resolution
  * timebase to measure or correlate user/kernel timing.
@@ -2170,7 +2185,7 @@ PPH_STRING KsiCreateBuildString(
     PH_FORMAT format[8];
     WCHAR formatBuffer[260];
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     PhInitFormatSR(&format[0], versionHeader);
     PhInitFormatU(&format[1], majorVersion);
     PhInitFormatC(&format[2], L'.');
@@ -2574,7 +2589,7 @@ HRESULT CALLBACK KsiKernelSupportCheckDialogCallbackProc(
                     {
                         config.pszMainInstruction = L"Kernel version not supported";
                         config.pszContent = L"This kernel version is not yet supported. "
-                            L"Your kernel version is pending review review on the development branch.";
+                            L"Your kernel version is pending review on the development branch.";
                     }
                     else
                     {
@@ -2609,7 +2624,7 @@ VOID KsiShowKernelSupportCheckDialog(
         );
 
     context.WindowHandle = WindowHandle;
-    context.IsCanaryChannel = (PhGetPhReleaseChannel() >= PhCanaryChannel);
+    context.IsCanaryChannel = (PhGetBuildReleaseChannel() >= PhCanaryChannel);
     KsiGetKernelSupportData(&context.SupportData);
 
     TASKDIALOGCONFIG config = { sizeof(TASKDIALOGCONFIG) };

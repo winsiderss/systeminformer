@@ -97,12 +97,12 @@ VOID KphCommsStop(
     VOID
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG KphGetConnectedClientCount(
     VOID
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG KphGetInformerClientCount(
     VOID
     );
@@ -170,4 +170,22 @@ VOID KphCommsSendNPagedMessageAsync(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 VOID KphCaptureStackInMessage(
     _Inout_ PKPH_MESSAGE Message
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+VOID KphCaptureThreadContext(
+    _Out_ PKPHM_CONTEXT Context,
+    _In_ PETHREAD Thread,
+    _In_ BOOLEAN CacheOnly
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+VOID KphCaptureCurrentContextEx(
+    _Out_ PKPHM_CONTEXT Context,
+    _In_ BOOLEAN CacheOnly
+    );
+
+_IRQL_requires_max_(HIGH_LEVEL)
+VOID KphCaptureCurrentContext(
+    _Out_ PKPHM_CONTEXT Context
     );

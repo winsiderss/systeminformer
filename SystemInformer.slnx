@@ -8,6 +8,7 @@
   <Project Path="phlib/phlib.vcxproj" Id="477d0215-f252-41a1-874b-f27e3ea1ed17">
     <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
   </Project>
+  <Project Path="phnt/phnt.vcxitems" Id="3bdf0453-a79d-4bd0-b80b-d90c8ed0d180" />
   <Project Path="SystemInformer/SystemInformer.vcxproj" Id="0271dd27-6707-4290-8dfe-285702b7115d">
     <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
     <BuildDependency Project="phlib/phlib.vcxproj" />

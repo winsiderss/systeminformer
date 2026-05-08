@@ -183,13 +183,15 @@ PhGetLoaderEntryDataZ(
         );
 }
 
+_Success_(return != NULL)
 PHLIBAPI
 PVOID
 NTAPI
-PhGetLoaderEntryAddressDllBase(
+PhGetLoaderEntryPcToFileHeader(
     _In_ PVOID PcAddress
     );
 
+_Success_(return != NULL)
 PHLIBAPI
 PVOID
 NTAPI

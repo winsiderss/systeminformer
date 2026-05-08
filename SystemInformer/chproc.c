@@ -148,7 +148,7 @@ static VOID PhpRefreshProcessList(
         }
         else
         {
-            PhGetStockApplicationIcon(NULL, &icon);
+            PhGetStockApplicationIcon(NULL, &icon, PhGetWindowDpi(Context->ListViewHandle));
             imageIndex = PhImageListAddIcon(Context->ImageList, icon);
             PhSetListViewItemImageIndex(Context->ListViewHandle, lvItemIndex, imageIndex);
         }

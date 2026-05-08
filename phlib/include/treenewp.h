@@ -146,6 +146,12 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG SearchStringCount;
     ULONG AllocatedSearchString;
 
+    ULONG VScrollAnchorFlags;
+    PPH_TREENEW_NODE VScrollAnchorNode;
+    ULONG FlatListStructureChanged;
+    ULONG FlatListPreCount;   // flat list count captured before PhTnpRestructureNodes clears the list
+    ULONG FlatListAnchorEnd;  // TRUE when the END scroll anchor was active for the current structural change
+
     ULONG TooltipIndex;
     ULONG TooltipId;
     PPH_STRING TooltipText;
@@ -498,7 +504,62 @@ VOID PhTnpSendMouseEvent(
     _In_ ULONG VirtualKeys
     );
 
+//
+// Scroll Anchoring
+//
+
+// Scroll anchoring is when a scrolling control automatically changes the position
+// of its viewport to prevent the content from visibly jumping.
+//
+// The jump is caused by a change in the content's layout. The scroll anchor provider
+// applies a shift after observing a change in the position of an anchor element within the content.
+//
+// The treenew control now snapshots the current viewport anchor before structural updates,
+// restores it after the flat list is rebuilt, and special-cases the start/end edges
+// so bottom-pinned views track appended content.
+//
+// Caveat: middle-of-list anchoring is pointer-identity based.
+//
+// It works when callers keep node objects stable across refreshes,
+// but if a view destroys and recreates all nodes on each rebuild, only the start / end
+// edge anchors will function correctly. Node-based anchoring requires that the same
+// PPH_TREENEW_NODE pointer remains valid and present in the new flat list.
+//
+// Source for expected behavior :
+// https://learn.microsoft.com/en-us/uwp/api/windows.ui.xaml.controls.iscrollanchorprovider
+
+#define TREENEW_VSCROLL_ANCHOR 1
+#define PH_TREENEW_VSCROLL_ANCHOR_PENDING 0x1
+#define PH_TREENEW_VSCROLL_ANCHOR_START 0x2
+#define PH_TREENEW_VSCROLL_ANCHOR_END 0x4
+#define PH_TREENEW_VSCROLL_ANCHOR_NODE 0x8
+
+LONG PhTnpGetMaxVScrollPosition(
+    _In_ ULONG Count,
+    _In_ LONG RowsPerPage
+    );
+
+_Success_(return)
+BOOLEAN PhTnpFindFlatListNode(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_NODE Node,
+    _Out_ PULONG Index
+    );
+
+VOID PhTnpPrepareVScrollAnchor(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+_Success_(return)
+BOOLEAN PhTnpGetAnchoredVScrollPosition(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG RowsPerPage,
+    _Out_ PLONG Position
+    );
+
+//
 // Columns
+//
 
 PPH_TREENEW_COLUMN PhTnpLookupColumnById(
     _In_ PPH_TREENEW_CONTEXT Context,
@@ -915,12 +976,6 @@ VOID PhTnpDestroyBufferedContext(
     );
 
 // Support functions
-
-_Success_(return)
-BOOLEAN PhTnpGetMessagePos(
-    _In_ HWND WindowHandle,
-    _Out_ PPOINT ClientPoint
-    );
 
 _Success_(return)
 BOOLEAN PhTnpGetColumnHeaderText(

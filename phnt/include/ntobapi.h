@@ -86,14 +86,14 @@
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _OBJECT_INFORMATION_CLASS
 {
-    ObjectBasicInformation, // q: OBJECT_BASIC_INFORMATION
-    ObjectNameInformation, // q: OBJECT_NAME_INFORMATION
-    ObjectTypeInformation, // q: OBJECT_TYPE_INFORMATION
-    ObjectTypesInformation, // q: OBJECT_TYPES_INFORMATION
-    ObjectHandleFlagInformation, // qs: OBJECT_HANDLE_FLAG_INFORMATION
-    ObjectSessionInformation, // s: void // change object session // (requires SeTcbPrivilege)
+    ObjectBasicInformation,         // q: OBJECT_BASIC_INFORMATION
+    ObjectNameInformation,          // q: OBJECT_NAME_INFORMATION
+    ObjectTypeInformation,          // q: OBJECT_TYPE_INFORMATION
+    ObjectTypesInformation,         // q: OBJECT_TYPES_INFORMATION
+    ObjectHandleFlagInformation,    // qs: OBJECT_HANDLE_FLAG_INFORMATION
+    ObjectSessionInformation,       // s: void // change object session // (requires SeTcbPrivilege)
     ObjectSessionObjectInformation, // s: void // change object session // (requires SeTcbPrivilege)
-    ObjectSetRefTraceInformation, // since 25H2
+    ObjectSetRefTraceInformation,   // since 25H2
     MaxObjectInfoClass
 } OBJECT_INFORMATION_CLASS;
 #else
@@ -194,6 +194,7 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntqueryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -214,6 +215,7 @@ NtQueryObject(
  * \param ObjectInformationLength The size of the buffer pointed to by the ObjectInformation parameter, in bytes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -224,6 +226,9 @@ NtSetInformationObject(
     _In_ ULONG ObjectInformationLength
     );
 
+/**
+ * Options flags for NtDuplicateObject
+ */
 #define DUPLICATE_CLOSE_SOURCE 0x00000001       // Close the source handle.
 #define DUPLICATE_SAME_ACCESS 0x00000002        // Instead of using the DesiredAccess parameter, copy the access rights from the source handle to the target handle.
 #define DUPLICATE_SAME_ATTRIBUTES 0x00000004    // Instead of using the HandleAttributes parameter, copy the attributes from the source handle to the target handle.
@@ -241,6 +246,7 @@ NtSetInformationObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwduplicateobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -261,6 +267,7 @@ NtDuplicateObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmaketemporaryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -275,6 +282,7 @@ NtMakeTemporaryObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwmaketemporaryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -293,6 +301,7 @@ NtMakePermanentObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-signalobjectandwait
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -314,6 +323,7 @@ NtSignalAndWaitForSingleObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntwaitforsingleobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -336,6 +346,7 @@ NtWaitForSingleObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitformultipleobjectsex
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -347,6 +358,7 @@ NtWaitForMultipleObjects(
     _In_opt_ PLARGE_INTEGER Timeout
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -367,6 +379,7 @@ NtWaitForMultipleObjects32(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwsetsecurityobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -387,6 +400,7 @@ NtSetSecurityObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-ntquerysecurityobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -405,6 +419,7 @@ NtQuerySecurityObject(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwclose
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -421,6 +436,7 @@ NtClose(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-compareobjecthandles
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -447,6 +463,7 @@ NtCompareObjects(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatedirectoryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -457,6 +474,7 @@ NtCreateDirectoryObject(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -478,6 +496,7 @@ NtCreateDirectoryObjectEx(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntopendirectoryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -509,6 +528,7 @@ typedef struct _OBJECT_DIRECTORY_INFORMATION
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntquerydirectoryobject
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -586,6 +606,7 @@ typedef struct _OBJECT_BOUNDARY_DESCRIPTOR
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createprivatenamespacea
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -606,6 +627,7 @@ NtCreatePrivateNamespace(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openprivatenamespacea
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -623,6 +645,7 @@ NtOpenPrivateNamespace(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/namespaceapi/nf-namespaceapi-closeprivatenamespace
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -638,6 +661,7 @@ NtDeletePrivateNamespace(
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -648,6 +672,7 @@ NtCreateSymbolicLinkObject(
     _In_ PCUNICODE_STRING LinkTarget
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -657,6 +682,7 @@ NtOpenSymbolicLinkObject(
     _In_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -674,6 +700,7 @@ typedef enum _SYMBOLIC_LINK_INFO_CLASS
 } SYMBOLIC_LINK_INFO_CLASS;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

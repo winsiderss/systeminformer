@@ -34,7 +34,7 @@ LONG PhAddListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhScaleToDisplay(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -59,7 +59,7 @@ LONG PhAddIListViewColumnDpi(
     memset(&column, 0, sizeof(LVCOLUMN));
     column.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM | LVCF_ORDER;
     column.fmt = Format;
-    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhGetDpi(Width, ListViewDpi);
+    column.cx = WindowsVersion < WINDOWS_10 ? Width : PhScaleToDisplay(Width, ListViewDpi);
     column.pszText = const_cast<PWSTR>(Text);
     column.iSubItem = SubItemIndex;
     column.iOrder = DisplayIndex;
@@ -659,7 +659,7 @@ BOOLEAN PhGetIListViewClientRect(
     _Inout_ PRECT ClientRect
     )
 {
-    return SUCCEEDED(ListView->GetClientRect(FALSE, ClientRect));
+    return SUCCEEDED(ListView->GetClientRectangle(FALSE, ClientRect));
 }
 
 BOOLEAN PhGetIListViewItemRect(
@@ -684,7 +684,7 @@ PPH_LISTVIEW_CONTEXT PhListView_Initialize(
     PPH_LISTVIEW_CONTEXT context;
     IListView* listviewInterface;
 
-    context = (PPH_LISTVIEW_CONTEXT)PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT));
+    context = static_cast<PPH_LISTVIEW_CONTEXT>(PhAllocateZero(sizeof(PH_LISTVIEW_CONTEXT)));
     context->ListViewHandle = ListViewHandle;
     context->ThreadId = UlongToHandle(GetWindowThreadProcessId(ListViewHandle, nullptr));
 
@@ -703,7 +703,7 @@ VOID PhListView_Destroy(
     if (Context->ListViewInterface)
     {
         Context->ListViewInterface->Release();
-        Context->ListViewInterface = NULL;
+        Context->ListViewInterface = nullptr;
     }
 
     PhFree(Context);
@@ -739,7 +739,7 @@ BOOLEAN PhListView_GetItemCount(
 BOOLEAN PhListView_SetItemCount(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemCount,
-    _In_ ULONG Flags
+    _In_ LV_LISTVIEW_SETITEMCOUNT_FLAGS Flags
     )
 {
     if (Context->ListViewInterface && NtCurrentThreadId() == Context->ThreadId)
@@ -798,7 +798,7 @@ BOOLEAN PhListView_SetItem(
     return FALSE;
 }
 
-_Use_decl_annotations_
+_Success_(return)
 BOOLEAN PhListView_GetItemText(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemIndex,
@@ -982,7 +982,7 @@ BOOLEAN PhListView_GetItemState(
     {
         ULONG state = 0;
 
-        if (HR_SUCCESS(Context->ListViewInterface->GetItemState(ItemIndex, 0, Mask, &state)))
+        if (HR_SUCCESS(Context->ListViewInterface->GetItemState(ItemIndex, 0, (LV_LISTVIEW_ITEM_STATE_FLAGS)Mask, (LV_LISTVIEW_ITEM_STATE_FLAGS*)&state)))
         {
             *State = state;
             return TRUE;
@@ -1006,7 +1006,7 @@ BOOLEAN PhListView_SetItemState(
 {
     if (Context->ListViewInterface && NtCurrentThreadId() == Context->ThreadId)
     {
-        if (HR_SUCCESS(Context->ListViewInterface->SetItemState(ItemIndex, 0, State, Mask)))
+        if (HR_SUCCESS(Context->ListViewInterface->SetItemState(ItemIndex, 0, (LV_LISTVIEW_ITEM_STATE_FLAGS)Mask, (LV_LISTVIEW_ITEM_STATE_FLAGS)State)))
             return TRUE;
     }
     else
@@ -1135,6 +1135,7 @@ BOOLEAN PhListView_SetColumnWidth(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhListView_GetHeader(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _Out_ HWND* WindowHandle
@@ -1164,6 +1165,7 @@ BOOLEAN PhListView_GetHeader(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN PhListView_GetToolTip(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _Out_ HWND* WindowHandle
@@ -1359,7 +1361,7 @@ VOID PhListView_SetStateAllItems(
         {
             for (i = 0; i < count; i++)
             {
-                Context->ListViewInterface->SetItemState(i, 0, Mask, State);
+                Context->ListViewInterface->SetItemState(i, 0, (LV_LISTVIEW_ITEM_STATE_FLAGS)Mask, (LV_LISTVIEW_ITEM_STATE_FLAGS)State);
             }
         }
     }
@@ -1449,6 +1451,7 @@ BOOLEAN PhListView_GetClientRect(
     }
     else
     {
+        //ListView_GetViewRect(Context->ListViewHandle, ClientRect);
         return !!GetClientRect(Context->ListViewHandle, ClientRect);
     }
 }
@@ -1506,6 +1509,7 @@ BOOLEAN PhListView_EnsureItemVisible(
     }
 }
 
+_Success_(return)
 BOOLEAN PhListView_IsItemVisible(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemIndex,

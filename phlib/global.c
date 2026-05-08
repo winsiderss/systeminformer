@@ -17,6 +17,7 @@
 PVOID PhInstanceHandle = NULL;
 PCWSTR PhApplicationName = NULL;
 HANDLE PhHeapHandle = NULL;
+BOOLEAN PhEnableHighResolution = TRUE;
 RTL_OSVERSIONINFOEX PhOsVersion = { 0 };
 PHLIBAPI PH_SYSTEM_BASIC_INFORMATION PhSystemBasicInformation = { 0 };
 PH_SYSTEM_PROCESSOR_INFORMATION PhSystemProcessorInformation = { 0 };

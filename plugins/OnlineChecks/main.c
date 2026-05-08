@@ -32,9 +32,11 @@ PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 
 ULONG ScanMaxFileSize = 0;
 ULONG ScanStartupDelay = 0;
+ULONG ScanSubmitTimeout = 0;
 BOOLEAN ScanningInitialized = FALSE;
 BOOLEAN ScanningEnabled = FALSE;
 BOOLEAN AutoScanningEnabled = FALSE;
+BOOLEAN AutoSubmitEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
@@ -46,8 +48,10 @@ VOID NTAPI LoadCallback(
 {
     ScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED);
     AutoScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED);
+    AutoSubmitEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SUBMIT_ENABLED);
     ScanMaxFileSize = PhGetIntegerSetting(SETTING_NAME_SCAN_MAX_FILE_SIZE);
     ScanStartupDelay = PhGetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY);
+    ScanSubmitTimeout = PhGetIntegerSetting(SETTING_NAME_SCAN_SUBMIT_TIMEOUT);
     if (ScanningEnabled)
         ScanningInitialized = InitializeScanning();
 }
@@ -69,12 +73,18 @@ VOID ProcessesUpdatedCallback(
     )
 {
     LARGE_INTEGER systemTime;
+    ULONG scanFlags = 0;
 
     if (!ScanningInitialized)
         return;
 
     if (PtrToUlong(Parameter) < ScanStartupDelay)
         return;
+
+    if (!AutoScanningEnabled)
+        SetFlag(scanFlags, SCAN_FLAG_LOCAL_ONLY);
+    if (AutoSubmitEnabled)
+        SetFlag(scanFlags, SCAN_FLAG_SUBMIT);
 
     PhQuerySystemTime(&systemTime);
 
@@ -121,7 +131,7 @@ VOID ProcessesUpdatedCallback(
             &systemTime,
             &extension->ScanContext,
             extension->FileName,
-            AutoScanningEnabled ? 0 : SCAN_FLAG_LOCAL_ONLY
+            scanFlags
             );
     }
 
@@ -241,28 +251,28 @@ VOID NTAPI MenuItemCallback(
                 { L"All files (*.*)", L"*.*" }
             };
             PVOID fileDialog;
-            PPH_STRING fileName;
+            PPH_STRING fileSaveName;
 
             fileDialog = PhCreateOpenFileDialog();
             PhSetFileDialogFilter(fileDialog, filters, sizeof(filters) / sizeof(PH_FILETYPE_FILTER));
 
             if (PhShowFileDialog(menuItem->Context, fileDialog))
             {
-                fileName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
+                fileSaveName = PH_AUTO(PhGetFileDialogFileName(fileDialog));
 
                 switch (menuItem->Id)
                 {
                 case MENUITEM_VIRUSTOTAL_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_VIRUSTOTAL_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_VIRUSTOTAL_UPLOAD);
                     break;
                 case MENUITEM_HYBRIDANALYSIS_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_HYBRIDANALYSIS_UPLOAD);
                     break;
                 case MENUITEM_JOTTI_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_JOTTI_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_JOTTI_UPLOAD);
                     break;
                 case MENUITEM_FILESCANIO_UPLOAD_FILE:
-                    UploadToOnlineService(fileName, MENUITEM_FILESCANIO_UPLOAD);
+                    UploadToOnlineService(fileSaveName, MENUITEM_FILESCANIO_UPLOAD);
                     break;
                 }
             }
@@ -275,10 +285,7 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmProcessItemType);
             scanType = SCAN_TYPE_VIRUSTOTAL;
             if (extension->ProcessItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ProcessItem->FileName);
-                extension->ProcessItem->FileName = fileName;
-            }
         }
         break;
     case MENUITEM_VIRUSTOTAL_SCAN_MODULE:
@@ -286,10 +293,7 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmModuleItemType);
             scanType = SCAN_TYPE_VIRUSTOTAL;
             if (extension->ModuleItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ModuleItem->FileName);
-                extension->ModuleItem->FileName = fileName;
-            }
         }
         break;
     case MENUITEM_VIRUSTOTAL_SCAN_SERVICE:
@@ -297,10 +301,7 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmServiceItemType);
             scanType = SCAN_TYPE_VIRUSTOTAL;
             if (extension->ServiceItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ServiceItem->FileName);
-                extension->ServiceItem->FileName = fileName;
-            }
         }
         break;
     case MENUITEM_HYBRIDANALYSIS_SCAN_PROCESS:
@@ -308,10 +309,7 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmProcessItemType);
             scanType = SCAN_TYPE_HYBRIDANALYSIS;
             if (extension->ProcessItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ProcessItem->FileName);
-                extension->ProcessItem->FileName = fileName;
-            }
         }
         break;
     case MENUITEM_HYBRIDANALYSIS_SCAN_MODULE:
@@ -319,10 +317,7 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmModuleItemType);
             scanType = SCAN_TYPE_HYBRIDANALYSIS;
             if (extension->ModuleItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ModuleItem->FileName);
-                extension->ModuleItem->FileName = fileName;
-            }
         }
         break;
     case MENUITEM_HYBRIDANALYSIS_SCAN_SERVICE:
@@ -330,24 +325,28 @@ VOID NTAPI MenuItemCallback(
             extension = PhPluginGetObjectExtension(PluginInstance, menuItem->Context, EmServiceItemType);
             scanType = SCAN_TYPE_HYBRIDANALYSIS;
             if (extension->ServiceItem->FileName)
-            {
                 fileName = PhGetFileName(extension->ServiceItem->FileName);
-                extension->ServiceItem->FileName = fileName;
-            }
         }
         break;
     }
 
     if (fileName)
     {
+        ULONG scanFlags = SCAN_FLAG_RESCAN;
+
+        if (AutoSubmitEnabled)
+            SetFlag(scanFlags, SCAN_FLAG_SUBMIT);
+
         EnqueueScan(
             &extension->ScanContext,
             scanType,
             fileName,
-            SCAN_FLAG_RESCAN,
+            scanFlags,
             ScanCompleteCallback,
             extension
             );
+
+        PhDereferenceObject(fileName);
     }
 }
 
@@ -688,7 +687,7 @@ VOID NTAPI ProcessTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_PROCESS, NULL, VirusTotalProcessNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIRUSTOTAL_PROCESS, NULL, VirusTotalProcessNodeSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Hybrid-Analysis";
@@ -716,7 +715,7 @@ VOID NTAPI ModuleTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIRUSTOTAL_MODULE, NULL, VirusTotalModuleNodeSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Hybrid-Analysis";
@@ -744,7 +743,7 @@ VOID NTAPI ServiceTreeNewInitializingCallback(
     column.CustomDraw = TRUE;
     column.Context = info->TreeNewHandle; // Context
 
-    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIUSTOTAL_SERVICE, NULL, VirusTotalServiceNodeSortFunction);
+    PhPluginAddTreeNewColumn(PluginInstance, info->CmData, &column, COLUMN_ID_VIRUSTOTAL_SERVICE, NULL, VirusTotalServiceNodeSortFunction);
 
     memset(&column, 0, sizeof(PH_TREENEW_COLUMN));
     column.Text = L"Hybrid-Analysis";
@@ -774,21 +773,21 @@ VOID NTAPI TreeNewMessageCallback(
 
             switch (message->SubId)
             {
-            case COLUMN_ID_VIUSTOTAL_PROCESS:
+            case COLUMN_ID_VIRUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)getCellText->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
                     scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
-            case COLUMN_ID_VIUSTOTAL_MODULE:
+            case COLUMN_ID_VIRUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)getCellText->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
                     scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
-            case COLUMN_ID_VIUSTOTAL_SERVICE:
+            case COLUMN_ID_VIRUSTOTAL_SERVICE:
                 {
                     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)getCellText->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
@@ -830,21 +829,21 @@ VOID NTAPI TreeNewMessageCallback(
 
             switch (message->SubId)
             {
-            case COLUMN_ID_VIUSTOTAL_PROCESS:
+            case COLUMN_ID_VIRUSTOTAL_PROCESS:
                 {
                     PPH_PROCESS_NODE processNode = (PPH_PROCESS_NODE)customDraw->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, processNode->ProcessItem, EmProcessItemType);
                     scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
-            case COLUMN_ID_VIUSTOTAL_MODULE:
+            case COLUMN_ID_VIRUSTOTAL_MODULE:
                 {
                     PPH_MODULE_NODE moduleNode = (PPH_MODULE_NODE)customDraw->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, moduleNode->ModuleItem, EmModuleItemType);
                     scanType = SCAN_TYPE_VIRUSTOTAL;
                 }
                 break;
-            case COLUMN_ID_VIUSTOTAL_SERVICE:
+            case COLUMN_ID_VIRUSTOTAL_SERVICE:
                 {
                     PPH_SERVICE_NODE serviceNode = (PPH_SERVICE_NODE)customDraw->Node;
                     extension = PhPluginGetObjectExtension(PluginInstance, serviceNode->ServiceItem, EmServiceItemType);
@@ -909,7 +908,7 @@ VOID NTAPI ProcessItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -923,7 +922,7 @@ VOID NTAPI ProcessItemDeleteCallback(
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
@@ -948,7 +947,7 @@ VOID NTAPI ModuleItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -958,11 +957,11 @@ VOID NTAPI ModuleItemDeleteCallback(
     _In_ PVOID Extension
     )
 {
-    PPH_MODULE_ITEM processItem = Object;
+    PPH_MODULE_ITEM moduleItem = Object;
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
@@ -987,7 +986,7 @@ VOID NTAPI ServiceItemCreateCallback(
     InitializeScanContext(&extension->ScanContext);
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    InsertTailList(&ScanExtensionsListHead, &extension->ListEntry);
+    InsertTailListNoFence(&ScanExtensionsListHead, &extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 }
 
@@ -1001,7 +1000,7 @@ VOID NTAPI ServiceItemDeleteCallback(
     PSCAN_EXTENSION extension = Extension;
 
     PhAcquireQueuedLockExclusive(&ScanExtensionsListLock);
-    RemoveEntryList(&extension->ListEntry);
+    RemoveEntryListNoFence(&extension->ListEntry);
     PhReleaseQueuedLockExclusive(&ScanExtensionsListLock);
 
     DeleteScanContext(&extension->ScanContext);
@@ -1025,11 +1024,13 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_AUTO_SCAN_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_AUTO_SUBMIT_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_SCAN_MAX_FILE_SIZE, L"8000000" }, // 128 MiB
                 { IntegerSettingType, SETTING_NAME_SCAN_STARTUP_DELAY, L"1E" }, // 30 sec
+                { IntegerSettingType, SETTING_NAME_SCAN_SUBMIT_TIMEOUT, L"A" }, // 10 sec
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION, L"0" },
                 { StringSettingType, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, L"" },
-                { StringSettingType, SETTING_NAME_HYBRIDANAL_DEFAULT_PAT, L"" },
+                { StringSettingType, SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT, L"" },
                 { StringSettingType, SETTING_NAME_FILESCAN_DEFAULT_PAT, L"" },
             };
 

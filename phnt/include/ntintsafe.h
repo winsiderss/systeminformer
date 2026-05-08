@@ -98,7 +98,25 @@ typedef ULONG_PTR   SIZE_T;
 
 #undef _USE_INTRINSIC_MULTIPLY128
 
-#if !defined(_M_CEE) && ((defined(_AMD64_) && !defined(_ARM64EC_)) || (defined(_IA64_) && (_MSC_VER >= 1400)))
+#if !defined(_ARM64_MULT_INTRINS_SUPPORTED)
+#define _ARM64_MULT_INTRINS_SUPPORTED 0
+#if (defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64))
+#if defined(__clang__)
+#if __has_builtin(__umulh) && __has_builtin(__mulh)
+#undef _ARM64_MULT_INTRINS_SUPPORTED
+#define _ARM64_MULT_INTRINS_SUPPORTED 1
+#endif // __has_builtin(__umulh) && __has_builtin(__mulh)
+#else // defined(__clang__)
+#undef _ARM64_MULT_INTRINS_SUPPORTED
+#define _ARM64_MULT_INTRINS_SUPPORTED 1
+#endif // defined(__clang__)
+#endif // (defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64))
+#endif // !defined(_ARM64_MULT_INTRINS_SUPPORTED)
+
+#if !defined(_M_CEE) && \
+    ((defined(_M_X64) && !defined(_M_ARM64EC)) || \
+     (defined(_ARM64_MULT_INTRINS_SUPPORTED) && _ARM64_MULT_INTRINS_SUPPORTED) || \
+     (defined(_M_IA64) && (_MSC_VER >= 1400)))
 #define _USE_INTRINSIC_MULTIPLY128
 #endif
 
@@ -107,25 +125,44 @@ typedef ULONG_PTR   SIZE_T;
 extern "C" {
 #endif
 
-#if !defined(_ARM64EC_)
+#if defined(_M_X64) && !defined(_M_ARM64EC)
 
-#define UnsignedMultiply128 _umul128
+#define __RtlpUnsignedMultiply128 _umul128
 
-#else
-
-#define _umul128 Multiply128
-
-#endif // defined(_ARM64EC_)
+#endif // defined(_M_X64) && !defined(_M_ARM64EC)
 
 ULONG64
-UnsignedMultiply128(
-    _In_ ULONGLONG ullMultiplicand,
-    _In_ ULONGLONG ullMultiplier,
-    _Out_ ULONGLONG* pullResultHigh); // _Deref_out_range_(==, ullMultiplicand * ullMultiplier) 
+__RtlpUnsignedMultiply128(
+    _In_ ULONG64 Multiplicand,
+    _In_ ULONG64 Multiplier,
+    _Out_ _Deref_out_range_(==, Multiplicand * Multiplier) ULONG64* HighProduct);
 
-#if !defined(_ARM64EC_)
+#if defined(_M_X64) && !defined(_M_ARM64EC)
 #pragma intrinsic(_umul128)
 #endif
+
+#if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
+
+ULONG64
+__umulh(
+    _In_ ULONG64 Multiplicand,
+    _In_ ULONG64 Multiplier
+    );
+
+#pragma intrinsic(__umulh)
+
+__inline
+ULONG64
+__RtlpUnsignedMultiply128(
+    _In_ ULONG64 Multiplicand,
+    _In_ ULONG64 Multiplier,
+    _Out_ _Deref_out_range_(==, Multiplicand * Multiplier) ULONG64* HighProduct)
+{
+    *HighProduct = __umulh(Multiplier, Multiplicand);
+    return Multiplier * Multiplicand;
+}
+
+#endif // defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
 
 #ifdef __cplusplus
 }
@@ -152,7 +189,7 @@ typedef _Return_type_success_(return >= 0) long NTSTATUS;
 #ifndef UInt32x32To64
 #if defined(MIDL_PASS) || defined(RC_INVOKED) || defined(_M_CEE_PURE) \
     || defined(_68K_) || defined(_MPPC_) \
-    || defined(_M_IA64) || defined(_M_AMD64) || defined(_M_ARM) || defined(_M_ARM64) \
+    || defined(_M_IA64) || defined(_M_X64) || defined(_M_ARM) || defined(_M_ARM64) \
     || defined(_M_HYBRID_X86_ARM64)
 #define UInt32x32To64(a, b) (((unsigned __int64)((unsigned int)(a))) * ((unsigned __int64)((unsigned int)(b))))
 #elif defined(_M_IX86)
@@ -7720,7 +7757,7 @@ RtlULongLongMult(
     ULONGLONG ullResultHigh;
     ULONGLONG ullResultLow;
 
-    ullResultLow = UnsignedMultiply128(ullMultiplicand, ullMultiplier, &ullResultHigh);
+    ullResultLow = __RtlpUnsignedMultiply128(ullMultiplicand, ullMultiplier, &ullResultHigh);
     if (ullResultHigh == 0)
     {
         _Analysis_assume_(ullMultiplicand * ullMultiplier == ullResultLow);
@@ -7863,28 +7900,47 @@ RtlULongLongMult(
 extern "C" {
 #endif
 
-#if !defined(_ARM64EC_)
+#if defined(_M_X64) && !defined(_M_ARM64EC)
 
-#define Multiply128 _mul128
+#define __RtlpMultiply128 _mul128
 
-#else
-
-#define _mul128 Multiply128
-
-#endif // defined(_ARM64EC_)
+#endif // defined(_M_X64) && !defined(_M_ARM64EC)
 
 LONG64
-Multiply128(
+__RtlpMultiply128(
     _In_ LONG64 Multiplier,
     _In_ LONG64  Multiplicand,
     _Out_ LONG64 *HighProduct
     );
 
-#if !defined(_ARM64EC_)
+#if defined(_M_X64) && !defined(_M_ARM64EC)
 
 #pragma intrinsic(_mul128)
 
-#endif // !defined(_ARM64EC_)
+#endif // defined(_M_X64) && !defined(_M_ARM64EC)
+
+#if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
+
+LONG64
+__mulh(
+   LONG64 Multiplier,
+   LONG64 Multiplicand
+   );
+
+#pragma intrinsic(__mulh)
+
+__inline
+LONG64
+__RtlpMultiply128(
+    _In_ LONG64 Multiplier,
+    _In_ LONG64 Multiplicand,
+    _Out_ _Deref_out_range_(==, Multiplicand * Multiplier) LONG64* HighProduct)
+{
+    *HighProduct = __mulh(Multiplier, Multiplicand);
+    return Multiplier * Multiplicand;
+}
+
+#endif // defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
 
 #ifdef __cplusplus
 }
@@ -8028,23 +8084,31 @@ RtlLongLongAdd(
     )
 {
     NTSTATUS status;
-    LONGLONG llResult = llAugend + llAddend;
+
+    //
+    // Signed integer overflow is undefined and must be avoided.
+    // Compilers do sometimes propagate undefined.
+    // Unsigned integer overflow is well defined to silently wraparound
+    // mod 2^n and may be used without problem.
+    //
+    ULONGLONG ullResult = ((ULONGLONG)llAugend) + (ULONGLONG)llAddend;
 
     //
     // Adding positive to negative never overflows.
     // If you add two positive numbers, you expect a positive result.
     // If you add two negative numbers, you expect a negative result.
-    // Overflow if inputs are the same sign and output is not that sign.
+    // Overflow if inputs have the same sign and output has the other sign.
+    // Unsigned greater than signed maximum, cast to signed, will be negative.
     //
     if (((llAugend < 0) == (llAddend < 0))  &&
-        ((llAugend < 0) != (llResult < 0)))
+        ((llAugend < 0) != (ullResult > (ULONGLONG)LONGLONG_MAX)))
     {
         *pllResult = LONGLONG_ERROR;
         status = STATUS_INTEGER_OVERFLOW;
     }
     else
     {
-        *pllResult = llResult;
+        *pllResult = (LONGLONG)ullResult;
         status = STATUS_SUCCESS;
     }
 
@@ -8238,7 +8302,14 @@ RtlLongLongSub(
     )
 {
     NTSTATUS status;
-    LONGLONG llResult = llMinuend - llSubtrahend;
+
+    //
+    // Signed integer overflow is undefined and must be avoided.
+    // Compilers do sometimes propagate undefined.
+    // Unsigned integer overflow is well defined to silently wraparound
+    // mod 2^n and may be used without problem.
+    //
+    ULONGLONG ullResult = ((ULONGLONG)llMinuend) - (ULONGLONG)llSubtrahend;
 
     //
     // Subtracting a positive number from a positive number never overflows.
@@ -8246,16 +8317,17 @@ RtlLongLongSub(
     // If you subtract a negative number from a positive number, you expect a positive result.
     // If you subtract a positive number from a negative number, you expect a negative result.
     // Overflow if inputs vary in sign and the output does not have the same sign as the first input.
+    // Unsigned greater than signed maximum, cast to signed, will be negative.
     //
     if (((llMinuend < 0) != (llSubtrahend < 0)) &&
-        ((llMinuend < 0) != (llResult < 0)))
+        ((llMinuend < 0) != (ullResult > (ULONGLONG)LONGLONG_MAX)))
     {
         *pllResult = LONGLONG_ERROR;
         status = STATUS_INTEGER_OVERFLOW;
     }
     else
     {
-        *pllResult = llResult;
+        *pllResult = (LONGLONG)ullResult;
         status = STATUS_SUCCESS;
     }
 
@@ -8453,7 +8525,7 @@ RtlLongLongMult(
     LONGLONG llResultHigh;
     LONGLONG llResultLow;
 
-    llResultLow = Multiply128(llMultiplicand, llMultiplier, &llResultHigh);
+    llResultLow = __RtlpMultiply128(llMultiplicand, llMultiplier, &llResultHigh);
 
     if (((llResultLow < 0) && (llResultHigh != -1))    ||
         ((llResultLow >= 0) && (llResultHigh != 0)))

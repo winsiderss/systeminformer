@@ -12,6 +12,7 @@
 
 #include "devices.h"
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI NetAdapterProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -90,29 +91,6 @@ VOID NetAdapterAddListViewItemGroups(
     PhAddListViewGroupItem(ListViewHandle, NETADAPTER_DETAILS_CATEGORY_ERRORS, NETADAPTER_DETAILS_INDEX_ERRORS_TOTAL, L"Total discards", NULL);
 }
 
-PVOID NetAdapterGetAddresses(
-    _In_ ULONG Family
-    )
-{
-    ULONG flags = GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME | GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES;
-    ULONG bufferLength = 0;
-    PIP_ADAPTER_ADDRESSES buffer;
-
-    if (GetAdaptersAddresses(Family, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
-        return NULL;
-
-    buffer = PhAllocate(bufferLength);
-    memset(buffer, 0, bufferLength);
-
-    if (GetAdaptersAddresses(Family, flags, NULL, buffer, &bufferLength) != ERROR_SUCCESS)
-    {
-        PhFree(buffer);
-        return NULL;
-    }
-
-    return buffer;
-}
-
 VOID NetAdapterEnumerateAddresses(
     _In_ PVOID AddressesBuffer,
     _In_ ULONG64 InterfaceLuid,
@@ -165,7 +143,7 @@ VOID NetAdapterEnumerateAddresses(
                     PhAppendFormatStringBuilder(Ipv4AddressBuffer, L"%s, ", ipv4AddressString);
                 }
 
-                ConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
+                NetworkAdapterConvertLengthToIpv4Mask(unicastAddress->OnLinkPrefixLength, &subnetMask.s_addr);
 
                 if (NT_SUCCESS(PhIpv4AddressToString(
                     &subnetMask,
@@ -323,7 +301,11 @@ VOID NetAdapterLookupConfig(
     PhInitializeStringBuilder(&ipv4dnsAddressBuffer, 0x100);
     PhInitializeStringBuilder(&ipv6dnsAddressBuffer, 0x100);
 
-    if (addressesBuffer = NetAdapterGetAddresses(AF_INET))
+    if (addressesBuffer = NetworkAdapterGetAddresses(
+        AF_INET,
+        GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME |
+        GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES
+        ))
     {
         NetAdapterEnumerateAddresses(
             addressesBuffer,
@@ -342,7 +324,11 @@ VOID NetAdapterLookupConfig(
         PhFree(addressesBuffer);
     }
 
-    if (addressesBuffer = NetAdapterGetAddresses(AF_INET6))
+    if (addressesBuffer = NetworkAdapterGetAddresses(
+        AF_INET6,
+        GAA_FLAG_INCLUDE_PREFIX | GAA_FLAG_SKIP_FRIENDLY_NAME |
+        GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_INCLUDE_ALL_INTERFACES
+        ))
     {
         NetAdapterEnumerateAddresses(
             addressesBuffer,
@@ -554,7 +540,7 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_LINKSPEED, 1, PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceLinkSpeed / BITS_IN_ONE_BYTE, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceLinkSpeed))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceLinkSpeed))->Buffer
         )->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENT, 1, PhaFormatSize(interfaceStats.ifHCOutOctets, ULONG_MAX)->Buffer);
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVED, 1, PhaFormatSize(interfaceStats.ifHCInOctets, ULONG_MAX)->Buffer);
@@ -562,12 +548,12 @@ VOID NetAdapterUpdateDetails(
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_SENDING, 1, interfaceXmitSpeed != 0 ? PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceXmitSpeed, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceXmitSpeed * BITS_IN_ONE_BYTE))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceXmitSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");
     PhSetListViewSubItem(Context->ListViewHandle, NETADAPTER_DETAILS_INDEX_RECEIVING, 1, interfaceRcvSpeed != 0 ? PhaFormatString(
         L"%s/s (%s)",
         PhaFormatSize(interfaceRcvSpeed, ULONG_MAX)->Buffer,
-        PH_AUTO_T(PH_STRING, NetAdapterFormatBitratePrefix(interfaceRcvSpeed * BITS_IN_ONE_BYTE))->Buffer
+        PH_AUTO_T(PH_STRING, NetworkAdapterFormatBitratePrefix(interfaceRcvSpeed * BITS_IN_ONE_BYTE))->Buffer
         )->Buffer : L"");
 
     if (interfaceLinkSpeed > 0)
@@ -619,50 +605,50 @@ VOID NetAdapterUpdateDetails(
 }
 
 INT_PTR CALLBACK NetAdapterDetailsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_NETADAPTER_DETAILS_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PDV_NETADAPTER_DETAILS_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_DETAILS_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_DETAILS_LIST);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
-            PhSetWindowText(hwndDlg, PhGetStringOrDefault(context->AdapterName, L"Unknown network adapter"));
+            PhSetWindowText(WindowHandle, PhGetStringOrDefault(context->AdapterName, L"Unknown network adapter"));
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"Property");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 240, L"Value");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentHandle);
+                PhCenterWindow(WindowHandle, context->ParentHandle);
 
             NetAdapterAddListViewItemGroups(context->ListViewHandle);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
@@ -686,7 +672,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
                 &context->NotifyHandle
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)); // HACK
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)); // HACK
         }
         break;
     case WM_DESTROY:
@@ -696,7 +682,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             if (context->NotifyHandle)
                 CancelMibChangeNotify2(context->NotifyHandle);
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_NETWORK_POSITION, SETTING_NAME_NETWORK_SIZE, WindowHandle);
             PhSaveListViewSortColumnsToSetting(SETTING_NAME_NETWORK_SORTCOLUMN, context->ListViewHandle);
             PhSaveListViewColumnsToSetting(SETTING_NAME_NETWORK_COLUMNS, context->ListViewHandle);
 
@@ -707,7 +693,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
     case WM_COMMAND:
@@ -715,7 +701,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDCANCEL:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -725,12 +711,12 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
         break;
     case WM_PH_SHOW_DIALOG:
         {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_PH_UPDATE_DIALOG:
@@ -768,7 +754,7 @@ INT_PTR CALLBACK NetAdapterDetailsDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,

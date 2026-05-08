@@ -39,7 +39,9 @@ function(_si_set_target_defaults target)
         message(FATAL_ERROR "Invalid target type: ${arg_TYPE}")
     endif()
 
-    target_link_options(${target} PRIVATE /NATVIS:${SI_ROOT}/SystemInformer.natvis)
+    if(MSVC)
+        target_link_options(${target} PRIVATE /NATVIS:${SI_ROOT}/SystemInformer.natvis)
+    endif()
 
     if(NOT SI_OUTPUT_DIR STREQUAL "" AND NOT SI_OUTPUT_DIR STREQUAL "OFF")
         if(arg_PLUGIN)
@@ -63,8 +65,12 @@ function(_si_set_target_defaults target)
     endif()
 
     if(arg_TYPE STREQUAL "UM_LIB")
-        target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
-        target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
+        if(MSVC)
+            target_compile_options(${target} PRIVATE /Gz) # __stdcall calling convention
+            target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
+        else()
+            target_link_options(${target} PRIVATE -mwindows)
+        endif()
         if(MSVC_CLANG)
             target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
         endif()
@@ -79,8 +85,12 @@ function(_si_set_target_defaults target)
             target_compile_definitions(${target} PRIVATE SI_NO_WPP)
         endif()
     elseif(arg_TYPE STREQUAL "UM_BIN")
-        target_compile_options(${target} PRIVATE /Gz) # __stcall calling convention
-        target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
+        if(MSVC)
+            target_compile_options(${target} PRIVATE /Gz) # __stdcall calling convention
+            target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
+        else()
+            target_link_options(${target} PRIVATE -mwindows)
+        endif()
         if(MSVC_CLANG)
             target_compile_options(${target} PRIVATE ${SI_UM_CLANG_NO_DIAGNOSTICS})
         endif()
@@ -132,7 +142,7 @@ function(_si_set_target_defaults target)
         )
     endif()
 
-    if(SI_WITH_PREFAST)
+    if(SI_WITH_PREFAST AND MSVC)
         # TODO configure this with the additional analysis options and ruleset
         # once the kph-staging branch is merged into master.
         target_compile_options(${target} PRIVATE /analyze)

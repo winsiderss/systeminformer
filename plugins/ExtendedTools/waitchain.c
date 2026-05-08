@@ -366,50 +366,50 @@ NTSTATUS WaitChainCallbackThread(
 }
 
 INT_PTR CALLBACK WaitChainDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PWCT_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PWCT_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_WCT_TREE);
+            context->WindowHandle = WindowHandle;
+            context->TreeNewHandle = GetDlgItem(WindowHandle, IDC_WCT_TREE);
             context->WaitChainList = PhCreateList(1);
             context->DeadLockList = PhCreateList(1);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
-            WtcInitializeWaitTree(hwndDlg, context->TreeNewHandle, &context->TreeContext);
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            WtcInitializeWaitTree(WindowHandle, context->TreeNewHandle, &context->TreeContext);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtWaitChainSetTreeStatusMessage(context, FALSE);
 
@@ -421,12 +421,12 @@ INT_PTR CALLBACK WaitChainDlgProc(
         {
             context->WindowHandle = NULL;
 
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WCT_WINDOW_POSITION, SETTING_NAME_WCT_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
             WtcDeleteWaitTree(&context->TreeContext);
 
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhDereferenceObject(context);
         }
         break;
@@ -439,7 +439,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(WindowHandle, IDOK);
                 break;
             case IDC_REFRESH:
                 {
@@ -480,7 +480,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
                             PhSetFlagsEMenuItem(menu, ID_WCT_MENU_GOTOPROCESS, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                         }
 
-                        PhShowEMenu(menu, hwndDlg, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
+                        PhShowEMenu(menu, WindowHandle, PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT, PH_ALIGN_LEFT | PH_ALIGN_TOP, point.x, point.y);
                         PhDestroyEMenu(menu);
                     }
                 }
@@ -495,7 +495,8 @@ INT_PTR CALLBACK WaitChainDlgProc(
                         if (processNode = PhFindProcessNode(UlongToHandle(selectedNode->ProcessId)))
                         {
                             SystemInformer_SelectTabPage(0);
-                            PhSelectAndEnsureVisibleProcessNode(processNode);
+                            SystemInformer_SelectProcessNode(processNode);
+                            SystemInformer_ToggleVisible(FALSE);
                         }
                     }
                 }
@@ -525,7 +526,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
                         }
                         else
                         {
-                            PhShowError2(hwndDlg, L"The process does not exist.", L"%s", L"");
+                            PhShowError2(WindowHandle, L"The process does not exist.", L"%s", L"");
                         }
                     }
                 }
@@ -535,7 +536,7 @@ INT_PTR CALLBACK WaitChainDlgProc(
                     PPH_STRING text;
 
                     text = PhGetTreeNewText(context->TreeNewHandle, 0);
-                    PhSetClipboardString(hwndDlg, &text->sr);
+                    PhSetClipboardString(WindowHandle, &text->sr);
                     PhDereferenceObject(text);
                 }
                 break;
@@ -553,11 +554,11 @@ INT_PTR CALLBACK WaitChainDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -637,7 +638,7 @@ BEGIN_SORT_FUNCTION(ContextSwitch)
 END_SORT_FUNCTION
 
 BOOLEAN NTAPI WtcWaitTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,
@@ -672,7 +673,7 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
             {
                 if (!node)
                 {
-                    static PVOID sortFunctions[] =
+                    static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                     {
                         SORT_FUNCTION(Type),
                         SORT_FUNCTION(Status),
@@ -684,7 +685,7 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
                         SORT_FUNCTION(WaitTime),
                         SORT_FUNCTION(ContextSwitch),
                     };
-                    int (__cdecl* sortFunction)(void*, void const*, void const*);
+                    _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                     static_assert(RTL_NUMBER_OF(sortFunctions) == TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -830,7 +831,7 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
             context->TreeNewSortOrder = sorting->SortOrder;
 
             // Force a rebuild to sort the items.
-            TreeNew_NodesStructured(hwnd);
+            TreeNew_NodesStructured(WindowHandle);
         }
         return TRUE;
     case TreeNewKeyDown:
@@ -847,13 +848,13 @@ BOOLEAN NTAPI WtcWaitTreeNewCallback(
         {
             PH_TN_COLUMN_MENU_DATA data;
 
-            data.TreeNewHandle = hwnd;
+            data.TreeNewHandle = WindowHandle;
             data.MouseEvent = Parameter1;
             data.DefaultSortColumn = TREE_COLUMN_ITEM_TYPE;
             data.DefaultSortOrder = NoSortOrder;
             PhInitializeTreeNewColumnMenuEx(&data, PH_TN_COLUMN_MENU_SHOW_RESET_SORT);
 
-            data.Selection = PhShowEMenu(data.Menu, hwnd, PH_EMENU_SHOW_LEFTRIGHT,
+            data.Selection = PhShowEMenu(data.Menu, WindowHandle, PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP, data.MouseEvent->ScreenLocation.x, data.MouseEvent->ScreenLocation.y);
             PhHandleTreeNewColumnMenu(&data);
             PhDeleteTreeNewColumnMenu(&data);
@@ -890,7 +891,7 @@ VOID WtcInitializeWaitTree(
     _Out_ PWCT_TREE_CONTEXT Context
     )
 {
-    HWND hwnd;
+    HWND WindowHandle;
     PPH_STRING settings;
 
     memset(Context, 0, sizeof(WCT_TREE_CONTEXT));
@@ -906,27 +907,27 @@ VOID WtcInitializeWaitTree(
 
     Context->ParentWindowHandle = ParentWindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
-    hwnd = TreeNewHandle;
-    PhSetControlTheme(hwnd, L"explorer");
+    WindowHandle = TreeNewHandle;
+    PhSetControlTheme(WindowHandle, L"explorer");
 
-    TreeNew_SetRedraw(hwnd, FALSE);
-    TreeNew_SetCallback(hwnd, WtcWaitTreeNewCallback, Context);
+    TreeNew_SetRedraw(WindowHandle, FALSE);
+    TreeNew_SetCallback(WindowHandle, WtcWaitTreeNewCallback, Context);
 
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, 0, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_THREADID, TRUE, L"ThreadId", 50, PH_ALIGN_LEFT, 1, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_PROCESSID, TRUE, L"ProcessId", 50, PH_ALIGN_LEFT, 2, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_STATUS, TRUE, L"Status", 80, PH_ALIGN_LEFT, 3, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_CONTEXTSWITCH, TRUE, L"Context Switches", 70, PH_ALIGN_LEFT, 4, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_WAITTIME, TRUE, L"WaitTime", 60, PH_ALIGN_LEFT, 5, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_TIMEOUT, TRUE, L"Timeout", 60, PH_ALIGN_LEFT, 6, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_ALERTABLE, TRUE, L"Alertable", 50, PH_ALIGN_LEFT, 7, 0);
-    PhAddTreeNewColumn(hwnd, TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 8, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_TYPE, TRUE, L"Type", 80, PH_ALIGN_LEFT, 0, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_THREADID, TRUE, L"ThreadId", 50, PH_ALIGN_LEFT, 1, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_PROCESSID, TRUE, L"ProcessId", 50, PH_ALIGN_LEFT, 2, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_STATUS, TRUE, L"Status", 80, PH_ALIGN_LEFT, 3, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_CONTEXTSWITCH, TRUE, L"Context Switches", 70, PH_ALIGN_LEFT, 4, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_WAITTIME, TRUE, L"WaitTime", 60, PH_ALIGN_LEFT, 5, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_TIMEOUT, TRUE, L"Timeout", 60, PH_ALIGN_LEFT, 6, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_ALERTABLE, TRUE, L"Alertable", 50, PH_ALIGN_LEFT, 7, 0);
+    PhAddTreeNewColumn(WindowHandle, TREE_COLUMN_ITEM_NAME, TRUE, L"Name", 100, PH_ALIGN_LEFT, 8, 0);
 
-    TreeNew_SetRedraw(hwnd, TRUE);
-    TreeNew_SetTriState(hwnd, TRUE);
+    TreeNew_SetRedraw(WindowHandle, TRUE);
+    TreeNew_SetTriState(WindowHandle, TRUE);
 
     settings = PhGetStringSetting(SETTING_NAME_WCT_TREE_LIST_COLUMNS);
-    PhCmLoadSettings(hwnd, &settings->sr);
+    PhCmLoadSettings(WindowHandle, &settings->sr);
     PhDereferenceObject(settings);
 }
 

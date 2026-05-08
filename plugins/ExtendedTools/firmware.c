@@ -66,7 +66,7 @@ VOID FreeListViewFirmwareEntries(
     _In_ PUEFI_WINDOW_CONTEXT Context
     )
 {
-    INT index = INT_ERROR;
+    LONG index = INT_ERROR;
 
     while ((index = PhFindListViewItemByFlags(Context->ListViewHandle, index, LVNI_ALL)) != INT_ERROR)
     {
@@ -103,7 +103,7 @@ NTSTATUS EtEnumerateFirmwareEntries(
 
         for (i = PH_FIRST_FIRMWARE_VALUE(variables); i; i = PH_NEXT_FIRMWARE_VALUE(i))
         {
-            INT index;
+            LONG index;
             PEFI_ENTRY entry;
 
             entry = PhAllocateZero(sizeof(EFI_ENTRY));
@@ -170,7 +170,7 @@ VOID EtFirmwareDeleteEntry(
 
     if (NT_SUCCESS(status))
     {
-        INT index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, Entry);
+        LONG index = PhFindListViewItemByParam(Context->ListViewHandle, INT_ERROR, Entry);
 
         if (index != INT_ERROR)
         {
@@ -183,7 +183,7 @@ VOID EtFirmwareDeleteEntry(
     }
 }
 
-INT NTAPI EtFirmwareNameCompareFunction(
+LONG NTAPI EtFirmwareNameCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -195,7 +195,7 @@ INT NTAPI EtFirmwareNameCompareFunction(
     return PhCompareStringZ(PhGetStringOrEmpty(item1->Name), PhGetStringOrEmpty(item2->Name), FALSE);
 }
 
-INT NTAPI EtFirmwareEntryLengthCompareFunction(
+LONG NTAPI EtFirmwareEntryLengthCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
     _In_opt_ PVOID Context
@@ -208,39 +208,41 @@ INT NTAPI EtFirmwareEntryLengthCompareFunction(
 }
 
 INT_PTR CALLBACK EtFirmwareDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PUEFI_WINDOW_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(UEFI_WINDOW_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_BOOT_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_FIRMWARE_BOOT_LIST);
             context->ParentWindowHandle = (HWND)lParam;
+            context->WindowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle));
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 140, L"Attributes");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 140, L"Guid Name");
@@ -254,17 +256,17 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             ExtendedListView_SetCompareFunction(context->ListViewHandle, 4, EtFirmwareEntryLengthCompareFunction);
             PhLoadListViewColumnsFromSetting(SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_BOOT_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_FIRMWARE_BOOT_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtEnumerateFirmwareEntries(context);
         }
@@ -273,11 +275,14 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
         {
             FreeListViewFirmwareEntries(context);
 
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
+
             PhSaveListViewColumnsToSetting(SETTING_NAME_FIRMWARE_LISTVIEW_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_FIRMWARE_WINDOW_POSITION, SETTING_NAME_FIRMWARE_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -288,7 +293,12 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            HFONT windowFont;
+
+            if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
+                PhReplaceWindowFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
             PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
@@ -302,9 +312,10 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                 }
                 break;
             case IDCANCEL:
-            case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(WindowHandle, IDOK);
                 break;
+            case IDOK:
+                return TRUE; 
             }
         }
         break;
@@ -324,7 +335,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
-                            EtShowFirmwareEditDialog(hwndDlg, entry);
+                            EtShowFirmwareEditDialog(WindowHandle, entry);
                         }
                     }
                 }
@@ -362,7 +373,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -376,7 +387,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
                             switch (item->Id)
                             {
                             case 1:
-                                EtShowFirmwareEditDialog(hwndDlg, listviewItems[0]);
+                                EtShowFirmwareEditDialog(WindowHandle, listviewItems[0]);
                                 break;
                             case 2:
                                 EtFirmwareDeleteEntry(context, listviewItems[0]);
@@ -395,12 +406,25 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             }
         }
         break;
+    case WM_GETDLGCODE:
+        {
+            if (wParam != VK_ESCAPE)
+            {
+                if (wParam == VK_RETURN)
+                {
+                    return DLGC_WANTMESSAGE;
+                }
+
+                return DLGC_WANTALLKEYS;
+            }
+        }
+        break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

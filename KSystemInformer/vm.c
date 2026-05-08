@@ -404,7 +404,7 @@ NTSTATUS KphQuerySection(
     status = ObReferenceObjectByHandle(SectionHandle,
                                        0,
                                        *MmSectionObjectType,
-                                       KernelMode,
+                                       AccessMode,
                                        &sectionObject,
                                        NULL);
     if (!NT_SUCCESS(status))

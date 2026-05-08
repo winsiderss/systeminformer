@@ -15,9 +15,34 @@ namespace CustomBuildTool
     /// Provides utility methods for interacting with the Windows file system, environment variables, processes, and
     /// registry, as well as other Win32-related operations.
     /// </summary>
-    public static unsafe partial class Win32
+    public static unsafe class Win32
     {
-        private static readonly char[] PathSeparator = [';'];
+        private static readonly FrozenSet<string> RequiredPathEntries = new[]
+        {
+            // Windows system directories
+            "\\Windows\\System32",
+            "\\Windows\\",
+            "\\Windows\\System32\\Wbem",
+            "\\Windows\\System32\\WindowsPowerShell",
+            "\\Windows\\System32\\OpenSSH",
+
+            // Build tools
+            "\\Microsoft Visual Studio",
+            "\\MSBuild",
+            "\\Windows Kits",
+            "\\dotnet",
+
+            // Version control
+            "\\git",
+            "\\GitHub CLI",
+
+            // CMake and build tools
+            "\\CMake",
+            "\\vcpkg",
+            "\\ninja",
+            "\\LLVM",
+            "\\mingw",
+        }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Creates all directories and subdirectories in the specified path unless they already exist.
@@ -43,7 +68,7 @@ namespace CustomBuildTool
         /// <param name="FixNewLines"></param>
         /// <param name="RedirectOutput"></param>
         /// <returns>If the creation succeeds, the return value is nonzero.</returns>
-        public static int CreateProcess(string FileName, string Arguments, out string OutputString, bool FixNewLines = true, bool RedirectOutput = true)
+        public static int CreateProcess(string FileName, IEnumerable<string> Arguments, out string OutputString, bool FixNewLines = true, bool RedirectOutput = true)
         {
             int exitcode = int.MaxValue;
             StringBuilder output = new StringBuilder(0x1000);
@@ -54,8 +79,15 @@ namespace CustomBuildTool
                 using (Process process = new Process())
                 {
                     process.StartInfo.FileName = FileName;
-                    process.StartInfo.Arguments = Arguments;
                     process.StartInfo.UseShellExecute = false;
+
+                    if (Arguments != null)
+                    {
+                        foreach (string argument in Arguments)
+                        {
+                            process.StartInfo.ArgumentList.Add(argument);
+                        }
+                    }
 
                     if (RedirectOutput)
                     {
@@ -63,8 +95,8 @@ namespace CustomBuildTool
                         process.StartInfo.RedirectStandardError = true;
                         process.StartInfo.StandardErrorEncoding = Utils.UTF8NoBOM;
                         process.StartInfo.StandardOutputEncoding = Utils.UTF8NoBOM;
-                        process.OutputDataReceived += (_, e) => { output.AppendLine(e.Data); };
-                        process.ErrorDataReceived += (_, e) => { error.AppendLine(e.Data); };
+                        process.OutputDataReceived += (_, e) => { if (e.Data != null) output.AppendLine(e.Data); };
+                        process.ErrorDataReceived += (_, e) => { if (e.Data != null) error.AppendLine(e.Data); };
                     }
 
                     process.Start();
@@ -152,25 +184,29 @@ namespace CustomBuildTool
                     return where;
             }
 
+            // %PATH% directory.
+            {
+                if (Win32.GetEnvironmentVariable("PATH", out string values))
+                {
+                    foreach (var range in values.AsSpan().Split(';'))
+                    {
+                        var path = values.AsSpan(range);
+                        if (path.IsWhiteSpace())
+                            continue;
+
+                        string where = Path.Join(path, FileName.AsSpan());
+
+                        if (File.Exists(where))
+                            return where;
+                    }
+                }
+            }
+
             // Current directory.
             {
                 if (File.Exists(FileName))
                 {
                     return Path.GetFullPath(FileName);
-                }
-            }
-
-            // %PATH% directory.
-            {
-                if (Win32.GetEnvironmentVariable("PATH", out string values))
-                {
-                    foreach (string path in values.Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-                    {
-                        string where = Path.Join([path, FileName]);
-
-                        if (File.Exists(where))
-                            return where;
-                    }
                 }
             }
 
@@ -218,23 +254,26 @@ namespace CustomBuildTool
 
             if (File.Exists(DestinationFile))
             {
-                GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out var SourceAttributes);
-                GetFileBasicInfo(DestinationFile, out var destinationCreationTime, out var destinationWriteTime, out var DestinationAttributes);
+                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out var SourceAttributes);
+                Win32.GetFileBasicInfo(DestinationFile, out var destinationCreationTime, out var destinationWriteTime, out var DestinationAttributes);
 
-                if (!(sourceCreationTime == destinationCreationTime && sourceWriteTime == destinationWriteTime))
+                if (sourceWriteTime != destinationWriteTime || sourceCreationTime != destinationCreationTime)
                 {
                     if ((DestinationAttributes & FileAttributes.ReadOnly) != 0)
-                        File.SetAttributes(DestinationFile, FileAttributes.Normal);
+                    {
+                        try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
+                    }
+
                     File.Copy(SourceFile, DestinationFile, true);
-                    SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                    Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
                     updated = true;
                 }
             }
             else
             {
-                GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
+                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
                 File.Copy(SourceFile, DestinationFile, true);
-                SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
+                Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
                 updated = true;
             }
 
@@ -242,8 +281,6 @@ namespace CustomBuildTool
             {
                 Program.PrintColorMessage($"[SDK] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
             }
-            //else
-            //    Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} same as {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         /// <summary>
@@ -271,7 +308,7 @@ namespace CustomBuildTool
             {
                 string directory = Path.GetDirectoryName(DestinationFile);
 
-                if (string.IsNullOrWhiteSpace(directory))
+                if (directory is null || directory.Length == 0 || string.IsNullOrWhiteSpace(directory))
                     return;
 
                 Win32.CreateDirectory(directory);
@@ -279,18 +316,26 @@ namespace CustomBuildTool
 
             if (File.Exists(DestinationFile))
             {
-                if (
-                    File.GetLastWriteTime(SourceFile) > File.GetLastWriteTime(DestinationFile) ||
-                    Win32.GetFileVersion(SourceFile) > Win32.GetFileVersion(DestinationFile)
-                    )
+                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
+                Win32.GetFileBasicInfo(DestinationFile, out _, out var destinationWriteTime, out var DestinationAttributes);
+
+                if (sourceWriteTime > destinationWriteTime || Win32.GetFileVersion(SourceFile) > Win32.GetFileVersion(DestinationFile))
                 {
+                    if ((DestinationAttributes & FileAttributes.ReadOnly) != 0)
+                    {
+                        try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
+                    }
+
                     File.Copy(SourceFile, DestinationFile, true);
+                    Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
                     updated = true;
                 }
             }
             else
             {
+                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
                 File.Copy(SourceFile, DestinationFile, true);
+                Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
                 updated = true;
             }
 
@@ -298,8 +343,6 @@ namespace CustomBuildTool
             {
                 Program.PrintColorMessage($"[SDK] {SourceFile} copied to {DestinationFile}", ConsoleColor.Green, true, Flags);
             }
-            //else
-            //    Program.PrintColorMessage($"[SDK] Skipped: {SourceFile} older than {DestinationFile}", ConsoleColor.DarkGray, true, Flags);
         }
 
         /// <summary>
@@ -406,7 +449,7 @@ namespace CustomBuildTool
         {
             // required for the ESDK
             string value = string.Empty;
-            byte* valueBuffer;
+            byte* valueBuffer = null;
             HKEY keyHandle;
 
             fixed (char* pKey = KeyName)
@@ -432,23 +475,37 @@ namespace CustomBuildTool
                         &valueLength
                         );
 
-                    if (valueType == REG_VALUE_TYPE.REG_SZ || valueLength > 4)
+                    if ((valueType == REG_VALUE_TYPE.REG_SZ || valueType == REG_VALUE_TYPE.REG_EXPAND_SZ) && valueLength >= sizeof(char))
                     {
-                        valueBuffer = (byte*)NativeMemory.Alloc(valueLength);
-
-                        if (PInvoke.RegQueryValueEx(
-                            keyHandle,
-                            pValue,
-                            null,
-                            null,
-                            valueBuffer,
-                            &valueLength
-                            ) == WIN32_ERROR.ERROR_SUCCESS)
+                        try
                         {
-                            value = new string((char*)valueBuffer, 0, (int)valueLength / 2 - 1);
-                        }
+                            valueBuffer = (byte*)NativeMemory.Alloc(valueLength);
 
-                        NativeMemory.Free(valueBuffer);
+                            if (PInvoke.RegQueryValueEx(
+                                keyHandle,
+                                pValue,
+                                null,
+                                null,
+                                valueBuffer,
+                                &valueLength
+                                ) == WIN32_ERROR.ERROR_SUCCESS)
+                            {
+                                int charLength = (int)(valueLength / sizeof(char));
+
+                                if (charLength > 0 && ((char*)valueBuffer)[charLength - 1] == '\0')
+                                    charLength--;
+
+                                if (charLength > 0)
+                                {
+                                    ReadOnlySpan<char> valueSpan = new ReadOnlySpan<char>((char*)valueBuffer, charLength);
+                                    value = valueSpan.ToString();
+                                }
+                            }
+                        }
+                        finally
+                        {
+                            NativeMemory.Free(valueBuffer);
+                        }
                     }
 
                     _ = PInvoke.RegCloseKey(keyHandle);
@@ -486,14 +543,21 @@ namespace CustomBuildTool
         /// <returns>The <see cref="Version"/> of the file, or 0.0.0.0 if not found.</returns>
         public static Version GetFileVersion(string FileName)
         {
-            FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(FileName);
-
-            if (string.IsNullOrWhiteSpace(versionInfo.FileVersion))
+            try
             {
-                return Version.Parse("0.0.0.0");
-            }
+                FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(FileName);
 
-            return Version.Parse(versionInfo.FileVersion);
+                return new Version(
+                    versionInfo.FileMajorPart,
+                    versionInfo.FileMinorPart,
+                    versionInfo.FileBuildPart,
+                    versionInfo.FilePrivatePart
+                    );
+            }
+            catch (Exception)
+            {
+                return new Version(0, 0, 0, 0);
+            }
         }
 
         /// <summary>
@@ -501,10 +565,7 @@ namespace CustomBuildTool
         /// </summary>
         public static void SetErrorMode()
         {
-            PInvoke.SetPriorityClass(
-                PInvoke.GetCurrentProcess(),
-                PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
-                );
+            PInvoke.SetErrorMode(THREAD_ERROR_MODE.SEM_NOGPFAULTERRORBOX | THREAD_ERROR_MODE.SEM_NOOPENFILEERRORBOX);
         }
 
         /// <summary>
@@ -517,6 +578,28 @@ namespace CustomBuildTool
                 PInvoke.GetCurrentProcess(),
                 PROCESS_CREATION_FLAGS.HIGH_PRIORITY_CLASS
                 );
+        }
+
+        public static bool IsGitInstalled()
+        {
+            return SearchPath("git.exe") != null;
+        }
+
+        public static string GetDotNetPath()
+        {
+            return SearchPath("dotnet.exe");
+        }
+
+        public static string GetDotNetVersion()
+        {
+            string dotnet = GetDotNetPath();
+            if (dotnet == null)
+                return string.Empty;
+
+            if (CreateProcess(dotnet, ["--version"], out string output, true, true) == 0)
+                return output.Trim();
+
+            return string.Empty;
         }
 
         /// <summary>
@@ -533,40 +616,16 @@ namespace CustomBuildTool
                 return;
 
             List<string> allowedPaths = new List<string>();
-            string[] pathEntries = currentPath.Split(PathSeparator, StringSplitOptions.RemoveEmptyEntries);
 
-            string[] requiredEntries =
-            [
-                // Windows system directories
-                "\\Windows\\System32",
-                "\\Windows\\",
-                "\\Windows\\System32\\Wbem",
-                "\\Windows\\System32\\WindowsPowerShell",
-                "\\Windows\\System32\\OpenSSH",
-                
-                // Build tools
-                "\\Microsoft Visual Studio",
-                "\\MSBuild",
-                "\\Windows Kits",
-                "\\dotnet",
-                
-                // Version control
-                "\\git",
-                "\\GitHub CLI",
-                
-                // CMake and build tools
-                "\\CMake",
-                "\\vcpkg",
-                "\\ninja",
-                "\\LLVM",
-                "\\mingw",
-            ];
-
-            foreach (string entry in pathEntries)
+            foreach (var range in currentPath.AsSpan().Split(';'))
             {
+                var entry = currentPath.AsSpan(range);
+                if (entry.IsWhiteSpace())
+                    continue;
+
                 bool isEssential = false;
 
-                foreach (string pattern in requiredEntries)
+                foreach (string pattern in RequiredPathEntries)
                 {
                     if (entry.Contains(pattern, StringComparison.OrdinalIgnoreCase))
                     {
@@ -577,7 +636,7 @@ namespace CustomBuildTool
 
                 if (isEssential)
                 {
-                    allowedPaths.Add(entry);
+                    allowedPaths.Add(entry.ToString());
                 }
             }
 
@@ -801,18 +860,13 @@ namespace CustomBuildTool
                 // Manually construct the Untrusted Integrity SID (S-1-16-0)
                 // SID structure: Revision(1) + SubAuthorityCount(1) + Authority(6 bytes) + SubAuthority(4 bytes)
                 byte* sidBuffer = stackalloc byte[12];
-                NativeMemory.Clear(sidBuffer, 12);
-                sidBuffer[0] = 1;  // SID_REVISION
-                sidBuffer[1] = 1;  // SubAuthorityCount
-                sidBuffer[2] = 0;  // IdentifierAuthority[0]
-                sidBuffer[3] = 0;  // IdentifierAuthority[1]
-                sidBuffer[4] = 0;  // IdentifierAuthority[2]
-                sidBuffer[5] = 0;  // IdentifierAuthority[3]
-                sidBuffer[6] = 0;  // IdentifierAuthority[4]
-                sidBuffer[7] = 16; // IdentifierAuthority[5] - SECURITY_MANDATORY_LABEL_AUTHORITY (S-1-16)          
-                *(uint*)(sidBuffer + 8) = mandatoryRid; // SubAuthority[0] = mandatoryRid (little-endian)
+                Span<byte> sidSpan = new Span<byte>(sidBuffer, 12);
+                sidSpan.Clear();
+                sidSpan[0] = 1;  // SID_REVISION
+                sidSpan[1] = 1;  // SubAuthorityCount
+                sidSpan[7] = 16; // IdentifierAuthority[5] - SECURITY_MANDATORY_LABEL_AUTHORITY (S-1-16)
+                BinaryPrimitives.WriteUInt32LittleEndian(sidSpan[8..], mandatoryRid); // SubAuthority[0] = mandatoryRid (little-endian)
                 var integritySid = new PSID(sidBuffer);
-
                 var tokenMandatoryLabel = new TOKEN_MANDATORY_LABEL
                 {
                     Label = new SID_AND_ATTRIBUTES

@@ -232,7 +232,7 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             context->MoveDownHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
             context->InactiveListArray = PhCreateList(1);
             context->ActiveListArray = PhCreateList(1);
-            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFont(PhTreeWindowFont)
+            context->ControlFont = PhCreateMessageFont(dpiValue); // PhDuplicateFontUpdateDpi(PhTreeWindowFont, PhGetWindowDpi(hwndDlg))
 
             PhCreateSearchControl(
                 hwndDlg,
@@ -250,8 +250,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
                 context
                 );
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
 
             Button_Enable(context->HideWindowHandle, FALSE);
             Button_Enable(context->ShowWindowHandle, FALSE);
@@ -373,8 +373,8 @@ INT_PTR CALLBACK PhpColumnsDlgProc(
             if (context->ControlFont) DeleteFont(context->ControlFont);
             context->ControlFont = PhCreateMessageFont(LOWORD(wParam));
 
-            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
-            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, LOWORD(wParam)));
+            ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhScaleToDisplay(16, LOWORD(wParam)));
+            ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, LOWORD(wParam)));
         }
         break;
     case WM_COMMAND:

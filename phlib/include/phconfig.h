@@ -20,6 +20,7 @@ extern "C" {
 EXTERN_C PVOID PhInstanceHandle;
 EXTERN_C PCWSTR PhApplicationName;
 EXTERN_C HANDLE PhHeapHandle;
+EXTERN_C BOOLEAN PhEnableHighResolution;
 EXTERN_C RTL_OSVERSIONINFOEX PhOsVersion;
 EXTERN_C ULONG WindowsVersion;
 

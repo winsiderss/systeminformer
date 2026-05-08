@@ -31,11 +31,12 @@ typedef struct _PH_EXTLV_CONTEXT
     // Sorting
 
     BOOLEAN TriState;
+    BOOLEAN SortFast;
+
     LONG SortColumn;
     LONG DefaultSortColumn;
     PH_SORT_ORDER SortOrder;
     PH_SORT_ORDER DefaultSortOrder;
-    BOOLEAN SortFast;
 
     _Function_class_(PH_COMPARE_FUNCTION)
     PPH_COMPARE_FUNCTION TriStateCompareFunction;
@@ -82,7 +83,7 @@ LONG PhpCompareListViewItems(
     _In_ LONG Y,
     _In_ PVOID XParam,
     _In_ PVOID YParam,
-    _In_ ULONG Column,
+    _In_ LONG Column,
     _In_ BOOLEAN EnableDefault
     );
 
@@ -90,7 +91,7 @@ LONG PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
-    _In_ ULONG Column
+    _In_ LONG Column
     );
 
 /**
@@ -286,6 +287,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
                                 if (headerCount != INT_ERROR)
                                 {
+                                    SendMessage(WindowHandle, WM_SETREDRAW, FALSE, 0);
+
                                     for (LONG i = 0; i < headerCount; i++)
                                     {
                                         HDITEM item;
@@ -297,6 +300,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                                             CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, item.iOrder, LVSCW_AUTOSIZE);
                                         }
                                     }
+
+                                    SendMessage(WindowHandle, WM_SETREDRAW, TRUE, 0);
+                                    InvalidateRect(WindowHandle, NULL, FALSE);
                                 }
                             }
                             break;
@@ -741,7 +747,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     {
                         lvColumn.cx = PhMultiplyDivideSigned(lvColumn.cx, listviewDpi, context->WindowDpi);
 
-                        CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMN, i, (WPARAM)&lvColumn);
+                        CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMN, i, (LPARAM)&lvColumn);
                     }
                     else
                     {
@@ -904,7 +910,7 @@ LONG PhpExtendedListViewCompareFastFunc(
     PPH_EXTLV_CONTEXT context = (PPH_EXTLV_CONTEXT)lParamSort;
     LONG result;
     ULONG i;
-    PULONG fallbackColumns;
+    PLONG fallbackColumns;
 
     if (!lParam1 || !lParam2)
         return 0;
@@ -938,7 +944,7 @@ LONG PhpExtendedListViewCompareFastFunc(
 
     for (i = context->NumberOfFallbackColumns; i != 0; i--)
     {
-        ULONG fallbackColumn = *fallbackColumns++;
+        LONG fallbackColumn = *fallbackColumns++;
 
         if (fallbackColumn == context->SortColumn)
             continue;
@@ -952,13 +958,13 @@ LONG PhpExtendedListViewCompareFastFunc(
     return 0;
 }
 
-FORCEINLINE LONG PhpCompareListViewItems(
+LONG PhpCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
     _In_ PVOID XParam,
     _In_ PVOID YParam,
-    _In_ ULONG Column,
+    _In_ LONG Column,
     _In_ BOOLEAN EnableDefault
     )
 {
@@ -995,7 +1001,7 @@ LONG PhpDefaultCompareListViewItems(
     _In_ PPH_EXTLV_CONTEXT Context,
     _In_ LONG X,
     _In_ LONG Y,
-    _In_ ULONG Column
+    _In_ LONG Column
     )
 {
     WCHAR xText[MAX_PATH + 1];
@@ -1008,7 +1014,7 @@ LONG PhpDefaultCompareListViewItems(
     item.iItem = X;
     item.iSubItem = Column;
     item.pszText = xText;
-    item.cchTextMax = MAX_PATH;
+    item.cchTextMax = MAX_PATH + 1;
 
     xText[0] = UNICODE_NULL;
 
@@ -1021,7 +1027,7 @@ LONG PhpDefaultCompareListViewItems(
 
     item.iItem = Y;
     item.pszText = yText;
-    item.cchTextMax = MAX_PATH;
+    item.cchTextMax = MAX_PATH + 1;
 
     yText[0] = UNICODE_NULL;
 

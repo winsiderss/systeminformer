@@ -12,6 +12,7 @@
 
 #include <phapp.h>
 #include <mainwnd.h>
+#include <procprv.h>
 
 #include <cpysave.h>
 #include <emenu.h>
@@ -111,7 +112,7 @@ BOOLEAN PhMainWndInitialization(
     windowRectangle.Position = PhGetIntegerPairSetting(SETTING_MAIN_WINDOW_POSITION);
     PhRectangleToRect(&windowRect, &windowRectangle);
     windowDpi = PhGetMonitorDpi(NULL, &windowRect);
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MAIN_WINDOW_SIZE, TRUE, windowDpi)->Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MAIN_WINDOW_SIZE, TRUE, windowDpi).Pair;
     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
     // Initialize the window.
@@ -134,7 +135,7 @@ BOOLEAN PhMainWndInitialization(
         return FALSE;
 
     // Initialize window metrics.
-    PhMwpInitializeMetrics(PhMainWndHandle, 0);
+    PhMwpInitializeMetrics(PhMainWndHandle, PhGetWindowDpi(PhMainWndHandle));
 
     // Initialize window controls.
     PhMwpInitializeControls(PhMainWndHandle);
@@ -306,8 +307,8 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     if (PhEnableWindowText)
     {
-        wcex.hIcon = PhGetApplicationIcon(FALSE);
-        wcex.hIconSm = PhGetApplicationIcon(TRUE);
+        wcex.hIcon = PhGetApplicationIcon(FALSE, USER_DEFAULT_SCREEN_DPI);
+        wcex.hIconSm = PhGetApplicationIcon(TRUE, USER_DEFAULT_SCREEN_DPI);
     }
 
     return RegisterClassEx(&wcex);
@@ -388,7 +389,7 @@ VOID PhMwpInitializeProviders(
     PhInitializeProviderThread(&PhSecondaryProviderThread, PhCsUpdateInterval);
     PhInitializeProviderThread(&PhTertiaryProviderThread, PhCsUpdateInterval);
 
-    if (PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION_PROVIDER_TIMER))
+    if (PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION))
     {
         PhSetHighResolutionProvider(&PhPrimaryProviderThread, TRUE);
         PhSetHighResolutionProvider(&PhSecondaryProviderThread, TRUE);
@@ -503,7 +504,10 @@ VOID PhMwpInitializeMetrics(
     _In_ LONG WindowDpi
     )
 {
-    LayoutWindowDpi = PhGetWindowDpi(WindowHandle);
+    if (WindowDpi == 0)
+        WindowDpi = PhGetWindowDpi(WindowHandle);
+
+    LayoutWindowDpi = WindowDpi;
     LayoutBorderSize = PhGetSystemMetrics(SM_CXBORDER, LayoutWindowDpi);
 
     PhProcessImageListInitialization(WindowHandle, LayoutWindowDpi);
@@ -762,14 +766,14 @@ VOID PhMwpOnSettingChange(
 {
     {
         HFONT oldFont = PhApplicationFont;
-        PhApplicationFont = PhInitializeFont(LayoutWindowDpi);
+        PhApplicationFont = PhCreateApplicationFont(LayoutWindowDpi);
         if (oldFont) DeleteFont(oldFont);
     }
 
     if (PhGetIntegerSetting(SETTING_ENABLE_MONOSPACE_FONT))
     {
         HFONT oldFont = PhMonospaceFont;
-        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
+        PhMonospaceFont = PhCreateMonospaceFont(LayoutWindowDpi);
         if (oldFont) DeleteFont(oldFont);
     }
 
@@ -1609,6 +1613,42 @@ VOID PhMwpOnCommand(
                 else
                 {
                     PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /res");
+                }
+            }
+        }
+        break;
+    case ID_TOOLS_STARTPERFORMANCEMONITOR:
+        {
+            PPH_STRING perfmonFileName;
+
+            perfmonFileName = PH_AUTO(PhGetSystemDirectoryWin32Z(L"\\perfmon.exe"));
+
+            if (PhGetIntegerSetting(SETTING_ENABLE_SHELL_EXECUTE_SKIP_IFEO_DEBUGGER))
+            {
+                PhShellExecuteEx(
+                    WindowHandle,
+                    PhGetString(perfmonFileName),
+                    L" /sys",
+                    NULL,
+                    SW_SHOW,
+                    0,
+                    0,
+                    NULL
+                    );
+            }
+            else
+            {
+                if (!PhGetOwnTokenAttributes().Elevated)
+                {
+                    if (PhUiConnectToPhSvc(WindowHandle, FALSE))
+                    {
+                        PhSvcCallCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /sys");
+                        PhUiDisconnectFromPhSvc();
+                    }
+                }
+                else
+                {
+                    PhCreateProcessIgnoreIfeoDebugger(PhGetString(perfmonFileName), L" /sys");
                 }
             }
         }
@@ -2976,12 +3016,12 @@ VOID PhMwpOnDpiChanged(
     _In_ LONG WindowDpi
     )
 {
-    PhGuiSupportUpdateSystemMetrics(WindowHandle, WindowDpi);
-
     PhMwpInitializeMetrics(WindowHandle, WindowDpi);
 
     if (PhEnableWindowText)
+    {
         PhSetApplicationWindowIconEx(WindowHandle, LayoutWindowDpi);
+    }
 
     PhMwpOnSettingChange(WindowHandle, 0, NULL);
 
@@ -3649,11 +3689,12 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ZOMBIEPROCESSES, L"&Zombie processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
-        (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
+        (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTTASKMANAGER, L"Start &Task Manager", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTRESOURCEMONITOR, L"Start &Resource Monitor", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_STARTPERFORMANCEMONITOR, L"Start &Performance Monitor", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_SHUTDOWNWSLPROCESSES, L"T&erminate WSL processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -4270,7 +4311,7 @@ VOID PhMwpInitializeSubMenu(
             {
                 HBITMAP shieldBitmap;
 
-                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhSmallIconSize.X, PhSmallIconSize.Y))
+                if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhGetSystemMetrics(SM_CXSMICON, LayoutWindowDpi), PhGetSystemMetrics(SM_CYSMICON, LayoutWindowDpi)))
                 {
                     if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_HACKER_SHOWDETAILSFORALLPROCESSES))
                         menuItem->Bitmap = shieldBitmap;
@@ -4373,11 +4414,13 @@ VOID PhMwpInitializeSubMenu(
         {
             HBITMAP shieldBitmap;
 
-            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhSmallIconSize.X, PhSmallIconSize.Y))
+            if (shieldBitmap = PhGetShieldBitmap(LayoutWindowDpi, PhGetSystemMetrics(SM_CXSMICON, LayoutWindowDpi), PhGetSystemMetrics(SM_CYSMICON, LayoutWindowDpi)))
             {
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTTASKMANAGER))
                     menuItem->Bitmap = shieldBitmap;
                 if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTRESOURCEMONITOR))
+                    menuItem->Bitmap = shieldBitmap;
+                if (menuItem = PhFindEMenuItem(Menu, 0, NULL, ID_TOOLS_STARTPERFORMANCEMONITOR))
                     menuItem->Bitmap = shieldBitmap;
             }
         }
@@ -4959,7 +5002,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, PhSmallIconSize.X, PhSmallIconSize.Y);
+            iconBitmap = PhIconToBitmap(icon, PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi), PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi));
             DestroyIcon(icon);
         }
 
@@ -5237,24 +5280,9 @@ VOID PhMwpInvokeUpdateWindowFont(
 {
     HFONT oldFont = PhTreeWindowFont;
     HFONT newFont;
-    PPH_STRING fontHexString;
-    LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(SETTING_FONT);
-
-    if (
-        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-        )
-    {
-        if (!(newFont = CreateFontIndirect(&font)))
-            return;
-    }
-    else
-    {
-        if (!(newFont = PhCreateIconTitleFont(LayoutWindowDpi)))
-            return;
-    }
+    if (!(newFont = PhCreateTreeWindowFont(LayoutWindowDpi)))
+        return;
 
     PhTreeWindowFont = newFont;
     SetWindowFont(TabControlHandle, PhTreeWindowFont, TRUE);
@@ -5276,25 +5304,9 @@ VOID PhMwpInvokeUpdateWindowFontMonospace(
 {
     HFONT oldFont = PhMonospaceFont;
     HFONT newFont;
-    PPH_STRING fontHexString;
-    LOGFONT font;
 
-    fontHexString = PhaGetStringSetting(SETTING_FONT_MONOSPACE);
-
-    if (
-        fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
-        PhHexStringToBuffer(&fontHexString->sr, (PUCHAR)&font)
-        )
-    {
-        if (!(newFont = CreateFontIndirect(&font)))
-            return;
-    }
-    else
-    {
-        PhMonospaceFont = PhInitializeMonospaceFont(LayoutWindowDpi);
-        if (oldFont) DeleteFont(oldFont);
+    if (!(newFont = PhCreateMonospaceFont(LayoutWindowDpi)))
         return;
-    }
 
     PhMonospaceFont = newFont;
     if (oldFont) DeleteFont(oldFont);

@@ -81,13 +81,13 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
-            },
+            }
         },
         {
             "label": "Build devenv [CMD] (Debug64)",
             "type": "shell",
             "command": "${workspaceFolder}/build/build_devenv.cmd",
-            "group": { "kind": "build", }
+            "group": { "kind": "build" }
         },
         
         {
@@ -105,7 +105,7 @@
                 }
             },
             "group": {
-                "kind": "build",
+                "kind": "build"
             }
         }
     ]

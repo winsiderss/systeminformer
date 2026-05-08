@@ -17,8 +17,8 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
 };
 
 HRESULT CALLBACK ShowAvailableCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -26,7 +26,7 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
 {
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         PhSetEvent(&InitializedEvent);
@@ -61,7 +61,7 @@ VOID ShowAvailableDialog(
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_ENABLE_HYPERLINKS;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.hMainIcon = PhGetApplicationIcon(FALSE, Context->WindowDpi);
     config.cxWidth = 200;
     config.pButtons = TaskDialogButtonArray;
     config.cButtons = RTL_NUMBER_OF(TaskDialogButtonArray);
@@ -74,19 +74,19 @@ VOID ShowAvailableDialog(
         switch (Context->Channel)
         {
         case PhReleaseChannel:
-            config.pszMainInstruction = L"Download the release channel?";
+            config.pszMainInstruction = L"Would you like to download the Release build?";
             break;
         //case PhPreviewChannel:
-        //    config.pszMainInstruction = L"Download the preview channel?";
+        //    config.pszMainInstruction = L"Would you like to download the Preview build?";
         //    break;
         case PhCanaryChannel:
-            config.pszMainInstruction = L"Download the canary channel?";
+            config.pszMainInstruction = L"Would you like to download the Canary build?";
             break;
         //case PhDeveloperChannel:
-        //    config.pszMainInstruction = L"Download the developer channel?";
+        //    config.pszMainInstruction = L"Would you like to download the Developer build?";
         //    break;
         default:
-            config.pszMainInstruction = L"Download the channel?";
+            config.pszMainInstruction = L"Would you like to download the update?";
             break;
         }
     }
@@ -95,7 +95,8 @@ VOID ShowAvailableDialog(
         config.pszMainInstruction = L"A newer build of System Informer is available.";
     }
 
-    config.pszContent = PhaFormatString(L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View changelog</A>",
+    config.pszContent = PhaFormatString(
+        L"Version: %s\r\nDownload size: %s\r\n\r\n<A HREF=\"changelog.txt\">View the changelog</A>",
         PhGetStringOrEmpty(Context->Version),
         PhGetStringOrEmpty(Context->SetupFileLength)
         )->Buffer;

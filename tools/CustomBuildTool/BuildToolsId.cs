@@ -98,7 +98,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    ArrayPool<byte>.Shared.Return(buffer);
+                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                 }
 
                 sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);

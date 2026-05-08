@@ -36,6 +36,7 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
  * based upon the system "tick" frequency and the load factor from other processes.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -58,6 +59,7 @@ NtDelayExecution(
  * \param ReturnLength If the function succeeds, the return length is the number of bytes stored in the \c VariableValue buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -97,6 +99,7 @@ NtQuerySystemEnvironmentValue(
  * \param Attributes Bitmask identifying UEFI variable attributes associated with the variable.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -117,6 +120,7 @@ NtQuerySystemEnvironmentValueEx(
  * If this parameter is zero, the firmware environment variable is deleted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -139,6 +143,7 @@ NtSetSystemEnvironmentValue(
  * \param Attributes Bitmask to set UEFI variable attributes associated with the variable.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -185,6 +190,7 @@ typedef struct _VARIABLE_NAME_AND_VALUE
  * \param BufferLength Pointer to a ULONG variable that specifies the size of the Buffer on input.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -264,6 +270,7 @@ typedef struct _EFI_DRIVER_ENTRY_LIST
  * \param Id A pointer to a variable that receives the identifier of the new boot entry.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -278,6 +285,7 @@ NtAddBootEntry(
  * \param Id The identifier of the boot entry to be deleted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -291,6 +299,7 @@ NtDeleteBootEntry(
  * \param BootEntry A pointer to a BOOT_ENTRY structure that specifies the new boot entry information.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -305,6 +314,7 @@ NtModifyBootEntry(
  * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -320,6 +330,7 @@ NtEnumerateBootEntries(
  * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -335,6 +346,7 @@ NtQueryBootEntryOrder(
  * \param Count The number of entries in the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -350,6 +362,7 @@ NtSetBootEntryOrder(
  * \param BootOptionsLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -365,6 +378,7 @@ NtQueryBootOptions(
  * \param FieldsToChange A bitmask that specifies which fields in the BOOT_OPTIONS structure are to be changed.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -382,6 +396,7 @@ NtSetBootOptions(
  * \param OutputFilePathLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -399,6 +414,7 @@ NtTranslateFilePath(
  * \param Id A pointer to a variable that receives the identifier of the new driver entry.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -413,6 +429,7 @@ NtAddDriverEntry(
  * \param Id The identifier of the driver entry to be deleted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -426,6 +443,7 @@ NtDeleteDriverEntry(
  * \param DriverEntry A pointer to an EFI_DRIVER_ENTRY structure that specifies the new driver entry information.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -440,6 +458,7 @@ NtModifyDriverEntry(
  * \param BufferLength A pointer to a variable that specifies the size of the buffer. On return, it contains the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -455,6 +474,7 @@ NtEnumerateDriverEntries(
  * \param Count A pointer to a variable that specifies the number of entries in the buffer. On return, it contains the number of entries returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -470,6 +490,7 @@ NtQueryDriverEntryOrder(
  * \param Count The number of entries in the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -497,6 +518,7 @@ typedef enum _FILTER_BOOT_OPTION_OPERATION
  * \param DataSize The size, in bytes, of the data buffer pointed to by the Data parameter.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -554,13 +576,14 @@ typedef struct _EVENT_BASIC_INFORMATION
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntifs/nf-ntifs-zwcreateevent
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtCreateEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes,
     _In_ EVENT_TYPE EventType,
     _In_ BOOLEAN InitialState
     );
@@ -573,13 +596,14 @@ NtCreateEvent(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtOpenEvent(
     _Out_ PHANDLE EventHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
 /**
@@ -589,6 +613,7 @@ NtOpenEvent(
  * \param PreviousState A pointer to a variable that receives the previous state of the event object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -605,6 +630,7 @@ NtSetEvent(
  * \param Lock A pointer to an RTL_SRWLOCK structure that specifies the lock to acquire.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -620,6 +646,7 @@ NtSetEventEx(
  * \param EventHandle A handle to the event object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -633,6 +660,7 @@ NtSetEventBoostPriority(
  * \param EventHandle A handle to the event object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -648,6 +676,7 @@ NtClearEvent(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-resetevent
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -664,6 +693,7 @@ NtResetEvent(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-pulseevent
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -682,6 +712,7 @@ NtPulseEvent(
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -708,6 +739,7 @@ NtQueryEvent(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -725,6 +757,7 @@ NtCreateEventPair(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -740,6 +773,7 @@ NtOpenEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -753,6 +787,7 @@ NtSetLowEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -766,6 +801,7 @@ NtSetHighEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -779,6 +815,7 @@ NtWaitLowEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -792,6 +829,7 @@ NtWaitHighEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -805,6 +843,7 @@ NtSetLowWaitHighEventPair(
  * \param EventPairHandle A handle to the event pair object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -858,6 +897,7 @@ typedef struct _MUTANT_OWNER_INFORMATION
  * \param InitialOwner If TRUE, the calling thread is the initial owner of the mutant object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -876,6 +916,7 @@ NtCreateMutant(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -892,6 +933,7 @@ NtOpenMutant(
  * \param PreviousCount A pointer to a variable that receives the previous count of the mutant object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -910,6 +952,7 @@ NtReleaseMutant(
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -962,6 +1005,7 @@ typedef struct _SEMAPHORE_BASIC_INFORMATION
  * \param MaximumCount The maximum count of the semaphore object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -981,6 +1025,7 @@ NtCreateSemaphore(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -998,6 +1043,7 @@ NtOpenSemaphore(
  * \param PreviousCount A pointer to a variable that receives the previous count of the semaphore object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1017,6 +1063,7 @@ NtReleaseSemaphore(
  * \param ReturnLength A pointer to a variable that receives the size of the data returned in the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1092,6 +1139,7 @@ typedef struct _TIMER_SET_COALESCABLE_TIMER_INFO
  * \param TimerType The type of the timer object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1110,6 +1158,7 @@ NtCreateTimer(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1131,6 +1180,7 @@ NtOpenTimer(
  * \param PreviousState A pointer to a variable that receives the previous state of the timer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1153,6 +1203,7 @@ NtSetTimer(
  * \param TimerSetInformationLength The size of the buffer, in bytes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1170,6 +1221,7 @@ NtSetTimerEx(
  * \param CurrentState A pointer to a variable that receives the current state of the timer object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1188,6 +1240,7 @@ NtCancelTimer(
  * \param ReturnLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1266,6 +1319,7 @@ typedef enum _IR_TIMER_PROVIDER_INDEX
  * \return NTSTATUS Successful or errant status.
  * \remarks The TimerId must be non-NULL and point to a valid timer identifier.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1283,6 +1337,7 @@ NtCreateIRTimer(
  * the time at which the timer is to be set to the signaled state.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1347,6 +1402,7 @@ typedef union _TIMER2_ATTRIBUTES
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-createwaitabletimerexw
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1406,6 +1462,7 @@ typedef PVOID PT2_CANCEL_PARAMETERS;
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-setwaitabletimer
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1424,6 +1481,7 @@ NtSetTimer2(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-cancelwaitabletimer
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1454,6 +1512,7 @@ NtCancelTimer2(
  * \param Affinity The processor affinity mask indicating which processors to profile.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1484,6 +1543,7 @@ NtCreateProfile(
  * \param GroupAffinity A pointer to an array of GROUP_AFFINITY structures specifying processor groups to profile.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1506,6 +1566,7 @@ NtCreateProfileEx(
  * \param ProfileHandle A handle to the profile object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1519,6 +1580,7 @@ NtStartProfile(
  * \param ProfileHandle A handle to the profile object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1533,6 +1595,7 @@ NtStopProfile(
  * \param Interval A pointer to a variable that receives the interval, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1548,6 +1611,7 @@ NtQueryIntervalProfile(
  * \param Source The profile source (KPROFILE_SOURCE) to set the interval for.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1574,6 +1638,7 @@ NtSetIntervalProfile(
  * \param Flags Reserved. Must be zero.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1592,6 +1657,7 @@ NtCreateKeyedEvent(
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1610,6 +1676,7 @@ NtOpenKeyedEvent(
  * \param Timeout Optional pointer to a timeout value (in 100-nanosecond intervals). If NULL, waits indefinitely.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1629,6 +1696,7 @@ NtReleaseKeyedEvent(
  * \param Timeout Optional pointer to a timeout value (in 100-nanosecond intervals). If NULL, waits indefinitely.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1651,6 +1719,7 @@ NtWaitForKeyedEvent(
  * \return NTSTATUS Successful or errant status.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-umsthreadyield
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1694,7 +1763,7 @@ typedef enum _WNF_STATE_NAME_LIFETIME
 typedef enum _WNF_STATE_NAME_INFORMATION
 {
     WnfInfoStateNameExist,
-    WnfInfoSubscribersPresent,
+    WnfInfoSubscribersPresent,     // ULONG
     WnfInfoIsQuiescent
 } WNF_STATE_NAME_INFORMATION;
 
@@ -1744,6 +1813,7 @@ typedef struct _WNF_DELIVERY_DESCRIPTOR
  * \param SecurityDescriptor Pointer to a security descriptor for the state name.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1763,6 +1833,7 @@ NtCreateWnfStateName(
  * \param StateName Pointer to the WNF_STATE_NAME to delete.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1782,6 +1853,7 @@ NtDeleteWnfStateName(
  * \param CheckStamp If TRUE, the change stamp is checked before updating.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1802,6 +1874,7 @@ NtUpdateWnfStateData(
  * \param ExplicitScope Optional pointer to a security identifier (SID) for explicit scope.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1821,6 +1894,7 @@ NtDeleteWnfStateData(
  * \param BufferLength On input, the size of the buffer in bytes; on output, the number of bytes written.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1843,6 +1917,7 @@ NtQueryWnfStateData(
  * \param BufferLength The size, in bytes, of the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1863,6 +1938,7 @@ NtQueryWnfStateNameInformation(
  * \param SubscriptionId Optional pointer to a variable that receives the subscription ID.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1879,6 +1955,7 @@ NtSubscribeWnfStateChange(
  * \param StateName Pointer to the WNF_STATE_NAME to unsubscribe from.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1901,6 +1978,7 @@ NtUnsubscribeWnfStateChange(
  * \param DescriptorSize The size, in bytes, of the delivery descriptor buffer.
  * \return NTSTATUS code indicating success or failure.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1919,6 +1997,7 @@ NtGetCompleteWnfStateSubscription(
  * \param NotificationEvent Handle to the event object to be signaled on state change.
  * \return NTSTATUS code indicating success or failure.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1957,22 +2036,22 @@ NtSetWnfProcessNotificationEvent(
 
 typedef enum _WORKERFACTORYINFOCLASS
 {
-    WorkerFactoryTimeout, // LARGE_INTEGER
-    WorkerFactoryRetryTimeout, // LARGE_INTEGER
-    WorkerFactoryIdleTimeout, // s: LARGE_INTEGER
-    WorkerFactoryBindingCount, // s: ULONG
-    WorkerFactoryThreadMinimum, // s: ULONG
-    WorkerFactoryThreadMaximum, // s: ULONG
-    WorkerFactoryPaused, // ULONG or BOOLEAN
-    WorkerFactoryBasicInformation, // q: WORKER_FACTORY_BASIC_INFORMATION
-    WorkerFactoryAdjustThreadGoal,
-    WorkerFactoryCallbackType,
-    WorkerFactoryStackInformation, // 10
-    WorkerFactoryThreadBasePriority, // s: ULONG
-    WorkerFactoryTimeoutWaiters, // s: ULONG, since THRESHOLD
-    WorkerFactoryFlags, // s: ULONG
-    WorkerFactoryThreadSoftMaximum, // s: ULONG
-    WorkerFactoryThreadCpuSets, // since REDSTONE5
+    WorkerFactoryTimeout,               // qs: LARGE_INTEGER
+    WorkerFactoryRetryTimeout,          // qs: LARGE_INTEGER
+    WorkerFactoryIdleTimeout,           // qs: LARGE_INTEGER
+    WorkerFactoryBindingCount,          // qs: ULONG
+    WorkerFactoryThreadMinimum,         // qs: ULONG
+    WorkerFactoryThreadMaximum,         // qs: ULONG
+    WorkerFactoryPaused,                // qs: ULONG or BOOLEAN
+    WorkerFactoryBasicInformation,      // q: WORKER_FACTORY_BASIC_INFORMATION
+    WorkerFactoryAdjustThreadGoal,      // s: ULONG
+    WorkerFactoryCallbackType,          // qs: ULONG
+    WorkerFactoryStackInformation,      // qs: ULONG/ULONG_PTR // 10
+    WorkerFactoryThreadBasePriority,    // qs: ULONG
+    WorkerFactoryTimeoutWaiters,        // qs: ULONG // since THRESHOLD
+    WorkerFactoryFlags,                 // qs: ULONG
+    WorkerFactoryThreadSoftMaximum,     // qs: ULONG
+    WorkerFactoryThreadCpuSets,         // qs: ULONG[] // since REDSTONE5
     MaxWorkerFactoryInfoClass
 } WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
 
@@ -2006,6 +2085,7 @@ typedef struct _WORKER_FACTORY_BASIC_INFORMATION
 
 // end_private
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2022,6 +2102,7 @@ NtCreateWorkerFactory(
     _In_opt_ SIZE_T StackCommit
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2033,6 +2114,7 @@ NtQueryInformationWorkerFactory(
     _Out_opt_ PULONG ReturnLength
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2043,6 +2125,7 @@ NtSetInformationWorkerFactory(
     _In_ ULONG WorkerFactoryInformationLength
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2051,6 +2134,7 @@ NtShutdownWorkerFactory(
     _Inout_ volatile LONG *PendingWorkerCount
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2058,6 +2142,7 @@ NtReleaseWorkerFactoryWorker(
     _In_ HANDLE WorkerFactoryHandle
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2075,6 +2160,7 @@ typedef struct _WORKER_FACTORY_DEFERRED_WORK
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2088,6 +2174,7 @@ NtWaitForWorkViaWorkerFactory(
 
 #else
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2109,6 +2196,7 @@ NtWaitForWorkViaWorkerFactory(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winternl/nf-winternl-ntquerysystemtime
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2125,6 +2213,7 @@ NtQuerySystemTime(
  * \remarks The calling process must have the SE_SYSTEMTIME_NAME privilege.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/sysinfoapi/nf-sysinfoapi-setsystemtime
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2141,6 +2230,7 @@ NtSetSystemTime(
  * \param CurrentTime The current timer resolution, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2158,6 +2248,7 @@ NtQueryTimerResolution(
  * \param ActualTime The actual timer resolution, in 100-nanosecond units.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2181,6 +2272,7 @@ NtSetTimerResolution(
  * \remarks On systems that run Windows XP or later, the function will always succeed and will thus never return zero. Use RtlQueryPerformanceCounter instead since no system calls are required.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/profileapi/nf-profileapi-queryperformancecounter
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2198,6 +2290,7 @@ NtQueryPerformanceCounter(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-queryauxiliarycounterfrequency
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2217,6 +2310,7 @@ NtQueryAuxiliaryCounterFrequency(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/realtimeapiset/nf-realtimeapiset-convertperformancecountertoauxiliarycounter
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2232,6 +2326,7 @@ NtConvertBetweenAuxiliaryCounterAndPerformanceCounter(
 // LUIDs
 //
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2243,6 +2338,7 @@ NtAllocateLocallyUniqueId(
 // UUIDs
 //
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -2250,6 +2346,7 @@ NtSetUuidSeed(
     _In_ PCHAR Seed
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -7649,7 +7746,7 @@ typedef struct _SYSTEM_RUNTIME_REPORT_INPUT
     UCHAR Nonce[32];
 } SYSTEM_RUNTIME_REPORT_INPUT, *PSYSTEM_RUNTIME_REPORT_INPUT;
 
-#if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+#if defined(SYSTEM_RUNTIME_REPORT)
 //
 // ===============================================
 // Runtime Report Package Format:
@@ -8049,7 +8146,7 @@ typedef struct _CODE_INTEGRITY_REPORT_GENERATION_HEADER
 
     //
     // Secure Kernel / Hypervisor secure time reference when this policy was
-    // commited.
+    // committed.
     //
 
     ULONG64 CommitTime;
@@ -8088,7 +8185,7 @@ typedef struct _CODE_INTEGRITY_REPORT_RECORD_HEADER
     ULONG SipaEventCode;
 
 } CODE_INTEGRITY_REPORT_RECORD_HEADER;
-#endif // #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+#endif // #if defined(SYSTEM_RUNTIME_REPORT)
 
 /**
  * The SYSTEM_POOLTAG2 structure describes allocation statistics for a single
@@ -8131,6 +8228,7 @@ typedef struct _SYSTEM_POOLTAG_INFORMATION2
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8153,6 +8251,7 @@ NtQuerySystemInformation(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/sysinfo/zwquerysysteminformation
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8173,6 +8272,7 @@ NtQuerySystemInformationEx(
  * \param SystemInformationLength The size of the buffer pointed to by SystemInformation.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8444,6 +8544,7 @@ typedef struct _SYSDBG_KD_PULL_REMOTE_FILE
  * \param[out] ReturnLength Optional pointer to a variable that receives the number of bytes returned in the output buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -8515,6 +8616,7 @@ typedef enum _HARDERROR_RESPONSE
  */
 _Analysis_noreturn_
 DECLSPEC_NORETURN
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9318,22 +9420,28 @@ typedef struct _KUSER_SHARED_DATA
 
     XSTATE_CONFIGURATION XState;
 
+#if defined(NTDDI_WIN11_DT) && (NTDDI_VERSION >= NTDDI_WIN11_DT) // 26H1 and above
+
+    ULONG64 UserPointerAuthMask;
+
     //
-    // RtlQueryFeatureConfigurationChangeStamp
+    // Extended processor state configuration (ARM64). The reserved space for
+    // other architectures is not available for reuse.
     //
+
+#if defined(_ARM64_)
+    XSTATE_CONFIGURATION XStateArm64;
+#else
+    ULONG Reserved10[214];
+#endif
 
     KSYSTEM_TIME FeatureConfigurationChangeStamp;
-
-    //
-    // Spare (available for re-use).
-    //
-
     ULONG Spare;
 
-    //
-    // This field holds a mask that is used in the process of authenticating pointers in user mode.
-    // It helps in determining which bits of the pointer are used for authentication in user mode.
-    //
+#else // Legacy block for 25H2 and earlier
+
+    KSYSTEM_TIME FeatureConfigurationChangeStamp;
+    ULONG Spare;
 
     ULONG64 UserPointerAuthMask;
 
@@ -9347,6 +9455,8 @@ typedef struct _KUSER_SHARED_DATA
 #else
     ULONG Reserved10[210];
 #endif
+
+#endif // #if defined(NTDDI_WIN11_DT) && (NTDDI_VERSION >= NTDDI_WIN11_DT)
 } KUSER_SHARED_DATA, *PKUSER_SHARED_DATA;
 
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TickCountLowDeprecated)               == 0x000, "KUSER_SHARED_DATA.TickCountLowDeprecated offset is incorrect");
@@ -9430,19 +9540,22 @@ static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, QpcReserved)                      
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveStart)           == 0x3c8, "KUSER_SHARED_DATA.TimeZoneBiasEffectiveStart offset is incorrect");
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, TimeZoneBiasEffectiveEnd)             == 0x3d0, "KUSER_SHARED_DATA.TimeZoneBiasEffectiveEnd offset is incorrect");
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XState)                               == 0x3d8, "KUSER_SHARED_DATA.XState offset is incorrect");
-#if !defined(NTDDI_WIN10_FE) || (NTDDI_VERSION < NTDDI_WIN10_FE)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp)      == 0x710, "KUSER_SHARED_DATA.FeatureConfigurationChangeStamp offset is incorrect");
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask)                  == 0x720, "KUSER_SHARED_DATA.UserPointerAuthMask offset is incorrect");
+
+#if defined(NTDDI_WIN11_DT) && (NTDDI_VERSION >= NTDDI_WIN11_DT)
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask)                  == 0x730, "KUSER_SHARED_DATA.UserPointerAuthMask offset is incorrect");
 #if defined(_ARM64_)
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64)                          == 0x728, "KUSER_SHARED_DATA.XStateArm64 offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64)                          == 0x738, "KUSER_SHARED_DATA.XStateArm64 offset is incorrect");
 #else
-static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10)                           == 0x728, "KUSER_SHARED_DATA.Reserved10 offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Reserved10)                           == 0x738, "KUSER_SHARED_DATA.Reserved10 offset is incorrect");
 #endif
 #if !defined(WINDOWS_IGNORE_PACKING_MISMATCH)
-static_assert(sizeof(KUSER_SHARED_DATA)                                             == 0xa70, "KUSER_SHARED_DATA size is incorrect (expected 0xa70)");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp)      == 0xa90, "KUSER_SHARED_DATA.FeatureConfigurationChangeStamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Spare)                                == 0xa9c, "KUSER_SHARED_DATA.Spare offset is incorrect");
+static_assert(sizeof(KUSER_SHARED_DATA)                                             == 0xaa0, "KUSER_SHARED_DATA size is incorrect (expected 0xaa0)");
 #endif
 #else
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, FeatureConfigurationChangeStamp)      == 0x720, "KUSER_SHARED_DATA.FeatureConfigurationChangeStamp offset is incorrect");
+static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, Spare)                                == 0x72c, "KUSER_SHARED_DATA.Spare offset is incorrect");
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, UserPointerAuthMask)                  == 0x730, "KUSER_SHARED_DATA.UserPointerAuthMask offset is incorrect");
 #if defined(_ARM64_)
 static_assert(FIELD_OFFSET(KUSER_SHARED_DATA, XStateArm64)                          == 0x738, "KUSER_SHARED_DATA.XStateArm64 offset is incorrect");
@@ -9561,6 +9674,7 @@ NtGetTickCount(
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultlocale
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getuserdefaultlocale
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9578,6 +9692,7 @@ NtQueryDefaultLocale(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-setthreadlocale
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9593,6 +9708,7 @@ NtSetDefaultLocale(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultuilanguage
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9608,6 +9724,7 @@ NtQueryInstallUILanguage(
  * \param SetComittedFlag If nonzero, commits the language change.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9623,6 +9740,7 @@ NtFlushInstallUILanguage(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winnls/nf-winnls-getsystemdefaultuilanguage
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9636,6 +9754,7 @@ NtQueryDefaultUILanguage(
  * \param DefaultUILanguageId The UI language identifier (LANGID) to set.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9647,6 +9766,7 @@ NtSetDefaultUILanguage(
  * The NtIsUILanguageComitted routine determines whether the system UI language has been committed.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9660,6 +9780,7 @@ NtIsUILanguageComitted(
 
 // begin_private
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9670,6 +9791,7 @@ NtInitializeNlsFiles(
     _Out_opt_ PULONG CurrentNLSVersion
     );
 
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9693,6 +9815,7 @@ NtGetNlsSectionPtr(
  * \param replaceExisting If TRUE, replaces any existing ownership token.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9707,6 +9830,7 @@ NtAcquireCMFViewOwnership(
  * File (CMF) view previously acquired by NtAcquireCMFViewOwnership.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9797,6 +9921,7 @@ DEFINE_ENUM_FLAG_OPERATORS(CMF_WHAT_FLAGS);
  * \param BaseAddress Optional pointer that receives the base address of the mapped module.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9840,6 +9965,7 @@ DEFINE_ENUM_FLAG_OPERATORS(MUI_REGISTRY_INFO_FLAGS);
  * \return NTSTATUS Successful or errant status.
  * \remarks This routine is private and subject to change.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9867,6 +9993,7 @@ NtGetMUIRegistryInfo(
  * the existing atom identifier is returned.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9905,6 +10032,7 @@ NtAddAtom(
  * Any other flag value results in STATUS_INVALID_PARAMETER.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-addatomw
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9927,6 +10055,7 @@ NtAddAtomEx(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-findatomw
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9946,6 +10075,7 @@ NtFindAtom(
  * its reference count reaches zero.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-deleteatom
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -9993,6 +10123,7 @@ typedef struct _ATOM_TABLE_INFORMATION
  * \param ReturnLength Optional pointer to a variable that receives the number of bytes written to the AtomInformation buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10005,42 +10136,45 @@ NtQueryInformationAtom(
     );
 
 //
-// Global flags
+// Global flags (NtGlobalFlag)
+//
+// \see https://learn.microsoft.com/en-us/windows-hardware/drivers/debugger/gflags-flag-table
 //
 
-#define FLG_STOP_ON_EXCEPTION 0x00000001 // uk
-#define FLG_SHOW_LDR_SNAPS 0x00000002 // uk
-#define FLG_DEBUG_INITIAL_COMMAND 0x00000004 // k
-#define FLG_STOP_ON_HUNG_GUI 0x00000008 // k
-#define FLG_HEAP_ENABLE_TAIL_CHECK 0x00000010 // u
-#define FLG_HEAP_ENABLE_FREE_CHECK 0x00000020 // u
-#define FLG_HEAP_VALIDATE_PARAMETERS 0x00000040 // u
-#define FLG_HEAP_VALIDATE_ALL 0x00000080 // u
-#define FLG_APPLICATION_VERIFIER 0x00000100 // u
-#define FLG_MONITOR_SILENT_PROCESS_EXIT 0x00000200 // uk
-#define FLG_POOL_ENABLE_TAGGING 0x00000400 // k
-#define FLG_HEAP_ENABLE_TAGGING 0x00000800 // u
-#define FLG_USER_STACK_TRACE_DB 0x00001000 // u,32
-#define FLG_KERNEL_STACK_TRACE_DB 0x00002000 // k,32
-#define FLG_MAINTAIN_OBJECT_TYPELIST 0x00004000 // k
-#define FLG_HEAP_ENABLE_TAG_BY_DLL 0x00008000 // u
-#define FLG_DISABLE_STACK_EXTENSION 0x00010000 // u
-#define FLG_ENABLE_CSRDEBUG 0x00020000 // k
-#define FLG_ENABLE_KDEBUG_SYMBOL_LOAD 0x00040000 // k
-#define FLG_DISABLE_PAGE_KERNEL_STACKS 0x00080000 // k
-#define FLG_ENABLE_SYSTEM_CRIT_BREAKS 0x00100000 // u
-#define FLG_HEAP_DISABLE_COALESCING 0x00200000 // u
-#define FLG_ENABLE_CLOSE_EXCEPTIONS 0x00400000 // k
-#define FLG_ENABLE_EXCEPTION_LOGGING 0x00800000 // k
-#define FLG_ENABLE_HANDLE_TYPE_TAGGING 0x01000000 // k
-#define FLG_HEAP_PAGE_ALLOCS 0x02000000 // u
-#define FLG_DEBUG_INITIAL_COMMAND_EX 0x04000000 // k
-#define FLG_DISABLE_DBGPRINT 0x08000000 // k
-#define FLG_CRITSEC_EVENT_CREATION 0x10000000 // u
-#define FLG_LDR_TOP_DOWN 0x20000000 // u,64
-#define FLG_ENABLE_HANDLE_EXCEPTIONS 0x40000000 // k
-#define FLG_DISABLE_PROTDLLS 0x80000000 // u
-#define FLG_VALID_BITS 0xfffffdff
+#define FLG_STOP_ON_EXCEPTION 0x00000001            // Stop on exception (R,K,I)
+#define FLG_SHOW_LDR_SNAPS 0x00000002               // Show loader snaps (R,K,I)
+#define FLG_DEBUG_INITIAL_COMMAND 0x00000004        // Debug initial command (R)
+#define FLG_STOP_ON_HUNG_GUI 0x00000008             // Stop on hung GUI (K)
+#define FLG_HEAP_ENABLE_TAIL_CHECK 0x00000010       // Enable heap tail checking (R,K,I)
+#define FLG_HEAP_ENABLE_FREE_CHECK 0x00000020       // Enable heap free checking (R,K,I)
+#define FLG_HEAP_VALIDATE_PARAMETERS 0x00000040     // Enable heap parameter checking (R,K,I)
+#define FLG_HEAP_VALIDATE_ALL 0x00000080            // Enable heap validation on call (R,K,I)
+#define FLG_APPLICATION_VERIFIER 0x00000100         // Enable application verifier (R,K,I)
+#define FLG_MONITOR_SILENT_PROCESS_EXIT 0x00000200  // Enable silent process exit monitoring (R)
+#define FLG_POOL_ENABLE_TAGGING 0x00000400          // Enable pool tagging (R)
+#define FLG_HEAP_ENABLE_TAGGING 0x00000800          // Enable heap tagging (R,K,I)
+#define FLG_USER_STACK_TRACE_DB 0x00001000          // Create user mode stack trace database (R,K,I)
+#define FLG_KERNEL_STACK_TRACE_DB 0x00002000        // Create kernel mode stack trace database (R)
+#define FLG_MAINTAIN_OBJECT_TYPELIST 0x00004000     // Maintain a list of objects for each type (R)
+#define FLG_HEAP_ENABLE_TAG_BY_DLL 0x00008000       // Enable heap tagging by DLL (R,K,I)
+#define FLG_DISABLE_STACK_EXTENSION 0x00010000      // Disable stack extension (I)
+#define FLG_ENABLE_CSRDEBUG 0x00020000              // Enable debugging of Win32 subsystem (R)
+#define FLG_ENABLE_KDEBUG_SYMBOL_LOAD 0x00040000    // Enable loading of kernel debugger symbols (R,K)
+#define FLG_DISABLE_PAGE_KERNEL_STACKS 0x00080000   // Disable paging of kernel stacks (R)
+#define FLG_ENABLE_SYSTEM_CRIT_BREAKS 0x00100000    // Enable system critical breaks (R,K,I)
+#define FLG_HEAP_DISABLE_COALESCING 0x00200000      // Disable heap coalesce on free (R,K,I)
+#define FLG_ENABLE_CLOSE_EXCEPTIONS 0x00400000      // Enable close exception (R,K)
+#define FLG_ENABLE_EXCEPTION_LOGGING 0x00800000     // Enable exception logging (R,K)
+#define FLG_ENABLE_HANDLE_TYPE_TAGGING 0x01000000   // Enable object handle type tagging (R,K)
+#define FLG_HEAP_PAGE_ALLOCS 0x02000000             // Enable page heap (R,K,I)
+#define FLG_DEBUG_INITIAL_COMMAND_EX 0x04000000     // Debug WinLogon (R)
+#define FLG_DISABLE_DBGPRINT 0x08000000             // Buffer DbgPrint Output (R,K)
+#define FLG_CRITSEC_EVENT_CREATION 0x10000000       // Early critical section event creation (R,K,I)
+#define FLG_STOP_ON_UNHANDLED_EXCEPTION 0x20000000  // Stop on unhandled user-mode exception (R,K,I)
+#define FLG_LDR_TOP_DOWN 0x20000000                 // Load image using large pages if possible (I)
+#define FLG_ENABLE_HANDLE_EXCEPTIONS 0x40000000     // Enable bad handles detection (R,K)
+#define FLG_DISABLE_PROTDLLS 0x80000000             // Disable protected DLL verification (R,K,I)
+#define FLG_VALID_BITS 0xffffffff
 
 #define FLG_USERMODE_VALID_BITS (FLG_STOP_ON_EXCEPTION | \
     FLG_SHOW_LDR_SNAPS | \
@@ -10049,6 +10183,7 @@ NtQueryInformationAtom(
     FLG_HEAP_VALIDATE_PARAMETERS | \
     FLG_HEAP_VALIDATE_ALL | \
     FLG_APPLICATION_VERIFIER | \
+    FLG_MONITOR_SILENT_PROCESS_EXIT | \
     FLG_HEAP_ENABLE_TAGGING | \
     FLG_USER_STACK_TRACE_DB | \
     FLG_HEAP_ENABLE_TAG_BY_DLL | \
@@ -10058,6 +10193,7 @@ NtQueryInformationAtom(
     FLG_DISABLE_PROTDLLS | \
     FLG_HEAP_PAGE_ALLOCS | \
     FLG_CRITSEC_EVENT_CREATION | \
+    FLG_STOP_ON_UNHANDLED_EXCEPTION | \
     FLG_LDR_TOP_DOWN)
 
 #define FLG_BOOTONLY_VALID_BITS (FLG_KERNEL_STACK_TRACE_DB | \
@@ -10094,6 +10230,7 @@ NtQueryInformationAtom(
  * \return NTSTATUS Successful or errant status.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/slpublic/nf-slpublic-slquerylicensevaluefromapp
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10118,6 +10255,7 @@ NtQueryLicenseValue(
  * hard error messages generated by the system.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10145,6 +10283,7 @@ typedef enum _SHUTDOWN_ACTION
  * \return NTSTATUS Successful or errant status.
  * \remarks The calling process must have the SE_SHUTDOWN_NAME privilege.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10159,6 +10298,7 @@ NtShutdownSystem(
  * \param String A pointer to a UNICODE_STRING structure that contains the text to display.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10178,6 +10318,7 @@ NtDisplayString(
  * \param Text A pointer to a UNICODE_STRING structure that contains the text to draw on the screen.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -10366,6 +10507,7 @@ static_assert(sizeof(MANAGE_HOT_PATCH_CREATE_PATCH_SECTION) == 0x28, "Size of MA
  * \param[out] ReturnLength Optional pointer to a variable that receives the number of bytes written to the HotPatchInformation buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

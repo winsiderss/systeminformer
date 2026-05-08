@@ -18,6 +18,7 @@
  * \param Object Network adapter entry object.
  * \param Flags Object deletion flags.
  */
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NetworkEntryDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags

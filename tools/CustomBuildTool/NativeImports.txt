@@ -12,6 +12,7 @@ RegCloseKey
 SafeArrayGetLBound
 SafeArrayGetUBound
 SafeArrayGetElement
+SafeArrayDestroy
 GetFileAttributesEx
 GetCurrentProcess
 GetErrorMode
@@ -21,8 +22,7 @@ SignerFreeSignerContext
 SetPriorityClass
 SetFileTime
 CreateFile
-ImageDirectoryEntryToData
-ImageDirectoryEntryToDataEx
-ImageRvaToVa
-MapAndLoad
-UnMapAndLoad
+OpenProcess
+OpenProcessToken
+SetTokenInformation
+CloseHandle

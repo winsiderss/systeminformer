@@ -381,10 +381,10 @@ VOID NTAPI DeviceTreePublish(
 
     TreeNew_SetRedraw(DeviceTreeHandle, TRUE);
 
-    TreeNew_NodesStructured(DeviceTreeHandle);
-
     if (DeviceTreeFilterSupport.FilterList)
         PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+    else
+        TreeNew_NodesStructured(DeviceTreeHandle);
 
     PhClearReference(&oldTree);
 }
@@ -806,10 +806,10 @@ BOOLEAN NTAPI DeviceTreeCallback(
             DeviceTreeSortColumn = sorting->SortColumn;
             DeviceTreeSortOrder = sorting->SortOrder;
 
-            TreeNew_NodesStructured(hwnd);
-
             if (DeviceTreeFilterSupport.FilterList)
                 PhApplyTreeNewFilters(&DeviceTreeFilterSupport);
+            else
+                TreeNew_NodesStructured(hwnd);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -939,11 +939,11 @@ BOOLEAN NTAPI DeviceTreeCallback(
 
                             if (deviceItem)
                             {
-                                PPH_DEVICE_PROPERTY hardwareIds = PhGetDeviceProperty(deviceItem, PhDevicePropertyHardwareIds);
+                                PPH_DEVICE_PROPERTY deviceId = PhGetDeviceProperty(deviceItem, PhDevicePropertyMatchingDeviceId);
                                 PPH_STRING searchId = NULL;
 
-                                if (hardwareIds->Valid && hardwareIds->StringList && hardwareIds->StringList->Count > 0)
-                                    searchId = hardwareIds->StringList->Items[0];
+                                if (deviceId->Valid && deviceId->StringList && deviceId->StringList->Count > 0)
+                                    searchId = deviceId->StringList->Items[0];
                                 else
                                     searchId = deviceItem->InstanceId;
 
@@ -951,13 +951,13 @@ BOOLEAN NTAPI DeviceTreeCallback(
                                 {
                                     if (selectedItem->Id == ID_DEVICE_SEARCH_ONLINE)
                                     {
-                                        PhSearchOnlineString(hwnd, searchId->Buffer);
+                                        PhSearchOnlineString(hwnd, PhGetString(searchId));
                                     }
                                     else
                                     {
                                         PPH_STRING encodedId = PhpEncodeDeviceQuery(searchId);
-                                        PPH_STRING url = PhFormatString(L"https://www.catalog.update.microsoft.com/search.aspx?q=%s", encodedId->Buffer);
-                                        PhShellExecute(hwnd, url->Buffer, NULL);
+                                        PPH_STRING url = PhFormatString(L"https://www.catalog.update.microsoft.com/search.aspx?q=%s", PhGetString(encodedId));
+                                        PhShellExecute(hwnd, PhGetString(url), NULL);
                                         PhDereferenceObject(url);
                                         PhDereferenceObject(encodedId);
                                     }
@@ -1112,7 +1112,7 @@ VOID DevicesTreeImageListInitialize(
 
     if (DeviceImageList)
     {
-        PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE));
+        PhImageListAddIcon(DeviceImageList, PhGetApplicationIcon(TRUE, dpi));
 
         TreeNew_SetImageList(DeviceTreeHandle, DeviceImageList);
     }
@@ -1759,6 +1759,8 @@ VOID NTAPI DeviceTreeProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    BOOLEAN fullyInvalidated = FALSE;
+
     if (PtrToUlong(Parameter) < 2)
         return;
 
@@ -1774,8 +1776,8 @@ VOID NTAPI DeviceTreeProcessesUpdatedCallback(
         DeviceHighlightingDuration,
         DeviceTreeHandle,
         TRUE,
-        NULL,
-        NULL
+        &fullyInvalidated,
+        Context
         );
 }
 

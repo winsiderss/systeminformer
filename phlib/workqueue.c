@@ -181,7 +181,7 @@ VOID PhQueueItemWorkQueueEx(
 
     // Enqueue the work item.
     PhAcquireQueuedLockExclusive(&WorkQueue->QueueLock);
-    InsertTailList(&WorkQueue->QueueListHead, &workQueueItem->ListEntry);
+    InsertTailListNoFence(&WorkQueue->QueueListHead, &workQueueItem->ListEntry);
     _InterlockedIncrement(&WorkQueue->BusyCount);
     PhReleaseQueuedLockExclusive(&WorkQueue->QueueLock);
     // Signal the semaphore once to let a worker thread continue.
@@ -461,7 +461,7 @@ NTSTATUS PhpWorkQueueThreadStart(
 
             PhAcquireQueuedLockExclusive(&workQueue->QueueLock);
 
-            listEntry = RemoveHeadList(&workQueue->QueueListHead);
+            listEntry = RemoveHeadListNoFence(&workQueue->QueueListHead);
 
             if (IsListEmpty(&workQueue->QueueListHead))
                 PhPulseCondition(&workQueue->QueueEmptyCondition);

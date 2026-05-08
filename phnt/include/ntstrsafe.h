@@ -480,7 +480,9 @@ RtlUnicodeStringExHandleOtherFlags(
 #define __WARNING_RETURN_UNINIT_VAR 6101
 #define __WARNING_DEREF_NULL_PTR 6011
 #define __WARNING_MISSING_ZERO_TERMINATION2 6054
+#define __WARNING_WRITE_OVERRUN 6386
 #define __WARNING_INVALID_PARAM_VALUE_1 6387
+#define __WARNING_UNSAFE_STRING_FUNCTION 25025
 #define __WARNING_INCORRECT_ANNOTATION 26007
 #define __WARNING_POTENTIAL_BUFFER_OVERFLOW_HIGH_PRIORITY 26015
 #define __WARNING_PRECONDITION_NULLTERMINATION_VIOLATION 26035
@@ -11814,6 +11816,8 @@ NTSTRSAFEWORKERDDI
             _Out_opt_ _Deref_out_range_(<, cchMax) _Deref_out_range_(<=, _String_length_(psz)) size_t* pcchLength)
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+#if (defined(_M_IX86) && !defined(_M_HYBRID_X86_ARM64)) || (defined(_M_X64) && !defined(_M_ARM64EC))
     size_t cchOriginalMax = cchMax;
 
     while (cchMax && (*psz != '\0'))
@@ -11839,6 +11843,27 @@ NTSTRSAFEWORKERDDI
             *pcchLength = 0;
         }
     }
+#else
+    size_t cchLength = strnlen(psz, cchMax);
+
+    if (cchMax == cchLength)
+    {
+        // the string is longer than cchMax
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+    if (pcchLength)
+    {
+        if (NT_SUCCESS(status))
+        {
+            *pcchLength = cchLength;
+        }
+        else
+        {
+            *pcchLength = 0;
+        }
+    }
+#endif
 
     return status;
 }
@@ -11852,6 +11877,8 @@ NTSTRSAFEWORKERDDI
             _Out_opt_ _Deref_out_range_(<, cchMax) _Deref_out_range_(<=, _String_length_(psz)) size_t* pcchLength)
 {
     NTSTATUS status = STATUS_SUCCESS;
+
+#if (defined(_M_IX86) && !defined(_M_HYBRID_X86_ARM64)) || (defined(_M_X64) && !defined(_M_ARM64EC))
     size_t cchOriginalMax = cchMax;
 
     while (cchMax && (*psz != L'\0'))
@@ -11877,6 +11904,27 @@ NTSTRSAFEWORKERDDI
             *pcchLength = 0;
         }
     }
+#else
+    size_t cchLength = wcsnlen(psz, cchMax);
+
+    if (cchMax == cchLength)
+    {
+        // the string is longer than cchMax
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+    if (pcchLength)
+    {
+        if (NT_SUCCESS(status))
+        {
+            *pcchLength = cchLength;
+        }
+        else
+        {
+            *pcchLength = 0;
+        }
+    }
+#endif
 
     return status;
 }
@@ -12251,9 +12299,10 @@ NTSTRSAFEWORKERDDI
             _In_ _In_range_(<, NTSTRSAFE_MAX_CCH) size_t cchToCopy)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    size_t cchNewDestLength = 0;
-
     // ASSERT(cchDest != 0);
+
+#if (defined(_M_IX86) && !defined(_M_HYBRID_X86_ARM64)) || (defined(_M_X64) && !defined(_M_ARM64EC))
+    size_t cchNewDestLength = 0;
 
     while (cchDest && cchToCopy && (*pszSrc != '\0'))
     {
@@ -12274,6 +12323,27 @@ NTSTRSAFEWORKERDDI
     }
 
     *pszDest = '\0';
+#else
+    size_t cchNewDestLength = strnlen(pszSrc, cchDest < cchToCopy ? cchDest : cchToCopy);
+
+    if (cchDest == cchNewDestLength)
+    {
+        // we are going to truncate pszDest
+        if (cchNewDestLength > 0)
+        {
+            cchNewDestLength--;
+        }
+
+        status = STATUS_BUFFER_OVERFLOW;
+    }
+
+    memcpy(pszDest, pszSrc, cchNewDestLength * sizeof(*pszSrc));
+#pragma warning(push)
+#pragma warning(disable:__WARNING_WRITE_OVERRUN)
+    // ASSERT(cchNewDestLength < cchDest);
+    pszDest[cchNewDestLength] = '\0';
+#pragma warning(pop)
+#endif
 
     if (pcchNewDestLength)
     {
@@ -12294,9 +12364,10 @@ NTSTRSAFEWORKERDDI
             _In_ _In_range_(<, NTSTRSAFE_MAX_CCH) size_t cchToCopy)
 {
     NTSTATUS status = STATUS_SUCCESS;
-    size_t cchNewDestLength = 0;
-
     // ASSERT(cchDest != 0);
+
+#if (defined(_M_IX86) && !defined(_M_HYBRID_X86_ARM64)) || (defined(_M_X64) && !defined(_M_ARM64EC))
+    size_t cchNewDestLength = 0;
 
     while (cchDest && cchToCopy && (*pszSrc != L'\0'))
     {
@@ -12317,6 +12388,27 @@ NTSTRSAFEWORKERDDI
     }
 
     *pszDest = L'\0';
+#else
+    size_t cchNewDestLength = wcsnlen(pszSrc, cchDest < cchToCopy ? cchDest : cchToCopy);
+
+    if (cchDest == cchNewDestLength)
+    {
+        // we are going to truncate pszDest
+        if (cchNewDestLength > 0)
+        {
+            cchNewDestLength--;
+        }
+
+        status = STATUS_BUFFER_OVERFLOW;
+    }
+
+    memcpy(pszDest, pszSrc, cchNewDestLength * sizeof(*pszSrc));
+#pragma warning(push)
+#pragma warning(disable:__WARNING_WRITE_OVERRUN)
+    // ASSERT(cchNewDestLength < cchDest);
+    pszDest[cchNewDestLength] = L'\0';
+#pragma warning(pop)
+#endif
 
     if (pcchNewDestLength)
     {
@@ -12351,6 +12443,7 @@ NTSTRSAFEWORKERDDI
 #else
 #pragma warning(push)
 #pragma warning(disable: __WARNING_BANNED_API_USAGE)// "STRSAFE not included"
+#pragma warning(disable: __WARNING_UNSAFE_STRING_FUNCTION) // call to dangerous string function '_vsnprintf'.
     iRet = _vsnprintf(pszDest, cchMax, pszFormat, argList);
 #pragma warning(pop)
 #endif

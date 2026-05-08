@@ -56,8 +56,8 @@ typedef struct _ET_NET_CONTEXT
 } ET_NET_CONTEXT, *PET_NET_CONTEXT;
 
 INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -246,12 +246,12 @@ VOID EtwDiskLayoutGraphs(
     ULONG graphWidth;
     ULONG graphHeight;
 
-    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, Context->WindowDpi);
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
 
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, Context->WindowDpi);
-    innerMargin.top = PhGetDpi(20, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
 
-    between = PhGetDpi(3, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -314,12 +314,12 @@ VOID EtwNetworkLayoutGraphs(
     ULONG graphWidth;
     ULONG graphHeight;
 
-    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, Context->WindowDpi);
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
 
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, Context->WindowDpi);
-    innerMargin.top = PhGetDpi(20, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
 
-    between = PhGetDpi(3, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
 
     PhLayoutManagerLayout(&Context->LayoutManager);
 
@@ -452,8 +452,8 @@ VOID NTAPI EtwNetworkUpdateHandler(
 }
 
 INT_PTR CALLBACK EtwDiskPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -463,7 +463,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
     PPH_PROCESS_ITEM processItem;
     PET_DISK_CONTEXT context;
 
-    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
@@ -472,7 +472,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
         return FALSE;
     }
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -481,17 +481,17 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
             // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
 
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context = PhAllocateZero(sizeof(ET_DISK_CONTEXT));
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
-            context->DiskReadGroupBox = GetDlgItem(hwndDlg, IDC_GROUPDISKREAD);
-            context->DiskWriteGroupBox = GetDlgItem(hwndDlg, IDC_GROUPDISKWRITE);
+            context->DiskReadGroupBox = GetDlgItem(WindowHandle, IDC_GROUPDISKREAD);
+            context->DiskWriteGroupBox = GetDlgItem(WindowHandle, IDC_GROUPDISKWRITE);
             propPageContext->Context = context;
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
 
             PhInitializeGraphState(&context->DiskReadGraphState);
             PhInitializeGraphState(&context->DiskWriteGraphState);
@@ -508,7 +508,7 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -531,8 +531,8 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            if (PhBeginPropPageLayout(hwndDlg, propPageContext))
-                PhEndPropPageLayout(hwndDlg, propPageContext);
+            if (PhBeginPropPageLayout(WindowHandle, propPageContext))
+                PhEndPropPageLayout(WindowHandle, propPageContext);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:
@@ -785,8 +785,8 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
 }
 
 INT_PTR CALLBACK EtwNetworkPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -796,7 +796,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
     PPH_PROCESS_ITEM processItem;
     PET_NET_CONTEXT context;
 
-    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
@@ -805,7 +805,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
         return FALSE;
     }
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -814,17 +814,17 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
             // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
 
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context = PhAllocateZero(sizeof(ET_NET_CONTEXT));
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
-            context->NetworkReceiveGroupBox  = GetDlgItem(hwndDlg, IDC_GROUPNETRECEIVE);
-            context->NetworkSendGroupBox = GetDlgItem(hwndDlg, IDC_GROUPNETSEND);
+            context->NetworkReceiveGroupBox  = GetDlgItem(WindowHandle, IDC_GROUPNETRECEIVE);
+            context->NetworkSendGroupBox = GetDlgItem(WindowHandle, IDC_GROUPNETSEND);
             propPageContext->Context = context;
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
 
             PhInitializeGraphState(&context->NetworkReceiveGraphState);
             PhInitializeGraphState(&context->NetworkSendGraphState);
@@ -841,7 +841,7 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -864,8 +864,8 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            if (PhBeginPropPageLayout(hwndDlg, propPageContext))
-                PhEndPropPageLayout(hwndDlg, propPageContext);
+            if (PhBeginPropPageLayout(WindowHandle, propPageContext))
+                PhEndPropPageLayout(WindowHandle, propPageContext);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:

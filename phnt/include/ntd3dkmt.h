@@ -92,6 +92,7 @@ D3DKMTEnumProcesses(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

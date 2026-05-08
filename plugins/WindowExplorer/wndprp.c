@@ -1417,7 +1417,7 @@ VOID WepWindowRefreshGeneralPageHeader(
 
         if (!windowIcon)
         {
-            PhGetStockApplicationIcon(NULL, &windowIcon);
+            PhGetStockApplicationIcon(NULL, &windowIcon, PhGetWindowDpi(WindowHandle));
         }
 
         if (windowIcon)

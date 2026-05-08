@@ -103,6 +103,66 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Downloads the GitHub meta IP ranges and returns them as a list of strings.
+        /// </summary>
+        /// <returns>A list of IP address ranges from the GitHub meta endpoint, or <c>null</c> on error.</returns>
+        public static async IAsyncEnumerable<string> DownloadGithubIpRanges([EnumeratorCancellation] CancellationToken CancellationToken = default)
+        {
+            using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/meta"))
+            {
+                requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+                requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
+
+                using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                if (response == null || !response.IsSuccessStatusCode)
+                {
+                    Program.PrintColorMessage("[DownloadGithubIpRanges] response failed", ConsoleColor.Red);
+                    yield break;
+                }
+
+                await using Stream stream = await response.Content.ReadAsStreamAsync(CancellationToken);
+                var meta = await JsonSerializer.DeserializeAsync(stream, GithubResponseContext.Default.DictionaryStringJsonElement, CancellationToken);
+                if (meta == null)
+                {
+                    Program.PrintColorMessage("[DownloadGithubIpRanges] invalid response", ConsoleColor.Red);
+                    yield break;
+                }
+
+                var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var property in meta)
+                {
+                    if (property.Value.ValueKind != JsonValueKind.Array)
+                        continue;
+
+                    foreach (var entry in property.Value.EnumerateArray())
+                    {
+                        if (entry.ValueKind != JsonValueKind.String)
+                            continue;
+
+                        var value = entry.GetString();
+                        if (IsIpRange(value) && results.Add(value))
+                        {
+                            yield return value;
+                        }
+                    }
+                }
+            }
+
+            static bool IsIpRange(string value)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                    return false;
+
+                ReadOnlySpan<char> span = value.AsSpan();
+                var slashIndex = span.IndexOf('/');
+                var address = slashIndex >= 0 ? span[..slashIndex] : span;
+
+                return IPAddress.TryParse(address, out _);
+            }
+        }
+
+        /// <summary>
         /// Retrieves a GitHub release by its release ID.
         /// </summary>
         /// <param name="ReleaseId">The unique identifier of the release.</param>
@@ -253,7 +313,7 @@ namespace CustomBuildTool
                         return false;
                     }
 
-                    githubResponseMessage = JsonSerializer.Deserialize(result, GithubResponseContext.Default.GithubReleasesResponse);
+                    githubResponseMessage = await JsonSerializer.DeserializeAsync(result, GithubResponseContext.Default.GithubReleasesResponse);
                     if (githubResponseMessage == null)
                     {
                         Program.PrintColorMessage("[DeleteRelease-GithubReleasesResponse]", ConsoleColor.Red);

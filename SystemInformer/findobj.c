@@ -331,7 +331,7 @@ BOOLEAN NTAPI PhpHandleObjectTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Process),
                     SORT_FUNCTION(Type),
@@ -1038,9 +1038,6 @@ NTSTATUS PhpFindObjectsThreadStart(
 
     if (NT_SUCCESS(status))
     {
-        static PH_INITONCE initOnce = PH_INITONCE_INIT;
-        static USHORT fileObjectTypeIndex = USHRT_MAX;
-
         BOOLEAN useWorkQueue = FALSE;
         PH_WORK_QUEUE workQueue;
         processHandleHashtable = PhCreateSimpleHashtable(8);
@@ -1049,12 +1046,6 @@ NTSTATUS PhpFindObjectsThreadStart(
         {
             useWorkQueue = TRUE;
             PhInitializeWorkQueue(&workQueue, 1, 20, 1000);
-
-            if (PhBeginInitOnce(&initOnce))
-            {
-                fileObjectTypeIndex = (USHORT)PhGetObjectTypeNumberZ(L"File");
-                PhEndInitOnce(&initOnce);
-            }
         }
 
         for (i = 0; i < handles->NumberOfHandles; i++)
@@ -1087,7 +1078,7 @@ NTSTATUS PhpFindObjectsThreadStart(
                 }
             }
 
-            if (useWorkQueue && handleInfo->ObjectTypeIndex == fileObjectTypeIndex)
+            if (useWorkQueue && PhIsObjectTypeIndex(handleInfo->ObjectTypeIndex, PhHandleObjectTypeFile))
             {
                 PSEARCH_HANDLE_CONTEXT searchHandleContext;
 
@@ -1265,7 +1256,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             context->TreeNewHandle = GetDlgItem(hwndDlg, IDC_TREELIST);
             context->TypeWindowHandle = GetDlgItem(hwndDlg, IDC_FILTERTYPE);
             context->SearchWindowHandle = GetDlgItem(hwndDlg, IDC_FILTER);
-            context->TypeWindowFont = PhDuplicateFont(PhApplicationFont);
+            context->TypeWindowFont = PhCreateApplicationFont(PhGetWindowDpi(hwndDlg));
             context->WindowText = PhGetWindowText(hwndDlg);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
@@ -1698,10 +1689,21 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT typeWindowFont;
+
+            if (typeWindowFont = PhCreateApplicationFont(LOWORD(wParam)))
+                PhReplaceWindowFont(&context->TypeWindowFont, context->TypeWindowHandle, typeWindowFont, TRUE);
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
 
             PhpUpdateDropdownThemeMetrics(context, LOWORD(wParam));
+
+            context->MinimumSize.left = 0;
+            context->MinimumSize.top = 0;
+            context->MinimumSize.right = 300;
+            context->MinimumSize.bottom = 100;
+            MapDialogRect(hwndDlg, &context->MinimumSize);
         }
         break;
     case WM_SIZE:

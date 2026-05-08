@@ -27,6 +27,7 @@
  *
  * \return Pointer to the found element, NULL if not found.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 _Success_(return != NULL)
 PVOID KphBinarySearch(
@@ -38,6 +39,8 @@ PVOID KphBinarySearch(
     _In_opt_ PVOID Context
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
     return bsearch_s(Key,
                      Base,
                      NumberOfElements,
@@ -55,6 +58,7 @@ PVOID KphBinarySearch(
  * \param[in] Callback Comparison callback.
  * \param[in] Context Optional context for the callback.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID KphQuickSort(
     _Inout_updates_bytes_(NumberOfElements * SizeOfElement) PVOID Base,
     _In_ ULONG NumberOfElements,
@@ -63,6 +67,8 @@ VOID KphQuickSort(
     _In_opt_ PVOID Context
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
     qsort_s(Base, NumberOfElements, SizeOfElement, Callback, Context);
 }
 
@@ -77,6 +83,7 @@ VOID KphQuickSort(
  * \return Pointer to the beginning of the first found pattern, NULL if the
  * pattern is not found.
  */
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 _Success_(return != NULL)
 PVOID KphSearchMemory(
@@ -88,6 +95,8 @@ PVOID KphSearchMemory(
 {
     PBYTE buffer;
     PBYTE end;
+
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (!BufferLength || !PatternLength)
     {
@@ -147,47 +156,13 @@ PVOID KphSearchMemory(
 }
 
 /**
- * \brief Acquires rundown. On successful return the caller should release
- * the rundown using KphReleaseRundown.
- *
- * \param[in,out] Rundown The rundown object to acquire.
- *
- * \return TRUE if rundown is acquired, FALSE if object is already ran down.
- */
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Must_inspect_result_
-BOOLEAN KphAcquireRundown(
-    _Inout_ PKPH_RUNDOWN Rundown
-    )
-{
-    KPH_NPAGED_CODE_DISPATCH_MAX();
-
-    return ExAcquireRundownProtection(Rundown);
-}
-
-/**
- * \brief Releases rundown previously acquired by KphAcquireRundown.
- *
- * \param[in,out] Rundown The rundown object to release.
- */
-_IRQL_requires_max_(DISPATCH_LEVEL)
-VOID KphReleaseRundown(
-    _Inout_ PKPH_RUNDOWN Rundown
-    )
-{
-    KPH_NPAGED_CODE_DISPATCH_MAX();
-
-    ExReleaseRundownProtection(Rundown);
-}
-
-/**
  * \brief Retrieves the process sequence number for a given process.
  *
  * \param[in] Process The process to get the sequence number of.
  *
  * \return The sequence number key.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG64 KphGetProcessSequenceNumber(
     _In_ PEPROCESS Process
     )
@@ -195,7 +170,7 @@ ULONG64 KphGetProcessSequenceNumber(
     ULONG64 sequence;
     PKPH_PROCESS_CONTEXT process;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (KphDynPsGetProcessSequenceNumber)
     {
@@ -215,7 +190,7 @@ ULONG64 KphGetProcessSequenceNumber(
 
     sequence = process->SequenceNumber;
 
-    KphDereferenceObject(process);
+    KphDereferenceObjectDeferDelete(process);
 
     return sequence;
 }
@@ -227,7 +202,7 @@ ULONG64 KphGetProcessSequenceNumber(
  *
  * \return The process start key.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG64 KphGetProcessStartKey(
     _In_ PEPROCESS Process
     )
@@ -235,7 +210,7 @@ ULONG64 KphGetProcessStartKey(
     ULONG64 key;
     PKPH_PROCESS_CONTEXT process;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (KphDynPsGetProcessStartKey)
     {
@@ -262,7 +237,7 @@ ULONG64 KphGetProcessStartKey(
         key = (process->SequenceNumber | ((ULONG64)SharedUserData->BootId << 48));
     }
 
-    KphDereferenceObject(process);
+    KphDereferenceObjectDeferDelete(process);
 
     return key;
 }
@@ -272,7 +247,7 @@ ULONG64 KphGetProcessStartKey(
  *
  * \return The current thread's sub-process tag.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 PVOID KphGetCurrentThreadSubProcessTag(
     VOID
     )
@@ -281,7 +256,7 @@ PVOID KphGetCurrentThreadSubProcessTag(
     PVOID subProcessTag;
     PTEB teb;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (PsIsSystemThread(PsGetCurrentThread()))
     {
@@ -289,9 +264,9 @@ PVOID KphGetCurrentThreadSubProcessTag(
     }
 
     //
-    // We support lookups at dispatch. To achieve this we cache the last lookup
-    // in the thread context. If we're at dispatch use the cache. Otherwise go
-    // do the lookup and cache the result in the thread context.
+    // We support lookups at any IRQL. To achieve this we cache the last lookup
+    // in the thread context. Above APC_LEVEL use the cache. Otherwise go do
+    // the lookup and cache the result in the thread context.
     //
 
     if (KeGetCurrentIrql() > APC_LEVEL)
@@ -303,7 +278,7 @@ PVOID KphGetCurrentThreadSubProcessTag(
         {
             subProcessTag = thread->SubProcessTag;
 
-            KphDereferenceObject(thread);
+            KphDereferenceObjectDeferDelete(thread);
         }
 
         return subProcessTag;
@@ -344,7 +319,7 @@ PVOID KphGetCurrentThreadSubProcessTag(
  *
  * \return The thread's sub-process tag.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 PVOID KphGetThreadSubProcessTagEx(
     _In_ PETHREAD Thread,
     _In_ BOOLEAN CacheOnly
@@ -354,7 +329,7 @@ PVOID KphGetThreadSubProcessTagEx(
     PVOID subProcessTag;
     PTEB teb;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     if (PsIsSystemThread(Thread))
     {
@@ -362,11 +337,12 @@ PVOID KphGetThreadSubProcessTagEx(
     }
 
     //
-    // We support lookups at dispatch and across process boundaries. To achieve
-    // this we cache the last lookup in the thread context. If we're at dispatch
-    // or across process boundaries use the cache. Otherwise go do the lookup
-    // and cache the result in the thread context. We choose not to attach to
-    // a process to retrieve the information to avoid performance penalties.
+    // We support lookups at any IRQL and across process boundaries. To achieve
+    // this we cache the last lookup in the thread context. When CacheOnly is
+    // set, above APC_LEVEL, or across process boundaries use the cache.
+    // Otherwise go do the lookup and cache the result in the thread context.
+    // We choose not to attach to a process to retrieve the information to avoid
+    // performance penalties.
     //
 
     if (CacheOnly ||
@@ -380,7 +356,7 @@ PVOID KphGetThreadSubProcessTagEx(
         {
             subProcessTag = thread->SubProcessTag;
 
-            KphDereferenceObject(thread);
+            KphDereferenceObjectDeferDelete(thread);
         }
 
         return subProcessTag;
@@ -419,14 +395,48 @@ PVOID KphGetThreadSubProcessTagEx(
  *
  * \return The thread's sub-process tag.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 PVOID KphGetThreadSubProcessTag(
     _In_ PETHREAD Thread
     )
 {
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     return KphGetThreadSubProcessTagEx(Thread, FALSE);
+}
+
+/**
+ * \brief Acquires rundown. On successful return the caller should release
+ * the rundown using KphReleaseRundown.
+ *
+ * \param[in,out] Rundown The rundown object to acquire.
+ *
+ * \return TRUE if rundown is acquired, FALSE if object is already ran down.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphAcquireRundown(
+    _Inout_ PKPH_RUNDOWN Rundown
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    return ExAcquireRundownProtection(Rundown);
+}
+
+/**
+ * \brief Releases rundown previously acquired by KphAcquireRundown.
+ *
+ * \param[in,out] Rundown The rundown object to release.
+ */
+_IRQL_requires_max_(DISPATCH_LEVEL)
+VOID KphReleaseRundown(
+    _Inout_ PKPH_RUNDOWN Rundown
+    )
+{
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
+    ExReleaseRundownProtection(Rundown);
 }
 
 /**

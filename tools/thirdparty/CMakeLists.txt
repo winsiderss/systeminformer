@@ -152,13 +152,6 @@ source_group("md5" FILES ${SOURCES_MD5})
 set(SOURCES_MINIZ
     "miniz/miniz.c"
     "miniz/miniz.h"
-    "miniz/miniz_tdef.c"
-    "miniz/miniz_tinfl.c"
-    "miniz/miniz_zip.c"
-    "miniz/miniz_common.h"
-    "miniz/miniz_tdef.h"
-    "miniz/miniz_tinfl.h"
-    "miniz/miniz_zip.h"
 )
 source_group("miniz" FILES ${SOURCES_MINIZ})
 

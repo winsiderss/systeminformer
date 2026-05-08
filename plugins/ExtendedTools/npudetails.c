@@ -37,7 +37,7 @@ typedef enum _NPUADAPTER_DETAILS_INDEX
 
 VOID EtpNpuDetailsAddListViewItemGroups(
     _In_ HWND ListViewHandle,
-    _In_ INT NpuGroupId)
+    _In_ LONG NpuGroupId)
 {
     PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_PHYSICALLOCTION, L"Physical Location", NULL);
     PhAddListViewGroupItem(ListViewHandle, NpuGroupId, NPUADAPTER_DETAILS_INDEX_DRIVERDATE, L"Driver Date", NULL);
@@ -57,12 +57,15 @@ VOID EtpNpuDetailsAddListViewItemGroups(
 
 VOID EtpNpuQueryAdapterDeviceProperties(
     _In_ PPH_STRING DeviceName,
+    _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ HWND ListViewHandle)
 {
     PPH_STRING driverDate;
     PPH_STRING driverVersion;
     PPH_STRING locationInfo;
     ULONG64 installedMemory;
+    ULONG64 dedicatedLimit = 0;
+    ULONG64 sharedLimit = 0;
 
     if (EtQueryDeviceProperties(DeviceName, NULL, &driverDate, &driverVersion, &locationInfo, &installedMemory))
     {
@@ -72,8 +75,30 @@ VOID EtpNpuQueryAdapterDeviceProperties(
 
         if (installedMemory != ULLONG_MAX)
         {
+            D3DKMT_SEGMENTSIZEINFO segmentInfo;
+
+            memset(&segmentInfo, 0, sizeof(D3DKMT_SEGMENTSIZEINFO));
+
+            if (NT_SUCCESS(EtQueryAdapterInformation(
+                AdapterHandle,
+                KMTQAITYPE_GETSEGMENTSIZE,
+                &segmentInfo,
+                sizeof(D3DKMT_SEGMENTSIZEINFO)
+                )))
+            {
+                dedicatedLimit = segmentInfo.DedicatedVideoMemorySize;
+                sharedLimit = segmentInfo.SharedSystemMemorySize;
+            }
+
             PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_TOTALMEMORY, 1, PhaFormatSize(installedMemory, ULONG_MAX)->Buffer);
-            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(installedMemory - (EtNpuDedicatedLimit ? EtNpuDedicatedLimit : EtNpuSharedLimit), ULONG_MAX)->Buffer);
+
+            if (dedicatedLimit || sharedLimit)
+            {
+                ULONG64 visibleLimit = dedicatedLimit ? dedicatedLimit : sharedLimit;
+                ULONG64 reservedMemory = installedMemory > visibleLimit ? installedMemory - visibleLimit : 0;
+
+                PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_RESERVEDMEMORY, 1, PhaFormatSize(reservedMemory, ULONG_MAX)->Buffer);
+            }
         }
 
         PhClearReference(&locationInfo);
@@ -246,17 +271,17 @@ VOID EtpNpuQueryAdapterPerfInfo(
         else
             PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_FANRPM, 1, PhaFormatUInt64(adapterPerfData.FanRPM, FALSE)->Buffer);
 
-        PhInitFormatI64U(&format[0], adapterPerfData.Power * 100 / 1000);
+        PhInitFormatI64U(&format[0], PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000));
         PhInitFormatS(&format[1], L"%");
 
         if (PhFormatToBuffer(format, 2, formatBuffer, sizeof(formatBuffer), NULL))
             PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, formatBuffer);
         else
-            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", adapterPerfData.Power * 100 / 1000)->Buffer);
+            PhSetListViewSubItem(ListViewHandle, NPUADAPTER_DETAILS_INDEX_POWERUSAGE, 1, PhaFormatString(L"%lu%%", PhMultiplyDivide((ULONG)adapterPerfData.Power, 100, 1000))->Buffer);
 
         if (EtNpuFahrenheitEnabled)
         {
-            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
             FLOAT gpuFahrenheitTemp = (FLOAT)(gpuCurrentTemp * 1.8 + 32);
 
             PhInitFormatF(&format[0], gpuFahrenheitTemp, 1);
@@ -277,7 +302,7 @@ VOID EtpNpuQueryAdapterPerfInfo(
         }
         else
         {
-            ULONG gpuCurrentTemp = adapterPerfData.Temperature * 100 / 1000;
+            ULONG gpuCurrentTemp = PhMultiplyDivide((ULONG)adapterPerfData.Temperature, 100, 1000);
 
             PhInitFormatI64U(&format[0], gpuCurrentTemp);
             PhInitFormatS(&format[1], L"\u00b0C");
@@ -327,7 +352,7 @@ VOID EtpNpuDetailsEnumAdapters(
             EtpNpuDetailsAddListViewItemGroups(ListViewHandle, i);
         }
 
-        EtpNpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, ListViewHandle);
+        EtpNpuQueryAdapterDeviceProperties(gpuAdapter->DeviceInterface, adapterHandle, ListViewHandle);
         //EtpQueryAdapterRegistryInfo(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
         EtpNpuQueryAdapterDriverModel(adapterHandle, ListViewHandle);
         //EtpQueryAdapterDriverVersion(openAdapterFromDeviceName.AdapterHandle, ListViewHandle);
@@ -357,36 +382,36 @@ typedef struct _ET_NPU_DETAILS_CONTEXT
 } ET_NPU_DETAILS_CONTEXT, *PET_NPU_DETAILS_CONTEXT;
 
 INT_PTR CALLBACK EtpNpuDetailsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PET_NPU_DETAILS_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(ET_NPU_DETAILS_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->DialogHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_NPULIST);
+            context->DialogHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_NPULIST);
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -395,26 +420,26 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
             //PhSetExtendedListView(context->ListViewHandle);
             ListView_EnableGroupView(context->ListViewHandle, TRUE);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtpNpuDetailsEnumAdapters(context->ListViewHandle);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 EtpNpuProcessesUpdatedCallback,
-                hwndDlg,
+                WindowHandle,
                 &context->ProcessesUpdatedCallbackRegistration
                 );
         }
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &context->ProcessesUpdatedCallbackRegistration);
 
@@ -431,7 +456,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             }
         }
@@ -454,12 +479,12 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
         break;
     case WM_PH_SHOW_DIALOG:
         {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case WM_CONTEXTMENU:
@@ -488,7 +513,7 @@ INT_PTR CALLBACK EtpNpuDetailsDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,

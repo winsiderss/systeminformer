@@ -271,25 +271,86 @@ PPH_STRING GraphicsDeviceQueryInterfaceName(
     _In_ PWSTR DeviceInterface
     )
 {
-    DEVPROPTYPE devicePropertyType;
-    DEVINST deviceInstanceHandle;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
-
-    if (CM_Get_Device_Interface_Property(
-        DeviceInterface,
-        &DEVPKEY_Device_InstanceId,
-        &devicePropertyType,
-        (PBYTE)deviceInstanceId,
-        &deviceInstanceIdLength,
-        0
-        ) == CR_SUCCESS)
+    ULONG deviceInterfacePropertyCount = 0;
+    ULONG devicePropertyCount = 0;
+    const DEVPROPERTY* deviceInterfaceProperties = NULL;
+    const DEVPROPERTY* deviceProperties = NULL;
+    const DEVPROPERTY* instanceIdProperty;
+    const DEVPROPERTY* nameProperty;
+    PPH_STRING normalizedDeviceInterface;
+    DEVPROPCOMPKEY requestedInterfaceProperties[] =
     {
-        if (CM_Locate_DevNode(&deviceInstanceHandle, deviceInstanceId, CM_LOCATE_DEVNODE_NORMAL) == CR_SUCCESS)
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    DEVPROPCOMPKEY requestedDeviceProperties[] =
+    {
+        { DEVPKEY_NAME, DEVPROP_STORE_SYSTEM, NULL },
+    };
+
+    normalizedDeviceInterface = PhCreateString(DeviceInterface);
+
+    if (normalizedDeviceInterface->Length >= 2 * sizeof(WCHAR) && normalizedDeviceInterface->Buffer[1] == L'?')
+        normalizedDeviceInterface->Buffer[1] = OBJ_NAME_PATH_SEPARATOR;
+
+    if (HR_SUCCESS(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInterface,
+        PhGetString(normalizedDeviceInterface),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedInterfaceProperties),
+        requestedInterfaceProperties,
+        &deviceInterfacePropertyCount,
+        &deviceInterfaceProperties
+        )))
+    {
+        instanceIdProperty = PhDevFindProperty(
+            &DEVPKEY_Device_InstanceId,
+            DEVPROP_STORE_SYSTEM,
+            deviceInterfacePropertyCount,
+            deviceInterfaceProperties
+            );
+
+        if (instanceIdProperty && instanceIdProperty->Type == DEVPROP_TYPE_STRING && instanceIdProperty->Buffer && instanceIdProperty->BufferSize >= sizeof(UNICODE_NULL))
         {
-            return GraphicsQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_NAME);
+            if (HR_SUCCESS(PhDevGetObjectProperties(
+                DevObjectTypeDevice,
+                instanceIdProperty->Buffer,
+                DevQueryFlagNone,
+                RTL_NUMBER_OF(requestedDeviceProperties),
+                requestedDeviceProperties,
+                &devicePropertyCount,
+                &deviceProperties
+                )))
+            {
+                nameProperty = PhDevFindProperty(
+                    &DEVPKEY_NAME,
+                    DEVPROP_STORE_SYSTEM,
+                    devicePropertyCount,
+                    deviceProperties
+                    );
+
+                if (nameProperty && nameProperty->Type == DEVPROP_TYPE_STRING && nameProperty->Buffer && nameProperty->BufferSize >= sizeof(UNICODE_NULL))
+                {
+                    SIZE_T nameLength = nameProperty->BufferSize;
+                    PPH_STRING result;
+
+                    if (((PWSTR)nameProperty->Buffer)[(nameProperty->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+                        nameLength -= sizeof(UNICODE_NULL);
+
+                    result = PhCreateStringEx((PWSTR)nameProperty->Buffer, nameLength);
+                    PhDevFreeObjectProperties(devicePropertyCount, deviceProperties);
+                    PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
+                    PhDereferenceObject(normalizedDeviceInterface);
+                    return result;
+                }
+
+                PhDevFreeObjectProperties(devicePropertyCount, deviceProperties);
+            }
         }
+
+        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
     }
+
+    PhDereferenceObject(normalizedDeviceInterface);
 
     return PhCreateString(L"Unknown device");
 }
@@ -640,61 +701,49 @@ PPH_STRING FindGraphicsDeviceInstance(
     }
     else
     {
-        PWSTR deviceInterfaceList;
-        ULONG deviceInterfaceListLength = 0;
-        PWSTR deviceInterface;
+        ULONG deviceCount = 0;
+        const DEV_OBJECT* deviceObjects = NULL;
+        const DEVPROPCOMPKEY deviceProperties[] =
+        {
+            { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+        };
+        const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
+        {
+            { DEVPROP_OPERATOR_EQUALS, {{ DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_GUID, sizeof(GUID), (PVOID)&GUID_DISPLAY_DEVICE_ARRIVAL } }
+        };
 
-        if (CM_Get_Device_Interface_List_Size(
-            &deviceInterfaceListLength,
-            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-            NULL,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
+        if (HR_FAILED(PhDevGetObjects(
+            DevObjectTypeDeviceInterface,
+            DevQueryFlagNone,
+            RTL_NUMBER_OF(deviceProperties),
+            deviceProperties,
+            RTL_NUMBER_OF(deviceFilter),
+            deviceFilter,
+            &deviceCount,
+            &deviceObjects
+            )))
         {
             return NULL;
         }
 
-        deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-        memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-        if (CM_Get_Device_Interface_List(
-            (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL,
-            NULL,
-            deviceInterfaceList,
-            deviceInterfaceListLength,
-            CM_GET_DEVICE_INTERFACE_LIST_ALL_DEVICES
-            ) != CR_SUCCESS)
+        for (ULONG i = 0; i < deviceCount; i++)
         {
-            PhFree(deviceInterfaceList);
-            return NULL;
-        }
+            const DEV_OBJECT* device;
 
-        for (deviceInterface = deviceInterfaceList; *deviceInterface; deviceInterface += PhCountStringZ(deviceInterface) + 1)
-        {
-            DEVPROPTYPE devicePropertyType;
-            ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-            WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
+            device = &deviceObjects[i];
 
-            if (CM_Get_Device_Interface_Property(
-                deviceInterface,
-                &DEVPKEY_Device_InstanceId,
-                &devicePropertyType,
-                (PBYTE)deviceInstanceId,
-                &deviceInstanceIdLength,
-                0
-                ) != CR_SUCCESS)
+            if (PhEqualStringZ(device->pszObjectId, DevicePath->Buffer, TRUE))
             {
-                continue;
-            }
+                PH_STRINGREF string;
 
-            if (PhEqualStringZ(deviceInterface, DevicePath->Buffer, TRUE))
-            {
-                deviceInstanceString = PhCreateString(deviceInstanceId);
+                string.Buffer = device->pProperties[0].Buffer;
+                string.Length = device->pProperties[0].BufferSize ? device->pProperties[0].BufferSize - sizeof(UNICODE_NULL) : 0;
+                deviceInstanceString = PhCreateString2(&string);
                 break;
             }
         }
 
-        PhFree(deviceInterfaceList);
+        PhDevFreeObjects(deviceCount, deviceObjects);
     }
 
     return deviceInstanceString;
@@ -705,43 +754,61 @@ VOID LoadGraphicsDeviceImages(
     )
 {
     HICON largeIcon;
-    CONFIGRET result;
-    ULONG bufferSize;
+    ULONG deviceInstallerClassPropertyCount = 0;
+    const DEVPROPERTY* deviceInstallerClassProperties = NULL;
+    const DEVPROPERTY* deviceIconPathProperty;
+    PPH_STRING classGuidString;
     PPH_STRING deviceIconPath;
     PH_STRINGREF dllPartSr;
     PH_STRINGREF indexPartSr;
     ULONG64 index;
-    DEVPROPTYPE devicePropertyType;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN + 1] = L"";
     LONG dpiValue;
-
-    bufferSize = 0x40;
-    deviceIconPath = PhCreateStringEx(NULL, bufferSize);
-
-    if ((result = CM_Get_Class_Property(
-        &GUID_DEVCLASS_PROCESSOR,
-        &DEVPKEY_DeviceClass_IconPath,
-        &devicePropertyType,
-        (PBYTE)deviceIconPath->Buffer,
-        &bufferSize,
-        0
-        )) != CR_SUCCESS)
+    DEVPROPCOMPKEY requestedProperties[] =
     {
-        PhDereferenceObject(deviceIconPath);
-        deviceIconPath = PhCreateStringEx(NULL, bufferSize);
+        { DEVPKEY_DeviceClass_IconPath, DEVPROP_STORE_SYSTEM, NULL },
+    };
 
-        result = CM_Get_Class_Property(
-            &GUID_DEVCLASS_PROCESSOR,
-            &DEVPKEY_DeviceClass_IconPath,
-            &devicePropertyType,
-            (PBYTE)deviceIconPath->Buffer,
-            &bufferSize,
-            0
-            );
+    classGuidString = PhFormatGuid(&GUID_DEVCLASS_PROCESSOR);
+
+    if (!classGuidString)
+        return;
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInstallerClass,
+        PhGetString(classGuidString),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(requestedProperties),
+        requestedProperties,
+        &deviceInstallerClassPropertyCount,
+        &deviceInstallerClassProperties
+        )))
+    {
+        PhDereferenceObject(classGuidString);
+        return;
     }
 
+    PhDereferenceObject(classGuidString);
+
+    deviceIconPathProperty = PhDevFindProperty(
+        &DEVPKEY_DeviceClass_IconPath,
+        DEVPROP_STORE_SYSTEM,
+        deviceInstallerClassPropertyCount,
+        deviceInstallerClassProperties
+        );
+
+    if (
+        !deviceIconPathProperty ||
+        (deviceIconPathProperty->Type != DEVPROP_TYPE_STRING && deviceIconPathProperty->Type != DEVPROP_TYPE_STRING_LIST) ||
+        !deviceIconPathProperty->Buffer || deviceIconPathProperty->BufferSize < sizeof(UNICODE_NULL)
+        )
+    {
+        PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
+        return;
+    }
+
+    deviceIconPath = PhCreateStringEx((PWSTR)deviceIconPathProperty->Buffer, deviceIconPathProperty->BufferSize);
     PhTrimToNullTerminatorString(deviceIconPath);
+    PhDevFreeObjectProperties(deviceInstallerClassPropertyCount, deviceInstallerClassProperties);
 
     PhSplitStringRefAtChar(&deviceIconPath->sr, L',', &dllPartSr, &indexPartSr);
     PhStringToInteger64(&indexPartSr, 10, &index);
@@ -762,8 +829,8 @@ VOID LoadGraphicsDeviceImages(
         ))
     {
         HIMAGELIST imageList = PhImageListCreate(
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
-            PhGetDpi(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CXSMICON, dpiValue)
+            PhScaleToDisplay(24, dpiValue), // PhGetSystemMetrics(SM_CYSMICON, dpiValue)
             ILC_MASK | ILC_COLOR32,
             1,
             1
@@ -781,32 +848,32 @@ VOID LoadGraphicsDeviceImages(
 }
 
 INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PDV_GPU_OPTIONS_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(DV_GPU_OPTIONS_CONTEXT));
-        PhSetDialogContext(hwndDlg, context);
+        PhSetDialogContext(WindowHandle, context);
     }
     else
     {
-        context = PhGetDialogContext(hwndDlg);
+        context = PhGetDialogContext(WindowHandle);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_GPUDEVICE_LISTVIEW);
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_GPUDEVICE_LISTVIEW);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
             ListView_SetExtendedListViewStyleEx(context->ListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
@@ -819,9 +886,9 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
             PhAddListViewGroup(context->ListViewHandle, 0, L"Connected");
             PhAddListViewGroup(context->ListViewHandle, 1, L"Disconnected");
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_SHOW_HIDDEN_DEVICES), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
             FindGraphicsDevices(context);
@@ -845,7 +912,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveDialogContext(hwndDlg);
+            PhRemoveDialogContext(WindowHandle);
             PhFree(context);
         }
         break;
@@ -932,7 +999,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 {
                     if (deviceInstance = FindGraphicsDeviceInstance(param->DevicePath))
                     {
-                        ShowDeviceMenu(hwndDlg, deviceInstance);
+                        ShowDeviceMenu(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
 
                         ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -952,7 +1019,7 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
                 {
                     if (deviceInstance = FindGraphicsDeviceInstance(param->DevicePath))
                     {
-                        HardwareDeviceShowProperties(hwndDlg, deviceInstance);
+                        HardwareDeviceShowProperties(WindowHandle, deviceInstance);
                         PhDereferenceObject(deviceInstance);
                     }
                 }
@@ -960,11 +1027,11 @@ INT_PTR CALLBACK GraphicsDeviceOptionsDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

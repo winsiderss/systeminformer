@@ -21,25 +21,28 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="extract.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="update.c">
+    <ClCompile Include="main.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="install.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="startpage.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="uninstall.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="startpage.c">
-      <Filter>Source Files\pages</Filter>
-    </ClCompile>
-    <ClCompile Include="util.c">
+    <ClCompile Include="update.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="install.c">
+    <ClCompile Include="wizard.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -66,6 +69,9 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\SystemInformer\SystemInformer.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="..\..\SystemInformer\resources\systeminformer.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

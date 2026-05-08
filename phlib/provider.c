@@ -143,7 +143,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
                     break;
             }
 
-            listEntry = RemoveHeadList(&providerThread->ListHead);
+            listEntry = RemoveHeadListNoFence(&providerThread->ListHead);
 
             if (listEntry == &providerThread->ListHead)
                 break;
@@ -151,7 +151,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
             // Add the provider to the temp list.
-            InsertTailList(&tempListHead, listEntry);
+            InsertTailListNoFence(&tempListHead, listEntry);
 
             if (status != STATUS_ALERTED)
             {
@@ -207,7 +207,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
         // Re-add the items in the temp list to the main list.
 
-        while ((listEntry = RemoveHeadList(&tempListHead)) != &tempListHead)
+        while ((listEntry = RemoveHeadListNoFence(&tempListHead)) != &tempListHead)
         {
             registration = CONTAINING_RECORD(listEntry, PH_PROVIDER_REGISTRATION, ListEntry);
 
@@ -215,9 +215,9 @@ NTSTATUS NTAPI PhpProviderThreadStart(
             // condition that boosted providers are always in front of normal providers. This occurs
             // when the timer is signaled just before a boosting provider alerts our thread.
             if (!registration->Boosting)
-                InsertTailList(&providerThread->ListHead, listEntry);
+                InsertTailListNoFence(&providerThread->ListHead, listEntry);
             else
-                InsertHeadList(&providerThread->ListHead, listEntry);
+                InsertHeadListNoFence(&providerThread->ListHead, listEntry);
         }
 
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
@@ -259,8 +259,7 @@ NTSTATUS PhStartProviderThread(
         status = PhCreateWaitableTimer(
             &ProviderThread->TimerHandle,
             TIMER_ALL_ACCESS,
-            SynchronizationTimer,
-            TRUE
+            SynchronizationTimer
             );
     }
     else
@@ -344,17 +343,20 @@ VOID PhStopProviderThread(
     if (ProviderThread->State != ProviderThreadRunning)
         return;
 
-    // Verify all providers are unregistered
+#ifdef DEBUG
+    // Verify all providers are unregistered (dmex)
     PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
     if (!IsListEmpty(&ProviderThread->ListHead))
     {
         PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
-        assert(FALSE && "Stopping provider thread with active registrations");
+        // Unregister all providers before provider thread shutdown (dmex)
+        assert(FALSE && "Active provider registrations during thread shutdown");
     }
     else
     {
         PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
     }
+#endif
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
     ProviderThread->State = ProviderThreadStopping;
@@ -453,7 +455,7 @@ VOID PhRegisterProvider(
         PhReferenceObject(Object);
 
     PhAcquireQueuedLockExclusive(&ProviderThread->Lock);
-    InsertTailList(&ProviderThread->ListHead, &Registration->ListEntry);
+    InsertTailListNoFence(&ProviderThread->ListHead, &Registration->ListEntry);
     PhReleaseQueuedLockExclusive(&ProviderThread->Lock);
 }
 
@@ -535,7 +537,7 @@ BOOLEAN PhBoostProvider(
     }
 
     RemoveEntryList(&Registration->ListEntry);
-    InsertHeadList(&providerThread->ListHead, &Registration->ListEntry);
+    InsertHeadListNoFence(&providerThread->ListHead, &Registration->ListEntry);
 
     Registration->Boosting = TRUE;
     providerThread->BoostCount++;

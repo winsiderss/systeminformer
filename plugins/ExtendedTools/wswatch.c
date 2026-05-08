@@ -30,6 +30,7 @@ typedef struct _WS_WATCH_CONTEXT
     ULONG BufferSize;
 
     PH_LAYOUT_MANAGER LayoutManager;
+    HFONT WindowFont;
 
     PPH_SYMBOL_PROVIDER SymbolProvider;
     HANDLE LoadingSymbolsForProcessId;
@@ -51,8 +52,8 @@ VOID EtpDereferenceWsWatchContext(
     );
 
 INT_PTR CALLBACK EtpWsWatchDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -246,7 +247,7 @@ static PPH_STRING EtpGetBasicSymbol(
 }
 
 static VOID EtpProcessSymbolLookupResults(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PWS_WATCH_CONTEXT Context
     )
 {
@@ -262,7 +263,7 @@ static VOID EtpProcessSymbolLookupResults(
     while (listEntry)
     {
         PSYMBOL_LOOKUP_RESULT result;
-        INT lvItemIndex;
+        LONG lvItemIndex;
 
         result = CONTAINING_RECORD(listEntry, SYMBOL_LOOKUP_RESULT, ListEntry);
         listEntry = listEntry->Next;
@@ -295,7 +296,7 @@ static VOID EtpProcessSymbolLookupResults(
 }
 
 static BOOLEAN EtpUpdateWsWatch(
-    _In_ HWND hwndDlg,
+    _In_ HWND WindowHandle,
     _In_ PWS_WATCH_CONTEXT Context
     )
 {
@@ -362,7 +363,7 @@ static BOOLEAN EtpUpdateWsWatch(
     {
         PVOID *entry;
         WCHAR buffer[PH_INT32_STR_LEN_1];
-        INT lvItemIndex;
+        LONG lvItemIndex;
         ULONG newCount;
 
         // Update the count in the entry for this instruction pointer, or add a new entry if it doesn't exist.
@@ -407,7 +408,7 @@ static BOOLEAN EtpUpdateWsWatch(
     result = TRUE;
 
 SkipBuffer:
-    EtpProcessSymbolLookupResults(hwndDlg, Context);
+    EtpProcessSymbolLookupResults(WindowHandle, Context);
     ExtendedListView_SortItems(Context->ListViewHandle);
 
     return result;
@@ -433,38 +434,40 @@ PPH_STRING EtpCreateWindowTitle(
 }
 
 INT_PTR CALLBACK EtpWsWatchDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PWS_WATCH_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PWS_WATCH_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_LIST);
+            context->WindowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle));
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 250, L"Instruction");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 80, L"Filename");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Count");
@@ -472,14 +475,14 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PhLoadListViewColumnsFromSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
             ExtendedListView_SetSort(context->ListViewHandle, 2, DescendingSortOrder);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+                PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             context->Hashtable = PhCreateSimpleHashtable(64);
             context->BufferSize = 0x2000;
@@ -490,8 +493,8 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             if (!context->SymbolProvider)
             {
-                PhShowError2(hwndDlg, L"Unable to create the symbol provider.", L"%s", L"");
-                EndDialog(hwndDlg, IDCANCEL);
+                PhShowError2(WindowHandle, L"Unable to create the symbol provider.", L"%s", L"");
+                EndDialog(WindowHandle, IDCANCEL);
                 break;
             }
 
@@ -500,14 +503,14 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PhLoadSymbolProviderOptions(context->SymbolProvider);
             PhLoadSymbolProviderModules(context->SymbolProvider, context->ProcessId);
 
-            context->Enabled = EtpUpdateWsWatch(hwndDlg, context);
+            context->Enabled = EtpUpdateWsWatch(WindowHandle, context);
 
             if (context->Enabled)
             {
                 // WS Watch is already enabled for the process. Enable updating.
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
+                EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLE), FALSE);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED), SW_SHOW);
+                PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
             }
             else
             {
@@ -516,19 +519,22 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             PhSetWindowText(context->WindowHandle, PH_AUTO_T(PH_STRING, EtpCreateWindowTitle(context))->Buffer);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
             context->Destroying = TRUE;
 
-            PhKillTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT);
+            PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
 
             PhSaveListViewColumnsToSetting(SETTING_NAME_WSWATCH_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_WSWATCH_WINDOW_POSITION, SETTING_NAME_WSWATCH_WINDOW_SIZE, WindowHandle);
+
+            if (context->WindowFont)
+                DeleteFont(context->WindowFont);
 
             PhDereferenceObject(context->Hashtable);
 
@@ -549,7 +555,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(WindowHandle, IDOK);
                 break;
             case IDC_ENABLE:
                 {
@@ -573,17 +579,28 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
                     if (NT_SUCCESS(status))
                     {
-                        EnableWindow(GetDlgItem(hwndDlg, IDC_ENABLE), FALSE);
-                        ShowWindow(GetDlgItem(hwndDlg, IDC_WSWATCHENABLED), SW_SHOW);
-                        PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
+                        EnableWindow(GetDlgItem(WindowHandle, IDC_ENABLE), FALSE);
+                        ShowWindow(GetDlgItem(WindowHandle, IDC_WSWATCHENABLED), SW_SHOW);
+                        PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
                     }
                     else
                     {
-                        PhShowStatus(hwndDlg, L"Unable to enable WS watch.", status, 0);
+                        PhShowStatus(WindowHandle, L"Unable to enable WS watch.", status, 0);
                     }
                 }
                 break;
             }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            HFONT windowFont;
+
+            if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
+                PhReplaceWindowFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_NOTIFY:
@@ -600,7 +617,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
                         if (entry = PhGetSelectedListViewItemParam(context->ListViewHandle))
                         {
-                            INT lvItemIndex;
+                            LONG lvItemIndex;
                             PPH_STRING fileNameWin32;
 
                             lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, INT_ERROR, entry);
@@ -616,7 +633,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                                 )
                             {
                                 PhShellExecuteUserString(
-                                    hwndDlg,
+                                    WindowHandle,
                                     SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                     PhGetString(fileNameWin32),
                                     FALSE,
@@ -642,7 +659,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             switch (wParam)
             {
             case PH_WINDOW_TIMER_DEFAULT:
-                EtpUpdateWsWatch(hwndDlg, context);
+                EtpUpdateWsWatch(WindowHandle, context);
                 break;
             }
         }
@@ -653,7 +670,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
             PPH_EMENU menu;
             PPH_EMENU item;
             PPH_STRING fileNameWin32;
-            INT lvItemIndex;
+            LONG lvItemIndex;
             PVOID listviewItem;
 
             point.x = GET_X_LPARAM(lParam);
@@ -686,7 +703,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
 
             item = PhShowEMenu(
                 menu,
-                hwndDlg,
+                WindowHandle,
                 PH_EMENU_SHOW_LEFTRIGHT,
                 PH_ALIGN_LEFT | PH_ALIGN_TOP,
                 point.x,
@@ -702,7 +719,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     case 1:
                         {
                             PhShellExecuteUserString(
-                                hwndDlg,
+                                WindowHandle,
                                 SETTING_PROGRAM_INSPECT_EXECUTABLES,
                                 PhGetString(fileNameWin32),
                                 FALSE,
@@ -713,7 +730,7 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
                     case 2:
                         {
                             PhShellExecuteUserString(
-                                hwndDlg,
+                                WindowHandle,
                                 SETTING_FILE_BROWSE_EXECUTABLE,
                                 PhGetString(fileNameWin32),
                                 FALSE,
@@ -732,11 +749,11 @@ INT_PTR CALLBACK EtpWsWatchDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

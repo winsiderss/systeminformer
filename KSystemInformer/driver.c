@@ -78,7 +78,7 @@ NTSTATUS KphQueryInformationDriver(
     status = ObReferenceObjectByHandle(DriverHandle,
                                        0,
                                        *IoDriverObjectType,
-                                       KernelMode,
+                                       AccessMode,
                                        &driverObject,
                                        NULL);
     if (!NT_SUCCESS(status))

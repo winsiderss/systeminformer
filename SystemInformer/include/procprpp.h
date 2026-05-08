@@ -372,6 +372,8 @@ typedef struct _PH_MEMORY_CONTEXT
 
 #define WM_PH_STATISTICS_UPDATE (WM_APP + 231)
 
+#define PH_PROCESS_STATISTICS_SAMPLE_LIMIT 128
+
 typedef struct _PH_STATISTICS_CONTEXT
 {
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
@@ -401,6 +403,37 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONGLONG RunningTime; ULONGLONG RunningTimeMin; ULONGLONG RunningTimeMax; ULONGLONG RunningTimeDiff;
     ULONGLONG SuspendedTime; ULONGLONG SuspendedTimeMin; ULONGLONG SuspendedTimeMax; ULONGLONG SuspendedTimeDiff;
     ULONGLONG NetworkTxRxBytes; ULONGLONG NetworkTxRxBytesMin; ULONGLONG NetworkTxRxBytesMax; ULONGLONG NetworkTxRxBytesDiff;
+    BOOLEAN GotExtendedEnergyValues;
+    ULONG64 EnergyCycleTimeTotal; ULONG64 EnergyCycleTimeTotalMin; ULONG64 EnergyCycleTimeTotalMax; ULONG64 EnergyCycleTimeTotalDiff;
+    ULONG64 EnergyCycles[4][2]; ULONG64 EnergyCyclesMin[4][2]; ULONG64 EnergyCyclesMax[4][2]; ULONG64 EnergyCyclesDiff[4][2];
+    ULONG64 EnergyDisk; ULONG64 EnergyDiskMin; ULONG64 EnergyDiskMax; ULONG64 EnergyDiskDiff;
+    PH_UINT64_DELTA EnergyDiskDelta;
+    ULONG64 EnergyNetworkTail; ULONG64 EnergyNetworkTailMin; ULONG64 EnergyNetworkTailMax; ULONG64 EnergyNetworkTailDiff;
+    PH_UINT64_DELTA EnergyNetworkTailDelta;
+    ULONG64 EnergyMbbTail; ULONG64 EnergyMbbTailMin; ULONG64 EnergyMbbTailMax; ULONG64 EnergyMbbTailDiff;
+    PH_UINT64_DELTA EnergyMbbTailDelta;
+    ULONG64 EnergyNetworkTxRxBytes; ULONG64 EnergyNetworkTxRxBytesMin; ULONG64 EnergyNetworkTxRxBytesMax; ULONG64 EnergyNetworkTxRxBytesDiff;
+    ULONG64 EnergyMbbTxRxBytes; ULONG64 EnergyMbbTxRxBytesMin; ULONG64 EnergyMbbTxRxBytesMax; ULONG64 EnergyMbbTxRxBytesDiff;
+    ULONG64 EnergyForegroundDuration; ULONG64 EnergyForegroundDurationMin; ULONG64 EnergyForegroundDurationMax; ULONG64 EnergyForegroundDurationDiff;
+    ULONG64 EnergyDesktopVisibleDuration; ULONG64 EnergyDesktopVisibleDurationMin; ULONG64 EnergyDesktopVisibleDurationMax; ULONG64 EnergyDesktopVisibleDurationDiff;
+    ULONG64 EnergyPsmForegroundDuration; ULONG64 EnergyPsmForegroundDurationMin; ULONG64 EnergyPsmForegroundDurationMax; ULONG64 EnergyPsmForegroundDurationDiff;
+    ULONG64 EnergyCompositionRendered; ULONG64 EnergyCompositionRenderedMin; ULONG64 EnergyCompositionRenderedMax; ULONG64 EnergyCompositionRenderedDiff;
+    ULONG64 EnergyCompositionDirtyGenerated; ULONG64 EnergyCompositionDirtyGeneratedMin; ULONG64 EnergyCompositionDirtyGeneratedMax; ULONG64 EnergyCompositionDirtyGeneratedDiff;
+    ULONG64 EnergyCompositionDirtyPropagated; ULONG64 EnergyCompositionDirtyPropagatedMin; ULONG64 EnergyCompositionDirtyPropagatedMax; ULONG64 EnergyCompositionDirtyPropagatedDiff;
+    ULONG64 EnergyAttributedCycles; ULONG64 EnergyAttributedCyclesMin; ULONG64 EnergyAttributedCyclesMax; ULONG64 EnergyAttributedCyclesDiff;
+    ULONG64 EnergyAttributedCyclesBreakdown[4][2]; ULONG64 EnergyAttributedCyclesBreakdownMin[4][2]; ULONG64 EnergyAttributedCyclesBreakdownMax[4][2]; ULONG64 EnergyAttributedCyclesBreakdownDiff[4][2];
+    ULONG64 EnergyWorkOnBehalfCycles; ULONG64 EnergyWorkOnBehalfCyclesMin; ULONG64 EnergyWorkOnBehalfCyclesMax; ULONG64 EnergyWorkOnBehalfCyclesDiff;
+    ULONG64 EnergyWorkOnBehalfCyclesBreakdown[4][2]; ULONG64 EnergyWorkOnBehalfCyclesBreakdownMin[4][2]; ULONG64 EnergyWorkOnBehalfCyclesBreakdownMax[4][2]; ULONG64 EnergyWorkOnBehalfCyclesBreakdownDiff[4][2];
+    ULONG64 EnergyCpuTimelineActive; ULONG64 EnergyCpuTimelineActiveMin; ULONG64 EnergyCpuTimelineActiveMax; ULONG64 EnergyCpuTimelineActiveDiff;
+    ULONG64 EnergyDiskTimelineActive; ULONG64 EnergyDiskTimelineActiveMin; ULONG64 EnergyDiskTimelineActiveMax; ULONG64 EnergyDiskTimelineActiveDiff;
+    ULONG64 EnergyNetworkTimelineActive; ULONG64 EnergyNetworkTimelineActiveMin; ULONG64 EnergyNetworkTimelineActiveMax; ULONG64 EnergyNetworkTimelineActiveDiff;
+    ULONG64 EnergyInputDuration; ULONG64 EnergyInputDurationMin; ULONG64 EnergyInputDurationMax; ULONG64 EnergyInputDurationDiff;
+    ULONG64 EnergyAudioInDuration; ULONG64 EnergyAudioInDurationMin; ULONG64 EnergyAudioInDurationMax; ULONG64 EnergyAudioInDurationDiff;
+    ULONG64 EnergyAudioOutDuration; ULONG64 EnergyAudioOutDurationMin; ULONG64 EnergyAudioOutDurationMax; ULONG64 EnergyAudioOutDurationDiff;
+    ULONG64 EnergyDisplayRequiredDuration; ULONG64 EnergyDisplayRequiredDurationMin; ULONG64 EnergyDisplayRequiredDurationMax; ULONG64 EnergyDisplayRequiredDurationDiff;
+    ULONG64 EnergyPsmBackgroundDuration; ULONG64 EnergyPsmBackgroundDurationMin; ULONG64 EnergyPsmBackgroundDurationMax; ULONG64 EnergyPsmBackgroundDurationDiff;
+    ULONG64 EnergyKeyboardInput; ULONG64 EnergyKeyboardInputMin; ULONG64 EnergyKeyboardInputMax; ULONG64 EnergyKeyboardInputDiff;
+    ULONG64 EnergyMouseInput; ULONG64 EnergyMouseInputMin; ULONG64 EnergyMouseInputMax; ULONG64 EnergyMouseInputDiff;
     PH_UINT64_DELTA KeyboardDelta;
     ULONG64 KeyboardInput; ULONG64 KeyboardInputMin; ULONG64 KeyboardInputMax; ULONG64 KeyboardInputDiff;
     PH_UINT64_DELTA MouseDelta;
@@ -472,6 +505,17 @@ typedef struct _PH_STATISTICS_CONTEXT
     ULONG64 IoTotal; ULONG64 IoTotalMin; ULONG64 IoTotalMax; ULONG64 IoTotalDiff;
     ULONG64 IoTotalDelta; ULONG64 IoTotalDeltaMin; ULONG64 IoTotalDeltaMax; ULONG64 IoTotalDeltaDiff;
     ULONG64 IoAverage; ULONG64 IoAverageMin; ULONG64 IoAverageMax; ULONG64 IoAverageDiff;
+
+    DOUBLE *StatisticsSamples;
+    BOOLEAN *StatisticsSampleSlotsValid;
+    DOUBLE StatisticsSampleTotals[PH_PROCESS_STATISTICS_SAMPLE_LIMIT];
+    DOUBLE StatisticsAverages[PH_PROCESS_STATISTICS_SAMPLE_LIMIT];
+    DOUBLE StatisticsMedians[PH_PROCESS_STATISTICS_SAMPLE_LIMIT];
+    ULONG StatisticsSampleCounts[PH_PROCESS_STATISTICS_SAMPLE_LIMIT];
+    BOOLEAN StatisticsSampleValid[PH_PROCESS_STATISTICS_SAMPLE_LIMIT];
+    ULONG StatisticsSampleCapacity;
+    ULONG StatisticsSampleCount;
+    ULONG StatisticsSampleIndex;
 
 } PH_STATISTICS_CONTEXT, *PPH_STATISTICS_CONTEXT;
 

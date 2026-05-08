@@ -234,7 +234,7 @@ INT_PTR CALLBACK PvOptionsWndProc(
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhGetStockApplicationIcon(&smallIcon, &largeIcon);
+            PhGetStockApplicationIcon(&smallIcon, &largeIcon, PhGetWindowDpi(hwndDlg));
             SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)smallIcon);
             SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)largeIcon);
 

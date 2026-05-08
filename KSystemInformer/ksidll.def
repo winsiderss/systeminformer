@@ -9,5 +9,10 @@ EXPORTS
     KsiRemoveQueueApc
     KsiInitializeWorkItem
     KsiQueueWorkItem
+    KsiInitializeDpc
+    KsiInitializeThreadedDpc
+    KsiInsertQueueDpc
+    KsiRemoveQueueDpc
+    KsiRemoveQueueDpcEx
     KsiInitializeSystemProcess
     KsiSystemProcess              DATA

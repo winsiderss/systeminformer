@@ -471,22 +471,23 @@ NTSTATUS KphCopyUnicodeStringToMode(
 
     if (AccessMode != KernelMode)
     {
+        PWCH buffer;
+
+        buffer = Add2Ptr(destination, sizeof(UNICODE_STRING));
+
         __try
         {
             WriteUShortToUser(&destination->Length, String->Length);
             WriteUShortToUser(&destination->MaximumLength, maximumLength);
-            WritePointerToUser(&destination->Buffer,
-                               Add2Ptr(destination, sizeof(UNICODE_STRING)));
+            WritePointerToUser(&destination->Buffer, buffer);
 
-            NT_ASSERT(destination->Buffer);
-
-            CopyToUser(destination->Buffer, String->Buffer, String->Length);
+            CopyToUser(buffer, String->Buffer, String->Length);
 
             if ((String->Length + sizeof(UNICODE_NULL)) <= maximumLength)
             {
                 PWCHAR end;
 
-                end = &destination->Buffer[String->Length / sizeof(WCHAR)];
+                end = &buffer[String->Length / sizeof(WCHAR)];
 
                 WriteUShortToUser(end, UNICODE_NULL);
             }

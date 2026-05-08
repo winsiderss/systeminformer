@@ -262,7 +262,7 @@ NTSTATUS PhIntegerToUtf8Buffer(
     )
 {
     std::to_chars_result result;
-    INT radix = (Base == 0) ? 10 : (INT)Base;
+    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
 
     if (!Buffer || BufferLength == 0)
         return STATUS_BUFFER_TOO_SMALL;
@@ -277,7 +277,7 @@ NTSTATUS PhIntegerToUtf8Buffer(
         result = std::to_chars(
             Buffer, 
             endBuffer, 
-            (long long)Integer, 
+            static_cast<long long>(Integer),
             radix
             );
     }
@@ -286,7 +286,7 @@ NTSTATUS PhIntegerToUtf8Buffer(
         result = std::to_chars(
             Buffer, 
             endBuffer, 
-            (unsigned long long)Integer, 
+            static_cast<unsigned long long>(Integer),
             radix
             );
     }
@@ -488,10 +488,9 @@ NTSTATUS PhStringToInteger64Utf8Ex(
     _Out_ PLONG64 Integer
     )
 {
-    std::from_chars_result result;
-    INT radix = (Base == 0) ? 10 : (INT)Base;
+    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
 
-    result = std::from_chars(
+    auto result = std::from_chars(
         String,
         String + Length,
         *reinterpret_cast<long long*>(Integer),
@@ -537,10 +536,9 @@ NTSTATUS PhStringToUInt64Utf8Ex(
     _Out_ PULONG64 Integer
     )
 {
-    std::from_chars_result result;
-    INT radix = (Base == 0) ? 10 : (INT)Base;
+    INT radix = (Base == 0) ? 10 : static_cast<INT>(Base);
 
-    result = std::from_chars(
+    auto result = std::from_chars(
         String,
         String + Length,
         *reinterpret_cast<unsigned long long*>(Integer),

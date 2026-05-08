@@ -1,15 +1,21 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <CodePage>65001</CodePage>
+    <CsWin32EnableWindowsTargeting>true</CsWin32EnableWindowsTargeting>
     <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <Deterministic>true</Deterministic>
     <DisableRuntimeMarshalling>true</DisableRuntimeMarshalling>
+    <DockerDefaultTargetOS>Windows</DockerDefaultTargetOS>
+    <DockerfileContext>.</DockerfileContext>
+    <ContainerDevelopmentMode>Regular</ContainerDevelopmentMode>
     <CsWin32RunAsBuildTask>true</CsWin32RunAsBuildTask>
+    <CsWin32Targeting>Windows</CsWin32Targeting>
     <EmbedAllSources>false</EmbedAllSources>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <EventSourceSupport>false</EventSourceSupport>
     <FileAlignment>4096</FileAlignment>
     <HttpActivityPropagationSupport>false</HttpActivityPropagationSupport>
@@ -33,6 +39,8 @@
     <PackageProjectUrl>https://github.com/winsiderss/systeminformer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/winsiderss/systeminformer</RepositoryUrl>
     <NuGetAuditMode>all</NuGetAuditMode>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x86'">
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
@@ -95,6 +103,11 @@
     <DebugType>portable</DebugType>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="bin\Release\**" />
+    <EmbeddedResource Remove="bin\Release\**" />
+    <None Remove="bin\Release\**" />
+  </ItemGroup>
+  <ItemGroup>
     <AdditionalFiles Remove="NativeMethods.json" />
   </ItemGroup>
   <ItemGroup>
@@ -105,20 +118,26 @@
     <None Include="app.manifest" />
   </ItemGroup>
   <ItemGroup>
+    <Using Include="SharpCompress.Common" />
+    <Using Include="SharpCompress.Writers" />
+    <Using Include="SharpCompress.Writers.Zip" />
+    <Using Include="System.Collections.Frozen" />
     <Using Include="Microsoft.Win32.SafeHandles" />
     <Using Include="System.Buffers" />
+    <Using Include="System.Buffers.Binary" />
     <Using Include="System.Collections.Concurrent" />
     <Using Include="System.Collections.Immutable" />
+    <Using Include="System.CommandLine" />
     <Using Include="System.ComponentModel" />
     <Using Include="System.Diagnostics" />
     <Using Include="System.Diagnostics.CodeAnalysis" />
     <Using Include="System.Globalization" />
-    <Using Include="System.IO.Compression" />
     <Using Include="System.Net" />
     <Using Include="System.Net.Http.Headers" />
     <Using Include="System.Net.Security" />
     <Using Include="System.Numerics;" />
     <Using Include="System.Reflection" />
+    <Using Include="System.Reflection.PortableExecutable" />
     <Using Include="System.Runtime.CompilerServices" />
     <Using Include="System.Runtime.InteropServices" />
     <Using Include="System.Security.Authentication" />
@@ -129,6 +148,7 @@
     <Using Include="System.Text.Json.Nodes" />
     <Using Include="System.Text.Json.Serialization" />
     <Using Include="System.Text.Json.Serialization.Metadata" />
+    <Using Include="System.Text.RegularExpressions" />
     <Using Include="System.Xml" />
     <Using Include="Windows.Win32" />
     <Using Include="Windows.Win32.Foundation" />
@@ -144,10 +164,13 @@
     <LinkerArg Include="/RELEASE /BREPRO /DEPENDENTLOADFLAG:0x800 /PDBALTPATH:%_PDB% /FILEALIGN:0x1000" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.269">
+    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.275">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.44.5" />
+    <PackageReference Include="SharpCompress" Version="0.47.4" />
+    <PackageReference Include="System.CommandLine" Version="2.0.7" />
   </ItemGroup>
 </Project>
+

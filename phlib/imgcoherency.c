@@ -313,7 +313,7 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
 }
 
 _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
-static NTSTATUS PhImageCoherencyReadVirtualMemoryCallback(
+static NTSTATUS NTAPI PhImageCoherencyReadVirtualMemoryCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID BaseAddress,
     _Out_writes_bytes_(BufferSize) PVOID Buffer,
@@ -497,12 +497,14 @@ NTSTATUS PhpAnalyzeImageCoherencyInspect(
     if (LeftBuffer && RightBuffer)
     {
         ULONG length = min(LeftCount, RightCount);
+        ULONG i = 0;
 
-        for (ULONG i = 0; i < length; i++)
+        while (i < length)
         {
             if (SkipCallback)
             {
                 ULONG skip = SkipCallback(Rva + i, SkipCallbackContext);
+
                 if (skip != 0)
                 {
                     ULONG remaining = length - i;
@@ -530,6 +532,8 @@ NTSTATUS PhpAnalyzeImageCoherencyInspect(
                 status = GetExceptionCode();
                 break;
             }
+
+            i++;
         }
     }
 
@@ -996,7 +1000,6 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
 * Checks if the image is a .NET application.
 *
 * \param[in] Context - Image coherency context.
-*
 * \return TRUE if the image is a .NET application, FALSE otherwise.
 */
 BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
@@ -1105,7 +1108,6 @@ VOID PhpAnalyzeImageCoherencyCommon(
 *
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
-*
 * \return Success status or failure.
 */
 NTSTATUS PhpAnalyzeImageCoherencyNt32(
@@ -1164,7 +1166,6 @@ NTSTATUS PhpAnalyzeImageCoherencyNt32(
 *
 * \param[in] ProcessHandle - Handle to the process requires PROCESS_VM_READ.
 * \param[in] Context - Image coherency context.
-*
 * \return Success status or failure.
 */
 NTSTATUS PhpAnalyzeImageCoherencyNt64(
@@ -1563,7 +1564,7 @@ NTSTATUS PhGetProcessModuleImageCoherency(
 /**
  * \brief Checks the image pages for tampering.
  *
- * \details Checkout out or blog for more info:
+ * \details Check out our blog for more info:
  * https://windows-internals.com/understanding-a-new-mitigation-module-tampering-protection/
  *
  * \param[in] ProcessHandle - Handle to the process where the module is mapped.
@@ -1571,7 +1572,6 @@ NTSTATUS PhGetProcessModuleImageCoherency(
  * \param[in] SizeOfImage - Size of the image to check.
  * \param[out] NumberOfPages - Number of pages checked.
  * \param[out] NumberOfTamperedPages - Number of tampered pages.
- *
  * \return Successful or errant status.
  */
 NTSTATUS PhCheckImagePagesForTampering(

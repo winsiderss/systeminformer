@@ -989,7 +989,7 @@ HICON PhNfGetApplicationIcon(
             DpiValue = PhGetTaskbarDpi();
         }
 
-        PhNfAppTrayIcon = PhGetApplicationIconEx(FALSE, DpiValue);
+        PhNfAppTrayIcon = PhGetApplicationIcon(FALSE, DpiValue);
     }
 
     return PhNfAppTrayIcon;
@@ -1003,6 +1003,7 @@ HICON PhNfpGetBlackIcon(
     {
         ULONG width;
         ULONG height;
+        SIZE_T bitsSize;
         PVOID bits;
         HDC hdc;
         HBITMAP mask;
@@ -1010,7 +1011,15 @@ HICON PhNfpGetBlackIcon(
         ICONINFO iconInfo;
 
         PhNfpBeginBitmap2(&PhNfpBlackBitmapContext, &width, &height, &PhNfpBlackBitmap, &bits, &hdc, &oldBitmap);
-        memset(bits, PhNfTransparencyEnabled ? 1 : 0, width * height * sizeof(RGBQUAD));
+
+        if (!NT_SUCCESS(RtlSizeTMult(width, height, &bitsSize)) ||
+            !NT_SUCCESS(RtlSizeTMult(bitsSize, sizeof(RGBQUAD), &bitsSize)))
+        {
+            SelectBitmap(hdc, oldBitmap);
+            return NULL;
+        }
+
+        memset(bits, PhNfTransparencyEnabled ? 1 : 0, bitsSize);
 
         // Create a monochrome mask bitmap for the icon.
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
@@ -1115,7 +1124,7 @@ HFONT PhNfGetTrayIconFont(
         }
 
         PhNfTrayIconFont = CreateFont(
-            PhGetDpi(-11, DpiValue),
+            PhScaleToDisplay(-11, DpiValue),
             0,
             0,
             0,
@@ -1163,7 +1172,7 @@ BOOLEAN PhNfpAddNotifyIcon(
         _TRUNCATE
         );
     //notifyIcon.hIcon = PhNfpGetBlackIcon();
-    notifyIcon.hIcon = PhGetApplicationIcon(TRUE); // Fixes GH#1845 (dmex)
+    notifyIcon.hIcon = PhNfGetApplicationIcon(0); // Fixes GH#1845 (dmex)
 
     if (!PhNfMiniInfoEnabled || PhNfMiniInfoPinned || FlagOn(Icon->Flags, PH_NF_ICON_NOSHOW_MINIINFO))
         SetFlag(notifyIcon.uFlags, NIF_SHOWTIP);
@@ -1497,7 +1506,7 @@ VOID PhNfpBeginBitmap2(
     if (Context->TaskbarDpi == 0 || Context->TaskbarDpi != dpiValue)
     {
         Context->Width = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
-        Context->Height = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+        Context->Height = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
 
         // Re-initialize fonts with updated DPI (only when there's an existing handle). (dmex)
         //PhNfGetTrayIconFont(dpiValue);

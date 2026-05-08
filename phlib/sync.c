@@ -115,9 +115,7 @@ VOID FASTCALL PhfSetEvent(
  *
  * \param Event A pointer to an event object.
  * \param Timeout The timeout value.
- *
  * \return TRUE if the event object was set before the timeout period expired, otherwise FALSE.
- *
  * \remarks To test the event, use PhTestEvent() instead of using a timeout of zero.
  */
 BOOLEAN FASTCALL PhfWaitForEvent(
@@ -183,7 +181,6 @@ BOOLEAN FASTCALL PhfWaitForEvent(
  * Resets an event's state.
  *
  * \param Event A pointer to an event object.
- *
  * \remarks This function is not thread-safe. Make sure no other threads are using the event when
  * you call this function.
  */
@@ -199,6 +196,12 @@ VOID FASTCALL PhfResetEvent(
     }
 }
 
+/**
+ * Initializes a barrier object.
+ *
+ * \param Barrier A pointer to a barrier object.
+ * \param Target The number of participants required to release the barrier.
+ */
 VOID FASTCALL PhfInitializeBarrier(
     _Out_ PPH_BARRIER Barrier,
     _In_ ULONG_PTR Target
@@ -208,6 +211,13 @@ VOID FASTCALL PhfInitializeBarrier(
     PhInitializeWakeEvent(&Barrier->WakeEvent);
 }
 
+/**
+ * Blocks on a barrier according to the participant role.
+ *
+ * \param Barrier A barrier.
+ * \param Role The participant role.
+ * \param Spin TRUE to spin on the barrier before blocking, FALSE to block immediately.
+ */
 FORCEINLINE VOID PhpBlockOnBarrier(
     _Inout_ PPH_BARRIER Barrier,
     _In_ ULONG Role,
@@ -250,9 +260,7 @@ FORCEINLINE VOID PhpBlockOnBarrier(
  *
  * \param Barrier A barrier.
  * \param Spin TRUE to spin on the barrier before blocking, FALSE to block immediately.
- *
  * \return TRUE for an unspecified thread after each phase, and FALSE for all other threads.
- *
  * \remarks By checking the return value of the function, in each phase an action can be performed
  * exactly once. This could, for example, involve merging the results of calculations.
  */
@@ -341,6 +349,11 @@ BOOLEAN FASTCALL PhfWaitForBarrier(
     }
 }
 
+/**
+ * Initializes a rundown protection object.
+ *
+ * \param Protection A pointer to a rundown protection object.
+ */
 VOID FASTCALL PhfInitializeRundownProtection(
     _Out_ PPH_RUNDOWN_PROTECT Protection
     )
@@ -348,6 +361,12 @@ VOID FASTCALL PhfInitializeRundownProtection(
     Protection->Value = 0;
 }
 
+/**
+ * Attempts to acquire rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ * \return TRUE if rundown protection was acquired, otherwise FALSE.
+ */
 BOOLEAN FASTCALL PhfAcquireRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
@@ -372,6 +391,11 @@ BOOLEAN FASTCALL PhfAcquireRundownProtection(
     }
 }
 
+/**
+ * Releases rundown protection.
+ *
+ * \param Protection A rundown protection object.
+ */
 VOID FASTCALL PhfReleaseRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
@@ -412,6 +436,11 @@ VOID FASTCALL PhfReleaseRundownProtection(
     }
 }
 
+/**
+ * Starts rundown and waits for all protected users to finish.
+ *
+ * \param Protection A rundown protection object.
+ */
 VOID FASTCALL PhfWaitForRundownProtection(
     _Inout_ PPH_RUNDOWN_PROTECT Protection
     )
@@ -462,6 +491,11 @@ VOID FASTCALL PhfWaitForRundownProtection(
     }
 }
 
+/**
+ * Initializes an init-once object.
+ *
+ * \param InitOnce A pointer to an init-once object.
+ */
 VOID FASTCALL PhfInitializeInitOnce(
     _Out_ PPH_INITONCE InitOnce
     )
@@ -469,6 +503,12 @@ VOID FASTCALL PhfInitializeInitOnce(
     PhInitializeEvent(&InitOnce->Event);
 }
 
+/**
+ * Begins one-time initialization.
+ *
+ * \param InitOnce An init-once object.
+ * \return TRUE if the caller should perform initialization, otherwise FALSE.
+ */
 BOOLEAN FASTCALL PhfBeginInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )
@@ -481,6 +521,11 @@ BOOLEAN FASTCALL PhfBeginInitOnce(
     return FALSE;
 }
 
+/**
+ * Completes one-time initialization and releases waiting threads.
+ *
+ * \param InitOnce An init-once object.
+ */
 VOID FASTCALL PhfEndInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )

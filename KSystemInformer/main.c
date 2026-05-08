@@ -83,6 +83,7 @@ VOID KphpDriverCleanup(
 {
     KPH_PAGED_CODE_PASSIVE();
 
+    KphSiloInformerStop();
     KphDebugInformerStop();
     KphRegistryInformerStop();
     KphObjectInformerStop();
@@ -385,6 +386,16 @@ NTSTATUS DriverEntry(
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to start debug informer: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    status = KphSiloInformerStart();
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to start silo informer: %!STATUS!",
                       status);
         goto Exit;
     }

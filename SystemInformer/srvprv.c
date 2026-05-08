@@ -465,7 +465,7 @@ VOID PhServiceQueryStage1(
     {
         if (!FlagOn(serviceItem->Type, SERVICE_DRIVER)) // Skip icons for kernel drivers (dmex)
         {
-            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, SYSTEM_IDLE_PROCESS_ID, NULL, PhSystemDpi);
+            Data->IconEntry = PhImageListExtractIcon(fileName, FALSE, SYSTEM_IDLE_PROCESS_ID, NULL, PhProcessImageListWindowDpi);
         }
 
         if (!PhEnableProcessQueryStage2)
@@ -1178,7 +1178,9 @@ VOID PhDestroyServiceNotifyContext(
     if (NotifyContext->Buffer.pszServiceNames)
         LocalFree(NotifyContext->Buffer.pszServiceNames);
 
-    PhCloseServiceHandle(NotifyContext->ServiceHandle);
+    if (!NotifyContext->IsServiceManager)
+        PhCloseServiceHandle(NotifyContext->ServiceHandle);
+
     PhClearReference(&NotifyContext->ServiceName);
     PhFree(NotifyContext);
 }

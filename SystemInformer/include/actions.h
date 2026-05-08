@@ -488,6 +488,24 @@ PhUiResumeThreads(
 PHAPPAPI
 BOOLEAN
 NTAPI
+PhUiFreezeThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhUiThawThreads(
+    _In_ HWND WindowHandle,
+    _In_ PPH_THREAD_ITEM *Threads,
+    _In_ ULONG NumberOfThreads
+    );
+
+PHAPPAPI
+BOOLEAN
+NTAPI
 PhUiSetBoostPriorityThreads(
     _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM* Threads,

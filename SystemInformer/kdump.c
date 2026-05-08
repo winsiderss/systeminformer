@@ -191,7 +191,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 if (NT_SUCCESS(context->LastStatus))
                 {
                     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-                    config.hMainIcon = PhGetApplicationIcon(FALSE);
+                    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(context->WindowHandle));
                     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     config.pfCallback = PhpLiveDumpPageCallbackProc;
                     config.lpCallbackData = (LONG_PTR)context;
@@ -202,7 +202,7 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
                 else
                 {
                     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;
-                    config.hMainIcon = PhGetApplicationIcon(FALSE);
+                    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(context->WindowHandle));
                     config.dwCommonButtons = TDCBF_CLOSE_BUTTON;
                     config.pfCallback = PhpLiveDumpPageCallbackProc;
                     config.lpCallbackData = (LONG_PTR)context;
@@ -263,7 +263,7 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_SHOW_MARQUEE_PROGRESS_BAR | TDF_CALLBACK_TIMER | TDF_CAN_BE_MINIMIZED;
-    config.hMainIcon = PhGetApplicationIcon(FALSE);
+    config.hMainIcon = PhGetApplicationIcon(FALSE, USER_DEFAULT_SCREEN_DPI);
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.pfCallback = PhpLiveDumpProgressDialogCallbackProc;
     config.lpCallbackData = (LONG_PTR)context;

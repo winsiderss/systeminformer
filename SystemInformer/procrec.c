@@ -178,7 +178,7 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
             {
                 HICON largeIcon;
 
-                PhGetStockApplicationIcon(NULL, &largeIcon);
+                PhGetStockApplicationIcon(NULL, &largeIcon, PhGetWindowDpi(hwndDlg));
                 SendMessage(GetDlgItem(hwndDlg, IDC_FILEICON), STM_SETICON, (WPARAM)largeIcon, 0);
             }
 

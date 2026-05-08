@@ -175,8 +175,6 @@ namespace CustomBuildTool
                 return this.InstanceHandle;
             });
 
-            SignCallbackInstanceMap[certPtr] = this.InstanceHandle;
-
             // Use a static unmanaged callers only wrapper and take its address as a function pointer
             // The static wrapper will look up the instance by the incoming pSigningCert pointer.
             this.SigningCallback = &StaticNativeSignDigestCallback;
@@ -407,16 +405,22 @@ namespace CustomBuildTool
 
                     if (removed.IsAllocated)
                     {
-                        removed.Free(); // Ensure it's freed
+                        bool removedInstanceHandle = removed.Equals(this.InstanceHandle);
+                        removed.Free();
+
+                        if (removedInstanceHandle)
+                        {
+                            this.InstanceHandle = default;
+                        }
                     }
                 }
             }
             catch (ObjectDisposedException) { }
 
-
             if (this.InstanceHandle.IsAllocated)
             {
                 this.InstanceHandle.Free();
+                this.InstanceHandle = default;
             }
 
             if (disposing)

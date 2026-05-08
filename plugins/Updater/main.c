@@ -75,7 +75,7 @@ VOID NTAPI MainMenuInitializingCallback(
     //PhInsertEMenuItem(menuInfo->Menu, channelMenuItem, 0);
     PhInsertEMenuItem(menuInfo->Menu, PhPluginCreateEMenuItem(PluginInstance, 0, UPDATE_MENUITEM_UPDATE, L"Check for &updates", NULL), 0);
 
-    //switch (PhGetPhReleaseChannel())
+    //switch (PhGetBuildhReleaseChannel())
     //{
     //case PhReleaseChannel:
     //    releaseMenuItem->Flags |= (PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK);
@@ -125,7 +125,7 @@ VOID NTAPI MenuItemCallback(
         return;
     }
 
-    if (PhGetPhReleaseChannel() != channel)
+    if (PhGetBuildReleaseChannel() != channel)
     {
         context = CreateUpdateContext(FALSE);
         context->Channel = channel;
@@ -166,6 +166,7 @@ LOGICAL DllMain(
             {
                 { IntegerSettingType, SETTING_NAME_AUTO_CHECK, L"1" },
                 { IntegerSettingType, SETTING_NAME_LAST_CHECK, L"0" },
+                { IntegerSettingType, SETTING_NAME_UPDATE_INTERVAL, L"1" },
                 { IntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CHANGELOG_WINDOW_SIZE, L"@96|420,250" },
                 { StringSettingType, SETTING_NAME_CHANGELOG_COLUMNS, L"" },

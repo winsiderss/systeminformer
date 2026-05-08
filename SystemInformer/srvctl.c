@@ -90,6 +90,12 @@ HWND PhCreateServiceListControl(
     return windowHandle;
 }
 
+/**
+ * Callback function for service list modification events.
+ *
+ * \param Parameter The callback parameter.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhServiceListModifiedHandler(
     _In_ PVOID Parameter,
@@ -105,6 +111,12 @@ VOID NTAPI PhServiceListModifiedHandler(
     PostMessage(servicesContext->WindowHandle, WM_PH_SERVICE_PAGE_MODIFIED, 0, (LPARAM)copy);
 }
 
+/**
+ * Updates the state of the service controls.
+ *
+ * \param hWnd The handle to the dialog.
+ * \param ServiceItem The service item.
+ */
 VOID PhpFixProcessServicesControls(
     _In_ HWND hWnd,
     _In_opt_ PPH_SERVICE_ITEM ServiceItem
@@ -183,6 +195,15 @@ VOID PhpFixProcessServicesControls(
     }
 }
 
+/**
+ * Dialog procedure for the services page.
+ *
+ * \param hwndDlg The handle to the dialog.
+ * \param uMsg The message being processed.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
 INT_PTR CALLBACK PhpServicesPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -212,12 +233,6 @@ INT_PTR CALLBACK PhpServicesPageProc(
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
-            if (PhTreeWindowFont)
-            {
-                context->TreeNewFont = PhDuplicateFont(PhTreeWindowFont);
-                SetWindowFont(context->ListViewHandle, context->TreeNewFont, FALSE);
-            }
-
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 120, L"Name");
@@ -225,6 +240,12 @@ INT_PTR CALLBACK PhpServicesPageProc(
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 220, L"File name");
             PhSetExtendedListView(context->ListViewHandle);
 
+            if (PhTreeWindowFont)
+            {
+                context->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
+                SetWindowFont(context->ListViewHandle, context->TreeNewFont, FALSE);
+            }
+            
             for (ULONG i = 0; i < context->NumberOfServices; i++)
             {
                 SC_HANDLE serviceHandle;
@@ -388,8 +409,16 @@ INT_PTR CALLBACK PhpServicesPageProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
+            if (PhTreeWindowFont)
+            {
+                HFONT treeNewFont;
+
+                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
+                    PhReplaceWindowFont(&context->TreeNewFont, context->ListViewHandle, treeNewFont, TRUE);
+            }
+
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
         }

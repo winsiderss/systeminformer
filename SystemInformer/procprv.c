@@ -4229,7 +4229,7 @@ VOID PhProcessImageListInitialization(
     //PhImageListSetBkColor(PhProcessLargeImageList, CLR_NONE);
     //PhImageListSetBkColor(PhProcessSmallImageList, CLR_NONE);
 
-    PhGetStockApplicationIcon(&iconSmall, &iconLarge);
+    PhGetStockApplicationIcon(&iconSmall, &iconLarge, PhProcessImageListWindowDpi);
     PhImageListAddIcon(PhProcessLargeImageList, iconLarge);
     PhImageListAddIcon(PhProcessSmallImageList, iconSmall);
 
@@ -4418,7 +4418,7 @@ PPH_IMAGELIST_ITEM PhImageListExtractIcon(
     if (smallIcon)
         DestroyIcon(smallIcon);
     if (largeIcon)
-        DestroyIcon(smallIcon);
+        DestroyIcon(largeIcon);
 
     return newentry;
 }

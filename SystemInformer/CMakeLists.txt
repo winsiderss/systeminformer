@@ -168,6 +168,7 @@ set(SOURCES
     "prpgvdm.c"
     "prpgwmi.c"
     "runas.c"
+    "runaspkg.c"
     "searchbox.c"
     "sessmsg.c"
     "sessprp.c"

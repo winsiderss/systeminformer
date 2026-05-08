@@ -24,8 +24,19 @@ endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/msvc.cmake)
 
-set(SI_C_STANDARD_FLAG   /std:c17)
-set(SI_CXX_STANDARD_FLAG /std:c++latest)
+#
+# Clang-cl does not have support for a -std:c23 flag. Pass the standard through
+# to clang directly. Note that the VS generator has a special case to map back
+# to -std:clatest in .vcxproj files. The same is true for CXX standard. Though
+# note that VS generators are broken for clang-cl in other ways, so it is not
+# supported either way.
+# See the CMake source code for more details:
+# https://github.com/Kitware/CMake/blob/bad6831d5a504168cec407cf3f8bea7bdf14d679/Modules/Compiler/Clang-C.cmake#L77-L87
+# https://github.com/Kitware/CMake/blob/bad6831d5a504168cec407cf3f8bea7bdf14d679/Modules/Compiler/Clang.cmake#L264-L273
+# https://github.com/Kitware/CMake/blob/bad6831d5a504168cec407cf3f8bea7bdf14d679/Source/cmVisualStudio10TargetGenerator.cxx#L3590-L3600
+#
+set(SI_C_STANDARD_FLAG   -clang:-std=c23)
+set(SI_CXX_STANDARD_FLAG -clang:-std=c++23)
 
 set(CMAKE_RC_FLAGS_INIT "/nologo")
 

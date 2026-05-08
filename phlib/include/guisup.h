@@ -54,23 +54,12 @@ typedef HANDLE HTHEME;
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
 extern LONG PhFontQuality;
-extern LONG PhSystemDpi;
-extern PH_INTEGER_PAIR PhSmallIconSize;
-extern PH_INTEGER_PAIR PhLargeIconSize;
 
 PHLIBAPI
 VOID
 NTAPI
 PhGuiSupportInitialization(
     VOID
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhGuiSupportUpdateSystemMetrics(
-    _In_opt_ HWND WindowHandle,
-    _In_opt_ LONG WindowDpi
     );
 
 PHLIBAPI
@@ -91,6 +80,27 @@ PHLIBAPI
 HFONT
 NTAPI
 PhInitializeMonospaceFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateApplicationFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateTreeWindowFont(
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateMonospaceFont(
     _In_ LONG WindowDpi
     );
 
@@ -595,7 +605,8 @@ PhGetShellWindow(
     );
 
 /**
- * Converts default logical units (based on 96 DPI) to physical units appropriate for the current current monitor's display DPI.
+ * Converts default logical units (based on 96 DPI) to physical units appropriate for the current monitor's display DPI.
+ *
  * \param Value The value to scale.
  * \param Scale The target DPI scale.
  * \return The scaled value.
@@ -608,6 +619,7 @@ PhScaleToDisplay(
     _In_ LONG Scale
     )
 {
+    assert(Scale);
     return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
 }
 
@@ -626,18 +638,8 @@ PhScaleToDefault(
     _In_ LONG Scale
     )
 {
+    assert(Scale);
     return PhMultiplyDivideSigned(Value, USER_DEFAULT_SCREEN_DPI, Scale);
-}
-
-FORCEINLINE
-LONG
-NTAPI
-PhGetDpi(
-    _In_ LONG Value,
-    _In_ LONG Scale
-    )
-{
-    return PhMultiplyDivideSigned(Value, Scale, USER_DEFAULT_SCREEN_DPI);
 }
 
 PHLIBAPI
@@ -661,12 +663,6 @@ PhGetMonitorDpiFromRect(
     return PhGetMonitorDpi(NULL, &rect);
 }
 
-PHLIBAPI
-LONG
-NTAPI
-PhGetSystemDpi(
-    VOID
-    );
 
 PHLIBAPI
 LONG
@@ -707,28 +703,54 @@ PhGetSizeDpiValue(
 
     if (ScaleToDisplay)
     {
-        if (rect.Left)
-            rect.Left = PhScaleToDisplay(rect.Left, Dpi);
-        if (rect.Top)
-            rect.Top = PhScaleToDisplay(rect.Top, Dpi);
-        if (rect.Width)
-            rect.Width = PhScaleToDisplay(rect.Width, Dpi);
-        if (rect.Height)
-            rect.Height = PhScaleToDisplay(rect.Height, Dpi);
+        rect.Left = PhScaleToDisplay(rect.Left, Dpi);
+        rect.Top = PhScaleToDisplay(rect.Top, Dpi);
+        rect.Width = PhScaleToDisplay(rect.Width, Dpi);
+        rect.Height = PhScaleToDisplay(rect.Height, Dpi);
     }
     else
     {
-        if (rect.Left)
-            rect.Left = PhScaleToDefault(rect.Left, Dpi);
-        if (rect.Top)
-            rect.Top = PhScaleToDefault(rect.Top, Dpi);
-        if (rect.Width)
-            rect.Width = PhScaleToDefault(rect.Width, Dpi);
-        if (rect.Height)
-            rect.Height = PhScaleToDefault(rect.Height, Dpi);
+        rect.Left = PhScaleToDefault(rect.Left, Dpi);
+        rect.Top = PhScaleToDefault(rect.Top, Dpi);
+        rect.Width = PhScaleToDefault(rect.Width, Dpi);
+        rect.Height = PhScaleToDefault(rect.Height, Dpi);
     }
 
     PhRectangleToRect(Rect, &rect);
+}
+
+/**
+ * Scales a RECT representing margins or padding.
+ *
+ * Unlike PhGetSizeDpiValue which treats a RECT as a bounding box and scales its width/height,
+ * this function scales each field (left, top, right, bottom) independently.
+ * Use this function for non-spatial RECTs to avoid rounding errors.
+ */
+FORCEINLINE
+VOID
+PhGetMarginDpiValue(
+    _Inout_ PRECT Margin,
+    _In_ LONG Dpi,
+    _In_ BOOLEAN ScaleToDisplay
+    )
+{
+    if (Dpi == USER_DEFAULT_SCREEN_DPI)
+        return;
+
+    if (ScaleToDisplay)
+    {
+        Margin->left = PhScaleToDisplay(Margin->left, Dpi);
+        Margin->top = PhScaleToDisplay(Margin->top, Dpi);
+        Margin->right = PhScaleToDisplay(Margin->right, Dpi);
+        Margin->bottom = PhScaleToDisplay(Margin->bottom, Dpi);
+    }
+    else
+    {
+        Margin->left = PhScaleToDefault(Margin->left, Dpi);
+        Margin->top = PhScaleToDefault(Margin->top, Dpi);
+        Margin->right = PhScaleToDefault(Margin->right, Dpi);
+        Margin->bottom = PhScaleToDefault(Margin->bottom, Dpi);
+    }
 }
 
 PHLIBAPI
@@ -856,28 +878,6 @@ FORCEINLINE RTL_ATOM PhGetClassInfoEx(
 {
     // Note: GetClassInfoEx returns BOOL but contains the RTL_ATOM (dmex)
     return (RTL_ATOM)GetClassInfoEx(Instance, ClassName, WindowClass);
-}
-
-#define PH_WINDOW_TIMER_DEFAULT 0xF
-
-FORCEINLINE ULONG_PTR PhSetTimer(
-    _In_ HWND WindowHandle,
-    _In_ ULONG_PTR TimerID,
-    _In_ ULONG Elapse,
-    _In_opt_ TIMERPROC TimerProcedure
-    )
-{
-    assert(WindowHandle);
-    return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
-}
-
-FORCEINLINE BOOL PhKillTimer(
-    _In_ HWND WindowHandle,
-    _In_ ULONG_PTR TimerID
-    )
-{
-    assert(WindowHandle);
-    return KillTimer(WindowHandle, TimerID);
 }
 
 FORCEINLINE VOID PhBringWindowToTop(
@@ -1325,17 +1325,18 @@ PhLoadIcon(
     _In_opt_ PVOID ImageBaseAddress,
     _In_ PCWSTR Name,
     _In_ ULONG Flags,
-    _In_opt_ LONG Width,
-    _In_opt_ LONG Height,
-    _In_opt_ LONG SystemDpi
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ LONG WindowDpi
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhGetStockApplicationIcon(
     _Out_opt_ HICON *SmallIcon,
-    _Out_opt_ HICON *LargeIcon
+    _Out_opt_ HICON *LargeIcon,
+    _In_ LONG WindowDpi
     );
 
 //PHLIBAPI
@@ -1606,7 +1607,7 @@ PhRemoveWindowContext(
  * Retrieves the window context pointer associated with a window handle.
  *
  * \param[in] WindowHandle A handle to the window from which to retrieve the context.
- * \return A pointer to the window context, or NULL if no context has been set. * *
+ * \return A pointer to the window context, or NULL if no context has been set.
  */
 FORCEINLINE
 PVOID
@@ -1775,6 +1776,49 @@ PhRedrawWindow(
 
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
+
+typedef _Function_class_(PH_DESKTOP_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_DESKTOP_ENUM_CALLBACK(
+    _In_ PCWSTR DesktopName,
+    _In_opt_ PVOID Context
+    );
+typedef PH_DESKTOP_ENUM_CALLBACK* PPH_DESKTOP_ENUM_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumDesktops(
+    _In_opt_ HWINSTA WindowStationHandle,
+    _In_ PPH_DESKTOP_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+typedef _Function_class_(PH_WINDOWSTATION_ENUM_CALLBACK)
+BOOLEAN NTAPI PH_WINDOWSTATION_ENUM_CALLBACK(
+    _In_ PCWSTR WindowStationName,
+    _In_opt_ PVOID Context
+    );
+typedef PH_WINDOWSTATION_ENUM_CALLBACK* PPH_WINDOWSTATION_ENUM_CALLBACK;
+
+_Enum_is_bitflag_
+typedef enum _PH_WINDOWSTATION_ENUM_TYPE
+{
+    PH_WINDOWSTATION_ENUM_WIN32 = 0x1,             // Phase 1: Win32 EnumWindowStations (current session, access-filtered)
+    PH_WINDOWSTATION_ENUM_GLOBAL_DIRECTORY = 0x2,  // Phase 2: Object directory \Windows\WindowStations (session 0)
+    PH_WINDOWSTATION_ENUM_SESSION_DIRECTORY = 0x4, // Phase 3: Object directory \Sessions\N\Windows\WindowStations
+    PH_WINDOWSTATION_ENUM_SYSTEM_HANDLES = 0x8,    // Phase 4: System-wide handle enumeration
+    PH_WINDOWSTATION_ENUM_ALL = 0xF                // All enumeration methods
+} PH_WINDOWSTATION_ENUM_TYPE;
+DEFINE_ENUM_FLAG_OPERATORS(PH_WINDOWSTATION_ENUM_TYPE);
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhEnumWindowStations(
+    _In_ PH_WINDOWSTATION_ENUM_TYPE Types,
+    _In_ PPH_WINDOWSTATION_ENUM_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
 
 typedef _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN NTAPI PH_WINDOW_ENUM_CALLBACK(
@@ -2184,7 +2228,7 @@ NTAPI
 PhListView_SetItemCount(
     _In_ PPH_LISTVIEW_CONTEXT Context,
     _In_ LONG ItemCount,
-    _In_ ULONG Flags
+    _In_ LV_LISTVIEW_SETITEMCOUNT_FLAGS Flags
     );
 
 PHLIBAPI
@@ -2319,6 +2363,7 @@ PhListView_SetColumnWidth(
     _In_ ULONG Width
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -2327,6 +2372,7 @@ PhListView_GetHeader(
     _Out_ HWND* WindowHandle
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -2492,6 +2538,7 @@ PhListView_EnsureItemVisible(
     _In_ BOOLEAN PartialOk
     );
 
+_Success_(return)
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -3125,6 +3172,7 @@ typedef enum _ACCENT_STATE
     ACCENT_INVALID_STATE
 } ACCENT_STATE;
 
+_Enum_is_bitflag_
 typedef enum _ACCENT_FLAG
 {
     ACCENT_NONE,
@@ -3135,6 +3183,7 @@ typedef enum _ACCENT_FLAG
     ACCENT_BORDER_BOTTOM = 0x100,
     ACCENT_BORDER_ALL = (ACCENT_BORDER_LEFT | ACCENT_BORDER_TOP | ACCENT_BORDER_RIGHT | ACCENT_BORDER_BOTTOM)
 } ACCENT_FLAG;
+DEFINE_ENUM_FLAG_OPERATORS(ACCENT_FLAG);
 
 typedef struct _ACCENT_POLICY
 {
@@ -3461,6 +3510,42 @@ PhDuplicateFontWithNewHeight(
     _In_ LONG NewHeight,
     _In_ LONG dpiValue
     );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhDuplicateFontUpdateDpi(
+    _In_ HFONT Font,
+    _In_ LONG NewDpi
+    );
+
+PHLIBAPI
+HFONT
+NTAPI
+PhDuplicateFontUpdateDpiEx(
+    _In_ HFONT Font,
+    _In_ LONG NewDpi,
+    _In_ LONG OldDpi
+    );
+
+FORCEINLINE VOID PhReplaceWindowFont(
+    _Inout_ HFONT *FontHandle,
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ HFONT NewFont,
+    _In_ BOOLEAN Redraw
+    )
+{
+    HFONT oldFont;
+
+    oldFont = *FontHandle;
+    *FontHandle = NewFont;
+
+    if (WindowHandle)
+        SetWindowFont(WindowHandle, NewFont, Redraw);
+
+    if (oldFont)
+        DeleteFont(oldFont);
+}
 
 VOID PhWindowThemeMainMenuBorder(
     _In_ HWND WindowHandle

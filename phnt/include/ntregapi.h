@@ -571,6 +571,7 @@ typedef struct _REG_NOTIFY_INFORMATION
  * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -597,6 +598,7 @@ NtCreateKey(
  * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -620,6 +622,7 @@ NtCreateKeyTransacted(
  * \return NTSTATUS Successful or errant status.
  * \remarks NtOpenKey ignores the security information in the ObjectAttributes structure.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -638,6 +641,7 @@ NtOpenKey(
  * \param[in] TransactionHandle A handle to the transaction.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -657,6 +661,7 @@ NtOpenKeyTransacted(
  * \param[in] OpenOptions The options to use when opening the key.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -677,6 +682,7 @@ NtOpenKeyEx(
  * \param[in] TransactionHandle A handle to the transaction.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -694,6 +700,7 @@ NtOpenKeyTransactedEx(
  * \param[in] KeyHandle A handle to the key to be deleted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -708,6 +715,7 @@ NtDeleteKey(
  * \param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -723,6 +731,7 @@ NtRenameKey(
  * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -741,6 +750,7 @@ NtDeleteValueKey(
  * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -761,6 +771,7 @@ NtQueryKey(
  * \param[in] KeySetInformationLength The size of the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -782,6 +793,7 @@ NtSetInformationKey(
  * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -805,6 +817,7 @@ NtQueryValueKey(
  * \param[in] DataSize The size of the buffer.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -828,6 +841,7 @@ NtSetValueKey(
  * \param[out, optional] RequiredBufferLength A pointer to a variable that receives the size of the buffer required to hold the data.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -851,6 +865,7 @@ NtQueryMultipleValueKey(
  * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -874,6 +889,7 @@ NtEnumerateKey(
  * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -892,6 +908,7 @@ NtEnumerateValueKey(
  * \param[in] KeyHandle A handle to the key to be flushed.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -906,6 +923,7 @@ NtFlushKey(
  * \param[in] KeyArray An array of handles to the keys to be compacted.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -920,6 +938,7 @@ NtCompactKeys(
  * \param[in] KeyHandle A handle to the key to be compressed.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -934,6 +953,7 @@ NtCompressKey(
  * \param[in] SourceFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the source file.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -950,6 +970,7 @@ NtLoadKey(
  * \param[in] Flags The options to use when loading the key.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -972,6 +993,7 @@ NtLoadKey2(
  * \param[in, reserved] Reserved Reserved.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1001,6 +1023,7 @@ NtLoadKeyEx(
  * \param[in, reserved] Reserved Reserved.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1024,6 +1047,7 @@ NtLoadKey3(
  * \param[in] OldFile A pointer to an OBJECT_ATTRIBUTES structure that specifies the old file.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1040,6 +1064,7 @@ NtReplaceKey(
  * \param FileHandle Handle to the file where the key will be saved.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1056,6 +1081,7 @@ NtSaveKey(
  * \param Format Format in which the key will be saved.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1073,6 +1099,7 @@ NtSaveKeyEx(
  * \param FileHandle Handle to the file where the merged key will be saved.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1090,6 +1117,7 @@ NtSaveMergedKeys(
  * \param Flags Flags for the restore operation.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1105,6 +1133,7 @@ NtRestoreKey(
  * \param TargetKey Pointer to the object attributes of the target key.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1120,6 +1149,7 @@ NtUnloadKey(
  * \return NTSTATUS Successful or errant status.
  * \remarks Valid flags are REG_FORCE_UNLOAD and REG_UNLOAD_LEGAL_FLAGS.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1135,6 +1165,7 @@ NtUnloadKey2(
  * \param Event Optional handle to an event to be signaled.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1158,6 +1189,7 @@ NtUnloadKeyEx(
  * \param Asynchronous Whether the operation is asynchronous.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1191,6 +1223,7 @@ NtNotifyChangeKey(
  * \param Asynchronous Whether the operation is asynchronous.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1216,6 +1249,7 @@ NtNotifyChangeMultipleKeys(
  * \param HandleCount Pointer to a variable to receive the handle count.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1246,6 +1280,7 @@ typedef struct _KEY_OPEN_SUBKEYS_INFORMATION
  * \return NTSTATUS Successful or errant status.
  * \remarks Returns an array of KEY_OPEN_SUBKEYS_INFORMATION structures.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1271,6 +1306,7 @@ NtQueryOpenSubKeysEx(
  * \param BootCondition Condition for the boot.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1284,6 +1320,7 @@ NtInitializeRegistry(
  * \param KeyHandle Handle to the registry key.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1298,6 +1335,7 @@ NtLockRegistryKey(
  * \param pSafeMode Optional pointer to a safe mode variable.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1312,6 +1350,7 @@ NtLockProductActivationKeys(
  * \param TimeOutInSeconds Timeout in seconds.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1324,6 +1363,7 @@ NtFreezeRegistry(
  *
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1341,6 +1381,7 @@ NtThawRegistry(
  * \param CreateOptions Reserved for future use.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1361,6 +1402,7 @@ NtCreateRegistryTransaction(
  * \param ObjAttributes Pointer to object attributes.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1379,6 +1421,7 @@ NtOpenRegistryTransaction(
  * \param Flags Reserved for future use.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -1396,6 +1439,7 @@ NtCommitRegistryTransaction(
  * \param Flags Reserved for future use.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

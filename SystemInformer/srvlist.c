@@ -72,6 +72,9 @@ static PH_TN_FILTER_SUPPORT FilterSupport;
 BOOLEAN PhServiceTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST ServiceNodeStateList = NULL; // list of nodes which need to be processed
 
+/**
+ * Initializes the service tree list.
+ */
 VOID PhServiceTreeListInitialization(
     VOID
     )
@@ -85,6 +88,13 @@ VOID PhServiceTreeListInitialization(
     ServiceNodeList = PhCreateList(100);
 }
 
+/**
+ * Hashtable equality function for service nodes.
+ *
+ * \param Entry1 The first entry.
+ * \param Entry2 The second entry.
+ * \return TRUE if the entries are equal, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN PhpServiceNodeHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -97,6 +107,12 @@ BOOLEAN PhpServiceNodeHashtableEqualFunction(
     return serviceNode1->ServiceItem == serviceNode2->ServiceItem;
 }
 
+/**
+ * Hashtable hash function for service nodes.
+ *
+ * \param Entry The entry to hash.
+ * \return The hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG PhpServiceNodeHashtableHashFunction(
     _In_ PVOID Entry
@@ -105,6 +121,11 @@ ULONG PhpServiceNodeHashtableHashFunction(
     return PhHashIntPtr((ULONG_PTR)(*(PPH_SERVICE_NODE *)Entry)->ServiceItem);
 }
 
+/**
+ * Initializes the service tree list control.
+ *
+ * \param hwnd The handle to the tree list control.
+ */
 VOID PhInitializeServiceTreeList(
     _In_ HWND hwnd
     )
@@ -134,6 +155,7 @@ VOID PhInitializeServiceTreeList(
     PhAddTreeNewColumn(hwnd, PHSVTLC_FILENAME, FALSE, L"File name", 100, PH_ALIGN_LEFT, ULONG_MAX, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumnEx2(hwnd, PHSVTLC_TIMELINE, FALSE, L"Timeline", 100, PH_ALIGN_LEFT, ULONG_MAX, 0, TN_COLUMN_FLAG_CUSTOMDRAW | TN_COLUMN_FLAG_SORTDESCENDING);
     PhAddTreeNewColumn(hwnd, PHSVTLC_EXITCODE, FALSE, L"Exit code", 100, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHSVTLC_USERNAME, FALSE, L"Username", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ServiceTreeListCm, hwnd, PHSVTLC_MAXIMUM, PhpServiceTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ServiceNodeList);
@@ -151,6 +173,9 @@ VOID PhInitializeServiceTreeList(
     }
 }
 
+/**
+ * Loads settings for the service tree list.
+ */
 VOID PhLoadSettingsServiceTreeList(
     VOID
     )
@@ -170,6 +195,9 @@ VOID PhLoadSettingsServiceTreeList(
         SendMessage(TreeNew_GetTooltips(ServiceTreeListHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
 }
 
+/**
+ * Saves settings for the service tree list.
+ */
 VOID PhSaveSettingsServiceTreeList(
     VOID
     )
@@ -184,6 +212,11 @@ VOID PhSaveSettingsServiceTreeList(
     PhDereferenceObject(sortSettings);
 }
 
+/**
+ * Gets the filter support for the service tree list.
+ *
+ * \return A pointer to the filter support structure.
+ */
 struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
     VOID
     )
@@ -191,6 +224,13 @@ struct _PH_TN_FILTER_SUPPORT *PhGetFilterSupportServiceTreeList(
     return &FilterSupport;
 }
 
+/**
+ * Adds a service node to the tree list.
+ *
+ * \param ServiceItem The service item to add.
+ * \param RunId The current run ID.
+ * \return The created service node.
+ */
 PPH_SERVICE_NODE PhAddServiceNode(
     _In_ PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG RunId
@@ -214,8 +254,8 @@ PPH_SERVICE_NODE PhAddServiceNode(
             );
     }
 
-    serviceNode->ServiceItem = ServiceItem;
     PhReferenceObject(ServiceItem);
+    serviceNode->ServiceItem = ServiceItem;
 
     memset(serviceNode->TextCache, 0, sizeof(PH_STRINGREF) * PHSVTLC_MAXIMUM);
     serviceNode->Node.TextCache = serviceNode->TextCache;
@@ -234,6 +274,12 @@ PPH_SERVICE_NODE PhAddServiceNode(
     return serviceNode;
 }
 
+/**
+ * Finds a service node in the tree list.
+ *
+ * \param ServiceItem The service item to find.
+ * \return The service node, or NULL if not found.
+ */
 PPH_SERVICE_NODE PhFindServiceNode(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -255,6 +301,11 @@ PPH_SERVICE_NODE PhFindServiceNode(
         return NULL;
 }
 
+/**
+ * Removes a service node from the tree list.
+ *
+ * \param ServiceNode The service node to remove.
+ */
 VOID PhRemoveServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     )
@@ -279,6 +330,12 @@ VOID PhRemoveServiceNode(
     }
 }
 
+/**
+ * Internal function to remove a service node.
+ *
+ * \param ServiceNode The service node to remove.
+ * \param Context An optional context.
+ */
 VOID PhpRemoveServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode,
     _In_opt_ PVOID Context
@@ -295,6 +352,7 @@ VOID PhpRemoveServiceNode(
 
     PhClearReference(&ServiceNode->BinaryPath);
     PhClearReference(&ServiceNode->LoadOrderGroup);
+    PhClearReference(&ServiceNode->UserName);
     PhClearReference(&ServiceNode->Description);
     PhClearReference(&ServiceNode->TooltipText);
     PhClearReference(&ServiceNode->KeyModifiedTimeText);
@@ -307,6 +365,11 @@ VOID PhpRemoveServiceNode(
     TreeNew_NodesStructured(ServiceTreeListHandle);
 }
 
+/**
+ * Updates a service node.
+ *
+ * \param ServiceNode The service node to update.
+ */
 VOID PhUpdateServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     )
@@ -320,6 +383,9 @@ VOID PhUpdateServiceNode(
     TreeNew_InvalidateNode(ServiceTreeListHandle, &ServiceNode->Node);
 }
 
+/**
+ * Ticks the service nodes.
+ */
 VOID PhTickServiceNodes(
     VOID
     )
@@ -333,9 +399,24 @@ VOID PhTickServiceNodes(
         fullyInvalidated = TRUE;
     }
 
-    PH_TICK_SH_STATE_TN(PH_SERVICE_NODE, ShState, ServiceNodeStateList, PhpRemoveServiceNode, PhCsHighlightingDuration, ServiceTreeListHandle, TRUE, &fullyInvalidated, NULL);
+    PH_TICK_SH_STATE_TN(
+        PH_SERVICE_NODE,
+        ShState,
+        ServiceNodeStateList,
+        PhpRemoveServiceNode,
+        PhCsHighlightingDuration,
+        ServiceTreeListHandle,
+        TRUE,
+        &fullyInvalidated,
+        NULL
+        );
 }
 
+/**
+ * Internal function to update service node configuration.
+ *
+ * \param ServiceNode The service node to update.
+ */
 static VOID PhpUpdateServiceNodeConfig(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
@@ -345,6 +426,10 @@ static VOID PhpUpdateServiceNodeConfig(
         SC_HANDLE serviceHandle;
         LPQUERY_SERVICE_CONFIG serviceConfig;
 
+        PhClearReference(&ServiceNode->BinaryPath);
+        PhClearReference(&ServiceNode->LoadOrderGroup);
+        PhClearReference(&ServiceNode->UserName);
+
         if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG, PhGetString(ServiceNode->ServiceItem->Name))))
         {
             if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &serviceConfig)))
@@ -353,6 +438,8 @@ static VOID PhpUpdateServiceNodeConfig(
                     PhMoveReference(&ServiceNode->BinaryPath, PhCreateString(serviceConfig->lpBinaryPathName));
                 if (serviceConfig->lpLoadOrderGroup)
                     PhMoveReference(&ServiceNode->LoadOrderGroup, PhCreateString(serviceConfig->lpLoadOrderGroup));
+                if (serviceConfig->lpServiceStartName)
+                    PhMoveReference(&ServiceNode->UserName, PhCreateString(serviceConfig->lpServiceStartName));
 
                 PhFree(serviceConfig);
             }
@@ -364,6 +451,11 @@ static VOID PhpUpdateServiceNodeConfig(
     }
 }
 
+/**
+ * Internal function to update service node description.
+ *
+ * \param ServiceNode The service node to update.
+ */
 static VOID PhpUpdateServiceNodeDescription(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
@@ -388,6 +480,11 @@ static VOID PhpUpdateServiceNodeDescription(
     //}
 }
 
+/**
+ * Internal function to update service node key information.
+ *
+ * \param ServiceNode The service node to update.
+ */
 static VOID PhpUpdateServiceNodeKey(
     _Inout_ PPH_SERVICE_NODE ServiceNode
     )
@@ -439,6 +536,15 @@ static VOID PhpUpdateServiceNodeKey(
     return PhModifySort(sortResult, ServiceTreeListSortOrder); \
 }
 
+/**
+ * Internal function for post-sort operations.
+ *
+ * \param Result The initial comparison result.
+ * \param Node1 The first node.
+ * \param Node2 The second node.
+ * \param SortOrder The sort order.
+ * \return The comparison result.
+ */
 _Function_class_(PH_CM_POST_SORT_FUNCTION)
 LONG PhpServiceTreeNewPostSortFunction(
     _In_ LONG Result,
@@ -571,6 +677,24 @@ BEGIN_SORT_FUNCTION(ExitCode)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(UserName)
+{
+    PhpUpdateServiceNodeConfig(node1);
+    PhpUpdateServiceNodeConfig(node2);
+    sortResult = PhCompareStringWithNullSortOrder(node1->UserName, node2->UserName, ServiceTreeListSortOrder, TRUE);
+}
+END_SORT_FUNCTION
+
+/**
+ * Callback function for the service tree list control.
+ *
+ * \param hwnd The handle to the tree list control.
+ * \param Message The message being processed.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \param Context An optional context.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
 BOOLEAN NTAPI PhpServiceTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -592,7 +716,7 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Name),
                     SORT_FUNCTION(Pid),
@@ -610,8 +734,9 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     SORT_FUNCTION(FileName),
                     SORT_FUNCTION(KeyModifiedTime), // Timeline
                     SORT_FUNCTION(ExitCode),
+                    SORT_FUNCTION(UserName),
                 };
-                int (__cdecl *sortFunction)(const void *, const void *);
+                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PHSVTLC_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -810,6 +935,12 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
                     }
                 }
                 break;
+            case PHSVTLC_USERNAME:
+                {
+                    PhpUpdateServiceNodeConfig(node);
+                    getCellText->Text = PhGetStringRef(node->UserName);
+                }
+                break;
             default:
                 return FALSE;
             }
@@ -993,6 +1124,11 @@ BOOLEAN NTAPI PhpServiceTreeNewCallback(
     return FALSE;
 }
 
+/**
+ * Gets the selected service item.
+ *
+ * \return The selected service item, or NULL if no item is selected.
+ */
 PPH_SERVICE_ITEM PhGetSelectedServiceItem(
     VOID
     )
@@ -1014,6 +1150,12 @@ PPH_SERVICE_ITEM PhGetSelectedServiceItem(
     return serviceItem;
 }
 
+/**
+ * Gets the selected service items.
+ *
+ * \param Services A variable which receives a pointer to an array of service items.
+ * \param NumberOfServices A variable which receives the number of service items.
+ */
 VOID PhGetSelectedServiceItems(
     _Out_ PPH_SERVICE_ITEM **Services,
     _Out_ PULONG NumberOfServices
@@ -1036,6 +1178,9 @@ VOID PhGetSelectedServiceItems(
     *Services = PhFinalArrayItems(&array);
 }
 
+/**
+ * Deselects all service nodes.
+ */
 VOID PhDeselectAllServiceNodes(
     VOID
     )
@@ -1043,6 +1188,12 @@ VOID PhDeselectAllServiceNodes(
     TreeNew_DeselectRange(ServiceTreeListHandle, 0, -1);
 }
 
+/**
+ * Selects a service node and ensures it is visible.
+ *
+ * \param ServiceNode The service node to select.
+ * \return TRUE if the node was selected, otherwise FALSE.
+ */
 BOOLEAN PhSelectAndEnsureVisibleServiceNode(
     _In_ PPH_SERVICE_NODE ServiceNode
     )
@@ -1066,6 +1217,9 @@ BOOLEAN PhSelectAndEnsureVisibleServiceNode(
     }
 }
 
+/**
+ * Copies the service list to the clipboard.
+ */
 VOID PhCopyServiceList(
     VOID
     )
@@ -1077,6 +1231,12 @@ VOID PhCopyServiceList(
     PhDereferenceObject(text);
 }
 
+/**
+ * Writes the service list to a file stream.
+ *
+ * \param FileStream The file stream to write to.
+ * \param Mode The write mode.
+ */
 VOID PhWriteServiceList(
     _Inout_ PPH_FILE_STREAM FileStream,
     _In_ ULONG Mode

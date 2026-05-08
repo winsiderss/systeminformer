@@ -1171,6 +1171,42 @@ PPH_STRING PhGetStatusMessage(
         return PhGetNtMessage(Status);
 }
 
+PPH_STRING PhGetStatusMessageHR(
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    statusMessage = NULL;
+
+    if (!Win32Result)
+    {
+        if (HRESULT_NTSTATUS(Status))
+            return PhGetStatusMessage(PhNtStatusFromHResult(Status), 0);
+
+        if (
+            HRESULT_FACILITY(Status) == FACILITY_WIN32 ||
+            HRESULT_FACILITY(Status) == FACILITY_WINDOWS ||
+            //Status & 0xFFFF0000) == MAKE_HRESULT(SEVERITY_ERROR, FACILITY_WIN32, 0) || // produced by HRESULT_FROM_WIN32(x)
+            (HRESULT_FACILITY(Status) == FACILITY_WIN32 && HRESULT_SEVERITY(Status) == SEVERITY_ERROR) // produced by HRESULT_FROM_WIN32(x)
+            )
+        {
+            Win32Result = HRESULT_CODE(Status);
+        }
+    }
+
+    if (Win32Result)
+        return PhGetWin32Message(Win32Result);
+
+    statusMessage = PhGetWin32FormatMessage((ULONG)Status);
+
+    if (!statusMessage && HRESULT_CODE(Status))
+        statusMessage = PhGetWin32Message(HRESULT_CODE(Status));
+
+    return statusMessage;
+}
+
 /**
  * Displays an error message for a NTSTATUS value or Win32 error code.
  *
@@ -1203,6 +1239,41 @@ VOID PhShowStatus(
             PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
         else
             PhShowStatus(WindowHandle, L"Unable to perform the operation.", STATUS_UNSUCCESSFUL, 0);
+    }
+}
+
+/**
+ * Displays an error message for a HRESULT value or Win32 error code.
+ *
+ * \param WindowHandle The owner window of the message box.
+ * \param Message A message describing the operation that failed.
+ * \param Status A HRESULT value, or 0 if there is none.
+ * \param Win32Result A Win32 error code, or 0 if there is none.
+ */
+VOID PhShowStatusHR(
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR Message,
+    _In_ HRESULT Status,
+    _In_opt_ ULONG Win32Result
+    )
+{
+    PPH_STRING statusMessage;
+
+    if (statusMessage = PhGetStatusMessageHR(Status, Win32Result))
+    {
+        if (Message)
+            PhShowError2(WindowHandle, Message, L"%s", PhGetString(statusMessage));
+        else
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", PhGetString(statusMessage));
+
+        PhDereferenceObject(statusMessage);
+    }
+    else
+    {
+        if (Message)
+            PhShowError2(WindowHandle, L"Unable to perform the operation.", L"%s", Message);
+        else
+            PhShowStatusHR(WindowHandle, L"Unable to perform the operation.", E_FAIL, 0);
     }
 }
 
@@ -1332,16 +1403,31 @@ VOID PhGenerateGuid(
     _Out_ PGUID Guid
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOL(WINAPI *ProcessPrng_I)(PBYTE, SIZE_T) = NULL;
     ULARGE_INTEGER seed;
     // The top/sign bit is always unusable for RtlRandomEx (the result is always unsigned), so we'll
     // take the bottom 24 bits. We need 128 bits in total, so we'll call the function 6 times.
     ULONG random[6];
     ULONG i;
 
-    seed.QuadPart = PhReadPerformanceCounter();
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
 
-    for (i = 0; i < 6; i++)
-        random[i] = RtlRandomEx(&seed.LowPart);
+        if (baseAddress = PhLoadLibrary(L"bcryptprimitives.dll"))
+            ProcessPrng_I = PhGetDllBaseProcedureAddress(baseAddress, "ProcessPrng", 0);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!ProcessPrng_I || !ProcessPrng_I((PBYTE)&random[0], sizeof(random)))
+    {
+        seed.QuadPart = PhReadPerformanceCounter();
+
+        for (i = 0; i < 6; i++)
+            random[i] = RtlRandomEx(&seed.LowPart);
+    }
 
     // random[0] is usable
     *(PUSHORT)&Guid->Data1 = (USHORT)random[0];
@@ -4322,7 +4408,7 @@ PPH_STRING PhGetLocalAppDataDirectory(
     {
         if (!FileName) return localAppDataDirectory;
         localAppDataFileName = PhConcatStringRef2(&localAppDataDirectory->sr, FileName);
-        PhReferenceObject(localAppDataDirectory);
+        PhDereferenceObject(localAppDataDirectory);
     }
 
     return localAppDataFileName;
@@ -4347,7 +4433,7 @@ PPH_STRING PhGetRoamingAppDataDirectory(
     {
         if (!FileName) return roamingAppDataDirectory;
         roamingAppDataFileName = PhConcatStringRef2(&roamingAppDataDirectory->sr, FileName);
-        PhReferenceObject(roamingAppDataDirectory);
+        PhDereferenceObject(roamingAppDataDirectory);
     }
 
     return roamingAppDataFileName;
@@ -4390,6 +4476,50 @@ PPH_STRING PhGetApplicationDataFileName(
     applicationDataFileName = PhGetRoamingAppDataDirectory(FileName, NativeFileName);
 
     return applicationDataFileName;
+}
+
+/**
+ * Queries the parent directory to use for a new process, depending on elevation.
+ *
+ * \param Elevated TRUE if the process is elevated, FALSE otherwise.
+ * \return The parent directory string.
+ */
+PPH_STRING PhGetHomeDrivePath(
+    _In_ BOOLEAN Elevated
+    )
+{
+    // Note: Explorer creates new processes with the parent directory as SystemRoot when elevated or
+    // the below environment variables when not elevated. (dmex)
+    if (!Elevated)
+    {
+        static CONST PH_STRINGREF homeDriveNameSr = PH_STRINGREF_INIT(L"HOMEDRIVE");
+        static CONST PH_STRINGREF homePathNameSr = PH_STRINGREF_INIT(L"HOMEPATH");
+        PPH_STRING parentDirectoryString = NULL;
+        PPH_STRING homeDriveNameString = NULL;
+        PPH_STRING homePathNameString = NULL;
+
+        PhQueryEnvironmentVariable(NULL, &homeDriveNameSr, &homeDriveNameString);
+        PhQueryEnvironmentVariable(NULL, &homePathNameSr, &homePathNameString);
+
+        if (homeDriveNameString && homePathNameString)
+        {
+            parentDirectoryString = PhConcatStringRef2(
+                &homeDriveNameString->sr,
+                &homePathNameString->sr
+                );
+        }
+
+        if (homeDriveNameString)
+            PhDereferenceObject(homeDriveNameString);
+        if (homePathNameString)
+            PhDereferenceObject(homePathNameString);
+
+        return parentDirectoryString;
+    }
+    else
+    {
+        return PhGetSystemDirectory();
+    }
 }
 
 #if defined(PH_SHGETFOLDERPATH)
@@ -6026,7 +6156,7 @@ PSECURITY_DESCRIPTOR PhGetSecurityDescriptorFromString(
             securityDescriptorBuffer,
             securityDescriptorLength
             );
-        assert(securityDescriptorLength == RtlLengthSecurityDescriptor(securityDescriptor));
+        assert(securityDescriptorLength == PhLengthSecurityDescriptor(securityDescriptor));
 
         LocalFree(securityDescriptorBuffer);
     }
@@ -7858,7 +7988,7 @@ BOOLEAN PhParseCommandLine(
 
         if (option &&
             (option->Type == MandatoryArgumentType ||
-            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-')))
+            (option->Type == OptionalArgumentType && CommandLine->Buffer[i] != L'-' && CommandLine->Buffer[i] != L'/')))
         {
             // Read the value and execute the callback function.
 
@@ -7871,14 +8001,14 @@ BOOLEAN PhParseCommandLine(
 
             option = NULL;
         }
-        else if (CommandLine->Buffer[i] == L'-')
+        else if (CommandLine->Buffer[i] == L'-' || CommandLine->Buffer[i] == L'/')
         {
             ULONG_PTR originalIndex;
             SIZE_T optionNameLength;
 
             // Read the option (only alphanumeric characters allowed).
 
-            // Skip the dash.
+            // Skip the prefix character.
             i++;
 
             originalIndex = i;
@@ -8548,34 +8678,40 @@ HANDLE PhGetNamespaceHandle(
 
     if (PhBeginInitOnce(&initOnce))
     {
-        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x70];
+        UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + sizeof(ACL) + (sizeof(ACCESS_ALLOWED_ACE) + SECURITY_MAX_SID_SIZE) * 4];
+        PSECURITY_DESCRIPTOR securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+        PACL dacl = (PACL)PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
         PSID administratorsSid = PhSeAdministratorsSid();
         UNICODE_STRING objectName;
         OBJECT_ATTRIBUTES objectAttributes;
-        PSECURITY_DESCRIPTOR securityDescriptor;
-        ULONG sdAllocationLength;
-        PACL dacl;
+        ULONG daclLength = 0;
+        NTSTATUS status;
 
-        // Create the default namespace DACL.
+        if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, sizeof(ACL), &daclLength)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeLocalSid), &daclLength)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(administratorsSid), &daclLength)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeInteractiveSid), &daclLength)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeEveryoneSid), &daclLength)))
+            goto CleanupExit;
 
-        sdAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-            (ULONG)sizeof(ACL) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid(&PhSeLocalSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid(administratorsSid) +
-            (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-            PhLengthSid(&PhSeInteractiveSid);
-
-        securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
-        dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-
-        PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-        PhCreateAcl(dacl, sdAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid);
-        PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid);
-        PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
+        if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhCreateAcl(dacl, daclLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, &PhSeLocalSid)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_ALL_ACCESS, administratorsSid)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeInteractiveSid)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, DIRECTORY_QUERY | DIRECTORY_TRAVERSE | DIRECTORY_CREATE_OBJECT, &PhSeEveryoneSid)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
+            goto CleanupExit;
 
         RtlInitUnicodeString(&objectName, L"\\BaseNamedObjects\\SystemInformer");
         InitializeObjectAttributes(
@@ -8589,8 +8725,9 @@ HANDLE PhGetNamespaceHandle(
         NtCreateDirectoryObject(&directoryHandle, MAXIMUM_ALLOWED, &objectAttributes);
 
         assert(RtlValidSecurityDescriptor(securityDescriptor));
-        assert(sdAllocationLength < sizeof(securityDescriptorBuffer));
-        assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+        assert(daclLength < sizeof(securityDescriptorBuffer));
+        assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+    CleanupExit:
         PhEndInitOnce(&initOnce);
     }
 
@@ -9132,7 +9269,7 @@ HRESULT PhActivateInstanceDllBase(
     _Out_ PVOID* Ppv
     )
 {
-    HRESULT (WINAPI* DllGetActivationFactory_I)(_In_ HSTRING RuntimeClassId, _Out_ PVOID * ActivationFactory);
+    HRESULT (WINAPI* DllGetActivationFactory_I)(_In_ HSTRING RuntimeClassId, _Out_ PVOID * ActivationFactory) = NULL;
     HRESULT status;
     HSTRING_REFERENCE string;
     IActivationFactory* activationFactory;
@@ -9256,19 +9393,17 @@ HRESULT PhActivateInstance(
 #endif
 }
 
-#if defined(PH_NATIVE_RING_BUFFER)
-// This function creates a ring buffer by allocating a pagefile-backed section
-// and mapping two views of that section next to each other. This way if the
-// last record in the buffer wraps it can still be accessed in a linear fashion
-// using its base VA. (Win10 RS5 and above only) (dmex)
-// Based on Win32 version: https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
 /**
- * Creates a ring buffer.
+ * Creates a ring buffer by allocating a pagefile-backed section
+ * and mapping two views of that section next to each other.
+ * If the last record in the buffer wraps it can still be accessed
+ * in a linear fashion using its base VA.
  *
  * \param BufferSize The size of the buffer.
  * \param RingBuffer Receives a pointer to the ring buffer.
  * \param SecondaryView Receives a pointer to the secondary view of the buffer.
  * \return Successful or errant status.
+ * \sa https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
  */
 NTSTATUS PhCreateRingBuffer(
     _In_ SIZE_T BufferSize,
@@ -9288,12 +9423,15 @@ NTSTATUS PhCreateRingBuffer(
     if ((BufferSize % PhSystemBasicInformation.AllocationGranularity) != 0)
         return STATUS_UNSUCCESSFUL;
 
+    if (!(NtAllocateVirtualMemoryEx_Import() && NtCreateSectionEx_Import() && NtMapViewOfSectionEx_Import()))
+        return STATUS_PROCEDURE_NOT_FOUND;
+
     //
     // Reserve a placeholder region where the buffer will be mapped.
     //
 
     regionSize = 2 * BufferSize;
-    status = NtAllocateVirtualMemoryEx(
+    status = NtAllocateVirtualMemoryEx_Import()(
         NtCurrentProcess(),
         &placeholder1,
         &regionSize,
@@ -9328,7 +9466,7 @@ NTSTATUS PhCreateRingBuffer(
     //
 
     sectionSize.QuadPart = BufferSize;
-    status = NtCreateSectionEx(
+    status = NtCreateSectionEx_Import()(
         &sectionHandle,
         SECTION_ALL_ACCESS,
         NULL,
@@ -9349,7 +9487,7 @@ NTSTATUS PhCreateRingBuffer(
 
     regionSize = BufferSize;
     sectionView1 = placeholder1;
-    status = NtMapViewOfSectionEx(
+    status = NtMapViewOfSectionEx_Import()(
         sectionHandle,
         NtCurrentProcess(),
         &sectionView1,
@@ -9376,7 +9514,7 @@ NTSTATUS PhCreateRingBuffer(
 
     regionSize = BufferSize;
     sectionView2 = placeholder2;
-    status = NtMapViewOfSectionEx(
+    status = NtMapViewOfSectionEx_Import()(
         sectionHandle,
         NtCurrentProcess(),
         &sectionView2,
@@ -9433,7 +9571,6 @@ CleanupExit:
 
     return status;
 }
-#endif
 
 /**
  * Suspends the current thread for a specified interval.
@@ -9949,7 +10086,7 @@ NTSTATUS PhApiSetResolveToHost(
                     apisetNamespacePart.Length = valueArray->Array[midIndex].NameLength;
 
                     comparison = PhCompareStringRef(
-                        &apiSetNameShort,
+                        &parentNameFilePart,
                         &apisetNamespacePart,
                         TRUE
                         );
@@ -10199,6 +10336,39 @@ NTSTATUS PhCreateProcessSnapshot(
     return status;
 }
 
+NTSTATUS PhPssFreeSnapshot(
+    _In_ HANDLE ProcessHandle,
+    _In_ HPSS SnapshotHandle
+    )
+{
+    NTSTATUS status;
+
+    if (ProcessHandle == NtCurrentProcess())
+    {
+        if (PssNtValidateDescriptor_Import())
+            status = PssNtValidateDescriptor_Import()(SnapshotHandle, _ReturnAddress());
+        else
+            status = STATUS_PROCEDURE_NOT_FOUND;
+
+        if (NT_SUCCESS(status))
+        {
+            if (PssNtFreeSnapshot_Import())
+                status = PssNtFreeSnapshot_Import()(SnapshotHandle);
+            else
+                status = STATUS_PROCEDURE_NOT_FOUND;
+        }
+    }
+    else
+    {
+        if (PssNtFreeRemoteSnapshot_Import())
+            status = PssNtFreeRemoteSnapshot_Import()(ProcessHandle, SnapshotHandle);
+        else
+            status = STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    return status;
+}
+
 /**
  * Frees a process snapshot and associated resources.
  *
@@ -10242,15 +10412,7 @@ VOID PhFreeProcessSnapshot(
         }
     }
 
-    if (PssNtFreeRemoteSnapshot_Import())
-    {
-        PssNtFreeRemoteSnapshot_Import()(ProcessHandle, SnapshotHandle);
-    }
-
-    if (PssNtFreeSnapshot_Import())
-    {
-        PssNtFreeSnapshot_Import()(SnapshotHandle);
-    }
+    PhPssFreeSnapshot(ProcessHandle, SnapshotHandle);
 }
 
 /**
@@ -11211,7 +11373,7 @@ NTSTATUS PhEndWindowSession(
     RtlZeroMemory(&context, sizeof(PH_ENDSESSION_CONTEXT));
     context.ClientId = clientId;
 
-    status = PhEnumWindows(PhQueryEndSessionCallback, &clientId);
+    status = PhEnumWindows(PhQueryEndSessionCallback, &context);
 
     if (!NT_SUCCESS(status))
         return status;

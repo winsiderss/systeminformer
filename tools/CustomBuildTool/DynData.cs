@@ -95,14 +95,14 @@ namespace CustomBuildTool
         /// <summary>
         /// Caches FieldInfo for <see cref="DynFieldsKernel"/> to optimize reflection performance.
         /// </summary>
-        private static readonly Dictionary<string, FieldInfo> DynFieldsKernelFieldCache =
-            typeof(DynFieldsKernel).GetFields().ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+        private static readonly FrozenDictionary<string, FieldInfo> DynFieldsKernelFieldCache =
+            typeof(DynFieldsKernel).GetFields().ToFrozenDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Caches FieldInfo for <see cref="DynFieldsLxcore"/> to optimize reflection performance.
         /// </summary>
-        private static readonly Dictionary<string, FieldInfo> DynFieldsLxcoreFieldCache =
-            typeof(DynFieldsLxcore).GetFields().ToDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+        private static readonly FrozenDictionary<string, FieldInfo> DynFieldsLxcoreFieldCache =
+            typeof(DynFieldsLxcore).GetFields().ToFrozenDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
 
 
         /// <summary>
@@ -395,9 +395,9 @@ typedef struct _KPH_DYN_CONFIG
         /// <returns>True if successful; otherwise, false.</returns>
         public static bool Execute(string OutDir, bool StrictChecks)
         {
-            string manifestFile = $"{Build.BuildWorkingFolder}\\kphlib\\kphdyn.xml";
-            string headerFile = $"{Build.BuildWorkingFolder}\\kphlib\\include\\kphdyn.h";
-            string sourceFile = $"{Build.BuildWorkingFolder}\\kphlib\\kphdyn.c";
+            string manifestFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.xml"]);
+            string headerFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\kphdyn.h"]);
+            string sourceFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.c"]);
 
             // Check for new or modified content. We don't want to touch the file if it's not needed.
             {
@@ -431,7 +431,7 @@ typedef struct _KPH_DYN_CONFIG
 
             Win32.CreateDirectory(OutDir);
 
-            string configFile = $"{OutDir}\\ksidyn.bin";
+            string configFile = Path.Join([OutDir, "\\ksidyn.bin"]);
 
             if (File.Exists(configFile))
             {
@@ -545,7 +545,7 @@ typedef struct _KPH_DYN_CONFIG
             if (fieldsNodes == null)
                 return null;
 
-            using var fieldsStream = new MemoryStream();
+            var fieldsStream = new ArrayBufferWriter<byte>();
             var fieldsMap = new Dictionary<UInt32, XmlNode>(fieldsNodes.Count);
             var fieldsOffsets = new Dictionary<UInt32, UInt32>(fieldsNodes.Count);
             var entries = new List<DynDataEntry>(dataNodes.Count);
@@ -585,7 +585,7 @@ typedef struct _KPH_DYN_CONFIG
 
                 if (!fieldsOffsets.TryGetValue(fieldId, out UInt32 offset))
                 {
-                    offset = (UInt32)fieldsStream.Length;
+                    offset = (UInt32)fieldsStream.WrittenCount;
                     fieldsOffsets.Add(fieldId, offset);
 
                     switch (dynClass)
@@ -608,7 +608,7 @@ typedef struct _KPH_DYN_CONFIG
 
                                     if (DynFieldsKernelFieldCache.TryGetValue(name, out var member))
                                     {
-                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value.AsSpan(2), NumberStyles.HexNumber));
                                     }
                                 }
                             }
@@ -633,7 +633,7 @@ typedef struct _KPH_DYN_CONFIG
 
                                     if (DynFieldsLxcoreFieldCache.TryGetValue(name, out var member))
                                     {
-                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value[2..], NumberStyles.HexNumber));
+                                        member.SetValueDirect(__makeref(fieldsData), UInt16.Parse(value.AsSpan(2), NumberStyles.HexNumber));
                                     }
                                 }
                             }
@@ -653,25 +653,37 @@ typedef struct _KPH_DYN_CONFIG
                 entries.Add(entry);
             }
 
-            using (var stream = new MemoryStream())
-            using (var writer = new BinaryWriter(stream, Utils.UTF8NoBOM, true))
-            {
-                //
-                // Write the version, session token public key, and count first,
-                // then the blocks. This conforms with KPH_DYN_CONFIG.
-                //
-                writer.Write(Version);
-                writer.Write(SessionTokenPublicKey);
-                writer.Write((uint)entries.Count);
-                writer.Write(MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries)));
+            // Allocate a pre-sized buffer for the entire configuration binary.
+            // The size is calculated as: Version (4) + Public Key Length + Count (4) + (Entries * EntrySize) + Fields Data Length.
+            byte[] result = new byte[sizeof(uint) +
+                                     SessionTokenPublicKey.Length +
+                                     sizeof(uint) +
+                                     (entries.Count * Unsafe.SizeOf<DynDataEntry>()) +
+                                     fieldsStream.WrittenCount];
+            // Create a span over the result buffer for efficient writing.
+            Span<byte> span = result;
 
-                if (fieldsStream.TryGetBuffer(out ArraySegment<byte> buffer))
-                    writer.Write(buffer.AsSpan());
-                else
-                    writer.Write(fieldsStream.ToArray());
+            // Write the configuration version in little-endian format and advance the span.
+            BinaryPrimitives.WriteUInt32LittleEndian(span, Version);
+            span = span[sizeof(uint)..];
 
-                return stream.ToArray();
-            }
+            // Copy the session token public key into the buffer and advance the span.
+            SessionTokenPublicKey.CopyTo(span);
+            span = span[SessionTokenPublicKey.Length..];
+
+            // Write the count of dynamic data entries and advance the span.
+            BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)entries.Count);
+            span = span[sizeof(uint)..];
+
+            // Convert the entries list to a read-only byte span and copy it to the buffer.
+            ReadOnlySpan<byte> entriesSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries));
+            entriesSpan.CopyTo(span);
+            span = span[entriesSpan.Length..];
+
+            // Copy the field data from the ArrayBufferWriter to the remaining buffer space.
+            fieldsStream.WrittenSpan.CopyTo(span);
+
+            return result;
         }
 
         /// <summary>
@@ -719,8 +731,9 @@ typedef struct _KPH_DYN_CONFIG
             {
                 BuildVerify.PrintCngPublicKeyInfo(SessionTokenPublicKey, CngKeyBlobFormat.GenericPublicBlob);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
                 return false;
             }
 

@@ -30,7 +30,7 @@ namespace CustomBuildTool
         /// - "canary" (2): Canary/testing channel
         /// 
         /// N.B. Order is important, SortedDictionary is used on purpose.
-        /// 
+        /// </remarks>
         public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
             ["release"] = 0, // PhReleaseChannel

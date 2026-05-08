@@ -626,7 +626,7 @@ NTSTATUS EtEnumerateTpmEntries(
 
     for (ULONG i = 0; i < indexCount; i++)
     {
-        INT lvItemIndex;
+        LONG lvItemIndex;
         USHORT dataSize;
         PPH_STRING string;
         TPMA_NV attributes;
@@ -704,43 +704,43 @@ Exit:
 }
 
 INT_PTR CALLBACK EtTpmDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PTPM_WINDOW_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocateZero(sizeof(TPM_WINDOW_CONTEXT));
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             TPM_DEVICE_INFO info;
 
-            context->WindowHandle = hwndDlg;
-            context->ListViewHandle = GetDlgItem(hwndDlg, IDC_TPM_LIST);
+            context->WindowHandle = WindowHandle;
+            context->ListViewHandle = GetDlgItem(WindowHandle, IDC_TPM_LIST);
             context->ParentWindowHandle = (HWND)lParam;
 
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhSetApplicationWindowIcon(WindowHandle);
 
             if (Tbsi_GetDeviceInfo(sizeof(info), &info) == TBS_SUCCESS)
             {
                 PPH_STRING newText;
-                PPH_STRING windowText = PhGetWindowText(hwndDlg);
+                PPH_STRING windowText = PhGetWindowText(WindowHandle);
 
                 if (info.tpmVersion == TPM_VERSION_12)
                     newText = PhConcatStringRefZ(&windowText->sr, L" 1.2");
@@ -749,7 +749,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
                 else
                     newText = PhReferenceObject(windowText);
 
-                PhSetWindowText(hwndDlg, newText->Buffer);
+                PhSetWindowText(WindowHandle, newText->Buffer);
                 PhDereferenceObject(newText);
                 PhDereferenceObject(windowText);
             }
@@ -771,17 +771,17 @@ INT_PTR CALLBACK EtTpmDlgProc(
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_TPM_LISTVIEW_COLUMNS, context->ListViewHandle);
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_TPM_LIST_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_TPM_LIST_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_TPM_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_TPM_WINDOW_POSITION, SETTING_NAME_TPM_WINDOW_SIZE, hwndDlg);
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_TPM_WINDOW_POSITION, SETTING_NAME_TPM_WINDOW_SIZE, WindowHandle);
             else
-                PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                PhCenterWindow(WindowHandle, context->ParentWindowHandle);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             EtEnumerateTpmEntries(context);
         }
@@ -789,10 +789,10 @@ INT_PTR CALLBACK EtTpmDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(SETTING_NAME_TPM_LISTVIEW_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_TPM_WINDOW_POSITION, SETTING_NAME_TPM_WINDOW_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_TPM_WINDOW_POSITION, SETTING_NAME_TPM_WINDOW_SIZE, WindowHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
@@ -818,7 +818,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
                 break;
             case IDCANCEL:
             case IDOK:
-                EndDialog(hwndDlg, IDOK);
+                EndDialog(WindowHandle, IDOK);
                 break;
             }
         }
@@ -841,7 +841,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
                         {
                             TPM_NV_INDEX index;
                             index.Value = PtrToUlong(entry);
-                            EtShowTpmEditDialog(hwndDlg, index);
+                            EtShowTpmEditDialog(WindowHandle, index);
                         }
                     }
                 }
@@ -877,7 +877,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
 
                     item = PhShowEMenu(
                         menu,
-                        hwndDlg,
+                        WindowHandle,
                         PH_EMENU_SHOW_LEFTRIGHT,
                         PH_ALIGN_LEFT | PH_ALIGN_TOP,
                         point.x,
@@ -893,7 +893,7 @@ INT_PTR CALLBACK EtTpmDlgProc(
                             case 1:
                                 TPM_NV_INDEX index;
                                 index.Value = PtrToUlong(listviewItems[0]);
-                                EtShowTpmEditDialog(hwndDlg, index);
+                                EtShowTpmEditDialog(WindowHandle, index);
                                 break;
                             case PHAPP_IDC_COPY:
                                 PhCopyListView(context->ListViewHandle);
@@ -910,11 +910,11 @@ INT_PTR CALLBACK EtTpmDlgProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

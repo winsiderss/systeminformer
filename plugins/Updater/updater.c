@@ -43,6 +43,9 @@ VOID UpdateContextDeleteProcedure(
         PhDereferenceObject(context->SetupFilePath);
     }
 
+    if (context->SetupFileHandle)
+        NtClose(context->SetupFileHandle);
+
     if (context->Version)
         PhDereferenceObject(context->Version);
     if (context->RelDate)
@@ -74,8 +77,9 @@ PPH_UPDATER_CONTEXT CreateUpdateContext(
     context = PhCreateObjectZero(sizeof(PH_UPDATER_CONTEXT), UpdateContextType);
     context->StartupCheck = StartupCheck;
     context->Cleanup = TRUE;
+    context->WindowDpi = USER_DEFAULT_SCREEN_DPI;
     context->PortableMode = !!SystemInformer_IsPortableMode();
-    context->Channel = PhGetPhReleaseChannel();
+    context->Channel = PhGetBuildReleaseChannel();
 
     return context;
 }
@@ -223,6 +227,7 @@ BOOLEAN LastUpdateCheckExpired(
     ULONG lastTimeUpdateSeconds;
     LARGE_INTEGER lastTimeUpdateTicks;
     LARGE_INTEGER currentTimeUpdateTicks;
+    LONG updateInterval;
 
     PhQuerySystemTime(&currentTimeUpdateTicks);
     lastTimeUpdateSeconds = PhGetIntegerSetting(SETTING_NAME_LAST_CHECK);
@@ -236,7 +241,11 @@ BOOLEAN LastUpdateCheckExpired(
 
     PhSecondsSince1970ToTime(lastTimeUpdateSeconds, &lastTimeUpdateTicks);
 
-    if (currentTimeUpdateTicks.QuadPart - lastTimeUpdateTicks.QuadPart >= 7 * PH_TICKS_PER_DAY)
+    updateInterval = PhGetIntegerSetting(SETTING_NAME_UPDATE_INTERVAL);
+    updateInterval = __max(updateInterval, 1);
+    updateInterval = __min(updateInterval, 90);
+
+    if (currentTimeUpdateTicks.QuadPart - lastTimeUpdateTicks.QuadPart >= updateInterval * PH_TICKS_PER_DAY)
     {
         PhTimeToSecondsSince1970(&currentTimeUpdateTicks, &lastTimeUpdateSeconds);
         PhSetIntegerSetting(SETTING_NAME_LAST_CHECK, lastTimeUpdateSeconds);
@@ -259,7 +268,7 @@ PPH_STRING UpdateVersionString(
     PH_FORMAT format[8];
     WCHAR formatBuffer[260];
 
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     PhInitFormatSR(&format[0], versionHeader);
     PhInitFormatU(&format[1], majorVersion);
     PhInitFormatC(&format[2], L'.');
@@ -282,6 +291,16 @@ PPH_STRING UpdateVersionString(
     {
         return PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
+}
+
+PPH_STRING UpdateClientIdString(
+    VOID
+    )
+{
+    static const PH_STRINGREF clientIdHeader = PH_STRINGREF_INIT(L"SystemInformer-Client-Id: ");
+    PPH_STRING clientId = PhGetStringSetting(SETTING_CLIENT_ID);
+    PhMoveReference(&clientId, PhConcatStringRef2(&clientIdHeader, &clientId->sr));
+    return clientId;
 }
 
 NTSTATUS UpdatePlatformSupportInformation(
@@ -541,8 +560,8 @@ ULONG64 ParseVersionString(
     remaining = PhGetStringRef(VersionString);
     PhSplitStringRefAtChar(&remaining, L'.', &majorPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &minorPart, &remaining);
-    PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
     PhSplitStringRefAtChar(&remaining, L'.', &buildPart, &remaining);
+    PhSplitStringRefAtChar(&remaining, L'.', &revisionPart, &remaining);
 
     if (majorPart.Length)
     {
@@ -554,14 +573,14 @@ ULONG64 ParseVersionString(
         PhStringToUInt64(&minorPart, 10, &minorInteger);
     }
 
-    if (revisionPart.Length)
-    {
-        PhStringToUInt64(&revisionPart, 10, &buildInteger);
-    }
-
     if (buildPart.Length)
     {
-        PhStringToUInt64(&buildPart, 10, &revisionInteger);
+        PhStringToUInt64(&buildPart, 10, &buildInteger);
+    }
+
+    if (revisionPart.Length)
+    {
+        PhStringToUInt64(&revisionPart, 10, &revisionInteger);
     }
 
     return MAKE_VERSION_ULONGLONG(
@@ -574,7 +593,8 @@ ULONG64 ParseVersionString(
 
 BOOLEAN QueryUpdateData(
     _Inout_ PPH_UPDATER_CONTEXT Context,
-    _In_ PCWSTR ServerName
+    _In_ PCWSTR ServerName,
+    _In_ USHORT Port
     )
 {
     NTSTATUS status;
@@ -593,7 +613,7 @@ BOOLEAN QueryUpdateData(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    status = PhHttpConnect(httpContext, ServerName, PH_HTTP_DEFAULT_HTTPS_PORT);
+    status = PhHttpConnect(httpContext, ServerName, Port);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
@@ -601,7 +621,7 @@ BOOLEAN QueryUpdateData(
     {
         if (!Context->SwitchingChannel)
         {
-            Context->Channel = PhGetPhReleaseChannel();
+            Context->Channel = PhGetBuildReleaseChannel();
         }
 
         switch (Context->Channel)
@@ -635,6 +655,7 @@ BOOLEAN QueryUpdateData(
         PPH_STRING versionHeader;
         PPH_STRING windowsHeader;
         PPH_STRING platformHeader;
+        PPH_STRING clientIdHeader;
 
         if (versionHeader = UpdateVersionString())
         {
@@ -652,6 +673,12 @@ BOOLEAN QueryUpdateData(
         {
             PhHttpAddRequestHeaders(httpContext, platformHeader->Buffer, (ULONG)platformHeader->Length / sizeof(WCHAR));
             PhDereferenceObject(platformHeader);
+        }
+
+        if (clientIdHeader = UpdateClientIdString())
+        {
+            PhHttpAddRequestHeaders(httpContext, clientIdHeader->Buffer, (ULONG)clientIdHeader->Length / sizeof(WCHAR));
+            PhDereferenceObject(clientIdHeader);
         }
     }
 
@@ -692,15 +719,15 @@ BOOLEAN QueryUpdateData(
         goto CleanupExit;
 
 #if defined(FORCE_FUTURE_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(USHRT_MAX, USHRT_MAX, USHRT_MAX, USHRT_MAX);
     Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
 #elif defined(FORCE_LATEST_VERSION)
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(0, 0, 0, 0);
     Context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
 #else
-    PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+    PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
     Context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
     Context->LatestVersion = ParseVersionString(Context->Version);
 #endif
@@ -709,9 +736,9 @@ BOOLEAN QueryUpdateData(
 
     if (PhGetIntegerSetting(SETTING_NAME_UPDATE_MODE))
     {
-        PPH_STRING jsonStringUtf16 = PhConvertBytesToUtf16(jsonString);
-        PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringUtf16->sr);
-        PhDereferenceObject(jsonStringUtf16);
+        PPH_STRING jsonStringHex = PhBufferToHexString((PUCHAR)jsonString->Buffer, jsonString->Length);
+        PhSetStringSetting2(SETTING_NAME_UPDATE_DATA, &jsonStringHex->sr);
+        PhDereferenceObject(jsonStringHex);
     }
 
 CleanupExit:
@@ -732,13 +759,21 @@ BOOLEAN QueryUpdateDataWithFailover(
     {
         L"system-informer.com",
         L"systeminformer.com",
+        L"systeminformer.io",
         L"systeminformer.sourceforge.io",
+    };
+    static CONST USHORT Ports[] =
+    {
+        443, 8443
     };
 
     for (ULONG i = 0; i < ARRAYSIZE(Servers); i++)
     {
-        if (QueryUpdateData(Context, Servers[i]))
-            return TRUE;
+        for (ULONG j = 0; j < ARRAYSIZE(Ports); j++)
+        {
+            if (QueryUpdateData(Context, Servers[i], Ports[j]))
+                return TRUE;
+        }
     }
 
     return FALSE;
@@ -760,7 +795,7 @@ NTSTATUS UpdateCheckSilentThread(
 
     //PhDelayExecution(5 * 1000);
 
-    PhClearCacheDirectory(context->PortableMode);
+    PhClearCacheDirectory(!!context->PortableMode);
 
     // Query latest update information from the server.
     if (!QueryUpdateDataWithFailover(context))
@@ -778,9 +813,6 @@ NTSTATUS UpdateCheckSilentThread(
             // Check if the user hasn't already opened the dialog.
             if (!UpdateDialogHandle)
             {
-                // We have data we're going to cache and pass into the dialog
-                context->HaveData = TRUE;
-
                 if (PhGetIntegerSetting(SETTING_NAME_SHOW_NOTIFICATION))
                 {
                     if (!HR_SUCCESS(PhShowIconNotificationEx(
@@ -791,11 +823,15 @@ NTSTATUS UpdateCheckSilentThread(
                         NULL
                         )))
                     {
+                        // We have data we're going to cache and pass into the dialog
+                        context->HaveData = TRUE;
                         ShowUpdateDialog(context);
                     }
                 }
                 else
                 {
+                    // We have data we're going to cache and pass into the dialog
+                    context->HaveData = TRUE;
                     // Show the dialog asynchronously on a new thread.
                     ShowUpdateDialog(context);
                 }
@@ -878,7 +914,7 @@ PPH_STRING UpdateParseDownloadFileName(
         return NULL;
 
     downloadFileName = PhCreateString2(&namePart);
-    localFileName = PhCreateCacheFile(Context->PortableMode, downloadFileName, FALSE);
+    localFileName = PhCreateCacheFile(!!Context->PortableMode, downloadFileName, FALSE);
     PhDereferenceObject(downloadFileName);
 
     return localFileName;
@@ -1145,8 +1181,8 @@ CleanupExit:
 }
 
 LRESULT CALLBACK TaskDialogSubclassProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -1154,31 +1190,31 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     PPH_UPDATER_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(hwndDlg, UCHAR_MAX)))
+    if (!(context = PhGetWindowContext(WindowHandle, UCHAR_MAX)))
         return 0;
 
     oldWndProc = context->DefaultWindowProc;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_DESTROY:
         {
             context->Cancel = TRUE;
 
-            PhSetWindowProcedure(hwndDlg, oldWndProc);
-            PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, UCHAR_MAX);
 
-            PhUnregisterWindowCallback(hwndDlg);
+            PhUnregisterWindowCallback(WindowHandle);
         }
         break;
     case PH_SHOWDIALOG:
         {
-            if (IsMinimized(hwndDlg))
-                ShowWindow(hwndDlg, SW_RESTORE);
+            if (IsMinimized(WindowHandle))
+                ShowWindow(WindowHandle, SW_RESTORE);
             else
-                ShowWindow(hwndDlg, SW_SHOW);
+                ShowWindow(WindowHandle, SW_SHOW);
 
-            SetForegroundWindow(hwndDlg);
+            SetForegroundWindow(WindowHandle);
         }
         break;
     case PH_SHOWLATEST:
@@ -1212,7 +1248,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
             {
                 if (context->ProgressDownloaded && context->ProgressTotal)
                 {
-                    LONG64 percent = context->ProgressDownloaded * 100 / context->ProgressTotal;
+                    LONG64 percent = PhMultiplyDivide((ULONG)context->ProgressDownloaded, 100, (ULONG)context->ProgressTotal);
                     PH_FORMAT format[9];
                     WCHAR string[MAX_PATH];
 
@@ -1248,7 +1284,7 @@ LRESULT CALLBACK TaskDialogSubclassProc(
         {
             LONG windowDpi = HIWORD(wParam);
 
-            PhSetApplicationWindowIconEx(hwndDlg, windowDpi);
+            PhSetApplicationWindowIconEx(WindowHandle, windowDpi);
         }
         break;
     //case WM_PARENTNOTIFY:
@@ -1293,12 +1329,12 @@ LRESULT CALLBACK TaskDialogSubclassProc(
     //    break;
     }
 
-    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 HRESULT CALLBACK TaskDialogBootstrapCallback(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -1306,24 +1342,21 @@ HRESULT CALLBACK TaskDialogBootstrapCallback(
 {
     PPH_UPDATER_CONTEXT context = (PPH_UPDATER_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_DIALOG_CONSTRUCTED:
         {
-            UpdateDialogHandle = context->DialogHandle = hwndDlg;
+            UpdateDialogHandle = context->DialogHandle = WindowHandle;
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, SystemInformer_GetWindowHandle());
+            PhCenterWindow(WindowHandle, SystemInformer_GetWindowHandle());
 
-            // Create the Taskdialog icons.
-            PhSetApplicationWindowIconEx(hwndDlg, PhGetWindowDpi(hwndDlg));
-
-            PhRegisterWindowCallback(hwndDlg, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
+            PhRegisterWindowCallback(WindowHandle, PH_PLUGIN_WINDOW_EVENT_TYPE_TOPMOST, NULL);
 
             // Subclass the Taskdialog.
-            context->DefaultWindowProc = PhGetWindowProcedure(hwndDlg);
-            PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
-            PhSetWindowProcedure(hwndDlg, TaskDialogSubclassProc);
+            context->DefaultWindowProc = PhGetWindowProcedure(WindowHandle);
+            PhSetWindowContext(WindowHandle, UCHAR_MAX, context);
+            PhSetWindowProcedure(WindowHandle, TaskDialogSubclassProc);
 
             if (context->StartupCheck)
             {
@@ -1453,7 +1486,7 @@ VOID ShowStartupUpdateDialog(
             context->SetupFileHash = PhGetJsonValueAsString(jsonObject, "setup_hash");
             context->SetupFileSignature = PhGetJsonValueAsString(jsonObject, "setup_sig");
 
-            PhGetPhVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
+            PhGetBuildVersionNumbers(&majorVersion, &minorVersion, &buildVersion, &revisionVersion);
 #ifdef FORCE_LATEST_VERSION
             context->LatestVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
             context->CurrentVersion = MAKE_VERSION_ULONGLONG(majorVersion, minorVersion, buildVersion, revisionVersion);
@@ -1467,12 +1500,12 @@ VOID ShowStartupUpdateDialog(
 
     PhClearReference(&jsonString);
 
-    if (PhIsNullOrEmptyString(context->Version) &&
-        PhIsNullOrEmptyString(context->RelDate) &&
-        PhIsNullOrEmptyString(context->SetupFileDownloadUrl) &&
-        PhIsNullOrEmptyString(context->SetupFileLength) &&
-        PhIsNullOrEmptyString(context->SetupFileHash) &&
-        PhIsNullOrEmptyString(context->SetupFileSignature) &&
+    if (PhIsNullOrEmptyString(context->Version) ||
+        PhIsNullOrEmptyString(context->RelDate) ||
+        PhIsNullOrEmptyString(context->SetupFileDownloadUrl) ||
+        PhIsNullOrEmptyString(context->SetupFileLength) ||
+        PhIsNullOrEmptyString(context->SetupFileHash) ||
+        PhIsNullOrEmptyString(context->SetupFileSignature) ||
         PhIsNullOrEmptyString(context->CommitHash))
     {
         goto CleanupExit;

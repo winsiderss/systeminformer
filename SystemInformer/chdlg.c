@@ -29,8 +29,33 @@ typedef struct _PH_CHOICE_DIALOG_CONTEXT
     PCWSTR SavedChoicesSettingName;
 
     HWND ComboBoxHandle;
+    HFONT TitleFontHandle;
     HFONT FontHandle;
 } PH_CHOICE_DIALOG_CONTEXT, *PPH_CHOICE_DIALOG_CONTEXT;
+
+static VOID PhpChoiceDialogUpdateFonts(
+    _In_ HWND WindowHandle,
+    _Inout_ PPH_CHOICE_DIALOG_CONTEXT Context,
+    _In_ LONG DpiValue
+    )
+{
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+
+    if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, DpiValue))
+    {
+        HFONT fontHandle;
+
+        metrics.lfMessageFont.lfHeight = 4 * metrics.lfMessageFont.lfHeight / 3;
+
+        if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
+            PhReplaceWindowFont(&Context->TitleFontHandle, GetDlgItem(WindowHandle, IDC_TITLE), fontHandle, FALSE);
+
+        metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-14, DpiValue);
+
+        if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
+            PhReplaceWindowFont(&Context->FontHandle, Context->ComboBoxHandle, fontHandle, FALSE);
+    }
+}
 
 INT_PTR CALLBACK PhChoiceDlgProc(
     _In_ HWND WindowHandle,
@@ -356,27 +381,7 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             PhSetWindowText(GetDlgItem(WindowHandle, IDC_TITLE), context->Title);
             PhSetWindowText(GetDlgItem(WindowHandle, IDC_TEXT), context->Message);
 
-            {
-                NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
-                LONG dpi = PhGetWindowDpi(WindowHandle);
-
-                if (PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpi))
-                {
-                    metrics.lfMessageFont.lfHeight = 4 * metrics.lfMessageFont.lfHeight / 3;
-
-                    if (context->FontHandle = CreateFontIndirect(&metrics.lfMessageFont))
-                    {
-                        SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), context->FontHandle, FALSE);
-                    }
-
-                    metrics.lfMessageFont.lfHeight = -14;
-
-                    if (context->FontHandle = CreateFontIndirect(&metrics.lfMessageFont))
-                    {
-                        SetWindowFont(context->ComboBoxHandle, context->FontHandle, FALSE);
-                    }
-                }
-            }
+            PhpChoiceDialogUpdateFonts(WindowHandle, context, PhGetWindowDpi(WindowHandle));
 
             {
                 if (FlagOn(context->Flags, PH_CHOICE_DIALOG_TYPE_MASK) == PH_CHOICE_DIALOG_PASSWORD)
@@ -443,6 +448,16 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             {
                 DeleteFont(context->FontHandle);
             }
+
+            if (context->TitleFontHandle)
+            {
+                DeleteFont(context->TitleFontHandle);
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PhpChoiceDialogUpdateFonts(WindowHandle, context, LOWORD(wParam));
         }
         break;
     case WM_COMMAND:
@@ -533,11 +548,11 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
 
             SetBkMode(hdc, TRANSPARENT);
 
-            clientRect.bottom -= PhGetDpi(50, dpi);
+            clientRect.bottom -= PhScaleToDisplay(50, dpi);
             FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
-            clientRect.bottom = clientRect.top + PhGetDpi(50, dpi);
+            clientRect.bottom = clientRect.top + PhScaleToDisplay(50, dpi);
 
             if (PhEnableThemeSupport)
             {

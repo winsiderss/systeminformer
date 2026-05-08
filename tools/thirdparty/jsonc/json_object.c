@@ -1192,7 +1192,7 @@ double json_object_get_double(const struct json_object *jso)
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
         errno = 0;
-        cdouble = strtod((const char *)get_string_component(jso), &errPtr);
+        cdouble = strtod((const char *)get_string_component(jso), (char**)&errPtr);
 
         /* if conversion stopped at the first character, return 0.0 */
         if (errPtr == (unsigned char *)get_string_component(jso))

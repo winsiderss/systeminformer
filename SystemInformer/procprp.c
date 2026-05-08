@@ -441,6 +441,8 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                     break;
                 if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
                     break;
+                if ((ULONG_PTR)propSheetPage < 0x1000 || !propSheetPage->lParam)
+                    break;
                 if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
                     break;
                 if (!(propContext = propPageContext->PropContext))
@@ -768,6 +770,8 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                     break;
                 if (!(propSheetPage = PhGetWindowContext(pageWindow, PH_WINDOW_CONTEXT_DEFAULT)))
                     break;
+                if ((ULONG_PTR)propSheetPage < 0x1000 || !propSheetPage->lParam)
+                    break;
                 if (!(propPageContext = (PPH_PROCESS_PROPPAGECONTEXT)propSheetPage->lParam))
                     break;
                 if (!(propContext = propPageContext->PropContext))
@@ -929,7 +933,7 @@ VOID PhpInitializePropSheetLayoutStage2(
     windowRectangle.Position = PhGetIntegerPairSetting(SETTING_PROC_PROP_POSITION);
     PhRectangleToRect(&rect, &windowRectangle);
     dpiValue = PhGetMonitorDpi(NULL, &rect);
-    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_PROC_PROP_SIZE, TRUE, dpiValue)->Pair;
+    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_PROC_PROP_SIZE, TRUE, dpiValue).Pair;
 
     if (windowRectangle.Size.X < MinimumSize.right)
         windowRectangle.Size.X = MinimumSize.right;
@@ -1426,7 +1430,7 @@ NTSTATUS PhpProcessPropertiesThreadStart(
     PhAddProcessPropPage(PropContext, newPage);
 
     // Monitor
-    if (PhEnableProcessMonitor && KsiLevel() >= KphLevelMed)
+    if (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed)
     {
         newPage = PhCreateProcessPropPageContext(
             MAKEINTRESOURCE(IDD_PROCINFORMER),

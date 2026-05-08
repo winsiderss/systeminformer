@@ -11,6 +11,9 @@
 
 namespace CustomBuildTool
 {
+    /// <summary>
+    /// Provides methods for retrieving NuGet package metadata, including the latest available versions, using NuGet v3 APIs.
+    /// </summary>
     public static class NugetMetadataClient
     {
         private const string ServiceIndexUri = "https://api.nuget.org/v3/index.json";
@@ -41,7 +44,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    var doc = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetServiceIndexResponse);
+                    var doc = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetServiceIndexResponse, CancellationToken);
 
                     if (doc.Resources != null)
                     {
@@ -68,17 +71,26 @@ namespace CustomBuildTool
 
             if (!string.IsNullOrWhiteSpace(registrationsBase))
             {
-                await AddVersionsFromRegistrations(httpClient, registrationsBase, PackageId, versions, CancellationToken);
+                await foreach (var version in GetVersionsFromRegistrations(httpClient, registrationsBase, PackageId, CancellationToken))
+                {
+                    versions.Add(version);
+                }
             }
 
             if (versions.Count == 0 && !string.IsNullOrWhiteSpace(searchQueryService))
             {
-                await AddVersionsFromSearch(httpClient, searchQueryService, PackageId, versions, CancellationToken);
+                await foreach (var version in GetVersionsFromSearch(httpClient, searchQueryService, PackageId, CancellationToken))
+                {
+                    versions.Add(version);
+                }
             }
 
             if (versions.Count == 0)
             {
-                await AddVersionsFromFlatContainer(httpClient, PackageId, versions, CancellationToken);
+                await foreach (var version in GetVersionsFromFlatContainer(httpClient, PackageId, CancellationToken))
+                {
+                    versions.Add(version);
+                }
             }
 
             return SelectBestVersion(versions);
@@ -116,12 +128,11 @@ namespace CustomBuildTool
         /// <param name="PackageId">Package ID to query.</param>
         /// <param name="Versions">Set to populate with found versions.</param>
         /// <param name="CancellationToken">Cancellation token.</param>
-        private static async Task AddVersionsFromRegistrations(
+        private static async IAsyncEnumerable<string> GetVersionsFromRegistrations(
             HttpClient HttpClient,
             string RegistrationsBase,
             string PackageId,
-            HashSet<string> Versions,
-            CancellationToken CancellationToken)
+            [EnumeratorCancellation] CancellationToken CancellationToken)
         {
             var registrationIndexUri = $"{RegistrationsBase.TrimEnd('/')}/{PackageId.ToLowerInvariant()}/index.json";
             NugetRegistrationIndexResponse index = null;
@@ -134,11 +145,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    index = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetRegistrationIndexResponse);
-                }
-                else
-                {
-                    index = null;
+                    index = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetRegistrationIndexResponse, CancellationToken);
                 }
             }
             catch
@@ -147,13 +154,17 @@ namespace CustomBuildTool
             }
 
             if (index?.Items == null)
-                return;
+                yield break;
 
-            foreach (var page in index?.Items)
+            foreach (var page in index.Items)
             {
                 if (page.Items != null && page.Items.Length != 0)
                 {
-                    AddVersions(Versions, page.Items.Select(i => i.CatalogEntry.Version));
+                    foreach (var item in page.Items)
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.CatalogEntry?.Version))
+                            yield return item.CatalogEntry.Version.Trim();
+                    }
                     continue;
                 }
 
@@ -169,11 +180,7 @@ namespace CustomBuildTool
                     if (httpResponse.IsSuccessStatusCode)
                     {
                         await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                        pageResponse = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetRegistrationPageResponse);
-                    }
-                    else
-                    {
-                        pageResponse = null;
+                        pageResponse = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetRegistrationPageResponse, CancellationToken);
                     }
                 }
                 catch
@@ -181,24 +188,22 @@ namespace CustomBuildTool
                     pageResponse = null;
                 }
 
-                AddVersions(Versions, pageResponse?.Items?.Select(i => i.CatalogEntry.Version));
+                if (pageResponse?.Items != null)
+                {
+                    foreach (var item in pageResponse.Items)
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.CatalogEntry?.Version))
+                            yield return item.CatalogEntry.Version.Trim();
+                    }
+                }
             }
         }
 
-        /// <summary>
-        /// Queries NuGet search API to retrieve all versions of a package.
-        /// </summary>
-        /// <param name="HttpClient">HTTP client for making requests.</param>
-        /// <param name="SearchQueryService">Base URL for search API.</param>
-        /// <param name="PackageId">Package ID to query.</param>
-        /// <param name="Versions">Set to populate with found versions.</param>
-        /// <param name="CancellationToken">Cancellation token.</param>
-        private static async Task AddVersionsFromSearch(
+        private static async IAsyncEnumerable<string> GetVersionsFromSearch(
             HttpClient HttpClient,
             string SearchQueryService,
             string PackageId,
-            HashSet<string> Versions,
-            CancellationToken CancellationToken)
+            [EnumeratorCancellation] CancellationToken CancellationToken)
         {
             var searchUri = $"{SearchQueryService.TrimEnd('/')}?q=packageid:{Uri.EscapeDataString(PackageId)}&prerelease=true&take=20";
             NugetSearchResponse search = null;
@@ -211,11 +216,7 @@ namespace CustomBuildTool
                 if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    search = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetSearchResponse);
-                }
-                else
-                {
-                    search = null;
+                    search = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetSearchResponse, CancellationToken);
                 }
             }
             catch
@@ -224,54 +225,57 @@ namespace CustomBuildTool
             }
 
             if (search?.Data == null)
-                return;
+                yield break;
 
-            foreach (var package in search?.Data)
+            foreach (var package in search.Data)
             {
                 if (!string.Equals(package.Id, PackageId, StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                AddVersions(Versions, package.Versions?.Select(v => v.Version));
-                AddVersions(Versions, new[] { package.Version });
+                if (package.Versions != null)
+                {
+                    foreach (var v in package.Versions)
+                        if (!string.IsNullOrWhiteSpace(v.Version))
+                            yield return v.Version.Trim();
+                }
+
+                if (!string.IsNullOrWhiteSpace(package.Version))
+                    yield return package.Version.Trim();
             }
         }
 
-        /// <summary>
-        /// Queries NuGet flat container API to retrieve all versions of a package.
-        /// </summary>
-        /// <param name="HttpClient">HTTP client for making requests.</param>
-        /// <param name="PackageId">Package ID to query.</param>
-        /// <param name="Versions">Set to populate with found versions.</param>
-        /// <param name="CancellationToken">Cancellation token.</param>
-        private static async Task AddVersionsFromFlatContainer(
+        private static async IAsyncEnumerable<string> GetVersionsFromFlatContainer(
             HttpClient HttpClient,
             string PackageId,
-            HashSet<string> Versions,
-            CancellationToken CancellationToken)
+            [EnumeratorCancellation] CancellationToken CancellationToken)
         {
-            NugetVersionResponse response;
+            var versionsUri = $"{NugetMetadataClient.FlatContainerBaseUri}/{PackageId.ToLowerInvariant()}/index.json";
+            NugetFlatContainerResponse container = null;
 
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Get, $"{FlatContainerBaseUri}/{PackageId.ToLowerInvariant()}/index.json");
+                using var request = new HttpRequestMessage(HttpMethod.Get, versionsUri);
                 using var httpResponse = await HttpClient.SendAsync(request, CancellationToken);
 
-                if (!httpResponse.IsSuccessStatusCode)
-                {
-                    response = null;
-                }
-                else
+                if (httpResponse.IsSuccessStatusCode)
                 {
                     await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
-                    response = JsonSerializer.Deserialize(stream, NugetJsonContext.Default.NugetVersionResponse);
+                    container = await JsonSerializer.DeserializeAsync(stream, NugetJsonContext.Default.NugetFlatContainerResponse, CancellationToken);
                 }
             }
             catch
             {
-                response = null;
+                container = null;
             }
 
-            AddVersions(Versions, response?.Versions);
+            if (container?.Versions == null)
+                yield break;
+
+            foreach (var version in container.Versions)
+            {
+                if (!string.IsNullOrWhiteSpace(version))
+                    yield return version.Trim();
+            }
         }
 
         /// <summary>
@@ -345,8 +349,14 @@ namespace CustomBuildTool
             return (stable ?? ordered[^1]).Original;
         }
 
+        /// <summary>
+        /// Represents a NuGet-compatible semantic version, supporting parsing and comparison according to semantic
+        /// versioning rules.
+        /// </summary>
         public sealed class NugetSemVer : IComparable<NugetSemVer>
         {
+            private static readonly SearchValues<char> SemVerDelimiters = SearchValues.Create(".+-");
+
             public string Original { get; init; }
             public int Major { get; init; }
             public int Minor { get; init; }
@@ -368,35 +378,51 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(Value))
                     return false;
 
-                var plusIndex = Value.IndexOf('+');
-                var trimmed = plusIndex >= 0 ? Value[..plusIndex] : Value;
-                var dashIndex = trimmed.IndexOf('-');
-                var numeric = dashIndex >= 0 ? trimmed[..dashIndex] : trimmed;
-                var prerelease = dashIndex >= 0 ? trimmed[(dashIndex + 1)..] : null;
+                ReadOnlySpan<char> span = Value.AsSpan();
+                int major = 0, minor = 0, patch = 0;
+                string prerelease = null;
+                var extra = new List<int>();
 
-                var parts = numeric.Split('.', StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length < 2)
-                    return false;
-
-                if (!int.TryParse(parts[0], out var major))
-                    return false;
-                if (!int.TryParse(parts[1], out var minor))
-                    return false;
-
-                var patch = 0;
-                if (parts.Length >= 3 && !int.TryParse(parts[2], out patch))
-                    return false;
-
-                var extra = Array.Empty<int>();
-                if (parts.Length > 3)
+                int partIndex = 0;
+                while (!span.IsEmpty)
                 {
-                    extra = new int[parts.Length - 3];
-                    for (var i = 3; i < parts.Length; i++)
+                    int nextDelimiter = span.IndexOfAny(SemVerDelimiters);
+                    ReadOnlySpan<char> part = nextDelimiter >= 0 ? span[..nextDelimiter] : span;
+                    char delimiter = nextDelimiter >= 0 ? span[nextDelimiter] : '\0';
+
+                    if (partIndex == 0)
                     {
-                        if (!int.TryParse(parts[i], out extra[i - 3]))
-                            return false;
+                        if (!int.TryParse(part, out major)) return false;
                     }
+                    else if (partIndex == 1)
+                    {
+                        if (!int.TryParse(part, out minor)) return false;
+                    }
+                    else if (partIndex == 2)
+                    {
+                        if (!int.TryParse(part, out patch)) return false;
+                    }
+                    else if (partIndex > 2 && delimiter == '.')
+                    {
+                        if (int.TryParse(part, out int ex)) extra.Add(ex);
+                    }
+
+                    if (delimiter == '-')
+                    {
+                        span = span[(nextDelimiter + 1)..];
+                        int buildIndex = span.IndexOf('+');
+                        prerelease = (buildIndex >= 0 ? span[..buildIndex] : span).ToString();
+                        break;
+                    }
+
+                    if (delimiter == '+') break;
+
+                    if (nextDelimiter < 0) break;
+                    span = span[(nextDelimiter + 1)..];
+                    partIndex++;
                 }
+
+                if (partIndex < 1) return false;
 
                 Result = new NugetSemVer
                 {
@@ -404,7 +430,7 @@ namespace CustomBuildTool
                     Major = major,
                     Minor = minor,
                     Patch = patch,
-                    ExtraNumbers = extra,
+                    ExtraNumbers = extra.ToArray(),
                     Prerelease = prerelease
                 };
 
@@ -456,7 +482,7 @@ namespace CustomBuildTool
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(OpenAiResponse))]
     [JsonSerializable(typeof(GeminiResponse))]
-    [JsonSerializable(typeof(NugetVersionResponse))]
+    [JsonSerializable(typeof(NugetFlatContainerResponse))]
     [JsonSerializable(typeof(NugetServiceIndexResponse))]
     [JsonSerializable(typeof(NugetRegistrationIndexResponse))]
     [JsonSerializable(typeof(NugetRegistrationPageResponse))]

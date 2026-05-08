@@ -11,6 +11,11 @@
 
 #include "setup.h"
 
+/**
+ * Shows the installation directory browse dialog.
+ *
+ * \param Context The setup context.
+ */
 VOID SetupShowBrowseDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -47,6 +52,14 @@ VOID SetupShowBrowseDialog(
     }
 }
 
+/**
+ * Callback for checking whether a directory contains files.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The file directory information.
+ * \param Context The file count.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
 static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     _In_ HANDLE RootDirectory,
@@ -66,6 +79,12 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
     return FALSE;
 }
 
+/**
+ * Shows a warning prompt for a non-empty installation directory.
+ *
+ * \param Context The setup context.
+ * \return TRUE if the directory warning should be shown, otherwise FALSE.
+ */
 BOOLEAN SetupShowDirectoryWarningPrompt(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -107,6 +126,11 @@ BOOLEAN SetupShowDirectoryWarningPrompt(
     return FALSE;
 }
 
+/**
+ * Shows the setup error page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowErrorPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -131,6 +155,16 @@ VOID ShowErrorPageDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * Callback for the welcome task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupWelcomePageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -145,6 +179,7 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
     {
     case TDN_NAVIGATED:
         {
+            SetupApplyDarkModeToPage(hwndDlg);
             PhCenterWindow(hwndDlg, NULL);
 
             if (!PhGetOwnTokenAttributes().Elevated)
@@ -160,7 +195,7 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
                 if (PhGetOwnTokenAttributes().Elevated)
                 {
-                    if (!context->SetupIsLegacyUpdate && SetupLegacySetupInstalled())
+                    if (!context->SetupIsLegacyUpdate && NT_SUCCESS(SetupLegacySetupInstalled()))
                     {
                         SetupShowMessagePromptForLegacyVersion();
                     }
@@ -223,6 +258,11 @@ HRESULT CALLBACK SetupWelcomePageCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the welcome page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowWelcomePageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -250,6 +290,16 @@ VOID ShowWelcomePageDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * Callback for the completed task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupCompletePageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -269,6 +319,11 @@ HRESULT CALLBACK SetupCompletePageCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the completed page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowCompletedPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -295,6 +350,16 @@ VOID ShowCompletedPageDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * Callback for the configuration task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupConfigPageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -361,6 +426,11 @@ HRESULT CALLBACK SetupConfigPageCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the configuration page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowConfigPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -389,6 +459,16 @@ VOID ShowConfigPageDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * Callback for the non-empty directory task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupDirectoryNonEmptyTaskDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -421,6 +501,11 @@ HRESULT CALLBACK SetupDirectoryNonEmptyTaskDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the non-empty directory warning page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowConfigDirectoryNonEmptyDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -450,6 +535,16 @@ VOID ShowConfigDirectoryNonEmptyDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * Callback for the installation task dialog.
+ *
+ * \param hwndDlg The task dialog window handle.
+ * \param uMsg The notification message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \param dwRefData The setup context.
+ * \return S_OK to continue, otherwise an HRESULT value.
+ */
 HRESULT CALLBACK SetupInstallPageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -464,6 +559,7 @@ HRESULT CALLBACK SetupInstallPageCallbackProc(
     {
     case TDN_NAVIGATED:
         {
+            SetupApplyDarkModeToPage(hwndDlg);
             SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
             SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
 
@@ -480,6 +576,11 @@ HRESULT CALLBACK SetupInstallPageCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the installation progress page.
+ *
+ * \param Context The setup context.
+ */
 VOID ShowInstallPageDialog(
     _In_ PPH_SETUP_CONTEXT Context
     )

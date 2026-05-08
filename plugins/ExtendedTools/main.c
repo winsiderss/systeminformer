@@ -611,6 +611,26 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     }
 }
 
+static VOID EtpFormatProcessStatisticsValue(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Value,
+    _In_ BOOLEAN Size
+    )
+{
+    PH_FORMAT format[1];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    if (Size)
+        PhInitFormatSize(&format[0], Value);
+    else
+        PhInitFormatI64U(&format[0], Value);
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessStatsEventCallback(
     _In_ PVOID Parameter,
@@ -633,7 +653,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 break;
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"GPU");
+                listViewHandle, (LONG)ListView_GetGroupCount(listViewHandle), L"GPU");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTALDEDICATED] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPU], MAXINT, L"Dedicated memory", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTALDEDICATED],
@@ -652,7 +672,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUTOTAL]));
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"Disk I/O");
+                listViewHandle, (LONG)ListView_GetGroupCount(listViewHandle), L"Disk I/O");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_DISK], MAXINT, L"Reads", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKREADS],
@@ -691,7 +711,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTESDELTA]));
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"Network I/O");
+                listViewHandle, (LONG)ListView_GetGroupCount(listViewHandle), L"Network I/O");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NETWORK], MAXINT, L"Receives", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKREADS],
@@ -730,7 +750,7 @@ VOID NTAPI ProcessStatsEventCallback(
                 UlongToPtr(block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA]));
 
             block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU] = PhAddListViewGroup(
-                listViewHandle, (INT)ListView_GetGroupCount(listViewHandle), L"NPU");
+                listViewHandle, (LONG)ListView_GetGroupCount(listViewHandle), L"NPU");
             block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED] = PhAddListViewGroupItem(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Dedicated memory", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTALDEDICATED],
@@ -1076,6 +1096,55 @@ VOID NTAPI ProcessStatsEventCallback(
                         }
                     }
                 }
+            }
+            else if (
+                dispInfo->item.iSubItem >= 2 &&
+                dispInfo->item.iSubItem <= 4 &&
+                (dispInfo->item.mask & LVIF_TEXT)
+                )
+            {
+                ULONG index = PtrToUlong((PVOID)dispInfo->item.lParam);
+                ULONG64 value = 0;
+                BOOLEAN size = FALSE;
+                BOOLEAN handled = FALSE;
+
+#define ET_PROCESS_STATISTICS_SELECT_ROW(RowIndex, MinValue, MaxValue, DiffValue, SizeValue) \
+                if (!handled && index == block->ListViewRowCache[(RowIndex)]) \
+                { \
+                    value = dispInfo->item.iSubItem == 2 ? (MinValue) : dispInfo->item.iSubItem == 3 ? (MaxValue) : (DiffValue); \
+                    size = (SizeValue); \
+                    handled = TRUE; \
+                }
+
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_GPUTOTALDEDICATED, block->GpuDedicatedUsageMin, block->GpuDedicatedUsageMax, block->GpuDedicatedUsageDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_GPUTOTALSHARED, block->GpuSharedUsageMin, block->GpuSharedUsageMax, block->GpuSharedUsageDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_GPUTOTALCOMMIT, block->GpuCommitUsageMin, block->GpuCommitUsageMax, block->GpuCommitUsageDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_GPUTOTAL, block->GpuTotalUsageMin, block->GpuTotalUsageMax, block->GpuTotalUsageDiff, TRUE);
+
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKREADS, block->DiskReadCountMin, block->DiskReadCountMax, block->DiskReadCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKREADBYTES, block->DiskReadRawMin, block->DiskReadRawMax, block->DiskReadRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKREADBYTESDELTA, block->DiskReadRawDeltaMin, block->DiskReadRawDeltaMax, block->DiskReadRawDeltaDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKWRITES, block->DiskWriteCountMin, block->DiskWriteCountMax, block->DiskWriteCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTES, block->DiskWriteRawMin, block->DiskWriteRawMax, block->DiskWriteRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKWRITEBYTESDELTA, block->DiskWriteRawDeltaMin, block->DiskWriteRawDeltaMax, block->DiskWriteRawDeltaDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKTOTAL, block->DiskTotalCountMin, block->DiskTotalCountMax, block->DiskTotalCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTES, block->DiskTotalRawMin, block->DiskTotalRawMax, block->DiskTotalRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_DISKTOTALBYTESDELTA, block->DiskTotalRawDeltaMin, block->DiskTotalRawDeltaMax, block->DiskTotalRawDeltaDiff, TRUE);
+
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKREADS, block->NetworkReceiveCountMin, block->NetworkReceiveCountMax, block->NetworkReceiveCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTES, block->NetworkReceiveRawMin, block->NetworkReceiveRawMax, block->NetworkReceiveRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKREADBYTESDELTA, block->NetworkReceiveRawDeltaMin, block->NetworkReceiveRawDeltaMax, block->NetworkReceiveRawDeltaDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITES, block->NetworkSendCountMin, block->NetworkSendCountMax, block->NetworkSendCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTES, block->NetworkSendRawMin, block->NetworkSendRawMax, block->NetworkSendRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKWRITEBYTESDELTA, block->NetworkSendRawDeltaMin, block->NetworkSendRawDeltaMax, block->NetworkSendRawDeltaDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTAL, block->NetworkTotalCountMin, block->NetworkTotalCountMax, block->NetworkTotalCountDiff, FALSE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTES, block->NetworkTotalRawMin, block->NetworkTotalRawMax, block->NetworkTotalRawDiff, TRUE);
+                ET_PROCESS_STATISTICS_SELECT_ROW(ET_PROCESS_STATISTICS_INDEX_NETWORKTOTALBYTESDELTA, block->NetworkTotalRawDeltaMin, block->NetworkTotalRawDeltaMax, block->NetworkTotalRawDeltaDiff, TRUE);
+
+#undef ET_PROCESS_STATISTICS_SELECT_ROW
+
+                if (handled)
+                    EtpFormatProcessStatisticsValue(dispInfo, value, size);
             }
         }
         break;

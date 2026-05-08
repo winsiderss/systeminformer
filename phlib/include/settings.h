@@ -132,7 +132,7 @@ PhGetScalableIntegerPairStringRefSetting(
     _In_ PCPH_STRINGREF Name,
     _In_ BOOLEAN ScaleToDpi,
     _In_ LONG Dpi,
-    _Out_ PPH_SCALABLE_INTEGER_PAIR* ScalableIntegerPair
+    _Out_ PPH_SCALABLE_INTEGER_PAIR ScalableIntegerPair
     );
 
 PHLIBAPI
@@ -195,10 +195,26 @@ PhScalableIntegerPairToScale(
     _In_ LONG Scale
     )
 {
-    if (ScalableIntegerPair->Scale != Scale && ScalableIntegerPair->Scale != 0)
+    LONG currentScale;
+
+    if (ScalableIntegerPair->Scale)
+        currentScale = ScalableIntegerPair->Scale;
+    else
+        currentScale = USER_DEFAULT_SCREEN_DPI;
+
+    if (currentScale != Scale)
     {
-        ScalableIntegerPair->X = PhMultiplyDivideSigned(ScalableIntegerPair->X, Scale, ScalableIntegerPair->Scale);
-        ScalableIntegerPair->Y = PhMultiplyDivideSigned(ScalableIntegerPair->Y, Scale, ScalableIntegerPair->Scale);
+        LONG x = ScalableIntegerPair->X;
+        LONG y = ScalableIntegerPair->Y;
+
+        if (currentScale != USER_DEFAULT_SCREEN_DPI)
+        {
+            x = PhScaleToDefault(x, currentScale);
+            y = PhScaleToDefault(y, currentScale);
+        }
+
+        ScalableIntegerPair->X = PhScaleToDisplay(x, Scale);
+        ScalableIntegerPair->Y = PhScaleToDisplay(y, Scale);
         ScalableIntegerPair->Scale = Scale;
     }
 }
@@ -258,7 +274,7 @@ PhGetIntegerPairSetting(
 }
 
 FORCEINLINE
-PPH_SCALABLE_INTEGER_PAIR
+PH_SCALABLE_INTEGER_PAIR
 NTAPI
 PhGetScalableIntegerPairSetting(
     _In_ PCWSTR Name,
@@ -266,7 +282,7 @@ PhGetScalableIntegerPairSetting(
     _In_ LONG Dpi
     )
 {
-    PPH_SCALABLE_INTEGER_PAIR scalableIntegerPair = NULL;
+    PH_SCALABLE_INTEGER_PAIR scalableIntegerPair = { 0 };
     PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);

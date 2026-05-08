@@ -742,6 +742,7 @@ typedef struct _PH_RUNAS_SERVICE_PARAMETERS
     BOOLEAN CreateSuspendedProcess;
     HWND WindowHandle;
     BOOLEAN CreateUIAccessProcess;
+    BOOLEAN NoProfile;
 } PH_RUNAS_SERVICE_PARAMETERS, *PPH_RUNAS_SERVICE_PARAMETERS;
 
 VOID PhShowRunAsDialog(
@@ -797,7 +798,8 @@ PhExecuteRunAsCommand3(
     _In_opt_ PCWSTR DesktopName,
     _In_ BOOLEAN UseLinkedToken,
     _In_ BOOLEAN CreateSuspendedProcess,
-    _In_ BOOLEAN CreateUIAccessProcess
+    _In_ BOOLEAN CreateUIAccessProcess,
+    _In_ BOOLEAN NoProfile
     );
 
 NTSTATUS PhRunAsServiceStart(

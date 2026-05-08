@@ -202,8 +202,8 @@ VOID PvSetListHeight(
 
     dpiValue = PhGetWindowDpi(hwndDlg);
 
-    ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhGetDpi(16, dpiValue));
-    ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhGetDpi(16, dpiValue));
+    ListBox_SetItemHeight(context->InactiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
+    ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
 }
 
 VOID NTAPI PvpInactiveColumnsSearchControlCallback(
@@ -416,6 +416,11 @@ INT_PTR CALLBACK PvColumnsDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            HFONT controlFont;
+
+            if (controlFont = PvColumnsGetCurrentFont(hwndDlg))
+                PhReplaceWindowFont(&context->ControlFont, NULL, controlFont, FALSE);
+
             PvSetListHeight(context, hwndDlg);
         }
         break;

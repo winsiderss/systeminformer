@@ -82,7 +82,6 @@ NTSTATUS SetupCreateUninstallKey(
 {
     NTSTATUS status;
     HANDLE keyHandle;
-    PH_STRINGREF value;
 
     SetupDeleteUninstallKey();
 
@@ -99,14 +98,14 @@ NTSTATUS SetupCreateUninstallKey(
     if (NT_SUCCESS(status))
     {
         PPH_STRING string;
-        ULONG regValue;
         PH_FORMAT format[7];
 
-        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
-        PhSetValueKeyZ(keyHandle, L"DisplayIcon", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyString2Z(keyHandle, L"DisplayName", L"System Informer");
+        PhSetValueKeyString2Z(keyHandle, L"HelpLink", L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
+        PhSetValueKeyString2Z(keyHandle, L"Publisher", L"Winsider Seminars & Solutions, Inc.");
 
-        PhInitializeStringRef(&value, L"System Informer");
-        PhSetValueKeyZ(keyHandle, L"DisplayName", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer.exe,0");
+        PhSetValueKeyStringZ(keyHandle, L"DisplayIcon", &string->sr);
 
         PhInitFormatU(&format[0], PHAPP_VERSION_MAJOR);
         PhInitFormatC(&format[1], L'.');
@@ -116,24 +115,17 @@ NTSTATUS SetupCreateUninstallKey(
         PhInitFormatC(&format[5], L'.');
         PhInitFormatU(&format[6], PHAPP_VERSION_REVISION);
         string = PhFormat(format, RTL_NUMBER_OF(format), 10);
-        PhSetValueKeyZ(keyHandle, L"DisplayVersion", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
-
-        PhInitializeStringRef(&value, L"https://system-informer.com/"); // package manager (winget) consistency (jxy-s)
-        PhSetValueKeyZ(keyHandle, L"HelpLink", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"DisplayVersion", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
-        PhSetValueKeyZ(keyHandle, L"InstallLocation", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
-
-        PhInitializeStringRef(&value, L"Winsider Seminars & Solutions, Inc.");
-        PhSetValueKeyZ(keyHandle, L"Publisher", REG_SZ, value.Buffer, (ULONG)value.Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
         PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
-        PhSetValueKeyZ(keyHandle, L"UninstallString", REG_SZ, string->Buffer, (ULONG)string->Length + sizeof(UNICODE_NULL));
+        PhSetValueKeyStringZ(keyHandle, L"UninstallString", &string->sr);
 
-        regValue = TRUE;
-        PhSetValueKeyZ(keyHandle, L"NoModify", REG_DWORD, &regValue, sizeof(ULONG));
-        PhSetValueKeyZ(keyHandle, L"NoRepair", REG_DWORD, &regValue, sizeof(ULONG));
+        PhSetValueKeyUlong(keyHandle, L"NoModify", TRUE);
+        PhSetValueKeyUlong(keyHandle, L"NoRepair", TRUE);
 
         NtClose(keyHandle);
     }
@@ -201,6 +193,9 @@ VOID SetupDeleteAppdataDirectory(
     }
 }
 
+/**
+ * Deletes the System Informer Image File Execution Options key.
+ */
 VOID SetupDeleteSystemInformerIfeo(
     VOID
     )
@@ -220,7 +215,14 @@ VOID SetupDeleteSystemInformerIfeo(
     }
 }
 
-// Callback for enumerating and deleting AppCompatFlags Layers entries
+/**
+ * Callback for enumerating and deleting AppCompatFlags Layers entries.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The key value full information.
+ * \param Context Optional context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI SetupDeleteAppCompatFlagsLayersCallback(
     _In_ HANDLE RootDirectory,
@@ -249,7 +251,9 @@ BOOLEAN NTAPI SetupDeleteAppCompatFlagsLayersCallback(
     return TRUE;
 }
 
-// Function to delete AppCompatFlags Layers entries
+/**
+ * Deletes System Informer AppCompatFlags Layers entries.
+ */
 VOID SetupDeleteAppCompatFlagsLayersEntry(
     VOID
     )
@@ -646,6 +650,99 @@ VOID SetupDeleteWindowsOptions(
         PhEnumerateValueKey(keyHandle, KeyValueFullInformation, SetupDeleteAutoRunKeyCallback, NULL);
         NtClose(keyHandle);
     }
+}
+
+/**
+ * Checks if the Task Manager Image File Execution Options key has a debugger value.
+ *
+ * \return TRUE if a debugger value exists, otherwise FALSE.
+ */
+BOOLEAN SetupHasTaskMgrDebuggerIfeo(
+    VOID
+    )
+{
+    BOOLEAN hasDebugger = FALSE;
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskmgrIfeoKeyName,
+        0
+        )))
+    {
+        PPH_STRING debuggerValue;
+
+        debuggerValue = PhQueryRegistryStringZ(keyHandle, L"Debugger");
+
+        if (!PhIsNullOrEmptyString(debuggerValue))
+            hasDebugger = TRUE;
+
+        PhClearReference(&debuggerValue);
+        NtClose(keyHandle);
+    }
+
+    return hasDebugger;
+}
+
+/**
+ * Creates the Task Manager Image File Execution Options debugger value.
+ *
+ * \param Context The setup context.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_ALL_ACCESS | KEY_WOW64_64KEY,
+        PH_KEY_LOCAL_MACHINE,
+        &TaskmgrIfeoKeyName,
+        OBJ_OPENIF,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING clientPathString;
+        PPH_STRING value;
+
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+        if (!clientPathString)
+        {
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        value = PhFormatString(L"\"%s\"", PhGetString(clientPathString));
+        if (!value)
+        {
+            PhDereferenceObject(clientPathString);
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        status = PhSetValueKeyZ(
+            keyHandle,
+            L"Debugger",
+            REG_SZ,
+            value->Buffer,
+            (ULONG)value->Length + sizeof(UNICODE_NULL)
+            );
+
+        PhDereferenceObject(value);
+        PhDereferenceObject(clientPathString);
+        NtClose(keyHandle);
+    }
+
+    return status;
 }
 
 /**
@@ -1438,7 +1535,17 @@ NTSTATUS SetupLegacySetupInstalled(
             goto CleanupExit;
     }
 
-    keyName = PhConcatStrings(7, L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\", PhGetString(processString), L"_", PhGetString(hackerString), L"2", L"_", L"is1");
+    keyName = PhConcatStrings(
+        7,
+        L"Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\",
+        PhGetString(processString),
+        L"_",
+        PhGetString(hackerString),
+        L"2",
+        L"_",
+        L"is1"
+        );
+
     if (!keyName)
         goto CleanupExit;
 
@@ -1800,6 +1907,95 @@ NTSTATUS SetupOverwriteFile(
         );
 
     if (!NT_SUCCESS(status))
+        return status;
+
+    status = NtWriteFile(
+        fileHandle,
+        NULL,
+        NULL,
+        NULL,
+        &isb,
+        Buffer,
+        BufferLength,
+        NULL,
+        NULL
+        );
+
+    NtClose(fileHandle);
+
+    if (isb.Information != BufferLength)
+    {
+        status = STATUS_UNSUCCESSFUL;
+    }
+
+     return status;
+ }
+ 
+/**
+ * Gets the setup session identifier used for staged file names.
+ *
+ * \param Context The setup context.
+ * \return A string containing the setup session identifier.
+ */
+PPH_STRING SetupGetSessionId(
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    if (!Context->SessionId)
+    {
+        LARGE_INTEGER time;
+        ULONG seed;
+
+        NtQuerySystemTime(&time);
+        seed = time.LowPart;
+        Context->SessionId = PhFormatString(L"%08x", RtlRandomEx(&seed));
+    }
+
+    return Context->SessionId;
+}
+
+/**
+ * Writes a file to the setup staging path.
+ *
+ * \param Context The setup context.
+ * \param FinalName The final file name.
+ * \param Buffer The buffer containing the data to write.
+ * \param BufferLength The length of the buffer.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupWriteFileAtomic(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    NTSTATUS status;
+    PPH_STRING sessionId;
+    PPH_STRING stagingName;
+    HANDLE fileHandle = NULL;
+    LARGE_INTEGER allocationSize;
+    IO_STATUS_BLOCK isb;
+
+    if (!(sessionId = SetupGetSessionId(Context)))
+        return STATUS_NO_MEMORY;
+
+    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+    allocationSize.QuadPart = BufferLength;
+
+    status = PhCreateFileWin32Ex(
+        &fileHandle,
+        PhGetString(stagingName),
+        FILE_GENERIC_WRITE | DELETE,
+        &allocationSize,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OVERWRITE_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     status = NtWriteFile(
@@ -1814,28 +2010,236 @@ NTSTATUS SetupOverwriteFile(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
-        goto CleanupExit;
-
-    if (isb.Information != BufferLength)
+    if (NT_SUCCESS(status))
     {
-        status = STATUS_UNSUCCESSFUL;
-        goto CleanupExit;
+        if (isb.Information != BufferLength)
+            status = STATUS_UNSUCCESSFUL;
+        else
+            PhFlushBuffersFile(fileHandle);
     }
 
 CleanupExit:
 
     if (fileHandle)
+    {
         NtClose(fileHandle);
+    }
+
+    if (stagingName)
+    {
+        PhDereferenceObject(stagingName);
+    }
 
     return status;
 }
 
 /**
- * Computes the SHA256 hash of a file.
+ * Commits a staged setup file to the final file name.
  *
- * \param FileName The name of the file to hash.
- * \param Buffer A buffer to receive the hash.
+ * \param Context The setup context.
+ * \param FinalName The final file name.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCommitFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING sessionId;
+    PPH_STRING stagingName;
+    PPH_STRING backupName;
+    HANDLE fileHandle = NULL;
+
+    if (!(sessionId = SetupGetSessionId(Context)))
+        return STATUS_NO_MEMORY;
+
+    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+
+    // Remove any stale .bak left by a previous failed install. An explicit delete
+    // is more reliable than relying solely on ReplaceIfExists: it clears read-only
+    // attributes and avoids STATUS_INVALID_PARAMETER on some filesystem configurations.
+    //
+    // Guard: only delete .bak when FinalName still exists (step 1 has not yet run).
+    // If FinalName is already gone the .bak holds the original file that was renamed
+    // there by step 1 of a prior retry attempt - deleting it would destroy the only
+    // copy available for rollback.
+    if (PhDoesFileExistWin32(PhGetString(FinalName)) &&
+        PhDoesFileExistWin32(PhGetString(backupName)))
+    {
+        PhDeleteFileWin32(PhGetString(backupName));
+    }
+
+    //
+    // If target exists, rename it to .bak
+    //
+
+    if (PhDoesFileExistWin32(PhGetString(FinalName)))
+    {
+        HANDLE targetHandle;
+
+        status = PhCreateFileWin32Ex(
+            &targetHandle,
+            PhGetString(FinalName),
+            FILE_GENERIC_WRITE | DELETE,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            PPH_STRING baseName = PhGetBaseName(backupName);
+
+            status = PhSetFileRename(targetHandle, NULL, TRUE, &baseName->sr);
+
+            PhDereferenceObject(baseName);
+            NtClose(targetHandle);
+        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    //
+    // Rename .new to FinalName
+    //
+
+    status = PhCreateFileWin32Ex(
+        &fileHandle,
+        PhGetString(stagingName),
+        FILE_GENERIC_WRITE | DELETE,
+        NULL,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        PPH_STRING baseName = PhGetBaseName(FinalName);
+
+        status = PhSetFileRename(fileHandle, NULL, TRUE, &baseName->sr);
+
+        PhDereferenceObject(baseName);
+        NtClose(fileHandle);
+    }
+
+CleanupExit:
+
+    if (backupName)
+    {
+        PhDereferenceObject(backupName);
+    }
+
+    if (stagingName)
+    {
+        PhDereferenceObject(stagingName);
+    }
+
+    return status;
+}
+
+/**
+ * Rolls back a staged setup file update.
+ *
+ * \param Context The setup context.
+ * \param FinalName The final file name.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupRollbackFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    )
+{
+    PPH_STRING sessionId;
+    PPH_STRING stagingName;
+    PPH_STRING backupName;
+
+    if (!(sessionId = SetupGetSessionId(Context)))
+        return STATUS_NO_MEMORY;
+
+    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+
+    // Delete .new
+    PhDeleteFileWin32(PhGetString(stagingName));
+
+    // If .bak exists, rename it back to FinalName
+    if (PhDoesFileExistWin32(PhGetString(backupName)))
+    {
+        HANDLE backupHandle;
+
+        if (NT_SUCCESS(PhCreateFileWin32Ex(
+            &backupHandle,
+            PhGetString(backupName),
+            DELETE,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
+            )))
+        {
+            PhSetFileRename(backupHandle, NULL, TRUE, &FinalName->sr);
+            NtClose(backupHandle);
+        }
+    }
+
+    if (backupName)
+    {
+        PhDereferenceObject(backupName);
+    }
+
+    if (stagingName)
+    {
+        PhDereferenceObject(stagingName);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Finalizes a committed setup file update.
+ *
+ * \param Context The setup context.
+ * \param FinalName The final file name.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupFinalizeFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    )
+{
+    PPH_STRING sessionId;
+    PPH_STRING backupName;
+
+    if (!(sessionId = SetupGetSessionId(Context)))
+        return STATUS_NO_MEMORY;
+
+    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+
+    // Delete .bak (best effort)
+    if (!PhDeleteFileWin32(PhGetString(backupName)))
+    {
+        MoveFileEx(PhGetString(backupName), NULL, MOVEFILE_DELAY_UNTIL_REBOOT);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Computes the SHA-256 hash for a file.
+ *
+ * \param FileName The file name.
+ * \param Buffer The buffer that receives the SHA-256 hash.
  * \return Successful or errant status.
  */
 NTSTATUS SetupHashFile(

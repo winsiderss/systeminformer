@@ -199,9 +199,8 @@ NTSTATUS PhpBaseThreadStart(
     dbg.CurrentAutoPool = NULL;
 
     PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
-    InsertTailList(&PhDbgThreadListHead, &dbg.ListEntry);
+    InsertTailListNoFence(&PhDbgThreadListHead, &dbg.ListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
-
     PhTlsSetValue(PhDbgThreadDbgTlsIndex, &dbg);
 #endif
 
@@ -220,7 +219,7 @@ NTSTATUS PhpBaseThreadStart(
 
 #ifdef DEBUG
     PhAcquireQueuedLockExclusive(&PhDbgThreadListLock);
-    RemoveEntryList(&dbg.ListEntry);
+    RemoveEntryListNoFence(&dbg.ListEntry);
     PhReleaseQueuedLockExclusive(&PhDbgThreadListLock);
 #endif
 
@@ -535,61 +534,77 @@ NTSTATUS PhQueueUserWorkItem(
     return status;
 }
 
+/**
+ * Measures the Time Stamp Counter (TSC) frequency by calibrating against
+ * the high-resolution performance counter (QPC).
+ *
+ * \return The estimated TSC frequency in Hz (ticks per second).
+ * \remarks This function pins the calling thread to CPU 0 during measurement
+ * to avoid TSC skew across cores. The measurement takes approximately 100ms.
+ */
 DOUBLE PhReadTimeStampFrequency(
     VOID
     )
 {
-    LARGE_INTEGER frequency;
-    LARGE_INTEGER start;
-    LARGE_INTEGER end;
-    ULONG_PTR old_affinity = 0;
-    DOUBLE elapsed_qpc;
-    ULONG64 elapsed_tsc;
-    DOUBLE tsc_freq;
-    ULONG64 tsc_start;
-    ULONG64 tsc_end;
+    LARGE_INTEGER performanceFrequency;
+    LARGE_INTEGER startTime;
+    LARGE_INTEGER endTime;
+    ULONG_PTR affinityMask = 0;
+    ULONG64 startTsc;
+    ULONG64 endTsc;
 
-    // Wait interval (in QPC ticks)
-    PhQueryPerformanceFrequency(&frequency);
-    const LONGLONG interval_ms = 100; // 100 ms
-    const LONGLONG interval_ticks = (frequency.QuadPart * interval_ms) / 1000;
+    // Get QPC frequency for time conversion.
 
-    // Warm up
-    for (volatile ULONG i = 0UL; i < 1000000UL; ++i) {}
+    PhQueryPerformanceFrequency(&performanceFrequency);
 
-    // Pin thread to one CPU (optional, for best accuracy)
-    PhGetThreadAffinityMask(NtCurrentThread(), &old_affinity);
+    // Calculate wait interval in QPC ticks (100ms measurement window)
+
+    const LONGLONG calibrationIntervalMs = 100;
+    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, (ULONG)calibrationIntervalMs, 1000);
+
+    // Warm up CPU caches and branch predictors.
+
+    for (volatile ULONG i = 0; i < 1000000; ++i) {}
+
+    // Pin thread to CPU 0 for consistent TSC readings across the measurement.
+
+    PhGetThreadAffinityMask(NtCurrentThread(), &affinityMask);
     PhSetThreadAffinityMask(NtCurrentThread(), 1);
 
-    PhQueryPerformanceCounter(&start);
+    // Capture start timestamps with speculation barriers for ordering.
+
+    PhQueryPerformanceCounter(&startTime);
     SpeculationFence();
-    tsc_start = ReadTimeStampCounter();
+    startTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    // Wait for interval
-    for (;;)
+    // Busy-wait for calibration interval.
+
+    do
     {
-        PhQueryPerformanceCounter(&end);
-
-        if ((end.QuadPart - start.QuadPart) >= interval_ticks)
-            break;
-
         YieldProcessor();
-    }
+        PhQueryPerformanceCounter(&endTime);
+    } while ((endTime.QuadPart - startTime.QuadPart) < calibrationIntervalTicks);
+
+    // Capture end TSC with speculation barriers.
 
     SpeculationFence();
-    tsc_end = ReadTimeStampCounter();
+    endTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    if (old_affinity)
+    // Restore original thread affinity.
+
+    if (affinityMask)
     {
-        PhSetThreadAffinityMask(NtCurrentThread(), old_affinity);
+        PhSetThreadAffinityMask(NtCurrentThread(), affinityMask);
     }
 
-    elapsed_qpc = (DOUBLE)(end.QuadPart - start.QuadPart) / frequency.QuadPart;
-    elapsed_tsc = tsc_end - tsc_start;
-    tsc_freq = elapsed_tsc / elapsed_qpc;
-    return tsc_freq;
+    // Calculate TSC frequency: tsc_delta / elapsed_seconds.
+
+    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
+    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+
+    return (DOUBLE)elapsedTscTicks / elapsedSeconds;
 }
 
 /**
@@ -1055,7 +1070,7 @@ PVOID PhReAllocate(
     _In_ SIZE_T Size
     )
 {
-    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
+    assert(Size > 0);
 #if defined(PH_DEBUG_HEAP)
     return realloc(Memory, Size);
 #else
@@ -1278,7 +1293,7 @@ NTSTATUS PhAllocateVirtualMemory(
  * Releases, decommits, or both releases and decommits, a region of pages within the virtual address space of a specified process.
  *
  * \param ProcessHandle A handle to the process.
- * \param BaseAddress The pointer that specifies a desired starting address for the region of pages that you want to allocate.
+ * \param BaseAddress The pointer that specifies a desired starting address for the region of pages that you want to free.
  * \param FreeType A bitmask containing flags that describe the type of free operation.
  * \return Successful or errant status.
  */
@@ -1336,10 +1351,9 @@ NTSTATUS PhProtectVirtualMemory(
         &oldProtection
         );
 
-    if (NT_SUCCESS(status) && OldProtection)
+    if (OldProtection)
     {
         *OldProtection = oldProtection;
-        return STATUS_SUCCESS;
     }
 
     //if (status == STATUS_INVALID_PAGE_PROTECTION)
@@ -1419,8 +1433,8 @@ NTSTATUS PhReadVirtualMemory(
 /**
  * Writes virtual memory to the specified process.
  *
- * \param ProcessHandle Handle to the process from which the memory is to be read.
- * \param BaseAddress Optional pointer to the base address in the specified process from which to read.
+ * \param ProcessHandle Handle to the process from which the memory is to be written.
+ * \param BaseAddress Optional pointer to the base address in the specified process from which to write.
  * \param Buffer Pointer to a buffer that receives the contents from the address space of the specified process.
  * \param NumberOfBytesToWrite The number of bytes to be written to the specified process.
  * \param NumberOfBytesWritten A pointer to a variable that receives the number of bytes transferred into the specified buffer.
@@ -2459,27 +2473,29 @@ BOOLEAN PhRemoveEntryHashtable(
 }
 
 /**
- * Generates a hash code for a sequence of bytes.
+ * Generates a 32-bit FNV-1a hash code for a sequence of bytes.
  *
  * \param Bytes A pointer to a byte array.
  * \param Length The number of bytes to hash.
+ * \return 32-bit hash code type.
+ * \remarks This routine conforms to RFC 9923,
  */
 ULONG PhHashBytes(
     _In_reads_(Length) PUCHAR Bytes,
     _In_ SIZE_T Length
     )
 {
-    ULONG hash = 0;
+    ULONG hash = FNV1_32_INIT;
 
     if (Length == 0)
         return hash;
 
-    // FNV-1a algorithm: http://www.isthe.com/chongo/src/fnv/hash_32a.c
+    // FNV-1a algorithm: https://github.com/lcn2/fnv/blob/master/hash_32a.c
 
     while (Length-- != 0)
     {
         hash ^= *Bytes++;
-        hash *= 0x01000193;
+        hash *= FNV_32_PRIME;
     }
 
     return hash;
@@ -2775,7 +2791,7 @@ VOID PhRegisterCallbackEx(
     Registration->Flags = Flags;
 
     PhAcquireQueuedLockExclusive(&Callback->ListLock);
-    InsertTailList(&Callback->ListHead, &Registration->ListEntry);
+    InsertTailListNoFence(&Callback->ListHead, &Registration->ListEntry);
     PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
 
@@ -2802,7 +2818,7 @@ VOID PhUnregisterCallback(
     while (Registration->Busy)
         PhWaitForCondition(&Callback->BusyCondition, &Callback->ListLock, NULL);
 
-    RemoveEntryList(&Registration->ListEntry);
+    RemoveEntryListNoFence(&Registration->ListEntry);
 
     PhReleaseQueuedLockExclusive(&Callback->ListLock);
 }
@@ -3895,7 +3911,7 @@ VOID PhConvertCopyMemoryUlong64(
 
 #ifndef _ARM64_
 #if defined(PH_NATIVE_AVX512)
-    if (PhHasAVX512)
+    if (PhHasAVX512 && IS_ALIGNED(From, 64) && IS_ALIGNED(To, 64))
     {
         SIZE_T count = Count & ~0xF;
 
@@ -3942,8 +3958,11 @@ VOID PhConvertCopyMemoryUlong64(
             PULONG64 end = From + count;
             // Constant for reconstructing float from high/low 32-bit parts.
             const __m256 ps2p32 = _mm256_set1_ps(4294967296.0f); // 2^32
+            const __m256 ps2p31 = _mm256_set1_ps(2147483648.0f); // 2^31
             // Mask to de-interleave low and high 32-bit words from 64-bit lanes.
             const __m256i deinterleave_mask = _mm256_setr_epi32(0, 2, 4, 6, 1, 3, 5, 7);
+            // Mask to clear the sign bit for correct unsigned conversion.
+            const __m256i mask31 = _mm256_set1_epi32(0x7FFFFFFF);
 
             while (From != end)
             {
@@ -3962,13 +3981,22 @@ VOID PhConvertCopyMemoryUlong64(
                 __m256i all_los = _mm256_permute2x128_si256(shuf0, shuf1, 0x20); // combines low(shuf0), low(shuf1)
                 __m256i all_his = _mm256_permute2x128_si256(shuf0, shuf1, 0x31); // combines high(shuf0), high(shuf1)
 
-                // Convert the two vectors of 8 unsigned 32-bit integers to floats
-                // using the helper from phintrin.h.
-                __m256 los_ps = _mm256_cvtf_epu32(all_los);
-                __m256 his_ps = _mm256_cvtf_epu32(all_his);
+                // Convert uint32 -> float exactly by correcting the signed conversion.
+                // _mm256_cvtepi32_ps treats input as signed, so we:
+                // 1. Clear the sign bit (bit 31) with mask
+                // 2. Extract the sign bit
+                // 3. Add sign_bit * 2^31 to correct the value
+                __m256 los_ps = _mm256_add_ps(
+                    _mm256_cvtepi32_ps(_mm256_and_si256(all_los, mask31)),
+                    _mm256_mul_ps(_mm256_cvtepi32_ps(_mm256_srli_epi32(all_los, 31)), ps2p31)
+                    );
+                __m256 his_ps = _mm256_add_ps(
+                    _mm256_cvtepi32_ps(_mm256_and_si256(all_his, mask31)),
+                    _mm256_mul_ps(_mm256_cvtepi32_ps(_mm256_srli_epi32(all_his, 31)), ps2p31)
+                    );
 
                 // Reconstruct the float representation of the original uint64_t values.
-                // float(u64) approx= float(low32) + float(high32) * 2^32
+                // float(u64) = float(low32) + float(high32) * 2^32
                 // FMA (fused multiply-add) is used for better performance.
                 __m256 val = _mm256_fmadd_ps(his_ps, ps2p32, los_ps);
 
@@ -4048,6 +4076,8 @@ VOID PhConvertCopyMemoryUlong64(
         {
             PULONG64 end = From + count;
             const __m128d scale = _mm_set1_pd(4294967296.0);
+            const __m128d scale31 = _mm_set1_pd(2147483648.0);
+            const __m128i mask31 = _mm_set1_epi32(0x7FFFFFFF);
 
             while (From != end)
             {
@@ -4055,18 +4085,29 @@ VOID PhConvertCopyMemoryUlong64(
                 __m128i v0 = _mm_load_si128((__m128i const*)From);       // 2 x uint64
                 __m128i v1 = _mm_load_si128((__m128i const*)(From + 2)); // 2 x uint64
 
-                // Split low/high 32-bit
-                __m128i mask = _mm_set1_epi64x(0xFFFFFFFFULL);
-                __m128i v0_lo = _mm_and_si128(v0, mask);
-                __m128i v0_hi = _mm_srli_epi64(v0, 32);
-                __m128i v1_lo = _mm_and_si128(v1, mask);
-                __m128i v1_hi = _mm_srli_epi64(v1, 32);
+                // Repack each 64-bit lane into contiguous [lo32, lo32] and [hi32, hi32] vectors.
+                __m128i v0_lo = _mm_shuffle_epi32(v0, _MM_SHUFFLE(2, 0, 2, 0));
+                __m128i v0_hi = _mm_shuffle_epi32(v0, _MM_SHUFFLE(3, 1, 3, 1));
+                __m128i v1_lo = _mm_shuffle_epi32(v1, _MM_SHUFFLE(2, 0, 2, 0));
+                __m128i v1_hi = _mm_shuffle_epi32(v1, _MM_SHUFFLE(3, 1, 3, 1));
 
-                // Convert uint32 → double (exact)
-                __m128d d0_lo = _mm_cvtepi32_pd(_mm_shuffle_epi32(v0_lo, 0x08));
-                __m128d d0_hi = _mm_cvtepi32_pd(_mm_shuffle_epi32(v0_hi, 0x08));
-                __m128d d1_lo = _mm_cvtepi32_pd(_mm_shuffle_epi32(v1_lo, 0x08));
-                __m128d d1_hi = _mm_cvtepi32_pd(_mm_shuffle_epi32(v1_hi, 0x08));
+                // Convert uint32 -> double exactly by correcting the signed conversion.
+                __m128d d0_lo = _mm_add_pd(
+                    _mm_cvtepi32_pd(_mm_and_si128(v0_lo, mask31)),
+                    _mm_mul_pd(_mm_cvtepi32_pd(_mm_srli_epi32(v0_lo, 31)), scale31)
+                    );
+                __m128d d0_hi = _mm_add_pd(
+                    _mm_cvtepi32_pd(_mm_and_si128(v0_hi, mask31)),
+                    _mm_mul_pd(_mm_cvtepi32_pd(_mm_srli_epi32(v0_hi, 31)), scale31)
+                    );
+                __m128d d1_lo = _mm_add_pd(
+                    _mm_cvtepi32_pd(_mm_and_si128(v1_lo, mask31)),
+                    _mm_mul_pd(_mm_cvtepi32_pd(_mm_srli_epi32(v1_lo, 31)), scale31)
+                    );
+                __m128d d1_hi = _mm_add_pd(
+                    _mm_cvtepi32_pd(_mm_and_si128(v1_hi, mask31)),
+                    _mm_mul_pd(_mm_cvtepi32_pd(_mm_srli_epi32(v1_hi, 31)), scale31)
+                    );
 
                 // Reconstruct
                 __m128d d0 = _mm_add_pd(d0_lo, _mm_mul_pd(d0_hi, scale));
@@ -4528,6 +4569,7 @@ NTSTATUS PhTlsSetValue(
  *
  * \return The last error code as an unsigned long value.
  */
+_Use_decl_annotations_
 ULONG PhGetLastError(
     VOID
     )

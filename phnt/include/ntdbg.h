@@ -349,6 +349,7 @@ typedef enum _DEBUGOBJECTINFOCLASS
  * \param Flags Flags for the debug object creation. (DEBUG_KILL_ON_CLOSE)
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -366,6 +367,7 @@ NtCreateDebugObject(
  * \param DebugObjectHandle A handle to the debug object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -382,6 +384,7 @@ NtDebugActiveProcess(
  * \param ContinueStatus The status code to use when continuing the thread.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -398,6 +401,7 @@ NtDebugContinue(
  * \param DebugObjectHandle A handle to the debug object.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -416,6 +420,7 @@ NtRemoveProcessDebug(
  * \param ReturnLength Optional. A pointer to a variable that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI
@@ -436,6 +441,7 @@ NtSetInformationDebugObject(
  * \param WaitStateChange A pointer to a DBGUI_WAIT_STATE_CHANGE structure that receives information about the debug event.
  * \return NTSTATUS Successful or errant status.
  */
+_Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
 NTAPI

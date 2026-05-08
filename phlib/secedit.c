@@ -27,7 +27,7 @@
 BOOLEAN PhEnableSecurityAdvancedDialog = FALSE;
 BOOLEAN PhEnableSecurityDialogThread = TRUE;
 
-static const ISecurityInformationVtbl PhSecurityInformation_VTable =
+static ISecurityInformationVtbl PhSecurityInformation_VTable =
 {
     PhSecurityInformation_QueryInterface,
     PhSecurityInformation_AddRef,
@@ -41,7 +41,7 @@ static const ISecurityInformationVtbl PhSecurityInformation_VTable =
     PhSecurityInformation_PropertySheetPageCallback
 };
 
-static const ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
+static ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
 {
     PhSecurityInformation2_QueryInterface,
     PhSecurityInformation2_AddRef,
@@ -50,7 +50,7 @@ static const ISecurityInformation2Vtbl PhSecurityInformation_VTable2 =
     PhSecurityInformation2_LookupSids
 };
 
-static const ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
+static ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
 {
     PhSecurityInformation3_QueryInterface,
     PhSecurityInformation3_AddRef,
@@ -75,7 +75,7 @@ static const IDataObjectVtbl PhDataObject_VTable =
     PhSecurityDataObject_EnumDAdvise
 };
 
-static const ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
+static ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
 {
     PhSecurityObjectTypeInfo_QueryInterface,
     PhSecurityObjectTypeInfo_AddRef,
@@ -83,7 +83,7 @@ static const ISecurityObjectTypeInfoExVtbl PhSecurityObjectTypeInfo_VTable3 =
     PhSecurityObjectTypeInfo_GetInheritSource
 };
 
-static const IEffectivePermissionVtbl PhEffectivePermission_VTable =
+static IEffectivePermissionVtbl PhEffectivePermission_VTable =
 {
     PhEffectivePermission_QueryInterface,
     PhEffectivePermission_AddRef,
@@ -239,8 +239,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,
@@ -541,7 +541,7 @@ HRESULT STDMETHODCALLTYPE PhSecurityInformation_GetSecurity(
         }
     }
 
-    sdLength = RtlLengthSecurityDescriptor(securityDescriptor);
+    sdLength = PhLengthSecurityDescriptor(securityDescriptor);
     newSd = LocalAlloc(LPTR, sdLength);
     memcpy(newSd, securityDescriptor, sdLength);
     PhFree(securityDescriptor);
@@ -1523,7 +1523,7 @@ NTSTATUS PhGetSeObjectSecurity(
         return PhDosErrorToNtStatus(win32Result);
     }
 
-    *SecurityDescriptor = PhAllocateCopy(securityDescriptor, RtlLengthSecurityDescriptor(securityDescriptor));
+    *SecurityDescriptor = PhAllocateCopy(securityDescriptor, PhLengthSecurityDescriptor(securityDescriptor));
     LocalFree(securityDescriptor);
 
     return STATUS_SUCCESS;
@@ -1629,7 +1629,7 @@ NTSTATUS PhLsaQuerySecurityObject(
     {
         *SecurityDescriptor = PhAllocateCopy(
             securityDescriptor,
-            RtlLengthSecurityDescriptor(securityDescriptor)
+            PhLengthSecurityDescriptor(securityDescriptor)
             );
         LsaFreeMemory(securityDescriptor);
     }
@@ -1656,7 +1656,7 @@ NTSTATUS PhSamQuerySecurityObject(
     //{
     //    *SecurityDescriptor = PhAllocateCopy(
     //        securityDescriptor,
-    //        RtlLengthSecurityDescriptor(securityDescriptor)
+    //        PhLengthSecurityDescriptor(securityDescriptor)
     //        );
     //    SamFreeMemory(securityDescriptor);
     //}
@@ -1683,36 +1683,47 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
     {
         ULONG allocationLength;
         ULONG allocationLengthRelative = 0;
-        PSECURITY_DESCRIPTOR securityDescriptor;
+        PSECURITY_DESCRIPTOR securityDescriptor = NULL;
         PSECURITY_DESCRIPTOR securityRelative = NULL;
 
-        allocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH + defaultDacl->DefaultDacl->AclSize;
+        if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, defaultDacl->DefaultDacl->AclSize, &allocationLength)))
+            goto CleanupExit;
 
-        securityDescriptor = PhAllocateZero(allocationLength);
+        if (!(securityDescriptor = PhAllocateZeroSafe(allocationLength)))
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
+
         status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
-
         status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, defaultDacl->DefaultDacl, FALSE);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
-
-        assert(allocationLength == RtlLengthSecurityDescriptor(securityDescriptor));
-
         status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, NULL, &allocationLengthRelative);
         if (status != STATUS_BUFFER_TOO_SMALL)
             goto CleanupExit;
 
-        securityRelative = PhAllocateZero(allocationLengthRelative);
+        if (!(securityRelative = PhAllocateZeroSafe(allocationLengthRelative)))
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
+
         status = RtlAbsoluteToSelfRelativeSD(securityDescriptor, securityRelative, &allocationLengthRelative);
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        assert(allocationLengthRelative == RtlLengthSecurityDescriptor(securityRelative));
+        assert(RtlValidSecurityDescriptor(securityDescriptor));
+        assert(allocationLength == PhLengthSecurityDescriptor(securityDescriptor));
+
+        assert(RtlValidSecurityDescriptor(securityRelative));
+        assert(allocationLengthRelative == PhLengthSecurityDescriptor(securityRelative));
 
 CleanupExit:
         *SecurityDescriptor = securityRelative;
-        assert(RtlValidSecurityDescriptor(securityDescriptor));
+
         PhFree(securityDescriptor);
         PhFree(defaultDacl);
     }
@@ -1783,7 +1794,7 @@ NTSTATUS PhGetSeObjectSecurityPowerGuid(
 
             *SecurityDescriptor = PhAllocateCopy(
                 securityDescriptor,
-                RtlLengthSecurityDescriptor(securityDescriptor)
+                PhLengthSecurityDescriptor(securityDescriptor)
                 );
             PhFree(securityDescriptor);
         }

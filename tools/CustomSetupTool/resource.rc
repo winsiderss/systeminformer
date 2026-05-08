@@ -31,6 +31,108 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 IDI_ICON                ICON                    "../../SystemInformer/SystemInformer.ico"
 
 
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_WELCOME DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "System Informer Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_SIDEBAR,"Static",SS_BITMAP,21,20,140,212
+    LTEXT           "Welcome to the System Informer Setup Wizard",IDC_TITLE,148,4,250,34
+    LTEXT           "This will install System Informer on your computer. System Informer helps you monitor system resources, debug software, and detect malware.",IDC_STATIC,148,55,240,30
+    LTEXT           "It is recommended you close all other applications before continuing.",IDC_STATIC,148,94,240,18
+    LTEXT           "Click Next to continue, or Cancel to exit setup.",IDC_STATIC,148,126,240,14
+END
+
+IDD_CONFIG DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Setup Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Select Destination Location",IDC_TITLE,15,0,338,10
+    LTEXT           "Where should System Informer be installed?",IDC_SUBTITLE,25,11,338,10
+    ICON            IDI_ICON,IDC_PAGEICON,378,0,20,20
+    LTEXT           "Setup will install System Informer into the following folder.",IDC_STATIC,25,40,358,10
+    LTEXT           "To continue, click Next. If you would like to select a different folder, click Browse.",IDC_STATIC,25,64,358,10
+    EDITTEXT        IDC_PATH,25,78,301,14,ES_AUTOHSCROLL,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Browse...",IDC_BROWSE,334,77,49,16
+END
+
+IDD_INSTALL DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Installing"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Installing",IDC_TITLE,15,0,338,10
+    LTEXT           "Please wait while Setup installs System Informer on your computer.",IDC_SUBTITLE,25,11,338,10
+    ICON            IDI_ICON,IDC_PAGEICON,378,0,20,20
+    LTEXT           "Status:",IDC_STATIC,25,40,358,10
+    LTEXT           "",IDC_STATUS,25,52,358,10
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_MARQUEE,25,70,358,13
+END
+
+IDD_COMPLETED DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Installation Complete"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_SIDEBAR,"Static",SS_BITMAP,21,20,140,212
+    LTEXT           "Completing the System Informer Setup Wizard",IDC_TITLE,148,4,250,34
+    LTEXT           "Setup has finished installing System Informer on your computer. The application may be launched by selecting the installed shortcuts.",IDC_STATIC,148,55,240,30
+    LTEXT           "Click Finish to exit Setup.",IDC_STATIC,148,88,240,14
+    CONTROL         "Start System Informer",IDC_STARTAPP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,148,112,240,12
+END
+
+IDD_ERROR DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Setup Failed"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_SIDEBAR,"Static",SS_BITMAP,21,20,15,13
+    LTEXT           "System Informer Setup Wizard failed",IDC_TITLE,148,4,250,34
+    LTEXT           "Setup was unable to complete the operation.",IDC_STATIC,148,55,240,14
+    LTEXT           "",IDC_STATUS,148,78,240,42
+    LTEXT           "Click Finish to exit Setup.",IDC_STATIC,148,130,240,14
+END
+
+IDD_UNINSTALL DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Uninstall"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Ready to Uninstall",IDC_TITLE,15,0,338,10
+    LTEXT           "Setup is ready to remove System Informer from your computer.",IDC_SUBTITLE,25,11,338,10
+    ICON            IDI_ICON,IDC_PAGEICON,378,0,20,20
+    LTEXT           "Click Uninstall to continue with the uninstallation, or click Back if you want to review or change any settings.",IDC_STATIC,25,40,358,18
+END
+
+IDD_UPDATE DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Update"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Ready to Update",IDC_TITLE,15,0,338,10
+    LTEXT           "Setup is ready to update System Informer on your computer.",IDC_SUBTITLE,25,11,338,10
+    ICON            IDI_ICON,IDC_PAGEICON,378,0,20,20
+    LTEXT           "Click Update to continue with the installation, or click Back if you want to review or change any settings.",IDC_STATIC,25,40,358,18
+END
+
+IDD_REPAIR DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Repair"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Ready to Repair",IDC_TITLE,15,0,338,10
+    LTEXT           "Setup is ready to repair System Informer on your computer.",IDC_SUBTITLE,25,11,338,10
+    ICON            IDI_ICON,IDC_PAGEICON,378,0,20,20
+    LTEXT           "Click Repair to continue, or click Back if you want to review or change any settings.",IDC_STATIC,25,40,358,18
+END
+
+
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -57,6 +159,81 @@ END
 
 #endif    // APSTUDIO_INVOKED
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_WELCOME, DIALOG
+    BEGIN
+        RIGHTMARGIN, 398
+    END
+
+    IDD_CONFIG, DIALOG
+    BEGIN
+        RIGHTMARGIN, 395
+        BOTTOMMARGIN, 225
+    END
+
+    IDD_INSTALL, DIALOG
+    BEGIN
+        RIGHTMARGIN, 395
+        BOTTOMMARGIN, 225
+    END
+
+    IDD_COMPLETED, DIALOG
+    BEGIN
+        RIGHTMARGIN, 398
+    END
+
+    IDD_ERROR, DIALOG
+    BEGIN
+    END
+
+    IDD_UNINSTALL, DIALOG
+    BEGIN
+        RIGHTMARGIN, 395
+        BOTTOMMARGIN, 225
+    END
+
+    IDD_UPDATE, DIALOG
+    BEGIN
+        RIGHTMARGIN, 395
+        BOTTOMMARGIN, 225
+    END
+
+    IDD_REPAIR, DIALOG
+    BEGIN
+        RIGHTMARGIN, 395
+        BOTTOMMARGIN, 225
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// PNG
+//
+
+IDB_PNG1                PNG                     "../../SystemInformer/resources/systeminformer.png"
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
 

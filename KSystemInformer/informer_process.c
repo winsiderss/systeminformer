@@ -144,8 +144,6 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
                   &process->ImageName,
                   HandleToULong(process->ProcessId));
 
-    KphVerifyProcessAndProtectIfAppropriate(process);
-
     creatorProcess = KphGetCurrentProcessContext();
     if (!creatorProcess)
     {
@@ -159,7 +157,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
 
     if (KphTestProcessContextState(creatorProcess, KPH_PROCESS_STATE_MAXIMUM))
     {
-        process->SecurelyCreated = TRUE;
+        KphProtectionSet(&process->Protection, KPH_PROTECTION_TCB);
     }
     else
     {
@@ -171,7 +169,7 @@ PKPH_PROCESS_CONTEXT KphpPerformProcessTracking(
             ((processProtection.Signer == PsProtectedSignerWinTcb) ||
              (processProtection.Signer == PsProtectedSignerWinSystem)))
         {
-            process->SecurelyCreated = TRUE;
+            KphProtectionSet(&process->Protection, KPH_PROTECTION_TCB);
         }
     }
 
@@ -188,9 +186,9 @@ Exit:
 /**
  * \brief Informs any clients of process notify routine invocations.
  *
- * \param[in,out] Process The process being created.
+ * \param[in,out] Process The created or exiting process.
  * \param[in,out] CreateInfo Information on the process being created, if the
- * process is being destroyed this is NULL.
+ * process is exiting this is NULL.
  *
  */
 _Function_class_(PCREATE_PROCESS_NOTIFY_ROUTINE_EX)
@@ -204,19 +202,19 @@ VOID KphpCreateProcessNotifyInformer(
     PKPH_MESSAGE msg;
     PKPH_MESSAGE reply;
     PEPROCESS parentProcess;
-    PKPH_PROCESS_CONTEXT actorProcess;
     KPH_INFORMER_OPTIONS opts;
 
     KPH_PAGED_CODE_PASSIVE();
 
+    KPH_INFORMER_CONTEXT_ENTER();
+
     msg = NULL;
     reply = NULL;
     parentProcess = NULL;
-    actorProcess = KphGetCurrentProcessContext();
 
     if (CreateInfo)
     {
-        if (!KphInformerEnabled(ProcessCreate, actorProcess))
+        if (!KphInformerEnabled(ProcessCreate))
         {
             goto Exit;
         }
@@ -242,10 +240,7 @@ VOID KphpCreateProcessNotifyInformer(
         }
 
         KphMsgInit(msg, KphMsgProcessCreate);
-        msg->Kernel.ProcessCreate.CreatingClientId.UniqueProcess = PsGetCurrentProcessId();
-        msg->Kernel.ProcessCreate.CreatingClientId.UniqueThread = PsGetCurrentThreadId();
-        msg->Kernel.ProcessCreate.CreatingProcessStartKey = KphGetCurrentProcessStartKey();
-        msg->Kernel.ProcessCreate.CreatingThreadSubProcessTag = KphGetCurrentThreadSubProcessTag();
+        KphCaptureCurrentContext(&msg->Kernel.ProcessCreate.Context);
         msg->Kernel.ProcessCreate.TargetProcessId = Process->ProcessId;
         msg->Kernel.ProcessCreate.TargetProcessStartKey = KphGetProcessStartKey(Process->EProcess);
         msg->Kernel.ProcessCreate.Flags = CreateInfo->Flags;
@@ -285,7 +280,7 @@ VOID KphpCreateProcessNotifyInformer(
             }
         }
 
-        opts = KphInformerOpts(actorProcess);
+        opts = KphInformerOpts();
 
         if (opts.EnableStackTraces)
         {
@@ -330,7 +325,7 @@ VOID KphpCreateProcessNotifyInformer(
     }
     else
     {
-        if (!KphInformerEnabled(ProcessExit, actorProcess))
+        if (!KphInformerEnabled(ProcessExit))
         {
             goto Exit;
         }
@@ -345,12 +340,11 @@ VOID KphpCreateProcessNotifyInformer(
         }
 
         KphMsgInit(msg, KphMsgProcessExit);
-        msg->Kernel.ProcessExit.ClientId.UniqueProcess = PsGetCurrentProcessId();
-        msg->Kernel.ProcessExit.ClientId.UniqueThread = PsGetCurrentThreadId();
-        msg->Kernel.ProcessExit.ProcessStartKey = KphGetProcessStartKey(Process->EProcess);
+        NT_ASSERT(Process->EProcess == PsGetCurrentProcess());
+        KphCaptureCurrentContext(&msg->Kernel.ProcessExit.Context);
         msg->Kernel.ProcessExit.ExitStatus = PsGetProcessExitStatus(Process->EProcess);
 
-        if (KphInformerOpts(actorProcess).EnableStackTraces)
+        if (KphInformerOpts().EnableStackTraces)
         {
             KphCaptureStackInMessage(msg);
         }
@@ -376,10 +370,7 @@ Exit:
         ObDereferenceObject(parentProcess);
     }
 
-    if (actorProcess)
-    {
-        KphDereferenceObject(actorProcess);
-    }
+    KPH_INFORMER_CONTEXT_EXIT();
 }
 
 /**
@@ -585,7 +576,7 @@ Exit:
 
     if (stopProtecting)
     {
-        KphStopProtectingProcess(Process);
+        KphProtectionClear(&Process->Protection, KPH_PROTECTION_ACTIVE);
     }
 }
 

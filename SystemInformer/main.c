@@ -618,7 +618,7 @@ NTSTATUS NTAPI PhpPreviousInstancesCallback(
     HANDLE objectHandle;
 
     if (!PhStartsWithStringRef2(Name, L"SiMutant_", FALSE))
-        return STATUS_NAME_TOO_LONG;
+        return STATUS_SUCCESS;
 
     if (NT_SUCCESS(PhOpenMutant(
         &objectHandle,
@@ -1097,12 +1097,11 @@ NTSTATUS PhInitializeNamespacePolicy(
     VOID
     )
 {
+    NTSTATUS status;
     HANDLE mutantHandle;
     SIZE_T returnLength;
     WCHAR formatBuffer[PH_INT64_STR_LEN_1];
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
-    PH_STRINGREF objectNameSr;
+    PH_STRINGREF objectName;
     PH_FORMAT format[2];
 
     PhInitFormatS(&format[0], L"SiMutant_");
@@ -1119,28 +1118,21 @@ NTSTATUS PhInitializeNamespacePolicy(
         return STATUS_BUFFER_TOO_SMALL;
     }
 
-    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-    objectNameSr.Buffer = formatBuffer;
-
-    if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
-        return STATUS_NAME_TOO_LONG;
-
-    InitializeObjectAttributes(
-        &objectAttributes,
+    PhInitializeBufferStringRef(
         &objectName,
-        OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
-        NULL
+        formatBuffer,
+        returnLength - sizeof(UNICODE_NULL)
         );
 
-    NtCreateMutant(
+    status = PhCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
-        &objectAttributes,
+        PhGetNamespaceHandle(),
+        &objectName,
         TRUE
         );
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -1156,15 +1148,16 @@ NTSTATUS PhInitializeComPolicy(
 {
 #ifdef PH_COM_SVC
     #include <cguid.h>
+    NTSTATUS status;
     IGlobalOptions* globalOptions;
     UCHAR securityDescriptorBuffer[SECURITY_DESCRIPTOR_MIN_LENGTH + 0x300];
     PSECURITY_DESCRIPTOR securityDescriptor = (PSECURITY_DESCRIPTOR)securityDescriptorBuffer;
+    PACL dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
     PSID administratorsSid = PhSeAdministratorsSid();
-    ULONG securityDescriptorAllocationLength;
-    PACL dacl;
+    ULONG daclLength;
 
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
-        return TRUE; // Continue without COM support. (dmex)
+        return STATUS_SUCCESS; // Continue without COM support. (dmex)
 
     if (SUCCEEDED(PhGetClassObject(L"combase.dll", &CLSID_GlobalOptions, &IID_IGlobalOptions, &globalOptions)))
     {
@@ -1175,29 +1168,40 @@ NTSTATUS PhInitializeComPolicy(
         #define COMGLB_ADD_RESTRICTEDCODE_SID_TO_COM_CALLPERMISSIONS COMGLB_RESERVED3
         #define HKLM_ONLY_CLASSIC_COM_CATALOG COMGLB_RESERVED5
 
-        IGlobalOptions_Set(globalOptions, COMGLB_EXCEPTION_HANDLING, COMGLB_EXCEPTION_DONOT_HANDLE_ANY);
-        IGlobalOptions_Set(globalOptions, COMGLB_RO_SETTINGS, COMGLB_FAST_RUNDOWN | COMGLB_ENABLE_AGILE_OOP_PROXIES | HKLM_ONLY_CLASSIC_COM_CATALOG);
+        if (SUCCEEDED(IGlobalOptions_Set(globalOptions, COMGLB_EXCEPTION_HANDLING, COMGLB_EXCEPTION_DONOT_HANDLE_ANY)) &&
+            SUCCEEDED(IGlobalOptions_Set(globalOptions, COMGLB_RO_SETTINGS, COMGLB_FAST_RUNDOWN | COMGLB_ENABLE_AGILE_OOP_PROXIES | HKLM_ONLY_CLASSIC_COM_CATALOG)))
+        {
+            // Successfully configured global COM options.
+        }
+
         IGlobalOptions_Release(globalOptions);
     }
 
-    securityDescriptorAllocationLength = SECURITY_DESCRIPTOR_MIN_LENGTH +
-        (ULONG)sizeof(ACL) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&PhSeAuthenticatedUserSid) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&PhSeLocalSystemSid) +
-        (ULONG)sizeof(ACCESS_ALLOWED_ACE) +
-        PhLengthSid(&administratorsSid);
+    if (!NT_SUCCESS(status = RtlULongAdd(SECURITY_DESCRIPTOR_MIN_LENGTH, sizeof(ACL), &daclLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeAuthenticatedUserSid), &daclLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(&PhSeLocalSystemSid), &daclLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = RtlULongAdd(daclLength, UFIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart) + PhLengthSid(administratorsSid), &daclLength)))
+        goto CleanupExit;
 
-    dacl = PTR_ADD_OFFSET(securityDescriptor, SECURITY_DESCRIPTOR_MIN_LENGTH);
-    PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION);
-    PhCreateAcl(dacl, securityDescriptorAllocationLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid);
-    PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid);
-    PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE);
-    PhSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
-    PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE);
+    if (!NT_SUCCESS(status = PhCreateSecurityDescriptor(securityDescriptor, SECURITY_DESCRIPTOR_REVISION)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhCreateAcl(dacl, daclLength - SECURITY_DESCRIPTOR_MIN_LENGTH, ACL_REVISION)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeAuthenticatedUserSid)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, &PhSeLocalSystemSid)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhAddAccessAllowedAce(dacl, ACL_REVISION, FILE_READ_DATA | FILE_WRITE_DATA, administratorsSid)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSetDaclSecurityDescriptor(securityDescriptor, TRUE, dacl, FALSE)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSetGroupSecurityDescriptor(securityDescriptor, administratorsSid, FALSE)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhSetOwnerSecurityDescriptor(securityDescriptor, administratorsSid, FALSE)))
+        goto CleanupExit;
 
     if (!SUCCEEDED(CoInitializeSecurity(
         securityDescriptor,
@@ -1211,16 +1215,16 @@ NTSTATUS PhInitializeComPolicy(
         NULL
         )))
     {
-        NOTHING;
+        goto CleanupExit;
     }
 
 #ifdef DEBUG
     assert(RtlValidSecurityDescriptor(securityDescriptor));
     assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
-    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+    assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif
-
-    return TRUE;
+CleanupExit:
+    return STATUS_SUCCESS;
 #else
     if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
         NOTHING;
@@ -1428,7 +1432,7 @@ NTSTATUS PhInitializeTimerPolicy(
 
 /**
  * Initializes the application system.
- * 
+ *
  * This function performs the necessary initialization of the System Informer
  * application system, setting up core components and resources required for
  * the application to function properly.
@@ -1709,6 +1713,7 @@ VOID PhInitializeAppSettings(
     for (ULONG i = 0; i < PhMaxPrecisionUnit; i++)
         PhMaxPrecisionLimit /= 10;
     PhEnableWindowText = !!PhGetIntegerSetting(SETTING_ENABLE_WINDOW_TEXT);
+    PhEnableHighResolution = WindowsVersion >= WINDOWS_11 && PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION);
 
     PhEnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
     PhThemeWindowForegroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR);
@@ -1739,6 +1744,27 @@ VOID PhInitializeAppSettings(
             sampleCount = 4096;
 
         PhSetIntegerSetting(SETTING_SAMPLE_COUNT, sampleCount);
+    }
+
+    {
+        PPH_STRING clientId = PhGetStringSetting(SETTING_CLIENT_ID);
+        if (PhIsNullOrEmptyString(clientId))
+        {
+            static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L"{}");
+            GUID guid;
+            PH_STRINGREF trimmed;
+
+            PhGenerateGuid(&guid);
+            PhMoveReference(&clientId, PhFormatGuid(&guid));
+
+            trimmed = clientId->sr;
+            PhTrimStringRef(&trimmed, &trimSet, 0);
+            PhLowerStringRef(&trimmed);
+
+            PhSetStringSetting2(SETTING_CLIENT_ID, &trimmed);
+        }
+
+        PhClearReference(&clientId);
     }
 
     if (PhStartupParameters.UpdateChannel != PhInvalidChannel)

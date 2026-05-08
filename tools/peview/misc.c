@@ -883,14 +883,14 @@ VOID PvSetListViewImageList(
         PhImageListSetIconSize(
             listViewImageList,
             2,
-            PhGetDpi(20, dpiValue)
+            PhScaleToDisplay(20, dpiValue)
             );
     }
     else
     {
         if (listViewImageList = PhImageListCreate(
             2,
-            PhGetDpi(20, dpiValue),
+            PhScaleToDisplay(20, dpiValue),
             ILC_MASK | ILC_COLOR32,
             1,
             1
@@ -911,7 +911,7 @@ VOID PvSetTreeViewImageList(
 
     if (treeViewImageList = PhImageListCreate(
         2,
-        PhGetDpi(24, dpiValue),
+        PhScaleToDisplay(24, dpiValue),
         ILC_MASK | ILC_COLORDDB,
         1,
         1

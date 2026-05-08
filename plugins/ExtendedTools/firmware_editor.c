@@ -73,51 +73,51 @@ NTSTATUS EtFirmwareQueryVariable(
 }
 
 INT_PTR CALLBACK EtFirmwareEditorDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PET_FIRMWARE_EDITOR_CONTEXT context;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = (PET_FIRMWARE_EDITOR_CONTEXT)lParam;
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
             NTSTATUS status;
 
-            context->HexEditHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR);
-            context->BytesPerRowHandle = GetDlgItem(hwndDlg, IDC_FIRMWARE_BYTESPERROW);
+            context->HexEditHandle = GetDlgItem(WindowHandle, IDC_FIRMWARE_HEXEDITVAR);
+            context->BytesPerRowHandle = GetDlgItem(WindowHandle, IDC_FIRMWARE_BYTESPERROW);
 
-            PhSetApplicationWindowIcon(hwndDlg);
-            PhSetWindowText(hwndDlg, PhGetString(context->Name));
+            PhSetApplicationWindowIcon(WindowHandle);
+            PhSetWindowText(WindowHandle, PhGetString(context->Name));
 
-            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_HEXEDITVAR), NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_REREAD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_WRITE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_FIRMWARE_HEXEDITVAR), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_FIRMWARE_REREAD), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_FIRMWARE_WRITE), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&context->LayoutManager, context->BytesPerRowHandle, NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_FIRMWARE_SAVE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             if (!NT_SUCCESS(status = EtFirmwareQueryVariable(context, context->Name, context->GuidString)))
             {
                 PhShowStatus(context->ParentWindowHandle, L"Unable to query the EFI variable.", status, 0);
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 return TRUE;
             }
 
@@ -130,7 +130,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
 
                 if (windowRectangle.Position.X == 0)
                 {
-                    PhCenterWindow(hwndDlg, context->ParentWindowHandle);
+                    PhCenterWindow(WindowHandle, context->ParentWindowHandle);
                 }
                 else
                 {
@@ -140,10 +140,10 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                     PhRectangleToRect(&rect, &windowRectangle);
                     dpiValue = PhGetMonitorDpi(NULL, &rect);
 
-                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue)->Pair;
+                    windowRectangle.Size = PhGetScalableIntegerPairSetting(SETTING_MEM_EDIT_SIZE, TRUE, dpiValue).Pair;
                     PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
-                    MoveWindow(hwndDlg, windowRectangle.Left, windowRectangle.Top,
+                    MoveWindow(WindowHandle, windowRectangle.Left, windowRectangle.Top,
                         windowRectangle.Width, windowRectangle.Height, FALSE);
 
                     // Implement cascading by saving an offsetted rectangle.
@@ -174,16 +174,16 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 }
             }
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
-            SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+            SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
         }
         break;
     case WM_DESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
-            PhSaveWindowPlacementToSetting(SETTING_MEM_EDIT_POSITION, SETTING_MEM_EDIT_SIZE, hwndDlg);
+            PhSaveWindowPlacementToSetting(SETTING_MEM_EDIT_POSITION, SETTING_MEM_EDIT_SIZE, WindowHandle);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
@@ -195,6 +195,8 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 PhFree(context->VariableValue);
 
             PhFree(context);
+
+            PostQuitMessage(0);
         }
         break;
     case WM_COMMAND:
@@ -203,7 +205,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
             {
             case IDCANCEL:
             case IDOK:
-                DestroyWindow(hwndDlg);
+                DestroyWindow(WindowHandle);
                 break;
             case IDC_FIRMWARE_SAVE:
                 {
@@ -221,7 +223,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                         PhGetString(context->Name)
                         )->Buffer);
 
-                    if (PhShowFileDialog(hwndDlg, fileDialog))
+                    if (PhShowFileDialog(WindowHandle, fileDialog))
                     {
                         NTSTATUS status;
                         PPH_STRING fileName;
@@ -243,7 +245,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                         }
 
                         if (!NT_SUCCESS(status))
-                            PhShowStatus(hwndDlg, L"Unable to create the file", status, 0);
+                            PhShowStatus(WindowHandle, L"Unable to create the file", status, 0);
                     }
 
                     PhFreeFileDialog(fileDialog);
@@ -304,7 +306,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE)
                     {
-                        PPH_STRING bytesPerRowString = PhaGetDlgItemText(hwndDlg, IDC_FIRMWARE_BYTESPERROW);
+                        PPH_STRING bytesPerRowString = PhaGetDlgItemText(WindowHandle, IDC_FIRMWARE_BYTESPERROW);
                         PH_STRINGREF firstPart;
                         PH_STRINGREF secondPart;
                         ULONG64 bytesPerRow64;
@@ -315,7 +317,7 @@ INT_PTR CALLBACK EtFirmwareEditorDlgProc(
                             {
                                 PhSetIntegerSetting(SETTING_MEM_EDIT_BYTES_PER_ROW, (ULONG)bytesPerRow64);
                                 HexEdit_SetBytesPerRow(context->HexEditHandle, (ULONG)bytesPerRow64);
-                                SendMessage(hwndDlg, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
+                                SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)context->HexEditHandle, TRUE);
                             }
                         }
                     }

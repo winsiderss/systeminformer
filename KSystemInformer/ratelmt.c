@@ -30,7 +30,7 @@
  * \param[in] TimeStamp The current time stamp.
  * \param[in] RateLimit Receives the initialized rate limit.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 VOID KphInitializeRateLimit(
     _In_ PCKPH_RATE_LIMIT_POLICY Policy,
     _In_ PLARGE_INTEGER TimeStamp,
@@ -39,7 +39,7 @@ VOID KphInitializeRateLimit(
 {
     KPH_RATE_BUCKET bucket;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     bucket.CurrentTokens = Policy->MaxBucketSize;
     bucket.LastRefillTime = (ULONG)(TimeStamp->QuadPart / KPH_RATE_LIMIT_TIME_UNIT);
@@ -57,7 +57,7 @@ VOID KphInitializeRateLimit(
  *
  * \return TRUE if a token was consumed, FALSE otherwise.
  */
-_IRQL_requires_max_(DISPATCH_LEVEL)
+_IRQL_requires_max_(HIGH_LEVEL)
 BOOLEAN KphRateLimitConsumeToken(
     _Inout_ PKPH_RATE_LIMIT RateLimit,
     _In_ PLARGE_INTEGER TimeStamp
@@ -71,7 +71,7 @@ BOOLEAN KphRateLimitConsumeToken(
     BOOLEAN allowed;
     LONG64 expected;
 
-    KPH_NPAGED_CODE_DISPATCH_MAX();
+    KPH_NPAGED_CODE_HIGH_MAX();
 
     //
     // KPH_RATE_LIMIT_UNLIMITED

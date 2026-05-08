@@ -335,13 +335,13 @@ VOID EtpTickGpuDialog(
 }
 
 INT_PTR CALLBACK EtpGpuDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
@@ -350,21 +350,21 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             EtpInitializeGpuDialog();
 
-            GpuDialog = hwndDlg;
+            GpuDialog = WindowHandle;
             GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
 
-            PhInitializeLayoutManager(&GpuLayoutManager, hwndDlg);
-            PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
-            graphItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
-            panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(hwndDlg, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhInitializeLayoutManager(&GpuLayoutManager, WindowHandle);
+            PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            graphItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
+            panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             GpuGraphMargin = graphItem->Margin;
 
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
-            SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
 
-            PhSetDialogItemText(hwndDlg, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGpuGetNameString())->Buffer);
+            PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PH_AUTO_T(PH_STRING, EtpGpuGetNameString())->Buffer);
 
-            GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), hwndDlg, EtpGpuPanelDialogProc, NULL);
+            GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_SYSINFO_GPUPANEL), WindowHandle, EtpGpuPanelDialogProc, NULL);
             ShowWindow(GpuPanel, SW_SHOW);
             PhAddLayoutItemEx(&GpuLayoutManager, GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
@@ -374,9 +374,9 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             if (!EtGpuSupported)
             {
-                ShowWindow(GetDlgItem(hwndDlg, IDC_POWER_USAGE_L), SW_HIDE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_TEMPERATURE_L), SW_HIDE);
-                ShowWindow(GetDlgItem(hwndDlg, IDC_FAN_RPM_L), SW_HIDE);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_POWER_USAGE_L), SW_HIDE);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_TEMPERATURE_L), SW_HIDE);
+                ShowWindow(GetDlgItem(WindowHandle, IDC_FAN_RPM_L), SW_HIDE);
             }
         }
         break;
@@ -391,81 +391,51 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             if (GpuSection->Parameters->LargeFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
+                SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
             }
 
             if (GpuSection->Parameters->MediumFont)
             {
-                SetWindowFont(GetDlgItem(hwndDlg, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
+                SetWindowFont(GetDlgItem(WindowHandle, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
             }
 
             PhLayoutManagerUpdate(&GpuLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&GpuLayoutManager);
-            EtpLayoutGpuGraphs(hwndDlg);
+            EtpLayoutGpuGraphs(WindowHandle);
         }
         break;
     case WM_SIZE:
         {
             PhLayoutManagerLayout(&GpuLayoutManager);
-            EtpLayoutGpuGraphs(hwndDlg);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == GpuGraphHandle)
-            {
-                EtpNotifyGpuGraph(header);
-            }
-            else if (header->hwndFrom == DedicatedGraphHandle)
-            {
-                EtpNotifyDedicatedGpuGraph(header);
-            }
-            else if (header->hwndFrom == SharedGraphHandle)
-            {
-                EtpNotifySharedGpuGraph(header);
-            }
-            else if (header->hwndFrom == PowerUsageGraphHandle)
-            {
-                EtpNotifyPowerUsageGpuGraph(header);
-            }
-            else if (header->hwndFrom == TemperatureGraphHandle)
-            {
-                EtpNotifyTemperatureGpuGraph(header);
-            }
-            else if (header->hwndFrom == FanRpmGraphHandle)
-            {
-                EtpNotifyFanRpmGpuGraph(header);
-            }
+            EtpLayoutGpuGraphs(WindowHandle);
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
 }
 
 INT_PTR CALLBACK EtpGpuPanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            GpuPanelDedicatedUsageLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDCURRENT_V);
-            GpuPanelDedicatedLimitLabel = GetDlgItem(hwndDlg, IDC_ZDEDICATEDLIMIT_V);
-            GpuPanelSharedUsageLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDCURRENT_V);
-            GpuPanelSharedLimitLabel = GetDlgItem(hwndDlg, IDC_ZSHAREDLIMIT_V);
+            GpuPanelDedicatedUsageLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDCURRENT_V);
+            GpuPanelDedicatedLimitLabel = GetDlgItem(WindowHandle, IDC_ZDEDICATEDLIMIT_V);
+            GpuPanelSharedUsageLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDCURRENT_V);
+            GpuPanelSharedLimitLabel = GetDlgItem(WindowHandle, IDC_ZSHAREDLIMIT_V);
         }
         break;
     case WM_COMMAND:
@@ -482,11 +452,11 @@ INT_PTR CALLBACK EtpGpuPanelDialogProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -496,7 +466,13 @@ VOID EtpCreateGpuGraphs(
     VOID
     )
 {
-    GpuGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = EtpGpuSysInfoGraphMessageCallback;
+
+    GpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -507,11 +483,11 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(GpuGraphHandle, TRUE);
 
-    DedicatedGraphHandle = CreateWindow(
+    DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -522,11 +498,11 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(DedicatedGraphHandle, TRUE);
 
-    SharedGraphHandle = CreateWindow(
+    SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -537,13 +513,13 @@ VOID EtpCreateGpuGraphs(
         GpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
 
     if (EtGpuSupported)
     {
-        PowerUsageGraphHandle = CreateWindow(
+        PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -554,11 +530,11 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
 
-        TemperatureGraphHandle = CreateWindow(
+        TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -569,11 +545,11 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(TemperatureGraphHandle, TRUE);
 
-        FanRpmGraphHandle = CreateWindow(
+        FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -584,14 +560,14 @@ VOID EtpCreateGpuGraphs(
             GpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(FanRpmGraphHandle, TRUE);
     }
 }
 
 VOID EtpLayoutGpuGraphs(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     )
 {
     RECT clientRect;
@@ -621,8 +597,8 @@ VOID EtpLayoutGpuGraphs(
     }
 
     marginRect = GpuGraphMargin;
-    PhGetSizeDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
-    graphPadding = PhGetDpi(ET_GPU_PADDING, GpuDialogWindowDpi);
+    PhGetMarginDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
+    graphPadding = PhScaleToDisplay(ET_GPU_PADDING, GpuDialogWindowDpi);
 
     PhGetClientRect(GpuDialog, &clientRect);
     PhGetClientRect(GetDlgItem(GpuDialog, IDC_GPU_L), &labelRect);
@@ -1513,4 +1489,43 @@ PPH_STRING EtpGpuGetNameString(
         PhRemoveEndStringBuilder(&sb, 2);
 
     return PhFinalStringBuilderString(&sb);
+}
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpGpuSysInfoGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR* header = (NMHDR*)Parameter1;
+
+    if (header->hwndFrom == GpuGraphHandle)
+    {
+        EtpNotifyGpuGraph(header);
+    }
+    else if (header->hwndFrom == DedicatedGraphHandle)
+    {
+        EtpNotifyDedicatedGpuGraph(header);
+    }
+    else if (header->hwndFrom == SharedGraphHandle)
+    {
+        EtpNotifySharedGpuGraph(header);
+    }
+    else if (header->hwndFrom == PowerUsageGraphHandle)
+    {
+        EtpNotifyPowerUsageGpuGraph(header);
+    }
+    else if (header->hwndFrom == TemperatureGraphHandle)
+    {
+        EtpNotifyTemperatureGpuGraph(header);
+    }
+    else if (header->hwndFrom == FanRpmGraphHandle)
+    {
+        EtpNotifyFanRpmGpuGraph(header);
+    }
+
+    return TRUE;
 }

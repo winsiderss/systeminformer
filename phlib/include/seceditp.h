@@ -47,7 +47,7 @@ typedef enum _PH_SE_OBJECT_TYPE
 
 typedef struct
 {
-    const ISecurityInformationVtbl *VTable;
+    ISecurityInformationVtbl *VTable;
 
     ULONG RefCount;
 
@@ -75,7 +75,7 @@ typedef struct
 
 typedef struct
 {
-    const ISecurityInformation2Vtbl *VTable;
+    ISecurityInformation2Vtbl *VTable;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
@@ -83,7 +83,7 @@ typedef struct
 
 typedef struct
 {
-    const ISecurityInformation3Vtbl *VTable;
+    ISecurityInformation3Vtbl *VTable;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
@@ -102,7 +102,7 @@ typedef struct
 
 typedef struct
 {
-    const IEffectivePermissionVtbl *VTable;
+    IEffectivePermissionVtbl *VTable;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
@@ -139,7 +139,7 @@ typedef ISecurityObjectTypeInfoEx* LPSecurityObjectTypeInfoEx;
 
 typedef struct
 {
-    const ISecurityObjectTypeInfoExVtbl* VTable;
+    ISecurityObjectTypeInfoExVtbl* VTable;
 
     PhSecurityInformation* Context;
     ULONG RefCount;
@@ -151,8 +151,8 @@ ISecurityInformation *PhSecurityInformation_Create(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR ObjectName,
     _In_ PCWSTR ObjectType,
-    _In_ PPH_OPEN_OBJECT OpenObject,
-    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PPH_OPEN_OBJECT OpenObject,
+    _In_opt_ PPH_CLOSE_OBJECT CloseObject,
     _In_opt_ PPH_GET_OBJECT_SECURITY GetObjectSecurity,
     _In_opt_ PPH_SET_OBJECT_SECURITY SetObjectSecurity,
     _In_opt_ PVOID Context,

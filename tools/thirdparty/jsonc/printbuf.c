@@ -160,7 +160,7 @@ size_t sprintbuf(struct printbuf *p, const unsigned char *msg, ...)
     if (size < 0 || size > 127)
     {
         va_start(ap, msg);
-        if ((size = vasprintf(&t, (const char*)msg, ap)) < 0)
+        if ((size = vasprintf((char**)&t, (const char*)msg, ap)) < 0)
         {
             va_end(ap);
             return -1;

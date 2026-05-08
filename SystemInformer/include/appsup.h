@@ -233,14 +233,14 @@ VOID PhSetWindowOpacity(
 PHAPPAPI
 PPH_STRING
 NTAPI
-PhGetPhVersion(
+PhGetBuildVersion(
     VOID
     );
 
 PHAPPAPI
 VOID
 NTAPI
-PhGetPhVersionNumbers(
+PhGetBuildVersionNumbers(
     _Out_opt_ PULONG MajorVersion,
     _Out_opt_ PULONG MinorVersion,
     _Out_opt_ PULONG BuildNumber,
@@ -250,7 +250,13 @@ PhGetPhVersionNumbers(
 PHAPPAPI
 PPH_STRING
 NTAPI
-PhGetPhVersionHash(
+PhGetBuildCommit(
+    VOID
+    );
+
+PPH_STRING
+NTAPI
+PhGetBuildTime(
     VOID
     );
 
@@ -266,14 +272,14 @@ typedef enum _PH_RELEASE_CHANNEL
 PHAPPAPI
 PH_RELEASE_CHANNEL
 NTAPI
-PhGetPhReleaseChannel(
+PhGetBuildReleaseChannel(
     VOID
     );
 
 PHAPPAPI
 PCWSTR
 NTAPI
-PhGetPhReleaseChannelString(
+PhGetBuildReleaseChannelString(
     VOID
     );
 
@@ -293,7 +299,7 @@ NTAPI
 PhShellProcessHacker(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR Parameters,
-    _In_ ULONG ShowWindowType,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
     _In_opt_ ULONG Timeout,
@@ -305,7 +311,7 @@ NTSTATUS PhShellProcessHackerEx(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PCWSTR FileName,
     _In_opt_ PCWSTR Parameters,
-    _In_ ULONG ShowWindowType,
+    _In_ LONG ShowWindowType,
     _In_ ULONG Flags,
     _In_ ULONG AppFlags,
     _In_opt_ ULONG Timeout,
@@ -521,15 +527,8 @@ PHAPPAPI
 HICON
 NTAPI
 PhGetApplicationIcon(
-    _In_ BOOLEAN SmallIcon
-    );
-
-PHAPPAPI
-HICON
-NTAPI
-PhGetApplicationIconEx(
     _In_ BOOLEAN SmallIcon,
-    _In_opt_ LONG WindowDpi
+    _In_ LONG WindowDpi
     );
 
 PHAPPAPI

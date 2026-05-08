@@ -71,13 +71,14 @@ typedef struct _PH_SETUP_CONTEXT
         ULONG Flags;
         struct
         {
-            ULONG SetupRemoveAppData: 1;
+            ULONG SetupRemoveAppData : 1;
             ULONG SetupIsLegacyUpdate : 1;
             ULONG Silent : 1;
             ULONG NoStart : 1;
             ULONG Hide : 1;
             ULONG NeedsReboot : 1;
-            ULONG Spare : 26;
+            ULONG SetupProgressActive : 1;
+            ULONG Spare : 25;
         };
     };
 
@@ -92,9 +93,23 @@ typedef struct _PH_SETUP_CONTEXT
     ULONG CurrentRevisionVersion;
 
     HANDLE SubProcessHandle;
+
+    PPH_STRING SessionId;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupParseCommandLine(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
+
+VOID SetupApplyDarkModeToPage(
+    _In_ HWND WindowHandle
+    );
+
+LRESULT SetupHandleControlCustomDraw(
+    _In_ PVOID CustomDraw
+    );
+
+VOID SetupShowWizard(
     _In_ PPH_SETUP_CONTEXT Context
     );
 
@@ -186,6 +201,12 @@ VOID SetupCreateWindowsOptions(
 VOID SetupDeleteWindowsOptions(
     _In_ PPH_SETUP_CONTEXT Context
     );
+BOOLEAN SetupHasTaskMgrDebuggerIfeo(
+    VOID
+    );
+NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
+    _In_ PPH_SETUP_CONTEXT Context
+    );
 
 NTSTATUS SetupCreateLocalDumpsKey(
     VOID
@@ -274,6 +295,28 @@ NTSTATUS SetupOverwriteFile(
     _In_ ULONG BufferLength
     );
 
+NTSTATUS SetupWriteFileAtomic(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName,
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferLength
+    );
+
+NTSTATUS SetupCommitFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    );
+
+NTSTATUS SetupRollbackFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    );
+
+NTSTATUS SetupFinalizeFile(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ PPH_STRING FinalName
+    );
+
 NTSTATUS SetupHashFile(
     _In_ PPH_STRING FileName,
     _Out_writes_all_(256 / 8) PBYTE Buffer
@@ -301,6 +344,22 @@ BOOLEAN UpdateDownloadUpdateData(
 
 // extract.c
 
+VOID SetupSetProgressMarquee(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN Enable
+    );
+
+VOID SetupSetProgressText(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_opt_ PCWSTR MainInstruction,
+    _In_opt_ PCWSTR Content
+    );
+
+VOID SetupSetProgressValue(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ ULONG Value
+    );
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupExtractBuild(
     _In_ PPH_SETUP_CONTEXT Context
@@ -310,14 +369,14 @@ NTSTATUS CALLBACK SetupExtractBuild(
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupProgressThread(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PVOID Context
     );
 
 // update.c
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS CALLBACK SetupUpdateBuild(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PVOID Context
     );
 
 // uninstall.c

@@ -73,22 +73,22 @@ Thread creation is done through the `PhCreateThread` and `PhCreateThreadEx` func
 ### Collections
 The collections available are summarized below:
 
-Name                  | Use                     | Type
---------------------- | ----------------------- | ---------------
-`PH_ARRAY`            | Array                   | Non-intrusive
-`PH_LIST`             | Array                   | Non-intrusive
-`LIST_ENTRY`          | Doubly linked list      | Intrusive
-`SINGLE_LIST_ENTRY`   | Singly linked list      | Intrusive
-`PH_POINTER_LIST`     | Array                   | Non-intrusive
-`LIST_ENTRY`          | Stack                   | Intrusive
-`SINGLE_LIST_ENTRY`   | Stack                   | Intrusive
-`LIST_ENTRY`          | Queue                   | Intrusive
-`RTL_AVL_TABLE`       | Binary tree (AVL)       | Non-intrusive
-`PH_AVL_LINKS`        | Binary tree (AVL)       | Intrusive
-`RTL_GENERIC_TABLE`   | Binary tree (splay)     | Non-intrusive
-`PH_HASHTABLE`        | Hashtable               | Non-intrusive
-`PH_HASH_ENTRY`       | Hashtable               | Intrusive
-`PH_CIRCULAR_BUFFER`  | Circular buffer         | Non-intrusive
+| Name                 | Use                 | Type          |
+|----------------------|---------------------|---------------|
+| `PH_ARRAY`           | Array               | Non-intrusive |
+| `PH_LIST`            | Array               | Non-intrusive |
+| `LIST_ENTRY`         | Doubly linked list  | Intrusive     |
+| `SINGLE_LIST_ENTRY`  | Singly linked list  | Intrusive     |
+| `PH_POINTER_LIST`    | Array               | Non-intrusive |
+| `LIST_ENTRY`         | Stack               | Intrusive     |
+| `SINGLE_LIST_ENTRY`  | Stack               | Intrusive     |
+| `LIST_ENTRY`         | Queue               | Intrusive     |
+| `RTL_AVL_TABLE`      | Binary tree (AVL)   | Non-intrusive |
+| `PH_AVL_LINKS`       | Binary tree (AVL)   | Intrusive     |
+| `RTL_GENERIC_TABLE`  | Binary tree (splay) | Non-intrusive |
+| `PH_HASHTABLE`       | Hashtable           | Non-intrusive |
+| `PH_HASH_ENTRY`      | Hashtable           | Intrusive     |
+| `PH_CIRCULAR_BUFFER` | Circular buffer     | Non-intrusive |
 
 ### Synchronization
 The queued lock should be used for all synchronization, due to its small size and good performance. Although the queued lock is a reader-writer lock, it can be used as a mutex simply by using the exclusive acquire/release functions.
@@ -102,12 +102,12 @@ The queued lock should be used for all synchronization, due to its small size an
 - Custom locking with low overhead can be built using the wake event, built on the queued lock. Test one or more conditions in a loop and use `PhQueueWakeEvent`/`PhWaitForWakeEvent` to block. When a condition is modified use `PhSetWakeEvent` to wake waiters. If after calling `PhQueueWakeEvent` it is determined that no blocking should occur, use `PhSetWakeEvent`.
 
 ### Exceptions (SEH)
-The only method of error handling used in Process Hacker is the return value (`NTSTATUS`, `BOOLEAN`, etc.). Exceptions are used for exceptional situations which cannot easily be recovered from (e.g. a lock acquire function fails to block, or an object has a negative reference count.
+The only method of error handling used in Process Hacker is the return value (`NTSTATUS`, `BOOLEAN`, etc.). Exceptions are used for exceptional situations which cannot easily be recovered from (e.g. a lock acquire function fails to block, or an object has a negative reference count).
 
 Exceptions to this rule include:
 
 * `PhAllocate`, which raises an exception if it fails to allocate. Checking the return value of each allocation to increase reliability is not worth the extra effort involved, as failed allocations are very rare.
-* `PhProbeAddress`, which raises an exception if an address lies outside of a specified range. Raising an exception makes it possible to conduct multiple checks in one SEH block.
+* `PhProbeAddress`, which raises an exception if an address lies outside a specified range. Raising an exception makes it possible to conduct multiple checks in one SEH block.
 * `STATUS_NOT_IMPLEMENTED` exceptions triggered by code paths which should not be reached, purely due to programmer error. `assert(FALSE)` could also be used in this case.
 
 ### Memory management

@@ -63,22 +63,22 @@ static IID IID_IDiaXfgTypeHash = { 0x35C76D38, 0x227B, 0x4CFB, { 0x8E, 0x81, 0xE
 
 #undef INTERFACE
 #define INTERFACE IDiaDataSource2
-DECLARE_INTERFACE_IID(IDiaDataSource2, IDiaDataSource)
+DECLARE_INTERFACE_IID_(IDiaDataSource2, IDiaDataSource, "6D31CB3B-EDD4-4C3E-AB44-12B9F7A3828E")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource2
 
-    STDMETHOD(getRawPDBPtr)(THIS,
+    STDMETHOD(getRawPDBPtr)(THIS_
         _Out_ PVOID PdbBaseAddress
         ) PURE;
 
-    STDMETHOD(loadDataFromRawPDBPtr)(THIS,
+    STDMETHOD(loadDataFromRawPDBPtr)(THIS_
         _In_ PVOID PdbBaseAddress
         ) PURE;
 
@@ -87,23 +87,23 @@ DECLARE_INTERFACE_IID(IDiaDataSource2, IDiaDataSource)
 
 #undef INTERFACE
 #define INTERFACE IDiaDataSource3
-DECLARE_INTERFACE_IID(IDiaDataSource3, IDiaDataSource2)
+DECLARE_INTERFACE_IID_(IDiaDataSource3, IDiaDataSource2, "65A23C15-BAB3-45DA-8639-F06DE86B9EA8")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource3
 
-    STDMETHOD(getStreamSize)(THIS,
+    STDMETHOD(getStreamSize)(THIS_
         _In_ PWSTR StreamName,
         _Out_ PULONG StreamSize
         ) PURE;
 
-    STDMETHOD(getStreamRawData)(THIS,
+    STDMETHOD(getStreamRawData)(THIS_
         _In_ PWSTR StreamName,
         _In_ ULONG BytesToRead,
         _Out_ PBYTE StreamData
@@ -114,48 +114,48 @@ DECLARE_INTERFACE_IID(IDiaDataSource3, IDiaDataSource2)
 
 #undef INTERFACE
 #define INTERFACE IDiaDataSource10
-DECLARE_INTERFACE_IID(IDiaDataSource10, IUnknown)
+DECLARE_INTERFACE_IID_(IDiaDataSource10, IUnknown, "5c7e382a-93b4-4677-a6b5-cc28c3accb96")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaDataSource
 
-    STDMETHOD(get_lastError)(THIS,
+    STDMETHOD(get_lastError)(THIS_
         _Out_ BSTR* pRetVal);
 
-    STDMETHOD(loadDataFromPdb)(THIS,
+    STDMETHOD(loadDataFromPdb)(THIS_
         _In_ LPCOLESTR pdbPath);
 
-    STDMETHOD(loadAndValidateDataFromPdb)(THIS,
+    STDMETHOD(loadAndValidateDataFromPdb)(THIS_
         _In_ LPCOLESTR pdbPath,
         _In_ GUID* pcsig70,
         _In_ DWORD sig,
         _In_ DWORD age);
 
-    STDMETHOD(loadDataForExe)(THIS,
+    STDMETHOD(loadDataForExe)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
         _In_ IUnknown* pCallback);
 
-    STDMETHOD(loadDataFromIStream)(THIS,
+    STDMETHOD(loadDataFromIStream)(THIS_
         _In_ IStream * pIStream);
 
-    STDMETHOD(openSession)(THIS,
+    STDMETHOD(openSession)(THIS_
         _Out_ IDiaSession** ppSession);
 
-    STDMETHOD(loadDataFromCodeViewInfo)(THIS,
+    STDMETHOD(loadDataFromCodeViewInfo)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
         _In_ DWORD cbCvInfo,
         _In_ BYTE* pbCvInfo,
         _In_ IUnknown* pCallback);
 
-    STDMETHOD(loadDataFromMiscInfo)(THIS,
+    STDMETHOD(loadDataFromMiscInfo)(THIS_
         _In_ LPCOLESTR executable,
         _In_ LPCOLESTR searchPath,
         _In_ DWORD timeStampExe,
@@ -167,65 +167,65 @@ DECLARE_INTERFACE_IID(IDiaDataSource10, IUnknown)
 
     // IDiaDataSource2
 
-    STDMETHOD(getRawPDBPtr)(THIS,
+    STDMETHOD(getRawPDBPtr)(THIS_
         _Out_ PVOID PdbBaseAddress
         ) PURE;
 
-    STDMETHOD(loadDataFromRawPDBPtr)(THIS,
+    STDMETHOD(loadDataFromRawPDBPtr)(THIS_
         _In_ PVOID PdbBaseAddress
         ) PURE;
 
     // IDiaDataSource3
 
-    STDMETHOD(getStreamSize)(THIS,
+    STDMETHOD(getStreamSize)(THIS_
         _In_ PWSTR StreamName,
         _Out_ PULONG StreamSize
         ) PURE;
 
-    STDMETHOD(getStreamRawData)(THIS,
+    STDMETHOD(getStreamRawData)(THIS_
         _In_ PWSTR StreamName,
         _In_ ULONG BytesToRead,
         _Out_ PBYTE StreamData
         ) PURE;
 
     // TODO
-    STDMETHOD(loadDataFromPdbEx)(THIS, USHORT const* pdbPath, INT) PURE;
-    STDMETHOD(loadAndValidateDataFromPdbEx)(THIS, USHORT const* pdbPath, PGUID, ULONG, ULONG, INT) PURE;
-    STDMETHOD(loadDataForExeEx)(THIS, USHORT const*, USHORT const*, IUnknown* Object, INT) PURE;
-    STDMETHOD(loadDataFromIStreamEx)(THIS, IStream*, INT) PURE;
-    STDMETHOD(NotUsedQueryInterface)(THIS, REFIID riid, PVOID* ppvObject) PURE;
-    STDMETHOD(setPfnMiniPDBErrorCallback2)(THIS, PVOID, long (*)(PVOID, ULONG, USHORT const* const, USHORT const* const)) PURE;
-    STDMETHOD(setPfnMiniPDBNHBuildStatusCallback)(THIS, PVOID, INT(*)(PVOID, ULONG)) PURE;
-    STDMETHOD(loadDataFromPdbEx2)(THIS, USHORT const*, INT, INT) PURE;
-    STDMETHOD(loadAndValidateDataFromPdbEx2)(THIS, USHORT const*, PGUID, ULONG, ULONG, INT, INT) PURE;
-    STDMETHOD(loadDataForExeEx2)(THIS, USHORT const*, USHORT const*, IUnknown*, INT, INT) PURE;
-    STDMETHOD(loadDataFromIStreamEx2)(THIS, IStream*, INT, INT) PURE;
-    STDMETHOD(loadDataFromCodeViewInfoEx)(THIS, USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, INT) PURE;
+    STDMETHOD(loadDataFromPdbEx)(THIS_ USHORT const* pdbPath, INT) PURE;
+    STDMETHOD(loadAndValidateDataFromPdbEx)(THIS_ USHORT const* pdbPath, PGUID, ULONG, ULONG, INT) PURE;
+    STDMETHOD(loadDataForExeEx)(THIS_ USHORT const*, USHORT const*, IUnknown* Object, INT) PURE;
+    STDMETHOD(loadDataFromIStreamEx)(THIS_ IStream*, INT) PURE;
+    STDMETHOD(NotUsedQueryInterface)(THIS_ REFIID riid, PVOID* ppvObject) PURE;
+    STDMETHOD(setPfnMiniPDBErrorCallback2)(THIS_ PVOID, long (*)(PVOID, ULONG, USHORT const* const, USHORT const* const)) PURE;
+    STDMETHOD(setPfnMiniPDBNHBuildStatusCallback)(THIS_ PVOID, INT(*)(PVOID, ULONG)) PURE;
+    STDMETHOD(loadDataFromPdbEx2)(THIS_ USHORT const*, INT, INT) PURE;
+    STDMETHOD(loadAndValidateDataFromPdbEx2)(THIS_ USHORT const*, PGUID, ULONG, ULONG, INT, INT) PURE;
+    STDMETHOD(loadDataForExeEx2)(THIS_ USHORT const*, USHORT const*, IUnknown*, INT, INT) PURE;
+    STDMETHOD(loadDataFromIStreamEx2)(THIS_ IStream*, INT, INT) PURE;
+    STDMETHOD(loadDataFromCodeViewInfoEx)(THIS_ USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, INT) PURE;
     STDMETHOD(VSDebuggerPreloadPDBDone)(THIS) PURE;
-    STDMETHOD(loadDataForExeEx3)(THIS, USHORT const*, USHORT const*, IUnknown*, INT, INT, INT) PURE;
-    STDMETHOD(usePdb)(THIS, PVOID) PURE;
-    STDMETHOD(loadDataFromCodeViewInfoHelper)(THIS, USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, char const*) PURE;
+    STDMETHOD(loadDataForExeEx3)(THIS_ USHORT const*, USHORT const*, IUnknown*, INT, INT, INT) PURE;
+    STDMETHOD(usePdb)(THIS_ PVOID) PURE;
+    STDMETHOD(loadDataFromCodeViewInfoHelper)(THIS_ USHORT const*, USHORT const*, ULONG, PBYTE, IUnknown*, char const*) PURE;
 
     END_INTERFACE
 };
 
 #undef INTERFACE
 #define INTERFACE IDiaXfgTypeHash
-DECLARE_INTERFACE_IID(IDiaXfgTypeHash, IUnknown)
+DECLARE_INTERFACE_IID_(IDiaXfgTypeHash, IUnknown, "c63d5964-b043-432d-9445-56ca80a793c1")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaXfgTypeHash
-    STDMETHOD(get_TypeHash)(THIS, __RPC__out PULONG64 TypeHash) PURE;
-    STDMETHOD(get_TypeSignature)(THIS, __RPC__out IDiaSymbol** TypeSymbol) PURE;
-    STDMETHOD(get_HasVirtualInformation)(THIS, __RPC__out PBOOL Virtual) PURE;
-    STDMETHOD(get_BaseClassName)(THIS, __RPC__out PWSTR *BaseClassName) PURE;
-    STDMETHOD(get_MethodName)(THIS, __RPC__out PWSTR *MethodName) PURE;
+    STDMETHOD(get_TypeHash)(THIS_ __RPC__out PULONG64 TypeHash) PURE;
+    STDMETHOD(get_TypeSignature)(THIS_ __RPC__out IDiaSymbol** TypeSymbol) PURE;
+    STDMETHOD(get_HasVirtualInformation)(THIS_ __RPC__out PBOOL Virtual) PURE;
+    STDMETHOD(get_BaseClassName)(THIS_ __RPC__out PWSTR *BaseClassName) PURE;
+    STDMETHOD(get_MethodName)(THIS_ __RPC__out PWSTR *MethodName) PURE;
 
     END_INTERFACE
 };
@@ -251,18 +251,18 @@ DECLARE_INTERFACE_IID(IDiaXfgTypeHash, IUnknown)
 
 #undef INTERFACE
 #define INTERFACE IDiaEnumXfgTypeHashes
-DECLARE_INTERFACE_IID(IDiaEnumXfgTypeHashes, IUnknown)
+DECLARE_INTERFACE_IID_(IDiaEnumXfgTypeHashes, IUnknown, "c63d5964-b043-432d-9445-56ca80a793c1")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaEnumXfgTypeHashes
-    STDMETHOD(get_Count)(THIS, __RPC__out PULONG Count) PURE;
-    STDMETHOD(Next)(THIS, __RPC__in ULONG celt, __RPC__out_ecount_part(celt, *pceltFetched) IDiaXfgTypeHash **TypeHashes, __RPC__out PULONG pceltFetched) PURE;
+    STDMETHOD(get_Count)(THIS_ __RPC__out PULONG Count) PURE;
+    STDMETHOD(Next)(THIS_ __RPC__in ULONG celt, __RPC__out_ecount_part(celt, *pceltFetched) IDiaXfgTypeHash **TypeHashes, __RPC__out PULONG pceltFetched) PURE;
     STDMETHOD(Reset)(THIS) PURE;
 
     END_INTERFACE
@@ -285,47 +285,47 @@ DECLARE_INTERFACE_IID(IDiaEnumXfgTypeHashes, IUnknown)
 
 #undef INTERFACE
 #define INTERFACE IDiaSession13
-DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
+DECLARE_INTERFACE_IID_(IDiaSession13, IUnknown, "c63d5964-b043-432d-9445-56ca80a793c1")
 {
     BEGIN_INTERFACE
 
     // IUnknown
-    STDMETHOD(QueryInterface)(THIS, REFIID riid, PVOID *ppvObject) PURE;
+    STDMETHOD(QueryInterface)(THIS_ REFIID riid, PVOID *ppvObject) PURE;
     STDMETHOD_(ULONG, AddRef)(THIS) PURE;
     STDMETHOD_(ULONG, Release)(THIS) PURE;
 
     // IDiaSession
 
-    STDMETHOD(get_loadAddress)(THIS,
+    STDMETHOD(get_loadAddress)(THIS_
         _Out_ ULONGLONG* pRetVal);
 
-    STDMETHOD(put_loadAddress)(THIS,
+    STDMETHOD(put_loadAddress)(THIS_
         _In_ ULONGLONG NewVal);
 
-    STDMETHOD(get_globalScope)(THIS,
+    STDMETHOD(get_globalScope)(THIS_
         _Out_ IDiaSymbol **pRetVal);
 
-    STDMETHOD(getEnumTables)(THIS,
+    STDMETHOD(getEnumTables)(THIS_
         _Out_ IDiaEnumTables **ppEnumTables);
 
-    STDMETHOD(getSymbolsByAddr)(THIS,
+    STDMETHOD(getSymbolsByAddr)(THIS_
         _Out_ IDiaEnumSymbolsByAddr **ppEnumbyAddr);
 
-    STDMETHOD(findChildren)(THIS,
+    STDMETHOD(findChildren)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
         _In_ LPCOLESTR name,
         _In_ DWORD compareFlags,
         _Out_ IDiaEnumSymbols **ppResult);
 
-    STDMETHOD(findChildrenEx)(THIS,
+    STDMETHOD(findChildrenEx)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
         _In_ LPCOLESTR name,
         _In_ DWORD compareFlags,
         _Out_ IDiaEnumSymbols **ppResult);
 
-    STDMETHOD(findChildrenExByAddr)(THIS,
+    STDMETHOD(findChildrenExByAddr)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
         _In_ LPCOLESTR name,
@@ -334,7 +334,7 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
         _In_ DWORD offset,
         _Out_ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findChildrenExByVA)(THIS,
+    STDMETHOD(findChildrenExByVA)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
         _In_ LPCOLESTR name,
@@ -342,7 +342,7 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
         _In_ ULONGLONG va,
         _Out_ IDiaEnumSymbols **ppResult);
 
-    STDMETHOD(findChildrenExByRVA)(THIS,
+    STDMETHOD(findChildrenExByRVA)(THIS_
         _In_ IDiaSymbol* parent,
         _In_ enum SymTagEnum symtag,
         _In_ LPCOLESTR name,
@@ -350,272 +350,249 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
         _In_ DWORD rva,
         _Out_ IDiaEnumSymbols **ppResult);
 
-    STDMETHOD(findSymbolByAddr)(THIS,
+    STDMETHOD(findSymbolByAddr)(THIS_
         _In_ DWORD isect,
         _In_ DWORD offset,
         _In_ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
-    STDMETHOD(findSymbolByRVA)(THIS,
+    STDMETHOD(findSymbolByRVA)(THIS_
         _In_ DWORD rva,
         _In_ enum SymTagEnum symtag,
         _Out_ IDiaSymbol * *ppSymbol);
 
-    STDMETHOD(findSymbolByVA)(THIS,
+    STDMETHOD(findSymbolByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
-    STDMETHOD(findSymbolByToken)(THIS,
+    STDMETHOD(findSymbolByToken)(THIS_
         /* [in] */ ULONG token,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol);
 
-    STDMETHOD(symsAreEquiv)(THIS,
+    STDMETHOD(symsAreEquiv)(THIS_
         /* [in] */ IDiaSymbol* symbolA,
         /* [in] */ IDiaSymbol* symbolB);
 
-    STDMETHOD(symbolById)(THIS,
+    STDMETHOD(symbolById)(THIS_
         /* [in] */ DWORD id,
         _Out_ IDiaSymbol **ppSymbol);
 
-    STDMETHOD(findSymbolByRVAEx)(THIS,
+    STDMETHOD(findSymbolByRVAEx)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ enum SymTagEnum symtag,
         _Out_ IDiaSymbol **ppSymbol,
         _Out_ long* displacement);
 
-    STDMETHOD(findSymbolByVAEx)(THIS,
+    STDMETHOD(findSymbolByVAEx)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ enum SymTagEnum symtag,
         /* [out] */ IDiaSymbol **ppSymbol,
         /* [out] */ long* displacement);
 
-    STDMETHOD(findFile)(THIS,
+    STDMETHOD(findFile)(THIS_
         /* [in] */ IDiaSymbol* pCompiland,
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD compareFlags,
         /* [out] */ IDiaEnumSourceFiles **ppResult);
 
-    STDMETHOD(findFileById)(THIS,
+    STDMETHOD(findFileById)(THIS_
         /* [in] */ DWORD uniqueId,
         /* [out] */ IDiaSourceFile **ppResult);
 
-    STDMETHOD(findLines)(THIS,
+    STDMETHOD(findLines)(THIS_
         /* [in] */ IDiaSymbol* compiland,
         /* [in] */ IDiaSourceFile* file,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
-    STDMETHOD(findLinesByAddr)(THIS,
+    STDMETHOD(findLinesByAddr)(THIS_
         /* [in] */ DWORD seg,
         /* [in] */ DWORD offset,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
-    STDMETHOD(findLinesByRVA)(THIS,
+    STDMETHOD(findLinesByRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
-    STDMETHOD(findLinesByVA)(THIS,
+    STDMETHOD(findLinesByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
-    STDMETHOD(findLinesByLinenum)(THIS,
+    STDMETHOD(findLinesByLinenum)(THIS_
         /* [in] */ IDiaSymbol* compiland,
         /* [in] */ IDiaSourceFile* file,
         /* [in] */ DWORD linenum,
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers **ppResult);
 
-    STDMETHOD(findInjectedSource)(THIS,
+    STDMETHOD(findInjectedSource)(THIS_
         /* [in] */ LPCOLESTR srcFile,
         /* [out] */ IDiaEnumInjectedSources **ppResult);
 
-    STDMETHOD(getEnumDebugStreams)(THIS,
+    STDMETHOD(getEnumDebugStreams)(THIS_
         /* [out] */ IDiaEnumDebugStreams **ppEnumDebugStreams);
 
-    STDMETHOD(findInlineFramesByAddr)(
-        IDiaSession * This,
+    STDMETHOD(findInlineFramesByAddr)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD isect,
         /* [in] */ DWORD offset,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findInlineFramesByRVA)(
-        IDiaSession * This,
+    STDMETHOD(findInlineFramesByRVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD rva,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findInlineFramesByVA)(
-        IDiaSession * This,
+    STDMETHOD(findInlineFramesByVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ ULONGLONG va,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findInlineeLines)(
-        IDiaSession * This,
+    STDMETHOD(findInlineeLines)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInlineeLinesByAddr)(
-        IDiaSession * This,
+    STDMETHOD(findInlineeLinesByAddr)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD isect,
         /* [in] */ DWORD offset,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInlineeLinesByRVA)(
-        IDiaSession * This,
+    STDMETHOD(findInlineeLinesByRVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInlineeLinesByVA)(
-        IDiaSession * This,
+    STDMETHOD(findInlineeLinesByVA)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInlineeLinesByLinenum)(
-        IDiaSession * This,
-        /* [in] */ IDiaSymbol * compiland,
+    STDMETHOD(findInlineeLinesByLinenum)(THIS_
         /* [in] */ IDiaSourceFile * file,
         /* [in] */ DWORD linenum,
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInlineesByName)(
-        IDiaSession * This,
+    STDMETHOD(findInlineesByName)(THIS_
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD option,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findAcceleratorInlineeLinesByLinenum)(
-        IDiaSession * This,
+    STDMETHOD(findAcceleratorInlineeLinesByLinenum)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ IDiaSourceFile * file,
         /* [in] */ DWORD linenum,
         /* [in] */ DWORD column,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findSymbolsForAcceleratorPointerTag)(
-        IDiaSession * This,
+    STDMETHOD(findSymbolsForAcceleratorPointerTag)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD tagValue,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findSymbolsByRVAForAcceleratorPointerTag)(
-        IDiaSession * This,
+    STDMETHOD(findSymbolsByRVAForAcceleratorPointerTag)(THIS_
         /* [in] */ IDiaSymbol * parent,
         /* [in] */ DWORD tagValue,
         /* [in] */ DWORD rva,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findAcceleratorInlineesByName)(
-        IDiaSession * This,
+    STDMETHOD(findAcceleratorInlineesByName)(THIS_
         /* [in] */ LPCOLESTR name,
         /* [in] */ DWORD option,
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(addressForVA)(
-        IDiaSession * This,
+    STDMETHOD(addressForVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [out] */ DWORD * pISect,
         /* [out] */ DWORD * pOffset);
 
-    STDMETHOD(addressForRVA)(
-        IDiaSession * This,
+    STDMETHOD(addressForRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [out] */ DWORD * pISect,
         /* [out] */ DWORD * pOffset);
 
-    STDMETHOD(findILOffsetsByAddr)(
-        IDiaSession * This,
+    STDMETHOD(findILOffsetsByAddr)(THIS_
         /* [in] */ DWORD isect,
         /* [in] */ DWORD offset,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findILOffsetsByRVA)(
-        IDiaSession * This,
+    STDMETHOD(findILOffsetsByRVA)(THIS_
         /* [in] */ DWORD rva,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findILOffsetsByVA)(
-        IDiaSession * This,
+    STDMETHOD(findILOffsetsByVA)(THIS_
         /* [in] */ ULONGLONG va,
         /* [in] */ DWORD length,
         /* [out] */ IDiaEnumLineNumbers * *ppResult);
 
-    STDMETHOD(findInputAssemblyFiles)(
-        IDiaSession * This,
+    STDMETHOD(findInputAssemblyFiles)(THIS_
         /* [out] */ IDiaEnumInputAssemblyFiles * *ppResult);
 
-    STDMETHOD(findInputAssembly)(
-        IDiaSession * This,
+    STDMETHOD(findInputAssembly)(THIS_
         /* [in] */ DWORD index,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
 
-    STDMETHOD(findInputAssemblyById)(
-        IDiaSession * This,
+    STDMETHOD(findInputAssemblyById)(THIS_
         /* [in] */ DWORD uniqueId,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
 
-    STDMETHOD(getFuncMDTokenMapSize)(
-        IDiaSession * This,
+    STDMETHOD(getFuncMDTokenMapSize)(THIS_
         /* [out] */ DWORD * pcb);
 
-    STDMETHOD(getFuncMDTokenMap)(THIS,
+    STDMETHOD(getFuncMDTokenMap)(THIS_
         /* [in] */ DWORD cb,
         /* [out] */ DWORD * pcb,
         /* [size_is][out] */ BYTE * pb);
 
-    STDMETHOD(getTypeMDTokenMapSize)(THIS,
+    STDMETHOD(getTypeMDTokenMapSize)(THIS_
         /* [out] */ DWORD * pcb);
 
-    STDMETHOD(getTypeMDTokenMap)(THIS,
+    STDMETHOD(getTypeMDTokenMap)(THIS_
         /* [in] */ DWORD cb,
         /* [out] */ DWORD * pcb,
         /* [size_is][out] */ BYTE * pb);
 
-    STDMETHOD(getNumberOfFunctionFragments_VA)(THIS,
+    STDMETHOD(getNumberOfFunctionFragments_VA)(THIS_
         /* [in] */ ULONGLONG vaFunc,
         /* [in] */ DWORD cbFunc,
         /* [out] */ DWORD * pNumFragments);
 
-    STDMETHOD(getNumberOfFunctionFragments_RVA)(THIS,
+    STDMETHOD(getNumberOfFunctionFragments_RVA)(THIS_
         /* [in] */ DWORD rvaFunc,
         /* [in] */ DWORD cbFunc,
         /* [out] */ DWORD * pNumFragments);
 
-    STDMETHOD(getFunctionFragments_VA)(THIS,
+    STDMETHOD(getFunctionFragments_VA)(THIS_
         /* [in] */ ULONGLONG vaFunc,
         /* [in] */ DWORD cbFunc,
         /* [in] */ DWORD cFragments,
         /* [size_is][out] */ ULONGLONG * pVaFragment,
         /* [size_is][out] */ DWORD * pLenFragment);
 
-    STDMETHOD(getFunctionFragments_RVA)(THIS,
+    STDMETHOD(getFunctionFragments_RVA)(THIS_
         /* [in] */ DWORD rvaFunc,
         /* [in] */ DWORD cbFunc,
         /* [in] */ DWORD cFragments,
         /* [size_is][out] */ DWORD * pRvaFragment,
         /* [size_is][out] */ DWORD * pLenFragment);
 
-    STDMETHOD(getExports)(THIS,
+    STDMETHOD(getExports)(THIS_
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(getHeapAllocationSites)(THIS,
+    STDMETHOD(getHeapAllocationSites)(THIS_
         /* [out] */ IDiaEnumSymbols * *ppResult);
 
-    STDMETHOD(findInputAssemblyFile)(THIS,
+    STDMETHOD(findInputAssemblyFile)(THIS_
         /* [in] */ IDiaSymbol * pSymbol,
         /* [out] */ IDiaInputAssemblyFile * *ppResult);
 
@@ -675,8 +652,8 @@ DECLARE_INTERFACE_IID(IDiaSession13, IUnknown)
     // CDiaSession::getEnumXfgTypeHashes(IDiaEnumXfgTypeHashes**)
     // CDiaSession::getXfgTypeHash(unsigned __int64,IDiaEnumXfgTypeHashes**)
 
-    STDMETHOD(getEnumXfgTypeHashes)(THIS, IDiaEnumXfgTypeHashes**);
-    STDMETHOD(getXfgTypeHash)(THIS, ULONG64, IDiaEnumXfgTypeHashes**);
+    STDMETHOD(getEnumXfgTypeHashes)(THIS_ IDiaEnumXfgTypeHashes**);
+    STDMETHOD(getXfgTypeHash)(THIS_ ULONG64, IDiaEnumXfgTypeHashes**);
 
     // CDiaSession::findChildrenHelper(IDiaSymbol *,SymTagEnum,ushort const *,ulong,ulong,bool,bool,IDiaEnumSymbols * *)
     // CDiaSession::findLinesByLinenumHelper(bool,IDiaSymbol *,IDiaSourceFile *,ulong,ulong,IDiaEnumLineNumbers * *)

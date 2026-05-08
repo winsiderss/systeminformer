@@ -67,7 +67,6 @@ EXPORTS
     PhFormatLogType
     PhFreezeThread
     PhGetApplicationIcon
-    PhGetApplicationIconEx
     PhGetClientIdName
     PhGetClientIdNameEx
     PhGetDeviceIcon
@@ -78,11 +77,11 @@ EXPORTS
     PhGetGeneralCallback
     PhGetImageListIcon
     PhGetListViewContextMenuPoint
-    PhGetPhReleaseChannel
-    PhGetPhReleaseChannelString
-    PhGetPhVersion
-    PhGetPhVersionHash
-    PhGetPhVersionNumbers
+    PhGetBuildReleaseChannel
+    PhGetBuildReleaseChannelString
+    PhGetBuildVersion
+    PhGetBuildCommit
+    PhGetBuildVersionNumbers
     PhGetProcessIsSuspended
     PhGetProcessKnownType
     PhGetProcessKnownTypeEx
@@ -247,6 +246,7 @@ EXPORTS
     PhUiRestartComputer
     PhUiRestartProcess
     PhUiRestartServices
+    PhUiFreezeThreads
     PhUiResumeProcesses
     PhUiResumeThreads
     PhUiResumeTreeProcess
@@ -280,6 +280,7 @@ EXPORTS
     PhUiTerminateProcesses
     PhUiTerminateThreads
     PhUiTerminateTreeProcess
+    PhUiThawThreads
     PhUiThawTreeProcess
     PhUiUnloadModule
 
@@ -393,6 +394,7 @@ EXPORTS
     PhCreateThreadEx
     PhDecodeUnicodeDecoder
     PhDelayExecution
+    PhDelayExecutionEx
     PhDeleteArray
     PhDeleteBytesBuilder
     PhDeleteCallback
@@ -537,6 +539,7 @@ EXPORTS
     PhCreateFile
     PhCreateFileWin32
     PhCreateFileWin32Ex
+    PhCreateJobObject
     PhCreateKey
     PhCreateNamedPipe
     PhCreatePipe
@@ -588,6 +591,8 @@ EXPORTS
     PhGetFilePosition
     PhGetFileSize
     PhGetFirmwareEnvironmentVariable
+    PhGetJobBasicLimits
+    PhGetJobBasicUiRestrictions
     PhGetJobProcessIdList
     PhGetKernelFileName
     PhGetKernelFileNameEx
@@ -649,17 +654,21 @@ EXPORTS
     PhImpersonateToken
     PhIsDebuggerPresent
     PhIsFirmwareSupported
+    PhKillTimer
     PhListenNamedPipe
     PhLoadAppKey
+    PhMapViewOfSection
     PhMoveFileWin32
     PhOpenDirectoryObject
     PhOpenDriver
     PhOpenFile
     PhOpenFileById
+    PhOpenJobObject
     PhOpenKey
     PhOpenProcess
     PhOpenProcessClientId
     PhOpenProcessToken
+    PhOpenSection
     PhOpenThread
     PhOpenThreadClientId
     PhOpenThreadProcess
@@ -673,6 +682,7 @@ EXPORTS
     PhQueryValueKey
     PhQueueUserWorkItem
     PhReadFile
+    PhReOpenFile
     PhResolveDevicePrefix
     PhReadVirtualMemory
     PhResumeProcess
@@ -691,6 +701,7 @@ EXPORTS
     PhSetThreadIoPriority
     PhSetThreadName
     PhSetThreadPagePriority
+    PhSetTimer
     PhSetTokenIsVirtualizationEnabled
     PhSetTokenPrivilege
     PhSetTokenPrivilege2
@@ -704,6 +715,7 @@ EXPORTS
     PhTransceiveNamedPipe
     PhUnloadDllProcess
     PhUnloadDriver
+    PhUnmapViewOfSection
     PhUpdateDosDevicePrefixes
     PhUpdateMupDevicePrefixes
     PhWaitForNamedPipe
@@ -738,6 +750,7 @@ EXPORTS
     PhFinalHash
     PhFormatDate
     PhFormatDateTime
+    PhFormatDateTimeToBuffer
     PhFormatDecimal
     PhFormatGuid
     PhFormatImageVersionInfo
@@ -753,6 +766,7 @@ EXPORTS
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGenerateRandomNumber64
+    PhGetActivationFactory
     PhGetApplicationDataFileName
     PhGetApplicationDirectory
     PhGetApplicationDirectoryFileName
@@ -783,11 +797,10 @@ EXPORTS
     PhGetRoamingAppDataDirectory
     PhGetStatusMessage
     PhGetSystemDirectory
-    PhGetSystemDpi
+    PhGetTaskbarDpi
     PhGetSystemMetrics
     PhGetSystemParametersInfo
     PhGetSystemRoot
-    PhGetTaskbarDpi
     PhGetTemporaryDirectoryRandomAlphaFileName
     PhGetUserLocaleInfoBool
     PhGetWin32Message
@@ -926,17 +939,21 @@ EXPORTS
     PhAddTabControlTab
     PhBitmapSetAlpha
     PhCloseThemeData
+    PhCreateApplicationFont
     PhCreateCommonFont
     PhCreateDialog
     PhCreateDIBSection
     PhCreateIconTitleFont
+    PhCreateTreeWindowFont
     PhCreateWindowEx
     PhDeleteLayoutManager
     PhDialogBox
     PhDrawThemeBackground
     PhDuplicateFont
+    PhDuplicateFontUpdateDpi
     PhDuplicateFontWithNewWeight
     PhEnumChildWindows
+    PhEnumDesktops
     PhEnumWindows
     PhEnumWindowsEx
     PhFindListViewItemByFlags
@@ -1083,6 +1100,7 @@ EXPORTS
 ; secedit
     PhCreateSecurityPage
     PhEditSecurity
+    PhEditSecurityEx
     PhGetAccessEntries
     PhGetAccessString
     PhGetSeObjectSecurity

@@ -48,6 +48,7 @@ PNETWORK_PING_CONTEXT CreatePingContext(
     return context;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NetworkPingThreadStart(
     _In_ PVOID Parameter
     )
@@ -314,6 +315,7 @@ VOID NetworkPingUpdateGraph(
     InvalidateRect(Context->PingGraphHandle, NULL, FALSE);
 }
 
+_Function_class_(PH_GRAPH_LABEL_Y_FUNCTION)
 PPH_STRING NetworkPingLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -681,6 +683,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     return FALSE;
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NetworkPingDialogThreadStart(
     _In_ PVOID Parameter
     )

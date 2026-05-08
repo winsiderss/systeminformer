@@ -26,12 +26,14 @@
 #define PLUGIN_NAME L"OnlineChecks"
 #define SETTING_NAME_SCAN_ENABLED (PLUGIN_NAME L".EnableScanning")
 #define SETTING_NAME_AUTO_SCAN_ENABLED (PLUGIN_NAME L".EnableAutoScanning")
+#define SETTING_NAME_AUTO_SUBMIT_ENABLED (PLUGIN_NAME L".EnableAutoSubmit")
 #define SETTING_NAME_SCAN_MAX_FILE_SIZE (PLUGIN_NAME L".ScanMaxFileSize")
 #define SETTING_NAME_SCAN_STARTUP_DELAY (PLUGIN_NAME L".ScanStartupDelay")
-#define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefautAction")
-#define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefautPAT")
-#define SETTING_NAME_HYBRIDANAL_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefautPAT")
-#define SETTING_NAME_FILESCAN_DEFAULT_PAT (PLUGIN_NAME L".FileScanDefautPAT")
+#define SETTING_NAME_SCAN_SUBMIT_TIMEOUT (PLUGIN_NAME L".ScanSubmitTimeout")
+#define SETTING_NAME_VIRUSTOTAL_DEFAULT_ACTION (PLUGIN_NAME L".VirusTotalDefaultAction")
+#define SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT (PLUGIN_NAME L".VirusTotalDefaultPAT")
+#define SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT (PLUGIN_NAME L".HybridAnalysisDefaultPAT")
+#define SETTING_NAME_FILESCAN_DEFAULT_PAT (PLUGIN_NAME L".FileScanDefaultPAT")
 
 #define UM_UPLOAD (WM_APP + 1)
 #define UM_EXISTS (WM_APP + 2)
@@ -41,6 +43,7 @@
 
 extern PPH_PLUGIN PluginInstance;
 extern ULONG ScanMaxFileSize;
+extern ULONG ScanSubmitTimeout;
 
 typedef struct _SERVICE_INFO
 {
@@ -224,9 +227,9 @@ VOID UploadServiceToOnlineService(
 
 typedef enum _COLUMN_ID
 {
-    COLUMN_ID_VIUSTOTAL_PROCESS = 1,
-    COLUMN_ID_VIUSTOTAL_MODULE = 2,
-    COLUMN_ID_VIUSTOTAL_SERVICE = 3,
+    COLUMN_ID_VIRUSTOTAL_PROCESS = 1,
+    COLUMN_ID_VIRUSTOTAL_MODULE = 2,
+    COLUMN_ID_VIRUSTOTAL_SERVICE = 3,
     COLUMN_ID_HYBRIDANALYSIS_PROCESS = 4,
     COLUMN_ID_HYBRIDANALYSIS_MODULE = 5,
     COLUMN_ID_HYBRIDANALYSIS_SERVICE = 6,
@@ -316,6 +319,19 @@ VOID HybridAnalysisFreeFileReport(
     _In_ PHYBRIDANALYSIS_FILE_REPORT FileReport
     );
 
+NTSTATUS HybridAnalysisSubmitFile(
+    _In_ PPH_STRING FileName,
+    _In_opt_ PPH_STRING ApiKey,
+    _Out_ PPH_STRING* Id,
+    _Out_ PBOOLEAN Finished
+    );
+
+NTSTATUS HybridAnalysisSubmitFinished(
+    _In_ PPH_STRING Id,
+    _In_opt_ PPH_STRING ApiKey,
+    _Out_ PBOOLEAN Finished
+    );
+
 // scan
 
 #define MENUITEM_VIRUSTOTAL_SCAN_PROCESS 200
@@ -343,6 +359,7 @@ VOID InitializeScanContext(
 
 #define SCAN_FLAG_RESCAN        0x00000001
 #define SCAN_FLAG_LOCAL_ONLY    0x00000002
+#define SCAN_FLAG_SUBMIT        0x00000004
 
 typedef
 _Function_class_(SCAN_COMPLETE_CALLBACK)

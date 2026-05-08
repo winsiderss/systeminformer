@@ -23,8 +23,6 @@ CONST SERVICE_INFO UploadServiceInfo[] =
     { MENUITEM_VIRUSTOTAL_UPLOAD_SERVICE, L"www.virustotal.com", L"???", L"file" },
     { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
     { MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
-    { MENUITEM_JOTTI_UPLOAD, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
-    { MENUITEM_JOTTI_UPLOAD_SERVICE, L"virusscan.jotti.org", L"/en-US/submit-file?isAjax=true", L"sample-file[]" },
     { MENUITEM_FILESCANIO_UPLOAD, L"www.filescan.io", L"/api/scan/file", L"file" },
     { MENUITEM_FILESCANIO_UPLOAD_SERVICE, L"www.filescan.io", L"/api/scan/file", L"file" },
 };
@@ -441,7 +439,7 @@ NTSTATUS UploadFileThreadStart(
         switch (machineType)
         {
         case IMAGE_FILE_MACHINE_I386:
-            environmentId = 110; // Windows 7 32 bit (HWP Support) 
+            environmentId = 110; // Windows 7 32 bit (HWP Support)
             break;
         case IMAGE_FILE_MACHINE_AMD64:
             environmentId = 120; // Windows 7 64 bit
@@ -713,7 +711,7 @@ NTSTATUS UploadFileThreadStart(
         timeBitsPerSecond = totalUploadedLength / __max(timeTicks, 1);
 
 #ifdef FORCE_NO_STATUS_TIMER
-        ULONG percent = totalUploadedLength * 100 / context->TotalFileLength;
+        ULONG percent = PhMultiplyDivide(totalUploadedLength, 100, context->TotalFileLength);
         PH_FORMAT format[9];
         WCHAR string[MAX_PATH];
 
@@ -1116,15 +1114,15 @@ LONGLONG UploadFileScanStringToTime(
 
     if (!NT_SUCCESS(RtlULong64ToUShort(year, &systemtime.wYear)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToUShort(month, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(month, &systemtime.wMonth)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToUShort(day, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(day, &systemtime.wDay)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToUShort(hour, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(hour, &systemtime.wHour)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToUShort(minute, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(minute, &systemtime.wMinute)))
         return LONG64_MAX;
-    if (!NT_SUCCESS(RtlULong64ToUShort(second, &systemtime.wYear)))
+    if (!NT_SUCCESS(RtlULong64ToUShort(second, &systemtime.wSecond)))
         return LONG64_MAX;
     if (!PhSystemTimeToLargeInteger(&time, &systemtime))
         return LONG64_MAX;
@@ -1703,7 +1701,7 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
             {
                 if (context->ProgressUploaded && context->ProgressTotal)
                 {
-                    LONG64 percent = context->ProgressUploaded * 100 / context->ProgressTotal;
+                    LONG64 percent = PhMultiplyDivide((ULONG)context->ProgressUploaded, 100, (ULONG)context->ProgressTotal);
                     PH_FORMAT format[9];
                     WCHAR string[MAX_PATH];
 
@@ -1768,7 +1766,7 @@ HRESULT CALLBACK OnlineChecksTaskDialogBootstrap(
             HWND windowHandle = SystemInformer_GetWindowHandle();
 
             context->DialogHandle = hwndDlg;
-            context->HybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANAL_DEFAULT_PAT);
+            context->HybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
             context->TotalPat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
             context->FileScanPat = PhGetStringSetting(SETTING_NAME_FILESCAN_DEFAULT_PAT);
 
@@ -1896,14 +1894,19 @@ VOID UploadServiceToOnlineService(
         }
         else
         {
-            PUPLOAD_CONTEXT context;
+            PPH_STRING fileNtPathName;
 
-            context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
-            context->Service = Service;
-            context->FileName = ServiceItem->FileName;
-            context->BaseFileName = PhGetBaseName(context->FileName);
+            if (fileNtPathName = PhDosPathNameToNtPathName(&ServiceItem->FileName->sr))
+            {
+                PUPLOAD_CONTEXT context;
 
-            PhCreateThread2(OnlineChecksUploadDialogThread, context);
+                context = PhCreateObjectZero(sizeof(UPLOAD_CONTEXT), UploadContextType);
+                context->Service = Service;
+                context->FileName = fileNtPathName;
+                context->BaseFileName = PhGetBaseName(context->FileName);
+
+                PhCreateThread2(OnlineChecksUploadDialogThread, context);
+            }
         }
     }
     else

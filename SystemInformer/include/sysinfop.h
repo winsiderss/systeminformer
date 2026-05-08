@@ -32,7 +32,9 @@
 #define SI_MSG_SYSINFO_CHANGE_SETTINGS (WM_APP + 152)
 #define SI_MSG_SYSINFO_LAST (WM_APP + 152)
 
+//
 // Thread & window
+//
 
 extern HWND PhSipWindow;
 
@@ -57,7 +59,9 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
     _In_ LPARAM lParam
     );
 
+//
 // Event handlers
+//
 
 VOID PhSipOnInitDialog(
     VOID
@@ -121,7 +125,9 @@ ULONG PhSipGetProcessorRelationshipIndex(
     _In_ ULONG Index
     );
 
+//
 // Framework
+//
 
 VOID PhSipRegisterDialog(
     _In_ HWND DialogWindowHandle
@@ -227,14 +233,9 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
     _In_ LPARAM lParam
     );
 
-LRESULT CALLBACK PhSipRestorePanelHookWndProc(
-    _In_ HWND hwnd,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
+//
 // Misc.
+//
 
 VOID PhSipUpdateProcessorInformation(
     VOID
@@ -276,7 +277,9 @@ VOID NTAPI PhSipSysInfoSettingsCallback(
     _In_opt_ PVOID Context
     );
 
+//
 // CPU section
+//
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipCpuSectionCallback(
@@ -371,7 +374,9 @@ NTSTATUS NTAPI PhSipCpuSMBIOSWorkRoutine(
     _In_ PVOID ThreadParameter
     );
 
+//
 // Memory section
+//
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN PhSipMemorySectionCallback(
@@ -458,7 +463,9 @@ BOOLEAN PhSipGetMemoryCompressionLimits(
     _Out_ FLOAT *TotalSavedMemory
     );
 
+//
 // I/O section
+//
 
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN NTAPI PhSipIoSectionCallback(
@@ -543,6 +550,24 @@ PPH_PROCESS_RECORD PhSipReferenceMaxIoRecord(
 
 PPH_STRING PhSipGetMaxIoString(
     _In_ LONG Index
+    );
+
+//
+// Scroll Support
+//
+
+#define SYSINFO_SCROLL_ANCHOR 1
+
+VOID PhSipHandleSummaryMouseWheel(
+    _In_ WPARAM wParam
+    );
+
+VOID PhSipHandleSummaryVScroll(
+    _In_ WPARAM wParam
+    );
+
+BOOLEAN PhSipSummaryScrollEnabled(
+    VOID
     );
 
 #endif

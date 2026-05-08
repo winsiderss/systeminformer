@@ -19,7 +19,7 @@ typedef VOID (NTAPI *PPH_MEMORY_RESULT_CALLBACK)(
 
 typedef struct _PH_MEMORY_SEARCH_OPTIONS
 {
-    BOOLEAN Cancel;
+    volatile BOOLEAN Cancel;
     PPH_MEMORY_RESULT_CALLBACK Callback;
     PVOID Context;
 } PH_MEMORY_SEARCH_OPTIONS, *PPH_MEMORY_SEARCH_OPTIONS;
@@ -40,6 +40,8 @@ typedef struct _PH_MEMORY_STRING_OPTIONS
             BOOLEAN Spare : 6;
         };
     };
+    volatile ULONG *ProgressValue;
+    volatile ULONG *ProgressMax;
 } PH_MEMORY_STRING_OPTIONS, *PPH_MEMORY_STRING_OPTIONS;
 
 PVOID PhAllocateForMemorySearch(

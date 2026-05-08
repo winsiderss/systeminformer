@@ -29,12 +29,15 @@ KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpEtwRegistrationName = RTL_CONSTANT_STRING(L"EtwRegistration");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 
+_IRQL_requires_max_(HIGH_LEVEL)
 _Must_inspect_result_
 PVOID KphObpDecodeObject(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
 #if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObDecodeShift != ULONG_MAX)
     {
@@ -61,11 +64,14 @@ PVOID KphObpDecodeObject(
 #endif
 }
 
+_IRQL_requires_max_(HIGH_LEVEL)
 ULONG KphObpGetHandleAttributes(
     _In_ PKPH_DYN Dyn,
     _In_ PHANDLE_TABLE_ENTRY HandleTableEntry
     )
 {
+    KPH_NPAGED_CODE_HIGH_MAX();
+
 #if defined(_M_X64) || defined(_M_ARM64)
     if (Dyn->ObAttributesShift != ULONG_MAX)
     {
@@ -1197,7 +1203,16 @@ NTSTATUS KphQueryInformationObject(
             // work around this bug, we add some (generous) padding to our
             // allocation.
             //
-            allocateSize += sizeof(ULONG64);
+            status = RtlULongAdd(allocateSize, sizeof(ULONG64), &allocateSize);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "RtlULongAdd failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
@@ -1209,6 +1224,7 @@ NTSTATUS KphQueryInformationObject(
             }
 
             typeInfo = (POBJECT_TYPE_INFORMATION)buffer;
+            NT_ASSERT(allocateSize >= ObjectInformationLength);
 
             KeStackAttachProcess(process, &apcState);
             status = ZwQueryObject(Handle,
@@ -1649,7 +1665,17 @@ NTSTATUS KphQueryInformationObject(
             {
                 allocateSize = sizeof(THREAD_NAME_INFORMATION);
             }
-            allocateSize += sizeof(ULONG64);
+
+            status = RtlULongAdd(allocateSize, sizeof(ULONG64), &allocateSize);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "RtlULongAdd failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
@@ -1661,6 +1687,7 @@ NTSTATUS KphQueryInformationObject(
             }
 
             nameInfo = (PTHREAD_NAME_INFORMATION)buffer;
+            NT_ASSERT(allocateSize >= ObjectInformationLength);
 
             KeStackAttachProcess(process, &apcState);
             status = ZwQueryInformationThread(Handle,
@@ -1833,7 +1860,17 @@ NTSTATUS KphQueryInformationObject(
             {
                 allocateSize = sizeof(UNICODE_STRING);
             }
-            allocateSize += sizeof(ULONG64);
+
+            status = RtlULongAdd(allocateSize, sizeof(ULONG64), &allocateSize);
+            if (!NT_SUCCESS(status))
+            {
+                KphTracePrint(TRACE_LEVEL_VERBOSE,
+                              GENERAL,
+                              "RtlULongAdd failed: %!STATUS!",
+                              status);
+
+                goto Exit;
+            }
 
             buffer = KphAllocatePagedA(allocateSize,
                                        KPH_TAG_OBJECT_QUERY,
@@ -1845,6 +1882,7 @@ NTSTATUS KphQueryInformationObject(
             }
 
             sectionFileName = (PUNICODE_STRING)buffer;
+            NT_ASSERT(allocateSize >= ObjectInformationLength);
 
             status = ObDuplicateObject(process,
                                        Handle,

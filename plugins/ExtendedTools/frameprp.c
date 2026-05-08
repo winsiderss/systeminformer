@@ -233,12 +233,12 @@ VOID FramesPropLayoutGraphs(
     Context->FramesDisplayLatencyGraphState.Valid = FALSE;
     Context->FramesDisplayLatencyGraphState.TooltipIndex = ULONG_MAX;
 
-    margin.left = margin.top = margin.right = margin.bottom = PhGetDpi(13, Context->WindowDpi);
+    margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
 
-    innerMargin.left = innerMargin.right = innerMargin.bottom = PhGetDpi(10, Context->WindowDpi);
-    innerMargin.top = PhGetDpi(20, Context->WindowDpi);
+    innerMargin.left = innerMargin.right = innerMargin.bottom = PhScaleToDisplay(10, Context->WindowDpi);
+    innerMargin.top = PhScaleToDisplay(20, Context->WindowDpi);
 
-    between = PhGetDpi(3, Context->WindowDpi);
+    between = PhScaleToDisplay(3, Context->WindowDpi);
 
     PhGetClientRect(Context->WindowHandle, &clientRect);
     graphWidth = clientRect.right - margin.left - margin.right;
@@ -403,8 +403,8 @@ VOID NTAPI FramesProcessesUpdatedHandler(
 }
 
 INT_PTR CALLBACK EtpFramesPageDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -414,7 +414,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
     PPH_PROCESS_ITEM processItem;
     PET_FRAMES_CONTEXT context;
 
-    if (PhPropPageDlgProcHeader(hwndDlg, uMsg, lParam, &propSheetPage, &propPageContext, &processItem))
+    if (PhPropPageDlgProcHeader(WindowHandle, WindowMessage, lParam, &propSheetPage, &propPageContext, &processItem))
     {
         context = propPageContext->Context;
     }
@@ -423,23 +423,23 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         return FALSE;
     }
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context = PhAllocateZero(sizeof(ET_FRAMES_CONTEXT));
-            context->WindowHandle = hwndDlg;
+            context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
             context->Enabled = TRUE;
-            context->FramesPerSecondGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPS);
-            context->FramesLatencyGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSLATENCY);
-            context->PresentIntervalGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSPRESENT);
-            context->PresentDurationGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSPRESENTINTERVAL);
-            context->FramesRenderTimeGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSFRAMERENDER);
-            context->FramesDisplayTimeGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSFRAMEDISPLAY);
-            context->FramesDisplayLatencyGroupBox = GetDlgItem(hwndDlg, IDC_GROUPFPSDISPLAYLATENCY);
+            context->FramesPerSecondGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPS);
+            context->FramesLatencyGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSLATENCY);
+            context->PresentIntervalGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSPRESENT);
+            context->PresentDurationGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSPRESENTINTERVAL);
+            context->FramesRenderTimeGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSFRAMERENDER);
+            context->FramesDisplayTimeGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSFRAMEDISPLAY);
+            context->FramesDisplayLatencyGroupBox = GetDlgItem(WindowHandle, IDC_GROUPFPSDISPLAYLATENCY);
             propPageContext->Context = context;
 
             PhInitializeGraphState(&context->FramesPerSecondGraphState);
@@ -461,7 +461,7 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                 &context->ProcessesUpdatedRegistration
                 );
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -496,8 +496,8 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
         break;
     case WM_SHOWWINDOW:
         {
-            if (PhBeginPropPageLayout(hwndDlg, propPageContext))
-                PhEndPropPageLayout(hwndDlg, propPageContext);
+            if (PhBeginPropPageLayout(WindowHandle, propPageContext))
+                PhEndPropPageLayout(WindowHandle, propPageContext);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:

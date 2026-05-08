@@ -200,15 +200,13 @@ VOID KphMsgDynClearLast(
 {
     PKPH_MESSAGE_DYNAMIC_TABLE_ENTRY entry;
 
-    if (Message->_Dyn.Count)
+    if (Message->_Dyn.Count > 0)
     {
-        return;
+        Message->_Dyn.Count--;
+        entry = &Message->_Dyn.Entries[Message->_Dyn.Count];
+        Message->Header.Size -= entry->Length;
+        RtlZeroMemory(entry, sizeof(KPH_MESSAGE_DYNAMIC_TABLE_ENTRY));
     }
-
-    Message->_Dyn.Count--;
-    entry = &Message->_Dyn.Entries[Message->_Dyn.Count];
-    Message->Header.Size -= entry->Length;
-    RtlZeroMemory(entry, sizeof(KPH_MESSAGE_DYNAMIC_TABLE_ENTRY));
 }
 
 /**

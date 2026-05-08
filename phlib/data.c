@@ -13,7 +13,9 @@
 #include <ph.h>
 #include <phdata.h>
 
+//
 // SIDs
+//
 
 CONST SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
 
@@ -169,13 +171,16 @@ PSID PhSeLogonIdSid(
     return logonSessionSid;
 }
 
-
+//
 // Unicode
+//
 
 DECLSPEC_SELECTANY CONST
 PH_STRINGREF PhUnicodeByteOrderMark = PH_STRINGREF_INIT(L"\ufeff");
 
+//
 // Characters
+//
 
 DECLSPEC_SELECTANY CONST
 BOOLEAN PhCharIsPrintable[256] =

@@ -12,6 +12,16 @@
 
 #include "onlnchk.h"
 
+PPH_STRING ClientIdHeaderString(
+    VOID
+    )
+{
+    static const PH_STRINGREF clientIdHeader = PH_STRINGREF_INIT(L"SystemInformer-Client-Id: ");
+    PPH_STRING clientId = PhGetStringSetting(SETTING_CLIENT_ID);
+    PhMoveReference(&clientId, PhConcatStringRef2(&clientIdHeader, &clientId->sr));
+    return clientId;
+}
+
 PPH_BYTES VirusTotalTimeString(
     _In_ PLARGE_INTEGER LargeInteger
     )
@@ -150,6 +160,7 @@ NTSTATUS VirusTotalRequestFileReport(
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING httpPathString = NULL;
     PPH_STRING httpHeaderString = NULL;
+    PPH_STRING httpHeaderClientId = NULL;
     PVOID jsonRootObject = NULL;
     ULONG httpStatus = PH_HTTP_STATUS_OK;
 
@@ -162,6 +173,8 @@ NTSTATUS VirusTotalRequestFileReport(
             return STATUS_UNSUCCESSFUL;
         if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
             goto CleanupExit;
+
+        httpHeaderClientId = ClientIdHeaderString();
     }
     else
     {
@@ -177,6 +190,12 @@ NTSTATUS VirusTotalRequestFileReport(
     if (!PhIsNullOrEmptyString(httpHeaderString))
     {
         if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+
+    if (!PhIsNullOrEmptyString(httpHeaderClientId))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderClientId->sr)))
             goto CleanupExit;
     }
 
@@ -216,6 +235,7 @@ NTSTATUS VirusTotalRequestFileReport(
 CleanupExit:
     PhHttpDestroy(httpContext);
 
+    PhClearReference(&httpHeaderClientId);
     PhClearReference(&httpHeaderString);
     PhClearReference(&httpPathString);
     PhClearReference(&jsonString);
@@ -325,6 +345,7 @@ NTSTATUS HybridAnalysisRequestFileReport(
     PPH_HTTP_CONTEXT httpContext = NULL;
     PPH_STRING httpPathString = NULL;
     PPH_STRING httpHeaderString = NULL;
+    PPH_STRING httpHeaderClientId = NULL;
     PVOID jsonRootObject = NULL;
     ULONG httpStatus = PH_HTTP_STATUS_OK;
 
@@ -337,6 +358,8 @@ NTSTATUS HybridAnalysisRequestFileReport(
             return STATUS_UNSUCCESSFUL;
         if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
             goto CleanupExit;
+
+        httpHeaderClientId = ClientIdHeaderString();
     }
     else
     {
@@ -352,6 +375,12 @@ NTSTATUS HybridAnalysisRequestFileReport(
     if (!PhIsNullOrEmptyString(httpHeaderString))
     {
         if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+
+    if (!PhIsNullOrEmptyString(httpHeaderClientId))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderClientId->sr)))
             goto CleanupExit;
     }
 
@@ -390,6 +419,7 @@ NTSTATUS HybridAnalysisRequestFileReport(
 CleanupExit:
     PhHttpDestroy(httpContext);
 
+    PhClearReference(&httpHeaderClientId);
     PhClearReference(&httpHeaderString);
     PhClearReference(&httpPathString);
     PhClearReference(&jsonString);
@@ -404,4 +434,320 @@ VOID HybridAnalysisFreeFileReport(
     PhClearReference(&FileReport->VxFamily);
     PhClearReference(&FileReport->Verdict);
     PhFree(FileReport);
+}
+
+NTSTATUS HybridAnalysisSubmitFile(
+    _In_ PPH_STRING FileName,
+    _In_opt_ PPH_STRING ApiKey,
+    _Out_ PPH_STRING* Id,
+    _Out_ PBOOLEAN Finished
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle = NULL;
+    LARGE_INTEGER fileSize;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING postBoundary = NULL;
+    PPH_STRING baseFileName = NULL;
+    PH_STRING_BUILDER httpRequestHeaders;
+    PH_STRING_BUILDER httpPostHeader;
+    PH_STRING_BUILDER httpPostFooter;
+    BOOLEAN buildersInitialized = FALSE;
+    PPH_BYTES asciiPostData = NULL;
+    PPH_BYTES asciiFooterData = NULL;
+    PPH_BYTES jsonString = NULL;
+    PVOID jsonRootObject = NULL;
+    ULONG totalUploadLength;
+    ULONG totalWriteLength;
+    ULONG numberOfBytesRead;
+    ULONG httpStatus = 0;
+    BYTE buffer[PAGE_SIZE];
+
+    *Id = NULL;
+    *Finished = FALSE;
+
+    if (!NT_SUCCESS(status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_GENERIC_READ,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+        goto CleanupExit;
+
+    if (fileSize.QuadPart > ScanMaxFileSize)
+    {
+        status = STATUS_FILE_TOO_LARGE;
+        goto CleanupExit;
+    }
+
+    baseFileName = PhGetBaseName(FileName);
+
+    {
+        PH_FORMAT format[2];
+
+        PhInitFormatS(&format[0], L"--");
+        PhInitFormatI64U(&format[1], PhGenerateRandomNumber64());
+
+        postBoundary = PhFormat(format, RTL_NUMBER_OF(format), 0);
+    }
+
+    PhInitializeStringBuilder(&httpRequestHeaders, DOS_MAX_PATH_LENGTH);
+    PhInitializeStringBuilder(&httpPostHeader, DOS_MAX_PATH_LENGTH);
+    PhInitializeStringBuilder(&httpPostFooter, DOS_MAX_PATH_LENGTH);
+    buildersInitialized = TRUE;
+
+    PhAppendStringBuilder2(&httpRequestHeaders, L"accept: application/json\r\n");
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        PPH_STRING clientIdHeader = ClientIdHeaderString();
+        PhAppendStringBuilder(&httpRequestHeaders, &clientIdHeader->sr);
+        PhAppendStringBuilder2(&httpRequestHeaders, L"\r\n");
+        PhDereferenceObject(clientIdHeader);
+    }
+    else
+    {
+        PhAppendStringBuilder2(&httpRequestHeaders, L"api-key: ");
+        PhAppendStringBuilder(&httpRequestHeaders, &ApiKey->sr);
+        PhAppendStringBuilder2(&httpRequestHeaders, L"\r\n");
+    }
+    PhAppendStringBuilder2(&httpRequestHeaders, L"Content-Type: multipart/form-data; boundary=");
+    PhAppendStringBuilder(&httpRequestHeaders, &postBoundary->sr);
+    PhAppendStringBuilder2(&httpRequestHeaders, L"\r\n");
+
+    PhAppendStringBuilder2(&httpPostHeader, L"--");
+    PhAppendStringBuilder(&httpPostHeader, &postBoundary->sr);
+    PhAppendStringBuilder2(&httpPostHeader, L"\r\n");
+    PhAppendStringBuilder2(&httpPostHeader, L"Content-Disposition: form-data; name=\"scan_type\"\r\n\r\nall\r\n");
+
+    PhAppendStringBuilder2(&httpPostHeader, L"--");
+    PhAppendStringBuilder(&httpPostHeader, &postBoundary->sr);
+    PhAppendStringBuilder2(&httpPostHeader, L"\r\n");
+    PhAppendFormatStringBuilder(
+        &httpPostHeader,
+        L"Content-Disposition: form-data; name=\"file\"; filename=\"%s\"\r\n",
+        PhGetStringOrEmpty(baseFileName)
+        );
+    PhAppendStringBuilder2(&httpPostHeader, L"Content-Type: application/octet-stream\r\n\r\n");
+
+    PhAppendStringBuilder2(&httpPostFooter, L"\r\n--");
+    PhAppendStringBuilder(&httpPostFooter, &postBoundary->sr);
+    PhAppendStringBuilder2(&httpPostFooter, L"--\r\n");
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", L"/onlinechecks/hybrid-analysis/api/v2/quick-scan/file", PH_HTTP_FLAG_SECURE)))
+            goto CleanupExit;
+    }
+    else
+    {
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"hybrid-analysis.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", L"/api/v2/quick-scan/file", PH_HTTP_FLAG_SECURE)))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(
+        httpContext,
+        httpRequestHeaders.String->Buffer,
+        (ULONG)httpRequestHeaders.String->Length / sizeof(WCHAR)
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    asciiPostData = PhConvertStringToUtf8(httpPostHeader.String);
+    asciiFooterData = PhConvertStringToUtf8(httpPostFooter.String);
+
+    if (!NT_SUCCESS(status = RtlULongAdd((ULONG)asciiPostData->Length, (ULONG)fileSize.QuadPart, &totalUploadLength)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = RtlULongAdd(totalUploadLength, (ULONG)asciiFooterData->Length, &totalUploadLength)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, totalUploadLength)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpWriteData(httpContext, asciiPostData->Buffer, (ULONG)asciiPostData->Length, &totalWriteLength)))
+        goto CleanupExit;
+
+    for (;;)
+    {
+        status = PhReadFile(fileHandle, buffer, PAGE_SIZE, NULL, &numberOfBytesRead);
+
+        if (status == STATUS_END_OF_FILE)
+        {
+            status = STATUS_SUCCESS;
+            break;
+        }
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        if (!NT_SUCCESS(status = PhHttpWriteData(httpContext, buffer, numberOfBytesRead, &totalWriteLength)))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpWriteData(httpContext, asciiFooterData->Buffer, (ULONG)asciiFooterData->Length, &totalWriteLength)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
+        goto CleanupExit;
+
+    if (httpStatus != 200 && httpStatus != 201)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
+        goto CleanupExit;
+
+    *Id = PhGetJsonValueAsString(jsonRootObject, "id");
+    *Finished = !!PhGetJsonValueAsUInt64(jsonRootObject, "finished");
+
+    if (PhIsNullOrEmptyString(*Id))
+    {
+        PhClearReference(Id);
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+CleanupExit:
+
+    if (buildersInitialized)
+    {
+        PhDeleteStringBuilder(&httpRequestHeaders);
+        PhDeleteStringBuilder(&httpPostHeader);
+        PhDeleteStringBuilder(&httpPostFooter);
+    }
+
+    if (jsonRootObject)
+        PhFreeJsonObject(jsonRootObject);
+
+    PhClearReference(&jsonString);
+    PhClearReference(&asciiPostData);
+    PhClearReference(&asciiFooterData);
+    PhClearReference(&postBoundary);
+    PhClearReference(&baseFileName);
+
+    if (httpContext)
+        PhHttpDestroy(httpContext);
+
+    if (fileHandle)
+        NtClose(fileHandle);
+
+    return status;
+}
+
+NTSTATUS HybridAnalysisSubmitFinished(
+    _In_ PPH_STRING Id,
+    _In_opt_ PPH_STRING ApiKey,
+    _Out_ PBOOLEAN Finished
+    )
+{
+    NTSTATUS status;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING httpPathString = NULL;
+    PPH_STRING httpHeaderString = NULL;
+    PPH_BYTES jsonString = NULL;
+    PVOID jsonRootObject = NULL;
+    ULONG httpStatus = 0;
+
+    *Finished = FALSE;
+
+    if (PhIsNullOrEmptyString(Id))
+        return STATUS_INVALID_PARAMETER_1;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+        httpPathString = PhConcatStrings(2, L"/onlinechecks/hybrid-analysis/api/v2/quick-scan/", PhGetString(Id));
+    else
+        httpPathString = PhConcatStrings(2, L"/api/v2/quick-scan/", PhGetString(Id));
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+    else
+    {
+        if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"hybrid-analysis.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, NULL, PhGetString(httpPathString), PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
+
+    if (PhIsNullOrEmptyString(ApiKey))
+    {
+        httpHeaderString = ClientIdHeaderString();
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+    else
+    {
+        httpHeaderString = PhConcatStrings(2, L"api-key: ", PhGetString(ApiKey));
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderString->sr)))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
+        goto CleanupExit;
+
+    if (httpStatus != 200 && httpStatus != 201)
+    {
+        status = STATUS_UNSUCCESSFUL;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &jsonString)))
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, jsonString, FALSE)))
+        goto CleanupExit;
+
+    *Finished = !!PhGetJsonValueAsUInt64(jsonRootObject, "finished");
+
+CleanupExit:
+
+    if (jsonRootObject)
+        PhFreeJsonObject(jsonRootObject);
+
+    PhClearReference(&jsonString);
+    PhClearReference(&httpHeaderString);
+    PhClearReference(&httpPathString);
+
+    if (httpContext)
+        PhHttpDestroy(httpContext);
+
+    return status;
 }

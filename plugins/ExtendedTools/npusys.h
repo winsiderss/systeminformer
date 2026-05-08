@@ -36,15 +36,15 @@ VOID EtpTickNpuDialog(
     );
 
 INT_PTR CALLBACK EtpNpuDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
 
 INT_PTR CALLBACK EtpNpuPanelDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -54,7 +54,7 @@ VOID EtpCreateNpuGraphs(
     );
 
 VOID EtpLayoutNpuGraphs(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 VOID EtpNotifyNpuGraph(

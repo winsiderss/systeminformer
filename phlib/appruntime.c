@@ -20,7 +20,7 @@
 #endif
 
 #ifdef __hstring_h__
-static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
+static_assert(sizeof(HSTRING_REFERENCE) == sizeof(HSTRING_HEADER), "HSTRING_REFERENCE must equal HSTRING_HEADER");
 #else
 static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFERENCE must equal WSTRING_HEADER");
 #endif
@@ -114,7 +114,7 @@ HRESULT PhCreateWindowsRuntimeStringReferenceEx(
 
     return WindowsCreateStringReference(
         SourceString,
-        (UINT32)PhCountStringZ(SourceString),
+        Length,
         String,
         &stringHandle
         );
@@ -504,7 +504,7 @@ static HRESULT PhDetoursPackageSystemIdentificationInitialize(
     _In_ PPH_APPHWID_QUERY_CONTEXT Context
     )
 {
-    PVOID baseAddress = PhGetLoaderEntryAddressDllBase(Address);
+    PVOID baseAddress = PhGetLoaderEntryPcToFileHeader(Address);
 
     if (!baseAddress)
         return E_FAIL;
@@ -628,7 +628,7 @@ static HRESULT PhQueryProcessSystemIdentification(
     // or verify their capabilities/sandboxing/token permissions are setup correctly (dmex)
 
     status = PhDetoursPackageSystemIdentificationInitialize(
-        systemIdStatics->lpVtbl,
+        (PVOID)systemIdStatics->lpVtbl,
         Context
         );
 
@@ -689,7 +689,7 @@ CleanupExit:
         //    ClearFlag(systemIdPublisherStatus, FACILITY_NT_BIT); // 0xD0000022 -> 0xC0000022
         //}
 
-        if (HRESULT_NTSTATUS(systemIdForUserStatus))
+        if (HRESULT_NTSTATUS(systemIdPublisherStatus))
         {
             *SystemIdForPublisher = PhGetStatusMessage(PhNtStatusFromHResult(systemIdPublisherStatus), 0);
         }
@@ -1025,6 +1025,7 @@ CleanupExit:
     return success;
 }
 
+_Enum_is_bitflag_
 typedef enum _PH_QUERY_PACKAGE_INFO_TYPE
 {
     PH_QUERY_PACKAGE_INFO_NAME = 1,
@@ -1035,6 +1036,7 @@ typedef enum _PH_QUERY_PACKAGE_INFO_TYPE
     PH_QUERY_PACKAGE_INFO_LOGO = 32,
     PH_QUERY_PACKAGE_INFO_LOCATION = 64,
 } PH_QUERY_PACKAGE_INFO_TYPE;
+DEFINE_ENUM_FLAG_OPERATORS(PH_QUERY_PACKAGE_INFO_TYPE);
 
 BOOLEAN PhQueryApplicationModelPackageInformation(
     _In_ PPH_LIST PackageList,
@@ -1113,7 +1115,7 @@ BOOLEAN PhQueryApplicationModelPackageInformation(
                 PhInitFormatC(&format[5], L'.');
                 PhInitFormatU(&format[6], appPackageVersion.Build);
 
-                packageVersionString = PhFormat(format,RTL_NUMBER_OF(format), 0);
+                packageVersionString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
         }
 
@@ -1283,7 +1285,7 @@ PPH_LIST PhEnumPackageApplicationUserModelIds(
                 __x_ABI_CWindows_CApplicationModel_CIPackage2_Release(currentPackage2);
             }
 
-            __FIIterator_1_Windows__CApplicationModel__CPackage_Release(currentPackage);
+            __x_ABI_CWindows_CApplicationModel_CIPackage_Release(currentPackage);
         }
 
         if (HR_FAILED(status))
