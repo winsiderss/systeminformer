@@ -526,7 +526,7 @@ PPH_STRING UpdateWindowsString(
                 PhInitFormatU(&format[1], HIWORD(rootBlock->dwFileVersionLS));
                 PhInitFormatC(&format[2], '.');
                 PhInitFormatU(&format[3], LOWORD(rootBlock->dwFileVersionLS));
-                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_64" : L"_32");
+                PhInitFormatS(&format[4], PhIsExecutingInWow64() ? L"_32" : L"_64");
 
                 buildString = PhFormat(format, RTL_NUMBER_OF(format), 0);
             }
@@ -1086,7 +1086,7 @@ NTSTATUS UpdateDownloadThread(
         timeBitsPerSecond = timeTicks ? totalDownloaded / timeTicks : 0;
 
 #ifdef FORCE_NO_STATUS_TIMER
-        ULONG percent = (ULONG)totalDownloaded * 100 / (ULONG)contentLength;
+        LONG percent = PhMultiplyDivide((LONG64)totalDownloaded, 100, (LONG64)contentLength);
         PH_FORMAT format[9];
         WCHAR stringformat[MAX_PATH];
 
