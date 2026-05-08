@@ -113,8 +113,10 @@
 #define PowerInformationLevelMaximum 99
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-// Renamed from SYSTEM_POWER_POLICY
-typedef struct _SYSTEM_POWER_POLICY_ACDC
+/**
+ * The SYSTEM_POWER_POLICY structure contains information about the current system power policy.
+ */
+typedef struct _SYSTEM_POWER_POLICY_ACDC // SYSTEM_POWER_POLICY
 {
     ULONG Revision;
     // Events
