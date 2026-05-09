@@ -73,6 +73,8 @@ static const LONG64 ScanRateLmtExpMin = (15LL * 60 * 10000000); // 15 minutes
 static const LONG64 ScanRateLmtExpMax = (60LL * 60 * 10000000); // 1 hour
 static const LONG64 ScanNoResponseExpMin = (1LL * 24 * 60 * 60 * 10000000); // 1 day
 static const LONG64 ScanNoResponseExpMax = (2LL * 24 * 60 * 60 * 10000000); // 2 days
+static LONG ScanVirusTotalUnauthorized = 0;
+static LONG ScanHybridAnalysisUnauthorized = 0;
 
 static typeof(&BCryptOpenAlgorithmProvider) BCryptOpenAlgorithmProvider_I = NULL;
 static typeof(&BCryptCloseAlgorithmProvider) BCryptCloseAlgorithmProvider_I = NULL;
@@ -406,6 +408,13 @@ VOID ProcessVirusTotal(
     if (FlagOn(Item->Flags, SCAN_FLAG_LOCAL_ONLY))
         goto CleanupExit;
 
+    if (ReadAcquire(&ScanVirusTotalUnauthorized))
+    {
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
+        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+        goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(VirusTotalRequestFileReport(Item->FileHash->Sha256, ScanVirusTotalPAT, &report)))
         goto CleanupExit;
 
@@ -441,6 +450,8 @@ VOID ProcessVirusTotal(
     }
     else if (report->HttpStatus == 401 || report->HttpStatus == 403) // Unauthorized/Forbidden
     {
+        WriteRelease(&ScanVirusTotalUnauthorized, 1);
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
         SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
     }
     else
@@ -586,6 +597,13 @@ VOID ProcessHybridAnalysis(
 
     PhClearReference(&vxFamily);
 
+    if (ReadAcquire(&ScanHybridAnalysisUnauthorized))
+    {
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
+        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+        goto CleanupExit;
+    }
+
     if (!NT_SUCCESS(HybridAnalysisRequestFileReport(Item->FileHash->Sha256, ScanHybridAnalysisPAT, &report)))
         goto CleanupExit;
 
@@ -638,6 +656,8 @@ VOID ProcessHybridAnalysis(
     }
     else if (report->HttpStatus == 401 || report->HttpStatus == 403) // Unauthorized/Forbidden
     {
+        WriteRelease(&ScanHybridAnalysisUnauthorized, 1);
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
         SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
     }
     else if (report->HttpStatus == 404 &&
