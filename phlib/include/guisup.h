@@ -1281,6 +1281,42 @@ PhGetSelectedListViewItemParams(
     _Out_ PULONG NumberOfItems
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhGetSelectedIListViewItemParams(
+    _In_ IListView* ListView,
+    _Out_ PVOID** Items,
+    _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetCheckedListViewItemParams(
+    _In_ HWND ListViewHandle,
+    _Out_ PVOID **Items,
+    _Out_ PULONG NumberOfItems
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetIListViewClientRect(
+    _In_ IListView* ListView,
+    _Inout_ PRECT ClientRect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetIListViewItemRect(
+    _In_ IListView* ListView,
+    _In_ LONG StartIndex,
+    _In_ ULONG Flags,
+    _Inout_ PRECT ItemRect
+    );
+
 FORCEINLINE
 IListView*
 NTAPI
