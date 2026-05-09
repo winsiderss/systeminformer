@@ -36,6 +36,7 @@
 #include <modprv.h>
 #include <netprv.h>
 #include <phconsole.h>
+#include <phnative.h>
 #include <phsvccl.h>
 #include <procprv.h>
 #include <srvprv.h>
@@ -1255,20 +1256,12 @@ VOID PhUiCreateSessionMenu(
         for (i = 0; i < numberOfSessions; i++)
         {
             WINSTATIONINFORMATION winStationInfo;
-            ULONG returnLength;
             SIZE_T formatLength;
             PH_FORMAT format[5];
             PH_STRINGREF menuTextSr;
             WCHAR formatBuffer[0x100];
 
-            if (!WinStationQueryInformationW(
-                WINSTATION_CURRENT_SERVER,
-                sessions[i].SessionId,
-                WinStationInformation,
-                &winStationInfo,
-                sizeof(WINSTATIONINFORMATION),
-                &returnLength
-                ))
+            if (!NT_SUCCESS(PhGetWindowStationSessionInformation(sessions[i].SessionId, &winStationInfo)))
             {
                 winStationInfo.Domain[0] = UNICODE_NULL;
                 winStationInfo.UserName[0] = UNICODE_NULL;
