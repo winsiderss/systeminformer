@@ -7194,6 +7194,14 @@ PhWinStationShadow(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetWindowStationSessionInformation(
+    _In_ ULONG SessionId,
+    _Out_ struct _WINSTATIONINFORMATION* SessionInformation
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhWinStationSendMessage(
     _In_ ULONG SessionId,
     _In_ PCWSTR Title,

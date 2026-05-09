@@ -59,7 +59,7 @@ typedef struct _PH_WINDOW_PROPERTY_CONTEXT
 HFONT PhApplicationFont = NULL;
 HFONT PhTreeWindowFont = NULL;
 HFONT PhMonospaceFont = NULL;
-LONG PhFontQuality = 0;
+LONG PhFontQuality = CLEARTYPE_QUALITY;
 
 static PH_INITONCE SharedIconCacheInitOnce = PH_INITONCE_INIT;
 static PPH_HASHTABLE SharedIconCacheHashtable;
@@ -88,6 +88,7 @@ static typeof(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
 static typeof(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
 static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 //static _GetDpiForSession GetDpiForSession_I = NULL; // ordinal 2713
+static typeof(&GetSystemDpiForProcess) GetSystemDpiForProcess_I = NULL;
 static typeof(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
 static typeof(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
@@ -165,7 +166,7 @@ VOID PhGuiSupportInitialization(
 
 /**
  * Maps a font quality setting to the corresponding GDI constant.
- * 
+ *
  * \param FontQuality The font quality setting (0-6).
  * \return The corresponding GDI font quality constant.
  */
@@ -189,10 +190,10 @@ LONG PhGetFontQualitySetting(
 
 /**
  * Creates a font with specified properties.
- * 
+ *
  * \param Name Optional pointer to the font name (typeface).
  * \param Size The desired font size in points.
- * \param Weight The font weight (e.g., FW_NORMAL, FW_BOLD). 
+ * \param Weight The font weight (e.g., FW_NORMAL, FW_BOLD).
  * \param PitchAndFamily The pitch and family of the font.
  * \param Dpi The dots per inch (DPI) value for scaling.
  * \return Handle to the created font, or NULL if creation fails.
@@ -1347,8 +1348,8 @@ LONG PhGetSystemMetrics(
     _In_opt_ LONG DpiValue
     )
 {
-    LONG dpi = (DpiValue > 0) ? DpiValue : 96; // Default to 96 DPI
-    
+    LONG dpi = (DpiValue > 0) ? DpiValue : USER_DEFAULT_SCREEN_DPI; // Default to 96 DPI
+
     if (Index < 0 || Index >= PH_SYS_METRICS_MAX_INDEX)
         goto SkipCache;
 
@@ -1358,12 +1359,12 @@ LONG PhGetSystemMetrics(
         if (PhpSystemMetricsCache[i].Dpi == dpi)
         {
             LONG value = PhpSystemMetricsCache[i].Metrics[Index];
-            if (value != 0) return value; 
-            
+            if (value != 0) return value;
+
             // Slot exists but index not yet populated
-            value = (DpiValue > 0 && GetSystemMetricsForDpi_I) ? 
+            value = (DpiValue > 0 && GetSystemMetricsForDpi_I) ?
                     GetSystemMetricsForDpi_I(Index, dpi) : GetSystemMetrics(Index);
-            
+
             PhpSystemMetricsCache[i].Metrics[Index] = value;
             return value;
         }
@@ -1394,6 +1395,39 @@ SkipCache:
         return GetSystemMetricsForDpi_I(Index, DpiValue);
 
     return GetSystemMetrics(Index);
+}
+
+/**
+ * Retrieves the system DPI for a process.
+ *
+ * \param ProcessHandle Handle to the target process.
+ * \return The return value will be dependent based upon the process passed as a parameter.
+ * If the specified process has a DPI_AWARENESS value of DPI_AWARENESS_UNAWARE, the return value will be 96.
+ * That is because the current context always assumes a DPI of 96. For any other DPI_AWARENESS value,
+ * the return value will be the actual system DPI of the given process.
+ */
+LONG PhGetSystemDpiForProcess(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID user32Handle;
+
+        if (user32Handle = PhLoadLibrary(L"user32.dll"))
+        {
+            GetSystemDpiForProcess_I = PhGetDllBaseProcedureAddress(user32Handle, "GetSystemDpiForProcess", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!GetSystemDpiForProcess_I)
+        return USER_DEFAULT_SCREEN_DPI;
+
+    return GetSystemDpiForProcess_I(ProcessHandle);
 }
 
 /**
@@ -3757,7 +3791,7 @@ NTSTATUS PhEnumWindowsEx(
  *
  * // Enumerate all siblings of a window
  * PhEnumGetWindow(hwnd, GW_HWNDNEXT, 1000, MyCallback, context);
- * 
+ *
  * // Enumerate children
  * PhEnumGetWindow(hwnd, GW_CHILD, 1000, MyCallback, context);
  *
@@ -3801,7 +3835,7 @@ NTSTATUS PhEnumGetWindow(
 
         // Get the next window before incrementing, in case callback modifies window
         nextWindow = GetWindow(windowHandle, Command);
-        
+
         // Break if we've looped back to the start (shouldn't happen but safety check)
         if (nextWindow == StartWindow || (i > 0 && nextWindow == windowHandle))
             break;
@@ -3886,7 +3920,7 @@ NTSTATUS PhEnumChildWindows(
     //
     //    i++;
     //}
-   
+
     // Note: EnumChildWindows doesn't support GetLastError. (dmex)
     return STATUS_UNSUCCESSFUL;
 }
@@ -4329,12 +4363,12 @@ VOID PhWindowNotifyTopMostEvent(
 /**
  * Retrieves the environment variables for the specified user.
  *
- * \param Environment A pointer to the new environment block. 
+ * \param Environment A pointer to the new environment block.
  * \param TokenHandle Token to query for user environment variables.
  * If this is a primary token, the token must have TOKEN_QUERY and TOKEN_DUPLICATE access.
  * If the token is an impersonation token, it must have TOKEN_QUERY access.
  * If this parameter is NULL, the returned environment block contains system variables only.
- * \param Inherit Specifies whether to inherit variables from the current process' environment. If this value is TRUE, the process inherits the current process' environment. 
+ * \param Inherit Specifies whether to inherit variables from the current process' environment. If this value is TRUE, the process inherits the current process' environment.
  * \return A pointer to the imported procedure, or NULL if the procedure could not be imported.
  * \remarks User-specific environment variables such as %USERPROFILE% are set only when the user's profile is loaded. To load a user's profile, call the LoadUserProfile function.
  */
