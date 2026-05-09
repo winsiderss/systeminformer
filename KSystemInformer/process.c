@@ -537,6 +537,8 @@ NTSTATUS KphQueryInformationProcess(
                 goto Exit;
             }
 
+            RtlZeroMemory(&info, sizeof(info));
+
             info.ProcessState = KphGetProcessState(process);
             info.ProcessStartKey = KphGetProcessStartKey(processObject);
             info.CreatorClientId.UniqueProcess = process->CreatorClientId.UniqueProcess;
