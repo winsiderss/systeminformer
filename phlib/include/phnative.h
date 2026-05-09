@@ -7191,12 +7191,15 @@ PhWinStationShadow(
     _In_ USHORT HotkeyModifiers
     );
 
+typedef struct _WINSTATIONINFORMATION WINSTATIONINFORMATION;
+typedef WINSTATIONINFORMATION *PWINSTATIONINFORMATION;
+
 PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetWindowStationSessionInformation(
     _In_ ULONG SessionId,
-    _Out_ struct _WINSTATIONINFORMATION* SessionInformation
+    _Out_ PWINSTATIONINFORMATION SessionInformation
     );
 
 PHLIBAPI
