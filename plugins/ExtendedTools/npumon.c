@@ -171,90 +171,52 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
     VOID
     )
 {
-    PPH_LIST deviceAdapterList;
-    PWSTR deviceInterfaceList;
-    ULONG deviceInterfaceListLength = 0;
-    PWSTR deviceInterface;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
+    ULONG processedCount = 0;
 
-    if (CM_Get_Device_Interface_List_Size(
-        &deviceInterfaceListLength,
-        (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
-        NULL,
-        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
-        ) != CR_SUCCESS)
-    {
+    if (!EtpDiscoveredAdapterList)
         return FALSE;
-    }
 
-    deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
-    memset(deviceInterfaceList, 0, deviceInterfaceListLength * sizeof(WCHAR));
-
-    if (CM_Get_Device_Interface_List(
-        (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL,
-        NULL,
-        deviceInterfaceList,
-        deviceInterfaceListLength,
-        CM_GET_DEVICE_INTERFACE_LIST_PRESENT
-        ) != CR_SUCCESS)
+    for (ULONG i = 0; i < EtpDiscoveredAdapterList->Count; i++)
     {
-        PhFree(deviceInterfaceList);
-        return FALSE;
-    }
-
-    deviceAdapterList = PhCreateList(10);
-    deviceInterface = deviceInterfaceList;
-
-    while (TRUE)
-    {
-        PH_STRINGREF string;
-
-        PhInitializeStringRefLongHint(&string, deviceInterface);
-
-        if (string.Length == 0)
-            break;
-
-        PhAddItemList(deviceAdapterList, PhCreateString2(&string));
-
-        deviceInterface = PTR_ADD_OFFSET(deviceInterface, string.Length + sizeof(UNICODE_NULL));
-    }
-
-    for (ULONG i = 0; i < deviceAdapterList->Count; i++)
-    {
-        ET_ADAPTER_ATTRIBUTES adapterAttributes;
-        D3DKMT_HANDLE adapterHandle;
+        PET_DISCOVERED_ADAPTER entry = EtpDiscoveredAdapterList->Items[i];
+        D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
-        if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(
-            &adapterHandle,
-            &adapterLuid,
-            PhGetString(deviceAdapterList->Items[i])
-            )))
-        {
+        if (!entry->Attributes.TypeNpu)
             continue;
+
+        if (entry->Attributes.TypeGpu || entry->Attributes.TypeComputeAccelerator)
+            continue;
+
+        adapterLuid = entry->AdapterLuid;
+
+        if (entry->AdapterHandle)
+        {
+            adapterHandle = entry->AdapterHandle;
+        }
+        else if (entry->DeviceInterface)
+        {
+            if (!NT_SUCCESS(EtOpenAdapterFromDeviceName(
+                &adapterHandle,
+                &adapterLuid,
+                PhGetString(entry->DeviceInterface)
+                )))
+            {
+                continue;
+            }
         }
 
-        if (!NT_SUCCESS(EtQueryAdapterAttributes(
-            adapterHandle,
-            &adapterAttributes
-            )))
-        {
-            EtCloseAdapterHandle(adapterHandle);
+        if (!adapterHandle)
             continue;
-        }
 
-        if (!adapterAttributes.TypeNpu)
-        {
-            EtCloseAdapterHandle(adapterHandle);
-            continue;
-        }
-
-        if (EtNpuSupported && deviceAdapterList->Count > 1)
+        if (EtNpuSupported && processedCount > 0)
         {
             if (EtIsSoftwareDevice(adapterHandle))
             {
-                EtCloseAdapterHandle(adapterHandle);
+                if (entry->AdapterHandle == 0)
+                    EtCloseAdapterHandle(adapterHandle);
                 continue;
             }
         }
@@ -302,7 +264,7 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
             PETP_NPU_ADAPTER gpuAdapter;
 
             gpuAdapter = EtpAddNpuAdapter(
-                deviceAdapterList->Items[i],
+                entry->DeviceInterface,
                 adapterHandle,
                 adapterLuid,
                 queryStatistics.QueryResult.AdapterInformation.NbSegments,
@@ -333,11 +295,11 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
                     }
                     else
                     {
-                        PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1 segmentInfo;
+                        PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1 segmentInfoV1;
 
-                        segmentInfo = (PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1)&queryStatistics.QueryResult;
-                        commitLimit = segmentInfo->CommitLimit;
-                        aperture = segmentInfo->Aperture;
+                        segmentInfoV1 = (PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1)&queryStatistics.QueryResult;
+                        commitLimit = segmentInfoV1->CommitLimit;
+                        aperture = segmentInfoV1->Aperture;
                     }
 
                     if (!EtNpuSupported || !EtNpuD3DEnabled)
@@ -354,25 +316,24 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
             }
         }
 
-        EtCloseAdapterHandle(adapterHandle);
+        if (entry->AdapterHandle == 0)
+            EtCloseAdapterHandle(adapterHandle);
+
+        processedCount++;
     }
 
-    if (EtNpuSupported && deviceAdapterList->Count > 0)
+    if (EtNpuSupported && processedCount > 0)
     {
         //
         // Use the average as the limit since we show one graph for all.
         //
-        EtNpuTemperatureLimit /= deviceAdapterList->Count;
-        EtNpuFanRpmLimit /= deviceAdapterList->Count;
+        EtNpuTemperatureLimit /= processedCount;
+        EtNpuFanRpmLimit /= processedCount;
 
         // Set limit at 100C (dmex)
         if (EtNpuTemperatureLimit == 0)
             EtNpuTemperatureLimit = 100;
     }
-
-    PhDereferenceObjects(deviceAdapterList->Items, deviceAdapterList->Count);
-    PhDereferenceObject(deviceAdapterList);
-    PhFree(deviceInterfaceList);
 
     if (EtNpuTotalNodeCount == 0)
         return FALSE;
@@ -601,13 +562,19 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG runCount = PtrToUlong(Parameter);
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
+    ULONG runCount;
     DOUBLE elapsedTime = 0; // total NPU node elapsed time in micro-seconds
     FLOAT tempNpuUsage = 0;
     ULONG i;
     PLIST_ENTRY listEntry;
     FLOAT maxNodeValue = 0;
     PET_PROCESS_BLOCK maxNodeBlock = NULL;
+
+    if (!updateEvent)
+        return;
+
+    runCount = updateEvent->RunCount;
 
     if (runCount < 2)
         return;

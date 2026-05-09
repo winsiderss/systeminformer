@@ -81,6 +81,7 @@ VOID NTAPI LoadCallback(
 
     EtLoadSettings();
 
+    EtInitializeGraphicsAdapters();
     EtEtwStatisticsInitialization();
     EtGpuMonitorInitialization();
     EtNpuMonitorInitialization();
@@ -101,6 +102,7 @@ VOID NTAPI UnloadCallback(
 
     EtEtwStatisticsUninitialization();
     EtFramesMonitorUninitialization();
+    EtUninitializeGraphicsAdapters();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)

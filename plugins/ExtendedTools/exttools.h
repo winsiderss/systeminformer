@@ -976,6 +976,28 @@ VOID EtNpuMonitorInitialization(
     VOID
     );
 
+PPH_STRING EtGetDeviceInterfaceFromLuid(
+    _In_ PLUID AdapterLuid
+    );
+
+VOID EtInitializeGraphicsAdapters(
+    VOID
+    );
+
+VOID EtUninitializeGraphicsAdapters(
+    VOID
+    );
+
+typedef struct _ET_DISCOVERED_ADAPTER
+{
+    D3DKMT_HANDLE AdapterHandle;
+    LUID AdapterLuid;
+    PPH_STRING DeviceInterface;
+    ET_ADAPTER_ATTRIBUTES Attributes;
+} ET_DISCOVERED_ADAPTER, *PET_DISCOVERED_ADAPTER;
+
+extern PPH_LIST EtpDiscoveredAdapterList;
+
 typedef struct _ET_PROCESS_NPU_STATISTICS
 {
     ULONG SegmentCount;
