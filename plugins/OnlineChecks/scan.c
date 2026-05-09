@@ -277,6 +277,21 @@ LONG64 MakeExpiry(
     return expiry;
 }
 
+VOID AdvanceRateLimitCutoff(
+    _Inout_ PLONG64 Target,
+    _In_ LONG64 New
+    )
+{
+    LONG64 prev;
+
+    do
+    {
+        prev = ReadNoFence64(Target);
+        if (prev >= New)
+            return;
+    } while (InterlockedCompareExchange64(Target, New, prev) != prev);
+}
+
 VOID SetScanResult(
     _In_ PSCAN_ITEM Item,
     _In_ PPH_STRING Result
@@ -461,7 +476,7 @@ VOID ProcessVirusTotal(
         else
         {
             expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
-            WriteNoFence64(&ScanVirusTotalRateLimitedUntil, expiry.QuadPart);
+            AdvanceRateLimitCutoff(&ScanVirusTotalRateLimitedUntil, expiry.QuadPart);
         }
 
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
@@ -676,7 +691,7 @@ VOID ProcessHybridAnalysis(
         else
         {
             expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
-            WriteNoFence64(&ScanHybridAnalysisRateLimitedUntil, expiry.QuadPart);
+            AdvanceRateLimitCutoff(&ScanHybridAnalysisRateLimitedUntil, expiry.QuadPart);
         }
 
         WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
