@@ -1024,7 +1024,7 @@ HICON PhNfpGetBlackIcon(
         // Create a monochrome mask bitmap for the icon.
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
             return NULL;
-        
+
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
         iconInfo.yHotspot = 0;
@@ -1404,7 +1404,8 @@ VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Context
     )
 {
-    ULONG runCount = PtrToUlong(Parameter);
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
+    ULONG runCount = updateEvent->RunCount;
 
     // Update the icons on a separate thread so we don't block the main window
     // or provider threads when explorer is not responding. (dmex)
