@@ -8488,9 +8488,9 @@ ULONG_PTR PhSetTimer(
 {
     assert(WindowHandle);
 
-    if (PhEnableHighResolution)
+    if (PhEnableHighResolution && SetCoalescableTimer_Import())
     {
-        return SetCoalescableTimer(WindowHandle, TimerID, Elapse, TimerProcedure, TIMERV_NO_COALESCING);
+        return SetCoalescableTimer_Import()(WindowHandle, TimerID, Elapse, TimerProcedure, TIMERV_NO_COALESCING);
     }
 
     return SetTimer(WindowHandle, TimerID, Elapse, TimerProcedure);
