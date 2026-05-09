@@ -420,7 +420,7 @@ VOID ProcessVirusTotal(
     }
 
     limitedUntil.QuadPart = ReadNoFence64(&ScanVirusTotalRateLimitedUntil);
-    if (limitedUntil.QuadPart > systemTime.QuadPart)
+    if (limitedUntil.QuadPart > systemTime.QuadPart && !FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
         httpStatus = 429;
     }
@@ -626,7 +626,7 @@ VOID ProcessHybridAnalysis(
     }
 
     limitedUntil.QuadPart = ReadNoFence64(&ScanHybridAnalysisRateLimitedUntil);
-    if (limitedUntil.QuadPart > systemTime.QuadPart)
+    if (limitedUntil.QuadPart > systemTime.QuadPart && !FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
         httpStatus = 429;
     }
