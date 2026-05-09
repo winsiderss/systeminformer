@@ -348,6 +348,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
         PhUpdateDelta(&block->NetworkReceiveRawDelta, block->NetworkReceiveRaw);
         PhUpdateDelta(&block->NetworkSendDelta, block->NetworkSendCount);
         PhUpdateDelta(&block->NetworkSendRawDelta, block->NetworkSendRaw);
+        PhUpdateDelta(&block->FirewallAllowDelta, block->FirewallAllowCount);
+        PhUpdateDelta(&block->FirewallBlockDelta, block->FirewallBlockCount);
 
         if (!block->HaveDiskSample)
         {
@@ -359,6 +361,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             block->NetworkReceiveRawDelta.Delta = 0;
             block->NetworkSendDelta.Delta = 0;
             block->NetworkSendRawDelta.Delta = 0;
+            block->FirewallAllowDelta.Delta = 0;
+            block->FirewallBlockDelta.Delta = 0;
             block->HaveDiskSample = TRUE;
         }
 
@@ -405,6 +409,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
             PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
             PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+            PhAddItemCircularBuffer_ULONG64(&block->FirewallAllowHistory, block->FirewallAllowDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&block->FirewallBlockHistory, block->FirewallBlockDelta.Delta);
         }
 
         listEntry = listEntry->Flink;

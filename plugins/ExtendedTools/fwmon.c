@@ -15,11 +15,14 @@
 #include <fwpmu.h>
 #include <fwpsu.h>
 
+#include "fwmon.h"
+
 ULONG EtFwFlagsMask = 0;
 PH_CALLBACK_REGISTRATION EtFwProcessesUpdatedCallbackRegistration;
 PPH_OBJECT_TYPE EtFwObjectType = NULL;
 HANDLE EtFwEngineHandle = NULL;
 HANDLE EtFwEventHandle = NULL;
+HANDLE EtFwFilterEventHandle = NULL;
 ULONG FwRunCount = 0;
 ULONG EtFwMaxEventAge = 60;
 SLIST_HEADER EtFwPacketListHead;
@@ -54,17 +57,22 @@ _FwpmEngineClose0 FwpmEngineClose_I = NULL;
 _FwpmFreeMemory0 FwpmFreeMemory_I = NULL;
 _FwpmEngineSetOption0 FwpmEngineSetOption_I = NULL;
 _FwpmFilterGetById0 FwpmFilterGetById_I = NULL;
-_FwpmLayerGetById0 FwpmLayerGetById_I = NULL;
-_FwpmNetEventSubscribe4 FwpmNetEventSubscribe_I = NULL;
-_FwpmNetEventUnsubscribe0 FwpmNetEventUnsubscribe_I = NULL;
-_FwpmNetEventCreateEnumHandle0 FwpmNetEventCreateEnumHandle_I = NULL;
-_FwpmNetEventDestroyEnumHandle0 FwpmNetEventDestroyEnumHandle_I = NULL;
-_FwpmNetEventEnum5 FwpmNetEventEnum_I = NULL;
+typeof(&FwpmFilterSubscribeChanges0) FwpmFilterSubscribeChanges_I = NULL;
+typeof(&FwpmFilterUnsubscribeChanges0) FwpmFilterUnsubscribeChanges_I = NULL;
+typeof(&FwpmLayerGetById0) FwpmLayerGetById_I = NULL;
+typeof(&FwpmNetEventSubscribe4) FwpmNetEventSubscribe_I = NULL;
+typeof(&FwpmNetEventUnsubscribe0) FwpmNetEventUnsubscribe_I = NULL;
+typeof(&FwpmNetEventCreateEnumHandle0) FwpmNetEventCreateEnumHandle_I = NULL;
+typeof(&FwpmNetEventCreateEnumHandleEx) FwpmNetEventCreateEnumHandleEx_I = NULL;
+typeof(&FwpmNetEventDestroyEnumHandle0) FwpmNetEventDestroyEnumHandle_I = NULL;
+typeof(&FwpmNetEventEnum5) FwpmNetEventEnum_I = NULL;
 
 #undef FwpmEngineOpen
 #undef FwpmEngineClose
 #undef FwpmFreeMemory
 #undef FwpmFilterGetById0
+#undef FwpmFilterSubscribeChanges0
+#undef FwpmFilterUnsubscribeChanges0
 #undef FwpmEngineSetOption
 #undef FwpmNetEventSubscribe
 #undef FwpmNetEventUnsubscribe
@@ -76,16 +84,24 @@ _FwpmNetEventEnum5 FwpmNetEventEnum_I = NULL;
 #define FwpmEngineClose FwpmEngineClose_I
 #define FwpmFreeMemory FwpmFreeMemory_I
 #define FwpmFilterGetById0 FwpmFilterGetById_I
+#define FwpmFilterSubscribeChanges0 FwpmFilterSubscribeChanges_I
+#define FwpmFilterUnsubscribeChanges0 FwpmFilterUnsubscribeChanges_I
 #define FwpmLayerGetById0 FwpmLayerGetById_I
 #define FwpmEngineSetOption FwpmEngineSetOption_I
 #define FwpmNetEventSubscribe FwpmNetEventSubscribe_I
 #define FwpmNetEventUnsubscribe FwpmNetEventUnsubscribe_I
 #define FwpmNetEventCreateEnumHandle FwpmNetEventCreateEnumHandle_I
+#define FwpmNetEventCreateEnumHandleEx FwpmNetEventCreateEnumHandleEx_I
 #define FwpmNetEventDestroyEnumHandle FwpmNetEventDestroyEnumHandle_I
 #define FwpmNetEventEnum FwpmNetEventEnum_I
 
 typedef struct _FW_EVENT
 {
+    PPH_STRING ProcessName;
+    PPH_PROCESS_ITEM ProcessItem;
+    ULONG_PTR ProcessIconIndex;
+    BOOLEAN ProcessIconValid;
+
     LARGE_INTEGER TimeStamp;
     FWPM_NET_EVENT_TYPE Type;
     ULONG IsLoopback;
@@ -115,7 +131,20 @@ typedef struct _FW_EVENT
 
     PSID UserSid;
     //PSID PackageSid;
-    PPH_PROCESS_ITEM ProcessItem;
+
+    ULONG SubsystemProcess ;
+
+    PPH_STRING FilterOrigin;
+    PPH_STRING PolicyAppId;
+    PPH_STRING ServiceSids;
+    PPH_STRING FqbnName;
+
+    PPH_STRING InterfaceLuidString;
+    PPH_STRING CompartmentIdString;
+    PPH_STRING ProcessIdString;
+
+    NET_LUID InterfaceLuid;
+    NET_IF_COMPARTMENT_ID CompartmentId;
 } FW_EVENT, *PFW_EVENT;
 
 typedef struct _FW_EVENT_PACKET
@@ -144,6 +173,13 @@ VOID EtFwQueryHostnameForEntry(
     _In_ PFW_EVENT_ITEM Entry
     );
 
+/**
+ * Compares two hostname resolve cache entries.
+ *
+ * \param Entry1 The first resolve cache entry.
+ * \param Entry2 The second resolve cache entry.
+ * \return TRUE if the cached IP addresses are equal, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -156,6 +192,12 @@ BOOLEAN EtFwResolveCacheHashtableEqualFunction(
     return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
 
+/**
+ * Computes the hash value for a hostname resolve cache entry.
+ *
+ * \param Entry The resolve cache entry.
+ * \return The IP address hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI EtFwResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -166,6 +208,12 @@ ULONG NTAPI EtFwResolveCacheHashtableHashFunction(
     return PhHashIpAddress(&cacheItem->Address);
 }
 
+/**
+ * Flushes the hostname resolve cache.
+ *
+ * \remarks The existing hashtable is released after dereferencing cached host
+ * strings and a new empty hashtable is created for subsequent lookups.
+ */
 VOID EtFwFlushResolveCache(
     VOID
     )
@@ -190,9 +238,15 @@ VOID EtFwFlushResolveCache(
         EtFwResolveCacheHashtableEqualFunction,
         EtFwResolveCacheHashtableHashFunction,
         20
-        );
+    );
 }
 
+/**
+ * Looks up a hostname resolve cache entry by IP address.
+ *
+ * \param Address The IP address to find.
+ * \return The matching cache entry, or NULL if no entry exists.
+ */
 PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -216,6 +270,14 @@ PFW_RESOLVE_CACHE_ITEM EtFwLookupResolveCacheItem(
         return NULL;
 }
 
+/**
+ * Deletes a firewall event item object.
+ *
+ * \param Object The firewall event item object.
+ * \param Flags Object deletion flags.
+ * \remarks This function releases all referenced strings, process items and
+ * allocated SIDs owned by the firewall event item.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI FwObjectTypeDeleteProcedure(
     _In_ PVOID Object,
@@ -251,8 +313,29 @@ VOID NTAPI FwObjectTypeDeleteProcedure(
 
     if (event->ProcessItem)
         PhDereferenceObject(event->ProcessItem);
+
+    if (event->FilterOrigin)
+        PhDereferenceObject(event->FilterOrigin);
+    if (event->PolicyAppId)
+        PhDereferenceObject(event->PolicyAppId);
+    if (event->ServiceSids)
+        PhDereferenceObject(event->ServiceSids);
+    if (event->FqbnName)
+        PhDereferenceObject(event->FqbnName);
+
+    if (event->InterfaceLuidString)
+        PhDereferenceObject(event->InterfaceLuidString);
+    if (event->CompartmentIdString)
+        PhDereferenceObject(event->CompartmentIdString);
+    if (event->ProcessIdString)
+        PhDereferenceObject(event->ProcessIdString);
 }
 
+/**
+ * Creates a firewall event item.
+ *
+ * \return A new firewall event item with a unique index.
+ */
 PFW_EVENT_ITEM FwCreateEventItem(
     VOID
     )
@@ -266,6 +349,11 @@ PFW_EVENT_ITEM FwCreateEventItem(
     return entry;
 }
 
+/**
+ * Queues a firewall event packet for processing on the process provider update callback.
+ *
+ * \param Event The firewall event data to copy into the packet queue.
+ */
 VOID FwPushFirewallEvent(
     _In_ PFW_EVENT Event
     )
@@ -277,6 +365,14 @@ VOID FwPushFirewallEvent(
     RtlInterlockedPushEntrySList(&EtFwPacketListHead, &packet->ListEntry);
 }
 
+/**
+ * Converts a queued firewall event packet into a firewall event item.
+ *
+ * \param Packet The queued firewall event packet.
+ * \param RunId The current firewall monitor run identifier.
+ * \remarks The created item is inserted into the age list, queued for hostname
+ * resolution and published through the item added callback.
+ */
 VOID FwProcessFirewallEvent(
     _In_ PFW_EVENT_PACKET Packet,
     _In_ ULONG RunId
@@ -312,6 +408,28 @@ VOID FwProcessFirewallEvent(
     entry->CountryIconIndex = firewallEvent->CountryIconIndex;
     entry->RemoteCountryName = firewallEvent->RemoteCountryName;
 
+    if (firewallEvent->FilterOrigin)
+        entry->FilterOrigin = PhReferenceObject(firewallEvent->FilterOrigin);
+    entry->InterfaceLuid = firewallEvent->InterfaceLuid;
+    entry->CompartmentId = firewallEvent->CompartmentId;
+    if (firewallEvent->PolicyAppId)
+        entry->PolicyAppId = PhReferenceObject(firewallEvent->PolicyAppId);
+    if (firewallEvent->ServiceSids)
+        entry->ServiceSids = PhReferenceObject(firewallEvent->ServiceSids);
+    if (firewallEvent->FqbnName)
+        entry->FqbnName = PhReferenceObject(firewallEvent->FqbnName);
+
+    if (firewallEvent->InterfaceLuidString)
+        entry->InterfaceLuidString = PhReferenceObject(firewallEvent->InterfaceLuidString);
+    if (firewallEvent->CompartmentIdString)
+        entry->CompartmentIdString = PhReferenceObject(firewallEvent->CompartmentIdString);
+    if (firewallEvent->ProcessIdString)
+        entry->ProcessIdString = PhReferenceObject(firewallEvent->ProcessIdString);
+
+    entry->ProcessId = firewallEvent->ProcessId;
+    entry->InterfaceLuid = firewallEvent->InterfaceLuid;
+    entry->CompartmentId = firewallEvent->CompartmentId;
+
     // Add the item to the age list.
     entry->RunId = RunId;
     InsertHeadList(&EtFwAgeListHead, &entry->AgeListEntry);
@@ -323,6 +441,17 @@ VOID FwProcessFirewallEvent(
     PhInvokeCallback(&FwItemAddedEvent, entry);
 }
 
+/**
+ * Converts a WFP net event type into firewall monitor event metadata.
+ *
+ * \param FwEvent The WFP net event.
+ * \param IsLoopback A variable which receives whether the event is loopback.
+ * \param Direction A variable which receives the firewall event direction.
+ * \param FilterId A variable which receives the WFP filter identifier.
+ * \param LayerId A variable which receives the WFP layer identifier.
+ * \return TRUE if the event type was recognized and should be processed,
+ * otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN FwProcessEventType(
     _In_ const FWPM_NET_EVENT* FwEvent,
@@ -332,14 +461,14 @@ BOOLEAN FwProcessEventType(
     _Out_ PUSHORT LayerId
     )
 {
-    switch (FwEvent->type)
+    switch ((ULONG)FwEvent->type)
     {
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
         {
             FWPM_NET_EVENT_CLASSIFY_DROP* fwDropEvent = FwEvent->classifyDrop;
 
-            if (EtWindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback && EtFwIgnoreLoopback)
-                return FALSE;
+            //if (EtWindowsVersion >= WINDOWS_10 && fwDropEvent->isLoopback && EtFwIgnoreLoopback)
+            //    return FALSE;
 
             switch (fwDropEvent->msFwpDirection)
             {
@@ -408,104 +537,106 @@ BOOLEAN FwProcessEventType(
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_MM_FAILURE:
         {
-            //FWPM_NET_EVENT_IKEEXT_MM_FAILURE* fwIkeMmFailureEvent = FwEvent->ikeMmFailure;
-            //UINT32 failureErrorCode;
-            //IPSEC_FAILURE_POINT failurePoint;
-            //UINT32 flags;
-            //IKEEXT_KEY_MODULE_TYPE keyingModuleType;
-            //IKEEXT_MM_SA_STATE mmState;
-            //IKEEXT_SA_ROLE saRole;
-            //IKEEXT_AUTHENTICATION_METHOD_TYPE mmAuthMethod;
-            //UINT8 endCertHash[20];
-            //UINT64 mmId;
-            //UINT64 mmFilterId;
-            //wchar_t* localPrincipalNameForAuth;
-            //wchar_t* remotePrincipalNameForAuth;
-            //UINT32 numLocalPrincipalGroupSids;
-            //LPWSTR* localPrincipalGroupSids;
-            //UINT32 numRemotePrincipalGroupSids;
-            //LPWSTR* remotePrincipalGroupSids;
-            //GUID* providerContextKey;
+            FWPM_NET_EVENT_IKEEXT_MM_FAILURE* fwIkeMmFailureEvent = FwEvent->ikeMmFailure;
+
+            *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+
+            if (FilterId)
+                *FilterId = fwIkeMmFailureEvent->mmFilterId;
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
         {
-            //FWPM_NET_EVENT_IKEEXT_QM_FAILURE* fwIkeQmFailureEvent = FwEvent->ikeQmFailure;
-            //UINT32 failureErrorCode;
-            //IPSEC_FAILURE_POINT failurePoint;
-            //IKEEXT_KEY_MODULE_TYPE keyingModuleType;
-            //IKEEXT_QM_SA_STATE qmState;
-            //IKEEXT_SA_ROLE saRole;
-            //IPSEC_TRAFFIC_TYPE saTrafficType;
-            //union
-            //{
-            //    FWP_CONDITION_VALUE0 localSubNet;
-            //};
-            //union
-            //{
-            //    FWP_CONDITION_VALUE0 remoteSubNet;
-            //};
-            //UINT64 qmFilterId;
-            //UINT64 mmSaLuid;
-            //GUID mmProviderContextKey;
+            FWPM_NET_EVENT_IKEEXT_QM_FAILURE* fwIkeQmFailureEvent = FwEvent->ikeQmFailure;
+
+            *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+
+            if (FilterId)
+                *FilterId = fwIkeQmFailureEvent->qmFilterId;
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
         {
-            //FWPM_NET_EVENT_IKEEXT_EM_FAILURE* fwIkeEmFailureEvent = FwEvent->ikeEmFailure;
-            //UINT32 failureErrorCode;
-            //IPSEC_FAILURE_POINT failurePoint;
-            //UINT32 flags;
-            //IKEEXT_EM_SA_STATE emState;
-            //IKEEXT_SA_ROLE saRole;
-            //IKEEXT_AUTHENTICATION_METHOD_TYPE emAuthMethod;
-            //UINT8 endCertHash[20];
-            //UINT64 mmId;
-            //UINT64 qmFilterId;
-            //wchar_t* localPrincipalNameForAuth;
-            //wchar_t* remotePrincipalNameForAuth;
-            //UINT32 numLocalPrincipalGroupSids;
-            //LPWSTR* localPrincipalGroupSids;
-            //UINT32 numRemotePrincipalGroupSids;
-            //LPWSTR* remotePrincipalGroupSids;
-            //IPSEC_TRAFFIC_TYPE saTrafficType;
+            FWPM_NET_EVENT_IKEEXT_EM_FAILURE* fwIkeEmFailureEvent = FwEvent->ikeEmFailure;
+
+            *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+
+            if (FilterId)
+                *FilterId = fwIkeEmFailureEvent->qmFilterId;
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
         {
-            //FWPM_NET_EVENT_IPSEC_KERNEL_DROP* fwIpsecDropEvent = FwEvent->ipsecDrop;
-            //INT32 failureStatus;
-            //FWP_DIRECTION direction;
-            //IPSEC_SA_SPI spi;
-            //UINT64 filterId;
-            //UINT16 layerId;
+            FWPM_NET_EVENT_IPSEC_KERNEL_DROP* fwIpsecDropEvent = FwEvent->ipsecDrop;
+
+            switch (fwIpsecDropEvent->direction)
+            {
+            case FWP_DIRECTION_INBOUND:
+            case FWP_DIRECTION_MAP_INBOUND:
+                *Direction = FW_EVENT_DIRECTION_INBOUND;
+                break;
+            case FWP_DIRECTION_OUTBOUND:
+            case FWP_DIRECTION_MAP_OUTBOUND:
+                *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+                break;
+            case FWP_DIRECTION_MAP_FORWARD:
+                *Direction = FW_EVENT_DIRECTION_FORWARD;
+                break;
+            case FWP_DIRECTION_MAP_BIDIRECTIONAL:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            default:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            }
+
+            if (FilterId)
+                *FilterId = fwIpsecDropEvent->filterId;
+            if (LayerId)
+                *LayerId = fwIpsecDropEvent->layerId;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_IPSEC_DOSP_DROP:
         {
-            //FWPM_NET_EVENT_IPSEC_DOSP_DROP* fwIdpDropEvent = FwEvent->idpDrop;
-            //FWP_IP_VERSION ipVersion;
-            //union
-            //{
-            //    UINT32 publicHostV4Addr;
-            //    UINT8 publicHostV6Addr[16];
-            //};
-            //union
-            //{
-            //    UINT32 internalHostV4Addr;
-            //    UINT8 internalHostV6Addr[16];
-            //};
-            //INT32 failureStatus;
-            //FWP_DIRECTION direction;
+            FWPM_NET_EVENT_IPSEC_DOSP_DROP* fwIdpDropEvent = FwEvent->idpDrop;
+
+            switch (fwIdpDropEvent->direction)
+            {
+            case FWP_DIRECTION_INBOUND:
+            case FWP_DIRECTION_MAP_INBOUND:
+                *Direction = FW_EVENT_DIRECTION_INBOUND;
+                break;
+            case FWP_DIRECTION_OUTBOUND:
+            case FWP_DIRECTION_MAP_OUTBOUND:
+                *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+                break;
+            case FWP_DIRECTION_MAP_FORWARD:
+                *Direction = FW_EVENT_DIRECTION_FORWARD;
+                break;
+            case FWP_DIRECTION_MAP_BIDIRECTIONAL:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            default:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            }
+
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
         {
             FWPM_NET_EVENT_CAPABILITY_DROP* fwCapabilityDropEvent = FwEvent->capabilityDrop;
-            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId = fwCapabilityDropEvent->networkCapabilityId;
 
-            if (EtWindowsVersion >= WINDOWS_10 && fwCapabilityDropEvent->isLoopback && EtFwIgnoreLoopback)
-                return FALSE;
+            //if (EtWindowsVersion >= WINDOWS_10 && fwCapabilityDropEvent->isLoopback && EtFwIgnoreLoopback)
+            //    return FALSE;
 
             *Direction = FW_EVENT_DIRECTION_OUTBOUND;
 
@@ -520,7 +651,6 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
         {
             FWPM_NET_EVENT_CAPABILITY_ALLOW* fwCapabilityAllowEvent = FwEvent->capabilityAllow;
-            //FWPM_APPC_NETWORK_CAPABILITY_TYPE networkCapabilityId = fwCapabilityAllowEvent->networkCapabilityId;
 
             if (EtWindowsVersion >= WINDOWS_10 && fwCapabilityAllowEvent->isLoopback && EtFwIgnoreLoopback)
                 return FALSE;
@@ -537,39 +667,77 @@ BOOLEAN FwProcessEventType(
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
         {
-            //FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
-            //FWP_BYTE_ARRAY6 localMacAddr;
-            //FWP_BYTE_ARRAY6 remoteMacAddr;
-            //UINT32 mediaType;
-            //UINT32 ifType;
-            //UINT16 etherType;
-            //UINT32 ndisPortNumber;
-            //UINT32 reserved;
-            //UINT16 vlanTag;
-            //UINT64 ifLuid;
-            //UINT64 filterId;
-            //UINT16 layerId;
-            //UINT32 reauthReason;
-            //UINT32 originalProfile;
-            //UINT32 currentProfile;
-            //UINT32 msFwpDirection;
-            //BOOL isLoopback;
-            //FWP_BYTE_BLOB vSwitchId;
-            //UINT32 vSwitchSourcePort;
-            //UINT32 vSwitchDestinationPort;
+            FWPM_NET_EVENT_CLASSIFY_DROP_MAC* fwClassifyDropMacEvent = FwEvent->classifyDropMac;
+
+            //if (EtWindowsVersion >= WINDOWS_10 && fwClassifyDropMacEvent->isLoopback && EtFwIgnoreLoopback)
+            //    return FALSE;
+
+            switch (fwClassifyDropMacEvent->msFwpDirection)
+            {
+            case FWP_DIRECTION_INBOUND:
+            case FWP_DIRECTION_MAP_INBOUND:
+                *Direction = FW_EVENT_DIRECTION_INBOUND;
+                break;
+            case FWP_DIRECTION_OUTBOUND:
+            case FWP_DIRECTION_MAP_OUTBOUND:
+                *Direction = FW_EVENT_DIRECTION_OUTBOUND;
+                break;
+            case FWP_DIRECTION_MAP_FORWARD:
+                *Direction = FW_EVENT_DIRECTION_FORWARD;
+                break;
+            case FWP_DIRECTION_MAP_BIDIRECTIONAL:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            default:
+                *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+                break;
+            }
+
+            if (IsLoopback)
+                *IsLoopback = !!fwClassifyDropMacEvent->isLoopback;
+            if (FilterId)
+                *FilterId = fwClassifyDropMacEvent->filterId;
+            if (LayerId)
+                *LayerId = fwClassifyDropMacEvent->layerId;
         }
-        return FALSE;
+        return TRUE;
     case FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL:
         {
-            //FWPM_NET_EVENT_LPM_PACKET_ARRIVAL* fwLpmPacketArrivalEvent = FwEvent->lpmPacketArrival;
-            //IPSEC_SA_SPI spi;
+            *Direction = FW_EVENT_DIRECTION_INBOUND;
+
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
-        return FALSE;
+        return TRUE;
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_MM_ESTABLISHED:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_MM_DELETED:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_MM_FAILURE:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_QM_ESTABLISHED:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_QM_DELETED:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_QM_FAILURE:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_NO_QM_FOR_MMSA:
+    case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_POLICY_CHANGE:
+        {
+            *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+
+            if (LayerId)
+                *LayerId = FWPS_BUILTIN_LAYER_MAX;
+        }
+        return TRUE;
     }
 
     return FALSE;
 }
 
+/**
+ * Resolves a hostname for an IP address.
+ *
+ * \param Address The IP address to resolve.
+ * \return A string containing the resolved hostname, an empty string for local
+ * addresses that should be cached as unresolved, or NULL if resolution fails.
+ * \remarks Local, multicast and private addresses are queried without DoH and
+ * may be cached as an empty string to prevent recursive firewall events.
+ */
 PPH_STRING EtFwGetNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -669,6 +837,14 @@ PPH_STRING EtFwGetNameFromAddress(
     return addressEndpointString;
 }
 
+/**
+ * Resolves a queued firewall item hostname.
+ *
+ * \param Parameter A FW_ITEM_QUERY_DATA structure.
+ * \remarks The worker performs a final cache lookup, resolves the address when
+ * required, updates the resolve cache and queues the completed query for the UI
+ * update path.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtFwNetworkItemQueryWorker(
     _In_ PVOID Parameter
@@ -722,6 +898,12 @@ NTSTATUS EtFwNetworkItemQueryWorker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queues hostname resolution for a firewall event item endpoint.
+ *
+ * \param EventItem The firewall event item.
+ * \param Remote TRUE to resolve the remote endpoint, FALSE to resolve the local endpoint.
+ */
 VOID EtFwQueueNetworkItemQuery(
     _In_ PFW_EVENT_ITEM EventItem,
     _In_ BOOLEAN Remote
@@ -756,6 +938,12 @@ VOID EtFwQueueNetworkItemQuery(
     PhQueueItemWorkQueue(&EtFwWorkQueue, EtFwNetworkItemQueryWorker, data);
 }
 
+/**
+ * Applies completed hostname resolution data to firewall event items.
+ *
+ * \remarks Completed worker results are flushed from the query list, copied to
+ * their event items and marked as modified for the process provider update pass.
+ */
 VOID EtFwFlushHostNameData(
     VOID
     )
@@ -793,6 +981,13 @@ VOID EtFwFlushHostNameData(
     }
 }
 
+/**
+ * Queues hostname resolution for both endpoints in a firewall event item.
+ *
+ * \param Entry The firewall event item.
+ * \remarks Cached hostnames are applied immediately. Missing hostnames are
+ * queued to the firewall hostname work queue.
+ */
 VOID EtFwQueryHostnameForEntry(
     _In_ PFW_EVENT_ITEM Entry
     )
@@ -851,6 +1046,12 @@ VOID EtFwQueryHostnameForEntry(
     }
 }
 
+/**
+ * References a process item by executable file name.
+ *
+ * \param ProcessFileName The native process file name to match.
+ * \return A referenced process item, or NULL if no matching process exists.
+ */
 PPH_PROCESS_ITEM EtFwFileNameToProcess(
     _In_ PPH_STRING ProcessFileName
     )
@@ -888,6 +1089,12 @@ PPH_PROCESS_ITEM EtFwFileNameToProcess(
     return NULL;
 }
 
+/**
+ * Gets the NetworkTools plugin interface.
+ *
+ * \return The NetworkTools interface, or NULL if the plugin is not loaded or
+ * the interface version is unsupported.
+ */
 PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
     VOID
     )
@@ -906,16 +1113,29 @@ PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
     return pluginInterface;
 }
 
+/**
+ * Draws a country icon using the NetworkTools plugin.
+ *
+ * \param hdc The destination device context.
+ * \param rect The destination rectangle.
+ * \param Index The country icon index.
+ */
 VOID EtFwDrawCountryIcon(
     _In_ HDC hdc,
     _In_ RECT rect,
-    _In_ INT Index
+    _In_ LONG Index
     )
 {
     if (EtFwGetPluginInterface())
         EtFwGetPluginInterface()->DrawCountryIcon(hdc, rect, Index);
 }
 
+/**
+ * Shows the NetworkTools ping window for an endpoint.
+ *
+ * \param ParentWindowHandle The parent window handle.
+ * \param Endpoint The endpoint to ping.
+ */
 VOID EtFwShowPingWindow(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
@@ -925,6 +1145,12 @@ VOID EtFwShowPingWindow(
         EtFwGetPluginInterface()->ShowPingWindow(ParentWindowHandle, Endpoint);
 }
 
+/**
+ * Shows the NetworkTools traceroute window for an endpoint.
+ *
+ * \param ParentWindowHandle The parent window handle.
+ * \param Endpoint The endpoint to trace.
+ */
 VOID EtFwShowTracerWindow(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
@@ -934,6 +1160,12 @@ VOID EtFwShowTracerWindow(
         EtFwGetPluginInterface()->ShowTracertWindow(ParentWindowHandle, Endpoint);
 }
 
+/**
+ * Shows the NetworkTools WHOIS window for an endpoint.
+ *
+ * \param ParentWindowHandle The parent window handle.
+ * \param Endpoint The endpoint to query.
+ */
 VOID EtFwShowWhoisWindow(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
@@ -943,6 +1175,13 @@ VOID EtFwShowWhoisWindow(
         EtFwGetPluginInterface()->ShowWhoisWindow(ParentWindowHandle, Endpoint);
 }
 
+/**
+ * Looks up the service name for a TCP or UDP port.
+ *
+ * \param Port The port number.
+ * \param ServiceName A variable which receives the service name string reference.
+ * \return TRUE if a service name was found, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
@@ -964,6 +1203,13 @@ typedef struct _ETFW_FILTER_DISPLAY_CONTEXT
     PPH_STRING Description;
 } ETFW_FILTER_DISPLAY_CONTEXT, *PETFW_FILTER_DISPLAY_CONTEXT;
 
+/**
+ * Compares two filter display cache entries.
+ *
+ * \param Entry1 The first filter display cache entry.
+ * \param Entry2 The second filter display cache entry.
+ * \return TRUE if both entries refer to the same filter identifier, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
     _In_ PVOID Entry1,
@@ -976,6 +1222,12 @@ static BOOLEAN NTAPI EtFwFilterDisplayDataEqualFunction(
     return entry1->FilterId == entry2->FilterId;
 }
 
+/**
+ * Computes the hash value for a filter display cache entry.
+ *
+ * \param Entry The filter display cache entry.
+ * \return The filter identifier hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
     _In_ PVOID Entry
@@ -986,6 +1238,12 @@ static ULONG NTAPI EtFwFilterDisplayDataHashFunction(
     return PhHashInt64(entry->FilterId);
 }
 
+/**
+ * Flushes cached WFP filter display data.
+ *
+ * \remarks The existing cache strings are dereferenced and the cache hashtable
+ * is recreated empty.
+ */
 VOID EtFwFlushFilterDisplayCache(
     VOID
     )
@@ -1012,9 +1270,15 @@ VOID EtFwFlushFilterDisplayCache(
         EtFwFilterDisplayDataEqualFunction,
         EtFwFilterDisplayDataHashFunction,
         20
-        );
+    );
 }
 
+/**
+ * Looks up cached WFP filter display data.
+ *
+ * \param FilterId The WFP filter identifier.
+ * \return The cached display data entry, or NULL if no entry exists.
+ */
 PETFW_FILTER_DISPLAY_CONTEXT EtFwFilterLookupCacheItem(
     _In_ ULONG64 FilterId
     )
@@ -1038,6 +1302,84 @@ PETFW_FILTER_DISPLAY_CONTEXT EtFwFilterLookupCacheItem(
         return NULL;
 }
 
+/**
+ * Adds cached display data for a WFP filter.
+ *
+ * \param FilterId The WFP filter identifier.
+ * \return TRUE if display data was added, otherwise FALSE.
+ */
+_Success_(return)
+BOOLEAN EtFwAddFilterDisplayData(
+    _In_ ULONG64 FilterId
+    )
+{
+    PETFW_FILTER_DISPLAY_CONTEXT entry;
+    PPH_STRING filterName = NULL;
+    PPH_STRING filterDescription = NULL;
+    PPH_STRING oldFilterName = NULL;
+    PPH_STRING oldFilterDescription = NULL;
+    FWPM_FILTER* filter;
+
+    if (!EtFwFilterDisplayDataHashTable)
+        return FALSE;
+
+    if (FwpmFilterGetById(EtFwEngineHandle, FilterId, &filter) == ERROR_SUCCESS)
+    {
+        if (filter->displayData.name)
+            filterName = PhCreateString(filter->displayData.name);
+        if (filter->displayData.description)
+            filterDescription = PhCreateString(filter->displayData.description);
+
+        FwpmFreeMemory(&filter);
+    }
+
+    if (!filterName || !filterDescription)
+    {
+        if (filterName)
+            PhDereferenceObject(filterName);
+        if (filterDescription)
+            PhDereferenceObject(filterDescription);
+
+        return FALSE;
+    }
+
+    PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+    if (entry = EtFwFilterLookupCacheItem(FilterId))
+    {
+        oldFilterName = entry->Name;
+        oldFilterDescription = entry->Description;
+        PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, entry);
+    }
+
+    {
+        ETFW_FILTER_DISPLAY_CONTEXT newEntry;
+
+        memset(&newEntry, 0, sizeof(ETFW_FILTER_DISPLAY_CONTEXT));
+        newEntry.FilterId = FilterId;
+        newEntry.Name = filterName;
+        newEntry.Description = filterDescription;
+        PhAddEntryHashtable(EtFwFilterDisplayDataHashTable, &newEntry);
+    }
+
+    PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+    if (oldFilterName)
+        PhDereferenceObject(oldFilterName);
+    if (oldFilterDescription)
+        PhDereferenceObject(oldFilterDescription);
+
+    return TRUE;
+}
+
+/**
+ * Gets the display name and description for a WFP filter.
+ *
+ * \param FilterId The WFP filter identifier.
+ * \param Name A variable which receives a referenced display name string.
+ * \param Description A variable which receives a referenced description string.
+ * \return TRUE if display data was found, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN EtFwGetFilterDisplayData(
     _In_ ULONG64 FilterId,
@@ -1108,15 +1450,37 @@ BOOLEAN EtFwGetFilterDisplayData(
     return FALSE;
 }
 
+/**
+ * Removes cached display data for a WFP filter.
+ *
+ * \param FilterId The WFP filter identifier.
+ */
 VOID EtFwRemoveFilterDisplayData(
     _In_ ULONG64 FilterId
     )
 {
-    ETFW_FILTER_DISPLAY_CONTEXT lookupEntry;
+    PETFW_FILTER_DISPLAY_CONTEXT entry;
+    PPH_STRING filterName = NULL;
+    PPH_STRING filterDescription = NULL;
 
-    lookupEntry.FilterId = FilterId;
+    if (!EtFwFilterDisplayDataHashTable)
+        return;
 
-    PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, &lookupEntry);
+    PhAcquireQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+    if (entry = EtFwFilterLookupCacheItem(FilterId))
+    {
+        filterName = entry->Name;
+        filterDescription = entry->Description;
+        PhRemoveEntryHashtable(EtFwFilterDisplayDataHashTable, entry);
+    }
+
+    PhReleaseQueuedLockExclusive(&EtFwFilterDisplayDataHashTableLock);
+
+    if (filterName)
+        PhDereferenceObject(filterName);
+    if (filterDescription)
+        PhDereferenceObject(filterDescription);
 }
 
 //_Success_(return)
@@ -1155,6 +1519,13 @@ VOID EtFwRemoveFilterDisplayData(
 //    return FALSE;
 //}
 
+/**
+ * Looks up the class string for an IP address.
+ *
+ * \param Address The IP address to classify.
+ * \param ClassString A variable which receives the address class string reference.
+ * \return TRUE if the address type was recognized, otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN EtFwLookupAddressClass(
     _In_ PPH_IP_ADDRESS Address,
@@ -1264,108 +1635,69 @@ BOOLEAN EtFwLookupAddressClass(
     return FALSE;
 }
 
+CONST PH_KEY_VALUE_PAIR FwAddressScopePairs[] =
+{
+    SIP(SREF(L"Unknoen"), 0),
+    SIP(SREF(L"Interface"), ScopeLevelInterface),
+    SIP(SREF(L"Link"), ScopeLevelLink),
+    SIP(SREF(L"Subnet"), ScopeLevelSubnet),
+    SIP(SREF(L"Admin"), ScopeLevelAdmin),
+    SIP(SREF(L"Site"), ScopeLevelSite),
+    SIP(SREF(L"Region‑local (abandoned)"), 6),
+    SIP(SREF(L"Campus‑local (abandoned)"), 7),
+    SIP(SREF(L"Organization"), ScopeLevelOrganization),
+    SIP(SREF(L"Cross‑site (transitional)"), 9),
+    SIP(SREF(L"Cross‑site (transitional)"), 10),
+    SIP(SREF(L"Reserved"), 11),
+    SIP(SREF(L"Reserved"), 12),
+    SIP(SREF(L"Reserved"), 13),
+    SIP(SREF(L"Global"), ScopeLevelGlobal),
+    SIP(SREF(L"Reserved"), 15),
+    SIP(SREF(L"Maximum"), ScopeLevelCount),
+};
+
+/**
+ * Looks up the scope string for an IP address.
+ *
+ * \param Address The IP address to classify.
+ * \param ScopeString A variable which receives the address scope string reference.
+ * \return TRUE if the address type was recognized and the scope was mapped,
+ * otherwise FALSE.
+ */
 _Success_(return)
 BOOLEAN EtFwLookupAddressScope(
     _In_ PPH_IP_ADDRESS Address,
     _Out_ PPH_STRINGREF ScopeString
     )
 {
+    PCPH_STRINGREF scopeString;
+
     switch (Address->Type)
     {
     case PH_NETWORK_TYPE_IPV4:
         {
-            switch (Ipv4AddressScope((PUCHAR)&Address->Ipv4))
+            if (PhIndexStringRefSiKeyValuePairs(
+                FwAddressScopePairs,
+                sizeof(FwAddressScopePairs),
+                Ipv4AddressScope((PUCHAR)&Address->Ipv4),
+                &scopeString
+                ))
             {
-            case ScopeLevelInterface:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelLink:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelSubnet:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelAdmin:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelSite:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelOrganization:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelGlobal:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
-                    *ScopeString = string;
-                }
+                *ScopeString = *scopeString;
                 return TRUE;
             }
         }
         break;
     case PH_NETWORK_TYPE_IPV6:
         {
-            switch (Ipv6AddressScope((PUCHAR)&Address->Ipv6))
+            if (PhIndexStringRefSiKeyValuePairs(
+                FwAddressScopePairs,
+                sizeof(FwAddressScopePairs),
+                Ipv6AddressScope((PUCHAR)&Address->Ipv6),
+                &scopeString
+                ))
             {
-            case ScopeLevelInterface:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Interface");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelLink:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Link");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelSubnet:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Subnet");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelAdmin:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Admin");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelSite:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Site");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelOrganization:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Organization");
-                    *ScopeString = string;
-                }
-                return TRUE;
-            case ScopeLevelGlobal:
-                {
-                    static const PH_STRINGREF string = PH_STRINGREF_INIT(L"Global");
-                    *ScopeString = string;
-                }
+                *ScopeString = *scopeString;
                 return TRUE;
             }
         }
@@ -1381,6 +1713,13 @@ typedef struct _ETFW_SID_FULL_NAME_CACHE_ENTRY
     PPH_STRING FullName;
 } ETFW_SID_FULL_NAME_CACHE_ENTRY, *PETFW_SID_FULL_NAME_CACHE_ENTRY;
 
+/**
+ * Compares two SID full name cache entries.
+ *
+ * \param Entry1 The first SID cache entry.
+ * \param Entry2 The second SID cache entry.
+ * \return TRUE if both entries contain the same SID, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1393,6 +1732,12 @@ BOOLEAN EtFwSidFullNameCacheHashtableEqualFunction(
     return PhEqualSid(entry1->Sid, entry2->Sid);
 }
 
+/**
+ * Computes the hash value for a SID full name cache entry.
+ *
+ * \param Entry The SID cache entry.
+ * \return The SID hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtFwSidFullNameCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -1403,6 +1748,12 @@ ULONG EtFwSidFullNameCacheHashtableHashFunction(
     return PhHashBytes(entry->Sid, PhLengthSid(entry->Sid));
 }
 
+/**
+ * Flushes the SID full name cache.
+ *
+ * \remarks Cached SIDs and full name strings are released before the hashtable
+ * is recreated empty.
+ */
 VOID EtFwFlushSidFullNameCache(
     VOID
     )
@@ -1432,6 +1783,12 @@ VOID EtFwFlushSidFullNameCache(
         );
 }
 
+/**
+ * Looks up a cached SID full name entry.
+ *
+ * \param Sid The SID to find.
+ * \return The cached SID entry, or NULL if no entry exists.
+ */
 PETFW_SID_FULL_NAME_CACHE_ENTRY EtFwSidLookupCacheItem(
     _In_ PSID Sid
     )
@@ -1455,6 +1812,14 @@ PETFW_SID_FULL_NAME_CACHE_ENTRY EtFwSidLookupCacheItem(
         return NULL;
 }
 
+/**
+ * Gets and caches the full account name for a SID.
+ *
+ * \param Sid The SID to resolve.
+ * \return A referenced full name string, or NULL if the SID cannot be resolved.
+ * \remarks This function performs the slow SID lookup path and inserts the
+ * resolved full name into the cache.
+ */
 PPH_STRING EtFwGetSidFullNameCachedSlow(
     _In_ PSID Sid
     )
@@ -1504,6 +1869,12 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
     return fullName;
 }
 
+/**
+ * Gets a cached full account name for a SID.
+ *
+ * \param Sid The SID to find.
+ * \return A referenced full name string, or NULL if the SID is not cached.
+ */
 PPH_STRING EtFwGetSidFullNameCached(
     _In_ PSID Sid
     )
@@ -1533,6 +1904,13 @@ typedef struct _ETFW_NAME_PROCESS_CACHE_ENTRY
     ULONG FileNameHash;
 } ETFW_NAME_PROCESS_CACHE_ENTRY, *PETFW_NAME_PROCESS_CACHE_ENTRY;
 
+/**
+ * Compares two file name process cache entries.
+ *
+ * \param Entry1 The first file name process cache entry.
+ * \param Entry2 The second file name process cache entry.
+ * \return TRUE if both entries have the same file name hash, otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN EtFwFileNameProcessCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1545,6 +1923,12 @@ BOOLEAN EtFwFileNameProcessCacheHashtableEqualFunction(
     return entry1->FileNameHash == entry2->FileNameHash;
 }
 
+/**
+ * Computes the hash value for a file name process cache entry.
+ *
+ * \param Entry The file name process cache entry.
+ * \return The cached file name hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG EtFwFileNameProcessCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -1555,6 +1939,12 @@ ULONG EtFwFileNameProcessCacheHashtableHashFunction(
     return entry->FileNameHash;
 }
 
+/**
+ * Flushes the file name process cache.
+ *
+ * \remarks Cached process item references are released before the hashtable is
+ * recreated empty.
+ */
 VOID EtFwFlushFileNameProcessCache(
     VOID
     )
@@ -1582,6 +1972,12 @@ VOID EtFwFlushFileNameProcessCache(
         );
 }
 
+/**
+ * Looks up a cached process item by file name.
+ *
+ * \param FileName The process file name.
+ * \return The cached file name process entry, or NULL if no entry exists.
+ */
 PETFW_NAME_PROCESS_CACHE_ENTRY EtFwFileNameProcessLookupCacheItem(
     _In_ PPH_STRING FileName
     )
@@ -1605,6 +2001,14 @@ PETFW_NAME_PROCESS_CACHE_ENTRY EtFwFileNameProcessLookupCacheItem(
         return NULL;
 }
 
+/**
+ * Gets and caches a process item by file name.
+ *
+ * \param FileName The process file name.
+ * \return A referenced process item, or NULL if no matching process exists.
+ * \remarks This function performs the slow process enumeration path and inserts
+ * the result into the file name process cache.
+ */
 PPH_PROCESS_ITEM EtFwGetFileNameProcessCachedSlow(
     _In_ PPH_STRING FileName
     )
@@ -1657,6 +2061,12 @@ PPH_PROCESS_ITEM EtFwGetFileNameProcessCachedSlow(
     return process;
 }
 
+/**
+ * Gets a cached process item by file name.
+ *
+ * \param FileName The process file name.
+ * \return A referenced process item, or NULL if the file name is not cached.
+ */
 PPH_PROCESS_ITEM EtFwGetFileNameProcessCached(
     _In_ PPH_STRING FileName
     )
@@ -1680,6 +2090,12 @@ PPH_PROCESS_ITEM EtFwGetFileNameProcessCached(
     return NULL;
 }
 
+/**
+ * Periodically flushes firewall monitor caches.
+ *
+ * \remarks Hostname, filter and SID caches are flushed less frequently than the
+ * file name process cache.
+ */
 VOID EtFwFlushCache(
     VOID
     )
@@ -1719,18 +2135,84 @@ VOID EtFwFlushCache(
     }
 }
 
+/**
+ * Handles WFP filter change notifications.
+ *
+ * \param Context The callback context.
+ * \param Change The WFP filter change record.
+ * \remarks Added filters are cached immediately and deleted filters are removed
+ * from the cache.
+ */
+VOID CALLBACK EtFwFilterChangeCallback(
+    _In_opt_ PVOID Context,
+    _In_ const FWPM_FILTER_CHANGE0* Change
+    )
+{
+    switch (Change->changeType)
+    {
+    case FWPM_CHANGE_ADD:
+        EtFwAddFilterDisplayData(Change->filterId);
+        break;
+    case FWPM_CHANGE_DELETE:
+        EtFwRemoveFilterDisplayData(Change->filterId);
+        break;
+    }
+}
+
+/**
+ * References the process item associated with a firewall event.
+ *
+ * \param ProcessId The process identifier from the event.
+ * \param EventTime The timestamp when the event occurred.
+ * \return A referenced process item. If the process is not found or the PID was reused
+ * after the event, a reference to the System process item is returned.
+ * \remarks This function validates the process creation time against the event timestamp
+ * to ensure events are not incorrectly attributed to a new process instance that has
+ * reused the same PID.
+ */
+PPH_PROCESS_ITEM EtFwReferenceProcessItemForEvent(
+    _In_ HANDLE ProcessId,
+    _In_ PLARGE_INTEGER EventTime
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+
+    if (ProcessId != 0)
+    {
+        if (processItem = PhReferenceProcessItem(ProcessId))
+        {
+            if (processItem->CreateTime.QuadPart <= EventTime->QuadPart)
+                return processItem;
+
+            PhDereferenceObject(processItem);
+        }
+    }
+
+    return PhReferenceProcessItem(SYSTEM_PROCESS_ID);
+}
+
+/**
+ * Handles WFP net event notifications.
+ *
+ * \param FwContext The callback context.
+ * \param FwEvent The WFP net event.
+ * \remarks The callback extracts public and internal WFP event fields, resolves
+ * filter and process metadata, updates per-process firewall counters and queues
+ * the resulting firewall event for the provider update path.
+ */
 VOID CALLBACK EtFwEventCallback(
     _In_opt_ PVOID FwContext,
     _In_ const FWPM_NET_EVENT* FwEvent
     )
 {
+    const FWPM_NET_EVENT_HEADER3* FwEventHeader = &FwEvent->header;
     FW_EVENT entry;
     BOOLEAN isLoopback = FALSE;
     ULONG direction = ULONG_MAX;
     ULONG64 filterId = 0;
     USHORT layerId = 0;
-    PPH_STRING ruleName = NULL;
-    PPH_STRING ruleDescription = NULL;
+    PPH_STRING ruleName;
+    PPH_STRING ruleDescription;
 
     if (!EtFwEnabled)
         return;
@@ -1747,130 +2229,132 @@ VOID CALLBACK EtFwEventCallback(
             return;
     }
 
-    if (EtWindowsVersion >= WINDOWS_10 && EtFwIgnoreOnError)
-    {
-        if (
-            layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
-            layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6)
-            layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4)
-            layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
-            )
-        {
-            return;
-        }
-    }
+    //if (EtWindowsVersion >= WINDOWS_10 && EtFwIgnoreOnError)
+    //{
+    //    if (
+    //        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V4)
+    //        layerId == FWPS_LAYER_ALE_FLOW_ESTABLISHED_V6 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_FLOW_ESTABLISHED_V6)
+    //        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V4 || // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V4)
+    //        layerId == FWPS_LAYER_ALE_RESOURCE_ASSIGNMENT_V6 // IsEqualGUID(layerKey, FWPM_LAYER_ALE_RESOURCE_ASSIGNMENT_V6)
+    //        )
+    //    {
+    //        return;
+    //    }
+    //}
 
-    EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription);
-
-    memset(&entry, 0, sizeof(FW_EVENT));
-    entry.TimeStamp.HighPart = FwEvent->header.timeStamp.dwHighDateTime;
-    entry.TimeStamp.LowPart = FwEvent->header.timeStamp.dwLowDateTime;
+    RtlZeroMemory(&entry, sizeof(FW_EVENT));
+    entry.TimeStamp.HighPart = FwEventHeader->timeStamp.dwHighDateTime;
+    entry.TimeStamp.LowPart = FwEventHeader->timeStamp.dwLowDateTime;
     entry.Type = FwEvent->type;
     entry.IsLoopback = isLoopback;
     entry.Direction = direction;
-    entry.RuleName = ruleName;
-    entry.RuleDescription = ruleDescription;
 
-    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET))
+    if (EtFwGetFilterDisplayData(filterId, &ruleName, &ruleDescription))
     {
-        entry.IpProtocol = FwEvent->header.ipProtocol;
+        entry.RuleName = ruleName;
+        entry.RuleDescription = ruleDescription;
     }
 
-    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_SCOPE_ID_SET))
+    if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_IP_PROTOCOL_SET))
     {
-        entry.ScopeId = FwEvent->header.scopeId;
+        entry.IpProtocol = FwEventHeader->ipProtocol;
     }
 
-    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_IP_VERSION_SET))
+    if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_SCOPE_ID_SET))
     {
-        if (FwEvent->header.ipVersion == FWP_IP_VERSION_V4)
+        entry.ScopeId = FwEventHeader->scopeId;
+    }
+
+    if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_IP_VERSION_SET))
+    {
+        if (FwEventHeader->ipVersion == FWP_IP_VERSION_V4)
         {
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
                 entry.LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
-                entry.LocalEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEvent->header.localAddrV4);
+                entry.LocalEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEventHeader->localAddrV4);
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
             {
-                entry.LocalEndpoint.Port = FwEvent->header.localPort;
+                entry.LocalEndpoint.Port = FwEventHeader->localPort;
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
                 entry.RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV4;
-                entry.RemoteEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEvent->header.remoteAddrV4);
+                entry.RemoteEndpoint.Address.InAddr.s_addr = _byteswap_ulong(FwEventHeader->remoteAddrV4);
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
             {
-                entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
+                entry.RemoteEndpoint.Port = FwEventHeader->remotePort;
             }
         }
-        else if (FwEvent->header.ipVersion == FWP_IP_VERSION_V6)
+        else if (FwEventHeader->ipVersion == FWP_IP_VERSION_V6)
         {
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_LOCAL_ADDR_SET))
             {
                 entry.LocalEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
-                memcpy(entry.LocalEndpoint.Address.Ipv6, FwEvent->header.localAddrV6.byteArray16, 16);
+                memcpy(entry.LocalEndpoint.Address.Ipv6, FwEventHeader->localAddrV6.byteArray16, 16);
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_LOCAL_PORT_SET))
             {
-                entry.LocalEndpoint.Port = FwEvent->header.localPort;
+                entry.LocalEndpoint.Port = FwEventHeader->localPort;
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_REMOTE_ADDR_SET))
             {
                 entry.RemoteEndpoint.Address.Type = PH_NETWORK_TYPE_IPV6;
-                memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEvent->header.remoteAddrV6.byteArray16, 16);
+                memcpy(entry.RemoteEndpoint.Address.Ipv6, FwEventHeader->remoteAddrV6.byteArray16, 16);
             }
 
-            if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
+            if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_REMOTE_PORT_SET))
             {
-                entry.RemoteEndpoint.Port = FwEvent->header.remotePort;
+                entry.RemoteEndpoint.Port = FwEventHeader->remotePort;
             }
         }
     }
 
-    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_APP_ID_SET))
+    if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_APP_ID_SET))
     {
-        if (FwEvent->header.appId.data && FwEvent->header.appId.size > sizeof(UNICODE_NULL))
+        if (FwEventHeader->appId.data && FwEventHeader->appId.size > sizeof(UNICODE_NULL))
         {
-            PPH_STRING fileName;
-
-            fileName = PhCreateStringEx(
-                (PCWSTR)FwEvent->header.appId.data,
-                (SIZE_T)FwEvent->header.appId.size - sizeof(UNICODE_NULL)
-                );
-
-            entry.ProcessFileName = PhGetFileName(fileName);
-            entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
-
-            if (entry.ProcessItem = EtFwGetFileNameProcessCachedSlow(fileName))
-            {
-                PhSwapReference(&entry.ProcessFileNameWin32, PhGetFileName(entry.ProcessItem->FileName));
-            }
-
-            PhDereferenceObject(fileName);
+            //PPH_STRING fileName;
+            //
+            //fileName = PhCreateStringEx(
+            //    (PCWSTR)FwEventHeader->appId.data,
+            //    (SIZE_T)FwEventHeader->appId.size - sizeof(UNICODE_NULL)
+            //    );
+            //
+            //entry.ProcessFileName = PhGetFileName(fileName);
+            //entry.ProcessBaseString = PhGetBaseName(entry.ProcessFileName);
+            //
+            //if (entry.ProcessItem = EtFwGetFileNameProcessCachedSlow(fileName))
+            //{
+            //    PhSwapReference(&entry.ProcessFileNameWin32, PhGetFileName(entry.ProcessItem->FileName));
+            //}
+            //
+            //PhDereferenceObject(fileName);
         }
     }
 
-    if (FlagOn(FwEvent->header.flags, FWPM_NET_EVENT_FLAG_USER_ID_SET))
+    if (FlagOn(FwEventHeader->flags, FWPM_NET_EVENT_FLAG_USER_ID_SET))
     {
-        //if (entry.ProcessItem && PhEqualSid(FwEvent->header.userId, entry.ProcessItem->Sid))
-        if (FwEvent->header.userId)
+        //if (entry.ProcessItem && PhEqualSid(header->userId, entry.ProcessItem->Sid))
+        if (FwEventHeader->userId)
         {
-            entry.UserSid = PhAllocateCopy(FwEvent->header.userId, PhLengthSid(FwEvent->header.userId));
+            entry.UserSid = PhAllocateCopy(FwEventHeader->userId, PhLengthSid(FwEventHeader->userId));
         }
     }
 
-    //if (FwEvent->header.flags & FWPM_NET_EVENT_FLAG_PACKAGE_ID_SET)
+    //if (header->flags & FWPM_NET_EVENT_FLAG_PACKAGE_ID_SET)
     //{
     //    SID PhSeNobodySid = { SID_REVISION, 1, SECURITY_NULL_SID_AUTHORITY, { SECURITY_NULL_RID } };
-    //    if (FwEvent->header.packageSid && !PhEqualSid(FwEvent->header.packageSid, &PhSeNobodySid))
+    //    if (header->packageSid && !PhEqualSid(header->packageSid, &PhSeNobodySid))
     //    {
-    //        entry.PackageSid = PhAllocateCopy(FwEvent->header.packageSid, PhLengthSid(FwEvent->header.packageSid));
+    //        entry.PackageSid = PhAllocateCopy(header->packageSid, PhLengthSid(header->packageSid));
     //    }
     //}
 
@@ -1890,6 +2374,96 @@ VOID CALLBACK EtFwEventCallback(
         }
     }
 
+    if (FwpmNetEventCreateEnumHandleEx_I)
+    {
+        const FWPM_NET_EVENT_INTERNAL* FwEventInternal = (const FWPM_NET_EVENT_INTERNAL*)FwEvent;
+        const FWPM_NET_EVENT_INTERNAL_FIELDS0* FwInternal = &FwEventInternal->InternalFields;
+        PPH_PROCESS_ITEM processItem;
+
+        processItem = EtFwReferenceProcessItemForEvent(
+            UlongToHandle(FwInternal->ProcessId),
+            &entry.TimeStamp
+            );
+
+        if (processItem)
+        {
+            entry.ProcessItem = processItem;
+            entry.ProcessId = HandleToUlong(processItem->ProcessId);
+
+            PhSetReference(&entry.ProcessName, processItem->ProcessName);
+            PhSetReference(&entry.ProcessFileName, entry.ProcessItem->FileName);
+            PhSetReference(&entry.ProcessFileNameWin32, PhGetFileName(entry.ProcessItem->FileName));
+            PhSetReference(&entry.ProcessBaseString, entry.ProcessItem->ProcessName);
+            entry.SubsystemProcess = !!processItem->IsSubsystemProcess;
+
+            if (PhTestEvent(&processItem->Stage1Event))
+            {
+                entry.ProcessIconIndex = processItem->SmallIconIndex;
+                entry.ProcessIconValid = TRUE;
+            }
+
+            {
+                WCHAR buffer[PH_INT32_STR_LEN_1];
+
+                PhPrintUInt32(buffer, entry.ProcessId);
+                entry.ProcessIdString = PhCreateString(buffer);
+            }
+
+            if (processItem)
+            {
+                PET_PROCESS_BLOCK block = EtGetProcessBlock(processItem);
+
+                if (block)
+                {
+                    if (entry.Type == FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW ||
+                        entry.Type == FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW)
+                    {
+                        block->FirewallAllowCount++;
+                    }
+                    else
+                    {
+                        block->FirewallBlockCount++;
+                    }
+                }
+            }
+
+            // NOTE: We dereference processItem in PhpNetworkItemDeleteProcedure. (dmex)
+        }
+
+        entry.InterfaceLuid = FwInternal->InterfaceLuid;
+        entry.CompartmentId = FwInternal->CompartmentId;
+
+        if (FwInternal->ServiceSids)
+        {
+            entry.ServiceSids = PhCreateString(FwInternal->ServiceSids);
+        }
+
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FILTER_ORIGIN_SET) && FwInternal->FilterOrigin)
+        {
+            entry.FilterOrigin = PhCreateString(FwInternal->FilterOrigin);
+        }
+
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FQBN_SET) && FwInternal->FqbnName)
+        {
+            entry.FqbnName = PhCreateString(FwInternal->FqbnName);
+        }
+
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_POLICY_APP_ID_SET) && FwInternal->PolicyAppId)
+        {
+            entry.PolicyAppId = PhCreateString(FwInternal->PolicyAppId);
+        }
+
+        {
+            WCHAR buffer[PH_INT64_STR_LEN_1];
+
+            PhPrintUInt64(buffer, entry.InterfaceLuid.Value);
+            entry.InterfaceLuidString = PhCreateString(buffer);
+
+            PhPrintUInt32(buffer, (ULONG)entry.CompartmentId);
+            entry.CompartmentIdString = PhCreateString(buffer);
+        }
+    }
+
     if (PhIsNullOrEmptyString(entry.ProcessFileName) || PhIsNullOrEmptyString(entry.ProcessBaseString))
     {
         PhMoveReference(&entry.ProcessItem, PhReferenceProcessItem(SYSTEM_PROCESS_ID));
@@ -1901,6 +2475,15 @@ VOID CALLBACK EtFwEventCallback(
     FwPushFirewallEvent(&entry);
 }
 
+/**
+ * Processes queued firewall monitor updates.
+ *
+ * \param Parameter The callback parameter.
+ * \param Context The callback context.
+ * \remarks This callback drains queued firewall event packets, applies completed
+ * hostname lookups, removes expired items and raises the firewall item update
+ * callbacks.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtFwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -1966,6 +2549,14 @@ VOID NTAPI EtFwProcessesUpdatedCallback(
     EtFwFlushCache();
 }
 
+/**
+ * Enumerates existing WFP net events.
+ *
+ * \return ERROR_SUCCESS or a Win32 error code returned by the WFP event
+ * enumeration APIs.
+ * \remarks Enumerated events are passed through the same event callback used by
+ * live WFP notifications.
+ */
 ULONG EtFwMonitorEnumEvents(
     VOID
     )
@@ -1976,48 +2567,63 @@ ULONG EtFwMonitorEnumEvents(
 
     memset(&enumTemplate, 0, sizeof(FWPM_NET_EVENT_ENUM_TEMPLATE));
 
-    status = FwpmNetEventCreateEnumHandle(
-        EtFwEngineHandle,
-        &enumTemplate,
-        &enumHandle
-        );
-
-    if (status == ERROR_SUCCESS)
+    if (FwpmNetEventCreateEnumHandleEx)
     {
-        while (TRUE)
+        status = FwpmNetEventCreateEnumHandleEx(
+            EtFwEngineHandle,
+            FWPM_NET_EVENT_DATA_WFP,
+            &enumTemplate,
+            &enumHandle
+            );
+    }
+    else
+    {
+        status = FwpmNetEventCreateEnumHandle(
+            EtFwEngineHandle,
+            &enumTemplate,
+            &enumHandle
+            );
+    }
+
+    if (status != ERROR_SUCCESS)
+        return status;
+
+    while (TRUE)
+    {
+        FWPM_NET_EVENT** entries;
+        ULONG count;
+
+        status = FwpmNetEventEnum(EtFwEngineHandle, enumHandle, ULONG_MAX, &entries, &count);
+
+        if (status != ERROR_SUCCESS)
+            break;
+
+        if (count == 0)
         {
-            #define FWPM_NET_EVENTS_COUNT 100
-            UINT32 count = 0;
-            FWPM_NET_EVENT** events;
-
-            status = FwpmNetEventEnum(EtFwEngineHandle, enumHandle, FWPM_NET_EVENTS_COUNT, &events, &count);
-
-            if (status != ERROR_SUCCESS || count == 0)
-                break;
-
-            for (UINT32 i = 0; i < count; i++)
-            {
-                if (EtFwIgnoreAllow)
-                {
-                    if (events[i]->type == FWPM_NET_EVENT_TYPE_CLASSIFY_ALLOW || events[i]->type == FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW)
-                        continue;
-                }
-
-                EtFwEventCallback(NULL, events[i]);
-            }
-
-            FwpmFreeMemory((PVOID*)&events); // Note: Fixes crash on Win10-17763 (dmex)
-
-            if (count < FWPM_NET_EVENTS_COUNT)
-                break;
+            FwpmFreeMemory((PVOID*)&entries);
+            break;
         }
 
-        FwpmNetEventDestroyEnumHandle(EtFwEngineHandle, enumHandle);
+        for (ULONG i = 0; i < count; i++)
+        {
+            EtFwEventCallback(NULL, entries[i]);
+        }
+
+        FwpmFreeMemory((PVOID*)&entries);
     }
+
+    FwpmNetEventDestroyEnumHandle(EtFwEngineHandle, enumHandle);
 
     return status;
 }
 
+/**
+ * Initializes the persistent firewall monitor WFP session name.
+ *
+ * \return A referenced session name string.
+ * \remarks A GUID-based session name is persisted in settings when one does not
+ * already exist.
+ */
 PPH_STRING EtFwSessionInitialize(
     VOID
     )
@@ -2047,6 +2653,14 @@ PPH_STRING EtFwSessionInitialize(
     return settingsString;
 }
 
+/**
+ * Initializes the firewall monitor.
+ *
+ * \return ERROR_SUCCESS or a Win32 error code describing the initialization failure.
+ * \remarks This function loads fwpuclnt.dll, resolves WFP entry points, opens a
+ * BFE session, enables net event collection, subscribes to net event and filter
+ * change notifications and registers the process provider callback.
+ */
 ULONG EtFwMonitorInitialize(
     VOID
     )
@@ -2090,9 +2704,12 @@ ULONG EtFwMonitorInitialize(
     FwpmEngineClose = PhGetProcedureAddress(baseAddress, "FwpmEngineClose0", 0);
     FwpmFreeMemory = PhGetProcedureAddress(baseAddress, "FwpmFreeMemory0", 0);
     FwpmFilterGetById = PhGetProcedureAddress(baseAddress, "FwpmFilterGetById0", 0);
+    FwpmFilterSubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterSubscribeChanges0", 0);
+    FwpmFilterUnsubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterUnsubscribeChanges0", 0);
     FwpmEngineSetOption = PhGetProcedureAddress(baseAddress, "FwpmEngineSetOption0", 0);
     FwpmNetEventUnsubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventUnsubscribe0", 0);
     FwpmNetEventCreateEnumHandle = PhGetProcedureAddress(baseAddress, "FwpmNetEventCreateEnumHandle0", 0);
+    FwpmNetEventCreateEnumHandleEx = PhGetProcedureAddress(baseAddress, "FwpmNetEventCreateEnumHandleEx", 0);
     FwpmNetEventDestroyEnumHandle = PhGetProcedureAddress(baseAddress, "FwpmNetEventDestroyEnumHandle0", 0);
 
     FwpmNetEventSubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventSubscribe4", 0);
@@ -2199,18 +2816,18 @@ ULONG EtFwMonitorInitialize(
     //if (status != ERROR_SUCCESS)
     //    return status;
 
-    //if (EtWindowsVersion >= WINDOWS_8)
-    //{
-    //    memset(&value, 0, sizeof(FWP_VALUE));
-    //    value.type = FWP_UINT32;
-    //    value.uint32 = TRUE;
-    //    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
-    //
-    //    memset(&value, 0, sizeof(FWP_VALUE));
-    //    value.type = FWP_UINT32;
-    //    value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD | FWPM_ENGINE_OPTION_PACKET_BATCH_INBOUND;
-    //    FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
-    //}
+    if (EtWindowsVersion >= WINDOWS_8)
+    {
+        memset(&value, 0, sizeof(FWP_VALUE));
+        value.type = FWP_UINT32;
+        value.uint32 = TRUE;
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_MONITOR_IPSEC_CONNECTIONS, &value);
+
+        memset(&value, 0, sizeof(FWP_VALUE));
+        value.type = FWP_UINT32;
+        value.uint32 = FWPM_ENGINE_OPTION_PACKET_QUEUE_INBOUND | FWPM_ENGINE_OPTION_PACKET_QUEUE_FORWARD | FWPM_ENGINE_OPTION_PACKET_BATCH_INBOUND;
+        FwpmEngineSetOption(EtFwEngineHandle, FWPM_ENGINE_PACKET_QUEUING, &value);
+    }
 
     // Subscribe to all event conditions
 
@@ -2223,13 +2840,29 @@ ULONG EtFwMonitorInitialize(
     status = FwpmNetEventSubscribe(
         EtFwEngineHandle,
         &subscription,
-        EtFwEventCallback,
+        (FWPM_NET_EVENT_CALLBACK4)EtFwEventCallback,
         NULL,
         &EtFwEventHandle
         );
 
     if (status != ERROR_SUCCESS)
         return status;
+
+    if (FwpmFilterSubscribeChanges)
+    {
+        FWPM_FILTER_SUBSCRIPTION0 filterSubscription;
+
+        memset(&filterSubscription, 0, sizeof(FWPM_FILTER_SUBSCRIPTION0));
+        filterSubscription.sessionKey = session.sessionKey;
+
+        FwpmFilterSubscribeChanges(
+            EtFwEngineHandle,
+            &filterSubscription,
+            EtFwFilterChangeCallback,
+            NULL,
+            &EtFwFilterEventHandle
+            );
+    }
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -2241,10 +2874,22 @@ ULONG EtFwMonitorInitialize(
     return ERROR_SUCCESS;
 }
 
+/**
+ * Uninitializes the firewall monitor.
+ *
+ * \remarks WFP filter and net event subscriptions are removed, net event
+ * collection is disabled and the BFE engine handle is closed.
+ */
 VOID EtFwMonitorUninitialize(
     VOID
     )
 {
+    if (EtFwFilterEventHandle && FwpmFilterUnsubscribeChanges)
+    {
+        FwpmFilterUnsubscribeChanges(EtFwEngineHandle, EtFwFilterEventHandle);
+        EtFwFilterEventHandle = NULL;
+    }
+
     if (EtFwEventHandle && FwpmNetEventUnsubscribe)
     {
         FwpmNetEventUnsubscribe(EtFwEngineHandle, EtFwEventHandle);

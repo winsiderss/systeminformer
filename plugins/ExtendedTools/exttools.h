@@ -47,11 +47,6 @@ __has_include (<d3dkmthk.h>)
 #include <cfgmgr32.h>
 #include <tbs.h>
 
-// Undocumented device properties (Win10 only)
-DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
-DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
-DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
-
 typedef D3DKMT_HANDLE* PD3DKMT_HANDLE;
 
 typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
@@ -252,7 +247,13 @@ typedef struct _ET_DISK_ITEM
 #define ETDSTNC_IOPRIORITY 6
 #define ETDSTNC_RESPONSETIME 7
 #define ETDSTNC_ORIGINALNAME 8
-#define ETDSTNC_MAXIMUM 9
+#define ETDSTNC_READRATE 9
+#define ETDSTNC_WRITERATE 10
+#define ETDSTNC_TOTALRATE 11
+#define ETDSTNC_READBYTES 12
+#define ETDSTNC_WRITEBYTES 13
+#define ETDSTNC_TOTALBYTES 14
+#define ETDSTNC_MAXIMUM 15
 
 typedef struct _ET_DISK_NODE
 {
@@ -267,6 +268,12 @@ typedef struct _ET_DISK_NODE
     WCHAR ReadRateAverageText[PH_INT64_STR_LEN_1 + 5];
     WCHAR WriteRateAverageText[PH_INT64_STR_LEN_1 + 5];
     WCHAR TotalRateAverageText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR ReadRateText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR WriteRateText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR TotalRateText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR ReadBytesText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR WriteBytesText[PH_INT64_STR_LEN_1 + 5];
+    WCHAR TotalBytesText[PH_INT64_STR_LEN_1 + 5];
     WCHAR ResponseTimeText[PH_INT64_STR_LEN_1 + 5];
 } ET_DISK_NODE, *PET_DISK_NODE;
 
@@ -308,7 +315,11 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_NPU 34
 #define ETPRTNC_NPUDEDICATEDBYTES 35
 #define ETPRTNC_NPUSHAREDBYTES 36
-#define ETPRTNC_MAXIMUM 36
+#define ETPRTNC_FIREWALLALLOWS 37
+#define ETPRTNC_FIREWALLBLOCKS 38
+#define ETPRTNC_FIREWALLALLOWSDELTA 39
+#define ETPRTNC_FIREWALLBLOCKSDELTA 40
+#define ETPRTNC_MAXIMUM 40
 
 // Network list columns
 
@@ -371,6 +382,8 @@ typedef enum _ET_PROCESS_STATISTICS_INDEX
 
     ET_PROCESS_STATISTICS_INDEX_MAX
 } ET_PROCESS_STATISTICS_INDEX;
+
+#define ET_PROCESS_STATISTICS_PARAM(Index) ((ULONG)(0x40000000ul | (ULONG)(Index)))
 
 // Firewall status
 
@@ -511,6 +524,15 @@ typedef struct _ET_PROCESS_BLOCK
     PH_CIRCULAR_BUFFER_FLOAT FramesMsUntilDisplayedHistory;
     PH_CIRCULAR_BUFFER_FLOAT FramesDisplayLatencyHistory;
 
+    // Firewall
+
+    ULONG64 FirewallAllowCount;
+    ULONG64 FirewallBlockCount;
+    PH_UINT64_DELTA FirewallAllowDelta;
+    PH_UINT64_DELTA FirewallBlockDelta;
+    PH_CIRCULAR_BUFFER_ULONG64 FirewallAllowHistory;
+    PH_CIRCULAR_BUFFER_ULONG64 FirewallBlockHistory;
+
     ULONG ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_MAX + 1];
     ULONG ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_MAX + 1];
 
@@ -544,7 +566,17 @@ typedef struct _ET_NETWORK_BLOCK
     };
 
     ET_FIREWALL_STATUS FirewallStatus;
-    BOOLEAN FirewallStatusValid;
+
+    union
+    {
+        BOOLEAN Flags;
+        struct
+        {
+            BOOLEAN FirewallStatusValid : 1;
+            BOOLEAN IsWow64Process : 1;
+            BOOLEAN Spare : 6;
+        };
+    };
 
     PH_QUEUED_LOCK TextCacheLock;
     SIZE_T TextCacheLength[ETNETNC_MAXIMUM + 1];
@@ -1212,18 +1244,25 @@ extern ULONG EtFwFlagsMask;
 extern ULONG EtFwStatus;
 extern ULONG FwRunCount;
 extern HANDLE EtFwEngineHandle;
+extern HANDLE EtFwEngineEnumHandle;
 extern PH_CALLBACK FwItemAddedEvent;
 extern PH_CALLBACK FwItemModifiedEvent;
 extern PH_CALLBACK FwItemRemovedEvent;
 extern PH_CALLBACK FwItemsUpdatedEvent;
+extern PH_CALLBACK EtFwItemAddedEvent;
+extern PH_CALLBACK EtFwItemModifiedEvent;
+extern PH_CALLBACK EtFwItemRemovedEvent;
+extern PH_CALLBACK EtFwItemsUpdatedEvent;
 
 typedef enum _FW_COLUMN_TYPE
 {
     FW_COLUMN_NAME,
+    FW_COLUMN_PROCESSID,
     FW_COLUMN_ACTION,
     FW_COLUMN_DIRECTION,
     FW_COLUMN_RULENAME,
     FW_COLUMN_RULEDESCRIPTION,
+    FW_COLUMN_FILTER_ORIGIN,
     FW_COLUMN_LOCALADDRESS,
     FW_COLUMN_LOCALPORT,
     FW_COLUMN_LOCALHOSTNAME,
@@ -1232,7 +1271,6 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_REMOTEHOSTNAME,
     FW_COLUMN_PROTOCOL,
     FW_COLUMN_TIMESTAMP,
-    FW_COLUMN_PROCESSFILENAME,
     FW_COLUMN_USER,
     FW_COLUMN_PACKAGE,
     FW_COLUMN_COUNTRY,
@@ -1243,6 +1281,11 @@ typedef enum _FW_COLUMN_TYPE
     FW_COLUMN_ORIGINALNAME,
     FW_COLUMN_LOCALSERVICENAME,
     FW_COLUMN_REMOTESERVICENAME,
+    FW_COLUMN_INTERFACE_LUID,
+    FW_COLUMN_COMPARTMENT_ID,
+    FW_COLUMN_POLICY_APP_ID,
+    FW_COLUMN_SERVICE_SIDS,
+    FW_COLUMN_FQBN_NAME,
     FW_COLUMN_MAXIMUM
 } FW_COLUMN_TYPE;
 
@@ -1259,6 +1302,7 @@ typedef enum _FW_EVENT_DIRECTION
 typedef struct _FW_EVENT_ITEM
 {
     PH_TREENEW_NODE Node;
+    PH_SH_STATE ShState;
 
     LIST_ENTRY AgeListEntry;
     ULONG RunId;
@@ -1279,7 +1323,8 @@ typedef struct _FW_EVENT_ITEM
             ULONG LocalPortResolved : 1;
             ULONG RemoteAddressResolved : 1;
             ULONG RemotePortResolved : 1;
-            ULONG Spare : 23;
+            ULONG ServiceSidsResolved : 1;
+            ULONG Spare : 22;
         };
     };
 
@@ -1300,6 +1345,11 @@ typedef struct _FW_EVENT_ITEM
     PPH_PROCESS_ITEM ProcessItem;
     ULONG_PTR ProcessIconIndex;
     BOOLEAN ProcessIconValid;
+
+    ULONG ProcessId;
+
+    NET_LUID InterfaceLuid;
+    NET_IF_COMPARTMENT_ID CompartmentId;
 
     PPH_STRING ProcessFileName;
     PPH_STRING ProcessFileNameWin32;
@@ -1328,6 +1378,15 @@ typedef struct _FW_EVENT_ITEM
 
     PPH_STRINGREF LocalPortServiceName;
     PPH_STRINGREF RemotePortServiceName;
+
+    PPH_STRING FilterOrigin;
+    PPH_STRING PolicyAppId;
+    PPH_STRING ServiceSids;
+    PPH_STRING FqbnName;
+
+    PPH_STRING InterfaceLuidString;
+    PPH_STRING CompartmentIdString;
+    PPH_STRING ProcessIdString;
 
     PH_STRINGREF TextCache[FW_COLUMN_MAXIMUM];
 } FW_EVENT_ITEM, *PFW_EVENT_ITEM;
@@ -1387,7 +1446,7 @@ PPH_STRING EtFwGetSidFullNameCachedSlow(
 VOID EtFwDrawCountryIcon(
     _In_ HDC hdc,
     _In_ RECT rect,
-    _In_ INT Index
+    _In_ LONG Index
     );
 
 VOID EtFwShowPingWindow(
@@ -1501,11 +1560,12 @@ typedef enum _FW_PROVIDER_FLAG
 } FW_PROVIDER_FLAG;
 
 VOID InitializeFwTreeList(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 PFW_EVENT_ITEM AddFwNode(
-    _In_ PFW_EVENT_ITEM FwItem
+    _In_ PFW_EVENT_ITEM FwItem,
+    _In_ ULONG RunId
     );
 
 VOID RemoveFwNode(
@@ -1517,7 +1577,7 @@ VOID UpdateFwNode(
     );
 
 BOOLEAN NTAPI FwTreeNewCallback(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
     _In_ PVOID Parameter1,
     _In_ PVOID Parameter2,

@@ -116,6 +116,10 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_NPU, L"NPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NPUDEDICATEDBYTES, L"NPU dedicated bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NPUSHAREDBYTES, L"NPU shared bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_FIREWALLALLOWS, L"Firewall allows", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_FIREWALLBLOCKS, L"Firewall blocks", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_FIREWALLALLOWSDELTA, L"Firewall allows delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_FIREWALLBLOCKSDELTA, L"Firewall blocks delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
     };
 
     PPH_PLUGIN_TREENEW_INFORMATION treeNewInfo = Parameter;
@@ -526,6 +530,54 @@ VOID EtProcessTreeNewMessage(
                     EtFormatSize(npuSharedUsage, block, message);
                 }
                 break;
+            case ETPRTNC_FIREWALLALLOWS:
+                {
+                    ULONG64 firewallAllowCount = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, FirewallAllowCount),
+                        &firewallAllowCount
+                        );
+
+                    EtFormatInt64(firewallAllowCount, block, message);
+                }
+                break;
+            case ETPRTNC_FIREWALLBLOCKS:
+                {
+                    ULONG64 firewallBlockCount = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, FirewallBlockCount),
+                        &firewallBlockCount
+                        );
+
+                    EtFormatInt64(firewallBlockCount, block, message);
+                }
+                break;
+            case ETPRTNC_FIREWALLALLOWSDELTA:
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, FirewallAllowDelta.Delta), &number);
+
+                    EtFormatInt64(number, block, message);
+                }
+                break;
+            case ETPRTNC_FIREWALLBLOCKSDELTA:
+                {
+                    ULONG64 number = 0;
+
+                    PhpAggregateFieldIfNeeded(processNode, AggregateTypeInt64, block, FIELD_OFFSET(ET_PROCESS_BLOCK, FirewallBlockDelta.Delta), &number);
+
+                    EtFormatInt64(number, block, message);
+                }
+                break;
             }
 
             if (block->TextCacheLength[message->SubId])
@@ -571,6 +623,9 @@ VOID EtProcessTreeNewMessage(
             block->TextCacheValid[ETPRTNC_NPU] = FALSE;
             block->TextCacheValid[ETPRTNC_NPUDEDICATEDBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_NPUSHAREDBYTES] = FALSE;
+
+            block->TextCacheValid[ETPRTNC_FIREWALLALLOWS] = FALSE;
+            block->TextCacheValid[ETPRTNC_FIREWALLBLOCKS] = FALSE;
         }
     }
     else if (message->Message == TreeNewGetHeaderText)
@@ -620,6 +675,10 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NPU:
         case ETPRTNC_NPUDEDICATEDBYTES:
         case ETPRTNC_NPUSHAREDBYTES:
+        case ETPRTNC_FIREWALLALLOWS:
+        case ETPRTNC_FIREWALLBLOCKS:
+        case ETPRTNC_FIREWALLALLOWSDELTA:
+        case ETPRTNC_FIREWALLBLOCKSDELTA:
             break;
         default:
             return;
@@ -761,6 +820,18 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_NPUSHAREDBYTES:
                 number += block->NpuSharedUsage;
                 break;
+            case ETPRTNC_FIREWALLALLOWS:
+                number += block->FirewallAllowCount;
+                break;
+            case ETPRTNC_FIREWALLBLOCKS:
+                number += block->FirewallBlockCount;
+                break;
+            case ETPRTNC_FIREWALLALLOWSDELTA:
+                number += block->FirewallAllowDelta.Delta;
+                break;
+            case ETPRTNC_FIREWALLBLOCKSDELTA:
+                number += block->FirewallBlockDelta.Delta;
+                break;
             }
 
             listEntry = listEntry->Flink;
@@ -779,6 +850,8 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NETWORKSENDS:
         case ETPRTNC_NETWORKSENDSDELTA:
         case ETPRTNC_PEAKTHREADS:
+        case ETPRTNC_FIREWALLALLOWS:
+        case ETPRTNC_FIREWALLBLOCKS:
             {
                 PH_FORMAT format[1];
 
@@ -1094,6 +1167,18 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     case ETPRTNC_NPUSHAREDBYTES:
         result = ET_SORT_AGGREGATE_IF_NEEDED(NpuSharedUsage);
+        break;
+    case ETPRTNC_FIREWALLALLOWS:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(FirewallAllowCount);
+        break;
+    case ETPRTNC_FIREWALLBLOCKS:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(FirewallBlockCount);
+        break;
+    case ETPRTNC_FIREWALLALLOWSDELTA:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(FirewallAllowDelta.Delta);
+        break;
+    case ETPRTNC_FIREWALLBLOCKSDELTA:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(FirewallBlockDelta.Delta);
         break;
     }
 
