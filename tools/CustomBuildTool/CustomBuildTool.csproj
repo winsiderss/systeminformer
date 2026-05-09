@@ -169,7 +169,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.47.4" />
+    <PackageReference Include="SharpCompress" Version="0.48.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.7" />
   </ItemGroup>
 </Project>
