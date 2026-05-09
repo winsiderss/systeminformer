@@ -268,7 +268,8 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    ULONG runCount = PtrToUlong(Parameter);
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
+    ULONG runCount = updateEvent->RunCount;
     ULONG64 maxDiskValue = 0;
     ULONG64 maxNetworkValue = 0;
     PET_PROCESS_BLOCK maxDiskBlock = NULL;
@@ -465,6 +466,7 @@ VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
 
     // ETW is flushed in the processes-updated callback above. This may cause us the network

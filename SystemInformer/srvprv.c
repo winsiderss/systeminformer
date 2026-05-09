@@ -752,6 +752,7 @@ VOID PhServiceProviderUpdate(
     static PPHP_SERVICE_NAME_ENTRY nameEntries = NULL;
     static ULONG nameEntriesCount;
     static ULONG nameEntriesAllocated = 0;
+    PH_PROVIDER_UPDATED_EVENT updatedEvent;
     NTSTATUS status;
     LPENUM_SERVICE_STATUS_PROCESS services;
     ULONG numberOfServices;
@@ -1099,7 +1100,10 @@ UpdateStart:
     PhFree(services);
 
 UpdateEnd:
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), UlongToPtr(runCount));
+    updatedEvent.RunCount = runCount;
+    updatedEvent.UpdateInterval = PhCsUpdateInterval;
+
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), &updatedEvent);
 
     PhTraceFuncExit("Service provider run count: %lu", runCount);
 

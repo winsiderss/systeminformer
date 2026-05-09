@@ -69,6 +69,7 @@ typedef struct _PH_NETWORK_ITEM
     };
 
     PPH_PROCESS_ITEM ProcessItem;
+    PH_HASH_ENTRY HashEntry;
 } PH_NETWORK_ITEM, *PPH_NETWORK_ITEM;
 // end_phapppub
 

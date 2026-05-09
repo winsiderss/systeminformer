@@ -63,15 +63,15 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessProviderAddedEvent, // [process provider thread]
     GeneralCallbackProcessProviderModifiedEvent, // [process provider thread]
     GeneralCallbackProcessProviderRemovedEvent, // [process provider thread]
-    GeneralCallbackProcessProviderUpdatedEvent, // PPH_PROCESS_PROVIDER_UPDATED_EVENT [process provider thread]
+    GeneralCallbackProcessProviderUpdatedEvent, // PPH_PROVIDER_UPDATED_EVENT [process provider thread]
     GeneralCallbackServiceProviderAddedEvent, // [service provider thread]
     GeneralCallbackServiceProviderModifiedEvent, // [service provider thread]
     GeneralCallbackServiceProviderRemovedEvent, // [service provider thread]
-    GeneralCallbackServiceProviderUpdatedEvent, // [service provider thread]
+    GeneralCallbackServiceProviderUpdatedEvent, // PPH_PROVIDER_UPDATED_EVENT [service provider thread]
     GeneralCallbackNetworkProviderAddedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderModifiedEvent, // [network provider thread]
     GeneralCallbackNetworkProviderRemovedEvent, // [network provider thread]
-    GeneralCallbackNetworkProviderUpdatedEvent, // [network provider thread]
+    GeneralCallbackNetworkProviderUpdatedEvent, // PPH_PROVIDER_UPDATED_EVENT [network provider thread]
 
     GeneralCallbackLoggedEvent, // [multiple provider threads]
 
@@ -103,10 +103,14 @@ typedef enum _PH_PLUGIN_CALLBACK
 
 // Provider events
 
-typedef struct _PH_PROCESS_PROVIDER_UPDATED_EVENT
+typedef struct _PH_PROVIDER_UPDATED_EVENT
 {
     ULONG RunCount;
-} PH_PROCESS_PROVIDER_UPDATED_EVENT, *PPH_PROCESS_PROVIDER_UPDATED_EVENT;
+    ULONG UpdateInterval;
+} PH_PROVIDER_UPDATED_EVENT, *PPH_PROVIDER_UPDATED_EVENT;
+
+typedef PH_PROVIDER_UPDATED_EVENT PH_PROCESS_PROVIDER_UPDATED_EVENT;
+typedef PPH_PROVIDER_UPDATED_EVENT PPH_PROCESS_PROVIDER_UPDATED_EVENT;
 
 // Plugin events
 

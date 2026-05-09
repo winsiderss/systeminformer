@@ -554,6 +554,7 @@ VOID NTAPI ProcessItemsUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
 
     // Note: no lock is needed because we only ever modify the list on this same thread.
@@ -591,6 +592,7 @@ VOID NTAPI NetworkItemsUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PLIST_ENTRY listEntry;
 
     // Note: no lock is needed because we only ever modify the list on this same thread.

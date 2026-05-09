@@ -647,8 +647,14 @@ VOID NTAPI PhpInformerProcessUpdatedHandler(
     _In_ PVOID Context
     )
 {
-    ULONG runCount = PtrToUlong(Parameter);
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
+    ULONG runCount;
     PPH_INFORMER_DB_REAP reap;
+
+    if (!updateEvent)
+        return;
+
+    runCount = updateEvent->RunCount;
 
     reap = PhAllocateFromFreeList(&PhpInformerReapFreeList);
 

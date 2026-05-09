@@ -2544,6 +2544,7 @@ VOID PhProcessProviderUpdate(
 {
     static ULONG runCount = 0;
     static PSYSTEM_PROCESS_INFORMATION pidBuckets[PROCESS_ID_BUCKETS];
+    PH_PROVIDER_UPDATED_EVENT updatedEvent;
 
     // Note about locking:
     //
@@ -3662,7 +3663,10 @@ VOID PhProcessProviderUpdate(
         }
     }
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), UlongToPtr(runCount));
+    updatedEvent.RunCount = runCount;
+    updatedEvent.UpdateInterval = PhCsUpdateInterval;
+
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &updatedEvent);
 
     PhTraceFuncExit("Process provider run count: %lu", runCount);
 

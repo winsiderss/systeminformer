@@ -151,9 +151,10 @@ VOID NTAPI EtPoolMonProcessesUpdatedCallback(
     _In_ PVOID Context
     )
 {
+    PPH_PROVIDER_UPDATED_EVENT updateEvent = Parameter;
     PPOOLTAG_CONTEXT context = Context;
 
-    if (PtrToUlong(Parameter) < 3)
+    if (!updateEvent || updateEvent->RunCount < 3)
         return;
 
     EtUpdatePoolTagTable(Context);
