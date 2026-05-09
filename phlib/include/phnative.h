@@ -7239,6 +7239,14 @@ PhWinStationFreeMemory(
     _In_ PVOID Buffer
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWinStationQueryUserToken(
+    _In_ ULONG SessionId,
+    _Out_ PHANDLE UserToken
+    );
+
 EXTERN_C_END
 
 #endif

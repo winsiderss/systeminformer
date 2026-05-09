@@ -22,7 +22,7 @@
  * \param HotkeyModifiers The virtual key modifiers for the hotkey.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationShadow(
+NTSTATUS PhWinStationShadow(
     _In_ PCWSTR TargetServerName,
     _In_ ULONG TargetSessionId,
     _In_ UCHAR HotKeyVk,
@@ -53,7 +53,7 @@ NTSTATUS NTAPI PhWinStationShadow(
  * \param ReturnLength A variable that receives the number of bytes returned.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWindowStationQueryInformation(
+NTSTATUS PhWindowStationQueryInformation(
     _In_ ULONG SessionId,
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
     _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
@@ -82,12 +82,14 @@ NTSTATUS NTAPI PhWindowStationQueryInformation(
  * \param SessionInformation A buffer that receives the session information.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhGetWindowStationSessionInformation(
+NTSTATUS PhGetWindowStationSessionInformation(
     _In_ ULONG SessionId,
     _Out_ PWINSTATIONINFORMATION SessionInformation
     )
 {
     ULONG returnLength;
+
+    RtlZeroMemory(SessionInformation, sizeof(WINSTATIONINFORMATION));
 
     return PhWindowStationQueryInformation(
         SessionId,
@@ -105,7 +107,7 @@ NTSTATUS NTAPI PhGetWindowStationSessionInformation(
  * \param Count A variable that receives the number of sessions returned.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationEnumerate(
+NTSTATUS PhWinStationEnumerate(
     _Out_ PSESSIONIDW* SessionIds,
     _Out_ PULONG Count
     )
@@ -136,7 +138,7 @@ NTSTATUS NTAPI PhWinStationEnumerate(
  * \param DoNotWait Whether to wait for the user's response.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationSendMessage(
+NTSTATUS PhWinStationSendMessage(
     _In_ ULONG SessionId,
     _In_ PCWSTR Title,
     _In_ ULONG TitleLength,
@@ -176,7 +178,7 @@ NTSTATUS NTAPI PhWinStationSendMessage(
  * \param Wait Whether to wait for the connection to complete.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationConnect(
+NTSTATUS PhWinStationConnect(
     _In_ ULONG SessionId,
     _In_ ULONG TargetSessionId,
     _In_opt_ PCWSTR Password,
@@ -204,7 +206,7 @@ NTSTATUS NTAPI PhWinStationConnect(
  * \param Wait Whether to wait for the disconnection to complete.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationDisconnect(
+NTSTATUS PhWinStationDisconnect(
     _In_ ULONG SessionId,
     _In_ BOOLEAN Wait
     )
@@ -228,7 +230,7 @@ NTSTATUS NTAPI PhWinStationDisconnect(
  * \param Wait Whether to wait for the reset to complete.
  * \return NTSTATUS Successful or errant status.
  */
-NTSTATUS NTAPI PhWinStationReset(
+NTSTATUS PhWinStationReset(
     _In_ ULONG SessionId,
     _In_ BOOLEAN Wait
     )
@@ -250,9 +252,45 @@ NTSTATUS NTAPI PhWinStationReset(
  *
  * \param Buffer The buffer to free.
  */
-VOID NTAPI PhWinStationFreeMemory(
+VOID PhWinStationFreeMemory(
     _In_ PVOID Buffer
     )
 {
     WinStationFreeMemory(Buffer);
+}
+
+/**
+ * Retrieves the user token for a specified session.
+ *
+ * \param SessionId The session ID.
+ * \param UserToken A variable that receives the user token handle.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhWinStationQueryUserToken(
+    _In_ ULONG SessionId,
+    _Out_ PHANDLE UserToken
+    )
+{
+    WINSTATIONUSERTOKEN userToken;
+    ULONG returnLength;
+
+    memset(&userToken, 0, sizeof(WINSTATIONUSERTOKEN));
+    userToken.ProcessId = NtCurrentProcessId();
+    userToken.ThreadId = NtCurrentThreadId();
+
+    if (WinStationQueryInformationW(
+        WINSTATION_CURRENT_SERVER,
+        SessionId,
+        WinStationUserToken,
+        &userToken,
+        sizeof(WINSTATIONUSERTOKEN),
+        &returnLength
+        ))
+    {
+        *UserToken = userToken.UserToken;
+        return STATUS_SUCCESS;
+    }
+
+    *UserToken = NULL;
+    return PhGetLastWin32ErrorAsNtStatus();
 }
