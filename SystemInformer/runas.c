@@ -1156,6 +1156,7 @@ NTSTATUS PhRunAsExecuteParentCommand(
 
             PhConsoleSetForeground(newProcessHandle, TRUE);
 
+            PhResumeProcess(newProcessHandle);
         }
     }
 
