@@ -13,11 +13,11 @@
 
 BOOLEAN CustomizeStatusBarItemExists(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT IdCommand
+    _In_ LONG IdCommand
     )
 {
-    INT index = 0;
-    INT count = 0;
+    LONG index = 0;
+    LONG count = 0;
     PBUTTON_CONTEXT button;
 
     if ((count = ListBox_GetCount(Context->CurrentListHandle)) == LB_ERR)
@@ -36,7 +36,7 @@ BOOLEAN CustomizeStatusBarItemExists(
 }
 
 VOID CustomizeInsertStatusBarItem(
-    _In_ INT Index,
+    _In_ LONG Index,
     _In_ PBUTTON_CONTEXT Button
     )
 {
@@ -47,11 +47,11 @@ VOID CustomizeInsertStatusBarItem(
 
 VOID CustomizeAddStatusBarItem(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT IndexAvail,
-    _In_ INT IndexTo
+    _In_ LONG IndexAvail,
+    _In_ LONG IndexTo
     )
 {
-    INT count;
+    LONG count;
     PBUTTON_CONTEXT button;
 
     if ((count = ListBox_GetCount(Context->AvailableListHandle)) == LB_ERR)
@@ -85,7 +85,7 @@ VOID CustomizeAddStatusBarItem(
 
 VOID CustomizeRemoveStatusBarItem(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT IndexFrom
+    _In_ LONG IndexFrom
     )
 {
     PBUTTON_CONTEXT button;
@@ -100,7 +100,7 @@ VOID CustomizeRemoveStatusBarItem(
 
     if (!button->IsVirtual)
     {
-        INT count = ListBox_GetCount(Context->AvailableListHandle);
+        LONG count = ListBox_GetCount(Context->AvailableListHandle);
 
         if (count == LB_ERR)
             count = 1;
@@ -116,11 +116,11 @@ VOID CustomizeRemoveStatusBarItem(
 
 VOID CustomizeMoveStatusBarItem(
     _In_ PCUSTOMIZE_CONTEXT Context,
-    _In_ INT IndexFrom,
-    _In_ INT IndexTo
+    _In_ LONG IndexFrom,
+    _In_ LONG IndexTo
     )
 {
-    INT count;
+    LONG count;
     PBUTTON_CONTEXT button;
 
     if (IndexFrom == IndexTo)
@@ -164,8 +164,8 @@ VOID CustomizeFreeStatusBarItems(
     _In_ PCUSTOMIZE_CONTEXT Context
     )
 {
-    INT index = 0;
-    INT count = 0;
+    LONG index = 0;
+    LONG count = 0;
     PBUTTON_CONTEXT button;
 
     if ((count = ListBox_GetCount(Context->CurrentListHandle)) != LB_ERR)
@@ -248,46 +248,42 @@ VOID CustomizeLoadStatusBarItems(
 }
 
 INT_PTR CALLBACK CustomizeStatusBarDialogProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
     PCUSTOMIZE_CONTEXT context = NULL;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
         context = PhAllocate(sizeof(CUSTOMIZE_CONTEXT));
         memset(context, 0, sizeof(CUSTOMIZE_CONTEXT));
 
-        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (context == NULL)
         return FALSE;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_INITDIALOG:
         {
-            PhSetApplicationWindowIcon(hwndDlg);
+            context->WindowHandle = WindowHandle;
+            context->AvailableListHandle = GetDlgItem(WindowHandle, IDC_AVAILABLE);
+            context->CurrentListHandle = GetDlgItem(WindowHandle, IDC_CURRENT);
+            context->MoveUpButtonHandle = GetDlgItem(WindowHandle, IDC_MOVEUP);
+            context->MoveDownButtonHandle = GetDlgItem(WindowHandle, IDC_MOVEDOWN);
+            context->AddButtonHandle = GetDlgItem(WindowHandle, IDC_ADD);
+            context->RemoveButtonHandle = GetDlgItem(WindowHandle, IDC_REMOVE);
 
-            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
-
-            context->WindowHandle = hwndDlg;
-            context->AvailableListHandle = GetDlgItem(hwndDlg, IDC_AVAILABLE);
-            context->CurrentListHandle = GetDlgItem(hwndDlg, IDC_CURRENT);
-            context->MoveUpButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEUP);
-            context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_MOVEDOWN);
-            context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ADD);
-            context->RemoveButtonHandle = GetDlgItem(hwndDlg, IDC_REMOVE);
-
-            context->WindowDpi = PhGetWindowDpi(hwndDlg);
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
 
             if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT))
@@ -305,13 +301,16 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
             }
 
+            PhSetApplicationWindowIcon(WindowHandle);
+
+            PhCenterWindow(WindowHandle, GetParent(WindowHandle));
 
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
             ListBox_SetItemHeight(context->CurrentListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
 
             CustomizeLoadStatusBarItems(context);
 
-            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
 
             PhSetDialogFocus(context->WindowHandle, context->CurrentListHandle);
         }
@@ -337,13 +336,13 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
         break;
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
         }
         break;
     case WM_DPICHANGED:
         {
-            context->WindowDpi = LOWORD(wParam); // PhGetWindowDpi(hwndDlg);
+            context->WindowDpi = LOWORD(wParam); // PhGetWindowDpi(WindowHandle);
             if (context->FontHandle) DeleteFont(context->FontHandle);
             context->FontHandle = PhCreateIconTitleFont(context->WindowDpi);
             ListBox_SetItemHeight(context->AvailableListHandle, 0, PhScaleToDisplay(22, context->WindowDpi)); // BitmapHeight
@@ -363,8 +362,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     {
                     case LBN_SELCHANGE:
                         {
-                            INT count;
-                            INT index;
+                            LONG count;
+                            LONG index;
 
                             if ((count = ListBox_GetCount(context->AvailableListHandle)) == LB_ERR)
                                 break;
@@ -384,9 +383,9 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                         break;
                     case LBN_DBLCLK:
                         {
-                            INT count;
-                            INT index;
-                            INT indexto;
+                            LONG count;
+                            LONG index;
+                            LONG indexto;
 
                             if ((count = ListBox_GetCount(context->AvailableListHandle)) == LB_ERR)
                                 break;
@@ -420,8 +419,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                     {
                     case LBN_SELCHANGE:
                         {
-                            INT count;
-                            INT index;
+                            LONG count;
+                            LONG index;
                             PBUTTON_CONTEXT button;
 
                             if ((count = ListBox_GetCount(context->CurrentListHandle)) == LB_ERR)
@@ -469,8 +468,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                         break;
                     case LBN_DBLCLK:
                         {
-                            INT count;
-                            INT index;
+                            LONG count;
+                            LONG index;
 
                             if ((count = ListBox_GetCount(context->CurrentListHandle)) == LB_ERR)
                                 break;
@@ -499,8 +498,8 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDC_ADD:
                 {
-                    INT index;
-                    INT indexto;
+                    LONG index;
+                    LONG indexto;
 
                     if ((index = ListBox_GetCurSel(context->AvailableListHandle)) == LB_ERR)
                         break;
@@ -513,7 +512,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDC_REMOVE:
                 {
-                    INT index;
+                    LONG index;
 
                     if ((index = ListBox_GetCurSel(context->CurrentListHandle)) == LB_ERR)
                         break;
@@ -523,7 +522,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDC_MOVEUP:
                 {
-                    INT index;
+                    LONG index;
 
                     if ((index = ListBox_GetCurSel(context->CurrentListHandle)) == LB_ERR)
                         break;
@@ -533,7 +532,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDC_MOVEDOWN:
                 {
-                    INT index;
+                    LONG index;
 
                     if ((index = ListBox_GetCurSel(context->CurrentListHandle)) == LB_ERR)
                         break;
@@ -556,7 +555,7 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
                 break;
             case IDCANCEL:
                 {
-                    EndDialog(hwndDlg, IDCANCEL);
+                    EndDialog(WindowHandle, IDCANCEL);
                 }
                 break;
             }
@@ -637,11 +636,11 @@ INT_PTR CALLBACK CustomizeStatusBarDialogProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
