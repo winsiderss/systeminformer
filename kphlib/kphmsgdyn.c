@@ -144,6 +144,7 @@ NTSTATUS KphpMsgDynLookupEntry(
 {
     NTSTATUS status;
     PCKPH_MESSAGE_DYNAMIC_TABLE_ENTRY entry;
+    USHORT endOffset;
 
     *Entry = NULL;
 
@@ -164,7 +165,8 @@ NTSTATUS KphpMsgDynLookupEntry(
         return STATUS_CONTEXT_MISMATCH;
     }
 
-    if (entry->Offset >= Message->Header.Size)
+    status = RtlUShortAdd(entry->Offset, entry->Length, &endOffset);
+    if (!NT_SUCCESS(status) || (endOffset > Message->Header.Size))
     {
         return STATUS_HEAP_CORRUPTION;
     }
