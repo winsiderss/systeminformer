@@ -404,20 +404,25 @@ NTSTATUS KphMsgDynAddStackTrace(
 {
     NTSTATUS status;
     PKPH_MESSAGE_DYNAMIC_TABLE_ENTRY entry;
+    USHORT length;
+
+    status = RtlUShortMult(StackTrace->Count, sizeof(PVOID), &length);
+    if (!NT_SUCCESS(status))
+    {
+        return status;
+    }
 
     status = KphpMsgDynClaimEntry(Message,
                                   FieldId,
                                   KphMsgTypeStackTrace,
-                                  (StackTrace->Count * sizeof(PVOID)),
+                                  length,
                                   &entry);
     if (!NT_SUCCESS(status))
     {
         return status;
     }
 
-    RtlCopyMemory(Add2Ptr(Message, entry->Offset),
-                  StackTrace->Frames,
-                  (StackTrace->Count * sizeof(PVOID)));
+    RtlCopyMemory(Add2Ptr(Message, entry->Offset), StackTrace->Frames, length);
 
     return STATUS_SUCCESS;
 }
