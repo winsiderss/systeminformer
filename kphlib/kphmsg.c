@@ -80,6 +80,11 @@ NTSTATUS KphMsgValidate(
         return STATUS_INVALID_MESSAGE;
     }
 
+    if (Message->_Dyn.Count > ARRAYSIZE(Message->_Dyn.Entries))
+    {
+        return STATUS_INVALID_MESSAGE;
+    }
+
     if (Message->Header.MessageId != KphMsgUnhandled)
     {
         if ((Message->Header.MessageId <= InvalidKphMsg) ||
