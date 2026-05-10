@@ -1005,6 +1005,7 @@ KPH_PROCESS_STATE KSIAPI KphpCommsCreateFileRequires(
 {
     ACCESS_MASK desiredAccess;
     ULONG createDisposition;
+    ULONG options;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
@@ -1022,6 +1023,13 @@ KPH_PROCESS_STATE KSIAPI KphpCommsCreateFileRequires(
     createDisposition = Message->User.CreateFile.CreateDisposition;
 
     if (createDisposition != KPH_FILE_READ_DISPOSITION)
+    {
+        return KPH_PROCESS_STATE_MAXIMUM;
+    }
+
+    options = Message->User.CreateFile.Options;
+
+    if (options & (IO_IGNORE_SHARE_ACCESS_CHECK | IO_OPEN_PAGING_FILE))
     {
         return KPH_PROCESS_STATE_MAXIMUM;
     }
