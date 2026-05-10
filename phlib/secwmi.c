@@ -684,7 +684,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     // dialog automatically converts the descriptor for us
     // so we don't have to convert just validate. (dmex)
 
-    if (RtlValidSecurityDescriptor(securityDescriptorData))
+    if (PhValidSecurityDescriptor(securityDescriptorData))
     {
         securityDescriptor = PhAllocateCopy(
             securityDescriptorData,
@@ -848,7 +848,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
             NULL
             ) == MI_RESULT_OK && type == MI_UINT8A && value.uint8a.data && value.uint8a.size)
         {
-            if (RtlValidSecurityDescriptor(value.uint8a.data))
+            if (PhValidSecurityDescriptor(value.uint8a.data))
             {
                 securityDescriptor = PhAllocateCopy(
                     value.uint8a.data,
@@ -954,7 +954,7 @@ NTSTATUS PhSetWmiNamespaceSecurityDescriptor(
     if (HR_FAILED(status))
         goto CleanupExit;
 
-    if (RtlValidRelativeSecurityDescriptor(
+    if (PhValidRelativeSecurityDescriptor(
         SecurityDescriptor,
         PhLengthSecurityDescriptor(SecurityDescriptor),
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION |
@@ -1154,7 +1154,7 @@ NTSTATUS PhGetComSecurityDescriptorOverride(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    if (!RtlValidRelativeSecurityDescriptor(
+    if (!PhValidRelativeSecurityDescriptor(
         (PSECURITY_DESCRIPTOR)value->Data,
         value->DataLength,
         OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION
@@ -1214,7 +1214,7 @@ NTSTATUS PhGetComSecurityDescriptor(
         return STATUS_UNSUCCESSFUL;
     }
 
-    if (!RtlValidSecurityDescriptor(securityDescriptor))
+    if (!PhValidSecurityDescriptor(securityDescriptor))
     {
         status = STATUS_INVALID_SECURITY_DESCR;
         goto CleanupExit;
@@ -1229,7 +1229,7 @@ CleanupExit:
     if (securityDescriptor)
         LocalFree(securityDescriptor);
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**

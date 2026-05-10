@@ -1219,7 +1219,7 @@ NTSTATUS PhInitializeComPolicy(
     }
 
 #ifdef DEBUG
-    assert(RtlValidSecurityDescriptor(securityDescriptor));
+    assert(PhValidSecurityDescriptor(securityDescriptor));
     assert(securityDescriptorAllocationLength < sizeof(securityDescriptorBuffer));
     assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 #endif

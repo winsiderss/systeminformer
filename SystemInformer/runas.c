@@ -1821,7 +1821,7 @@ NTSTATUS PhRunAsUpdateDesktop(
 
             if (NT_SUCCESS(status))
             {
-                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+                assert(PhValidSecurityDescriptor(&newSecurityDescriptor));
 
                 status = PhSetObjectSecurity(desktopHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
@@ -1994,7 +1994,7 @@ NTSTATUS PhRunAsUpdateWindowStation(
 
             if (NT_SUCCESS(status))
             {
-                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+                assert(PhValidSecurityDescriptor(&newSecurityDescriptor));
 
                 status = PhSetObjectSecurity(wsHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
@@ -2103,7 +2103,7 @@ NTSTATUS PhRunAsUpdateWindowStation(
 //#ifdef DEBUG
 //    assert(RtlValidSecurityDescriptor(securityDescriptor));
 //    assert(allocationLength < sizeof(securityDescriptorBuffer));
-//    assert(RtlLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
+//    assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 //#endif
 //
 //    return STATUS_SUCCESS;

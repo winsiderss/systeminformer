@@ -121,7 +121,7 @@ NTSTATUS PhCreatePipeEx(
                     objectAttributes.SecurityDescriptor = &securityDescriptor;
                 }
 
-                assert(RtlValidSecurityDescriptor(&securityDescriptor));
+                assert(PhValidSecurityDescriptor(&securityDescriptor));
             }
         }
 

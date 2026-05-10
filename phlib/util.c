@@ -6059,7 +6059,7 @@ NTSTATUS PhFilterTokenForLimitedUser(
 
             if (NT_SUCCESS(status))
             {
-                assert(RtlValidSecurityDescriptor(&newSecurityDescriptor));
+                assert(PhValidSecurityDescriptor(&newSecurityDescriptor));
 
                 status = PhSetObjectSecurity(newTokenHandle, DACL_SECURITY_INFORMATION, &newSecurityDescriptor);
             }
@@ -8724,7 +8724,7 @@ HANDLE PhGetNamespaceHandle(
 
         NtCreateDirectoryObject(&directoryHandle, MAXIMUM_ALLOWED, &objectAttributes);
 
-        assert(RtlValidSecurityDescriptor(securityDescriptor));
+        assert(PhValidSecurityDescriptor(securityDescriptor));
         assert(daclLength < sizeof(securityDescriptorBuffer));
         assert(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
     CleanupExit:

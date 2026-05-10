@@ -1526,7 +1526,7 @@ typedef struct _PH_TOKEN_USER
     };
 } PH_TOKEN_USER, *PPH_TOKEN_USER;
 
-C_ASSERT(sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE);
+static_assert(sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE, "sizeof(PH_TOKEN_USER) >= TOKEN_USER_MAX_SIZE");
 
 PHLIBAPI
 NTSTATUS
@@ -1550,7 +1550,7 @@ typedef struct _PH_TOKEN_OWNER
     };
 } PH_TOKEN_OWNER, *PPH_TOKEN_OWNER;
 
-C_ASSERT(sizeof(PH_TOKEN_OWNER) >= TOKEN_OWNER_MAX_SIZE);
+static_assert(sizeof(PH_TOKEN_OWNER) >= TOKEN_OWNER_MAX_SIZE, "sizeof(PH_TOKEN_OWNER) >= TOKEN_OWNER_MAX_SIZE");
 
 PHLIBAPI
 NTSTATUS
@@ -1622,7 +1622,7 @@ typedef struct _PH_TOKEN_APPCONTAINER
     };
 } PH_TOKEN_APPCONTAINER, *PPH_TOKEN_APPCONTAINER;
 
-C_ASSERT(sizeof(PH_TOKEN_APPCONTAINER) >= TOKEN_APPCONTAINER_SID_MAX_SIZE);
+static_assert(sizeof(PH_TOKEN_APPCONTAINER) >= TOKEN_APPCONTAINER_SID_MAX_SIZE, "sizeof(PH_TOKEN_APPCONTAINER) >= TOKEN_APPCONTAINER_SID_MAX_SIZE");
 
 PHLIBAPI
 NTSTATUS
@@ -1711,6 +1711,28 @@ NTAPI
 PhGetProcessPackageFullName(
     _In_ HANDLE ProcessHandle
     );
+
+// rev from RtlValidAcl (dmex)
+/**
+ * Validates an ACL.
+ *
+ * \param Acl The ACL to validate.
+ * \return TRUE if the ACL is valid, FALSE otherwise.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidAcl(
+    _In_opt_ PACL Acl
+    )
+{
+    if (!Acl || Acl->AclRevision < MIN_ACL_REVISION || Acl->AclRevision > MAX_ACL_REVISION)
+        return FALSE;
+    if (Acl->AclSize < sizeof(ACL))
+        return FALSE;
+
+    return RtlValidAcl(Acl);
+}
 
 // rev from RtlInitializeSid (dmex)
 /**
@@ -2001,6 +2023,9 @@ PhLengthSecurityDescriptor(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlLengthSecurityDescriptor(SecurityDescriptor);
+#else
     PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
     PCSID owner = NULL;
     PCSID group = NULL;
@@ -2110,28 +2135,244 @@ PhLengthSecurityDescriptor(
 #endif
 
     return length;
+#endif
 }
 
-// rev from RtlValidAcl (dmex)
-/**
- * Validates an ACL.
- *
- * \param Acl The ACL to validate.
- * \return TRUE if the ACL is valid, FALSE otherwise.
- */
 FORCEINLINE
 BOOLEAN
 NTAPI
-PhValidAcl(
-    _In_opt_ PACL Acl
+PhValidSecurityDescriptor(
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     )
 {
-    if (!Acl || Acl->AclRevision < MIN_ACL_REVISION || Acl->AclRevision > MAX_ACL_REVISION)
-        return FALSE;
-    if (Acl->AclSize < sizeof(ACL))
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlValidSecurityDescriptor(SecurityDescriptor);
+#else
+    PISECURITY_DESCRIPTOR securityDescriptor = (PISECURITY_DESCRIPTOR)SecurityDescriptor;
+    PISECURITY_DESCRIPTOR_RELATIVE securityDescriptorRelative = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+    PCSID owner;
+    PCSID group;
+    PACL dacl;
+    PACL sacl;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
         return FALSE;
 
-    return RtlValidAcl(Acl);
+    //
+    // Owner
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        owner = securityDescriptorRelative->Owner ? (PCSID)RTL_PTR_ADD(securityDescriptor, securityDescriptorRelative->Owner) : NULL;
+    }
+    else
+    {
+        owner = (PCSID)securityDescriptor->Owner;
+    }
+
+    if (owner && !PhValidSid(owner))
+    {
+        return FALSE;
+    }
+
+    //
+    // Group
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+    {
+        group = securityDescriptorRelative->Group ? (PCSID)RTL_PTR_ADD(securityDescriptor, securityDescriptorRelative->Group) : NULL;
+    }
+    else
+    {
+        group = (PCSID)securityDescriptor->Group;
+    }
+
+    if (group && !PhValidSid(group))
+    {
+        return FALSE;
+    }
+
+    //
+    // Dacl
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_DACL_PRESENT))
+    {
+        if (FlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        {
+            dacl = securityDescriptorRelative->Dacl ? (PACL)RTL_PTR_ADD(securityDescriptor, securityDescriptorRelative->Dacl) : NULL;
+        }
+        else
+        {
+            dacl = securityDescriptor->Dacl;
+        }
+
+        if (dacl && !PhValidAcl(dacl))
+        {
+            return FALSE;
+        }
+    }
+
+    //
+    // Sacl
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_SACL_PRESENT))
+    {
+        if (FlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        {
+            sacl = securityDescriptorRelative->Sacl ? (PACL)RTL_PTR_ADD(securityDescriptor, securityDescriptorRelative->Sacl) : NULL;
+        }
+        else
+        {
+            sacl = securityDescriptor->Sacl;
+        }
+
+        if (sacl && !PhValidAcl(sacl))
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+PhValidateRelativeSidAtOffset(
+    _In_ PVOID Base,
+    _In_ ULONG Length,
+    _In_ ULONG Offset
+    )
+{
+    PISID sid;
+    ULONG remaining;
+    ULONG minimumLength;
+
+    if (Offset >= Length || Offset < sizeof(SECURITY_DESCRIPTOR_RELATIVE))
+        return FALSE;
+
+    remaining = Length - Offset;
+ 
+    if (remaining < sizeof(SID) || !IS_ALIGNED(Offset, sizeof(ULONG)))
+        return FALSE;
+
+    sid = (PISID)RTL_PTR_ADD(Base, Offset);
+
+    if (sid->Revision != SID_REVISION || sid->SubAuthorityCount > SID_MAX_SUB_AUTHORITIES)
+        return FALSE;
+
+    minimumLength = FIELD_OFFSET(SID, SubAuthority) + RTL_FIELD_SIZE(SID, SubAuthority) * sid->SubAuthorityCount;
+
+    if (remaining < minimumLength)
+        return FALSE;
+
+    return TRUE;
+}
+
+FORCEINLINE
+BOOLEAN
+PhValidateRelativeAclAtOffset(
+    _In_ PVOID Base,
+    _In_ ULONG Length,
+    _In_ ULONG Offset
+    )
+{
+    PACL acl;
+    ULONG remaining;
+
+    if (Offset >= Length || Offset < sizeof(SECURITY_DESCRIPTOR_RELATIVE))
+        return FALSE;
+
+    remaining = Length - Offset;
+
+    if (remaining < sizeof(ACL) || !IS_ALIGNED(Offset, sizeof(ULONG)))
+        return FALSE;
+
+    acl = (PACL)RTL_PTR_ADD(Base, Offset);
+
+    if (remaining < acl->AclSize)
+        return FALSE;
+
+    return PhValidAcl(acl);
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhValidRelativeSecurityDescriptor(
+    _In_reads_bytes_(SecurityDescriptorLength) PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG SecurityDescriptorLength,
+    _In_ SECURITY_INFORMATION RequiredInformation
+    )
+{
+#if defined(PHNT_NATIVE_INLINE)
+    return RtlValidRelativeSecurityDescriptor(SecurityDescriptor, SecurityDescriptorLength, RequiredInformation);
+#else
+    PISECURITY_DESCRIPTOR_RELATIVE securityDescriptor = (PISECURITY_DESCRIPTOR_RELATIVE)SecurityDescriptor;
+
+    if (SecurityDescriptorLength < sizeof(SECURITY_DESCRIPTOR_RELATIVE))
+        return FALSE;
+
+    if (securityDescriptor->Revision != SECURITY_DESCRIPTOR_REVISION)
+        return FALSE;
+
+    if (!FlagOn(securityDescriptor->Control, SE_SELF_RELATIVE))
+        return FALSE;
+
+    //
+    // Owner
+    //
+
+    if (securityDescriptor->Owner)
+    {
+        if (!PhValidateRelativeSidAtOffset(SecurityDescriptor, SecurityDescriptorLength, securityDescriptor->Owner))
+            return FALSE;
+    }
+    else if (FlagOn(RequiredInformation, OWNER_SECURITY_INFORMATION))
+    {
+        return FALSE;
+    }
+
+    //
+    // Group
+    //
+
+    if (securityDescriptor->Group)
+    {
+        if (!PhValidateRelativeSidAtOffset(SecurityDescriptor, SecurityDescriptorLength, securityDescriptor->Group))
+            return FALSE;
+    }
+    else if (FlagOn(RequiredInformation, GROUP_SECURITY_INFORMATION))
+    {
+        return FALSE;
+    }
+
+    //
+    // Dacl
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_DACL_PRESENT) && securityDescriptor->Dacl)
+    {
+        if (!PhValidateRelativeAclAtOffset(SecurityDescriptor, SecurityDescriptorLength, securityDescriptor->Dacl))
+            return FALSE;
+    }
+
+    //
+    // Sacl
+    //
+
+    if (FlagOn(securityDescriptor->Control, SE_SACL_PRESENT) || securityDescriptor->Sacl)
+    {
+        if (!PhValidateRelativeAclAtOffset(SecurityDescriptor, SecurityDescriptorLength, securityDescriptor->Sacl))
+            return FALSE;
+    }
+
+    return TRUE;
+#endif
 }
 
 /**

@@ -466,7 +466,7 @@ NTSTATUS KphSetServiceSecurity(
         securityDescriptor
         );
 
-    NT_ASSERT(RtlValidSecurityDescriptor(securityDescriptor));
+    NT_ASSERT(PhValidSecurityDescriptor(securityDescriptor));
     NT_ASSERT(daclLength < sizeof(securityDescriptorBuffer));
     NT_ASSERT(PhLengthSecurityDescriptor(securityDescriptor) < sizeof(securityDescriptorBuffer));
 

@@ -1715,10 +1715,10 @@ NTSTATUS PhGetSeObjectSecurityTokenDefault(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        assert(RtlValidSecurityDescriptor(securityDescriptor));
+        assert(PhValidSecurityDescriptor(securityDescriptor));
         assert(allocationLength == PhLengthSecurityDescriptor(securityDescriptor));
 
-        assert(RtlValidSecurityDescriptor(securityRelative));
+        assert(PhValidSecurityDescriptor(securityRelative));
         assert(allocationLengthRelative == PhLengthSecurityDescriptor(securityRelative));
 
 CleanupExit:
