@@ -1078,6 +1078,7 @@ NTSTATUS KphQueryInformationObject(
             status = STATUS_INVALID_HANDLE;
             goto Exit;
         }
+
         accessMode = AccessMode;
     }
 
