@@ -75,6 +75,11 @@ VOID NTAPI LoadCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPH_STARTUP_PARAMETERS StartupParameters = (PPH_STARTUP_PARAMETERS)Parameter;
+
+    if (StartupParameters->PhSvc)
+        return;
+
     EtWindowsVersion = PhWindowsVersion;
     EtIsExecutingInWow64 = PhIsExecutingInWow64();
     EtSampleCount = PhGetIntegerSetting(SETTING_SAMPLE_COUNT);
