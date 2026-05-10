@@ -162,7 +162,7 @@ LRESULT CALLBACK PhColorBoxWndProc(
 
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                updateRect = paintStruct.rcPaint;
+                GetClientRect(hwnd, &updateRect);
 
                 // Border color
                 oldPen = SelectPen(hdc, PhGetStockPen(DC_PEN));

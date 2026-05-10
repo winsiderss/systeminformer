@@ -738,15 +738,24 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_NCPAINT:
         {
             RECT windowRect;
+            RECT windowRectStart;
+            RECT bufferRect;
+            LONG width;
+            LONG height;
             HDC hdc;
-            ULONG flags;
             HRGN updateRegion;
+            ULONG flags;
 
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
-            updateRegion = (HRGN)wParam;
+            width = windowRect.right - windowRect.left;
+            height = windowRect.bottom - windowRect.top;
 
+            if (width <= 0 || height <= 0)
+                break;
+
+            updateRegion = (HRGN)wParam;
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
 
@@ -755,95 +764,94 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (updateRegion)
                 flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
 
-            if (hdc = GetDCEx(WindowHandle, updateRegion, flags))
+            hdc = GetDCEx(WindowHandle, updateRegion, flags);
+            if (!hdc)
+                break;
+
+            //
+            // Normalize window coordinates → (0,0)
+            //
+
+            PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+            windowRectStart = windowRect;
+
+            bufferRect.left = 0;
+            bufferRect.top = 0;
+            bufferRect.right = width;
+            bufferRect.bottom = height;
+
+            if (context->BufferedDc && (
+                context->BufferedContextRect.right < bufferRect.right ||
+                context->BufferedContextRect.bottom < bufferRect.bottom))
             {
-                RECT windowRectStart;
-                RECT bufferRect;
-
-                // Adjust the coordinates (start from 0,0).
-                PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-                windowRectStart = windowRect;
-
-                // Exclude client area.
-                ExcludeClipRect(
-                    hdc,
-                    windowRect.left + (context->BorderSize + 1),
-                    windowRect.top + (context->BorderSize + 1),
-                    windowRect.right - (context->ButtonWidth * PH_SC_BUTTON_COUNT) - (context->BorderSize + 1),
-                    windowRect.bottom - (context->BorderSize + 1)
-                    );
-
-                bufferRect.left = 0;
-                bufferRect.top = 0;
-                bufferRect.right = windowRect.right - windowRect.left;
-                bufferRect.bottom = windowRect.bottom - windowRect.top;
-
-                if (context->BufferedDc && (
-                    context->BufferedContextRect.right < bufferRect.right ||
-                    context->BufferedContextRect.bottom < bufferRect.bottom))
-                {
-                    PhpSearchControlDestroyBufferedContext(context);
-                }
-
-                if (!context->BufferedDc)
-                {
-                    PhpSearchControlCreateBufferedContext(context, hdc, &bufferRect);
-                }
-
-                if (!context->BufferedDc)
-                {
-                    ReleaseDC(WindowHandle, hdc);
-                    break;
-                }
-
-                if (GetFocus() == WindowHandle)
-                {
-                    FrameRect(context->BufferedDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
-                    PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-                }
-                else if (context->Hot)
-                {
-                    if (PhEnableThemeSupport)
-                    {
-                        SetDCBrushColor(context->BufferedDc, PhThemeWindowHighlight2Color);
-                        FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
-                    }
-                    else
-                    {
-                        SetDCBrushColor(context->BufferedDc, RGB(43, 43, 43));
-                        FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
-                    }
-
-                    PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-                }
-                else
-                {
-                    FrameRect(context->BufferedDc, &windowRect, context->FrameBrush);
-                    PhInflateRect(&windowRect, -1, -1);
-                    FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-                }
-
-                PhpSearchDrawWindow(context, WindowHandle, context->BufferedDc, &windowRectStart);
-                PhpSearchDrawButton(context, &context->SearchButton, WindowHandle, context->BufferedDc, &windowRectStart);
-                PhpSearchDrawButton(context, &context->RegexButton, WindowHandle, context->BufferedDc, &windowRectStart);
-                PhpSearchDrawButton(context, &context->CaseButton, WindowHandle, context->BufferedDc, &windowRectStart);
-
-                BitBlt(
-                    hdc,
-                    bufferRect.left,
-                    bufferRect.top,
-                    bufferRect.right,
-                    bufferRect.bottom,
-                    context->BufferedDc,
-                    0,
-                    0,
-                    SRCCOPY
-                    );
-
-                ReleaseDC(WindowHandle, hdc);
+                PhpSearchControlDestroyBufferedContext(context);
             }
+
+            if (!context->BufferedDc)
+                PhpSearchControlCreateBufferedContext(context, hdc, &bufferRect);
+
+            if (!context->BufferedDc)
+                goto Cleanup;
+
+            //
+            // Exclude client area from NC drawing
+            //
+
+            ExcludeClipRect(
+                hdc,
+                windowRect.left + (context->BorderSize + 1),
+                windowRect.top + (context->BorderSize + 1),
+                windowRect.right - (context->ButtonWidth * PH_SC_BUTTON_COUNT) - (context->BorderSize + 1),
+                windowRect.bottom - (context->BorderSize + 1)
+                );
+
+            //
+            // NC Frame
+            //
+
+            if (GetFocus() == WindowHandle)
+            {
+                FrameRect(context->BufferedDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
+                PhInflateRect(&windowRect, -1, -1);
+                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
+            }
+            else if (context->Hot)
+            {
+                SetDCBrushColor(
+                    context->BufferedDc,
+                    PhEnableThemeSupport ?
+                    PhThemeWindowHighlight2Color :
+                    RGB(43, 43, 43)
+                    );
+
+                FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                PhInflateRect(&windowRect, -1, -1);
+                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
+            }
+            else
+            {
+                FrameRect(context->BufferedDc, &windowRect, context->FrameBrush);
+                PhInflateRect(&windowRect, -1, -1);
+                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
+            }
+
+            //
+            // NC Content
+            //
+
+            PhpSearchDrawWindow(context, WindowHandle, context->BufferedDc, &windowRectStart);
+            PhpSearchDrawButton(context, &context->SearchButton, WindowHandle, context->BufferedDc, &windowRectStart);
+            PhpSearchDrawButton(context, &context->RegexButton, WindowHandle, context->BufferedDc, &windowRectStart);
+            PhpSearchDrawButton(context, &context->CaseButton, WindowHandle, context->BufferedDc, &windowRectStart);
+
+            //
+            // Commit to the target DC.
+            //
+
+            BitBlt(hdc, 0, 0, bufferRect.right, bufferRect.bottom, context->BufferedDc, 0, 0, SRCCOPY);
+
+        Cleanup:
+            ReleaseDC(WindowHandle, hdc);
         }
         return 0;
     case WM_NCHITTEST:
@@ -1185,64 +1193,100 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     case WM_PAINT:
         {
-            if (
-                PhIsNullOrEmptyString(context->CueBannerText) ||
-                context->WindowFocus || // GetFocus() == WindowHandle ||
-                CallWindowProc(oldWndProc, WindowHandle, WM_GETTEXTLENGTH, 0, 0) > 0 // Edit_GetTextLength
-                )
+            //
+            // Fast path: nothing to paint
+            //
+            if (PhIsNullOrEmptyString(context->CueBannerText) ||
+                context->WindowFocus ||
+                CallWindowProc(oldWndProc, WindowHandle, WM_GETTEXTLENGTH, 0, 0) > 0)
             {
                 goto SubclassWndProc;
             }
 
-            PAINTSTRUCT paintStruct;
+            PAINTSTRUCT ps;
             RECT clientRect;
             HDC hdc;
+            HDC bufferDc;
+            HBITMAP bufferBitmap;
+            HBITMAP oldBufferBitmap;
 
-            if (hdc = BeginPaint(WindowHandle, &paintStruct))
+            if (!PhGetClientRect(WindowHandle, &clientRect))
+                break;
+
+            LONG width = clientRect.right - clientRect.left;
+            LONG height = clientRect.bottom - clientRect.top;
+
+            if (width <= 0 || height <= 0)
+                break;
+
+            hdc = BeginPaint(WindowHandle, &ps);
+            if (!hdc)
+                break;
+
+            bufferDc = CreateCompatibleDC(hdc);
+            if (!bufferDc)
             {
-                HDC bufferDc;
-                HFONT oldFont;
-                HBITMAP bufferBitmap;
-                HBITMAP oldBufferBitmap;
-
-                clientRect = paintStruct.rcPaint;
-                bufferDc = CreateCompatibleDC(hdc);
-                bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
-                oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
-
-                SetBkMode(bufferDc, TRANSPARENT);
-
-                if (PhEnableThemeSupport)
-                {
-                    SetTextColor(bufferDc, RGB(170, 170, 170));
-                    SetDCBrushColor(bufferDc, RGB(60, 60, 60));
-                    FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
-                }
-                else
-                {
-                    SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                    FillRect(bufferDc, &clientRect, context->WindowBrush);
-                }
-
-                oldFont = SelectFont(bufferDc, context->WindowFont);
-                clientRect.left += 2;
-                DrawText(
-                    bufferDc,
-                    context->CueBannerText->Buffer,
-                    (UINT)context->CueBannerText->Length / sizeof(WCHAR),
-                    &clientRect,
-                    DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP
-                    );
-                clientRect.left -= 2;
-                SelectFont(bufferDc, oldFont);
-
-                BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, bufferDc, 0, 0, SRCCOPY);
-                SelectBitmap(bufferDc, oldBufferBitmap);
-                DeleteBitmap(bufferBitmap);
-                DeleteDC(bufferDc);
-
-                EndPaint(WindowHandle, &paintStruct);
+                EndPaint(WindowHandle, &ps);
+                break;
             }
+
+            bufferBitmap = CreateCompatibleBitmap(hdc, width, height);
+            if (!bufferBitmap)
+            {
+                DeleteDC(bufferDc);
+                EndPaint(WindowHandle, &ps);
+                break;
+            }
+
+            oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
+            if (ps.fErase)
+            {
+                FillRect(bufferDc, &clientRect, context->WindowBrush);
+            }
+
+            SetBkMode(bufferDc, TRANSPARENT);
+
+            //
+            // Background
+            //
+            if (PhEnableThemeSupport)
+            {
+                SetTextColor(bufferDc, RGB(170, 170, 170));
+                SetDCBrushColor(bufferDc, RGB(60, 60, 60));
+                FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
+            }
+            else
+            {
+                SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
+                FillRect(bufferDc, &clientRect, context->WindowBrush);
+            }
+
+            //
+            // Cue text
+            //
+            HFONT oldFont = (HFONT)SelectFont(bufferDc, context->WindowFont);
+
+            RECT textRect = clientRect;
+            textRect.left += 2;
+
+            DrawText(
+                bufferDc,
+                context->CueBannerText->Buffer,
+                (UINT)(context->CueBannerText->Length / sizeof(WCHAR)),
+                &textRect,
+                DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP
+                );
+
+            SelectFont(bufferDc, oldFont);
+
+            BitBlt(hdc, 0, 0, width, height, bufferDc, 0, 0, SRCCOPY);
+
+            SelectBitmap(bufferDc, oldBufferBitmap);
+            DeleteBitmap(bufferBitmap);
+            DeleteDC(bufferDc);
+
+            EndPaint(WindowHandle, &ps);
         }
         return 0;
     case WM_KEYDOWN:

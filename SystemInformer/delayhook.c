@@ -250,7 +250,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                     static HFONT hCheckFont = NULL;
 
                     HDC hdc = BeginPaint(WindowHandle, &ps);
-                    clientRect = ps.rcPaint;
+                    GetClientRect(WindowHandle, &clientRect);
                     HDC bufferDc = CreateCompatibleDC(hdc);
                     HBITMAP bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
                     HBITMAP oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
