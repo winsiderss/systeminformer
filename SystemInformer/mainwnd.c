@@ -5479,12 +5479,15 @@ VOID PhProcessInvokeQueue(
     PSLIST_ENTRY listEntry;
     PPH_INVOKE_ENTRY entry;
 
-    while ((listEntry = RtlInterlockedPopEntrySList(&PhMainThreadInvokeQueue)))
+    listEntry = RtlInterlockedFlushSList(&PhMainThreadInvokeQueue);
+
+    while (listEntry)
     {
         entry = CONTAINING_RECORD(listEntry, PH_INVOKE_ENTRY, ListEntry);
+        listEntry = listEntry->Next;
 
         {
-            VOID (NTAPI* function)(PVOID);
+            PINVOKE_START_ROUTINE function;
 
             function = entry->Command;
             function(entry->Parameter);

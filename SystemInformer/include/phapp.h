@@ -158,10 +158,12 @@ PhUnregisterDialog(
     _In_ HWND DialogWindowHandle
     );
 
-typedef BOOLEAN (NTAPI *PPH_MESSAGE_LOOP_FILTER)(
+typedef _Function_class_(PH_MESSAGE_LOOP_FILTER)
+BOOLEAN NTAPI PH_MESSAGE_LOOP_FILTER(
     _In_ PMSG Message,
     _In_ PVOID Context
     );
+typedef PH_MESSAGE_LOOP_FILTER* PPH_MESSAGE_LOOP_FILTER;
 
 typedef struct _PH_MESSAGE_LOOP_FILTER_ENTRY
 {
