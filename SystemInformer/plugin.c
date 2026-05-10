@@ -71,11 +71,6 @@ VOID PhInvokeCallbackForAllPlugins(
     _In_opt_ PVOID Parameters
     );
 
-VOID PhpExecuteCallbackForAllPlugins(
-    _In_ PH_PLUGIN_CALLBACK Callback,
-    _In_ BOOLEAN StartupParameters
-    );
-
 PH_AVL_TREE PhPluginsByName = PH_AVL_TREE_INIT(PhpPluginsCompareFunction);
 static PH_CALLBACK GeneralCallbacks[GeneralCallbackMaximum];
 static ULONG NextPluginId = IDPLUGINS + 1;
@@ -587,7 +582,7 @@ VOID PhLoadPlugins(
     // the right places.
     PhConvertIgnoredSettings();
 
-    PhpExecuteCallbackForAllPlugins(PluginCallbackLoad, TRUE);
+    PhInvokeCallbackForAllPlugins(PluginCallbackLoad, &PhStartupParameters);
 
     if (pluginLoadContext.LoadErrors)
     {
@@ -686,52 +681,6 @@ VOID PhInvokeCallbackForAllPlugins(
         PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
 
         PhInvokeCallback(PhGetPluginCallback(plugin, Callback), Parameters);
-    }
-}
-
-VOID PhpExecuteCallbackForAllPlugins(
-    _In_ PH_PLUGIN_CALLBACK Callback,
-    _In_ BOOLEAN StartupParameters
-    )
-{
-    PPH_AVL_LINKS links;
-
-    for (links = PhMinimumElementAvlTree(&PhPluginsByName); links; links = PhSuccessorElementAvlTree(links))
-    {
-        PPH_PLUGIN plugin = CONTAINING_RECORD(links, PH_PLUGIN, Links);
-        PPH_LIST parameters = NULL;
-
-        // Find relevant startup parameters for this plugin.
-        if (StartupParameters && PhStartupParameters.PluginParameters)
-        {
-            ULONG i;
-
-            for (i = 0; i < PhStartupParameters.PluginParameters->Count; i++)
-            {
-                PPH_STRING string = PhStartupParameters.PluginParameters->Items[i];
-                PH_STRINGREF pluginName;
-                PH_STRINGREF parameter;
-
-                if (PhSplitStringRefAtChar(&string->sr, L':', &pluginName, &parameter) &&
-                    PhEqualStringRef(&pluginName, &plugin->Name, FALSE) &&
-                    parameter.Length != 0)
-                {
-                    if (!parameters)
-                        parameters = PhCreateList(3);
-
-                    if (parameters)
-                        PhAddItemList(parameters, PhCreateString2(&parameter));
-                }
-            }
-        }
-
-        PhInvokeCallback(PhGetPluginCallback(plugin, Callback), parameters);
-
-        if (parameters)
-        {
-            PhDereferenceObjects(parameters->Items, parameters->Count);
-            PhDereferenceObject(parameters);
-        }
     }
 }
 

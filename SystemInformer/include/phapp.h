@@ -38,6 +38,7 @@
 
 // main
 
+// begin_phapppub
 typedef struct _PH_STARTUP_PARAMETERS
 {
     union
@@ -77,6 +78,7 @@ typedef struct _PH_STARTUP_PARAMETERS
     PPH_STRING SysInfo;
     PH_RELEASE_CHANNEL UpdateChannel;
 } PH_STARTUP_PARAMETERS, *PPH_STARTUP_PARAMETERS;
+// end_phapppub
 
 extern BOOLEAN PhPluginsEnabled;
 extern BOOLEAN PhPortableEnabled;
@@ -93,6 +95,55 @@ extern RTL_ATOM PhHexEditWindowAtom;
 extern RTL_ATOM PhColorBoxWindowAtom;
 
 // begin_phapppub
+FORCEINLINE
+PPH_LIST
+PhGetPluginParameters(
+    _In_ PCPH_STRINGREF PluginName,
+    _In_ PPH_STARTUP_PARAMETERS PhStartupParameters
+    )
+{
+    PPH_LIST parameters = NULL;
+
+    // Find relevant startup parameters for this plugin.
+    if (PhStartupParameters->PluginParameters)
+    {
+        for (ULONG i = 0; i < PhStartupParameters->PluginParameters->Count; i++)
+        {
+            PPH_STRING string = (PPH_STRING)PhStartupParameters->PluginParameters->Items[i];
+            PH_STRINGREF pluginName;
+            PH_STRINGREF parameter;
+
+            if (
+                PhSplitStringRefAtChar(&string->sr, L':', &pluginName, &parameter) &&
+                PhEqualStringRef(&pluginName, PluginName, FALSE) &&
+                !PhIsNullOrEmptyStringRef(&parameter)
+                )
+            {
+                if (!parameters)
+                    parameters = PhCreateList(3);
+
+                if (parameters)
+                    PhAddItemList(parameters, PhCreateString2(&parameter));
+            }
+        }
+    }
+
+    return parameters;
+}
+
+FORCEINLINE
+VOID
+PhDestroyPluginParameters(
+    _In_ PPH_LIST Parameters
+    )
+{
+    if (Parameters)
+    {
+        PhDereferenceObjects(Parameters->Items, Parameters->Count);
+        PhDereferenceObject(Parameters);
+    }
+}
+
 PHAPPAPI
 VOID
 NTAPI
