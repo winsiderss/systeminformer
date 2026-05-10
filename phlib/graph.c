@@ -857,6 +857,30 @@ static VOID PhpDeleteFadeOutContext(
     Context->FadeOutBits = NULL;
 }
 
+static VOID PhpDeleteDrawInfoFonts(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo
+    )
+{
+    HFONT textFont = DrawInfo->CachedTextFont;
+    HFONT labelYFont = DrawInfo->CachedLabelYFont;
+
+    if (DrawInfo->CachedTextFont)
+    {
+        DeleteFont(textFont);
+        DrawInfo->CachedTextFont = NULL;
+    }
+
+    if (DrawInfo->CachedLabelYFont)
+    {
+        if (labelYFont != textFont)
+            DeleteFont(labelYFont);
+
+        DrawInfo->CachedLabelYFont = NULL;
+    }
+
+    DrawInfo->CachedFontDpi = 0;
+}
+
 static VOID PhpCreateFadeOutContext(
     _In_ PPHP_GRAPH_CONTEXT Context
     )
@@ -1069,6 +1093,7 @@ LRESULT CALLBACK PhpGraphWndProc(
                 DestroyWindow(context->TooltipHandle);
 
             PhpDeleteFadeOutContext(context);
+            PhpDeleteDrawInfoFonts(&context->DrawInfo);
             PhpDeleteBufferedContext(context);
             PhpFreeGraphContext(context);
         }
@@ -1369,7 +1394,8 @@ LRESULT CALLBACK PhpGraphWndProc(
         {
             PPH_GRAPH_DRAW_INFO drawInfo = (PPH_GRAPH_DRAW_INFO)lParam;
 
-            memcpy(drawInfo, &context->DrawInfo, sizeof(PH_GRAPH_DRAW_INFO));
+            // Copy only the public draw-info fields; the trailing cache fields are not copied.
+            memcpy(drawInfo, &context->DrawInfo, FIELD_OFFSET(PH_GRAPH_DRAW_INFO, CachedFontDpi));
         }
         return TRUE;
     case GCM_SETDRAWINFO:
@@ -1380,7 +1406,8 @@ LRESULT CALLBACK PhpGraphWndProc(
 
             width = context->DrawInfo.Width;
             height = context->DrawInfo.Height;
-            memcpy(&context->DrawInfo, drawInfo, sizeof(PH_GRAPH_DRAW_INFO));
+            // Copy only the public draw-info fields; the trailing cache fields are not copied.
+            memcpy(&context->DrawInfo, drawInfo, FIELD_OFFSET(PH_GRAPH_DRAW_INFO, CachedFontDpi));
             context->DrawInfo.Width = width;
             context->DrawInfo.Height = height;
         }

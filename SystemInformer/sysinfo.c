@@ -1053,6 +1053,42 @@ VOID PhSiNotifyChangeSettings(
     PhSipUpdateColorParameters();
 }
 
+static HFONT PhSipCreateGraphLabelFont(
+    _In_ LONG WindowDpi
+    )
+{
+    LOGFONT logFont;
+    HFONT fontHandle;
+
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
+    {
+        logFont.lfHeight += PhMultiplyDivideSigned(1, WindowDpi, 72);
+        fontHandle = CreateFontIndirect(&logFont);
+        if (fontHandle)
+            return fontHandle;
+    }
+
+    return PhCreateApplicationFont(WindowDpi);
+}
+
+static VOID PhSipDeleteGraphFonts(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo
+    )
+{
+    HFONT textFont = DrawInfo->CachedTextFont;
+    HFONT labelYFont = DrawInfo->CachedLabelYFont;
+
+    if (textFont)
+        DeleteFont(textFont);
+
+    if (labelYFont && labelYFont != textFont)
+        DeleteFont(labelYFont);
+
+    DrawInfo->CachedFontDpi = 0;
+    DrawInfo->CachedTextFont = NULL;
+    DrawInfo->CachedLabelYFont = NULL;
+}
+
 _Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
 VOID PhSiSetColorsGraphDrawInfo(
     _Out_ PPH_GRAPH_DRAW_INFO DrawInfo,
@@ -1061,43 +1097,34 @@ VOID PhSiSetColorsGraphDrawInfo(
     _In_ LONG WindowDpi
     )
 {
-    static PH_QUEUED_LOCK lock = PH_QUEUED_LOCK_INIT;
-    static LONG lastDpi = ULONG_MAX;
-    static HFONT iconTitleFont = NULL;
+    if (DrawInfo->CachedFontDpi != WindowDpi || !DrawInfo->CachedTextFont || !DrawInfo->CachedLabelYFont)
+    {
+        PhSipDeleteGraphFonts(DrawInfo);
 
-    // Get the appropriate fonts.
+        DrawInfo->CachedTextFont = PhCreateApplicationFont(WindowDpi);
+        DrawInfo->CachedLabelYFont = PhSipCreateGraphLabelFont(WindowDpi);
+
+        if (!DrawInfo->CachedTextFont)
+            DrawInfo->CachedTextFont = DrawInfo->CachedLabelYFont;
+
+        if (!DrawInfo->CachedLabelYFont)
+            DrawInfo->CachedLabelYFont = DrawInfo->CachedTextFont;
+
+        DrawInfo->CachedFontDpi = WindowDpi;
+    }
+
+    // Cache per-graph fonts so one window's DPI does not replace another's handles.
 
     if (DrawInfo->Flags & PH_GRAPH_LABEL_MAX_Y)
     {
-        PhAcquireQueuedLockExclusive(&lock);
-
-        if (lastDpi != WindowDpi)
-        {
-            LOGFONT logFont;
-
-            if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-            {
-                logFont.lfHeight += PhMultiplyDivide(1, WindowDpi, 72);
-
-                HFONT fontHandle = iconTitleFont;
-                iconTitleFont = CreateFontIndirect(&logFont);
-                if (fontHandle) DeleteFont(fontHandle);
-            }
-
-            if (!iconTitleFont)
-            {
-                iconTitleFont = PhCreateApplicationFont(WindowDpi);
-            }
-
-            lastDpi = WindowDpi;
-        }
-
-        DrawInfo->LabelYFont = iconTitleFont;
-
-        PhReleaseQueuedLockExclusive(&lock);
+        DrawInfo->LabelYFont = DrawInfo->CachedLabelYFont;
+    }
+    else
+    {
+        DrawInfo->LabelYFont = NULL;
     }
 
-    DrawInfo->TextFont = PhApplicationFont;
+    DrawInfo->TextFont = DrawInfo->CachedTextFont;
 
     // Set up the colors.
 
@@ -1253,10 +1280,10 @@ VOID PhSipInitializeParameters(
 
     hdc = GetDC(PhSipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, CurrentParameters.WindowDpi, 72);
+    logFont.lfHeight -= PhMultiplyDivideSigned(3, CurrentParameters.WindowDpi, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
-    logFont.lfHeight -= PhMultiplyDivide(3, CurrentParameters.WindowDpi, 72);
+    logFont.lfHeight -= PhMultiplyDivideSigned(3, CurrentParameters.WindowDpi, 72);
     CurrentParameters.LargeFont = CreateFontIndirect(&logFont);
 
     PhSipUpdateColorParameters();
