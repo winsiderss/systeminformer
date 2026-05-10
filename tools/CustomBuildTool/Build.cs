@@ -191,12 +191,33 @@ namespace CustomBuildTool
                 var visualStudioInstance = BuildVisualStudio.GetVisualStudioInstance();
                 if (visualStudioInstance != null)
                 {
-                    Program.PrintColorMessage("> WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage($"{Utils.GetWindowsSdkVersion()} ({visualStudioInstance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
-                    Program.PrintColorMessage("> VisualStudio: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(visualStudioInstance.Name, ConsoleColor.Green);
-                    //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
                     Build.HaveArm64BuildTools = visualStudioInstance.HasARM64BuildToolsComponents;
+
+                    Program.PrintColorMessage("> WindowsSDK: ", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green, false);
+
+                    if (BuildVisualStudio.IsEnterpriseWdk())
+                    {
+                        string productVersion = visualStudioInstance.GetProductVersion();
+
+                        if (!string.IsNullOrWhiteSpace(productVersion))
+                        {
+                            Console.Write($"{VT.GRAY} ({VT.RESET}", ConsoleColor.DarkGray, false);
+                            Console.Write($"{VT.PURPLE}{productVersion}{VT.RESET}");
+                            Console.WriteLine($"{VT.GRAY}){VT.RESET}");
+                        }
+
+                        Console.Write($"{VT.GRAY}> VisualStudio: {VT.RESET}");
+                        Console.WriteLine($"{VT.ORANGE}{visualStudioInstance.Name}{VT.RESET}");
+                        //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
+                    }
+                    else
+                    {
+                        Program.PrintColorMessage($" ({visualStudioInstance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
+                        Program.PrintColorMessage("> VisualStudio: ", ConsoleColor.DarkGray, false);
+                        Program.PrintColorMessage(visualStudioInstance.Name, ConsoleColor.Green);
+                        //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
+                    }
                 }
 
                 Program.PrintColorMessage("> SystemInformer: ", ConsoleColor.DarkGray, false);

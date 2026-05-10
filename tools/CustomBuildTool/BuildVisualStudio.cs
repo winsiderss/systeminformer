@@ -103,23 +103,24 @@ namespace CustomBuildTool
                 NativeLibrary.Free(baseAddress);
             }
 
-            // ESDK Begin
-            if (Win32.GetEnvironmentVariable("EWDK_ROOT", out string ewdkRoot))
+            // Environment Begin
+            bool isEnterpriseWdk = IsEnterpriseWdk();
+            string environmentVersion = EnvironmentVersion();
+
+            if (Win32.GetEnvironmentVariable("VSINSTALLDIR", out string vsInstallDir) && Directory.Exists(vsInstallDir))
             {
-                if (Directory.Exists(ewdkRoot))
-                {
-                    VisualStudioInstanceList.Add(new VisualStudioInstance("Enterprise WDK", ewdkRoot, "17.0"));
-                }
+                VisualStudioInstanceList.Add(new VisualStudioInstance(isEnterpriseWdk ? "Enterprise WDK" : "Visual Studio (Environment)", vsInstallDir, environmentVersion));
             }
             else if (Win32.GetEnvironmentVariable("VCINSTALLDIR", out string vcInstallDir))
             {
-                string vsPath = Path.GetFullPath(Path.Combine(vcInstallDir, "..\\..\\"));
+                string vsPath = Path.GetFullPath(Path.Join([vcInstallDir, "..\\..\\"]));
+
                 if (Directory.Exists(vsPath))
                 {
-                    VisualStudioInstanceList.Add(new VisualStudioInstance("Visual Studio (Environment)", vsPath, "17.0"));
+                    VisualStudioInstanceList.Add(new VisualStudioInstance(isEnterpriseWdk ? "Enterprise WDK" : "Visual Studio (Environment)", vsPath, environmentVersion));
                 }
             }
-            // ESDK End
+            // Environment End
 
             VisualStudioInstanceList.Sort((p1, p2) =>
             {
@@ -135,6 +136,35 @@ namespace CustomBuildTool
 
                 return 1;
             });
+        }
+
+        public static bool IsEnterpriseWdk()
+        {
+            if (Win32.GetEnvironmentVariable("EnterpriseWDK", out string enterpriseWdk))
+            {
+                if (enterpriseWdk.Equals("true", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static string EnvironmentVersion()
+        {
+            string environmentVersion = "17.0";
+
+            if (Win32.GetEnvironmentVariable("EWDKVisualStudioVersion", out string ewdkVisualStudioVersion) && !string.IsNullOrWhiteSpace(ewdkVisualStudioVersion))
+            {
+                environmentVersion = ewdkVisualStudioVersion.Trim();
+            }
+            else if (Win32.GetEnvironmentVariable("VisualStudioVersion", out string visualStudioVersion) && !string.IsNullOrWhiteSpace(visualStudioVersion))
+            {
+                environmentVersion = visualStudioVersion.Trim();
+            }
+
+            return environmentVersion;
         }
 
         /// <summary>
@@ -511,7 +541,50 @@ namespace CustomBuildTool
             this.Path = Path;
             this.InstallationVersion = Version;
             this.Packages = new List<VisualStudioPackage>();
-            this.HasARM64BuildToolsComponents = true; // Assume true for manual/ESDK instances
+            this.HasARM64BuildToolsComponents = ProbeArm64BuildTools(Path);
+        }
+
+        /// <summary>
+        /// Probes whether ARM64-targeting cl.exe is available beneath a manual/ESDK instance path.
+        /// EWDK exposes the launched arch via the Platform env var; honor it directly to avoid a
+        /// directory enumeration on every cold start.
+        /// </summary>
+        private static bool ProbeArm64BuildTools(string installPath)
+        {
+            if (BuildVisualStudio.IsEnterpriseWdk())
+            {
+                if (Win32.GetEnvironmentVariable("Platform", out string platform) &&
+                    platform.Equals("arm64", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(installPath))
+                return false;
+
+            string msvcRoot = System.IO.Path.Combine(installPath, @"VC\Tools\MSVC");
+            if (!Directory.Exists(msvcRoot))
+                return false;
+
+            try
+            {
+                foreach (string clPath in Directory.EnumerateFiles(msvcRoot, "cl.exe", SearchOption.AllDirectories))
+                {
+                    if (clPath.Contains(@"\Hostarm64\arm64\", StringComparison.OrdinalIgnoreCase) ||
+                        clPath.Contains(@"\Hostx64\arm64\", StringComparison.OrdinalIgnoreCase) ||
+                        clPath.Contains(@"\Hostx86\arm64\", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -683,6 +756,71 @@ namespace CustomBuildTool
             VisualStudioPackage package = GetLatestSdkPackage();
 
             return package == null ? string.Empty : package.Version;
+        }
+
+        /// <summary>
+        /// Gets the Enterprise WDK version from version.txt or Visual Studio metadata.
+        /// </summary>
+        /// <returns>
+        /// The version string, or <c>string.Empty</c> if it cannot be determined.
+        /// </returns>
+        public string GetProductVersion()
+        {
+            try
+            {
+                if (BuildVisualStudio.IsEnterpriseWdk())
+                {
+                    // EWDK's version.txt sits at the extraction root, not the drive root.
+                    // Walk up from VSINSTALLDIR until version.txt is found.
+                    string dir = this.Path;
+
+                    while (!string.IsNullOrEmpty(dir))
+                    {
+                        string versionFilePath = System.IO.Path.Combine(dir, "version.txt");
+
+                        if (File.Exists(versionFilePath))
+                        {
+                            string versionText = File.ReadAllText(versionFilePath).Trim();
+
+                            if (!string.IsNullOrWhiteSpace(versionText))
+                            {
+                                if (versionText.StartsWith("Version ", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    versionText = versionText.Substring("Version ".Length);
+                                }
+                                return versionText;
+                            }
+                        }
+
+                        string parent = System.IO.Path.GetDirectoryName(dir);
+                        if (string.IsNullOrEmpty(parent) || parent.Equals(dir, StringComparison.OrdinalIgnoreCase))
+                            break;
+                        dir = parent;
+                    }
+                }
+
+                string devenvPath = System.IO.Path.Combine(this.Path, "Common7\\IDE\\devenv.exe");
+
+                if (File.Exists(devenvPath))
+                {
+                    FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(devenvPath);
+                    return versionInfo.ProductVersion ?? string.Empty;
+                }
+
+                string msbuildPath = System.IO.Path.Combine(this.Path, "MSBuild\\Current\\Bin\\amd64\\MSBuild.exe");
+
+                if (File.Exists(msbuildPath))
+                {
+                    FileVersionInfo versionInfo = FileVersionInfo.GetVersionInfo(msbuildPath);
+                    return versionInfo.ProductVersion ?? string.Empty;
+                }
+            }
+            catch
+            {
+
+            }
+
+            return string.Empty;
         }
 
         //public bool HasRequiredDependency

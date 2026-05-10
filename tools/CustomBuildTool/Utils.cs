@@ -2756,9 +2756,9 @@ namespace CustomBuildTool
         public const string MAGENTA     = "\x1b[35m";
         public const string CYAN        = "\x1b[36m";
         public const string WHITE       = "\x1b[37m";
+        public const string GRAY        = "\x1b[90m";
 
         // Bright foreground colors
-        public const string BRIGHT_BLACK    = "\x1b[90m";
         public const string BRIGHT_RED      = "\x1b[91m";
         public const string BRIGHT_GREEN    = "\x1b[92m";
         public const string BRIGHT_YELLOW   = "\x1b[93m";
@@ -2796,5 +2796,12 @@ namespace CustomBuildTool
         // True-color (RGB)
         public static string RGB(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
         public static string BGRGB(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
+
+        // Extended palette colors (256-color ANSI)
+        public const string ORANGE = "\u001b[38;5;208m";
+        public const string PURPLE = "\u001b[38;5;141m";
+        public const string TEAL = "\u001b[38;5;44m";
+        public const string PINK = "\u001b[38;5;213m";
+        public const string LIME = "\u001b[38;5;118m";
     }
 }

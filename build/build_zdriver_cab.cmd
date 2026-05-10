@@ -138,11 +138,16 @@ REM Function: FindVisualStudio
 REM Description: Locates a Visual Studio or SDK installation with signing tools.
 REM -----------------------------------------------------------------------------
 :FindVisualStudio
-for /f "usebackq tokens=*" %%A in (`call "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
-    set "VSINSTALLPATH=%%A"
+set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
+if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
+if exist "%VSWHERE%" (
+    for /f "usebackq tokens=*" %%A in (`call "%VSWHERE%" -latest -prerelease -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+        set "VSINSTALLPATH=%%A"
+    )
 )
+if not defined VSINSTALLPATH if defined VSINSTALLDIR set "VSINSTALLPATH=%VSINSTALLDIR%"
+if not defined VSINSTALLPATH if defined VCINSTALLDIR for %%I in ("%VCINSTALLDIR%\..\..") do set "VSINSTALLPATH=%%~fI"
 if not defined VSINSTALLPATH if defined WindowsSdkDir set "VSINSTALLPATH=%WindowsSdkDir%"
-if not defined VSINSTALLPATH if defined EWDK_ROOT set "VSINSTALLPATH=%EWDK_ROOT%"
 if defined VSINSTALLPATH exit /b 0
 echo [-] Visual Studio not found
 exit /b 1
@@ -154,6 +159,10 @@ REM Parameters:
 REM   %~1 - vcvarsall architecture argument.
 REM -----------------------------------------------------------------------------
 :SetupVcVars
+if /i "%EnterpriseWDK%"=="true" (
+    REM EWDK has already configured INCLUDE/LIB/PATH via LaunchBuildEnv.cmd.
+    exit /b 0
+)
 if exist "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" (
     call "%VSINSTALLPATH%\VC\Auxiliary\Build\vcvarsall.bat" %~1
     exit /b !errorlevel!
