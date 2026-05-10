@@ -111,13 +111,13 @@ VOID KphInitializeParameters(
     NTSTATUS status;
     HANDLE keyHandle;
 
+    KPH_PAGED_CODE_PASSIVE();
+
     status = KphOpenParametersKey(RegistryPath, &keyHandle);
     if (!NT_SUCCESS(status))
     {
         keyHandle = NULL;
     }
-
-    KPH_PAGED_CODE_PASSIVE();
 
     for (ULONG i = 0; i < ARRAYSIZE(KphpParameters); i++)
     {
