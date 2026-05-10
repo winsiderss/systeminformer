@@ -36,6 +36,8 @@ PVOID KsipGetSystemRoutineAddress(
 {
     UNICODE_STRING systemRoutineName;
 
+    KPH_NPAGED_CODE_PASSIVE();
+
     RtlInitUnicodeString(&systemRoutineName, SystemRoutineName);
 
     return MmGetSystemRoutineAddress(&systemRoutineName);
@@ -71,6 +73,8 @@ VOID NTAPI KsipApcRundownRoutine(
     PDRIVER_OBJECT driverObject;
     PKSI_KCLEANUP_ROUTINE cleanupRoutine;
 
+    KPH_NPAGED_CODE_PASSIVE();
+
     apc = (PKSI_KAPC)Apc;
     driverObject = apc->DriverObject;
     cleanupRoutine = (PKSI_KCLEANUP_ROUTINE)apc->InternalCleanup;
@@ -93,6 +97,8 @@ VOID NTAPI KsipApcNormalRoutine(
     PDRIVER_OBJECT driverObject;
     PKNORMAL_ROUTINE normalRoutine;
     PKSI_KCLEANUP_ROUTINE cleanupRoutine;
+
+    KPH_NPAGED_CODE_PASSIVE();
 
     NT_ASSERT(NormalContext);
 
@@ -123,6 +129,8 @@ VOID NTAPI KsipApcKernelRoutine(
     PDRIVER_OBJECT driverObject;
     PKSI_KKERNEL_ROUTINE kernelRoutine;
     PKSI_KCLEANUP_ROUTINE cleanupRoutine;
+
+    KPH_NPAGED_CODE_APC_MAX();
 
     apc = (PKSI_KAPC)Apc;
     driverObject = apc->DriverObject;
@@ -265,6 +273,8 @@ VOID KsipWorkItemRoutine(
     PDRIVER_OBJECT driverObject;
     PKSI_WORK_QUEUE_ROUTINE routine;
 
+    KPH_NPAGED_CODE_PASSIVE();
+
     workItem = Parameter;
     driverObject = workItem->DriverObject;
     routine = workItem->Routine;
@@ -282,6 +292,8 @@ VOID KSIAPI KsiInitializeWorkItem(
     _In_opt_ PVOID Parameter
     )
 {
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     WorkItem->DriverObject = DriverObject;
     WorkItem->Routine = Routine;
     WorkItem->Parameter = Parameter;
@@ -296,6 +308,8 @@ VOID KSIAPI KsiQueueWorkItem(
     _In_ WORK_QUEUE_TYPE QueueType
     )
 {
+    KPH_NPAGED_CODE_DISPATCH_MAX();
+
     ObReferenceObject(WorkItem->DriverObject);
 
 #pragma prefast(push)
@@ -463,12 +477,15 @@ BOOLEAN KSIAPI KsiRemoveQueueDpcEx(
 // should be used only by System Informer during driver initialization.
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _IRQL_requires_same_
 _Function_class_(KSTART_ROUTINE)
 VOID KsipDummyThreadRoutine(
     _In_ PVOID StartContext
     )
 {
+    KPH_NPAGED_CODE_PASSIVE();
+
     UNREFERENCED_PARAMETER(StartContext);
 
     //
@@ -494,6 +511,8 @@ NTSTATUS KSIAPI KsiInitializeSystemProcess(
     NTSTATUS status;
     HANDLE threadHandle;
     OBJECT_ATTRIBUTES objectAttributes;
+
+    KPH_NPAGED_CODE_PASSIVE();
 
     NT_ASSERT(PsGetCurrentProcess() == PsInitialSystemProcess);
 
@@ -592,6 +611,8 @@ NTSTATUS KSIAPI KsiInitialize(
     _In_opt_ PVOID Reserved
     )
 {
+    KPH_NPAGED_CODE_PASSIVE();
+
     UNREFERENCED_PARAMETER(DriverObject);
     UNREFERENCED_PARAMETER(Reserved);
 
@@ -609,6 +630,8 @@ VOID KSIAPI KsiUninitialize(
     _In_ ULONG Reserved
     )
 {
+    KPH_NPAGED_CODE_PASSIVE();
+
     UNREFERENCED_PARAMETER(DriverObject);
     UNREFERENCED_PARAMETER(Reserved);
 }
