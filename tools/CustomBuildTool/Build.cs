@@ -945,6 +945,9 @@ namespace CustomBuildTool
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage($"Building build-{Channel}-setup.exe... ", ConsoleColor.Cyan, false);
 
+            if (!BuildSetupBase64(Channel, Flags))
+                return false;
+
             if (!BuildSolution(
                 Path.Join([Build.BuildWorkingFolder, "tools\\CustomSetupTool\\CustomSetupTool.sln"]),
                 BuildFlags.Build32bit | BuildFlags.BuildApi,
@@ -982,6 +985,43 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Builds the base64-encoded setup payload used by CustomSetupTool.
+        /// </summary>
+        /// <param name="Channel">The release channel (e.g., "release", "canary").</param>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the payload is built successfully; otherwise, false.</returns>
+        private static bool BuildSetupBase64(string Channel, BuildFlags Flags)
+        {
+            //Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage($"build-{Channel}-build-bin.b64... ", ConsoleColor.Cyan, false);
+
+            try
+            {
+                string toolchainSuffix = GetToolchainSuffix(Flags);
+                string zipFilePath = Path.Join([Build.BuildOutputFolder, $"systeminformer-build{toolchainSuffix}-bin.zip"]);
+                string base64FilePath = Path.Join([Build.BuildOutputFolder, "systeminformer-build-bin.b64"]);
+
+                if (!File.Exists(zipFilePath))
+                {
+                    Program.PrintColorMessage($"[ERROR] Missing setup payload source: {zipFilePath}", ConsoleColor.Red);
+                    return false;
+                }
+
+                string base64Text = Convert.ToBase64String(File.ReadAllBytes(zipFilePath));
+                Utils.WriteAllText(base64FilePath, base64Text);
+
+                Program.PrintColorMessage(base64Text.Length.ToPrettySize(), ConsoleColor.Green);
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                return false;
+            }
         }
 
         /// <summary>

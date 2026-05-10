@@ -130,28 +130,37 @@ HRESULT CALLBACK SetupTaskDialogBootstrapCallback(
     {
     case TDN_CREATED:
         {
-            LONG dpiValue = PhGetWindowDpi(hwndDlg);
+            LONG dpiValue;
 
             context->DialogHandle = hwndDlg;
-            context->IconLargeHandle = PhLoadIcon(
-                PhInstanceHandle,
-                MAKEINTRESOURCE(IDI_ICON),
-                PH_LOAD_ICON_SIZE_LARGE,
-                PhGetSystemMetrics(SM_CXICON, dpiValue),
-                PhGetSystemMetrics(SM_CYICON, dpiValue),
-                dpiValue
-                );
-            context->IconSmallHandle = PhLoadIcon(
-                PhInstanceHandle,
-                MAKEINTRESOURCE(IDI_ICON),
-                PH_LOAD_ICON_SIZE_LARGE,
-                PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                PhGetSystemMetrics(SM_CYSMICON, dpiValue),
-                dpiValue
-                );
+            dpiValue = PhGetWindowDpi(hwndDlg);
 
-            SendMessage(context->DialogHandle, WM_SETICON, ICON_SMALL, (LPARAM)context->IconSmallHandle);
-            SendMessage(context->DialogHandle, WM_SETICON, ICON_BIG, (LPARAM)context->IconLargeHandle);
+            if (!context->IconLargeHandle)
+            {
+                context->IconLargeHandle = PhLoadIcon(
+                    PhInstanceHandle,
+                    MAKEINTRESOURCE(IDI_ICON),
+                    PH_LOAD_ICON_SIZE_LARGE,
+                    PhGetSystemMetrics(SM_CXICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYICON, dpiValue),
+                    dpiValue
+                    );
+            }
+
+            if (!context->IconSmallHandle)
+            {
+                context->IconSmallHandle = PhLoadIcon(
+                    PhInstanceHandle,
+                    MAKEINTRESOURCE(IDI_ICON),
+                    PH_LOAD_ICON_SIZE_SMALL,
+                    PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+                    PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                    dpiValue
+                    );
+            }
+
+            SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, (LPARAM)context->IconSmallHandle);
+            SendMessage(hwndDlg, WM_SETICON, ICON_BIG, (LPARAM)context->IconLargeHandle);
 
             context->TaskDialogWndProc = PhGetWindowProcedure(hwndDlg);
             PhSetWindowContext(hwndDlg, UCHAR_MAX, context);
@@ -586,6 +595,7 @@ INT WINAPI wWinMain(
         return EXIT_FAILURE;
 
     SetupInitializeMutant();
+    PhGuiSupportInitialization();
 
     context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
 
@@ -602,12 +612,7 @@ INT WINAPI wWinMain(
     }
     else
     {
-        PhGuiSupportInitialization();
-
-        //if (context->SetupMode == SetupCommandInstall)
-        //    SetupShowWizard(context);
-        //else
-            SetupShowDialog(context);
+        SetupShowDialog(context);
     }
 
     if (context->SubProcessHandle)

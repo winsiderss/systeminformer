@@ -51,7 +51,7 @@ END
 //
 // RCDATA
 //
-IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.zip"
+IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.b64"
 
 /////////////////////////////////////////////////////////////////////////////
 //

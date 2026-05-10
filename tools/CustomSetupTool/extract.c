@@ -589,6 +589,8 @@ NTSTATUS CALLBACK SetupExtractBuild(
     NTSTATUS status = STATUS_SUCCESS;
     ULONG resourceLength;
     PVOID resourceBuffer = NULL;
+    PVOID zipBuffer = NULL;
+    SIZE_T zipBufferLength = 0;
     ULONG64 totalLength = 0;
     mz_zip_archive zipFileArchive = { 0 };
     USHORT nativeArchitecture;
@@ -605,9 +607,19 @@ NTSTATUS CALLBACK SetupExtractBuild(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!mz_zip_reader_init_mem(&zipFileArchive, resourceBuffer, resourceLength, 0))
+    zipBufferLength = resourceLength;
+    zipBuffer = PhAllocate(zipBufferLength);
+
+    if (!PhBase64Decode((PCSTR)resourceBuffer, resourceLength, zipBuffer, zipBufferLength, &zipBufferLength))
     {
-        return STATUS_INVALID_BUFFER_SIZE;
+        status = STATUS_INVALID_BUFFER_SIZE;
+        goto CleanupExit;
+    }
+
+    if (!mz_zip_reader_init_mem(&zipFileArchive, zipBuffer, zipBufferLength, 0))
+    {
+        status = STATUS_INVALID_BUFFER_SIZE;
+        goto CleanupExit;
     }
 
     nativeArchitecture = SetupGetCurrentArchitecture();
@@ -658,6 +670,12 @@ CleanupExit:
     }
 
     mz_zip_reader_end(&zipFileArchive);
+
+    if (zipBuffer)
+        PhFree(zipBuffer);
+
+    if (resourceBuffer)
+        PhFree(resourceBuffer);
 
     return status;
 }

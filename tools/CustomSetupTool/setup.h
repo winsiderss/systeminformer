@@ -13,6 +13,7 @@
 #define _SETUP_H
 
 #include <ph.h>
+#include <base64.h>
 #include <guisup.h>
 #include <prsht.h>
 #include <settings.h>

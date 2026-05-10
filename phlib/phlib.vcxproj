@@ -152,6 +152,7 @@
     <ClCompile Include="apiimport.c" />
     <ClCompile Include="appresolver.c" />
     <ClCompile Include="appruntime.c" />
+    <ClCompile Include="base64.c" />
     <ClCompile Include="avltree.c" />
     <ClCompile Include="basestring.c" />
     <ClCompile Include="basesup.c" />
@@ -232,6 +233,7 @@
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
+    <ClInclude Include="include\base64.h" />
     <ClInclude Include="include\phafd.h" />
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />

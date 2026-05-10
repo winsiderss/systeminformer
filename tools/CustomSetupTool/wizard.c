@@ -1034,7 +1034,7 @@ static VOID SetupShowWizardButton(
     }
 }
 
-static VOID SetupEnableizardButton(
+static VOID SetupEnableWizardButton(
     _In_ HWND ParentWindowHandle,
     _In_ INT ControlId,
     _In_ BOOLEAN ShowButton
@@ -1044,7 +1044,7 @@ static VOID SetupEnableizardButton(
 
     if (buttonHandle = GetDlgItem(ParentWindowHandle, ControlId))
     {
-        EnableWindow(buttonHandle, ShowButton );
+        EnableWindow(buttonHandle, ShowButton);
     }
 }
 
@@ -1107,10 +1107,10 @@ static VOID SetupSetWizardButtons(
     parentWindowHandle = GetParent(WindowHandle);
     PropSheet_SetWizButtons(parentWindowHandle, Buttons);
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_BACK, L"< &Back");
-    SetupEnableizardButton(parentWindowHandle, IDC_PROPSHEET_BACK, ShowBack);
-    SetupEnableizardButton(parentWindowHandle, IDC_PROPSHEET_NEXT, ShowNext);
-    SetupEnableizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
-    SetupEnableizardButton(parentWindowHandle, IDC_PROPSHEET_CANCEL, ShowCancel);
+    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_BACK, ShowBack);
+    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_NEXT, ShowNext);
+    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
+    SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_CANCEL, ShowCancel);
     SetupShowWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
     SetupShowWizardButton(parentWindowHandle, IDC_PROPSHEET_CANCEL, ShowCancel);
 
@@ -1192,6 +1192,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZNEXT:
                 {
+#ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
                         if (!context->SetupIsLegacyUpdate && NT_SUCCESS(SetupLegacySetupInstalled()))
@@ -1235,6 +1236,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                         SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
                         return TRUE;
                     }
+#endif
                 }
                 break;
             }
@@ -1895,11 +1897,28 @@ VOID SetupShowWizard(
     _In_ PPH_SETUP_CONTEXT Context
     )
 {
-    PH_AUTO_POOL autoPool;
+    LONG dpiValue;
     PROPSHEETPAGE pages[5];
     PROPSHEETHEADER header;
 
-    PhInitializeAutoPool(&autoPool);
+    dpiValue = PhGetMonitorDpi(NULL, NULL);
+
+    Context->IconLargeHandle = PhLoadIcon(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDI_ICON),
+        PH_LOAD_ICON_SIZE_LARGE,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        dpiValue
+        );
+    Context->IconSmallHandle = PhLoadIcon(
+        PhInstanceHandle,
+        MAKEINTRESOURCE(IDI_ICON),
+        PH_LOAD_ICON_SIZE_SMALL,
+        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
+        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+        dpiValue
+        );
 
     pages[0].dwSize = sizeof(PROPSHEETPAGE);
     pages[0].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
