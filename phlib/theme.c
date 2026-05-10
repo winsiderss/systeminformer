@@ -1212,12 +1212,26 @@ BOOLEAN PhThemeWindowDrawItem(
                 if (menuItemInfo->Bitmap)
                 {
                     HDC bufferDc;
+                    BITMAP bitmapInfo;
+                    LONG bitmapWidth;
+                    LONG bitmapHeight;
                     BLENDFUNCTION blendFunction;
 
                     blendFunction.BlendOp = AC_SRC_OVER;
                     blendFunction.BlendFlags = 0;
                     blendFunction.SourceConstantAlpha = 255;
                     blendFunction.AlphaFormat = AC_SRC_ALPHA;
+
+                    if (GetObject(menuItemInfo->Bitmap, sizeof(bitmapInfo), &bitmapInfo))
+                    {
+                        bitmapWidth = bitmapInfo.bmWidth;
+                        bitmapHeight = bitmapInfo.bmHeight;
+                    }
+                    else
+                    {
+                        bitmapWidth = PhGetSystemMetrics(SM_CXSMICON, dpiValue);
+                        bitmapHeight = PhGetSystemMetrics(SM_CYSMICON, dpiValue);
+                    }
 
                     bufferDc = CreateCompatibleDC(DrawInfo->hDC);
                     SelectBitmap(bufferDc, menuItemInfo->Bitmap);
@@ -1226,13 +1240,13 @@ BOOLEAN PhThemeWindowDrawItem(
                         DrawInfo->hDC,
                         DrawInfo->rcItem.left + 4,
                         DrawInfo->rcItem.top + 4,
-                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                        bitmapWidth,
+                        bitmapHeight,
                         bufferDc,
                         0,
                         0,
-                        PhGetSystemMetrics(SM_CXSMICON, dpiValue),
-                        PhGetSystemMetrics(SM_CYSMICON, dpiValue),
+                        bitmapWidth,
+                        bitmapHeight,
                         blendFunction
                         );
 
