@@ -573,7 +573,7 @@ BOOLEAN KSIAPI KphpSetInformerProcessSettings(
 {
     NTSTATUS status;
     PKPH_SET_INFORMER_PROCESS_SETTINGS_CONTEXT context;
-    PKPH_PROCESS_STATE state;
+    PKPH_INFORMER_STATE state;
 
     KPH_PAGED_CODE_PASSIVE();
 

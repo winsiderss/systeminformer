@@ -48,7 +48,7 @@ typedef enum _KPH_FLT_FILE_NAME_TYPE
     KphFltFileNameTypeContext,
     KphFltFileNameTypeFileName,
     KphFltFileNameTypeNameCache,
-} KPH_FLT_FILE_NAME_TYPE, *PKPH_FLT_FILE_NAME_ITYPE;
+} KPH_FLT_FILE_NAME_TYPE, *PKPH_FLT_FILE_NAME_TYPE;
 
 typedef struct _KPH_FLT_FILE_NAME_CACHE_ENTRY
 {

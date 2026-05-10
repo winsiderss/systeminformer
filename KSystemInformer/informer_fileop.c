@@ -831,7 +831,7 @@ VOID KphpFltCopyIoControl(
         if (FlagOn(Data->Flags, FLTFL_CALLBACK_DATA_POST_OPERATION))
         {
             length = min((ULONG)Data->IoStatus.Information,
-                         length = Data->Iopb->Parameters.DeviceIoControl.FastIo.InputBufferLength);
+                         Data->Iopb->Parameters.DeviceIoControl.FastIo.InputBufferLength);
 
         }
         else
@@ -1581,7 +1581,7 @@ BOOLEAN KphpFltHandleNameTunneling(
                           status);
         }
 
-        reTunneledFileNameInfo = FALSE;
+        reTunneledFileNameInfo = NULL;
     }
 
     if (!reTunneledFileNameInfo)
