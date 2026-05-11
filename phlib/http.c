@@ -93,6 +93,39 @@ PPH_STRING PhWinHttpUserAgentString(
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
 }
 
+static NTSTATUS PhpHttpSetOptionString(
+    _In_ PVOID HttpHandle,
+    _In_ ULONG Option,
+    _In_ PPH_STRINGREF Value
+    )
+{
+    ULONG optionLength = (ULONG)Value->Length;
+
+    if (WinHttpSetOption(
+        HttpHandle,
+        Option,
+        Value->Buffer,
+        optionLength
+        ))
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWinHttpErrorAsNtStatus();
+}
+
+static NTSTATUS PhpHttpInvokeEventCallback(
+    _In_ PPH_HTTP_CONTEXT HttpContext,
+    _In_ PHHTTP_EVENT_TYPE Event,
+    _In_opt_ PVOID Parameter
+    )
+{
+    if (HttpContext->Callback)
+        return HttpContext->Callback(Event, Parameter, HttpContext->Context);
+
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhWinHttpOpen(
     _Out_ HINTERNET* SessionHandle
     )
@@ -310,10 +343,8 @@ NTSTATUS PhHttpConnect(
     NTSTATUS status;
     HINTERNET connectionHandle;
 
-    if (HttpContext->Callback)
-    {
-        HttpContext->Callback(PHHTTP_EVENT_CONNECTING, NULL, HttpContext->Context);
-    }
+    if (!NT_SUCCESS(status = PhpHttpInvokeEventCallback(HttpContext, PHHTTP_EVENT_CONNECTING, NULL)))
+        return status;
 
     status = PhWinHttpConnect(
         HttpContext->SessionHandle,
@@ -411,10 +442,10 @@ NTSTATUS PhHttpSendRequest(
     _In_ ULONG TotalLength
     )
 {
-    if (HttpContext->Callback)
-    {
-        HttpContext->Callback(PHHTTP_EVENT_SENDING_REQUEST, NULL, HttpContext->Context);
-    }
+    NTSTATUS status;
+
+    if (!NT_SUCCESS(status = PhpHttpInvokeEventCallback(HttpContext, PHHTTP_EVENT_SENDING_REQUEST, NULL)))
+        return status;
 
     if (WinHttpSendRequest(
         HttpContext->RequestHandle,
@@ -436,6 +467,11 @@ NTSTATUS PhHttpReceiveResponse(
     _In_ PPH_HTTP_CONTEXT HttpContext
     )
 {
+    NTSTATUS status;
+
+    if (!NT_SUCCESS(status = PhpHttpInvokeEventCallback(HttpContext, PHHTTP_EVENT_RECEIVING_RESPONSE, NULL)))
+        return status;
+
     if (WinHttpReceiveResponse(HttpContext->RequestHandle, NULL))
     {
         //ULONG connectionInfoLength;
@@ -478,6 +514,11 @@ NTSTATUS PhHttpReceiveResponse(
             }
         }
 #endif
+
+        status = PhpHttpInvokeEventCallback(HttpContext, PHHTTP_EVENT_RESPONSE_RECEIVED, NULL);
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         return STATUS_SUCCESS;
     }
@@ -1090,6 +1131,165 @@ NTSTATUS PhHttpDownloadToFile(
     return status;
 }
 
+NTSTATUS PhHttpDownloadUrl(
+    _In_ PPH_STRING Url,
+    _In_opt_ PPH_HTTP_DOWNLOAD_OPTIONS Options
+    )
+{
+    PH_HTTP_DOWNLOAD_OPTIONS defaultOptions = { 0 };
+    PH_HTTPDOWNLOAD_CALLBACK_CONTEXT callbackContext = { 0 };
+    NTSTATUS status;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING hostPart = NULL;
+    PPH_STRING pathPart = NULL;
+    USHORT portPart = 0;
+    ULONG statusCode = 0;
+    ULONG64 numberOfBytesTotal = 0;
+    ULONG numberOfBytesRead = 0;
+    ULONG64 numberOfBytesReadTotal = 0;
+    ULONG64 timeTicks;
+    LARGE_INTEGER timeNow;
+    LARGE_INTEGER timeStart;
+    BYTE buffer[PAGE_SIZE];
+
+    if (!Options)
+        Options = &defaultOptions;
+
+    if (!NT_SUCCESS(status = PhHttpCrackUrl(Url, &hostPart, &pathPart, &portPart)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSetEventCallback(httpContext, Options->EventCallback, Options->Context)))
+        goto CleanupExit;
+
+    if (Options->UserAgent)
+    {
+        PH_STRINGREF userAgent;
+
+        PhInitializeStringRefLongHint(&userAgent, Options->UserAgent->Buffer);
+
+        if (!NT_SUCCESS(status = PhpHttpSetOptionString(httpContext->SessionHandle, WINHTTP_OPTION_USER_AGENT, &userAgent)))
+            goto CleanupExit;
+    }
+
+    if (Options->ProtocolFlags)
+    {
+        if (!NT_SUCCESS(status = PhHttpSetProtocol(
+            httpContext,
+            TRUE,
+            Options->ProtocolFlags,
+            Options->ProtocolTimeout
+            )))
+        {
+            goto CleanupExit;
+        }
+    }
+
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, PhGetString(hostPart), portPart)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(
+        httpContext,
+        Options->RequestMethod,
+        PhGetString(pathPart),
+        Options->RequestFlags
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (Options->EnableFeatures)
+    {
+        if (!NT_SUCCESS(status = PhHttpSetFeature(httpContext, Options->EnableFeatures, TRUE)))
+            goto CleanupExit;
+    }
+
+    if (Options->DisableFeatures)
+    {
+        if (!NT_SUCCESS(status = PhHttpSetFeature(httpContext, Options->DisableFeatures, FALSE)))
+            goto CleanupExit;
+    }
+
+    if (Options->SecurityFlags)
+    {
+        if (!NT_SUCCESS(status = PhHttpSetSecurity(httpContext, Options->SecurityFlags)))
+            goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, PH_HTTP_NO_REQUEST_DATA, 0, 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryResponseStatus(httpContext)))
+        goto CleanupExit;
+
+    PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &statusCode);
+    PhHttpQueryHeaderUlong64(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal);
+
+    callbackContext.StatusCode = statusCode;
+    callbackContext.TotalLength = numberOfBytesTotal;
+
+    if (Options->DownloadCallback)
+    {
+        if (!NT_SUCCESS(status = Options->DownloadCallback(PH_HTTPDOWNLOAD_EVENT_BEGIN, &callbackContext, Options->Context)))
+            goto CleanupExit;
+    }
+
+    PhQuerySystemTime(&timeStart);
+
+    while (TRUE)
+    {
+        status = PhHttpReadData(httpContext, buffer, sizeof(buffer), &numberOfBytesRead);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+        if (numberOfBytesRead == 0)
+            break;
+
+        numberOfBytesReadTotal += numberOfBytesRead;
+
+        PhQuerySystemTime(&timeNow);
+        timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
+
+        callbackContext.Buffer = buffer;
+        callbackContext.BufferLength = numberOfBytesRead;
+        callbackContext.ReadLength = numberOfBytesReadTotal;
+        callbackContext.TotalLength = numberOfBytesTotal;
+        callbackContext.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);
+        callbackContext.Percent = numberOfBytesTotal ? (((DOUBLE)numberOfBytesReadTotal / (DOUBLE)numberOfBytesTotal) * 100) : 0;
+
+        if (Options->DownloadCallback)
+        {
+            if (!NT_SUCCESS(status = Options->DownloadCallback(PH_HTTPDOWNLOAD_EVENT_DATA, &callbackContext, Options->Context)))
+                goto CleanupExit;
+            if (!NT_SUCCESS(status = Options->DownloadCallback(PH_HTTPDOWNLOAD_EVENT_PROGRESS, &callbackContext, Options->Context)))
+                goto CleanupExit;
+        }
+    }
+
+    callbackContext.Buffer = NULL;
+    callbackContext.BufferLength = 0;
+    callbackContext.ReadLength = numberOfBytesReadTotal;
+    callbackContext.TotalLength = numberOfBytesTotal;
+
+    if (Options->DownloadCallback)
+    {
+        if (!NT_SUCCESS(status = Options->DownloadCallback(PH_HTTPDOWNLOAD_EVENT_END, &callbackContext, Options->Context)))
+            goto CleanupExit;
+    }
+
+    status = STATUS_SUCCESS;
+
+CleanupExit:
+    if (pathPart)
+        PhDereferenceObject(pathPart);
+    if (hostPart)
+        PhDereferenceObject(hostPart);
+    if (httpContext)
+        PhHttpDestroy(httpContext);
+
+    return status;
+}
+
 NTSTATUS PhHttpSetFeature(
     _In_ PPH_HTTP_CONTEXT HttpContext,
     _In_ ULONG Feature,
@@ -1145,19 +1345,7 @@ NTSTATUS PhHttpSetOptionString(
     _In_ PPH_STRINGREF Value
     )
 {
-    ULONG optionLength = (ULONG)Value->Length;
-
-    if (WinHttpSetOption(
-        HttpContext->RequestHandle,
-        Option,
-        Value->Buffer,
-        optionLength
-        ))
-    {
-        return STATUS_SUCCESS;
-    }
-
-    return PhGetLastWinHttpErrorAsNtStatus();
+    return PhpHttpSetOptionString(HttpContext->RequestHandle, Option, Value);
 }
 
 NTSTATUS PhHttpSetCallback(
@@ -1516,7 +1704,7 @@ NTSTATUS PhHttpSetEventCallback(
 
     if (HttpContext->Callback)
     {
-        HttpContext->Callback(PHHTTP_EVENT_INITIALIZING, NULL, Context);
+        return HttpContext->Callback(PHHTTP_EVENT_INITIALIZING, NULL, Context);
     }
 
     return STATUS_SUCCESS;

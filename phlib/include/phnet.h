@@ -263,7 +263,7 @@ typedef enum _PHHTTP_EVENT_TYPE
 } PHHTTP_EVENT_TYPE;
 
 typedef _Function_class_(PH_HTTP_EVENT_CALLBACK)
-VOID NTAPI PH_HTTP_EVENT_CALLBACK(
+NTSTATUS NTAPI PH_HTTP_EVENT_CALLBACK(
     _In_ PHHTTP_EVENT_TYPE Event,
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
@@ -533,6 +533,54 @@ PhHttpDownloadToFile(
     _In_opt_ PVOID Context
     );
 
+typedef enum _PH_HTTPDOWNLOAD_EVENT_TYPE
+{
+    PH_HTTPDOWNLOAD_EVENT_BEGIN,
+    PH_HTTPDOWNLOAD_EVENT_DATA,
+    PH_HTTPDOWNLOAD_EVENT_PROGRESS,
+    PH_HTTPDOWNLOAD_EVENT_END
+} PH_HTTPDOWNLOAD_EVENT_TYPE;
+
+typedef struct _PH_HTTPDOWNLOAD_CALLBACK_CONTEXT
+{
+    ULONG StatusCode;
+    ULONG64 ReadLength;
+    ULONG64 TotalLength;
+    ULONG64 BitsPerSecond;
+    DOUBLE Percent;
+    PVOID Buffer;
+    ULONG BufferLength;
+} PH_HTTPDOWNLOAD_CALLBACK_CONTEXT, *PPH_HTTPDOWNLOAD_CALLBACK_CONTEXT;
+
+typedef NTSTATUS (NTAPI *PPH_HTTPDOWNLOAD_CALLBACK_EX)(
+    _In_ PH_HTTPDOWNLOAD_EVENT_TYPE Event,
+    _In_ PPH_HTTPDOWNLOAD_CALLBACK_CONTEXT Parameter,
+    _In_opt_ PVOID Context
+    );
+
+typedef struct _PH_HTTP_DOWNLOAD_OPTIONS
+{
+    _Maybenull_ PCWSTR RequestMethod;
+    _Maybenull_ PPH_STRING UserAgent;
+    ULONG RequestFlags;
+    ULONG ProtocolFlags;
+    ULONG ProtocolTimeout;
+    ULONG SecurityFlags;
+    ULONG EnableFeatures;
+    ULONG DisableFeatures;
+    _Maybenull_ PPH_HTTP_EVENT_CALLBACK EventCallback;
+    _Maybenull_ PPH_HTTPDOWNLOAD_CALLBACK_EX DownloadCallback;
+    _Maybenull_ PVOID Context;
+} PH_HTTP_DOWNLOAD_OPTIONS, *PPH_HTTP_DOWNLOAD_OPTIONS;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhHttpDownloadUrl(
+    _In_ PPH_STRING Url,
+    _In_opt_ PPH_HTTP_DOWNLOAD_OPTIONS Options
+    );
+
 #define PH_HTTP_FEATURE_REDIRECTS 0x1
 #define PH_HTTP_FEATURE_KEEP_ALIVE 0x2
 
@@ -637,6 +685,13 @@ PhHttpCrackUrl(
     _Out_ PPH_STRING *Host,
     _Out_ PPH_STRING *Path,
     _Out_ PUSHORT Port
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhWinHttpUserAgentString(
+    VOID
     );
 
 PHLIBAPI
