@@ -278,11 +278,11 @@ VOID ToolbarResetSettings(
     );
 
 PWSTR ToolbarGetText(
-    _In_ UINT CommandID
+    _In_ ULONG CommandID
     );
 
 HBITMAP ToolbarGetImage(
-    _In_ UINT CommandID,
+    _In_ ULONG CommandID,
     _In_ LONG DpiValue
     );
 
