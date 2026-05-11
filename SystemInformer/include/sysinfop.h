@@ -356,6 +356,10 @@ PPH_STRING PhSipGetCpuBrandString(
     VOID
     );
 
+LARGE_INTEGER PhSipGetCpuInterceptLatency(
+    VOID
+    );
+
 _Success_(return)
 BOOLEAN PhSipGetCpuFrequencyFromDistribution(
     _Out_ DOUBLE *Frequency

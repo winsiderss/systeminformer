@@ -46,14 +46,14 @@ typedef struct _PH_SYSINFO_PARAMETERS
     COLORREF GraphBackColor;
     COLORREF PanelForeColor;
 
-    ULONG MinimumGraphHeight;
-    ULONG SectionViewGraphHeight;
+    LONG MinimumGraphHeight;
+    LONG SectionViewGraphHeight;
     LONG PanelWidth;
     LONG WindowDpi;
 // end_phapppub
 
-    ULONG PanelPadding;
-    ULONG WindowPadding;
+    LONG PanelPadding;
+    LONG WindowPadding;
     ULONG GraphPadding;
     ULONG SmallGraphWidth;
     ULONG SmallGraphPadding;
