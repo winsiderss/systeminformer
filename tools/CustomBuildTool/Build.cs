@@ -1480,6 +1480,11 @@ namespace CustomBuildTool
 
             string[] buildCommandArguments = MsbuildCommandArguments(Solution, Platform, Flags, Channel);
 
+            //if (Flags.HasFlag(BuildFlags.BuildVerbose))
+            {
+                Program.PrintColorMessage(string.Join(" ", buildCommandArguments), ConsoleColor.DarkGray);
+            }
+
             if (Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
                 int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandArguments, Flags, out string errorOutputString);
