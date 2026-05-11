@@ -506,7 +506,7 @@ VOID ToolbarResetSettings(
 }
 
 PWSTR ToolbarGetText(
-    _In_ UINT CommandID
+    _In_ ULONG CommandID
     )
 {
     switch (CommandID)
@@ -550,7 +550,7 @@ HBITMAP ToolbarLoadImageFromIcon(
 }
 
 HBITMAP ToolbarGetImage(
-    _In_ UINT CommandID,
+    _In_ ULONG CommandID,
     _In_ LONG DpiValue
     )
 {
