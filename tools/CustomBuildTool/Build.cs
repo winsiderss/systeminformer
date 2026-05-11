@@ -1428,7 +1428,7 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Channel))
                 preprocessorOptionsList.Add($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]}");
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
-                preprocessorOptionsList.Add($"PHAPP_VERSION_COMMITHASH=\"{Build.BuildHash()}\"");
+                preprocessorOptionsList.Add($"PHAPP_VERSION_COMMITHASH={Build.BuildHash()}");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
                 preprocessorOptionsList.Add($"PHAPP_VERSION_MAJOR={Build.BuildVersionMajor}");
             if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
