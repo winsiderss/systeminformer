@@ -39,7 +39,8 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
             ULONG Dirty : 1;
             ULONG OldDelayedStart : 1;
             ULONG GeneralPageInitialized : 1;
-            ULONG SpareFlags : 28;
+            ULONG LayoutInitialized : 1;
+            ULONG SpareFlags : 27;
         };
     };
     ULONG Spare;
@@ -58,6 +59,9 @@ typedef struct _SERVICE_PROPERTIES_CONTEXT
     HWND ServiceDllWindowHandle;
     HFONT WindowFont;
     LONG WindowDpi;
+
+    PH_LAYOUT_MANAGER LayoutManager;
+    PPH_LAYOUT_ITEM TabPageItem;
 } SERVICE_PROPERTIES_CONTEXT, *PSERVICE_PROPERTIES_CONTEXT;
 
 INT_PTR CALLBACK PhpServiceGeneralDlgProc(
@@ -205,10 +209,19 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT);
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_CONTEXT);
 
-            if (context && context->WindowFont)
+            if (context)
             {
-                DeleteFont(context->WindowFont);
-                context->WindowFont = NULL;
+                if (context->LayoutInitialized)
+                {
+                    PhDeleteLayoutManager(&context->LayoutManager);
+                    context->LayoutInitialized = FALSE;
+                }
+
+                if (context->WindowFont)
+                {
+                    DeleteFont(context->WindowFont);
+                    context->WindowFont = NULL;
+                }
             }
         }
         break;
@@ -240,6 +253,42 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
             }
         }
         break;
+    case WM_SIZE:
+        {
+            if (context && context->LayoutInitialized && !IsMinimized(hwnd))
+            {
+                PhLayoutManagerLayout(&context->LayoutManager);
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            PRECT CONST newRect = (PRECT)lParam;
+
+            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
+            // The default property sheet handler is busted on systems with +2 displays (144/96)
+            // and the 96 DPI is default. The tab control and buttons end up with a huge size and
+            // incorrect position when DPI is handled by comctl32's internal math. We override it with
+            // our own layout pass but there might be ~2px of rounding drift per edge. Only update the
+            // manager's DPI so future layout calls (if any) use the correct scale. (dmex)
+            if (context && context->LayoutInitialized)
+            {
+                PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            }
+
+            SetWindowPos(
+                hwnd,
+                NULL,
+                newRect->left,
+                newRect->top,
+                newRect->right - newRect->left,
+                newRect->bottom - newRect->top,
+                SWP_NOZORDER | SWP_NOACTIVATE
+                );
+
+            return 0;
+        }
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -253,7 +302,7 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
  * \param lParam Message-specific parameter.
  * \return The result of the message processing.
  */
-LONG CALLBACK PhpPropSheetSrvProc(
+INT CALLBACK PhpPropSheetSrvProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ LPARAM lParam
@@ -551,11 +600,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
 
-            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
-            else
-                PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
-
             context->WindowDpi = PhGetWindowDpi(GetParent(hwndDlg));
             context->GeneralPageInitialized = TRUE;
         }
@@ -564,6 +608,26 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         {
             PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            if (!context->LayoutInitialized)
+            {
+                HWND parentHandle = GetParent(hwndDlg);
+                HWND tabControlHandle = PropSheet_GetTabControl(parentHandle);
+
+                PhInitializeLayoutManager(&context->LayoutManager, parentHandle);
+                PhAddTabControlLayoutItem(&context->LayoutManager, tabControlHandle, NULL, &context->TabPageItem);
+                PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+                context->LayoutInitialized = TRUE;
+
+                if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                    PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+                else
+                    PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
+            }
         }
         break;
     case WM_COMMAND:
