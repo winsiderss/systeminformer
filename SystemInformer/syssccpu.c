@@ -1059,16 +1059,7 @@ VOID PhSipUpdateCpuPanel(
     )
 {
     LARGE_INTEGER systemUptime;
-    LARGE_INTEGER performanceCounterStart;
-    LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
-    ULONG64 timeStampCounterStart;
-    ULONG64 timeStampCounterEnd;
-#ifdef _ARM64_
-    ULONG64 currentExceptionLevel;
-#else
-    LONG cpubrand[4];
-#endif
     PH_FORMAT format[6];
     WCHAR formatBuffer[256];
     WCHAR uptimeString[PH_TIMESPAN_STR_LEN_1] = { L"Unknown" };
@@ -1244,30 +1235,7 @@ VOID PhSipUpdateCpuPanel(
             PhSetWindowText(CpuPanelLogicalLabel, PhaFormatUInt64(LogicalProcessorInformation.ProcessorLogicalCount, TRUE)->Buffer);
     }
 
-    // Do not optimize (dmex)
-    PhQueryPerformanceCounter(&performanceCounterStart);
-    timeStampCounterStart = PhReadTimeStampCounter();
-#ifdef _ARM64_
-    // 0b11    0b000    0b0100    0b0010    0b010    CurrentEL     Current Exception Level
-    currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
-#else
-    CpuIdEx(cpubrand, 0, 0);
-#endif
-    MemoryBarrier();
-    timeStampCounterEnd = PhReadTimeStampCounter();
-    PhQueryPerformanceCounter(&performanceCounterEnd);
-    performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
-
-    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 &&
-#ifdef _ARM64_
-        currentExceptionLevel == MAXULONG64
-#else
-        cpubrand[0] == 0 && cpubrand[3] == 0
-#endif
-        )
-    {
-        performanceCounterTicks.QuadPart = 0;
-    }
+    performanceCounterTicks = PhSipGetCpuInterceptLatency();
 
     PhInitFormatI64UGroupDigits(&format[0], performanceCounterTicks.QuadPart);
     PhInitFormatS(&format[1], L" | ");
@@ -1484,13 +1452,55 @@ PPH_STRING PhSipGetCpuBrandString(
     return brand;
 }
 
+LARGE_INTEGER PhSipGetCpuInterceptLatency(
+    VOID
+    )
+{
+    LARGE_INTEGER performanceCounterStart;
+    LARGE_INTEGER performanceCounterEnd;
+    LARGE_INTEGER performanceCounterTicks;
+    ULONG64 timeStampCounterStart;
+    ULONG64 timeStampCounterEnd;
+    BOOLEAN counterValid = FALSE;
+    volatile ULONG64 cpuInfoValid = 0;
+
+#ifdef _ARM64_
+    ULONG64 currentExceptionLevel;
+#else
+    LONG cpuInfo[4];
+#endif
+
+    PhQueryPerformanceCounter(&performanceCounterStart);
+    timeStampCounterStart = PhReadTimeStampCounter();
+
+#ifdef _ARM64_
+    currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
+    cpuInfoValid = currentExceptionLevel;
+    counterValid = cpuInfoValid != MAXULONG64;
+#else
+    CpuIdEx(cpuInfo, 0, 0);
+    cpuInfoValid = ((ULONG64)(ULONG)cpuInfo[0]) | ((ULONG64)(ULONG)cpuInfo[3] << 32);
+    counterValid = cpuInfoValid != 0;
+#endif
+
+    MemoryBarrier();
+
+    timeStampCounterEnd = PhReadTimeStampCounter();
+    PhQueryPerformanceCounter(&performanceCounterEnd);
+
+    performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
+
+    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && !counterValid)
+        performanceCounterTicks.QuadPart = 0;
+
+    return performanceCounterTicks;
+}
+
 VOID PhSipUpdateProcessorPerformanceDistribution(
     VOID
     )
 {
     ULONG i, j;
-    PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION current = NULL;
-    PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION previous = NULL;
     ULONGLONG totalCount = 0;
     ULONGLONG totalValue = 0;
 
@@ -1517,18 +1527,21 @@ VOID PhSipUpdateProcessorPerformanceDistribution(
         ULONGLONG count = 0;
         ULONGLONG value = 0;
 
-        current = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
-        previous = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
-
-        if (current->StateCount != previous->StateCount)
-            goto CleanupExit;
-
         if (WindowsVersion >= WINDOWS_8_1)
         {
+            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION current;
+            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION previous;
+
+            current = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
+            previous = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
+
+            if (current->StateCount != previous->StateCount)
+                goto CleanupExit;
+
             for (j = 0; j < current->StateCount; j++)
             {
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountCurrent = PTR_ADD_OFFSET(current->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountPrevious = PTR_ADD_OFFSET(previous->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
+                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountCurrent = &current->States[j];
+                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountPrevious = &previous->States[j];;
                 ULONGLONG delta = hitcountCurrent->Hits - hitcountPrevious->Hits;
 
                 if (delta)
@@ -1540,10 +1553,19 @@ VOID PhSipUpdateProcessorPerformanceDistribution(
         }
         else
         {
+            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 current;
+            PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 previous;
+
+            current = PTR_ADD_OFFSET(CurrentPerformanceDistribution, CurrentPerformanceDistribution->Offsets[i]);
+            previous = PTR_ADD_OFFSET(PreviousPerformanceDistribution, PreviousPerformanceDistribution->Offsets[i]);
+
+            if (current->StateCount != previous->StateCount)
+                goto CleanupExit;
+
             for (j = 0; j < current->StateCount; j++)
             {
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldCurrent = PTR_ADD_OFFSET(current->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
-                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldPrevious = PTR_ADD_OFFSET(previous->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8) * j);
+                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldCurrent = &current->States[j];
+                PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountOldPrevious = &previous->States[j];
                 ULONGLONG delta = hitcountOldCurrent->Hits - hitcountOldPrevious->Hits;
 
                 if (delta)
@@ -1627,8 +1649,8 @@ BOOLEAN PhSipGetCpuFrequencyFromDistributionLegacy(
         if (stateDistribution->StateCount != 2)
         {
             PhFree(differences);
-        return FALSE;
-    }
+            return FALSE;
+        }
 
         for (j = 0; j < stateDistribution->StateCount; j++)
         {
