@@ -1564,6 +1564,16 @@ PhAddLayoutItemEx(
 PHLIBAPI
 VOID
 NTAPI
+PhAddTabControlLayoutItem(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND TabControlHandle,
+    _Out_opt_ PPH_LAYOUT_ITEM *TabControlItem,
+    _Out_ PPH_LAYOUT_ITEM *TabPageItem
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhLayoutManagerLayout(
     _Inout_ PPH_LAYOUT_MANAGER Manager
     );

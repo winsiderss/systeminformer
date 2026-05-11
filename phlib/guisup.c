@@ -2715,6 +2715,29 @@ LRESULT CALLBACK PhDefaultPropSheetWindowProcedure(
             }
         }
         break;
+    case WM_DPICHANGED:
+        {
+            // The COMCTL32 propsheet wndproc does not reliably apply the OS-suggested rect on
+            // a cross-monitor drag — for service-properties-style propsheets this collapses the
+            // window to a near-degenerate size (~28x31 px going 144 DPI -> 96 DPI). Apply the
+            // suggested rect ourselves. (dmex)
+            PRECT CONST newRect = (PRECT)lParam;
+
+            CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
+
+            SetWindowPos(
+                hwnd,
+                NULL,
+                newRect->left,
+                newRect->top,
+                newRect->right - newRect->left,
+                newRect->bottom - newRect->top,
+                SWP_NOZORDER | SWP_NOACTIVATE
+                );
+
+            return 0;
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, hwnd, uMsg, wParam, lParam);
@@ -3003,6 +3026,44 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     PhAddItemList(Manager->List, item);
 
     return item;
+}
+
+/**
+ * Adds the two layout items required to manage a tab control.
+ *
+ * This adds:
+ *  - The tab control itself with PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE
+ *    so the window is resized synchronously and subsequent TabCtrl_AdjustRect
+ *    calls return the updated content rect.
+ *  - A dummy item (PH_LAYOUT_TAB_CONTROL) whose Rect tracks the tab page
+ *    client area. Use this as the ParentItem when adding child controls
+ *    that live on tab pages.
+ *
+ * Order is critical: the IMMEDIATE_RESIZE item must precede the dummy so
+ * that SetWindowPos on the tab control happens before the dummy's
+ * TabCtrl_AdjustRect query during PhLayoutManagerLayout.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param TabControlHandle Handle of the SysTabControl32 window.
+ * \param TabControlItem Optionally receives the layout item for the tab control window.
+ * \param TabPageItem Receives the dummy parent item for tab page children.
+ */
+VOID PhAddTabControlLayoutItem(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND TabControlHandle,
+    _Out_opt_ PPH_LAYOUT_ITEM *TabControlItem,
+    _Out_ PPH_LAYOUT_ITEM *TabPageItem
+    )
+{
+    PPH_LAYOUT_ITEM tabControlItem;
+    PPH_LAYOUT_ITEM tabPageItem;
+
+    tabControlItem = PhAddLayoutItem(Manager, TabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
+    tabPageItem = PhAddLayoutItem(Manager, TabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL);
+
+    if (TabControlItem)
+        *TabControlItem = tabControlItem;
+    *TabPageItem = tabPageItem;
 }
 
 /**
