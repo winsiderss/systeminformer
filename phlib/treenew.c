@@ -7211,6 +7211,7 @@ VOID PhTnpDrawCell(
         customDraw.Dc = hdc;
         customDraw.CellRect = *CellRect;
         customDraw.TextRect = textRect;
+        customDraw.WindowDpi = Context->WindowDpi;
 
         // Fix up the rectangles before giving them to the user.
         if (customDraw.CellRect.left > customDraw.CellRect.right)
