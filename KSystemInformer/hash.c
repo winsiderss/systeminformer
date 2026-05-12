@@ -10,6 +10,7 @@
  */
 
 #include <kph.h>
+#include <informer.h>
 
 #include <trace.h>
 
@@ -115,6 +116,7 @@ static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
     { (512 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA512) },
 };
 C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
+static const UNICODE_STRING KphpDefaultStream = RTL_CONSTANT_STRING(L"::$DATA");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BYTE KphpHashingEaList[KPH_HASH_EACACHE_MAX_LENGTH] = { 0 };
 static PAGED_LOOKASIDE_LIST KphpHashingLookaside = { 0 };
@@ -670,6 +672,175 @@ Exit:
 }
 
 /**
+ * \brief Determines whether a file should support EA caching.
+ *
+ * \param[in] FileObject File object to check.
+ *
+ * \return TRUE if the EA cache is supported, FALSE otherwise.
+ */
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Must_inspect_result_
+BOOLEAN KphpFileSupportsEaCache(
+    _In_ PFILE_OBJECT FileObject
+    )
+{
+    NTSTATUS status;
+    BOOLEAN result;
+    PFLT_VOLUME volume;
+    FLT_FILESYSTEM_TYPE fileSystemType;
+    FLT_VOLUME_PROPERTIES volumeProperties;
+    PFLT_FILE_NAME_INFORMATION nameInfo;
+    ULONG returnLength;
+
+    KPH_PAGED_CODE_PASSIVE();
+
+    result = FALSE;
+    volume = NULL;
+    nameInfo = NULL;
+
+    if (!NT_VERIFY(KphFltFilter))
+    {
+        return FALSE;
+    }
+
+    status = FltObjectReference(KphFltFilter);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltObjectReference failed: %!STATUS!",
+                      status);
+
+        return FALSE;
+    }
+
+    status = FltGetVolumeFromFileObject(KphFltFilter, FileObject, &volume);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltGetVolumeFromFileObject failed: %!STATUS!",
+                      status);
+
+        volume = NULL;
+        goto Exit;
+    }
+
+    status = FltGetFileSystemType(volume, &fileSystemType);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltGetFileSystemType failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if ((fileSystemType != FLT_FSTYPE_NTFS) &&
+        (fileSystemType != FLT_FSTYPE_REFS))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "File system type not supported: %lu",
+                      fileSystemType);
+
+        goto Exit;
+    }
+
+    status = FltGetVolumeProperties(volume,
+                                    &volumeProperties,
+                                    sizeof(volumeProperties),
+                                    &returnLength);
+    if (!NT_SUCCESS(status) && (status != STATUS_BUFFER_OVERFLOW))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltGetVolumeProperties failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if (volumeProperties.DeviceType == FILE_DEVICE_NETWORK_FILE_SYSTEM)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "Device type not supported: %lu",
+                      volumeProperties.DeviceType);
+
+        goto Exit;
+    }
+
+    if (!NT_VERIFY(!IoGetTopLevelIrp()) || !NT_VERIFY(!KeAreAllApcsDisabled()))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "Unsafe to retrieve file name: %!bool!, %!bool!",
+                      (IoGetTopLevelIrp() != NULL),
+                      KeAreAllApcsDisabled());
+
+        goto Exit;
+    }
+
+    status = FltGetFileNameInformationUnsafe(FileObject,
+                                             NULL,
+                                             (FLT_FILE_NAME_OPENED |
+                                              FLT_FILE_NAME_QUERY_DEFAULT),
+                                             &nameInfo);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltGetFileNameInformationUnsafe failed: %!STATUS!",
+                      status);
+
+        nameInfo = NULL;
+        goto Exit;
+    }
+
+    status = FltParseFileNameInformation(nameInfo);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "FltParseFileNameInformation failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
+    if ((nameInfo->Stream.Length > 0) &&
+        !RtlEqualUnicodeString(&nameInfo->Stream, &KphpDefaultStream, TRUE))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "File stream not supported: %wZ",
+                      &nameInfo->Stream);
+
+        goto Exit;
+    }
+
+    result = TRUE;
+
+Exit:
+
+    if (nameInfo)
+    {
+        FltReleaseFileNameInformation(nameInfo);
+    }
+
+    if (volume)
+    {
+        FltObjectDereference(volume);
+    }
+
+    FltObjectDereference(KphFltFilter);
+
+    return result;
+}
+
+/**
  * \brief Loads hashes from the EA cache into the hashing context.
  *
  * \param[in,out] Context The hashing context to load the hashes into.
@@ -704,6 +875,15 @@ VOID KphpLoadHashesFromEaCache(
                       status);
 
         return;
+    }
+
+    if (!KphpFileSupportsEaCache(fileObject))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      HASH,
+                      "File does not support EA cache");
+
+        goto Exit;
     }
 
     //
