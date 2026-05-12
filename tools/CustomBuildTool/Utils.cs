@@ -194,7 +194,7 @@ namespace CustomBuildTool
         /// <param name="RedirectOutput">Indicates whether the output from the MSBuild process should be redirected and captured. The default is <see
         /// langword="true"/>.</param>
         /// <returns>The exit code returned by the MSBuild process. Returns 3 if the MSBuild executable cannot be found.</returns>
-        public static int ExecuteMsbuildCommand(IEnumerable<string> Arguments, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
+        public static int ExecuteMsbuildCommand(string Arguments, BuildFlags Flags, out string OutputString, bool RedirectOutput = true)
         {
             string file = GetMsbuildFilePath(Flags, RuntimeInformation.ProcessArchitecture);
 
@@ -1152,7 +1152,7 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="Arguments">The command-line arguments to pass to devenv.exe.</param>
         /// <returns>The exit code of the process, or Int32.MaxValue if the devenv.exe path is invalid.</returns>
-        public static int ExecuteDevEnvCommand(IEnumerable<string> Arguments)
+        public static int ExecuteDevEnvCommand(string Arguments)
         {
             string currentDevEnvPath = GetDevEnvPath();
 

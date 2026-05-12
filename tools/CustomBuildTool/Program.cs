@@ -130,7 +130,6 @@ namespace CustomBuildTool
                 };
 
                 PrintColorMessage("Error: Missing required arguments. Use -h or --help for valid commands.\r\n", ConsoleColor.Red, true);
-
             });
 
             rootCommand.Add(new VersionOption());
@@ -450,7 +449,7 @@ namespace CustomBuildTool
                 string c = parseResult.GetValue(arg);
                 BuildToolsId.CheckForOutOfDateTools();
                 Build.SetupBuildEnvironment(true);
-                Utils.ExecuteDevEnvCommand([c]);
+                Utils.ExecuteDevEnvCommand(c);
                 Build.ShowBuildStats();
             });
             return cmd;
@@ -567,7 +566,7 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!await BuildDeploy.BuildUpdateServerConfig()) 
+                if (!await BuildDeploy.BuildUpdateServerConfig())
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -750,7 +749,7 @@ namespace CustomBuildTool
                 var generator = Utils.GetGeneratorFromString(generatorArg);
                 var toolchain = Utils.GetToolchainFromString(toolchainArg);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", generator, toolchain, flags)) 
+                if (!Build.BuildSolutionCMake("SystemInformer", generator, toolchain, flags))
                     Environment.Exit(1);
 
                 Build.ShowBuildStats();
@@ -773,9 +772,9 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags)) 
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
                 if (Build.HaveArm64BuildTools)
@@ -810,7 +809,7 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
                 if (Build.HaveArm64BuildTools)
@@ -857,7 +856,7 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags)) 
+                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
                     Environment.Exit(1);
 
                 if (Build.HaveArm64BuildTools)

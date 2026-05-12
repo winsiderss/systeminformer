@@ -185,39 +185,54 @@ namespace CustomBuildTool
         {
             if (ShowBuildInfo)
             {
-                Program.PrintColorMessage("> Windows: ", ConsoleColor.DarkGray, false);
-                Program.PrintColorMessage(Win32.GetKernelVersion(), ConsoleColor.Green);
+                {
+                    string kernelVersion = Win32.GetKernelVersion();
+                    string kernelPrimary = kernelVersion;
+                    string kernelDetail = null;
+
+                    if (!string.IsNullOrEmpty(kernelVersion))
+                    {
+                        int parenIndex = kernelVersion.IndexOf(" (", StringComparison.Ordinal);
+
+                        if (parenIndex > 0 && kernelVersion.EndsWith(')'))
+                        {
+                            kernelPrimary = kernelVersion.Substring(0, parenIndex);
+                            kernelDetail = kernelVersion.Substring(parenIndex + 2, kernelVersion.Length - parenIndex - 3);
+                        }
+                    }
+
+                    Console.Write($"{VT.GRAY}> Windows: {VT.GREEN}{kernelPrimary}{VT.RESET}");
+
+                    if (!string.IsNullOrWhiteSpace(kernelDetail))
+                        Console.Write($"{VT.GRAY} ({VT.PURPLE}{kernelDetail}{VT.GRAY}){VT.RESET}");
+
+                    Console.WriteLine();
+                }
 
                 var visualStudioInstance = BuildVisualStudio.GetVisualStudioInstance();
                 if (visualStudioInstance != null)
                 {
                     Build.HaveArm64BuildTools = visualStudioInstance.HasARM64BuildToolsComponents;
 
-                    Program.PrintColorMessage("> WindowsSDK: ", ConsoleColor.DarkGray, false);
-                    Program.PrintColorMessage(Utils.GetWindowsSdkVersion(), ConsoleColor.Green, false);
+                    string sdkVersion = Utils.GetWindowsSdkVersion();
+                    string sdkFullVersion = visualStudioInstance.GetWindowsSdkFullVersion();
 
-                    if (BuildVisualStudio.IsEnterpriseWdk())
-                    {
-                        string productVersion = visualStudioInstance.GetProductVersion();
+                    Console.Write($"{VT.GRAY}> WindowsSDK: {VT.GREEN}{sdkVersion}{VT.RESET}");
 
-                        if (!string.IsNullOrWhiteSpace(productVersion))
-                        {
-                            Console.Write($"{VT.GRAY} ({VT.RESET}", ConsoleColor.DarkGray, false);
-                            Console.Write($"{VT.PURPLE}{productVersion}{VT.RESET}");
-                            Console.WriteLine($"{VT.GRAY}){VT.RESET}");
-                        }
+                    if (!string.IsNullOrWhiteSpace(sdkFullVersion))
+                        Console.Write($"{VT.GRAY} ({VT.PURPLE}{sdkFullVersion}{VT.GRAY}){VT.RESET}");
 
-                        Console.Write($"{VT.GRAY}> VisualStudio: {VT.RESET}");
-                        Console.WriteLine($"{VT.ORANGE}{visualStudioInstance.Name}{VT.RESET}");
-                        //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
-                    }
-                    else
-                    {
-                        Program.PrintColorMessage($" ({visualStudioInstance.GetWindowsSdkFullVersion()})", ConsoleColor.Green, true);
-                        Program.PrintColorMessage("> VisualStudio: ", ConsoleColor.DarkGray, false);
-                        Program.PrintColorMessage(visualStudioInstance.Name, ConsoleColor.Green);
-                        //Program.PrintColorMessage(Utils.GetVisualStudioVersion(), ConsoleColor.DarkGreen, true);
-                    }
+                    Console.WriteLine();
+
+                    string vsNameColor = BuildVisualStudio.IsEnterpriseWdk() ? VT.ORANGE : VT.GREEN;
+                    string productVersion = visualStudioInstance.GetProductVersion();
+
+                    Console.Write($"{VT.GRAY}> VisualStudio: {vsNameColor}{visualStudioInstance.Name}{VT.RESET}");
+
+                    if (!string.IsNullOrWhiteSpace(productVersion))
+                        Console.Write($"{VT.GRAY}/{VT.PURPLE}{productVersion}{VT.RESET}");
+
+                    Console.WriteLine();
                 }
 
                 Program.PrintColorMessage("> SystemInformer: ", ConsoleColor.DarkGray, false);
@@ -1399,27 +1414,19 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Constructs the MSBuild command line arguments for building a solution with the specified platform, flags, and channel.
+        /// Constructs the MSBuild command line string for building a solution with the specified platform, flags, and channel.
         /// </summary>
         /// <param name="Solution">The solution file to build.</param>
         /// <param name="Platform">The target platform (e.g., Win32, x64, ARM64).</param>
         /// <param name="Flags">Build flags indicating which configurations to process.</param>
         /// <param name="Channel">Optional release channel.</param>
-        /// <returns>The constructed MSBuild command line arguments.</returns>
-        private static string[] MsbuildCommandArguments(string Solution, string Platform, BuildFlags Flags, string Channel = null)
+        /// <returns>The constructed MSBuild command line string.</returns>
+        private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
             List<string> preprocessorOptionsList = new List<string>();
             StringBuilder preprocessorOptionsBuilder = new StringBuilder(0x100);
             StringBuilder linkerOptionsBuilder = new StringBuilder(0x100);
-            List<string> arguments =
-            [
-                "/m",
-                "/nologo",
-                "/nodereuse:false",
-                $"/verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")}",
-                $"/p:Platform={Platform}",
-                $"/p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")}"
-            ];
+            StringBuilder commandLineBuilder = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
                 preprocessorOptionsList.Add("PH_BUILD_API");
@@ -1439,27 +1446,30 @@ namespace CustomBuildTool
                 preprocessorOptionsList.Add($"PHAPP_VERSION_REVISION={Build.BuildVersionRevision()}");
 
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
-                linkerOptionsBuilder.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
+                linkerOptionsBuilder.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
 
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
 
-            if (preprocessorOptionsBuilder.Length > 0)
-                arguments.Add($"""/p:ExternalPreprocessorOptions={preprocessorOptionsBuilder}""");
-            if (linkerOptionsBuilder.Length > 0)
-                arguments.Add($"""/p:ExternalLinkerOptions={linkerOptionsBuilder}""");
-            if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
-                arguments.Add($"""/p:ExternalSimdOptions={Build.BuildSimdExtensions}""");
+            commandLineBuilder.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
-            arguments.Add($"""/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog""");
+            if (preprocessorOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalPreprocessorOptions=\"{preprocessorOptionsBuilder}\" ");
+            if (linkerOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalLinkerOptions=\"{linkerOptionsBuilder}\" ");
+            if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
+                commandLineBuilder.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
+
+            commandLineBuilder.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
-                arguments.Add("-terminalLogger:on");
+                commandLineBuilder.Append("-terminalLogger:on ");
             }
 
-            arguments.Add(Solution);
+            commandLineBuilder.Append(Solution);
 
-            return arguments.ToArray();
+            return commandLineBuilder.ToString();
         }
 
         /// <summary>
@@ -1478,16 +1488,16 @@ namespace CustomBuildTool
             Program.PrintColorMessage(Platform, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
 
-            string[] buildCommandArguments = MsbuildCommandArguments(Solution, Platform, Flags, Channel);
+            string buildCommandLineString = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            //if (Flags.HasFlag(BuildFlags.BuildVerbose))
+            if (Flags.HasFlag(BuildFlags.BuildVerbose))
             {
-                Program.PrintColorMessage(string.Join(" ", buildCommandArguments), ConsoleColor.DarkGray);
+                Program.PrintColorMessage(buildCommandLineString, ConsoleColor.DarkGray);
             }
 
             if (Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
-                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandArguments, Flags, out string errorOutputString);
+                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandLineString, Flags, out string errorOutputString);
 
                 if (exitCodeValue != 0)
                 {
@@ -1497,7 +1507,7 @@ namespace CustomBuildTool
             }
             else
             {
-                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandArguments, Flags, out _, false);
+                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandLineString, Flags, out _, false);
 
                 if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
                 {
