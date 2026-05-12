@@ -870,9 +870,15 @@ VOID KphpInitializeEaCacheContext(
         goto Exit;
     }
 
+    InitializeObjectAttributes(&objectAttributes,
+                               NULL,
+                               OBJ_KERNEL_HANDLE,
+                               FileHandle,
+                               NULL);
+
     status = ZwCreateEvent(&Context->EaCache.OplockEventHandle,
                            EVENT_ALL_ACCESS,
-                           NULL,
+                           &objectAttributes,
                            NotificationEvent,
                            TRUE);
     if (!NT_SUCCESS(status))
