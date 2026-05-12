@@ -11,8 +11,7 @@
 // Apphelp
 //
 
-_Enum_is_bitflag_
-typedef enum _AHC_INFO_CLASS
+typedef _Enum_is_bitflag_ enum _AHC_INFO_CLASS
 {
     AhcInfoClassSdbQueryResult          = 0x00000001,
     AhcInfoClassSdbSxsOverrideManifest  = 0x00000002,
@@ -944,8 +943,7 @@ GetPackageGlobalizationProperty(
 //
 
 // private
-_Enum_is_bitflag_
-typedef enum _MTA_HOST_USAGE_FLAGS
+typedef _Enum_is_bitflag_ enum _MTA_HOST_USAGE_FLAGS
 {
     MTA_HOST_USAGE_NONE = 0x0,
     MTA_HOST_USAGE_MTAINITIALIZED = 0x1,
@@ -1226,7 +1224,7 @@ typedef struct _D3DKMT_ENUM_PROCESS_LIST
 
 // rev
 /**
- * The D3DKMTEnumProcesses function provides a list of process IDs (PIDs) rather than handles that are using a specific graphics adapter, 
+ * The D3DKMTEnumProcesses function provides a list of process IDs (PIDs) rather than handles that are using a specific graphics adapter,
  * which can be more efficient for monitoring purposes.
  *
  * \param[in,out] EnumProcessList A pointer to a \ref D3DKMT_ENUM_PROCESS_LIST structure that contains the processes using the graphics adapter.
