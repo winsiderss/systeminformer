@@ -1731,7 +1731,7 @@ NTSTATUS KphpReOpenImageFile(
                       "KphMapViewInSystem failed: %!STATUS!",
                       status);
 
-        imageBase = NULL;
+        dataBase = NULL;
         goto Exit;
     }
 
