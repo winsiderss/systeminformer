@@ -6,12 +6,16 @@ for /f "usebackq tokens=*" %%a in (`call "%ProgramFiles(x86)%\Microsoft Visual S
    set "VSINSTALLPATH=%%a"
 )
 
-if not defined VSINSTALLPATH if defined WindowsSdkDir (
-   set "VSINSTALLPATH=%WindowsSdkDir%"
+if not defined VSINSTALLPATH if defined VSINSTALLDIR (
+   set "VSINSTALLPATH=%VSINSTALLDIR%"
 )
 
-if not defined VSINSTALLPATH if defined EWDK_ROOT (
-   set "VSINSTALLPATH=%EWDK_ROOT%"
+if not defined VSINSTALLPATH if defined VCINSTALLDIR (
+   for %%I in ("%VCINSTALLDIR%\..\..") do set "VSINSTALLPATH=%%~fI"
+)
+
+if not defined VSINSTALLPATH if defined WindowsSdkDir (
+   set "VSINSTALLPATH=%WindowsSdkDir%"
 )
 
 if not defined VSINSTALLPATH (
