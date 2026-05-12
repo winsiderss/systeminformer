@@ -571,14 +571,21 @@ BOOLEAN KphIsSameFile(
     first = FirstFileObject->SectionObjectPointer;
     second = SecondFileObject->SectionObjectPointer;
 
-    if (first != second)
+    if (!first || !second)
     {
         return FALSE;
     }
 
-    if (!first)
+    if (first == second)
     {
         return TRUE;
+    }
+
+    if (!first->DataSectionObject &&
+        !first->SharedCacheMap &&
+        !first->ImageSectionObject)
+    {
+        return FALSE;
     }
 
     if ((first->DataSectionObject != second->DataSectionObject) ||
