@@ -2270,7 +2270,7 @@ Exit:
         *PreviousCount = previousCount;
     }
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
