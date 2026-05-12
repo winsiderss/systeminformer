@@ -1490,10 +1490,10 @@ namespace CustomBuildTool
 
             string buildCommandLineString = MsbuildCommandString(Solution, Platform, Flags, Channel);
 
-            if (Flags.HasFlag(BuildFlags.BuildVerbose))
-            {
-                Program.PrintColorMessage(buildCommandLineString, ConsoleColor.DarkGray);
-            }
+            //if (Flags.HasFlag(BuildFlags.BuildVerbose))
+            //{
+            //    Program.PrintColorMessage(buildCommandLineString, ConsoleColor.DarkGray);
+            //}
 
             if (Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
