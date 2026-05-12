@@ -2404,6 +2404,12 @@ NTSTATUS PhMoveFile(
         goto CleanupExit;
 
     renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + fileNameLength + sizeof(UNICODE_NULL);
+    if (fileNameLength > renameInfoLength - FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName))
+    {
+        status = STATUS_BUFFER_OVERFLOW;
+        goto CleanupExit;
+    }
+
     renameInfo = PhAllocateStack(renameInfoLength);
     if (!renameInfo) return STATUS_NO_MEMORY;
 
@@ -2933,6 +2939,9 @@ NTSTATUS PhSetFileExtendedAttributes(
     ULONG infoLength;
     PFILE_FULL_EA_INFORMATION info;
     IO_STATUS_BLOCK ioStatusBlock;
+
+    if (Name->Length > UCHAR_MAX)
+        return STATUS_INVALID_PARAMETER;
 
     infoLength = sizeof(FILE_FULL_EA_INFORMATION) + (ULONG)Name->Length + sizeof(ANSI_NULL);
     if (Value) infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
