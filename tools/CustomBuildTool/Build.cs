@@ -1444,13 +1444,13 @@ namespace CustomBuildTool
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
 
             if (preprocessorOptionsBuilder.Length > 0)
-                arguments.Add($"/p:ExternalPreprocessorOptions={preprocessorOptionsBuilder}");
+                arguments.Add($"""/p:ExternalPreprocessorOptions={preprocessorOptionsBuilder}""");
             if (linkerOptionsBuilder.Length > 0)
-                arguments.Add($"/p:ExternalLinkerOptions={linkerOptionsBuilder}");
+                arguments.Add($"""/p:ExternalLinkerOptions={linkerOptionsBuilder}""");
             if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
-                arguments.Add($"/p:ExternalSimdOptions={Build.BuildSimdExtensions}");
+                arguments.Add($"""/p:ExternalSimdOptions={Build.BuildSimdExtensions}""");
 
-            arguments.Add($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog");
+            arguments.Add($"""/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog""");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
             {
