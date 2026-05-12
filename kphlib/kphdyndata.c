@@ -30,6 +30,8 @@
  * \param[in] SizeOfImage The size of image to search for.
  * \param[out] Data Receives a pointer into the dynamic data configuration if
  * the requested data is found.
+ * \param[in] FieldsLength The expected length, in bytes, of the fields
+ * structure for the requested class.
  * \param[out] Fields Receives a pointer into the dynamic data configuration for
  * the related fields if the requested data is found.
  *
@@ -43,8 +45,9 @@ NTSTATUS KphDynDataLookup(
     _In_ USHORT Machine,
     _In_ ULONG TimeDateStamp,
     _In_ ULONG SizeOfImage,
-    _Out_opt_ PKPH_DYN_DATA* Data,
-    _Out_opt_ PVOID* Fields
+    _Outptr_opt_ PKPH_DYN_DATA* Data,
+    _In_ ULONG FieldsLength,
+    _Outptr_opt_result_buffer_(FieldsLength) PVOID* Fields
     )
 {
     NTSTATUS status;
@@ -100,23 +103,25 @@ NTSTATUS KphDynDataLookup(
             continue;
         }
 
-        if (data->Offset >= length)
+        if (Fields)
         {
-            return STATUS_SI_DYNDATA_INVALID_LENGTH;
+            PVOID start;
+            ULONG end;
+
+            status = RtlULongAdd(data->Offset, FieldsLength, &end);
+            if (!NT_SUCCESS(status) || (end > length))
+            {
+                return STATUS_SI_DYNDATA_INVALID_LENGTH;
+            }
+
+            start = &Config->Data[Config->Count];
+
+            *Fields = Add2Ptr(start, data->Offset);
         }
 
         if (Data)
         {
             *Data = data;
-        }
-
-        if (Fields)
-        {
-            PVOID start;
-
-            start = &Config->Data[Config->Count];
-
-            *Fields = Add2Ptr(start, data->Offset);
         }
 
         return STATUS_SUCCESS;

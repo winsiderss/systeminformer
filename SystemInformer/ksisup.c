@@ -1137,6 +1137,7 @@ NTSTATUS KsiValidateDynamicConfiguration(
             supportData.TimeDateStamp,
             supportData.SizeOfImage,
             NULL,
+            0,
             NULL
             );
 

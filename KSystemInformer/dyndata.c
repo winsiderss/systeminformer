@@ -282,6 +282,7 @@ NTSTATUS KphpActivateDynData(
                                   KphpDynModules[KphDynNtoskrnl].TimeDateStamp,
                                   KphpDynModules[KphDynNtoskrnl].SizeOfImage,
                                   NULL,
+                                  sizeof(KPH_DYN_NTOSKRNL_FIELDS),
                                   &kernel);
     }
     else if (KphpDynModules[KphDynNtkrla57].Valid)
@@ -293,6 +294,7 @@ NTSTATUS KphpActivateDynData(
                                   KphpDynModules[KphDynNtkrla57].TimeDateStamp,
                                   KphpDynModules[KphDynNtkrla57].SizeOfImage,
                                   NULL,
+                                  sizeof(KPH_DYN_NTKRLA57_FIELDS),
                                   &kernel);
     }
     else
@@ -322,6 +324,7 @@ NTSTATUS KphpActivateDynData(
                                   KphpDynModules[KphDynLxcore].TimeDateStamp,
                                   KphpDynModules[KphDynLxcore].SizeOfImage,
                                   NULL,
+                                  sizeof(KPH_DYN_LXCORE_FIELDS),
                                   &lxcore);
     }
     else
