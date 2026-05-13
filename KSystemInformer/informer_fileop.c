@@ -532,7 +532,7 @@ VOID KphpFltCopyBuffer(
     {
         MmProbeAndLockProcessPages(mdl,
                                    PsGetThreadProcess(Data->Thread),
-                                   KernelMode,
+                                   Data->RequestorMode,
                                    IoReadAccess);
         unlockPages = TRUE;
     }
