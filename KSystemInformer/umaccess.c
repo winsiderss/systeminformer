@@ -467,7 +467,8 @@ NTSTATUS KphCopyUnicodeStringToMode(
     }
 
     destination = Destination;
-    maximumLength = (USHORT)(Length - sizeof(UNICODE_STRING));
+    maximumLength = (USHORT)min(Length - sizeof(UNICODE_STRING),
+                                UNICODE_STRING_MAX_BYTES);
 
     if (AccessMode != KernelMode)
     {
