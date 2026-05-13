@@ -296,10 +296,12 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Gets the build version revision number, formatted as HHMM, where HH is the hour (1-based) and MM is the minute.
+        /// Gets the build version revision number, formatted as a 1-based hour and minute concatenation.
+        /// The hour component is intentionally computed as <c>TimeStart.Hour + 1</c>, producing values in the range 1-24,
+        /// and the minute component is zero-padded to two digits (00-59).
         /// </summary>
         /// <returns>
-        /// A string representing the revision number in the format HHMM.
+        /// A string representing the revision number in the format <c>HMM</c> or <c>HHMM</c> (for example, 105 or 2405).
         /// </returns>
         public static string BuildVersionRevision()
         {
