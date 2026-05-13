@@ -674,8 +674,5 @@ CleanupExit:
     if (zipBuffer)
         PhFree(zipBuffer);
 
-    if (resourceBuffer)
-        PhFree(resourceBuffer);
-
     return status;
 }
