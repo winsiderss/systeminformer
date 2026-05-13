@@ -1148,6 +1148,8 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
         }
     }
 
+    client->Port = ClientPort;
+
     if (!KphpAddConnectedClient(client))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
@@ -1157,6 +1159,7 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
                       HandleToULong(client->Process->ProcessId),
                       processState);
 
+        client->Port = NULL;
         status = STATUS_INSUFFICIENT_RESOURCES;
         goto Exit;
     }
@@ -1168,7 +1171,6 @@ NTSTATUS FLTAPI KphpCommsConnectNotifyCallback(
                   HandleToULong(client->Process->ProcessId),
                   processState);
 
-    client->Port = ClientPort;
     *ConnectionPortCookie = client;
     status = STATUS_SUCCESS;
 
