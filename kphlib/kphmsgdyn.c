@@ -166,7 +166,9 @@ NTSTATUS KphpMsgDynLookupEntry(
     }
 
     status = RtlUShortAdd(entry->Offset, entry->Length, &endOffset);
-    if (!NT_SUCCESS(status) || (endOffset > Message->Header.Size))
+    if (!NT_SUCCESS(status) ||
+        (entry->Offset < KPH_MESSAGE_MIN_SIZE) ||
+        (endOffset > Message->Header.Size))
     {
         return STATUS_HEAP_CORRUPTION;
     }
