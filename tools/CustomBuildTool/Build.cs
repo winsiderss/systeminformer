@@ -296,10 +296,12 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Gets the build version revision number, formatted as HHMM, where HH is the hour (1-based) and MM is the minute.
+        /// Gets the build version revision number, formatted as a 1-based hour and minute concatenation.
+        /// The hour component is intentionally computed as <c>TimeStart.Hour + 1</c>, producing values in the range 1-24,
+        /// and the minute component is zero-padded to two digits (00-59).
         /// </summary>
         /// <returns>
-        /// A string representing the revision number in the format HHMM.
+        /// A string representing the revision number in the format <c>HMM</c> or <c>HHMM</c> (for example, 105 or 2405).
         /// </returns>
         public static string BuildVersionRevision()
         {
@@ -1333,13 +1335,23 @@ namespace CustomBuildTool
         /// <returns>True if the checksums file is built successfully; otherwise, false.</returns>
         public static bool BuildChecksumsFile()
         {
-            var buildUploadFiles = new List<string>();
+            var buildUploadFiles = new HashSet<string>();
 
-            if (Build.BuildIntegration || Build.BuildRedirectOutput) // fallback: include all if not running in normal build
+            if (Build.BuildIntegration || Build.BuildRedirectOutput) // fallback: include platform zips when present
             {
-                buildUploadFiles.Add("systeminformer-build-win32-bin.zip");
-                buildUploadFiles.Add("systeminformer-build-win64-bin.zip");
-                buildUploadFiles.Add("systeminformer-build-arm64-bin.zip");
+                string[] fallbackZips = new[]
+                {
+                    "systeminformer-build-win32-bin.zip",
+                    "systeminformer-build-win64-bin.zip",
+                    "systeminformer-build-arm64-bin.zip"
+                };
+
+                foreach (var zip in fallbackZips)
+                {
+                    string filePath = Path.Join([Build.BuildOutputFolder, zip]);
+                    if (File.Exists(filePath))
+                        buildUploadFiles.Add(zip);
+                }
             }
 
             // Actually check which platforms were built by checking for the existence of the bin zips
@@ -1380,7 +1392,7 @@ namespace CustomBuildTool
             {
                 StringBuilder checksumsStringBuilder = new StringBuilder();
 
-                foreach (var fileName in buildUploadFiles.Distinct())
+                foreach (var fileName in buildUploadFiles)
                 {
                     string filePath = Path.Join([Build.BuildOutputFolder, fileName]);
                     if (File.Exists(filePath))
@@ -2181,7 +2193,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                // Delete files with abs
+                // Delete files with aps
 
                 var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
                 {
