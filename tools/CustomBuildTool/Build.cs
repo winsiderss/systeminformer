@@ -1333,13 +1333,23 @@ namespace CustomBuildTool
         /// <returns>True if the checksums file is built successfully; otherwise, false.</returns>
         public static bool BuildChecksumsFile()
         {
-            var buildUploadFiles = new List<string>();
+            var buildUploadFiles = new HashSet<string>();
 
-            if (Build.BuildIntegration || Build.BuildRedirectOutput) // fallback: include all if not running in normal build
+            if (Build.BuildIntegration || Build.BuildRedirectOutput) // fallback: include platform zips when present
             {
-                buildUploadFiles.Add("systeminformer-build-win32-bin.zip");
-                buildUploadFiles.Add("systeminformer-build-win64-bin.zip");
-                buildUploadFiles.Add("systeminformer-build-arm64-bin.zip");
+                string[] fallbackZips = new[]
+                {
+                    "systeminformer-build-win32-bin.zip",
+                    "systeminformer-build-win64-bin.zip",
+                    "systeminformer-build-arm64-bin.zip"
+                };
+
+                foreach (var zip in fallbackZips)
+                {
+                    string filePath = Path.Join([Build.BuildOutputFolder, zip]);
+                    if (File.Exists(filePath))
+                        buildUploadFiles.Add(zip);
+                }
             }
 
             // Actually check which platforms were built by checking for the existence of the bin zips
@@ -1380,7 +1390,7 @@ namespace CustomBuildTool
             {
                 StringBuilder checksumsStringBuilder = new StringBuilder();
 
-                foreach (var fileName in buildUploadFiles.Distinct())
+                foreach (var fileName in buildUploadFiles)
                 {
                     string filePath = Path.Join([Build.BuildOutputFolder, fileName]);
                     if (File.Exists(filePath))
