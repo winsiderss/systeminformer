@@ -101,7 +101,7 @@ PKPH_CID_TABLE_ENTRY KphCidLookupEntry(
             }
 
             tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
-            tableL0 = tableL1[id / KPH_CID_MAX_L0];
+            tableL0 = ReadPointerAcquire(&tableL1[id / KPH_CID_MAX_L0]);
             if (!tableL0)
             {
                 return NULL;
@@ -117,13 +117,13 @@ PKPH_CID_TABLE_ENTRY KphCidLookupEntry(
             }
 
             tableL2 = (PKPH_CID_TABLE_ENTRY**)(table & KPH_CID_TABLE_POINTER_MASK);
-            tableL1 = tableL2[id / KPH_CID_MAX_L1];
+            tableL1 = ReadPointerAcquire((PVOID*)&tableL2[id / KPH_CID_MAX_L1]);
             if (!tableL1)
             {
                 return NULL;
             }
 
-            tableL0 = tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0];
+            tableL0 = ReadPointerAcquire(&tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0]);
             if (!tableL0)
             {
                 return NULL;
@@ -414,14 +414,14 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
             //
             tableL1 = (PKPH_CID_TABLE_ENTRY*)(table & KPH_CID_TABLE_POINTER_MASK);
             NT_ASSERT(!tableL1[id / KPH_CID_MAX_L0]);
-            tableL1[id / KPH_CID_MAX_L0] = KphpCidAllocateTable(KPH_CID_TABLE_L0);
-            tableL0 = tableL1[id / KPH_CID_MAX_L0];
+            tableL0 = KphpCidAllocateTable(KPH_CID_TABLE_L0);
             if (!tableL0)
             {
                 entry = NULL;
                 goto Exit;
             }
 
+            WritePointerRelease(&tableL1[id / KPH_CID_MAX_L0], tableL0);
             entry = &tableL0[id % KPH_CID_MAX_L0];
             goto Exit;
         }
@@ -457,24 +457,25 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
     tableL1 = tableL2[id / KPH_CID_MAX_L1];
     if (!tableL1)
     {
-        tableL2[id / KPH_CID_MAX_L1] = KphpCidAllocateTable(KPH_CID_TABLE_L1);
-        tableL1 = tableL2[id / KPH_CID_MAX_L1];
+        tableL1 = KphpCidAllocateTable(KPH_CID_TABLE_L1);
         if (!tableL1)
         {
             entry = NULL;
             goto Exit;
         }
+
+        WritePointerRelease((PVOID*)&tableL2[id / KPH_CID_MAX_L1], tableL1);
     }
 
     NT_ASSERT(!tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0]);
-    tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0] = KphpCidAllocateTable(KPH_CID_TABLE_L0);
-    tableL0 = tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0];
+    tableL0 = KphpCidAllocateTable(KPH_CID_TABLE_L0);
     if (!tableL0)
     {
         entry = NULL;
         goto Exit;
     }
 
+    WritePointerRelease(&tableL1[(id % KPH_CID_MAX_L1) / KPH_CID_MAX_L0], tableL0);
     entry = &tableL0[(id % KPH_CID_MAX_L1) % KPH_CID_MAX_L0];
 
 Exit:
@@ -636,7 +637,7 @@ VOID KphpCidEnumerate(
 
             for (ULONG i = 0; i < KPH_CID_L1_COUNT; i++)
             {
-                tableL0 = tableL1[i];
+                tableL0 = ReadPointerAcquire(&tableL1[i]);
                 if (!tableL0)
                 {
                     continue;
@@ -664,7 +665,7 @@ VOID KphpCidEnumerate(
 
             for (ULONG i = 0; i < KPH_CID_L2_COUNT; i++)
             {
-                tableL1 = tableL2[i];
+                tableL1 = ReadPointerAcquire((PVOID*)&tableL2[i]);
                 if (!tableL1)
                 {
                     continue;
@@ -672,7 +673,7 @@ VOID KphpCidEnumerate(
 
                 for (ULONG j = 0; j < KPH_CID_L1_COUNT; j++)
                 {
-                    tableL0 = tableL1[j];
+                    tableL0 = ReadPointerAcquire(&tableL1[j]);
                     if (!tableL0)
                     {
                         continue;
