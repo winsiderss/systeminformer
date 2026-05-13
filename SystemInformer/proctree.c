@@ -883,6 +883,8 @@ FORCEINLINE VOID PhpAccumulateField(
     case AggregateTypeIntPtr:
         *(PULONG_PTR)Accumulator += *(PULONG_PTR)Value;
         break;
+    default:
+        ASSUME_NO_DEFAULT;
     }
 }
 
