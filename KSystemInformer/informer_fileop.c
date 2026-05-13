@@ -570,7 +570,7 @@ CopyBuffer:
 
             NT_ASSERT(Length <= USHORT_MAX);
 
-            fileName.Buffer = Buffer;
+            fileName.Buffer = buffer;
             fileName.Length = (USHORT)Length;
             fileName.MaximumLength = fileName.Length;
 
