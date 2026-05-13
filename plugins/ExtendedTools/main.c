@@ -1248,6 +1248,9 @@ VOID EtInitializeProcessBlock(
     //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtNpuTotalNodeCount);
     //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtNpuTotalNodeCount);
 
+    PhInitializeCircularBuffer_ULONG64(&Block->FirewallAllowHistory, EtSampleCount);
+    PhInitializeCircularBuffer_ULONG64(&Block->FirewallBlockHistory, EtSampleCount);
+
     if (EtFramesEnabled)
     {
         PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, EtSampleCount);
