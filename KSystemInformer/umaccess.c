@@ -49,6 +49,12 @@ NTSTATUS KphCaptureUnicodeString(
         goto Exit;
     }
 
+    if (inputString.Length & 1)
+    {
+        status = STATUS_OBJECT_NAME_INVALID;
+        goto Exit;
+    }
+
     outputString = KphAllocatePaged(sizeof(UNICODE_STRING) + inputString.Length,
                                     KPH_TAG_CAPTURED_UNICODE_STRING);
     if (!outputString)
