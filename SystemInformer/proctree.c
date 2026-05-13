@@ -5951,7 +5951,6 @@ static VOID PhpAddAndPropagateProcessItems(
     {
         for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
         {
-            PhpAddAndPropagateProcessItems(ProcessesArray, child);
             PhpAddAndPropagateProcessItems(ProcessesArray, ProcessNode->Children->Items[i]);
         }
     }
