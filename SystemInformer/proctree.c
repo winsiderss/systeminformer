@@ -2600,7 +2600,6 @@ BEGIN_SORT_FUNCTION(MinimumWorkingSet)
     PhpUpdateProcessNodeQuotaLimits(node2);
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
     PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number2);
 
     sortResult = uintptrcmp(number1, number2);
@@ -2615,7 +2614,6 @@ BEGIN_SORT_FUNCTION(MaximumWorkingSet)
     PhpUpdateProcessNodeQuotaLimits(node1);
     PhpUpdateProcessNodeQuotaLimits(node2);
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
     PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number2);
 
