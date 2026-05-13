@@ -2403,12 +2403,12 @@ NTSTATUS PhMoveFile(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + fileNameLength + sizeof(UNICODE_NULL);
-    if (fileNameLength > renameInfoLength - FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName))
-    {
-        status = STATUS_BUFFER_OVERFLOW;
+    status = RtlULongAdd(sizeof(FILE_RENAME_INFORMATION), fileNameLength, &renameInfoLength);
+    if (!NT_SUCCESS(status))
         goto CleanupExit;
-    }
+    status = RtlULongAdd(renameInfoLength, sizeof(UNICODE_NULL), &renameInfoLength);
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
 
     renameInfo = PhAllocateStack(renameInfoLength);
     if (!renameInfo) return STATUS_NO_MEMORY;
@@ -2937,28 +2937,66 @@ NTSTATUS PhSetFileExtendedAttributes(
 {
     NTSTATUS status;
     ULONG infoLength;
+    ULONG nameLength;
+    ULONG valueLength;
+    UCHAR eaNameLength;
+    USHORT eaValueLength;
     PFILE_FULL_EA_INFORMATION info;
     IO_STATUS_BLOCK ioStatusBlock;
 
-    if (Name->Length > UCHAR_MAX)
-        return STATUS_INVALID_PARAMETER;
+    status = RtlSIZETToULong(Name->Length, &nameLength);
+    if (!NT_SUCCESS(status))
+        return status;
+    status = RtlULongToUChar(nameLength, &eaNameLength);
+    if (!NT_SUCCESS(status))
+        return status;
 
-    infoLength = sizeof(FILE_FULL_EA_INFORMATION) + (ULONG)Name->Length + sizeof(ANSI_NULL);
-    if (Value) infoLength += (ULONG)Value->Length + sizeof(ANSI_NULL);
+    status = RtlULongAdd(sizeof(FILE_FULL_EA_INFORMATION), nameLength, &infoLength);
+    if (!NT_SUCCESS(status))
+        return status;
+    status = RtlULongAdd(infoLength, sizeof(ANSI_NULL), &infoLength);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (Value)
+    {
+        status = RtlSIZETToULong(Value->Length, &valueLength);
+        if (!NT_SUCCESS(status))
+            return status;
+        status = RtlULongToUShort(valueLength, &eaValueLength);
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlULongAdd(infoLength, valueLength, &infoLength);
+        if (!NT_SUCCESS(status))
+            return status;
+        status = RtlULongAdd(infoLength, sizeof(ANSI_NULL), &infoLength);
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+    else
+    {
+        valueLength = 0;
+        eaValueLength = 0;
+    }
 
     info = PhAllocateStack(infoLength);
     if (!info) return STATUS_NO_MEMORY;
 
-    info->EaNameLength = (UCHAR)Name->Length;
-    memcpy(info->EaName, Name->Buffer, Name->Length);
+    memset(info, 0, infoLength);
+    info->NextEntryOffset = 0;
+    info->Flags = 0;
+    info->EaNameLength = eaNameLength;
+    info->EaValueLength = eaValueLength;
+    memcpy(info->EaName, Name->Buffer, nameLength);
+    info->EaName[eaNameLength] = ANSI_NULL;
 
     if (Value)
     {
-        info->EaValueLength = (USHORT)Value->Length;
         memcpy(
-            PTR_ADD_OFFSET(info->EaName, info->EaNameLength + sizeof(ANSI_NULL)),
+            PTR_ADD_OFFSET(info->EaName, eaNameLength + sizeof(ANSI_NULL)),
             Value->Buffer,
-            Value->Length
+            valueLength
             );
     }
 
