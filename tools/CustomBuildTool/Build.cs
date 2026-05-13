@@ -2181,7 +2181,7 @@ namespace CustomBuildTool
                     }
                 }
 
-                // Delete files with abs
+                // Delete files with aps
 
                 var res_files = Directory.EnumerateFiles(".", "*.aps", new EnumerationOptions
                 {
