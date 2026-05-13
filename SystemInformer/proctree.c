@@ -829,7 +829,11 @@ static VOID PhpNeedGraphContext(
         return;
     GraphBitmap = PhCreateDIBSection(hdc, PHBF_DIB, Width, Height, &GraphBits);
     if (!GraphBitmap)
+    {
+        DeleteDC(GraphContext);
+        GraphContext = NULL;
         return;
+    }
     GraphOldBitmap = SelectBitmap(GraphContext, GraphBitmap);
 }
 
@@ -2597,6 +2601,7 @@ BEGIN_SORT_FUNCTION(MinimumWorkingSet)
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, MinimumWorkingSetSize), &number2);
 
     sortResult = uintptrcmp(number1, number2);
 }
@@ -2612,6 +2617,7 @@ BEGIN_SORT_FUNCTION(MaximumWorkingSet)
 
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
     PhpAggregateFieldIfNeeded(node1, AggregateTypeIntPtr, AggregateProcessNode, node1, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeIntPtr, AggregateProcessNode, node2, FIELD_OFFSET(PH_PROCESS_NODE, MaximumWorkingSetSize), &number2);
 
     sortResult = uintptrcmp(number1, number2);
 }
@@ -5683,6 +5689,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             PPH_PROCESS_NODE targetNode = (PPH_PROCESS_NODE)reorderEvent->Target;
             BOOLEAN targetIsDescendant = FALSE;
             ULONG oldIndex, newIndex;
+            PPH_PROCESS_NODE originalParent;
 
             if (sourceNode && targetNode)
             {
@@ -5697,6 +5704,9 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     current = current->Parent;
                 }
             }
+
+            // Save original parent before unlinking, so we can restore on invalid move.
+            originalParent = sourceNode->Parent;
 
             // Remove sourceNode from its current parent or root list (dmex)
             if (sourceNode->Parent)
@@ -5763,9 +5773,18 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
             }
             else
             {
-                // Invalid move (would create a cycle) - restore original placement at end of root list. (dmex)
-                PhInsertItemList(ProcessNodeRootList, ProcessNodeRootList->Count, sourceNode);
-                sourceNode->Parent = NULL;
+                // Invalid move (would create a cycle) - restore to original position. (dmex)
+                if (originalParent)
+                {
+                    ULONG restoreIndex = (oldIndex != ULONG_MAX) ? oldIndex : originalParent->Children->Count;
+                    PhInsertItemList(originalParent->Children, restoreIndex, sourceNode);
+                }
+                else
+                {
+                    ULONG restoreIndex = (oldIndex != ULONG_MAX) ? oldIndex : ProcessNodeRootList->Count;
+                    PhInsertItemList(ProcessNodeRootList, restoreIndex, sourceNode);
+                }
+                sourceNode->Parent = originalParent;
             }
 
             TreeNew_NodesStructured(hwnd);
@@ -5930,13 +5949,12 @@ static VOID PhpAddAndPropagateProcessItems(
     _In_ PPH_PROCESS_NODE ProcessNode
     )
 {
-    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
+    if (ProcessNode->Children)
     {
-        PPH_PROCESS_NODE child = ProcessNode->Children->Items[i];
-
-        if (child->Children)
+        for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
         {
             PhpAddAndPropagateProcessItems(ProcessesArray, child);
+            PhpAddAndPropagateProcessItems(ProcessesArray, ProcessNode->Children->Items[i]);
         }
     }
 
