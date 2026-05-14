@@ -109,7 +109,15 @@ VOID KphpGetFileObjectInformation(
     //
     KPH_NPAGED_CODE_PASSIVE();
 
-    attachedDevice = IoGetAttachedDevice(FileObject->DeviceObject);
+    if (FileObject->DeviceObject)
+    {
+        attachedDevice = IoGetAttachedDevice(FileObject->DeviceObject);
+    }
+    else
+    {
+        attachedDevice = NULL;
+    }
+
     relatedDevice = IoGetRelatedDeviceObject(FileObject);
 
     RtlZeroMemory(Information, sizeof(KPH_FILE_OBJECT_INFORMATION));
@@ -135,17 +143,26 @@ VOID KphpGetFileObjectInformation(
     Information->Waiters = FileObject->Waiters;
     Information->Busy = FileObject->Busy;
 
-    Information->Device.Type = FileObject->DeviceObject->DeviceType;
-    Information->Device.Characteristics = FileObject->DeviceObject->Characteristics;
-    Information->Device.Flags = FileObject->DeviceObject->Flags;
+    if (FileObject->DeviceObject)
+    {
+        Information->Device.Type = FileObject->DeviceObject->DeviceType;
+        Information->Device.Characteristics = FileObject->DeviceObject->Characteristics;
+        Information->Device.Flags = FileObject->DeviceObject->Flags;
+    }
 
-    Information->AttachedDevice.Type = attachedDevice->DeviceType;
-    Information->AttachedDevice.Characteristics = attachedDevice->Characteristics;
-    Information->AttachedDevice.Flags = attachedDevice->Flags;
+    if (attachedDevice)
+    {
+        Information->AttachedDevice.Type = attachedDevice->DeviceType;
+        Information->AttachedDevice.Characteristics = attachedDevice->Characteristics;
+        Information->AttachedDevice.Flags = attachedDevice->Flags;
+    }
 
-    Information->RelatedDevice.Type = relatedDevice->DeviceType;
-    Information->RelatedDevice.Characteristics = relatedDevice->Characteristics;
-    Information->RelatedDevice.Flags = relatedDevice->Flags;
+    if (relatedDevice)
+    {
+        Information->RelatedDevice.Type = relatedDevice->DeviceType;
+        Information->RelatedDevice.Characteristics = relatedDevice->Characteristics;
+        Information->RelatedDevice.Flags = relatedDevice->Flags;
+    }
 
     C_ASSERT(ARRAYSIZE(Information->Vpb.VolumeLabel) == ARRAYSIZE(vpb->VolumeLabel));
 
@@ -170,46 +187,55 @@ VOID KphpGetFileObjectInformation(
                       ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
     }
 
-    vpb = FileObject->DeviceObject->Vpb;
-    if (vpb)
+    if (FileObject->DeviceObject)
     {
-        Information->Device.Vpb.Type = vpb->Type;
-        Information->Device.Vpb.Size = vpb->Size;
-        Information->Device.Vpb.Flags = vpb->Flags;
-        Information->Device.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-        Information->Device.Vpb.SerialNumber = vpb->SerialNumber;
-        Information->Device.Vpb.ReferenceCount = vpb->ReferenceCount;
-        RtlCopyMemory(Information->Device.Vpb.VolumeLabel,
-                      vpb->VolumeLabel,
-                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        vpb = FileObject->DeviceObject->Vpb;
+        if (vpb)
+        {
+            Information->Device.Vpb.Type = vpb->Type;
+            Information->Device.Vpb.Size = vpb->Size;
+            Information->Device.Vpb.Flags = vpb->Flags;
+            Information->Device.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+            Information->Device.Vpb.SerialNumber = vpb->SerialNumber;
+            Information->Device.Vpb.ReferenceCount = vpb->ReferenceCount;
+            RtlCopyMemory(Information->Device.Vpb.VolumeLabel,
+                          vpb->VolumeLabel,
+                          ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        }
     }
 
-    vpb = attachedDevice->Vpb;
-    if (vpb)
+    if (attachedDevice)
     {
-        Information->AttachedDevice.Vpb.Type = vpb->Type;
-        Information->AttachedDevice.Vpb.Size = vpb->Size;
-        Information->AttachedDevice.Vpb.Flags = vpb->Flags;
-        Information->AttachedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-        Information->AttachedDevice.Vpb.SerialNumber = vpb->SerialNumber;
-        Information->AttachedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
-        RtlCopyMemory(Information->AttachedDevice.Vpb.VolumeLabel,
-                      vpb->VolumeLabel,
-                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        vpb = attachedDevice->Vpb;
+        if (vpb)
+        {
+            Information->AttachedDevice.Vpb.Type = vpb->Type;
+            Information->AttachedDevice.Vpb.Size = vpb->Size;
+            Information->AttachedDevice.Vpb.Flags = vpb->Flags;
+            Information->AttachedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+            Information->AttachedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+            Information->AttachedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+            RtlCopyMemory(Information->AttachedDevice.Vpb.VolumeLabel,
+                          vpb->VolumeLabel,
+                          ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        }
     }
 
-    vpb = relatedDevice->Vpb;
-    if (vpb)
+    if (relatedDevice)
     {
-        Information->RelatedDevice.Vpb.Type = vpb->Type;
-        Information->RelatedDevice.Vpb.Size = vpb->Size;
-        Information->RelatedDevice.Vpb.Flags = vpb->Flags;
-        Information->RelatedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
-        Information->RelatedDevice.Vpb.SerialNumber = vpb->SerialNumber;
-        Information->RelatedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
-        RtlCopyMemory(Information->RelatedDevice.Vpb.VolumeLabel,
-                      vpb->VolumeLabel,
-                      ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        vpb = relatedDevice->Vpb;
+        if (vpb)
+        {
+            Information->RelatedDevice.Vpb.Type = vpb->Type;
+            Information->RelatedDevice.Vpb.Size = vpb->Size;
+            Information->RelatedDevice.Vpb.Flags = vpb->Flags;
+            Information->RelatedDevice.Vpb.VolumeLabelLength = vpb->VolumeLabelLength;
+            Information->RelatedDevice.Vpb.SerialNumber = vpb->SerialNumber;
+            Information->RelatedDevice.Vpb.ReferenceCount = vpb->ReferenceCount;
+            RtlCopyMemory(Information->RelatedDevice.Vpb.VolumeLabel,
+                          vpb->VolumeLabel,
+                          ARRAYSIZE(vpb->VolumeLabel) * sizeof(WCHAR));
+        }
     }
 #pragma prefast(pop)
 
