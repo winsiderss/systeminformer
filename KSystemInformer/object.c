@@ -111,7 +111,7 @@ VOID KphpGetFileObjectInformation(
 
     if (FileObject->DeviceObject)
     {
-        attachedDevice = IoGetAttachedDevice(FileObject->DeviceObject);
+        attachedDevice = IoGetAttachedDeviceReference(FileObject->DeviceObject);
     }
     else
     {
@@ -119,6 +119,10 @@ VOID KphpGetFileObjectInformation(
     }
 
     relatedDevice = IoGetRelatedDeviceObject(FileObject);
+    if (relatedDevice)
+    {
+        ObReferenceObject(relatedDevice);
+    }
 
     RtlZeroMemory(Information, sizeof(KPH_FILE_OBJECT_INFORMATION));
 
@@ -240,6 +244,16 @@ VOID KphpGetFileObjectInformation(
 #pragma prefast(pop)
 
     IoReleaseVpbSpinLock(irql);
+
+    if (relatedDevice)
+    {
+        ObDereferenceObject(relatedDevice);
+    }
+
+    if (attachedDevice)
+    {
+        ObDereferenceObject(attachedDevice);
+    }
 }
 
 KPH_PAGED_FILE();
