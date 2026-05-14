@@ -277,6 +277,8 @@ NTSTATUS KphOpenProcessJob(
 
     KPH_PAGED_CODE_PASSIVE();
 
+    job = NULL;
+
     status = ObReferenceObjectByHandle(ProcessHandle,
                                        0,
                                        *PsProcessType,
@@ -294,7 +296,25 @@ NTSTATUS KphOpenProcessJob(
         goto Exit;
     }
 
+    status = PsAcquireProcessExitSynchronization(process);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "PsAcquireProcessExitSynchronization failed: %!STATUS!",
+                      status);
+
+        goto Exit;
+    }
+
     job = PsGetProcessJob(process);
+    if (job)
+    {
+        ObReferenceObject(job);
+    }
+
+    PsReleaseProcessExitSynchronization(process);
+
     if (!job)
     {
         status = STATUS_NOT_FOUND;
@@ -341,6 +361,11 @@ NTSTATUS KphOpenProcessJob(
     status = KphWriteHandleToMode(JobHandle, jobHandle, AccessMode);
 
 Exit:
+
+    if (job)
+    {
+        ObDereferenceObject(job);
+    }
 
     if (process)
     {
