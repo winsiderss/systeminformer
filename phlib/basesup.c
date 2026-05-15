@@ -4138,6 +4138,22 @@ VOID PhConvertCopyMemoryUlong64(
     }
 }
 
+VOID PhConvertCopyMemorySizeT(
+    _Inout_updates_(Count) PSIZE_T From,
+    _Inout_updates_(Count) PFLOAT To,
+    _In_ SIZE_T Count
+    )
+{
+    if (Count == 0)
+        return;
+
+#if defined(_WIN64)
+    PhConvertCopyMemoryUlong64((PULONG64)From, To, Count);
+#else
+    PhConvertCopyMemoryUlong((PULONG)From, To, Count);
+#endif
+}
+
 /**
  * Converts an array of floats to integers.
  *
@@ -4271,6 +4287,32 @@ VOID PhCopyConvertCircularBufferULONG64(
         // Convert and copy the tail, then only part of the head.
         PhConvertCopyMemoryUlong64(&Buffer->Data[Buffer->Index], Destination, tailSize);
         PhConvertCopyMemoryUlong64(Buffer->Data, &Destination[tailSize], (Count - tailSize));
+    }
+}
+
+VOID PhCopyConvertCircularBufferSizeT(
+    _Inout_ PPH_CIRCULAR_BUFFER_SIZE_T Buffer,
+    _Out_writes_(Count) FLOAT* Destination,
+    _In_ ULONG Count
+    )
+{
+    ULONG tailSize;
+    ULONG headSize;
+
+    tailSize = (ULONG)(Buffer->Size - Buffer->Index);
+    headSize = Buffer->Count - tailSize;
+
+    if (Count > Buffer->Count)
+        Count = Buffer->Count;
+
+    if (tailSize >= Count)
+    {
+        PhConvertCopyMemorySizeT(&Buffer->Data[Buffer->Index], Destination, Count);
+    }
+    else
+    {
+        PhConvertCopyMemorySizeT(&Buffer->Data[Buffer->Index], Destination, tailSize);
+        PhConvertCopyMemorySizeT(Buffer->Data, &Destination[tailSize], (Count - tailSize));
     }
 }
 
