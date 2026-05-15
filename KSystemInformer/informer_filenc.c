@@ -195,6 +195,7 @@ NTSTATUS KphpFltGetFileNameUseContext(
     // Set the new context.
     //
 
+    oldContext = NULL;
     status = FltSetStreamHandleContext(FltObjects->Instance,
                                        FltObjects->FileObject,
                                        FLT_SET_CONTEXT_KEEP_IF_EXISTS,
@@ -231,6 +232,11 @@ NTSTATUS KphpFltGetFileNameUseContext(
                   INFORMER,
                   "FltSetStreamHandleContext failed: %!STATUS!",
                   status);
+
+    if (oldContext)
+    {
+        FltReleaseContext(oldContext);
+    }
 
     return status;
 }
