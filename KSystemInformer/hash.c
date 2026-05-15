@@ -118,6 +118,7 @@ static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
 C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
 static const UNICODE_STRING KphpDefaultStream = RTL_CONSTANT_STRING(L"::$DATA");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
+static BOOLEAN KphpHashingInitialized = FALSE;
 static BYTE KphpHashingEaList[KPH_HASH_EACACHE_MAX_LENGTH] = { 0 };
 static PAGED_LOOKASIDE_LIST KphpHashingLookaside = { 0 };
 static KPH_RUNDOWN KphpHashingRundown = { 0 };
@@ -259,6 +260,8 @@ NTSTATUS KphInitializeHashing(
                                 sizeof(KPH_HASHING_CONTEXT),
                                 KPH_TAG_HASHING_CONTEXT);
 
+    KphpHashingInitialized = TRUE;
+
     return STATUS_SUCCESS;
 }
 
@@ -272,8 +275,11 @@ VOID KphCleanupHashing(
 {
     KPH_PAGED_CODE_PASSIVE();
 
-    KphWaitForRundown(&KphpHashingRundown);
-    KphDeletePagedLookaside(&KphpHashingLookaside);
+    if (KphpHashingInitialized)
+    {
+        KphWaitForRundown(&KphpHashingRundown);
+        KphDeletePagedLookaside(&KphpHashingLookaside);
+    }
 }
 
 /**
