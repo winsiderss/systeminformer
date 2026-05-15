@@ -890,6 +890,7 @@ VOID KphpFltInitializeFileNameCache(
     typeInfo.Delete = NULL;
     typeInfo.Free = KphpFltFreeCachedFileName;
     typeInfo.Flags = 0;
+    typeInfo.DeferDelete = TRUE;
 
     KphCreateObjectType(&KphpCachedFileNameTypeName,
                         &typeInfo,
