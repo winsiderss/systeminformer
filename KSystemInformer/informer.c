@@ -903,6 +903,7 @@ NTSTATUS KphInitializeInformer(
     typeInfo.Initialize = KphpInitializeInformerState;
     typeInfo.Delete = NULL;
     typeInfo.Free = KphpFreeInformerState;
+    typeInfo.Flags = 0;
 
     KphCreateObjectType(&KphpInformerStateTypeName,
                         &typeInfo,
