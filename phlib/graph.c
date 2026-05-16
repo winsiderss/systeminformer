@@ -70,6 +70,7 @@ RECT PhNormalGraphTextMargin = { 5, 5, 5, 5 };
 RECT PhNormalGraphTextPadding = { 3, 3, 3, 3 };
 
 RTL_ATOM PhGraphControlInitialization(
+    VOID
     )
 {
     WNDCLASSEX wcex;
