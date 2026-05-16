@@ -8,7 +8,7 @@ on:
 jobs:
   analyze_driver:
     name: analyze-driver
-    runs-on: windows-2025
+    runs-on: windows-latest
     permissions:
       security-events: write
       actions: read
@@ -34,7 +34,18 @@ jobs:
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
+      - name: Build Cache
+        id: custombuildtool-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        with:
+          path: |
+            tools/CustomBuildTool/bin/Release/CustomBuildTool.exe
+            tools/CustomBuildTool/bin/Release/CustomBuildTool.pdb
+          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+          restore-keys: custombuildtool-${{ runner.os }}-
+
       - name: Build Tools
+        if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
         shell: cmd
         run: build\build_tools.cmd
 
@@ -81,7 +92,7 @@ jobs:
 
   analyze_library:
     name: analyze-software
-    runs-on: windows-2025
+    runs-on: windows-latest
     permissions:
       actions: read
       contents: read
@@ -106,6 +117,16 @@ jobs:
       - name: Nuget Restore
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
+
+      - name: Build Cache
+        id: custombuildtool-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        with:
+          path: |
+            tools/CustomBuildTool/bin/Release/CustomBuildTool.exe
+            tools/CustomBuildTool/bin/Release/CustomBuildTool.pdb
+          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+          restore-keys: custombuildtool-${{ runner.os }}-
 
       - name: Build Init
         shell: cmd
@@ -148,7 +169,7 @@ jobs:
 
   analyze_csharp:
      name: analyze-tools
-     runs-on: windows-2025
+     runs-on: windows-latest
      permissions:
        actions: read
        contents: read
@@ -179,7 +200,18 @@ jobs:
          with:
            languages: ${{ matrix.language }}
 
+       - name: Build Cache
+         id: custombuildtool-cache
+         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+         with:
+           path: |
+             tools/CustomBuildTool/bin/Release/CustomBuildTool.exe
+             tools/CustomBuildTool/bin/Release/CustomBuildTool.pdb
+           key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+           restore-keys: custombuildtool-${{ runner.os }}-
+
        - name: Build Tools
+         if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
          shell: cmd
          run: build\build_tools.cmd
 
