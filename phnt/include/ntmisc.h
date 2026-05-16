@@ -1194,7 +1194,7 @@ typedef struct _D3DKMT_GET_PROCESS_LIST
     LUID AdapterLuid;          // [in] The locally unique identifier (LUID) for the graphics adapter.
     ULONG DesiredAccess;       // [in] The access rights to request for the process handles. This must be `PROCESS_QUERY_INFORMATION` (0x400).
     ULONG ProcessHandleCount;  // [in, out] On input, specifies the number of handles the `ProcessHandle` member can hold. On output, receives the number of handles returned.
-    HANDLE ProcessHandle;      // [out] The first element of an array that receives the process handles.
+    PHANDLE ProcessHandle;     // [out] The first element of an array that receives the process handles.
 } D3DKMT_GET_PROCESS_LIST, *PD3DKMT_GET_PROCESS_LIST;
 
 // rev
