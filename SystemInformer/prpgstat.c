@@ -1473,6 +1473,7 @@ static BOOLEAN PhpFormatProcessStatisticsEnergyColumn(
         PH_PROCESS_STATISTICS_ENERGY_COLUMN(EnergyMbbTail);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILJOULES:
+        PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyMbbTail, 1000000.0, PhpFormatProcessStatisticsEnergyJoules);
         break;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYMBBTAILWATTHOURS:
         PH_PROCESS_STATISTICS_ENERGY_CONVERTED_COLUMN(EnergyMbbTail, 3600000000.0, PhpFormatProcessStatisticsEnergyWattHours);
