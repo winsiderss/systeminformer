@@ -12,6 +12,7 @@ set "ExitCode=0"
 set "IsCI=false"
 set "SuppressPause=false"
 set "TLG=auto"
+set "VerboseLevel=normal"
 set "VSINSTALLPATH="
 set "VS_ARM64_SUPPORT=false"
 set "VCVARS_ARCH=amd64"
@@ -79,7 +80,7 @@ REM ----------------------------------------------------------------------------
 :RunThirdPartyBuild
 echo:
 echo Building thirdparty.sln [%~3]
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=%~1 -property:Platform=%~2 -terminalLogger:%TLG%
+msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=%~1 -property:Platform=%~2 -verbosity:%VerboseLevel% -terminalLogger:%TLG%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -151,6 +152,7 @@ REM Description: Detects whether the script is running under CI.
 REM -----------------------------------------------------------------------------
 :DetectCi
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
+if /i "%GITHUB_ACTIONS%"=="true" set "VerboseLevel=minimal"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
 exit /b 0
 
