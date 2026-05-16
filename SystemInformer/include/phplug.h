@@ -702,6 +702,7 @@ typedef struct _PH_PLUGIN
 // begin_phapppub
 // Plugin API
 
+_Success_(return != NULL)
 PHAPPAPI
 PPH_PLUGIN
 NTAPI
