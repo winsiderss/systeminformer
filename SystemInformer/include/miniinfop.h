@@ -193,6 +193,7 @@ VOID PhMipChangeSection(
     _In_ PPH_MINIINFO_SECTION NewSection
     );
 
+_Function_class_(PH_MINIINFO_SET_SECTION_TEXT)
 VOID PhMipSetSectionText(
     _In_ struct _PH_MINIINFO_SECTION *Section,
     _In_opt_ PPH_STRING Text
