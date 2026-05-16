@@ -86,6 +86,7 @@ EXPORTS
     PhGetProcessIsSuspended
     PhGetProcessKnownType
     PhGetProcessKnownTypeEx
+    PhGetProcessBasicInformation
     PhGetProcessPriorityClassString
     PhGetProcessSmallImageList
     PhGetProtocolTypeName
@@ -111,6 +112,7 @@ EXPORTS
     PhInitializeTreeNewColumnMenu
     PhInitializeTreeNewColumnMenuEx
     PhInitializeTreeNewFilterSupport
+    PhInitializeWindowThemeMainMenu
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
