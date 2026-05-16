@@ -2539,7 +2539,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemVsmProtectionInformation,                         // q: SYSTEM_VSM_PROTECTION_INFORMATION (previously SystemDmaProtectionInformation)
     SystemInterruptCpuSetsInformation,                      // q: SYSTEM_INTERRUPT_CPU_SET_INFORMATION // 170
     SystemSecureBootPolicyFullInformation,                  // q: SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
-    SystemCodeIntegrityPolicyFullInformation,               // q:
+    SystemCodeIntegrityPolicyFullInformation,               // q: SYSTEM_CODE_INTEGRITY_POLICY_FULL_INFORMATION
     SystemAffinitizedInterruptProcessorInformation,         // q: KAFFINITY_EX // (requires SeIncreaseBasePriorityPrivilege)
     SystemRootSiloInformation,                              // q: SYSTEM_ROOT_SILO_INFORMATION
     SystemCpuSetInformation,                                // q: SYSTEM_CPU_SET_INFORMATION // since THRESHOLD2
@@ -2556,7 +2556,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemKernelDebuggingAllowed,                           // s: ULONG
     SystemActivityModerationExeState,                       // s: SYSTEM_ACTIVITY_MODERATION_EXE_STATE
     SystemActivityModerationUserSettings,                   // q: SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
-    SystemCodeIntegrityPoliciesFullInformation,             // qs: NtQuerySystemInformationEx
+    SystemCodeIntegrityPoliciesFullInformation,             // qs: SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION // NtQuerySystemInformationEx
     SystemCodeIntegrityUnlockInformation,                   // q: SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION // 190
     SystemIntegrityQuotaInformation,                        // s: SYSTEM_INTEGRITY_QUOTA_INFORMATION (requires SeDebugPrivilege)
     SystemFlushInformation,                                 // q: SYSTEM_FLUSH_INFORMATION
@@ -6647,6 +6647,56 @@ typedef struct _SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION
     UCHAR Policy[1];
 } SYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION, *PSYSTEM_SECUREBOOT_POLICY_FULL_INFORMATION;
 
+// rev
+#define SYSTEM_CODE_INTEGRITY_POLICY_HEADER_VERSION 8
+
+// rev
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICY_HEADER
+{
+    UCHAR Magic[4];                    // "WDAC"
+    ULONG Version;                     // Policy version/format number
+    ULONG TypeAndOptions;              // Policy type flags and options
+    ULONG TimestampLow;                // Creation/modification timestamp (low)
+    ULONG TimestampHigh;               // Creation/modification timestamp (high)
+    UCHAR Hash[32];                    // SHA-256 policy hash/identifier
+} SYSTEM_CODE_INTEGRITY_POLICY_HEADER, *PSYSTEM_CODE_INTEGRITY_POLICY_HEADER;
+
+// rev // Hash Rule Entry (Variable length)
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICY_RULE_ENTRY
+{
+    ULONG Marker;                      // 8-byte marker (part of rule identification)
+    ULONG RuleMarkerHigh;
+    ULONG DataLength;                  // 4-byte length of hash data
+    UCHAR FixedPrefix[12];             // 12-byte fixed prefix (rule type, attributes)
+    UCHAR Hash[ANYSIZE_ARRAY];         // Variable-length hash (SHA-256, SHA-1, etc.)
+} SYSTEM_CODE_INTEGRITY_POLICY_RULE_ENTRY, *PSYSTEM_CODE_INTEGRITY_POLICY_RULE_ENTRY;
+
+// rev // String Table Entry (Variable length, 4-byte aligned)
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICY_STRING_ENTRY
+{
+    USHORT Length;                     // Length in bytes (not including null terminator)
+    WCHAR String[ANYSIZE_ARRAY];       // UTF-16LE string
+    // UCHAR Padding[ANYSIZE_ARRAY]    // Followed by Padding[] to align to 4-byte boundary
+} SYSTEM_CODE_INTEGRITY_POLICY_STRING_ENTRY, *PSYSTEM_CODE_INTEGRITY_POLICY_STRING_ENTRY;
+
+// rev // Numeric Index Table (used for Signers, FileRules, etc.)
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICY_INDEX_TABLE_ENTRY
+{
+    // Width determines interpretation:
+    // Width=8: Signer entry {StringIndex(2), RuleRefCount(2), RuleRefs[RuleRefCount](4 each)}
+    // Width=4: FileRule index referencing a string from string table
+    UCHAR Entry[ANYSIZE_ARRAY];
+} SYSTEM_CODE_INTEGRITY_POLICY_INDEX_TABLE_ENTRY, *PSYSTEM_CODE_INTEGRITY_POLICY_INDEX_TABLE_ENTRY;
+
+// rev
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICY_FULL_INFORMATION
+{
+    SYSTEM_CODE_INTEGRITY_POLICY_HEADER Header;
+    UCHAR RuleBody[ANYSIZE_ARRAY]; // Followed by sections (offsets determined by header)
+    // UCHAR StringTable[ANYSIZE_ARRAY]; // Followed by StringTable
+    // UCHAR IndexTables[ANYSIZE_ARRAY]; // Followed by NumericTables (Signers, FileRules, etc.)
+} SYSTEM_CODE_INTEGRITY_POLICY_FULL_INFORMATION, *PSYSTEM_CODE_INTEGRITY_POLICY_FULL_INFORMATION;
+
 // private
 typedef struct _KAFFINITY_EX
 {
@@ -6886,6 +6936,13 @@ typedef struct _SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
 {
     HANDLE UserKeyHandle; // Handle to the user registry key for activity moderation settings.
 } SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS, *PSYSTEM_ACTIVITY_MODERATION_USER_SETTINGS;
+
+// rev
+typedef struct _SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION
+{
+    ULONG PolicyCount;
+    UCHAR PolicyBlobs[ANYSIZE_ARRAY];
+} SYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION, *PSYSTEM_CODE_INTEGRITY_POLICIES_FULL_INFORMATION;
 
 /**
  * The SYSTEM_CODEINTEGRITY_UNLOCK_INFORMATION structure contains Code Integrity unlock state and validation token.
