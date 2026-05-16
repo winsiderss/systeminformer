@@ -644,71 +644,56 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
             break;
         case WM_PAINT:
             {
-                //PAINTSTRUCT ps;
-                //HDC BufferedHDC;
-                //HPAINTBUFFER BufferedPaint;
-                //
-                //if (!BeginPaint(WindowHandle, &ps))
-                //    break;
-                //
-                //if (BufferedPaint = BeginBufferedPaint(ps.hdc, &ps.rcPaint, BPBF_COMPATIBLEBITMAP, NULL, &BufferedHDC))
-                //{
-                //    ThemeWindowRenderStatusBar(context, WindowHandle, BufferedHDC, &ps.rcPaint, oldWndProc);
-                //    EndBufferedPaint(BufferedPaint, TRUE);
-                //}
-                //else
+                PAINTSTRUCT paintStruct;
+                RECT clientRect;
+                RECT bufferRect;
+                HDC hdc;
+
+                if (!(hdc = BeginPaint(WindowHandle, &paintStruct)))
+                    break;
+
+                if (!PhGetClientRect(WindowHandle, &clientRect))
                 {
-                    RECT clientRect;
-                    RECT bufferRect;
-                    HDC hdc;
-
-                    if (!PhGetClientRect(WindowHandle, &clientRect))
-                        break;
-
-                    bufferRect.left = 0;
-                    bufferRect.top = 0;
-                    bufferRect.right = clientRect.right - clientRect.left;
-                    bufferRect.bottom = clientRect.bottom - clientRect.top;
-
-                    hdc = GetDC(WindowHandle);
-
-                    if (context->BufferedDc && (
-                        context->BufferedContextRect.right < bufferRect.right ||
-                        context->BufferedContextRect.bottom < bufferRect.bottom))
-                    {
-                        ThemeWindowStatusBarDestroyBufferedContext(context);
-                    }
-
-                    if (!context->BufferedDc)
-                    {
-                        ThemeWindowStatusBarCreateBufferedContext(context, hdc, &bufferRect);
-                    }
-
-                    if (context->BufferedDc)
-                    {
-                        ThemeWindowRenderStatusBar(
-                            context,
-                            WindowHandle,
-                            context->BufferedDc,
-                            &clientRect
-                            );
-
-                        BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, context->BufferedDc, 0, 0, SRCCOPY);
-                    }
-
-                    ReleaseDC(WindowHandle, hdc);
+                    EndPaint(WindowHandle, &paintStruct);
+                    return 0;
                 }
 
-                //EndPaint(WindowHandle, &ps);
+                bufferRect.left = 0;
+                bufferRect.top = 0;
+                bufferRect.right = clientRect.right - clientRect.left;
+                bufferRect.bottom = clientRect.bottom - clientRect.top;
+
+                if (context->BufferedDc && (
+                    context->BufferedContextRect.right < bufferRect.right ||
+                    context->BufferedContextRect.bottom < bufferRect.bottom))
+                {
+                    ThemeWindowStatusBarDestroyBufferedContext(context);
+                }
+
+                if (!context->BufferedDc)
+                {
+                    ThemeWindowStatusBarCreateBufferedContext(context, hdc, &bufferRect);
+                }
+
+                if (context->BufferedDc)
+                {
+                    ThemeWindowRenderStatusBar(
+                        context,
+                        WindowHandle,
+                        context->BufferedDc,
+                        &clientRect
+                        );
+
+                    BitBlt(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom, context->BufferedDc, 0, 0, SRCCOPY);
+                }
+
+                EndPaint(WindowHandle, &paintStruct);
             }
-            goto DefaultWndProc;
+            return 0;
         }
     }
 
     return CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
-
-DefaultWndProc:
-    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
 LRESULT CALLBACK PhEditWindowHookProcedure(
