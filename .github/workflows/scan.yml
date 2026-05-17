@@ -34,21 +34,12 @@ jobs:
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-      - name: BuildTools Cache
-        id: custombuildtool-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-        with:
-          path: tools/CustomBuildTool/bin/Release/**
-          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
-          restore-keys: custombuildtool-${{ runner.os }}-
-
       - name: Build Tools
-        if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
         shell: cmd
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           languages: ${{ matrix.language }}
 
@@ -65,8 +56,8 @@ jobs:
         shell: pwsh
         run: |
           $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
-          & $codeqlPath pack download microsoft/windows-drivers@1.9.0
-          & $codeqlPath pack download microsoft/cpp-queries@0.0.5
+          & $codeqlPath pack download microsoft/windows-drivers
+          & $codeqlPath pack download microsoft/cpp-queries
 
       - name: Run Windows Driver Analysis
         shell: pwsh
@@ -84,7 +75,7 @@ jobs:
           patterns: packages/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
 
@@ -116,29 +107,12 @@ jobs:
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-      - name: BuildTools Cache
-        id: custombuildtool-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-        with:
-          path: tools/CustomBuildTool/bin/Release/**
-          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
-          restore-keys: custombuildtool-${{ runner.os }}-
-
-      - name: BuildThirdParty Cache
-        id: thirdparty-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-        with:
-          path: tools/thirdparty/**
-          key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-          restore-keys: thirdparty-${{ runner.os }}-
-
       - name: Build Init
-        if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
         shell: cmd
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           languages: ${{ matrix.language }}
 
@@ -151,30 +125,14 @@ jobs:
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
           upload: never
-
-      - name: BuildTools Cache
-        id: custombuildtool-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-        with:
-          path: tools/CustomBuildTool/bin/Release/**
-          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
-          restore-keys: custombuildtool-${{ runner.os }}-
-
-      - name: BuildThirdParty Cache
-        id: thirdparty-cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-        with:
-          path: tools/thirdparty/**
-          key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-          restore-keys: thirdparty-${{ runner.os }}-
-
+  
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           sarif_file: sarif-results/filtered.sarif
 
@@ -207,33 +165,16 @@ jobs:
          run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
        - name: Initialize CodeQL
-         uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            languages: ${{ matrix.language }}
 
-       - name: BuildTools Cache
-         id: custombuildtool-cache
-         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-         with:
-           path: tools/CustomBuildTool/bin/Release/**
-           key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
-           restore-keys: custombuildtool-${{ runner.os }}-
-
-       - name: BuildThirdParty Cache
-         id: thirdparty-cache
-         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-         with:
-           path: tools/thirdparty/**
-           key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
-           restore-keys: thirdparty-${{ runner.os }}-
-
        - name: Build Tools
-         if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
          shell: cmd
          run: build\build_init.cmd
 
        - name: Perform CodeQL analysis
-         uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            category: '/language:${{ matrix.language }}'
            output: sarif-results
@@ -250,6 +191,6 @@ jobs:
              tools/CustomBuildTool/obj/**/*
 
        - name: Upload CodeQL Results
-         uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            sarif_file: sarif-results/filtered.sarif
