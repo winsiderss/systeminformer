@@ -69,6 +69,14 @@ PhGetProcedureAddress(
     _In_opt_ USHORT ProcedureNumber
     );
 
+#if defined(__cplusplus)
+#define PhGetProcedureAddressT(BaseAddress, Name) \
+    reinterpret_cast<decltype(&(Name))>(PhGetProcedureAddress((BaseAddress), #Name, 0))
+#else
+#define PhGetProcedureAddressT(BaseAddress, Name) \
+    (typeof(&(Name)))PhGetProcedureAddress((BaseAddress), #Name, 0)
+#endif
+
 PHLIBAPI
 NTSTATUS
 NTAPI
