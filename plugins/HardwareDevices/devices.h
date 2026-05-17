@@ -1707,7 +1707,7 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
 NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     _In_ LUID AdapterLuid,
     _In_ ULONG NodeId,
-    _Out_ PULONG64 RunningTime
+    _Out_ PULONG64 RunningTime,
     );
 
 NTSTATUS GraphicsQueryAdapterDevicePerfData(
