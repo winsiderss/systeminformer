@@ -48,17 +48,17 @@ namespace CustomBuildTool
         public static void WriteToolsId()
         {
             string directory = Path.GetDirectoryName(Environment.ProcessPath);
-            string fileameId = Path.Join([directory, "\\ToolsId.txt"]);
+            string filenameId = Path.Join([directory, "\\ToolsId.txt"]);
             string currentHash = GetToolsId();
 
-            Utils.WriteAllText(fileameId, currentHash);
+            Utils.WriteAllText(filenameId, currentHash);
 
             Program.PrintColorMessage("Tools Hash: ", ConsoleColor.Gray, false);
             Program.PrintColorMessage($"{currentHash}", ConsoleColor.Green);
         }
 
         /// <summary>
-        /// Computes a SHA-256 hash of all <c>.cs</c> files in the specified build tool directories.
+        /// Computes an SHA-256 hash of all <c>.cs</c> files in the specified build tool directories.
         /// The hash represents the current state of the build tools source files.
         /// </summary>
         /// <returns>

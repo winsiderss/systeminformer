@@ -49,7 +49,7 @@ namespace CustomBuildTool
         {
             try
             {
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, 
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get,
                     $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version=2025-07-01");
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
 
@@ -61,12 +61,6 @@ namespace CustomBuildTool
                 }
 
                 var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-                if (jsonResponseStream == null)
-                {
-                    Program.PrintColorMessage($"Failed to fetch json response from Key Vault", ConsoleColor.Red);
-                    return null;            
-                }
-
                 var keyVaultCertificateResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.KeyVaultCertificateResponse, CancellationToken);
                 var keyVaultCertificate = new KeyVaultCertificate();
 
@@ -110,7 +104,7 @@ namespace CustomBuildTool
         /// - AZURE_CLIENT_CERTIFICATE_PATH: Path to certificate file (for cert-based auth)
         /// - KEYVAULT_NAME: Name of the Key Vault
         /// - CERT_NAME: Name of the certificate in the vault
-        /// 
+        ///
         /// Certificates are cached to avoid repeated Key Vault requests.
         /// </remarks>
         public static async Task<bool> StartAzureClient(CancellationToken CancellationToken = default)
@@ -150,13 +144,13 @@ namespace CustomBuildTool
             }
 
             using HttpRequestMessage requestMessage = new HttpRequestMessage(
-                HttpMethod.Get, 
+                HttpMethod.Get,
                 $"https://{vaultName}.vault.azure.net/secrets/{certName}?api-version=2025-07-01"
                 );
             requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
             using HttpResponseMessage responseMessage = await httpClient.SendAsync(requestMessage, CancellationToken);
-            
+
             if (!responseMessage.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage($"Key Vault error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
@@ -165,7 +159,7 @@ namespace CustomBuildTool
 
             var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
             var secretResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.SecretResponse, CancellationToken);
-            
+
             if (string.IsNullOrWhiteSpace(secretResponse.Value))
             {
                 Console.WriteLine("Secret response is null or missing 'value'.");
@@ -180,7 +174,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            X509Certificate2 inMemoryCertificate = null;
+            X509Certificate2 inMemoryCertificate;
 
             if (secretValue.TrimStart().StartsWith("-----BEGIN", StringComparison.OrdinalIgnoreCase))
             {
@@ -267,17 +261,17 @@ namespace CustomBuildTool
                 var certificateAzureVaultServer = new Uri($"https://{AzureVaultName}.vault.azure.net/");
                 var certificateTimeStampServer = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
                 using var httpClientForKeyVault = BuildHttpClient.CreateHttpClient();
-                X509Certificate2 vaultPublicCert = null;
-                Uri keyIdUri = null;
+                X509Certificate2 vaultPublicCert;
+                Uri keyIdUri;
 
                 string vaultAccessToken = await GetAccessTokenWithRetry(
                     httpClientForKeyVault,
-                    TenantGuid, 
-                    ClientGuid, 
+                    TenantGuid,
+                    ClientGuid,
                     ClientSecret,
                     null,  // No certificate path in this context
-                    MaxRetries: 5, 
-                    InitialDelayMs: 500, 
+                    MaxRetries: 5,
+                    InitialDelayMs: 500,
                     CancellationToken: CancellationToken
                     );
 
@@ -288,10 +282,10 @@ namespace CustomBuildTool
                 }
 
                 var keyVaultCertificateResponse = await GetKeyVaultCertificate(
-                    httpClientForKeyVault, 
-                    AzureVaultName, 
-                    AzureCertName, 
-                    vaultAccessToken, 
+                    httpClientForKeyVault,
+                    AzureVaultName,
+                    AzureCertName,
+                    vaultAccessToken,
                     CancellationToken
                     );
 
@@ -329,18 +323,17 @@ namespace CustomBuildTool
 
                 using (var azureCertificateRsa = RSAFactory.Create(accessTokenForKeyVault, keyIdUri, vaultPublicCert))
                 using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(
-                    azureCertificateRsa, 
-                    vaultPublicCert, 
-                    HashAlgorithmName.SHA256, 
-                    certificateTimeStampServer,
-                    null
+                    azureCertificateRsa,
+                    vaultPublicCert,
+                    HashAlgorithmName.SHA256,
+                    certificateTimeStampServer
                     ))
                 {
                     if (Directory.Exists(TargetPath))
                     {
-                        var fileList = Utils.EnumerateDirectory(TargetPath, [".exe", ".dll"], ["ksi.dll"]);
+                        var fileList = Utils.EnumerateDirectory(TargetPath, [".exe", ".dll"], ["ksi.dll"]).ToList();
 
-                        if (fileList == null || fileList.Count() == 0)
+                        if (fileList.Count == 0)
                         {
                             Program.PrintColorMessage($"No files found to sign.", ConsoleColor.Red);
                         }
@@ -354,8 +347,8 @@ namespace CustomBuildTool
                                 try
                                 {
                                     var result = authenticodeKeyVaultSigner.SignFile(
-                                        fileName, 
-                                        SignatureDescription, 
+                                        fileName,
+                                        SignatureDescription,
                                         SignatureDescriptionUrl);
 
                                     if (result == HRESULT.S_OK)
@@ -374,14 +367,14 @@ namespace CustomBuildTool
                                 }
                             }
 
-                            Program.PrintColorMessage($"Signing complete. {successCount}/{fileList.Count()} files signed.", ConsoleColor.DarkGray);
+                            Program.PrintColorMessage($"Signing complete. {successCount}/{fileList.Count} files signed.", ConsoleColor.DarkGray);
                         }
                     }
                     else if (File.Exists(TargetPath))
                     {
                         var result = authenticodeKeyVaultSigner.SignFile(
-                            TargetPath, 
-                            SignatureDescription, 
+                            TargetPath,
+                            SignatureDescription,
                             SignatureDescriptionUrl);
 
                         if (result == HRESULT.COR_E_BADIMAGEFORMAT)
@@ -458,7 +451,6 @@ namespace CustomBuildTool
             if (useCertificate && useSecret)
             {
                 Program.PrintColorMessage("Both AZURE_CLIENT_SECRET and AZURE_CLIENT_CERTIFICATE_PATH are set. Using certificate authentication.", ConsoleColor.Yellow);
-                useSecret = false;
             }
 
             if (useCertificate)
@@ -594,7 +586,6 @@ namespace CustomBuildTool
                             delayMs = retryAfterDelay ?? ApplyJitter(delayMs);
                             await Task.Delay(delayMs, CancellationToken);
                             delayMs = Math.Min(delayMs * 2, 15000);
-                            continue;
                         }
                         else
                         {
@@ -610,7 +601,6 @@ namespace CustomBuildTool
                         Program.PrintColorMessage($"Network error on token fetch (attempt {currentAttempt}/{MaxRetries}): {httpRequestException.Message}. Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
                         await Task.Delay(waitDelay, CancellationToken);
                         delayMs = Math.Min(delayMs * 2, 15000);
-                        continue;
                     }
                     catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && currentAttempt <= MaxRetries)
                     {
@@ -618,7 +608,6 @@ namespace CustomBuildTool
                         Program.PrintColorMessage($"Timeout on token fetch (attempt {currentAttempt}/{MaxRetries}). Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
                         await Task.Delay(waitDelay, CancellationToken);
                         delayMs = Math.Min(delayMs * 2, 15000);
-                        continue;
                     }
                 }
             }
@@ -626,7 +615,7 @@ namespace CustomBuildTool
             {
                 if (bodyBytes != null)
                 {
-                    System.Security.Cryptography.CryptographicOperations.ZeroMemory(bodyBytes);
+                    CryptographicOperations.ZeroMemory(bodyBytes);
                 }
             }
         }
@@ -679,14 +668,14 @@ namespace CustomBuildTool
                         clientCertificate = CreateCertificateFromPem(pemContent);
                     }
                     else if (
-                        fileExtension.Equals(".pfx", StringComparison.OrdinalIgnoreCase) || 
+                        fileExtension.Equals(".pfx", StringComparison.OrdinalIgnoreCase) ||
                         fileExtension.Equals(".p12", StringComparison.OrdinalIgnoreCase)
                         )
                     {
                         // For PFX, you may need a password. Check environment variable.
                         string certPassword = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PASSWORD");
                         byte[] certBytes = await File.ReadAllBytesAsync(ClientCertificatePath, CancellationToken);
-                        
+
                         if (!string.IsNullOrWhiteSpace(certPassword))
                         {
                             clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, certPassword);
@@ -783,7 +772,6 @@ namespace CustomBuildTool
                             delayMs = retryAfterDelay ?? ApplyJitter(delayMs);
                             await Task.Delay(delayMs, CancellationToken);
                             delayMs = Math.Min(delayMs * 2, 15000);
-                            continue;
                         }
                         else
                         {
@@ -799,7 +787,6 @@ namespace CustomBuildTool
                         Program.PrintColorMessage($"Network error on token fetch (attempt {currentAttempt}/{MaxRetries}): {httpRequestException.Message}. Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
                         await Task.Delay(waitDelay, CancellationToken);
                         delayMs = Math.Min(delayMs * 2, 15000);
-                        continue;
                     }
                     catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && currentAttempt <= MaxRetries)
                     {
@@ -807,7 +794,6 @@ namespace CustomBuildTool
                         Program.PrintColorMessage($"Timeout on token fetch (attempt {currentAttempt}/{MaxRetries}). Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
                         await Task.Delay(waitDelay, CancellationToken);
                         delayMs = Math.Min(delayMs * 2, 15000);
-                        continue;
                     }
                 }
             }
@@ -832,7 +818,7 @@ namespace CustomBuildTool
         /// - jti: Unique JWT ID (GUID)
         /// - nbf: Not before time (current time)
         /// - sub: Client ID (subject)
-        /// 
+        ///
         /// The JWT header includes x5t (certificate thumbprint) for key identification.
         /// </remarks>
         private static string CreateClientAssertion(string TenantId, string ClientId, X509Certificate2 Certificate)
@@ -857,7 +843,7 @@ namespace CustomBuildTool
                 };
 
                 var writer = new ArrayBufferWriter<byte>(1024);
-                
+
                 // Serialize Header
                 using (var jsonWriter = new Utf8JsonWriter(writer))
                 {
@@ -971,12 +957,12 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="PemContent">The PEM-encoded content containing certificate and optionally a private key.</param>
         /// <returns>An X509Certificate2 with the certificate and private key (if present).</returns>
-        /// <exception cref="CryptographicException">Thrown if the PEM content is invalid or the key type is unsupported.</exception>
+        /// <exception cref="System.Security.Cryptography.CryptographicException">Thrown if the PEM content is invalid or the key type is unsupported.</exception>
         /// <remarks>
         /// Supports the following PEM blocks:
         /// - CERTIFICATE (required)
         /// - PRIVATE KEY, RSA PRIVATE KEY, EC PRIVATE KEY, ENCRYPTED PRIVATE KEY (optional)
-        /// 
+        ///
         /// If no private key is found, returns a public-only certificate.
         /// Attempts RSA first, then ECDSA for private key import.
         /// </remarks>
@@ -1033,7 +1019,7 @@ namespace CustomBuildTool
         /// -----BEGIN {Label}-----
         /// [base64 data]
         /// -----END {Label}-----
-        /// 
+        ///
         /// The search is case-insensitive.
         /// </remarks>
         private static string ExtractPemBlock(string TextContent, string Label)
@@ -1042,7 +1028,7 @@ namespace CustomBuildTool
                 return null;
 
             ReadOnlySpan<char> text = TextContent.AsSpan();
-            
+
             // Build markers. String interpolation is fine here as labels are short.
             string beginMarker = $"-----BEGIN {Label}-----";
             string endMarker = $"-----END {Label}-----";
@@ -1070,7 +1056,7 @@ namespace CustomBuildTool
         /// Gets or sets the certificate data in DER-encoded format.
         /// </summary>
         public byte[] CertificateBuffer { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the Key Vault key identifier URL for the certificate's private key.
         /// </summary>
@@ -1087,19 +1073,19 @@ namespace CustomBuildTool
         /// </summary>
         [JsonPropertyName("cer")]
         public string CertificateString { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the key identifier URL.
         /// </summary>
         [JsonPropertyName("kid")]
         public string Kid { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the certificate identifier URL.
         /// </summary>
         [JsonPropertyName("id")]
         public string Id { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the key information containing the key identifier.
         /// </summary>
@@ -1131,7 +1117,7 @@ namespace CustomBuildTool
         [JsonPropertyName("value")]
         [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
         public char[] Value { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the signature result from sign operations.
         /// </summary>
@@ -1139,7 +1125,7 @@ namespace CustomBuildTool
         [JsonPropertyName("signature")]
         [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
         public char[] Signature { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the plaintext result from decrypt operations.
         /// </summary>
@@ -1147,7 +1133,7 @@ namespace CustomBuildTool
         [JsonPropertyName("plaintext")]
         [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
         public char[] Plaintext { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the additional authenticated data used by authenticated encryption operations.
         /// </summary>
@@ -1155,7 +1141,7 @@ namespace CustomBuildTool
         [JsonPropertyName("aad")]
         [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
         public char[] AdditionalAuthenticatedData { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the initialization vector used by authenticated encryption operations.
         /// </summary>
@@ -1163,7 +1149,7 @@ namespace CustomBuildTool
         [JsonPropertyName("iv")]
         [JsonConverter(typeof(KeyVaultBase64UrlCharArrayJsonConverter))]
         public char[] InitializationVector { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the authentication tag returned by authenticated encryption operations.
         /// </summary>
@@ -1193,19 +1179,19 @@ namespace CustomBuildTool
         /// </summary>
         [JsonPropertyName("access_token")]
         public string AccessToken { get; init; }
-        
+
         /// <summary>
         /// Gets the type of token (typically "Bearer").
         /// </summary>
         [JsonPropertyName("token_type")]
         public string TokenType { get; init; }
-        
+
         /// <summary>
         /// Gets the token lifetime in seconds.
         /// </summary>
         [JsonPropertyName("expires_in")]
         public int ExpiresIn { get; init; }
-        
+
         /// <summary>
         /// Gets the scope of the access token.
         /// </summary>
@@ -1223,13 +1209,13 @@ namespace CustomBuildTool
         /// </summary>
         [JsonPropertyName("value")]
         public string Value { get; init; }
-        
+
         /// <summary>
         /// Gets the secret identifier URL.
         /// </summary>
         [JsonPropertyName("id")]
         public string Id { get; init; }
-        
+
         /// <summary>
         /// Gets the secret name.
         /// </summary>
@@ -1247,13 +1233,13 @@ namespace CustomBuildTool
         /// </summary>
         [JsonPropertyName("alg")]
         public string Alg { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the token type (JWT).
         /// </summary>
         [JsonPropertyName("typ")]
         public string Typ { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the X.509 certificate thumbprint (Base64URL-encoded).
         /// </summary>
@@ -1271,31 +1257,31 @@ namespace CustomBuildTool
         /// </summary>
         [JsonPropertyName("aud")]
         public string Aud { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the expiration time (Unix timestamp).
         /// </summary>
         [JsonPropertyName("exp")]
         public long Exp { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the issuer (client ID).
         /// </summary>
         [JsonPropertyName("iss")]
         public string Iss { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the JWT ID (unique identifier).
         /// </summary>
         [JsonPropertyName("jti")]
         public string Jti { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the not-before time (Unix timestamp).
         /// </summary>
         [JsonPropertyName("nbf")]
         public long Nbf { get; set; }
-        
+
         /// <summary>
         /// Gets or sets the subject (client ID).
         /// </summary>
@@ -1334,8 +1320,5 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(KeyVaultKeyLifetimeActionType))]
     [JsonSerializable(typeof(JwtHeader))]
     [JsonSerializable(typeof(JwtPayload))]
-    internal partial class AzureJsonContext : JsonSerializerContext
-    {
-
-    }
+    internal partial class AzureJsonContext : JsonSerializerContext;
 }

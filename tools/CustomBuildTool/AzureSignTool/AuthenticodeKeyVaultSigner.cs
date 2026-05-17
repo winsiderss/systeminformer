@@ -29,7 +29,7 @@ namespace CustomBuildTool
         private X509Chain CertificateChain;
         private bool InstanceDisposed;
         private GCHandle InstanceHandle;
-        private PFN_AUTHENTICODE_DIGEST_SIGN SigningCallback;
+        private readonly PFN_AUTHENTICODE_DIGEST_SIGN SigningCallback;
 
         private const int CERT_STRONG_SIGN_OID_INFO_CHOICE = 2;
 
@@ -156,9 +156,9 @@ namespace CustomBuildTool
                 throw new InvalidOperationException("Failed to build chain for certificate.");
             }
 
-            for (var i = 0; i < this.CertificateChain.ChainElements.Count; i++)
+            foreach (var t in this.CertificateChain.ChainElements)
             {
-                this.CertificateStore.Add(this.CertificateChain.ChainElements[i].Certificate);
+                this.CertificateStore.Add(t.Certificate);
             }
 
             // Pin this instance in a static map keyed by the native CERT_CONTEXT* (cert handle).
@@ -188,9 +188,9 @@ namespace CustomBuildTool
         /// Note that page hashing still may be disabled if the Subject Interface Package does not support page hashing.</param>
         /// <returns>A HRESULT indicating the result of the signing operation.</returns>
         internal HRESULT SignFile(
-            ReadOnlySpan<char> FileName, 
+            ReadOnlySpan<char> FileName,
             ReadOnlySpan<char> Description = default,
-            ReadOnlySpan<char> DescriptionUrl = default, 
+            ReadOnlySpan<char> DescriptionUrl = default,
             bool PageHashing = false
             )
         {
@@ -296,7 +296,7 @@ namespace CustomBuildTool
                 strongSignPolicy->cbSize = (uint)sizeof(CERT_STRONG_SIGN_PARA);
                 strongSignPolicy->dwInfoChoice = CERT_STRONG_SIGN_OID_INFO_CHOICE;
                 strongSignPolicy->Anonymous.pszOID = new PSTR(pszOID);
-             
+
                 if (IsAppxFile(FileName))
                 {
                     SIGNER_SIGN_EX_PARAMS* parameters = stackalloc SIGNER_SIGN_EX_PARAMS[1];
@@ -401,7 +401,7 @@ namespace CustomBuildTool
             {
                 if (this.SigningCertificate?.Handle != IntPtr.Zero)
                 {
-                    SignCallbackInstanceMap.TryRemove(this.SigningCertificate.Handle, out var removed);
+                    SignCallbackInstanceMap.TryRemove(this.SigningCertificate!.Handle, out var removed);
 
                     if (removed.IsAllocated)
                     {
@@ -489,7 +489,7 @@ namespace CustomBuildTool
             return HRESULT.S_OK;
         }
 
-        [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+        [UnmanagedCallersOnly(CallConvs = [typeof(CallConvStdcall)])]
         private static HRESULT StaticNativeSignDigestCallback(
             CERT_CONTEXT* SigningCert,
             CRYPT_INTEGER_BLOB* MetadataBlob,
@@ -500,7 +500,7 @@ namespace CustomBuildTool
         {
             if (SigningCert == null)
             {
-                Program.PrintColorMessage($"[StaticNativeSignDigestCallback] SigningCert", ConsoleColor.Red);
+                Program.PrintColorMessage("[StaticNativeSignDigestCallback] SigningCert", ConsoleColor.Red);
                 return HRESULT.E_INVALIDARG;
             }
 
@@ -515,13 +515,13 @@ namespace CustomBuildTool
                     // Validate digest algorithm matches expected
                     if (DigestAlgId != HashAlgorithmToAlgId(instance.FileDigestAlgorithm))
                     {
-                        Program.PrintColorMessage($"[StaticNativeSignDigestCallback] DigestAlgId mismatch", ConsoleColor.Yellow);
+                        Program.PrintColorMessage("[StaticNativeSignDigestCallback] DigestAlgId mismatch", ConsoleColor.Yellow);
                         return HRESULT.E_INVALIDARG;
                     }
 
                     if (instance.InstanceDisposed)
                     {
-                        Program.PrintColorMessage($"[StaticNativeSignDigestCallback] Instance disposed", ConsoleColor.Red);
+                        Program.PrintColorMessage("[StaticNativeSignDigestCallback] Instance disposed", ConsoleColor.Red);
                         return HRESULT.E_FAIL;
                     }
 
@@ -536,10 +536,10 @@ namespace CustomBuildTool
             }
             catch (Exception)
             {
-                Program.PrintColorMessage($"[StaticNativeSignDigestCallback] ERROR", ConsoleColor.Red);
+                Program.PrintColorMessage("[StaticNativeSignDigestCallback] ERROR", ConsoleColor.Red);
             }
 
-            Program.PrintColorMessage($"[StaticNativeSignDigestCallback] Failed", ConsoleColor.Red);
+            Program.PrintColorMessage("[StaticNativeSignDigestCallback] Failed", ConsoleColor.Red);
             return HRESULT.E_FAIL;
         }
 
@@ -560,9 +560,9 @@ namespace CustomBuildTool
         //    byte[] buffer = new byte[cbToBeSignedDigest];
         //    fixed (void* ptr = &buffer[0])
         //        Unsafe.CopyBlock(ptr, pbToBeSignedDigest, cbToBeSignedDigest);
-        //    
+        //
         //    ReadOnlySpan<byte> buffer = new ReadOnlySpan<byte>(pbToBeSignedDigest, (int)cbToBeSignedDigest);
-        //    
+        //
         //    switch (this.SigningAlgorithm)
         //    {
         //        case RSA rsa:
@@ -577,7 +577,7 @@ namespace CustomBuildTool
         //    {
         //        SignedDigest->pbData = (byte*)NativeMemory.AllocZeroed((nuint)digest.Length);
         //        SignedDigest->cbData = (uint)digest.Length;
-        //    
+        //
         //        fixed (void* memory = &digest[0])
         //        {
         //            Unsafe.CopyBlock(SignedDigest->pbData, memory, (uint)digest.Length);

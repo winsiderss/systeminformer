@@ -121,9 +121,9 @@ namespace CustomBuildTool
             var canzipdownloadlink = githubMirrorUpload.GetFileUrl("systeminformer-build-canary-setup.exe");
 
             if (
-                string.IsNullOrWhiteSpace(github_release_id) || 
+                string.IsNullOrWhiteSpace(github_release_id) ||
                 string.IsNullOrWhiteSpace(binzipdownloadlink) ||
-                string.IsNullOrWhiteSpace(relzipdownloadlink) || 
+                string.IsNullOrWhiteSpace(relzipdownloadlink) ||
                 string.IsNullOrWhiteSpace(canzipdownloadlink)
                 )
             {
@@ -153,12 +153,7 @@ namespace CustomBuildTool
             {
                 // Create a new github release.
 
-                var newGithubRelease = await BuildGithub.CreateRelease(
-                    Build.BuildLongVersion,
-                    true, // draft
-                    false, // prerelease
-                    true
-                    );
+                var newGithubRelease = await BuildGithub.CreateRelease(Build.BuildLongVersion);
 
                 if (newGithubRelease == null)
                 {
@@ -217,7 +212,7 @@ namespace CustomBuildTool
 
                 // Update the release and make it public.
 
-                var update = await BuildGithub.UpdateRelease(newGithubRelease.ReleaseId, false, false);
+                var update = await BuildGithub.UpdateRelease(newGithubRelease.ReleaseId);
 
                 if (update == null)
                 {

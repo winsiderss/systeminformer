@@ -21,7 +21,7 @@ namespace CustomBuildTool
     /// handling Windows SDK paths. Many methods assume Windows environments and may rely on environment variables or
     /// registry keys. Thread safety is not guaranteed for all static members; use caution when accessing shared
     /// resources concurrently.</remarks>
-    public static unsafe partial class Utils
+    public static unsafe class Utils
     {
         private static readonly Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -65,7 +65,7 @@ namespace CustomBuildTool
             // 2. Track the current key (string) if it starts with "-".
             // 3. For each string in args:
             //    a. If it starts with "-", set as current key, add to dict if not present.
-            //    b. Else, if current key is set, append value to its list.
+            //    b. Else, if the current key is set, append a value to its list.
             //    c. If no current key, ignore or add to a special key (optional).
             // 4. Return the dictionary.
 
@@ -190,7 +190,7 @@ namespace CustomBuildTool
         /// <param name="Arguments">The MSBuild command-line arguments to execute.</param>
         /// <param name="Flags">The build flags that determine which MSBuild executable to use and how the command is executed.</param>
         /// <param name="OutputString">When the method returns, contains the output produced by the MSBuild process. If the MSBuild executable
-        /// cannot be found, contains an error message.</param>
+        /// cannot be found, it contains an error message.</param>
         /// <param name="RedirectOutput">Indicates whether the output from the MSBuild process should be redirected and captured. The default is <see
         /// langword="true"/>.</param>
         /// <returns>The exit code returned by the MSBuild process. Returns 3 if the MSBuild executable cannot be found.</returns>
@@ -401,17 +401,17 @@ namespace CustomBuildTool
 
             {
                 string vswhereResult = ExecuteVsWhereCommand(
-                    [
-                        "-latest",
-                        "-prerelease",
-                        "-products",
-                        "*",
-                        "-requiresAny",
-                        "-requires",
-                        "Microsoft.Component.MSBuild",
-                        "-property",
-                        "installationPath"
-                    ]);
+                [
+                    "-latest",
+                    "-prerelease",
+                    "-products",
+                    "*",
+                    "-requiresAny",
+                    "-requires",
+                    "Microsoft.Component.MSBuild",
+                    "-property",
+                    "installationPath"
+                ]);
 
                 if (!string.IsNullOrWhiteSpace(vswhereResult))
                 {
@@ -432,17 +432,17 @@ namespace CustomBuildTool
 
             {
                 string vswhereResult = ExecuteVsWhereCommand(
-                    [
-                        "-latest",
-                        "-prerelease",
-                        "-products",
-                        "*",
-                        "-requiresAny",
-                        "-requires",
-                        "Microsoft.Component.MSBuild",
-                        "-find",
-                        "MSBuild\\**\\Bin\\MSBuild.exe"
-                    ]);
+                [
+                    "-latest",
+                    "-prerelease",
+                    "-products",
+                    "*",
+                    "-requiresAny",
+                    "-requires",
+                    "Microsoft.Component.MSBuild",
+                    "-find",
+                    "MSBuild\\**\\Bin\\MSBuild.exe"
+                ]);
 
                 if (!string.IsNullOrWhiteSpace(vswhereResult))
                 {
@@ -468,7 +468,7 @@ namespace CustomBuildTool
         /// Retrieves the full file path to the Git executable on the local machine.
         /// </summary>
         /// <remarks>This method searches common installation directories for the Git executable and
-        /// caches the result for subsequent calls. If Git is not installed in the standard locations, it attempts to
+        /// caches the result for later calls. If Git is not installed in the standard locations, it attempts to
         /// locate the executable using the system search path.</remarks>
         /// <returns>A string containing the absolute path to the Git executable if found; otherwise, an empty string.</returns>
         public static string GetGitFilePath()
@@ -554,11 +554,11 @@ namespace CustomBuildTool
                 return null;
             }
 
-            List<string> arguments = new List<string>
-            {
+            List<string> arguments =
+            [
                 "-C",
                 WorkingFolder
-            };
+            ];
 
             arguments.AddRange(Arguments);
 
@@ -568,7 +568,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Enumerates all files in the specified directory and its subdirectories that match the given file extensions,
+        /// Lists all files in the specified directory and its subdirectories that match the given file extensions,
         /// optionally excluding specified file names.
         /// </summary>
         /// <remarks>The search includes all subdirectories and ignores special directories such as "."
@@ -1579,7 +1579,6 @@ namespace CustomBuildTool
             {
                 BuildGenerator.Ninja => "Ninja",
                 BuildGenerator.VisualStudio => "Visual Studio",
-                BuildGenerator.Other => original ?? string.Empty,
                 _ => original ?? string.Empty
             };
         }
@@ -1793,7 +1792,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
-                if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
+                if (this.Digest.AsSpan().IndexOf(':') is var idx && idx >= 0)
                 {
                     return this.Digest[..idx];
                 }
@@ -1810,7 +1809,7 @@ namespace CustomBuildTool
                 if (string.IsNullOrWhiteSpace(this.Digest))
                     return string.Empty;
 
-                if (this.Digest.AsSpan().IndexOf(':') is int idx && idx >= 0)
+                if (this.Digest.AsSpan().IndexOf(':') is var idx && idx >= 0)
                 {
                     return this.Digest[idx..];
                 }
@@ -2578,13 +2577,10 @@ namespace CustomBuildTool
         public List<string> Versions { get; init; }
     }
 
- 
+
     [JsonSerializable(typeof(BuildUpdateRequest))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class BuildUpdateRequestContext : JsonSerializerContext
-    {
-
-    }
+    public partial class BuildUpdateRequestContext : JsonSerializerContext;
 
     [JsonSerializable(typeof(GithubActionRun))]
     [JsonSerializable(typeof(GithubAssetsResponse))]
@@ -2595,31 +2591,20 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(SourceLink))]
     [JsonSerializable(typeof(Dictionary<string, JsonElement>))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class GithubResponseContext : JsonSerializerContext
-    {
-
-    }
+    public partial class GithubResponseContext : JsonSerializerContext;
 
     [JsonSerializable(typeof(SourceForgeUploadResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class SourceForgeUploadResponseContext : JsonSerializerContext
-    {
-
-    }
+    public partial class SourceForgeUploadResponseContext : JsonSerializerContext;
 
     [JsonSerializable(typeof(VirusTotalLargeUploadResponse))]
     [JsonSerializable(typeof(VirusTotalAnalysisResponse))]
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
-    public partial class VirusTotalResponseContext : JsonSerializerContext
-    {
-
-    }
+    public partial class VirusTotalResponseContext : JsonSerializerContext;
 
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(Dictionary<string, string>))]
-    public partial class DictionarySerializerContext : JsonSerializerContext
-    {
-    }
+    public partial class DictionarySerializerContext : JsonSerializerContext;
 
     /// <summary>
     /// Provides extension methods for formatting numeric values as human-readable file sizes.

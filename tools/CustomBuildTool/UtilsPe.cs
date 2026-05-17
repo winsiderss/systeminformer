@@ -65,7 +65,7 @@ namespace CustomBuildTool
         /// <param name="imageStream">The stream to read from.</param>
         /// <param name="fileOffset">The zero-based byte offset in the stream at which to begin reading.</param>
         /// <param name="buffer">The buffer to fill with the read bytes.</param>
-        /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before the buffer is completely filled.</exception>
+        /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before the buffer is filled.</exception>
         internal static void ReadExactlyAt(Stream imageStream, int fileOffset, Span<byte> buffer)
         {
             imageStream.Seek(fileOffset, SeekOrigin.Begin);

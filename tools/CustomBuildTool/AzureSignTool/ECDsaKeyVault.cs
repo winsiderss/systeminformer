@@ -39,8 +39,8 @@ namespace CustomBuildTool
                 throw new ArgumentException("Public key must be provided in KeyVaultContext", nameof(Context));
             }
 
-            this.KeySizeValue = this.PublicKey.KeySize;
-            this.LegalKeySizesValue = new[] { new KeySizes(this.PublicKey.KeySize, this.PublicKey.KeySize, 0) };
+            this.KeySizeValue = this.PublicKey!.KeySize;
+            this.LegalKeySizesValue = [new KeySizes(this.PublicKey.KeySize, this.PublicKey.KeySize, 0)];
         }
 
         /// <inheritdoc/>

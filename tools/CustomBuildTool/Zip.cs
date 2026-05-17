@@ -38,11 +38,11 @@ namespace CustomBuildTool
             ".lib"
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
-        private sealed class CompressionProgressReporter : IProgress<SharpCompress.Common.ProgressReport>
+        private sealed class CompressionProgressReporter : IProgress<ProgressReport>
         {
-            private readonly Dictionary<string, SharpCompress.Common.ProgressReport> Reports = new Dictionary<string, SharpCompress.Common.ProgressReport>(StringComparer.OrdinalIgnoreCase);
+            private readonly Dictionary<string, ProgressReport> Reports = new(StringComparer.OrdinalIgnoreCase);
 
-            public void Report(SharpCompress.Common.ProgressReport value)
+            public void Report(ProgressReport value)
             {
                 if (!string.IsNullOrWhiteSpace(value.EntryPath))
                 {
@@ -50,7 +50,7 @@ namespace CustomBuildTool
                 }
             }
 
-            public bool TryGetReport(string EntryName, out SharpCompress.Common.ProgressReport Report)
+            public bool TryGetReport(string EntryName, out ProgressReport Report)
             {
                 return this.Reports.TryGetValue(EntryName, out Report);
             }
@@ -70,9 +70,6 @@ namespace CustomBuildTool
         {
             if (names == null || names.Length == 0)
                 return Array.Empty<string>();
-
-            if (includeBaseName)
-                sourceFolder = Path.GetDirectoryName(sourceFolder);
 
             int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
             if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
@@ -318,8 +315,8 @@ namespace CustomBuildTool
             //}
 
             //using (var filestream = File.Create(destinationArchiveFileName))
-            //using (var archive = new SevenZipWriter(filestream, new SevenZipWriterOptions 
-            //{ 
+            //using (var archive = new SevenZipWriter(filestream, new SevenZipWriterOptions
+            //{
             //    CompressHeader = true,
             //    CompressionType = SharpCompress.Common.CompressionType.LZMA2
             //}))

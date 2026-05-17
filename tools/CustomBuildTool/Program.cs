@@ -97,6 +97,7 @@ namespace CustomBuildTool
                     { "-argsfile", "Read arguments from a file instead of the command line." },
                     { "-bin", "Builds the binary package." },
                     { "-check_msvc", "Check required build dependencies are installed." },
+                    { "-check-thirdparty", "Checks thirdparty library versions against latest GitHub releases." },
                     { "-install_msvc", "Installs any missing build dependencies." },
                     { "-cleanup", "Cleans up the build environment." },
                     { "-cleansdk", "Cleans SDK build artifacts (internal)." },
@@ -126,10 +127,9 @@ namespace CustomBuildTool
                     { "-verbose", "Enables verbose output." },
                     { "-vtscan", "Uploads a file to VirusTotal for scanning." },
                     { "-write-tools-id", "Writes the tools id file (internal)." },
-                    { "-check-thirdparty", "Checks thirdparty library versions against latest GitHub releases." },
                 };
 
-                PrintColorMessage("Error: Missing required arguments. Use -h or --help for valid commands.\r\n", ConsoleColor.Red, true);
+                PrintColorMessage("Error: Missing required arguments. Use -h or --help for valid commands.\r\n", ConsoleColor.Red);
             });
 
             rootCommand.Add(new VersionOption());
@@ -144,9 +144,9 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Creates a command that writes the tools ID file.
+        /// Creates a command that writes the tool ID file.
         /// </summary>
-        /// <returns>A command configured to execute the tools ID file writing operation.</returns>
+        /// <returns>A command configured to execute the tool ID file writing operation.</returns>
         private static Command CreateWriteToolsIdCommand()
         {
             var cmd = new Command("-write-tools-id", "Writes the tools id file (internal).");

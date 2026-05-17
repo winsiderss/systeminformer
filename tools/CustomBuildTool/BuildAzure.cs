@@ -113,7 +113,6 @@ namespace CustomBuildTool
             finally
             {
                 try { Environment.SetEnvironmentVariable("BUILD_ENTRA_SECRET_ID", null, EnvironmentVariableTarget.Process); } catch { }
-                entraClientSecret = null;
             }
         }
 
@@ -128,7 +127,7 @@ namespace CustomBuildTool
         /// <param name="ClientGuid">The Azure Active Directory client (application) GUID.</param>
         /// <param name="ClientSecret">The client secret for the Azure application.</param>
         /// <returns>
-        /// True if the files are successfully signed; otherwise, false. 
+        /// True if the files are successfully signed; otherwise, false.
         /// The method retries up to three times in case of transient Azure connectivity issues.
         /// </returns>
         public static async Task<bool> SignFiles(
@@ -166,7 +165,7 @@ namespace CustomBuildTool
         /// <param name="ClientGuid">The Azure Active Directory client (application) GUID.</param>
         /// <param name="ClientSecret">The client secret for the Azure application.</param>
         /// <returns>
-        /// True if all files are successfully signed; otherwise, false. 
+        /// True if all files are successfully signed; otherwise, false.
         /// Displays error messages for missing certificates, unsupported file types, or signing failures.
         /// </returns>
         public static async Task<bool> KeyVaultDigestSignFiles(
@@ -195,30 +194,31 @@ namespace CustomBuildTool
                 var (azureCertificatePublic, keyId) = await DownloadCertificateAndKeyId(AzureVaultName, AzureCertName, accessToken);
                 if (azureCertificatePublic == null)
                 {
-                    Program.PrintColorMessage($"Azure Certificate Failed.", ConsoleColor.Red);
+                    Program.PrintColorMessage("Azure Certificate Failed.", ConsoleColor.Red);
                     return false;
                 }
 
                 if (keyId == null)
                 {
-                    Program.PrintColorMessage($"Unable to determine Key Id for certificate.", ConsoleColor.Red);
+                    Program.PrintColorMessage("Unable to determine Key Id for certificate.", ConsoleColor.Red);
                     return false;
                 }
 
-                using (var azureCertificateRsa = RSAFactory.Create(accessToken, keyId, azureCertificatePublic))
-                using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, certificateTimeStampServer, null))
+                using var azureCertificateRsa = RSAFactory.Create(accessToken, keyId, azureCertificatePublic);
+                using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, certificateTimeStampServer))
                 {
                     if (Directory.Exists(Path))
                     {
                         var files = Utils.EnumerateDirectory(Path, [".exe", ".dll"], ["ksi.dll"]);
 
-                        if (files == null || files.Count() == 0)
+                        var enumerable = files as string[] ?? files.ToArray();
+                        if (!enumerable.Any())
                         {
-                            Program.PrintColorMessage($"No files found.", ConsoleColor.Red);
+                            Program.PrintColorMessage("No files found.", ConsoleColor.Red);
                         }
                         else
                         {
-                            foreach (var file in files)
+                            foreach (var file in enumerable)
                             {
                                 var result = authenticodeKeyVaultSigner.SignFile(file, null, null);
 
@@ -238,12 +238,14 @@ namespace CustomBuildTool
                             Program.PrintColorMessage($"[ERROR] The AppxManifest.xml publisher CN does not match the certificate: ({result}) {Path}", ConsoleColor.Red);
                             return false;
                         }
-                        else if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
+
+                        if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
                         {
                             Program.PrintColorMessage($"[ERROR] File content not supported: ({result}) {Path}", ConsoleColor.Red);
                             return false;
                         }
-                        else if (result != HRESULT.S_OK)
+
+                        if (result != HRESULT.S_OK)
                         {
                             Program.PrintColorMessage($"[ERROR] ({result}) {Path}", ConsoleColor.Red);
                             return false;
@@ -331,12 +333,10 @@ namespace CustomBuildTool
                 }
 
                 using var tokenBody = new ByteArrayContent(bodyBytes);
-                tokenBody.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                tokenBody.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
-                using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
-                {
-                    Content = tokenBody
-                };
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token");
+                request.Content = tokenBody;
 
                 var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
 
@@ -349,7 +349,7 @@ namespace CustomBuildTool
             {
                 if (bodyBytes != null)
                 {
-                    System.Security.Cryptography.CryptographicOperations.ZeroMemory(bodyBytes);
+                    CryptographicOperations.ZeroMemory(bodyBytes);
                 }
             }
         }

@@ -1121,13 +1121,13 @@ namespace CustomBuildTool
             };
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
-            Program.PrintColorMessage($"Generating zip files... ", ConsoleColor.Cyan);
+            Program.PrintColorMessage("Generating zip files... ", ConsoleColor.Cyan);
 
             try
             {
                 foreach (var zipEntry in buildZipFilesMap)
                 {
-                    string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
+                    string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
 
                     Win32.DeleteFile(zipFilePath, Flags);
                 }
@@ -1136,7 +1136,7 @@ namespace CustomBuildTool
 
                 foreach (var zipEntry in buildZipFilesMap)
                 {
-                    string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
+                    string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
 
                     Program.PrintColorMessage($"Building {zipEntry.Value}... ", ConsoleColor.Cyan);
 
@@ -1147,7 +1147,7 @@ namespace CustomBuildTool
 
                 foreach (var zipEntry in buildZipFilesMap)
                 {
-                    string zipFilePath = Path.Join([Build.BuildOutputFolder, zipEntry.Value]);
+                    string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
 
                     Program.PrintColorMessage($"{zipEntry.Value}: ", ConsoleColor.Green, false);
                     Program.PrintColorMessage("...", ConsoleColor.Gray, false);
@@ -1256,7 +1256,7 @@ namespace CustomBuildTool
 
                 Utils.CreateOutputDirectory();
 
-                Utils.ExecuteSymStoreCommand(    
+                Utils.ExecuteSymStoreCommand(
                 [
                     "add",
                     "-:REL",
@@ -1339,12 +1339,12 @@ namespace CustomBuildTool
 
             if (Build.BuildIntegration || Build.BuildRedirectOutput) // fallback: include platform zips when present
             {
-                string[] fallbackZips = new[]
-                {
+                string[] fallbackZips =
+                [
                     "systeminformer-build-win32-bin.zip",
                     "systeminformer-build-win64-bin.zip",
                     "systeminformer-build-arm64-bin.zip"
-                };
+                ];
 
                 foreach (var zip in fallbackZips)
                 {
@@ -1355,12 +1355,12 @@ namespace CustomBuildTool
             }
 
             // Actually check which platforms were built by checking for the existence of the bin zips
-            string[] possibleZips = new[] 
-            {
+            string[] possibleZips =
+            [
                 "systeminformer-build-win32-bin.zip",
                 "systeminformer-build-win64-bin.zip",
                 "systeminformer-build-arm64-bin.zip"
-            };
+            ];
 
             foreach (var zip in possibleZips)
             {
@@ -1370,13 +1370,13 @@ namespace CustomBuildTool
             }
 
             // Always include combined bin, pdb, and setup files if present
-            string[] alwaysFiles = new[] 
-            {
+            string[] alwaysFiles =
+            [
                 "systeminformer-build-bin.zip",
                 "systeminformer-build-pdb.zip",
                 "systeminformer-build-release-setup.exe",
                 "systeminformer-build-canary-setup.exe"
-            };
+            ];
 
             foreach (var file in alwaysFiles)
             {

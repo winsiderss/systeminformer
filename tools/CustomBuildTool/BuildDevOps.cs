@@ -82,27 +82,25 @@ namespace CustomBuildTool
 
             try
             {
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=7.1"))
+                using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/{BaseName}/_apis/build/builds/{BaseBuild}?api-version=7.1");
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", BaseToken);
+                requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var content = await BuildHttpClient.SendMessage(DevOpsHttpClient, requestMessage, BuildInfoResponseContext.Default.BuildInfo);
+                if (content == null)
                 {
-                    requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", BaseToken);
-                    requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                    var content = await BuildHttpClient.SendMessage(DevOpsHttpClient, requestMessage, BuildInfoResponseContext.Default.BuildInfo);
-                    if (content == null)
-                    {
-                        Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
-                        ArgumentNullException.ThrowIfNull(content);
-                    }
-
-                    var offset = new DateTimeOffset(DateTime.SpecifyKind(content.QueueTime, DateTimeKind.Utc));
-
-                    Console.WriteLine($"Build QueueTime: {VT.GREEN}{content.QueueTime}{VT.RESET}");
-                    Console.WriteLine($"Build StartTime: {VT.GREEN}{content.StartTime}{VT.RESET}");
-                    Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
-
-                    queueTime = offset.DateTime;
-                    return (true, queueTime);
+                    Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
+                    ArgumentNullException.ThrowIfNull((BuildInfo)null);
                 }
+
+                var offset = new DateTimeOffset(DateTime.SpecifyKind(content.QueueTime, DateTimeKind.Utc));
+
+                Console.WriteLine($"Build QueueTime: {VT.GREEN}{content.QueueTime}{VT.RESET}");
+                Console.WriteLine($"Build StartTime: {VT.GREEN}{content.StartTime}{VT.RESET}");
+                Console.WriteLine($"Build Elapsed: {VT.GREEN}{(DateTimeOffset.UtcNow - offset)}{VT.RESET}");
+
+                queueTime = offset.DateTime;
+                return (true, queueTime);
             }
             catch (Exception ex)
             {
@@ -123,7 +121,7 @@ namespace CustomBuildTool
             using var requestMessage = new HttpRequestMessage(HttpMethod.Get, downloadPageUrl);
             requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/html"));
 
-            using var response = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, requestMessage);
+            using var response = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, requestMessage, CancellationToken);
             if (response == null || !response.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] download page failed", ConsoleColor.Red);
@@ -141,14 +139,14 @@ namespace CustomBuildTool
             using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, match.Value);
             jsonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest);
+            using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest, CancellationToken);
             if (jsonResponse == null || !jsonResponse.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] json download failed", ConsoleColor.Red);
                 yield break;
             }
 
-            using var stream = await jsonResponse.Content.ReadAsStreamAsync(CancellationToken);
+            await using var stream = await jsonResponse.Content.ReadAsStreamAsync(CancellationToken);
             var tags = await JsonSerializer.DeserializeAsync(stream, BuildInfoResponseContext.Default.AzureServiceTagsResponse, CancellationToken);
             if (tags?.Values == null)
             {
@@ -179,10 +177,7 @@ namespace CustomBuildTool
     [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, GenerationMode = JsonSourceGenerationMode.Default)]
     [JsonSerializable(typeof(BuildInfo))]
     [JsonSerializable(typeof(AzureServiceTagsResponse))]
-    public partial class BuildInfoResponseContext : JsonSerializerContext
-    {
-
-    }
+    public partial class BuildInfoResponseContext : JsonSerializerContext;
 
     public class AzureServiceTagsResponse
     {

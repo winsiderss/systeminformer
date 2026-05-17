@@ -153,13 +153,13 @@ namespace CustomBuildTool
         {
             if (string.IsNullOrWhiteSpace(KeyName))
             {
-                Program.PrintColorMessage($"[ERROR] CreateSigFile: KeyName is empty.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] CreateSigFile: KeyName is empty.", ConsoleColor.Red);
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(FileName))
             {
-                Program.PrintColorMessage($"[ERROR] CreateSigFile: FileName is empty.", ConsoleColor.Red);
+                Program.PrintColorMessage("[ERROR] CreateSigFile: FileName is empty.", ConsoleColor.Red);
                 return false;
             }
 
@@ -611,7 +611,7 @@ namespace CustomBuildTool
         /// <param name="KeyMaterial">The output key material byte array.</param>
         /// <returns>True if key material is found; otherwise, false.</returns>
         private static bool GetKeyMaterial(string KeyName, out byte[] KeyMaterial)
-        {    
+        {
             string fileName = GetPath($"{KeyName}");
 
             if (File.Exists(fileName))

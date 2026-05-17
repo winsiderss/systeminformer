@@ -197,7 +197,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> GetKey(Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -213,7 +213,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyListResponse> GetKeys(Uri VaultBaseUrl, int? MaxResults = null, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -229,7 +229,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyListResponse> GetKeyVersions(Uri KeyId, int? MaxResults = null, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -245,9 +245,9 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> CreateKey(Uri VaultBaseUrl, string KeyName, KeyVaultKeyCreateRequest Request, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
-            ArgumentNullException.ThrowIfNull(Request, nameof(Request));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
+            ArgumentNullException.ThrowIfNull(Request);
 
             return this.SendJson(
                 HttpMethod.Post,
@@ -263,9 +263,9 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> ImportKey(Uri VaultBaseUrl, string KeyName, KeyVaultKeyImportRequest Request, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
-            ArgumentNullException.ThrowIfNull(Request, nameof(Request));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
+            ArgumentNullException.ThrowIfNull(Request);
 
             return this.SendJson(
                 HttpMethod.Put,
@@ -281,8 +281,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> UpdateKey(Uri KeyId, KeyVaultKeyUpdateRequest Request, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
-            ArgumentNullException.ThrowIfNull(Request, nameof(Request));
+            ArgumentNullException.ThrowIfNull(KeyId);
+            ArgumentNullException.ThrowIfNull(Request);
 
             return this.SendJson(
                 HttpMethod.Patch,
@@ -298,8 +298,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> DeleteKey(Uri VaultBaseUrl, string KeyName, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
 
             return this.SendJson(
                 HttpMethod.Delete,
@@ -315,8 +315,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> GetDeletedKey(Uri VaultBaseUrl, string KeyName, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -332,7 +332,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyListResponse> GetDeletedKeys(Uri VaultBaseUrl, int? MaxResults = null, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -348,8 +348,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task PurgeDeletedKey(Uri VaultBaseUrl, string KeyName, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
 
             return this.Send(
                 HttpMethod.Delete,
@@ -364,8 +364,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> RecoverDeletedKey(Uri VaultBaseUrl, string KeyName, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName, nameof(KeyName));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentException.ThrowIfNullOrWhiteSpace(KeyName);
 
             return this.SendJson(
                 HttpMethod.Post,
@@ -381,7 +381,7 @@ namespace CustomBuildTool
         /// </summary>
         public async Task<byte[]> BackupKey(Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             KeyVaultBackupResponse backupResponse = null;
 
@@ -408,8 +408,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> RestoreKey(Uri VaultBaseUrl, byte[] BackupBlob, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(VaultBaseUrl, nameof(VaultBaseUrl));
-            ArgumentNullException.ThrowIfNull(BackupBlob, nameof(BackupBlob));
+            ArgumentNullException.ThrowIfNull(VaultBaseUrl);
+            ArgumentNullException.ThrowIfNull(BackupBlob);
 
             KeyVaultRestoreRequest request = new KeyVaultRestoreRequest
             {
@@ -430,8 +430,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyReleaseResponse> ReleaseKey(Uri KeyId, KeyVaultKeyReleaseRequest Request, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
-            ArgumentNullException.ThrowIfNull(Request, nameof(Request));
+            ArgumentNullException.ThrowIfNull(KeyId);
+            ArgumentNullException.ThrowIfNull(Request);
 
             return this.SendJson(
                 HttpMethod.Post,
@@ -447,7 +447,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyResponse> RotateKey(Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             return this.SendJson(
                 HttpMethod.Post,
@@ -463,7 +463,7 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyRotationPolicy> GetKeyRotationPolicy(Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             return this.SendJson(
                 HttpMethod.Get,
@@ -479,8 +479,8 @@ namespace CustomBuildTool
         /// </summary>
         public Task<KeyVaultKeyRotationPolicy> UpdateKeyRotationPolicy(Uri KeyId, KeyVaultKeyRotationPolicy Policy, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
-            ArgumentNullException.ThrowIfNull(Policy, nameof(Policy));
+            ArgumentNullException.ThrowIfNull(KeyId);
+            ArgumentNullException.ThrowIfNull(Policy);
 
             return this.SendJson(
                 HttpMethod.Put,
@@ -505,9 +505,9 @@ namespace CustomBuildTool
         /// <returns>A byte array containing the signature of the digest. The array will contain the signature in binary form.</returns>
         public async Task<byte[]> Sign(byte[] Digest, string Algorithm, Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(Digest, nameof(Digest));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Digest);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
@@ -524,7 +524,7 @@ namespace CustomBuildTool
                     CancellationToken
                     );
                 char[] signatureValue = operationResponse?.Value ?? operationResponse?.Signature;
-                ArgumentNullException.ThrowIfNull(signatureValue, nameof(signatureValue));
+                ArgumentNullException.ThrowIfNull(signatureValue);
 
                 try
                 {
@@ -532,7 +532,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    operationResponse?.ClearSensitiveData();
+                    operationResponse.ClearSensitiveData();
                 }
             }
             catch (Exception)
@@ -553,10 +553,10 @@ namespace CustomBuildTool
         /// <returns>True if the signature is valid; otherwise false.</returns>
         public async Task<bool> Verify(byte[] Digest, byte[] Signature, string Algorithm, Uri KeyId, CancellationToken CancellationToken = default)
         {
-            ArgumentNullException.ThrowIfNull(Digest, nameof(Digest));
-            ArgumentNullException.ThrowIfNull(Signature, nameof(Signature));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Digest);
+            ArgumentNullException.ThrowIfNull(Signature);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
@@ -588,7 +588,9 @@ namespace CustomBuildTool
         /// <param name="PlainText">The plaintext to encrypt. Must not be null.</param>
         /// <param name="Algorithm">The encryption algorithm to use. Must not be null.</param>
         /// <param name="KeyId">The identifier of the key to use for encryption. Must not be null.</param>
+        /// <param name="InitializationVector"></param>
         /// <param name="CancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <param name="AdditionalAuthenticatedData"></param>
         /// <returns>A byte array containing the encrypted ciphertext.</returns>
         public async Task<byte[]> Encrypt(
             byte[] PlainText,
@@ -599,9 +601,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(PlainText, nameof(PlainText));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(PlainText);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
@@ -614,7 +616,7 @@ namespace CustomBuildTool
                     CancellationToken
                     );
                 char[] cipherTextValue = operationResponse?.Value;
-                ArgumentNullException.ThrowIfNull(cipherTextValue, nameof(cipherTextValue));
+                ArgumentNullException.ThrowIfNull(cipherTextValue);
 
                 try
                 {
@@ -622,7 +624,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    operationResponse?.ClearSensitiveData();
+                    operationResponse.ClearSensitiveData();
                 }
             }
             catch (Exception)
@@ -644,9 +646,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(PlainText, nameof(PlainText));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(PlainText);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             KeyVaultOperationRequest operationRequest = new KeyVaultOperationRequest
             {
@@ -668,12 +670,15 @@ namespace CustomBuildTool
         /// Decrypts the specified ciphertext using the provided algorithm and key identifier.
         /// </summary>
         /// <remarks>This method sends a request to the specified key vault endpoint to perform the
-        /// decryption operation. The operation is asynchronous and may be cancelled using the provided cancellation
+        /// decryption operation. The operation is asynchronous and may be canceled using the provided cancellation
         /// token.</remarks>
         /// <param name="Cipher">The ciphertext to decrypt, as a byte array. Cannot be null.</param>
         /// <param name="Algorithm">The name of the decryption algorithm to use. Cannot be null or whitespace.</param>
         /// <param name="KeyId">The URI identifying the key to use for decryption. Cannot be null.</param>
+        /// <param name="AuthenticationTag"></param>
         /// <param name="CancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <param name="AdditionalAuthenticatedData"></param>
+        /// <param name="InitializationVector"></param>
         /// <returns>A byte array containing the decrypted plaintext. The array will contain the original data if decryption
         /// succeeds.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="Cipher"/>, <paramref name="Algorithm"/>, or <paramref name="KeyId"/> is null.</exception>
@@ -687,9 +692,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(Cipher, nameof(Cipher));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Cipher);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
@@ -703,7 +708,7 @@ namespace CustomBuildTool
                     CancellationToken
                     );
                 char[] plaintextValue = operationResponse?.Plaintext ?? operationResponse?.Value;
-                ArgumentNullException.ThrowIfNull(plaintextValue, nameof(plaintextValue));
+                ArgumentNullException.ThrowIfNull(plaintextValue);
 
                 try
                 {
@@ -711,7 +716,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    operationResponse?.ClearSensitiveData();
+                    operationResponse.ClearSensitiveData();
                 }
             }
             catch (Exception)
@@ -734,9 +739,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(Cipher, nameof(Cipher));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Cipher);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             KeyVaultOperationRequest operationRequest = new KeyVaultOperationRequest
             {
@@ -761,6 +766,8 @@ namespace CustomBuildTool
         /// <param name="Key">The key material to wrap. Must not be null.</param>
         /// <param name="Algorithm">The key wrapping algorithm to use. Must not be null.</param>
         /// <param name="KeyId">The identifier of the key encryption key. Must not be null.</param>
+        /// <param name="AdditionalAuthenticatedData"></param>
+        /// <param name="InitializationVector"></param>
         /// <param name="CancellationToken">A cancellation token that can be used to cancel the operation.</param>
         /// <returns>A byte array containing the wrapped key material.</returns>
         public async Task<byte[]> WrapKey(
@@ -772,9 +779,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(Key, nameof(Key));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Key);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
@@ -787,7 +794,7 @@ namespace CustomBuildTool
                     CancellationToken
                     );
                 char[] wrappedKeyValue = operationResponse?.Value;
-                ArgumentNullException.ThrowIfNull(wrappedKeyValue, nameof(wrappedKeyValue));
+                ArgumentNullException.ThrowIfNull(wrappedKeyValue);
 
                 try
                 {
@@ -795,7 +802,7 @@ namespace CustomBuildTool
                 }
                 finally
                 {
-                    operationResponse?.ClearSensitiveData();
+                    operationResponse.ClearSensitiveData();
                 }
             }
             catch (Exception)
@@ -817,9 +824,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(Key, nameof(Key));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(Key);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             KeyVaultOperationRequest operationRequest = new KeyVaultOperationRequest
             {
@@ -843,7 +850,10 @@ namespace CustomBuildTool
         /// <param name="WrappedKey">The wrapped key material. Must not be null.</param>
         /// <param name="Algorithm">The key wrapping algorithm to use. Must not be null.</param>
         /// <param name="KeyId">The identifier of the key encryption key. Must not be null.</param>
+        /// <param name="AuthenticationTag"></param>
         /// <param name="CancellationToken">A cancellation token that can be used to cancel the operation.</param>
+        /// <param name="AdditionalAuthenticatedData"></param>
+        /// <param name="InitializationVector"></param>
         /// <returns>A byte array containing the unwrapped key material.</returns>
         public async Task<byte[]> UnwrapKey(
             byte[] WrappedKey,
@@ -855,13 +865,13 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(WrappedKey, nameof(WrappedKey));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(WrappedKey);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             try
             {
-                KeyVaultOperationResponse operationResponse = await this.UnwrapKeyOperation(
+                KeyVaultOperationResponse operationResponse = await UnwrapKeyOperation(
                     WrappedKey,
                     Algorithm,
                     KeyId,
@@ -871,7 +881,7 @@ namespace CustomBuildTool
                     CancellationToken
                     );
                 char[] unwrappedKeyValue = operationResponse?.Value;
-                ArgumentNullException.ThrowIfNull(unwrappedKeyValue, nameof(unwrappedKeyValue));
+                ArgumentNullException.ThrowIfNull(unwrappedKeyValue);
 
                 try
                 {
@@ -884,7 +894,7 @@ namespace CustomBuildTool
             }
             catch (Exception)
             {
-                Program.PrintColorMessage($"[KeyVaultRestClient.UnwrapKey] Exception", ConsoleColor.Red);
+                Program.PrintColorMessage("[KeyVaultRestClient.UnwrapKey] Exception", ConsoleColor.Red);
                 return null;
             }
         }
@@ -902,9 +912,9 @@ namespace CustomBuildTool
             CancellationToken CancellationToken = default
             )
         {
-            ArgumentNullException.ThrowIfNull(WrappedKey, nameof(WrappedKey));
-            ArgumentNullException.ThrowIfNull(Algorithm, nameof(Algorithm));
-            ArgumentNullException.ThrowIfNull(KeyId, nameof(KeyId));
+            ArgumentNullException.ThrowIfNull(WrappedKey);
+            ArgumentNullException.ThrowIfNull(Algorithm);
+            ArgumentNullException.ThrowIfNull(KeyId);
 
             KeyVaultOperationRequest operationRequest = new KeyVaultOperationRequest
             {
@@ -949,10 +959,10 @@ namespace CustomBuildTool
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-            ArgumentNullException.ThrowIfNull(responseStream, nameof(responseStream));
+            ArgumentNullException.ThrowIfNull(responseStream);
 
             KeyVaultOperationResponse keyVaultOperationResponse = await JsonSerializer.DeserializeAsync(responseStream, AzureJsonContext.Default.KeyVaultOperationResponse, CancellationToken);
-            ArgumentNullException.ThrowIfNull(keyVaultOperationResponse, nameof(keyVaultOperationResponse));
+            ArgumentNullException.ThrowIfNull(keyVaultOperationResponse);
 
             return keyVaultOperationResponse;
         }
@@ -981,10 +991,10 @@ namespace CustomBuildTool
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-            ArgumentNullException.ThrowIfNull(responseStream, nameof(responseStream));
+            ArgumentNullException.ThrowIfNull(responseStream);
 
             KeyVaultVerifyResponse keyVaultVerifyResponse = await JsonSerializer.DeserializeAsync(responseStream, AzureJsonContext.Default.KeyVaultVerifyResponse, CancellationToken);
-            ArgumentNullException.ThrowIfNull(keyVaultVerifyResponse, nameof(keyVaultVerifyResponse));
+            ArgumentNullException.ThrowIfNull(keyVaultVerifyResponse);
 
             return keyVaultVerifyResponse;
         }
@@ -1045,10 +1055,10 @@ namespace CustomBuildTool
             responseMessage.EnsureSuccessStatusCode();
 
             Stream responseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-            ArgumentNullException.ThrowIfNull(responseStream, nameof(responseStream));
+            ArgumentNullException.ThrowIfNull(responseStream);
 
             TResponse response = await JsonSerializer.DeserializeAsync(responseStream, ResponseTypeInfo, CancellationToken);
-            ArgumentNullException.ThrowIfNull(response, nameof(response));
+            ArgumentNullException.ThrowIfNull(response);
 
             return response;
         }

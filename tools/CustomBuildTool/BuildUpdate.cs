@@ -25,7 +25,7 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="PackageId">Package ID.</param>
         /// <param name="CancellationToken">Cancellation token.</param>
-        /// <returns>Latest stable version if available; otherwise latest prerelease; null if not found.</returns>
+        /// <returns>The latest stable version if available; otherwise the latest prerelease; null if not found.</returns>
         public static async Task<string> GetLatestVersion(string PackageId, CancellationToken CancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(PackageId))
@@ -115,7 +115,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Convenience wrapper for Microsoft.Windows.SDK.CPP.x64 package.
         /// </summary>
-        public static Task<string> GetLatestWindowsSdkx64Version(CancellationToken CancellationToken = default)
+        public static Task<string> GetLatestWindowsSdk64Version(CancellationToken CancellationToken = default)
         {
             return GetLatestVersion("Microsoft.Windows.SDK.CPP.x64", CancellationToken);
         }
@@ -126,7 +126,6 @@ namespace CustomBuildTool
         /// <param name="HttpClient">HTTP client for making requests.</param>
         /// <param name="RegistrationsBase">Base URL for registrations API.</param>
         /// <param name="PackageId">Package ID to query.</param>
-        /// <param name="Versions">Set to populate with found versions.</param>
         /// <param name="CancellationToken">Cancellation token.</param>
         private static async IAsyncEnumerable<string> GetVersionsFromRegistrations(
             HttpClient HttpClient,
@@ -279,7 +278,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Adds non-empty version strings from source collection to target set.
+        /// Adds non-empty version strings from a source collection to a target set.
         /// </summary>
         /// <param name="Target">Target set to add versions to.</param>
         /// <param name="Source">Source collection of version strings.</param>
@@ -329,10 +328,10 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Selects the best version from a collection, preferring the latest stable version or latest prerelease if no stable version exists.
+        /// Selects the best version from a collection, preferring the latest stable version or the latest prerelease if no stable version exists.
         /// </summary>
         /// <param name="Versions">Collection of version strings.</param>
-        /// <returns>Best version string; null if collection is empty.</returns>
+        /// <returns>Best version string; null if the collection is empty.</returns>
         private static string SelectBestVersion(IEnumerable<string> Versions)
         {
             var ordered = Versions
@@ -369,7 +368,7 @@ namespace CustomBuildTool
             /// Attempts to parse a semantic version string into a NugetSemVer object.
             /// </summary>
             /// <param name="Value">Version string to parse.</param>
-            /// <param name="Result">Parsed result if successful; null otherwise.</param>
+            /// <param name="Result">Parsed a result if successful; null otherwise.</param>
             /// <returns>True if parsing succeeded; false otherwise.</returns>
             public static bool TryParse(string Value, out NugetSemVer Result)
             {
@@ -487,10 +486,7 @@ namespace CustomBuildTool
     [JsonSerializable(typeof(NugetRegistrationIndexResponse))]
     [JsonSerializable(typeof(NugetRegistrationPageResponse))]
     [JsonSerializable(typeof(NugetSearchResponse))]
-    internal partial class NugetJsonContext : JsonSerializerContext
-    {
-
-    }
+    internal partial class NugetJsonContext : JsonSerializerContext;
 
     internal class OpenAiResponse
     {

@@ -399,7 +399,7 @@ typedef struct _KPH_DYN_CONFIG
             string headerFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\include\\kphdyn.h"]);
             string sourceFile = Path.Join([Build.BuildWorkingFolder, "\\kphlib\\kphdyn.c"]);
 
-            // Check for new or modified content. We don't want to touch the file if it's not needed.
+            // Check for new or modified content. We don't want to touch the file if it's unnecessary.
             {
                 string headerUpdateText = GenerateHeader();
                 string headerCurrentText = Utils.ReadAllText(headerFile);
@@ -469,8 +469,6 @@ typedef struct _KPH_DYN_CONFIG
         /// <summary>
         /// Generates and writes dynamic configuration files and headers.
         /// </summary>
-        /// <param name="OutDir">The output directory for the config file.</param>
-        /// <param name="StrictChecks">Whether to enforce strict signature checks.</param>
         /// <returns>True if successful; otherwise, false.</returns>
         private static string GenerateHeader()
         {
@@ -526,10 +524,10 @@ typedef struct _KPH_DYN_CONFIG
         private static byte[] GenerateConfig(string ManifestFile)
         {
             var xml = new XmlDocument();
-            var xmlSettings = new XmlReaderSettings 
+            var xmlSettings = new XmlReaderSettings
             {
                 DtdProcessing = DtdProcessing.Prohibit,
-                IgnoreWhitespace = true 
+                IgnoreWhitespace = true
             };
             using (var xmlReader = XmlReader.Create(ManifestFile, xmlSettings))
             {
@@ -675,7 +673,7 @@ typedef struct _KPH_DYN_CONFIG
             BinaryPrimitives.WriteUInt32LittleEndian(span, (uint)entries.Count);
             span = span[sizeof(uint)..];
 
-            // Convert the entries list to a read-only byte span and copy it to the buffer.
+            // Convert the entry list to a read-only byte span and copy it to the buffer.
             ReadOnlySpan<byte> entriesSpan = MemoryMarshal.AsBytes(CollectionsMarshal.AsSpan(entries));
             entriesSpan.CopyTo(span);
             span = span[entriesSpan.Length..];
@@ -696,7 +694,7 @@ typedef struct _KPH_DYN_CONFIG
             if (Buffer == null || Buffer.Length == 0)
                 return null;
 
-            // This method avoids intermediate string allocations using InterpolatedStringHandler,
+            // This method avoids intermediate string allocations using InterpolatedStringHandler
             // and calculates exact or near-exact capacity to avoid reallocation. Each full line of 8 bytes is:
             // "    " (4) + 8 * "0xXX, " (48) - 1 (trailing space) + \r\n (2) = 53-55 chars.
 

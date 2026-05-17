@@ -28,7 +28,7 @@ namespace CustomBuildTool
         /// Currently active channels are:
         /// - "release" (0): Stable release channel
         /// - "canary" (2): Canary/testing channel
-        /// 
+        ///
         /// N.B. Order is important, SortedDictionary is used on purpose.
         /// </remarks>
         public static readonly SortedDictionary<string, int> Build_Channels = new SortedDictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -173,7 +173,6 @@ namespace CustomBuildTool
         /// <summary>
         /// An immutable array containing the header filenames for the kphlib (Kernel System Informer) library build.
         /// </summary>
-        /// <remarks>
         public static readonly ImmutableArray<string> Build_Kphlib_Headers =
         [
             "kphapi.h",

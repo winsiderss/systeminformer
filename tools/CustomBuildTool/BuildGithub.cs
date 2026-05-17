@@ -81,7 +81,7 @@ namespace CustomBuildTool
                     if (content == null)
                     {
                         Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
-                        ArgumentNullException.ThrowIfNull(content);
+                        ArgumentNullException.ThrowIfNull((GithubActionRun)null);
                     }
 
                     var offset = new DateTimeOffset(DateTime.SpecifyKind(content.CreatedAt, DateTimeKind.Utc));
@@ -113,7 +113,7 @@ namespace CustomBuildTool
                 requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                 requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-                using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage, CancellationToken);
                 if (response == null || !response.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage("[DownloadGithubIpRanges] response failed", ConsoleColor.Red);
@@ -307,12 +307,6 @@ namespace CustomBuildTool
 
                 {
                     var result = await responseMessage.Content.ReadAsStreamAsync();
-                    if (result == null)
-                    {
-                        Program.PrintColorMessage("[DeleteRelease-ReadAsStreamAsync]", ConsoleColor.Red);
-                        return false;
-                    }
-
                     githubResponseMessage = await JsonSerializer.DeserializeAsync(result, GithubResponseContext.Default.GithubReleasesResponse);
                     if (githubResponseMessage == null)
                     {
@@ -450,8 +444,8 @@ namespace CustomBuildTool
 
             try
             {
-                using var fileStream = File.OpenRead(FileName);
-                using var bufferedStream = new BufferedStream(fileStream);
+                await using var fileStream = File.OpenRead(FileName);
+                await using var bufferedStream = new BufferedStream(fileStream);
                 using var requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url);
 
                 requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
@@ -491,7 +485,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Gets the list of assets associated with the release.
         /// </summary>
-        public List<GithubReleaseAsset> Files;
+        public readonly List<GithubReleaseAsset> Files;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="GithubRelease"/> class with default values.
@@ -527,10 +521,8 @@ namespace CustomBuildTool
         /// <returns>The download URL if found; otherwise, an empty string.</returns>
         public string GetFileUrl(string FileName)
         {
-            for (int i = 0; i < this.Files.Count; i++)
+            foreach (var entry in this.Files)
             {
-                var entry = this.Files[i];
-
                 if (string.Equals(FileName, entry.Filename, StringComparison.OrdinalIgnoreCase))
                 {
                     if (!string.IsNullOrWhiteSpace(entry.DownloadUrl))
@@ -550,10 +542,8 @@ namespace CustomBuildTool
         /// </returns>
         public GithubReleaseAsset GetDeployInfo(string Name)
         {
-            for (int i = 0; i < this.Files.Count; i++)
+            foreach (var entry in this.Files)
             {
-                var entry = this.Files[i];
-
                 if (string.Equals(entry.DeployFile.Name, Name, StringComparison.OrdinalIgnoreCase))
                 {
                     return entry;

@@ -190,10 +190,8 @@ namespace CustomBuildTool
         {
             CheckDisposed();
 
-            using (var digestAlgorithm = Create(HashAlgorithm))
-            {
-                return digestAlgorithm.ComputeHash(Data, Offset, Count);
-            }
+            using var digestAlgorithm = Create(HashAlgorithm);
+            return digestAlgorithm.ComputeHash(Data, Offset, Count);
         }
 
         /// <inheritdoc/>

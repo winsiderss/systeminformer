@@ -17,13 +17,13 @@ namespace CustomBuildTool
     /// </summary>
     /// <remarks>This class is intended for scenarios where complete isolation between HTTP requests is
     /// required, such as preventing credential or cookie leakage across services. All methods are static and
-    /// thread-safe. Callers are responsible for disposing returned HttpClient and HttpResponseMessage objects to avoid
+    /// thread-safe. Callers are responsible for disposing of returned HttpClient and HttpResponseMessage objects to avoid
     /// resource leaks.</remarks>
     public static class BuildHttpClient
     {
         /// <summary>
         /// Creates a new HttpClient instance with its own isolated HttpClientHandler.
-        /// Caller is responsible for disposing the returned HttpClient.
+        /// Caller is responsible for disposing of the returned HttpClient.
         /// </summary>
         /// <remarks>
         /// Each HttpClient instance has its own handler, connection pool, and cookie container.
@@ -192,7 +192,7 @@ namespace CustomBuildTool
     /// responses handled by the application.</remarks>
     public static class HttpLogging
     {
-        private static HttpEventListener httpEventListener = null;
+        private static HttpEventListener httpEventListener;
         public static void StartHttpLogging()
         {
             if (httpEventListener == null)

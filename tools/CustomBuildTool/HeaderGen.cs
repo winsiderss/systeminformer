@@ -247,7 +247,7 @@ namespace CustomBuildTool
             {
                 string file = Path.Join([BaseDirectory, name]);
                 string[] allLines = File.ReadAllLines(file);
-                headerFiles.Add(name, new HeaderFile(name, new List<string>(allLines)));
+                headerFiles.Add(name, new HeaderFile(name, [..allLines]));
             }
 
             // Dependency resolution and Line Filtering:
@@ -412,7 +412,7 @@ namespace CustomBuildTool
         /// The list of NT header files to merge into a single header.
         /// </summary>
         private static readonly string[] Headers =
-        {
+        [
             "phnt_ntdef.h",
             "ntnls.h",
             "ntkeapi.h",
@@ -441,8 +441,8 @@ namespace CustomBuildTool
             "ntuser.h",
             "ntwmi.h",
             "ntwow64.h",
-            "ntxcapi.h",
-        };
+            "ntxcapi.h"
+        ];
 
         /// <summary>
         /// Executes the single header generation process, merging NT headers into a single file.
@@ -497,7 +497,7 @@ namespace CustomBuildTool
                             var sdk_include_path = Utils.GetWindowsSdkIncludePath();
                             if (string.IsNullOrWhiteSpace(sdk_include_path))
                             {
-                                Console.WriteLine($"[ERROR] Could not find Windows SDK include paths.");
+                                Console.WriteLine("[ERROR] Could not find Windows SDK include paths.");
                                 continue;
                             }
 

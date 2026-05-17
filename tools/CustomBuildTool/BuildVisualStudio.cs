@@ -24,7 +24,7 @@ namespace CustomBuildTool
         /// <summary>
         /// The selected Visual Studio instance, typically the latest version with required dependencies.
         /// </summary>
-        private static VisualStudioInstance VisualStudioInstance = null;
+        private static VisualStudioInstance VisualStudioInstance;
 
         /// <summary>
         /// Static constructor. Discovers all Visual Studio instances using the native setup configuration API and populates <see cref="VisualStudioInstanceList"/>.
@@ -375,10 +375,8 @@ namespace CustomBuildTool
 
                     if (response.IsSuccessStatusCode)
                     {
-                        using (var fs = new FileStream(installerPath, FileMode.Create))
-                        {
-                            await response.Content.CopyToAsync(fs);
-                        }
+                        await using var fs = new FileStream(installerPath, FileMode.Create);
+                        await response.Content.CopyToAsync(fs);
                     }
                 }
 
@@ -453,7 +451,6 @@ namespace CustomBuildTool
         /// <summary>
         /// Gets the latest Windows SDK BuildTools package version from NuGet.
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>
         /// Latest stable version if available, otherwise latest version (including prerelease), or <c>string.Empty</c> on failure.
         /// </returns>

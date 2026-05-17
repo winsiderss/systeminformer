@@ -16,17 +16,17 @@ namespace CustomBuildTool
     /// </summary>
     public static class BuildVirusTotal
     {
-        private static readonly HttpClient VirusTotalHttpClient = null;
+        private static readonly HttpClient VirusTotalHttpClient;
 
         /// <summary>
         /// Stores the VirusTotal API token used for authentication.
         /// </summary>
-        private static string VirusTotalApiToken = null;
+        private static string VirusTotalApiToken;
 
         static BuildVirusTotal()
         {
             VirusTotalHttpClient = BuildHttpClient.CreateHttpClient();
-        }   
+        }
 
         /// <summary>
         /// Uploads a file to VirusTotal for scanning and retrieves the analysis result.
@@ -55,7 +55,7 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
             {
-                Program.PrintColorMessage($"[BuildVirusTotal] UploadScanFile - No API Token", ConsoleColor.Red);
+                Program.PrintColorMessage("[BuildVirusTotal] UploadScanFile - No API Token", ConsoleColor.Red);
                 return null;
             }
 
@@ -66,7 +66,7 @@ namespace CustomBuildTool
 
                 if (!fileInfo.Exists)
                 {
-                    Program.PrintColorMessage($"[BuildVirusTotal] UploadScanFile", ConsoleColor.Red);
+                    Program.PrintColorMessage("[BuildVirusTotal] UploadScanFile", ConsoleColor.Red);
                     return null;
                 }
 
@@ -85,16 +85,16 @@ namespace CustomBuildTool
 
                 if (string.IsNullOrWhiteSpace(uploadInfo))
                 {
-                    Program.PrintColorMessage($"[BuildVirusTotal] UploadScanFile", ConsoleColor.Red);
+                    Program.PrintColorMessage("[BuildVirusTotal] UploadScanFile", ConsoleColor.Red);
                     return null;
                 }
 
                 VirusTotalAnalysisResponse virusTotalAnalysisResponseContext;
 
-                using (FileStream fileStream = File.OpenRead(FileName))
-                using (BufferedStream bufferedStream = new BufferedStream(fileStream))
-                using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadInfo))
+                await using FileStream fileStream = File.OpenRead(FileName);
+                await using BufferedStream bufferedStream = new BufferedStream(fileStream);
                 {
+                    using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadInfo);
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
                     requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);
 
@@ -122,7 +122,6 @@ namespace CustomBuildTool
                         analysisResult = virusTotalAnalysisResponseContext.data.id;
                     }
                 }
-
             }
             catch (Exception ex)
             {
