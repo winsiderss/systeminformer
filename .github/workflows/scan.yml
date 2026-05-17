@@ -34,18 +34,18 @@ jobs:
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-      - name: Build Cache
+      - name: BuildTools Cache
         id: custombuildtool-cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
         with:
           path: tools/CustomBuildTool/bin/Release/**
-          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
           restore-keys: custombuildtool-${{ runner.os }}-
 
       - name: Build Tools
         if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
         shell: cmd
-        run: build\build_tools.cmd
+        run: build\build_init.cmd
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
@@ -116,15 +116,24 @@ jobs:
         shell: cmd
         run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-      - name: Build Cache
+      - name: BuildTools Cache
         id: custombuildtool-cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
         with:
           path: tools/CustomBuildTool/bin/Release/**
-          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
           restore-keys: custombuildtool-${{ runner.os }}-
 
+      - name: BuildThirdParty Cache
+        id: thirdparty-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        with:
+          path: tools/thirdparty/**
+          key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
+          restore-keys: thirdparty-${{ runner.os }}-
+
       - name: Build Init
+        if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
         shell: cmd
         run: build\build_init.cmd
 
@@ -148,15 +157,21 @@ jobs:
           output: sarif-results
           upload: never
 
-      - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
+      - name: BuildTools Cache
+        id: custombuildtool-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
         with:
-          input: sarif-results/cpp.sarif
-          output: sarif-results/filtered.sarif
-          patterns: |
-            packages/**/*
-            tools/CustomBuildTool/generated/**/*
-            tools/CustomBuildTool/obj/**/*
+          path: tools/CustomBuildTool/bin/Release/**
+          key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
+          restore-keys: custombuildtool-${{ runner.os }}-
+
+      - name: BuildThirdParty Cache
+        id: thirdparty-cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        with:
+          path: tools/thirdparty/**
+          key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
+          restore-keys: thirdparty-${{ runner.os }}-
 
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
@@ -196,18 +211,26 @@ jobs:
          with:
            languages: ${{ matrix.language }}
 
-       - name: Build Cache
+       - name: BuildTools Cache
          id: custombuildtool-cache
          uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
          with:
            path: tools/CustomBuildTool/bin/Release/**
-           key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/Release/**') }}
+           key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
            restore-keys: custombuildtool-${{ runner.os }}-
 
+       - name: BuildThirdParty Cache
+         id: thirdparty-cache
+         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+         with:
+           path: tools/thirdparty/**
+           key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
+           restore-keys: thirdparty-${{ runner.os }}-
+
        - name: Build Tools
-         if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
+         if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
          shell: cmd
-         run: build\build_tools.cmd
+         run: build\build_init.cmd
 
        - name: Perform CodeQL analysis
          uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
