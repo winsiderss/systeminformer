@@ -728,6 +728,7 @@ BOOLEAN PhpValidatePluginName(
  * \return A pointer to the plugin instance structure, or NULL if the
  * function failed.
  */
+_Use_decl_annotations_
 PPH_PLUGIN PhRegisterPluginByName(
     _In_ PCPH_STRINGREF Name,
     _In_ PVOID DllBase,

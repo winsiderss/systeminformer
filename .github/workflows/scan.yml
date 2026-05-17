@@ -8,7 +8,7 @@ on:
 jobs:
   analyze_driver:
     name: analyze-driver
-    runs-on: windows-2025
+    runs-on: windows-latest
     permissions:
       security-events: write
       actions: read
@@ -36,10 +36,10 @@ jobs:
 
       - name: Build Tools
         shell: cmd
-        run: build\build_tools.cmd
+        run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           languages: ${{ matrix.language }}
 
@@ -56,8 +56,8 @@ jobs:
         shell: pwsh
         run: |
           $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
-          & $codeqlPath pack download microsoft/windows-drivers@1.9.0
-          & $codeqlPath pack download microsoft/cpp-queries@0.0.5
+          & $codeqlPath pack download microsoft/windows-drivers
+          & $codeqlPath pack download microsoft/cpp-queries
 
       - name: Run Windows Driver Analysis
         shell: pwsh
@@ -75,13 +75,13 @@ jobs:
           patterns: packages/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
 
   analyze_library:
     name: analyze-software
-    runs-on: windows-2025
+    runs-on: windows-latest
     permissions:
       actions: read
       contents: read
@@ -112,7 +112,7 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           languages: ${{ matrix.language }}
 
@@ -125,30 +125,20 @@ jobs:
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
           upload: never
-
-      - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
-        with:
-          input: sarif-results/cpp.sarif
-          output: sarif-results/filtered.sarif
-          patterns: |
-            packages/**/*
-            tools/CustomBuildTool/generated/**/*
-            tools/CustomBuildTool/obj/**/*
-
+  
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
           sarif_file: sarif-results/filtered.sarif
 
   analyze_csharp:
      name: analyze-tools
-     runs-on: windows-2025
+     runs-on: windows-latest
      permissions:
        actions: read
        contents: read
@@ -175,16 +165,16 @@ jobs:
          run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
        - name: Initialize CodeQL
-         uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            languages: ${{ matrix.language }}
 
        - name: Build Tools
          shell: cmd
-         run: build\build_tools.cmd
+         run: build\build_init.cmd
 
        - name: Perform CodeQL analysis
-         uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            category: '/language:${{ matrix.language }}'
            output: sarif-results
@@ -201,6 +191,6 @@ jobs:
              tools/CustomBuildTool/obj/**/*
 
        - name: Upload CodeQL Results
-         uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # 4.35.2
+         uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
          with:
            sarif_file: sarif-results/filtered.sarif

@@ -5570,8 +5570,15 @@ NTSTATUS PhCreateProcessAsUser(
                 useWithLogon = FALSE;
         }
 
-        if (Information->LogonType && Information->LogonType != LOGON32_LOGON_INTERACTIVE)
+        if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+        {
             useWithLogon = FALSE;
+        }
+
+        if (Information->LogonType && Information->LogonType != LOGON32_LOGON_INTERACTIVE)
+        {
+            useWithLogon = FALSE;
+        }
 
         if (useWithLogon)
         {
@@ -5696,29 +5703,18 @@ NTSTATUS PhCreateProcessAsUser(
     }
     else if (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN)
     {
-        WINSTATIONUSERTOKEN userToken;
-        ULONG returnLength;
-
-        memset(&userToken, 0, sizeof(WINSTATIONUSERTOKEN));
-        userToken.ProcessId = NtCurrentProcessId();
-        userToken.ThreadId = NtCurrentThreadId();
-
-        if (!WinStationQueryInformationW(
-            WINSTATION_CURRENT_SERVER,
+        status = PhWinStationQueryUserToken(
             Information->SessionIdWithToken,
-            WinStationUserToken,
-            &userToken,
-            sizeof(WINSTATIONUSERTOKEN),
-            &returnLength
-            ))
+            &tokenHandle
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID || Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
         {
-            return PhGetLastWin32ErrorAsNtStatus();
-        }
-
-        tokenHandle = userToken.UserToken;
-
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
             needsDuplicate = TRUE; // not sure if this is necessary
+        }
     }
     else
     {
@@ -5830,6 +5826,22 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status = PhSetTokenUIAccess(
             tokenHandle,
             TRUE
+            )))
+        {
+            NtClose(tokenHandle);
+            return status;
+        }
+    }
+     
+    // Set the Logon ID if needed.
+
+    if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+    {
+        if (!NT_SUCCESS(status = PhSetTokenGroups(
+            tokenHandle,
+            NULL,
+            PhSeLogonIdSid(Information->LogonId),
+            SE_GROUP_MANDATORY | SE_GROUP_ENABLED
             )))
         {
             NtClose(tokenHandle);

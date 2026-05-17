@@ -32,7 +32,24 @@ jobs:
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
+    - name: BuildTools Cache
+      id: custombuildtool-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/CustomBuildTool/bin/Release/**
+        key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
+        restore-keys: custombuildtool-${{ runner.os }}-
+
+    - name: BuildThirdParty Cache
+      id: thirdparty-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/thirdparty/**
+        key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
+        restore-keys: thirdparty-${{ runner.os }}-
+
     - name: Build Tools
+      if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
@@ -65,7 +82,24 @@ jobs:
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
+    - name: BuildTools Cache
+      id: custombuildtool-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/CustomBuildTool/bin/Release/**
+        key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
+        restore-keys: custombuildtool-${{ runner.os }}-
+
+    - name: BuildThirdParty Cache
+      id: thirdparty-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/thirdparty/**
+        key: thirdparty-${{ runner.os }}-${{ hashFiles('tools/thirdparty/**', '!tools/thirdparty/bin/**') }}
+        restore-keys: thirdparty-${{ runner.os }}-
+
     - name: Build Tools
+      if: steps.custombuildtool-cache.outputs.cache-hit != 'true' || steps.thirdparty-cache.outputs.cache-hit != 'true'
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_init.cmd
@@ -98,7 +132,16 @@ jobs:
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
+    - name: BuildTools Cache
+      id: custombuildtool-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/CustomBuildTool/bin/Release/**
+        key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
+        restore-keys: custombuildtool-${{ runner.os }}-
+
     - name: Build Tools
+      if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd
@@ -131,7 +174,16 @@ jobs:
       working-directory: ${{github.workspace}}
       run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
+    - name: BuildTools Cache
+      id: custombuildtool-cache
+      uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+      with:
+        path: tools/CustomBuildTool/bin/Release/**
+        key: custombuildtool-${{ runner.os }}-${{ hashFiles('tools/CustomBuildTool/**', '!tools/CustomBuildTool/bin/**') }}
+        restore-keys: custombuildtool-${{ runner.os }}-
+
     - name: Build Tools
+      if: steps.custombuildtool-cache.outputs.cache-hit != 'true'
       shell: cmd
       working-directory: ${{github.workspace}}
       run: build\build_tools.cmd

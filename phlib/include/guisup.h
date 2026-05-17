@@ -1636,7 +1636,7 @@ PhGetWindowContextEx(
 
 /**
  * Sets the extended window context for a window handle.
- * 
+ *
  * \param[in] WindowHandle The handle to the window for which to set the context.
  * \param[in] Context A pointer to the context data to associate with the window.
  * \return This function does not return a value.
@@ -1810,8 +1810,7 @@ BOOLEAN NTAPI PH_WINDOWSTATION_ENUM_CALLBACK(
     );
 typedef PH_WINDOWSTATION_ENUM_CALLBACK* PPH_WINDOWSTATION_ENUM_CALLBACK;
 
-_Enum_is_bitflag_
-typedef enum _PH_WINDOWSTATION_ENUM_TYPE
+typedef _Enum_is_bitflag_ enum _PH_WINDOWSTATION_ENUM_TYPE
 {
     PH_WINDOWSTATION_ENUM_WIN32 = 0x1,             // Phase 1: Win32 EnumWindowStations (current session, access-filtered)
     PH_WINDOWSTATION_ENUM_GLOBAL_DIRECTORY = 0x2,  // Phase 2: Object directory \Windows\WindowStations (session 0)
@@ -3182,8 +3181,7 @@ typedef enum _ACCENT_STATE
     ACCENT_INVALID_STATE
 } ACCENT_STATE;
 
-_Enum_is_bitflag_
-typedef enum _ACCENT_FLAG
+typedef _Enum_is_bitflag_ enum _ACCENT_FLAG
 {
     ACCENT_NONE,
     ACCENT_WINDOWS11_LUMINOSITY = 0x2,

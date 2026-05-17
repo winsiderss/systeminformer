@@ -13,9 +13,9 @@
 #include <phapp.h>
 #include <procprv.h>
 #include <phsettings.h>
-#include <emenu.h>
-
 #include <ntgdi.h>
+#include <mapldr.h>
+#include <emenu.h>
 
 typedef struct _PH_GDI_HANDLES_CONTEXT
 {
@@ -120,14 +120,18 @@ PPH_STRING PhpGetGdiHandleInformation(
     case GDI_CLIENT_DIBSECTION_TYPE:
         {
             BITMAP bitmap;
+            SIZE_T bitmapSize;
 
             if (GetObject(handle, sizeof(BITMAP), &bitmap))
             {
+                bitmapSize = (SIZE_T)bitmap.bmWidthBytes * (SIZE_T)bitmap.bmHeight;
+
                 return PhFormatString(
-                    L"Width: %u, Height: %u, Depth: %u",
+                    L"Width: %u, Height: %u, Depth: %u, Size: %s",
                     bitmap.bmWidth,
                     bitmap.bmHeight,
-                    bitmap.bmBitsPixel
+                    bitmap.bmBitsPixel,
+                    PhaFormatSize(bitmapSize, ULONG_MAX)->Buffer
                     );
             }
         }
@@ -179,12 +183,16 @@ PPH_STRING PhpGetGdiHandleInformation(
     case GDI_CLIENT_PALETTE_TYPE:
         {
             USHORT count;
+            SIZE_T paletteSize;
 
             if (GetObject(handle, sizeof(USHORT), &count))
             {
+                paletteSize = (SIZE_T)count * sizeof(PALETTEENTRY);
+
                 return PhFormatString(
-                    L"Entries: %u",
-                    (ULONG)count
+                    L"Entries: %u, Size: %s",
+                    (ULONG)count,
+                    PhaFormatSize(paletteSize, ULONG_MAX)->Buffer
                     );
             }
         }
@@ -202,6 +210,83 @@ PPH_STRING PhpGetGdiHandleInformation(
                     _byteswap_ulong(pen.lopnColor)
                     );
             }
+        }
+        break;
+    case GDI_CLIENT_REGION_TYPE:
+        {
+            DWORD regionSize;
+
+            regionSize = GetRegionData((HRGN)handle, 0, NULL);
+
+            if (regionSize)
+            {
+                return PhFormatString(
+                    L"Size: %s",
+                    PhaFormatSize(regionSize, ULONG_MAX)->Buffer
+                    );
+            }
+        }
+        break;
+    case GDI_CLIENT_DC_TYPE:
+        {
+            HDC hdc;
+            HWND windowHandle;
+            INT objectType;
+            POINT origin;
+            RECT clipBox;
+            INT clipResult;
+            INT technology;
+            INT horzRes;
+            INT vertRes;
+            INT bitsPixel;
+            INT planes;
+            HGDIOBJ selectedBitmap;
+            BITMAP bitmap;
+            SIZE_T bitmapSize;
+
+            hdc = (HDC)handle;
+            windowHandle = WindowFromDC(hdc);
+            objectType = GetObjectType(hdc);
+
+            memset(&origin, 0, sizeof(POINT));
+            GetDCOrgEx(hdc, &origin);
+
+            memset(&clipBox, 0, sizeof(RECT));
+            clipResult = GetClipBox(hdc, &clipBox);
+
+            technology = GetDeviceCaps(hdc, TECHNOLOGY);
+            horzRes = GetDeviceCaps(hdc, HORZRES);
+            vertRes = GetDeviceCaps(hdc, VERTRES);
+            bitsPixel = GetDeviceCaps(hdc, BITSPIXEL);
+            planes = GetDeviceCaps(hdc, PLANES);
+
+            bitmapSize = 0;
+            selectedBitmap = GetCurrentObject(hdc, OBJ_BITMAP);
+
+            if (selectedBitmap && GetObject(selectedBitmap, sizeof(BITMAP), &bitmap))
+            {
+                bitmapSize = (SIZE_T)bitmap.bmWidthBytes * (SIZE_T)bitmap.bmHeight;
+            }
+
+            return PhFormatString(
+                L"Type: %d, HWND: 0x%Ix, Tech: %d, Res: %dx%d, BPP: %dx%d, Org: (%ld,%ld), Clip: %d [%ld,%ld,%ld,%ld], Bitmap: 0x%Ix, Size: %s",
+                objectType,
+                (ULONG_PTR)windowHandle,
+                technology,
+                horzRes,
+                vertRes,
+                bitsPixel,
+                planes,
+                origin.x,
+                origin.y,
+                clipResult,
+                clipBox.left,
+                clipBox.top,
+                clipBox.right,
+                clipBox.bottom,
+                (ULONG_PTR)selectedBitmap,
+                PhaFormatSize(bitmapSize, ULONG_MAX)->Buffer
+                );
         }
         break;
     }

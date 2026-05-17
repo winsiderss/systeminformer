@@ -2234,11 +2234,12 @@ C_ASSERT(sizeof(POWER_INTERNAL_SESSION_CONNECTION_CHANGE_V2_INPUT) == 0x30);
 
 // rev
 // POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT Flags values
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_VERSION_MIN          0x00000001
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_VERSION_MAX          0x00040000
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_NONE           0x00000000
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE1          0x10000000
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_MASK      0xF0000000
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_VERSION_MIN             0x00000001ul
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_VERSION_MAX             0x00040000ul
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_NONE              0x00000000ul
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_PID          0x00000001ul
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_UNKNOWN      0x10000000ul
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_MASK         0xF0000000ul
 
 // rev
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT
@@ -2260,30 +2261,60 @@ typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT
     HANDLE QueryHandle;
 } POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT;
 
+#define POWER_INFORMATION_ENERGY_TRACKER_SIGNATURE 0x00200013
+
 // rev
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
 {
-    ULONG Version;              // 0x00200013
-    ULONG HeaderSize;           // 0x48
-    ULONG TotalSize;            // full buffer size required/returned
+    ULONG Signature;
+    ULONG HeaderSize;
+    ULONG TotalSize;
     ULONG Sequence;
-    ULONG DeltaPerformanceTime;
-    ULONG DeltaInterruptTime;
+    ULONG DeltaPerformanceTime; // Elapsed Ticks
+    ULONG DeltaInterruptTime;   // Elapsed Ms
     ULONG CurrentPerformanceTime;
     ULONG CurrentTimelineTime;
-    ULONG Reserved20;
-    ULONG Reserved24;           // fixed-record section offset
-    ULONG RecordCount;
-    ULONG MetadataOffset;
-    ULONG AggregateOffset;
-    ULONG StringSectionOffset;
-    ULONG AggregateTag;         // 0x00100068
-    USHORT AggregateItemSize;   // 0x000C
-    USHORT Reserved3E;
-    ULONG Reserved40;
-    ULONG AggregateRecordSize;  // 432 or 440 depending on create flags
-    UCHAR Data[1];
+    ULONG CurrentTimelineBitmapTime;
+    ULONG SectionRecordOffset;
+    ULONG SectionRecordCount;
+    ULONG EnergyDeltaOffset;
+    ULONG EnergyCumulativeOffset;
+    ULONG AggregateHeaderOffset;
+    ULONG AggregateType;
+    USHORT AggregateSize;
+    USHORT Reserved;
+    ULONG CurrentSystemTimeLow;
+    ULONG CurrentSystemTimeHigh;
+    // UCHAR Data[1];
 } POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT;
+
+// rev
+typedef struct _POWER_INFORMATION_ENERGY_TRACKER_ENTRY
+{
+    ULONGLONG ProcessKey;       // requires POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_PID
+    ULONG ProcessId;
+    ULONG EntryStateLow16;
+    ULONG FileNameOffset;
+    ULONG MetricA0;
+    ULONG MetricA1;
+    ULONG PackageNameOffset;
+    ULONG InstallLocationOffset;
+    ULONG SubProcessTagOffset;
+    ULONG NameOffset;
+    ULONG MetricA3;
+    ULONG MetricA4;
+    USHORT FileNameCount;
+    USHORT PackageNameCount;
+    USHORT InstallLocationCount;
+    USHORT SubProcessTagCount;
+    USHORT BaseNameLength;
+    USHORT Reserved;
+    ULONG DetailBlobOffset;
+    ULONG DetailBlobSize;
+    ULONG TailStat0;
+    ULONG TailStat1;
+    UCHAR ExtraTelemetry[24];
+} POWER_INFORMATION_ENERGY_TRACKER_ENTRY, *PPOWER_INFORMATION_ENERGY_TRACKER_ENTRY;
 
 // rev
 DEFINE_GUID(PopBlackBoxScmGuid, 0x45F9D5A3, 0xE1D0, 0x8891, 0x07, 0x26, 0xFB, 0x1D, 0x71, 0xAD, 0x11, 0xB8);
@@ -2359,7 +2390,7 @@ typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 } POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT;
 
 // rev
-#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MAX_CATEGORY RTL_NUMBER_OF(BlackBoxCategories)
+#define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MAX_CATEGORY 24
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_SHIFT 0
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_RAW  0x0000FFFF
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_DIRECT 0x0000001F
@@ -2515,7 +2546,7 @@ NtGetDevicePowerState(
 
 /**
  * The NtIsSystemResumeAutomatic routine checks if the system resume is automatic.
-
+ *
  * \return BOOLEAN TRUE if the system resume is automatic, FALSE otherwise.
  */
 _Kernel_entry_

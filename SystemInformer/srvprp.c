@@ -523,6 +523,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             context->PassBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORD);
             context->PassCheckBoxWindowHandle = GetDlgItem(hwndDlg, IDC_PASSWORDCHECK);
             context->ServiceDllWindowHandle = GetDlgItem(hwndDlg, IDC_SERVICEDLL);
+            context->WindowDpi = PhGetWindowDpi(GetParent(hwndDlg));
             PhSetWindowContext(GetParent(hwndDlg), PH_SERVICE_PROP_CONTEXT, context);
 
             PhAddComboBoxStringRefs(context->TypeWindowHandle, PhServiceTypeStrings, RTL_NUMBER_OF(PhServiceTypeStrings));
@@ -600,7 +601,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
 
-            context->WindowDpi = PhGetWindowDpi(GetParent(hwndDlg));
             context->GeneralPageInitialized = TRUE;
         }
         break;

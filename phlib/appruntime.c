@@ -1025,8 +1025,7 @@ CleanupExit:
     return success;
 }
 
-_Enum_is_bitflag_
-typedef enum _PH_QUERY_PACKAGE_INFO_TYPE
+typedef _Enum_is_bitflag_ enum _PH_QUERY_PACKAGE_INFO_TYPE
 {
     PH_QUERY_PACKAGE_INFO_NAME = 1,
     PH_QUERY_PACKAGE_INFO_FULLNAME = 2,

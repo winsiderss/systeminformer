@@ -724,7 +724,7 @@ NTSTATUS
 NTAPI
 LdrQueryModuleServiceTags(
     _In_ PVOID DllHandle,
-    _Out_writes_(*BufferSize) PULONG ServiceTagBuffer,
+    _Out_writes_to_(*BufferSize, *BufferSize) PULONG ServiceTagBuffer,
     _Inout_ PULONG BufferSize
     );
 
@@ -803,10 +803,10 @@ LdrUnregisterDllNotification(
 
 // end_msdn
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_10)
+#if (PHNT_VERSION >= PHNT_WINDOWS_8 && PHNT_VERSION < PHNT_WINDOWS_11)
 // deprecated
 NTSYSAPI
-PUNICODE_STRING
+VOID
 NTAPI
 LdrStandardizeSystemPath(
     _In_ PCUNICODE_STRING SystemPath
@@ -1094,7 +1094,7 @@ typedef enum _LDR_RESOURCE_QUERY_FLAGS
     LDR_RES_INTERNAL_ALT_RETRY               = 0x01000000u,  // Internal-only; set by loader on alternate resource retry; switches from .mui to .mun extension (callers must not set)
 
     // Group masks (base flags)
-    LDR_RES_SEARCH_PATH_MASK                 = 0x00000043u,  // ALT_TYPE | ALLOW_SHORT | MUI_STRINGS
+    LDR_RES_SEARCH_PATH_MASK                 = (LDR_RES_SEARCH_PATH_ALT_TYPE | LDR_RES_SEARCH_PATH_ALLOW_SHORT | LDR_RES_SEARCH_MUI_STRINGS), // 0x00000043
     LDR_RES_SEARCH_KEY4_MASK                 = (LDR_RES_SEARCH_PATH_ALT_TYPE | LDR_RES_SEARCH_MUI_STRINGS),
 
     // Win8+ extended flags for LdrResFindResource, LdrpResGetResourceDirectory, LdrResSearchResource
@@ -1119,11 +1119,10 @@ typedef enum _LDR_RESOURCE_QUERY_FLAGS
     LDR_RES_SEARCH_USE_INPUT_SIZE            = 0x00080000u,  // Use *ResourceLength as mapping size; requires IMAGE or DATAFILE mode
 
     // Group masks (Win8+ extended flags)
-    LDR_RES_SEARCH_LOAD_MODE_MASK            = 0x00000F00u,  // IMAGE | DATAFILE | MAPPED | VIEW
-    LDR_RES_SEARCH_BEHAVIOR_MASK             = 0x00003000u,  // STRICT | LENIENT
-    LDR_RES_SEARCH_SIZE_OVERRIDE_MASK        = 0x000A0000u,  // USE_INPUT_SIZE | USE_INPUT_SIZE_MAPPED
+    LDR_RES_SEARCH_LOAD_MODE_MASK            = (LDR_RES_SEARCH_LOAD_IMAGE | LDR_RES_SEARCH_LOAD_DATAFILE | LDR_RES_SEARCH_LOAD_MAPPED | LDR_RES_SEARCH_LOAD_VIEW), // 0x00000F00
+    LDR_RES_SEARCH_BEHAVIOR_MASK             = (LDR_RES_SEARCH_STRICT | LDR_RES_SEARCH_LENIENT), // 0x00003000
+    LDR_RES_SEARCH_SIZE_OVERRIDE_MASK        = (LDR_RES_SEARCH_USE_INPUT_SIZE_MAPPED | LDR_RES_SEARCH_USE_INPUT_SIZE), // 0x000A0000
     LDR_RES_SEARCH_PUBLIC_MASK               = 0x000FFFFFu
-
 } LDR_RESOURCE_QUERY_FLAGS;
 
 /**

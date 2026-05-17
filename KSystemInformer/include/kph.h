@@ -1885,7 +1885,7 @@ VOID KphCidRundown(
                                     THREAD_SUSPEND_RESUME                     |\
                                     THREAD_RESUME)
 
-typedef enum _KPH_PROTECTION_STATE
+typedef _Enum_is_bitflag_ enum _KPH_PROTECTION_STATE
 {
     KPH_PROTECTION_NONE      = 0x00000000,
     KPH_PROTECTION_PENDING   = 0x00000001,

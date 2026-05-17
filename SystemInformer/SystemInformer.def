@@ -22,6 +22,7 @@ EXPORTS
     PhAddProcessPropPage
     PhAddProcessPropPage2
     PhAddPropPageLayoutItem
+    PhAddTabControlLayoutItem
     PhAddTreeNewFilter
     PhAggregateProcessFieldIfNeeded
     PhApplyTreeNewFilters
@@ -85,6 +86,7 @@ EXPORTS
     PhGetProcessIsSuspended
     PhGetProcessKnownType
     PhGetProcessKnownTypeEx
+    PhGetProcessBasicInformation
     PhGetProcessPriorityClassString
     PhGetProcessSmallImageList
     PhGetProtocolTypeName
@@ -110,6 +112,7 @@ EXPORTS
     PhInitializeTreeNewColumnMenu
     PhInitializeTreeNewColumnMenuEx
     PhInitializeTreeNewFilterSupport
+    PhInitializeWindowThemeMainMenu
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem
     PhInsertHandleObjectPropertiesEMenuItems
@@ -638,6 +641,7 @@ EXPORTS
     PhGetSectionFileName
     PhGetThreadBasePriority
     PhGetThreadBasicInformation
+    PhGetThreadAffinityMask
     PhGetThreadIsTerminated
     PhGetThreadIoPriority
     PhGetThreadName
@@ -685,6 +689,7 @@ EXPORTS
     PhReOpenFile
     PhResolveDevicePrefix
     PhReadVirtualMemory
+    PhWriteVirtualMemory
     PhResumeProcess
     PhResumeThread
     PhRevertImpersonationToken
@@ -698,6 +703,7 @@ EXPORTS
     PhSetProcessPriorityBoost
     PhSetProcessPriorityClass
     PhSetThreadBasePriority
+    PhSetThreadAffinityMask
     PhSetThreadIoPriority
     PhSetThreadName
     PhSetThreadPagePriority
@@ -727,6 +733,7 @@ EXPORTS
     PhCenterRectangle
     PhCenterWindow
     PhCompareUnicodeStringZIgnoreMenuPrefix
+    PhCountBitsUlongPtr
     PhConsoleSetForeground
     PhConsoleSetWindow
     PhCreateOpenFileDialog
@@ -797,6 +804,7 @@ EXPORTS
     PhGetRoamingAppDataDirectory
     PhGetStatusMessage
     PhGetSystemDirectory
+    PhGetSystemLogicalProcessorInformation
     PhGetTaskbarDpi
     PhGetSystemMetrics
     PhGetSystemParametersInfo
@@ -880,10 +888,12 @@ EXPORTS
 ; emenu
     PhCreateEMenu
     PhCreateEMenuItem
+    PhDeleteEMenuData
     PhDestroyEMenu
     PhDestroyEMenuItem
     PhFindEMenuItem
     PhIndexOfEMenuItem
+    PhInitializeEMenuData
     PhInsertEMenuItem
     PhLoadResourceEMenuItem
     PhModifyEMenuItem
@@ -1119,6 +1129,7 @@ EXPORTS
     PhGetServiceErrorControlInteger
     PhGetServiceErrorControlString
     PhGetServiceFileName
+    PhGetServiceKeyName
     PhGetServiceNameFromTag
     PhGetServiceStartTypeInteger
     PhGetServiceStartTypeString

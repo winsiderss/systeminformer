@@ -82,6 +82,12 @@ VOID PhpClearHandleQueryData(
 PPH_OBJECT_TYPE PhHandleProviderType = NULL;
 PPH_OBJECT_TYPE PhHandleItemType = NULL;
 
+/**
+ * Creates a handle provider for a process.
+ *
+ * \param[in] ProcessId The process ID to monitor.
+ * \return A pointer to the created handle provider.
+ */
 PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     _In_ HANDLE ProcessId
     )
@@ -136,6 +142,12 @@ PPH_HANDLE_PROVIDER PhCreateHandleProvider(
     return handleProvider;
 }
 
+/**
+ * Deletes a handle provider.
+ *
+ * \param[in] Object A pointer to the handle provider object.
+ * \param[in] Flags Reserved.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpHandleProviderDeleteProcedure(
     _In_ PVOID Object,
@@ -161,6 +173,12 @@ VOID PhpHandleProviderDeleteProcedure(
     PhDereferenceObject(handleProvider->TempListHashtable);
 }
 
+/**
+ * Creates a handle item.
+ *
+ * \param[in] Handle A pointer to the system handle information.
+ * \return A pointer to the created handle item.
+ */
 PPH_HANDLE_ITEM PhCreateHandleItem(
     _In_opt_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle
     )
@@ -202,6 +220,12 @@ PPH_HANDLE_ITEM PhCreateHandleItem(
     return handleItem;
 }
 
+/**
+ * Deletes a handle item.
+ *
+ * \param[in] Object A pointer to the handle item object.
+ * \param[in] Flags Reserved.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpHandleItemDeleteProcedure(
     _In_ PVOID Object,
@@ -217,6 +241,13 @@ VOID PhpHandleItemDeleteProcedure(
     if (handleItem->BestObjectName) PhDereferenceObject(handleItem->BestObjectName);
 }
 
+/**
+ * Compares two handle items.
+ *
+ * \param[in] Value1 The first handle item.
+ * \param[in] Value2 The second handle item.
+ * \return TRUE if the handle items are equal, FALSE otherwise.
+ */
 FORCEINLINE BOOLEAN PhCompareHandleItem(
     _In_ PPH_HANDLE_ITEM Value1,
     _In_ PPH_HANDLE_ITEM Value2
@@ -225,6 +256,12 @@ FORCEINLINE BOOLEAN PhCompareHandleItem(
     return Value1->Handle == Value2->Handle;
 }
 
+/**
+ * Hashes a handle item.
+ *
+ * \param[in] Value The handle item.
+ * \return The hash of the handle item.
+ */
 FORCEINLINE ULONG PhHashHandleItem(
     _In_ PPH_HANDLE_ITEM Value
     )
@@ -232,6 +269,13 @@ FORCEINLINE ULONG PhHashHandleItem(
     return HandleToUlong(Value->Handle) / 4;
 }
 
+/**
+ * References a handle item.
+ *
+ * \param[in] HandleProvider The handle provider.
+ * \param[in] Handle The handle.
+ * \return A pointer to the handle item, or NULL if not found.
+ */
 PPH_HANDLE_ITEM PhReferenceHandleItem(
     _In_ PPH_HANDLE_PROVIDER HandleProvider,
     _In_ HANDLE Handle
@@ -251,6 +295,13 @@ PPH_HANDLE_ITEM PhReferenceHandleItem(
     return handleItem;
 }
 
+/**
+ * Looks up a handle item in a handle provider.
+ *
+ * \param[in] HandleProvider The handle provider.
+ * \param[in] Handle The handle.
+ * \return A pointer to the handle item, or NULL if not found.
+ */
 PPH_HANDLE_ITEM PhpLookupHandleItem(
     _In_ PPH_HANDLE_PROVIDER HandleProvider,
     _In_ HANDLE Handle
@@ -278,6 +329,12 @@ PPH_HANDLE_ITEM PhpLookupHandleItem(
     return NULL;
 }
 
+/**
+ * Removes a handle item from a handle provider.
+ *
+ * \param[in] HandleProvider The handle provider.
+ * \param[in] HandleItem The handle item to remove.
+ */
 VOID PhpRemoveHandleItem(
     _In_ PPH_HANDLE_PROVIDER HandleProvider,
     _In_ PPH_HANDLE_ITEM HandleItem
@@ -288,6 +345,12 @@ VOID PhpRemoveHandleItem(
     PhDereferenceObject(HandleItem);
 }
 
+/**
+ * Adds a handle item to a handle provider.
+ *
+ * \param[in] HandleProvider The handle provider.
+ * \param[in] HandleItem The handle item to add.
+ */
 VOID PhpAddHandleItem(
     _In_ PPH_HANDLE_PROVIDER HandleProvider,
     _In_ _Assume_refs_(1) PPH_HANDLE_ITEM HandleItem
@@ -311,6 +374,11 @@ VOID PhpAddHandleItem(
     HandleProvider->HandleHashSetCount++;
 }
 
+/**
+ * Dereferences all handle items in a handle provider.
+ *
+ * \param[in] HandleProvider The handle provider.
+ */
 VOID PhDereferenceAllHandleItems(
     _In_ PPH_HANDLE_PROVIDER HandleProvider
     )
@@ -336,6 +404,12 @@ VOID PhDereferenceAllHandleItems(
     PhReleaseQueuedLockExclusive(&HandleProvider->HandleHashSetLock);
 }
 
+/**
+ * Clears the name of a handle item.
+ *
+ * \param[in,out] HandleItem The handle item.
+ * \return TRUE if the handle item was modified, FALSE otherwise.
+ */
 BOOLEAN PhpClearHandleItemName(
     _Inout_ PPH_HANDLE_ITEM HandleItem
     )
@@ -363,6 +437,12 @@ BOOLEAN PhpClearHandleItemName(
     return modified;
 }
 
+/**
+ * Worker thread for handle query stage 1.
+ *
+ * \param[in] Parameter A pointer to the handle query data.
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpHandleQueryStage1Worker(
     _In_ PVOID Parameter
@@ -421,6 +501,12 @@ NTSTATUS PhpHandleQueryStage1Worker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queues a handle query stage 1.
+ *
+ * \param[in] HandleProvider The handle provider.
+ * \param[in] HandleItem The handle item.
+ */
 VOID PhpQueueHandleQueryStage1(
     _In_ PPH_HANDLE_PROVIDER HandleProvider,
     _In_ PPH_HANDLE_ITEM HandleItem
@@ -446,6 +532,13 @@ VOID PhpQueueHandleQueryStage1(
     PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpHandleQueryStage1Worker, data, NULL, &environment);
 }
 
+/**
+ * Fills a handle item with stage 1 data.
+ *
+ * \param[in] Data A pointer to the handle query stage 1 data.
+ *
+ * \return TRUE if the handle item was modified, FALSE otherwise.
+ */
 BOOLEAN PhpFillHandleItemStage1(
     _In_ PPH_HANDLE_QUERY_S1_DATA Data
     )
@@ -513,6 +606,11 @@ BOOLEAN PhpFillHandleItemStage1(
     return modified;
 }
 
+/**
+ * Frees handle query data.
+ *
+ * \param[in] Data A pointer to the handle query data.
+ */
 VOID PhpFreeHandleQueryData(
     _In_ PPH_HANDLE_QUERY_DATA Data
     )
@@ -527,6 +625,11 @@ VOID PhpFreeHandleQueryData(
     PhFree(Data);
 }
 
+/**
+ * Flushes handle query data.
+ *
+ * \param[in,out] HandleProvider The handle provider.
+ */
 VOID PhpFlushHandleQueryData(
     _Inout_ PPH_HANDLE_PROVIDER HandleProvider
     )
@@ -577,6 +680,11 @@ VOID PhpFlushHandleQueryData(
     }
 }
 
+/**
+ * Clears handle query data.
+ *
+ * \param[in,out] HandleProvider The handle provider.
+ */
 VOID PhpClearHandleQueryData(
     _Inout_ PPH_HANDLE_PROVIDER HandleProvider
     )
@@ -596,6 +704,11 @@ VOID PhpClearHandleQueryData(
     }
 }
 
+/**
+ * Updates a handle provider.
+ *
+ * \param[in] Object A pointer to the handle provider object.
+ */
 _Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhHandleProviderUpdate(
     _In_ PVOID Object

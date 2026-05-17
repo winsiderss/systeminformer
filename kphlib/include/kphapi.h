@@ -19,8 +19,7 @@
 
 // Process
 
-_Enum_is_bitflag_
-typedef enum _KPH_PROCESS_STATE
+typedef _Enum_is_bitflag_ enum _KPH_PROCESS_STATE
 {
     KPH_PROCESS_STATE_NONE                         = 0x00000000,
 

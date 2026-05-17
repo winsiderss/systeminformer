@@ -12,7 +12,6 @@
 #include "devices.h"
 #include "../ExtendedTools/extension/plugin.h"
 
-static LARGE_INTEGER GraphicsTotalRunningTimeFrequency = { 0 };
 BOOLEAN GraphicsGraphShowText = FALSE;
 BOOLEAN GraphicsEnableScaleGraph = FALSE;
 BOOLEAN GraphicsEnableScaleText = FALSE;
@@ -45,6 +44,18 @@ VOID GraphicsDeviceEntryDeleteProcedure(
     PhDeleteCircularBuffer_FLOAT(&entry->PowerHistory);
     PhDeleteCircularBuffer_FLOAT(&entry->TemperatureHistory);
     PhDeleteCircularBuffer_ULONG(&entry->FanHistory);
+
+    if (entry->GpuNodesHistory)
+    {
+        for (ULONG node = 0; node < entry->NumberOfNodes; node++)
+            PhDeleteCircularBuffer_FLOAT(&entry->GpuNodesHistory[node]);
+        PhFree(entry->GpuNodesHistory);
+    }
+
+    if (entry->TotalRunningTimeNodesDelta)
+        PhFree(entry->TotalRunningTimeNodesDelta);
+    if (entry->SystemRunningTimeNodesDelta)
+        PhFree(entry->SystemRunningTimeNodesDelta);
 }
 
 /**
@@ -61,7 +72,6 @@ VOID GraphicsDeviceInitialize(
     GraphicsEnableScaleGraph = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
     GraphicsEnableScaleText = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_TEXT);
     GraphicsPropagateCpuUsage = !!PhGetIntegerSetting(SETTING_PROPAGATE_CPU_USAGE);
-    PhQueryPerformanceFrequency(&GraphicsTotalRunningTimeFrequency);
 }
 
 /**
@@ -122,6 +132,11 @@ VOID GraphicsDevicesUpdate(
                             PhFree(entry->TotalRunningTimeNodesDelta);
                             entry->TotalRunningTimeNodesDelta = NULL;
                         }
+                        if (entry->SystemRunningTimeNodesDelta)
+                        {
+                            PhFree(entry->SystemRunningTimeNodesDelta);
+                            entry->SystemRunningTimeNodesDelta = NULL;
+                        }
                         if (entry->GpuNodesHistory)
                         {
                             PhFree(entry->GpuNodesHistory);
@@ -129,6 +144,7 @@ VOID GraphicsDevicesUpdate(
                         }
 
                         entry->TotalRunningTimeNodesDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * numberOfNodes);
+                        entry->SystemRunningTimeNodesDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * numberOfNodes);
                         entry->GpuNodesHistory = PhAllocateZero(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * numberOfNodes);
 
                         {
@@ -155,7 +171,6 @@ VOID GraphicsDevicesUpdate(
         {
             D3DKMT_HANDLE adapterHandle;
             LUID adapterLuid = { 0 };
-            LARGE_INTEGER performanceCounter = { 0 };
             ULONG64 sharedUsage = 0;
             ULONG64 sharedCommit = 0;
             ULONG64 sharedLimit = 0;
@@ -254,17 +269,22 @@ VOID GraphicsDevicesUpdate(
                 }
                 else
                 {
+                    ULONG64 maxSystemDelta = 0;
+
                     for (ULONG n = 0; n < entry->NumberOfNodes; n++)
                     {
                         ULONG64 runningTime = 0;
-                        GraphicsQueryAdapterNodeRunningTime(adapterLuid, n, &runningTime);
+                        ULONG64 systemRunningTime = 0;
+
+                        GraphicsQueryAdapterNodeRunningTime(adapterLuid, n, &runningTime, &systemRunningTime);
                         PhUpdateDelta(&entry->TotalRunningTimeNodesDelta[n], runningTime);
+                        PhUpdateDelta(&entry->SystemRunningTimeNodesDelta[n], systemRunningTime);
+
+                        if (entry->SystemRunningTimeNodesDelta[n].Delta > maxSystemDelta)
+                            maxSystemDelta = entry->SystemRunningTimeNodesDelta[n].Delta;
                     }
 
-                    PhQueryPerformanceCounter(&performanceCounter);
-                    PhUpdateDelta(&entry->TotalRunningTimeDelta, performanceCounter.QuadPart);
-
-                    FLOAT elapsedTime = (FLOAT)entry->TotalRunningTimeDelta.Delta * 10000000 / GraphicsTotalRunningTimeFrequency.QuadPart;
+                    FLOAT elapsedTime = (FLOAT)maxSystemDelta;
                     FLOAT tempValue = 0.0f;
 
                     if (elapsedTime != 0)

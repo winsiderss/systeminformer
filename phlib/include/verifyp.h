@@ -203,8 +203,7 @@ typedef enum _SIGNATURE_INFO_TYPE
     SIT_CATALOG
 } SIGNATURE_INFO_TYPE;
 
-_Enum_is_bitflag_
-typedef enum _SIGNATURE_INFO_FLAGS
+typedef _Enum_is_bitflag_ enum _SIGNATURE_INFO_FLAGS
 {
     SIF_NONE = 0,
     SIF_AUTHENTICODE_SIGNED = 1,

@@ -95,6 +95,11 @@ static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
 static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
 static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
 
+/**
+ * Initializes the network provider.
+ *
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhNetworkProviderInitialization(
     VOID
     )
@@ -113,6 +118,11 @@ BOOLEAN PhNetworkProviderInitialization(
     return TRUE;
 }
 
+/**
+ * Creates a network item.
+ *
+ * \return A pointer to the created network item.
+ */
 PPH_NETWORK_ITEM PhCreateNetworkItem(
     VOID
     )
@@ -129,6 +139,12 @@ PPH_NETWORK_ITEM PhCreateNetworkItem(
     return networkItem;
 }
 
+/**
+ * Deletes a network item.
+ *
+ * \param[in] Object A pointer to the network item object.
+ * \param[in] Flags Reserved.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpNetworkItemDeleteProcedure(
     _In_ PVOID Object,
@@ -159,6 +175,13 @@ VOID NTAPI PhpNetworkItemDeleteProcedure(
         PhDereferenceObject(networkItem->ProcessItem);
 }
 
+/**
+ * Compares two network items.
+ *
+ * \param[in] Value1 The first network item.
+ * \param[in] Value2 The second network item.
+ * \return TRUE if the network items are equal, FALSE otherwise.
+ */
 FORCEINLINE BOOLEAN PhCompareNetworkItem(
     _In_ PPH_NETWORK_ITEM Value1,
     _In_ PPH_NETWORK_ITEM Value2
@@ -171,6 +194,12 @@ FORCEINLINE BOOLEAN PhCompareNetworkItem(
         Value1->ProcessId == Value2->ProcessId;
 }
 
+/**
+ * Hashes a network item.
+ *
+ * \param[in] Value The network item.
+ * \return The hash of the network item.
+ */
 FORCEINLINE ULONG PhHashNetworkItem(
     _In_ PPH_NETWORK_ITEM Value
     )
@@ -182,6 +211,15 @@ FORCEINLINE ULONG PhHashNetworkItem(
         (HandleToUlong(Value->ProcessId) / 4);
 }
 
+/**
+ * Looks up a network item.
+ *
+ * \param[in] ProtocolType The protocol type.
+ * \param[in] LocalEndpoint The local endpoint.
+ * \param[in] RemoteEndpoint The remote endpoint.
+ * \param[in] ProcessId The process ID.
+ * \return A pointer to the network item, or NULL if not found.
+ */
 PPH_NETWORK_ITEM PhpLookupNetworkItem(
     _In_ ULONG ProtocolType,
     _In_ PPH_IP_ENDPOINT LocalEndpoint,
@@ -215,6 +253,15 @@ PPH_NETWORK_ITEM PhpLookupNetworkItem(
     return NULL;
 }
 
+/**
+ * References a network item.
+ *
+ * \param[in] ProtocolType The protocol type.
+ * \param[in] LocalEndpoint The local endpoint.
+ * \param[in] RemoteEndpoint The remote endpoint.
+ * \param[in] ProcessId The process ID.
+ * \return A pointer to the network item, or NULL if not found.
+ */
 PPH_NETWORK_ITEM PhReferenceNetworkItem(
     _In_ ULONG ProtocolType,
     _In_ PPH_IP_ENDPOINT LocalEndpoint,
@@ -244,10 +291,9 @@ PPH_NETWORK_ITEM PhReferenceNetworkItem(
 /**
  * Enumerates the network items.
  *
- * \param NetworkItems A variable which receives an array of pointers to network items. You must
+ * \param[out] NetworkItems A variable which receives an array of pointers to network items. You must
  * free the buffer with PhFree() when you no longer need it.
- * \param NumberOfNetworkItems A variable which receives the number of network items returned in
- * \a ProcessItems.
+ * \param[out] NumberOfNetworkItems A variable which receives the number of network items.
  */
 VOID PhEnumNetworkItems(
     _Out_opt_ PPH_NETWORK_ITEM **NetworkItems,
@@ -294,6 +340,14 @@ VOID PhEnumNetworkItems(
     *NumberOfNetworkItems = numberOfNetworkItems;
 }
 
+/**
+ * Enumerates network items by process ID.
+ *
+ * \param[in] ProcessId The process ID to filter by.
+ * \param[out] NetworkItems A variable which receives an array of pointers to network items. You must
+ * free the buffer with PhFree() when you no longer need it.
+ * \param[out] NumberOfNetworkItems A variable which receives the number of network items.
+ */
 VOID PhEnumNetworkItemsByProcessId(
     _In_opt_ HANDLE ProcessId,
     _Out_opt_ PPH_NETWORK_ITEM** NetworkItems,
@@ -355,6 +409,11 @@ VOID PhEnumNetworkItemsByProcessId(
     *NumberOfNetworkItems = numberOfNetworkItems;
 }
 
+/**
+ * Removes a network item from the hash set.
+ *
+ * \param[in] NetworkItem The network item to remove.
+ */
 VOID PhpRemoveNetworkItem(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -364,6 +423,13 @@ VOID PhpRemoveNetworkItem(
     PhDereferenceObject(NetworkItem);
 }
 
+/**
+ * Equality function for the resolve cache hashtable.
+ *
+ * \param[in] Entry1 The first entry.
+ * \param[in] Entry2 The second entry.
+ * \return TRUE if the entries are equal, FALSE otherwise.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpResolveCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -376,6 +442,12 @@ BOOLEAN NTAPI PhpResolveCacheHashtableEqualFunction(
     return PhEqualIpAddress(&cacheItem1->Address, &cacheItem2->Address);
 }
 
+/**
+ * Hash function for the resolve cache hashtable.
+ *
+ * \param[in] Entry The entry to hash.
+ * \return The hash value of the entry.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -386,6 +458,12 @@ ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     return PhHashIpAddress(&cacheItem->Address);
 }
 
+/**
+ * Looks up an item in the resolve cache.
+ *
+ * \param[in] Address The IP address to look up.
+ * \return A pointer to the cache item, or NULL if not found.
+ */
 PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -478,6 +556,12 @@ PPHP_RESOLVE_CACHE_ITEM PhpLookupResolveCacheItem(
 //    return hostName;
 //}
 
+/**
+ * Gets the DNS reverse name from an IP address.
+ *
+ * \param[in] Address The IP address.
+ * \return A pointer to the DNS reverse name string, or NULL if unsuccessful.
+ */
 PPH_STRING PhpGetDnsReverseNameFromAddress(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -580,6 +664,12 @@ PPH_STRING PhpGetDnsReverseNameFromAddress(
     return NULL;
 }
 
+/**
+ * Gets the host name from an IP address.
+ *
+ * \param[in] Address The IP address.
+ * \return A pointer to the host name string, or NULL if unsuccessful.
+ */
 PPH_STRING PhGetHostNameFromAddressEx(
     _In_ PPH_IP_ADDRESS Address
     )
@@ -669,6 +759,9 @@ PPH_STRING PhGetHostNameFromAddressEx(
     return dnsHostNameString;
 }
 
+/**
+ * Flushes the network item resolve cache.
+ */
 VOID PhFlushNetworkItemResolveCache(
     VOID
     )
@@ -704,6 +797,12 @@ VOID PhFlushNetworkItemResolveCache(
     PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
 }
 
+/**
+ * Worker routine for resolving network item host names.
+ *
+ * \param[in] Parameter A pointer to the network item query data.
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpNetworkItemQueryWorker(
     _In_ PVOID Parameter
@@ -757,6 +856,12 @@ NTSTATUS PhpNetworkItemQueryWorker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queues a network item for host name resolution.
+ *
+ * \param[in] NetworkItem The network item.
+ * \param[in] Remote TRUE to resolve the remote address, FALSE to resolve the local address.
+ */
 VOID PhpQueueNetworkItemQuery(
     _In_ PPH_NETWORK_ITEM NetworkItem,
     _In_ BOOLEAN Remote
@@ -793,6 +898,11 @@ VOID PhpQueueNetworkItemQuery(
     PhQueueItemWorkQueue(&PhNetworkProviderWorkQueue, PhpNetworkItemQueryWorker, data);
 }
 
+/**
+ * Resolves the host names for a network item.
+ *
+ * \param[in] NetworkItem The network item.
+ */
 VOID PhNetworkItemResolveHostname(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -851,6 +961,11 @@ VOID PhNetworkItemResolveHostname(
     }
 }
 
+/**
+ * Invalidates the host names for a network item and re-resolves them.
+ *
+ * \param[in] NetworkItem The network item.
+ */
 VOID PhNetworkItemInvalidateHostname(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -873,6 +988,12 @@ VOID PhNetworkItemInvalidateHostname(
     PhNetworkItemResolveHostname(NetworkItem);
 }
 
+/**
+ * Updates the owner of a network item.
+ *
+ * \param[in] NetworkItem The network item.
+ * \param[in] ServiceTag The service tag.
+ */
 VOID PhpUpdateNetworkItemOwner(
     _In_ PPH_NETWORK_ITEM NetworkItem,
     _In_ ULONGLONG ServiceTag
@@ -889,6 +1010,9 @@ VOID PhpUpdateNetworkItemOwner(
     }
 }
 
+/**
+ * Flushes the network query data and updates network items.
+ */
 VOID PhFlushNetworkQueryData(
     VOID
     )
@@ -926,6 +1050,11 @@ VOID PhFlushNetworkQueryData(
     }
 }
 
+/**
+ * Updates the network provider.
+ *
+ * \param[in] Object Reserved.
+ */
 _Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhNetworkProviderUpdate(
     _In_ PVOID Object
@@ -1302,6 +1431,13 @@ VOID PhNetworkProviderUpdate(
 }
 
 #ifdef _WIN64
+/**
+ * Gets Hyper-V socket listeners for a specific VM.
+ *
+ * \param[in] SystemHandle The system handle.
+ * \param[in] VmId The VM ID.
+ * \return A pointer to the listeners, or NULL if unsuccessful.
+ */
 PHVSOCKET_LISTENERS PhpGetHvSocketListeners(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId
@@ -1335,6 +1471,13 @@ PHVSOCKET_LISTENERS PhpGetHvSocketListeners(
     return listeners;
 }
 
+/**
+ * Gets Hyper-V socket connections for a specific VM.
+ *
+ * \param[in] SystemHandle The system handle.
+ * \param[in] VmId The VM ID.
+ * \return A pointer to the connections, or NULL if unsuccessful.
+ */
 PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     _In_ HANDLE SystemHandle,
     _In_ const GUID* VmId
@@ -1368,6 +1511,14 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
     return connections;
 }
 
+/**
+ * Collects Hyper-V socket listeners and connections for a set of VMs.
+ *
+ * \param[in] VmIds An array of VM IDs.
+ * \param[in] Count The number of VM IDs.
+ * \param[out] Listeners A variable which receives the collected listeners.
+ * \param[out] Connections A variable which receives the collected connections.
+ */
 VOID PhpCollectHvSocket(
     _In_ PGUID VmIds,
     _In_ SIZE_T Count,
@@ -1480,6 +1631,14 @@ VOID PhpCollectHvSocket(
     NtClose(systemHandle);
 }
 
+/**
+ * Callback function for enumerating Hyper-V compute systems.
+ *
+ * \param[in] RootDirectory The root directory.
+ * \param[in] Information Information about the key.
+ * \param[in] Context A pointer to a GUID array.
+ * \return TRUE to continue enumeration, FALSE otherwise.
+ */
 static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,
@@ -1509,6 +1668,12 @@ static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
     return TRUE;
 }
 
+/**
+ * Gets Hyper-V socket listeners and connections.
+ *
+ * \param[out] Listeners A variable which receives the listeners.
+ * \param[out] Connections A variable which receives the connections.
+ */
 VOID PhpGetHvSocket(
     _Out_ PHVSOCKET_LISTENERS* Listeners,
     _Out_ PHVSOCKET_CONNECTIONS* Connections
@@ -1549,6 +1714,14 @@ VOID PhpGetHvSocket(
 }
 #endif // _WIN64
 
+/**
+ * Gets the current network connections.
+ *
+ * \param[out] Connections A variable which receives an array of network connections. You must
+ * free the buffer with PhFree() when you no longer need it.
+ * \param[out] NumberOfConnections A variable which receives the number of network connections.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
@@ -1950,6 +2123,12 @@ static CONST PH_KEY_VALUE_PAIR PhTcpStateStrings[] =
     SIP(SREF(L"Bound"), MIB_TCP_STATE_RESERVED),
 };
 
+/**
+ * Gets the name of a protocol type.
+ *
+ * \param[in] ProtocolType The protocol type.
+ * \return A pointer to the protocol type name string.
+ */
 PCPH_STRINGREF PhGetProtocolTypeName(
     _In_ ULONG ProtocolType
     )
@@ -1969,6 +2148,12 @@ PCPH_STRINGREF PhGetProtocolTypeName(
     return PhProtocolTypeStrings[0].Key;
 }
 
+/**
+ * Gets the name of a TCP state.
+ *
+ * \param[in] State The TCP state.
+ * \return A pointer to the TCP state name string.
+ */
 PCPH_STRINGREF PhGetTcpStateName(
     _In_ ULONG State
     )

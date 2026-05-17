@@ -553,8 +553,8 @@ NTSTATUS NetworkAdapterConvertLengthToIpv4Mask(
 // netoptions.c
 
 INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -562,8 +562,8 @@ INT_PTR CALLBACK NetworkAdapterOptionsDlgProc(
 // diskoptions.c
 
 INT_PTR CALLBACK DiskDriveOptionsDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     );
@@ -1380,6 +1380,7 @@ typedef struct _DV_GPU_ENTRY
 
     PH_UINT64_DELTA TotalRunningTimeDelta;
     PPH_UINT64_DELTA TotalRunningTimeNodesDelta;
+    PPH_UINT64_DELTA SystemRunningTimeNodesDelta;
     PPH_CIRCULAR_BUFFER_FLOAT GpuNodesHistory;
 
     FLOAT CurrentGpuUsage;
@@ -1706,7 +1707,8 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
 NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     _In_ LUID AdapterLuid,
     _In_ ULONG NodeId,
-    _Out_ PULONG64 RunningTime
+    _Out_ PULONG64 RunningTime,
+    _Out_opt_ PULONG64 SystemRunningTime
     );
 
 NTSTATUS GraphicsQueryAdapterDevicePerfData(
