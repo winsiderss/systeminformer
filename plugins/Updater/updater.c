@@ -553,6 +553,10 @@ ULONG64 ParseVersionString(
     ULONG64 minorInteger = 0;
     ULONG64 buildInteger = 0;
     ULONG64 revisionInteger = 0;
+    ULONG major = 0;
+    ULONG minor = 0;
+    ULONG build = 0;
+    ULONG revision = 0;
 
     if (PhIsNullOrEmptyString(VersionString))
         return 0;
@@ -583,12 +587,16 @@ ULONG64 ParseVersionString(
         PhStringToUInt64(&revisionPart, 10, &revisionInteger);
     }
 
-    return MAKE_VERSION_ULONGLONG(
-        (ULONG)majorInteger,
-        (ULONG)minorInteger,
-        (ULONG)buildInteger,
-        (ULONG)revisionInteger
-        );
+    if (!NT_SUCCESS(RtlULong64ToULong(majorInteger, &major)))
+        return 0;
+    if (!NT_SUCCESS(RtlULong64ToULong(minorInteger, &minor)))
+        return 0;
+    if (!NT_SUCCESS(RtlULong64ToULong(buildInteger, &build)))
+        return 0;
+    if (!NT_SUCCESS(RtlULong64ToULong(revisionInteger, &revision)))
+        return 0;
+
+    return MAKE_VERSION_ULONGLONG(major, minor, build, revision);
 }
 
 BOOLEAN QueryUpdateData(
