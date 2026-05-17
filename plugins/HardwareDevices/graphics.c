@@ -259,7 +259,8 @@ NTSTATUS GraphicsQueryAdapterSegmentLimits(
 NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     _In_ LUID AdapterLuid,
     _In_ ULONG NodeId,
-    _Out_ PULONG64 RunningTime
+    _Out_ PULONG64 RunningTime,
+    _Out_opt_ PULONG64 SystemRunningTime
     )
 {
     NTSTATUS status;
@@ -275,7 +276,9 @@ NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     if (NT_SUCCESS(status))
     {
         *RunningTime = queryStatistics.QueryResult.NodeInformation.GlobalInformation.RunningTime.QuadPart;
-        //queryStatistics.QueryResult.NodeInformation.SystemInformation.RunningTime.QuadPart;
+
+        if (SystemRunningTime)
+            *SystemRunningTime = queryStatistics.QueryResult.NodeInformation.SystemInformation.RunningTime.QuadPart;
     }
 
     return status;
