@@ -455,7 +455,7 @@ static VOID WINAPI ExitProcess_Stub(
     _In_ UINT uExitCode
     )
 {
-    PhExitApplication(PhDosErrorToNtStatus(uExitCode));
+    PhExitApplication(uExitCode);
 }
 
 static BOOL WINAPI TerminateProcess_Stub(
