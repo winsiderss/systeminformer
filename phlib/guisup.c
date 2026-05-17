@@ -2993,17 +2993,13 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
     item = PhAllocateZero(sizeof(PH_LAYOUT_ITEM));
     item->Handle = Handle;
     item->ParentItem = ParentItem;
+    item->LayoutParentItem = ParentItem;
     item->LayoutNumber = Manager->LayoutNumber;
     item->NumberOfChildren = 0;
     item->DeferHandle = NULL;
     item->Anchor = Anchor;
 
-    item->Rect = (RECT){ 0 };
-
-    item->LayoutParentItem = item->ParentItem;
-
-    while ((item->LayoutParentItem->Anchor & PH_LAYOUT_DUMMY_MASK) &&
-        item->LayoutParentItem->LayoutParentItem)
+    while (FlagOn(item->LayoutParentItem->Anchor, PH_LAYOUT_DUMMY_MASK) && item->LayoutParentItem->LayoutParentItem)
     {
         item->LayoutParentItem = item->LayoutParentItem->LayoutParentItem;
     }
@@ -3079,7 +3075,7 @@ VOID PhpLayoutItemLayout(
 {
     RECT margin;
     RECT rect;
-    ULONG diff;
+    LONG diff;
     BOOLEAN hasDummyParent;
 
     if (Item->NumberOfChildren > 0 && !Item->DeferHandle)
@@ -4237,12 +4233,11 @@ BOOLEAN PhSetWindowText(
 {
     ULONG_PTR result = 0;
 
-    if (SendMessageTimeout(
+    if (PhSendMessageTimeout(
         WindowHandle,
         WM_SETTEXT,
         0,
         (LPARAM)WindowText,
-        SMTO_ABORTIFHUNG | SMTO_BLOCK,
         1000,
         &result
         ) && result > 0)
@@ -5867,11 +5862,22 @@ HBITMAP PhLoadImageFormatFromResource(
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
+        UINT stride;
+        UINT pixelCount;
+        UINT size;
+
+        if (!NT_SUCCESS(RtlUIntMult(Width, sizeof(RGBQUAD), &stride)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(Width, Height, &pixelCount)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(pixelCount, sizeof(RGBQUAD), &size)))
+            goto CleanupExit;
+
         if (SUCCEEDED(IWICBitmapSource_CopyPixels(
             wicBitmapSource,
             NULL,
-            Width * sizeof(RGBQUAD),
-            Width * Height * sizeof(RGBQUAD),
+            stride,
+            size,
             bitmapBuffer
             )))
         {
@@ -5999,11 +6005,22 @@ HBITMAP PhLoadImageFromAddress(
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
+        UINT stride;
+        UINT pixelCount;
+        UINT size;
+
+        if (!NT_SUCCESS(RtlUIntMult(Width, sizeof(RGBQUAD), &stride)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(Width, Height, &pixelCount)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(pixelCount, sizeof(RGBQUAD), &size)))
+            goto CleanupExit;
+
         if (SUCCEEDED(IWICBitmapSource_CopyPixels(
             wicBitmapSource,
             NULL,
-            Width * sizeof(RGBQUAD),
-            Width * Height * sizeof(RGBQUAD),
+            stride,
+            size,
             bitmapBuffer
             )))
         {
@@ -6024,11 +6041,22 @@ HBITMAP PhLoadImageFromAddress(
                 WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
                 )))
             {
+                UINT stride;
+                UINT pixelCount;
+                UINT size;
+
+                if (!NT_SUCCESS(RtlUIntMult(Width, sizeof(RGBQUAD), &stride)))
+                    goto CleanupExit;
+                if (!NT_SUCCESS(RtlUIntMult(Width, Height, &pixelCount)))
+                    goto CleanupExit;
+                if (!NT_SUCCESS(RtlUIntMult(pixelCount, sizeof(RGBQUAD), &size)))
+                    goto CleanupExit;
+
                 if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
                     wicBitmapScaler,
                     NULL,
-                    Width * sizeof(RGBQUAD),
-                    Width * Height * sizeof(RGBQUAD),
+                    stride,
+                    size,
                     bitmapBuffer
                     )))
                 {
@@ -6146,11 +6174,22 @@ HBITMAP PhLoadImageFromFile(
 
     if (SUCCEEDED(IWICBitmapSource_GetSize(wicBitmapSource, &sourceWidth, &sourceHeight)) && sourceWidth == Width && sourceHeight == Height)
     {
+        UINT stride;
+        UINT pixelCount;
+        UINT size;
+
+        if (!NT_SUCCESS(RtlUIntMult(Width, sizeof(RGBQUAD), &stride)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(Width, Height, &pixelCount)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(RtlUIntMult(pixelCount, sizeof(RGBQUAD), &size)))
+            goto CleanupExit;
+
         if (SUCCEEDED(IWICBitmapSource_CopyPixels(
             wicBitmapSource,
             NULL,
-            Width * sizeof(RGBQUAD),
-            Width * Height * sizeof(RGBQUAD),
+            stride,
+            size,
             bitmapBuffer
             )))
         {
@@ -6171,11 +6210,22 @@ HBITMAP PhLoadImageFromFile(
                 WindowsVersion < WINDOWS_10 ? WICBitmapInterpolationModeFant : WICBitmapInterpolationModeHighQualityCubic
                 )))
             {
+                UINT stride;
+                UINT pixelCount;
+                UINT size;
+
+                if (!NT_SUCCESS(RtlUIntMult(Width, sizeof(RGBQUAD), &stride)))
+                    goto CleanupExit;
+                if (!NT_SUCCESS(RtlUIntMult(Width, Height, &pixelCount)))
+                    goto CleanupExit;
+                if (!NT_SUCCESS(RtlUIntMult(pixelCount, sizeof(RGBQUAD), &size)))
+                    goto CleanupExit;
+
                 if (SUCCEEDED(IWICBitmapScaler_CopyPixels(
                     wicBitmapScaler,
                     NULL,
-                    Width * sizeof(RGBQUAD),
-                    Width * Height * sizeof(RGBQUAD),
+                    stride,
+                    size,
                     bitmapBuffer
                     )))
                 {
