@@ -71,6 +71,8 @@ typedef struct _PH_STARTUP_PARAMETERS
     POINT Point;
 
     ULONG SelectPid;
+    HANDLE DebugConsoleInputHandle;
+    HANDLE DebugConsoleOutputHandle;
     ULONG PriorityClass;
 
     PPH_LIST PluginParameters;
