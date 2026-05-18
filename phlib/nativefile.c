@@ -1451,6 +1451,8 @@ NTSTATUS PhDeleteFile(
     UNICODE_STRING fileName;
     OBJECT_ATTRIBUTES objectAttributes;
 
+    status = PhStringRefToUnicodeString(FileName, &fileName);
+
     if (!NT_SUCCESS(status))
         return status;
 
@@ -2411,7 +2413,12 @@ NTSTATUS PhMoveFile(
         goto CleanupExit;
 
     renameInfo = PhAllocateStack(renameInfoLength);
-    if (!renameInfo) return STATUS_NO_MEMORY;
+
+    if (!renameInfo)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     memset(renameInfo, 0, renameInfoLength);
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;
@@ -2572,7 +2579,12 @@ NTSTATUS PhMoveFileWin32(
 
     renameInfoLength = sizeof(FILE_RENAME_INFORMATION) + newFileName.Length + sizeof(UNICODE_NULL);
     renameInfo = PhAllocateStack(renameInfoLength);
-    if (!renameInfo) return STATUS_NO_MEMORY;
+
+    if (!renameInfo)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     memset(renameInfo, 0, renameInfoLength);
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;

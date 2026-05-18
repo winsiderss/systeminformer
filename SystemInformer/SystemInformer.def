@@ -748,6 +748,7 @@ EXPORTS
     PhDevFreeObjects
     PhDevGetObjectProperties
     PhDevGetObjects
+    PhDevOpenObjectKey
     PhEllipsisString
     PhEllipsisStringPath
     PhEscapeCommandLinePart

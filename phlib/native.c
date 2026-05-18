@@ -4401,6 +4401,7 @@ NTSTATUS PhQueryProcessHeapInformation(
     PRTL_DEBUG_INFORMATION debugBuffer = NULL;
     PPH_PROCESS_DEBUG_HEAP_INFORMATION heapDebugInfo = NULL;
     ULONG numberOfHeaps;
+    SIZE_T heapEntriesSize = 0;
     SIZE_T heapDebugInfoLength;
 
     for (ULONG i = 0x400000; ; i *= 2) // rev from Heap32First/Heap32Next (dmex)
@@ -4456,13 +4457,24 @@ NTSTATUS PhQueryProcessHeapInformation(
         numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
-    if ((SIZE_T)numberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    // Multiply numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY)
+    status = RtlSizeTMult((SIZE_T)numberOfHeaps, sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY), &heapEntriesSize);
+
+    if (!NT_SUCCESS(status))
     {
         RtlDestroyQueryDebugBuffer(debugBuffer);
-        return STATUS_INTEGER_OVERFLOW;
+        return status;
     }
 
-    heapDebugInfoLength = sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + (SIZE_T)numberOfHeaps * sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY);
+    // Add sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION) + heapEntriesSize
+    status = RtlSizeTAdd(sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION), heapEntriesSize, &heapDebugInfoLength);
+
+    if (!NT_SUCCESS(status))
+    {
+        RtlDestroyQueryDebugBuffer(debugBuffer);
+        return status;
+    }
+
     heapDebugInfo = PhAllocateZero(heapDebugInfoLength);
 
     if (!heapDebugInfo)

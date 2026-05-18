@@ -582,6 +582,7 @@ NTSTATUS PhMapViewOfEntireFile(
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Open the file if we weren't supplied a file handle.
+
     if (!FileHandle)
     {
         status = PhCreateFileWin32(
@@ -678,6 +679,7 @@ NTSTATUS PhMapViewOfEntireFileEx(
         return STATUS_INVALID_PARAMETER_MIX;
 
     // Open the file if we weren't supplied a file handle.
+
     if (!FileHandle)
     {
         status = PhCreateFile(
@@ -748,11 +750,15 @@ CleanupExit:
 }
 
 /**
- * Maps PE image prefetch.
- *
+ * The PhMappedImagePrefetch function allows efficient use of disk hardware by issuing large,
+ * concurrent I/Os where possible when the application provides a list of process address ranges
+ * that are going to be accessed. Even for a single address range (e.g. a file mapping),
+ * the PhMappedImagePrefetch function can provide performance improvements by issuing
+ * single large I/O rather than the many smaller I/Os that would be issued via page faulting.
  * \param MappedImage The MappedImage parameter.
+ * \return NTSTATUS Successful or errant status.
  */
-VOID PhMappedImagePrefetch(
+NTSTATUS PhMappedImagePrefetch(
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
 {
@@ -762,7 +768,7 @@ VOID PhMappedImagePrefetch(
     prefetchMemoryRange[0].NumberOfBytes = MappedImage->ViewSize;
     prefetchMemoryRange[0].VirtualAddress = MappedImage->ViewBase;
 
-    PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
+    return PhPrefetchVirtualMemory(NtCurrentProcess(), RTL_NUMBER_OF(prefetchMemoryRange), prefetchMemoryRange);
 }
 
 /**

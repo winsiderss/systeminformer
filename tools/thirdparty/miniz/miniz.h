@@ -1,7 +1,7 @@
 #ifndef MINIZ_EXPORT
 #define MINIZ_EXPORT
 #endif
-/* miniz.c 3.1.0 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
+/* miniz.c 3.1.1 - public domain deflate/inflate, zlib-subset, ZIP reading/writing/appending, PNG writing
    See "unlicense" statement at the end of this file.
    Rich Geldreich <richgel99@gmail.com>, last updated Oct. 13, 2013
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
@@ -587,7 +587,7 @@ extern "C"
     {
         return mz_adler32(adler, ptr, buf_len);
     }
-    
+
 #define MAX_WBITS 15
 #define MAX_MEM_LEVEL 9
 
@@ -1054,7 +1054,7 @@ typedef mz_uint32 tinfl_bit_buf_t;
 #endif
 
 #endif /*#ifndef MINIZ_NO_INFLATE_APIS*/
- 
+
 #pragma once
 
 

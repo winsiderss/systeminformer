@@ -621,6 +621,8 @@ PH_KNOWN_PROCESS_TYPE PhGetProcessKnownTypeEx(
                 knownProcessType = WindowsLogonProcessType;
             else if (PhEqualStringRef2(&name, L"\\svchost.exe", TRUE))
                 knownProcessType = ServiceHostProcessType;
+            else if (PhEqualStringRef2(&name, L"\\rdpinit.exe", TRUE))
+                knownProcessType = ExplorerProcessType; // alt
             else if (PhEqualStringRef2(&name, L"\\rundll32.exe", TRUE))
                 knownProcessType = RunDllAsAppProcessType;
             else if (PhEqualStringRef2(&name, L"\\dllhost.exe", TRUE))

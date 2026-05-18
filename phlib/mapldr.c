@@ -1295,7 +1295,7 @@ PVOID PhGetDllBaseProcedureAddress(
 
     if (exportAddress && exportSuppressionEnabled)
     {
-        if (PhLoaderEntryImageExportSupressionPresent(DllBase, imageNtHeader))
+        if (PhLoaderEntryImageExportSuppressionPresent(DllBase, imageNtHeader))
         {
             PhLoaderEntryGrantSuppressedCall(exportAddress);
         }
@@ -1679,7 +1679,7 @@ NTSTATUS PhLoaderEntryImageRvaToVa(
  * in the load configuration directory. Export suppression is a CFG feature on Windows 10 RS2
  * and later that restricts which exported functions can be called.
  */
-BOOLEAN PhLoaderEntryImageExportSupressionPresent(
+BOOLEAN PhLoaderEntryImageExportSuppressionPresent(
     _In_ PVOID BaseAddress,
     _In_ PIMAGE_NT_HEADERS ImageNtHeader
     )

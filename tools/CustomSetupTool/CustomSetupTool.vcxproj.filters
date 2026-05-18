@@ -13,12 +13,6 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Source Files\pages">
-      <UniqueIdentifier>{c394360d-d423-4249-a23e-70558948e7f2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Resource Files\Content">
-      <UniqueIdentifier>{3f81aff6-dff1-4573-bb20-ac132fa9297b}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="extract.c">
@@ -63,16 +57,16 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <Manifest Include="app.manifest">
-      <Filter>Resource Files\Content</Filter>
-    </Manifest>
-  </ItemGroup>
-  <ItemGroup>
     <Image Include="..\..\SystemInformer\SystemInformer.ico">
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="..\..\SystemInformer\resources\systeminformer.png">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="app.manifest">
+      <Filter>Resource Files</Filter>
+    </Manifest>
   </ItemGroup>
 </Project>

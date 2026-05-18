@@ -10941,13 +10941,14 @@ VOID PhDevCloseObjectQuery(
  * \param DesiredAccess Registry access mask.
  * \param Flags PH_DEVKEY_* flags.
  * \param KeyHandle Pointer to receive the handle.
+ * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhDevOpenObjectKey(
     _In_ PPH_STRING DeviceInstanceId,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ ULONG Flags,
     _Out_ PHANDLE KeyHandle
-)
+    )
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
     ULONG objectCount = 0;

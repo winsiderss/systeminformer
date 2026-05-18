@@ -1856,11 +1856,33 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.NoKph = TRUE;
             break;
         case PH_ARG_DEBUG:
-            PhStartupParameters.Debug = TRUE;
+            {
+                PH_STRINGREF inputHandleString;
+                PH_STRINGREF outputHandleString;
+                ULONG64 inputHandle;
+                ULONG64 outputHandle;
+
+                if (Value && PhSplitStringRefAtChar(&Value->sr, L',', &inputHandleString, &outputHandleString))
+                {
+                    if (
+                        PhStringToUInt64(&inputHandleString, 16, &inputHandle) &&
+                        PhStringToUInt64(&outputHandleString, 16, &outputHandle)
+                        )
+                    {
+                        PhStartupParameters.DebugConsoleInputHandle = (HANDLE)(ULONG_PTR)inputHandle;
+                        PhStartupParameters.DebugConsoleOutputHandle = (HANDLE)(ULONG_PTR)outputHandle;
+                        PhStartupParameters.Debug = TRUE;
+                    }
+                }
+            }
             break;
         case PH_ARG_HWND:
-            if (Value && PhStringToInteger64(&Value->sr, 16, &integer))
-                PhStartupParameters.WindowHandle = (HWND)(ULONG_PTR)integer;
+            {
+                if (Value && PhStringToUInt64(&Value->sr, 16, &integer))
+                {
+                    PhStartupParameters.WindowHandle = (HWND)(ULONG_PTR)integer;
+                }
+            }
             break;
         case PH_ARG_POINT:
             {
@@ -1902,24 +1924,32 @@ BOOLEAN NTAPI PhpCommandLineOptionCallback(
             PhStartupParameters.Help = TRUE;
             break;
         case PH_ARG_SELECTPID:
-            if (Value && PhStringToInteger64(&Value->sr, 0, &integer))
-                PhStartupParameters.SelectPid = (ULONG)integer;
+            {
+                if (Value && PhStringToUInt64(&Value->sr, 0, &integer))
+                {
+                    PhStartupParameters.SelectPid = (ULONG)integer;
+                }
+            }
             break;
         case PH_ARG_PRIORITY:
-            if (Value && PhEqualString2(Value, L"r", TRUE))
-                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
-            else if (Value && PhEqualString2(Value, L"h", TRUE))
-                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
-            else if (Value && PhEqualString2(Value, L"n", TRUE))
-                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
-            else if (Value && PhEqualString2(Value, L"l", TRUE))
-                PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
+            {
+                if (Value && PhEqualString2(Value, L"r", TRUE))
+                    PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_REALTIME;
+                else if (Value && PhEqualString2(Value, L"h", TRUE))
+                    PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_HIGH;
+                else if (Value && PhEqualString2(Value, L"n", TRUE))
+                    PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_NORMAL;
+                else if (Value && PhEqualString2(Value, L"l", TRUE))
+                    PhStartupParameters.PriorityClass = PROCESS_PRIORITY_CLASS_IDLE;
+            }
             break;
         case PH_ARG_PLUGIN:
-            if (!PhStartupParameters.PluginParameters)
-                PhStartupParameters.PluginParameters = PhCreateList(3);
-            if (Value)
-                PhAddItemList(PhStartupParameters.PluginParameters, PhReferenceObject(Value));
+            {
+                if (!PhStartupParameters.PluginParameters)
+                    PhStartupParameters.PluginParameters = PhCreateList(3);
+                if (Value)
+                    PhAddItemList(PhStartupParameters.PluginParameters, PhReferenceObject(Value));
+            }
             break;
         case PH_ARG_SELECTTAB:
             PhSwapReference(&PhStartupParameters.SelectTab, Value);
@@ -1989,7 +2019,7 @@ VOID PhpProcessStartupParameters(
         { PH_ARG_SHOWHIDDEN, L"hide", NoArgumentType },
         { PH_ARG_RUNASSERVICEMODE, L"ras", MandatoryArgumentType },
         { PH_ARG_NOKPH, L"nokph", NoArgumentType },
-        { PH_ARG_DEBUG, L"debug", NoArgumentType },
+        { PH_ARG_DEBUG, L"debug", MandatoryArgumentType },
         { PH_ARG_HWND, L"hwnd", MandatoryArgumentType },
         { PH_ARG_POINT, L"point", MandatoryArgumentType },
         { PH_ARG_SHOWOPTIONS, L"showoptions", NoArgumentType },

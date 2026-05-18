@@ -66,14 +66,16 @@ typedef struct _PH_THREAD_STACK_CONTEXT
 
     HWND TaskDialogHandle;
 
-    NTSTATUS WalkStatus;
     PPH_STRING StatusMessage;
     PPH_STRING StatusContent;
     PH_QUEUED_LOCK StatusLock;
 
     BOOLEAN SymbolProgressMarquee;
     BOOLEAN SymbolProgressReset;
+
     ULONG SymbolProgress;
+    NTSTATUS WalkStatus;
+    LONG WindowDpi;
 
     PH_LAYOUT_MANAGER LayoutManager;
 
@@ -981,6 +983,7 @@ INT_PTR CALLBACK PhpThreadStackDlgProc(
             context->HighlightUserPages = !!PhGetIntegerSetting(SETTING_USE_COLOR_USER_THREAD_STACK);
             context->HighlightSystemPages = !!PhGetIntegerSetting(SETTING_USE_COLOR_SYSTEM_THREAD_STACK);
             context->HighlightInlineFrames = !!PhGetIntegerSetting(SETTING_USE_COLOR_INLINE_THREAD_STACK);
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
             PhSetWindowExStyle(context->TreeNewHandle, WS_EX_CLIENTEDGE, 0);
 
             PhSetApplicationWindowIcon(hwndDlg);
@@ -1680,6 +1683,7 @@ HRESULT CALLBACK PhpThreadStackTaskDialogCallback(
     case TDN_DIALOG_CONSTRUCTED:
         {
             context->TaskDialogHandle = hwndDlg;
+            context->WindowDpi = PhGetWindowDpi(hwndDlg);
 
             PhSetApplicationWindowIcon(hwndDlg);
             //SendMessage(hwndDlg, TDM_UPDATE_ICON, TDIE_ICON_MAIN, (LPARAM)PhGetApplicationIcon(FALSE, PhGetWindowDpi(hwndDlg)));
@@ -1811,7 +1815,7 @@ BOOLEAN PhpShowThreadStackWindow(
         TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SHOW_MARQUEE_PROGRESS_BAR |
         TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
-    config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->WindowHandle));
+    config.hMainIcon = PhGetApplicationIcon(FALSE, Context->WindowDpi);
     config.pfCallback = PhpThreadStackTaskDialogCallback;
     config.lpCallbackData = (LONG_PTR)Context;
     config.hwndParent = Context->WindowHandle;

@@ -151,7 +151,7 @@ PhMapViewOfEntireFileEx(
     );
 
 PHLIBAPI
-VOID
+NTSTATUS
 NTAPI
 PhMappedImagePrefetch(
     _In_ PPH_MAPPED_IMAGE MappedImage

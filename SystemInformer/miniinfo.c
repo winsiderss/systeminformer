@@ -789,7 +789,7 @@ VOID PhMipInitializeParameters(
 
     hdc = GetDC(PhMipWindow);
 
-    logFont.lfHeight -= PhMultiplyDivide(2, dpiValue, 72);
+    logFont.lfHeight -= PhMultiplyDivideSigned(2, dpiValue, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
 
     originalFont = SelectFont(hdc, CurrentParameters.Font);
@@ -931,6 +931,7 @@ VOID PhMipChangeSection(
     NewSection->Callback(NewSection, MiniInfoTick, NULL, NULL);
 }
 
+_Function_class_(PH_MINIINFO_SET_SECTION_TEXT)
 VOID PhMipSetSectionText(
     _In_ struct _PH_MINIINFO_SECTION *Section,
     _In_opt_ PPH_STRING Text
