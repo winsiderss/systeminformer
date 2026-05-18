@@ -131,6 +131,16 @@ jobs:
           output: sarif-results
           upload: never
   
+      - name: Filter CodeQL Results
+        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
+        with:
+          input: sarif-results/cpp.sarif
+          output: sarif-results/filtered.sarif
+          patterns: |
+            packages/**/*
+            tools/CustomBuildTool/generated/**/*
+            tools/CustomBuildTool/obj/**/*
+
       - name: Upload CodeQL Results
         uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
         with:
