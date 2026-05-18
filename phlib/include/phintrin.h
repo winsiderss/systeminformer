@@ -47,6 +47,44 @@
 #include <arm_acle.h>
 #endif
 
+#ifdef _M_ARM64
+#ifndef ARM64_SYSREG
+#define ARM64_SYSREG(op0, op1, crn, crm, op2) \
+    (((op0 & 1) << 14) | ((op1) << 11) | ((crn) << 7) | ((crm) << 3) | (op2))
+#endif
+
+#ifndef ARM64_RNDRRS
+#define ARM64_RNDRRS ARM64_SYSREG(3, 3, 2, 4, 1)
+#endif
+
+#ifndef ARM64_RNDR
+#define ARM64_RNDR ARM64_SYSREG(3, 3, 2, 4, 0)
+#endif
+
+#ifndef ARM64_NZCV
+#define ARM64_NZCV ARM64_SYSREG(3, 3, 4, 2, 0)
+#endif
+
+#ifndef NZCV_C
+#define NZCV_C 0x20000000
+#endif
+
+FORCEINLINE
+BOOLEAN
+PhArm64ReadRandomNumber64(
+    _Out_ PULONG64 Number
+    )
+{
+#ifdef __clang__
+    return !!__rndrrs(Number);
+#else
+    *Number = (ULONG64)_ReadStatusReg(ARM64_RNDRRS);
+
+    return !!FlagOn((ULONG)_ReadStatusReg(ARM64_NZCV), NZCV_C);
+#endif
+}
+#endif
+
 #ifdef _ARM64_
 #define PhHasIntrinsics TRUE
 #define PhHasPopulationCount TRUE
