@@ -66,7 +66,7 @@ function(_si_set_target_defaults target)
 
     if(arg_TYPE STREQUAL "UM_LIB")
         if(MSVC)
-            target_compile_options(${target} PRIVATE /Gz) # __stdcall calling convention
+            target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:/Gz>) # __stdcall calling convention
             target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
         else()
             target_link_options(${target} PRIVATE -mwindows)
@@ -86,7 +86,7 @@ function(_si_set_target_defaults target)
         endif()
     elseif(arg_TYPE STREQUAL "UM_BIN")
         if(MSVC)
-            target_compile_options(${target} PRIVATE /Gz) # __stdcall calling convention
+            target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:C,CXX>:/Gz>) # __stdcall calling convention
             target_link_options(${target} PRIVATE /SUBSYSTEM:WINDOWS,6.1)
         else()
             target_link_options(${target} PRIVATE -mwindows)
