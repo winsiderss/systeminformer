@@ -1,0 +1,812 @@
+/*
+ * Copyright (c) 2026 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     dmex    2026
+ *
+ */
+
+#ifndef SYMCRYPT_H
+#define SYMCRYPT_H
+
+#pragma once
+
+EXTERN_C_START
+
+// ------------------------------------------------------------------------
+// Hash result sizes
+// ------------------------------------------------------------------------
+
+#define PH_SYMCRYPT_MD5_RESULT_SIZE         16
+#define PH_SYMCRYPT_SHA1_RESULT_SIZE        20
+#define PH_SYMCRYPT_SHA256_RESULT_SIZE      32
+#define PH_SYMCRYPT_SHA384_RESULT_SIZE      48
+#define PH_SYMCRYPT_SHA512_RESULT_SIZE      64
+#define PH_SYMCRYPT_SHA3_256_RESULT_SIZE    32
+#define PH_SYMCRYPT_SHA3_384_RESULT_SIZE    48
+#define PH_SYMCRYPT_SHA3_512_RESULT_SIZE    64
+
+#define PH_SYMCRYPT_HMAC_SHA1_RESULT_SIZE       PH_SYMCRYPT_SHA1_RESULT_SIZE
+#define PH_SYMCRYPT_HMAC_SHA256_RESULT_SIZE     PH_SYMCRYPT_SHA256_RESULT_SIZE
+#define PH_SYMCRYPT_HMAC_SHA384_RESULT_SIZE     PH_SYMCRYPT_SHA384_RESULT_SIZE
+#define PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE     PH_SYMCRYPT_SHA512_RESULT_SIZE
+
+// ------------------------------------------------------------------------
+// Hash algorithm selector (used by RSA-PKCS1 / RSA-PSS verify)
+// ------------------------------------------------------------------------
+
+typedef enum _PH_SYMCRYPT_HASH_ALGORITHM
+{
+    PhSymCryptHashAlgorithmSha1 = 0,
+    PhSymCryptHashAlgorithmSha256 = 1,
+    PhSymCryptHashAlgorithmSha384 = 2,
+    PhSymCryptHashAlgorithmSha512 = 3,
+} PH_SYMCRYPT_HASH_ALGORITHM;
+
+// ------------------------------------------------------------------------
+// Random / RNG
+// ------------------------------------------------------------------------
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptRandom(
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptProvideEntropy(
+    _In_reads_bytes_(Length) PCVOID Entropy,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRdrandStatus(
+    VOID
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRdrandGetBytes(
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+// ------------------------------------------------------------------------
+// Constant-time / wipe utilities
+// ------------------------------------------------------------------------
+
+EXTERN_C
+BOOLEAN
+NTAPI
+PhSymCryptEqual(
+    _In_reads_bytes_(Length) PCVOID Buffer1,
+    _In_reads_bytes_(Length) PCVOID Buffer2,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptWipe(
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptXorBytes(
+    _In_reads_bytes_(Length) PCVOID Source1,
+    _In_reads_bytes_(Length) PCVOID Source2,
+    _Out_writes_bytes_(Length) PVOID Destination,
+    _In_ SIZE_T Length
+    );
+
+// ------------------------------------------------------------------------
+// Single-shot hashes
+// ------------------------------------------------------------------------
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptMd5(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_MD5_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha1(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA1_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha256(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA256_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha384(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA384_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha512(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA512_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_256(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_256_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_384(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_384_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_512(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_512_RESULT_SIZE) PVOID Result
+    );
+
+// ------------------------------------------------------------------------
+// Incremental hashes (opaque heap-allocated context)
+//
+// Pattern:
+//   PVOID ctx;
+//   PhSymCryptSha256Init(&ctx);
+//   PhSymCryptSha256Append(ctx, data, len);   // may be called repeatedly
+//   PhSymCryptSha256Result(ctx, digest);      // frees ctx
+//
+// Result always frees the context, even on early abandonment. To discard
+// an incremental hash without computing the result, call the matching
+// Result function with a throwaway buffer.
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptMd5Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptMd5Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptMd5Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_MD5_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha1Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha1Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha1Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA1_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha256Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha256Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha256Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA256_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha384Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha384Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha384Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA384_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha512Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha512Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha512Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA512_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha3_256Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_256Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_256Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_256_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha3_384Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_384Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_384Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_384_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSha3_512Init(
+    _Out_ PVOID* Context
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_512Append(
+    _Inout_ PVOID Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptSha3_512Result(
+    _Inout_ PVOID Context,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_512_RESULT_SIZE) PVOID Result
+    );
+
+// ------------------------------------------------------------------------
+// HMAC (single-shot)
+// ------------------------------------------------------------------------
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptHmacSha1(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(PH_SYMCRYPT_HMAC_SHA1_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptHmacSha256(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(PH_SYMCRYPT_HMAC_SHA256_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptHmacSha384(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(PH_SYMCRYPT_HMAC_SHA384_RESULT_SIZE) PVOID Result
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptHmacSha512(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE) PVOID Result
+    );
+
+// ------------------------------------------------------------------------
+// KDFs — return NTSTATUS, mapped from SYMCRYPT_ERROR
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptPbkdf2HmacSha256(
+    _In_reads_bytes_(PasswordLength) PCVOID Password,
+    _In_ SIZE_T PasswordLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_ ULONG64 IterationCount,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptPbkdf2HmacSha512(
+    _In_reads_bytes_(PasswordLength) PCVOID Password,
+    _In_ SIZE_T PasswordLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_ ULONG64 IterationCount,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHkdfSha256(
+    _In_reads_bytes_(IkmLength) PCVOID Ikm,
+    _In_ SIZE_T IkmLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_opt_(InfoLength) PCVOID Info,
+    _In_ SIZE_T InfoLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHkdfSha512(
+    _In_reads_bytes_(IkmLength) PCVOID Ikm,
+    _In_ SIZE_T IkmLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_opt_(InfoLength) PCVOID Info,
+    _In_ SIZE_T InfoLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    );
+
+// ------------------------------------------------------------------------
+// AEAD
+//
+// AES-GCM: KeyLength must be 16/24/32, NonceLength typically 12, TagLength 12-16.
+// ChaCha20-Poly1305: Key must be 32 bytes, Nonce 12 bytes, Tag 16 bytes.
+// Decrypt returns STATUS_AUTH_TAG_MISMATCH on tag failure.
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesGcmEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(TagLength) PVOID Tag,
+    _In_ SIZE_T TagLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesGcmDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength,
+    _In_reads_bytes_(TagLength) PCVOID Tag,
+    _In_ SIZE_T TagLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptChaCha20Poly1305Encrypt(
+    _In_reads_bytes_(32) PCVOID Key,
+    _In_reads_bytes_(12) PCVOID Nonce,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(16) PVOID Tag
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptChaCha20Poly1305Decrypt(
+    _In_reads_bytes_(32) PCVOID Key,
+    _In_reads_bytes_(12) PCVOID Nonce,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength,
+    _In_reads_bytes_(16) PCVOID Tag
+    );
+
+// ------------------------------------------------------------------------
+// AES-CBC
+//
+// KeyLength: 16/24/32. IV: 16 bytes. Raw variants require DataLength to be
+// a multiple of 16. PKCS#7 variants apply / strip padding; the encrypt
+// output buffer must hold ((PlaintextLength / 16) + 1) * 16 bytes, and on
+// decrypt the actual plaintext length is returned via *PlaintextLength.
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesCbcEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesCbcDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesCbcEncryptPkcs7(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_reads_bytes_(PlaintextLength) PCVOID Plaintext,
+    _In_ SIZE_T PlaintextLength,
+    _Out_writes_bytes_to_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptAesCbcDecryptPkcs7(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_to_(CiphertextLength, *PlaintextLength) PVOID Plaintext,
+    _Out_ PSIZE_T PlaintextLength
+    );
+
+// ------------------------------------------------------------------------
+// Asymmetric verification (raw big-endian buffers)
+//
+// Key material is raw MSB-first integer bytes, not BCrypt key blobs.
+// Callers holding BCrypt blobs need to strip the header / split fields
+// before invoking these.
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRsaPkcs1Verify(
+    _In_reads_bytes_(ModulusLength) PCVOID Modulus,
+    _In_ SIZE_T ModulusLength,
+    _In_ ULONG64 PublicExponent,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRsaPssVerify(
+    _In_reads_bytes_(ModulusLength) PCVOID Modulus,
+    _In_ SIZE_T ModulusLength,
+    _In_ ULONG64 PublicExponent,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+// PublicKeyXY: uncompressed concatenation of X || Y in MSB-first order.
+//   P-256 -> 64 bytes (32+32), P-384 -> 96 bytes (48+48).
+// Signature: concatenation of R || S in MSB-first order.
+//   P-256 -> 64 bytes, P-384 -> 96 bytes.
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptEcDsaVerifyP256(
+    _In_reads_bytes_(PublicKeyLength) PCVOID PublicKeyXY,
+    _In_ SIZE_T PublicKeyLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptEcDsaVerifyP384(
+    _In_reads_bytes_(PublicKeyLength) PCVOID PublicKeyXY,
+    _In_ SIZE_T PublicKeyLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+// ------------------------------------------------------------------------
+// Asymmetric verification (BCrypt blob compatibility)
+//
+// Accept raw BCRYPT_*_BLOB buffers as produced by BCryptExportKey or as
+// embedded verbatim in source. Header is parsed in-place; no allocations.
+// ------------------------------------------------------------------------
+
+// KeyBlob: BCRYPT_ECCKEY_BLOB header followed by X||Y (MSB-first).
+// Magic selects the curve: ECS1/ECK1 -> P-256, ECS3/ECK3 -> P-384.
+// Signature: R||S (MSB-first), same shape BCryptSignHash produces.
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptEcDsaVerifyBlob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+// KeyBlob: BCRYPT_RSAKEY_BLOB header (Magic = RSA1) followed by
+// public exponent then modulus, both MSB-first.
+// PaddingFlags: BCRYPT_PAD_PSS or BCRYPT_PAD_PKCS1.
+// SaltLength is honored only for PSS.
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRsaVerifyBlob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_ ULONG PaddingFlags,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+// Drop-in replacement for BCryptVerifySignature.
+// BlobType: BCRYPT_ECCPUBLIC_BLOB or BCRYPT_RSAPUBLIC_BLOB.
+// PaddingInfo: BCRYPT_PSS_PADDING_INFO* for PSS, BCRYPT_PKCS1_PADDING_INFO*
+// for PKCS1, NULL/ignored for ECDSA.
+// PaddingFlags: 0 (ECDSA), BCRYPT_PAD_PSS, or BCRYPT_PAD_PKCS1.
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptVerifySignatureFromBlob(
+    _In_ PCWSTR BlobType,
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_opt_ PVOID PaddingInfo,
+    _In_ ULONG PaddingFlags,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    );
+
+// ------------------------------------------------------------------------
+// Asymmetric signing (BCrypt blob input)
+//
+// KeyBlob input shapes:
+//   RSA  -> BCRYPT_RSAPRIVATE_BLOB or BCRYPT_RSAFULLPRIVATE_BLOB
+//   ECC  -> BCRYPT_ECCPRIVATE_BLOB
+// SignatureCapacity must be >= modulus size (RSA); ECDSA P-256 always
+// produces a 64-byte signature (R || S, MSB-first).
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRsaPkcs1SignBlob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _Out_writes_bytes_to_(SignatureCapacity, *SignatureLength) PVOID Signature,
+    _In_ SIZE_T SignatureCapacity,
+    _Out_ PSIZE_T SignatureLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptRsaPssSignBlob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _Out_writes_bytes_to_(SignatureCapacity, *SignatureLength) PVOID Signature,
+    _In_ SIZE_T SignatureCapacity,
+    _Out_ PSIZE_T SignatureLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptEcDsaSignP256Blob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(HashLength) PCVOID Hash,
+    _In_ SIZE_T HashLength,
+    _Out_writes_bytes_(64) PVOID Signature
+    );
+
+EXTERN_C_END
+
+#endif // SYMCRYPT_H

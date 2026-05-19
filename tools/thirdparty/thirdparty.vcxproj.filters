@@ -49,8 +49,34 @@
     <Filter Include="zydis">
       <UniqueIdentifier>{fb0d4aa9-8b28-431c-a1b5-11e4578142b9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="SymCrypt\Headers">
+      <UniqueIdentifier>{fdf7353b-6bdb-4362-a9c3-0961efac30ee}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup Label="SymCrypt">
+    <Filter Include="SymCrypt">
+      <UniqueIdentifier>{276d899d-3c63-4d32-90e5-9f5c3267d6cc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SymCrypt\Sources">
+      <UniqueIdentifier>{31ed00d2-61be-49dc-a95f-0fcbb04d78f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SymCrypt\amd64">
+      <UniqueIdentifier>{b3f2d7de-692a-4bf3-a061-87a9e9d144f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SymCrypt\i386">
+      <UniqueIdentifier>{2afbbd34-6810-43a3-a272-80647bf17331}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="SymCrypt\arm64">
+      <UniqueIdentifier>{d4fd8757-d9e3-41b9-9413-fe9a93ab351a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="SymCrypt\symcryptwrapper.c">
+      <Filter>SymCrypt</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\modules\windows\user\module.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
     <ClCompile Include="jsonc\arraylist.c">
       <Filter>Json-C</Filter>
     </ClCompile>
@@ -428,6 +454,9 @@
     <ClInclude Include="xxhash\xxhashwrapper.h">
       <Filter>xxhash</Filter>
     </ClInclude>
+    <ClInclude Include="SymCrypt\symcryptwrapper.h">
+      <Filter>SymCrypt</Filter>
+    </ClInclude>
     <ClInclude Include="pcre\pcre2_compile.h">
       <Filter>PCRE\Headers</Filter>
     </ClInclude>
@@ -446,5 +475,614 @@
     <ClInclude Include="zydis\Zydis.h">
       <Filter>zydis</Filter>
     </ClInclude>
+    <ClInclude Include="SymCrypt\lib\sc_lib_mldsa.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\ghash_definitions.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\sc_lib_mlkem.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\buildInfo.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\sc_lib.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\smallPrimes32.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\smallPrimes64.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\modules\statusindicator_common.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\symcrypt.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\precomp.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\symcrypt_internal.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\inc\symcrypt_low_level.h">
+      <Filter>SymCrypt\i386</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\modules\symcrypt_modules_common.h">
+      <Filter>SymCrypt\i386</Filter>
+    </ClInclude>
+    <ClInclude Include="SymCrypt\lib\xtsaes_definitions.h">
+      <Filter>SymCrypt\i386</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup Label="SymCrypt">
+    <ClCompile Include="SymCrypt\lib\3des.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-asm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-c.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-default-bc.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-default.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-key.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-neon.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-xmm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aes-ymm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aescmac.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aesCtrDrbg.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\aeskw.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\AesTables.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\a_dispatch.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\blockciphermodes.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ccm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\chacha20.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\chacha20_poly1305.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\composite_encoding.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\composite_mlkem.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\cpuid.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\cpuid_notry.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\cpuid_um.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\crt.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\data_accessors.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\DesTables.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\desx.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\dh.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\dlgroup.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\dlkey.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\dl_internal_groups.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\dsa.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\eckey.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ecpoint.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ecurve.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_dh.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_dispatch.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_dsa.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_internal_curve_params.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_internal_curves.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_montgomery.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_mul.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_short_weierstrass.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ec_twisted_edwards.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\env_generic.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\env_Win10Sgx.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin7.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin8_1.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\equal.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\FatalIntercept.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\fdef369_mod.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\fdef_general.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\fdef_int.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\fdef_mod.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\fips_selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\gcm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\gen_int.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ghash.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hash.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hkdf.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hkdf_selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmac.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacmd5.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha1.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha224.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha384.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha512_224.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha512_256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha3_224.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha3_256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha3_384.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\hmacsha3_512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\IEEE802_11SaeCustom.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\kmac.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\libmain.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\lms.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\marvin32.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\md2.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\md4.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\md5.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\mldsa.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\mldsa_primitives.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\mlkem.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\mlkem_primitives.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\modexp.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\paddingPkcs7.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\parhash.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\pbkdf2.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha1.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\poly1305.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\primes.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rc2.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rc4.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rdrand.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rdseed.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\recoding.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rsakey.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rsa_enc.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\rsa_padding.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ScsTable.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\scsTools.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\service_indicator.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\session.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha1.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha256-xmm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha256-ymm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha256Par-ymm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha256Par.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha3.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha3_224.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha3_256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha3_384.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha3_512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha512-ymm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha512Par-ymm.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sha512Par.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\shake.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sp800_108.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha1.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\srtp_kdf.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\srtp_kdf_selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ssh_kdf.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha256.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha512.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sskdf.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\sskdf_selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\tlsCbcVerify.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\tlsprf.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\tlsprf_selftest.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\xmss.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <ClCompile Include="SymCrypt\lib\xtsaes.c">
+      <Filter>SymCrypt\Sources</Filter>
+    </ClCompile>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\aesasm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\wipe.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef369_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef_mulx.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\sha256xmm_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\sha256ymm_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\sha512ymm_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.symcryptasm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </SymCryptAsm>
+    <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
+      <Filter>SymCrypt\arm64</Filter>
+    </MARMASM>
+    <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
+      <Filter>SymCrypt\arm64</Filter>
+    </MARMASM>
+    <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
+      <Filter>SymCrypt\arm64</Filter>
+    </MARMASM>
+    <SymCryptAsm Include="SymCrypt\lib\arm64\fdef_asm.symcryptasm" Condition="'$(Platform)'=='ARM64EC'">
+      <Filter>SymCrypt\arm64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\arm64\fdef369_asm.symcryptasm" Condition="'$(Platform)'=='ARM64EC'">
+      <Filter>SymCrypt\arm64</Filter>
+    </SymCryptAsm>
+    <SymCryptAsm Include="SymCrypt\lib\arm64\wipe.symcryptasm" Condition="'$(Platform)'=='ARM64EC'">
+      <Filter>SymCrypt\arm64</Filter>
+    </SymCryptAsm>
+    <MASM Include="SymCrypt\lib\i386\aesasm.asm" Condition="'$(Platform)'=='Win32'">
+      <Filter>SymCrypt\i386</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\i386\fdef_asm.asm" Condition="'$(Platform)'=='Win32'">
+      <Filter>SymCrypt\i386</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\i386\wipe.asm" Condition="'$(Platform)'=='Win32'">
+      <Filter>SymCrypt\i386</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SymCrypt\lib\amd64\aesasm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\fdef369_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\fdef_mulx.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\fdef_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\sha2common_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\sha256xmm_asm.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\sha256ymm_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\sha512ymm_asm.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\lib\amd64\wipe.symcryptasm">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
+    <None Include="SymCrypt\inc\symcrypt_internal_shared.inc">
+      <Filter>SymCrypt\i386</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

@@ -1,0 +1,633 @@
+//
+//  sha512ymm_avx512vl_asm.symcryptasm   Assembler code for SHA-512 hash function using
+//  AVX512F and AVX512VL instruction set extensions and AVX registers (Ymm0-Ymm15).
+//
+//  Expresses asm in a generic enough way to enable generation of MASM and GAS using the
+//  symcryptasm_processor.py script and C preprocessor
+//
+// Copyright (c) Microsoft Corporation. Licensed under the MIT license.
+
+
+#include "symcryptasm_shared.cppasm"
+
+EXTERN(SymCryptSha512K:QWORD)
+EXTERN(BYTE_REVERSE_64X2:QWORD)
+EXTERN(BYTE_ROTATE_64:QWORD)
+
+
+SET(SHA2_INPUT_BLOCK_BYTES_LOG2,    7)
+SET(SHA2_INPUT_BLOCK_BYTES,         128)
+SET(SHA2_ROUNDS,                    80)
+SET(SHA2_BYTES_PER_WORD,            8)
+SET(SHA2_SIMD_REG_SIZE,             32)
+SET(SHA2_SINGLE_BLOCK_THRESHOLD,    (3 * SHA2_INPUT_BLOCK_BYTES))   // Minimum number of message bytes required for using vectorized implementation
+
+
+INCLUDE( sha2common_asm.symcryptasm )
+
+
+
+//
+// SHA-2 core round function that uses AVX512 instructions
+//
+// a, b, c, e, f, g [in]: hash function state
+// d, h [in/out]        : hash function state
+// xt1..xt4             : temporary XMM registers
+// rnd [in]             : round number, used for indexing into the Wk array
+// Wk [in]              : register pointing to message/constant buffer
+// scale [in]           : granularity of elements in message buffer /constant array
+//
+MACRO_START(ROUND_AVX512, a, b, c, d, e, f, g, h, xt1, xt2, xt3, xt4, rnd, Wk, scale)
+
+//                          SELECT(e, f, g)     CSIGMA0(a)      CSIGMA1(e)      MAJ(a, b, c)                
+//-----------------------------------------------------------------------------------------------------------------
+                                                            
+                                                                vprorq      xt4, e, 14
+    vmovq       xt2, QWORD ptr [Wk + rnd * scale]
+                                                                vprorq      xt1, e, 18
+                                                                vprorq      xt3, e, 41
+                                                                vpternlogq  xt3, xt4, xt1, HEX(96)
+                            vmovdqa     xt1, e
+                            vpternlogq  xt1, f, g, HEX(0ca)
+                                                                                vmovdqa     xt4, a
+    vpaddq      h, h, xt2
+    vpaddq      h, h, xt1
+                                                                                vpternlogq  xt4, b, c, HEX(0e8)
+    vpaddq      h, h, xt3
+    vpaddq      d, d, h
+                                                vprorq      xt2, a, 28
+    vpaddq      h, h, xt4
+                                                vprorq      xt1, a, 34
+                                                vprorq      xt3, a, 39
+                                                vpternlogq  xt1, xt3, xt2, HEX(96)
+    vpaddq      h, h, xt1
+
+MACRO_END()
+
+
+
+//
+// Message expansion for 4 consecutive message blocks and adds constants to round (rnd - 16)
+//
+// y0 [in/out]      : W_{rnd - 16}, on macro exit it is loaded with W_{rnd - 14} and used as y1 for the
+//                    subsequent macro invocation.
+// y1 [in]          : W_{rnd - 15}
+// y9 [in]          : W_{rnd - 7}
+// y14 [in]         : W_{rnd - 2}
+// rnd [in]         : round number, rnd = 16..24, uses the previous 16 message word state to generate the next one
+// t1 [out]         : expanded message word
+// t2,t3            : temporary YMM registers
+// Wx [in]          : pointer to the message buffer
+// k512 [in]        : pointer to the constants 
+//
+MACRO_START(SHA512_MSG_EXPAND_4BLOCKS, y0, y1, y9, y14, rnd, t1, t2, t3, Wx, k512)
+
+        vpbroadcastq t1, QWORD ptr [k512 + 8 * (rnd - 16)]      // t1 = K_{t-16}
+        vpaddq      t1, t1, y0                                  // t1 = W_{t-16} + K_{t-16}                 
+        vmovdqu     YMMWORD ptr [Wx + (rnd - 16) * 32], t1      // store W_{t-16} + K_{t-16}
+        
+        vprorq      t1, y14, 19
+        vprorq      t2, y14, 61
+        vpsrlq      t3, y14, 6
+        vpternlogq  t1, t2, t3, HEX(96)                         // t1 = LSIGMA1(W_{t-2})
+
+        vpaddq      y0, y0, y9                                  // y0 = W_{t-16} + W_{t-7}
+        vpaddq      y0, y0, t1                                  // y0 = W_{t-16} + W_{t-7} + LSIGMA1(W_{t-2})
+
+        vprorq      t2, y1, 1
+        vprorq      t3, y1, 8
+        vpsrlq      t1, y1, 7
+        vpternlogq  t2, t3, t1, HEX(96)                         // t2 = LSIGMA0(W_{t-15})
+        
+        vpaddq      t1, t2, y0                                  // t1 = W_t = W_{t-16} + W_{t-7} + LSIGMA1(W_{t-2}) + LSIGMA0(W_{t-15})             
+
+        vmovdqu     y0, YMMWORD ptr [Wx + (rnd - 14) * 32]      // y0 = W_{t-14}, load W_{t-15} for next round
+        vmovdqu     YMMWORD ptr [Wx + rnd * 32], t1             // store W_t    
+
+MACRO_END()
+
+
+//
+// Single block message expansion using YMM registers
+//
+// y0..y3 [in/out]  : 16 word message state
+// t1..t4           : temporary YMM registers
+// karr             : pointer to the round constants
+// ind              : index used to calculate the offsets for loading constants and storing words to
+//                    message buffer W, each increment points to next 4 round constant and message words.
+//
+MACRO_START(SHA512_MSG_EXPAND_1BLOCK, y0, y1, y2, y3, t1, t2, t3, t4, karr, ind)
+
+        // Message word state before the expansion
+        // y0 =  W3  W2  W1  W0
+        // y1 =  W7  W6  W5  W4
+        // y2 = W11 W10  W9  W8
+        // y3 = W15 W14 W13 W12
+
+        // After the expansion we will have
+        // y1 =  W7  W6  W5  W4
+        // y2 = W11 W10  W9  W8
+        // y3 = W15 W14 W13 W12
+        // y0 = W19 W18 W17 W16
+
+        valignq     t1, y1, y0, 1                       // t1 = W4 W3 W2 W1
+        vprorq      t2, t1, 1
+        vprorq      t3, t1, 8
+        vpsrlq      t1, t1, 7
+        vpternlogq  t1, t2, t3, HEX(96)                 // t1 = LSIGMA0(W4 W3 W2 W1)
+    
+        valignq     t4, y3, y2, 1                       // t4 = W12 W11 W10 W9
+        vpaddq      y0, y0, t1                          // y0 = (W3 W2 W1 W0) + LSIGMA0(W4 W3 W2 W1)
+        vpaddq      y0, y0, t4                          // y0 = (W3 W2 W1 W0) + LSIGMA0(W4 W3 W2 W1) + (W12 W11 W10 W9)
+    
+        vprorq      t2, y3, 19
+        vprorq      t3, y3, 61
+        vpsrlq      t1, y3, 6
+        vpternlogq  t1, t2, t3, HEX(96)                 // t1 = LSIGMA(W15 W14 W13 W12)
+        vperm2i128  t1, t1, t1, HEX(81)                 // t1 = 0 0 LSIGMA1(W15 W14)
+
+        vpaddq      t1, y0, t1                          // t1 = (W3 W2 W1 W0) + LSIGMA0(W4 W3 W2 W1) + (W12 W11 W10 W9) + (0 0 LSIGMA1(W15 W14))
+                                                        //    = * * W17 W16
+        vprorq      t2, t1, 19
+        vprorq      t3, t1, 61
+        vpsrlq      t4, t1, 6
+        vpternlogq  t2, t3, t4, HEX(96)                 // t2 = * * LSIGMA1(W17 W16)
+        vperm2i128  t3, t2, t2, HEX(28)                 // t3 = LSIGMA1(W17 W16) 0 0
+
+        vmovdqa     t4, YMMWORD ptr [karr + ind * 32]   // t4 = K19 K18 K17 K16
+        vpaddq      y0, t1, t3                          // y0 = W19 W18 W17 W16
+        vpaddq      t4, t4, y0                          // t4 = (K19 K18 K17 K16) + (W19 W18 W17 W16)
+        vmovdqu     YMMWORD ptr [rsp + ind * 32], t4
+
+MACRO_END()
+
+
+//
+// Add one set of constants to four message words from multiple blocks in a YMM register
+//
+// rnd [in]     : round index, rnd = 0..7 (Wx and k512 are adjusted so that this macro always acts on the next 8 rounds)
+// t1, t2       : temporary YMM registers
+// Wx [in]      : pointer to the message buffer
+// k512 [in]    : pointer to the constants array
+//
+MACRO_START(SHA512_MSG_ADD_CONST, rnd, t1, t2, Wx, k512)
+
+        vpbroadcastq t2, QWORD ptr [k512 + 8 * (rnd)]
+        vmovdqu t1, YMMWORD ptr [Wx + 32 * (rnd)]
+        vpaddq  t1, t1, t2
+        vmovdqu YMMWORD ptr [Wx + 32 * (rnd)], t1
+
+MACRO_END()
+
+
+//
+// Constant addition for 8 consecutive rounds
+//
+// Repeats the SHA512_MSG_ADD_CONST macro for 8 consecutive indices.
+// Uses the same parameters as SHA512_MSG_ADD_CONST.
+//
+MACRO_START(SHA512_MSG_ADD_CONST_8X, rnd, t1, t2, Wx, k512)
+
+        SHA512_MSG_ADD_CONST (rnd + 0), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 1), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 2), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 3), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 4), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 5), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 6), t1, t2, Wx, k512
+        SHA512_MSG_ADD_CONST (rnd + 7), t1, t2, Wx, k512
+
+MACRO_END()
+
+
+//
+// Copy the state words from 64-bit general-purpose registers to lower QWORDS of first
+// eight XMM registers. 
+//
+// a..h [in]        : SHA-512 state words
+// xmm0..xmm7 [out] : These parameters are implicit. Lower QWORD of each register will contain
+//                    the corresponding state word copied from the general purpose register.
+//
+// We're using vmovq instruction to stay in the YMM domain
+// and clearing the other QWORDS of the YMM registers in the process, however only
+// the least significant QWORD is used during AVX512 round processing.
+//
+MACRO_START(SHA512_COPY_STATE_R64_TO_XMM, a, b, c, d, e, f, g, h)
+
+        vmovq   xmm0, a
+        vmovq   xmm1, b
+        vmovq   xmm2, c
+        vmovq   xmm3, d
+        vmovq   xmm4, e
+        vmovq   xmm5, f
+        vmovq   xmm6, g
+        vmovq   xmm7, h
+
+MACRO_END()
+
+
+//
+// Copy the state words from first eight XMM registers to 64-bit general-purpose registers
+//
+// a..h [out]       : SHA-512 state words
+// xmm0..xmm7 [in]  : These parameters are implicit. Lower QWORD of each register will be
+//                    copied to the corresponding general purpose register.
+//
+MACRO_START(SHA512_COPY_STATE_XMM_TO_R64, a, b, c, d, e, f, g, h)
+
+        vmovq   a, xmm0
+        vmovq   b, xmm1
+        vmovq   c, xmm2
+        vmovq   d, xmm3
+        vmovq   e, xmm4
+        vmovq   f, xmm5
+        vmovq   g, xmm6
+        vmovq   h, xmm7
+
+MACRO_END()
+
+
+//
+// Update the chaining value using the previous CV from the XMM registers 
+// provided as input and current state in xmm0..xmm7.
+//
+// Xba, Xdc, Xfe, Xhg [in/out]  : previous CV on entry, next CV on exit
+// xmm0..xmm7 [in/out]          : implicit parameters, current state on input, feed 
+//                                forwarded state (i.e. next CV) on exit
+// xt                           : temporary register
+//
+MACRO_START(SHA512_UPDATE_CV_XMM, Xba, Xdc, Xfe, Xhg, xt)
+
+        // The previous state is denoted by a..h and the current state is a'..h'.
+        // * : don't care value
+        
+        vpshufd     xt, Xba, 14         // xt   = * b
+        vpaddq      xmm0, xmm0, Xba     // xmm0 = * (a + a')
+        vpaddq      xmm1, xmm1, xt      // xmm1 = * (b + b')
+        vpshufd     xt, Xdc, 14         // xt   = * d
+        vpaddq      xmm2, xmm2, Xdc     // xmm2 = * (c + c')
+        vpaddq      xmm3, xmm3, xt      // xmm3 = * (d + d')
+        vpshufd     xt, Xfe, 14         // xt   = * f
+        vpaddq      xmm4, xmm4, Xfe     // xmm4 = * (e + e')
+        vpaddq      xmm5, xmm5, xt      // xmm5 = * (f + f')
+        vpshufd     xt, Xhg, 14         // xt   = * h
+        vpaddq      xmm6, xmm6, Xhg     // xmm6 = * (g + g')
+        vpaddq      xmm7, xmm7, xt      // xmm7 = * (h + h')
+        vpunpcklqdq Xba, xmm0, xmm1     // xmm14 = (b + b') (a + a')
+        vpunpcklqdq Xdc, xmm2, xmm3     // xmm12 = (d + d') (c + c')
+        vpunpcklqdq Xfe, xmm4, xmm5     // xmm15 = (f + f') (e + e')
+        vpunpcklqdq Xhg, xmm6, xmm7     // xmm13 = (h + h') (g + g')
+
+MACRO_END()
+
+//VOID
+//SYMCRYPT_CALL
+//SymCryptSha512AppendBlocks(
+//    _Inout_                 SYMCRYPT_SHA512_CHAINING_STATE* pChain,
+//    _In_reads_(cbData)      PCBYTE                          pbData,
+//                            SIZE_T                          cbData,
+//    _Out_                   SIZE_T*                         pcbRemaining)
+
+
+FUNCTION_START(PLATFORM_NAME_MANGLE(SymCryptSha512AppendBlocks_ymm_avx512vl_asm), 4, 15, 80*4*8+2*8, 16)
+
+        // Q1 = pChain
+        // Q2 = pbData
+        // Q3 = cbData
+        // Q4 = pcbRemaining
+
+        vzeroupper
+
+        // Load chaining value to YMM registers
+        // CV will be stored in YMM registers during multi-block message processing
+        vmovdqu     ymm14, YMMWORD ptr [Q1 + 0 * 32]        // ymm14 = d c b a
+        vmovdqu     ymm15, YMMWORD ptr [Q1 + 1 * 32]        // ymm15 = h g f e
+
+        mov     [rsp + GET_MEMSLOT_OFFSET(slot0)], Q1
+        mov     [rsp + GET_MEMSLOT_OFFSET(slot1)], Q2
+        mov     [rsp + GET_MEMSLOT_OFFSET(slot2)], Q3
+        mov     [rsp + GET_MEMSLOT_OFFSET(slot3)], Q4
+
+        // We have two implementations using different message buffer sizes. The code below checks the 
+        // input message size and helps avoid wiping the larger buffer if we're not using it.
+        //
+        // If we're processing SHA2_SINGLE_BLOCK_THRESHOLD or more bytes, vectorized message expansion is 
+        // used, which expands the message words for 4 blocks. Message expansion for single block processing
+        // uses a buffer of 16 message words. Both buffers start at address W (rsp).
+        //
+        // numBytesToWipe variable holds the number of bytes to wipe from the expanded message buffer
+        // before returning from this call.
+        //
+        // Q3 [in]  : cbData
+        // D8 [out] : numBytesToWipe
+        mov     D8, 16 * SHA2_BYTES_PER_WORD
+        mov     D9, SHA2_EXPANDED_MESSAGE_SIZE
+        cmp     Q3, SHA2_SINGLE_BLOCK_THRESHOLD 
+        cmovae  D8, D9      
+        mov     [numBytesToWipe], D8
+
+        mov     Q10, Q1
+        mov     Q0, [Q10 +  0]
+        mov     Q1, [Q10 +  8]
+        mov     Q2, [Q10 + 16]
+        mov     Q3, [Q10 + 24]
+        mov     Q4, [Q10 + 32]
+        mov     Q5, [Q10 + 40]
+        mov     Q6, [Q10 + 48]
+        mov     Q7, [Q10 + 56]
+
+        // If message size is less than SHA2_SINGLE_BLOCK_THRESHOLD then use single block message expansion, 
+        // otherwise use vectorized message expansion.
+        mov     Q8, [rsp + GET_MEMSLOT_OFFSET(slot2)]
+        cmp     Q8, SHA2_SINGLE_BLOCK_THRESHOLD
+        jb      single_block_entry
+
+        ALIGN(16)
+process_blocks:
+        // Calculate the number of blocks to process, Q8 = cbData
+        GET_SIMD_BLOCK_COUNT Q8, Q9     // Q8 = min(cbData / 128, 4)
+        mov     [numBlocks], Q8
+
+        // Load and transpose message words
+        //
+        // Inputs
+        // Q12 : pbData
+        // Q8  : numBlocks
+        //
+        // We avoid overwriting some of the message words after they're transposed to make
+        // them ready for message expansion that follows. These are W0, W1, W9, W10, W11, W12, W13, W14, and W15.
+        //
+        mov Q12, [rsp + GET_MEMSLOT_OFFSET(slot1)]
+        vmovdqa ymm13, YMMWORD ptr [GET_SYMBOL_ADDRESS(BYTE_REVERSE_64X2)]
+        SHA512_MSG_LOAD_TRANSPOSE_YMM Q12, Q8, Q9, Q10, 1, ymm13,  ymm2,  ymm3, ymm4, ymm5,  ymm9, ymm10, ymm11, ymm12
+        SHA512_MSG_LOAD_TRANSPOSE_YMM Q12, Q8, Q9, Q10, 2, ymm13,  ymm5,  ymm2, ymm3, ymm4,  ymm9, ymm10, ymm11, ymm12 // ymm2 = W9, ymm3 = W10, ymm4 = W11
+        SHA512_MSG_LOAD_TRANSPOSE_YMM Q12, Q8, Q9, Q10, 0, ymm13,  ymm0,  ymm1, ymm5, ymm6,  ymm9, ymm10, ymm11, ymm12 // ymm0 = W0, ymm1 = W1
+        SHA512_MSG_LOAD_TRANSPOSE_YMM Q12, Q8, Q9, Q10, 3, ymm13,  ymm5,  ymm6, ymm7, ymm8,  ymm9, ymm10, ymm11, ymm12 // ymm5 = W12, ymm6 = W13, ymm7 = W14, ymm8 = W15
+
+        lea     Q13, [W]
+        lea     Q14, [GET_SYMBOL_ADDRESS(SymCryptSha512K)]
+
+        // Note: We cannot use the AVX512 round function in the following block due to the lack of sufficient YMM registers,
+        //       so instead we use the BMI2 round function that acts on general-purpose registers.
+
+expand_process_first_block:
+
+        SHA512_MSG_EXPAND_4BLOCKS   ymm0, ymm1, ymm2, ymm7, (16 + 0), ymm9, ymm10, ymm11, Q13, Q14
+        SHA512_MSG_EXPAND_4BLOCKS   ymm1, ymm0, ymm3, ymm8, (16 + 1), ymm2, ymm10, ymm11, Q13, Q14
+        ROUND_512    Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7, 0, Q8, Q9, Q10, Q11, Q12, Q13, 32
+        ROUND_512    Q7, Q0, Q1, Q2, Q3, Q4, Q5, Q6, 1, Q8, Q9, Q10, Q11, Q12, Q13, 32  
+        SHA512_MSG_EXPAND_4BLOCKS   ymm0, ymm1, ymm4, ymm9, (16 + 2), ymm3, ymm10, ymm11, Q13, Q14
+        SHA512_MSG_EXPAND_4BLOCKS   ymm1, ymm0, ymm5, ymm2, (16 + 3), ymm4, ymm10, ymm11, Q13, Q14
+        ROUND_512    Q6, Q7, Q0, Q1, Q2, Q3, Q4, Q5, 2, Q8, Q9, Q10, Q11, Q12, Q13, 32
+        ROUND_512    Q5, Q6, Q7, Q0, Q1, Q2, Q3, Q4, 3, Q8, Q9, Q10, Q11, Q12, Q13, 32      
+        
+        SHA512_MSG_EXPAND_4BLOCKS   ymm0, ymm1, ymm6, ymm3, (16 + 4), ymm5, ymm10, ymm11, Q13, Q14
+        SHA512_MSG_EXPAND_4BLOCKS   ymm1, ymm0, ymm7, ymm4, (16 + 5), ymm6, ymm10, ymm11, Q13, Q14
+        ROUND_512    Q4, Q5, Q6, Q7, Q0, Q1, Q2, Q3, 4, Q8, Q9, Q10, Q11, Q12, Q13, 32
+        ROUND_512    Q3, Q4, Q5, Q6, Q7, Q0, Q1, Q2, 5, Q8, Q9, Q10, Q11, Q12, Q13, 32
+        SHA512_MSG_EXPAND_4BLOCKS   ymm0, ymm1, ymm8, ymm5, (16 + 6), ymm7, ymm10, ymm11, Q13, Q14
+        SHA512_MSG_EXPAND_4BLOCKS   ymm1, ymm0, ymm9, ymm6, (16 + 7), ymm8, ymm10, ymm11, Q13, Q14
+        ROUND_512    Q2, Q3, Q4, Q5, Q6, Q7, Q0, Q1, 6, Q8, Q9, Q10, Q11, Q12, Q13, 32
+        ROUND_512    Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q0, 7, Q8, Q9, Q10, Q11, Q12, Q13, 32
+
+        lea     Q8, [GET_SYMBOL_ADDRESS(SymCryptSha512K) + 64 * 8]
+        add     Q13, 8 * 32 // next message words
+        add     Q14, 8 * 8  // next constants   
+        cmp     Q14, Q8
+        jb      expand_process_first_block
+
+        //
+        // We have two more YMM registers (ymm12, ymm13) available for the remainder of multi-block message processing.
+        // Spread the CV to four registers in order to make the feed-forwarding more efficient. Currently, the CV is 
+        // in ymm14 and ymm15:
+        //
+        //      ymm14 = d c b a      
+        //      ymm15 = h g f e 
+        //
+        // Feed forwarding with 2 words per register requires less packing-unpacking compared to 4 words per register.
+        // We use the lower two QWORDS of ymm14, ymm12, ymm15, ymm13 as the CV after the following two instructions.
+        vpermq      ymm12, ymm14, HEX(0e)       // ymm12 = * * d c
+        vpermq      ymm13, ymm15, HEX(0e)       // ymm13 = * * h g
+
+        // The state will be in YMM registers in the remaining of this block and the next blocks until we do another
+        // message expansion with YMM registers or be done with multi-block processing.
+        SHA512_COPY_STATE_R64_TO_XMM Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7
+
+        // Final 16 rounds
+final_rounds:
+        SHA512_MSG_ADD_CONST_8X 0, ymm8, ymm9, Q13, Q14
+        ROUND_AVX512    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,  xmm8, xmm9, xmm10, xmm11, 0, Q13, 32       
+        ROUND_AVX512    xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6,  xmm8, xmm9, xmm10, xmm11, 1, Q13, 32
+        ROUND_AVX512    xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5,  xmm8, xmm9, xmm10, xmm11, 2, Q13, 32
+        ROUND_AVX512    xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4,  xmm8, xmm9, xmm10, xmm11, 3, Q13, 32
+        ROUND_AVX512    xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3,  xmm8, xmm9, xmm10, xmm11, 4, Q13, 32
+        ROUND_AVX512    xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2,  xmm8, xmm9, xmm10, xmm11, 5, Q13, 32
+        ROUND_AVX512    xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1,  xmm8, xmm9, xmm10, xmm11, 6, Q13, 32
+        ROUND_AVX512    xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0,  xmm8, xmm9, xmm10, xmm11, 7, Q13, 32   
+        
+        lea     Q8, [GET_SYMBOL_ADDRESS(SymCryptSha512K) + 80 * 8]  
+        add     Q13, 8 * 32 
+        add     Q14, 8 * 8
+        cmp     Q14, Q8
+        jb      final_rounds
+
+        // Update the CV using the previous state from xmm14, xmm12, xmm15, xmm13 (2 words per register) and
+        // current state from xmm0..xmm7 (1 word per register).
+        SHA512_UPDATE_CV_XMM xmm14, xmm12, xmm15, xmm13,  xmm9
+
+        // We've processed one block, update the variable.
+        // Note: We always have more than one block, no need to check the result of the decrement. 
+        dec qword ptr [numBlocks]
+
+        lea     Q13, [W + 8]    // second message block words
+        
+block_begin:
+
+        mov     D14, 80 / 8
+
+        ALIGN(16)
+inner_loop:
+        //                                                                                             Wk  scale
+        ROUND_AVX512    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,  xmm8, xmm9, xmm10, xmm11, 0, Q13, 32       
+        ROUND_AVX512    xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6,  xmm8, xmm9, xmm10, xmm11, 1, Q13, 32
+        ROUND_AVX512    xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5,  xmm8, xmm9, xmm10, xmm11, 2, Q13, 32
+        ROUND_AVX512    xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4,  xmm8, xmm9, xmm10, xmm11, 3, Q13, 32
+        ROUND_AVX512    xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3,  xmm8, xmm9, xmm10, xmm11, 4, Q13, 32
+        ROUND_AVX512    xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2,  xmm8, xmm9, xmm10, xmm11, 5, Q13, 32
+        ROUND_AVX512    xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1,  xmm8, xmm9, xmm10, xmm11, 6, Q13, 32
+        ROUND_AVX512    xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0,  xmm8, xmm9, xmm10, xmm11, 7, Q13, 32   
+
+        add     Q13, 8 * 32         // advance to next message words
+        sub     D14, 1
+        jnz     inner_loop
+
+        add     Q13, (8 - 80 * 32)  // advance to the beginning of message words for the next block             
+                
+        // Update the CV using the previous state from xmm14, xmm12, xmm15, xmm13 (2 words per register) and
+        // current state from xmm0..xmm7 (1 word per register).
+        SHA512_UPDATE_CV_XMM xmm14, xmm12, xmm15, xmm13,  xmm9
+
+        dec     QWORD ptr [numBlocks]
+        jnz     block_begin
+
+        // We need to copy the state to general-purpose registers as both single-block processing or
+        // the beginning of multi-block processing assume the state is in those registers.
+        SHA512_COPY_STATE_XMM_TO_R64 Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7
+
+        vperm2i128  ymm14, ymm14, ymm12, HEX(20)
+        vperm2i128  ymm15, ymm15, ymm13, HEX(20)
+
+        // Update pbData and cbData
+        mov     Q8, [rsp + GET_MEMSLOT_OFFSET(slot2)]
+        GET_PROCESSED_BYTES Q8, Q9, Q10     // Q9 = bytesProcessed
+        sub     Q8, Q9
+        add     QWORD ptr [rsp + GET_MEMSLOT_OFFSET(slot1)], Q9
+        mov     QWORD ptr [rsp + GET_MEMSLOT_OFFSET(slot2)], Q8
+        cmp     Q8, SHA2_SINGLE_BLOCK_THRESHOLD
+        jae     process_blocks
+
+        // Write the chaining value to memory
+        mov         Q9, [rsp + GET_MEMSLOT_OFFSET(slot0)]
+        vmovdqu     YMMWORD ptr [Q9 + 0 * 32], ymm14
+        vmovdqu     YMMWORD ptr [Q9 + 1 * 32], ymm15
+
+
+        ALIGN(16)
+single_block_entry:
+
+        cmp     Q8, SHA2_INPUT_BLOCK_BYTES      // Q8 = cbData
+        jb      done
+
+single_block_start:
+
+        mov Q13, [rsp + GET_MEMSLOT_OFFSET(slot1)]
+        lea Q14, [GET_SYMBOL_ADDRESS(SymCryptSha512K)]
+
+        SHA512_COPY_STATE_R64_TO_XMM Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7
+
+        //
+        // Load first 16 message words into ymm12..ymm15 and do the endianness transformation
+        // Store the constant added words to message buffer W
+        //
+        vmovdqa     ymm8, YMMWORD ptr [GET_SYMBOL_ADDRESS(BYTE_REVERSE_64X2)]
+        vmovdqu     ymm12, YMMWORD ptr [r14 + 0 * 32]
+        vmovdqu     ymm13, YMMWORD ptr [r14 + 1 * 32]
+        vmovdqu     ymm14, YMMWORD ptr [r14 + 2 * 32]
+        vmovdqu     ymm15, YMMWORD ptr [r14 + 3 * 32]
+        vpshufb     ymm12, ymm12, ymm8
+        vpshufb     ymm13, ymm13, ymm8
+        vpshufb     ymm14, ymm14, ymm8
+        vpshufb     ymm15, ymm15, ymm8
+        vmovdqa     ymm8,  YMMWORD ptr [r15 + 0 * 32]
+        vmovdqa     ymm9,  YMMWORD ptr [r15 + 1 * 32]
+        vmovdqa     ymm10, YMMWORD ptr [r15 + 2 * 32]
+        vmovdqa     ymm11, YMMWORD ptr [r15 + 3 * 32]
+        vpaddq      ymm8, ymm12, ymm8
+        vpaddq      ymm9, ymm13, ymm9
+        vpaddq      ymm10, ymm14, ymm10
+        vpaddq      ymm11, ymm15, ymm11
+        vmovdqu     YMMWORD ptr [rsp + 0 * 32], ymm8
+        vmovdqu     YMMWORD ptr [rsp + 1 * 32], ymm9
+        vmovdqu     YMMWORD ptr [rsp + 2 * 32], ymm10
+        vmovdqu     YMMWORD ptr [rsp + 3 * 32], ymm11
+        
+inner_loop_single:
+
+        add     Q14, 16 * 8
+
+        ROUND_AVX512    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,  xmm8, xmm9, xmm10, xmm11,  0, W, 8     
+        ROUND_AVX512    xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6,  xmm8, xmm9, xmm10, xmm11,  1, W, 8
+        ROUND_AVX512    xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5,  xmm8, xmm9, xmm10, xmm11,  2, W, 8
+        ROUND_AVX512    xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4,  xmm8, xmm9, xmm10, xmm11,  3, W, 8                                                                                                
+        SHA512_MSG_EXPAND_1BLOCK ymm12, ymm13, ymm14, ymm15,  ymm8, ymm9, ymm10, ymm11, Q14, 0
+
+        ROUND_AVX512    xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3,  xmm8, xmm9, xmm10, xmm11,  4, W, 8
+        ROUND_AVX512    xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2,  xmm8, xmm9, xmm10, xmm11,  5, W, 8
+        ROUND_AVX512    xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1,  xmm8, xmm9, xmm10, xmm11,  6, W, 8
+        ROUND_AVX512    xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0,  xmm8, xmm9, xmm10, xmm11,  7, W, 8     
+        SHA512_MSG_EXPAND_1BLOCK ymm13, ymm14, ymm15, ymm12,  ymm8, ymm9, ymm10, ymm11, Q14, 1
+
+        ROUND_AVX512    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,  xmm8, xmm9, xmm10, xmm11,  8, W, 8     
+        ROUND_AVX512    xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6,  xmm8, xmm9, xmm10, xmm11,  9, W, 8
+        ROUND_AVX512    xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5,  xmm8, xmm9, xmm10, xmm11, 10, W, 8
+        ROUND_AVX512    xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4,  xmm8, xmm9, xmm10, xmm11, 11, W, 8     
+        SHA512_MSG_EXPAND_1BLOCK ymm14, ymm15, ymm12, ymm13,  ymm8, ymm9, ymm10, ymm11, Q14, 2
+
+        ROUND_AVX512    xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3,  xmm8, xmm9, xmm10, xmm11, 12, W, 8
+        ROUND_AVX512    xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2,  xmm8, xmm9, xmm10, xmm11, 13, W, 8
+        ROUND_AVX512    xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1,  xmm8, xmm9, xmm10, xmm11, 14, W, 8     
+        ROUND_AVX512    xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0,  xmm8, xmm9, xmm10, xmm11, 15, W, 8 
+        SHA512_MSG_EXPAND_1BLOCK ymm15, ymm12, ymm13, ymm14,  ymm8, ymm9, ymm10, ymm11, Q14, 3
+        
+        lea     Q8, [GET_SYMBOL_ADDRESS(SymCryptSha512K) + 64 * 8]
+        cmp     Q14, Q8
+        jb      inner_loop_single
+
+
+        lea Q13, [W]
+        lea Q14, [W + 16 * 8]
+
+single_block_final_rounds:
+
+        ROUND_AVX512    xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7,  xmm8, xmm9, xmm10, xmm11,  0, Q13, 8       
+        ROUND_AVX512    xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6,  xmm8, xmm9, xmm10, xmm11,  1, Q13, 8
+        ROUND_AVX512    xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4, xmm5,  xmm8, xmm9, xmm10, xmm11,  2, Q13, 8
+        ROUND_AVX512    xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3, xmm4,  xmm8, xmm9, xmm10, xmm11,  3, Q13, 8                                                                                                  
+        ROUND_AVX512    xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2, xmm3,  xmm8, xmm9, xmm10, xmm11,  4, Q13, 8
+        ROUND_AVX512    xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1, xmm2,  xmm8, xmm9, xmm10, xmm11,  5, Q13, 8
+        ROUND_AVX512    xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0, xmm1,  xmm8, xmm9, xmm10, xmm11,  6, Q13, 8
+        ROUND_AVX512    xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7, xmm0,  xmm8, xmm9, xmm10, xmm11,  7, Q13, 8       
+        
+        add Q13, 8 * 8
+        cmp Q13, Q14
+        jb single_block_final_rounds
+                
+        SHA512_COPY_STATE_XMM_TO_R64 Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7
+
+        mov Q8, [rsp + GET_MEMSLOT_OFFSET(slot0)]
+        SHA512_UPDATE_CV(Q8)
+
+        // Update pbData and cbData
+        mov     Q8, [rsp + GET_MEMSLOT_OFFSET(slot2)]
+        sub     Q8, SHA2_INPUT_BLOCK_BYTES
+        add     QWORD ptr [rsp + GET_MEMSLOT_OFFSET(slot1)], SHA2_INPUT_BLOCK_BYTES
+        mov     QWORD ptr [rsp + GET_MEMSLOT_OFFSET(slot2)], Q8
+        cmp     Q8, SHA2_INPUT_BLOCK_BYTES
+        jae     single_block_start
+
+done:
+
+        //mov   Q8, [rsp + GET_MEMSLOT_OFFSET(slot2)]
+        mov     Q9, [rsp + GET_MEMSLOT_OFFSET(slot3)]
+        mov     QWORD ptr [Q9], Q8
+
+        vzeroupper
+
+        // Wipe expanded message words
+        mov     rdi, rsp
+        xor     rax, rax
+        mov     ecx, [numBytesToWipe]
+        
+        // wipe first 128 bytes, the size of the smaller buffer
+        pxor    xmm0, xmm0
+        movaps  [rdi + 0 * 16], xmm0
+        movaps  [rdi + 1 * 16], xmm0
+        movaps  [rdi + 2 * 16], xmm0
+        movaps  [rdi + 3 * 16], xmm0
+        movaps  [rdi + 4 * 16], xmm0
+        movaps  [rdi + 5 * 16], xmm0
+        movaps  [rdi + 6 * 16], xmm0
+        movaps  [rdi + 7 * 16], xmm0
+        add     rdi, 8 * 16
+
+        //  if we used vectorized message expansion, wipe the larger buffer
+        sub     ecx, 8 * 16 // already wiped above
+        jz      nowipe
+        rep     stosb
+
+nowipe:
+
+
+FUNCTION_END(PLATFORM_NAME_MANGLE(SymCryptSha512AppendBlocks_ymm_avx512vl_asm))
+
+FILE_END()

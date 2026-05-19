@@ -1,0 +1,14 @@
+//
+//    Copyright (c) Microsoft Corporation.
+//    Licensed under the MIT License.
+//
+
+#include <windows.h>
+
+#define VER_FILETYPE                VFT_DLL
+#define VER_FILESUBTYPE             VFT2_UNKNOWN
+#define VER_ORIGINALFILENAME_STR    "symcrypt.dll"
+#define VER_FILEDESCRIPTION_STR     "Microsoft\256 SymCrypt Dynamic Library"
+#define VER_INTERNALNAME_STR        "symcrypt"
+
+#include "symcrypt.rc.inc"

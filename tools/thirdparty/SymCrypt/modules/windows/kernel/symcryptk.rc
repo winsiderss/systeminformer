@@ -1,0 +1,14 @@
+//
+//    Copyright (c) Microsoft Corporation.
+//    Licensed under the MIT License.
+//
+
+#include <windows.h>
+
+#define VER_FILETYPE                VFT_DRV
+#define VER_FILESUBTYPE             VFT2_DRV_SYSTEM
+#define VER_ORIGINALFILENAME_STR    "symcryptk.dll"
+#define VER_FILEDESCRIPTION_STR     "Microsoft\256 SymCrypt Kernel Module"
+#define VER_INTERNALNAME_STR        "symcryptk"
+
+#include "symcrypt.rc.inc"
