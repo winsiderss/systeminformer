@@ -1275,7 +1275,7 @@ typedef struct _TEB
     //
     // Scheduler ticket attributing this thread's CPU usage to another thread. Set/cleared via NtSetInformationThread(ThreadWorkOnBehalfTicket).
     //
-    PALPC_WORK_ON_BEHALF_TICKET WorkingOnBehalfTicket;
+    ALPC_WORK_ON_BEHALF_TICKET WorkingOnBehalfTicket;
 
     //
     // The last exception status for the current thread.
