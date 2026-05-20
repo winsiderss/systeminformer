@@ -1273,7 +1273,7 @@ PhGetSelectedListViewItemParam(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhGetSelectedListViewItemParams(
     _In_ HWND WindowHandle,
@@ -1493,13 +1493,13 @@ PhModalPropertySheet(
 #define PH_ANCHOR_BOTTOM 0x8
 #define PH_ANCHOR_ALL 0xf
 
-// This interface is horrible and should be rewritten, but it works for now.
-
 #define PH_LAYOUT_FORCE_INVALIDATE 0x1000 // invalidate the control when it is resized
 #define PH_LAYOUT_TAB_CONTROL 0x2000 // this is a dummy item, a hack for the tab control
 #define PH_LAYOUT_IMMEDIATE_RESIZE 0x4000 // needed for the tab control hack
 
 #define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // items that don't have a window handle, or don't actually get their window resized
+
+#define PH_LAYOUT_INIT_CLIP_CHILDREN 0x00000001 // set WS_CLIPCHILDREN on the root window to reduce flicker
 
 typedef struct _PH_LAYOUT_ITEM
 {
@@ -1507,7 +1507,7 @@ typedef struct _PH_LAYOUT_ITEM
     struct _PH_LAYOUT_ITEM *ParentItem; // for rectangle calculation
     struct _PH_LAYOUT_ITEM *LayoutParentItem; // for actual resizing
     ULONG LayoutNumber;
-    ULONG NumberOfChildren;
+    LONG NumberOfChildren;
     HDWP DeferHandle;
 
     RECT Rect;
@@ -2504,7 +2504,7 @@ PhListView_GetSelectedCount(
     );
 
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhListView_GetSelectedItemParams(
     _In_ PPH_LISTVIEW_CONTEXT Context,

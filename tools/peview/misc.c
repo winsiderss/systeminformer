@@ -354,9 +354,7 @@ VOID PvHandleListViewCommandCopy(
         if (point.x == -1 && point.y == -1)
             PvGetListViewContextMenuPoint(ListViewHandle, &point);
 
-        PhGetSelectedListViewItemParams(ListViewHandle, &listviewItems, &numberOfItems);
-
-        if (numberOfItems != 0)
+        if (PhGetSelectedListViewItemParams(ListViewHandle, &listviewItems, &numberOfItems))
         {
             menu = PhCreateEMenu();
 

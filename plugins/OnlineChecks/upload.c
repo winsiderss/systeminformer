@@ -1583,9 +1583,17 @@ NTSTATUS ViewReportThreadStart(
     return STATUS_SUCCESS;
 }
 
+VOID OnlineChecksUpdateWindowDpi(
+    _In_ PUPLOAD_CONTEXT Context
+    )
+{
+    Context->WindowDpi = PhGetWindowDpi(Context->DialogHandle);
+    PhSetApplicationWindowIconEx(Context->DialogHandle, Context->WindowDpi);
+}
+
 LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -1593,24 +1601,24 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
     PUPLOAD_CONTEXT context;
     WNDPROC oldWndProc;
 
-    if (!(context = PhGetWindowContext(hwndDlg, 0xF)))
+    if (!(context = PhGetWindowContext(WindowHandle, 0xF)))
         return 0;
 
     oldWndProc = context->DialogWindowProc;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case WM_DESTROY:
         {
 #ifndef FORCE_NO_STATUS_TIMER
             if (context->ProgressTimer)
             {
-                PhKillTimer(hwndDlg, 9000);
+                PhKillTimer(WindowHandle, 9000);
                 context->ProgressTimer = FALSE;
             }
 #endif
-            PhSetWindowProcedure(hwndDlg, oldWndProc);
-            PhRemoveWindowContext(hwndDlg, 0xF);
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, 0xF);
 
             TaskDialogFreeContext(context);
         }
@@ -1625,7 +1633,7 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
 #ifndef FORCE_NO_STATUS_TIMER
             if (context->ProgressTimer)
             {
-                PhKillTimer(hwndDlg, 9000);
+                PhKillTimer(WindowHandle, 9000);
                 context->ProgressTimer = FALSE;
             }
 #endif
@@ -1671,16 +1679,16 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
 #ifndef FORCE_NO_STATUS_TIMER
             if (context->ProgressTimer)
             {
-                PhKillTimer(hwndDlg, 9000);
+                PhKillTimer(WindowHandle, 9000);
                 context->ProgressTimer = FALSE;
             }
 #endif
             if (!PhIsNullOrEmptyString(context->LaunchCommand))
             {
-                PhShellExecute(hwndDlg, context->LaunchCommand->Buffer, NULL);
+                PhShellExecute(WindowHandle, context->LaunchCommand->Buffer, NULL);
             }
 
-            SendMessage(hwndDlg, TDM_CLICK_BUTTON, IDOK, 0);
+            SendMessage(WindowHandle, TDM_CLICK_BUTTON, IDOK, 0);
         }
         break;
     case UM_ERROR:
@@ -1688,11 +1696,16 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
 #ifndef FORCE_NO_STATUS_TIMER
             if (context->ProgressTimer)
             {
-                PhKillTimer(hwndDlg, 9000);
+                PhKillTimer(WindowHandle, 9000);
                 context->ProgressTimer = FALSE;
             }
 #endif
             VirusTotalShowErrorDialog(context);
+        }
+        break;
+    case WM_DPICHANGED:
+        {
+            OnlineChecksUpdateWindowDpi(context);
         }
         break;
     case WM_TIMER:
@@ -1746,12 +1759,12 @@ LRESULT CALLBACK OnlineChecksTaskDialogSubclass(
         break;
     }
 
-    return CallWindowProc(oldWndProc, hwndDlg, uMsg, wParam, lParam);
+    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 }
 
 HRESULT CALLBACK OnlineChecksTaskDialogBootstrap(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -1759,13 +1772,14 @@ HRESULT CALLBACK OnlineChecksTaskDialogBootstrap(
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_CREATED:
         {
             HWND windowHandle = SystemInformer_GetWindowHandle();
 
-            context->DialogHandle = hwndDlg;
+            context->DialogHandle = WindowHandle;
+            OnlineChecksUpdateWindowDpi(context);
             context->HybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
             context->TotalPat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
             context->FileScanPat = PhGetStringSetting(SETTING_NAME_FILESCAN_DEFAULT_PAT);
@@ -1780,16 +1794,13 @@ HRESULT CALLBACK OnlineChecksTaskDialogBootstrap(
             }
 
             // Center the update window on PH if it's visible else we center on the desktop.
-            PhCenterWindow(hwndDlg, (IsWindowVisible(windowHandle) && !IsMinimized(windowHandle)) ? windowHandle : NULL);
-
-            // Create the Taskdialog icons
-            PhSetApplicationWindowIcon(hwndDlg);
+            PhCenterWindow(WindowHandle, (IsWindowVisible(windowHandle) && !IsMinimized(windowHandle)) ? windowHandle : NULL);
 
             //PhTaskbarListCreate(&context->TaskbarListClass);
 
-            context->DialogWindowProc = PhGetWindowProcedure(hwndDlg);
-            PhSetWindowContext(hwndDlg, 0xF, context);
-            PhSetWindowProcedure(hwndDlg, OnlineChecksTaskDialogSubclass);
+            context->DialogWindowProc = PhGetWindowProcedure(WindowHandle);
+            PhSetWindowContext(WindowHandle, 0xF, context);
+            PhSetWindowProcedure(WindowHandle, OnlineChecksTaskDialogSubclass);
 
             ShowFileUploadDialog(context);
         }

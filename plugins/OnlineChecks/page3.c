@@ -12,8 +12,8 @@
 #include "onlnchk.h"
 
 HRESULT CALLBACK TaskDialogProgressCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -21,12 +21,12 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
             context->ProgressMarquee = TRUE;
 
             //if (context->TaskbarListClass)
@@ -37,7 +37,7 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
 #ifndef FORCE_NO_STATUS_TIMER
             if (!context->ProgressTimer)
             {
-                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                PhSetTimer(WindowHandle, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
                 context->ProgressTimer = TRUE;
             }
 #endif
@@ -60,8 +60,8 @@ HRESULT CALLBACK TaskDialogProgressCallbackProc(
 }
 
 HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -69,12 +69,12 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
             context->ProgressMarquee = TRUE;
 
             //if (context->TaskbarListClass)
@@ -85,7 +85,7 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
 #ifndef FORCE_NO_STATUS_TIMER
             if (!context->ProgressTimer)
             {
-                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                PhSetTimer(WindowHandle, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
                 context->ProgressTimer = TRUE;
             }
 #endif
@@ -108,8 +108,8 @@ HRESULT CALLBACK TaskDialogReScanProgressCallbackProc(
 }
 
 HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -117,12 +117,12 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
-            SendMessage(hwndDlg, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
-            SendMessage(hwndDlg, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
+            SendMessage(WindowHandle, TDM_SET_MARQUEE_PROGRESS_BAR, TRUE, 0);
+            SendMessage(WindowHandle, TDM_SET_PROGRESS_BAR_MARQUEE, TRUE, 1);
             //context->ProgressMarquee = TRUE;
 
             //if (context->TaskbarListClass)
@@ -133,7 +133,7 @@ HRESULT CALLBACK TaskDialogViewReportProgressCallbackProc(
 #ifndef FORCE_NO_STATUS_TIMER
             if (!context->ProgressTimer)
             {
-                PhSetTimer(hwndDlg, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
+                PhSetTimer(WindowHandle, 9000, SETTING_NAME_STATUS_TIMER_INTERVAL, NULL);
                 context->ProgressTimer = TRUE;
             }
 #endif
@@ -166,7 +166,6 @@ VOID ShowFileUploadProgressDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR | TDF_CALLBACK_TIMER;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
-
     config.pszWindowTitle = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Uploading %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszContent = L"Uploaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s";
@@ -189,7 +188,6 @@ VOID ShowVirusTotalReScanProgressDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
-
     config.pszWindowTitle = PhaFormatString(L"Rescanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Rescanning %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
 
@@ -211,7 +209,6 @@ VOID ShowVirusTotalViewReportProgressDialog(
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED | TDF_EXPAND_FOOTER_AREA | TDF_ENABLE_HYPERLINKS | TDF_SHOW_PROGRESS_BAR;
     config.dwCommonButtons = TDCBF_CANCEL_BUTTON;
     config.hMainIcon = PhGetApplicationIcon(FALSE, PhGetWindowDpi(Context->DialogHandle));
-
     config.pszWindowTitle = PhaFormatString(L"Locating analysis for %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
     config.pszMainInstruction = PhaFormatString(L"Locating analysis for %s...", PhGetStringOrEmpty(Context->BaseFileName))->Buffer;
 

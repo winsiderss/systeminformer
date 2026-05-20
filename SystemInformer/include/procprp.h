@@ -147,8 +147,14 @@ PhBeginPropPageLayout(
 {
     if (!PropPageContext->LayoutInitialized)
     {
-        return PhAddPropPageLayoutItem(hwndDlg, hwndDlg,
-            PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+        PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+
+        return PhAddPropPageLayoutItem(
+            hwndDlg,
+            hwndDlg,
+            PH_PROP_PAGE_TAB_CONTROL_PARENT,
+            PH_ANCHOR_ALL | PH_LAYOUT_FORCE_INVALIDATE
+            );
     }
     else
     {

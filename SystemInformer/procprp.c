@@ -1353,6 +1353,7 @@ VOID PhDoPropPageLayout(
     parent = GetParent(WindowHandle);
     propSheetContext = PhpGetPropSheetContext(parent);
     PhLayoutManagerLayout(&propSheetContext->LayoutManager);
+    PhBringWindowToTop(WindowHandle);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)

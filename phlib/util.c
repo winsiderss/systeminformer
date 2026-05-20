@@ -7978,7 +7978,6 @@ BOOLEAN PhParseCommandLine(
     SIZE_T length;
     BOOLEAN cont = TRUE;
     BOOLEAN wasFirst = TRUE;
-
     PH_STRINGREF optionName;
     PCPH_COMMAND_LINE_OPTION option = NULL;
     PPH_STRING optionValue;

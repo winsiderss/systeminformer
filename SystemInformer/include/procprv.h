@@ -13,6 +13,8 @@
 #ifndef PH_PROCPRV_H
 #define PH_PROCPRV_H
 
+EXTERN_C_START
+
 #define PH_RECORD_MAX_USAGE
 
 extern PPH_OBJECT_TYPE PhProcessItemType;
@@ -555,5 +557,7 @@ PhCreateProcessItemFromHandle(
     _In_ HANDLE ProcessHandle,
     _In_ BOOLEAN TerminatedProcess
     );
+
+EXTERN_C_END
 
 #endif

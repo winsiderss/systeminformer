@@ -191,9 +191,7 @@ INT_PTR CALLBACK EtBigPoolMonDlgProc(
                         if (!PhGetCursorPos(&point))
                             break;
 
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                        if (numberOfItems == 0)
+                        if (!PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                             break;
 
                         menu = PhCreateEMenu();

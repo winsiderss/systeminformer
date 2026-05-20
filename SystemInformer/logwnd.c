@@ -404,9 +404,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -443,9 +441,8 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -458,3 +455,4 @@ INT_PTR CALLBACK PhpLogDlgProc(
 
     return FALSE;
 }
+
