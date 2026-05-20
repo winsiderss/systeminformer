@@ -2478,7 +2478,8 @@ BOOLEAN PhRemoveEntryHashtable(
  * \param Bytes A pointer to a byte array.
  * \param Length The number of bytes to hash.
  * \return 32-bit hash code type.
- * \remarks This routine conforms to RFC 9923,
+ * \remarks This routine conforms to RFC 9923.
+ * \sa https://github.com/lcn2/fnv/blob/master/hash_32a.c
  */
 ULONG PhHashBytes(
     _In_reads_(Length) PUCHAR Bytes,
