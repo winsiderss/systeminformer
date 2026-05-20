@@ -106,6 +106,12 @@ _SymGetDiaSession SymGetDiaSession_I = NULL;
 _SymFreeDiaString SymFreeDiaString_I = NULL;
 static ULONG PhSymbolProviderInternalOptions = PH_SYMOPT_VERIFY_MICROSOFT_CHAIN;
 
+/**
+ * Creates a symbol provider object.
+ *
+ * \param ProcessId The process identifier, or NULL for a provider without a real process handle.
+ * \return A pointer to the created symbol provider.
+ */
 PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     _In_opt_ HANDLE ProcessId
     )
@@ -161,6 +167,12 @@ PPH_SYMBOL_PROVIDER PhCreateSymbolProvider(
     return symbolProvider;
 }
 
+/**
+ * Deletes a symbol provider object.
+ *
+ * \param Object A pointer to the symbol provider object.
+ * \param Flags Not used.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpSymbolProviderDeleteProcedure(
     _In_ PVOID Object,
@@ -187,6 +199,12 @@ VOID NTAPI PhpSymbolProviderDeleteProcedure(
     if (symbolProvider->IsRealHandle) NtClose(symbolProvider->ProcessHandle);
 }
 
+/**
+ * Symbol provider callback work item.
+ *
+ * \param Context Pointer to the symbol event data.
+ * \return STATUS_SUCCESS.
+ */
 #if defined(PH_SYMEVNT_WORKQUEUE)
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpSymbolProviderCallbackWorkItem(
@@ -204,6 +222,13 @@ NTSTATUS PhpSymbolProviderCallbackWorkItem(
 }
 #endif
 
+/**
+ * Invokes the symbol provider callback.
+ *
+ * \param EventType The type of event.
+ * \param EventMessage The event message string.
+ * \param EventProgress The progress value.
+ */
 static VOID PhpSymbolProviderInvokeCallback(
     _In_ ULONG EventType,
     _In_opt_ PPH_STRING EventMessage,
@@ -236,6 +261,13 @@ static VOID PhpSymbolProviderInvokeCallback(
 #endif
 }
 
+/**
+ * Symbol provider event callback.
+ *
+ * \param SymbolProvider Pointer to the symbol provider.
+ * \param ActionCode The action code.
+ * \param CallbackData The callback data.
+ */
 static VOID PhpSymbolProviderEventCallback(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ ULONG ActionCode,
@@ -345,6 +377,15 @@ static VOID PhpSymbolProviderEventCallback(
     }
 }
 
+/**
+ * Symbol callback function.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param ActionCode The action code.
+ * \param CallbackData The callback data.
+ * \param UserContext The user context.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOL CALLBACK PhpSymbolCallbackFunction(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG ActionCode,
@@ -433,6 +474,9 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
     return FALSE;
 }
 
+/**
+ * Completes initialization of the symbol provider.
+ */
 VOID PhpSymbolProviderCompleteInitialization(
     VOID
     )
@@ -586,6 +630,12 @@ VOID PhpSymbolProviderCompleteInitialization(
     }
 }
 
+/**
+ * Registers a symbol provider.
+ *
+ * \param SymbolProvider A pointer to the symbol provider.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhpRegisterSymbolProvider(
     _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
@@ -637,6 +687,11 @@ BOOLEAN PhpRegisterSymbolProvider(
     return SymbolProvider->IsRegistered;
 }
 
+/**
+ * Unregisters a symbol provider.
+ *
+ * \param SymbolProvider A pointer to the symbol provider.
+ */
 VOID PhpUnregisterSymbolProvider(
     _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
@@ -663,6 +718,11 @@ VOID PhpUnregisterSymbolProvider(
     }
 }
 
+/**
+ * Frees a symbol module object.
+ *
+ * \param SymbolModule A pointer to the symbol module.
+ */
 VOID PhpFreeSymbolModule(
     _In_ PPH_SYMBOL_MODULE SymbolModule
     )
@@ -672,6 +732,13 @@ VOID PhpFreeSymbolModule(
     PhFree(SymbolModule);
 }
 
+/**
+ * Compares two symbol modules.
+ *
+ * \param Links1 A pointer to the first link.
+ * \param Links2 A pointer to the second link.
+ * \return A negative value if Links1 < Links2, zero if equal, or a positive value if Links1 > Links2.
+ */
 _Function_class_(PH_AVL_TREE_COMPARE_FUNCTION)
 LONG NTAPI PhpSymbolModuleCompareFunction(
     _In_ PPH_AVL_LINKS Links1,
@@ -684,6 +751,16 @@ LONG NTAPI PhpSymbolModuleCompareFunction(
     return uintptrcmp((ULONG_PTR)symbolModule1->BaseAddress, (ULONG_PTR)symbolModule2->BaseAddress);
 }
 
+/**
+ * Gets line information from an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address.
+ * \param FileName A pointer to a variable that receives the file name.
+ * \param Displacement A pointer to a variable that receives the displacement.
+ * \param Information A pointer to a variable that receives the symbol line information.
+ * \return TRUE on success, FALSE on failure.
+ */
 _Success_(return)
 BOOLEAN PhGetLineFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -736,6 +813,14 @@ BOOLEAN PhGetLineFromAddress(
     return TRUE;
 }
 
+/**
+ * Gets the module from an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address.
+ * \param FileName A pointer to a variable that receives the file name.
+ * \return The base address of the module, or NULL if not found.
+ */
 _Success_(return != 0)
 PVOID PhGetModuleFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -787,6 +872,13 @@ PVOID PhGetModuleFromAddress(
     return foundBaseAddress;
 }
 
+/**
+ * Gets the symbol module from an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address.
+ * \return A pointer to the symbol module.
+ */
 PPH_SYMBOL_MODULE PhGetSymbolModuleFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PVOID Address
@@ -818,6 +910,14 @@ PPH_SYMBOL_MODULE PhGetSymbolModuleFromAddress(
     return module;
 }
 
+/**
+ * Gets the machine architecture for an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param ProcessHandle Handle to the process.
+ * \param Address The address.
+ * \return The machine architecture type.
+ */
 USHORT PhpGetMachineForAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ HANDLE ProcessHandle,
@@ -875,6 +975,12 @@ USHORT PhpGetMachineForAddress(
     return machine;
 }
 
+/**
+ * Converts ANSI symbol information to Unicode.
+ *
+ * \param SymbolInfoW Pointer to the Unicode symbol information structure.
+ * \param SymbolInfoA Pointer to the ANSI symbol information structure.
+ */
 VOID PhpSymbolInfoAnsiToUnicode(
     _Out_ PSYMBOL_INFOW SymbolInfoW,
     _In_ PSYMBOL_INFO SymbolInfoA
@@ -911,6 +1017,17 @@ VOID PhpSymbolInfoAnsiToUnicode(
     }
 }
 
+/**
+ * Gets a symbol string for an address.
+ *
+ * \param[in] SymbolProvider A pointer to the symbol provider.
+ * \param[in] Address The address to resolve.
+ * \param[out,opt] ResolveLevel A pointer to a variable that receives the resolution level.
+ * \param[out,opt] FileName A pointer to a variable that receives the module file name.
+ * \param[out,opt] SymbolName A pointer to a variable that receives the symbol name.
+ * \param[out,opt] Displacement A pointer to a variable that receives the displacement.
+ * \return A string representing the symbol, or NULL on failure.
+ */
 _Success_(return != NULL)
 PPH_STRING PhGetSymbolFromAddress(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -1081,6 +1198,14 @@ CleanupExit:
     return symbol;
 }
 
+/**
+ * Gets symbol information for a name.
+ *
+ * \param[in] SymbolProvider A pointer to the symbol provider.
+ * \param[in] Name The name of the symbol to resolve.
+ * \param[out] Information A pointer to a structure that receives the symbol information.
+ * \return TRUE on success, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetSymbolFromName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -1126,6 +1251,15 @@ BOOLEAN PhGetSymbolFromName(
     return TRUE;
 }
 
+/**
+ * Creates a symbol module structure.
+ *
+ * \param[in] ProcessHandle A handle to the process.
+ * \param[in] FileName The file name of the module.
+ * \param[in] BaseAddress The base address of the module.
+ * \param[in] Size The size of the module.
+ * \return A pointer to the new \c PH_SYMBOL_MODULE structure.
+ */
 PPH_SYMBOL_MODULE PhpCreateSymbolModule(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_STRING FileName,
@@ -1157,6 +1291,15 @@ PPH_SYMBOL_MODULE PhpCreateSymbolModule(
     return symbolModule;
 }
 
+/**
+ * Loads a module into the symbol provider.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param FileName The file name of the module.
+ * \param BaseAddress The base address of the module.
+ * \param Size The size of the module.
+ * \return TRUE if the module was loaded or already present, FALSE otherwise.
+ */
 BOOLEAN PhLoadModuleSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_STRING FileName,
@@ -1225,6 +1368,15 @@ BOOLEAN PhLoadModuleSymbolProvider(
         return FALSE;
 }
 
+/**
+ * Loads symbols for a module from a file.
+ *
+ * \param[in] SymbolProvider A pointer to the symbol provider.
+ * \param[in] FileName The file name of the module.
+ * \param[in] BaseAddress The base address of the module.
+ * \param[in] Size The size of the module.
+ * \return TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhLoadFileNameSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PPH_STRING FileName,
@@ -1294,6 +1446,13 @@ typedef struct _PH_LOAD_SYMBOLS_CONTEXT
     HANDLE ProcessId;
 } PH_LOAD_SYMBOLS_CONTEXT, *PPH_LOAD_SYMBOLS_CONTEXT;
 
+/**
+ * Symbol provider module enumeration callback.
+ *
+ * \param Module A pointer to the module information.
+ * \param Context A pointer to the user-defined context.
+ * \return TRUE if the enumeration should continue, FALSE otherwise.
+ */
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
@@ -1325,6 +1484,12 @@ static BOOLEAN NTAPI PhpSymbolProviderEnumModulesCallback(
     return TRUE;
 }
 
+/**
+ * Loads modules for a symbol provider.
+ *
+ * \param SymbolProvider A pointer to the symbol provider.
+ * \param ProcessId The process ID.
+ */
 VOID PhLoadSymbolProviderModules(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ HANDLE ProcessId
@@ -1381,6 +1546,14 @@ VOID PhLoadSymbolProviderModules(
     }
 }
 
+/**
+ * Loads modules for a virtual symbol provider.
+ *
+ * \param SymbolProvider A pointer to the symbol provider.
+ * \param ProcessId The process ID.
+ * \param ProcessHandle A handle to the process.
+ * \return STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhLoadModulesForVirtualSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_opt_ HANDLE ProcessId,
@@ -1484,6 +1657,12 @@ static const PH_FLAG_MAPPING PhSymbolProviderOptions[] =
     { PH_SYMOPT_UNDNAME, SYMOPT_UNDNAME },
 };
 
+/**
+ * Sets symbol provider options.
+ *
+ * \param Mask The mask for the options.
+ * \param Value The value for the options.
+ */
 VOID PhSetOptionsSymbolProvider(
     _In_ ULONG Mask,
     _In_ ULONG Value
@@ -1531,6 +1710,12 @@ VOID PhSetOptionsSymbolProvider(
     PH_UNLOCK_SYMBOLS();
 }
 
+/**
+ * Sets the search path for a symbol provider.
+ *
+ * \param SymbolProvider A pointer to the symbol provider.
+ * \param Path The search path.
+ */
 VOID PhSetSearchPathSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PCWSTR Path
@@ -1550,6 +1735,18 @@ VOID PhSetSearchPathSymbolProvider(
 
 #ifdef _WIN64
 
+/**
+ * Looks up a dynamic function table for an address.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Address The address to look up.
+ * \param FunctionTableAddress A pointer to a variable that receives the function table address.
+ * \param FunctionTable A pointer to a variable that receives the function table.
+ * \param OutOfProcessCallbackDllBuffer A buffer for the out-of-process callback DLL path.
+ * \param OutOfProcessCallbackDllBufferSize The size of the buffer.
+ * \param OutOfProcessCallbackDllString A pointer to a variable that receives the callback DLL string.
+ * \return STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhpLookupDynamicFunctionTable(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 Address,
@@ -1680,6 +1877,15 @@ NTSTATUS PhpLookupDynamicFunctionTable(
     return STATUS_NOT_FOUND;
 }
 
+/**
+ * Looks up a runtime function entry.
+ *
+ * \param Functions A pointer to the runtime functions.
+ * \param NumberOfFunctions The number of functions.
+ * \param Sorted Whether the functions are sorted.
+ * \param RelativeControlPc The relative control PC address.
+ * \return A pointer to the runtime function, or NULL if not found.
+ */
 PRUNTIME_FUNCTION PhpLookupFunctionEntry(
     _In_ PRUNTIME_FUNCTION Functions,
     _In_ ULONG NumberOfFunctions,
@@ -1733,6 +1939,16 @@ PRUNTIME_FUNCTION PhpLookupFunctionEntry(
     return NULL;
 }
 
+/**
+ * Accesses a callback function table.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param FunctionTableAddress The address of the function table.
+ * \param OutOfProcessCallbackDllString The string of the callback DLL.
+ * \param Functions A pointer to a variable that receives the runtime functions.
+ * \param NumberOfFunctions A pointer to a variable that receives the number of functions.
+ * \return STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhpAccessCallbackFunctionTable(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID FunctionTableAddress,
@@ -1804,6 +2020,15 @@ NTSTATUS PhpAccessCallbackFunctionTable(
     return status;
 }
 
+/**
+ * Accesses a normal function table.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param FunctionTable A pointer to the dynamic function table.
+ * \param Functions A pointer to a variable that receives the runtime functions.
+ * \param NumberOfFunctions A pointer to a variable that receives the number of functions.
+ * \return STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhpAccessNormalFunctionTable(
     _In_ HANDLE ProcessHandle,
     _In_ PDYNAMIC_FUNCTION_TABLE FunctionTable,
@@ -1840,6 +2065,14 @@ NTSTATUS PhpAccessNormalFunctionTable(
     return status;
 }
 
+/**
+ * Accesses an out-of-process function entry.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param ControlPc The control PC address.
+ * \param Function A pointer to a structure that receives the runtime function.
+ * \return STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhAccessOutOfProcessFunctionEntry(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG64 ControlPc,
@@ -1917,6 +2150,13 @@ NTSTATUS PhAccessOutOfProcessFunctionEntry(
 
 #endif
 
+/**
+ * Gets the base address of a module.
+ *
+ * \param hProcess Handle to the process.
+ * \param dwAddr The address for which to get the module base.
+ * \return The base address of the module, or 0 if not found.
+ */
 ULONG64 __stdcall PhGetModuleBase64(
     _In_ HANDLE hProcess,
     _In_ ULONG64 dwAddr
@@ -1954,6 +2194,13 @@ ULONG64 __stdcall PhGetModuleBase64(
     return base;
 }
 
+/**
+ * Accesses the function table for an address.
+ *
+ * \param hProcess Handle to the process.
+ * \param AddrBase The base address of the function.
+ * \return A pointer to the function table entry, or NULL if not found.
+ */
 PVOID __stdcall PhFunctionTableAccess64(
     _In_ HANDLE hProcess,
     _In_ ULONG64 AddrBase
@@ -1997,7 +2244,6 @@ PVOID __stdcall PhFunctionTableAccess64(
  * \param FunctionTableAccessRoutine A callback routine that provides access to the run-time function table for the process.
  * \param GetModuleBaseRoutine A callback routine that provides a module base for any given virtual address.
  * \param TranslateAddress A callback routine that provides address translation for 16-bit addresses.
- *
  * \return Successful or errant status.
  */
 BOOLEAN PhStackWalk(
@@ -2072,6 +2318,18 @@ BOOLEAN PhStackWalk(
     return FALSE;
 }
 
+/**
+ * Writes a mini dump for a process.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param ProcessId The ID of the process.
+ * \param FileHandle Handle to the file to write the dump to.
+ * \param DumpType The type of the mini dump.
+ * \param ExceptionParam Pointer to exception information (optional).
+ * \param UserStreamParam Pointer to user stream information (optional).
+ * \param CallbackParam Pointer to callback information (optional).
+ * \return S_OK on success, or a failure HRESULT.
+ */
 HRESULT PhWriteMiniDumpProcess(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE ProcessId,
@@ -2656,6 +2914,13 @@ ResumeExit:
     return status;
 }
 
+/**
+ * Undecorates a symbol name.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param DecoratedName The decorated symbol name.
+ * \return The undecorated symbol name, or NULL if unavailable.
+ */
 PPH_STRING PhUndecorateSymbolName(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ PCWSTR DecoratedName
@@ -2700,6 +2965,14 @@ typedef struct _PH_ENUMERATE_SYMBOLS_CONTEXT
     PPH_ENUMERATE_SYMBOLS_CALLBACK UserCallback;
 } PH_ENUMERATE_SYMBOLS_CONTEXT, *PPH_ENUMERATE_SYMBOLS_CONTEXT;
 
+/**
+ * Callback wrapper for symbol enumeration.
+ *
+ * \param SymbolInfo The symbol information.
+ * \param SymbolSize The size of the symbol.
+ * \param Context The enumeration context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 BOOL CALLBACK PhEnumerateSymbolsCallback(
     _In_ PSYMBOL_INFOW SymbolInfo,
     _In_ ULONG SymbolSize,
@@ -2745,6 +3018,17 @@ BOOL CALLBACK PhEnumerateSymbolsCallback(
     return FALSE;
 }
 
+/**
+ * Enumerates symbols for a module.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param ProcessHandle The process handle.
+ * \param BaseOfDll The base address of the module.
+ * \param Mask The symbol name mask.
+ * \param EnumSymbolsCallback The callback function.
+ * \param UserContext The user context passed to the callback.
+ * \return TRUE if enumeration succeeded, FALSE otherwise.
+ */
 BOOLEAN PhEnumerateSymbols(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
     _In_ HANDLE ProcessHandle,
@@ -2790,6 +3074,14 @@ BOOLEAN PhEnumerateSymbols(
     return FALSE;
 }
 
+/**
+ * Gets the DIA data source for a module.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param BaseOfDll The base address of the module.
+ * \param DiaSource A pointer to a variable that receives the DIA data source.
+ * \return TRUE on success, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetSymbolProviderDiaSource(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -2828,6 +3120,14 @@ BOOLEAN PhGetSymbolProviderDiaSource(
     return FALSE;
 }
 
+/**
+ * Gets the DIA session for a module.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param BaseOfDll The base address of the module.
+ * \param DiaSession A pointer to a variable that receives the DIA session.
+ * \return TRUE on success, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetSymbolProviderDiaSession(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -2866,6 +3166,11 @@ BOOLEAN PhGetSymbolProviderDiaSession(
     return FALSE;
 }
 
+/**
+ * Frees a DIA string allocated by DbgHelp.
+ *
+ * \param DiaString The DIA string to free.
+ */
 VOID PhSymbolProviderFreeDiaString(
     _In_ PCWSTR DiaString
     )
@@ -2878,6 +3183,11 @@ VOID PhSymbolProviderFreeDiaString(
     SymFreeDiaString_I(DiaString);
 }
 
+/**
+ * Determines whether inline-context symbol resolution is supported.
+ *
+ * \return TRUE if inline-context APIs are available, FALSE otherwise.
+ */
 BOOLEAN PhSymbolProviderInlineContextSupported(
     VOID
     )
@@ -2885,6 +3195,18 @@ BOOLEAN PhSymbolProviderInlineContextSupported(
     return StackWalkEx_I && SymFromInlineContextW_I;
 }
 
+/**
+ * Gets a symbol string for an inline stack frame.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param StackFrame The stack frame.
+ * \param ResolveLevel A pointer to a variable that receives the resolution level.
+ * \param FileName A pointer to a variable that receives the module file name.
+ * \param SymbolName A pointer to a variable that receives the symbol name.
+ * \param Displacement A pointer to a variable that receives the displacement.
+ * \param BaseAddress A pointer to a variable that receives the module base address.
+ * \return A string representing the symbol, or NULL on failure.
+ */
 _Success_(return != NULL)
 PPH_STRING PhGetSymbolFromInlineContext(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -3047,6 +3369,17 @@ CleanupExit:
     return symbol;
 }
 
+/**
+ * Gets source line information for an inline stack frame.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param StackFrame The stack frame.
+ * \param BaseAddress The module base address.
+ * \param FileName A pointer to a variable that receives the file name.
+ * \param Displacement A pointer to a variable that receives the displacement.
+ * \param Information A pointer to a variable that receives the line information.
+ * \return TRUE on success, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetLineFromInlineContext(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -3386,6 +3719,13 @@ BOOLEAN PhGetLineFromInlineContext(
 //    PhDereferenceObject(InlineSymbolList);
 //}
 
+
+/**
+ * Gets the compiland language for a DIA line number.
+ *
+ * \param LineNumber The DIA line number.
+ * \return The compiland language identifier, or ULONG_MAX if unavailable.
+ */
 CV_CFL_LANG PhGetDiaSymbolCompilandInformation(
     _In_ IDiaLineNumber* LineNumber
     )
@@ -3422,6 +3762,15 @@ CV_CFL_LANG PhGetDiaSymbolCompilandInformation(
     return compilandLanguage;
 }
 
+/**
+ * Gets language information for a DIA symbol.
+ *
+ * \param Session The DIA session.
+ * \param Symbol The DIA symbol.
+ * \param Address The symbol address.
+ * \param Length The symbol length.
+ * \return A string containing language information, or NULL if unavailable.
+ */
 PPH_STRING PhGetDiaSymbolLineInformation(
     _In_ IDiaSession* Session,
     _In_ IDiaSymbol* Symbol,
@@ -3507,6 +3856,12 @@ PPH_STRING PhGetDiaSymbolLineInformation(
 
 // SymTagCompilandDetails : https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/compilanddetails
 // SymTagFunction: https://learn.microsoft.com/en-us/visualstudio/debugger/debug-interface-access/function-debug-interface-access-sdk
+/**
+ * Gets additional descriptive information for a DIA symbol.
+ *
+ * \param Symbol The DIA symbol.
+ * \return A string containing additional symbol attributes.
+ */
 PPH_STRING PhGetDiaSymbolExtraInformation(
     _In_ IDiaSymbol* Symbol
     )
@@ -3593,6 +3948,14 @@ PPH_STRING PhGetDiaSymbolExtraInformation(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+/**
+ * Gets DIA symbol information for an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address to query.
+ * \param SymbolInformation A pointer to a variable that receives DIA symbol information.
+ * \return TRUE on success, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetDiaSymbolInformation(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -3645,6 +4008,11 @@ BOOLEAN PhGetDiaSymbolInformation(
     return TRUE;
 }
 
+/**
+ * Unregisters a symbol provider.
+ *
+ * \param SymbolProvider The symbol provider.
+ */
 VOID PhUnregisterSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     )
