@@ -298,7 +298,8 @@ PhCallNtQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
-    _In_ ULONG FileInformationLength
+    _In_ ULONG FileInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
@@ -309,7 +310,8 @@ PhCallKphQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
-    _In_ ULONG FileInformationLength
+    _In_ ULONG FileInformationLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
