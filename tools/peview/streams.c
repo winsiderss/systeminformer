@@ -115,7 +115,7 @@ VOID PvpPeEnumerateFileStreams(
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_ENCRYPTED)
                         PhAppendStringBuilder2(&stringBuilder, L"Encrypted, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_INTEGRITY_STREAM)
-                        PhAppendStringBuilder2(&stringBuilder, L"Integiry, ");
+                        PhAppendStringBuilder2(&stringBuilder, L"Integrity, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_VIRTUAL)
                         PhAppendStringBuilder2(&stringBuilder, L"Virtual, ");
                     if (streamInfo.FileAttributes & FILE_ATTRIBUTE_NO_SCRUB_DATA)
