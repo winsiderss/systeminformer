@@ -2256,7 +2256,7 @@ PhValidateRelativeSidAtOffset(
         return FALSE;
 
     remaining = Length - Offset;
- 
+
     if (remaining < sizeof(SID) || !IS_ALIGNED(Offset, sizeof(ULONG)))
         return FALSE;
 
@@ -6145,7 +6145,8 @@ PhTransceiveNamedPipe(
     _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
     _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
-    _In_ ULONG OutputBufferLength
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG NumberOfBytesRead
     );
 
 PHLIBAPI
