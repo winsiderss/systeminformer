@@ -15,6 +15,20 @@
 #define GRAPH_PADDING 5
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
+static RECT NormalGraphTextMarginScaled = { 5, 5, 5, 5 };
+static RECT NormalGraphTextPaddingScaled = { 3, 3, 3, 3 };
+static LONG GpuNodesWindowDpi = USER_DEFAULT_SCREEN_DPI;
+
+static VOID EtpGpuNodesUpdateDpiCache(
+    _In_ HWND WindowHandle
+    )
+{
+    GpuNodesWindowDpi = PhGetWindowDpi(WindowHandle);
+    NormalGraphTextMarginScaled = NormalGraphTextMargin;
+    NormalGraphTextPaddingScaled = NormalGraphTextPadding;
+    PhGetMarginDpiValue(&NormalGraphTextMarginScaled, GpuNodesWindowDpi, TRUE);
+    PhGetMarginDpiValue(&NormalGraphTextPaddingScaled, GpuNodesWindowDpi, TRUE);
+}
 
 INT_PTR CALLBACK EtpGpuNodesDlgProc(
     _In_ HWND WindowHandle,
@@ -128,6 +142,8 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
             PhInitializeLayoutManager(&LayoutManager, WindowHandle);
             LayoutMargin = PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LAYOUT), NULL, PH_ANCHOR_ALL)->Margin;
 
+            EtpGpuNodesUpdateDpiCache(WindowHandle);
+
             GraphHandle = PhAllocate(sizeof(HWND) * EtGpuTotalNodeCount);
             GraphState = PhAllocate(sizeof(PH_GRAPH_STATE) * EtGpuTotalNodeCount);
 
@@ -202,6 +218,7 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
         break;
     case WM_DPICHANGED:
         {
+            EtpGpuNodesUpdateDpiCache(WindowHandle);
             PhLayoutManagerUpdate(&LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&LayoutManager);
         }
@@ -301,20 +318,11 @@ INT_PTR CALLBACK EtpGpuNodesDlgProc(
                 {
                     PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
                     PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    RECT margin;
-                    RECT padding;
-                    LONG dpiValue;
-
-                    margin = NormalGraphTextMargin;
-                    padding = NormalGraphTextPadding;
-
-                    dpiValue = PhGetWindowDpi(WindowHandle);
-
-                    PhGetMarginDpiValue(&margin, dpiValue, TRUE);
-                    PhGetMarginDpiValue(&padding, dpiValue, TRUE);
+                    RECT margin = NormalGraphTextMarginScaled;
+                    RECT padding = NormalGraphTextPaddingScaled;
 
                     drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, dpiValue);
+                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, GpuNodesWindowDpi);
 
                     for (i = 0; i < EtGpuTotalNodeCount; i++)
                     {

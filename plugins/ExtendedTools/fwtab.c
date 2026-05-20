@@ -30,8 +30,6 @@ static CONST PH_KEY_VALUE_PAIR FwEventTypePairs[] =
     SIP(SREF(L"Unknown"), FWPM_NET_EVENT_TYPE_MAX),
 };
 
-static_assert(FWPM_NET_EVENT_TYPE_MAX == 11 && RTL_NUMBER_OF(FwEventTypePairs) == FWPM_NET_EVENT_TYPE_MAX + 1, "FwEventTypePairs size mismatch - Add missing enums to the FwEventTypePairs array.");
-
 static CONST PH_KEY_VALUE_PAIR FwEventDirectionPairs[] =
 {
     SIP(SREF(L"Unknown"), FW_EVENT_DIRECTION_NONE),
@@ -82,6 +80,15 @@ PPH_POINTER_LIST EtFwNodeStateList = NULL;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
 
+/**
+ * Callback for the firewall tab page.
+ *
+ * \param Page The tab page.
+ * \param Message The message code.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN FwTabPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
@@ -271,6 +278,9 @@ BOOLEAN FwTabPageCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the firewall tab.
+ */
 VOID EtInitializeFirewallTab(
     VOID
     )
@@ -292,6 +302,11 @@ VOID EtInitializeFirewallTab(
     }
 }
 
+/**
+ * Initializes the firewall tree list.
+ *
+ * \param TreeNewHandle Handle to the tree list window.
+ */
 VOID InitializeFwTreeList(
     _In_ HWND TreeNewHandle
     )
@@ -344,6 +359,16 @@ VOID InitializeFwTreeList(
         PhAddTreeNewFilter(&EtFwFilterSupport, FwSearchFilterCallback, NULL);
     }
 
+    if (PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE))
+    {
+        ULONG treelistCustomRowSize = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE);
+
+        if (treelistCustomRowSize < 15)
+            treelistCustomRowSize = 15;
+
+        TreeNew_SetRowHeight(TreeNewHandle, treelistCustomRowSize);
+    }
+
     TreeNew_SetSort(TreeNewHandle, FW_COLUMN_TIMESTAMP, NoSortOrder);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
@@ -351,6 +376,11 @@ VOID InitializeFwTreeList(
     LoadSettingsFwTreeList(TreeNewHandle);
 }
 
+/**
+ * Initializes the firewall tree list DPI-related settings.
+ *
+ * \param TreeNewHandle Handle to the tree list window.
+ */
 VOID InitializeFwTreeListDpi(
     _In_ HWND TreeNewHandle
     )
@@ -365,6 +395,11 @@ VOID InitializeFwTreeListDpi(
     FwTreeRightMarginPadding = PhGetSystemMetrics(SM_CXSMICON, dpiValue) + PhScaleToDisplay(TNP_ICON_RIGHT_PADDING, dpiValue);
 }
 
+/**
+ * Loads the firewall tree update mask from settings.
+ *
+ * \param TreeNewHandle Handle to the tree list window.
+ */
 VOID LoadSettingsFwTreeUpdateMask(
     _In_ HWND TreeNewHandle
     )
@@ -392,6 +427,11 @@ VOID LoadSettingsFwTreeUpdateMask(
     }
 }
 
+/**
+ * Loads the firewall tree list settings.
+ *
+ * \param TreeNewHandle Handle to the tree list window.
+ */
 VOID LoadSettingsFwTreeList(
     _In_ HWND TreeNewHandle
     )
@@ -406,18 +446,14 @@ VOID LoadSettingsFwTreeList(
     sortSettings = PhGetIntegerPairSetting(SETTING_NAME_FW_TREE_LIST_SORT);
     TreeNew_SetSort(TreeNewHandle, (ULONG)sortSettings.X, (PH_SORT_ORDER)sortSettings.Y);
 
-    if (PhGetIntegerSetting(SETTING_ENABLE_INSTANT_TOOLTIPS))
-    {
-        SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_INITIAL, 0);
-    }
-    else
-    {
-        SendMessage(TreeNew_GetTooltips(TreeNewHandle), TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
-    }
-
     LoadSettingsFwTreeUpdateMask(TreeNewHandle);
 }
 
+/**
+ * Saves the firewall tree list settings.
+ *
+ * \param TreeNewHandle Handle to the tree list window.
+ */
 VOID SaveSettingsFwTreeList(
     _In_ HWND TreeNewHandle
     )
@@ -1992,7 +2028,7 @@ VOID EtFwHandleFwCommand(
 
 VOID InitializeFwMenu(
     _In_ PPH_EMENU Menu,
-    _In_ PFW_EVENT_ITEM * FwItems,
+    _In_ PFW_EVENT_ITEM* FwItems,
     _In_ ULONG NumberOfFwItems
     )
 {

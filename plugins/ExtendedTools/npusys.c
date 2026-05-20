@@ -19,6 +19,7 @@ static HWND NpuDialog;
 static LONG NpuDialogWindowDpi;
 static PH_LAYOUT_MANAGER NpuLayoutManager;
 static RECT NpuGraphMargin;
+static RECT NpuGraphMarginScaled;
 static HWND NpuGraphHandle;
 static PH_GRAPH_STATE NpuGraphState;
 static HWND DedicatedGraphHandle;
@@ -357,6 +358,8 @@ INT_PTR CALLBACK EtpNpuDialogProc(
             graphItem = PhAddLayoutItem(&NpuLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&NpuLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             NpuGraphMargin = graphItem->Margin;
+            NpuGraphMarginScaled = NpuGraphMargin;
+            PhGetMarginDpiValue(&NpuGraphMarginScaled, NpuSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), NpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(WindowHandle, IDC_NPUNAME), NpuSection->Parameters->MediumFont, FALSE);
@@ -387,6 +390,9 @@ INT_PTR CALLBACK EtpNpuDialogProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             NpuDialogWindowDpi = PhGetWindowDpi(NpuDialog);
+
+            NpuGraphMarginScaled = NpuGraphMargin;
+            PhGetMarginDpiValue(&NpuGraphMarginScaled, NpuDialogWindowDpi, TRUE);
 
             if (NpuSection->Parameters->LargeFont)
             {
@@ -619,8 +625,7 @@ VOID EtpLayoutNpuGraphs(
         FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = NpuGraphMargin;
-    PhGetMarginDpiValue(&marginRect, NpuDialogWindowDpi, TRUE);
+    marginRect = NpuGraphMarginScaled;
     graphPadding = PhScaleToDisplay(ET_NPU_PADDING, NpuDialogWindowDpi);
 
     PhGetClientRect(NpuDialog, &clientRect);

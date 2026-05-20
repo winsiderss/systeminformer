@@ -1747,15 +1747,12 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                 {
                     if (GetFocus() == context->ListViewHandle)
                     {
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                        if (numberOfItems != 0)
+                        if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                         {
                             EtpCloseObjectHandles(context, listviewItems, numberOfItems);
+                            PhFree(listviewItems);
                             return TRUE;
                         }
-
-                        PhFree(listviewItems);
                     }
                 }
                 break;
@@ -1832,10 +1829,8 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
             PET_HANDLE_ENTRY* listviewItems;
             ULONG numberOfItems;
 
-            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-            if (numberOfItems != 0)
-            {
+            if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
+                {
                 POINT point;
                 PPH_EMENU menu;
                 PPH_EMENU_ITEM item;
@@ -1913,10 +1908,7 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     {
                     case IDC_CLOSEHANDLE:
                         {
-                            if (numberOfItems != 0)
-                            {
-                                EtpCloseObjectHandles(context, listviewItems, numberOfItems);
-                            }
+                            EtpCloseObjectHandles(context, listviewItems, numberOfItems);
                         }
                         break;
                     case IDC_HANDLE_PROTECTED:
@@ -2022,9 +2014,8 @@ INT_PTR CALLBACK EtpObjHandlesPageDlgProc(
                     PhDestroyEMenu(menu);
                 }
             }
-
-            PhFree(listviewItems);
-        }
+                    PhFree(listviewItems);
+                }
         break;
     case WM_COMMAND:
         switch (GET_WM_COMMAND_ID(wParam, lParam))
@@ -2317,9 +2308,7 @@ INT_PTR CALLBACK EtpWinStaPageDlgProc(
             PVOID* listviewItems;
             ULONG numberOfItems;
 
-            PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-            if (numberOfItems != 0)
+            if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
             {
                 POINT point;
                 PPH_EMENU menu;

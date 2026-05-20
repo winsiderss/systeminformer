@@ -159,7 +159,7 @@ struct DeferredCompletions
 //   SubmitPresentHistory (use model field for classification, get token ptr) -> DxgKrnl_PresentHistory (by token ptr) ->
 //   Assume DWM will compose this buffer on next present (missing InFrame event), follow windowed blit paths to screen time
 
-void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t hwnd, bool redirectedPresent);
+void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t WindowHandle, bool redirectedPresent);
 void HandleDxgkFlip(EVENT_HEADER const& hdr, int32_t flipInterval, bool isMMIOFlip, bool isMPOFlip);
 void HandleDxgkQueueSubmit(EVENT_HEADER const& hdr, uint64_t hContext, uint32_t submitSequence, uint32_t packetType, bool isPresentPacket, bool isWin7);
 void HandleDxgkQueueComplete(uint64_t timestamp, uint64_t hContext, uint32_t submitSequence);
@@ -197,6 +197,22 @@ void HandleWin7DxgkMMIOFlip(EVENT_RECORD* pEventRecord);
 
 void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents);
 //void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents);
+
+VOID SetPresentEventProcessingToggleMode(
+    _In_ BOOLEAN Enabled
+    );
+
+BOOLEAN EnterPresentEventProcessing(
+    _Out_ PBOOLEAN Counted
+    );
+
+VOID LeavePresentEventProcessing(
+    _In_ BOOLEAN Counted
+    );
+
+VOID ResetPresentTrackingData(
+    _In_ BOOLEAN Shrink
+    );
 
 void SetThreadPresent(uint32_t threadId, std::shared_ptr<PresentEvent> const& present);
 std::shared_ptr<PresentEvent> FindThreadPresent(uint32_t threadId);

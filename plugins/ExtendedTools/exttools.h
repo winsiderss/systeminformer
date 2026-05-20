@@ -655,6 +655,20 @@ NTSTATUS EtQueryAdapterInformation(
     _In_ UINT32 InformationLength
     );
 
+NTSTATUS EtAdapterEnumProcessList(
+    _In_ LUID AdapterLuid,
+    _In_ SIZE_T PreviousProcessCount,
+    _Outptr_result_buffer_(*ProcessCount) PULONG* ProcessIds,
+    _Out_ PSIZE_T ProcessCount
+    );
+
+NTSTATUS EtAdapterGetProcessList(
+    _In_ LUID AdapterLuid,
+    _In_ SIZE_T PreviousProcessCount,
+    _Outptr_result_buffer_(*ProcessCount) PHANDLE* ProcessHandles,
+    _Out_ PSIZE_T ProcessCount
+    );
+
 // HardwareDevices!_GX_ATTRIBUTES
 typedef union _ET_ADAPTER_ATTRIBUTES
 {
@@ -801,29 +815,34 @@ typedef struct _ETP_GPU_ADAPTER
     PPH_STRING Description;
     PPH_LIST NodeNameList;
 
+    D3DKMT_HANDLE CachedAdapterHandle;  // 0 = invalid, non-zero = valid
+    SIZE_T ProcessIdCount;
+    SIZE_T ProcessHandleCount;
+
     RTL_BITMAP ApertureBitMap;
     ULONG ApertureBitMapBuffer[1];
 } ETP_GPU_ADAPTER, *PETP_GPU_ADAPTER;
 
-extern BOOLEAN EtGpuEnabled;
-extern BOOLEAN EtGpuSupported;
-extern BOOLEAN EtGpuD3DEnabled;
+EXTERN_C BOOLEAN EtGpuEnabled;
+EXTERN_C BOOLEAN EtGpuSupported;
+EXTERN_C BOOLEAN EtGpuD3DEnabled;
+EXTERN_C BOOLEAN EtGpuD3DEnumProcesses;
 EXTERN_C BOOLEAN EtFramesEnabled;
-extern PPH_LIST EtpGpuAdapterList;
+EXTERN_C PPH_LIST EtpGpuAdapterList;
 
 extern ULONG EtGpuTotalNodeCount;
 extern ULONG EtGpuTotalSegmentCount;
 extern ULONG64 EtGpuDedicatedLimit;
 extern ULONG64 EtGpuSharedLimit;
 
-extern PH_UINT64_DELTA EtGpuClockTotalRunningTimeDelta;
-extern LARGE_INTEGER EtGpuClockTotalRunningTimeFrequency;
 extern FLOAT EtGpuNodeUsage;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
 extern PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
 
 extern PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
+extern PPH_UINT64_DELTA EtGpuNodesSystemRunningTimeDelta;
+extern ULONG64 EtGpuSystemRunningTimeDelta;
 extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
 extern ULONG64 EtGpuDedicatedUsage;
@@ -839,6 +858,27 @@ extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
 extern PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
+
+// Lazy-allocation helpers for per-process circular history buffers.
+// The buffer's Data is NULL until the first sample is added; processes
+// that never produce a sample never allocate the backing storage.
+#define ET_CB_ADD_ULONG64(buf, val) \
+    do { \
+        if (!(buf)->Data) PhInitializeCircularBuffer_ULONG64((buf), EtSampleCount); \
+        PhAddItemCircularBuffer_ULONG64((buf), (val)); \
+    } while (0)
+
+#define ET_CB_ADD_ULONG(buf, val) \
+    do { \
+        if (!(buf)->Data) PhInitializeCircularBuffer_ULONG((buf), EtSampleCount); \
+        PhAddItemCircularBuffer_ULONG((buf), (val)); \
+    } while (0)
+
+#define ET_CB_ADD_FLOAT(buf, val) \
+    do { \
+        if (!(buf)->Data) PhInitializeCircularBuffer_FLOAT((buf), EtSampleCount); \
+        PhAddItemCircularBuffer_FLOAT((buf), (val)); \
+    } while (0)
 
 VOID EtGpuMonitorInitialization(
     VOID
@@ -948,14 +988,14 @@ extern ULONG EtNpuTotalSegmentCount;
 extern ULONG64 EtNpuDedicatedLimit;
 extern ULONG64 EtNpuSharedLimit;
 
-extern PH_UINT64_DELTA EtNpuClockTotalRunningTimeDelta;
-extern LARGE_INTEGER EtNpuClockTotalRunningTimeFrequency;
 extern FLOAT EtNpuNodeUsage;
 extern PH_CIRCULAR_BUFFER_FLOAT EtNpuNodeHistory;
 extern PH_CIRCULAR_BUFFER_ULONG EtMaxNpuNodeHistory; // ID of max. GPU usage process
 extern PH_CIRCULAR_BUFFER_FLOAT EtMaxNpuNodeUsageHistory;
 
 extern PPH_UINT64_DELTA EtNpuNodesTotalRunningTimeDelta;
+extern PPH_UINT64_DELTA EtNpuNodesSystemRunningTimeDelta;
+extern ULONG64 EtNpuSystemRunningTimeDelta;
 extern PPH_CIRCULAR_BUFFER_FLOAT EtNpuNodesHistory;
 
 extern ULONG64 EtNpuDedicatedUsage;
@@ -980,12 +1020,12 @@ PPH_STRING EtGetDeviceInterfaceFromLuid(
     _In_ PLUID AdapterLuid
     );
 
-VOID EtInitializeGraphicsAdapters(
+PPH_LIST EtInitializeGraphicsAdapters(
     VOID
     );
 
 VOID EtUninitializeGraphicsAdapters(
-    VOID
+    _In_ PPH_LIST AdapterList
     );
 
 typedef struct _ET_DISCOVERED_ADAPTER
@@ -995,8 +1035,6 @@ typedef struct _ET_DISCOVERED_ADAPTER
     PPH_STRING DeviceInterface;
     ET_ADAPTER_ATTRIBUTES Attributes;
 } ET_DISCOVERED_ADAPTER, *PET_DISCOVERED_ADAPTER;
-
-extern PPH_LIST EtpDiscoveredAdapterList;
 
 typedef struct _ET_PROCESS_NPU_STATISTICS
 {

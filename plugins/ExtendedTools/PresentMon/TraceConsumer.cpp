@@ -29,6 +29,11 @@ namespace {
 
 ULONG GetPropertyDataOffset(TRACE_EVENT_INFO const& tei, EVENT_RECORD const& eventRecord, ULONG index);
 
+ULONG GetEventPointerSize(EVENT_RECORD const& eventRecord)
+{
+    return (eventRecord.EventHeader.Flags & EVENT_HEADER_FLAG_64_BIT_HEADER) ? 8 : 4;
+}
+
 // If ((epi.Flags & PropertyParamLength) != 0), the epi.lengthPropertyIndex
 // field contains the index of the property that contains the number of
 // CHAR/WCHARs in the string.
@@ -121,9 +126,10 @@ void GetPropertySize(
         case TDH_INTYPE_POINTER:    // TODO: Not sure this is needed, epi.length seems to be correct?
         case TDH_INTYPE_SIZET:
             *propStatus |= PROP_STATUS_POINTER_SIZE;
-            size = (eventRecord.EventHeader.Flags & EVENT_HEADER_FLAG_64_BIT_HEADER) ? 8 : 4;
+            size = GetEventPointerSize(eventRecord);
             break;
 
+        case TDH_INTYPE_SID:
         case TDH_INTYPE_WBEMSID:
             {
                 ULONG sidoffset = (eventRecord.EventHeader.Flags & EVENT_HEADER_FLAG_64_BIT_HEADER) ? 8 : 4;
@@ -131,10 +137,13 @@ void GetPropertySize(
 
                 size = sidoffset + PhLengthSid(sid); // dmex
 
-                //PROPERTY_DATA_DESCRIPTOR descriptor;
-                //descriptor.PropertyName = (ULONGLONG) &tei + epi.NameOffset;
+                //// Follow upstream here; SID payload layout is provider-defined enough
+                //// that deferring to TDH is safer than guessing from the pointer width.
+                //PROPERTY_DATA_DESCRIPTOR descriptor{};
+                //descriptor.PropertyName = (ULONGLONG)&tei + epi.NameOffset;
                 //descriptor.ArrayIndex = UINT32_MAX;
-                //auto status = TdhGetPropertySize((EVENT_RECORD*) &eventRecord, 0, nullptr, 1, &descriptor, (ULONG*) &size);
+                //auto tdhStatus = TdhGetPropertySize((EVENT_RECORD*)&eventRecord, 0, nullptr, 1, &descriptor, &size);
+                //(void)tdhStatus;
             }
             break;
         }
