@@ -522,6 +522,13 @@ VOID PhLargeIntegerToSystemTime(
 #endif
 }
 
+/**
+ * Converts a UTC system time structure to a 64-bit time value.
+ *
+ * \param LargeInteger Receives the converted time value.
+ * \param SystemTime The UTC system time value to convert.
+ * \return TRUE if the conversion succeeded, otherwise FALSE.
+ */
 BOOLEAN PhSystemTimeToLargeInteger(
     _Out_ PLARGE_INTEGER LargeInteger,
     _In_ PSYSTEMTIME SystemTime
@@ -554,6 +561,12 @@ BOOLEAN PhSystemTimeToLargeInteger(
 #endif
 }
 
+/**
+ * Converts a 64-bit UTC time value to local system time.
+ *
+ * \param SystemTime Receives the converted local system time.
+ * \param LargeInteger The UTC time value to convert.
+ */
 VOID PhLargeIntegerToLocalSystemTime(
     _Out_ PSYSTEMTIME SystemTime,
     _In_ PLARGE_INTEGER LargeInteger
@@ -581,6 +594,13 @@ VOID PhLargeIntegerToLocalSystemTime(
 #endif
 }
 
+/**
+ * Converts a local system time structure to a 64-bit UTC time value.
+ *
+ * \param LargeInteger Receives the converted time value.
+ * \param SystemTime The local system time value to convert.
+ * \return TRUE if the conversion succeeded, otherwise FALSE.
+ */
 BOOLEAN PhLocalSystemTimeToLargeInteger(
     _Out_ PLARGE_INTEGER LargeInteger,
     _In_ PSYSTEMTIME SystemTime
@@ -597,6 +617,13 @@ BOOLEAN PhLocalSystemTimeToLargeInteger(
     return TRUE;
 }
 
+/**
+ * Converts a UTC system time structure to the local time zone.
+ *
+ * \param UniversalTime The UTC system time to convert.
+ * \param LocalTime Receives the converted local system time.
+ * \return TRUE if the conversion succeeded, otherwise FALSE.
+ */
 BOOLEAN PhSystemTimeToTzSpecificLocalTime(
     _In_ CONST SYSTEMTIME* UniversalTime,
     _Out_ PSYSTEMTIME LocalTime
@@ -767,6 +794,12 @@ PPH_STRING PhGetWin32Message(
     return message;
 }
 
+/**
+ * Retrieves a Win32 message string using FormatMessage.
+ *
+ * \param Result The Win32 error code.
+ * \return A string containing the formatted message, or NULL if unavailable.
+ */
 PPH_STRING PhGetWin32FormatMessage(
     _In_ ULONG Result
     )
@@ -807,6 +840,12 @@ PPH_STRING PhGetWin32FormatMessage(
     return messageString;
 }
 
+/**
+ * Retrieves an NTSTATUS message string using FormatMessage.
+ *
+ * \param Status The NTSTATUS value.
+ * \return A string containing the formatted message, or NULL if unavailable.
+ */
 PPH_STRING PhGetNtFormatMessage(
     _In_ NTSTATUS Status
     )
@@ -889,6 +928,16 @@ static const PH_FLAG_MAPPING PhShowMessageTaskDialogButtonFlagMappings[] =
     { TD_CLOSE_BUTTON, TDCBF_CLOSE_BUTTON },
 };
 
+/**
+ * Displays a task dialog-style message box.
+ *
+ * \param WindowHandle The owner window of the dialog.
+ * \param Buttons A combination of TD_* button flags.
+ * \param Icon The task dialog icon resource identifier.
+ * \param Title The task dialog main instruction text.
+ * \param Format A format string for the content text.
+ * \return The user's response, or INT_ERROR if the dialog could not be shown.
+ */
 LONG PhShowMessage2(
     _In_opt_ HWND WindowHandle,
     _In_ ULONG Buttons,
@@ -1171,6 +1220,13 @@ PPH_STRING PhGetStatusMessage(
         return PhGetNtMessage(Status);
 }
 
+/**
+ * Retrieves a status message for an HRESULT value.
+ *
+ * \param Status The HRESULT value.
+ * \param Win32Result A Win32 error code, or 0 to derive it from the HRESULT.
+ * \return A string containing the status message.
+ */
 PPH_STRING PhGetStatusMessageHR(
     _In_ HRESULT Status,
     _In_opt_ ULONG Win32Result
@@ -2733,6 +2789,68 @@ BOOLEAN PhFormatSizeToBuffer(
 }
 
 /**
+ * Gets a string representing an energy value.
+ *
+ * \param MilliJoules The energy value in millijoules.
+ * \param MaxEnergyUnit The largest unit to use, or ULONG_MAX for automatic selection.
+ * \return A formatted energy string.
+ */
+PPH_STRING PhFormatEnergy(
+    _In_ ULONGLONG MilliJoules,
+    _In_ ULONG MaxEnergyUnit
+    )
+{
+    static const PH_STRINGREF PhEnergyUnitStrings[] =
+    {
+        PH_STRINGREF_INIT(L"mJ"),
+        PH_STRINGREF_INIT(L"J"),
+        PH_STRINGREF_INIT(L"kJ"),
+        PH_STRINGREF_INIT(L"MJ"),
+        PH_STRINGREF_INIT(L"GJ")
+    };
+    static const ULONGLONG PhEnergyUnitDivisors[] =
+    {
+        1ULL,                    // mJ
+        1000ULL,                 // J
+        1000ULL * 1000ULL,       // kJ
+        1000ULL * 1000ULL * 1000ULL, // MJ
+        1000ULL * 1000ULL * 1000ULL * 1000ULL // GJ
+    };
+
+    ULONG unit = PH_ENERGY_MJ;
+    ULONG maxUnit;
+    PH_FORMAT format;
+    PH_FORMAT formats[2];
+
+    if (MaxEnergyUnit == ULONG_MAX)
+    {
+        maxUnit = RTL_NUMBER_OF(PhEnergyUnitDivisors) - 1;
+    }
+    else
+    {
+        maxUnit = min(MaxEnergyUnit, RTL_NUMBER_OF(PhEnergyUnitDivisors) - 1);
+    }
+
+    while (unit < maxUnit &&
+        unit + 1 < RTL_NUMBER_OF(PhEnergyUnitDivisors) &&
+        MilliJoules >= PhEnergyUnitDivisors[unit + 1])
+    {
+        unit++;
+    }
+
+    format.Type = DoubleFormatType;
+    format.Precision = 2;
+    format.u.Double = (DOUBLE)MilliJoules / (DOUBLE)PhEnergyUnitDivisors[unit];
+
+    formats[0] = format;
+
+    formats[1].Type = StringFormatType;
+    formats[1].u.String = PhEnergyUnitStrings[unit];
+
+    return PhFormat(formats, RTL_NUMBER_OF(formats), 0);
+}
+
+/**
  * Converts a UUID to its string representation.
  *
  * \param Guid A UUID.
@@ -2901,6 +3019,13 @@ NTSTATUS PhGetFileVersionInfo(
     return status;
 }
 
+/**
+ * Loads a file's version information block from image resources.
+ *
+ * \param FileName The file path of the image.
+ * \param VersionInfo Receives a buffer containing version information.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetFileVersionInfoEx(
     _In_ PCPH_STRINGREF FileName,
     _Out_ PVOID* VersionInfo
@@ -3000,6 +3125,12 @@ NTSTATUS PhGetFileVersionInfoEx(
     return status;
 }
 
+/**
+ * Gets the value pointer of a version information node.
+ *
+ * \param VersionInfo The version information node.
+ * \return A pointer to the node value.
+ */
 PVOID PhGetFileVersionInfoValue(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo
     )
@@ -3009,6 +3140,15 @@ PVOID PhGetFileVersionInfoValue(
     return PTR_ADD_OFFSET(VersionInfo, ALIGN_UP(PTR_SUB_OFFSET(keyOffset, VersionInfo), ULONG));
 }
 
+/**
+ * Finds a child key within a version information node.
+ *
+ * \param VersionInfo The parent version information node.
+ * \param KeyLength The key length, in characters.
+ * \param Key The key name to search for.
+ * \param Buffer Receives the matching child node.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetFileVersionInfoKey(
     _In_ PVS_VERSION_INFO_STRUCT32 VersionInfo,
     _In_ SIZE_T KeyLength,
@@ -3045,6 +3185,15 @@ NTSTATUS PhGetFileVersionInfoKey(
     return STATUS_NOT_FOUND;
 }
 
+/**
+ * Retrieves a value from the VarFileInfo block in version information.
+ *
+ * \param VersionInfo The version information block.
+ * \param KeyName The VarFileInfo key to query.
+ * \param Buffer Receives a pointer to the value data.
+ * \param BufferLength Receives the length of the value data.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhGetFileVersionVarFileInfoValue(
     _In_ PVOID VersionInfo,
     _In_ PCPH_STRINGREF KeyName,
@@ -3085,6 +3234,12 @@ NTSTATUS PhGetFileVersionVarFileInfoValue(
     return status;
 }
 
+/**
+ * Retrieves the fixed version information structure.
+ *
+ * \param VersionInfo The version information block.
+ * \return A pointer to a valid VS_FIXEDFILEINFO structure, or NULL.
+ */
 VS_FIXEDFILEINFO* PhGetFileVersionFixedInfo(
     _In_ PVOID VersionInfo
     )
@@ -3224,6 +3379,14 @@ PPH_STRING PhGetFileVersionInfoString2(
         );
 }
 
+/**
+ * Retrieves a localized string from version information with fallback code pages.
+ *
+ * \param VersionInfo The version information block.
+ * \param LangCodePage The preferred language ID and code page.
+ * \param KeyName The name of the string value.
+ * \return A string containing the value, or NULL if unavailable.
+ */
 PPH_STRING PhGetFileVersionInfoStringEx(
     _In_ PVOID VersionInfo,
     _In_ ULONG LangCodePage,
@@ -3259,6 +3422,13 @@ PPH_STRING PhGetFileVersionInfoStringEx(
     return NULL;
 }
 
+/**
+ * Populates image version metadata fields from a version information block.
+ *
+ * \param ImageVersionInfo The destination version info structure.
+ * \param VersionInfo The source version information block.
+ * \param LangCodePage The language ID and code page to use.
+ */
 VOID PhpGetImageVersionInfoFields(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PVOID VersionInfo,
@@ -3274,6 +3444,12 @@ VOID PhpGetImageVersionInfoFields(
     ImageVersionInfo->ProductName = PhGetFileVersionInfoStringEx(VersionInfo, LangCodePage, &productName);
 }
 
+/**
+ * Populates the file version string from fixed version information.
+ *
+ * \param ImageVersionInfo The destination version info structure.
+ * \param VersionInfo The source version information block.
+ */
 VOID PhpGetImageVersionVersionString(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PVOID VersionInfo
@@ -3302,6 +3478,13 @@ VOID PhpGetImageVersionVersionString(
     }
 }
 
+/**
+ * Populates the file version string using localized data with fixed-info fallback.
+ *
+ * \param ImageVersionInfo The destination version info structure.
+ * \param VersionInfo The source version information block.
+ * \param LangCodePage The language ID and code page to use.
+ */
 VOID PhpGetImageVersionVersionStringEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PVOID VersionInfo,
@@ -3366,6 +3549,14 @@ NTSTATUS PhInitializeImageVersionInfo(
     return status;
 }
 
+/**
+ * Initializes a structure with version information from a file name reference.
+ *
+ * \param ImageVersionInfo The version information structure.
+ * \param FileName The file name of an image.
+ * \param ExtendedVersionInfo TRUE to use extended version string extraction.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhInitializeImageVersionInfoEx(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PCPH_STRINGREF FileName,
@@ -3407,6 +3598,15 @@ VOID PhDeleteImageVersionInfo(
     if (ImageVersionInfo->ProductName) PhDereferenceObject(ImageVersionInfo->ProductName);
 }
 
+/**
+ * Formats image version information into a multi-line string.
+ *
+ * \param FileName The image file name to include.
+ * \param ImageVersionInfo The version information to format.
+ * \param Indent Optional indentation applied to each output line.
+ * \param LineLimit The maximum characters per line; 0 means no limit.
+ * \return A formatted version information string.
+ */
 PPH_STRING PhFormatImageVersionInfo(
     _In_opt_ PPH_STRING FileName,
     _In_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
@@ -3528,6 +3728,13 @@ typedef struct _PH_FILE_VERSIONINFO_CACHE_ENTRY
 static PPH_HASHTABLE PhpImageVersionInfoCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpImageVersionInfoCacheLock = PH_QUEUED_LOCK_INIT;
 
+/**
+ * Compares two image version cache entries for key equality.
+ *
+ * \param Entry1 The first cache entry.
+ * \param Entry2 The second cache entry.
+ * \return TRUE if both entries reference the same file name; otherwise FALSE.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN PhpImageVersionInfoCacheHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -3540,6 +3747,12 @@ static BOOLEAN PhpImageVersionInfoCacheHashtableEqualFunction(
     return PhEqualString(entry1->FileName, entry2->FileName, FALSE);
 }
 
+/**
+ * Computes a hash value for an image version cache entry.
+ *
+ * \param Entry The cache entry to hash.
+ * \return The hash value for the entry key.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
     _In_ PVOID Entry
@@ -3550,6 +3763,15 @@ static ULONG PhpImageVersionInfoCacheHashtableHashFunction(
     return PhHashStringRefEx(&entry->FileName->sr, FALSE, PH_STRING_HASH_XXH32);
 }
 
+/**
+ * Initializes image version information using a shared cache.
+ *
+ * \param ImageVersionInfo Receives the initialized version information.
+ * \param FileName The image file name.
+ * \param IsSubsystemProcess TRUE if the image is a subsystem process.
+ * \param ExtendedVersion TRUE to use extended version string extraction.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhInitializeImageVersionInfoCached(
     _Out_ PPH_IMAGE_VERSION_INFO ImageVersionInfo,
     _In_ PPH_STRING FileName,
@@ -3629,6 +3851,9 @@ NTSTATUS PhInitializeImageVersionInfoCached(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Clears and reinitializes the image version information cache.
+ */
 VOID PhFlushImageVersionInfoCache(
     VOID
     )
@@ -5283,6 +5508,14 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
     { PH_CREATE_PROCESS_DEFAULT_ERROR_MODE, CREATE_DEFAULT_ERROR_MODE },
 };
 
+/**
+ * Converts PROCESS_INFORMATION outputs into native result fields.
+ *
+ * \param ProcessInfo The process information returned by Win32 process creation.
+ * \param ClientId Receives the process and thread identifiers.
+ * \param ProcessHandle Receives the process handle.
+ * \param ThreadHandle Receives the initial thread handle.
+ */
 FORCEINLINE VOID PhpConvertProcessInformation(
     _In_ PPROCESS_INFORMATION ProcessInfo,
     _Out_opt_ PCLIENT_ID ClientId,
@@ -10347,6 +10580,13 @@ NTSTATUS PhCreateProcessSnapshot(
     return status;
 }
 
+/**
+ * Frees a process snapshot created by Process Snapshotting APIs.
+ *
+ * \param ProcessHandle The process associated with the snapshot.
+ * \param SnapshotHandle The snapshot handle to free.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhPssFreeSnapshot(
     _In_ HANDLE ProcessHandle,
     _In_ HPSS SnapshotHandle

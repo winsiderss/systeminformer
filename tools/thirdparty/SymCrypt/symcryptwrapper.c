@@ -63,11 +63,11 @@ NTSTATUS PhSymCryptErrorToStatus(
  * \return Always TRUE (the SymCrypt RNG does not return failure for this entry point).
  */
 VOID NTAPI PhSymCryptRandom(
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PBYTE Buffer,
     _In_ SIZE_T Length
     )
 {
-    SymCryptRandom((PBYTE)Buffer, Length);
+    SymCryptRandom(Buffer, Length);
 }
 
 /**

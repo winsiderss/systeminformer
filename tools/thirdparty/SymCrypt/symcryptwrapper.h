@@ -54,7 +54,7 @@ EXTERN_C
 VOID
 NTAPI
 PhSymCryptRandom(
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PBYTE Buffer,
     _In_ SIZE_T Length
     );
 
