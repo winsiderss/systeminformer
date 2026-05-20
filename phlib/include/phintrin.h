@@ -92,9 +92,9 @@ PhArm64ReadRandomNumber64(
 #else
 /**
  * @var __isa_available
- * 
+ *
  * External variable indicating the availability of ISA (Instruction Set Architecture) features.
- * 
+ *
  * \note This is an external variable initialized by the MSCRT (Microsoft C Runtime).
  */
 extern int __isa_available;
@@ -113,9 +113,9 @@ extern int __isa_available;
 /**
  * @var __isa_enabled
  *
- * External variable indicating which ISA (Instruction Set Architecture) 
+ * External variable indicating which ISA (Instruction Set Architecture)
  * extensions are enabled and available on the current system (e.g., SSE, AVX, etc.).
- * 
+ *
  * \note This is an external variable initialized by the MSCRT (Microsoft C Runtime).
  */
 extern long __isa_enabled;
@@ -188,12 +188,12 @@ PhPopulationCount32(
 #ifdef _WIN64
 /**
  * Counts the number of set bits (population count) in a 64-bit unsigned integer.
- * 
+ *
  * This function calculates the Hamming weight (number of 1-bits) in the given 64-bit value.
  * It uses platform-specific intrinsics for optimal performance:
  * - On ARM64: uses _CountOneBits64() intrinsic
  * - On other platforms: uses SSE4.2 _mm_popcnt_u64() intrinsic
- * 
+ *
  * \param[in] Value The 64-bit unsigned integer to count bits in.
  * \return The number of set bits (1s) in the Value parameter.
  * \note This function requires SSE4.2 support on x86/x64 platforms or ARM64 platform.
@@ -227,7 +227,7 @@ typedef PH_FLOAT128* PPH_FLOAT128;
 /**
  * The PhSetZeroINT128 function initializes a 128-bit integer
  * value to zero using platform-specific intrinsic functions.
- * 
+ *
  * \return A PH_INT128 value with all bits set to zero.
  */
 FORCEINLINE
@@ -256,7 +256,7 @@ PhSetZeroINT128(
 FORCEINLINE
 PH_INT128
 PhLoadINT128U(
-    _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory
+    _In_reads_bytes_(4 * sizeof(LONG)) PLONG Memory
     )
 {
 #ifdef _ARM64_
@@ -276,7 +276,7 @@ PhLoadINT128U(
 FORCEINLINE
 PH_INT128
 PhLoadINT128(
-    _In_reads_bytes_(2 * sizeof(LONG)) PLONG Memory
+    _In_reads_bytes_(4 * sizeof(LONG)) PLONG Memory
     )
 {
 #ifdef _ARM64_
@@ -290,13 +290,13 @@ PhLoadINT128(
  * The PhStoreINT128 function stores a 128-bit integer value to the specified target address.
  *
  * \param[out] Target A pointer to a memory location where the 128-bit value will be stored.
- * Must be aligned to at least 16 bytes and writable for 16 bytes (2 * sizeof(LONG)).
+ * Must be aligned to at least 16 bytes and writable for 16 bytes (4 * sizeof(LONG)).
  * \param[in] Value The 128-bit integer value to be stored.
  */
 FORCEINLINE
 VOID
 PhStoreINT128(
-    _Out_writes_bytes_(2 * sizeof(LONG)) PLONG Target,
+    _Out_writes_bytes_(4 * sizeof(LONG)) PLONG Target,
     _In_ PH_INT128 Value
     )
 {
@@ -310,7 +310,7 @@ PhStoreINT128(
 /**
  * The PhStoreINT128U function stores a 128-bit integer value to the specified unaligned target address
  * without alignment requirements.
- * 
+ *
  * \param[out] Target A pointer to a memory location where the 128-bit value will be stored.
  * The memory does not need to be aligned and must be at least 2 * sizeof(LONG) bytes.
  * \param[in] Value The 128-bit integer value to store.
@@ -318,7 +318,7 @@ PhStoreINT128(
 FORCEINLINE
 VOID
 PhStoreINT128U(
-    _Out_writes_bytes_(2 * sizeof(LONG)) PLONG Target,
+    _Out_writes_bytes_(4 * sizeof(LONG)) PLONG Target,
     _In_ PH_INT128 Value
     )
 {
@@ -331,10 +331,10 @@ PhStoreINT128U(
 
 /**
  * Compares two 128-bit integers element-wise for equality using 16-bit signed integer elements.
- * 
+ *
  * \param Left The left operand as a 128-bit integer.
  * \param Right The right operand as a 128-bit integer.
- * \return A 128-bit integer where each 16-bit element is set to all 1s (0xFFFF) if the 
+ * \return A 128-bit integer where each 16-bit element is set to all 1s (0xFFFF) if the
  * corresponding elements in Left and Right are equal, or all 0s (0x0000) if they are not equal.
  */
 FORCEINLINE
@@ -501,7 +501,7 @@ PhSetFLOAT128by32(
 FORCEINLINE
 PH_FLOAT128
 PhLoadFLOAT128(
-    _In_reads_bytes_(2 * sizeof(PFLOAT)) PFLOAT Memory
+    _In_reads_(4) PFLOAT Memory
     )
 {
 #ifdef _ARM64_
