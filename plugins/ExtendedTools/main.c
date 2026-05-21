@@ -1247,43 +1247,6 @@ VOID EtInitializeProcessBlock(
     Block->ProcessItem = ProcessItem;
     PhInitializeQueuedLock(&Block->TextCacheLock);
 
-    PhInitializeCircularBuffer_ULONG64(&Block->DiskReadHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->DiskWriteHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->NetworkSendHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->NetworkReceiveHistory, EtSampleCount);
-
-    PhInitializeCircularBuffer_FLOAT(&Block->GpuHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->GpuMemoryHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->GpuMemorySharedHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->GpuCommittedHistory, EtSampleCount);
-
-    //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
-    //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
-    //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtGpuTotalNodeCount);
-
-    PhInitializeCircularBuffer_FLOAT(&Block->NpuHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->NpuMemoryHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->NpuMemorySharedHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG(&Block->NpuCommittedHistory, EtSampleCount);
-
-    //Block->GpuTotalRunningTimeDelta = PhAllocate(sizeof(PH_UINT64_DELTA) * EtNpuTotalNodeCount);
-    //memset(Block->GpuTotalRunningTimeDelta, 0, sizeof(PH_UINT64_DELTA) * EtNpuTotalNodeCount);
-    //Block->GpuTotalNodesHistory = PhAllocate(sizeof(PH_CIRCULAR_BUFFER_FLOAT) * EtNpuTotalNodeCount);
-
-    PhInitializeCircularBuffer_ULONG64(&Block->FirewallAllowHistory, EtSampleCount);
-    PhInitializeCircularBuffer_ULONG64(&Block->FirewallBlockHistory, EtSampleCount);
-
-    if (EtFramesEnabled)
-    {
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesPerSecondHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesLatencyHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesDisplayLatencyHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsBetweenPresentsHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsInPresentApiHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilRenderCompleteHistory, EtSampleCount);
-        PhInitializeCircularBuffer_FLOAT(&Block->FramesMsUntilDisplayedHistory, EtSampleCount);
-    }
-
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
 }
 

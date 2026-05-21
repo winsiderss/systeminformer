@@ -31,6 +31,9 @@ DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_COMPUTE_ACCELERATOR, 0xe0b195da, 0x58
 DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU, 0xd46140c4, 0xadd7, 0x451b, 0x9e, 0x56, 0x6, 0xfe, 0x8c, 0x3b, 0x58, 0xed);
 DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_MEDIA_ACCELERATOR, 0x66bdb96a, 0x50b, 0x44c7, 0xa4, 0xfd, 0xd1, 0x44, 0xce, 0xa, 0xb4, 0x43);
 
+static typeof(&D3DKMTEnumProcesses) D3DKMTEnumProcesses_I = NULL;
+static typeof(&D3DKMTGetProcessList) D3DKMTGetProcessList_I = NULL;
+
 VOID EtFormatToBuffer(
     _In_reads_(Count) PPH_FORMAT Format,
     _In_ ULONG Count,
