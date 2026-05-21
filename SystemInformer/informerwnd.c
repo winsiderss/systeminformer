@@ -3057,7 +3057,7 @@ VOID PhpInformerInitializeColumns(
     PhAddTreeNewColumn(tn, PHIC_ATTACHED_START_KEY, FALSE, L"Attached start key", 140, PH_ALIGN_LEFT, 8, 0);
     PhAddTreeNewColumn(tn, PHIC_CATEGORY, TRUE, L"Category", 60, PH_ALIGN_LEFT, 9, 0);
     PhAddTreeNewColumn(tn, PHIC_EVENT, TRUE, L"Event", 100, PH_ALIGN_LEFT, 10, 0);
-    PhAddTreeNewColumn(tn, PHIC_PATH, TRUE, L"Path", 200, PH_ALIGN_LEFT, 11, 0);
+    PhAddTreeNewColumn(tn, PHIC_PATH, TRUE, L"Path", 200, PH_ALIGN_LEFT, 11, DT_PATH_ELLIPSIS);
     PhAddTreeNewColumn(tn, PHIC_RESULT, TRUE, L"Result", 60, PH_ALIGN_LEFT, 12, 0);
     PhAddTreeNewColumn(tn, PHIC_DETAILS, TRUE, L"Details", 200, PH_ALIGN_LEFT, 13, 0);
 
