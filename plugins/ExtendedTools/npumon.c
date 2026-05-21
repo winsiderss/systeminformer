@@ -756,10 +756,10 @@ VOID NTAPI EtNpuProcessesUpdatedCallback(
                 block->NpuCurrentMemSharedUsage = (ULONG)(block->NpuSharedUsage / PAGE_SIZE);
                 block->NpuCurrentCommitUsage = (ULONG)(block->NpuCommitUsage / PAGE_SIZE);
 
-                ET_CB_ADD_FLOAT(&block->NpuHistory, block->NpuCurrentUsage);
-                ET_CB_ADD_ULONG(&block->NpuMemoryHistory, block->NpuCurrentMemUsage);
-                ET_CB_ADD_ULONG(&block->NpuMemorySharedHistory, block->NpuCurrentMemSharedUsage);
-                ET_CB_ADD_ULONG(&block->NpuCommittedHistory, block->NpuCurrentCommitUsage);
+                ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->NpuHistory, block->NpuCurrentUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->NpuMemoryHistory, block->NpuCurrentMemUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->NpuMemorySharedHistory, block->NpuCurrentMemSharedUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->NpuCommittedHistory, block->NpuCurrentCommitUsage);
             }
         }
         else
