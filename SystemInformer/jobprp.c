@@ -535,9 +535,7 @@ INT_PTR CALLBACK PhpJobPageProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(listViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(listViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -575,9 +573,9 @@ INT_PTR CALLBACK PhpJobPageProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
 
-                PhFree(listviewItems);
+                    PhFree(listviewItems);
+                }
             }
         }
         break;

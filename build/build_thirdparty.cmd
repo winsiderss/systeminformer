@@ -154,6 +154,7 @@ REM ----------------------------------------------------------------------------
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
 if /i "%GITHUB_ACTIONS%"=="true" set "VerboseLevel=minimal"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
+if /i "%TF_BUILD%"=="true" set "VerboseLevel=minimal"
 exit /b 0
 
 REM -----------------------------------------------------------------------------

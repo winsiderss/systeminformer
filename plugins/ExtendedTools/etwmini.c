@@ -12,6 +12,11 @@
 #include "exttools.h"
 #include "etwmini.h"
 
+/**
+ * Initializes the ETW mini-monitor information.
+ *
+ * \param Pointers Plugin mini-information pointers.
+ */
 VOID EtEtwMiniInformationInitializing(
     _In_ PPH_PLUGIN_MINIINFO_POINTERS Pointers
     )
@@ -28,6 +33,15 @@ VOID EtEtwMiniInformationInitializing(
     Pointers->CreateListSection(L"Network", 0, &section);
 }
 
+/**
+ * Callback for the disk list section.
+ *
+ * \param ListSection The list section.
+ * \param Message The message code.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 BOOLEAN EtpDiskListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -114,6 +128,13 @@ BOOLEAN EtpDiskListSectionCallback(
     return FALSE;
 }
 
+/**
+ * Compare function for disk list section processes.
+ *
+ * \param elem1 First element.
+ * \param elem2 Second element.
+ * \return Comparison result.
+ */
 int __cdecl EtpDiskListSectionProcessCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -137,6 +158,13 @@ int __cdecl EtpDiskListSectionProcessCompareFunction(
     return result;
 }
 
+/**
+ * Compare function for disk list section nodes.
+ *
+ * \param elem1 First element.
+ * \param elem2 Second element.
+ * \return Comparison result.
+ */
 int __cdecl EtpDiskListSectionNodeCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -148,6 +176,15 @@ int __cdecl EtpDiskListSectionNodeCompareFunction(
     return uint64cmp(data2->UserData[0] + data2->UserData[1], data1->UserData[0] + data1->UserData[1]);
 }
 
+/**
+ * Callback for the network list section.
+ *
+ * \param ListSection The list section.
+ * \param Message The message code.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 BOOLEAN EtpNetworkListSectionCallback(
     _In_ struct _PH_MINIINFO_LIST_SECTION *ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -234,6 +271,13 @@ BOOLEAN EtpNetworkListSectionCallback(
     return FALSE;
 }
 
+/**
+ * EtGpuD3DEnumProcessesCompare function for network list section processes.
+ *
+ * \param elem1 First element.
+ * \param elem2 Second element.
+ * \return Comparison result.
+ */
 int __cdecl EtpNetworkListSectionProcessCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -257,6 +301,13 @@ int __cdecl EtpNetworkListSectionProcessCompareFunction(
     return result;
 }
 
+/**
+ * Compare function for network list section nodes.
+ *
+ * \param elem1 First element.
+ * \param elem2 Second element.
+ * \return Comparison result.
+ */
 int __cdecl EtpNetworkListSectionNodeCompareFunction(
     _In_ const void *elem1,
     _In_ const void *elem2
@@ -267,3 +318,4 @@ int __cdecl EtpNetworkListSectionNodeCompareFunction(
 
     return uint64cmp(data2->UserData[0] + data2->UserData[1], data1->UserData[0] + data1->UserData[1]);
 }
+

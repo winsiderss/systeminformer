@@ -1075,9 +1075,7 @@ INT_PTR CALLBACK EtFindSecurityIdsDlgProc(
                         if (!PhGetCursorPos(&point))
                             break;
 
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                        if (numberOfItems == 0)
+                        if (!PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                             break;
 
                         menu = PhCreateEMenu();
@@ -1406,9 +1404,7 @@ INT_PTR CALLBACK EtReparseDlgProc(
                         if (!PhGetCursorPos(&point))
                             break;
 
-                        PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                        if (numberOfItems == 0)
+                        if (!PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                             break;
 
                         menu = PhCreateEMenu();

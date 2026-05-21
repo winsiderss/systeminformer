@@ -31,6 +31,9 @@ DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_COMPUTE_ACCELERATOR, 0xe0b195da, 0x58
 DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_NPU, 0xd46140c4, 0xadd7, 0x451b, 0x9e, 0x56, 0x6, 0xfe, 0x8c, 0x3b, 0x58, 0xed);
 DEFINE_GUID(DXCORE_HARDWARE_TYPE_ATTRIBUTE_MEDIA_ACCELERATOR, 0x66bdb96a, 0x50b, 0x44c7, 0xa4, 0xfd, 0xd1, 0x44, 0xce, 0xa, 0xb4, 0x43);
 
+static typeof(&D3DKMTEnumProcesses) D3DKMTEnumProcesses_I = NULL;
+static typeof(&D3DKMTGetProcessList) D3DKMTGetProcessList_I = NULL;
+
 VOID EtFormatToBuffer(
     _In_reads_(Count) PPH_FORMAT Format,
     _In_ ULONG Count,
@@ -850,6 +853,26 @@ PPH_STRING EtGetNodeEngineTypeString(
     return PhFormatString(L"ERROR (%lu)", NodeMetaData->NodeData.EngineType);
 }
 
+// Initialize dynamic D3DKMT function pointers
+VOID EtpInitializeD3DKMTFunctions(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HMODULE gdi32Module = PhGetDllHandle(L"gdi32.dll");
+        if (gdi32Module)
+        {
+            D3DKMTEnumProcesses_I = PhGetProcedureAddress(gdi32Module, "D3DKMTEnumProcesses", 0);
+            D3DKMTGetProcessList_I = PhGetProcedureAddress(gdi32Module, "D3DKMTGetProcessList", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+}
+
 NTSTATUS EtAdapterGetProcessListToBuffer(
     _In_ LUID AdapterLuid,
     _Out_writes_bytes_(BufferLength) PHANDLE Buffer,
@@ -860,13 +883,18 @@ NTSTATUS EtAdapterGetProcessListToBuffer(
     NTSTATUS status;
     D3DKMT_GET_PROCESS_LIST request;
 
+    EtpInitializeD3DKMTFunctions();
+
+    if (!D3DKMTGetProcessList_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
     memset(&request, 0, sizeof(D3DKMT_GET_PROCESS_LIST));
     request.AdapterLuid = AdapterLuid;
     request.DesiredAccess = PROCESS_QUERY_INFORMATION;
     request.ProcessHandleCount = (ULONG)(BufferLength / sizeof(HANDLE));
     request.ProcessHandle = Buffer;
 
-    status = D3DKMTGetProcessList(&request);
+    status = D3DKMTGetProcessList_I(&request);
 
     if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
     {
@@ -889,12 +917,17 @@ NTSTATUS EtAdapterEnumProcessListToBuffer(
     NTSTATUS status;
     D3DKMT_ENUM_PROCESS_LIST request;
 
+    EtpInitializeD3DKMTFunctions();
+
+    if (!D3DKMTEnumProcesses_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
     memset(&request, 0, sizeof(D3DKMT_ENUM_PROCESS_LIST));
     request.AdapterLuid = AdapterLuid;
-    request.ProcessIdCount = (ULONG)(BufferLength / sizeof(ULONG));
+    request.ProcessIdCount = BufferLength / sizeof(ULONG);
     request.ProcessIdBuffer = Buffer;
 
-    status = D3DKMTEnumProcesses(&request);
+    status = D3DKMTEnumProcesses_I(&request);
 
     if (NT_SUCCESS(status) || status == STATUS_BUFFER_TOO_SMALL)
     {
@@ -909,6 +942,7 @@ NTSTATUS EtAdapterEnumProcessListToBuffer(
 
 NTSTATUS EtAdapterGetProcessList(
     _In_ LUID AdapterLuid,
+    _In_ SIZE_T PreviousProcessCount,
     _Outptr_result_buffer_(*ProcessCount) PHANDLE* ProcessHandles,
     _Out_ PSIZE_T ProcessCount
     )
@@ -917,36 +951,55 @@ NTSTATUS EtAdapterGetProcessList(
     PHANDLE buffer;
     SIZE_T bufferLength;
     SIZE_T returnLength;
+    ULONG attempts;
 
     *ProcessHandles = NULL;
     *ProcessCount = 0;
 
-    status = EtAdapterGetProcessListToBuffer(AdapterLuid, NULL, 0, &returnLength);
+    returnLength = PreviousProcessCount * sizeof(HANDLE);
 
-    if (status != STATUS_BUFFER_TOO_SMALL)
-        return status;
+    if (!returnLength)
+    {
+        status = EtAdapterGetProcessListToBuffer(AdapterLuid, NULL, 0, &returnLength);
+
+        if (status != STATUS_BUFFER_TOO_SMALL)
+            return status;
+    }
 
     bufferLength = returnLength;
-    buffer = (PHANDLE)PhAllocateSafe(bufferLength);
-    if (!buffer) return STATUS_NO_MEMORY;
+    buffer = NULL;
 
-    status = EtAdapterGetProcessListToBuffer(AdapterLuid, buffer, bufferLength, &returnLength);
+    for (attempts = 0; attempts < 8; attempts++)
+    {
+        if (buffer) PhFree(buffer);
+        buffer = (PHANDLE)PhAllocateSafe(bufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
-    if (NT_SUCCESS(status))
-    {
-        *ProcessHandles = buffer;
-        *ProcessCount = bufferLength;
+        status = EtAdapterGetProcessListToBuffer(AdapterLuid, buffer, bufferLength, &returnLength);
+
+        if (status != STATUS_BUFFER_TOO_SMALL)
+            break;
+
+        bufferLength = returnLength;
     }
-    else
+
+    if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        if (buffer)
+            PhFree(buffer);
+
+        return status;
     }
+
+    *ProcessHandles = buffer;
+    *ProcessCount = returnLength / sizeof(HANDLE);
 
     return status;
 }
 
 NTSTATUS EtAdapterEnumProcessList(
     _In_ LUID AdapterLuid,
+    _In_ SIZE_T PreviousProcessCount,
     _Outptr_result_buffer_(*ProcessCount) PULONG* ProcessIds,
     _Out_ PSIZE_T ProcessCount
     )
@@ -955,37 +1008,51 @@ NTSTATUS EtAdapterEnumProcessList(
     PULONG buffer;
     SIZE_T bufferLength;
     SIZE_T returnLength;
+    ULONG attempts;
 
     *ProcessIds = NULL;
     *ProcessCount = 0;
 
-    status = EtAdapterEnumProcessListToBuffer(AdapterLuid, NULL, 0, &returnLength);
+    returnLength = PreviousProcessCount * sizeof(ULONG);
 
-    if (status != STATUS_BUFFER_TOO_SMALL)
-        return status;
+    if (!returnLength)
+    {
+        status = EtAdapterEnumProcessListToBuffer(AdapterLuid, NULL, 0, &returnLength);
+
+        if (status != STATUS_BUFFER_TOO_SMALL)
+            return status;
+    }
 
     bufferLength = returnLength;
-    buffer = (PULONG)PhAllocateSafe(bufferLength);
-    if (!buffer) return STATUS_NO_MEMORY;
+    buffer = NULL;
 
-    status = EtAdapterEnumProcessListToBuffer(AdapterLuid, buffer, bufferLength, &returnLength);
+    for (attempts = 0; attempts < 8; attempts++)
+    {
+        if (buffer) PhFree(buffer);
+        buffer = (PULONG)PhAllocateSafe(bufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
-    if (NT_SUCCESS(status))
-    {
-        *ProcessIds = buffer;
-        *ProcessCount = bufferLength;
+        status = EtAdapterEnumProcessListToBuffer(AdapterLuid, buffer, bufferLength, &returnLength);
+
+        if (status != STATUS_BUFFER_TOO_SMALL)
+            break;
+
+        bufferLength = returnLength;
     }
-    else
+
+    if (!NT_SUCCESS(status))
     {
-        PhFree(buffer);
+        if (buffer)
+            PhFree(buffer);
+
+        return status;
     }
+
+    *ProcessIds = buffer;
+    *ProcessCount = returnLength / sizeof(ULONG);
 
     return status;
 }
-
-
-
-PPH_LIST EtpDiscoveredAdapterList = NULL;
 
 FORCEINLINE CONST PPH_STRING EtGetDeviceInstanceIdFromDeviceObject(
     _In_ const DEV_OBJECT* Object
@@ -1000,7 +1067,10 @@ FORCEINLINE CONST PPH_STRING EtGetDeviceInstanceIdFromDeviceObject(
         Object->pProperties
         );
 
-    if (instanceIdProperty && instanceIdProperty->Type == DEVPROP_TYPE_STRING && instanceIdProperty->Buffer && instanceIdProperty->BufferSize >= sizeof(UNICODE_NULL))
+    if (
+        instanceIdProperty && instanceIdProperty->Type == DEVPROP_TYPE_STRING &&
+        instanceIdProperty->Buffer && instanceIdProperty->BufferSize >= sizeof(UNICODE_NULL)
+        )
     {
         PPH_STRING normalizedPath;
 
@@ -1015,104 +1085,82 @@ FORCEINLINE CONST PPH_STRING EtGetDeviceInstanceIdFromDeviceObject(
     return NULL;
 }
 
-// {026e516e-b814-414b-83cd-856d6fef4822}, 4
-DEFINE_DEVPROPKEY(DEVPKEY_DeviceInterface_Path, 0x026e516e, 0xb814, 0x414b, 0x83, 0xcd, 0x85, 0x6d, 0x6f, 0xef, 0x48, 0x22, 4);
-
 PPH_STRING EtGetDeviceInterfaceFromLuid(
     _In_ PLUID AdapterLuid
     )
 {
-    //PPH_STRING deviceInterface = NULL;
-    //ULONG deviceCount = 0;
-    //PDEV_OBJECT deviceObjects = NULL;
-    //DEVPROPCOMPKEY deviceProperties[2];
-    //DEVPROP_FILTER_EXPRESSION deviceFilter[1];
-    //DEVPROPERTY deviceFilterProperty;
-    //DEVPROPCOMPKEY deviceFilterCompoundProp;
+    PPH_STRING deviceInterface = NULL;
+    ULONG deviceCount = 0;
+    PDEV_OBJECT deviceObjects = NULL;
+    const DEVPROPCOMPKEY deviceProperties[] =
+    {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_DeviceInterface_ClassGuid, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Gpu_Luid, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    const DEVPROP_FILTER_EXPRESSION deviceFilter[] =
+    {
+        { DEVPROP_OPERATOR_EQUALS, { { DEVPKEY_Gpu_Luid, DEVPROP_STORE_SYSTEM, NULL }, DEVPROP_TYPE_UINT64, sizeof(LUID), AdapterLuid } }
+    };
 
-    //memset(deviceProperties, 0, sizeof(deviceProperties));
-    //deviceProperties[0].Key = DEVPKEY_Device_InstanceId;
-    //deviceProperties[0].Store = DEVPROP_STORE_SYSTEM;
-    //deviceProperties[1].Key = DEVPKEY_DeviceInterface_Path;
-    //deviceProperties[1].Store = DEVPROP_STORE_SYSTEM;
+    if (HR_SUCCESS(PhDevGetObjects(
+        DevObjectTypeDeviceInterface,
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        RTL_NUMBER_OF(deviceFilter),
+        deviceFilter,
+        &deviceCount,
+        &deviceObjects
+        )))
+    {
+        for (ULONG i = 0; i < deviceCount; i++)
+        {
+            PDEV_OBJECT device = &deviceObjects[i];
+            const DEVPROPERTY* classGuidProperty;
+            const DEVPROPERTY* luidProperty;
 
-    //memset(&deviceFilterCompoundProp, 0, sizeof(deviceFilterCompoundProp));
-    //deviceFilterCompoundProp.Key = DEVPKEY_Gpu_Luid;
-    //deviceFilterCompoundProp.Store = DEVPROP_STORE_SYSTEM;
-    //deviceFilterCompoundProp.LocaleName = NULL;
+            classGuidProperty = PhDevFindProperty(
+                &DEVPKEY_DeviceInterface_ClassGuid,
+                DEVPROP_STORE_SYSTEM,
+                device->cPropertyCount,
+                device->pProperties
+                );
 
-    //memset(&deviceFilterProperty, 0, sizeof(deviceFilterProperty));
-    //deviceFilterProperty.CompKey = deviceFilterCompoundProp;
-    //deviceFilterProperty.Type = DEVPROP_TYPE_UINT64;
-    //deviceFilterProperty.BufferSize = sizeof(LUID);
-    //deviceFilterProperty.Buffer = AdapterLuid;
+            luidProperty = PhDevFindProperty(
+                &DEVPKEY_Gpu_Luid,
+                DEVPROP_STORE_SYSTEM,
+                device->cPropertyCount,
+                device->pProperties
+                );
 
-    //memset(deviceFilter, 0, sizeof(deviceFilter));
-    //deviceFilter[0].Operator = DEVPROP_OPERATOR_EQUALS;
-    //deviceFilter[0].Property = deviceFilterProperty;
+            if (!luidProperty || luidProperty->Type != DEVPROP_TYPE_UINT64 || !luidProperty->Buffer || luidProperty->BufferSize != sizeof(LUID))
+                continue;
 
-    //if (HR_SUCCESS(PhDevGetObjects(
-    //    DevObjectTypeDevice,
-    //    DevQueryFlagNone,
-    //    RTL_NUMBER_OF(deviceProperties),
-    //    deviceProperties,
-    //    RTL_NUMBER_OF(deviceFilter),
-    //    deviceFilter,
-    //    &deviceCount,
-    //    &deviceObjects
-    //    )))
-    //{
-    //    for (ULONG i = 0; i < deviceCount; i++)
-    //    {
-    //        const DEV_OBJECT* object = &deviceObjects[i];
-    //        PWSTR devices1 = object->pProperties[0].Buffer;
-    //        PWSTR devices2 = object->pProperties[1].Buffer;
+            if (!RtlIsEqualLuid((PLUID)luidProperty->Buffer, AdapterLuid))
+                continue;
 
-    //        PPH_STRING instanceIdProperty;
+            if (!classGuidProperty || classGuidProperty->Type != DEVPROP_TYPE_GUID || !classGuidProperty->Buffer || classGuidProperty->BufferSize != sizeof(GUID))
+                continue;
 
-    //        if (instanceIdProperty = EtGetDeviceInstanceIdFromDeviceObject(object))
-    //        {
-    //            ULONG devicePropertyCount = 0;
-    //            const DEVPROPERTY* devicePropertiesList = NULL;
+            if (
+                !RtlEqualMemory(classGuidProperty->Buffer, &GUID_DISPLAY_DEVICE_ARRIVAL, sizeof(GUID)) &&
+                !RtlEqualMemory(classGuidProperty->Buffer, &GUID_COMPUTE_DEVICE_ARRIVAL, sizeof(GUID))
+                )
+                continue;
 
-    //            DEVPROPCOMPKEY propertyKeys[1];
-    //            propertyKeys[0].Key = DEVPKEY_DeviceInterface_Path;
-    //            propertyKeys[0].Store = DEVPROP_STORE_SYSTEM;
+            deviceInterface = PhCreateString(device->pszObjectId);
+            break;
+        }
 
-    //            if (HR_SUCCESS(PhDevGetObjectProperties(
-    //                DevObjectTypeDeviceInterface,
-    //                instanceIdProperty->Buffer,
-    //                DevQueryFlagAllProperties,
-    //                RTL_NUMBER_OF(propertyKeys),
-    //                propertyKeys,
-    //                &devicePropertyCount,
-    //                &devicePropertiesList
-    //                )))
-    //            {
-    //                for (ULONG j = 0; j < devicePropertyCount; j++)
-    //                {
-    //                    if (devicePropertiesList[j].Type == DEVPROP_TYPE_STRING &&
-    //                        devicePropertiesList[j].Buffer &&
-    //                        devicePropertiesList[j].BufferSize >= sizeof(UNICODE_NULL))
-    //                    {
-    //                        deviceInterface = PhCreateString((PWSTR)devicePropertiesList[j].Buffer);
-    //                        break;
-    //                    }
-    //                }
+        PhDevFreeObjects(deviceCount, deviceObjects);
+    }
 
-    //                PhDevFreeObjectProperties(devicePropertyCount, devicePropertiesList);
-    //            }
-    //        }
-    //    }
-
-    //    PhDevFreeObjects(deviceCount, deviceObjects);
-    //}
-
-   // return deviceInterface;
-    return NULL;
+    return deviceInterface;
 }
 
 static VOID EtpAddDiscoveredAdapter(
+    _In_ PPH_LIST AdapterList,
     _In_ D3DKMT_HANDLE AdapterHandle,
     _In_ LUID AdapterLuid,
     _In_opt_ PPH_STRING DeviceInterface
@@ -1121,9 +1169,9 @@ static VOID EtpAddDiscoveredAdapter(
     PET_DISCOVERED_ADAPTER entry;
     PPH_STRING deviceInterface = DeviceInterface;
 
-    for (ULONG i = 0; i < EtpDiscoveredAdapterList->Count; i++)
+    for (ULONG i = 0; i < AdapterList->Count; i++)
     {
-        entry = EtpDiscoveredAdapterList->Items[i];
+        entry = AdapterList->Items[i];
 
         if (RtlIsEqualLuid(&entry->AdapterLuid, &AdapterLuid))
         {
@@ -1151,7 +1199,7 @@ static VOID EtpAddDiscoveredAdapter(
 
     if (NT_SUCCESS(EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes)))
     {
-        PhAddItemList(EtpDiscoveredAdapterList, entry);
+        PhAddItemList(AdapterList, entry);
     }
     else
     {
@@ -1162,14 +1210,13 @@ static VOID EtpAddDiscoveredAdapter(
     }
 }
 
-VOID EtInitializeGraphicsAdapters(
+PPH_LIST EtInitializeGraphicsAdapters(
     VOID
     )
 {
-    if (EtpDiscoveredAdapterList)
-        return;
+    PPH_LIST graphicsAdapterList;
 
-    EtpDiscoveredAdapterList = PhCreateList(10);
+    graphicsAdapterList = PhCreateList(10);
 
     // 1. Primary Enumeration: D3DKMTEnumAdapters3 (Win10 2004+)
     if (EtWindowsVersion >= WINDOWS_10_20H1)
@@ -1178,8 +1225,8 @@ VOID EtInitializeGraphicsAdapters(
 
         if (!EtpD3DKMTEnumAdapters3)
         {
-            PVOID gdi32 = GetModuleHandle(L"gdi32.dll");
-            if (gdi32) EtpD3DKMTEnumAdapters3 = (PFND3DKMT_ENUMADAPTERS3)GetProcAddress(gdi32, "D3DKMTEnumAdapters3");
+            PVOID gdi32 = PhGetDllHandle(L"gdi32.dll");
+            if (gdi32) EtpD3DKMTEnumAdapters3 = PhGetProcedureAddressT(gdi32, D3DKMTEnumAdapters3);
         }
 
         if (EtpD3DKMTEnumAdapters3)
@@ -1192,14 +1239,16 @@ VOID EtInitializeGraphicsAdapters(
 
             if (NT_SUCCESS(EtpD3DKMTEnumAdapters3(&enumAdapters)) && enumAdapters.NumAdapters > 0)
             {
-                D3DKMT_ADAPTERINFO* adapters = PhAllocateZero(sizeof(D3DKMT_ADAPTERINFO) * enumAdapters.NumAdapters);
+                D3DKMT_ADAPTERINFO* adapters;
+
+                adapters = PhAllocateZero(sizeof(D3DKMT_ADAPTERINFO) * enumAdapters.NumAdapters);
                 enumAdapters.pAdapters = adapters;
 
                 if (NT_SUCCESS(EtpD3DKMTEnumAdapters3(&enumAdapters)))
                 {
                     for (ULONG i = 0; i < enumAdapters.NumAdapters; i++)
                     {
-                        EtpAddDiscoveredAdapter(adapters[i].hAdapter, adapters[i].AdapterLuid, NULL);
+                        EtpAddDiscoveredAdapter(graphicsAdapterList, adapters[i].hAdapter, adapters[i].AdapterLuid, NULL);
                     }
                 }
 
@@ -1263,15 +1312,17 @@ VOID EtInitializeGraphicsAdapters(
 
                 if (NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, device->pszObjectId)))
                 {
-                    EtpAddDiscoveredAdapter(adapterHandle, adapterLuid, PhCreateString(device->pszObjectId));
+                    EtpAddDiscoveredAdapter(graphicsAdapterList, adapterHandle, adapterLuid, PhCreateString(device->pszObjectId));
                 }
             }
+
             PhDevFreeObjects(deviceCount, deviceObjects);
         }
         else
         {
             // Legacy CM_Get_Device_Interface_List fallback
             PGUID GUIDs[] = { (PGUID)&GUID_DISPLAY_DEVICE_ARRIVAL, (PGUID)&GUID_COMPUTE_DEVICE_ARRIVAL };
+
             for (ULONG i = 0; i < 2; i++)
             {
                 PWSTR deviceInterfaceList;
@@ -1286,6 +1337,7 @@ VOID EtInitializeGraphicsAdapters(
                     ) == CR_SUCCESS)
                 {
                     deviceInterfaceList = PhAllocate(deviceInterfaceListLength * sizeof(WCHAR));
+
                     if (CM_Get_Device_Interface_List(
                         GUIDs[i],
                         NULL,
@@ -1295,48 +1347,62 @@ VOID EtInitializeGraphicsAdapters(
                         ) == CR_SUCCESS)
                     {
                         deviceInterface = deviceInterfaceList;
+
                         while (*deviceInterface)
                         {
                             PH_STRINGREF string;
 
                             PhInitializeStringRefLongHint(&string, deviceInterface);
+
                             if (string.Length > 0)
                             {
                                 D3DKMT_HANDLE adapterHandle;
                                 LUID adapterLuid;
+
                                 if (NT_SUCCESS(EtOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, deviceInterface)))
                                 {
-                                    EtpAddDiscoveredAdapter(adapterHandle, adapterLuid, PhCreateString2(&string));
+                                    EtpAddDiscoveredAdapter(graphicsAdapterList, adapterHandle, adapterLuid, PhCreateString2(&string));
                                 }
                             }
+
                             deviceInterface = PTR_ADD_OFFSET(deviceInterface, string.Length + sizeof(UNICODE_NULL));
                         }
                     }
+
                     PhFree(deviceInterfaceList);
                 }
             }
         }
     }
+
+    return graphicsAdapterList;
 }
 
 VOID EtUninitializeGraphicsAdapters(
-    VOID
+    _In_ PPH_LIST AdapterList
     )
 {
-    if (EtpDiscoveredAdapterList)
+    if (AdapterList)
     {
-        for (ULONG i = 0; i < EtpDiscoveredAdapterList->Count; i++)
+        for (ULONG i = 0; i < AdapterList->Count; i++)
         {
-            PET_DISCOVERED_ADAPTER entry = EtpDiscoveredAdapterList->Items[i];
+            PET_DISCOVERED_ADAPTER entry = AdapterList->Items[i];
 
             if (entry->AdapterHandle)
+            {
                 EtCloseAdapterHandle(entry->AdapterHandle);
+                entry->AdapterHandle = 0;
+            }
+
             if (entry->DeviceInterface)
+            {
                 PhDereferenceObject(entry->DeviceInterface);
+                entry->DeviceInterface = NULL;
+            }
+
             PhFree(entry);
         }
 
-        PhDereferenceObject(EtpDiscoveredAdapterList);
-        EtpDiscoveredAdapterList = NULL;
+        PhDereferenceObject(AdapterList);
     }
 }

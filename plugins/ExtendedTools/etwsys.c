@@ -18,6 +18,7 @@ static PPH_SYSINFO_SECTION DiskSection;
 static HWND DiskDialog;
 static PH_LAYOUT_MANAGER DiskLayoutManager;
 static RECT DiskGraphMargin;
+static RECT DiskGraphMarginScaled;
 static HWND DiskReadGraphHandle;
 static HWND DiskWriteGraphHandle;
 static PH_GRAPH_STATE DiskReadGraphState;
@@ -32,6 +33,7 @@ static PPH_SYSINFO_SECTION NetworkSection;
 static HWND NetworkDialog;
 static PH_LAYOUT_MANAGER NetworkLayoutManager;
 static RECT NetworkGraphMargin;
+static RECT NetworkGraphMarginScaled;
 static HWND NetworkReceiveGraphHandle;
 static HWND NetworkSendGraphHandle;
 static PH_GRAPH_STATE NetworkReceiveGraphState;
@@ -42,6 +44,29 @@ static HWND NetworkPanelReceiveBytesDeltaLabel;
 static HWND NetworkPanelSendsDeltaLabel;
 static HWND NetworkPanelSendBytesDeltaLabel;
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpDiskGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpNetworkGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
+/**
+ * Initializes the ETW system information sections.
+ *
+ * \param Pointers Plugin system information pointers.
+ */
 VOID EtEtwSystemInformationInitializing(
     _In_ PPH_PLUGIN_SYSINFO_POINTERS Pointers
     )
@@ -63,6 +88,15 @@ VOID EtEtwSystemInformationInitializing(
     NetworkSection = Pointers->CreateSection(&section);
 }
 
+/**
+ * Callback for the Disk system information section.
+ *
+ * \param Section The system information section.
+ * \param Message The message code.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpDiskSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -231,6 +265,9 @@ BOOLEAN EtpDiskSysInfoSectionCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the disk dialog state.
+ */
 VOID EtpInitializeDiskDialog(
     VOID
     )
@@ -239,6 +276,9 @@ VOID EtpInitializeDiskDialog(
     PhInitializeGraphState(&DiskWriteGraphState);
 }
 
+/**
+ * Uninitializes the disk dialog state.
+ */
 VOID EtpUninitializeDiskDialog(
     VOID
     )
@@ -251,6 +291,9 @@ VOID EtpUninitializeDiskDialog(
     DiskWriteGraphHandle = NULL;
 }
 
+/**
+ * Processes a tick for the disk dialog.
+ */
 VOID EtpTickDiskDialog(
     VOID
     )
@@ -259,6 +302,15 @@ VOID EtpTickDiskDialog(
     EtpUpdateDiskPanel();
 }
 
+/**
+ * Dialog procedure for the Disk system information tab.
+ *
+ * \param WindowHandle The window handle.
+ * \param WindowMessage The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR.
+ */
 INT_PTR CALLBACK EtpDiskDialogProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -281,6 +333,8 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             graphItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             DiskGraphMargin = graphItem->Margin;
+            DiskGraphMarginScaled = DiskGraphMargin;
+            PhGetMarginDpiValue(&DiskGraphMarginScaled, DiskSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
 
@@ -303,6 +357,9 @@ INT_PTR CALLBACK EtpDiskDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            DiskGraphMarginScaled = DiskGraphMargin;
+            PhGetMarginDpiValue(&DiskGraphMarginScaled, DiskSection->Parameters->WindowDpi, TRUE);
+
             if (DiskSection->Parameters->LargeFont)
             {
                 SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
@@ -356,6 +413,15 @@ INT_PTR CALLBACK EtpDiskDialogProc(
     return FALSE;
 }
 
+/**
+ * Dialog procedure for the Disk system information panel.
+ *
+ * \param WindowHandle The window handle.
+ * \param WindowMessage The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR.
+ */
 INT_PTR CALLBACK EtpDiskPanelDialogProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -384,6 +450,9 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
     return FALSE;
 }
 
+/**
+ * Creates the graphs for the disk dialog.
+ */
 VOID EtpCreateDiskGraph(
     VOID
     )
@@ -419,6 +488,11 @@ VOID EtpCreateDiskGraph(
     Graph_SetTooltip(DiskWriteGraphHandle, TRUE);
 }
 
+/**
+ * Lays out the graphs within the disk dialog.
+ *
+ * \param WindowHandle The disk dialog window handle.
+ */
 VOID EtpLayoutDiskGraphs(
     _In_ HWND WindowHandle
     )
@@ -432,8 +506,7 @@ VOID EtpLayoutDiskGraphs(
     LONG y;
     LONG graphPadding;
 
-    marginRect = DiskGraphMargin;
-    PhGetMarginDpiValue(&marginRect, DiskSection->Parameters->WindowDpi, TRUE);
+    marginRect = DiskGraphMarginScaled;
     graphPadding = PhScaleToDisplay(GRAPH_PADDING, DiskSection->Parameters->WindowDpi);
 
     PhGetClientRect(WindowHandle, &clientRect);
@@ -494,6 +567,11 @@ VOID EtpLayoutDiskGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+/**
+ * Handles notifications for the disk read graph.
+ *
+ * \param Header The notification header.
+ */
 VOID EtpNotifyDiskReadGraph(
     _In_ NMHDR *Header
     )
@@ -614,6 +692,11 @@ VOID EtpNotifyDiskReadGraph(
     }
 }
 
+/**
+ * Handles notifications for the disk write graph.
+ *
+ * \param Header The notification header.
+ */
 VOID EtpNotifyDiskWriteGraph(
     _In_ NMHDR *Header
     )
@@ -734,6 +817,9 @@ VOID EtpNotifyDiskWriteGraph(
     }
 }
 
+/**
+ * Updates the disk graphs.
+ */
 VOID EtpUpdateDiskGraph(
     VOID
     )
@@ -747,6 +833,9 @@ VOID EtpUpdateDiskGraph(
     Graph_Update(DiskWriteGraphHandle);
 }
 
+/**
+ * Updates the disk panel with current statistics.
+ */
 VOID EtpUpdateDiskPanel(
     VOID
     )
@@ -783,6 +872,12 @@ VOID EtpUpdateDiskPanel(
         PhSetWindowText(DiskPanelWriteBytesDeltaLabel, PhaFormatSize(EtDiskWriteDelta.Delta, ULONG_MAX)->Buffer);
 }
 
+/**
+ * References the process record with the maximum disk usage at a given index.
+ *
+ * \param Index The history index.
+ * \return A pointer to the process record, or NULL if not found.
+ */
 PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
     _In_ LONG Index
     )
@@ -801,6 +896,12 @@ PPH_PROCESS_RECORD EtpReferenceMaxDiskRecord(
     return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
+/**
+ * Retrieves a string describing the process with maximum disk usage at a given index.
+ *
+ * \param Index The history index.
+ * \return A pointer to the usage string.
+ */
 PPH_STRING EtpGetMaxDiskString(
     _In_ LONG Index
     )
@@ -846,6 +947,15 @@ PPH_STRING EtpGetMaxDiskString(
     return PhReferenceEmptyString();
 }
 
+/**
+ * Callback for the Network system information section.
+ *
+ * \param Section The system information section.
+ * \param Message The message code.
+ * \param Parameter1 Message-specific parameter.
+ * \param Parameter2 Message-specific parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_SYSINFO_SECTION_CALLBACK)
 BOOLEAN EtpNetworkSysInfoSectionCallback(
     _In_ PPH_SYSINFO_SECTION Section,
@@ -991,6 +1101,9 @@ BOOLEAN EtpNetworkSysInfoSectionCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the network dialog state.
+ */
 VOID EtpInitializeNetworkDialog(
     VOID
     )
@@ -999,6 +1112,9 @@ VOID EtpInitializeNetworkDialog(
     PhInitializeGraphState(&NetworkSendGraphState);
 }
 
+/**
+ * Uninitializes the network dialog state.
+ */
 VOID EtpUninitializeNetworkDialog(
     VOID
     )
@@ -1011,6 +1127,9 @@ VOID EtpUninitializeNetworkDialog(
     DiskWriteGraphHandle = NULL;
 }
 
+/**
+ * Processes a tick for the network dialog.
+ */
 VOID EtpTickNetworkDialog(
     VOID
     )
@@ -1019,6 +1138,15 @@ VOID EtpTickNetworkDialog(
     EtpUpdateNetworkPanel();
 }
 
+/**
+ * Dialog procedure for the Network system information tab.
+ *
+ * \param WindowHandle The window handle.
+ * \param WindowMessage The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR.
+ */
 INT_PTR CALLBACK EtpNetworkDialogProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -1041,6 +1169,8 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             graphItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             NetworkGraphMargin = graphItem->Margin;
+            NetworkGraphMarginScaled = NetworkGraphMargin;
+            PhGetMarginDpiValue(&NetworkGraphMarginScaled, NetworkSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), NetworkSection->Parameters->LargeFont, FALSE);
 
@@ -1063,6 +1193,9 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            NetworkGraphMarginScaled = NetworkGraphMargin;
+            PhGetMarginDpiValue(&NetworkGraphMarginScaled, NetworkSection->Parameters->WindowDpi, TRUE);
+
             if (DiskSection->Parameters->LargeFont)
             {
                 SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
@@ -1116,6 +1249,15 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
     return FALSE;
 }
 
+/**
+ * Dialog procedure for the Network system information panel.
+ *
+ * \param WindowHandle The window handle.
+ * \param WindowMessage The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR.
+ */
 INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -1144,6 +1286,9 @@ INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     return FALSE;
 }
 
+/**
+ * Creates the graphs for the network dialog.
+ */
 VOID EtpCreateNetworkGraph(
     VOID
     )
@@ -1179,6 +1324,11 @@ VOID EtpCreateNetworkGraph(
     Graph_SetTooltip(NetworkSendGraphHandle, TRUE);
 }
 
+/**
+ * Lays out the graphs within the network dialog.
+ *
+ * \param WindowHandle The network dialog window handle.
+ */
 VOID EtpLayoutNetworkGraphs(
     _In_ HWND WindowHandle
     )
@@ -1192,8 +1342,7 @@ VOID EtpLayoutNetworkGraphs(
     LONG y;
     LONG graphPadding;
 
-    marginRect = NetworkGraphMargin;
-    PhGetMarginDpiValue(&marginRect, NetworkSection->Parameters->WindowDpi, TRUE);
+    marginRect = NetworkGraphMarginScaled;
     graphPadding = PhScaleToDisplay(GRAPH_PADDING, NetworkSection->Parameters->WindowDpi);
 
     PhGetClientRect(WindowHandle, &clientRect);
@@ -1254,6 +1403,11 @@ VOID EtpLayoutNetworkGraphs(
     EndDeferWindowPos(deferHandle);
 }
 
+/**
+ * Handles notifications for the network receive graph.
+ *
+ * \param Header The notification header.
+ */
 VOID EtpNotifyNetworkReceiveGraph(
     _In_ NMHDR *Header
     )
@@ -1377,6 +1531,11 @@ VOID EtpNotifyNetworkReceiveGraph(
     }
 }
 
+/**
+ * Handles notifications for the network send graph.
+ *
+ * \param Header The notification header.
+ */
 VOID EtpNotifyNetworkSendGraph(
     _In_ NMHDR *Header
     )
@@ -1499,6 +1658,9 @@ VOID EtpNotifyNetworkSendGraph(
     }
 }
 
+/**
+ * Updates the network graphs.
+ */
 VOID EtpUpdateNetworkGraph(
     VOID
     )
@@ -1512,6 +1674,9 @@ VOID EtpUpdateNetworkGraph(
     Graph_Update(NetworkSendGraphHandle);
 }
 
+/**
+ * Updates the network panel with current statistics.
+ */
 VOID EtpUpdateNetworkPanel(
     VOID
     )
@@ -1548,6 +1713,12 @@ VOID EtpUpdateNetworkPanel(
         PhSetWindowText(NetworkPanelSendBytesDeltaLabel, PhaFormatSize(EtNetworkSendDelta.Delta, ULONG_MAX)->Buffer);
 }
 
+/**
+ * References the process record with the maximum network usage at a given index.
+ *
+ * \param Index The history index.
+ * \return A pointer to the process record, or NULL if not found.
+ */
 PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
     _In_ LONG Index
     )
@@ -1566,6 +1737,12 @@ PPH_PROCESS_RECORD EtpReferenceMaxNetworkRecord(
     return PhFindProcessRecord(UlongToHandle(maxProcessId), &time);
 }
 
+/**
+ * Retrieves a string describing the process with maximum network usage at a given index.
+ *
+ * \param Index The history index.
+ * \return A pointer to the usage string.
+ */
 PPH_STRING EtpGetMaxNetworkString(
     _In_ LONG Index
     )
@@ -1611,3 +1788,4 @@ PPH_STRING EtpGetMaxNetworkString(
 
     return PhReferenceEmptyString();
 }
+

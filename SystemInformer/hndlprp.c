@@ -1197,7 +1197,8 @@ VOID PhpUpdateHandleGeneral(
                 Context->HandleItem->Handle,
                 FileModeInformation,
                 &fileModeInfo,
-                sizeof(FILE_MODE_INFORMATION)
+                sizeof(FILE_MODE_INFORMATION),
+                NULL
                 )))
             {
                 PH_FORMAT format[5];
@@ -1233,7 +1234,8 @@ VOID PhpUpdateHandleGeneral(
                     Context->HandleItem->Handle,
                     FileStandardInformation,
                     &fileStandardInfo,
-                    sizeof(FILE_STANDARD_INFORMATION)
+                    sizeof(FILE_STANDARD_INFORMATION),
+                    NULL
                     )))
                 {
                     PH_FORMAT format[1];
@@ -1259,7 +1261,8 @@ VOID PhpUpdateHandleGeneral(
                     Context->HandleItem->Handle,
                     FilePositionInformation,
                     &filePositionInfo,
-                    sizeof(FILE_POSITION_INFORMATION)
+                    sizeof(FILE_POSITION_INFORMATION),
+                    NULL
                     )))
                 {
                     if (filePositionInfo.CurrentByteOffset.QuadPart != 0 && fileStandardInfo.EndOfFile.QuadPart != 0)
@@ -1297,7 +1300,8 @@ VOID PhpUpdateHandleGeneral(
                 Context->HandleItem->Handle,
                 FileIoPriorityHintInformation,
                 &priorityInfo,
-                sizeof(priorityInfo)
+                sizeof(priorityInfo),
+                NULL
                 )))
             {
                 switch (priorityInfo.PriorityHint)
@@ -1489,7 +1493,8 @@ VOID PhpUpdateHandleGeneral(
                     fileHandle,
                     FileModeInformation,
                     &fileModeInfo,
-                    sizeof(FILE_MODE_INFORMATION)
+                    sizeof(FILE_MODE_INFORMATION),
+                    NULL
                     )))
                 {
                     PH_FORMAT format[5];
@@ -1524,7 +1529,8 @@ VOID PhpUpdateHandleGeneral(
                         fileHandle,
                         FileStandardInformation,
                         &fileStandardInfo,
-                        sizeof(FILE_STANDARD_INFORMATION)
+                        sizeof(FILE_STANDARD_INFORMATION),
+                        NULL
                         )))
                     {
                         PH_FORMAT format[1];
@@ -1549,7 +1555,8 @@ VOID PhpUpdateHandleGeneral(
                         fileHandle,
                         FilePositionInformation,
                         &filePositionInfo,
-                        sizeof(FILE_POSITION_INFORMATION)
+                        sizeof(FILE_POSITION_INFORMATION),
+                        NULL
                         )))
                     {
                         if (fileStandardInfo.EndOfFile.QuadPart != 0)
@@ -1587,7 +1594,8 @@ VOID PhpUpdateHandleGeneral(
                     fileHandle,
                     FileIoPriorityHintInformation,
                     &priorityInfo,
-                    sizeof(priorityInfo)
+                    sizeof(priorityInfo),
+                    NULL
                     )))
                 {
                     switch (priorityInfo.PriorityHint)
@@ -2225,9 +2233,7 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -2265,9 +2271,9 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
 
-                PhFree(listviewItems);
+                    PhFree(listviewItems);
+                }
             }
         }
         break;
@@ -3103,9 +3109,7 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -3143,9 +3147,9 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
 
-                PhFree(listviewItems);
+                    PhFree(listviewItems);
+                }
             }
         }
         break;
@@ -3274,9 +3278,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -3315,9 +3317,8 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
         HANDLE_MSG(hwndDlg, WM_CTLCOLORBTN, PhWindowThemeControlColor);
@@ -3327,3 +3328,4 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
 
     return FALSE;
 }
+

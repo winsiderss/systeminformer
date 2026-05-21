@@ -2209,9 +2209,7 @@ INT_PTR CALLBACK PhpTokenPageProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(tokenPageContext->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(tokenPageContext->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     BOOLEAN hasMixedCategories = FALSE;
                     BOOLEAN hasRemovedItems = FALSE;
@@ -2315,9 +2313,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -2930,9 +2927,7 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -2971,9 +2966,8 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
     }
@@ -4626,9 +4620,7 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -4667,9 +4659,8 @@ INT_PTR CALLBACK PhpTokenContainerPageProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
     }
@@ -6223,3 +6214,4 @@ INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
 
     return FALSE;
 }
+

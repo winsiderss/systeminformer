@@ -13,18 +13,33 @@
 #include "exttools.h"
 #include "etwmon.h"
 
+/**
+ * Callback for process provider updates.
+ *
+ * \param Parameter The update event parameters.
+ * \param Context Unused.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+/**
+ * Callback for network item provider updates.
+ *
+ * \param Parameter The update event parameters.
+ * \param Context Unused.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtEtwNetworkItemsUpdatedCallback(
     _In_opt_ PVOID Parameter,
     _In_opt_ PVOID Context
     );
 
+/**
+ * Updates the internal process information cache.
+ */
 VOID EtpUpdateProcessInformation(
     VOID
     );
@@ -74,6 +89,9 @@ PH_CIRCULAR_BUFFER_ULONG64 PhMaxDiskUsageHistory;
 PH_CIRCULAR_BUFFER_ULONG64 PhMaxNetworkUsageHistory;
 #endif
 
+/**
+ * Initializes ETW statistics collection.
+ */
 VOID EtEtwStatisticsInitialization(
     VOID
     )
@@ -117,6 +135,9 @@ VOID EtEtwStatisticsInitialization(
     }
 }
 
+/**
+ * Uninitializes ETW statistics collection.
+ */
 VOID EtEtwStatisticsUninitialization(
     VOID
     )
@@ -124,6 +145,12 @@ VOID EtEtwStatisticsUninitialization(
     EtEtwMonitorUninitialization();
 }
 
+
+/**
+ * Processes a disk I/O event and updates statistics.
+ *
+ * \param Event The disk I/O event.
+ */
 VOID EtProcessDiskEvent(
     _In_ PET_ETW_DISK_EVENT Event
     )
@@ -161,6 +188,11 @@ VOID EtProcessDiskEvent(
     }
 }
 
+/**
+ * Processes a network event and updates statistics.
+ *
+ * \param Event The network event.
+ */
 VOID EtProcessNetworkEvent(
     _In_ PET_ETW_NETWORK_EVENT Event
     )
@@ -362,8 +394,6 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             block->NetworkReceiveRawDelta.Delta = 0;
             block->NetworkSendDelta.Delta = 0;
             block->NetworkSendRawDelta.Delta = 0;
-            block->FirewallAllowDelta.Delta = 0;
-            block->FirewallBlockDelta.Delta = 0;
             block->HaveDiskSample = TRUE;
         }
 
@@ -406,12 +436,12 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
             block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
 
-            PhAddItemCircularBuffer_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
-            PhAddItemCircularBuffer_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
-            PhAddItemCircularBuffer_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
-            PhAddItemCircularBuffer_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
-            PhAddItemCircularBuffer_ULONG64(&block->FirewallAllowHistory, block->FirewallAllowDelta.Delta);
-            PhAddItemCircularBuffer_ULONG64(&block->FirewallBlockHistory, block->FirewallBlockDelta.Delta);
+            ET_CB_ADD_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+            ET_CB_ADD_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+            ET_CB_ADD_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+            ET_CB_ADD_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+            ET_CB_ADD_ULONG64(&block->FirewallAllowHistory, block->FirewallAllowDelta.Delta);
+            ET_CB_ADD_ULONG64(&block->FirewallBlockHistory, block->FirewallBlockDelta.Delta);
         }
 
         listEntry = listEntry->Flink;
@@ -529,6 +559,12 @@ VOID EtpUpdateProcessInformation(
     PhReleaseQueuedLockExclusive(&EtpProcessInformationLock);
 }
 
+/**
+ * Converts a thread ID to its corresponding process ID using the cached process information.
+ *
+ * \param ThreadId The thread ID to look up.
+ * \return The corresponding process ID, or SYSTEM_PROCESS_ID if not found.
+ */
 HANDLE EtThreadIdToProcessId(
     _In_ HANDLE ThreadId
     )
@@ -565,3 +601,4 @@ HANDLE EtThreadIdToProcessId(
 
     return SYSTEM_PROCESS_ID;
 }
+

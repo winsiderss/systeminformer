@@ -72,3 +72,9 @@
 #else
 #error "ThirdParty.lib is missing"
 #endif
+
+#if __has_include("../../tools/thirdparty/SymCrypt/symcryptwrapper.h")
+#include "../../tools/thirdparty/SymCrypt/symcryptwrapper.h"
+#else
+#error "ThirdParty.lib is missing"
+#endif

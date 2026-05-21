@@ -272,9 +272,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                     ULONG numberOfEntries;
                     ULONG i;
 
-                    PhGetSelectedListViewItemParams(PhZombieProcessesListViewHandle, &entries, &numberOfEntries);
-
-                    if (numberOfEntries != 0)
+                    if (PhGetSelectedListViewItemParams(PhZombieProcessesListViewHandle, &entries, &numberOfEntries))
                     {
                         if (!PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) ||
                             PhShowConfirmMessage(
@@ -334,9 +332,9 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                                 SendMessage(hwndDlg, WM_COMMAND, IDC_SCAN, 0);
                             }
                         }
-                    }
 
-                    PhFree(entries);
+                        PhFree(entries);
+                    }
                 }
                 break;
             case IDC_SAVE:
@@ -503,9 +501,7 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(PhZombieProcessesListViewHandle, &point);
 
-                PhGetSelectedListViewItemParams(PhZombieProcessesListViewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(PhZombieProcessesListViewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_COPY, L"&Copy", NULL, NULL), ULONG_MAX);
@@ -541,9 +537,9 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
                     }
 
                     PhDestroyEMenu(menu);
-                }
 
-                PhFree(listviewItems);
+                    PhFree(listviewItems);
+                }
             }
         }
         break;

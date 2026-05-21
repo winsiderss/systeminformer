@@ -288,6 +288,34 @@ void DisableProviders(TRACEHANDLE sessionHandle)
 
 void CALLBACK EventRecordCallback(EVENT_RECORD* pEventRecord)
 {
+    struct EventProcessingGuard
+    {
+        BOOLEAN Active;
+        BOOLEAN Counted;
+
+        EventProcessingGuard(
+            VOID
+            )
+            : Active(FALSE)
+            , Counted(FALSE)
+        {
+            Active = EnterPresentEventProcessing(&Counted);
+        }
+
+        ~EventProcessingGuard(
+            VOID
+            )
+        {
+            if (Active)
+            {
+                LeavePresentEventProcessing(Counted);
+            }
+        }
+    } guard;
+
+    if (!guard.Active)
+        return;
+
     auto const& hdr = pEventRecord->EventHeader;
 
     if (hdr.ProviderId == Microsoft_Windows_DxgKrnl::GUID)
@@ -358,6 +386,7 @@ BOOLEAN StartFpsTraceSession(
 
     PhQueryPerformanceCounter(&TraceStartQpc);
     PhQueryPerformanceFrequency(&TraceFrequencyQpc);
+    SetPresentEventProcessingToggleMode(TRUE);
 
     TraceProperties sessionProps = {};
     sessionProps.Wnode.BufferSize = (ULONG)sizeof(TraceProperties);
@@ -414,6 +443,7 @@ BOOLEAN StartFpsTraceSession(
         }
     }
 
+    ResetPresentTrackingData(TRUE);
     StartConsumerThread(mTraceHandle);
     StartOutputThread();
 
@@ -439,21 +469,21 @@ VOID DequeueAnalyzedInfo(
     //DequeueLostPresentEvents(*lostPresentEvents);
 }
 
-FLOAT QpcDeltaToSeconds(
+DOUBLE QpcDeltaToSeconds(
     _In_ ULONGLONG qpcDelta
     )
 {
-    return static_cast<FLOAT>(qpcDelta) / static_cast<FLOAT>(TraceFrequencyQpc.QuadPart);
+    return static_cast<DOUBLE>(qpcDelta) / static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart);
 }
 
 ULONGLONG SecondsDeltaToQpc(
-    _In_ FLOAT secondsDelta
+    _In_ DOUBLE secondsDelta
     )
 {
-    return static_cast<ULONGLONG>(secondsDelta * static_cast<FLOAT>(TraceFrequencyQpc.QuadPart));
+    return static_cast<ULONGLONG>(secondsDelta * static_cast<DOUBLE>(TraceFrequencyQpc.QuadPart));
 }
 
-FLOAT QpcToSeconds(
+DOUBLE QpcToSeconds(
     _In_ ULONGLONG qpc
     )
 {

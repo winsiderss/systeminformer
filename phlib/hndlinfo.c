@@ -79,6 +79,7 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             FILE_INFORMATION_CLASS FileInformationClass;
             PVOID FileInformation;
             ULONG FileInformationLength;
+            PULONG ReturnLength;
         } NtQueryFileInformation;
         struct
         {
@@ -87,6 +88,7 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             FILE_INFORMATION_CLASS FileInformationClass;
             PVOID FileInformation;
             ULONG FileInformationLength;
+            PULONG ReturnLength;
         } KphQueryFileInformation;
 
     } u;
@@ -2582,7 +2584,7 @@ NTSTATUS PhpCommonQueryObjectRoutine(
     )
 {
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context = Parameter;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK isb = { 0 };
 
     switch (context->Work)
     {
@@ -2620,6 +2622,9 @@ NTSTATUS PhpCommonQueryObjectRoutine(
                 context->u.NtQueryFileInformation.FileInformationLength,
                 context->u.NtQueryFileInformation.FileInformationClass
                 );
+
+            if (context->u.NtQueryFileInformation.ReturnLength)
+                *context->u.NtQueryFileInformation.ReturnLength = (ULONG)isb.Information;
         }
         break;
     case KphQueryFileInformationWork:
@@ -2632,6 +2637,9 @@ NTSTATUS PhpCommonQueryObjectRoutine(
                 context->u.KphQueryFileInformation.FileInformationLength,
                 &isb
                 );
+
+            if (context->u.KphQueryFileInformation.ReturnLength)
+                *context->u.KphQueryFileInformation.ReturnLength = (ULONG)isb.Information;
         }
         break;
     default:
@@ -2726,7 +2734,8 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
-    _In_ ULONG FileInformationLength
+    _In_ ULONG FileInformationLength,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
@@ -2738,6 +2747,7 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     context->u.NtQueryFileInformation.FileInformationClass = FileInformationClass;
     context->u.NtQueryFileInformation.FileInformation = FileInformation;
     context->u.NtQueryFileInformation.FileInformationLength = FileInformationLength;
+    context->u.NtQueryFileInformation.ReturnLength = ReturnLength;
 
     return PhpCommonQueryObjectWithTimeout(context);
 }
@@ -2747,7 +2757,8 @@ NTSTATUS PhCallKphQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
     _Out_writes_bytes_opt_(FileInformationLength) PVOID FileInformation,
-    _In_ ULONG FileInformationLength
+    _In_ ULONG FileInformationLength,
+    _Out_opt_ PULONG ReturnLength
     )
 {
     PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
@@ -2760,6 +2771,7 @@ NTSTATUS PhCallKphQueryFileInformationWithTimeout(
     context->u.KphQueryFileInformation.FileInformationClass = FileInformationClass;
     context->u.KphQueryFileInformation.FileInformation = FileInformation;
     context->u.KphQueryFileInformation.FileInformationLength = FileInformationLength;
+    context->u.KphQueryFileInformation.ReturnLength = ReturnLength;
 
     return PhpCommonQueryObjectWithTimeout(context);
 }

@@ -54,7 +54,7 @@ EXTERN_C
 VOID
 NTAPI
 PhSymCryptRandom(
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PBYTE Buffer,
     _In_ SIZE_T Length
     );
 
@@ -392,6 +392,47 @@ NTAPI
 PhSymCryptSha3_512Result(
     _Inout_ PVOID Context,
     _Out_writes_bytes_(PH_SYMCRYPT_SHA3_512_RESULT_SIZE) PVOID Result
+    );
+
+// ------------------------------------------------------------------------
+// BCrypt-style incremental hash facade
+//
+// Selects the underlying SymCrypt algorithm by BCRYPT_*_ALGORITHM string in
+// PhSymCryptOpenAlgorithmProvider, returns the hash output size as well as
+// an opaque incremental context. Subsequent PhSymCryptHashData /
+// PhSymCryptFinishHash calls dispatch on the same HashSize value the open
+// call returned. Mirrors BCryptCreateHash / BCryptHashData / BCryptFinishHash
+// without needing per-algorithm switches at the call site.
+//
+// PhSymCryptFinishHash always consumes (frees) the context.
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptOpenAlgorithmProvider(
+    _Out_ PHANDLE Context,
+    _Out_ PULONG HashSize,
+    _In_ PCWSTR AlgorithmId
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashData(
+    _Inout_ HANDLE Context,
+    _In_ ULONG HashSize,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptFinishHash(
+    _Inout_ HANDLE Context,
+    _In_ ULONG HashSize,
+    _Out_writes_bytes_(HashSize) PVOID Result
     );
 
 // ------------------------------------------------------------------------

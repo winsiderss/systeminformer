@@ -256,9 +256,7 @@ INT_PTR CALLBACK OptionsDlgProc(
                 if (point.x == -1 && point.y == -1)
                     PhGetListViewContextMenuPoint(listviewHandle, &point);
 
-                PhGetSelectedListViewItemParams(listviewHandle, &listviewItems, &numberOfItems);
-
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(listviewHandle, &listviewItems, &numberOfItems))
                 {
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, 1, L"&Delete", NULL, NULL), ULONG_MAX);
@@ -309,9 +307,8 @@ INT_PTR CALLBACK OptionsDlgProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -324,3 +321,5 @@ INT_PTR CALLBACK OptionsDlgProc(
 
     return FALSE;
 }
+
+

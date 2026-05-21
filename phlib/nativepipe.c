@@ -558,7 +558,8 @@ NTSTATUS PhCallNamedPipe(
             InputBuffer,
             InputBufferLength,
             OutputBuffer,
-            OutputBufferLength
+            OutputBufferLength,
+            NULL
             );
     }
 
@@ -584,17 +585,19 @@ NTSTATUS PhCallNamedPipe(
  * \param[in] InputBufferLength The length of the input buffer.
  * \param[out] OutputBuffer The output buffer.
  * \param[in] OutputBufferLength The length of the output buffer.
+ * \param[out] NumberOfBytesRead The number of bytes read from the pipe.
  */
 NTSTATUS PhTransceiveNamedPipe(
     _In_ HANDLE PipeHandle,
     _In_reads_bytes_(InputBufferLength) PVOID InputBuffer,
     _In_ ULONG InputBufferLength,
     _Out_writes_bytes_(OutputBufferLength) PVOID OutputBuffer,
-    _In_ ULONG OutputBufferLength
+    _In_ ULONG OutputBufferLength,
+    _Out_opt_ PULONG NumberOfBytesRead
     )
 {
     NTSTATUS status;
-    IO_STATUS_BLOCK isb;
+    IO_STATUS_BLOCK isb = { 0 };
 
     status = NtFsControlFile(
         PipeHandle,
@@ -616,6 +619,9 @@ NTSTATUS PhTransceiveNamedPipe(
         if (NT_SUCCESS(status))
             status = isb.Status;
     }
+
+    if (NumberOfBytesRead)
+        *NumberOfBytesRead = (ULONG)isb.Information;
 
     return status;
 }
