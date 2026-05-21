@@ -20,7 +20,6 @@
 #endif // __has_include
 #endif // __has_include
 
-typedef struct _ALPC_WORK_ON_BEHALF_TICKET ALPC_WORK_ON_BEHALF_TICKET, *PALPC_WORK_ON_BEHALF_TICKET;
 typedef struct _APPCOMPAT_EXE_DATA APPCOMPAT_EXE_DATA, *PAPPCOMPAT_EXE_DATA;
 typedef struct _RTL_USER_PROCESS_PARAMETERS *PRTL_USER_PROCESS_PARAMETERS;
 typedef struct _RTL_CRITICAL_SECTION *PRTL_CRITICAL_SECTION;
@@ -1275,7 +1274,7 @@ typedef struct _TEB
     //
     // Scheduler ticket attributing this thread's CPU usage to another thread. Set/cleared via NtSetInformationThread(ThreadWorkOnBehalfTicket).
     //
-    PALPC_WORK_ON_BEHALF_TICKET WorkingOnBehalfTicket;
+    UCHAR WorkingOnBehalfTicket[8]; // ALPC_WORK_ON_BEHALF_TICKET
 
     //
     // The last exception status for the current thread.
