@@ -19,6 +19,7 @@
 #include <mapldr.h>
 #include <workqueue.h>
 #include <searchbox.h>
+#include <mapldr.h>
 
 #include "resource.h"
 
@@ -862,23 +863,23 @@ extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 // Lazy-allocation helpers for per-process circular history buffers.
 // The buffer's Data is NULL until the first sample is added; processes
 // that never produce a sample never allocate the backing storage.
-#define ET_CB_ADD_ULONG64(buf, val) \
-    do { \
-        if (!(buf)->Data) PhInitializeCircularBuffer_ULONG64((buf), EtSampleCount); \
-        PhAddItemCircularBuffer_ULONG64((buf), (val)); \
-    } while (0)
+#define ET_CIRCULAR_BUFFER_ADD_ULONG64(CircularBuffer, Value) \
+do { \
+    if (!(CircularBuffer)->Data) PhInitializeCircularBuffer_ULONG64((CircularBuffer), EtSampleCount); \
+    PhAddItemCircularBuffer_ULONG64((CircularBuffer), (Value)); \
+} while (0)
 
-#define ET_CB_ADD_ULONG(buf, val) \
-    do { \
-        if (!(buf)->Data) PhInitializeCircularBuffer_ULONG((buf), EtSampleCount); \
-        PhAddItemCircularBuffer_ULONG((buf), (val)); \
-    } while (0)
+#define ET_CIRCULAR_BUFFER_ADD_ULONG(CircularBuffer, Value) \
+do { \
+    if (!(CircularBuffer)->Data) PhInitializeCircularBuffer_ULONG((CircularBuffer), EtSampleCount); \
+    PhAddItemCircularBuffer_ULONG((CircularBuffer), (Value)); \
+} while (0)
 
-#define ET_CB_ADD_FLOAT(buf, val) \
-    do { \
-        if (!(buf)->Data) PhInitializeCircularBuffer_FLOAT((buf), EtSampleCount); \
-        PhAddItemCircularBuffer_FLOAT((buf), (val)); \
-    } while (0)
+#define ET_CIRCULAR_BUFFER_ADD_FLOAT(CircularBuffer, Value) \
+do { \
+    if (!(CircularBuffer)->Data) PhInitializeCircularBuffer_FLOAT((CircularBuffer), EtSampleCount); \
+    PhAddItemCircularBuffer_FLOAT((CircularBuffer), (Value)); \
+} while (0)
 
 VOID EtGpuMonitorInitialization(
     VOID

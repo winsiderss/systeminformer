@@ -18,6 +18,7 @@ static HWND GpuDialog;
 static LONG GpuDialogWindowDpi;
 static PH_LAYOUT_MANAGER GpuLayoutManager;
 static RECT GpuGraphMargin;
+static RECT GpuGraphMarginScaled;
 static HWND GpuGraphHandle;
 static PH_GRAPH_STATE GpuGraphState;
 static HWND DedicatedGraphHandle;
@@ -358,6 +359,8 @@ INT_PTR CALLBACK EtpGpuDialogProc(
             graphItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             GpuGraphMargin = graphItem->Margin;
+            GpuGraphMarginScaled = GpuGraphMargin;
+            PhGetMarginDpiValue(&GpuGraphMarginScaled, GpuSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), GpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(GetDlgItem(WindowHandle, IDC_GPUNAME), GpuSection->Parameters->MediumFont, FALSE);
@@ -388,6 +391,9 @@ INT_PTR CALLBACK EtpGpuDialogProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
+
+            GpuGraphMarginScaled = GpuGraphMargin;
+            PhGetMarginDpiValue(&GpuGraphMarginScaled, GpuDialogWindowDpi, TRUE);
 
             if (GpuSection->Parameters->LargeFont)
             {
@@ -596,8 +602,7 @@ VOID EtpLayoutGpuGraphs(
         FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = GpuGraphMargin;
-    PhGetMarginDpiValue(&marginRect, GpuDialogWindowDpi, TRUE);
+    marginRect = GpuGraphMarginScaled;
     graphPadding = PhScaleToDisplay(ET_GPU_PADDING, GpuDialogWindowDpi);
 
     PhGetClientRect(GpuDialog, &clientRect);

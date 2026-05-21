@@ -952,10 +952,10 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 block->GpuCurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
                 block->GpuCurrentCommitUsage = (ULONG)(block->GpuCommitUsage / PAGE_SIZE);
 
-                ET_CB_ADD_FLOAT(&block->GpuHistory, block->GpuCurrentUsage);
-                ET_CB_ADD_ULONG(&block->GpuMemoryHistory, block->GpuCurrentMemUsage);
-                ET_CB_ADD_ULONG(&block->GpuMemorySharedHistory, block->GpuCurrentMemSharedUsage);
-                ET_CB_ADD_ULONG(&block->GpuCommittedHistory, block->GpuCurrentCommitUsage);
+                ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->GpuHistory, block->GpuCurrentUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuMemoryHistory, block->GpuCurrentMemUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuMemorySharedHistory, block->GpuCurrentMemSharedUsage);
+                ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuCommittedHistory, block->GpuCurrentCommitUsage);
             }
         }
         else
@@ -1002,10 +1002,10 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                     block->GpuCurrentMemSharedUsage = (ULONG)(block->GpuSharedUsage / PAGE_SIZE);
                     block->GpuCurrentCommitUsage = (ULONG)(block->GpuCommitUsage / PAGE_SIZE);
 
-                    PhAddItemCircularBuffer_FLOAT(&block->GpuHistory, block->GpuCurrentUsage);
-                    PhAddItemCircularBuffer_ULONG(&block->GpuMemoryHistory, block->GpuCurrentMemUsage);
-                    PhAddItemCircularBuffer_ULONG(&block->GpuMemorySharedHistory, block->GpuCurrentMemSharedUsage);
-                    PhAddItemCircularBuffer_ULONG(&block->GpuCommittedHistory, block->GpuCurrentCommitUsage);
+                    ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->GpuHistory, block->GpuCurrentUsage);
+                    ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuMemoryHistory, block->GpuCurrentMemUsage);
+                    ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuMemorySharedHistory, block->GpuCurrentMemSharedUsage);
+                    ET_CIRCULAR_BUFFER_ADD_ULONG(&block->GpuCommittedHistory, block->GpuCurrentCommitUsage);
                 }
             }
         }
@@ -1037,15 +1037,15 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
 
     if (runCount != 0)
     {
-        PhAddItemCircularBuffer_FLOAT(&EtGpuNodeHistory, EtGpuNodeUsage);
-        PhAddItemCircularBuffer_ULONG64(&EtGpuDedicatedHistory, EtGpuDedicatedUsage);
-        PhAddItemCircularBuffer_ULONG64(&EtGpuSharedHistory, EtGpuSharedUsage);
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuNodeHistory, EtGpuNodeUsage);
+        ET_CIRCULAR_BUFFER_ADD_ULONG64(&EtGpuDedicatedHistory, EtGpuDedicatedUsage);
+        ET_CIRCULAR_BUFFER_ADD_ULONG64(&EtGpuSharedHistory, EtGpuSharedUsage);
 
         if (EtGpuSupported)
         {
-            PhAddItemCircularBuffer_FLOAT(&EtGpuPowerUsageHistory, EtGpuPowerUsage);
-            PhAddItemCircularBuffer_FLOAT(&EtGpuTemperatureHistory, EtGpuTemperature);
-            PhAddItemCircularBuffer_ULONG64(&EtGpuFanRpmHistory, EtGpuFanRpm);
+            ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuPowerUsageHistory, EtGpuPowerUsage);
+            ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuTemperatureHistory, EtGpuTemperature);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&EtGpuFanRpmHistory, EtGpuFanRpm);
         }
 
         if (EtGpuD3DEnabled)
@@ -1059,7 +1059,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 if (usage > 1)
                     usage = 1;
 
-                PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
+                ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuNodesHistory[i], usage);
             }
         }
         else
@@ -1078,26 +1078,28 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                     if (usage > 1)
                         usage = 1;
 
-                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], usage);
+                    ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuNodesHistory[i], usage);
                 }
             }
             else
             {
                 for (i = 0; i < EtGpuTotalNodeCount; i++)
-                    PhAddItemCircularBuffer_FLOAT(&EtGpuNodesHistory[i], 0);
+                {
+                    ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtGpuNodesHistory[i], 0);
+                }
             }
         }
 
         if (maxNodeBlock)
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, HandleToUlong(maxNodeBlock->ProcessItem->ProcessId));
-            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUtilization);
+            ET_CIRCULAR_BUFFER_ADD_ULONG(&EtMaxGpuNodeHistory, HandleToUlong(maxNodeBlock->ProcessItem->ProcessId));
+            ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtMaxGpuNodeUsageHistory, maxNodeBlock->GpuNodeUtilization);
             PhReferenceProcessRecordForStatistics(maxNodeBlock->ProcessItem->Record);
         }
         else
         {
-            PhAddItemCircularBuffer_ULONG(&EtMaxGpuNodeHistory, 0);
-            PhAddItemCircularBuffer_FLOAT(&EtMaxGpuNodeUsageHistory, 0);
+            ET_CIRCULAR_BUFFER_ADD_ULONG(&EtMaxGpuNodeHistory, 0);
+            ET_CIRCULAR_BUFFER_ADD_FLOAT(&EtMaxGpuNodeUsageHistory, 0);
         }
     }
 }

@@ -436,12 +436,12 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
             block->CurrentNetworkSend = block->NetworkSendRawDelta.Delta;
             block->CurrentNetworkReceive = block->NetworkReceiveRawDelta.Delta;
 
-            ET_CB_ADD_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
-            ET_CB_ADD_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
-            ET_CB_ADD_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
-            ET_CB_ADD_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
-            ET_CB_ADD_ULONG64(&block->FirewallAllowHistory, block->FirewallAllowDelta.Delta);
-            ET_CB_ADD_ULONG64(&block->FirewallBlockHistory, block->FirewallBlockDelta.Delta);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->DiskReadHistory, block->CurrentDiskRead);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->DiskWriteHistory, block->CurrentDiskWrite);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->NetworkSendHistory, block->CurrentNetworkSend);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->NetworkReceiveHistory, block->CurrentNetworkReceive);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->FirewallAllowHistory, block->FirewallAllowDelta.Delta);
+            ET_CIRCULAR_BUFFER_ADD_ULONG64(&block->FirewallBlockHistory, block->FirewallBlockDelta.Delta);
         }
 
         listEntry = listEntry->Flink;
