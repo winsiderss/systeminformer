@@ -63,11 +63,11 @@ NTSTATUS PhSymCryptErrorToStatus(
  * \return Always TRUE (the SymCrypt RNG does not return failure for this entry point).
  */
 VOID NTAPI PhSymCryptRandom(
-    _Out_writes_bytes_(Length) PVOID Buffer,
+    _Out_writes_bytes_(Length) PBYTE Buffer,
     _In_ SIZE_T Length
     )
 {
-    SymCryptRandom((PBYTE)Buffer, Length);
+    SymCryptRandom(Buffer, Length);
 }
 
 /**
@@ -463,6 +463,127 @@ PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
     SymCryptSha3_512Append,
     SymCryptSha3_512Result,
     PH_SYMCRYPT_SHA3_512_RESULT_SIZE)
+
+// ------------------------------------------------------------------------
+// BCrypt-style incremental hash facade
+// ------------------------------------------------------------------------
+
+/**
+ * Opens an incremental hash context selected by BCRYPT algorithm string.
+ * Returns the hash output size in HashSize; subsequent PhSymCryptHashData /
+ * PhSymCryptFinishHash calls dispatch on that value.
+ */
+NTSTATUS PhSymCryptOpenAlgorithmProvider(
+    _Out_ PHANDLE Context,
+    _Out_ PULONG HashSize,
+    _In_ PCWSTR AlgorithmId
+    )
+{
+    *Context = NULL;
+    *HashSize = 0;
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_MD5_ALGORITHM, FALSE))
+    {
+        *HashSize = PH_SYMCRYPT_MD5_RESULT_SIZE;
+        return PhSymCryptMd5Init(Context);
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA1_ALGORITHM, FALSE))
+    {
+        *HashSize = PH_SYMCRYPT_SHA1_RESULT_SIZE;
+        return PhSymCryptSha1Init(Context);
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA256_ALGORITHM, FALSE))
+    {
+        *HashSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
+        return PhSymCryptSha256Init(Context);
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA384_ALGORITHM, FALSE))
+    {
+        *HashSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
+        return PhSymCryptSha384Init(Context);
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA512_ALGORITHM, FALSE))
+    {
+        *HashSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
+        return PhSymCryptSha512Init(Context);
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Appends data to an incremental hash. HashSize identifies the algorithm
+ * (as returned by PhSymCryptOpenAlgorithmProvider).
+ */
+NTSTATUS PhSymCryptHashData(
+    _Inout_ HANDLE Context,
+    _In_ ULONG HashSize,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    if (!Context)
+        return STATUS_INVALID_HANDLE;
+
+    switch (HashSize)
+    {
+    case PH_SYMCRYPT_MD5_RESULT_SIZE:
+        PhSymCryptMd5Append(Context, Buffer, Length);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA1_RESULT_SIZE:
+        PhSymCryptSha1Append(Context, Buffer, Length);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA256_RESULT_SIZE:
+        PhSymCryptSha256Append(Context, Buffer, Length);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA384_RESULT_SIZE:
+        PhSymCryptSha384Append(Context, Buffer, Length);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA512_RESULT_SIZE:
+        PhSymCryptSha512Append(Context, Buffer, Length);
+        return STATUS_SUCCESS;
+    }
+    return STATUS_NOT_SUPPORTED;
+}
+
+/**
+ * Finalizes an incremental hash into Result and frees the context. HashSize
+ * identifies the algorithm (as returned by PhSymCryptOpenAlgorithmProvider)
+ * and also denotes the size of the output buffer.
+ */
+NTSTATUS PhSymCryptFinishHash(
+    _Inout_ HANDLE Context,
+    _In_ ULONG HashSize,
+    _Out_writes_bytes_(HashSize) PVOID Result
+    )
+{
+    if (!Context)
+        return STATUS_INVALID_HANDLE;
+
+    switch (HashSize)
+    {
+    case PH_SYMCRYPT_MD5_RESULT_SIZE:
+        PhSymCryptMd5Result(Context, Result);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA1_RESULT_SIZE:
+        PhSymCryptSha1Result(Context, Result);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA256_RESULT_SIZE:
+        PhSymCryptSha256Result(Context, Result);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA384_RESULT_SIZE:
+        PhSymCryptSha384Result(Context, Result);
+        return STATUS_SUCCESS;
+    case PH_SYMCRYPT_SHA512_RESULT_SIZE:
+        PhSymCryptSha512Result(Context, Result);
+        return STATUS_SUCCESS;
+    }
+    return STATUS_NOT_SUPPORTED;
+}
 
 // ------------------------------------------------------------------------
 // HMAC (single-shot)

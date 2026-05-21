@@ -13,6 +13,8 @@
 #ifndef PH_SYSINFOP_H
 #define PH_SYSINFOP_H
 
+EXTERN_C_START
+
 // Constants
 
 #define PH_SYSINFO_FADE_ADD 50
@@ -573,5 +575,7 @@ VOID PhSipHandleSummaryVScroll(
 BOOLEAN PhSipSummaryScrollEnabled(
     VOID
     );
+
+EXTERN_C_END
 
 #endif

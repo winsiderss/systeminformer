@@ -224,13 +224,13 @@ VOID EtProcessFramesUpdateProcessBlock(
         ProcessBlock->FramesRuntime = entry->Runtime;
         ProcessBlock->FramesPresentMode = entry->PresentMode;
 
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesPerSecondHistory, ProcessBlock->FramesPerSecond);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesLatencyHistory, ProcessBlock->FramesLatency);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsBetweenPresentsHistory, ProcessBlock->FramesMsBetweenPresents);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsInPresentApiHistory, ProcessBlock->FramesMsInPresentApi);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsUntilRenderCompleteHistory, ProcessBlock->FramesMsUntilRenderComplete);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsUntilDisplayedHistory, ProcessBlock->FramesMsUntilDisplayed);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayLatencyHistory, ProcessBlock->FramesDisplayLatency);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesPerSecondHistory, ProcessBlock->FramesPerSecond);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesLatencyHistory, ProcessBlock->FramesLatency);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsBetweenPresentsHistory, ProcessBlock->FramesMsBetweenPresents);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsInPresentApiHistory, ProcessBlock->FramesMsInPresentApi);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsUntilRenderCompleteHistory, ProcessBlock->FramesMsUntilRenderComplete);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsUntilDisplayedHistory, ProcessBlock->FramesMsUntilDisplayed);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesDisplayLatencyHistory, ProcessBlock->FramesDisplayLatency);
         //PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayFramesPerSecondHistory, ProcessBlock->FramesDisplayFramesPerSecond);
     }
     else
@@ -246,13 +246,13 @@ VOID EtProcessFramesUpdateProcessBlock(
         ProcessBlock->FramesRuntime = 0;
         ProcessBlock->FramesPresentMode = 0;
 
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesPerSecondHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesLatencyHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsBetweenPresentsHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsInPresentApiHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsUntilRenderCompleteHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesMsUntilDisplayedHistory, 0);
-        PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayLatencyHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesPerSecondHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesLatencyHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsBetweenPresentsHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsInPresentApiHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsUntilRenderCompleteHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesMsUntilDisplayedHistory, 0);
+        ET_CB_ADD_FLOAT(&ProcessBlock->FramesDisplayLatencyHistory, 0);
         //PhAddItemCircularBuffer_FLOAT(&ProcessBlock->FramesDisplayFramesPerSecondHistory, 0);
     }
 }

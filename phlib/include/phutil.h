@@ -991,6 +991,20 @@ PhFormatSizeToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     );
 
+#define PH_ENERGY_MJ 0
+#define PH_ENERGY_J  1
+#define PH_ENERGY_KJ 2
+#define PH_ENERGY_MJ_UNIT 3
+#define PH_ENERGY_GJ 4
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatEnergy(
+    _In_ ULONGLONG MilliJoules,
+    _In_ ULONG MaxEnergyUnit
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI

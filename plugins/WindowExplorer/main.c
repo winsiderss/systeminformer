@@ -11,7 +11,6 @@
  */
 
 #include "wndexp.h"
-
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance;
@@ -22,6 +21,12 @@ PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessPropertiesInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ThreadMenuInitializingCallbackRegistration;
 
+/**
+ * Callback function for plugin load.
+ *
+ * \param[in] Parameter Optional parameter.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_opt_ PVOID Parameter,
@@ -31,6 +36,12 @@ VOID NTAPI LoadCallback(
     NOTHING;
 }
 
+/**
+ * Callback function for plugin unload.
+ *
+ * \param[in] Parameter Optional parameter.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI UnloadCallback(
     _In_opt_ PVOID Parameter,
@@ -40,16 +51,29 @@ VOID NTAPI UnloadCallback(
     NOTHING;
 }
 
-static BOOL CALLBACK WepEnumDesktopProc(
-    _In_ LPTSTR lpszDesktop,
-    _In_ LPARAM lParam
+/**
+ * Callback function for desktop enumeration.
+ *
+ * \param[in] DesktopName The name of the desktop.
+ * \param[in,opt] Context Optional context (PPH_LIST).
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
+_Function_class_(PH_DESKTOP_ENUM_CALLBACK)
+BOOLEAN CALLBACK WepEnumDesktopProc(
+    _In_ PCWSTR DesktopName,
+    _In_opt_ PVOID Context
     )
 {
-    PhAddItemList((PPH_LIST)lParam, PhaCreateString(lpszDesktop)->Buffer);
-
+    PhAddItemList((PPH_LIST)Context, PhCreateString(DesktopName));
     return TRUE;
 }
 
+/**
+ * Callback function for menu item clicks.
+ *
+ * \param[in] Parameter PPH_PLUGIN_MENU_ITEM structure.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MenuItemCallback(
     _In_ PVOID Parameter,
@@ -73,8 +97,8 @@ VOID NTAPI MenuItemCallback(
             PPH_LIST desktopNames;
             PPH_STRING selectedChoice = NULL;
 
-            desktopNames = PH_AUTO(PhCreateList(4));
-            EnumDesktops(GetProcessWindowStation(), WepEnumDesktopProc, (LPARAM)desktopNames);
+            desktopNames = PhCreateList(4);
+            PhEnumDesktops(NULL, WepEnumDesktopProc, desktopNames);
 
             if (PhaChoiceDialog(
                 menuItem->OwnerWindow,
@@ -95,6 +119,9 @@ VOID NTAPI MenuItemCallback(
                 PhSetReference(&selector.Desktop.DesktopName, selectedChoice);
                 WeShowWindowsDialog(menuItem->OwnerWindow, &selector);
             }
+
+            PhDereferenceObjects(desktopNames->Items, desktopNames->Count);
+            PhDereferenceObject(desktopNames);
         }
         break;
     case ID_PROCESS_WINDOWS:
@@ -118,6 +145,12 @@ VOID NTAPI MenuItemCallback(
     }
 }
 
+/**
+ * Callback function for main menu initialization.
+ *
+ * \param[in] Parameter PPH_PLUGIN_MENU_INFORMATION structure.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainMenuInitializingCallback(
     _In_ PVOID Parameter,
@@ -146,6 +179,12 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 }
 
+/**
+ * Callback function for process properties initialization.
+ *
+ * \param[in] Parameter PPH_PLUGIN_PROCESS_PROPCONTEXT structure.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessPropertiesInitializingCallback(
     _In_ PVOID Parameter,
@@ -167,6 +206,12 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
     }
 }
 
+/**
+ * Callback function for thread menu initialization.
+ *
+ * \param[in] Parameter PPH_PLUGIN_MENU_INFORMATION structure.
+ * \param[in] Context Optional context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ThreadMenuInitializingCallback(
     _In_ PVOID Parameter,
@@ -197,6 +242,14 @@ VOID NTAPI ThreadMenuInitializingCallback(
         PhSetDisabledEMenuItem(menuItem);
 }
 
+/**
+ * Plugin entry point.
+ *
+ * \param[in] Instance DLL instance handle.
+ * \param[in] Reason DLL attach or detach reason.
+ * \param[in] Reserved Reserved.
+ * \return TRUE on success, FALSE on failure.
+ */
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
     _In_ ULONG Reason,
@@ -235,18 +288,18 @@ LOGICAL DllMain(
             info->DisplayName = L"Window Explorer";
             info->Description = L"View and manipulate windows.";
 
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
-            //    LoadCallback,
-            //    NULL,
-            //    &PluginLoadCallbackRegistration
-            //    );
-            //PhRegisterCallback(
-            //    PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
-            //    UnloadCallback,
-            //    NULL,
-            //    &PluginUnloadCallbackRegistration
-            //    );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackLoad),
+                LoadCallback,
+                NULL,
+                &PluginLoadCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetPluginCallback(PluginInstance, PluginCallbackUnload),
+                UnloadCallback,
+                NULL,
+                &PluginUnloadCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),
                 MenuItemCallback,

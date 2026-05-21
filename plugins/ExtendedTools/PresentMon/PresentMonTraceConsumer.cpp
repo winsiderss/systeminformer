@@ -23,6 +23,7 @@
 //#include <assert.h>
 //#include <d3d9.h>
 //#include <dxgi.h>
+#include <atomic>
 #include <unordered_set>
 
 #ifdef DEBUG
@@ -40,7 +41,10 @@ uint32_t DwmProcessId = 0;
 uint32_t DwmPresentThreadId = 0;
 
 PH_FAST_LOCK mPresentEventMutex = PH_FAST_LOCK_INIT;
-std::vector<std::shared_ptr<PresentEvent>> mCompletePresentEvents;
+std::vector<std::shared_ptr<PresentEvent>> mCompletedPresentEvents(PRESENTEVENT_CIRCULAR_BUFFER_SIZE);
+ULONG mCompletedPresentIndex = 0;
+ULONG mCompletedPresentCount = 0;
+ULONG mReadyPresentCount = 0;
 
 //PH_FAST_LOCK mLostPresentEventMutex = PH_FAST_LOCK_INIT;
 //std::vector<std::shared_ptr<PresentEvent>> mLostPresentEvents;
@@ -85,7 +89,53 @@ std::unordered_map<uint64_t, std::shared_ptr<PresentEvent>> mLastPresentByWindow
 std::unordered_map<uint32_t, std::unordered_map<uint64_t,
     DeferredCompletions>> mDeferredCompletions;   // ProcessId -> SwapChainAddress -> DeferredCompletions
 
+std::atomic<bool> mProviderToggleMode(false);
+std::atomic<bool> mEventProcessingEnabled(true);
+volatile LONG mEventProcessingInFlight = 0;
+
 namespace {
+
+struct WaitOnAddressShim
+{
+    using WaitOnAddressFn = BOOL(WINAPI*)(volatile VOID* Address, PVOID CompareAddress, SIZE_T AddressSize, DWORD dwMilliseconds);
+    using WakeByAddressAllFn = VOID(WINAPI*)(PVOID Address);
+
+    WaitOnAddressFn Wait = nullptr;
+    WakeByAddressAllFn WakeAll = nullptr;
+
+    bool Available() const noexcept
+    {
+        return Wait && WakeAll;
+    }
+};
+
+const WaitOnAddressShim& GetWaitOnAddressShim(
+    VOID
+    )
+{
+    static WaitOnAddressShim shim = []()
+    {
+        WaitOnAddressShim value = {};
+        HMODULE kernel32 = static_cast<HMODULE>(PhGetDllHandle(L"kernel32.dll"));
+
+        if (kernel32)
+        {
+            value.Wait = reinterpret_cast<WaitOnAddressShim::WaitOnAddressFn>(PhGetProcedureAddress(kernel32, "WaitOnAddress", 0));
+            value.WakeAll = reinterpret_cast<WaitOnAddressShim::WakeByAddressAllFn>(PhGetProcedureAddress(kernel32, "WakeByAddressAll", 0));
+        }
+
+        return value;
+    }();
+
+    return shim;
+}
+
+ULONG GetCompletedPresentRingIndex(
+    _In_ ULONG index
+    )
+{
+    return index % PRESENTEVENT_CIRCULAR_BUFFER_SIZE;
+}
 
 // Detect if there are any missing expected events, and returns the number of
 // PresentStop events that we should wait for them.
@@ -250,7 +300,7 @@ void HandleDXGIEvent(EVENT_RECORD* pEventRecord)
     }
 }
 
-void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t hwnd, bool redirectedPresent)
+void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t WindowHandle, bool redirectedPresent)
 {
     // Lookup the in-progress present.  It should not have a known present mode
     // yet, so if it does we assume we looked up a present whose tracking was
@@ -273,7 +323,7 @@ void HandleDxgkBlt(EVENT_HEADER const& hdr, uint64_t hwnd, bool redirectedPresen
 
     // This could be one of several types of presents. Further events will clarify.
     // For now, assume that this is a blt straight into a surface which is already on-screen.
-    presentEvent->Hwnd = hwnd;
+    presentEvent->Hwnd = WindowHandle;
     if (redirectedPresent) {
         TRACK_PRESENT_PATH(presentEvent);
         presentEvent->PresentMode = PresentMode::Composed_Copy_CPU_GDI;
@@ -971,34 +1021,32 @@ void HandleDXGKEvent(EVENT_RECORD* pEventRecord)
     case Microsoft_Windows_DxgKrnl::Blit_Info::Id:
     {
         EventDataDesc desc[] = {
-            { L"hwnd" },
+            { L"WindowHandle" },
             { L"bRedirectedPresent" },
         };
         mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
-        auto hwnd               = desc[0].GetData<uint64_t>();
+        auto WindowHandle = desc[0].GetData<uint64_t>();
         auto bRedirectedPresent = desc[1].GetData<uint32_t>() != 0;
 
         TRACK_PRESENT_PATH_GENERATE_ID();
-        HandleDxgkBlt(hdr, hwnd, bRedirectedPresent);
+        HandleDxgkBlt(hdr, WindowHandle, bRedirectedPresent);
         break;
     }
     // BlitCancel_Info indicates that DxgKrnl optimized a present blt away, and
     // no further work was needed.
     case Microsoft_Windows_DxgKrnl::BlitCancel_Info::Id:
-    {
-        auto present = FindThreadPresent(hdr.ThreadId);
-        if (present != nullptr) {
-            TRACK_PRESENT_PATH(present);
+        {
+            auto present = FindThreadPresent(hdr.ThreadId);
+            if (present != nullptr)
+            {
+                TRACK_PRESENT_PATH(present);
 
-            //VerboseTraceBeforeModifyingPresent(present.get());
-            present->FinalState = PresentResult::Discarded;
+                //VerboseTraceBeforeModifyingPresent(present.get());
+                present->FinalState = PresentResult::Discarded;
 
-            CompletePresent(present);
+                CompletePresent(present);
+            }
         }
-        break;
-    }
-    default:
-        //assert(!mFilteredEvents); // Assert that filtering is working if expected
         break;
     }
 }
@@ -1011,7 +1059,7 @@ typedef LARGE_INTEGER PHYSICAL_ADDRESS;
 #pragma pack(1)
 
 typedef struct _DXGKETW_BLTEVENT {
-    ULONGLONG                  hwnd;
+    ULONGLONG                  WindowHandle;
     ULONGLONG                  pDmaBuffer;
     ULONGLONG                  PresentHistoryToken;
     ULONGLONG                  hSourceAllocation;
@@ -1113,7 +1161,7 @@ void HandleWin7DxgkBlt(EVENT_RECORD* pEventRecord)
     auto pBltEvent = static_cast<Win7::DXGKETW_BLTEVENT*>(pEventRecord->UserData);
     HandleDxgkBlt(
         pEventRecord->EventHeader,
-        pBltEvent->hwnd,
+        pBltEvent->WindowHandle,
         pBltEvent->bRedirectedPresent != 0);
 }
 
@@ -1421,12 +1469,12 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                 EventDataDesc desc[] = {
                     { L"ulFlipChain" },
                     { L"ulSerialNumber" },
-                    { L"hwnd" },
+                    { L"WindowHandle" },
                 };
                 mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
                 auto ulFlipChain = desc[0].GetData<uint64_t>();
                 auto ulSerialNumber = desc[1].GetData<uint64_t>();
-                auto hwnd = desc[2].GetData<uint64_t>();
+                auto WindowHandle = desc[2].GetData<uint64_t>();
 
                 // Lookup the present using the 64-bit token data from the PHT
                 // submission, which is actually two 32-bit data chunks corresponding
@@ -1442,7 +1490,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                     present->DxgkPresentHistoryTokenData = 0;
                     present->DwmNotified = true;
 
-                    mLastPresentByWindow[hwnd] = present;
+                    mLastPresentByWindow[WindowHandle] = present;
 
                     mPresentByDxgkPresentHistoryTokenData.erase(flipIter);
                 }
@@ -1452,12 +1500,12 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                 EventDataDesc desc[] = {
                     { L"ulFlipChain" },
                     { L"ulSerialNumber" },
-                    { L"hwnd" },
+                    { L"WindowHandle" },
                 };
                 mMetadata.GetEventData(pEventRecord, desc, _countof(desc));
                 auto ulFlipChain = desc[0].GetData<uint32_t>();
                 auto ulSerialNumber = desc[1].GetData<uint32_t>();
-                auto hwnd = desc[2].GetData<uint64_t>();
+                auto WindowHandle = desc[2].GetData<uint64_t>();
 
                 // Lookup the present using the 64-bit token data from the PHT
                 // submission, which is actually two 32-bit data chunks corresponding
@@ -1473,7 +1521,7 @@ void HandleDWMEvent(EVENT_RECORD* pEventRecord)
                     present->DxgkPresentHistoryTokenData = 0;
                     present->DwmNotified = true;
 
-                    mLastPresentByWindow[hwnd] = present;
+                    mLastPresentByWindow[WindowHandle] = present;
 
                     mPresentByDxgkPresentHistoryTokenData.erase(flipIter);
                 }
@@ -1876,10 +1924,28 @@ void EnqueueDeferredCompletions(DeferredCompletions* deferredCompletions)
         {
             PhAcquireFastLockExclusive(&mPresentEventMutex);
 
-            mCompletePresentEvents.reserve(mCompletePresentEvents.size() + completedCount);
             for (auto iter = iterBegin; iter != iterEnqueueEnd; ++iter) {
                 if (!iter->second->IsLost) {
-                    mCompletePresentEvents.emplace_back(iter->second);
+                    ULONG index;
+
+                    if (mCompletedPresentCount == PRESENTEVENT_CIRCULAR_BUFFER_SIZE)
+                    {
+                        index = mCompletedPresentIndex;
+                        mCompletedPresentIndex = GetCompletedPresentRingIndex(mCompletedPresentIndex + 1);
+
+                        if (mReadyPresentCount > 0)
+                        {
+                            mReadyPresentCount--;
+                        }
+                    }
+                    else
+                    {
+                        index = GetCompletedPresentRingIndex(mCompletedPresentIndex + mCompletedPresentCount);
+                        mCompletedPresentCount++;
+                    }
+
+                    mCompletedPresentEvents[index] = iter->second;
+                    mReadyPresentCount = mCompletedPresentCount;
                 }
             }
 
@@ -2154,8 +2220,162 @@ void HandleMetadataEvent(EVENT_RECORD* pEventRecord)
 void DequeuePresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)
 {
     PhAcquireFastLockExclusive(&mPresentEventMutex);
-    outPresentEvents.swap(mCompletePresentEvents);
+
+    outPresentEvents.clear();
+
+    if (mReadyPresentCount > 0)
+    {
+        outPresentEvents.resize(mReadyPresentCount, nullptr);
+
+        for (ULONG i = 0; i < mReadyPresentCount; ++i)
+        {
+            std::swap(outPresentEvents[i], mCompletedPresentEvents[mCompletedPresentIndex]);
+            mCompletedPresentIndex = GetCompletedPresentRingIndex(mCompletedPresentIndex + 1);
+        }
+
+        mCompletedPresentCount -= mReadyPresentCount;
+        mReadyPresentCount = 0;
+    }
+
     PhReleaseFastLockExclusive(&mPresentEventMutex);
+}
+
+VOID SetPresentEventProcessingToggleMode(
+    _In_ BOOLEAN Enabled
+    )
+{
+    mProviderToggleMode.store(!!Enabled, std::memory_order_release);
+}
+
+BOOLEAN EnterPresentEventProcessing(
+    _Out_ PBOOLEAN Counted
+    )
+{
+    *Counted = FALSE;
+
+    if (!mProviderToggleMode.load(std::memory_order_acquire))
+        return TRUE;
+
+    InterlockedIncrement(&mEventProcessingInFlight);
+    *Counted = TRUE;
+
+    if (!mEventProcessingEnabled.load(std::memory_order_acquire))
+    {
+        LONG value = InterlockedDecrement(&mEventProcessingInFlight);
+
+        if (value == 0)
+        {
+            auto const& shim = GetWaitOnAddressShim();
+
+            if (shim.Available())
+            {
+                shim.WakeAll((PVOID)&mEventProcessingInFlight);
+            }
+        }
+
+        *Counted = FALSE;
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID LeavePresentEventProcessing(
+    _In_ BOOLEAN Counted
+    )
+{
+    if (!Counted)
+        return;
+
+    LONG value = InterlockedDecrement(&mEventProcessingInFlight);
+
+    if (value == 0)
+    {
+        auto const& shim = GetWaitOnAddressShim();
+
+        if (shim.Available())
+        {
+            shim.WakeAll((PVOID)&mEventProcessingInFlight);
+        }
+    }
+}
+
+VOID ResetPresentTrackingData(
+    _In_ BOOLEAN Shrink
+    )
+{
+    UNREFERENCED_PARAMETER(Shrink);
+
+    mEventProcessingEnabled.store(false, std::memory_order_release);
+
+    {
+        auto const& shim = GetWaitOnAddressShim();
+        ULONGLONG startMs = GetTickCount64();
+        const DWORD timeoutMs = 2000;
+
+        while (InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0) != 0)
+        {
+            ULONGLONG elapsed = GetTickCount64() - startMs;
+
+            if (elapsed >= timeoutMs)
+            {
+                mEventProcessingEnabled.store(true, std::memory_order_release);
+                return;
+            }
+
+            DWORD remaining = timeoutMs - static_cast<DWORD>(elapsed);
+
+            if (shim.Available())
+            {
+                LONG expected = InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0);
+
+                if (expected != 0)
+                {
+                    shim.Wait(&mEventProcessingInFlight, &expected, sizeof(expected), remaining);
+                }
+            }
+            else
+            {
+                Sleep(1);
+            }
+        }
+    }
+
+    PhAcquireFastLockExclusive(&mPresentEventMutex);
+
+    for (auto& present : mCompletedPresentEvents)
+    {
+        present.reset();
+    }
+
+    mCompletedPresentIndex = 0;
+    mCompletedPresentCount = 0;
+    mReadyPresentCount = 0;
+
+    PhReleaseFastLockExclusive(&mPresentEventMutex);
+
+    for (auto& present : mAllPresents)
+    {
+        present.reset();
+    }
+
+    mAllPresentsNextIndex = 0;
+    mHasCompletedAPresent = false;
+    DwmProcessId = 0;
+    DwmPresentThreadId = 0;
+    mPresentsWaitingForDWM.clear();
+
+    mPresentByThreadId.clear();
+    mOrderedPresentsByProcessId.clear();
+    mPresentBySubmitSequence.clear();
+    mPresentByWin32KPresentHistoryToken.clear();
+    mPresentByDxgkPresentHistoryToken.clear();
+    mPresentByDxgkPresentHistoryTokenData.clear();
+    mPresentByDxgkContext.clear();
+    mLastPresentByWindow.clear();
+    mDeferredCompletions.clear();
+
+    mEventProcessingEnabled.store(true, std::memory_order_release);
 }
 
 //void DequeueLostPresentEvents(std::vector<std::shared_ptr<PresentEvent>>& outPresentEvents)

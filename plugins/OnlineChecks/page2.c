@@ -12,8 +12,8 @@
 #include "onlnchk.h"
 
 HRESULT CALLBACK TaskDialogResultFoundProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
     _In_ LONG_PTR dwRefData
@@ -21,7 +21,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
 {
     PUPLOAD_CONTEXT context = (PUPLOAD_CONTEXT)dwRefData;
 
-    switch (uMsg)
+    switch (WindowMessage)
     {
     case TDN_NAVIGATED:
         {
@@ -48,7 +48,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
 //#else
 //                if (!PhIsNullOrEmptyString(context->ReAnalyseUrl))
 //                {
-//                    PhShellExecute(hwndDlg, PhGetString(context->ReAnalyseUrl), NULL);
+//                    PhShellExecute(WindowHandle, PhGetString(context->ReAnalyseUrl), NULL);
 //                }
 //#endif
             }
@@ -60,7 +60,7 @@ HRESULT CALLBACK TaskDialogResultFoundProc(
 //#else
 //                if (!PhIsNullOrEmptyString(context->LaunchCommand))
 //                {
-//                    PhShellExecute(hwndDlg, PhGetString(context->LaunchCommand), NULL);
+//                    PhShellExecute(WindowHandle, PhGetString(context->LaunchCommand), NULL);
 //                }
 //#endif
             }

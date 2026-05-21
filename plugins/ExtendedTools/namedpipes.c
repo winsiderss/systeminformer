@@ -240,7 +240,8 @@ VOID EtAddNamedPipeHandleToListView(
         HandleInfo->Handle,
         FilePipeLocalInformation,
         &pipeLocalInfo,
-        sizeof(pipeLocalInfo)
+        sizeof(pipeLocalInfo),
+        NULL
         )))
     {
         pipeLocalInfo.NamedPipeEnd = ULONG_MAX;
@@ -348,7 +349,8 @@ VOID EtAddNamedPipeHandleToListView(
         HandleInfo->Handle,
         FilePipeInformation,
         &pipeInfo,
-        sizeof(pipeInfo)
+        sizeof(pipeInfo),
+        NULL
         )))
     {
         switch (pipeInfo.ReadMode)

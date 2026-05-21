@@ -128,6 +128,9 @@ SymCryptCallbackFree(PVOID ptr)
 
 #define SYMCRYPT_RDSEED_RETRY_COUNT 1024
 
+#if defined(__clang__)
+__attribute__((target("rdseed")))
+#endif
 static BOOLEAN SymCryptRdseedRandom(
     _Out_writes_bytes_(cbBuffer) PBYTE pbBuffer,
     _In_ SIZE_T cbBuffer

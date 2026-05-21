@@ -13,6 +13,8 @@
 #ifndef PH_SYSINFO_H
 #define PH_SYSINFO_H
 
+EXTERN_C_START
+
 // begin_phapppub
 typedef enum _PH_SYSINFO_VIEW_TYPE
 {
@@ -213,5 +215,7 @@ PhShowSystemInformationDialog(
     _In_opt_ PCWSTR SectionName
     );
 // end_phapppub
+
+EXTERN_C_END
 
 #endif

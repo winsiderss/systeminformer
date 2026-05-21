@@ -881,7 +881,7 @@ NTSTATUS DiskDriveQueryNvmeHealthInfo(
         protocolData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
         return STATUS_UNSUCCESSFUL;
 
-    *HealthInfo = *(PNVME_HEALTH_INFO_LOG)((PCHAR)protocolData + protocolData->ProtocolDataOffset);
+    *HealthInfo = *(PNVME_HEALTH_INFO_LOG)PTR_ADD_OFFSET(protocolData, protocolData->ProtocolDataOffset);
     return STATUS_SUCCESS;
 }
 
@@ -1406,7 +1406,7 @@ PCWSTR SmartAttributeGetText(
         return L"Background program page count";
     case SMART_ATTRIBUTE_ID_NAND_WRITES:
         return L"NAND writes";
-    case SMART_ATTRIBUTE_ID_READ_ERROR_RETY_RATE:
+    case SMART_ATTRIBUTE_ID_READ_ERROR_RETRY_RATE:
         return L"Read error retry rate";
     case SMART_ATTRIBUTE_ID_MIN_SPARES_REMAINING:
         return L"Minimum spares remaining";

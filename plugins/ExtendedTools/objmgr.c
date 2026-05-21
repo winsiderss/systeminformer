@@ -2493,8 +2493,7 @@ VOID NTAPI EtpObjectManagerRefresh(
 
     SendMessage(Context->TreeViewHandle, WM_SETREDRAW, FALSE, 0);
 
-    PhGetSelectedListViewItemParams(Context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
+    if (PhGetSelectedListViewItemParams(Context->ListViewHandle, &listviewItems, &numberOfItems))
         oldSelect = PhReferenceObject(listviewItems[0]->Name);
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, FALSE);
@@ -2609,8 +2608,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
     assert(context);
 
-    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
+    if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
         oldSelect = PhReferenceObject(listviewItems[0]->Name);
 
     ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
@@ -2639,8 +2637,7 @@ VOID NTAPI EtpObjectManagerSearchControlCallback(
 
     ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
 
-    PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-    if (numberOfItems != 0)
+    if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
         oldSelect = EtGetObjectFullPath(listviewItems[0]->BaseDirectory, listviewItems[0]->Name);
     else
         oldSelect = PhReferenceObject(context->CurrentPath);
@@ -3316,8 +3313,7 @@ INT_PTR CALLBACK WinObjDlgProc(
                     break;
                 }
 
-                PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems);
-                if (numberOfItems != 0)
+                if (PhGetSelectedListViewItemParams(context->ListViewHandle, &listviewItems, &numberOfItems))
                 {
                     PET_OBJECT_ENTRY entry = listviewItems[0];
 
@@ -3526,9 +3522,8 @@ INT_PTR CALLBACK WinObjDlgProc(
 
                     PhDestroyEMenu(menu);
                 }
-
-                PhFree(listviewItems);
-            }
+                    PhFree(listviewItems);
+                }
             else if ((HWND)wParam == context->TreeViewHandle)
             {
                 TVHITTESTINFO treeHitTest = { 0 };

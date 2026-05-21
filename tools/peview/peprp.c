@@ -1029,7 +1029,7 @@ VOID PvpSetPeImageSize(
     {
         BOOLEAN success = FALSE;
         PIMAGE_DATA_DIRECTORY dataDirectory;
-        
+
         if (NT_SUCCESS(PhGetMappedImageDataDirectory(
             &PvMappedImage,
             IMAGE_DIRECTORY_ENTRY_SECURITY,
@@ -1042,7 +1042,7 @@ VOID PvpSetPeImageSize(
                 success = TRUE;
             }
         }
-        
+
         if (success)
         {
             string = PhFormatSize(PvMappedImage.ViewSize, ULONG_MAX);
@@ -1509,7 +1509,7 @@ VOID PvpSetPeImageFileProperties(
                 //if (basicInfo.FileAttributes & FILE_ATTRIBUTE_ENCRYPTED)
                 //    PhAppendStringBuilder2(&stringBuilder, L"Encrypted, ");
                 //if (basicInfo.FileAttributes & FILE_ATTRIBUTE_INTEGRITY_STREAM)
-                //    PhAppendStringBuilder2(&stringBuilder, L"Integiry, ");
+                //    PhAppendStringBuilder2(&stringBuilder, L"Integrity, ");
                 //if (basicInfo.FileAttributes & FILE_ATTRIBUTE_VIRTUAL)
                 //    PhAppendStringBuilder2(&stringBuilder, L"Virtual, ");
                 //if (basicInfo.FileAttributes & FILE_ATTRIBUTE_NO_SCRUB_DATA)

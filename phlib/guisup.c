@@ -2825,6 +2825,7 @@ BOOLEAN PhModalPropertySheet(
         Header->dwFlags |= PSH_USECALLBACK;
         Header->pfnCallback = PhModalPropSheetWindowProcedure;
     }
+
     hwnd = (HWND)PropertySheet(Header);
 
     if (!hwnd)
@@ -2895,6 +2896,16 @@ BOOLEAN PhInitializeLayoutManager(
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
 
+    ///if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
+    {
+        ULONG style = PhGetWindowStyle(RootWindowHandle);
+
+        if (style && !(style & WS_CLIPCHILDREN))
+        {
+            PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+        }
+    }
+
     if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
     {
         PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
@@ -2920,8 +2931,6 @@ VOID PhDeleteLayoutManager(
     PhDereferenceObject(Manager->List);
 }
 
-// HACK: The math below is all horribly broken, especially the HACK for multiline tab controls.
-
 /**
  * Adds a layout item for a window using default margin (zero).
  *
@@ -2931,7 +2940,7 @@ VOID PhDeleteLayoutManager(
  * \param Handle Window handle to manage.
  * \param ParentItem Optional parent layout item; if NULL the root item is used.
  * \param Anchor Anchor flags controlling layout behaviour.
- * \return Pointer to the newly created PPH_LAYOUT_ITEM.
+ * \return Pointer to the newly created PPH_LAYOUT_ITEM, or NULL on failure (e.g. the window rect could not be queried).
  */
 PPH_LAYOUT_ITEM PhAddLayoutItem(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
@@ -2950,6 +2959,9 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
         Anchor,
         &dummy
         );
+
+    if (!layoutItem)
+        return NULL;
 
     layoutItem->Margin = layoutItem->Rect;
     PhConvertRect(&layoutItem->Margin, &layoutItem->ParentItem->Rect);
@@ -3004,12 +3016,19 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
         item->LayoutParentItem = item->LayoutParentItem->LayoutParentItem;
     }
 
+    if (!PhGetWindowRect(Handle, &item->Rect))
+    {
+        // Window is in an unexpected state (e.g. already destroyed).
+        // Caller cannot do anything sensible with an item that has no rect.
+        PhFree(item);
+        return NULL;
+    }
+
     item->LayoutParentItem->NumberOfChildren++;
 
-    PhGetWindowRect(Handle, &item->Rect);
     MapWindowRect(HWND_DESKTOP, item->LayoutParentItem->Handle, &item->Rect);
 
-    if (item->Anchor & PH_LAYOUT_TAB_CONTROL)
+    if (FlagOn(item->Anchor, PH_LAYOUT_TAB_CONTROL))
     {
         // We want to convert the tab control rectangle to the tab page display rectangle.
         TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
@@ -3100,8 +3119,7 @@ VOID PhpLayoutItemLayout(
         hasDummyParent = FALSE;
     }
 
-    if (!PhGetWindowRect(Item->Handle, &Item->Rect))
-        return;
+    PhGetWindowRect(Item->Handle, &Item->Rect);
 
     MapWindowRect(HWND_DESKTOP, Item->LayoutParentItem->Handle, &Item->Rect);
 
@@ -3124,8 +3142,21 @@ VOID PhpLayoutItemLayout(
 
         if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
         {
-            // TODO
-            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+            // Neither side anchored: keep the item horizontally centered
+            // within the parent's new width while preserving the item's
+            // current width.
+            LONG parentWidth = Item->LayoutParentItem->Rect.right - Item->LayoutParentItem->Rect.left;
+            LONG itemWidth = parentWidth - rect.left - rect.right;
+            LONG newLeft;
+
+            if (itemWidth < 0)
+                itemWidth = 0;
+
+            newLeft = (hasDummyParent ? Item->ParentItem->Rect.left : 0)
+                + (parentWidth - itemWidth) / 2;
+
+            rect.left = newLeft;
+            rect.right = parentWidth - (newLeft + itemWidth);
         }
         else if (Item->Anchor & PH_ANCHOR_RIGHT)
         {
@@ -3145,8 +3176,21 @@ VOID PhpLayoutItemLayout(
 
         if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
         {
-            // TODO
-            PhRaiseStatus(STATUS_NOT_IMPLEMENTED);
+            // Neither side anchored: keep the item vertically centered
+            // within the parent's new height while preserving the item's
+            // current height.
+            LONG parentHeight = Item->LayoutParentItem->Rect.bottom - Item->LayoutParentItem->Rect.top;
+            LONG itemHeight = parentHeight - rect.top - rect.bottom;
+            LONG newTop;
+
+            if (itemHeight < 0)
+                itemHeight = 0;
+
+            newTop = (hasDummyParent ? Item->ParentItem->Rect.top : 0)
+                + (parentHeight - itemHeight) / 2;
+
+            rect.top = newTop;
+            rect.bottom = parentHeight - (newTop + itemHeight);
         }
         else if (Item->Anchor & PH_ANCHOR_BOTTOM)
         {
@@ -3182,12 +3226,14 @@ VOID PhpLayoutItemLayout(
         else
         {
             // This is needed for tab controls, so that TabCtrl_AdjustRect will give us an
-            // up-to-date result.
+            // up-to-date result. SWP_NOREDRAW suppresses the tab-frame repaint that would
+            // otherwise flash before the deferred children settle into their new positions.
+            // A single RedrawWindow is issued in PhLayoutManagerLayout after the batch flushes.
             SetWindowPos(
                 Item->Handle,
                 NULL, rect.left, rect.top,
                 rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW
                 );
         }
     }
@@ -3234,6 +3280,12 @@ VOID PhLayoutManagerLayout(
         if (item->Anchor & PH_LAYOUT_FORCE_INVALIDATE)
         {
             InvalidateRect(item->Handle, NULL, FALSE);
+        }
+        else if (item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE)
+        {
+            // Children have settled into their new positions inside the deferred batch.
+            // Repaint the tab frame in one shot to avoid the flash that SWP_NOREDRAW suppressed.
+            RedrawWindow(item->Handle, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
         }
     }
 
