@@ -2141,7 +2141,6 @@ VOID PePdbDumpGlobalScopeChildren(
     ULONG celt = 0;
     ULONG iMod = 1;
 
-
     for (ULONG i = 0; i < SymTagMax; i++)
     {
         if (SUCCEEDED(IDiaSession_findChildren(DiaSession, NULL, i, NULL, nsNone, &rootEnumSymbols)))
@@ -2174,7 +2173,6 @@ VOID PePdbDumpGlobalScopeChildren(
     PePdbDumpDiaInjectedSource(Context, DiaSession, Root);
     PePdbDumpDiaInputAssemblyFiles(Context, DiaSession, Root);
 
-
     if (IDiaSession_getEnumTables(DiaSession, &enumTables) != S_OK)
         return;
 
@@ -2196,11 +2194,6 @@ VOID PePdbDumpGlobalScopeChildren(
         while (IDiaTable_Next(diaTable, 1, &unknown, &fetched) == S_OK && fetched == 1)
         {
             IDiaSymbol* tableSymbol = NULL;
-            IDiaEnumFrameData* tableFrames = NULL;
-            IDiaEnumSegments* segmentData = NULL;
-            IDiaEnumSourceFiles* sourceFiles = NULL;
-            IDiaEnumSectionContribs* sectionContribs = NULL;
-            IDiaEnumDebugStreamData* debugStreamData = NULL;
 
             if (IUnknown_QueryInterface(unknown, &IID_IDiaSymbol, (void**)&tableSymbol) == S_OK)
             {
@@ -2218,6 +2211,79 @@ VOID PePdbDumpGlobalScopeChildren(
     }
 
     IDiaEnumTables_Release(enumTables);
+
+    // static PH_STRINGREF tableText = PH_STRINGREF_INIT(L"Table");
+    // IDiaEnumTables* enumTables;
+    // IDiaTable* diaTable;
+    // ULONG count = 0;
+    //
+    // if (IDiaSession_getEnumTables(DiaSession, &enumTables) != S_OK)
+    //     return;
+    //
+    // while (IDiaEnumTables_Next(enumTables, 1, &diaTable, &count) == S_OK && count == 1)
+    // {
+    //     BSTR bstrName = NULL;
+    //     IUnknown* unknown;
+    //     ULONG fetched = 0;
+    //     PPV_SYMBOL_NODE tableNode;
+    //
+    //     IDiaTable_get_name(diaTable, &bstrName);
+    //     tableNode = PePdbCreateSyntheticSymbolNode(
+    //         Context,
+    //         Root,
+    //         bstrName ? bstrName : L"Unnamed Table",
+    //         &tableText
+    //         );
+    //
+    //     while (IDiaTable_Next(diaTable, 1, &unknown, &fetched) == S_OK && fetched == 1)
+    //     {
+    //         IDiaSymbol* tableSymbol = NULL;
+    //         IDiaEnumFrameData* tableFrames = NULL;
+    //         IDiaEnumSegments* segmentData = NULL;
+    //         IDiaEnumSourceFiles* sourceFiles = NULL;
+    //         IDiaEnumSectionContribs* sectionContribs = NULL;
+    //         IDiaEnumDebugStreamData* debugStreamData = NULL;
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaSymbol, (void**)&tableSymbol) == S_OK)
+    //         {
+    //             PePdbPrintDiaSymbol(Context, tableSymbol, tableNode);
+    //             IUnknown_Release(tableSymbol);
+    //         }
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaEnumFrameData, (void**)&tableFrames) == S_OK)
+    //         {
+    //             IUnknown_Release(tableFrames);
+    //         }
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaEnumSegments, (void**)&segmentData) == S_OK)
+    //         {
+    //             IUnknown_Release(sourceFiles);
+    //         }
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaEnumSourceFiles, (void**)&sourceFiles) == S_OK)
+    //         {
+    //             IUnknown_Release(sourceFiles);
+    //         }
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaEnumSectionContribs, (void**)&sectionContribs) == S_OK)
+    //         {
+    //             IUnknown_Release(sectionContribs);
+    //         }
+    //
+    //         if (IUnknown_QueryInterface(unknown, &IID_IDiaEnumDebugStreamData, (void**)&debugStreamData) == S_OK)
+    //         {
+    //             IUnknown_Release(debugStreamData);
+    //         }
+    //         IUnknown_Release(unknown);
+    //     }
+    //
+    //     if (bstrName)
+    //         PhSymbolProviderFreeDiaString(bstrName);
+    //
+    //     IDiaTable_Release(diaTable);
+    // }
+    //
+    //IDiaEnumTables_Release(enumTables);
 }
 
 BOOLEAN DumpAllGlobals(
