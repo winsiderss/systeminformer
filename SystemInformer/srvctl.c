@@ -195,6 +195,107 @@ VOID PhpFixProcessServicesControls(
     }
 }
 
+VOID PhpStartSelectedServices(
+    _In_ HWND hWnd,
+    _In_ HWND ListViewHandle
+    )
+{
+    PPH_SERVICE_ITEM *serviceItems;
+    PPH_SERVICE_ITEM *startServices;
+    PPH_SERVICE_ITEM *stopServices;
+    ULONG numberOfItems;
+    ULONG startCount = 0;
+    ULONG stopCount = 0;
+
+    if (!PhGetSelectedListViewItemParams(ListViewHandle, &serviceItems, &numberOfItems))
+        return;
+
+    startServices = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfItems);
+    stopServices = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfItems);
+
+    for (ULONG i = 0; i < numberOfItems; i++)
+    {
+        switch (((PPH_SERVICE_ITEM)serviceItems[i])->State)
+        {
+        case SERVICE_STOPPED:
+            startServices[startCount++] = serviceItems[i];
+            break;
+        case SERVICE_RUNNING:
+        case SERVICE_PAUSED:
+            stopServices[stopCount++] = serviceItems[i];
+            break;
+        }
+    }
+
+    if (stopCount != 0)
+    {
+        PhReferenceObjects(stopServices, stopCount);
+        PhUiStopServices(hWnd, stopServices, stopCount);
+        PhDereferenceObjects(stopServices, stopCount);
+    }
+
+    if (startCount != 0)
+    {
+        PhReferenceObjects(startServices, startCount);
+        PhUiStartServices(hWnd, startServices, startCount);
+        PhDereferenceObjects(startServices, startCount);
+    }
+
+    PhFree(startServices);
+    PhFree(stopServices);
+    PhFree(serviceItems);
+}
+
+VOID PhpPauseSelectedServices(
+    _In_ HWND hWnd,
+    _In_ HWND ListViewHandle
+    )
+{
+    PPH_SERVICE_ITEM *serviceItems;
+    PPH_SERVICE_ITEM *pauseServices;
+    PPH_SERVICE_ITEM *continueServices;
+    ULONG numberOfItems;
+    ULONG pauseCount = 0;
+    ULONG continueCount = 0;
+
+    if (!PhGetSelectedListViewItemParams(ListViewHandle, &serviceItems, &numberOfItems))
+        return;
+
+    pauseServices = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfItems);
+    continueServices = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfItems);
+
+    for (ULONG i = 0; i < numberOfItems; i++)
+    {
+        switch (((PPH_SERVICE_ITEM)serviceItems[i])->State)
+        {
+        case SERVICE_RUNNING:
+            pauseServices[pauseCount++] = serviceItems[i];
+            break;
+        case SERVICE_PAUSED:
+            continueServices[continueCount++] = serviceItems[i];
+            break;
+        }
+    }
+
+    if (pauseCount != 0)
+    {
+        PhReferenceObjects(pauseServices, pauseCount);
+        PhUiPauseServices(hWnd, pauseServices, pauseCount);
+        PhDereferenceObjects(pauseServices, pauseCount);
+    }
+
+    if (continueCount != 0)
+    {
+        PhReferenceObjects(continueServices, continueCount);
+        PhUiContinueServices(hWnd, continueServices, continueCount);
+        PhDereferenceObjects(continueServices, continueCount);
+    }
+
+    PhFree(pauseServices);
+    PhFree(continueServices);
+    PhFree(serviceItems);
+}
+
 /**
  * Dialog procedure for the services page.
  *
@@ -245,7 +346,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 context->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
                 SetWindowFont(context->ListViewHandle, context->TreeNewFont, FALSE);
             }
-            
+
             for (ULONG i = 0; i < context->NumberOfServices; i++)
             {
                 SC_HANDLE serviceHandle;
@@ -331,41 +432,45 @@ INT_PTR CALLBACK PhpServicesPageProc(
             {
             case IDC_START:
                 {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
+                    // PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
+                    //
+                    // if (serviceItem)
+                    // {
+                    //     switch (serviceItem->State)
+                    //     {
+                    //     case SERVICE_RUNNING:
+                    //         PhUiStopService(hwndDlg, serviceItem);
+                    //         break;
+                    //     case SERVICE_PAUSED:
+                    //         PhUiStopService(hwndDlg, serviceItem);
+                    //         break;
+                    //     case SERVICE_STOPPED:
+                    //         PhUiStartService(hwndDlg, serviceItem);
+                    //         break;
+                    //     }
+                    // }
 
-                    if (serviceItem)
-                    {
-                        switch (serviceItem->State)
-                        {
-                        case SERVICE_RUNNING:
-                            PhUiStopService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_PAUSED:
-                            PhUiStopService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_STOPPED:
-                            PhUiStartService(hwndDlg, serviceItem);
-                            break;
-                        }
-                    }
+                    PhpStartSelectedServices(hwndDlg, context->ListViewHandle);
                 }
                 break;
             case IDC_PAUSE:
                 {
-                    PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
+                    // PPH_SERVICE_ITEM serviceItem = PhGetSelectedListViewItemParam(context->ListViewHandle);
+                    //
+                    // if (serviceItem)
+                    // {
+                    //     switch (serviceItem->State)
+                    //     {
+                    //     case SERVICE_RUNNING:
+                    //         PhUiPauseService(hwndDlg, serviceItem);
+                    //         break;
+                    //     case SERVICE_PAUSED:
+                    //         PhUiContinueService(hwndDlg, serviceItem);
+                    //         break;
+                    //     }
+                    // }
 
-                    if (serviceItem)
-                    {
-                        switch (serviceItem->State)
-                        {
-                        case SERVICE_RUNNING:
-                            PhUiPauseService(hwndDlg, serviceItem);
-                            break;
-                        case SERVICE_PAUSED:
-                            PhUiContinueService(hwndDlg, serviceItem);
-                            break;
-                        }
-                    }
+                    PhpPauseSelectedServices(hwndDlg, context->ListViewHandle);
                 }
                 break;
             }
