@@ -460,20 +460,21 @@ target_compile_definitions(thirdparty PRIVATE
 )
 
 if(MSVC_CLANG)
-    set_source_files_properties(
-        "detours/disasm.cpp"
-        "detours/disolx64.cpp"
-        "detours/disolx86.cpp"
-        PROPERTIES
-        TARGET_DIRECTORY thirdparty
-        COMPILE_OPTIONS "-Wno-reorder-ctor"
-    )
-    set_source_files_properties(
-        "jsonc/arraylist.c"
-        "jsonc/json_object.c"
-        "ssdeep/fuzzy.c"
-        PROPERTIES
-        TARGET_DIRECTORY thirdparty
-        COMPILE_OPTIONS "-Wno-tautological-constant-out-of-range-compare"
+    target_compile_options(thirdparty PRIVATE
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mssse3>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-maes>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mpclmul>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mavx>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mavx2>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mbmi2>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-msha>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mvaes>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mvpclmulqdq>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-mrdseed>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-macro-redefined>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-multichar>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-reorder-ctor>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-tautological-constant-out-of-range-compare>
     )
 endif()

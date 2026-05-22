@@ -129,6 +129,9 @@
     <Lib>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <MARMASM>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </MARMASM>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -163,6 +166,9 @@
     <Lib>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Lib>
+    <MARMASM>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </MARMASM>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="detours\detours.cpp" />
@@ -234,6 +240,7 @@
     <ClCompile Include="sha256\sha256.c" />
     <ClCompile Include="sha\sha.c" />
     <ClCompile Include="ssdeep\fuzzy.c" />
+    <ClCompile Include="SymCrypt\lib\aes-zmm.c" />
     <ClCompile Include="tlsh\tlsh.cpp" />
     <ClCompile Include="tlsh\tlsh_impl.cpp" />
     <ClCompile Include="tlsh\tlsh_util.cpp" />
@@ -315,658 +322,163 @@
     <ClInclude Include="zydis\Zydis.h" />
   </ItemGroup>
   <ItemGroup Label="SymCrypt">
-    <ClCompile Include="SymCrypt\symcryptwrapper.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\modules\windows\user\module.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\3des.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-asm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-c.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-default-bc.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-default.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-key.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-neon.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-xmm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aes-ymm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aescmac.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aesCtrDrbg.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\aeskw.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\AesTables.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\a_dispatch.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\blockciphermodes.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ccm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\chacha20.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\chacha20_poly1305.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\composite_encoding.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\composite_mlkem.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\cpuid.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\cpuid_notry.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\cpuid_um.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\crt.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\data_accessors.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\DesTables.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\desx.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\dh.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\dlgroup.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\dlkey.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\dl_internal_groups.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\dsa.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\eckey.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ecpoint.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ecurve.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_dh.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_dispatch.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_dsa.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_internal_curve_params.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_internal_curves.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_montgomery.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_mul.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_short_weierstrass.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ec_twisted_edwards.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\env_generic.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\env_Win10Sgx.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin7.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin8_1.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\equal.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\FatalIntercept.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\fdef369_mod.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\fdef_general.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\fdef_int.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\fdef_mod.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\fips_selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\gcm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\gen_int.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ghash.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hash.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hkdf.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hkdf_selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmac.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacmd5.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha1.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha224.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha384.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha512_224.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha512_256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha3_224.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha3_256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha3_384.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\hmacsha3_512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\IEEE802_11SaeCustom.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\kmac.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\libmain.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\lms.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\marvin32.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\md2.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\md4.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\md5.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\mldsa.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\mldsa_primitives.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\mlkem.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\mlkem_primitives.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\modexp.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\paddingPkcs7.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\parhash.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\pbkdf2.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha1.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\poly1305.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\primes.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rc2.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rc4.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rdrand.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rdseed.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\recoding.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rsakey.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rsa_enc.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\rsa_padding.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ScsTable.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\scsTools.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\service_indicator.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\session.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha1.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha256-xmm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha256-ymm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha256Par-ymm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha256Par.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha3.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha3_224.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha3_256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha3_384.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha3_512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha512-ymm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha512Par-ymm.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sha512Par.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\shake.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sp800_108.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha1.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\srtp_kdf.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\srtp_kdf_selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ssh_kdf.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha256.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha512.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sskdf.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\sskdf_selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\tlsCbcVerify.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\tlsprf.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\tlsprf_selftest.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\xmss.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\xtsaes.c">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <ObjectFileName>$(IntDir)SymCrypt\%(Filename).obj</ObjectFileName>
-    </ClCompile>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\aesasm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\wipe.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef369_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\fdef_mulx.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\sha256xmm_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\sha256ymm_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\sha512ymm_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.symcryptasm" Condition="'$(Platform)'=='x64'" Dialect="masm" Arch="amd64" Convention="msft">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <PreprocessWithCl>false</PreprocessWithCl>
-    </MARMASM>
-    <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <PreprocessWithCl>false</PreprocessWithCl>
-    </MARMASM>
-    <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-      <PreprocessWithCl>false</PreprocessWithCl>
-    </MARMASM>
-    <SymCryptAsm Include="SymCrypt\lib\arm64\fdef_asm.symcryptasm" Condition="'$(Platform)'=='ARM64EC'" Dialect="armasm64" Arch="arm64" Convention="arm64ec">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\arm64\fdef369_asm.symcryptasm" Condition="'$(Platform)'=='ARM64EC'" Dialect="armasm64" Arch="arm64" Convention="arm64ec">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <SymCryptAsm Include="SymCrypt\lib\arm64\wipe.symcryptasm" Condition="'$(Platform)'=='ARM64EC'" Dialect="armasm64" Arch="arm64" Convention="arm64ec">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </SymCryptAsm>
-    <MASM Include="SymCrypt\lib\i386\aesasm.asm" Condition="'$(Platform)'=='Win32'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\i386\fdef_asm.asm" Condition="'$(Platform)'=='Win32'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\i386\wipe.asm" Condition="'$(Platform)'=='Win32'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'">
-      <ExcludedFromBuild>false</ExcludedFromBuild>
-    </MASM>
+    <ClCompile Include="SymCrypt\symcryptwrapper.c" />
+    <ClCompile Include="SymCrypt\modules\windows\user\module.c" />
+    <ClCompile Include="SymCrypt\lib\3des.c" />
+    <ClCompile Include="SymCrypt\lib\aes-asm.c" />
+    <ClCompile Include="SymCrypt\lib\aes-c.c" />
+    <ClCompile Include="SymCrypt\lib\aes-default-bc.c" />
+    <ClCompile Include="SymCrypt\lib\aes-default.c" />
+    <ClCompile Include="SymCrypt\lib\aes-key.c" />
+    <ClCompile Include="SymCrypt\lib\aes-neon.c" />
+    <ClCompile Include="SymCrypt\lib\aes-selftest.c" />
+    <ClCompile Include="SymCrypt\lib\aes-xmm.c" />
+    <ClCompile Include="SymCrypt\lib\aes-ymm.c" />
+    <ClCompile Include="SymCrypt\lib\aescmac.c" />
+    <ClCompile Include="SymCrypt\lib\aesCtrDrbg.c" />
+    <ClCompile Include="SymCrypt\lib\aeskw.c" />
+    <ClCompile Include="SymCrypt\lib\AesTables.c" />
+    <ClCompile Include="SymCrypt\lib\a_dispatch.c" />
+    <ClCompile Include="SymCrypt\lib\blockciphermodes.c" />
+    <ClCompile Include="SymCrypt\lib\ccm.c" />
+    <ClCompile Include="SymCrypt\lib\chacha20.c" />
+    <ClCompile Include="SymCrypt\lib\chacha20_poly1305.c" />
+    <ClCompile Include="SymCrypt\lib\composite_encoding.c" />
+    <ClCompile Include="SymCrypt\lib\composite_mlkem.c" />
+    <ClCompile Include="SymCrypt\lib\cpuid.c" />
+    <ClCompile Include="SymCrypt\lib\cpuid_notry.c" />
+    <ClCompile Include="SymCrypt\lib\cpuid_um.c" />
+    <ClCompile Include="SymCrypt\lib\crt.c" />
+    <ClCompile Include="SymCrypt\lib\data_accessors.c" />
+    <ClCompile Include="SymCrypt\lib\DesTables.c" />
+    <ClCompile Include="SymCrypt\lib\desx.c" />
+    <ClCompile Include="SymCrypt\lib\dh.c" />
+    <ClCompile Include="SymCrypt\lib\dlgroup.c" />
+    <ClCompile Include="SymCrypt\lib\dlkey.c" />
+    <ClCompile Include="SymCrypt\lib\dl_internal_groups.c" />
+    <ClCompile Include="SymCrypt\lib\dsa.c" />
+    <ClCompile Include="SymCrypt\lib\eckey.c" />
+    <ClCompile Include="SymCrypt\lib\ecpoint.c" />
+    <ClCompile Include="SymCrypt\lib\ecurve.c" />
+    <ClCompile Include="SymCrypt\lib\ec_dh.c" />
+    <ClCompile Include="SymCrypt\lib\ec_dispatch.c" />
+    <ClCompile Include="SymCrypt\lib\ec_dsa.c" />
+    <ClCompile Include="SymCrypt\lib\ec_internal_curve_params.c" />
+    <ClCompile Include="SymCrypt\lib\ec_internal_curves.c" />
+    <ClCompile Include="SymCrypt\lib\ec_montgomery.c" />
+    <ClCompile Include="SymCrypt\lib\ec_mul.c" />
+    <ClCompile Include="SymCrypt\lib\ec_short_weierstrass.c" />
+    <ClCompile Include="SymCrypt\lib\ec_twisted_edwards.c" />
+    <ClCompile Include="SymCrypt\lib\env_generic.c" />
+    <ClCompile Include="SymCrypt\lib\env_Win10Sgx.c" />
+    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin7.c" />
+    <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin8_1.c" />
+    <ClCompile Include="SymCrypt\lib\equal.c" />
+    <ClCompile Include="SymCrypt\lib\FatalIntercept.c" />
+    <ClCompile Include="SymCrypt\lib\fdef369_mod.c" />
+    <ClCompile Include="SymCrypt\lib\fdef_general.c" />
+    <ClCompile Include="SymCrypt\lib\fdef_int.c" />
+    <ClCompile Include="SymCrypt\lib\fdef_mod.c" />
+    <ClCompile Include="SymCrypt\lib\fips_selftest.c" />
+    <ClCompile Include="SymCrypt\lib\gcm.c" />
+    <ClCompile Include="SymCrypt\lib\gen_int.c" />
+    <ClCompile Include="SymCrypt\lib\ghash.c" />
+    <ClCompile Include="SymCrypt\lib\hash.c" />
+    <ClCompile Include="SymCrypt\lib\hkdf.c" />
+    <ClCompile Include="SymCrypt\lib\hkdf_selftest.c" />
+    <ClCompile Include="SymCrypt\lib\hmac.c" />
+    <ClCompile Include="SymCrypt\lib\hmacmd5.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha1.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha224.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha256.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha384.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha512.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha512_224.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha512_256.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha3_224.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha3_256.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha3_384.c" />
+    <ClCompile Include="SymCrypt\lib\hmacsha3_512.c" />
+    <ClCompile Include="SymCrypt\lib\IEEE802_11SaeCustom.c" />
+    <ClCompile Include="SymCrypt\lib\kmac.c" />
+    <ClCompile Include="SymCrypt\lib\libmain.c" />
+    <ClCompile Include="SymCrypt\lib\lms.c" />
+    <ClCompile Include="SymCrypt\lib\marvin32.c" />
+    <ClCompile Include="SymCrypt\lib\md2.c" />
+    <ClCompile Include="SymCrypt\lib\md4.c" />
+    <ClCompile Include="SymCrypt\lib\md5.c" />
+    <ClCompile Include="SymCrypt\lib\mldsa.c" />
+    <ClCompile Include="SymCrypt\lib\mldsa_primitives.c" />
+    <ClCompile Include="SymCrypt\lib\mlkem.c" />
+    <ClCompile Include="SymCrypt\lib\mlkem_primitives.c" />
+    <ClCompile Include="SymCrypt\lib\modexp.c" />
+    <ClCompile Include="SymCrypt\lib\paddingPkcs7.c" />
+    <ClCompile Include="SymCrypt\lib\parhash.c" />
+    <ClCompile Include="SymCrypt\lib\pbkdf2.c" />
+    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha1.c" />
+    <ClCompile Include="SymCrypt\lib\pbkdf2_hmacsha256.c" />
+    <ClCompile Include="SymCrypt\lib\poly1305.c" />
+    <ClCompile Include="SymCrypt\lib\primes.c" />
+    <ClCompile Include="SymCrypt\lib\rc2.c" />
+    <ClCompile Include="SymCrypt\lib\rc4.c" />
+    <ClCompile Include="SymCrypt\lib\rdrand.c" />
+    <ClCompile Include="SymCrypt\lib\rdseed.c" />
+    <ClCompile Include="SymCrypt\lib\recoding.c" />
+    <ClCompile Include="SymCrypt\lib\rsakey.c" />
+    <ClCompile Include="SymCrypt\lib\rsa_enc.c" />
+    <ClCompile Include="SymCrypt\lib\rsa_padding.c" />
+    <ClCompile Include="SymCrypt\lib\ScsTable.c" />
+    <ClCompile Include="SymCrypt\lib\scsTools.c" />
+    <ClCompile Include="SymCrypt\lib\selftest.c" />
+    <ClCompile Include="SymCrypt\lib\service_indicator.c" />
+    <ClCompile Include="SymCrypt\lib\session.c" />
+    <ClCompile Include="SymCrypt\lib\sha1.c" />
+    <ClCompile Include="SymCrypt\lib\sha256-xmm.c" />
+    <ClCompile Include="SymCrypt\lib\sha256-ymm.c" />
+    <ClCompile Include="SymCrypt\lib\sha256.c" />
+    <ClCompile Include="SymCrypt\lib\sha256Par-ymm.c" />
+    <ClCompile Include="SymCrypt\lib\sha256Par.c" />
+    <ClCompile Include="SymCrypt\lib\sha3.c" />
+    <ClCompile Include="SymCrypt\lib\sha3_224.c" />
+    <ClCompile Include="SymCrypt\lib\sha3_256.c" />
+    <ClCompile Include="SymCrypt\lib\sha3_384.c" />
+    <ClCompile Include="SymCrypt\lib\sha3_512.c" />
+    <ClCompile Include="SymCrypt\lib\sha512-ymm.c" />
+    <ClCompile Include="SymCrypt\lib\sha512.c" />
+    <ClCompile Include="SymCrypt\lib\sha512Par-ymm.c" />
+    <ClCompile Include="SymCrypt\lib\sha512Par.c" />
+    <ClCompile Include="SymCrypt\lib\shake.c" />
+    <ClCompile Include="SymCrypt\lib\sp800_108.c" />
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha1.c" />
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha256.c" />
+    <ClCompile Include="SymCrypt\lib\sp800_108_hmacsha512.c" />
+    <ClCompile Include="SymCrypt\lib\srtp_kdf.c" />
+    <ClCompile Include="SymCrypt\lib\srtp_kdf_selftest.c" />
+    <ClCompile Include="SymCrypt\lib\ssh_kdf.c" />
+    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha256.c" />
+    <ClCompile Include="SymCrypt\lib\ssh_kdf_sha512.c" />
+    <ClCompile Include="SymCrypt\lib\sskdf.c" />
+    <ClCompile Include="SymCrypt\lib\sskdf_selftest.c" />
+    <ClCompile Include="SymCrypt\lib\tlsCbcVerify.c" />
+    <ClCompile Include="SymCrypt\lib\tlsprf.c" />
+    <ClCompile Include="SymCrypt\lib\tlsprf_selftest.c" />
+    <ClCompile Include="SymCrypt\lib\xmss.c" />
+    <ClCompile Include="SymCrypt\lib\xtsaes.c" />
+    <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
+    <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
+    <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm" Condition="'$(Platform)'=='ARM64'" />
+    <MASM Include="SymCrypt\lib\i386\aesasm.asm" Condition="'$(Platform)'=='Win32'" />
+    <MASM Include="SymCrypt\lib\i386\fdef_asm.asm" Condition="'$(Platform)'=='Win32'" />
+    <MASM Include="SymCrypt\lib\i386\wipe.asm" Condition="'$(Platform)'=='Win32'" />
+    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
+    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
   </ItemGroup>
   <ItemGroup>
     <None Include="SymCrypt\inc\symcrypt_internal_shared.inc" />

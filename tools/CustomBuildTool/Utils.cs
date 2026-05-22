@@ -903,6 +903,7 @@ namespace CustomBuildTool
         {
             string[] arguments = Arguments?.ToArray() ?? [];
             string cmakeFile = GetCMakeFilePath();
+
             if (string.IsNullOrWhiteSpace(cmakeFile))
             {
                 Program.PrintColorMessage("[ExecuteCMakeCommand] cmake.exe is invalid.", ConsoleColor.Red);

@@ -19,14 +19,13 @@ const SYMCRYPT_ALIGN_AT(32) UINT64 BYTE_ROTATE_64[4] = {
 };
 
 
-#if SYMCRYPT_MS_VC
+#if SYMCRYPT_MS_VC && !defined(__clang__)
 #define RORX_U32  _rorx_u32
 #define RORX_U64  _rorx_u64
 #else
-// TODO: implement _rorx functions for clang
 #define RORX_U32  ROR32
 #define RORX_U64  ROR64
-#endif // SYMCRYPT_MS_VC
+#endif // SYMCRYPT_MS_VC && !defined(__clang__)
 
 
 //
