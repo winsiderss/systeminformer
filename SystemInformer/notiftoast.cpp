@@ -37,6 +37,33 @@ using namespace ABI::Windows::Data::Xml::Dom;
 
 namespace PH
 {
+    enum ToastNotificationPriority
+    {
+        ToastNotificationPriority_Default = 0,
+        ToastNotificationPriority_High = 1
+    };
+
+    MIDL_INTERFACE("15154935-28ea-4727-88e9-c58680e2d118")
+    IToastNotification4 : public IInspectable
+    {
+    public:
+        virtual HRESULT STDMETHODCALLTYPE get_Data(
+            _COM_Outptr_ IInspectable** Value
+            ) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE put_Data(
+            _In_ IInspectable* Value
+            ) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE get_Priority(
+            _Out_ ToastNotificationPriority* Value
+            ) = 0;
+
+        virtual HRESULT STDMETHODCALLTYPE put_Priority(
+            _In_ ToastNotificationPriority Value
+            ) = 0;
+    };
+
     /*!
         @brief Simple template wrapper around PhGetModuleProcAddress
 
@@ -180,6 +207,7 @@ namespace PH
             _In_ PPH_STRINGREF ApplicationId,
             _In_ PPH_STRINGREF ToastXml,
             _In_opt_ ULONG TimeoutMilliseconds,
+            _In_opt_ PH_TOAST_PRIORITY Priority,
             _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
             _In_opt_ PVOID Context
             );
@@ -200,6 +228,7 @@ HRESULT PH::Toast::Initialize(
     _In_ PPH_STRINGREF ApplicationId,
     _In_ PPH_STRINGREF ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PH_TOAST_PRIORITY Priority,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
     _In_opt_ PVOID Context
     )
@@ -256,6 +285,23 @@ HRESULT PH::Toast::Initialize(
 
     ComPtr<IToastNotification> toast;
     RETURN_IF_FAILED(factory->CreateToastNotification(xmlDocument.Get(), &toast));
+
+    if (Priority != PhToastPriorityDefault)
+    {
+        ComPtr<PH::IToastNotification4> toast4;
+        HRESULT status;
+
+        if (Priority != PhToastPriorityHigh)
+            return E_INVALIDARG;
+
+        status = toast.As(&toast4);
+
+        if (status != E_NOINTERFACE)
+        {
+            RETURN_IF_FAILED(status);
+            RETURN_IF_FAILED(toast4->put_Priority(PH::ToastNotificationPriority_High));
+        }
+    }
 
     if (TimeoutMilliseconds > 0)
     {
@@ -504,11 +550,32 @@ HRESULT PhShowToastStringRef(
     _In_opt_ PVOID Context
     )
 {
+    return PhShowToastStringRefEx(
+        ApplicationId,
+        ToastXml,
+        TimeoutMilliseconds,
+        PhToastPriorityDefault,
+        ToastCallback,
+        Context
+        );
+}
+
+_Must_inspect_result_
+HRESULT PhShowToastStringRefEx(
+    _In_ PPH_STRINGREF ApplicationId,
+    _In_ PPH_STRINGREF ToastXml,
+    _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PH_TOAST_PRIORITY Priority,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    )
+{
     auto toast = std::make_unique<PH::Toast>();
 
     RETURN_IF_FAILED(toast->Initialize(ApplicationId,
                                        ToastXml,
                                        TimeoutMilliseconds,
+                                       Priority,
                                        ToastCallback,
                                        Context));
     return toast->Show();
@@ -523,15 +590,38 @@ HRESULT PhShowToast(
     _In_opt_ PVOID Context
     )
 {
+    return PhShowToastEx(
+        ApplicationId,
+        ToastXml,
+        TimeoutMilliseconds,
+        PhToastPriorityDefault,
+        ToastCallback,
+        Context
+        );
+}
+
+_Must_inspect_result_
+HRESULT PhShowToastEx(
+    _In_ PCWSTR ApplicationId,
+    _In_ PCWSTR ToastXml,
+    _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PH_TOAST_PRIORITY Priority,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    )
+{
     PH_STRINGREF applicationIdStringRef;
     PH_STRINGREF toastXmlStringRef;
 
     PhInitializeStringRefLongHint(&applicationIdStringRef, ApplicationId);
     PhInitializeStringRefLongHint(&toastXmlStringRef, ToastXml);
 
-    return PhShowToastStringRef(&applicationIdStringRef,
-                                &toastXmlStringRef,
-                                TimeoutMilliseconds,
-                                ToastCallback,
-                                Context);
+    return PhShowToastStringRefEx(
+        &applicationIdStringRef,
+        &toastXmlStringRef,
+        TimeoutMilliseconds,
+        Priority,
+        ToastCallback,
+        Context
+        );
 }
