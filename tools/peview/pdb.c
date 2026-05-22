@@ -2196,6 +2196,11 @@ VOID PePdbDumpGlobalScopeChildren(
         while (IDiaTable_Next(diaTable, 1, &unknown, &fetched) == S_OK && fetched == 1)
         {
             IDiaSymbol* tableSymbol = NULL;
+            IDiaEnumFrameData* tableFrames = NULL;
+            IDiaEnumSegments* segmentData = NULL;
+            IDiaEnumSourceFiles* sourceFiles = NULL;
+            IDiaEnumSectionContribs* sectionContribs = NULL;
+            IDiaEnumDebugStreamData* debugStreamData = NULL;
 
             if (IUnknown_QueryInterface(unknown, &IID_IDiaSymbol, (void**)&tableSymbol) == S_OK)
             {
