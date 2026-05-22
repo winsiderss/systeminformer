@@ -1053,36 +1053,10 @@ VOID PhSiNotifyChangeSettings(
     PhSipUpdateColorParameters();
 }
 
-static HFONT PhSipCreateGraphLabelFont(
-    _In_ LONG WindowDpi
-    )
-{
-    LOGFONT logFont;
-    HFONT fontHandle;
-
-    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
-    {
-        logFont.lfHeight += PhMultiplyDivideSigned(1, WindowDpi, 72);
-        fontHandle = CreateFontIndirect(&logFont);
-        if (fontHandle) return fontHandle;
-    }
-
-    return PhCreateApplicationFont(WindowDpi);
-}
-
 static VOID PhSipDeleteGraphFonts(
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
-    HFONT textFont = DrawInfo->CachedTextFont;
-    HFONT labelYFont = DrawInfo->CachedLabelYFont;
-
-    if (textFont)
-        DeleteFont(textFont);
-
-    if (labelYFont && labelYFont != textFont)
-        DeleteFont(labelYFont);
-
     DrawInfo->CachedFontDpi = 0;
     DrawInfo->CachedTextFont = NULL;
     DrawInfo->CachedLabelYFont = NULL;
@@ -1100,14 +1074,15 @@ VOID PhSiSetColorsGraphDrawInfo(
     {
         PhSipDeleteGraphFonts(DrawInfo);
 
-        DrawInfo->CachedTextFont = PhCreateApplicationFont(WindowDpi);
-        DrawInfo->CachedLabelYFont = PhSipCreateGraphLabelFont(WindowDpi);
-
         if (!DrawInfo->CachedTextFont)
+        {
             DrawInfo->CachedTextFont = DrawInfo->CachedLabelYFont;
+        }
 
         if (!DrawInfo->CachedLabelYFont)
+        {
             DrawInfo->CachedLabelYFont = DrawInfo->CachedTextFont;
+        }
 
         DrawInfo->CachedFontDpi = WindowDpi;
     }
@@ -1214,7 +1189,7 @@ PPH_STRING PhSiUInt64LabelYFunction(
     _In_ FLOAT Parameter
     )
 {
-    ULONG64 value = (ULONG64)Value * (ULONG64)Parameter;
+    ULONG64 value = (ULONG64)(Value * Parameter);
 
     if (value != 0)
     {
@@ -1258,6 +1233,7 @@ VOID PhSipInitializeParameters(
     PhSipDeleteParameters();
 
     memset(&CurrentParameters, 0, sizeof(PH_SYSINFO_PARAMETERS));
+    memset(&logFont, 0, sizeof(LOGFONT));
 
     CurrentParameters.WindowDpi = PhGetWindowDpi(PhSipWindow);
     CurrentParameters.SysInfoWindowHandle = PhSipWindow;
@@ -1269,11 +1245,13 @@ VOID PhSipInitializeParameters(
     }
     else
     {
-        CurrentParameters.Font = PhApplicationFont;
-        GetObject(PhApplicationFont, sizeof(LOGFONT), &logFont);
+        CurrentParameters.Font = PhCreateApplicationFont(CurrentParameters.WindowDpi);
     }
 
     hdc = GetDC(PhSipWindow);
+
+    if (CurrentParameters.Font)
+        GetObject(CurrentParameters.Font, sizeof(LOGFONT), &logFont);
 
     logFont.lfHeight -= PhMultiplyDivideSigned(3, CurrentParameters.WindowDpi, 72);
     CurrentParameters.MediumFont = CreateFontIndirect(&logFont);
@@ -1341,6 +1319,10 @@ VOID PhSipDeleteParameters(
         DeleteFont(CurrentParameters.MediumFont);
     if (CurrentParameters.LargeFont)
         DeleteFont(CurrentParameters.LargeFont);
+
+    CurrentParameters.Font = NULL;
+    CurrentParameters.MediumFont = NULL;
+    CurrentParameters.LargeFont = NULL;
 }
 
 VOID PhSipUpdateColorParameters(
