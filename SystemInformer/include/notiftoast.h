@@ -39,10 +39,34 @@ PhShowToast(
 _Must_inspect_result_
 HRESULT
 NTAPI
+PhShowToastEx(
+    _In_ PCWSTR ApplicationId,
+    _In_ PCWSTR ToastXml,
+    _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PH_TOAST_PRIORITY Priority,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    );
+
+_Must_inspect_result_
+HRESULT
+NTAPI
 PhShowToastStringRef(
     _In_ PPH_STRINGREF ApplicationId,
     _In_ PPH_STRINGREF ToastXml,
     _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
+    _In_opt_ PVOID Context
+    );
+
+_Must_inspect_result_
+HRESULT
+NTAPI
+PhShowToastStringRefEx(
+    _In_ PPH_STRINGREF ApplicationId,
+    _In_ PPH_STRINGREF ToastXml,
+    _In_opt_ ULONG TimeoutMilliseconds,
+    _In_opt_ PH_TOAST_PRIORITY Priority,
     _In_opt_ PPH_TOAST_CALLBACK ToastCallback,
     _In_opt_ PVOID Context
     );
