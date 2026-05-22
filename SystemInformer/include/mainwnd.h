@@ -336,6 +336,14 @@ PhShowIconNotificationEx(
     _In_opt_ PPH_TOAST_CALLBACK Callback,
     _In_opt_ PVOID Context
     );
+
+typedef enum _PH_TOAST_PRIORITY
+{
+    PhToastPriorityDefault = 0,
+    PhToastPriorityHigh = 1
+} PH_TOAST_PRIORITY;
+
+typedef struct _PH_TOAST_ENTRY *PPH_TOAST;
 // end_phapppub
 
 VOID PhProcessInvokeQueue(
