@@ -2173,45 +2173,45 @@ VOID PePdbDumpGlobalScopeChildren(
     PePdbDumpDiaInjectedSource(Context, DiaSession, Root);
     PePdbDumpDiaInputAssemblyFiles(Context, DiaSession, Root);
 
-    if (IDiaSession_getEnumTables(DiaSession, &enumTables) != S_OK)
-        return;
-
-    while (IDiaEnumTables_Next(enumTables, 1, &diaTable, &count) == S_OK && count == 1)
-    {
-        BSTR bstrName = NULL;
-        IUnknown* unknown;
-        ULONG fetched = 0;
-        PPV_SYMBOL_NODE tableNode;
-
-        IDiaTable_get_name(diaTable, &bstrName);
-        tableNode = PePdbCreateSyntheticSymbolNode(
-            Context,
-            Root,
-            bstrName ? bstrName : L"Unnamed Table",
-            &tableText
-            );
-
-        while (IDiaTable_Next(diaTable, 1, &unknown, &fetched) == S_OK && fetched == 1)
-        {
-            IDiaSymbol* tableSymbol = NULL;
-
-            if (IUnknown_QueryInterface(unknown, &IID_IDiaSymbol, (void**)&tableSymbol) == S_OK)
-            {
-                PePdbPrintDiaSymbol(Context, tableSymbol, tableNode);
-                IDiaSymbol_Release(tableSymbol);
-            }
-
-            IUnknown_Release(unknown);
-        }
-
-        if (bstrName)
-            PhSymbolProviderFreeDiaString(bstrName);
-
-        IDiaTable_Release(diaTable);
-    }
-
-    IDiaEnumTables_Release(enumTables);
-
+    //if (IDiaSession_getEnumTables(DiaSession, &enumTables) != S_OK)
+    //    return;
+    //
+    //while (IDiaEnumTables_Next(enumTables, 1, &diaTable, &count) == S_OK && count == 1)
+    //{
+    //    BSTR bstrName = NULL;
+    //    IUnknown* unknown;
+    //    ULONG fetched = 0;
+    //    PPV_SYMBOL_NODE tableNode;
+    //
+    //    IDiaTable_get_name(diaTable, &bstrName);
+    //    tableNode = PePdbCreateSyntheticSymbolNode(
+    //        Context,
+    //        Root,
+    //        bstrName ? bstrName : L"Unnamed Table",
+    //        &tableText
+    //        );
+    //
+    //    while (IDiaTable_Next(diaTable, 1, &unknown, &fetched) == S_OK && fetched == 1)
+    //    {
+    //        IDiaSymbol* tableSymbol = NULL;
+    //
+    //        if (IUnknown_QueryInterface(unknown, &IID_IDiaSymbol, (void**)&tableSymbol) == S_OK)
+    //        {
+    //            PePdbPrintDiaSymbol(Context, tableSymbol, tableNode);
+    //            IDiaSymbol_Release(tableSymbol);
+    //        }
+    //
+    //        IUnknown_Release(unknown);
+    //    }
+    //
+    //    if (bstrName)
+    //        PhSymbolProviderFreeDiaString(bstrName);
+    //
+    //    IDiaTable_Release(diaTable);
+    //}
+    //
+    //IDiaEnumTables_Release(enumTables);
+    //
     // static PH_STRINGREF tableText = PH_STRINGREF_INIT(L"Table");
     // IDiaEnumTables* enumTables;
     // IDiaTable* diaTable;
