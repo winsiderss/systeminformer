@@ -349,6 +349,21 @@ PhRectEmpty(
 
 FORCEINLINE
 BOOLEAN
+PhEqualRect(
+    _In_ PRECT Rect1,
+    _In_ PRECT Rect2
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!EqualRect(Rect1, Rect2);
+#else
+    return Rect1->left == Rect2->left && Rect1->top == Rect2->top &&
+        Rect1->right == Rect2->right && Rect1->bottom == Rect2->bottom;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
 NTAPI
 PhInflateRect(
     _In_ PRECT Rect,
