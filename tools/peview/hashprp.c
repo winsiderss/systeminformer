@@ -14,6 +14,7 @@
 #include <wincrypt.h>
 #include <wintrust.h>
 #include <thirdparty.h>
+#include "../thirdparty/SymCrypt/symcryptwrapper.h"
 
 #include "../thirdparty/tlsh/tlsh_wrapper.h"
 #include "../thirdparty/ssdeep/fuzzy.h"
