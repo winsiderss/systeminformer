@@ -10,13 +10,13 @@
  */
 
 #include <peview.h>
-
-#include "../thirdparty/tlsh/tlsh_wrapper.h"
-#include "../thirdparty/ssdeep/fuzzy.h"
-
 #include <bcrypt.h>
 #include <wincrypt.h>
 #include <wintrust.h>
+#include <thirdparty.h>
+
+#include "../thirdparty/tlsh/tlsh_wrapper.h"
+#include "../thirdparty/ssdeep/fuzzy.h"
 
 #define WM_PV_HASH_FINISHED (WM_APP + 701)
 
@@ -37,6 +37,9 @@ typedef struct _PV_HASH_CONTEXT
     ULONG HashSize;
     PVOID HashObject;
     PVOID Hash;
+#ifndef PH_NATIVE_CRYPT
+    HANDLE SymCryptHandle;
+#endif
 } PV_HASH_CONTEXT, *PPV_HASH_CONTEXT;
 
 typedef struct _PV_PE_HASH_RESULTS
@@ -113,11 +116,29 @@ PPV_HASH_CONTEXT PvCreateHashHandle(
     _In_ PCWSTR AlgorithmId
     )
 {
-    ULONG querySize;
     PPV_HASH_CONTEXT hashContext;
 
     hashContext = PhAllocate(sizeof(PV_HASH_CONTEXT));
     memset(hashContext, 0, sizeof(PV_HASH_CONTEXT));
+
+#ifndef PH_NATIVE_CRYPT
+    {
+        if (!NT_SUCCESS(PhSymCryptOpenAlgorithmProvider(
+            &hashContext->SymCryptHandle,
+            &hashContext->HashSize,
+            AlgorithmId
+            )))
+        {
+            PhFree(hashContext);
+            return NULL;
+        }
+
+        hashContext->Hash = PhAllocate(hashContext->HashSize);
+        return hashContext;
+    }
+#else
+    {
+    ULONG querySize;
 
     if (!NT_SUCCESS(BCryptOpenAlgorithmProvider(
         &hashContext->HashAlgHandle,
@@ -188,12 +209,15 @@ CleanupExit:
         PhFree(hashContext);
 
     return NULL;
+    }
+#endif
 }
 
 VOID PvDestroyHashHandle(
     _In_ PPV_HASH_CONTEXT Context
     )
 {
+#ifdef PH_NATIVE_CRYPT
     if (Context->HashHandle)
         BCryptDestroyHash(Context->HashHandle);
 
@@ -205,6 +229,14 @@ VOID PvDestroyHashHandle(
 
     if (Context->HashObject)
         PhFree(Context->HashObject);
+#else
+    if (Context->SymCryptHandle)
+    {
+        UCHAR discard[PH_SYMCRYPT_SHA512_RESULT_SIZE];
+        PhSymCryptFinishHash(Context->SymCryptHandle, Context->HashSize, discard);
+        Context->SymCryptHandle = NULL;
+    }
+#endif
 
     if (Context->Hash)
         PhFree(Context->Hash);
@@ -216,6 +248,7 @@ PPH_STRING PvGetFinalHash(
     _In_ PPV_HASH_CONTEXT HashContext
     )
 {
+#ifdef PH_NATIVE_CRYPT
     if (NT_SUCCESS(BCryptFinishHash(
         HashContext->HashHandle,
         HashContext->Hash,
@@ -227,6 +260,19 @@ PPH_STRING PvGetFinalHash(
     }
 
     return NULL;
+#else
+    if (NT_SUCCESS(PhSymCryptFinishHash(
+        HashContext->SymCryptHandle,
+        HashContext->HashSize,
+        HashContext->Hash
+        )))
+    {
+        HashContext->SymCryptHandle = NULL;
+        return PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
+    }
+
+    return NULL;
+#endif
 }
 
 NTSTATUS PvHashMappedImageData(
@@ -237,6 +283,7 @@ NTSTATUS PvHashMappedImageData(
 {
     NTSTATUS status = STATUS_UNSUCCESSFUL;
 
+#ifdef PH_NATIVE_CRYPT
     if (BufferLength >= ULONG_MAX)
     {
         PBYTE address;
@@ -268,6 +315,14 @@ NTSTATUS PvHashMappedImageData(
     {
         status = BCryptHashData(HashContext->HashHandle, Buffer, (ULONG)BufferLength, 0);
     }
+#else
+    status = PhSymCryptHashData(
+        HashContext->SymCryptHandle,
+        HashContext->HashSize,
+        Buffer,
+        (SIZE_T)BufferLength
+        );
+#endif
 
     return status;
 }
