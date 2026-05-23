@@ -2509,7 +2509,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemMemoryChannelInformation,                         // q: SYSTEM_MEMORY_CHANNEL_INFORMATION
     SystemBootLogoInformation,                              // q: SYSTEM_BOOT_LOGO_INFORMATION // 140
     SystemProcessorPerformanceInformationEx,                // q: SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX // (EX in: USHORT ProcessorGroup) // NtQuerySystemInformationEx // since WINBLUE
-    SystemCriticalProcessErrorLogInformation,               // q: CRITICAL_PROCESS_EXCEPTION_DATA
+    SystemCriticalProcessErrorLogInformation,               // q: SYSTEM_CRITICAL_PROCESS_EXCEPTION_INFORMATION
     SystemSecureBootPolicyInformation,                      // q: SYSTEM_SECUREBOOT_POLICY_INFORMATION
     SystemPageFileInformationEx,                            // q: SYSTEM_PAGEFILE_INFORMATION_EX
     SystemSecureBootInformation,                            // q: SYSTEM_SECUREBOOT_INFORMATION
@@ -5703,14 +5703,14 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX;
 
 // private
-typedef struct _CRITICAL_PROCESS_EXCEPTION_DATA
+typedef struct _SYSTEM_CRITICAL_PROCESS_EXCEPTION_INFORMATION // CRITICAL_PROCESS_EXCEPTION_DATA
 {
     GUID ReportId;
     UNICODE_STRING ModuleName;
     ULONG ModuleTimestamp;
     ULONG ModuleSize;
     ULONG_PTR Offset;
-} CRITICAL_PROCESS_EXCEPTION_DATA, *PCRITICAL_PROCESS_EXCEPTION_DATA;
+} SYSTEM_CRITICAL_PROCESS_EXCEPTION_INFORMATION, *PSYSTEM_CRITICAL_PROCESS_EXCEPTION_INFORMATION;
 
 // private
 typedef struct _SYSTEM_SECUREBOOT_POLICY_INFORMATION
