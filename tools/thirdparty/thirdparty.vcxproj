@@ -308,6 +308,7 @@
     <ClInclude Include="SymCrypt\lib\sc_lib_mlkem.h" />
     <ClInclude Include="SymCrypt\lib\smallPrimes32.h" />
     <ClInclude Include="SymCrypt\lib\smallPrimes64.h" />
+    <ClInclude Include="SymCrypt\lib\status_indicator.h" />
     <ClInclude Include="SymCrypt\lib\xtsaes_definitions.h" />
     <ClInclude Include="SymCrypt\modules\statusindicator_common.h" />
     <ClInclude Include="SymCrypt\modules\symcrypt_modules_common.h" />
@@ -479,6 +480,7 @@
     <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm" Condition="'$(Platform)'=='x64'" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="SymCrypt\inc\C_asm_shared.inc" />
     <None Include="SymCrypt\inc\symcrypt_internal_shared.inc" />
     <None Include="SymCrypt\lib\amd64\aesasm.symcryptasm" />
     <None Include="SymCrypt\lib\amd64\fdef369_asm.symcryptasm" />

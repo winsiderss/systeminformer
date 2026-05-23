@@ -7,9 +7,8 @@
 
 #include "precomp.h"
 
-#include "C_asm_shared.inc"
-
-#include "buildInfo.h"
+#include "../inc/C_asm_shared.inc"
+#include "../inc/buildInfo.h"
 
 // The following global g_SymCryptFlags has to be at least 32
 // bits because the iOS environment has interlocked function

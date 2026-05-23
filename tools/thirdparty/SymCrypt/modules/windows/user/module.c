@@ -13,15 +13,15 @@
 #if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
 #include <intrin.h>
 #endif
-#include <symcrypt.h>
-#include <symcrypt_low_level.h>
-#include "../modules/symcrypt_modules_common.h"
+#include "../../../inc/symcrypt.h"
+#include "../../../inc/symcrypt_low_level.h"
+#include "../../symcrypt_modules_common.h"
 
 SYMCRYPT_ENVIRONMENT_WINDOWS_USERMODE_LATEST;
 
 #define SYMCRYPT_FIPS_STATUS_INDICATOR
-#include "../modules/statusindicator_common.h"
-#include "../lib/status_indicator.h"
+#include "../../statusindicator_common.h"
+#include "../../../lib/status_indicator.h"
 
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
 

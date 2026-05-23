@@ -11,7 +11,7 @@
 #pragma warning(disable: 5103) // Arm64's wdm.h included below currently generate a lot of 5103 warnings
 #include <Windows.h>
 #pragma warning(pop)
-#include "symcrypt.h"
+#include "../inc/symcrypt.h"
 #include "sc_lib.h"
 
 SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsUsermodeWin8_1nLater()

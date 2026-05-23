@@ -36,7 +36,7 @@ VOID
 SYMCRYPT_CALL
 SymCryptFatalHang( UINT32 fatalcode );
 
-#include <symcrypt_low_level.h>
+#include "..\inc\symcrypt_low_level.h"
 
 // Types
 

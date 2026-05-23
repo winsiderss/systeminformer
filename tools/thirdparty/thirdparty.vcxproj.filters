@@ -484,6 +484,9 @@
     <ClInclude Include="SymCrypt\lib\xtsaes_definitions.h">
       <Filter>SymCrypt\i386</Filter>
     </ClInclude>
+    <ClInclude Include="SymCrypt\lib\status_indicator.h">
+      <Filter>SymCrypt\Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup Label="SymCrypt">
     <ClCompile Include="SymCrypt\lib\3des.c">
@@ -1022,34 +1025,19 @@
     <None Include="SymCrypt\inc\symcrypt_internal_shared.inc">
       <Filter>SymCrypt\i386</Filter>
     </None>
+    <None Include="SymCrypt\inc\C_asm_shared.inc">
+      <Filter>SymCrypt\amd64</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
-    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm">
+    <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm">
+    </MARMASM>
+    <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm">
+    </MARMASM>
+    <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
-    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm">
-      <Filter>SymCrypt\amd64</Filter>
-    </MASM>
+    </MARMASM>
   </ItemGroup>
 </Project>

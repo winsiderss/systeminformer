@@ -12,7 +12,7 @@
 #include <Windows.h>
 #pragma warning(pop)
 
-#include "symcrypt.h"
+#include "..\inc\symcrypt.h"
 #include "sc_lib.h"
 
 SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWindowsUsermodeWin7nLater()
