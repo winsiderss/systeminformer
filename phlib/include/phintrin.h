@@ -75,7 +75,7 @@ PhArm64ReadRandomNumber64(
     _Out_ PULONG64 Number
     )
 {
-#ifdef __clang__
+#if defined(__clang__) && defined(__ARM_FEATURE_RNG)
     return !!__rndrrs(Number);
 #else
     *Number = (ULONG64)_ReadStatusReg(ARM64_RNDRRS);

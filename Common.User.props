@@ -15,6 +15,7 @@
           <SupportJustMyCode>false</SupportJustMyCode>
           <UseFullPaths>false</UseFullPaths>
           <UseStandardPreprocessor>true</UseStandardPreprocessor>
+          <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
           <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
@@ -147,7 +148,6 @@
           <TargetMachine>MachineX86</TargetMachine>
           <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -177,7 +177,6 @@
           <TargetMachine>MachineX64</TargetMachine>
           <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -208,7 +207,6 @@
           <TargetMachine>MachineARM64</TargetMachine>
           <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
           <GenerateDebugInformation>true</GenerateDebugInformation>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
       </Link>
@@ -243,7 +241,6 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
@@ -280,7 +277,6 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
@@ -315,7 +311,6 @@
           <SetChecksum>true</SetChecksum>
           <OptimizeReferences>true</OptimizeReferences>
           <EnableCOMDATFolding>true</EnableCOMDATFolding>
-          <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
           <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
           <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       </Link>
