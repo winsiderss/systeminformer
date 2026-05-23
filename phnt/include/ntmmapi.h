@@ -128,7 +128,6 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryEnclaveImageInformation,              // q: MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
     MemoryBasicInformationCapped,               // q: MEMORY_BASIC_INFORMATION
     MemoryPhysicalContiguityInformation,        // q: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
-    MemoryBadInformation,                       // q: MEMORY_BAD_INFORMATION // since WIN11
     MemoryBadInformation,                       // q: MEMORY_BAD_INFORMATION[] // since WIN11
     MemoryBadInformationAllProcesses,           // qs: not implemented // since 22H1
     MemoryImageExtensionInformation,            // q: MEMORY_IMAGE_EXTENSION_INFORMATION // since 24H2
@@ -1122,7 +1121,7 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
  */
 typedef struct _MEMORY_PAGE_DIRTY_STATE_INFORMATION
 {
-    ULONG Flags;
+    ULONG Flags; // Must be zero
 } MEMORY_PAGE_DIRTY_STATE_INFORMATION, *PMEMORY_PAGE_DIRTY_STATE_INFORMATION;
 
 // rev
