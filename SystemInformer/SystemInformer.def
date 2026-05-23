@@ -344,6 +344,7 @@ EXPORTS
     PhAllocateFromFreeList
     PhAllocatePage
     PhAllocateSafe
+    PhAllocateVirtualMemory
     PhAppendBytesBuilder
     PhAppendBytesBuilderEx
     PhAppendCharStringBuilder
@@ -439,6 +440,7 @@ EXPORTS
     PhFree
     PhFreePage
     PhFreeToFreeList
+    PhFreeVirtualMemory
     PhGetLastError
     PhGetPrimeNumber
     PhHashBytes
@@ -480,6 +482,7 @@ EXPORTS
     PhReAllocate
     PhReAllocateSafe
     PhReferenceEmptyString
+    PhReadTimeStampCounter
     PhRegisterCallback
     PhRegisterCallbackEx
     PhRemoveElementAvlTree
