@@ -99,7 +99,7 @@ typedef enum _PV_VAL_KIND
 typedef struct _PV_VAL
 {
     PV_VAL_KIND Kind;
-    ULONG64 U;
+    ULONG_PTR U;
 } PV_VAL, *PPV_VAL;
 
 PV_VAL PvBackSliceResolveRegRedecodeInternal(
@@ -301,13 +301,13 @@ BOOLEAN PvIsBarrierCategory(
         Category == ZYDIS_CATEGORY_SYSTEM;
 }
 
-ULONG64 PvRipTarget(
+ULONG_PTR PvRipTarget(
     _In_ ULONG64 InstructionPointer,
     _In_ UCHAR Length,
     _In_ LONG64 Displacement
     )
 {
-    return (ULONG64)((LONG64)InstructionPointer + (LONG64)Length + Displacement);
+    return (ULONG_PTR)((LONG_PTR)InstructionPointer + (LONG_PTR)Length + Displacement);
 }
 
 PV_VAL PvValUnknownType(
@@ -326,7 +326,7 @@ PV_VAL PvValConstType(
 {
     PV_VAL value;
     value.Kind = PvValConst;
-    value.U = Value;
+    value.U = (ULONG_PTR)Value;
     return value;
 }
 
@@ -336,7 +336,7 @@ PV_VAL PvValAddrType(
 {
     PV_VAL value;
     value.Kind = PvValAddr;
-    value.U = Value;
+    value.U = (ULONG_PTR)Value;
     return value;
 }
 
@@ -346,7 +346,7 @@ PV_VAL PvValIatType(
 {
     PV_VAL value;
     value.Kind = PvValIatSlot;
-    value.U = Value;
+    value.U = (ULONG_PTR)Value;
     return value;
 }
 
@@ -356,7 +356,7 @@ PV_VAL PvValStackSlotType(
 {
     PV_VAL value;
     value.Kind = PvValStackSlot;
-    value.U = (ULONG64)DispAtCall;
+    value.U = (ULONG_PTR)DispAtCall;
     return value;
 }
 
@@ -366,7 +366,7 @@ PV_VAL PvValImportType(
 {
     PV_VAL value;
     value.Kind = PvValImport;
-    value.U = IatSlotVa;
+    value.U = (ULONG_PTR)IatSlotVa;
     return value;
 }
 
@@ -382,7 +382,7 @@ ULONG64 PvGetImageBase(
 
 _Success_(return)
 BOOLEAN PvReadIntegerAtVa(
-    _In_ ULONG64 Va,
+    _In_ ULONG_PTR Va,
     _In_ ULONG SizeBits,
     _Out_ PULONG64 Value
     )
@@ -476,7 +476,7 @@ BOOLEAN PvIsTargetForPage(
 }
 
 VOID PvReadStringAtVa(
-    _In_ ULONG64 Va,
+    _In_ ULONG_PTR Va,
     _Out_writes_(BufferChars) PWSTR Buffer,
     _In_ ULONG BufferChars
     )
@@ -517,14 +517,14 @@ VOID PvReadStringAtVa(
 
 _Success_(return)
 BOOLEAN PvReadAnsiStringStructAtVa(
-    _In_ ULONG64 Va,
+    _In_ ULONG_PTR Va,
     _Out_writes_(BufferChars) PWSTR Buffer,
     _In_ ULONG BufferChars
     )
 {
     PVOID va;
     BOOLEAN is64 = (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
-    ULONG64 bufferVa;
+    ULONG_PTR bufferVa;
     USHORT length;
 
     va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
@@ -537,12 +537,12 @@ BOOLEAN PvReadAnsiStringStructAtVa(
     if (is64)
     {
         length = *(PUSHORT)va;
-        bufferVa = *(PULONG64)PTR_ADD_OFFSET(va, 8);
+        bufferVa = (ULONG_PTR)*(PULONG64)PTR_ADD_OFFSET(va, 8);
     }
     else
     {
         length = *(PUSHORT)va;
-        bufferVa = *(PULONG)PTR_ADD_OFFSET(va, 4);
+        bufferVa = (ULONG_PTR)*(PULONG)PTR_ADD_OFFSET(va, 4);
     }
 
     dprintf("PvReadAnsiStringStructAtVa: Struct at 0x%llx has BufferVa 0x%llx, Length %u\n", Va, bufferVa, length);
@@ -563,14 +563,14 @@ BOOLEAN PvReadAnsiStringStructAtVa(
 
 _Success_(return)
 BOOLEAN PvReadUnicodeStringStructAtVa(
-    _In_ ULONG64 Va,
+    _In_ ULONG_PTR Va,
     _Out_writes_(BufferChars) PWSTR Buffer,
     _In_ ULONG BufferChars
     )
 {
     PVOID va;
     BOOLEAN is64 = (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC);
-    ULONG64 bufferVa;
+    ULONG_PTR bufferVa;
     USHORT length;
 
     va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
@@ -583,12 +583,12 @@ BOOLEAN PvReadUnicodeStringStructAtVa(
     if (is64)
     {
         length = *(PUSHORT)va;
-        bufferVa = *(PULONG64)PTR_ADD_OFFSET(va, 8);
+        bufferVa = (ULONG_PTR)*(PULONG64)PTR_ADD_OFFSET(va, 8);
     }
     else
     {
         length = *(PUSHORT)va;
-        bufferVa = *(PULONG)PTR_ADD_OFFSET(va, 4);
+        bufferVa = (ULONG_PTR)*(PULONG)PTR_ADD_OFFSET(va, 4);
     }
 
     dprintf("PvReadUnicodeStringStructAtVa: Struct at 0x%llx has BufferVa 0x%llx, Length %u\n", Va, bufferVa, length);
@@ -909,7 +909,7 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
 
             if (src->type == ZYDIS_OPERAND_TYPE_MEMORY)
             {
-                ULONG64 memoryVa = 0;
+                LONG_PTR memoryVa = 0;
                 BOOLEAN vaResolved = FALSE;
 
                 dprintf(
@@ -927,7 +927,7 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
                 }
                 else if (src->mem.base == ZYDIS_REGISTER_NONE)
                 {
-                    memoryVa = (ULONG64)src->mem.disp.value;
+                    memoryVa = (LONG_PTR)src->mem.disp.value;
                     vaResolved = TRUE;
                 }
                 else if (src->mem.index == ZYDIS_REGISTER_NONE)
@@ -937,10 +937,10 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
                         PvIsSameRegister(src->mem.base, is64 ? ZYDIS_REGISTER_RBP : ZYDIS_REGISTER_EBP, is64)
                         )
                     {
-                        LONG64 slotDispAtCall = (LONG64)src->mem.disp.value;
+                        LONG_PTR slotDispAtCall = (LONG_PTR)src->mem.disp.value;
 
                         if (PvIsSameRegister(src->mem.base, is64 ? ZYDIS_REGISTER_RSP : ZYDIS_REGISTER_ESP, is64))
-                            slotDispAtCall += SpDelta;
+                            slotDispAtCall += (LONG_PTR)SpDelta;
 
                         return PvBackSliceResolveStackSlotStoreRedecode(
                             Context,
@@ -971,7 +971,7 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
 
                         if (base.Kind == PvValAddr || base.Kind == PvValConst || base.Kind == PvValStackSlot)
                         {
-                            memoryVa = (ULONG64)((LONG64)base.U + (LONG64)src->mem.disp.value);
+                            memoryVa = (ULONG_PTR)((LONG64)base.U + (LONG64)src->mem.disp.value);
                             vaResolved = TRUE;
                         }
                     }
@@ -1015,12 +1015,12 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
 
             if (src->type == ZYDIS_OPERAND_TYPE_MEMORY)
             {
-                ULONG64 memoryVa = 0;
+                ULONG_PTR memoryVa = 0;
 
                 if (is64 && src->mem.base == ZYDIS_REGISTER_RIP)
                     memoryVa = PvRipTarget(SectionBaseVa + (ULONG64)instOffset, instruction.length, src->mem.disp.value);
                 else if (src->mem.base == ZYDIS_REGISTER_NONE)
-                    memoryVa = (ULONG64)src->mem.disp.value;
+                    memoryVa = (ULONG_PTR)src->mem.disp.value;
 
                 if (memoryVa)
                 {
@@ -1087,7 +1087,7 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
 
                 if (base.Kind == PvValAddr || base.Kind == PvValConst || base.Kind == PvValStackSlot)
                 {
-                    base.U = (ULONG64)((LONG64)base.U + (LONG64)src->mem.disp.value);
+                    base.U = (ULONG_PTR)((LONG_PTR)base.U + (LONG_PTR)src->mem.disp.value);
                     return base;
                 }
             }
@@ -1115,14 +1115,14 @@ PV_VAL PvBackSliceResolveRegRedecodeInternal(
 
             if (base.Kind == PvValAddr || base.Kind == PvValConst || base.Kind == PvValStackSlot)
             {
-                LONG64 imm = (LONG64)src->imm.value.u;
+                ULONG_PTR imm = (ULONG_PTR)src->imm.value.u;
 
                 if (instruction.mnemonic == ZYDIS_MNEMONIC_ADD)
-                    base.U = (ULONG64)((LONG64)base.U + imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U + imm);
                 else if (instruction.mnemonic == ZYDIS_MNEMONIC_SUB)
-                    base.U = (ULONG64)((LONG64)base.U - imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U - imm);
                 else // AND
-                    base.U = (ULONG64)((LONG64)base.U & imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U & imm);
 
                 return base;
             }
@@ -1285,7 +1285,7 @@ PV_VAL PvBackSliceResolveRegWindow(
 
             if (src->type == ZYDIS_OPERAND_TYPE_MEMORY)
             {
-                ULONG64 memoryVa = 0;
+                ULONG_PTR memoryVa = 0;
                 BOOLEAN vaResolved = FALSE;
 
                 dprintf(
@@ -1307,7 +1307,7 @@ PV_VAL PvBackSliceResolveRegWindow(
                 }
                 else if (src->mem.base == ZYDIS_REGISTER_NONE)
                 {
-                    memoryVa = (ULONG64)src->mem.disp.value;
+                    memoryVa = (ULONG_PTR)src->mem.disp.value;
                     vaResolved = TRUE;
                 }
                 else if (src->mem.index == ZYDIS_REGISTER_NONE)
@@ -1322,7 +1322,7 @@ PV_VAL PvBackSliceResolveRegWindow(
 
                     if (base.Kind == PvValAddr || base.Kind == PvValConst || base.Kind == PvValStackSlot)
                     {
-                        memoryVa = (ULONG64)((LONG64)base.U + (LONG64)src->mem.disp.value);
+                        memoryVa = (ULONG_PTR)((LONG64)base.U + (LONG64)src->mem.disp.value);
                         vaResolved = TRUE;
                     }
                 }
@@ -1396,8 +1396,8 @@ PV_VAL PvBackSliceResolveRegWindow(
 
                 if (base.Kind == PvValAddr || base.Kind == PvValConst || base.Kind == PvValStackSlot)
                 {
-                    base.U = (ULONG64)((LONG64)base.U + (LONG64)src->mem.disp.value);
-                    dprintf("PvBackSliceResolveRegWindow: Resolved reg-relative LEA to 0x%llx\n", base.U);
+                    base.U = (ULONG_PTR)(base.U + (ULONG64)src->mem.disp.value);
+                    dprintf("PvBackSliceResolveRegWindow: Resolved reg-relative LEA to 0x%llx\n", (ULONG64)base.U);
                     return base;
                 }
             }
@@ -1416,11 +1416,11 @@ PV_VAL PvBackSliceResolveRegWindow(
                 LONG64 imm = (LONG64)src->imm.value.u;
 
                 if (instruction->mnemonic == ZYDIS_MNEMONIC_ADD)
-                    base.U = (ULONG64)((LONG64)base.U + imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U + imm);
                 else if (instruction->mnemonic == ZYDIS_MNEMONIC_SUB)
-                    base.U = (ULONG64)((LONG64)base.U - imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U - imm);
                 else // AND
-                    base.U = (ULONG64)((LONG64)base.U & imm);
+                    base.U = (ULONG_PTR)((LONG64)base.U & imm);
 
                 dprintf("PvBackSliceResolveRegWindow: Resolved %s through arithmetic/logic to 0x%llx\n", 
                     ZydisRegisterGetString(regNorm), base.U);
@@ -1947,13 +1947,7 @@ VOID PvScanImageForPage(
 
                         if (value.Kind == PvValConst && value.U <= 0xFFFF)
                         {
-                            _snwprintf_s(
-                                argument,
-                                RTL_NUMBER_OF(argument),
-                                _TRUNCATE,
-                                L"<ordinal:%llu>",
-                                value.U
-                                );
+                            _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<ordinal:%llu>", (ULONG64)value.U);
                         }
                         else if (value.Kind == PvValStackSlot)
                         {
@@ -1980,7 +1974,7 @@ VOID PvScanImageForPage(
                             if (importName)
                                 _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of %s>", importName);
                             else
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", value.U);
+                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", (ULONG64)value.U);
                         }
                         else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
                         {
@@ -2053,7 +2047,7 @@ VOID PvScanImageForPage(
                             if (importName)
                                 _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of %s>", importName);
                             else
-                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", value.U);
+                                _snwprintf_s(argument, RTL_NUMBER_OF(argument), _TRUNCATE, L"<result of 0x%llx>", (ULONG64)value.U);
                         }
                         else if ((value.Kind == PvValAddr || value.Kind == PvValConst) && value.U)
                         {
