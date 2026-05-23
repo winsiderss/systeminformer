@@ -7,8 +7,6 @@
 #ifndef _NTPSAPI_H
 #define _NTPSAPI_H
 
-#include <ntpebteb.h>
-
 //
 // Process Object Specific Access Rights
 //
@@ -2384,8 +2382,8 @@ NtCreateProcess(
 #define PROCESS_CREATE_FLAGS_CLONE_MINIMAL 0x00002000                           // NtCreateProcessEx only
 #define PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT 0x00004000
 #define PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS 0x00008000                       // NtCreateProcessEx & NtCreateUserProcess (requires SeTcbPrivilege)
-#define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000                            // NtCreateProcessEx & NtCreateUserProcess
-#define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000               // NtCreateProcessEx & NtCreateUserProcess
+#define PROCESS_CREATE_FLAGS_CREATE_STORE 0x00020000                            // NtCreateProcessEx & NtCreateUserProcess // AppContainer
+#define PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT 0x00040000               // NtCreateProcessEx & NtCreateUserProcess // AppContainer
 #define PROCESS_CREATE_FLAGS_IMAGE_EXPANSION_MITIGATION_DISABLE 0x00080000
 #define PROCESS_CREATE_FLAGS_PARTITION_CREATE_SLAB_IDENTITY 0x00400000          // NtCreateProcessEx & NtCreateUserProcess (requires SeLockMemoryPrivilege)
 // end_rev
@@ -3993,11 +3991,11 @@ NtCreateThreadEx(
 #define JobObjectGroupInformationEx 14                              // qs: GROUP_AFFINITY (ARRAY)
 #define JobObjectCpuRateControlInformation 15                       // qs: JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
 #define JobObjectCompletionFilter 16                                // qs: ULONG
-#define JobObjectCompletionCounter 17                               // qs: ULONG
+#define JobObjectCompletionCounter 17                               // qs: ULONG64
 #define JobObjectFreezeInformation 18                               // qs: JOBOBJECT_FREEZE_INFORMATION
 #define JobObjectExtendedAccountingInformation 19                   // qs: JOBOBJECT_EXTENDED_ACCOUNTING_INFORMATION
 #define JobObjectWakeInformation 20                                 // qs: JOBOBJECT_WAKE_INFORMATION
-#define JobObjectBackgroundInformation 21                           // s: BOOLEAN
+#define JobObjectBackgroundInformation 21                           // qs: BOOLEAN
 #define JobObjectSchedulingRankBiasInformation 22                   // s: JOBOBJECT_SCHEDULING_RANK_BIAS_INFORMATION
 #define JobObjectTimerVirtualizationInformation 23                  // s: JOBOBJECT_TIMER_VIRTUALIZATION_INFORMATION
 #define JobObjectCycleTimeNotification 24                           // s: JOBOBJECT_CYCLE_TIME_NOTIFICATION
@@ -4017,10 +4015,10 @@ NtCreateThreadEx(
 #define JobObjectServerSiloBasicInformation 38                      // q: SERVERSILO_BASIC_INFORMATION
 #define JobObjectServerSiloUserSharedData 39                        // q: SILO_USER_SHARED_DATA // NtQueryInformationJobObject(NULL, 39, Buffer, sizeof(SILO_USER_SHARED_DATA), 0);
 #define JobObjectServerSiloInitialize 40                            // qs: SERVERSILO_INIT_INFORMATION
-#define JobObjectServerSiloRunningState 41                          // s: BOOLEAN
+#define JobObjectServerSiloRunningState 41                          // s: ULONG
 #define JobObjectIoAttribution 42                                   // q: JOBOBJECT_IO_ATTRIBUTION_INFORMATION
-#define JobObjectMemoryPartitionInformation 43                      // qs: JOBOBJECT_MEMORY_PARTITION_INFORMATION
-#define JobObjectContainerTelemetryId 44                            // s: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
+#define JobObjectMemoryPartitionInformation 43                      // s: JOBOBJECT_MEMORY_PARTITION_INFORMATION // q: BOOLEAN (TRUE if a partition is assigned)
+#define JobObjectContainerTelemetryId 44                            // qs: GUID // NtSetInformationJobObject(_In_ PGUID, 44, _In_ PGUID, sizeof(GUID)); // daxexec
 #define JobObjectSiloSystemRoot 45                                  // s: UNICODE_STRING
 #define JobObjectEnergyTrackingState 46                             // q: JOBOBJECT_ENERGY_TRACKING_STATE
 #define JobObjectThreadImpersonationInformation 47                  // qs: BOOLEAN
@@ -4053,19 +4051,18 @@ typedef struct _JOBOBJECT_EXTENDED_LIMIT_INFORMATION_V2
 // private
 typedef struct _JOBOBJECT_SCHEDULING_RANK_BIAS_INFORMATION
 {
-    ULONG SchedulingRankBias;
+    BOOLEAN SchedulingRankBias;
 } JOBOBJECT_SCHEDULING_RANK_BIAS_INFORMATION, *PJOBOBJECT_SCHEDULING_RANK_BIAS_INFORMATION;
 
 // private
 typedef struct _JOBOBJECT_TIMER_VIRTUALIZATION_INFORMATION
 {
-    ULONG TimerVirtualizationEnabled;
+    BOOLEAN TimerVirtualizationEnabled;
 } JOBOBJECT_TIMER_VIRTUALIZATION_INFORMATION, *PJOBOBJECT_TIMER_VIRTUALIZATION_INFORMATION;
 
 // private
 typedef struct _JOBOBJECT_CYCLE_TIME_NOTIFICATION
 {
-    HANDLE NotificationChannel;
     ULONG64 CycleTime;
 } JOBOBJECT_CYCLE_TIME_NOTIFICATION, *PJOBOBJECT_CYCLE_TIME_NOTIFICATION;
 
