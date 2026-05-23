@@ -148,7 +148,7 @@ NTSTATUS PhConsoleSetForeground(
     )
 {
     NTSTATUS status;
-    CONSOLESETFOREGROUND consoleInfo;
+    CONSOLE_SET_FOREGROUND consoleInfo;
 
     if (!ConsoleControl_Import())
         return STATUS_NOT_SUPPORTED;
@@ -159,7 +159,7 @@ NTSTATUS PhConsoleSetForeground(
     status = ConsoleControl_Import()(
         ConsoleSetForeground,
         &consoleInfo,
-        sizeof(CONSOLESETFOREGROUND)
+        sizeof(CONSOLE_SET_FOREGROUND)
         );
 
     return status;
@@ -208,19 +208,19 @@ NTSTATUS PhConsoleSetWindow(
     )
 {
     NTSTATUS status;
-    CONSOLEWINDOWOWNER consoleInfo;
+    CONSOLE_WINDOW_OWNER consoleInfo;
 
     if (!ConsoleControl_Import())
         return STATUS_NOT_SUPPORTED;
 
-    consoleInfo.ProcessId = HandleToUlong(ProcessID);
-    consoleInfo.ThreadId = HandleToUlong(ThreadId);
+    consoleInfo.OwnerProcessId = HandleToUlong(ProcessID);
+    consoleInfo.OwnerThreadId = HandleToUlong(ThreadId);
     consoleInfo.WindowHandle = WindowHandle;
 
     status = ConsoleControl_Import()(
         ConsoleSetWindowOwner,
         &consoleInfo,
-        sizeof(CONSOLEWINDOWOWNER)
+        sizeof(CONSOLE_WINDOW_OWNER)
         );
 
     return status;
@@ -244,7 +244,7 @@ NTSTATUS PhConsoleEndTask(
     )
 {
     NTSTATUS status;
-    CONSOLEENDTASK consoleInfo;
+    CONSOLE_END_TASK consoleInfo;
 
     if (!ConsoleControl_Import())
         return STATUS_NOT_SUPPORTED;
@@ -257,7 +257,7 @@ NTSTATUS PhConsoleEndTask(
     status = ConsoleControl_Import()(
         ConsoleEndTask,
         &consoleInfo,
-        sizeof(CONSOLEENDTASK)
+        sizeof(CONSOLE_END_TASK)
         );
 
     return status;
