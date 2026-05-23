@@ -133,7 +133,7 @@ function(_si_set_target_defaults target)
     endif()
 
     if (arg_PLUGIN)
-        target_link_libraries(${target} PRIVATE SystemInformer thirdparty)
+        target_link_libraries(${target} PRIVATE SystemInformer thirdparty ntdll)
         target_include_directories(${target} PRIVATE
             "${SI_ROOT}/plugins/include"
             "${SI_ROOT}/phnt/include"
