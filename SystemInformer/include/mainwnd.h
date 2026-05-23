@@ -13,6 +13,8 @@
 #ifndef PH_MAINWND_H
 #define PH_MAINWND_H
 
+EXTERN_C_START
+
 extern HWND PhMainWndHandle;
 extern BOOLEAN PhMainWndExiting;
 
@@ -356,7 +358,6 @@ typedef enum _PH_TOAST_PRIORITY
 typedef struct _PH_TOAST_ENTRY *PPH_TOAST;
 
 PHAPPAPI
-_Must_inspect_result_
 HRESULT
 NTAPI
 PhShowToastEx2(
@@ -372,13 +373,12 @@ PhShowToastEx2(
     );
 
 PHAPPAPI
-_Must_inspect_result_
 HRESULT
 NTAPI
 PhUpdateToastProgress(
     _In_ PPH_TOAST Toast,
     _In_ double Value,
-    _In_opt_ PCWSTR ValueStringOverride,
+    _In_opt_ PCWSTR String,
     _In_opt_ PCWSTR Status,
     _In_opt_ PCWSTR Title
     );
@@ -436,5 +436,7 @@ VOID PhServiceListInsertContextMenu(
     _In_ PPH_SERVICE_ITEM* Services,
     _In_ ULONG NumberOfServices
     );
+
+EXTERN_C_END
 
 #endif
