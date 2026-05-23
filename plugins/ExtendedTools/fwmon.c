@@ -387,6 +387,8 @@ VOID FwProcessFirewallEvent(
     entry->Type = firewallEvent->Type;
     entry->ScopeId = firewallEvent->ScopeId;
     entry->IpProtocol = firewallEvent->IpProtocol;
+    entry->FilterId = firewallEvent->FilterId;
+    entry->LayerId = firewallEvent->LayerId;
     entry->LocalEndpoint = firewallEvent->LocalEndpoint;
     entry->LocalHostnameString = firewallEvent->LocalHostnameString;
     entry->RemoteEndpoint = firewallEvent->RemoteEndpoint;
@@ -2704,6 +2706,7 @@ ULONG EtFwMonitorInitialize(
     FwpmEngineClose = PhGetProcedureAddress(baseAddress, "FwpmEngineClose0", 0);
     FwpmFreeMemory = PhGetProcedureAddress(baseAddress, "FwpmFreeMemory0", 0);
     FwpmFilterGetById = PhGetProcedureAddress(baseAddress, "FwpmFilterGetById0", 0);
+    FwpmLayerGetById_I = PhGetProcedureAddress(baseAddress, "FwpmLayerGetById0", 0);
     FwpmFilterSubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterSubscribeChanges0", 0);
     FwpmFilterUnsubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterUnsubscribeChanges0", 0);
     FwpmEngineSetOption = PhGetProcedureAddress(baseAddress, "FwpmEngineSetOption0", 0);
