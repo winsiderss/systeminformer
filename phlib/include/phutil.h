@@ -717,6 +717,13 @@ PhGenerateGuid(
     _Out_ PGUID Guid
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhGenerateGuidEx(
+    _Out_ PGUID Guid
+    );
+
 /**
  * Reverses the byte order of a GUID.
  *

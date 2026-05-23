@@ -39,7 +39,8 @@ typedef struct _PV_HASH_CONTEXT
     PVOID HashObject;
     PVOID Hash;
 #ifndef PH_NATIVE_CRYPT
-    HANDLE SymCryptHandle;
+    PH_SYMCRYPT_HASH_CONTEXT SymCryptContext;
+    BOOLEAN SymCryptContextInitialized;
 #endif
 } PV_HASH_CONTEXT, *PPV_HASH_CONTEXT;
 
@@ -124,16 +125,24 @@ PPV_HASH_CONTEXT PvCreateHashHandle(
 
 #ifndef PH_NATIVE_CRYPT
     {
-        if (!NT_SUCCESS(PhSymCryptOpenAlgorithmProvider(
-            &hashContext->SymCryptHandle,
-            &hashContext->HashSize,
-            AlgorithmId
+        PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+        if (!NT_SUCCESS(PhSymCryptHashAlgorithmIdToAlgorithm(
+            AlgorithmId,
+            &hashAlgorithm,
+            &hashContext->HashSize
             )))
         {
             PhFree(hashContext);
             return NULL;
         }
 
+        if (!NT_SUCCESS(PhSymCryptHashInit(hashAlgorithm, &hashContext->SymCryptContext)))
+        {
+            PhFree(hashContext);
+            return NULL;
+        }
+
+        hashContext->SymCryptContextInitialized = TRUE;
         hashContext->Hash = PhAllocate(hashContext->HashSize);
         return hashContext;
     }
@@ -231,11 +240,11 @@ VOID PvDestroyHashHandle(
     if (Context->HashObject)
         PhFree(Context->HashObject);
 #else
-    if (Context->SymCryptHandle)
+    if (Context->SymCryptContextInitialized)
     {
         UCHAR discard[PH_SYMCRYPT_SHA512_RESULT_SIZE];
-        PhSymCryptFinishHash(Context->SymCryptHandle, Context->HashSize, discard);
-        Context->SymCryptHandle = NULL;
+        PhSymCryptHashFinal(&Context->SymCryptContext, discard, Context->HashSize);
+        Context->SymCryptContextInitialized = FALSE;
     }
 #endif
 
@@ -262,13 +271,13 @@ PPH_STRING PvGetFinalHash(
 
     return NULL;
 #else
-    if (NT_SUCCESS(PhSymCryptFinishHash(
-        HashContext->SymCryptHandle,
-        HashContext->HashSize,
-        HashContext->Hash
+    if (NT_SUCCESS(PhSymCryptHashFinal(
+        &HashContext->SymCryptContext,
+        HashContext->Hash,
+        HashContext->HashSize
         )))
     {
-        HashContext->SymCryptHandle = NULL;
+        HashContext->SymCryptContextInitialized = FALSE;
         return PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
     }
 
@@ -318,8 +327,7 @@ NTSTATUS PvHashMappedImageData(
     }
 #else
     status = PhSymCryptHashData(
-        HashContext->SymCryptHandle,
-        HashContext->HashSize,
+        &HashContext->SymCryptContext,
         Buffer,
         (SIZE_T)BufferLength
         );
@@ -1583,3 +1591,5 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
 
     return FALSE;
 }
+
+

@@ -1507,6 +1507,26 @@ VOID PhGenerateGuid(
     ((PGUID_EX)Guid)->s2.Variant |= GUID_VARIANT_STANDARD;
 }
 
+/**
+ * Creates a random (type 4) UUID using SymCrypt.
+ *
+ * \param Guid The destination UUID.
+ */
+VOID PhGenerateGuidEx(
+    _Out_ PGUID Guid
+    )
+{
+    GUID_EX guid;
+
+    PhSymCryptRandom(guid.Data, sizeof(guid.Data));
+
+    guid.s2.Version = GUID_VERSION_RANDOM;
+    guid.s2.Variant &= ~GUID_VARIANT_STANDARD_MASK;
+    guid.s2.Variant |= GUID_VARIANT_STANDARD;
+
+    *Guid = guid.Guid;
+}
+
 // rev from kernelbase (dmex)
 //VOID PhGenerateGuid2(
 //    _Out_ PGUID Guid
@@ -1566,6 +1586,7 @@ VOID PhGenerateGuidFromName(
 
     if (Version == GUID_VERSION_MD5)
     {
+#ifdef PH_NATIVE_CRYPT
         MD5_CTX context;
 
         MD5Init(&context);
@@ -1573,15 +1594,25 @@ VOID PhGenerateGuidFromName(
         MD5Final(&context);
 
         memcpy(hash, context.digest, 16);
+#else
+        UCHAR digest[PH_SYMCRYPT_MD5_RESULT_SIZE];
+        PhSymCryptMd5(data, dataLength, digest);
+        memcpy(hash, digest, 16);
+#endif
     }
     else
     {
+#ifdef PH_NATIVE_CRYPT
         A_SHA_CTX context;
 
         A_SHAInit(&context);
         A_SHAUpdate(&context, data, dataLength);
         A_SHAFinal(&context, hash);
-
+#else
+        UCHAR digest[PH_SYMCRYPT_SHA1_RESULT_SIZE];
+        PhSymCryptSha1(data, dataLength, digest);
+        memcpy(hash, digest, 16);
+#endif
         Version = GUID_VERSION_SHA1;
     }
 
@@ -1611,7 +1642,6 @@ VOID PhGenerateClass5Guid(
     _Out_ PGUID Guid
     )
 {
-    A_SHA_CTX context;
     GUID data;
     PGUID_EX guid;
     UCHAR hash[20];
@@ -1621,10 +1651,25 @@ VOID PhGenerateClass5Guid(
     data.Data2 = _rotr16(NamespaceGuid->Data2, 8);
     data.Data3 = _rotr16(NamespaceGuid->Data3, 8);
 
-    A_SHAInit(&context);
-    A_SHAUpdate(&context, (PUCHAR)&data, sizeof(GUID));
-    A_SHAUpdate(&context, Buffer, BufferSize);
-    A_SHAFinal(&context, hash);
+#ifdef PH_NATIVE_CRYPT
+    {
+        A_SHA_CTX context;
+        A_SHAInit(&context);
+        A_SHAUpdate(&context, (PUCHAR)&data, sizeof(GUID));
+        A_SHAUpdate(&context, Buffer, BufferSize);
+        A_SHAFinal(&context, hash);
+    }
+#else
+    {
+        PH_SYMCRYPT_HASH_CONTEXT symCryptContext;
+        if (NT_SUCCESS(PhSymCryptHashInit(PH_SYMCRYPT_SHA1_ALGORITHM, &symCryptContext)))
+        {
+            PhSymCryptHashData(&symCryptContext, &data, sizeof(GUID));
+            PhSymCryptHashData(&symCryptContext, Buffer, BufferSize);
+            PhSymCryptHashFinal(&symCryptContext, hash, sizeof(hash));
+        }
+    }
+#endif
 
     guid = (PGUID_EX)Guid;
     memcpy(guid->Data, hash, sizeof(GUID));
@@ -1742,12 +1787,25 @@ BOOLEAN PhGenerateRandomNumber(
 {
     memset(Number, 0, sizeof(LARGE_INTEGER));
 
-#ifndef _M_ARM64
     if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
     {
         ULONG count = 0;
 
-#ifdef _M_X64
+#ifdef _M_ARM64
+        while (TRUE)
+        {
+            ULONG64 value;
+
+            if (PhArm64ReadRandomNumber64(&value))
+            {
+                Number->QuadPart = value;
+                break;
+            }
+
+            if (++count >= 10)
+                return FALSE;
+        }
+#elif defined(_M_X64)
         while (TRUE)
         {
             if (_rdrand64_step(&Number->QuadPart))
@@ -1774,7 +1832,6 @@ BOOLEAN PhGenerateRandomNumber(
 #endif
         return TRUE;
     }
-#endif
 
     Number->QuadPart = PhGenerateRandomNumber64();
     return TRUE;

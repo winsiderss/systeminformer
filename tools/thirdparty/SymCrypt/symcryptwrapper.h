@@ -35,16 +35,110 @@ EXTERN_C_START
 #define PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE     PH_SYMCRYPT_SHA512_RESULT_SIZE
 
 // ------------------------------------------------------------------------
+// Algorithm/blob identifier strings for BCrypt-compatible call sites
+// ------------------------------------------------------------------------
+
+#define PH_SYMCRYPT_MD5_ALGORITHM_NAME          L"MD5"
+#define PH_SYMCRYPT_SHA1_ALGORITHM_NAME         L"SHA1"
+#define PH_SYMCRYPT_SHA256_ALGORITHM_NAME       L"SHA256"
+#define PH_SYMCRYPT_SHA384_ALGORITHM_NAME       L"SHA384"
+#define PH_SYMCRYPT_SHA512_ALGORITHM_NAME       L"SHA512"
+
+#define PH_SYMCRYPT_ECDSA_P256_ALGORITHM_NAME   L"ECDSA_P256"
+#define PH_SYMCRYPT_RSA_ALGORITHM_NAME          L"RSA"
+#define PH_SYMCRYPT_ECCPUBLIC_BLOB_NAME         L"ECCPUBLICBLOB"
+#define PH_SYMCRYPT_RSAPUBLIC_BLOB_NAME         L"RSAPUBLICBLOB"
+
+#define PH_SYMCRYPT_PAD_PSS                     0x00000008ul
+
+// ------------------------------------------------------------------------
 // Hash algorithm selector (used by RSA-PKCS1 / RSA-PSS verify)
 // ------------------------------------------------------------------------
 
-typedef enum _PH_SYMCRYPT_HASH_ALGORITHM
+typedef ULONG PH_SYMCRYPT_HASH_ALGORITHM, *PPH_SYMCRYPT_HASH_ALGORITHM;
+
+#define PH_SYMCRYPT_MD5_ALGORITHM       0ul
+#define PH_SYMCRYPT_SHA1_ALGORITHM      1ul
+#define PH_SYMCRYPT_SHA256_ALGORITHM    2ul
+#define PH_SYMCRYPT_SHA384_ALGORITHM    3ul
+#define PH_SYMCRYPT_SHA512_ALGORITHM    4ul
+#define PH_SYMCRYPT_SHA3_256_ALGORITHM  5ul
+#define PH_SYMCRYPT_SHA3_384_ALGORITHM  6ul
+#define PH_SYMCRYPT_SHA3_512_ALGORITHM  7ul
+
+// ------------------------------------------------------------------------
+// Generic incremental hash context (caller-owned, SymCrypt-private internals)
+// ------------------------------------------------------------------------
+
+#define PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE 240
+#define PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT 16
+
+typedef struct DECLSPEC_ALIGN(PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT) _PH_SYMCRYPT_HASH_CONTEXT
 {
-    PhSymCryptHashAlgorithmSha1 = 0,
-    PhSymCryptHashAlgorithmSha256 = 1,
-    PhSymCryptHashAlgorithmSha384 = 2,
-    PhSymCryptHashAlgorithmSha512 = 3,
-} PH_SYMCRYPT_HASH_ALGORITHM;
+    PVOID Algorithm;
+    ULONG ResultSize;
+    ULONG StateSize;
+    UCHAR State[PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE];
+} PH_SYMCRYPT_HASH_CONTEXT, *PPH_SYMCRYPT_HASH_CONTEXT;
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashInit(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_SYMCRYPT_HASH_CONTEXT Context
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashData(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashFinal(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ ULONG ResultLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptGetHashSize(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PULONG HashSize
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashSize(
+    _In_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _Out_ PULONG HashSize
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptDestroyHash(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _In_ ULONG HashSize
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptHashAlgorithmIdToAlgorithm(
+    _In_ PCWSTR AlgorithmId,
+    _Out_ PPH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_opt_ PULONG HashSize
+    );
 
 // ------------------------------------------------------------------------
 // Random / RNG
@@ -398,20 +492,18 @@ PhSymCryptSha3_512Result(
 // BCrypt-style incremental hash facade
 //
 // Selects the underlying SymCrypt algorithm by BCRYPT_*_ALGORITHM string in
-// PhSymCryptOpenAlgorithmProvider, returns the hash output size as well as
-// an opaque incremental context. Subsequent PhSymCryptHashData /
+// PhSymCryptOpenAlgorithmProvider, returns the hash output size and
+// initializes the caller-provided context. Subsequent PhSymCryptHashDataBySize /
 // PhSymCryptFinishHash calls dispatch on the same HashSize value the open
 // call returned. Mirrors BCryptCreateHash / BCryptHashData / BCryptFinishHash
-// without needing per-algorithm switches at the call site.
-//
-// PhSymCryptFinishHash always consumes (frees) the context.
+// without requiring per-algorithm switches at the call site.
 // ------------------------------------------------------------------------
 
 EXTERN_C
 NTSTATUS
 NTAPI
 PhSymCryptOpenAlgorithmProvider(
-    _Out_ PHANDLE Context,
+    _Out_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _Out_ PULONG HashSize,
     _In_ PCWSTR AlgorithmId
     );
@@ -419,8 +511,8 @@ PhSymCryptOpenAlgorithmProvider(
 EXTERN_C
 NTSTATUS
 NTAPI
-PhSymCryptHashData(
-    _Inout_ HANDLE Context,
+PhSymCryptHashDataBySize(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _In_ ULONG HashSize,
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length
@@ -430,7 +522,7 @@ EXTERN_C
 NTSTATUS
 NTAPI
 PhSymCryptFinishHash(
-    _Inout_ HANDLE Context,
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _In_ ULONG HashSize,
     _Out_writes_bytes_(HashSize) PVOID Result
     );
@@ -786,7 +878,7 @@ PhSymCryptRsaVerifyBlob(
 EXTERN_C
 NTSTATUS
 NTAPI
-PhSymCryptVerifySignatureFromBlob(
+PhSymCryptVerifySignature(
     _In_ PCWSTR BlobType,
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,

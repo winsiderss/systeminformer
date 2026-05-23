@@ -335,46 +335,302 @@ VOID NTAPI PhSymCryptSha3_512(
 // ------------------------------------------------------------------------
 // Incremental hash helpers
 //
-// Each Init allocates a properly-aligned state via PhAllocate; Result wipes
-// and frees it. Append simply forwards.
+// Generic caller-owned context with private SymCrypt internals.
 // ------------------------------------------------------------------------
 
+typedef struct _PH_SYMCRYPT_COMPAT_HASH_CONTEXT
+{
+    PH_SYMCRYPT_HASH_CONTEXT Context;
+} PH_SYMCRYPT_COMPAT_HASH_CONTEXT, *PPH_SYMCRYPT_COMPAT_HASH_CONTEXT;
+
+static_assert(RTL_FIELD_SIZE(PH_SYMCRYPT_HASH_CONTEXT, State) == sizeof(SYMCRYPT_HASH_STATE), "PH_SYMCRYPT_HASH_CONTEXT.State must match sizeof(SYMCRYPT_HASH_STATE)");
+static_assert((PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT & (PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT - 1)) == 0, "PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT must be a power of two");
+static_assert((sizeof(PH_SYMCRYPT_HASH_CONTEXT) % PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT) == 0, "PH_SYMCRYPT_HASH_CONTEXT alignment mismatch");
+
 /**
- * Generates the Init/Append/Result trio for one incremental hash.
+ * Resolves a wrapper hash selector to SymCrypt's hash descriptor and digest size.
  *
- * Each instantiation produces three Doxygen-documented functions sharing the
- * same opaque heap-allocated state:
- *   \li \c PhSymCrypt<Tag>Init    — allocates and initializes the state.
- *   \li \c PhSymCrypt<Tag>Append  — feeds another chunk of input.
- *   \li \c PhSymCrypt<Tag>Result  — finalizes the digest and frees the state.
- *
- * The state is heap-allocated (instead of caller-supplied) to keep callers from
- * needing to know the underlying SymCrypt state size or alignment requirements.
- *
- * \param Tag Capitalized algorithm tag (e.g. Sha256).
- * \param StateType SymCrypt state struct type (e.g. SYMCRYPT_SHA256_STATE).
- * \param InitFn SymCrypt init function for the algorithm.
- * \param AppendFn SymCrypt append function for the algorithm.
- * \param ResultFn SymCrypt finalize/result function for the algorithm.
- * \param ResultSize Output digest size in bytes.
+ * \param[in] Algorithm Wrapper hash selector constant.
+ * \param[out] HashAlgorithm Receives SymCrypt hash descriptor pointer.
+ * \param[out] HashResultSize Receives digest size in bytes.
+ * \return TRUE if the selector is supported; FALSE otherwise.
  */
-#define PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Tag, StateType, InitFn, AppendFn, ResultFn, ResultSize) \
-    /** Allocate state and run SymCrypt's algorithm Init. */                    \
+_Success_(return)
+BOOLEAN PhSymCryptResolveHashAlgorithm(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PCSYMCRYPT_HASH* HashAlgorithm,
+    _Out_ PULONG HashResultSize
+    )
+{
+    switch (Algorithm)
+    {
+    case PH_SYMCRYPT_MD5_ALGORITHM:
+        *HashAlgorithm = SymCryptMd5Algorithm;
+        *HashResultSize = PH_SYMCRYPT_MD5_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA1_ALGORITHM:
+        *HashAlgorithm = SymCryptSha1Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA1_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA256_ALGORITHM:
+        *HashAlgorithm = SymCryptSha256Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA384_ALGORITHM:
+        *HashAlgorithm = SymCryptSha384Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA512_ALGORITHM:
+        *HashAlgorithm = SymCryptSha512Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA3_256_ALGORITHM:
+        *HashAlgorithm = SymCryptSha3_256Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA3_256_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA3_384_ALGORITHM:
+        *HashAlgorithm = SymCryptSha3_384Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA3_384_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA3_512_ALGORITHM:
+        *HashAlgorithm = SymCryptSha3_512Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA3_512_RESULT_SIZE;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+/**
+ * Initializes a caller-owned incremental hash context.
+ *
+ * \param[in] Algorithm Wrapper hash selector.
+ * \param[out] Context Receives initialized hash context.
+ * \return STATUS_SUCCESS on success; STATUS_NOT_SUPPORTED for unknown algorithm;
+ * STATUS_BUFFER_TOO_SMALL if context state storage is insufficient.
+ */
+NTSTATUS NTAPI PhSymCryptHashInit(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PPH_SYMCRYPT_HASH_CONTEXT Context
+    )
+{
+    PCSYMCRYPT_HASH hashAlgorithm;
+    ULONG hashResultSize;
+
+    if (!Context)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhSymCryptResolveHashAlgorithm(Algorithm, &hashAlgorithm, &hashResultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
+    Context->Algorithm = (PVOID)hashAlgorithm;
+    Context->ResultSize = hashResultSize;
+    Context->StateSize = (ULONG)SymCryptHashStateSize(hashAlgorithm);
+
+    if (Context->StateSize > PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    SymCryptHashInit(hashAlgorithm, Context->State);
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Adds input bytes to an initialized incremental hash context.
+ *
+ * \param[in,out] Context Hash context previously initialized by PhSymCryptHashInit.
+ * \param[in] Buffer Input bytes.
+ * \param[in] Length Number of input bytes.
+ * \return STATUS_SUCCESS or STATUS_INVALID_PARAMETER if context is invalid.
+ */
+NTSTATUS NTAPI PhSymCryptHashData(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    PCSYMCRYPT_HASH hashAlgorithm;
+
+    if (!Context || !Context->Algorithm)
+        return STATUS_INVALID_PARAMETER;
+
+    hashAlgorithm = (PCSYMCRYPT_HASH)Context->Algorithm;
+    SymCryptHashAppend(hashAlgorithm, Context->State, (PCBYTE)Buffer, Length);
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Finalizes an incremental hash and clears the context state.
+ *
+ * \param[in,out] Context Hash context to finalize.
+ * \param[out] Result Output buffer for digest bytes.
+ * \param[in] ResultLength Number of result bytes requested.
+ * \return STATUS_SUCCESS or STATUS_INVALID_PARAMETER if context is invalid.
+ */
+NTSTATUS NTAPI PhSymCryptHashFinal(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ ULONG ResultLength
+    )
+{
+    PCSYMCRYPT_HASH hashAlgorithm;
+
+    if (!Context || !Context->Algorithm)
+        return STATUS_INVALID_PARAMETER;
+
+    hashAlgorithm = (PCSYMCRYPT_HASH)Context->Algorithm;
+    SymCryptHashResult(hashAlgorithm, Context->State, (PBYTE)Result, ResultLength);
+    SymCryptWipeKnownSize(Context->State, sizeof(Context->State));
+    Context->Algorithm = NULL;
+    Context->ResultSize = 0;
+    Context->StateSize = 0;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Returns the digest size for a hash algorithm selector.
+ *
+ * \param[in] Algorithm Wrapper hash selector.
+ * \param[out] HashSize Receives digest size in bytes.
+ * \return STATUS_SUCCESS or STATUS_NOT_SUPPORTED for unknown algorithm.
+ */
+NTSTATUS NTAPI PhSymCryptGetHashSize(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_ PULONG HashSize
+    )
+{
+    PCSYMCRYPT_HASH hashAlgorithm;
+
+    if (!HashSize)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhSymCryptResolveHashAlgorithm(Algorithm, &hashAlgorithm, HashSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Returns the configured digest size of an initialized hash context.
+ *
+ * \param[in] Context Hash context.
+ * \param[out] HashSize Receives context digest size in bytes.
+ * \return STATUS_SUCCESS or STATUS_INVALID_PARAMETER if inputs are invalid.
+ */
+NTSTATUS NTAPI PhSymCryptHashSize(
+    _In_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _Out_ PULONG HashSize
+    )
+{
+    if (!Context || !HashSize)
+        return STATUS_INVALID_PARAMETER;
+
+    *HashSize = Context->ResultSize;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Best-effort destroy helper for incremental hash contexts.
+ *
+ * Finalizes into a throwaway local buffer to ensure context state is cleared.
+ *
+ * \param[in,out] Context Hash context to destroy.
+ * \param[in] HashSize Expected digest size in bytes.
+ */
+VOID NTAPI PhSymCryptDestroyHash(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
+    _In_ ULONG HashSize
+    )
+{
+    UCHAR discard[PH_SYMCRYPT_SHA512_RESULT_SIZE];
+
+    if (!Context || !Context->Algorithm)
+        return;
+
+    if (HashSize > sizeof(discard))
+        HashSize = sizeof(discard);
+
+    PhSymCryptHashFinal(Context, discard, HashSize);
+}
+
+/**
+ * Maps a BCrypt algorithm ID string to wrapper hash selector and digest size.
+ *
+ * \param[in] AlgorithmId BCrypt hash algorithm ID string (e.g. SHA256).
+ * \param[out] Algorithm Receives wrapper hash selector.
+ * \param[out] HashSize Optional digest size output.
+ * \return STATUS_SUCCESS on success or STATUS_NOT_SUPPORTED if unknown.
+ */
+NTSTATUS NTAPI PhSymCryptHashAlgorithmIdToAlgorithm(
+    _In_ PCWSTR AlgorithmId,
+    _Out_ PPH_SYMCRYPT_HASH_ALGORITHM Algorithm,
+    _Out_opt_ PULONG HashSize
+    )
+{
+    if (!AlgorithmId || !Algorithm)
+        return STATUS_INVALID_PARAMETER;
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_MD5_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_MD5_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_MD5_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA1_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA1_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA1_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA256_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA384_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA384_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA512_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA512_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
+#define PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Tag, AlgorithmId, ResultSize)      \
     NTSTATUS                                                                    \
     NTAPI                                                                       \
     PhSymCrypt##Tag##Init(                                                      \
         _Out_ PVOID* Context                                                    \
         )                                                                       \
     {                                                                           \
-        /* Heap-allocate state so the public API is type-opaque. */             \
-        StateType* state = PhAllocate(sizeof(StateType));                       \
-        /* Initialize SymCrypt state in place. */                               \
-        InitFn(state);                                                          \
-        *Context = state;                                                       \
+        PH_SYMCRYPT_COMPAT_HASH_CONTEXT* compatContext;                         \
+        NTSTATUS status;                                                        \
+        if (!Context)                                                           \
+            return STATUS_INVALID_PARAMETER;                                    \
+        compatContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_COMPAT_HASH_CONTEXT));\
+        if (!compatContext)                                                     \
+            return STATUS_NO_MEMORY;                                            \
+        status = PhSymCryptHashInit(AlgorithmId, &compatContext->Context);      \
+        if (!NT_SUCCESS(status))                                                \
+        {                                                                       \
+            PhFree(compatContext);                                              \
+            return status;                                                      \
+        }                                                                       \
+        *Context = compatContext;                                               \
         return STATUS_SUCCESS;                                                  \
     }                                                                           \
-                                                                                \
-    /** Append another chunk of message data to the running digest. */          \
     VOID                                                                        \
     NTAPI                                                                       \
     PhSymCrypt##Tag##Append(                                                    \
@@ -383,11 +639,9 @@ VOID NTAPI PhSymCryptSha3_512(
         _In_ SIZE_T Length                                                      \
         )                                                                       \
     {                                                                           \
-        /* Forward to SymCrypt's append (may be called repeatedly). */          \
-        AppendFn((StateType*)Context, (PCBYTE)Buffer, Length);                  \
+        if (!Context) return;                                                   \
+        PhSymCryptHashData(&((PPH_SYMCRYPT_COMPAT_HASH_CONTEXT)Context)->Context, Buffer, Length); \
     }                                                                           \
-                                                                                \
-    /** Finalize the digest into Result and free the state. */                  \
     VOID                                                                        \
     NTAPI                                                                       \
     PhSymCrypt##Tag##Result(                                                    \
@@ -395,74 +649,19 @@ VOID NTAPI PhSymCryptSha3_512(
         _Out_writes_bytes_(ResultSize) PVOID Result                             \
         )                                                                       \
     {                                                                           \
-        /* Emit final digest then release the state heap allocation. */         \
-        ResultFn((StateType*)Context, (PBYTE)Result);                           \
+        if (!Context) return;                                                   \
+        PhSymCryptHashFinal(&((PPH_SYMCRYPT_COMPAT_HASH_CONTEXT)Context)->Context, Result, ResultSize); \
         PhFree(Context);                                                        \
     }
 
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Md5,
-    SYMCRYPT_MD5_STATE,
-    SymCryptMd5Init,
-    SymCryptMd5Append,
-    SymCryptMd5Result,
-    PH_SYMCRYPT_MD5_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha1,
-    SYMCRYPT_SHA1_STATE,
-    SymCryptSha1Init,
-    SymCryptSha1Append,
-    SymCryptSha1Result,
-    PH_SYMCRYPT_SHA1_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha256,
-    SYMCRYPT_SHA256_STATE,
-    SymCryptSha256Init,
-    SymCryptSha256Append,
-    SymCryptSha256Result,
-    PH_SYMCRYPT_SHA256_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha384,
-    SYMCRYPT_SHA384_STATE,
-    SymCryptSha384Init,
-    SymCryptSha384Append,
-    SymCryptSha384Result,
-    PH_SYMCRYPT_SHA384_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha512,
-    SYMCRYPT_SHA512_STATE,
-    SymCryptSha512Init,
-    SymCryptSha512Append,
-    SymCryptSha512Result,
-    PH_SYMCRYPT_SHA512_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha3_256,
-    SYMCRYPT_SHA3_256_STATE,
-    SymCryptSha3_256Init,
-    SymCryptSha3_256Append,
-    SymCryptSha3_256Result,
-    PH_SYMCRYPT_SHA3_256_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha3_384,
-    SYMCRYPT_SHA3_384_STATE,
-    SymCryptSha3_384Init,
-    SymCryptSha3_384Append,
-    SymCryptSha3_384Result,
-    PH_SYMCRYPT_SHA3_384_RESULT_SIZE)
-
-PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
-    Sha3_512,
-    SYMCRYPT_SHA3_512_STATE,
-    SymCryptSha3_512Init,
-    SymCryptSha3_512Append,
-    SymCryptSha3_512Result,
-    PH_SYMCRYPT_SHA3_512_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Md5, PH_SYMCRYPT_MD5_ALGORITHM, PH_SYMCRYPT_MD5_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha1, PH_SYMCRYPT_SHA1_ALGORITHM, PH_SYMCRYPT_SHA1_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha256, PH_SYMCRYPT_SHA256_ALGORITHM, PH_SYMCRYPT_SHA256_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha384, PH_SYMCRYPT_SHA384_ALGORITHM, PH_SYMCRYPT_SHA384_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha512, PH_SYMCRYPT_SHA512_ALGORITHM, PH_SYMCRYPT_SHA512_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha3_256, PH_SYMCRYPT_SHA3_256_ALGORITHM, PH_SYMCRYPT_SHA3_256_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha3_384, PH_SYMCRYPT_SHA3_384_ALGORITHM, PH_SYMCRYPT_SHA3_384_RESULT_SIZE)
+PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(Sha3_512, PH_SYMCRYPT_SHA3_512_ALGORITHM, PH_SYMCRYPT_SHA3_512_RESULT_SIZE)
 
 // ------------------------------------------------------------------------
 // BCrypt-style incremental hash facade
@@ -474,53 +673,34 @@ PH_SYMCRYPT_DEFINE_INCREMENTAL_HASH(
  * PhSymCryptFinishHash calls dispatch on that value.
  */
 NTSTATUS PhSymCryptOpenAlgorithmProvider(
-    _Out_ PHANDLE Context,
+    _Out_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _Out_ PULONG HashSize,
     _In_ PCWSTR AlgorithmId
     )
 {
-    *Context = NULL;
+    PH_SYMCRYPT_HASH_ALGORITHM algorithm;
+    NTSTATUS status;
+
+    if (!Context || !HashSize)
+        return STATUS_INVALID_PARAMETER;
+
+    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
     *HashSize = 0;
 
-    if (PhEqualStringZ(AlgorithmId, BCRYPT_MD5_ALGORITHM, FALSE))
-    {
-        *HashSize = PH_SYMCRYPT_MD5_RESULT_SIZE;
-        return PhSymCryptMd5Init(Context);
-    }
+    status = PhSymCryptHashAlgorithmIdToAlgorithm(AlgorithmId, &algorithm, HashSize);
 
-    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA1_ALGORITHM, FALSE))
-    {
-        *HashSize = PH_SYMCRYPT_SHA1_RESULT_SIZE;
-        return PhSymCryptSha1Init(Context);
-    }
+    if (!NT_SUCCESS(status))
+        return status;
 
-    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA256_ALGORITHM, FALSE))
-    {
-        *HashSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
-        return PhSymCryptSha256Init(Context);
-    }
-
-    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA384_ALGORITHM, FALSE))
-    {
-        *HashSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
-        return PhSymCryptSha384Init(Context);
-    }
-
-    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA512_ALGORITHM, FALSE))
-    {
-        *HashSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
-        return PhSymCryptSha512Init(Context);
-    }
-
-    return STATUS_NOT_SUPPORTED;
+    return PhSymCryptHashInit(algorithm, Context);
 }
 
 /**
  * Appends data to an incremental hash. HashSize identifies the algorithm
  * (as returned by PhSymCryptOpenAlgorithmProvider).
  */
-NTSTATUS PhSymCryptHashData(
-    _Inout_ HANDLE Context,
+NTSTATUS PhSymCryptHashDataBySize(
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _In_ ULONG HashSize,
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length
@@ -529,34 +709,19 @@ NTSTATUS PhSymCryptHashData(
     if (!Context)
         return STATUS_INVALID_HANDLE;
 
-    switch (HashSize)
-    {
-    case PH_SYMCRYPT_MD5_RESULT_SIZE:
-        PhSymCryptMd5Append(Context, Buffer, Length);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA1_RESULT_SIZE:
-        PhSymCryptSha1Append(Context, Buffer, Length);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA256_RESULT_SIZE:
-        PhSymCryptSha256Append(Context, Buffer, Length);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA384_RESULT_SIZE:
-        PhSymCryptSha384Append(Context, Buffer, Length);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA512_RESULT_SIZE:
-        PhSymCryptSha512Append(Context, Buffer, Length);
-        return STATUS_SUCCESS;
-    }
-    return STATUS_NOT_SUPPORTED;
+    if (Context->ResultSize != HashSize)
+        return STATUS_INVALID_PARAMETER_2;
+
+    return PhSymCryptHashData(Context, Buffer, Length);
 }
 
 /**
- * Finalizes an incremental hash into Result and frees the context. HashSize
+ * Finalizes an incremental hash into Result. HashSize
  * identifies the algorithm (as returned by PhSymCryptOpenAlgorithmProvider)
  * and also denotes the size of the output buffer.
  */
 NTSTATUS PhSymCryptFinishHash(
-    _Inout_ HANDLE Context,
+    _Inout_ PPH_SYMCRYPT_HASH_CONTEXT Context,
     _In_ ULONG HashSize,
     _Out_writes_bytes_(HashSize) PVOID Result
     )
@@ -564,25 +729,10 @@ NTSTATUS PhSymCryptFinishHash(
     if (!Context)
         return STATUS_INVALID_HANDLE;
 
-    switch (HashSize)
-    {
-    case PH_SYMCRYPT_MD5_RESULT_SIZE:
-        PhSymCryptMd5Result(Context, Result);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA1_RESULT_SIZE:
-        PhSymCryptSha1Result(Context, Result);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA256_RESULT_SIZE:
-        PhSymCryptSha256Result(Context, Result);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA384_RESULT_SIZE:
-        PhSymCryptSha384Result(Context, Result);
-        return STATUS_SUCCESS;
-    case PH_SYMCRYPT_SHA512_RESULT_SIZE:
-        PhSymCryptSha512Result(Context, Result);
-        return STATUS_SUCCESS;
-    }
-    return STATUS_NOT_SUPPORTED;
+    if (Context->ResultSize != HashSize)
+        return STATUS_INVALID_PARAMETER_2;
+
+    return PhSymCryptHashFinal(Context, Result, HashSize);
 }
 
 // ------------------------------------------------------------------------
@@ -1521,13 +1671,13 @@ PCSYMCRYPT_HASH PhSymCryptHashAlgorithmToHash(
 {
     switch (Algorithm)
     {
-    case PhSymCryptHashAlgorithmSha1:
+    case PH_SYMCRYPT_SHA1_ALGORITHM:
         return SymCryptSha1Algorithm;
-    case PhSymCryptHashAlgorithmSha256:
+    case PH_SYMCRYPT_SHA256_ALGORITHM:
         return SymCryptSha256Algorithm;
-    case PhSymCryptHashAlgorithmSha384:
+    case PH_SYMCRYPT_SHA384_ALGORITHM:
         return SymCryptSha384Algorithm;
-    case PhSymCryptHashAlgorithmSha512:
+    case PH_SYMCRYPT_SHA512_ALGORITHM:
         return SymCryptSha512Algorithm;
     default:
         return NULL;
@@ -1554,19 +1704,19 @@ BOOLEAN PhSymCryptHashAlgorithmToOidList(
 {
     switch (Algorithm)
     {
-    case PhSymCryptHashAlgorithmSha1:
+    case PH_SYMCRYPT_SHA1_ALGORITHM:
         *OidList = SymCryptSha1OidList;
         *OidCount = SYMCRYPT_SHA1_OID_COUNT;
         return TRUE;
-    case PhSymCryptHashAlgorithmSha256:
+    case PH_SYMCRYPT_SHA256_ALGORITHM:
         *OidList = SymCryptSha256OidList;
         *OidCount = SYMCRYPT_SHA256_OID_COUNT;
         return TRUE;
-    case PhSymCryptHashAlgorithmSha384:
+    case PH_SYMCRYPT_SHA384_ALGORITHM:
         *OidList = SymCryptSha384OidList;
         *OidCount = SYMCRYPT_SHA384_OID_COUNT;
         return TRUE;
-    case PhSymCryptHashAlgorithmSha512:
+    case PH_SYMCRYPT_SHA512_ALGORITHM:
         *OidList = SymCryptSha512OidList;
         *OidCount = SYMCRYPT_SHA512_OID_COUNT;
         return TRUE;
@@ -1989,24 +2139,27 @@ NTSTATUS PhSymCryptHashAlgIdToEnum(
     _Out_ PH_SYMCRYPT_HASH_ALGORITHM* Algorithm
     )
 {
-    if (wcscmp(AlgId, BCRYPT_SHA1_ALGORITHM) == 0)
+    if (PhEqualStringZ(AlgId, BCRYPT_SHA1_ALGORITHM, FALSE))
     {
-        *Algorithm = PhSymCryptHashAlgorithmSha1;
+        *Algorithm = PH_SYMCRYPT_SHA1_ALGORITHM;
         return STATUS_SUCCESS;
     }
-    if (wcscmp(AlgId, BCRYPT_SHA256_ALGORITHM) == 0)
+
+    if (PhEqualStringZ(AlgId, BCRYPT_SHA256_ALGORITHM, FALSE))
     {
-        *Algorithm = PhSymCryptHashAlgorithmSha256;
+        *Algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
         return STATUS_SUCCESS;
     }
-    if (wcscmp(AlgId, BCRYPT_SHA384_ALGORITHM) == 0)
+
+    if (PhEqualStringZ(AlgId, BCRYPT_SHA384_ALGORITHM, FALSE))
     {
-        *Algorithm = PhSymCryptHashAlgorithmSha384;
+        *Algorithm = PH_SYMCRYPT_SHA384_ALGORITHM;
         return STATUS_SUCCESS;
     }
-    if (wcscmp(AlgId, BCRYPT_SHA512_ALGORITHM) == 0)
+
+    if (PhEqualStringZ(AlgId, BCRYPT_SHA512_ALGORITHM, FALSE))
     {
-        *Algorithm = PhSymCryptHashAlgorithmSha512;
+        *Algorithm = PH_SYMCRYPT_SHA512_ALGORITHM;
         return STATUS_SUCCESS;
     }
 
@@ -2121,7 +2274,7 @@ NTSTATUS NTAPI PhSymCryptEcDsaVerifyBlob(
  * Verify an RSA signature given a BCRYPT_RSAKEY_BLOB public-key blob.
  *
  * Parses the BCrypt header, extracts the public exponent (big-endian into
- * a UINT64) and the modulus, then forwards to the PKCS#1 or PSS verifier.
+ * a ULONG64) and the modulus, then forwards to the PKCS#1 or PSS verifier.
  *
  * \param[in] KeyBlob BCRYPT_RSAKEY_BLOB (Magic = RSAPUBLIC) + exponent + modulus.
  * \param[in] KeyBlobLength Total blob length.
@@ -2169,7 +2322,7 @@ NTSTATUS NTAPI PhSymCryptRsaVerifyBlob(
         return STATUS_NOT_SUPPORTED;
 
     //
-    // Exponent must fit a UINT64.
+    // Exponent must fit a ULONG64.
     //
 
     if (header->cbPublicExp == 0 || header->cbPublicExp > sizeof(ULONG64))
@@ -2199,7 +2352,7 @@ NTSTATUS NTAPI PhSymCryptRsaVerifyBlob(
     modulus = exponent + header->cbPublicExp;
 
     //
-    // Decode the exponent (MSB-first) into a UINT64.
+    // Decode the exponent (MSB-first) into a ULONG64.
     //
 
     publicExponent = 0;
@@ -2264,7 +2417,7 @@ NTSTATUS NTAPI PhSymCryptRsaVerifyBlob(
  * \return STATUS_SUCCESS on verify; STATUS_NOT_SUPPORTED for unhandled shapes;
  * STATUS_INVALID_SIGNATURE on mismatch.
  */
-NTSTATUS NTAPI PhSymCryptVerifySignatureFromBlob(
+NTSTATUS NTAPI PhSymCryptVerifySignature(
     _In_ PCWSTR BlobType,
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -2280,7 +2433,7 @@ NTSTATUS NTAPI PhSymCryptVerifySignatureFromBlob(
     // ECDSA path: blob type ECCPUBLIC, padding flags ignored.
     //
 
-    if (wcscmp(BlobType, BCRYPT_ECCPUBLIC_BLOB) == 0)
+    if (PhEqualStringZ(BlobType, BCRYPT_ECCPUBLIC_BLOB, FALSE))
     {
         return PhSymCryptEcDsaVerifyBlob(
             KeyBlob,
@@ -2296,7 +2449,7 @@ NTSTATUS NTAPI PhSymCryptVerifySignatureFromBlob(
     // RSA path: PaddingInfo encodes the hash algorithm + (PSS only) salt length.
     //
 
-    if (wcscmp(BlobType, BCRYPT_RSAPUBLIC_BLOB) == 0)
+    if (PhEqualStringZ(BlobType, BCRYPT_RSAPUBLIC_BLOB, FALSE))
     {
         PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
         SIZE_T saltLength = 0;
@@ -2455,7 +2608,7 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
         return STATUS_NOT_SUPPORTED;
 
     //
-    // Exponent must fit into UINT64.
+    // Exponent must fit into ULONG64.
     //
 
     if (header->cbPublicExp == 0 || header->cbPublicExp > sizeof(ULONG64))
@@ -2502,7 +2655,7 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
     prime2 = prime1 + cbPrime1;
 
     //
-    // Decode public exponent (MSB-first big-endian) into a UINT64.
+    // Decode public exponent (MSB-first big-endian) into a ULONG64.
     //
 
     publicExponent = 0;
@@ -2901,3 +3054,10 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
 
     return PhSymCryptErrorToStatus(error);
 }
+
+
+
+
+
+
+
