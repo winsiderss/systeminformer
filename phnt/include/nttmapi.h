@@ -34,6 +34,17 @@ NtCreateTransactionManager(
     _In_opt_ ULONG CommitStrength
     );
 
+/**
+ * The NtOpenTransactionManager routine opens an existing transaction manager object.
+ *
+ * \param TmHandle A pointer to a HANDLE variable that receives a handle to the transaction manager object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the transaction manager object.
+ * \param ObjectAttributes Optional object attributes for the transaction manager object name and security settings.
+ * \param LogFileName Optional CLFS log file stream path associated with the transaction manager.
+ * \param TmIdentity Optional identifier for the transaction manager object.
+ * \param OpenOptions Optional transaction manager open flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -47,6 +58,13 @@ NtOpenTransactionManager(
     _In_opt_ ULONG OpenOptions
     );
 
+/**
+ * The NtRenameTransactionManager routine renames a transaction manager log file.
+ *
+ * \param LogFileName The new CLFS log file stream path.
+ * \param ExistingTransactionManagerGuid The GUID of the transaction manager to rename.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -56,6 +74,13 @@ NtRenameTransactionManager(
     _In_ LPGUID ExistingTransactionManagerGuid
     );
 
+/**
+ * The NtRollforwardTransactionManager routine rolls a transaction manager forward to the specified virtual clock.
+ *
+ * \param TransactionManagerHandle Handle to the transaction manager object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -65,6 +90,12 @@ NtRollforwardTransactionManager(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtRecoverTransactionManager routine recovers a transaction manager object.
+ *
+ * \param TransactionManagerHandle Handle to the transaction manager object.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -73,6 +104,16 @@ NtRecoverTransactionManager(
     _In_ HANDLE TransactionManagerHandle
     );
 
+/**
+ * The NtQueryInformationTransactionManager routine queries information about a transaction manager object.
+ *
+ * \param TransactionManagerHandle Handle to the transaction manager object.
+ * \param TransactionManagerInformationClass The type of transaction manager information to query.
+ * \param TransactionManagerInformation Caller-allocated buffer that receives the requested information.
+ * \param TransactionManagerInformationLength The size of the buffer pointed to by TransactionManagerInformation, in bytes.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -85,6 +126,15 @@ NtQueryInformationTransactionManager(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationTransactionManager routine sets information for a transaction manager object.
+ *
+ * \param TmHandle Optional handle to the transaction manager object.
+ * \param TransactionManagerInformationClass The type of transaction manager information to set.
+ * \param TransactionManagerInformation Pointer to the input buffer containing the information to set.
+ * \param TransactionManagerInformationLength The size of the input buffer, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -96,6 +146,16 @@ NtSetInformationTransactionManager(
     _In_ ULONG TransactionManagerInformationLength
     );
 
+/**
+ * The NtEnumerateTransactionObject routine enumerates KTM objects associated with a root handle.
+ *
+ * \param RootObjectHandle Optional root object handle.
+ * \param QueryType The KTM object type to enumerate.
+ * \param ObjectCursor Caller-supplied cursor used to track enumeration state.
+ * \param ObjectCursorLength The size of the cursor buffer, in bytes.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -108,6 +168,21 @@ NtEnumerateTransactionObject(
     _Out_ PULONG ReturnLength
     );
 
+/**
+ * The NtCreateTransaction routine creates a transaction object.
+ *
+ * \param TransactionHandle A pointer to a HANDLE variable that receives a handle to the new transaction object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the transaction object.
+ * \param ObjectAttributes Optional object attributes for the transaction object name and security settings.
+ * \param Uow Optional unit-of-work identifier.
+ * \param TmHandle Optional handle to the transaction manager object.
+ * \param CreateOptions Optional transaction creation flags.
+ * \param IsolationLevel Optional transaction isolation level.
+ * \param IsolationFlags Optional transaction isolation flags.
+ * \param Timeout Optional timeout for transaction creation.
+ * \param Description Optional transaction description.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -125,6 +200,16 @@ NtCreateTransaction(
     _In_opt_ PCUNICODE_STRING Description
     );
 
+/**
+ * The NtOpenTransaction routine opens an existing transaction object.
+ *
+ * \param TransactionHandle A pointer to a HANDLE variable that receives a handle to the transaction object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the transaction object.
+ * \param ObjectAttributes Optional object attributes for the transaction object name and security settings.
+ * \param Uow The unit-of-work identifier of the transaction.
+ * \param TmHandle Optional handle to the transaction manager object.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -137,6 +222,16 @@ NtOpenTransaction(
     _In_opt_ HANDLE TmHandle
     );
 
+/**
+ * The NtQueryInformationTransaction routine queries information about a transaction object.
+ *
+ * \param TransactionHandle Handle to the transaction object.
+ * \param TransactionInformationClass The type of transaction information to query.
+ * \param TransactionInformation Caller-allocated buffer that receives the requested information.
+ * \param TransactionInformationLength The size of the buffer pointed to by TransactionInformation, in bytes.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -149,6 +244,15 @@ NtQueryInformationTransaction(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationTransaction routine sets information for a transaction object.
+ *
+ * \param TransactionHandle Handle to the transaction object.
+ * \param TransactionInformationClass The type of transaction information to set.
+ * \param TransactionInformation Pointer to the input buffer containing the information to set.
+ * \param TransactionInformationLength The size of the input buffer, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -160,6 +264,13 @@ NtSetInformationTransaction(
     _In_ ULONG TransactionInformationLength
     );
 
+/**
+ * The NtCommitTransaction routine commits a transaction object.
+ *
+ * \param TransactionHandle Handle to the transaction object.
+ * \param Wait If TRUE, the call waits for the commit to complete.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -169,6 +280,13 @@ NtCommitTransaction(
     _In_ BOOLEAN Wait
     );
 
+/**
+ * The NtRollbackTransaction routine rolls back a transaction object.
+ *
+ * \param TransactionHandle Handle to the transaction object.
+ * \param Wait If TRUE, the call waits for the rollback to complete.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -178,6 +296,19 @@ NtRollbackTransaction(
     _In_ BOOLEAN Wait
     );
 
+/**
+ * The NtCreateEnlistment routine creates an enlistment object.
+ *
+ * \param EnlistmentHandle A pointer to a HANDLE variable that receives a handle to the enlistment object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the enlistment object.
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param TransactionHandle Handle to the transaction object.
+ * \param ObjectAttributes Optional object attributes for the enlistment object name and security settings.
+ * \param CreateOptions Optional enlistment creation flags.
+ * \param NotificationMask Notification flags for enlistment events.
+ * \param EnlistmentKey Optional enlistment key.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -193,6 +324,16 @@ NtCreateEnlistment(
     _In_opt_ PVOID EnlistmentKey
     );
 
+/**
+ * The NtOpenEnlistment routine opens an existing enlistment object.
+ *
+ * \param EnlistmentHandle A pointer to a HANDLE variable that receives a handle to the enlistment object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the enlistment object.
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param EnlistmentGuid The GUID of the enlistment object to open.
+ * \param ObjectAttributes Optional object attributes for the enlistment object name and security settings.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -205,6 +346,16 @@ NtOpenEnlistment(
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtQueryInformationEnlistment routine queries information about an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param EnlistmentInformationClass The type of enlistment information to query.
+ * \param EnlistmentInformation Caller-allocated buffer that receives the requested information.
+ * \param EnlistmentInformationLength The size of the buffer pointed to by EnlistmentInformation, in bytes.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -217,6 +368,15 @@ NtQueryInformationEnlistment(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationEnlistment routine sets information for an enlistment object.
+ *
+ * \param EnlistmentHandle Optional handle to the enlistment object.
+ * \param EnlistmentInformationClass The type of enlistment information to set.
+ * \param EnlistmentInformation Pointer to the input buffer containing the information to set.
+ * \param EnlistmentInformationLength The size of the input buffer, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -228,6 +388,13 @@ NtSetInformationEnlistment(
     _In_ ULONG EnlistmentInformationLength
     );
 
+/**
+ * The NtRecoverEnlistment routine recovers an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param EnlistmentKey Optional enlistment key.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -237,6 +404,13 @@ NtRecoverEnlistment(
     _In_opt_ PVOID EnlistmentKey
     );
 
+/**
+ * The NtPrePrepareEnlistment routine starts the pre-prepare phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -246,6 +420,13 @@ NtPrePrepareEnlistment(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtPrepareEnlistment routine starts the prepare phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -255,6 +436,13 @@ NtPrepareEnlistment(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtCommitEnlistment routine commits an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -264,6 +452,13 @@ NtCommitEnlistment(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtRollbackEnlistment routine rolls back an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -273,6 +468,13 @@ NtRollbackEnlistment(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtPrePrepareComplete routine completes the pre-prepare phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -282,6 +484,13 @@ NtPrePrepareComplete(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtPrepareComplete routine completes the prepare phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -291,6 +500,13 @@ NtPrepareComplete(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtCommitComplete routine completes the commit phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -300,6 +516,13 @@ NtCommitComplete(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtReadOnlyEnlistment routine marks an enlistment object as read-only.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -309,6 +532,13 @@ NtReadOnlyEnlistment(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtRollbackComplete routine completes the rollback phase for an enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -318,6 +548,13 @@ NtRollbackComplete(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtSinglePhaseReject routine rejects a single-phase enlistment object.
+ *
+ * \param EnlistmentHandle Handle to the enlistment object.
+ * \param TmVirtualClock Optional virtual clock value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -327,6 +564,18 @@ NtSinglePhaseReject(
     _In_opt_ PLARGE_INTEGER TmVirtualClock
     );
 
+/**
+ * The NtCreateResourceManager routine creates a resource manager object.
+ *
+ * \param ResourceManagerHandle A pointer to a HANDLE variable that receives a handle to the resource manager object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the resource manager object.
+ * \param TmHandle Handle to the transaction manager object.
+ * \param RmGuid GUID for the new resource manager object.
+ * \param ObjectAttributes Optional object attributes for the resource manager object name and security settings.
+ * \param CreateOptions Optional resource manager creation flags.
+ * \param Description Optional description string for the resource manager.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -341,6 +590,16 @@ NtCreateResourceManager(
     _In_opt_ PCUNICODE_STRING Description
     );
 
+/**
+ * The NtOpenResourceManager routine opens an existing resource manager object.
+ *
+ * \param ResourceManagerHandle A pointer to a HANDLE variable that receives a handle to the resource manager object.
+ * \param DesiredAccess An ACCESS_MASK value that specifies the requested access to the resource manager object.
+ * \param TmHandle Handle to the transaction manager object.
+ * \param ResourceManagerGuid Optional GUID of the resource manager object to open.
+ * \param ObjectAttributes Optional object attributes for the resource manager object name and security settings.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -353,6 +612,12 @@ NtOpenResourceManager(
     _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtRecoverResourceManager routine recovers a resource manager object.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -361,6 +626,18 @@ NtRecoverResourceManager(
     _In_ HANDLE ResourceManagerHandle
     );
 
+/**
+ * The NtGetNotificationResourceManager routine retrieves a notification from a resource manager object.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param TransactionNotification Caller-allocated buffer that receives the transaction notification.
+ * \param NotificationLength Size of the TransactionNotification buffer, in bytes.
+ * \param Timeout Optional timeout.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \param Asynchronous Indicates whether the request is asynchronous.
+ * \param AsynchronousContext Optional asynchronous context value.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -375,6 +652,16 @@ NtGetNotificationResourceManager(
     _In_opt_ ULONG_PTR AsynchronousContext
     );
 
+/**
+ * The NtQueryInformationResourceManager routine queries information about a resource manager object.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param ResourceManagerInformationClass The type of resource manager information to query.
+ * \param ResourceManagerInformation Caller-allocated buffer that receives the requested information.
+ * \param ResourceManagerInformationLength The size of the buffer pointed to by ResourceManagerInformation, in bytes.
+ * \param ReturnLength Optional pointer to a variable that receives the number of bytes returned or required.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -387,6 +674,15 @@ NtQueryInformationResourceManager(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The NtSetInformationResourceManager routine sets information for a resource manager object.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param ResourceManagerInformationClass The type of resource manager information to set.
+ * \param ResourceManagerInformation Pointer to the input buffer containing the information to set.
+ * \param ResourceManagerInformationLength The size of the input buffer, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -398,6 +694,16 @@ NtSetInformationResourceManager(
     _In_ ULONG ResourceManagerInformationLength
     );
 
+/**
+ * The NtRegisterProtocolAddressInformation routine registers protocol address information with a resource manager.
+ *
+ * \param ResourceManager Handle to the resource manager object.
+ * \param ProtocolId The protocol identifier.
+ * \param ProtocolInformationSize Size of the protocol information buffer, in bytes.
+ * \param ProtocolInformation Pointer to the protocol information buffer.
+ * \param CreateOptions Optional registration flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -410,6 +716,15 @@ NtRegisterProtocolAddressInformation(
     _In_opt_ ULONG CreateOptions
     );
 
+/**
+ * The NtPropagationComplete routine marks a propagation request as completed.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param RequestCookie The propagation request cookie.
+ * \param BufferLength Size of the completion buffer, in bytes.
+ * \param Buffer Pointer to the completion buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -421,6 +736,14 @@ NtPropagationComplete(
     _In_ PVOID Buffer
     );
 
+/**
+ * The NtPropagationFailed routine marks a propagation request as failed.
+ *
+ * \param ResourceManagerHandle Handle to the resource manager object.
+ * \param RequestCookie The propagation request cookie.
+ * \param PropStatus The failure status to record.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -431,6 +754,13 @@ NtPropagationFailed(
     _In_ NTSTATUS PropStatus
     );
 
+/**
+ * The NtFreezeTransactions routine freezes KTM transactions.
+ *
+ * \param FreezeTimeout Optional timeout for freezing transactions.
+ * \param ThawTimeout Optional timeout for thawing transactions.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -440,6 +770,12 @@ NtFreezeTransactions(
     _In_ PLARGE_INTEGER ThawTimeout
     );
 
+/**
+ * The NtThawTransactions routine thaws KTM transactions.
+ *
+ * \param Void No parameters.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
