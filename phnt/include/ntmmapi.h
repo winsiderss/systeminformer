@@ -126,9 +126,10 @@ typedef enum _MEMORY_INFORMATION_CLASS
     MemoryRegionInformationEx,                  // q: MEMORY_REGION_INFORMATION/MEMORY_REGION_INFORMATION_EX
     MemoryPrivilegedBasicInformation,           // q: MEMORY_BASIC_INFORMATION
     MemoryEnclaveImageInformation,              // q: MEMORY_ENCLAVE_IMAGE_INFORMATION // since REDSTONE3
-    MemoryBasicInformationCapped,               // q: 10
+    MemoryBasicInformationCapped,               // q: MEMORY_BASIC_INFORMATION
     MemoryPhysicalContiguityInformation,        // q: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // since 20H1
     MemoryBadInformation,                       // q: MEMORY_BAD_INFORMATION // since WIN11
+    MemoryBadInformation,                       // q: MEMORY_BAD_INFORMATION[] // since WIN11
     MemoryBadInformationAllProcesses,           // qs: not implemented // since 22H1
     MemoryImageExtensionInformation,            // q: MEMORY_IMAGE_EXTENSION_INFORMATION // since 24H2
     MaxMemoryInfoClass
@@ -151,7 +152,13 @@ typedef enum _MEMORY_INFORMATION_CLASS
 #define MemoryImageExtensionInformation 0xE
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
-// MEMORY_WORKING_SET_BLOCK->Protection
+/**
+ * Memory protection constants used by MEMORY_WORKING_SET_BLOCK.Protection.
+ *
+ * \remarks These constants define all 5-bit protection combinations reported by
+ * working-set queries (0..31), including cacheability and guard-page variants.
+ * \sa MEMORY_WORKING_SET_BLOCK
+ */
 #define MEMORY_BLOCK_NOT_ACCESSED 0
 #define MEMORY_BLOCK_READONLY 1
 #define MEMORY_BLOCK_EXECUTABLE 2
@@ -234,7 +241,9 @@ typedef union _MEMORY_REGION_INFORMATION_TYPE
     };
 } MEMORY_REGION_INFORMATION_TYPE, *PMEMORY_REGION_INFORMATION_TYPE;
 
-// private
+/**
+ * The MEMORY_REGION_INFORMATION structure contains summary information about a virtual memory region.
+ */
 typedef struct _MEMORY_REGION_INFORMATION
 {
     PVOID AllocationBase;                  // Base address of the allocation.
@@ -244,7 +253,10 @@ typedef struct _MEMORY_REGION_INFORMATION
     SIZE_T CommitSize;                     // The commit charge associated with the allocation.
 } MEMORY_REGION_INFORMATION, *PMEMORY_REGION_INFORMATION;
 
-// private
+/**
+ * The MEMORY_REGION_INFORMATION_EX structure extends MEMORY_REGION_INFORMATION
+ * with partition and NUMA preference metadata.
+ */
 typedef struct _MEMORY_REGION_INFORMATION_EX
 {
     PVOID AllocationBase;                  // Base address of the allocation.
@@ -256,6 +268,10 @@ typedef struct _MEMORY_REGION_INFORMATION_EX
     ULONG_PTR NodePreference;              // 20H1
 } MEMORY_REGION_INFORMATION_EX, *PMEMORY_REGION_INFORMATION_EX;
 
+/**
+ * The MEMORY_WORKING_SET_EX_LOCATION enumeration describes where a page is located
+ * when returned through extended working-set information.
+ */
 // private
 typedef enum _MEMORY_WORKING_SET_EX_LOCATION
 {
@@ -331,7 +347,10 @@ typedef struct _MEMORY_SHARED_COMMIT_INFORMATION
     SIZE_T CommitSize;
 } MEMORY_SHARED_COMMIT_INFORMATION, *PMEMORY_SHARED_COMMIT_INFORMATION;
 
-// private
+/**
+ * The MEMORY_IMAGE_INFORMATION structure describes image mapping details
+ * for a region of memory that is backed by an image.
+ */
 typedef struct _MEMORY_IMAGE_INFORMATION
 {
     PVOID ImageBase;
@@ -350,7 +369,10 @@ typedef struct _MEMORY_IMAGE_INFORMATION
     };
 } MEMORY_IMAGE_INFORMATION, *PMEMORY_IMAGE_INFORMATION;
 
-// private
+/**
+ * The MEMORY_ENCLAVE_IMAGE_INFORMATION structure contains extended image
+ * information with enclave identity metadata.
+ */
 typedef struct _MEMORY_ENCLAVE_IMAGE_INFORMATION
 {
     MEMORY_IMAGE_INFORMATION ImageInfo;
@@ -399,16 +421,42 @@ typedef struct _MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
 } MEMORY_PHYSICAL_CONTIGUITY_INFORMATION, *PMEMORY_PHYSICAL_CONTIGUITY_INFORMATION;
 
 // rev
+// MEMORY_BAD_INFORMATION Flags
+#define MEMORY_BAD_INFORMATION_FLAG_SOURCE 0x1
+#define MEMORY_BAD_INFORMATION_FLAG_TYPE 0x2
+
+// rev
 /**
- * The MEMORY_BAD_INFORMATION structure reports a range of memory that has been marked bad or otherwise problematic.
+ * The MEMORY_BAD_INFORMATION structure describes one element in the output
+ * array returned by MemoryBadInformation on builds that use 16-byte records.
  */
 typedef struct _MEMORY_BAD_INFORMATION
 {
+    PVOID BadAddress; // Starting address associated with the bad-memory entry.
+    ULONG_PTR Flags;  // MEMORY_BAD_INFORMATION_FLAG_SOURCE_BIT7 | MEMORY_BAD_INFORMATION_FLAG_ENTRY_TYPE_E
+} MEMORY_BAD_INFORMATION, *PMEMORY_BAD_INFORMATION;
+
+// rev
+// MEMORY_BAD_INFORMATION_EX Flags
+#define MEMORY_BAD_INFORMATION_EX_FLAG_TYPE_MASK 0x0000000F
+#define MEMORY_BAD_INFORMATION_EX_FLAG_HAS_AUXILIARY_INFO 0x00000010
+#define MEMORY_BAD_INFORMATION_EX_FLAG_SOURCE_BIT7 0x00000080
+#define MEMORY_BAD_INFORMATION_EX_FLAG_EXTENDED_CLASS 0x00000100
+#define MEMORY_BAD_INFORMATION_EX_FLAG_CONTEXT_ID_SHIFT 9
+#define MEMORY_BAD_INFORMATION_EX_FLAG_CONTEXT_ID_MASK 0xFFFFFE00
+
+// rev
+/**
+ * The MEMORY_BAD_INFORMATION_EX structure describes one element in an
+ * extended bad-memory output array format used by some newer kernels.
+ */
+typedef struct _MEMORY_BAD_INFORMATION_EX
+{
     PVOID BadAddress; // Starting address of the bad memory range.
     ULONG_PTR Length; // Length in bytes of the bad range.
-    ULONG Flags;      // Flags describing the nature of the bad memory.
+    ULONG Flags;
     ULONG Reserved;
-} MEMORY_BAD_INFORMATION, *PMEMORY_BAD_INFORMATION;
+} MEMORY_BAD_INFORMATION_EX, *PMEMORY_BAD_INFORMATION_EX;
 
 /**
  * The RTL_SCP_CFG_ARM64_HEADER structure contains ARM64 SCP/CFG descriptors; RVAs to handlers
@@ -987,12 +1035,12 @@ NtFlushVirtualMemory(
 typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
 {
     VmPrefetchInformation,                      // s: MEMORY_PREFETCH_INFORMATION
-    VmPagePriorityInformation,                  // s: MEMORY_PAGE_PRIORITY_INFORMATION
+    VmPagePriorityInformation,                  // s: MEMORY_PAGE_PRIORITY_INFORMATION (PagePriority 0..5)
     VmCfgCallTargetInformation,                 // s: CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
     VmPageDirtyStateInformation,                // s: MEMORY_PAGE_DIRTY_STATE_INFORMATION // REDSTONE3
-    VmImageHotPatchInformation,                 // s: 19H1
-    VmPhysicalContiguityInformation,            // s: MEMORY_PHYSICAL_CONTIGUITY_INFORMATION // 20H1 // (requires SeLockMemoryPrivilege)
-    VmVirtualMachinePrepopulateInformation,
+    VmImageHotPatchInformation,                 // s: ULONG // since 19H1
+    VmPhysicalContiguityInformation,            // s: ULONG PageSize (MiPageSizes index) // since 20H1 // (requires SeLockMemoryPrivilege)
+    VmVirtualMachinePrepopulateInformation,     // s: ULONG
     VmRemoveFromWorkingSetInformation,          // s: MEMORY_REMOVE_WORKING_SET_INFORMATION
     MaxVmInfoClass
 } VIRTUAL_MEMORY_INFORMATION_CLASS;
@@ -1028,7 +1076,7 @@ typedef enum _VIRTUAL_MEMORY_INFORMATION_CLASS
  */
 typedef struct _MEMORY_PREFETCH_INFORMATION
 {
-    ULONG Flags;
+    ULONG Flags; // VM_PREFETCH_TO_WORKING_SET (other bits rejected in analyzed build)
 } MEMORY_PREFETCH_INFORMATION, *PMEMORY_PREFETCH_INFORMATION;
 
 //
@@ -1044,10 +1092,14 @@ typedef struct _MEMORY_PREFETCH_INFORMATION
 #define MEMORY_PRIORITY_ABOVE_NORMAL     6 // rev
 #define MEMORY_PRIORITY_HIGH             7 // rev
 
+// rev
+#define VM_PAGE_PRIORITY_MIN MEMORY_PRIORITY_LOWEST
+#define VM_PAGE_PRIORITY_MAX MEMORY_PRIORITY_NORMAL
+
 // VmPagePriorityInformation
 typedef struct _MEMORY_PAGE_PRIORITY_INFORMATION
 {
-    ULONG PagePriority;
+    ULONG PagePriority; // VM_PAGE_PRIORITY_MIN..VM_PAGE_PRIORITY_MAX
 } MEMORY_PAGE_PRIORITY_INFORMATION, *PMEMORY_PAGE_PRIORITY_INFORMATION;
 
 // VmCfgCallTargetInformation
@@ -1063,15 +1115,44 @@ typedef struct _CFG_CALL_TARGET_LIST_INFORMATION
 
 // rev
 // VmPageDirtyStateInformation
+/**
+ * The MEMORY_PAGE_DIRTY_STATE_INFORMATION structure resets the page dirty tracking state
+ * for selected ranges of virtual memory including the page-dirty-state PTE information
+ * required by the GetWriteWatch and ResetWriteWatch functions.
+ */
 typedef struct _MEMORY_PAGE_DIRTY_STATE_INFORMATION
 {
     ULONG Flags;
 } MEMORY_PAGE_DIRTY_STATE_INFORMATION, *PMEMORY_PAGE_DIRTY_STATE_INFORMATION;
 
 // rev
+/**
+ * Valid flags for MEMORY_REMOVE_WORKING_SET_INFORMATION.Flags.
+ *
+ * \remarks Used with NtSetInformationVirtualMemory(VmRemoveFromWorkingSetInformation)
+ * to request trimming pages from the process working set for the supplied ranges.
+ * This does not decommit memory and does not change protection; trimmed pages remain
+ * valid virtual memory and are faulted back on next access.
+ */
+#define MEMORY_REMOVE_WORKING_SET_FLAG_FORCE_TRIM 0x1
+
+// rev
+/**
+ * The MEMORY_REMOVE_WORKING_SET_INFORMATION structure defines control flags for
+ * VmRemoveFromWorkingSetInformation operations.
+ *
+ * \remarks The memory manager processes each MEMORY_RANGE_ENTRY and attempts to
+ * remove resident pages from the target process working set. This is a trim
+ * operation (resident-set management), not an unmap or free operation.
+ *
+ * Removing resident pages from a process reduces its working set,
+ * which frees physical RAM for other work without destroying the process's
+ * virtual memory mappings. SET_FLAG_FORCE_TRIM flag has more aggressive
+ * trimming behavior for eligible pages in the specified ranges.
+ */
 typedef struct _MEMORY_REMOVE_WORKING_SET_INFORMATION
 {
-    ULONG Flags;
+    ULONG Flags; // MEMORY_REMOVE_WORKING_SET_FLAG_FORCE_TRIM
 } MEMORY_REMOVE_WORKING_SET_INFORMATION, *PMEMORY_REMOVE_WORKING_SET_INFORMATION;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
@@ -1169,11 +1250,11 @@ NtUnlockVirtualMemory(
 
 typedef enum _SECTION_INFORMATION_CLASS
 {
-    SectionBasicInformation, // q; SECTION_BASIC_INFORMATION
-    SectionImageInformation, // q; SECTION_IMAGE_INFORMATION
-    SectionRelocationInformation, // q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
-    SectionOriginalBaseInformation, // q; PVOID BaseAddress // since REDSTONE
-    SectionInternalImageInformation, // q; SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
+    SectionBasicInformation,            // q; SECTION_BASIC_INFORMATION
+    SectionImageInformation,            // q; SECTION_IMAGE_INFORMATION
+    SectionRelocationInformation,       // q; SECTION_RELOCATION_INFORMATION // since WIN7
+    SectionOriginalBaseInformation,     // q; SECTION_ORIGINAL_BASE_INFORMATION // since REDSTONE
+    SectionInternalImageInformation,    // q; SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
     MaxSectionInfoClass
 } SECTION_INFORMATION_CLASS;
 
@@ -1238,6 +1319,18 @@ typedef struct _SECTION_IMAGE_INFORMATION
     ULONG ImageFileSize;             // The size of the image, in bytes, including all headers.
     ULONG CheckSum;                  // The image file checksum, from the PE optional header.
 } SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
+
+// private
+typedef struct _SECTION_RELOCATION_INFORMATION
+{
+    ULONG_PTR RelocationDelta;
+} SECTION_RELOCATION_INFORMATION, *PSECTION_RELOCATION_INFORMATION;
+
+// private
+typedef struct _SECTION_ORIGINAL_BASE_INFORMATION
+{
+    PVOID BaseAddress;
+} SECTION_ORIGINAL_BASE_INFORMATION, *PSECTION_ORIGINAL_BASE_INFORMATION;
 
 /**
  * The SECTION_INTERNAL_IMAGE_INFORMATION structure contains information about Control Flow Guard (CFG) features required by the image section.
@@ -1464,6 +1557,13 @@ NtUnmapViewOfSectionEx(
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)
 
+/**
+ * The NtExtendSection routine extends the size of an existing section object.
+ *
+ * \param SectionHandle A handle to the section object to extend.
+ * \param NewSectionSize A pointer to a LARGE_INTEGER that specifies the new section size, in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -1541,21 +1641,21 @@ NtAreMappedFilesTheSame(
 // private
 typedef enum _PARTITION_INFORMATION_CLASS
 {
-    SystemMemoryPartitionInformation, // q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
-    SystemMemoryPartitionMoveMemory, // s: MEMORY_PARTITION_TRANSFER_INFORMATION
-    SystemMemoryPartitionAddPagefile, // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
-    SystemMemoryPartitionCombineMemory, // q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
-    SystemMemoryPartitionInitialAddMemory, // q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
-    SystemMemoryPartitionGetMemoryEvents, // MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
-    SystemMemoryPartitionSetAttributes,
-    SystemMemoryPartitionNodeInformation,
-    SystemMemoryPartitionCreateLargePages,
-    SystemMemoryPartitionDedicatedMemoryInformation,
-    SystemMemoryPartitionOpenDedicatedMemory, // 10
-    SystemMemoryPartitionMemoryChargeAttributes,
-    SystemMemoryPartitionClearAttributes,
-    SystemMemoryPartitionSetMemoryThresholds, // since WIN11
-    SystemMemoryPartitionMemoryListCommand, // since 24H2
+    SystemMemoryPartitionInformation,                   // q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
+    SystemMemoryPartitionMoveMemory,                    // s: MEMORY_PARTITION_TRANSFER_INFORMATION
+    SystemMemoryPartitionAddPagefile,                   // s: MEMORY_PARTITION_PAGEFILE_INFORMATION
+    SystemMemoryPartitionCombineMemory,                 // qs: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+    SystemMemoryPartitionInitialAddMemory,              // qs: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+    SystemMemoryPartitionGetMemoryEvents,               // qs: MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
+    SystemMemoryPartitionSetAttributes,                 // s: MEMORY_PARTITION_ATTRIBUTES_INFORMATION
+    SystemMemoryPartitionNodeInformation,               // qs: MEMORY_PARTITION_NODE_INFORMATION
+    SystemMemoryPartitionCreateLargePages,              // qs: MEMORY_PARTITION_LARGE_PAGE_INFORMATION
+    SystemMemoryPartitionDedicatedMemoryInformation,    // q: MEMORY_PARTITION_DEDICATED_MEMORY_INFORMATION (variable-length)
+    SystemMemoryPartitionOpenDedicatedMemory,           // qs: MEMORY_PARTITION_OPEN_DEDICATED_MEMORY_INFORMATION // 10
+    SystemMemoryPartitionMemoryChargeAttributes,        // qs: MEMORY_PARTITION_MEMORY_CHARGE_INFORMATION
+    SystemMemoryPartitionClearAttributes,               // s: MEMORY_PARTITION_ATTRIBUTES_INFORMATION
+    SystemMemoryPartitionSetMemoryThresholds,           // s: MEMORY_PARTITION_MEMORY_THRESHOLDS // since WIN11
+    SystemMemoryPartitionMemoryListCommand,             // s: MEMORY_PARTITION_MEMORY_LIST_COMMAND // since 24H2
     SystemMemoryPartitionMax
 } PARTITION_INFORMATION_CLASS, *PPARTITION_INFORMATION_CLASS;
 #else
@@ -1661,9 +1761,80 @@ typedef struct _MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
     HANDLE MaximumCommitCondition; // \KernelObjects\MaximumCommitCondition
 } MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION, *PMEMORY_PARTITION_MEMORY_EVENTS_INFORMATION;
 
+// private
+typedef struct _MEMORY_PARTITION_ATTRIBUTES_INFORMATION
+{
+    ULONG64 Attributes;
+} MEMORY_PARTITION_ATTRIBUTES_INFORMATION, *PMEMORY_PARTITION_ATTRIBUTES_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_NODE_INFORMATION
+{
+    ULONG NumberOfNodes;
+    ULONG Reserved;
+    PVOID NodeInformation;
+} MEMORY_PARTITION_NODE_INFORMATION, *PMEMORY_PARTITION_NODE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_LARGE_PAGE_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumaNode;
+    SIZE_T LargePageSizeInBytes;
+    SIZE_T NumberOfLargePages;
+    SIZE_T NumberOfPagesCreated;
+} MEMORY_PARTITION_LARGE_PAGE_INFORMATION, *PMEMORY_PARTITION_LARGE_PAGE_INFORMATION;
+
+// private
+//typedef struct _MEMORY_PARTITION_DEDICATED_MEMORY_INFORMATION
+//{
+//    ULONG NextEntryOffset;
+//} MEMORY_PARTITION_DEDICATED_MEMORY_INFORMATION, *PMEMORY_PARTITION_DEDICATED_MEMORY_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_OPEN_DEDICATED_MEMORY_INFORMATION
+{
+    ULONGLONG DedicatedMemoryTypeId;
+    ACCESS_MASK DesiredAccess;
+    ULONG HandleAttributes;
+    HANDLE PartitionHandle;
+} MEMORY_PARTITION_OPEN_DEDICATED_MEMORY_INFORMATION, *PMEMORY_PARTITION_OPEN_DEDICATED_MEMORY_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_MEMORY_CHARGE_INFORMATION
+{
+    ULONG Flags;
+    ULONG NumberOfCharges;
+    UCHAR Charges[ANYSIZE_ARRAY]; // Array of 40-byte charge records.
+} MEMORY_PARTITION_MEMORY_CHARGE_INFORMATION, *PMEMORY_PARTITION_MEMORY_CHARGE_INFORMATION;
+
+// private
+typedef struct _MEMORY_PARTITION_MEMORY_THRESHOLDS
+{
+    ULONG Flags;
+    ULONG Reserved;
+    SIZE_T LowThreshold;
+    SIZE_T HighThreshold;
+} MEMORY_PARTITION_MEMORY_THRESHOLDS, *PMEMORY_PARTITION_MEMORY_THRESHOLDS;
+
+// private
+typedef struct _MEMORY_PARTITION_MEMORY_LIST_COMMAND
+{
+    ULONG Command;
+} MEMORY_PARTITION_MEMORY_LIST_COMMAND, *PMEMORY_PARTITION_MEMORY_LIST_COMMAND;
+
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+/**
+ * The NtCreatePartition routine creates a memory partition object.
+ *
+ * \param ParentPartitionHandle An optional handle to the parent partition. If NULL, the implementation uses the default parent context.
+ * \param PartitionHandle A pointer to a variable that receives a handle to the created partition object.
+ * \param DesiredAccess The access mask that specifies the requested access to the partition object.
+ * \param ObjectAttributes An optional pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and attributes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -1675,6 +1846,14 @@ NtCreatePartition(
     _In_opt_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtOpenPartition routine opens a handle to an existing memory partition object.
+ *
+ * \param PartitionHandle A pointer to a variable that receives a handle to the opened partition object.
+ * \param DesiredAccess The access mask that specifies the requested access to the partition object.
+ * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and attributes.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -1685,6 +1864,16 @@ NtOpenPartition(
     _In_ PCOBJECT_ATTRIBUTES ObjectAttributes
     );
 
+/**
+ * The NtManagePartition routine queries or updates partition state according to the specified partition information class.
+ *
+ * \param TargetHandle A handle to the target partition object.
+ * \param SourceHandle An optional handle to a source partition object for operations that transfer or reference state across partitions.
+ * \param PartitionInformationClass The partition information class that selects the operation and buffer contract.
+ * \param PartitionInformation A pointer to an input/output buffer whose format depends on PartitionInformationClass.
+ * \param PartitionInformationLength The size, in bytes, of the buffer pointed to by PartitionInformation.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
