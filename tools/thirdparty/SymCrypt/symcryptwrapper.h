@@ -70,7 +70,13 @@ typedef ULONG PH_SYMCRYPT_HASH_ALGORITHM, *PPH_SYMCRYPT_HASH_ALGORITHM;
 // Generic incremental hash context (caller-owned, SymCrypt-private internals)
 // ------------------------------------------------------------------------
 
+#if defined(_WIN64) || defined(_AMD64_) || defined(_M_AMD64)
 #define PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE 240
+#elif defined(_WIN32) || defined(_X86_) || defined(_M_IX86)
+#define PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE 224
+#else
+#define PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE 240
+#endif
 #define PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT 16
 
 typedef struct DECLSPEC_ALIGN(PH_SYMCRYPT_HASH_STATE_BUFFER_ALIGNMENT) _PH_SYMCRYPT_HASH_CONTEXT
