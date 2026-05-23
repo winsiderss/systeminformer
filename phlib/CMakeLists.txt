@@ -77,7 +77,6 @@ set(HEADERS
     "include/thirdparty.h"
     "include/treenew.h"
     "include/treenewp.h"
-    "include/phcrypt.c"
     "include/verify.h"
     "include/verifyp.h"
     "include/workqueue.h"
