@@ -50,6 +50,7 @@ set(HEADERS
     "include/phbasesup.h"
     "include/phconfig.h"
     "include/phconsole.h"
+    "include/phcrypt.h"
     "include/phdata.h"
     "include/phfirmware.h"
     "include/phintrin.h"
