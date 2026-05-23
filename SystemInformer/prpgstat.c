@@ -1047,11 +1047,6 @@ static VOID PhpFormatProcessStatisticsCarbon(
     _In_ DOUBLE Carbon
     );
 
-PPH_STRING PhFormatEnergy(
-    _In_ ULONGLONG MilliJoules,
-    _In_ ULONG MaxEnergyUnit
-    );
-
 static VOID PhpFormatProcessStatisticsSampleValue(
     _In_ NMLVDISPINFO* Entry,
     _In_ PH_PROCESS_STATISTICS_INDEX Index,
