@@ -59,9 +59,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="SymCrypt\symcryptwrapper.c">
-      <Filter>SymCrypt</Filter>
-    </ClCompile>
     <ClCompile Include="SymCrypt\modules\windows\user\module.c">
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
@@ -426,9 +423,6 @@
     </ClInclude>
     <ClInclude Include="xxhash\xxhashwrapper.h">
       <Filter>xxhash</Filter>
-    </ClInclude>
-    <ClInclude Include="SymCrypt\symcryptwrapper.h">
-      <Filter>SymCrypt</Filter>
     </ClInclude>
     <ClInclude Include="pcre\pcre2_compile.h">
       <Filter>PCRE\Headers</Filter>

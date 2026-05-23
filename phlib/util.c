@@ -31,6 +31,7 @@
 #include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
+#include <phcrypt.h>
 
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
@@ -7982,6 +7983,7 @@ NTSTATUS PhInitializeHash(
     case Crc32CHashAlgorithm:
         Context->Context[0] = 0;
         return STATUS_SUCCESS;
+#ifdef PH_NATIVE_CRYPT
     case Md5HashAlgorithm:
         MD5Init((MD5_CTX *)Context->Context);
         return STATUS_SUCCESS;
@@ -7991,6 +7993,35 @@ NTSTATUS PhInitializeHash(
     case Sha256HashAlgorithm:
         sha256_starts((sha256_context *)Context->Context);
         return STATUS_SUCCESS;
+#else
+    case Md5HashAlgorithm:
+    case Sha1HashAlgorithm:
+    case Sha256HashAlgorithm:
+        {
+            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext;
+            PH_SYMCRYPT_HASH_ALGORITHM algorithm;
+
+            if (Algorithm == Md5HashAlgorithm)
+                algorithm = PH_SYMCRYPT_MD5_ALGORITHM;
+            else if (Algorithm == Sha1HashAlgorithm)
+                algorithm = PH_SYMCRYPT_SHA1_ALGORITHM;
+            else
+                algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
+
+            symCryptContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_HASH_CONTEXT));
+            if (!symCryptContext)
+                return STATUS_NO_MEMORY;
+
+            if (!NT_SUCCESS(PhSymCryptHashInit(algorithm, symCryptContext)))
+            {
+                PhFree(symCryptContext);
+                return STATUS_UNSUCCESSFUL;
+            }
+
+            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = symCryptContext;
+            return STATUS_SUCCESS;
+        }
+#endif
     default:
         return STATUS_INVALID_PARAMETER_2;
     }
@@ -8018,6 +8049,7 @@ NTSTATUS PhUpdateHash(
     case Crc32CHashAlgorithm:
         Context->Context[0] = PhCrc32C(Context->Context[0], (PUCHAR)Buffer, Length);
         return STATUS_SUCCESS;
+#ifdef PH_NATIVE_CRYPT
     case Md5HashAlgorithm:
         MD5Update((MD5_CTX *)Context->Context, (PUCHAR)Buffer, Length);
         return STATUS_SUCCESS;
@@ -8027,6 +8059,14 @@ NTSTATUS PhUpdateHash(
     case Sha256HashAlgorithm:
         sha256_update((sha256_context *)Context->Context, (PUCHAR)Buffer, Length);
         return STATUS_SUCCESS;
+#else
+    case Md5HashAlgorithm:
+        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+    case Sha1HashAlgorithm:
+        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+    case Sha256HashAlgorithm:
+        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+#endif
     default:
         return STATUS_INVALID_PARAMETER;
     }
@@ -8070,6 +8110,7 @@ NTSTATUS PhFinalHash(
             }
         }
         break;
+#ifdef PH_NATIVE_CRYPT
     case Md5HashAlgorithm:
         {
             if (HashLength >= PH_HASH_MD5_LENGTH)
@@ -8123,6 +8164,68 @@ NTSTATUS PhFinalHash(
             }
         }
         break;
+#else
+    case Md5HashAlgorithm:
+        {
+            UCHAR digest[PH_HASH_MD5_LENGTH];
+            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
+            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
+            PhFree(symCryptContext);
+            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
+            if (HashLength >= PH_HASH_MD5_LENGTH)
+            {
+                memcpy(Hash, digest, PH_HASH_MD5_LENGTH);
+                status = STATUS_SUCCESS;
+            }
+            else
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            if (ReturnLength)
+                *ReturnLength = PH_HASH_MD5_LENGTH;
+        }
+        break;
+    case Sha1HashAlgorithm:
+        {
+            UCHAR digest[PH_HASH_SHA1_LENGTH];
+            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
+            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
+            PhFree(symCryptContext);
+            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
+            if (HashLength >= PH_HASH_SHA1_LENGTH)
+            {
+                memcpy(Hash, digest, PH_HASH_SHA1_LENGTH);
+                status = STATUS_SUCCESS;
+            }
+            else
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            if (ReturnLength)
+                *ReturnLength = PH_HASH_SHA1_LENGTH;
+        }
+        break;
+    case Sha256HashAlgorithm:
+        {
+            UCHAR digest[PH_HASH_SHA256_LENGTH];
+            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
+            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
+            PhFree(symCryptContext);
+            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
+            if (HashLength >= PH_HASH_SHA256_LENGTH)
+            {
+                memcpy(Hash, digest, PH_HASH_SHA256_LENGTH);
+                status = STATUS_SUCCESS;
+            }
+            else
+            {
+                status = STATUS_BUFFER_TOO_SMALL;
+            }
+            if (ReturnLength)
+                *ReturnLength = PH_HASH_SHA256_LENGTH;
+        }
+        break;
+#endif
     default:
         {
             if (ReturnLength)
@@ -11140,7 +11243,7 @@ HRESULT PhDevGetObjectProperties(
     )
 {
     if (!DevGetObjectProperties_Import())
-        return E_FAIL;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     return DevGetObjectProperties_Import()(
         ObjectType,
@@ -11200,7 +11303,7 @@ HRESULT PhDevCreateObjectQuery(
     *DevQuery = NULL;
 
     if (!DevCreateObjectQuery_Import())
-        return E_FAIL;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     return DevCreateObjectQuery_Import()(
         ObjectType,

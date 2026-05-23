@@ -10,8 +10,8 @@
  */
 
 #include <phbase.h>
-#include "symcryptwrapper.h"
-#include <symcrypt.h>
+#include <phcrypt.h>
+#include "..\tools\thirdparty\SymCrypt\inc\symcrypt.h"
 #include <bcrypt.h>
 
 // ------------------------------------------------------------------------

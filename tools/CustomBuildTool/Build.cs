@@ -1462,7 +1462,7 @@ namespace CustomBuildTool
 
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
 
-            commandLineBuilder.Append($"/m /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
             if (preprocessorOptionsBuilder.Length > 0)

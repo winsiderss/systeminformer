@@ -131,6 +131,9 @@
     <ClCompile Include="util.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="phcrypt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="settings.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -398,6 +401,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\svcsup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\phcrypt.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\phutil.h">

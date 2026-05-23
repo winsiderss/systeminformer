@@ -9,8 +9,8 @@
  *
  */
 
-#ifndef SYMCRYPT_H
-#define SYMCRYPT_H
+#ifndef PHLIB_SYMCRYPT_H
+#define PHLIB_SYMCRYPT_H
 
 #pragma once
 
@@ -948,4 +948,4 @@ PhSymCryptEcDsaSignP256Blob(
 
 EXTERN_C_END
 
-#endif // SYMCRYPT_H
+#endif // PHLIB_SYMCRYPT_H

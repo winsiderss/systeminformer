@@ -231,7 +231,6 @@ set(SOURCES_SYMCRYPT_ASM_ARM64
 )
 
 set(SOURCES_SYMCRYPT
-    "SymCrypt/symcryptwrapper.c"
     "SymCrypt/modules/windows/user/module.c"
     "SymCrypt/lib/3des.c"
     "SymCrypt/lib/aes-asm.c"
@@ -395,7 +394,6 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
 endif()
 
 set(HEADERS_SYMCRYPT
-    "SymCrypt/symcryptwrapper.h"
     "SymCrypt/inc/buildInfo.h"
     "SymCrypt/inc/symcrypt.h"
     "SymCrypt/inc/symcrypt_internal.h"

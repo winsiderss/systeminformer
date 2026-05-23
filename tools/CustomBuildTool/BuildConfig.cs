@@ -148,6 +148,7 @@ namespace CustomBuildTool
             "phbasesup.h",
             "phconfig.h",
             "phconsole.h",
+            "phcrypt.h",
             "phdata.h",
             "phfirmware.h",
             "phnative.h",
