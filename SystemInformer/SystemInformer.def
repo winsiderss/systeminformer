@@ -850,6 +850,13 @@ EXPORTS
     PhShowStatus
     PhShowTaskDialog
     PhStringToGuid
+    PhSymCryptDestroyHash
+    PhSymCryptHashAlgorithmIdToAlgorithm
+    PhSymCryptHashData
+    PhSymCryptHashFinal
+    PhSymCryptHashInit
+    PhSymCryptHashSize
+    PhSymCryptVerifySignature
     PhSystemTimeToLargeInteger
     PhSystemTimeToTzSpecificLocalTime
     PhTaskbarListCreate
