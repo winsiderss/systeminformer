@@ -3368,7 +3368,7 @@ NtQueueApcThreadEx2(
 #define ProcThreadAttributeMitigationPolicy 7                   // in ULONG, ULONG64, or ULONG64[2]
 #define ProcThreadAttributePackageFullName 8                    // in WCHAR[] // since WIN8
 #define ProcThreadAttributeSecurityCapabilities 9               // in SECURITY_CAPABILITIES
-#define ProcThreadAttributeConsoleReference 10                  // BaseGetConsoleReference (kernelbase.dll)
+#define ProcThreadAttributeConsoleReference 10                  // in BaseGetConsoleReference (kernelbase.dll)
 #define ProcThreadAttributeProtectionLevel 11                   // in ULONG (PROTECTION_LEVEL_*) // since WINBLUE
 #define ProcThreadAttributeOsMaxVersionTested 12                // in MAXVERSIONTESTED_INFO // since THRESHOLD // (from exe.manifest)
 #define ProcThreadAttributeJobList 13                           // in HANDLE[]
@@ -3382,9 +3382,9 @@ NtQueueApcThreadEx2(
 #define ProcThreadAttributeIsolationManifest 23                 // in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok) // since 19H2+
 #define ProcThreadAttributeMitigationAuditPolicy 24             // in ULONG, ULONG64, or ULONG64[2] // since 21H1
 #define ProcThreadAttributeMachineType 25                       // in USHORT // since 21H2
-#define ProcThreadAttributeComponentFilter 26                   // in ULONG
+#define ProcThreadAttributeComponentFilter 26                   // in ULONG (bit 0 only)
 #define ProcThreadAttributeEnableOptionalXStateFeatures 27      // in ULONG64 // since WIN11
-#define ProcThreadAttributeCreateStore 28                       // ULONG // rev (diversenok)
+#define ProcThreadAttributeCreateStore 28                       // in ULONG // rev (diversenok)
 #define ProcThreadAttributeTrustedApp 29
 #define ProcThreadAttributeSveVectorLength 30
 #define ProcThreadAttributeSmeVectorLength 31                   // since 25H2
