@@ -100,6 +100,7 @@ EXTERN_C_START
 #include <ntkeapi.h>
 #include <ntldr.h>
 #include <ntexapi.h>
+#include <ntpebteb.h>
 
 #include <ntmmapi.h>
 #include <ntobapi.h>
