@@ -385,12 +385,6 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|i386|i686")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
     list(APPEND SOURCES_SYMCRYPT ${SOURCES_SYMCRYPT_ASM_ARM64})
     source_group("SymCrypt\\asm\\arm64" FILES ${SOURCES_SYMCRYPT_ASM_ARM64})
-    # ARM64 assembly files should not be preprocessed with CL
-    foreach(asm_file ${SOURCES_SYMCRYPT_ASM_ARM64})
-        set_source_files_properties(${asm_file} PROPERTIES
-            COMPILE_FLAGS "/EP"
-        )
-    endforeach()
 endif()
 
 set(HEADERS_SYMCRYPT
@@ -458,21 +452,33 @@ target_compile_definitions(thirdparty PRIVATE
 )
 
 if(MSVC_CLANG)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+        target_compile_definitions(thirdparty PRIVATE
+            _ARM64_=1
+            SYMCRYPT_IGNORE_PLATFORM
+        )
+    endif()
+
     target_compile_options(thirdparty PRIVATE
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mssse3>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-maes>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mpclmul>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mavx>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mavx2>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mbmi2>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-msha>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mvaes>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mvpclmulqdq>
-        $<$<COMPILE_LANGUAGE:C,CXX>:-mrdseed>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-macro-redefined>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-multichar>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-reorder-ctor>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-tautological-constant-out-of-range-compare>
     )
+
+    if(NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+        target_compile_options(thirdparty PRIVATE
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mcx16>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mssse3>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-maes>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mpclmul>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mavx>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mavx2>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mbmi2>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-msha>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mvaes>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mvpclmulqdq>
+            $<$<COMPILE_LANGUAGE:C,CXX>:-mrdseed>
+        )
+    endif()
 endif()

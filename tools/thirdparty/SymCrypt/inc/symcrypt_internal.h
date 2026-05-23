@@ -1870,15 +1870,29 @@ typedef union _SYMCRYPT_GCM_SUPPORTED_BLOCKCIPHER_KEYS
 #elif SYMCRYPT_CPU_ARM64
 
     #if SYMCRYPT_MS_VC
-        #include <arm64_neon.h>
+        #if defined(__clang__)
+            #include <arm_neon.h>
 
-        // See section 6.7.8 of the C standard for details on this initializer usage.
-        #define SYMCRYPT_SET_N128_U64(d0, d1) \
-            ((__n128) {.n128_u64 = {d0, d1}})
-        #define SYMCRYPT_SET_N64_U64(d0) \
-            ((__n64) {.n64_u64 = {d0}})
-        #define SYMCRYPT_SET_N128_U8(b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15) \
-            ((__n128) {.n128_u8 = {b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15}})
+            #define __n128 uint8x16_t
+            #define __n64 uint8x8_t
+
+            #define SYMCRYPT_SET_N128_U64(d0, d1) \
+                ((__n128) ((uint64x2_t) {d0, d1}))
+            #define SYMCRYPT_SET_N64_U64(d0) \
+                ((__n64) ((uint64x1_t) {d0}))
+            #define SYMCRYPT_SET_N128_U8(b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15) \
+                ((__n128) ((uint8x16_t) {b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15}))
+        #else
+            #include <arm64_neon.h>
+
+            // See section 6.7.8 of the C standard for details on this initializer usage.
+            #define SYMCRYPT_SET_N128_U64(d0, d1) \
+                ((__n128) {.n128_u64 = {d0, d1}})
+            #define SYMCRYPT_SET_N64_U64(d0) \
+                ((__n64) {.n64_u64 = {d0}})
+            #define SYMCRYPT_SET_N128_U8(b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15) \
+                ((__n128) {.n128_u8 = {b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15}})
+        #endif
     #elif SYMCRYPT_GNUC
         #include <arm_neon.h>
 
