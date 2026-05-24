@@ -252,6 +252,165 @@ VOID VirusTotalFreeFileReport(
     PhFree(FileReport);
 }
 
+VOID VirusTotalFreeFileReportBatch(
+    _In_ PVIRUSTOTAL_FILE_REPORT_BATCH Batch
+    )
+{
+    if (Batch->Entries)
+    {
+        for (ULONG i = 0; i < Batch->Count; i++)
+            PhClearReference(&Batch->Entries[i].Sha256);
+        PhFree(Batch->Entries);
+    }
+    PhFree(Batch);
+}
+
+static PPH_BYTES BuildSha256BatchRequestBody(
+    _In_reads_(Count) PPH_STRING* Hashes,
+    _In_ ULONG Count
+    )
+{
+    PH_STRING_BUILDER builder;
+    PPH_STRING string;
+    PPH_BYTES bytes;
+
+    PhInitializeStringBuilder(&builder, 32 + Count * 70);
+    PhAppendStringBuilder2(&builder, L"{\"sha256\":[");
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (i > 0)
+            PhAppendCharStringBuilder(&builder, L',');
+        PhAppendCharStringBuilder(&builder, L'"');
+        if (Hashes[i])
+            PhAppendStringBuilder(&builder, &Hashes[i]->sr);
+        PhAppendCharStringBuilder(&builder, L'"');
+    }
+    PhAppendStringBuilder2(&builder, L"]}");
+    string = PhFinalStringBuilderString(&builder);
+    bytes = PhConvertUtf16ToUtf8Ex(string->Buffer, string->Length);
+    PhDeleteStringBuilder(&builder);
+    return bytes;
+}
+
+NTSTATUS VirusTotalRequestFileReportBatch(
+    _In_reads_(Count) PPH_STRING* FileHashes,
+    _In_ ULONG Count,
+    _Out_ PVIRUSTOTAL_FILE_REPORT_BATCH* Batch
+    )
+{
+    NTSTATUS status;
+    PVIRUSTOTAL_FILE_REPORT_BATCH result = NULL;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING httpHeaderClientId = NULL;
+    PPH_BYTES requestBody = NULL;
+    PPH_BYTES responseBody = NULL;
+    PVOID jsonRootObject = NULL;
+    ULONG httpStatus = 0;
+
+    *Batch = NULL;
+
+    if (Count == 0)
+        return STATUS_INVALID_PARAMETER;
+
+    result = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT_BATCH));
+    result->Count = Count;
+    result->Entries = PhAllocateZero(sizeof(VIRUSTOTAL_FILE_REPORT_ENTRY) * Count);
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (FileHashes[i])
+            PhSetReference(&result->Entries[i].Sha256, FileHashes[i]);
+    }
+
+    requestBody = BuildSha256BatchRequestBody(FileHashes, Count);
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", L"/onlinechecks/virustotal/api/v3/files/batch", PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
+
+    httpHeaderClientId = ClientIdHeaderString();
+    if (!PhIsNullOrEmptyString(httpHeaderClientId))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderClientId->sr)))
+            goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, requestBody->Buffer, (ULONG)requestBody->Length, (ULONG)requestBody->Length)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
+        goto CleanupExit;
+
+    result->HttpStatus = httpStatus;
+
+    if (httpStatus == 200)
+    {
+        PVOID resultsArray;
+
+        if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &responseBody)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, responseBody, FALSE)))
+            goto CleanupExit;
+
+        resultsArray = PhGetJsonObject(jsonRootObject, "results");
+        if (resultsArray)
+        {
+            ULONG resultsLen = PhGetJsonArrayLength(resultsArray);
+            for (ULONG i = 0; i < resultsLen; i++)
+            {
+                PVOID entryObj;
+                PPH_STRING entrySha;
+                ULONG slot;
+
+                entryObj = PhGetJsonArrayIndexObject(resultsArray, i);
+                if (!entryObj)
+                    continue;
+                entrySha = PhGetJsonValueAsString(entryObj, "sha256");
+                if (!entrySha)
+                    continue;
+
+                slot = ULONG_MAX;
+                for (ULONG j = 0; j < Count; j++)
+                {
+                    if (result->Entries[j].Sha256 &&
+                        PhEqualString(result->Entries[j].Sha256, entrySha, TRUE))
+                    {
+                        slot = j;
+                        break;
+                    }
+                }
+                PhDereferenceObject(entrySha);
+
+                if (slot == ULONG_MAX)
+                    continue;
+
+                result->Entries[slot].HttpStatus = (ULONG)PhGetJsonValueAsUInt64(entryObj, "httpStatus");
+                result->Entries[slot].Malicious = PhGetJsonValueAsUInt64(entryObj, "malicious");
+                result->Entries[slot].Undetected = PhGetJsonValueAsUInt64(entryObj, "undetected");
+            }
+        }
+    }
+
+    *Batch = result;
+    result = NULL;
+
+CleanupExit:
+    PhHttpDestroy(httpContext);
+    PhClearReference(&httpHeaderClientId);
+    PhClearReference(&requestBody);
+    PhClearReference(&responseBody);
+    if (result)
+        VirusTotalFreeFileReportBatch(result);
+
+    return status;
+}
+
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     _In_ PPH_STRING FileHash,
     _In_ PPH_STRING FilePat
@@ -434,6 +593,155 @@ VOID HybridAnalysisFreeFileReport(
     PhClearReference(&FileReport->VxFamily);
     PhClearReference(&FileReport->Verdict);
     PhFree(FileReport);
+}
+
+VOID HybridAnalysisFreeFileReportBatch(
+    _In_ PHYBRIDANALYSIS_FILE_REPORT_BATCH Batch
+    )
+{
+    if (Batch->Entries)
+    {
+        for (ULONG i = 0; i < Batch->Count; i++)
+        {
+            PhClearReference(&Batch->Entries[i].Sha256);
+            PhClearReference(&Batch->Entries[i].VxFamily);
+            PhClearReference(&Batch->Entries[i].Verdict);
+        }
+        PhFree(Batch->Entries);
+    }
+    PhFree(Batch);
+}
+
+NTSTATUS HybridAnalysisRequestFileReportBatch(
+    _In_reads_(Count) PPH_STRING* FileHashes,
+    _In_ ULONG Count,
+    _Out_ PHYBRIDANALYSIS_FILE_REPORT_BATCH* Batch
+    )
+{
+    NTSTATUS status;
+    PHYBRIDANALYSIS_FILE_REPORT_BATCH result = NULL;
+    PPH_HTTP_CONTEXT httpContext = NULL;
+    PPH_STRING httpHeaderClientId = NULL;
+    PPH_BYTES requestBody = NULL;
+    PPH_BYTES responseBody = NULL;
+    PVOID jsonRootObject = NULL;
+    ULONG httpStatus = 0;
+
+    *Batch = NULL;
+
+    if (Count == 0)
+        return STATUS_INVALID_PARAMETER;
+
+    result = PhAllocateZero(sizeof(HYBRIDANALYSIS_FILE_REPORT_BATCH));
+    result->Count = Count;
+    result->Entries = PhAllocateZero(sizeof(HYBRIDANALYSIS_FILE_REPORT_ENTRY) * Count);
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (FileHashes[i])
+            PhSetReference(&result->Entries[i].Sha256, FileHashes[i]);
+    }
+
+    requestBody = BuildSha256BatchRequestBody(FileHashes, Count);
+
+    if (!NT_SUCCESS(status = PhHttpInitialize(&httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpBeginRequest(httpContext, L"POST", L"/onlinechecks/hybrid-analysis/api/v2/overview/batch", PH_HTTP_FLAG_SECURE)))
+        goto CleanupExit;
+
+    httpHeaderClientId = ClientIdHeaderString();
+    if (!PhIsNullOrEmptyString(httpHeaderClientId))
+    {
+        if (!NT_SUCCESS(status = PhHttpAddRequestHeadersSR(httpContext, &httpHeaderClientId->sr)))
+            goto CleanupExit;
+    }
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"accept: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpAddRequestHeaders(httpContext, L"Content-Type: application/json", 0)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpSendRequest(httpContext, PH_HTTP_NO_ADDITIONAL_HEADERS, 0, requestBody->Buffer, (ULONG)requestBody->Length, (ULONG)requestBody->Length)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpReceiveResponse(httpContext)))
+        goto CleanupExit;
+    if (!NT_SUCCESS(status = PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &httpStatus)))
+        goto CleanupExit;
+
+    result->HttpStatus = httpStatus;
+
+    if (httpStatus == 200)
+    {
+        PVOID resultsArray;
+
+        if (!NT_SUCCESS(status = PhHttpDownloadString(httpContext, FALSE, &responseBody)))
+            goto CleanupExit;
+        if (!NT_SUCCESS(status = PhCreateJsonParserEx(&jsonRootObject, responseBody, FALSE)))
+            goto CleanupExit;
+
+        resultsArray = PhGetJsonObject(jsonRootObject, "results");
+        if (resultsArray)
+        {
+            ULONG resultsLen = PhGetJsonArrayLength(resultsArray);
+            for (ULONG i = 0; i < resultsLen; i++)
+            {
+                PVOID entryObj;
+                PPH_STRING entrySha;
+                ULONG slot;
+
+                entryObj = PhGetJsonArrayIndexObject(resultsArray, i);
+                if (!entryObj)
+                    continue;
+                entrySha = PhGetJsonValueAsString(entryObj, "sha256");
+                if (!entrySha)
+                    continue;
+
+                slot = ULONG_MAX;
+                for (ULONG j = 0; j < Count; j++)
+                {
+                    if (result->Entries[j].Sha256 &&
+                        PhEqualString(result->Entries[j].Sha256, entrySha, TRUE))
+                    {
+                        slot = j;
+                        break;
+                    }
+                }
+                PhDereferenceObject(entrySha);
+
+                if (slot == ULONG_MAX)
+                    continue;
+
+                result->Entries[slot].HttpStatus = (ULONG)PhGetJsonValueAsUInt64(entryObj, "httpStatus");
+                result->Entries[slot].MultiscanResult = PhGetJsonValueAsUInt64(entryObj, "multiscanResult");
+                result->Entries[slot].ThreatScore = PhGetJsonValueAsUInt64(entryObj, "threatScore");
+
+                result->Entries[slot].VxFamily = PhGetJsonValueAsString(entryObj, "vxFamily");
+                if (PhIsNullOrEmptyString(result->Entries[slot].VxFamily))
+                {
+                    PhClearReference(&result->Entries[slot].VxFamily);
+                    result->Entries[slot].VxFamily = PhReferenceEmptyString();
+                }
+                result->Entries[slot].Verdict = PhGetJsonValueAsString(entryObj, "verdict");
+                if (PhIsNullOrEmptyString(result->Entries[slot].Verdict))
+                {
+                    PhClearReference(&result->Entries[slot].Verdict);
+                    result->Entries[slot].Verdict = PhReferenceEmptyString();
+                }
+            }
+        }
+    }
+
+    *Batch = result;
+    result = NULL;
+
+CleanupExit:
+    PhHttpDestroy(httpContext);
+    PhClearReference(&httpHeaderClientId);
+    PhClearReference(&requestBody);
+    PhClearReference(&responseBody);
+    if (result)
+        HybridAnalysisFreeFileReportBatch(result);
+
+    return status;
 }
 
 NTSTATUS HybridAnalysisSubmitFile(

@@ -292,6 +292,31 @@ VOID VirusTotalFreeFileReport(
     _In_ PVIRUSTOTAL_FILE_REPORT FileReport
     );
 
+typedef struct _VIRUSTOTAL_FILE_REPORT_ENTRY
+{
+    PPH_STRING Sha256;
+    ULONG HttpStatus;
+    ULONG64 Malicious;
+    ULONG64 Undetected;
+} VIRUSTOTAL_FILE_REPORT_ENTRY, *PVIRUSTOTAL_FILE_REPORT_ENTRY;
+
+typedef struct _VIRUSTOTAL_FILE_REPORT_BATCH
+{
+    ULONG HttpStatus;
+    ULONG Count;
+    PVIRUSTOTAL_FILE_REPORT_ENTRY Entries;
+} VIRUSTOTAL_FILE_REPORT_BATCH, *PVIRUSTOTAL_FILE_REPORT_BATCH;
+
+NTSTATUS VirusTotalRequestFileReportBatch(
+    _In_reads_(Count) PPH_STRING* FileHashes,
+    _In_ ULONG Count,
+    _Out_ PVIRUSTOTAL_FILE_REPORT_BATCH* Batch
+    );
+
+VOID VirusTotalFreeFileReportBatch(
+    _In_ PVIRUSTOTAL_FILE_REPORT_BATCH Batch
+    );
+
 PVIRUSTOTAL_API_RESPONSE VirusTotalRequestFileReScan(
     _In_ PPH_STRING FileHash,
     _In_ PPH_STRING FilePat
@@ -318,6 +343,33 @@ NTSTATUS HybridAnalysisRequestFileReport(
 
 VOID HybridAnalysisFreeFileReport(
     _In_ PHYBRIDANALYSIS_FILE_REPORT FileReport
+    );
+
+typedef struct _HYBRIDANALYSIS_FILE_REPORT_ENTRY
+{
+    PPH_STRING Sha256;
+    ULONG HttpStatus;
+    ULONG64 MultiscanResult;
+    PPH_STRING VxFamily;
+    ULONG64 ThreatScore;
+    PPH_STRING Verdict;
+} HYBRIDANALYSIS_FILE_REPORT_ENTRY, *PHYBRIDANALYSIS_FILE_REPORT_ENTRY;
+
+typedef struct _HYBRIDANALYSIS_FILE_REPORT_BATCH
+{
+    ULONG HttpStatus;
+    ULONG Count;
+    PHYBRIDANALYSIS_FILE_REPORT_ENTRY Entries;
+} HYBRIDANALYSIS_FILE_REPORT_BATCH, *PHYBRIDANALYSIS_FILE_REPORT_BATCH;
+
+NTSTATUS HybridAnalysisRequestFileReportBatch(
+    _In_reads_(Count) PPH_STRING* FileHashes,
+    _In_ ULONG Count,
+    _Out_ PHYBRIDANALYSIS_FILE_REPORT_BATCH* Batch
+    );
+
+VOID HybridAnalysisFreeFileReportBatch(
+    _In_ PHYBRIDANALYSIS_FILE_REPORT_BATCH Batch
     );
 
 NTSTATUS HybridAnalysisSubmitFile(
