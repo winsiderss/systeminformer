@@ -25,7 +25,9 @@ option(SI_WITH_WPP_USER      "Enables user mode WPP trace"      OFF)
 option(SI_WITH_WPP_KERNEL    "Enables kernel mode WPP trace"    ON)
 
 if (MSVC_NOT_CLANG AND CMAKE_BUILD_TYPE STREQUAL "Release")
-    add_compile_options(/d1trimfile:${SI_ROOT})
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:C,CXX>:/d1trimfile:${SI_ROOT}>
+    )
 endif()
 
 if(SI_WITH_CORE)
