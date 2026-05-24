@@ -78,6 +78,8 @@ static LONG ScanVirusTotalUnauthorized = 0;
 static LONG ScanHybridAnalysisUnauthorized = 0;
 static LONG64 ScanVirusTotalRateLimitedUntil = 0;
 static LONG64 ScanHybridAnalysisRateLimitedUntil = 0;
+static BOOLEAN ScanVirusTotalBatchDisabled = FALSE;
+static BOOLEAN ScanHybridAnalysisBatchDisabled = FALSE;
 
 static typeof(&BCryptOpenAlgorithmProvider) BCryptOpenAlgorithmProvider_I = NULL;
 static typeof(&BCryptCloseAlgorithmProvider) BCryptCloseAlgorithmProvider_I = NULL;
@@ -205,6 +207,13 @@ NTSTATUS ScanItemWorkerRoutine(
     PhSetThreadBasePriority(NtCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
     PhSetThreadIoPriority(NtCurrentThread(), IoPriorityLow);
     PhSetThreadPagePriority(NtCurrentThread(), MEMORY_PRIORITY_LOW);
+
+    //
+    // Coalesce window. Trades up to ~250ms first-item latency on the
+    // non-priority queue for larger natural batches downstream. The
+    // priority and submit workers are not delayed.
+    //
+    PhDelayExecution(250);
 
     first = RtlInterlockedFlushSList(&ScanItemQueueListHead);
     if (first)
@@ -385,6 +394,89 @@ VOID UpdateDBVirusTotal(
     PhDereferenceObject(iso);
 }
 
+BOOLEAN TryApplyVirusTotalCacheHit(
+    _In_ PSCAN_ITEM Item,
+    _In_ PLARGE_INTEGER SystemTime
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 malicious;
+    ULONG64 undetected;
+
+    if (FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
+        return FALSE;
+    if (!QueryDBVirusTotal(Item->FileHash->Sha256, &httpStatus, &expiry, &malicious, &undetected))
+        return FALSE;
+    if (expiry.QuadPart <= SystemTime->QuadPart)
+        return FALSE;
+
+    WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+
+    if (httpStatus == 200)
+        SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, (malicious + undetected)));
+    else if (httpStatus == 429)
+        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+    else
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+
+    return TRUE;
+}
+
+VOID ApplyVirusTotalReport(
+    _In_ PSCAN_ITEM Item,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 Malicious,
+    _In_ ULONG64 Undetected,
+    _In_ PLARGE_INTEGER SystemTime,
+    _In_ PLARGE_INTEGER LimitedUntil
+    )
+{
+    LARGE_INTEGER expiry;
+
+    if (HttpStatus == 200) // OK
+    {
+        expiry.QuadPart = MakeExpiry(SystemTime, ScanOKExpMin, ScanOKExpMax);
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhFormatString(L"%llu/%llu", Malicious, (Malicious + Undetected)));
+
+        UpdateDBVirusTotal(Item->FileHash->Sha256, HttpStatus, &expiry, Malicious, Undetected);
+    }
+    else if (HttpStatus == 429) // Too many requests
+    {
+        if (LimitedUntil->QuadPart > SystemTime->QuadPart)
+        {
+            expiry.QuadPart = MakeExpiry(LimitedUntil, 0, ScanRateLmtJitterMax);
+        }
+        else
+        {
+            expiry.QuadPart = MakeExpiry(SystemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
+            AdvanceRateLimitCutoff(&ScanVirusTotalRateLimitedUntil, expiry.QuadPart);
+        }
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+
+        UpdateDBVirusTotal(Item->FileHash->Sha256, HttpStatus, &expiry, 0, 0);
+    }
+    else if (HttpStatus == 401 || HttpStatus == 403) // Unauthorized/Forbidden
+    {
+        WriteRelease(&ScanVirusTotalUnauthorized, 1);
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
+        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+    }
+    else
+    {
+        expiry.QuadPart = MakeExpiry(SystemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+
+        UpdateDBVirusTotal(Item->FileHash->Sha256, HttpStatus, &expiry, 0, 0);
+    }
+}
+
 VOID ProcessVirusTotal(
     _In_ PSCAN_ITEM Item
     )
@@ -438,6 +530,8 @@ VOID ProcessVirusTotal(
     if (limitedUntil.QuadPart > systemTime.QuadPart && !FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
         httpStatus = 429;
+        malicious = 0;
+        undetected = 0;
     }
     else
     {
@@ -445,68 +539,11 @@ VOID ProcessVirusTotal(
             goto CleanupExit;
 
         httpStatus = report->HttpStatus;
+        malicious = (httpStatus == 200) ? report->Malicious : 0;
+        undetected = (httpStatus == 200) ? report->Undetected : 0;
     }
 
-    if (httpStatus == 200) // OK
-    {
-        malicious = report->Malicious;
-        undetected = report->Undetected;
-        expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
-
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhFormatString(L"%llu/%llu", malicious, (malicious + undetected)));
-
-        UpdateDBVirusTotal(
-            Item->FileHash->Sha256,
-            httpStatus,
-            &expiry,
-            malicious,
-            undetected
-            );
-    }
-    else if (httpStatus == 429) // Too many requests
-    {
-        malicious = 0;
-        undetected = 0;
-
-        if (limitedUntil.QuadPart > systemTime.QuadPart)
-        {
-            expiry.QuadPart = MakeExpiry(&limitedUntil, 0, ScanRateLmtJitterMax);
-        }
-        else
-        {
-            expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
-            AdvanceRateLimitCutoff(&ScanVirusTotalRateLimitedUntil, expiry.QuadPart);
-        }
-
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
-
-        UpdateDBVirusTotal(Item->FileHash->Sha256, httpStatus, &expiry, malicious, undetected);
-    }
-    else if (httpStatus == 401 || httpStatus == 403) // Unauthorized/Forbidden
-    {
-        WriteRelease(&ScanVirusTotalUnauthorized, 1);
-        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
-        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
-    }
-    else
-    {
-        malicious = 0;
-        undetected = 0;
-        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
-
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
-
-        UpdateDBVirusTotal(
-            Item->FileHash->Sha256,
-            httpStatus,
-            &expiry,
-            malicious,
-            undetected
-            );
-    }
+    ApplyVirusTotalReport(Item, httpStatus, malicious, undetected, &systemTime, &limitedUntil);
 
 CleanupExit:
 
@@ -584,6 +621,137 @@ VOID UpdateDBHybridAnalysis(
     PhDereferenceObject(iso);
 }
 
+BOOLEAN TryApplyHybridAnalysisCacheHit(
+    _In_ PSCAN_ITEM Item,
+    _In_ PLARGE_INTEGER SystemTime
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 multiscanResult;
+    PPH_STRING vxFamily = NULL;
+    BOOLEAN cached = FALSE;
+
+    if (FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
+        return FALSE;
+    if (!QueryDBHybridAnalysis(Item->FileHash->Sha256, &httpStatus, &expiry, &multiscanResult, &vxFamily))
+        goto CleanupExit;
+    if (expiry.QuadPart <= SystemTime->QuadPart)
+        goto CleanupExit;
+
+    WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+
+    if (httpStatus == 200)
+    {
+        if (!vxFamily || vxFamily->Length == 0)
+            SetScanResult(Item, PhReferenceObject(ScanCleanString));
+        else
+            SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
+    }
+    else if (httpStatus == 429)
+    {
+        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+    }
+    else
+    {
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+    }
+
+    cached = TRUE;
+
+CleanupExit:
+    PhClearReference(&vxFamily);
+    return cached;
+}
+
+VOID ApplyHybridAnalysisReport(
+    _In_ PSCAN_ITEM Item,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 MultiscanResult,
+    _In_ PPH_STRING VxFamily,
+    _In_ ULONG64 ThreatScore,
+    _In_ PPH_STRING Verdict,
+    _In_ PLARGE_INTEGER SystemTime,
+    _In_ PLARGE_INTEGER LimitedUntil
+    )
+{
+    LARGE_INTEGER expiry;
+
+    if (HttpStatus == 200) // OK
+    {
+        expiry.QuadPart = MakeExpiry(SystemTime, ScanOKExpMin, ScanOKExpMax);
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        if (VxFamily->Length == 0)
+            SetScanResult(Item, PhReferenceObject(ScanCleanString));
+        else
+            SetScanResult(Item, PhFormatString(L"%llu%% %ls", MultiscanResult, PhGetString(VxFamily)));
+
+        UpdateDBHybridAnalysis(
+            Item->FileHash->Sha256,
+            HttpStatus,
+            &expiry,
+            MultiscanResult,
+            VxFamily,
+            ThreatScore,
+            Verdict
+            );
+    }
+    else if (HttpStatus == 429) // Too many requests
+    {
+        PPH_STRING empty1 = PhReferenceEmptyString();
+        PPH_STRING empty2 = PhReferenceEmptyString();
+
+        if (LimitedUntil->QuadPart > SystemTime->QuadPart)
+        {
+            expiry.QuadPart = MakeExpiry(LimitedUntil, 0, ScanRateLmtJitterMax);
+        }
+        else
+        {
+            expiry.QuadPart = MakeExpiry(SystemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
+            AdvanceRateLimitCutoff(&ScanHybridAnalysisRateLimitedUntil, expiry.QuadPart);
+        }
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
+
+        UpdateDBHybridAnalysis(Item->FileHash->Sha256, HttpStatus, &expiry, 0, empty1, 0, empty2);
+
+        PhDereferenceObject(empty1);
+        PhDereferenceObject(empty2);
+    }
+    else if (HttpStatus == 401 || HttpStatus == 403) // Unauthorized/Forbidden
+    {
+        WriteRelease(&ScanHybridAnalysisUnauthorized, 1);
+        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
+        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
+    }
+    else if (HttpStatus == 404 &&
+             FlagOn(Item->Flags, SCAN_FLAG_SUBMIT) &&
+             !ReadAcquire8(&Item->FileHash->Submitted))
+    {
+        SetScanResult(Item, PhReferenceObject(ScanSubmittingString));
+        PhReferenceObject(Item);
+        if (!RtlInterlockedPushEntrySList(&ScanItemSubmitQueueListHead, &Item->Entry))
+            PhQueueItemWorkQueue(&ScanItemSubmitWorkQueue, ScanItemSubmitWorkerRoutine, NULL);
+    }
+    else
+    {
+        PPH_STRING empty1 = PhReferenceEmptyString();
+        PPH_STRING empty2 = PhReferenceEmptyString();
+
+        expiry.QuadPart = MakeExpiry(SystemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+
+        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
+        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
+
+        UpdateDBHybridAnalysis(Item->FileHash->Sha256, HttpStatus, &expiry, 0, empty1, 0, empty2);
+
+        PhDereferenceObject(empty1);
+        PhDereferenceObject(empty2);
+    }
+}
+
 VOID ProcessHybridAnalysis(
     _In_ PSCAN_ITEM Item
     )
@@ -644,6 +812,10 @@ VOID ProcessHybridAnalysis(
     if (limitedUntil.QuadPart > systemTime.QuadPart && !FlagOn(Item->Flags, SCAN_FLAG_RESCAN))
     {
         httpStatus = 429;
+        multiscanResult = 0;
+        threatScore = 0;
+        vxFamily = PhReferenceEmptyString();
+        verdict = PhReferenceEmptyString();
     }
     else
     {
@@ -651,98 +823,23 @@ VOID ProcessHybridAnalysis(
             goto CleanupExit;
 
         httpStatus = report->HttpStatus;
-    }
-
-    if (httpStatus == 200) // OK
-    {
-        multiscanResult = report->MultiscanResult;
-        vxFamily = PhReferenceObject(report->VxFamily);
-        threatScore = report->ThreatScore;
-        verdict = PhReferenceObject(report->Verdict);
-        expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
-
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        if (vxFamily->Length == 0)
-            SetScanResult(Item, PhReferenceObject(ScanCleanString));
-        else
-            SetScanResult(Item, PhFormatString(L"%llu%% %ls", multiscanResult, PhGetString(vxFamily)));
-
-        UpdateDBHybridAnalysis(
-            Item->FileHash->Sha256,
-            httpStatus,
-            &expiry,
-            multiscanResult,
-            vxFamily,
-            threatScore,
-            verdict
-            );
-    }
-    else if (httpStatus == 429) // Too many requests
-    {
-        multiscanResult = 0;
-        vxFamily = PhReferenceEmptyString();
-        threatScore = 0;
-        verdict = PhReferenceEmptyString();
-
-        if (limitedUntil.QuadPart > systemTime.QuadPart)
+        if (httpStatus == 200)
         {
-            expiry.QuadPart = MakeExpiry(&limitedUntil, 0, ScanRateLmtJitterMax);
+            multiscanResult = report->MultiscanResult;
+            threatScore = report->ThreatScore;
+            vxFamily = PhReferenceObject(report->VxFamily);
+            verdict = PhReferenceObject(report->Verdict);
         }
         else
         {
-            expiry.QuadPart = MakeExpiry(&systemTime, ScanRateLmtExpMin, ScanRateLmtExpMax);
-            AdvanceRateLimitCutoff(&ScanHybridAnalysisRateLimitedUntil, expiry.QuadPart);
+            multiscanResult = 0;
+            threatScore = 0;
+            vxFamily = PhReferenceEmptyString();
+            verdict = PhReferenceEmptyString();
         }
-
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(ScanRateLimitedString));
-
-        UpdateDBHybridAnalysis(
-            Item->FileHash->Sha256,
-            httpStatus,
-            &expiry,
-            multiscanResult,
-            vxFamily,
-            threatScore,
-            verdict
-            );
     }
-    else if (httpStatus == 401 || httpStatus == 403) // Unauthorized/Forbidden
-    {
-        WriteRelease(&ScanHybridAnalysisUnauthorized, 1);
-        WriteNoFence64(&Item->Expiry.QuadPart, LONG64_MAX);
-        SetScanResult(Item, PhReferenceObject(ScanUnauthorizedString));
-    }
-    else if (httpStatus == 404 &&
-             FlagOn(Item->Flags, SCAN_FLAG_SUBMIT) &&
-             !ReadAcquire8(&Item->FileHash->Submitted))
-    {
-        SetScanResult(Item, PhReferenceObject(ScanSubmittingString));
-        PhReferenceObject(Item);
-        if (!RtlInterlockedPushEntrySList(&ScanItemSubmitQueueListHead, &Item->Entry))
-            PhQueueItemWorkQueue(&ScanItemSubmitWorkQueue, ScanItemSubmitWorkerRoutine, NULL);
-    }
-    else
-    {
-        multiscanResult = 0;
-        vxFamily = PhReferenceEmptyString();
-        threatScore = 0;
-        verdict = PhReferenceEmptyString();
-        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
 
-        WriteNoFence64(&Item->Expiry.QuadPart, expiry.QuadPart);
-        SetScanResult(Item, PhReferenceObject(ScanUnknownString));
-
-        UpdateDBHybridAnalysis(
-            Item->FileHash->Sha256,
-            httpStatus,
-            &expiry,
-            multiscanResult,
-            vxFamily,
-            threatScore,
-            verdict
-            );
-    }
+    ApplyHybridAnalysisReport(Item, httpStatus, multiscanResult, vxFamily, threatScore, verdict, &systemTime, &limitedUntil);
 
 CleanupExit:
 
@@ -752,12 +849,309 @@ CleanupExit:
         HybridAnalysisFreeFileReport(report);
 }
 
+#define SCAN_BATCH_MAX_HASHES 50
+
+VOID DispatchVirusTotalBatch(
+    _In_count_(Count) PSCAN_ITEM* Items,
+    _In_ ULONG Count,
+    _In_ PLARGE_INTEGER SystemTime,
+    _In_ PLARGE_INTEGER LimitedUntil
+    )
+{
+    PULONG itemStatus;
+    PULONG64 itemMalicious;
+    PULONG64 itemUndetected;
+    PBOOLEAN itemProcessed;
+    PPH_STRING uniqueHashes[SCAN_BATCH_MAX_HASHES];
+    PULONG itemsInChunk;
+    BOOLEAN downgrade = FALSE;
+
+    if (Count == 0)
+        return;
+
+    itemStatus = PhAllocateZero(sizeof(ULONG) * Count);
+    itemMalicious = PhAllocateZero(sizeof(ULONG64) * Count);
+    itemUndetected = PhAllocateZero(sizeof(ULONG64) * Count);
+    itemProcessed = PhAllocateZero(sizeof(BOOLEAN) * Count);
+    itemsInChunk = PhAllocate(sizeof(ULONG) * Count);
+
+    for (;;)
+    {
+        PVIRUSTOTAL_FILE_REPORT_BATCH batch = NULL;
+        ULONG uniqueCount = 0;
+        ULONG chunkItemCount = 0;
+        NTSTATUS status;
+
+        for (ULONG i = 0; i < Count && uniqueCount < SCAN_BATCH_MAX_HASHES; i++)
+        {
+            BOOLEAN found = FALSE;
+
+            if (itemProcessed[i])
+                continue;
+            if (!Items[i]->FileHash->Sha256)
+                continue;
+
+            for (ULONG j = 0; j < uniqueCount; j++)
+            {
+                if (PhEqualString(Items[i]->FileHash->Sha256, uniqueHashes[j], TRUE))
+                {
+                    found = TRUE;
+                    break;
+                }
+            }
+            if (!found)
+                uniqueHashes[uniqueCount++] = Items[i]->FileHash->Sha256;
+
+            itemsInChunk[chunkItemCount++] = i;
+            itemProcessed[i] = TRUE;
+        }
+
+        if (chunkItemCount == 0)
+            break;
+
+        status = VirusTotalRequestFileReportBatch(uniqueHashes, uniqueCount, &batch);
+
+        if (!NT_SUCCESS(status) || !batch)
+        {
+            // Transport failure — leave itemStatus = 0 for this chunk (no-response path)
+        }
+        else if (batch->HttpStatus == 200)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+            {
+                ULONG i = itemsInChunk[k];
+                for (ULONG j = 0; j < batch->Count; j++)
+                {
+                    if (batch->Entries[j].Sha256 &&
+                        PhEqualString(Items[i]->FileHash->Sha256, batch->Entries[j].Sha256, TRUE))
+                    {
+                        itemStatus[i] = batch->Entries[j].HttpStatus;
+                        itemMalicious[i] = batch->Entries[j].Malicious;
+                        itemUndetected[i] = batch->Entries[j].Undetected;
+                        break;
+                    }
+                }
+            }
+        }
+        else if (batch->HttpStatus == 429)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemStatus[itemsInChunk[k]] = 429;
+        }
+        else if (batch->HttpStatus == 401 || batch->HttpStatus == 403)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemStatus[itemsInChunk[k]] = batch->HttpStatus;
+            VirusTotalFreeFileReportBatch(batch);
+            break;
+        }
+        else if (batch->HttpStatus == 404)
+        {
+            ScanVirusTotalBatchDisabled = TRUE;
+            downgrade = TRUE;
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemProcessed[itemsInChunk[k]] = FALSE;
+            VirusTotalFreeFileReportBatch(batch);
+            break;
+        }
+        // else 5xx / unknown — leave itemStatus = 0 (no-response path)
+
+        if (batch)
+            VirusTotalFreeFileReportBatch(batch);
+    }
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (downgrade && !itemProcessed[i])
+            ProcessVirusTotal(Items[i]);
+        else
+            ApplyVirusTotalReport(Items[i], itemStatus[i], itemMalicious[i], itemUndetected[i], SystemTime, LimitedUntil);
+    }
+
+    PhFree(itemsInChunk);
+    PhFree(itemProcessed);
+    PhFree(itemUndetected);
+    PhFree(itemMalicious);
+    PhFree(itemStatus);
+}
+
+VOID DispatchHybridAnalysisBatch(
+    _In_count_(Count) PSCAN_ITEM* Items,
+    _In_ ULONG Count,
+    _In_ PLARGE_INTEGER SystemTime,
+    _In_ PLARGE_INTEGER LimitedUntil
+    )
+{
+    PULONG itemStatus;
+    PULONG64 itemMultiscan;
+    PULONG64 itemThreatScore;
+    PPH_STRING* itemVxFamily;
+    PPH_STRING* itemVerdict;
+    PBOOLEAN itemProcessed;
+    PPH_STRING uniqueHashes[SCAN_BATCH_MAX_HASHES];
+    PULONG itemsInChunk;
+    BOOLEAN downgrade = FALSE;
+
+    if (Count == 0)
+        return;
+
+    itemStatus = PhAllocateZero(sizeof(ULONG) * Count);
+    itemMultiscan = PhAllocateZero(sizeof(ULONG64) * Count);
+    itemThreatScore = PhAllocateZero(sizeof(ULONG64) * Count);
+    itemVxFamily = PhAllocateZero(sizeof(PPH_STRING) * Count);
+    itemVerdict = PhAllocateZero(sizeof(PPH_STRING) * Count);
+    itemProcessed = PhAllocateZero(sizeof(BOOLEAN) * Count);
+    itemsInChunk = PhAllocate(sizeof(ULONG) * Count);
+
+    for (;;)
+    {
+        PHYBRIDANALYSIS_FILE_REPORT_BATCH batch = NULL;
+        ULONG uniqueCount = 0;
+        ULONG chunkItemCount = 0;
+        NTSTATUS status;
+
+        for (ULONG i = 0; i < Count && uniqueCount < SCAN_BATCH_MAX_HASHES; i++)
+        {
+            BOOLEAN found = FALSE;
+
+            if (itemProcessed[i])
+                continue;
+            if (!Items[i]->FileHash->Sha256)
+                continue;
+
+            for (ULONG j = 0; j < uniqueCount; j++)
+            {
+                if (PhEqualString(Items[i]->FileHash->Sha256, uniqueHashes[j], TRUE))
+                {
+                    found = TRUE;
+                    break;
+                }
+            }
+            if (!found)
+                uniqueHashes[uniqueCount++] = Items[i]->FileHash->Sha256;
+
+            itemsInChunk[chunkItemCount++] = i;
+            itemProcessed[i] = TRUE;
+        }
+
+        if (chunkItemCount == 0)
+            break;
+
+        status = HybridAnalysisRequestFileReportBatch(uniqueHashes, uniqueCount, &batch);
+
+        if (!NT_SUCCESS(status) || !batch)
+        {
+            // Transport failure — leave itemStatus = 0 for this chunk (no-response path)
+        }
+        else if (batch->HttpStatus == 200)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+            {
+                ULONG i = itemsInChunk[k];
+                for (ULONG j = 0; j < batch->Count; j++)
+                {
+                    if (batch->Entries[j].Sha256 &&
+                        PhEqualString(Items[i]->FileHash->Sha256, batch->Entries[j].Sha256, TRUE))
+                    {
+                        itemStatus[i] = batch->Entries[j].HttpStatus;
+                        itemMultiscan[i] = batch->Entries[j].MultiscanResult;
+                        itemThreatScore[i] = batch->Entries[j].ThreatScore;
+                        if (batch->Entries[j].VxFamily)
+                            PhSetReference(&itemVxFamily[i], batch->Entries[j].VxFamily);
+                        if (batch->Entries[j].Verdict)
+                            PhSetReference(&itemVerdict[i], batch->Entries[j].Verdict);
+                        break;
+                    }
+                }
+            }
+        }
+        else if (batch->HttpStatus == 429)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemStatus[itemsInChunk[k]] = 429;
+        }
+        else if (batch->HttpStatus == 401 || batch->HttpStatus == 403)
+        {
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemStatus[itemsInChunk[k]] = batch->HttpStatus;
+            HybridAnalysisFreeFileReportBatch(batch);
+            break;
+        }
+        else if (batch->HttpStatus == 404)
+        {
+            ScanHybridAnalysisBatchDisabled = TRUE;
+            downgrade = TRUE;
+            for (ULONG k = 0; k < chunkItemCount; k++)
+                itemProcessed[itemsInChunk[k]] = FALSE;
+            HybridAnalysisFreeFileReportBatch(batch);
+            break;
+        }
+        // else 5xx / unknown — leave itemStatus = 0 (no-response path)
+
+        if (batch)
+            HybridAnalysisFreeFileReportBatch(batch);
+    }
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        if (downgrade && !itemProcessed[i])
+        {
+            ProcessHybridAnalysis(Items[i]);
+        }
+        else
+        {
+            PPH_STRING vx = itemVxFamily[i] ? PhReferenceObject(itemVxFamily[i]) : PhReferenceEmptyString();
+            PPH_STRING vd = itemVerdict[i] ? PhReferenceObject(itemVerdict[i]) : PhReferenceEmptyString();
+
+            ApplyHybridAnalysisReport(Items[i], itemStatus[i], itemMultiscan[i], vx, itemThreatScore[i], vd, SystemTime, LimitedUntil);
+
+            PhDereferenceObject(vx);
+            PhDereferenceObject(vd);
+        }
+
+        PhClearReference(&itemVxFamily[i]);
+        PhClearReference(&itemVerdict[i]);
+    }
+
+    PhFree(itemsInChunk);
+    PhFree(itemProcessed);
+    PhFree(itemVerdict);
+    PhFree(itemVxFamily);
+    PhFree(itemThreatScore);
+    PhFree(itemMultiscan);
+    PhFree(itemStatus);
+}
+
 VOID ProcessScanItems(
     _In_count_(Count) PSCAN_ITEM* Items,
     _In_ ULONG Count
     )
 {
     NTSTATUS status;
+    LARGE_INTEGER systemTime;
+    LARGE_INTEGER vtLimitedUntil;
+    LARGE_INTEGER haLimitedUntil;
+    PSCAN_ITEM* singletons;
+    PSCAN_ITEM* vtBatch;
+    PSCAN_ITEM* haBatch;
+    ULONG singletonCount = 0;
+    ULONG vtBatchCount = 0;
+    ULONG haBatchCount = 0;
+    BOOLEAN vtAuthFlag;
+    BOOLEAN haAuthFlag;
+
+    if (Count == 0)
+        return;
+
+    singletons = PhAllocate(sizeof(PSCAN_ITEM) * Count);
+    vtBatch = PhAllocate(sizeof(PSCAN_ITEM) * Count);
+    haBatch = PhAllocate(sizeof(PSCAN_ITEM) * Count);
+
+    PhQuerySystemTime(&systemTime);
+    vtLimitedUntil.QuadPart = ReadNoFence64(&ScanVirusTotalRateLimitedUntil);
+    haLimitedUntil.QuadPart = ReadNoFence64(&ScanHybridAnalysisRateLimitedUntil);
+    vtAuthFlag = (BOOLEAN)ReadAcquire(&ScanVirusTotalUnauthorized);
+    haAuthFlag = (BOOLEAN)ReadAcquire(&ScanHybridAnalysisUnauthorized);
 
     for (ULONG i = 0; i < Count; i++)
     {
@@ -770,17 +1164,71 @@ VOID ProcessScanItems(
         status = item->FileHash->Status;
         PhReleaseQueuedLockShared(&item->FileHash->Lock);
 
-        if (NT_SUCCESS(status))
-        {
-            if (item->Type == SCAN_TYPE_VIRUSTOTAL)
-                ProcessVirusTotal(item);
-            else if (item->Type == SCAN_TYPE_HYBRIDANALYSIS)
-                ProcessHybridAnalysis(item);
-        }
-        else if (status == STATUS_FILE_TOO_LARGE)
+        if (status == STATUS_FILE_TOO_LARGE)
         {
             SetScanResult(item, PhReferenceObject(ScanFileTooLarge));
+            continue;
         }
+        if (!NT_SUCCESS(status))
+            continue;
+
+        if (item->Type == SCAN_TYPE_VIRUSTOTAL)
+        {
+            if (TryApplyVirusTotalCacheHit(item, &systemTime))
+                continue;
+            if (FlagOn(item->Flags, SCAN_FLAG_LOCAL_ONLY))
+                continue;
+            if (vtAuthFlag)
+            {
+                WriteNoFence64(&item->Expiry.QuadPart, LONG64_MAX);
+                SetScanResult(item, PhReferenceObject(ScanUnauthorizedString));
+                continue;
+            }
+
+            if (!PhIsNullOrEmptyString(ScanVirusTotalPAT) || ScanVirusTotalBatchDisabled)
+                singletons[singletonCount++] = item;
+            else
+                vtBatch[vtBatchCount++] = item;
+        }
+        else if (item->Type == SCAN_TYPE_HYBRIDANALYSIS)
+        {
+            if (TryApplyHybridAnalysisCacheHit(item, &systemTime))
+                continue;
+            if (FlagOn(item->Flags, SCAN_FLAG_LOCAL_ONLY))
+                continue;
+            if (haAuthFlag)
+            {
+                WriteNoFence64(&item->Expiry.QuadPart, LONG64_MAX);
+                SetScanResult(item, PhReferenceObject(ScanUnauthorizedString));
+                continue;
+            }
+
+            if (!PhIsNullOrEmptyString(ScanHybridAnalysisPAT) || ScanHybridAnalysisBatchDisabled)
+                singletons[singletonCount++] = item;
+            else
+                haBatch[haBatchCount++] = item;
+        }
+    }
+
+    for (ULONG i = 0; i < singletonCount; i++)
+    {
+        if (singletons[i]->Type == SCAN_TYPE_VIRUSTOTAL)
+            ProcessVirusTotal(singletons[i]);
+        else if (singletons[i]->Type == SCAN_TYPE_HYBRIDANALYSIS)
+            ProcessHybridAnalysis(singletons[i]);
+    }
+
+    if (vtBatchCount > 0)
+        DispatchVirusTotalBatch(vtBatch, vtBatchCount, &systemTime, &vtLimitedUntil);
+    if (haBatchCount > 0)
+        DispatchHybridAnalysisBatch(haBatch, haBatchCount, &systemTime, &haLimitedUntil);
+
+    for (ULONG i = 0; i < Count; i++)
+    {
+        PSCAN_ITEM item = Items[i];
+
+        if (ReadAcquire8(&item->Abort))
+            continue;
 
         if (item->Result == ScanScanningString)
         {
@@ -801,6 +1249,10 @@ VOID ProcessScanItems(
                 );
         }
     }
+
+    PhFree(haBatch);
+    PhFree(vtBatch);
+    PhFree(singletons);
 }
 
 VOID ProcessScanItemsSubmit(
