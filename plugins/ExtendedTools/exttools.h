@@ -1395,6 +1395,9 @@ typedef struct _FW_EVENT_ITEM
     ULONG Type; // FWPM_NET_EVENT_TYPE
     ULONG IpProtocol;
     ULONG ScopeId;
+
+    ULONG64 FilterId;
+    ULONG LayerId;
     PH_IP_ENDPOINT LocalEndpoint;
     PH_IP_ENDPOINT RemoteEndpoint;
 
