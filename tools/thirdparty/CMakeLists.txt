@@ -451,10 +451,15 @@ target_compile_definitions(thirdparty PRIVATE
     CAPSTONE_USE_SYS_DYN_MEM
 )
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+    target_compile_definitions(thirdparty PRIVATE
+        _ARM64_=1
+    )
+endif()
+
 if(MSVC_CLANG)
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
         target_compile_definitions(thirdparty PRIVATE
-            _ARM64_=1
             SYMCRYPT_IGNORE_PLATFORM
         )
     endif()
@@ -463,6 +468,7 @@ if(MSVC_CLANG)
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-macro-redefined>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-multichar>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-reorder-ctor>
+        $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-ignored-pragmas>
         $<$<COMPILE_LANGUAGE:C,CXX>:-Wno-tautological-constant-out-of-range-compare>
     )
 
