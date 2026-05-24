@@ -451,7 +451,15 @@ target_compile_definitions(thirdparty PRIVATE
     CAPSTONE_USE_SYS_DYN_MEM
 )
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|i386|i686")
+    target_compile_definitions(thirdparty PRIVATE
+        _X86_=1
+    )
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "AMD64|x86_64|x64")
+    target_compile_definitions(thirdparty PRIVATE
+        _AMD64_=1
+    )
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64|aarch64")
     target_compile_definitions(thirdparty PRIVATE
         _ARM64_=1
     )
