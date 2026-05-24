@@ -3540,7 +3540,7 @@ typedef enum _PS_ATTRIBUTE_NUM
     PsAttributeMachineType,                     // in USHORT // since 21H2
     PsAttributeComponentFilter,                 // in COMPONENT_FILTER
     PsAttributeEnableOptionalXStateFeatures,    // in ULONG64 // since WIN11 // 30
-    PsAttributeSupportedMachines,               // in ULONG // since 24H2
+    PsAttributeSupportedMachines,               // in ULONG (bits 0..2 only) // since 24H2
     PsAttributeSveVectorLength,                 // in PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 } PS_ATTRIBUTE_NUM;
@@ -3618,11 +3618,11 @@ typedef enum _PS_ATTRIBUTE_NUM
 #define PS_ATTRIBUTE_MACHINE_TYPE \
     PsAttributeValue(PsAttributeMachineType, FALSE, TRUE, TRUE)
 #define PS_ATTRIBUTE_COMPONENT_FILTER \
-    PsAttributeValue(PsAttributeComponentFilter, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeComponentFilter, FALSE, TRUE, FALSE) // ULONG (bit 0 only)
 #define PS_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES \
     PsAttributeValue(PsAttributeEnableOptionalXStateFeatures, TRUE, TRUE, FALSE)
 #define PS_ATTRIBUTE_SUPPORTED_MACHINES \
-    PsAttributeValue(PsAttributeSupportedMachines, FALSE, TRUE, FALSE)
+    PsAttributeValue(PsAttributeSupportedMachines, FALSE, TRUE, TRUE) // ULONG, low 3 bits only
 #define PS_ATTRIBUTE_SVE_VECTOR_LENGTH \
     PsAttributeValue(PsAttributeSveVectorLength, FALSE, TRUE, FALSE)
 
