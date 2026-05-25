@@ -1053,13 +1053,45 @@ VOID PhSiNotifyChangeSettings(
     PhSipUpdateColorParameters();
 }
 
+static HFONT PhSipCreateGraphLabelFont(
+    _In_ LONG WindowDpi
+    )
+{
+    LOGFONT logFont;
+    HFONT fontHandle;
+
+    if (PhGetSystemParametersInfo(SPI_GETICONTITLELOGFONT, sizeof(LOGFONT), &logFont, WindowDpi))
+    {
+        logFont.lfHeight += PhMultiplyDivideSigned(1, WindowDpi, 72);
+        fontHandle = CreateFontIndirect(&logFont);
+        if (fontHandle) return fontHandle;
+    }
+
+    return PhCreateApplicationFont(WindowDpi);
+}
+
 static VOID PhSipDeleteGraphFonts(
     _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo
     )
 {
+    HFONT textFont = DrawInfo->CachedTextFont;
+    HFONT labelYFont = DrawInfo->CachedLabelYFont;
+
+    if (DrawInfo->CachedTextFont)
+    {
+        DeleteFont(textFont);
+        DrawInfo->CachedTextFont = NULL;
+    }
+
+    if (DrawInfo->CachedLabelYFont)
+    {
+        if (labelYFont != textFont)
+            DeleteFont(labelYFont);
+
+        DrawInfo->CachedLabelYFont = NULL;
+    }
+
     DrawInfo->CachedFontDpi = 0;
-    DrawInfo->CachedTextFont = NULL;
-    DrawInfo->CachedLabelYFont = NULL;
 }
 
 _Function_class_(PH_SYSINFO_COLOR_SETUP_FUNCTION)
@@ -1076,7 +1108,7 @@ VOID PhSiSetColorsGraphDrawInfo(
 
         if (!DrawInfo->CachedTextFont)
         {
-            DrawInfo->CachedTextFont = DrawInfo->CachedLabelYFont;
+            DrawInfo->CachedTextFont = PhSipCreateGraphLabelFont(WindowDpi);
         }
 
         if (!DrawInfo->CachedLabelYFont)
