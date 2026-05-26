@@ -1702,7 +1702,7 @@ NTSTATUS KphGetInformerClientStats(
 
     __try
     {
-        ZeroUserMemory(Stats, sizeof(KPH_INFORMER_STATS));
+        ZeroUserMemory(Stats, sizeof(KPH_INFORMER_CLIENT_STATS));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
