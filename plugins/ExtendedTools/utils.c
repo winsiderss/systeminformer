@@ -1189,7 +1189,7 @@ static VOID EtpAddDiscoveredAdapter(
 
     if (!deviceInterface)
     {
-        deviceInterface = PH_AUTO(EtGetDeviceInterfaceFromLuid(&AdapterLuid));
+        deviceInterface = EtGetDeviceInterfaceFromLuid(&AdapterLuid);
     }
 
     entry = PhAllocateZero(sizeof(ET_DISCOVERED_ADAPTER));
@@ -1197,17 +1197,16 @@ static VOID EtpAddDiscoveredAdapter(
     entry->AdapterLuid = AdapterLuid;
     PhSetReference(&entry->DeviceInterface, deviceInterface);
 
-    if (NT_SUCCESS(EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes)))
-    {
-        PhAddItemList(AdapterList, entry);
-    }
-    else
-    {
-        if (entry->AdapterHandle)
-            EtCloseAdapterHandle(entry->AdapterHandle);
-        PhClearReference(&entry->DeviceInterface);
-        PhFree(entry);
-    }
+    EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes);
+    
+    PhAddItemList(AdapterList, entry);
+
+    // {
+    //     if (entry->AdapterHandle)
+    //         EtCloseAdapterHandle(entry->AdapterHandle);
+    //     PhClearReference(&entry->DeviceInterface);
+    //     PhFree(entry);
+    // }
 }
 
 PPH_LIST EtInitializeGraphicsAdapters(
