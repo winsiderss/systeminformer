@@ -212,6 +212,16 @@ NTSTATUS KphOpenDeviceDriver(
         goto Exit;
     }
 
+    if (!deviceObject->DriverObject)
+    {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      GENERAL,
+                      "DriverObject is null");
+
+        status = STATUS_DEVICE_REMOVED;
+        goto Exit;
+    }
+
     status = ObOpenObjectByPointer(deviceObject->DriverObject,
                                    (AccessMode ? 0 : OBJ_KERNEL_HANDLE),
                                    NULL,
