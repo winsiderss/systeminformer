@@ -174,7 +174,7 @@ static BOOL WINAPI ReadFile_Stub(
 {
     NTSTATUS status;
 
-    if (lpOverlapped)
+    if (Overlapped)
     {
         PhSetLastError(ERROR_NOT_SUPPORTED);
         return FALSE;
@@ -196,13 +196,13 @@ static BOOL WINAPI WriteFile_Stub(
     _In_ HANDLE hFile,
     _In_reads_bytes_opt_(NumberOfBytesToWrite) PCVOID Buffer,
     _In_ ULONG NumberOfBytesToWrite,
-    _Out_opt_ LPULONG NumberOfBytesWritten,
+    _Out_opt_ PULONG NumberOfBytesWritten,
     _Inout_opt_ LPOVERLAPPED Overlapped
     )
 {
     NTSTATUS status;
 
-    if (lpOverlapped)
+    if (Overlapped)
     {
         PhSetLastError(ERROR_NOT_SUPPORTED);
         return FALSE;
