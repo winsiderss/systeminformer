@@ -114,6 +114,7 @@ NTSTATUS KphCreateSystemThread(
     ULONG contextLength;
     PKPH_THREAD_START_CONTEXT context;
     HANDLE processHandle;
+    OBJECT_ATTRIBUTES objectAttributes;
 
     KPH_PAGED_CODE_PASSIVE();
 
@@ -165,9 +166,15 @@ NTSTATUS KphCreateSystemThread(
         processHandle = NULL;
     }
 
+    InitializeObjectAttributes(&objectAttributes,
+                               NULL,
+                               OBJ_KERNEL_HANDLE,
+                               NULL,
+                               NULL);
+
     status = PsCreateSystemThread(&threadHandle,
                                   THREAD_ALL_ACCESS,
-                                  NULL,
+                                  &objectAttributes,
                                   processHandle,
                                   NULL,
                                   KphpThreadStartRoutine,
