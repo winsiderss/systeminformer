@@ -505,6 +505,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             {
                 RECT clientRect;
                 LONG availableWidth;
+                LONG currentWidth;
                 ULONG i;
                 LVCOLUMN lvColumn;
 
@@ -512,6 +513,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     break;
 
                 availableWidth = clientRect.right;
+                if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & WS_VSCROLL)
+                    availableWidth -= PhGetSystemMetrics(SM_CXVSCROLL, context->WindowDpi);
+
                 i = 0;
                 lvColumn.mask = LVCF_WIDTH;
 
@@ -546,13 +550,29 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     i++;
                 }
 
-                if (availableWidth >= 40)
-                {
-                    if (context->ListViewContext && PhListView_SetColumnWidth(context->ListViewContext, column, availableWidth))
-                        return TRUE;
+                if (availableWidth < 40)
+                    return TRUE;
 
-                    return CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, column, availableWidth);
+                currentWidth = 0;
+
+                if (context->ListViewContext)
+                {
+                    if (PhListView_GetColumn(context->ListViewContext, column, &lvColumn))
+                        currentWidth = lvColumn.cx;
                 }
+                else
+                {
+                    if (CallWindowProc(oldWndProc, WindowHandle, LVM_GETCOLUMN, column, (LPARAM)&lvColumn))
+                        currentWidth = lvColumn.cx;
+                }
+
+                if (currentWidth == availableWidth)
+                    return TRUE;
+
+                if (context->ListViewContext && PhListView_SetColumnWidth(context->ListViewContext, column, availableWidth))
+                    return TRUE;
+
+                return CallWindowProc(oldWndProc, WindowHandle, LVM_SETCOLUMNWIDTH, column, availableWidth);
             }
 
             if (context->ListViewContext && PhListView_SetColumnWidth(context->ListViewContext, column, width))
