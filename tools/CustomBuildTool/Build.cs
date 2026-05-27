@@ -1436,8 +1436,11 @@ namespace CustomBuildTool
         private static string MsbuildCommandString(string Solution, string Platform, BuildFlags Flags, string Channel = null)
         {
             List<string> preprocessorOptionsList = new List<string>();
+            List<string> compilerOptionsList = new List<string>();
+            List<string> linkerOptionsList = new List<string>();
             StringBuilder preprocessorOptionsBuilder = new StringBuilder(0x100);
-            StringBuilder linkerOptionsBuilder = new StringBuilder(0x100);
+            StringBuilder compilerOptionsBuilder = new StringBuilder(0x200);
+            StringBuilder linkerOptionsBuilder = new StringBuilder(0x200);
             StringBuilder commandLineBuilder = new StringBuilder(0x100);
 
             if (Flags.HasFlag(BuildFlags.BuildApi))
@@ -1458,15 +1461,19 @@ namespace CustomBuildTool
                 preprocessorOptionsList.Add($"PHAPP_VERSION_REVISION={Build.BuildVersionRevision()}");
 
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
-                linkerOptionsBuilder.Append($"/SOURCELINK:\"{Build.BuildSourceLink}\" ");
+                linkerOptionsList.Add($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
 
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
+            compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
+            linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
             commandLineBuilder.Append($"/m /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
             if (preprocessorOptionsBuilder.Length > 0)
                 commandLineBuilder.Append($"/p:ExternalPreprocessorOptions=\"{preprocessorOptionsBuilder}\" ");
+            if (compilerOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalAdditionalOptions=\"{compilerOptionsBuilder}\" ");
             if (linkerOptionsBuilder.Length > 0)
                 commandLineBuilder.Append($"/p:ExternalLinkerOptions=\"{linkerOptionsBuilder}\" ");
             if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
@@ -1475,9 +1482,7 @@ namespace CustomBuildTool
             commandLineBuilder.Append($"/bl:build/output/logs/{Utils.GetBuildLogPath(Solution, Platform, Flags)}.binlog ");
 
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
-            {
                 commandLineBuilder.Append("-terminalLogger:on ");
-            }
 
             commandLineBuilder.Append(Solution);
 
@@ -1531,6 +1536,148 @@ namespace CustomBuildTool
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Constructs the MSBuild command line string for building a solution with the specified platform, flags, and channel.
+        /// </summary>
+        /// <param name="Solution"></param>
+        /// <param name="Flags"></param>
+        /// <param name="Channel"></param>
+        /// <param name="SkipArm64"></param>
+        /// <returns></returns>
+        private static string MsbuildParallelCommandString(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
+        {
+            List<string> preprocessorOptionsList = new List<string>();
+            List<string> compilerOptionsList = new List<string>();
+            List<string> linkerOptionsList = new List<string>();
+            StringBuilder preprocessorOptionsBuilder = new StringBuilder(0x100);
+            StringBuilder compilerOptionsBuilder = new StringBuilder(0x200);
+            StringBuilder linkerOptionsBuilder = new StringBuilder(0x200);
+            StringBuilder commandLineBuilder = new StringBuilder(0x100);
+            List<string> targetPlatforms = new List<string>(3);
+            List<string> targetConfigurations = new List<string>(2);
+
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+                targetPlatforms.Add("Win32");
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+                targetPlatforms.Add("x64");
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !SkipArm64)
+                targetPlatforms.Add("ARM64");
+
+            if (Flags.HasFlag(BuildFlags.BuildDebug))
+                targetConfigurations.Add("Debug");
+            if (Flags.HasFlag(BuildFlags.BuildRelease))
+                targetConfigurations.Add("Release");
+
+            if (Flags.HasFlag(BuildFlags.BuildApi))
+                preprocessorOptionsList.Add("PH_BUILD_API");
+            if (Flags.HasFlag(BuildFlags.BuildMsix))
+                preprocessorOptionsList.Add("PH_BUILD_MSIX");
+            if (!string.IsNullOrWhiteSpace(Channel))
+                preprocessorOptionsList.Add($"PH_RELEASE_CHANNEL_ID={BuildConfig.Build_Channels[Channel]}");
+            if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash))
+                preprocessorOptionsList.Add($"PHAPP_VERSION_COMMITHASH={Build.BuildHash()}");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
+                preprocessorOptionsList.Add($"PHAPP_VERSION_MAJOR={Build.BuildVersionMajor}");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionMinor))
+                preprocessorOptionsList.Add($"PHAPP_VERSION_MINOR={Build.BuildVersionMinor}");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionBuild()))
+                preprocessorOptionsList.Add($"PHAPP_VERSION_BUILD={Build.BuildVersionBuild()}");
+            if (!string.IsNullOrWhiteSpace(Build.BuildVersionRevision()))
+                preprocessorOptionsList.Add($"PHAPP_VERSION_REVISION={Build.BuildVersionRevision()}");
+
+            if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
+                linkerOptionsList.Add($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
+
+            preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
+            compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
+            linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
+
+            commandLineBuilder.Append($"/m /graph /t:All /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append("/p:RestoreUseStaticGraphEvaluation=true ");
+            commandLineBuilder.Append("/p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=200 ");
+
+            if (targetPlatforms.Count > 0)
+                commandLineBuilder.Append($"/p:TargetPlatforms=\"{string.Join(';', targetPlatforms)}\" ");
+            if (targetConfigurations.Count > 0)
+                commandLineBuilder.Append($"/p:TargetConfigurations=\"{string.Join(';', targetConfigurations)}\" ");
+
+            if (preprocessorOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalPreprocessorOptions=\"{preprocessorOptionsBuilder}\" ");
+            if (compilerOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalAdditionalOptions=\"{compilerOptionsBuilder}\" ");
+            if (linkerOptionsBuilder.Length > 0)
+                commandLineBuilder.Append($"/p:ExternalLinkerOptions=\"{linkerOptionsBuilder}\" ");
+            if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
+                commandLineBuilder.Append($"/p:ExternalSimdOptions=\"{Build.BuildSimdExtensions}\" ");
+
+            commandLineBuilder.Append($"/bl:build/output/logs/{Path.GetFileNameWithoutExtension(Solution)}Matrix.binlog ");
+
+            if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+                commandLineBuilder.Append("-terminalLogger:on ");
+
+            if (SkipArm64 || !targetPlatforms.Contains("ARM64"))
+                commandLineBuilder.Append("/p:SkipArm64Platform=true ");
+
+            commandLineBuilder.Append(Solution);
+
+            return commandLineBuilder.ToString();
+        }
+
+        public static bool BuildSolutionParallel(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
+        {
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !SkipArm64 && !HaveArm64BuildTools)
+            {
+                Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
+                SkipArm64 = true;
+            }
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage($"Building {Path.GetFileNameWithoutExtension(Solution)} (", ConsoleColor.Cyan, false, Flags);
+            Program.PrintColorMessage(BuildTargetPlatformString(Flags), ConsoleColor.Green, false, Flags);
+            Program.PrintColorMessage(")...", ConsoleColor.Cyan, true, Flags);
+
+            string buildCommandLineString = MsbuildParallelCommandString(Solution, Flags, Channel, SkipArm64);
+
+            if (Build.BuildRedirectOutput && !Build.BuildIntegration)
+            {
+                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandLineString, Flags, out string errorOutputString);
+
+                if (exitCodeValue != 0)
+                {
+                    Program.PrintColorMessage($"[ERROR] ({exitCodeValue}) {errorOutputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
+                }
+            }
+            else
+            {
+                int exitCodeValue = Utils.ExecuteMsbuildCommand(buildCommandLineString, Flags, out _, false);
+
+                if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
+                {
+                    Console.Write(Environment.NewLine);
+                }
+
+                if (exitCodeValue != 0)
+                    return false;
+            }
+
+            return true;
+        }
+
+        public static string BuildTargetPlatformString(BuildFlags Flags)
+        {
+            List<string> targetPlatforms = new List<string>(3);
+
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+                targetPlatforms.Add("Win32");
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+                targetPlatforms.Add("x64");
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                targetPlatforms.Add("ARM64");
+
+            return string.Join(';', targetPlatforms);
         }
 
         /// <summary>
@@ -1757,9 +1904,14 @@ namespace CustomBuildTool
             // Generate
             //
 
-            string[] generateArgs = Generator == BuildGenerator.Ninja
-                ? [
-                    "-G",
+            string[] generateArgs;
+            string[] buildArgs;
+
+            if (Generator == BuildGenerator.Ninja)
+            {
+                generateArgs = 
+                [
+                   "-G",
                     Utils.GetGeneratorString(Generator),
                     "-S",
                     Build.BuildWorkingFolder,
@@ -1771,8 +1923,12 @@ namespace CustomBuildTool
                     "-DSI_WITH_CORE=ON",
                     "-DSI_WITH_PLUGINS=ON",
                     $"-DCMAKE_BUILD_TYPE={BuildConfig}"
-                ]
-                : [
+               ];
+            }
+            else
+            {
+                generateArgs = 
+                [
                     "-G",
                     Utils.GetGeneratorString(Generator),
                     "-S",
@@ -1785,6 +1941,7 @@ namespace CustomBuildTool
                     "-DSI_WITH_CORE=ON",
                     "-DSI_WITH_PLUGINS=ON"
                 ];
+            }
 
             int errorCode = Utils.ExecuteCMakeCommand(generateArgs);
             if (errorCode != 0)
@@ -1805,9 +1962,12 @@ namespace CustomBuildTool
             Program.PrintColorMessage("] (", ConsoleColor.Cyan, false, Flags);
             Program.PrintColorMessage(BuildConfig, ConsoleColor.Green, false, Flags);
             Program.PrintColorMessage(")", ConsoleColor.Cyan, true, Flags);
+            //Console.WriteLine($"{VT.CYAN}Building {VT.ORANGE}{solutionName}{VT.GRAY} [{VT.BRIGHT_GREEN}{toolchainName}{VT.GRAY}] ({VT.BG_BRIGHT_BLUE}{BuildConfig}{VT.GRAY}){VT.RESET}");
 
-            string[] buildArgs = Generator == BuildGenerator.VisualStudio
-                ? [
+            if (Generator == BuildGenerator.VisualStudio)
+            {
+                buildArgs =
+                [
                     "--build",
                     buildFolder,
                     "--config",
@@ -1816,13 +1976,19 @@ namespace CustomBuildTool
                     "/m",
                     $"/p:Platform={Utils.CMakeGetPlatform(Toolchain)}",
                     "-terminalLogger:auto"
-                ]
-                : [
+                ];
+            }
+            else 
+            {
+                buildArgs =
+                [
                     "--build",
                     buildFolder,
                     "--config",
-                    BuildConfig
+                    BuildConfig,
+                    "--parallel"
                 ];
+            }
 
             errorCode = Utils.ExecuteCMakeCommand(buildArgs);
             if (errorCode != 0)

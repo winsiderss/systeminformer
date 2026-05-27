@@ -50,9 +50,10 @@ namespace CustomBuildTool
             }
             else
             {
+                string fileHash = BuildVerify.HashFile(FileName);
                 string fileSize = Win32.GetFileSize(FileName).ToString();
 
-                return new DeployFile(Name, FileName, null, null, fileSize);
+                return new DeployFile(Name, FileName, fileHash, null, fileSize);
             }
         }
 

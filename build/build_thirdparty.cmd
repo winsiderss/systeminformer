@@ -38,49 +38,44 @@ REM ----------------------------------------------------------------------------
 call :FindVisualStudio
 if errorlevel 1 exit /b %errorlevel%
 
+REM Detect if ARM64 toolchain is available.
 call :DetectArm64Support
 if errorlevel 1 exit /b %errorlevel%
 
-if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "VCVARS_ARCH=arm64"
-
+REM If ARM64 support is available, set up cross-compiling (amd64_arm64).
+if /i "%VS_ARM64_SUPPORT%"=="true" set "VCVARS_ARCH=amd64_arm64"
+REM Initialize the Visual Studio build environment.
 call :SetupVcVars "%VCVARS_ARCH%"
 if errorlevel 1 exit /b %errorlevel%
 
+REM Clean up previous build.
 call :CleanupPath "tools\thirdparty\bin"
 if errorlevel 1 exit /b %errorlevel%
+
 call :CleanupPath "tools\thirdparty\obj"
 if errorlevel 1 exit /b %errorlevel%
 
-call :RunThirdPartyBuild "Debug" "x86" "Debug32"
-if errorlevel 1 exit /b %errorlevel%
-call :RunThirdPartyBuild "Release" "x86" "Release32"
-if errorlevel 1 exit /b %errorlevel%
-call :RunThirdPartyBuild "Debug" "x64" "Debug64"
-if errorlevel 1 exit /b %errorlevel%
-call :RunThirdPartyBuild "Release" "x64" "Release64"
+REM Set the list of target platforms to build.
+set "TP_PLATFORMS=x86;x64"
+if /i "%VS_ARM64_SUPPORT%"=="true" set "TP_PLATFORMS=x86;x64;ARM64"
+REM Build the third-party dependencies for all selected platforms and configurations.
+call :RunThirdPartyBuild "%TP_PLATFORMS%" "%TP_PLATFORMS%"
 if errorlevel 1 exit /b %errorlevel%
 
-if /i "%VS_ARM64_SUPPORT%"=="true" (
-    call :RunThirdPartyBuild "Debug" "ARM64" "DebugARM64"
-    if errorlevel 1 exit /b !errorlevel!
-    call :RunThirdPartyBuild "Release" "ARM64" "ReleaseARM64"
-    if errorlevel 1 exit /b !errorlevel!
-)
-
+echo:
 exit /b 0
 
 REM -----------------------------------------------------------------------------
 REM Function: RunThirdPartyBuild
-REM Description: Builds one third-party solution configuration/platform pair.
+REM Description: Builds thirdparty.sln across the Debug+Release x platform matrix in a single MSBuild call.
 REM Parameters:
-REM   %~1 - Build configuration.
-REM   %~2 - Build platform.
-REM   %~3 - Friendly label shown in output.
+REM   %~1 - Semicolon-separated platform list (e.g. "x86;x64;ARM64").
+REM   %~2 - Friendly label shown in output.
 REM -----------------------------------------------------------------------------
 :RunThirdPartyBuild
 echo:
-echo Building thirdparty.sln [%~3]
-msbuild /m tools\thirdparty\thirdparty.sln -property:Configuration=%~1 -property:Platform=%~2 -verbosity:%VerboseLevel% -terminalLogger:%TLG%
+echo Building thirdparty.sln [%~2]
+msbuild /m /graph tools\thirdparty\thirdparty.sln -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%VerboseLevel% -terminalLogger:%TLG%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------

@@ -95,36 +95,46 @@ namespace CustomBuildTool
                 Dictionary<string, string> ProgramArgsHelp = new(StringComparer.OrdinalIgnoreCase)
                 {
                     { "-argsfile", "Read arguments from a file instead of the command line." },
-                    { "-bin", "Builds the binary package." },
+
+                    { "-build-debug", "Builds the debug configuration." },
+                    { "-build-release", "Builds the release configuration." },
+                    { "-build-devenv", "Builds using devenv configuration." },
+                    { "-build-msix", "Builds MSIX store package." },
+                    { "-build-zip", "Builds the binary package." },
+
                     { "-check_msvc", "Check required build dependencies are installed." },
                     { "-check-thirdparty", "Checks thirdparty library versions against latest GitHub releases." },
-                    { "-install_msvc", "Installs any missing build dependencies." },
+                    { "-check-install", "Installs any missing build dependencies." },
+
                     { "-cleanup", "Cleans up the build environment." },
                     { "-cleansdk", "Cleans SDK build artifacts (internal)." },
+
                     { "-cmake-bin", "Builds the binary package using CMake (clang)." },
                     { "-cmake-pipeline-build", "Performs pipeline build operations using CMake (clang)." },
                     { "-cmake-pipeline-deploy", "Deploys pipeline artifacts using CMake (clang)." },
                     { "-cmake-pipeline-package", "Packages pipeline artifacts using CMake (clang)." },
                     { "-cmake-release", "Builds release configuration using CMake (clang)." },
-                    { "-debug", "Builds the debug configuration." },
+
+                    { "-sign-az", "Creates signature files for build." },
+                    { "-sign-kd", "Creates signature files for build." },
+
                     { "-decrypt", "Decrypts a file." },
-                    { "-devenv-build", "Runs devenv build." },
-                    { "-dyndata", "Builds dynamic data." },
                     { "-encrypt", "Encrypts a file." },
-                    { "-help", "Shows this help message." },
-                    { "-msix-build", "Builds MSIX store package." },
-                    { "-phapppub_gen", "Generates public header files." },
-                    { "-phnt_headers_gen", "Builds single native header." },
+
+                    { "-sdk_headers_gen", "Generates public header files." },
+                    { "-sdk_header_gen", "Generates single native header." },
+
                     { "-pipeline-build", "Performs pipeline build operations." },
                     { "-pipeline-deploy", "Deploys pipeline artifacts." },
                     { "-pipeline-package", "Packages pipeline artifacts." },
-                    { "-azsign", "Creates signature files for build." },
-                    { "-kphsign", "Creates signature files for build." },
-                    { "-reflow", "Exports the current export definitions." },
-                    { "-reflowrevert", "Revert export definitions to previous state." },
-                    { "-reflowvalid", "Validates the current export definitions." },
-                    { "-sdk", "Builds the SDK package." },
+
+                    { "-help", "Shows this help message." },
                     { "-verbose", "Enables verbose output." },
+
+                    { "-dyndata", "Generates dynamic data." },
+                    { "-reflowrevert", "Revert export header to previous state." },
+                    { "-reflowvalid", "Validates the current export header." },
+                    { "-reflow", "Generates export header definitions." },
                     { "-vtscan", "Uploads a file to VirusTotal for scanning." },
                     { "-write-tools-id", "Writes the tools id file (internal)." },
                 };
@@ -202,7 +212,7 @@ namespace CustomBuildTool
             {
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Build32bit | BuildFlags.Build64bit | BuildFlags.BuildArm64bit | BuildFlags.BuildVerbose | BuildFlags.BuildApi;
-                if (!Build.BuildSolution("SystemInformer.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
                 Build.ShowBuildStats();
             });
             return cmd;
@@ -271,6 +281,7 @@ namespace CustomBuildTool
         private static Command CreatePhAppPubGenCommand()
         {
             var cmd = new Command("-phapppub_gen", "Generates public header files.");
+            cmd.Aliases.Add("-sdk_headers_gen");
             cmd.SetAction(_ =>
             {
                 BuildToolsId.CheckForOutOfDateTools();
@@ -287,6 +298,7 @@ namespace CustomBuildTool
         private static Command CreatePhntHeadersGenCommand()
         {
             var cmd = new Command("-phnt_headers_gen", "Builds single native header.");
+            cmd.Aliases.Add("-sdk_header_gen");
             cmd.SetAction(_ =>
             {
                 BuildToolsId.CheckForOutOfDateTools();
@@ -443,7 +455,7 @@ namespace CustomBuildTool
                 Description = "DevEnv command"
             };
             var cmd = new Command("-devenv-build", "Runs devenv build.");
-            cmd.Add(arg);
+            cmd.Aliases.Add("-build-devenv");
             cmd.SetAction(parseResult =>
             {
                 string c = parseResult.GetValue(arg);
@@ -452,6 +464,7 @@ namespace CustomBuildTool
                 Utils.ExecuteDevEnvCommand(c);
                 Build.ShowBuildStats();
             });
+            cmd.Add(arg);
             return cmd;
         }
 
@@ -463,6 +476,7 @@ namespace CustomBuildTool
         private static Command CreateBinCommand(Option<bool> verboseOption)
         {
             var cmd = new Command("-bin", "Builds the binary package.");
+            cmd.Aliases.Add("-build-zip");
             cmd.SetAction(parseResult =>
             {
                 bool verbose = parseResult.GetValue(verboseOption);
@@ -470,9 +484,9 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
                 if (!Build.CopyTextFiles(true, flags))
@@ -507,9 +521,9 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags))
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags))
+                if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags))
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags);
@@ -582,6 +596,7 @@ namespace CustomBuildTool
         private static Command CreateMsixBuildCommand(Option<bool> verboseOption)
         {
             var cmd = new Command("-msix-build", "Builds MSIX store package.");
+            cmd.Aliases.Add("-build-msix");
             cmd.SetAction(parseResult =>
             {
                 bool verbose = parseResult.GetValue(verboseOption);
@@ -590,8 +605,8 @@ namespace CustomBuildTool
                 Build.SetupBuildEnvironment(true);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags)) Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
                 if (!Build.BuildStorePackage(flags)) Environment.Exit(1);
@@ -672,6 +687,7 @@ namespace CustomBuildTool
         private static Command CreateDebugCommand(Option<bool> verboseOption)
         {
             var cmd = new Command("-debug", "Builds the debug configuration.");
+            cmd.Aliases.Add("-build-debug");
             cmd.SetAction(parseResult =>
             {
                 bool verbose = parseResult.GetValue(verboseOption);
@@ -679,8 +695,8 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Debug | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags)) Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
 
                 Build.ShowBuildStats();
             });
@@ -695,6 +711,7 @@ namespace CustomBuildTool
         private static Command CreateReleaseCommand(Option<bool> verboseOption)
         {
             var cmd = new Command("-release", "Builds the release configuration.");
+            cmd.Aliases.Add("-build-release");
             cmd.SetAction(parseResult =>
             {
                 bool verbose = parseResult.GetValue(verboseOption);
@@ -702,8 +719,8 @@ namespace CustomBuildTool
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
 
-                if (!Build.BuildSolution("SystemInformer.sln", flags)) Environment.Exit(1);
-                if (!Build.BuildSolution("plugins\\Plugins.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
+                if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
                 if (!Build.BuildBinZip(flags)) Environment.Exit(1);
