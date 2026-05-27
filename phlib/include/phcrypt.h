@@ -289,6 +289,109 @@ PhSymCryptSha3_512(
     );
 
 // ------------------------------------------------------------------------
+// Parallel multi-hash API
+//
+// Batches multiple independent hashes in parallel using SymCrypt's native
+// parallel implementations (SHA-256/384/512 up to 8-way parallel).
+//
+// Pattern:
+//   PH_SYMCRYPT_PARALLEL_HASH_CONTEXT ctx = {0};
+//   PhSymCryptInitializeParallelHash(&ctx, PH_SYMCRYPT_PARALLEL_HASH_SHA256, 4);
+//
+//   // Build operation array with arbitrary interleaving
+//   PH_SYMCRYPT_PARALLEL_HASH_OPERATION ops[8] = {...};
+//   PhSymCryptProcessParallelHashOperations(&ctx, ops, 8);
+//
+//   PhSymCryptCleanupParallelHash(&ctx);
+//
+// Exposed structure allows stack allocation. Results are extracted via
+// HASH_OPERATION_RESULT operations.
+//
+// Parallelism limits:
+//   x86/x64: 2-8 parallel hashes
+//   ARM:     3-4 parallel hashes
+// ------------------------------------------------------------------------
+
+// Wrapper macros for SymCrypt parallelism constants
+// x86/x64: 2-8 parallel hashes; ARM: 3-4 parallel hashes
+#if defined(_ARM_) || defined(_ARM64_) || defined(_ARM64EC_)
+#define PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM  (3)
+#define PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM  (4)
+#else
+#define PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM  (2)
+#define PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM  (8)
+#endif
+// SHA384 and SHA512 use same limits as SHA256
+#define PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM
+#define PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
+#define PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM
+#define PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM  PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
+
+typedef enum _PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM
+{
+    PH_SYMCRYPT_PARALLEL_HASH_SHA256 = 1,
+    PH_SYMCRYPT_PARALLEL_HASH_SHA384 = 2,
+    PH_SYMCRYPT_PARALLEL_HASH_SHA512 = 3,
+} PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM;
+
+typedef enum _PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE
+{
+    PH_SYMCRYPT_HASH_OPERATION_APPEND = 1,
+    PH_SYMCRYPT_HASH_OPERATION_RESULT = 2,
+} PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE;
+
+typedef struct _PH_SYMCRYPT_PARALLEL_HASH_OPERATION
+{
+    SIZE_T iHash;
+    PH_SYMCRYPT_PARALLEL_HASH_OPERATION_TYPE hashOperation;
+    _In_reads_bytes_(cbBuffer) PBYTE pbBuffer;
+    SIZE_T cbBuffer;
+} PH_SYMCRYPT_PARALLEL_HASH_OPERATION, *PPH_SYMCRYPT_PARALLEL_HASH_OPERATION;
+
+typedef struct _PH_SYMCRYPT_PARALLEL_HASH_CONTEXT
+{
+    PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm;
+    SIZE_T NumberOfHashes;
+    SIZE_T ResultSize;
+    PVOID pHashStates;
+    PBYTE pbScratchBuffer;
+    SIZE_T cbScratchBuffer;
+} PH_SYMCRYPT_PARALLEL_HASH_CONTEXT, *PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT;
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptInitializeParallelHash(
+    _Out_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
+    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _In_ SIZE_T NumberOfHashes
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptProcessParallelHashOperations(
+    _In_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
+    _Inout_updates_(OperationCount) PPH_SYMCRYPT_PARALLEL_HASH_OPERATION Operations,
+    _In_ SIZE_T OperationCount
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptCleanupParallelHash(
+    _Inout_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext
+    );
+
+EXTERN_C
+VOID
+NTAPI
+PhSymCryptGetParallelHashCapabilities(
+    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _Out_opt_ PSIZE_T MinimumParallelism,
+    _Out_opt_ PSIZE_T MaximumParallelism
+    );
+
 // Incremental hashes (opaque heap-allocated context)
 //
 // Pattern:
@@ -300,7 +403,7 @@ PhSymCryptSha3_512(
 // Result always frees the context, even on early abandonment. To discard
 // an incremental hash without computing the result, call the matching
 // Result function with a throwaway buffer.
-// ------------------------------------------------------------------------
+//
 
 EXTERN_C
 NTSTATUS
@@ -944,6 +1047,101 @@ PhSymCryptEcDsaSignP256Blob(
     _In_reads_bytes_(HashLength) PCVOID Hash,
     _In_ SIZE_T HashLength,
     _Out_writes_bytes_(64) PVOID Signature
+    );
+
+// ------------------------------------------------------------------------
+// Handle-based Asymmetric Key Abstraction (BCrypt Emulation)
+// ------------------------------------------------------------------------
+
+typedef PVOID PH_SYMCRYPT_KEY_HANDLE, *PPH_SYMCRYPT_KEY_HANDLE;
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptGenerateKeyPair(
+    _In_ PWSTR Algorithm,
+    _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ ULONG Length
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptFinalizeKeyPair(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptExportKey(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PWSTR BlobType,
+    _Out_writes_bytes_to_opt_(BlobLength, *ResultLength) PVOID Blob,
+    _In_ ULONG BlobLength,
+    _Out_ PULONG ResultLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptImportKeyPair(
+    _In_ PWSTR Algorithm,
+    _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PWSTR BlobType,
+    _In_reads_bytes_(BlobLength) PVOID Blob,
+    _In_ ULONG BlobLength
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptSignHash(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_opt_ PVOID PaddingInfo,
+    _In_reads_bytes_(HashLength) PVOID Hash,
+    _In_ ULONG HashLength,
+    _Out_writes_bytes_to_opt_(SignatureLength, *ResultLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _Out_ PULONG ResultLength,
+    _In_ ULONG Flags
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptVerifyHash(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_opt_ PVOID PaddingInfo,
+    _In_reads_bytes_(HashLength) PVOID Hash,
+    _In_ ULONG HashLength,
+    _In_reads_bytes_(SignatureLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _In_ ULONG Flags
+    );
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptDestroyKey(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle
+    );
+
+// ------------------------------------------------------------------------
+// Asymmetric key generation (producing BCrypt blobs)
+// ------------------------------------------------------------------------
+
+EXTERN_C
+NTSTATUS
+NTAPI
+PhSymCryptGenerateRsaKeyBlobs(
+    _In_ ULONG Bits,
+    _Out_writes_bytes_to_opt_(PrivateKeyBlobCapacity, *PrivateKeyBlobLength) PVOID PrivateKeyBlob,
+    _In_ SIZE_T PrivateKeyBlobCapacity,
+    _Out_opt_ PSIZE_T PrivateKeyBlobLength,
+    _Out_writes_bytes_to_opt_(PublicKeyBlobCapacity, *PublicKeyBlobLength) PVOID PublicKeyBlob,
+    _In_ SIZE_T PublicKeyBlobCapacity,
+    _Out_opt_ PSIZE_T PublicKeyBlobLength
     );
 
 EXTERN_C_END

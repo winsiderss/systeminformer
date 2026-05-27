@@ -13,6 +13,7 @@
 #include <phcrypt.h>
 #include "..\tools\thirdparty\SymCrypt\inc\symcrypt.h"
 #include <bcrypt.h>
+#include <ntintsafe.h>
 
 // ------------------------------------------------------------------------
 // SYMCRYPT_ERROR -> NTSTATUS translation
@@ -119,6 +120,9 @@ NTSTATUS NTAPI PhSymCryptRdrandGetBytes(
 #if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
     BYTE hashScratch[SYMCRYPT_SHA512_RESULT_SIZE];
     SYMCRYPT_ERROR error;
+
+    if (!Buffer)
+        return STATUS_INVALID_PARAMETER;
 
     //
     // Sample RDRAND, hash-mix into Buffer, scratch buffer used internally.
@@ -420,16 +424,17 @@ NTSTATUS NTAPI PhSymCryptHashInit(
     if (!Context)
         return STATUS_INVALID_PARAMETER;
 
+    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
+
     if (!PhSymCryptResolveHashAlgorithm(Algorithm, &hashAlgorithm, &hashResultSize))
         return STATUS_NOT_SUPPORTED;
 
-    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
+    if (SymCryptHashStateSize(hashAlgorithm) > PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE)
+        return STATUS_BUFFER_TOO_SMALL;
+
     Context->Algorithm = (PVOID)hashAlgorithm;
     Context->ResultSize = hashResultSize;
     Context->StateSize = (ULONG)SymCryptHashStateSize(hashAlgorithm);
-
-    if (Context->StateSize > PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE)
-        return STATUS_BUFFER_TOO_SMALL;
 
     SymCryptHashInit(hashAlgorithm, Context->State);
     return STATUS_SUCCESS;
@@ -619,6 +624,7 @@ NTSTATUS NTAPI PhSymCryptHashAlgorithmIdToAlgorithm(
         NTSTATUS status;                                                        \
         if (!Context)                                                           \
             return STATUS_INVALID_PARAMETER;                                    \
+        *Context = NULL;                                                        \
         compatContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_COMPAT_HASH_CONTEXT));\
         if (!compatContext)                                                     \
             return STATUS_NO_MEMORY;                                            \
@@ -994,6 +1000,9 @@ NTSTATUS NTAPI PhSymCryptAesGcmEncrypt(
 {
     SYMCRYPT_GCM_EXPANDED_KEY expandedKey;
     SYMCRYPT_ERROR error;
+
+    if (!Key || !KeyLength)
+        return STATUS_INVALID_PARAMETER;
 
     //
     // Expand the raw AES key into GCM's internal precomputed tables.
@@ -1500,14 +1509,9 @@ NTSTATUS NTAPI PhSymCryptAesCbcEncryptPkcs7(
     //
 
     padLen = PH_AES_BLOCK_SIZE - (PlaintextLength % PH_AES_BLOCK_SIZE);
-    paddedLength = PlaintextLength + padLen;
 
-    //
-    // Guard against integer overflow on the addition above.
-    //
-
-    if (paddedLength < PlaintextLength)
-        return STATUS_INVALID_PARAMETER;
+    if (!NT_SUCCESS(RtlSIZETAdd(PlaintextLength, padLen, &paddedLength)))
+        return STATUS_INTEGER_OVERFLOW;
 
     //
     // Caller must provide a large enough output buffer.
@@ -1765,10 +1769,23 @@ NTSTATUS PhSymCryptRsaImportPublicKey(
     // Build RSA params: public-only, one exponent.
     //
 
-    params.version = 1;
-    params.nBitsOfModulus = (UINT32)(ModulusLength * 8);
-    params.nPrimes = 0;
-    params.nPubExp = 1;
+    {
+        SIZE_T bitLength;
+        UINT32 bitLength32;
+
+        if (
+            !NT_SUCCESS(RtlSIZETMult(ModulusLength, 8, &bitLength)) ||
+            !NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32))
+            )
+        {
+            return STATUS_INTEGER_OVERFLOW;
+        }
+
+        params.version = 1;
+        params.nBitsOfModulus = bitLength32;
+        params.nPrimes = 0;
+        params.nPubExp = 1;
+    }
 
     //
     // Allocate RSAKEY storage.
@@ -2193,6 +2210,7 @@ NTSTATUS NTAPI PhSymCryptEcDsaVerifyBlob(
     const BCRYPT_ECCKEY_BLOB* header;
     const BYTE* publicKey;
     SIZE_T publicKeyLength;
+    SIZE_T expectedSize;
     BOOLEAN isP256;
 
     //
@@ -2231,13 +2249,17 @@ NTSTATUS NTAPI PhSymCryptEcDsaVerifyBlob(
     // Public key (X || Y) immediately follows the header, total = 2 * cbKey.
     //
 
-    publicKeyLength = (SIZE_T)header->cbKey * 2;
+    if (!NT_SUCCESS(RtlSIZETMult((SIZE_T)header->cbKey, 2, &publicKeyLength)))
+        return STATUS_INTEGER_OVERFLOW;
 
     //
     // Validate the rest of the blob is present.
     //
 
-    if (KeyBlobLength < sizeof(BCRYPT_ECCKEY_BLOB) + publicKeyLength)
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), publicKeyLength, &expectedSize)))
+        return STATUS_INTEGER_OVERFLOW;
+
+    if (KeyBlobLength < expectedSize)
         return STATUS_INVALID_PARAMETER;
 
     publicKey = (const BYTE*)KeyBlob + sizeof(BCRYPT_ECCKEY_BLOB);
@@ -2339,7 +2361,13 @@ NTSTATUS NTAPI PhSymCryptRsaVerifyBlob(
     // Validate the full blob length holds exponent + modulus.
     //
 
-    expectedSize = sizeof(BCRYPT_RSAKEY_BLOB) + header->cbPublicExp + header->cbModulus;
+    if (
+        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
+        )
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
 
     if (KeyBlobLength < expectedSize)
         return STATUS_INVALID_PARAMETER;
@@ -2635,12 +2663,14 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
     // Compute the minimum byte count for the fields we need (PublicExp..Prime2).
     //
 
-    expectedSize =
-        sizeof(BCRYPT_RSAKEY_BLOB) +
-        header->cbPublicExp +
-        header->cbModulus +
-        cbPrime1 +
-        cbPrime2;
+    if (
+        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime1, &expectedSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(expectedSize, cbPrime2, &expectedSize)))
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
 
     if (KeyBlobLength < expectedSize)
         return STATUS_INVALID_PARAMETER;
@@ -2669,8 +2699,17 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
     // Build RSA params for a 2-prime private key.
     //
 
-    params.version = 1;
-    params.nBitsOfModulus = (UINT32)(header->cbModulus * 8);
+    {
+        SIZE_T bitLength;
+        UINT bitLength32;
+
+        if (!NT_SUCCESS(RtlSIZETMult(header->cbModulus, 8, &bitLength)) ||
+            !NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32)))
+            return STATUS_INTEGER_OVERFLOW;
+
+        params.version = 1;
+        params.nBitsOfModulus = bitLength32;
+    }
     params.nPrimes = 2;
     params.nPubExp = 1;
 
@@ -2761,6 +2800,9 @@ NTSTATUS NTAPI PhSymCryptRsaPkcs1SignBlob(
     // Reset out-param so error paths report 0 bytes written.
     //
 
+    if (!Signature || !SignatureLength)
+        return STATUS_INVALID_PARAMETER;
+
     *SignatureLength = 0;
 
     //
@@ -2794,6 +2836,7 @@ NTSTATUS NTAPI PhSymCryptRsaPkcs1SignBlob(
         return STATUS_BUFFER_TOO_SMALL;
     }
 
+    memset(Signature, 0, SignatureCapacity);
     producedLength = modulusLength;
 
     //
@@ -2864,6 +2907,9 @@ NTSTATUS NTAPI PhSymCryptRsaPssSignBlob(
     // Reset out-param so error paths report 0 bytes written.
     //
 
+    if (!Signature || !SignatureLength)
+        return STATUS_INVALID_PARAMETER;
+
     *SignatureLength = 0;
 
     //
@@ -2899,6 +2945,7 @@ NTSTATUS NTAPI PhSymCryptRsaPssSignBlob(
         return STATUS_BUFFER_TOO_SMALL;
     }
 
+    memset(Signature, 0, SignatureCapacity);
     producedLength = modulusLength;
 
     //
@@ -2960,12 +3007,16 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
     PSYMCRYPT_ECURVE curve;
     PSYMCRYPT_ECKEY key;
     SYMCRYPT_ERROR error;
+    SIZE_T expectedSize;
 
     //
     // Blob must hold at least header + 32+32+32 = 96 bytes for P-256 private.
     //
 
-    if (KeyBlobLength < sizeof(BCRYPT_ECCKEY_BLOB) + 96)
+    if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), 96, &expectedSize)))
+        return STATUS_INTEGER_OVERFLOW;
+
+    if (KeyBlobLength < expectedSize)
         return STATUS_INVALID_PARAMETER;
 
     header = (const BCRYPT_ECCKEY_BLOB*)KeyBlob;
@@ -2983,6 +3034,8 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
 
     if (header->cbKey != 32)
         return STATUS_INVALID_PARAMETER;
+
+    memset(Signature, 0, 64);
 
     //
     // Layout after header: X (32) || Y (32) || D (32).
@@ -3055,9 +3108,1464 @@ NTSTATUS NTAPI PhSymCryptEcDsaSignP256Blob(
     return PhSymCryptErrorToStatus(error);
 }
 
+// ------------------------------------------------------------------------
+// Parallel multi-hash API
+//
+// Wraps SymCrypt's native parallel SHA-256/384/512 implementations (up to
+// 8-way parallel) with phlib's caller-owned context model and error handling.
+// ------------------------------------------------------------------------
+
+/**
+ * Initializes a parallel hash context for batched multi-hash operations.
+ *
+ * Allocates hash state arrays and scratch buffers required by SymCrypt's
+ * parallel implementation. Caller retains ownership of the context structure
+ * and must eventually call PhSymCryptCleanupParallelHash.
+ *
+ * \param[out] ParallelHashContext Caller-allocated context structure.
+ * \param[in] Algorithm Hash algorithm (SHA-256, SHA-384, or SHA-512).
+ * \param[in] NumberOfHashes Number of independent hash streams (2-8, varies by algorithm).
+ * \return STATUS_SUCCESS on success; STATUS_INVALID_PARAMETER if NumberOfHashes
+ *         exceeds algorithm limits; STATUS_INSUFFICIENT_RESOURCES on allocation failure.
+ */
+NTSTATUS NTAPI PhSymCryptInitializeParallelHash(
+    _Out_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
+    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _In_ SIZE_T NumberOfHashes
+    )
+{
+    SIZE_T stateSize, scratchSize, fixedScratchSize, perStateScratchSize;
+
+    if (!ParallelHashContext || NumberOfHashes == 0)
+        return STATUS_INVALID_PARAMETER;
+
+    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_PARALLEL_HASH_CONTEXT));
+
+    switch (Algorithm)
+    {
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+        {
+            if (
+                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM
+                )
+            {
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            stateSize = sizeof(SYMCRYPT_SHA256_STATE);
+            fixedScratchSize = SYMCRYPT_PARALLEL_SHA256_FIXED_SCRATCH;
+            perStateScratchSize = SYMCRYPT_PARALLEL_HASH_PER_STATE_SCRATCH;
+            ParallelHashContext->ResultSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+        {
+            if (
+                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM
+                )
+            {
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            stateSize = sizeof(SYMCRYPT_SHA384_STATE);
+            fixedScratchSize = SYMCRYPT_PARALLEL_SHA384_FIXED_SCRATCH;
+            perStateScratchSize = SYMCRYPT_PARALLEL_HASH_PER_STATE_SCRATCH;
+            ParallelHashContext->ResultSize = PH_SYMCRYPT_SHA384_RESULT_SIZE;
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+        {
+            if (
+                NumberOfHashes < PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM ||
+                NumberOfHashes > PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM
+                )
+            {
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            stateSize = sizeof(SYMCRYPT_SHA512_STATE);
+            fixedScratchSize = SYMCRYPT_PARALLEL_SHA512_FIXED_SCRATCH;
+            perStateScratchSize = SYMCRYPT_PARALLEL_HASH_PER_STATE_SCRATCH;
+            ParallelHashContext->ResultSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
+        }
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    ParallelHashContext->Algorithm = Algorithm;
+    ParallelHashContext->NumberOfHashes = NumberOfHashes;
+
+    if (!NT_SUCCESS(RtlSIZETMult(stateSize, NumberOfHashes, &stateSize)))
+        return STATUS_INTEGER_OVERFLOW;
+
+    //
+    // Allocate state array
+    //
+
+    ParallelHashContext->pHashStates = PhAllocateSafe(stateSize);
+    if (!ParallelHashContext->pHashStates)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    //
+    // Allocate scratch buffer: fixed portion + per-state portion
+    //
+
+    if (
+        !NT_SUCCESS(RtlSIZETMult(perStateScratchSize, NumberOfHashes, &scratchSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(fixedScratchSize, scratchSize, &scratchSize))
+        )
+    {
+        PhFree(ParallelHashContext->pHashStates);
+        ParallelHashContext->pHashStates = NULL;
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    ParallelHashContext->pbScratchBuffer = PhAllocateSafe(scratchSize);
+    if (!ParallelHashContext->pbScratchBuffer)
+    {
+        PhFree(ParallelHashContext->pHashStates);
+        ParallelHashContext->pHashStates = NULL;
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    ParallelHashContext->cbScratchBuffer = scratchSize;
+
+    //
+    // Initialize all hash states to their initial values
+    //
+
+    switch (Algorithm)
+    {
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+        {
+            SymCryptParallelSha256Init(
+                (PSYMCRYPT_SHA256_STATE)ParallelHashContext->pHashStates,
+                NumberOfHashes
+                );
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+        {
+            SymCryptParallelSha384Init(
+                (PSYMCRYPT_SHA384_STATE)ParallelHashContext->pHashStates,
+                NumberOfHashes
+                );
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+        {
+            SymCryptParallelSha512Init(
+                (PSYMCRYPT_SHA512_STATE)ParallelHashContext->pHashStates,
+                NumberOfHashes
+                );
+        }
+        break;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Processes a batch of hash operations on an initialized parallel context.
+ *
+ * Operations can be arbitrarily interleaved—append data to any hash or finish
+ * any hash in any order. Each operation specifies a target hash index (0 to
+ * NumberOfHashes-1), the operation type (append or result), and the data/buffer.
+ *
+ * \param[in] ParallelHashContext Initialized context.
+ * \param[in,out] Operations Array of operations to process. Results extracted via
+ *        operations with hashOperation == HASH_OPERATION_RESULT.
+ * \param[in] OperationCount Number of operations in the array.
+ * \return STATUS_SUCCESS on success; STATUS_INVALID_PARAMETER if any operation
+ *         references an invalid hash index or other parameter error.
+ */
+NTSTATUS NTAPI PhSymCryptProcessParallelHashOperations(
+    _In_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext,
+    _Inout_updates_(OperationCount) PPH_SYMCRYPT_PARALLEL_HASH_OPERATION Operations,
+    _In_ SIZE_T OperationCount
+    )
+{
+    SYMCRYPT_ERROR error;
+    SYMCRYPT_PARALLEL_HASH_OPERATION *symcryptOps;
+    SIZE_T symcryptOpsSize;
+    SIZE_T i;
+
+    if (!ParallelHashContext->pHashStates || !Operations || OperationCount == 0)
+        return STATUS_INVALID_PARAMETER;
+
+    //
+    // Validate all operations before processing
+    //
+
+    for (i = 0; i < OperationCount; i++)
+    {
+        if (Operations[i].iHash >= ParallelHashContext->NumberOfHashes)
+            return STATUS_INVALID_PARAMETER;
+        if (Operations[i].hashOperation != PH_SYMCRYPT_HASH_OPERATION_APPEND &&
+            Operations[i].hashOperation != PH_SYMCRYPT_HASH_OPERATION_RESULT)
+            return STATUS_INVALID_PARAMETER;
+    }
+
+    if (!NT_SUCCESS(RtlSIZETMult(OperationCount, sizeof(SYMCRYPT_PARALLEL_HASH_OPERATION), &symcryptOpsSize)))
+        return STATUS_INTEGER_OVERFLOW;
+
+    //
+    // Convert operation array to SymCrypt format
+    //
+
+    symcryptOps = (SYMCRYPT_PARALLEL_HASH_OPERATION *)PhAllocateSafe(symcryptOpsSize);
+    if (!symcryptOps)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    for (i = 0; i < OperationCount; i++)
+    {
+        symcryptOps[i].iHash = Operations[i].iHash;
+        symcryptOps[i].hashOperation = (SYMCRYPT_HASH_OPERATION_TYPE)Operations[i].hashOperation;
+        symcryptOps[i].pbBuffer = Operations[i].pbBuffer;
+        symcryptOps[i].cbBuffer = Operations[i].cbBuffer;
+    }
+
+    //
+    // Process operations based on algorithm
+    //
+
+    switch (ParallelHashContext->Algorithm)
+    {
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+        {
+            error = SymCryptParallelSha256Process(
+                (PSYMCRYPT_SHA256_STATE)ParallelHashContext->pHashStates,
+                ParallelHashContext->NumberOfHashes,
+                symcryptOps,
+                OperationCount,
+                ParallelHashContext->pbScratchBuffer,
+                ParallelHashContext->cbScratchBuffer
+                );
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+        {
+            error = SymCryptParallelSha384Process(
+                (PSYMCRYPT_SHA384_STATE)ParallelHashContext->pHashStates,
+                ParallelHashContext->NumberOfHashes,
+                symcryptOps,
+                OperationCount,
+                ParallelHashContext->pbScratchBuffer,
+                ParallelHashContext->cbScratchBuffer
+                );
+        }
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+        {
+            error = SymCryptParallelSha512Process(
+                (PSYMCRYPT_SHA512_STATE)ParallelHashContext->pHashStates,
+                ParallelHashContext->NumberOfHashes,
+                symcryptOps,
+                OperationCount,
+                ParallelHashContext->pbScratchBuffer,
+                ParallelHashContext->cbScratchBuffer
+                );
+        }
+        break;
+    default:
+        PhFree(symcryptOps);
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    PhFree(symcryptOps);
+    return PhSymCryptErrorToStatus(error);
+}
+
+/**
+ * Cleans up a parallel hash context and frees all allocated resources.
+ *
+ * Wipes sensitive hash state data before freeing. Safe to call on a context
+ * that was never successfully initialized (checks for NULL pointers).
+ *
+ * \param[in,out] ParallelHashContext Context to clean up.
+ */
+VOID NTAPI PhSymCryptCleanupParallelHash(
+    _Inout_ PPH_SYMCRYPT_PARALLEL_HASH_CONTEXT ParallelHashContext
+    )
+{
+    if (!ParallelHashContext || !ParallelHashContext->pHashStates)
+        return;
+
+    //
+    // Wipe hash state before freeing
+    //
+
+    if (ParallelHashContext->cbScratchBuffer > 0)
+    {
+        SIZE_T stateSize = 0;
+        SIZE_T stateTotalSize;
+        switch (ParallelHashContext->Algorithm)
+        {
+        case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+            stateSize = sizeof(SYMCRYPT_SHA256_STATE);
+            break;
+        case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+            stateSize = sizeof(SYMCRYPT_SHA384_STATE);
+            break;
+        case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+            stateSize = sizeof(SYMCRYPT_SHA512_STATE);
+            break;
+        }
+        if (!NT_SUCCESS(RtlSIZETMult(stateSize, ParallelHashContext->NumberOfHashes, &stateTotalSize)))
+            stateTotalSize = 0;
+
+        SymCryptWipeKnownSize(
+            ParallelHashContext->pHashStates,
+            stateTotalSize
+            );
+    }
+
+    PhFree(ParallelHashContext->pHashStates);
+    ParallelHashContext->pHashStates = NULL;
+
+    if (ParallelHashContext->pbScratchBuffer)
+    {
+        SymCryptWipeKnownSize(
+            ParallelHashContext->pbScratchBuffer,
+            ParallelHashContext->cbScratchBuffer
+            );
+        PhFree(ParallelHashContext->pbScratchBuffer);
+        ParallelHashContext->pbScratchBuffer = NULL;
+    }
+
+    memset(ParallelHashContext, 0, sizeof(PH_SYMCRYPT_PARALLEL_HASH_CONTEXT));
+}
+
+/**
+ * Reports the min/max supported parallelism for a given algorithm.
+ *
+ * Helps callers choose optimal batch sizes. SymCrypt's implementations support
+ * 2-8 parallel hashes for SHA-256/384/512 depending on CPU architecture.
+ *
+ * \param[in] Algorithm Hash algorithm.
+ * \param[out] MinimumParallelism Receives minimum supported parallelism (optional).
+ * \param[out] MaximumParallelism Receives maximum supported parallelism (optional).
+ */
+VOID NTAPI PhSymCryptGetParallelHashCapabilities(
+    _In_ PH_SYMCRYPT_PARALLEL_HASH_ALGORITHM Algorithm,
+    _Out_opt_ PSIZE_T MinimumParallelism,
+    _Out_opt_ PSIZE_T MaximumParallelism
+    )
+{
+    switch (Algorithm)
+    {
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA256:
+        if (MinimumParallelism)
+            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA256_MIN_PARALLELISM;
+        if (MaximumParallelism)
+            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA256_MAX_PARALLELISM;
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA384:
+        if (MinimumParallelism)
+            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA384_MIN_PARALLELISM;
+        if (MaximumParallelism)
+            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA384_MAX_PARALLELISM;
+        break;
+    case PH_SYMCRYPT_PARALLEL_HASH_SHA512:
+        if (MinimumParallelism)
+            *MinimumParallelism = PH_SYMCRYPT_PARALLEL_SHA512_MIN_PARALLELISM;
+        if (MaximumParallelism)
+            *MaximumParallelism = PH_SYMCRYPT_PARALLEL_SHA512_MAX_PARALLELISM;
+        break;
+    default:
+        if (MinimumParallelism)
+            *MinimumParallelism = 0;
+        if (MaximumParallelism)
+            *MaximumParallelism = 0;
+        break;
+    }
+}// ------------------------------------------------------------------------
+
+// ------------------------------------------------------------------------
+// Handle-based Asymmetric Key Abstraction (BCrypt Emulation)
+// ------------------------------------------------------------------------
+
+/**
+ * Generates a new asymmetric key handle for the specified algorithm and length.
+ *
+ * This function allocates and initializes a PH_SYMCRYPT_KEY structure for RSA or ECDSA.
+ * The actual key material is generated by PhSymCryptFinalizeKeyPair.
+ *
+ * \param[in] Algorithm Algorithm name (e.g., BCRYPT_RSA_ALGORITHM, BCRYPT_ECDSA_P256_ALGORITHM).
+ * \param[out] KeyHandle Receives the new key handle.
+ * \param[in] Length Key size in bits (RSA: modulus bits, ECDSA: must be 256).
+ * \return NTSTATUS code.
+ */
+
+#define PH_SYMCRYPT_KEY_MAGIC 'SKey'
+
+typedef enum _PH_SYMCRYPT_KEY_ALGORITHM
+{
+    PhSymCryptKeyAlgorithmRsa,
+    PhSymCryptKeyAlgorithmEcdsa
+} PH_SYMCRYPT_KEY_ALGORITHM;
+
+typedef struct _PH_SYMCRYPT_KEY
+{
+    ULONG Magic;
+    PH_SYMCRYPT_KEY_ALGORITHM Algorithm;
+    ULONG BitLength;
+    PSYMCRYPT_RSAKEY RsaKey;
+    PSYMCRYPT_ECKEY EcKey;
+    PSYMCRYPT_ECURVE Curve;
+} PH_SYMCRYPT_KEY, *PPH_SYMCRYPT_KEY;
+
+NTSTATUS NTAPI PhSymCryptGenerateKeyPair(
+    _In_ PWSTR Algorithm,
+    _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ ULONG Length
+    )
+{
+    PPH_SYMCRYPT_KEY key;
+
+    if (!KeyHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_KEY));
+    key->Magic = PH_SYMCRYPT_KEY_MAGIC;
+    key->BitLength = Length;
+
+    if (PhEqualStringZ(Algorithm, BCRYPT_RSA_ALGORITHM, TRUE))
+        key->Algorithm = PhSymCryptKeyAlgorithmRsa;
+    else if (PhEqualStringZ(Algorithm, BCRYPT_ECDSA_P256_ALGORITHM, TRUE))
+        key->Algorithm = PhSymCryptKeyAlgorithmEcdsa;
+    else
+    {
+        PhFree(key);
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
 
 
+/**
+ * Finalizes a key handle by generating the actual key material.
+ *
+ * For RSA, generates a new key pair with a fixed public exponent (65537).
+ * For ECDSA, generates a new P-256 key pair.
+ *
+ * \param[in] KeyHandle Key handle to finalize.
+ * \return NTSTATUS code.
+ */
+
+NTSTATUS NTAPI PhSymCryptFinalizeKeyPair(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+    SYMCRYPT_ERROR error;
+
+    if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    if (key->Algorithm == PhSymCryptKeyAlgorithmRsa)
+    {
+        SYMCRYPT_RSA_PARAMS params;
+        ULONG64 pubExp;
+
+        params.version = 1;
+        params.nBitsOfModulus = key->BitLength;
+        params.nPrimes = 2;
+        params.nPubExp = 1;
+
+        key->RsaKey = SymCryptRsakeyAllocate(&params, 0);
+        if (!key->RsaKey)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        pubExp = 65537;
+        error = SymCryptRsakeyGenerate(key->RsaKey, &pubExp, 1, SYMCRYPT_FLAG_RSAKEY_SIGN | SYMCRYPT_FLAG_RSAKEY_ENCRYPT);
+
+        if (error != SYMCRYPT_NO_ERROR)
+        {
+            SymCryptRsakeyFree(key->RsaKey);
+            key->RsaKey = NULL;
+            return PhSymCryptErrorToStatus(error);
+        }
+    }
+    else if (key->Algorithm == PhSymCryptKeyAlgorithmEcdsa)
+    {
+        if (key->BitLength != 256)
+            return STATUS_NOT_SUPPORTED;
+
+        key->Curve = SymCryptEcurveAllocate(SymCryptEcurveParamsNistP256, 0);
+        if (!key->Curve)
+            return STATUS_INSUFFICIENT_RESOURCES;
+
+        key->EcKey = SymCryptEckeyAllocate(key->Curve);
+        if (!key->EcKey)
+        {
+            SymCryptEcurveFree(key->Curve);
+            key->Curve = NULL;
+            return STATUS_INSUFFICIENT_RESOURCES;
+        }
+
+        error = SymCryptEckeySetRandom(SYMCRYPT_FLAG_ECKEY_ECDSA, key->EcKey);
+
+        if (error != SYMCRYPT_NO_ERROR)
+        {
+            SymCryptEckeyFree(key->EcKey);
+            SymCryptEcurveFree(key->Curve);
+            key->EcKey = NULL;
+            key->Curve = NULL;
+            return PhSymCryptErrorToStatus(error);
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
 
 
+/**
+ * Exports a key handle to a standard key blob.
+ *
+ * Supports exporting RSA and ECDSA keys in BCRYPT-compatible blob formats.
+ *
+ * \param[in] KeyHandle Key handle to export.
+ * \param[in] BlobType Blob type string (e.g., BCRYPT_RSAPRIVATE_BLOB).
+ * \param[out] Blob Output buffer for the key blob.
+ * \param[in] BlobLength Size of the output buffer.
+ * \param[out] ResultLength Receives the number of bytes written or required.
+ * \return NTSTATUS code.
+ */
+
+NTSTATUS NTAPI PhSymCryptExportKey(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PWSTR BlobType,
+    _Out_writes_bytes_to_opt_(BlobLength, *ResultLength) PVOID Blob,
+    _In_ ULONG BlobLength,
+    _Out_ PULONG ResultLength
+    )
+{
+    PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+    SYMCRYPT_ERROR error;
+
+    if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    if (key->Algorithm == PhSymCryptKeyAlgorithmRsa)
+    {
+        SIZE_T modulusLength = key->BitLength / 8;
+        SIZE_T primeLength = modulusLength / 2;
+        SIZE_T publicExpLength = sizeof(ULONG64);
+
+        if (PhEqualStringZ(BlobType, BCRYPT_RSAPRIVATE_BLOB, TRUE))
+        {
+            SIZE_T primeBlobSize;
+            SIZE_T privBlobSize;
+            ULONG resultLength;
+
+            if (
+                !NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &privBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(privBlobSize, modulusLength, &privBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(privBlobSize, primeBlobSize, &privBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength))
+                )
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            *ResultLength = resultLength;
+
+            if (!Blob)
+                return STATUS_SUCCESS;
+            if (BlobLength < privBlobSize)
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)Blob;
+            PBYTE expBuf = (PBYTE)(header + 1);
+            PBYTE modBuf = expBuf + publicExpLength;
+            PBYTE prime1Buf = modBuf + modulusLength;
+            PBYTE prime2Buf = prime1Buf + primeLength;
+            PBYTE primePtrs[2];
+            SIZE_T primeSizes[2];
+            ULONG64 extractedPubExp;
+
+            primePtrs[0] = prime1Buf;
+            primePtrs[1] = prime2Buf;
+            primeSizes[0] = primeLength;
+            primeSizes[1] = primeLength;
+
+            error = SymCryptRsakeyGetValue(
+                key->RsaKey,
+                modBuf,
+                modulusLength,
+                &extractedPubExp,
+                1,
+                primePtrs,
+                primeSizes,
+                2,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                0
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            header->Magic = BCRYPT_RSAPRIVATE_MAGIC;
+            header->BitLength = key->BitLength;
+            header->cbPublicExp = (ULONG)publicExpLength;
+            header->cbModulus = (ULONG)modulusLength;
+            header->cbPrime1 = (ULONG)primeLength;
+            header->cbPrime2 = (ULONG)primeLength;
+
+            for (ULONG i = 0; i < publicExpLength; i++)
+            {
+                expBuf[publicExpLength - 1 - i] = (BYTE)(extractedPubExp & 0xFF);
+                extractedPubExp >>= 8;
+            }
+            return STATUS_SUCCESS;
+        }
+        else if (PhEqualStringZ(BlobType, BCRYPT_RSAPUBLIC_BLOB, TRUE))
+        {
+            SIZE_T pubBlobSize;
+            ULONG resultLength;
+
+            if (
+                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength))
+                )
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            *ResultLength = resultLength;
+
+            if (!Blob)
+                return STATUS_SUCCESS;
+            if (BlobLength < pubBlobSize)
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)Blob;
+            PBYTE expBuf = (PBYTE)(header + 1);
+            PBYTE modBuf = expBuf + publicExpLength;
+            ULONG64 extractedPubExp;
+
+            error = SymCryptRsakeyGetValue(
+                key->RsaKey,
+                modBuf,
+                modulusLength,
+                &extractedPubExp,
+                1,
+                NULL,
+                NULL,
+                0,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                0
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            header->Magic = BCRYPT_RSAPUBLIC_MAGIC;
+            header->BitLength = key->BitLength;
+            header->cbPublicExp = (ULONG)publicExpLength;
+            header->cbModulus = (ULONG)modulusLength;
+            header->cbPrime1 = 0;
+            header->cbPrime2 = 0;
+
+            for (ULONG i = 0; i < publicExpLength; i++)
+            {
+                expBuf[publicExpLength - 1 - i] = (BYTE)(extractedPubExp & 0xFF);
+                extractedPubExp >>= 8;
+            }
+
+            return STATUS_SUCCESS;
+        }
+    }
+    else if (key->Algorithm == PhSymCryptKeyAlgorithmEcdsa)
+    {
+        if (key->BitLength != 256)
+            return STATUS_NOT_SUPPORTED;
+
+        if (PhEqualStringZ(BlobType, BCRYPT_ECCPRIVATE_BLOB, TRUE))
+        {
+            SIZE_T privateKeyMaterialSize;
+            SIZE_T privBlobSize;
+            ULONG resultLength;
+
+            if (
+                !NT_SUCCESS(RtlSIZETMult(32, 3, &privateKeyMaterialSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), privateKeyMaterialSize, &privBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETToULong(privBlobSize, &resultLength))
+                )
+            {
+                return STATUS_INTEGER_OVERFLOW;
+            }
+
+            *ResultLength = resultLength;
+
+            if (!Blob)
+                return STATUS_SUCCESS;
+            if (BlobLength < privBlobSize)
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)Blob;
+            PBYTE xyBuf = (PBYTE)(header + 1);
+            PBYTE dBuf = xyBuf + 64;
+
+            error = SymCryptEckeyGetValue(
+                key->EcKey,
+                dBuf,
+                32,
+                xyBuf,
+                64,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                SYMCRYPT_ECPOINT_FORMAT_XY,
+                0
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            header->dwMagic = BCRYPT_ECDSA_PRIVATE_P256_MAGIC;
+            header->cbKey = 32;
+
+            return STATUS_SUCCESS;
+        }
+        else if (PhEqualStringZ(BlobType, BCRYPT_ECCPUBLIC_BLOB, TRUE))
+        {
+            SIZE_T publicKeyMaterialSize;
+            SIZE_T pubBlobSize;
+            ULONG resultLength;
+
+            if (!NT_SUCCESS(RtlSIZETMult(32, 2, &publicKeyMaterialSize)) ||
+                !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), publicKeyMaterialSize, &pubBlobSize)) ||
+                !NT_SUCCESS(RtlSIZETToULong(pubBlobSize, &resultLength)))
+                return STATUS_INTEGER_OVERFLOW;
+
+            *ResultLength = resultLength;
+
+            if (!Blob)
+                return STATUS_SUCCESS;
+            if (BlobLength < pubBlobSize)
+                return STATUS_BUFFER_TOO_SMALL;
+
+            BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)Blob;
+            PBYTE xyBuf = (PBYTE)(header + 1);
+
+            error = SymCryptEckeyGetValue(
+                key->EcKey,
+                NULL,
+                0,
+                xyBuf,
+                64,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                SYMCRYPT_ECPOINT_FORMAT_XY,
+                0
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            header->dwMagic = BCRYPT_ECDSA_PUBLIC_P256_MAGIC;
+            header->cbKey = 32;
+
+            return STATUS_SUCCESS;
+        }
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
 
 
+/**
+ * Imports a key pair from a standard key blob.
+ *
+ * Supports importing RSA and ECDSA keys in BCRYPT-compatible blob formats.
+ *
+ * \param[in] Algorithm Algorithm name (e.g., BCRYPT_RSA_ALGORITHM).
+ * \param[out] KeyHandle Receives the imported key handle.
+ * \param[in] BlobType Blob type string.
+ * \param[in] Blob Input buffer containing the key blob.
+ * \param[in] BlobLength Size of the input buffer.
+ * \return NTSTATUS code.
+ */
+
+NTSTATUS NTAPI PhSymCryptImportKeyPair(
+    _In_ PWSTR Algorithm,
+    _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PWSTR BlobType,
+    _In_reads_bytes_(BlobLength) PVOID Blob,
+    _In_ ULONG BlobLength
+    )
+{
+    NTSTATUS status;
+    PPH_SYMCRYPT_KEY key;
+    SYMCRYPT_ERROR error;
+
+    if (!KeyHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_KEY));
+    key->Magic = PH_SYMCRYPT_KEY_MAGIC;
+
+    if (PhEqualStringZ(Algorithm, BCRYPT_RSA_ALGORITHM, TRUE))
+    {
+        key->Algorithm = PhSymCryptKeyAlgorithmRsa;
+
+        if (
+            PhEqualStringZ(BlobType, BCRYPT_RSAPRIVATE_BLOB, TRUE) ||
+            PhEqualStringZ(BlobType, BCRYPT_RSAPUBLIC_BLOB, TRUE)
+            )
+        {
+            BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)Blob;
+            SIZE_T modulusLength;
+
+            if (BlobLength < sizeof(BCRYPT_RSAKEY_BLOB))
+            {
+                PhFree(key);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            key->BitLength = header->BitLength;
+
+            if (header->Magic == BCRYPT_RSAPRIVATE_MAGIC || header->Magic == BCRYPT_RSAFULLPRIVATE_MAGIC)
+            {
+                status = PhSymCryptRsaImportPrivateKey(
+                    Blob, 
+                    BlobLength, 
+                    &key->RsaKey,
+                    &modulusLength
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhFree(key);
+                    return status;
+                }
+            }
+            else if (header->Magic == BCRYPT_RSAPUBLIC_MAGIC)
+            {
+                PCBYTE exponent;
+                PCBYTE modulus;
+                ULONG64 publicExponent;
+                SIZE_T expectedSize;
+
+                if (header->cbPublicExp == 0 || header->cbPublicExp > sizeof(ULONG64))
+                {
+                    PhFree(key);
+                    return STATUS_INVALID_PARAMETER;
+                }
+
+                if (header->cbModulus == 0)
+                {
+                    PhFree(key);
+                    return STATUS_INVALID_PARAMETER;
+                }
+
+                if (
+                    !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
+                    !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
+                    )
+                {
+                    PhFree(key);
+                    return STATUS_INTEGER_OVERFLOW;
+                }
+
+                if (BlobLength < expectedSize)
+                {
+                    PhFree(key);
+                    return STATUS_INVALID_PARAMETER;
+                }
+
+                exponent = (PCBYTE)Blob + sizeof(BCRYPT_RSAKEY_BLOB);
+                modulus = exponent + header->cbPublicExp;
+
+                publicExponent = 0;
+                for (ULONG i = 0; i < header->cbPublicExp; i++)
+                {
+                    publicExponent = (publicExponent << 8) | exponent[i];
+                }
+
+                status = PhSymCryptRsaImportPublicKey(
+                    modulus, 
+                    header->cbModulus,
+                    publicExponent,
+                    &key->RsaKey
+                    );
+
+                if (!NT_SUCCESS(status))
+                {
+                    PhFree(key);
+                    return status;
+                }
+            }
+            else
+            {
+                PhFree(key);
+                return STATUS_NOT_SUPPORTED;
+            }
+
+
+            /**
+             * Signs a hash value using the specified key handle.
+             *
+             * Supports RSA-PSS and ECDSA signatures.
+             *
+             * \param[in] KeyHandle Key handle to use for signing.
+             * \param[in] PaddingInfo Padding information (RSA-PSS only).
+             * \param[in] Hash Hash value to sign.
+             * \param[in] HashLength Length of the hash value.
+             * \param[out] Signature Output buffer for the signature.
+             * \param[in] SignatureLength Size of the output buffer.
+             * \param[out] ResultLength Receives the number of bytes written or required.
+             * \param[in] Flags Padding flags (e.g., BCRYPT_PAD_PSS).
+             * \return NTSTATUS code.
+             */
+
+            *KeyHandle = key;
+            return STATUS_SUCCESS;
+        }
+    }
+    else if (PhEqualStringZ(Algorithm, BCRYPT_ECDSA_P256_ALGORITHM, TRUE))
+    {
+        key->Algorithm = PhSymCryptKeyAlgorithmEcdsa;
+
+        if (
+            PhEqualStringZ(BlobType, BCRYPT_ECCPRIVATE_BLOB, TRUE) ||
+            PhEqualStringZ(BlobType, BCRYPT_ECCPUBLIC_BLOB, TRUE)
+            )
+        {
+            BCRYPT_ECCKEY_BLOB* header = (BCRYPT_ECCKEY_BLOB*)Blob;
+            PBYTE xyBuf = (PBYTE)(header + 1);
+            PBYTE dBuf = NULL;
+            SIZE_T expectedSize;
+
+            if (BlobLength < sizeof(BCRYPT_ECCKEY_BLOB))
+            {
+                PhFree(key);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            if (header->cbKey != 32)
+            {
+                PhFree(key);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            key->BitLength = 256;
+
+            if (header->dwMagic == BCRYPT_ECDSA_PRIVATE_P256_MAGIC)
+            {
+                if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), 96, &expectedSize)))
+                {
+                    PhFree(key);
+                    return STATUS_INTEGER_OVERFLOW;
+                }
+
+                if (BlobLength < expectedSize)
+                {
+                    PhFree(key);
+                    return STATUS_INVALID_PARAMETER;
+                }
+                dBuf = xyBuf + 64;
+            }
+            else if (header->dwMagic == BCRYPT_ECDSA_PUBLIC_P256_MAGIC)
+            {
+                if (!NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_ECCKEY_BLOB), 64, &expectedSize)))
+                {
+                    PhFree(key);
+                    return STATUS_INTEGER_OVERFLOW;
+                }
+
+                if (BlobLength < expectedSize)
+                {
+                    PhFree(key);
+                    return STATUS_INVALID_PARAMETER;
+                }
+            }
+            else
+            {
+                PhFree(key);
+                return STATUS_NOT_SUPPORTED;
+            }
+
+            key->Curve = SymCryptEcurveAllocate(SymCryptEcurveParamsNistP256, 0);
+            if (!key->Curve)
+            {
+                PhFree(key);
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            key->EcKey = SymCryptEckeyAllocate(key->Curve);
+            if (!key->EcKey)
+            {
+                SymCryptEcurveFree(key->Curve);
+                PhFree(key);
+                return STATUS_INSUFFICIENT_RESOURCES;
+            }
+
+            error = SymCryptEckeySetValue(
+                dBuf,
+                dBuf ? 32 : 0,
+                xyBuf,
+                64,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                SYMCRYPT_ECPOINT_FORMAT_XY,
+                SYMCRYPT_FLAG_ECKEY_ECDSA,
+                key->EcKey
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+            {
+                SymCryptEckeyFree(key->EcKey);
+                SymCryptEcurveFree(key->Curve);
+                PhFree(key);
+                return PhSymCryptErrorToStatus(error);
+            }
+
+            *KeyHandle = key;
+            return STATUS_SUCCESS;
+        }
+    }
+
+    PhFree(key);
+    return STATUS_NOT_SUPPORTED;
+}
+
+NTSTATUS NTAPI PhSymCryptSignHash(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_opt_ PVOID PaddingInfo,
+    _In_reads_bytes_(HashLength) PVOID Hash,
+    _In_ ULONG HashLength,
+    _Out_writes_bytes_to_opt_(SignatureLength, *ResultLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _Out_ PULONG ResultLength,
+    _In_ ULONG Flags
+    )
+{
+    PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+    SYMCRYPT_ERROR error;
+    SIZE_T resultLength;
+
+    if (!ResultLength)
+        return STATUS_INVALID_PARAMETER;
+
+    *ResultLength = 0;
+
+    if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    if (key->Algorithm == PhSymCryptKeyAlgorithmRsa)
+    {
+        resultLength = SymCryptRsakeySizeofModulus(key->RsaKey);
+
+        if (resultLength > ULONG_MAX)
+            return STATUS_INTEGER_OVERFLOW;
+
+        if (!Signature)
+        {
+            *ResultLength = (ULONG)resultLength;
+            return STATUS_SUCCESS;
+        }
+
+        if (SignatureLength < resultLength)
+            return STATUS_BUFFER_TOO_SMALL;
+
+        if (Flags == BCRYPT_PAD_PSS && PaddingInfo)
+        {
+            BCRYPT_PSS_PADDING_INFO* pssInfo = (BCRYPT_PSS_PADDING_INFO*)PaddingInfo;
+            PCSYMCRYPT_HASH hashAlg = NULL;
+            SIZE_T signatureLength;
+
+            if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA256_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha256Algorithm;
+            else if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA384_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha384Algorithm;
+            else if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA512_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha512Algorithm;
+            else
+                return STATUS_NOT_SUPPORTED;
+
+            memset(Signature, 0, SignatureLength);
+            signatureLength = SignatureLength;
+
+            error = SymCryptRsaPssSign(
+                key->RsaKey,
+                Hash,
+                HashLength,
+                hashAlg,
+                pssInfo->cbSalt,
+                0,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                Signature,
+                SignatureLength,
+                &signatureLength
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            if (signatureLength > ULONG_MAX)
+                return STATUS_INTEGER_OVERFLOW;
+
+            *ResultLength = (ULONG)signatureLength;
+            return STATUS_SUCCESS;
+        }
+
+        return STATUS_NOT_SUPPORTED;
+    }
+
+
+    /**
+     * Verifies a signature for a hash value using the specified key handle.
+     *
+     * Supports RSA-PSS and ECDSA signatures.
+     *
+     * \param[in] KeyHandle Key handle to use for verification.
+     * \param[in] PaddingInfo Padding information (RSA-PSS only).
+     * \param[in] Hash Hash value to verify.
+     * \param[in] HashLength Length of the hash value.
+     * \param[in] Signature Signature to verify.
+     * \param[in] SignatureLength Length of the signature.
+     * \param[in] Flags Padding flags (e.g., BCRYPT_PAD_PSS).
+     * \return NTSTATUS code.
+     */
+    else if (key->Algorithm == PhSymCryptKeyAlgorithmEcdsa)
+    {
+        resultLength = 64; // P256 Signature length (R + S)
+
+        if (!Signature)
+        {
+            *ResultLength = (ULONG)resultLength;
+            return STATUS_SUCCESS;
+        }
+        if (SignatureLength < resultLength)
+            return STATUS_BUFFER_TOO_SMALL;
+
+        memset(Signature, 0, SignatureLength);
+
+        error = SymCryptEcDsaSign(
+            key->EcKey,
+            Hash,
+            HashLength,
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+            0,
+            Signature,
+            resultLength
+            );
+
+        if (error != SYMCRYPT_NO_ERROR)
+            return PhSymCryptErrorToStatus(error);
+
+        *ResultLength = (ULONG)resultLength;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
+NTSTATUS NTAPI PhSymCryptVerifyHash(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_opt_ PVOID PaddingInfo,
+    _In_reads_bytes_(HashLength) PVOID Hash,
+    _In_ ULONG HashLength,
+    _In_reads_bytes_(SignatureLength) PVOID Signature,
+    _In_ ULONG SignatureLength,
+    _In_ ULONG Flags
+    )
+{
+    PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+    SYMCRYPT_ERROR error;
+
+    if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    if (key->Algorithm == PhSymCryptKeyAlgorithmRsa)
+    {
+        if (Flags == BCRYPT_PAD_PSS && PaddingInfo)
+        {
+            BCRYPT_PSS_PADDING_INFO* pssInfo = (BCRYPT_PSS_PADDING_INFO*)PaddingInfo;
+            PCSYMCRYPT_HASH hashAlg = NULL;
+
+            if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA256_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha256Algorithm;
+            else if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA384_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha384Algorithm;
+            else if (PhEqualStringZ(pssInfo->pszAlgId, BCRYPT_SHA512_ALGORITHM, TRUE))
+                hashAlg = SymCryptSha512Algorithm;
+            else
+                return STATUS_NOT_SUPPORTED;
+
+            error = SymCryptRsaPssVerify(
+                key->RsaKey,
+                Hash,
+                HashLength,
+                Signature,
+                SignatureLength,
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+                hashAlg,
+                pssInfo->cbSalt,
+                0
+                );
+
+            if (error != SYMCRYPT_NO_ERROR)
+                return PhSymCryptErrorToStatus(error);
+
+            return STATUS_SUCCESS;
+        }
+
+        return STATUS_NOT_SUPPORTED;
+    }
+
+
+    /**
+     * Destroys a key handle and releases all associated resources.
+     *
+     * \param[in] KeyHandle Key handle to destroy.
+     * \return NTSTATUS code.
+     */
+    else if (key->Algorithm == PhSymCryptKeyAlgorithmEcdsa)
+    {
+        if (SignatureLength != 64)
+            return STATUS_INVALID_SIGNATURE;
+
+        error = SymCryptEcDsaVerify(
+            key->EcKey,
+            Hash,
+            HashLength,
+            Signature,
+            SignatureLength,
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+            0
+            );
+
+        if (error != SYMCRYPT_NO_ERROR)
+            return PhSymCryptErrorToStatus(error);
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
+NTSTATUS NTAPI PhSymCryptDestroyKey(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+
+    if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    if (key->RsaKey)
+        SymCryptRsakeyFree(key->RsaKey);
+
+    if (key->EcKey)
+        SymCryptEckeyFree(key->EcKey);
+
+    if (key->Curve)
+        SymCryptEcurveFree(key->Curve);
+
+    key->Magic = 0;
+    PhFree(key);
+
+    return STATUS_SUCCESS;
+}
+
+// ------------------------------------------------------------------------
+// Asymmetric key generation
+// ------------------------------------------------------------------------
+
+NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
+    _In_ ULONG Bits,
+    _Out_writes_bytes_to_opt_(PrivateKeyBlobCapacity, *PrivateKeyBlobLength) PVOID PrivateKeyBlob,
+    _In_ SIZE_T PrivateKeyBlobCapacity,
+    _Out_opt_ PSIZE_T PrivateKeyBlobLength,
+    _Out_writes_bytes_to_opt_(PublicKeyBlobCapacity, *PublicKeyBlobLength) PVOID PublicKeyBlob,
+    _In_ SIZE_T PublicKeyBlobCapacity,
+    _Out_opt_ PSIZE_T PublicKeyBlobLength
+    )
+{
+    SIZE_T modulusLength;
+    SIZE_T primeLength;
+    SIZE_T publicExpLength;
+    SIZE_T primeBlobSize;
+    SIZE_T privBlobSize;
+    SIZE_T pubBlobSize;
+    SYMCRYPT_RSA_PARAMS params;
+    PSYMCRYPT_RSAKEY key;
+    ULONG64 pubExp;
+    SYMCRYPT_ERROR error;
+
+    if (Bits < 512 || Bits > 16384 || (Bits % 64) != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    modulusLength = Bits / 8;
+    primeLength = modulusLength / 2;
+    publicExpLength = sizeof(ULONG64);
+
+    if (
+        !NT_SUCCESS(RtlSIZETMult(primeLength, 2, &primeBlobSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), publicExpLength, &pubBlobSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, modulusLength, &pubBlobSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(pubBlobSize, primeBlobSize, &privBlobSize))
+        )
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (PrivateKeyBlobLength)
+        *PrivateKeyBlobLength = privBlobSize;
+
+    if (PublicKeyBlobLength)
+        *PublicKeyBlobLength = pubBlobSize;
+
+    if ((PrivateKeyBlob && PrivateKeyBlobCapacity < privBlobSize) ||
+        (PublicKeyBlob && PublicKeyBlobCapacity < pubBlobSize))
+    {
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (!PrivateKeyBlob && !PublicKeyBlob)
+        return STATUS_SUCCESS;
+
+    params.version = 1;
+    params.nBitsOfModulus = Bits;
+    params.nPrimes = 2;
+    params.nPubExp = 1;
+
+    key = SymCryptRsakeyAllocate(&params, 0);
+
+    if (!key)
+        return STATUS_INSUFFICIENT_RESOURCES;
+
+    pubExp = 65537;
+
+    error = SymCryptRsakeyGenerate(key, &pubExp, 1, SYMCRYPT_FLAG_RSAKEY_SIGN | SYMCRYPT_FLAG_RSAKEY_ENCRYPT);
+
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        SymCryptRsakeyFree(key);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    if (PrivateKeyBlob)
+    {
+        BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)PrivateKeyBlob;
+        PBYTE expBuf = (PBYTE)(header + 1);
+        PBYTE modBuf = expBuf + publicExpLength;
+        PBYTE prime1Buf = modBuf + modulusLength;
+        PBYTE prime2Buf = prime1Buf + primeLength;
+        PBYTE primePtrs[2];
+        SIZE_T primeSizes[2];
+        ULONG64 extractedPubExp;
+
+        primePtrs[0] = prime1Buf;
+        primePtrs[1] = prime2Buf;
+        primeSizes[0] = primeLength;
+        primeSizes[1] = primeLength;
+
+        error = SymCryptRsakeyGetValue(
+            key,
+            modBuf,
+            modulusLength,
+            &extractedPubExp,
+            1,
+            primePtrs,
+            primeSizes,
+            2,
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+            0
+            );
+
+        if (error != SYMCRYPT_NO_ERROR)
+        {
+            SymCryptRsakeyFree(key);
+            return PhSymCryptErrorToStatus(error);
+        }
+
+        header->Magic = BCRYPT_RSAPRIVATE_MAGIC;
+        header->BitLength = Bits;
+        header->cbPublicExp = (ULONG)publicExpLength;
+        header->cbModulus = (ULONG)modulusLength;
+        header->cbPrime1 = (ULONG)primeLength;
+        header->cbPrime2 = (ULONG)primeLength;
+
+        //
+        // Big-endian encoding of public exponent
+        //
+        
+        for (ULONG i = 0; i < publicExpLength; i++)
+        {
+            expBuf[publicExpLength - 1 - i] = (BYTE)(extractedPubExp & 0xFF);
+            extractedPubExp >>= 8;
+        }
+
+        if (PublicKeyBlob)
+        {
+            BCRYPT_RSAKEY_BLOB* pubHeader = (BCRYPT_RSAKEY_BLOB*)PublicKeyBlob;
+            PBYTE pubExpBuf = (PBYTE)(pubHeader + 1);
+            PBYTE pubModBuf = pubExpBuf + publicExpLength;
+
+            pubHeader->Magic = BCRYPT_RSAPUBLIC_MAGIC;
+            pubHeader->BitLength = Bits;
+            pubHeader->cbPublicExp = (ULONG)publicExpLength;
+            pubHeader->cbModulus = (ULONG)modulusLength;
+            pubHeader->cbPrime1 = 0;
+            pubHeader->cbPrime2 = 0;
+
+            memcpy(pubExpBuf, expBuf, publicExpLength);
+            memcpy(pubModBuf, modBuf, modulusLength);
+        }
+    }
+    else if (PublicKeyBlob)
+    {
+        // Path where only public key is requested.
+        BCRYPT_RSAKEY_BLOB* header = (BCRYPT_RSAKEY_BLOB*)PublicKeyBlob;
+        PBYTE expBuf = (PBYTE)(header + 1);
+        PBYTE modBuf = expBuf + publicExpLength;
+        ULONG64 extractedPubExp;
+
+        error = SymCryptRsakeyGetValue(
+            key,
+            modBuf,
+            modulusLength,
+            &extractedPubExp,
+            1,
+            NULL,
+            NULL,
+            0,
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST,
+            0
+            );
+
+        if (error != SYMCRYPT_NO_ERROR)
+        {
+            SymCryptRsakeyFree(key);
+            return PhSymCryptErrorToStatus(error);
+        }
+
+        header->Magic = BCRYPT_RSAPUBLIC_MAGIC;
+        header->BitLength = Bits;
+        header->cbPublicExp = (ULONG)publicExpLength;
+        header->cbModulus = (ULONG)modulusLength;
+        header->cbPrime1 = 0;
+        header->cbPrime2 = 0;
+
+        for (ULONG i = 0; i < publicExpLength; i++)
+        {
+            expBuf[publicExpLength - 1 - i] = (BYTE)(extractedPubExp & 0xFF);
+            extractedPubExp >>= 8;
+        }
+    }
+
+    SymCryptRsakeyFree(key);
+    return STATUS_SUCCESS;
+}
