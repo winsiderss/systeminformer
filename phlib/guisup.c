@@ -82,8 +82,11 @@ static typeof(&GetThemeInt) GetThemeInt_I = NULL;
 static typeof(&GetThemePartSize) GetThemePartSize_I = NULL;
 static typeof(&GetThemeMargins) GetThemeMargins_I = NULL;
 static typeof(&DrawThemeBackground) DrawThemeBackground_I = NULL;
+static typeof(&DrawThemeParentBackground) DrawThemeParentBackground_I = NULL;
+static typeof(&IsThemeBackgroundPartiallyTransparent) IsThemeBackgroundPartiallyTransparent_I = NULL;
 static _AllowDarkModeForWindow AllowDarkModeForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 133)
 static _IsDarkModeAllowedForWindow IsDarkModeAllowedForWindow_I = NULL; // Win10-RS5 (uxtheme.dll ordinal 137)
+static typeof(&GetDpiForShellUIComponent) GetDpiForShellUIComponent_I = NULL; // win81+
 static typeof(&GetDpiForMonitor) GetDpiForMonitor_I = NULL; // win81+
 static typeof(&GetDpiForWindow) GetDpiForWindow_I = NULL; // win10rs1+
 static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
@@ -91,6 +94,10 @@ static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 static typeof(&GetSystemDpiForProcess) GetSystemDpiForProcess_I = NULL;
 static typeof(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
 static typeof(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
+static typeof(&BufferedPaintInit) BufferedPaintInit_I = NULL;
+static typeof(&BufferedPaintUnInit) BufferedPaintUnInit_I = NULL;
+static typeof(&BeginBufferedPaint) BeginBufferedPaint_I = NULL;
+static typeof(&EndBufferedPaint) EndBufferedPaint_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
 static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
@@ -132,6 +139,12 @@ VOID PhGuiSupportInitialization(
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
         GetThemeMargins_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeMargins", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
+        DrawThemeParentBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeParentBackground", 0);
+        IsThemeBackgroundPartiallyTransparent_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeBackgroundPartiallyTransparent", 0);
+        BufferedPaintInit_I = PhGetDllBaseProcedureAddress(baseAddress, "BufferedPaintInit", 0);
+        BufferedPaintUnInit_I = PhGetDllBaseProcedureAddress(baseAddress, "BufferedPaintUnInit", 0);
+        BeginBufferedPaint_I = PhGetDllBaseProcedureAddress(baseAddress, "BeginBufferedPaint", 0);
+        EndBufferedPaint_I  = PhGetDllBaseProcedureAddress(baseAddress, "EndBufferedPaint", 0);
 
         if (WindowsVersion >= WINDOWS_11)
         {
@@ -149,6 +162,7 @@ VOID PhGuiSupportInitialization(
         if (baseAddress = PhLoadLibrary(L"shcore.dll"))
         {
             GetDpiForMonitor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForMonitor", 0);
+            //GetDpiForShellUIComponent_I = PhGetDllBaseProcedureAddress(baseAddress, "GetDpiForShellUIComponent", 0);
         }
     }
 
@@ -869,11 +883,6 @@ BOOLEAN PhIsThemeBackgroundPartiallyTransparent(
     _In_ LONG StateId
     )
 {
-    static typeof(&IsThemeBackgroundPartiallyTransparent) IsThemeBackgroundPartiallyTransparent_I = NULL;
-
-    if (!IsThemeBackgroundPartiallyTransparent_I)
-        IsThemeBackgroundPartiallyTransparent_I = PhGetModuleProcAddress(L"uxtheme.dll", "IsThemeBackgroundPartiallyTransparent");
-
     if (!IsThemeBackgroundPartiallyTransparent_I)
         return FALSE;
 
@@ -894,15 +903,64 @@ BOOLEAN PhDrawThemeParentBackground(
     _In_opt_ const PRECT Rect
     )
 {
-    static typeof(&DrawThemeParentBackground) DrawThemeParentBackground_I = NULL;
-
-    if (!DrawThemeParentBackground_I)
-        DrawThemeParentBackground_I = PhGetModuleProcAddress(L"uxtheme.dll", "DrawThemeParentBackground");
-
     if (!DrawThemeParentBackground_I)
         return FALSE;
 
     return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
+}
+
+HRESULT PhBufferedPaintInit(
+    VOID
+    )
+{
+    if (BufferedPaintInit_I)
+    {
+        return BufferedPaintInit_I();
+    }
+
+    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+}
+
+HRESULT PhBufferedPaintUnInit(
+    VOID
+    )
+{
+    if (BufferedPaintUnInit_I)
+    {
+        return BufferedPaintUnInit_I();
+    }
+
+    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
+}
+
+_Success_(return != NULL)
+HPAINTBUFFER PhBeginBufferedPaint(
+    _In_ HDC HdcTarget,
+    _In_ const RECT* RectTarget,
+    _In_ BP_BUFFERFORMAT Format,
+    _In_opt_ BP_PAINTPARAMS* PaintParams,
+    _Out_ HDC* Hdc
+    )
+{
+    if (BeginBufferedPaint_I)
+    {
+        return BeginBufferedPaint_I(HdcTarget, RectTarget, Format, PaintParams, Hdc);
+    }
+
+    return NULL;
+}
+
+HRESULT PhEndBufferedPaint(
+    _In_ HPAINTBUFFER BufferedPaint,
+    _In_ BOOL UpdateTarget
+    )
+{
+    if (EndBufferedPaint_I)
+    {
+        return EndBufferedPaint_I(BufferedPaint, UpdateTarget);
+    }
+
+    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 }
 
 /**

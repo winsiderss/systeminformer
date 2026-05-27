@@ -313,6 +313,13 @@ PhDrawThemeParentBackground(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhUninitializeWindowTheme(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhAllowDarkModeForWindow(
@@ -345,6 +352,17 @@ PhRectEmpty(
 
     return FALSE;
 #endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhSetRectEmpty(
+    _In_ PRECT Rect
+    )
+{
+    RtlZeroMemory(Rect, sizeof(RECT));
+    return TRUE;
 }
 
 FORCEINLINE
