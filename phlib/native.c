@@ -5931,7 +5931,7 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     _Out_ PULONG BufferLength
     )
 {
-    static ULONG initialBufferSize[] = { 0x200, 0x80, 0x100, 0x1000 };
+    static ULONG initialBufferSize[] = { 0x200, 0x200, 0x80, 0x100, 0x1000 };
     NTSTATUS status;
     ULONG classIndex;
     PVOID buffer;
@@ -5943,14 +5943,17 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     case RelationProcessorCore:
         classIndex = 0;
         break;
-    case RelationProcessorPackage:
+    case RelationCache:
         classIndex = 1;
         break;
-    case RelationGroup:
+    case RelationProcessorPackage:
         classIndex = 2;
         break;
-    case RelationAll:
+    case RelationGroup:
         classIndex = 3;
+        break;
+    case RelationAll:
+        classIndex = 4;
         break;
     default:
         return STATUS_INVALID_INFO_CLASS;

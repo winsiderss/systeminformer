@@ -2362,6 +2362,89 @@ VOID PhSipUpdateTimerResolution(
     }
 }
 
+#define PHP_SIP_CACHE_LEVEL_L1 1
+#define PHP_SIP_CACHE_LEVEL_L2 2
+#define PHP_SIP_CACHE_LEVEL_L3 3
+
+BOOLEAN PhpSipUpdateCpuCacheTopology(
+    VOID
+    )
+{
+    ULONG bufferLength;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo;
+
+    if (!NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationCache, &logicalInformation, &bufferLength)))
+        return FALSE;
+
+    CpuL1CacheSize = 0;
+    CpuL2CacheSize = 0;
+    CpuL3CacheSize = 0;
+
+    for (processorInfo = logicalInformation;
+         (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+         processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size))
+    {
+        switch (processorInfo->Cache.Level)
+        {
+        case PHP_SIP_CACHE_LEVEL_L1:
+            CpuL1CacheSize += processorInfo->Cache.CacheSize;
+            break;
+        case PHP_SIP_CACHE_LEVEL_L2:
+            CpuL2CacheSize += processorInfo->Cache.CacheSize;
+            break;
+        case PHP_SIP_CACHE_LEVEL_L3:
+            CpuL3CacheSize += processorInfo->Cache.CacheSize;
+            break;
+        }
+    }
+
+    PhFree(logicalInformation);
+
+    return CpuL1CacheSize || CpuL2CacheSize || CpuL3CacheSize;
+}
+
+#define PHP_SIP_SMBIOS_CACHE_GRANULARITY_64K 0x10000
+#define PHP_SIP_SMBIOS_CACHE_GRANULARITY_1K  0x400
+#define PHP_SIP_SMBIOS_CACHE_LEVEL_L1 0
+#define PHP_SIP_SMBIOS_CACHE_LEVEL_L2 1
+#define PHP_SIP_SMBIOS_CACHE_LEVEL_L3 2
+
+typedef struct _PHP_SIP_SMBIOS_CONTEXT
+{
+    USHORT CacheHandles[128];
+    ULONG CacheHandleCount;
+} PHP_SIP_SMBIOS_CONTEXT, *PPHP_SIP_SMBIOS_CONTEXT;
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI PhpSipCpuSMBIOSProcessorCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_SIP_SMBIOS_CONTEXT context = Context;
+
+    if (!context || Entry->Header.Type != SMBIOS_PROCESSOR_INFORMATION_TYPE)
+        return FALSE;
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, Processor, L3CacheHandle))
+    {
+        if (Entry->Processor.L1CacheHandle != 0xFFFF && context->CacheHandleCount < RTL_NUMBER_OF(context->CacheHandles))
+            context->CacheHandles[context->CacheHandleCount++] = Entry->Processor.L1CacheHandle;
+
+        if (Entry->Processor.L2CacheHandle != 0xFFFF && context->CacheHandleCount < RTL_NUMBER_OF(context->CacheHandles))
+            context->CacheHandles[context->CacheHandleCount++] = Entry->Processor.L2CacheHandle;
+
+        if (Entry->Processor.L3CacheHandle != 0xFFFF && context->CacheHandleCount < RTL_NUMBER_OF(context->CacheHandles))
+            context->CacheHandles[context->CacheHandleCount++] = Entry->Processor.L3CacheHandle;
+    }
+
+    return FALSE;
+}
+
 _Function_class_(PH_ENUM_SMBIOS_CALLBACK)
 BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
     _In_ ULONG_PTR EnumHandle,
@@ -2371,7 +2454,10 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
     _In_opt_ PVOID Context
     )
 {
+    PPHP_SIP_SMBIOS_CONTEXT context = Context;
     ULONG64 size;
+    ULONG i;
+    BOOLEAN handleMatched;
 
     if (Entry->Header.Type != SMBIOS_CACHE_INFORMATION_TYPE)
         return FALSE;
@@ -2382,6 +2468,22 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
         return FALSE;
     }
 
+    if (context)
+    {
+        handleMatched = FALSE;
+        for (i = 0; i < context->CacheHandleCount; i++)
+        {
+            if (context->CacheHandles[i] == Entry->Header.Handle)
+            {
+                handleMatched = TRUE;
+                break;
+            }
+        }
+
+        if (!handleMatched)
+            return FALSE;
+    }
+
     size = 0;
 
     if (PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize))
@@ -2390,28 +2492,28 @@ BOOLEAN NTAPI PhpSipCpuSMBIOSCallback(
             PH_SMBIOS_CONTAINS_FIELD(Entry, Cache, InstalledSize2))
         {
             if (Entry->Cache.InstalledSize2.Granularity)
-                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x10000;
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * PHP_SIP_SMBIOS_CACHE_GRANULARITY_64K;
             else
-                size = (ULONG64)Entry->Cache.InstalledSize2.Size * 0x400;
+                size = (ULONG64)Entry->Cache.InstalledSize2.Size * PHP_SIP_SMBIOS_CACHE_GRANULARITY_1K;
         }
         else
         {
             if (Entry->Cache.InstalledSize.Granularity)
-                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x10000;
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * PHP_SIP_SMBIOS_CACHE_GRANULARITY_64K;
             else
-                size = (ULONG64)Entry->Cache.InstalledSize.Size * 0x400;
+                size = (ULONG64)Entry->Cache.InstalledSize.Size * PHP_SIP_SMBIOS_CACHE_GRANULARITY_1K;
         }
     }
 
     switch (Entry->Cache.Configuration.Level)
     {
-    case 0:
+    case PHP_SIP_SMBIOS_CACHE_LEVEL_L1:
         CpuL1CacheSize += size;
         break;
-    case 1:
+    case PHP_SIP_SMBIOS_CACHE_LEVEL_L2:
         CpuL2CacheSize += size;
         break;
-    case 2:
+    case PHP_SIP_SMBIOS_CACHE_LEVEL_L3:
         CpuL3CacheSize += size;
         break;
     }
@@ -2424,6 +2526,15 @@ NTSTATUS NTAPI PhSipCpuSMBIOSWorkRoutine(
     _In_ PVOID ThreadParameter
     )
 {
-    PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, NULL);
+    if (!PhpSipUpdateCpuCacheTopology())
+    {
+        PHP_SIP_SMBIOS_CONTEXT context;
+
+        RtlZeroMemory(&context, sizeof(PHP_SIP_SMBIOS_CONTEXT));
+
+        PhEnumSMBIOS(PhpSipCpuSMBIOSProcessorCallback, &context);
+        PhEnumSMBIOS(PhpSipCpuSMBIOSCallback, &context);
+    }
+
     return STATUS_SUCCESS;
 }
