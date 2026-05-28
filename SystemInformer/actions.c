@@ -1518,6 +1518,14 @@ typedef struct _PH_IS_SYSTEM_PROCESS_CONTEXT
     BOOLEAN Found;
 } PH_IS_SYSTEM_PROCESS_CONTEXT, *PPH_IS_SYSTEM_PROCESS_CONTEXT;
 
+/**
+ * Callback function for enumerating registry values to determine if a process is a system process.
+ *
+ * \param RootDirectory A handle to the root directory of the registry key.
+ * \param Information A pointer to the registry value information.
+ * \param Context A pointer to the system process context.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI PhIsSystemProcessCallback(
     _In_ HANDLE RootDirectory,
@@ -2016,6 +2024,14 @@ BOOLEAN PhUiTerminateTreeProcess(
     return success;
 }
 
+/**
+ * Suspends one or more processes.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Processes An array of pointers to process items.
+ * \param NumberOfProcesses The number of process items.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiSuspendProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -2093,6 +2109,15 @@ BOOLEAN PhUiSuspendProcesses(
     return success;
 }
 
+/**
+ * Internal function to suspend a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to suspend.
+ * \param Processes A pointer to a list of all processes.
+ * \param Success A pointer to a boolean that receives the success status.
+ * \return BOOLEAN TRUE if the operation should continue, otherwise FALSE.
+ */
 BOOLEAN PhpUiSuspendTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -2174,6 +2199,13 @@ BOOLEAN PhpUiSuspendTreeProcess(
     return TRUE;
 }
 
+/**
+ * Suspends a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to suspend.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiSuspendTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2213,6 +2245,14 @@ BOOLEAN PhUiSuspendTreeProcess(
     return result;
 }
 
+/**
+ * Resumes one or more processes.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Processes An array of pointers to process items.
+ * \param NumberOfProcesses The number of process items.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiResumeProcesses(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -2290,6 +2330,15 @@ BOOLEAN PhUiResumeProcesses(
     return success;
 }
 
+/**
+ * Internal function to resume a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to resume.
+ * \param Processes A pointer to a list of all processes.
+ * \param Success A pointer to a boolean that receives the success status.
+ * \return BOOLEAN TRUE if the operation should continue, otherwise FALSE.
+ */
 BOOLEAN PhpUiResumeTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process,
@@ -2371,6 +2420,13 @@ BOOLEAN PhpUiResumeTreeProcess(
     return TRUE;
 }
 
+/**
+ * Resumes a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to resume.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiResumeTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2410,6 +2466,13 @@ BOOLEAN PhUiResumeTreeProcess(
     return result;
 }
 
+/**
+ * Freezes a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to freeze.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiFreezeTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2459,6 +2522,13 @@ BOOLEAN PhUiFreezeTreeProcess(
     return TRUE;
 }
 
+/**
+ * Thaws a process and its descendants.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to thaw.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiThawTreeProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2489,6 +2559,13 @@ BOOLEAN PhUiThawTreeProcess(
     return TRUE;
 }
 
+/**
+ * Restarts a process.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Process The process item to restart.
+ * \return BOOLEAN TRUE if the operation succeeded, otherwise FALSE.
+ */
 BOOLEAN PhUiRestartProcess(
     _In_ HWND WindowHandle,
     _In_ PPH_PROCESS_ITEM Process
@@ -2850,6 +2927,12 @@ CleanupExit:
     return TRUE;
 }
 
+/**
+ * Finds the path to a debugger.
+ *
+ * \param DebuggerName The name of the debugger.
+ * \return PPH_STRING The path to the debugger, or NULL if not found.
+ */
 static PPH_STRING PhFindDebuggerPath(
     _In_ PCWSTR DebuggerName
     )
@@ -3075,8 +3158,7 @@ BOOLEAN PhUiDebugProcess(
         {
             registryButtonText = PhFormatString(
                 L"\U00002699 (System Default)\n%s",
-                registryDebuggerName->Buffer,
-                registryDebuggerPath->Buffer
+                registryDebuggerName->Buffer
                 );
             buttons[buttonCount++] = (TASKDIALOG_BUTTON){ 106, registryButtonText->Buffer };
         }
@@ -4173,6 +4255,15 @@ VOID PhShowServiceProgressDialogStatusPage(
     );
 #pragma endregion
 
+/**
+ * Internal function to initialize text for the service progress dialog.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ * \param Verb A pointer to a string that receives the lowercase verb.
+ * \param VerbCaps A pointer to a string that receives the capitalized verb.
+ * \param Action A pointer to a string that receives the action text.
+ * \param Object A pointer to a string that receives the object text.
+ */
 VOID PhpShowServiceProgressInitializeText(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
     _Out_ PPH_STRING* Verb,
@@ -4197,6 +4288,16 @@ VOID PhpShowServiceProgressInitializeText(
     *Action = PhaConcatStrings(3, (*Verb)->Buffer, L" ", *Object);
 }
 
+/**
+ * Callback function for the service error task dialog.
+ *
+ * \param WindowHandle A handle to the task dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam The word parameter.
+ * \param lParam The long parameter.
+ * \param Context The callback context.
+ * \return HRESULT S_OK.
+ */
 HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -4233,6 +4334,13 @@ HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Navigates the service progress dialog to the error page.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ * \param MainInstruction The main instruction text.
+ * \param MainContent The main content text.
+ */
 VOID PhUiNavigateServiceErrorDialogPage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
     _In_ PPH_STRING MainInstruction,
@@ -4277,6 +4385,11 @@ VOID PhUiNavigateServiceErrorDialogPage(
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
 }
 
+/**
+ * Navigates the service progress dialog to the complete state.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ */
 VOID PhUiNavigateServiceCompleteDialogPage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -4284,6 +4397,11 @@ VOID PhUiNavigateServiceCompleteDialogPage(
     PostMessage(Context->WindowHandle, WM_PHSVC_EXIT, 0, 0);
 }
 
+/**
+ * Navigates the service progress dialog to the error page from a background thread.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ */
 VOID PhUiNavigateServiceErrorDialogPageFromThread(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -4291,6 +4409,12 @@ VOID PhUiNavigateServiceErrorDialogPageFromThread(
     PostMessage(Context->WindowHandle, WM_PHSVC_ERROR, 0, 0);
 }
 
+/**
+ * Callback function for pending service start operations.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ * \return NTSTATUS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpUiServicePendingStartCallback(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
@@ -4458,6 +4582,16 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+/**
+ * Callback function for the service progress task dialog.
+ *
+ * \param WindowHandle A handle to the task dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam The word parameter.
+ * \param lParam The long parameter.
+ * \param Context The callback context.
+ * \return HRESULT.
+ */
 HRESULT CALLBACK PhpUiServiceProgressDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -4494,6 +4628,11 @@ HRESULT CALLBACK PhpUiServiceProgressDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the status page of the service progress dialog.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ */
 VOID PhShowServiceProgressDialogStatusPage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -4520,6 +4659,16 @@ VOID PhShowServiceProgressDialogStatusPage(
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
 }
 
+/**
+ * Callback function for the service confirmation task dialog.
+ *
+ * \param WindowHandle A handle to the task dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam The word parameter.
+ * \param lParam The long parameter.
+ * \param Context The callback context.
+ * \return HRESULT.
+ */
 HRESULT CALLBACK PhpUiServiceConfirmDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -4548,6 +4697,11 @@ HRESULT CALLBACK PhpUiServiceConfirmDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the confirmation message of the service progress dialog.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ */
 VOID PhShowServiceProgressDialogConfirmMessage(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
@@ -4584,6 +4738,15 @@ VOID PhShowServiceProgressDialogConfirmMessage(
     PhTaskDialogNavigatePage(Context->WindowHandle, &config);
 }
 
+/**
+ * Window procedure for the service progress task dialog.
+ *
+ * \param WindowHandle A handle to the task dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam The word parameter.
+ * \param lParam The long parameter.
+ * \return LRESULT.
+ */
 static LRESULT CALLBACK PhpUiServiceProgressDialogWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -4645,6 +4808,16 @@ DefaultWndProc:
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Callback function for initializing the service progress task dialog.
+ *
+ * \param WindowHandle A handle to the task dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam The word parameter.
+ * \param lParam The long parameter.
+ * \param Context The callback context.
+ * \return HRESULT.
+ */
 HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -4691,6 +4864,12 @@ HRESULT CALLBACK PhpUiServiceInitializeDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Thread function for showing the service progress dialog.
+ *
+ * \param Context A pointer to the service progress dialog context.
+ * \return NTSTATUS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhShowServiceProgressDialogThread(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
@@ -4717,6 +4896,12 @@ NTSTATUS PhShowServiceProgressDialogThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Delete procedure for the service progress dialog context.
+ *
+ * \param Object A pointer to the service progress dialog context.
+ * \param Flags Unused.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 static VOID PhServiceProgressContextDeleteProcedure(
     _In_ PVOID Object,
@@ -4729,6 +4914,11 @@ static VOID PhServiceProgressContextDeleteProcedure(
     PhDereferenceObject(context->ServiceItemList);
 }
 
+/**
+ * Creates a service progress dialog context.
+ *
+ * \return PPH_UI_SERVICE_PROGRESS_DIALOG The created context.
+ */
 PPH_UI_SERVICE_PROGRESS_DIALOG PhCreateServiceProgressContext(
     VOID
     )
@@ -4749,6 +4939,18 @@ PPH_UI_SERVICE_PROGRESS_DIALOG PhCreateServiceProgressContext(
     return context;
 }
 
+/**
+ * Shows the service progress dialog.
+ *
+ * \param WindowHandle Parent window handle.
+ * \param Verb Action verb.
+ * \param Message Action message.
+ * \param Warning TRUE to show a warning icon.
+ * \param Services Array of service items.
+ * \param NumberOfServices Number of service items.
+ * \param ActionCallback Callback function for the action.
+ * \param ActionCommand Action command code.
+ */
 VOID PhShowServiceProgressDialog(
     _In_ HWND WindowHandle,
     _In_ PCWSTR Verb,
@@ -4780,6 +4982,17 @@ VOID PhShowServiceProgressDialog(
     PhCreateThread2(PhShowServiceProgressDialogThread, context);
 }
 
+/**
+ * Shows a confirmation message for service actions.
+ *
+ * \param WindowHandle Parent window handle.
+ * \param Verb Action verb.
+ * \param Message Action message.
+ * \param Warning TRUE to show a warning icon.
+ * \param Services Array of service items.
+ * \param NumberOfServices Number of service items.
+ * \return BOOLEAN TRUE if the user wants to continue.
+ */
 static BOOLEAN PhpShowContinueMessageServices(
     _In_ HWND WindowHandle,
     _In_ PCWSTR Verb,
@@ -4819,6 +5032,16 @@ static BOOLEAN PhpShowContinueMessageServices(
     }
 }
 
+/**
+ * Shows an error message for service actions.
+ *
+ * \param WindowHandle Parent window handle.
+ * \param Verb Action verb.
+ * \param Service Service item.
+ * \param Status NT status code.
+ * \param Win32Result Win32 error code.
+ * \return BOOLEAN TRUE if the user wants to continue.
+ */
 static BOOLEAN PhpShowErrorService(
     _In_ HWND WindowHandle,
     _In_ PWSTR Verb,
@@ -4839,6 +5062,12 @@ static BOOLEAN PhpShowErrorService(
         );
 }
 
+/**
+ * Callback function for starting a service.
+ *
+ * \param ServiceItem A pointer to the service item to start.
+ * \return NTSTATUS of the operation.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceStartCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
@@ -5197,6 +5426,13 @@ BOOLEAN PhUiContinueServices(
     //return result;
 }
 
+/**
+ * Continues a single paused service.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Service A pointer to the service item to continue.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiContinueService(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
@@ -5253,6 +5489,12 @@ BOOLEAN PhUiContinueService(
     return success;
 }
 
+/**
+ * Callback function for pausing a service.
+ *
+ * \param ServiceItem A pointer to the service item to pause.
+ * \return NTSTATUS of the operation.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServicePauseCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
@@ -5277,6 +5519,14 @@ static NTSTATUS PhUiServicePauseCallback(
     return status;
 }
 
+/**
+ * Pauses one or more services.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Services An array of pointers to service items to pause.
+ * \param NumberOfServices The number of service items in the array.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiPauseServices(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM* Services,
@@ -5405,6 +5655,13 @@ BOOLEAN PhUiPauseServices(
     //return result;
 }
 
+/**
+ * Pauses a single service.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Service A pointer to the service item to pause.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiPauseService(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
@@ -5461,6 +5718,12 @@ BOOLEAN PhUiPauseService(
     return success;
 }
 
+/**
+ * Callback function for stopping a service.
+ *
+ * \param ServiceItem A pointer to the service item to stop.
+ * \return NTSTATUS of the operation.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceStopCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
@@ -5485,6 +5748,14 @@ static NTSTATUS PhUiServiceStopCallback(
     return status;
 }
 
+/**
+ * Stops one or more services.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Services An array of pointers to service items to stop.
+ * \param NumberOfServices The number of service items in the array.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiStopServices(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM* Services,
@@ -5613,6 +5884,13 @@ BOOLEAN PhUiStopServices(
     //return result;
 }
 
+/**
+ * Stops a single service.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Service A pointer to the service item to stop.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiStopService(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
@@ -5669,6 +5947,13 @@ BOOLEAN PhUiStopService(
     return success;
 }
 
+/**
+ * Deletes a single service.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Service A pointer to the service item to delete.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiDeleteService(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM Service
@@ -5736,6 +6021,12 @@ BOOLEAN PhUiDeleteService(
     return success;
 }
 
+/**
+ * Callback function for restarting a service.
+ *
+ * \param ServiceItem A pointer to the service item to restart.
+ * \return NTSTATUS of the operation.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhUiServiceRestartCallback(
     _In_ PPH_SERVICE_ITEM ServiceItem
@@ -5783,6 +6074,14 @@ static NTSTATUS PhUiServiceRestartCallback(
     return status;
 }
 
+/**
+ * Restarts one or more services.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Services An array of pointers to service items to restart.
+ * \param NumberOfServices The number of service items in the array.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiRestartServices(
     _In_ HWND WindowHandle,
     _In_ PPH_SERVICE_ITEM* Services,
@@ -5907,6 +6206,14 @@ BOOLEAN PhUiRestartServices(
     return success;
 }
 
+/**
+ * Closes one or more network connections.
+ *
+ * \param WindowHandle A handle to the parent window for any dialogs.
+ * \param Connections An array of pointers to network items to close.
+ * \param NumberOfConnections The number of network items in the array.
+ * \return BOOLEAN TRUE if the operation was successful, FALSE otherwise.
+ */
 BOOLEAN PhUiCloseConnections(
     _In_ HWND WindowHandle,
     _In_ PPH_NETWORK_ITEM *Connections,
