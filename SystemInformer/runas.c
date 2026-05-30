@@ -2632,7 +2632,6 @@ NTSTATUS PhInvokeRunAsService(
         }
     }
 
-CleanupExit:
     if (newProcessHandle) NtClose(newProcessHandle);
     if (domainName) PhDereferenceObject(domainName);
     if (userName) PhDereferenceObject(userName);
