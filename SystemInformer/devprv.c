@@ -1132,6 +1132,29 @@ BOOLEAN PhpGetClassPropertyTimeStamp(
     return FALSE;
 }
 
+VOID PhpTrimDevicePropertyStringRef(
+    _Inout_ PPH_STRINGREF StringRef
+    )
+{
+    static const PH_STRINGREF trimSet = PH_STRINGREF_INIT(L" \t\r\n");
+    PhTrimStringRef(StringRef, &trimSet, 0);
+}
+
+PPH_STRING PhpTrimDevicePropertyString(
+    _In_ PPH_STRING* String
+    )
+{
+    PH_STRINGREF trimmed;
+
+    trimmed = (*String)->sr;
+    PhpTrimDevicePropertyStringRef(&trimmed);
+
+    if (trimmed.Length != (*String)->Length)
+        PhMoveReference(String, PhCreateString2(&trimmed));
+
+    return *String;
+}
+
 BOOLEAN PhpGetDevicePropertyString(
     _In_ HDEVINFO DeviceInfoSet,
     _In_ PSP_DEVINFO_DATA DeviceInfoData,
@@ -1184,7 +1207,7 @@ BOOLEAN PhpGetDevicePropertyString(
         0
         ))
     {
-        *String = string;
+        *String = PhpTrimDevicePropertyString(&string);
         return TRUE;
     }
 
@@ -1244,7 +1267,7 @@ BOOLEAN PhpGetDeviceInterfacePropertyString(
         0
         ))
     {
-        *String = string;
+        *String = PhpTrimDevicePropertyString(&string);
         return TRUE;
     }
 
@@ -1302,7 +1325,7 @@ BOOLEAN PhpGetClassPropertyString(
         Flags
         ))
     {
-        *String = string;
+        *String = PhpTrimDevicePropertyString(&string);
         return TRUE;
     }
 
@@ -1373,6 +1396,7 @@ BOOLEAN PhpGetDevicePropertyStringList(
             break;
         }
 
+        PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
         item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
@@ -1451,6 +1475,7 @@ BOOLEAN PhpGetDeviceInterfacePropertyStringList(
             break;
         }
 
+        PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
         item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
@@ -1527,6 +1552,7 @@ BOOLEAN PhpGetClassPropertyStringList(
             break;
         }
 
+        PhpTrimDevicePropertyStringRef(&string);
         PhAddItemList(stringList, PhCreateString2(&string));
 
         item = PTR_ADD_OFFSET(item, string.Length + sizeof(UNICODE_NULL));
