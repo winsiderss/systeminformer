@@ -2610,16 +2610,11 @@ NTSTATUS PhInvokeRunAsService(
 
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
-            status = PhRunAsUpdateDesktop(userSid);
-
-            if (NT_SUCCESS(status))
-                status = PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhRunAsUpdateDesktop(userSid);
+            PhRunAsUpdateWindowStation(userSid, logonSid);
 
             PhFree(userSid);
             PhFree(logonSid);
-
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
         }
 
         if (!Parameters->CreateSuspendedProcess)
