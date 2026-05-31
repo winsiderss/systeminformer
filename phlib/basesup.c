@@ -2053,6 +2053,37 @@ HANDLE PhFindItemPointerList(
 }
 
 /**
+ * Retrieves a pointer from a pointer list using its handle.
+ *
+ * \param PointerList A pointer list object.
+ * \param PointerHandle A handle to the pointer.
+ * \return The pointer, or NULL if the handle is invalid or the pointer was removed.
+ */
+PVOID PhGetItemPointerList(
+    _In_ PPH_POINTER_LIST PointerList,
+    _In_ HANDLE PointerHandle
+    )
+{
+    ULONG index;
+    PVOID pointer;
+
+    if (!PointerHandle)
+        return NULL;
+
+    index = PhpPointerListHandleToIndex(PointerHandle);
+
+    if (index >= PointerList->NextEntry)
+        return NULL;
+
+    pointer = PointerList->Items[index];
+
+    if (PH_IS_LIST_POINTER_VALID(pointer))
+        return pointer;
+
+    return NULL;
+}
+
+/**
  * Removes a pointer from a pointer list.
  *
  * \param PointerList A pointer list object.

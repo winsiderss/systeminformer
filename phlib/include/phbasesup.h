@@ -3623,6 +3623,14 @@ PhFindItemPointerList(
     );
 
 PHLIBAPI
+PVOID
+NTAPI
+PhGetItemPointerList(
+    _In_ PPH_POINTER_LIST PointerList,
+    _In_ HANDLE PointerHandle
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhRemoveItemPointerList(
