@@ -1981,8 +1981,7 @@ namespace CustomBuildTool
                     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                     "-DSI_WITH_CORE=ON",
                     "-DSI_WITH_PLUGINS=ON",
-                    $"-DCMAKE_BUILD_TYPE={BuildConfig}",
-                    "-j"
+                    $"-DCMAKE_BUILD_TYPE={BuildConfig}"
                ];
             }
             else
@@ -1999,8 +1998,7 @@ namespace CustomBuildTool
                     toolchainFile,
                     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                     "-DSI_WITH_CORE=ON",
-                    "-DSI_WITH_PLUGINS=ON",
-                    "-j"
+                    "-DSI_WITH_PLUGINS=ON"
                 ];
             }
 
