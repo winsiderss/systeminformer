@@ -3628,6 +3628,57 @@ VOID PhAddMemoryUlongOriginal(
 }
 
 /**
+ * Adds one array of integers to another.
+ *
+ * \param A The destination array to which the source array is added.
+ * \param B The source array.
+ * \param Count The number of elements.
+ *
+ * \remarks For best performance both arrays should be 16-byte aligned (or
+ * 32-byte aligned to engage the AVX2 path); unaligned input falls back to the
+ * scalar tail.
+ */
+VOID PhAddMemoryUlong(
+    _Inout_ PULONG A,
+    _In_ PULONG B,
+    _In_ ULONG Count
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX && IS_ALIGNED(A, 32) && IS_ALIGNED(B, 32))
+    {
+        while (Count >= 8)
+        {
+            __m256i a = _mm256_load_si256((__m256i*)A);
+            __m256i b = _mm256_load_si256((__m256i*)B);
+            _mm256_store_si256((__m256i*)A, _mm256_add_epi32(a, b));
+            A += 8;
+            B += 8;
+            Count -= 8;
+        }
+
+        _mm256_zeroupper();
+    }
+
+    if (PhHasIntrinsics && IS_ALIGNED(A, 16) && IS_ALIGNED(B, 16))
+    {
+        while (Count >= 4)
+        {
+            __m128i a = _mm_load_si128((__m128i*)A);
+            __m128i b = _mm_load_si128((__m128i*)B);
+            _mm_store_si128((__m128i*)A, _mm_add_epi32(a, b));
+            A += 4;
+            B += 4;
+            Count -= 4;
+        }
+    }
+#endif
+
+    while (Count--)
+        *A++ += *B++;
+}
+
+/**
  * Returns the maximum value of an array of floats.
  *
  * \param A The array.
