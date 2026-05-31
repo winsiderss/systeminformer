@@ -1580,44 +1580,74 @@ VOID PhGenerateGuidFromName(
 
     // Compute the hash of the namespace concatenated with the name.
 
-    dataLength = 16 + NameLength;
-    data = PhAllocate(dataLength);
-    memcpy(data, &ns, 16);
-    memcpy(&data[16], Name, NameLength);
-
     if (Version == GUID_VERSION_MD5)
     {
 #ifdef PH_NATIVE_CRYPT
         MD5_CTX context;
+        PUCHAR data;
+        ULONG dataLength;
+
+        dataLength = 16 + NameLength;
+        data = PhAllocate(dataLength);
+        memcpy(data, &ns, 16);
+        memcpy(&data[16], Name, NameLength);
 
         MD5Init(&context);
         MD5Update(&context, data, dataLength);
         MD5Final(&context);
 
         memcpy(hash, context.digest, 16);
+        PhFree(data);
 #else
         UCHAR digest[PH_SYMCRYPT_MD5_RESULT_SIZE];
+
+        dataLength = 16 + NameLength;
+        data = PhAllocate(dataLength);
+        memcpy(data, &ns, 16);
+        memcpy(&data[16], Name, NameLength);
+
         PhSymCryptMd5(data, dataLength, digest);
         memcpy(hash, digest, 16);
+
+        PhFree(data);
 #endif
     }
     else
     {
 #ifdef PH_NATIVE_CRYPT
         A_SHA_CTX context;
+        PUCHAR data;
+        ULONG dataLength;
+
+        dataLength = 16 + NameLength;
+        data = PhAllocate(dataLength);
+        memcpy(data, &ns, 16);
+        memcpy(&data[16], Name, NameLength);
 
         A_SHAInit(&context);
         A_SHAUpdate(&context, data, dataLength);
         A_SHAFinal(&context, hash);
+
+        PhFree(data);
 #else
+        PVOID ctx;
         UCHAR digest[PH_SYMCRYPT_SHA1_RESULT_SIZE];
-        PhSymCryptSha1(data, dataLength, digest);
+
+        if (NT_SUCCESS(PhSymCryptSha1Init(&ctx)))
+        {
+            PhSymCryptSha1Append(ctx, &ns, sizeof(GUID));
+            PhSymCryptSha1Append(ctx, Name, NameLength);
+            PhSymCryptSha1Result(ctx, digest);
+        }
+        else
+        {
+            RtlZeroMemory(digest, sizeof(digest));
+        }
+
         memcpy(hash, digest, 16);
 #endif
         Version = GUID_VERSION_SHA1;
     }
-
-    PhFree(data);
 
     guid = (PGUID_EX)Guid;
     memcpy(guid->Data, hash, 16);
@@ -1663,6 +1693,7 @@ VOID PhGenerateClass5Guid(
 #else
     {
         PH_SYMCRYPT_HASH_CONTEXT symCryptContext;
+
         if (NT_SUCCESS(PhSymCryptHashInit(PH_SYMCRYPT_SHA1_ALGORITHM, &symCryptContext)))
         {
             PhSymCryptHashData(&symCryptContext, &data, sizeof(GUID));
