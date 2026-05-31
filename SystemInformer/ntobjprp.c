@@ -17,6 +17,7 @@
 #include <emenu.h>
 #include <mainwnd.h>
 #include <procprv.h>
+#include <ntafd.h>
 #include <phafd.h>
 
 typedef struct _COMMON_PAGE_CONTEXT

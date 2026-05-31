@@ -293,7 +293,7 @@ BOOLEAN PhCmForwardSort(
     if (!column->SortFunction)
         return TRUE;
 
-    sortContext.SortFunction = column->SortFunction;
+    sortContext.SortFunction = (PPH_PLUGIN_TREENEW_SORT_FUNCTION)column->SortFunction;
     sortContext.SubId = column->SubId;
     sortContext.Context = column->Context;
     sortContext.PostSortFunction = Manager->PostSortFunction;

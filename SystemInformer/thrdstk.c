@@ -1327,6 +1327,8 @@ VOID PhpFreeThreadStackItem(
     PhFree(StackItem);
 }
 
+_Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
+_Function_class_(PH_PLUGIN_WALK_THREAD_STACK_CALLBACK)
 BOOLEAN NTAPI PhpWalkThreadStackCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_ PVOID Context

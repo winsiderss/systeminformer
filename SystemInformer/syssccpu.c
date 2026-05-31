@@ -23,6 +23,7 @@ static PPH_SYSINFO_SECTION CpuSection;
 static HWND CpuDialog;
 static PH_LAYOUT_MANAGER CpuLayoutManager;
 static RECT CpuGraphMargin;
+static RECT CpuGraphMarginScaled;
 static HWND CpuGraphHandle;
 static PH_GRAPH_STATE CpuGraphState;
 static HWND *CpusGraphHandle;
@@ -360,6 +361,8 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
             graphItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&CpuLayoutManager, GetDlgItem(hwndDlg, IDC_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             CpuGraphMargin = graphItem->Margin;
+            CpuGraphMarginScaled = CpuGraphMargin;
+            PhGetMarginDpiValue(&CpuGraphMarginScaled, CpuSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
             SetWindowFont(labelHandle, CpuSection->Parameters->MediumFont, FALSE);
@@ -398,6 +401,9 @@ INT_PTR CALLBACK PhSipCpuDialogProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            CpuGraphMarginScaled = CpuGraphMargin;
+            PhGetMarginDpiValue(&CpuGraphMarginScaled, CpuSection->Parameters->WindowDpi, TRUE);
+
             if (CpuSection->Parameters->LargeFont)
             {
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_TITLE), CpuSection->Parameters->LargeFont, FALSE);
@@ -599,8 +605,7 @@ VOID PhSipLayoutCpuGraphs(
     RECT rect;
     HDWP deferHandle;
 
-    rect = CpuGraphMargin;
-    PhGetMarginDpiValue(&rect, CpuSection->Parameters->WindowDpi, TRUE);
+    rect = CpuGraphMarginScaled;
 
     if (!PhGetClientRect(CpuDialog, &clientRect))
         return;

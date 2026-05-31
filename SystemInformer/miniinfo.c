@@ -600,6 +600,7 @@ VOID PhMipOnUserMessage(
     }
 }
 
+_Function_class_(PH_MESSAGE_LOOP_FILTER)
 BOOLEAN PhMipMessageLoopFilter(
     _In_ PMSG Message,
     _In_ PVOID Context
@@ -1268,6 +1269,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
     return PhMipCreateListSection(Name, Flags, &listSection);
 }
 
+_Function_class_(PH_MINIINFO_SECTION_CALLBACK)
 BOOLEAN PhMipListSectionCallback(
     _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
@@ -2069,6 +2071,7 @@ VOID PhMipHandleListSectionCommand(
     }
 }
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipCpuListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -2201,6 +2204,7 @@ int __cdecl PhMipCpuListSectionNodeCompareFunction(
     return singlecmp(*(PFLOAT)data2->UserData, *(PFLOAT)data1->UserData);
 }
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipCommitListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -2310,6 +2314,7 @@ int __cdecl PhMipCommitListSectionNodeCompareFunction(
     return uint64cmp(*(PULONG64)data2->UserData, *(PULONG64)data1->UserData);
 }
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipPhysicalListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -2421,6 +2426,7 @@ int __cdecl PhMipPhysicalListSectionNodeCompareFunction(
     return uint64cmp(*(PULONG64)data2->UserData, *(PULONG64)data1->UserData);
 }
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipIoListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,

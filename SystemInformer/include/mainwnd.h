@@ -358,6 +358,7 @@ typedef enum _PH_TOAST_PRIORITY
 typedef struct _PH_TOAST_ENTRY *PPH_TOAST;
 
 PHAPPAPI
+_Must_inspect_result_
 HRESULT
 NTAPI
 PhShowToastEx2(

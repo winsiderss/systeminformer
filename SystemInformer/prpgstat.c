@@ -508,6 +508,7 @@ static int __cdecl PhpCompareProcessStatisticsDouble(
     return doublecmp(*(PDOUBLE)Left, *(PDOUBLE)Right);
 }
 
+_Success_(return)
 static BOOLEAN PhpGetProcessStatisticsEnergyCycleIndex(
     _In_ PH_PROCESS_STATISTICS_INDEX Index,
     _Out_ PULONG QosIndex,
@@ -526,6 +527,7 @@ static BOOLEAN PhpGetProcessStatisticsEnergyCycleIndex(
     return TRUE;
 }
 
+_Success_(return)
 static BOOLEAN PhpGetProcessStatisticsEnergyAttributedCycleIndex(
     _In_ PH_PROCESS_STATISTICS_INDEX Index,
     _Out_ PULONG QosIndex,
@@ -544,6 +546,7 @@ static BOOLEAN PhpGetProcessStatisticsEnergyAttributedCycleIndex(
     return TRUE;
 }
 
+_Success_(return)
 static BOOLEAN PhpGetProcessStatisticsEnergyWorkOnBehalfCycleIndex(
     _In_ PH_PROCESS_STATISTICS_INDEX Index,
     _Out_ PULONG QosIndex,
@@ -562,6 +565,7 @@ static BOOLEAN PhpGetProcessStatisticsEnergyWorkOnBehalfCycleIndex(
     return TRUE;
 }
 
+_Success_(return)
 static BOOLEAN PhpGetProcessStatisticsNumericValue(
     _In_ PPH_STATISTICS_CONTEXT Context,
     _In_ PH_PROCESS_STATISTICS_INDEX Index,

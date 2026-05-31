@@ -69,6 +69,7 @@ ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Success_(return)
 BOOLEAN PhGetNetworkConnections(
     _Out_ PPH_NETWORK_CONNECTION *Connections,
     _Out_ PULONG NumberOfConnections
@@ -1639,6 +1640,7 @@ VOID PhpCollectHvSocket(
  * \param[in] Context A pointer to a GUID array.
  * \return TRUE to continue enumeration, FALSE otherwise.
  */
+_Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_BASIC_INFORMATION Information,

@@ -182,7 +182,7 @@ static BOOLEAN PhpShowThreadErrorAffinity(
 
 VOID PhpShowThreadErrorAffinityList(
     _In_ PPH_AFFINITY_DIALOG_CONTEXT Context,
-    _Inout_ PPH_LIST AffinityErrorsList
+    _In_ PPH_LIST AffinityErrorsList
     )
 {
     PH_STRING_BUILDER stringBuilder;

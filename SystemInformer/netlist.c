@@ -552,7 +552,23 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(State)
 {
-    sortResult = uintcmp(networkItem1->State, networkItem2->State);
+    // For UDP, treat "Bound" state (listening sockets) specially - always sort them last
+    BOOLEAN isBound1 = (networkItem1->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem1->State == MIB_TCP_STATE_RESERVED);
+    BOOLEAN isBound2 = (networkItem2->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem2->State == MIB_TCP_STATE_RESERVED);
+
+    if (isBound1 && !isBound2)
+    {
+        sortResult = 1; // item1 is bound, sorts after item2
+    }
+    else if (!isBound1 && isBound2)
+    {
+        sortResult = -1; // item2 is bound, sorts after item1
+    }
+    else
+    {
+        // Both bound or both not bound - normal comparison
+        sortResult = uintcmp(networkItem1->State, networkItem2->State);
+    }
 }
 END_SORT_FUNCTION
 

@@ -322,6 +322,7 @@ PPH_NF_ICON PhNfRegisterIcon(
     return icon;
 }
 
+_Function_class_(PH_REGISTER_TRAY_ICON)
 PPH_NF_ICON PhNfPluginRegisterIcon(
     _In_ PPH_PLUGIN Plugin,
     _In_ ULONG SubId,
@@ -645,6 +646,7 @@ VOID PhNfSetVisibleIcon(
 #endif
 }
 
+_Function_class_(PH_TOAST_CALLBACK)
 VOID NTAPI PhpToastCallback(
     _In_ HRESULT Result,
     _In_ PH_TOAST_REASON Reason,
@@ -1502,6 +1504,13 @@ VOID PhNfpBeginBitmap2(
 {
     LONG dpiValue = PhGetTaskbarDpi();
 
+    *Width = 0;
+    *Height = 0;
+    *Bitmap = NULL;
+    if (Bits) *Bits = NULL;
+    *Hdc = NULL;
+    *OldBitmap = NULL;
+
     // Initialize and cache the current system metrics. (dmex)
 
     if (Context->TaskbarDpi == 0 || Context->TaskbarDpi != dpiValue)
@@ -1575,6 +1584,10 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    *NewIconOrBitmap = NULL;
+    *Flags = 0;
+    *NewText = NULL;
+
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -1675,6 +1688,10 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    *NewIconOrBitmap = NULL;
+    *Flags = 0;
+    *NewText = NULL;
+
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -1791,6 +1808,10 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    *NewIconOrBitmap = NULL;
+    *Flags = 0;
+    *NewText = NULL;
+
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,
@@ -1872,6 +1893,10 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _In_opt_ PVOID Context
     )
 {
+    *NewIconOrBitmap = NULL;
+    *Flags = 0;
+    *NewText = NULL;
+
     static PH_GRAPH_DRAW_INFO drawInfo =
     {
         16,

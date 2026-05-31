@@ -2496,7 +2496,14 @@ VOID PhpInitializeWmiProviderTree(
 
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PROCESS_WMI_COLUMN_ITEM_PROVIDER, NoSortOrder);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(22, dpiValue));
+    {
+        ULONG treelistCustomRowSize = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE);
+
+        if (treelistCustomRowSize && treelistCustomRowSize < 15)
+            treelistCustomRowSize = 15;
+
+        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
+    }
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
@@ -2671,7 +2678,14 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                     PhReplaceWindowFont(&context->TreeNewFont, context->TreeNewHandle, treeNewFont, TRUE);
             }
 
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(hwndDlg)));
+            {
+                ULONG treelistCustomRowSize = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE);
+
+                if (treelistCustomRowSize && treelistCustomRowSize < 15)
+                    treelistCustomRowSize = 15;
+
+                TreeNew_SetRowHeight(context->TreeNewHandle, treelistCustomRowSize);
+            }
         }
         break;
     case WM_SHOWWINDOW:

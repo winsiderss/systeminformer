@@ -243,6 +243,7 @@ VOID PhpLimitedSymbolDereferenceContext(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhpLimitedSymbolProviderLookupFunction(
     _In_ PVOID Parameter
     )

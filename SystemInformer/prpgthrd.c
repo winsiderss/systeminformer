@@ -335,6 +335,7 @@ VOID PhpInitializeThreadMenu(
     }
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -347,6 +348,7 @@ static NTSTATUS NTAPI PhpThreadPermissionsOpenThread(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpThreadPermissionsCloseHandle(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -357,6 +359,7 @@ static NTSTATUS PhpThreadPermissionsCloseHandle(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -369,6 +372,7 @@ static NTSTATUS NTAPI PhpOpenThreadTokenObject(
     return STATUS_UNSUCCESSFUL;
 }
 
+_Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseThreadTokenObject(
     _In_opt_ HANDLE Handle,
     _In_opt_ BOOLEAN Release,
@@ -379,6 +383,7 @@ static NTSTATUS PhpCloseThreadTokenObject(
     return STATUS_SUCCESS;
 }
 
+_Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhpThreadTreeFilterCallback(
     _In_ PPH_TREENEW_NODE Node,
     _In_opt_ PPH_THREADS_CONTEXT Context
@@ -912,6 +917,7 @@ VOID PhpProcessThreadsSave(
     PhFreeFileDialog(fileDialog);
 }
 
+_Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhpSymbolProviderEventCallbackThreadStatus(
     _In_ PVOID Parameter,
     _In_ PVOID Context
@@ -941,6 +947,7 @@ VOID PhpSymbolProviderEventCallbackThreadStatus(
     }
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PhpProcessThreadsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

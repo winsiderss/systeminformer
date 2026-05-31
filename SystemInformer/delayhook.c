@@ -1887,7 +1887,7 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
                 LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
                 WCHAR className[MAX_PATH];
 
-                if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                if (!NT_SUCCESS(PhGetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className), NULL)))
                     className[0] = UNICODE_NULL;
                 if (PhEqualStringZ(className, WC_BUTTON, FALSE))
                 {

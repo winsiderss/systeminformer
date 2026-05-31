@@ -732,6 +732,7 @@ VOID PhpThreadStacksWorkerPhase1(
     PhpThreadStacksPublish(Context, TRUE, NULL);
 }
 
+_Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 BOOLEAN NTAPI PhpThreadStacksWalkCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_ PVOID Context
@@ -853,6 +854,7 @@ VOID PhpThreadStacksWorkerPhase2(
     }
 }
 
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpThreadStacksWorkerThreadStart(
     _In_ PVOID Parameter
     )
