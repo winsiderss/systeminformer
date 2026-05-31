@@ -27,6 +27,7 @@ namespace CustomBuildTool
         public static bool BuildRedirectOutput;
         public static bool BuildToolsDebug;
         public static bool HaveArm64BuildTools = true;
+        private static bool Arm64BuildToolsSkipPrinted;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
         public static string BuildCommitBranch = "orphan";
@@ -39,7 +40,7 @@ namespace CustomBuildTool
         public static string BuildVersionMinor = "0";
 
         /// <summary>
-        /// Initializes the build environment, project solution and build arguments.
+        /// Initializes the build environment, project solution, and build arguments.
         /// </summary>
         /// <returns>True if the build environment is successfully initialized; otherwise, false.</returns>
         public static async Task<bool> InitializeBuildEnvironment()
@@ -183,6 +184,9 @@ namespace CustomBuildTool
         /// <param name="ShowBuildInfo">If true, prints build and environment information to the console.</param>
         public static void SetupBuildEnvironment(bool ShowBuildInfo)
         {
+            var visualStudioInstance = BuildVisualStudio.GetVisualStudioInstance();
+            Build.HaveArm64BuildTools = visualStudioInstance?.HasARM64BuildToolsComponents == true;
+
             if (ShowBuildInfo)
             {
                 {
@@ -209,11 +213,8 @@ namespace CustomBuildTool
                     Console.WriteLine();
                 }
 
-                var visualStudioInstance = BuildVisualStudio.GetVisualStudioInstance();
                 if (visualStudioInstance != null)
                 {
-                    Build.HaveArm64BuildTools = visualStudioInstance.HasARM64BuildToolsComponents;
-
                     string sdkVersion = Utils.GetWindowsSdkVersion();
                     string sdkFullVersion = visualStudioInstance.GetWindowsSdkFullVersion();
 
@@ -267,6 +268,28 @@ namespace CustomBuildTool
             }
         }
 
+        public static bool TryNormalizeBuildFlags(ref BuildFlags Flags, bool FailIfNoTargetPlatforms = false)
+        {
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !Build.HaveArm64BuildTools)
+            {
+                if (!Arm64BuildToolsSkipPrinted)
+                    Arm64BuildToolsSkipPrinted = true;
+
+                Flags &= ~BuildFlags.BuildArm64bit;
+            }
+
+            if (FailIfNoTargetPlatforms &&
+                !Flags.HasFlag(BuildFlags.Build32bit) &&
+                !Flags.HasFlag(BuildFlags.Build64bit) &&
+                !Flags.HasFlag(BuildFlags.BuildArm64bit))
+            {
+                Program.PrintColorMessage("[ERROR] No build platforms are available for the requested command.", ConsoleColor.Red, true, Flags);
+                return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Gets the elapsed time since the build started, formatted as [mm:ss].
         /// </summary>
@@ -291,7 +314,7 @@ namespace CustomBuildTool
             // Extract the day of the year (1 to 365 or 366 in a leap year). Padding with leading zeros if necessary.
             // For example, if the day of the year is 5, it will be converted to "005".
             var dayOfYear = TimeStart.DayOfYear.ToString("D3");
-            // Format the strings: 23005
+            // Format the strings: 23,005
             return string.Concat([yearSuffix, dayOfYear]);
         }
 
@@ -660,7 +683,7 @@ namespace CustomBuildTool
                         continue;
                     }
 
-                    if (!PEImage.ValidateImageExports(exePath))
+                    if (!Win32Image.ValidateImageExports(exePath))
                         return false;
                 }
             }
@@ -1599,6 +1622,10 @@ namespace CustomBuildTool
             commandLineBuilder.Append("/p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=200 ");
 
             if (targetPlatforms.Count > 0)
+                commandLineBuilder.Append($"/p:Platform={targetPlatforms[0]} ");
+            if (targetConfigurations.Count > 0)
+                commandLineBuilder.Append($"/p:Configuration={targetConfigurations[0]} ");
+            if (targetPlatforms.Count > 0)
                 commandLineBuilder.Append($"/p:TargetPlatforms=\"{string.Join(';', targetPlatforms)}\" ");
             if (targetConfigurations.Count > 0)
                 commandLineBuilder.Append($"/p:TargetConfigurations=\"{string.Join(';', targetConfigurations)}\" ");
@@ -1617,9 +1644,6 @@ namespace CustomBuildTool
             if (!Build.BuildRedirectOutput && !Build.BuildIntegration)
                 commandLineBuilder.Append("-terminalLogger:on ");
 
-            if (SkipArm64 || !targetPlatforms.Contains("ARM64"))
-                commandLineBuilder.Append("/p:SkipArm64Platform=true ");
-
             commandLineBuilder.Append(Solution);
 
             return commandLineBuilder.ToString();
@@ -1627,10 +1651,13 @@ namespace CustomBuildTool
 
         public static bool BuildSolutionParallel(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
         {
-            if (Flags.HasFlag(BuildFlags.BuildArm64bit) && !SkipArm64 && !HaveArm64BuildTools)
+            if (SkipArm64)
             {
-                Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
-                SkipArm64 = true;
+                Flags &= ~BuildFlags.BuildArm64bit;
+            }
+            else if (!Build.TryNormalizeBuildFlags(ref Flags, true))
+            {
+                return false;
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
@@ -1708,10 +1735,6 @@ namespace CustomBuildTool
                     if (!MsbuildCommand(Solution, "ARM64", Flags, Channel))
                         return false;
                 }
-                else
-                {
-                    Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
-                }
             }
 
             return true;
@@ -1746,32 +1769,68 @@ namespace CustomBuildTool
                     return true;
 
                 if (!HaveArm64BuildTools)
-                {
-                    Program.PrintColorMessage("[SKIPPED] ARM64 build tools not installed.", ConsoleColor.Yellow, true, Flags);
                     return true;
-                }
             }
             else
             {
                 return true;
             }
 
-            //if (useBuildCmakeScript)
-            //{
-            //    if (buildDebug && !ExecuteBuildSolutionCMakeScript(Solution, Generator, Toolchain, Flags, "Debug"))
-            //        return false;
-            //    if (buildRelease && !ExecuteBuildSolutionCMakeScript(Solution, Generator, Toolchain, Flags, "Release"))
-            //        return false;
-            //}
-            //else
+            // Run requested configurations in parallel. Each ExecuteBuildSolutionCMake
+            // call uses an independent buildFolder (e.g. release-msvc-64 vs
+            // debug-msvc-64) so the parallel cmake invocations do not collide on
+            // CMakeCache.txt or generated build files. Subprocess output may
+            // interleave on the console — same trade-off MSBuild makes with /m.
+            var configs = new List<string>(2);
+            if (buildDebug) configs.Add("Debug");
+            if (buildRelease) configs.Add("Release");
+
+            if (configs.Count == 0)
+                return true;
+
+            bool allOk = true;
+            Parallel.ForEach(configs, new ParallelOptions { MaxDegreeOfParallelism = configs.Count }, config =>
             {
-                if (buildDebug && !ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Debug"))
-                    return false;
-                if (buildRelease && !ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, "Release"))
-                    return false;
+                if (!ExecuteBuildSolutionCMake(Solution, Generator, Toolchain, Flags, config))
+                    Volatile.Write(ref allOk, false);
+            });
+
+            return allOk;
+        }
+
+        /// <summary>
+        /// Runs <see cref="BuildSolutionCMake"/> for every requested toolchain in
+        /// parallel, providing (toolchain x configuration) fan-out equivalent to
+        /// what MSBuild's /m does over <c>SystemInformer.sln</c>. ARM64 toolchains
+        /// are skipped automatically when ARM64 build tools are not installed.
+        /// </summary>
+        /// <param name="Solution">The solution name (e.g. "SystemInformer").</param>
+        /// <param name="Generator">The CMake generator to use.</param>
+        /// <param name="Toolchains">Toolchains to build.</param>
+        /// <param name="Flags">Build flags (includes Debug/Release selection).</param>
+        /// <returns>True if every requested (toolchain, config) tuple succeeds.</returns>
+        public static bool BuildSolutionCMakeMatrix(string Solution, BuildGenerator Generator, IEnumerable<BuildToolchain> Toolchains, BuildFlags Flags)
+        {
+            var toolchainList = new List<BuildToolchain>();
+            foreach (var tc in Toolchains)
+            {
+                if (Utils.IsArm64Toolchain(tc) && !HaveArm64BuildTools)
+                    continue;
+                
+                toolchainList.Add(tc);
             }
 
-            return true;
+            if (toolchainList.Count == 0)
+                return true;
+
+            bool allOk = true;
+            Parallel.ForEach(toolchainList, new ParallelOptions { MaxDegreeOfParallelism = toolchainList.Count }, tc =>
+            {
+                if (!BuildSolutionCMake(Solution, Generator, tc, Flags))
+                    Volatile.Write(ref allOk, false);
+            });
+
+            return allOk;
         }
 
         /// <summary>
@@ -1874,11 +1933,11 @@ namespace CustomBuildTool
             string buildFolder = Path.Join([Build.BuildWorkingFolder, configFolder + platformSuffix]);
             string toolchainFile = Path.Join([Build.BuildWorkingFolder, toolchainRelativeFile]);
 
-            static void TryDeleteDirectory(string directoryPath)
+            static void TryDeleteDirectory(string DirectoryPath)
             {
-                if (Directory.Exists(directoryPath))
+                if (Directory.Exists(DirectoryPath))
                 {
-                    try { Directory.Delete(directoryPath, true); }
+                    try { Directory.Delete(DirectoryPath, true); }
                     catch { }
                 }
             }
@@ -1922,7 +1981,8 @@ namespace CustomBuildTool
                     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                     "-DSI_WITH_CORE=ON",
                     "-DSI_WITH_PLUGINS=ON",
-                    $"-DCMAKE_BUILD_TYPE={BuildConfig}"
+                    $"-DCMAKE_BUILD_TYPE={BuildConfig}",
+                    "-j"
                ];
             }
             else
@@ -1939,7 +1999,8 @@ namespace CustomBuildTool
                     toolchainFile,
                     "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
                     "-DSI_WITH_CORE=ON",
-                    "-DSI_WITH_PLUGINS=ON"
+                    "-DSI_WITH_PLUGINS=ON",
+                    "-j"
                 ];
             }
 
@@ -1972,13 +2033,18 @@ namespace CustomBuildTool
                     buildFolder,
                     "--config",
                     BuildConfig,
+                    "--parallel",
                     "--",
                     "/m",
                     $"/p:Platform={Utils.CMakeGetPlatform(Toolchain)}",
-                    "-terminalLogger:auto"
+                    "/p:BuildInParallel=true",
+                    "/p:UseMultiToolTask=true",
+                    "/p:EnforceProcessCountAcrossBuilds=true",
+                    $"/p:CL_MPCount={Environment.ProcessorCount}",
+                    "-terminalLogger:auto",
                 ];
             }
-            else 
+            else
             {
                 buildArgs =
                 [

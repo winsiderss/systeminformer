@@ -167,7 +167,7 @@ REM ----------------------------------------------------------------------------
 set "CMAKE_GEN_OPTS="
 set "CMAKE_BUILD_OPTS="
 if /i "%GENERATOR%"=="Ninja" set "CMAKE_GEN_OPTS=-DCMAKE_BUILD_TYPE=%CONFIG%"
-if not "%GENERATOR:Visual Studio=%"=="%GENERATOR%" set "CMAKE_BUILD_OPTS=-- /m /p:Platform=%PLATFORM% -terminalLogger:%BuildTerminalLogger%"
+if not "%GENERATOR:Visual Studio=%"=="%GENERATOR%" set "CMAKE_BUILD_OPTS=-- /m /graph -t:All -p:TargetPlatforms=""%PLATFORM%"" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%BuildTerminalLogger%"
 exit /b 0
 
 REM -----------------------------------------------------------------------------
@@ -213,7 +213,7 @@ REM Description: Invokes CMake build for the resolved build directory.
 REM -----------------------------------------------------------------------------
 :RunBuild
 echo Setting up Visual Studio environment for %VCVARS_ARCH%...
-cmake --build "%BUILD_DIR%" --config "%CONFIG%" %CMAKE_BUILD_OPTS%
+cmake --build "%BUILD_DIR%" --config "%CONFIG%" --parallel %CMAKE_BUILD_OPTS%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------

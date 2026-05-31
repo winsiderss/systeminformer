@@ -96,13 +96,13 @@ namespace CustomBuildTool
         /// Caches FieldInfo for <see cref="DynFieldsKernel"/> to optimize reflection performance.
         /// </summary>
         private static readonly FrozenDictionary<string, FieldInfo> DynFieldsKernelFieldCache =
-            typeof(DynFieldsKernel).GetFields().ToFrozenDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+            typeof(DynFieldsKernel).GetFields().ToFrozenDictionary(F => F.Name, F => F, StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Caches FieldInfo for <see cref="DynFieldsLxcore"/> to optimize reflection performance.
         /// </summary>
         private static readonly FrozenDictionary<string, FieldInfo> DynFieldsLxcoreFieldCache =
-            typeof(DynFieldsLxcore).GetFields().ToFrozenDictionary(f => f.Name, f => f, StringComparer.OrdinalIgnoreCase);
+            typeof(DynFieldsLxcore).GetFields().ToFrozenDictionary(F => F.Name, F => F, StringComparer.OrdinalIgnoreCase);
 
 
         /// <summary>
@@ -127,31 +127,31 @@ namespace CustomBuildTool
         /// <summary>
         /// Maps a file name to its corresponding <see cref="ClassType"/>.
         /// </summary>
-        /// <param name="input">The file name.</param>
+        /// <param name="Input">The file name.</param>
         /// <returns>The matching <see cref="ClassType"/>.</returns>
-        private static ClassType ClassFromString(string input)
+        private static ClassType ClassFromString(string Input)
         {
-            return input switch
+            return Input switch
             {
                 "ntoskrnl.exe" => ClassType.Ntoskrnl,
                 "ntkrla57.exe" => ClassType.Ntkrla57,
                 "lxcore.sys" => ClassType.Lxcore,
-                _ => throw new Exception($"invalid file name {input}")
+                _ => throw new Exception($"invalid file name {Input}")
             };
         }
 
         /// <summary>
         /// Maps an architecture string to its corresponding machine code.
         /// </summary>
-        /// <param name="input">The architecture name.</param>
+        /// <param name="Input">The architecture name.</param>
         /// <returns>The machine code.</returns>
-        private static UInt16 MachineFromString(string input)
+        private static UInt16 MachineFromString(string Input)
         {
-            return input switch
+            return Input switch
             {
                 "amd64" => 0x8664,
                 "arm64" => 0xAA64,
-                _ => throw new Exception($"invalid machine {input}")
+                _ => throw new Exception($"invalid machine {Input}")
             };
         }
 

@@ -54,7 +54,7 @@ namespace CustomBuildTool
             Utils.WriteAllText(filenameId, currentHash);
 
             Program.PrintColorMessage("Tools Hash: ", ConsoleColor.Gray, false);
-            Program.PrintColorMessage($"{currentHash}", ConsoleColor.Green);
+            Program.PrintColorMessage(currentHash, ConsoleColor.Green);
         }
 
         /// <summary>
@@ -65,45 +65,56 @@ namespace CustomBuildTool
         /// A hexadecimal string representing the SHA-256 hash of the build tools source files,
         /// or an empty string if the hash could not be computed.
         /// </returns>
-        public static string GetToolsId()
+        private static string GetToolsId()
         {
-            const int bufferSize = 0x4000;
             string[] directories =
             [
                 "tools\\CustomBuildTool",
                 "tools\\CustomBuildTool\\AzureSignTool",
             ];
 
-            using (var sha256 = SHA256.Create())
+            return GetToolsId(directories);
+        }
+
+        private static IEnumerable<string> GetAllCsFiles(string[] Directories)
+        {
+            foreach (string directory in Directories)
             {
-                byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
-
-                try
+                foreach (string source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
                 {
-                    foreach (var directory in directories)
-                    {
-                        foreach (string source in Directory.EnumerateFiles(directory, "*.cs", SearchOption.TopDirectoryOnly))
-                        {
-                            int bytesRead;
+                    yield return source;
+                }
+            }
+        }
 
-                            using (var filestream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan))
-                            {
-                                while ((bytesRead = filestream.Read(buffer, 0, buffer.Length)) > 0)
-                                {
-                                    sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
-                                }
-                            }
+        private static string GetToolsId(string[] Directories)
+        {
+            const int bufferSize = 0x4000;
+            using var sha256 = SHA256.Create();
+            byte[] buffer = ArrayPool<byte>.Shared.Rent(bufferSize);
+
+            try
+            {
+                foreach (string source in GetAllCsFiles(Directories))
+                {
+                    using (var filestream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan))
+                    {
+                        int bytesRead;
+                        
+                        while ((bytesRead = filestream.Read(buffer, 0, buffer.Length)) > 0)
+                        {
+                            sha256.TransformBlock(buffer, 0, bytesRead, null, 0);
                         }
                     }
                 }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
-                }
-
-                sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-                return sha256.Hash == null ? string.Empty : Convert.ToHexString(sha256.Hash);
             }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
+            }
+
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return sha256.Hash == null ? string.Empty : Convert.ToHexString(sha256.Hash);
         }
     }
 }

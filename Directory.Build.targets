@@ -1,12 +1,11 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <!-- Define properties with defaults. These are overridden by -p:PropertyName=Value -->
   <PropertyGroup>
     <TargetPlatforms Condition="'$(TargetPlatforms)' == ''">Win32;x64;ARM64</TargetPlatforms>
     <TargetConfigurations Condition="'$(TargetConfigurations)' == ''">Debug;Release</TargetConfigurations>
+    <BuildAllTarget Condition="'$(BuildAllTarget)' == ''">Build</BuildAllTarget>
   </PropertyGroup>
 
-  <!-- Parse the properties into Items so they can be batched -->
   <ItemGroup>
     <TargetPlatformItem Include="$(TargetPlatforms)" />
     <TargetConfigurationItem Include="$(TargetConfigurations)" />
@@ -14,16 +13,17 @@
 
   <Target Name="All">
     <ItemGroup>
-      <!-- Cross-multiply configurations and platforms using the new item names -->
-      <_ConfigPlatform Include="@(TargetConfigurationItem)">
+      <_AllConfigPlatforms Include="@(TargetConfigurationItem)">
         <Platform>%(TargetPlatformItem.Identity)</Platform>
-      </_ConfigPlatform>
+      </_AllConfigPlatforms>
+
+      <_ConfigPlatform Include="@(_AllConfigPlatforms)" />
 
       <_ProjectsToBuild Include="$(MSBuildProjectFullPath)">
         <AdditionalProperties>Configuration=%(_ConfigPlatform.Identity);Platform=%(_ConfigPlatform.Platform)</AdditionalProperties>
       </_ProjectsToBuild>
     </ItemGroup>
 
-    <MSBuild Projects="@(_ProjectsToBuild)" Targets="Build" BuildInParallel="true" />
+    <MSBuild Projects="@(_ProjectsToBuild)" Targets="$(BuildAllTarget)" BuildInParallel="true" />
   </Target>
 </Project>

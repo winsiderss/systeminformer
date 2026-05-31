@@ -42,11 +42,11 @@ namespace CustomBuildTool
         {
             private readonly Dictionary<string, ProgressReport> Reports = new(StringComparer.OrdinalIgnoreCase);
 
-            public void Report(ProgressReport value)
+            public void Report(ProgressReport Value)
             {
-                if (!string.IsNullOrWhiteSpace(value.EntryPath))
+                if (!string.IsNullOrWhiteSpace(Value.EntryPath))
                 {
-                    this.Reports[value.EntryPath] = value;
+                    this.Reports[Value.EntryPath] = Value;
                 }
             }
 
@@ -59,26 +59,25 @@ namespace CustomBuildTool
         /// <summary>
         /// Converts absolute file paths to relative entry names for archive entries.
         /// </summary>
-        /// <param name="names">Array of absolute file paths.</param>
-        /// <param name="sourceFolder">The source folder path to remove from each name.</param>
-        /// <param name="includeBaseName">If true, includes the base folder name in the entry path.</param>
+        /// <param name="Names">Array of absolute file paths.</param>
+        /// <param name="SourceFolder">The source folder path to remove from each name.</param>
         /// <returns>Array of relative entry names suitable for archive entries.</returns>
         /// <remarks>
         /// Based on https://github.com/phofman/zip/blob/master/src/ZipFile.cs
         /// </remarks>
-        private static string[] GetEntryNames(string[] names, string sourceFolder, bool includeBaseName)
+        private static string[] GetEntryNames(string[] Names, string SourceFolder)
         {
-            if (names == null || names.Length == 0)
+            if (Names == null || Names.Length == 0)
                 return Array.Empty<string>();
 
-            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
-            if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+            int length = string.IsNullOrWhiteSpace(SourceFolder) ? 0 : SourceFolder.Length;
+            if (length > 0 && SourceFolder != null && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
-            var result = new string[names.Length];
-            for (int i = 0; i < names.Length; i++)
+            var result = new string[Names.Length];
+            for (int i = 0; i < Names.Length; i++)
             {
-                string name = names[i];
+                string name = Names[i];
                 result[i] = length <= name.Length ? name.AsSpan(length).ToString() : string.Empty;
             }
 
@@ -95,16 +94,16 @@ namespace CustomBuildTool
             };
         }
 
-        private static string GetEntryName(string name, string sourceFolder, bool includeBaseName)
+        private static string GetEntryName(string Name, string SourceFolder, bool IncludeBaseName)
         {
-            if (includeBaseName)
-                sourceFolder = Path.GetDirectoryName(sourceFolder);
+            if (IncludeBaseName)
+                SourceFolder = Path.GetDirectoryName(SourceFolder);
 
-            int length = string.IsNullOrWhiteSpace(sourceFolder) ? 0 : sourceFolder.Length;
-            if (length > 0 && sourceFolder != null && sourceFolder[length - 1] != Path.DirectorySeparatorChar && sourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+            int length = string.IsNullOrWhiteSpace(SourceFolder) ? 0 : SourceFolder.Length;
+            if (length > 0 && SourceFolder != null && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
-            return length <= name.Length ? name.AsSpan(length).ToString() : string.Empty;
+            return length <= Name.Length ? Name.AsSpan(length).ToString() : string.Empty;
         }
 
         private static void WriteEntry(
@@ -141,8 +140,8 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a compressed ZIP archive from a source directory, excluding debug files and applying path transformations.
         /// </summary>
-        /// <param name="sourceDirectoryName">The path to the directory to compress.</param>
-        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="SourceDirectoryName">The path to the directory to compress.</param>
+        /// <param name="DestinationArchiveFileName">The path where the ZIP archive will be created.</param>
         /// <param name="Flags">Build flags controlling verbosity and other options.</param>
         /// <remarks>
         /// This method:
@@ -150,23 +149,23 @@ namespace CustomBuildTool
         /// - Transforms Release configuration paths to architecture names (e.g., Release64 to amd64)
         /// - Uses optimal compression level
         /// </remarks>
-        public static void CreateCompressedFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
+        public static void CreateCompressedFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             var progressReporter = new CompressionProgressReporter();
-            var PathReplacements = new[] // Path replacements for archive entry names
+            var pathReplacements = new[] // Path replacements for archive entry names
             {
                 ("Release32\\", "i386\\"),
                 ("Release64\\", "amd64\\"),
                 ("ReleaseARM64\\", "arm64\\")
             };
 
-            using (var fileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
+            using (var fileStream = new FileStream(DestinationArchiveFileName, FileMode.Create))
             using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
             {
-                foreach (string file in Directory.EnumerateFiles(sourceDirectoryName, "*", SearchOption.AllDirectories))
+                foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {
                     bool shouldSkip = false;
-                    string name = GetEntryName(file, sourceDirectoryName, false);
+                    string name = GetEntryName(file, SourceDirectoryName, false);
 
                     foreach (var prefix in SkipPathPrefixes)
                     {
@@ -188,7 +187,7 @@ namespace CustomBuildTool
                     if (shouldSkip)
                         continue;
 
-                    foreach (var (from, to) in PathReplacements)
+                    foreach (var (from, to) in pathReplacements)
                     {
                         if (name.StartsWith(from, StringComparison.OrdinalIgnoreCase))
                         {
@@ -281,22 +280,22 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a compressed ZIP archive containing SDK files from a source directory.
         /// </summary>
-        /// <param name="sourceDirectoryName">The path to the SDK directory to compress.</param>
-        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="SourceDirectoryName">The path to the SDK directory to compress.</param>
+        /// <param name="DestinationArchiveFileName">The path where the ZIP archive will be created.</param>
         /// <param name="Flags">Build flags controlling verbosity and other options.</param>
         /// <remarks>
         /// Unlike <see cref="CreateCompressedFolder"/>, this method includes all files without filtering.
         /// </remarks>
-        public static void CreateCompressedSdkFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
+        public static void CreateCompressedSdkFromFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             var progressReporter = new CompressionProgressReporter();
 
-            using (var fileStream = File.Create(destinationArchiveFileName))
+            using (var fileStream = File.Create(DestinationArchiveFileName))
             using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
             {
-                foreach (string file in Directory.EnumerateFiles(sourceDirectoryName, "*", SearchOption.AllDirectories))
+                foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {
-                    string name = GetEntryName(file, sourceDirectoryName, false);
+                    string name = GetEntryName(file, SourceDirectoryName, false);
 
                     WriteEntry(writer, fileStream, name, file, CompressionType.Deflate, progressReporter, Flags);
                 }
@@ -334,23 +333,23 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a compressed ZIP archive containing only PDB symbol files from a source directory.
         /// </summary>
-        /// <param name="sourceDirectoryName">The path to the directory containing PDB files.</param>
-        /// <param name="destinationArchiveFileName">The path where the ZIP archive will be created.</param>
+        /// <param name="SourceDirectoryName">The path to the directory containing PDB files.</param>
+        /// <param name="DestinationArchiveFileName">The path where the ZIP archive will be created.</param>
         /// <param name="Flags">Build flags controlling verbosity and other options.</param>
         /// <remarks>
         /// This method only includes .pdb files and excludes files from Debug, obj, and tests directories.
         /// </remarks>
-        public static void CreateCompressedPdbFromFolder(string sourceDirectoryName, string destinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
+        public static void CreateCompressedPdbFromFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
         {
             var progressReporter = new CompressionProgressReporter();
 
-            using (var fileStream = new FileStream(destinationArchiveFileName, FileMode.Create))
+            using (var fileStream = new FileStream(DestinationArchiveFileName, FileMode.Create))
             using (var writer = new ZipWriter(fileStream, CreateWriterOptions(progressReporter)))
             {
-                foreach (string file in Directory.EnumerateFiles(sourceDirectoryName, "*", SearchOption.AllDirectories))
+                foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {
                     bool shouldSkip = false;
-                    string name = GetEntryName(file, sourceDirectoryName, false);
+                    string name = GetEntryName(file, SourceDirectoryName, false);
 
                     if (!file.EndsWith(".pdb", StringComparison.OrdinalIgnoreCase))
                         continue;
@@ -420,11 +419,11 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="EntryName">Archive entry name.</param>
         /// <param name="CompressedSize">Progress reports captured during writing.</param>
-        /// <param name="progressReporter">Progress reports captured during writing.</param>
+        /// <param name="ProgressReporter">Progress reports captured during writing.</param>
         /// <param name="Flags">Build flags for output formatting.</param>
-        private static void PrintCompressionVerboseLine(string EntryName, long CompressedSize, CompressionProgressReporter progressReporter, BuildFlags Flags)
+        private static void PrintCompressionVerboseLine(string EntryName, long CompressedSize, CompressionProgressReporter ProgressReporter, BuildFlags Flags)
         {
-            if (!progressReporter.TryGetReport(EntryName, out var report))
+            if (!ProgressReporter.TryGetReport(EntryName, out var report))
             {
                 PrintCompressionVerboseLine(EntryName, Flags);
                 return;
@@ -434,51 +433,19 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Prints compression statistics in aligned columns for verbose output.
-        /// </summary>
-        /// <param name="entryName">The archive entry name.</param>
-        /// <param name="originalText">Formatted original file size.</param>
-        /// <param name="compressedText">Formatted compressed size.</param>
-        /// <param name="percent">Compression reduction percentage.</param>
-        /// <param name="Flags">Build flags for output formatting.</param>
-        private static void PrintCompressionColumns(string entryName, string originalText, string compressedText, double percent, BuildFlags Flags)
-        {
-            const int entryColumnWidth = 48;
-            const int sizeColumnWidth = 10;      // e.g. "1446Kb"
-            const int percentColumnWidth = 6;    // e.g. " 59.6%"
-
-            string entryText = entryName ?? "?";
-            if (entryText.Length > entryColumnWidth)
-                entryText = entryText.Substring(0, entryColumnWidth - 1) + "~";
-
-            string entryAligned = $"{entryText,-entryColumnWidth}";
-            string originalAligned = $"{(originalText ?? "?"),sizeColumnWidth}";
-            string compressedAligned = $"{(compressedText ?? "?"),sizeColumnWidth}";
-            string percentAligned = $"{percent,percentColumnWidth - 1:0.0}%";
-
-            Program.PrintColorMessage("Compressing ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(entryAligned, ConsoleColor.Green, false, Flags);
-            Program.PrintColorMessage("... ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(originalAligned, ConsoleColor.Yellow, false, Flags);
-            Program.PrintColorMessage(" -> ", ConsoleColor.DarkGray, false, Flags);
-            Program.PrintColorMessage(compressedAligned, ConsoleColor.Yellow, false, Flags);
-            Program.PrintColorMessage($" ({percentAligned} reduction)", ConsoleColor.DarkGray, true, Flags);
-        }
-
-        /// <summary>
         /// Prints SharpCompress transfer progress in aligned columns for verbose output.
         /// </summary>
-        /// <param name="entryName">The archive entry name.</param>
+        /// <param name="EntryName">The archive entry name.</param>
         /// <param name="CompressedSize">Compressed byte count.</param>
         /// <param name="OriginalSize">Compressed byte count.</param>
         /// <param name="Flags">Build flags for output formatting.</param>
-        private static void PrintCompressionProgressColumns(string entryName, long CompressedSize, long OriginalSize, BuildFlags Flags)
+        private static void PrintCompressionProgressColumns(string EntryName, long CompressedSize, long OriginalSize, BuildFlags Flags)
         {
             const int entryColumnWidth = 48;
             const int sizeColumnWidth = 10;
             const int percentColumnWidth = 6;
 
-            string entryText = entryName ?? "?";
+            string entryText = EntryName ?? "?";
             if (entryText.Length > entryColumnWidth)
                 entryText = entryText.Substring(0, entryColumnWidth - 1) + "~";
 

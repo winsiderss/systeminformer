@@ -165,6 +165,7 @@ namespace CustomBuildTool
             "svcsup.h",
             "symprv.h",
             "templ.h",
+            "tabnew.h",
             "trace.h",
             "treenew.h",
             "verify.h",

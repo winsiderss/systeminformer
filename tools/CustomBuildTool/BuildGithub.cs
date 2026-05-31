@@ -45,7 +45,7 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Queries the Github Action Run API for the current build's queue time.
+        /// Queries the GitHub Action Run API for the current build's queue time.
         /// </summary>
         /// <returns>
         /// A tuple containing a boolean indicating success and the <see cref="DateTime"/> representing the queue time of the build, or <see cref="DateTime.MinValue"/> if an error occurs.
@@ -103,9 +103,9 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Downloads the GitHub meta IP ranges and returns them as a list of strings.
+        /// Downloads the GitHub meta-IP ranges and returns them as a list of strings.
         /// </summary>
-        /// <returns>A list of IP address ranges from the GitHub meta endpoint, or <c>null</c> on error.</returns>
+        /// <returns>A list of IP address ranges from the GitHub meta-endpoint, or <c>null</c> on error.</returns>
         public static async IAsyncEnumerable<string> DownloadGithubIpRanges([EnumeratorCancellation] CancellationToken CancellationToken = default)
         {
             using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/meta"))
@@ -149,12 +149,12 @@ namespace CustomBuildTool
                 }
             }
 
-            static bool IsIpRange(string value)
+            static bool IsIpRange(string Value)
             {
-                if (string.IsNullOrWhiteSpace(value))
+                if (string.IsNullOrWhiteSpace(Value))
                     return false;
 
-                ReadOnlySpan<char> span = value.AsSpan();
+                ReadOnlySpan<char> span = Value.AsSpan();
                 var slashIndex = span.IndexOf('/');
                 var address = slashIndex >= 0 ? span[..slashIndex] : span;
 
@@ -436,7 +436,7 @@ namespace CustomBuildTool
             if (!ReleaseAssetUrl.Contains("{?name,label}", StringComparison.OrdinalIgnoreCase))
                 return null;
 
-            string upload_url = ReleaseAssetUrl.Replace(
+            string uploadUrl = ReleaseAssetUrl.Replace(
                 "{?name,label}",
                 $"?name={Uri.EscapeDataString(Name)}&label={Uri.EscapeDataString(Label)}",
                 StringComparison.OrdinalIgnoreCase
@@ -446,7 +446,7 @@ namespace CustomBuildTool
             {
                 await using var fileStream = File.OpenRead(FileName);
                 await using var bufferedStream = new BufferedStream(fileStream);
-                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, upload_url);
+                using var requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadUrl);
 
                 requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
@@ -509,10 +509,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Gets a value indicating whether the release is valid (has a non-zero ID and at least one asset).
         /// </summary>
-        public bool Valid
-        {
-            get { return this.ReleaseId != 0 && this.Files.Count > 0; }
-        }
+        public bool Valid => this.ReleaseId != 0 && this.Files.Count > 0;
 
         /// <summary>
         /// Gets the download URL for a specified file name in the release assets.
@@ -536,7 +533,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Gets deployment information for a specified asset name.
         /// </summary>
-        /// <param name="Name">The name of the deploy file.</param>
+        /// <param name="Name">The name of the deployment file.</param>
         /// <returns>
         /// The <see cref="GithubReleaseAsset"/> if found; otherwise, <c>null</c>.
         /// </returns>
@@ -566,89 +563,89 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object Obj)
         {
-            return obj is GithubRelease file && this.ReleaseId == file.ReleaseId;
+            return Obj is GithubRelease file && this.ReleaseId == file.ReleaseId;
         }
 
         /// <inheritdoc/>
-        public bool Equals(GithubRelease other)
+        public bool Equals(GithubRelease Other)
         {
-            return other != null && this.ReleaseId == other.ReleaseId;
+            return Other != null && this.ReleaseId == Other.ReleaseId;
         }
 
         /// <inheritdoc/>
-        public int CompareTo(object obj)
+        public int CompareTo(object Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            if (obj is GithubRelease package)
+            if (Obj is GithubRelease package)
                 return string.Compare(this.ReleaseId.ToString(), package.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
 
         /// <inheritdoc/>
-        public int CompareTo(GithubRelease obj)
+        public int CompareTo(GithubRelease Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            return string.Compare(this.ReleaseId.ToString(), obj.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
+            return string.Compare(this.ReleaseId.ToString(), Obj.ReleaseId.ToString(), StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Determines whether two <see cref="GithubRelease"/> instances are equal.
         /// </summary>
-        public static bool operator ==(GithubRelease left, GithubRelease right)
+        public static bool operator ==(GithubRelease Left, GithubRelease Right)
         {
-            if (ReferenceEquals(left, null))
+            if (ReferenceEquals(Left, null))
             {
-                return ReferenceEquals(right, null);
+                return ReferenceEquals(Right, null);
             }
 
-            return left.Equals(right);
+            return Left.Equals(Right);
         }
 
         /// <summary>
         /// Determines whether two <see cref="GithubRelease"/> instances are not equal.
         /// </summary>
-        public static bool operator !=(GithubRelease left, GithubRelease right)
+        public static bool operator !=(GithubRelease Left, GithubRelease Right)
         {
-            return !(left == right);
+            return !(Left == Right);
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubRelease"/> is less than another.
         /// </summary>
-        public static bool operator <(GithubRelease left, GithubRelease right)
+        public static bool operator <(GithubRelease Left, GithubRelease Right)
         {
-            return ReferenceEquals(left, null) ? !ReferenceEquals(right, null) : left.CompareTo(right) < 0;
+            return ReferenceEquals(Left, null) ? !ReferenceEquals(Right, null) : Left.CompareTo(Right) < 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubRelease"/> is less than or equal to another.
         /// </summary>
-        public static bool operator <=(GithubRelease left, GithubRelease right)
+        public static bool operator <=(GithubRelease Left, GithubRelease Right)
         {
-            return ReferenceEquals(left, null) || left.CompareTo(right) <= 0;
+            return ReferenceEquals(Left, null) || Left.CompareTo(Right) <= 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubRelease"/> is greater than another.
         /// </summary>
-        public static bool operator >(GithubRelease left, GithubRelease right)
+        public static bool operator >(GithubRelease Left, GithubRelease Right)
         {
-            return !ReferenceEquals(left, null) && left.CompareTo(right) > 0;
+            return !ReferenceEquals(Left, null) && Left.CompareTo(Right) > 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubRelease"/> is greater than or equal to another.
         /// </summary>
-        public static bool operator >=(GithubRelease left, GithubRelease right)
+        public static bool operator >=(GithubRelease Left, GithubRelease Right)
         {
-            return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.CompareTo(right) >= 0;
+            return ReferenceEquals(Left, null) ? ReferenceEquals(Right, null) : Left.CompareTo(Right) >= 0;
         }
     }
 
@@ -689,89 +686,89 @@ namespace CustomBuildTool
         }
 
         /// <inheritdoc/>
-        public override bool Equals(object obj)
+        public override bool Equals(object Obj)
         {
-            return obj is GithubReleaseAsset file && this.Filename.Equals(file.Filename, StringComparison.OrdinalIgnoreCase);
+            return Obj is GithubReleaseAsset file && this.Filename.Equals(file.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc/>
-        public bool Equals(GithubReleaseAsset other)
+        public bool Equals(GithubReleaseAsset Other)
         {
-            return other != null && this.Filename.Equals(other.Filename, StringComparison.OrdinalIgnoreCase);
+            return Other != null && this.Filename.Equals(Other.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <inheritdoc/>
-        public int CompareTo(object obj)
+        public int CompareTo(object Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            if (obj is GithubReleaseAsset package)
+            if (Obj is GithubReleaseAsset package)
                 return string.Compare(this.Filename, package.Filename, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
         }
 
         /// <inheritdoc/>
-        public int CompareTo(GithubReleaseAsset obj)
+        public int CompareTo(GithubReleaseAsset Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            return string.Compare(this.Filename, obj.Filename, StringComparison.OrdinalIgnoreCase);
+            return string.Compare(this.Filename, Obj.Filename, StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// Determines whether two <see cref="GithubReleaseAsset"/> instances are equal.
         /// </summary>
-        public static bool operator ==(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator ==(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            if (ReferenceEquals(left, null))
+            if (ReferenceEquals(Left, null))
             {
-                return ReferenceEquals(right, null);
+                return ReferenceEquals(Right, null);
             }
 
-            return left.Equals(right);
+            return Left.Equals(Right);
         }
 
         /// <summary>
         /// Determines whether two <see cref="GithubReleaseAsset"/> instances are not equal.
         /// </summary>
-        public static bool operator !=(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator !=(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            return !(left == right);
+            return !(Left == Right);
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubReleaseAsset"/> is less than another.
         /// </summary>
-        public static bool operator <(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator <(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            return ReferenceEquals(left, null) ? !ReferenceEquals(right, null) : left.CompareTo(right) < 0;
+            return ReferenceEquals(Left, null) ? !ReferenceEquals(Right, null) : Left.CompareTo(Right) < 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubReleaseAsset"/> is less than or equal to another.
         /// </summary>
-        public static bool operator <=(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator <=(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            return ReferenceEquals(left, null) || left.CompareTo(right) <= 0;
+            return ReferenceEquals(Left, null) || Left.CompareTo(Right) <= 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubReleaseAsset"/> is greater than another.
         /// </summary>
-        public static bool operator >(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator >(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            return !ReferenceEquals(left, null) && left.CompareTo(right) > 0;
+            return !ReferenceEquals(Left, null) && Left.CompareTo(Right) > 0;
         }
 
         /// <summary>
         /// Determines whether one <see cref="GithubReleaseAsset"/> is greater than or equal to another.
         /// </summary>
-        public static bool operator >=(GithubReleaseAsset left, GithubReleaseAsset right)
+        public static bool operator >=(GithubReleaseAsset Left, GithubReleaseAsset Right)
         {
-            return ReferenceEquals(left, null) ? ReferenceEquals(right, null) : left.CompareTo(right) >= 0;
+            return ReferenceEquals(Left, null) ? ReferenceEquals(Right, null) : Left.CompareTo(Right) >= 0;
         }
     }
 
@@ -782,20 +779,20 @@ namespace CustomBuildTool
     /// This class stores deployment file information and provides methods to update download details
     /// from GitHub API responses. The hash code is based on the file name.
     /// </remarks>
-    /// <param name="Name">The name of the deploy file.</param>
-    /// <param name="Filename">The filename of the deploy file.</param>
-    /// <param name="FileHash">The hash value of the deploy file.</param>
-    /// <param name="FileSignature">The digital signature of the deploy file.</param>
-    /// <param name="FileLength">The file size/length of the deploy file.</param>
+    /// <param name="Name">The name of the deployment file.</param>
+    /// <param name="Filename">The filename of the deployment file.</param>
+    /// <param name="FileHash">The hash value of the deployment file.</param>
+    /// <param name="FileSignature">The digital signature of the deployment file.</param>
+    /// <param name="FileLength">The file size/length of the deployment file.</param>
     public class DeployFile(string Name, string Filename, string FileHash, string FileSignature, string FileLength)
     {
         /// <summary>
-        /// Gets the name of the deploy file.
+        /// Gets the name of the deployment file.
         /// </summary>
         public readonly string Name = Name;
 
         /// <summary>
-        /// Gets the filename of the deploy file.
+        /// Gets the filename of the deployment file.
         /// </summary>
         public readonly string FileName = Filename;
 
@@ -805,12 +802,12 @@ namespace CustomBuildTool
         public readonly string FileHash = FileHash;
 
         /// <summary>
-        /// Gets the digital signature of the deploy file.
+        /// Gets the digital signature of the deployment file.
         /// </summary>
         public readonly string FileSignature = FileSignature;
 
         /// <summary>
-        /// Gets the file size/length of the deploy file.
+        /// Gets the file size/length of the deployment file.
         /// </summary>
         public readonly string FileLength = FileLength;
 
@@ -827,31 +824,31 @@ namespace CustomBuildTool
         /// <summary>
         /// Updates the download hash and link from a GitHub assets response.
         /// </summary>
-        /// <param name="response">The GitHub assets response containing hash and download URL.</param>
+        /// <param name="Response">The GitHub assets response containing hash and download URL.</param>
         /// <returns>True if the response was successfully processed; otherwise, false.</returns>
         /// <remarks>
         /// Returns false if the response is null, the hash value is empty, or the download URL is empty.
         /// </remarks>
-        public bool UpdateAssetsResponse(GithubAssetsResponse response)
+        public bool UpdateAssetsResponse(GithubAssetsResponse Response)
         {
-            if (response == null)
+            if (Response == null)
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] response null.", ConsoleColor.Red);
                 return false;
             }
-            if (string.IsNullOrWhiteSpace(response.HashValue))
+            if (string.IsNullOrWhiteSpace(Response.HashValue))
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] HashValue null.", ConsoleColor.Red);
                 return false;
             }
-            if (string.IsNullOrWhiteSpace(response.DownloadUrl))
+            if (string.IsNullOrWhiteSpace(Response.DownloadUrl))
             {
                 Program.PrintColorMessage("[UpdateAssetsResponse] DownloadUrl null.", ConsoleColor.Red);
                 return false;
             }
 
-            this.DownloadHash = response.HashValue;
-            this.DownloadLink = response.DownloadUrl;
+            this.DownloadHash = Response.HashValue;
+            this.DownloadLink = Response.DownloadUrl;
             return true;
         }
 

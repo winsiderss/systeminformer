@@ -28,8 +28,11 @@
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
     <ProjectGuid>{CD644DF2-A658-4CBC-9497-CA5DD13CFEC3}</ProjectGuid>
     <PublishAot>true</PublishAot>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>true</PublishTrimmed>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <SelfContained>true</SelfContained>
     <TargetFramework>net9.0-windows</TargetFramework>
     <TrimUnusedDependencies>true</TrimUnusedDependencies>
     <UseSystemResourceKeys>true</UseSystemResourceKeys>
@@ -46,18 +49,21 @@
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     <PlatformTarget>x86</PlatformTarget>
+    <PublishDir>bin\$(Configuration)\x86\</PublishDir>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='x64'">
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     <PlatformTarget>x64</PlatformTarget>
+    <PublishDir>bin\$(Configuration)\amd64\</PublishDir>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Platform)'=='ARM64'">
     <IntDir>$(ProjectDir)obj\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</IntDir>
     <OutDir>$(ProjectDir)bin\$(Configuration)\$(TargetFramework)-$(PlatformTarget)\</OutDir>
     <PlatformTarget>ARM64</PlatformTarget>
+    <PublishDir>bin\$(Configuration)\arm64\</PublishDir>
     <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -169,7 +175,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SharpCompress" Version="0.48.1" />
+    <PackageReference Include="SharpCompress" Version="0.49.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.8" />
   </ItemGroup>
 </Project>

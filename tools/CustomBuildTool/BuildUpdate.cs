@@ -335,16 +335,16 @@ namespace CustomBuildTool
         private static string SelectBestVersion(IEnumerable<string> Versions)
         {
             var ordered = Versions
-                .Where(v => !string.IsNullOrWhiteSpace(v))
-                .Select(v => NugetSemVer.TryParse(v, out var semVer) ? semVer : null)
-                .Where(v => v != null)
-                .OrderBy(v => v)
+                .Where(V => !string.IsNullOrWhiteSpace(V))
+                .Select(V => NugetSemVer.TryParse(V, out var semVer) ? semVer : null)
+                .Where(V => V != null)
+                .OrderBy(V => V)
                 .ToList();
 
             if (ordered.Count == 0)
                 return null;
 
-            var stable = ordered.LastOrDefault(v => !v.IsPrerelease);
+            var stable = ordered.LastOrDefault(V => !V.IsPrerelease);
             return (stable ?? ordered[^1]).Original;
         }
 

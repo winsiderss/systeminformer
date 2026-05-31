@@ -20,7 +20,7 @@ namespace CustomBuildTool
         /// Provides a static instance of the HTTP client used for communicating with SourceForge services.
         /// </summary>
         /// <remarks>This client is intended for reuse to optimize resource usage and performance when
-        /// making multiple HTTP requests to SourceForge. Avoid disposing this instance directly.</remarks>
+        /// making multiple HTTP requests to SourceForge. Avoid disposing of this instance directly.</remarks>
         private static readonly HttpClient SourceForgeHttpClient;
         private static readonly string BaseUrl;
         private static readonly string BaseToken;
@@ -82,7 +82,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage("[BuildSourceForge] " + ex, ConsoleColor.Red);
+                Program.PrintColorMessage($"[BuildSourceForge] {ex}", ConsoleColor.Red);
             }
 
             return null;

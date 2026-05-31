@@ -15,7 +15,7 @@ namespace CustomBuildTool
     /// Provides utility methods for working with Portable Executable (PE) images, including resolving relative virtual
     /// addresses, reading data structures, and validating export tables.
     /// </summary>
-    internal static class PEImage
+    internal static class Win32Image
     {
         /// <summary>
         /// Converts a relative virtual address (RVA) to its corresponding file offset within a PE file, based on the
@@ -62,23 +62,23 @@ namespace CustomBuildTool
         /// <summary>
         /// Reads the specified number of bytes from a stream starting at the given offset.
         /// </summary>
-        /// <param name="imageStream">The stream to read from.</param>
-        /// <param name="fileOffset">The zero-based byte offset in the stream at which to begin reading.</param>
-        /// <param name="buffer">The buffer to fill with the read bytes.</param>
+        /// <param name="ImageStream">The stream to read from.</param>
+        /// <param name="FileOffset">The zero-based byte offset in the stream at which to begin reading.</param>
+        /// <param name="Buffer">The buffer to fill with the read bytes.</param>
         /// <exception cref="EndOfStreamException">Thrown if the end of the stream is reached before the buffer is filled.</exception>
-        internal static void ReadExactlyAt(Stream imageStream, int fileOffset, Span<byte> buffer)
+        private static void ReadExactlyAt(Stream ImageStream, int FileOffset, Span<byte> Buffer)
         {
-            imageStream.Seek(fileOffset, SeekOrigin.Begin);
+            ImageStream.Seek(FileOffset, SeekOrigin.Begin);
 
             int totalRead = 0;
 
-            while (totalRead < buffer.Length)
+            while (totalRead < Buffer.Length)
             {
-                int read = imageStream.Read(buffer[totalRead..]);
+                int read = ImageStream.Read(Buffer[totalRead..]);
 
                 if (read == 0)
                 {
-                    throw new EndOfStreamException($"Unexpected end of file while reading at offset 0x{fileOffset + totalRead:X}.");
+                    throw new EndOfStreamException($"Unexpected end of file while reading at offset 0x{FileOffset + totalRead:X}.");
                 }
 
                 totalRead += read;
@@ -89,20 +89,20 @@ namespace CustomBuildTool
         /// Reads a structure of type T from the specified relative virtual address (RVA) in the provided image stream.
         /// </summary>
         /// <typeparam name="T">The type of the structure to read, which must be an unmanaged type.</typeparam>
-        /// <param name="imageStream">The stream containing the image data from which the structure is read.</param>
-        /// <param name="imageHeaders">The PE headers of the image, used to resolve the RVA to a file offset.</param>
-        /// <param name="rva">The relative virtual address from which to read the structure.</param>
+        /// <param name="ImageStream">The stream containing the image data from which the structure is read.</param>
+        /// <param name="ImageHeaders">The PE headers of the image, used to resolve the RVA to a file offset.</param>
+        /// <param name="Rva">The relative virtual address from which to read the structure.</param>
         /// <returns>An instance of the structure of type T read from the specified RVA.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the RVA does not contain enough data to read the structure of type T.</exception>
-        internal static unsafe T ReadStructureAtRva<T>(Stream imageStream, PEHeaders imageHeaders, int rva) where T : unmanaged
+        private static unsafe T ReadStructureAtRva<T>(Stream ImageStream, PEHeaders ImageHeaders, int Rva) where T : unmanaged
         {
-            ResolveRva(rva, imageHeaders, out int fileOffset, out int maxReadableBytes);
+            ResolveRva(Rva, ImageHeaders, out int fileOffset, out int maxReadableBytes);
 
             if (maxReadableBytes < sizeof(T))
-                throw new InvalidOperationException($"RVA 0x{rva:X8} does not contain enough data for {typeof(T).Name}.");
+                throw new InvalidOperationException($"RVA 0x{Rva:X8} does not contain enough data for {typeof(T).Name}.");
 
             Span<byte> buffer = stackalloc byte[sizeof(T)];
-            ReadExactlyAt(imageStream, fileOffset, buffer);
+            ReadExactlyAt(ImageStream, fileOffset, buffer);
 
             return MemoryMarshal.Read<T>(buffer);
         }
@@ -110,20 +110,20 @@ namespace CustomBuildTool
         /// <summary>
         /// Reads a 32-bit unsigned integer from the specified relative virtual address (RVA) in the image stream.
         /// </summary>
-        /// <param name="imageStream">The stream containing the image data.</param>
-        /// <param name="imageHeaders">The PE headers of the image, used to resolve the RVA.</param>
-        /// <param name="rva">The relative virtual address from which to read the 32-bit unsigned integer.</param>
+        /// <param name="ImageStream">The stream containing the image data.</param>
+        /// <param name="ImageHeaders">The PE headers of the image, used to resolve the RVA.</param>
+        /// <param name="Rva">The relative virtual address from which to read the 32-bit unsigned integer.</param>
         /// <returns>The 32-bit unsigned integer read from the specified RVA.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the RVA does not contain enough data to read a UInt32.</exception>
-        internal static uint ReadUInt32AtRva(Stream imageStream, PEHeaders imageHeaders, int rva)
+        private static uint ReadUInt32AtRva(Stream ImageStream, PEHeaders ImageHeaders, int Rva)
         {
-            ResolveRva(rva, imageHeaders, out int fileOffset, out int maxReadableBytes);
+            ResolveRva(Rva, ImageHeaders, out int fileOffset, out int maxReadableBytes);
 
             if (maxReadableBytes < sizeof(uint))
-                throw new InvalidOperationException($"RVA 0x{rva:X8} does not contain enough data for UInt32.");
+                throw new InvalidOperationException($"RVA 0x{Rva:X8} does not contain enough data for UInt32.");
 
             Span<byte> buffer = stackalloc byte[sizeof(uint)];
-            ReadExactlyAt(imageStream, fileOffset, buffer);
+            ReadExactlyAt(ImageStream, fileOffset, buffer);
 
             return BinaryPrimitives.ReadUInt32LittleEndian(buffer);
         }
@@ -131,17 +131,17 @@ namespace CustomBuildTool
         /// <summary>
         /// Reads a null-terminated UTF-8 string from a specified RVA in a PE image.
         /// </summary>
-        /// <param name="imageStream">The stream containing the PE image data.</param>
-        /// <param name="imageHeaders">The headers of the PE image used to resolve the RVA.</param>
-        /// <param name="rva">The relative virtual address from which to read the null-terminated string.</param>
+        /// <param name="ImageStream">The stream containing the PE image data.</param>
+        /// <param name="ImageHeaders">The headers of the PE image used to resolve the RVA.</param>
+        /// <param name="Rva">The relative virtual address from which to read the null-terminated string.</param>
         /// <returns>The null-terminated UTF-8 string read from the specified RVA.</returns>
         /// <exception cref="InvalidOperationException">Thrown when the RVA does not contain any readable bytes or the string is not null-terminated.</exception>
-        internal static string ReadNullTerminatedUtf8AtRva(Stream imageStream, PEHeaders imageHeaders, int rva)
+        private static string ReadNullTerminatedUtf8AtRva(Stream ImageStream, PEHeaders ImageHeaders, int Rva)
         {
-            ResolveRva(rva, imageHeaders, out int fileOffset, out int maxReadableBytes);
+            ResolveRva(Rva, ImageHeaders, out int fileOffset, out int maxReadableBytes);
 
             if (maxReadableBytes <= 0)
-                throw new InvalidOperationException($"RVA 0x{rva:X8} does not contain any readable bytes.");
+                throw new InvalidOperationException($"RVA 0x{Rva:X8} does not contain any readable bytes.");
 
             const int ChunkSize = 256;
             var chunk = new byte[Math.Min(ChunkSize, maxReadableBytes)];
@@ -154,7 +154,7 @@ namespace CustomBuildTool
             {
                 var toRead = Math.Min(chunk.Length, remaining);
                 var span = chunk.AsSpan(0, toRead);
-                ReadExactlyAt(imageStream, currentOffset, span);
+                ReadExactlyAt(ImageStream, currentOffset, span);
 
                 int terminator = span.IndexOf((byte)0);
 
@@ -169,7 +169,7 @@ namespace CustomBuildTool
                 remaining -= toRead;
             }
 
-            throw new InvalidOperationException($"Export name at RVA 0x{rva:X8} is not null-terminated within its section.");
+            throw new InvalidOperationException($"Export name at RVA 0x{Rva:X8} is not null-terminated within its section.");
         }
 
         /// <summary>
@@ -242,14 +242,6 @@ namespace CustomBuildTool
             return false;
         }
 
-        /// <summary>
-        /// Validates the export directory of a PE image file to determine if exported functions are defined.
-        /// </summary>
-        /// <remarks>This method checks the export directory of the specified PE image file and reports
-        /// missing exported functions. If exported functions are missing, a message is printed to the console. The
-        /// method unmaps the image file after validation.</remarks>
-        /// <param name="FileName">The path to the PE image file to validate. Cannot be null or empty.</param>
-        /// <returns>true if the image file contains an export directory with no exported function names; otherwise, false.</returns>
         //public static bool ValidateImageExports(string FileName)
         //{
         //    using var stream = File.OpenRead(FileName);

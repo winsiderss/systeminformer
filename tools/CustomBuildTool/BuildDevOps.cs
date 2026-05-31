@@ -23,7 +23,7 @@ namespace CustomBuildTool
         /// Provides a shared HTTP client instance for communicating with DevOps services.
         /// </summary>
         /// <remarks>This static instance is intended for reuse across multiple requests to optimize
-        /// connection management and resource usage. Avoid disposing this client directly; dispose of it only when the
+        /// connection management and resource usage. Avoid disposing of this client directly; dispose of it only when the
         /// application is shutting down.</remarks>
         private static readonly HttpClient DevOpsHttpClient;
 
@@ -353,7 +353,7 @@ namespace CustomBuildTool
     public class RepoLinks
     {
         /// <summary>
-        /// Gets or sets the self link.
+        /// Gets or sets the self-link.
         /// </summary>
         [JsonPropertyName("self")]
         public Link Self { get; set; }

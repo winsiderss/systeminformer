@@ -21,7 +21,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Stores the VirusTotal API token used for authentication.
         /// </summary>
-        private static string VirusTotalApiToken;
+        private static string _VirusTotalApiToken;
 
         static BuildVirusTotal()
         {
@@ -43,17 +43,17 @@ namespace CustomBuildTool
         {
             string analysisResult = null;
 
-            if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
+            if (string.IsNullOrWhiteSpace(_VirusTotalApiToken))
             {
                 var fileName = Win32.GetEnvironmentVariable("VIRUSTOTAL_BASE_API");
 
                 if (File.Exists(fileName))
                 {
-                    VirusTotalApiToken = (await File.ReadAllTextAsync(fileName)).Trim();
+                    _VirusTotalApiToken = (await File.ReadAllTextAsync(fileName)).Trim();
                 }
             }
 
-            if (string.IsNullOrWhiteSpace(VirusTotalApiToken))
+            if (string.IsNullOrWhiteSpace(_VirusTotalApiToken))
             {
                 Program.PrintColorMessage("[BuildVirusTotal] UploadScanFile - No API Token", ConsoleColor.Red);
                 return null;
@@ -75,7 +75,7 @@ namespace CustomBuildTool
                     using (HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, "https://www.virustotal.com/api/v3/files/upload_url"))
                     {
                         requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                        requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);
+                        requestMessage.Headers.Add("x-apikey", _VirusTotalApiToken);
 
                         var response = await BuildHttpClient.SendMessage(VirusTotalHttpClient, requestMessage, VirusTotalResponseContext.Default.VirusTotalLargeUploadResponse);
 
@@ -96,7 +96,7 @@ namespace CustomBuildTool
                 {
                     using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, uploadInfo);
                     requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                    requestMessage.Headers.Add("x-apikey", VirusTotalApiToken);
+                    requestMessage.Headers.Add("x-apikey", _VirusTotalApiToken);
 
                     var streamContent = new StreamContent(bufferedStream);
                     var requestMethod = new MultipartFormDataContent
@@ -112,7 +112,7 @@ namespace CustomBuildTool
                         using (HttpRequestMessage requestAnalysisMessage = new HttpRequestMessage(HttpMethod.Get, virusTotalAnalysisResponseContext.data.links.self))
                         {
                             requestAnalysisMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-                            requestAnalysisMessage.Headers.Add("x-apikey", VirusTotalApiToken);
+                            requestAnalysisMessage.Headers.Add("x-apikey", _VirusTotalApiToken);
 
                             using var upload = await BuildHttpClient.SendMessageResponse(VirusTotalHttpClient, requestAnalysisMessage);
 

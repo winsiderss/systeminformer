@@ -292,11 +292,11 @@ namespace CustomBuildTool
         /// <summary>
         /// Checks whether all required build dependencies are installed and available on the system.
         /// </summary>
-        /// <param name="quiet">Specifies whether to suppress console output during the check.</param>
+        /// <param name="Quiet">Specifies whether to suppress console output during the check.</param>
         /// <returns>
         /// <c>true</c> if all dependencies are found; otherwise, <c>false</c>.
         /// </returns>
-        public static bool CheckBuildDependencies(bool quiet = false)
+        public static bool CheckBuildDependencies(bool Quiet = false)
         {
             bool result = true;
 
@@ -304,25 +304,25 @@ namespace CustomBuildTool
             {
                 if (GetVisualStudioInstance() != null)
                 {
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage($"\u2705 - {VisualStudioInstance.DisplayName} - {VisualStudioInstance.InstallationVersion}", ConsoleColor.Green);
                 }
                 else
                 {
                     result = false;
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage("\u274C - Visual Studio - Not found", ConsoleColor.Yellow);
                 }
 
                 if (Win32.IsGitInstalled())
                 {
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage("\u2705 - Git - Installed", ConsoleColor.Green);
                 }
                 else
                 {
                     result = false;
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage("\u274C - Git - Not found", ConsoleColor.Yellow);
                 }
 
@@ -330,18 +330,18 @@ namespace CustomBuildTool
                 if (!string.IsNullOrWhiteSpace(dotnet))
                 {
                     string version = Win32.GetDotNetVersion();
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage($"\u2705 - DotNET - {version.Trim()}", ConsoleColor.Green);
                 }
                 else
                 {
-                    if (!quiet)
+                    if (!Quiet)
                         Program.PrintColorMessage("\u274C - DotNET - Not found", ConsoleColor.Yellow);
                 }
             }
             catch
             {
-                if (!quiet)
+                if (!Quiet)
                     Program.PrintColorMessage("\u274C - DotNET - Not found", ConsoleColor.Yellow);
             }
 
@@ -355,11 +355,11 @@ namespace CustomBuildTool
         /// present, then installs required workloads and components. A restart may be required to complete
         /// installation. The method returns <see langword="false"/> if the installer download or installation
         /// fails.</remarks>
-        /// <param name="minimal">Specifies whether to install only the minimal set of required components. If <see langword="true"/>,
+        /// <param name="Minimal">Specifies whether to install only the minimal set of required components. If <see langword="true"/>,
         /// recommended components are excluded; otherwise, all recommended components are installed.</param>
         /// <returns>A task that represents the asynchronous operation. The task result is <see langword="true"/> if the
         /// installation completes successfully; otherwise, <see langword="false"/>.</returns>
-        public static async Task<bool> InstallBuildDependencies(bool minimal = false)
+        public static async Task<bool> InstallBuildDependencies(bool Minimal = false)
         {
             string installerPath = Path.Combine(Path.GetTempPath(), "vs_community.exe");
 
@@ -411,7 +411,7 @@ namespace CustomBuildTool
                 args.Add(c);
             }
 
-            if (!minimal)
+            if (!Minimal)
             {
                 foreach (var c in RecommendedComponents)
                 {
@@ -546,7 +546,7 @@ namespace CustomBuildTool
         /// EWDK exposes the launched arch via the Platform env var; honor it directly to avoid a
         /// directory enumeration on every cold start.
         /// </summary>
-        private static bool ProbeArm64BuildTools(string installPath)
+        private static bool ProbeArm64BuildTools(string InstallPath)
         {
             if (BuildVisualStudio.IsEnterpriseWdk())
             {
@@ -558,10 +558,10 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (string.IsNullOrEmpty(installPath))
+            if (string.IsNullOrEmpty(InstallPath))
                 return false;
 
-            string msvcRoot = System.IO.Path.Combine(installPath, @"VC\Tools\MSVC");
+            string msvcRoot = System.IO.Path.Combine(InstallPath, @"VC\Tools\MSVC");
             if (!Directory.Exists(msvcRoot))
                 return false;
 
@@ -579,6 +579,7 @@ namespace CustomBuildTool
             }
             catch
             {
+                // ignored
             }
 
             return false;
@@ -881,16 +882,16 @@ namespace CustomBuildTool
         /// <summary>
         /// Compares this instance to another object by name.
         /// </summary>
-        /// <param name="obj">The object to compare to.</param>
+        /// <param name="Obj">The object to compare to.</param>
         /// <returns>
         /// A value indicating the relative order of the instances.
         /// </returns>
-        public int CompareTo(object obj)
+        public int CompareTo(object Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            if (obj is VisualStudioInstance instance)
+            if (Obj is VisualStudioInstance instance)
                 return string.Compare(this.Name, instance.Name, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;
@@ -899,16 +900,16 @@ namespace CustomBuildTool
         /// <summary>
         /// Compares this instance to another <see cref="VisualStudioInstance"/> by name.
         /// </summary>
-        /// <param name="obj">The instance to compare to.</param>
+        /// <param name="Obj">The instance to compare to.</param>
         /// <returns>
         /// A value indicating the relative order of the instances.
         /// </returns>
-        public int CompareTo(VisualStudioInstance obj)
+        public int CompareTo(VisualStudioInstance Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            return string.Compare(this.Name, obj.Name, StringComparison.OrdinalIgnoreCase);
+            return string.Compare(this.Name, Obj.Name, StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -934,17 +935,17 @@ namespace CustomBuildTool
         /// <param name="SetupInstancePtr">Pointer to the native package reference.</param>
         public VisualStudioPackage(ISetupPackageReferenceVTable* FromInstance, IntPtr SetupInstancePtr)
         {
-            IntPtr IdPtr;
-            IntPtr VersionPtr;
+            IntPtr idPtr;
+            IntPtr versionPtr;
 
-            if (FromInstance->GetId(SetupInstancePtr, &IdPtr).Succeeded && IdPtr != IntPtr.Zero)
+            if (FromInstance->GetId(SetupInstancePtr, &idPtr).Succeeded && idPtr != IntPtr.Zero)
             {
-                this.Id = BuildVisualStudio.BStrToStringAndFree(IdPtr);
+                this.Id = BuildVisualStudio.BStrToStringAndFree(idPtr);
             }
 
-            if (FromInstance->GetVersion(SetupInstancePtr, &VersionPtr).Succeeded && VersionPtr != IntPtr.Zero)
+            if (FromInstance->GetVersion(SetupInstancePtr, &versionPtr).Succeeded && versionPtr != IntPtr.Zero)
             {
-                this.Version = BuildVisualStudio.BStrToStringAndFree(VersionPtr);
+                this.Version = BuildVisualStudio.BStrToStringAndFree(versionPtr);
             }
         }
 
@@ -960,16 +961,16 @@ namespace CustomBuildTool
         /// <summary>
         /// Compares this package to another object by ID.
         /// </summary>
-        /// <param name="obj">The object to compare to.</param>
+        /// <param name="Obj">The object to compare to.</param>
         /// <returns>
         /// A value indicating the relative order of the packages.
         /// </returns>
-        public int CompareTo(object obj)
+        public int CompareTo(object Obj)
         {
-            if (obj == null)
+            if (Obj == null)
                 return 1;
 
-            if (obj is VisualStudioPackage package)
+            if (Obj is VisualStudioPackage package)
                 return string.Compare(this.Id, package.Id, StringComparison.OrdinalIgnoreCase);
             else
                 return 1;

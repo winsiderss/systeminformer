@@ -101,11 +101,9 @@ namespace CustomBuildTool
         /// - AZURE_TENANT_ID: Azure tenant ID
         /// - AZURE_CLIENT_ID: Application client ID
         /// - AZURE_CLIENT_SECRET: Client secret (for secret-based auth)
-        /// - AZURE_CLIENT_CERTIFICATE_PATH: Path to certificate file (for cert-based auth)
+        /// - AZURE_CLIENT_CERTIFICATE_PATH: Path to a certificate file (for cert-based auth)
         /// - KEYVAULT_NAME: Name of the Key Vault
-        /// - CERT_NAME: Name of the certificate in the vault
-        ///
-        /// Certificates are cached to avoid repeated Key Vault requests.
+        /// - CERT_NAME: Name of the certificate in the vault. Certificates are cached to avoid repeated Key Vault requests.
         /// </remarks>
         public static async Task<bool> StartAzureClient(CancellationToken CancellationToken = default)
         {
@@ -419,7 +417,7 @@ namespace CustomBuildTool
         /// <param name="TenantId">The Azure tenant ID.</param>
         /// <param name="ClientId">The Azure client (application) ID.</param>
         /// <param name="ClientSecret">The client secret for secret-based authentication (optional).</param>
-        /// <param name="ClientCertificatePath">Path to certificate file for certificate-based authentication (optional).</param>
+        /// <param name="ClientCertificatePath">Path to the certificate file for certificate-based authentication (optional).</param>
         /// <param name="MaxRetries">Maximum number of retry attempts (default: 5).</param>
         /// <param name="InitialDelayMs">Initial delay in milliseconds before retrying (default: 500ms).</param>
         /// <param name="CancellationToken">Cancellation token to cancel the operation.</param>
@@ -808,7 +806,7 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="TenantId">The Azure tenant ID.</param>
         /// <param name="ClientId">The Azure client (application) ID.</param>
-        /// <param name="Certificate">The X.509 certificate with private key for signing.</param>
+        /// <param name="Certificate">The X.509 certificate with a private key for signing.</param>
         /// <returns>A signed JWT assertion string in the format "header.payload.signature", or null if creation fails.</returns>
         /// <remarks>
         /// Creates a self-signed JWT using RS256 algorithm with the following claims:
@@ -830,7 +828,7 @@ namespace CustomBuildTool
                 {
                     Alg = "RS256",
                     Typ = "JWT",
-                    X5t = Base64UrlEncode(Certificate.GetCertHash())
+                    X5T = Base64UrlEncode(Certificate.GetCertHash())
                 };
                 var payload = new JwtPayload
                 {
@@ -886,15 +884,15 @@ namespace CustomBuildTool
         /// <summary>
         /// Encodes binary data to Base64URL format as specified in RFC 4648.
         /// </summary>
-        /// <param name="input">The read-only byte span to encode.</param>
+        /// <param name="Input">The read-only byte span to encode.</param>
         /// <returns>A Base64URL-encoded string with padding removed.</returns>
         /// <remarks>
         /// Base64URL encoding replaces '+' with '-', '/' with '_', and removes trailing '=' padding.
         /// This encoding is used in JWT tokens and other web-safe applications.
         /// </remarks>
-        private static string Base64UrlEncode(ReadOnlySpan<byte> input)
+        private static string Base64UrlEncode(ReadOnlySpan<byte> Input)
         {
-            string base64 = Convert.ToBase64String(input);
+            string base64 = Convert.ToBase64String(Input);
             // Convert base64 to base64url
             return base64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
         }
@@ -955,7 +953,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates an X509Certificate2 from PEM-encoded certificate and private key data.
         /// </summary>
-        /// <param name="PemContent">The PEM-encoded content containing certificate and optionally a private key.</param>
+        /// <param name="PemContent">The PEM-encoded content containing a certificate and optionally a private key.</param>
         /// <returns>An X509Certificate2 with the certificate and private key (if present).</returns>
         /// <exception cref="System.Security.Cryptography.CryptographicException">Thrown if the PEM content is invalid or the key type is unsupported.</exception>
         /// <remarks>
@@ -1244,7 +1242,7 @@ namespace CustomBuildTool
         /// Gets or sets the X.509 certificate thumbprint (Base64URL-encoded).
         /// </summary>
         [JsonPropertyName("x5t")]
-        public string X5t { get; set; }
+        public string X5T { get; set; }
     }
 
     /// <summary>

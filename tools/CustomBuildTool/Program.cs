@@ -19,14 +19,14 @@ namespace CustomBuildTool
         /// <summary>
         /// Initializes the build environment and command-line arguments.
         /// </summary>
-        /// <param name="args">An array of command-line arguments.</param>
+        /// <param name="Args">An array of command-line arguments.</param>
         /// <returns>A task that represents the asynchronous operation. The task result contains the process exit code.</returns>
-        public static async Task<int> Main(string[] args)
+        public static async Task<int> Main(string[] Args)
         {
             if (!await Build.InitializeBuildEnvironment())
                 return 1;
 
-            return await Program.InitializeCommandLine(args);
+            return await Program.InitializeCommandLine(Args);
         }
 
         /// <summary>
@@ -35,7 +35,7 @@ namespace CustomBuildTool
         /// <remarks>Sets up global options such as verbose output and argument file support, registers
         /// all available subcommands, and defines the default handler for missing arguments.</remarks>
         /// <returns>A task that represents the asynchronous operation and contains the process exit code.</returns>
-        private static Task<int> InitializeCommandLine(string[] args)
+        private static Task<int> InitializeCommandLine(string[] Args)
         {
             var rootCommand = new RootCommand("CustomBuildTool for System Informer.");
 
@@ -146,7 +146,7 @@ namespace CustomBuildTool
             rootCommand.Add(new DiagramDirective());
             rootCommand.Add(new System.CommandLine.Completions.SuggestDirective());
 
-            return rootCommand.Parse(args).InvokeAsync(new InvocationConfiguration
+            return rootCommand.Parse(Args).InvokeAsync(new InvocationConfiguration
             {
                 EnableDefaultExceptionHandler = true,
                 ProcessTerminationTimeout = TimeSpan.FromSeconds(2)
@@ -320,9 +320,9 @@ namespace CustomBuildTool
                 Description = "Key name"
             };
             cmd.Add(arg);
-            cmd.SetAction(parseResult =>
+            cmd.SetAction(ParseResult =>
             {
-                string k = parseResult.GetValue(arg);
+                string k = ParseResult.GetValue(arg);
                 BuildToolsId.CheckForOutOfDateTools();
                 if (!BuildVerify.CreateSigFile("kph", k, Build.BuildCanary)) Environment.Exit(1);
             });
@@ -393,16 +393,18 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that validates the current export definitions.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to validate export definitions.</returns>
-        private static Command CreateReflowValidCommand(Option<bool> verboseOption)
+        private static Command CreateReflowValidCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-reflowvalid", "Validates the current export definitions.");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
+                Build.SetupBuildEnvironment(false);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
                 if (!Build.BuildValidateExportDefinitions(flags)) Environment.Exit(1);
             });
             return cmd;
@@ -471,18 +473,19 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the binary package with optional verbose output.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output during the build process.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output during the build process.</param>
         /// <returns>A Command object configured to build the binary package.</returns>
-        private static Command CreateBinCommand(Option<bool> verboseOption)
+        private static Command CreateBinCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-bin", "Builds the binary package.");
             cmd.Aliases.Add("-build-zip");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags))
                     Environment.Exit(1);
@@ -505,20 +508,21 @@ namespace CustomBuildTool
         /// Creates a command that executes pipeline build operations, including environment setup, solution builds, and
         /// post-build tasks.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output during the build process.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output during the build process.</param>
         /// <returns>A command configured to perform pipeline build operations.</returns>
-        private static Command CreatePipelineBuildCommand(Option<bool> verboseOption)
+        private static Command CreatePipelineBuildCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-pipeline-build", "Performs pipeline build operations.");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 Win32.SetLowIntegrityForProcesses();
 
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
 
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
                 Build.CopySourceLink(true);
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags))
@@ -535,17 +539,18 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that packages pipeline artifacts with optional verbose output.
         /// </summary>
-        /// <param name="verboseOption">Enables verbose output during packaging when set to true.</param>
+        /// <param name="VerboseOption">Enables verbose output during packaging when set to true.</param>
         /// <returns>A command configured to package pipeline artifacts.</returns>
-        private static Command CreatePipelinePackageCommand(Option<bool> verboseOption)
+        private static Command CreatePipelinePackageCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-pipeline-package", "Packages pipeline artifacts.");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 BuildToolsId.CheckForOutOfDateTools();
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.ResignFiles("bin")) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
@@ -568,17 +573,18 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that deploys pipeline artifacts with optional verbose output.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose logging during deployment.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose logging during deployment.</param>
         /// <returns>A command configured to deploy pipeline artifacts.</returns>
-        private static Command CreatePipelineDeployCommand(Option<bool> verboseOption)
+        private static Command CreatePipelineDeployCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-pipeline-deploy", "Deploys pipeline artifacts.");
             cmd.SetAction(async parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!await BuildDeploy.BuildUpdateServerConfig())
                     Environment.Exit(1);
@@ -591,18 +597,19 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds an MSIX store package with optional verbose output.
         /// </summary>
-        /// <param name="verboseOption">Indicates whether verbose output is enabled during the build process.</param>
+        /// <param name="VerboseOption">Indicates whether verbose output is enabled during the build process.</param>
         /// <returns>A command configured to execute the MSIX build process.</returns>
-        private static Command CreateMsixBuildCommand(Option<bool> verboseOption)
+        private static Command CreateMsixBuildCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-msix-build", "Builds MSIX store package.");
             cmd.Aliases.Add("-build-msix");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildMsix | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
                 Build.CopySourceLink(true);
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
@@ -621,9 +628,9 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command for building the SDK package with configurable build options.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output during the build process.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output during the build process.</param>
         /// <returns>A command configured to build the SDK package with the specified options.</returns>
-        private static Command CreateSdkCommand(Option<bool> verboseOption)
+        private static Command CreateSdkCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-sdk", "Builds the SDK package.");
             var cmakeOpt = new Option<bool>("-cmake") { Description = "Use CMake" };
@@ -637,7 +644,7 @@ namespace CustomBuildTool
             cmd.Add(win32Opt); cmd.Add(x64Opt); cmd.Add(arm64Opt);
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 bool cmake = parseResult.GetValue(cmakeOpt);
                 bool debug = parseResult.GetValue(debugOpt);
                 bool release = parseResult.GetValue(releaseOpt);
@@ -669,6 +676,8 @@ namespace CustomBuildTool
                 }
                 else Environment.Exit(1);
 
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
+
                 if (!Build.CopyResourceFiles(flags)) Environment.Exit(1);
                 if (!Build.BuildSdk(flags)) Environment.Exit(1);
                 if (!Build.CopyKernelDriver(flags)) Environment.Exit(1);
@@ -682,18 +691,19 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the debug configuration.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to build the debug configuration.</returns>
-        private static Command CreateDebugCommand(Option<bool> verboseOption)
+        private static Command CreateDebugCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-debug", "Builds the debug configuration.");
             cmd.Aliases.Add("-build-debug");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Debug | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
                 if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
@@ -706,18 +716,19 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the release configuration.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to build the release configuration.</returns>
-        private static Command CreateReleaseCommand(Option<bool> verboseOption)
+        private static Command CreateReleaseCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-release", "Builds the release configuration.");
             cmd.Aliases.Add("-build-release");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
                 if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
@@ -742,9 +753,9 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the project using CMake.
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to perform a CMake build.</returns>
-        private static Command CreateCMakeBuildCommand(Option<bool> verboseOption)
+        private static Command CreateCMakeBuildCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-build", "Builds using CMake.");
             var genOpt = new Option<string>("-generator") { Description = "Generator" };
@@ -754,7 +765,7 @@ namespace CustomBuildTool
 
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 string generatorArg = parseResult.GetValue(genOpt);
                 string toolchainArg = parseResult.GetValue(toolOpt);
                 string configArg = parseResult.GetValue(confOpt);
@@ -762,6 +773,7 @@ namespace CustomBuildTool
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 var generator = Utils.GetGeneratorFromString(generatorArg);
                 var toolchain = Utils.GetToolchainFromString(toolchainArg);
@@ -777,28 +789,22 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the binary package using CMake (clang).
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to build the binary package using CMake.</returns>
-        private static Command CreateCMakeBinCommand(Option<bool> verboseOption)
+        private static Command CreateCMakeBinCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-bin", "Builds the binary package using CMake (clang).");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
+                if (!Build.BuildSolutionCMakeMatrix("SystemInformer", BuildGenerator.Ninja,
+                    [BuildToolchain.ClangMsvcX86, BuildToolchain.ClangMsvcAmd64, BuildToolchain.ClangMsvcArm64], flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
-                    Environment.Exit(1);
-
-                if (Build.HaveArm64BuildTools)
-                {
-                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                        Environment.Exit(1);
-                }
 
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
                 if (!Build.BuildBinZip(flags)) Environment.Exit(1);
@@ -812,28 +818,22 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that builds the release configuration using CMake (clang).
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured to perform a CMake release build.</returns>
-        private static Command CreateCMakeReleaseCommand(Option<bool> verboseOption)
+        private static Command CreateCMakeReleaseCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-release", "Builds release configuration using CMake (clang).");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
+                if (!Build.BuildSolutionCMakeMatrix("SystemInformer", BuildGenerator.Ninja,
+                    [BuildToolchain.ClangMsvcX86, BuildToolchain.ClangMsvcAmd64, BuildToolchain.ClangMsvcArm64], flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
-                    Environment.Exit(1);
-
-                if (Build.HaveArm64BuildTools)
-                {
-                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                        Environment.Exit(1);
-                }
 
                 if (!Build.CopyWow64Files(flags)) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
@@ -856,31 +856,25 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that performs pipeline build operations using CMake (clang).
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured for CMake pipeline builds.</returns>
-        private static Command CreateCMakePipelineBuildCommand(Option<bool> verboseOption)
+        private static Command CreateCMakePipelineBuildCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-pipeline-build", "Performs pipeline build operations using CMake (clang).");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
 
                 BuildToolsId.CheckForOutOfDateTools();
 
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
                 Build.CopySourceLink(true);
 
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcX86, flags))
+                if (!Build.BuildSolutionCMakeMatrix("SystemInformer", BuildGenerator.Ninja,
+                    [BuildToolchain.ClangMsvcX86, BuildToolchain.ClangMsvcAmd64, BuildToolchain.ClangMsvcArm64], flags))
                     Environment.Exit(1);
-                if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcAmd64, flags))
-                    Environment.Exit(1);
-
-                if (Build.HaveArm64BuildTools)
-                {
-                    if (!Build.BuildSolutionCMake("SystemInformer", BuildGenerator.Ninja, BuildToolchain.ClangMsvcArm64, flags))
-                        Environment.Exit(1);
-                }
 
                 Build.CopyWow64Files(flags);
                 Build.ShowBuildStats();
@@ -891,17 +885,18 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that packages pipeline artifacts using CMake (clang).
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured for CMake pipeline packaging.</returns>
-        private static Command CreateCMakePipelinePackageCommand(Option<bool> verboseOption)
+        private static Command CreateCMakePipelinePackageCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-pipeline-package", "Packages pipeline artifacts using CMake (clang).");
             cmd.SetAction(parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.ResignFiles("bin-cmake")) Environment.Exit(1);
                 if (!Build.CopyTextFiles(true, flags)) Environment.Exit(1);
@@ -921,17 +916,18 @@ namespace CustomBuildTool
         /// <summary>
         /// Creates a command that deploys pipeline artifacts using CMake (clang).
         /// </summary>
-        /// <param name="verboseOption">Specifies whether to enable verbose output.</param>
+        /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <returns>A command configured for CMake pipeline deployment.</returns>
-        private static Command CreateCMakePipelineDeployCommand(Option<bool> verboseOption)
+        private static Command CreateCMakePipelineDeployCommand(Option<bool> VerboseOption)
         {
             var cmd = new Command("-cmake-pipeline-deploy", "Deploys pipeline artifacts using CMake (clang).");
             cmd.SetAction(async parseResult =>
             {
-                bool verbose = parseResult.GetValue(verboseOption);
+                bool verbose = parseResult.GetValue(VerboseOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | BuildFlags.BuildCMake | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None);
                 Build.SetupBuildEnvironment(true);
+                if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.BuildPdbZip(false, flags)) Environment.Exit(1);
                 if (!await BuildDeploy.BuildUpdateServerConfig()) Environment.Exit(1);
@@ -1012,11 +1008,11 @@ namespace CustomBuildTool
         /// <summary>
         /// Converts a <see cref="ConsoleColor"/> to its ANSI escape sequence.
         /// </summary>
-        /// <param name="color">The console color.</param>
+        /// <param name="Color">The console color.</param>
         /// <returns>The ANSI escape sequence string.</returns>
-        public static string ToAnsiCode(ConsoleColor color)
+        public static string ToAnsiCode(ConsoleColor Color)
         {
-            return color switch
+            return Color switch
             {
                 ConsoleColor.Black => "\e[30m",
                 ConsoleColor.DarkBlue => "\e[34m",

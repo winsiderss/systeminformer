@@ -60,7 +60,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Splits a string into key-value pairs.
         /// </summary>
-        public static Dictionary<string, string> ParseArguments(string[] args)
+        public static Dictionary<string, string> ParseArguments(string[] Args)
         {
             // 2. Track the current key (string) if it starts with "-".
             // 3. For each string in args:
@@ -72,7 +72,7 @@ namespace CustomBuildTool
             var kvp = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var key = string.Empty;
 
-            foreach (string s in args)
+            foreach (string s in Args)
             {
                 if (s.StartsWith('-'))
                 {
@@ -1444,10 +1444,10 @@ namespace CustomBuildTool
         /// <summary>
         /// Gets the CMake platform name corresponding to the specified build toolchain.
         /// </summary>
-        /// <param name="toolchain">The build toolchain for which to retrieve the CMake platform name.</param>
+        /// <param name="Toolchain">The build toolchain for which to retrieve the CMake platform name.</param>
         /// <returns>The CMake platform name associated with the specified toolchain.</returns>
         /// <exception cref="ArgumentException">Thrown when the specified toolchain is not supported.</exception>
-        public static string CMakeGetPlatform(BuildToolchain toolchain) => toolchain switch
+        public static string CMakeGetPlatform(BuildToolchain Toolchain) => Toolchain switch
         {
             BuildToolchain.MsvcX86 or BuildToolchain.ClangMsvcX86 => "Win32",
             BuildToolchain.MsvcAmd64 or BuildToolchain.ClangMsvcAmd64 => "x64",
@@ -1458,42 +1458,42 @@ namespace CustomBuildTool
         /// <summary>
         /// Determines whether the specified toolchain targets the x86 architecture.
         /// </summary>
-        /// <param name="toolchain">The build toolchain to evaluate.</param>
+        /// <param name="Toolchain">The build toolchain to evaluate.</param>
         /// <returns>true if the toolchain targets x86; otherwise, false.</returns>
-        public static bool IsX86Toolchain(BuildToolchain toolchain)
+        public static bool IsX86Toolchain(BuildToolchain Toolchain)
         {
-            return toolchain == BuildToolchain.MsvcX86 || toolchain == BuildToolchain.ClangMsvcX86;
+            return Toolchain == BuildToolchain.MsvcX86 || Toolchain == BuildToolchain.ClangMsvcX86;
         }
 
         /// <summary>
         /// Determines whether the specified toolchain targets the AMD64 architecture.
         /// </summary>
-        /// <param name="toolchain">The build toolchain to evaluate.</param>
+        /// <param name="Toolchain">The build toolchain to evaluate.</param>
         /// <returns>true if the toolchain targets AMD64; otherwise, false.</returns>
-        public static bool IsAmd64Toolchain(BuildToolchain toolchain)
+        public static bool IsAmd64Toolchain(BuildToolchain Toolchain)
         {
-            return toolchain == BuildToolchain.MsvcAmd64 || toolchain == BuildToolchain.ClangMsvcAmd64;
+            return Toolchain == BuildToolchain.MsvcAmd64 || Toolchain == BuildToolchain.ClangMsvcAmd64;
         }
 
         /// <summary>
         /// Determines whether the specified toolchain targets the ARM64 architecture.
         /// </summary>
-        /// <param name="toolchain">The build toolchain to evaluate.</param>
+        /// <param name="Toolchain">The build toolchain to evaluate.</param>
         /// <returns>true if the toolchain targets ARM64; otherwise, false.</returns>
-        public static bool IsArm64Toolchain(BuildToolchain toolchain)
+        public static bool IsArm64Toolchain(BuildToolchain Toolchain)
         {
-            return toolchain == BuildToolchain.MsvcArm64 || toolchain == BuildToolchain.ClangMsvcArm64;
+            return Toolchain == BuildToolchain.MsvcArm64 || Toolchain == BuildToolchain.ClangMsvcArm64;
         }
 
         /// <summary>
         /// Returns the string representation of the specified build toolchain.
         /// </summary>
-        /// <param name="toolchain">The build toolchain to convert.</param>
+        /// <param name="Toolchain">The build toolchain to convert.</param>
         /// <returns>A string representing the specified build toolchain.</returns>
         /// <exception cref="ArgumentException">Thrown when the specified toolchain is not supported.</exception>
-        public static string GetToolchainString(BuildToolchain toolchain)
+        public static string GetToolchainString(BuildToolchain Toolchain)
         {
-            switch (toolchain)
+            switch (Toolchain)
             {
             case BuildToolchain.MsvcX86:
                 return "msvc-x86";

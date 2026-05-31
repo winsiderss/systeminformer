@@ -98,16 +98,16 @@ namespace CustomBuildTool
         /// <summary>
         /// Retrieves the latest release tag from a GitHub repository using the GitHub API.
         /// </summary>
-        /// <param name="httpClient">The HTTP client used to send requests.</param>
-        /// <param name="owner">The GitHub repository owner.</param>
-        /// <param name="repo">The GitHub repository name.</param>
+        /// <param name="HttpClient">The HTTP client used to send requests.</param>
+        /// <param name="Owner">The GitHub repository owner.</param>
+        /// <param name="Repo">The GitHub repository name.</param>
         /// <returns>The latest release tag, or null if not found.</returns>
-        private static async Task<string> GetLatestGithubTag(HttpClient httpClient, string owner, string repo)
+        private static async Task<string> GetLatestGithubTag(HttpClient HttpClient, string Owner, string Repo)
         {
             try
             {
-                using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{owner}/{repo}/releases/latest"))
-                using (var response = await BuildHttpClient.SendMessageResponse(httpClient, request))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest"))
+                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -119,8 +119,8 @@ namespace CustomBuildTool
                     }
                 }
 
-                using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{owner}/{repo}/tags?per_page=1"))
-                using (var response = await BuildHttpClient.SendMessageResponse(httpClient, request))
+                using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/tags?per_page=1"))
+                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -150,14 +150,14 @@ namespace CustomBuildTool
         /// <summary>
         /// Retrieves the local version of a specified third-party library based on its version pattern.
         /// </summary>
-        /// <param name="lib">The third-party library for which the local version is being retrieved.</param>
+        /// <param name="Lib">The third-party library for which the local version is being retrieved.</param>
         /// <returns>The local version as a string, or null if the version cannot be determined.</returns>
-        private static string GetLocalVersion(ThirdPartyLibrary lib)
+        private static string GetLocalVersion(ThirdPartyLibrary Lib)
         {
-            if (string.IsNullOrWhiteSpace(lib.VersionPattern))
+            if (string.IsNullOrWhiteSpace(Lib.VersionPattern))
                 return null;
 
-            string headerPath = Path.Combine(ThirdPartyDirectory, lib.HeaderFile);
+            string headerPath = Path.Combine(ThirdPartyDirectory, Lib.HeaderFile);
             if (!File.Exists(headerPath))
                 return null;
 
@@ -165,16 +165,16 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(content))
                 return null;
 
-            var match = Regex.Match(content, lib.VersionPattern, RegexOptions.Multiline);
+            var match = Regex.Match(content, Lib.VersionPattern, RegexOptions.Multiline);
             if (!match.Success || match.Groups.Count < 2)
                 return null;
 
             string value = match.Groups[1].Value.Trim();
 
-            // detours encodes version as 0xMAJORcMINORcPATCH where 'c' is the hex digit 0xC as separator
-            // e.g. 0x4c0c1 → "4" "c" "0" "c" "1" → 4.0.1
+            // detours encode version as 0xMAJORcMINORcPATCH where 'c' is the hex digit 0xC as separator
+            // e.g., 0x4c0c1 → "4" "c" "0" "c" "1" → 4.0.1
             if (
-                lib.Name.Equals("detours", StringComparison.OrdinalIgnoreCase) && 
+                Lib.Name.Equals("detours", StringComparison.OrdinalIgnoreCase) && 
                 value.StartsWith("0x", StringComparison.OrdinalIgnoreCase)
                 )
             {
@@ -215,7 +215,7 @@ namespace CustomBuildTool
             }
 
             if (
-                lib.Name.Equals("zydis", StringComparison.OrdinalIgnoreCase) &&
+                Lib.Name.Equals("zydis", StringComparison.OrdinalIgnoreCase) &&
                 value.StartsWith("0x", StringComparison.OrdinalIgnoreCase) &&
                 ulong.TryParse(value.AsSpan(2), NumberStyles.HexNumber, null, out ulong zydisVersion)
                 )
@@ -232,7 +232,7 @@ namespace CustomBuildTool
             }
 
             // pcre2 only captures major; read minor from next line
-            if (lib.Name.Equals("pcre2", StringComparison.OrdinalIgnoreCase))
+            if (Lib.Name.Equals("pcre2", StringComparison.OrdinalIgnoreCase))
             {
                 var minorMatch = PcreVersionRegex().Match(content);
                 if (minorMatch.Success)
@@ -240,7 +240,7 @@ namespace CustomBuildTool
             }
 
             // tlsh encodes as separate MAJOR/MINOR/PATCH defines
-            if (lib.Name.Equals("tlsh", StringComparison.OrdinalIgnoreCase))
+            if (Lib.Name.Equals("tlsh", StringComparison.OrdinalIgnoreCase))
             {
                 var minorMatch = TlshVersionMinorRegex().Match(content);
                 var patchMatch = TlshVersionPatchRegex().Match(content);
@@ -249,10 +249,10 @@ namespace CustomBuildTool
             }
 
             // xxhash encodes as separate MAJOR/MINOR/RELEASE defines
-            if (lib.Name.Equals("xxhash", StringComparison.OrdinalIgnoreCase))
+            if (Lib.Name.Equals("xxhash", StringComparison.OrdinalIgnoreCase))
             {
-                var minorMatch = XXHashVersionMinorRegex().Match(content);
-                var releaseMatch = XXHashVersionReleaseRegex().Match(content);
+                var minorMatch = XxHashVersionMinorRegex().Match(content);
+                var releaseMatch = XxHashVersionReleaseRegex().Match(content);
                 if (minorMatch.Success && releaseMatch.Success)
                     return $"{value}.{minorMatch.Groups[1].Value}.{releaseMatch.Groups[1].Value}";
             }
@@ -263,16 +263,16 @@ namespace CustomBuildTool
         /// <summary>
         /// Determines whether the local version is up to date with the latest version.
         /// </summary>
-        /// <param name="localVersion">The local version string to compare.</param>
-        /// <param name="latestVersion">The latest available version string.</param>
+        /// <param name="LocalVersion">The local version string to compare.</param>
+        /// <param name="LatestVersion">The latest available version string.</param>
         /// <returns>true if the local version is up to date; otherwise, false.</returns>
-        private static bool IsUpToDate(string localVersion, string latestVersion)
+        private static bool IsUpToDate(string LocalVersion, string LatestVersion)
         {
-            if (string.Equals(localVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(LocalVersion, LatestVersion, StringComparison.OrdinalIgnoreCase))
                 return true;
 
-            string local = NormalizeVersion(localVersion);
-            string latest = NormalizeVersion(latestVersion);
+            string local = NormalizeVersion(LocalVersion);
+            string latest = NormalizeVersion(LatestVersion);
 
             if (string.Equals(local, latest, StringComparison.OrdinalIgnoreCase))
                 return true;
@@ -286,23 +286,20 @@ namespace CustomBuildTool
         /// <summary>
         /// Normalizes a version tag by removing a leading 'v' and extracting the version number.
         /// </summary>
-        /// <param name="tag">The version tag to normalize.</param>
+        /// <param name="Tag">The version tag to normalize.</param>
         /// <returns>The normalized version string.</returns>
-        private static string NormalizeVersion(string tag)
+        private static string NormalizeVersion(string Tag)
         {
-            if (string.IsNullOrWhiteSpace(tag))
-                return tag;
+            if (string.IsNullOrWhiteSpace(Tag))
+                return Tag;
 
-            tag = tag.Trim();
+            Tag = Tag.Trim();
 
-            if (tag.StartsWith('v') && tag.Length > 1 && char.IsDigit(tag[1]))
-                tag = tag[1..];
+            if (Tag.StartsWith('v') && Tag.Length > 1 && char.IsDigit(Tag[1]))
+                Tag = Tag[1..];
 
-            var match = VersionNumberRegex().Match(tag);
-            if (match.Success)
-                return match.Groups[1].Value;
-
-            return tag;
+            var match = VersionNumberRegex().Match(Tag);
+            return match.Success ? match.Groups[1].Value : Tag;
         }
 
         [GeneratedRegex(@"#define\s+PCRE2_MINOR\s+(\d+)", RegexOptions.Multiline)]
@@ -310,9 +307,9 @@ namespace CustomBuildTool
         [GeneratedRegex(@"#define\s+VERSION_MINOR\s+(\d+)", RegexOptions.Multiline)]
         private static partial Regex TlshVersionMinorRegex();
         [GeneratedRegex(@"#define\s+XXH_VERSION_RELEASE\s+(\d+)", RegexOptions.Multiline)]
-        private static partial Regex XXHashVersionReleaseRegex();
+        private static partial Regex XxHashVersionReleaseRegex();
         [GeneratedRegex(@"#define\s+XXH_VERSION_MINOR\s+(\d+)", RegexOptions.Multiline)]
-        private static partial Regex XXHashVersionMinorRegex();
+        private static partial Regex XxHashVersionMinorRegex();
         [GeneratedRegex(@"#define\s+VERSION_PATCH\s+(\d+)", RegexOptions.Multiline)]
         private static partial Regex TlshVersionPatchRegex();
         [GeneratedRegex(@"(\d+(?:\.\d+)+)", RegexOptions.Multiline)]

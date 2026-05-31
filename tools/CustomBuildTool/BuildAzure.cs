@@ -13,7 +13,7 @@ namespace CustomBuildTool
 {
     /// <summary>
     /// Provides static methods for signing files using Azure Key Vault certificates and timestamp servers, as well as
-    /// helper methods for obtaining Azure Active Directory tokens and downloading certificates from Azure Key Vault.
+    /// helper methods for getting Azure Active Directory tokens and downloading certificates from Azure Key Vault.
     /// </summary>
     /// <remarks>This class is intended for use in automated build and deployment scenarios where files must
     /// be digitally signed using Azure-managed certificates. All methods require appropriate Azure configuration and
@@ -182,8 +182,8 @@ namespace CustomBuildTool
             {
                 var certificateTimeStampServer = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
 
-                // Obtain access token via REST
-                string accessToken = await GetAzureADToken(TenantGuid, ClientGuid, ClientSecret);
+                // Get access token via REST
+                string accessToken = await GetAzureAdToken(TenantGuid, ClientGuid, ClientSecret);
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
                     Program.PrintColorMessage("Failed to obtain Azure AD token.", ConsoleColor.Red);
@@ -278,7 +278,7 @@ namespace CustomBuildTool
         /// <param name="ClientId">The client application identifier registered in Azure Active Directory. Cannot be null or empty.</param>
         /// <param name="ClientSecret">The client application's secret used for authentication. Cannot be null or empty.</param>
         /// <returns>A string containing the access token if authentication is successful; otherwise, null.</returns>
-        public static async Task<string> GetAzureADToken(string TenantId, string ClientId, string ClientSecret)
+        public static async Task<string> GetAzureAdToken(string TenantId, string ClientId, string ClientSecret)
         {
             //using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
             //{
@@ -422,7 +422,7 @@ namespace CustomBuildTool
         /// with the private key.
         /// </summary>
         /// <remarks>The returned certificate includes the private key and is loaded from a base64-encoded
-        /// PKCS#12 (PFX) payload. Ensure the token has sufficient permissions to access the secret. The method performs
+        /// PKCS#12 (PFX) payload. Ensure the token has enough permissions to access the secret. The method performs
         /// an HTTP GET request and may throw exceptions related to network or authentication failures.</remarks>
         /// <param name="BaseUrl">The base URL of the secret management service endpoint. Must be a valid URI.</param>
         /// <param name="Name">The name of the certificate secret to retrieve. Cannot be null or empty.</param>

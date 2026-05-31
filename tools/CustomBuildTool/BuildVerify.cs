@@ -447,11 +447,11 @@ namespace CustomBuildTool
         /// Attempts to extract the algorithm OID from a SubjectPublicKeyInfo ASN.1 blob.
         /// Returns "RSA", "ECDSA", or null if unknown.
         /// </summary>
-        private static CngAlgorithmGroup GetPublicKeyAlgorithmOid(byte[] keyBlob)
+        private static CngAlgorithmGroup GetPublicKeyAlgorithmOid(byte[] KeyBlob)
         {
             try
             {
-                var reader = new System.Formats.Asn1.AsnReader(keyBlob, System.Formats.Asn1.AsnEncodingRules.DER);
+                var reader = new System.Formats.Asn1.AsnReader(KeyBlob, System.Formats.Asn1.AsnEncodingRules.DER);
                 var seq = reader.ReadSequence(); // SubjectPublicKeyInfo SEQUENCE
                 var algId = seq.ReadSequence(); // AlgorithmIdentifier SEQUENCE
                 var oid = algId.ReadObjectIdentifier();

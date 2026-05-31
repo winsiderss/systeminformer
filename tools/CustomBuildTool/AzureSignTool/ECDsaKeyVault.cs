@@ -791,7 +791,7 @@ namespace CustomBuildTool
         /// <remarks>Call this method before performing operations that require the object to be in a
         /// valid, non-disposed state. This helps ensure that methods are not called on an object that has already been
         /// disposed, which could lead to undefined behavior.</remarks>
-        void CheckDisposed()
+        private void CheckDisposed()
         {
             ObjectDisposedException.ThrowIf(this.Disposed, this);
         }

@@ -85,6 +85,7 @@ else()
         -mavx                         # Enable AVX instructions
         -mavx2                        # Enable AVX2 instructions
         -mavx512vl                    # Enable AVX512VL instructions
+        -mpclmul                      # Enable PCLMULQDQ instructions
         -mrdrnd                       # Enable RDRAND instructions
     )
 endif()

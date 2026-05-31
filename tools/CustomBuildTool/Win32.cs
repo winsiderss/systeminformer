@@ -320,12 +320,12 @@ namespace CustomBuildTool
 
             if (File.Exists(DestinationFile))
             {
-                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out var SourceAttributes);
-                Win32.GetFileBasicInfo(DestinationFile, out var destinationCreationTime, out var destinationWriteTime, out var DestinationAttributes);
+                Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out var sourceAttributes);
+                Win32.GetFileBasicInfo(DestinationFile, out var destinationCreationTime, out var destinationWriteTime, out var destinationAttributes);
 
                 if (sourceWriteTime != destinationWriteTime || sourceCreationTime != destinationCreationTime)
                 {
-                    if ((DestinationAttributes & FileAttributes.ReadOnly) != 0)
+                    if ((destinationAttributes & FileAttributes.ReadOnly) != 0)
                     {
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
@@ -383,11 +383,11 @@ namespace CustomBuildTool
             if (File.Exists(DestinationFile))
             {
                 GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
-                GetFileBasicInfo(DestinationFile, out _, out var destinationWriteTime, out var DestinationAttributes);
+                GetFileBasicInfo(DestinationFile, out _, out var destinationWriteTime, out var destinationAttributes);
 
                 if (sourceWriteTime > destinationWriteTime || GetFileVersion(SourceFile) > GetFileVersion(DestinationFile))
                 {
-                    if ((DestinationAttributes & FileAttributes.ReadOnly) != 0)
+                    if ((destinationAttributes & FileAttributes.ReadOnly) != 0)
                     {
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
@@ -890,23 +890,23 @@ namespace CustomBuildTool
         /// <summary>
         /// Sets the specified process's token integrity level to low by updating its mandatory label information.
         /// </summary>
-        /// <param name="process">The process whose token integrity level will be modified.</param>
-        /// <param name="processAccess">The access rights required to open the target process. Must be enough to allow token manipulation.</param>
-        /// <param name="tokenAccess">The access rights required to open the process token. Must permit setting token information.</param>
-        /// <param name="sidAttributes">The attributes to assign to the integrity SID in the token mandatory label.</param>
-        /// <param name="mandatoryRid">The relative identifier (RID) used to construct the integrity SID. Typically, specifies the desired integrity
+        /// <param name="Process">The process whose token integrity level will be modified.</param>
+        /// <param name="ProcessAccess">The access rights required to open the target process. Must be enough to allow token manipulation.</param>
+        /// <param name="TokenAccess">The access rights required to open the process token. Must permit setting token information.</param>
+        /// <param name="SidAttributes">The attributes to assign to the integrity SID in the token mandatory label.</param>
+        /// <param name="MandatoryRid">The relative identifier (RID) used to construct the integrity SID. Typically, specifies the desired integrity
         /// level.</param>
-        /// <param name="tokenInfoClass">The token information class specifying the type of information to set. Must correspond to mandatory label
+        /// <param name="TokenInfoClass">The token information class specifying the type of information to set. Must correspond to mandatory label
         /// information.</param>
         /// <exception cref="Win32Exception">Thrown if any Windows API call fails, such as opening the process, opening the process token, or setting
         /// token information.</exception>
         private static void ApplyLowIntegrity(
-            Process process,
-            uint processAccess,
-            uint tokenAccess,
-            uint sidAttributes,
-            uint mandatoryRid,
-            int tokenInfoClass
+            Process Process,
+            uint ProcessAccess,
+            uint TokenAccess,
+            uint SidAttributes,
+            uint MandatoryRid,
+            int TokenInfoClass
             )
         {
             HANDLE processHandle = default;
@@ -914,14 +914,14 @@ namespace CustomBuildTool
 
             try
             {
-                processHandle = PInvoke.OpenProcess((PROCESS_ACCESS_RIGHTS)processAccess, false, (uint)process.Id);
+                processHandle = PInvoke.OpenProcess((PROCESS_ACCESS_RIGHTS)ProcessAccess, false, (uint)Process.Id);
 
                 if (processHandle.IsNull)
                 {
-                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"OpenProcess failed for {process.ProcessName}");
+                    throw new Win32Exception(Marshal.GetLastWin32Error(), $"OpenProcess failed for {Process.ProcessName}");
                 }
 
-                if (!PInvoke.OpenProcessToken(processHandle, (TOKEN_ACCESS_MASK)tokenAccess, &tokenHandle))
+                if (!PInvoke.OpenProcessToken(processHandle, (TOKEN_ACCESS_MASK)TokenAccess, &tokenHandle))
                 {
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "OpenProcessToken failed");
                 }
@@ -934,20 +934,20 @@ namespace CustomBuildTool
                 sidSpan[0] = 1;  // SID_REVISION
                 sidSpan[1] = 1;  // SubAuthorityCount
                 sidSpan[7] = 16; // IdentifierAuthority[5] - SECURITY_MANDATORY_LABEL_AUTHORITY (S-1-16)
-                BinaryPrimitives.WriteUInt32LittleEndian(sidSpan[8..], mandatoryRid); // SubAuthority[0] = mandatoryRid (little-endian)
+                BinaryPrimitives.WriteUInt32LittleEndian(sidSpan[8..], MandatoryRid); // SubAuthority[0] = mandatoryRid (little-endian)
                 var integritySid = new PSID(sidBuffer);
                 var tokenMandatoryLabel = new TOKEN_MANDATORY_LABEL
                 {
                     Label = new SID_AND_ATTRIBUTES
                     {
-                        Attributes = sidAttributes,
+                        Attributes = SidAttributes,
                         Sid = integritySid
                     }
                 };
 
                 if (!PInvoke.SetTokenInformation(
                     tokenHandle,
-                    (TOKEN_INFORMATION_CLASS)tokenInfoClass,
+                    (TOKEN_INFORMATION_CLASS)TokenInfoClass,
                     &tokenMandatoryLabel,
                     (uint)sizeof(TOKEN_MANDATORY_LABEL)
                     ))
@@ -955,7 +955,7 @@ namespace CustomBuildTool
                     throw new Win32Exception(Marshal.GetLastWin32Error(), "SetTokenInformation failed");
                 }
 
-                Program.PrintColorMessage($"Successfully set low integrity for {process.ProcessName} (PID: {process.Id})", ConsoleColor.Green);
+                Program.PrintColorMessage($"Successfully set low integrity for {Process.ProcessName} (PID: {Process.Id})", ConsoleColor.Green);
             }
             catch (Exception ex)
             {
