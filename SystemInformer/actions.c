@@ -4224,6 +4224,7 @@ typedef struct _PH_UI_SERVICE_PROGRESS_DIALOG
     PPH_STRING StatusContent;
 
     PPH_LIST ServiceItemList;
+    PPH_LIST ServiceResultList;
 
     volatile LONG RequireElevation;
     struct
@@ -4322,7 +4323,7 @@ HRESULT CALLBACK PhpUiServiceErrorDialogCallbackProc(
         {
             ULONG buttonId = (ULONG)wParam;
 
-            if (buttonId == IDYES)
+            if (buttonId == IDYES || buttonId == IDRETRY)
             {
                 PhShowServiceProgressDialogStatusPage(context);
                 return S_FALSE;
@@ -4347,8 +4348,9 @@ VOID PhUiNavigateServiceErrorDialogPage(
     _In_opt_ PPH_STRING MainContent
     )
 {
-    static CONST TASKDIALOG_BUTTON buttons[1] =
+    static CONST TASKDIALOG_BUTTON buttons[2] =
     {
+        { IDRETRY, L"Retry" },
         { IDNO, L"Close" }
     };
     static CONST TASKDIALOG_BUTTON buttonsElevation[2] =
@@ -4409,6 +4411,84 @@ VOID PhUiNavigateServiceErrorDialogPageFromThread(
     PostMessage(Context->WindowHandle, WM_PHSVC_ERROR, 0, 0);
 }
 
+static PPH_UI_SERVICE_ITEM PhpFindServiceProgressResult(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _In_ PPH_SERVICE_ITEM ServiceItem
+    )
+{
+    if (!Context->ServiceResultList)
+        return NULL;
+
+    for (ULONG i = 0; i < Context->ServiceResultList->Count; i++)
+    {
+        PPH_UI_SERVICE_ITEM result = Context->ServiceResultList->Items[i];
+
+        if (result->Service == ServiceItem)
+            return result;
+    }
+
+    return NULL;
+}
+
+static PPH_UI_SERVICE_ITEM PhpAddServiceProgressResult(
+    _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context,
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ NTSTATUS Status
+    )
+{
+    PPH_UI_SERVICE_ITEM result;
+
+    result = PhAllocateZero(sizeof(PH_UI_SERVICE_ITEM));
+    result->Service = ServiceItem;
+    result->Status = Status;
+
+    PhAddItemList(Context->ServiceResultList, result);
+
+    return result;
+}
+
+static BOOLEAN PhpIsServiceProgressAccessDenied(
+    _In_ NTSTATUS Status
+    )
+{
+    return Status == STATUS_ACCESS_DENIED || Status == STATUS_PRIVILEGE_NOT_HELD;
+}
+
+static VOID PhpAppendServiceProgressResultText(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PPH_UI_SERVICE_ITEM Result
+    )
+{
+    PPH_STRING serviceName = NULL;
+
+    if (!PhIsNullOrEmptyString(Result->Service->Name))
+        serviceName = Result->Service->Name;
+
+    if (!PhIsNullOrEmptyString(serviceName))
+        PhAppendStringBuilder(StringBuilder, &serviceName->sr);
+
+    PhAppendStringBuilder2(StringBuilder, L": ");
+
+    if (NT_SUCCESS(Result->Status))
+    {
+        PhAppendStringBuilder2(StringBuilder, L"Completed");
+    }
+    else
+    {
+        PPH_STRING statusMessage;
+
+        PhAppendFormatStringBuilder(StringBuilder, L"(0x%lx) ", Result->Status);
+
+        statusMessage = PhGetStatusMessage(Result->Status, 0);
+
+        if (!PhIsNullOrEmptyString(statusMessage))
+        {
+            PhAppendStringBuilder(StringBuilder, &statusMessage->sr);
+            PhDereferenceObject(statusMessage);
+        }
+    }
+}
+
 /**
  * Callback function for pending service start operations.
  *
@@ -4420,11 +4500,16 @@ NTSTATUS PhpUiServicePendingStartCallback(
     _In_ PPH_UI_SERVICE_PROGRESS_DIALOG Context
     )
 {
-    PPH_LIST serviceErrorList = PhCreateList(1);
+    BOOLEAN hasFailures = FALSE;
+    BOOLEAN retryWithElevation;
 
-    if (InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE))
+    if (!Context->ServiceResultList)
+        Context->ServiceResultList = PhCreateList(Context->ServiceItemList->Count);
+
+    retryWithElevation = !!InterlockedCompareExchange(&Context->RequireElevation, FALSE, FALSE);
+
+    if (retryWithElevation)
     {
-        NTSTATUS status;
         BOOLEAN connected;
 
         if (PhpElevationLevelAndConnectToPhSvc(Context->WindowHandle, &connected) && connected)
@@ -4432,27 +4517,26 @@ NTSTATUS PhpUiServicePendingStartCallback(
             for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
             {
                 PPH_SERVICE_ITEM serviceItem = Context->ServiceItemList->Items[i];
+                PPH_UI_SERVICE_ITEM result;
+                NTSTATUS status;
+
+                result = PhpFindServiceProgressResult(Context, serviceItem);
+
+                if (result && !PhpIsServiceProgressAccessDenied(result->Status))
+                    continue;
 
                 status = PhSvcCallControlService(
                     PhGetString(serviceItem->Name),
                     Context->ActionCommand
                     );
 
-                if (NT_SUCCESS(status))
+                if (result)
                 {
-                    ULONG index;
-
-                    index = PhFindItemList(Context->ServiceItemList, serviceItem);
-
-                    if (index != ULONG_MAX)
-                    {
-                        PhRemoveItemList(Context->ServiceItemList, index);
-                        PhDereferenceObject(serviceItem);
-                    }
+                    result->Status = status;
                 }
                 else
                 {
-                    PhAddItemList(serviceErrorList, LongToPtr(status));
+                    PhpAddServiceProgressResult(Context, serviceItem, status);
                 }
             }
 
@@ -4469,78 +4553,56 @@ NTSTATUS PhpUiServicePendingStartCallback(
         for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
         {
             PPH_SERVICE_ITEM serviceItem = Context->ServiceItemList->Items[i];
+            PPH_UI_SERVICE_ITEM result;
             NTSTATUS status;
+
+            result = PhpFindServiceProgressResult(Context, serviceItem);
+
+            if (result && NT_SUCCESS(result->Status))
+                continue;
 
             status = Context->ActionCallback(serviceItem);
 
-            if (NT_SUCCESS(status))
+            if (result)
             {
-                ULONG index;
-
-                index = PhFindItemList(Context->ServiceItemList, serviceItem);
-
-                if (index != ULONG_MAX)
-                {
-                    PhRemoveItemList(Context->ServiceItemList, index);
-                    PhDereferenceObject(serviceItem);
-                }
+                result->Status = status;
             }
             else
             {
-                PhAddItemList(serviceErrorList, LongToPtr(status));
+                PhpAddServiceProgressResult(Context, serviceItem, status);
             }
         }
     }
 
     InterlockedExchange(&Context->RequireElevation, FALSE);
 
-    if (serviceErrorList->Count && !PhGetOwnTokenAttributes().Elevated)
+    for (ULONG i = 0; i < Context->ServiceResultList->Count; i++)
     {
-        for (ULONG i = 0; i < serviceErrorList->Count; i++)
-        {
-            NTSTATUS status = PtrToLong(serviceErrorList->Items[i]);
+        PPH_UI_SERVICE_ITEM result = Context->ServiceResultList->Items[i];
 
-            if (status == STATUS_ACCESS_DENIED || status == STATUS_PRIVILEGE_NOT_HELD)
+        if (!NT_SUCCESS(result->Status))
+        {
+            hasFailures = TRUE;
+
+            if (!retryWithElevation && !PhGetOwnTokenAttributes().Elevated && PhpIsServiceProgressAccessDenied(result->Status))
             {
                 InterlockedExchange(&Context->RequireElevation, TRUE);
-                break;
             }
         }
     }
 
-    if (Context->ServiceItemList->Count)
+    if (hasFailures)
     {
         PH_STRING_BUILDER stringBuilder;
 
         PhInitializeStringBuilder(&stringBuilder, 0x50);
 
-        for (ULONG i = 0; i < Context->ServiceItemList->Count; i++)
+        for (ULONG i = 0; i < Context->ServiceResultList->Count; i++)
         {
-            PPH_STRING serviceName = NULL;
-            PPH_STRING statusMessage = NULL;
-
-            if (!PhIsNullOrEmptyString(((PPH_SERVICE_ITEM)Context->ServiceItemList->Items[i])->Name))
-            {
-                serviceName = ((PPH_SERVICE_ITEM)Context->ServiceItemList->Items[i])->Name;
-            }
-
-            if (i < serviceErrorList->Count)
-            {
-                statusMessage = PhGetStatusMessage(PtrToLong(serviceErrorList->Items[i]), 0);
-            }
-
-            if (!PhIsNullOrEmptyString(serviceName))
-                PhAppendStringBuilder(&stringBuilder, &serviceName->sr);
-            PhAppendStringBuilder2(&stringBuilder, L": ");
-
-            PhAppendFormatStringBuilder(&stringBuilder, L"(0x%lx) ", PtrToLong(serviceErrorList->Items[i]));
-
-            if (!PhIsNullOrEmptyString(statusMessage))
-            {
-                PhAppendStringBuilder(&stringBuilder, &statusMessage->sr);
-                PhClearReference(&statusMessage);
-            }
-
+            PhpAppendServiceProgressResultText(
+                &stringBuilder,
+                Context->ServiceResultList->Items[i]
+                );
             PhAppendStringBuilder2(&stringBuilder, L"\r\n");
         }
 
@@ -4560,7 +4622,7 @@ NTSTATUS PhpUiServicePendingStartCallback(
             PPH_STRING message;
             PPH_STRING content;
 
-            message = PhFormatString(L"Unable to %s services:", Context->Verb);
+            message = PhFormatString(L"Unable to %s one or more services:", Context->Verb);
             content = PhFinalStringBuilderString(&stringBuilder);
 
             InterlockedExchangePointer(&Context->StatusMessage, message);
@@ -4575,8 +4637,6 @@ NTSTATUS PhpUiServicePendingStartCallback(
     }
 
 CleanupExit:
-    PhClearReference(&serviceErrorList);
-
     PhDereferenceObject(Context);
 
     return STATUS_SUCCESS;
@@ -4909,6 +4969,16 @@ static VOID PhServiceProgressContextDeleteProcedure(
     )
 {
     PPH_UI_SERVICE_PROGRESS_DIALOG context = Object;
+
+    if (context->ServiceResultList)
+    {
+        for (ULONG i = 0; i < context->ServiceResultList->Count; i++)
+        {
+            PhFree(context->ServiceResultList->Items[i]);
+        }
+
+        PhDereferenceObject(context->ServiceResultList);
+    }
 
     PhDereferenceObjects(context->ServiceItemList->Items, context->ServiceItemList->Count);
     PhDereferenceObject(context->ServiceItemList);
@@ -6372,6 +6442,14 @@ static BOOLEAN PhpShowErrorThread(
         );
 }
 
+/**
+ * Terminates a list of threads.
+ *
+ * \param WindowHandle Parent window used for confirmation and error UI.
+ * \param Threads An array of thread items to terminate.
+ * \param NumberOfThreads The number of threads in the array.
+ * \return BOOLEAN TRUE if all threads were terminated successfully, FALSE otherwise.
+ */
 BOOLEAN PhUiTerminateThreads(
     _In_ HWND WindowHandle,
     _In_ PPH_THREAD_ITEM *Threads,
@@ -6885,6 +6963,14 @@ BOOLEAN PhUiSetPagePriorityThread(
     return TRUE;
 }
 
+/**
+ * Unloads a module, driver, or unmaps a section view from a process.
+ *
+ * \param WindowHandle Parent window used for dialogs.
+ * \param ProcessId The process ID to operate on.
+ * \param Module A pointer to the module item to unload/unmap.
+ * \return BOOLEAN TRUE if the operation succeeded, FALSE otherwise.
+ */
 BOOLEAN PhUiUnloadModule(
     _In_ HWND WindowHandle,
     _In_ HANDLE ProcessId,
