@@ -989,10 +989,10 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                 {
                     if (PhEnableProcessQueryStage2)
                     {
-                        if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
-                            getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
-                        else
+                        if (context->IsSubsystemProcess)
                             PhInitializeEmptyStringRef(&getCellText->Text);
+                        else
+                            getCellText->Text = PhVerifyResultToStringRef(moduleItem->VerifyResult);
                     }
                     else
                     {
@@ -1338,7 +1338,6 @@ BOOLEAN NTAPI PhpModuleTreeNewCallback(
                     break;
                 case PH_MODULE_TYPE_MAPPED_FILE:
                 case PH_MODULE_TYPE_MAPPED_IMAGE:
-                case PH_MODULE_TYPE_ELF_MAPPED_IMAGE:
                 case PH_MODULE_TYPE_ENCLAVE_MODULE:
                     {
                         if (PhCsUseColorModuleMapped)

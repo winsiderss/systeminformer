@@ -30,16 +30,32 @@ typedef struct _PH_MODULE_QUERY_DATA
     SLIST_ENTRY ListEntry;
     PPH_MODULE_PROVIDER ModuleProvider;
     PPH_MODULE_ITEM ModuleItem;
+    ULONG Flags;
 
     VERIFY_RESULT VerifyResult;
     PPH_STRING VerifySignerName;
+    BOOLEAN VerifyResultValid;
     ULONG ImageFlags;
     ULONG GuardFlags;
     BOOLEAN ImageKnownDll;
 
+    NTSTATUS FileAttributesStatus;
+    LARGE_INTEGER FileLastWriteTime;
+    LARGE_INTEGER FileEndOfFile;
+
     NTSTATUS ImageCoherencyStatus;
     FLOAT ImageCoherency;
 } PH_MODULE_QUERY_DATA, *PPH_MODULE_QUERY_DATA;
+
+#define PH_MODULE_QUERY_FULL 0x1
+#define PH_MODULE_QUERY_FILE_ATTRIBUTES 0x2
+
+typedef struct _PH_MODULE_KEY
+{
+    PVOID BaseAddress;
+    PVOID EnclaveBaseAddress;
+    PPH_STRING FileName;
+} PH_MODULE_KEY, *PPH_MODULE_KEY;
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpModuleProviderDeleteProcedure(
@@ -64,6 +80,17 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
     );
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI PhpModuleKeyHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    );
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI PhpModuleKeyHashtableHashFunction(
+    _In_ PVOID Entry
+    );
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter
@@ -76,6 +103,8 @@ NTSTATUS PhEnumGenericEnclaveModules(
 
 PPH_OBJECT_TYPE PhModuleProviderType = NULL;
 PPH_OBJECT_TYPE PhModuleItemType = NULL;
+PH_INITONCE PhpModuleQueryWorkQueueInitOnce = PH_INITONCE_INIT;
+PH_WORK_QUEUE PhpModuleQueryWorkQueue;
 PVOID PhLdrEnclaveList = NULL;
 
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
@@ -336,6 +365,40 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
     return baseAddressHash ^ (enclaveBaseAddressHash << 1);
 }
 
+_Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
+BOOLEAN NTAPI PhpModuleKeyHashtableEqualFunction(
+    _In_ PVOID Entry1,
+    _In_ PVOID Entry2
+    )
+{
+    PPH_MODULE_KEY entry1 = (PPH_MODULE_KEY)Entry1;
+    PPH_MODULE_KEY entry2 = (PPH_MODULE_KEY)Entry2;
+
+    if (entry1->BaseAddress != entry2->BaseAddress ||
+        entry1->EnclaveBaseAddress != entry2->EnclaveBaseAddress)
+    {
+        return FALSE;
+    }
+
+    if (entry1->FileName && entry2->FileName)
+        return PhEqualString(entry1->FileName, entry2->FileName, FALSE);
+
+    return entry1->FileName == entry2->FileName;
+}
+
+_Function_class_(PH_HASHTABLE_HASH_FUNCTION)
+ULONG NTAPI PhpModuleKeyHashtableHashFunction(
+    _In_ PVOID Entry
+    )
+{
+    PPH_MODULE_KEY entry = (PPH_MODULE_KEY)Entry;
+    ULONG baseAddressHash = PhHashIntPtr((ULONG_PTR)entry->BaseAddress);
+    ULONG enclaveBaseAddressHash = PhHashIntPtr((ULONG_PTR)entry->EnclaveBaseAddress);
+    ULONG fileNameHash = entry->FileName ? PhHashStringRef(&entry->FileName->sr, FALSE) : 0;
+
+    return baseAddressHash ^ (enclaveBaseAddressHash << 1) ^ fileNameHash;
+}
+
 PPH_MODULE_ITEM PhReferenceModuleItemEx(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress,
@@ -440,7 +503,23 @@ NTSTATUS PhpModuleQueryWorker(
     PPH_MODULE_PROVIDER moduleProvider = data->ModuleProvider;
     PPH_MODULE_ITEM moduleItem = data->ModuleItem;
 
-    if (PhEnableProcessQueryStage2)
+    if ((data->Flags & PH_MODULE_QUERY_FILE_ATTRIBUTES) && moduleItem->FileName)
+    {
+        FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+
+        data->FileAttributesStatus = PhQueryFullAttributesFile(
+            &moduleItem->FileName->sr,
+            &networkOpenInfo
+            );
+
+        if (NT_SUCCESS(data->FileAttributesStatus))
+        {
+            data->FileLastWriteTime = networkOpenInfo.LastWriteTime;
+            data->FileEndOfFile = networkOpenInfo.EndOfFile;
+        }
+    }
+
+    if ((data->Flags & PH_MODULE_QUERY_FULL) && PhEnableProcessQueryStage2 && moduleItem->FileName)
     {
         data->VerifyResult = PhVerifyFileCached(
             moduleItem->FileName,
@@ -449,9 +528,10 @@ NTSTATUS PhpModuleQueryWorker(
             TRUE,
             FALSE
             );
+        data->VerifyResultValid = TRUE;
     }
 
-    if (moduleProvider->IsHandleValid && !moduleProvider->IsSubsystemProcess)
+    if ((data->Flags & PH_MODULE_QUERY_FULL) && moduleItem->FileName && moduleProvider->IsHandleValid && !moduleProvider->IsSubsystemProcess)
     {
         if (
             moduleItem->Type == PH_MODULE_TYPE_MODULE ||
@@ -647,7 +727,7 @@ NTSTATUS PhpModuleQueryWorker(
             ClearFlag(moduleItem->ImageDllCharacteristicsEx, IMAGE_DLLCHARACTERISTICS_EX_CET_COMPAT);
     }
 
-    if (PhEnableImageCoherencySupport && moduleProvider->IsHandleValid && !data->ModuleProvider->IsSubsystemProcess)
+    if ((data->Flags & PH_MODULE_QUERY_FULL) && moduleItem->FileName && PhEnableImageCoherencySupport && moduleProvider->IsHandleValid && !data->ModuleProvider->IsSubsystemProcess)
     {
         if (data->ModuleItem->Type == PH_MODULE_TYPE_MODULE ||
             data->ModuleItem->Type == PH_MODULE_TYPE_WOW64_MODULE ||
@@ -676,7 +756,7 @@ NTSTATUS PhpModuleQueryWorker(
         }
     }
 
-    if (data->ModuleItem->FileName)
+    if ((data->Flags & PH_MODULE_QUERY_FULL) && data->ModuleItem->FileName)
     {
         data->ImageKnownDll = PhIsKnownDllFileName(data->ModuleItem->FileName);
     }
@@ -688,28 +768,53 @@ NTSTATUS PhpModuleQueryWorker(
     return STATUS_SUCCESS;
 }
 
+PPH_WORK_QUEUE PhpGetModuleQueryWorkQueue(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhpModuleQueryWorkQueueInitOnce))
+    {
+        PhInitializeWorkQueue(
+            &PhpModuleQueryWorkQueue,
+            0,
+            3,
+            1000
+            );
+        PhEndInitOnce(&PhpModuleQueryWorkQueueInitOnce);
+    }
+
+    return &PhpModuleQueryWorkQueue;
+}
+
 VOID PhpQueueModuleQuery(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
-    _In_ PPH_MODULE_ITEM ModuleItem
+    _In_ PPH_MODULE_ITEM ModuleItem,
+    _In_ ULONG Flags
     )
 {
     PPH_MODULE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
+    if (ModuleItem->QueryPending)
+        return;
+
     data = PhAllocate(sizeof(PH_MODULE_QUERY_DATA));
     memset(data, 0, sizeof(PH_MODULE_QUERY_DATA));
     data->ModuleProvider = ModuleProvider;
     data->ModuleItem = ModuleItem;
+    data->Flags = Flags;
+    data->FileAttributesStatus = STATUS_UNSUCCESSFUL;
 
     PhReferenceObject(ModuleProvider);
     PhReferenceObject(ModuleItem);
+    ModuleItem->QueryPending = TRUE;
 
     PhInitializeWorkQueueEnvironment(&environment);
     environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
     environment.IoPriority = IoPriorityLow;
     environment.PagePriority = MEMORY_PRIORITY_LOW;
 
-    PhQueueItemWorkQueueEx(PhGetGlobalWorkQueue(), PhpModuleQueryWorker, data, NULL, &environment);
+    PhQueueItemWorkQueueEx(PhpGetModuleQueryWorkQueue(), PhpModuleQueryWorker, data, NULL, &environment);
 }
 
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
@@ -745,7 +850,7 @@ VOID PhModuleProviderUpdate(
     if (!moduleProvider->ProcessHandle && moduleProvider->ProcessId != SYSTEM_PROCESS_ID)
         goto UpdateExit;
 
-    modules = PhCreateList(100);
+    modules = PhCreateList(50);
 
     moduleProvider->RunStatus = PhEnumGenericModules(
         moduleProvider->ProcessId,
@@ -762,29 +867,39 @@ VOID PhModuleProviderUpdate(
 
     // Look for removed modules.
     {
+        PPH_HASHTABLE moduleKeyHashtable;
         PPH_LIST modulesToRemove = NULL;
         ULONG enumerationKey = 0;
         PPH_MODULE_ITEM *moduleItem;
 
+        moduleKeyHashtable = PhCreateHashtable(
+            sizeof(PH_MODULE_KEY),
+            PhpModuleKeyHashtableEqualFunction,
+            PhpModuleKeyHashtableHashFunction,
+            modules->Count
+            );
+
+        for (i = 0; i < modules->Count; i++)
+        {
+            PPH_MODULE_INFO module = modules->Items[i];
+            PH_MODULE_KEY key;
+
+            key.BaseAddress = module->BaseAddress;
+            key.EnclaveBaseAddress = module->EnclaveBaseAddress;
+            key.FileName = module->FileName;
+
+            PhAddEntryHashtable(moduleKeyHashtable, &key);
+        }
+
         while (PhEnumHashtable(moduleProvider->ModuleHashtable, (PVOID *)&moduleItem, &enumerationKey))
         {
-            BOOLEAN found = FALSE;
+            PH_MODULE_KEY key;
 
-            // Check if the module still exists.
-            for (i = 0; i < modules->Count; i++)
-            {
-                PPH_MODULE_INFO module = modules->Items[i];
+            key.BaseAddress = (*moduleItem)->BaseAddress;
+            key.EnclaveBaseAddress = (*moduleItem)->EnclaveBaseAddress;
+            key.FileName = (*moduleItem)->FileName;
 
-                if ((*moduleItem)->BaseAddress == module->BaseAddress &&
-                    (*moduleItem)->EnclaveBaseAddress == module->EnclaveBaseAddress &&
-                    PhEqualString((*moduleItem)->FileName, module->FileName, FALSE))
-                {
-                    found = TRUE;
-                    break;
-                }
-            }
-
-            if (!found)
+            if (!PhFindEntryHashtable(moduleKeyHashtable, &key))
             {
                 // Raise the module removed event.
                 PhInvokeCallback(&moduleProvider->ModuleRemovedEvent, *moduleItem);
@@ -811,6 +926,8 @@ VOID PhModuleProviderUpdate(
             PhReleaseFastLockExclusive(&moduleProvider->ModuleHashtableLock);
             PhDereferenceObject(modulesToRemove);
         }
+
+        PhDereferenceObject(moduleKeyHashtable);
     }
 
     // Go through the queued thread query data.
@@ -822,18 +939,65 @@ VOID PhModuleProviderUpdate(
 
         while (entry)
         {
+            BOOLEAN modified;
+
             data = CONTAINING_RECORD(entry, PH_MODULE_QUERY_DATA, ListEntry);
             entry = entry->Next;
 
-            data->ModuleItem->VerifyResult = data->VerifyResult;
-            data->ModuleItem->VerifySignerName = data->VerifySignerName;
-            data->ModuleItem->Flags |= data->ImageFlags;
-            data->ModuleItem->GuardFlags = data->GuardFlags;
-            data->ModuleItem->ImageCoherencyStatus = data->ImageCoherencyStatus;
-            data->ModuleItem->ImageCoherency = data->ImageCoherency;
-            data->ModuleItem->ImageKnownDll = data->ImageKnownDll;
+            modified = !!(data->Flags & PH_MODULE_QUERY_FULL);
 
-            data->ModuleItem->JustProcessed = TRUE;
+            if (data->Flags & PH_MODULE_QUERY_FULL)
+            {
+                if (data->VerifyResultValid)
+                {
+                    data->ModuleItem->VerifyResult = data->VerifyResult;
+                    PhMoveReference(&data->ModuleItem->VerifySignerName, data->VerifySignerName);
+                    data->VerifySignerName = NULL;
+                }
+
+                data->ModuleItem->Flags |= data->ImageFlags;
+                data->ModuleItem->GuardFlags = data->GuardFlags;
+                data->ModuleItem->ImageCoherencyStatus = data->ImageCoherencyStatus;
+                data->ModuleItem->ImageCoherency = data->ImageCoherency;
+                data->ModuleItem->ImageKnownDll = data->ImageKnownDll;
+            }
+
+            if (data->Flags & PH_MODULE_QUERY_FILE_ATTRIBUTES)
+            {
+                if (NT_SUCCESS(data->FileAttributesStatus))
+                {
+                    if (data->ModuleItem->FileLastWriteTime.QuadPart != data->FileLastWriteTime.QuadPart)
+                    {
+                        data->ModuleItem->FileLastWriteTime = data->FileLastWriteTime;
+                        modified = TRUE;
+                    }
+
+                    if (data->ModuleItem->FileEndOfFile.QuadPart != data->FileEndOfFile.QuadPart)
+                    {
+                        data->ModuleItem->FileEndOfFile = data->FileEndOfFile;
+                        modified = TRUE;
+                    }
+                }
+                else
+                {
+                    if (data->ModuleItem->FileLastWriteTime.QuadPart != 0)
+                    {
+                        data->ModuleItem->FileLastWriteTime.QuadPart = 0;
+                        modified = TRUE;
+                    }
+
+                    if (data->ModuleItem->FileEndOfFile.QuadPart != 0)
+                    {
+                        data->ModuleItem->FileEndOfFile.QuadPart = 0;
+                        modified = TRUE;
+                    }
+                }
+            }
+
+            data->ModuleItem->QueryPending = FALSE;
+
+            if (modified)
+                data->ModuleItem->JustProcessed = TRUE;
 
             PhDereferenceObject(data->ModuleItem);
             PhFree(data);
@@ -845,7 +1009,6 @@ VOID PhModuleProviderUpdate(
     {
         PPH_MODULE_INFO module = modules->Items[i];
         PPH_MODULE_ITEM moduleItem;
-        FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
 
         moduleItem = PhReferenceModuleItemEx(
             moduleProvider,
@@ -895,12 +1058,7 @@ VOID PhModuleProviderUpdate(
 
             PhInitializeImageVersionInfoEx(&moduleItem->VersionInfo, &moduleItem->FileName->sr, !!PhCsEnableVersionSupport);
 
-            if (moduleProvider->IsSubsystemProcess)
-            {
-                // HACK: Update the module type. (TODO: Move into PhEnumGenericModules) (dmex)
-                moduleItem->Type = PH_MODULE_TYPE_ELF_MAPPED_IMAGE;
-            }
-            else
+            if (!moduleProvider->IsSubsystemProcess)
             {
                 // Fix up the load count. If this is not an ordinary DLL or kernel module, set the load count to 0.
                 if (moduleItem->Type != PH_MODULE_TYPE_MODULE &&
@@ -929,19 +1087,17 @@ VOID PhModuleProviderUpdate(
                 }
             }
 
-            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
-            {
-                moduleItem->FileLastWriteTime = networkOpenInfo.LastWriteTime;
-                moduleItem->FileEndOfFile = networkOpenInfo.EndOfFile;
-            }
-
-            if (moduleItem->Type != PH_MODULE_TYPE_ELF_MAPPED_IMAGE)
+            if (!moduleProvider->IsSubsystemProcess)
             {
                 // See if the file has already been verified; if not, queue for verification.
                 moduleItem->VerifyResult = PhVerifyFileCached(moduleItem->FileName, NULL, &moduleItem->VerifySignerName, TRUE, TRUE);
 
                 //if (moduleItem->VerifyResult == VrUnknown) // (dmex)
-                PhpQueueModuleQuery(moduleProvider, moduleItem);
+                PhpQueueModuleQuery(moduleProvider, moduleItem, PH_MODULE_QUERY_FULL | PH_MODULE_QUERY_FILE_ATTRIBUTES);
+            }
+            else
+            {
+                PhpQueueModuleQuery(moduleProvider, moduleItem, PH_MODULE_QUERY_FILE_ATTRIBUTES);
             }
 
             // Add the module item to the hashtable.
@@ -967,34 +1123,7 @@ VOID PhModuleProviderUpdate(
                 modified = TRUE;
             }
 
-            if (NT_SUCCESS(PhQueryFullAttributesFile(&moduleItem->FileName->sr, &networkOpenInfo)))
-            {
-                if (moduleItem->FileLastWriteTime.QuadPart != networkOpenInfo.LastWriteTime.QuadPart)
-                {
-                    moduleItem->FileLastWriteTime.QuadPart = networkOpenInfo.LastWriteTime.QuadPart;
-                    modified = TRUE;
-                }
-
-                if (moduleItem->FileEndOfFile.QuadPart != networkOpenInfo.EndOfFile.QuadPart)
-                {
-                    moduleItem->FileEndOfFile.QuadPart = networkOpenInfo.EndOfFile.QuadPart;
-                    modified = TRUE;
-                }
-            }
-            else
-            {
-                if (moduleItem->FileLastWriteTime.QuadPart != 0)
-                {
-                    moduleItem->FileLastWriteTime.QuadPart = 0;
-                    modified = TRUE;
-                }
-
-                if (moduleItem->FileEndOfFile.QuadPart != 0)
-                {
-                    moduleItem->FileEndOfFile.QuadPart = 0;
-                    modified = TRUE;
-                }
-            }
+            PhpQueueModuleQuery(moduleProvider, moduleItem, PH_MODULE_QUERY_FILE_ATTRIBUTES);
 
             if (modified)
                 PhInvokeCallback(&moduleProvider->ModuleModifiedEvent, moduleItem);
@@ -1031,7 +1160,6 @@ static CONST PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
     SIP(SREF(L"WOW64 DLL"), PH_MODULE_TYPE_WOW64_MODULE),
     SIP(SREF(L"Kernel module"), PH_MODULE_TYPE_KERNEL_MODULE),
     SIP(SREF(L"Mapped image"), PH_MODULE_TYPE_MAPPED_IMAGE),
-    SIP(SREF(L"Mapped image"), PH_MODULE_TYPE_ELF_MAPPED_IMAGE),
     SIP(SREF(L"Enclave module"), PH_MODULE_TYPE_ENCLAVE_MODULE),
 };
 
