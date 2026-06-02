@@ -194,9 +194,12 @@ PhpHasPCLMULOnce(
     if (current == 0)
     {
         int regs[4] = { 0, 0, 0, 0 };
+        ULONG detected;
+        LONG previous;
         __cpuid(regs, 1);
-        current = (regs[2] & (1 << 1)) ? 1 : 2;
-        WriteULongRelease(&state, current);
+        detected = (regs[2] & (1 << 1)) ? 1 : 2;
+        previous = InterlockedCompareExchange((volatile LONG*)&state, (LONG)detected, 0);
+        current = (previous == 0) ? detected : (ULONG)previous;
     }
 
     return current == 1;
@@ -685,8 +688,8 @@ PhAddFLOAT128(
 /**
  * Divides one 128-bit floating-point vector by another.
  *
- * \param Divisor The dividend vector to be divided.
- * \param Dividend The divisor vector used to divide the Divisor.
+ * \param Divisor The divisor vector used to divide the Dividend.
+ * \param Dividend The dividend vector to be divided.
  * \return A PH_FLOAT128 containing the lane-wise results of the division.
  */
 FORCEINLINE
@@ -857,10 +860,10 @@ PhShuffleFLOAT128_2301(
     )
 {
 #ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    float32x2_t a03 = vget_low_f32(vextq_f32(A, A, 3));
-    float32x2_t b21 = vget_high_f32(vextq_f32(B, B, 3));
-    return vcombine_f32(a03, b21);
+    // [A1, A0, B3, B2] to match _MM_SHUFFLE(2, 3, 0, 1)
+    float32x2_t a10 = vrev64_f32(vget_low_f32(A));
+    float32x2_t b32 = vrev64_f32(vget_high_f32(B));
+    return vcombine_f32(a10, b32);
 #else
     return _mm_shuffle_ps(A, B, _MM_SHUFFLE(2, 3, 0, 1));
 #endif
@@ -881,10 +884,10 @@ PhShuffleFLOAT128_1032(
     )
 {
 #ifdef _ARM64_
-    // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    float32x2_t a03 = vget_low_f32(vextq_f32(A, A, 3));
-    float32x2_t b21 = vget_high_f32(vextq_f32(B, B, 3));
-    return vcombine_f32(a03, b21);
+    // [A2, A3, B0, B1] to match _MM_SHUFFLE(1, 0, 3, 2)
+    float32x2_t a23 = vget_high_f32(A);
+    float32x2_t b01 = vget_low_f32(B);
+    return vcombine_f32(a23, b01);
 #else
     return _mm_shuffle_ps(A, B, _MM_SHUFFLE(1, 0, 3, 2));
 #endif
