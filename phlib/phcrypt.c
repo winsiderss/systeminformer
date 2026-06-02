@@ -16,6 +16,31 @@
 #include <ntintsafe.h>
 
 // ------------------------------------------------------------------------
+// One-time SymCrypt library initialization
+// ------------------------------------------------------------------------
+
+/**
+ * Performs one-time SymCrypt runtime initialization.
+ *
+ * The statically linked SymCrypt user-mode library on Windows requires a
+ * one-time call to SymCryptInit(). This initializes the runtime environment,
+ * including CPU feature detection via SymCryptInitEnvWindowsUsermode().
+ * If initialization is skipped, g_SymCryptCpuFeaturesNotPresent remains at its
+ * default value (~0, i.e. "no features present"), forcing all primitives to use
+ * their lowest-performance fallback implementations.
+ * For example, SHA-256 falls back to the SSSE3 implementation instead of using
+ * SHA-NI (SHANI) instructions, resulting in ~40% lower throughput compared to
+ * properly initialized SymCrypt or BCrypt. SymCryptInit() is idempotent and
+ * internally guarded by SYMCRYPT_FLAG_LIB_INITIALIZED.
+ */
+VOID PhSymCryptInitialize(
+    VOID
+    )
+{
+    SymCryptInit();
+}
+
+// ------------------------------------------------------------------------
 // SYMCRYPT_ERROR -> NTSTATUS translation
 // ------------------------------------------------------------------------
 

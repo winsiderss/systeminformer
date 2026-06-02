@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <phcrypt.h>
 #include <phintrnl.h>
 #include <trace.h>
 
@@ -55,6 +56,8 @@ NTSTATUS PhInitializePhLib(
         return status;
 
     PhInitializeProcessorInformation();
+
+    PhSymCryptInitialize();
 
     return STATUS_SUCCESS;
 }
