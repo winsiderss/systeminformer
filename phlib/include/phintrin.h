@@ -413,7 +413,7 @@ PhLoadINT64To128U(
     )
 {
 #ifdef _ARM64_
-    return (PH_INT128)vcombine_s64(vld1_s64((const int64_t*)Memory), vdup_n_s64(0));
+    return vcombine_s64(vld1_s64((const int64_t*)Memory), vdup_n_s64(0));
 #else
     return _mm_loadl_epi64((__m128i const*)Memory);
 #endif
@@ -433,9 +433,9 @@ PhZeroExtendINT128ToINT256(
 {
 #ifdef _ARM64_
     PH_INT256 result;
-    uint8x16_t val = (uint8x16_t)Value;
-    result.Low = (PH_INT128)vmovl_u8(vget_low_u8(val));
-    result.High = (PH_INT128)vmovl_u8(vget_high_u8(val));
+    uint8x16_t val = vreinterpretq_u8_s64(Value);
+    result.Low = vreinterpretq_s64_u16(vmovl_u8(vget_low_u8(val)));
+    result.High = vreinterpretq_s64_u16(vmovl_u8(vget_high_u8(val)));
     return result;
 #else
     return _mm256_cvtepu8_epi16(Value);
@@ -536,7 +536,7 @@ PhMoveMaskINT128by8(
 {
 #ifdef _ARM64_
     // https://github.com/DLTcollab/sse2neon/blob/master/sse2neon.h
-    uint8x16_t input = Value;
+    uint8x16_t input = vreinterpretq_u8_s64(Value);
     uint16x8_t high_bits = vshrq_n_u8(input, 7);
     uint32x4_t paired16 = vsraq_n_u16(high_bits, high_bits, 7);
     uint64x2_t paired32 = vsraq_n_u32(paired16, paired16, 14);
@@ -1012,6 +1012,28 @@ PhAndINT128(
     return vandq_s32(A, B);
 #else
     return _mm_and_si128(A, B);
+#endif
+}
+
+/**
+ * Bitwise ANDNOT of two 128-bit integer vectors.
+ * Computes (~A) & B.
+ *
+ * \param[in] A First operand (inverted).
+ * \param[in] B Second operand.
+ * \return Result of (~A) & B.
+ */
+FORCEINLINE
+PH_INT128
+PhAndNotINT128(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vbicq_s32(B, A);
+#else
+    return _mm_andnot_si128(A, B);
 #endif
 }
 
