@@ -14,6 +14,7 @@
 #include <uxtheme.h>
 #include <mapldr.h>
 #include <guisup.h>
+#include <phintrin.h>
 
 // code from http://msdn.microsoft.com/en-us/library/bb757020.aspx
 
@@ -57,7 +58,7 @@ static HBITMAP PhpCreateBitmap32(
     bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
-    bitmapInfo.bmiHeader.biSizeImage = Width * Height;
+    bitmapInfo.bmiHeader.biSizeImage = Width * Height * sizeof(RGBQUAD);
 
     return CreateDIBSection(hdc, &bitmapInfo, DIB_RGB_COLORS, Bits, NULL, 0);
 }
@@ -75,9 +76,35 @@ static BOOLEAN PhpHasAlpha(
 
     delta = RowWidth - Width;
 
-    for (y = Width; y; y--)
+    for (y = Height; y; y--)
     {
-        for (x = Height; x; x--)
+        x = Width;
+
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            __m256i alpha = _mm256_set1_epi32((int)0xff000000);
+
+            while (x >= 8)
+            {
+                __m256i v = _mm256_loadu_si256((__m256i const *)Argb);
+                __m256i masked = _mm256_and_si256(v, alpha);
+
+                if (!_mm256_testz_si256(masked, masked))
+                {
+                    _mm256_zeroupper();
+                    return TRUE;
+                }
+
+                Argb += 8;
+                x -= 8;
+            }
+
+            _mm256_zeroupper();
+        }
+#endif
+
+        for (; x; x--)
         {
             if (*Argb++ & 0xff000000)
                 return TRUE;
@@ -108,7 +135,7 @@ static VOID PhpConvertToPArgb32(
     bitmapInfo.bmiHeader.biPlanes = 1;
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
-    bitmapInfo.bmiHeader.biSizeImage = Width * Height;
+    bitmapInfo.bmiHeader.biSizeImage = Width * Height * sizeof(RGBQUAD);
 
     bits = PhAllocate(Width * sizeof(RGBQUAD) * Height);
 
@@ -124,7 +151,41 @@ static VOID PhpConvertToPArgb32(
 
         for (y = Height; y; y--)
         {
-            for (x = Width; x; x--)
+            x = Width;
+
+#ifndef _ARM64_
+            if (PhHasAVX)
+            {
+                // Where the mask pixel is zero, OR in opaque alpha; otherwise the
+                // result is zero (transparent). cmpeq yields all-ones for mask==0
+                // and is AND'd against the opaque value to select per lane.
+
+                __m256i zero = _mm256_setzero_si256();
+                __m256i alpha = _mm256_set1_epi32((int)0xff000000);
+
+                while (x >= 8)
+                {
+                    __m256i mask;
+                    __m256i argv;
+                    __m256i maskZero;
+                    __m256i result;
+
+                    mask = _mm256_loadu_si256((__m256i const *)argbMask);
+                    argv = _mm256_loadu_si256((__m256i const *)Argb);
+                    maskZero = _mm256_cmpeq_epi32(mask, zero);
+                    result = _mm256_and_si256(_mm256_or_si256(argv, alpha), maskZero);
+                    _mm256_storeu_si256((__m256i *)Argb, result);
+
+                    argbMask += 8;
+                    Argb += 8;
+                    x -= 8;
+                }
+
+                _mm256_zeroupper();
+            }
+#endif
+
+            for (; x; x--)
             {
                 if (*argbMask++)
                 {
@@ -264,22 +325,61 @@ VOID PhBitmapSetAlpha(
     )
 {
     ULONG count = Width * Height;
+    PULONG pixels = (PULONG)Bits;
 
-    //RGBQUAD* quad = (RGBQUAD*)Bits;
-    //
-    //for (ULONG i = 0; i < count; i++)
-    //{
-    //    if (quad[i].rgbBlue != 0 || quad[i].rgbGreen != 0 || quad[i].rgbRed != 0)
-    //    {
-    //        quad[i].rgbReserved = 255; // opaque
-    //    }
-    //}
-
-    for (ULONG i = 0; i < count; i++)
+#ifndef _ARM64_
+    if (PhHasAVX && count >= 8)
     {
-        if (((PULONG)Bits)[i] != 0)
+        // Set the alpha byte to 0xff for every non-zero pixel. Where the pixel
+        // is zero, cmpeq yields all-ones and andnot clears the alpha mask so the
+        // pixel stays zero; elsewhere alpha bits are OR'd in.
+
+        __m256i zero = _mm256_setzero_si256();
+        __m256i alpha = _mm256_set1_epi32((int)0xff000000);
+
+        while (count >= 8)
         {
-            ((PULONG)Bits)[i] |= 0xff000000; // opaque
+            __m256i argv;
+            __m256i opaque;
+
+            argv = _mm256_loadu_si256((__m256i const *)pixels);
+            opaque = _mm256_andnot_si256(_mm256_cmpeq_epi32(argv, zero), alpha);
+            _mm256_storeu_si256((__m256i *)pixels, _mm256_or_si256(argv, opaque));
+
+            pixels += 8;
+            count -= 8;
         }
+
+        _mm256_zeroupper();
+    }
+#endif
+
+    if (PhHasIntrinsics && count >= 4)
+    {
+        PH_INT128 zero = PhSetZeroINT128();
+        PH_INT128 alpha = PhSetINT128by32((int)0xff000000);
+
+        while (count >= 4)
+        {
+            PH_INT128 argv;
+            PH_INT128 opaque;
+
+            argv = PhLoadINT128U((const PLONG)pixels);
+            opaque = PhAndNotINT128(PhCompareEqINT128by32(argv, zero), alpha);
+            PhStoreINT128U((PLONG)pixels, PhOrINT128(argv, opaque));
+
+            pixels += 4;
+            count -= 4;
+        }
+    }
+
+    for (; count; count--)
+    {
+        if (*pixels != 0)
+        {
+            *pixels |= 0xff000000; // opaque
+        }
+
+        pixels++;
     }
 }
