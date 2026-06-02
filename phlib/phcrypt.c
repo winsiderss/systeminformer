@@ -3440,9 +3440,9 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
             break;
         }
         if (!NT_SUCCESS(RtlSIZETMult(stateSize, ParallelHashContext->NumberOfHashes, &stateTotalSize)))
-            stateTotalSize = 0;
+            stateTotalSize = ParallelHashContext->cbScratchBuffer;
 
-        SymCryptWipeKnownSize(
+        SymCryptWipe(
             ParallelHashContext->pHashStates,
             stateTotalSize
             );
@@ -3453,7 +3453,7 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
 
     if (ParallelHashContext->pbScratchBuffer)
     {
-        SymCryptWipeKnownSize(
+        SymCryptWipe(
             ParallelHashContext->pbScratchBuffer,
             ParallelHashContext->cbScratchBuffer
             );
