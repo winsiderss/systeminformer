@@ -119,6 +119,7 @@ typedef struct _PH_MODULE_LIST_CONTEXT
     HANDLE ProcessId;
     LARGE_INTEGER ProcessCreateTime;
     BOOLEAN HasServices;
+    BOOLEAN IsSubsystemProcess;
     BOOLEAN EnableStateHighlighting;
 
     union
