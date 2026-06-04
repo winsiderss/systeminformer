@@ -27,10 +27,11 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
  * The NtDelayExecution routine suspends the current thread until the specified condition is met.
  *
  * \param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
- * \param DelayInterval The time interval for which execution is to be suspended, in milliseconds.
+ * \param DelayInterval A pointer to the time interval for which execution is to be suspended, in units of 100 nanoseconds.
+ * - A negative value specifies an interval relative to the current time.
+ * - A positive value specifies an absolute time, measured in 100-nanosecond intervals since January 1, 1601 (UTC).
  * - A value of zero causes the thread to relinquish the remainder of its time slice to any other thread that is ready to run.
  * - If there are no other threads ready to run, the function returns immediately, and the thread continues execution.
- * - A value of INFINITE indicates that the suspension should not time out.
  * \return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
  * \remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
  * based upon the system "tick" frequency and the load factor from other processes.
@@ -2633,7 +2634,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
     ULONG Reserved;                                         // Reserved
-    ULONG TimerResolution;                                  // The resolution of the timer, in milliseconds. // NtQueryTimerResolution
+    ULONG TimerResolution;                                  // The resolution of the system clock, in 100-nanosecond units. // NtQueryTimerResolution
     ULONG PageSize;                                         // The page size and the granularity of page protection and commitment.
     ULONG NumberOfPhysicalPages;                            // The number of physical pages in the system. // KUSER_SHARED_DATA->NumberOfPhysicalPages
     ULONG LowestPhysicalPageNumber;                         // The lowest memory page accessible to applications and dynamic-link libraries (DLLs).
