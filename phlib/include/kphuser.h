@@ -210,7 +210,7 @@ KphEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_opt_ ULONG BufferLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
@@ -279,7 +279,7 @@ KphQueryInformationDriver(
     _In_ KPH_DRIVER_INFORMATION_CLASS DriverInformationClass,
     _Out_writes_bytes_opt_(DriverInformationLength) PVOID DriverInformation,
     _In_ ULONG DriverInformationLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
@@ -290,7 +290,7 @@ KphQueryInformationProcess(
     _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
     _Out_writes_bytes_opt_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     );
 
 PHLIBAPI
@@ -469,7 +469,7 @@ NTAPI
 KphQuerySection(
     _In_ HANDLE SectionHandle,
     _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
-    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _Out_writes_bytes_opt_(SectionInformationLength) PVOID SectionInformation,
     _In_ ULONG SectionInformationLength,
     _Out_opt_ PULONG ReturnLength
     );
@@ -502,7 +502,7 @@ PHLIBAPI
 NTSTATUS
 NTAPI
 KphSetInformerClientSettings(
-    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
+    _In_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     );
 
 PHLIBAPI

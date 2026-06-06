@@ -683,6 +683,8 @@ NTSTATUS KphGetInformerSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(Settings, 0, sizeof(KPH_INFORMER_SETTINGS));
+
     msg = KphCreateUserMessage(KphMsgGetInformerSettings);
     msg->User.GetInformerSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
@@ -739,6 +741,8 @@ NTSTATUS KphOpenProcess(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *ProcessHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenProcess);
     msg->User.OpenProcess.ProcessHandle = ProcessHandle;
     msg->User.OpenProcess.DesiredAccess = DesiredAccess;
@@ -771,6 +775,8 @@ NTSTATUS KphOpenProcessToken(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *TokenHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenProcessToken);
     msg->User.OpenProcessToken.ProcessHandle = ProcessHandle;
     msg->User.OpenProcessToken.DesiredAccess = DesiredAccess;
@@ -802,6 +808,8 @@ NTSTATUS KphOpenProcessJob(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    *JobHandle = NULL;
 
     msg = KphCreateUserMessage(KphMsgOpenProcessJob);
     msg->User.OpenProcessJob.ProcessHandle = ProcessHandle;
@@ -868,6 +876,10 @@ NTSTATUS KphReadVirtualMemory(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(Buffer, 0, BufferSize);
+    if (NumberOfBytesRead)
+        *NumberOfBytesRead = 0;
+
     msg = KphCreateUserMessage(KphMsgReadVirtualMemory);
     msg->User.ReadVirtualMemory.ProcessHandle = ProcessHandle;
     msg->User.ReadVirtualMemory.BaseAddress = BaseAddress;
@@ -902,6 +914,8 @@ NTSTATUS KphOpenThread(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *ThreadHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenThread);
     msg->User.OpenThread.ThreadHandle = ThreadHandle;
     msg->User.OpenThread.DesiredAccess = DesiredAccess;
@@ -933,6 +947,8 @@ NTSTATUS KphOpenThreadProcess(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    *ProcessHandle = NULL;
 
     msg = KphCreateUserMessage(KphMsgOpenThreadProcess);
     msg->User.OpenThreadProcess.ThreadHandle = ThreadHandle;
@@ -975,6 +991,11 @@ NTSTATUS KphCaptureStackBackTraceThread(
     PKPH_MESSAGE msg;
     LARGE_INTEGER timeout;
 
+    memset(BackTrace, 0, sizeof(PVOID) * FramesToCapture);
+    *CapturedFrames = 0;
+    if (BackTraceHash)
+        *BackTraceHash = 0;
+
     msg = KphCreateUserMessage(KphMsgCaptureStackBackTraceThread);
     msg->User.CaptureStackBackTraceThread.ThreadHandle = ThreadHandle;
     msg->User.CaptureStackBackTraceThread.FramesToSkip = FramesToSkip;
@@ -1008,11 +1029,15 @@ NTSTATUS KphEnumerateProcessHandles(
     _In_ HANDLE ProcessHandle,
     _Out_writes_bytes_(BufferLength) PVOID Buffer,
     _In_opt_ ULONG BufferLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    memset(Buffer, 0, BufferLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgEnumerateProcessHandles);
     msg->User.EnumerateProcessHandles.ProcessHandle = ProcessHandle;
@@ -1068,13 +1093,15 @@ NTSTATUS KsiEnumerateProcessHandles(
         }
     }
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        return status;
+        *Handles = buffer;
     }
-
-    *Handles = buffer;
+    else
+    {
+        *Handles = NULL;
+        PhFree(buffer);
+    }
 
     return status;
 }
@@ -1101,6 +1128,11 @@ NTSTATUS KphQueryInformationObject(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    if (ObjectInformation)
+        memset(ObjectInformation, 0, ObjectInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgQueryInformationObject);
     msg->User.QueryInformationObject.ProcessHandle = ProcessHandle;
@@ -1139,10 +1171,13 @@ NTSTATUS KphQueryObjectThreadName(
     ULONG returnLength;
     PTHREAD_NAME_INFORMATION buffer;
 
+    *ThreadName = NULL;
+
     returnLength = 0;
     bufferSize = 0x100;
     buffer = PhAllocateStack(bufferSize);
-    if (!buffer) return STATUS_NO_MEMORY;
+    if (!buffer)
+        return STATUS_NO_MEMORY;
 
     status = KphQueryInformationObject(
         ProcessHandle,
@@ -1158,6 +1193,8 @@ NTSTATUS KphQueryObjectThreadName(
         PhFreeStack(buffer);
         bufferSize = returnLength;
         buffer = PhAllocateStack(returnLength);
+        if (!buffer)
+            return STATUS_NO_MEMORY;
 
         status = KphQueryInformationObject(
             ProcessHandle,
@@ -1223,13 +1260,15 @@ NTSTATUS KphQueryObjectSectionMappingsInfo(
         }
     }
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        return status;
+        *Info = buffer;
     }
-
-    *Info = buffer;
+    else
+    {
+        *Info = NULL;
+        PhFree(buffer);
+    }
 
     return status;
 }
@@ -1289,6 +1328,8 @@ NTSTATUS KphOpenDriver(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *DriverHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenDriver);
     msg->User.OpenDriver.DriverHandle = DriverHandle;
     msg->User.OpenDriver.DesiredAccess = DesiredAccess;
@@ -1319,11 +1360,16 @@ NTSTATUS KphQueryInformationDriver(
     _In_ KPH_DRIVER_INFORMATION_CLASS DriverInformationClass,
     _Out_writes_bytes_opt_(DriverInformationLength) PVOID DriverInformation,
     _In_ ULONG DriverInformationLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    if (DriverInformation)
+        memset(DriverInformation, 0, DriverInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgQueryInformationDriver);
     msg->User.QueryInformationDriver.DriverHandle = DriverHandle;
@@ -1357,11 +1403,16 @@ NTSTATUS KphQueryInformationProcess(
     _In_ KPH_PROCESS_INFORMATION_CLASS ProcessInformationClass,
     _Out_writes_bytes_opt_(ProcessInformationLength) PVOID ProcessInformation,
     _In_ ULONG ProcessInformationLength,
-    _Inout_opt_ PULONG ReturnLength
+    _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    if (ProcessInformation)
+        memset(ProcessInformation, 0, ProcessInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgQueryInformationProcess);
     msg->User.QueryInformationProcess.ProcessHandle = ProcessHandle;
@@ -1615,6 +1666,11 @@ NTSTATUS KphAlpcQueryInformation(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    if (AlpcInformation)
+        memset(AlpcInformation, 0, AlpcInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
+
     msg = KphCreateUserMessage(KphMsgAlpcQueryInformation);
     msg->User.AlpcQueryInformation.ProcessHandle = ProcessHandle;
     msg->User.AlpcQueryInformation.PortHandle = PortHandle;
@@ -1672,13 +1728,15 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
         }
     }
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        return status;
+        *Names = buffer;
     }
-
-    *Names = buffer;
+    else
+    {
+        *Names = NULL;
+        PhFree(buffer);
+    }
 
     return status;
 }
@@ -1705,6 +1763,9 @@ NTSTATUS KphQueryInformationFile(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    memset(FileInformation, 0, FileInformationLength);
+    memset(IoStatusBlock, 0, sizeof(IO_STATUS_BLOCK));
 
     msg = KphCreateUserMessage(KphMsgQueryInformationFile);
     msg->User.QueryInformationFile.ProcessHandle = ProcessHandle;
@@ -1747,6 +1808,9 @@ NTSTATUS KphQueryVolumeInformationFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(FsInformation, 0, FsInformationLength);
+    memset(IoStatusBlock, 0, sizeof(IO_STATUS_BLOCK));
+
     msg = KphCreateUserMessage(KphMsgQueryVolumeInformationFile);
     msg->User.QueryVolumeInformationFile.ProcessHandle = ProcessHandle;
     msg->User.QueryVolumeInformationFile.FileHandle = FileHandle;
@@ -1783,6 +1847,8 @@ NTSTATUS KphDuplicateObject(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    *TargetHandle = NULL;
 
     msg = KphCreateUserMessage(KphMsgDuplicateObject);
     msg->User.DuplicateObject.ProcessHandle = ProcessHandle;
@@ -1874,6 +1940,9 @@ NTSTATUS KphCreateFile(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *FileHandle = NULL;
+    memset(IoStatusBlock, 0, sizeof(IO_STATUS_BLOCK));
+
     msg = KphCreateUserMessage(KphMsgCreateFile);
     msg->User.CreateFile.FileHandle = FileHandle;
     msg->User.CreateFile.DesiredAccess = DesiredAccess;
@@ -1919,6 +1988,11 @@ NTSTATUS KphQueryInformationThread(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    if (ThreadInformation)
+        memset(ThreadInformation, 0, ThreadInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
+
     msg = KphCreateUserMessage(KphMsgQueryInformationThread);
     msg->User.QueryInformationThread.ThreadHandle = ThreadHandle;
     msg->User.QueryInformationThread.ThreadInformationClass = ThreadInformationClass;
@@ -1949,13 +2023,18 @@ NTSTATUS KphQueryInformationThread(
 NTSTATUS KphQuerySection(
     _In_ HANDLE SectionHandle,
     _In_ KPH_SECTION_INFORMATION_CLASS SectionInformationClass,
-    _Out_writes_bytes_(SectionInformationLength) PVOID SectionInformation,
+    _Out_writes_bytes_opt_(SectionInformationLength) PVOID SectionInformation,
     _In_ ULONG SectionInformationLength,
     _Out_opt_ PULONG ReturnLength
     )
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    if (SectionInformation)
+        memset(SectionInformation, 0, SectionInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
 
     msg = KphCreateUserMessage(KphMsgQuerySection);
     msg->User.QuerySection.SectionHandle = SectionHandle;
@@ -2012,13 +2091,15 @@ NTSTATUS KphQuerySectionMappingsInfo(
         }
     }
 
-    if (!NT_SUCCESS(status))
+    if (NT_SUCCESS(status))
     {
-        PhFree(buffer);
-        return status;
+        *Info = buffer;
     }
-
-    *Info = buffer;
+    else
+    {
+        *Info = NULL;
+        PhFree(buffer);
+    }
 
     return status;
 }
@@ -2068,6 +2149,8 @@ NTSTATUS KphGetInformerClientSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(Settings, 0, sizeof(KPH_INFORMER_CLIENT_SETTINGS));
+
     msg = KphCreateUserMessage(KphMsgGetInformerClientSettings);
     msg->User.GetInformerClientSettings.Settings = Settings;
     status = KphCommsSendMessage(msg);
@@ -2088,7 +2171,7 @@ NTSTATUS KphGetInformerClientSettings(
  * \return Successful or errant status.
  */
 NTSTATUS KphSetInformerClientSettings(
-    _Out_ PKPH_INFORMER_CLIENT_SETTINGS Settings
+    _In_ PKPH_INFORMER_CLIENT_SETTINGS Settings
     )
 {
     NTSTATUS status;
@@ -2164,6 +2247,11 @@ NTSTATUS KphReleaseDriverUnloadProtection(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    if (PreviousCount)
+        *PreviousCount = 0;
+    if (ClientPreviousCount)
+        *ClientPreviousCount = 0;
+
     msg = KphCreateUserMessage(KphMsgReleaseDriverUnloadProtection);
     status = KphCommsSendMessage(msg);
 
@@ -2197,6 +2285,8 @@ NTSTATUS KphGetConnectedClientCount(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    *Count = 0;
 
     msg = KphCreateUserMessage(KphMsgGetConnectedClientCount);
     status = KphCommsSendMessage(msg);
@@ -2294,6 +2384,8 @@ NTSTATUS KphRequestSessionAccessToken(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    memset(AccessToken, 0, sizeof(KPH_SESSION_ACCESS_TOKEN));
 
     msg = KphCreateUserMessage(KphMsgRequestSessionAccessToken);
     msg->User.RequestSessionAccessToken.Expiry = *Expiry;
@@ -2393,6 +2485,8 @@ NTSTATUS KphGetInformerProcessSettings(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(Settings, 0, sizeof(KPH_INFORMER_SETTINGS));
+
     msg = KphCreateUserMessage(KphMsgGetInformerProcessSettings);
     msg->User.GetInformerProcessSettings.ProcessHandle = ProcessHandle;
     msg->User.GetInformerProcessSettings.Settings = Settings;
@@ -2491,6 +2585,11 @@ NTSTATUS KphQueryVirtualMemory(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    if (MemoryInformation)
+        memset(MemoryInformation, 0, MemoryInformationLength);
+    if (ReturnLength)
+        *ReturnLength = 0;
+
     msg = KphCreateUserMessage(KphMsgQueryVirtualMemory);
     msg->User.QueryVirtualMemory.ProcessHandle = ProcessHandle;
     msg->User.QueryVirtualMemory.BaseAddress = BaseAddress;
@@ -2558,6 +2657,8 @@ NTSTATUS KphOpenDevice(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *DeviceHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenDevice);
     msg->User.OpenDevice.DeviceHandle = DeviceHandle;
     msg->User.OpenDevice.DesiredAccess = DesiredAccess;
@@ -2589,6 +2690,8 @@ NTSTATUS KphOpenDeviceDriver(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    *DriverHandle = NULL;
 
     msg = KphCreateUserMessage(KphMsgOpenDeviceDriver);
     msg->User.OpenDeviceDriver.DeviceHandle = DeviceHandle;
@@ -2622,6 +2725,8 @@ NTSTATUS KphOpenDeviceBaseDevice(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    *BaseDeviceHandle = NULL;
+
     msg = KphCreateUserMessage(KphMsgOpenDeviceBaseDevice);
     msg->User.OpenDeviceBaseDevice.DeviceHandle = DeviceHandle;
     msg->User.OpenDeviceBaseDevice.DesiredAccess = DesiredAccess;
@@ -2652,6 +2757,8 @@ NTSTATUS KphGetInformerStats(
     NTSTATUS status;
     PKPH_MESSAGE msg;
 
+    memset(Stats, 0, sizeof(KPH_INFORMER_STATS));
+
     msg = KphCreateUserMessage(KphMsgGetInformerStats);
     msg->User.GetInformerStats.ProcessHandle = ProcessHandle;
     msg->User.GetInformerStats.Stats = Stats;
@@ -2678,6 +2785,8 @@ NTSTATUS KphGetInformerClientStats(
 {
     NTSTATUS status;
     PKPH_MESSAGE msg;
+
+    memset(Stats, 0, sizeof(KPH_INFORMER_CLIENT_STATS));
 
     msg = KphCreateUserMessage(KphMsgGetInformerClientStats);
     msg->User.GetInformerClientStats.Stats = Stats;
