@@ -500,6 +500,10 @@ VOID KphpFltCopyBuffer(
         FLT_IS_FASTIO_OPERATION(Data) ||
         FLT_IS_SYSTEM_BUFFER(Data))
     {
+        NT_ASSERT(!Buffer ||
+                  FLT_IS_FASTIO_OPERATION(Data) ||
+                  (Buffer > MmHighestUserAddress));
+
         buffer = Buffer;
         goto CopyBuffer;
     }
@@ -509,7 +513,7 @@ VOID KphpFltCopyBuffer(
         goto Exit;
     }
 
-    if (!Data->Thread)
+    if (!NT_VERIFY(Data->Thread))
     {
         KphTracePrint(TRACE_LEVEL_VERBOSE,
                       INFORMER,
@@ -543,6 +547,7 @@ VOID KphpFltCopyBuffer(
                       "MmProbeAndLockProcessPages failed: %!STATUS!",
                       GetExceptionCode());
 
+        NT_ASSERT(FALSE);
         goto Exit;
     }
 
@@ -1125,6 +1130,7 @@ VOID KphpFltFillPreOpMessage(
     PVOID destBuffer;
     ULONG destLength;
     BOOLEAN truncate;
+    BOOLEAN systemBuffer;
 
     KPH_NPAGED_CODE_APC_MAX_FOR_PAGING_IO();
 
@@ -1135,6 +1141,7 @@ VOID KphpFltFillPreOpMessage(
     destBuffer = NULL;
     destLength = 0;
     truncate = TRUE;
+    systemBuffer = FALSE;
 
     switch (Data->Iopb->MajorFunction)
     {
@@ -1152,6 +1159,7 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.Create.EaBuffer;
             length = Data->Iopb->Parameters.Create.EaLength;
             fieldId = KphMsgFieldEaBuffer;
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_CREATE_NAMED_PIPE:
@@ -1169,6 +1177,7 @@ VOID KphpFltFillPreOpMessage(
             length = sizeof(NAMED_PIPE_CREATE_PARAMETERS);
             destBuffer = &Message->Kernel.File.Pre.CreateNamedPipe.Parameters;
             destLength = sizeof(NAMED_PIPE_CREATE_PARAMETERS);
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_SET_INFORMATION:
@@ -1176,6 +1185,7 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.SetFileInformation.InfoBuffer;
             length = Data->Iopb->Parameters.SetFileInformation.Length;
             fieldId = KphMsgFieldInformationBuffer;
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_QUERY_EA:
@@ -1187,6 +1197,7 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.QueryEa.EaList;
             length = Data->Iopb->Parameters.QueryEa.EaListLength;
             fieldId = KphMsgFieldInformationBuffer; // FILE_GET_EA_INFORMATION
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_SET_EA:
@@ -1195,6 +1206,7 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.SetEa.EaBuffer;
             length = Data->Iopb->Parameters.SetEa.Length;
             fieldId = KphMsgFieldInformationBuffer; // FILE_FULL_EA_INFORMATION
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_SET_VOLUME_INFORMATION:
@@ -1202,6 +1214,7 @@ VOID KphpFltFillPreOpMessage(
             buffer = Data->Iopb->Parameters.SetVolumeInformation.VolumeBuffer;
             length = Data->Iopb->Parameters.SetVolumeInformation.Length;
             fieldId = KphMsgFieldInformationBuffer;
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_DIRECTORY_CONTROL:
@@ -1236,6 +1249,7 @@ VOID KphpFltFillPreOpMessage(
             }
 
             truncate = FALSE;
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_FILE_SYSTEM_CONTROL:
@@ -1261,6 +1275,7 @@ VOID KphpFltFillPreOpMessage(
             length = sizeof(LARGE_INTEGER);
             destBuffer = &Message->Kernel.File.Pre.LockControl.Length;
             destLength = sizeof(LARGE_INTEGER);
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_CREATE_MAILSLOT:
@@ -1278,6 +1293,7 @@ VOID KphpFltFillPreOpMessage(
             length = sizeof(MAILSLOT_CREATE_PARAMETERS);
             destBuffer = &Message->Kernel.File.Pre.CreateMailslot.Parameters;
             destLength = sizeof(MAILSLOT_CREATE_PARAMETERS);
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_ACQUIRE_FOR_MOD_WRITE:
@@ -1286,6 +1302,7 @@ VOID KphpFltFillPreOpMessage(
             length = sizeof(LARGE_INTEGER);
             destBuffer = &Message->Kernel.File.Pre.AcquireForModWrite.EndingOffset;
             destLength = sizeof(LARGE_INTEGER);
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_QUERY_OPEN:
@@ -1294,6 +1311,7 @@ VOID KphpFltFillPreOpMessage(
             length = sizeof(ULONG);
             destBuffer = &Message->Kernel.File.Pre.QueryOpen.Length;
             destLength = sizeof(ULONG);
+            systemBuffer = TRUE;
             break;
         }
         default:
@@ -1305,7 +1323,7 @@ VOID KphpFltFillPreOpMessage(
     KphpFltCopyBuffer(Message,
                       Data,
                       fieldId,
-                      FALSE,
+                      systemBuffer,
                       destBuffer,
                       destLength,
                       mdl,
@@ -1332,6 +1350,7 @@ VOID KphpFltFillPostOpMessage(
     PVOID buffer;
     ULONG length;
     KPH_MESSAGE_FIELD_ID fieldId;
+    BOOLEAN systemBuffer;
 
     KPH_NPAGED_CODE_DISPATCH_MAX();
 
@@ -1346,6 +1365,7 @@ VOID KphpFltFillPostOpMessage(
 
     mdl = NULL;
     fieldId = InvalidKphMsgField;
+    systemBuffer = FALSE;
 
     switch (Data->Iopb->MajorFunction)
     {
@@ -1513,6 +1533,7 @@ VOID KphpFltFillPostOpMessage(
 
             buffer = Data->Iopb->Parameters.QueryOpen.FileInformation;
             fieldId = KphMsgFieldInformationBuffer;
+            systemBuffer = TRUE;
             break;
         }
         case IRP_MJ_NETWORK_QUERY_OPEN:
@@ -1520,6 +1541,7 @@ VOID KphpFltFillPostOpMessage(
             buffer = Data->Iopb->Parameters.NetworkQueryOpen.NetworkInformation;
             length = sizeof(FILE_NETWORK_OPEN_INFORMATION);
             fieldId = KphMsgFieldInformationBuffer;
+            systemBuffer = TRUE;
             break;
         }
         default:
@@ -1531,7 +1553,7 @@ VOID KphpFltFillPostOpMessage(
     KphpFltCopyBuffer(Message,
                       Data,
                       fieldId,
-                      FALSE,
+                      systemBuffer,
                       NULL,
                       0,
                       mdl,
