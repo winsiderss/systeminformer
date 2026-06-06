@@ -2402,7 +2402,9 @@ RtlBarrierForDelete(
  * \param Address The address on which to wait.
  * \param CompareAddress A pointer to the location of the previously observed value at Address.
  * \param AddressSize The size of the value, in bytes. This parameter can be 1, 2, 4, or 8.
- * \param Timeout The number of milliseconds to wait before the operation times out. If this parameter is NULL (INFINITE), the thread waits indefinitely.
+ * \param Timeout A pointer to the time-out value, in units of 100 nanoseconds. If this parameter is NULL, the thread waits indefinitely.
+ * - A negative value specifies an interval relative to the current time.
+ * - A positive value specifies an absolute time, measured in 100-nanosecond intervals since January 1, 1601 (UTC).
  * \remarks WaitOnAddress is guaranteed to return when the address is signaled, but it is also allowed to return for other reasons.
  * For this reason, the caller should compare the new value with the original undesired value to confirm that the value has actually changed.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress

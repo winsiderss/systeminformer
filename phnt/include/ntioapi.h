@@ -954,7 +954,7 @@ typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
     ULONG MailslotQuota;            // The size, in bytes, of the in-memory pool that is reserved for writes to this mailslot.
     ULONG NextMessageSize;          // The next message size, in bytes.
     ULONG MessagesAvailable;        // The total number of messages waiting to be read from the mailslot.
-    LARGE_INTEGER ReadTimeout;      // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
+    LARGE_INTEGER ReadTimeout;      // The time, in 100-nanosecond intervals, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
 } FILE_MAILSLOT_QUERY_INFORMATION, *PFILE_MAILSLOT_QUERY_INFORMATION;
 
 /**
@@ -963,7 +963,7 @@ typedef struct _FILE_MAILSLOT_QUERY_INFORMATION
  */
 typedef struct _FILE_MAILSLOT_SET_INFORMATION
 {
-    PLARGE_INTEGER ReadTimeout;     // The time, in milliseconds, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
+    PLARGE_INTEGER ReadTimeout;     // The time, in 100-nanosecond intervals, that a read operation can wait for a message to be written to the mailslot before a time-out occurs.
 } FILE_MAILSLOT_SET_INFORMATION, *PFILE_MAILSLOT_SET_INFORMATION;
 
 /**
