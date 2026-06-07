@@ -55,6 +55,6 @@ target_link_libraries(NetworkTools PRIVATE
 )
 
 target_link_options(NetworkTools PRIVATE
-    /delayload:iphlpapi.dll
+    /DELAYLOAD:iphlpapi.dll
     /DELAYLOAD:ws2_32.dll
 )

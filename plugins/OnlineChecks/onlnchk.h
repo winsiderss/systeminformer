@@ -186,7 +186,7 @@ VOID ScanExclusionsSaveListBox(
     _In_ HWND ListBoxHandle
     );
 
-// partnerwnd.c
+// partner.c
 
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI MainWindowShowingCallback(

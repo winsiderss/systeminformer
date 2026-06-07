@@ -22,7 +22,7 @@ set(SOURCES
     "scan.c"
     "main.c"
     "options.c"
-    "partnerwnd.c"
+    "partner.c"
     "page1.c"
     "page2.c"
     "page3.c"
@@ -41,4 +41,5 @@ si_add_plugin(OnlineChecks ${ALL_FILES})
 
 target_link_libraries(OnlineChecks PRIVATE
     user32
+    gdi32
 )
