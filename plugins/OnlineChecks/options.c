@@ -13,9 +13,28 @@
 
 BOOLEAN OnlineChecksPreEnableUi = FALSE;
 static BOOLEAN OnlineChecksRestartRequired = FALSE;
+static BOOLEAN OptionsHybridKeyConfigured = FALSE;
+static BOOLEAN OptionsVirusTotalKeyConfigured = FALSE;
 static PPH_STRING OptionsInitialHybridPat = NULL;
 static PPH_STRING OptionsInitialVirusTotalPat = NULL;
 static PH_LAYOUT_MANAGER OptionsLayoutManager;
+
+static VOID OptionsRefreshKeyStatus(
+    _In_ HWND WindowHandle,
+    _In_ INT LabelId,
+    _In_ PCWSTR SettingName,
+    _Out_ PBOOLEAN Configured
+    )
+{
+    PPH_STRING key = PhGetStringSetting(SettingName);
+
+    *Configured = !PhIsNullOrEmptyString(key);
+    PhDereferenceObject(key);
+
+    PhSetDialogItemText(WindowHandle, LabelId,
+        *Configured ? L"Set - using your key" : L"Unset - optional");
+    InvalidateRect(GetDlgItem(WindowHandle, LabelId), NULL, TRUE);
+}
 
 VOID ShowHybridAnalysisConfigDialog(
     _In_ HWND ParentWindowHandle,
@@ -66,8 +85,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhMoveReference(&OptionsInitialHybridPat, PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT));
             PhMoveReference(&OptionsInitialVirusTotalPat, PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT));
 
-            PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(OptionsInitialHybridPat));
-            PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(OptionsInitialVirusTotalPat));
+            OptionsRefreshKeyStatus(WindowHandle, IDC_HA_KEY_STATUS, SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT, &OptionsHybridKeyConfigured);
+            OptionsRefreshKeyStatus(WindowHandle, IDC_VT_KEY_STATUS, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, &OptionsVirusTotalKeyConfigured);
 
             ScanExclusionsPopulateListBox(GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST));
 
@@ -76,11 +95,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY_LABEL), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HA_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HYBRIDTEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_APIKEYIDBTN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_APIKEYIDBTN), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VT_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VTEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VTKEYIDBTN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VTKEYIDBTN), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_GROUP), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_REMOVE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -124,24 +141,12 @@ INT_PTR CALLBACK OptionsDlgProc(
             switch (GET_WM_COMMAND_ID(wParam, lParam))
             {
             case IDC_APIKEYIDBTN:
-                {
-                    PPH_STRING string;
-
-                    ShowHybridAnalysisConfigDialog(WindowHandle, UlongToPtr(IDC_APIKEYIDBTN));
-
-                    string = PhaGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
-                    PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(string));
-                }
+                ShowHybridAnalysisConfigDialog(WindowHandle, UlongToPtr(IDC_APIKEYIDBTN));
+                OptionsRefreshKeyStatus(WindowHandle, IDC_HA_KEY_STATUS, SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT, &OptionsHybridKeyConfigured);
                 break;
             case IDC_VTKEYIDBTN:
-                {
-                    PPH_STRING string;
-
-                    ShowHybridAnalysisConfigDialog(WindowHandle, UlongToPtr(IDC_VTKEYIDBTN));
-
-                    string = PhaGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
-                    PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(string));
-                }
+                ShowHybridAnalysisConfigDialog(WindowHandle, UlongToPtr(IDC_VTKEYIDBTN));
+                OptionsRefreshKeyStatus(WindowHandle, IDC_VT_KEY_STATUS, SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT, &OptionsVirusTotalKeyConfigured);
                 break;
             case IDC_EXCLUDE_ADD:
                 ScanExclusionsAddFromEdit(WindowHandle, GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST), GetDlgItem(WindowHandle, IDC_EXCLUDE_TEXT));
@@ -166,7 +171,24 @@ INT_PTR CALLBACK OptionsDlgProc(
     case WM_CTLCOLORDLG:
         return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+        {
+            HWND control = (HWND)lParam;
+
+            if (control == GetDlgItem(WindowHandle, IDC_HA_KEY_STATUS) ||
+                control == GetDlgItem(WindowHandle, IDC_VT_KEY_STATUS))
+            {
+                HDC hdc = (HDC)wParam;
+                BOOLEAN configured = control == GetDlgItem(WindowHandle, IDC_HA_KEY_STATUS)
+                    ? OptionsHybridKeyConfigured : OptionsVirusTotalKeyConfigured;
+                HBRUSH brush = PhWindowThemeControlColor(WindowHandle, hdc, control, CTLCOLOR_STATIC);
+
+                SetTextColor(hdc, configured ? RGB(0, 153, 51) : RGB(128, 128, 128));
+                SetBkMode(hdc, TRANSPARENT);
+                return (INT_PTR)brush;
+            }
+
+            return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+        }
     }
 
     return FALSE;
