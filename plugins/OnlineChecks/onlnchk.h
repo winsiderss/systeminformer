@@ -29,7 +29,7 @@
 #define SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED (PLUGIN_NAME L".HybridAnalysisEnableAutoSubmit")
 #define SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED (PLUGIN_NAME L".VirusTotalEnableLookups")
 #define SETTING_NAME_SCAN_EXCLUDE_LIST (PLUGIN_NAME L".ScanExcludeList")
-#define SETTING_NAME_INTEGRATION_PROMPT_SHOWN (PLUGIN_NAME L".IntegrationPromptShown")
+#define SETTING_NAME_PARTNER_PROMPT_SHOWN (PLUGIN_NAME L".PartnerPromptShown")
 #define SETTING_NAME_SCAN_MAX_FILE_SIZE (PLUGIN_NAME L".ScanMaxFileSize")
 #define SETTING_NAME_SCAN_STARTUP_DELAY (PLUGIN_NAME L".ScanStartupDelay")
 #define SETTING_NAME_SCAN_SUBMIT_TIMEOUT (PLUGIN_NAME L".ScanSubmitTimeout")
@@ -161,6 +161,40 @@ VOID NTAPI OptionsSettingsUpdatedCallback(
     _In_ PVOID Parameter,
     _In_ PVOID Context
     );
+
+// exclude.c
+
+VOID ScanLoadExclusions(
+    VOID
+    );
+
+BOOLEAN ScanIsFileExcluded(
+    _In_opt_ PPH_STRING FileName
+    );
+
+VOID ScanExclusionsPopulateListBox(
+    _In_ HWND ListBoxHandle
+    );
+
+VOID ScanExclusionsAddFromEdit(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListBoxHandle,
+    _In_ HWND EditHandle
+    );
+
+VOID ScanExclusionsSaveListBox(
+    _In_ HWND ListBoxHandle
+    );
+
+// partnerwnd.c
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI MainWindowShowingCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    );
+
+// upload.c
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS UploadFileThreadStart(

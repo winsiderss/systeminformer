@@ -2085,6 +2085,9 @@ VOID EvaluateScanContext(
     _In_reads_(SCAN_TYPE_MAX) PULONG Flags
     )
 {
+    if (ScanIsFileExcluded(FileName))
+        return;
+
     for (ULONG i = 0; i < RTL_NUMBER_OF(Context->ScanItems); i++)
     {
         if (!Context->ScanItems[i] || Context->ScanItems[i]->Expiry.QuadPart <= SystemTime->QuadPart)

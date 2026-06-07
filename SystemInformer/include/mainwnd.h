@@ -36,7 +36,8 @@ extern BOOLEAN PhMainWndExiting;
 #define WM_PH_SELECT_NODE (WM_APP + 151)
 #define WM_PH_SHOW_EDITOR (WM_APP + 152)
 #define WM_PH_SHOW_RESULT (WM_APP + 153)
-#define WM_PH_LAST (WM_APP + 154)
+#define WM_PH_SHOW_OPTIONS (WM_APP + 154)
+#define WM_PH_LAST (WM_APP + 155)
 
 // begin_phapppub
 typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
@@ -76,6 +77,7 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_MENU,
     PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU,
     PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD,
+    PH_MAINWINDOW_CALLBACK_TYPE_SHOW_OPTIONS,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
 
@@ -92,6 +94,8 @@ PhPluginInvokeWindowCallback(
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_DESTROY, 0, 0)
 #define SystemInformer_ShowProcessProperties(ProcessItem) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES, 0, (PVOID)(ULONG_PTR)(ProcessItem))
+#define SystemInformer_ShowOptions(SectionName) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_OPTIONS, 0, (PVOID)(ULONG_PTR)(SectionName))
 #define SystemInformer_SaveAllSettings() \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS, 0, 0)
 #define SystemInformer_PrepareForEarlyShutdown() \

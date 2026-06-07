@@ -18,9 +18,11 @@ source_group("Resource Files" FILES ${RESOURCES})
 
 set(SOURCES
     "api.c"
+    "exclude.c"
     "scan.c"
     "main.c"
     "options.c"
+    "partnerwnd.c"
     "page1.c"
     "page2.c"
     "page3.c"

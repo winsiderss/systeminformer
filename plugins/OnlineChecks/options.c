@@ -15,6 +15,7 @@ BOOLEAN OnlineChecksPreEnableUi = FALSE;
 static BOOLEAN OnlineChecksRestartRequired = FALSE;
 static PPH_STRING OptionsInitialHybridPat = NULL;
 static PPH_STRING OptionsInitialVirusTotalPat = NULL;
+static PH_LAYOUT_MANAGER OptionsLayoutManager;
 
 VOID ShowHybridAnalysisConfigDialog(
     _In_ HWND ParentWindowHandle,
@@ -58,13 +59,29 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_HA_SUBMIT),
                 (preEnable || PhGetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_VT_LOOKUPS),
-                (preEnable || PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+                PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
 
             PhMoveReference(&OptionsInitialHybridPat, PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT));
             PhMoveReference(&OptionsInitialVirusTotalPat, PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT));
 
             PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(OptionsInitialHybridPat));
             PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(OptionsInitialVirusTotalPat));
+
+            ScanExclusionsPopulateListBox(GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST));
+
+            PhInitializeLayoutManager(&OptionsLayoutManager, WindowHandle);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HA_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HYBRIDTEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_APIKEYIDBTN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VT_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VTEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_VTKEYIDBTN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_GROUP), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST), NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_REMOVE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_TEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_EXCLUDE_ADD), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
         }
         break;
     case WM_DESTROY:
@@ -90,6 +107,10 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhDereferenceObject(virusTotalPat);
             PhClearReference(&OptionsInitialHybridPat);
             PhClearReference(&OptionsInitialVirusTotalPat);
+
+            ScanExclusionsSaveListBox(GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST));
+
+            PhDeleteLayoutManager(&OptionsLayoutManager);
         }
         break;
     case WM_COMMAND:
@@ -116,8 +137,23 @@ INT_PTR CALLBACK OptionsDlgProc(
                     PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(string));
                 }
                 break;
+            case IDC_EXCLUDE_ADD:
+                ScanExclusionsAddFromEdit(WindowHandle, GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST), GetDlgItem(WindowHandle, IDC_EXCLUDE_TEXT));
+                break;
+            case IDC_EXCLUDE_REMOVE:
+                {
+                    HWND listBoxHandle = GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST);
+                    INT index = ListBox_GetCurSel(listBoxHandle);
+
+                    if (index != LB_ERR)
+                        ListBox_DeleteString(listBoxHandle, index);
+                }
+                break;
             }
         }
+        break;
+    case WM_SIZE:
+        PhLayoutManagerLayout(&OptionsLayoutManager);
         break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
@@ -251,36 +287,11 @@ VOID NTAPI OptionsSettingsUpdatedCallback(
     _In_ PVOID Context
     )
 {
-    if (!OnlineChecksRestartRequired)
-        return;
+    ScanLoadExclusions();
 
-    OnlineChecksRestartRequired = FALSE;
-
-    if (PhShowMessage2(
-        SystemInformer_GetWindowHandle(),
-        TD_YES_BUTTON | TD_NO_BUTTON,
-        TD_INFORMATION_ICON,
-        L"One or more options you have changed requires a restart of System Informer.",
-        L"Do you want to restart System Informer now?"
-        ) == IDYES)
+    if (OnlineChecksRestartRequired)
     {
-        SystemInformer_PrepareForEarlyShutdown();
-
-        if (NT_SUCCESS(PhShellProcessHacker(
-            SystemInformer_GetWindowHandle(),
-            L"-v -newinstance",
-            SW_SHOW,
-            PH_SHELL_EXECUTE_DEFAULT,
-            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
-            0,
-            NULL
-            )))
-        {
-            SystemInformer_Destroy();
-        }
-        else
-        {
-            SystemInformer_CancelEarlyShutdown();
-        }
+        *(PBOOLEAN)Parameter = TRUE;
+        OnlineChecksRestartRequired = FALSE;
     }
 }

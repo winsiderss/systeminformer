@@ -126,6 +126,7 @@ static PPH_OPTIONS_SECTION CurrentSection = NULL;
 static HWND OptionsTreeControl = NULL;
 static HWND ContainerControl = NULL;
 static RECT MinimumSize;
+static PCWSTR OptionsInitialSectionName = NULL;
 
 // All
 static BOOLEAN RestartRequired = FALSE;
@@ -148,7 +149,8 @@ static HWND WindowHandleForElevate = NULL;
 static HWND HighlightingListViewHandle = NULL;
 
 VOID PhShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ PCWSTR SectionName
     )
 {
     if (PhStartupParameters.ShowOptions)
@@ -159,6 +161,7 @@ VOID PhShowOptionsDialog(
     {
         if (!PhOptionsWindowHandle)
         {
+            OptionsInitialSectionName = SectionName;
             PhOptionsWindowHandle = PhCreateDialog(
                 PhInstanceHandle,
                 MAKEINTRESOURCE(IDD_OPTIONS),
@@ -166,9 +169,20 @@ VOID PhShowOptionsDialog(
                 PhOptionsDialogProc,
                 NULL
                 );
+            OptionsInitialSectionName = NULL;
 
             PhRegisterDialog(PhOptionsWindowHandle);
             ShowWindow(PhOptionsWindowHandle, SW_SHOW);
+        }
+        else if (SectionName)
+        {
+            PH_STRINGREF sectionNameSr;
+            PPH_OPTIONS_SECTION section;
+
+            PhInitializeStringRef(&sectionNameSr, SectionName);
+
+            if (section = PhOptionsFindSection(&sectionNameSr))
+                TreeView_SelectItem(OptionsTreeControl, section->TreeItemHandle);
         }
 
         if (IsMinimized(PhOptionsWindowHandle))
@@ -238,6 +252,10 @@ static VOID PhpOptionsShowHideTreeViewItem(
 
 VOID PhpAdvancedPageSave(
     _In_ HWND hwndDlg
+    );
+
+static VOID PhpOptionsNotifyChangeCallback(
+    _In_ PVOID Context
     );
 
 VOID PhpAdvancedPageLoad(
@@ -357,6 +375,17 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackOptionsWindowInitializing), &pointers);
                 }
 
+                if (OptionsInitialSectionName)
+                {
+                    PH_STRINGREF sectionNameSr;
+                    PPH_OPTIONS_SECTION initialSection;
+
+                    PhInitializeStringRef(&sectionNameSr, OptionsInitialSectionName);
+
+                    if (initialSection = PhOptionsFindSection(&sectionNameSr))
+                        section = initialSection;
+                }
+
                 TreeView_SelectItem(OptionsTreeControl, section->TreeItemHandle);
                 SetFocus(OptionsTreeControl);
                 //PhOptionsEnterSectionView(section);
@@ -389,6 +418,8 @@ INT_PTR CALLBACK PhOptionsDialogProc(
 
                 PhOptionsDestroySection(section);
             }
+
+            SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 
             PhDereferenceObject(SectionList);
             SectionList = NULL;
@@ -1553,7 +1584,7 @@ static VOID PhpOptionsNotifyChangeCallback(
 
     //PhReInitializeWindowTheme(PhMainWndHandle);
 
-    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), NULL);
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSettingsUpdated), &RestartRequired);
 
     if (RestartRequired)
     {
@@ -1671,6 +1702,9 @@ static VOID PhpAdvancedPageSave(
     HWND listViewHandle;
     ULONG sampleCount;
 
+    if (!hwndDlg)
+        return;
+
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
     sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
 
@@ -1748,8 +1782,6 @@ static VOID PhpAdvancedPageSave(
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_ATLOGON) == BST_CHECKED,
         ListView_GetCheckState(listViewHandle, PHP_OPTIONS_INDEX_START_HIDDEN) == BST_CHECKED
         );
-
-    SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)

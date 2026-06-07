@@ -66,8 +66,10 @@
     <Import Project="..\Plugins.props" />
   </ImportGroup>
   <ItemGroup>
+    <ClCompile Include="exclude.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="partner.c" />
     <ClCompile Include="page1.c" />
     <ClCompile Include="page2.c" />
     <ClCompile Include="page3.c" />

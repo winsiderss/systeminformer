@@ -4,10 +4,23 @@
 //
 #define IDD_OPTIONS                     102
 #define IDD_OPTIONSKEY                  109
+#define IDD_PARTNER                     111
+#define IDB_PARTNERBANNER               202
 #define IDC_ENABLE_SCANNING             1001
 #define IDC_HA_LOOKUPS                  1002
 #define IDC_HA_SUBMIT                   1003
 #define IDC_VT_LOOKUPS                  1004
+#define IDC_EXCLUDE_LIST                1051
+#define IDC_EXCLUDE_TEXT                1052
+#define IDC_EXCLUDE_ADD                 1053
+#define IDC_EXCLUDE_REMOVE              1054
+#define IDC_EXCLUDE_GROUP               1055
+#define IDC_HA_GROUP                    1056
+#define IDC_VT_GROUP                    1057
+#define IDC_PARTNER_BANNER              1060
+#define IDC_PARTNER_TITLE               1062
+#define IDC_PARTNER_CONFIGURE           1064
+#define IDC_PARTNER_LINK                1065
 #define IDC_CHECK1                      1010
 #define IDC_EDIT1                       1011
 #define IDC_COMBO1                      1012

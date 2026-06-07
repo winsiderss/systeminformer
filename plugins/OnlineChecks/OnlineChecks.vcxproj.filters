@@ -42,6 +42,12 @@
     <ClCompile Include="scan.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="exclude.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="partner.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="onlnchk.h">

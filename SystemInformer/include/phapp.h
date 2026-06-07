@@ -747,7 +747,8 @@ HPROPSHEETPAGE PhCreateMappingsPage(
 // options
 
 VOID PhShowOptionsDialog(
-    _In_ HWND ParentWindowHandle
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ PCWSTR SectionName
     );
 
 // pagfiles

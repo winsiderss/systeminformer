@@ -2954,15 +2954,15 @@ BOOLEAN PhInitializeLayoutManager(
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
 
-    ///if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
-    {
-        ULONG style = PhGetWindowStyle(RootWindowHandle);
-
-        if (style && !(style & WS_CLIPCHILDREN))
-        {
-            PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-        }
-    }
+    //if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
+    //{
+    //    ULONG style = PhGetWindowStyle(RootWindowHandle);
+    //
+    //    if (style && !(style & WS_CLIPCHILDREN))
+    //    {
+    //        PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+    //    }
+    //}
 
     if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
     {

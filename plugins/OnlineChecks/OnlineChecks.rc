@@ -46,26 +46,40 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 //
+// PNG
+//
+
+IDB_PARTNERBANNER       PNG                     "resources\\partnerbanner.png"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 313, 214
+IDD_OPTIONS DIALOGEX 0, 0, 313, 229
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     CONTROL         "Enable scanning",IDC_ENABLE_SCANNING,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,290,10
-    GROUPBOX        "Hybrid-Analysis",IDC_STATIC,7,26,300,66
-    CONTROL         "Automatic scanning",IDC_HA_LOOKUPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,40,100,10
-    CONTROL         "Automatic submission",IDC_HA_SUBMIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,120,40,110,10
-    LTEXT           "API key:",IDC_STATIC,16,56,95,8
-    EDITTEXT        IDC_HYBRIDTEXT,16,66,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
-    PUSHBUTTON      "Change",IDC_APIKEYIDBTN,246,66,50,14
-    GROUPBOX        "VirusTotal",IDC_STATIC,7,100,300,66
-    CONTROL         "Automatic scanning",IDC_VT_LOOKUPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,114,130,10
-    LTEXT           "API key:",IDC_STATIC,16,130,95,8
-    EDITTEXT        IDC_VTEXT,16,142,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
-    PUSHBUTTON      "Change",IDC_VTKEYIDBTN,246,142,50,14
+    GROUPBOX        "Hybrid-Analysis",IDC_HA_GROUP,7,19,300,52
+    CONTROL         "Automatic scanning",IDC_HA_LOOKUPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,31,100,10
+    CONTROL         "Automatic submission",IDC_HA_SUBMIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,120,31,110,10
+    LTEXT           "API key:",IDC_STATIC,16,44,95,8
+    EDITTEXT        IDC_HYBRIDTEXT,16,53,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    PUSHBUTTON      "Change",IDC_APIKEYIDBTN,246,53,50,14
+    GROUPBOX        "VirusTotal",IDC_VT_GROUP,7,75,300,52
+    CONTROL         "Automatic scanning",IDC_VT_LOOKUPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,87,130,10
+    LTEXT           "API key:",IDC_STATIC,16,100,95,8
+    EDITTEXT        IDC_VTEXT,16,109,225,14,ES_AUTOHSCROLL | ES_READONLY | WS_DISABLED
+    PUSHBUTTON      "Change",IDC_VTKEYIDBTN,246,109,50,14
+    GROUPBOX        "Scan exclusions",IDC_EXCLUDE_GROUP,7,131,300,95
+    LTEXT           "Regex matched against the full file path; automatic scanning only.",IDC_STATIC,16,142,284,8
+    LISTBOX         IDC_EXCLUDE_LIST,16,154,224,50,LBS_NOINTEGRALHEIGHT | LBS_NOTIFY | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Remove",IDC_EXCLUDE_REMOVE,246,154,54,14
+    EDITTEXT        IDC_EXCLUDE_TEXT,16,208,224,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Add",IDC_EXCLUDE_ADD,246,208,54,14
 END
 
 IDD_OPTIONSKEY DIALOGEX 0, 0, 309, 68
@@ -79,6 +93,23 @@ BEGIN
     LTEXT           "Paste the key below:",IDC_KEYTEXT_L,7,7,172,8
     CONTROL         "Checkout <a href="""">How-to-generate-a-license-key</a>",IDC_HELPLINK,
                     "SysLink",WS_TABSTOP,7,47,136,14
+END
+
+IDD_PARTNER DIALOGEX 0, 0, 320, 205
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "System Informer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_PARTNER_BANNER,"Static",SS_OWNERDRAW,70,10,180,50
+    LTEXT           "File reputation analysis",IDC_PARTNER_TITLE,7,66,306,12,SS_CENTER
+    LTEXT           "System Informer has partnered with Hybrid-Analysis to provide automatic reputation analysis for processes, loaded modules, and services.",IDC_STATIC,30,84,260,20
+    GROUPBOX        "What is shared with Hybrid-Analysis",IDC_STATIC,30,110,260,42
+    LTEXT           "•  SHA-256 hashes of scanned images, for reputation lookup",IDC_STATIC,38,124,244,9
+    LTEXT           "•  Files unknown to Hybrid-Analysis are uploaded for full analysis",IDC_STATIC,38,138,244,9
+    LTEXT           "Results appear in the Hybrid-Analysis column. To show it, right-click any column header and select ""Choose columns..."".",IDC_STATIC,30,159,260,18
+    CONTROL         "Hybrid-Analysis",IDC_PARTNER_LINK,"SysLink",WS_TABSTOP,7,187,90,10
+    PUSHBUTTON      "Configure",IDC_PARTNER_CONFIGURE,189,184,58,14
+    DEFPUSHBUTTON   "Keep enabled",IDOK,251,184,62,14
 END
 
 

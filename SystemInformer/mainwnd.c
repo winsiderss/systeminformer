@@ -1282,7 +1282,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_HACKER_OPTIONS:
         {
-            PhShowOptionsDialog(WindowHandle);
+            PhShowOptionsDialog(WindowHandle, NULL);
         }
         break;
     case ID_COMPUTER_LOCK:
@@ -3117,6 +3117,11 @@ LRESULT PhMwpOnUserMessage(
     case WM_PH_SHOW_PROPERTIES:
         {
             PhMwpShowProcessProperties((PPH_PROCESS_ITEM)LParam);
+        }
+        break;
+    case WM_PH_SHOW_OPTIONS:
+        {
+            PhShowOptionsDialog(PhMainWndHandle, (PCWSTR)LParam);
         }
         break;
     case WM_PH_ACTIVATE_WINDOW:
@@ -5531,6 +5536,11 @@ PVOID PhPluginInvokeWindowCallback(
     case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_PROPERTIES:
         {
             SendMessage(PhMainWndHandle, WM_PH_SHOW_PROPERTIES, 0, (LPARAM)lparam);
+        }
+        break;
+    case PH_MAINWINDOW_CALLBACK_TYPE_SHOW_OPTIONS:
+        {
+            SendMessage(PhMainWndHandle, WM_PH_SHOW_OPTIONS, 0, (LPARAM)lparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_SAVE_ALL_SETTINGS:

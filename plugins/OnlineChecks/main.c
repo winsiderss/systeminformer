@@ -20,6 +20,7 @@ PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
 PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
+PH_CALLBACK_REGISTRATION MainWindowShowingCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
@@ -56,7 +57,10 @@ VOID NTAPI LoadCallback(
     ScanStartupDelay = PhGetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY);
     ScanSubmitTimeout = PhGetIntegerSetting(SETTING_NAME_SCAN_SUBMIT_TIMEOUT);
     if (ScanningEnabled)
+    {
+        ScanLoadExclusions();
         ScanningInitialized = InitializeScanning();
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -1035,7 +1039,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED, L"0" },
                 { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED, L"0" },
                 { StringSettingType, SETTING_NAME_SCAN_EXCLUDE_LIST, L"" },
-                { IntegerSettingType, SETTING_NAME_INTEGRATION_PROMPT_SHOWN, L"0" },
+                { IntegerSettingType, SETTING_NAME_PARTNER_PROMPT_SHOWN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SCAN_MAX_FILE_SIZE, L"8000000" }, // 128 MiB
                 { IntegerSettingType, SETTING_NAME_SCAN_STARTUP_DELAY, L"1E" }, // 30 sec
                 { IntegerSettingType, SETTING_NAME_SCAN_SUBMIT_TIMEOUT, L"A" }, // 10 sec
@@ -1078,6 +1082,12 @@ LOGICAL DllMain(
                 OptionsSettingsUpdatedCallback,
                 NULL,
                 &SettingsUpdatedCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackMainWindowShowing),
+                MainWindowShowingCallback,
+                NULL,
+                &MainWindowShowingCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),

@@ -118,7 +118,7 @@ INT WINAPI wWinMain(
 
     if (PhStartupParameters.ShowOptions)
     {
-        PhShowOptionsDialog(PhStartupParameters.WindowHandle);
+        PhShowOptionsDialog(PhStartupParameters.WindowHandle, NULL);
         PhExitApplication(STATUS_SUCCESS);
     }
 
