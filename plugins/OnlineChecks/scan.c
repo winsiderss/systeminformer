@@ -88,6 +88,7 @@ static typeof(&BCryptCreateMultiHash) BCryptCreateMultiHash_I = NULL;
 static typeof(&BCryptProcessMultiOperations) BCryptProcessMultiOperations_I = NULL;
 
 static sqlite3* ScanDB = NULL;
+static HANDLE ScanDBLockFileHandle = NULL;
 static PH_QUEUED_LOCK ScanDBLock = PH_QUEUED_LOCK_INIT;
 static sqlite3_stmt* ScanDBInsertVirusTotal = NULL;
 static sqlite3_stmt* ScanDBQueryVirusTotal = NULL;
@@ -2199,8 +2200,10 @@ BOOLEAN InitializeScanning(
     )
 {
     static const PH_STRINGREF databaseFileName = PH_STRINGREF_INIT(L"scan.db");
+    static const PH_STRINGREF databaseLockFileName = PH_STRINGREF_INIT(L"scan.db.lock");
     BOOLEAN result;
     PPH_STRING fileName;
+    PPH_STRING lockFileName;
     PPH_BYTES fileNameUTF8;
     ULONG version = 0;
     sqlite3_stmt* stmt;
@@ -2218,10 +2221,27 @@ BOOLEAN InitializeScanning(
 
     result = FALSE;
     if (!!SystemInformer_IsPortableMode())
+    {
         fileName = PhGetApplicationDirectoryFileName(&databaseFileName, FALSE);
+        lockFileName = PhGetApplicationDirectoryFileName(&databaseLockFileName, FALSE);
+    }
     else
+    {
         fileName = PhGetRoamingAppDataDirectory(&databaseFileName, FALSE);
+        lockFileName = PhGetRoamingAppDataDirectory(&databaseLockFileName, FALSE);
+    }
     fileNameUTF8 = PhConvertStringRefToUtf8(&fileName->sr);
+
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &ScanDBLockFileHandle,
+        PhGetString(lockFileName),
+        FILE_GENERIC_READ | DELETE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_HIDDEN,
+        0,
+        FILE_OPEN_IF,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_DELETE_ON_CLOSE
+        )))
+        goto CleanupExit;
 
     ScanItemObjectType = PhCreateObjectType(L"ScanItem", 0, ScanItemDeleteProcedure);
     ScanHashObjectType = PhCreateObjectType(L"ScanHash", 0, ScanHashDeleteProcedure);
@@ -2298,6 +2318,7 @@ BOOLEAN InitializeScanning(
 CleanupExit:
 
     PhDereferenceObject(fileName);
+    PhDereferenceObject(lockFileName);
     PhDereferenceObject(fileNameUTF8);
 
     return result;
@@ -2322,6 +2343,12 @@ VOID CleanupScanning(
     {
         sqlite3_close_v2_I(ScanDB);
         ScanDB = NULL;
+    }
+
+    if (ScanDBLockFileHandle)
+    {
+        NtClose(ScanDBLockFileHandle);
+        ScanDBLockFileHandle = NULL;
     }
 
     PhReleaseQueuedLockExclusive(&ScanDBLock);
