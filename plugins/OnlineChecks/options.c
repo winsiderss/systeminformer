@@ -61,6 +61,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_VT_LOOKUPS),
                 PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
 
+            SetDlgItemInt(WindowHandle, IDC_SCAN_DELAY, PhGetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY), FALSE);
+
             PhMoveReference(&OptionsInitialHybridPat, PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT));
             PhMoveReference(&OptionsInitialVirusTotalPat, PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT));
 
@@ -70,7 +72,9 @@ INT_PTR CALLBACK OptionsDlgProc(
             ScanExclusionsPopulateListBox(GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST));
 
             PhInitializeLayoutManager(&OptionsLayoutManager, WindowHandle);
-            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY_LABEL), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HA_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_HYBRIDTEXT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_APIKEYIDBTN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -93,6 +97,8 @@ INT_PTR CALLBACK OptionsDlgProc(
             OptionsSaveCheckRestart(WindowHandle, IDC_HA_LOOKUPS, SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED);
             OptionsSaveCheckRestart(WindowHandle, IDC_HA_SUBMIT, SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED);
             OptionsSaveCheckRestart(WindowHandle, IDC_VT_LOOKUPS, SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED);
+
+            PhSetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY, GetDlgItemInt(WindowHandle, IDC_SCAN_DELAY, NULL, FALSE));
 
             hybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
             virusTotalPat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);

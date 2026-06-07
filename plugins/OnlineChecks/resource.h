@@ -17,6 +17,8 @@
 #define IDC_EXCLUDE_GROUP               1055
 #define IDC_HA_GROUP                    1056
 #define IDC_VT_GROUP                    1057
+#define IDC_SCAN_DELAY                  1058
+#define IDC_SCAN_DELAY_LABEL            1059
 #define IDC_PARTNER_BANNER              1060
 #define IDC_PARTNER_TITLE               1062
 #define IDC_PARTNER_CONFIGURE           1064
