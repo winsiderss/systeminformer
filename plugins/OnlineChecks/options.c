@@ -11,10 +11,30 @@
 
 #include "onlnchk.h"
 
+BOOLEAN OnlineChecksPreEnableUi = FALSE;
+static BOOLEAN OnlineChecksRestartRequired = FALSE;
+static PPH_STRING OptionsInitialHybridPat = NULL;
+static PPH_STRING OptionsInitialVirusTotalPat = NULL;
+
 VOID ShowHybridAnalysisConfigDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PVOID Parameter
     );
+
+static VOID OptionsSaveCheckRestart(
+    _In_ HWND WindowHandle,
+    _In_ INT ControlId,
+    _In_ PCWSTR SettingName
+    )
+{
+    BOOLEAN oldValue = !!PhGetIntegerSetting(SettingName);
+    BOOLEAN newValue = Button_GetCheck(GetDlgItem(WindowHandle, ControlId)) == BST_CHECKED;
+
+    if (newValue != oldValue)
+        OnlineChecksRestartRequired = TRUE;
+
+    PhSetIntegerSetting(SettingName, newValue);
+}
 
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND WindowHandle,
@@ -27,25 +47,49 @@ INT_PTR CALLBACK OptionsDlgProc(
     {
     case WM_INITDIALOG:
         {
-            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING),
-                PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SCANNING),
-                PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
-            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SUBMIT),
-                PhGetIntegerSetting(SETTING_NAME_AUTO_SUBMIT_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
+            BOOLEAN preEnable = OnlineChecksPreEnableUi;
 
-            PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT)));
-            PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(PhaGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT)));
+            OnlineChecksPreEnableUi = FALSE;
+
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING),
+                (preEnable || PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_HA_LOOKUPS),
+                (preEnable || PhGetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_HA_SUBMIT),
+                (preEnable || PhGetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_VT_LOOKUPS),
+                (preEnable || PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED)) ? BST_CHECKED : BST_UNCHECKED);
+
+            PhMoveReference(&OptionsInitialHybridPat, PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT));
+            PhMoveReference(&OptionsInitialVirusTotalPat, PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT));
+
+            PhSetDialogItemText(WindowHandle, IDC_HYBRIDTEXT, PhGetStringOrEmpty(OptionsInitialHybridPat));
+            PhSetDialogItemText(WindowHandle, IDC_VTEXT, PhGetStringOrEmpty(OptionsInitialVirusTotalPat));
         }
         break;
     case WM_DESTROY:
         {
-            PhSetIntegerSetting(SETTING_NAME_SCAN_ENABLED,
-                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING)) == BST_CHECKED ? 1 : 0);
-            PhSetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED,
-                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SCANNING)) == BST_CHECKED ? 1 : 0);
-            PhSetIntegerSetting(SETTING_NAME_AUTO_SUBMIT_ENABLED,
-                Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_AUTO_SUBMIT)) == BST_CHECKED ? 1 : 0);
+            PPH_STRING hybridPat;
+            PPH_STRING virusTotalPat;
+
+            OptionsSaveCheckRestart(WindowHandle, IDC_ENABLE_SCANNING, SETTING_NAME_SCAN_ENABLED);
+            OptionsSaveCheckRestart(WindowHandle, IDC_HA_LOOKUPS, SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED);
+            OptionsSaveCheckRestart(WindowHandle, IDC_HA_SUBMIT, SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED);
+            OptionsSaveCheckRestart(WindowHandle, IDC_VT_LOOKUPS, SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED);
+
+            hybridPat = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
+            virusTotalPat = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
+
+            if (!PhEqualString(hybridPat, OptionsInitialHybridPat, FALSE) ||
+                !PhEqualString(virusTotalPat, OptionsInitialVirusTotalPat, FALSE))
+            {
+                OnlineChecksRestartRequired = TRUE;
+            }
+
+            PhDereferenceObject(hybridPat);
+            PhDereferenceObject(virusTotalPat);
+            PhClearReference(&OptionsInitialHybridPat);
+            PhClearReference(&OptionsInitialVirusTotalPat);
         }
         break;
     case WM_COMMAND:
@@ -199,4 +243,44 @@ VOID ShowHybridAnalysisConfigDialog(
         OptionsGeoLiteDlgProc,
         Parameter
         );
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI OptionsSettingsUpdatedCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    )
+{
+    if (!OnlineChecksRestartRequired)
+        return;
+
+    OnlineChecksRestartRequired = FALSE;
+
+    if (PhShowMessage2(
+        SystemInformer_GetWindowHandle(),
+        TD_YES_BUTTON | TD_NO_BUTTON,
+        TD_INFORMATION_ICON,
+        L"One or more options you have changed requires a restart of System Informer.",
+        L"Do you want to restart System Informer now?"
+        ) == IDYES)
+    {
+        SystemInformer_PrepareForEarlyShutdown();
+
+        if (NT_SUCCESS(PhShellProcessHacker(
+            SystemInformer_GetWindowHandle(),
+            L"-v -newinstance",
+            SW_SHOW,
+            PH_SHELL_EXECUTE_DEFAULT,
+            PH_SHELL_APP_PROPAGATE_PARAMETERS | PH_SHELL_APP_PROPAGATE_PARAMETERS_IGNORE_VISIBILITY,
+            0,
+            NULL
+            )))
+        {
+            SystemInformer_Destroy();
+        }
+        else
+        {
+            SystemInformer_CancelEarlyShutdown();
+        }
+    }
 }

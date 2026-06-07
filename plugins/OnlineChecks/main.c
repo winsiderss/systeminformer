@@ -19,6 +19,7 @@ PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION SettingsUpdatedCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
 PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
@@ -35,8 +36,9 @@ ULONG ScanStartupDelay = 0;
 ULONG ScanSubmitTimeout = 0;
 BOOLEAN ScanningInitialized = FALSE;
 BOOLEAN ScanningEnabled = FALSE;
-BOOLEAN AutoScanningEnabled = FALSE;
-BOOLEAN AutoSubmitEnabled = FALSE;
+BOOLEAN HybridAnalysisLookupsEnabled = FALSE;
+BOOLEAN HybridAnalysisSubmitEnabled = FALSE;
+BOOLEAN VirusTotalLookupsEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
@@ -47,8 +49,9 @@ VOID NTAPI LoadCallback(
     )
 {
     ScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_SCAN_ENABLED);
-    AutoScanningEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SCAN_ENABLED);
-    AutoSubmitEnabled = !!PhGetIntegerSetting(SETTING_NAME_AUTO_SUBMIT_ENABLED);
+    HybridAnalysisLookupsEnabled = !!PhGetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED);
+    HybridAnalysisSubmitEnabled = !!PhGetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED);
+    VirusTotalLookupsEnabled = !!PhGetIntegerSetting(SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED);
     ScanMaxFileSize = PhGetIntegerSetting(SETTING_NAME_SCAN_MAX_FILE_SIZE);
     ScanStartupDelay = PhGetIntegerSetting(SETTING_NAME_SCAN_STARTUP_DELAY);
     ScanSubmitTimeout = PhGetIntegerSetting(SETTING_NAME_SCAN_SUBMIT_TIMEOUT);
@@ -73,7 +76,7 @@ VOID ProcessesUpdatedCallback(
     )
 {
     LARGE_INTEGER systemTime;
-    ULONG scanFlags = 0;
+    ULONG scanFlags[SCAN_TYPE_MAX] = { 0 };
 
     if (!ScanningInitialized)
         return;
@@ -81,10 +84,15 @@ VOID ProcessesUpdatedCallback(
     if (PtrToUlong(Parameter) < ScanStartupDelay)
         return;
 
-    if (!AutoScanningEnabled)
-        SetFlag(scanFlags, SCAN_FLAG_LOCAL_ONLY);
-    if (AutoSubmitEnabled)
-        SetFlag(scanFlags, SCAN_FLAG_SUBMIT);
+    if (VirusTotalLookupsEnabled)
+        scanFlags[SCAN_TYPE_VIRUSTOTAL] = 0;
+    else
+        scanFlags[SCAN_TYPE_VIRUSTOTAL] = SCAN_FLAG_LOCAL_ONLY;
+
+    if (HybridAnalysisLookupsEnabled)
+        scanFlags[SCAN_TYPE_HYBRIDANALYSIS] = HybridAnalysisSubmitEnabled ? SCAN_FLAG_SUBMIT : 0;
+    else
+        scanFlags[SCAN_TYPE_HYBRIDANALYSIS] = SCAN_FLAG_LOCAL_ONLY;
 
     PhQuerySystemTime(&systemTime);
 
@@ -334,7 +342,7 @@ VOID NTAPI MenuItemCallback(
     {
         ULONG scanFlags = SCAN_FLAG_RESCAN;
 
-        if (AutoSubmitEnabled)
+        if (scanType == SCAN_TYPE_HYBRIDANALYSIS && HybridAnalysisSubmitEnabled)
             SetFlag(scanFlags, SCAN_FLAG_SUBMIT);
 
         EnqueueScan(
@@ -1023,8 +1031,11 @@ LOGICAL DllMain(
             PH_SETTING_CREATE settings[] =
             {
                 { IntegerSettingType, SETTING_NAME_SCAN_ENABLED, L"0" },
-                { IntegerSettingType, SETTING_NAME_AUTO_SCAN_ENABLED, L"0" },
-                { IntegerSettingType, SETTING_NAME_AUTO_SUBMIT_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED, L"0" },
+                { IntegerSettingType, SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED, L"0" },
+                { StringSettingType, SETTING_NAME_SCAN_EXCLUDE_LIST, L"" },
+                { IntegerSettingType, SETTING_NAME_INTEGRATION_PROMPT_SHOWN, L"0" },
                 { IntegerSettingType, SETTING_NAME_SCAN_MAX_FILE_SIZE, L"8000000" }, // 128 MiB
                 { IntegerSettingType, SETTING_NAME_SCAN_STARTUP_DELAY, L"1E" }, // 30 sec
                 { IntegerSettingType, SETTING_NAME_SCAN_SUBMIT_TIMEOUT, L"A" }, // 10 sec
@@ -1061,6 +1072,12 @@ LOGICAL DllMain(
                 ShowOptionsCallback,
                 NULL,
                 &PluginShowOptionsCallbackRegistration
+                );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackSettingsUpdated),
+                OptionsSettingsUpdatedCallback,
+                NULL,
+                &SettingsUpdatedCallbackRegistration
                 );
             PhRegisterCallback(
                 PhGetPluginCallback(PluginInstance, PluginCallbackMenuItem),

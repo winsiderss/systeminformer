@@ -2082,14 +2082,14 @@ VOID EvaluateScanContext(
     _In_ PLARGE_INTEGER SystemTime,
     _Inout_ PSCAN_CONTEXT Context,
     _In_ PPH_STRING FileName,
-    _In_ ULONG Flags
+    _In_reads_(SCAN_TYPE_MAX) PULONG Flags
     )
 {
     for (ULONG i = 0; i < RTL_NUMBER_OF(Context->ScanItems); i++)
     {
         if (!Context->ScanItems[i] || Context->ScanItems[i]->Expiry.QuadPart <= SystemTime->QuadPart)
         {
-            EnqueueScanInternal(Context, i, FileName, Flags, FALSE, NULL, NULL);
+            EnqueueScanInternal(Context, i, FileName, Flags[i], FALSE, NULL, NULL);
         }
     }
 }

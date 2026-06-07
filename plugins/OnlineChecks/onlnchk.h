@@ -25,8 +25,11 @@
 
 #define PLUGIN_NAME L"OnlineChecks"
 #define SETTING_NAME_SCAN_ENABLED (PLUGIN_NAME L".EnableScanning")
-#define SETTING_NAME_AUTO_SCAN_ENABLED (PLUGIN_NAME L".EnableAutoScanning")
-#define SETTING_NAME_AUTO_SUBMIT_ENABLED (PLUGIN_NAME L".EnableAutoSubmit")
+#define SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED (PLUGIN_NAME L".HybridAnalysisEnableLookups")
+#define SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED (PLUGIN_NAME L".HybridAnalysisEnableAutoSubmit")
+#define SETTING_NAME_VIRUSTOTAL_LOOKUPS_ENABLED (PLUGIN_NAME L".VirusTotalEnableLookups")
+#define SETTING_NAME_SCAN_EXCLUDE_LIST (PLUGIN_NAME L".ScanExcludeList")
+#define SETTING_NAME_INTEGRATION_PROMPT_SHOWN (PLUGIN_NAME L".IntegrationPromptShown")
 #define SETTING_NAME_SCAN_MAX_FILE_SIZE (PLUGIN_NAME L".ScanMaxFileSize")
 #define SETTING_NAME_SCAN_STARTUP_DELAY (PLUGIN_NAME L".ScanStartupDelay")
 #define SETTING_NAME_SCAN_SUBMIT_TIMEOUT (PLUGIN_NAME L".ScanSubmitTimeout")
@@ -144,11 +147,19 @@ typedef struct _UPLOAD_CONTEXT
 
 // options.c
 
+extern BOOLEAN OnlineChecksPreEnableUi;
+
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI OptionsSettingsUpdatedCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
     );
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -443,7 +454,7 @@ VOID EvaluateScanContext(
     _In_ PLARGE_INTEGER SystemTime,
     _Inout_ PSCAN_CONTEXT Context,
     _In_ PPH_STRING FileName,
-    _In_ ULONG Flags
+    _In_reads_(SCAN_TYPE_MAX) PULONG Flags
     );
 
 VOID DeleteScanContext(
