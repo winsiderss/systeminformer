@@ -2955,14 +2955,14 @@ BOOLEAN PhInitializeLayoutManager(
     Manager->RootItem.DeferHandle = NULL;
 
     //if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
-    //{
-    //    ULONG style = PhGetWindowStyle(RootWindowHandle);
-    //
-    //    if (style && !(style & WS_CLIPCHILDREN))
-    //    {
-    //        PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-    //    }
-    //}
+    {
+        ULONG style = PhGetWindowStyle(RootWindowHandle);
+
+        if (style && !(style & WS_CLIPCHILDREN))
+        {
+            PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+        }
+    }
 
     if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
     {
