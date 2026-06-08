@@ -53,6 +53,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE));
 
             PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, 0);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_DATABASE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
         }

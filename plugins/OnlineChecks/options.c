@@ -91,6 +91,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             ScanExclusionsPopulateListBox(GetDlgItem(WindowHandle, IDC_EXCLUDE_LIST));
 
             PhInitializeLayoutManager(&OptionsLayoutManager, WindowHandle);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, 0);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_ENABLE_SCANNING), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY_LABEL), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&OptionsLayoutManager, GetDlgItem(WindowHandle, IDC_SCAN_DELAY), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

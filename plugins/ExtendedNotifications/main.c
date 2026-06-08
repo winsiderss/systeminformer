@@ -969,6 +969,7 @@ INT_PTR CALLBACK DevicesDlgProc(
             PhSetDialogItemText(WindowHandle, IDC_LOGFILENAME, PhaGetStringSetting(SETTING_NAME_LOG_FILENAME)->Buffer);
 
             PhInitializeLayoutManager(&LayoutManager, WindowHandle);
+            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, 0);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_INFO), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_LOGFILENAME), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(WindowHandle, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
