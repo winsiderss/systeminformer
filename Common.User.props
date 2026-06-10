@@ -32,7 +32,7 @@
       </Lib>
       <ResourceCompile>
           <Culture>0x0009</Culture>
-          <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+          <AdditionalOptions>/8 %(AdditionalOptions)</AdditionalOptions>
           <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
       </ResourceCompile>
   </ItemDefinitionGroup>

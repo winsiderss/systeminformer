@@ -121,17 +121,10 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
-                PIMAGE_LOAD_CONFIG_DIRECTORY32 config32 = NULL;
+                PH_MAPPED_IMAGE_CHPE chpeInfo;
                 PIMAGE_CHPE_METADATA_X86 chpe32;
 
-                PhGetMappedImageLoadConfig32(&PvMappedImage, &config32);
-                // guaranteed upstream
-                assert(config32);
-                assert(RTL_CONTAINS_FIELD(config32, config32->Size, CHPEMetadataPointer));
-                assert(config32->CHPEMetadataPointer);
-
-                chpe32 = PhMappedImageVaToVa(&PvMappedImage, config32->CHPEMetadataPointer, NULL);
-                if (chpe32)
+                if (NT_SUCCESS(PhGetMappedImageCHPE(&PvMappedImage, &chpeInfo)) && (chpe32 = chpeInfo.Metadata))
                 {
                     PvpCHPAddValue(
                         lvHandle,
@@ -207,14 +200,12 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                             );
                     }
 
-                    if (chpe32->CHPECodeAddressRangeOffset && chpe32->CHPECodeAddressRangeCount)
+                    if (chpeInfo.CodeRanges && chpeInfo.NumberOfCodeRangeEntries)
                     {
-                        PIMAGE_CHPE_RANGE_ENTRY table;
+                        PIMAGE_CHPE_RANGE_ENTRY table = chpeInfo.CodeRanges;
 
-                        table = PhMappedImageRvaToVa(&PvMappedImage, chpe32->CHPECodeAddressRangeOffset, NULL);
-                        if (table)
                         {
-                            for (ULONG i = 0; i < chpe32->CHPECodeAddressRangeCount; i++)
+                            for (ULONG i = 0; i < chpeInfo.NumberOfCodeRangeEntries; i++)
                             {
                                 ULONG start = table[i].StartOffset & ~1ul;
                                 ULONG end = start + table[i].Length;
@@ -244,17 +235,10 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
             }
             else
             {
-                PIMAGE_LOAD_CONFIG_DIRECTORY64 config64 = NULL;
+                PH_MAPPED_IMAGE_CHPE chpeInfo;
                 PIMAGE_ARM64EC_METADATA chpe64;
 
-                PhGetMappedImageLoadConfig64(&PvMappedImage, &config64);
-                // guaranteed upstream
-                assert(config64);
-                assert(RTL_CONTAINS_FIELD(config64, config64->Size, CHPEMetadataPointer));
-                assert(config64->CHPEMetadataPointer);
-
-                chpe64 = PhMappedImageVaToVa(&PvMappedImage, config64->CHPEMetadataPointer, NULL);
-                if (chpe64)
+                if (NT_SUCCESS(PhGetMappedImageCHPE(&PvMappedImage, &chpeInfo)) && (chpe64 = chpeInfo.Metadata))
                 {
                     PvpCHPAddValue(
                         lvHandle,
@@ -376,14 +360,12 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         PvpCHPERvaToSymbol(chpe64->__os_arm64x_dispatch_fptr)
                         );
 
-                    if (chpe64->CodeMap && chpe64->CodeMapCount)
+                    if (chpeInfo.CodeMap && chpeInfo.NumberOfCodeMapEntries)
                     {
-                        PIMAGE_ARM64EC_CODE_MAP_ENTRY table;
+                        PIMAGE_ARM64EC_CODE_MAP_ENTRY table = chpeInfo.CodeMap;
 
-                        table = PhMappedImageRvaToVa(&PvMappedImage, chpe64->CodeMap, NULL);
-                        if (table)
                         {
-                            for (ULONG i = 0; i < chpe64->CodeMapCount; i++)
+                            for (ULONG i = 0; i < chpeInfo.NumberOfCodeMapEntries; i++)
                             {
                                 ULONG start = table[i].AddressBits << 2;
                                 ULONG end = start + table[i].Length;
@@ -415,14 +397,12 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         }
                     }
 
-                    if (chpe64->RedirectionMetadata && chpe64->RedirectionMetadataCount)
+                    if (chpeInfo.RedirectionMetadata && chpeInfo.NumberOfRedirectionEntries)
                     {
-                        PIMAGE_ARM64EC_REDIRECTION_ENTRY table;
+                        PIMAGE_ARM64EC_REDIRECTION_ENTRY table = chpeInfo.RedirectionMetadata;
 
-                        table = PhMappedImageRvaToVa(&PvMappedImage, chpe64->RedirectionMetadata, NULL);
-                        if (table)
                         {
-                            for (ULONG i = 0; i < chpe64->RedirectionMetadataCount; i++)
+                            for (ULONG i = 0; i < chpeInfo.NumberOfRedirectionEntries; i++)
                             {
                                 PPH_STRING source = PvpCHPERvaToSymbol(table[i].Source);
                                 PPH_STRING dest = PvpCHPERvaToSymbol(table[i].Destination);
@@ -440,14 +420,12 @@ INT_PTR CALLBACK PvpPeCHPEDlgProc(
                         }
                     }
 
-                    if (chpe64->CodeRangesToEntryPoints && chpe64->CodeRangesToEntryPointsCount)
+                    if (chpeInfo.CodeRangesToEntryPoints && chpeInfo.NumberOfCodeRangeEntryPoints)
                     {
-                        PIMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT table;
+                        PIMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT table = chpeInfo.CodeRangesToEntryPoints;
 
-                        table = PhMappedImageRvaToVa(&PvMappedImage, chpe64->CodeRangesToEntryPoints, NULL);
-                        if (table)
                         {
-                            for (ULONG i = 0; i < chpe64->CodeRangesToEntryPointsCount; i++)
+                            for (ULONG i = 0; i < chpeInfo.NumberOfCodeRangeEntryPoints; i++)
                             {
                                 PPH_STRING entry = PvpCHPERvaToSymbol(table[i].EntryPoint);
 

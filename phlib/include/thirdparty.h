@@ -19,6 +19,12 @@
 #error "ThirdParty.lib is missing"
 #endif
 
+#if __has_include("../../tools/thirdparty/fts_fuzzy_match.h")
+#include "../../tools/thirdparty/fts_fuzzy_match.h"
+#else
+#error "fts_fuzzy_match.h is missing"
+#endif
+
 #if __has_include("../../tools/thirdparty/jsonc/json.h")
 #include "../../tools/thirdparty/jsonc/json.h"
 #else

@@ -1726,6 +1726,7 @@ VOID PhInitializeAppSettings(
     PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
     PhEnableThemeNativeButtons = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS);
     PhEnableThemeListviewBorder = !!PhGetIntegerSetting(SETTING_TREE_LIST_BORDER_ENABLE);
+    PhEnableWindowBorderColor = !!PhGetIntegerSetting(SETTING_ENABLE_WINDOW_BORDER_COLOR);
     PhEnableDeferredLayout = !!PhGetIntegerSetting(SETTING_ENABLE_DEFERRED_LAYOUT);
     PhEnableServiceNonPoll = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL);
     PhEnableServiceNonPollNotify = !!PhGetIntegerSetting(SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY);

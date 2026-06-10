@@ -601,7 +601,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                     }
                 }
                 break;
@@ -668,7 +668,7 @@ BOOLEAN NTAPI PhpHandleTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                     }
                 }
                 break;

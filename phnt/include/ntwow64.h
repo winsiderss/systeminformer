@@ -110,6 +110,22 @@ typedef struct _LDR_DDAG_NODE32
     ULONG PreorderNumber;
 } LDR_DDAG_NODE32, *PLDR_DDAG_NODE32;
 
+typedef struct _LDRP_DEPENDENCY32
+{
+    SINGLE_LIST_ENTRY32 Link;
+    WOW64_POINTER(PLDR_DDAG_NODE) ChildNode;
+    SINGLE_LIST_ENTRY32 BackLink;
+    union
+    {
+        WOW64_POINTER(PLDR_DDAG_NODE) ParentNode;
+        struct
+        {
+            ULONG ForwarderLink : 1;
+            ULONG SpareFlags : 2;
+        };
+    };
+} LDRP_DEPENDENCY32, *PLDR_DEPENDENCY32;
+
 #define LDR_DATA_TABLE_ENTRY_SIZE_WINXP_32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, DdagNode)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN7_32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, BaseNameHashValue)
 #define LDR_DATA_TABLE_ENTRY_SIZE_WIN8_32 FIELD_OFFSET(LDR_DATA_TABLE_ENTRY32, ImplicitPathOptions)

@@ -851,7 +851,7 @@ static BOOL CALLBACK SetupSetWizardChildFont(
     return TRUE;
 }
 
-static BOOL CALLBACK SetupInvalidateWizardChildWindow(
+BOOL CALLBACK SetupInvalidateWizardChildWindow(
     _In_ HWND WindowHandle,
     _In_ LPARAM lParam
     )
@@ -868,7 +868,8 @@ static BOOL CALLBACK SetupInvalidateWizardChildWindow(
  * \param WindowHandle The wizard page window handle.
  * \param LargeTitle TRUE to use the welcome/completed page title font.
  */
-static VOID SetupInitializeWizardTitleFont(
+VOID SetupInitializeWizardTitleFont(
+    _In_ PPH_SETUP_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ BOOLEAN LargeTitle
     )
@@ -877,11 +878,13 @@ static VOID SetupInitializeWizardTitleFont(
 
     PhSetWindowContext(WindowHandle, SETUP_WINDOW_CONTEXT_LARGE_TITLE, (PVOID)(ULONG_PTR)LargeTitle);
 
-    if (propSheetContext = PhGetWindowContext(GetParent(WindowHandle), UCHAR_MAX))
+    if (propSheetContext = PhGetWindowContext(Context->ParentWindowHandle, UCHAR_MAX))
+    {
         SetupApplyWizardPageFonts(WindowHandle, propSheetContext, LargeTitle);
+    }
 }
 
-static VOID SetupDestroyWizardPage(
+VOID SetupDestroyWizardPage(
     _In_ HWND WindowHandle
     )
 {
@@ -895,7 +898,7 @@ static VOID SetupDestroyWizardPage(
  * \param PropSheetContext The property sheet context.
  * \param ParentWindowHandle The property sheet window handle.
  */
-static VOID SetupSetPropSheetButtonFonts(
+VOID SetupSetPropSheetButtonFonts(
     _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
     _In_ HWND ParentWindowHandle
     )
@@ -934,7 +937,7 @@ static VOID SetupSetPropSheetButtonFonts(
     }
 }
 
-static VOID SetupApplyWizardFonts(
+VOID SetupApplyWizardFonts(
     _In_ HWND ParentWindowHandle,
     _In_ PPV_PROPSHEETCONTEXT PropSheetContext
     )
@@ -958,7 +961,7 @@ static VOID SetupApplyWizardFonts(
     }
 }
 
-static VOID SetupUpdateWizardFonts(
+VOID SetupUpdateWizardFonts(
     _In_ HWND ParentWindowHandle,
     _Inout_ PPV_PROPSHEETCONTEXT PropSheetContext,
     _In_ LONG WindowDpi
@@ -987,7 +990,7 @@ static VOID SetupUpdateWizardFonts(
  *
  * \param WindowHandle The wizard page window handle.
  */
-static VOID SetupLoadWelcomeBitmap(
+VOID SetupLoadWelcomeBitmap(
     _In_ HWND WindowHandle
     )
 {
@@ -1020,7 +1023,7 @@ static VOID SetupLoadWelcomeBitmap(
  * \param ControlId The property sheet button control identifier.
  * \param ShowButton TRUE to show the button, FALSE to hide the button.
  */
-static VOID SetupShowWizardButton(
+VOID SetupShowWizardButton(
     _In_ HWND ParentWindowHandle,
     _In_ INT ControlId,
     _In_ BOOLEAN ShowButton
@@ -1034,7 +1037,7 @@ static VOID SetupShowWizardButton(
     }
 }
 
-static VOID SetupEnableWizardButton(
+VOID SetupEnableWizardButton(
     _In_ HWND ParentWindowHandle,
     _In_ INT ControlId,
     _In_ BOOLEAN ShowButton
@@ -1048,7 +1051,7 @@ static VOID SetupEnableWizardButton(
     }
 }
 
-static VOID SetupSetWizardButtonText(
+VOID SetupSetWizardButtonText(
     _In_ HWND ParentWindowHandle,
     _In_ INT ControlId,
     _In_ PCWSTR Text
@@ -1057,10 +1060,12 @@ static VOID SetupSetWizardButtonText(
     HWND buttonHandle;
 
     if (buttonHandle = GetDlgItem(ParentWindowHandle, ControlId))
+    {
         SetWindowText(buttonHandle, Text);
+    }
 }
 
-static BOOLEAN SetupCancelWizard(
+BOOLEAN SetupCancelWizard(
     _In_ HWND WindowHandle,
     _In_ PPH_SETUP_CONTEXT Context
     )
@@ -1069,7 +1074,7 @@ static BOOLEAN SetupCancelWizard(
         return TRUE;
 
     if (PhShowMessage2(
-        GetParent(WindowHandle),
+        Context->ParentWindowHandle,
         TD_YES_BUTTON | TD_NO_BUTTON,
         TD_WARNING_ICON,
         L"Cancel Setup?",
@@ -1093,7 +1098,7 @@ static BOOLEAN SetupCancelWizard(
  * \param ShowFinish TRUE to show the Finish button.
  * \param ShowCancel TRUE to show the Cancel button.
  */
-static VOID SetupSetWizardButtons(
+VOID SetupSetWizardButtons(
     _In_ HWND WindowHandle,
     _In_ DWORD Buttons,
     _In_ BOOLEAN ShowBack,
@@ -1157,8 +1162,11 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PhCenterWindow(GetParent(WindowHandle), NULL);
-            SetupInitializeWizardTitleFont(WindowHandle, TRUE);
+            context->DialogHandle = WindowHandle;
+            context->ParentWindowHandle = GetParent(WindowHandle);
+
+            PhCenterWindow(context->ParentWindowHandle, NULL);
+            SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
             SetupLoadWelcomeBitmap(WindowHandle);
             SetupApplyDarkModeToPage(WindowHandle);
 
@@ -1166,7 +1174,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
 
             if (!PhGetOwnTokenAttributes().Elevated)
             {
-                Button_SetElevationRequiredState(GetDlgItem(GetParent(WindowHandle), IDC_PROPSHEET_NEXT), TRUE);
+                Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), TRUE);
             }
         }
         break;
@@ -1197,7 +1205,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                     {
                         if (!context->SetupIsLegacyUpdate && NT_SUCCESS(SetupLegacySetupInstalled()))
                         {
-                            SetupShowMessagePromptForLegacyVersion();
+                            //SetupShowMessagePromptForLegacyVersion();
                         }
                     }
                     else
@@ -1247,18 +1255,22 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
         SetupRedrawEditBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
-        if (SetupWizardDarkMode)
         {
-            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
-            return TRUE;
+            if (SetupWizardDarkMode)
+            {
+                SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+                return TRUE;
+            }
         }
         break;
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
-            return SetupHandleDarkControlColor(wParam, lParam);
+        {
+            if (SetupWizardDarkMode)
+                return SetupHandleDarkControlColor(wParam, lParam);
+        }
         break;
     case WM_NCDESTROY:
         SetupDestroyWizardPage(WindowHandle);
@@ -1292,7 +1304,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        SetupInitializeWizardTitleFont(WindowHandle, FALSE);
+        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
         SetDlgItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
     }
@@ -1421,9 +1433,10 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
     {
         LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
         context = (PPH_SETUP_CONTEXT)page->lParam;
+
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        SetupInitializeWizardTitleFont(WindowHandle, FALSE);
+        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
         SendMessage(GetDlgItem(WindowHandle, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 0);
     }
@@ -1471,12 +1484,12 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         break;
     case SETUP_SHOWFINAL:
         {
-            PropSheet_SetCurSel(GetParent(WindowHandle), NULL, SETUP_WIZARD_COMPLETED_PAGE_INDEX);
+            PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_COMPLETED_PAGE_INDEX);
         }
         break;
     case SETUP_SHOWERROR:
         {
-            PropSheet_SetCurSel(GetParent(WindowHandle), NULL, SETUP_WIZARD_ERROR_PAGE_INDEX);
+            PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_ERROR_PAGE_INDEX);
         }
         break;
     case WM_ERASEBKGND:
@@ -1525,7 +1538,7 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        SetupInitializeWizardTitleFont(WindowHandle, TRUE);
+        SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
         SetupApplyDarkModeToPage(WindowHandle);
         CheckDlgButton(WindowHandle, IDC_STARTAPP, BST_CHECKED);
         SetupLoadWelcomeBitmap(WindowHandle);
@@ -1576,10 +1589,12 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
         SetupRedrawEditBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
-        if (SetupWizardDarkMode)
         {
-            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
-            return TRUE;
+            if (SetupWizardDarkMode)
+            {
+                SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+                return TRUE;
+            }
         }
         break;
     case WM_CTLCOLORDLG:
@@ -1621,7 +1636,7 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
         context = (PPH_SETUP_CONTEXT)page->lParam;
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
-        SetupInitializeWizardTitleFont(WindowHandle, TRUE);
+        SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
         SetupApplyDarkModeToPage(WindowHandle);
         SetupLoadWelcomeBitmap(WindowHandle);
     }
@@ -1664,13 +1679,13 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
                     }
 
                     SetupSetWizardButtons(WindowHandle, PSWIZB_BACK, TRUE, FALSE, FALSE, TRUE);
-                    SetupSetWizardButtonText(GetParent(WindowHandle), IDC_PROPSHEET_BACK, L"Retry");
+                    SetupSetWizardButtonText(context->ParentWindowHandle, IDC_PROPSHEET_BACK, L"Retry");
                 }
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZBACK:
-                PropSheet_SetCurSel(GetParent(WindowHandle), NULL, 0);
+                PropSheet_SetCurSel(context->ParentWindowHandle, NULL, 0);
                 SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                 return TRUE;
             }
@@ -1734,7 +1749,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     case WM_DPICHANGED:
         {
             LRESULT result;
-            RECT *suggestedRect = (RECT *)lParam;
+            PRECT suggestedRect = (RECT *)lParam;
 
             SetWindowPos(
                 WindowHandle,
@@ -1755,8 +1770,6 @@ LRESULT CALLBACK PvpPropSheetWndProc(
 
             return result;
         }
-    case WM_SETFONT:
-        return 0;
     case WM_DESTROY:
         {
             SetupDeleteDarkMode();

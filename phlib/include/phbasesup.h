@@ -635,7 +635,11 @@ PhInitializeEvent(
     )
 {
     WriteULongPtrRelease(&Event->Value, PH_EVENT_REFCOUNT_INC);
-    WritePointerRelease(&Event->EventHandle, UlongToPtr(0));
+
+#pragma warning(push)
+#pragma warning(disable : 4201)
+    WritePointerRelease(&Event->EventHandle, NULL);
+#pragma warning(pop)
 }
 
 /**

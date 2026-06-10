@@ -452,7 +452,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }

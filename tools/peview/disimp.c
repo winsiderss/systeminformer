@@ -389,7 +389,8 @@ BOOLEAN PvReadIntegerAtVa(
 {
     PVOID va;
 
-    va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, Va, &va, NULL)))
+        va = NULL;
 
     if (!va)
     {
@@ -485,7 +486,8 @@ VOID PvReadStringAtVa(
 
     Buffer[0] = UNICODE_NULL;
 
-    va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, Va, &va, NULL)))
+        va = NULL;
 
     if (!va)
     {
@@ -527,7 +529,8 @@ BOOLEAN PvReadAnsiStringStructAtVa(
     ULONG_PTR bufferVa;
     USHORT length;
 
-    va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, Va, &va, NULL)))
+        va = NULL;
     if (!va)
     {
         dprintf("PvReadAnsiStringStructAtVa: Failed to map struct at 0x%llx\n", Va);
@@ -549,7 +552,9 @@ BOOLEAN PvReadAnsiStringStructAtVa(
 
     if (!bufferVa) return FALSE;
 
-    PVOID stringData = PhMappedImageVaToVa(&PvMappedImage, bufferVa, NULL);
+    PVOID stringData;
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, bufferVa, &stringData, NULL)))
+        stringData = NULL;
     if (!stringData)
     {
         dprintf("PvReadAnsiStringStructAtVa: Failed to map string data at 0x%llx\n", bufferVa);
@@ -573,7 +578,8 @@ BOOLEAN PvReadUnicodeStringStructAtVa(
     ULONG_PTR bufferVa;
     USHORT length;
 
-    va = PhMappedImageVaToVa(&PvMappedImage, Va, NULL);
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, Va, &va, NULL)))
+        va = NULL;
     if (!va)
     {
         dprintf("PvReadUnicodeStringStructAtVa: Failed to map struct at 0x%llx\n", Va);
@@ -595,7 +601,9 @@ BOOLEAN PvReadUnicodeStringStructAtVa(
 
     if (!bufferVa) return FALSE;
 
-    PVOID stringData = PhMappedImageVaToVa(&PvMappedImage, bufferVa, NULL);
+    PVOID stringData;
+    if (!NT_SUCCESS(PhMappedImageVaToVa(&PvMappedImage, bufferVa, &stringData, NULL)))
+        stringData = NULL;
     if (!stringData)
     {
         dprintf("PvReadUnicodeStringStructAtVa: Failed to map string data at 0x%llx\n", bufferVa);
@@ -1776,9 +1784,8 @@ VOID PvScanImageForPage(
 
         rva = section->VirtualAddress;
         sectionSize = section->Misc.VirtualSize ? section->Misc.VirtualSize : section->SizeOfRawData;
-        code = PhMappedImageRvaToVa(&PvMappedImage, rva, NULL);
 
-        if (!code || sectionSize < 8)
+        if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, rva, &code)) || sectionSize < 8)
         {
             continue;
         }
@@ -1890,13 +1897,16 @@ VOID PvScanImageForPage(
                         (ULONG64)operands[0].imm.value.u;
 
                     // Validate thunk VA against image base and 32-bit RVA range before casting.
-                    if (thunkVa >= imageBase) {
+                    if (thunkVa >= imageBase)
+                    {
                         ULONG64 delta = thunkVa - imageBase;
-                        if (delta <= UINT_MAX) {
-                            ULONG thunkRva = (ULONG)delta;
-                            PVOID thunkCode = PhMappedImageRvaToVa(&PvMappedImage, thunkRva, NULL);
 
-                            if (thunkCode)
+                        if (delta <= UINT_MAX)
+                        {
+                            ULONG thunkRva = (ULONG)delta;
+                            PVOID thunkCode;
+
+                            if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, thunkRva, &thunkCode)))
                             {
                                 ZydisDecodedInstruction thunkInstr;
                                 ZydisDecodedOperand thunkOps[ZYDIS_MAX_OPERAND_COUNT];

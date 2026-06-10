@@ -2592,8 +2592,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemShadowStackInformation,                           // q: SYSTEM_SHADOW_STACK_INFORMATION
     SystemBuildVersionInformation,                          // q: in: SYSTEM_BUILD_VERSION_INFORMATION_INPUT, out: SYSTEM_BUILD_VERSION_INFORMATION // NtQuerySystemInformationEx // CmQueryBuildVersionInformation
     SystemPoolLimitInformation,                             // q: SYSTEM_POOL_LIMIT_INFORMATION (requires SeIncreaseQuotaPrivilege) // NtQuerySystemInformationEx
-    SystemCodeIntegrityAddDynamicStore,                     // q: CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
-    SystemCodeIntegrityClearDynamicStores,                  // q: CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
+    SystemCodeIntegrityAddDynamicStore,                     // q: SYSTEM_CODE_INTEGRITY_DYNAMIC_STORE // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
+    SystemCodeIntegrityClearDynamicStores,                  // q: SYSTEM_CODE_INTEGRITY_DYNAMIC_STORE // CodeIntegrity-AllowConfigurablePolicy-CustomKernelSigners
     SystemDifPoolTrackingInformation,                       // s: SYSTEM_DIF_POOL_TRACKING_INFORMATION (requires SeDebugPrivilege)
     SystemPoolZeroingInformation,                           // q: SYSTEM_POOL_ZEROING_INFORMATION
     SystemDpcWatchdogInformation,                           // qs: SYSTEM_DPC_WATCHDOG_CONFIGURATION_INFORMATION
@@ -2609,8 +2609,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     SystemOriginalImageFeatureInformation,                  // q: in: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_INPUT, out: SYSTEM_ORIGINAL_IMAGE_FEATURE_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaInformation,                            // q: SYSTEM_MEMORY_NUMA_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_INFORMATION_OUTPUT // NtQuerySystemInformationEx
     SystemMemoryNumaPerformanceInformation,                 // q: SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_INPUT, SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT // since 24H2 // 240
-    SystemCodeIntegritySignedPoliciesFullInformation,       // qs: NtQuerySystemInformationEx
-    SystemSecureCoreInformation,                            // qs: SystemSecureSecretsInformation
+    SystemCodeIntegritySignedPoliciesFullInformation,       // qs: SYSTEM_CODE_INTEGRITY_SIGNED_POLICIES // NtQuerySystemInformationEx
+    SystemSecureCoreInformation,                            // qs: SYSTEM_SECURE_CORE_INFORMATION // SystemSecureSecretsInformation
     SystemTrustedAppsRuntimeInformation,                    // q: SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION
     SystemBadPageInformationEx,                             // q: SYSTEM_BAD_PAGE_INFORMATION
     SystemResourceDeadlockTimeout,                          // q: ULONG
@@ -7451,6 +7451,15 @@ typedef struct _SYSTEM_POOL_LIMIT_INFORMATION
     _Field_size_(EntryCount) SYSTEM_POOL_LIMIT_INFO LimitEntries[1];
 } SYSTEM_POOL_LIMIT_INFORMATION, *PSYSTEM_POOL_LIMIT_INFORMATION;
 
+// rev
+typedef struct _SYSTEM_CODE_INTEGRITY_DYNAMIC_STORE
+{
+    HANDLE StoreHandle;
+    ULONG StoreFlags;
+    PVOID StoreData;
+    SIZE_T StoreSize;
+} SYSTEM_CODE_INTEGRITY_DYNAMIC_STORE, *PSYSTEM_CODE_INTEGRITY_DYNAMIC_STORE;
+
 // private
 //typedef struct _SYSTEM_POOL_ZEROING_INFORMATION
 //{
@@ -7648,9 +7657,27 @@ typedef struct _SYSTEM_MEMORY_NUMA_PERFORMANCE_INFORMATION_OUTPUT
 typedef struct _SYSTEM_OSL_RAMDISK_ENTRY
 {
     ULONG BlockSize;
-    ULONG_PTR BaseAddress;
+    PVOID BaseAddress;
     SIZE_T Size;
 } SYSTEM_OSL_RAMDISK_ENTRY, *PSYSTEM_OSL_RAMDISK_ENTRY;
+
+// rev
+typedef struct _SYSTEM_CODE_INTEGRITY_SIGNED_POLICIES
+{
+    BOOLEAN EnabledPolicies;
+    ULONGLONG SignedPoliciesData;
+    ULONG PolicySize;
+    ULONG SignatureSize;
+    UCHAR SignatureBuffer[0x100]; 
+} SYSTEM_CODE_INTEGRITY_SIGNED_POLICIES, *PSYSTEM_CODE_INTEGRITY_SIGNED_POLICIES;
+
+// rev
+typedef struct _SYSTEM_SECURE_CORE_INFORMATION
+{
+    BOOLEAN IsSecureCore;
+    ULONGLONG SecureKernelRunning;
+    ULONGLONG VslFeatures;
+} SYSTEM_SECURE_CORE_INFORMATION, *PSYSTEM_SECURE_CORE_INFORMATION;
 
 /**
  * The SYSTEM_TRUSTEDAPPS_RUNTIME_INFORMATION structure describes runtime

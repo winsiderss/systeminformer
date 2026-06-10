@@ -878,30 +878,63 @@ namespace CustomBuildTool
             }
 
             //
-            // Copy headers
+            // Determine active build flavors (one per matching config x arch in Flags).
+            // Each flavor gets its own sdk\include\<flavor>\ and sdk\lib\<flavor>\ tree
+            // so concurrent post-builds across configs/platforms cannot race.
+            //
+            // N.B. The flavor token must match the MSBuild $(Configuration)$(PlatformArchitecture)
+            // value used by the SDK consumers (e.g. plugins\Plugins.props), which resolves to
+            // "Debug64" / "Release64" / "DebugARM64" / etc. - i.e. the sourceDirectory field.
+            // It is NOT the CustomBuildTool architecture token (amd64/i386/arm64).
+            //
+
+            var activeFlavors = new List<(string flavorToken, string sourceDirectory, string targetArchitecture)>();
+
+            foreach (var configurationEntry in configurationsMap)
+            {
+                if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
+                {
+                    activeFlavors.Add((configurationEntry.Value.sourceDirectory, configurationEntry.Value.sourceDirectory, configurationEntry.Value.targetArchitecture));
+                }
+            }
+
+            foreach (var flavor in activeFlavors)
+            {
+                Win32.CreateDirectory(Path.Join(["sdk\\include", flavor.flavorToken]));
+                Win32.CreateDirectory(Path.Join(["sdk\\lib", flavor.flavorToken]));
+            }
+
+            //
+            // Copy headers (per-flavor, so concurrent post-builds don't share destinations).
             //
 
             //foreach (string headerFileName in BuildConfig.Build_Phnt_Headers)
             //{
-            //    Win32.CopyIfNewer(
-            //        Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", headerFileName]),
-            //        Path.Join([Build.BuildWorkingFolder, "\\sdk\\include\\", headerFileName]),
-            //        Flags, true);
+            //    foreach (var flavor in activeFlavors)
+            //    {
+            //        Win32.CopyIfNewer(
+            //            Path.Join([Build.BuildWorkingFolder, "\\phnt\\include\\", headerFileName]),
+            //            Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, headerFileName]),
+            //            Flags, true);
+            //    }
             //}
 
-            foreach (string headerFileName in BuildConfig.Build_Phlib_Headers)
+            foreach (var flavor in activeFlavors)
             {
-                Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "phlib\\include", headerFileName]),
-                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", headerFileName]),
-                    Flags, true);
-            }
-            foreach (string headerFileName in BuildConfig.Build_Kphlib_Headers)
-            {
-                Win32.CopyIfNewer(
-                    Path.Join([Build.BuildWorkingFolder, "kphlib\\include", headerFileName]),
-                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", headerFileName]),
-                    Flags, true);
+                foreach (string headerFileName in BuildConfig.Build_Phlib_Headers)
+                {
+                    Win32.CopyIfNewer(
+                        Path.Join([Build.BuildWorkingFolder, "phlib\\include", headerFileName]),
+                        Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, headerFileName]),
+                        Flags, true);
+                }
+                foreach (string headerFileName in BuildConfig.Build_Kphlib_Headers)
+                {
+                    Win32.CopyIfNewer(
+                        Path.Join([Build.BuildWorkingFolder, "kphlib\\include", headerFileName]),
+                        Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, headerFileName]),
+                        Flags, true);
+                }
             }
 
             //
@@ -914,22 +947,19 @@ namespace CustomBuildTool
                 Flags, true);
 
             //
-            // Copy files
+            // Copy libs (per-flavor)
             //
 
             foreach (string fileName in buildSdkFiles)
             {
-                foreach (var configurationEntry in configurationsMap)
+                foreach (var flavor in activeFlavors)
                 {
-                    if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
-                    {
-                        Win32.CopyIfNewer(
-                            Path.Join([baseDirectory, configurationEntry.Value.sourceDirectory, fileName]),
-                            Path.Join([Build.BuildWorkingFolder, $"sdk\\lib\\{configurationEntry.Value.targetArchitecture}\\", fileName]),
-                            Flags,
-                            true
-                            );
-                    }
+                    Win32.CopyIfNewer(
+                        Path.Join([baseDirectory, flavor.sourceDirectory, fileName]),
+                        Path.Join([Build.BuildWorkingFolder, "sdk\\lib", flavor.flavorToken, fileName]),
+                        Flags,
+                        true
+                        );
                 }
             }
 
@@ -940,26 +970,29 @@ namespace CustomBuildTool
             HeaderGen.Execute();
 
             //
-            // Copy the SDK headers
+            // Copy the SDK headers (per-flavor)
             //
 
-            Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\include\\phappres.h"]),
-                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappres.h"]),
-                Flags, true);
+            foreach (var flavor in activeFlavors)
+            {
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "SystemInformer\\include\\phappres.h"]),
+                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, "phappres.h"]),
+                    Flags, true);
 
-            Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phapppub.h"]),
-                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phapppub.h"]),
-                Flags, true);
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phapppub.h"]),
+                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, "phapppub.h"]),
+                    Flags, true);
 
-            Win32.CopyIfNewer(
-                Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phdk.h"]),
-                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phdk.h"]),
-                Flags, true);
+                Win32.CopyIfNewer(
+                    Path.Join([Build.BuildWorkingFolder, "SystemInformer\\sdk\\phdk.h"]),
+                    Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, "phdk.h"]),
+                    Flags, true);
+            }
 
             //
-            // Copy the resource header and prefix types with PHAPP for the SDK
+            // Copy the resource header and prefix types with PHAPP for the SDK (per-flavor)
             //
 
             Win32.GetFileBasicInfo(
@@ -969,27 +1002,31 @@ namespace CustomBuildTool
                 out _
                 );
 
-            Win32.GetFileBasicInfo(
-                Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]),
-                out var targetCreationTime,
-                out var targetWriteTime,
-                out var targetAttributes
-                );
-
-            if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
+            foreach (var flavor in activeFlavors)
             {
-                string resourceContent = Utils.ReadAllText(Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]));
-                string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
+                string phappresourcePath = Path.Join([Build.BuildWorkingFolder, "sdk\\include", flavor.flavorToken, "phappresource.h"]);
 
-                if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
+                Win32.GetFileBasicInfo(
+                    phappresourcePath,
+                    out var targetCreationTime,
+                    out var targetWriteTime,
+                    out var targetAttributes
+                    );
+
+                if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
                 {
-                    if ((targetAttributes & FileAttributes.ReadOnly) != 0)
-                        File.SetAttributes(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), FileAttributes.Normal);
-                    Utils.WriteAllText(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), targetContent);
-                }
+                    string resourceContent = Utils.ReadAllText(Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]));
+                    string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
 
-                Win32.SetFileBasicInfo(Path.Join([Build.BuildWorkingFolder, "sdk\\include\\phappresource.h"]), sourceCreationTime, sourceWriteTime, true);
-                //Win32.CopyIfNewer("SystemInformer\\resource.h", "sdk\\include\\phappresource.h", Flags);
+                    if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if ((targetAttributes & FileAttributes.ReadOnly) != 0)
+                            File.SetAttributes(phappresourcePath, FileAttributes.Normal);
+                        Utils.WriteAllText(phappresourcePath, targetContent);
+                    }
+
+                    Win32.SetFileBasicInfo(phappresourcePath, sourceCreationTime, sourceWriteTime, true);
+                }
             }
 
             return true;
@@ -1649,6 +1686,99 @@ namespace CustomBuildTool
             return commandLineBuilder.ToString();
         }
 
+        public static bool BuildMessageHeaders(string OutputDirectory)
+        {
+            string messageCompiler = Utils.GetMessageCompilerPath();
+
+            if (string.IsNullOrWhiteSpace(messageCompiler))
+            {
+                Program.PrintColorMessage("[ERROR] mc.exe (Windows SDK Message Compiler) was not found.", ConsoleColor.Red);
+                return false;
+            }
+
+            string sourceFile = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\sistatus.mc"]));
+
+            Win32.CreateDirectory(OutputDirectory);
+
+            // Mirror the <MessageCompile> metadata in kphlib_km.vcxproj:
+            //   -c SetCustomerbit, -u UnicodeInputFile, -U UnicodeMessageInBinFile,
+            //   -n TerminateMessageWithNull, -b basename prefix (sistatus_MSG00001.bin).
+            int exitcode = Win32.CreateProcess(
+                messageCompiler,
+                $"-c -u -U -n -b -h \"{OutputDirectory}\" -r \"{OutputDirectory}\" \"{sourceFile}\"",
+                out string outputString
+                );
+
+            if (exitcode != 0)
+            {
+                Program.PrintColorMessage($"[ERROR] mc.exe ({exitcode}) {outputString}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Compiles kphlib\sistatus.mc into per-configuration headers and resources using the
+        /// Windows SDK Message Compiler (mc.exe). The kernelmode build uses the WDK MessageCompile
+        /// task; this provides the equivalent output for the usermode build (which has no WDK) and
+        /// writes each flavor into kphlib\bin\&lt;Configuration&gt;&lt;Architecture&gt;\ so the
+        /// parallel matrix build does not race on a shared output file.
+        /// </summary>
+        public static bool BuildMessageHeaders(BuildFlags Flags)
+        {
+            string messageCompiler = Utils.GetMessageCompilerPath();
+
+            if (string.IsNullOrWhiteSpace(messageCompiler))
+            {
+                Program.PrintColorMessage("[ERROR] mc.exe (Windows SDK Message Compiler) was not found.", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                return false;
+            }
+
+            string sourceFile = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\sistatus.mc"]));
+
+            List<(string Configuration, string Architecture)> flavors = new List<(string, string)>();
+
+            foreach (string configuration in new[] { "Debug", "Release" })
+            {
+                if (configuration == "Debug" && !Flags.HasFlag(BuildFlags.BuildDebug))
+                    continue;
+                if (configuration == "Release" && !Flags.HasFlag(BuildFlags.BuildRelease))
+                    continue;
+
+                if (Flags.HasFlag(BuildFlags.Build32bit))
+                    flavors.Add((configuration, "32"));
+                if (Flags.HasFlag(BuildFlags.Build64bit))
+                    flavors.Add((configuration, "64"));
+                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                    flavors.Add((configuration, "ARM64"));
+            }
+
+            foreach ((string Configuration, string Architecture) flavor in flavors)
+            {
+                string outputDirectory = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\bin", $"{flavor.Configuration}{flavor.Architecture}"]));
+
+                Win32.CreateDirectory(outputDirectory);
+
+                // Mirror the <MessageCompile> metadata in kphlib_km.vcxproj:
+                //   -c SetCustomerbit, -u UnicodeInputFile, -U UnicodeMessageInBinFile,
+                //   -n TerminateMessageWithNull, -b basename prefix (sistatus_MSG00001.bin).
+                int exitcode = Win32.CreateProcess(
+                    messageCompiler,
+                    $"-c -u -U -n -b -h \"{outputDirectory}\" -r \"{outputDirectory}\" \"{sourceFile}\"",
+                    out string outputString
+                    );
+
+                if (exitcode != 0)
+                {
+                    Program.PrintColorMessage($"[ERROR] mc.exe ({exitcode}) {outputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public static bool BuildSolutionParallel(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
         {
             if (SkipArm64)
@@ -1658,6 +1788,17 @@ namespace CustomBuildTool
             else if (!Build.TryNormalizeBuildFlags(ref Flags, true))
             {
                 return false;
+            }
+
+            //
+            // The usermode build does not have the WDK MessageCompile build customization,
+            // so generate the per-configuration sistatus.* headers here using the Windows
+            // SDK mc.exe before building the SystemInformer solution.
+            //
+            if (Solution.Contains("SystemInformer.sln", StringComparison.OrdinalIgnoreCase))
+            {
+                if (!BuildMessageHeaders(Flags))
+                    return false;
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
@@ -1822,6 +1963,14 @@ namespace CustomBuildTool
 
             if (toolchainList.Count == 0)
                 return true;
+
+            //
+            // Generate the per-configuration sistatus.* headers up front (sequentially)
+            // so the parallel CMake toolchain builds do not race to produce them. The
+            // CMake build has no WDK MessageCompile task, so this uses the SDK mc.exe.
+            //
+            if (!BuildMessageHeaders(Flags))
+                return false;
 
             bool allOk = true;
             Parallel.ForEach(toolchainList, new ParallelOptions { MaxDegreeOfParallelism = toolchainList.Count }, tc =>

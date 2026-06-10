@@ -1401,7 +1401,7 @@ PPV_SYMBOL_NODE PePdbCreateDiaSymbolNode(
     {
         PIMAGE_SECTION_HEADER directorySection = NULL;
 
-        PhMappedImageRvaToVa(&PvMappedImage, symbolRva, &directorySection);
+        PhMappedImageRvaToSection(&PvMappedImage, symbolRva, &directorySection);
 
         if (directorySection)
         {

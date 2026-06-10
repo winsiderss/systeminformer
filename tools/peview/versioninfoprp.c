@@ -593,7 +593,7 @@ INT_PTR CALLBACK PvpPeVersionInfoDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
         }

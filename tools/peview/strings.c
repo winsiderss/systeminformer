@@ -168,7 +168,8 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
-    section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase));
+    if (!NT_SUCCESS(PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase), &section)))
+        section = NULL;
     if (section)
     {
         PhCopyStringZFromUtf8(
@@ -211,8 +212,7 @@ NTSTATUS PvpSearchStringsThread(
         FLOAT entropy;
 
         section = &PvMappedImage.Sections[i];
-        sectionData = PhMappedImageRvaToVa(&PvMappedImage, section->VirtualAddress, NULL);
-        if (!sectionData)
+        if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, section->VirtualAddress, &sectionData)))
             continue;
 
         if (Context->Settings.SkipTextSection &&
@@ -497,7 +497,7 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(SectionName),
@@ -506,7 +506,7 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
                     SORT_FUNCTION(Length),
                     SORT_FUNCTION(String),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -517,11 +517,19 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
 
                 if (sortFunction)
                 {
-                    qsort_s(context->NodeList->Items, context->NodeList->Count, sizeof(PVOID), sortFunction, context);
+                    qsort_s(context->NodeRootList->Items, context->NodeRootList->Count, sizeof(PVOID), sortFunction, context);
                 }
 
-                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeList->Items;
-                getChildren->NumberOfChildren = context->NodeList->Count;
+                getChildren->Children = (PPH_TREENEW_NODE *)context->NodeRootList->Items;
+                getChildren->NumberOfChildren = context->NodeRootList->Count;
+            }
+            else
+            {
+                if (node->Type == PV_STRINGS_NODE_TYPE_CATEGORY)
+                {
+                    getChildren->Children = (PPH_TREENEW_NODE *)node->Children->Items;
+                    getChildren->NumberOfChildren = node->Children->Count;
+                }
             }
         }
         return TRUE;
@@ -530,7 +538,10 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
             node = (PPV_STRINGS_NODE)isLeaf->Node;
 
-            isLeaf->IsLeaf = TRUE;
+            if (node->Type == PV_STRINGS_NODE_TYPE_CATEGORY)
+                isLeaf->IsLeaf = FALSE;
+            else
+                isLeaf->IsLeaf = TRUE;
         }
         return TRUE;
     case TreeNewGetCellText:
@@ -905,9 +916,10 @@ INT_PTR CALLBACK PvStringsDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:

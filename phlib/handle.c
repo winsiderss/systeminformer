@@ -17,6 +17,11 @@ static PH_INITONCE PhHandleTableInitOnce = PH_INITONCE_INIT;
 static PH_FREE_LIST PhHandleTableLevel0FreeList;
 static PH_FREE_LIST PhHandleTableLevel1FreeList;
 
+/**
+ * Creates a handle table.
+ *
+ * \return A pointer to the newly created handle table.
+ */
 PPH_HANDLE_TABLE PhCreateHandleTable(
     VOID
     )
@@ -81,6 +86,11 @@ PPH_HANDLE_TABLE PhCreateHandleTable(
     return handleTable;
 }
 
+/**
+ * Destroys a handle table.
+ *
+ * \param HandleTable A pointer to the handle table to destroy.
+ */
 VOID PhDestroyHandleTable(
     _In_ _Post_invalid_ PPH_HANDLE_TABLE HandleTable
     )
@@ -151,6 +161,12 @@ VOID PhDestroyHandleTable(
     PhFree(HandleTable);
 }
 
+/**
+ * Blocks the current thread until a handle table entry is unlocked.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleTableEntry A pointer to the handle table entry to wait on.
+ */
 VOID PhpBlockOnLockedHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
@@ -177,6 +193,14 @@ VOID PhpBlockOnLockedHandleTableEntry(
     }
 }
 
+/**
+ * Locks a handle table entry.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleTableEntry A pointer to the handle table entry to lock.
+ *
+ * \return TRUE if the entry was locked successfully, otherwise FALSE.
+ */
 BOOLEAN PhLockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
@@ -207,6 +231,12 @@ BOOLEAN PhLockHandleTableEntry(
     }
 }
 
+/**
+ * Unlocks a handle table entry.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleTableEntry A pointer to the handle table entry to unlock.
+ */
 VOID PhUnlockHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _Inout_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
@@ -219,6 +249,14 @@ VOID PhUnlockHandleTableEntry(
     PhSetWakeEvent(&HandleTable->HandleWakeEvent, NULL);
 }
 
+/**
+ * Creates a handle in a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleTableEntry A pointer to the handle table entry to copy into the new handle.
+ *
+ * \return The newly created handle, or NULL if the handle could not be created.
+ */
 HANDLE PhCreateHandle(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _In_ PPH_HANDLE_TABLE_ENTRY HandleTableEntry
@@ -247,6 +285,16 @@ HANDLE PhCreateHandle(
     return PhpEncodeHandle(handleValue);
 }
 
+/**
+ * Destroys a handle in a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Handle The handle to destroy.
+ * \param HandleTableEntry An optional pointer to the handle table entry. If this is NULL, the
+ * entry is looked up using the handle.
+ *
+ * \return TRUE if the handle was destroyed, otherwise FALSE.
+ */
 BOOLEAN PhDestroyHandle(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _In_ HANDLE Handle,
@@ -282,6 +330,14 @@ BOOLEAN PhDestroyHandle(
     return TRUE;
 }
 
+/**
+ * Looks up a handle table entry in a handle table and locks it.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Handle The handle to look up.
+ *
+ * \return A pointer to the locked handle table entry, or NULL if the handle was not found.
+ */
 PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ HANDLE Handle
@@ -300,6 +356,13 @@ PPH_HANDLE_TABLE_ENTRY PhLookupHandleTableEntry(
     return entry;
 }
 
+/**
+ * Enumerates all handles in a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Callback A callback function called for each handle.
+ * \param Context A user-defined context passed to the callback function.
+ */
 VOID PhEnumHandleTable(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
@@ -332,6 +395,13 @@ VOID PhEnumHandleTable(
     }
 }
 
+/**
+ * Enumerates all handles in a handle table without locking them.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Callback A callback function called for each handle.
+ * \param Context A user-defined context passed to the callback function.
+ */
 VOID PhSweepHandleTable(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ PPH_ENUM_HANDLE_TABLE_CALLBACK Callback,
@@ -363,6 +433,17 @@ VOID PhSweepHandleTable(
     }
 }
 
+/**
+ * Queries information about a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param InformationClass The information class to query.
+ * \param Buffer A buffer which receives the information.
+ * \param BufferLength The length of the buffer.
+ * \param ReturnLength A pointer to a variable which receives the number of bytes returned.
+ *
+ * \return Successful NTSTATUS, or an error code.
+ */
 NTSTATUS PhQueryInformationHandleTable(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
@@ -422,6 +503,16 @@ NTSTATUS PhQueryInformationHandleTable(
     return status;
 }
 
+/**
+ * Sets information for a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param InformationClass The information class to set.
+ * \param Buffer A buffer which contains the information.
+ * \param BufferLength The length of the buffer.
+ *
+ * \return Successful NTSTATUS, or an error code.
+ */
 NTSTATUS PhSetInformationHandleTable(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _In_ PH_HANDLE_TABLE_INFORMATION_CLASS InformationClass,
@@ -460,6 +551,15 @@ NTSTATUS PhSetInformationHandleTable(
     return status;
 }
 
+/**
+ * Allocates a handle table entry.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleValue A pointer to a variable which receives the handle value.
+ *
+ * \return A pointer to the newly allocated handle table entry, or NULL if the entry could not be
+ * allocated.
+ */
 PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _Out_ PULONG HandleValue
@@ -571,6 +671,13 @@ PPH_HANDLE_TABLE_ENTRY PhpAllocateHandleTableEntry(
     return entry;
 }
 
+/**
+ * Frees a handle table entry.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleValue The handle value of the entry.
+ * \param HandleTableEntry A pointer to the handle table entry to free.
+ */
 VOID PhpFreeHandleTableEntry(
     _Inout_ PPH_HANDLE_TABLE HandleTable,
     _In_ ULONG HandleValue,
@@ -615,6 +722,14 @@ VOID PhpFreeHandleTableEntry(
     }
 }
 
+/**
+ * Allocates more handle table entries.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Initialize Whether to initialize the new entries and add them to the free list.
+ *
+ * \return TRUE if more entries were allocated, otherwise FALSE.
+ */
 BOOLEAN PhpAllocateMoreHandleTableEntries(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ BOOLEAN Initialize
@@ -828,6 +943,14 @@ BOOLEAN PhpAllocateMoreHandleTableEntries(
     return TRUE;
 }
 
+/**
+ * Looks up a handle table entry in a handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param HandleValue The handle value to look up.
+ *
+ * \return A pointer to the handle table entry, or NULL if the handle was not found.
+ */
 PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ ULONG HandleValue
@@ -881,6 +1004,14 @@ PPH_HANDLE_TABLE_ENTRY PhpLookupHandleTableEntry(
     return entry;
 }
 
+/**
+ * Moves all entries from the alternative free list to the main free list.
+ *
+ * \param HandleTable A pointer to the handle table.
+ *
+ * \return The handle value of the first entry moved, or PH_HANDLE_VALUE_INVALID if no entries were
+ * moved.
+ */
 ULONG PhpMoveFreeHandleTableEntries(
     _Inout_ PPH_HANDLE_TABLE HandleTable
     )
@@ -978,6 +1109,15 @@ ULONG PhpMoveFreeHandleTableEntries(
     return index;
 }
 
+/**
+ * Creates a level 0 handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ * \param Initialize Whether to initialize the table.
+ *
+ * \return A pointer to the newly created level 0 table, or NULL if the table could not be
+ * allocated.
+ */
 PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
     _In_ PPH_HANDLE_TABLE HandleTable,
     _In_ BOOLEAN Initialize
@@ -1020,6 +1160,11 @@ PPH_HANDLE_TABLE_ENTRY PhpCreateHandleTableLevel0(
     return table;
 }
 
+/**
+ * Frees a level 0 handle table.
+ *
+ * \param Table A pointer to the level 0 table to free.
+ */
 VOID PhpFreeHandleTableLevel0(
     _In_ PPH_HANDLE_TABLE_ENTRY Table
     )
@@ -1027,6 +1172,14 @@ VOID PhpFreeHandleTableLevel0(
     PhFreeToFreeList(&PhHandleTableLevel0FreeList, Table);
 }
 
+/**
+ * Creates a level 1 handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ *
+ * \return A pointer to the newly created level 1 table, or NULL if the table could not be
+ * allocated.
+ */
 PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
     _In_ PPH_HANDLE_TABLE HandleTable
     )
@@ -1051,6 +1204,11 @@ PPH_HANDLE_TABLE_ENTRY *PhpCreateHandleTableLevel1(
     return table;
 }
 
+/**
+ * Frees a level 1 handle table.
+ *
+ * \param Table A pointer to the level 1 table to free.
+ */
 VOID PhpFreeHandleTableLevel1(
     _In_ PPH_HANDLE_TABLE_ENTRY *Table
     )
@@ -1058,6 +1216,14 @@ VOID PhpFreeHandleTableLevel1(
     PhFreeToFreeList(&PhHandleTableLevel1FreeList, Table);
 }
 
+/**
+ * Creates a level 2 handle table.
+ *
+ * \param HandleTable A pointer to the handle table.
+ *
+ * \return A pointer to the newly created level 2 table, or NULL if the table could not be
+ * allocated.
+ */
 PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
     _In_ PPH_HANDLE_TABLE HandleTable
     )
@@ -1078,6 +1244,11 @@ PPH_HANDLE_TABLE_ENTRY **PhpCreateHandleTableLevel2(
     return table;
 }
 
+/**
+ * Frees a level 2 handle table.
+ *
+ * \param Table A pointer to the level 2 table to free.
+ */
 VOID PhpFreeHandleTableLevel2(
     _In_ PPH_HANDLE_TABLE_ENTRY **Table
     )

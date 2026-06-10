@@ -478,7 +478,14 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             PvConfigTreeBorders(context->TreeNewHandle);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingImportsText, 0);
-            TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(hwndDlg)));
+            {
+                ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+                if (treelistCustomRowSize && treelistCustomRowSize < 15)
+                    treelistCustomRowSize = 15;
+
+                TreeNew_SetRowHeight(context->TreeNewHandle, treelistCustomRowSize);
+            }
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -508,7 +515,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

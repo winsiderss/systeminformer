@@ -499,6 +499,12 @@ NTSTATUS PhGetKernelFileNameEx(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets the file name of the secure kernel image.
+ *
+ * \return A pointer to a string containing the secure kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
 PPH_STRING PhGetSecureKernelFileName(
     VOID
     )
@@ -543,6 +549,15 @@ PPH_STRING PhGetSecureKernelFileName(
     return fileName;
 }
 
+/**
+ * Internal function for enumerating the modules loaded by a process.
+ *
+ * \param ProcessHandle Handle to the process to enumerate.
+ * \param Callback A callback function which is executed for each process module.
+ * \param Context1 A user-defined value to pass to the callback function.
+ * \param Context2 A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_MODULES_CALLBACK Callback,
@@ -651,6 +666,17 @@ NTSTATUS PhpEnumProcessModules(
     return status;
 }
 
+/**
+ * Internal callback function for process module enumeration.
+ *
+ * \param ProcessHandle Handle to the process being enumerated.
+ * \param Entry Pointer to the loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to enumeration parameters.
+ * \param Context2 Unused.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
@@ -845,6 +871,17 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
     ULONG LoadCount;
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
+/**
+ * Internal callback function for setting module load counts.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Entry Pointer to the loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to the context structure containing search and update information.
+ * \param Context2 Unused.
+ * \return BOOLEAN FALSE if the module was found and updated (stops enumeration), TRUE otherwise.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     _In_ HANDLE ProcessHandle,
@@ -909,6 +946,15 @@ NTSTATUS PhSetProcessModuleLoadCount(
     return context.Status;
 }
 
+/**
+ * Internal function for enumerating the 32-bit modules loaded by a process.
+ *
+ * \param ProcessHandle Handle to the process to enumerate.
+ * \param Callback A callback function which is executed for each process module.
+ * \param Context1 A user-defined value to pass to the callback function.
+ * \param Context2 A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumProcessModules32(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_MODULES_CALLBACK Callback,
@@ -1017,6 +1063,17 @@ NTSTATUS PhpEnumProcessModules32(
     return status;
 }
 
+/**
+ * Internal callback function for 32-bit process module enumeration.
+ *
+ * \param ProcessHandle Handle to the process being enumerated.
+ * \param Entry Pointer to the 32-bit loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to enumeration parameters.
+ * \param Context2 Unused.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
@@ -1187,6 +1244,9 @@ BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     {
         LDR_DDAG_NODE32 ldrDagNode32 = { 0 };
 
+        // Propagate the DDAG node identity so the dependency lists can be resolved later.
+        nativeEntry.DdagNode = UlongToPtr(Entry->DdagNode);
+
         if (NT_SUCCESS(PhReadVirtualMemory(
             ProcessHandle,
             UlongToPtr(Entry->DdagNode),
@@ -1271,6 +1331,17 @@ NTSTATUS PhEnumProcessModules32Ex(
         );
 }
 
+/**
+ * Internal callback function for setting 32-bit module load counts.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Entry Pointer to the 32-bit loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to the context structure containing search and update information.
+ * \param Context2 Unused.
+ * \return BOOLEAN FALSE if the module was found and updated (stops enumeration), TRUE otherwise.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
@@ -1357,6 +1428,13 @@ ULONG PhGetRtlModuleType(
     return PH_MODULE_TYPE_MODULE;
 }
 
+/**
+ * Internal callback function for generic process module enumeration.
+ *
+ * \param Module Pointer to the loader data table entry.
+ * \param Context Pointer to the enumeration context.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_PROCESS_MODULES_CALLBACK)
 static BOOLEAN EnumGenericProcessModulesCallback(
     _In_ PLDR_DATA_TABLE_ENTRY Module,
@@ -1406,6 +1484,14 @@ static BOOLEAN EnumGenericProcessModulesCallback(
     return result;
 }
 
+/**
+ * Converts RTL process module information to generic module information.
+ *
+ * \param Modules Pointer to the RTL process modules structure.
+ * \param Callback A callback function which is executed for each module.
+ * \param BaseAddressHashtable A hashtable used to track unique base addresses.
+ * \param Context A user-defined value to pass to the callback function.
+ */
 VOID PhpRtlModulesToGenericModules(
     _In_ PRTL_PROCESS_MODULES Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
@@ -1467,6 +1553,14 @@ VOID PhpRtlModulesToGenericModules(
     }
 }
 
+/**
+ * Converts extended RTL process module information to generic module information.
+ *
+ * \param Modules Pointer to the extended RTL process modules information.
+ * \param Callback A callback function which is executed for each module.
+ * \param BaseAddressHashtable A hashtable used to track unique base addresses.
+ * \param Context A user-defined value to pass to the callback function.
+ */
 static VOID PhpRtlModulesExToGenericModules(
     _In_ PRTL_PROCESS_MODULE_INFORMATION_EX Modules,
     _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
@@ -1526,6 +1620,17 @@ static VOID PhpRtlModulesExToGenericModules(
     }
 }
 
+/**
+ * Internal helper to execute the generic module callback for a mapped file or image.
+ *
+ * \param AllocationBase The base address of the mapping.
+ * \param AllocationSize The size of the mapping.
+ * \param Type The type of the mapping (PH_MODULE_TYPE_MAPPED_FILE or PH_MODULE_TYPE_MAPPED_IMAGE).
+ * \param FileName The file name of the mapping.
+ * \param Callback The generic module callback.
+ * \param Context The user context for the callback.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 static BOOLEAN PhpCallbackMappedFileOrImage(
     _In_ PVOID AllocationBase,
     _In_ SIZE_T AllocationSize,
@@ -1561,86 +1666,135 @@ static BOOLEAN PhpCallbackMappedFileOrImage(
     return result;
 }
 
-//typedef struct _PH_ENUM_MAPPED_MODULES_PARAMETERS
-//{
-//    PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
-//    PVOID Context;
-//    PPH_HASHTABLE BaseAddressHashtable;
-//} PH_ENUM_MAPPED_MODULES_PARAMETERS, *PPH_ENUM_MAPPED_MODULES_PARAMETERS;
-//
-//NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
-//    _In_ HANDLE ProcessHandle,
-//    _In_ PMEMORY_BASIC_INFORMATION MemoryBasicInfo,
-//    _In_ SIZE_T Count,
-//    _In_ PPH_ENUM_MAPPED_MODULES_PARAMETERS Parameters
-//    )
-//{
-//    ULONG type;
-//    PPH_STRING fileName;
-//
-//    for (SIZE_T i = 0; i < Count; i++)
-//    {
-//        PMEMORY_BASIC_INFORMATION basicInfo = &MemoryBasicInfo[i];
-//
-//        if (basicInfo->Type == MEM_MAPPED || basicInfo->Type == MEM_IMAGE)
-//        {
-//            if (basicInfo->Type == MEM_MAPPED)
-//                type = PH_MODULE_TYPE_MAPPED_FILE;
-//            else
-//                type = PH_MODULE_TYPE_MAPPED_IMAGE;
-//
-//            if (!PhFindEntryHashtable(Parameters->BaseAddressHashtable, &basicInfo->AllocationBase))
-//            {
-//                if (NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, basicInfo->AllocationBase, &fileName)))
-//                {
-//                    PhAddEntryHashtable(Parameters->BaseAddressHashtable, &basicInfo->AllocationBase);
-//
-//                    if (!PhpCallbackMappedFileOrImage(
-//                        basicInfo->AllocationBase,
-//                        basicInfo->RegionSize,
-//                        type,
-//                        fileName,
-//                        Parameters->Callback,
-//                        Parameters->Context
-//                        ))
-//                    {
-//                        break;
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-//    return STATUS_SUCCESS;
-//}
-//
-//VOID PhpEnumGenericBulkMappedFilesAndImages(
-//    _In_ HANDLE ProcessHandle,
-//    _In_ ULONG Flags,
-//    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
-//    _In_ PPH_HASHTABLE BaseAddressHashtable,
-//    _In_opt_ PVOID Context
-//    )
-//{
-//    PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
-//
-//    memset(&enumParameters, 0, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
-//    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
-//    enumParameters.Callback = Callback;
-//    enumParameters.Context = Context;
-//
-//    if (NT_SUCCESS(PhEnumVirtualMemoryBulk(
-//        ProcessHandle,
-//        NULL,
-//        FALSE,
-//        PhpEnumGenericMappedFilesAndImagesBulk,
-//        &enumParameters
-//        )))
-//    {
-//        return;
-//    }
-//}
+typedef struct _PH_ENUM_MAPPED_MODULES_PARAMETERS
+{
+    ULONG Flags;
+    PPH_ENUM_GENERIC_MODULES_CALLBACK Callback;
+    PVOID Context;
+    PPH_HASHTABLE BaseAddressHashtable;
+} PH_ENUM_MAPPED_MODULES_PARAMETERS, *PPH_ENUM_MAPPED_MODULES_PARAMETERS;
 
+/**
+ * Internal bulk memory enumeration callback for identifying mapped files and images.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param BasicInfo Array of memory basic information structures.
+ * \param Count Number of elements in the BasicInfo array.
+ * \param Context Pointer to the enumeration parameters.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Function_class_(PH_ENUM_MEMORY_BULK_CALLBACK)
+static NTSTATUS NTAPI PhpEnumGenericMappedFilesAndImagesBulk(
+    _In_ HANDLE ProcessHandle,
+    _In_ PMEMORY_BASIC_INFORMATION BasicInfo,
+    _In_ SIZE_T Count,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_ENUM_MAPPED_MODULES_PARAMETERS parameters = Context;
+    SIZE_T i = 0;
+
+    while (i < Count)
+    {
+        if (BasicInfo[i].Type == MEM_MAPPED || BasicInfo[i].Type == MEM_IMAGE)
+        {
+            PVOID allocationBase;
+            SIZE_T allocationSize;
+            ULONG type;
+            PPH_STRING fileName;
+
+            type = (BasicInfo[i].Type == MEM_MAPPED) ? PH_MODULE_TYPE_MAPPED_FILE : PH_MODULE_TYPE_MAPPED_IMAGE;
+            allocationBase = BasicInfo[i].AllocationBase;
+            allocationSize = 0;
+
+            do
+            {
+                allocationSize += BasicInfo[i].RegionSize;
+                i++;
+            } while (i < Count && BasicInfo[i].AllocationBase == allocationBase);
+
+            if ((type == PH_MODULE_TYPE_MAPPED_FILE && !(parameters->Flags & PH_ENUM_GENERIC_MAPPED_FILES)) ||
+                (type == PH_MODULE_TYPE_MAPPED_IMAGE && !(parameters->Flags & PH_ENUM_GENERIC_MAPPED_IMAGES)))
+            {
+                continue;
+            }
+
+            if (PhFindEntryHashtable(parameters->BaseAddressHashtable, &allocationBase))
+                continue;
+
+            if (!NT_SUCCESS(PhGetProcessMappedFileName(ProcessHandle, allocationBase, &fileName)))
+                continue;
+
+            PhAddEntryHashtable(parameters->BaseAddressHashtable, &allocationBase);
+
+            if (!PhpCallbackMappedFileOrImage(
+                allocationBase,
+                allocationSize,
+                type,
+                fileName,
+                parameters->Callback,
+                parameters->Context
+                ))
+            {
+                return STATUS_CANCELLED;
+            }
+        }
+        else
+        {
+            i++;
+        }
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Internal function for bulk enumeration of mapped files and images.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Flags Enumeration flags.
+ * \param Callback The generic module callback.
+ * \param BaseAddressHashtable A hashtable used to track unique base addresses.
+ * \param Context The user context for the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpEnumGenericBulkMappedFilesAndImages(
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG Flags,
+    _In_ PPH_ENUM_GENERIC_MODULES_CALLBACK Callback,
+    _In_ PPH_HASHTABLE BaseAddressHashtable,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PH_ENUM_MAPPED_MODULES_PARAMETERS enumParameters;
+
+    RtlZeroMemory(&enumParameters, sizeof(PH_ENUM_MAPPED_MODULES_PARAMETERS));
+    enumParameters.Flags = Flags;
+    enumParameters.Callback = Callback;
+    enumParameters.Context = Context;
+    enumParameters.BaseAddressHashtable = BaseAddressHashtable;
+
+    status = PhEnumVirtualMemoryBulk(
+        ProcessHandle,
+        NULL,
+        FALSE,
+        PhpEnumGenericMappedFilesAndImagesBulk,
+        &enumParameters
+        );
+
+    return status;
+}
+
+/**
+ * Internal function for enumerating mapped files and images using virtual memory queries.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Flags Enumeration flags.
+ * \param Callback The generic module callback.
+ * \param BaseAddressHashtable A hashtable used to track unique base addresses.
+ * \param Context The user context for the callback.
+ */
 static VOID PhpEnumGenericMappedFilesAndImages(
     _In_ HANDLE ProcessHandle,
     _In_ ULONG Flags,
@@ -1763,6 +1917,13 @@ static VOID PhpEnumGenericMappedFilesAndImages(
     }
 }
 
+/**
+ * Equality function for the base address hashtable.
+ *
+ * \param Entry1 The first entry to compare.
+ * \param Entry2 The second entry to compare.
+ * \return BOOLEAN TRUE if the entries are equal, FALSE otherwise.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 static BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -1772,6 +1933,12 @@ static BOOLEAN NTAPI PhpBaseAddressHashtableEqualFunction(
     return *(PVOID *)Entry1 == *(PVOID *)Entry2;
 }
 
+/**
+ * Hash function for the base address hashtable.
+ *
+ * \param Entry The entry to hash.
+ * \return ULONG The hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 static ULONG NTAPI PhpBaseAddressHashtableHashFunction(
     _In_ PVOID Entry
@@ -1882,6 +2049,7 @@ NTSTATUS PhEnumGenericModules(
         context.Type = PH_MODULE_TYPE_MODULE;
         context.BaseAddressHashtable = baseAddressHashtable;
         context.LoadOrderIndex = 0;
+        context.ProcessHandle = ProcessHandle;
 
         parameters.Callback = EnumGenericProcessModulesCallback;
         parameters.Context = &context;
@@ -1903,6 +2071,7 @@ NTSTATUS PhEnumGenericModules(
             context.Type = PH_MODULE_TYPE_WOW64_MODULE;
             context.BaseAddressHashtable = baseAddressHashtable;
             context.LoadOrderIndex = 0;
+            context.ProcessHandle = ProcessHandle;
 
             status = PhEnumProcessModules32Ex(
                 ProcessHandle,
@@ -1942,6 +2111,15 @@ typedef struct _PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS
     PVOID Context;
 } PH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS, *PPH_ENUM_PROCESS_MODULES_LIMITED_PARAMETERS;
 
+/**
+ * Internal callback function for limited process module enumeration.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param NumberOfEntries Number of working set entries.
+ * \param WorkingSetBlock Array of working set blocks.
+ * \param Context Pointer to the enumeration parameters.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(PH_ENUM_MEMORY_PAGE_CALLBACK)
 static NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     _In_ HANDLE ProcessHandle,
@@ -2019,6 +2197,14 @@ static NTSTATUS NTAPI PhEnumProcessModulesLimitedCallback(
     return status;
 }
 
+/**
+ * Enumerates modules loaded by a process using working set information (limited enumeration).
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Callback A callback function which is executed for each module.
+ * \param Context A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumProcessModulesLimited(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK Callback,
@@ -2052,6 +2238,16 @@ NTSTATUS PhEnumProcessModulesLimited(
     return status;
 }
 
+/**
+ * Enumerates modules within a software enclave.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param EnclaveAddress Virtual address of the enclave.
+ * \param Enclave Pointer to the enclave structure.
+ * \param Callback A callback function which is executed for each module in the enclave.
+ * \param Context A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumProcessEnclaveModules(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID EnclaveAddress,
@@ -2093,6 +2289,15 @@ NTSTATUS PhEnumProcessEnclaveModules(
     return status;
 }
 
+/**
+ * Retrieves the base name and full file name for a loader table entry.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Entry Pointer to the loader data table entry.
+ * \param Name Receives a pointer to the base name string.
+ * \param FileName Receives a pointer to the full file name string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetProcessLdrTableEntryNames(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_DATA_TABLE_ENTRY Entry,

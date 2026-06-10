@@ -53,10 +53,9 @@ NTSTATUS PvpConnectKph(
 
 NTSTATUS PvpInitializeMutant()
 {
+    NTSTATUS status;
     HANDLE mutantHandle;
-    OBJECT_ATTRIBUTES objectAttributes;
-    UNICODE_STRING objectName;
-    PH_STRINGREF objectNameSr;
+    PH_STRINGREF objectName;
     SIZE_T returnLength;
     WCHAR formatBuffer[PH_INT64_STR_LEN_1];
     PH_FORMAT format[2];
@@ -76,28 +75,18 @@ NTSTATUS PvpInitializeMutant()
         return STATUS_BUFFER_TOO_SMALL;
     }
 
-    objectNameSr.Length = returnLength - sizeof(UNICODE_NULL);
-    objectNameSr.Buffer = formatBuffer;
+    objectName.Length = returnLength - sizeof(UNICODE_NULL);
+    objectName.Buffer = formatBuffer;
 
-    if (!PhStringRefToUnicodeString(&objectNameSr, &objectName))
-        return STATUS_NAME_TOO_LONG;
-
-    InitializeObjectAttributes(
-        &objectAttributes,
-        &objectName,
-        OBJ_CASE_INSENSITIVE,
-        PhGetNamespaceHandle(),
-        NULL
-        );
-
-    NtCreateMutant(
+    status = PhCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
-        &objectAttributes,
+        PhGetNamespaceHandle2(),
+        &objectName,
         TRUE
         );
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 INT WINAPI wWinMain(

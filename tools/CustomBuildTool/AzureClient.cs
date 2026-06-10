@@ -109,7 +109,7 @@ namespace CustomBuildTool
         {
             string tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
             string clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
-            string clientSecret = Environment.GetEnvironmentVariable("AZURE_CLIENT_SECRET");
+            Win32.GetEnvironmentVariableSecure("AZURE_CLIENT_SECRET", out SecureBuffer clientSecret);
             string clientCertPath = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PATH");
             string vaultName = Environment.GetEnvironmentVariable("KEYVAULT_NAME");
             string certName = Environment.GetEnvironmentVariable("CERT_NAME");
@@ -118,22 +118,25 @@ namespace CustomBuildTool
 
             if (AzureClientCertificateCache.TryGetValue(cacheKey, out var cachedCertificate) && cachedCertificate != null)
             {
+                clientSecret?.Dispose();
                 Program.PrintColorMessage($"Loaded certificate from cache: {cachedCertificate.Subject} | Thumbprint: {cachedCertificate.Thumbprint} | HasPrivateKey: {cachedCertificate.HasPrivateKey}", ConsoleColor.Green);
                 return true;
             }
 
-            using var httpClient = BuildHttpClient.CreateHttpClient();
+            using (clientSecret)
+            {
+                using var httpClient = BuildHttpClient.CreateHttpClient();
 
-            var accessToken = await GetAccessTokenWithRetry(
-                httpClient,
-                tenantId,
-                clientId,
-                clientSecret,
-                clientCertPath,
-                MaxRetries: 5,
-                InitialDelayMs: 500,
-                CancellationToken: CancellationToken
-                );
+                var accessToken = GetAccessTokenWithRetry(
+                    httpClient,
+                    tenantId,
+                    clientId,
+                    clientSecret != null ? clientSecret.Span : ReadOnlySpan<char>.Empty,
+                    clientCertPath,
+                    MaxRetries: 5,
+                    InitialDelayMs: 500,
+                    CancellationToken: CancellationToken
+                    );
 
             if (string.IsNullOrEmpty(accessToken))
             {
@@ -213,6 +216,7 @@ namespace CustomBuildTool
 
             return true;
         }
+    }
 
         /// <summary>
         /// Signs files using Azure Key Vault certificates with Authenticode signatures.
@@ -233,14 +237,14 @@ namespace CustomBuildTool
         /// Uses SHA256 hash algorithm and RSA signatures.
         /// Requires a valid cached certificate from StartAzureClient().
         /// </remarks>
-        public static async Task<bool> SignFiles(
+        public static bool SignFiles(
             string TargetPath,
             string TimeStampServer,
             string AzureCertName,
             string AzureVaultName,
             string TenantGuid,
             string ClientGuid,
-            string ClientSecret,
+            ReadOnlySpan<char> ClientSecret,
             string SignatureDescription = null,
             string SignatureDescriptionUrl = null,
             CancellationToken CancellationToken = default
@@ -262,7 +266,7 @@ namespace CustomBuildTool
                 X509Certificate2 vaultPublicCert;
                 Uri keyIdUri;
 
-                string vaultAccessToken = await GetAccessTokenWithRetry(
+                string vaultAccessToken = GetAccessTokenWithRetry(
                     httpClientForKeyVault,
                     TenantGuid,
                     ClientGuid,
@@ -279,13 +283,13 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                var keyVaultCertificateResponse = await GetKeyVaultCertificate(
+                var keyVaultCertificateResponse = GetKeyVaultCertificate(
                     httpClientForKeyVault,
                     AzureVaultName,
                     AzureCertName,
                     vaultAccessToken,
                     CancellationToken
-                    );
+                    ).GetAwaiter().GetResult();
 
                 if (keyVaultCertificateResponse?.CertificateBuffer != null && keyVaultCertificateResponse.CertificateBuffer.Length > 0)
                 {
@@ -426,11 +430,11 @@ namespace CustomBuildTool
         /// Certificate-based authentication takes priority if both ClientSecret and ClientCertificatePath are provided.
         /// At least one authentication method must be specified.
         /// </remarks>
-        private static async Task<string> GetAccessTokenWithRetry(
+        private static string GetAccessTokenWithRetry(
             HttpClient HttpClient,
             string TenantId,
             string ClientId,
-            string ClientSecret,
+            ReadOnlySpan<char> ClientSecret,
             string ClientCertificatePath,
             int MaxRetries = 5,
             int InitialDelayMs = 500,
@@ -438,7 +442,7 @@ namespace CustomBuildTool
         {
             // Determine authentication method
             bool useCertificate = !string.IsNullOrWhiteSpace(ClientCertificatePath);
-            bool useSecret = !string.IsNullOrWhiteSpace(ClientSecret);
+            bool useSecret = !ClientSecret.IsEmpty;
 
             if (!useCertificate && !useSecret)
             {
@@ -453,7 +457,7 @@ namespace CustomBuildTool
 
             if (useCertificate)
             {
-                return await GetAccessTokenWithCertificate(
+                return GetAccessTokenWithCertificate(
                     HttpClient,
                     TenantId,
                     ClientId,
@@ -461,11 +465,11 @@ namespace CustomBuildTool
                     MaxRetries,
                     InitialDelayMs,
                     CancellationToken
-                    );
+                    ).GetAwaiter().GetResult();
             }
             else
             {
-                return await GetAccessTokenWithSecret(
+                return GetAccessTokenWithSecret(
                     HttpClient,
                     TenantId,
                     ClientId,
@@ -493,11 +497,11 @@ namespace CustomBuildTool
         /// Implements exponential backoff with jitter for retries.
         /// Securely handles the client secret by zeroing memory after use.
         /// </remarks>
-        private static async Task<string> GetAccessTokenWithSecret(
+        private static string GetAccessTokenWithSecret(
             HttpClient HttpClient,
             string TenantId,
             string ClientId,
-            string ClientSecret,
+            ReadOnlySpan<char> ClientSecret,
             int MaxRetries = 5,
             int InitialDelayMs = 500,
             CancellationToken CancellationToken = default)
@@ -522,7 +526,7 @@ namespace CustomBuildTool
                     ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
                     scopePrefix.CopyTo(span[written..]);
                     written += scopePrefix.Length;
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientSecret), span[written..]);
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(new string(ClientSecret)), span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
@@ -548,16 +552,16 @@ namespace CustomBuildTool
                         using var tokenBody = new ByteArrayContent(bodyBytes);
                         tokenBody.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
 
-                        using HttpResponseMessage responseMessage = await HttpClient.PostAsync(
+                        using HttpResponseMessage responseMessage = HttpClient.PostAsync(
                             $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
                             tokenBody,
                             CancellationToken
-                            );
+                            ).GetAwaiter().GetResult();
 
                         if (responseMessage.IsSuccessStatusCode)
                         {
-                            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-                            var tokenResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken);
+                            var jsonResponseStream = responseMessage.Content.ReadAsStreamAsync(CancellationToken).GetAwaiter().GetResult();
+                            var tokenResponse = JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken).GetAwaiter().GetResult();
 
                             if (tokenResponse.AccessToken == null)
                             {
@@ -582,12 +586,12 @@ namespace CustomBuildTool
 
                             var retryAfterDelay = GetRetryAfterMs(responseMessage);
                             delayMs = retryAfterDelay ?? ApplyJitter(delayMs);
-                            await Task.Delay(delayMs, CancellationToken);
+                            Task.Delay(delayMs, CancellationToken).GetAwaiter().GetResult();
                             delayMs = Math.Min(delayMs * 2, 15000);
                         }
                         else
                         {
-                            var errorBodyText = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
+                            var errorBodyText = responseMessage.Content.ReadAsStringAsync(CancellationToken).GetAwaiter().GetResult();
                             Program.PrintColorMessage($"Non-retryable token error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
                             Program.PrintColorMessage(errorBodyText, ConsoleColor.DarkGray);
                             return string.Empty;
@@ -597,14 +601,14 @@ namespace CustomBuildTool
                     {
                         int waitDelay = ApplyJitter(delayMs);
                         Program.PrintColorMessage($"Network error on token fetch (attempt {currentAttempt}/{MaxRetries}): {httpRequestException.Message}. Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        await Task.Delay(waitDelay, CancellationToken);
+                        Task.Delay(waitDelay, CancellationToken).GetAwaiter().GetResult();
                         delayMs = Math.Min(delayMs * 2, 15000);
                     }
                     catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && currentAttempt <= MaxRetries)
                     {
                         int waitDelay = ApplyJitter(delayMs);
                         Program.PrintColorMessage($"Timeout on token fetch (attempt {currentAttempt}/{MaxRetries}). Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        await Task.Delay(waitDelay, CancellationToken);
+                        Task.Delay(waitDelay, CancellationToken).GetAwaiter().GetResult();
                         delayMs = Math.Min(delayMs * 2, 15000);
                     }
                 }
@@ -671,16 +675,19 @@ namespace CustomBuildTool
                         )
                     {
                         // For PFX, you may need a password. Check environment variable.
-                        string certPassword = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PASSWORD");
+                        Win32.GetEnvironmentVariableSecure("AZURE_CLIENT_CERTIFICATE_PASSWORD", out SecureBuffer certPassword);
                         byte[] certBytes = await File.ReadAllBytesAsync(ClientCertificatePath, CancellationToken);
 
-                        if (!string.IsNullOrWhiteSpace(certPassword))
+                        using (certPassword)
                         {
-                            clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, certPassword);
-                        }
-                        else
-                        {
-                            clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, null);
+                            if (certPassword != null)
+                            {
+                                clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, certPassword.Span);
+                            }
+                            else
+                            {
+                                clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, (string)null);
+                            }
                         }
                     }
                     else

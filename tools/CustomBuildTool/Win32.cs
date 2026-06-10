@@ -279,57 +279,6 @@ namespace CustomBuildTool
             return null;
         }
 
-        //
-        // Number of times, and delay between, retries for a transiently-locked file operation.
-        //
-        private const int FileRetryAttempts = 10;
-        private const int FileRetryDelay = 200;
-
-        /// <summary>
-        /// Determines whether the exception represents a transient file lock (a sharing or lock
-        /// violation) that is expected to clear once another process releases the file.
-        /// </summary>
-        /// <param name="Exception">The IO exception to inspect.</param>
-        /// <returns>True if the failure is a transient sharing/lock violation; otherwise false.</returns>
-        private static bool IsTransientFileLock(IOException Exception)
-        {
-            int code = Exception.HResult & 0xffff;
-            return code == 32 /* ERROR_SHARING_VIOLATION */ || code == 33 /* ERROR_LOCK_VIOLATION */;
-        }
-
-        /// <summary>
-        /// Invokes a file operation, retrying briefly when the file is transiently locked by another
-        /// process. During parallel multi-platform builds the linker for one architecture can still
-        /// hold a binary that another architecture's post-build step needs to read (for example the
-        /// WOW64 payload copied into the x64/ARM64 output); the lock clears once the linker finishes.
-        /// </summary>
-        /// <typeparam name="T">The return type of the operation.</typeparam>
-        /// <param name="Operation">The file operation to invoke.</param>
-        /// <returns>The result of the operation.</returns>
-        private static T InvokeWithFileRetry<T>(Func<T> Operation)
-        {
-            for (int attempt = 1; ; attempt++)
-            {
-                try
-                {
-                    return Operation();
-                }
-                catch (IOException exception) when (attempt < FileRetryAttempts && IsTransientFileLock(exception))
-                {
-                    Thread.Sleep(FileRetryDelay);
-                }
-            }
-        }
-
-        /// <summary>
-        /// Invokes a file operation, retrying briefly when the file is transiently locked by another process.
-        /// </summary>
-        /// <param name="Operation">The file operation to invoke.</param>
-        private static void InvokeWithFileRetry(Action Operation)
-        {
-            InvokeWithFileRetry<object>(() => { Operation(); return null; });
-        }
-
         /// <summary>
         /// Copies the source file to the destination file if the source is newer or the destination does not exist.
         /// Preserves creation and last write times, and optionally sets the read-only attribute.
@@ -381,7 +330,7 @@ namespace CustomBuildTool
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
 
-                    InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                    File.Copy(SourceFile, DestinationFile, true);
                     Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
                     updated = true;
                 }
@@ -389,7 +338,7 @@ namespace CustomBuildTool
             else
             {
                 Win32.GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
-                InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                File.Copy(SourceFile, DestinationFile, true);
                 Win32.SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, ReadOnly);
                 updated = true;
             }
@@ -443,7 +392,7 @@ namespace CustomBuildTool
                         try { File.SetAttributes(DestinationFile, FileAttributes.Normal); } catch { }
                     }
 
-                    InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                    File.Copy(SourceFile, DestinationFile, true);
                     SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
                     updated = true;
                 }
@@ -451,7 +400,7 @@ namespace CustomBuildTool
             else
             {
                 GetFileBasicInfo(SourceFile, out var sourceCreationTime, out var sourceWriteTime, out _);
-                InvokeWithFileRetry(() => File.Copy(SourceFile, DestinationFile, true));
+                File.Copy(SourceFile, DestinationFile, true);
                 SetFileBasicInfo(DestinationFile, sourceCreationTime, sourceWriteTime, false);
                 updated = true;
             }
@@ -489,6 +438,39 @@ namespace CustomBuildTool
                     Program.PrintColorMessage($"EnvironmentVariable: {Name} not found.", ConsoleColor.Red);
                 }
                 return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Retrieves the value of an environment variable from the current process securely.
+        /// </summary>
+        /// <param name="Name">The name of the environment variable.</param>
+        /// <param name="Value">The value of the environment variable as a SecureBuffer.</param>
+        /// <returns>True if the environment variable was found.</returns>
+        public static bool GetEnvironmentVariableSecure(string Name, out SecureBuffer Value)
+        {
+            Value = null;
+
+            fixed (char* pName = Name)
+            {
+                uint size = PInvoke.GetEnvironmentVariable(pName, null, 0);
+                if (size == 0)
+                    return false;
+
+                using (var buffer = new SecureBuffer((int)size))
+                {
+                    fixed (char* pBuffer = buffer.Buffer)
+                    {
+                        uint length = PInvoke.GetEnvironmentVariable(pName, pBuffer, size);
+                        if (length == 0 || length >= size)
+                            return false;
+
+                        Value = new SecureBuffer((int)length);
+                        buffer.Span.Slice(0, (int)length).CopyTo(Value.Buffer);
+                    }
+                }
             }
 
             return true;
@@ -846,7 +828,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            using (var fs = InvokeWithFileRetry(() => File.OpenRead(FileName)))
+            using (var fs = File.OpenRead(FileName))
             {
                 var handle = new HANDLE(fs.SafeFileHandle!.DangerousGetHandle());
 

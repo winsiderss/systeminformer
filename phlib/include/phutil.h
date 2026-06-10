@@ -13,6 +13,9 @@
 #ifndef _PH_PHUTIL_H
 #define _PH_PHUTIL_H
 
+#include <phcrypt.h>
+#include <ntd3dkmt.h>
+
 EXTERN_C_START
 
 extern CONST WCHAR *PhSizeUnitNames[7];
@@ -1541,6 +1544,7 @@ PhGetKnownLocationZ(
 DEFINE_GUID(FOLDERID_LocalAppData, 0xF1B32785, 0x6FBA, 0x4FCF, 0x9D, 0x55, 0x7B, 0x8E, 0x7F, 0x15, 0x70, 0x91);
 DEFINE_GUID(FOLDERID_RoamingAppData, 0x3EB685DB, 0x65F9, 0x4CF6, 0xA0, 0x3A, 0xE3, 0xEF, 0x65, 0x72, 0x9F, 0x3D);
 DEFINE_GUID(FOLDERID_ProgramFiles, 0x905e63b6, 0xc1bf, 0x494e, 0xb2, 0x9c, 0x65, 0xb7, 0x32, 0xd3, 0xd2, 0x1a);
+DEFINE_GUID(FOLDERID_ProgramFilesX86, 0x7C5A40EF, 0xA0FB, 0x4BFC, 0x87, 0x4A, 0xC0, 0xF2, 0xE0, 0xB9, 0xFA, 0x8E);
 DEFINE_GUID(FOLDERID_ProgramData, 0x62AB5D82, 0xFDC1, 0x4DC3, 0xA9, 0xDD, 0x07, 0x0D, 0x1D, 0x49, 0x5D, 0x97);
 
 #define PH_KF_FLAG_FORCE_PACKAGE_REDIRECTION 0x1
@@ -2151,7 +2155,15 @@ typedef enum _PH_HASH_ALGORITHM
 typedef struct _PH_HASH_CONTEXT
 {
     PH_HASH_ALGORITHM Algorithm;
+#ifndef PH_NATIVE_CRYPT
+    union
+    {
+        PH_SYMCRYPT_HASH_CONTEXT HashContext;
+        ULONG Context[64];
+    };
+#else
     ULONG Context[64];
+#endif
 } PH_HASH_CONTEXT, *PPH_HASH_CONTEXT;
 
 PHLIBAPI

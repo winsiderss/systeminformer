@@ -8029,7 +8029,6 @@ NTSTATUS PhInitializeHash(
     case Sha1HashAlgorithm:
     case Sha256HashAlgorithm:
         {
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext;
             PH_SYMCRYPT_HASH_ALGORITHM algorithm;
 
             if (Algorithm == Md5HashAlgorithm)
@@ -8039,18 +8038,10 @@ NTSTATUS PhInitializeHash(
             else
                 algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
 
-            symCryptContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_HASH_CONTEXT));
-            if (!symCryptContext)
-                return STATUS_NO_MEMORY;
-
-            if (!NT_SUCCESS(PhSymCryptHashInit(algorithm, symCryptContext)))
+            if (NT_SUCCESS(PhSymCryptHashInit(algorithm, &Context->HashContext)))
             {
-                PhFree(symCryptContext);
-                return STATUS_UNSUCCESSFUL;
+                return STATUS_SUCCESS;
             }
-
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = symCryptContext;
-            return STATUS_SUCCESS;
         }
 #endif
     default:
@@ -8092,11 +8083,11 @@ NTSTATUS PhUpdateHash(
         return STATUS_SUCCESS;
 #else
     case Md5HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
     case Sha1HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
     case Sha256HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
 #endif
     default:
         return STATUS_INVALID_PARAMETER;
@@ -8198,60 +8189,48 @@ NTSTATUS PhFinalHash(
 #else
     case Md5HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_MD5_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_MD5_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_MD5_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_MD5_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_MD5_LENGTH;
         }
         break;
     case Sha1HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_SHA1_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_SHA1_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_SHA1_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_SHA1_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_SHA1_LENGTH;
         }
         break;
     case Sha256HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_SHA256_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_SHA256_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_SHA256_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_SHA256_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_SHA256_LENGTH;
         }
@@ -9167,6 +9146,69 @@ HANDLE PhGetNamespaceHandle(
     }
 
     return directoryHandle;
+}
+
+/**
+ * Gets or creates the private namespace handle for System Informer objects.
+ *
+ * \return The private namespace handle, or NULL on failure.
+ */
+HANDLE PhGetNamespaceHandle2(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HANDLE namespaceHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"SystemInformer");
+        POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptor;
+        NTSTATUS status;
+
+        if (boundaryDescriptor = PhCreateBoundaryDescriptor(&namespaceName, BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID))
+        {
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
+            //    goto CleanupExit;
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
+            //    goto CleanupExit;
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
+            //    goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeEveryoneSid)))
+                goto CleanupExit;
+
+            status = PhOpenPrivateNamespace(
+                &namespaceHandle,
+                MAXIMUM_ALLOWED,
+                NULL,
+                &namespaceName,
+                boundaryDescriptor
+                );
+
+            if (status == STATUS_OBJECT_PATH_NOT_FOUND)
+            {
+                status = PhCreatePrivateNamespace(
+                    &namespaceHandle,
+                    MAXIMUM_ALLOWED,
+                    NULL,
+                    &namespaceName,
+                    boundaryDescriptor
+                    );
+            }
+
+        CleanupExit:
+            if (!NT_SUCCESS(status))
+            {
+                namespaceHandle = NULL;
+            }
+
+            PhDeleteBoundaryDescriptor(boundaryDescriptor);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return namespaceHandle;
 }
 
 /**

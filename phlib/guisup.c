@@ -2731,8 +2731,8 @@ LRESULT CALLBACK PhDefaultPropSheetWindowProcedure(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwnd, 0xF);
             PhSetWindowProcedure(hwnd, oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
     case WM_SYSCOMMAND:
@@ -2939,6 +2939,23 @@ BOOLEAN PhInitializeLayoutManager(
     _In_ HWND RootWindowHandle
     )
 {
+    return PhInitializeLayoutManagerEx(Manager, RootWindowHandle, 0);
+}
+
+/**
+ * Initializes the root layout item with optional behavior flags.
+ *
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to initialize.
+ * \param RootWindowHandle Handle of the root window for layout operations.
+ * \param Flags Bitwise combination of PH_LAYOUT_INIT_* flags.
+ * \return TRUE on success, FALSE on failure.
+ */
+BOOLEAN PhInitializeLayoutManagerEx(
+    _Out_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND RootWindowHandle,
+    _In_ ULONG Flags
+    )
+{
     memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
 
     Manager->List = PhCreateList(4);
@@ -2954,7 +2971,7 @@ BOOLEAN PhInitializeLayoutManager(
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
 
-    //if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
+    if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
     {
         ULONG style = PhGetWindowStyle(RootWindowHandle);
 
@@ -5151,6 +5168,7 @@ NTSTATUS PhGetSystemResourcesFileName(
  * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
  * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
  */
+_Success_(NT_SUCCESS(return))
 NTSTATUS PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,

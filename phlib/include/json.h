@@ -195,6 +195,15 @@ PhAddJsonObjectUtf8(
 PHLIBAPI
 VOID
 NTAPI
+PhAddJsonObjectBoolean(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ BOOLEAN Value
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhAddJsonObjectInt64(
     _In_ PVOID Object,
     _In_ PCSTR Key,

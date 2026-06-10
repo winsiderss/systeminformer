@@ -213,7 +213,7 @@ target_include_directories(SystemInformer PRIVATE
 
 target_include_directories(SystemInformer INTERFACE
     "${SI_ROOT}/phnt/include"
-    "${SI_ROOT}/sdk/include"
+    "${SI_ROOT}/sdk/include/$<CONFIG>${SI_PLATFORM_SHORT}"
 )
 
 target_compile_definitions(SystemInformer PRIVATE

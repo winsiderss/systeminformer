@@ -67,6 +67,34 @@ PH_CHAR_TYPE PhpClassifyByte(
     }
 }
 
+// Combined per-byte classification LUT, indexed [ExtendedCharSet][byte]. Each
+// entry is PhpClassifyByte(byte, Ext, Ext) i.e. the classification assuming the
+// UTF-16-high check is enabled (the maximal result). The runtime gate only ever
+// downgrades a PhCharTypeUTF16High result to PhCharTypeNone, so a single LUT load
+// plus the cheap inline gate is exactly equivalent to PhpClassifyByte while
+// replacing its 4-5 boolean table loads per byte.
+static PH_INITONCE PhpCharTypeTableInitOnce = PH_INITONCE_INIT;
+static BYTE PhpCharTypeTable[2][256];
+
+static VOID PhpInitializeCharTypeTable(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhpCharTypeTableInitOnce))
+    {
+        ULONG ext;
+        ULONG value;
+
+        for (ext = 0; ext < 2; ext++)
+        {
+            for (value = 0; value < 256; value++)
+                PhpCharTypeTable[ext][value] = (BYTE)PhpClassifyByte((BYTE)value, (BOOLEAN)ext, (BOOLEAN)ext);
+        }
+
+        PhEndInitOnce(&PhpCharTypeTableInitOnce);
+    }
+}
+
 BOOLEAN PhpSearchStrings(
     _In_ PPH_STRING_SEARCH_CONEXT Context,
     _In_reads_bytes_(Length) PBYTE Buffer,
@@ -102,7 +130,10 @@ BOOLEAN PhpSearchStrings(
             checkUTF8High = TRUE;
         }
 
-        charType = PhpClassifyByte(byte, Context->ExtendedCharSet, checkUTF8High);
+        charType = (PH_CHAR_TYPE)PhpCharTypeTable[Context->ExtendedCharSet ? 1 : 0][byte];
+
+        if (charType == PhCharTypeUTF16High && !checkUTF8High)
+            charType = PhCharTypeNone;
 
         // Pattern: [Printable][Printable][Printable] - ANSI string detection
         if (charType2 == PhCharTypePrintable &&
@@ -298,6 +329,8 @@ NTSTATUS PhSearchStrings(
 
     if (!MinimumLength)
         return STATUS_INVALID_PARAMETER;
+
+    PhpInitializeCharTypeTable();
 
     context = PhAllocateZero(sizeof(PH_STRING_SEARCH_CONEXT));
     context->MinimumLength = MinimumLength;

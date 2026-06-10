@@ -107,6 +107,7 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"StringsTreeListFlags", L"1b");
     PhpAddIntegerSetting(L"StringsMinimumLength", L"4");
     PhpAddIntegerSetting(L"TreeListBorderEnable", L"0");
+    PhpAddIntegerSetting(L"TreeListCustomRowSize", L"0");
     PhpAddStringSetting(L"CHPEListViewColumns", L"");
     // Wsl properties
     PhpAddStringSetting(L"GeneralWslTreeListColumns", L"");

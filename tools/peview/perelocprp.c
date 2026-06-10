@@ -76,10 +76,14 @@ VOID PvEnumerateRelocationEntries(
             {
                 PIMAGE_SECTION_HEADER directorySection;
 
-                directorySection = PhMappedImageRvaToSection(
+                if (!NT_SUCCESS(PhMappedImageRvaToSection(
                     &PvMappedImage,
-                    (entry->BlockRva - entry->Record.Offset)
-                    );
+                    (entry->BlockRva - entry->Record.Offset),
+                    &directorySection
+                    )))
+                {
+                    directorySection = NULL;
+                }
 
                 if (directorySection)
                 {

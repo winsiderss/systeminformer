@@ -178,7 +178,7 @@ PPH_RUNASPACKAGE_TREE_ROOT_NODE PhRunAsPackageAddNode(
 
         if (bitmap = PhLoadImageFromFile(Package->SmallLogoPath->Buffer, width, height))
         {
-            iconHandle = PhGdiplusConvertBitmapToIcon(bitmap, width, height, RGB(0, 0, 0));
+            iconHandle = PhConvertBitmapToIcon(bitmap, width, height, RGB(0, 0, 0));
             DeleteBitmap(bitmap);
         }
 
@@ -856,9 +856,18 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
         break;
     case WM_SIZE:
         {
+            // Suspend redraw across the resize so the stale-row-height scrollbar update from
+            // PhLayoutManagerLayout (which sends the TreeNew a synchronous WM_SIZE before the
+            // fill row height is recomputed) is coalesced with the corrected update below.
+            // Without this the vertical scrollbar visibly flashes on/off during each resize tick.
+
+            TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
+
             PhLayoutManagerLayout(&context->LayoutManager);
 
             TreeNew_AutoSizeColumn(context->TreeNewHandle, PH_RUNASPACKAGE_TREE_COLUMN_ITEM_NAME, TN_AUTOSIZE_REMAINING_SPACE);
+
+            TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
         }
         break;
     case WM_DPICHANGED:
@@ -869,9 +878,9 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
             context->WindowDpi = LOWORD(wParam);
 
             if (normalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, context->WindowDpi))
-                PhReplaceWindowFont(&context->NormalFontHandle, NULL, normalFontHandle, FALSE);
+                PhSwapReferenceFont(&context->NormalFontHandle, NULL, normalFontHandle, FALSE);
             if (titleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, context->WindowDpi))
-                PhReplaceWindowFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
+                PhSwapReferenceFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
 
             TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(48, context->WindowDpi));
             TreeNew_NodesStructured(context->TreeNewHandle);

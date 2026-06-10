@@ -503,6 +503,7 @@ SymCryptUint64Bytesize( UINT64 value );
 VOID
 SYMCRYPT_CALL
 SymCryptInit(void);
+
 //
 // Initialize the static library.
 // This function MUST be called before any other function in the library.

@@ -1181,60 +1181,257 @@ static_assert(sizeof(APPCOMPAT_EXE_DATA) == 0xE98, "APPCOMPAT_EXE_DATA size mism
 #endif
 
 //
-// Direct3D Kernel Mode Thunk (D3DKMT)
+// Performance Counters for Windows
 //
 
 /**
- * The D3DKMT_GET_PROCESS_LIST structure is used for retrieving a list of process handles using a graphics adapter.
- * \remarks The caller is responsible for closing the returned process handles.
+ * PCW Handle Types  
  */
-// rev
-typedef struct _D3DKMT_GET_PROCESS_LIST
-{
-    LUID AdapterLuid;          // [in] The locally unique identifier (LUID) for the graphics adapter.
-    ULONG DesiredAccess;       // [in] The access rights to request for the process handles. This must be `PROCESS_QUERY_INFORMATION` (0x400).
-    ULONG ProcessHandleCount;  // [in, out] On input, specifies the number of handles the `ProcessHandle` member can hold. On output, receives the number of handles returned.
-    PHANDLE ProcessHandle;     // [out] The first element of an array that receives the process handles.
-} D3DKMT_GET_PROCESS_LIST, *PD3DKMT_GET_PROCESS_LIST;
+DECLARE_HANDLE(HPCW_REGISTRATION);  
+DECLARE_HANDLE(HPCW_QUERY);
+DECLARE_HANDLE(HPCW_NOTIFIER);
 
-// rev
 /**
- * The D3DKMTGetProcessList function retrieves a list of processes that are using a specific graphics adapter.
+ * PCW Callback Types  
+ */  
+typedef enum _PCW_CALLBACK_TYPE
+{  
+    PcwCallbackAddCounter = 0,  
+    PcwCallbackRemoveCounter = 1,  
+    PcwCallbackEnumerateEvents = 2,  
+    PcwCallbackCollectData = 3,  
+} PCW_CALLBACK_TYPE;
+
+typedef struct _PCW_CALLBACK_INFORMATION
+{  
+    PCW_CALLBACK_TYPE Type;  
+    union
+    {
+        struct
+        {
+            PUNICODE_STRING InstanceName;
+            PVOID InstanceData;
+            ULONG InstanceId;
+        } AddCounter;
+        struct
+        {
+            PVOID InstanceContext;
+        } RemoveCounter;
+        struct
+        {
+            PVOID CancelEvent;
+        } CollectData;  
+    } DUMMYUNIONNAME;
+} PCW_CALLBACK_INFORMATION, *PPCW_CALLBACK_INFORMATION;
+
+typedef _Function_class_(PCW_CALLBACK)
+NTSTATUS NTAPI PCW_CALLBACK(
+    _In_ PCW_CALLBACK_TYPE Type,
+    _In_ PPCW_CALLBACK_INFORMATION Info,
+    _In_opt_ PVOID Context
+    );
+typedef PCW_CALLBACK* PPCW_CALLBACK;
+
+/**
+ * Creates a new Performance Counters for Windows (PCW) query object.
  *
- * \param[in,out] GetProcessList A pointer to a \ref D3DKMT_GET_PROCESS_LIST structure that contains the processes using the graphics adapter.
- * \return NTSTATUS Successful or errant status.
+ * \param[out] QueryHandle Receives the created `HPCW_QUERY` handle on success.
+ * \param[in,opt] CancelEventHandle Optional event handle that the kernel monitors to detect
+ * cancellation of long-running operations (for example, during `PcwCollectData`).
+ * The kernel only reads this handle; it may be `NULL` if cancellation support is not required.
+ * \return NTSTATUS Returns `STATUS_SUCCESS` on success; otherwise an appropriate NTSTATUS error code.
+ * \remark Usermode requests cancellation by signaling `CancelEventHandle` from another thread.
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
-D3DKMTGetProcessList(
-    _Inout_ PD3DKMT_GET_PROCESS_LIST GetProcessList
+PcwCreateQuery(
+    _Out_ HPCW_QUERY* QueryHandle,
+    _In_opt_ HANDLE CancelEventHandle
     );
 
-// rev
-/**
- * The D3DKMT_ENUM_PROCESS_LIST structure is used for retrieving a list of process identifiers using a graphics adapter.
- */
-typedef struct _D3DKMT_ENUM_PROCESS_LIST
+typedef enum _PCW_ADD_QUERY_ITEM_FLAGS
 {
-    LUID AdapterLuid;          // [in] The locally unique identifier (LUID) for the graphics adapter.
-    PULONG ProcessIdBuffer;    // [out] A pointer to a buffer that receives the list of process identifiers (PIDs).
-    SIZE_T ProcessIdCount;     // [in, out] On input, specifies the number of elements the `ProcessIdBuffer` can hold. On output, receives the number of process IDs returned.
-} D3DKMT_ENUM_PROCESS_LIST, *PD3DKMT_ENUM_PROCESS_LIST;
+    PCW_ADD_QUERY_ITEM_NONE = 0x0,
+    PCW_ADD_QUERY_ITEM_INSTANCE_WILDCARD = 0x1,
+} PCW_ADD_QUERY_ITEM_FLAGS;
 
-// rev
-/**
- * The D3DKMTEnumProcesses function provides a list of process IDs (PIDs) rather than handles that are using a specific graphics adapter,
- * which can be more efficient for monitoring purposes.
- *
- * \param[in,out] EnumProcessList A pointer to a \ref D3DKMT_ENUM_PROCESS_LIST structure that contains the processes using the graphics adapter.
- * \return NTSTATUS Successful or errant status.
- */
+// Adds a counterset to a query
 NTSYSAPI
 NTSTATUS
 NTAPI
-D3DKMTEnumProcesses(
-    _Inout_ PD3DKMT_ENUM_PROCESS_LIST EnumProcessList
+PcwAddQueryItem(
+    _Out_ PULONG ItemId,
+    _In_ HPCW_QUERY QueryHandle,
+    _In_ PCW_ADD_QUERY_ITEM_FLAGS Flags,
+    _In_ PCUNICODE_STRING CounterSetPath,
+    _In_ PCUNICODE_STRING InstanceName,
+    _In_ ULONG InstanceId,
+    _In_ ULONG64 CounterMask,
+    _In_opt_ PVOID UserData
+    );
+
+// Triggers data collection for a query
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwCollectData(
+    _In_ HPCW_QUERY QueryHandle,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG BytesReturned
+    );
+
+// Removes an item from a query
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwRemoveQueryItem(
+    _In_ HPCW_QUERY QueryHandle,
+    _In_ ULONG ItemId
+    );
+
+//  Associates user data with a query item
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwSetQueryItemUserData(
+    _In_ HPCW_QUERY QueryHandle,
+    _In_ ULONG ItemId,
+    _In_ PVOID UserData
+    );
+
+// HPCW_NOTIFIER APIs
+// Creates a notifier object for consumers
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwCreateNotifier(
+    _Out_ HPCW_NOTIFIER* NotifierHandle,
+    _In_ PCUNICODE_STRING Name
+    );
+
+// Checks if a notifier is still active
+NTSYSAPI
+BOOLEAN
+NTAPI
+PcwIsNotifierAlive(
+    _In_ HPCW_NOTIFIER NotifierHandle
+    );
+
+// Retrieves data from a notifier
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwReadNotificationData(
+    _In_ HPCW_NOTIFIER NotifierHandle,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG BytesReturned
+    );
+
+// Completes a pending notification
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwCompleteNotification(
+    _In_ HPCW_NOTIFIER NotifierHandle,
+    _In_ NTSTATUS Status,
+    _In_opt_ PVOID UserData,
+    _In_ ULONG UserDataSize
+    );
+
+// Other PCW APIs
+// Registers a provider counterset
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwRegisterCounterSet(
+    _Out_ HPCW_REGISTRATION* Registration,
+    _In_ PCUNICODE_STRING Name,
+    _In_ PPCW_CALLBACK Callback,
+    _In_opt_ PVOID UserData
+    );
+
+// Closes a registration handle
+NTSYSAPI
+VOID
+NTAPI
+PcwDisconnectCounterSet(
+    _In_ HPCW_REGISTRATION RegistrationHandle
+    );
+
+// Lists instances of a counterset
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwEnumerateInstances(
+    _In_ HPCW_REGISTRATION RegistrationHandle,
+    _In_ PCUNICODE_STRING CounterSetPath,
+    _In_ PCUNICODE_STRING InstanceName,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG BytesReturned
+    );
+
+// Queries security descriptor for a counterset
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwQueryCounterSetSecurity(
+    _In_ PCUNICODE_STRING Name,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_writes_bytes_opt_(BufferSize) PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG BufferSize,
+    _Out_ PULONG BytesReturned
+    );
+
+// Sends a notification to consumers
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwSendNotification(
+    _In_ HPCW_REGISTRATION RegistrationHandle,
+    _In_ ULONG NotificationType,
+    _In_opt_ PVOID NotificationData,
+    _In_opt_ PCUNICODE_STRING InstanceName,
+    _In_ ULONG InstanceId,
+    _Out_writes_bytes_opt_(OutputBufferSize) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferSize,
+    _Out_opt_ PULONG BytesReturned
+    );
+
+// Sends a notification without a registration handle
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwSendStatelessNotification(
+    _In_ PCUNICODE_STRING CounterSetName,
+    _In_ ULONG NotificationType,
+    _In_opt_ PVOID NotificationData,
+    _In_opt_ PCUNICODE_STRING InstanceName,
+    _In_ ULONG InstanceId,
+    _Out_writes_bytes_opt_(OutputBufferSize) PVOID OutputBuffer,
+    _In_ ULONG OutputBufferSize,
+    _Out_opt_ PULONG BytesReturned
+    );
+
+// Sets security descriptor for a counterset
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwSetCounterSetSecurity(
+    _In_ PCUNICODE_STRING Name,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
+    );
+
+// Clears security descriptor for a counterset
+NTSYSAPI
+NTSTATUS
+NTAPI
+PcwClearCounterSetSecurity(
+    _In_ PCUNICODE_STRING Name
     );
 
 #endif // _NTMISC_H

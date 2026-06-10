@@ -22,6 +22,7 @@
 #include <sistatus.h>
 #include <informer.h>
 #include <phsvccl.h>
+#include <phutil.h>
 #include <svcsup.h>
 
 #include <ksisup.h>
@@ -140,11 +141,13 @@ PCWSTR KsiGetWindowsVersionString(
         return L"Windows 11 25H2";
     case WINDOWS_11_26H1:
         return L"Windows 11 26H1";
+    case WINDOWS_11_27H2:
+        return L"Windows 11 27H2";
     case WINDOWS_NEW:
         return L"Windows Insider Preview";
     }
 
-    static_assert(WINDOWS_MAX == WINDOWS_11_26H1, "KsiGetWindowsVersionString must include all versions");
+    static_assert(WINDOWS_MAX == WINDOWS_11_27H2, "KsiGetWindowsVersionString must include all versions");
 
     return L"Windows";
 }
@@ -919,6 +922,12 @@ NTSTATUS PhRestartSelf(
     PH_STRINGREF commandlineSr;
     PPH_STRING commandline;
     STARTUPINFOEX startupInfo;
+#ifdef DEBUG
+    ULONG attributeCount = 1;
+#else
+    ULONG attributeCount = 2;
+#endif
+    HANDLE jobObjectHandle = NULL;
 
     status = PhGetProcessCommandLineStringRef(&commandlineSr);
 
@@ -942,12 +951,27 @@ NTSTATUS PhRestartSelf(
         PhExitApplication(STATUS_SUCCESS);
     }
 
-#ifndef DEBUG
-    status = PhInitializeProcThreadAttributeList(&attributeList, 1);
+    status = PhCreateConfiguredJobObject(&jobObjectHandle);
 
     if (!NT_SUCCESS(status))
-        return status;
+        goto CleanupExit;
 
+    status = PhInitializeProcThreadAttributeList(&attributeList, attributeCount);
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    status = PhUpdateProcThreadAttribute(
+        attributeList,
+        PROC_THREAD_ATTRIBUTE_JOB_LIST,
+        &jobObjectHandle,
+        sizeof(HANDLE)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+#ifndef DEBUG
     if (WindowsVersion >= WINDOWS_10_22H2)
     {
         status = PhUpdateProcThreadAttribute(
@@ -966,10 +990,10 @@ NTSTATUS PhRestartSelf(
             sizeof(ULONG64) * 1
             );
     }
-#endif
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
+#endif
 
     memset(&startupInfo, 0, sizeof(STARTUPINFOEX));
     startupInfo.StartupInfo.cb = sizeof(STARTUPINFOEX);

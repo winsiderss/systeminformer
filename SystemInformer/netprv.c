@@ -1388,7 +1388,7 @@ VOID PhNetworkProviderUpdate(
             {
                 if (PhIsNullOrEmptyString(networkItem->ProcessName))
                 {
-                    PhSetReference(&networkItem->ProcessName, &networkItem->ProcessItem->ProcessName);
+                    PhSetReference(&networkItem->ProcessName, networkItem->ProcessItem->ProcessName);
                     modified = TRUE;
                 }
 

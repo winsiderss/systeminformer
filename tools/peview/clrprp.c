@@ -100,9 +100,7 @@ PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
     }
     else
     {
-        metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
-
-        if (metaData)
+        if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, &metaData)))
         {
             __try
             {
@@ -531,7 +529,7 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }

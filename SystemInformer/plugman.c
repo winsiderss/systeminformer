@@ -810,9 +810,9 @@ INT_PTR CALLBACK PhPluginsDlgProc(
             HFONT titleFontHandle;
 
             if (normalFontHandle = PhCreateCommonFont(-10, FW_NORMAL, NULL, LOWORD(wParam)))
-                PhReplaceWindowFont(&context->NormalFontHandle, NULL, normalFontHandle, FALSE);
+                PhSwapReferenceFont(&context->NormalFontHandle, NULL, normalFontHandle, FALSE);
             if (titleFontHandle = PhCreateCommonFont(-14, FW_BOLD, NULL, LOWORD(wParam)))
-                PhReplaceWindowFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
+                PhSwapReferenceFont(&context->TitleFontHandle, NULL, titleFontHandle, FALSE);
 
             TreeNew_SetRowHeight(context->TreeNewHandle, PhScaleToDisplay(48, LOWORD(wParam)));
             TreeNew_NodesStructured(context->TreeNewHandle);

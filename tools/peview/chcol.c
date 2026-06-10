@@ -419,7 +419,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
             HFONT controlFont;
 
             if (controlFont = PvColumnsGetCurrentFont(hwndDlg))
-                PhReplaceWindowFont(&context->ControlFont, NULL, controlFont, FALSE);
+                PhSwapReferenceFont(&context->ControlFont, NULL, controlFont, FALSE);
 
             PvSetListHeight(context, hwndDlg);
         }

@@ -550,6 +550,7 @@ DOUBLE PhReadTimeStampFrequency(
     LARGE_INTEGER startTime;
     LARGE_INTEGER endTime;
     ULONG_PTR affinityMask = 0;
+    ULONG64 yieldCount = 0;
     ULONG64 startTsc;
     ULONG64 endTsc;
 
@@ -559,8 +560,7 @@ DOUBLE PhReadTimeStampFrequency(
 
     // Calculate wait interval in QPC ticks (100ms measurement window)
 
-    const LONGLONG calibrationIntervalMs = 100;
-    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, (ULONG)calibrationIntervalMs, 1000);
+    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, 100, 1000);
 
     // Warm up CPU caches and branch predictors.
 
@@ -578,7 +578,7 @@ DOUBLE PhReadTimeStampFrequency(
     startTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    // Busy-wait for calibration interval.
+    // Busy-wait for calibration interval, unrolled to dilute QPC overhead.
 
     do
     {
@@ -599,12 +599,18 @@ DOUBLE PhReadTimeStampFrequency(
         PhSetThreadAffinityMask(NtCurrentThread(), affinityMask);
     }
 
+    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
+
+    // Calculate cycles per yield: elapsed_tsc_ticks / yield_count.
+
+    const DOUBLE CyclesPerYield = (DOUBLE)elapsedTscTicks / (DOUBLE)yieldCount;
+
     // Calculate TSC frequency: tsc_delta / elapsed_seconds.
 
-    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
-    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+    const DOUBLE TscFrequency = (DOUBLE)elapsedTscTicks / elapsedSeconds;
 
-    return (DOUBLE)elapsedTscTicks / elapsedSeconds;
+    return TscFrequency;
 }
 
 /**
@@ -1425,6 +1431,99 @@ NTSTATUS PhReadVirtualMemory(
     if (NumberOfBytesRead)
     {
         *NumberOfBytesRead = numberOfBytesRead;
+    }
+
+    return status;
+}
+
+/**
+ * Reads the largest readable prefix of virtual memory from a specified process.
+ *
+ * \param ProcessHandle Handle to the process from which the memory is to be read.
+ * \param BaseAddress Optional pointer to the base address in the specified process from which to read.
+ * \param Buffer Pointer to a buffer that receives the contents from the address space of the specified process.
+ * \param BufferSize Size of the buffer, in bytes.
+ * \param NumberOfBytesRead Optional pointer to a variable that receives the number of bytes read into the buffer.
+ * \return STATUS_SUCCESS if the full range or a non-empty readable prefix was read. If no bytes were read, returns the failing status.
+ *
+ * \remarks Reads are split on page boundaries so that an inaccessible later page does not prevent
+ * reading an accessible prefix.
+ */
+NTSTATUS PhReadVirtualMemoryPrefix(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
+    )
+{
+    NTSTATUS status;
+    ULONG_PTR baseAddress;
+    PBYTE buffer;
+    SIZE_T totalNumberOfBytesRead;
+
+    if (NumberOfBytesRead)
+    {
+        *NumberOfBytesRead = 0;
+    }
+
+    if (BufferSize == 0)
+    {
+        return STATUS_SUCCESS;
+    }
+
+    baseAddress = (ULONG_PTR)BaseAddress;
+    buffer = Buffer;
+    totalNumberOfBytesRead = 0;
+    status = STATUS_SUCCESS;
+
+    while (BufferSize != 0)
+    {
+        SIZE_T numberOfBytesRead;
+        SIZE_T readSize;
+
+        readSize = PAGE_SIZE - (baseAddress & (PAGE_SIZE - 1));
+        readSize = min(BufferSize, readSize);
+
+        numberOfBytesRead = 0;
+        status = NtReadVirtualMemory(
+            ProcessHandle,
+            (PVOID)baseAddress,
+            buffer,
+            readSize,
+            &numberOfBytesRead
+            );
+
+        if (!NT_SUCCESS(status))
+        {
+            if (numberOfBytesRead != 0)
+            {
+                totalNumberOfBytesRead += numberOfBytesRead;
+            }
+
+            break;
+        }
+
+        if (numberOfBytesRead == 0)
+        {
+            status = STATUS_PARTIAL_COPY;
+            break;
+        }
+
+        totalNumberOfBytesRead += numberOfBytesRead;
+        baseAddress += numberOfBytesRead;
+        buffer += numberOfBytesRead;
+        BufferSize -= numberOfBytesRead;
+    }
+
+    if (NumberOfBytesRead)
+    {
+        *NumberOfBytesRead = totalNumberOfBytesRead;
+    }
+
+    if (totalNumberOfBytesRead != 0)
+    {
+        return STATUS_SUCCESS;
     }
 
     return status;
@@ -3143,6 +3242,21 @@ BOOLEAN PhCalculateEntropy(
     ULONG64 bufferOffset = 0;
     ULONG64 bufferSumValue = 0;
     ULONG64 counts[UCHAR_MAX + 1];
+
+    // Guard against division by zero: an empty buffer has no distribution, so
+    // entropy/mean/variance are all zero. Without this the entropy and mean
+    // computations below would divide by (FLOAT)BufferLength == 0 and yield NaN.
+    if (BufferLength == 0)
+    {
+        if (Entropy)
+            *Entropy = 0.f;
+        if (Mean)
+            *Mean = 0.f;
+        if (Variance)
+            *Variance = 0.f;
+
+        return TRUE;
+    }
 
     memset(counts, 0, sizeof(counts));
 

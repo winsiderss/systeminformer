@@ -2418,7 +2418,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
                 if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
                 {
-                    PhReplaceWindowFont(&statisticsContext->TreeNewFont, statisticsContext->ListViewHandle, treeNewFont, TRUE);
+                    PhSwapReferenceFont(&statisticsContext->TreeNewFont, statisticsContext->ListViewHandle, treeNewFont, TRUE);
                 }
             }
         }

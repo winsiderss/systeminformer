@@ -15,6 +15,7 @@ set(SOURCES_JSON_C
     "jsonc/arraylist.c"
     "jsonc/debug.c"
     "jsonc/json_c_version.c"
+    "jsonc/json_number_fast.cpp"
     "jsonc/json_object.c"
     "jsonc/json_object_iterator.c"
     "jsonc/json_pointer.c"
@@ -37,6 +38,7 @@ set(HEADERS_JSON_C
     "jsonc/json_c_version.h"
     "jsonc/json_config.h"
     "jsonc/json_inttypes.h"
+    "jsonc/json_number_fast.h"
     "jsonc/json_object.h"
     "jsonc/json_object_iterator.h"
     "jsonc/json_object_private.h"
@@ -441,6 +443,7 @@ target_link_libraries(thirdparty PRIVATE
 target_compile_definitions(thirdparty PRIVATE
     _CRT_SECURE_NO_WARNINGS
     HAVE_CONFIG_H
+    JSONC_USE_FAST_NUMBER_CONVERSION
     MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS=0
     CAPSTONE_X86_ATT_DISABLE_NO
     CAPSTONE_DIET_NO

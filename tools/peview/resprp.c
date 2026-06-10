@@ -293,7 +293,9 @@ VOID PvpPeResourceSaveToFile(
             {
                 IO_STATUS_BLOCK isb;
 
-                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+                PVOID resourceData;
+                if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, &resourceData)))
+                    resourceData = NULL;
 
                 __try
                 {
@@ -424,7 +426,9 @@ VOID PvpPeEnumMappedImageResources(
 
             if (entry.Size)
             {
-                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+                PVOID resourceData;
+                if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, &resourceData)))
+                    resourceData = NULL;
 
                 if (resourceData)
                 {
@@ -436,7 +440,9 @@ VOID PvpPeEnumMappedImageResources(
 
             if (entry.Size)
             {
-                PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+                PVOID resourceData;
+                if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, &resourceData)))
+                    resourceData = NULL;
 
                 if (resourceData)
                 {
@@ -634,7 +640,7 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

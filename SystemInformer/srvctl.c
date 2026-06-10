@@ -521,7 +521,7 @@ INT_PTR CALLBACK PhpServicesPageProc(
                 HFONT treeNewFont;
 
                 if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
-                    PhReplaceWindowFont(&context->TreeNewFont, context->ListViewHandle, treeNewFont, TRUE);
+                    PhSwapReferenceFont(&context->TreeNewFont, context->ListViewHandle, treeNewFont, TRUE);
             }
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));

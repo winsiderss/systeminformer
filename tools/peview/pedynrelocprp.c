@@ -225,10 +225,14 @@ VOID PvEnumerateDynamicRelocationEntries(
                 PIMAGE_SECTION_HEADER section;
                 PPH_STRING symbol;
 
-                section = PhMappedImageRvaToSection(
+                if (!NT_SUCCESS(PhMappedImageRvaToSection(
                     &PvMappedImage,
-                    PtrToUlong(PTR_SUB_OFFSET(entry->MappedImageVa, PvMappedImage.ViewBase))
-                    );
+                    PtrToUlong(PTR_SUB_OFFSET(entry->MappedImageVa, PvMappedImage.ViewBase)),
+                    &section
+                    )))
+                {
+                    section = NULL;
+                }
                 if (section)
                 {
                     WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];

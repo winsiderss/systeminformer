@@ -426,7 +426,7 @@ PhSymbolProviderFreeDiaString(
 
 // Inline stack support
 
-typedef union _INLINE_FRAME_CONTEXT
+typedef union _INLINE_FRAME_CONTEXT2
 {
     ULONG ContextValue;
     struct
@@ -435,7 +435,7 @@ typedef union _INLINE_FRAME_CONTEXT
         UCHAR FrameType;
         USHORT FrameSignature;
     };
-} INLINE_FRAME_CONTEXT, *PINLINE_FRAME_CONTEXT;
+} INLINE_FRAME_CONTEXT2, *PINLINE_FRAME_CONTEXT2;
 
 #define STACK_FRAME_TYPE_INIT 0x00
 #define STACK_FRAME_TYPE_STACK 0x01
@@ -457,12 +457,12 @@ PhIsStackFrameTypeInline(
     _In_ ULONG InlineFrameContext
     )
 {
-    INLINE_FRAME_CONTEXT frameContext = { InlineFrameContext };
+    PINLINE_FRAME_CONTEXT2 frameContext = (PINLINE_FRAME_CONTEXT2)&InlineFrameContext;
 
-    if (frameContext.ContextValue == INLINE_FRAME_CONTEXT_IGNORE)
+    if (frameContext->ContextValue == INLINE_FRAME_CONTEXT_IGNORE)
         return FALSE;
 
-    if (frameContext.FrameType & STACK_FRAME_TYPE_INLINE)
+    if (frameContext->FrameType & STACK_FRAME_TYPE_INLINE)
         return TRUE;
 
     return FALSE;

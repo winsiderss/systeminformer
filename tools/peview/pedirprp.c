@@ -217,7 +217,8 @@ VOID PvpPeEnumerateImageDataDirectory(
         }
         else
         {
-            imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, &directorySection);
+            PhMappedImageRvaToSection(&PvMappedImage, directoryAddress, &directorySection);
+            PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, &imageDirectoryData);
 
             if (directorySection)
             {
@@ -470,7 +471,7 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -1132,7 +1133,14 @@ VOID PvInitializeDirectoryTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_SSDEEP, TRUE, L"SSDEEP", 80, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_SSDEEP, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_TLSH, TRUE, L"TLSH", 80, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_TLSH, 0, 0);
 
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(ParentWindowHandle)));
+    {
+        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+        if (treelistCustomRowSize && treelistCustomRowSize < 15)
+            treelistCustomRowSize = 15;
+
+        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
+    }
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);

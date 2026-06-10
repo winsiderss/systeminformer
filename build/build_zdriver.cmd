@@ -13,8 +13,11 @@ set "IsCI=false"
 set "SuppressPause=false"
 set "TLG=auto"
 set "VSINSTALLPATH="
+set "VS_ARM64_SUPPORT=false"
+set "VCVARS_ARCH=amd64"
 set "CustomBuildTool=tools\CustomBuildTool\bin\Release\%PROCESSOR_ARCHITECTURE%\CustomBuildTool.exe"
-set "BUILD_CONFIGURATION=Debug"
+set "BUILD_CONFIGURATION=Debug;Release"
+set "BUILD_PLATFORMS=x64;ARM64"
 set "BUILD_TARGET=Build"
 set "PREFAST_ANALYSIS="
 
@@ -46,19 +49,38 @@ if errorlevel 1 exit /b %errorlevel%
 call :FindVisualStudio
 if errorlevel 1 exit /b %errorlevel%
 
-call :SetupVcVars "amd64_arm64"
+REM Detect if ARM64 toolchain is available in the current Visual Studio installation.
+call :DetectArm64Support
 if errorlevel 1 exit /b %errorlevel%
 
-echo [+] Building... [WIN64] %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS%
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=x64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+REM If ARM64 support is available, set up cross-compiling (amd64_arm64).
+if /i "%VS_ARM64_SUPPORT%"=="true" set "VCVARS_ARCH=amd64_arm64"
+
+REM Set up the Visual C++ compiler environment for the target architecture.
+REM Configures PATH, INCLUDE, and LIB variables needed by the compiler and MSBuild.
+call :SetupVcVars "%VCVARS_ARCH%"
 if errorlevel 1 exit /b %errorlevel%
 
-echo [+] Building... [ARM64] %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS%
-msbuild KSystemInformer\KSystemInformer.sln -t:%BUILD_TARGET% -p:Configuration=%BUILD_CONFIGURATION%;Platform=ARM64 -maxCpuCount -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+REM Execute the kernel driver build across all configured platforms and configurations.
+REM Logs build parameters, invokes MSBuild with multiprocessor support, and validates success.
+echo [+] Building... [%BUILD_PLATFORMS%] (%BUILD_CONFIGURATION%) %BUILD_TARGET% %PREFAST_ANALYSIS%
+call :RunDriverBuild "%BUILD_PLATFORMS%" %BUILD_TARGET%
 if errorlevel 1 exit /b %errorlevel%
 
+REM Report successful completion and return success code.
 echo [+] Build Complete! %BUILD_CONFIGURATION% %BUILD_TARGET% %PREFAST_ANALYSIS%
 exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: RunDriverBuild
+REM Description: Builds KSystemInformer across the selected configuration/platform matrix.
+REM Parameters:
+REM   %~1 - Semicolon-separated platform list (e.g. "x64" or "x64;ARM64").
+REM   %~2 - BuildAll target such as Clean, Build, or Rebuild.
+REM -----------------------------------------------------------------------------
+:RunDriverBuild
+msbuild /m /graph KSystemInformer\KSystemInformer.sln -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
 REM Function: ParseArgs
@@ -137,6 +159,22 @@ REM ----------------------------------------------------------------------------
 :DetectCi
 if /i "%GITHUB_ACTIONS%"=="true" set "IsCI=true"
 if /i "%TF_BUILD%"=="true" set "IsCI=true"
+exit /b 0
+
+REM -----------------------------------------------------------------------------
+REM Function: DetectArm64Support
+REM Description: Checks whether the detected Visual Studio install has ARM64 VC tools.
+REM -----------------------------------------------------------------------------
+:DetectArm64Support
+if /i "%EnterpriseWDK%"=="true" (
+    REM EWDK shells are single-arch; the launched arch is exposed via Platform.
+    if /i "%Platform%"=="arm64" set "VS_ARM64_SUPPORT=true"
+    exit /b 0
+)
+if not exist "%VSWHERE%" exit /b 0
+for /f "usebackq tokens=*" %%a in (`call "%VSWHERE%" -latest -prerelease -products * -requires "Microsoft.VisualStudio.Component.VC.Tools.ARM64" -property installationPath`) do (
+   set "VS_ARM64_SUPPORT=true"
+)
 exit /b 0
 
 REM -----------------------------------------------------------------------------

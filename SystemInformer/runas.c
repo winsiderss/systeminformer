@@ -836,16 +836,14 @@ ULONG PhRunAsGetLogonId(
     VOID
     )
 {
-    WINSTATIONINFORMATION stationInfo;
+    TOKEN_STATISTICS statistics;
 
-    // LsaGetLogonSessionData or TokenLogonSid
-
-    if (NT_SUCCESS(PhGetWindowStationSessionInformation(
-        WINSTATION_CURRENT_SESSION,
-        &stationInfo
+    if (NT_SUCCESS(PhGetTokenStatistics(
+        PhGetOwnTokenAttributes().TokenHandle,
+        &statistics
         )))
     {
-        return stationInfo.LogonId;
+        return statistics.AuthenticationId.LowPart;
     }
 
     return 0;
@@ -1104,16 +1102,11 @@ NTSTATUS PhRunAsExecuteParentCommand(
 
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
-            status = PhRunAsUpdateDesktop(userSid);
-
-            if (NT_SUCCESS(status))
-                status = PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhRunAsUpdateDesktop(userSid);
+            PhRunAsUpdateWindowStation(userSid, logonSid);
 
             PhFree(userSid);
             PhFree(logonSid);
-
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
         }
 
         if (PhGetOwnTokenAttributes().Elevated)
@@ -1378,21 +1371,11 @@ VOID PhRunAsExecuteCommmand(
 
             if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
             {
-                status = PhRunAsUpdateDesktop(userSid);
-
-                if (NT_SUCCESS(status))
-                    status = PhRunAsUpdateWindowStation(userSid, logonSid);
+                PhRunAsUpdateDesktop(userSid);
+                PhRunAsUpdateWindowStation(userSid, logonSid);
 
                 PhFree(userSid);
                 PhFree(logonSid);
-
-                if (!NT_SUCCESS(status))
-                {
-                    NtClose(newProcessHandle);
-                    PhClearReference(&domainPart);
-                    PhClearReference(&userPart);
-                    goto CleanupExit;
-                }
             }
 
             if (!createSuspended)
@@ -3287,7 +3270,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     {
                         ULONG buttonStyle = PhGetWindowStyle(customDraw->hdr.hwndFrom);
 
-                        if (FlagOn(buttonStyle, BS_CHECKBOX) == BS_CHECKBOX)
+                        if ((buttonStyle & BS_TYPEMASK) == BS_CHECKBOX || (buttonStyle & BS_TYPEMASK) == BS_AUTOCHECKBOX)
                         {
                             switch (customDraw->dwDrawStage)
                             {

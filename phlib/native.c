@@ -1578,6 +1578,91 @@ NTSTATUS PhEnumProcessesEx(
 }
 
 /**
+ * Enumerates basic process information.
+ *
+ * \param Buffer A pointer to a variable which receives a pointer to a buffer containing basic process information.
+ * \param BufferSize A pointer to a variable which receives the size of the buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhEnumBasicProcessInformation(
+    _Inout_ PVOID *Buffer,
+    _Inout_ PULONG BufferSize
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize;
+
+    bufferSize = *BufferSize;
+    buffer = *Buffer;
+
+    if (!buffer)
+    {
+        if (bufferSize == 0)
+            bufferSize = 0x4000;
+
+        buffer = PhAllocateSafe(bufferSize);
+
+        if (!buffer)
+            return STATUS_NO_MEMORY;
+    }
+
+    while (TRUE)
+    {
+        status = NtQuerySystemInformation(
+            SystemBasicProcessInformation,
+            buffer,
+            bufferSize,
+            &bufferSize
+            );
+
+        if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            PhFree(buffer);
+            buffer = PhAllocateSafe(bufferSize);
+
+            if (!buffer)
+                return STATUS_NO_MEMORY;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        PhFree(buffer);
+        *Buffer = NULL;
+        *BufferSize = 0;
+        return status;
+    }
+
+    *Buffer = buffer;
+    *BufferSize = bufferSize;
+
+    return status;
+}
+
+/**
+ * Gets basic system information.
+ *
+ * \param BasicInformation A variable which receives the information.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetSystemBasicInformation(
+    _Out_ PSYSTEM_BASIC_INFORMATION BasicInformation
+    )
+{
+    return NtQuerySystemInformation(
+        SystemBasicInformation,
+        BasicInformation,
+        sizeof(SYSTEM_BASIC_INFORMATION),
+        NULL
+        );
+}
+
+/**
  * Enumerates the threads of a running process.
  *
  * \param ProcessId The ID of the process.
@@ -6495,72 +6580,72 @@ NTSTATUS PhPrefetchVirtualMemory(
 }
 
 // rev from OfferVirtualMemory (dmex)
-//NTSTATUS PhOfferVirtualMemory(
-//    _In_ HANDLE ProcessHandle,
-//    _In_ PVOID VirtualAddress,
-//    _In_ SIZE_T NumberOfBytes,
-//    _In_ MEMORY_PAGE_PRIORITY_INFORMATION Priority
-//    )
-//{
-//    NTSTATUS status;
-//    MEMORY_RANGE_ENTRY virtualMemoryRange;
-//    ULONG virtualMemoryFlags;
-//
-//    if (!NtSetInformationVirtualMemory_Import())
-//        return STATUS_PROCEDURE_NOT_FOUND;
-//
-//    // TODO: NtQueryVirtualMemory (dmex)
-//
-//    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
-//    virtualMemoryRange.VirtualAddress = VirtualAddress;
-//    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
-//
-//    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
-//    virtualMemoryFlags = Priority;
-//
-//    status = PhpSetInformationVirtualMemory(
-//        ProcessHandle,
-//        VmPagePriorityInformation,
-//        1,
-//        &virtualMemoryRange,
-//        &virtualMemoryFlags,
-//        sizeof(virtualMemoryFlags)
-//        );
-//
-//    return status;
-//}
-//
+NTSTATUS PhOfferVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ SIZE_T NumberOfBytes,
+    _In_ PMEMORY_PAGE_PRIORITY_INFORMATION Priority
+    )
+{
+    NTSTATUS status;
+    MEMORY_RANGE_ENTRY virtualMemoryRange;
+    ULONG virtualMemoryFlags;
+
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    // TODO: NtQueryVirtualMemory (dmex)
+
+    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
+    virtualMemoryRange.VirtualAddress = VirtualAddress;
+    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
+
+    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
+    virtualMemoryFlags = Priority->PagePriority;
+
+    status = PhpSetInformationVirtualMemory(
+        ProcessHandle,
+        VmPagePriorityInformation,
+        1,
+        &virtualMemoryRange,
+        &virtualMemoryFlags,
+        sizeof(virtualMemoryFlags)
+        );
+
+    return status;
+}
+
 // rev from DiscardVirtualMemory (dmex)
-//NTSTATUS PhDiscardVirtualMemory(
-//    _In_ HANDLE ProcessHandle,
-//    _In_ PVOID VirtualAddress,
-//    _In_ SIZE_T NumberOfBytes
-//    )
-//{
-//    NTSTATUS status;
-//    MEMORY_RANGE_ENTRY virtualMemoryRange;
-//    ULONG virtualMemoryFlags;
-//
-//    if (!NtSetInformationVirtualMemory_Import())
-//        return STATUS_PROCEDURE_NOT_FOUND;
-//
-//    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
-//    virtualMemoryRange.VirtualAddress = VirtualAddress;
-//    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
-//
-//    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
-//
-//    status = PhpSetInformationVirtualMemory(
-//        ProcessHandle,
-//        VmPagePriorityInformation,
-//        1,
-//        &virtualMemoryRange,
-//        &virtualMemoryFlags,
-//        sizeof(virtualMemoryFlags)
-//        );
-//
-//    return status;
-//}
+NTSTATUS PhDiscardVirtualMemory(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ SIZE_T NumberOfBytes
+    )
+{
+    NTSTATUS status;
+    MEMORY_RANGE_ENTRY virtualMemoryRange;
+    ULONG virtualMemoryFlags;
+
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    memset(&virtualMemoryRange, 0, sizeof(MEMORY_RANGE_ENTRY));
+    virtualMemoryRange.VirtualAddress = VirtualAddress;
+    virtualMemoryRange.NumberOfBytes = NumberOfBytes;
+
+    memset(&virtualMemoryFlags, 0, sizeof(virtualMemoryFlags));
+
+    status = PhpSetInformationVirtualMemory(
+        ProcessHandle,
+        VmPagePriorityInformation,
+        1,
+        &virtualMemoryRange,
+        &virtualMemoryFlags,
+        sizeof(virtualMemoryFlags)
+        );
+
+    return status;
+}
 
 /**
  * Sets the priority of a range of virtual memory pages in a specified process.

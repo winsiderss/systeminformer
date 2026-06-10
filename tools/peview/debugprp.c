@@ -150,7 +150,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                         PVOID imageSectionData;
                         PPH_STRING hashString;
 
-                        if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry.AddressOfRawData, NULL))
+                        if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry.AddressOfRawData, &imageSectionData)))
                         {
                             if (hashString = PvHashBuffer(imageSectionData, entry.SizeOfData))
                             {
@@ -175,7 +175,7 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }

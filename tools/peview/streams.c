@@ -216,7 +216,7 @@ INT_PTR CALLBACK PvpPeStreamsDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);

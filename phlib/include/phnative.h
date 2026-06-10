@@ -1319,6 +1319,13 @@ PhCreateJobObject(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhCreateConfiguredJobObject(
+    _Out_ PHANDLE JobHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhOpenJobObject(
     _Out_ PHANDLE JobHandle,
     _In_ ACCESS_MASK DesiredAccess,

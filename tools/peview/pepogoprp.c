@@ -63,7 +63,7 @@ VOID PvEnumerateImagePogoSections(
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, value);
             PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PhaFormatSize(entry->Size, ULONG_MAX)->Buffer);
 
-            if (section = PhMappedImageRvaToSection(&PvMappedImage, entry->Rva))
+            if (NT_SUCCESS(PhMappedImageRvaToSection(&PvMappedImage, entry->Rva, &section)))
             {
                 WCHAR sectionName[IMAGE_SIZEOF_SHORT_NAME + 1];
 
@@ -73,7 +73,7 @@ VOID PvEnumerateImagePogoSections(
                 }
             }
 
-            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+            if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, &imageSectionData)))
             {
                 if (hashString = PvHashBuffer(imageSectionData, entry->Size))
                 {
@@ -92,7 +92,7 @@ VOID PvEnumerateImagePogoSections(
                 PPH_STRING entropyString;
                 FLOAT imageSectionEntropy;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, &imageSectionData)))
                 {
                     if (PhCalculateEntropy(imageSectionData, entry->Size, &imageSectionEntropy, NULL, NULL))
                     {
@@ -116,7 +116,7 @@ VOID PvEnumerateImagePogoSections(
             {
                 char* ssdeepHashString = NULL;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, &imageSectionData)))
                 {
                     fuzzy_hash_buffer(imageSectionData, entry->Size, &ssdeepHashString);
 
@@ -143,7 +143,7 @@ VOID PvEnumerateImagePogoSections(
             {
                 char* tlshHashString = NULL;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->Rva, &imageSectionData)))
                 {
                     //
                     // This can fail in TLSH library during finalization when

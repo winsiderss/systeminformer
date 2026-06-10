@@ -48,12 +48,12 @@ static VOID PhpChoiceDialogUpdateFonts(
         metrics.lfMessageFont.lfHeight = 4 * metrics.lfMessageFont.lfHeight / 3;
 
         if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
-            PhReplaceWindowFont(&Context->TitleFontHandle, GetDlgItem(WindowHandle, IDC_TITLE), fontHandle, FALSE);
+            PhSwapReferenceFont(&Context->TitleFontHandle, GetDlgItem(WindowHandle, IDC_TITLE), fontHandle, FALSE);
 
         metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-14, DpiValue);
 
         if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
-            PhReplaceWindowFont(&Context->FontHandle, Context->ComboBoxHandle, fontHandle, FALSE);
+            PhSwapReferenceFont(&Context->FontHandle, Context->ComboBoxHandle, fontHandle, FALSE);
     }
 }
 

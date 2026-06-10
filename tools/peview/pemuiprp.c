@@ -204,7 +204,10 @@ VOID PvPeGetMuiInfo(
 
                         if (PhEqualStringRef2(&string, MUI_TYPE, TRUE))
                         {
-                            PVOID resourceData = PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, NULL);
+                            PVOID resourceData;
+
+                            if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry.Offset, &resourceData)))
+                                resourceData = NULL;
 
                             PvAddMuiResourceInfo(ListViewHandle, resourceData);
                         }
@@ -285,7 +288,7 @@ INT_PTR CALLBACK PvpPeMuiResourceDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             //PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }

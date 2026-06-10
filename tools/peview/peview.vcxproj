@@ -94,16 +94,16 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -114,16 +114,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -134,16 +134,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -154,16 +154,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -174,16 +174,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -194,16 +194,16 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)phlib\include;$(SolutionDir)kphlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\include\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;ntdll.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SolutionDir)kphlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;bcrypt.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)kphlib\include;..\..\phnt\include;..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
@@ -276,12 +276,12 @@
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\kphlib\include\sistatus.rc" />
+    <ResourceCompile Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc" />
     <ResourceCompile Include="peview.rc" />
     <ResourceCompile Include="version.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\phlib\phlib.vcxproj">
+    <ProjectReference Include="$(SystemInformerRoot)phlib\phlib.vcxproj">
       <Project>{477d0215-f252-41a1-874b-f27e3ea1ed17}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -317,3 +317,4 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
+

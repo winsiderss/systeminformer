@@ -552,7 +552,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(State)
 {
-    // For UDP, treat "Bound" state (listening sockets) specially - always sort them last
+    // For TCP, treat "Bound" state (listening sockets) specially - always sort them last
     BOOLEAN isBound1 = (networkItem1->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem1->State == MIB_TCP_STATE_RESERVED);
     BOOLEAN isBound2 = (networkItem2->ProtocolType == PH_PROTOCOL_TYPE_TCP && networkItem2->State == MIB_TCP_STATE_RESERVED);
 
@@ -693,7 +693,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     if (networkItem->LocalHostnameResolved)
                         getCellText->Text = PhGetStringRef(networkItem->LocalHostString);
                     else
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                 }
                 break;
             case PHNETLC_LOCALPORT:
@@ -711,7 +711,7 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
                     if (networkItem->RemoteHostnameResolved)
                         getCellText->Text = PhGetStringRef(networkItem->RemoteHostString);
                     else
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                 }
                 break;
             case PHNETLC_REMOTEPORT:

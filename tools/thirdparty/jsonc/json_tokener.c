@@ -31,6 +31,9 @@
 #include "json_object_private.h"
 #include "json_tokener.h"
 #include "json_util.h"
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+#include "json_number_fast.h"
+#endif
 #include "printbuf.h"
 #include "strdup_compat.h"
 
@@ -1389,9 +1392,13 @@ size_t json_tokener_get_parse_end(struct json_tokener *tok)
 
 static int json_tokener_parse_double(const unsigned char *buf, size_t len, double *retval)
 {
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+    return json_c_parse_double_full(buf, len, retval);
+#else
     unsigned char *end;
     *retval = strtod(buf, (char**)&end);
     if (buf + len == end)
         return 0; // It worked
     return 1;
+#endif
 }
