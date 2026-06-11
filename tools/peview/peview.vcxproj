@@ -194,7 +194,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\include\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
