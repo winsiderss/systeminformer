@@ -62,7 +62,6 @@ namespace CustomBuildTool
             rootCommand.Add(CreateCheckMsvcCommand());
             rootCommand.Add(CreateInstallMsvcCommand());
             rootCommand.Add(CreateDynDataCommand());
-            rootCommand.Add(CreateSiStatusCommand());
             rootCommand.Add(CreatePhAppPubGenCommand());
             rootCommand.Add(CreatePhntHeadersGenCommand());
             rootCommand.Add(CreateKphSignCommand());
@@ -109,8 +108,6 @@ namespace CustomBuildTool
 
                     { "-cleanup", "Cleans up the build environment." },
                     { "-cleansdk", "Cleans SDK build artifacts (internal)." },
-                    { "-sistatus", "Builds sistatus messages." },
-
                     { "-cmake-bin", "Builds the binary package using CMake (clang)." },
                     { "-cmake-pipeline-build", "Performs pipeline build operations using CMake (clang)." },
                     { "-cmake-pipeline-deploy", "Deploys pipeline artifacts using CMake (clang)." },
@@ -194,7 +191,7 @@ namespace CustomBuildTool
                 Description = "Path to sign"
             };
             cmd.Add(pathArg);
-            cmd.SetAction(async parseResult =>
+            cmd.SetAction(parseResult =>
             {
                 string path = parseResult.GetValue(pathArg);
                 BuildToolsId.CheckForOutOfDateTools();
@@ -271,30 +268,6 @@ namespace CustomBuildTool
                 BuildToolsId.CheckForOutOfDateTools();
 
                 if (!Build.BuildDynamicData(a))
-                    Environment.Exit(1);
-            });
-            return cmd;
-        }
-
-        /// <summary>
-        /// Creates a command that generates sistatus message files.
-        /// </summary>
-        /// <returns>A command configured to handle sistatus message operations.</returns>
-        private static Command CreateSiStatusCommand()
-        {
-            var cmd = new Command("-sistatus", "Builds sistatus messages.");
-            var arg = new Argument<string>("arg")
-            {
-                Description = "Sistatus argument (optional)",
-                DefaultValueFactory = _ => string.Empty
-            };
-            cmd.Add(arg);
-            cmd.SetAction(parseResult =>
-            {
-                string a = parseResult.GetValue(arg);
-                BuildToolsId.CheckForOutOfDateTools();
-
-                if (!Build.BuildMessageHeaders(a))
                     Environment.Exit(1);
             });
             return cmd;

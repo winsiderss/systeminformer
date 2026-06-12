@@ -1686,67 +1686,6 @@ namespace CustomBuildTool
             return commandLineBuilder.ToString();
         }
 
-        /// <summary>
-        /// Compiles kphlib\sistatus.mc into per-configuration headers and resources using the
-        /// Windows SDK Message Compiler (mc.exe). The kernelmode build uses the WDK MessageCompile
-        /// task; this provides the equivalent output for the usermode build (which has no WDK) and
-        /// writes each flavor into kphlib\bin\&lt;Configuration&gt;&lt;Architecture&gt;\ so the
-        /// parallel matrix build does not race on a shared output file.
-        /// </summary>
-        public static bool BuildMessageHeaders(BuildFlags Flags)
-        {
-            string messageCompiler = Utils.GetMessageCompilerPath();
-
-            if (string.IsNullOrWhiteSpace(messageCompiler))
-            {
-                Program.PrintColorMessage("[ERROR] mc.exe (Windows SDK Message Compiler) was not found.", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                return false;
-            }
-
-            string sourceFile = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\sistatus.mc"]));
-
-            List<(string Configuration, string Architecture)> flavors = new List<(string, string)>();
-
-            foreach (string configuration in new[] { "Debug", "Release" })
-            {
-                if (configuration == "Debug" && !Flags.HasFlag(BuildFlags.BuildDebug))
-                    continue;
-                if (configuration == "Release" && !Flags.HasFlag(BuildFlags.BuildRelease))
-                    continue;
-
-                if (Flags.HasFlag(BuildFlags.Build32bit))
-                    flavors.Add((configuration, "32"));
-                if (Flags.HasFlag(BuildFlags.Build64bit))
-                    flavors.Add((configuration, "64"));
-                if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                    flavors.Add((configuration, "ARM64"));
-            }
-
-            foreach ((string Configuration, string Architecture) flavor in flavors)
-            {
-                string outputDirectory = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\bin", $"{flavor.Configuration}{flavor.Architecture}"]));
-
-                Win32.CreateDirectory(outputDirectory);
-
-                // Mirror the <MessageCompile> metadata in kphlib_km.vcxproj:
-                //   -c SetCustomerbit, -u UnicodeInputFile, -U UnicodeMessageInBinFile,
-                //   -n TerminateMessageWithNull, -b basename prefix (sistatus_MSG00001.bin).
-                int exitcode = Win32.CreateProcess(
-                    messageCompiler,
-                    $"-c -u -U -n -b -h \"{outputDirectory}\" -r \"{outputDirectory}\" \"{sourceFile}\"",
-                    out string outputString
-                    );
-
-                if (exitcode != 0)
-                {
-                    Program.PrintColorMessage($"[ERROR] mc.exe ({exitcode}) {outputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         public static bool BuildSolutionParallel(string Solution, BuildFlags Flags, string Channel = null, bool SkipArm64 = false)
         {
             if (SkipArm64)
@@ -1920,14 +1859,6 @@ namespace CustomBuildTool
 
             if (toolchainList.Count == 0)
                 return true;
-
-            //
-            // Generate the per-configuration sistatus.* headers up front (sequentially)
-            // so the parallel CMake toolchain builds do not race to produce them. The
-            // CMake build has no WDK MessageCompile task, so this uses the SDK mc.exe.
-            //
-            if (!BuildMessageHeaders(Flags))
-                return false;
 
             bool allOk = true;
             Parallel.ForEach(toolchainList, new ParallelOptions { MaxDegreeOfParallelism = toolchainList.Count }, tc =>

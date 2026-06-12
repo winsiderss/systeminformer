@@ -50,8 +50,8 @@
   <!-- sistatus
     The kernelmode side compiles the message file with the WDK MessageCompile task into
     a per-configuration directory bin\$(Configuration)$(PlatformArchitecture)\ so the
-    parallel matrix build does not race on a single shared output. The usermode side is
-    generated separately by CustomBuildTool via the Windows SDK mc.exe (no WDK required).
+    parallel matrix build does not race on a single shared output. The usermode side uses
+    a project-local CustomBuild item that invokes the Windows SDK mc.exe (no WDK required).
   -->
   <Target Name="KsiMakeSistatusDir" BeforeTargets="MessageCompile">
     <MakeDir Directories="$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)" />

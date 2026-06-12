@@ -111,9 +111,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -132,9 +129,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -153,9 +147,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -174,9 +165,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -195,9 +183,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -216,9 +201,6 @@
       <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
       <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <PostBuildEvent>
       <Command>"$(SolutionDir)build\build_zdriver_sdk.cmd" "$(OutDir)$(TargetName)$(TargetExt)" "-$(Configuration)" "-$(PlatformName)"</Command>
     </PostBuildEvent>
@@ -408,12 +390,23 @@
     <None Include="resources\SystemInformer.png" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="SystemInformer.rc" />
-    <ResourceCompile Include="version.rc" />
-    <ResourceCompile Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="SystemInformer.manifest" />
+    <CustomBuild Include="SystemInformer.rc">
+      <Command>rc.exe /nologo /8 /l 0x0009 /i "$(SystemInformerRoot)kphlib\include" /i "$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)" /i "$(SystemInformerRoot)phnt\include" /i "$(SystemInformerRoot)phlib\include" /i "$(ProjectDir)include" /fo "$(IntDir)SystemInformer.res" "%(FullPath)"</Command>
+      <Outputs>$(IntDir)SystemInformer.res</Outputs>
+      <AdditionalInputs>$(ProjectDir)resource.h;$(ProjectDir)include\phappres.h</AdditionalInputs>
+      <Message>Compiling resources %(Filename)%(Extension)</Message>
+    </CustomBuild>
+    <CustomBuild Include="version.rc">
+      <Command>rc.exe /nologo /8 /l 0x0009 /i "$(SystemInformerRoot)kphlib\include" /i "$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)" /i "$(SystemInformerRoot)phnt\include" /i "$(SystemInformerRoot)phlib\include" /i "$(ProjectDir)include" /fo "$(IntDir)version.res" "%(FullPath)"</Command>
+      <Outputs>$(IntDir)version.res</Outputs>
+      <AdditionalInputs>$(ProjectDir)resource.h;$(ProjectDir)include\phappres.h</AdditionalInputs>
+      <Message>Compiling resources %(Filename)%(Extension)</Message>
+    </CustomBuild>
+    <CustomBuild Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc">
+      <Command>rc.exe /nologo /8 /l 0x0009 /i "$(SystemInformerRoot)kphlib\include" /i "$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)" /i "$(SystemInformerRoot)phnt\include" /i "$(SystemInformerRoot)phlib\include" /i "$(ProjectDir)include" /fo "$(IntDir)sistatus.res" "%(FullPath)"</Command>
+      <Outputs>$(IntDir)sistatus.res</Outputs>
+      <Message>Compiling resources %(Filename)%(Extension)</Message>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <Image Include="resources\active_search.bmp" />
