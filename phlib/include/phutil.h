@@ -1040,6 +1040,27 @@ PhStringToGuid(
     _Out_ PGUID Guid
     );
 
+/**
+ * Converts a string representation of a GUID to a GUID structure.
+ *
+ * \param[in] GuidString The string representation of the GUID.
+ * \param[out] Guid A pointer to the GUID structure to receive the converted GUID.
+ * \return Standard NTSTATUS status code.
+ */
+FORCEINLINE
+NTSTATUS
+PhGuidFromStringZ(
+    _In_ PCWSTR GuidString,
+    _Out_ PGUID Guid
+    )
+{
+    PH_STRINGREF string;
+
+    PhInitializeStringRef(&string, GuidString);
+
+    return PhStringToGuid(&string, Guid);
+}
+
 typedef struct _VS_VERSION_INFO_STRUCT16
 {
     USHORT Length;

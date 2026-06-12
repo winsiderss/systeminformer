@@ -11,15 +11,8 @@
  */
 
 #include <ph.h>
-
-#include <mapldr.h>
-#include <sddl.h>
-#include <shlwapi.h>
-#include <userenv.h>
-#include <ntuser.h>
-#include <xmllite.h>
-
 #include <apiimport.h>
+#include <mapldr.h>
 
 /**
  * Imports a procedure from a specified module.
@@ -185,6 +178,8 @@ PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerParent);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlStringFromGUIDEx);
+
 
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtCaptureSnapshot);
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtQuerySnapshot);
@@ -216,6 +211,7 @@ PH_DEFINE_IMPORT(L"user32.dll", ConsoleControl);
 PH_DEFINE_IMPORT(L"user32.dll", GetCurrentInputMessageSource);
 PH_DEFINE_IMPORT(L"user32.dll", GetCIMSSM);
 PH_DEFINE_IMPORT(L"user32.dll", SetCoalescableTimer);
+PH_DEFINE_IMPORT(L"win32u.dll", NtGdiGetEntry);
 PH_DEFINE_IMPORT(L"win32u.dll", NtUserBuildHwndList);
 
 PH_DEFINE_IMPORT(L"xmllite.dll", CreateXmlReader);

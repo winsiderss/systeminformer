@@ -61,7 +61,9 @@
     <Xml Include="kphdyn.xml" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="sistatus.mc" />
+    <CustomBuild Include="sistatus.mc">
+      <Filter>Resource Files</Filter>
+    </CustomBuild>
     <None Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus_MSG00001.bin">
       <Filter>Resource Files</Filter>
     </None>

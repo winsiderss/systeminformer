@@ -1178,7 +1178,7 @@ VOID PhMipSetPinned(
     if (Update)
     {
         PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
-        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
 
     PhMipPinned = Pinned;

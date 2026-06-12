@@ -121,7 +121,8 @@ NTSTATUS SetupCreateUninstallKey(
         PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
-        PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
+        PhMoveReference(&string, PhQuoteCommandLine(&string->sr, TRUE));
+        PhMoveReference(&string, PhConcatStrings2(PhGetString(string), L" -uninstall"));
         PhSetValueKeyStringZ(keyHandle, L"UninstallString", &string->sr);
 
         PhSetValueKeyUlong(keyHandle, L"NoModify", TRUE);
@@ -721,7 +722,7 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
             return STATUS_NO_MEMORY;
         }
 
-        value = PhFormatString(L"\"%s\"", PhGetString(clientPathString));
+        value = PhQuoteCommandLine(&clientPathString->sr, TRUE);
         if (!value)
         {
             PhDereferenceObject(clientPathString);

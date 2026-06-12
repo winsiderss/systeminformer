@@ -31,8 +31,156 @@ typedef struct _PH_CHOICE_DIALOG_CONTEXT
     HWND ComboBoxHandle;
     HFONT TitleFontHandle;
     HFONT FontHandle;
+
+    HBRUSH BrushNormal;
+    HBRUSH BrushHover;
+    HBRUSH BrushHot;
+    COLORREF TextColor;
 } PH_CHOICE_DIALOG_CONTEXT, *PPH_CHOICE_DIALOG_CONTEXT;
 
+/**
+ * Creates the brushes used for owner-drawn combo box items.
+ *
+ * \param Context The choice dialog context.
+ */
+static VOID PhpChoiceDialogInitializeBrushes(
+    _Inout_ PPH_CHOICE_DIALOG_CONTEXT Context
+    )
+{
+    if (PhEnableThemeSupport)
+    {
+        Context->BrushNormal = CreateSolidBrush(PhThemeWindowBackgroundColor);
+        Context->BrushHover = CreateSolidBrush(PhThemeWindowBackground2Color);
+        Context->BrushHot = CreateSolidBrush(PhThemeWindowHighlightColor);
+        Context->TextColor = PhThemeWindowTextColor;
+    }
+    else
+    {
+        Context->BrushNormal = GetSysColorBrush(COLOR_WINDOW);
+        Context->BrushHover = CreateSolidBrush(RGB(229, 243, 255));
+        Context->BrushHot = CreateSolidBrush(RGB(145, 201, 247));
+        Context->TextColor = GetSysColor(COLOR_WINDOWTEXT);
+    }
+}
+
+/**
+ * Deletes the brushes used for owner-drawn combo box items.
+ *
+ * \param Context The choice dialog context.
+ */
+static VOID PhpChoiceDialogDeleteBrushes(
+    _Inout_ PPH_CHOICE_DIALOG_CONTEXT Context
+    )
+{
+    if (Context->BrushNormal)
+        DeleteBrush(Context->BrushNormal);
+    if (Context->BrushHover)
+        DeleteBrush(Context->BrushHover);
+    if (Context->BrushHot)
+        DeleteBrush(Context->BrushHot);
+}
+
+/**
+ * Draws an owner-drawn combo box item with hot (mouse-over) and selection theming.
+ *
+ * \param Context The choice dialog context.
+ * \param DrawInfo The owner-draw information.
+ * \return TRUE if the item was drawn, FALSE to use default drawing.
+ */
+static BOOLEAN PhpChoiceDialogDrawComboBoxItem(
+    _In_ PPH_CHOICE_DIALOG_CONTEXT Context,
+    _In_ LPDRAWITEMSTRUCT DrawInfo
+    )
+{
+    HDC bufferDc;
+    HBITMAP bufferBitmap;
+    HBITMAP oldBufferBitmap;
+    PPH_STRING string;
+    RECT bufferRect =
+    {
+        0, 0,
+        DrawInfo->rcItem.right - DrawInfo->rcItem.left,
+        DrawInfo->rcItem.bottom - DrawInfo->rcItem.top
+    };
+    BOOLEAN isSelected = (DrawInfo->itemState & ODS_SELECTED) == ODS_SELECTED;
+    BOOLEAN isEditField = (DrawInfo->itemState & ODS_COMBOBOXEDIT) == ODS_COMBOBOXEDIT;
+
+    if (DrawInfo->itemID == UINT_MAX)
+    {
+        // Empty selection field.
+        FillRect(DrawInfo->hDC, &DrawInfo->rcItem, Context->BrushNormal);
+        return TRUE;
+    }
+
+    string = PhGetComboBoxString(DrawInfo->hwndItem, DrawInfo->itemID);
+
+    if (PhIsNullOrEmptyString(string))
+    {
+        PhClearReference(&string);
+        return FALSE;
+    }
+
+    bufferDc = CreateCompatibleDC(DrawInfo->hDC);
+    bufferBitmap = CreateCompatibleBitmap(DrawInfo->hDC, bufferRect.right, bufferRect.bottom);
+    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+
+    SelectFont(bufferDc, GetWindowFont(DrawInfo->hwndItem));
+    SetBkMode(bufferDc, TRANSPARENT);
+
+    if (isEditField)
+    {
+        // The selection field renders with the normal background.
+        FillRect(bufferDc, &bufferRect, Context->BrushNormal);
+    }
+    else if (isSelected)
+    {
+        // The drop-down list highlights the item under the mouse as selected.
+        FillRect(bufferDc, &bufferRect, Context->BrushHover);
+    }
+    else
+    {
+        FillRect(bufferDc, &bufferRect, Context->BrushNormal);
+    }
+
+    SetTextColor(bufferDc, Context->TextColor);
+
+    bufferRect.left += 5;
+    DrawText(
+        bufferDc,
+        string->Buffer,
+        (UINT)string->Length / sizeof(WCHAR),
+        &bufferRect,
+        DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOCLIP
+        );
+    bufferRect.left -= 5;
+
+    BitBlt(
+        DrawInfo->hDC,
+        DrawInfo->rcItem.left,
+        DrawInfo->rcItem.top,
+        DrawInfo->rcItem.right,
+        DrawInfo->rcItem.bottom,
+        bufferDc,
+        0,
+        0,
+        SRCCOPY
+        );
+
+    SelectBitmap(bufferDc, oldBufferBitmap);
+    DeleteBitmap(bufferBitmap);
+    DeleteDC(bufferDc);
+    PhClearReference(&string);
+
+    return TRUE;
+}
+
+/**
+ * Updates the fonts used in the choice dialog based on the current DPI value.
+ *
+ * \param WindowHandle The handle to the dialog window.
+ * \param Context The choice dialog context.
+ * \param DpiValue The current DPI value.
+ */
 static VOID PhpChoiceDialogUpdateFonts(
     _In_ HWND WindowHandle,
     _Inout_ PPH_CHOICE_DIALOG_CONTEXT Context,
@@ -54,9 +202,21 @@ static VOID PhpChoiceDialogUpdateFonts(
 
         if (fontHandle = CreateFontIndirect(&metrics.lfMessageFont))
             PhSwapReferenceFont(&Context->FontHandle, Context->ComboBoxHandle, fontHandle, FALSE);
+
+        ComboBox_SetItemHeight(Context->ComboBoxHandle, -1, PhScaleToDisplay(22, DpiValue));
+        ComboBox_SetItemHeight(Context->ComboBoxHandle, 0, PhScaleToDisplay(20, DpiValue));
     }
 }
 
+/**
+ * The dialog procedure for the standard choice dialog.
+ *
+ * \param WindowHandle The handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \return INT_PTR Dialog return value.
+ */
 INT_PTR CALLBACK PhChoiceDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -121,6 +281,15 @@ INT_PTR CALLBACK PhChoiceDlgProc(
 
             context->ComboBoxHandle = comboBoxHandle;
             ShowWindow(context->ComboBoxHandle, SW_SHOW);
+
+            PhpChoiceDialogInitializeBrushes(context);
+
+            if (type != PH_CHOICE_DIALOG_PASSWORD)
+            {
+                LONG dpiValue = PhGetWindowDpi(WindowHandle);
+
+                ComboBox_SetItemHeight(comboBoxHandle, 0, PhScaleToDisplay(16, dpiValue));
+            }
 
             if (type == PH_CHOICE_DIALOG_PASSWORD)
             {
@@ -226,7 +395,7 @@ INT_PTR CALLBACK PhChoiceDlgProc(
                 rect.bottom -= diff;
                 SetWindowPos(GetDlgItem(WindowHandle, IDOK), NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
-                    SWP_NOACTIVATE | SWP_NOZORDER);
+                    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
                 // Cancel
                 PhGetWindowRect(GetDlgItem(WindowHandle, IDCANCEL), &rect);
@@ -235,14 +404,14 @@ INT_PTR CALLBACK PhChoiceDlgProc(
                 rect.bottom -= diff;
                 SetWindowPos(GetDlgItem(WindowHandle, IDCANCEL), NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
-                    SWP_NOACTIVATE | SWP_NOZORDER);
+                    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
                 // Window
                 PhGetWindowRect(WindowHandle, &rect);
                 rect.bottom -= diff;
                 SetWindowPos(WindowHandle, NULL, rect.left, rect.top,
                     rect.right - rect.left, rect.bottom - rect.top,
-                    SWP_NOACTIVATE | SWP_NOZORDER);
+                    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER);
             }
 
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
@@ -252,7 +421,17 @@ INT_PTR CALLBACK PhChoiceDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhpChoiceDialogDeleteBrushes(context);
+
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+        }
+        break;
+    case WM_DRAWITEM:
+        {
+            LPDRAWITEMSTRUCT drawInfo = (LPDRAWITEMSTRUCT)lParam;
+
+            if (drawInfo->hwndItem == context->ComboBoxHandle)
+                return PhpChoiceDialogDrawComboBoxItem(context, drawInfo);
         }
         break;
     case WM_COMMAND:
@@ -346,6 +525,15 @@ INT_PTR CALLBACK PhChoiceDlgProc(
     return FALSE;
 }
 
+/**
+ * The dialog procedure for the new style choice dialog.
+ *
+ * \param WindowHandle The handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \return INT_PTR Dialog return value.
+ */
 INT_PTR CALLBACK PhChooseNewPageDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -373,6 +561,8 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
     case WM_INITDIALOG:
         {
             context->ComboBoxHandle = GetDlgItem(WindowHandle, IDC_INPUT);
+
+            PhpChoiceDialogInitializeBrushes(context);
 
             PhCenterWindow(WindowHandle, GetParent(WindowHandle));
             PhSetApplicationWindowIcon(WindowHandle);
@@ -444,6 +634,8 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
         {
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
+            PhpChoiceDialogDeleteBrushes(context);
+
             if (context->FontHandle)
             {
                 DeleteFont(context->FontHandle);
@@ -458,6 +650,14 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
     case WM_DPICHANGED:
         {
             PhpChoiceDialogUpdateFonts(WindowHandle, context, LOWORD(wParam));
+        }
+        break;
+    case WM_DRAWITEM:
+        {
+            LPDRAWITEMSTRUCT drawInfo = (LPDRAWITEMSTRUCT)lParam;
+
+            if (drawInfo->hwndItem == context->ComboBoxHandle)
+                return PhpChoiceDialogDrawComboBoxItem(context, drawInfo);
         }
         break;
     case WM_COMMAND:
@@ -649,6 +849,21 @@ BOOLEAN PhaChoiceDialog(
         ) == IDOK;
 }
 
+/**
+ * Prompts the user for input using the new dialog style.
+ *
+ * \param ParentWindowHandle Parent window for the dialog.
+ * \param Title The title of the dialog.
+ * \param Message The message displayed in the dialog.
+ * \param Choices Optional list of choices to populate the combo box.
+ * \param NumberOfChoices Number of choices in the Choices array.
+ * \param Option Optional check box label to show.
+ * \param Flags Dialog configuration flags.
+ * \param SelectedChoice Receives the selected choice string.
+ * \param SelectedOption Receives the state of the check box if checked.
+ * \param SavedChoicesSettingName Optional setting name to save the choices list.
+ * \return BOOLEAN TRUE if the user pressed OK, FALSE otherwise.
+ */
 BOOLEAN PhChoiceDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PCWSTR Title,

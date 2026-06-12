@@ -13,6 +13,7 @@
 #ifndef _PH_APIIMPORT_H
 #define _PH_APIIMPORT_H
 
+#include <cfgmgr32.h>
 #include <devquery.h>
 #include <sddl.h>
 #include <shlwapi.h>
@@ -59,6 +60,8 @@ PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
 PH_DECLARE_IMPORT(RtlGetAppContainerParent);
+PH_DECLARE_IMPORT(RtlStringFromGUIDEx);
+
 
 PH_DECLARE_IMPORT(PssNtCaptureSnapshot);
 PH_DECLARE_IMPORT(PssNtQuerySnapshot);
@@ -100,6 +103,9 @@ PH_DECLARE_IMPORT(ConsoleControl);
 PH_DECLARE_IMPORT(GetCurrentInputMessageSource);
 PH_DECLARE_IMPORT(GetCIMSSM);
 PH_DECLARE_IMPORT(SetCoalescableTimer);
+
+// Win32u
+PH_DECLARE_IMPORT(NtGdiGetEntry);
 PH_DECLARE_IMPORT(NtUserBuildHwndList);
 
 // Xmllite

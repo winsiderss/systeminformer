@@ -16,6 +16,7 @@ set "VerboseLevel=normal"
 set "VSINSTALLPATH="
 set "VS_ARM64_SUPPORT=false"
 set "VCVARS_ARCH=amd64"
+set "POWERSHELL7_DIR=%ProgramFiles%\PowerShell\7"
 
 if /i "%~1"=="INIT" set "SuppressPause=true"
 

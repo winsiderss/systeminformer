@@ -1712,118 +1712,49 @@ PhRemoveWindowContext(
     _In_ ULONG PropertyHash
     );
 
-/**
- * Retrieves the window context pointer associated with a window handle.
- *
- * \param[in] WindowHandle A handle to the window from which to retrieve the context.
- * \return A pointer to the window context, or NULL if no context has been set.
- */
-FORCEINLINE
+PHLIBAPI
 PVOID
 NTAPI
 PhGetWindowContextEx(
     _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    return PhGetWindowContext(WindowHandle, MAXCHAR);
-#else
-    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    return (PVOID)GetWindowLongPtr(WindowHandle, 0);
-#endif
-}
+    );
 
-/**
- * Sets the extended window context for a window handle.
- *
- * \param[in] WindowHandle The handle to the window for which to set the context.
- * \param[in] Context A pointer to the context data to associate with the window.
- * \return This function does not return a value.
- * \remarks The window must have sufficient extra bytes allocated to store a PVOID
- * if PHNT_WINDOW_CLASS_CONTEXT is not defined.
- */
-FORCEINLINE
+PHLIBAPI
 VOID
 NTAPI
 PhSetWindowContextEx(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
-#else
-    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)Context);
-#endif
-}
+    );
 
-/**
- * Removes the window context from a window handle.
- *
- * \param[in] WindowHandle The handle to the window from which to remove the context.
- * \remarks
- * If PHNT_WINDOW_CLASS_CONTEXT is defined, this function delegates to PhRemoveWindowContext
- * with MAXCHAR as the context identifier. Otherwise, it clears the window's extra data by
- * setting the window long pointer at offset 0 to NULL.
- */
-FORCEINLINE
+PHLIBAPI
 VOID
 NTAPI
 PhRemoveWindowContextEx(
     _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhRemoveWindowContext(WindowHandle, MAXCHAR);
-#else
-    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
-#endif
-}
+    );
 
-FORCEINLINE
+PHLIBAPI
 PVOID
 NTAPI
 PhGetDialogContext(
     _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    return PhGetWindowContext(WindowHandle, MAXCHAR);
-#else
-    return (PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER);
-#endif
-}
+    );
 
-FORCEINLINE
+PHLIBAPI
 VOID
 NTAPI
 PhSetDialogContext(
     _In_ HWND WindowHandle,
     _In_ PVOID Context
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
-#else
-    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)Context);
-#endif
-}
+    );
 
-FORCEINLINE
+PHLIBAPI
 VOID
 NTAPI
 PhRemoveDialogContext(
     _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhRemoveWindowContext(WindowHandle, MAXCHAR);
-#else
-    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)NULL);
-#endif
-}
+    );
 
 FORCEINLINE
 VOID
@@ -1893,7 +1824,7 @@ BOOLEAN NTAPI PH_DESKTOP_ENUM_CALLBACK(
     );
 typedef PH_DESKTOP_ENUM_CALLBACK* PPH_DESKTOP_ENUM_CALLBACK;
 
-PHLIBAPI
+
 NTSTATUS
 NTAPI
 PhEnumDesktops(
@@ -2208,7 +2139,6 @@ typedef struct _PH_EXTLV_SETITEMFONTFUNCTION
 {
     PPH_EXTLV_GET_ITEM_FONT FontFunction;
 } PH_EXTLV_SETITEMFONTFUNCTION, *PPH_EXTLV_SETITEMFONTFUNCTION;
-
 
 PHLIBAPI
 VOID

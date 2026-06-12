@@ -254,7 +254,7 @@ COLORREF PhThemeWindowFocusBorderColor = RGB(0, 120, 215);
 COLORREF PhThemeWindowGroupBoxFrameColor = RGB(95, 95, 95);
 COLORREF PhThemeWindowWindowFrameColor = RGB(95, 95, 95);
 COLORREF PhThemeWindowEditHotBorderColor = RGB(143, 143, 143);
-COLORREF PhThemeWindowEditNormalBorderColor = RGB(60, 60, 60);
+COLORREF PhThemeWindowEditNormalBorderColor = RGB(208, 208, 208);
 COLORREF PhThemeWindowMenuSelectedTextColor = RGB(255, 255, 255);
 COLORREF PhThemeWindowMenuDisabledTextColor = RGB(155, 155, 155);
 
@@ -283,7 +283,7 @@ static CONST PH_WINDOW_THEME_PALETTE PhpWindowThemeLightPalette =
     RGB(160, 160, 160), // GroupBoxFrameColor
     RGB(0, 0, 0),       // WindowFrameColor
     RGB(204, 232, 255), // EditHotBorderColor
-    RGB(160, 160, 160), // EditNormalBorderColor
+    RGB(208, 208, 208), // EditNormalBorderColor
     RGB(255, 255, 255), // MenuSelectedTextColor
     RGB(109, 109, 109)  // MenuDisabledTextColor
 };
@@ -392,7 +392,7 @@ static VOID PhpResolveSystemPalette(
     Palette->GroupBoxFrameColor = btnShadow;
     Palette->WindowFrameColor = windowFrame;
     Palette->EditHotBorderColor = highlight;
-    Palette->EditNormalBorderColor = windowFrame;
+    Palette->EditNormalBorderColor = RGB(208, 208, 208);
     Palette->MenuSelectedTextColor = highlightText;
     Palette->MenuDisabledTextColor = grayText;
 }

@@ -173,7 +173,7 @@ INT WINAPI wWinMain(
 
                 if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    PhMoveReference(&PvFileName, PhConcatStrings(3, L"\"", PvFileName->Buffer, L"\""));
+                    PhMoveReference(&PvFileName, PhQuoteCommandLine(&PvFileName->sr, TRUE));
 
                     AllowSetForegroundWindow(ASFW_ANY);
 

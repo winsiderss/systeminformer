@@ -1686,38 +1686,6 @@ namespace CustomBuildTool
             return commandLineBuilder.ToString();
         }
 
-        public static bool BuildMessageHeaders(string OutputDirectory)
-        {
-            string messageCompiler = Utils.GetMessageCompilerPath();
-
-            if (string.IsNullOrWhiteSpace(messageCompiler))
-            {
-                Program.PrintColorMessage("[ERROR] mc.exe (Windows SDK Message Compiler) was not found.", ConsoleColor.Red);
-                return false;
-            }
-
-            string sourceFile = Path.GetFullPath(Path.Join([Build.BuildWorkingFolder, "kphlib\\sistatus.mc"]));
-
-            Win32.CreateDirectory(OutputDirectory);
-
-            // Mirror the <MessageCompile> metadata in kphlib_km.vcxproj:
-            //   -c SetCustomerbit, -u UnicodeInputFile, -U UnicodeMessageInBinFile,
-            //   -n TerminateMessageWithNull, -b basename prefix (sistatus_MSG00001.bin).
-            int exitcode = Win32.CreateProcess(
-                messageCompiler,
-                $"-c -u -U -n -b -h \"{OutputDirectory}\" -r \"{OutputDirectory}\" \"{sourceFile}\"",
-                out string outputString
-                );
-
-            if (exitcode != 0)
-            {
-                Program.PrintColorMessage($"[ERROR] mc.exe ({exitcode}) {outputString}", ConsoleColor.Red);
-                return false;
-            }
-
-            return true;
-        }
-
         /// <summary>
         /// Compiles kphlib\sistatus.mc into per-configuration headers and resources using the
         /// Windows SDK Message Compiler (mc.exe). The kernelmode build uses the WDK MessageCompile
@@ -1788,17 +1756,6 @@ namespace CustomBuildTool
             else if (!Build.TryNormalizeBuildFlags(ref Flags, true))
             {
                 return false;
-            }
-
-            //
-            // The usermode build does not have the WDK MessageCompile build customization,
-            // so generate the per-configuration sistatus.* headers here using the Windows
-            // SDK mc.exe before building the SystemInformer solution.
-            //
-            if (Solution.Contains("SystemInformer.sln", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!BuildMessageHeaders(Flags))
-                    return false;
             }
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);

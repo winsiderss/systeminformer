@@ -2179,7 +2179,7 @@ VOID PhSipLayoutSummaryView(
             y,
             availableWidth,
             graphHeight,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
         y += graphHeight + CurrentParameters.GraphPadding;
 
@@ -2236,7 +2236,7 @@ VOID PhSipLayoutSectionView(
             y,
             CurrentParameters.SmallGraphWidth,
             graphHeight,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
 
         deferHandle = DeferWindowPos(
@@ -2247,7 +2247,7 @@ VOID PhSipLayoutSectionView(
             y,
             CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth,
             graphHeight,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
         InvalidateRect(section->PanelHandle, NULL, TRUE);
 
@@ -2264,7 +2264,7 @@ VOID PhSipLayoutSectionView(
         y,
         CurrentParameters.SmallGraphWidth + CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth,
         graphHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
+        SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
         );
     InvalidateRect(RestoreSummaryControl, NULL, TRUE);
 
@@ -2276,7 +2276,7 @@ VOID PhSipLayoutSectionView(
         0,
         CurrentParameters.SeparatorWidth,
         CurrentParameters.WindowPadding + availableHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
+        SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
         );
 
     containerLeft = CurrentParameters.WindowPadding + CurrentParameters.SmallGraphWidth + CurrentParameters.SmallGraphPadding + CurrentParameters.PanelWidth + CurrentParameters.WindowPadding - 7 + CurrentParameters.SeparatorWidth;
@@ -2288,7 +2288,7 @@ VOID PhSipLayoutSectionView(
         0,
         clientRect.right - containerLeft,
         CurrentParameters.WindowPadding + availableHeight,
-        SWP_NOACTIVATE | SWP_NOZORDER
+        SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
         );
 
     EndDeferWindowPos(deferHandle);
@@ -2302,7 +2302,7 @@ VOID PhSipLayoutSectionView(
             CurrentParameters.WindowPadding,
             clientRect.right - containerLeft - CurrentParameters.WindowPadding - CurrentParameters.WindowPadding,
             availableHeight,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
     }
 }

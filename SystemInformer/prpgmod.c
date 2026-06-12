@@ -976,7 +976,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PPH_EMENU_ITEM nativeModulesHighlightItem;
                     PPH_EMENU_ITEM mappedModulesHighlightItem;
                     PPH_EMENU_ITEM zeroPadItem;
+                    PPH_EMENU_ITEM enumMenuItem;
+                    PPH_EMENU_ITEM enumLoaderItem;
+                    PPH_EMENU_ITEM enumLdrDagItem;
+                    PPH_EMENU_ITEM enumLimitedItem;
                     PPH_EMENU_ITEM selectedItem;
+                    ULONG enumerationMethod;
 
                     if (!PhGetWindowRect(GetDlgItem(hwndDlg, IDC_FILTEROPTIONS), &rect))
                         break;
@@ -1001,6 +1006,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                     PhInsertEMenuItem(menu, mappedModulesHighlightItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_HIGHLIGHT_MAPPED_MODULES, L"Highlight mapped modules", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, zeroPadItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_ZERO_PAD_ADDRESSES, L"Zero pad addresses", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    enumMenuItem = PhCreateEMenuItem(0, 0, L"Enumerate", NULL, NULL);
+                    PhInsertEMenuItem(enumMenuItem, enumLoaderItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_ENUM_LOADER_OPTION, L"Loader list (default)", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(enumMenuItem, enumLdrDagItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_ENUM_LDRDAG_OPTION, L"Loader DDAG graph", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(enumMenuItem, enumLimitedItem = PhCreateEMenuItem(0, PH_MODULE_FLAGS_ENUM_LIMITED_OPTION, L"Memory pages (limited)", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, enumMenuItem, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MODULE_FLAGS_LOAD_MODULE_OPTION, L"Load module...", NULL, NULL), ULONG_MAX);
                     //PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1041,6 +1052,24 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                         mappedModulesHighlightItem->Flags |= PH_EMENU_CHECKED;
                     if (modulesContext->ListContext.ZeroPadAddresses)
                         zeroPadItem->Flags |= PH_EMENU_CHECKED;
+
+                    enumerationMethod = PhGetIntegerSetting(SETTING_MODULE_ENUMERATION_METHOD);
+
+                    switch (enumerationMethod)
+                    {
+                    case 1:
+                        enumLdrDagItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                        break;
+                    case 2:
+                        enumLimitedItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                        break;
+                    default:
+                        enumLoaderItem->Flags |= PH_EMENU_CHECKED | PH_EMENU_RADIOCHECK;
+                        break;
+                    }
+
+                    if (WindowsVersion < WINDOWS_8)
+                        enumLdrDagItem->Flags |= PH_EMENU_DISABLED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -1096,6 +1125,28 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             PhSetIntegerSetting(SETTING_USE_COLOR_MODULE_MAPPED, !PhCsUseColorModuleMapped);
                             PhCsUseColorModuleMapped = !PhCsUseColorModuleMapped;
                             PhInvalidateAllModuleNodes(&modulesContext->ListContext);
+                        }
+                        else if (
+                            selectedItem->Id == PH_MODULE_FLAGS_ENUM_LOADER_OPTION ||
+                            selectedItem->Id == PH_MODULE_FLAGS_ENUM_LDRDAG_OPTION ||
+                            selectedItem->Id == PH_MODULE_FLAGS_ENUM_LIMITED_OPTION
+                            )
+                        {
+                            switch (selectedItem->Id)
+                            {
+                            case PH_MODULE_FLAGS_ENUM_LDRDAG_OPTION:
+                                enumerationMethod = 1;
+                                break;
+                            case PH_MODULE_FLAGS_ENUM_LIMITED_OPTION:
+                                enumerationMethod = 2;
+                                break;
+                            default:
+                                enumerationMethod = 0;
+                                break;
+                            }
+
+                            PhSetIntegerSetting(SETTING_MODULE_ENUMERATION_METHOD, enumerationMethod);
+                            PhBoostProvider(&modulesContext->ProviderRegistration, NULL);
                         }
                         else
                         {

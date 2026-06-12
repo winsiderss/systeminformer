@@ -2973,8 +2973,6 @@ NTSTATUS PhFormatGuidToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
@@ -2998,22 +2996,12 @@ NTSTATUS PhFormatGuidToBuffer(
         return STATUS_SUCCESS;
     }
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        if (WindowsVersion >= WINDOWS_10)
-        {
-            RtlStringFromGUIDEx_I = PhGetDllProcedureAddressZ(RtlNtdllName, "RtlStringFromGUIDEx", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!RtlStringFromGUIDEx_I)
+    if (!RtlStringFromGUIDEx_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
     RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
 
-    status = RtlStringFromGUIDEx_I(
+    status = RtlStringFromGUIDEx_Import()(
         Guid,
         &unicodeString,
         FALSE

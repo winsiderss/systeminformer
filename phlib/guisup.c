@@ -68,6 +68,8 @@ static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
+static ULONG_PTR WindowCallbackCookie = 0;
+ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
 static typeof(&OpenThemeData) OpenThemeData_I = NULL;
@@ -117,6 +119,7 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
+    WindowCallbackCookie = (ULONG_PTR)PhGenerateRandomNumber64();
     WindowCallbackFlsIndex = FlsAlloc(PhWindowFlsCallback);
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
@@ -134,6 +137,7 @@ VOID PhGuiSupportInitialization(
         IsThemeActive_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeActive", 0);
         IsAppThemed_I = PhGetDllBaseProcedureAddress(baseAddress, "IsAppThemed", 0);
         IsThemePartDefined_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemePartDefined", 0);
+        IsThemeBackgroundPartiallyTransparent_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeBackgroundPartiallyTransparent", 0);
         GetThemeColor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeColor", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
@@ -3295,7 +3299,7 @@ VOID PhpLayoutItemLayout(
                 Item->LayoutParentItem->DeferHandle, Item->Handle,
                 NULL, rect.left, rect.top,
                 rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
                 );
         }
         else
@@ -3308,7 +3312,7 @@ VOID PhpLayoutItemLayout(
                 Item->Handle,
                 NULL, rect.left, rect.top,
                 rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW
                 );
         }
     }
@@ -3545,6 +3549,127 @@ VOID PhRemoveWindowContext(
     lookupEntry.PropertyHash = PropertyHash;
 
     PhRemoveEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
+}
+
+/**
+ * Encodes a pointer using the window context cookie.
+ *
+ * \param[in] Pointer The pointer to encode.
+ * \return The encoded pointer.
+ */
+PVOID PhEncodePtr(
+    _In_opt_ PVOID Pointer
+    )
+{
+    return (PVOID)((ULONG_PTR)Pointer ^ WindowCallbackCookie);
+}
+
+/**
+ * Decodes a pointer using the window context cookie.
+ *
+ * \param[in] Pointer The pointer to decode.
+ * \return The decoded pointer.
+ */
+PVOID PhDecodePtr(
+    _In_opt_ PVOID Pointer
+    )
+{
+    return (PVOID)((ULONG_PTR)Pointer ^ WindowCallbackCookie);
+}
+
+/**
+ * Retrieves the window context pointer associated with a window handle.
+ *
+ * \param[in] WindowHandle A handle to the window from which to retrieve the context.
+ * \return A pointer to the window context, or NULL if no context has been set.
+ */
+PVOID PhGetWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, 0));
+#endif
+}
+
+/**
+ * Sets the extended window context for a window handle.
+ *
+ * \param[in] WindowHandle The handle to the window for which to set the context.
+ * \param[in] Context A pointer to the context data to associate with the window.
+ * \return This function does not return a value.
+ * \remarks The window must have sufficient extra bytes allocated to store a PVOID
+ * if PHNT_WINDOW_CLASS_CONTEXT is not defined.
+ */
+VOID PhSetWindowContextEx(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)PhEncodePtr(Context));
+#endif
+}
+
+/**
+ * Removes the window context from a window handle.
+ *
+ * \param[in] WindowHandle The handle to the window from which to remove the context.
+ * \remarks
+ * If PHNT_WINDOW_CLASS_CONTEXT is defined, this function delegates to PhRemoveWindowContext
+ * with MAXCHAR as the context identifier. Otherwise, it clears the window's extra data by
+ * setting the window long pointer at offset 0 to NULL.
+ */
+VOID PhRemoveWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
+#endif
+}
+
+PVOID PhGetDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER));
+#endif
+}
+
+VOID PhSetDialogContext(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)PhEncodePtr(Context));
+#endif
+}
+
+VOID PhRemoveDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)NULL);
+#endif
 }
 
 //
@@ -7046,3 +7171,75 @@ NTSTATUS PhGetInputMessageSourceSM(
 
     return STATUS_PROCEDURE_NOT_FOUND;
 }
+/**
+ * Creates a reference-counted font from the supplied parameters and window DPI.
+ *
+ * Returns an HFONT pointing to the Body field of a private PH_FONT_OBJECT header.
+ * The font starts with a reference count of one and must be released with PhDereferenceFont.
+ * Use PhReferenceFont to take additional references. The wrapped GDI handle may be NULL if
+ * the underlying CreateFont call failed; callers should still dereference to release memory.
+ *
+ * \param Name Optional typeface name (e.g. L"Segoe UI"). NULL selects the system default.
+ * \param Size Point size.
+ * \param Weight Font weight (e.g. FW_NORMAL, FW_BOLD).
+ * \param PitchAndFamily Pitch and family value passed to CreateFont.
+ * \param WindowDpi Window DPI used to scale the font.
+ */
+HFONT PhCreateFont(
+    _In_opt_ PCWSTR Name,
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG WindowDpi
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+    HFONT font;
+
+    fontObject = PhAllocate(sizeof(PH_FONT_OBJECT));
+    fontObject->RefCount = 1;
+
+    font = PhFontObjectHeaderToObject(fontObject);
+    *(HFONT*)font = PhCreateFontHandle(Name, Size, Weight, PitchAndFamily, WindowDpi);
+
+    return font;
+}
+
+/**
+ * Adds a reference to a font previously created with PhCreateFont.
+ */
+VOID PhReferenceFont(
+    _In_ HFONT Font
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+
+    fontObject = PhFontObjectToObjectHeader(Font);
+
+    _InterlockedIncrement(&fontObject->RefCount);
+}
+
+/**
+ * Releases a reference to a font previously created with PhCreateFont. When the last
+ * reference is released the underlying GDI handle is destroyed and the wrapper is freed.
+ */
+VOID PhDereferenceFont(
+    _In_ _Post_invalid_ HFONT Font
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+    HFONT fontHandle;
+
+    fontObject = PhFontObjectToObjectHeader(Font);
+
+    if (_InterlockedDecrement(&fontObject->RefCount) == 0)
+    {
+        fontHandle = *(HFONT*)Font;
+
+        if (fontHandle)
+            DeleteFont(fontHandle);
+
+        PhFree(fontObject);
+    }
+}
+

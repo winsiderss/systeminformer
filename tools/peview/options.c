@@ -83,11 +83,10 @@ VOID PvAppendCommandLineArgument(
 
     PhAppendStringBuilder2(StringBuilder, L" -");
     PhAppendStringBuilder2(StringBuilder, Name);
-    PhAppendStringBuilder2(StringBuilder, L" \"");
-    temp = PhEscapeCommandLinePart(Value);
+    PhAppendCharStringBuilder(StringBuilder, L' ');
+    temp = PhQuoteCommandLine(Value, TRUE);
     PhAppendStringBuilder(StringBuilder, &temp->sr);
     PhDereferenceObject(temp);
-    PhAppendCharStringBuilder(StringBuilder, L'\"');
 }
 
 BOOLEAN PvShellExecuteRestart(
