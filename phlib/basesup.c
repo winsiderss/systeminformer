@@ -3260,6 +3260,91 @@ BOOLEAN PhCalculateEntropy(
 
     memset(counts, 0, sizeof(counts));
 
+#ifndef _ARM64_
+    // AVX2: reduce the byte-sum with _mm256_sad_epu8 (sum-of-absolute-difference
+    // against zero yields four 64-bit partial sums per 256-bit lane). The 256-bin
+    // histogram itself does not vectorize cleanly, so it is scattered across four
+    // independent count banks to break the store->load dependency stall that a
+    // single table suffers on runs of identical bytes. Results are merged back
+    // into a single distribution before the entropy/variance math, which is
+    // unchanged. The body uses aligned loads gated on IS_ALIGNED (matching
+    // PhFillMemoryUlong); chunk advancement preserves alignment for the SSE2 and
+    // scalar tiers that consume the remainder. Equivalent to the scalar loop.
+    if (PhHasAVX && (BufferLength - bufferOffset) >= 32 &&
+        IS_ALIGNED(PTR_ADD_OFFSET(Buffer, bufferOffset), 32))
+    {
+        ULONG64 counts1[UCHAR_MAX + 1];
+        ULONG64 counts2[UCHAR_MAX + 1];
+        ULONG64 counts3[UCHAR_MAX + 1];
+        ULONG64 sums[4];
+        __m256i zero = _mm256_setzero_si256();
+        __m256i sum = _mm256_setzero_si256();
+
+        memset(counts1, 0, sizeof(counts1));
+        memset(counts2, 0, sizeof(counts2));
+        memset(counts3, 0, sizeof(counts3));
+
+        while ((BufferLength - bufferOffset) >= 32)
+        {
+            PBYTE chunk = (PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset);
+            __m256i value = _mm256_load_si256((__m256i const*)chunk);
+
+            sum = _mm256_add_epi64(sum, _mm256_sad_epu8(value, zero));
+
+            for (ULONG j = 0; j < 32; j += 4)
+            {
+                counts[chunk[j + 0]]++;
+                counts1[chunk[j + 1]]++;
+                counts2[chunk[j + 2]]++;
+                counts3[chunk[j + 3]]++;
+            }
+
+            bufferOffset += 32;
+        }
+
+        _mm256_storeu_si256((__m256i*)sums, sum);
+        bufferSumValue += sums[0] + sums[1] + sums[2] + sums[3];
+
+        for (ULONG i = 0; i <= UCHAR_MAX; i++)
+            counts[i] += counts1[i] + counts2[i] + counts3[i];
+
+        _mm256_zeroupper();
+    }
+#endif
+
+    // 128-bit tier: SAD byte-sum via PhSumBytesINT128 (SSE2 _mm_sad_epu8 /
+    // NEON vaddlvq_u8) with a two-bank scalar histogram. Built on the
+    // architecture-neutral PH_INT128 wrappers so this path runs on both x86
+    // (handling the sub-32-byte AVX2 remainder and SSE2-only hosts) and ARM64.
+    // Aligned loads gated on IS_ALIGNED(., 16); 16-byte advancement preserves
+    // alignment for the scalar tail.
+    if (PhHasIntrinsics && (BufferLength - bufferOffset) >= 16 &&
+        IS_ALIGNED(PTR_ADD_OFFSET(Buffer, bufferOffset), 16))
+    {
+        ULONG64 counts1[UCHAR_MAX + 1];
+
+        memset(counts1, 0, sizeof(counts1));
+
+        while ((BufferLength - bufferOffset) >= 16)
+        {
+            PBYTE chunk = (PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset);
+            PH_INT128 value = PhLoadINT128((PLONG)chunk);
+
+            bufferSumValue += PhSumBytesINT128(value);
+
+            for (ULONG j = 0; j < 16; j += 2)
+            {
+                counts[chunk[j + 0]]++;
+                counts1[chunk[j + 1]]++;
+            }
+
+            bufferOffset += 16;
+        }
+
+        for (ULONG i = 0; i <= UCHAR_MAX; i++)
+            counts[i] += counts1[i];
+    }
+
     while (bufferOffset < BufferLength)
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);

@@ -212,7 +212,7 @@ LONG PhGetFontQualitySetting(
  * \param Dpi The dots per inch (DPI) value for scaling.
  * \return Handle to the created font, or NULL if creation fails.
  */
-HFONT PhCreateFont(
+HFONT PhCreateFontHandle(
     _In_opt_ PCWSTR Name,
     _In_ LONG Size,
     _In_ LONG Weight,
@@ -5256,13 +5256,13 @@ NTSTATUS PhExtractIconEx(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        resourceDirectory = PhMappedImageRvaToVa(
+        status = PhMappedImageRvaToVa(
             &mappedImage,
             dataDirectory->VirtualAddress,
-            NULL
+            &resourceDirectory
             );
 
-        if (!resourceDirectory)
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
 
         status = PhGetMappedImageResourceIndex(

@@ -1005,7 +1005,7 @@ NTSTATUS PhRestartSelf(
         NULL,
         NULL,
         &startupInfo,
-        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | (attributeList ? PH_CREATE_PROCESS_EXTENDED_STARTUPINFO : 0),
         NULL,
         NULL,
         NULL,
@@ -1021,6 +1021,9 @@ CleanupExit:
 
     if (attributeList)
         PhDeleteProcThreadAttributeList(attributeList);
+
+    if (jobObjectHandle)
+        NtClose(jobObjectHandle);
 
     PhDereferenceObject(commandline);
 

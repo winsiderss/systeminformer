@@ -367,6 +367,28 @@ PhSetRectEmpty(
 
 FORCEINLINE
 BOOLEAN
+NTAPI
+PhSetRect(
+    _Out_ PRECT Rect,
+    _In_ LONG x,
+    _In_ LONG y,
+    _In_ LONG dx,
+    _In_ LONG dy
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!SetRect(Rect, x, y, dx, dy);
+#else
+    Rect->left = x;
+    Rect->top = y;
+    Rect->right = dx;
+    Rect->bottom = dy;
+    return TRUE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
 PhEqualRect(
     _In_ PRECT Rect1,
     _In_ PRECT Rect2
@@ -695,7 +717,6 @@ PhGetMonitorDpiFromRect(
 
     return PhGetMonitorDpi(NULL, &rect);
 }
-
 
 PHLIBAPI
 LONG
@@ -1520,6 +1541,41 @@ PhModalPropertySheet(
     _Inout_ PROPSHEETHEADER *Header
     );
 
+// Anchor flag semantics:
+//
+//  PH_ANCHOR_LEFT/RIGHT/TOP/BOTTOM control how the item's edges track the
+//  parent's edges on resize:
+//    - One flag set on an axis: that edge is pinned to the parent's edge
+//      at the original distance (margin). The opposite edge moves with it,
+//      preserving width/height.
+//    - Both flags set on an axis: both edges pinned; width/height grow
+//      with the parent.
+//    - Neither flag set on an axis: the item is kept centered on that axis.
+//
+//  PH_LAYOUT_TAB_CONTROL marks a *dummy* layout item: it does not move any
+//  window. Its purpose is to track a tab control's *page* rect (computed via
+//  TabCtrl_AdjustRect on its associated HWND) as the parent rect for child
+//  controls. Always add it together with a PH_LAYOUT_IMMEDIATE_RESIZE item
+//  for the same HWND, immediate-resize item *first*. Prefer the
+//  PhAddTabControlLayoutItem helper.
+//
+//  PH_LAYOUT_IMMEDIATE_RESIZE bypasses DeferWindowPos batching for an
+//  individual item. Required for tab controls so the dummy item's next
+//  TabCtrl_AdjustRect query returns the post-resize content rect. Do not
+//  use on non-tab-control items inside the same layout manager; ordering
+//  relative to deferred siblings is not defined.
+//
+//  PH_LAYOUT_FORCE_INVALIDATE issues InvalidateRect(item, NULL, FALSE)
+//  after the layout pass settles. Useful for parent containers where
+//  uncovered regions would otherwise show stale pixels.
+//
+// Insertion order rules:
+//  - Parents must be added before children.
+//  - Margins are computed at add time using the parent's current rect;
+//    do not resize a parent between adding it and adding its children.
+//  - Do not add new items from inside a layout callback; LayoutNumber
+//    bookkeeping will skip the BeginDeferWindowPos for the new item's parent.
+
 #define PH_ANCHOR_LEFT 0x1
 #define PH_ANCHOR_TOP 0x2
 #define PH_ANCHOR_RIGHT 0x4
@@ -1532,6 +1588,7 @@ PhModalPropertySheet(
 
 #define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // items that don't have a window handle, or don't actually get their window resized
 
+// Flags for PhInitializeLayoutManagerEx.
 #define PH_LAYOUT_INIT_CLIP_CHILDREN 0x00000001 // set WS_CLIPCHILDREN on the root window to reduce flicker
 
 typedef struct _PH_LAYOUT_ITEM
@@ -1564,6 +1621,15 @@ NTAPI
 PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND RootWindowHandle
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhInitializeLayoutManagerEx(
+    _Out_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND RootWindowHandle,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -3401,12 +3467,86 @@ extern BOOLEAN PhEnableThemeAcrylicSupport;
 extern BOOLEAN PhEnableThemeAcrylicWindowSupport;
 extern BOOLEAN PhEnableThemeNativeButtons;
 extern BOOLEAN PhEnableThemeListviewBorder;
+EXTERN_C BOOLEAN PhEnableWindowBorderColor;
+
+typedef enum _PH_WINDOW_THEME_ID
+{
+    PhWindowThemeLight,
+    PhWindowThemeDark,
+    PhWindowThemeCustom1,
+    PhWindowThemeCustom2,
+    PhWindowThemeSystem
+} PH_WINDOW_THEME_ID;
+
+typedef struct _PH_WINDOW_THEME_PALETTE
+{
+    COLORREF ForegroundColor;
+    COLORREF BackgroundColor;
+    COLORREF Background2Color;
+    COLORREF HighlightColor;
+    COLORREF Highlight2Color;
+    COLORREF TextColor;
+    COLORREF DisabledTextColor;
+    COLORREF BorderColor;
+    COLORREF PressedColor;
+    COLORREF EditColor;
+    COLORREF ScrollbarColor;
+    COLORREF DropdownGlyphColor;
+    COLORREF WindowActiveBorderColor;
+    COLORREF WindowInactiveBorderColor;
+    COLORREF FilteredBorderColor;
+    COLORREF ProtectedBorderColor;
+    COLORREF FocusBorderColor;
+    COLORREF GroupBoxFrameColor;
+    COLORREF WindowFrameColor;
+    COLORREF EditHotBorderColor;
+    COLORREF EditNormalBorderColor;
+    COLORREF MenuSelectedTextColor;
+    COLORREF MenuDisabledTextColor;
+} PH_WINDOW_THEME_PALETTE, *PPH_WINDOW_THEME_PALETTE;
+
 extern COLORREF PhThemeWindowForegroundColor;
 extern COLORREF PhThemeWindowBackgroundColor;
 extern COLORREF PhThemeWindowBackground2Color;
 extern COLORREF PhThemeWindowHighlightColor;
 extern COLORREF PhThemeWindowHighlight2Color;
 extern COLORREF PhThemeWindowTextColor;
+extern COLORREF PhThemeWindowDisabledTextColor;
+extern COLORREF PhThemeWindowBorderColor;
+extern COLORREF PhThemeWindowEditColor;
+extern COLORREF PhThemeWindowScrollbarColor;
+extern COLORREF PhThemeWindowFilteredBorderColor;
+extern COLORREF PhThemeWindowProtectedBorderColor;
+extern COLORREF PhThemeWindowFocusBorderColor;
+extern COLORREF PhThemeWindowGroupBoxFrameColor;
+extern COLORREF PhThemeWindowWindowFrameColor;
+extern COLORREF PhThemeWindowEditHotBorderColor;
+extern COLORREF PhThemeWindowEditNormalBorderColor;
+extern COLORREF PhThemeWindowMenuSelectedTextColor;
+extern COLORREF PhThemeWindowMenuDisabledTextColor;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetWindowThemePalette(
+    _In_ PH_WINDOW_THEME_ID ThemeId,
+    _In_opt_ const PH_WINDOW_THEME_PALETTE* Palette
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSetCurrentWindowTheme(
+    _In_ PH_WINDOW_THEME_ID ThemeId,
+    _In_opt_ HWND RootWindow
+    );
+
+PHLIBAPI
+const PH_WINDOW_THEME_PALETTE*
+NTAPI
+PhGetWindowThemePalette(
+    VOID
+    );
 
 PHLIBAPI
 VOID
@@ -3435,6 +3575,45 @@ VOID
 NTAPI
 PhInitializeThemeWindowFrame(
     _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowGroupBox(
+    _In_ HWND GroupBoxHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowGroupBoxEx(
+    _In_ HWND GroupBoxHandle
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhSetWindowBorderColor(
+    _In_ HWND WindowHandle,
+    _In_ COLORREF Color
+    );
+
+PHLIBAPI
+COLORREF
+NTAPI
+PhGetWindowActiveBorderColor(
+    _In_ BOOLEAN IsActive
+    );
+
+PHLIBAPI
+COLORREF
+NTAPI
+PhGetWindowBorderColor(
+    _In_ BOOLEAN IsActive,
+    _In_ BOOLEAN IsHandleFiltered,
+    _In_ BOOLEAN IsProtectedProcess,
+    _In_ BOOLEAN IsIsolatedUserMode
     );
 
 PHLIBAPI
@@ -3478,6 +3657,13 @@ PhInitializeWindowThemeMainMenu(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhInitializeWindowThemeEditControl(
+    _In_ HWND EditControl
+    );
+
+PHLIBAPI
 LRESULT
 CALLBACK
 PhThemeWindowDrawRebar(
@@ -3496,7 +3682,7 @@ PhThemeWindowDrawToolbar(
 PHLIBAPI
 HFONT
 NTAPI
-PhCreateFont(
+PhCreateFontHandle(
     _In_opt_ PCWSTR Name,
     _In_ LONG Size,
     _In_ LONG Weight,
@@ -3569,7 +3755,7 @@ PhDuplicateFontUpdateDpiEx(
     _In_ LONG OldDpi
     );
 
-FORCEINLINE VOID PhReplaceWindowFont(
+FORCEINLINE VOID PhSwapReferenceFont(
     _Inout_ HFONT *FontHandle,
     _In_opt_ HWND WindowHandle,
     _In_opt_ HFONT NewFont,
@@ -3588,6 +3774,51 @@ FORCEINLINE VOID PhReplaceWindowFont(
         DeleteFont(oldFont);
 }
 
+// Reference-counted font.
+//
+// Pattern mirrors PH_OBJECT_HEADER: a private PH_FONT_OBJECT header carries the refcount,
+// and the Body field holds the underlying GDI HFONT. PhCreateFont returns the HFONT (the
+// address of Body); PhReferenceFont / PhDereferenceFont walk back to the header via
+// CONTAINING_RECORD using PhFontObjectToObjectHeader. When the last reference is released
+// the underlying GDI handle is destroyed and the wrapper is freed.
+
+typedef struct _PH_FONT_OBJECT
+{
+    LONG RefCount;
+    HFONT Handle;
+} PH_FONT_OBJECT, *PPH_FONT_OBJECT;
+
+// Mirrors PhObjectHeaderToObject: returns the HFONT (object) from a PPH_FONT_OBJECT header.
+#define PhFontObjectHeaderToObject(Header) ((HFONT)&((PPH_FONT_OBJECT)(Header))->Handle)
+
+// Mirrors PhObjectToObjectHeader: returns the PPH_FONT_OBJECT header from an HFONT.
+#define PhFontObjectToObjectHeader(Font) ((PPH_FONT_OBJECT)CONTAINING_RECORD((Font), PH_FONT_OBJECT, Handle))
+
+PHLIBAPI
+HFONT
+NTAPI
+PhCreateFont(
+    _In_opt_ PCWSTR Name,
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG WindowDpi
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhReferenceFont(
+    _In_ HFONT Font
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDereferenceFont(
+    _In_ _Post_invalid_ HFONT Font
+    );
+
 VOID PhWindowThemeMainMenuBorder(
     _In_ HWND WindowHandle
     );
@@ -3596,6 +3827,13 @@ VOID PhWindowThemeMainMenuBorder(
 
 HICON PhGdiplusConvertBitmapToIcon(
     _In_ HBITMAP Bitmap,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ COLORREF Background
+    );
+
+HICON PhConvertBitmapToIcon(
+    _In_ HBITMAP OriginalBitmap,
     _In_ LONG Width,
     _In_ LONG Height,
     _In_ COLORREF Background

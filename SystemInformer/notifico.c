@@ -24,7 +24,10 @@
 #include <mainwndp.h>
 #include <notifico.h>
 #include <notificop.h>
+#include <miniinfop.h>
 #include <notiftoast.h>
+
+#define PH_NF_TRAY_ICON_WINDOW_CLASS_NAME L"SystemInformerTrayIconMessageWindow"
 
 BOOLEAN PhNfMiniInfoEnabled = FALSE;
 BOOLEAN PhNfMiniInfoPinned = FALSE;
@@ -48,12 +51,91 @@ static BOOLEAN IconClickUpDueToDown = FALSE;
 static BOOLEAN IconDisableHover = FALSE;
 static HANDLE PhpTrayIconThreadHandle = NULL;
 static HANDLE PhpTrayIconEventHandle = NULL;
+static HWND PhpTrayIconWindowHandle = NULL;
 #ifdef PH_NF_ENABLE_WORKQUEUE
 static SLIST_HEADER PhpTrayIconWorkQueueListHead;
 #endif
 static ULONG PopupIconIndex = ULONG_MAX; // Win11 workaround (dmex)
 static PPH_NF_ICON PopupRegisteredIcon = NULL; // Win11 workaround (dmex)
 
+static HWND PhpNfpGetNotifyIconWindowHandle(
+    VOID
+    )
+{
+    return PhpTrayIconWindowHandle ? PhpTrayIconWindowHandle : PhMainWndHandle;
+}
+
+static LRESULT CALLBACK PhpTrayIconWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM WParam,
+    _In_ LPARAM LParam
+    )
+{
+    switch (WindowMessage)
+    {
+    case WM_PH_NOTIFY_ICON_MESSAGE:
+        PhNfForwardMessage(WindowHandle, WParam, LParam);
+        return 0;
+    case WM_DESTROY:
+        if (PhpTrayIconWindowHandle == WindowHandle)
+            PhpTrayIconWindowHandle = NULL;
+
+        PostQuitMessage(0);
+        return 0;
+    }
+
+    return DefWindowProc(WindowHandle, WindowMessage, WParam, LParam);
+}
+
+static ULONG PhNfpGetMiniInfoEligibleIconCount(
+    VOID
+    )
+{
+    ULONG count = 0;
+
+    if (!PhTrayIconItemList)
+        return 0;
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
+            continue;
+        if (FlagOn(icon->Flags, PH_NF_ICON_UNAVAILABLE | PH_NF_ICON_NOSHOW_MINIINFO))
+            continue;
+
+        count++;
+    }
+
+    return count;
+}
+
+/**
+ * Gets the initial section name for the mini-information window.
+ *
+ * \param SectionName The suggested section name.
+ * \return The initial section name.
+ */
+static PCWSTR PhNfpGetMiniInfoInitialSectionName(
+    _In_opt_ PCWSTR SectionName
+    )
+{
+    if (
+        PhGetIntegerSetting(SETTING_MINI_INFO_SHOW_GRAPHS_DEFAULT) &&
+        PhNfpGetMiniInfoEligibleIconCount() == 1
+        )
+    {
+        return L"Graphs";
+    }
+
+    return SectionName;
+}
+
+/**
+ * Performs stage 1 of the notification icon load process.
+ */
 VOID PhNfLoadStage1(
     VOID
     )
@@ -66,6 +148,9 @@ VOID PhNfLoadStage1(
 #endif
 }
 
+/**
+ * Loads notification icon settings.
+ */
 VOID PhNfLoadSettings(
     VOID
     )
@@ -121,6 +206,9 @@ VOID PhNfLoadSettings(
     PhDereferenceObject(settingsString);
 }
 
+/**
+ * Saves notification icon settings.
+ */
 VOID PhNfSaveSettings(
     VOID
     )
@@ -176,6 +264,9 @@ VOID PhNfSaveSettings(
     PhDereferenceObject(settingsString);
 }
 
+/**
+ * Loads notification icon GUIDs.
+ */
 VOID PhNfLoadGuids(
     VOID
     )
@@ -242,6 +333,9 @@ VOID PhNfLoadGuids(
     }
 }
 
+/**
+ * Creates the notification icon thread after a delay.
+ */
 VOID PhNfCreateIconThreadDelayed(
     VOID
     )
@@ -291,6 +385,19 @@ VOID PhNfCreateIconThreadDelayed(
     }
 }
 
+/**
+ * Registers a notification icon.
+ *
+ * \param Plugin The plugin registering the icon.
+ * \param Id The sub-ID of the icon.
+ * \param Guid The GUID of the icon.
+ * \param Context The user-defined context.
+ * \param Text The tooltip text.
+ * \param Flags The icon flags.
+ * \param UpdateCallback The icon update callback.
+ * \param MessageCallback The icon message callback.
+ * \return The registered icon.
+ */
 PPH_NF_ICON PhNfRegisterIcon(
     _In_opt_ PPH_PLUGIN Plugin,
     _In_ ULONG Id,
@@ -322,6 +429,18 @@ PPH_NF_ICON PhNfRegisterIcon(
     return icon;
 }
 
+/**
+ * Registers a notification icon for a plugin.
+ *
+ * \param Plugin The plugin registering the icon.
+ * \param SubId The sub-ID of the icon.
+ * \param Guid The GUID of the icon.
+ * \param Context The user-defined context.
+ * \param Text The tooltip text.
+ * \param Flags The icon flags.
+ * \param RegistrationData The icon registration data.
+ * \return The registered icon.
+ */
 _Function_class_(PH_REGISTER_TRAY_ICON)
 PPH_NF_ICON PhNfPluginRegisterIcon(
     _In_ PPH_PLUGIN Plugin,
@@ -345,6 +464,9 @@ PPH_NF_ICON PhNfPluginRegisterIcon(
         );
 }
 
+/**
+ * Performs stage 2 of the notification icon load process.
+ */
 VOID PhNfLoadStage2(
     VOID
     )
@@ -401,6 +523,9 @@ VOID PhNfLoadStage2(
         );
 }
 
+/**
+ * Performs uninitialization of the notification icon system.
+ */
 VOID PhNfUninitialization(
     VOID
     )
@@ -432,6 +557,13 @@ VOID PhNfUninitialization(
 //#endif
 }
 
+/**
+ * Forwards a window message to the notification icon system.
+ *
+ * \param WindowHandle The window handle.
+ * \param WParam The WPARAM value.
+ * \param LParam The LPARAM value.
+ */
 VOID PhNfForwardMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG_PTR WParam,
@@ -565,6 +697,9 @@ VOID PhNfForwardMessage(
         {
             if (WindowsVersion >= WINDOWS_11_22H2)
             {
+                PH_NF_MSG_SHOWMINIINFOSECTION_DATA showMiniInfoSectionData;
+                POINT location;
+
                 // NIN_POPUPOPEN is sent when the user hovers the cursor over an icon BUT Windows 11 either blocks the notification
                 // or ignores the hover time and displays the popup instantly. We try and workaround the missing hover time by using
                 // a timer to delay the popup for 1 second. If we get a NIN_POPUPCLOSE then cancel the timer and the popup.
@@ -572,10 +707,23 @@ VOID PhNfForwardMessage(
                 // the broken NIN_POPUPOPEN notifications on Win11 the tray icons also send WM_MOUSEMOSE and before NIN_POPUPOPEN existed
                 // XP applications would compare the cursor position in a timer callback to show or hide the popup. (dmex)
 
-                PopupIconIndex = iconIndex;
-                PopupRegisteredIcon = registeredIcon;
+                if (
+                    PhNfMiniInfoEnabled && !IconDisableHover &&
+                    PhMipIsPinned(MiniInfoIconPinType) &&
+                    PhNfpGetShowMiniInfoSectionData(iconIndex, registeredIcon, &showMiniInfoSectionData)
+                    )
+                {
+                    GetCursorPos(&location);
+                    PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
+                        PhNfpGetMiniInfoInitialSectionName(showMiniInfoSectionData.SectionName), &location);
+                }
+                else
+                {
+                    PopupIconIndex = iconIndex;
+                    PopupRegisteredIcon = registeredIcon;
 
-                PhSetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
+                    PhSetTimer(PhMainWndHandle, TIMER_ICON_POPUPOPEN, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconShowPopupHoverTimerProc);
+                }
             }
             else
             {
@@ -586,7 +734,7 @@ VOID PhNfForwardMessage(
                 {
                     GetCursorPos(&location);
                     PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-                        showMiniInfoSectionData.SectionName, &location);
+                        PhNfpGetMiniInfoInitialSectionName(showMiniInfoSectionData.SectionName), &location);
                 }
             }
         }
@@ -601,6 +749,12 @@ VOID PhNfForwardMessage(
     }
 }
 
+/**
+ * Sets the visibility of a notification icon.
+ *
+ * \param Icon The icon.
+ * \param Visible TRUE to show the icon, FALSE to hide it.
+ */
 VOID PhNfSetVisibleIcon(
     _In_ PPH_NF_ICON Icon,
     _In_ BOOLEAN Visible
@@ -646,6 +800,13 @@ VOID PhNfSetVisibleIcon(
 #endif
 }
 
+/**
+ * Callback function for toast notifications.
+ *
+ * \param Result The HRESULT.
+ * \param Reason The toast reason.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_TOAST_CALLBACK)
 VOID NTAPI PhpToastCallback(
     _In_ HRESULT Result,
@@ -657,6 +818,17 @@ VOID NTAPI PhpToastCallback(
         PhShowDetailsForIconNotification();
 }
 
+/**
+ * Shows a toast notification.
+ *
+ * \param Title The title of the notification.
+ * \param Text The text of the notification.
+ * \param Timeout The timeout in seconds.
+ * \param ToastCallback The callback function.
+ * \param Context The user-defined context.
+ * \param Force TRUE to force the notification, FALSE otherwise.
+ * \return HRESULT.
+ */
 HRESULT PhpShowToastNotification(
     _In_ PPH_STRING Title,
     _In_ PPH_STRING Text,
@@ -745,6 +917,14 @@ HRESULT PhpShowToastNotification(
     return result;
 }
 
+/**
+ * Shows a balloon tip notification.
+ *
+ * \param Title The title of the notification.
+ * \param Text The text of the notification.
+ * \param Timeout The timeout in milliseconds.
+ * \return TRUE if the notification was shown, FALSE otherwise.
+ */
 BOOLEAN PhNfpShowBalloonTip(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text,
@@ -771,7 +951,7 @@ BOOLEAN PhNfpShowBalloonTip(
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
     notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.uFlags = NIF_INFO;
-    notifyIcon.hWnd = PhMainWndHandle;
+    notifyIcon.hWnd = PhpNfpGetNotifyIconWindowHandle();
     notifyIcon.uID = registeredIcon->IconId;
 
     if (PhNfPersistTrayIconPositionEnabled)
@@ -789,11 +969,17 @@ BOOLEAN PhNfpShowBalloonTip(
     if (PhGetIntegerSetting(SETTING_ICON_BALLOON_MUTE_SOUND))
         SetFlag(notifyIcon.dwInfoFlags, NIIF_NOSOUND);
 
-    PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
-
-    return TRUE;
+    return PhShellNotifyIcon(NIM_MODIFY, &notifyIcon);
 }
 
+/**
+ * Shows a balloon tip notification.
+ *
+ * \param Title The title of the notification.
+ * \param Text The text of the notification.
+ * \param Timeout The timeout in milliseconds.
+ * \return TRUE if the notification was shown, FALSE otherwise.
+ */
 BOOLEAN PhNfShowBalloonTip(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text,
@@ -817,10 +1003,25 @@ BOOLEAN PhNfShowBalloonTip(
     data->BalloonTimeout = Timeout;
 
     RtlInterlockedPushEntrySList(&PhpTrayIconWorkQueueListHead, &data->ListEntry);
+
+    PhNfCreateIconThreadDelayed();
+
+    if (PhpTrayIconEventHandle)
+        NtSetEvent(PhpTrayIconEventHandle, NULL);
 #endif
     return TRUE;
 }
 
+/**
+ * Shows a balloon tip notification with a callback.
+ *
+ * \param Title The title of the notification.
+ * \param Text The text of the notification.
+ * \param Timeout The timeout in milliseconds.
+ * \param ToastCallback The callback function.
+ * \param Context The user-defined context.
+ * \return HRESULT.
+ */
 HRESULT PhNfShowBalloonTipEx(
     _In_ PCWSTR Title,
     _In_ PCWSTR Text,
@@ -831,11 +1032,12 @@ HRESULT PhNfShowBalloonTipEx(
 {
     PPH_STRING BalloonTitle;
     PPH_STRING BalloonText;
+    HRESULT result;
 
     BalloonTitle = Title ? PhCreateString(Title) : NULL;
     BalloonText = Text ? PhCreateString(Text) : NULL;
 
-    return PhpShowToastNotification(
+    result = PhpShowToastNotification(
         BalloonTitle,
         BalloonText,
         Timeout,
@@ -843,8 +1045,19 @@ HRESULT PhNfShowBalloonTipEx(
         Context,
         TRUE
         );
+
+    PhClearReference(&BalloonTitle);
+    PhClearReference(&BalloonText);
+
+    return result;
 }
 
+/**
+ * Converts a bitmap to an icon.
+ *
+ * \param Bitmap The bitmap handle.
+ * \return The icon handle.
+ */
 HICON PhNfBitmapToIcon(
     _In_ HBITMAP Bitmap
     )
@@ -879,6 +1092,12 @@ HICON PhNfBitmapToIcon(
     return iconHandle;
 }
 
+/**
+ * Gets a notification icon by its sub-ID.
+ *
+ * \param SubId The sub-ID of the icon.
+ * \return The icon, or NULL if not found.
+ */
 PPH_NF_ICON PhNfGetIconById(
     _In_ ULONG SubId
     )
@@ -894,6 +1113,13 @@ PPH_NF_ICON PhNfGetIconById(
     return NULL;
 }
 
+/**
+ * Finds a notification icon by its plugin name and sub-ID.
+ *
+ * \param PluginName The plugin name.
+ * \param SubId The sub-ID of the icon.
+ * \return The icon, or NULL if not found.
+ */
 PPH_NF_ICON PhNfFindIcon(
     _In_ PPH_STRINGREF PluginName,
     _In_ ULONG SubId
@@ -916,6 +1142,11 @@ PPH_NF_ICON PhNfFindIcon(
     return NULL;
 }
 
+/**
+ * Checks if notification icons are enabled.
+ *
+ * \return TRUE if icons are enabled, FALSE otherwise.
+ */
 BOOLEAN PhNfIconsEnabled(
     VOID
     )
@@ -950,6 +1181,11 @@ BOOLEAN PhNfIconsEnabled(
     return TRUE;
 }
 
+/**
+ * Notifies the notification icon system that the mini-information window has been pinned or unpinned.
+ *
+ * \param Pinned TRUE if the window was pinned, FALSE if it was unpinned.
+ */
 VOID PhNfNotifyMiniInfoPinned(
     _In_ BOOLEAN Pinned
     )
@@ -974,6 +1210,12 @@ VOID PhNfNotifyMiniInfoPinned(
     }
 }
 
+/**
+ * Gets the application icon.
+ *
+ * \param DpiValue The DPI value.
+ * \return The icon handle.
+ */
 HICON PhNfGetApplicationIcon(
     _In_opt_ LONG DpiValue
     )
@@ -997,6 +1239,11 @@ HICON PhNfGetApplicationIcon(
     return PhNfAppTrayIcon;
 }
 
+/**
+ * Gets the black icon.
+ *
+ * \return The icon handle.
+ */
 HICON PhNfpGetBlackIcon(
     VOID
     )
@@ -1025,7 +1272,10 @@ HICON PhNfpGetBlackIcon(
 
         // Create a monochrome mask bitmap for the icon.
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+        {
+            SelectBitmap(hdc, oldBitmap);
             return NULL;
+        }
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
@@ -1043,6 +1293,14 @@ HICON PhNfpGetBlackIcon(
 
 #define COLORREF_TO_BITS(Color) (_byteswap_ulong(Color) >> 8)
 
+/**
+ * Draws text for a tray icon.
+ *
+ * \param hdc The device context.
+ * \param Bits The pixel bits.
+ * \param DrawInfo The graph draw info.
+ * \param Text The text to draw.
+ */
 VOID PhDrawTrayIconText(
     _In_ HDC hdc,
     _In_ PVOID Bits,
@@ -1108,6 +1366,12 @@ VOID PhDrawTrayIconText(
         SelectFont(hdc, oldFont);
 }
 
+/**
+ * Gets the font for tray icons.
+ *
+ * \param DpiValue The DPI value.
+ * \return The font handle.
+ */
 HFONT PhNfGetTrayIconFont(
     _In_opt_ LONG DpiValue
     )
@@ -1146,6 +1410,12 @@ HFONT PhNfGetTrayIconFont(
     return PhNfTrayIconFont;
 }
 
+/**
+ * Adds a notification icon to the tray.
+ *
+ * \param Icon The icon.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhNfpAddNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
@@ -1157,7 +1427,7 @@ BOOLEAN PhNfpAddNotifyIcon(
 
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
     notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
-    notifyIcon.hWnd = PhMainWndHandle;
+    notifyIcon.hWnd = PhpNfpGetNotifyIconWindowHandle();
     notifyIcon.uID = Icon->IconId;
     notifyIcon.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
     notifyIcon.uCallbackMessage = WM_PH_NOTIFY_ICON_MESSAGE;
@@ -1186,6 +1456,12 @@ BOOLEAN PhNfpAddNotifyIcon(
     return TRUE;
 }
 
+/**
+ * Removes a notification icon from the tray.
+ *
+ * \param Icon The icon.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhNfpRemoveNotifyIcon(
     _In_ PPH_NF_ICON Icon
     )
@@ -1194,7 +1470,7 @@ BOOLEAN PhNfpRemoveNotifyIcon(
 
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
     notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
-    notifyIcon.hWnd = PhMainWndHandle;
+    notifyIcon.hWnd = PhpNfpGetNotifyIconWindowHandle();
     notifyIcon.uID = Icon->IconId;
 
     if (PhNfPersistTrayIconPositionEnabled)
@@ -1208,6 +1484,15 @@ BOOLEAN PhNfpRemoveNotifyIcon(
     return TRUE;
 }
 
+/**
+ * Modifies a notification icon in the tray.
+ *
+ * \param Icon The icon.
+ * \param Flags The flags.
+ * \param Text The tooltip text.
+ * \param IconHandle The icon handle.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 BOOLEAN PhNfpModifyNotifyIcon(
     _In_ PPH_NF_ICON Icon,
     _In_ ULONG Flags,
@@ -1225,7 +1510,7 @@ BOOLEAN PhNfpModifyNotifyIcon(
     memset(&notifyIcon, 0, sizeof(NOTIFYICONDATA));
     notifyIcon.cbSize = sizeof(NOTIFYICONDATA);
     notifyIcon.uFlags = Flags;
-    notifyIcon.hWnd = PhMainWndHandle;
+    notifyIcon.hWnd = PhpNfpGetNotifyIconWindowHandle();
     notifyIcon.uID = Icon->IconId;
     notifyIcon.hIcon = IconHandle;
 
@@ -1281,6 +1566,9 @@ BOOLEAN PhNfpModifyNotifyIcon(
 //}
 
 #ifdef PH_NF_ENABLE_WORKQUEUE
+/**
+ * Flushes the notification icon work queue.
+ */
 VOID PhNfTrayIconFlushWorkQueueData(
     VOID
     )
@@ -1335,12 +1623,57 @@ VOID PhNfTrayIconFlushWorkQueueData(
 }
 #endif
 
+/**
+ * Thread routine for updating notification icons.
+ *
+ * \param Context The user-defined context.
+ * \return NTSTATUS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhNfpTrayIconUpdateThread(
     _In_opt_ PVOID Context
     )
 {
+    PH_AUTO_POOL windowAutoPool;
+    WNDCLASSEX wndClass;
+    HWND windowHandle;
+    MSG message;
+    BOOLEAN quit;
+
+    UNREFERENCED_PARAMETER(Context);
+
     PhSetThreadName(NtCurrentThread(), L"TrayIconUpdateThread");
+
+    PhInitializeAutoPool(&windowAutoPool);
+
+    memset(&wndClass, 0, sizeof(WNDCLASSEX));
+    wndClass.cbSize = sizeof(WNDCLASSEX);
+    wndClass.lpfnWndProc = PhpTrayIconWndProc;
+    wndClass.hInstance = NtCurrentImageBase();
+    wndClass.lpszClassName = PH_NF_TRAY_ICON_WINDOW_CLASS_NAME;
+
+    if (!RegisterClassEx(&wndClass) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+        return STATUS_UNSUCCESSFUL;
+
+    windowHandle = CreateWindowEx(
+        0,
+        PH_NF_TRAY_ICON_WINDOW_CLASS_NAME,
+        NULL,
+        0,
+        0,
+        0,
+        0,
+        0,
+        HWND_MESSAGE,
+        NULL,
+        NtCurrentImageBase(),
+        NULL
+        );
+
+    if (!windowHandle)
+        return STATUS_UNSUCCESSFUL;
+
+    PhpTrayIconWindowHandle = windowHandle;
 
     for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
     {
@@ -1352,36 +1685,114 @@ NTSTATUS PhNfpTrayIconUpdateThread(
         PhNfpAddNotifyIcon(icon);
     }
 
-    while (TRUE)
+    quit = FALSE;
+
+#ifdef PH_NF_ENABLE_WORKQUEUE
+    while (!quit)
     {
+        ULONG waitResult;
+
         if (PhMainWndExiting)
             break;
 
-        if (!(PhpTrayIconEventHandle && PhNfIconsEnabled()))
+        if (PhpTrayIconEventHandle && PhNfIconsEnabled())
         {
-            PhDelayExecution(1000);
-            continue;
-        }
+            HANDLE handles[] = { PhpTrayIconEventHandle };
 
-        if (NT_SUCCESS(NtWaitForSingleObject(PhpTrayIconEventHandle, FALSE, NULL)))
-        {
-#ifdef PH_NF_ENABLE_WORKQUEUE
-            PhNfTrayIconFlushWorkQueueData();
-#endif
-            for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+            waitResult = MsgWaitForMultipleObjects(
+                RTL_NUMBER_OF(handles),
+                handles,
+                FALSE,
+                INFINITE,
+                QS_ALLINPUT
+                );
+
+            if (waitResult == WAIT_OBJECT_0)
             {
-                PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+                PhNfTrayIconFlushWorkQueueData();
 
-                if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
-                    continue;
+                for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+                {
+                    PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
 
-                if (PhMainWndExiting)
-                    break;
+                    if (!BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
+                        continue;
 
-                PhNfpUpdateRegisteredIcon(icon);
+                    if (PhMainWndExiting)
+                        break;
+
+                    PhNfpUpdateRegisteredIcon(icon);
+                }
+            }
+            else if (waitResult == WAIT_FAILED)
+            {
+                break;
             }
         }
+        else
+        {
+            waitResult = MsgWaitForMultipleObjects(
+                0,
+                NULL,
+                FALSE,
+                1000,
+                QS_ALLINPUT
+                );
+
+            if (waitResult == WAIT_TIMEOUT)
+                continue;
+            if (waitResult == WAIT_FAILED)
+                break;
+        }
+
+        while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+        {
+            if (message.message == WM_QUIT)
+            {
+                quit = TRUE;
+                break;
+            }
+
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+
+            PhDrainAutoPool(&windowAutoPool);
+        }
     }
+#else
+    while (!quit)
+    {
+        ULONG waitResult;
+
+        if (PhMainWndExiting)
+            break;
+
+        waitResult = MsgWaitForMultipleObjects(
+            0,
+            NULL,
+            FALSE,
+            1000,
+            QS_ALLINPUT
+            );
+
+        if (waitResult == WAIT_TIMEOUT)
+            continue;
+        if (waitResult == WAIT_FAILED)
+            break;
+
+        while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE))
+        {
+            if (message.message == WM_QUIT)
+            {
+                quit = TRUE;
+                break;
+            }
+
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+    }
+#endif
 
 #ifdef PH_NF_ENABLE_WORKQUEUE
     // Remove all icons to prevent them hanging around after we exit.
@@ -1397,9 +1808,21 @@ NTSTATUS PhNfpTrayIconUpdateThread(
     }
 #endif
 
+    if (PhpTrayIconWindowHandle == windowHandle)
+        DestroyWindow(windowHandle);
+
+    if (PhpTrayIconWindowHandle == windowHandle)
+        PhpTrayIconWindowHandle = NULL;
+
     return STATUS_SUCCESS;
 }
 
+/**
+ * Callback function for process provider updates.
+ *
+ * \param Parameter The callback parameter.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID PhNfpProcessesUpdatedHandler(
     _In_opt_ PVOID Parameter,
@@ -1421,6 +1844,11 @@ VOID PhNfpProcessesUpdatedHandler(
     }
 }
 
+/**
+ * Updates a registered notification icon.
+ *
+ * \param Icon The icon.
+ */
 VOID PhNfpUpdateRegisteredIcon(
     _In_ PPH_NF_ICON Icon
     )
@@ -1478,6 +1906,16 @@ VOID PhNfpUpdateRegisteredIcon(
         PhDereferenceObject(newText);
 }
 
+/**
+ * Begins bitmap drawing for notification icons.
+ *
+ * \param Width The width of the bitmap.
+ * \param Height The height of the bitmap.
+ * \param Bitmap The bitmap handle.
+ * \param Bits The pixel bits.
+ * \param Hdc The device context.
+ * \param OldBitmap The old bitmap handle.
+ */
 _Function_class_(PH_NF_BEGIN_BITMAP)
 VOID PhNfpBeginBitmap(
     _Out_ PULONG Width,
@@ -1491,7 +1929,17 @@ VOID PhNfpBeginBitmap(
     PhNfpBeginBitmap2(&PhNfpDefaultBitmapContext, Width, Height, Bitmap, Bits, Hdc, OldBitmap);
 }
 
-_Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
+/**
+ * Begins bitmap drawing for notification icons with a context.
+ *
+ * \param Context The bitmap context.
+ * \param Width The width of the bitmap.
+ * \param Height The height of the bitmap.
+ * \param Bitmap The bitmap handle.
+ * \param Bits The pixel bits.
+ * \param Hdc The device context.
+ * \param OldBitmap The old bitmap handle.
+ */
 VOID PhNfpBeginBitmap2(
     _Inout_ PPH_NF_BITMAP Context,
     _Out_ PULONG Width,
@@ -1575,6 +2023,15 @@ VOID PhNfpBeginBitmap2(
     if (Context->Bitmap) *OldBitmap = SelectBitmap(Context->Hdc, Context->Bitmap);
 }
 
+/**
+ * Update callback for the CPU history notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -1679,6 +2136,15 @@ VOID PhNfpCpuHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+/**
+ * Update callback for the IO history notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -1799,6 +2265,15 @@ VOID PhNfpIoHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+/**
+ * Update callback for the commit history notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -1884,6 +2359,15 @@ VOID PhNfpCommitHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+/**
+ * Update callback for the physical history notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -1971,6 +2455,15 @@ VOID PhNfpPhysicalHistoryIconUpdateCallback(
     _freea(lineData1);
 }
 
+/**
+ * Update callback for the CPU usage notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2119,6 +2612,15 @@ VOID PhNfpCpuUsageIconUpdateCallback(
 
 // Text icons
 
+/**
+ * Update callback for the CPU usage text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCpuUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2212,6 +2714,15 @@ VOID PhNfpCpuUsageTextIconUpdateCallback(
     if (maxCpuText) PhDereferenceObject(maxCpuText);
 }
 
+/**
+ * Update callback for the IO usage text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpIoUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2315,6 +2826,15 @@ VOID PhNfpIoUsageTextIconUpdateCallback(
     if (maxIoProcessItem) PhDereferenceObject(maxIoProcessItem);
 }
 
+/**
+ * Update callback for the commit usage text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpCommitTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2395,6 +2915,15 @@ VOID PhNfpCommitTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 0);
 }
 
+/**
+ * Update callback for the physical usage text notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2478,6 +3007,15 @@ VOID PhNfpPhysicalUsageTextIconUpdateCallback(
     *NewText = PhFormat(format, 5, 0);
 }
 
+/**
+ * Update callback for the plain (static) notification icon.
+ *
+ * \param Icon The icon.
+ * \param NewIconOrBitmap The new icon or bitmap.
+ * \param Flags The update flags.
+ * \param NewText The new tooltip text.
+ * \param Context The user-defined context.
+ */
 _Function_class_(PH_NF_ICON_UPDATE_CALLBACK)
 VOID PhNfpPlainIconUpdateCallback(
     _In_ PPH_NF_ICON Icon,
@@ -2500,6 +3038,14 @@ VOID PhNfpPlainIconUpdateCallback(
     *Flags = 0;
 }
 
+/**
+ * Gets the show mini-information section data for an icon.
+ *
+ * \param IconIndex The index of the icon.
+ * \param RegisteredIcon The registered icon.
+ * \param Data A variable which receives the section data.
+ * \return TRUE if successful, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhNfpGetShowMiniInfoSectionData(
     _In_ ULONG IconIndex,
@@ -2561,6 +3107,14 @@ BOOLEAN PhNfpGetShowMiniInfoSectionData(
     return showMiniInfo;
 }
 
+/**
+ * Timer procedure for activating an icon after a click.
+ *
+ * \param WindowHandle The window handle.
+ * \param uMsg The window message.
+ * \param idEvent The timer ID.
+ * \param dwTime The current system time.
+ */
 VOID PhNfpIconClickActivateTimerProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -2570,10 +3124,13 @@ VOID PhNfpIconClickActivateTimerProc(
 {
     PhPinMiniInformation(MiniInfoActivePinType, 1, 0,
         PH_MINIINFO_ACTIVATE_WINDOW | PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-        IconClickShowMiniInfoSectionData.SectionName, &IconClickLocation);
+        PhNfpGetMiniInfoInitialSectionName(IconClickShowMiniInfoSectionData.SectionName), &IconClickLocation);
     PhKillTimer(PhMainWndHandle, TIMER_ICON_CLICK_ACTIVATE);
 }
 
+/**
+ * Disables icon hover effects.
+ */
 VOID PhNfpDisableHover(
     VOID
     )
@@ -2582,6 +3139,14 @@ VOID PhNfpDisableHover(
     PhSetTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER, NFP_ICON_RESTORE_HOVER_DELAY, PhNfpIconRestoreHoverTimerProc);
 }
 
+/**
+ * Timer procedure for restoring icon hover effects.
+ *
+ * \param WindowHandle The window handle.
+ * \param uMsg The window message.
+ * \param idEvent The timer ID.
+ * \param dwTime The current system time.
+ */
 VOID PhNfpIconRestoreHoverTimerProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -2593,6 +3158,9 @@ VOID PhNfpIconRestoreHoverTimerProc(
     PhKillTimer(PhMainWndHandle, TIMER_ICON_RESTORE_HOVER);
 }
 
+/**
+ * Disables the popup hover workaround for Windows 11.
+ */
 VOID PhNfpIconDisablePopupHoverWin11Workaround(
     VOID
     )
@@ -2606,6 +3174,14 @@ VOID PhNfpIconDisablePopupHoverWin11Workaround(
     }
 }
 
+/**
+ * Timer procedure for showing a popup hover on Windows 11.
+ *
+ * \param WindowHandle The window handle.
+ * \param uMsg The window message.
+ * \param idEvent The timer ID.
+ * \param dwTime The current system time.
+ */
 VOID PhNfpIconShowPopupHoverTimerProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -2624,6 +3200,6 @@ VOID PhNfpIconShowPopupHoverTimerProc(
     {
         GetCursorPos(&location);
         PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-            showMiniInfoSectionData.SectionName, &location);
+            PhNfpGetMiniInfoInitialSectionName(showMiniInfoSectionData.SectionName), &location);
     }
 }

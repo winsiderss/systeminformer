@@ -36,6 +36,8 @@
 #include <appsup.h>
 #include <searchbox.h>
 
+EXTERN_C_START
+
 // main
 
 // begin_phapppub
@@ -990,5 +992,7 @@ HPROPSHEETPAGE PhCreateTokenPage(
     _In_opt_ PVOID Context,
     _In_opt_ DLGPROC HookProc
     );
+
+EXTERN_C_END
 
 #endif

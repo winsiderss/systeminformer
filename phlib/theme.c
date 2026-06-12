@@ -1265,7 +1265,7 @@ VOID PhInitializeWindowThemeEditControl(
     PhSetWindowContext(EditControl, SHRT_MAX, context);
     PhSetWindowProcedure(EditControl, PhEditBorderWndSubclassProc);
 
-    SetWindowPos(EditControl, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    SetWindowPos(EditControl, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     InvalidateRect(EditControl, NULL, FALSE);
 }
 
@@ -4442,8 +4442,8 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
     case WM_THEMECHANGED:
         {
             PhpThemeWindowEditThemeChanged(context, WindowHandle);
-            
-            SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+
+            SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
@@ -4452,8 +4452,8 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
             context->WindowDpi = PhGetWindowDpi(context->ParentWindowHandle);
 
             PhpThemeWindowEditThemeChanged(context, WindowHandle);
-            
-            SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+
+            SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;

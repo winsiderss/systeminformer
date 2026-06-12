@@ -3395,6 +3395,38 @@ VOID PhZeroExtendToUtf16Buffer(
 {
     SIZE_T inputLength;
 
+    if (PhHasAVX && InputLength >= 16)
+    {
+        // Zero-extend 16 bytes -> 16 WCHARs per iteration. Loads and stores are
+        // unaligned because the caller does not guarantee buffer alignment.
+        while (InputLength >= 16)
+        {
+            PH_INT128 bytes = PhLoadINT128U((const PLONG)Input);
+            PH_INT256 words = PhZeroExtendINT128ToINT256(bytes);
+            PhStoreINT256U(Output, words);
+            Input += 16;
+            Output += 16;
+            InputLength -= 16;
+        }
+
+        PhZeroUpper();
+    }
+
+    if (PhHasIntrinsics && InputLength >= 8)
+    {
+        // SSE2/NEON: zero-extend 8 bytes -> 8 WCHARs via unpack with zero.
+        PH_INT128 zero = PhSetZeroINT128();
+
+        while (InputLength >= 8)
+        {
+            PH_INT128 bytes = PhLoadINT64To128U(Input);
+            PhStoreINT128U((PLONG)Output, PhUnpackLowINT128by8(bytes, zero));
+            Input += 8;
+            Output += 8;
+            InputLength -= 8;
+        }
+    }
+
     inputLength = InputLength & -4;
 
     if (inputLength)

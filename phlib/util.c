@@ -11,7 +11,6 @@
  */
 
 #include <ph.h>
-
 #include <commdlg.h>
 #include <d3dkmthk.h>
 #include <ntintsafe.h>
@@ -31,7 +30,6 @@
 #include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
-#include <phcrypt.h>
 
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
@@ -8516,6 +8514,7 @@ BOOLEAN PhParseCommandLine(
  * \return The escaped string.
  * \remarks Only the double quotation mark is escaped.
  */
+#ifdef PH_KEEP_LEGACY_ESCAPE
 PPH_STRING PhEscapeCommandLinePart(
     _In_ PCPH_STRINGREF String
     )
@@ -8560,6 +8559,133 @@ PPH_STRING PhEscapeCommandLinePart(
 
             break;
         }
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+#endif
+
+/**
+ * Quotes and escapes an argument for use in a command line.
+ *
+ * ┌──────────────────┬──────────────────────────┬──────────────────────────────────────────────────────────────┐
+ * │ Execution Method │ Caret Escaping Required? │ Reason                                                       │
+ * ├──────────────────┼──────────────────────────┼──────────────────────────────────────────────────────────────┤
+ * │ CreateProcess    │ No                       │ Target app uses CommandLineToArgvW; carets are seen as data. │
+ * │ ShellExecute     │ Usually No               │ Unless specifically calling cmd.exe.                         │
+ * │ cmd.exe /c       │ YES                      │ cmd is a text preprocessor; it will misinterpret &, \        │
+ * │ .bat / .cmd      │ YES                      │ Same as cmd.exe /c.                                          │
+ * └──────────────────┴──────────────────────────┴──────────────────────────────────────────────────────────────┘
+ *
+ * \param Argument The argument string to quote.
+ * \param Force If TRUE, always wrap the argument in quotes.
+ * \return A string containing the quoted and escaped argument.
+ * \remarks Follows the escaping rules for CommandLineToArgvW.
+ * \sa https://learn.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+ */
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhQuoteCommandLine(
+    _In_ PCPH_STRINGREF Argument,
+    _In_ BOOLEAN Force
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    SIZE_T i;
+    ULONG numBackslashes = 0;
+    BOOLEAN quoteNeeded = Force;
+
+    if (!Force && Argument->Length > 0)
+    {
+        // Quote if we have spaces, tabs, or quotes
+        if (
+            PhFindCharInStringRef(Argument, L' ', FALSE) != SIZE_MAX ||
+            PhFindCharInStringRef(Argument, L'\t', FALSE) != SIZE_MAX ||
+            PhFindCharInStringRef(Argument, L'\"', FALSE) != SIZE_MAX
+            )
+        {
+            quoteNeeded = TRUE;
+        }
+    }
+
+    if (!quoteNeeded)
+        return PhCreateString2(Argument);
+
+    PhInitializeStringBuilder(&stringBuilder, Argument->Length / sizeof(WCHAR) + 16);
+    PhAppendCharStringBuilder(&stringBuilder, L'\"');
+
+    for (i = 0; i < Argument->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Argument->Buffer[i];
+
+        if (c == L'\\')
+        {
+            numBackslashes++;
+        }
+        else if (c == L'\"')
+        {
+            // Rule: 2n + 1 backslashes before a quote
+            PhAppendCharStringBuilder2(&stringBuilder, L'\\', (ULONG64)numBackslashes * 2 + 1);
+            PhAppendCharStringBuilder(&stringBuilder, L'\"');
+            numBackslashes = 0;
+        }
+        else
+        {
+            // Rule: Backslashes are literal here
+            PhAppendCharStringBuilder2(&stringBuilder, L'\\', numBackslashes);
+            PhAppendCharStringBuilder(&stringBuilder, c);
+            numBackslashes = 0;
+        }
+    }
+
+    // Rule: 2n backslashes at the very end of the argument before the closing quote
+    PhAppendCharStringBuilder2(&stringBuilder, L'\\', (ULONG64)numBackslashes * 2);
+    PhAppendCharStringBuilder(&stringBuilder, L'\"');
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+/**
+ * Escapes a command line for interpretation by cmd.exe.
+ *
+ * ┌──────────────────┬──────────────────────────┬──────────────────────────────────────────────────────────────┐
+ * │ Execution Method │ Caret Escaping Required? │ Reason                                                       │
+ * ├──────────────────┼──────────────────────────┼──────────────────────────────────────────────────────────────┤
+ * │ CreateProcess    │ No                       │ Target app uses CommandLineToArgvW; carets are seen as data. │
+ * │ ShellExecute     │ Usually No               │ Unless specifically calling cmd.exe.                         │
+ * │ cmd.exe /c       │ YES                      │ cmd is a text preprocessor; it will misinterpret &, \        │
+ * │ .bat / .cmd      │ YES                      │ Same as cmd.exe /c.                                          │
+ * └──────────────────┴──────────────────────────┴──────────────────────────────────────────────────────────────┘
+ *
+ * \param CommandLine The command line string to escape.
+ * \return The escaped command line string.
+ * \sa https://learn.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+ */
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhEscapeCommandLineConsole(
+    _In_ PCPH_STRINGREF CommandLine
+    )
+{
+    static CONST PH_STRINGREF metachars = PH_STRINGREF_INIT(L"()%!^\"<>&|");
+    PH_STRING_BUILDER stringBuilder;
+    SIZE_T i;
+
+    PhInitializeStringBuilder(&stringBuilder, CommandLine->Length / sizeof(WCHAR) + 16);
+
+    for (i = 0; i < CommandLine->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = CommandLine->Buffer[i];
+
+        // If the character is a cmd metacharacter, prefix it with a caret
+        if (PhFindCharInStringRef(&metachars, c, FALSE) != SIZE_MAX)
+        {
+            PhAppendCharStringBuilder(&stringBuilder, L'^');
+        }
+
+        PhAppendCharStringBuilder(&stringBuilder, c);
     }
 
     return PhFinalStringBuilderString(&stringBuilder);
@@ -11762,6 +11888,64 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
         return FALSE;
 
     return D3DKMTQueryVidPnExclusiveOwnership_I(QueryExclusiveOwnership);
+}
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhD3DKMTGetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
+    )
+{
+    static typeof(&D3DKMTGetProcessSchedulingPriorityClass) D3DKMTGetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTGetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTGetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTGetProcessSchedulingPriorityClass_I)
+        return STATUS_NOT_SUPPORTED;
+
+    return D3DKMTGetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
+}
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhD3DKMTSetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _In_ D3DKMT_SCHEDULINGPRIORITYCLASS SchedulingPriorityClass
+    )
+{
+    static typeof(&D3DKMTSetProcessSchedulingPriorityClass) D3DKMTSetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTSetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTSetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTSetProcessSchedulingPriorityClass_I)
+        return STATUS_NOINTERFACE;
+
+    return D3DKMTSetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
 }
 
 typedef struct _PH_ENDSESSION_CONTEXT

@@ -13,6 +13,7 @@
 #include <ph.h>
 #include <mapimg.h>
 #include <kphuser.h>
+#include <phintrin.h>
 
 #define PH_IMGCOHERENCY_NORMAL_SCAN_LIMIT         (40 * (1024 * 1024)) // 40Mib
 #define PH_IMGCOHERENCY_QUICK_SCAN_LIMIT          (PAGE_SIZE * 2)
@@ -611,15 +612,15 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
             bytesRead = 0;
         }
 
-        fileBytes = PhMappedImageRvaToVa(&Context->MappedImage, rva, NULL);
-        if (fileBytes)
+        if (NT_SUCCESS(PhMappedImageRvaToVa(&Context->MappedImage, rva, &fileBytes)))
         {
             //
             // Calculate the remaining view from the VA
             //
-            remainingView = (SIZE_T)PTR_SUB_OFFSET(Context->MappedImage.ViewSize,
-                                                   PTR_SUB_OFFSET(fileBytes,
-                                                                  Context->MappedImage.ViewBase));
+            remainingView = (SIZE_T)PTR_SUB_OFFSET(
+                Context->MappedImage.ViewSize,
+                PTR_SUB_OFFSET(fileBytes, Context->MappedImage.ViewBase)
+                );
         }
         else
         {
@@ -795,7 +796,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
     )
 {
     ULONG addressOfEntry = 0;
-    PIMAGE_SECTION_HEADER entrySection;
+    PIMAGE_SECTION_HEADER entrySection = NULL;
 
     switch (Context->MappedImage.Magic)
     {
@@ -809,10 +810,7 @@ VOID PhpAnalyzeImageCoherencyCommonAsNative(
         break;
     }
 
-    if (addressOfEntry != 0)
-        entrySection = PhMappedImageRvaToSection(&Context->MappedImage, addressOfEntry);
-    else
-        entrySection = NULL;
+    PhMappedImageRvaToSection(&Context->MappedImage, addressOfEntry, &entrySection);
 
     //
     // Here we will inspect each executable section.
@@ -975,8 +973,10 @@ VOID PhpAnalyzeImageCoherencyCommonAsManaged(
     //
     // Get the .NET MetaData
     //
-    dotNet = PhMappedImageRvaToVa(&Context->MappedImage, dataDirectory->VirtualAddress, NULL);
-    if (!dotNet ||
+    if (!NT_SUCCESS(PhMappedImageRvaToVa(
+        &Context->MappedImage,
+        dataDirectory->VirtualAddress,
+        &dotNet)) ||
         (dotNet->MetaData.Size == 0) ||
         !dotNet->MetaData.VirtualAddress)
     {
@@ -1025,21 +1025,22 @@ BOOLEAN PhpAnalyzeImageCoherencyIsDotNet (
     //
     // Check for the COR20 header
     //
-    dotNet = PhMappedImageRvaToVa(
+    if (!NT_SUCCESS(PhMappedImageRvaToVa(
         &Context->MappedImage,
         dataDirectory->VirtualAddress,
-        NULL
-        );
-    if (!dotNet || (dotNet->cb != sizeof(IMAGE_COR20_HEADER)))
+        &dotNet)) || (dotNet->cb != sizeof(IMAGE_COR20_HEADER)))
     {
         return FALSE;
     }
 
-    dotNetMagic = PhMappedImageRvaToVa(
+    if (!NT_SUCCESS(PhMappedImageRvaToVa(
         &Context->MappedImage,
         dotNet->MetaData.VirtualAddress,
-        NULL
-        );
+        &dotNetMagic)) || !dotNetMagic)
+    {
+        return FALSE;
+    }
+
     //
     // If we can locate the magic number and it equal the .NET magic then we
     // are reasonably confident it is .NET.

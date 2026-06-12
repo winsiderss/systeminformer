@@ -1464,8 +1464,8 @@ LARGE_INTEGER PhSipGetCpuInterceptLatency(
     LARGE_INTEGER performanceCounterStart;
     LARGE_INTEGER performanceCounterEnd;
     LARGE_INTEGER performanceCounterTicks;
-    ULONG64 timeStampCounterStart;
-    ULONG64 timeStampCounterEnd;
+    LARGE_INTEGER timeStampCounterStart;
+    LARGE_INTEGER timeStampCounterEnd;
     BOOLEAN counterValid = FALSE;
     volatile ULONG64 cpuInfoValid = 0;
 
@@ -1476,7 +1476,7 @@ LARGE_INTEGER PhSipGetCpuInterceptLatency(
 #endif
 
     PhQueryPerformanceCounter(&performanceCounterStart);
-    timeStampCounterStart = PhReadTimeStampCounter();
+    PhQueryInterruptTime(&timeStampCounterStart);
 
 #ifdef _ARM64_
     currentExceptionLevel = _ReadStatusReg(ARM64_SYSREG(3, 0, 4, 2, 2));
@@ -1490,12 +1490,12 @@ LARGE_INTEGER PhSipGetCpuInterceptLatency(
 
     MemoryBarrier();
 
-    timeStampCounterEnd = PhReadTimeStampCounter();
+    PhQueryInterruptTime(&timeStampCounterEnd);
     PhQueryPerformanceCounter(&performanceCounterEnd);
 
     performanceCounterTicks.QuadPart = performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart;
 
-    if (timeStampCounterStart == 0 && timeStampCounterEnd == 0 && !counterValid)
+    if (timeStampCounterStart.QuadPart == 0 && timeStampCounterEnd.QuadPart == 0 && !counterValid)
         performanceCounterTicks.QuadPart = 0;
 
     return performanceCounterTicks;
@@ -1774,8 +1774,9 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
             for (j = 0; j < current->StateCount; j++)
             {
-                hitcountCurrent = PTR_ADD_OFFSET(current->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
-                hitcountPrevious = PTR_ADD_OFFSET(previous->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
+                hitcountCurrent = &current->States[j];
+                hitcountPrevious = &previous->States[j];
+
                 delta = hitcountCurrent->Hits - hitcountPrevious->Hits;
                 percent = hitcountCurrent->PercentFrequency;
 

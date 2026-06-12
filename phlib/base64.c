@@ -5,6 +5,7 @@
  */
 
 #include <phbase.h>
+#include <phintrin.h>
 #include "include\base64.h"
 
 static const CHAR PhBase64EncodeTable[] =
