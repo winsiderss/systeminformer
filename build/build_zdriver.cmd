@@ -92,14 +92,10 @@ REM Function: FindVisualStudio
 REM Description: Locates a Visual Studio or SDK installation with MSBuild.
 REM -----------------------------------------------------------------------------
 :FindVisualStudio
-REM Constrain to VS2022 (v17.x). VS2026 (v18.x) ships a broken WDK build task
-REM (Microsoft.DriverKit.Build.Tasks.18.0.dll fails to load) and cannot build the
-REM kernel driver. The [17.0,18.0) range and lack of -prerelease keep vswhere from
-REM selecting a v18.x toolset.
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" set "VSWHERE=%ProgramFiles%\Microsoft Visual Studio\Installer\vswhere.exe"
 if exist "%VSWHERE%" (
-    for /f "usebackq tokens=*" %%A in (`call "%VSWHERE%" -latest -version "[17.0,18.0)" -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
+    for /f "usebackq tokens=*" %%A in (`call "%VSWHERE%" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath`) do (
         set "VSINSTALLPATH=%%A"
     )
 )
