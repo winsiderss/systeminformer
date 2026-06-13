@@ -723,8 +723,10 @@ VOID PhOptionsEnterSectionView(
 
     EndDeferWindowPos(containerDeferHandle);
 
+    RedrawWindow(ContainerControl, NULL, NULL, RDW_ERASE | RDW_ERASENOW | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+
     if (NewSection->DialogHandle)
-        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+        RedrawWindow(NewSection->DialogHandle, NULL, NULL, RDW_ERASE | RDW_ERASENOW | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
 VOID PhOptionsEnterSectionViewInner(
