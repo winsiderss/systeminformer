@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ['windows-latest']
+        os: ['windows-2025-vs2026']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -64,7 +64,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: ['windows-latest']
+        os: ['windows-2025-vs2026']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -114,7 +114,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: ['windows-latest']
+        os: ['windows-2025-vs2026']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
@@ -156,7 +156,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        os: ['windows-latest']
+        os: ['windows-2025-vs2026']
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
