@@ -18,7 +18,7 @@
           <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
           <ConformanceMode>true</ConformanceMode>
           <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
-          <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+          <!-- WindowsTargetPlatformVersion left unset: the SDK.CPP package sets it; pinning it to the installed kit skews against the NuGet packages. -->
       </ClCompile>
       <Link>
           <GenerateDebugInformation>true</GenerateDebugInformation>

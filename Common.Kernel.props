@@ -7,7 +7,7 @@
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ResolveNuGetPackages>false</ResolveNuGetPackages>
     <SignMode>Off</SignMode>
-    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
+    <!-- WindowsTargetPlatformVersion left unset: the SDK.CPP package sets it; pinning it to the installed kit skews against the NuGet packages. -->
   </PropertyGroup>
   <PropertyGroup Label="Configuration">
     <CharacterSet>Unicode</CharacterSet>
