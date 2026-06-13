@@ -138,6 +138,14 @@ static PPH_STRING PhpGetStringForSelectedLogEntries(
         temp = PhFormatLogEntry(entry);
         PhAppendStringBuilder(&stringBuilder, &temp->sr);
         PhDereferenceObject(temp);
+
+        if (entry->Type >= PH_LOG_ENTRY_PROCESS_FIRST && entry->Type <= PH_LOG_ENTRY_PROCESS_LAST && !PhIsNullOrEmptyString(entry->Process.CommandLine))
+        {
+            PhAppendStringBuilder2(&stringBuilder, L" [");
+            PhAppendStringBuilder(&stringBuilder, &entry->Process.CommandLine->sr);
+            PhAppendStringBuilder2(&stringBuilder, L"]");
+        }
+
         PhAppendStringBuilder2(&stringBuilder, L"\r\n");
 
 ContinueLoop:
@@ -174,6 +182,7 @@ INT_PTR CALLBACK PhpLogDlgProc(
             PhListView_AddColumn(ListViewContext, 0, 0, 0, LVCFMT_LEFT, 140, L"Time");
             PhListView_AddColumn(ListViewContext, 1, 1, 1, LVCFMT_LEFT, 140, L"Type");
             PhListView_AddColumn(ListViewContext, 2, 2, 2, LVCFMT_LEFT, 260, L"Message");
+            PhListView_AddColumn(ListViewContext, 3, 3, 3, LVCFMT_LEFT, 300, L"Command Line");
             PhLoadListViewColumnsFromSetting(SETTING_LOG_LIST_VIEW_COLUMNS, ListViewHandle);
 
             PhInitializeLayoutManager(&WindowLayoutManager, hwndDlg);
@@ -360,6 +369,20 @@ INT_PTR CALLBACK PhpLogDlgProc(
                             string = PhFormatLogEntry(entry);
                             wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, string->Buffer, _TRUNCATE);
                             PhDereferenceObject(string);
+                        }
+                    }
+                    else if (dispInfo->item.iSubItem == 3)
+                    {
+                        if (FlagOn(dispInfo->item.mask, LVIF_TEXT))
+                        {
+                            if (entry->Type >= PH_LOG_ENTRY_PROCESS_FIRST && entry->Type <= PH_LOG_ENTRY_PROCESS_LAST && !PhIsNullOrEmptyString(entry->Process.CommandLine))
+                            {
+                                wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, entry->Process.CommandLine->Buffer, _TRUNCATE);
+                            }
+                            else
+                            {
+                                dispInfo->item.pszText[0] = UNICODE_NULL;
+                            }
                         }
                     }
                 }

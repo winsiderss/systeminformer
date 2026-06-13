@@ -252,6 +252,7 @@ typedef struct _PH_LOG_ENTRY
             PPH_STRING Name;
             HANDLE ParentProcessId;
             PPH_STRING ParentName;
+            PPH_STRING CommandLine;
             NTSTATUS ExitStatus;
         } Process;
         struct
@@ -285,6 +286,7 @@ VOID PhLogProcessEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
+    _In_opt_ PPH_STRING CommandLine,
     _In_opt_ ULONG Status
     );
 
