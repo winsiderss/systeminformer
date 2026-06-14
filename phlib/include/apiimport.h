@@ -102,6 +102,10 @@ PH_DECLARE_IMPORT(ConsoleControl);
 PH_DECLARE_IMPORT(GetCurrentInputMessageSource);
 PH_DECLARE_IMPORT(GetCIMSSM);
 PH_DECLARE_IMPORT(SetCoalescableTimer);
+
+// Win32u
+
+PH_DECLARE_IMPORT(NtGdiGetEntry);
 PH_DECLARE_IMPORT(NtUserBuildHwndList);
 
 // Xmllite
