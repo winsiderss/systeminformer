@@ -55,7 +55,9 @@
 #define PHNT_WINDOWS_11_22H2 115 // September, 2022  // Build 22621
 #define PHNT_WINDOWS_11_23H2 116 // October, 2023    // Build 22631
 #define PHNT_WINDOWS_11_24H2 117 // October, 2024    // Build 26100
-#define PHNT_WINDOWS_11_25H2 117 // October, 2025    // Build 26200
+#define PHNT_WINDOWS_11_25H2 118 // October, 2025    // Build 26200
+#define PHNT_WINDOWS_11_26H1 119                     // Build 28000
+#define PHNT_WINDOWS_11_27H2 120                     // Build 29500
 #define PHNT_WINDOWS_NEW ULONG_MAX
 
 #ifndef PHNT_MODE
