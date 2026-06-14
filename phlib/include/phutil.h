@@ -13,6 +13,9 @@
 #ifndef _PH_PHUTIL_H
 #define _PH_PHUTIL_H
 
+#include <phcrypt.h>
+#include <ntd3dkmt.h>
+
 EXTERN_C_START
 
 extern CONST WCHAR *PhSizeUnitNames[7];
