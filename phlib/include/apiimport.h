@@ -22,7 +22,11 @@
 
 EXTERN_C_START
 
+#ifdef __cplusplus
+#define PH_DECLARE_IMPORT(Name) decltype(&(Name)) Name##_Import(VOID)
+#else
 #define PH_DECLARE_IMPORT(Name) typeof(&(Name)) Name##_Import(VOID)
+#endif
 
 // Ntdll
 
@@ -55,6 +59,8 @@ PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
 PH_DECLARE_IMPORT(RtlGetAppContainerParent);
+PH_DECLARE_IMPORT(RtlStringFromGUIDEx);
+
 
 PH_DECLARE_IMPORT(PssNtCaptureSnapshot);
 PH_DECLARE_IMPORT(PssNtQuerySnapshot);
