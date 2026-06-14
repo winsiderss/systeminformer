@@ -560,3 +560,926 @@ VOID FASTCALL PhfEndInitOnce(
 {
     PhSetEvent(&InitOnce->Event);
 }
+
+//
+// Wait Completion Packets
+//
+
+/*
+ * The Windows executive exposes NtWaitForMultipleObjects, which allows a thread
+ * to wait on the state of multiple dispatcher objects. This interface is
+ * inherently limited by MAXIMUM_WAIT_OBJECTS (64), a constraint derived from the
+ * fixed wait block storage associated with KTHREAD.
+ *
+ * Applications that need to monitor hundreds or thousands of handles are
+ * traditionally forced to shard the wait set across many threads, introduce
+ * additional synchronization, or use per-handle thread-pool waits. These
+ * approaches scale poorly: they increase thread count, memory usage, scheduler
+ * activity, context switching, and per-handle registration/dispatch overhead.
+ *
+ * Windows 8 introduced wait completion packets. A wait completion packet can be
+ * associated with a waitable object and an I/O completion port, causing the
+ * kernel to queue a completion when the target object becomes signaled. This
+ * allows a single consumer thread to receive wait completions for large wait
+ * sets without being constrained by the 64-object NtWaitForMultipleObjects
+ * limit.
+ *
+ * Wait completion packet associations are one-shot. After a completion is
+ * removed from the completion port, the association must be re-established if
+ * further notifications are required.
+ *
+ * This implementation uses wait completion packets and an I/O completion port to
+ * support scalable waiting over arbitrary-size handle arrays, bounded by normal
+ * object, handle, and memory limits. This avoids wait-set sharding and greatly
+ * reduces the thread, stack, dispatcher, and scheduling overhead required by
+ * traditional multi-threaded wait models.
+ *
+ * Statistics for one thread using PhWaitForManyObjects and wait completion
+ * packets (not optimized):
+ *
+ *        50 objects: alloc=000.39 KB   avg=000.13 ms
+ *       100 objects: alloc=000.78 KB   avg=000.25 ms
+ *       500 objects: alloc=003.91 KB   avg=001.46 ms
+ *      1000 objects: alloc=007.81 KB   avg=002.92 ms
+ *      5000 objects: alloc=039.06 KB   avg=013.70 ms
+ *     10000 objects: alloc=078.12 KB   avg=031.16 ms
+ *     20000 objects: alloc=156.25 KB   avg=054.91 ms
+ *     50000 objects: alloc=390.62 KB   avg=133.89 ms
+ *
+ * Notes:
+ *  - One consumer thread.
+ *  - Linear O(n) setup cost, approximately 2.7-3.0 us per object.
+ *  - 8 bytes of user-mode memory per wait object.
+ *  - No wait-sharding thread amplification.
+ *  - Minimal and predictable linear setup cost.
+ *
+ * Monitoring 50,000 wait objects with NtWaitForMultipleObjects would require:
+ *  - 782 wait groups of MAXIMUM_WAIT_OBJECTS (64) handles.
+ *  - 782 user threads, 782 thread handles, 782 stacks, 782 ETHREADs, and 782 KTHREADs.
+ *  - Multiple SRW locks for ynchronization to merge group completions.
+ *  - Constant scheduler and context switching across many waiter threads.
+ *  - Significantly more memory and dispatch overhead.
+ *
+ * Wait completion packets are a significant scalability improvement over
+ * sharded NtWaitForMultipleObjects waits. The native APIs are documented by
+ * Microsoft and exported by ntdll.dll, but they have no associated import
+ * library or SDK header. Despite being available since Windows 8, no usage of
+ * wait completion packets has been found outside the Windows thread pool 
+ * and System Informer.
+ */
+
+typeof(&NtCreateWaitCompletionPacket) NtCreateWaitCompletionPacket_I = NULL;
+typeof(&NtAssociateWaitCompletionPacket) NtAssociateWaitCompletionPacket_I = NULL;
+
+BOOLEAN PhInitializeWaitCompletionImports(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if ((baseAddress = PhGetDllHandle(L"ntdll.dll")))
+        {
+            NtCreateWaitCompletionPacket_I = (typeof(&NtCreateWaitCompletionPacket))PhGetDllBaseProcedureAddress(baseAddress, "NtCreateWaitCompletionPacket", 0);
+            NtAssociateWaitCompletionPacket_I = (typeof(&NtAssociateWaitCompletionPacket))PhGetDllBaseProcedureAddress(baseAddress, "NtAssociateWaitCompletionPacket", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NtCreateWaitCompletionPacket_I && NtAssociateWaitCompletionPacket_I)
+        return TRUE;
+
+    return FALSE;
+}
+
+/**
+ * Creates a wait completion packet.
+ *
+ * \param WaitCompletionPacketHandle A variable which receives a handle to the wait completion packet.
+ * \param DesiredAccess The desired access to the wait completion packet.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcreatewaitcompletionpacket
+ */
+NTSTATUS PhCreateWaitCompletionPacket(
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    if (!PhInitializeWaitCompletionImports())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        NULL,
+        OBJ_EXCLUSIVE,
+        NULL,
+        NULL
+        );
+
+    return NtCreateWaitCompletionPacket_I(
+        WaitCompletionPacketHandle,
+        DesiredAccess,
+        &objectAttributes
+        );
+}
+
+/**
+ * Associates a wait completion packet with a waitable object and an I/O completion object.
+ *
+ * \param WaitCompletionPacketHandle A handle to the wait completion packet.
+ * \param IoCompletionHandle A handle to the I/O completion object.
+ * \param TargetObjectHandle A handle to the target waitable object.
+ * \param KeyContext The key context queued to the I/O completion object.
+ * \param ApcContext The APC context queued to the I/O completion object.
+ * \param IoStatus The status queued to the I/O completion object.
+ * \param IoStatusInformation The information value queued to the I/O completion object.
+ * \param AlreadySignaled A variable which receives whether the target object was already signaled.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntassociatewaitcompletionpacket
+ */
+NTSTATUS PhAssociateWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN AlreadySignaled
+    )
+{
+    if (!PhInitializeWaitCompletionImports())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    return NtAssociateWaitCompletionPacket_I(
+        WaitCompletionPacketHandle,
+        IoCompletionHandle,
+        TargetObjectHandle,
+        KeyContext,
+        ApcContext,
+        IoStatus,
+        IoStatusInformation,
+        AlreadySignaled
+        );
+}
+
+//
+// After a wait completion packet fires it is consumed and stops monitoring
+// its target. For WaitAll across auto-reset events / semaphores this means
+// subsequent state transitions of an object are silently lost. This helper
+// closes the spent packet at the given slot and arms a fresh one for the
+// same target so the IOCP continues to receive notifications. WaitAny does
+// not need this — the first fire already completes the wait.
+//
+// Note: Auto-reset objects (e.g., auto-reset events, semaphores whose count may drop to
+// zero and rise again) are handled by re-associating a fresh wait completion packet
+// each time a packet fires in WaitAll mode, so subsequent state transitions of the
+// same object are still observed. The completion criterion remains "each object
+// observed signaled at least once during the wait" — this is weaker than the kernel's
+// NtWaitForMultipleObjects(WaitAll), which atomically holds each object's signaled
+// state across the wait boundary. The kernel guarantee cannot be reproduced from user
+// mode through WCPs because each WCP consumes its target's signal at fire time.
+// One-shot objects (processes, threads, manual-reset events) are fully supported.
+static NTSTATUS PhpReassociateWaitCompletionPacket(
+    _Inout_ PHANDLE WaitPacketSlot,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetHandle,
+    _In_ ULONG ObjectIndex
+    )
+{
+    NTSTATUS status;
+    HANDLE newPacket = NULL;
+    BOOLEAN alreadySignaled = FALSE;
+
+    if (*WaitPacketSlot)
+    {
+        NtClose(*WaitPacketSlot);
+        *WaitPacketSlot = NULL;
+    }
+
+    status = PhCreateWaitCompletionPacket(
+        &newPacket,
+        WAIT_COMPLETION_PACKET_ALL_ACCESS
+    );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhAssociateWaitCompletionPacket(
+        newPacket,
+        IoCompletionHandle,
+        TargetHandle,
+        UlongToPtr(ObjectIndex),
+        UlongToPtr(ObjectIndex),
+        STATUS_SUCCESS,
+        STATUS_SUCCESS,
+        &alreadySignaled
+    );
+
+    if (!NT_SUCCESS(status))
+    {
+        NtClose(newPacket);
+        return status;
+    }
+
+    *WaitPacketSlot = newPacket;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Waits for all or any of the specified objects to become signaled using I/O completion
+ * port wait completion packets. Supports waiting on more than MAXIMUM_WAIT_OBJECTS (64)
+ * handles (Tested with 5000 wait objects). Use this function instead of NtWaitForMultipleObjects
+ * when the thread needs to wait on more than MAXIMUM_WAIT_OBJECTS and improve performance.
+ *
+ * \param[in] ObjectCount The number of object handles in the Handles array.
+ * \param[in] Handles An array of handles to waitable objects.
+ * \param[in] WaitForAll If TRUE, the function waits until all objects are signaled.
+ *        If FALSE, the function returns when any one object is signaled.
+ * \param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or
+ *        STATUS_ALERTED. Only effective when ObjectCount <= MAXIMUM_WAIT_OBJECTS, or when
+ *        using the NtRemoveIoCompletionEx path (PH_IOCPWAIT_REMOVESINGLE not defined).
+ * \param[in] Timeout Optional pointer to a timeout value. If NULL, the wait is infinite.
+ *        Relative timeouts (negative QuadPart) are converted internally to an absolute
+ *        deadline before the dequeue loop so that the timeout is not re-armed on each call.
+ * \param[out] SignaledIndex Optional pointer to a variable that receives the zero-based
+ *        index of the first signaled object when WaitAll is FALSE. When WaitAll is TRUE,
+ *        this value is set to zero on success.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function requires Windows 8 or later. Each handle in the array must
+ *          be a waitable kernel object (e.g., event, process, thread, semaphore).
+ *          Auto-reset objects are not fully supported for WaitAll; see file-level remarks.
+ *          For WaitAll, a STATUS_USER_APC or STATUS_ALERTED return discards any
+ *          partial progress accumulated during the dequeue loop; the caller must
+ *          re-enter the wait from scratch to resume.
+ */
+NTSTATUS PhWaitForManyObjects(
+    _In_ ULONG ObjectCount,
+    _In_reads_(ObjectCount) PHANDLE Handles,
+    _In_ BOOLEAN WaitForAll,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG SignaledIndex
+    )
+{
+    NTSTATUS status;
+    HANDLE ioCompletionHandle = NULL;
+    PHANDLE waitPacketHandles = NULL;
+    PULONG signaledBitmapBuffer = NULL;
+    RTL_BITMAP signaledBitmap;
+    LARGE_INTEGER absoluteTimeout;
+    PLARGE_INTEGER effectiveTimeout;
+    ULONG signaledCount;
+    ULONG i;
+
+    if (ObjectCount == 0)
+        return STATUS_INVALID_PARAMETER_1;
+
+    if (SignaledIndex)
+        *SignaledIndex = ULONG_MAX;
+
+    //
+    // For small counts that fit within the fixed-size, delegate to
+    // the standard NtWaitForMultipleObjects API. (dmex)
+    //
+
+    if (ObjectCount <= MAXIMUM_WAIT_OBJECTS)
+    {
+        status = NtWaitForMultipleObjects(
+            ObjectCount,
+            Handles,
+            WaitForAll ? WaitAll : WaitAny,
+            Alertable,
+            Timeout
+            );
+
+        if ((status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + ObjectCount)) ||
+            (status >= STATUS_ABANDONED_WAIT_0 && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + ObjectCount)))
+        {
+            if (SignaledIndex)
+            {
+                if (!WaitForAll)
+                {
+                    if (status >= STATUS_ABANDONED_WAIT_0)
+                        *SignaledIndex = (ULONG)(status - STATUS_ABANDONED_WAIT_0);
+                    else
+                        *SignaledIndex = (ULONG)(status - STATUS_WAIT_0);
+                }
+                else
+                {
+                    *SignaledIndex = 0;
+                }
+            }
+        }
+        else if (status != STATUS_TIMEOUT)
+        {
+            // dprintf("[skipped: status=0x%x, objCount=%u]\n", status, ObjectCount);
+        }
+
+        return status;
+    }
+
+    //
+    // Convert a relative timeout to an absolute deadline before entering the
+    // dequeue loop. NtRemoveIoCompletion[Ex] treats positive QuadPart values as
+    // absolute system time, so passing a pre-computed deadline means the kernel
+    // does not re-arm the full duration on every call—preventing the total wait
+    // from silently exceeding the caller's intent.
+    //
+    // NT timeout convention:
+    //   NULL           -> infinite wait
+    //   QuadPart < 0   -> relative (duration in 100ns units from now)
+    //   QuadPart >= 0  -> absolute (100ns units since Jan 1, 1601)
+    //
+
+    if (Timeout && Timeout->QuadPart < 0)
+    {
+        LARGE_INTEGER currentTime;
+        NtQuerySystemTime(&currentTime);
+        // Subtract the negative value to add the positive duration.
+        absoluteTimeout.QuadPart = currentTime.QuadPart - Timeout->QuadPart;
+        effectiveTimeout = &absoluteTimeout;
+    }
+    else
+    {
+        // NULL (infinite) or already absolute: pass through unchanged.
+        effectiveTimeout = Timeout;
+    }
+
+    //
+    // Create an I/O completion port to receive wait notifications.
+    // IO_COMPLETION_MODIFY_STATE is sufficient for queue/dequeue access.
+    //
+
+    status = NtCreateIoCompletion(
+        &ioCompletionHandle,
+        IO_COMPLETION_MODIFY_STATE,
+        NULL,
+        1
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    //
+    // Allocate arrays for packet handles and (for WaitAll) signaled tracking.
+    //
+
+    waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
+
+    if (!waitPacketHandles)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    if (WaitForAll)
+    {
+        SIZE_T bitmapBufferSize = ((SIZE_T)((ObjectCount + 31) / 32)) * sizeof(ULONG);
+
+        signaledBitmapBuffer = PhAllocateZero(bitmapBufferSize);
+
+        if (!signaledBitmapBuffer)
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
+
+        RtlInitializeBitMap(&signaledBitmap, signaledBitmapBuffer, ObjectCount);
+    }
+
+    //
+    // Create and associate a wait completion packet for each object.
+    //
+
+    for (i = 0; i < ObjectCount; i++)
+    {
+        BOOLEAN alreadySignaled = FALSE;
+
+        status = PhCreateWaitCompletionPacket(
+            &waitPacketHandles[i],
+            WAIT_COMPLETION_PACKET_ALL_ACCESS
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhAssociateWaitCompletionPacket(
+            waitPacketHandles[i],
+            ioCompletionHandle,
+            Handles[i],
+            UlongToPtr(i),
+            UlongToPtr(i),
+            STATUS_SUCCESS,
+            STATUS_SUCCESS,
+            &alreadySignaled
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+
+    //
+    // Dequeue completion packets until the wait condition is satisfied.
+    // EffectiveTimeout is either NULL (infinite) or an absolute deadline,
+    // so it is safe to reuse across iterations without re-arming the duration.
+    //
+
+    signaledCount = 0;
+
+    while (TRUE)
+    {
+#if !defined(PH_IOCPWAIT_REMOVESINGLE)
+        // Note: NtRemoveIoCompletionEx allocates an extra
+        // internal array when Count > 16 (dmex)
+        FILE_IO_COMPLETION_INFORMATION completionInfo[16];
+        ULONG entriesRemoved = 0;
+        ULONG j;
+
+        status = NtRemoveIoCompletionEx(
+            ioCompletionHandle,
+            completionInfo,
+            RTL_NUMBER_OF(completionInfo),
+            &entriesRemoved,
+            effectiveTimeout,
+            Alertable
+            );
+
+        if (status != STATUS_SUCCESS)
+            goto CleanupExit;
+
+        //
+        // Contract: when NtRemoveIoCompletionEx returns STATUS_SUCCESS,
+        // entriesRemoved >= 1. Treat zero entries as a hard error rather
+        // than spinning, so a future kernel bug surfaces as a failure
+        // instead of an infinite busy-loop.
+        //
+
+        if (entriesRemoved == 0)
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto CleanupExit;
+        }
+
+        for (j = 0; j < entriesRemoved; j++)
+        {
+            ULONG objectIndex = PtrToUlong(completionInfo[j].KeyContext);
+
+            if (WaitForAll)
+            {
+                //
+                // Wait-all: track which objects have been signaled, then re-arm
+                // a fresh packet on this target so subsequent transitions (e.g.
+                // an auto-reset event that pulses again) are still observable.
+                //
+
+                if (objectIndex < ObjectCount)
+                {
+                    if (!RtlTestBit(&signaledBitmap, objectIndex))
+                    {
+                        RtlSetBit(&signaledBitmap, objectIndex);
+                        signaledCount++;
+                    }
+
+                    if (signaledCount < ObjectCount)
+                    {
+                        status = PhpReassociateWaitCompletionPacket(
+                            &waitPacketHandles[objectIndex],
+                            ioCompletionHandle,
+                            Handles[objectIndex],
+                            objectIndex
+                            );
+
+                        if (!NT_SUCCESS(status))
+                            goto CleanupExit;
+                    }
+                }
+            }
+            else
+            {
+                //
+                // Wait-any: the first signaled object satisfies the wait.
+                //
+
+                if (SignaledIndex)
+                    *SignaledIndex = objectIndex;
+
+                status = STATUS_SUCCESS;
+                goto CleanupExit;
+            }
+        }
+#else
+        //
+        // NOTE: NtRemoveIoCompletion has no alertable parameter and the
+        // Alertable argument to PhWaitForManyObjects is silently ignored
+        // for ObjectCount > MAXIMUM_WAIT_OBJECTS. Use the NtRemoveIoCompletionEx
+        // path if alertable waits are required.
+        //
+
+        PVOID keyContext = NULL;
+        PVOID apcContext = NULL;
+        IO_STATUS_BLOCK ioStatusBlock;
+        ULONG objectIndex;
+
+        status = NtRemoveIoCompletion(
+            ioCompletionHandle,
+            &keyContext,
+            &apcContext,
+            &ioStatusBlock,
+            effectiveTimeout
+            );
+
+        if (status != STATUS_SUCCESS)
+            goto CleanupExit;
+
+        objectIndex = PtrToUlong(keyContext);
+
+        if (!WaitForAll)
+        {
+            //
+            // Wait-any: the first signaled object satisfies the wait.
+            //
+
+            if (SignaledIndex)
+                *SignaledIndex = objectIndex;
+
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
+
+        //
+        // Wait-all: track which objects have been signaled, then re-arm
+        // a fresh packet on this target so subsequent transitions (e.g.
+        // an auto-reset event that pulses again) are still observable.
+        //
+
+        if (objectIndex < ObjectCount)
+        {
+            if (!RtlTestBit(&signaledBitmap, objectIndex))
+            {
+                RtlSetBit(&signaledBitmap, objectIndex);
+                signaledCount++;
+            }
+
+            if (signaledCount < ObjectCount)
+            {
+                status = PhpReassociateWaitCompletionPacket(
+                    &waitPacketHandles[objectIndex],
+                    ioCompletionHandle,
+                    Handles[objectIndex],
+                    objectIndex
+                    );
+
+                if (!NT_SUCCESS(status))
+                    goto CleanupExit;
+            }
+        }
+#endif
+
+        if (signaledCount >= ObjectCount)
+        {
+            //
+            // All objects are signaled.
+            //
+
+            if (SignaledIndex)
+                *SignaledIndex = 0;
+
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
+    }
+
+CleanupExit:
+
+    if (waitPacketHandles)
+    {
+        for (i = 0; i < ObjectCount; i++)
+        {
+            if (waitPacketHandles[i])
+            {
+                NtCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
+                NtClose(waitPacketHandles[i]);
+            }
+        }
+
+        PhFree(waitPacketHandles);
+    }
+
+    if (signaledBitmapBuffer)
+        PhFree(signaledBitmapBuffer);
+
+    if (ioCompletionHandle)
+        NtClose(ioCompletionHandle);
+
+    return status;
+}
+
+/**
+ * Waits for any one of the specified objects to become signaled using I/O completion
+ * port wait completion packets.
+ *
+ * This function supports waiting on more than MAXIMUM_WAIT_OBJECTS (64) handles by
+ * creating an I/O completion port and associating a wait completion packet with each
+ * object. When any object becomes signaled, the corresponding completion packet is
+ * delivered through the I/O completion port.
+ *
+ * \param[in] ObjectCount The number of object handles in the Handles array.
+ * \param[in] Handles An array of handles to waitable objects.
+ * \param[in] Timeout Optional pointer to a timeout value. If NULL, the wait is infinite.
+ *        Relative timeouts (negative QuadPart) are converted to an absolute deadline
+ *        internally and are not re-armed per dequeue call.
+ * \param[out] SignaledIndex Optional pointer to a variable that receives the zero-based
+ *        index of the signaled object in the Handles array.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This function requires Windows 8 or later. Each handle in the array must
+ *          be a waitable kernel object (e.g., event, process, thread, semaphore).
+ *          Auto-reset objects are not fully supported; see file-level remarks.
+ */
+NTSTATUS PhWaitForAnyObjects(
+    _In_ ULONG ObjectCount,
+    _In_reads_(ObjectCount) PHANDLE Handles,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG SignaledIndex
+    )
+{
+    NTSTATUS status;
+    HANDLE ioCompletionHandle = NULL;
+    PHANDLE waitPacketHandles = NULL;
+    PVOID keyContext = NULL;
+    PVOID apcContext = NULL;
+    IO_STATUS_BLOCK ioStatusBlock;
+    LARGE_INTEGER absoluteTimeout;
+    PLARGE_INTEGER effectiveTimeout;
+    ULONG i;
+
+    if (ObjectCount == 0)
+        return STATUS_INVALID_PARAMETER_1;
+
+    if (SignaledIndex)
+        *SignaledIndex = ULONG_MAX;
+
+    //
+    // Convert a relative timeout to an absolute deadline for parity with
+    // PhWaitForManyObjects. NtRemoveIoCompletion is called only once here so
+    // the relative form would also be correct, but keeping the two paths
+    // symmetric avoids a regression if this is ever changed to a dequeue loop.
+    //
+
+    if (Timeout && Timeout->QuadPart < 0)
+    {
+        LARGE_INTEGER currentTime;
+        NtQuerySystemTime(&currentTime);
+        absoluteTimeout.QuadPart = currentTime.QuadPart - Timeout->QuadPart;
+        effectiveTimeout = &absoluteTimeout;
+    }
+    else
+    {
+        effectiveTimeout = Timeout;
+    }
+
+    //
+    // Create an I/O completion port to receive wait notifications.
+    // IO_COMPLETION_MODIFY_STATE is sufficient for queue/dequeue access.
+    //
+
+    status = NtCreateIoCompletion(
+        &ioCompletionHandle,
+        IO_COMPLETION_MODIFY_STATE,
+        NULL,
+        1
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    //
+    // Allocate an array of wait completion packet handles. Zero-init so the
+    // cleanup loop can distinguish slots that were never populated from
+    // slots that hold a real handle.
+    //
+
+    waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
+
+    if (!waitPacketHandles)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
+
+    //
+    // Create a wait completion packet for each object and associate
+    // it with the I/O completion port. The packet key context carries
+    // the index so we can identify which object was signaled.
+    //
+
+    for (i = 0; i < ObjectCount; i++)
+    {
+        BOOLEAN alreadySignaled = FALSE;
+
+        status = PhCreateWaitCompletionPacket(
+            &waitPacketHandles[i],
+            WAIT_COMPLETION_PACKET_ALL_ACCESS
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        status = PhAssociateWaitCompletionPacket(
+            waitPacketHandles[i],
+            ioCompletionHandle,
+            Handles[i],
+            UlongToPtr(i),
+            UlongToPtr(i),
+            STATUS_SUCCESS,
+            STATUS_SUCCESS,
+            &alreadySignaled
+            );
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+
+        //
+        // If the object was already signaled at the time of association,
+        // the completion packet has already been queued. We can continue
+        // associating remaining packets; the IOCP dequeue below will
+        // pick up the signaled one.
+        //
+    }
+
+    //
+    // Wait for any object to become signaled by dequeuing a completion packet.
+    //
+
+    status = NtRemoveIoCompletion(
+        ioCompletionHandle,
+        &keyContext,
+        &apcContext,
+        &ioStatusBlock,
+        effectiveTimeout
+        );
+
+    if (status == STATUS_SUCCESS)
+    {
+        if (SignaledIndex)
+        {
+            *SignaledIndex = PtrToUlong(keyContext);
+        }
+    }
+
+CleanupExit:
+    if (waitPacketHandles)
+    {
+        for (i = 0; i < ObjectCount; i++)
+        {
+            if (waitPacketHandles[i])
+            {
+                NtCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
+                NtClose(waitPacketHandles[i]);
+            }
+        }
+
+        PhFree(waitPacketHandles);
+    }
+
+    if (ioCompletionHandle)
+    {
+        NtClose(ioCompletionHandle);
+    }
+
+    return status;
+}
+
+/**
+ * Demonstrates Windows 10+ IO completion wait multiplexing by waiting on an
+ * I/O completion object handle and a caller-supplied termination object in a
+ * single dispatcher wait.
+ *
+ * When the wait is satisfied by the I/O completion handle, this routine issues
+ * a non-blocking NtRemoveIoCompletion to dequeue one packet. If another thread
+ * drained the queue between wait wake and dequeue, the routine retries the wait
+ * until timeout/termination.
+ *
+ * \\param[in] IoCompletionHandle A handle to an I/O completion object opened with SYNCHRONIZE.
+ * \\param[in] TerminationHandle A handle to a waitable object used to terminate the loop.
+ * \\param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or STATUS_ALERTED.
+ * \\param[in] Timeout Optional timeout. Relative values are converted to an absolute deadline.
+ * \\param[out] KeyContext Optional pointer that receives the dequeued completion key.
+ * \\param[out] ApcContext Optional pointer that receives the dequeued APC context.
+ * \\param[out] IoStatusBlock Optional pointer that receives the dequeued I/O status block.
+ * \\param[out] Terminated Optional pointer that receives TRUE if TerminationHandle satisfied the wait.
+ * \\return STATUS_SUCCESS if a completion packet was dequeued, STATUS_CANCELLED if
+ *         TerminationHandle was signaled, or a propagated wait/dequeue status.
+ */
+NTSTATUS PhWaitForIoCompletionAndTermination(
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TerminationHandle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PVOID* KeyContext,
+    _Out_opt_ PVOID* ApcContext,
+    _Out_opt_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_opt_ PBOOLEAN Terminated
+    )
+{
+    NTSTATUS status;
+    HANDLE waitHandles[2];
+    LARGE_INTEGER absoluteTimeout;
+    PLARGE_INTEGER effectiveTimeout;
+
+    if (!IoCompletionHandle)
+        return STATUS_INVALID_HANDLE;
+
+    if (!TerminationHandle)
+        return STATUS_INVALID_HANDLE;
+
+    if (KeyContext)
+        *KeyContext = NULL;
+
+    if (ApcContext)
+        *ApcContext = NULL;
+
+    if (IoStatusBlock)
+        memset(IoStatusBlock, 0, sizeof(IO_STATUS_BLOCK));
+
+    if (Terminated)
+        *Terminated = FALSE;
+
+    if (Timeout && Timeout->QuadPart < 0)
+    {
+        LARGE_INTEGER currentTime;
+        NtQuerySystemTime(&currentTime);
+        absoluteTimeout.QuadPart = currentTime.QuadPart - Timeout->QuadPart;
+        effectiveTimeout = &absoluteTimeout;
+    }
+    else
+    {
+        effectiveTimeout = Timeout;
+    }
+
+    waitHandles[0] = IoCompletionHandle;
+    waitHandles[1] = TerminationHandle;
+
+    while (TRUE)
+    {
+        status = NtWaitForMultipleObjects(
+            RTL_NUMBER_OF(waitHandles),
+            waitHandles,
+            WaitAny,
+            Alertable,
+            effectiveTimeout
+            );
+
+        if (status == STATUS_WAIT_0)
+        {
+            PVOID localKeyContext = NULL;
+            PVOID localApcContext = NULL;
+            IO_STATUS_BLOCK localIoStatusBlock;
+            LARGE_INTEGER nonBlockingTimeout;
+
+            nonBlockingTimeout.QuadPart = 0;
+            memset(&localIoStatusBlock, 0, sizeof(IO_STATUS_BLOCK));
+
+            status = NtRemoveIoCompletion(
+                IoCompletionHandle,
+                &localKeyContext,
+                &localApcContext,
+                &localIoStatusBlock,
+                &nonBlockingTimeout
+                );
+
+            if (status == STATUS_TIMEOUT)
+                continue;
+
+            if (NT_SUCCESS(status))
+            {
+                if (KeyContext)
+                    *KeyContext = localKeyContext;
+
+                if (ApcContext)
+                    *ApcContext = localApcContext;
+
+                if (IoStatusBlock)
+                    *IoStatusBlock = localIoStatusBlock;
+            }
+
+            return status;
+        }
+
+        if (status == STATUS_WAIT_1)
+        {
+            if (Terminated)
+                *Terminated = TRUE;
+
+            return STATUS_CANCELLED;
+        }
+
+        return status;
+    }
+}

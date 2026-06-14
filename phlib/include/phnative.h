@@ -7424,6 +7424,57 @@ PhFilterConnectCommunicationPort(
     _Outptr_ PHANDLE Port
     );
 
+//
+// iocpwait
+//
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateWaitCompletionPacket(
+    _Out_ PHANDLE WaitCompletionPacketHandle,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAssociateWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TargetObjectHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _Out_opt_ PBOOLEAN AlreadySignaled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitForManyObjects(
+    _In_ ULONG ObjectCount,
+    _In_reads_(ObjectCount) PHANDLE Handles,
+    _In_ BOOLEAN WaitForAll,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PULONG SignaledIndex
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitForIoCompletionAndTermination(
+    _In_ HANDLE IoCompletionHandle,
+    _In_ HANDLE TerminationHandle,
+    _In_ BOOLEAN Alertable,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _Out_opt_ PVOID* KeyContext,
+    _Out_opt_ PVOID* ApcContext,
+    _Out_opt_ PIO_STATUS_BLOCK IoStatusBlock,
+    _Out_opt_ PBOOLEAN Terminated
+    );
 
 //
 // winsta
