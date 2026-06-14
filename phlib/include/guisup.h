@@ -312,6 +312,145 @@ PhDrawThemeParentBackground(
     _In_opt_ const PRECT Rect
     );
 
+// Buffered paint (UxTheme-free, FLS-cached double buffering). The
+// implementation lives in guisup.c.
+
+typedef enum _PH_BUFFERFORMAT
+{
+    PHBF_COMPATIBLEBITMAP,   // Compatible bitmap
+    PHBF_DIB,                // Device-independent bitmap
+    PHBF_TOPDOWNDIB,         // Top-down device-independent bitmap
+    PHBF_TOPDOWNMONODIB      // Top-down monochrome device-independent bitmap
+} PH_BUFFERFORMAT;
+
+// Opaque per-thread paint cache; defined privately in guisup.c.
+typedef struct _PH_BP_CACHE PH_BP_CACHE, *PPH_BP_CACHE;
+
+/**
+ * Opaque handle passed between PhBeginBufferedPaint and PhEndBufferedPaint.
+ * Callers should treat this as opaque and use the Ph* accessors below.
+ */
+typedef struct _PH_BUFFERED_PAINT
+{
+    PPH_BP_CACHE Cache;     // FLS cache slot (or heap allocation for oversized)
+    HDC TargetHdc;          // original DC supplied by the caller
+    RECT TargetRect;        // paint rect in TargetHdc coordinates
+    HBITMAP OldBitmap;      // stock bitmap deselected on End
+    LONG PaintWidth;        // == TargetRect.right - TargetRect.left
+    LONG PaintHeight;       // == TargetRect.bottom - TargetRect.top
+    BOOLEAN Valid;          // TRUE between successful Begin and End
+    BOOLEAN OwnsDc;         // TRUE -> DC is transient, delete on End
+    BOOLEAN OwnsBitmap;     // TRUE -> bitmap is transient, delete on End
+} PH_BUFFERED_PAINT, *PPH_BUFFERED_PAINT;
+
+typedef BOOLEAN (CALLBACK* PPH_BUFFERED_PAINT_PROC)(
+    _In_ HDC BufferHdc,
+    _In_ PRECT PaintRect,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferedPaintInit(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhBufferedPaintUnInit(
+    VOID
+    );
+
+_Must_inspect_result_
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBeginBufferedPaint(
+    _In_ HDC TargetHdc,
+    _In_ const RECT* TargetRect,
+    _Out_ PPH_BUFFERED_PAINT BufferedPaint,
+    _Out_ HDC* PaintHdc
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhEndBufferedPaint(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_ BOOLEAN UpdateTarget
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferedPaintClear(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferedPaintSetAlpha(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect,
+    _In_ BYTE Alpha
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintBits(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintBitsEx(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels,
+    _Out_ PLONG WidthInBytes,
+    _Out_ RGBQUAD** FirstPaintPixel
+    );
+
+PHLIBAPI
+HDC
+NTAPI
+PhGetBufferedPaintDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    );
+
+PHLIBAPI
+HDC
+NTAPI
+PhGetBufferedPaintTargetDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintTargetRect(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ PRECT Rect
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhPaintBuffered(
+    _In_ HWND WindowHandle,
+    _In_ const PAINTSTRUCT* PaintStruct,
+    _In_ PPH_BUFFERED_PAINT_PROC PaintProc,
+    _In_opt_ PVOID Context
+    );
+
 PHLIBAPI
 VOID
 NTAPI
