@@ -137,11 +137,11 @@ function(_si_set_target_defaults target)
         target_include_directories(${target} PRIVATE
             "${SI_ROOT}/plugins/include"
             "${SI_ROOT}/phnt/include"
-            "${SI_ROOT}/sdk/include"
+            "${SI_ROOT}/sdk/include/$<CONFIG>${SI_PLATFORM_SHORT}"
             "${SI_ROOT}/kphlib/include"
         )
         target_link_directories(${target} PRIVATE
-            "${SI_ROOT}/sdk/lib/${SI_PLATFORM_SDK_LIB}"
+            "${SI_ROOT}/sdk/lib/$<CONFIG>${SI_PLATFORM_SHORT}"
             "${SI_OUTPUT_DIR}/$<CONFIG>${SI_PLATFORM_SHORT}"
         )
     endif()

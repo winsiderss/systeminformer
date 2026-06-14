@@ -83,7 +83,7 @@ VOID PvpEnumerateClrImports(
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 2, PhGetString(importDll->ImportName));
                     PhSetListViewSubItem(ListViewHandle, lvItemIndex, 3, PhGetString(importFunction->FunctionName));
                     if (importFunction->Flags)
-                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PvClrImportFlagsToString(importFunction->Flags))->Buffer);
+                        PhSetListViewSubItem(ListViewHandle, lvItemIndex, 4, PH_AUTO_T(PH_STRING, PhClrImportFlagsToString(importFunction->Flags))->Buffer);
 
                     PhClearReference(&importFunction->FunctionName);
                     PhFree(importFunction);

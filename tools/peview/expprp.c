@@ -484,7 +484,7 @@ INT_PTR CALLBACK PvPeExportsDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
@@ -1072,7 +1072,14 @@ VOID PvInitializeExportTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_UNDECORATED, TRUE, L"Undecorated name", 150, PH_ALIGN_LEFT, PV_EXPORT_TREE_COLUMN_ITEM_UNDECORATED, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_SUPPRESSION, TRUE, L"CFG export suppression", 80, PH_ALIGN_LEFT, PV_EXPORT_TREE_COLUMN_ITEM_SUPPRESSION, 0, 0);
 
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(Context->WindowHandle)));
+    {
+        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+        if (treelistCustomRowSize && treelistCustomRowSize < 15)
+            treelistCustomRowSize = 15;
+
+        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
+    }
 
     TreeNew_SetSort(TreeNewHandle, PV_EXPORT_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);
     TreeNew_SetRedraw(TreeNewHandle, TRUE);

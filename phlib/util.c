@@ -11,8 +11,8 @@
  */
 
 #include <ph.h>
-
 #include <commdlg.h>
+#include <cfgmgr32.h>
 #include <d3dkmthk.h>
 #include <ntintsafe.h>
 #include <processsnapshot.h>
@@ -31,7 +31,6 @@
 #include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
-#include <phcrypt.h>
 
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
@@ -2975,8 +2974,6 @@ NTSTATUS PhFormatGuidToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static typeof(&RtlStringFromGUIDEx) RtlStringFromGUIDEx_I = NULL;
     NTSTATUS status;
     UNICODE_STRING unicodeString;
 
@@ -3000,22 +2997,12 @@ NTSTATUS PhFormatGuidToBuffer(
         return STATUS_SUCCESS;
     }
 
-    if (PhBeginInitOnce(&initOnce))
-    {
-        if (WindowsVersion >= WINDOWS_10)
-        {
-            RtlStringFromGUIDEx_I = PhGetDllProcedureAddressZ(RtlNtdllName, "RtlStringFromGUIDEx", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!RtlStringFromGUIDEx_I)
+    if (!RtlStringFromGUIDEx_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
     RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
 
-    status = RtlStringFromGUIDEx_I(
+    status = RtlStringFromGUIDEx_Import()(
         Guid,
         &unicodeString,
         FALSE
@@ -8029,7 +8016,6 @@ NTSTATUS PhInitializeHash(
     case Sha1HashAlgorithm:
     case Sha256HashAlgorithm:
         {
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext;
             PH_SYMCRYPT_HASH_ALGORITHM algorithm;
 
             if (Algorithm == Md5HashAlgorithm)
@@ -8039,18 +8025,10 @@ NTSTATUS PhInitializeHash(
             else
                 algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
 
-            symCryptContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_HASH_CONTEXT));
-            if (!symCryptContext)
-                return STATUS_NO_MEMORY;
-
-            if (!NT_SUCCESS(PhSymCryptHashInit(algorithm, symCryptContext)))
+            if (NT_SUCCESS(PhSymCryptHashInit(algorithm, &Context->HashContext)))
             {
-                PhFree(symCryptContext);
-                return STATUS_UNSUCCESSFUL;
+                return STATUS_SUCCESS;
             }
-
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = symCryptContext;
-            return STATUS_SUCCESS;
         }
 #endif
     default:
@@ -8092,11 +8070,11 @@ NTSTATUS PhUpdateHash(
         return STATUS_SUCCESS;
 #else
     case Md5HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
     case Sha1HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
     case Sha256HashAlgorithm:
-        return PhSymCryptHashData(*(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context, Buffer, Length);
+        return PhSymCryptHashData(&Context->HashContext, Buffer, Length);
 #endif
     default:
         return STATUS_INVALID_PARAMETER;
@@ -8198,60 +8176,48 @@ NTSTATUS PhFinalHash(
 #else
     case Md5HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_MD5_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_MD5_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_MD5_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_MD5_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_MD5_LENGTH;
         }
         break;
     case Sha1HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_SHA1_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_SHA1_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_SHA1_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_SHA1_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_SHA1_LENGTH;
         }
         break;
     case Sha256HashAlgorithm:
         {
-            UCHAR digest[PH_HASH_SHA256_LENGTH];
-            PPH_SYMCRYPT_HASH_CONTEXT symCryptContext = *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context;
-            PhSymCryptHashFinal(symCryptContext, digest, sizeof(digest));
-            PhFree(symCryptContext);
-            *(PPH_SYMCRYPT_HASH_CONTEXT*)Context->Context = NULL;
             if (HashLength >= PH_HASH_SHA256_LENGTH)
             {
-                memcpy(Hash, digest, PH_HASH_SHA256_LENGTH);
+                PhSymCryptHashFinal(&Context->HashContext, Hash, PH_HASH_SHA256_LENGTH);
                 status = STATUS_SUCCESS;
             }
             else
             {
                 status = STATUS_BUFFER_TOO_SMALL;
             }
+
             if (ReturnLength)
                 *ReturnLength = PH_HASH_SHA256_LENGTH;
         }
@@ -8537,6 +8503,7 @@ BOOLEAN PhParseCommandLine(
  * \return The escaped string.
  * \remarks Only the double quotation mark is escaped.
  */
+#ifdef PH_KEEP_LEGACY_ESCAPE
 PPH_STRING PhEscapeCommandLinePart(
     _In_ PCPH_STRINGREF String
     )
@@ -8581,6 +8548,133 @@ PPH_STRING PhEscapeCommandLinePart(
 
             break;
         }
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+#endif
+
+/**
+ * Quotes and escapes an argument for use in a command line.
+ *
+ * ┌──────────────────┬──────────────────────────┬──────────────────────────────────────────────────────────────┐
+ * │ Execution Method │ Caret Escaping Required? │ Reason                                                       │
+ * ├──────────────────┼──────────────────────────┼──────────────────────────────────────────────────────────────┤
+ * │ CreateProcess    │ No                       │ Target app uses CommandLineToArgvW; carets are seen as data. │
+ * │ ShellExecute     │ Usually No               │ Unless specifically calling cmd.exe.                         │
+ * │ cmd.exe /c       │ YES                      │ cmd is a text preprocessor; it will misinterpret &, \        │
+ * │ .bat / .cmd      │ YES                      │ Same as cmd.exe /c.                                          │
+ * └──────────────────┴──────────────────────────┴──────────────────────────────────────────────────────────────┘
+ *
+ * \param Argument The argument string to quote.
+ * \param Force If TRUE, always wrap the argument in quotes.
+ * \return A string containing the quoted and escaped argument.
+ * \remarks Follows the escaping rules for CommandLineToArgvW.
+ * \sa https://learn.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+ */
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhQuoteCommandLine(
+    _In_ PCPH_STRINGREF Argument,
+    _In_ BOOLEAN Force
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    SIZE_T i;
+    ULONG numBackslashes = 0;
+    BOOLEAN quoteNeeded = Force;
+
+    if (!Force && Argument->Length > 0)
+    {
+        // Quote if we have spaces, tabs, or quotes
+        if (
+            PhFindCharInStringRef(Argument, L' ', FALSE) != SIZE_MAX ||
+            PhFindCharInStringRef(Argument, L'\t', FALSE) != SIZE_MAX ||
+            PhFindCharInStringRef(Argument, L'\"', FALSE) != SIZE_MAX
+            )
+        {
+            quoteNeeded = TRUE;
+        }
+    }
+
+    if (!quoteNeeded)
+        return PhCreateString2(Argument);
+
+    PhInitializeStringBuilder(&stringBuilder, Argument->Length / sizeof(WCHAR) + 16);
+    PhAppendCharStringBuilder(&stringBuilder, L'\"');
+
+    for (i = 0; i < Argument->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Argument->Buffer[i];
+
+        if (c == L'\\')
+        {
+            numBackslashes++;
+        }
+        else if (c == L'\"')
+        {
+            // Rule: 2n + 1 backslashes before a quote
+            PhAppendCharStringBuilder2(&stringBuilder, L'\\', (ULONG64)numBackslashes * 2 + 1);
+            PhAppendCharStringBuilder(&stringBuilder, L'\"');
+            numBackslashes = 0;
+        }
+        else
+        {
+            // Rule: Backslashes are literal here
+            PhAppendCharStringBuilder2(&stringBuilder, L'\\', numBackslashes);
+            PhAppendCharStringBuilder(&stringBuilder, c);
+            numBackslashes = 0;
+        }
+    }
+
+    // Rule: 2n backslashes at the very end of the argument before the closing quote
+    PhAppendCharStringBuilder2(&stringBuilder, L'\\', (ULONG64)numBackslashes * 2);
+    PhAppendCharStringBuilder(&stringBuilder, L'\"');
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+/**
+ * Escapes a command line for interpretation by cmd.exe.
+ *
+ * ┌──────────────────┬──────────────────────────┬──────────────────────────────────────────────────────────────┐
+ * │ Execution Method │ Caret Escaping Required? │ Reason                                                       │
+ * ├──────────────────┼──────────────────────────┼──────────────────────────────────────────────────────────────┤
+ * │ CreateProcess    │ No                       │ Target app uses CommandLineToArgvW; carets are seen as data. │
+ * │ ShellExecute     │ Usually No               │ Unless specifically calling cmd.exe.                         │
+ * │ cmd.exe /c       │ YES                      │ cmd is a text preprocessor; it will misinterpret &, \        │
+ * │ .bat / .cmd      │ YES                      │ Same as cmd.exe /c.                                          │
+ * └──────────────────┴──────────────────────────┴──────────────────────────────────────────────────────────────┘
+ *
+ * \param CommandLine The command line string to escape.
+ * \return The escaped command line string.
+ * \sa https://learn.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
+ */
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhEscapeCommandLineConsole(
+    _In_ PCPH_STRINGREF CommandLine
+    )
+{
+    static CONST PH_STRINGREF metachars = PH_STRINGREF_INIT(L"()%!^\"<>&|");
+    PH_STRING_BUILDER stringBuilder;
+    SIZE_T i;
+
+    PhInitializeStringBuilder(&stringBuilder, CommandLine->Length / sizeof(WCHAR) + 16);
+
+    for (i = 0; i < CommandLine->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = CommandLine->Buffer[i];
+
+        // If the character is a cmd metacharacter, prefix it with a caret
+        if (PhFindCharInStringRef(&metachars, c, FALSE) != SIZE_MAX)
+        {
+            PhAppendCharStringBuilder(&stringBuilder, L'^');
+        }
+
+        PhAppendCharStringBuilder(&stringBuilder, c);
     }
 
     return PhFinalStringBuilderString(&stringBuilder);
@@ -9167,6 +9261,69 @@ HANDLE PhGetNamespaceHandle(
     }
 
     return directoryHandle;
+}
+
+/**
+ * Gets or creates the private namespace handle for System Informer objects.
+ *
+ * \return The private namespace handle, or NULL on failure.
+ */
+HANDLE PhGetNamespaceHandle2(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HANDLE namespaceHandle = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        static CONST PH_STRINGREF namespaceName = PH_STRINGREF_INIT(L"\\SystemInformer");
+        POBJECT_BOUNDARY_DESCRIPTOR boundaryDescriptor;
+        NTSTATUS status;
+
+        if (boundaryDescriptor = PhCreateBoundaryDescriptor(&namespaceName, BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID))
+        {
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeLocalSid)))
+            //    goto CleanupExit;
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, PhSeAdministratorsSid())))
+            //    goto CleanupExit;
+            //if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeInteractiveSid)))
+            //    goto CleanupExit;
+            if (!NT_SUCCESS(status = PhAddSIDToBoundaryDescriptor(&boundaryDescriptor, &PhSeEveryoneSid)))
+                goto CleanupExit;
+
+            status = PhOpenPrivateNamespace(
+                &namespaceHandle,
+                MAXIMUM_ALLOWED,
+                NULL,
+                &namespaceName,
+                boundaryDescriptor
+                );
+
+            if (status == STATUS_OBJECT_PATH_NOT_FOUND)
+            {
+                status = PhCreatePrivateNamespace(
+                    &namespaceHandle,
+                    MAXIMUM_ALLOWED,
+                    NULL,
+                    &namespaceName,
+                    boundaryDescriptor
+                    );
+            }
+
+        CleanupExit:
+            if (!NT_SUCCESS(status))
+            {
+                namespaceHandle = NULL;
+            }
+
+            PhDeleteBoundaryDescriptor(boundaryDescriptor);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return namespaceHandle;
 }
 
 /**
@@ -11720,6 +11877,64 @@ NTSTATUS PhQueryDirectXExclusiveOwnership(
         return FALSE;
 
     return D3DKMTQueryVidPnExclusiveOwnership_I(QueryExclusiveOwnership);
+}
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhD3DKMTGetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
+    )
+{
+    static typeof(&D3DKMTGetProcessSchedulingPriorityClass) D3DKMTGetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTGetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTGetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTGetProcessSchedulingPriorityClass_I)
+        return STATUS_NOT_SUPPORTED;
+
+    return D3DKMTGetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
+}
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhD3DKMTSetProcessSchedulingPriorityClass(
+    _In_ HANDLE ProcessHandle,
+    _In_ D3DKMT_SCHEDULINGPRIORITYCLASS SchedulingPriorityClass
+    )
+{
+    static typeof(&D3DKMTSetProcessSchedulingPriorityClass) D3DKMTSetProcessSchedulingPriorityClass_I = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
+        {
+            D3DKMTSetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTSetProcessSchedulingPriorityClass", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!D3DKMTSetProcessSchedulingPriorityClass_I)
+        return STATUS_NOINTERFACE;
+
+    return D3DKMTSetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
 }
 
 typedef struct _PH_ENDSESSION_CONTEXT

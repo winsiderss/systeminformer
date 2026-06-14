@@ -9,7 +9,7 @@
 
 VOID SYMCRYPT_CALL SymCryptCpuidExCallback( int cpuInfo[4], int function_id, int subfunction_id );
 
-SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresentEnvWin10Sgx(void)
+SYMCRYPT_CPU_FEATURES SYMCRYPT_CALL SymCryptCpuFeaturesNeverPresent(void)
 {
 #if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64 
     return SYMCRYPT_CPU_FEATURE_AVX2;

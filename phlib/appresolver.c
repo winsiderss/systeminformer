@@ -1363,7 +1363,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconLarge = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
+            iconLarge = PhConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }
@@ -1379,7 +1379,7 @@ BOOLEAN PhAppResolverGetPackageIcon(
 
         if (bitmap = PhLoadImageFromFile(imagePath, width, height))
         {
-            iconSmall = PhGdiplusConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
+            iconSmall = PhConvertBitmapToIcon(bitmap, width, height, propertyColorValue.ulVal);
             DeleteBitmap(bitmap);
         }
     }

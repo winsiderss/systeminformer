@@ -40,7 +40,6 @@ typedef struct _PV_HASH_CONTEXT
     PVOID Hash;
 #ifndef PH_NATIVE_CRYPT
     PH_SYMCRYPT_HASH_CONTEXT SymCryptContext;
-    BOOLEAN SymCryptContextInitialized;
 #endif
 } PV_HASH_CONTEXT, *PPV_HASH_CONTEXT;
 
@@ -126,6 +125,7 @@ PPV_HASH_CONTEXT PvCreateHashHandle(
 #ifndef PH_NATIVE_CRYPT
     {
         PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+
         if (!NT_SUCCESS(PhSymCryptHashAlgorithmIdToAlgorithm(
             AlgorithmId,
             &hashAlgorithm,
@@ -142,7 +142,6 @@ PPV_HASH_CONTEXT PvCreateHashHandle(
             return NULL;
         }
 
-        hashContext->SymCryptContextInitialized = TRUE;
         hashContext->Hash = PhAllocate(hashContext->HashSize);
         return hashContext;
     }
@@ -240,11 +239,9 @@ VOID PvDestroyHashHandle(
     if (Context->HashObject)
         PhFree(Context->HashObject);
 #else
-    if (Context->SymCryptContextInitialized)
+    if (Context->SymCryptContext.Algorithm)
     {
-        UCHAR discard[PH_SYMCRYPT_SHA512_RESULT_SIZE];
-        PhSymCryptHashFinal(&Context->SymCryptContext, discard, Context->HashSize);
-        Context->SymCryptContextInitialized = FALSE;
+        PhSymCryptDestroyHash(&Context->SymCryptContext, Context->HashSize);
     }
 #endif
 
@@ -277,7 +274,6 @@ PPH_STRING PvGetFinalHash(
         HashContext->HashSize
         )))
     {
-        HashContext->SymCryptContextInitialized = FALSE;
         return PhBufferToHexString(HashContext->Hash, HashContext->HashSize);
     }
 
@@ -1455,7 +1451,7 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
             PhFree(context);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }

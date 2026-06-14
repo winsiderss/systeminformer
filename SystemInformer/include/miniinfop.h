@@ -140,6 +140,7 @@ typedef enum _PH_MIP_ADJUST_PIN_RESULT
     HideAdjustPinResult
 } PH_MIP_ADJUST_PIN_RESULT;
 
+_Function_class_(PH_MESSAGE_LOOP_FILTER)
 BOOLEAN NTAPI PhMipMessageLoopFilter(
     _In_ PMSG Message,
     _In_ PVOID Context
@@ -279,6 +280,7 @@ PPH_MINIINFO_LIST_SECTION PhMipCreateInternalListSection(
     _In_ PPH_MINIINFO_LIST_SECTION_CALLBACK Callback
     );
 
+_Function_class_(PH_MINIINFO_SECTION_CALLBACK)
 BOOLEAN PhMipListSectionCallback(
     _In_ PPH_MINIINFO_SECTION Section,
     _In_ PH_MINIINFO_SECTION_MESSAGE Message,
@@ -349,6 +351,7 @@ VOID PhMipHandleListSectionCommand(
 
 // CPU section
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipCpuListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -368,6 +371,7 @@ int __cdecl PhMipCpuListSectionNodeCompareFunction(
 
 // Commit charge section
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipCommitListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -387,6 +391,7 @@ int __cdecl PhMipCommitListSectionNodeCompareFunction(
 
 // Physical memory section
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipPhysicalListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
@@ -406,6 +411,7 @@ int __cdecl PhMipPhysicalListSectionNodeCompareFunction(
 
 // I/O section
 
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
 BOOLEAN PhMipIoListSectionCallback(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,

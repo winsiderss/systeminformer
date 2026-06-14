@@ -121,7 +121,8 @@ NTSTATUS SetupCreateUninstallKey(
         PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
-        PhMoveReference(&string, PhFormatString(L"\"%s\" -uninstall", PhGetString(string)));
+        PhMoveReference(&string, PhQuoteCommandLine(&string->sr, TRUE));
+        PhMoveReference(&string, PhConcatStrings2(PhGetString(string), L" -uninstall"));
         PhSetValueKeyStringZ(keyHandle, L"UninstallString", &string->sr);
 
         PhSetValueKeyUlong(keyHandle, L"NoModify", TRUE);
@@ -155,7 +156,7 @@ PPH_STRING SetupFindInstallDirectory(
         if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
             setupInstallPath = PhExpandEnvironmentStrings(&programW6432);
         else
-            setupInstallPath = PhExpandEnvironmentStrings(&programFiles);
+            setupInstallPath = PhGetKnownFolderPathZ(&FOLDERID_ProgramFiles, NULL);
     }
 
     if (PhIsNullOrEmptyString(setupInstallPath))
@@ -721,7 +722,7 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
             return STATUS_NO_MEMORY;
         }
 
-        value = PhFormatString(L"\"%s\"", PhGetString(clientPathString));
+        value = PhQuoteCommandLine(&clientPathString->sr, TRUE);
         if (!value)
         {
             PhDereferenceObject(clientPathString);
@@ -1972,7 +1973,9 @@ NTSTATUS SetupWriteFileAtomic(
 {
     NTSTATUS status;
     PPH_STRING sessionId;
-    PPH_STRING stagingName;
+    PPH_STRING stagingName = NULL;
+    PCWSTR writeName;
+    BOOLEAN finalExists;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER allocationSize;
     IO_STATUS_BLOCK isb;
@@ -1980,12 +1983,25 @@ NTSTATUS SetupWriteFileAtomic(
     if (!(sessionId = SetupGetSessionId(Context)))
         return STATUS_NO_MEMORY;
 
-    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+    finalExists = PhDoesFileExistWin32(PhGetString(FinalName));
+
+    if (finalExists)
+    {
+        stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+
+        if (!stagingName)
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
+    }
+
+    writeName = finalExists ? PhGetString(stagingName) : PhGetString(FinalName);
     allocationSize.QuadPart = BufferLength;
 
     status = PhCreateFileWin32Ex(
         &fileHandle,
-        PhGetString(stagingName),
+        writeName,
         FILE_GENERIC_WRITE | DELETE,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
@@ -2056,6 +2072,16 @@ NTSTATUS SetupCommitFile(
 
     stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
     backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+
+    if (!PhDoesFileExistWin32(PhGetString(stagingName)))
+    {
+        if (PhDoesFileExistWin32(PhGetString(FinalName)) &&
+            !PhDoesFileExistWin32(PhGetString(backupName)))
+        {
+            status = STATUS_SUCCESS;
+            goto CleanupExit;
+        }
+    }
 
     // Remove any stale .bak left by a previous failed install. An explicit delete
     // is more reliable than relying solely on ReplaceIfExists: it clears read-only
@@ -2191,6 +2217,12 @@ NTSTATUS SetupRollbackFile(
             PhSetFileRename(backupHandle, NULL, TRUE, &FinalName->sr);
             NtClose(backupHandle);
         }
+    }
+    else if (!PhDoesFileExistWin32(PhGetString(stagingName)) &&
+             PhDoesFileExistWin32(PhGetString(FinalName)))
+    {
+        // No staged file or backup means this file was newly created directly.
+        PhDeleteFileWin32(PhGetString(FinalName));
     }
 
     if (backupName)

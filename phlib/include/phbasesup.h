@@ -635,7 +635,11 @@ PhInitializeEvent(
     )
 {
     WriteULongPtrRelease(&Event->Value, PH_EVENT_REFCOUNT_INC);
-    WritePointerRelease(&Event->EventHandle, UlongToPtr(0));
+
+#pragma warning(push)
+#pragma warning(disable : 4201)
+    WritePointerRelease(&Event->EventHandle, NULL);
+#pragma warning(pop)
 }
 
 /**
@@ -4646,6 +4650,15 @@ PhConvertCopyMemoryUlong64(
     _In_ SIZE_T Count
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhAddMemoryUlong(
+    _Inout_ PULONG A,
+    _In_ PULONG B,
+    _In_ ULONG Count
+    );
+
 DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
@@ -4654,15 +4667,6 @@ PhConvertCopyMemorySizeT(
     _Inout_updates_(Count) PSIZE_T From,
     _Inout_updates_(Count) PFLOAT To,
     _In_ SIZE_T Count
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhAddMemoryUlong(
-    _Inout_ PULONG A,
-    _In_ PULONG B,
-    _In_ ULONG Count
     );
 
 DECLSPEC_NOALIAS

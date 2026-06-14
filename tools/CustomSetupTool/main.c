@@ -47,7 +47,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
     {
     case WM_DESTROY:
         {
-            SetWindowLongPtr(hwndDlg, GWLP_WNDPROC, (LONG_PTR)oldWndProc);
+            PhSetWindowContext(hwndDlg, UCHAR_MAX, oldWndProc);
             PhRemoveWindowContext(hwndDlg, UCHAR_MAX);
         }
         break;
@@ -605,14 +605,14 @@ INT WINAPI wWinMain(
     }
 
     SetupParseCommandLine(context);
-
+    
     if (context->Silent)
     {
         SetupSilent(context);
     }
     else
     {
-        SetupShowDialog(context);
+        SetupShowWizard(context);
     }
 
     if (context->SubProcessHandle)

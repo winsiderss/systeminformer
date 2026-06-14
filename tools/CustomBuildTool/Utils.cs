@@ -21,7 +21,7 @@ namespace CustomBuildTool
     /// handling Windows SDK paths. Many methods assume Windows environments and may rely on environment variables or
     /// registry keys. Thread safety is not guaranteed for all static members; use caution when accessing shared
     /// resources concurrently.</remarks>
-    public static unsafe class Utils
+    public static unsafe partial class Utils
     {
         private static readonly Dictionary<string, string> EnvironmentBlock = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         public static readonly Encoding UTF8NoBOM = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
@@ -840,6 +840,37 @@ namespace CustomBuildTool
             }
 
             return makeAppxPath;
+        }
+
+        /// <summary>
+        /// Retrieves the full path to the Message Compiler (mc.exe) tool from the Windows SDK installation.
+        /// </summary>
+        /// <remarks>mc.exe ships with the Windows SDK (not the WDK), so it can be used to compile message
+        /// files for the usermode build without requiring the WDK build customizations.</remarks>
+        /// <returns>The full path to mc.exe if found; otherwise, null.</returns>
+        public static string GetMessageCompilerPath()
+        {
+            string windowsSdkPath = Utils.GetWindowsSdkPath();
+
+            if (string.IsNullOrWhiteSpace(windowsSdkPath))
+                return null;
+
+            string messageCompilerPath = Path.Join([windowsSdkPath, "\\x64\\mc.exe"]);
+
+            if (!File.Exists(messageCompilerPath))
+            {
+                string sdkRootPath = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "WdkBinRootVersioned", null);
+
+                if (string.IsNullOrWhiteSpace(sdkRootPath))
+                    return null;
+
+                messageCompilerPath = Utils.ExpandFullPath(Path.Join([sdkRootPath, "\\x64\\mc.exe"]));
+
+                if (!File.Exists(messageCompilerPath))
+                    return null;
+            }
+
+            return messageCompilerPath;
         }
 
         /// <summary>
@@ -2789,5 +2820,51 @@ namespace CustomBuildTool
         public const string TEAL = "\u001b[38;5;44m";
         public const string PINK = "\u001b[38;5;213m";
         public const string LIME = "\u001b[38;5;118m";
+    }
+
+    /// <summary>
+    /// Represents a buffer of characters that can be securely zeroed out after use.
+    /// </summary>
+    public sealed class SecureBuffer : IDisposable
+    {
+        public char[] Buffer { get; }
+        public int Length { get; }
+        public ReadOnlySpan<char> Span => Buffer.AsSpan(0, Length);
+
+        public SecureBuffer(int length)
+        {
+            Buffer = new char[length];
+            Length = length;
+        }
+
+        public void Dispose()
+        {
+            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(Buffer.AsSpan()));
+        }
+    }
+
+    public static partial class Utils
+    {
+        public static SecureBuffer ReadAllTextSecure(string FileName)
+        {
+            if (!File.Exists(FileName))
+                return null;
+
+            using (var fs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
+            using (var sr = new StreamReader(fs, Utils.UTF8NoBOM))
+            {
+                int length = (int)fs.Length;
+                var buffer = new SecureBuffer(length);
+                int read = sr.Read(buffer.Buffer, 0, length);
+                if (read < length)
+                {
+                    var newBuffer = new SecureBuffer(read);
+                    buffer.Span.Slice(0, read).CopyTo(newBuffer.Buffer);
+                    buffer.Dispose();
+                    return newBuffer;
+                }
+                return buffer;
+            }
+        }
     }
 }

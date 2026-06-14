@@ -71,6 +71,9 @@
     <ClCompile Include="jsonc\json_c_version.c">
       <Filter>Json-C</Filter>
     </ClCompile>
+    <ClCompile Include="jsonc\json_number_fast.cpp">
+      <Filter>Json-C</Filter>
+    </ClCompile>
     <ClCompile Include="jsonc\json_object.c">
       <Filter>Json-C</Filter>
     </ClCompile>
@@ -305,6 +308,9 @@
       <Filter>Json-C\Headers</Filter>
     </ClInclude>
     <ClInclude Include="jsonc\json_inttypes.h">
+      <Filter>Json-C\Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="jsonc\json_number_fast.h">
       <Filter>Json-C\Headers</Filter>
     </ClInclude>
     <ClInclude Include="jsonc\json_object.h">
@@ -625,9 +631,6 @@
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\env_generic.c">
-      <Filter>SymCrypt\Sources</Filter>
-    </ClCompile>
-    <ClCompile Include="SymCrypt\lib\env_Win10Sgx.c">
       <Filter>SymCrypt\Sources</Filter>
     </ClCompile>
     <ClCompile Include="SymCrypt\lib\env_windowsUserModeWin7.c">
@@ -1030,14 +1033,32 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <MARMASM Include="SymCrypt\lib\arm64\fdef_asm.armasm64.arm64.aapcs64.asm">
+    <MASM Include="SymCrypt\lib\amd64\aesasm.masm.amd64.msft.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MARMASM>
-    <MARMASM Include="SymCrypt\lib\arm64\fdef369_asm.armasm64.arm64.aapcs64.asm">
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef_asm.masm.amd64.msft.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MARMASM>
-    <MARMASM Include="SymCrypt\lib\arm64\wipe.armasm64.arm64.aapcs64.asm">
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef_mulx.masm.amd64.msft.asm">
       <Filter>SymCrypt\amd64</Filter>
-    </MARMASM>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\fdef369_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256xmm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha256ymm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\sha512ymm_avx512vl_asm.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
+    <MASM Include="SymCrypt\lib\amd64\wipe.masm.amd64.msft.asm">
+      <Filter>SymCrypt\amd64</Filter>
+    </MASM>
   </ItemGroup>
 </Project>

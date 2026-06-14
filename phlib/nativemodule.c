@@ -499,6 +499,12 @@ NTSTATUS PhGetKernelFileNameEx(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets the file name of the secure kernel image.
+ *
+ * \return A pointer to a string containing the secure kernel image file name. You must free the string
+ * using PhDereferenceObject() when you no longer need it.
+ */
 PPH_STRING PhGetSecureKernelFileName(
     VOID
     )
@@ -543,6 +549,15 @@ PPH_STRING PhGetSecureKernelFileName(
     return fileName;
 }
 
+/**
+ * Internal function for enumerating the modules loaded by a process.
+ *
+ * \param ProcessHandle Handle to the process to enumerate.
+ * \param Callback A callback function which is executed for each process module.
+ * \param Context1 A user-defined value to pass to the callback function.
+ * \param Context2 A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumProcessModules(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_MODULES_CALLBACK Callback,
@@ -651,6 +666,17 @@ NTSTATUS PhpEnumProcessModules(
     return status;
 }
 
+/**
+ * Internal callback function for process module enumeration.
+ *
+ * \param ProcessHandle Handle to the process being enumerated.
+ * \param Entry Pointer to the loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to enumeration parameters.
+ * \param Context2 Unused.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpEnumProcessModulesCallback(
     _In_ HANDLE ProcessHandle,
@@ -845,6 +871,17 @@ typedef struct _SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT
     ULONG LoadCount;
 } SET_PROCESS_MODULE_LOAD_COUNT_CONTEXT, *PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT;
 
+/**
+ * Internal callback function for setting module load counts.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Entry Pointer to the loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to the context structure containing search and update information.
+ * \param Context2 Unused.
+ * \return BOOLEAN FALSE if the module was found and updated (stops enumeration), TRUE otherwise.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpSetProcessModuleLoadCountCallback(
     _In_ HANDLE ProcessHandle,
@@ -909,6 +946,15 @@ NTSTATUS PhSetProcessModuleLoadCount(
     return context.Status;
 }
 
+/**
+ * Internal function for enumerating the 32-bit modules loaded by a process.
+ *
+ * \param ProcessHandle Handle to the process to enumerate.
+ * \param Callback A callback function which is executed for each process module.
+ * \param Context1 A user-defined value to pass to the callback function.
+ * \param Context2 A user-defined value to pass to the callback function.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumProcessModules32(
     _In_ HANDLE ProcessHandle,
     _In_ PPH_ENUM_MODULES_CALLBACK Callback,
@@ -1017,6 +1063,17 @@ NTSTATUS PhpEnumProcessModules32(
     return status;
 }
 
+/**
+ * Internal callback function for 32-bit process module enumeration.
+ *
+ * \param ProcessHandle Handle to the process being enumerated.
+ * \param Entry Pointer to the 32-bit loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to enumeration parameters.
+ * \param Context2 Unused.
+ * \return BOOLEAN TRUE to continue enumeration, FALSE to stop.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 BOOLEAN NTAPI PhpEnumProcessModules32Callback(
     _In_ HANDLE ProcessHandle,
@@ -1271,6 +1328,17 @@ NTSTATUS PhEnumProcessModules32Ex(
         );
 }
 
+/**
+ * Internal callback function for setting 32-bit module load counts.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param Entry Pointer to the 32-bit loader data table entry for the module.
+ * \param AddressOfEntry Virtual address of the entry in the process.
+ * \param SizeOfEntry Size of the loader data table entry.
+ * \param Context1 Pointer to the context structure containing search and update information.
+ * \param Context2 Unused.
+ * \return BOOLEAN FALSE if the module was found and updated (stops enumeration), TRUE otherwise.
+ */
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,

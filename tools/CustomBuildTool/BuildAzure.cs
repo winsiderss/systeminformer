@@ -61,7 +61,7 @@ namespace CustomBuildTool
         /// required configuration is missing, the method returns false and displays an error message.</remarks>
         /// <param name="Path">The path to the file or directory containing the files to be signed. Must not be null, empty, or whitespace.</param>
         /// <returns>true if the files are successfully signed; otherwise, false.</returns>
-        public static async Task<bool> SignFiles(string Path)
+        public static bool SignFiles(string Path)
         {
             //if (string.IsNullOrWhiteSpace(ENTRA_TIMESTAMP_ALGORITHM))
             //    return false;
@@ -91,28 +91,23 @@ namespace CustomBuildTool
                 return false;
             }
             // Read the client secret from environment at time of use to reduce lifetime in memory.
-            string entraClientSecret = Win32.GetEnvironmentVariable("BUILD_ENTRA_SECRET_ID");
-            if (string.IsNullOrWhiteSpace(entraClientSecret))
+            if (!Win32.GetEnvironmentVariableSecure("BUILD_ENTRA_SECRET_ID", out SecureBuffer entraClientSecret))
             {
                 Console.WriteLine($"{VT.RED}ENTRA CLIENT SECRET{VT.RESET}");
                 return false;
             }
 
-            try
+            using (entraClientSecret)
             {
-                return await SignFiles(
+                return SignFiles(
                     Path,
                     ENTRA_TIMESTAMP_SERVER,
                     ENTRA_CERIFICATE_NAME,
                     ENTRA_CERIFICATE_VAULT,
                     ENTRA_TENANT_GUID,
                     ENTRA_CLIENT_GUID,
-                    entraClientSecret
+                    entraClientSecret.Buffer
                     );
-            }
-            finally
-            {
-                try { Environment.SetEnvironmentVariable("BUILD_ENTRA_SECRET_ID", null, EnvironmentVariableTarget.Process); } catch { }
             }
         }
 
@@ -130,21 +125,21 @@ namespace CustomBuildTool
         /// True if the files are successfully signed; otherwise, false.
         /// The method retries up to three times in case of transient Azure connectivity issues.
         /// </returns>
-        public static async Task<bool> SignFiles(
+        public static bool SignFiles(
             string Path,
             string TimeStampServer,
             string AzureCertName,
             string AzureVaultName,
             string TenantGuid,
             string ClientGuid,
-            string ClientSecret
+            ReadOnlySpan<char> ClientSecret
             )
         {
             // Try a few times in case of transient Azure connectivity (dmex)
 
             for (int i = 0; i < 3; i++)
             {
-                if (await KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
+                if (KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
                     return true;
 
                 Program.PrintColorMessage("Retrying....", ConsoleColor.Yellow);
@@ -168,14 +163,14 @@ namespace CustomBuildTool
         /// True if all files are successfully signed; otherwise, false.
         /// Displays error messages for missing certificates, unsupported file types, or signing failures.
         /// </returns>
-        public static async Task<bool> KeyVaultDigestSignFiles(
+        public static bool KeyVaultDigestSignFiles(
             string Path,
             string TimeStampServer,
             string AzureCertName,
             string AzureVaultName,
             string TenantGuid,
             string ClientGuid,
-            string ClientSecret
+            ReadOnlySpan<char> ClientSecret
             )
         {
             try
@@ -183,7 +178,7 @@ namespace CustomBuildTool
                 var certificateTimeStampServer = new TimeStampConfiguration(TimeStampServer, TimeStampType.RFC3161);
 
                 // Get access token via REST
-                string accessToken = await GetAzureAdToken(TenantGuid, ClientGuid, ClientSecret);
+                string accessToken = GetAzureAdToken(TenantGuid, ClientGuid, ClientSecret);
                 if (string.IsNullOrWhiteSpace(accessToken))
                 {
                     Program.PrintColorMessage("Failed to obtain Azure AD token.", ConsoleColor.Red);
@@ -191,7 +186,7 @@ namespace CustomBuildTool
                 }
 
                 // Download certificate (public-key only) and key ID via REST
-                var (azureCertificatePublic, keyId) = await DownloadCertificateAndKeyId(AzureVaultName, AzureCertName, accessToken);
+                var (azureCertificatePublic, keyId) = DownloadCertificateAndKeyId(AzureVaultName, AzureCertName, accessToken).GetAwaiter().GetResult();
                 if (azureCertificatePublic == null)
                 {
                     Program.PrintColorMessage("Azure Certificate Failed.", ConsoleColor.Red);
@@ -278,7 +273,7 @@ namespace CustomBuildTool
         /// <param name="ClientId">The client application identifier registered in Azure Active Directory. Cannot be null or empty.</param>
         /// <param name="ClientSecret">The client application's secret used for authentication. Cannot be null or empty.</param>
         /// <returns>A string containing the access token if authentication is successful; otherwise, null.</returns>
-        public static async Task<string> GetAzureAdToken(string TenantId, string ClientId, string ClientSecret)
+        public static string GetAzureAdToken(string TenantId, string ClientId, ReadOnlySpan<char> ClientSecret)
         {
             //using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token")
             //{
@@ -318,7 +313,10 @@ namespace CustomBuildTool
                     ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
                     scopePrefix.CopyTo(span[written..]);
                     written += scopePrefix.Length;
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientSecret), span[written..]);
+                    
+                    // We still use Uri.EscapeDataString which creates a string, but it's temporary.
+                    // Better would be a span-based escaper.
+                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(new string(ClientSecret)), span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
@@ -338,7 +336,7 @@ namespace CustomBuildTool
                 using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token");
                 request.Content = tokenBody;
 
-                var tokenResponse = await BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse);
+                var tokenResponse = BuildHttpClient.SendMessage(EntraHttpClient, request, AzureJsonContext.Default.TokenResponse).GetAwaiter().GetResult();
 
                 if (string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
                     return null;

@@ -2221,7 +2221,7 @@ BOOLEAN PhUiSuspendTreeProcess(
             WindowHandle,
             L"suspend",
             PhaConcatStrings2(Process->ProcessName->Buffer, L" and its descendants")->Buffer,
-            L"Suspending a process tree will cause the process and its descendants to be suspend.",
+            L"Suspending a process tree will cause the process and its descendants to be suspended.",
             FALSE
             );
     }

@@ -463,11 +463,11 @@ static NTSTATUS SetupExtractBuildStageFiles(
 
             do
             {
-                if (NT_SUCCESS(status = SetupUseExistingKsi(extractPath, buffer, zipFileBufferLength)))
+                if (NT_SUCCESS(status = SetupUseExistingKsi(extractPath, buffer, (ULONG)zipFileBufferLength)))
                     break;
-                if (NT_SUCCESS(status = SetupOverwriteFile(extractPath, buffer, zipFileBufferLength)))
+                if (NT_SUCCESS(status = SetupOverwriteFile(extractPath, buffer, (ULONG)zipFileBufferLength)))
                     break;
-                if (NT_SUCCESS(status = SetupUpdateKsi(Context, extractPath, buffer, zipFileBufferLength)))
+                if (NT_SUCCESS(status = SetupUpdateKsi(Context, extractPath, buffer, (ULONG)zipFileBufferLength)))
                     break;
 
                 PhDelayExecution(1000);
@@ -475,7 +475,7 @@ static NTSTATUS SetupExtractBuildStageFiles(
         }
         else
         {
-            if (NT_SUCCESS(status = SetupWriteFileAtomic(Context, extractPath, buffer, zipFileBufferLength)))
+            if (NT_SUCCESS(status = SetupWriteFileAtomic(Context, extractPath, buffer, (ULONG)zipFileBufferLength)))
             {
                 PhAddItemList(StagedFiles, PhReferenceObject(extractPath));
             }

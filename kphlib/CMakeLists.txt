@@ -14,12 +14,10 @@ set(HEADERS
     "include/kphmsg.h"
     "include/kphmsgdefs.h"
     "include/kphmsgdyn.h"
-    "include/sistatus.h"
 )
 source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES
-    "include/sistatus_MSG00001.bin"
     "kphdyn.xml"
     "sistatus.mc"
 )
@@ -44,6 +42,7 @@ si_add_library(kphlib_um STATIC ${ALL_FILES})
 
 target_include_directories(kphlib_um PUBLIC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/$<CONFIG>${SI_PLATFORM_SHORT}"
 )
 
 target_link_libraries(kphlib_um PRIVATE

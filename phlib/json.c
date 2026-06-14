@@ -90,6 +90,8 @@ NTSTATUS PhCreateJsonParserEx(
         PPH_STRING jsonStringUtf16 = JsonString;
         PPH_BYTES jsonStringUtf8;
 
+        if (!jsonStringUtf16)
+            return STATUS_FAIL_CHECK;
         if (jsonStringUtf16->Length / sizeof(WCHAR) >= INT32_MAX)
             return STATUS_INVALID_BUFFER_SIZE;
         if (!(tokenerObject = json_tokener_new()))
@@ -104,17 +106,33 @@ NTSTATUS PhCreateJsonParserEx(
             jsonStringUtf16->Buffer,
             jsonStringUtf16->Length
             );
+
+        if (!jsonStringUtf8)
+        {
+            json_tokener_free(tokenerObject);
+            return STATUS_FAIL_CHECK;
+        }
+
         jsonObject = json_tokener_parse_ex(
             tokenerObject,
             jsonStringUtf8->Buffer,
             (LONG)jsonStringUtf8->Length
             );
+
         PhDereferenceObject(jsonStringUtf8);
+
+        if (!jsonObject)
+        {
+            json_tokener_free(tokenerObject);
+            return STATUS_FAIL_CHECK;
+        }
     }
     else
     {
         PPH_BYTES jsonStringUtf8 = JsonString;
 
+        if (!jsonStringUtf8)
+            return STATUS_FAIL_CHECK;
         if (jsonStringUtf8->Length >= INT32_MAX)
             return STATUS_INVALID_BUFFER_SIZE;
         if (!(tokenerObject = json_tokener_new()))
@@ -130,6 +148,12 @@ NTSTATUS PhCreateJsonParserEx(
             jsonStringUtf8->Buffer,
             (LONG)jsonStringUtf8->Length
             );
+
+        if (!jsonObject)
+        {
+            json_tokener_free(tokenerObject);
+            return STATUS_FAIL_CHECK;
+        }
     }
 
     jsonStatus = json_tokener_get_error(tokenerObject);
@@ -330,6 +354,15 @@ VOID PhAddJsonObjectUtf8(
     PVOID string = json_object_new_string_len(String->Buffer, (UINT32)String->Length);
 
     json_object_object_add_ex(Object, Key, string, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
+}
+
+VOID PhAddJsonObjectBoolean(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ BOOLEAN Value
+    )
+{
+    json_object_object_add_ex(Object, Key, json_object_new_boolean(Value), JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
 VOID PhAddJsonObjectInt64(

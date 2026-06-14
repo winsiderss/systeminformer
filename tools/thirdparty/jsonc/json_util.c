@@ -51,6 +51,9 @@
 
 #include "debug.h"
 #include "json_inttypes.h"
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+#include "json_number_fast.h"
+#endif
 #include "json_object.h"
 #include "json_tokener.h"
 #include "json_util.h"
@@ -232,13 +235,22 @@ int json_object_to_file(const unsigned char *filename, struct json_object *obj)
 // Deprecated json_parse_double function.  See json_tokener_parse_double instead.
 int json_parse_double(const unsigned char *buf, double *retval)
 {
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+    errno = 0;
+    return json_c_parse_double(buf, retval);
+#else
     unsigned char *end;
     *retval = strtod(buf, &end);
     return end == buf ? 1 : 0;
+#endif
 }
 
 int json_parse_int64(const unsigned char *buf, int64_t *retval)
 {
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+    errno = 0;
+    return json_c_parse_int64(buf, retval);
+#else
     unsigned char *end = NULL;
     int64_t val;
 
@@ -252,10 +264,15 @@ int json_parse_int64(const unsigned char *buf, int64_t *retval)
         return 1;
     }
     return 0;
+#endif
 }
 
 int json_parse_uint64(const unsigned char *buf, uint64_t *retval)
 {
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+    errno = 0;
+    return json_c_parse_uint64(buf, retval);
+#else
     unsigned char *end = NULL;
     uint64_t val;
 
@@ -274,6 +291,7 @@ int json_parse_uint64(const unsigned char *buf, uint64_t *retval)
         return 1;
     }
     return 0;
+#endif
 }
 
 #ifndef HAVE_REALLOC

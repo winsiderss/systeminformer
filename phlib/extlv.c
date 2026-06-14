@@ -160,8 +160,8 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, MAXCHAR);
             PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, MAXCHAR);
 
             PhListView_Destroy(context->ListViewContext);
 

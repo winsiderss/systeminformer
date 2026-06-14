@@ -2675,7 +2675,7 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
                 HFONT treeNewFont;
 
                 if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
-                    PhReplaceWindowFont(&context->TreeNewFont, context->TreeNewHandle, treeNewFont, TRUE);
+                    PhSwapReferenceFont(&context->TreeNewFont, context->TreeNewHandle, treeNewFont, TRUE);
             }
 
             {
@@ -2784,6 +2784,12 @@ INT_PTR CALLBACK PhpProcessWmiProvidersDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;

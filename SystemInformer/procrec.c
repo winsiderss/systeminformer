@@ -186,6 +186,8 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
 
             SendMessage(GetDlgItem(hwndDlg, IDC_OPENFILENAME), BM_SETIMAGE, IMAGE_ICON,
                 (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_FOLDER), dpiValue));
+            SendMessage(GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), BM_SETIMAGE, IMAGE_ICON,
+                (LPARAM)PH_LOAD_SHARED_ICON_SMALL(PhInstanceHandle, MAKEINTRESOURCE(IDI_MAGNIFIER), dpiValue));
 
             PhSetDialogItemText(hwndDlg, IDC_NAME, PhGetStringOrDefault(versionInfo.FileDescription, L"N/A"));
             PhSetDialogItemText(hwndDlg, IDC_COMPANYNAME, PhGetStringOrDefault(versionInfo.CompanyName, L"N/A"));
@@ -199,6 +201,9 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                 EnableWindow(GetDlgItem(hwndDlg, IDC_OPENFILENAME), FALSE);
 
             PhSetDialogItemText(hwndDlg, IDC_CMDLINE, PhGetStringOrDefault(context->Record->CommandLine, L"N/A"));
+
+            if (!context->Record->CommandLine)
+                EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWCOMMANDLINE), FALSE);
 
             if (context->Record->CreateTime.QuadPart != 0)
                 PhSetDialogItemText(hwndDlg, IDC_STARTED, PhpaGetRelativeTimeString(&context->Record->CreateTime)->Buffer);
@@ -247,6 +252,42 @@ INT_PTR CALLBACK PhpProcessRecordDlgProc(
                             FALSE,
                             L"Make sure the Explorer executable file is present."
                             );
+                    }
+                }
+                break;
+            case IDC_VIEWCOMMANDLINE:
+                {
+                    if (context->Record->CommandLine)
+                    {
+                        PPH_STRING commandLineString;
+                        PPH_LIST commandLineList;
+
+                        if (commandLineList = PhCommandLineToList(PhGetString(context->Record->CommandLine)))
+                        {
+                            PH_STRING_BUILDER sb;
+
+                            PhInitializeStringBuilder(&sb, 260);
+
+                            for (ULONG i = 0; i < commandLineList->Count; i++)
+                            {
+                                PhAppendFormatStringBuilder(&sb, L"[%d] %s\r\n\r\n", i, PhGetString(commandLineList->Items[i]));
+                            }
+
+                            PhAppendFormatStringBuilder(&sb, L"[FULL] %s\r\n", PhGetString(context->Record->CommandLine));
+
+                            commandLineString = PhFinalStringBuilderString(&sb);
+
+                            PhDereferenceObjects(commandLineList->Items, commandLineList->Count);
+                            PhDereferenceObject(commandLineList);
+                        }
+                        else
+                        {
+                            commandLineString = PhReferenceObject(context->Record->CommandLine);
+                        }
+
+                        PhShowInformationDialog(hwndDlg, PhGetString(commandLineString), 0);
+
+                        PhDereferenceObject(commandLineString);
                     }
                 }
                 break;

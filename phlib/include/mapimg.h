@@ -643,6 +643,18 @@ PhGetMappedImageResource(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetMappedImageResourceBinarySearch(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCWSTR Name,
+    _In_ PCWSTR Type,
+    _In_opt_ USHORT Language,
+    _Out_opt_ PULONG ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetMappedImageResourceIndex(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
@@ -986,6 +998,38 @@ PhFreeMappedImageRelocations(
     _In_opt_ PPH_MAPPED_IMAGE_RELOC Relocations
     );
 
+typedef struct _PH_IMAGE_SECURITY_ENTRY
+{
+    USHORT Revision;          // WIN_CERTIFICATE.wRevision
+    USHORT CertificateType;   // WIN_CERTIFICATE.wCertificateType (WIN_CERT_TYPE_*)
+    ULONG CertificateLength;  // payload length = dwLength - UFIELD_OFFSET(WIN_CERTIFICATE, bCertificate)
+    PBYTE Certificate;        // pointer into the mapped view (bCertificate); zero-copy
+} PH_IMAGE_SECURITY_ENTRY, *PPH_IMAGE_SECURITY_ENTRY;
+
+typedef struct _PH_MAPPED_IMAGE_SECURITY
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PIMAGE_DATA_DIRECTORY DataDirectory;
+
+    ULONG NumberOfEntries;
+    PPH_IMAGE_SECURITY_ENTRY Entries;
+} PH_MAPPED_IMAGE_SECURITY, *PPH_MAPPED_IMAGE_SECURITY;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageSecurity(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_SECURITY Security
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhFreeMappedImageSecurity(
+    _In_opt_ PPH_MAPPED_IMAGE_SECURITY Security
+    );
+
 typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
 {
     ULONGLONG Symbol;
@@ -1287,6 +1331,67 @@ NTAPI
 PhGetRemoteMappedImageCHPEVersion(
     _In_ PPH_REMOTE_MAPPED_IMAGE RemoteMappedImage,
     _Out_ PULONG CHPEVersion
+    );
+
+typedef struct _PH_MAPPED_IMAGE_LOCK_PREFIX
+{
+    PPH_MAPPED_IMAGE MappedImage;
+
+    ULONG NumberOfEntries;
+    PULONGLONG Entries; // heap-allocated, free with PhFree
+} PH_MAPPED_IMAGE_LOCK_PREFIX, *PPH_MAPPED_IMAGE_LOCK_PREFIX;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageLockPrefixTable(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_LOCK_PREFIX LockPrefix
+    );
+
+typedef struct _PH_MAPPED_IMAGE_ENCLAVE_CONFIG
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PVOID EnclaveConfig; // PIMAGE_ENCLAVE_CONFIG32/64 (points into the mapped view)
+
+    ULONG NumberOfImports;
+    PIMAGE_ENCLAVE_IMPORT Imports; // points into the mapped view (NULL when none)
+} PH_MAPPED_IMAGE_ENCLAVE_CONFIG, *PPH_MAPPED_IMAGE_ENCLAVE_CONFIG;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageEnclaveConfig(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_ENCLAVE_CONFIG EnclaveConfig
+    );
+
+typedef struct _PH_MAPPED_IMAGE_CHPE
+{
+    PPH_MAPPED_IMAGE MappedImage;
+    PVOID Metadata; // PIMAGE_CHPE_METADATA_X86 / PIMAGE_ARM64EC_METADATA (points into the mapped view)
+    ULONG Version;
+    BOOLEAN IsArm64ec;
+
+    // ARM64EC tables (valid when IsArm64ec; point into the mapped view)
+    ULONG NumberOfCodeMapEntries;
+    PIMAGE_ARM64EC_CODE_MAP_ENTRY CodeMap;
+    ULONG NumberOfCodeRangeEntryPoints;
+    PIMAGE_ARM64EC_CODE_RANGE_ENTRY_POINT CodeRangesToEntryPoints;
+    ULONG NumberOfRedirectionEntries;
+    PIMAGE_ARM64EC_REDIRECTION_ENTRY RedirectionMetadata;
+
+    // x86 CHPE table (valid when !IsArm64ec; points into the mapped view)
+    ULONG NumberOfCodeRangeEntries;
+    PIMAGE_CHPE_RANGE_ENTRY CodeRanges;
+} PH_MAPPED_IMAGE_CHPE, *PPH_MAPPED_IMAGE_CHPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedImageCHPE(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _Out_ PPH_MAPPED_IMAGE_CHPE Chpe
     );
 
 // ELF binary support

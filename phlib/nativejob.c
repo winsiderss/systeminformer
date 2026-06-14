@@ -225,3 +225,76 @@ NTSTATUS PhGetJobBasicUiRestrictions(
         NULL
         );
 }
+
+/**
+ * Creates a job object pre-configured for hosting System Informer's own child processes.
+ *
+ * Sets JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE so all processes in the job terminate when
+ * the last handle to the job is closed, JOB_OBJECT_UILIMIT_INJECTION to prevent DLL
+ * injection from outside the job, and JOB_OBJECT_POST_AT_END_OF_JOB as the end-of-job
+ * time action.
+ *
+ * \param JobHandle Receives the handle to the created job object on success.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhCreateConfiguredJobObject(
+    _Out_ PHANDLE JobHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE jobHandle;
+    JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
+    JOBOBJECT_BASIC_UI_RESTRICTIONS uiRestrictions;
+    JOBOBJECT_END_OF_JOB_TIME_INFORMATION endOfJobInfo;
+
+    status = PhCreateJobObject(&jobHandle, JOB_OBJECT_ALL_ACCESS, NULL, NULL);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    memset(&basicLimits, 0, sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION));
+    basicLimits.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+
+    status = NtSetInformationJobObject(
+        jobHandle,
+        JobObjectBasicLimitInformation,
+        &basicLimits,
+        sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    memset(&uiRestrictions, 0, sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS));
+    uiRestrictions.UIRestrictionsClass = JOB_OBJECT_UILIMIT_INJECTION;
+
+    status = NtSetInformationJobObject(
+        jobHandle,
+        JobObjectBasicUIRestrictions,
+        &uiRestrictions,
+        sizeof(JOBOBJECT_BASIC_UI_RESTRICTIONS)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    memset(&endOfJobInfo, 0, sizeof(JOBOBJECT_END_OF_JOB_TIME_INFORMATION));
+    endOfJobInfo.EndOfJobTimeAction = JOB_OBJECT_POST_AT_END_OF_JOB;
+
+    status = NtSetInformationJobObject(
+        jobHandle,
+        JobObjectEndOfJobTimeInformation,
+        &endOfJobInfo,
+        sizeof(JOBOBJECT_END_OF_JOB_TIME_INFORMATION)
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *JobHandle = jobHandle;
+    return STATUS_SUCCESS;
+
+CleanupExit:
+    NtClose(jobHandle);
+    return status;
+}

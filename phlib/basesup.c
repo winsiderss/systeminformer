@@ -550,6 +550,7 @@ DOUBLE PhReadTimeStampFrequency(
     LARGE_INTEGER startTime;
     LARGE_INTEGER endTime;
     ULONG_PTR affinityMask = 0;
+    ULONG64 yieldCount = 0;
     ULONG64 startTsc;
     ULONG64 endTsc;
 
@@ -559,8 +560,7 @@ DOUBLE PhReadTimeStampFrequency(
 
     // Calculate wait interval in QPC ticks (100ms measurement window)
 
-    const LONGLONG calibrationIntervalMs = 100;
-    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, (ULONG)calibrationIntervalMs, 1000);
+    const LONGLONG calibrationIntervalTicks = PhMultiplyDivide((ULONG)performanceFrequency.QuadPart, 100, 1000);
 
     // Warm up CPU caches and branch predictors.
 
@@ -578,11 +578,13 @@ DOUBLE PhReadTimeStampFrequency(
     startTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    // Busy-wait for calibration interval.
+    // Busy-wait for calibration interval, unrolled to dilute QPC overhead.
 
     do
     {
         YieldProcessor();
+        yieldCount += 8;
+
         PhQueryPerformanceCounter(&endTime);
     } while ((endTime.QuadPart - startTime.QuadPart) < calibrationIntervalTicks);
 
@@ -599,12 +601,18 @@ DOUBLE PhReadTimeStampFrequency(
         PhSetThreadAffinityMask(NtCurrentThread(), affinityMask);
     }
 
+    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
+
+    // Calculate cycles per yield: elapsed_tsc_ticks / yield_count.
+
+    const DOUBLE CyclesPerYield = (DOUBLE)elapsedTscTicks / (DOUBLE)yieldCount;
+
     // Calculate TSC frequency: tsc_delta / elapsed_seconds.
 
-    const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
-    const ULONG64 elapsedTscTicks = endTsc - startTsc;
+    const DOUBLE TscFrequency = (DOUBLE)elapsedTscTicks / elapsedSeconds;
 
-    return (DOUBLE)elapsedTscTicks / elapsedSeconds;
+    return TscFrequency;
 }
 
 /**
@@ -3143,6 +3151,21 @@ BOOLEAN PhCalculateEntropy(
     ULONG64 bufferOffset = 0;
     ULONG64 bufferSumValue = 0;
     ULONG64 counts[UCHAR_MAX + 1];
+
+    // Guard against division by zero: an empty buffer has no distribution, so
+    // entropy/mean/variance are all zero. Without this the entropy and mean
+    // computations below would divide by (FLOAT)BufferLength == 0 and yield NaN.
+    if (BufferLength == 0)
+    {
+        if (Entropy)
+            *Entropy = 0.f;
+        if (Mean)
+            *Mean = 0.f;
+        if (Variance)
+            *Variance = 0.f;
+
+        return TRUE;
+    }
 
     memset(counts, 0, sizeof(counts));
 

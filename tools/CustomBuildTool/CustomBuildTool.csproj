@@ -118,7 +118,7 @@
   </ItemGroup>
   <ItemGroup>
     <DirectPInvokeList Include="NativeImports.txt" />
-    <NativeLibrary Include="dbghelp.lib" />
+    <NativeLibrary Include="Advapi32.lib" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.manifest" />

@@ -1088,12 +1088,13 @@ NTSTATUS PhHttpDownloadToFile(
             break;
         }
 
+        numberOfBytesReadTotal += isb.Information;
+
         if (Callback)
         {
             PhQuerySystemTime(&timeNow);
             timeTicks = (timeNow.QuadPart - timeStart.QuadPart) / PH_TICKS_PER_SEC;
 
-            numberOfBytesReadTotal += isb.Information;
             context.ReadLength = numberOfBytesReadTotal;
             context.TotalLength = numberOfBytesTotal;
             context.BitsPerSecond = numberOfBytesReadTotal / __max(timeTicks, 1);

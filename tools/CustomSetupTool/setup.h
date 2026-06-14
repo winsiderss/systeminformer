@@ -63,6 +63,7 @@ typedef enum _SETUP_COMMAND_TYPE
 typedef struct _PH_SETUP_CONTEXT
 {
     HWND DialogHandle;
+    HWND ParentWindowHandle;
     HICON IconSmallHandle;
     HICON IconLargeHandle;
     WNDPROC TaskDialogWndProc;

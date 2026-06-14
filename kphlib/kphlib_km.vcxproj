@@ -44,31 +44,34 @@
       <AdditionalDependencies>ksecdd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
-      <Command>"$(SolutionDir)..\tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SolutionDir)..\bin\$(Configuration)$(PlatformArchitecture)"</Command>
+      <Command>"$(SystemInformerRoot)tools\CustomBuildTool\bin\Release\$(PROCESSOR_ARCHITECTURE)\CustomBuildTool.exe" -dyndata "$(SystemInformerRoot)bin\$(Configuration)$(PlatformArchitecture)"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <!-- sistatus
-    Compiling of the message file is only done in the kernelmode side of KPHLIB
-    so that the WDK is not a requirement only building the usermode parts. If
-    changes are made to sistatus.mc, you must build the kernel parts for the
-    header and resources to be regenerated.
+    The kernelmode side compiles the message file with the WDK MessageCompile task into
+    a per-configuration directory bin\$(Configuration)$(PlatformArchitecture)\ so the
+    parallel matrix build does not race on a single shared output. The usermode side is
+    generated separately by CustomBuildTool via the Windows SDK mc.exe (no WDK required).
   -->
+  <Target Name="KsiMakeSistatusDir" BeforeTargets="MessageCompile">
+    <MakeDir Directories="$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)" />
+  </Target>
   <ItemGroup>
     <MessageCompile Include="sistatus.mc">
       <GeneratedHeaderPath>true</GeneratedHeaderPath>
-      <HeaderFilePath>$(ProjectDir)include</HeaderFilePath>
+      <HeaderFilePath>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)</HeaderFilePath>
       <GeneratedRcAndMessagesPath>true</GeneratedRcAndMessagesPath>
-      <RCFilePath>$(ProjectDir)include</RCFilePath>
+      <RCFilePath>$(ProjectDir)bin\$(Configuration)$(PlatformArchitecture)</RCFilePath>
       <SetCustomerbit>true</SetCustomerbit>
       <TerminateMessageWithNull>true</TerminateMessageWithNull>
       <UnicodeMessageInBinFile>true</UnicodeMessageInBinFile>
       <UnicodeInputFile>true</UnicodeInputFile>
       <Verbose>true</Verbose>
     </MessageCompile>
-    <None Include="include\sistatus_MSG00001.bin" />
-    <ResourceCompile Include="include\sistatus.rc" />
+    <None Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus_MSG00001.bin" />
+    <ResourceCompile Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc" />
     <ClInclude Include="include\kphringbuff.h" />
-    <ClInclude Include="include\sistatus.h" />
+    <ClInclude Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus.h" />
   </ItemGroup>
   <!-- sistatus -->
   <ItemGroup>

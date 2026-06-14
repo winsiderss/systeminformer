@@ -33,7 +33,7 @@
     <ClInclude Include="include\kphdyndata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\sistatus.h">
+    <ClInclude Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\kphringbuff.h">
@@ -64,12 +64,12 @@
     <MessageCompile Include="sistatus.mc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="include\sistatus_MSG00001.bin">
+    <None Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus_MSG00001.bin">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="include\sistatus.rc">
+    <ResourceCompile Include="bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

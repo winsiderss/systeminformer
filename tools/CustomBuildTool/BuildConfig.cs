@@ -50,13 +50,9 @@ namespace CustomBuildTool
         public static readonly ImmutableArray<string> Build_Sdk_Directories =
         [
             "sdk",
-            "sdk\\include",
             "sdk\\dbg\\amd64",
             "sdk\\dbg\\i386",
             "sdk\\dbg\\arm64",
-            "sdk\\lib\\amd64",
-            "sdk\\lib\\i386",
-            "sdk\\lib\\arm64",
             //"sdk\\samples\\SamplePlugin",
             //"sdk\\samples\\SamplePlugin\\bin\\Release32"
         ];

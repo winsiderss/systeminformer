@@ -557,8 +557,8 @@
     </ResourceCompile>
     <ResourceCompile Include="version.rc">
       <Filter>Resources</Filter>
-    </ResourceCompile>
-    <ResourceCompile Include="..\kphlib\include\sistatus.rc">
+    </CustomBuild>
+    <CustomBuild Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>

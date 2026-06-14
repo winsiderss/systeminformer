@@ -196,7 +196,7 @@ namespace CustomBuildTool
             {
                 string path = parseResult.GetValue(pathArg);
                 BuildToolsId.CheckForOutOfDateTools();
-                if (!await BuildAzure.SignFiles(path)) Environment.Exit(1);
+                if (!BuildAzure.SignFiles(path)) Environment.Exit(1);
             });
             return cmd;
         }

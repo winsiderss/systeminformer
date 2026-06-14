@@ -890,7 +890,7 @@ INT_PTR CALLBACK PvTabWindowDialogProc(
             PostQuitMessage(0);
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&PvTabWindowLayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&PvTabWindowLayoutManager);

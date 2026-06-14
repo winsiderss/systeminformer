@@ -5,10 +5,48 @@
  */
 
 #include <phbase.h>
+#include <phintrin.h>
 #include "include\base64.h"
 
 static const CHAR PhBase64EncodeTable[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+#ifndef _ARM64_
+/**
+ * \brief SSSE3 base64 encode of one 12-input-byte block to 16 output chars
+ * (Wojciech Muła's pshufb-based encoder). Produces the standard alphabet
+ * (A-Za-z0-9+/), identical to PhBase64EncodeTable.
+ */
+static __m128i PhpBase64EncodeBlock(
+    _In_ __m128i Input
+    )
+{
+    __m128i in;
+    __m128i t0;
+    __m128i t1;
+    __m128i t2;
+    __m128i t3;
+    __m128i indices;
+    __m128i mask;
+    const __m128i lut = _mm_setr_epi8(65, 71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 0, 0);
+
+    // Rearrange so each 32-bit lane holds 3 source bytes ready for 6-bit splitting.
+    in = _mm_shuffle_epi8(Input, _mm_set_epi8(10, 11, 9, 10, 7, 8, 6, 7, 4, 5, 3, 4, 1, 2, 0, 1));
+
+    // Split each lane into four 6-bit fields (0..63).
+    t0 = _mm_and_si128(in, _mm_set1_epi32(0x0fc0fc00));
+    t1 = _mm_mulhi_epu16(t0, _mm_set1_epi32(0x04000040));
+    t2 = _mm_and_si128(in, _mm_set1_epi32(0x003f03f0));
+    t3 = _mm_mullo_epi16(t2, _mm_set1_epi32(0x01000010));
+    indices = _mm_or_si128(t1, t3);
+
+    // Translate 6-bit indices to ASCII via range-offset LUT.
+    mask = _mm_cmpgt_epi8(indices, _mm_set1_epi8(25));
+    t0 = _mm_subs_epu8(indices, _mm_set1_epi8(51));
+    t0 = _mm_sub_epi8(t0, mask);
+    return _mm_add_epi8(indices, _mm_shuffle_epi8(lut, t0));
+}
+#endif
 
 static const UCHAR PhBase64DecodeTable[256] =
 {
@@ -54,6 +92,22 @@ BOOLEAN PhBase64Encode(
 
     if (OutputLength < requiredLength)
         return FALSE;
+
+#ifndef _ARM64_
+    // SSSE3: encode 12 input bytes -> 16 output chars per iteration. The 16-byte
+    // load overshoots the 12 consumed bytes by 4, so require 16 readable bytes;
+    // the trailing groups (and any padding) fall through to the scalar loop.
+    if (PhHasSSSE3)
+    {
+        while (inputIndex + 16 <= InputLength)
+        {
+            __m128i block = _mm_loadu_si128((__m128i const*)&Input[inputIndex]);
+            _mm_storeu_si128((__m128i*)&Output[outputIndex], PhpBase64EncodeBlock(block));
+            inputIndex += 12;
+            outputIndex += 16;
+        }
+    }
+#endif
 
     while (inputIndex + 3 <= InputLength)
     {

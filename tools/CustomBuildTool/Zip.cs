@@ -86,7 +86,7 @@ namespace CustomBuildTool
 
         private static ZipWriterOptions CreateWriterOptions(CompressionProgressReporter ProgressReporter)
         {
-            return new ZipWriterOptions(CompressionType.Deflate)
+            return new ZipWriterOptions(CompressionType.LZMA2)
             {
                 LeaveStreamOpen = true,
                 ArchiveEncoding = new ArchiveEncoding { Default = Utils.UTF8NoBOM },

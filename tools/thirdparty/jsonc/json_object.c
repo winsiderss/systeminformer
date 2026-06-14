@@ -25,6 +25,9 @@
 #include "arraylist.h"
 #include "debug.h"
 #include "json_inttypes.h"
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+#include "json_number_fast.h"
+#endif
 #include "json_object.h"
 #include "json_object_private.h"
 #include "json_util.h"
@@ -702,6 +705,20 @@ int json_object_set_boolean(struct json_object *jso, json_bool new_value)
 static size_t json_object_int_to_json_string(struct json_object *jso, struct printbuf *pb, int level,
                                           int flags)
 {
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+    unsigned char sbuf[21];
+    size_t size;
+
+    if (JC_INT(jso)->cint_type == json_object_int_type_int64)
+        size = json_c_print_int64(sbuf, sizeof(sbuf), JC_INT(jso)->cint.c_int64);
+    else
+        size = json_c_print_uint64(sbuf, sizeof(sbuf), JC_INT(jso)->cint.c_uint64);
+
+    if (size == (size_t)-1)
+        return -1;
+
+    return printbuf_memappend(pb, sbuf, size);
+#else
     /* room for 19 digits, the sign char, and a null term */
     unsigned char sbuf[21];
     if (JC_INT(jso)->cint_type == json_object_int_type_int64)
@@ -709,6 +726,7 @@ static size_t json_object_int_to_json_string(struct json_object *jso, struct pri
     else
         snprintf(sbuf, sizeof(sbuf), "%" PRIu64, JC_INT(jso)->cint.c_uint64);
     return printbuf_memappend(pb, sbuf, strlen(sbuf));
+#endif
 }
 
 struct json_object *json_object_new_int(int32_t i)
@@ -1053,7 +1071,19 @@ static size_t json_object_double_to_json_string_format(struct json_object *jso, 
             else
                 format = std_format;
         }
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+        if (format == std_format)
+        {
+            if (json_c_print_double(buf, sizeof(buf), jsodbl->c_double, &size) != 0)
+                return -1;
+        }
+        else
+        {
+            size = snprintf(buf, sizeof(buf), format, jsodbl->c_double);
+        }
+#else
         size = snprintf(buf, sizeof(buf), format, jsodbl->c_double);
+#endif
 
         if (size < 0)
             return -1;
@@ -1175,7 +1205,9 @@ void json_object_free_userdata(struct json_object *jso, void *userdata)
 double json_object_get_double(const struct json_object *jso)
 {
     double cdouble;
+#ifndef JSONC_USE_FAST_NUMBER_CONVERSION
     unsigned char *errPtr = NULL;
+#endif
 
     if (!jso)
         return 0.0;
@@ -1192,6 +1224,18 @@ double json_object_get_double(const struct json_object *jso)
     case json_type_boolean: return JC_BOOL_C(jso)->c_boolean;
     case json_type_string:
         errno = 0;
+#ifdef JSONC_USE_FAST_NUMBER_CONVERSION
+        if (json_c_parse_double_string(get_string_component(jso), &cdouble) != 0)
+        {
+            if (errno == ERANGE)
+                return 0.0;
+
+            errno = EINVAL;
+            return 0.0;
+        }
+
+        return cdouble;
+#else
         cdouble = strtod((const char *)get_string_component(jso), (char**)&errPtr);
 
         /* if conversion stopped at the first character, return 0.0 */
@@ -1226,6 +1270,7 @@ double json_object_get_double(const struct json_object *jso)
         if ((HUGE_VAL == cdouble || -HUGE_VAL == cdouble) && (ERANGE == errno))
             cdouble = 0.0;
         return cdouble;
+#endif
     default: errno = EINVAL; return 0.0;
     }
 }

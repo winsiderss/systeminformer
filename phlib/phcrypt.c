@@ -15,6 +15,88 @@
 #include <bcrypt.h>
 #include <ntintsafe.h>
 
+#ifndef BCRYPT_SHA3_224_ALGORITHM
+#define BCRYPT_SHA3_224_ALGORITHM L"SHA3-224"
+#endif
+#ifndef BCRYPT_SHA3_256_ALGORITHM
+#define BCRYPT_SHA3_256_ALGORITHM L"SHA3-256"
+#endif
+#ifndef BCRYPT_SHA3_384_ALGORITHM
+#define BCRYPT_SHA3_384_ALGORITHM L"SHA3-384"
+#endif
+#ifndef BCRYPT_SHA3_512_ALGORITHM
+#define BCRYPT_SHA3_512_ALGORITHM L"SHA3-512"
+#endif
+#ifndef BCRYPT_SHAKE128_ALGORITHM
+#define BCRYPT_SHAKE128_ALGORITHM L"SHAKE128"
+#endif
+#ifndef BCRYPT_SHAKE256_ALGORITHM
+#define BCRYPT_SHAKE256_ALGORITHM L"SHAKE256"
+#endif
+#ifndef BCRYPT_AES_CMAC_ALGORITHM
+#define BCRYPT_AES_CMAC_ALGORITHM L"AES-CMAC"
+#endif
+#ifndef BCRYPT_AES_GMAC_ALGORITHM
+#define BCRYPT_AES_GMAC_ALGORITHM L"AES-GMAC"
+#endif
+#ifndef BCRYPT_KMAC128_ALGORITHM
+#define BCRYPT_KMAC128_ALGORITHM L"KMAC128"
+#endif
+#ifndef BCRYPT_KMAC256_ALGORITHM
+#define BCRYPT_KMAC256_ALGORITHM L"KMAC256"
+#endif
+#ifndef BCRYPT_SHA512_256_ALGORITHM
+#define BCRYPT_SHA512_256_ALGORITHM L"SHA512-256"
+#endif
+#ifndef BCRYPT_PBKDF2_ALGORITHM
+#define BCRYPT_PBKDF2_ALGORITHM L"PBKDF2"
+#endif
+#ifndef BCRYPT_SP800108_CTR_HMAC_ALGORITHM
+#define BCRYPT_SP800108_CTR_HMAC_ALGORITHM L"SP800_108_CTR_HMAC"
+#endif
+#ifndef BCRYPT_TLS1_1_KDF_ALGORITHM
+#define BCRYPT_TLS1_1_KDF_ALGORITHM L"TLS1_1_KDF"
+#endif
+#ifndef BCRYPT_TLS1_2_KDF_ALGORITHM
+#define BCRYPT_TLS1_2_KDF_ALGORITHM L"TLS1_2_KDF"
+#endif
+#ifndef BCRYPT_ECDSA_P384_ALGORITHM
+#define BCRYPT_ECDSA_P384_ALGORITHM L"ECDSA_P384"
+#endif
+#ifndef BCRYPT_ECDSA_P521_ALGORITHM
+#define BCRYPT_ECDSA_P521_ALGORITHM L"ECDSA_P521"
+#endif
+#ifndef BCRYPT_ECDH_P256_ALGORITHM
+#define BCRYPT_ECDH_P256_ALGORITHM L"ECDH_P256"
+#endif
+#ifndef BCRYPT_ECDH_P384_ALGORITHM
+#define BCRYPT_ECDH_P384_ALGORITHM L"ECDH_P384"
+#endif
+#ifndef BCRYPT_ECDH_P521_ALGORITHM
+#define BCRYPT_ECDH_P521_ALGORITHM L"ECDH_P521"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_NA
+#define BCRYPT_CHAIN_MODE_NA L"ChainingModeN/A"
+#endif
+#ifndef BCRYPT_CHAINING_MODE
+#define BCRYPT_CHAINING_MODE L"ChainingMode"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_ECB
+#define BCRYPT_CHAIN_MODE_ECB L"ChainingModeECB"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_CBC
+#define BCRYPT_CHAIN_MODE_CBC L"ChainingModeCBC"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_CFB
+#define BCRYPT_CHAIN_MODE_CFB L"ChainingModeCFB"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_GCM
+#define BCRYPT_CHAIN_MODE_GCM L"ChainingModeGCM"
+#endif
+#ifndef BCRYPT_CHAIN_MODE_CCM
+#define BCRYPT_CHAIN_MODE_CCM L"ChainingModeCCM"
+#endif
+
 // ------------------------------------------------------------------------
 // One-time SymCrypt library initialization
 // ------------------------------------------------------------------------
@@ -61,6 +143,12 @@ NTSTATUS PhSymCryptErrorToStatus(
     switch (Error)
     {
     case SYMCRYPT_NO_ERROR: return STATUS_SUCCESS;
+    case SYMCRYPT_WRONG_KEY_SIZE: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_WRONG_BLOCK_SIZE: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_WRONG_DATA_SIZE: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_WRONG_NONCE_SIZE: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_WRONG_TAG_SIZE: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_WRONG_ITERATION_COUNT: return STATUS_INVALID_PARAMETER;
     // AEAD tag verification failed (GCM, ChaCha20-Poly1305).
     case SYMCRYPT_AUTHENTICATION_FAILURE: return STATUS_AUTH_TAG_MISMATCH;
     // Asymmetric signature verification failed (RSA, ECDSA).
@@ -68,6 +156,9 @@ NTSTATUS PhSymCryptErrorToStatus(
     case SYMCRYPT_MEMORY_ALLOCATION_FAILURE: return STATUS_INSUFFICIENT_RESOURCES;
     case SYMCRYPT_NOT_IMPLEMENTED: return STATUS_NOT_IMPLEMENTED;
     case SYMCRYPT_BUFFER_TOO_SMALL: return STATUS_BUFFER_TOO_SMALL;
+    case SYMCRYPT_INVALID_BLOB: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_INVALID_ARGUMENT: return STATUS_INVALID_PARAMETER;
+    case SYMCRYPT_INCOMPATIBLE_FORMAT: return STATUS_NOT_SUPPORTED;
     // Environmental / FIPS module faults that callers cannot fix.
     case SYMCRYPT_HARDWARE_FAILURE: return STATUS_UNSUCCESSFUL;
     case SYMCRYPT_EXTERNAL_FAILURE: return STATUS_UNSUCCESSFUL;
@@ -165,6 +256,51 @@ NTSTATUS NTAPI PhSymCryptRdrandGetBytes(
 #else
     return STATUS_NOT_IMPLEMENTED;
 #endif
+}
+
+NTSTATUS NTAPI PhSymCryptRdseedStatus(
+    VOID
+    )
+{
+#if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
+    return PhSymCryptErrorToStatus(SymCryptRdseedStatus());
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
+}
+
+NTSTATUS NTAPI PhSymCryptRdseedGetBytes(
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+#if SYMCRYPT_CPU_X86 | SYMCRYPT_CPU_AMD64
+    if (!Buffer)
+        return STATUS_INVALID_PARAMETER;
+
+    if ((Length % 16) != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhSymCryptErrorToStatus(SymCryptRdseedGetBytes((PBYTE)Buffer, Length));
+#else
+    return STATUS_NOT_IMPLEMENTED;
+#endif
+}
+
+NTSTATUS NTAPI PhSymCryptGenRandom(
+    _Out_writes_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length,
+    _In_ ULONG Flags
+    )
+{
+    if (!Buffer)
+        return STATUS_INVALID_PARAMETER;
+
+    if (Flags != 0)
+        return STATUS_NOT_SUPPORTED;
+
+    SymCryptRandom((PBYTE)Buffer, Length);
+    return STATUS_SUCCESS;
 }
 
 // ------------------------------------------------------------------------
@@ -265,6 +401,15 @@ VOID NTAPI PhSymCryptSha1(
     SymCryptSha1((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+VOID NTAPI PhSymCryptSha224(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA224_RESULT_SIZE) PVOID Result
+    )
+{
+    SymCryptSha224((PCBYTE)Buffer, Length, (PBYTE)Result);
+}
+
 /**
  * One-shot SHA-256 hash.
  *
@@ -311,6 +456,33 @@ VOID NTAPI PhSymCryptSha512(
     )
 {
     SymCryptSha512((PCBYTE)Buffer, Length, (PBYTE)Result);
+}
+
+VOID NTAPI PhSymCryptSha512_224(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA512_224_RESULT_SIZE) PVOID Result
+    )
+{
+    SymCryptSha512_224((PCBYTE)Buffer, Length, (PBYTE)Result);
+}
+
+VOID NTAPI PhSymCryptSha512_256(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA512_256_RESULT_SIZE) PVOID Result
+    )
+{
+    SymCryptSha512_256((PCBYTE)Buffer, Length, (PBYTE)Result);
+}
+
+VOID NTAPI PhSymCryptSha3_224(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(PH_SYMCRYPT_SHA3_224_RESULT_SIZE) PVOID Result
+    )
+{
+    SymCryptSha3_224((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
 /**
@@ -361,6 +533,72 @@ VOID NTAPI PhSymCryptSha3_512(
     SymCryptSha3_512((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+VOID NTAPI PhSymCryptShake128(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SymCryptShake128((PCBYTE)Buffer, Length, (PBYTE)Result, ResultLength);
+}
+
+VOID NTAPI PhSymCryptShake256(
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SymCryptShake256((PCBYTE)Buffer, Length, (PBYTE)Result, ResultLength);
+}
+
+VOID NTAPI PhSymCryptCShake128(
+    _In_reads_bytes_opt_(FunctionNameLength) PCVOID FunctionName,
+    _In_ SIZE_T FunctionNameLength,
+    _In_reads_bytes_opt_(CustomizationLength) PCVOID Customization,
+    _In_ SIZE_T CustomizationLength,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SymCryptCShake128(
+        (PCBYTE)FunctionName,
+        FunctionNameLength,
+        (PCBYTE)Customization,
+        CustomizationLength,
+        (PCBYTE)Buffer,
+        Length,
+        (PBYTE)Result,
+        ResultLength
+        );
+}
+
+VOID NTAPI PhSymCryptCShake256(
+    _In_reads_bytes_opt_(FunctionNameLength) PCVOID FunctionName,
+    _In_ SIZE_T FunctionNameLength,
+    _In_reads_bytes_opt_(CustomizationLength) PCVOID Customization,
+    _In_ SIZE_T CustomizationLength,
+    _In_reads_bytes_(Length) PCVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SymCryptCShake256(
+        (PCBYTE)FunctionName,
+        FunctionNameLength,
+        (PCBYTE)Customization,
+        CustomizationLength,
+        (PCBYTE)Buffer,
+        Length,
+        (PBYTE)Result,
+        ResultLength
+        );
+}
+
 // ------------------------------------------------------------------------
 // Incremental hash helpers
 //
@@ -401,6 +639,10 @@ BOOLEAN PhSymCryptResolveHashAlgorithm(
         *HashAlgorithm = SymCryptSha1Algorithm;
         *HashResultSize = PH_SYMCRYPT_SHA1_RESULT_SIZE;
         return TRUE;
+    case PH_SYMCRYPT_SHA224_ALGORITHM:
+        *HashAlgorithm = SymCryptSha224Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA224_RESULT_SIZE;
+        return TRUE;
     case PH_SYMCRYPT_SHA256_ALGORITHM:
         *HashAlgorithm = SymCryptSha256Algorithm;
         *HashResultSize = PH_SYMCRYPT_SHA256_RESULT_SIZE;
@@ -413,6 +655,18 @@ BOOLEAN PhSymCryptResolveHashAlgorithm(
         *HashAlgorithm = SymCryptSha512Algorithm;
         *HashResultSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
         return TRUE;
+    case PH_SYMCRYPT_SHA512_224_ALGORITHM:
+        *HashAlgorithm = SymCryptSha512_224Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA512_224_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA512_256_ALGORITHM:
+        *HashAlgorithm = SymCryptSha512_256Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA512_256_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHA3_224_ALGORITHM:
+        *HashAlgorithm = SymCryptSha3_224Algorithm;
+        *HashResultSize = PH_SYMCRYPT_SHA3_224_RESULT_SIZE;
+        return TRUE;
     case PH_SYMCRYPT_SHA3_256_ALGORITHM:
         *HashAlgorithm = SymCryptSha3_256Algorithm;
         *HashResultSize = PH_SYMCRYPT_SHA3_256_RESULT_SIZE;
@@ -424,6 +678,14 @@ BOOLEAN PhSymCryptResolveHashAlgorithm(
     case PH_SYMCRYPT_SHA3_512_ALGORITHM:
         *HashAlgorithm = SymCryptSha3_512Algorithm;
         *HashResultSize = PH_SYMCRYPT_SHA3_512_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHAKE128_ALGORITHM:
+        *HashAlgorithm = SymCryptShake128HashAlgorithm;
+        *HashResultSize = PH_SYMCRYPT_SHAKE128_DEFAULT_RESULT_SIZE;
+        return TRUE;
+    case PH_SYMCRYPT_SHAKE256_ALGORITHM:
+        *HashAlgorithm = SymCryptShake256HashAlgorithm;
+        *HashResultSize = PH_SYMCRYPT_SHAKE256_DEFAULT_RESULT_SIZE;
         return TRUE;
     default:
         return FALSE;
@@ -614,6 +876,13 @@ NTSTATUS NTAPI PhSymCryptHashAlgorithmIdToAlgorithm(
         return STATUS_SUCCESS;
     }
 
+    if (PhEqualStringZ(AlgorithmId, L"SHA224", FALSE) || PhEqualStringZ(AlgorithmId, L"SHA-224", FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA224_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA224_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
     if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA256_ALGORITHM, FALSE))
     {
         *Algorithm = PH_SYMCRYPT_SHA256_ALGORITHM;
@@ -632,6 +901,62 @@ NTSTATUS NTAPI PhSymCryptHashAlgorithmIdToAlgorithm(
     {
         *Algorithm = PH_SYMCRYPT_SHA512_ALGORITHM;
         if (HashSize) *HashSize = PH_SYMCRYPT_SHA512_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, L"SHA512-224", FALSE) || PhEqualStringZ(AlgorithmId, L"SHA512/224", FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA512_224_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA512_224_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA512_256_ALGORITHM, FALSE) || PhEqualStringZ(AlgorithmId, L"SHA512/256", FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA512_256_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA512_256_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA3_224_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA3_224_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA3_224_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA3_256_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA3_256_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA3_256_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA3_384_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA3_384_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA3_384_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA3_512_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHA3_512_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHA3_512_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHAKE128_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHAKE128_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHAKE128_DEFAULT_RESULT_SIZE;
+        return STATUS_SUCCESS;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHAKE256_ALGORITHM, FALSE))
+    {
+        *Algorithm = PH_SYMCRYPT_SHAKE256_ALGORITHM;
+        if (HashSize) *HashSize = PH_SYMCRYPT_SHAKE256_DEFAULT_RESULT_SIZE;
         return STATUS_SUCCESS;
     }
 
@@ -766,9 +1091,206 @@ NTSTATUS PhSymCryptFinishHash(
     return PhSymCryptHashFinal(Context, Result, HashSize);
 }
 
+static NTSTATUS PhpSymCryptWriteProperty(
+    _In_reads_bytes_(ValueLength) PCVOID Value,
+    _In_ ULONG ValueLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ResultLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_opt_ PULONG ResultLength
+    )
+{
+    if (ResultLength)
+        *ResultLength = ValueLength;
+
+    if (!Output)
+        return STATUS_SUCCESS;
+
+    if (OutputLength < ValueLength)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    memcpy(Output, Value, ValueLength);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptGetProperty(
+    _In_ PCWSTR AlgorithmId,
+    _In_ PCWSTR Property,
+    _Out_writes_bytes_to_opt_(OutputLength, *ResultLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_opt_ PULONG ResultLength
+    )
+{
+    PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+    ULONG value;
+
+    if (!AlgorithmId || !Property)
+        return STATUS_INVALID_PARAMETER;
+
+    if (NT_SUCCESS(PhSymCryptHashAlgorithmIdToAlgorithm(AlgorithmId, &hashAlgorithm, &value)))
+    {
+        if (PhEqualStringZ(Property, BCRYPT_HASH_LENGTH, TRUE))
+            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+
+        if (PhEqualStringZ(Property, BCRYPT_OBJECT_LENGTH, TRUE))
+        {
+            value = sizeof(PH_SYMCRYPT_HASH_CONTEXT);
+            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+        }
+
+        if (PhEqualStringZ(Property, BCRYPT_ALGORITHM_NAME, TRUE))
+        {
+            ULONG bytes = (ULONG)((PhCountStringZ(AlgorithmId) + 1) * sizeof(WCHAR));
+            return PhpSymCryptWriteProperty(AlgorithmId, bytes, Output, OutputLength, ResultLength);
+        }
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_AES_ALGORITHM, TRUE))
+    {
+        if (PhEqualStringZ(Property, BCRYPT_BLOCK_LENGTH, TRUE))
+        {
+            value = SYMCRYPT_AES_BLOCK_SIZE;
+            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+        }
+
+        if (PhEqualStringZ(Property, BCRYPT_KEY_LENGTH, TRUE))
+        {
+            value = 256;
+            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+        }
+
+        if (PhEqualStringZ(Property, BCRYPT_OBJECT_LENGTH, TRUE))
+        {
+            value = sizeof(SYMCRYPT_AES_EXPANDED_KEY);
+            return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+        }
+    }
+
+    return STATUS_NOT_SUPPORTED;
+}
+
 // ------------------------------------------------------------------------
 // HMAC (single-shot)
 // ------------------------------------------------------------------------
+
+_Success_(return)
+BOOLEAN PhpSymCryptResolveMacAlgorithm(
+    _In_ PCWSTR AlgorithmId,
+    _Out_ PCSYMCRYPT_MAC* MacAlgorithm,
+    _Out_ PSIZE_T ResultSize
+    )
+{
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_MD5_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacMd5Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_MD5_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA1_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacSha1Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_SHA1_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, L"SHA224", TRUE) || PhEqualStringZ(AlgorithmId, L"SHA-224", TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacSha224Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_SHA224_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA256_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacSha256Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_SHA256_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA384_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacSha384Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_SHA384_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_SHA512_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptHmacSha512Algorithm;
+        *ResultSize = PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_AES_CMAC_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptAesCmacAlgorithm;
+        *ResultSize = PH_SYMCRYPT_AES_CMAC_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_KMAC128_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptKmac128Algorithm;
+        *ResultSize = PH_SYMCRYPT_SHAKE128_DEFAULT_RESULT_SIZE;
+        return TRUE;
+    }
+
+    if (PhEqualStringZ(AlgorithmId, BCRYPT_KMAC256_ALGORITHM, TRUE))
+    {
+        *MacAlgorithm = SymCryptKmac256Algorithm;
+        *ResultSize = PH_SYMCRYPT_SHAKE256_DEFAULT_RESULT_SIZE;
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+NTSTATUS NTAPI PhSymCryptHmac(
+    _In_ PCWSTR AlgorithmId,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_to_(ResultLength, *BytesWritten) PVOID Result,
+    _In_ SIZE_T ResultLength,
+    _Out_opt_ PSIZE_T BytesWritten
+    )
+{
+    PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+    PCSYMCRYPT_HASH symcryptHash;
+    ULONG macResultSize;
+    SYMCRYPT_HMAC_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+    NTSTATUS status;
+
+    if (!AlgorithmId || !Result)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhSymCryptHashAlgorithmIdToAlgorithm(AlgorithmId, &hashAlgorithm, &macResultSize);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (ResultLength < macResultSize)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    if (BytesWritten)
+        *BytesWritten = macResultSize;
+
+    if (!PhSymCryptResolveHashAlgorithm(hashAlgorithm, &symcryptHash, &macResultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    error = SymCryptHmacExpandKey(symcryptHash, &expandedKey, (PCBYTE)Key, KeyLength);
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        SymCryptHmac(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result);
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+
+    return PhSymCryptErrorToStatus(error);
+}
 
 /**
  * Generates a single-shot HMAC-<Tag> wrapper function.
@@ -804,11 +1326,25 @@ NTSTATUS PhSymCryptFinishHash(
     }
 
 PH_SYMCRYPT_DEFINE_HMAC(
+    Md5,
+    SYMCRYPT_HMAC_MD5_EXPANDED_KEY,
+    SymCryptHmacMd5ExpandKey,
+    SymCryptHmacMd5,
+    PH_SYMCRYPT_HMAC_MD5_RESULT_SIZE)
+
+PH_SYMCRYPT_DEFINE_HMAC(
     Sha1,
     SYMCRYPT_HMAC_SHA1_EXPANDED_KEY,
     SymCryptHmacSha1ExpandKey,
     SymCryptHmacSha1,
     PH_SYMCRYPT_HMAC_SHA1_RESULT_SIZE)
+
+PH_SYMCRYPT_DEFINE_HMAC(
+    Sha224,
+    SYMCRYPT_HMAC_SHA224_EXPANDED_KEY,
+    SymCryptHmacSha224ExpandKey,
+    SymCryptHmacSha224,
+    PH_SYMCRYPT_HMAC_SHA224_RESULT_SIZE)
 
 PH_SYMCRYPT_DEFINE_HMAC(
     Sha256,
@@ -830,6 +1366,95 @@ PH_SYMCRYPT_DEFINE_HMAC(
     SymCryptHmacSha512ExpandKey,
     SymCryptHmacSha512,
     PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE)
+
+NTSTATUS NTAPI PhSymCryptAesCmac(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(PH_SYMCRYPT_AES_CMAC_RESULT_SIZE) PVOID Result
+    )
+{
+    SYMCRYPT_AES_CMAC_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptAesCmacExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+    if (error == SYMCRYPT_NO_ERROR)
+        SymCryptAesCmac(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result);
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptAesGmac(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(TagLength) PVOID Tag,
+    _In_ SIZE_T TagLength
+    )
+{
+    return PhSymCryptAesGcmEncrypt(
+        Key,
+        KeyLength,
+        Nonce,
+        NonceLength,
+        Data,
+        DataLength,
+        NULL,
+        NULL,
+        0,
+        Tag,
+        TagLength
+        );
+}
+
+NTSTATUS NTAPI PhSymCryptKmac128(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_opt_(CustomizationLength) PCVOID Customization,
+    _In_ SIZE_T CustomizationLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SYMCRYPT_KMAC128_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptKmac128ExpandKeyEx(&expandedKey, (PCBYTE)Key, KeyLength, (PCBYTE)Customization, CustomizationLength);
+    if (error == SYMCRYPT_NO_ERROR)
+        SymCryptKmac128Ex(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result, ResultLength);
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptKmac256(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_opt_(CustomizationLength) PCVOID Customization,
+    _In_ SIZE_T CustomizationLength,
+    _In_reads_bytes_(DataLength) PCVOID Data,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    SYMCRYPT_KMAC256_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptKmac256ExpandKeyEx(&expandedKey, (PCBYTE)Key, KeyLength, (PCBYTE)Customization, CustomizationLength);
+    if (error == SYMCRYPT_NO_ERROR)
+        SymCryptKmac256Ex(&expandedKey, (PCBYTE)Data, DataLength, (PBYTE)Result, ResultLength);
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
 
 // ------------------------------------------------------------------------
 // KDFs
@@ -861,6 +1486,38 @@ NTSTATUS NTAPI PhSymCryptPbkdf2HmacSha256(
 
     return PhSymCryptErrorToStatus(SymCryptPbkdf2(
         SymCryptHmacSha256Algorithm,
+        (PCBYTE)Password,
+        PasswordLength,
+        (PCBYTE)Salt,
+        SaltLength,
+        IterationCount,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptPbkdf2(
+    _In_ PCWSTR MacAlgorithmId,
+    _In_reads_bytes_(PasswordLength) PCVOID Password,
+    _In_ SIZE_T PasswordLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_ ULONG64 IterationCount,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    PCSYMCRYPT_MAC macAlgorithm;
+    SIZE_T resultSize;
+
+    if (!MacAlgorithmId || !Result)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptResolveMacAlgorithm(MacAlgorithmId, &macAlgorithm, &resultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptPbkdf2(
+        macAlgorithm,
         (PCBYTE)Password,
         PasswordLength,
         (PCBYTE)Salt,
@@ -980,6 +1637,188 @@ NTSTATUS NTAPI PhSymCryptHkdfSha512(
         SaltLength,
         (PCBYTE)Info,
         InfoLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptHkdf(
+    _In_ PCWSTR MacAlgorithmId,
+    _In_reads_bytes_(IkmLength) PCVOID Ikm,
+    _In_ SIZE_T IkmLength,
+    _In_reads_bytes_opt_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_reads_bytes_opt_(InfoLength) PCVOID Info,
+    _In_ SIZE_T InfoLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    PCSYMCRYPT_MAC macAlgorithm;
+    SIZE_T resultSize;
+
+    if (!MacAlgorithmId || !Result)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptResolveMacAlgorithm(MacAlgorithmId, &macAlgorithm, &resultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptHkdf(
+        macAlgorithm,
+        (PCBYTE)Ikm,
+        IkmLength,
+        (PCBYTE)Salt,
+        SaltLength,
+        (PCBYTE)Info,
+        InfoLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptSp800_108(
+    _In_ PCWSTR MacAlgorithmId,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    PCSYMCRYPT_MAC macAlgorithm;
+    SIZE_T resultSize;
+
+    if (!MacAlgorithmId || !Result)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptResolveMacAlgorithm(MacAlgorithmId, &macAlgorithm, &resultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptSp800_108(
+        macAlgorithm,
+        (PCBYTE)Key,
+        KeyLength,
+        (PCBYTE)Label,
+        LabelLength,
+        (PCBYTE)Context,
+        ContextLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptTlsPrf1_1(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_reads_bytes_(SeedLength) PCVOID Seed,
+    _In_ SIZE_T SeedLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    return PhSymCryptErrorToStatus(SymCryptTlsPrf1_1(
+        (PCBYTE)Key,
+        KeyLength,
+        (PCBYTE)Label,
+        LabelLength,
+        (PCBYTE)Seed,
+        SeedLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptTlsPrf1_2(
+    _In_ PCWSTR MacAlgorithmId,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_reads_bytes_(SeedLength) PCVOID Seed,
+    _In_ SIZE_T SeedLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    PCSYMCRYPT_MAC macAlgorithm;
+    SIZE_T resultSize;
+
+    if (!PhpSymCryptResolveMacAlgorithm(MacAlgorithmId, &macAlgorithm, &resultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptTlsPrf1_2(
+        macAlgorithm,
+        (PCBYTE)Key,
+        KeyLength,
+        (PCBYTE)Label,
+        LabelLength,
+        (PCBYTE)Seed,
+        SeedLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptSshKdf(
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(HashValueLength) PCVOID HashValue,
+    _In_ SIZE_T HashValueLength,
+    _In_ BYTE Label,
+    _In_reads_bytes_(SessionIdLength) PCVOID SessionId,
+    _In_ SIZE_T SessionIdLength,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    PCSYMCRYPT_HASH hashAlgorithm;
+    ULONG hashResultSize;
+
+    if (!PhSymCryptResolveHashAlgorithm(HashAlgorithm, &hashAlgorithm, &hashResultSize))
+        return STATUS_NOT_SUPPORTED;
+
+    return PhSymCryptErrorToStatus(SymCryptSshKdf(
+        hashAlgorithm,
+        (PCBYTE)Key,
+        KeyLength,
+        (PCBYTE)HashValue,
+        HashValueLength,
+        Label,
+        (PCBYTE)SessionId,
+        SessionIdLength,
+        (PBYTE)Result,
+        ResultLength
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptSrtpKdf(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(SaltLength) PCVOID Salt,
+    _In_ SIZE_T SaltLength,
+    _In_ ULONG KeyDerivationRate,
+    _In_ ULONG64 Index,
+    _In_ ULONG IndexWidth,
+    _In_ BYTE Label,
+    _Out_writes_bytes_(ResultLength) PVOID Result,
+    _In_ SIZE_T ResultLength
+    )
+{
+    return PhSymCryptErrorToStatus(SymCryptSrtpKdf(
+        (PCBYTE)Key,
+        KeyLength,
+        (PCBYTE)Salt,
+        SaltLength,
+        KeyDerivationRate,
+        Index,
+        IndexWidth,
+        Label,
         (PBYTE)Result,
         ResultLength
         ));
@@ -1181,6 +2020,255 @@ NTSTATUS NTAPI PhSymCryptAesGcmDecrypt(
     SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
 
     return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptAesCcmEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength,
+    _Out_writes_bytes_(TagLength) PVOID Tag,
+    _In_ SIZE_T TagLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    error = SymCryptCcmValidateParameters(
+        SymCryptAesBlockCipher, 
+        NonceLength, 
+        AuthDataLength,
+        DataLength, 
+        TagLength
+        );
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        SymCryptCcmEncrypt(
+            SymCryptAesBlockCipher,
+            &expandedKey,
+            (PCBYTE)Nonce,
+            NonceLength,
+            (PCBYTE)AuthData,
+            AuthDataLength,
+            (PCBYTE)Plaintext,
+            (PBYTE)Ciphertext,
+            DataLength,
+            (PBYTE)Tag,
+            TagLength
+            );
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptAesCcmDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength,
+    _In_reads_bytes_(TagLength) PCVOID Tag,
+    _In_ SIZE_T TagLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    error = SymCryptCcmValidateParameters(
+        SymCryptAesBlockCipher, 
+        NonceLength, 
+        AuthDataLength, 
+        DataLength, 
+        TagLength
+        );
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        error = SymCryptCcmDecrypt(
+            SymCryptAesBlockCipher,
+            &expandedKey,
+            (PCBYTE)Nonce,
+            NonceLength,
+            (PCBYTE)AuthData,
+            AuthDataLength,
+            (PCBYTE)Ciphertext,
+            (PBYTE)Plaintext,
+            DataLength,
+            (PCBYTE)Tag,
+            TagLength
+            );
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+#define PH_SYMCRYPT_GCM_STATE_MAGIC 'gSyP'
+
+typedef struct _PH_SYMCRYPT_GCM_STATE
+{
+    ULONG Magic;
+    SYMCRYPT_GCM_EXPANDED_KEY ExpandedKey;
+    SYMCRYPT_GCM_STATE State;
+} PH_SYMCRYPT_GCM_STATE, *PPH_SYMCRYPT_GCM_STATE;
+
+NTSTATUS NTAPI PhSymCryptGcmInit(
+    _Out_ PPH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(NonceLength) PCVOID Nonce,
+    _In_ SIZE_T NonceLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state;
+    SYMCRYPT_ERROR error;
+
+    if (!StateHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    *StateHandle = NULL;
+
+    state = PhAllocateZero(sizeof(PH_SYMCRYPT_GCM_STATE));
+    state->Magic = PH_SYMCRYPT_GCM_STATE_MAGIC;
+
+    error = SymCryptGcmExpandKey(
+        &state->ExpandedKey, 
+        SymCryptAesBlockCipher, 
+        (PCBYTE)Key, 
+        KeyLength
+        );
+
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        PhFree(state);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    SymCryptGcmInit(&state->State, &state->ExpandedKey, (PCBYTE)Nonce, NonceLength);
+    *StateHandle = state;
+    return STATUS_SUCCESS;
+}
+
+static PPH_SYMCRYPT_GCM_STATE PhpSymCryptGetGcmState(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = (PPH_SYMCRYPT_GCM_STATE)StateHandle;
+
+    if (!state || state->Magic != PH_SYMCRYPT_GCM_STATE_MAGIC)
+        return NULL;
+
+    return state;
+}
+
+NTSTATUS NTAPI PhSymCryptGcmAuthPart(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
+    _In_ SIZE_T AuthDataLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return STATUS_INVALID_PARAMETER;
+
+    SymCryptGcmAuthPart(&state->State, (PCBYTE)AuthData, AuthDataLength);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptGcmEncryptPart(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return STATUS_INVALID_PARAMETER;
+
+    SymCryptGcmEncryptPart(&state->State, (PCBYTE)Plaintext, (PBYTE)Ciphertext, DataLength);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptGcmDecryptPart(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return STATUS_INVALID_PARAMETER;
+
+    SymCryptGcmDecryptPart(&state->State, (PCBYTE)Ciphertext, (PBYTE)Plaintext, DataLength);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptGcmEncryptFinal(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _Out_writes_bytes_(TagLength) PVOID Tag,
+    _In_ SIZE_T TagLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return STATUS_INVALID_PARAMETER;
+
+    SymCryptGcmEncryptFinal(&state->State, (PBYTE)Tag, TagLength);
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptGcmDecryptFinal(
+    _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
+    _In_reads_bytes_(TagLength) PCVOID Tag,
+    _In_ SIZE_T TagLength
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhSymCryptErrorToStatus(SymCryptGcmDecryptFinal(&state->State, (PCBYTE)Tag, TagLength));
+}
+
+VOID NTAPI PhSymCryptDestroyAuthState(
+    _In_opt_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle
+    )
+{
+    PPH_SYMCRYPT_GCM_STATE state = PhpSymCryptGetGcmState(StateHandle);
+
+    if (!state)
+        return;
+
+    SymCryptWipeKnownSize(state, sizeof(PH_SYMCRYPT_GCM_STATE));
+    PhFree(state);
 }
 
 /**
@@ -1683,6 +2771,252 @@ NTSTATUS NTAPI PhSymCryptAesCbcDecryptPkcs7(
     return STATUS_SUCCESS;
 }
 
+NTSTATUS NTAPI PhSymCryptAesEcbEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    if ((DataLength % PH_AES_BLOCK_SIZE) != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    error = SymCryptAesExpandKey(
+        &expandedKey, 
+        (PCBYTE)Key, 
+        KeyLength
+        );
+
+    if (error == SYMCRYPT_NO_ERROR)
+        SymCryptAesEcbEncrypt(&expandedKey, (PCBYTE)Plaintext, (PBYTE)Ciphertext, DataLength);
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptAesEcbDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    if ((DataLength % PH_AES_BLOCK_SIZE) != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    error = SymCryptAesExpandKey(
+        &expandedKey, 
+        (PCBYTE)Key, 
+        KeyLength
+        );
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        SymCryptAesEcbDecrypt(&expandedKey, (PCBYTE)Ciphertext, (PBYTE)Plaintext, DataLength);
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptAesCtr(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _Inout_updates_bytes_(16) PVOID Counter,
+    _In_reads_bytes_(DataLength) PCVOID Input,
+    _Out_writes_bytes_(DataLength) PVOID Output,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptAesExpandKey(
+        &expandedKey, 
+        (PCBYTE)Key, 
+        KeyLength
+        );
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        SymCryptAesCtrMsb64(&expandedKey, (PBYTE)Counter, (PCBYTE)Input, (PBYTE)Output, DataLength);
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+static NTSTATUS PhpSymCryptAesCfb(
+    _In_ BOOLEAN Encrypt,
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(PH_AES_BLOCK_SIZE) PCVOID Iv,
+    _In_ SIZE_T ShiftLength,
+    _In_reads_bytes_(DataLength) PCVOID Input,
+    _Out_writes_bytes_(DataLength) PVOID Output,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_AES_EXPANDED_KEY expandedKey;
+    BYTE chainingValue[PH_AES_BLOCK_SIZE];
+    SYMCRYPT_ERROR error;
+
+    if (ShiftLength == 0)
+        ShiftLength = PH_AES_BLOCK_SIZE;
+
+    if (ShiftLength != 1 && ShiftLength != PH_AES_BLOCK_SIZE)
+        return STATUS_INVALID_PARAMETER;
+
+    error = SymCryptAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    memcpy(chainingValue, Iv, sizeof(chainingValue));
+
+    if (Encrypt)
+    {
+        SymCryptCfbEncrypt(
+            SymCryptAesBlockCipher,
+            ShiftLength, 
+            &expandedKey,
+            chainingValue, 
+            (PCBYTE)Input, 
+            (PBYTE)Output, 
+            DataLength
+            );
+    }
+    else
+    {
+        SymCryptCfbDecrypt(
+            SymCryptAesBlockCipher, 
+            ShiftLength, 
+            &expandedKey, 
+            chainingValue, 
+            (PCBYTE)Input, 
+            (PBYTE)Output, 
+            DataLength
+            );
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    SymCryptWipeKnownSize(chainingValue, sizeof(chainingValue));
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptAesCfbEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_ SIZE_T ShiftLength,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength
+    )
+{
+    return PhpSymCryptAesCfb(TRUE, Key, KeyLength, Iv, ShiftLength, Plaintext, Ciphertext, DataLength);
+}
+
+NTSTATUS NTAPI PhSymCryptAesCfbDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_reads_bytes_(16) PCVOID Iv,
+    _In_ SIZE_T ShiftLength,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength
+    )
+{
+    return PhpSymCryptAesCfb(FALSE, Key, KeyLength, Iv, ShiftLength, Ciphertext, Plaintext, DataLength);
+}
+
+NTSTATUS NTAPI PhSymCryptXtsAesEncrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_ SIZE_T DataUnitLength,
+    _In_reads_bytes_(16) PCVOID Tweak,
+    _In_reads_bytes_(DataLength) PCVOID Plaintext,
+    _Out_writes_bytes_(DataLength) PVOID Ciphertext,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_XTS_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptXtsAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+
+    if (error == SYMCRYPT_NO_ERROR)
+    {
+        SymCryptXtsAesEncryptWith128bTweak(
+            &expandedKey, 
+            DataUnitLength, 
+            (PCBYTE)Tweak, 
+            (PCBYTE)Plaintext, 
+            (PBYTE)Ciphertext,
+            DataLength
+            );
+    }
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptXtsAesDecrypt(
+    _In_reads_bytes_(KeyLength) PCVOID Key,
+    _In_ SIZE_T KeyLength,
+    _In_ SIZE_T DataUnitLength,
+    _In_reads_bytes_(16) PCVOID Tweak,
+    _In_reads_bytes_(DataLength) PCVOID Ciphertext,
+    _Out_writes_bytes_(DataLength) PVOID Plaintext,
+    _In_ SIZE_T DataLength
+    )
+{
+    SYMCRYPT_XTS_AES_EXPANDED_KEY expandedKey;
+    SYMCRYPT_ERROR error;
+
+    error = SymCryptXtsAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);
+    if (error == SYMCRYPT_NO_ERROR)
+        SymCryptXtsAesDecryptWith128bTweak(&expandedKey, DataUnitLength, (PCBYTE)Tweak, (PCBYTE)Ciphertext, (PBYTE)Plaintext, DataLength);
+
+    SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));
+    return PhSymCryptErrorToStatus(error);
+}
+
+#define PH_SYMCRYPT_DEFINE_AES_KW(Name, FunctionName)                         \
+    NTSTATUS NTAPI PhSymCrypt##Name(                                          \
+        _In_reads_bytes_(KeyLength) PCVOID Key,                               \
+        _In_ SIZE_T KeyLength,                                                \
+        _In_reads_bytes_(InputLength) PCVOID Input,                           \
+        _In_ SIZE_T InputLength,                                              \
+        _Out_writes_bytes_to_(OutputCapacity, *OutputLength) PVOID Output,    \
+        _In_ SIZE_T OutputCapacity,                                           \
+        _Out_ PSIZE_T OutputLength                                            \
+        )                                                                     \
+    {                                                                         \
+        SYMCRYPT_AES_EXPANDED_KEY expandedKey;                                \
+        SYMCRYPT_ERROR error;                                                 \
+        if (!OutputLength)                                                    \
+            return STATUS_INVALID_PARAMETER;                                  \
+        *OutputLength = 0;                                                    \
+        error = SymCryptAesExpandKey(&expandedKey, (PCBYTE)Key, KeyLength);   \
+        if (error == SYMCRYPT_NO_ERROR)                                       \
+            error = FunctionName(&expandedKey, (PCBYTE)Input, InputLength, (PBYTE)Output, OutputCapacity, OutputLength); \
+        SymCryptWipeKnownSize(&expandedKey, sizeof(expandedKey));             \
+        return PhSymCryptErrorToStatus(error);                                \
+    }
+
+PH_SYMCRYPT_DEFINE_AES_KW(AesKwEncrypt, SymCryptAesKwEncrypt)
+PH_SYMCRYPT_DEFINE_AES_KW(AesKwDecrypt, SymCryptAesKwDecrypt)
+PH_SYMCRYPT_DEFINE_AES_KW(AesKwpEncrypt, SymCryptAesKwpEncrypt)
+PH_SYMCRYPT_DEFINE_AES_KW(AesKwpDecrypt, SymCryptAesKwpDecrypt)
+
 // ------------------------------------------------------------------------
 // Asymmetric verification
 // ------------------------------------------------------------------------
@@ -1702,12 +3036,30 @@ PCSYMCRYPT_HASH PhSymCryptHashAlgorithmToHash(
     {
     case PH_SYMCRYPT_SHA1_ALGORITHM:
         return SymCryptSha1Algorithm;
+    case PH_SYMCRYPT_SHA224_ALGORITHM:
+        return SymCryptSha224Algorithm;
     case PH_SYMCRYPT_SHA256_ALGORITHM:
         return SymCryptSha256Algorithm;
     case PH_SYMCRYPT_SHA384_ALGORITHM:
         return SymCryptSha384Algorithm;
     case PH_SYMCRYPT_SHA512_ALGORITHM:
         return SymCryptSha512Algorithm;
+    case PH_SYMCRYPT_SHA512_224_ALGORITHM:
+        return SymCryptSha512_224Algorithm;
+    case PH_SYMCRYPT_SHA512_256_ALGORITHM:
+        return SymCryptSha512_256Algorithm;
+    case PH_SYMCRYPT_SHA3_224_ALGORITHM:
+        return SymCryptSha3_224Algorithm;
+    case PH_SYMCRYPT_SHA3_256_ALGORITHM:
+        return SymCryptSha3_256Algorithm;
+    case PH_SYMCRYPT_SHA3_384_ALGORITHM:
+        return SymCryptSha3_384Algorithm;
+    case PH_SYMCRYPT_SHA3_512_ALGORITHM:
+        return SymCryptSha3_512Algorithm;
+    case PH_SYMCRYPT_SHAKE128_ALGORITHM:
+        return SymCryptShake128HashAlgorithm;
+    case PH_SYMCRYPT_SHAKE256_ALGORITHM:
+        return SymCryptShake256HashAlgorithm;
     default:
         return NULL;
     }
@@ -2157,6 +3509,329 @@ NTSTATUS NTAPI PhSymCryptEcDsaVerifyP384(
         Signature,
         SignatureLength
         );
+}
+
+NTSTATUS PhSymCryptRsaImportPrivateKey(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _Outptr_ PSYMCRYPT_RSAKEY* RsaKey,
+    _Out_ PSIZE_T ModulusLength
+    );
+
+NTSTATUS PhpSymCryptRsaImportPublicKeyBlob(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _Outptr_ PSYMCRYPT_RSAKEY* RsaKey,
+    _Out_ PSIZE_T ModulusLength
+    )
+{
+    const BCRYPT_RSAKEY_BLOB* header;
+    const BYTE* exponent;
+    const BYTE* modulus;
+    ULONG64 publicExponent;
+    SIZE_T expectedSize;
+
+    *RsaKey = NULL;
+    *ModulusLength = 0;
+
+    if (KeyBlobLength < sizeof(BCRYPT_RSAKEY_BLOB))
+        return STATUS_INVALID_PARAMETER;
+
+    header = (const BCRYPT_RSAKEY_BLOB*)KeyBlob;
+
+    if (
+        header->Magic != BCRYPT_RSAPUBLIC_MAGIC &&
+        header->Magic != BCRYPT_RSAPRIVATE_MAGIC &&
+        header->Magic != BCRYPT_RSAFULLPRIVATE_MAGIC
+        )
+    {
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    if (header->cbPublicExp == 0 || header->cbPublicExp > sizeof(ULONG64) || header->cbModulus == 0)
+        return STATUS_INVALID_PARAMETER;
+
+    if (
+        !NT_SUCCESS(RtlSIZETAdd(sizeof(BCRYPT_RSAKEY_BLOB), header->cbPublicExp, &expectedSize)) ||
+        !NT_SUCCESS(RtlSIZETAdd(expectedSize, header->cbModulus, &expectedSize))
+        )
+    {
+        return STATUS_INTEGER_OVERFLOW;
+    }
+
+    if (KeyBlobLength < expectedSize)
+        return STATUS_INVALID_PARAMETER;
+
+    exponent = (const BYTE*)KeyBlob + sizeof(BCRYPT_RSAKEY_BLOB);
+    modulus = exponent + header->cbPublicExp;
+
+    publicExponent = 0;
+    for (ULONG i = 0; i < header->cbPublicExp; i++)
+    {
+        publicExponent = (publicExponent << 8) | exponent[i];
+    }
+
+    *ModulusLength = header->cbModulus;
+    return PhSymCryptRsaImportPublicKey(modulus, header->cbModulus, publicExponent, RsaKey);
+}
+
+static NTSTATUS PhpSymCryptRsaPublicEncrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(PlaintextLength) PCVOID Plaintext,
+    _In_ SIZE_T PlaintextLength,
+    _Out_writes_bytes_to_opt_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength,
+    _In_opt_ PH_SYMCRYPT_HASH_ALGORITHM* HashAlgorithm,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_ ULONG Mode
+    )
+{
+    PSYMCRYPT_RSAKEY key;
+    SIZE_T modulusLength;
+    SYMCRYPT_ERROR error;
+    PCSYMCRYPT_HASH hashAlgorithm;
+    NTSTATUS status;
+
+    if (!CiphertextLength)
+        return STATUS_INVALID_PARAMETER;
+
+    *CiphertextLength = 0;
+
+    status = PhpSymCryptRsaImportPublicKeyBlob(KeyBlob, KeyBlobLength, &key, &modulusLength);
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!Ciphertext)
+    {
+        *CiphertextLength = modulusLength;
+        SymCryptRsakeyFree(key);
+        return STATUS_SUCCESS;
+    }
+
+    switch (Mode)
+    {
+    case 0:
+        if (CiphertextCapacity < modulusLength)
+        {
+            SymCryptRsakeyFree(key);
+            *CiphertextLength = modulusLength;
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        error = SymCryptRsaRawEncrypt(
+            key, 
+            (PCBYTE)Plaintext, 
+            PlaintextLength, 
+            SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
+            0, 
+            (PBYTE)Ciphertext, 
+            modulusLength
+            );
+
+        if (error == SYMCRYPT_NO_ERROR)
+            *CiphertextLength = modulusLength;
+        break;
+    case 1:
+        {
+            error = SymCryptRsaPkcs1Encrypt(
+                key, 
+                (PCBYTE)Plaintext, 
+                PlaintextLength, 
+                0, 
+                SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
+                (PBYTE)Ciphertext, 
+                CiphertextCapacity, 
+                CiphertextLength);
+        }
+        break;
+    case 2:
+        {
+            hashAlgorithm = PhSymCryptHashAlgorithmToHash(*HashAlgorithm);
+
+            if (!hashAlgorithm)
+                error = SYMCRYPT_INVALID_ARGUMENT;
+            else
+            {
+                error = SymCryptRsaOaepEncrypt(
+                    key, 
+                    (PCBYTE)Plaintext, 
+                    PlaintextLength, 
+                    hashAlgorithm, 
+                    (PCBYTE)Label, 
+                    LabelLength,
+                    0, 
+                    SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 
+                    (PBYTE)Ciphertext, 
+                    CiphertextCapacity, 
+                    CiphertextLength
+                    );
+                }
+        }
+        break;
+    default:
+        error = SYMCRYPT_INVALID_ARGUMENT;
+        break;
+    }
+
+    SymCryptRsakeyFree(key);
+    return PhSymCryptErrorToStatus(error);
+}
+
+static NTSTATUS PhpSymCryptRsaPrivateDecrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_to_opt_(PlaintextCapacity, *PlaintextLength) PVOID Plaintext,
+    _In_ SIZE_T PlaintextCapacity,
+    _Out_ PSIZE_T PlaintextLength,
+    _In_opt_ PH_SYMCRYPT_HASH_ALGORITHM* HashAlgorithm,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_ ULONG Mode
+    )
+{
+    PSYMCRYPT_RSAKEY key;
+    SIZE_T modulusLength;
+    SYMCRYPT_ERROR error;
+    PCSYMCRYPT_HASH hashAlgorithm;
+    NTSTATUS status;
+
+    if (!PlaintextLength)
+        return STATUS_INVALID_PARAMETER;
+
+    *PlaintextLength = 0;
+
+    status = PhSymCryptRsaImportPrivateKey(KeyBlob, KeyBlobLength, &key, &modulusLength);
+    
+    if (!NT_SUCCESS(status))
+        return status;
+
+    switch (Mode)
+    {
+    case 0:
+        if (!Plaintext)
+        {
+            *PlaintextLength = modulusLength;
+            SymCryptRsakeyFree(key);
+            return STATUS_SUCCESS;
+        }
+
+        if (PlaintextCapacity < modulusLength)
+        {
+            *PlaintextLength = modulusLength;
+            SymCryptRsakeyFree(key);
+            return STATUS_BUFFER_TOO_SMALL;
+        }
+
+        error = SymCryptRsaRawDecrypt(key, (PCBYTE)Ciphertext, CiphertextLength, SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 0, (PBYTE)Plaintext, modulusLength);
+        if (error == SYMCRYPT_NO_ERROR)
+            *PlaintextLength = modulusLength;
+        break;
+    case 1:
+        error = SymCryptRsaPkcs1Decrypt(key, (PCBYTE)Ciphertext, CiphertextLength, SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, 0, (PBYTE)Plaintext, PlaintextCapacity, PlaintextLength);
+        break;
+    case 2:
+        hashAlgorithm = PhSymCryptHashAlgorithmToHash(*HashAlgorithm);
+        if (!hashAlgorithm)
+            error = SYMCRYPT_INVALID_ARGUMENT;
+        else
+            error = SymCryptRsaOaepDecrypt(key, (PCBYTE)Ciphertext, CiphertextLength, SYMCRYPT_NUMBER_FORMAT_MSB_FIRST, hashAlgorithm, (PCBYTE)Label, LabelLength, 0, (PBYTE)Plaintext, PlaintextCapacity, PlaintextLength);
+        break;
+    default:
+        error = SYMCRYPT_INVALID_ARGUMENT;
+        break;
+    }
+
+    SymCryptRsakeyFree(key);
+    return PhSymCryptErrorToStatus(error);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaRawEncrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(PlaintextLength) PCVOID Plaintext,
+    _In_ SIZE_T PlaintextLength,
+    _Out_writes_bytes_to_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength
+    )
+{
+    return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, NULL, NULL, 0, 0);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaRawDecrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_to_(PlaintextCapacity, *PlaintextLength) PVOID Plaintext,
+    _In_ SIZE_T PlaintextCapacity,
+    _Out_ PSIZE_T PlaintextLength
+    )
+{
+    return PhpSymCryptRsaPrivateDecrypt(KeyBlob, KeyBlobLength, Ciphertext, CiphertextLength, Plaintext, PlaintextCapacity, PlaintextLength, NULL, NULL, 0, 0);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaPkcs1Encrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(PlaintextLength) PCVOID Plaintext,
+    _In_ SIZE_T PlaintextLength,
+    _Out_writes_bytes_to_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength
+    )
+{
+    return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, NULL, NULL, 0, 1);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaPkcs1Decrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_to_(PlaintextCapacity, *PlaintextLength) PVOID Plaintext,
+    _In_ SIZE_T PlaintextCapacity,
+    _Out_ PSIZE_T PlaintextLength
+    )
+{
+    return PhpSymCryptRsaPrivateDecrypt(KeyBlob, KeyBlobLength, Ciphertext, CiphertextLength, Plaintext, PlaintextCapacity, PlaintextLength, NULL, NULL, 0, 1);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaOaepEncrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_reads_bytes_(PlaintextLength) PCVOID Plaintext,
+    _In_ SIZE_T PlaintextLength,
+    _Out_writes_bytes_to_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength
+    )
+{
+    return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, &HashAlgorithm, Label, LabelLength, 2);
+}
+
+NTSTATUS NTAPI PhSymCryptRsaOaepDecrypt(
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
+    _In_reads_bytes_opt_(LabelLength) PCVOID Label,
+    _In_ SIZE_T LabelLength,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_to_(PlaintextCapacity, *PlaintextLength) PVOID Plaintext,
+    _In_ SIZE_T PlaintextCapacity,
+    _Out_ PSIZE_T PlaintextLength
+    )
+{
+    return PhpSymCryptRsaPrivateDecrypt(KeyBlob, KeyBlobLength, Ciphertext, CiphertextLength, Plaintext, PlaintextCapacity, PlaintextLength, &HashAlgorithm, Label, LabelLength, 2);
 }
 
 // ------------------------------------------------------------------------
@@ -3510,6 +5185,221 @@ VOID NTAPI PhSymCryptGetParallelHashCapabilities(
 }
 
 // ------------------------------------------------------------------------
+// Handle-based symmetric key abstraction (BCrypt emulation)
+// ------------------------------------------------------------------------
+
+#define PH_SYMCRYPT_SYMMETRIC_KEY_MAGIC 'ySyP'
+
+typedef enum _PH_SYMCRYPT_SYMMETRIC_ALGORITHM
+{
+    PhSymCryptSymmetricAlgorithmAes
+} PH_SYMCRYPT_SYMMETRIC_ALGORITHM;
+
+typedef enum _PH_SYMCRYPT_CHAIN_MODE
+{
+    PhSymCryptChainModeNone,
+    PhSymCryptChainModeEcb,
+    PhSymCryptChainModeCbc,
+    PhSymCryptChainModeCfb,
+    PhSymCryptChainModeGcm,
+    PhSymCryptChainModeCcm
+} PH_SYMCRYPT_CHAIN_MODE;
+
+typedef struct _PH_SYMCRYPT_SYMMETRIC_KEY
+{
+    ULONG Magic;
+    PH_SYMCRYPT_SYMMETRIC_ALGORITHM Algorithm;
+    PH_SYMCRYPT_CHAIN_MODE ChainMode;
+    ULONG SecretLength;
+    UCHAR Secret[64];
+} PH_SYMCRYPT_SYMMETRIC_KEY, *PPH_SYMCRYPT_SYMMETRIC_KEY;
+
+static PPH_SYMCRYPT_SYMMETRIC_KEY PhpSymCryptGetSymmetricKey(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_SYMMETRIC_KEY key = (PPH_SYMCRYPT_SYMMETRIC_KEY)KeyHandle;
+
+    if (!key || key->Magic != PH_SYMCRYPT_SYMMETRIC_KEY_MAGIC)
+        return NULL;
+
+    return key;
+}
+
+NTSTATUS NTAPI PhSymCryptGenerateSymmetricKey(
+    _In_ PCWSTR Algorithm,
+    _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_(SecretLength) PCVOID Secret,
+    _In_ ULONG SecretLength
+    )
+{
+    PPH_SYMCRYPT_SYMMETRIC_KEY key;
+
+    if (!Algorithm || !KeyHandle || !Secret)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    if (!PhEqualStringZ(Algorithm, BCRYPT_AES_ALGORITHM, TRUE))
+        return STATUS_NOT_SUPPORTED;
+
+    if (SecretLength != 16 && SecretLength != 24 && SecretLength != 32)
+        return STATUS_INVALID_PARAMETER;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_SYMMETRIC_KEY));
+    key->Magic = PH_SYMCRYPT_SYMMETRIC_KEY_MAGIC;
+    key->Algorithm = PhSymCryptSymmetricAlgorithmAes;
+    key->ChainMode = PhSymCryptChainModeCbc;
+    key->SecretLength = SecretLength;
+    memcpy(key->Secret, Secret, SecretLength);
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptSetProperty(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_ PCWSTR Property,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength
+    )
+{
+    PPH_SYMCRYPT_SYMMETRIC_KEY key = PhpSymCryptGetSymmetricKey(KeyHandle);
+    PCWSTR value;
+
+    if (!key || !Property || !Input)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhEqualStringZ(Property, BCRYPT_CHAINING_MODE, TRUE))
+        return STATUS_NOT_SUPPORTED;
+
+    if ((InputLength % sizeof(WCHAR)) != 0)
+        return STATUS_INVALID_PARAMETER;
+
+    value = (PCWSTR)Input;
+
+    if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_NA, TRUE))
+        key->ChainMode = PhSymCryptChainModeNone;
+    else if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_ECB, TRUE))
+        key->ChainMode = PhSymCryptChainModeEcb;
+    else if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_CBC, TRUE))
+        key->ChainMode = PhSymCryptChainModeCbc;
+    else if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_CFB, TRUE))
+        key->ChainMode = PhSymCryptChainModeCfb;
+    else if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_GCM, TRUE))
+        key->ChainMode = PhSymCryptChainModeGcm;
+    else if (PhEqualStringZ(value, BCRYPT_CHAIN_MODE_CCM, TRUE))
+        key->ChainMode = PhSymCryptChainModeCcm;
+    else
+        return STATUS_NOT_SUPPORTED;
+
+    return STATUS_SUCCESS;
+}
+
+static NTSTATUS PhpSymCryptAesCryptByKey(
+    _In_ BOOLEAN Encrypt,
+    _In_ PPH_SYMCRYPT_SYMMETRIC_KEY Key,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _In_opt_ PVOID PaddingInfo,
+    _Inout_updates_bytes_opt_(IvLength) PVOID Iv,
+    _In_ ULONG IvLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ResultLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ResultLength,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+
+    if (!Key || !ResultLength)
+        return STATUS_INVALID_PARAMETER;
+
+    *ResultLength = 0;
+
+    if (PaddingInfo)
+        return STATUS_NOT_SUPPORTED;
+
+    if (!Output)
+    {
+        *ResultLength = InputLength;
+        return STATUS_SUCCESS;
+    }
+
+    if (OutputLength < InputLength)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    switch (Key->ChainMode)
+    {
+    case PhSymCryptChainModeEcb:
+        status = Encrypt ?
+            PhSymCryptAesEcbEncrypt(Key->Secret, Key->SecretLength, Input, Output, InputLength) :
+            PhSymCryptAesEcbDecrypt(Key->Secret, Key->SecretLength, Input, Output, InputLength);
+        break;
+    case PhSymCryptChainModeCbc:
+        if (!Iv || IvLength != PH_AES_BLOCK_SIZE)
+            return STATUS_INVALID_PARAMETER;
+        status = Encrypt ?
+            PhSymCryptAesCbcEncrypt(Key->Secret, Key->SecretLength, Iv, Input, Output, InputLength) :
+            PhSymCryptAesCbcDecrypt(Key->Secret, Key->SecretLength, Iv, Input, Output, InputLength);
+        break;
+    case PhSymCryptChainModeCfb:
+        if (!Iv || IvLength != PH_AES_BLOCK_SIZE)
+            return STATUS_INVALID_PARAMETER;
+        status = Encrypt ?
+            PhSymCryptAesCfbEncrypt(Key->Secret, Key->SecretLength, Iv, PH_AES_BLOCK_SIZE, Input, Output, InputLength) :
+            PhSymCryptAesCfbDecrypt(Key->Secret, Key->SecretLength, Iv, PH_AES_BLOCK_SIZE, Input, Output, InputLength);
+        break;
+    case PhSymCryptChainModeGcm:
+    case PhSymCryptChainModeCcm:
+        return STATUS_NOT_SUPPORTED;
+    default:
+        status = Encrypt ?
+            PhSymCryptAesEcbEncrypt(Key->Secret, Key->SecretLength, Input, Output, InputLength) :
+            PhSymCryptAesEcbDecrypt(Key->Secret, Key->SecretLength, Input, Output, InputLength);
+        break;
+    }
+
+    if (NT_SUCCESS(status))
+        *ResultLength = InputLength;
+
+    UNREFERENCED_PARAMETER(Flags);
+    return status;
+}
+
+NTSTATUS NTAPI PhSymCryptEncrypt(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _In_opt_ PVOID PaddingInfo,
+    _Inout_updates_bytes_opt_(IvLength) PVOID Iv,
+    _In_ ULONG IvLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ResultLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ResultLength,
+    _In_ ULONG Flags
+    )
+{
+    return PhpSymCryptAesCryptByKey(TRUE, PhpSymCryptGetSymmetricKey(KeyHandle), Input, InputLength, PaddingInfo, Iv, IvLength, Output, OutputLength, ResultLength, Flags);
+}
+
+NTSTATUS NTAPI PhSymCryptDecrypt(
+    _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_opt_(InputLength) PCVOID Input,
+    _In_ ULONG InputLength,
+    _In_opt_ PVOID PaddingInfo,
+    _Inout_updates_bytes_opt_(IvLength) PVOID Iv,
+    _In_ ULONG IvLength,
+    _Out_writes_bytes_to_opt_(OutputLength, *ResultLength) PVOID Output,
+    _In_ ULONG OutputLength,
+    _Out_ PULONG ResultLength,
+    _In_ ULONG Flags
+    )
+{
+    return PhpSymCryptAesCryptByKey(FALSE, PhpSymCryptGetSymmetricKey(KeyHandle), Input, InputLength, PaddingInfo, Iv, IvLength, Output, OutputLength, ResultLength, Flags);
+}
+
+// ------------------------------------------------------------------------
 // Handle-based Asymmetric Key Abstraction (BCrypt Emulation)
 // ------------------------------------------------------------------------
 
@@ -4369,6 +6259,14 @@ NTSTATUS NTAPI PhSymCryptDestroyKey(
     )
 {
     PPH_SYMCRYPT_KEY key = (PPH_SYMCRYPT_KEY)KeyHandle;
+    PPH_SYMCRYPT_SYMMETRIC_KEY symmetricKey = (PPH_SYMCRYPT_SYMMETRIC_KEY)KeyHandle;
+
+    if (symmetricKey && symmetricKey->Magic == PH_SYMCRYPT_SYMMETRIC_KEY_MAGIC)
+    {
+        SymCryptWipeKnownSize(symmetricKey, sizeof(PH_SYMCRYPT_SYMMETRIC_KEY));
+        PhFree(symmetricKey);
+        return STATUS_SUCCESS;
+    }
 
     if (!key || key->Magic != PH_SYMCRYPT_KEY_MAGIC)
         return STATUS_INVALID_PARAMETER;
@@ -4577,4 +6475,517 @@ NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
 
     SymCryptRsakeyFree(key);
     return STATUS_SUCCESS;
+}
+
+// ------------------------------------------------------------------------
+// Post-quantum in-memory keys
+// ------------------------------------------------------------------------
+
+#define PH_SYMCRYPT_MLKEM_KEY_MAGIC 'mKyP'
+#define PH_SYMCRYPT_MLDSA_KEY_MAGIC 'dKyP'
+
+typedef struct _PH_SYMCRYPT_MLKEM_KEY
+{
+    ULONG Magic;
+    SYMCRYPT_MLKEM_PARAMS Parameters;
+    PSYMCRYPT_MLKEMKEY Key;
+} PH_SYMCRYPT_MLKEM_KEY, *PPH_SYMCRYPT_MLKEM_KEY;
+
+typedef struct _PH_SYMCRYPT_MLDSA_KEY
+{
+    ULONG Magic;
+    SYMCRYPT_MLDSA_PARAMS Parameters;
+    PSYMCRYPT_MLDSAKEY Key;
+} PH_SYMCRYPT_MLDSA_KEY, *PPH_SYMCRYPT_MLDSA_KEY;
+
+static BOOLEAN PhpSymCryptMlKemMapParameters(
+    _In_ PH_SYMCRYPT_MLKEM_PARAMETER_SET ParameterSet,
+    _Out_ SYMCRYPT_MLKEM_PARAMS* Parameters
+    )
+{
+    switch (ParameterSet)
+    {
+    case PH_SYMCRYPT_MLKEM_512:
+        *Parameters = SYMCRYPT_MLKEM_PARAMS_MLKEM512;
+        return TRUE;
+    case PH_SYMCRYPT_MLKEM_768:
+        *Parameters = SYMCRYPT_MLKEM_PARAMS_MLKEM768;
+        return TRUE;
+    case PH_SYMCRYPT_MLKEM_1024:
+        *Parameters = SYMCRYPT_MLKEM_PARAMS_MLKEM1024;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static BOOLEAN PhpSymCryptMlKemMapFormat(
+    _In_ PH_SYMCRYPT_MLKEM_KEY_FORMAT Format,
+    _Out_ SYMCRYPT_MLKEMKEY_FORMAT* SymCryptFormat
+    )
+{
+    switch (Format)
+    {
+    case PH_SYMCRYPT_MLKEM_PRIVATE_SEED:
+        *SymCryptFormat = SYMCRYPT_MLKEMKEY_FORMAT_PRIVATE_SEED;
+        return TRUE;
+    case PH_SYMCRYPT_MLKEM_DECAPSULATION_KEY:
+        *SymCryptFormat = SYMCRYPT_MLKEMKEY_FORMAT_DECAPSULATION_KEY;
+        return TRUE;
+    case PH_SYMCRYPT_MLKEM_ENCAPSULATION_KEY:
+        *SymCryptFormat = SYMCRYPT_MLKEMKEY_FORMAT_ENCAPSULATION_KEY;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static PPH_SYMCRYPT_MLKEM_KEY PhpSymCryptGetMlKemKey(
+    _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key = (PPH_SYMCRYPT_MLKEM_KEY)KeyHandle;
+
+    if (!key || key->Magic != PH_SYMCRYPT_MLKEM_KEY_MAGIC)
+        return NULL;
+
+    return key;
+}
+
+NTSTATUS NTAPI PhSymCryptMlKemGenerateKey(
+    _In_ PH_SYMCRYPT_MLKEM_PARAMETER_SET ParameterSet,
+    _Out_ PPH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key;
+    SYMCRYPT_MLKEM_PARAMS parameters;
+    SYMCRYPT_ERROR error;
+
+    if (!KeyHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    if (!PhpSymCryptMlKemMapParameters(ParameterSet, &parameters))
+        return STATUS_NOT_SUPPORTED;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_MLKEM_KEY));
+    key->Magic = PH_SYMCRYPT_MLKEM_KEY_MAGIC;
+    key->Parameters = parameters;
+    key->Key = SymCryptMlKemkeyAllocate(parameters);
+
+    if (!key->Key)
+    {
+        PhFree(key);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    error = SymCryptMlKemkeyGenerate(key->Key, 0);
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        SymCryptMlKemkeyFree(key->Key);
+        PhFree(key);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptMlKemImportKey(
+    _In_ PH_SYMCRYPT_MLKEM_PARAMETER_SET ParameterSet,
+    _In_ PH_SYMCRYPT_MLKEM_KEY_FORMAT Format,
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _Out_ PPH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key;
+    SYMCRYPT_MLKEM_PARAMS parameters;
+    SYMCRYPT_MLKEMKEY_FORMAT format;
+    SYMCRYPT_ERROR error;
+
+    if (!KeyHandle || !KeyBlob)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    if (!PhpSymCryptMlKemMapParameters(ParameterSet, &parameters) || !PhpSymCryptMlKemMapFormat(Format, &format))
+        return STATUS_NOT_SUPPORTED;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_MLKEM_KEY));
+    key->Magic = PH_SYMCRYPT_MLKEM_KEY_MAGIC;
+    key->Parameters = parameters;
+    key->Key = SymCryptMlKemkeyAllocate(parameters);
+
+    if (!key->Key)
+    {
+        PhFree(key);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    error = SymCryptMlKemkeySetValue((PCBYTE)KeyBlob, KeyBlobLength, format, 0, key->Key);
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        SymCryptMlKemkeyFree(key->Key);
+        PhFree(key);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptMlKemExportKey(
+    _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_MLKEM_KEY_FORMAT Format,
+    _Out_writes_bytes_to_opt_(KeyBlobCapacity, *KeyBlobLength) PVOID KeyBlob,
+    _In_ SIZE_T KeyBlobCapacity,
+    _Out_ PSIZE_T KeyBlobLength
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key = PhpSymCryptGetMlKemKey(KeyHandle);
+    SYMCRYPT_MLKEMKEY_FORMAT format;
+    SIZE_T required;
+    SYMCRYPT_ERROR error;
+
+    if (!key || !KeyBlobLength)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptMlKemMapFormat(Format, &format))
+        return STATUS_NOT_SUPPORTED;
+
+    error = SymCryptMlKemSizeofKeyFormatFromParams(key->Parameters, format, &required);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    *KeyBlobLength = required;
+
+    if (!KeyBlob)
+        return STATUS_SUCCESS;
+
+    if (KeyBlobCapacity < required)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return PhSymCryptErrorToStatus(SymCryptMlKemkeyGetValue(key->Key, (PBYTE)KeyBlob, KeyBlobCapacity, format, 0));
+}
+
+NTSTATUS NTAPI PhSymCryptMlKemEncapsulate(
+    _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
+    _Out_writes_bytes_(SecretLength) PVOID Secret,
+    _In_ SIZE_T SecretLength,
+    _Out_writes_bytes_to_(CiphertextCapacity, *CiphertextLength) PVOID Ciphertext,
+    _In_ SIZE_T CiphertextCapacity,
+    _Out_ PSIZE_T CiphertextLength
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key = PhpSymCryptGetMlKemKey(KeyHandle);
+    SIZE_T required;
+    SYMCRYPT_ERROR error;
+
+    if (!key || !CiphertextLength)
+        return STATUS_INVALID_PARAMETER;
+
+    error = SymCryptMlKemSizeofCiphertextFromParams(key->Parameters, &required);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    *CiphertextLength = required;
+
+    if (CiphertextCapacity < required)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return PhSymCryptErrorToStatus(SymCryptMlKemEncapsulate(key->Key, (PBYTE)Secret, SecretLength, (PBYTE)Ciphertext, CiphertextCapacity));
+}
+
+NTSTATUS NTAPI PhSymCryptMlKemDecapsulate(
+    _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
+    _In_ SIZE_T CiphertextLength,
+    _Out_writes_bytes_(SecretLength) PVOID Secret,
+    _In_ SIZE_T SecretLength
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key = PhpSymCryptGetMlKemKey(KeyHandle);
+
+    if (!key)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhSymCryptErrorToStatus(SymCryptMlKemDecapsulate(key->Key, (PCBYTE)Ciphertext, CiphertextLength, (PBYTE)Secret, SecretLength));
+}
+
+VOID NTAPI PhSymCryptMlKemDestroyKey(
+    _In_opt_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLKEM_KEY key = PhpSymCryptGetMlKemKey(KeyHandle);
+
+    if (!key)
+        return;
+
+    if (key->Key)
+        SymCryptMlKemkeyFree(key->Key);
+
+    key->Magic = 0;
+    PhFree(key);
+}
+
+static BOOLEAN PhpSymCryptMlDsaMapParameters(
+    _In_ PH_SYMCRYPT_MLDSA_PARAMETER_SET ParameterSet,
+    _Out_ SYMCRYPT_MLDSA_PARAMS* Parameters
+    )
+{
+    switch (ParameterSet)
+    {
+    case PH_SYMCRYPT_MLDSA_44:
+        *Parameters = SYMCRYPT_MLDSA_PARAMS_MLDSA44;
+        return TRUE;
+    case PH_SYMCRYPT_MLDSA_65:
+        *Parameters = SYMCRYPT_MLDSA_PARAMS_MLDSA65;
+        return TRUE;
+    case PH_SYMCRYPT_MLDSA_87:
+        *Parameters = SYMCRYPT_MLDSA_PARAMS_MLDSA87;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static BOOLEAN PhpSymCryptMlDsaMapFormat(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_FORMAT Format,
+    _Out_ SYMCRYPT_MLDSAKEY_FORMAT* SymCryptFormat
+    )
+{
+    switch (Format)
+    {
+    case PH_SYMCRYPT_MLDSA_PRIVATE_SEED:
+        *SymCryptFormat = SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_SEED;
+        return TRUE;
+    case PH_SYMCRYPT_MLDSA_PRIVATE_KEY:
+        *SymCryptFormat = SYMCRYPT_MLDSAKEY_FORMAT_PRIVATE_KEY;
+        return TRUE;
+    case PH_SYMCRYPT_MLDSA_PUBLIC_KEY:
+        *SymCryptFormat = SYMCRYPT_MLDSAKEY_FORMAT_PUBLIC_KEY;
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
+static PPH_SYMCRYPT_MLDSA_KEY PhpSymCryptGetMlDsaKey(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = (PPH_SYMCRYPT_MLDSA_KEY)KeyHandle;
+
+    if (!key || key->Magic != PH_SYMCRYPT_MLDSA_KEY_MAGIC)
+        return NULL;
+
+    return key;
+}
+
+NTSTATUS NTAPI PhSymCryptMlDsaGenerateKey(
+    _In_ PH_SYMCRYPT_MLDSA_PARAMETER_SET ParameterSet,
+    _Out_ PPH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key;
+    SYMCRYPT_MLDSA_PARAMS parameters;
+    SYMCRYPT_ERROR error;
+
+    if (!KeyHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    if (!PhpSymCryptMlDsaMapParameters(ParameterSet, &parameters))
+        return STATUS_NOT_SUPPORTED;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_MLDSA_KEY));
+    key->Magic = PH_SYMCRYPT_MLDSA_KEY_MAGIC;
+    key->Parameters = parameters;
+    key->Key = SymCryptMlDsakeyAllocate(parameters);
+
+    if (!key->Key)
+    {
+        PhFree(key);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    error = SymCryptMlDsakeyGenerate(key->Key, 0);
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        SymCryptMlDsakeyFree(key->Key);
+        PhFree(key);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptMlDsaImportKey(
+    _In_ PH_SYMCRYPT_MLDSA_PARAMETER_SET ParameterSet,
+    _In_ PH_SYMCRYPT_MLDSA_KEY_FORMAT Format,
+    _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
+    _In_ SIZE_T KeyBlobLength,
+    _Out_ PPH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key;
+    SYMCRYPT_MLDSA_PARAMS parameters;
+    SYMCRYPT_MLDSAKEY_FORMAT format;
+    SYMCRYPT_ERROR error;
+
+    if (!KeyHandle || !KeyBlob)
+        return STATUS_INVALID_PARAMETER;
+
+    *KeyHandle = NULL;
+
+    if (!PhpSymCryptMlDsaMapParameters(ParameterSet, &parameters) || !PhpSymCryptMlDsaMapFormat(Format, &format))
+        return STATUS_NOT_SUPPORTED;
+
+    key = PhAllocateZero(sizeof(PH_SYMCRYPT_MLDSA_KEY));
+    key->Magic = PH_SYMCRYPT_MLDSA_KEY_MAGIC;
+    key->Parameters = parameters;
+    key->Key = SymCryptMlDsakeyAllocate(parameters);
+
+    if (!key->Key)
+    {
+        PhFree(key);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    error = SymCryptMlDsakeySetValue((PCBYTE)KeyBlob, KeyBlobLength, format, 0, key->Key);
+    if (error != SYMCRYPT_NO_ERROR)
+    {
+        SymCryptMlDsakeyFree(key->Key);
+        PhFree(key);
+        return PhSymCryptErrorToStatus(error);
+    }
+
+    *KeyHandle = key;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhSymCryptMlDsaExportKey(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_ PH_SYMCRYPT_MLDSA_KEY_FORMAT Format,
+    _Out_writes_bytes_to_opt_(KeyBlobCapacity, *KeyBlobLength) PVOID KeyBlob,
+    _In_ SIZE_T KeyBlobCapacity,
+    _Out_ PSIZE_T KeyBlobLength
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+    SYMCRYPT_MLDSAKEY_FORMAT format;
+    SIZE_T required;
+    SYMCRYPT_ERROR error;
+
+    if (!key || !KeyBlobLength)
+        return STATUS_INVALID_PARAMETER;
+
+    if (!PhpSymCryptMlDsaMapFormat(Format, &format))
+        return STATUS_NOT_SUPPORTED;
+
+    error = SymCryptMlDsaSizeofKeyFormatFromParams(key->Parameters, format, &required);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    *KeyBlobLength = required;
+
+    if (!KeyBlob)
+        return STATUS_SUCCESS;
+
+    if (KeyBlobCapacity < required)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return PhSymCryptErrorToStatus(SymCryptMlDsakeyGetValue(key->Key, (PBYTE)KeyBlob, KeyBlobCapacity, format, 0));
+}
+
+NTSTATUS NTAPI PhSymCryptMlDsaSign(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_(MessageLength) PCVOID Message,
+    _In_ SIZE_T MessageLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _Out_writes_bytes_to_(SignatureCapacity, *SignatureLength) PVOID Signature,
+    _In_ SIZE_T SignatureCapacity,
+    _Out_ PSIZE_T SignatureLength
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+    SIZE_T required;
+    SYMCRYPT_ERROR error;
+
+    if (!key || !SignatureLength)
+        return STATUS_INVALID_PARAMETER;
+
+    if (ContextLength > SYMCRYPT_MLDSA_CONTEXT_MAX_LENGTH)
+        return STATUS_INVALID_PARAMETER;
+
+    error = SymCryptMlDsaSizeofSignatureFromParams(key->Parameters, &required);
+    if (error != SYMCRYPT_NO_ERROR)
+        return PhSymCryptErrorToStatus(error);
+
+    *SignatureLength = required;
+
+    if (SignatureCapacity < required)
+        return STATUS_BUFFER_TOO_SMALL;
+
+    return PhSymCryptErrorToStatus(SymCryptMlDsaSign(
+        key->Key,
+        (PCBYTE)Message,
+        MessageLength,
+        (PCBYTE)Context,
+        ContextLength,
+        0,
+        (PBYTE)Signature,
+        SignatureCapacity
+        ));
+}
+
+NTSTATUS NTAPI PhSymCryptMlDsaVerify(
+    _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
+    _In_reads_bytes_(MessageLength) PCVOID Message,
+    _In_ SIZE_T MessageLength,
+    _In_reads_bytes_opt_(ContextLength) PCVOID Context,
+    _In_ SIZE_T ContextLength,
+    _In_reads_bytes_(SignatureLength) PCVOID Signature,
+    _In_ SIZE_T SignatureLength
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+
+    if (!key)
+        return STATUS_INVALID_PARAMETER;
+
+    if (ContextLength > SYMCRYPT_MLDSA_CONTEXT_MAX_LENGTH)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhSymCryptErrorToStatus(SymCryptMlDsaVerify(
+        key->Key,
+        (PCBYTE)Message,
+        MessageLength,
+        (PCBYTE)Context,
+        ContextLength,
+        (PCBYTE)Signature,
+        SignatureLength,
+        0
+        ));
+}
+
+VOID NTAPI PhSymCryptMlDsaDestroyKey(
+    _In_opt_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
+    )
+{
+    PPH_SYMCRYPT_MLDSA_KEY key = PhpSymCryptGetMlDsaKey(KeyHandle);
+
+    if (!key)
+        return;
+
+    if (key->Key)
+        SymCryptMlDsakeyFree(key->Key);
+
+    key->Magic = 0;
+    PhFree(key);
 }

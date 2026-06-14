@@ -193,7 +193,14 @@ VOID PvInitializeCertificateTree(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, NoSortOrder);
-    TreeNew_SetRowHeight(Context->TreeNewHandle, PhScaleToDisplay(22, PhGetWindowDpi(Context->WindowHandle)));
+    {
+        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+        if (treelistCustomRowSize && treelistCustomRowSize < 15)
+            treelistCustomRowSize = 15;
+
+        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
+    }
 
     settings = PhGetStringSetting(L"ImageSecurityTreeColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
@@ -1522,7 +1529,7 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
             }
         }
         break;
-    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

@@ -763,6 +763,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             modulesContext->ListContext.ProcessId = processItem->ProcessId;
             modulesContext->ListContext.ProcessCreateTime = processItem->CreateTime;
             modulesContext->ListContext.HasServices = processItem->ServiceList && processItem->ServiceList->Count != 0;
+            modulesContext->ListContext.IsSubsystemProcess = !!processItem->IsSubsystemProcess;
             modulesContext->ListContext.BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(modulesContext->TreeNewHandle), FW_BOLD);
 
             // Initialize the search box. (dmex)
@@ -877,7 +878,7 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             HFONT treeNewFont;
 
             if (PhTreeWindowFont && (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg))))
-                PhReplaceWindowFont(&modulesContext->TreeNewFont, modulesContext->TreeNewHandle, treeNewFont, TRUE);
+                PhSwapReferenceFont(&modulesContext->TreeNewFont, modulesContext->TreeNewHandle, treeNewFont, TRUE);
 
             modulesContext->ListContext.BoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(modulesContext->TreeNewHandle), FW_BOLD);
             if (fontHandle) DeleteFont(fontHandle);
@@ -1210,6 +1211,12 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             }
         }
         break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
