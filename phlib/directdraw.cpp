@@ -157,6 +157,140 @@ HICON PhGdiplusConvertHBitmapToHIcon(
     return iconHandle;
 }
 
+HICON PhConvertBitmapToIcon(
+    _In_ HBITMAP OriginalBitmap,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ COLORREF Background
+    )
+{
+    DIBSECTION dib;
+    HDC screenDc;
+    HDC srcDc;
+    HDC dstDc;
+    HBITMAP colorBitmap;
+    HBITMAP maskBitmap;
+    HBITMAP oldSrcBitmap;
+    HBITMAP oldDstBitmap;
+    PVOID colorBits;
+    BITMAPINFO bitmapInfo;
+    ICONINFO iconInfo;
+    HICON icon;
+
+    RtlZeroMemory(&dib, sizeof(DIBSECTION));
+
+    if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
+        return NULL;
+
+    screenDc = GetDC(NULL);
+    if (!screenDc)
+        return NULL;
+
+    // Create a 32bpp ARGB DIB section for the output color bitmap
+    RtlZeroMemory(&bitmapInfo, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = -Height; // top-down DIB
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    colorBitmap = CreateDIBSection(screenDc, &bitmapInfo, DIB_RGB_COLORS, &colorBits, NULL, 0);
+    if (!colorBitmap)
+    {
+        ReleaseDC(NULL, screenDc);
+        return NULL;
+    }
+
+    // Fill the color bitmap with the background color (as premultiplied ARGB)
+    {
+        PULONG pixels = (PULONG)colorBits;
+        ULONG pixelCount = (ULONG)Width * (ULONG)Height;
+        ULONG bgArgb;
+
+        // COLORREF is 0x00BBGGRR; convert to ARGB 0xAARRGGBB for the DIB
+        bgArgb = (0xFF << 24) | // fully opaque
+            ((ULONG)GetRValue(Background) << 16) |
+            ((ULONG)GetGValue(Background) << 8) |
+            ((ULONG)GetBValue(Background));
+
+        for (ULONG i = 0; i < pixelCount; i++)
+        {
+            pixels[i] = bgArgb;
+        }
+    }
+
+    // AlphaBlend the source bitmap onto the background
+    srcDc = CreateCompatibleDC(screenDc);
+    dstDc = CreateCompatibleDC(screenDc);
+    oldSrcBitmap = SelectBitmap(srcDc, OriginalBitmap);
+    oldDstBitmap = SelectBitmap(dstDc, colorBitmap);
+
+    {
+        BLENDFUNCTION blendFunc;
+
+        blendFunc.BlendOp = AC_SRC_OVER;
+        blendFunc.BlendFlags = 0;
+        blendFunc.SourceConstantAlpha = 255;
+        blendFunc.AlphaFormat = AC_SRC_ALPHA; // source has per-pixel alpha
+
+        GdiAlphaBlend(
+            dstDc,
+            0, 0,
+            Width,
+            Height,                         // dest rect
+            srcDc,
+            0, 0,                           // source origin
+            dib.dsBmih.biWidth,             // source width
+            dib.dsBmih.biHeight,            // source height (abs(dib.dsBmih.biHeight) for safety)
+            blendFunc
+            );
+    }
+
+    SelectBitmap(srcDc, oldSrcBitmap);
+    SelectBitmap(dstDc, oldDstBitmap);
+    DeleteDC(srcDc);
+    DeleteDC(dstDc);
+
+    // Create the monochrome mask bitmap (all zeros = fully opaque icon)
+    maskBitmap = CreateBitmap(Width, Height, 1, 1, NULL);
+    if (!maskBitmap)
+    {
+        DeleteBitmap(colorBitmap);
+        ReleaseDC(NULL, screenDc);
+        return NULL;
+    }
+
+    // Zero the mask (0 = opaque everywhere)
+    {
+        HDC maskDc = CreateCompatibleDC(screenDc);
+        HBITMAP oldMask = SelectBitmap(maskDc, maskBitmap);
+        RECT r = { 0, 0, Width, Height };
+
+        FillRect(maskDc, &r, GetStockBrush(BLACK_BRUSH));
+        SelectBitmap(maskDc, oldMask);
+        DeleteDC(maskDc);
+    }
+
+    ReleaseDC(NULL, screenDc);
+
+    // Create the icon from color + mask
+    RtlZeroMemory(&iconInfo, sizeof(ICONINFO));
+    iconInfo.fIcon = TRUE;
+    iconInfo.xHotspot = 0;
+    iconInfo.yHotspot = 0;
+    iconInfo.hbmMask = maskBitmap;
+    iconInfo.hbmColor = colorBitmap;
+
+    icon = CreateIconIndirect(&iconInfo);
+
+    // CreateIconIndirect copies the bitmaps, so we can delete them
+    DeleteBitmap(colorBitmap);
+    DeleteBitmap(maskBitmap);
+
+    return icon;
+}
+
 
 #ifdef PHNT_TRANSPARENT_BITMAP
 #include <uxtheme.h>

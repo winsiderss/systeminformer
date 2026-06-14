@@ -417,6 +417,17 @@ PhReadVirtualMemory(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhReadVirtualMemoryPrefix(
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PVOID BaseAddress,
+    _Out_writes_bytes_(BufferSize) PVOID Buffer,
+    _In_ SIZE_T BufferSize,
+    _Out_opt_ PSIZE_T NumberOfBytesRead
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhWriteVirtualMemory(
     _In_ HANDLE ProcessHandle,
     _In_opt_ PVOID BaseAddress,
@@ -4650,6 +4661,15 @@ PhConvertCopyMemoryUlong64(
     _In_ SIZE_T Count
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhAddMemoryUlong(
+    _Inout_ PULONG A,
+    _In_ PULONG B,
+    _In_ ULONG Count
+    );
+
 DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
@@ -4658,15 +4678,6 @@ PhConvertCopyMemorySizeT(
     _Inout_updates_(Count) PSIZE_T From,
     _Inout_updates_(Count) PFLOAT To,
     _In_ SIZE_T Count
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhAddMemoryUlong(
-    _Inout_ PULONG A,
-    _In_ PULONG B,
-    _In_ ULONG Count
     );
 
 DECLSPEC_NOALIAS
