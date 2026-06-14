@@ -295,8 +295,7 @@ VOID NetworkDeviceLayoutGraphs(
     Context->GraphReceiveState.Valid = FALSE;
     Context->GraphReceiveState.TooltipIndex = ULONG_MAX;
 
-    margin = Context->GraphMargin;
-    PhGetMarginDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
+    margin = Context->GraphMarginScaled;
 
     PhGetClientRect(Context->WindowHandle, &clientRect);
     PhGetClientRect(Context->LabelSendHandle, &labelRect);
@@ -657,6 +656,8 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
+            context->GraphMarginScaled = context->GraphMargin;
+            PhGetMarginDpiValue(&context->GraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(context->AdapterTextLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(context->AdapterNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
@@ -696,6 +697,9 @@ INT_PTR CALLBACK NetworkDeviceDialogProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             NetworkDeviceInitializeDialogDpi(context);
+
+            context->GraphMarginScaled = context->GraphMargin;
+            PhGetMarginDpiValue(&context->GraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             if (context->SysinfoSection->Parameters->LargeFont)
             {
@@ -917,6 +921,7 @@ VOID NetworkDeviceSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_NETADAPTER_SYSINFO_CONTEXT));
+    PhInitializeEvent(&context->DetailsWindowInitializedEvent);
     context->AdapterEntry = PhReferenceObject(AdapterEntry);
     context->AdapterEntry->PendingQuery = TRUE;
 

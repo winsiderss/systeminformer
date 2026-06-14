@@ -68,6 +68,8 @@ static PH_QUEUED_LOCK SharedIconCacheLock = PH_QUEUED_LOCK_INIT;
 static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
+static ULONG_PTR WindowCallbackCookie = 0;
+static ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
 static typeof(&OpenThemeData) OpenThemeData_I = NULL;
@@ -94,10 +96,6 @@ static typeof(&GetDpiForSystem) GetDpiForSystem_I = NULL; // win10rs1+
 static typeof(&GetSystemDpiForProcess) GetSystemDpiForProcess_I = NULL;
 static typeof(&GetSystemMetricsForDpi) GetSystemMetricsForDpi_I = NULL;
 static typeof(&SystemParametersInfoForDpi) SystemParametersInfoForDpi_I = NULL;
-static typeof(&BufferedPaintInit) BufferedPaintInit_I = NULL;
-static typeof(&BufferedPaintUnInit) BufferedPaintUnInit_I = NULL;
-static typeof(&BeginBufferedPaint) BeginBufferedPaint_I = NULL;
-static typeof(&EndBufferedPaint) EndBufferedPaint_I = NULL;
 static _CreateMRUList CreateMRUList_I = NULL;
 static _AddMRUString AddMRUString_I = NULL;
 static _EnumMRUList EnumMRUList_I = NULL;
@@ -117,6 +115,7 @@ VOID PhGuiSupportInitialization(
 {
     PVOID baseAddress;
 
+    WindowCallbackCookie = (ULONG_PTR)PhGenerateRandomNumber64();
     WindowCallbackFlsIndex = FlsAlloc(PhWindowFlsCallback);
     WindowCallbackHashTable = PhCreateHashtable(
         sizeof(PH_PLUGIN_WINDOW_CALLBACK_REGISTRATION),
@@ -134,17 +133,13 @@ VOID PhGuiSupportInitialization(
         IsThemeActive_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeActive", 0);
         IsAppThemed_I = PhGetDllBaseProcedureAddress(baseAddress, "IsAppThemed", 0);
         IsThemePartDefined_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemePartDefined", 0);
+        IsThemeBackgroundPartiallyTransparent_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeBackgroundPartiallyTransparent", 0);
         GetThemeColor_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeColor", 0);
         GetThemeInt_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeInt", 0);
         GetThemePartSize_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemePartSize", 0);
         GetThemeMargins_I = PhGetDllBaseProcedureAddress(baseAddress, "GetThemeMargins", 0);
         DrawThemeBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeBackground", 0);
         DrawThemeParentBackground_I = PhGetDllBaseProcedureAddress(baseAddress, "DrawThemeParentBackground", 0);
-        IsThemeBackgroundPartiallyTransparent_I = PhGetDllBaseProcedureAddress(baseAddress, "IsThemeBackgroundPartiallyTransparent", 0);
-        BufferedPaintInit_I = PhGetDllBaseProcedureAddress(baseAddress, "BufferedPaintInit", 0);
-        BufferedPaintUnInit_I = PhGetDllBaseProcedureAddress(baseAddress, "BufferedPaintUnInit", 0);
-        BeginBufferedPaint_I = PhGetDllBaseProcedureAddress(baseAddress, "BeginBufferedPaint", 0);
-        EndBufferedPaint_I  = PhGetDllBaseProcedureAddress(baseAddress, "EndBufferedPaint", 0);
 
         if (WindowsVersion >= WINDOWS_11)
         {
@@ -212,7 +207,7 @@ LONG PhGetFontQualitySetting(
  * \param Dpi The dots per inch (DPI) value for scaling.
  * \return Handle to the created font, or NULL if creation fails.
  */
-HFONT PhCreateFont(
+HFONT PhCreateFontHandle(
     _In_opt_ PCWSTR Name,
     _In_ LONG Size,
     _In_ LONG Weight,
@@ -907,60 +902,6 @@ BOOLEAN PhDrawThemeParentBackground(
         return FALSE;
 
     return HR_SUCCESS(DrawThemeParentBackground_I(WindowHandle, Hdc, Rect));
-}
-
-HRESULT PhBufferedPaintInit(
-    VOID
-    )
-{
-    if (BufferedPaintInit_I)
-    {
-        return BufferedPaintInit_I();
-    }
-
-    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
-}
-
-HRESULT PhBufferedPaintUnInit(
-    VOID
-    )
-{
-    if (BufferedPaintUnInit_I)
-    {
-        return BufferedPaintUnInit_I();
-    }
-
-    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
-}
-
-_Success_(return != NULL)
-HPAINTBUFFER PhBeginBufferedPaint(
-    _In_ HDC HdcTarget,
-    _In_ const RECT* RectTarget,
-    _In_ BP_BUFFERFORMAT Format,
-    _In_opt_ BP_PAINTPARAMS* PaintParams,
-    _Out_ HDC* Hdc
-    )
-{
-    if (BeginBufferedPaint_I)
-    {
-        return BeginBufferedPaint_I(HdcTarget, RectTarget, Format, PaintParams, Hdc);
-    }
-
-    return NULL;
-}
-
-HRESULT PhEndBufferedPaint(
-    _In_ HPAINTBUFFER BufferedPaint,
-    _In_ BOOL UpdateTarget
-    )
-{
-    if (EndBufferedPaint_I)
-    {
-        return EndBufferedPaint_I(BufferedPaint, UpdateTarget);
-    }
-
-    return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 }
 
 /**
@@ -2731,8 +2672,8 @@ LRESULT CALLBACK PhDefaultPropSheetWindowProcedure(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hwnd, 0xF);
             PhSetWindowProcedure(hwnd, oldWndProc);
+            PhRemoveWindowContext(hwnd, 0xF);
         }
         break;
     case WM_SYSCOMMAND:
@@ -2939,6 +2880,23 @@ BOOLEAN PhInitializeLayoutManager(
     _In_ HWND RootWindowHandle
     )
 {
+    return PhInitializeLayoutManagerEx(Manager, RootWindowHandle, 0);
+}
+
+/**
+ * Initializes the root layout item with optional behavior flags.
+ *
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to initialize.
+ * \param RootWindowHandle Handle of the root window for layout operations.
+ * \param Flags Bitwise combination of PH_LAYOUT_INIT_* flags.
+ * \return TRUE on success, FALSE on failure.
+ */
+BOOLEAN PhInitializeLayoutManagerEx(
+    _Out_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND RootWindowHandle,
+    _In_ ULONG Flags
+    )
+{
     memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
 
     Manager->List = PhCreateList(4);
@@ -2954,7 +2912,7 @@ BOOLEAN PhInitializeLayoutManager(
     Manager->RootItem.NumberOfChildren = 0;
     Manager->RootItem.DeferHandle = NULL;
 
-    //if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
+    if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
     {
         ULONG style = PhGetWindowStyle(RootWindowHandle);
 
@@ -3278,7 +3236,7 @@ VOID PhpLayoutItemLayout(
                 Item->LayoutParentItem->DeferHandle, Item->Handle,
                 NULL, rect.left, rect.top,
                 rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
                 );
         }
         else
@@ -3291,7 +3249,7 @@ VOID PhpLayoutItemLayout(
                 Item->Handle,
                 NULL, rect.left, rect.top,
                 rect.right - rect.left, rect.bottom - rect.top,
-                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOREDRAW
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW
                 );
         }
     }
@@ -3528,6 +3486,127 @@ VOID PhRemoveWindowContext(
     lookupEntry.PropertyHash = PropertyHash;
 
     PhRemoveEntryHashtable(PhGetWindowContextHashTable(), &lookupEntry);
+}
+
+/**
+ * Encodes a pointer using the window context cookie.
+ *
+ * \param[in] Pointer The pointer to encode.
+ * \return The encoded pointer.
+ */
+PVOID PhEncodePtr(
+    _In_opt_ PVOID Pointer
+    )
+{
+    return (PVOID)((ULONG_PTR)Pointer ^ WindowCallbackCookie);
+}
+
+/**
+ * Decodes a pointer using the window context cookie.
+ *
+ * \param[in] Pointer The pointer to decode.
+ * \return The decoded pointer.
+ */
+PVOID PhDecodePtr(
+    _In_opt_ PVOID Pointer
+    )
+{
+    return (PVOID)((ULONG_PTR)Pointer ^ WindowCallbackCookie);
+}
+
+/**
+ * Retrieves the window context pointer associated with a window handle.
+ *
+ * \param[in] WindowHandle A handle to the window from which to retrieve the context.
+ * \return A pointer to the window context, or NULL if no context has been set.
+ */
+PVOID PhGetWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, 0));
+#endif
+}
+
+/**
+ * Sets the extended window context for a window handle.
+ *
+ * \param[in] WindowHandle The handle to the window for which to set the context.
+ * \param[in] Context A pointer to the context data to associate with the window.
+ * \return This function does not return a value.
+ * \remarks The window must have sufficient extra bytes allocated to store a PVOID
+ * if PHNT_WINDOW_CLASS_CONTEXT is not defined.
+ */
+VOID PhSetWindowContextEx(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)PhEncodePtr(Context));
+#endif
+}
+
+/**
+ * Removes the window context from a window handle.
+ *
+ * \param[in] WindowHandle The handle to the window from which to remove the context.
+ * \remarks
+ * If PHNT_WINDOW_CLASS_CONTEXT is defined, this function delegates to PhRemoveWindowContext
+ * with MAXCHAR as the context identifier. Otherwise, it clears the window's extra data by
+ * setting the window long pointer at offset 0 to NULL.
+ */
+VOID PhRemoveWindowContextEx(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
+    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
+#endif
+}
+
+PVOID PhGetDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    return PhGetWindowContext(WindowHandle, MAXCHAR);
+#else
+    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER));
+#endif
+}
+
+VOID PhSetDialogContext(
+    _In_ HWND WindowHandle,
+    _In_ PVOID Context
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)PhEncodePtr(Context));
+#endif
+}
+
+VOID PhRemoveDialogContext(
+    _In_ HWND WindowHandle
+    )
+{
+#if defined(PHNT_WINDOW_CLASS_CONTEXT)
+    PhRemoveWindowContext(WindowHandle, MAXCHAR);
+#else
+    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)NULL);
+#endif
 }
 
 //
@@ -5151,6 +5230,7 @@ NTSTATUS PhGetSystemResourcesFileName(
  * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
  * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
  */
+_Success_(NT_SUCCESS(return))
 NTSTATUS PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
@@ -7027,4 +7107,777 @@ NTSTATUS PhGetInputMessageSourceSM(
     }
 
     return STATUS_PROCEDURE_NOT_FOUND;
+}
+
+/**
+ * Registers the devices that supply the raw input data.
+ *
+ * \param Devices An array of RAWINPUTDEVICE structures that represent the devices that supply the raw input.
+ * \param Count The number of RAWINPUTDEVICE structures in the array.
+ *
+ * \return TRUE if the function succeeds, otherwise FALSE.
+ */
+BOOLEAN NTAPI PhRegisterRawInputDevices(
+    _In_reads_(Count) PCRAWINPUTDEVICE Devices,
+    _In_ ULONG Count
+    )
+{
+    return RegisterRawInputDevices(Devices, Count, sizeof(RAWINPUTDEVICE));
+}
+
+/**
+ * Retrieves the raw input from the specified device.
+ *
+ * \param RawInputHandle A handle to the RAWINPUT structure.
+ * \param Command The command flag.
+ * \param Buffer A pointer to the data that comes from the RAWINPUT structure.
+ * \param Size The size, in bytes, of the data in Buffer.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS NTAPI PhGetRawInputData(
+    _In_ HRAWINPUT RawInputHandle,
+    _In_ ULONG Command,
+    _Out_opt_ PVOID Buffer,
+    _Inout_ PULONG Size
+    )
+{
+    if (GetRawInputData(RawInputHandle, Command, Buffer, Size, sizeof(RAWINPUTHEADER)) != UINT_ERROR) // UINT_ERROR
+    {
+        return STATUS_SUCCESS;
+    }
+
+    return PhGetLastWin32ErrorAsNtStatus();
+}
+
+/**
+ * Retrieves the raw input from the specified device and allocates a buffer for it.
+ *
+ * \param RawInputHandle A handle to the RAWINPUT structure.
+ * \return A pointer to the allocated RAWINPUT structure, or NULL if the operation failed.
+ */
+PRAWINPUT NTAPI PhGetRawInput(
+    _In_ HRAWINPUT RawInputHandle
+    )
+{
+    PRAWINPUT rawInput;
+    ULONG size;
+
+    if (!NT_SUCCESS(PhGetRawInputData(RawInputHandle, RID_INPUT, NULL, &size)))
+        return NULL;
+
+    rawInput = PhAllocate(size);
+
+    if (!NT_SUCCESS(PhGetRawInputData(RawInputHandle, RID_INPUT, rawInput, &size)))
+    {
+        PhFree(rawInput);
+        return NULL;
+    }
+
+    return rawInput;
+}
+
+/**
+ * Creates a reference-counted font from the supplied parameters and window DPI.
+ *
+ * Returns an HFONT pointing to the Body field of a private PH_FONT_OBJECT header.
+ * The font starts with a reference count of one and must be released with PhDereferenceFont.
+ * Use PhReferenceFont to take additional references. The wrapped GDI handle may be NULL if
+ * the underlying CreateFont call failed; callers should still dereference to release memory.
+ *
+ * \param Name Optional typeface name (e.g. L"Segoe UI"). NULL selects the system default.
+ * \param Size Point size.
+ * \param Weight Font weight (e.g. FW_NORMAL, FW_BOLD).
+ * \param PitchAndFamily Pitch and family value passed to CreateFont.
+ * \param WindowDpi Window DPI used to scale the font.
+ */
+HFONT PhCreateFont(
+    _In_opt_ PCWSTR Name,
+    _In_ LONG Size,
+    _In_ LONG Weight,
+    _In_ LONG PitchAndFamily,
+    _In_ LONG WindowDpi
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+    HFONT font;
+
+    fontObject = PhAllocate(sizeof(PH_FONT_OBJECT));
+    fontObject->RefCount = 1;
+
+    font = PhFontObjectHeaderToObject(fontObject);
+    *(HFONT*)font = PhCreateFontHandle(Name, Size, Weight, PitchAndFamily, WindowDpi);
+
+    return font;
+}
+
+/**
+ * Adds a reference to a font previously created with PhCreateFont.
+ */
+VOID PhReferenceFont(
+    _In_ HFONT Font
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+
+    fontObject = PhFontObjectToObjectHeader(Font);
+
+    _InterlockedIncrement(&fontObject->RefCount);
+}
+
+/**
+ * Releases a reference to a font previously created with PhCreateFont. When the last
+ * reference is released the underlying GDI handle is destroyed and the wrapper is freed.
+ */
+VOID PhDereferenceFont(
+    _In_ _Post_invalid_ HFONT Font
+    )
+{
+    PPH_FONT_OBJECT fontObject;
+    HFONT fontHandle;
+
+    fontObject = PhFontObjectToObjectHeader(Font);
+
+    if (_InterlockedDecrement(&fontObject->RefCount) == 0)
+    {
+        fontHandle = *(HFONT*)Font;
+
+        if (fontHandle)
+            DeleteFont(fontHandle);
+
+        PhFree(fontObject);
+    }
+}
+
+
+
+// Buffered paint
+//
+// Implements a UxTheme-free buffered paint API using per-thread FLS caching for
+// zero-allocation repaint paths. Each thread owns one cache slot holding a
+// memory DC and a 32-bpp top-down DIB section. PhBeginBufferedPaint reuses the
+// cached bitmap when it is large enough and reallocates only when a larger
+// surface is needed. Oversized rectangles (larger than PH_BP_MAX_CACHE_AREA)
+// and GDI failures fall back to transient per-call allocations.
+//
+// Each thread has its own FLS slot, so no locking is required. Nested
+// PhBeginBufferedPaint calls on the same thread are asserted against in debug
+// builds.
+
+#define PH_BP_MIN_DIM 64                    // never shrink the cache below this
+#define PH_BP_MAX_CACHE_AREA (4096 * 2160)  // larger rects allocate per-call
+
+/**
+ * Per-thread buffered paint cache, stored in FLS. The PH_BP_CACHE and
+ * PPH_BP_CACHE typedefs are declared in guisup.h; this completes the tag.
+ */
+struct _PH_BP_CACHE
+{
+    HDC Hdc;            // memory DC (created once, reused)
+    HBITMAP Bitmap;     // DIB section currently sized AllocWidth x AllocHeight
+    PVOID Bits;         // raw pixel pointer from CreateDIBSection (32 bpp)
+    LONG AllocWidth;    // allocated bitmap width
+    LONG AllocHeight;   // allocated bitmap height
+    BOOLEAN InUse;      // nesting guard
+};
+
+/**
+ * FLS destructor for a per-thread cache slot.
+ *
+ * \param Parameter The PH_BP_CACHE slot being released on thread exit.
+ */
+static VOID NTAPI PhpFreeBufferedPaintCache(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_BP_CACHE cache = Parameter;
+
+    if (!cache)
+        return;
+
+    // If the thread died mid-paint InUse is TRUE; we cannot safely deselect, so
+    // we leak the objects rather than corrupt GDI state.
+    if (!cache->InUse)
+    {
+        if (cache->Bitmap)
+            DeleteObject(cache->Bitmap);
+        if (cache->Hdc)
+            DeleteDC(cache->Hdc);
+    }
+
+    PhFree(cache);
+}
+
+/**
+ * Returns the calling thread's buffered paint cache slot, allocating one on
+ * first use. Returns NULL when the FLS index has not been initialized.
+ */
+_Must_inspect_result_
+static PPH_BP_CACHE PhpGetBufferedPaintCache(
+    VOID
+    )
+{
+    PPH_BP_CACHE cache;
+
+    if (PhBufferedPaintFlsIndex == FLS_OUT_OF_INDEXES)
+        return NULL;
+
+    cache = FlsGetValue(PhBufferedPaintFlsIndex);
+
+    if (!cache)
+    {
+        cache = PhAllocateZero(sizeof(PH_BP_CACHE));
+
+        if (cache)
+            FlsSetValue(PhBufferedPaintFlsIndex, cache);
+    }
+
+    return cache;
+}
+
+/**
+ * Ensures the cache slot owns a memory DC compatible with ReferenceHdc.
+ */
+static BOOLEAN PhpEnsureBufferedPaintDC(
+    _In_ PPH_BP_CACHE Cache,
+    _In_ HDC ReferenceHdc
+    )
+{
+    if (!Cache->Hdc)
+        Cache->Hdc = CreateCompatibleDC(ReferenceHdc);
+
+    return Cache->Hdc != NULL;
+}
+
+/**
+ * Ensures the cache slot owns a top-down 32-bpp DIB section at least
+ * Width x Height pixels, reusing the existing bitmap when large enough.
+ */
+static BOOLEAN PhpEnsureBufferedPaintBitmap(
+    _In_ PPH_BP_CACHE Cache,
+    _In_ HDC ReferenceHdc,
+    _In_ LONG Width,
+    _In_ LONG Height
+    )
+{
+    BITMAPINFO bitmapInfo;
+    HBITMAP bitmap;
+    LONG allocWidth = __max(Width, PH_BP_MIN_DIM);
+    LONG allocHeight = __max(Height, PH_BP_MIN_DIM);
+
+    if (Cache->Bitmap &&
+        Cache->AllocWidth >= Width &&
+        Cache->AllocHeight >= Height)
+    {
+        return TRUE; // cached bitmap is large enough
+    }
+
+    if (Cache->Bitmap)
+    {
+        DeleteObject(Cache->Bitmap);
+        Cache->Bitmap = NULL;
+        Cache->Bits = NULL;
+    }
+
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = allocWidth;
+    bitmapInfo.bmiHeader.biHeight = -allocHeight; // top-down
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &Cache->Bits, NULL, 0);
+
+    if (!bitmap)
+        return FALSE;
+
+    Cache->Bitmap = bitmap;
+    Cache->AllocWidth = allocWidth;
+    Cache->AllocHeight = allocHeight;
+    return TRUE;
+}
+
+/**
+ * Allocates a fresh DC and DIB for an oversized or fallback paint. Returns a
+ * heap-allocated cache slot owned by the caller's PH_BUFFERED_PAINT.
+ */
+static PPH_BP_CACHE PhpAllocateTransientBufferedPaint(
+    _In_ HDC ReferenceHdc,
+    _In_ LONG Width,
+    _In_ LONG Height
+    )
+{
+    PPH_BP_CACHE cache;
+    BITMAPINFO bitmapInfo;
+    HBITMAP bitmap;
+
+    cache = PhAllocateZero(sizeof(PH_BP_CACHE));
+
+    if (!cache)
+        return NULL;
+
+    cache->Hdc = CreateCompatibleDC(ReferenceHdc);
+
+    if (!cache->Hdc)
+        goto CleanupExit;
+
+    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = Width;
+    bitmapInfo.bmiHeader.biHeight = -Height;
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &cache->Bits, NULL, 0);
+
+    if (!bitmap)
+        bitmap = CreateCompatibleBitmap(ReferenceHdc, Width, Height); // Bits stays NULL
+
+    if (!bitmap)
+        goto CleanupExit;
+
+    cache->Bitmap = bitmap;
+    cache->AllocWidth = Width;
+    cache->AllocHeight = Height;
+    return cache;
+
+CleanupExit:
+    if (cache->Hdc)
+        DeleteDC(cache->Hdc);
+    PhFree(cache);
+    return NULL;
+}
+
+/**
+ * Allocates the process-wide FLS index used by the buffered paint cache.
+ *
+ * \return TRUE on success. Safe to call multiple times.
+ */
+BOOLEAN PhBufferedPaintInit(
+    VOID
+    )
+{
+    if (PhBufferedPaintFlsIndex == FLS_OUT_OF_INDEXES)
+        PhBufferedPaintFlsIndex = FlsAlloc(PhpFreeBufferedPaintCache);
+
+    return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
+}
+
+/**
+ * Frees the FLS index and all per-thread cache slots still alive. Call from
+ * DLL_PROCESS_DETACH or application shutdown.
+ */
+VOID PhBufferedPaintUnInit(
+    VOID
+    )
+{
+    if (PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES)
+    {
+        FlsFree(PhBufferedPaintFlsIndex);
+        PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
+    }
+}
+
+/**
+ * Acquires (or creates) the per-thread cached DC and DIB, prepares it to cover
+ * TargetRect, and returns the memory DC in PaintHdc.
+ *
+ * \param TargetHdc The DC that the buffer will be blitted to on End.
+ * \param TargetRect The paint rectangle in TargetHdc coordinates.
+ * \param BufferedPaint Receives the buffered paint state.
+ * \param PaintHdc Receives the memory DC to paint into.
+ * \return TRUE on success. On FALSE the caller should draw directly into
+ * TargetHdc.
+ */
+_Must_inspect_result_
+BOOLEAN PhBeginBufferedPaint(
+    _In_ HDC TargetHdc,
+    _In_ const RECT* TargetRect,
+    _Out_ PPH_BUFFERED_PAINT BufferedPaint,
+    _Out_ HDC* PaintHdc
+    )
+{
+    LONG width;
+    LONG height;
+    BOOLEAN oversized;
+    PPH_BP_CACHE cache;
+
+    assert(TargetHdc);
+    assert(TargetRect);
+    assert(BufferedPaint);
+    assert(PaintHdc);
+
+    memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
+    *PaintHdc = NULL;
+
+    width = TargetRect->right - TargetRect->left;
+    height = TargetRect->bottom - TargetRect->top;
+
+    if (width <= 0 || height <= 0)
+        return FALSE;
+
+    oversized = (PH_BP_MAX_CACHE_AREA > 0) &&
+        ((LONGLONG)width * height > (LONGLONG)PH_BP_MAX_CACHE_AREA);
+
+    cache = oversized ? NULL : PhpGetBufferedPaintCache();
+
+#if defined(_DEBUG) || defined(DBG)
+    if (cache)
+        assert(!cache->InUse && "Nested PhBeginBufferedPaint on same thread!");
+#endif
+
+    if (cache)
+    {
+        if (PhpEnsureBufferedPaintDC(cache, TargetHdc) &&
+            PhpEnsureBufferedPaintBitmap(cache, TargetHdc, width, height))
+        {
+            BufferedPaint->Cache = cache;
+            BufferedPaint->TargetHdc = TargetHdc;
+            BufferedPaint->TargetRect = *TargetRect;
+            BufferedPaint->PaintWidth = width;
+            BufferedPaint->PaintHeight = height;
+            BufferedPaint->OwnsDc = FALSE;
+            BufferedPaint->OwnsBitmap = FALSE;
+            BufferedPaint->Valid = TRUE;
+            BufferedPaint->OldBitmap = (HBITMAP)SelectObject(cache->Hdc, cache->Bitmap);
+            SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+            cache->InUse = TRUE;
+            *PaintHdc = cache->Hdc;
+            return TRUE;
+        }
+
+        // GDI failure - fall through to the transient path.
+    }
+
+    // Oversized or GDI failure: allocate fresh objects for this call only.
+    {
+        PPH_BP_CACHE transient = PhpAllocateTransientBufferedPaint(TargetHdc, width, height);
+
+        if (!transient)
+            return FALSE;
+
+        BufferedPaint->Cache = transient;
+        BufferedPaint->TargetHdc = TargetHdc;
+        BufferedPaint->TargetRect = *TargetRect;
+        BufferedPaint->PaintWidth = width;
+        BufferedPaint->PaintHeight = height;
+        BufferedPaint->OwnsDc = TRUE;
+        BufferedPaint->OwnsBitmap = TRUE;
+        BufferedPaint->Valid = TRUE;
+        BufferedPaint->OldBitmap = (HBITMAP)SelectObject(transient->Hdc, transient->Bitmap);
+        SetWindowOrgEx(transient->Hdc, TargetRect->left, TargetRect->top, NULL);
+        *PaintHdc = transient->Hdc;
+        return TRUE;
+    }
+}
+
+/**
+ * Blits (when UpdateTarget) the buffer to the target DC, deselects the bitmap,
+ * and returns the cache slot to its free state (or destroys transient objects).
+ *
+ * \param BufferedPaint The buffered paint state from PhBeginBufferedPaint.
+ * \param UpdateTarget TRUE to blit the buffer to the target DC.
+ */
+VOID PhEndBufferedPaint(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_ BOOLEAN UpdateTarget
+    )
+{
+    if (!BufferedPaint || !BufferedPaint->Valid)
+        return;
+
+    if (UpdateTarget && BufferedPaint->PaintWidth > 0 && BufferedPaint->PaintHeight > 0)
+    {
+        BitBlt(
+            BufferedPaint->TargetHdc,
+            BufferedPaint->TargetRect.left, BufferedPaint->TargetRect.top,
+            BufferedPaint->PaintWidth, BufferedPaint->PaintHeight,
+            BufferedPaint->Cache->Hdc,
+            BufferedPaint->TargetRect.left, BufferedPaint->TargetRect.top,
+            SRCCOPY
+            );
+    }
+
+    // Deselect before any DeleteObject calls.
+    if (BufferedPaint->OldBitmap)
+        SelectObject(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
+
+    if (BufferedPaint->OwnsDc || BufferedPaint->OwnsBitmap)
+    {
+        if (BufferedPaint->OwnsBitmap && BufferedPaint->Cache->Bitmap)
+            DeleteObject(BufferedPaint->Cache->Bitmap);
+        if (BufferedPaint->OwnsDc && BufferedPaint->Cache->Hdc)
+            DeleteDC(BufferedPaint->Cache->Hdc);
+        PhFree(BufferedPaint->Cache);
+    }
+    else if (BufferedPaint->Cache)
+    {
+        BufferedPaint->Cache->InUse = FALSE;
+    }
+
+    memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
+}
+
+/**
+ * Clears (zeroes) the sub-rectangle Rect of the buffer. Zeros in a 32-bpp
+ * top-down DIB mean transparent black (ARGB 0x00000000). Pass Rect = NULL to
+ * clear the entire paint rectangle.
+ */
+BOOLEAN PhBufferedPaintClear(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect
+    )
+{
+    RECT clearRect;
+
+    if (!BufferedPaint || !BufferedPaint->Valid)
+        return FALSE;
+
+    clearRect = Rect ? *Rect : BufferedPaint->TargetRect;
+
+    // Fast path: use the raw bits pointer when available.
+    if (BufferedPaint->Cache->Bits)
+    {
+        LONG rowStride = BufferedPaint->Cache->AllocWidth * 4; // 4 bytes per pixel
+        LONG x0 = clearRect.left - BufferedPaint->TargetRect.left;
+        LONG y0 = clearRect.top - BufferedPaint->TargetRect.top;
+        LONG x1 = clearRect.right - BufferedPaint->TargetRect.left;
+        LONG y1 = clearRect.bottom - BufferedPaint->TargetRect.top;
+        LONG clampX0 = __max(x0, 0);
+        LONG clampY0 = __max(y0, 0);
+        LONG clampX1 = __min(x1, BufferedPaint->PaintWidth);
+        LONG clampY1 = __min(y1, BufferedPaint->PaintHeight);
+        LONG spanBytes = (clampX1 - clampX0) * 4;
+        LONG row;
+        PBYTE base = BufferedPaint->Cache->Bits;
+
+        if (spanBytes <= 0 || clampY1 <= clampY0)
+            return TRUE;
+
+        for (row = clampY0; row < clampY1; row++)
+        {
+            memset(base + (SIZE_T)row * rowStride + (SIZE_T)clampX0 * 4, 0, (SIZE_T)spanBytes);
+        }
+
+        return TRUE;
+    }
+
+    // Fallback: PatBlt with a black brush.
+    {
+        LONG x = clearRect.left;
+        LONG y = clearRect.top;
+        LONG width = clearRect.right - clearRect.left;
+        LONG height = clearRect.bottom - clearRect.top;
+
+        return !!PatBlt(BufferedPaint->Cache->Hdc, x, y, width, height, BLACKNESS);
+    }
+}
+
+/**
+ * Sets the alpha channel of every pixel in sub-rectangle Rect to Alpha. This is
+ * a direct write to the DIB bits; no GDI round-trip is needed.
+ *
+ * \param Alpha 0 = fully transparent, 255 = fully opaque.
+ * \param Rect Sub-rectangle in buffer coordinates. Pass NULL for the full rect.
+ * \return FALSE if the buffer has no DIB bits (fallback compatible-bitmap path).
+ */
+BOOLEAN PhBufferedPaintSetAlpha(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect,
+    _In_ BYTE Alpha
+    )
+{
+    RECT setRect;
+    LONG x0, y0, x1, y1, row, col;
+    PBYTE base;
+    LONG rowStride;
+
+    if (!BufferedPaint || !BufferedPaint->Valid)
+        return FALSE;
+
+    if (!BufferedPaint->Cache->Bits)
+        return FALSE; // compatible bitmap - no direct access
+
+    setRect = Rect ? *Rect : BufferedPaint->TargetRect;
+
+    x0 = __max(setRect.left - BufferedPaint->TargetRect.left, 0);
+    y0 = __max(setRect.top - BufferedPaint->TargetRect.top, 0);
+    x1 = __min(setRect.right - BufferedPaint->TargetRect.left, BufferedPaint->PaintWidth);
+    y1 = __min(setRect.bottom - BufferedPaint->TargetRect.top, BufferedPaint->PaintHeight);
+
+    if (x1 <= x0 || y1 <= y0)
+        return TRUE;
+
+    base = BufferedPaint->Cache->Bits;
+    rowStride = BufferedPaint->Cache->AllocWidth * 4;
+
+    for (row = y0; row < y1; row++)
+    {
+        PBYTE rowPointer = base + (SIZE_T)row * rowStride + (SIZE_T)x0 * 4;
+
+        for (col = x0; col < x1; col++, rowPointer += 4)
+            rowPointer[3] = Alpha; // BGRA layout: byte[3] is alpha
+    }
+
+    return TRUE;
+}
+
+/**
+ * Returns a pointer to the top-left pixel of the buffer DIB and the row stride
+ * in pixels (the DIB is 32 bpp, so one RGBQUAD per pixel).
+ *
+ * \param Bits Receives the start of the pixel data.
+ * \param WidthInPixels Receives the number of pixels per scan line (AllocWidth,
+ * which may be wider than the paint width for caching reasons).
+ * \return FALSE if the buffer has no DIB bits (fallback compatible-bitmap path
+ * or invalid handle).
+ */
+BOOLEAN PhGetBufferedPaintBits(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels
+    )
+{
+    assert(Bits);
+    assert(WidthInPixels);
+
+    *Bits = NULL;
+    *WidthInPixels = 0;
+
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
+        return FALSE;
+
+    if (!BufferedPaint->Cache->Bits)
+        return FALSE;
+
+    *Bits = BufferedPaint->Cache->Bits;
+    *WidthInPixels = BufferedPaint->Cache->AllocWidth;
+    return TRUE;
+}
+
+/**
+ * Extended variant of PhGetBufferedPaintBits that also returns the byte stride
+ * and a pointer to the first pixel of the paint rectangle.
+ *
+ * \param Bits Receives the pixel data base pointer (top-left of allocation).
+ * \param WidthInPixels Receives the scan-line width in pixels (>= paint width).
+ * \param WidthInBytes Receives the scan-line width in bytes (AllocWidth * 4).
+ * \param FirstPaintPixel Receives a pointer to the first paint pixel, ready for
+ * direct pixel loops over the paint width and height.
+ * \return FALSE if no DIB bits are available.
+ */
+BOOLEAN PhGetBufferedPaintBitsEx(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels,
+    _Out_ PLONG WidthInBytes,
+    _Out_ RGBQUAD** FirstPaintPixel
+    )
+{
+    assert(Bits);
+    assert(WidthInPixels);
+    assert(WidthInBytes);
+    assert(FirstPaintPixel);
+
+    *Bits = NULL;
+    *WidthInPixels = 0;
+    *WidthInBytes = 0;
+    *FirstPaintPixel = NULL;
+
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache || !BufferedPaint->Cache->Bits)
+        return FALSE;
+
+    *Bits = BufferedPaint->Cache->Bits;
+    *WidthInPixels = BufferedPaint->Cache->AllocWidth;
+    *WidthInBytes = BufferedPaint->Cache->AllocWidth * 4;
+    // The top-down DIB's row 0 corresponds to TargetRect.top in window
+    // coordinates because SetWindowOrgEx was applied to the memory DC. The pixel
+    // at (TargetRect.left, TargetRect.top) is therefore always at offset 0 in
+    // the surface.
+    *FirstPaintPixel = BufferedPaint->Cache->Bits;
+    return TRUE;
+}
+
+/**
+ * Returns the memory DC to paint into. Valid between Begin and End. Returns
+ * NULL if BufferedPaint is invalid.
+ */
+HDC PhGetBufferedPaintDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    )
+{
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
+        return NULL;
+
+    return BufferedPaint->Cache->Hdc;
+}
+
+/**
+ * Returns the original DC that was passed to PhBeginBufferedPaint.
+ */
+HDC PhGetBufferedPaintTargetDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    )
+{
+    if (!BufferedPaint || !BufferedPaint->Valid)
+        return NULL;
+
+    return BufferedPaint->TargetHdc;
+}
+
+/**
+ * Returns the paint rectangle that was passed to PhBeginBufferedPaint.
+ */
+BOOLEAN PhGetBufferedPaintTargetRect(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ PRECT Rect
+    )
+{
+    assert(Rect);
+
+    if (!BufferedPaint || !BufferedPaint->Valid)
+    {
+        memset(Rect, 0, sizeof(RECT));
+        return FALSE;
+    }
+
+    *Rect = BufferedPaint->TargetRect;
+    return TRUE;
+}
+
+/**
+ * Convenience wrapper that buffers a WM_PAINT into an off-screen surface and
+ * invokes PaintProc with the buffer DC, falling back to direct painting when a
+ * buffer cannot be acquired.
+ *
+ * \param WindowHandle The window being painted.
+ * \param PaintStruct The PAINTSTRUCT from BeginPaint.
+ * \param PaintProc The callback that performs the actual drawing.
+ * \param Context Caller context passed through to PaintProc.
+ */
+VOID PhPaintBuffered(
+    _In_ HWND WindowHandle,
+    _In_ const PAINTSTRUCT* PaintStruct,
+    _In_ PPH_BUFFERED_PAINT_PROC PaintProc,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_BUFFERED_PAINT bufferedPaint;
+    HDC paintHdc;
+
+    assert(WindowHandle);
+    assert(PaintStruct);
+    assert(PaintProc);
+
+    if (PhBeginBufferedPaint(PaintStruct->hdc, &PaintStruct->rcPaint, &bufferedPaint, &paintHdc))
+    {
+        BOOLEAN result = PaintProc(paintHdc, (PRECT)&PaintStruct->rcPaint, Context);
+        PhEndBufferedPaint(&bufferedPaint, result);
+    }
+    else
+    {
+        PaintProc(PaintStruct->hdc, (PRECT)&PaintStruct->rcPaint, Context);
+    }
 }

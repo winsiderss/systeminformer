@@ -296,7 +296,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             HFONT windowFont;
 
             if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
-                PhReplaceWindowFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
             PhLayoutManagerLayout(&context->LayoutManager);

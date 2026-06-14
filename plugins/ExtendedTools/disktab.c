@@ -1222,7 +1222,7 @@ VOID EtHandleDiskCommand(
                     if (found)
                     {
                         SystemInformer_SelectTabPage(0);
-                        PhSelectAndEnsureVisibleProcessNode(processNode);
+                        SystemInformer_SelectProcessNode(processNode);
                     }
                     else
                     {

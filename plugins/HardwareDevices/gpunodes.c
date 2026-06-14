@@ -199,30 +199,6 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
             context->GraphHandle = PhAllocateZero(sizeof(HWND) * context->NumberOfNodes);
             context->GraphState = PhAllocateZero(sizeof(PH_GRAPH_STATE) * context->NumberOfNodes);
 
-            // Calculate the minimum size.
-
-            numberOfRows = (ULONG)sqrt(context->NumberOfNodes);
-            numberOfColumns = (context->NumberOfNodes + numberOfRows - 1) / numberOfRows;
-            context->MinimumSize.left = 0;
-            context->MinimumSize.top = 0;
-            context->MinimumSize.right = 55;
-            context->MinimumSize.bottom = 60;
-            MapDialogRect(WindowHandle, &context->MinimumSize);
-            context->MinimumSize.right += (context->MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
-            context->MinimumSize.bottom += (context->MinimumSize.bottom + GRAPH_PADDING) * numberOfRows;
-            SetWindowPos(WindowHandle, NULL, 0, 0, context->MinimumSize.right, context->MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
-
-            {
-                D3DKMT_HANDLE adapterHandle;
-                LUID adapterLuid;
-
-                if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(context->DeviceEntry->Id.DevicePath))))
-                {
-                    context->NodeNameList = GraphicsQueryDeviceNodeList(adapterHandle, context->NumberOfNodes);
-                    GraphicsCloseAdapterHandle(adapterHandle);
-                }
-            }
-
             for (i = 0; i < context->NumberOfNodes; i++)
             {
                 PH_GRAPH_CREATEPARAMS graphCreateParams;
@@ -247,6 +223,30 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                     );
                 Graph_SetTooltip(context->GraphHandle[i], TRUE);
                 PhInitializeGraphState(&context->GraphState[i]);
+            }
+
+            // Calculate the minimum size.
+
+            numberOfRows = (ULONG)sqrt(context->NumberOfNodes);
+            numberOfColumns = (context->NumberOfNodes + numberOfRows - 1) / numberOfRows;
+            context->MinimumSize.left = 0;
+            context->MinimumSize.top = 0;
+            context->MinimumSize.right = 55;
+            context->MinimumSize.bottom = 60;
+            MapDialogRect(WindowHandle, &context->MinimumSize);
+            context->MinimumSize.right += (context->MinimumSize.right + GRAPH_PADDING) * numberOfColumns;
+            context->MinimumSize.bottom += (context->MinimumSize.bottom + GRAPH_PADDING) * numberOfRows;
+            SetWindowPos(WindowHandle, NULL, 0, 0, context->MinimumSize.right, context->MinimumSize.bottom, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOZORDER);
+
+            {
+                D3DKMT_HANDLE adapterHandle;
+                LUID adapterLuid;
+
+                if (NT_SUCCESS(GraphicsOpenAdapterFromDeviceName(&adapterHandle, &adapterLuid, PhGetString(context->DeviceEntry->Id.DevicePath))))
+                {
+                    context->NodeNameList = GraphicsQueryDeviceNodeList(adapterHandle, context->NumberOfNodes);
+                    GraphicsCloseAdapterHandle(adapterHandle);
+                }
             }
 
             // Note: This dialog must be centered after all other graphs and controls have been added.

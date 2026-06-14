@@ -290,7 +290,7 @@ VOID CustomizeLoadToolbarItems(
             }
             else
             {
-                context->IconHandle = CustomizeGetToolbarIcon(Context, button.idCommand, Context->WindowDpi);
+                context->IconHandle = CustomizeGetToolbarIcon(Context, context->IdCommand, Context->WindowDpi);
             }
 
             ListBox_AddItemData(Context->CurrentListHandle, context);
@@ -829,15 +829,7 @@ INT_PTR CALLBACK CustomizeToolbarDialogProc(
 
                         PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                        if (ToolStatusConfig.AutoHideMenu)
-                        {
-                            SetMenu(MainWindowHandle, NULL);
-                        }
-                        else
-                        {
-                            SetMenu(MainWindowHandle, MainMenu);
-                            DrawMenuBar(MainWindowHandle);
-                        }
+                        ToolStatusApplyMainMenuVisibility(MainWindowHandle);
                     }
                 }
                 break;

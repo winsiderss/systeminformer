@@ -13,10 +13,8 @@
 #include "exttools.h"
 
  // Undocumented device properties (Win10 only)
-DEFINE_DEVPROPKEY(DEVPKEY_Gpu_Luid, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 2); // DEVPROP_TYPE_UINT64
-DEFINE_DEVPROPKEY(DEVPKEY_Gpu_PhysicalAdapterIndex, 0x60b193cb, 0x5276, 0x4d0f, 0x96, 0xfc, 0xf1, 0x73, 0xab, 0xad, 0x3e, 0xc6, 3); // DEVPROP_TYPE_UINT32
 DEFINE_GUID(GUID_DISPLAY_DEVICE_ARRIVAL, 0x1ca05180, 0xa699, 0x450a, 0x9a, 0x0c, 0xde, 0x4f, 0xbe, 0x3d, 0xdd, 0x89);
-DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
+//DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
 
 DEFINE_GUID(DXCORE_ADAPTER_ATTRIBUTE_D3D11_GRAPHICS, 0x8c47866b, 0x7583, 0x450d, 0xf0, 0xf0, 0x6b, 0xad, 0xa8, 0x95, 0xaf, 0x4b);
 DEFINE_GUID(DXCORE_ADAPTER_ATTRIBUTE_D3D12_GRAPHICS, 0x0c9ece4d, 0x2f6e, 0x4f01, 0x8c, 0x96, 0xe8, 0x9e, 0x33, 0x1b, 0x47, 0xb1);
@@ -506,158 +504,104 @@ NTSTATUS EtQueryAdapterAttributes(
     return status;
 }
 
-PPH_STRING EtpQueryDevicePropertyString(
-    _In_ DEVINST DeviceHandle,
-    _In_ CONST DEVPROPKEY *DeviceProperty
+/**
+ * Formats a DEVPROPERTY value as a display string.
+ */
+static PPH_STRING EtpFormatDeviceProperty(
+    _In_opt_ const DEVPROPERTY* Property
     )
 {
-    CONFIGRET result;
-    PBYTE buffer;
-    ULONG bufferSize;
-    DEVPROPTYPE propertyType;
-
-    bufferSize = 0x80;
-    buffer = PhAllocate(bufferSize);
-    propertyType = DEVPROP_TYPE_EMPTY;
-
-    if ((result = CM_Get_DevNode_Property(
-        DeviceHandle,
-        DeviceProperty,
-        &propertyType,
-        buffer,
-        &bufferSize,
-        0
-        )) == CR_BUFFER_SMALL)
-    {
-        PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
-
-        result = CM_Get_DevNode_Property(
-            DeviceHandle,
-            DeviceProperty,
-            &propertyType,
-            buffer,
-            &bufferSize,
-            0
-            );
-    }
-
-    if (result != CR_SUCCESS)
-    {
-        PhFree(buffer);
+    if (!Property || !Property->Buffer)
         return NULL;
-    }
 
-    switch (propertyType)
+    switch (Property->Type)
     {
     case DEVPROP_TYPE_STRING:
         {
-            PPH_STRING string;
+            SIZE_T length;
 
-            string = PhCreateStringEx((PWCHAR)buffer, bufferSize);
-            PhTrimToNullTerminatorString(string);
+            if (Property->BufferSize < sizeof(UNICODE_NULL))
+                return NULL;
 
-            PhFree(buffer);
-            return string;
+            length = Property->BufferSize;
+            if (((PWSTR)Property->Buffer)[(Property->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+                length -= sizeof(UNICODE_NULL);
+
+            return PhCreateStringEx((PWCHAR)Property->Buffer, length);
         }
-        break;
     case DEVPROP_TYPE_FILETIME:
         {
-            PPH_STRING string;
             PFILETIME fileTime;
             LARGE_INTEGER time;
             SYSTEMTIME systemTime;
 
-            fileTime = (PFILETIME)buffer;
+            if (Property->BufferSize < sizeof(FILETIME))
+                return NULL;
+
+            fileTime = (PFILETIME)Property->Buffer;
             time.HighPart = fileTime->dwHighDateTime;
             time.LowPart = fileTime->dwLowDateTime;
-
             PhLargeIntegerToLocalSystemTime(&systemTime, &time);
 
-            string = PhFormatDate(&systemTime, NULL);
-
-            //FILETIME newFileTime;
-            //SYSTEMTIME systemTime;
-            //
-            //FileTimeToLocalFileTime((PFILETIME)buffer, &newFileTime);
-            //FileTimeToSystemTime(&newFileTime, &systemTime);
-            //
-            //string = PhFormatDate(&systemTime, NULL);
-
-            PhFree(buffer);
-            return string;
+            return PhFormatDate(&systemTime, NULL);
         }
-        break;
     case DEVPROP_TYPE_UINT32:
-        {
-            PPH_STRING string;
-
-            string = PhFormatUInt64(*(PULONG)buffer, FALSE);
-
-            PhFree(buffer);
-            return string;
-        }
-        break;
+        if (Property->BufferSize >= sizeof(ULONG))
+            return PhFormatUInt64(*(PULONG)Property->Buffer, FALSE);
+        return NULL;
     case DEVPROP_TYPE_UINT64:
-        {
-            PPH_STRING string;
-
-            string = PhFormatUInt64(*(PULONG64)buffer, FALSE);
-
-            PhFree(buffer);
-            return string;
-        }
-        break;
+        if (Property->BufferSize >= sizeof(ULONG64))
+            return PhFormatUInt64(*(PULONG64)Property->Buffer, FALSE);
+        return NULL;
     }
 
     return NULL;
 }
 
-ULONG64 EtpQueryInstalledMemory(
-    _In_ DEVINST DeviceHandle
+/**
+ * Queries the installed memory value for a graphics adapter from its device instance ID.
+ */
+static ULONG64 EtpQueryInstalledMemory(
+    _In_ PPH_STRING DeviceInstanceId
     )
 {
-    ULONG64 installedMemory = ULLONG_MAX;
-    HKEY keyHandle;
+    ULONG64 installedMemory;
+    HANDLE keyHandle;
 
-    if (CM_Open_DevInst_Key(
-        DeviceHandle,
+    if (!NT_SUCCESS(PhDevOpenObjectKey(
+        DeviceInstanceId,
         KEY_READ,
-        0,
-        RegDisposition_OpenExisting,
-        &keyHandle,
-        CM_REGISTRY_SOFTWARE
-        ) == CR_SUCCESS)
+        PH_DEVKEY_SOFTWARE,
+        &keyHandle
+        )))
     {
-        installedMemory = PhQueryRegistryUlong64Z(keyHandle, L"HardwareInformation.qwMemorySize");
-
-        if (installedMemory == ULLONG_MAX)
-            installedMemory = PhQueryRegistryUlongZ(keyHandle, L"HardwareInformation.MemorySize");
-
-        if (installedMemory == ULONG_MAX) // HACK
-            installedMemory = ULLONG_MAX;
-
-        // Intel GPU devices incorrectly create the key with type REG_BINARY.
-        if (installedMemory == ULLONG_MAX)
-        {
-            static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
-            PKEY_VALUE_PARTIAL_INFORMATION buffer;
-
-            if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
-            {
-                if (buffer->Type == REG_BINARY)
-                {
-                    if (buffer->DataLength == sizeof(ULONG))
-                        installedMemory = *(PULONG)buffer->Data;
-                }
-
-                PhFree(buffer);
-            }
-        }
-
-        NtClose(keyHandle);
+        return ULLONG_MAX;
     }
 
+    installedMemory = PhQueryRegistryUlong64Z(keyHandle, L"HardwareInformation.qwMemorySize");
+
+    if (installedMemory == ULLONG_MAX)
+        installedMemory = PhQueryRegistryUlongZ(keyHandle, L"HardwareInformation.MemorySize");
+
+    if (installedMemory == ULONG_MAX) // HACK
+        installedMemory = ULLONG_MAX;
+
+    // Intel GPU devices incorrectly create the key with type REG_BINARY.
+    if (installedMemory == ULLONG_MAX)
+    {
+        static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"HardwareInformation.MemorySize");
+        PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+        if (NT_SUCCESS(PhQueryValueKey(keyHandle, &valueName, KeyValuePartialInformation, &buffer)))
+        {
+            if (buffer->Type == REG_BINARY && buffer->DataLength == sizeof(ULONG))
+                installedMemory = *(PULONG)buffer->Data;
+
+            PhFree(buffer);
+        }
+    }
+
+    NtClose(keyHandle);
     return installedMemory;
 }
 
@@ -671,44 +615,95 @@ BOOLEAN EtQueryDeviceProperties(
     _Out_opt_ ULONG64 *InstalledMemory
     )
 {
-    DEVPROPTYPE devicePropertyType;
-    DEVINST deviceInstanceHandle;
-    ULONG deviceInstanceIdLength = MAX_DEVICE_ID_LEN;
-    WCHAR deviceInstanceId[MAX_DEVICE_ID_LEN];
+    DEVPROPCOMPKEY interfaceProperties[] =
+    {
+        { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
+    };
+    DEVPROPCOMPKEY deviceProperties[] =
+    {
+        { DEVPKEY_Device_DeviceDesc,    DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DriverDate,    DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_DriverVersion, DEVPROP_STORE_SYSTEM, NULL },
+        { DEVPKEY_Device_LocationInfo,  DEVPROP_STORE_SYSTEM, NULL },
+    };
+    ULONG interfacePropertyCount = 0;
+    const DEVPROPERTY* interfaceProps = NULL;
+    ULONG devicePropertyCount = 0;
+    const DEVPROPERTY* deviceProps = NULL;
+    const DEVPROPERTY* instanceIdProp;
+    PPH_STRING instanceIdString;
+    SIZE_T instanceIdLength;
 
-    if (CM_Get_Device_Interface_Property(
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDeviceInterface,
         PhGetString(DeviceInterface),
-        &DEVPKEY_Device_InstanceId,
-        &devicePropertyType,
-        (PBYTE)deviceInstanceId,
-        &deviceInstanceIdLength,
-        0
-        ) != CR_SUCCESS)
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(interfaceProperties),
+        interfaceProperties,
+        &interfacePropertyCount,
+        &interfaceProps
+        )))
     {
         return FALSE;
     }
 
-    if (CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        deviceInstanceId,
-        CM_LOCATE_DEVNODE_NORMAL
-        ) != CR_SUCCESS)
+    instanceIdProp = PhDevFindProperty(
+        &DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, interfacePropertyCount, interfaceProps);
+
+    if (!instanceIdProp || instanceIdProp->Type != DEVPROP_TYPE_STRING || !instanceIdProp->Buffer || instanceIdProp->BufferSize < sizeof(UNICODE_NULL))
     {
+        PhDevFreeObjectProperties(interfacePropertyCount, interfaceProps);
+        return FALSE;
+    }
+
+    instanceIdLength = instanceIdProp->BufferSize;
+    if (((PWSTR)instanceIdProp->Buffer)[(instanceIdProp->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+        instanceIdLength -= sizeof(UNICODE_NULL);
+    instanceIdString = PhCreateStringEx((PWCHAR)instanceIdProp->Buffer, instanceIdLength);
+
+    if (HR_FAILED(PhDevGetObjectProperties(
+        DevObjectTypeDevice,
+        PhGetString(instanceIdString),
+        DevQueryFlagNone,
+        RTL_NUMBER_OF(deviceProperties),
+        deviceProperties,
+        &devicePropertyCount,
+        &deviceProps
+        )))
+    {
+        PhDereferenceObject(instanceIdString);
+        PhDevFreeObjectProperties(interfacePropertyCount, interfaceProps);
         return FALSE;
     }
 
     if (Description)
-        *Description = EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_DeviceDesc);
+    {
+        *Description = EtpFormatDeviceProperty(PhDevFindProperty(
+            &DEVPKEY_Device_DeviceDesc, DEVPROP_STORE_SYSTEM, devicePropertyCount, deviceProps));
+    }
     if (DriverDate)
-        *DriverDate = EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_DriverDate);
+    {
+        *DriverDate = EtpFormatDeviceProperty(PhDevFindProperty(
+            &DEVPKEY_Device_DriverDate, DEVPROP_STORE_SYSTEM, devicePropertyCount, deviceProps));
+    }
     if (DriverVersion)
-        *DriverVersion = EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_DriverVersion);
+    {
+        *DriverVersion = EtpFormatDeviceProperty(PhDevFindProperty(
+            &DEVPKEY_Device_DriverVersion, DEVPROP_STORE_SYSTEM, devicePropertyCount, deviceProps));
+    }
     if (LocationInfo)
-        *LocationInfo = EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_LocationInfo);
+    {
+        *LocationInfo = EtpFormatDeviceProperty(PhDevFindProperty(
+            &DEVPKEY_Device_LocationInfo, DEVPROP_STORE_SYSTEM, devicePropertyCount, deviceProps));
+    }
     if (InstalledMemory)
-        *InstalledMemory = EtpQueryInstalledMemory(deviceInstanceHandle);
-    // EtpQueryDevicePropertyString(deviceInstanceHandle, &DEVPKEY_Device_Manufacturer);
+    {
+        *InstalledMemory = EtpQueryInstalledMemory(instanceIdString);
+    }
 
+    PhDevFreeObjectProperties(devicePropertyCount, deviceProps);
+    PhDereferenceObject(instanceIdString);
+    PhDevFreeObjectProperties(interfacePropertyCount, interfaceProps);
     return TRUE;
 }
 
@@ -1179,7 +1174,12 @@ static VOID EtpAddDiscoveredAdapter(
                 entry->DeviceInterface = PhReferenceObject(deviceInterface);
 
             if (!entry->AdapterHandle && AdapterHandle)
+            {
                 entry->AdapterHandle = AdapterHandle;
+
+                if (!entry->AttributesValid)
+                    entry->AttributesValid = NT_SUCCESS(EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes));
+            }
             else if (AdapterHandle && AdapterHandle != entry->AdapterHandle)
                 EtCloseAdapterHandle(AdapterHandle);
 
@@ -1197,8 +1197,8 @@ static VOID EtpAddDiscoveredAdapter(
     entry->AdapterLuid = AdapterLuid;
     PhSetReference(&entry->DeviceInterface, deviceInterface);
 
-    EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes);
-    
+    entry->AttributesValid = NT_SUCCESS(EtQueryAdapterAttributes(entry->AdapterHandle, &entry->Attributes));
+
     PhAddItemList(AdapterList, entry);
 
     // {

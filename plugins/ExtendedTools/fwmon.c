@@ -47,6 +47,13 @@ PH_QUEUED_LOCK EtFwFilterDisplayDataHashTableLock = PH_QUEUED_LOCK_INIT;
 PPH_HASHTABLE EtFwFileNameProcessCacheHashTable = NULL;
 PH_QUEUED_LOCK EtFwFileNameProcessCacheHashTableLock = PH_QUEUED_LOCK_INIT;
 
+HANDLE EtFwGetEngineHandle(
+    VOID
+    )
+{
+    return EtFwEngineHandle;
+}
+
 PH_CALLBACK_DECLARE(FwItemAddedEvent);
 PH_CALLBACK_DECLARE(FwItemModifiedEvent);
 PH_CALLBACK_DECLARE(FwItemRemovedEvent);
@@ -2706,9 +2713,9 @@ ULONG EtFwMonitorInitialize(
     FwpmEngineClose = PhGetProcedureAddress(baseAddress, "FwpmEngineClose0", 0);
     FwpmFreeMemory = PhGetProcedureAddress(baseAddress, "FwpmFreeMemory0", 0);
     FwpmFilterGetById = PhGetProcedureAddress(baseAddress, "FwpmFilterGetById0", 0);
-    FwpmLayerGetById_I = PhGetProcedureAddress(baseAddress, "FwpmLayerGetById0", 0);
-    FwpmFilterSubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterSubscribeChanges0", 0);
-    FwpmFilterUnsubscribeChanges_I = PhGetProcedureAddress(baseAddress, "FwpmFilterUnsubscribeChanges0", 0);
+    FwpmLayerGetById = PhGetProcedureAddress(baseAddress, "FwpmLayerGetById0", 0);
+    FwpmFilterSubscribeChanges = PhGetProcedureAddress(baseAddress, "FwpmFilterSubscribeChanges0", 0);
+    FwpmFilterUnsubscribeChanges = PhGetProcedureAddress(baseAddress, "FwpmFilterUnsubscribeChanges0", 0);
     FwpmEngineSetOption = PhGetProcedureAddress(baseAddress, "FwpmEngineSetOption0", 0);
     FwpmNetEventUnsubscribe = PhGetProcedureAddress(baseAddress, "FwpmNetEventUnsubscribe0", 0);
     FwpmNetEventCreateEnumHandle = PhGetProcedureAddress(baseAddress, "FwpmNetEventCreateEnumHandle0", 0);

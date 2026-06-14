@@ -354,7 +354,7 @@ VOID PhpSearchControlThemeChanged(
     CallWindowProc(Context->DefaultWindowProc, WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
 
     // Refresh the non-client area.
-    SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+    SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
 
     // Force the edit control to update its non-client area.
     RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -668,8 +668,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
             PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
 
             if (context->WindowFont)
             {

@@ -238,6 +238,7 @@ typedef struct _DV_NETADAPTER_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    RECT GraphMarginScaled;
     LONG GraphPadding;
 
     PH_GRAPH_STATE GraphSendState;
@@ -637,6 +638,7 @@ typedef struct _DV_DISK_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    RECT GraphMarginScaled;
     LONG GraphPadding;
 
     PH_GRAPH_STATE GraphReadState;
@@ -1257,6 +1259,7 @@ typedef struct _DV_RAPL_SYSINFO_CONTEXT
     PPH_SYSINFO_SECTION SysinfoSection;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT GraphMargin;
+    RECT GraphMarginScaled;
     LONG GraphPadding;
 
     PH_GRAPH_STATE ProcessorGraphState;
@@ -1577,16 +1580,11 @@ VOID GraphicsDeviceUpdatePanel(
     );
 
 PPH_STRING GraphicsQueryDeviceDescription(
-    _In_ DEVINST DeviceHandle
+    _In_ PCWSTR DeviceInstanceId
     );
 
 PPH_STRING GraphicsQueryDeviceInterfaceDescription(
     _In_opt_ PWSTR DeviceInterface
-    );
-
-PPH_STRING GraphicsQueryDevicePropertyString(
-    _In_ DEVINST DeviceHandle,
-    _In_ CONST DEVPROPKEY* DeviceProperty
     );
 
 _Success_(return)
@@ -1652,25 +1650,6 @@ NTSTATUS GraphicsQueryAdapterAttributes(
 
 // graphics.c
 
-typedef struct _D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1
-{
-    ULONG CommitLimit;
-    ULONG BytesCommitted;
-    ULONG BytesResident;
-    D3DKMT_QUERYSTATISTICS_MEMORY Memory;
-    ULONG Aperture; // boolean
-    ULONGLONG TotalBytesEvictedByPriority[D3DKMT_MaxAllocationPriorityClass];
-    ULONG64 SystemMemoryEndAddress;
-    struct
-    {
-        ULONG64 PreservedDuringStandby : 1;
-        ULONG64 PreservedDuringHibernate : 1;
-        ULONG64 PartiallyPreservedDuringHibernate : 1;
-        ULONG64 Reserved : 61;
-    } PowerFlags;
-    ULONG64 Reserved[7];
-} D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1, *PD3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION_V1;
-
 NTSTATUS GraphicsOpenAdapterFromDeviceName(
     _Out_ D3DKMT_HANDLE* AdapterHandle,
     _Out_opt_ PLUID AdapterLuid,
@@ -1709,7 +1688,7 @@ NTSTATUS GraphicsQueryAdapterNodeRunningTime(
     _In_ LUID AdapterLuid,
     _In_ ULONG NodeId,
     _Out_ PULONG64 RunningTime,
-    _Out_opt_ PULONG64 SystemRunningTime
+    _Out_ PULONG64 SystemRunningTime
     );
 
 NTSTATUS GraphicsQueryAdapterDevicePerfData(

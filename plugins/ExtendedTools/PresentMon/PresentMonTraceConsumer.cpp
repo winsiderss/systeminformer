@@ -91,7 +91,7 @@ std::unordered_map<uint32_t, std::unordered_map<uint64_t,
 
 std::atomic<bool> mProviderToggleMode(false);
 std::atomic<bool> mEventProcessingEnabled(true);
-volatile LONG mEventProcessingInFlight = 0;
+LONG mEventProcessingInFlight = 0;
 
 namespace {
 
@@ -108,6 +108,27 @@ struct WaitOnAddressShim
         return Wait && WakeAll;
     }
 };
+
+const WaitOnAddressShim& GetWaitOnAddressShim(
+    VOID
+    );
+
+}
+
+static void DecrementAndWakeIfDrained(VOID)
+{
+    if (InterlockedDecrement(&mEventProcessingInFlight) == 0)
+    {
+        auto const& shim = GetWaitOnAddressShim();
+
+        if (shim.Available())
+        {
+            shim.WakeAll((PVOID)&mEventProcessingInFlight);
+        }
+    }
+}
+
+namespace {
 
 const WaitOnAddressShim& GetWaitOnAddressShim(
     VOID
@@ -2251,28 +2272,12 @@ BOOLEAN EnterPresentEventProcessing(
     _Out_ PBOOLEAN Counted
     )
 {
-    *Counted = FALSE;
-
-    if (!mProviderToggleMode.load(std::memory_order_acquire))
-        return TRUE;
-
     InterlockedIncrement(&mEventProcessingInFlight);
     *Counted = TRUE;
 
     if (!mEventProcessingEnabled.load(std::memory_order_acquire))
     {
-        LONG value = InterlockedDecrement(&mEventProcessingInFlight);
-
-        if (value == 0)
-        {
-            auto const& shim = GetWaitOnAddressShim();
-
-            if (shim.Available())
-            {
-                shim.WakeAll((PVOID)&mEventProcessingInFlight);
-            }
-        }
-
+        DecrementAndWakeIfDrained();
         *Counted = FALSE;
         return FALSE;
     }
@@ -2287,17 +2292,7 @@ VOID LeavePresentEventProcessing(
     if (!Counted)
         return;
 
-    LONG value = InterlockedDecrement(&mEventProcessingInFlight);
-
-    if (value == 0)
-    {
-        auto const& shim = GetWaitOnAddressShim();
-
-        if (shim.Available())
-        {
-            shim.WakeAll((PVOID)&mEventProcessingInFlight);
-        }
-    }
+    DecrementAndWakeIfDrained();
 }
 
 VOID ResetPresentTrackingData(
@@ -2307,15 +2302,21 @@ VOID ResetPresentTrackingData(
     UNREFERENCED_PARAMETER(Shrink);
 
     mEventProcessingEnabled.store(false, std::memory_order_release);
+    MemoryBarrier(); // Ensure StoreLoad ordering for the following InterlockedCompareExchange
 
     {
         auto const& shim = GetWaitOnAddressShim();
-        ULONGLONG startMs = GetTickCount64();
+        LARGE_INTEGER freq;
+        QueryPerformanceFrequency(&freq);
+        LARGE_INTEGER startQpc;
+        QueryPerformanceCounter(&startQpc);
         const DWORD timeoutMs = 2000;
 
         while (InterlockedCompareExchange(&mEventProcessingInFlight, 0, 0) != 0)
         {
-            ULONGLONG elapsed = GetTickCount64() - startMs;
+            LARGE_INTEGER nowQpc;
+            QueryPerformanceCounter(&nowQpc);
+            ULONGLONG elapsed = (nowQpc.QuadPart - startQpc.QuadPart) * 1000 / freq.QuadPart;
 
             if (elapsed >= timeoutMs)
             {
@@ -2331,7 +2332,9 @@ VOID ResetPresentTrackingData(
 
                 if (expected != 0)
                 {
-                    shim.Wait(&mEventProcessingInFlight, &expected, sizeof(expected), remaining);
+                    BOOL ok = shim.Wait((volatile VOID*)&mEventProcessingInFlight, &expected, sizeof(expected), remaining);
+                    if (!ok && GetLastError() == ERROR_TIMEOUT)
+                        break;
                 }
             }
             else

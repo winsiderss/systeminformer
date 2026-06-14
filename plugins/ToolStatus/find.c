@@ -389,6 +389,9 @@ VOID FindDialogHandleFindMessage(
 
     if (FlagOn(fr->Flags, FR_DIALOGTERM))
     {
+        if (FindDialogHandle)
+            PhUnregisterDialog(FindDialogHandle);
+
         FindDialogHandle = NULL;
     }
     else if (FlagOn(fr->Flags, FR_FINDNEXT))
@@ -496,8 +499,11 @@ VOID ShowFindDialog(
     FindDialogData.Flags = FR_DOWN;
     FindDialogData.hwndOwner = OwnerWindow;
     FindDialogData.lpstrFindWhat = FindDialogText;
-    FindDialogData.wFindWhatLen = (WORD)RTL_NUMBER_OF(FindDialogText);
+    FindDialogData.wFindWhatLen = (WORD)sizeof(FindDialogText);
 
     FindDialogHandle = FindText_I(&FindDialogData);
+
+    if (FindDialogHandle)
+        PhRegisterDialog(FindDialogHandle);
 }
 

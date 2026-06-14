@@ -295,7 +295,7 @@ INT_PTR CALLBACK EtPoolMonDlgProc(
             HFONT windowFont;
 
             if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
-                PhReplaceWindowFont(&context->WindowFont, context->TreeNewHandle, windowFont, TRUE);
+                PhSwapReferenceFont(&context->WindowFont, context->TreeNewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

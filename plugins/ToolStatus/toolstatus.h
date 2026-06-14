@@ -51,6 +51,19 @@
 #define TIDC_FINDWINDOWKILL (WM_APP + 3)
 #define TIDC_POWERMENUDROPDOWN (WM_APP + 4)
 
+// Stable, plugin-owned toolbar IDs used ONLY for persistence (settings serialization).
+// Never tied to PHAPP_ID_* (which may change between builds). Never reuse/renumber a value.
+#define TOOLBAR_SAVE_ID_BASE 0x9000
+#define TOOLBAR_SAVE_ID_REFRESH (TOOLBAR_SAVE_ID_BASE + 1)
+#define TOOLBAR_SAVE_ID_OPTIONS (TOOLBAR_SAVE_ID_BASE + 2)
+#define TOOLBAR_SAVE_ID_FINDHANDLESORDLLS (TOOLBAR_SAVE_ID_BASE + 3)
+#define TOOLBAR_SAVE_ID_SYSTEMINFORMATION (TOOLBAR_SAVE_ID_BASE + 4)
+#define TOOLBAR_SAVE_ID_SHOWDETAILSFORALLPROCESSES (TOOLBAR_SAVE_ID_BASE + 5)
+#define TOOLBAR_SAVE_ID_ALWAYSONTOP (TOOLBAR_SAVE_ID_BASE + 6)
+#define TOOLBAR_SAVE_ID_RUNASADMINISTRATOR (TOOLBAR_SAVE_ID_BASE + 7)
+
+#define TOOLSTATUS_ENABLE_MENUBAR 0
+
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
     TOOLBAR_DISPLAY_STYLE_IMAGEONLY,
@@ -111,7 +124,8 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG ResolveGhostWindows : 1;
         ULONG ModernIcons : 1;
         ULONG AutoHideMenu : 1;
-        ULONG Reserved : 4;
+        ULONG EnableMenuBar : 1;
+        ULONG Reserved : 3;
         ULONG SearchAutoFocus : 1;
         ULONG ToolBarLargeIcons : 1;
         ULONG Spare : 19;
@@ -122,7 +136,7 @@ extern TOOLSTATUS_CONFIG ToolStatusConfig;
 extern HWND ProcessTreeNewHandle;
 extern HWND ServiceTreeNewHandle;
 extern HWND NetworkTreeNewHandle;
-extern INT SelectedTabIndex;
+extern LONG SelectedTabIndex;
 extern BOOLEAN UpdateAutomatically;
 extern BOOLEAN UpdateGraphs;
 extern BOOLEAN EnableThemeSupport;
@@ -265,6 +279,76 @@ BOOLEAN RebarSetBandIndexStyleSize(
     _In_ PBAND_STYLE_SIZE RebarBandInfo
     );
 
+VOID ToolbarUpdateFont(
+    VOID
+    );
+
+VOID ToolbarUpdateImageList(
+    _In_ BOOLEAN DpiChanged
+    );
+
+VOID RebarCreate(
+    VOID
+    );
+
+#if TOOLSTATUS_ENABLE_MENUBAR
+VOID MenuBarCreate(
+    VOID
+    );
+#endif
+
+VOID ToolBarCreate(
+    VOID
+    );
+
+VOID SearchBoxCreate(
+    VOID
+    );
+
+VOID SearchBoxUpdateRebarBand(
+    VOID
+    );
+
+VOID StatusBarCreate(
+    VOID
+    );
+
+VOID SearchBoxDestroy(
+    VOID
+    );
+
+#if TOOLSTATUS_ENABLE_MENUBAR
+VOID MenuBarDestroy(
+    VOID
+    );
+#endif
+
+VOID ToolBarDestroy(
+    VOID
+    );
+
+VOID RebarDestroy(
+    VOID
+    );
+
+#if TOOLSTATUS_ENABLE_MENUBAR
+VOID MenuBarApplySettings(
+    VOID
+    );
+#endif
+
+VOID ToolBarApplySettings(
+    _In_ BOOLEAN DpiChanged
+    );
+
+VOID SearchBoxApplySettings(
+    VOID
+    );
+
+VOID StatusBarApplySettings(
+    VOID
+    );
+
 VOID ToolbarLoadSettings(
     _In_ BOOLEAN DpiChanged
     );
@@ -315,6 +399,33 @@ LONG ToolStatusGetWindowFontSize(
     _In_ HFONT WindowFont
     );
 
+#if TOOLSTATUS_ENABLE_MENUBAR
+// menubar.c
+
+HWND ToolStatusMenuBarCreateWindow(
+    _In_ HWND ParentWindowHandle
+    );
+
+BOOLEAN ToolStatusMenuBarLoadMenu(
+    _In_ HWND WindowHandle,
+    _In_ HMENU MainMenuHandle
+    );
+
+BOOLEAN ToolStatusMenuBarHandleNotify(
+    _In_ LPNMHDR Header,
+    _Out_opt_ LRESULT* Result
+    );
+
+_Success_(return)
+BOOLEAN ToolStatusMenuBarHandleMessage(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _Out_opt_ LRESULT* Result
+    );
+#endif
+
 // main.c
 
 HWND GetCurrentTreeNewHandle(
@@ -329,7 +440,19 @@ VOID InvalidateMainWindowLayout(
     VOID
     );
 
-_Function_class_(PH_SEARCHCONTROL_CALLBACK)
+VOID ToolbarDestroyControls(
+    VOID
+    );
+
+VOID ToolbarCreateControls(
+    VOID
+    );
+
+VOID ToolStatusApplyMainMenuVisibility(
+    _In_ HWND WindowHandle
+    );
+
+_Function_class_(PH_SEARCHNEW_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -412,6 +535,10 @@ VOID ToolbarRegisterGraph(
     _In_ ULONG Flags,
     _In_opt_ PVOID Context,
     _In_ PTOOLSTATUS_GRAPH_CALLBACK GraphCallback
+    );
+
+VOID ToolbarDestroyGraphs(
+    VOID
     );
 
 VOID ToolbarCreateGraphs(
@@ -569,7 +696,7 @@ VOID StatusBarShowCustomizeDialog(
 
 typedef struct _BUTTON_CONTEXT
 {
-    INT IdCommand;
+    LONG IdCommand;
     HICON IconHandle;
 
     union

@@ -67,6 +67,28 @@ static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
+static BOOLEAN ToolStatusIsValidTargetWindow(
+    _In_opt_ HWND WindowHandle,
+    _Out_opt_ PCLIENT_ID ClientId
+    )
+{
+    CLIENT_ID clientId;
+
+    if (!WindowHandle || !IsWindow(WindowHandle))
+        return FALSE;
+
+    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return FALSE;
+
+    if (clientId.UniqueProcess == NtCurrentProcessId())
+        return FALSE;
+
+    if (ClientId)
+        *ClientId = clientId;
+
+    return TRUE;
+}
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -118,6 +140,28 @@ HWND GetCurrentTreeNewHandle(
     return GetTabIndexTreeNewHandle(SelectedTabIndex);
 }
 
+VOID ToolStatusApplyMainMenuVisibility(
+    _In_ HWND WindowHandle
+    )
+{
+    if (!WindowHandle || !MainMenu)
+        return;
+
+    if (ToolStatusConfig.AutoHideMenu)
+    {
+        if (GetMenu(WindowHandle))
+        {
+            SetMenu(WindowHandle, NULL);
+            DrawMenuBar(WindowHandle);
+        }
+    }
+    else if (!GetMenu(WindowHandle))
+    {
+        SetMenu(WindowHandle, MainMenu);
+        DrawMenuBar(WindowHandle);
+    }
+}
+
 VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
     )
@@ -167,15 +211,7 @@ VOID ShowCustomizeMenu(
 
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-                if (ToolStatusConfig.AutoHideMenu)
-                {
-                    SetMenu(WindowHandle, NULL);
-                }
-                else
-                {
-                    SetMenu(WindowHandle, MainMenu);
-                    DrawMenuBar(WindowHandle);
-                }
+                ToolStatusApplyMainMenuVisibility(WindowHandle);
             }
             break;
         case COMMAND_ID_ENABLE_SEARCHBOX:
@@ -311,12 +347,41 @@ VOID NTAPI LayoutPaddingCallback(
     if (RebarHandle && ToolStatusConfig.ToolBarEnabled)
     {
         RECT rebarRect;
+        RECT parentRect;
+        LONG desiredHeight = 0;
+        ULONG bandCount;
+
+        // Compute the correct rebar height by summing each row's height.
+        // RB_GETROWHEIGHT takes a band index and returns the height of the row that band occupies.
+        // Bands that start a new row have RBBS_BREAK set; band 0 always starts row 0.
+        if (RebarGetBandCount(&bandCount) && bandCount > 0)
+        {
+            ULONG bandStyle;
+
+            desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
+
+            for (ULONG i = 1; i < bandCount; i++)
+            {
+                if (RebarGetBandIndexStyle(i, &bandStyle) && FlagOn(bandStyle, RBBS_BREAK))
+                    desiredHeight += (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, i, 0);
+            }
+        }
+
+        // Explicitly resize the rebar window to the computed height so that all rows
+        // are visible. Sending WM_SIZE directly to the rebar only re-layouts bands
+        // within the existing window bounds and does not grow the window itself.
+        if (desiredHeight > 0 && PhGetClientRect(MainWindowHandle, &parentRect))
+        {
+            SetWindowPos(RebarHandle, NULL, 0, 0,
+                parentRect.right, desiredHeight,
+                SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+        }
 
         SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
         if (PhGetClientRect(RebarHandle, &rebarRect))
         {
-            // Adjust the PH client area and exclude the rebar width.
+            // Adjust the PH client area and exclude the rebar height.
             layoutPadding->Padding.top += rebarRect.bottom;
         }
 
@@ -454,14 +519,19 @@ VOID UpdateDpiMetrics(
     // Update fonts/sizes for new DPI.
     ToolbarWindowFont = SystemInformer_GetFont();
 
-    if (RebarHandle)
-    {
-        SetWindowFont(RebarHandle, ToolbarWindowFont, TRUE);
-    }
+    //if (RebarHandle)
+    //{
+    //    SetWindowFont(RebarHandle, ToolbarWindowFont, TRUE);
+    //}
 
     if (ToolBarHandle)
     {
         SetWindowFont(ToolBarHandle, ToolbarWindowFont, TRUE);
+    }
+
+    if (SearchboxHandle)
+    {
+        SetWindowFont(SearchboxHandle, ToolbarWindowFont, TRUE);
     }
 
     if (StatusBarHandle)
@@ -599,8 +669,8 @@ VOID DrawWindowBorderForTargeting(
 
     if (hdc)
     {
-        INT penWidth;
-        INT oldDc;
+        LONG penWidth;
+        LONG oldDc;
         HPEN pen;
         HBRUSH brush;
 
@@ -1386,9 +1456,8 @@ LRESULT CALLBACK MainWindowCallbackProc(
                         if (processNode = PhFindProcessNode(clientId.UniqueProcess))
                         {
                             SystemInformer_SelectTabPage(0);
-                            //SystemInformer_SelectProcessNode(processNode);
                             //SystemInformer_ToggleVisible(FALSE);
-                            PhSelectAndEnsureVisibleProcessNode(processNode);
+                            SystemInformer_SelectProcessNode(processNode);
                         }
 
                         switch (TargetingMode)

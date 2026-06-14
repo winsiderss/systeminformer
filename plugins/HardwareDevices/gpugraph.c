@@ -95,6 +95,7 @@ VOID GraphicsDeviceSysInfoInitializing(
     }
 
     context = PhCreateObjectZero(sizeof(DV_GPU_SYSINFO_CONTEXT), GraphicsSysinfoEntryType);
+    PhInitializeEvent(&context->NodeWindowInitializedEvent);
     context->DeviceEntry = PhReferenceObject(DeviceEntry);
 
     memset(&section, 0, sizeof(PH_SYSINFO_SECTION));
@@ -278,8 +279,7 @@ VOID GraphicsDeviceLayoutGraphs(
         Context->FanRpmGraphState.TooltipIndex = ULONG_MAX;
     }
 
-    marginRect = Context->GpuGraphMargin;
-    PhGetMarginDpiValue(&marginRect, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
+    marginRect = Context->GpuGraphMarginScaled;
 
     PhGetClientRect(Context->GpuDialog, &clientRect);
     PhGetClientRect(GetDlgItem(Context->GpuDialog, IDC_GPU_L), &labelRect);
@@ -1398,6 +1398,8 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             graphItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->GpuLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GpuGraphMargin = graphItem->Margin;
+            context->GpuGraphMarginScaled = context->GpuGraphMargin;
+            PhGetMarginDpiValue(&context->GpuGraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             GraphicsDeviceInitializeDialog(context);
             GraphicsDeviceInitializeDialogDpi(context);
@@ -1436,6 +1438,9 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             GraphicsDeviceInitializeDialogDpi(context);
+
+            context->GpuGraphMarginScaled = context->GpuGraphMargin;
+            PhGetMarginDpiValue(&context->GpuGraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             if (context->SysinfoSection->Parameters->LargeFont)
             {

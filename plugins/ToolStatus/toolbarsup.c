@@ -27,6 +27,7 @@ BOOLEAN RebarBandInsert(
     rebarBandInfo.hwndChild = ChildWindowHandle;
     rebarBandInfo.cxMinChild = ChildMinimumWidth;
     rebarBandInfo.cyMinChild = ChildMinimumHeight;
+    rebarBandInfo.cyChild = ChildMinimumHeight;
 
     if (ToolStatusConfig.ToolBarLocked)
         rebarBandInfo.fStyle = RBBS_VARIABLEHEIGHT | RBBS_USECHEVRON | RBBS_NOGRIPPER;

@@ -11,6 +11,15 @@
 
 #include "devices.h"
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN DiskDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    );
+
 VOID DiskDeviceUpdatePanel(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
@@ -209,10 +218,17 @@ VOID DiskDeviceCreateGraphs(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
 {
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
     PhInitializeGraphState(&Context->GraphReadState);
     PhInitializeGraphState(&Context->GraphWriteState);
 
-    Context->GraphReadHandle = CreateWindow(
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = DiskDeviceGraphMessageCallback;
+    graphCreateParams.Context = Context;
+
+    Context->GraphReadHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -223,11 +239,11 @@ VOID DiskDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphReadHandle, TRUE);
 
-    Context->GraphWriteHandle = CreateWindow(
+    Context->GraphWriteHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -238,7 +254,7 @@ VOID DiskDeviceCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->GraphWriteHandle, TRUE);
 
@@ -276,8 +292,7 @@ VOID DiskDeviceLayoutGraphs(
     Context->GraphWriteState.Valid = FALSE;
     Context->GraphWriteState.TooltipIndex = ULONG_MAX;
 
-    margin = Context->GraphMargin;
-    PhGetMarginDpiValue(&margin, Context->SysinfoSection->Parameters->WindowDpi, TRUE);
+    margin = Context->GraphMarginScaled;
 
     PhGetClientRect(Context->WindowHandle, &clientRect);
     PhGetClientRect(Context->LabelWriteHandle, &labelRect);
@@ -510,6 +525,30 @@ VOID DiskDeviceNotifyWriteGraph(
     }
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN DiskDeviceGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PDV_DISK_SYSINFO_CONTEXT context = (PDV_DISK_SYSINFO_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (WindowHandle == context->GraphReadHandle)
+    {
+        DiskDeviceNotifyReadGraph(context, header);
+    }
+    else if (WindowHandle == context->GraphWriteHandle)
+    {
+        DiskDeviceNotifyWriteGraph(context, header);
+    }
+
+    return TRUE;
+}
+
 VOID DiskDeviceTickDialog(
     _Inout_ PDV_DISK_SYSINFO_CONTEXT Context
     )
@@ -558,6 +597,8 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
             graphItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             context->GraphMargin = graphItem->Margin;
+            context->GraphMarginScaled = context->GraphMargin;
+            PhGetMarginDpiValue(&context->GraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
 
             SetWindowFont(context->DiskPathLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
             SetWindowFont(context->DiskNameLabel, context->SysinfoSection->Parameters->MediumFont, FALSE);
@@ -599,6 +640,9 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
         {
             DiskDeviceUpdateDialogDpi(context);
 
+            context->GraphMarginScaled = context->GraphMargin;
+            PhGetMarginDpiValue(&context->GraphMarginScaled, context->SysinfoSection->Parameters->WindowDpi, TRUE);
+
             if (context->SysinfoSection->Parameters->LargeFont)
             {
                 SetWindowFont(context->DiskPathLabel, context->SysinfoSection->Parameters->LargeFont, FALSE);
@@ -618,20 +662,6 @@ INT_PTR CALLBACK DiskDeviceDialogProc(
         {
             PhLayoutManagerLayout(&context->LayoutManager);
             DiskDeviceLayoutGraphs(context);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR* header = (NMHDR*)lParam;
-
-            if (header->hwndFrom == context->GraphReadHandle)
-            {
-                DiskDeviceNotifyReadGraph(context, header);
-            }
-            else if (header->hwndFrom == context->GraphWriteHandle)
-            {
-                DiskDeviceNotifyWriteGraph(context, header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -858,6 +888,7 @@ VOID DiskDeviceSysInfoInitializing(
     PH_SYSINFO_SECTION section;
 
     context = PhAllocateZero(sizeof(DV_DISK_SYSINFO_CONTEXT));
+    PhInitializeEvent(&context->DetailsWindowInitializedEvent);
     context->DiskEntry = PhReferenceObject(DiskEntry);
     context->DiskEntry->PendingQuery = TRUE;
 

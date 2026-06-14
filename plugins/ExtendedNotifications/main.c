@@ -488,8 +488,8 @@ LRESULT CALLBACK TextBoxSubclassProc(
     {
     case WM_NCDESTROY:
         {
-            PhRemoveWindowContext(hWnd, UCHAR_MAX);
             PhSetWindowProcedure(hWnd, oldWndProc);
+            PhRemoveWindowContext(hWnd, UCHAR_MAX);
         }
         break;
     case WM_GETDLGCODE:
@@ -953,7 +953,7 @@ INT_PTR CALLBACK DevicesDlgProc(
      return FALSE;
  }
 
-     INT_PTR CALLBACK LoggingDlgProc(
+INT_PTR CALLBACK LoggingDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,

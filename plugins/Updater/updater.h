@@ -25,6 +25,8 @@
 
 #include "resource.h"
 
+EXTERN_C_START
+
 #define UPDATE_MENUITEM_UPDATE  1001
 #define UPDATE_MENUITEM_SWITCH  1002
 #define UPDATE_SWITCH_RELEASE   1003
@@ -286,5 +288,8 @@ NTSTATUS UpdaterVerifySignature(
 VOID UpdaterDestroyHash(
     _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
     );
+
+
+EXTERN_C_END
 
 #endif

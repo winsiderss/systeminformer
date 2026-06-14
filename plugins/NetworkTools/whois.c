@@ -234,7 +234,7 @@ BOOLEAN WhoisExtractReferralServer(
         (UINT)RTL_NUMBER_OF(urlPort),
         urlPath,
         (UINT)RTL_NUMBER_OF(urlPath)
-        ))
+        ) >= 1)
     {
         if (WhoisServerAddress)
         {
@@ -837,7 +837,7 @@ VOID WhoisSetTextFont(
 
     if (fontHandle = PhCreateTreeWindowFont(PhGetWindowDpi(Context->RichEditHandle)))
     {
-        PhReplaceWindowFont(&Context->FontHandle, Context->RichEditHandle, fontHandle, TRUE);
+        PhSwapReferenceFont(&Context->FontHandle, Context->RichEditHandle, fontHandle, TRUE);
     }
 }
 

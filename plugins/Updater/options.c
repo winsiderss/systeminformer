@@ -634,7 +634,7 @@ INT_PTR CALLBACK TextDlgProc(
             PhSetApplicationWindowIconEx(WindowHandle, windowDpi);
 
             if (listViewBoldFont = PhDuplicateFontWithNewWeight(GetWindowFont(context->ListViewHandle), FW_BOLD))
-                PhReplaceWindowFont(&context->ListViewBoldFont, NULL, listViewBoldFont, FALSE);
+                PhSwapReferenceFont(&context->ListViewBoldFont, NULL, listViewBoldFont, FALSE);
         }
         break;
     case WM_COMMAND:

@@ -296,7 +296,7 @@ typedef struct MSLAYOUT DacpModuleData
 private:
     // Ensure that this data structure is not copied.
     DacpModuleData(const DacpModuleData&);
-    void operator=(const DacpModuleData&);
+    void operator=(const DacpModuleData&) {}
 #endif
 } DacpModuleData;
 

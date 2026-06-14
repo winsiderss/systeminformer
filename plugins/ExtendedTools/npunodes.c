@@ -187,6 +187,10 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
             else
                 PhCenterWindow(WindowHandle, (HWND)lParam);
 
+            // Perform the initial graph layout now that the final window size/placement is set;
+            // otherwise the graphs stay at their zero initial size until the user resizes. (#2924)
+            SendMessage(WindowHandle, WM_SIZE, 0, 0);
+
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 ProcessesUpdatedCallback,

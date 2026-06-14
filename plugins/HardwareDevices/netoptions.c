@@ -279,7 +279,7 @@ VOID FreeListViewAdapterEntries(
 _Success_(return)
 BOOLEAN QueryNetworkDeviceInterfaceDescription(
     _In_ PWSTR DeviceInterface,
-    _Out_ DEVINST *DeviceInstanceHandle,
+    _Out_ PPH_STRING *DeviceInstanceId,
     _Out_ PPH_STRING *DeviceDescription
     )
 {
@@ -289,7 +289,8 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
     const DEVPROPERTY* devicePropertiesList = NULL;
     const DEVPROPERTY* instanceIdProperty;
     PPH_STRING normalizedDeviceInterface;
-    DEVINST deviceInstanceHandle;
+    PPH_STRING deviceInstanceIdString;
+    SIZE_T instanceIdLength;
     DEVPROPCOMPKEY requestedProperties[] =
     {
         { DEVPKEY_Device_InstanceId, DEVPROP_STORE_SYSTEM, NULL },
@@ -334,15 +335,10 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
         return FALSE;
     }
 
-    if (CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        instanceIdProperty->Buffer,
-        CM_LOCATE_DEVNODE_PHANTOM
-        ) != CR_SUCCESS)
-    {
-        PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
-        return FALSE;
-    }
+    instanceIdLength = instanceIdProperty->BufferSize;
+    if (((PWSTR)instanceIdProperty->Buffer)[(instanceIdProperty->BufferSize / sizeof(WCHAR)) - 1] == UNICODE_NULL)
+        instanceIdLength -= sizeof(UNICODE_NULL);
+    deviceInstanceIdString = PhCreateStringEx((PWCHAR)instanceIdProperty->Buffer, instanceIdLength);
 
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
@@ -354,6 +350,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
         &devicePropertiesList
         )) || devicePropertyCount == 0)
     {
+        PhDereferenceObject(deviceInstanceIdString);
         PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
         return FALSE;
     }
@@ -386,9 +383,14 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
     PhDevFreeObjectProperties(devicePropertyCount, devicePropertiesList);
     PhDevFreeObjectProperties(deviceInterfacePropertyCount, deviceInterfaceProperties);
 
-    *DeviceInstanceHandle = deviceInstanceHandle;
+    if (!*DeviceDescription)
+    {
+        PhDereferenceObject(deviceInstanceIdString);
+        return FALSE;
+    }
 
-    return *DeviceDescription != NULL;
+    *DeviceInstanceId = deviceInstanceIdString;
+    return TRUE;
 }
 
 VOID FindNetworkAdapters(
@@ -481,24 +483,22 @@ VOID FindNetworkAdapters(
 
         for (ULONG i = 0; i < deviceCount; i++)
         {
-            HKEY keyHandle;
-            DEVINST deviceInstanceHandle;
+            HANDLE keyHandle;
+            PPH_STRING deviceInstanceId = NULL;
             PWSTR deviceInterface;
             PPH_STRING deviceDescription = NULL;
 
             deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
 
-            if (!QueryNetworkDeviceInterfaceDescription(deviceInterface, &deviceInstanceHandle, &deviceDescription))
+            if (!QueryNetworkDeviceInterfaceDescription(deviceInterface, &deviceInstanceId, &deviceDescription))
                 continue;
 
-            if (CM_Open_DevInst_Key(
-                deviceInstanceHandle,
+            if (NT_SUCCESS(PhDevOpenObjectKey(
+                deviceInstanceId,
                 KEY_QUERY_VALUE,
-                0,
-                RegDisposition_OpenExisting,
-                &keyHandle,
-                CM_REGISTRY_SOFTWARE
-                ) == CR_SUCCESS)
+                PH_DEVKEY_SOFTWARE,
+                &keyHandle
+                )))
             {
                 PNET_ENUM_ENTRY adapterEntry;
                 HANDLE deviceHandle;
@@ -588,6 +588,7 @@ VOID FindNetworkAdapters(
                 NtClose(keyHandle);
             }
 
+            PhClearReference(&deviceInstanceId);
             PhClearReference(&deviceDescription);
         }
 
@@ -735,31 +736,25 @@ PPH_STRING FindNetworkDeviceInstance(
 
     for (ULONG i = 0; i < deviceCount; i++)
     {
-        HKEY keyHandle;
-        DEVINST deviceInstanceHandle;
+        HANDLE keyHandle;
         PWSTR deviceInterface;
         PWSTR deviceInstanceId;
+        PPH_STRING deviceInstanceIdString;
 
         deviceInterface = (PWSTR)deviceObjects[i].pszObjectId;
         deviceInstanceId = deviceObjects[i].pProperties[0].Buffer;
 
-        if (CM_Locate_DevNode(
-            &deviceInstanceHandle,
-            deviceInstanceId,
-            CM_LOCATE_DEVNODE_PHANTOM
-            ) != CR_SUCCESS)
-        {
+        if (!deviceInstanceId)
             continue;
-        }
 
-        if (CM_Open_DevInst_Key(
-            deviceInstanceHandle,
+        deviceInstanceIdString = PhCreateString(deviceInstanceId);
+
+        if (NT_SUCCESS(PhDevOpenObjectKey(
+            deviceInstanceIdString,
             KEY_QUERY_VALUE,
-            0,
-            RegDisposition_OpenExisting,
-            &keyHandle,
-            CM_REGISTRY_SOFTWARE
-            ) == CR_SUCCESS)
+            PH_DEVKEY_SOFTWARE,
+            &keyHandle
+            )))
         {
             PPH_STRING deviceGuid;
 
@@ -767,10 +762,11 @@ PPH_STRING FindNetworkDeviceInstance(
             {
                 if (PhEqualString(deviceGuid, DeviceGuid, TRUE))
                 {
-                    deviceInstanceString = PhCreateString(deviceInstanceId);
+                    deviceInstanceString = PhReferenceObject(deviceInstanceIdString);
 
                     PhDereferenceObject(deviceGuid);
                     NtClose(keyHandle);
+                    PhDereferenceObject(deviceInstanceIdString);
                     break;
                 }
 
@@ -779,6 +775,8 @@ PPH_STRING FindNetworkDeviceInstance(
 
             NtClose(keyHandle);
         }
+
+        PhDereferenceObject(deviceInstanceIdString);
     }
 
     PhDevFreeObjects(deviceCount, deviceObjects);

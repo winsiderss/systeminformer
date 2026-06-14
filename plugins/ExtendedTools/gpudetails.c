@@ -593,14 +593,19 @@ NTSTATUS EtGpuDetailsDialogThreadStart(
 
     PhDeleteAutoPool(&autoPool);
 
+    // Reset before clearing the thread handle. EtShowGpuDetailsDialog uses a NULL
+    // handle as the "spawn a new worker" trigger; if reset ran after clearing the
+    // handle, a fast re-entry could spawn a new worker, have it call PhSetEvent,
+    // and then this thread's reset would clobber the SET bit and deadlock the new
+    // caller's PhWaitForEvent.
+    PhResetEvent(&EtGpuDetailsInitializedEvent);
+
     if (EtGpuDetailsDialogThreadHandle)
     {
         NtClose(EtGpuDetailsDialogThreadHandle);
         EtGpuDetailsDialogThreadHandle = NULL;
         EtGpuDetailsDialogHandle = NULL;
     }
-
-    PhResetEvent(&EtGpuDetailsInitializedEvent);
 
     return STATUS_SUCCESS;
 }

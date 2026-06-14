@@ -575,7 +575,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             HFONT windowFont;
 
             if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
-                PhReplaceWindowFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);

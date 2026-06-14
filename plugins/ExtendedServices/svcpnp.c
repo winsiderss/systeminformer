@@ -202,48 +202,32 @@ BOOLEAN HardwareDeviceOpenKey(
     _In_ ULONG KeyIndex
     )
 {
-    CONFIGRET result;
-    DEVINST deviceInstanceHandle;
-    ULONG keyIndex;
-    HKEY keyHandle;
-
-    result = CM_Locate_DevNode(
-        &deviceInstanceHandle,
-        DeviceInstance->Buffer,
-        CM_LOCATE_DEVNODE_PHANTOM
-        );
-
-    if (result != CR_SUCCESS)
-    {
-        PhShowStatus(ParentWindow, L"Failed to locate the device.", 0, CM_MapCrToWin32Err(result, ERROR_UNKNOWN_PROPERTY));
-        return FALSE;
-    }
+    ULONG keyFlags;
+    HANDLE keyHandle;
 
     switch (KeyIndex)
     {
     case 4:
     default:
-        keyIndex = CM_REGISTRY_HARDWARE;
+        keyFlags = PH_DEVKEY_HARDWARE;
         break;
     case 5:
-        keyIndex = CM_REGISTRY_SOFTWARE;
+        keyFlags = PH_DEVKEY_SOFTWARE;
         break;
     case 6:
-        keyIndex = CM_REGISTRY_USER;
+        keyFlags = PH_DEVKEY_USER;
         break;
     case 7:
-        keyIndex = CM_REGISTRY_CONFIG;
+        keyFlags = PH_DEVKEY_CONFIG;
         break;
     }
 
-    if (CM_Open_DevInst_Key(
-        deviceInstanceHandle,
+    if (NT_SUCCESS(PhDevOpenObjectKey(
+        DeviceInstance,
         KEY_READ,
-        0,
-        RegDisposition_OpenExisting,
-        &keyHandle,
-        keyIndex
-        ) == CR_SUCCESS)
+        keyFlags,
+        &keyHandle
+        )))
     {
         PPH_STRING bestObjectName = NULL;
 

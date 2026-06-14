@@ -262,7 +262,10 @@ HICON PhGetBlackIcon(
         memset(bits, TaskbarTransparencyEnabled ? 1 : 0, bitsSize);
 
         if (!(mask = CreateBitmap(width, height, 1, 1, NULL)))
+        {
+            SelectBitmap(hdc, oldBitmap);
             return NULL;
+        }
 
         iconInfo.fIcon = TRUE;
         iconInfo.xHotspot = 0;
@@ -282,17 +285,30 @@ HICON PhBitmapToIcon(
     _In_ HBITMAP Bitmap
     )
 {
+    HICON iconHandle;
+    HBITMAP mask;
     ICONINFO iconInfo;
+    BITMAP bitmapInfo;
 
-    PhGetBlackIcon();
+    memset(&bitmapInfo, 0, sizeof(BITMAP));
 
+    if (GetObject(Bitmap, sizeof(BITMAP), &bitmapInfo) == 0)
+        return NULL;
+
+    if (!(mask = CreateBitmap(bitmapInfo.bmWidth, bitmapInfo.bmHeight, 1, 1, NULL)))
+        return NULL;
+
+    memset(&iconInfo, 0, sizeof(ICONINFO));
     iconInfo.fIcon = TRUE;
     iconInfo.xHotspot = 0;
     iconInfo.yHotspot = 0;
-    iconInfo.hbmMask = PhBlackBitmap;
+    iconInfo.hbmMask = mask;
     iconInfo.hbmColor = Bitmap;
 
-    return CreateIconIndirect(&iconInfo);
+    iconHandle = CreateIconIndirect(&iconInfo);
+    DeleteBitmap(mask);
+
+    return iconHandle;
 }
 
 HICON PhUpdateIconCpuHistory(
@@ -329,9 +345,16 @@ HICON PhUpdateIconCpuHistory(
     maxDataCount = drawInfo.Width / 2 + 1;
 
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        _freea(lineData1);
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
 
     lineDataCount = min(maxDataCount, Statistics->CpuKernelHistory->Count);
     PhCopyCircularBuffer_FLOAT(Statistics->CpuKernelHistory, lineData1, lineDataCount);
@@ -391,9 +414,16 @@ HICON PhUpdateIconIoHistory(
     maxDataCount = drawInfo.Width / 2 + 1;
 
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
     if (!(lineData2 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        _freea(lineData1);
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
 
     lineDataCount = min(maxDataCount, Statistics->IoReadHistory->Count);
     max = 1024 * 1024; // minimum scaling of 1 MB.
@@ -468,7 +498,10 @@ HICON PhUpdateIconCommitHistory(
     maxDataCount = drawInfo.Width / 2 + 1;
 
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
 
     lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
@@ -530,7 +563,10 @@ HICON PhUpdateIconPhysicalHistory(
     maxDataCount = drawInfo.Width / 2 + 1;
 
     if (!(lineData1 = _malloca(maxDataCount * sizeof(FLOAT))))
+    {
+        SelectBitmap(hdc, oldBitmap);
         return NULL;
+    }
 
     lineDataCount = min(maxDataCount, Statistics->CommitHistory->Count);
 
@@ -551,7 +587,6 @@ HICON PhUpdateIconPhysicalHistory(
     _freea(lineData1);
 
     return icon;
-    return 0;
 }
 
 HICON PhUpdateIconCpuUsage(

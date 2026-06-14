@@ -327,10 +327,10 @@ VOID InitializeFwTreeList(
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_RULEDESCRIPTION, TRUE, L"Description", 180, PH_ALIGN_LEFT, FW_COLUMN_RULEDESCRIPTION, 0);
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_FILTER_ORIGIN, TRUE, L"Filter origin", 80, PH_ALIGN_LEFT, FW_COLUMN_FILTER_ORIGIN, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_LOCALADDRESS, TRUE, L"Local address", 110, PH_ALIGN_RIGHT, FW_COLUMN_LOCALADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 20, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_LOCALPORT, TRUE, L"Local port", 30, PH_ALIGN_LEFT, FW_COLUMN_LOCALPORT, DT_LEFT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_LOCALHOSTNAME, TRUE, L"Local hostname", 100, PH_ALIGN_LEFT, FW_COLUMN_LOCALHOSTNAME, 0);
     PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_REMOTEADDRESS, TRUE, L"Remote address", 110, PH_ALIGN_RIGHT, FW_COLUMN_REMOTEADDRESS, DT_RIGHT, TRUE);
-    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 20, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
+    PhAddTreeNewColumnEx(TreeNewHandle, FW_COLUMN_REMOTEPORT, TRUE, L"Remote port", 30, PH_ALIGN_LEFT, FW_COLUMN_REMOTEPORT, DT_LEFT, TRUE);
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_REMOTEHOSTNAME, TRUE, L"Remote hostname", 100, PH_ALIGN_LEFT, FW_COLUMN_REMOTEHOSTNAME, 0);
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_PROTOCOL, TRUE, L"Protocol", 60, PH_ALIGN_LEFT, FW_COLUMN_PROTOCOL, 0);
     PhAddTreeNewColumn(TreeNewHandle, FW_COLUMN_TIMESTAMP, TRUE, L"Timestamp", 60, PH_ALIGN_LEFT, FW_COLUMN_TIMESTAMP, 0);
@@ -1134,6 +1134,18 @@ int __cdecl EtFwNodeNoOrderSortFunction(
     return PhModifySort(sortResult, DescendingSortOrder);
 }
 
+typedef enum _FW_ITEM_COMMAND_ID
+{
+    FW_ITEM_COMMAND_ID_PING = 1,
+    FW_ITEM_COMMAND_ID_TRACERT,
+    FW_ITEM_COMMAND_ID_WHOIS,
+    FW_ITEM_COMMAND_ID_GOTOPROCESS,
+    FW_ITEM_COMMAND_ID_OPENFILELOCATION,
+    FW_ITEM_COMMAND_ID_INSPECT,
+    FW_ITEM_COMMAND_ID_PROPERTIES,
+    FW_ITEM_COMMAND_ID_COPY,
+} FW_ITEM_COMMAND_ID;
+
 BOOLEAN NTAPI FwTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -1147,78 +1159,78 @@ BOOLEAN NTAPI FwTreeNewCallback(
     switch (Message)
     {
     case TreeNewGetChildren:
-    {
-        PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
-        node = (PFW_EVENT_ITEM)getChildren->Node;
-
-        if (FwTreeNewSortOrder == NoSortOrder)
         {
-            if (!node)
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+            node = (PFW_EVENT_ITEM)getChildren->Node;
+
+            if (FwTreeNewSortOrder == NoSortOrder)
             {
-                qsort(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), EtFwNodeNoOrderSortFunction);
-
-                getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
-                getChildren->NumberOfChildren = FwNodeList->Count;
-            }
-        }
-        else
-        {
-            if (!getChildren->Node)
-            {
-                static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
+                if (!node)
                 {
-                    SORT_FUNCTION(Name),
-                    SORT_FUNCTION(ProcessId),
-                    SORT_FUNCTION(Action),
-                    SORT_FUNCTION(Direction),
-                    SORT_FUNCTION(RuleName),
-                    SORT_FUNCTION(RuleDescription),
-                    SORT_FUNCTION(FilterOrigin),
-                    SORT_FUNCTION(LocalAddress),
-                    SORT_FUNCTION(LocalPort),
-                    SORT_FUNCTION(LocalHostname),
-                    SORT_FUNCTION(RemoteAddress),
-                    SORT_FUNCTION(RemotePort),
-                    SORT_FUNCTION(RemoteHostname),
-                    SORT_FUNCTION(Protocol),
-                    SORT_FUNCTION(Timestamp),
-                    //SORT_FUNCTION(Filename),
-                    SORT_FUNCTION(User),
-                    SORT_FUNCTION(Package),
-                    SORT_FUNCTION(Country),
-                    SORT_FUNCTION(LocalAddressClass),
-                    SORT_FUNCTION(RemoteAddressClass),
-                    SORT_FUNCTION(LocalAddressScope),
-                    SORT_FUNCTION(RemoteAddressScope),
-                    SORT_FUNCTION(Filename),
-                    SORT_FUNCTION(LocalPortServiceName),
-                    SORT_FUNCTION(RemotePortServiceName),
-                    SORT_FUNCTION(InterfaceLuid),
-                    SORT_FUNCTION(CompartmentId),
-                    SORT_FUNCTION(PolicyAppId),
-                    SORT_FUNCTION(ServiceSids),
-                    SORT_FUNCTION(FqbnName),
-                };
-                _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
+                    qsort(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), EtFwNodeNoOrderSortFunction);
 
-                static_assert(RTL_NUMBER_OF(sortFunctions) == FW_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
-
-                if (FwTreeNewSortColumn < FW_COLUMN_MAXIMUM)
-                    sortFunction = sortFunctions[FwTreeNewSortColumn];
-                else
-                    sortFunction = NULL;
-
-                if (sortFunction)
-                {
-                    qsort(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), sortFunction);
+                    getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
+                    getChildren->NumberOfChildren = FwNodeList->Count;
                 }
+            }
+            else
+            {
+                if (!getChildren->Node)
+                {
+                    static CONST _CoreCrtNonSecureSearchSortCompareFunction sortFunctions[] =
+                    {
+                        SORT_FUNCTION(Name),
+                        SORT_FUNCTION(ProcessId),
+                        SORT_FUNCTION(Action),
+                        SORT_FUNCTION(Direction),
+                        SORT_FUNCTION(RuleName),
+                        SORT_FUNCTION(RuleDescription),
+                        SORT_FUNCTION(FilterOrigin),
+                        SORT_FUNCTION(LocalAddress),
+                        SORT_FUNCTION(LocalPort),
+                        SORT_FUNCTION(LocalHostname),
+                        SORT_FUNCTION(RemoteAddress),
+                        SORT_FUNCTION(RemotePort),
+                        SORT_FUNCTION(RemoteHostname),
+                        SORT_FUNCTION(Protocol),
+                        SORT_FUNCTION(Timestamp),
+                        //SORT_FUNCTION(Filename),
+                        SORT_FUNCTION(User),
+                        SORT_FUNCTION(Package),
+                        SORT_FUNCTION(Country),
+                        SORT_FUNCTION(LocalAddressClass),
+                        SORT_FUNCTION(RemoteAddressClass),
+                        SORT_FUNCTION(LocalAddressScope),
+                        SORT_FUNCTION(RemoteAddressScope),
+                        SORT_FUNCTION(Filename),
+                        SORT_FUNCTION(LocalPortServiceName),
+                        SORT_FUNCTION(RemotePortServiceName),
+                        SORT_FUNCTION(InterfaceLuid),
+                        SORT_FUNCTION(CompartmentId),
+                        SORT_FUNCTION(PolicyAppId),
+                        SORT_FUNCTION(ServiceSids),
+                        SORT_FUNCTION(FqbnName),
+                    };
+                    _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
-                getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
-                getChildren->NumberOfChildren = FwNodeList->Count;
+                    static_assert(RTL_NUMBER_OF(sortFunctions) == FW_COLUMN_MAXIMUM, "SortFunctions must equal maximum.");
+
+                    if (FwTreeNewSortColumn < FW_COLUMN_MAXIMUM)
+                        sortFunction = sortFunctions[FwTreeNewSortColumn];
+                    else
+                        sortFunction = NULL;
+
+                    if (sortFunction)
+                    {
+                        qsort(FwNodeList->Items, FwNodeList->Count, sizeof(PVOID), sortFunction);
+                    }
+
+                    getChildren->Children = (PPH_TREENEW_NODE*)FwNodeList->Items;
+                    getChildren->NumberOfChildren = FwNodeList->Count;
+                }
             }
         }
-    }
-    return TRUE;
+        return TRUE;
     case TreeNewIsLeaf:
         {
             PPH_TREENEW_IS_LEAF isLeaf = (PPH_TREENEW_IS_LEAF)Parameter1;
@@ -1314,7 +1326,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                     }
                 }
                 break;
@@ -1344,7 +1356,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
                     }
                     else
                     {
-                        PhInitializeStringRef(&getCellText->Text, L"Resolving....");
+                        PhInitializeStringRef(&getCellText->Text, L"Resolving...");
                     }
                 }
                 break;
@@ -1659,7 +1671,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
             {
             case 'C':
                 if (GetKeyState(VK_CONTROL) < 0)
-                    EtFwHandleFwCommand(WindowHandle, ID_DISK_COPY);
+                    EtFwHandleFwCommand(WindowHandle, FW_ITEM_COMMAND_ID_COPY);
                 break;
             }
         }
@@ -1698,7 +1710,7 @@ BOOLEAN NTAPI FwTreeNewCallback(
         return TRUE;
     case TreeNewLeftDoubleClick:
         {
-            EtFwHandleFwCommand(WindowHandle, ID_DISK_INSPECT);
+            EtFwHandleFwCommand(WindowHandle, FW_ITEM_COMMAND_ID_PROPERTIES);
         }
         return TRUE;
     case TreeNewContextMenu:
@@ -1932,18 +1944,6 @@ VOID EtFwWriteFwList(
     PhDereferenceObject(lines);
 }
 
-typedef enum _FW_ITEM_COMMAND_ID
-{
-    FW_ITEM_COMMAND_ID_PING = 1,
-    FW_ITEM_COMMAND_ID_TRACERT,
-    FW_ITEM_COMMAND_ID_WHOIS,
-    FW_ITEM_COMMAND_ID_GOTOPROCESS,
-    FW_ITEM_COMMAND_ID_OPENFILELOCATION,
-    FW_ITEM_COMMAND_ID_INSPECT,
-    FW_ITEM_COMMAND_ID_PROPERTIES,
-    FW_ITEM_COMMAND_ID_COPY,
-} FW_ITEM_COMMAND_ID;
-
 VOID EtFwHandleFwCommand(
     _In_ HWND TreeWindowHandle,
     _In_ ULONG Id
@@ -1978,6 +1978,25 @@ VOID EtFwHandleFwCommand(
             if (entry = EtFwGetSelectedFwItem())
             {
                 EtFwShowWhoisWindow(GetParent(TreeWindowHandle), entry->RemoteEndpoint);
+            }
+        }
+        break;
+    case FW_ITEM_COMMAND_ID_GOTOPROCESS:
+        {
+            PFW_EVENT_ITEM entry;
+            PPH_PROCESS_NODE processNode;
+
+            if (entry = EtFwGetSelectedFwItem())
+            {
+                if (processNode = PhFindProcessNode(UlongToHandle(entry->ProcessId)))
+                {
+                    SystemInformer_SelectTabPage(0);
+                    SystemInformer_SelectProcessNode(processNode);
+                }
+                else
+                {
+                    PhShowStatus(TreeWindowHandle, L"The process does not exist.", STATUS_INVALID_CID, 0);
+                }
             }
         }
         break;
@@ -2018,6 +2037,16 @@ VOID EtFwHandleFwCommand(
             }
         }
         break;
+    case FW_ITEM_COMMAND_ID_PROPERTIES:
+        {
+            PFW_EVENT_ITEM entry;
+
+            if (entry = EtFwGetSelectedFwItem())
+            {
+                EtFwShowEventProperties(GetParent(TreeWindowHandle), entry);
+            }
+        }
+        break;
     case FW_ITEM_COMMAND_ID_COPY:
         {
             EtFwCopyFwList();
@@ -2040,22 +2069,22 @@ VOID InitializeFwMenu(
     {
         if (PhIsNullOrEmptyString(FwItems[0]->ProcessFileName))
         {
-            PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
-            PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);
+            PhEnableEMenuItem(Menu, FW_ITEM_COMMAND_ID_OPENFILELOCATION, FALSE);
+            PhEnableEMenuItem(Menu, FW_ITEM_COMMAND_ID_INSPECT, FALSE);
         }
         else
         {
             if (!PhDoesFileExist(&FwItems[0]->ProcessFileName->sr))
             {
-                PhEnableEMenuItem(Menu, ID_DISK_OPENFILELOCATION, FALSE);
-                PhEnableEMenuItem(Menu, ID_DISK_INSPECT, FALSE);
+                PhEnableEMenuItem(Menu, FW_ITEM_COMMAND_ID_OPENFILELOCATION, FALSE);
+                PhEnableEMenuItem(Menu, FW_ITEM_COMMAND_ID_INSPECT, FALSE);
             }
         }
     }
     else
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
-        PhEnableEMenuItem(Menu, ID_DISK_COPY, TRUE);
+        PhEnableEMenuItem(Menu, FW_ITEM_COMMAND_ID_COPY, TRUE);
     }
 }
 

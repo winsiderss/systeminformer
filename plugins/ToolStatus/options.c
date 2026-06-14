@@ -108,21 +108,19 @@ INT_PTR CALLBACK OptionsDlgProc(
 
             PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
-            ToolbarLoadSettings(FALSE);
-            ToolbarCreateGraphs();
+            {
+                ULONG bandStyle;
 
-            if (ToolStatusConfig.AutoHideMenu)
-            {
-                SetMenu(MainWindowHandle, NULL);
-            }
-            else
-            {
-                SetMenu(MainWindowHandle, MainMenu);
-                DrawMenuBar(MainWindowHandle);
+                if (RebarGetBandIndexStyle(0, &bandStyle))
+                {
+                    ClearFlag(bandStyle, RBBS_BREAK);
+                    RebarSetBandIndexStyle(0, bandStyle);
+                }
             }
 
-            if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
-                SetFocus(SearchboxHandle);
+            ReBarSaveLayoutSettings();
+            ToolbarDestroyControls();
+            ToolbarCreateControls();
 
             graphTypeString = PH_AUTO(PhGetWindowText(GetDlgItem(WindowHandle, IDC_CURRENT)));
             PhSetIntegerSetting(SETTING_NAME_TASKBARDISPLAYSTYLE, GraphTypeGetTypeInteger(graphTypeString->Buffer));

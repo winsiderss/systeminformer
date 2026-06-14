@@ -12,6 +12,9 @@
 
 #include "updater.h"
 
+//
+// Release channel current signing key (ECDSA P-256 public blob).
+//
 static CONST UCHAR UpdaterTrustedPublicKeyRelease[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
@@ -25,6 +28,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyRelease[] =
     0x37, 0x62, 0xAB, 0xA5, 0x7E, 0xB5, 0xA4, 0x3D,
 };
 
+//
+// Preview channel current signing key (ECDSA P-256 public blob).
+//
 static CONST UCHAR UpdaterTrustedPublicKeyPreview[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
@@ -38,6 +44,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyPreview[] =
     0x1C, 0x02, 0xDC, 0x7C, 0x6E, 0x0C, 0x89, 0xA8,
 };
 
+//
+// Canary channel current signing key (ECDSA P-256 public blob).
+//
 static CONST UCHAR UpdaterTrustedPublicKeyCanary[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
@@ -51,6 +60,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyCanary[] =
     0x66, 0x1B, 0x1B, 0x20, 0xE7, 0xFF, 0x6A, 0x46,
 };
 
+//
+// Developer channel current signing key (ECDSA P-256 public blob).
+//
 static CONST UCHAR UpdaterTrustedPublicKeyDeveloper[] =
 {
     0x45, 0x43, 0x53, 0x31, 0x20, 0x00, 0x00, 0x00,
@@ -64,6 +76,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyDeveloper[] =
     0x36, 0x04, 0x44, 0x8B, 0xA2, 0x92, 0xF8, 0x0E,
 };
 
+//
+// Release channel next-generation signing key (RSA public blob) used for key rotation.
+//
 static CONST UCHAR UpdaterTrustedPublicKeyReleaseNext[] =
 {
     0x52, 0x53, 0x41, 0x31, 0x00, 0x10, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -113,6 +128,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyReleaseNext[] =
     0xBF, 0x9A, 0x0E, 0x34, 0xA6, 0x72, 0xBE, 0xF1, 0x78, 0xF6, 0xB1
 };
 
+//
+// Preview channel next-generation signing key (RSA public blob) used for key rotation.
+//
 static CONST UCHAR UpdaterTrustedPublicKeyPreviewNext[] =
 {
     0x52, 0x53, 0x41, 0x31, 0x00, 0x10, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -162,6 +180,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyPreviewNext[] =
     0x56, 0x83, 0x67, 0xAB, 0x3D, 0xC5, 0x94, 0x64, 0x4A, 0xE0, 0x09
 };
 
+//
+// Canary channel next-generation signing key (RSA public blob) used for key rotation.
+//
 static CONST UCHAR UpdaterTrustedPublicKeyCanaryNext[] =
 {
     0x52, 0x53, 0x41, 0x31, 0x00, 0x10, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -211,6 +232,9 @@ static CONST UCHAR UpdaterTrustedPublicKeyCanaryNext[] =
     0x89, 0x64, 0xA1, 0xA8, 0xF4, 0x92, 0xC6, 0x80, 0xC3, 0x82, 0xB1
 };
 
+//
+// Developer channel next-generation signing key (RSA public blob) used for key rotation.
+//
 static CONST UCHAR UpdaterTrustedPublicKeyDeveloperNext[] =
 {
     0x52, 0x53, 0x41, 0x31, 0x00, 0x10, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
@@ -266,8 +290,14 @@ static BCRYPT_PSS_PADDING_INFO UpdaterPaddingInfo =
     (512 / 8)
 };
 
+static PH_SYMCRYPT_PSS_PADDING_INFO UpdaterPaddingInfoSymCrypt =
+{
+    PH_SYMCRYPT_SHA512_ALGORITHM_NAME,
+    (512 / 8)
+};
+
 /**
- * Initializes signing information for the updater.
+ * Initializes signing information for the updater (BCrypt backend).
  *
  * \param Signing The signing structure to initialize.
  * \param PublicKey The public key material.
@@ -345,11 +375,6 @@ NTSTATUS UpdaterInitializeSigning(
         return status;
     }
 
-    if (!(Signing->Hash = PhAllocatePageZero(Signing->HashSize)))
-    {
-        return STATUS_NO_MEMORY;
-    }
-
     if (!NT_SUCCESS(status = BCryptCreateHash(
         Signing->HashAlgHandle,
         &Signing->HashHandle,
@@ -367,7 +392,102 @@ NTSTATUS UpdaterInitializeSigning(
 }
 
 /**
- * Initializes hash contexts for the updater based on the release channel.
+ * Initializes signing information for the updater (SymCrypt backend).
+ *
+ * \param Signing The signing structure to initialize.
+ * \param PublicKey The public key material.
+ * \param PublicKeySize The size of the public key material.
+ * \param SignAlgId The signature algorithm ID.
+ * \param SignBlobType The signature blob type.
+ * \param HashAlgId The hash algorithm ID.
+ * \param PaddingInfo Optional padding information.
+ * \param PaddingFlags Padding flags.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterInitializeSigningSymCrypt(
+    _Inout_ PUPDATER_SIGNING Signing,
+    _In_ CONST UCHAR* PublicKey,
+    _In_ ULONG PublicKeySize,
+    _In_ PCWSTR SignAlgId,
+    _In_ PCWSTR SignBlobType,
+    _In_ PCWSTR HashAlgId,
+    _In_opt_ PVOID PaddingInfo,
+    _In_ ULONG PaddingFlags
+    )
+{
+    NTSTATUS status;
+    PH_SYMCRYPT_HASH_ALGORITHM hashAlgorithm;
+
+    Signing->PaddingInfo = PaddingInfo;
+    Signing->PaddingFlags = PaddingFlags;
+    Signing->SymCryptBlobType = SignBlobType;
+    Signing->SymCryptKeyBlob = PublicKey;
+    Signing->SymCryptKeyBlobLength = PublicKeySize;
+
+    status = PhSymCryptHashAlgorithmIdToAlgorithm(
+        HashAlgId,
+        &hashAlgorithm,
+        &Signing->HashSize
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhSymCryptHashInit(
+        hashAlgorithm,
+        &Signing->HashContext
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Resolves the public-key blobs for a release channel.
+ */
+NTSTATUS UpdaterGetPublicKeysForChannel(
+    _In_ PH_RELEASE_CHANNEL Channel,
+    _Out_ CONST UCHAR** PublicKey,
+    _Out_ ULONG* PublicKeySize,
+    _Out_ CONST UCHAR** PublicKeyNext,
+    _Out_ ULONG* PublicKeySizeNext
+    )
+{
+    switch (Channel)
+    {
+    case PhReleaseChannel:
+        *PublicKey = UpdaterTrustedPublicKeyRelease;
+        *PublicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyRelease);
+        *PublicKeyNext = UpdaterTrustedPublicKeyReleaseNext;
+        *PublicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyReleaseNext);
+        return STATUS_SUCCESS;
+    case PhPreviewChannel:
+        *PublicKey = UpdaterTrustedPublicKeyPreview;
+        *PublicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyPreview);
+        *PublicKeyNext = UpdaterTrustedPublicKeyPreviewNext;
+        *PublicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyPreviewNext);
+        return STATUS_SUCCESS;
+    case PhCanaryChannel:
+        *PublicKey = UpdaterTrustedPublicKeyCanary;
+        *PublicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyCanary);
+        *PublicKeyNext = UpdaterTrustedPublicKeyCanaryNext;
+        *PublicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyCanaryNext);
+        return STATUS_SUCCESS;
+    case PhDeveloperChannel:
+        *PublicKey = UpdaterTrustedPublicKeyDeveloper;
+        *PublicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyDeveloper);
+        *PublicKeyNext = UpdaterTrustedPublicKeyDeveloperNext;
+        *PublicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyDeveloperNext);
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+/**
+ * Initializes hash contexts for the updater based on the release channel (BCrypt backend).
  *
  * \param Context A variable which receives a pointer to the hash context.
  * \param Channel The release channel.
@@ -386,43 +506,25 @@ NTSTATUS UpdaterInitializeHash(
     ULONG publicKeySizeNext;
     ULONG querySize;
 
-    switch (Channel)
-    {
-    case PhReleaseChannel:
-        publicKey = UpdaterTrustedPublicKeyRelease;
-        publicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyRelease);
-        publicKeyNext = UpdaterTrustedPublicKeyReleaseNext;
-        publicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyReleaseNext);
-        break;
-    case PhPreviewChannel:
-        publicKey = UpdaterTrustedPublicKeyPreview;
-        publicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyPreview);
-        publicKeyNext = UpdaterTrustedPublicKeyPreviewNext;
-        publicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyPreviewNext);
-        break;
-    case PhCanaryChannel:
-        publicKey = UpdaterTrustedPublicKeyCanary;
-        publicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyCanary);
-        publicKeyNext = UpdaterTrustedPublicKeyCanaryNext;
-        publicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyCanaryNext);
-        break;
-    case PhDeveloperChannel:
-        publicKey = UpdaterTrustedPublicKeyDeveloper;
-        publicKeySize = ARRAYSIZE(UpdaterTrustedPublicKeyDeveloper);
-        publicKeyNext = UpdaterTrustedPublicKeyDeveloperNext;
-        publicKeySizeNext = ARRAYSIZE(UpdaterTrustedPublicKeyDeveloperNext);
-        break;
-    default:
-        return STATUS_UNSUCCESSFUL;
-    }
+    status = UpdaterGetPublicKeysForChannel(
+        Channel,
+        &publicKey,
+        &publicKeySize,
+        &publicKeyNext,
+        &publicKeySizeNext
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     if (!(hashContext = PhAllocatePageZero(sizeof(UPDATER_HASH_CONTEXT))))
-    {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
-    }
+        return STATUS_NO_MEMORY;
 
+    hashContext->Backend = UpdaterCryptoBackendBCrypt;
+
+    //
     // Initializing the hash used for validation.
+    //
 
     if (!NT_SUCCESS(status = BCryptOpenAlgorithmProvider(
         &hashContext->HashAlgHandle,
@@ -446,12 +548,6 @@ NTSTATUS UpdaterInitializeHash(
         goto CleanupExit;
     }
 
-    if (!(hashContext->Hash = PhAllocatePageZero(hashContext->HashSize)))
-    {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
-    }
-
     if (!NT_SUCCESS(status = BCryptCreateHash(
         hashContext->HashAlgHandle,
         &hashContext->HashHandle,
@@ -465,7 +561,9 @@ NTSTATUS UpdaterInitializeHash(
         goto CleanupExit;
     }
 
+    //
     // Initialize the signing used for authentication.
+    //
 
     if (!NT_SUCCESS(status = UpdaterInitializeSigning(
         &hashContext->Sign[UpdaterSigningGenerationCurrent],
@@ -510,7 +608,110 @@ CleanupExit:
 }
 
 /**
- * Hashes data for the updater.
+ * Initializes hash contexts for the updater based on the release channel (SymCrypt backend).
+ *
+ * \param Context A variable which receives a pointer to the hash context.
+ * \param Channel The release channel.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterInitializeHashSymCrypt(
+    _Out_ PUPDATER_HASH_CONTEXT* Context,
+    _In_ PH_RELEASE_CHANNEL Channel
+    )
+{
+    NTSTATUS status;
+    PUPDATER_HASH_CONTEXT hashContext;
+    const UCHAR* publicKey;
+    ULONG publicKeySize;
+    const UCHAR* publicKeyNext;
+    ULONG publicKeySizeNext;
+
+    status = UpdaterGetPublicKeysForChannel(
+        Channel,
+        &publicKey,
+        &publicKeySize,
+        &publicKeyNext,
+        &publicKeySizeNext
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!(hashContext = PhAllocatePageZero(sizeof(UPDATER_HASH_CONTEXT))))
+    {
+        return STATUS_NO_MEMORY;
+    }
+
+    hashContext->Backend = UpdaterCryptoBackendSymCrypt;
+
+    //
+    // Initializing the hash used for validation.
+    //
+
+    if (!NT_SUCCESS(status = PhSymCryptHashInit(
+        PH_SYMCRYPT_SHA256_ALGORITHM,
+        &hashContext->HashContext
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = PhSymCryptHashSize(
+        &hashContext->HashContext,
+        &hashContext->HashSize
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    //
+    // Initialize the signing used for authentication.
+    //
+
+    if (!NT_SUCCESS(status = UpdaterInitializeSigningSymCrypt(
+        &hashContext->Sign[UpdaterSigningGenerationCurrent],
+        publicKey,
+        publicKeySize,
+        PH_SYMCRYPT_ECDSA_P256_ALGORITHM_NAME,
+        PH_SYMCRYPT_ECCPUBLIC_BLOB_NAME,
+        PH_SYMCRYPT_SHA256_ALGORITHM_NAME,
+        NULL,
+        0
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(status = UpdaterInitializeSigningSymCrypt(
+        &hashContext->Sign[UpdaterSigningGenerationNext],
+        publicKeyNext,
+        publicKeySizeNext,
+        PH_SYMCRYPT_RSA_ALGORITHM_NAME,
+        PH_SYMCRYPT_RSAPUBLIC_BLOB_NAME,
+        PH_SYMCRYPT_SHA512_ALGORITHM_NAME,
+        &UpdaterPaddingInfoSymCrypt,
+        PH_SYMCRYPT_PAD_PSS
+        )))
+    {
+        goto CleanupExit;
+    }
+
+CleanupExit:
+    if (NT_SUCCESS(status))
+    {
+        *Context = hashContext;
+    }
+    else
+    {
+        *Context = NULL;
+        UpdaterDestroyHashSymCrypt(hashContext);
+    }
+
+    return status;
+}
+
+/**
+ * Hashes data for the updater (BCrypt backend).
  *
  * \param Context The hash context.
  * \param Buffer The data buffer.
@@ -535,14 +736,46 @@ NTSTATUS UpdaterHashData(
         status = BCryptHashData(Context->Sign[i].HashHandle, Buffer, Length, 0);
 
         if (!NT_SUCCESS(status))
-            return status;
+            break;
     }
 
     return status;
 }
 
 /**
- * Verifies the accumulated hash against a provided SHA-256 hash string.
+ * Hashes data for the updater (SymCrypt backend).
+ *
+ * \param Context The hash context.
+ * \param Buffer The data buffer.
+ * \param Length The length of the data buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterHashDataSymCrypt(
+    _In_ PUPDATER_HASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    NTSTATUS status;
+
+    status = PhSymCryptHashData(&Context->HashContext, Buffer, Length);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
+    {
+        status = PhSymCryptHashData(&Context->Sign[i].HashContext, Buffer, Length);
+
+        if (!NT_SUCCESS(status))
+            break;
+    }
+
+    return status;
+}
+
+/**
+ * Verifies the accumulated hash against a provided SHA-256 hash string (BCrypt backend).
  *
  * \param Context The hash context.
  * \param Sha2Hash The SHA-256 hash string to verify against.
@@ -556,10 +789,16 @@ NTSTATUS UpdaterVerifyHash(
     NTSTATUS status;
     PPH_STRING sha2HexString;
 
+    if (Context->HashSize > sizeof(Context->HashBuffer))
+        return STATUS_BUFFER_TOO_SMALL;
+
+    //
     // Compute the final hash.
+    //
+
     status = BCryptFinishHash(
         Context->HashHandle,
-        Context->Hash,
+        Context->HashBuffer,
         Context->HashSize,
         0
         );
@@ -567,7 +806,7 @@ NTSTATUS UpdaterVerifyHash(
     if (!NT_SUCCESS(status))
         return status;
 
-    if (!(sha2HexString = PhBufferToHexString(Context->Hash, Context->HashSize)))
+    if (!(sha2HexString = PhBufferToHexString(Context->HashBuffer, Context->HashSize)))
         return STATUS_FAIL_CHECK;
 
     if (!PhEqualString(sha2HexString, Sha2Hash, TRUE))
@@ -581,7 +820,51 @@ NTSTATUS UpdaterVerifyHash(
 }
 
 /**
- * Verifies the signature of the accumulated data.
+ * Verifies the accumulated hash against a provided SHA-256 hash string (SymCrypt backend).
+ *
+ * \param Context The hash context.
+ * \param Sha2Hash The SHA-256 hash string to verify against.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterVerifyHashSymCrypt(
+    _In_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING Sha2Hash
+    )
+{
+    NTSTATUS status;
+    PPH_STRING sha2HexString;
+
+    if (Context->HashSize > sizeof(Context->HashBuffer))
+        return STATUS_BUFFER_TOO_SMALL;
+
+    //
+    // Compute the final hash.
+    //
+
+    status = PhSymCryptHashFinal(
+        &Context->HashContext,
+        Context->HashBuffer,
+        Context->HashSize
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!(sha2HexString = PhBufferToHexString(Context->HashBuffer, Context->HashSize)))
+        return STATUS_FAIL_CHECK;
+
+    if (!PhEqualString(sha2HexString, Sha2Hash, TRUE))
+    {
+        PhDereferenceObject(sha2HexString);
+        return STATUS_FAIL_CHECK;
+    }
+
+    PhDereferenceObject(sha2HexString);
+    return status;
+}
+
+/**
+ * Verifies the signature of the accumulated data (BCrypt backend).
  *
  * \param Context The hash context.
  * \param HexSignature The hex-encoded signature string.
@@ -612,26 +895,37 @@ NTSTATUS UpdaterVerifySignature(
 
     for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
     {
+        PUPDATER_SIGNING sign = &Context->Sign[i];
+
+        if (sign->HashSize > sizeof(sign->HashBuffer))
+            continue;
+
+        //
         // Compute the final hash.
+        //
+
         status = BCryptFinishHash(
-            Context->Sign[i].HashHandle,
-            Context->Sign[i].Hash,
-            Context->Sign[i].HashSize,
+            sign->HashHandle,
+            sign->HashBuffer,
+            sign->HashSize,
             0
             );
 
         if (!NT_SUCCESS(status))
             continue;
 
+        //
         // Verify the signature.
+        //
+
         status = BCryptVerifySignature(
-            Context->Sign[i].KeyHandle,
-            Context->Sign[i].PaddingInfo,
-            Context->Sign[i].Hash,
-            Context->Sign[i].HashSize,
+            sign->KeyHandle,
+            sign->PaddingInfo,
+            sign->HashBuffer,
+            sign->HashSize,
             signatureBuffer,
             signatureLength,
-            Context->Sign[i].PaddingFlags
+            sign->PaddingFlags
             );
 
         if (NT_SUCCESS(status))
@@ -639,11 +933,87 @@ NTSTATUS UpdaterVerifySignature(
     }
 
     PhFreePage(signatureBuffer);
+
     return status;
 }
 
 /**
- * Destroys an updater hash context and frees associated resources.
+ * Verifies the signature of the accumulated data (SymCrypt backend).
+ *
+ * \param Context The hash context.
+ * \param HexSignature The hex-encoded signature string.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS UpdaterVerifySignatureSymCrypt(
+    _In_ PUPDATER_HASH_CONTEXT Context,
+    _In_ PPH_STRING HexSignature
+    )
+{
+    NTSTATUS status;
+    ULONG signatureLength;
+    PUCHAR signatureBuffer;
+
+    if (!HexSignature)
+        return STATUS_FAIL_CHECK;
+
+    signatureLength = (ULONG)HexSignature->Length / sizeof(WCHAR) / 2;
+    signatureBuffer = PhAllocatePageZero(signatureLength);
+
+    if (!PhHexStringToBufferEx(&HexSignature->sr, signatureLength, signatureBuffer))
+    {
+        PhFreePage(signatureBuffer);
+        return STATUS_FAIL_CHECK;
+    }
+
+    status = STATUS_FAIL_CHECK;
+
+    for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
+    {
+        PUPDATER_SIGNING sign = &Context->Sign[i];
+
+        if (sign->HashSize > sizeof(sign->HashBuffer))
+            continue;
+
+        //
+        // Compute the final hash.
+        //
+
+        status = PhSymCryptHashFinal(
+            &sign->HashContext,
+            sign->HashBuffer,
+            sign->HashSize
+            );
+
+        if (!NT_SUCCESS(status))
+            continue;
+
+        //
+        // Verify the signature.
+        //
+
+        status = PhSymCryptVerifySignature(
+            sign->SymCryptBlobType,
+            sign->SymCryptKeyBlob,
+            sign->SymCryptKeyBlobLength,
+            sign->PaddingInfo,
+            sign->PaddingFlags,
+            sign->HashBuffer,
+            sign->HashSize,
+            signatureBuffer,
+            signatureLength
+            );
+
+        if (NT_SUCCESS(status))
+            break;
+    }
+
+    PhFreePage(signatureBuffer);
+
+    return status;
+}
+
+/**
+ * Destroys an updater hash context and frees associated resources (BCrypt backend).
  *
  * \param Context The hash context to destroy.
  */
@@ -661,12 +1031,6 @@ VOID UpdaterDestroyHash(
     {
         BCryptCloseAlgorithmProvider(Context->HashAlgHandle, 0);
         Context->HashAlgHandle = NULL;
-    }
-
-    if (Context->Hash)
-    {
-        PhFreePage(Context->Hash);
-        Context->Hash = NULL;
     }
 
     for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
@@ -694,13 +1058,33 @@ VOID UpdaterDestroyHash(
             BCryptCloseAlgorithmProvider(Context->Sign[i].SignAlgHandle, 0);
             Context->Sign[i].SignAlgHandle = NULL;
         }
+    }
 
-        if (Context->Sign[i].Hash)
+    PhFreePage(Context);
+}
+
+/**
+ * Destroys an updater hash context and frees associated resources (SymCrypt backend).
+ *
+ * \param Context The hash context to destroy.
+ */
+VOID UpdaterDestroyHashSymCrypt(
+    _Frees_ptr_opt_ PUPDATER_HASH_CONTEXT Context
+    )
+{
+    if (Context->HashContext.Algorithm)
+    {
+        PhSymCryptDestroyHash(&Context->HashContext, Context->HashSize);
+    }
+
+    for (ULONG i = 0; i < MaxUpdaterSigningGeneration; i++)
+    {
+        if (Context->Sign[i].HashContext.Algorithm)
         {
-            PhFreePage(Context->Sign[i].Hash);
-            Context->Sign[i].Hash = NULL;
+            PhSymCryptDestroyHash(&Context->Sign[i].HashContext, Context->Sign[i].HashSize);
         }
     }
 
     PhFreePage(Context);
 }
+
