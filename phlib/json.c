@@ -900,6 +900,7 @@ NTSTATUS PhSaveJsonObjectToFile(
     NTSTATUS status;
     ULONG json_flags = 0;
     HANDLE fileHandle = NULL;
+    PH_STRINGREF baseName;
     PPH_STRING fileName;
     IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
@@ -927,22 +928,27 @@ NTSTATUS PhSaveJsonObjectToFile(
 
     // Create the directory if it does not exist.
 
-    status = PhCreateDirectoryFullPath(FileName);
+    status = PhCreateDirectoryFullPathWin32(FileName);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
     // Create a temporary filename.
 
+    if (!PhGetBasePath(FileName, NULL, &baseName))
+    {
+        status = STATUS_FAIL_CHECK;
+        goto CleanupExit;
+    }
+
     fileName = PhGetBaseNameChangeExtension(FileName, &extension);
 
     // Create the temporary file.
 
-    status = PhCreateFileEx(
+    status = PhCreateFileWin32Ex(
         &fileHandle,
-        &fileName->sr,
+        PhGetString(fileName),
         FILE_GENERIC_WRITE | DELETE,
-        NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_NONE,
@@ -986,7 +992,7 @@ NTSTATUS PhSaveJsonObjectToFile(
         fileHandle,
         NULL,
         TRUE,
-        FileName
+        &baseName
         );
 
 CleanupExit:

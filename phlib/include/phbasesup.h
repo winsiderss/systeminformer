@@ -4661,6 +4661,15 @@ PhConvertCopyMemoryUlong64(
     _In_ SIZE_T Count
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhAddMemoryUlong(
+    _Inout_ PULONG A,
+    _In_ PULONG B,
+    _In_ ULONG Count
+    );
+
 DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
@@ -4669,15 +4678,6 @@ PhConvertCopyMemorySizeT(
     _Inout_updates_(Count) PSIZE_T From,
     _Inout_updates_(Count) PFLOAT To,
     _In_ SIZE_T Count
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhAddMemoryUlong(
-    _Inout_ PULONG A,
-    _In_ PULONG B,
-    _In_ ULONG Count
     );
 
 DECLSPEC_NOALIAS
