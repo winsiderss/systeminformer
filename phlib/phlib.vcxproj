@@ -179,6 +179,7 @@
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
+    <ClCompile Include="graphscroll.c" />
     <ClCompile Include="guisup.c" />
     <ClCompile Include="guisuplistview.cpp" />
     <ClCompile Include="handle.c" />
@@ -197,6 +198,7 @@
     <ClCompile Include="lsamsup.c" />
     <ClCompile Include="lsasup.c" />
     <ClCompile Include="mapexlf.c" />
+    <ClCompile Include="mapclr.c" />
     <ClCompile Include="mapimg.c" />
     <ClCompile Include="maplib.c" />
     <ClCompile Include="native.c" />
@@ -241,6 +243,7 @@
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
     <ClInclude Include="include\base64.h" />
+    <ClInclude Include="include\graphscroll.h" />
     <ClInclude Include="include\phafd.h" />
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />
@@ -259,6 +262,7 @@
     <ClInclude Include="include\guisupview.h" />
     <ClInclude Include="include\lsamsup.h" />
     <ClInclude Include="include\lsasup.h" />
+    <ClInclude Include="include\mapclr.h" />
     <ClInclude Include="include\mapimg.h" />
     <ClInclude Include="include\mapldr.h" />
     <ClInclude Include="include\phbasesup.h" />
@@ -283,6 +287,9 @@
     <ClInclude Include="include\symprvp.h" />
     <ClInclude Include="include\thirdparty.h" />
     <ClInclude Include="include\trace.h" />
+    <ClInclude Include="include\tabnew.h" />
+    <ClInclude Include="include\tabnewp.h" />
+    <ClInclude Include="include\graphprp.h" />
     <ClInclude Include="include\treenew.h" />
     <ClInclude Include="include\treenewp.h" />
     <ClInclude Include="include\verify.h" />

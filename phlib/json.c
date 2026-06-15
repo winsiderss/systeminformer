@@ -1146,6 +1146,7 @@ NTSTATUS PhSaveXmlObjectToFile(
 {
     static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".tmp");
     NTSTATUS status;
+    PH_STRINGREF baseName;
     PPH_STRING fileName;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER allocationSize;
@@ -1169,6 +1170,12 @@ NTSTATUS PhSaveXmlObjectToFile(
         goto CleanupExit;
 
     // Create a temporary filename.
+
+    if (!PhGetBasePath(FileName, NULL, &baseName))
+    {
+        status = STATUS_FAIL_CHECK;
+        goto CleanupExit;
+    }
 
     fileName = PhGetBaseNameChangeExtension(FileName, &extension);
 
@@ -1218,7 +1225,7 @@ NTSTATUS PhSaveXmlObjectToFile(
         fileHandle,
         NULL,
         TRUE,
-        FileName
+        &baseName
         );
 
 CleanupExit:

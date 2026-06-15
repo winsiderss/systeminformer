@@ -24,7 +24,7 @@ static const unsigned char *json_c_skip_space(
     return buf;
 }
 
-int json_c_parse_double_full(
+extern "C" int json_c_parse_double_full(
     const unsigned char *buf,
     size_t len,
     double *retval
@@ -52,7 +52,7 @@ int json_c_parse_double_full(
     return 0;
 }
 
-int json_c_parse_double(
+extern "C" int json_c_parse_double(
     const unsigned char *buf,
     double *retval
     )
@@ -84,7 +84,7 @@ int json_c_parse_double(
     return 0;
 }
 
-int json_c_parse_double_string(
+extern "C" int json_c_parse_double_string(
     const unsigned char *buf,
     double *retval
     )
@@ -97,7 +97,7 @@ int json_c_parse_double_string(
     return json_c_parse_double_full(first, std::strlen(reinterpret_cast<const char *>(first)), retval);
 }
 
-int json_c_parse_int64(
+extern "C" int json_c_parse_int64(
     const unsigned char *buf,
     int64_t *retval
     )
@@ -161,7 +161,7 @@ int json_c_parse_int64(
     return 0;
 }
 
-int json_c_parse_uint64(
+extern "C" int json_c_parse_uint64(
     const unsigned char *buf,
     uint64_t *retval
     )
@@ -211,7 +211,7 @@ int json_c_parse_uint64(
     return 0;
 }
 
-size_t json_c_print_uint64(
+extern "C" size_t json_c_print_uint64(
     unsigned char *buf,
     size_t len,
     uint64_t value
@@ -246,7 +246,7 @@ size_t json_c_print_uint64(
     return count;
 }
 
-size_t json_c_print_int64(
+extern "C" size_t json_c_print_int64(
     unsigned char *buf,
     size_t len,
     int64_t value
@@ -273,7 +273,7 @@ size_t json_c_print_int64(
     return json_c_print_uint64(buf, len, static_cast<uint64_t>(value));
 }
 
-int json_c_print_double(
+extern "C" int json_c_print_double(
     unsigned char *buf,
     size_t len,
     double value,

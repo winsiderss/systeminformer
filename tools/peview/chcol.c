@@ -155,7 +155,7 @@ VOID PvColumnsResetListBox(
     _In_ HWND ListBoxHandle,
     _In_ ULONG_PTR SearchMatchHandle,
     _In_ PPH_LIST Array,
-    _In_ PVOID CompareFunction
+    _In_opt_ PVOID CompareFunction
     )
 {
     SendMessage(ListBoxHandle, WM_SETREDRAW, FALSE, 0);
@@ -206,6 +206,7 @@ VOID PvSetListHeight(
     ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpInactiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
@@ -223,6 +224,7 @@ VOID NTAPI PvpInactiveColumnsSearchControlCallback(
         );
 }
 
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpActiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

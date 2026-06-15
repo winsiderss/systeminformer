@@ -442,7 +442,12 @@ INT_PTR CALLBACK PvpPeClrDlgProc(
         {
             LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
             context->PropSheetContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
-            context->PdbMetadataAddress = context->PropSheetContext->Context;
+
+            if (context->PropSheetContext->Context)
+            {
+                PPV_CLR_PAGECONTEXT pageContext = context->PropSheetContext->Context;
+                context->PdbMetadataAddress = pageContext->PdbMetadataAddress;
+            }
         }
     }
     else

@@ -1194,6 +1194,11 @@ VOID PvPdbProperties(
     if (propContext = PvCreatePropContext(PvFileName))
     {
         PPV_PROPPAGECONTEXT newPage;
+        PV_CLR_PAGECONTEXT clrPageContext;
+        PVOID pdbMetadataAddress;
+
+        memset(&clrPageContext, 0, sizeof(PV_CLR_PAGECONTEXT));
+        pdbMetadataAddress = NULL;
 
         newPage = PvCreatePropPageContext(
             MAKEINTRESOURCE(IDD_PESYMBOLS),
@@ -1228,10 +1233,13 @@ VOID PvPdbProperties(
                 {
                     if (size > sizeof(ULONG) && RtlEqualMemory(viewBase, "BSJB", 4)) // BSJB signature 0x424a5342
                     {
+                        pdbMetadataAddress = viewBase;
+                        clrPageContext.PdbMetadataAddress = pdbMetadataAddress;
+
                         newPage = PvCreatePropPageContext(
                             MAKEINTRESOURCE(IDD_PECLR),
                             PvpPeClrDlgProc,
-                            viewBase
+                            &clrPageContext
                             );
                         PvAddPropPage(propContext, newPage);
                     }
@@ -1246,6 +1254,9 @@ VOID PvPdbProperties(
         }
 
         PhModalPropertySheet(&propContext->PropSheetHeader);
+
+        if (pdbMetadataAddress)
+            PhUnmapViewOfSection(NtCurrentProcess(), pdbMetadataAddress);
 
         PhDereferenceObject(propContext);
     }

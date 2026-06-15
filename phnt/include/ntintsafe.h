@@ -135,7 +135,7 @@ ULONG64
 __RtlpUnsignedMultiply128(
     _In_ ULONG64 Multiplicand,
     _In_ ULONG64 Multiplier,
-    _Out_ _Deref_out_range_(==, Multiplicand * Multiplier) ULONG64* HighProduct);
+    _Out_ ULONG64* HighProduct);
 
 #if defined(_M_X64) && !defined(_M_ARM64EC)
 #pragma intrinsic(_umul128)
@@ -156,7 +156,7 @@ ULONG64
 __RtlpUnsignedMultiply128(
     _In_ ULONG64 Multiplicand,
     _In_ ULONG64 Multiplier,
-    _Out_ _Deref_out_range_(==, Multiplicand * Multiplier) ULONG64* HighProduct)
+    _Out_ ULONG64* HighProduct)
 {
     *HighProduct = __umulh(Multiplier, Multiplicand);
     return Multiplier * Multiplicand;

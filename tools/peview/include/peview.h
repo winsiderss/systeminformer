@@ -22,6 +22,7 @@
 #include <hexedit.h>
 #include <prsht.h>
 #include <prpsh.h>
+#include <graphscroll.h>
 #include <treenew.h>
 #include <secedit.h>
 #include <settings.h>
@@ -594,6 +595,11 @@ INT_PTR CALLBACK PvPeDirectoryDlgProc(
     _In_ LPARAM lParam
     );
 
+typedef struct _PV_CLR_PAGECONTEXT
+{
+    PVOID PdbMetadataAddress;
+} PV_CLR_PAGECONTEXT, *PPV_CLR_PAGECONTEXT;
+
 INT_PTR CALLBACK PvpPeClrDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -878,13 +884,6 @@ typedef struct _PV_CLR_IMAGE_IMPORT_DLL
     PPH_STRING ImportName;
     PPH_LIST Functions;
 } PV_CLR_IMAGE_IMPORT_DLL, *PPV_CLR_IMAGE_IMPORT_DLL;
-
-EXTERN_C
-PPH_STRING
-NTAPI
-PvClrImportFlagsToString(
-    _In_ ULONG Flags
-    );
 
 EXTERN_C
 PPH_STRING

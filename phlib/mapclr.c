@@ -255,7 +255,7 @@ static const PH_CLR_TABLE_SCHEMA PhClrTableSchema[PH_CLR_TABLE_MAXIMUM] =
 #undef T
 #undef C
 
-PPH_STRING PhClrImportFlagsToString(
+PPH_STRING NTAPI PhClrImportFlagsToString(
     _In_ ULONG Flags
     )
 {
@@ -300,7 +300,7 @@ PPH_STRING PhClrImportFlagsToString(
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    PhrintPointer(pointer, UlongToPtr(Flags));
+    PhPrintPointer(pointer, UlongToPtr(Flags));
     PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
 
     return PhFinalStringBuilderString(&stringBuilder);
@@ -375,7 +375,7 @@ NTSTATUS PhClrGetTableString(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrTableRowRid(
+NTSTATUS NTAPI PhGetMappedClrTableRowRid(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _In_ ULONG Row,
@@ -386,7 +386,7 @@ NTSTATUS PhGetMappedClrTableRowRid(
     return PhGetMappedClrColumnValue(ClrMetadata, TableIndex, Column, Row, Rid);
 }
 
-NTSTATUS PhGetMappedClrCustomAttributeTargetName(
+NTSTATUS NTAPI PhGetMappedClrCustomAttributeTargetName(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG Row,
     _Out_ PBOOLEAN IsTargetFrameworkAttribute
@@ -473,7 +473,7 @@ NTSTATUS PhGetMappedClrCustomAttributeTargetName(
     return *IsTargetFrameworkAttribute ? STATUS_SUCCESS : STATUS_NOT_FOUND;
 }
 
-PPH_STRING PhGetMappedClrTableString(
+PPH_STRING NTAPI PhGetMappedClrTableString(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _In_ ULONG Row,
@@ -488,7 +488,7 @@ PPH_STRING PhGetMappedClrTableString(
     return NULL;
 }
 
-BOOLEAN PhTryGetMappedClrTargetFramework(
+BOOLEAN NTAPI PhTryGetMappedClrTargetFramework(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _Out_ PPH_STRING* Version
     )
@@ -844,7 +844,7 @@ NTSTATUS PhClrParseTables(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhInitializeMappedClrMetadata(
+NTSTATUS NTAPI PhInitializeMappedClrMetadata(
     _Out_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ PPH_MAPPED_IMAGE MappedImage
     )
@@ -916,7 +916,7 @@ NTSTATUS PhInitializeMappedClrMetadata(
     return STATUS_SUCCESS;
 }
 
-VOID PhDeleteMappedClrMetadata(
+VOID NTAPI PhDeleteMappedClrMetadata(
     _Inout_ PPH_MAPPED_CLR_METADATA ClrMetadata
     )
 {
@@ -925,14 +925,14 @@ VOID PhDeleteMappedClrMetadata(
     NOTHING;
 }
 
-ULONG PhGetMappedClrNumberOfTables(
+ULONG NTAPI PhGetMappedClrNumberOfTables(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata
     )
 {
     return PhCountBitsUlongPtr(ClrMetadata->ValidMask);
 }
 
-NTSTATUS PhGetMappedClrTableInfo(
+NTSTATUS NTAPI PhGetMappedClrTableInfo(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _Out_opt_ PULONG RowSize,
@@ -944,7 +944,7 @@ NTSTATUS PhGetMappedClrTableInfo(
     return PhGetMappedClrTableInfoEx(ClrMetadata, TableIndex, RowSize, RowCount, ColumnCount, Name, NULL);
 }
 
-NTSTATUS PhGetMappedClrTableInfoEx(
+NTSTATUS NTAPI PhGetMappedClrTableInfoEx(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _Out_opt_ PULONG RowSize,
@@ -975,7 +975,7 @@ NTSTATUS PhGetMappedClrTableInfoEx(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrColumnInfo(
+NTSTATUS NTAPI PhGetMappedClrColumnInfo(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _In_ ULONG Column,
@@ -1007,7 +1007,7 @@ NTSTATUS PhGetMappedClrColumnInfo(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrTableRow(
+NTSTATUS NTAPI PhGetMappedClrTableRow(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _In_ ULONG Rid,
@@ -1040,7 +1040,7 @@ NTSTATUS PhGetMappedClrTableRow(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrColumnValue(
+NTSTATUS NTAPI PhGetMappedClrColumnValue(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG TableIndex,
     _In_ ULONG Column,
@@ -1077,14 +1077,14 @@ NTSTATUS PhGetMappedClrColumnValue(
     return STATUS_SUCCESS;
 }
 
-ULONG PhGetMappedClrStringHeapSize(
+ULONG NTAPI PhGetMappedClrStringHeapSize(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata
     )
 {
     return ClrMetadata->StringHeapSize;
 }
 
-NTSTATUS PhGetMappedClrString(
+NTSTATUS NTAPI PhGetMappedClrString(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG Index,
     _Out_ PCSTR *String
@@ -1124,7 +1124,7 @@ NTSTATUS PhGetMappedClrString(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrBlob(
+NTSTATUS NTAPI PhGetMappedClrBlob(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG Index,
     _Out_ PVOID *Data,
@@ -1169,7 +1169,7 @@ NTSTATUS PhGetMappedClrBlob(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhGetMappedClrGuid(
+NTSTATUS NTAPI PhGetMappedClrGuid(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG Index,
     _Out_ PGUID Guid
@@ -1199,7 +1199,7 @@ NTSTATUS PhGetMappedClrGuid(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS PhEnumMappedClrTables(
+NTSTATUS NTAPI PhEnumMappedClrTables(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ PPH_CLR_ENUM_TABLES_CALLBACK Callback,
     _In_opt_ PVOID Context

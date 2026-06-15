@@ -10,6 +10,7 @@
  */
 
 #include <peview.h>
+#include <mapclr.h>
 
 #ifdef __has_include
 #if __has_include (<metahost.h>)
@@ -29,135 +30,13 @@
 #include "metahost/corhdr.h"
 #include "metahost/cor.h"
 #endif
+
+#include <mapclr.h>
 #else
 #define _WINDOWS_UPDATES_
 #include "metahost/corhdr.h"
 #include "metahost/cor.h"
 #endif
-
-// metamodelpub.h
-enum
-{
-    TBL_Module = 0,
-    TBL_TypeRef = 1,
-    TBL_TypeDef = 2,
-    TBL_FieldPtr = 3,
-    TBL_Field = 4,
-    TBL_MethodPtr = 5,
-    TBL_Method = 6,
-    TBL_ParamPtr = 7,
-    TBL_Param = 8,
-    TBL_InterfaceImpl = 9,
-    TBL_MemberRef = 10,
-    TBL_Constant = 11,
-    TBL_CustomAttribute = 12,
-    TBL_FieldMarshal = 13,
-    TBL_DeclSecurity = 14,
-    TBL_ClassLayout = 15,
-    TBL_FieldLayout = 16,
-    TBL_StandAloneSig = 17,
-    TBL_EventMap = 18,
-    TBL_EventPtr = 19,
-    TBL_Event = 20,
-    TBL_PropertyMap = 21,
-    TBL_PropertyPtr = 22,
-    TBL_Property = 23,
-    TBL_MethodSemantics = 24,
-    TBL_MethodImpl = 25,
-    TBL_ModuleRef = 26,
-    TBL_TypeSpec = 27,
-    TBL_ImplMap = 28,
-    TBL_FieldRVA = 29,
-    TBL_ENCLog = 30,
-    TBL_ENCMap = 31,
-    TBL_Assembly = 32,
-    TBL_AssemblyProcessor = 33,
-    TBL_AssemblyOS = 34,
-    TBL_AssemblyRef = 35,
-    TBL_AssemblyRefProcessor = 36,
-    TBL_AssemblyRefOS = 37,
-    TBL_File = 38,
-    TBL_ExportedType = 39,
-    TBL_ManifestResource = 40,
-    TBL_NestedClass = 41,
-    TBL_GenericParam = 42,
-    TBL_MethodSpec = 43,
-    TBL_GenericParamConstraint = 44,
-    // Portable PDB
-};
-
-// ModuleRefRec
-#define ModuleRefRec_COL_Name 0UL
-// ImplMapRec
-#define ImplMapRec_COL_MappingFlags 0UL
-#define ImplMapRec_COL_MemberForwarded 1UL // mdField or mdMethod
-#define ImplMapRec_COL_ImportName 2UL
-#define ImplMapRec_COL_ImportScope 3UL // mdModuleRef
-// AssemblyRefRec
-enum
-{
-    AssemblyRefRec_COL_MajorVersion,
-    AssemblyRefRec_COL_MinorVersion,
-    AssemblyRefRec_COL_BuildNumber,
-    AssemblyRefRec_COL_RevisionNumber,
-    AssemblyRefRec_COL_Flags,
-    AssemblyRefRec_COL_PublicKeyOrToken,
-    AssemblyRefRec_COL_Name,
-    AssemblyRefRec_COL_Locale,
-    AssemblyRefRec_COL_HashValue
-};
-
-EXTERN_C
-PPH_STRING PvClrImportFlagsToString(
-    _In_ ULONG Flags
-    )
-{
-    PH_STRING_BUILDER stringBuilder;
-    WCHAR pointer[PH_PTR_STR_LEN_1];
-
-    PhInitializeStringBuilder(&stringBuilder, 10);
-
-    if (IsPmNoMangle(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"No mangle, ");
-    if (IsPmCharSetAnsi(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Ansi charset, ");
-    if (IsPmCharSetUnicode(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Unicode charset, ");
-    if (IsPmCharSetAuto(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Auto charset, ");
-    if (IsPmSupportsLastError(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Supports last error, ");
-    if (IsPmCallConvWinapi(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Winapi, ");
-    if (IsPmCallConvCdecl(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Cdecl, ");
-    if (IsPmCallConvStdcall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Stdcall, ");
-    if (IsPmCallConvThiscall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Thiscall, ");
-    if (IsPmCallConvFastcall(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Fastcall, ");
-    if (IsPmBestFitEnabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Bestfit enabled, ");
-    if (IsPmBestFitDisabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Bestfit disabled, ");
-    if (IsPmBestFitUseAssem(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"Bestfit assembly, ");
-    if (IsPmThrowOnUnmappableCharEnabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar enabled, ");
-    if (IsPmThrowOnUnmappableCharDisabled(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar disabled, ");
-    if (IsPmThrowOnUnmappableCharUseAssem(Flags))
-        PhAppendStringBuilder2(&stringBuilder, L"ThrowOnUnmappableChar assembly, ");
-
-    if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
-        PhRemoveEndStringBuilder(&stringBuilder, 2);
-
-    PhPrintPointer(pointer, UlongToPtr(Flags));
-    PhAppendFormatStringBuilder(&stringBuilder, L" (%s)", pointer);
-
-    return PhFinalStringBuilderString(&stringBuilder);
-}
 
 static int __cdecl PvClrCoreNameCompare(
     _In_ void* Context,
@@ -537,21 +416,90 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
     VOID
     )
 {
+    PH_MAPPED_CLR_METADATA clrMetadata;
+    PPH_STRING version = nullptr;
+    NTSTATUS status;
+
+    status = PhInitializeMappedClrMetadata(&clrMetadata, &PvMappedImage);
+
+    if (NT_SUCCESS(status))
+    {
+        if (PhTryGetMappedClrTargetFramework(&clrMetadata, &version))
+        {
+            PhDeleteMappedClrMetadata(&clrMetadata);
+            return version;
+        }
+
+        ULONG assemblyRefCount = 0;
+
+        if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, nullptr, &assemblyRefCount, nullptr, nullptr, nullptr)))
+        {
+            for (ULONG i = 1; i <= assemblyRefCount; i++)
+            {
+                PPH_STRING name = nullptr;
+                BOOLEAN runtime = FALSE;
+                BOOLEAN framework = FALSE;
+                ULONG majorVersion = 0;
+                ULONG minorVersion = 0;
+                ULONG buildVersion = 0;
+                ULONG revisionVersion = 0;
+
+                if (name = PhGetMappedClrTableString(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, i, PH_CLR_ASSEMBLYREF_REC_COL_NAME))
+                {
+                    if (PhEqualString2(name, L"System.Runtime", TRUE))
+                    {
+                        runtime = TRUE;
+                    }
+                    else if (PhEqualString2(name, L"mscorlib", TRUE))
+                    {
+                        framework = TRUE;
+                    }
+
+                    PhDereferenceObject(name);
+                }
+
+                if (runtime || framework)
+                {
+                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MAJORVERSION, i, &majorVersion)))
+                        break;
+                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MINORVERSION, i, &minorVersion)))
+                        break;
+                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_BUILDNUMBER, i, &buildVersion)))
+                        break;
+                    if (!NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_REVISIONNUMBER, i, &revisionVersion)))
+                        break;
+
+                    if (runtime)
+                    {
+                        version = PhFormatString(L".NET Core %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
+                        break;
+                    }
+                    else if (framework)
+                    {
+                        version = PhFormatString(L".NET Framework %lu.%lu.%lu.%lu", majorVersion, minorVersion, buildVersion, revisionVersion);
+                        break;
+                    }
+                }
+            }
+        }
+        PhDeleteMappedClrMetadata(&clrMetadata);
+    }
+
+    if (version)
+        return version;
+
     IMetaDataImport* metaDataImport = nullptr;
     IMetaDataTables* metaDataTables = nullptr;
-    HRESULT status;
-    PPH_STRING version = nullptr;
+    HRESULT comStatus;
     const void* attributeBuffer;
     ULONG attributeLength;
     ULONG count;
     ULONG columns;
 
-    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
+    comStatus = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
 
-    if (status != S_OK)
+    if (comStatus != S_OK)
         return nullptr;
-
-    // 1) Query the version using the TargetFrameworkAttribute (dmex)
 
     if (metaDataImport->GetCustomAttributeByName(
         TokenFromRid(1, mdtAssembly),
@@ -564,14 +512,11 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
         {
             metaDataTables->Release();
             metaDataImport->Release();
-
             return version;
         }
     }
 
-    // 2) Query the version using the assembly reference for System.Runtime or mscorlib (dmex)
-
-    if (metaDataTables->GetTableInfo(TBL_AssemblyRef, nullptr, &count, &columns, nullptr, nullptr) == S_OK)
+    if (metaDataTables->GetTableInfo(PH_CLR_TABLE_ASSEMBLYREF, nullptr, &count, &columns, nullptr, nullptr) == S_OK)
     {
         for (ULONG i = 1; i <= count; i++)
         {
@@ -584,32 +529,26 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
             ULONG buildVersion = 0;
             ULONG revisionVersion = 0;
 
-            if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_Name, i, &index) == S_OK)
+            if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_NAME, i, &index) == S_OK)
             {
                 if (metaDataTables->GetString(index, &name) == S_OK)
                 {
                     if (PhEqualBytesZ(name, "System.Runtime", TRUE))
-                    {
-                        // .NET Core
                         runtime = TRUE;
-                    }
                     else if (PhEqualBytesZ(name, "mscorlib", TRUE))
-                    {
-                        // .NET Framework
                         framework = TRUE;
-                    }
                 }
             }
 
             if (runtime || framework)
             {
-                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_MajorVersion, i, &majorVersion) != S_OK)
+                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MAJORVERSION, i, &majorVersion) != S_OK)
                     break;
-                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_MinorVersion, i, &minorVersion) != S_OK)
+                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_MINORVERSION, i, &minorVersion) != S_OK)
                     break;
-                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_BuildNumber, i, &buildVersion) != S_OK)
+                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_BUILDNUMBER, i, &buildVersion) != S_OK)
                     break;
-                if (metaDataTables->GetColumn(TBL_AssemblyRef, AssemblyRefRec_COL_RevisionNumber, i, &revisionVersion) != S_OK)
+                if (metaDataTables->GetColumn(PH_CLR_TABLE_ASSEMBLYREF, PH_CLR_ASSEMBLYREF_REC_COL_REVISIONNUMBER, i, &revisionVersion) != S_OK)
                     break;
 
                 if (runtime)
@@ -632,23 +571,13 @@ EXTERN_C PPH_STRING PvGetClrImageTargetFramework(
     return version;
 }
 
-// TODO: Add support for dynamic imports by enumerating the types. (dmex)
 EXTERN_C HRESULT PvGetClrImageImports(
     _Out_ PPH_LIST* ClrImportsList
     )
 {
-    IMetaDataImport* metaDataImport = nullptr;
-    IMetaDataTables* metaDataTables = nullptr;
     PPH_LIST clrImportsList;
-    HRESULT status;
-    ULONG rowModuleCount;
-    ULONG rowImportCount;
-    ULONG rowImportColumns;
-
-    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
-
-    if (!SUCCEEDED(status))
-        return status;
+    PH_MAPPED_CLR_METADATA clrMetadata;
+    NTSTATUS status;
 
     clrImportsList = PhCreateList(64);
 
@@ -663,21 +592,29 @@ EXTERN_C HRESULT PvGetClrImageImports(
         PhAddItemList(clrImportsList, importDll);
     }
 
-    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ModuleRef, nullptr, &rowModuleCount, nullptr, nullptr, nullptr)))
-    {
-        for (ULONG i = 1; i <= rowModuleCount; i++)
-        {
-            ULONG moduleNameValue = 0;
-            const char* moduleName = nullptr;
+    status = PhInitializeMappedClrMetadata(&clrMetadata, &PvMappedImage);
 
-            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ModuleRef, ModuleRefRec_COL_Name, i, &moduleNameValue)))
+    if (!NT_SUCCESS(status))
+    {
+        *ClrImportsList = clrImportsList;
+        return S_OK;
+    }
+
+    {
+        ULONG moduleRefCount = 0;
+
+        if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_MODULEREF, nullptr, &moduleRefCount, nullptr, nullptr, nullptr)))
+        {
+            for (ULONG i = 1; i <= moduleRefCount; i++)
             {
-                if (SUCCEEDED(metaDataTables->GetString(moduleNameValue, &moduleName)))
+                PPH_STRING moduleName = nullptr;
+
+                if (moduleName = PhGetMappedClrTableString(&clrMetadata, PH_CLR_TABLE_MODULEREF, i, PH_CLR_MODULEREF_REC_COL_NAME))
                 {
                     PPV_CLR_IMAGE_IMPORT_DLL importDll;
 
                     importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_DLL)));
-                    importDll->ImportName = PhConvertUtf8ToUtf16(moduleName);
+                    importDll->ImportName = moduleName;
                     importDll->ImportToken = TokenFromRid(i, mdtModuleRef);
 
                     PhAddItemList(clrImportsList, importDll);
@@ -686,89 +623,98 @@ EXTERN_C HRESULT PvGetClrImageImports(
         }
     }
 
-    if (SUCCEEDED(metaDataTables->GetTableInfo(TBL_ImplMap, nullptr, &rowImportCount, &rowImportColumns, nullptr, nullptr)))
     {
-        for (ULONG i = 1; i <= rowImportCount; i++)
+        ULONG implMapCount = 0;
+
+        if (NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, PH_CLR_TABLE_IMPLMAP, nullptr, &implMapCount, nullptr, nullptr, nullptr)))
         {
-            bool found = false;
-            ULONG importFlagsValue = 0;
-            ULONG importNameValue = 0;
-            ULONG moduleTokenValue = 0;
-            PVOID importRowValue = nullptr;
-            PVOID importOffsetValue = nullptr;
-            const char* importName = nullptr;
-
-            metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_MappingFlags, i, &importFlagsValue);
-
-            if (SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_ImportName, i, &importNameValue)))
+            for (ULONG i = 1; i <= implMapCount; i++)
             {
-                metaDataTables->GetString(importNameValue, &importName);
-            }
+                BOOLEAN found = false;
+                ULONG importFlagsValue = 0;
+                ULONG importNameValue = 0;
+                ULONG moduleTokenValue = 0;
+                PVOID importRowValue = nullptr;
+                PVOID importOffsetValue = nullptr;
+                PPH_STRING importName = nullptr;
 
-            if (!SUCCEEDED(metaDataTables->GetColumn(TBL_ImplMap, ImplMapRec_COL_ImportScope, i, &moduleTokenValue)))
-            {
-                moduleTokenValue = ULONG_MAX;
-            }
-
-            if (SUCCEEDED(metaDataTables->GetRow(TBL_ImplMap, i, &importRowValue)))
-            {
-                importOffsetValue = PTR_SUB_OFFSET(importRowValue, reinterpret_cast<ULONG_PTR>(PvMappedImage.ViewBase));
-            }
-
-            for (ULONG j = 0; j < clrImportsList->Count; j++)
-            {
-                PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[j]);
-
-                if (importDll->ImportToken == moduleTokenValue)
+                if (NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_IMPLMAP, PH_CLR_IMPLMAP_REC_COL_MAPPINGFLAGS, i, &importFlagsValue)))
                 {
-                    if (!importDll->Functions)
-                        importDll->Functions = PhCreateList(1);
-                    if (!importName)
-                        importName = "Unknown";
+                    // continue
+                }
 
-                    if (importDll->Functions)
+                if (NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_IMPLMAP, PH_CLR_IMPLMAP_REC_COL_IMPORTNAME, i, &importNameValue)))
+                {
+                    const char* importNameA = nullptr;
+
+                    if (NT_SUCCESS(PhGetMappedClrString(&clrMetadata, importNameValue, &importNameA)))
+                        importName = PhConvertUtf8ToUtf16(importNameA);
+                }
+
+                if (NT_SUCCESS(PhGetMappedClrColumnValue(&clrMetadata, PH_CLR_TABLE_IMPLMAP, PH_CLR_IMPLMAP_REC_COL_IMPORTSCOPE, i, &moduleTokenValue)))
+                {
+                    moduleTokenValue = TokenFromRid(moduleTokenValue, mdtModuleRef);
+                }
+                else
+                    moduleTokenValue = ULONG_MAX;
+
+                if (NT_SUCCESS(PhGetMappedClrTableRow(&clrMetadata, PH_CLR_TABLE_IMPLMAP, i, &importRowValue)))
+                    importOffsetValue = PTR_SUB_OFFSET(importRowValue, reinterpret_cast<ULONG_PTR>(PvMappedImage.ViewBase));
+
+                for (ULONG j = 0; j < clrImportsList->Count; j++)
+                {
+                    PPV_CLR_IMAGE_IMPORT_DLL importDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[j]);
+
+                    if (importDll->ImportToken == moduleTokenValue)
+                    {
+                        if (!importDll->Functions)
+                            importDll->Functions = PhCreateList(1);
+                        if (!importName)
+                            importName = PhCreateString(L"Unknown");
+
+                        if (importDll->Functions)
+                        {
+                            PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
+
+                            importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
+                            importFunction->FunctionName = importName;
+                            importFunction->Flags = importFlagsValue;
+                            importFunction->Offset = importOffsetValue;
+
+                            PhAddItemList(importDll->Functions, importFunction);
+                        }
+
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[0]);
+
+                    if (!unknownImportDll->Functions)
+                        unknownImportDll->Functions = PhCreateList(1);
+                    if (!importName)
+                        importName = PhCreateString(L"Unknown");
+
+                    if (unknownImportDll->Functions)
                     {
                         PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
 
                         importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
-                        importFunction->FunctionName = PhConvertUtf8ToUtf16(importName);
+                        importFunction->FunctionName = importName;
                         importFunction->Flags = importFlagsValue;
                         importFunction->Offset = importOffsetValue;
 
-                        PhAddItemList(importDll->Functions, importFunction);
+                        PhAddItemList(unknownImportDll->Functions, importFunction);
                     }
-
-                    found = true;
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                PPV_CLR_IMAGE_IMPORT_DLL unknownImportDll = static_cast<PPV_CLR_IMAGE_IMPORT_DLL>(clrImportsList->Items[0]);
-
-                if (!unknownImportDll->Functions)
-                    unknownImportDll->Functions = PhCreateList(1);
-                if (!importName)
-                    importName = "Unknown";
-
-                if (unknownImportDll->Functions)
-                {
-                    PPV_CLR_IMAGE_IMPORT_FUNCTION importFunction;
-
-                    importFunction = static_cast<PPV_CLR_IMAGE_IMPORT_FUNCTION>(PhAllocateZero(sizeof(PV_CLR_IMAGE_IMPORT_FUNCTION)));
-                    importFunction->FunctionName = PhConvertUtf8ToUtf16(importName);
-                    importFunction->Flags = importFlagsValue;
-                    importFunction->Offset = importOffsetValue;
-
-                    PhAddItemList(unknownImportDll->Functions, importFunction);
                 }
             }
         }
     }
 
-    metaDataTables->Release();
-    metaDataImport->Release();
+    PhDeleteMappedClrMetadata(&clrMetadata);
 
     *ClrImportsList = clrImportsList;
     return S_OK;
@@ -779,53 +725,37 @@ EXTERN_C HRESULT PvClrImageEnumTables(
     _In_ PVOID Context
     )
 {
-    IMetaDataImport* metaDataImport = nullptr;
-    IMetaDataTables* metaDataTables = nullptr;
-    HRESULT status;
-    ULONG count;
+    PH_MAPPED_CLR_METADATA clrMetadata;
+    NTSTATUS status = PhInitializeMappedClrMetadata(&clrMetadata, &PvMappedImage);
+    PPH_MAPPED_CLR_TABLE table = nullptr;
 
-    status = PvGetClrImageMetaDataTables(&metaDataImport, &metaDataTables);
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_NT(status);
 
-    if (!SUCCEEDED(status))
-        return status;
-
-    status = metaDataTables->GetNumTables(&count);
-
-    if (!SUCCEEDED(status))
+    for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
     {
-        metaDataTables->Release();
-        metaDataImport->Release();
-        return status;
-    }
+        PPH_STRING tableName = nullptr;
+        ULONG size = 0;
+        ULONG tablecount = 0;
 
-    for (ULONG i = 0; i < count; i++)
-    {
-        ULONG size;
-        ULONG tablecount;
-        ULONG columns;
-        ULONG key;
-        const char* name;
+        if (!NT_SUCCESS(PhGetMappedClrTableInfoEx(&clrMetadata, i, &size, &tablecount, nullptr, nullptr, &table)))
+            continue;
 
-        if (SUCCEEDED(metaDataTables->GetTableInfo(i, &size, &tablecount, &columns, &key, &name)))
+        if (!table->Name)
+            continue;
+
+        tableName = PhConvertUtf8ToUtf16(table->Name);
+
+        if (!Callback(i, size, tablecount, tableName, table->Rows, Context))
         {
-            PPH_STRING tableName;
-            PVOID offset = nullptr;
-
-            tableName = PhConvertUtf8ToUtf16(name);
-            metaDataTables->GetRow(i, 1, &offset);
-
-            if (!Callback(i, size, tablecount, tableName, offset, Context))
-            {
-                PhDereferenceObject(tableName);
-                break;
-            }
-
             PhDereferenceObject(tableName);
+            break;
         }
+
+        PhDereferenceObject(tableName);
     }
 
-    metaDataTables->Release();
-    metaDataImport->Release();
+    PhDeleteMappedClrMetadata(&clrMetadata);
 
     return S_OK;
 }

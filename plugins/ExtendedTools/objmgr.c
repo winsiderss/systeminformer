@@ -839,7 +839,10 @@ NTSTATUS EtpTargetResolverThreadStart(
         if (currentfilter)
             PhDereferenceObject(currentfilter);
 
+#pragma warning(push)
+#pragma warning(disable : 6387)
         WritePointerRelease(&context->BreakResolverThread, NULL);
+#pragma warning(pop)
     }
 
     PhDereferenceObject(threadContext->EntryToResolve);
@@ -1443,7 +1446,10 @@ VOID EtObjectManagerFreeListViewItems(
     if (ReadPointerAcquire(&Context->BreakResolverThread))
     {
         WriteRelease8(Context->BreakResolverThread, TRUE);
+#pragma warning(push)
+#pragma warning(disable : 6387)
         WritePointerRelease(&Context->BreakResolverThread, NULL);
+#pragma warning(pop)
     }
 
     PhClearReference(&Context->CurrentPath);
