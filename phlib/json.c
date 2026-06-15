@@ -900,7 +900,6 @@ NTSTATUS PhSaveJsonObjectToFile(
     NTSTATUS status;
     ULONG json_flags = 0;
     HANDLE fileHandle = NULL;
-    PH_STRINGREF baseName;
     PPH_STRING fileName;
     IO_STATUS_BLOCK ioStatusBlock;
     LARGE_INTEGER allocationSize;
@@ -935,20 +934,15 @@ NTSTATUS PhSaveJsonObjectToFile(
 
     // Create a temporary filename.
 
-    if (!PhGetBasePath(FileName, NULL, &baseName))
-    {
-        status = STATUS_FAIL_CHECK;
-        goto CleanupExit;
-    }
-
     fileName = PhGetBaseNameChangeExtension(FileName, &extension);
 
     // Create the temporary file.
 
-    status = PhCreateFileWin32Ex(
+    status = PhCreateFileEx(
         &fileHandle,
-        PhGetString(fileName),
+        &fileName->sr,
         FILE_GENERIC_WRITE | DELETE,
+        NULL,
         &allocationSize,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_NONE,
@@ -992,7 +986,7 @@ NTSTATUS PhSaveJsonObjectToFile(
         fileHandle,
         NULL,
         TRUE,
-        &baseName
+        FileName
         );
 
 CleanupExit:
@@ -1146,7 +1140,6 @@ NTSTATUS PhSaveXmlObjectToFile(
 {
     static CONST PH_STRINGREF extension = PH_STRINGREF_INIT(L".tmp");
     NTSTATUS status;
-    PH_STRINGREF baseName;
     PPH_STRING fileName;
     HANDLE fileHandle = NULL;
     LARGE_INTEGER allocationSize;
@@ -1170,12 +1163,6 @@ NTSTATUS PhSaveXmlObjectToFile(
         goto CleanupExit;
 
     // Create a temporary filename.
-
-    if (!PhGetBasePath(FileName, NULL, &baseName))
-    {
-        status = STATUS_FAIL_CHECK;
-        goto CleanupExit;
-    }
 
     fileName = PhGetBaseNameChangeExtension(FileName, &extension);
 
@@ -1225,7 +1212,7 @@ NTSTATUS PhSaveXmlObjectToFile(
         fileHandle,
         NULL,
         TRUE,
-        &baseName
+        FileName
         );
 
 CleanupExit:

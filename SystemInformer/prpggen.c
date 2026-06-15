@@ -14,6 +14,7 @@
 #include <procprp.h>
 #include <procprpp.h>
 #include <phconsole.h>
+#include <guisup.h>
 
 #include <emenu.h>
 #include <mapimg.h>
@@ -327,6 +328,32 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             context->Enabled = TRUE;
 
             PphProcessGeneralDlgUpdateIcons(hwndDlg);
+
+            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+
+            HWND fileGroupHandle = GetDlgItem(hwndDlg, IDC_FILE);
+            PhSetWindowExStyle(fileGroupHandle, WS_EX_TRANSPARENT, 0);
+            PhSetWindowStyle(fileGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            SetWindowPos(fileGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            PhInitializeThemeWindowGroupBoxEx(fileGroupHandle);
+
+            HWND processGroupHandle = GetDlgItem(hwndDlg, IDC_PROCESS);
+            PhSetWindowExStyle(processGroupHandle, WS_EX_TRANSPARENT, 0);
+            PhSetWindowStyle(processGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            SetWindowPos(processGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            PhInitializeThemeWindowGroupBoxEx(processGroupHandle);
+
+            if (!PhEnableThemeSupport)
+            {
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_FILENAME));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_FILENAMEWIN32));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_CMDLINE));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_CURDIR));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_STARTED));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_PARENTCONSOLE));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_PARENTPROCESS));
+                PhInitializeWindowThemeEditControl(GetDlgItem(hwndDlg, IDC_MITIGATION));
+            }
 
             // File
 

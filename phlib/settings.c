@@ -2344,18 +2344,50 @@ NTSTATUS PhLoadSettingsAutoDetect(
 
     if (NT_SUCCESS(status))
     {
+        PH_SETTINGS_FORMAT actualFormat = selectedStore->Format;
+        PPH_STRING actualPath = NULL;
+
+        if (
+            selectedStore->Format == SettingsFormatXml &&
+            selectedStore->IsLegacy &&
+            results[selectedIndex].FilePath
+            )
+        {
+            PPH_STRING jsonFileName;
+
+            jsonFileName = PhGetBaseNameChangeExtensionZ(&results[selectedIndex].FilePath->sr, L".json");
+
+            if (jsonFileName)
+            {
+                if (!PhDoesFileExist(&jsonFileName->sr) &&
+                    NT_SUCCESS(PhConvertSettingsXmlToJson(&results[selectedIndex].FilePath->sr, &jsonFileName->sr)))
+                {
+                    actualPath = jsonFileName;
+                    actualFormat = SettingsFormatJson;
+                }
+                else
+                {
+                    PhDereferenceObject(jsonFileName);
+                }
+            }
+        }
+
+        if (!actualPath && results[selectedIndex].FilePath)
+            actualPath = PhReferenceObject(results[selectedIndex].FilePath);
+
         if (ActualPath)
         {
-            if (results[selectedIndex].FilePath)
-                *ActualPath = PhReferenceObject(results[selectedIndex].FilePath);
-            else
-                *ActualPath = NULL;
+            *ActualPath = actualPath;
+        }
+        else if (actualPath)
+        {
+            PhDereferenceObject(actualPath);
         }
 
         if (ActualFormat)
-            *ActualFormat = selectedStore->Format;
+            *ActualFormat = actualFormat;
 
-        PhSettingsLoadedFormat = selectedStore->Format;
+        PhSettingsLoadedFormat = actualFormat;
     }
 
 Cleanup:
@@ -2711,7 +2743,7 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
         RECT windowRect;
         LONG dpi;
 
-        flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER;
+        flags = SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER;
 
         if (!PhGetWindowRect(WindowHandle, &windowRect))
         {
@@ -2802,7 +2834,6 @@ VOID PhSaveWindowPlacementToSetting(
 {
     WINDOWPLACEMENT placement = { sizeof(placement) };
     PH_RECTANGLE windowRectangle;
-    RECT screenRect;
     HMONITOR monitorHandle;
     MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
     LONG dpi;
@@ -2822,8 +2853,10 @@ VOID PhSaveWindowPlacementToSetting(
         windowRectangle.Top += monitorInfo.rcWork.top - monitorInfo.rcMonitor.top;
     }
 
-    PhRectangleToRect(&screenRect, &windowRectangle);
-    dpi = PhGetMonitorDpi(NULL, &screenRect);
+    // Use the window's effective DPI context for persisted size scaling.
+    // This avoids cumulative growth/shrink when monitor DPI and window DPI differ
+    // (e.g. system-DPI-aware behavior on older or non per-monitor modes).
+    dpi = PhGetWindowDpi(WindowHandle);
 
     if (PositionSettingName)
     {

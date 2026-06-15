@@ -8503,7 +8503,6 @@ BOOLEAN PhParseCommandLine(
  * \return The escaped string.
  * \remarks Only the double quotation mark is escaped.
  */
-#ifdef PH_KEEP_LEGACY_ESCAPE
 PPH_STRING PhEscapeCommandLinePart(
     _In_ PCPH_STRINGREF String
     )
@@ -8552,7 +8551,6 @@ PPH_STRING PhEscapeCommandLinePart(
 
     return PhFinalStringBuilderString(&stringBuilder);
 }
-#endif
 
 /**
  * Quotes and escapes an argument for use in a command line.
