@@ -33,6 +33,7 @@
  */
 
 #include <phbase.h>
+#include <mapldr.h>
 
 /**
  * Initializes an event object.
