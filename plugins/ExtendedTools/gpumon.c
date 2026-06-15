@@ -61,6 +61,10 @@ PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
         (Maximum) = (Value); \
     (Difference) = (Maximum) - (Minimum);
 
+/**
+ * Initializes GPU monitoring functionality, allocating history buffers
+ * and registering necessary callbacks if monitoring is supported.
+ */
 VOID EtGpuMonitorInitialization(
     VOID
     )
@@ -121,6 +125,16 @@ VOID EtGpuMonitorInitialization(
     }
 }
 
+/**
+ * Adds a discovered GPU adapter to the internal monitoring list.
+ *
+ * \param DeviceInterface The device interface path of the adapter.
+ * \param AdapterHandle A handle to the D3D adapter.
+ * \param AdapterLuid The Locally Unique Identifier of the adapter.
+ * \param NumberOfSegments The number of memory segments for this adapter.
+ * \param NumberOfNodes The number of compute nodes for this adapter.
+ * \return A pointer to the newly allocated and added GPU adapter structure.
+ */
 PETP_GPU_ADAPTER EtpAddGpuAdapter(
     _In_ PPH_STRING DeviceInterface,
     _In_ D3DKMT_HANDLE AdapterHandle,
@@ -189,6 +203,11 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
     return adapter;
 }
 
+/**
+ * Discovers GPU adapters and initializes D3D statistics tracking.
+ *
+ * \return TRUE if at least one adapter was successfully initialized, FALSE otherwise.
+ */
 BOOLEAN EtpGpuInitializeD3DStatistics(
     VOID
     )
@@ -208,7 +227,19 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
         D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
-        if (!entry->Attributes.TypeGpu && !entry->Attributes.TypeComputeAccelerator)
+        //
+        // Skip only adapters positively identified as NPU/media-only. Older drivers
+        // (e.g. some AMD) advertise D3D graphics capability without the newer
+        // DXCORE_HARDWARE_TYPE_ATTRIBUTE_GPU tag, so treat any GPU/compute/D3D
+        // graphics capability as a GPU. (#2924)
+        //
+        if (entry->AttributesValid &&
+            !entry->Attributes.TypeGpu &&
+            !entry->Attributes.TypeComputeAccelerator &&
+            !entry->Attributes.D3D11Graphics &&
+            !entry->Attributes.D3D12Graphics &&
+            !entry->Attributes.D3D12CoreCompute &&
+            (entry->Attributes.TypeNpu || entry->Attributes.TypeMediaAccelerator))
             continue;
 
         adapterLuid = entry->AdapterLuid;
@@ -364,6 +395,12 @@ BOOLEAN EtpGpuInitializeD3DStatistics(
     return TRUE;
 }
 
+/**
+ * Allocates a new GPU adapter structure and initializes its segment tracking data.
+ *
+ * \param NumberOfSegments The number of segments the adapter has.
+ * \return A pointer to the newly allocated GPU adapter structure.
+ */
 PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     _In_ ULONG NumberOfSegments
     )
@@ -380,6 +417,29 @@ PETP_GPU_ADAPTER EtpAllocateGpuAdapter(
     return adapter;
 }
 
+/**
+ * Zeros out the GPU adapter statistics for a given process block.
+ *
+ * \param Block The process block to clear.
+ */
+static VOID EtpZeroProcessGpuAdapterStatistics(
+    _In_ PET_PROCESS_BLOCK Block
+    )
+{
+    Block->GpuVirtualMemoryUsage = 0;
+    Block->GpuVidPnSourceCount = 0;
+    Block->GpuTotalBytesEvicted = 0;
+    Block->GpuDmaBufferSize = 0;
+    Block->GpuDmaAllocationListBytes = 0;
+    Block->GpuDmaPatchLocationListBytes = 0;
+    Block->GpuInterferenceTotal = 0;
+}
+
+/**
+ * Updates the segment usage information (dedicated and shared memory) for a specific process.
+ *
+ * \param Block The process block to update.
+ */
 VOID EtpGpuUpdateProcessSegmentInformation(
     _In_ PET_PROCESS_BLOCK Block
     )
@@ -443,6 +503,83 @@ VOID EtpGpuUpdateProcessSegmentInformation(
     Block->GpuCommitUsage = commitUsage;
 }
 
+/**
+ * Updates detailed GPU adapter statistics (e.g., virtual memory, DMA buffers, evictions)
+ * for a specific process block.
+ *
+ * \param Block The process block to update.
+ */
+VOID EtpGpuUpdateProcessAdapterStatistics(
+    _In_ PET_PROCESS_BLOCK Block
+    )
+{
+    ULONG i;
+    PETP_GPU_ADAPTER gpuAdapter;
+    D3DKMT_QUERYSTATISTICS queryStatistics;
+    ULONG virtualMemoryUsage;
+    ULONG vidPnSourceCount;
+    ULONG64 bytesEvicted;
+    ULONG64 dmaBufferSize;
+    ULONG dmaAllocationListBytes;
+    ULONG dmaPatchLocationListBytes;
+    ULONG64 interferenceTotal;
+
+    if (!EtGpuAdapterStatsEnabled)
+        return;
+    if (!Block->ProcessItem->QueryHandle)
+    {
+        EtpZeroProcessGpuAdapterStatistics(Block);
+        return;
+    }
+
+    virtualMemoryUsage = 0;
+    vidPnSourceCount = 0;
+    bytesEvicted = 0;
+    dmaBufferSize = 0;
+    dmaAllocationListBytes = 0;
+    dmaPatchLocationListBytes = 0;
+    interferenceTotal = 0;
+
+    for (i = 0; i < EtpGpuAdapterList->Count; i++)
+    {
+        gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+        queryStatistics.hProcess = Block->ProcessItem->QueryHandle;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+        {
+            D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER_INFORMATION* adapterInfo =
+                &queryStatistics.QueryResult.ProcessAdapterInformation;
+
+            virtualMemoryUsage += adapterInfo->VirtualMemoryUsage;
+            vidPnSourceCount += adapterInfo->VidPnSourceCount;
+            bytesEvicted += adapterInfo->CommitmentData.TotalBytesEvictedFromProcess;
+            dmaBufferSize += adapterInfo->DmaBuffer.Size.Bytes;
+            dmaAllocationListBytes += adapterInfo->DmaBuffer.AllocationListBytes;
+            dmaPatchLocationListBytes += adapterInfo->DmaBuffer.PatchLocationListBytes;
+
+#if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_1)
+            for (ULONG k = 0; k < D3DKMT_QUERYSTATISTICS_PROCESS_INTERFERENCE_BUCKET_COUNT; k++)
+                interferenceTotal += adapterInfo->ProcessInterferenceCounters.InterferenceCount[k];
+#endif
+        }
+    }
+
+    Block->GpuVirtualMemoryUsage = virtualMemoryUsage;
+    Block->GpuVidPnSourceCount = vidPnSourceCount;
+    Block->GpuTotalBytesEvicted = bytesEvicted;
+    Block->GpuDmaBufferSize = dmaBufferSize;
+    Block->GpuDmaAllocationListBytes = dmaAllocationListBytes;
+    Block->GpuDmaPatchLocationListBytes = dmaPatchLocationListBytes;
+    Block->GpuInterferenceTotal = interferenceTotal;
+}
+
+/**
+ * Updates the global system-wide GPU segment information (total dedicated and shared memory usage).
+ */
 VOID EtpGpuUpdateSystemSegmentInformation(
     VOID
     )
@@ -499,6 +636,11 @@ VOID EtpGpuUpdateSystemSegmentInformation(
     EtGpuSharedUsage = sharedUsage;
 }
 
+/**
+ * Updates the GPU node running time information for a specific process block.
+ *
+ * \param Block The process block to update.
+ */
 VOID EtpGpuUpdateProcessNodeInformation(
     _In_ PET_PROCESS_BLOCK Block
     )
@@ -541,6 +683,9 @@ VOID EtpGpuUpdateProcessNodeInformation(
     PhUpdateDelta(&Block->GpuRunningTimeDelta, totalRunningTime);
 }
 
+/**
+ * Updates the global system-wide GPU node running time information.
+ */
 VOID EtpGpuUpdateSystemNodeInformation(
     VOID
     )
@@ -701,6 +846,13 @@ PPH_LIST EtpBuildGpuProcessList(
     return gpuProcessList;
 }
 
+/**
+ * Callback function triggered when process provider updates.
+ * Updates GPU statistics for all running processes and global counters.
+ *
+ * \param Parameter Event parameter (e.g., PPH_PROVIDER_UPDATED_EVENT).
+ * \param Context User-defined context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI EtGpuProcessesUpdatedCallback(
     _In_ PVOID Parameter,
@@ -935,6 +1087,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                     block->GpuDedicatedUsage = 0;
                     block->GpuCommitUsage = 0;
                 }
+
+                EtpGpuUpdateProcessAdapterStatistics(block);
             }
             else
             {
@@ -943,6 +1097,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 block->GpuSharedUsage = 0;
                 block->GpuDedicatedUsage = 0;
                 block->GpuCommitUsage = 0;
+                EtpZeroProcessGpuAdapterStatistics(block);
             }
 
             if (runCount != 0)
@@ -965,6 +1120,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             {
                 EtpGpuUpdateProcessSegmentInformation(block);
                 EtpGpuUpdateProcessNodeInformation(block);
+                EtpGpuUpdateProcessAdapterStatistics(block);
             }
             else
             {
@@ -973,6 +1129,7 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 block->GpuSharedUsage = 0;
                 block->GpuCommitUsage = 0;
                 block->GpuNodeUtilization = 0;
+                EtpZeroProcessGpuAdapterStatistics(block);
             }
 
             if (elapsedTime != 0)
@@ -1246,6 +1403,13 @@ VOID EtQueryProcessGpuStatistics(
     }
 }
 
+/**
+ * Queries the D3D client hint (e.g., DX9, DX10, DX11, Vulkan) for a specific process and adapter.
+ *
+ * \param AdapterLuid The LUID of the GPU adapter.
+ * \param ProcessHandle A handle to the process.
+ * \return The D3DKMT_CLIENTHINT value representing the client hint, or D3DKMT_CLIENTHINT_UNKNOWN on failure.
+ */
 D3DKMT_CLIENTHINT EtQueryProcessGpuClientHint(
     _In_ LUID AdapterLuid,
     _In_ HANDLE ProcessHandle

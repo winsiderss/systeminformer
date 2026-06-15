@@ -195,6 +195,15 @@
 #define IDD_OBJWINSTA                   8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
+#define IDD_POWER_GRID                  9003
+#define IDC_POWER_GRID_LIST             9004
+#define IDD_CACHE_LATENCY               9010
+#define IDC_CACHE_LATENCY_LIST          9011
+#define IDC_CACHE_LATENCY_STATUS        9012
+#define IDC_CACHE_LATENCY_L1            9013
+#define IDC_CACHE_LATENCY_L2            9014
+#define IDC_CACHE_LATENCY_L3            9015
+#define IDC_CACHE_LATENCY_DRAM          9016
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
@@ -210,6 +219,14 @@
 #define IDC_TPM_WRITE                   50008
 #define IDC_TPM_SAVE                    50009
 #define IDC_TPM_BYTESPERROW             50010
+#define IDD_STARTUP_TASKS               60004
+#define IDD_ENVEDIT_LIST                60008
+#define IDD_FWEVENT_GENERAL             60010
+#define IDD_FWEVENT_LAYER               60011
+#define IDC_ACPI_INFO                   60022
+#define ID_WBCL                         60030
+#define IDD_WBCL                        60031
+#define IDC_WBCL_LIST                   60032
 
 // Next default values for new objects
 // 

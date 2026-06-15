@@ -69,6 +69,7 @@ static VOID PvpPeClrTablePreviewAddColumns(
     {
         ULONG type = 0;
         PCWSTR typeName;
+        PCWSTR columnName = NULL;
 
         if (!NT_SUCCESS(PhGetMappedClrColumnInfo(
             Context->ClrMetadata,
@@ -86,15 +87,38 @@ static VOID PvpPeClrTablePreviewAddColumns(
             typeName = PvpClrColumnTypeToString(type);
         }
 
-        PhAddListViewColumn(
-            Context->ListViewHandle,
-            i + 1,
-            i + 1,
-            i + 1,
-            LVCFMT_LEFT,
-            110,
-            PhaFormatString(L"Column %lu (%s)", i, typeName)->Buffer
-            );
+        // Get the actual column name from the mapping table
+        if (Context->TableIndex < PH_CLR_TABLE_MAXIMUM && 
+            i < PH_CLR_MAX_COLUMNS && 
+            PhClrTableColumnNames[Context->TableIndex][i])
+        {
+            columnName = PhClrTableColumnNames[Context->TableIndex][i];
+        }
+
+        if (columnName)
+        {
+            PhAddListViewColumn(
+                Context->ListViewHandle,
+                i + 1,
+                i + 1,
+                i + 1,
+                LVCFMT_LEFT,
+                110,
+                columnName
+                );
+        }
+        else
+        {
+            PhAddListViewColumn(
+                Context->ListViewHandle,
+                i + 1,
+                i + 1,
+                i + 1,
+                LVCFMT_LEFT,
+                110,
+                PhaFormatString(L"Column %lu (%s)", i, typeName)->Buffer
+                );
+        }
     }
 }
 
@@ -330,7 +354,7 @@ static VOID PvpPeClrShowTablePreview(
 
 _Function_class_(PH_CLR_ENUM_TABLES_CALLBACK)
 static BOOLEAN NTAPI PvpClrEnumTableCallback(
-    _In_ ULONG TableIndex,
+    _In_opt_ ULONG TableIndex,
     _In_ ULONG RowSize,
     _In_ ULONG RowCount,
     _In_ PCSTR Name,
@@ -339,26 +363,106 @@ static BOOLEAN NTAPI PvpClrEnumTableCallback(
     )
 {
     PPVP_PE_CLR_CONTEXT context = Context;
-    INT lvItemIndex;
     WCHAR value[PH_INT64_STR_LEN_1];
-    WCHAR sizeValue[PH_INT64_STR_LEN_1];
     WCHAR countValue[PH_INT64_STR_LEN_1];
+    WCHAR rvaStartValue[PH_INT64_STR_LEN_1];
+    WCHAR rvaEndValue[PH_INT64_STR_LEN_1];
+    WCHAR sizeValue[PH_INT64_STR_LEN_1];
+    INT lvItemIndex;
     PPH_STRING nameSr;
+    ULONG rvaStart = 0;
+    ULONG rvaEnd = 0;
+    ULONG64 tableSize = 0;
+    ULONG hashAlgorithm;
+    PH_HASH_CONTEXT hashContext;
+    UCHAR hashResult[32];
+    ULONG hashResultSize = 0;
+    PPH_STRING hashString;
 
     PhPrintUInt32(value, TableIndex);
-    PhPrintUInt32(sizeValue, RowSize);
+
+    // If this is the initial pass (Name is NULL), add a blank row with TableIndex as lParam
+    if (!Name)
+    {
+        lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
+        PhSetListViewItemParam(context->ListViewHandle, lvItemIndex, UlongToPtr(TableIndex));
+        return TRUE;
+    }
+
+    // This is the data-population pass; find the existing row by TableIndex
+    lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, UlongToPtr(TableIndex));
+
+    if (lvItemIndex == -1)
+    {
+        lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
+        PhSetListViewItemParam(context->ListViewHandle, lvItemIndex, UlongToPtr(TableIndex));
+    }
+
     PhPrintUInt32(countValue, RowCount);
 
-    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
-    
+    // Column 1: Name
     if (nameSr = PhConvertUtf8ToUtf16(Name))
     {
         PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 1, nameSr->Buffer);
         PhDereferenceObject(nameSr);
     }
     
-    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, sizeValue);
-    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, countValue);
+    // Column 2: Count
+    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 2, countValue);
+
+    // Column 3: Size
+    PhPrintUInt32(sizeValue, RowSize);
+    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 3, sizeValue);
+
+    // Column 4-5: RVA start and end
+    if (Rows && PvImageCor20Header)
+    {
+        PVOID metadataVa;
+        
+        // Get the VA of the metadata section
+        if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, &metadataVa)))
+        {
+            // Calculate offset within metadata and compute RVA
+            ULONG64 rowsVa = (ULONG64)Rows;
+            ULONG64 metadataVa64 = (ULONG64)metadataVa;
+            
+            if (rowsVa >= metadataVa64)
+            {
+                rvaStart = PvImageCor20Header->MetaData.VirtualAddress + (ULONG)(rowsVa - metadataVa64);
+                PhPrintUInt32(rvaStartValue, rvaStart);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 4, rvaStartValue);
+
+                tableSize = (ULONG64)RowCount * RowSize;
+                rvaEnd = rvaStart + (ULONG)tableSize;
+                PhPrintUInt32(rvaEndValue, rvaEnd);
+                PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 5, rvaEndValue);
+            }
+        }
+    }
+
+    // Column 6: Hash
+    hashAlgorithm = PhGetIntegerSetting(L"HashAlgorithm");
+
+    if (Rows && RowCount > 0 && NT_SUCCESS(PhInitializeHash(&hashContext, hashAlgorithm)))
+    {
+        PhUpdateHash(&hashContext, Rows, (ULONG64)RowCount * RowSize);
+
+        hashResultSize = sizeof(hashResult);
+
+        if (NT_SUCCESS(PhFinalHash(&hashContext, hashResult, sizeof(hashResult), &hashResultSize)))
+        {
+            // Format hash as hex string
+            if (hashResultSize > 0)
+            {
+                hashString = PhBufferToHexString(hashResult, hashResultSize);
+                if (hashString)
+                {
+                    PhSetListViewSubItem(context->ListViewHandle, lvItemIndex, 6, hashString->Buffer);
+                    PhDereferenceObject(hashString);
+                }
+            }
+        }
+    }
 
     return TRUE;
 }
@@ -409,29 +513,45 @@ INT_PTR CALLBACK PvpPeClrTablesDlgProc(
             PhSetExtendedListView(context->ListViewHandle);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
-            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 100, L"#");
+            PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 50, L"#");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 200, L"Name");
-            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Size");
-            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Count");
+            PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 80, L"Count");
+            PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 80, L"Size");
+            PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"RVA (start)");
+            PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 120, L"RVA (end)");
+            PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 200, L"Hash");
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
             context->ClrMetadataInitialized = FALSE;
 
-            if (context->PdbMetadataAddress)
             {
                 NTSTATUS status;
 
                 status = PhInitializeMappedClrMetadata(
                     &context->ClrMetadata,
-                    context->PdbMetadataAddress
+                    &PvMappedImage
                     );
 
                 if (NT_SUCCESS(status))
                 {
                     context->ClrMetadataInitialized = TRUE;
 
+                    // Iterate through all possible table indices
+                    for (ULONG tableIndex = 0; tableIndex < PH_CLR_TABLE_MAXIMUM; tableIndex++)
+                    {
+                        PvpClrEnumTableCallback(
+                            tableIndex,
+                            0,
+                            0,
+                            NULL,
+                            NULL,
+                            context
+                            );
+                    }
+
+                    // Now populate data for existing tables
                     PhEnumMappedClrTables(
                         &context->ClrMetadata,
                         PvpClrEnumTableCallback,

@@ -1,3 +1,8 @@
+/**
+ * \file mapclr.h
+ * \brief Self-contained parser for ECMA-335 CLI metadata tables and Portable PDB extensions.
+ */
+
 /*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
@@ -16,8 +21,10 @@
 
 EXTERN_C_START
 
-// ECMA-335 metadata table indices (II.22). Portable PDB tables (0x30-0x37) are
-// defined by the Portable PDB specification.
+/**
+ * ECMA-335 metadata table indices (II.22). Portable PDB tables (0x30-0x37) are
+ * defined by the Portable PDB specification.
+ */
 typedef enum _PH_CLR_TABLE
 {
     PH_CLR_TABLE_MODULE = 0x00,
@@ -542,6 +549,13 @@ static FORCEINLINE ULONG PhClrSimpleIndexSize(
     return 2;
 }
 
+/**
+ * Initializes a CLR metadata structure from a mapped image.
+ *
+ * \param ClrMetadata The CLR metadata structure to initialize.
+ * \param MappedImage The mapped image.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -550,6 +564,11 @@ PhInitializeMappedClrMetadata(
     _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
+/**
+ * Deletes a CLR metadata structure.
+ *
+ * \param ClrMetadata The CLR metadata structure to delete.
+ */
 PHLIBAPI
 VOID
 NTAPI
@@ -557,6 +576,19 @@ PhDeleteMappedClrMetadata(
     _Inout_ PPH_MAPPED_CLR_METADATA ClrMetadata
     );
 
+/**
+ * Array of CLR table column names (schema field names).
+ * Indexed by PH_CLR_TABLE enum, with up to PH_CLR_MAX_COLUMNS entries per table.
+ * Based on ECMA-335 metadata specification.
+ */
+extern const PCWSTR PhClrTableColumnNames[PH_CLR_TABLE_MAXIMUM][PH_CLR_MAX_COLUMNS];
+
+/**
+ * Retrieves the number of tables in the CLR metadata.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \return The number of tables.
+ */
 PHLIBAPI
 ULONG
 NTAPI
@@ -564,6 +596,17 @@ PhGetMappedClrNumberOfTables(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata
     );
 
+/**
+ * Retrieves information about a CLR metadata table.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param RowSize Receives the size of a row in bytes.
+ * \param RowCount Receives the number of rows in the table.
+ * \param ColumnCount Receives the number of columns in the table.
+ * \param Name Receives the name of the table.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -576,6 +619,18 @@ PhGetMappedClrTableInfo(
     _Out_opt_ PCSTR *Name
     );
 
+/**
+ * Retrieves extended information about a CLR metadata table.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param RowSize Receives the size of a row in bytes.
+ * \param RowCount Receives the number of rows in the table.
+ * \param ColumnCount Receives the number of columns in the table.
+ * \param Name Receives the name of the table.
+ * \param Table Receives a pointer to the internal table structure.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -589,6 +644,17 @@ PhGetMappedClrTableInfoEx(
     _Out_opt_ PPH_MAPPED_CLR_TABLE *Table
     );
 
+/**
+ * Retrieves information about a column in a CLR metadata table.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Column The index of the column.
+ * \param Offset Receives the offset of the column within a row.
+ * \param Size Receives the size of the column in bytes.
+ * \param Type Receives the type of the column.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -601,6 +667,15 @@ PhGetMappedClrColumnInfo(
     _Out_opt_ PULONG Type
     );
 
+/**
+ * Retrieves a pointer to a row in a CLR metadata table.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Rid The 1-based RID of the row.
+ * \param Row Receives a pointer to the row data.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -611,6 +686,16 @@ PhGetMappedClrTableRow(
     _Out_ PVOID *Row
     );
 
+/**
+ * Retrieves the value of a column in a CLR metadata table.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Column The index of the column.
+ * \param Rid The 1-based RID of the row.
+ * \param Value Receives the column value.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -622,6 +707,12 @@ PhGetMappedClrColumnValue(
     _Out_ PULONG Value
     );
 
+/**
+ * Retrieves the size of the CLR metadata string heap.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \return The size of the string heap in bytes.
+ */
 PHLIBAPI
 ULONG
 NTAPI
@@ -629,6 +720,14 @@ PhGetMappedClrStringHeapSize(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata
     );
 
+/**
+ * Retrieves a string from the CLR metadata string heap.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Index The offset of the string in the heap.
+ * \param String Receives a pointer to the null-terminated UTF-8 string.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -638,6 +737,15 @@ PhGetMappedClrString(
     _Out_ PCSTR *String
     );
 
+/**
+ * Retrieves a blob from the CLR metadata blob heap.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Index The offset of the blob in the heap.
+ * \param Data Receives a pointer to the blob data.
+ * \param Length Receives the size of the blob in bytes.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -648,6 +756,14 @@ PhGetMappedClrBlob(
     _Out_ PULONG Length
     );
 
+/**
+ * Retrieves a GUID from the CLR metadata GUID heap.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Index The 1-based index of the GUID in the heap.
+ * \param Guid Receives the GUID.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -657,6 +773,15 @@ PhGetMappedClrGuid(
     _Out_ PGUID Guid
     );
 
+/**
+ * Retrieves a string from a CLR metadata table column as a PH_STRING.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Row The 1-based row index.
+ * \param Column The 0-based column index.
+ * \return A string representing the column value, or NULL if not found.
+ */
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -667,6 +792,16 @@ PhGetMappedClrTableString(
     _In_ ULONG Column
     );
 
+/**
+ * Retrieves a RID (Relative Index) from a CLR metadata table column.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Row The 1-based row index.
+ * \param Column The 0-based column index.
+ * \param Rid Receives the RID.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -678,6 +813,14 @@ PhGetMappedClrTableRowRid(
     _Out_ PULONG Rid
     );
 
+/**
+ * Retrieves the name of a custom attribute target and checks if it's the TargetFrameworkAttribute.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Row The 1-based row index in the CustomAttribute table.
+ * \param IsTargetFrameworkAttribute Receives TRUE if the attribute is TargetFrameworkAttribute.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -687,6 +830,13 @@ PhGetMappedClrCustomAttributeTargetName(
     _Out_ PBOOLEAN IsTargetFrameworkAttribute
     );
 
+/**
+ * Attempts to retrieve the target framework version from the CLR metadata.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Version Receives the framework version string.
+ * \return TRUE if the version was successfully retrieved.
+ */
 PHLIBAPI
 BOOLEAN
 NTAPI
@@ -695,6 +845,12 @@ PhTryGetMappedClrTargetFramework(
     _Out_ PPH_STRING* Version
     );
 
+/**
+ * Converts CLR import flags to a human-readable string.
+ *
+ * \param Flags The import flags.
+ * \return A string representing the flags. The caller is responsible for dereferencing the string.
+ */
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -702,6 +858,17 @@ PhClrImportFlagsToString(
     _In_ ULONG Flags
     );
 
+/**
+ * Enumeration callback for CLR metadata tables.
+ *
+ * \param TableIndex The index of the table.
+ * \param RowSize The size of a row in bytes.
+ * \param RowCount The number of rows in the table.
+ * \param Name The name of the table.
+ * \param Rows A pointer to the table rows.
+ * \param Context A user-defined context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 typedef _Function_class_(PH_CLR_ENUM_TABLES_CALLBACK)
 BOOLEAN NTAPI PH_CLR_ENUM_TABLES_CALLBACK(
     _In_ ULONG TableIndex,
@@ -713,6 +880,14 @@ BOOLEAN NTAPI PH_CLR_ENUM_TABLES_CALLBACK(
     );
 typedef PH_CLR_ENUM_TABLES_CALLBACK* PPH_CLR_ENUM_TABLES_CALLBACK;
 
+/**
+ * Enumerates all present tables in the CLR metadata.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param Callback A callback function to be called for each table.
+ * \param Context A user-defined context to be passed to the callback.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
+ */
 PHLIBAPI
 NTSTATUS
 NTAPI
