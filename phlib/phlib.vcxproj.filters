@@ -65,6 +65,9 @@
     <ClCompile Include="kph.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mapclr.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="mapimg.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -359,6 +362,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\workqueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mapclr.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\mapimg.h">
