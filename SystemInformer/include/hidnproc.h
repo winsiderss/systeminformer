@@ -36,6 +36,8 @@ typedef struct _PH_ZOMBIE_PROCESS_ENTRY
     HANDLE ProcessId;
     PPH_STRING FileName;
     PH_ZOMBIE_PROCESS_TYPE Type;
+    ULONG HandleCount;
+    BOOLEAN HasHandleCount;
 } PH_ZOMBIE_PROCESS_ENTRY, *PPH_ZOMBIE_PROCESS_ENTRY;
 
 typedef struct _PH_CSR_HANDLE_INFO

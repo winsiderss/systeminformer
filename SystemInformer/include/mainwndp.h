@@ -33,6 +33,14 @@ extern PH_PROVIDER_REGISTRATION PhMwpServiceProviderRegistration;
 extern PH_PROVIDER_REGISTRATION PhMwpNetworkProviderRegistration;
 extern BOOLEAN PhMwpUpdateAutomatically;
 
+VOID PhMwpSetUpdateAutomatically(
+    _In_ BOOLEAN UpdateAutomatically
+    );
+
+VOID PhMwpSetTemporaryUpdatePause(
+    _In_ BOOLEAN Pause
+    );
+
 extern ULONG PhMwpNotifyIconNotifyMask;
 extern ULONG PhMwpLastNotificationType;
 extern PH_MWP_NOTIFICATION_DETAILS PhMwpLastNotificationDetails;

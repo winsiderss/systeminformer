@@ -224,6 +224,10 @@ VOID PhMipToggleRefreshAutomatically(
     VOID
     );
 
+BOOLEAN PhMipIsPinned(
+    _In_ PH_MINIINFO_PIN_TYPE PinType
+    );
+
 VOID PhMipSetPinned(
     _In_ BOOLEAN Pinned,
     _In_ BOOLEAN Update
@@ -347,6 +351,16 @@ VOID PhMipHandleListSectionCommand(
     _In_ PPH_MINIINFO_LIST_SECTION ListSection,
     _In_ PPH_PROCESS_GROUP ProcessGroup,
     _In_ ULONG Id
+    );
+
+// Graph section
+
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
+BOOLEAN PhMipGraphsListSectionCallback(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
     );
 
 // CPU section
