@@ -22,7 +22,7 @@ typedef struct _PH_PROCESS_WAITPROPCONTEXT
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PROCESS_WAITPROPCONTEXT, *PPH_PROCESS_WAITPROPCONTEXT;
 
-#define PH_PROCESS_PROPCONTEXT_MAXPAGES 20
+#define PH_PROCESS_PROPCONTEXT_MAXPAGES 32
 
 typedef struct _PH_PROCESS_PROPCONTEXT
 {
@@ -35,6 +35,18 @@ typedef struct _PH_PROCESS_PROPCONTEXT
 
     PPH_PROCESS_WAITPROPCONTEXT ProcessWaitContext;
     BOOLEAN WaitInitialized;
+
+#ifdef PH_PROPSHEET_NEW
+    // Parallel page arrays for the PhPropSheetNew host. PropSheetNewPages is
+    // a PH_PROPSHEETNEW_PAGE[PH_PROCESS_PROPCONTEXT_MAXPAGES], typed as PVOID
+    // here so propsheetwindownew.h doesn't have to be pulled into this header.
+    // PropSheetNewPageContexts holds the matching PPH_PROCESS_PROPPAGECONTEXT
+    // refs so they can be released when the context is freed.
+    PVOID PropSheetNewPages;
+    PVOID PropSheetNewPageContexts;
+    PVOID PropSheetNewPageTitles;   // PPH_STRING[MAXPAGES], owns Name strings
+    ULONG PropSheetNewPageCount;
+#endif
 } PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
 
 // begin_phapppub
