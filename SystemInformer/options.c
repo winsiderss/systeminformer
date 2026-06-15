@@ -20,6 +20,7 @@
 #include <emenu.h>
 
 #include <mainwnd.h>
+#include <mainwndp.h>
 #include <notifico.h>
 #include <proctree.h>
 #include <phplug.h>
@@ -1951,7 +1952,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             if (GetCurrentFont(&font) && (fontHandle = CreateFontIndirect(&font)))
             {
-                PhReplaceWindowFont(&CurrentFontInstance, NULL, fontHandle, FALSE);
+                PhSwapReferenceFont(&CurrentFontInstance, NULL, fontHandle, FALSE);
                 SetWindowFont(OptionsTreeControl, CurrentFontInstance, TRUE); // HACK
                 SetWindowFont(ListViewHandle, CurrentFontInstance, TRUE);
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_FONT), CurrentFontInstance, TRUE);
@@ -1959,7 +1960,7 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
 
             if (GetCurrentFontMonospace(&font) && (fontHandle = CreateFontIndirect(&font)))
             {
-                PhReplaceWindowFont(&CurrentFontMonospaceInstance, NULL, fontHandle, FALSE);
+                PhSwapReferenceFont(&CurrentFontMonospaceInstance, NULL, fontHandle, FALSE);
                 SetWindowFont(GetDlgItem(hwndDlg, IDC_FONTMONOSPACE), CurrentFontMonospaceInstance, TRUE);
             }
 
