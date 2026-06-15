@@ -168,8 +168,11 @@ BOOLEAN NTAPI PvpStringSearchCallback(
 
     PhInitializeStringRefLongHint(&node->IndexStringRef, node->IndexString);
 
-    section = PhMappedImageRvaToSection(&PvMappedImage, (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase));
-    if (section)
+    if (NT_SUCCESS(PhMappedImageRvaToSection(
+        &PvMappedImage,
+        (ULONG)(ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase), 
+        &section
+        )))
     {
         PhCopyStringZFromUtf8(
             (PCSTR)section->Name,
@@ -211,8 +214,8 @@ NTSTATUS PvpSearchStringsThread(
         FLOAT entropy;
 
         section = &PvMappedImage.Sections[i];
-        sectionData = PhMappedImageRvaToVa(&PvMappedImage, section->VirtualAddress, NULL);
-        if (!sectionData)
+
+        if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, section->VirtualAddress, &sectionData)))
             continue;
 
         if (Context->Settings.SkipTextSection &&
@@ -234,7 +237,6 @@ NTSTATUS PvpSearchStringsThread(
 SkipSection:
 
         skip = PhAllocate(sizeof(PV_STRINGS_REGION_SKIP));
-
         skip->Start = sectionData;
         skip->End = PTR_ADD_OFFSET(sectionData, section->SizeOfRawData);
 
@@ -497,7 +499,7 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
 
             if (!getChildren->Node)
             {
-                static PVOID sortFunctions[] =
+                static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
                 {
                     SORT_FUNCTION(Index),
                     SORT_FUNCTION(SectionName),
@@ -506,7 +508,7 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
                     SORT_FUNCTION(Length),
                     SORT_FUNCTION(String),
                 };
-                int (__cdecl *sortFunction)(void *, const void *, const void *);
+                _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
                 static_assert(RTL_NUMBER_OF(sortFunctions) == PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM, "SortFunctions must equal maximum.");
 
@@ -908,6 +910,7 @@ INT_PTR CALLBACK PvStringsDlgProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_SIZE:
