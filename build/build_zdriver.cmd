@@ -95,7 +95,7 @@ if /i "%~1"=="release" set "BUILD_CONFIGURATION=Release" & shift & goto parseArg
 if /i "%~1"=="build" set "BUILD_TARGET=Build" & shift & goto parseArgs
 if /i "%~1"=="rebuild" set "BUILD_TARGET=Rebuild" & shift & goto parseArgs
 if /i "%~1"=="clean" set "BUILD_TARGET=Clean" & shift & goto parseArgs
-if /i "%~1"=="prefast" set "PREFAST_ANALYSIS=-p:RunCodeAnalysis=true -p:CodeAnalysisTreatWarningsAsErrors=true" & shift & goto parseArgs
+if /i "%~1"=="prefast" set "BUILD_CONFIGURATION=Debug" & set "PREFAST_ANALYSIS=-p:RunCodeAnalysis=true -p:CodeAnalysisTreatWarningsAsErrors=true" & shift & goto parseArgs
 if /i "%~1"=="nopause" set "SuppressPause=true" & shift & goto parseArgs
 shift
 goto parseArgs
