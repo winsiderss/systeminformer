@@ -152,7 +152,9 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(SETTING_MAIN_WINDOW_POSITION, L"100,100");
     PhpAddScalableIntegerPairSetting(SETTING_MAIN_WINDOW_SIZE, L"@96|800,600");
     PhpAddIntegerSetting(SETTING_MAIN_WINDOW_STATE, L"1");
+    PhpAddStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT, L"");
     PhpAddIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED, L"0");
+    PhpAddStringSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_NAME, L"");
     PhpAddIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, L"0");
     PhpAddIntegerSetting(SETTING_MAX_SIZE_UNIT, L"6");
     PhpAddIntegerSetting(SETTING_MAX_PRECISION_UNIT, L"2");
