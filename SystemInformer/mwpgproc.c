@@ -1121,7 +1121,8 @@ VOID PhMwpOnProcessAdded(
             ProcessItem->ProcessName,
             parentProcessId,
             parentName,
-            0
+            0,
+            ProcessItem->Record
             );
 
         if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_CREATE)
@@ -1205,7 +1206,7 @@ VOID PhMwpOnProcessRemoved(
         }
     }
 
-    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL, exitStatus);
+    PhLogProcessEntry(PH_LOG_ENTRY_PROCESS_DELETE, ProcessItem->ProcessId, ProcessItem->ProcessName, NULL, NULL, exitStatus, ProcessItem->Record);
 
     if (PhMwpNotifyIconNotifyMask & PH_NOTIFY_PROCESS_DELETE)
     {

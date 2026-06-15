@@ -14,6 +14,7 @@
 #include <phplug.h>
 #include <settings.h>
 #include <phsettings.h>
+#include <procprv.h>
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 
@@ -30,16 +31,24 @@ VOID PhLogInitialization(
 }
 
 PPH_LOG_ENTRY PhpCreateLogEntry(
-    _In_ UCHAR Type
+    _In_ UCHAR Type,
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     )
 {
     PPH_LOG_ENTRY entry;
+    SIZE_T entrySize;
 
-    entry = PhAllocate(sizeof(PH_LOG_ENTRY));
-    memset(entry, 0, sizeof(PH_LOG_ENTRY));
+    entrySize = FIELD_OFFSET(PH_LOG_ENTRY, Buffer) + BufferLength;
+    entry = PhAllocate(entrySize);
+    memset(entry, 0, entrySize);
 
     entry->Type = Type;
     PhQuerySystemTime(&entry->Time);
+    entry->BufferLength = BufferLength;
+
+    if (Buffer && BufferLength)
+        memcpy(entry->Buffer, Buffer, BufferLength);
 
     return entry;
 }
@@ -52,6 +61,7 @@ VOID PhpFreeLogEntry(
     {
         PhDereferenceObject(Entry->Process.Name);
         if (Entry->Process.ParentName) PhDereferenceObject(Entry->Process.ParentName);
+        if (Entry->Process.Record) PhDereferenceProcessRecord(Entry->Process.Record);
     }
     else if (Entry->Type >= PH_LOG_ENTRY_SERVICE_FIRST && Entry->Type <= PH_LOG_ENTRY_SERVICE_LAST)
     {
@@ -72,12 +82,13 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
-    _In_opt_ ULONG Status
+    _In_opt_ ULONG Status,
+    _In_opt_ PPH_PROCESS_RECORD Record
     )
 {
     PPH_LOG_ENTRY entry;
 
-    entry = PhpCreateLogEntry(Type);
+    entry = PhpCreateLogEntry(Type, NULL, 0);
     entry->Process.ProcessId = ProcessId;
     PhReferenceObject(Name);
     entry->Process.Name = Name;
@@ -92,6 +103,12 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 
     entry->Process.ExitStatus = Status;
 
+    if (Record)
+    {
+        PhReferenceProcessRecord(Record);
+        entry->Process.Record = Record;
+    }
+
     return entry;
 }
 
@@ -103,7 +120,7 @@ PPH_LOG_ENTRY PhpCreateServiceLogEntry(
 {
     PPH_LOG_ENTRY entry;
 
-    entry = PhpCreateLogEntry(Type);
+    entry = PhpCreateLogEntry(Type, NULL, 0);
     PhReferenceObject(Name);
     entry->Service.Name = Name;
     PhReferenceObject(DisplayName);
@@ -120,7 +137,7 @@ PPH_LOG_ENTRY PhpCreateDeviceLogEntry(
 {
     PPH_LOG_ENTRY entry;
 
-    entry = PhpCreateLogEntry(Type);
+    entry = PhpCreateLogEntry(Type, NULL, 0);
     PhReferenceObject(Classification);
     entry->Device.Classification = Classification;
     PhReferenceObject(Name);
@@ -136,7 +153,7 @@ PPH_LOG_ENTRY PhpCreateMessageLogEntry(
 {
     PPH_LOG_ENTRY entry;
 
-    entry = PhpCreateLogEntry(Type);
+    entry = PhpCreateLogEntry(Type, NULL, 0);
     PhReferenceObject(Message);
     entry->Message = Message;
 
@@ -179,10 +196,11 @@ VOID PhLogProcessEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
-    _In_opt_ ULONG Status
+    _In_opt_ ULONG Status,
+    _In_opt_ PPH_PROCESS_RECORD Record
     )
 {
-    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, Status));
+    PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, Status, Record));
 }
 
 VOID PhLogServiceEntry(
@@ -208,7 +226,23 @@ VOID PhLogMessageEntry(
     _In_ PPH_STRING Message
     )
 {
-    PhpLogEntry(PhpCreateMessageLogEntry(Type, Message));
+    PhLogMessageEntryEx(Type, Message, NULL, 0);
+}
+
+VOID PhLogMessageEntryEx(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Message,
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
+    )
+{
+    PPH_LOG_ENTRY entry;
+
+    entry = PhpCreateLogEntry(Type, Buffer, BufferLength);
+    PhReferenceObject(Message);
+    entry->Message = Message;
+
+    PhpLogEntry(entry);
 }
 
 PPH_STRING PhpFormatLogEntryToBuffer(
@@ -236,6 +270,16 @@ PPH_STRING PhpFormatLogEntryToBuffer(
     }
 
     return PhFormat(Format, Count, 0x80);
+}
+
+static PPH_STRING PhpFormatLogEntryExtra(
+    _In_ PPH_LOG_ENTRY Entry
+    )
+{
+    if (Entry->BufferLength == 0)
+        return PhReferenceEmptyString();
+
+    return PhCreateStringEx((PVOID)Entry->Buffer, Entry->BufferLength);
 }
 
 PPH_STRING PhFormatLogEntry(
@@ -442,10 +486,27 @@ PPH_STRING PhFormatLogEntry(
             return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
         }
     case PH_LOG_ENTRY_MESSAGE:
-        PhReferenceObject(Entry->Message);
-        return Entry->Message;
+        {
+            PPH_STRING extraString;
+
+            PhReferenceObject(Entry->Message);
+
+            if (Entry->BufferLength == 0)
+                return Entry->Message;
+
+            extraString = PH_AUTO_T(PH_STRING, PhpFormatLogEntryExtra(Entry));
+            return PhaFormatString(L"%s [Extra: %s]", Entry->Message->Buffer, extraString->Buffer);
+        }
     default:
-        return PhReferenceEmptyString();
+        {
+            PPH_STRING extraString;
+
+            if (Entry->BufferLength == 0)
+                return PhReferenceEmptyString();
+
+            extraString = PH_AUTO_T(PH_STRING, PhpFormatLogEntryExtra(Entry));
+            return PhaFormatString(L"[Extra: %s]", extraString->Buffer);
+        }
     }
 }
 

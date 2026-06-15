@@ -240,6 +240,8 @@ VOID PhUnloadPlugins(
 
 typedef struct _PH_LOG_ENTRY *PPH_LOG_ENTRY; // phapppub
 
+struct _PH_PROCESS_RECORD;
+
 typedef struct _PH_LOG_ENTRY
 {
     UCHAR Type;
@@ -255,6 +257,7 @@ typedef struct _PH_LOG_ENTRY
             HANDLE ParentProcessId;
             PPH_STRING ParentName;
             NTSTATUS ExitStatus;
+            struct _PH_PROCESS_RECORD *Record; // referenced; released in PhpFreeLogEntry
         } Process;
         struct
         {
@@ -268,6 +271,7 @@ typedef struct _PH_LOG_ENTRY
         } Device;
         PPH_STRING Message;
     };
+    ULONG BufferLength;
     UCHAR Buffer[1];
 } PH_LOG_ENTRY, *PPH_LOG_ENTRY;
 
@@ -287,7 +291,8 @@ VOID PhLogProcessEntry(
     _In_ PPH_STRING Name,
     _In_opt_ HANDLE ParentProcessId,
     _In_opt_ PPH_STRING ParentName,
-    _In_opt_ ULONG Status
+    _In_opt_ ULONG Status,
+    _In_opt_ struct _PH_PROCESS_RECORD *Record
     );
 
 VOID PhLogServiceEntry(
@@ -309,6 +314,16 @@ NTAPI
 PhLogMessageEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Message
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhLogMessageEntryEx(
+    _In_ UCHAR Type,
+    _In_ PPH_STRING Message,
+    _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
+    _In_ ULONG BufferLength
     );
 
 PHAPPAPI
