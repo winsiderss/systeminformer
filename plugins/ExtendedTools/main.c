@@ -213,6 +213,11 @@ VOID NTAPI MenuItemCallback(
             EtShowSMBIOSDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_ACPI:
+        {
+            EtShowAcpiTableDialog(menuItem->OwnerWindow);
+        }
+        break;
     case ID_FIRMWARE:
         {
             EtShowFirmwareDialog(menuItem->OwnerWindow);
@@ -228,21 +233,35 @@ VOID NTAPI MenuItemCallback(
             EtShowPoolTableDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_ENVIRONMENT_VARIABLES:
+        {
+            EtShowEnvironmentVariablesDialog(menuItem->OwnerWindow);
+        }
+        break;
     case ID_TPM:
         {
             EtShowTpmDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_WBCL:
         {
             EtShowWbclDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POWER_POLICIES:
+    case ID_POWER_GRID:
+        {
+            EtShowPowerGridDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_SRUM:
         {
             EtShowSrumDialog(menuItem->OwnerWindow);
+        }
+        break;
+    case ID_CACHE_LATENCY:
+        {
+            EtShowCacheLatencyDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_EXPLORER:
@@ -300,11 +319,15 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_ENVIRONMENT_VARIABLES, L"&Environment variables", NULL), ULONG_MAX);
     //PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SMBIOS, L"SM&BIOS", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_ACPI, L"&ACPI Tables", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, bootMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_FIRMWARE, L"Firm&ware Table", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, tpmMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, ID_TPM, L"&Trusted Platform Module", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_WBCL, L"Boot Configuration &Log", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POWER_GRID, L"Power &Forecast", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_CACHE_LATENCY, L"Cache &Latency", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
@@ -363,9 +386,13 @@ VOID NTAPI ProcessPropertiesInitializingCallback(
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI ServicePropertiesInitializingCallback(
+    _In_ PVOID Parameter,
     _In_ PVOID Context
+    )
 {
 }
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI HandlePropertiesInitializingCallback(
     _In_opt_ PVOID Parameter,
@@ -818,6 +845,29 @@ VOID NTAPI ProcessStatsEventCallback(
                 listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_NPU], MAXINT, L"Total memory", NULL);
             PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_NPUTOTAL],
                 UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_NPUTOTAL)));
+
+            if (EtGpuAdapterStatsEnabled)
+            {
+                block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER] = PhAddListViewGroup(
+                    listViewHandle, (LONG)ListView_GetGroupCount(listViewHandle), L"GPU adapter");
+                block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUVIRTUALMEMORY] = PhAddListViewGroupItem(
+                    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER], MAXINT, L"Virtual memory", NULL);
+                PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUVIRTUALMEMORY],
+                    UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUVIRTUALMEMORY)));
+                block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUEVICTED] = PhAddListViewGroupItem(
+                    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER], MAXINT, L"Evicted bytes", NULL);
+                PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUEVICTED],
+                    UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUEVICTED)));
+                block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMASIZE] = PhAddListViewGroupItem(
+                    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER], MAXINT, L"DMA buffer size", NULL);
+                PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMASIZE],
+                    UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMASIZE)));
+                block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMAALLOCLIST] = PhAddListViewGroupItem(
+                    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER], MAXINT, L"DMA allocation list", NULL);
+                PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMAALLOCLIST],
+                    UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMAALLOCLIST)));
+                block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMAPATCHLIST] = PhAddListViewGroupItem(
+                    listViewHandle, block->ListViewGroupCache[ET_PROCESS_STATISTICS_CATEGORY_GPUADAPTER], MAXINT, L"DMA patch list", NULL);
                 PhSetListViewItemParam(listViewHandle, block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUDMAPATCHLIST],
                     UlongToPtr(ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUDMAPATCHLIST)));
                 block->ListViewRowCache[ET_PROCESS_STATISTICS_INDEX_GPUINTERFERENCE] = PhAddListViewGroupItem(
@@ -1168,6 +1218,13 @@ VOID NTAPI ProcessStatsEventCallback(
                         {
                             wcsncpy_s(dispInfo->item.pszText, dispInfo->item.cchTextMax, buffer, _TRUNCATE);
                         }
+                    }
+                    else if (index == ET_PROCESS_STATISTICS_PARAM(ET_PROCESS_STATISTICS_INDEX_GPUEVICTED))
+                    {
+                        PH_FORMAT format[1];
+                        WCHAR buffer[PH_INT64_STR_LEN_1];
+
+                        PhInitFormatSize(&format[0], block->GpuTotalBytesEvicted);
 
                         if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
                         {
@@ -1571,7 +1628,14 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_SMBIOS_SHOW_UNDEFINED_TYPES, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_ACPI_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_ACPI_WINDOW_SIZE, L"@96|490,340" },
+                { StringSettingType, SETTING_NAME_ACPI_INFO_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_POWER_GRID_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_POWER_GRID_WINDOW_SIZE, L"@96|600,400" },
                 { StringSettingType, SETTING_NAME_POWER_GRID_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_SIZE, L"@96|760,380" },
+                { StringSettingType, SETTING_NAME_CACHE_LATENCY_LISTVIEW_COLUMNS, L"" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_EXPLORER_WINDOW_SIZE, L"@96|600,400" },
                 { IntegerPairSettingType, SETTING_NAME_STARTUP_TASKS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_STARTUP_TASKS_WINDOW_SIZE, L"@96|760,380" },
@@ -1650,9 +1714,12 @@ LOGICAL DllMain(
                 NULL,
                 &ProcessPropertiesInitializingCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackServicePropertiesInitializing),
                 ServicePropertiesInitializingCallback,
                 NULL,
                 &ServicesPropertiesInitializingCallbackRegistration
+                );
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackHandlePropertiesInitializing),
                 HandlePropertiesInitializingCallback,

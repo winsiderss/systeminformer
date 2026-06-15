@@ -144,7 +144,6 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
     )
 {
     PETP_GPU_ADAPTER adapter;
-    D3DKMT_HANDLE adapterHandleToUse = AdapterHandle;
 
     adapter = EtpAllocateGpuAdapter(NumberOfSegments);
     adapter->DeviceInterface = PhReferenceObject(DeviceInterface);
@@ -163,13 +162,22 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
         }
     }
 
-    // Cache adapter handle for reuse in update callbacks
-    if (!adapterHandleToUse && DeviceInterface)
+    // Open a dedicated long-lived handle for reuse in update callbacks. The caller's
+    // handle (AdapterHandle) is transient and is closed when the graphics-adapter
+    // enumeration is torn down, so it must not be cached here. Prefer opening our own
+    // handle from the device interface; only fall back to the caller's handle when no
+    // device interface is available to reopen from. (#2924)
+    adapter->CachedAdapterHandle = 0;
+
+    if (DeviceInterface)
     {
-        // If no handle provided, open one from device interface
-        EtOpenAdapterFromDeviceName(&adapterHandleToUse, NULL, PhGetString(DeviceInterface));
+        EtOpenAdapterFromDeviceName(&adapter->CachedAdapterHandle, NULL, PhGetString(DeviceInterface));
     }
-    adapter->CachedAdapterHandle = adapterHandleToUse;
+
+    if (!adapter->CachedAdapterHandle)
+    {
+        adapter->CachedAdapterHandle = AdapterHandle;
+    }
 
     if (EtGpuSupported)
     {
@@ -182,8 +190,8 @@ PETP_GPU_ADAPTER EtpAddGpuAdapter(
             memset(&metaDataInfo, 0, sizeof(D3DKMT_NODEMETADATA));
             metaDataInfo.NodeOrdinalAndAdapterIndex = MAKEWORD(i, 0);
 
-            if (adapterHandleToUse && NT_SUCCESS(EtQueryAdapterInformation(
-                adapterHandleToUse,
+            if (adapter->CachedAdapterHandle && NT_SUCCESS(EtQueryAdapterInformation(
+                adapter->CachedAdapterHandle,
                 KMTQAITYPE_NODEMETADATA,
                 &metaDataInfo,
                 sizeof(D3DKMT_NODEMETADATA)
