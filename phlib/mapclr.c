@@ -24,6 +24,7 @@
 
 #define PH_CLR_STORAGE_MAGIC 0x424A5342 // "BSJB"
 
+// CorHdr.h import flag helpers, kept local to avoid a peview dependency.
 #define PM_NO_MANGLE                    0x0001
 #define PM_CHARSET_ANSI                 0x0002
 #define PM_CHARSET_UNICODE              0x0004
@@ -254,6 +255,64 @@ static const PH_CLR_TABLE_SCHEMA PhClrTableSchema[PH_CLR_TABLE_MAXIMUM] =
 
 #undef T
 #undef C
+
+// Column name mappings for each table (based on ECMA-335 schema)
+const PCWSTR PhClrTableColumnNames[PH_CLR_TABLE_MAXIMUM][PH_CLR_MAX_COLUMNS] =
+{
+    [PH_CLR_TABLE_MODULE] = { L"Generation", L"Name", L"MVID", L"EncId", L"EncBaseId" },
+    [PH_CLR_TABLE_TYPEREF] = { L"ResolutionScope", L"TypeName", L"TypeNamespace" },
+    [PH_CLR_TABLE_TYPEDEF] = { L"Flags", L"TypeName", L"TypeNamespace", L"Extends", L"FieldList", L"MethodList" },
+    [PH_CLR_TABLE_FIELDPTR] = { L"Field" },
+    [PH_CLR_TABLE_FIELD] = { L"Flags", L"Name", L"Signature" },
+    [PH_CLR_TABLE_METHODPTR] = { L"Method" },
+    [PH_CLR_TABLE_METHODDEF] = { L"RVA", L"ImplFlags", L"Flags", L"Name", L"Signature", L"ParamList" },
+    [PH_CLR_TABLE_PARAMPTR] = { L"Param" },
+    [PH_CLR_TABLE_PARAM] = { L"Flags", L"Sequence", L"Name" },
+    [PH_CLR_TABLE_INTERFACEIMPL] = { L"Class", L"Interface" },
+    [PH_CLR_TABLE_MEMBERREF] = { L"Class", L"Name", L"Signature" },
+    [PH_CLR_TABLE_CONSTANT] = { L"Type", L"Parent", L"Value" },
+    [PH_CLR_TABLE_CUSTOMATTRIBUTE] = { L"Parent", L"Type", L"Value" },
+    [PH_CLR_TABLE_FIELDMARSHAL] = { L"Parent", L"NativeType" },
+    [PH_CLR_TABLE_DECLSECURITY] = { L"Action", L"Parent", L"PermissionSet" },
+    [PH_CLR_TABLE_CLASSLAYOUT] = { L"PackingSize", L"ClassSize", L"Parent" },
+    [PH_CLR_TABLE_FIELDLAYOUT] = { L"Offset", L"Field" },
+    [PH_CLR_TABLE_STANDALONESIG] = { L"Signature" },
+    [PH_CLR_TABLE_EVENTMAP] = { L"Parent", L"EventList" },
+    [PH_CLR_TABLE_EVENTPTR] = { L"Event" },
+    [PH_CLR_TABLE_EVENT] = { L"Flags", L"Name", L"EventType" },
+    [PH_CLR_TABLE_PROPERTYMAP] = { L"Parent", L"PropertyList" },
+    [PH_CLR_TABLE_PROPERTYPTR] = { L"Property" },
+    [PH_CLR_TABLE_PROPERTY] = { L"Flags", L"Name", L"Type" },
+    [PH_CLR_TABLE_METHODSEMANTICS] = { L"Semantics", L"Method", L"Association" },
+    [PH_CLR_TABLE_METHODIMPL] = { L"Class", L"MethodBody", L"MethodDeclaration" },
+    [PH_CLR_TABLE_MODULEREF] = { L"Name" },
+    [PH_CLR_TABLE_TYPESPEC] = { L"Signature" },
+    [PH_CLR_TABLE_IMPLMAP] = { L"MappingFlags", L"MemberForwarded", L"ImportName", L"ImportScope" },
+    [PH_CLR_TABLE_FIELDRVA] = { L"RVA", L"Field" },
+    [PH_CLR_TABLE_ENCLOG] = { L"AdvanceMethod", L"Operation" },
+    [PH_CLR_TABLE_ENCMAP] = { L"PToken" },
+    [PH_CLR_TABLE_ASSEMBLY] = { L"HashAlgId", L"MajorVersion", L"MinorVersion", L"BuildNumber", L"RevisionNumber", L"Flags", L"PublicKey", L"Name", L"Culture" },
+    [PH_CLR_TABLE_ASSEMBLYPROCESSOR] = { L"Processor" },
+    [PH_CLR_TABLE_ASSEMBLYOS] = { L"OSPlatformId", L"OSMajorVersion", L"OSMinorVersion" },
+    [PH_CLR_TABLE_ASSEMBLYREF] = { L"MajorVersion", L"MinorVersion", L"BuildNumber", L"RevisionNumber", L"Flags", L"PublicKeyOrToken", L"Name", L"Culture", L"HashValue" },
+    [PH_CLR_TABLE_ASSEMBLYREFPROCESSOR] = { L"Processor", L"AssemblyRef" },
+    [PH_CLR_TABLE_ASSEMBLYREFOS] = { L"OSPlatformId", L"OSMajorVersion", L"OSMinorVersion", L"AssemblyRef" },
+    [PH_CLR_TABLE_FILE] = { L"Flags", L"Name", L"HashValue" },
+    [PH_CLR_TABLE_EXPORTEDTYPE] = { L"Flags", L"TypeDefId", L"TypeName", L"TypeNamespace", L"Implementation" },
+    [PH_CLR_TABLE_MANIFESTRESOURCE] = { L"Offset", L"Flags", L"Name", L"Implementation" },
+    [PH_CLR_TABLE_NESTEDCLASS] = { L"NestedClass", L"EnclosingClass" },
+    [PH_CLR_TABLE_GENERICPARAM] = { L"Number", L"Flags", L"Owner", L"Name" },
+    [PH_CLR_TABLE_METHODSPEC] = { L"Method", L"Instantiation" },
+    [PH_CLR_TABLE_GENERICPARAMCONSTRAINT] = { L"Owner", L"Constraint" },
+    [PH_CLR_TABLE_DOCUMENT] = { L"Name", L"HashAlgorithm", L"Hash", L"Language" },
+    [PH_CLR_TABLE_METHODDEBUGINFORMATION] = { L"Document", L"SequencePoints" },
+    [PH_CLR_TABLE_LOCALSCOPE] = { L"Method", L"ImportScope", L"VariableList", L"ConstantList", L"StartOffset", L"Length" },
+    [PH_CLR_TABLE_LOCALVARIABLE] = { L"Attributes", L"Index", L"Name" },
+    [PH_CLR_TABLE_LOCALCONSTANT] = { L"Name", L"Signature" },
+    [PH_CLR_TABLE_IMPORTSCOPE] = { L"Parent", L"Imports" },
+    [PH_CLR_TABLE_STATEMACHINEMETHOD] = { L"MoveNextMethod", L"KickoffMethod" },
+    [PH_CLR_TABLE_CUSTOMDEBUGINFORMATION] = { L"Owner", L"Kind", L"Value" },
+};
 
 PPH_STRING NTAPI PhClrImportFlagsToString(
     _In_ ULONG Flags
@@ -498,69 +557,77 @@ BOOLEAN NTAPI PhTryGetMappedClrTargetFramework(
 
     *Version = NULL;
 
-    if (!NT_SUCCESS(PhGetMappedClrTableInfo(ClrMetadata, PH_CLR_TABLE_CUSTOMATTRIBUTE, NULL, &tableCount, NULL, NULL)))
-        tableCount = 0;
-
-    for (ULONG i = 1; i <= tableCount; i++)
+    if (NT_SUCCESS(PhGetMappedClrTableInfo(ClrMetadata, PH_CLR_TABLE_CUSTOMATTRIBUTE, NULL, &tableCount, NULL, NULL)))
     {
-        PVOID attributeData = NULL;
-        ULONG attributeIndex = 0;
-        ULONG valueLength = 0;
-        USHORT prolog;
-        ULONG skipLength = 0;
-        ULONG stringLength = 0;
-        PPH_STRING version = NULL;
-        BOOLEAN isTargetFramework = FALSE;
-
-        status = PhGetMappedClrCustomAttributeTargetName(ClrMetadata, i, &isTargetFramework);
-
-        if (!NT_SUCCESS(status) || !isTargetFramework)
-            continue;
-
-        status = PhGetMappedClrColumnValue(
-            ClrMetadata, 
-            PH_CLR_TABLE_CUSTOMATTRIBUTE, 
-            2, 
-            i, 
-            &attributeIndex
-            );
-
-        if (!NT_SUCCESS(status))
-            continue;
-
-        status = PhGetMappedClrBlob(
-            ClrMetadata, 
-            attributeIndex,
-            &attributeData, 
-            &valueLength
-            );
-
-        if (!NT_SUCCESS(status) || valueLength < sizeof(USHORT) + 1)
-            continue;
-
-        __try
+        for (ULONG i = 1; i <= tableCount; i++)
         {
-            prolog = *(PUSHORT)attributeData;
-            if (prolog != 0x0001)
+            PVOID attributeData = NULL;
+            ULONG attributeIndex = 0;
+            ULONG valueLength = 0;
+            USHORT prolog;
+            ULONG skipLength = 0;
+            ULONG stringLength = 0;
+            PPH_STRING version = NULL;
+            BOOLEAN isTargetFramework = FALSE;
+
+            status = PhGetMappedClrCustomAttributeTargetName(ClrMetadata, i, &isTargetFramework);
+
+            if (!NT_SUCCESS(status) || !isTargetFramework)
                 continue;
 
-            if (!NT_SUCCESS(PhClrUncompressData(PTR_ADD_OFFSET(attributeData, sizeof(USHORT)), PTR_ADD_OFFSET(attributeData, valueLength), &stringLength, &skipLength)))
+            status = PhGetMappedClrColumnValue(
+                ClrMetadata,
+                PH_CLR_TABLE_CUSTOMATTRIBUTE,
+                2,
+                i,
+                &attributeIndex
+                );
+
+            if (!NT_SUCCESS(status))
                 continue;
 
-            if (stringLength == 0 || stringLength >= valueLength)
+            status = PhGetMappedClrBlob(
+                ClrMetadata,
+                attributeIndex,
+                &attributeData,
+                &valueLength
+                );
+
+            if (!NT_SUCCESS(status) || valueLength < sizeof(USHORT) + 1)
                 continue;
 
-            version = PhConvertUtf8ToUtf16Ex((PCHAR)PTR_ADD_OFFSET(attributeData, sizeof(USHORT) + skipLength), stringLength);
-        }
-        __except (EXCEPTION_EXECUTE_HANDLER)
-        {
-            version = NULL;
-        }
+            __try
+            {
+                prolog = *(PUSHORT)attributeData;
 
-        if (version)
-        {
-            *Version = version;
-            return TRUE;
+                if (prolog != 0x0001)
+                    continue;
+
+                if (!NT_SUCCESS(PhClrUncompressData(
+                    PTR_ADD_OFFSET(attributeData, sizeof(USHORT)),
+                    PTR_ADD_OFFSET(attributeData, valueLength),
+                    &stringLength,
+                    &skipLength
+                    )))
+                {
+                    continue;
+                }
+
+                if (stringLength == 0 || stringLength >= valueLength)
+                    continue;
+
+                version = PhConvertUtf8ToUtf16Ex((PCHAR)PTR_ADD_OFFSET(attributeData, sizeof(USHORT) + skipLength), stringLength);
+            }
+            __except (EXCEPTION_EXECUTE_HANDLER)
+            {
+                version = NULL;
+            }
+
+            if (version)
+            {
+                *Version = version;
+                return TRUE;
+            }
         }
     }
 
@@ -689,77 +756,84 @@ NTSTATUS PhClrParseStreams(
     PPH_CLR_STORAGESTREAM stream;
     ULONG streamCount;
 
-    PhMappedImageProbe(mappedImage, signature, sizeof(PH_CLR_STORAGESIGNATURE));
-
-    if (signature->Signature != PH_CLR_STORAGE_MAGIC)
-        return STATUS_INVALID_IMAGE_FORMAT;
-
-    header = PTR_ADD_OFFSET(signature, RTL_SIZEOF_THROUGH_FIELD(PH_CLR_STORAGESIGNATURE, VersionLength) + ALIGN_UP(signature->VersionLength, ULONG));
-    PhMappedImageProbe(mappedImage, header, sizeof(PH_CLR_STORAGEHEADER));
-
-    streamCount = header->Streams;
-    stream = PTR_ADD_OFFSET(header, sizeof(PH_CLR_STORAGEHEADER));
-
-    for (ULONG i = 0; i < streamCount; i++)
+    __try
     {
-        SIZE_T nameLength;
-        PVOID streamData;
+        PhMappedImageProbe(mappedImage, signature, sizeof(PH_CLR_STORAGESIGNATURE));
 
-        PhMappedImageProbe(mappedImage, stream, UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name));
-
-        // Bounded name scan (max 32 chars per the metadata format).
-        nameLength = 0;
-
-        while (nameLength < 32)
-        {
-            PhMappedImageProbe(mappedImage, &stream->Name[nameLength], sizeof(CHAR));
-
-            if (stream->Name[nameLength] == ANSI_NULL)
-                break;
-
-            nameLength++;
-        }
-
-        if (nameLength >= 32)
+        if (signature->Signature != PH_CLR_STORAGE_MAGIC)
             return STATUS_INVALID_IMAGE_FORMAT;
 
-        streamData = PTR_ADD_OFFSET(ClrMetadata->MetadataAddress, stream->Offset);
-        PhMappedImageProbe(mappedImage, streamData, stream->Size);
+        header = PTR_ADD_OFFSET(signature, RTL_SIZEOF_THROUGH_FIELD(PH_CLR_STORAGESIGNATURE, VersionLength) + ALIGN_UP(signature->VersionLength, ULONG));
+        PhMappedImageProbe(mappedImage, header, sizeof(PH_CLR_STORAGEHEADER));
 
-        if (PhEqualBytesZ(stream->Name, "#~", FALSE) || PhEqualBytesZ(stream->Name, "#-", FALSE))
-        {
-            ClrMetadata->TablesStream = streamData;
-            ClrMetadata->TablesStreamSize = stream->Size;
-            ClrMetadata->Uncompressed = stream->Name[1] == '-';
-        }
-        else if (PhEqualBytesZ(stream->Name, "#Strings", FALSE))
-        {
-            ClrMetadata->StringHeap = streamData;
-            ClrMetadata->StringHeapSize = stream->Size;
-        }
-        else if (PhEqualBytesZ(stream->Name, "#US", FALSE))
-        {
-            ClrMetadata->UserStringHeap = streamData;
-            ClrMetadata->UserStringHeapSize = stream->Size;
-        }
-        else if (PhEqualBytesZ(stream->Name, "#Blob", FALSE))
-        {
-            ClrMetadata->BlobHeap = streamData;
-            ClrMetadata->BlobHeapSize = stream->Size;
-        }
-        else if (PhEqualBytesZ(stream->Name, "#GUID", FALSE))
-        {
-            ClrMetadata->GuidHeap = streamData;
-            ClrMetadata->GuidHeapSize = stream->Size;
-        }
-        else if (PhEqualBytesZ(stream->Name, "#Pdb", FALSE))
-        {
-            ClrMetadata->PdbStream = streamData;
-            ClrMetadata->PdbStreamSize = stream->Size;
-        }
+        streamCount = header->Streams;
+        stream = PTR_ADD_OFFSET(header, sizeof(PH_CLR_STORAGEHEADER));
 
-        // Advance to the next stream (name is null-terminated and padded to 4 bytes).
-        stream = PTR_ADD_OFFSET(stream, UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name) + ALIGN_UP(nameLength + 1, ULONG));
+        for (ULONG i = 0; i < streamCount; i++)
+        {
+            SIZE_T nameLength;
+            PVOID streamData;
+
+            PhMappedImageProbe(mappedImage, stream, UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name));
+
+            // Bounded name scan (max 32 chars per the metadata format).
+            nameLength = 0;
+
+            while (nameLength < 32)
+            {
+                PhMappedImageProbe(mappedImage, &stream->Name[nameLength], sizeof(CHAR));
+
+                if (stream->Name[nameLength] == ANSI_NULL)
+                    break;
+
+                nameLength++;
+            }
+
+            if (nameLength >= 32)
+                return STATUS_INVALID_IMAGE_FORMAT;
+
+            streamData = PTR_ADD_OFFSET(ClrMetadata->MetadataAddress, stream->Offset);
+            PhMappedImageProbe(mappedImage, streamData, stream->Size);
+
+            if (PhEqualBytesZ(stream->Name, "#~", FALSE) || PhEqualBytesZ(stream->Name, "#-", FALSE))
+            {
+                ClrMetadata->TablesStream = streamData;
+                ClrMetadata->TablesStreamSize = stream->Size;
+                ClrMetadata->Uncompressed = stream->Name[1] == '-';
+            }
+            else if (PhEqualBytesZ(stream->Name, "#Strings", FALSE))
+            {
+                ClrMetadata->StringHeap = streamData;
+                ClrMetadata->StringHeapSize = stream->Size;
+            }
+            else if (PhEqualBytesZ(stream->Name, "#US", FALSE))
+            {
+                ClrMetadata->UserStringHeap = streamData;
+                ClrMetadata->UserStringHeapSize = stream->Size;
+            }
+            else if (PhEqualBytesZ(stream->Name, "#Blob", FALSE))
+            {
+                ClrMetadata->BlobHeap = streamData;
+                ClrMetadata->BlobHeapSize = stream->Size;
+            }
+            else if (PhEqualBytesZ(stream->Name, "#GUID", FALSE))
+            {
+                ClrMetadata->GuidHeap = streamData;
+                ClrMetadata->GuidHeapSize = stream->Size;
+            }
+            else if (PhEqualBytesZ(stream->Name, "#Pdb", FALSE))
+            {
+                ClrMetadata->PdbStream = streamData;
+                ClrMetadata->PdbStreamSize = stream->Size;
+            }
+
+            // Advance to the next stream (name is null-terminated and padded to 4 bytes).
+            stream = PTR_ADD_OFFSET(stream, UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name) + ALIGN_UP(nameLength + 1, ULONG));
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
     }
 
     if (!ClrMetadata->TablesStream)
@@ -778,67 +852,74 @@ NTSTATUS PhClrParseTables(
     PVOID rows;
     ULONG validCount;
 
-    PhMappedImageProbe(mappedImage, header, sizeof(PH_CLR_TABLESHEADER));
-
-    ClrMetadata->MajorVersion = header->Major;
-    ClrMetadata->MinorVersion = header->Minor;
-    ClrMetadata->HeapSizes = header->HeapSizes;
-    ClrMetadata->ValidMask = header->ValidMask;
-    ClrMetadata->SortedMask = header->SortedMask;
-
-    validCount = PhCountBitsUlongPtr(header->ValidMask);
-    rowCounts = PTR_ADD_OFFSET(header, sizeof(PH_CLR_TABLESHEADER));
-    PhMappedImageProbe(mappedImage, rowCounts, validCount * sizeof(ULONG));
-
-    // Assign row counts to the tables flagged in ValidMask, in ascending order.
+    __try
     {
-        ULONG next = 0;
+        PhMappedImageProbe(mappedImage, header, sizeof(PH_CLR_TABLESHEADER));
+
+        ClrMetadata->MajorVersion = header->Major;
+        ClrMetadata->MinorVersion = header->Minor;
+        ClrMetadata->HeapSizes = header->HeapSizes;
+        ClrMetadata->ValidMask = header->ValidMask;
+        ClrMetadata->SortedMask = header->SortedMask;
+
+        validCount = PhCountBitsUlong64(header->ValidMask);
+        rowCounts = PTR_ADD_OFFSET(header, sizeof(PH_CLR_TABLESHEADER));
+        PhMappedImageProbe(mappedImage, rowCounts, validCount * sizeof(ULONG));
+
+        // Assign row counts to the tables flagged in ValidMask, in ascending order.
+        {
+            ULONG next = 0;
+
+            for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
+            {
+                if (header->ValidMask & ((ULONG64)1 << i))
+                {
+                    ClrMetadata->Tables[i].RowCount = rowCounts[next];
+                    next++;
+                }
+            }
+        }
+
+        rows = PTR_ADD_OFFSET(rowCounts, validCount * sizeof(ULONG));
+
+        if (FlagOn(header->HeapSizes, PH_CLR_HEAPSIZE_EXTRADATA))
+        {
+            rows = PTR_ADD_OFFSET(rows, sizeof(ULONG)); // edit-and-continue extra data
+        }
+
+        // Compute the layout for every schema-defined table (row counts are known now).
 
         for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
         {
-            if (header->ValidMask & ((ULONG64)1 << i))
+            if (PhClrTableSchema[i].Name)
+                PhClrComputeTableLayout(ClrMetadata, i);
+        }
+
+        // Walk the table data assigning each present table its row pointer.
+
+        for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
+        {
+            PPH_MAPPED_CLR_TABLE table = &ClrMetadata->Tables[i];
+
+            if (!(header->ValidMask & ((ULONG64)1 << i)))
+                continue;
+
+            if (!PhClrTableSchema[i].Name)
+                return STATUS_INVALID_IMAGE_FORMAT; // present but unknown table
+
+            if (table->RowCount)
             {
-                ClrMetadata->Tables[i].RowCount = rowCounts[next];
-                next++;
+                SIZE_T length = UInt32x32To64(table->RowCount, table->RowSize);
+
+                PhMappedImageProbe(mappedImage, rows, length);
+                table->Rows = rows;
+                rows = PTR_ADD_OFFSET(rows, length);
             }
         }
     }
-
-    rows = PTR_ADD_OFFSET(rowCounts, validCount * sizeof(ULONG));
-
-    if (FlagOn(header->HeapSizes, PH_CLR_HEAPSIZE_EXTRADATA))
+    __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        rows = PTR_ADD_OFFSET(rows, sizeof(ULONG)); // edit-and-continue extra data
-    }
-
-    // Compute the layout for every schema-defined table (row counts are known now).
-
-    for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
-    {
-        if (PhClrTableSchema[i].Name)
-            PhClrComputeTableLayout(ClrMetadata, i);
-    }
-
-    // Walk the table data assigning each present table its row pointer.
-
-    for (ULONG i = 0; i < PH_CLR_TABLE_MAXIMUM; i++)
-    {
-        PPH_MAPPED_CLR_TABLE table = &ClrMetadata->Tables[i];
-
-        if (!(header->ValidMask & ((ULONG64)1 << i)))
-            continue;
-
-        if (!PhClrTableSchema[i].Name)
-            return STATUS_INVALID_IMAGE_FORMAT; // present but unknown table
-
-        if (table->RowCount)
-        {
-            SIZE_T length = UInt32x32To64(table->RowCount, table->RowSize);
-
-            PhMappedImageProbe(mappedImage, rows, length);
-            table->Rows = rows;
-            rows = PTR_ADD_OFFSET(rows, length);
-        }
+        return GetExceptionCode();
     }
 
     return STATUS_SUCCESS;
@@ -872,7 +953,8 @@ NTSTATUS NTAPI PhInitializeMappedClrMetadata(
     status = PhMappedImageRvaToVa(
         MappedImage,
         dataDirectory->VirtualAddress,
-        (PVOID *)&cor20Header);
+        &cor20Header
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -929,7 +1011,7 @@ ULONG NTAPI PhGetMappedClrNumberOfTables(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata
     )
 {
-    return PhCountBitsUlongPtr(ClrMetadata->ValidMask);
+    return PhCountBitsUlong64(ClrMetadata->ValidMask);
 }
 
 NTSTATUS NTAPI PhGetMappedClrTableInfo(

@@ -4508,6 +4508,47 @@ ULONG PhCountBitsUlongPtr(
 #endif
 }
 
+ULONG PhCountBitsUlong64(
+    _In_ ULONG64 Value
+    )
+{
+#if defined(PH_NATIVE_COUNTBITS)
+    return RtlNumberOfSetBitsUlong64(Value);
+#else
+#ifdef _WIN64
+    if (PhHasPopulationCount)
+    {
+        return (ULONG)PhPopulationCount64(Value);
+    }
+    else
+#endif
+    {
+        #undef T
+        #define T ULONG64
+        ULONG64 count;
+
+        // SWAR (parallel bit count)
+        // http://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetParallel
+        Value = Value - ((Value >> 1) & (T)~(T)0 / 3);
+        Value = (Value & (T)~(T)0 / 15 * 3) + ((Value >> 2) & (T)~(T)0 / 15 * 3);
+        Value = (Value + (Value >> 4)) & (T)~(T)0 / 255 * 15;
+        count = (Value * ((T)~(T)0 / 255)) >> ((sizeof(T) - 1) * CHAR_BIT);
+
+        return (ULONG)count;
+
+        // Alternative (slower):
+        //
+        // ULONG count = 0;
+        // while (Value)
+        // {
+        //     count++;
+        //     Value &= Value - 1;
+        // }
+        // return count;
+    }
+#endif
+}
+
 #pragma region Thread Local Storage (TLS)
 
 /**

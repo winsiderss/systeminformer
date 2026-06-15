@@ -964,10 +964,12 @@ VOID EtCacheLatencyAddSummaryRows(
     ULONG strideCount;
     ULONG analysisColumnStart;
     ULONG i;
-    ULONG summaryIndex = 0;
     ULONG dramRow;
     ULONG64 dramSum = 0;
     ULONG dramSamples = 0;
+    PET_CACHE_LATENCY_INFO caches;
+    ULONG cacheCount;
+    BOOLEAN levelWritten[3] = { FALSE, FALSE, FALSE };
 
     EtCacheLatencyGetStrideList(strides, &strideCount);
 
@@ -976,15 +978,38 @@ VOID EtCacheLatencyAddSummaryRows(
 
     analysisColumnStart = strideCount >= 3 ? strideCount - 3 : 0;
 
-    for (i = 0; i < Result->CpuidCacheCount; i++)
+    // Prefer CPUID topology; fall back to the NT logical processor information when CPUID is unavailable.
+    if (Result->CpuidCacheCount)
     {
-        PET_CACHE_LATENCY_INFO cache = &Result->CpuidCacheInfo[i];
+        caches = Result->CpuidCacheInfo;
+        cacheCount = Result->CpuidCacheCount;
+    }
+    else
+    {
+        caches = Result->NtCacheInfo;
+        cacheCount = Result->NtCacheCount;
+    }
+
+    // Each level maps to a fixed label slot: L1 -> 0, L2 -> 1, L3 -> 2, DRAM -> 3.
+    for (i = 0; i < cacheCount; i++)
+    {
+        PET_CACHE_LATENCY_INFO cache = &caches[i];
+        ULONG slot;
         ULONG row;
         ULONG column;
         ULONG64 sum = 0;
         ULONG samples = 0;
 
         if (cache->Type == 2)
+            continue;
+
+        if (cache->Level < 1 || cache->Level > 3)
+            continue;
+
+        slot = cache->Level - 1;
+
+        // Keep the first cache reported for a level (data/unified); ignore duplicates.
+        if (levelWritten[slot])
             continue;
 
         row = EtCacheLatencyFindSizeRow(cache->SizeKb);
@@ -995,16 +1020,22 @@ VOID EtCacheLatencyAddSummaryRows(
             samples++;
         }
 
-        if (summaryIndex < RTL_NUMBER_OF(Context->SummaryLabelHandles))
-        {
-            PhSetWindowText(Context->SummaryLabelHandles[summaryIndex++], PhaFormatString(
-                L"L%lu %s latency: %lu cycles (%lu KB)",
-                cache->Level,
-                EtCacheLatencyTypeString(cache->Type),
-                samples ? (ULONG)(sum / samples) : 0,
-                1u << row
-                )->Buffer);
-        }
+        PhSetWindowText(Context->SummaryLabelHandles[slot], PhaFormatString(
+            L"L%lu %s latency: %lu cycles (%lu KB)",
+            cache->Level,
+            EtCacheLatencyTypeString(cache->Type),
+            samples ? (ULONG)(sum / samples) : 0,
+            1u << row
+            )->Buffer);
+
+        levelWritten[slot] = TRUE;
+    }
+
+    // Clear any level slot that had no matching cache so stale text does not linger.
+    for (i = 0; i < RTL_NUMBER_OF(levelWritten); i++)
+    {
+        if (!levelWritten[i])
+            PhSetWindowText(Context->SummaryLabelHandles[i], L"");
     }
 
     dramRow = ET_CACHE_LATENCY_MSIZE_ROWS - 1;
@@ -1015,19 +1046,11 @@ VOID EtCacheLatencyAddSummaryRows(
         dramSamples++;
     }
 
-    if (summaryIndex < RTL_NUMBER_OF(Context->SummaryLabelHandles))
-    {
-        PhSetWindowText(Context->SummaryLabelHandles[summaryIndex++], PhaFormatString(
-            L"DRAM latency: %lu cycles (%lu KB)",
-            dramSamples ? (ULONG)(dramSum / dramSamples) : 0,
-            1u << dramRow
-            )->Buffer);
-    }
-
-    for (; summaryIndex < RTL_NUMBER_OF(Context->SummaryLabelHandles); summaryIndex++)
-    {
-        PhSetWindowText(Context->SummaryLabelHandles[summaryIndex], L"");
-    }
+    PhSetWindowText(Context->SummaryLabelHandles[3], PhaFormatString(
+        L"DRAM latency: %lu cycles (%lu KB)",
+        dramSamples ? (ULONG)(dramSum / dramSamples) : 0,
+        1u << dramRow
+        )->Buffer);
 }
 
 /**
