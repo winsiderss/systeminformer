@@ -324,7 +324,7 @@ VOID PvEnumerateExceptionEntries(
             {
             case PdataRefToFullXdata: // 0 (union is UnwindData)
                 {
-                    IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA* data;
+                    IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA* data = NULL;
 
                     PhSetListViewSubItem(Context->ListViewHandle, lvItemIndex, 1, L"Full");
 

@@ -1904,7 +1904,7 @@ VOID PvScanImageForPage(
                         if (delta <= UINT_MAX)
                         {
                             ULONG thunkRva = (ULONG)delta;
-                            PVOID thunkCode;
+                            PVOID thunkCode = NULL;
 
                             if (!NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, thunkRva, &thunkCode)))
                             {

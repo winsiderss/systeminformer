@@ -92,7 +92,7 @@ PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
     _In_opt_ PVOID PdbMetadataAddress
     )
 {
-    PSTORAGESIGNATURE metaData;
+    PSTORAGESIGNATURE metaData = NULL;
 
     if (PdbMetadataAddress)
     {
