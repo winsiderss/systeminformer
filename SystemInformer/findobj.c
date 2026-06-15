@@ -1692,7 +1692,7 @@ INT_PTR CALLBACK PhFindObjectsDlgProc(
             HFONT typeWindowFont;
 
             if (typeWindowFont = PhCreateApplicationFont(LOWORD(wParam)))
-                PhReplaceWindowFont(&context->TypeWindowFont, context->TypeWindowHandle, typeWindowFont, TRUE);
+                PhSwapReferenceFont(&context->TypeWindowFont, context->TypeWindowHandle, typeWindowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
             PhLayoutManagerLayout(&context->LayoutManager);
