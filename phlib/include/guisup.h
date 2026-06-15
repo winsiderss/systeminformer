@@ -454,6 +454,85 @@ PhPaintBuffered(
 PHLIBAPI
 VOID
 NTAPI
+PhEndBufferedPaint(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_ BOOLEAN UpdateTarget
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferedPaintClear(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhBufferedPaintSetAlpha(
+    _In_ PPH_BUFFERED_PAINT BufferedPaint,
+    _In_opt_ const RECT* Rect,
+    _In_ BYTE Alpha
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintBits(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintBitsEx(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ RGBQUAD** Bits,
+    _Out_ PLONG WidthInPixels,
+    _Out_ PLONG WidthInBytes,
+    _Out_ RGBQUAD** FirstPaintPixel
+    );
+
+PHLIBAPI
+HDC
+NTAPI
+PhGetBufferedPaintDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    );
+
+PHLIBAPI
+HDC
+NTAPI
+PhGetBufferedPaintTargetDC(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetBufferedPaintTargetRect(
+    _In_ const PH_BUFFERED_PAINT* BufferedPaint,
+    _Out_ PRECT Rect
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhPaintBuffered(
+    _In_ HWND WindowHandle,
+    _In_ const PAINTSTRUCT* PaintStruct,
+    _In_ PPH_BUFFERED_PAINT_PROC PaintProc,
+    _In_opt_ PVOID Context
+    );
+
+
+
+PHLIBAPI
+VOID
+NTAPI
 PhUninitializeWindowTheme(
     _In_ HWND WindowHandle
     );

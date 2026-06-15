@@ -5230,7 +5230,6 @@ NTSTATUS PhGetSystemResourcesFileName(
  * \remarks Use this function instead of PrivateExtractIconExW() because images are mapped with SEC_COMMIT and READONLY
  * while PrivateExtractIconExW loads images with EXECUTE and SEC_IMAGE (section allocations and relocation processing).
  */
-_Success_(NT_SUCCESS(return))
 NTSTATUS PhExtractIconEx(
     _In_ PCPH_STRINGREF FileName,
     _In_ BOOLEAN NativeFileName,
