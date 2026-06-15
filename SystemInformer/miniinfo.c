@@ -20,6 +20,8 @@
 #include <phplug.h>
 #include <procprv.h>
 #include <proctree.h>
+#include <sysinfo.h>
+#include <sysinfop.h>
 
 #include <emenu.h>
 #include <settings.h>
@@ -50,10 +52,74 @@ static PH_LAYOUT_MANAGER PhMipLayoutManager;
 static RECT MinimumSize;
 static PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
 static CONST PH_STRINGREF DownArrowPrefix = PH_STRINGREF_INIT(L"\u25be ");
+static LONG PhMipUpdatePosted;
+static LONG PhMipUpdateInProgress;
+static LONG PhMipUpdatePending;
 
 static PPH_LIST SectionList;
 static PH_MINIINFO_PARAMETERS CurrentParameters;
 static PPH_MINIINFO_SECTION CurrentSection;
+
+#define PH_MIP_GRAPHS_FILL_AVAILABLE_ROW_HEIGHT 1
+
+static VOID MipSetActiveBorderColor(
+    VOID
+    )
+{
+    COLORREF borderColor;
+
+    if (!PhMipContainerWindow)
+        return;
+
+    borderColor = PhGetWindowActiveBorderColor(TRUE);
+
+    if (borderColor)
+        PhSetWindowBorderColor(PhMipContainerWindow, borderColor);
+}
+
+static VOID PhMipRequestUpdate(
+    VOID
+    )
+{
+    HWND windowHandle;
+
+    windowHandle = PhMipWindow;
+
+    if (!windowHandle)
+        return;
+
+    if (InterlockedCompareExchange(&PhMipUpdateInProgress, FALSE, FALSE))
+    {
+        InterlockedExchange(&PhMipUpdatePending, TRUE);
+        return;
+    }
+
+    if (InterlockedCompareExchange(&PhMipUpdatePosted, TRUE, FALSE) == FALSE)
+        PostMessage(windowHandle, MIP_MSG_UPDATE, 0, 0);
+}
+
+static BOOLEAN PhMipDeferUpdateIfWindowThreadMismatch(
+    _In_opt_ HWND WindowHandle
+    )
+{
+    CLIENT_ID clientId;
+
+    if (!WindowHandle)
+        return FALSE;
+
+    if (
+        NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)) &&
+        clientId.UniqueThread != NtCurrentThreadId()
+        )
+    {
+        if (!InterlockedCompareExchange(&PhMipUpdateInProgress, FALSE, FALSE))
+            PhMipRequestUpdate();
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
 
 VOID PhPinMiniInformation(
     _In_ PH_MINIINFO_PIN_TYPE PinType,
@@ -68,10 +134,13 @@ VOID PhPinMiniInformation(
 
     if (PinDelayMs && PinCount < 0)
     {
-        PhMipDelayedPinAdjustments[PinType] = PinCount;
-
+        // A delayed unpin is serviced by the container window's timer. Without a
+        // container window there is no popup to unpin and no timer to apply the
+        // delta, so don't stash an adjustment that would otherwise linger and be
+        // consumed at the wrong time by a later timer of this type. (dmex)
         if (PhMipContainerWindow)
         {
+            PhMipDelayedPinAdjustments[PinType] = PinCount;
             PhSetTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + PinType, PinDelayMs, NULL);
         }
         return;
@@ -164,6 +233,7 @@ VOID PhPinMiniInformation(
         }
 
         PhInitializeWindowTheme(PhMipContainerWindow, PhEnableThemeSupport);
+        MipSetActiveBorderColor();
 
         ShowWindow(PhMipContainerWindow, (Flags & PH_MINIINFO_ACTIVATE_WINDOW) ? SW_SHOW : SW_SHOWNOACTIVATE);
     }
@@ -212,6 +282,15 @@ LRESULT CALLBACK PhMipContainerWndProc(
             PhMipContainerOnActivate(GET_WM_COMMAND_ID(wParam, lParam), !!HIWORD(wParam));
         }
         break;
+    case WM_NCACTIVATE:
+        {
+            LRESULT result;
+
+            result = DefWindowProc(hWnd, uMsg, wParam, lParam);
+            MipSetActiveBorderColor();
+
+            return result;
+        }
     case WM_SIZE:
         {
             PhMipContainerOnSize();
@@ -327,6 +406,7 @@ RTL_ATOM PhMipContainerInitializeWindowClass(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+    wcex.hbrBackground = PhThemeWindowBackgroundBrush;// (HBRUSH)(COLOR_BTNFACE + 1);
     name = PhaGetStringSetting(SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(name, SETTING_MINI_INFO_CONTAINER_CLASS_NAME);
 
@@ -343,7 +423,7 @@ VOID PhMipContainerOnShowWindow(
 
     if (Showing)
     {
-        PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+        PhMipRequestUpdate();
 
         PhMipMessageLoopFilterEntry = PhRegisterMessageLoopFilter(PhMipMessageLoopFilter, NULL);
 
@@ -357,7 +437,15 @@ VOID PhMipContainerOnShowWindow(
     else
     {
         for (i = 0; i < MaxMiniInfoPinType; i++)
+        {
+            // Reset the pin counts and cancel any pending delayed pin
+            // adjustments. Otherwise a leftover unpin timer (e.g. the delayed
+            // icon unpin from NIN_POPUPCLOSE) can fire after the window is
+            // re-shown and incorrectly hide a popup the user is hovering. (dmex)
             PhMipPinCounts[i] = 0;
+            PhMipDelayedPinAdjustments[i] = 0;
+            PhKillTimer(PhMipContainerWindow, (UINT_PTR)MIP_TIMER_PIN_FIRST + i);
+        }
 
         Button_SetCheck(GetDlgItem(PhMipWindow, IDC_PINWINDOW), BST_UNCHECKED);
         PhMipSetPinned(FALSE, TRUE);
@@ -494,6 +582,7 @@ VOID PhMipOnShowWindow(
 
     SetWindowFont(GetDlgItem(PhMipWindow, IDC_SECTION), CurrentParameters.MediumFont, FALSE);
 
+    PhMipCreateInternalListSection(L"Graphs", 0, PhMipGraphsListSectionCallback);
     PhMipCreateInternalListSection(L"CPU", 0, PhMipCpuListSectionCallback);
     PhMipCreateInternalListSection(L"Commit charge", 0, PhMipCommitListSectionCallback);
     PhMipCreateInternalListSection(L"Physical memory", 0, PhMipPhysicalListSectionCallback);
@@ -584,17 +673,36 @@ VOID PhMipOnUserMessage(
     {
     case MIP_MSG_UPDATE:
         {
-            ULONG i;
-            PPH_MINIINFO_SECTION section;
+            InterlockedExchange(&PhMipUpdatePosted, FALSE);
 
-            if (SectionList)
+            if (InterlockedCompareExchange(&PhMipUpdateInProgress, TRUE, FALSE) != FALSE)
             {
-                for (i = 0; i < SectionList->Count; i++)
+                InterlockedExchange(&PhMipUpdatePending, TRUE);
+                break;
+            }
+
+            do
+            {
+                ULONG i;
+                PPH_MINIINFO_SECTION section;
+
+                InterlockedExchange(&PhMipUpdatePending, FALSE);
+
+                if (SectionList)
                 {
-                    section = SectionList->Items[i];
-                    section->Callback(section, MiniInfoTick, NULL, NULL);
+                    for (i = 0; i < SectionList->Count; i++)
+                    {
+                        section = SectionList->Items[i];
+                        section->Callback(section, MiniInfoTick, NULL, NULL);
+                    }
                 }
             }
+            while (InterlockedCompareExchange(&PhMipUpdatePending, FALSE, FALSE));
+
+            InterlockedExchange(&PhMipUpdateInProgress, FALSE);
+
+            if (InterlockedExchange(&PhMipUpdatePending, FALSE))
+                PhMipRequestUpdate();
         }
         break;
     }
@@ -651,6 +759,16 @@ BOOLEAN PhMipMessageLoopFilter(
     return FALSE;
 }
 
+BOOLEAN PhMipIsPinned(
+    _In_ PH_MINIINFO_PIN_TYPE PinType
+    )
+{
+    if (PinType >= MaxMiniInfoPinType)
+        return FALSE;
+
+    return PhMipPinCounts[PinType] > 0;
+}
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMipUpdateHandler(
     _In_opt_ PVOID Parameter,
@@ -658,7 +776,7 @@ VOID NTAPI PhMipUpdateHandler(
     )
 {
     if (PhMipRefreshAutomatically & MIP_REFRESH_AUTOMATICALLY_FLAG(PhMipPinned))
-        PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+        PhMipRequestUpdate();
 }
 
 PH_MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
@@ -929,7 +1047,7 @@ VOID PhMipChangeSection(
     PhMipUpdateSectionText(NewSection);
     PhMipLayout();
 
-    NewSection->Callback(NewSection, MiniInfoTick, NULL, NULL);
+    PhMipRequestUpdate();
 }
 
 _Function_class_(PH_MINIINFO_SET_SECTION_TEXT)
@@ -1041,7 +1159,7 @@ VOID PhMipRefresh(
     if (PhMipPinned)
         SystemInformer_Refresh();
 
-    PostMessage(PhMipWindow, MIP_MSG_UPDATE, 0, 0);
+    PhMipRequestUpdate();
 }
 
 VOID PhMipToggleRefreshAutomatically(
@@ -1060,7 +1178,7 @@ VOID PhMipSetPinned(
     if (Update)
     {
         PhSetWindowStyle(PhMipContainerWindow, WS_DLGFRAME | WS_SYSMENU, Pinned ? (WS_DLGFRAME | WS_SYSMENU) : 0);
-        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+        SetWindowPos(PhMipContainerWindow, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
 
     PhMipPinned = Pinned;
@@ -1232,6 +1350,85 @@ LRESULT CALLBACK PhMipSectionControlHookWndProc(
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
 
+typedef enum _PH_MIP_GRAPH_ROW_KIND
+{
+    MipGraphRowSysInfoCpu,
+    MipGraphRowSysInfoMemory,
+    MipGraphRowSysInfoIo,
+    MipGraphRowMiniInfoCpu,
+    MipGraphRowMiniInfoCommit,
+    MipGraphRowMiniInfoPhysical,
+    MipGraphRowMiniInfoIo,
+    MaxMipGraphRowKind
+} PH_MIP_GRAPH_ROW_KIND;
+
+typedef struct _PH_MIP_GRAPH_ROW_NODE
+{
+    PH_TREENEW_NODE Node;
+
+    PH_MIP_GRAPH_ROW_KIND Kind;
+    PH_STRINGREF Title;
+
+    PH_GRAPH_STATE GraphState;
+    FLOAT LabelYFunctionParameter;
+    PPH_STRING TooltipText;
+} PH_MIP_GRAPH_ROW_NODE, *PPH_MIP_GRAPH_ROW_NODE;
+
+typedef struct _PH_MIP_GRAPHS_SECTION
+{
+    PPH_MINIINFO_LIST_SECTION ListSection;
+
+    HWND DialogHandle;
+    HWND TreeNewHandle;
+    PH_LAYOUT_MANAGER LayoutManager;
+
+    PPH_LIST NodeList;
+
+    HDC GraphContext;
+    HBITMAP GraphBitmap;
+    HBITMAP GraphOldBitmap;
+    PVOID GraphBits;
+    LONG GraphContextWidth;
+    LONG GraphContextHeight;
+} PH_MIP_GRAPHS_SECTION, *PPH_MIP_GRAPHS_SECTION;
+
+static VOID PhMipGraphsEnsureGraphContext(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection,
+    _In_ HDC ReferenceHdc,
+    _In_ LONG Width,
+    _In_ LONG Height
+    );
+
+static VOID PhMipGraphsDeleteGraphContext(
+    _Inout_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    );
+
+static VOID PhMipGraphsInvalidateStates(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    );
+
+static VOID PhMipGraphsDrawFadeOut(
+    _Inout_ PVOID Bits,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ COLORREF BackColor,
+    _In_ LONG FadeOutWidth
+    );
+
+#ifdef PH_MIP_GRAPHS_FILL_AVAILABLE_ROW_HEIGHT
+static VOID PhMipGraphsUpdateRowHeight(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    );
+#endif
+
+static BOOLEAN PhMipGraphsTreeNewCallback(
+    _In_ HWND WindowHandle,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    );
+
 PPH_MINIINFO_LIST_SECTION PhMipCreateListSection(
     _In_ PCWSTR Name,
     _In_ ULONG Flags,
@@ -1308,6 +1505,9 @@ BOOLEAN PhMipListSectionCallback(
             {
                 // We don't want to hold process item references while the mini info window
                 // is hidden.
+                if (PhMipDeferUpdateIfWindowThreadMismatch(listSection->TreeNewHandle))
+                    break;
+
                 PhMipClearListSection(listSection);
 
                 if (listSection->TreeNewHandle)
@@ -1375,8 +1575,7 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
             TreeNew_SetRedraw(listSection->TreeNewHandle, FALSE);
             TreeNew_SetCallback(listSection->TreeNewHandle, PhMipListSectionTreeNewCallback, listSection);
             TreeNew_SetRowHeight(listSection->TreeNewHandle, PhMipCalculateRowHeight(hwndDlg));
-            PhAddTreeNewColumnEx2(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TRUE, L"Process", 1,
-                PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
+            PhAddTreeNewColumnEx2(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TRUE, L"Process", 1, PH_ALIGN_LEFT, 0, 0, TN_COLUMN_FLAG_CUSTOMDRAW);
             TreeNew_SetRedraw(listSection->TreeNewHandle, TRUE);
 
             listSection->Callback(listSection, MiListSectionDialogCreated, hwndDlg, NULL);
@@ -1401,9 +1600,28 @@ INT_PTR CALLBACK PhMipListSectionDialogProc(
         break;
     case WM_SIZE:
         {
+            // Suspend redraw across the resize so the stale-row-height scrollbar update from
+            // PhLayoutManagerLayout (which sends the TreeNew a synchronous WM_SIZE before the
+            // fill row height is recomputed) is coalesced with the corrected update below.
+            // Without this the vertical scrollbar visibly flashes on/off during each resize tick.
+            if (PhMipDeferUpdateIfWindowThreadMismatch(listSection->TreeNewHandle))
+                break;
+
+            if (listSection->TreeNewHandle)
+                TreeNew_SetRedraw(listSection->TreeNewHandle, FALSE);
+
             PhLayoutManagerLayout(&listSection->LayoutManager);
 
-            TreeNew_AutoSizeColumn(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TN_AUTOSIZE_REMAINING_SPACE);
+#ifdef PH_MIP_GRAPHS_FILL_AVAILABLE_ROW_HEIGHT
+            if (listSection->Callback == PhMipGraphsListSectionCallback)
+                PhMipGraphsUpdateRowHeight((PPH_MIP_GRAPHS_SECTION)listSection->Context);
+#endif
+
+            if (listSection->TreeNewHandle)
+                TreeNew_AutoSizeColumn(listSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TN_AUTOSIZE_REMAINING_SPACE);
+
+            if (listSection->TreeNewHandle)
+                TreeNew_SetRedraw(listSection->TreeNewHandle, TRUE);
         }
         break;
     }
@@ -1433,6 +1651,9 @@ VOID PhMipTickListSection(
     ULONG i;
     PPH_MIP_GROUP_NODE node;
     PH_MINIINFO_LIST_SECTION_ASSIGN_SORT_DATA assignSortData;
+
+    if (PhMipDeferUpdateIfWindowThreadMismatch(ListSection->TreeNewHandle))
+        return;
 
     PhMipClearListSection(ListSection);
 
@@ -2554,4 +2775,800 @@ int __cdecl PhMipIoListSectionNodeCompareFunction(
     PPH_MINIINFO_LIST_SECTION_SORT_DATA data2 = *(PPH_MINIINFO_LIST_SECTION_SORT_DATA *)elem2;
 
     return uint64cmp(data2->UserData[0] + data2->UserData[1], data1->UserData[0] + data1->UserData[1]);
+}
+
+static VOID PhMipGraphsEnsureGraphContext(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection,
+    _In_ HDC ReferenceHdc,
+    _In_ LONG Width,
+    _In_ LONG Height
+    )
+{
+    if (GraphsSection->GraphContextWidth == Width && GraphsSection->GraphContextHeight == Height)
+        return;
+
+    PhMipGraphsDeleteGraphContext(GraphsSection);
+    GraphsSection->GraphContextWidth = Width;
+    GraphsSection->GraphContextHeight = Height;
+
+    GraphsSection->GraphContext = CreateCompatibleDC(ReferenceHdc);
+    if (!GraphsSection->GraphContext)
+        return;
+
+    GraphsSection->GraphBitmap = PhCreateDIBSection(ReferenceHdc, PHBF_DIB, Width, Height, &GraphsSection->GraphBits);
+    if (!GraphsSection->GraphBitmap || !GraphsSection->GraphBits)
+    {
+        PhMipGraphsDeleteGraphContext(GraphsSection);
+        return;
+    }
+
+    GraphsSection->GraphOldBitmap = SelectBitmap(GraphsSection->GraphContext, GraphsSection->GraphBitmap);
+}
+
+static VOID PhMipGraphsDeleteGraphContext(
+    _Inout_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    )
+{
+    if (GraphsSection->GraphContext)
+    {
+        if (GraphsSection->GraphOldBitmap)
+        {
+            SelectBitmap(GraphsSection->GraphContext, GraphsSection->GraphOldBitmap);
+            GraphsSection->GraphOldBitmap = NULL;
+        }
+
+        if (GraphsSection->GraphBitmap)
+        {
+            DeleteBitmap(GraphsSection->GraphBitmap);
+            GraphsSection->GraphBitmap = NULL;
+        }
+
+        DeleteDC(GraphsSection->GraphContext);
+        GraphsSection->GraphContext = NULL;
+        GraphsSection->GraphBits = NULL;
+    }
+
+    GraphsSection->GraphContextWidth = 0;
+    GraphsSection->GraphContextHeight = 0;
+}
+
+static VOID PhMipGraphsInvalidateStates(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    )
+{
+    for (ULONG i = 0; i < GraphsSection->NodeList->Count; i++)
+    {
+        PPH_MIP_GRAPH_ROW_NODE node = GraphsSection->NodeList->Items[i];
+
+        node->GraphState.Valid = FALSE;
+        node->GraphState.TooltipIndex = ULONG_MAX;
+
+        PhClearReference(&node->TooltipText);
+    }
+}
+
+static VOID PhMipGraphsDrawFadeOut(
+    _Inout_ PVOID Bits,
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _In_ COLORREF BackColor,
+    _In_ LONG FadeOutWidth
+    )
+{
+    PULONG bits = Bits;
+    ULONG backRed;
+    ULONG backGreen;
+    ULONG backBlue;
+    LONG width;
+
+    if (!bits || Width <= 0 || Height <= 0 || FadeOutWidth <= 0)
+        return;
+
+    width = min(Width, FadeOutWidth);
+    backRed = GetRValue(BackColor);
+    backGreen = GetGValue(BackColor);
+    backBlue = GetBValue(BackColor);
+
+    for (LONG x = 0; x < width; x++)
+    {
+        ULONG alpha;
+
+        alpha = 255 - (ULONG)((FLOAT)(x * x) / ((FLOAT)width * width) * 255);
+
+        for (LONG y = 0; y < Height; y++)
+        {
+            PULONG pixel;
+            ULONG color;
+            ULONG red;
+            ULONG green;
+            ULONG blue;
+
+            pixel = &bits[y * Width + x];
+            color = *pixel;
+
+            blue = color & 0xff;
+            green = (color >> 8) & 0xff;
+            red = (color >> 16) & 0xff;
+
+            blue = (backBlue * alpha + blue * (255 - alpha)) / 255;
+            green = (backGreen * alpha + green * (255 - alpha)) / 255;
+            red = (backRed * alpha + red * (255 - alpha)) / 255;
+
+            *pixel = blue | (green << 8) | (red << 16);
+        }
+    }
+}
+
+#ifdef PH_MIP_GRAPHS_FILL_AVAILABLE_ROW_HEIGHT
+static VOID PhMipGraphsUpdateRowHeight(
+    _In_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    )
+{
+    RECT clientRect;
+    LONG rowHeight;
+    LONG minimumRowHeight;
+
+    if (
+        !GraphsSection ||
+        !GraphsSection->DialogHandle ||
+        !GraphsSection->TreeNewHandle ||
+        !GraphsSection->NodeList ||
+        !GraphsSection->NodeList->Count
+        )
+    {
+        return;
+    }
+
+    if (!GetClientRect(GraphsSection->TreeNewHandle, &clientRect))
+        return;
+
+    if (PhMipDeferUpdateIfWindowThreadMismatch(GraphsSection->TreeNewHandle))
+        return;
+
+    rowHeight = (clientRect.bottom - clientRect.top) / (LONG)GraphsSection->NodeList->Count;
+    minimumRowHeight = PhMipCalculateRowHeight(GraphsSection->DialogHandle);
+
+    TreeNew_SetRowHeight(GraphsSection->TreeNewHandle, max(rowHeight, minimumRowHeight));
+    TreeNew_NodesStructured(GraphsSection->TreeNewHandle);
+}
+#endif
+
+VOID PhMipGraphsFormatTooltipCpu(
+    _Out_ PPH_STRING *TooltipText
+    )
+{
+    PH_FORMAT format[2];
+
+    PhInitFormatF(&format[0], (PhCpuKernelUsage + PhCpuUserUsage) * 100, PhMaxPrecisionUnit);
+    PhInitFormatC(&format[1], L'%');
+    *TooltipText = PhFormat(format, RTL_NUMBER_OF(format), 32);
+}
+
+VOID PhMipGraphsFormatTooltipIo(
+    _Out_ PPH_STRING *TooltipText
+    )
+{
+    PH_FORMAT format[4];
+
+    PhInitFormatS(&format[0], L"R+O: ");
+    PhInitFormatSizeWithPrecision(&format[1], PhIoReadDelta.Delta + PhIoOtherDelta.Delta, 1);
+    PhInitFormatS(&format[2], L"\nW: ");
+    PhInitFormatSizeWithPrecision(&format[3], PhIoWriteDelta.Delta, 1);
+
+    *TooltipText = PhFormat(format, RTL_NUMBER_OF(format), 64);
+}
+
+VOID PhMipGraphsFormatTooltipCommit(
+    _Out_ PPH_STRING *TooltipText
+    )
+{
+    PH_FORMAT format[4];
+
+    PhInitFormatS(&format[0], L"Used: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(PhPerfInformation.CommittedPages, PAGE_SIZE));
+    PhInitFormatS(&format[2], L"\nLimit: ");
+    PhInitFormatSize(&format[3], UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE));
+
+    *TooltipText = PhFormat(format, RTL_NUMBER_OF(format), 64);
+}
+
+VOID PhMipGraphsFormatTooltipPhysical(
+    _Out_ PPH_STRING *TooltipText
+    )
+{
+    PH_FORMAT format[4];
+    ULONG physicalUsagePages;
+
+    physicalUsagePages = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+
+    PhInitFormatS(&format[0], L"Used: ");
+    PhInitFormatSize(&format[1], UInt32x32To64(physicalUsagePages, PAGE_SIZE));
+    PhInitFormatS(&format[2], L"\nTotal: ");
+    PhInitFormatSize(&format[3], UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE));
+
+    *TooltipText = PhFormat(format, RTL_NUMBER_OF(format), 64);
+}
+
+_Function_class_(PH_MINIINFO_LIST_SECTION_CALLBACK)
+static BOOLEAN NTAPI PhMipGraphsListSectionCallback(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection,
+    _In_ PH_MINIINFO_LIST_SECTION_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    )
+{
+    PPH_MIP_GRAPHS_SECTION graphsSection = ListSection->Context;
+
+    switch (Message)
+    {
+    case MiListSectionCreate:
+        {
+            static const PH_STRINGREF sysCpuTitle = PH_STRINGREF_INIT(L"CPU");
+            static const PH_STRINGREF sysMemTitle = PH_STRINGREF_INIT(L"Memory");
+            static const PH_STRINGREF sysIoTitle = PH_STRINGREF_INIT(L"I/O");
+            static const PH_STRINGREF miCpuTitle = PH_STRINGREF_INIT(L"CPU");
+            static const PH_STRINGREF miCommitTitle = PH_STRINGREF_INIT(L"Commit charge");
+            static const PH_STRINGREF miPhysicalTitle = PH_STRINGREF_INIT(L"Physical memory");
+            static const PH_STRINGREF miIoTitle = PH_STRINGREF_INIT(L"I/O");
+
+            graphsSection = PhAllocateZero(sizeof(PH_MIP_GRAPHS_SECTION));
+            graphsSection->ListSection = ListSection;
+            graphsSection->NodeList = PhCreateList(8);
+            ListSection->Context = graphsSection;
+
+            for (ULONG i = 0; i < 7; i++)
+            {
+                PPH_MIP_GRAPH_ROW_NODE node = PhAllocateZero(sizeof(PH_MIP_GRAPH_ROW_NODE));
+                PhInitializeTreeNewNode(&node->Node);
+                PhInitializeGraphState(&node->GraphState);
+                PhAddItemList(graphsSection->NodeList, node);
+            }
+
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Kind = MipGraphRowSysInfoCpu;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Title = sysCpuTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Kind = MipGraphRowSysInfoMemory;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Title = sysMemTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Kind = MipGraphRowSysInfoIo;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Title = sysIoTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Kind = MipGraphRowMiniInfoCpu;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Title = miCpuTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Kind = MipGraphRowMiniInfoCommit;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Title = miCommitTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Kind = MipGraphRowMiniInfoPhysical;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Title = miPhysicalTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Kind = MipGraphRowMiniInfoIo;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Title = miIoTitle;
+        }
+        return TRUE;
+    case MiListSectionDestroy:
+        {
+            if (!graphsSection)
+                break;
+
+            if (graphsSection->NodeList)
+            {
+                for (ULONG i = 0; i < graphsSection->NodeList->Count; i++)
+                {
+                    PPH_MIP_GRAPH_ROW_NODE node = graphsSection->NodeList->Items[i];
+
+                    if (node)
+                    {
+                        PhClearReference(&node->TooltipText);
+                        PhDeleteGraphState(&node->GraphState);
+                        PhFree(node);
+                    }
+                }
+
+                PhDereferenceObject(graphsSection->NodeList);
+                graphsSection->NodeList = NULL;
+            }
+
+            PhMipGraphsDeleteGraphContext(graphsSection);
+
+            ListSection->Context = NULL;
+            PhFree(graphsSection);
+        }
+        return TRUE;
+    case MiListSectionTick:
+        {
+            if (graphsSection && graphsSection->TreeNewHandle)
+            {
+                PhMipGraphsInvalidateStates(graphsSection);
+                InvalidateRect(graphsSection->TreeNewHandle, NULL, FALSE);
+            }
+        }
+        return TRUE;
+    case MiListSectionShowing:
+        {
+            if (!graphsSection)
+                break;
+
+            if (!Parameter1) // Showing
+            {
+                PhMipGraphsInvalidateStates(graphsSection);
+
+                if (PhMipDeferUpdateIfWindowThreadMismatch(graphsSection->TreeNewHandle))
+                    break;
+
+                if (graphsSection->TreeNewHandle)
+                    TreeNew_NodesStructured(graphsSection->TreeNewHandle);
+            }
+        }
+        return TRUE;
+    case MiListSectionDialogCreated:
+        {
+            HWND hwndDlg = (HWND)Parameter1;
+
+            if (!hwndDlg || !graphsSection)
+                break;
+
+            graphsSection->DialogHandle = hwndDlg;
+            graphsSection->TreeNewHandle = ListSection->TreeNewHandle;
+
+            if (graphsSection->TreeNewHandle)
+            {
+                if (PhMipDeferUpdateIfWindowThreadMismatch(graphsSection->TreeNewHandle))
+                    break;
+
+                TreeNew_SetCallback(graphsSection->TreeNewHandle, PhMipGraphsTreeNewCallback, graphsSection);
+
+#ifdef PH_MIP_GRAPHS_FILL_AVAILABLE_ROW_HEIGHT
+                PhMipGraphsUpdateRowHeight(graphsSection);
+#endif
+                TreeNew_AutoSizeColumn(graphsSection->TreeNewHandle, MIP_SINGLE_COLUMN_ID, TN_AUTOSIZE_REMAINING_SPACE);
+            }
+        }
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static BOOLEAN PhMipGraphsFillDrawInfoCpu(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _Inout_ PPH_GRAPH_STATE GraphState,
+    _Inout_ PFLOAT LabelYFunctionParameter,
+    _In_ LONG WindowDpi
+    )
+{
+    DrawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_USE_LINE_2;
+    DrawInfo->GridWidth = 20;
+    DrawInfo->GridHeight = 0.25f;
+    DrawInfo->GridXOffset = 0;
+    DrawInfo->GridYThreshold = 10;
+    DrawInfo->GridBase = 2.0f;
+    PhSiSetColorsGraphDrawInfo(DrawInfo, PhCsColorCpuKernel, PhCsColorCpuUser, WindowDpi);
+    PhGetDrawInfoGraphBuffers(&GraphState->Buffers, DrawInfo, PhCpuKernelHistory.Count);
+
+    DrawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+
+    if (!GraphState->Valid)
+    {
+        PhCopyCircularBuffer_FLOAT(&PhCpuKernelHistory, GraphState->Data1, DrawInfo->LineDataCount);
+        PhCopyCircularBuffer_FLOAT(&PhCpuUserHistory, GraphState->Data2, DrawInfo->LineDataCount);
+
+        if (PhCsEnableGraphMaxScale)
+        {
+            FLOAT max = 0;
+
+            if (PhCsEnableAvxSupport && DrawInfo->LineDataCount > 128)
+            {
+                max = PhAddPlusMaxMemorySingles(GraphState->Data1, GraphState->Data2, DrawInfo->LineDataCount);
+            }
+            else
+            {
+                for (ULONG i = 0; i < DrawInfo->LineDataCount; i++)
+                {
+                    FLOAT data = GraphState->Data1[i] + GraphState->Data2[i];
+
+                    if (max < data)
+                        max = data;
+                }
+            }
+
+            if (max != 0)
+            {
+                PhDivideSinglesBySingle(GraphState->Data1, max, DrawInfo->LineDataCount);
+                PhDivideSinglesBySingle(GraphState->Data2, max, DrawInfo->LineDataCount);
+            }
+
+            DrawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+            DrawInfo->LabelYFunctionParameter = max;
+            *LabelYFunctionParameter = max;
+        }
+        else
+        {
+            DrawInfo->LabelYFunctionParameter = 1.0f;
+            *LabelYFunctionParameter = 1.0f;
+        }
+
+        GraphState->Valid = TRUE;
+    }
+    else
+    {
+        DrawInfo->LabelYFunctionParameter = *LabelYFunctionParameter;
+    }
+
+    return TRUE;
+}
+
+static BOOLEAN PhMipGraphsFillDrawInfoIo(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _Inout_ PPH_GRAPH_STATE GraphState,
+    _Inout_ PFLOAT LabelYFunctionParameter,
+    _In_ LONG WindowDpi
+    )
+{
+    ULONG i;
+    FLOAT max;
+
+    DrawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | PH_GRAPH_LABEL_MAX_Y;
+    DrawInfo->GridWidth = 20;
+    DrawInfo->GridHeight = 0.25f;
+    DrawInfo->GridXOffset = 0;
+    DrawInfo->GridYThreshold = 10;
+    DrawInfo->GridBase = 2.0f;
+    PhSiSetColorsGraphDrawInfo(DrawInfo, PhCsColorIoReadOther, 0, WindowDpi);
+    PhGetDrawInfoGraphBuffers(&GraphState->Buffers, DrawInfo, PhIoReadHistory.Count);
+
+    DrawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+
+    if (!GraphState->Valid)
+    {
+        max = 1024 * 1024;
+
+        for (i = 0; i < DrawInfo->LineDataCount; i++)
+        {
+            FLOAT data;
+
+            GraphState->Data1[i] = data =
+                (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoReadHistory, i) +
+                (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoOtherHistory, i) +
+                (FLOAT)PhGetItemCircularBuffer_ULONG64(&PhIoWriteHistory, i);
+
+            if (max < data)
+                max = data;
+        }
+
+        if (max != 0)
+            PhDivideSinglesBySingle(GraphState->Data1, max, DrawInfo->LineDataCount);
+
+        DrawInfo->LabelYFunctionParameter = max;
+        *LabelYFunctionParameter = max;
+
+        GraphState->Valid = TRUE;
+    }
+    else
+    {
+        DrawInfo->LabelYFunctionParameter = *LabelYFunctionParameter;
+    }
+
+    return TRUE;
+}
+
+static BOOLEAN PhMipGraphsFillDrawInfoMemory(
+    _Inout_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _Inout_ PPH_GRAPH_STATE GraphState,
+    _In_ LONG WindowDpi,
+    _In_ BOOLEAN UseCommit
+    )
+{
+    ULONG i;
+    ULONG dataCount;
+
+    DrawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (PhCsEnableGraphMaxText ? PH_GRAPH_LABEL_MAX_Y : 0);
+    DrawInfo->GridWidth = 20;
+    DrawInfo->GridHeight = 0.25f;
+    DrawInfo->GridXOffset = 0;
+    DrawInfo->GridYThreshold = 10;
+    DrawInfo->GridBase = 2.0f;
+
+    if (UseCommit)
+    {
+        PhSiSetColorsGraphDrawInfo(DrawInfo, PhCsColorPrivate, 0, WindowDpi);
+        dataCount = PhCommitHistory.Count;
+        PhGetDrawInfoGraphBuffers(&GraphState->Buffers, DrawInfo, dataCount);
+
+        if (PhCsEnableGraphMaxText)
+        {
+            DrawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+            DrawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhPerfInformation.CommitLimit, PAGE_SIZE);
+        }
+
+        if (!GraphState->Valid)
+        {
+            if (PhCsEnableAvxSupport)
+            {
+                PhCopyConvertCircularBufferULONG(&PhCommitHistory, GraphState->Data1, DrawInfo->LineDataCount);
+            }
+            else
+            {
+                for (i = 0; i < DrawInfo->LineDataCount; i++)
+                    GraphState->Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhCommitHistory, i);
+            }
+
+            if (PhPerfInformation.CommitLimit != 0)
+            {
+                PhDivideSinglesBySingle(GraphState->Data1, (FLOAT)PhPerfInformation.CommitLimit, DrawInfo->LineDataCount);
+            }
+
+            GraphState->Valid = TRUE;
+        }
+    }
+    else
+    {
+        PhSiSetColorsGraphDrawInfo(DrawInfo, PhCsColorPhysical, 0, WindowDpi);
+        dataCount = PhPhysicalHistory.Count;
+        PhGetDrawInfoGraphBuffers(&GraphState->Buffers, DrawInfo, dataCount);
+
+        if (PhCsEnableGraphMaxText)
+        {
+            DrawInfo->LabelYFunction = PhSiSizeLabelYFunction;
+            DrawInfo->LabelYFunctionParameter = (FLOAT)UInt32x32To64(PhSystemBasicInformation.NumberOfPhysicalPages, PAGE_SIZE);
+        }
+
+        if (!GraphState->Valid)
+        {
+            if (PhCsEnableAvxSupport)
+            {
+                PhCopyConvertCircularBufferULONG(&PhPhysicalHistory, GraphState->Data1, DrawInfo->LineDataCount);
+            }
+            else
+            {
+                for (i = 0; i < DrawInfo->LineDataCount; i++)
+                    GraphState->Data1[i] = (FLOAT)PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, i);
+            }
+
+            if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+            {
+                PhDivideSinglesBySingle(GraphState->Data1, (FLOAT)PhSystemBasicInformation.NumberOfPhysicalPages, DrawInfo->LineDataCount);
+            }
+
+            GraphState->Valid = TRUE;
+        }
+    }
+
+    return TRUE;
+}
+
+static VOID PhMipChangeSectionByName(
+    _In_ PCWSTR SectionName
+    )
+{
+    PH_STRINGREF sectionName;
+    PPH_MINIINFO_SECTION section;
+
+    PhInitializeStringRefLongHint(&sectionName, SectionName);
+
+    if (section = PhMipFindSection(&sectionName))
+        PhMipChangeSection(section);
+}
+
+static BOOLEAN PhMipGraphsTreeNewCallback(
+    _In_ HWND WindowHandle,
+    _In_ PH_TREENEW_MESSAGE Message,
+    _In_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MIP_GRAPHS_SECTION graphsSection = Context;
+
+    switch (Message)
+    {
+    case TreeNewGetChildren:
+        {
+            PPH_TREENEW_GET_CHILDREN getChildren = Parameter1;
+
+            if (!getChildren->Node)
+            {
+                getChildren->Children = (PPH_TREENEW_NODE *)graphsSection->NodeList->Items;
+                getChildren->NumberOfChildren = graphsSection->NodeList->Count;
+            }
+        }
+        return TRUE;
+    case TreeNewIsLeaf:
+        {
+            PPH_TREENEW_IS_LEAF isLeaf = Parameter1;
+            isLeaf->IsLeaf = TRUE;
+        }
+        return TRUE;
+    case TreeNewCustomDraw:
+        {
+            PPH_TREENEW_CUSTOM_DRAW customDraw = Parameter1;
+            PPH_MIP_GRAPH_ROW_NODE node = (PPH_MIP_GRAPH_ROW_NODE)customDraw->Node;
+            HDC hdc = customDraw->Dc;
+            RECT rect = customDraw->CellRect;
+            RECT graphRect;
+            RECT textRect;
+            LONG dpiValue;
+            LONG graphHeight;
+            LONG padding;
+            PH_GRAPH_DRAW_INFO drawInfo;
+            BOOLEAN useCommitSummary;
+            COLORREF borderColor;
+            HBRUSH oldBrush;
+
+            dpiValue = PhGetWindowDpi(WindowHandle);
+            padding = PhScaleToDisplay(3, dpiValue);
+
+            graphRect = rect;
+            graphRect.left += padding;
+            graphRect.top += padding;
+            graphRect.bottom -= padding;
+            graphRect.right -= padding;
+
+            graphHeight = graphRect.bottom - graphRect.top;
+            borderColor = PhCsGraphColorMode == 0 ? RGB(0xc7, 0xc7, 0xc7) : RGB(0x00, 0x57, 0x00);
+
+            textRect = graphRect;
+            textRect.left += padding;
+            textRect.right -= padding;
+
+            if (graphRect.right > graphRect.left && graphRect.bottom > graphRect.top)
+            {
+                memset(&drawInfo, 0, sizeof(PH_GRAPH_DRAW_INFO));
+                drawInfo.BackColor = (PhCsGraphColorMode == 0) ? RGB(0xef, 0xef, 0xef) : RGB(0x00, 0x00, 0x00);
+                drawInfo.Width = graphRect.right - graphRect.left;
+                drawInfo.Height = graphHeight;
+                drawInfo.Step = 2;
+
+                PhMipGraphsEnsureGraphContext(graphsSection, hdc, drawInfo.Width, drawInfo.Height);
+
+                if (graphsSection->GraphContext && graphsSection->GraphBits)
+                {
+                    useCommitSummary = !!PhGetIntegerSetting(SETTING_SHOW_COMMIT_IN_SUMMARY);
+
+                    switch (node->Kind)
+                    {
+                    case MipGraphRowSysInfoCpu:
+                    case MipGraphRowMiniInfoCpu:
+                        PhMipGraphsFillDrawInfoCpu(&drawInfo, &node->GraphState, &node->LabelYFunctionParameter, dpiValue);
+                        break;
+                    case MipGraphRowSysInfoMemory:
+                        PhMipGraphsFillDrawInfoMemory(&drawInfo, &node->GraphState, dpiValue, useCommitSummary);
+                        break;
+                    case MipGraphRowMiniInfoCommit:
+                        PhMipGraphsFillDrawInfoMemory(&drawInfo, &node->GraphState, dpiValue, TRUE);
+                        break;
+                    case MipGraphRowMiniInfoPhysical:
+                        PhMipGraphsFillDrawInfoMemory(&drawInfo, &node->GraphState, dpiValue, FALSE);
+                        break;
+                    case MipGraphRowSysInfoIo:
+                    case MipGraphRowMiniInfoIo:
+                        PhMipGraphsFillDrawInfoIo(&drawInfo, &node->GraphState, &node->LabelYFunctionParameter, dpiValue);
+                        break;
+                    }
+
+                    PhDrawGraphDirect(graphsSection->GraphContext, graphsSection->GraphBits, &drawInfo);
+                    PhMipGraphsDrawFadeOut(
+                        graphsSection->GraphBits,
+                        drawInfo.Width,
+                        drawInfo.Height,
+                        drawInfo.BackColor,
+                        PhScaleToDisplay(100, dpiValue)
+                        );
+                    BitBlt(hdc, graphRect.left, graphRect.top, drawInfo.Width, drawInfo.Height, graphsSection->GraphContext, 0, 0, SRCCOPY);
+                }
+            }
+
+            SetDCBrushColor(hdc, borderColor);
+            oldBrush = SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
+            FrameRect(hdc, &graphRect, PhGetStockBrush(DC_BRUSH));
+            SelectBrush(hdc, oldBrush);
+
+            SetBkMode(hdc, TRANSPARENT);
+            SelectFont(hdc, CurrentParameters.Font);
+            DrawText(
+                hdc,
+                node->Title.Buffer,
+                (ULONG)node->Title.Length / sizeof(WCHAR),
+                &textRect,
+                DT_NOPREFIX | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS
+                );
+        }
+        return TRUE;
+    case TreeNewGetCellTooltip:
+        {
+            PPH_TREENEW_GET_CELL_TOOLTIP getCellTooltip = Parameter1;
+            PPH_MIP_GRAPH_ROW_NODE node = (PPH_MIP_GRAPH_ROW_NODE)getCellTooltip->Node;
+
+            if (!node->TooltipText)
+            {
+                BOOLEAN useCommitSummary = !!PhGetIntegerSetting(SETTING_SHOW_COMMIT_IN_SUMMARY);
+
+                switch (node->Kind)
+                {
+                case MipGraphRowSysInfoCpu:
+                case MipGraphRowMiniInfoCpu:
+                    PhMipGraphsFormatTooltipCpu(&node->TooltipText);
+                    break;
+                case MipGraphRowSysInfoMemory:
+                    if (useCommitSummary)
+                        PhMipGraphsFormatTooltipCommit(&node->TooltipText);
+                    else
+                        PhMipGraphsFormatTooltipPhysical(&node->TooltipText);
+                    break;
+                case MipGraphRowMiniInfoCommit:
+                    PhMipGraphsFormatTooltipCommit(&node->TooltipText);
+                    break;
+                case MipGraphRowMiniInfoPhysical:
+                    PhMipGraphsFormatTooltipPhysical(&node->TooltipText);
+                    break;
+                case MipGraphRowSysInfoIo:
+                case MipGraphRowMiniInfoIo:
+                    PhMipGraphsFormatTooltipIo(&node->TooltipText);
+                    break;
+                }
+            }
+
+            if (!PhIsNullOrEmptyString(node->TooltipText))
+            {
+                getCellTooltip->Text = node->TooltipText->sr;
+                getCellTooltip->Unfolding = FALSE;
+                getCellTooltip->MaximumWidth = ULONG_MAX;
+                return TRUE;
+            }
+        }
+        return FALSE;
+    case TreeNewLeftClick:
+        {
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+            PPH_MIP_GRAPH_ROW_NODE node;
+
+            if (!mouseEvent || !mouseEvent->Node)
+                break;
+
+            node = (PPH_MIP_GRAPH_ROW_NODE)mouseEvent->Node;
+
+            if (PhGetIntegerSetting(SETTING_MINI_INFO_GRAPH_CLICK_SWITCHES_SECTION))
+            {
+                switch (node->Kind)
+                {
+                case MipGraphRowSysInfoCpu:
+                case MipGraphRowMiniInfoCpu:
+                    PhMipChangeSectionByName(L"CPU");
+                    break;
+                case MipGraphRowSysInfoMemory:
+                case MipGraphRowMiniInfoCommit:
+                    PhMipChangeSectionByName(L"Commit charge");
+                    break;
+                case MipGraphRowMiniInfoPhysical:
+                    PhMipChangeSectionByName(L"Physical memory");
+                    break;
+                case MipGraphRowSysInfoIo:
+                case MipGraphRowMiniInfoIo:
+                    PhMipChangeSectionByName(L"I/O");
+                    break;
+                }
+            }
+            else
+            {
+                switch (node->Kind)
+                {
+                case MipGraphRowSysInfoCpu:
+                case MipGraphRowMiniInfoCpu:
+                    PhShowSystemInformationDialog(L"CPU");
+                    break;
+                case MipGraphRowSysInfoMemory:
+                case MipGraphRowMiniInfoCommit:
+                case MipGraphRowMiniInfoPhysical:
+                    PhShowSystemInformationDialog(L"Memory");
+                    break;
+                case MipGraphRowSysInfoIo:
+                case MipGraphRowMiniInfoIo:
+                    PhShowSystemInformationDialog(L"I/O");
+                    break;
+                }
+            }
+        }
+        break;
+    case TreeNewDestroying:
+        {
+            PhMipGraphsDeleteGraphContext(graphsSection);
+        }
+        break;
+    }
+
+    return FALSE;
 }

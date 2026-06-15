@@ -186,7 +186,7 @@ VOID PhGenerateSyscallLists(
                                 PBYTE exportAddress;
                                 BOOLEAN added = FALSE;
 
-                                if (exportAddress = PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), NULL))
+                                if (NT_SUCCESS(PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), (PVOID *)&exportAddress)))
                                 {
                                     PNT_SYSTEMCALL_NUMBER systemCallEntry = NULL;
 

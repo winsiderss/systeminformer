@@ -5318,13 +5318,13 @@ NTSTATUS PhExtractIconEx(
         if (!NT_SUCCESS(status))
             goto CleanupExit;
 
-        resourceDirectory = PhMappedImageRvaToVa(
+        status = PhMappedImageRvaToVa(
             &mappedImage,
             dataDirectory->VirtualAddress,
-            NULL
+            &resourceDirectory
             );
 
-        if (!resourceDirectory)
+        if (!NT_SUCCESS(status))
             goto CleanupExit;
 
         status = PhGetMappedImageResourceIndex(

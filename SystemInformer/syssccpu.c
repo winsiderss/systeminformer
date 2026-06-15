@@ -1774,8 +1774,9 @@ BOOLEAN PhSipGetCpuFrequencyFromDistribution(
 
             for (j = 0; j < current->StateCount; j++)
             {
-                hitcountCurrent = PTR_ADD_OFFSET(current->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
-                hitcountPrevious = PTR_ADD_OFFSET(previous->States, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT) * j);
+                hitcountCurrent = &current->States[j];
+                hitcountPrevious = &previous->States[j];
+
                 delta = hitcountCurrent->Hits - hitcountPrevious->Hits;
                 percent = hitcountCurrent->PercentFrequency;
 

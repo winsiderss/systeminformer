@@ -247,7 +247,7 @@ VOID PvPeProperties(
 
         // CLR page
         if (NT_SUCCESS(PhGetMappedImageDataDirectory(&PvMappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR, &entry)) &&
-            (PvImageCor20Header = PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, NULL)))
+            NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, entry->VirtualAddress, (PVOID *)&PvImageCor20Header)))
         {
             NTSTATUS status = STATUS_SUCCESS;
 

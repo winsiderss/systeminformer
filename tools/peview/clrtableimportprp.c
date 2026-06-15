@@ -10,6 +10,7 @@
  */
 
 #include <peview.h>
+#include <mapclr.h>
 
 #ifdef __has_include
 #if __has_include (<metahost.h>)

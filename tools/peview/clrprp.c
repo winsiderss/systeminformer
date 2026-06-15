@@ -100,9 +100,7 @@ PSTORAGESIGNATURE PvpPeGetClrMetaDataHeader(
     }
     else
     {
-        metaData = PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, NULL);
-
-        if (metaData)
+        if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvImageCor20Header->MetaData.VirtualAddress, &metaData)))
         {
             __try
             {

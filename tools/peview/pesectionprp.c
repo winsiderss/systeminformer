@@ -320,7 +320,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
         {
             PVOID imageSectionData;
 
-            if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+            if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, &imageSectionData)))
             {
                 sectionNode->HashString = PvHashBuffer(imageSectionData, PvMappedImage.Sections[i].SizeOfRawData);
             }
@@ -329,7 +329,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             {
                 FLOAT imageSectionEntropy;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, &imageSectionData)))
                 {
                     if (PhCalculateEntropy(
                         imageSectionData,
@@ -354,7 +354,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             {
                 char* ssdeepHashString = NULL;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, &imageSectionData)))
                 {
                     fuzzy_hash_buffer(
                         imageSectionData,
@@ -379,7 +379,7 @@ NTSTATUS PvpPeSectionsEnumerateThread(
             {
                 char* tlshHashString = NULL;
 
-                if (imageSectionData = PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, NULL))
+                if (NT_SUCCESS(PhMappedImageRvaToVa(&PvMappedImage, PvMappedImage.Sections[i].VirtualAddress, &imageSectionData)))
                 {
                     //
                     // This can fail in TLSH library during finalization when

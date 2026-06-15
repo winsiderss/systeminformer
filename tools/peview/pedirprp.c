@@ -217,7 +217,8 @@ VOID PvpPeEnumerateImageDataDirectory(
         }
         else
         {
-            imageDirectoryData = PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, &directorySection);
+            PhMappedImageRvaToSection(&PvMappedImage, directoryAddress, &directorySection);
+            PhMappedImageRvaToVa(&PvMappedImage, directoryAddress, &imageDirectoryData);
 
             if (directorySection)
             {

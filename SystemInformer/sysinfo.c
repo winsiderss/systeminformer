@@ -206,6 +206,13 @@ INT_PTR CALLBACK PhSipSysInfoDialogProc(
             PhSipOnNcDestroy();
         }
         break;
+    case WM_NCACTIVATE:
+        {
+            COLORREF borderColor = PhGetWindowActiveBorderColor((BOOLEAN)wParam);
+            if (borderColor)
+                PhSetWindowBorderColor(hwndDlg, borderColor);
+        }
+        break;
     case WM_SYSCOMMAND:
         {
             if (PhSipOnSysCommand((ULONG)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)))

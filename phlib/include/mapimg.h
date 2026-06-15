@@ -167,30 +167,30 @@ PhMappedImageSectionByName(
     );
 
 PHLIBAPI
-PIMAGE_SECTION_HEADER
+NTSTATUS
 NTAPI
 PhMappedImageRvaToSection(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ ULONG Rva
+    _In_ ULONG_PTR Rva,
+    _Out_ PIMAGE_SECTION_HEADER *Section
     );
 
-_Success_(return != NULL)
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhMappedImageRvaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ ULONG Rva,
-    _Out_opt_ PIMAGE_SECTION_HEADER *Section
+    _In_ ULONG_PTR Rva,
+    _Out_ PVOID *Va
     );
 
-_Success_(return != NULL)
 PHLIBAPI
-PVOID
+NTSTATUS
 NTAPI
 PhMappedImageVaToVa(
     _In_ PPH_MAPPED_IMAGE MappedImage,
-    _In_ ULONGLONG Va,
+    _In_ ULONG_PTR Va,
+    _Out_ PVOID *MappedVa,
     _Out_opt_ PIMAGE_SECTION_HEADER* Section
     );
 
@@ -608,7 +608,7 @@ typedef struct _PH_IMAGE_RESOURCE_ENTRY
     ULONG Offset;
     ULONG Size;
     ULONG CodePage;
-    //PVOID Data; // PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, NULL);
+    //PVOID Data; // PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, &Data);
 } PH_IMAGE_RESOURCE_ENTRY, *PPH_IMAGE_RESOURCE_ENTRY;
 
 typedef struct _PH_MAPPED_IMAGE_RESOURCES
