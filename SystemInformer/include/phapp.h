@@ -97,6 +97,7 @@ extern RTL_ATOM PhTreeWindowAtom;
 extern RTL_ATOM PhGraphWindowAtom;
 extern RTL_ATOM PhHexEditWindowAtom;
 extern RTL_ATOM PhColorBoxWindowAtom;
+extern RTL_ATOM PhTabNewWindowAtom;
 
 // begin_phapppub
 FORCEINLINE

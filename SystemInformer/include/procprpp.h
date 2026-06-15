@@ -24,6 +24,7 @@
 
 typedef struct _PH_PROCESS_PROPSHEETCONTEXT
 {
+    PPH_PROCESS_PROPCONTEXT PropContext;
     WNDPROC PropSheetWindowHookProc;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LAYOUT_ITEM TabPageItem;

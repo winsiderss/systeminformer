@@ -12,6 +12,8 @@
 
 #include <phapp.h>
 #include <colorbox.h>
+#include <tabnew.h>
+#include <graphscroll.h>
 #include <hexedit.h>
 #include <hndlinfo.h>
 #include <objbase.h>
@@ -43,6 +45,7 @@ RTL_ATOM PhTreeWindowAtom = RTL_ATOM_INVALID_ATOM;
 RTL_ATOM PhGraphWindowAtom = RTL_ATOM_INVALID_ATOM;
 RTL_ATOM PhHexEditWindowAtom = RTL_ATOM_INVALID_ATOM;
 RTL_ATOM PhColorBoxWindowAtom = RTL_ATOM_INVALID_ATOM;
+RTL_ATOM PhTabNewWindowAtom = RTL_ATOM_INVALID_ATOM;
 static PPH_LIST DialogList = NULL;
 static PPH_LIST FilterList = NULL;
 static PH_AUTO_POOL BaseAutoPool;
@@ -627,15 +630,11 @@ NTSTATUS NTAPI PhpPreviousInstancesCallback(
         Name
         )))
     {
-        if (NT_SUCCESS(PhGetMutantOwnerInformation(
-            objectHandle,
-            &objectInfo
-            )))
+        if (NT_SUCCESS(PhGetMutantOwnerInformation(objectHandle, &objectInfo)))
         {
             if (objectInfo.ClientId.UniqueProcess != NtCurrentProcessId())
             {
                 PhForegroundPreviousInstance(objectInfo.ClientId.UniqueProcess);
-
                 NtClose(objectHandle);
                 return STATUS_NO_MORE_ENTRIES;
             }
@@ -745,10 +744,12 @@ VOID PhInitializeCommonControls(
 
     InitCommonControlsEx(&icex);
 
+    PhScrollNewWindowInitialization();
     PhTreeWindowAtom = PhTreeNewInitialization();
     PhGraphWindowAtom = PhGraphControlInitialization();
     PhHexEditWindowAtom = PhHexEditInitialization();
     PhColorBoxWindowAtom = PhColorBoxInitialization();
+    PhTabNewWindowAtom = PhTabNewInitialization();
 }
 
 /**

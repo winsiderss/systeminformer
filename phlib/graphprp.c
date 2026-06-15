@@ -658,6 +658,16 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     {
     case PSM_GETTABCONTROL:
         return (LRESULT)(context ? context->TabControl : NULL);
+    case PSM_GETCURRENTPAGEHWND:
+        {
+            PPH_PROPSHEETNEW_PAGE page;
+
+            if (!context)
+                return (LRESULT)NULL;
+
+            page = PhPropSheetNewPageAt(context, context->CurrentIndex);
+            return (LRESULT)(page ? page->DialogHandle : NULL);
+        }
     case WM_NCCREATE:
         {
             CREATESTRUCT *cs = (CREATESTRUCT *)lParam;

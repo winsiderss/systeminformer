@@ -688,6 +688,7 @@ EXPORTS
     PhQueryTokenVariableSize
     PhQueryValueKey
     PhQueueUserWorkItem
+    PhQuoteCommandLine
     PhReadFile
     PhReadVirtualMemory
     PhReOpenFile
@@ -726,6 +727,8 @@ EXPORTS
     PhUnmapViewOfSection
     PhUpdateDosDevicePrefixes
     PhUpdateMupDevicePrefixes
+    PhWaitForIoCompletionAndTermination
+    PhWaitForManyObjects
     PhWaitForNamedPipe
     PhWriteFile
     PhWriteVirtualMemory
@@ -754,7 +757,7 @@ EXPORTS
     PhDevOpenObjectKey
     PhEllipsisString
     PhEllipsisStringPath
-    PhEscapeCommandLinePart
+    PhEscapeCommandLineConsole
     PhEscapeStringForMenuPrefix
     PhExpandEnvironmentStrings
     PhFileReadAllTextWin32
@@ -764,6 +767,7 @@ EXPORTS
     PhFormatDateTimeToBuffer
     PhFormatDecimal
     PhFormatGuid
+    PhFormatGuidToBuffer
     PhFormatImageVersionInfo
     PhFormatSize
     PhFormatTime
@@ -774,6 +778,7 @@ EXPORTS
     PhFreeLibrary
     PhFreeLibraryAsImageResource
     PhGenerateGuid
+    PhGenerateGuidEx
     PhGenerateGuidFromName
     PhGenerateRandomAlphaString
     PhGenerateRandomNumber64
@@ -850,12 +855,15 @@ EXPORTS
     PhShowStatus
     PhShowTaskDialog
     PhStringToGuid
+    PhSymCryptCleanupParallelHash
     PhSymCryptDestroyHash
     PhSymCryptHashAlgorithmIdToAlgorithm
     PhSymCryptHashData
     PhSymCryptHashFinal
     PhSymCryptHashInit
     PhSymCryptHashSize
+    PhSymCryptInitializeParallelHash
+    PhSymCryptProcessParallelHashOperations
     PhSymCryptVerifySignature
     PhSystemTimeToLargeInteger
     PhSystemTimeToTzSpecificLocalTime
@@ -964,10 +972,15 @@ EXPORTS
     PhCreateCommonFont
     PhCreateDialog
     PhCreateDIBSection
+    PhCreateFont
+    PhCreateFontHandle
     PhCreateIconTitleFont
     PhCreateTreeWindowFont
     PhCreateWindowEx
+    PhD3DKMTGetProcessSchedulingPriorityClass
+    PhD3DKMTSetProcessSchedulingPriorityClass
     PhDeleteLayoutManager
+    PhDereferenceFont
     PhDialogBox
     PhDrawThemeBackground
     PhDuplicateFont
@@ -981,6 +994,7 @@ EXPORTS
     PhFindListViewItemByParam
     PhGetClassName
     PhGetComboBoxString
+    PhGetDialogContext
     PhGetDialogItemValue
     PhGetListBoxString
     PhGetListViewItemImageIndex
@@ -994,6 +1008,7 @@ EXPORTS
     PhGetWindowClientId
     PhGetWindowCompositionAttribute
     PhGetWindowContext
+    PhGetWindowContextEx
     PhGetWindowText
     PhGetWindowTextEx
     PhGetWindowTextToBuffer
@@ -1022,11 +1037,14 @@ EXPORTS
     PhQueryDirectXExclusiveOwnership
     PhRegisterWindowCallback
     PhReInitializeWindowTheme
+    PhRemoveDialogContext
     PhRemoveListViewItem
     PhRemoveWindowContext
+    PhRemoveWindowContextEx
     PhSelectComboBoxString
     PhSetClipboardString
     PhSetControlTheme
+    PhSetDialogContext
     PhSetDialogItemText
     PhSetDialogItemValue
     PhSetExtendedListView
@@ -1037,7 +1055,9 @@ EXPORTS
     PhSetListViewItemParam
     PhSetListViewSubItem
     PhSetStateAllListViewItems
+    PhSetWindowBorderColor
     PhSetWindowContext
+    PhSetWindowContextEx
     PhSetWindowText
     PhTerminateWindow
     PhThemeWindowDrawRebar
@@ -1189,7 +1209,10 @@ EXPORTS
     PhAddJsonArrayObject
     PhAddJsonObject
     PhAddJsonObject2
+    PhAddJsonObjectBoolean
     PhAddJsonObjectInt64
+    PhJsonObjectToString
+    PhJsonObjectToJsonString
     PhAddJsonObjectUInt64
     PhAddJsonObjectUtf8
     PhAddJsonObjectValue

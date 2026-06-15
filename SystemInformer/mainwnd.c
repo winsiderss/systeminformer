@@ -16,6 +16,7 @@
 
 #include <cpysave.h>
 #include <emenu.h>
+#include <tabnew.h>
 #include <hndlinfo.h>
 #include <kphuser.h>
 #include <lsasup.h>
@@ -70,7 +71,6 @@ static RECT LayoutPadding = { 0, 0, 0, 0 };
 static BOOLEAN LayoutPaddingValid = TRUE;
 static LONG LayoutWindowDpi = 96;
 static LONG LayoutBorderSize = 0;
-
 static HWND TabControlHandle = NULL;
 static PPH_LIST PageList = NULL;
 static PPH_MAIN_TAB_PAGE CurrentPage = NULL;
@@ -79,6 +79,100 @@ static LONG OldTabIndex = 0;
 static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 static ULONG SelectedUserSessionId = ULONG_MAX;
+
+_Function_class_(PH_TABNEW_LAYOUT_CALLBACK)
+BOOLEAN NTAPI PhpMwpTabLayoutCallback(
+    _In_ HWND WindowHandle,
+    _In_ LPARAM ItemParam,
+    _Out_ PPH_STRINGREF Identifier,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)ItemParam;
+
+    if (!page)
+        return FALSE;
+
+    *Identifier = page->Name;
+    return TRUE;
+}
+
+VOID PhMwpSaveTabLayoutSetting(
+    VOID
+    )
+{
+    PPH_STRING layout;
+
+    if (!TabControlHandle)
+        return;
+
+    layout = PhTabNewSaveLayout(TabControlHandle, PhpMwpTabLayoutCallback, NULL);
+    if (!layout)
+        return;
+
+    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
+    PhDereferenceObject(layout);
+}
+
+VOID PhMwpSyncTabPageIndexes(
+    VOID
+    )
+{
+    LONG i;
+    LONG count;
+
+    if (!TabControlHandle || !PageList)
+        return;
+
+    count = PhTabNew_GetItemCount(TabControlHandle);
+    for (i = 0; i < count; i++)
+    {
+        PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, i);
+
+        if (page)
+            page->Index = i;
+    }
+}
+
+VOID PhMwpUpdateTabRestoreState(
+    VOID
+    )
+{
+    LONG selectedIndex;
+    PPH_MAIN_TAB_PAGE page;
+
+    if (!TabControlHandle ||
+        !IsWindowVisible(TabControlHandle) ||
+        !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
+        return;
+
+    selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
+    if (selectedIndex < 0)
+        return;
+
+    page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, selectedIndex);
+    if (!page)
+        return;
+
+    PhSetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, (ULONG)selectedIndex);
+    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_RESTORE_NAME, &page->Name);
+}
+
+VOID PhMwpRestoreTabLayout(
+    VOID
+    )
+{
+    PPH_STRING layout;
+
+    if (!TabControlHandle)
+        return;
+
+    layout = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT);
+    if (layout->Length == 0)
+        return;
+
+    PhTabNewRestoreLayout(TabControlHandle, &layout->sr, PhpMwpTabLayoutCallback, NULL);
+}
 
 /**
  * Initializes the main window and data providers.
@@ -440,6 +534,11 @@ VOID PhMwpShowWindow(
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackMainWindowShowing), LongToPtr(ShowCommand));
     }
 
+    if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
+    {
+        PhMwpRestoreTabLayout();
+    }
+
     if (PhStartupParameters.SelectTab)
     {
         PPH_MAIN_TAB_PAGE page;
@@ -453,7 +552,24 @@ VOID PhMwpShowWindow(
     {
         if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
         {
-            PhMwpSelectPage(PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX));
+            PPH_STRING selectedName;
+            PPH_MAIN_TAB_PAGE page = NULL;
+            LONG selectedIndex;
+
+            selectedName = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_NAME);
+            if (selectedName->Length != 0)
+                page = PhMwpFindPage(&selectedName->sr);
+
+            if (page)
+            {
+                PhMwpSelectPage(page->Index);
+            }
+            else
+            {
+                selectedIndex = (LONG)PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX);
+                if (selectedIndex >= 0 && selectedIndex < (LONG)PageList->Count)
+                    PhMwpSelectPage((ULONG)selectedIndex);
+            }
         }
     }
 
@@ -548,9 +664,9 @@ VOID PhMwpInitializeControls(
     }
 
     TabControlHandle = PhCreateWindow(
-        WC_TABCONTROL,
+        PH_TABNEW_CLASSNAME,
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TCS_MULTILINE,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TNS_TOP | TNS_MULTILINE | TNS_REORDER,
         0,
         0,
         0,
@@ -1398,8 +1514,7 @@ VOID PhMwpOnCommand(
     case ID_VIEW_ALWAYSONTOP:
         {
             AlwaysOnTop = !AlwaysOnTop;
-            SetWindowPos(WindowHandle, AlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
-                0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+            PhSetWindowAlwaysOnTop(WindowHandle, AlwaysOnTop);
             PhSetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP, AlwaysOnTop);
 
             PhWindowNotifyTopMostEvent(AlwaysOnTop);
@@ -1471,14 +1586,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_VIEW_UPDATEAUTOMATICALLY:
         {
-            PhMwpUpdateAutomatically = !PhMwpUpdateAutomatically;
-
-            PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
-
-            if (PhPluginsEnabled)
-            {
-                PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
-            }
+            PhMwpSetUpdateAutomatically(!PhMwpUpdateAutomatically);
         }
         break;
     case ID_TOOLS_USER_LIST:
@@ -2698,6 +2806,13 @@ VOID PhMwpOnShowWindow(
         ShowWindow(WindowHandle, SW_MAXIMIZE);
         NeedsMaximize = FALSE;
     }
+
+    if (Showing && AlwaysOnTop)
+    {
+        // Establish the topmost band now that the window is visible and has foreground rights.
+        // Applying it earlier (during creation, while hidden) does not reliably stick. (#2687)
+        PhSetWindowAlwaysOnTop(WindowHandle, TRUE);
+    }
 }
 
 /**
@@ -3229,9 +3344,10 @@ VOID PhMwpLoadSettings(
 
     if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP))
     {
+        // Defer applying the topmost band until the window is actually shown (WM_SHOWWINDOW).
+        // Applying it here while the window is still hidden (e.g. launched hidden as the Task
+        // Manager replacement) does not reliably stick. (#2687)
         AlwaysOnTop = TRUE;
-        SetWindowPos(WindowHandle, HWND_TOPMOST, 0, 0, 0, 0,
-            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOREDRAW | SWP_NOSIZE);
     }
 
     if (opacity != 0)
@@ -3263,6 +3379,7 @@ VOID PhMwpSaveSettings(
     NTSTATUS status;
 
     PhMwpNotifyAllPages(MainTabPageSaveSettings, NULL, NULL);
+    PhMwpSaveTabLayoutSetting();
 
     PhSaveWindowPlacementToSetting(SETTING_MAIN_WINDOW_POSITION, SETTING_MAIN_WINDOW_SIZE, WindowHandle);
     PhMwpSaveWindowState(WindowHandle);
@@ -3368,7 +3485,7 @@ VOID PhMwpLayout(
             rect.top,
             rect.right - rect.left,
             rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
     }
     else
@@ -3380,7 +3497,7 @@ VOID PhMwpLayout(
             rect.top,
             rect.right - rect.left,
             rect.bottom - rect.top,
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
         UpdateWindow(TabControlHandle);
     }
@@ -4483,7 +4600,15 @@ VOID PhMwpLayoutTabControl(
 
     PhMwpApplyLayoutPadding(&clientRect, &LayoutPadding);
     tabRect = clientRect;
-    TabCtrl_AdjustRect(TabControlHandle, FALSE, &tabRect);
+    {
+        RECT pageRect;
+        if (PhTabNew_GetPageRect(TabControlHandle, &pageRect))
+        {
+            // PhTabNew_GetPageRect returns parent client coords; remap into
+            // mainwnd client coords (TabControl is a direct child of mainwnd).
+            tabRect = pageRect;
+        }
+    }
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
@@ -4496,7 +4621,7 @@ VOID PhMwpLayoutTabControl(
             tabRect.top - LayoutBorderSize,
             clientRect.right - clientRect.left,
             (tabRect.bottom - tabRect.top) + (clientRect.bottom - tabRect.bottom),
-            SWP_NOACTIVATE | SWP_NOZORDER
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
             );
     }
 }
@@ -4509,13 +4634,25 @@ VOID PhMwpNotifyTabControl(
     _In_ NMHDR *Header
     )
 {
-    if (Header->code == TCN_SELCHANGING)
+    if (Header->code == TCN_SELCHANGING || Header->code == PHTNN_SELCHANGING)
     {
         OldTabIndex = TabCtrl_GetCurSel(TabControlHandle);
     }
-    else if (Header->code == TCN_SELCHANGE)
+    else if (Header->code == TCN_SELCHANGE || Header->code == PHTNN_SELCHANGED)
     {
         PhMwpSelectionChangedTabControl(OldTabIndex);
+    }
+    else if (Header->code == PHTNN_LAYOUT)
+    {
+        HDWP deferHandle = BeginDeferWindowPos(1);
+        PhMwpLayoutTabControl(&deferHandle);
+        EndDeferWindowPos(deferHandle);
+    }
+    else if (Header->code == PHTNN_REORDERED)
+    {
+        PhMwpSyncTabPageIndexes();
+        PhMwpSaveTabLayoutSetting();
+        PhMwpUpdateTabRestoreState();
     }
 }
 
@@ -4583,10 +4720,8 @@ VOID PhMwpSelectionChangedTabControl(
 
     EndDeferWindowPos(deferHandle);
 
-    if (OldIndex != INT_ERROR && PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED) && IsWindowVisible(TabControlHandle))
-    {
-        PhSetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, selectedIndex);
-    }
+    if (OldIndex != INT_ERROR)
+        PhMwpUpdateTabRestoreState();
 
     if (PhPluginsEnabled)
     {
@@ -4619,6 +4754,19 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     name = PhCreateString2(&page->Name);
     page->Index = PhAddTabControlTab(TabControlHandle, MAXINT, name->Buffer);
     PhDereferenceObject(name);
+    if (page->Index < 0)
+    {
+        PhRemoveItemList(PageList, PageList->Count - 1);
+        PhFree(page);
+        return NULL;
+    }
+    if (!PhTabNew_SetItemParam(TabControlHandle, page->Index, (LPARAM)page))
+    {
+        PhTabNew_DeleteItem(TabControlHandle, page->Index);
+        PhRemoveItemList(PageList, PageList->Count - 1);
+        PhFree(page);
+        return NULL;
+    }
 
     page->Callback(page, MainTabPageCreate, NULL, NULL);
 
@@ -5438,7 +5586,7 @@ volatile LONG PhMainThreadInvokePending = 0;
  * \return NTSTATUS status code (always STATUS_SUCCESS on queueing).
  */
 NTSTATUS PhInvokeOnMainThread(
-    _In_opt_ PVOID Command,
+    _In_opt_ PINVOKE_START_ROUTINE Command,
     _In_opt_ PVOID Parameter
     )
 {
@@ -5628,7 +5776,7 @@ PVOID PhPluginInvokeWindowCallback(
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_INVOKE:
         {
-            PhInvokeOnMainThread((PVOID)(ULONG_PTR)lparam, (PVOID)wparam);
+            PhInvokeOnMainThread((PINVOKE_START_ROUTINE)(ULONG_PTR)lparam, (PVOID)wparam);
         }
         break;
     case PH_MAINWINDOW_CALLBACK_TYPE_REFRESH:
