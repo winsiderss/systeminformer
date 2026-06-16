@@ -609,6 +609,23 @@ VOID PhMwpApplyUpdateInterval(
     PhSetIntervalProviderThread(&PhTertiaryProviderThread, Interval);
 }
 
+VOID PhMwpSetUpdateAutomatically(
+    _In_ BOOLEAN UpdateAutomatically
+    )
+{
+    if (UpdateAutomatically == PhMwpUpdateAutomatically)
+        return;
+
+    PhMwpUpdateAutomatically = UpdateAutomatically;
+
+    PhMwpNotifyAllPages(MainTabPageUpdateAutomaticallyChanged, UlongToPtr(PhMwpUpdateAutomatically), NULL);
+
+    if (PhPluginsEnabled)
+    {
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackUpdateAutomatically), UlongToPtr(PhMwpUpdateAutomatically));
+    }
+}
+
 /**
  * Initializes window metrics such as DPI and border size.
  *
