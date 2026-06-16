@@ -19,7 +19,7 @@ jobs:
         language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
         with:
           fetch-depth: 0
 
@@ -39,7 +39,7 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
           languages: ${{ matrix.language }}
 
@@ -75,7 +75,7 @@ jobs:
           patterns: packages/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
 
@@ -92,7 +92,7 @@ jobs:
         language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
         with:
           fetch-depth: 0
 
@@ -112,7 +112,7 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
           languages: ${{ matrix.language }}
 
@@ -125,7 +125,7 @@ jobs:
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
           category: '/language:${{ matrix.language }}'
           output: sarif-results
@@ -142,7 +142,7 @@ jobs:
             tools/CustomBuildTool/obj/**/*
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
           sarif_file: sarif-results/filtered.sarif
 
@@ -159,7 +159,7 @@ jobs:
          language: ['csharp']
      steps:
        - name: Checkout repository
-         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # 6.0.2
+         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
          with:
            fetch-depth: 0
 
@@ -175,7 +175,7 @@ jobs:
          run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
        - name: Initialize CodeQL
-         uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+         uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
          with:
            languages: ${{ matrix.language }}
 
@@ -184,7 +184,7 @@ jobs:
          run: build\build_init.cmd
 
        - name: Perform CodeQL analysis
-         uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+         uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
          with:
            category: '/language:${{ matrix.language }}'
            output: sarif-results
@@ -201,6 +201,6 @@ jobs:
              tools/CustomBuildTool/obj/**/*
 
        - name: Upload CodeQL Results
-         uses: github/codeql-action/upload-sarif@9e0d7b8d25671d64c341c19c0152d693099fb5ba # 4.35.5
+         uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
          with:
            sarif_file: sarif-results/filtered.sarif
