@@ -64,7 +64,6 @@ set(SOURCES
     "pooldialogbig.c"
     "pooltree.c"
     "pwrgrid.c"
-    "pwrprp.cpp"
     "reparse.c"
     "acpitable.c"
     "smbios.c"
