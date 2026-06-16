@@ -116,6 +116,9 @@
     <ClCompile Include="tabnew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="graphprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="treenew.c">
       <Filter>Source Files</Filter>
     </ClCompile>

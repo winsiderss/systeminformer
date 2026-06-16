@@ -232,6 +232,8 @@
     <ClCompile Include="svcsup.c" />
     <ClCompile Include="symprv.c" />
     <ClCompile Include="sync.c" />
+    <ClCompile Include="tabnew.c" />
+    <ClCompile Include="graphprp.c" />
     <ClCompile Include="treenew.c" />
     <ClCompile Include="verify.c" />
     <ClCompile Include="workqueue.c" />
