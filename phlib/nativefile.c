@@ -2424,6 +2424,11 @@ NTSTATUS PhMoveFile(
     renameInfo->ReplaceIfExists = FailIfExists ? FALSE : TRUE;
     renameInfo->RootDirectory = NULL;
     renameInfo->FileNameLength = fileNameLength;
+    if (fileNameLength > renameInfoLength - FIELD_OFFSET(FILE_RENAME_INFORMATION, FileName))
+    {
+        status = STATUS_BUFFER_OVERFLOW;
+        goto CleanupExit;
+    }
     memcpy(renameInfo->FileName, NewFileName->Buffer, fileNameLength);
 
     status = NtSetInformationFile(
