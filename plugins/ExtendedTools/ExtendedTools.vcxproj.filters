@@ -42,6 +42,9 @@
     <ClCompile Include="etwmon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="envdlg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="etwstat.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -150,7 +153,13 @@
     <ClCompile Include="pooltree.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="pwrgrid.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="tpm.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="wbcl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="npudetails.c">

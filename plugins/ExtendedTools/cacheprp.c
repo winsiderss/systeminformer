@@ -816,7 +816,7 @@ BOOLEAN EtCacheLatencyRunBenchmark(
 
     EtCacheLatencyGetStrideList(strides, &strideCount);
 
-    if (NT_SUCCESS(PhGEtrocessAffinityMask(NtCurrentProcess(), &processMask)))
+    if (NT_SUCCESS(PhGetProcessAffinityMask(NtCurrentProcess(), &processMask)))
     {
         targetMask = processMask & (0 - processMask);
 

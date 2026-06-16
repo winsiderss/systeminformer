@@ -66,38 +66,38 @@
   </ImportGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;tbs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;tbs.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>cfgmgr32.lib;pdh.lib;powrprof.lib;runtimeobject.lib;tbs.lib;winsta.lib;d3d11.lib;dxgi.lib;d2d1.lib;dcomp.lib;dwrite.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;oleaut32.dll;tdh.dll;powrprof.dll;runtimeobject.dll;tbs.dll;d3d11.dll;dxgi.dll;d2d1.dll;dcomp.dll;dwrite.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -106,6 +106,7 @@
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
+    <ClCompile Include="envdlg.c" />
     <ClCompile Include="firmware.c" />
     <ClCompile Include="firmware_editor.c" />
     <ClCompile Include="frameprp.c" />
@@ -130,15 +131,18 @@
     <ClCompile Include="pooldialog.c" />
     <ClCompile Include="pooldialogbig.c" />
     <ClCompile Include="pooltree.c" />
+    <ClCompile Include="pwrgrid.c" />
     <ClCompile Include="PresentMon\PresentMon.cpp" />
     <ClCompile Include="PresentMon\PresentMonTraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceConsumer.cpp" />
     <ClCompile Include="PresentMon\TraceSession.cpp" />
     <ClCompile Include="reparse.c" />
+    <ClCompile Include="acpitable.c" />
     <ClCompile Include="smbios.c" />
     <ClCompile Include="svcext.c" />
     <ClCompile Include="tpm.c" />
     <ClCompile Include="tpm_editor.c" />
+    <ClCompile Include="wbcl.c" />
     <ClCompile Include="treeext.c" />
     <ClCompile Include="etwstat.c" />
     <ClCompile Include="etwprprp.c" />

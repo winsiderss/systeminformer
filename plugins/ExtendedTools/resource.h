@@ -28,6 +28,7 @@
 #define IDC_SPEED                       133
 #define IDD_SYSINFO_GPUDETAILS          141
 #define IDD_PROCFRAMES                  142
+#define IDD_PROCIFEO                    143
 #define IDI_CPU                         159
 #define IDI_SEMAPHORE                   160
 #define IDI_FILTERPORT                  161
@@ -141,6 +142,7 @@
 #define IDC_NPUNAME                     2002
 #define IDC_NPU_L                       2003
 #define IDC_NPULIST                     2004
+#define IDC_ENABLEGPUADAPTERSTATS       2005
 #define ID_POOL_TABLE                   3000
 #define IDD_POOL                        3001
 #define IDD_BIGPOOL                     3003
@@ -195,8 +197,17 @@
 #define IDD_OBJWINSTA                   8005
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
+#define IDD_POWER_POLICIES              9000
+#define IDC_POWER_POLICIES_LIST         9001
+#define ID_POWER_POLICIES               9002
 #define IDD_POWER_GRID                  9003
 #define IDC_POWER_GRID_LIST             9004
+#define IDD_SRVCOMPAT                   9004
+#define IDD_PCASRV                      9004
+#define ID_POWER_GRID                   9005
+#define IDD_PCAPROC                     9005
+#define IDD_PCAPRC                      9005
+#define IDC_POWER_GRID_SUMMARY          9006
 #define IDD_CACHE_LATENCY               9010
 #define IDC_CACHE_LATENCY_LIST          9011
 #define IDC_CACHE_LATENCY_STATUS        9012
@@ -220,21 +231,35 @@
 #define IDC_TPM_SAVE                    50009
 #define IDC_TPM_BYTESPERROW             50010
 #define IDD_STARTUP_TASKS               60004
+#define ID_ENVIRONMENT_VARIABLES        60006
+#define IDD_ENVIRONMENTVARIABLES        60007
 #define IDD_ENVEDIT_LIST                60008
 #define IDD_FWEVENT_GENERAL             60010
 #define IDD_FWEVENT_LAYER               60011
+#define ID_ACPI                         60020
+#define IDD_ACPI                        60021
 #define IDC_ACPI_INFO                   60022
 #define ID_WBCL                         60030
 #define IDD_WBCL                        60031
 #define IDC_WBCL_LIST                   60032
+#define IDC_WBCL_REFRESH                60033
+#define IDC_WBCL_OPENFILE               60034
+#define IDC_ADD                         60035
+#define IDC_EDIT                        60036
+#define IDC_DELETE                      60037
+#define IDC_NEW                         60038
+#define IDC_BROWSE                      60039
+#define IDC_MOVEUP                      60040
+#define IDC_MOVEDOWN                    60041
+#define IDC_EDITTEXT                    60042
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        173
-#define _APS_NEXT_COMMAND_VALUE         40010
-#define _APS_NEXT_CONTROL_VALUE         1134
+#define _APS_NEXT_RESOURCE_VALUE        60043
+#define _APS_NEXT_COMMAND_VALUE         60043
+#define _APS_NEXT_CONTROL_VALUE         60043
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

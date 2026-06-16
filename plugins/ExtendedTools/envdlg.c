@@ -15,7 +15,6 @@
  */
 
 #include "exttools.h"
-#include <phsettings.h>
 #include <emenu.h>
 #include <cpysave.h>
 
@@ -103,7 +102,7 @@ VOID EtShowEnvironmentVariablesDialog(
         EtEnvironmentVariablesWindowHandle = PhCreateDialog(
             NtCurrentImageBase(),
             MAKEINTRESOURCE(IDD_ENVIRONMENTVARIABLES),
-            PhCsForceNoParent ? NULL : ParentWindowHandle,
+            NULL,
             EtEnvironmentVariablesDlgProc,
             NULL
             );
@@ -505,7 +504,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             valueHandle = GetDlgItem(hwndDlg, IDC_VALUE);
 
             PhSetApplicationWindowIcon(hwndDlg);
-            PhCenterWindow(hwndDlg, GEtarent(hwndDlg));
+            PhCenterWindow(hwndDlg, NULL);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -533,7 +532,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
 
             PhSetDialogFocus(hwndDlg, valueHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -629,7 +628,7 @@ BOOLEAN EtShowEnvEditDialog(
     context.NameReadOnly = NameReadOnly;
 
     PhDialogBox(
-        PhInstanceHandle,
+        NtCurrentImageBase(),
         MAKEINTRESOURCE(IDD_EDITENV),
         ParentWindowHandle,
         EtEnvEditDlgProc,
@@ -794,7 +793,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetApplicationWindowIcon(hwndDlg);
-            SetWindowText(hwndDlg, PhaFormatString(L"Edit %s", PhGetString(context->Name))->Buffer);
+            PhSetWindowText(hwndDlg, PhaFormatString(L"Edit %s", PhGetString(context->Name))->Buffer);
 
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 300, L"Value");
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
@@ -821,8 +820,8 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
             EtSplitPopulateList(context);
 
-            PhCenterWindow(hwndDlg, GEtarent(hwndDlg));
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhCenterWindow(hwndDlg, NULL);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
@@ -1307,11 +1306,11 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             if (PhValidWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, GEtarent(hwndDlg));
+                PhCenterWindow(hwndDlg, NULL);
 
             PhSetDialogFocus(hwndDlg, context->ListViewHandle);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
     case WM_DESTROY:
