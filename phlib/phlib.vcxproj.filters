@@ -113,6 +113,9 @@
     <ClCompile Include="filepool.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tabnew.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="treenew.c">
       <Filter>Source Files</Filter>
     </ClCompile>
