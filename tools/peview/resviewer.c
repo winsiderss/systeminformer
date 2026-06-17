@@ -97,7 +97,7 @@ static PCWSTR PvpVarTypeToString(
 static VOID PvpAppendTypeDescString(
     _Inout_ PPH_STRING_BUILDER StringBuilder,
     _In_ ITypeInfo* TypeInfo,
-    _In_ PTYPEDESC TypeDesc
+    _In_ LPTYPEDESC TypeDesc
     )
 {
     if (TypeDesc->vt == VT_PTR)
