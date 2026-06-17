@@ -230,6 +230,7 @@
 #define IDC_TPM_WRITE                   50008
 #define IDC_TPM_SAVE                    50009
 #define IDC_TPM_BYTESPERROW             50010
+#define ID_CACHE_LATENCY                60002
 #define IDD_STARTUP_TASKS               60004
 #define ID_ENVIRONMENT_VARIABLES        60006
 #define IDD_ENVIRONMENTVARIABLES        60007

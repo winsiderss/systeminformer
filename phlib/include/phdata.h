@@ -43,6 +43,8 @@ extern CONST SID PhSeLocalSystemSid;
 extern CONST SID PhSeLocalServiceSid;
 extern CONST SID PhSeNetworkServiceSid;
 
+extern CONST SID PhSeAuthenticationAuthorityAssertedSid;
+
 PSID PhSeAdministratorsSid(
     VOID
     );

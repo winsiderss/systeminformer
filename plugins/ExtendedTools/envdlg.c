@@ -1299,12 +1299,12 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DELETE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            PhLoadListViewColumnsFromSetting(SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
 
             EtRefreshEnvironmentVariables(context);
 
-            if (PhValidWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, NULL);
 
@@ -1315,8 +1315,8 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterDialog(EtEnvironmentVariablesWindowHandle);
             EtEnvironmentVariablesWindowHandle = NULL;
