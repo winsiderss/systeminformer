@@ -147,6 +147,8 @@ EXPORTS
     PhReferenceServiceItem
     PhRegisterDialog
     PhRegisterMessageLoopFilter
+    PhHideToast
+    PhReleaseToast
     PhRemoveTreeNewFilter
     PhSearchControlClear
     PhSearchControlMatch
@@ -157,6 +159,8 @@ EXPORTS
     PhSearchOnlineString
     PhSelectAndEnsureVisibleProcessNode
     PhSelectAndEnsureVisibleServiceNode
+    PhSelectWindowFromScreenSnapshot
+    PhSelectWindowFromScreenTargeting
     PhSetApplicationWindowIcon
     PhSetApplicationWindowIconEx
     PhSetProcessItemAffinityMask
@@ -182,6 +186,7 @@ EXPORTS
     PhShowProcessRecordDialog
     PhShowSystemInformationDialog
     PhShowThreadAffinityDialog
+    PhShowToastEx2
     PhSiDoubleLabelYFunction
     PhSiSetColorsGraphDrawInfo
     PhSiSizeLabelYFunction
@@ -191,6 +196,7 @@ EXPORTS
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
     PhUpdateServiceNode
+    PhUpdateToastProgress
     PhWordMatchStringRef
     PhWritePhTextHeader
 
@@ -1006,6 +1012,7 @@ EXPORTS
     PhGetStockObject
     PhGetThemeMargins
     PhGetThemePartSize
+    PhGetWindowActiveBorderColor
     PhGetWindowClientId
     PhGetWindowCompositionAttribute
     PhGetWindowContext

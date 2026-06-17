@@ -28,6 +28,7 @@
 #include "dltmgr.h"
 #include "guisup.h"
 #include "treenew.h"
+#include "tabnew.h"
 #include "graph.h"
 #include "emenu.h"
 #include "cpysave.h"

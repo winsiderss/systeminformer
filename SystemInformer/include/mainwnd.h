@@ -333,6 +333,9 @@ VOID NTAPI PH_TOAST_CALLBACK(
 );
 typedef PH_TOAST_CALLBACK* PPH_TOAST_CALLBACK;
 
+// Note: V2 toast callbacks are invoked on the internal toast pump thread, not
+// on the caller's thread. Callers must not assume their own thread affinity and
+// should marshal any UI work to the main window (e.g. via PhInvokeOnMainThread).
 typedef _Function_class_(PH_TOAST_CALLBACK2)
 VOID NTAPI PH_TOAST_CALLBACK2(
     _In_ HRESULT Result,
@@ -386,6 +389,13 @@ PhUpdateToastProgress(
     _In_opt_ PCWSTR String,
     _In_opt_ PCWSTR Status,
     _In_opt_ PCWSTR Title
+    );
+
+PHAPPAPI
+VOID
+NTAPI
+PhHideToast(
+    _In_opt_ PPH_TOAST Toast
     );
 
 PHAPPAPI
