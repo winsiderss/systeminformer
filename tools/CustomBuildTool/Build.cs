@@ -500,7 +500,11 @@ namespace CustomBuildTool
             {
                 foreach (var configurationEntry in configurationsMap)
                 {
-                    if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
+                    // The 32-bit build owns this copy: it produces the x86 binaries and stages them into the
+                    // sibling native output's x86\ folder. Gating on Build32bit (rather than the target arch)
+                    // means the x64/ARM64 jobs never read the Debug32\ output while it is still being linked
+                    // by the parallel 32-bit build (avoids IO_SharingViolation_File).
+                    if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(BuildFlags.Build32bit))
                     {
                         string sourceFilePath = Path.Join([baseDirectory, configurationEntry.Value.source, fileName]);
                         string targetFilePath = Path.Join([baseDirectory, configurationEntry.Value.target, fileName]);
