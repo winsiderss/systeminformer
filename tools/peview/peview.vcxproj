@@ -261,6 +261,7 @@
     <ClCompile Include="propstore.c" />
     <ClCompile Include="prpsh.c" />
     <ClCompile Include="resprp.c" />
+    <ClCompile Include="resviewer.c" />
     <ClCompile Include="searchbox.c" />
     <ClCompile Include="settings.c" />
     <ClCompile Include="streams.c" />

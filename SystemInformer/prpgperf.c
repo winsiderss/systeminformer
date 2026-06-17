@@ -65,11 +65,30 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            //PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             performanceContext->CpuGroupBox = GetDlgItem(hwndDlg, IDC_GROUPCPU);
             performanceContext->PrivateBytesGroupBox = GetDlgItem(hwndDlg, IDC_GROUPPRIVATEBYTES);
             performanceContext->IoGroupBox = GetDlgItem(hwndDlg, IDC_GROUPIO);
+
+            SetWindowPos(performanceContext->CpuGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(performanceContext->PrivateBytesGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(performanceContext->IoGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+            if (!PhEnableThemeSupport)
+            {
+                PhSetWindowExStyle(performanceContext->CpuGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(performanceContext->PrivateBytesGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(performanceContext->IoGroupBox, WS_EX_TRANSPARENT, 0);
+
+                PhSetWindowStyle(performanceContext->CpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(performanceContext->PrivateBytesGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(performanceContext->IoGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+                PhInitializeThemeWindowGroupBoxEx(performanceContext->CpuGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(performanceContext->PrivateBytesGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(performanceContext->IoGroupBox);
+            }
 
             PhInitializeGraphState(&performanceContext->CpuGraphState);
             PhInitializeGraphState(&performanceContext->PrivateGraphState);

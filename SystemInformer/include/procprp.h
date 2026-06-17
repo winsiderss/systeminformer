@@ -39,7 +39,7 @@ typedef struct _PH_PROCESS_PROPCONTEXT
 #ifdef PH_PROPSHEET_NEW
     // Parallel page arrays for the PhPropSheetNew host. PropSheetNewPages is
     // a PH_PROPSHEETNEW_PAGE[PH_PROCESS_PROPCONTEXT_MAXPAGES], typed as PVOID
-    // here so propsheetwindownew.h doesn't have to be pulled into this header.
+    // here so graphprp.h doesn't have to be pulled into this header.
     // PropSheetNewPageContexts holds the matching PPH_PROCESS_PROPPAGECONTEXT
     // refs so they can be released when the context is freed.
     PVOID PropSheetNewPages;

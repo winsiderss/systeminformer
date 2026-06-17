@@ -14,9 +14,7 @@
 
 #include <tabnew.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+EXTERN_C_START
 
 typedef struct _PH_TABNEW_INTERNAL_ITEM
 {
@@ -24,7 +22,7 @@ typedef struct _PH_TABNEW_INTERNAL_ITEM
     LPARAM Param;
     LONG ImageIndex;
     RECT Rect;            // strip-local
-    UINT Row;             // for multi-line
+    LONG Row;             // for multi-line
     union
     {
         ULONG Flags;
@@ -101,81 +99,119 @@ typedef struct _PH_TABNEW_CONTEXT
     RECT CachedPageRect;       // last computed, in client coords
 } PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
 
-// Internal helpers
-VOID PhpTabNewLayout(
+#define PH_TABNEW_DEFAULT_MIN_WIDTH     60
+#define PH_TABNEW_DEFAULT_PADDING_X     10
+#define PH_TABNEW_DEFAULT_PADDING_Y     6
+#define PH_TABNEW_INSERT_MARKER_WIDTH   3
+
+LRESULT CALLBACK PhTabNewWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+VOID PhTabNewDeleteCachedResources(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
-VOID PhpTabNewPaint(
+VOID PhTabNewUpdateCachedResources(
+    _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+BOOLEAN PhTabNewGetItemLayoutIdentifier(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ LONG Index,
+    _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
+    _In_opt_ PVOID CallbackContext,
+    _Out_ PPH_STRINGREF Identifier
+    );
+
+BOOLEAN PhTabNewReadLayoutToken(
+    _Inout_ PPH_STRINGREF Remaining,
+    _Out_ PPH_STRINGREF Token
+    );
+
+BOOL PhTabNewMoveItem(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ LONG FromIndex,
+    _In_ LONG ToIndex,
+    _In_ BOOLEAN NotifyLayout
+    );
+
+// Internal helpers
+VOID PhTabNewLayout(
+    _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+VOID PhTabNewPaint(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     );
 
-VOID PhpTabNewPaintWin10(
+VOID PhTabNewPaintWin10(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     );
 
-VOID PhpTabNewPaintWin7(
+VOID PhTabNewPaintWin7(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     );
 
-VOID PhpTabNewPaintUxTheme(
+VOID PhTabNewPaintUxTheme(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     );
 
-LONG PhpTabNewHitTest(
+LONG PhTabNewHitTest(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ POINT Point,
     _Out_opt_ PULONG Flags
     );
 
-VOID PhpTabNewSetSelection(
+VOID PhTabNewSetSelection(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG NewIndex,
     _In_ BOOLEAN Notify
     );
 
-VOID PhpTabNewSendLayoutNotify(
+VOID PhTabNewSendLayoutNotify(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
-VOID PhpTabNewUpdateMetrics(
+VOID PhTabNewUpdateMetrics(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
-VOID PhpTabNewUpdateFont(
+VOID PhTabNewUpdateFont(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
-VOID PhpTabNewUpdateTheme(
+VOID PhTabNewUpdateTheme(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
-VOID PhpTabNewBeginDrag(
+VOID PhTabNewBeginDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG ItemIndex,
     _In_ POINT Point
     );
 
-VOID PhpTabNewUpdateDrag(
+VOID PhTabNewUpdateDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ POINT Point
     );
 
-VOID PhpTabNewEndDrag(
+VOID PhTabNewEndDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ BOOLEAN Cancel
     );
 
-#ifdef __cplusplus
-}
-#endif
+EXTERN_C_END
 
 #endif

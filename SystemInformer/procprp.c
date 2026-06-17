@@ -445,6 +445,7 @@ LRESULT CALLBACK PhpPropSheetWndProc(
             CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 
             PhLayoutManagerUpdate(&propSheetContext->LayoutManager, LOWORD(wParam));
+            PhpUpdateProcessPropButtonsDpi(propSheetContext, WindowHandle, LOWORD(wParam));
             PhLayoutManagerLayout(&propSheetContext->LayoutManager);
 
             {
@@ -986,6 +987,85 @@ VOID PhpCreateProcessPropButtons(
         SetWindowFont(PropSheetContext->ButtonsLabelWindowHandle, windowFont, TRUE);
 
         PostMessage(PropSheetWindow, WM_PH_UPDATE_DIALOG, 0, 0);
+    }
+}
+
+VOID PhpUpdateProcessPropButtonsDpi(
+    _In_ PPH_PROCESS_PROPSHEETCONTEXT PropSheetContext,
+    _In_ HWND PropSheetWindow,
+    _In_ LONG WindowDpi
+    )
+{
+    HWND cancelButtonHandle;
+    HFONT windowFont;
+    RECT cancelRect;
+    RECT optionsRect;
+    LONG buttonWidth;
+    LONG buttonHeight;
+    LONG buttonSpacing;
+    LONG labelOffset;
+    LONG labelTopOffset;
+    LONG labelWidth;
+
+    if (!PropSheetContext->OptionsButtonWindowHandle)
+        return;
+
+    cancelButtonHandle = GetDlgItem(PropSheetWindow, IDCANCEL);
+
+    if (!cancelButtonHandle)
+        return;
+
+    if (!WindowDpi)
+        WindowDpi = PhGetWindowDpi(PropSheetWindow);
+
+    windowFont = GetWindowFont(cancelButtonHandle);
+
+    if (windowFont)
+    {
+        SetWindowFont(PropSheetContext->OptionsButtonWindowHandle, windowFont, TRUE);
+
+        if (PropSheetContext->ButtonsLabelWindowHandle)
+            SetWindowFont(PropSheetContext->ButtonsLabelWindowHandle, windowFont, TRUE);
+    }
+
+    if (!PhGetWindowRect(cancelButtonHandle, &cancelRect))
+        return;
+
+    MapWindowRect(NULL, PropSheetWindow, &cancelRect);
+
+    if (!PhGetWindowRect(PropSheetContext->OptionsButtonWindowHandle, &optionsRect))
+        return;
+
+    MapWindowRect(NULL, PropSheetWindow, &optionsRect);
+
+    buttonWidth = cancelRect.right - cancelRect.left;
+    buttonHeight = cancelRect.bottom - cancelRect.top;
+    buttonSpacing = PhScaleToDisplay(6, WindowDpi);
+    labelOffset = PhScaleToDisplay(5, WindowDpi);
+    labelTopOffset = PhScaleToDisplay(7, WindowDpi);
+    labelWidth = PhScaleToDisplay(250, WindowDpi);
+
+    SetWindowPos(
+        PropSheetContext->OptionsButtonWindowHandle,
+        NULL,
+        optionsRect.left,
+        cancelRect.top,
+        buttonWidth,
+        buttonHeight,
+        SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+        );
+
+    if (PropSheetContext->ButtonsLabelWindowHandle)
+    {
+        SetWindowPos(
+            PropSheetContext->ButtonsLabelWindowHandle,
+            NULL,
+            optionsRect.left + buttonWidth + buttonSpacing + labelOffset,
+            cancelRect.top + labelTopOffset,
+            labelWidth,
+            buttonHeight,
+            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+            );
     }
 }
 
@@ -1624,6 +1704,7 @@ static LRESULT CALLBACK PhpProcessPropertiesNewHostWndProc(
             if (propSheetContext->LayoutInitialized)
             {
                 PhLayoutManagerUpdate(&propSheetContext->LayoutManager, LOWORD(wParam));
+                PhpUpdateProcessPropButtonsDpi(propSheetContext, WindowHandle, LOWORD(wParam));
                 PhLayoutManagerLayout(&propSheetContext->LayoutManager);
             }
 

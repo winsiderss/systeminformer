@@ -1768,6 +1768,33 @@ VOID PhMipDestroyGroupNode(
     PhFree(Node);
 }
 
+VOID PhMipClearListSectionSelection(
+    _In_ PPH_MINIINFO_LIST_SECTION ListSection
+    )
+{
+    ULONG i;
+    BOOLEAN selectionChanged = FALSE;
+
+    ListSection->SelectedRepresentativeProcessId = NULL;
+    ListSection->SelectedRepresentativeCreateTime.QuadPart = 0;
+
+    for (i = 0; i < ListSection->NodeList->Count; i++)
+    {
+        PPH_MIP_GROUP_NODE node;
+
+        node = ListSection->NodeList->Items[i];
+
+        if (node->Node.Selected)
+        {
+            node->Node.Selected = FALSE;
+            selectionChanged = TRUE;
+        }
+    }
+
+    if (selectionChanged && ListSection->TreeNewHandle)
+        TreeNew_NodesStructured(ListSection->TreeNewHandle);
+}
+
 BOOLEAN PhMipListSectionTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -2107,6 +2134,11 @@ BOOLEAN PhMipListSectionTreeNewCallback(
             listSection->SuspendUpdate--;
         }
         return TRUE;
+    case TreeNewLeftClick:
+        {
+            PhMipClearListSectionSelection(listSection);
+        }
+        break;
     case TreeNewLeftDoubleClick:
         {
             PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;

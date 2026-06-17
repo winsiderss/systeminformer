@@ -292,6 +292,28 @@ PhGetMessage(
 PHLIBAPI
 PPH_STRING
 NTAPI
+PhFormatMessage_V(
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId,
+    _In_ va_list ArgPtr
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhFormatMessage(
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId,
+    ...
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
 PhGetNtMessage(
     _In_ NTSTATUS Status
     );

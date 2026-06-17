@@ -23,46 +23,6 @@
 #include <vsstyle.h>
 #include <uxtheme.h>
 
-#define PH_TABNEW_DEFAULT_MIN_WIDTH     60
-#define PH_TABNEW_DEFAULT_PADDING_X     10
-#define PH_TABNEW_DEFAULT_PADDING_Y     6
-#define PH_TABNEW_INSERT_MARKER_WIDTH   3
-
-static LRESULT CALLBACK PhpTabNewWndProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-static VOID PhpTabNewDeleteCachedResources(
-    _In_ PPH_TABNEW_CONTEXT Context
-    );
-
-static VOID PhpTabNewUpdateCachedResources(
-    _In_ PPH_TABNEW_CONTEXT Context
-    );
-
-static BOOLEAN PhpTabNewGetItemLayoutIdentifier(
-    _In_ PPH_TABNEW_CONTEXT Context,
-    _In_ LONG Index,
-    _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
-    _In_opt_ PVOID CallbackContext,
-    _Out_ PPH_STRINGREF Identifier
-    );
-
-static BOOLEAN PhpTabNewReadLayoutToken(
-    _Inout_ PPH_STRINGREF Remaining,
-    _Out_ PPH_STRINGREF Token
-    );
-
-static BOOL PhpTabNewMoveItem(
-    _In_ PPH_TABNEW_CONTEXT Context,
-    _In_ LONG FromIndex,
-    _In_ LONG ToIndex,
-    _In_ BOOLEAN NotifyLayout
-    );
-
 /**
  * Initializes the tab control class.
  *
@@ -77,7 +37,7 @@ RTL_ATOM PhTabNewInitialization(
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
-    wcex.lpfnWndProc = PhpTabNewWndProc;
+    wcex.lpfnWndProc = PhTabNewWndProc;
     wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
@@ -88,16 +48,12 @@ RTL_ATOM PhTabNewInitialization(
     return RegisterClassEx(&wcex);
 }
 
-// ---------------------------------------------------------------------------
-// Context lifecycle
-// ---------------------------------------------------------------------------
-
 /**
  * Creates a new tab control context.
  *
  * \return A pointer to the created context.
  */
-PPH_TABNEW_CONTEXT PhpCreateTabNewContext(
+PPH_TABNEW_CONTEXT PhCreateTabNewContext(
     VOID
     )
 {
@@ -106,7 +62,7 @@ PPH_TABNEW_CONTEXT PhpCreateTabNewContext(
     context = PhAllocateZero(sizeof(PH_TABNEW_CONTEXT));
     context->Items = PhCreateList(8);
     context->Pages = PhCreateList(8);
-    context->SelectedIndex = -1;
+    context->SelectedIndex = LONG_ERROR;
     context->HotIndex = -1;
     context->DragSourceIndex = -1;
     context->DragTargetIndex = -1;
@@ -116,8 +72,6 @@ PPH_TABNEW_CONTEXT PhpCreateTabNewContext(
     context->BaseMinTabWidth = PH_TABNEW_DEFAULT_MIN_WIDTH;
     context->BasePaddingX = PH_TABNEW_DEFAULT_PADDING_X;
     context->BasePaddingY = PH_TABNEW_DEFAULT_PADDING_Y;
-    // Effective metrics are computed by PhpTabNewUpdateMetrics once WindowDpi is
-    // known (WM_NCCREATE). Seed with the base values for any pre-create use.
     context->MinTabWidth = PH_TABNEW_DEFAULT_MIN_WIDTH;
     context->PaddingX = PH_TABNEW_DEFAULT_PADDING_X;
     context->PaddingY = PH_TABNEW_DEFAULT_PADDING_Y;
@@ -131,7 +85,7 @@ PPH_TABNEW_CONTEXT PhpCreateTabNewContext(
  *
  * \param Item A pointer to the tab control item.
  */
-VOID PhpFreeTabNewItem(
+VOID PhFreeTabNewItem(
     _In_ PPH_TABNEW_INTERNAL_ITEM Item
     )
 {
@@ -144,7 +98,7 @@ VOID PhpFreeTabNewItem(
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpDestroyTabNewContext(
+VOID PhDestroyTabNewContext(
     _In_ _Post_invalid_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -153,7 +107,7 @@ VOID PhpDestroyTabNewContext(
     if (Context->Items)
     {
         for (i = 0; i < Context->Items->Count; i++)
-            PhpFreeTabNewItem(Context->Items->Items[i]);
+            PhFreeTabNewItem(Context->Items->Items[i]);
 
         PhDereferenceObject(Context->Items);
     }
@@ -179,12 +133,12 @@ VOID PhpDestroyTabNewContext(
     if (Context->ThemeHandle)
         PhCloseThemeData(Context->ThemeHandle);
 
-    PhpTabNewDeleteCachedResources(Context);
+    PhTabNewDeleteCachedResources(Context);
 
     PhFree(Context);
 }
 
-static BOOLEAN PhpTabNewGetItemLayoutIdentifier(
+BOOLEAN PhTabNewGetItemLayoutIdentifier(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG Index,
     _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
@@ -203,7 +157,7 @@ static BOOLEAN PhpTabNewGetItemLayoutIdentifier(
     return Callback(Context->WindowHandle, item->Param, Identifier, CallbackContext);
 }
 
-static BOOLEAN PhpTabNewReadLayoutToken(
+BOOLEAN PhTabNewReadLayoutToken(
     _Inout_ PPH_STRINGREF Remaining,
     _Out_ PPH_STRINGREF Token
     )
@@ -247,16 +201,12 @@ static BOOLEAN PhpTabNewReadLayoutToken(
     return TRUE;
 }
 
-// ---------------------------------------------------------------------------
-// Theme / font / DPI
-// ---------------------------------------------------------------------------
-
 /**
  * Updates the metrics of the tab control based on the current DPI.
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpTabNewUpdateMetrics(
+VOID PhTabNewUpdateMetrics(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -271,7 +221,7 @@ VOID PhpTabNewUpdateMetrics(
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpTabNewUpdateFont(
+VOID PhTabNewUpdateFont(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -297,7 +247,7 @@ VOID PhpTabNewUpdateFont(
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpTabNewUpdateTheme(
+VOID PhTabNewUpdateTheme(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -327,10 +277,6 @@ VOID PhpTabNewUpdateTheme(
     Context->ThemeDark = !!PhEnableThemeSupport;
 }
 
-// ---------------------------------------------------------------------------
-// Layout
-// ---------------------------------------------------------------------------
-
 /**
  * Measures the height of a tab row.
  *
@@ -338,7 +284,7 @@ VOID PhpTabNewUpdateTheme(
  * \param Hdc A handle to a device context.
  * \return The measured height.
  */
-static LONG PhpMeasureTabHeight(
+LONG PhMeasureTabHeight(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc
     )
@@ -349,6 +295,7 @@ static LONG PhpMeasureTabHeight(
     GetTextMetrics(Hdc, &tm);
 
     height = tm.tmHeight + Context->PaddingY * 2;
+
     return height;
 }
 
@@ -360,7 +307,7 @@ static LONG PhpMeasureTabHeight(
  * \param Item A pointer to the tab item.
  * \return The measured width.
  */
-LONG PhpMeasureTabWidth(
+LONG PhMeasureTabWidth(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PPH_TABNEW_INTERNAL_ITEM Item
@@ -394,7 +341,7 @@ LONG PhpMeasureTabWidth(
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpTabNewLayout(
+VOID PhTabNewLayout(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -415,7 +362,7 @@ VOID PhpTabNewLayout(
     hdc = GetDC(Context->WindowHandle);
     oldFont = SelectFont(hdc, Context->Font ? Context->Font : GetStockFont(DEFAULT_GUI_FONT));
 
-    rowHeight = PhpMeasureTabHeight(Context, hdc);
+    rowHeight = PhMeasureTabHeight(Context, hdc);
     Context->RowHeight = rowHeight;
 
     if (!vertical && Context->Items->Count > 0)
@@ -452,7 +399,7 @@ VOID PhpTabNewLayout(
             }
             else
             {
-                LONG itemWidth = PhpMeasureTabWidth(Context, hdc, item);
+                LONG itemWidth = PhMeasureTabWidth(Context, hdc, item);
                 itemExtent = itemWidth;
 
                 // Multi-line wrap is the default for top/bottom placements
@@ -595,7 +542,7 @@ VOID PhpTabNewLayout(
         {
             PPH_TABNEW_INTERNAL_ITEM item = Context->Items->Items[i];
 
-            LONG w = PhpMeasureTabWidth(Context, hdc, item);
+            LONG w = PhMeasureTabWidth(Context, hdc, item);
 
             if (w > maxWidth)
                 maxWidth = w;
@@ -655,7 +602,7 @@ VOID PhpTabNewLayout(
  * \param Item A pointer to the tab item.
  * \param Rect A pointer to a RECT structure that receives the client coordinates.
  */
-VOID PhpTabNewGetItemRectInClient(
+VOID PhTabNewGetItemRectInClient(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ PPH_TABNEW_INTERNAL_ITEM Item,
     _Out_ PRECT Rect
@@ -704,7 +651,7 @@ VOID PhpTabNewGetItemRectInClient(
  * \param Flags A pointer to a variable that receives hit-test result flags.
  * \return The index of the tab at the given point, or -1 if no tab is present.
  */
-LONG PhpTabNewHitTest(
+LONG PhTabNewHitTest(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ POINT Point,
     _Out_opt_ PULONG Flags
@@ -719,7 +666,7 @@ LONG PhpTabNewHitTest(
         PPH_TABNEW_INTERNAL_ITEM item = Context->Items->Items[i];
         RECT itemRect;
 
-        PhpTabNewGetItemRectInClient(Context, item, &itemRect);
+        PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
         if (PhPtInRect(&itemRect, &Point))
         {
@@ -747,7 +694,7 @@ LONG PhpTabNewHitTest(
  * \param Header A pointer to the NMHDR structure.
  * \return The result of the notification.
  */
-static LRESULT PhpTabNewDispatchNotify(
+LRESULT PhTabNewDispatchNotify(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ ULONG Code,
     _Inout_ NMHDR *Header
@@ -774,7 +721,7 @@ static LRESULT PhpTabNewDispatchNotify(
  * \param ItemIndex The index of the item, or -1.
  * \return The result of the notification.
  */
-static LRESULT PhpTabNewSendNotify(
+LRESULT PhTabNewSendNotify(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ UINT Code,
     _In_ LONG ItemIndex
@@ -791,7 +738,7 @@ static LRESULT PhpTabNewSendNotify(
         nm.ItemParam = item->Param;
     }
 
-    return PhpTabNewDispatchNotify(Context, Code, &nm.Header);
+    return PhTabNewDispatchNotify(Context, Code, &nm.Header);
 }
 
 /**
@@ -799,7 +746,7 @@ static LRESULT PhpTabNewSendNotify(
  *
  * \param Context A pointer to the tab control context.
  */
-VOID PhpTabNewSendLayoutNotify(
+VOID PhTabNewSendLayoutNotify(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -811,7 +758,7 @@ VOID PhpTabNewSendLayoutNotify(
     if (Context->ParentHandle)
         MapWindowPoints(Context->WindowHandle, Context->ParentHandle, (POINT *)&nm.PageRect, 2);
 
-    PhpTabNewDispatchNotify(Context, PHTNN_LAYOUT, &nm.Header);
+    PhTabNewDispatchNotify(Context, PHTNN_LAYOUT, &nm.Header);
 }
 
 /**
@@ -821,7 +768,7 @@ VOID PhpTabNewSendLayoutNotify(
  * \param NewIndex The index of the new selection.
  * \param Notify Whether to send selection change notifications.
  */
-VOID PhpTabNewSetSelection(
+VOID PhTabNewSetSelection(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG NewIndex,
     _In_ BOOLEAN Notify
@@ -837,24 +784,24 @@ VOID PhpTabNewSetSelection(
 
     if (Notify)
     {
-        LRESULT result = PhpTabNewSendNotify(Context, PHTNN_SELCHANGING, NewIndex);
+        LRESULT result = PhTabNewSendNotify(Context, PHTNN_SELCHANGING, NewIndex);
         if (result)
             return; // Cancel
         // Stock TCN_* alias for legacy consumers
-        PhpTabNewSendNotify(Context, TCN_SELCHANGING, NewIndex);
+        PhTabNewSendNotify(Context, TCN_SELCHANGING, NewIndex);
     }
 
     Context->SelectedIndex = NewIndex;
     // Re-run layout so the multi-row reorder picks up the new selection
     // (the row containing the selected tab moves adjacent to the page).
     Context->LayoutDirty = TRUE;
-    PhpTabNewLayout(Context);
+    PhTabNewLayout(Context);
     InvalidateRect(Context->WindowHandle, NULL, FALSE);
 
     if (Notify)
     {
-        PhpTabNewSendNotify(Context, PHTNN_SELCHANGED, NewIndex);
-        PhpTabNewSendNotify(Context, TCN_SELCHANGE, NewIndex);
+        PhTabNewSendNotify(Context, PHTNN_SELCHANGED, NewIndex);
+        PhTabNewSendNotify(Context, TCN_SELCHANGE, NewIndex);
     }
 }
 
@@ -870,7 +817,7 @@ VOID PhpTabNewSetSelection(
  * \param InsertItem A pointer to a structure containing item information.
  * \return The index of the inserted item.
  */
-static LONG PhpTabNewInsertItem(
+LONG PhTabNewInsertItem(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG Index,
     _In_ PPH_TABNEW_INSERTITEM InsertItem
@@ -897,10 +844,11 @@ static LONG PhpTabNewInsertItem(
         Context->SelectedIndex++;
 
     Context->LayoutDirty = TRUE;
+
     if (!Context->LayoutSuspended)
     {
-        PhpTabNewLayout(Context);
-        PhpTabNewSendLayoutNotify(Context);
+        PhTabNewLayout(Context);
+        PhTabNewSendLayoutNotify(Context);
         InvalidateRect(Context->WindowHandle, NULL, TRUE);
     }
 
@@ -914,7 +862,7 @@ static LONG PhpTabNewInsertItem(
  * \param Index The index of the item to delete.
  * \return TRUE if the item was deleted, FALSE otherwise.
  */
-static BOOL PhpTabNewDeleteItem(
+BOOL PhTabNewDeleteItem(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG Index
     )
@@ -931,24 +879,29 @@ static BOOL PhpTabNewDeleteItem(
     if (Context->Pages && Context->Pages->Count == Context->Items->Count + 1)
     {
         pageIndex = PhFindItemList(Context->Pages, (PVOID)item->Param);
+
         if (pageIndex != ULONG_MAX)
         {
             PhRemoveItemList(Context->Pages, pageIndex);
 
             for (pageIndex = 0; pageIndex < Context->Pages->Count; pageIndex++)
+            {
                 ((PPH_TABNEW_PAGE)Context->Pages->Items[pageIndex])->Index = pageIndex;
+            }
         }
     }
 
-    PhpFreeTabNewItem(item);
+    PhFreeTabNewItem(item);
 
     if (Context->SelectedIndex == Index)
     {
         LONG newSel = Index;
+
         if (newSel >= (LONG)Context->Items->Count)
             newSel = (LONG)Context->Items->Count - 1;
+
         Context->SelectedIndex = -1;
-        PhpTabNewSetSelection(Context, newSel, TRUE);
+        PhTabNewSetSelection(Context, newSel, TRUE);
     }
     else if (Context->SelectedIndex > Index)
     {
@@ -959,8 +912,8 @@ static BOOL PhpTabNewDeleteItem(
         Context->HotIndex = -1;
 
     Context->LayoutDirty = TRUE;
-    PhpTabNewLayout(Context);
-    PhpTabNewSendLayoutNotify(Context);
+    PhTabNewLayout(Context);
+    PhTabNewSendLayoutNotify(Context);
     InvalidateRect(Context->WindowHandle, NULL, TRUE);
 
     return TRUE;
@@ -974,7 +927,7 @@ static BOOL PhpTabNewDeleteItem(
  * \param ToIndex The new index for the item.
  * \return TRUE if the item was moved, FALSE otherwise.
  */
-static BOOL PhpTabNewMoveItem(
+BOOL PhTabNewMoveItem(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG FromIndex,
     _In_ LONG ToIndex,
@@ -999,13 +952,16 @@ static BOOL PhpTabNewMoveItem(
     if (Context->Pages && Context->Pages->Count == Context->Items->Count)
     {
         pageIndex = PhFindItemList(Context->Pages, (PVOID)item->Param);
+
         if (pageIndex != ULONG_MAX)
         {
             PhRemoveItemList(Context->Pages, pageIndex);
             PhInsertItemList(Context->Pages, ToIndex, (PVOID)item->Param);
 
             for (pageIndex = 0; pageIndex < Context->Pages->Count; pageIndex++)
+            {
                 ((PPH_TABNEW_PAGE)Context->Pages->Items[pageIndex])->Index = pageIndex;
+            }
         }
     }
 
@@ -1023,10 +979,11 @@ static BOOL PhpTabNewMoveItem(
     }
 
     Context->LayoutDirty = TRUE;
+
     if (NotifyLayout)
     {
-        PhpTabNewLayout(Context);
-        PhpTabNewSendLayoutNotify(Context);
+        PhTabNewLayout(Context);
+        PhTabNewSendLayoutNotify(Context);
         InvalidateRect(Context->WindowHandle, NULL, TRUE);
     }
 
@@ -1044,7 +1001,7 @@ static BOOL PhpTabNewMoveItem(
  * \param ItemIndex The index of the item being dragged.
  * \param Point The starting point of the drag, in client coordinates.
  */
-VOID PhpTabNewBeginDrag(
+VOID PhTabNewBeginDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG ItemIndex,
     _In_ POINT Point
@@ -1069,7 +1026,7 @@ VOID PhpTabNewBeginDrag(
  * \param Context A pointer to the tab control context.
  * \param Point The current point of the drag, in client coordinates.
  */
-VOID PhpTabNewUpdateDrag(
+VOID PhTabNewUpdateDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ POINT Point
     )
@@ -1083,18 +1040,21 @@ VOID PhpTabNewUpdateDrag(
     {
         LONG dx = abs(Point.x - Context->DragStartPoint.x);
         LONG dy = abs(Point.y - Context->DragStartPoint.y);
+
         if (dx < GetSystemMetrics(SM_CXDRAG) && dy < GetSystemMetrics(SM_CYDRAG))
             return;
+
         Context->DragActive = TRUE;
-        SetCursor(PhLoadCursor(NULL, IDC_SIZEALL));
+
+        PhSetCursor(PhLoadCursor(NULL, IDC_SIZEALL));
     }
 
-    target = PhpTabNewHitTest(Context, Point, NULL);
+    target = PhTabNewHitTest(Context, Point, NULL);
     if (target < 0 || target == Context->DragSourceIndex)
         return;
 
     // Move source toward target
-    PhpTabNewMoveItem(Context, Context->DragSourceIndex, target, FALSE);
+    PhTabNewMoveItem(Context, Context->DragSourceIndex, target, FALSE);
     Context->DragSourceIndex = target;
     Context->DragTargetIndex = target;
 }
@@ -1105,7 +1065,7 @@ VOID PhpTabNewUpdateDrag(
  * \param Context A pointer to the tab control context.
  * \param Cancel TRUE to cancel the operation and revert changes, FALSE to complete it.
  */
-VOID PhpTabNewEndDrag(
+VOID PhTabNewEndDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ BOOLEAN Cancel
     )
@@ -1115,11 +1075,13 @@ VOID PhpTabNewEndDrag(
     BOOLEAN wasActive = !!Context->DragActive;
 
     if (GetCapture() == Context->WindowHandle)
+    {
         ReleaseCapture();
+    }
 
     if (Cancel && originalIndex >= 0 && finalIndex >= 0 && finalIndex != originalIndex)
     {
-        PhpTabNewMoveItem(Context, finalIndex, originalIndex, FALSE);
+        PhTabNewMoveItem(Context, finalIndex, originalIndex, FALSE);
         finalIndex = originalIndex;
     }
 
@@ -1134,13 +1096,13 @@ VOID PhpTabNewEndDrag(
         nm.FromIndex = originalIndex;
         nm.ToIndex = finalIndex;
 
-        PhpTabNewDispatchNotify(Context, PHTNN_REORDERED, &nm.Header);
+        PhTabNewDispatchNotify(Context, PHTNN_REORDERED, &nm.Header);
     }
 
     if (wasActive)
     {
-        PhpTabNewLayout(Context);
-        PhpTabNewSendLayoutNotify(Context);
+        PhTabNewLayout(Context);
+        PhTabNewSendLayoutNotify(Context);
     }
 
     InvalidateRect(Context->WindowHandle, NULL, FALSE);
@@ -1149,23 +1111,13 @@ VOID PhpTabNewEndDrag(
     Context->DragOriginIndex = -1;
 }
 
-// ---------------------------------------------------------------------------
-// Painting — common framework
-// ---------------------------------------------------------------------------
-
 /**
  * Gets the current background color.
  *
  * \param Context A pointer to the tab control context.
  * \return The background color.
  */
-/**
- * Gets the current background color.
- *
- * \param Context A pointer to the tab control context.
- * \return The background color.
- */
-static COLORREF PhpTabNewBackgroundColor(
+COLORREF PhTabNewBackgroundColor(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -1180,7 +1132,7 @@ static COLORREF PhpTabNewBackgroundColor(
  * \param Context A pointer to the tab control context.
  * \return The text color.
  */
-static COLORREF PhpTabNewTextColor(
+COLORREF PhTabNewTextColor(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -1194,7 +1146,7 @@ static COLORREF PhpTabNewTextColor(
  *
  * \param Context A pointer to the tab control context.
  */
-static VOID PhpTabNewDeleteCachedResources(
+VOID PhTabNewDeleteCachedResources(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -1234,7 +1186,7 @@ static VOID PhpTabNewDeleteCachedResources(
  *
  * \param Context A pointer to the tab control context.
  */
-static VOID PhpTabNewUpdateCachedResources(
+VOID PhTabNewUpdateCachedResources(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
@@ -1243,9 +1195,9 @@ static VOID PhpTabNewUpdateCachedResources(
     COLORREF hotColor;
     COLORREF outlineColor;
 
-    PhpTabNewDeleteCachedResources(Context);
+    PhTabNewDeleteCachedResources(Context);
 
-    backgroundColor = PhpTabNewBackgroundColor(Context);
+    backgroundColor = PhTabNewBackgroundColor(Context);
     accentColor = Context->ThemeDark ? PhThemeWindowHighlightColor : GetSysColor(COLOR_HIGHLIGHT);
     hotColor = Context->ThemeDark ? PhThemeWindowBackground2Color : RGB(0xE5, 0xF1, 0xFB);
     outlineColor = Context->ThemeDark ? RGB(0x55, 0x55, 0x55) : RGB(0xAC, 0xAC, 0xAC);
@@ -1266,7 +1218,7 @@ static VOID PhpTabNewUpdateCachedResources(
  * \param ItemRect A pointer to the rectangle where the item is painted.
  * \param TextColor The color of the text.
  */
-static VOID PhpTabNewDrawItemContent(
+VOID PhTabNewDrawItemContent(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PPH_TABNEW_INTERNAL_ITEM Item,
@@ -1315,13 +1267,13 @@ static VOID PhpTabNewDrawItemContent(
  * \param Hdc A handle to a device context.
  * \param ClientRect A pointer to the client rectangle.
  */
-VOID PhpTabNewPaintWin10(
+VOID PhTabNewPaintWin10(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     )
 {
-    COLORREF text = PhpTabNewTextColor(Context);
+    COLORREF text = PhTabNewTextColor(Context);
     ULONG i;
 
     FillRect(Hdc, ClientRect, Context->BackgroundBrush);
@@ -1333,7 +1285,7 @@ VOID PhpTabNewPaintWin10(
         BOOLEAN selected = ((LONG)i == Context->SelectedIndex);
         BOOLEAN isHot = ((LONG)i == Context->HotIndex);
 
-        PhpTabNewGetItemRectInClient(Context, item, &itemRect);
+        PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
         if (selected)
         {
@@ -1351,6 +1303,7 @@ VOID PhpTabNewPaintWin10(
                 case TNS_LEFT:   accentRect.left = accentRect.right - t; break;
                 case TNS_RIGHT:  accentRect.right = accentRect.left + t; break;
                 }
+
                 FillRect(Hdc, &accentRect, Context->AccentBrush);
             }
         }
@@ -1359,7 +1312,7 @@ VOID PhpTabNewPaintWin10(
             FillRect(Hdc, &itemRect, Context->HotBrush);
         }
 
-        PhpTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
+        PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
     }
 }
 
@@ -1375,13 +1328,13 @@ VOID PhpTabNewPaintWin10(
  * \param Hdc A handle to a device context.
  * \param ClientRect A pointer to the client rectangle.
  */
-VOID PhpTabNewPaintWin7(
+VOID PhTabNewPaintWin7(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     )
 {
-    COLORREF text = PhpTabNewTextColor(Context);
+    COLORREF text = PhTabNewTextColor(Context);
     COLORREF inacTop = Context->ThemeDark ? RGB(0x33, 0x33, 0x33) : RGB(0xF5, 0xF5, 0xF5);
     COLORREF inacBot = Context->ThemeDark ? RGB(0x28, 0x28, 0x28) : RGB(0xE2, 0xE2, 0xE2);
     COLORREF hotTop  = Context->ThemeDark ? RGB(0x3D, 0x4A, 0x5C) : RGB(0xEA, 0xF6, 0xFD);
@@ -1412,12 +1365,13 @@ VOID PhpTabNewPaintWin7(
         item = Context->Items->Items[i];
         isHot = ((LONG)i == Context->HotIndex);
 
-        PhpTabNewGetItemRectInClient(Context, item, &itemRect);
+        PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
         // Inactive tabs sit 2 px shorter than the strip so the selected tab
         // visually rises above them (classic Aero "raised selected" effect).
         // The far edge is also inset 1 px so the divider shows through.
         fillRect = itemRect;
+
         switch (Context->Side)
         {
         case TNS_TOP:    fillRect.top += 2; fillRect.bottom -= 1; break;
@@ -1429,7 +1383,8 @@ VOID PhpTabNewPaintWin7(
         if (isHot)
         {
             top = hotTop;
-            bot = hotBot; }
+            bot = hotBot; 
+        }
         else
         {
             top = inacTop;
@@ -1447,13 +1402,13 @@ VOID PhpTabNewPaintWin7(
         vert[1].Blue  = (USHORT)(GetBValue(bot) << 8);
         vert[1].Alpha = 0;
 
-        GradientFill(
-            Hdc,
-            vert,
-            2,
-            &gRect,
-            1,
-            vertical ? GRADIENT_FILL_RECT_H : GRADIENT_FILL_RECT_V);
+        //GradientFill(
+        //    Hdc,
+        //    vert,
+        //    2,
+        //    &gRect,
+        //    1,
+        //    vertical ? GRADIENT_FILL_RECT_H : GRADIENT_FILL_RECT_V);
 
         // Outline — three edges only (skip the edge adjacent to the divider)
         SelectPen(Hdc, Context->OutlinePen);
@@ -1486,7 +1441,7 @@ VOID PhpTabNewPaintWin7(
             break;
         }
 
-        PhpTabNewDrawItemContent(Context, Hdc, item, &fillRect, text);
+        PhTabNewDrawItemContent(Context, Hdc, item, &fillRect, text);
     }
 
     // Now draw the divider line across the strip (after inactive fills so
@@ -1495,6 +1450,7 @@ VOID PhpTabNewPaintWin7(
 
     {
         LONG dividerPos = 0;
+
         switch (Context->Side)
         {
         case TNS_TOP:    dividerPos = (LONG)Context->StripThickness - 1; break;
@@ -1502,6 +1458,7 @@ VOID PhpTabNewPaintWin7(
         case TNS_LEFT:   dividerPos = (LONG)Context->StripThickness - 1; break;
         case TNS_RIGHT:  dividerPos = (ClientRect->right - ClientRect->left) - (LONG)Context->StripThickness; break;
         }
+
         if (vertical)
         {
             MoveToEx(Hdc, dividerPos, ClientRect->top, NULL);
@@ -1521,7 +1478,7 @@ VOID PhpTabNewPaintWin7(
         RECT itemRect;
         RECT fillRect;
 
-        PhpTabNewGetItemRectInClient(Context, item, &itemRect);
+        PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
         // Selected fill extends 1 px past the divider so it merges into the page
         fillRect = itemRect;
@@ -1531,6 +1488,7 @@ VOID PhpTabNewPaintWin7(
         // Outline — three edges; the edge facing the page is drawn in the
         // background color to erase the divider segment beneath the tab.
         SelectPen(Hdc, Context->OutlinePen);
+
         switch (Context->Side)
         {
         case TNS_TOP:
@@ -1572,7 +1530,7 @@ VOID PhpTabNewPaintWin7(
             break;
         }
 
-        PhpTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
+        PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
     }
 
     SelectPen(Hdc, oldPen);
@@ -1585,18 +1543,18 @@ VOID PhpTabNewPaintWin7(
  * \param Hdc A handle to a device context.
  * \param ClientRect A pointer to the client rectangle.
  */
-VOID PhpTabNewPaintUxTheme(
+VOID PhTabNewPaintUxTheme(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
     )
 {
-    COLORREF text = PhpTabNewTextColor(Context);
+    COLORREF text = PhTabNewTextColor(Context);
     ULONG i;
 
     if (!Context->ThemeHandle)
     {
-        PhpTabNewPaintWin10(Context, Hdc, ClientRect);
+        PhTabNewPaintWin10(Context, Hdc, ClientRect);
         return;
     }
 
@@ -1615,18 +1573,24 @@ VOID PhpTabNewPaintUxTheme(
         BOOLEAN selected = ((LONG)i == Context->SelectedIndex);
         BOOLEAN isHot = ((LONG)i == Context->HotIndex);
 
-        PhpTabNewGetItemRectInClient(Context, item, &itemRect);
+        PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
         if (selected)
+        {
             stateId = TIS_SELECTED;
+        }
         else if (isHot)
+        {
             stateId = TIS_HOT;
+        }
         else
+        {
             stateId = TIS_NORMAL;
+        }
 
         PhDrawThemeBackground(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, NULL);
 
-        PhpTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
+        PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
     }
 }
 
@@ -1637,7 +1601,7 @@ VOID PhpTabNewPaintUxTheme(
  * \param Hdc A handle to a device context.
  * \param ClientRect A pointer to the client rectangle.
  */
-VOID PhpTabNewPaint(
+VOID PhTabNewPaint(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect
@@ -1646,21 +1610,23 @@ VOID PhpTabNewPaint(
     HFONT oldFont;
 
     if (Context->LayoutDirty)
-        PhpTabNewLayout(Context);
+    {
+        PhTabNewLayout(Context);
+    }
 
     oldFont = SelectFont(Hdc, Context->Font ? Context->Font : GetStockFont(DEFAULT_GUI_FONT));
 
     switch (Context->Skin)
     {
     case PhTabNewSkinWin10:
-        PhpTabNewPaintWin10(Context, Hdc, ClientRect);
+        PhTabNewPaintWin10(Context, Hdc, ClientRect);
         break;
     case PhTabNewSkinUxTheme:
-        PhpTabNewPaintUxTheme(Context, Hdc, ClientRect);
+        PhTabNewPaintUxTheme(Context, Hdc, ClientRect);
         break;
     case PhTabNewSkinWin7:
     default:
-        PhpTabNewPaintWin7(Context, Hdc, ClientRect);
+        PhTabNewPaintWin7(Context, Hdc, ClientRect);
         break;
     }
 
@@ -1672,33 +1638,50 @@ VOID PhpTabNewPaint(
         drawPanel.hdc = Hdc;
         drawPanel.Rect = *ClientRect;
 
-        PhpTabNewDispatchNotify(Context, PHTNN_DRAWPANEL, &drawPanel.Header);
+        PhTabNewDispatchNotify(Context, PHTNN_DRAWPANEL, &drawPanel.Header);
     }
 
     SelectFont(Hdc, oldFont);
 }
 
-PPH_STRING PhTabNewSaveLayout(
-    _In_ HWND TabControl,
+typedef struct _PH_TABNEW_LAYOUT_MESSAGE
+{
+    PPH_STRINGREF Layout;
+    PPH_TABNEW_LAYOUT_CALLBACK Callback;
+    PVOID Context;
+} PH_TABNEW_LAYOUT_MESSAGE, *PPH_TABNEW_LAYOUT_MESSAGE;
+
+typedef struct _PH_TABNEW_ADD_PAGE_MESSAGE
+{
+    PPH_STRINGREF Name;
+    ULONG Flags;
+    PPH_TABNEW_PAGE_CALLBACK Callback;
+    PVOID Context;
+} PH_TABNEW_ADD_PAGE_MESSAGE, *PPH_TABNEW_ADD_PAGE_MESSAGE;
+
+typedef struct _PH_TABNEW_NOTIFY_PAGES_MESSAGE
+{
+    PH_TABNEW_PAGE_MESSAGE Message;
+    PVOID Parameter1;
+    PVOID Parameter2;
+} PH_TABNEW_NOTIFY_PAGES_MESSAGE, *PPH_TABNEW_NOTIFY_PAGES_MESSAGE;
+
+static PPH_STRING PhpTabNewSaveLayout(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
     _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    PPH_TABNEW_CONTEXT tabContext;
     PH_STRING_BUILDER stringBuilder;
     ULONG i;
 
-    tabContext = PhGetWindowContextEx(TabControl);
-    if (!tabContext)
-        return NULL;
-
     PhInitializeStringBuilder(&stringBuilder, 0x80);
 
-    for (i = 0; i < tabContext->Items->Count; i++)
+    for (i = 0; i < TabContext->Items->Count; i++)
     {
         PH_STRINGREF identifier;
 
-        if (!PhpTabNewGetItemLayoutIdentifier(tabContext, (LONG)i, Callback, Context, &identifier))
+        if (!PhTabNewGetItemLayoutIdentifier(TabContext, (LONG)i, Callback, Context, &identifier))
             continue;
         if (!identifier.Buffer || identifier.Length == 0)
             continue;
@@ -1714,39 +1697,52 @@ PPH_STRING PhTabNewSaveLayout(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
-BOOLEAN PhTabNewRestoreLayout(
+PPH_STRING PhTabNewSaveLayout(
     _In_ HWND TabControl,
+    _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_TABNEW_LAYOUT_MESSAGE message;
+
+    message.Layout = NULL;
+    message.Callback = Callback;
+    message.Context = Context;
+
+    return (PPH_STRING)PhTabNewSendMessage(TabControl, PHTNM_SAVELAYOUT, 0, (LPARAM)&message);
+}
+
+static BOOLEAN PhpTabNewRestoreLayout(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
     _In_ PPH_STRINGREF Layout,
     _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    PPH_TABNEW_CONTEXT tabContext;
     PPH_LIST orderedItems;
     PPH_LIST remainingItems;
     PH_STRINGREF remaining;
     ULONG i;
     BOOLEAN changed = FALSE;
 
-    tabContext = PhGetWindowContextEx(TabControl);
-    if (!tabContext || !Layout || !Layout->Buffer || Layout->Length == 0 || !Callback)
+    if (!Layout || !Layout->Buffer || Layout->Length == 0 || !Callback)
         return FALSE;
-    if (tabContext->Items->Count == 0)
+    if (TabContext->Items->Count == 0)
         return FALSE;
 
-    orderedItems = PhCreateList(tabContext->Items->Count);
-    remainingItems = PhCreateList(tabContext->Items->Count);
+    orderedItems = PhCreateList(TabContext->Items->Count);
+    remainingItems = PhCreateList(TabContext->Items->Count);
     remaining = *Layout;
 
-    for (i = 0; i < tabContext->Items->Count; i++)
-        PhAddItemList(remainingItems, tabContext->Items->Items[i]);
+    for (i = 0; i < TabContext->Items->Count; i++)
+        PhAddItemList(remainingItems, TabContext->Items->Items[i]);
 
     while (remaining.Length != 0)
     {
         PH_STRINGREF token;
         ULONG j;
 
-        if (!PhpTabNewReadLayoutToken(&remaining, &token))
+        if (!PhTabNewReadLayoutToken(&remaining, &token))
             break;
 
         for (j = 0; j < remainingItems->Count; j++)
@@ -1754,7 +1750,7 @@ BOOLEAN PhTabNewRestoreLayout(
             PPH_TABNEW_INTERNAL_ITEM item = remainingItems->Items[j];
             PH_STRINGREF identifier;
 
-            if (!Callback(TabControl, item->Param, &identifier, Context))
+            if (!Callback(TabContext->WindowHandle, item->Param, &identifier, Context))
                 continue;
             if (identifier.Length != token.Length)
                 continue;
@@ -1771,20 +1767,20 @@ BOOLEAN PhTabNewRestoreLayout(
     for (i = 0; i < remainingItems->Count; i++)
         PhAddItemList(orderedItems, remainingItems->Items[i]);
 
-    if (orderedItems->Count == tabContext->Items->Count)
+    if (orderedItems->Count == TabContext->Items->Count)
     {
         for (i = 0; i < orderedItems->Count; i++)
         {
             PPH_TABNEW_INTERNAL_ITEM item = orderedItems->Items[i];
             ULONG currentIndex;
 
-            currentIndex = PhFindItemList(tabContext->Items, item);
+            currentIndex = PhFindItemList(TabContext->Items, item);
             if (currentIndex == ULONG_MAX)
                 continue;
 
             if (currentIndex != i)
             {
-                PhpTabNewMoveItem(tabContext, (LONG)currentIndex, (LONG)i, FALSE);
+                PhTabNewMoveItem(TabContext, (LONG)currentIndex, (LONG)i, FALSE);
                 changed = TRUE;
             }
         }
@@ -1795,12 +1791,28 @@ BOOLEAN PhTabNewRestoreLayout(
 
     if (changed)
     {
-        PhpTabNewLayout(tabContext);
-        PhpTabNewSendLayoutNotify(tabContext);
-        InvalidateRect(tabContext->WindowHandle, NULL, TRUE);
+        PhTabNewLayout(TabContext);
+        PhTabNewSendLayoutNotify(TabContext);
+        InvalidateRect(TabContext->WindowHandle, NULL, TRUE);
     }
 
     return changed;
+}
+
+BOOLEAN PhTabNewRestoreLayout(
+    _In_ HWND TabControl,
+    _In_ PPH_STRINGREF Layout,
+    _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_TABNEW_LAYOUT_MESSAGE message;
+
+    message.Layout = Layout;
+    message.Callback = Callback;
+    message.Context = Context;
+
+    return !!PhTabNewSendMessage(TabControl, PHTNM_RESTORELAYOUT, 0, (LPARAM)&message);
 }
 
 // ---------------------------------------------------------------------------
@@ -1817,31 +1829,26 @@ BOOLEAN PhTabNewRestoreLayout(
  * \param Context An optional context parameter passed to the callback.
  * \return A pointer to the created page structure, or NULL on failure.
  */
-PPH_TABNEW_PAGE PhTabNewAddPage(
-    _In_ HWND TabControl,
+static PPH_TABNEW_PAGE PhpTabNewAddPage(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
     _In_ PPH_STRINGREF Name,
     _In_ ULONG Flags,
     _In_ PPH_TABNEW_PAGE_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
 {
-    PPH_TABNEW_CONTEXT ctx;
     PPH_TABNEW_PAGE page;
     PH_TABNEW_INSERTITEM item;
     WCHAR nameBuffer[256];
     LONG index;
-
-    ctx = PhGetWindowContextEx(TabControl);
-    if (!ctx)
-        return NULL;
 
     page = PhAllocateZero(sizeof(PH_TABNEW_PAGE));
     page->Name = *Name;
     page->Flags = Flags;
     page->Callback = Callback;
     page->Context = Context;
-    page->TabControl = TabControl;
-    page->Index = (LONG)ctx->Pages->Count;
+    page->TabControl = TabContext->WindowHandle;
+    page->Index = (LONG)TabContext->Pages->Count;
 
     // Insert into tab strip
     if (Name->Length / sizeof(WCHAR) >= RTL_NUMBER_OF(nameBuffer))
@@ -1854,15 +1861,33 @@ PPH_TABNEW_PAGE PhTabNewAddPage(
     item.Text = nameBuffer;
     item.ImageIndex = -1;
     item.Param = (LPARAM)page;
-    index = PhpTabNewInsertItem(ctx, -1, &item);
+    index = PhTabNewInsertItem(TabContext, -1, &item);
     page->Index = index;
 
-    PhAddItemList(ctx->Pages, page);
+    PhAddItemList(TabContext->Pages, page);
 
     if (Callback)
         Callback(page, PhTabNewPageCreate, NULL, NULL);
 
     return page;
+}
+
+PPH_TABNEW_PAGE PhTabNewAddPage(
+    _In_ HWND TabControl,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG Flags,
+    _In_ PPH_TABNEW_PAGE_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_TABNEW_ADD_PAGE_MESSAGE message;
+
+    message.Name = Name;
+    message.Flags = Flags;
+    message.Callback = Callback;
+    message.Context = Context;
+
+    return (PPH_TABNEW_PAGE)PhTabNewSendMessage(TabControl, PHTNM_ADDPAGE, 0, (LPARAM)&message);
 }
 
 /**
@@ -1872,27 +1897,30 @@ PPH_TABNEW_PAGE PhTabNewAddPage(
  * \param Name The name of the page to find.
  * \return A pointer to the page structure if found, otherwise NULL.
  */
-PPH_TABNEW_PAGE PhTabNewFindPage(
-    _In_ HWND TabControl,
+static PPH_TABNEW_PAGE PhpTabNewFindPage(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
     _In_ PPH_STRINGREF Name
     )
 {
-    PPH_TABNEW_CONTEXT ctx;
     ULONG i;
 
-    ctx = PhGetWindowContextEx(TabControl);
-    if (!ctx)
-        return NULL;
-
-    for (i = 0; i < ctx->Pages->Count; i++)
+    for (i = 0; i < TabContext->Pages->Count; i++)
     {
-        PPH_TABNEW_PAGE page = ctx->Pages->Items[i];
+        PPH_TABNEW_PAGE page = TabContext->Pages->Items[i];
 
         if (PhEqualStringRef(&page->Name, Name, TRUE))
             return page;
     }
 
     return NULL;
+}
+
+PPH_TABNEW_PAGE PhTabNewFindPage(
+    _In_ HWND TabControl,
+    _In_ PPH_STRINGREF Name
+    )
+{
+    return (PPH_TABNEW_PAGE)PhTabNewSendMessage(TabControl, PHTNM_FINDPAGE, 0, (LPARAM)Name);
 }
 
 /**
@@ -1902,21 +1930,23 @@ PPH_TABNEW_PAGE PhTabNewFindPage(
  * \param Index The index of the page to retrieve.
  * \return A pointer to the page structure if found, otherwise NULL.
  */
+static PPH_TABNEW_PAGE PhpTabNewGetPageByIndex(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
+    _In_ LONG Index
+    )
+{
+    if (Index < 0 || (ULONG)Index >= TabContext->Pages->Count)
+        return NULL;
+
+    return TabContext->Pages->Items[Index];
+}
+
 PPH_TABNEW_PAGE PhTabNewGetPageByIndex(
     _In_ HWND TabControl,
     _In_ LONG Index
     )
 {
-    PPH_TABNEW_CONTEXT ctx;
-
-    ctx = PhGetWindowContextEx(TabControl);
-    if (!ctx)
-        return NULL;
-
-    if (Index < 0 || (ULONG)Index >= ctx->Pages->Count)
-        return NULL;
-
-    return ctx->Pages->Items[Index];
+    return (PPH_TABNEW_PAGE)PhTabNewSendMessage(TabControl, PHTNM_GETPAGEBYINDEX, (WPARAM)Index, 0);
 }
 
 /**
@@ -1941,6 +1971,23 @@ VOID PhTabNewSelectPage(
  * \param Parameter1 The first message parameter.
  * \param Parameter2 The second message parameter.
  */
+static VOID PhpTabNewNotifyAllPages(
+    _In_ PPH_TABNEW_CONTEXT TabContext,
+    _In_ PH_TABNEW_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < TabContext->Pages->Count; i++)
+    {
+        PPH_TABNEW_PAGE page = TabContext->Pages->Items[i];
+        if (page->Callback)
+            page->Callback(page, Message, Parameter1, Parameter2);
+    }
+}
+
 VOID PhTabNewNotifyAllPages(
     _In_ HWND TabControl,
     _In_ PH_TABNEW_PAGE_MESSAGE Message,
@@ -1948,19 +1995,13 @@ VOID PhTabNewNotifyAllPages(
     _In_opt_ PVOID Parameter2
     )
 {
-    PPH_TABNEW_CONTEXT ctx;
-    ULONG i;
+    PH_TABNEW_NOTIFY_PAGES_MESSAGE message;
 
-    ctx = PhGetWindowContextEx(TabControl);
-    if (!ctx)
-        return;
+    message.Message = Message;
+    message.Parameter1 = Parameter1;
+    message.Parameter2 = Parameter2;
 
-    for (i = 0; i < ctx->Pages->Count; i++)
-    {
-        PPH_TABNEW_PAGE page = ctx->Pages->Items[i];
-        if (page->Callback)
-            page->Callback(page, Message, Parameter1, Parameter2);
-    }
+    PhTabNewSendMessage(TabControl, PHTNM_NOTIFYPAGES, 0, (LPARAM)&message);
 }
 
 /**
@@ -1969,27 +2010,441 @@ VOID PhTabNewNotifyAllPages(
  * \param TabControl A handle to the tab control window.
  * \return A pointer to the currently selected page, or NULL if none is selected.
  */
+static PPH_TABNEW_PAGE PhpTabNewGetCurrentPage(
+    _In_ PPH_TABNEW_CONTEXT TabContext
+    )
+{
+    LONG sel;
+
+    sel = TabContext->SelectedIndex;
+    if (sel < 0 || (ULONG)sel >= TabContext->Pages->Count)
+        return NULL;
+
+    return TabContext->Pages->Items[sel];
+}
+
 PPH_TABNEW_PAGE PhTabNewGetCurrentPage(
     _In_ HWND TabControl
     )
 {
-    PPH_TABNEW_CONTEXT ctx;
-    LONG sel;
-
-    ctx = PhGetWindowContextEx(TabControl);
-    if (!ctx)
-        return NULL;
-
-    sel = ctx->SelectedIndex;
-    if (sel < 0 || (ULONG)sel >= ctx->Pages->Count)
-        return NULL;
-
-    return ctx->Pages->Items[sel];
+    return (PPH_TABNEW_PAGE)PhTabNewSendMessage(TabControl, PHTNM_GETCURRENTPAGE, 0, 0);
 }
 
 // ---------------------------------------------------------------------------
 // WndProc
 // ---------------------------------------------------------------------------
+
+static LRESULT PhpTabNewOnUserMessage(
+    _In_ HWND WindowHandle,
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ ULONG Message,
+    _In_ ULONG_PTR WParam,
+    _In_ ULONG_PTR LParam
+    )
+{
+    switch (Message)
+    {
+    case PHTNM_INSERTITEM:
+        return (LRESULT)PhTabNewInsertItem(Context, (LONG)WParam, (PPH_TABNEW_INSERTITEM)LParam);
+    case PHTNM_DELETEITEM:
+        return (LRESULT)PhTabNewDeleteItem(Context, (LONG)WParam);
+    case PHTNM_DELETEALLITEMS:
+        {
+            ULONG i;
+
+            for (i = 0; i < Context->Items->Count; i++)
+                PhFreeTabNewItem(Context->Items->Items[i]);
+
+            PhClearList(Context->Items);
+
+            Context->SelectedIndex = -1;
+            Context->HotIndex = -1;
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            PhTabNewSendLayoutNotify(Context);
+
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case PHTNM_GETITEMCOUNT:
+        return (LRESULT)Context->Items->Count;
+    case PHTNM_SETCURSEL:
+        {
+            LONG oldSel = Context->SelectedIndex;
+            PhTabNewSetSelection(Context, (LONG)WParam, TRUE);
+            return (LRESULT)oldSel;
+        }
+    case PHTNM_GETCURSEL:
+        return (LRESULT)Context->SelectedIndex;
+    case PHTNM_SETITEMTEXT:
+        {
+            LONG idx = (LONG)WParam;
+            PWSTR text = (PWSTR)LParam;
+            PPH_TABNEW_INTERNAL_ITEM item;
+
+            if (idx < 0 || (ULONG)idx >= Context->Items->Count)
+                return FALSE;
+
+            item = Context->Items->Items[idx];
+            PhClearReference(&item->Text);
+            if (text) item->Text = PhCreateString(text);
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case PHTNM_GETITEMPARAM:
+        {
+            LONG idx = (LONG)WParam;
+            PPH_TABNEW_INTERNAL_ITEM item;
+
+            if (idx < 0 || (ULONG)idx >= Context->Items->Count)
+                return 0;
+
+            item = Context->Items->Items[idx];
+            return (LRESULT)item->Param;
+        }
+    case PHTNM_SETITEMPARAM:
+        {
+            LONG idx = (LONG)WParam;
+            PPH_TABNEW_INTERNAL_ITEM item;
+
+            if (idx < 0 || (ULONG)idx >= Context->Items->Count)
+                return FALSE;
+
+            item = Context->Items->Items[idx];
+            item->Param = (LPARAM)LParam;
+        }
+        return TRUE;
+    case PHTNM_GETPAGERECT:
+        {
+            PRECT outRect = (PRECT)LParam;
+
+            if (!outRect) return FALSE;
+
+            if (Context->LayoutDirty)
+            {
+                PhTabNewLayout(Context);
+            }
+
+            *outRect = Context->CachedPageRect;
+
+            if (Context->ParentHandle)
+            {
+                MapWindowPoints(WindowHandle, Context->ParentHandle, (POINT*)outRect, 2);
+            }
+        }
+        return TRUE;
+
+    case PHTNM_SETSKIN:
+        {
+            Context->Skin = (PH_TABNEW_SKIN)WParam;
+            
+            PhTabNewUpdateTheme(Context);
+            PhTabNewUpdateCachedResources(Context);
+            
+            Context->LayoutDirty = TRUE;
+            
+            PhTabNewLayout(Context);
+            PhTabNewSendLayoutNotify(Context);
+         
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+
+    case PHTNM_GETSKIN:
+        return (LRESULT)Context->Skin;
+    case PHTNM_SETSIDE:
+        {
+            Context->Side = (ULONG)WParam & TNS_SIDE_MASK;
+
+            PhTabNewUpdateTheme(Context);
+            PhTabNewUpdateCachedResources(Context);
+
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            PhTabNewSendLayoutNotify(Context);
+
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case PHTNM_GETSIDE:
+        return (LRESULT)Context->Side;
+    case PHTNM_HITTEST:
+        {
+            PPH_TABNEW_HITTESTINFO info = (PPH_TABNEW_HITTESTINFO)LParam;
+            if (!info) return -1;
+            info->ItemIndex = PhTabNewHitTest(Context, info->Point, &info->Flags);
+            return (LRESULT)info->ItemIndex;
+        }
+    case PHTNM_MOVEITEM:
+        return (LRESULT)PhTabNewMoveItem(Context, (LONG)WParam, (LONG)LParam, TRUE);
+    case PHTNM_SETIMAGELIST:
+        {
+            HIMAGELIST old = Context->ImageList;
+            Context->ImageList = (HIMAGELIST)WParam;
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+
+            return (LRESULT)old;
+        }
+    case PHTNM_GETIMAGELIST:
+        return (LRESULT)Context->ImageList;
+    case PHTNM_SETPADDING:
+        {
+            Context->BasePaddingX = (LONG)WParam;
+            Context->BasePaddingY = (LONG)LParam;
+
+            PhTabNewUpdateMetrics(Context);
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case PHTNM_SETMINTABWIDTH:
+        {
+            Context->BaseMinTabWidth = (LONG)WParam;
+
+            PhTabNewUpdateMetrics(Context);
+
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case PHTNM_GETROWCOUNT:
+        return (LRESULT)Context->RowCount;
+    case PHTNM_INVALIDATEITEM:
+        {
+            LONG idx = (LONG)WParam;
+            PPH_TABNEW_INTERNAL_ITEM item;
+            RECT itemRect;
+
+            if (idx < 0 || (ULONG)idx >= Context->Items->Count)
+                return 0;
+
+            item = Context->Items->Items[idx];
+
+            PhTabNewGetItemRectInClient(Context, item, &itemRect);
+            InvalidateRect(WindowHandle, &itemRect, FALSE);
+        }
+        return 0;
+    case PHTNM_SETTHEMEDARK:
+        {
+            Context->ThemeDark = !!WParam;
+
+            PhTabNewUpdateCachedResources(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return 0;
+    case PHTNM_SETCALLBACK:
+        {
+            Context->Callback = (PPH_TABNEW_MESSAGE_CALLBACK)WParam;
+            Context->Context = (PVOID)LParam;
+        }
+        return TRUE;
+    case PHTNM_SAVELAYOUT:
+        {
+            PPH_TABNEW_LAYOUT_MESSAGE message = (PPH_TABNEW_LAYOUT_MESSAGE)LParam;
+
+            if (!message)
+                return 0;
+
+            return (LRESULT)PhpTabNewSaveLayout(Context, message->Callback, message->Context);
+        }
+    case PHTNM_RESTORELAYOUT:
+        {
+            PPH_TABNEW_LAYOUT_MESSAGE message = (PPH_TABNEW_LAYOUT_MESSAGE)LParam;
+
+            if (!message)
+                return FALSE;
+
+            return (LRESULT)PhpTabNewRestoreLayout(Context, message->Layout, message->Callback, message->Context);
+        }
+    case PHTNM_ADDPAGE:
+        {
+            PPH_TABNEW_ADD_PAGE_MESSAGE message = (PPH_TABNEW_ADD_PAGE_MESSAGE)LParam;
+
+            if (!message || !message->Name)
+                return 0;
+
+            return (LRESULT)PhpTabNewAddPage(Context, message->Name, message->Flags, message->Callback, message->Context);
+        }
+    case PHTNM_FINDPAGE:
+        {
+            PPH_STRINGREF name = (PPH_STRINGREF)LParam;
+
+            if (!name)
+                return 0;
+
+            return (LRESULT)PhpTabNewFindPage(Context, name);
+        }
+    case PHTNM_GETPAGEBYINDEX:
+        return (LRESULT)PhpTabNewGetPageByIndex(Context, (LONG)WParam);
+    case PHTNM_NOTIFYPAGES:
+        {
+            PPH_TABNEW_NOTIFY_PAGES_MESSAGE message = (PPH_TABNEW_NOTIFY_PAGES_MESSAGE)LParam;
+
+            if (!message)
+                return 0;
+
+            PhpTabNewNotifyAllPages(Context, message->Message, message->Parameter1, message->Parameter2);
+        }
+        return 0;
+    case PHTNM_GETCURRENTPAGE:
+        return (LRESULT)PhpTabNewGetCurrentPage(Context);
+    case TCM_GETCURSEL:
+        return (LRESULT)Context->SelectedIndex;
+    case TCM_SETCURSEL:
+        {
+            LONG old = Context->SelectedIndex;
+            PhTabNewSetSelection(Context, (LONG)WParam, FALSE);
+            return (LRESULT)old;
+        }
+    case TCM_GETITEMCOUNT:
+        return (LRESULT)Context->Items->Count;
+    case TCM_DELETEITEM:
+        return (LRESULT)PhTabNewDeleteItem(Context, (LONG)WParam);
+    case TCM_DELETEALLITEMS:
+        {
+            ULONG i;
+
+            for (i = 0; i < Context->Items->Count; i++)
+                PhFreeTabNewItem(Context->Items->Items[i]);
+
+            PhClearList(Context->Items);
+
+            Context->SelectedIndex = -1;
+            Context->HotIndex = -1;
+            Context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(Context);
+            PhTabNewSendLayoutNotify(Context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        return TRUE;
+    case TCM_INSERTITEMW:
+        {
+            TCITEMW *tci = (TCITEMW *)LParam;
+
+            PH_TABNEW_INSERTITEM ins;
+            ins.Text = (tci && (tci->mask & TCIF_TEXT)) ? tci->pszText : L"";
+            ins.ImageIndex = (tci && (tci->mask & TCIF_IMAGE)) ? tci->iImage : -1;
+            ins.Param = (tci && (tci->mask & TCIF_PARAM)) ? tci->lParam : 0;
+            return (LRESULT)PhTabNewInsertItem(Context, (LONG)WParam, &ins);
+        }
+    case TCM_ADJUSTRECT:
+        {
+            PRECT rc = (PRECT)LParam;
+
+            if (!rc)
+            {
+                return 0;
+            }
+
+            if (Context->LayoutDirty)
+            {
+                PhTabNewLayout(Context);
+            }
+
+            // wParam: TRUE=add tab padding to display->window; FALSE=subtract
+            if ((BOOL)WParam)
+            {
+                switch (Context->Side)
+                {
+                case TNS_TOP:    
+                    rc->top -= (LONG)Context->StripThickness; 
+                    break;
+                case TNS_BOTTOM: 
+                    rc->bottom += (LONG)Context->StripThickness; 
+                    break;
+                case TNS_LEFT:   
+                    rc->left -= (LONG)Context->StripThickness; 
+                    break;
+                case TNS_RIGHT:  
+                    rc->right += (LONG)Context->StripThickness; 
+                    break;
+                }
+            }
+            else
+            {
+                switch (Context->Side)
+                {
+                case TNS_TOP:    
+                    rc->top += (LONG)Context->StripThickness; 
+                    break;
+                case TNS_BOTTOM: 
+                    rc->bottom -= (LONG)Context->StripThickness; 
+                    break;
+                case TNS_LEFT:   
+                    rc->left += (LONG)Context->StripThickness; 
+                    break;
+                case TNS_RIGHT:  
+                    rc->right -= (LONG)Context->StripThickness; 
+                    break;
+                }
+            }
+        }
+        return 0;
+    case TCM_GETITEMRECT:
+        {
+            LONG idx = (LONG)WParam;
+            PRECT rc = (PRECT)LParam;
+            PPH_TABNEW_INTERNAL_ITEM item;
+
+            if (!rc || idx < 0 || (ULONG)idx >= Context->Items->Count)
+                return FALSE;
+
+            item = Context->Items->Items[idx];
+            PhTabNewGetItemRectInClient(Context, item, rc);
+        }
+        return TRUE;
+    case TCM_GETROWCOUNT:
+        return (LRESULT)Context->RowCount;
+    }
+
+    return DefWindowProc(WindowHandle, Message, WParam, LParam);
+}
+
+/**
+ * Sends a message to a TabNew window, handling custom messages if possible.
+ *
+ * \param WindowHandle A handle to the window.
+ * \param WindowMessage The message to send.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \return The result of the message processing.
+ */
+LRESULT PhTabNewSendMessage(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _Pre_maybenull_ _Post_valid_ WPARAM wParam,
+    _Pre_maybenull_ _Post_valid_ LPARAM lParam
+    )
+{
+    if (WindowMessage >= PHTNM_FIRST && WindowMessage <= PHTNM_LAST)
+    {
+        PPH_TABNEW_CONTEXT context;
+
+        if (context = PhGetWindowContextEx(WindowHandle))
+        {
+            return PhpTabNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
+        }
+    }
+
+#if defined(DEBUG)
+    assert(FALSE);
+#endif
+
+    return SendMessage(WindowHandle, WindowMessage, wParam, lParam);
+}
 
 /**
  * Main window procedure for the tab control.
@@ -2000,7 +2455,7 @@ PPH_TABNEW_PAGE PhTabNewGetCurrentPage(
  * \param lParam Additional message-specific information.
  * \return The result of the message processing.
  */
-static LRESULT CALLBACK PhpTabNewWndProc(
+LRESULT CALLBACK PhTabNewWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
@@ -2009,6 +2464,9 @@ static LRESULT CALLBACK PhpTabNewWndProc(
 {
     PPH_TABNEW_CONTEXT context = PhGetWindowContextEx(WindowHandle);
 
+    if (WindowMessage != WM_NCCREATE && !context)
+        return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+
     switch (WindowMessage)
     {
     case WM_NCCREATE:
@@ -2016,7 +2474,7 @@ static LRESULT CALLBACK PhpTabNewWndProc(
             CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
             ULONG style = (ULONG)cs->style;
 
-            context = PhpCreateTabNewContext();
+            context = PhCreateTabNewContext();
             context->WindowHandle = WindowHandle;
             context->ParentHandle = GetParent(WindowHandle);
             context->Id = (ULONG_PTR)cs->hMenu;
@@ -2044,16 +2502,16 @@ static LRESULT CALLBACK PhpTabNewWndProc(
             }
 
             PhSetWindowContextEx(WindowHandle, context);
-            PhpTabNewUpdateMetrics(context);
-            PhpTabNewUpdateFont(context);
-            PhpTabNewUpdateTheme(context);
-            PhpTabNewUpdateCachedResources(context);
+            PhTabNewUpdateMetrics(context);
+            PhTabNewUpdateFont(context);
+            PhTabNewUpdateTheme(context);
+            PhTabNewUpdateCachedResources(context);
         }
         break;
     case WM_NCDESTROY:
         {
             PhRemoveWindowContextEx(WindowHandle);
-            PhpDestroyTabNewContext(context);
+            PhDestroyTabNewContext(context);
         }
         break;
     case WM_ERASEBKGND:
@@ -2063,32 +2521,46 @@ static LRESULT CALLBACK PhpTabNewWndProc(
             PAINTSTRUCT ps;
             RECT clientRect;
             HDC hdc;
+
+#ifdef PH_TABNEW_WM_PAINT
             HDC bufferDc = NULL;
             HBITMAP bufferBmp = NULL;
             HBITMAP oldBmp = NULL;
+#else
+            PH_BUFFERED_PAINT paintBuffer;
+            HDC bufferDc;
+#endif
 
             hdc = BeginPaint(WindowHandle, &ps);
             if (!hdc) break;
 
             GetClientRect(WindowHandle, &clientRect);
 
+#ifdef PH_TABNEW_WM_PAINT
             bufferDc = CreateCompatibleDC(hdc);
             if (bufferDc)
             {
-                bufferBmp = CreateCompatibleBitmap(hdc,
+                bufferBmp = CreateCompatibleBitmap(
+                    hdc,
                     clientRect.right - clientRect.left,
-                    clientRect.bottom - clientRect.top);
+                    clientRect.bottom - clientRect.top
+                    );
                 oldBmp = bufferBmp ? SelectBitmap(bufferDc, bufferBmp) : NULL;
             }
 
             if (bufferDc && bufferBmp)
             {
-                PhpTabNewPaint(context, bufferDc, &clientRect);
+                PhTabNewPaint(context, bufferDc, &clientRect);
 
-                BitBlt(hdc, 0, 0,
+                BitBlt(
+                    hdc, 0, 0,
                     clientRect.right - clientRect.left,
                     clientRect.bottom - clientRect.top,
-                    bufferDc, 0, 0, SRCCOPY);
+                    bufferDc,
+                    0,
+                    0,
+                    SRCCOPY
+                    );
 
                 SelectBitmap(bufferDc, oldBmp);
                 DeleteBitmap(bufferBmp);
@@ -2097,34 +2569,57 @@ static LRESULT CALLBACK PhpTabNewWndProc(
             else
             {
                 if (bufferDc) DeleteDC(bufferDc);
-                PhpTabNewPaint(context, hdc, &clientRect);
+                PhTabNewPaint(context, hdc, &clientRect);
             }
+#else
+            if (PhBeginBufferedPaint(hdc, &clientRect, &paintBuffer, &bufferDc))
+            {
+                PhTabNewPaint(context, bufferDc, &clientRect);
+                PhEndBufferedPaint(&paintBuffer, TRUE);
+            }
+            else
+            {
+                PhTabNewPaint(context, hdc, &clientRect);
+            }
+#endif
 
             EndPaint(WindowHandle, &ps);
         }
         return 0;
     case WM_SIZE:
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        PhpTabNewSendLayoutNotify(context);
-        InvalidateRect(WindowHandle, NULL, FALSE);
+        {
+            context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(context);
+            PhTabNewSendLayoutNotify(context);
+
+            InvalidateRect(WindowHandle, NULL, FALSE);
+        }
         break;
     case WM_DPICHANGED_AFTERPARENT:
-        context->WindowDpi = PhGetWindowDpi(WindowHandle);
-        PhpTabNewUpdateMetrics(context);
-        PhpTabNewUpdateFont(context);
-        PhpTabNewUpdateTheme(context);
-        PhpTabNewUpdateCachedResources(context);
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        PhpTabNewSendLayoutNotify(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
+        {
+            context->WindowDpi = PhGetWindowDpi(WindowHandle);
+
+            PhTabNewUpdateMetrics(context);
+            PhTabNewUpdateFont(context);
+            PhTabNewUpdateTheme(context);
+            PhTabNewUpdateCachedResources(context);
+
+            context->LayoutDirty = TRUE;
+
+            PhTabNewLayout(context);
+            PhTabNewSendLayoutNotify(context);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
         break;
     case WM_THEMECHANGED:
     case WM_SETTINGCHANGE:
-        PhpTabNewUpdateTheme(context);
-        PhpTabNewUpdateCachedResources(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
+        {
+            PhTabNewUpdateTheme(context);
+            PhTabNewUpdateCachedResources(context);
+
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
         break;
     case WM_SETREDRAW:
         {
@@ -2138,8 +2633,8 @@ static LRESULT CALLBACK PhpTabNewWndProc(
 
                 if (wasSuspended && context->LayoutDirty)
                 {
-                    PhpTabNewLayout(context);
-                    PhpTabNewSendLayoutNotify(context);
+                    PhTabNewLayout(context);
+                    PhTabNewSendLayoutNotify(context);
                     InvalidateRect(WindowHandle, NULL, TRUE);
                 }
             }
@@ -2161,15 +2656,17 @@ static LRESULT CALLBACK PhpTabNewWndProc(
 
             if (context->DragArmed || context->DragActive)
             {
-                PhpTabNewUpdateDrag(context, pt);
+                PhTabNewUpdateDrag(context, pt);
                 break;
             }
 
-            hit = PhpTabNewHitTest(context, pt, NULL);
+            hit = PhTabNewHitTest(context, pt, NULL);
             context->HotIndex = hit;
 
             if (oldHot != hit)
+            {
                 InvalidateRect(WindowHandle, NULL, FALSE);
+            }
 
             if (!context->TrackingMouse)
             {
@@ -2177,6 +2674,7 @@ static LRESULT CALLBACK PhpTabNewWndProc(
                 tme.dwFlags = TME_LEAVE;
                 tme.hwndTrack = WindowHandle;
                 TrackMouseEvent(&tme);
+
                 context->TrackingMouse = TRUE;
             }
         }
@@ -2184,6 +2682,7 @@ static LRESULT CALLBACK PhpTabNewWndProc(
     case WM_MOUSELEAVE:
         {
             context->TrackingMouse = FALSE;
+
             if (context->HotIndex != -1)
             {
                 context->HotIndex = -1;
@@ -2198,18 +2697,18 @@ static LRESULT CALLBACK PhpTabNewWndProc(
 
             pt.x = GET_X_LPARAM(lParam);
             pt.y = GET_Y_LPARAM(lParam);
-            hit = PhpTabNewHitTest(context, pt, NULL);
+            hit = PhTabNewHitTest(context, pt, NULL);
 
             if (hit < 0)
                 break;
 
             if ((wParam & MK_CONTROL) && (context->StyleFlags & TNS_REORDER))
             {
-                PhpTabNewBeginDrag(context, hit, pt);
+                PhTabNewBeginDrag(context, hit, pt);
             }
             else
             {
-                PhpTabNewSetSelection(context, hit, TRUE);
+                PhTabNewSetSelection(context, hit, TRUE);
             }
         }
         break;
@@ -2225,21 +2724,28 @@ static LRESULT CALLBACK PhpTabNewWndProc(
             {
                 BOOLEAN wasActive = !!context->DragActive;
                 LONG startIdx = context->DragSourceIndex;
-                PhpTabNewEndDrag(context, FALSE);
+
+                PhTabNewEndDrag(context, FALSE);
+
                 if (!wasActive && startIdx >= 0)
                 {
                     // Treat as a normal click
-                    PhpTabNewSetSelection(context, startIdx, TRUE);
+                    PhTabNewSetSelection(context, startIdx, TRUE);
                 }
                 break;
             }
 
             if (GetCapture() == WindowHandle)
+            {
                 ReleaseCapture();
+            }
 
-            hit = PhpTabNewHitTest(context, pt, NULL);
+            hit = PhTabNewHitTest(context, pt, NULL);
+
             if (hit >= 0 && (LONG)hit == context->HotIndex)
+            {
                 InvalidateRect(WindowHandle, NULL, FALSE);
+            }
         }
         break;
     case WM_RBUTTONUP:
@@ -2249,279 +2755,49 @@ static LRESULT CALLBACK PhpTabNewWndProc(
 
             pt.x = GET_X_LPARAM(lParam);
             pt.y = GET_Y_LPARAM(lParam);
-            hit = PhpTabNewHitTest(context, pt, NULL);
+            hit = PhTabNewHitTest(context, pt, NULL);
 
-            PhpTabNewSendNotify(context, PHTNN_RCLICK, hit);
+            PhTabNewSendNotify(context, PHTNN_RCLICK, hit);
         }
         break;
     case WM_KEYDOWN:
-        if (wParam == VK_ESCAPE && (context->DragArmed || context->DragActive))
         {
-            PhpTabNewEndDrag(context, TRUE);
+            if (wParam == VK_ESCAPE && (context->DragArmed || context->DragActive))
+            {
+                PhTabNewEndDrag(context, TRUE);
+            }
         }
         break;
     case WM_CAPTURECHANGED:
-        if (context->DragArmed || context->DragActive)
         {
-            PhpTabNewEndDrag(context, TRUE);
+            if (context->DragArmed || context->DragActive)
+            {
+                PhTabNewEndDrag(context, TRUE);
+            }
         }
         break;
     case WM_SETFONT:
-        if (context->Font && wParam) { /* allow override */ }
+        {
+            if (context->Font && wParam) { /* allow override */ }
+        }
         break;
+    }
 
-    // ----- Public messages -----
+    if (WindowMessage >= PHTNM_FIRST && WindowMessage <= PHTNM_LAST)
+        return PhpTabNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
 
-    case PHTNM_INSERTITEM:
-        return (LRESULT)PhpTabNewInsertItem(context, (LONG)wParam, (PPH_TABNEW_INSERTITEM)lParam);
-
-    case PHTNM_DELETEITEM:
-        return (LRESULT)PhpTabNewDeleteItem(context, (LONG)wParam);
-
-    case PHTNM_DELETEALLITEMS:
-        {
-            ULONG i;
-            for (i = 0; i < context->Items->Count; i++)
-                PhpFreeTabNewItem(context->Items->Items[i]);
-            PhClearList(context->Items);
-            context->SelectedIndex = -1;
-            context->HotIndex = -1;
-            context->LayoutDirty = TRUE;
-            PhpTabNewLayout(context);
-            PhpTabNewSendLayoutNotify(context);
-            InvalidateRect(WindowHandle, NULL, TRUE);
-            return TRUE;
-        }
-
-    case PHTNM_GETITEMCOUNT:
-        return (LRESULT)context->Items->Count;
-
-    case PHTNM_SETCURSEL:
-        {
-            LONG oldSel = context->SelectedIndex;
-            PhpTabNewSetSelection(context, (LONG)wParam, TRUE);
-            return (LRESULT)oldSel;
-        }
-
-    case PHTNM_GETCURSEL:
-        return (LRESULT)context->SelectedIndex;
-
-    case PHTNM_SETITEMTEXT:
-        {
-            LONG idx = (LONG)wParam;
-            PWSTR text = (PWSTR)lParam;
-            PPH_TABNEW_INTERNAL_ITEM item;
-            if (idx < 0 || (ULONG)idx >= context->Items->Count) return FALSE;
-            item = context->Items->Items[idx];
-            PhClearReference(&item->Text);
-            if (text) item->Text = PhCreateString(text);
-            context->LayoutDirty = TRUE;
-            PhpTabNewLayout(context);
-            InvalidateRect(WindowHandle, NULL, TRUE);
-            return TRUE;
-        }
-
-    case PHTNM_GETITEMPARAM:
-        {
-            LONG idx = (LONG)wParam;
-            PPH_TABNEW_INTERNAL_ITEM item;
-            if (idx < 0 || (ULONG)idx >= context->Items->Count) return 0;
-            item = context->Items->Items[idx];
-            return (LRESULT)item->Param;
-        }
-
-    case PHTNM_SETITEMPARAM:
-        {
-            LONG idx = (LONG)wParam;
-            PPH_TABNEW_INTERNAL_ITEM item;
-            if (idx < 0 || (ULONG)idx >= context->Items->Count) return FALSE;
-            item = context->Items->Items[idx];
-            item->Param = (LPARAM)lParam;
-            return TRUE;
-        }
-
-    case PHTNM_GETPAGERECT:
-        {
-            PRECT outRect = (PRECT)lParam;
-            if (!outRect) return FALSE;
-            if (context->LayoutDirty) PhpTabNewLayout(context);
-            *outRect = context->CachedPageRect;
-            if (context->ParentHandle)
-                MapWindowPoints(WindowHandle, context->ParentHandle, (POINT *)outRect, 2);
-            return TRUE;
-        }
-
-    case PHTNM_SETSKIN:
-        context->Skin = (PH_TABNEW_SKIN)wParam;
-        PhpTabNewUpdateTheme(context);
-        PhpTabNewUpdateCachedResources(context);
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        PhpTabNewSendLayoutNotify(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
-        return TRUE;
-
-    case PHTNM_GETSKIN:
-        return (LRESULT)context->Skin;
-
-    case PHTNM_SETSIDE:
-        context->Side = (ULONG)wParam & TNS_SIDE_MASK;
-        PhpTabNewUpdateTheme(context);
-        PhpTabNewUpdateCachedResources(context);
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        PhpTabNewSendLayoutNotify(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
-        return TRUE;
-
-    case PHTNM_GETSIDE:
-        return (LRESULT)context->Side;
-
-    case PHTNM_HITTEST:
-        {
-            PPH_TABNEW_HITTESTINFO info = (PPH_TABNEW_HITTESTINFO)lParam;
-            if (!info) return -1;
-            info->ItemIndex = PhpTabNewHitTest(context, info->Point, &info->Flags);
-            return (LRESULT)info->ItemIndex;
-        }
-
-    case PHTNM_MOVEITEM:
-        return (LRESULT)PhpTabNewMoveItem(context, (LONG)wParam, (LONG)lParam, TRUE);
-
-    case PHTNM_SETIMAGELIST:
-        {
-            HIMAGELIST old = context->ImageList;
-            context->ImageList = (HIMAGELIST)wParam;
-            context->LayoutDirty = TRUE;
-            PhpTabNewLayout(context);
-            InvalidateRect(WindowHandle, NULL, TRUE);
-            return (LRESULT)old;
-        }
-
-    case PHTNM_GETIMAGELIST:
-        return (LRESULT)context->ImageList;
-
-    case PHTNM_SETPADDING:
-        context->BasePaddingX = (LONG)wParam;
-        context->BasePaddingY = (LONG)lParam;
-        PhpTabNewUpdateMetrics(context);
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
-        return TRUE;
-
-    case PHTNM_SETMINTABWIDTH:
-        context->BaseMinTabWidth = (LONG)wParam;
-        PhpTabNewUpdateMetrics(context);
-        context->LayoutDirty = TRUE;
-        PhpTabNewLayout(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
-        return TRUE;
-
-    case PHTNM_GETROWCOUNT:
-        return (LRESULT)context->RowCount;
-
-    case PHTNM_INVALIDATEITEM:
-        {
-            LONG idx = (LONG)wParam;
-            PPH_TABNEW_INTERNAL_ITEM item;
-            RECT itemRect;
-            if (idx < 0 || (ULONG)idx >= context->Items->Count) return 0;
-            item = context->Items->Items[idx];
-            PhpTabNewGetItemRectInClient(context, item, &itemRect);
-            InvalidateRect(WindowHandle, &itemRect, FALSE);
-            return 0;
-        }
-
-    case PHTNM_SETTHEMEDARK:
-        context->ThemeDark = !!wParam;
-        PhpTabNewUpdateCachedResources(context);
-        InvalidateRect(WindowHandle, NULL, TRUE);
-        return 0;
-
-    case PHTNM_SETCALLBACK:
-        context->Callback = (PPH_TABNEW_MESSAGE_CALLBACK)wParam;
-        context->Context = (PVOID)lParam;
-        return TRUE;
-
-    // -------- stock TCM_* drop-in compatibility (subset) --------
+    switch (WindowMessage)
+    {
     case TCM_GETCURSEL:
-        return (LRESULT)context->SelectedIndex;
     case TCM_SETCURSEL:
-        {
-            LONG old = context->SelectedIndex;
-            PhpTabNewSetSelection(context, (LONG)wParam, FALSE);
-            return (LRESULT)old;
-        }
     case TCM_GETITEMCOUNT:
-        return (LRESULT)context->Items->Count;
     case TCM_DELETEITEM:
-        return (LRESULT)PhpTabNewDeleteItem(context, (LONG)wParam);
     case TCM_DELETEALLITEMS:
-        {
-            ULONG i;
-            for (i = 0; i < context->Items->Count; i++)
-                PhpFreeTabNewItem(context->Items->Items[i]);
-            PhClearList(context->Items);
-            context->SelectedIndex = -1;
-            context->HotIndex = -1;
-            context->LayoutDirty = TRUE;
-            PhpTabNewLayout(context);
-            PhpTabNewSendLayoutNotify(context);
-            InvalidateRect(WindowHandle, NULL, TRUE);
-            return TRUE;
-        }
     case TCM_INSERTITEMW:
-        {
-            TCITEMW *tci = (TCITEMW *)lParam;
-
-            PH_TABNEW_INSERTITEM ins;
-            ins.Text = (tci && (tci->mask & TCIF_TEXT)) ? tci->pszText : L"";
-            ins.ImageIndex = (tci && (tci->mask & TCIF_IMAGE)) ? tci->iImage : -1;
-            ins.Param = (tci && (tci->mask & TCIF_PARAM)) ? tci->lParam : 0;
-            return (LRESULT)PhpTabNewInsertItem(context, (LONG)wParam, &ins);
-        }
     case TCM_ADJUSTRECT:
-        {
-            PRECT rc = (PRECT)lParam;
-
-            if (!rc) return 0;
-            if (context->LayoutDirty) PhpTabNewLayout(context);
-            // wParam: TRUE=add tab padding to display->window; FALSE=subtract
-            if ((BOOL)wParam)
-            {
-                switch (context->Side)
-                {
-                case TNS_TOP:    rc->top -= (LONG)context->StripThickness; break;
-                case TNS_BOTTOM: rc->bottom += (LONG)context->StripThickness; break;
-                case TNS_LEFT:   rc->left -= (LONG)context->StripThickness; break;
-                case TNS_RIGHT:  rc->right += (LONG)context->StripThickness; break;
-                }
-            }
-            else
-            {
-                switch (context->Side)
-                {
-                case TNS_TOP:    rc->top += (LONG)context->StripThickness; break;
-                case TNS_BOTTOM: rc->bottom -= (LONG)context->StripThickness; break;
-                case TNS_LEFT:   rc->left += (LONG)context->StripThickness; break;
-                case TNS_RIGHT:  rc->right -= (LONG)context->StripThickness; break;
-                }
-            }
-            return 0;
-        }
     case TCM_GETITEMRECT:
-        {
-            LONG idx = (LONG)wParam;
-            PRECT rc = (PRECT)lParam;
-            PPH_TABNEW_INTERNAL_ITEM item;
-            if (!rc || idx < 0 || (ULONG)idx >= context->Items->Count) return FALSE;
-            item = context->Items->Items[idx];
-            PhpTabNewGetItemRectInClient(context, item, rc);
-            return TRUE;
-        }
     case TCM_GETROWCOUNT:
-        return (LRESULT)context->RowCount;
+        return PhpTabNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
     }
 
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);

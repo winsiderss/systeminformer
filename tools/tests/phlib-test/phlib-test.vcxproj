@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\phnt\include;$(SolutionDir)..\..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_CONSOLE;DEBUG;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>
@@ -132,7 +132,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\phnt\include;$(SolutionDir)..\..\..\phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_PHLIB_;_CONSOLE;WIN32;NDEBUG;%(PreprocessorDefinitions);</PreprocessorDefinitions>
     </ClCompile>
     <Link>

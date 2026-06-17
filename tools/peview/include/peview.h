@@ -635,6 +635,16 @@ INT_PTR CALLBACK PvPeResourcesDlgProc(
     _In_ LPARAM lParam
     );
 
+PPH_STRING PvpGetResourceTypeString(
+    _In_ ULONG_PTR Type
+    );
+
+VOID PvShowResourceViewerDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG ResourceOffset
+    );
+
 INT_PTR CALLBACK PvPeAppManifestDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

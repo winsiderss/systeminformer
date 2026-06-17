@@ -247,6 +247,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerPairSetting(SETTING_SEGMENT_LOCKS_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_SEGMENT_LOCKS_WINDOW_SIZE, L"@96|450,500");
     PhpAddIntegerPairSetting(SETTING_SERVICE_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_SERVICE_WINDOW_SIZE, L"@96|420,500");
     PhpAddStringSetting(SETTING_SERVICE_LIST_VIEW_COLUMNS, L"");
     PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_COLUMNS, L"");
     PhpAddStringSetting(SETTING_SERVICE_TREE_LIST_SORT, L"0,1"); // 0, AscendingSortOrder

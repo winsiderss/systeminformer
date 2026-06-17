@@ -439,6 +439,7 @@ namespace CustomBuildTool
                 "README.txt",
                 "COPYRIGHT.txt",
                 "LICENSE.txt",
+                "settings.schema.json",
             ];
 
             string baseDirectory = GetBuildBaseDirectory(Flags);
