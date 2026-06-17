@@ -90,6 +90,7 @@ set(SOURCES_PAGES_WINDOWS
     "previewprp.c"
     "processes.c"
     "resprp.c"
+    "resviewer.c"
     "richprp.c"
     "secprp.c"
     "tlsprp.c"
