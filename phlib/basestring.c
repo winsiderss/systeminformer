@@ -5713,6 +5713,108 @@ BOOLEAN PhStringFuzzyMatch(
 }
 
 /**
+ * Finds the first character in a buffer that matches any of a small set of characters.
+ *
+ * \param Buffer The buffer to scan.
+ * \param Length The number of characters in \a Buffer.
+ * \param Chars The set of characters to search for.
+ * \param Count The number of characters in \a Chars.
+ * \return The index of the first matching character, or \a Length if none match.
+ */
+SIZE_T PhFindFirstOfCharsW(
+    _In_reads_(Length) PCWCH Buffer,
+    _In_ SIZE_T Length,
+    _In_reads_(Count) PCWCH Chars,
+    _In_ ULONG Count
+    )
+{
+    SIZE_T i = 0;
+
+    if (Count == 0)
+        return Length;
+
+#ifndef _ARM64_
+    // The vectorized paths OR one equality compare per needle. They are gated on
+    // a small needle count (callers pass <= 4 typically); larger sets fall back
+    // to the scalar scan.
+    if (PhHasAVX && Count <= 8)
+    {
+        __m256i needles[8];
+        ULONG c;
+
+        for (c = 0; c < Count; c++)
+            needles[c] = _mm256_set1_epi16((SHORT)Chars[c]);
+
+        while (i + 16 <= Length)
+        {
+            __m256i v = _mm256_loadu_si256((__m256i const*)&Buffer[i]);
+            __m256i match = _mm256_cmpeq_epi16(v, needles[0]);
+            ULONG mask;
+
+            for (c = 1; c < Count; c++)
+                match = _mm256_or_si256(match, _mm256_cmpeq_epi16(v, needles[c]));
+
+            mask = (ULONG)_mm256_movemask_epi8(match);
+
+            if (mask != 0)
+            {
+                ULONG index;
+
+                _BitScanForward(&index, mask);
+                _mm256_zeroupper();
+                return i + index / sizeof(WCHAR);
+            }
+
+            i += 16;
+        }
+
+        _mm256_zeroupper();
+    }
+    else if (PhHasIntrinsics && Count <= 8)
+    {
+        __m128i needles[8];
+        ULONG c;
+
+        for (c = 0; c < Count; c++)
+            needles[c] = _mm_set1_epi16((SHORT)Chars[c]);
+
+        while (i + 8 <= Length)
+        {
+            __m128i v = _mm_loadu_si128((__m128i const*)&Buffer[i]);
+            __m128i match = _mm_cmpeq_epi16(v, needles[0]);
+            ULONG mask;
+
+            for (c = 1; c < Count; c++)
+                match = _mm_or_si128(match, _mm_cmpeq_epi16(v, needles[c]));
+
+            mask = (ULONG)_mm_movemask_epi8(match);
+
+            if (mask != 0)
+            {
+                ULONG index;
+
+                _BitScanForward(&index, mask);
+                return i + index / sizeof(WCHAR);
+            }
+
+            i += 8;
+        }
+    }
+#endif
+
+    for (; i < Length; i++)
+    {
+        for (ULONG c = 0; c < Count; c++)
+        {
+            if (Buffer[i] == Chars[c])
+                return i;
+        }
+    }
+
+    return Length;
+}
+
+/**
  * Validate the string does not contain control or formatting content.
  *
  * Returns FALSE if the string is NULL, empty, all whitespace, or contains
