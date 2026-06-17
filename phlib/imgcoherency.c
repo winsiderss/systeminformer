@@ -577,7 +577,7 @@ VOID PhpAnalyzeImageCoherencyCommonByRva(
     BYTE buffer[PAGE_SIZE];
     ULONG remainingBytes;
     ULONG chunk;
-    PBYTE fileBytes;
+    PBYTE fileBytes = 0;
     SIZE_T bytesRead;
     SIZE_T remainingView;
     SIZE_T bytes;
