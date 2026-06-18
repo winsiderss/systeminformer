@@ -17,7 +17,7 @@ TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
-INT SelectedTabIndex = 0;
+LONG SelectedTabIndex = 0;
 ULONG MaxInitializationDelay = 3;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
@@ -754,11 +754,9 @@ VOID SetSearchFocus(
         {
             if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
             {
-                LONG dpiValue = SystemInformer_GetWindowDpi();
-
                 if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                 {
-                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhScaleToDisplay(180, dpiValue), 22);
+                    SearchBoxUpdateRebarBand();
                 }
 
                 if (!IsWindowVisible(SearchboxHandle))
@@ -795,7 +793,7 @@ VOID ToggleSearchFocus(
 
 LRESULT CALLBACK MainWindowCallbackProc(
     _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
+    _In_ ULONG WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
@@ -871,7 +869,6 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             {
                                 SystemInformer_SelectTabPage(0);
                                 SystemInformer_SelectProcessNode(node);
-                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             RestoreSearchSelectedProcessId = ULONG_MAX;

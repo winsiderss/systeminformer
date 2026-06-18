@@ -452,7 +452,7 @@ VOID ToolStatusApplyMainMenuVisibility(
     _In_ HWND WindowHandle
     );
 
-_Function_class_(PH_SEARCHNEW_CALLBACK)
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context
