@@ -48,7 +48,7 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 231, 175
+IDD_OPTIONS DIALOGEX 0, 0, 231, 197
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -63,12 +63,16 @@ BEGIN
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,102,210,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,14,192,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Select the graph to show on the taskbar:",IDC_STATIC,14,181,132,8
+    COMBOBOX        IDC_CURRENT,14,165,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select the graph to show on the taskbar:",IDC_STATIC,14,154,132,8
     CONTROL         "Enable large toolbar icons",IDC_ENABLE_LARGETOOLBARICON,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,102,98,10
-    GROUPBOX        "Toolbar configuration",IDC_STATIC,7,29,217,88
-    GROUPBOX        "Taskbar configuration",IDC_STATIC,7,119,217,45
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,114,98,10
+    CONTROL         "Use screen overlay when finding windows",IDC_FINDWINDOW_OVERLAY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,126,180,10
+    CONTROL         "Use snapshot picker when finding windows",IDC_FINDWINDOW_SNAPSHOT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,138,180,10
+    GROUPBOX        "Toolbar configuration",IDC_STATIC,7,29,217,122
+    GROUPBOX        "Taskbar configuration",IDC_STATIC,7,151,217,45
 END
 
 IDD_CUSTOMIZE_TB DIALOGEX 0, 0, 369, 188
@@ -126,7 +130,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 224
         TOPMARGIN, 7
-        BOTTOMMARGIN, 140
+        BOTTOMMARGIN, 217
     END
 
     IDD_CUSTOMIZE_TB, DIALOG

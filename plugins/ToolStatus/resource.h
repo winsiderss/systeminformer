@@ -52,9 +52,10 @@
 #define IDC_MOVEDOWN                    1012
 #define IDC_RESET                       1014
 #define IDC_ENABLE_AUTOHIDE_MENU        1015
-#define IDC_ENABLE_AUTOCOMPLETE         1016
 #define IDC_ENABLE_AUTOFOCUS_SEARCH     1017
 #define IDC_ENABLE_MENUBAR              1018
+#define IDC_FINDWINDOW_OVERLAY          1020
+#define IDC_FINDWINDOW_SNAPSHOT         1021
 #define ID_FIND                         40010
 #define ID_SEARCH                       40011
 #define ID_SEARCH_TAB                   40012
@@ -65,7 +66,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         40012
-#define _APS_NEXT_CONTROL_VALUE         1017
+#define _APS_NEXT_CONTROL_VALUE         1022
 #define _APS_NEXT_SYMED_VALUE           11010
 #endif
 #endif

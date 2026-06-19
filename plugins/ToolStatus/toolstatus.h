@@ -135,7 +135,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG Reserved : 3;
         ULONG SearchAutoFocus : 1;
         ULONG ToolBarLargeIcons : 1;
-        ULONG Spare : 19;
+        ULONG FindWindowOverlayHighlight : 1;
+        ULONG FindWindowSnapshot : 1;
+        ULONG Spare : 15;
     };
 } TOOLSTATUS_CONFIG;
 

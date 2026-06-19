@@ -314,10 +314,11 @@ VOID SearchBoxCreate(
     ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
     NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-    SearchboxHandle = PhCreateWindow(
+    SearchboxHandle = PhCreateWindowEx(
         WC_EDIT,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | ES_LEFT | ES_AUTOHSCROLL,
+        WS_EX_CLIENTEDGE,
         0, 0, 0, 0,
         MainWindowHandle,
         NULL,

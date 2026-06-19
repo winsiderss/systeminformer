@@ -1144,16 +1144,20 @@ HWND PhSelectWindowFromScreenSnapshot(
     return selectedWindow;
 }
 
-typedef struct _PH_WINDOW_TARGETING_CONTEXT
+struct _PH_WINDOW_TARGETING_CONTEXT
 {
     HWND OwnerWindowHandle;
     HWND OverlayWindowHandle;
     HWND TargetWindowHandle;
     RECT OverlayBounds;
     RECT TargetRect;
+    PPH_WINDOW_TARGETING_CALLBACK Callback;
+    PVOID CallbackContext;
+    BOOLEAN OwnerWindowTopMost;
     BOOLEAN OverlayHighlight;
+    BOOLEAN TargetWindowDraw;
     BOOLEAN Completed;
-} PH_WINDOW_TARGETING_CONTEXT, *PPH_WINDOW_TARGETING_CONTEXT;
+};
 
 #define PH_WINDOW_TARGETING_OVERLAY_CLASS L"PhWindowTargetingOverlayWindow"
 
@@ -1394,7 +1398,184 @@ static VOID PhDrawWindowBorderForTargeting(
         ReleaseDC(WindowHandle, hdc);
     }
 }
+static VOID PhEndWindowTargetingVisuals(
+    _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context
+    )
+{
+    if (Context->OverlayHighlight)
+    {
+        if (Context->OverlayWindowHandle)
+            ShowWindow(Context->OverlayWindowHandle, SW_HIDE);
+    }
+    else if (Context->TargetWindowHandle && Context->TargetWindowDraw)
+    {
+        PhDrawWindowBorderForTargeting(Context->TargetWindowHandle);
+    }
 
+    Context->TargetWindowDraw = FALSE;
+    memset(&Context->TargetRect, 0, sizeof(RECT));
+}
+
+static VOID PhUpdateWindowTargetingVisuals(
+    _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context,
+    _In_opt_ HWND TargetWindowHandle
+    )
+{
+    if (Context->OverlayHighlight)
+    {
+        PhUpdateWindowTargetingOverlay(Context, TargetWindowHandle);
+        Context->TargetWindowDraw = !!TargetWindowHandle;
+    }
+    else if (TargetWindowHandle)
+    {
+        PhDrawWindowBorderForTargeting(TargetWindowHandle);
+        Context->TargetWindowDraw = TRUE;
+    }
+    else
+    {
+        Context->TargetWindowDraw = FALSE;
+    }
+}
+
+static VOID PhRestoreWindowTargetingOwner(
+    _In_ PPH_WINDOW_TARGETING_CONTEXT Context
+    )
+{
+    if (Context->OwnerWindowHandle && Context->OwnerWindowHandle != GetDesktopWindow())
+    {
+        SetWindowPos(
+            Context->OwnerWindowHandle,
+            Context->OwnerWindowTopMost ? HWND_TOPMOST : HWND_TOP,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+            );
+    }
+}
+
+PPH_WINDOW_TARGETING_CONTEXT PhCreateWindowTargeting(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_ BOOLEAN OverlayHighlight,
+    _In_opt_ PPH_WINDOW_TARGETING_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_WINDOW_TARGETING_CONTEXT targetingContext;
+
+    targetingContext = (PPH_WINDOW_TARGETING_CONTEXT)PhAllocate(sizeof(PH_WINDOW_TARGETING_CONTEXT));
+    memset(targetingContext, 0, sizeof(PH_WINDOW_TARGETING_CONTEXT));
+
+    targetingContext->OwnerWindowHandle = OwnerWindowHandle ? OwnerWindowHandle : GetDesktopWindow();
+    targetingContext->OwnerWindowTopMost = !!(PhGetWindowStyleEx(targetingContext->OwnerWindowHandle) & WS_EX_TOPMOST);
+    targetingContext->OverlayHighlight = OverlayHighlight;
+    targetingContext->Callback = Callback;
+    targetingContext->CallbackContext = Context;
+
+    SetCapture(targetingContext->OwnerWindowHandle);
+    PhSetCursor(PhLoadCursor(nullptr, IDC_CROSS));
+
+    if (OwnerWindowHandle)
+    {
+        SetWindowPos(
+            OwnerWindowHandle,
+            HWND_BOTTOM,
+            0,
+            0,
+            0,
+            0,
+            SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE
+            );
+    }
+
+    if (OverlayHighlight)
+        PhUpdateWindowTargetingOverlay(targetingContext, nullptr);
+
+    return targetingContext;
+}
+
+PH_WINDOW_TARGETING_RESULT PhProcessWindowTargetingMessage(
+    _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context,
+    _In_ UINT WindowMessage,
+    _Out_opt_ HWND* TargetWindowHandle
+    )
+{
+    if (TargetWindowHandle)
+        *TargetWindowHandle = nullptr;
+
+    switch (WindowMessage)
+    {
+    case WM_MOUSEMOVE:
+        {
+            POINT cursorPos;
+            HWND windowHandle;
+
+            if (!PhGetMessagePos(&cursorPos))
+                break;
+
+            if (Context->OverlayHighlight)
+                PhHideWindowTargetingOverlayForHitTest(Context);
+
+            windowHandle = WindowFromPoint(cursorPos);
+
+            if (windowHandle && Context->Callback && !Context->Callback(windowHandle, Context->CallbackContext))
+                windowHandle = nullptr;
+
+            if (Context->TargetWindowHandle != windowHandle)
+            {
+                PhEndWindowTargetingVisuals(Context);
+                Context->TargetWindowHandle = windowHandle;
+                PhUpdateWindowTargetingVisuals(Context, windowHandle);
+            }
+            else if (Context->OverlayHighlight)
+            {
+                PhUpdateWindowTargetingVisuals(Context, windowHandle);
+            }
+        }
+        break;
+    case WM_LBUTTONUP:
+        Context->Completed = TRUE;
+        PhSetCursor(PhLoadCursor(nullptr, IDC_ARROW));
+        PhRestoreWindowTargetingOwner(Context);
+        ReleaseCapture();
+        PhEndWindowTargetingVisuals(Context);
+
+        if (TargetWindowHandle)
+            *TargetWindowHandle = Context->TargetWindowHandle;
+
+        return PhWindowTargetingCompleted;
+    case WM_CAPTURECHANGED:
+        if (!Context->Completed)
+        {
+            Context->Completed = TRUE;
+            Context->TargetWindowHandle = nullptr;
+            PhEndWindowTargetingVisuals(Context);
+            PhRestoreWindowTargetingOwner(Context);
+            return PhWindowTargetingCancelled;
+        }
+        break;
+    }
+
+    return PhWindowTargetingContinue;
+}
+
+VOID PhDestroyWindowTargeting(
+    _In_opt_ PPH_WINDOW_TARGETING_CONTEXT Context
+    )
+{
+    if (!Context)
+        return;
+
+    PhEndWindowTargetingVisuals(Context);
+    PhDestroyWindowTargetingOverlay(Context);
+
+    if (GetCapture() == Context->OwnerWindowHandle)
+        ReleaseCapture();
+
+    PhRestoreWindowTargetingOwner(Context);
+    PhFree(Context);
+}
 HWND PhSelectWindowFromScreenTargeting(
     _In_opt_ HWND OwnerWindowHandle,
     _In_ BOOLEAN OverlayHighlight

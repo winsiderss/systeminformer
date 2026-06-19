@@ -53,10 +53,7 @@ PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
 PPH_PLUGIN PluginInstance = NULL;
 
 static ULONG TargetingMode = 0;
-static BOOLEAN TargetingWindow = FALSE;
-static BOOLEAN TargetingCurrentWindowDraw = FALSE;
-static BOOLEAN TargetingCompleted = FALSE;
-static HWND TargetingCurrentWindow = NULL;
+static PPH_WINDOW_TARGETING_CONTEXT TargetingContext = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
@@ -735,51 +732,95 @@ BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-VOID DrawWindowBorderForTargeting(
-    _In_ HWND hWnd
+static BOOLEAN NTAPI ToolStatusTargetingCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
     )
 {
-    RECT rect;
-    HDC hdc;
-    LONG dpiValue;
+    UNREFERENCED_PARAMETER(Context);
 
-    if (!PhGetWindowRect(hWnd, &rect))
-        return;
-
-    hdc = GetWindowDC(hWnd);
-
-    if (hdc)
-    {
-        LONG penWidth;
-        LONG oldDc;
-        HPEN pen;
-        HBRUSH brush;
-
-        dpiValue = PhGetWindowDpi(hWnd);
-        penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
-
-        oldDc = SaveDC(hdc);
-
-        // Get an inversion effect.
-        SetROP2(hdc, R2_NOT);
-
-        pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
-        SelectPen(hdc, pen);
-
-        brush = PhGetStockBrush(NULL_BRUSH);
-        SelectBrush(hdc, brush);
-
-        // Draw the rectangle.
-        Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
-
-        // Cleanup.
-        DeletePen(pen);
-
-        RestoreDC(hdc, oldDc);
-        ReleaseDC(hWnd, hdc);
-    }
+    return ToolStatusIsValidTargetWindow(WindowHandle, NULL);
 }
 
+static VOID ToolStatusHandleTargetingResult(
+    _In_ HWND WindowHandle,
+    _In_opt_ HWND TargetWindow,
+    _In_ ULONG TargetMode
+    )
+{
+    CLIENT_ID clientId;
+
+    if (!TargetWindow)
+        return;
+
+    if (ToolStatusConfig.ResolveGhostWindows)
+    {
+        HWND hungWindow = PhHungWindowFromGhostWindow(TargetWindow);
+
+        if (hungWindow)
+            TargetWindow = hungWindow;
+    }
+
+    if (ToolStatusIsValidTargetWindow(TargetWindow, &clientId))
+    {
+        PPH_PROCESS_NODE processNode;
+
+        if (SearchboxHandle)
+        {
+            // Clear search filters before selecting the process or the
+            // selected node won't be visible if it's filtered out. (dmex)
+            PhSearchControlClear(SearchboxHandle);
+        }
+
+        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
+        {
+            SystemInformer_SelectTabPage(0);
+            //SystemInformer_ToggleVisible(FALSE);
+            SystemInformer_SelectProcessNode(processNode);
+        }
+
+        switch (TargetMode)
+        {
+        case TIDC_FINDWINDOWTHREAD:
+            {
+                PPH_PROCESS_PROPCONTEXT propContext;
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
+                {
+                    if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
+                    {
+                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
+                        PhShowProcessProperties(propContext);
+                        PhDereferenceObject(propContext);
+                    }
+
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
+                }
+            }
+            break;
+        case TIDC_FINDWINDOWKILL:
+            {
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
+                {
+                    PhUiTerminateProcesses(WindowHandle, &processItem, 1);
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
+                }
+            }
+            break;
+        }
+    }
+}
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -900,6 +941,14 @@ LRESULT CALLBACK MainWindowCallbackProc(
         {
             TaskbarMainWndExiting = TRUE;
 
+            if (TargetingContext)
+            {
+                PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
+
+                TargetingContext = NULL;
+                PhDestroyWindowTargeting(targetingContext);
+            }
+
             SystemInformer_SetWindowProcedure(MainWindowHookProc);
             PhSetWindowProcedure(WindowHandle, MainWindowHookProc);
         }
@@ -981,11 +1030,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 {
                     // If we're targeting and the user presses the Esc key, cancel the targeting.
                     // We also make sure the window doesn't get closed, by filtering out the message.
-                    if (TargetingWindow)
+                    if (TargetingContext)
                     {
-                        TargetingWindow = FALSE;
                         ReleaseCapture();
-
                         goto DefaultWndProc;
                     }
 
@@ -1350,22 +1397,23 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                         if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
                         {
-                            // Direct all mouse events to this window.
-                            SetCapture(WindowHandle);
-
-                            // Set the cursor.
-                            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
-
-                            // Send the window to the bottom.
-                            SetWindowPos(WindowHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                            TargetingWindow = TRUE;
-                            TargetingCurrentWindow = NULL;
-                            TargetingCurrentWindowDraw = FALSE;
-                            TargetingCompleted = FALSE;
                             TargetingMode = id;
 
-                            SendMessage(WindowHandle, WM_MOUSEMOVE, 0, 0);
+                            if (ToolStatusConfig.FindWindowSnapshot)
+                            {
+                                HWND targetWindow = PhSelectWindowFromScreenSnapshot();
+
+                                ToolStatusHandleTargetingResult(WindowHandle, targetWindow, TargetingMode);
+                            }
+                            else if (!TargetingContext)
+                            {
+                                TargetingContext = PhCreateWindowTargeting(
+                                    WindowHandle,
+                                    !!ToolStatusConfig.FindWindowOverlayHighlight,
+                                    ToolStatusTargetingCallback,
+                                    NULL
+                                    );
+                            }
                         }
                     }
                     break;
@@ -1448,147 +1496,26 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_MOUSEMOVE:
         {
-            if (TargetingWindow)
+            if (TargetingContext)
             {
-                POINT cursorPos;
-                HWND windowOverMouse;
-                CLIENT_ID clientId;
-
-                if (!PhGetMessagePos(&cursorPos))
-                    break;
-
-                windowOverMouse = WindowFromPoint(cursorPos);
-
-                if (TargetingCurrentWindow != windowOverMouse)
-                {
-                    if (TargetingCurrentWindow && TargetingCurrentWindowDraw)
-                    {
-                        // Invert the old border (to remove it).
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
-
-                    if (windowOverMouse)
-                    {
-                        // Draw a rectangle over the current window (but not if it's one of our own).
-                        if (
-                            NT_SUCCESS(PhGetWindowClientId(windowOverMouse, &clientId)) &&
-                            clientId.UniqueProcess != NtCurrentProcessId()
-                            )
-                        {
-                            DrawWindowBorderForTargeting(windowOverMouse);
-                            TargetingCurrentWindowDraw = TRUE;
-                        }
-                        else
-                        {
-                            TargetingCurrentWindowDraw = FALSE;
-                        }
-                    }
-
-                    TargetingCurrentWindow = windowOverMouse;
-                }
-
+                PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, NULL);
                 goto DefaultWndProc;
             }
         }
         break;
     case WM_LBUTTONUP:
         {
-            if (TargetingWindow)
+            if (TargetingContext)
             {
-                CLIENT_ID clientId;
+                HWND targetWindow;
 
-                TargetingCompleted = TRUE;
-
-                // Reset the original cursor.
-                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
-
-                // Bring the window back to the top, and preserve the Always on Top setting.
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
-                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                TargetingWindow = FALSE;
-                ReleaseCapture();
-
-                if (TargetingCurrentWindow)
+                if (PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, &targetWindow) == PhWindowTargetingCompleted)
                 {
-                    if (TargetingCurrentWindowDraw)
-                    {
-                        // Remove the border on the window we found.
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
+                    PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
 
-                    if (ToolStatusConfig.ResolveGhostWindows)
-                    {
-                        HWND hungWindow = PhHungWindowFromGhostWindow(TargetingCurrentWindow);
-
-                        if (hungWindow)
-                        {
-                            TargetingCurrentWindow = hungWindow;
-                        }
-                    }
-
-                    if (
-                        NT_SUCCESS(PhGetWindowClientId(TargetingCurrentWindow, &clientId)) &&
-                        clientId.UniqueProcess != NtCurrentProcessId()
-                        )
-                    {
-                        PPH_PROCESS_NODE processNode;
-
-                        if (SearchboxHandle)
-                        {
-                            // Clear search filters before selecting the process or the
-                            // selected node won't be visible if it's filtered out. (dmex)
-                            PhSearchControlClear(SearchboxHandle);
-                        }
-
-                        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
-                        {
-                            SystemInformer_SelectTabPage(0);
-                            //SystemInformer_ToggleVisible(FALSE);
-                            SystemInformer_SelectProcessNode(processNode);
-                        }
-
-                        switch (TargetingMode)
-                        {
-                        case TIDC_FINDWINDOWTHREAD:
-                            {
-                                PPH_PROCESS_PROPCONTEXT propContext;
-                                PPH_PROCESS_ITEM processItem;
-
-                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
-                                {
-                                    if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
-                                    {
-                                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
-                                        PhShowProcessProperties(propContext);
-                                        PhDereferenceObject(propContext);
-                                    }
-
-                                    PhDereferenceObject(processItem);
-                                }
-                                else
-                                {
-                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
-                                }
-                            }
-                            break;
-                        case TIDC_FINDWINDOWKILL:
-                            {
-                                PPH_PROCESS_ITEM processItem;
-
-                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
-                                {
-                                    PhUiTerminateProcesses(WindowHandle, &processItem, 1);
-                                    PhDereferenceObject(processItem);
-                                }
-                                else
-                                {
-                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
-                                }
-                            }
-                            break;
-                        }
-                    }
+                    TargetingContext = NULL;
+                    PhDestroyWindowTargeting(targetingContext);
+                    ToolStatusHandleTargetingResult(WindowHandle, targetWindow, TargetingMode);
                 }
 
                 goto DefaultWndProc;
@@ -1597,26 +1524,13 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_CAPTURECHANGED:
         {
-            if (!TargetingCompleted)
+            if (TargetingContext &&
+                PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, NULL) == PhWindowTargetingCancelled)
             {
-                // The user cancelled the targeting, probably by pressing the Esc key.
+                PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
 
-                TargetingCompleted = TRUE;
-
-                // Remove the border on the currently selected window.
-                if (TargetingCurrentWindow)
-                {
-                    if (TargetingCurrentWindowDraw)
-                    {
-                        // Remove the border on the window we found.
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
-                }
-
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
-                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                TargetingWindow = FALSE;
+                TargetingContext = NULL;
+                PhDestroyWindowTargeting(targetingContext);
             }
         }
         break;
