@@ -29,7 +29,6 @@ static_assert(sizeof(HSTRING_REFERENCE) == sizeof(WSTRING_HEADER), "HSTRING_REFE
  * Creates a string from a Windows Runtime string.
  *
  * \param String The Windows Runtime string.
- *
  * \return A pointer to the created string.
  */
 PPH_STRING PhCreateStringFromWindowsRuntimeString(
@@ -65,7 +64,6 @@ PPH_STRING PhCreateStringFromWindowsRuntimeString(
  *
  * \param SourceString A null-terminated string to use as the source for the new string.
  * \param String A pointer to the newly created string.
- *
  * \return Successful or errant status.
  */
 HRESULT PhCreateWindowsRuntimeStringReference(
@@ -100,7 +98,6 @@ HRESULT PhCreateWindowsRuntimeStringReference(
  * \param SourceString A null-terminated string to use as the source for the new string.
  * \param Length The count of characters for the string.
  * \param String A pointer to the newly created string.
- *
  * \return Successful or errant status.
  */
 HRESULT PhCreateWindowsRuntimeStringReferenceEx(
@@ -135,7 +132,6 @@ HRESULT PhCreateWindowsRuntimeStringReferenceEx(
  *
  * \param SourceString A null-terminated string to use as the source for the new string.
  * \param String A pointer to the newly created string.
- *
  * \return Successful or errant status.
  */
 HRESULT PhCreateWindowsRuntimeString(
@@ -181,7 +177,7 @@ HRESULT PhCreateWindowsRuntimeString(
 
 // rev from WindowsDeleteString (dmex)
 /**
- * \brief Decrements the reference count of a string.
+ * Decrements the reference count of a string.
  *
  * \param String The string to be deleted.
  */
@@ -213,7 +209,6 @@ VOID PhDeleteWindowsRuntimeString(
  * \brief Gets the length, in Unicode characters, of the specified string.
  *
  * \param String The string to be counted.
- *
  * \return Successful or errant status.
  */
 ULONG PhGetWindowsRuntimeStringLength(
@@ -240,7 +235,6 @@ ULONG PhGetWindowsRuntimeStringLength(
  *
  * \param String An optional string for which the backing buffer is to be retrieved. Can be NULL.
  * \param Length The number of Unicode characters in the backing buffer for String (including embedded null characters, but excluding the terminating null).
- *
  * \return A pointer to the buffer that provides the backing store for string, or the empty string if string is NULL or the empty string.
  */
 PCWSTR PhGetWindowsRuntimeStringBuffer(
@@ -1330,6 +1324,351 @@ VOID PhDestroyEnumPackageApplicationUserModelIds(
     }
 
     PhDereferenceObject(PackageList);
+}
+
+#pragma endregion
+
+#pragma region IAsyncInfo
+
+#include <asyncinfo.h>
+
+typedef struct _PH_ASYNC_COMPLETED_HANDLER PH_ASYNC_COMPLETED_HANDLER, *PPH_ASYNC_COMPLETED_HANDLER;
+typedef struct _PH_IASYNC_OPERATION PH_IASYNC_OPERATION, *PPH_IASYNC_OPERATION;
+typedef struct _PH_IASYNC_OPERATION_WITH_PROGRESS PH_IASYNC_OPERATION_WITH_PROGRESS, *PPH_IASYNC_OPERATION_WITH_PROGRESS;
+
+//
+// Generic handler for the Windows Runtime parameterized delegates
+// IAsyncOperationCompletedHandler<TResult> and IAsyncOperationWithProgressCompletedHandler<TResult, TProgress>.
+// Both share an identical vtable layout (IUnknown + Invoke), so a single implementation serves
+// either operation type at the ABI level. The handler records the final
+// AsyncStatus and signals an event the awaiting thread blocks on, replacing the
+// busy-polling of IAsyncInfo::get_Status. (dmex)
+//
+
+typedef struct _PH_ASYNC_COMPLETED_HANDLER_VTBL
+{
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        _In_ PPH_ASYNC_COMPLETED_HANDLER This,
+        _In_ REFIID Riid,
+        _Outptr_ PVOID *Object
+        );
+    ULONG (STDMETHODCALLTYPE *AddRef)(
+        _In_ PPH_ASYNC_COMPLETED_HANDLER This
+        );
+    ULONG (STDMETHODCALLTYPE *Release)(
+        _In_ PPH_ASYNC_COMPLETED_HANDLER This
+        );
+    HRESULT (STDMETHODCALLTYPE *Invoke)(
+        _In_ PPH_ASYNC_COMPLETED_HANDLER This,
+        _In_ PVOID AsyncInfo,
+        _In_ AsyncStatus Status
+        );
+} PH_ASYNC_COMPLETED_HANDLER_VTBL;
+
+typedef struct _PH_ASYNC_COMPLETED_HANDLER
+{
+    const PH_ASYNC_COMPLETED_HANDLER_VTBL *lpVtbl;
+    LONG RefCount;
+    HANDLE EventHandle;
+    AsyncStatus Status;
+    IID InterfaceId;
+} PH_ASYNC_COMPLETED_HANDLER, *PPH_ASYNC_COMPLETED_HANDLER;
+
+//
+// Generic vtable shapes for the typed async operation interfaces. Only the slot
+// positions matter (the unused IInspectable members take PVOID), so these mirror
+// the ABI without dragging in the per-type MIDL definitions. IAsyncOperation and
+// IAsyncOperationWithProgress differ: the latter inserts put_Progress/get_Progress
+// before put_Completed, shifting put_Completed and GetResults. (dmex)
+//
+
+typedef struct _PH_IASYNC_OPERATION_VTBL
+{
+    // IUnknown
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(_In_ PPH_IASYNC_OPERATION This, _In_ REFIID Riid, _Outptr_ PVOID *Object);
+    ULONG (STDMETHODCALLTYPE *AddRef)(_In_ PPH_IASYNC_OPERATION This);
+    ULONG (STDMETHODCALLTYPE *Release)(_In_ PPH_IASYNC_OPERATION This);
+    // IInspectable
+    HRESULT (STDMETHODCALLTYPE *GetIids)(_In_ PPH_IASYNC_OPERATION This, _Out_ PULONG Count, _Outptr_ PVOID *Ids);
+    HRESULT (STDMETHODCALLTYPE *GetRuntimeClassName)(_In_ PPH_IASYNC_OPERATION This, _Out_ PVOID ClassName);
+    HRESULT (STDMETHODCALLTYPE *GetTrustLevel)(_In_ PPH_IASYNC_OPERATION This, _Out_ PVOID TrustLevel);
+    // IAsyncOperation<TResult>
+    HRESULT (STDMETHODCALLTYPE *put_Completed)(_In_ PPH_IASYNC_OPERATION This, _In_ PVOID Handler);
+    HRESULT (STDMETHODCALLTYPE *get_Completed)(_In_ PPH_IASYNC_OPERATION This, _Outptr_ PVOID *Handler);
+    HRESULT (STDMETHODCALLTYPE *GetResults)(_In_ PPH_IASYNC_OPERATION This, _Out_ PVOID Results);
+} PH_IASYNC_OPERATION_VTBL;
+
+typedef struct _PH_IASYNC_OPERATION
+{
+    const PH_IASYNC_OPERATION_VTBL *lpVtbl;
+} PH_IASYNC_OPERATION, *PPH_IASYNC_OPERATION;
+
+typedef struct _PH_IASYNC_OPERATION_WITH_PROGRESS_VTBL
+{
+    // IUnknown
+    HRESULT (STDMETHODCALLTYPE *QueryInterface)(
+        _In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This,
+        _In_ REFIID Riid,
+        _Outptr_ PVOID *Object
+        );
+    ULONG (STDMETHODCALLTYPE *AddRef)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This);
+    ULONG (STDMETHODCALLTYPE *Release)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This);
+    // IInspectable
+    HRESULT (STDMETHODCALLTYPE *GetIids)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Out_ PULONG Count, _Outptr_ PVOID *Ids);
+    HRESULT (STDMETHODCALLTYPE *GetRuntimeClassName)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Out_ PVOID ClassName);
+    HRESULT (STDMETHODCALLTYPE *GetTrustLevel)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Out_ PVOID TrustLevel);
+    // IAsyncOperationWithProgress<TResult, TProgress>
+    HRESULT (STDMETHODCALLTYPE *put_Progress)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _In_ PVOID Handler);
+    HRESULT (STDMETHODCALLTYPE *get_Progress)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Outptr_ PVOID *Handler);
+    HRESULT (STDMETHODCALLTYPE *put_Completed)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _In_ PVOID Handler);
+    HRESULT (STDMETHODCALLTYPE *get_Completed)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Outptr_ PVOID *Handler);
+    HRESULT (STDMETHODCALLTYPE *GetResults)(_In_ PPH_IASYNC_OPERATION_WITH_PROGRESS This, _Out_ PVOID Results);
+} PH_IASYNC_OPERATION_WITH_PROGRESS_VTBL;
+
+typedef struct _PH_IASYNC_OPERATION_WITH_PROGRESS
+{
+    const PH_IASYNC_OPERATION_WITH_PROGRESS_VTBL *lpVtbl;
+} PH_IASYNC_OPERATION_WITH_PROGRESS, *PPH_IASYNC_OPERATION_WITH_PROGRESS;
+
+HRESULT STDMETHODCALLTYPE PhAsyncCompletedHandlerQueryInterface(
+    _In_ PPH_ASYNC_COMPLETED_HANDLER This,
+    _In_ REFIID Riid,
+    _Outptr_ PVOID *Object
+    )
+{
+    if (!Object)
+        return E_POINTER;
+
+    if (IsEqualIID(Riid, &IID_IUnknown) || IsEqualIID(Riid, &This->InterfaceId))
+    {
+        *Object = This;
+        InterlockedIncrement(&This->RefCount);
+        return S_OK;
+    }
+
+    *Object = NULL;
+    return E_NOINTERFACE;
+}
+
+ULONG STDMETHODCALLTYPE PhAsyncCompletedHandlerAddRef(
+    _In_ PPH_ASYNC_COMPLETED_HANDLER This
+    )
+{
+    return (ULONG)InterlockedIncrement(&This->RefCount);
+}
+
+ULONG STDMETHODCALLTYPE PhAsyncCompletedHandlerRelease(
+    _In_ PPH_ASYNC_COMPLETED_HANDLER This
+    )
+{
+    ULONG count;
+
+    count = (ULONG)InterlockedDecrement(&This->RefCount);
+
+    if (count == 0)
+    {
+        PhFree(This);
+    }
+
+    return count;
+}
+
+HRESULT STDMETHODCALLTYPE PhAsyncCompletedHandlerInvoke(
+    _In_ PPH_ASYNC_COMPLETED_HANDLER This,
+    _In_ PVOID AsyncInfo,
+    _In_ AsyncStatus Status
+    )
+{
+    This->Status = Status;
+
+    NtSetEvent(This->EventHandle, NULL);
+
+    return S_OK;
+}
+
+static const PH_ASYNC_COMPLETED_HANDLER_VTBL PhAsyncCompletedHandlerVtbl =
+{
+    PhAsyncCompletedHandlerQueryInterface,
+    PhAsyncCompletedHandlerAddRef,
+    PhAsyncCompletedHandlerRelease,
+    PhAsyncCompletedHandlerInvoke
+};
+
+PPH_ASYNC_COMPLETED_HANDLER PhCreateAsyncCompletedHandler(
+    _In_ HANDLE EventHandle,
+    _In_ REFIID HandlerId
+    )
+{
+    PPH_ASYNC_COMPLETED_HANDLER handler;
+
+    handler = PhAllocateZero(sizeof(PH_ASYNC_COMPLETED_HANDLER));
+    handler->lpVtbl = &PhAsyncCompletedHandlerVtbl;
+    handler->RefCount = 1;
+    handler->EventHandle = EventHandle;
+    handler->Status = Started;
+    handler->InterfaceId = *HandlerId;
+
+    return handler;
+}
+
+// Translates the recorded AsyncStatus into an HRESULT, querying the operation's
+// IAsyncInfo for the underlying error code when the operation did not complete.
+HRESULT PhAsyncOperationStatusToResult(
+    _In_ PVOID Operation,
+    _In_ AsyncStatus Status
+    )
+{
+    HRESULT result = E_FAIL;
+    IAsyncInfo *asyncInfo = NULL;
+    HRESULT errorCode = E_FAIL;
+
+    if (Status == Canceled)
+        return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+
+    if (HR_SUCCESS(IUnknown_QueryInterface(((IUnknown*)Operation), &IID_IAsyncInfo, &asyncInfo)))
+    {
+        if (HR_SUCCESS(IAsyncInfo_get_ErrorCode(asyncInfo, &errorCode)) && HR_FAILED(errorCode))
+        {
+            result = errorCode;
+        }
+
+        IAsyncInfo_Release(asyncInfo);
+    }
+
+    return result;
+}
+
+/**
+ * Blocks the calling thread until a Windows Runtime IAsyncOperation
+ * completes, fails, or is cancelled, then retrieves its result.
+ *
+ * \param Operation The IAsyncOperation<TResult> interface pointer.
+ * \param HandlerId The IID of IAsyncOperationCompletedHandler<TResult> (used to
+ * answer QueryInterface on the registered completion handler).
+ * \param Result Receives the operation result on success (passed through to
+ * GetResults; the caller supplies a pointer of the appropriate TResult shape).
+ * \return HRESULT Successful or errant status.
+ */
+HRESULT PhWaitForAsyncOperation(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _Out_ PVOID Result
+    )
+{
+    HRESULT result;
+    NTSTATUS status;
+    HANDLE eventHandle = NULL;
+    PPH_IASYNC_OPERATION operation = Operation;
+    PPH_ASYNC_COMPLETED_HANDLER handler;
+
+    status = PhCreateEvent(
+        &eventHandle,
+        EVENT_ALL_ACCESS,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_NT(status);
+
+    handler = PhCreateAsyncCompletedHandler(eventHandle, HandlerId);
+
+    // WinRT invokes the handler immediately if the operation already completed,
+    // so there is no lost-wakeup race between put_Completed and the wait. (dmex)
+    result = operation->lpVtbl->put_Completed(operation, handler);
+
+    if (HR_SUCCESS(result))
+    {
+        status = PhWaitForSingleObject(eventHandle, INFINITE);
+
+        if (NT_SUCCESS(status))
+        {
+            if (handler->Status == Completed)
+                result = operation->lpVtbl->GetResults(operation, Result);
+            else
+                result = PhAsyncOperationStatusToResult(Operation, handler->Status);
+        }
+        else
+        {
+            result = HRESULT_FROM_NT(status);
+        }
+    }
+
+    handler->lpVtbl->Release(handler);
+    NtClose(eventHandle);
+
+    return result;
+}
+
+/**
+ * \brief Blocks the calling thread until a Windows Runtime
+ * IAsyncOperationWithProgress completes, fails, or is cancelled, then retrieves
+ * its result.
+ *
+ * \param Operation The IAsyncOperationWithProgress<TResult, TProgress> pointer.
+ * \param HandlerId The IID of
+ * IAsyncOperationWithProgressCompletedHandler<TResult, TProgress>.
+ * \param ProgressHandler The
+ * AsyncOperationProgressHandler<TResult, TProgress> delegate to receive progress
+ * updates.
+ * \param Result Receives the operation result on success.
+ * \return HRESULT Successful or errant status.
+ */
+HRESULT PhWaitForAsyncOperationWithProgress(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _In_ PVOID ProgressHandler,
+    _Out_ PVOID Result
+    )
+{
+    HRESULT result;
+    NTSTATUS status;
+    HANDLE eventHandle = NULL;
+    PPH_IASYNC_OPERATION_WITH_PROGRESS operation = Operation;
+    PPH_ASYNC_COMPLETED_HANDLER handler;
+
+    status = PhCreateEvent(
+        &eventHandle,
+        EVENT_ALL_ACCESS,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
+        return HRESULT_FROM_NT(status);
+
+    handler = PhCreateAsyncCompletedHandler(eventHandle, HandlerId);
+
+    result = operation->lpVtbl->put_Progress(operation, ProgressHandler);
+
+    if (HR_SUCCESS(result))
+    {
+        // WinRT invokes the handler immediately if the operation already completed,
+        // so there is no lost-wakeup race between put_Completed and the wait. (dmex)
+        result = operation->lpVtbl->put_Completed(operation, handler);
+    }
+
+    if (HR_SUCCESS(result))
+    {
+        status = PhWaitForSingleObject(eventHandle, INFINITE);
+
+        if (NT_SUCCESS(status))
+        {
+            if (handler->Status == Completed)
+                result = operation->lpVtbl->GetResults(operation, Result);
+            else
+                result = PhAsyncOperationStatusToResult(Operation, handler->Status);
+        }
+        else
+        {
+            result = HRESULT_FROM_NT(status);
+        }
+    }
+
+    handler->lpVtbl->Release(handler);
+    NtClose(eventHandle);
+
+    return result;
 }
 
 #pragma endregion
