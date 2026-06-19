@@ -1434,4 +1434,214 @@ PcwClearCounterSetSecurity(
     _In_ PCUNICODE_STRING Name
     );
 
+//
+// PCW Buffer Structures and Parsing Helpers
+//
+
+/**
+ * PCW query snapshot - represents a data collection snapshot
+ */
+typedef struct _PCW_QUERY_SNAPSHOT
+{
+    PVOID RawBuffer;
+    ULONG64 Reserved08;
+    ULONG64 TimestampA;
+    ULONG64 TimestampB;
+} PCW_QUERY_SNAPSHOT, *PPCW_QUERY_SNAPSHOT;
+
+/**
+ * Root header for PCW result data
+ */
+typedef struct _PCW_RESULT_ROOT
+{
+    ULONG HeaderSize;
+    ULONG HeaderOffset;
+} PCW_RESULT_ROOT, *PPCW_RESULT_ROOT;
+
+/**
+ * Header describing PCW counter set results
+ */
+typedef struct _PCW_RESULT_HEADER
+{
+    ULONG Size;
+    ULONG InstanceListOffset;
+    ULONG InstanceCount;
+} PCW_RESULT_HEADER, *PPCW_RESULT_HEADER;
+
+/**
+ * PCW instance buffer - contains instance data and counter values
+ */
+typedef struct _PCW_INSTANCE_BUFFER
+{
+    ULONG Size;
+    ULONG Index;
+    ULONG CounterDataOffset;
+    ULONG Reserved0C;
+    WCHAR InstanceName[1];
+} PCW_INSTANCE_BUFFER, *PPCW_INSTANCE_BUFFER;
+
+/**
+ * PCW counter record - single counter value
+ */
+typedef struct _PCW_COUNTER_RECORD
+{
+    ULONG Size;
+    union
+    {
+        ULONG CounterIdAndValueSize;
+        struct
+        {
+            USHORT CounterId;
+            USHORT ValueSize;
+        };
+    };
+    ULONG64 Value;
+} PCW_COUNTER_RECORD, *PPCW_COUNTER_RECORD;
+
+/**
+ * PCW counter trailer - metadata following counter data
+ */
+typedef struct _PCW_COUNTER_TRAILER
+{
+    ULONG Size;
+    union
+    {
+        ULONG CounterIdAndValueSize;
+        struct
+        {
+            USHORT CounterId;
+            USHORT ValueSize;
+        };
+    };
+    ULONG TickCount;
+} PCW_COUNTER_TRAILER, *PPCW_COUNTER_TRAILER;
+
+/**
+ * PCW enumerate instances header
+ */
+typedef struct _PCW_ENUMERATE_INSTANCES_HEADER
+{
+    ULONG InstanceCount;
+    ULONG FirstInstanceOffset;
+} PCW_ENUMERATE_INSTANCES_HEADER, *PPCW_ENUMERATE_INSTANCES_HEADER;
+
+/**
+ * PCW enumerated instance
+ */
+typedef struct _PCW_ENUMERATE_INSTANCE
+{
+    ULONG Size;
+    ULONG InstanceId;
+    WCHAR InstanceName[1];
+} PCW_ENUMERATE_INSTANCE, *PPCW_ENUMERATE_INSTANCE;
+
+//
+// PCW Buffer Parsing Helper Functions
+//
+
+/**
+ * Retrieves the header from a PCW query snapshot buffer.
+ */
+FORCEINLINE
+PPCW_RESULT_HEADER
+NTAPI
+PcwQueryGetHeader(
+    _In_ PPCW_QUERY_SNAPSHOT snapshot)
+{
+    PCW_RESULT_ROOT *root;
+
+    root = (PCW_RESULT_ROOT*)snapshot->RawBuffer;
+    return (PCW_RESULT_HEADER*)RTL_PTR_ADD(snapshot->RawBuffer, root->HeaderOffset);
+}
+
+/**
+ * Retrieves the first instance from a PCW result header.
+ */
+FORCEINLINE
+PPCW_INSTANCE_BUFFER
+NTAPI
+PcwHeaderGetFirstInstance(
+    _In_ PPCW_RESULT_HEADER Header
+    )
+{
+    return (PCW_INSTANCE_BUFFER*)RTL_PTR_ADD(Header, Header->InstanceListOffset);
+}
+
+/**
+ * Retrieves the next instance in a PCW instance sequence.
+ */
+FORCEINLINE
+PPCW_INSTANCE_BUFFER
+NTAPI
+PcwInstanceGetNext(
+    _In_ PPCW_INSTANCE_BUFFER instance
+    )
+{
+    return (PCW_INSTANCE_BUFFER*)RTL_PTR_ADD(instance, instance->Size);
+}
+
+/**
+ * Retrieves the first counter record from a PCW instance.
+ */
+FORCEINLINE
+PPCW_COUNTER_RECORD
+NTAPI
+PcwInstanceGetFirstCounter(
+    _In_ PPCW_INSTANCE_BUFFER instance
+    )
+{
+    return (PCW_COUNTER_RECORD*)RTL_PTR_ADD(instance, instance->CounterDataOffset);
+}
+
+/**
+ * Retrieves the next counter record in a PCW counter sequence.
+ */
+FORCEINLINE
+PPCW_COUNTER_RECORD
+NTAPI
+PcwCounterGetNext(
+    _In_ PPCW_COUNTER_RECORD counter
+    )
+{
+    return (PCW_COUNTER_RECORD*)RTL_PTR_ADD(counter, counter->Size);
+}
+
+/**
+ * Retrieves the trailer following a PCW counter record.
+ */
+FORCEINLINE
+PPCW_COUNTER_TRAILER
+NTAPI
+PcwCounterGetTrailer(
+    _In_ PPCW_COUNTER_RECORD counter
+    )
+{
+    return (PCW_COUNTER_TRAILER*)RTL_PTR_ADD(counter, counter->Size);
+}
+
+/**
+ * Retrieves the first enumerated instance from a PCW enumerate header.
+ */
+FORCEINLINE
+PPCW_ENUMERATE_INSTANCE
+NTAPI
+PcwEnumerateHeaderGetFirstInstance(
+    _In_ PPCW_ENUMERATE_INSTANCES_HEADER header
+    )
+{
+    return (PCW_ENUMERATE_INSTANCE*)RTL_PTR_ADD(header, header->FirstInstanceOffset);
+}
+
+/**
+ * Retrieves the next enumerated instance.
+ */
+FORCEINLINE
+PPCW_ENUMERATE_INSTANCE
+NTAPI
+PcwEnumerateInstanceGetNext(
+    _In_ PPCW_ENUMERATE_INSTANCE instance)
+{
+    return (PCW_ENUMERATE_INSTANCE*)RTL_PTR_ADD(instance, instance->Size);
+}
+
 #endif // _NTMISC_H
