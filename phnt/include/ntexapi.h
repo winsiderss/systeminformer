@@ -5400,7 +5400,7 @@ typedef struct _BOOT_ENTROPY_SOURCE_NT_RESULT
 // private
 typedef struct _BOOT_ENTROPY_NT_RESULT
 {
-    ULONG maxEntropySources;
+    ULONG MaxEntropySources;
     BOOT_ENTROPY_SOURCE_NT_RESULT EntropySourceResult[10];
     UCHAR SeedBytesForCng[48];
 } BOOT_ENTROPY_NT_RESULT, *PBOOT_ENTROPY_NT_RESULT;
