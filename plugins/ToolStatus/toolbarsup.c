@@ -94,7 +94,14 @@ LONG RebarGetRowHeight(
     _In_ REBAR_BAND BandID
     )
 {
-    return (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, BandID, 0);
+    ULONG index;
+
+    index = RebarBandToIndex(BandID);
+
+    if (index == ULONG_MAX)
+        return 0;
+
+    return (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, index, 0);
 }
 
 VOID RebarSetBarInfo(

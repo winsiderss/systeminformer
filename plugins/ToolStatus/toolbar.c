@@ -153,6 +153,66 @@ VOID RebarCreate(
 }
 
 #if TOOLSTATUS_ENABLE_MENUBAR
+static VOID MenuBarInitializeLayout(
+    VOID
+    )
+{
+    ULONG menuBarIndex;
+    ULONG toolbarIndex;
+    ULONG toolbarStyle;
+
+    if (!MenuBarHandle || !ToolBarHandle)
+        return;
+
+    menuBarIndex = RebarBandToIndex(REBAR_BAND_ID_MENUBAR);
+
+    if (menuBarIndex != ULONG_MAX && menuBarIndex != 0)
+        RebarBandMove(menuBarIndex, 0);
+
+    toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+
+    if (toolbarIndex != ULONG_MAX && toolbarIndex != 1)
+    {
+        RebarBandMove(toolbarIndex, 1);
+        toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+    }
+
+    if (toolbarIndex != ULONG_MAX && RebarGetBandIndexStyle(toolbarIndex, &toolbarStyle))
+    {
+        SetFlag(toolbarStyle, RBBS_BREAK);
+        RebarSetBandIndexStyle(toolbarIndex, toolbarStyle);
+    }
+
+    if (toolbarIndex != ULONG_MAX)
+    {
+        BAND_CHILD_SIZE bandSize;
+
+        if (RebarGetBandIndexChildSize(toolbarIndex, &bandSize))
+        {
+            // Recompute the toolbar band width and height from the toolbar button size. Enabling
+            // the menu bar at runtime inserts the menu bar band onto the toolbar's row, which eats
+            // into the toolbar height; the RBBS_BREAK above moves the toolbar to its own row but
+            // the collapsed height persists. Mirror the canonical resize path (UpdateLayoutMetrics)
+            // by setting the control button height and the band child height to the same value,
+            // unconditionally, with the same 22px floor, so the toolbar reclaims its full height.
+            ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+            LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+            toolbarButtonHeight = __max((LONG)HIWORD(toolbarButtonSize), toolbarButtonHeight);
+            toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+
+            SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+
+            bandSize.MinChildWidth = LOWORD(toolbarButtonSize);
+            bandSize.InitialChildHeight = toolbarButtonHeight;
+            bandSize.MinChildHeight = toolbarButtonHeight;
+            RebarSetBandIndexChildSize(toolbarIndex, &bandSize);
+        }
+    }
+
+    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+    SendMessage(RebarHandle, WM_SIZE, 0, 0);
+}
+
 /**
  * Creates the menu bar control.
  */
@@ -190,6 +250,8 @@ VOID MenuBarCreate(
         DestroyWindow(MenuBarHandle);
         MenuBarHandle = NULL;
     }
+
+    MenuBarInitializeLayout();
 }
 #endif
 
@@ -235,16 +297,11 @@ VOID ToolBarCreate(
 
         RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, barwidth, barheight);
     }
-}
 
-#define IDB_SEARCH_ACTIVE_MODERN_LIGHT 272
-#define IDB_SEARCH_ACTIVE_MODERN_DARK 271
-#define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
-#define IDB_SEARCH_INACTIVE_MODERN_DARK 273
-#define IDB_SEARCH_REGEX_MODERN_LIGHT 268
-#define IDB_SEARCH_REGEX_MODERN_DARK 267
-#define IDB_SEARCH_CASE_MODERN_LIGHT 270
-#define IDB_SEARCH_CASE_MODERN_DARK 269
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarInitializeLayout();
+#endif
+}
 
 /**
  * Creates the search box control.
@@ -674,8 +731,10 @@ VOID ToolbarLoadSettings(
         {
             RebarCreate();
 
-            //if (ToolStatusConfig.EnableMenuBar && MainMenu && !MenuBarHandle)
-            //    MenuBarCreate();
+#if TOOLSTATUS_ENABLE_MENUBAR
+            if (ToolStatusConfig.EnableMenuBar && MainMenu && !MenuBarHandle)
+                MenuBarCreate();
+#endif
 
             if (!ToolBarHandle)
                 ToolBarCreate();
@@ -691,7 +750,9 @@ VOID ToolbarLoadSettings(
             StatusBarCreate();
         }
 
-        //MenuBarApplySettings();
+#if TOOLSTATUS_ENABLE_MENUBAR
+        MenuBarApplySettings();
+#endif
         ToolBarApplySettings(DpiChanged);
 
         if (RebarHandle && !IsWindowVisible(RebarHandle))
@@ -701,7 +762,9 @@ VOID ToolbarLoadSettings(
     {
         if (RebarHandle)
         {
-           // MenuBarDestroy();
+#if TOOLSTATUS_ENABLE_MENUBAR
+            MenuBarDestroy();
+#endif
             ToolBarDestroy();
             RebarDestroy();
         }
@@ -746,6 +809,10 @@ VOID ToolbarCreateControls(
     ToolbarCreateGraphs();
     ReBarLoadLayoutSettings();
 
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarApplySettings();
+#endif
+
     ToolStatusApplyMainMenuVisibility(MainWindowHandle);
 
     if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
@@ -763,7 +830,9 @@ VOID ToolbarDestroyControls(
 {
     ToolbarDestroyGraphs();
     SearchBoxDestroy();
-   // MenuBarDestroy();
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarDestroy();
+#endif
     ToolBarDestroy();
     RebarDestroy();
 }
@@ -1317,7 +1386,12 @@ VOID ReBarLoadLayoutSettings(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhGetStringSetting(SETTING_NAME_REBAR_CONFIG);
+    settingsString = PhGetStringSetting(
+#if TOOLSTATUS_ENABLE_MENUBAR
+        ToolStatusConfig.EnableMenuBar ? SETTING_NAME_REBAR_MENUBAR_CONFIG :
+#endif
+        SETTING_NAME_REBAR_CONFIG
+        );
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
@@ -1429,7 +1503,13 @@ VOID ReBarSaveLayoutSettings(
     }
 
     settingsString = PhFinalStringBuilderString(&stringBuilder);
-    PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
+    PhSetStringSetting2(
+#if TOOLSTATUS_ENABLE_MENUBAR
+        ToolStatusConfig.EnableMenuBar ? SETTING_NAME_REBAR_MENUBAR_CONFIG :
+#endif
+        SETTING_NAME_REBAR_CONFIG,
+        &settingsString->sr
+        );
     PhDereferenceObject(settingsString);
 }
 
@@ -1454,6 +1534,7 @@ VOID RebarAdjustBandHeightLayout(
 
         if (RebarGetBandIndexChildSize(index, &rebarBandInfo))
         {
+            rebarBandInfo.InitialChildHeight = Height;
             rebarBandInfo.MinChildHeight = Height;
             RebarSetBandIndexChildSize(index, &rebarBandInfo);
         }

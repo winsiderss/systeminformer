@@ -33,6 +33,9 @@ TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
+#if TOOLSTATUS_ENABLE_MENUBAR
+HWND MenuBarHandle = NULL;
+#endif
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
 WNDPROC MainWindowHookProc = NULL;
@@ -147,7 +150,12 @@ VOID ToolStatusApplyMainMenuVisibility(
     if (!WindowHandle || !MainMenu)
         return;
 
-    if (ToolStatusConfig.AutoHideMenu)
+    if (
+#if TOOLSTATUS_ENABLE_MENUBAR
+        (ToolStatusConfig.EnableMenuBar && MenuBarHandle) ||
+#endif
+        ToolStatusConfig.AutoHideMenu
+        )
     {
         if (GetMenu(WindowHandle))
         {
@@ -162,6 +170,58 @@ VOID ToolStatusApplyMainMenuVisibility(
     }
 }
 
+#if TOOLSTATUS_ENABLE_MENUBAR
+static VOID ToggleMenuBar(
+    _In_ HWND WindowHandle
+    )
+{
+    ULONG toolbarIndex;
+
+    ReBarSaveLayoutSettings();
+
+    ToolStatusConfig.EnableMenuBar = !ToolStatusConfig.EnableMenuBar;
+
+    PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+    if (ToolStatusConfig.EnableMenuBar)
+    {
+        if (ToolStatusConfig.ToolBarEnabled && MainMenu && !MenuBarHandle)
+        {
+            if (!RebarHandle)
+                RebarCreate();
+
+            MenuBarCreate();
+        }
+
+        MenuBarApplySettings();
+    }
+    else
+    {
+        ULONG bandStyle;
+
+        RebarBandRemove(REBAR_BAND_ID_MENUBAR);
+        MenuBarDestroy();
+
+        toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+
+        if (toolbarIndex != ULONG_MAX && RebarGetBandIndexStyle(toolbarIndex, &bandStyle))
+        {
+            ClearFlag(bandStyle, RBBS_BREAK);
+            RebarSetBandIndexStyle(toolbarIndex, bandStyle);
+        }
+    }
+
+    ReBarLoadLayoutSettings();
+
+    if (ToolStatusConfig.EnableMenuBar)
+        MenuBarApplySettings();
+
+    ToolStatusApplyMainMenuVisibility(WindowHandle);
+    ReBarSaveLayoutSettings();
+    InvalidateMainWindowLayout();
+}
+#endif
+
 VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
     )
@@ -170,6 +230,9 @@ VOID ShowCustomizeMenu(
     PPH_EMENU menu;
     PPH_EMENU_ITEM mainMenuItem;
     PPH_EMENU_ITEM searchMenuItem;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PPH_EMENU_ITEM menuBarMenuItem;
+#endif
     PPH_EMENU_ITEM lockMenuItem;
     PPH_EMENU_ITEM selectedItem;
 
@@ -179,6 +242,9 @@ VOID ShowCustomizeMenu(
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, mainMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, searchMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), ULONG_MAX);
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PhInsertEMenuItem(menu, menuBarMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENUBAR, L"Menu bar", NULL, NULL), ULONG_MAX);
+#endif
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreateMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -189,6 +255,10 @@ VOID ShowCustomizeMenu(
         mainMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.SearchBoxEnabled)
         searchMenuItem->Flags |= PH_EMENU_CHECKED;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //if (ToolStatusConfig.EnableMenuBar)
+    //    menuBarMenuItem->Flags |= PH_EMENU_CHECKED;
+#endif
     if (ToolStatusConfig.ToolBarLocked)
         lockMenuItem->Flags |= PH_EMENU_CHECKED;
 
@@ -232,6 +302,11 @@ VOID ShowCustomizeMenu(
                 }
             }
             break;
+#if TOOLSTATUS_ENABLE_MENUBAR
+        case COMMAND_ID_ENABLE_MENUBAR:
+            ToggleMenuBar(WindowHandle);
+            break;
+#endif
         case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
             {
                 ULONG bandCount;
@@ -348,24 +423,20 @@ VOID NTAPI LayoutPaddingCallback(
     {
         RECT rebarRect;
         RECT parentRect;
-        LONG desiredHeight = 0;
-        ULONG bandCount;
+        LONG desiredHeight;
 
-        // Compute the correct rebar height by summing each row's height.
-        // RB_GETROWHEIGHT takes a band index and returns the height of the row that band occupies.
-        // Bands that start a new row have RBBS_BREAK set; band 0 always starts row 0.
-        if (RebarGetBandCount(&bandCount) && bandCount > 0)
-        {
-            ULONG bandStyle;
+        // Recalculate rows before querying the height. This is required after changing
+        // RBBS_BREAK or a band's child height on a live rebar control.
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
-            desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
-
-            for (ULONG i = 1; i < bandCount; i++)
-            {
-                if (RebarGetBandIndexStyle(i, &bandStyle) && FlagOn(bandStyle, RBBS_BREAK))
-                    desiredHeight += (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, i, 0);
-            }
-        }
+        // Ask the rebar for its full computed height. RB_GETBARHEIGHT returns the control's
+        // internal _cy, which the recalc accumulates as the sum of every row's line height
+        // plus the inter-row spacing (cyBottomHeight) and band-border edges. Summing
+        // RB_GETROWHEIGHT per row, or taking the max band bottom, drops that trailing
+        // spacing/edge and under-counts, clipping the last row (the toolbar/searchbox row
+        // once the menu bar pushes them onto a second row). The control's own value is the
+        // authoritative height the parent should size the rebar window to.
+        desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETBARHEIGHT, 0, 0);
 
         // Explicitly resize the rebar window to the computed height so that all rows
         // are visible. Sending WM_SIZE directly to the rebar only re-layouts bands
@@ -628,10 +699,20 @@ BOOLEAN NTAPI MessageLoopFilter(
         Message->hwnd && IsChild(MainWindowHandle, Message->hwnd)
         )
     {
+#if TOOLSTATUS_ENABLE_MENUBAR
+        if (ToolStatusConfig.EnableMenuBar && MenuBarHandle)
+        {
+            LRESULT result;
+
+            if (ToolStatusMenuBarHandleMessage(MainWindowHandle, Message->message, Message->wParam, Message->lParam, &result))
+                return TRUE;
+        }
+#endif
+
         if (TranslateAccelerator(MainWindowHandle, AcceleratorTable, Message))
             return TRUE;
 
-        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(MainWindowHandle))
+        if (Message->message == WM_SYSCHAR && !ToolStatusConfig.EnableMenuBar && ToolStatusConfig.AutoHideMenu && !GetMenu(MainWindowHandle))
         {
             ULONG key = (ULONG)Message->wParam;
 
@@ -798,6 +879,16 @@ LRESULT CALLBACK MainWindowCallbackProc(
     _In_ LPARAM lParam
     )
 {
+#if TOOLSTATUS_ENABLE_MENUBAR
+    if (ToolStatusConfig.EnableMenuBar && MenuBarHandle)
+    {
+        LRESULT result;
+
+        if (ToolStatusMenuBarHandleMessage(WindowHandle, WindowMessage, wParam, lParam, &result))
+            return result;
+    }
+#endif
+
     switch (WindowMessage)
     {
     case WM_NCCREATE:
@@ -1123,6 +1214,17 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                 goto DefaultWndProc;
             }
+#if TOOLSTATUS_ENABLE_MENUBAR
+            else if (ToolStatusConfig.EnableMenuBar && MenuBarHandle && hdr->hwndFrom == MenuBarHandle)
+            {
+                LRESULT result;
+
+                if (ToolStatusMenuBarHandleNotify(hdr, &result))
+                    return result;
+
+                goto DefaultWndProc;
+            }
+#endif
             else if (ToolBarHandle && hdr->hwndFrom == ToolBarHandle)
             {
                 switch (hdr->code)
@@ -1341,17 +1443,6 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 }
 
                 goto DefaultWndProc;
-            }
-            else
-            {
-                if (
-                    ToolStatusConfig.ToolBarEnabled &&
-                    ToolBarHandle &&
-                    ToolbarUpdateGraphsInfo(WindowHandle, hdr)
-                    )
-                {
-                    goto DefaultWndProc;
-                }
             }
         }
         break;
@@ -1609,6 +1700,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     if (lParam != 0)
                         break;
 
+                    if (ToolStatusConfig.EnableMenuBar)
+                        break;
+
                     if (!ToolStatusConfig.AutoHideMenu)
                         break;
 
@@ -1649,6 +1743,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_EXITMENULOOP:
         {
+            if (ToolStatusConfig.EnableMenuBar)
+                break;
+
             if (!ToolStatusConfig.AutoHideMenu)
                 break;
 
@@ -1738,6 +1835,8 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
+    MainMenu = GetMenu(MainWindowHandle);
+
     AcceleratorTable = LoadAccelerators(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
 
@@ -1754,11 +1853,7 @@ VOID NTAPI MainWindowShowingCallback(
     StatusBarLoadSettings();
     TaskbarInitialize();
 
-    MainMenu = GetMenu(MainWindowHandle);
-    if (ToolStatusConfig.AutoHideMenu)
-    {
-        SetMenu(MainWindowHandle, NULL);
-    }
+    ToolStatusApplyMainMenuVisibility(MainWindowHandle);
 
     if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
     {
@@ -1778,6 +1873,9 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
     PPH_EMENU_ITEM mainMenuItem;
     PPH_EMENU_ITEM searchMenuItem;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PPH_EMENU_ITEM menuBarMenuItem;
+#endif
     PPH_EMENU_ITEM lockMenuItem;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
@@ -1791,6 +1889,9 @@ VOID NTAPI MainMenuInitializingCallback(
     menu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Toolbar", NULL);
     PhInsertEMenuItem(menu, mainMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, searchMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL), ULONG_MAX);
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PhInsertEMenuItem(menu, menuBarMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENUBAR, L"Menu bar", NULL), ULONG_MAX);
+#endif
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreatePluginMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1801,6 +1902,10 @@ VOID NTAPI MainMenuInitializingCallback(
         mainMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.SearchBoxEnabled)
         searchMenuItem->Flags |= PH_EMENU_CHECKED;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //if (ToolStatusConfig.EnableMenuBar)
+    //    menuBarMenuItem->Flags |= PH_EMENU_CHECKED;
+#endif
     if (ToolStatusConfig.ToolBarLocked)
         lockMenuItem->Flags |= PH_EMENU_CHECKED;
 
@@ -1857,6 +1962,23 @@ VOID NTAPI SettingsUpdatedCallback(
     )
 {
     UpdateCachedSettings();
+
+    if (MainWindowHandle)
+    {
+#if TOOLSTATUS_ENABLE_MENUBAR
+        if (MenuBarHandle)
+        {
+            PhInitializeWindowThemeMainMenu(MainMenu);
+            MenuBarApplySettings();
+        }
+#endif
+        if (StatusBarHandle)
+        {
+            SendMessage(StatusBarHandle, WM_THEMECHANGED, 0, 0);
+            InvalidateRect(StatusBarHandle, NULL, TRUE);
+            UpdateWindow(StatusBarHandle);
+        }
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -1905,6 +2027,11 @@ VOID NTAPI MenuItemCallback(
                 }
             }
             break;
+#if TOOLSTATUS_ENABLE_MENUBAR
+        case COMMAND_ID_ENABLE_MENUBAR:
+            ToggleMenuBar(menuItem->OwnerWindow);
+            break;
+#endif
         case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
             {
                 ULONG bandCount;
@@ -1996,6 +2123,9 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { IntegerSettingType, SETTING_NAME_DELAYED_INITIALIZATION_MAX, L"3" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
+#if TOOLSTATUS_ENABLE_MENUBAR
+                { StringSettingType, SETTING_NAME_REBAR_MENUBAR_CONFIG, L"" },
+#endif
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },

@@ -287,7 +287,7 @@ VOID ToolbarCreateGraphs(
         ULONG height;
         ULONG width;
 
-        height = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        height = (ULONG)RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
         width = PhScaleToDisplay(145, SystemInformer_GetWindowDpi());
 
         for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
@@ -406,7 +406,7 @@ VOID ToolbarSetVisibleGraph(
 {
     if (Visible)
     {
-        ULONG height = (ULONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, REBAR_BAND_ID_TOOLBAR, 0);
+        ULONG height = (ULONG)RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
         ULONG width = PhScaleToDisplay(145, SystemInformer_GetWindowDpi());
 
         SetFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);

@@ -23,6 +23,7 @@ set(SOURCES
     "find.c"
     "graph.c"
     "main.c"
+    "menubar.c"
     "plugin.c"
     "options.c"
     "statusbar.c"
