@@ -2168,117 +2168,60 @@ RtlConvertSRWLockExclusiveToShared(
 // @remarks RCU synchronization is not for general-purpose synchronization.
 // Teb->Rcu is used to store the RCU state.
 
-#if defined(PHNT_NATIVE_RCU)
 // rev
-typedef struct _RTL_RCU_SEGMENT
-{
-    ULONG Count;
-    ULONG Reserved; // padding/unused
-    PVOID Slots[ANYSIZE_ARRAY];
-    //
-    // Interpretation (x64):
-    //   Slots[0 .. Count-1] = RTL_RCU_THREAD_ENTRY* (or NULL)
-    //   Slots[Count]        = RTL_RCU_SEGMENT* link to next segment (or NULL)
-    //
-} RTL_RCU_SEGMENT, *PRTL_RCU_SEGMENT;
-
-// Helper for the address of link slot (the "next segment pointer")
-#define RTL_RCU_SEGMENT_NEXT_PTR(S) ((PRTL_RCU_SEGMENT*)&((S)->Slots[(S)->Count]))
-
-// rev
-typedef struct _RTL_RCU_THREAD_ENTRY
-{
-    volatile ULONGLONG ReadDepth;
-    ULONG ThreadCookie; // compared with TEB cached cookie
-    ULONG ThreadIdLike; // compared with TEB cached id
-    volatile ULONGLONG SeenEpoch; // WaitOnAddress/WakeAddressAll target
-    struct _RTL_RCU_THREAD_ENTRY* Next; // linked via State->ThreadList
+typedef struct _RTL_RCU_THREAD_ENTRY 
+{ 
+    volatile long long RefCount;
+    ULONG SessionId;
+    ULONG ThreadId;
+    volatile long long ObservedEpoch;
+    struct _RTL_RCU_THREAD_ENTRY* Next;
 } RTL_RCU_THREAD_ENTRY, *PRTL_RCU_THREAD_ENTRY;
 
-C_ASSERT(sizeof(RTL_RCU_THREAD_ENTRY) == 0x20);
-C_ASSERT(FIELD_OFFSET(RTL_RCU_THREAD_ENTRY, SeenEpoch) == 0x10);
-
-//typedef struct _RTL_RCU_THREAD_ENTRY RTL_RCU_THREAD_ENTRY, *PRTL_RCU_THREAD_ENTRY;
-//typedef struct _RTL_RCU_SEGMENT      RTL_RCU_SEGMENT,      *PRTL_RCU_SEGMENT;
+// rev
+typedef struct _RTL_RCU_BUCKET_ARRAY 
+{ 
+    ULONG Count;
+    ULONG Reserved;
+    PRTL_RCU_THREAD_ENTRY Slots[ANYSIZE_ARRAY];
+    //struct _RTL_RCU_BUCKET_ARRAY* Next; // after Slots
+} RTL_RCU_BUCKET_ARRAY, *PRTL_RCU_BUCKET_ARRAY;
 
 // rev
 typedef struct _RTL_RCU_STATE
-{
-    //
-    // Global list links (inserted by RtlRcuAllocate under a global SRW lock).
-    //
-    struct _RTL_RCU_STATE *GlobalNext;
-    struct _RTL_RCU_STATE *GlobalPrev;
-
-    //
-    // Global epoch/state.
-    //
-    volatile ULONGLONG Epoch;
-
-    //
-    // Segmented array root used by RtlpRcuCurrentThreadData()
-    // to map "thread-id-like" (ebx) -> RTL_RCU_THREAD_ENTRY*.
-    //
-    PRTL_RCU_SEGMENT SegmentRoot;
-
-    //
-    // Singly-linked list of all per-thread entries for this state.
-    // synchronize walks this list and waits on each entry->SeenEpoch.
-    //
-    PRTL_RCU_THREAD_ENTRY ThreadList;
-
-    //
-    // Small cache indexed by (ebx % 10) (the 0xCCCCCCCD multiply trick).
-    //
-    PRTL_RCU_THREAD_ENTRY Cache[10];
-
-    //
-    // Slow-path SRW lock used when RtlpRcuCurrentThreadData() returns NULL.
-    //  - ReadLock uses AcquireSRWLockShared(&state+0x78)
-    //  - Synchronize uses Acquire/Release Exclusive on &state+0x78 (via helper)
-    //
-    RTL_SRWLOCK SlowPathLock;
-
-    //
-    // Stored from RtlRcuAllocate(ecx)
-    //
-    ULONG TagOrFlags;
-
-    ULONG Padding; // (to make sizeof == 0x88 on x64)
+{ 
+    struct _RTL_RCU_STATE* Flink;
+    struct _RTL_RCU_STATE* Blink;
+    volatile long long Epoch;
+    RTL_RCU_BUCKET_ARRAY* Buckets;
+    PRTL_RCU_THREAD_ENTRY ThreadListHead;
+    PRTL_RCU_THREAD_ENTRY BucketCache[10];
+    RTL_SRWLOCK Lock;
+    ULONG Options;
+    ULONG ReservedTail;
 } RTL_RCU_STATE, *PRTL_RCU_STATE;
-
-// Sanity checks (x64)
-C_ASSERT(sizeof(RTL_RCU_STATE) == 0x88);
-
-typedef struct _RTL_RCU_COOKIE
-{
-    ULONG_PTR ThreadEntryOrNull; // NULL => slow-path SRW shared lock was used
-} RTL_RCU_COOKIE, *PRTL_RCU_COOKIE;
-#else
-typedef struct _RTL_RCU_STATE RTL_RCU_STATE, *PRTL_RCU_STATE;
-typedef ULONG_PTR RTL_RCU_COOKIE, *PRTL_RCU_COOKIE;
-#endif // #if defined(PHNT_NATIVE_RCU)
 
 NTSYSAPI
 PRTL_RCU_STATE
 NTAPI
 RtlRcuAllocate(
-    _In_ ULONG Flags
-    );
-
-NTSYSAPI
-LOGICAL
-NTAPI
-RtlRcuFree(
-    _In_ PRTL_RCU_STATE State
+    _In_ ULONG Options
     );
 
 NTSYSAPI
 VOID
 NTAPI
+RtlRcuFree(
+    _In_ PRTL_RCU_STATE State
+    );
+
+// Note: ThreadData can be NULL when it falls back to SRW share-lock.
+NTSYSAPI
+VOID
+NTAPI
 RtlRcuReadLock(
     _Inout_ PRTL_RCU_STATE State,
-    _Out_ PRTL_RCU_COOKIE Cookie
+    _Outptr_result_maybenull_ PRTL_RCU_THREAD_ENTRY* ThreadData
     );
 
 NTSYSAPI
@@ -2286,11 +2229,11 @@ VOID
 NTAPI
 RtlRcuReadUnlock(
     _Inout_ PRTL_RCU_STATE State,
-    _Inout_ PRTL_RCU_COOKIE Cookie
+    _In_ PRTL_RCU_THREAD_ENTRY* ThreadData
     );
 
 NTSYSAPI
-LONG
+VOID
 NTAPI
 RtlRcuSynchronize(
     _Inout_ PRTL_RCU_STATE State
