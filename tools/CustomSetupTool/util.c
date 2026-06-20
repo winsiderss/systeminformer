@@ -147,16 +147,23 @@ PPH_STRING SetupFindInstallDirectory(
 
     if (PhIsNullOrEmptyString(setupInstallPath))
     {
-        static CONST PH_STRINGREF programW6432 = PH_STRINGREF_INIT(L"%ProgramW6432%\\SystemInformer\\");
-        static CONST PH_STRINGREF programFiles = PH_STRINGREF_INIT(L"%ProgramFiles%\\SystemInformer\\");
-        SYSTEM_INFO info;
-
-        GetNativeSystemInfo(&info);
-
-        if (info.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64)
-            setupInstallPath = PhExpandEnvironmentStrings(&programW6432);
+#if defined(_M_AMD64) || defined(_M_ARM64)
+        setupInstallPath = PhGetKnownFolderPathZ(&FOLDERID_ProgramFiles, L"\\SystemInformer\\");
+#elif defined(_M_IX86)
+        if (PhIsExecutingInWow64())
+        {
+            // 32-bit process on 64-bit
+            //setupInstallPath = PhExpandEnvironmentStringsZ(L"%ProgramW6432%\\SystemInformer\\");
+            setupInstallPath = PhCreateString(L"C:\\Program Files\\SystemInformer\\");
+        }
         else
-            setupInstallPath = PhGetKnownFolderPathZ(&FOLDERID_ProgramFiles, NULL);
+        {
+            // 32-bit only
+            setupInstallPath = PhGetKnownFolderPathZ(&FOLDERID_ProgramFiles, L"\\SystemInformer\\");
+        }
+#else
+#error Unsupported architecture
+#endif
     }
 
     if (PhIsNullOrEmptyString(setupInstallPath))

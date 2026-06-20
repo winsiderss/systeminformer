@@ -137,6 +137,17 @@ DECLARE_INTERFACE_IID_(ISecurityObjectTypeInfoEx, IUnknown, "FC3066EB-79EF-444b-
 };
 typedef ISecurityObjectTypeInfoEx* LPSecurityObjectTypeInfoEx;
 
+#ifdef COBJMACROS
+#define ISecurityObjectTypeInfoEx_QueryInterface(This,riid,ppvObj) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObj))
+#define ISecurityObjectTypeInfoEx_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define ISecurityObjectTypeInfoEx_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define ISecurityObjectTypeInfoEx_GetInheritSource(This,si,pACL,ppInheritArray) \
+    ((This)->lpVtbl->GetInheritSource(This,si,pACL,ppInheritArray))
+#endif
+
 typedef struct
 {
     ISecurityObjectTypeInfoExVtbl* VTable;

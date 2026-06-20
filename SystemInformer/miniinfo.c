@@ -3573,6 +3573,8 @@ static BOOLEAN PhMipGraphsTreeNewCallback(
                     PhMipChangeSectionByName(L"I/O");
                     break;
                 }
+
+                TreeNew_DeselectRange(WindowHandle, 0, -1);
             }
             else
             {

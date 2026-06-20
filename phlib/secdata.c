@@ -884,6 +884,7 @@ PPH_STRING PhGetAccessString(
 {
     PH_STRING_BUILDER stringBuilder;
     PPH_ACCESS_ENTRY accessEntries;
+    BOOLEAN matchedStack[64];
     PBOOLEAN matched;
     ULONG i;
     ULONG j;
@@ -894,8 +895,15 @@ PPH_STRING PhGetAccessString(
     accessEntries = PhAllocateCopy(AccessEntries, NumberOfAccessEntries * sizeof(PH_ACCESS_ENTRY));
     qsort(accessEntries, NumberOfAccessEntries, sizeof(PH_ACCESS_ENTRY), PhpAccessEntryCompare);
 
-    matched = PhAllocate(NumberOfAccessEntries * sizeof(BOOLEAN));
-    memset(matched, 0, NumberOfAccessEntries * sizeof(BOOLEAN));
+    if (NumberOfAccessEntries <= RTL_NUMBER_OF(matchedStack))
+    {
+        matched = matchedStack;
+        memset(matched, 0, sizeof(matchedStack));
+    }
+    else
+    {
+        matched = PhAllocateZero(NumberOfAccessEntries * sizeof(BOOLEAN));
+    }
 
     for (i = 0; i < NumberOfAccessEntries; i++)
     {
@@ -927,7 +935,8 @@ PPH_STRING PhGetAccessString(
     if (PhEndsWithString2(stringBuilder.String, L", ", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 2);
 
-    PhFree(matched);
+    if (matched != matchedStack)
+        PhFree(matched);
     PhFree(accessEntries);
 
     return PhFinalStringBuilderString(&stringBuilder);

@@ -12,6 +12,68 @@
 #ifndef _PH_APPRESOLVER_H
 #define _PH_APPRESOLVER_H
 
+#ifndef __IInitializeWithWindow_FWD_DEFINED__
+#define __IInitializeWithWindow_FWD_DEFINED__
+typedef interface IInitializeWithWindow IInitializeWithWindow;
+#endif
+
+#ifndef __IInitializeWithWindow_INTERFACE_DEFINED__
+#define __IInitializeWithWindow_INTERFACE_DEFINED__
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+MIDL_INTERFACE("3E68D4BD-7135-4D10-8018-9FB6D9F33FA1")
+IInitializeWithWindow : public IUnknown
+{
+public:
+    virtual HRESULT STDMETHODCALLTYPE Initialize(
+        _In_ HWND WindowHandle
+        ) = 0;
+};
+#else
+typedef struct IInitializeWithWindowVtbl
+{
+    BEGIN_INTERFACE
+
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
+    HRESULT (STDMETHODCALLTYPE* QueryInterface)(
+        __RPC__in IInitializeWithWindow* This,
+        __RPC__in REFIID riid,
+        _COM_Outptr_ void** ppvObject);
+
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
+    ULONG (STDMETHODCALLTYPE* AddRef)(
+        __RPC__in IInitializeWithWindow* This);
+
+    DECLSPEC_XFGVIRT(IUnknown, Release)
+    ULONG (STDMETHODCALLTYPE* Release)(
+        __RPC__in IInitializeWithWindow* This);
+
+    DECLSPEC_XFGVIRT(IInitializeWithWindow, Initialize)
+    HRESULT (STDMETHODCALLTYPE* Initialize)(
+        __RPC__in IInitializeWithWindow* This,
+        _In_ HWND WindowHandle);
+
+    END_INTERFACE
+} IInitializeWithWindowVtbl;
+
+interface IInitializeWithWindow
+{
+    CONST_VTBL struct IInitializeWithWindowVtbl* lpVtbl;
+};
+
+#ifdef COBJMACROS
+#define IInitializeWithWindow_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IInitializeWithWindow_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IInitializeWithWindow_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IInitializeWithWindow_Initialize(This,WindowHandle) \
+    ((This)->lpVtbl->Initialize(This,WindowHandle))
+#endif
+#endif
+#endif
+
 EXTERN_C_START
 
 HRESULT PhAppResolverGetAppIdForProcess(
