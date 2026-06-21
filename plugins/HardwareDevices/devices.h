@@ -1476,6 +1476,7 @@ typedef struct _DV_GPU_SYSINFO_CONTEXT
     HWND GpuDialog;
     PH_LAYOUT_MANAGER GpuLayoutManager;
     RECT GpuGraphMargin;
+    RECT GpuGraphMarginScaled;
     HWND GpuGraphHandle;
     PH_GRAPH_STATE GpuGraphState;
     HWND DedicatedGraphHandle;
