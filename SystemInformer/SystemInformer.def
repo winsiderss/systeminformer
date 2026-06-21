@@ -840,6 +840,9 @@ EXPORTS
     PhInitializeProcThreadAttributeList
     PhLargeIntegerToLocalSystemTime
     PhLargeIntegerToSystemTime
+    PhListView_Destroy
+    PhListView_Initialize
+    PhListView_SetItemCount
     PhLoadLibrary
     PhLoadLibraryAsImageResource
     PhMapFlags1
