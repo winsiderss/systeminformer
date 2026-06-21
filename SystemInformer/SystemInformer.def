@@ -41,6 +41,7 @@ EXPORTS
     PhCreateProcessPropPageContextEx
     PhCreateSearchControl
     PhCreateServiceListControl
+    PhCreateWindowTargeting
     PhDeleteMemoryItemList
     PhDeleteStaticWindowIcon
     PhDeleteTreeNewColumnMenu
@@ -50,6 +51,7 @@ EXPORTS
     PhDeselectAllProcessNodes
     PhDeselectAllServiceNodes
     PhDestroyWindowIcon
+    PhDestroyWindowTargeting
     PhDeviceProviderInitialization
     PhDoPropPageLayout
     PhDuplicateProcessInformation
@@ -128,6 +130,7 @@ EXPORTS
     PhLookupDevicePropertyClass
     PhLookupMemoryItemList
     PhProcessImageListInitialization
+    PhProcessWindowTargetingMessage
     PhPropPageDlgProcHeader
     PhQueryKphCounters
     PhQueryMemoryItemList
@@ -776,6 +779,8 @@ EXPORTS
     PhFormatGuid
     PhFormatGuidToBuffer
     PhFormatImageVersionInfo
+    PhFormatMessage
+    PhFormatMessage_V
     PhFormatSize
     PhFormatTime
     PhFormatTimeSpan
@@ -964,6 +969,22 @@ EXPORTS
     PhInitializeGraphState
     PhNfGetTrayIconFont
     PhSetGraphText
+
+; graphprp
+    PhPropSheetNewBuilderAddPage
+    PhPropSheetNewBuilderCreate
+    PhPropSheetNewBuilderDestroy
+    PhPropSheetNewBuilderShow
+    PhPropSheetNewBuilderShowModal
+    PhPropSheetNewGetContext
+    PhPropSheetNewGetCurrentPage
+    PhPropSheetNewGetTabControl
+    PhPropSheetNewPageAddLayoutItem
+    PhPropSheetNewPageAddLayoutItemEx
+    PhPropSheetNewPageLayout
+    PhPropSheetNewSetCurrentPageByName
+    PhPropSheetNewShow
+    PhPropSheetNewShowModal
 
 ; guisup
     PhAddLayoutItem
@@ -1161,6 +1182,7 @@ EXPORTS
     PhChangeServiceConfig2
     PhCloseServiceHandle
     PhEnumDependentServices
+    PhEnumServices
     PhGetServiceConfig
     PhGetServiceConfigFileName
     PhGetServiceDescription
@@ -1233,6 +1255,7 @@ EXPORTS
     PhGetJsonArrayLength
     PhGetJsonArrayLong64
     PhGetJsonArrayString
+    PhGetJsonInt64Object
     PhGetJsonObject
     PhGetJsonObjectAsArrayList
     PhGetJsonObjectBool
@@ -1283,6 +1306,7 @@ EXPORTS
     PhHttpCrackUrl
     PhHttpDestroy
     PhHttpDownloadString
+    PhHttpDownloadUrl
     PhHttpGetErrorMessage
     PhHttpInitialize
     PhHttpQueryHeaders
@@ -1303,6 +1327,7 @@ EXPORTS
     PhIpv4StringToAddress
     PhIpv6AddressToString
     PhIpv6StringToAddress
+    PhWinHttpUserAgentString
 
 ; ksiuser
     KphAlpcQueryInformation

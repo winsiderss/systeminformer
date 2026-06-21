@@ -13,6 +13,9 @@
 #include <settings.h>
 #include <tabnew.h>
 #include <graphprp.h>
+#include <mapldr.h>
+
+#define PH_PROPSHEETNEW_REDRAW_FIX 1
 
 /*
  * Custom resizable PropertySheet replacement built on PhTabNew (dmex)
@@ -59,15 +62,51 @@ typedef struct _PH_PROPSHEETNEW_CONTEXT
     };
 
     INT_PTR ModalResult;
+    PPH_PROPSHEETNEW_BUILDER Builder;
 } PH_PROPSHEETNEW_CONTEXT, *PPH_PROPSHEETNEW_CONTEXT;
 
+typedef struct _PH_PROPSHEETNEW_BUILDER_PAGE
+{
+    PH_PROPSHEETNEW_PAGE Page;
+    PPH_STRING Id;
+    PPH_STRING Name;
+    PPH_PROPSHEETNEW_PAGE_DELETE_CALLBACK DeleteContext;
+} PH_PROPSHEETNEW_BUILDER_PAGE, *PPH_PROPSHEETNEW_BUILDER_PAGE;
+
+struct _PH_PROPSHEETNEW_BUILDER
+{
+    PH_PROPSHEETNEW Sheet;
+    PPH_STRING Caption;
+    PPH_LIST Pages;
+};
+
+typedef struct _PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT
+{
+    PH_LAYOUT_MANAGER LayoutManager;
+} PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT, *PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT;
+
+#define PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT 0x70736c79
+
 BOOLEAN PhPropSheetNewClassRegistered = FALSE;
+PPH_OBJECT_TYPE PhPropSheetNewBuilderType = NULL;
+
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
+VOID NTAPI PhPropSheetNewBuilderDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    );
 
 LRESULT CALLBACK PhPropSheetNewWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
+    );
+
+HWND PhPropSheetNewCreate(
+    _In_ PPH_PROPSHEETNEW Sheet,
+    _In_ BOOLEAN Modal,
+    _Out_opt_ PPH_PROPSHEETNEW_CONTEXT* OutContext
     );
 
 #define PH_PROPSHEETNEW_PADDING       7   // inner padding (px @ 96 DPI) around content
@@ -94,7 +133,11 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
+#ifdef PH_PROPSHEETNEW_REDRAW_FIX
+    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
+#else
     wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
+#endif
     wcex.lpfnWndProc = PhPropSheetNewWndProc;
     wcex.cbWndExtra = sizeof(PVOID);  // for PhSetWindowContextEx
     wcex.hInstance = NtCurrentImageBase();
@@ -231,6 +274,7 @@ VOID PhPropSheetNewCreatePageDialog(
     )
 {
     HWND windowHandle;
+    RECT pageRect;
 
     if (Page->DialogHandle || !Page->DialogProc || !Page->Template)
         return;
@@ -258,6 +302,19 @@ VOID PhPropSheetNewCreatePageDialog(
     SetParent(windowHandle, Context->WindowHandle);
 
     Page->DialogHandle = windowHandle;
+
+    if (Context->TabControl && PhTabNew_GetPageRect(Context->TabControl, &pageRect))
+    {
+        SetWindowPos(
+            windowHandle,
+            NULL,
+            pageRect.left,
+            pageRect.top,
+            pageRect.right - pageRect.left,
+            pageRect.bottom - pageRect.top,
+            SWP_NOZORDER | SWP_NOACTIVATE
+            );
+    }
 
     //PhInitializeWindowTheme(windowHandle, PhEnableThemeSupport);
 }
@@ -330,7 +387,9 @@ VOID PhPropSheetNewLayout(
     LONG buttonHeight;
     LONG buttonWidth;
     BOOLEAN hasCloseButton = (Context->Sheet.Flags & PH_PROPSHEETNEW_CLOSE_BUTTON) != 0;
+#ifndef PH_PROPSHEETNEW_REDRAW_FIX
     BOOLEAN tabResized = FALSE;
+#endif
     BOOLEAN deferFailed = FALSE;
 
     if (!Context->Initialized)
@@ -362,7 +421,10 @@ VOID PhPropSheetNewLayout(
     // the previous layout pass' page bounds during live resize/DPI changes.
     if (Context->TabControl)
     {
-        tabResized = !!SetWindowPos(
+#ifndef PH_PROPSHEETNEW_REDRAW_FIX
+        tabResized = !!
+#endif
+        SetWindowPos(
             Context->TabControl,
             NULL,
             tabRect.left,
@@ -469,6 +531,20 @@ VOID PhPropSheetNewLayout(
         }
     }
 
+    if (current && current->DialogHandle)
+        PhPropSheetNewPageLayout(current->DialogHandle);
+
+#ifdef PH_PROPSHEETNEW_REDRAW_FIX
+    if (Context->TabControl)
+    {
+        RedrawWindow(
+            Context->TabControl,
+            NULL,
+            NULL,
+            RDW_INVALIDATE | RDW_ERASE
+            );
+    }
+#else
     if (tabResized)
     {
         InvalidateRect(
@@ -477,6 +553,7 @@ VOID PhPropSheetNewLayout(
             FALSE
             );
     }
+#endif
 
     Context->LayoutInProgress = FALSE;
 }
@@ -594,8 +671,9 @@ VOID PhPropSheetNewRestoreState(
         {
             for (ULONG i = 0; i < Context->PageCount; i++)
             {
-                if (Context->Pages[i].Name &&
-                    PhEqualStringZ(saved->Buffer, (PWSTR)Context->Pages[i].Name, TRUE))
+                PCWSTR pageId = Context->Pages[i].Id ? Context->Pages[i].Id : Context->Pages[i].Name;
+
+                if (pageId && PhEqualStringZ(saved->Buffer, (PWSTR)pageId, TRUE))
                 {
                     initialIndex = (INT)i;
                     break;
@@ -638,9 +716,9 @@ VOID PhPropSheetNewSaveState(
     {
         PPH_PROPSHEETNEW_PAGE current = PhPropSheetNewPageAt(Context, Context->CurrentIndex);
 
-        if (current && current->Name)
+        if (current && (current->Id || current->Name))
         {
-            PhSetStringSetting(Context->Sheet.SettingNameActivePage, current->Name);
+            PhSetStringSetting(Context->Sheet.SettingNameActivePage, current->Id ? current->Id : current->Name);
         }
     }
 }
@@ -778,6 +856,15 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     case WM_NCDESTROY:
         {
             PhRemoveWindowContextEx(WindowHandle);
+
+            if (!context->Modal)
+            {
+                if (context->Builder)
+                    PhDereferenceObject(context->Builder);
+
+                PhFree(context->Pages);
+                PhFree(context);
+            }
         }
         break;
     case WM_DESTROY:
@@ -788,6 +875,23 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             {
                 if (context->Pages[i].DialogHandle)
                 {
+                    PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT layoutContext;
+
+                    layoutContext = PhGetWindowContext(
+                        context->Pages[i].DialogHandle,
+                        PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT
+                        );
+
+                    if (layoutContext)
+                    {
+                        PhRemoveWindowContext(
+                            context->Pages[i].DialogHandle,
+                            PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT
+                            );
+                        PhDeleteLayoutManager(&layoutContext->LayoutManager);
+                        PhFree(layoutContext);
+                    }
+
                     DestroyWindow(context->Pages[i].DialogHandle);
                     context->Pages[i].DialogHandle = NULL;
                 }
@@ -881,8 +985,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
         {
             if (GET_WM_COMMAND_HWND(wParam, lParam) == context->CloseButton && context->Sheet.Flags & PH_PROPSHEETNEW_CLOSE_BUTTON)
             {
-                //PostMessage(WindowHandle, WM_CLOSE, 0, 0);
-                PostQuitMessage(0);
+                PostMessage(WindowHandle, WM_CLOSE, 0, 0);
                 return 0;
             }
         }
@@ -897,6 +1000,239 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     }
 
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+PPH_PROPSHEETNEW_BUILDER PhPropSheetNewBuilderCreate(
+    _In_ PPH_PROPSHEETNEW Sheet
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    PPH_PROPSHEETNEW_BUILDER builder;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PhPropSheetNewBuilderType = PhCreateObjectType(
+            L"PhPropSheetNewBuilder",
+            0,
+            PhPropSheetNewBuilderDeleteProcedure
+            );
+        PhEndInitOnce(&initOnce);
+    }
+
+    builder = PhCreateObjectZero(sizeof(PH_PROPSHEETNEW_BUILDER), PhPropSheetNewBuilderType);
+    builder->Sheet = *Sheet;
+    builder->Caption = PhCreateString(Sheet->Caption ? Sheet->Caption : L"");
+    builder->Sheet.Caption = builder->Caption->Buffer;
+    builder->Sheet.Pages = NULL;
+    builder->Sheet.PageCount = 0;
+    builder->Pages = PhCreateList(4);
+
+    return builder;
+}
+
+BOOLEAN PhPropSheetNewBuilderAddPage(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder,
+    _In_ PPH_PROPSHEETNEW_PAGE_DESCRIPTOR Descriptor
+    )
+{
+    PPH_PROPSHEETNEW_BUILDER_PAGE page;
+
+    if (!Builder || !Descriptor || !Descriptor->Name || !Descriptor->Template || !Descriptor->DialogProc)
+        return FALSE;
+
+    page = PhAllocateZero(sizeof(PH_PROPSHEETNEW_BUILDER_PAGE));
+    page->Id = PhCreateString(Descriptor->Id ? Descriptor->Id : Descriptor->Name);
+    page->Name = PhCreateString(Descriptor->Name);
+    page->Page.Id = page->Id->Buffer;
+    page->Page.Name = page->Name->Buffer;
+    page->Page.Instance = Descriptor->Instance;
+    page->Page.Template = Descriptor->Template;
+    page->Page.DialogProc = Descriptor->DialogProc;
+    page->Page.Parameter = Descriptor->Context;
+    page->Page.Flags = Descriptor->Flags;
+    page->DeleteContext = Descriptor->DeleteContext;
+    PhAddItemList(Builder->Pages, page);
+
+    return TRUE;
+}
+
+HWND PhPropSheetNewBuilderShow(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder
+    )
+{
+    PPH_PROPSHEETNEW_CONTEXT context;
+    PPH_PROPSHEETNEW_PAGE pages;
+    HWND windowHandle;
+    ULONG i;
+
+    if (!Builder || Builder->Pages->Count == 0)
+        return NULL;
+
+    pages = PhAllocateZero(sizeof(PH_PROPSHEETNEW_PAGE) * Builder->Pages->Count);
+
+    for (i = 0; i < Builder->Pages->Count; i++)
+        pages[i] = ((PPH_PROPSHEETNEW_BUILDER_PAGE)Builder->Pages->Items[i])->Page;
+
+    Builder->Sheet.Pages = pages;
+    Builder->Sheet.PageCount = Builder->Pages->Count;
+    windowHandle = PhPropSheetNewCreate(&Builder->Sheet, FALSE, &context);
+    Builder->Sheet.Pages = NULL;
+    Builder->Sheet.PageCount = 0;
+    PhFree(pages);
+
+    if (windowHandle)
+    {
+        context->Builder = PhReferenceObject(Builder);
+        ShowWindow(windowHandle, SW_SHOW);
+        UpdateWindow(windowHandle);
+    }
+
+    return windowHandle;
+}
+
+INT_PTR PhPropSheetNewBuilderShowModal(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder
+    )
+{
+    PPH_PROPSHEETNEW_PAGE pages;
+    INT_PTR result;
+    ULONG i;
+
+    if (!Builder || Builder->Pages->Count == 0)
+        return -1;
+
+    pages = PhAllocateZero(sizeof(PH_PROPSHEETNEW_PAGE) * Builder->Pages->Count);
+
+    for (i = 0; i < Builder->Pages->Count; i++)
+        pages[i] = ((PPH_PROPSHEETNEW_BUILDER_PAGE)Builder->Pages->Items[i])->Page;
+
+    Builder->Sheet.Pages = pages;
+    Builder->Sheet.PageCount = Builder->Pages->Count;
+    result = PhPropSheetNewShowModal(&Builder->Sheet);
+    Builder->Sheet.Pages = NULL;
+    Builder->Sheet.PageCount = 0;
+    PhFree(pages);
+
+    return result;
+}
+
+VOID PhPropSheetNewBuilderDestroy(
+    _In_opt_ PPH_PROPSHEETNEW_BUILDER Builder
+    )
+{
+    if (Builder)
+        PhDereferenceObject(Builder);
+}
+
+VOID NTAPI PhPropSheetNewBuilderDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_PROPSHEETNEW_BUILDER Builder = Object;
+    ULONG i;
+
+    UNREFERENCED_PARAMETER(Flags);
+
+    for (i = 0; i < Builder->Pages->Count; i++)
+    {
+        PPH_PROPSHEETNEW_BUILDER_PAGE page = Builder->Pages->Items[i];
+
+        if (page->DeleteContext)
+            page->DeleteContext(page->Page.Parameter);
+
+        PhDereferenceObject(page->Id);
+        PhDereferenceObject(page->Name);
+        PhFree(page);
+    }
+
+    PhDereferenceObject(Builder->Pages);
+    PhDereferenceObject(Builder->Caption);
+}
+
+PPH_LAYOUT_ITEM PhPropSheetNewPageAddLayoutItem(
+    _In_ HWND PageWindow,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
+    )
+{
+    return PhPropSheetNewPageAddLayoutItemEx(
+        PageWindow,
+        Handle,
+        ParentItem,
+        Anchor,
+        NULL,
+        NULL
+        );
+}
+
+PPH_LAYOUT_ITEM PhPropSheetNewPageAddLayoutItemEx(
+    _In_ HWND PageWindow,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_opt_ PVOID Instance,
+    _In_opt_ PCWSTR Template
+    )
+{
+    PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT context;
+    RECT originalPageRect;
+    RECT originalPageSize;
+    RECT margin;
+    PDLGTEMPLATEEX dialogTemplate;
+
+    context = PhGetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT);
+
+    if (!context)
+    {
+        context = PhAllocateZero(sizeof(PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT));
+        PhInitializeLayoutManager(&context->LayoutManager, PageWindow);
+        PhSetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT, context);
+    }
+
+    if (Handle == PageWindow || ParentItem == PH_PROPSHEETNEW_PAGE_LAYOUT_PARENT)
+        return &context->LayoutManager.RootItem;
+
+    if (Instance && Template &&
+        NT_SUCCESS(PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)) &&
+        dialogTemplate)
+    {
+        memset(&originalPageSize, 0, sizeof(originalPageSize));
+        originalPageSize.right = dialogTemplate->cx;
+        originalPageSize.bottom = dialogTemplate->cy;
+        MapDialogRect(PageWindow, &originalPageSize);
+
+        PhGetWindowRect(PageWindow, &originalPageRect);
+        originalPageRect.right = originalPageRect.left + originalPageSize.right;
+        originalPageRect.bottom = originalPageRect.top + originalPageSize.bottom;
+
+        PhGetWindowRect(Handle, &margin);
+        PhMapRect(&margin, &margin, &originalPageRect);
+        PhConvertRect(&margin, &originalPageRect);
+
+        return PhAddLayoutItemEx(
+            &context->LayoutManager,
+            Handle,
+            ParentItem,
+            Anchor,
+            &margin
+            );
+    }
+
+    return PhAddLayoutItem(&context->LayoutManager, Handle, ParentItem, Anchor);
+}
+
+VOID PhPropSheetNewPageLayout(
+    _In_ HWND PageWindow
+    )
+{
+    PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT context;
+
+    context = PhGetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT);
+
+    if (context)
+        PhLayoutManagerLayout(&context->LayoutManager);
 }
 
 // ---------------------------------------------------------------------------
@@ -1025,7 +1361,7 @@ INT_PTR PhPropSheetNewShowModal(
 
     while (GetMessage(&msg, NULL, 0, 0))
     {
-        if (context->QuitRequested && !IsWindow(hwnd))
+        if (context->QuitRequested) // && !IsWindow(hwnd))
             break;
 
         if (context->Sheet.PreTranslateMessage &&
@@ -1039,7 +1375,7 @@ INT_PTR PhPropSheetNewShowModal(
             DispatchMessage(&msg);
         }
 
-        if (context->QuitRequested && !IsWindow(hwnd))
+        if (context->QuitRequested) // && !IsWindow(hwnd))
             break;
     }
 
