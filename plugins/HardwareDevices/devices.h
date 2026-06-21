@@ -1350,7 +1350,6 @@ VOID RaplDeviceSysInfoInitializing(
 
 // gpu.c
 
-DEFINE_GUID(GUID_COMPUTE_DEVICE_ARRIVAL, 0x1024e4c9, 0x47c9, 0x48d3, 0xb4, 0xa8, 0xf9, 0xdf, 0x78, 0x52, 0x3b, 0x53);
 
 typedef struct _DV_GPU_ID
 {
