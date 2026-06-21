@@ -1352,6 +1352,46 @@ VOID RaplDeviceSysInfoInitializing(
 
 // gpu.c
 
+// Maximum VidPN sources supported for per-source present tracking
+#define GX_PRESENT_STATS_SOURCE_MAX 16
+
+// Number of detail-dialog rows emitted per VidPN display source
+#define GX_DISPLAY_ROWS_PER_SOURCE  4
+#define GX_DISPLAY_ROW_FPS          0
+#define GX_DISPLAY_ROW_PRESENT_MODE 1
+#define GX_DISPLAY_ROW_DIRECT_FLIP  2
+#define GX_DISPLAY_ROW_DROPPED_FLIP 3
+
+// Row index in the details list view for source S, row type R
+#define GX_DISPLAY_ROW_IDX(S, R) \
+    (GPUADAPTER_DETAILS_INDEX_COUNT + (S) * GX_DISPLAY_ROWS_PER_SOURCE + (R))
+
+// Batch size (in tokens) used for each D3DKMTGetPresentHistory call
+#define GX_PRESENT_HISTORY_BATCH_TOKENS 512
+
+/**
+ * Per-VidPN-source (or per-adapter) present token statistics.
+ * All fields are ULONG64 monotonically increasing accumulators;
+ * take a delta snapshot each sample interval to obtain rates.
+ */
+typedef struct _GX_PRESENT_STATS
+{
+    // Present model counts
+    ULONG64 RedirectedFlipCount;  // D3DKMT_PM_REDIRECTED_FLIP tokens
+    ULONG64 RedirectedBltCount;   // PM_REDIRECTED_BLT / GDI / GDI_SYSMEM / VISTABLT
+    ULONG64 CompositionCount;     // PM_REDIRECTED_COMPOSITION + PM_SURFACECOMPLETE
+    ULONG64 FlipManagerCount;     // PM_FLIPMANAGER (DX12 / DirectComposition)
+
+    // Flip-token flag breakdown (subset of flip tokens)
+    ULONG64 IndependentFlipCount; // Flags.IndependentFlip set — DWM bypassed
+    ULONG64 FlipRestartCount;     // Flags.FlipRestart set — frame cancelled/restarted
+    ULONG64 VrrEligibleCount;     // Flags.VariableRefreshOverrideEligible — VRR candidate
+
+    // Flip interval distribution (subset of flip tokens)
+    ULONG64 Interval0Count;       // D3DDDI_FLIPINTERVAL_IMMEDIATE / ALLOW_TEARING
+    ULONG64 Interval1Count;       // D3DDDI_FLIPINTERVAL_ONE (standard vsync)
+    ULONG64 Interval2PlusCount;   // Interval >= 2 (throttled, e.g. 30fps cap on 60Hz)
+} GX_PRESENT_STATS, * PGX_PRESENT_STATS;
 
 typedef struct _DV_GPU_ID
 {
