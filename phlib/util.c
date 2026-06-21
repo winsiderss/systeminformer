@@ -649,17 +649,17 @@ BOOLEAN PhSystemTimeToTzSpecificLocalTime(
 }
 
 /**
- * Gets a string stored in a DLL's message table.
+ * Locates a message-table entry and converts it to a UTF-16 string, applying the same
+ * language fallback chain used throughout phlib (caller language, system language, U.S. English).
  *
  * \param DllHandle The base address of the DLL.
  * \param MessageTableId The identifier of the message table.
  * \param MessageLanguageId The language ID of the message.
  * \param MessageId The identifier of the message.
  *
- * \return A pointer to a string containing the message. You must free the string using
- * PhDereferenceObject() when you no longer need it.
+ * \return The unformatted message string, or NULL if the message could not be found.
  */
-PPH_STRING PhGetMessage(
+static PPH_STRING PhpFindMessageString(
     _In_ PVOID DllHandle,
     _In_ ULONG MessageTableId,
     _In_ ULONG MessageLanguageId,
@@ -704,16 +704,191 @@ PPH_STRING PhGetMessage(
     if (!NT_SUCCESS(status))
         return NULL;
 
-    // dmex: We don't support parsing insert sequences.
-    if (messageEntry->Text[0] == L'%')
-        return NULL;
-
     if (messageEntry->Flags & MESSAGE_RESOURCE_UNICODE)
         return PhCreateStringEx((PWCHAR)messageEntry->Text, messageEntry->Length);
     else if (messageEntry->Flags & MESSAGE_RESOURCE_UTF8)
         return PhConvertUtf8ToUtf16Ex((PCHAR)messageEntry->Text, messageEntry->Length);
     else
         return PhConvertMultiByteToUtf16Ex((PCHAR)messageEntry->Text, messageEntry->Length);
+}
+
+/**
+ * Formats a message-table format string using RtlFormatMessage, growing the output buffer
+ * as needed.
+ *
+ * \param Format The null-terminated message format string.
+ * \param Arguments The insert arguments, or NULL when IgnoreInserts is TRUE.
+ * \param IgnoreInserts TRUE to resolve escape sequences but leave numbered inserts (%1) literal;
+ * FALSE to substitute the supplied arguments.
+ *
+ * \return The formatted string, or NULL on failure.
+ */
+static PPH_STRING PhpFormatMessageString(
+    _In_ PCWSTR Format,
+    _In_opt_ va_list *Arguments,
+    _In_ BOOLEAN IgnoreInserts
+    )
+{
+    NTSTATUS status;
+    PPH_STRING string;
+    WCHAR stackBuffer[260];
+    PWSTR buffer = stackBuffer;
+    ULONG bufferLength = sizeof(stackBuffer);
+    ULONG returnLength = 0;
+
+    status = RtlFormatMessage(
+        Format,
+        0,
+        IgnoreInserts,
+        FALSE,
+        FALSE,
+        Arguments,
+        buffer,
+        bufferLength,
+        &returnLength
+        );
+
+    if (status == STATUS_BUFFER_OVERFLOW && returnLength != 0)
+    {
+        bufferLength = returnLength;
+        buffer = PhAllocate(bufferLength);
+
+        status = RtlFormatMessage(
+            Format,
+            0,
+            IgnoreInserts,
+            FALSE,
+            FALSE,
+            Arguments,
+            buffer,
+            bufferLength,
+            &returnLength
+            );
+    }
+
+    if (NT_SUCCESS(status) && returnLength != 0)
+        string = PhCreateStringEx(buffer, returnLength);
+    else
+        string = NULL;
+
+    if (buffer != stackBuffer)
+        PhFree(buffer);
+
+    return string;
+}
+
+/**
+ * Gets a string stored in a DLL's message table.
+ *
+ * Escape sequences (\c %%, \c %n, \c %0, ...) are resolved, while numbered insert markers
+ * (\c %1) are left literal. Use PhFormatMessage() to substitute insert arguments.
+ *
+ * \param DllHandle The base address of the DLL.
+ * \param MessageTableId The identifier of the message table.
+ * \param MessageLanguageId The language ID of the message.
+ * \param MessageId The identifier of the message.
+ *
+ * \return A pointer to a string containing the message. You must free the string using
+ * PhDereferenceObject() when you no longer need it.
+ */
+PPH_STRING PhGetMessage(
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId
+    )
+{
+    PPH_STRING message;
+
+    message = PhpFindMessageString(
+        DllHandle,
+        MessageTableId,
+        MessageLanguageId,
+        MessageId
+        );
+
+    if (!message)
+        return NULL;
+
+    // Resolve escape sequences but leave numbered inserts untouched. Skip the formatting
+    // call entirely when there are no sequences to process.
+    if (PhFindCharInString(message, 0, L'%') != SIZE_MAX)
+    {
+        PPH_STRING formatted;
+
+        if (formatted = PhpFormatMessageString(message->Buffer, NULL, TRUE))
+            PhMoveReference(&message, formatted);
+    }
+
+    return message;
+}
+
+/**
+ * Gets a string stored in a DLL's message table and substitutes the supplied insert arguments.
+ *
+ * \param DllHandle The base address of the DLL.
+ * \param MessageTableId The identifier of the message table.
+ * \param MessageLanguageId The language ID of the message.
+ * \param MessageId The identifier of the message.
+ * \param ArgPtr The insert arguments referenced by the message (%1, %2, ...).
+ *
+ * \return A pointer to the formatted message string, or NULL on failure. You must free the
+ * string using PhDereferenceObject() when you no longer need it.
+ */
+PPH_STRING PhFormatMessage_V(
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId,
+    _In_ va_list ArgPtr
+    )
+{
+    PPH_STRING message;
+    PPH_STRING formatted;
+
+    message = PhpFindMessageString(
+        DllHandle,
+        MessageTableId,
+        MessageLanguageId,
+        MessageId
+        );
+
+    if (!message)
+        return NULL;
+
+    formatted = PhpFormatMessageString(message->Buffer, &ArgPtr, FALSE);
+    PhDereferenceObject(message);
+
+    return formatted;
+}
+
+/**
+ * Gets a string stored in a DLL's message table and substitutes the supplied insert arguments.
+ *
+ * \param DllHandle The base address of the DLL.
+ * \param MessageTableId The identifier of the message table.
+ * \param MessageLanguageId The language ID of the message.
+ * \param MessageId The identifier of the message.
+ *
+ * \return A pointer to the formatted message string, or NULL on failure. You must free the
+ * string using PhDereferenceObject() when you no longer need it.
+ */
+PPH_STRING PhFormatMessage(
+    _In_ PVOID DllHandle,
+    _In_ ULONG MessageTableId,
+    _In_ ULONG MessageLanguageId,
+    _In_ ULONG MessageId,
+    ...
+    )
+{
+    PPH_STRING string;
+    va_list argptr;
+
+    va_start(argptr, MessageId);
+    string = PhFormatMessage_V(DllHandle, MessageTableId, MessageLanguageId, MessageId, argptr);
+    va_end(argptr);
+
+    return string;
 }
 
 /**
