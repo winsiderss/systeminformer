@@ -215,6 +215,7 @@
 #define IDC_CACHE_LATENCY_L2            9014
 #define IDC_CACHE_LATENCY_L3            9015
 #define IDC_CACHE_LATENCY_DRAM          9016
+#define IDC_SRUM_PROVIDER               9019
 #define ID_DISK_GOTOPROCESS             40005
 #define ID_DISK_COPY                    40006
 #define ID_DISK_PROPERTIES              40007
