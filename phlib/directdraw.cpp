@@ -1144,21 +1144,6 @@ HWND PhSelectWindowFromScreenSnapshot(
     return selectedWindow;
 }
 
-struct _PH_WINDOW_TARGETING_CONTEXT
-{
-    HWND OwnerWindowHandle;
-    HWND OverlayWindowHandle;
-    HWND TargetWindowHandle;
-    RECT OverlayBounds;
-    RECT TargetRect;
-    PPH_WINDOW_TARGETING_CALLBACK Callback;
-    PVOID CallbackContext;
-    BOOLEAN OwnerWindowTopMost;
-    BOOLEAN OverlayHighlight;
-    BOOLEAN TargetWindowDraw;
-    BOOLEAN Completed;
-};
-
 #define PH_WINDOW_TARGETING_OVERLAY_CLASS L"PhWindowTargetingOverlayWindow"
 
 static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
@@ -1172,12 +1157,12 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
 
     if (WindowMessage == WM_CREATE)
     {
-        context = (PPH_WINDOW_TARGETING_CONTEXT)((CREATESTRUCT*)lParam)->lpCreateParams;
+        context = static_cast<PPH_WINDOW_TARGETING_CONTEXT>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
         PhSetWindowContext(WindowHandle, 0xFF, context);
     }
     else
     {
-        context = (PPH_WINDOW_TARGETING_CONTEXT)PhGetWindowContext(WindowHandle, 0xFF);
+        context = static_cast<PPH_WINDOW_TARGETING_CONTEXT>(PhGetWindowContext(WindowHandle, 0xFF));
     }
 
     switch (WindowMessage)
@@ -1192,15 +1177,15 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
 
             hdc = BeginPaint(WindowHandle, &paint);
 
-            if (hdc && context && !IsRectEmpty(&context->TargetRect))
+            if (context && !IsRectEmpty(&context->TargetRect))
             {
                 RECT borderRect = context->TargetRect;
                 HPEN pen;
                 HBRUSH brush;
                 LONG oldDc;
 
-                OffsetRect(&borderRect, -context->OverlayBounds.left, -context->OverlayBounds.top);
-                InflateRect(&borderRect, 1, 1);
+                PhOffsetRect(&borderRect, -context->OverlayBounds.left, -context->OverlayBounds.top);
+                PhInflateRect(&borderRect, 1, 1);
 
                 oldDc = SaveDC(hdc);
                 pen = CreatePen(PS_INSIDEFRAME, 2, RGB(0x60, 0x60, 0x60));
@@ -1222,7 +1207,7 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
-static BOOLEAN PhEnsureWindowTargetingOverlayWindow(
+BOOLEAN PhEnsureWindowTargetingOverlayWindow(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context
     )
 {
@@ -1267,7 +1252,7 @@ static BOOLEAN PhEnsureWindowTargetingOverlayWindow(
     return TRUE;
 }
 
-static VOID PhUpdateWindowTargetingOverlay(
+VOID PhUpdateWindowTargetingOverlay(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context,
     _In_opt_ HWND TargetWindowHandle
     )
@@ -1325,9 +1310,9 @@ static VOID PhUpdateWindowTargetingOverlay(
         CombineRgn(overlayRegion, overlayRegion, targetRegion, RGN_DIFF);
 
         if (!SetWindowRgn(Context->OverlayWindowHandle, overlayRegion, TRUE))
-            DeleteObject(overlayRegion);
+            DeleteRgn(overlayRegion);
 
-        DeleteObject(targetRegion);
+        DeleteRgn(targetRegion);
     }
     else
     {
@@ -1338,7 +1323,7 @@ static VOID PhUpdateWindowTargetingOverlay(
     InvalidateRect(Context->OverlayWindowHandle, nullptr, TRUE);
 }
 
-static VOID PhHideWindowTargetingOverlayForHitTest(
+VOID PhHideWindowTargetingOverlayForHitTest(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context
     )
 {
@@ -1346,7 +1331,7 @@ static VOID PhHideWindowTargetingOverlayForHitTest(
         ShowWindow(Context->OverlayWindowHandle, SW_HIDE);
 }
 
-static VOID PhDestroyWindowTargetingOverlay(
+VOID PhDestroyWindowTargetingOverlay(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context
     )
 {
@@ -1357,7 +1342,7 @@ static VOID PhDestroyWindowTargetingOverlay(
     }
 }
 
-static VOID PhDrawWindowBorderForTargeting(
+VOID PhDrawWindowBorderForTargeting(
     _In_ HWND WindowHandle
     )
 {
@@ -1398,7 +1383,8 @@ static VOID PhDrawWindowBorderForTargeting(
         ReleaseDC(WindowHandle, hdc);
     }
 }
-static VOID PhEndWindowTargetingVisuals(
+
+VOID PhEndWindowTargetingVisuals(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context
     )
 {
@@ -1416,7 +1402,7 @@ static VOID PhEndWindowTargetingVisuals(
     memset(&Context->TargetRect, 0, sizeof(RECT));
 }
 
-static VOID PhUpdateWindowTargetingVisuals(
+VOID PhUpdateWindowTargetingVisuals(
     _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context,
     _In_opt_ HWND TargetWindowHandle
     )
@@ -1437,7 +1423,7 @@ static VOID PhUpdateWindowTargetingVisuals(
     }
 }
 
-static VOID PhRestoreWindowTargetingOwner(
+VOID PhRestoreWindowTargetingOwner(
     _In_ PPH_WINDOW_TARGETING_CONTEXT Context
     )
 {
@@ -1464,7 +1450,7 @@ PPH_WINDOW_TARGETING_CONTEXT PhCreateWindowTargeting(
 {
     PPH_WINDOW_TARGETING_CONTEXT targetingContext;
 
-    targetingContext = (PPH_WINDOW_TARGETING_CONTEXT)PhAllocate(sizeof(PH_WINDOW_TARGETING_CONTEXT));
+    targetingContext = static_cast<PPH_WINDOW_TARGETING_CONTEXT>(PhAllocate(sizeof(PH_WINDOW_TARGETING_CONTEXT)));
     memset(targetingContext, 0, sizeof(PH_WINDOW_TARGETING_CONTEXT));
 
     targetingContext->OwnerWindowHandle = OwnerWindowHandle ? OwnerWindowHandle : GetDesktopWindow();
@@ -1490,7 +1476,9 @@ PPH_WINDOW_TARGETING_CONTEXT PhCreateWindowTargeting(
     }
 
     if (OverlayHighlight)
+    {
         PhUpdateWindowTargetingOverlay(targetingContext, nullptr);
+    }
 
     return targetingContext;
 }
@@ -1515,7 +1503,9 @@ PH_WINDOW_TARGETING_RESULT PhProcessWindowTargetingMessage(
                 break;
 
             if (Context->OverlayHighlight)
+            {
                 PhHideWindowTargetingOverlayForHitTest(Context);
+            }
 
             windowHandle = WindowFromPoint(cursorPos);
 
@@ -1535,24 +1525,30 @@ PH_WINDOW_TARGETING_RESULT PhProcessWindowTargetingMessage(
         }
         break;
     case WM_LBUTTONUP:
-        Context->Completed = TRUE;
-        PhSetCursor(PhLoadCursor(nullptr, IDC_ARROW));
-        PhRestoreWindowTargetingOwner(Context);
-        ReleaseCapture();
-        PhEndWindowTargetingVisuals(Context);
-
-        if (TargetWindowHandle)
-            *TargetWindowHandle = Context->TargetWindowHandle;
-
-        return PhWindowTargetingCompleted;
-    case WM_CAPTURECHANGED:
-        if (!Context->Completed)
         {
             Context->Completed = TRUE;
-            Context->TargetWindowHandle = nullptr;
-            PhEndWindowTargetingVisuals(Context);
+
+            PhSetCursor(PhLoadCursor(nullptr, IDC_ARROW));
             PhRestoreWindowTargetingOwner(Context);
-            return PhWindowTargetingCancelled;
+            ReleaseCapture();
+            PhEndWindowTargetingVisuals(Context);
+
+            if (TargetWindowHandle)
+            {
+                *TargetWindowHandle = Context->TargetWindowHandle;
+            }
+        }
+        return PhWindowTargetingCompleted;
+    case WM_CAPTURECHANGED:
+        {
+            if (!Context->Completed)
+            {
+                Context->Completed = TRUE;
+                Context->TargetWindowHandle = nullptr;
+                PhEndWindowTargetingVisuals(Context);
+                PhRestoreWindowTargetingOwner(Context);
+                return PhWindowTargetingCancelled;
+            }
         }
         break;
     }
