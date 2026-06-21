@@ -31,6 +31,7 @@
  */
 
 #include <ph.h>
+#include <commctrl.h>
 #include <graphscroll.h>
 #include <guisup.h>
 #include <treenew.h>
@@ -3168,7 +3169,7 @@ VOID PhTnpLayoutHeader(
         {
             if (!PhEqualRect(&toolInfo.rect, &Context->TooltipFixedHeaderLastRect))
             {
-                TipsNew_NewToolRect(Context->TooltipsHandle, &toolInfo);
+                SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
                 Context->TooltipFixedHeaderLastRect = toolInfo.rect;
             }
         }
@@ -3182,7 +3183,7 @@ VOID PhTnpLayoutHeader(
         {
             if (!PhEqualRect(&toolInfo.rect, &Context->TooltipNormalHeaderLastRect))
             {
-                TipsNew_NewToolRect(Context->TooltipsHandle, &toolInfo);
+                SendMessage(Context->TooltipsHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
                 Context->TooltipNormalHeaderLastRect = toolInfo.rect;
             }
         }
