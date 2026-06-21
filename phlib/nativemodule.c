@@ -1905,6 +1905,56 @@ static ULONG NTAPI PhpBaseAddressHashtableHashFunction(
 }
 
 /**
+ * Internal callback function converting limited (virtual memory page) module enumeration results
+ * to generic module information.
+ *
+ * \param ProcessHandle Handle to the process.
+ * \param VirtualAddress The virtual address within the image region.
+ * \param ImageBase The base address of the image.
+ * \param ImageSize The size of the image.
+ * \param FileName The mapped file name of the image.
+ * \param Context Pointer to the enumeration context.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Function_class_(PH_ENUM_PROCESS_MODULES_LIMITED_CALLBACK)
+static NTSTATUS NTAPI PhpEnumGenericModulesLimitedCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress,
+    _In_ PVOID ImageBase,
+    _In_ SIZE_T ImageSize,
+    _In_ PPH_STRING FileName,
+    _In_opt_ PVOID Context
+    )
+{
+    PENUM_GENERIC_PROCESS_MODULES_CONTEXT context = Context;
+    PH_MODULE_INFO moduleInfo;
+    BOOLEAN result;
+
+    // Check if we have a duplicate base address.
+    if (PhFindEntryHashtable(context->BaseAddressHashtable, &ImageBase))
+        return STATUS_SUCCESS;
+
+    PhAddEntryHashtable(context->BaseAddressHashtable, &ImageBase);
+
+    RtlZeroMemory(&moduleInfo, sizeof(PH_MODULE_INFO));
+    moduleInfo.Type = context->Type;
+    moduleInfo.BaseAddress = ImageBase;
+    moduleInfo.Size = (ULONG)ImageSize;
+    PhSetReference(&moduleInfo.FileName, FileName);
+    moduleInfo.Name = PhGetBaseName(moduleInfo.FileName);
+    moduleInfo.LoadOrderIndex = (USHORT)(context->LoadOrderIndex++);
+    moduleInfo.LoadCount = USHRT_MAX;
+    moduleInfo.LoadReason = USHRT_MAX;
+
+    result = context->Callback(&moduleInfo, context->Context);
+
+    PhDereferenceObject(moduleInfo.Name);
+    PhDereferenceObject(moduleInfo.FileName);
+
+    return result ? STATUS_SUCCESS : STATUS_NO_MORE_ENTRIES;
+}
+
+/**
  * Enumerates the modules loaded by a process.
  *
  * \param ProcessId The ID of a process. If \ref SYSTEM_PROCESS_ID is specified the function
@@ -2011,13 +2061,36 @@ NTSTATUS PhEnumGenericModules(
         parameters.Context = &context;
         parameters.Flags = PH_ENUM_PROCESS_MODULES_TRY_MAPPED_FILE_NAME;
 
-        status = PhEnumProcessModulesEx(
-            ProcessHandle,
-            &parameters
-            );
+        if (Flags & PH_ENUM_GENERIC_LIMITED_MODULES)
+        {
+            // Limited enumeration via virtual memory pages. This bypasses the loader entirely, so
+            // there are no loader list or WOW64 passes.
+
+            status = PhEnumProcessModulesLimited(
+                ProcessHandle,
+                PhpEnumGenericModulesLimitedCallback,
+                &context
+                );
+        }
+        else
+        {
+            if (Flags & PH_ENUM_GENERIC_LDRDAG_MODULES)
+            {
+                status = PhEnumProcessModulesLdrDdagEx(
+                    ProcessHandle,
+                    &parameters
+                    );
+            }
+            else
+            {
+                status = PhEnumProcessModulesEx(
+                    ProcessHandle,
+                    &parameters
+                    );
+            }
 
 #ifdef _WIN64
-        PhGetProcessIsWow64(ProcessHandle, &isWow64);
+            PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
         // 32-bit process modules
         if (isWow64)
@@ -2028,11 +2101,21 @@ NTSTATUS PhEnumGenericModules(
             context.BaseAddressHashtable = baseAddressHashtable;
             context.LoadOrderIndex = 0;
 
-            status = PhEnumProcessModules32Ex(
-                ProcessHandle,
-                &parameters
-                );
-        }
+                if (Flags & PH_ENUM_GENERIC_LDRDAG_MODULES)
+                {
+                    status = PhEnumProcessModules32LdrDdagEx(
+                        ProcessHandle,
+                        &parameters
+                        );
+                }
+                else
+                {
+                    status = PhEnumProcessModules32Ex(
+                        ProcessHandle,
+                        &parameters
+                        );
+                }
+            }
 #endif
 
         // Mapped files and mapped images
