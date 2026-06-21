@@ -153,6 +153,66 @@ VOID RebarCreate(
 }
 
 #if TOOLSTATUS_ENABLE_MENUBAR
+static VOID MenuBarInitializeLayout(
+    VOID
+    )
+{
+    ULONG menuBarIndex;
+    ULONG toolbarIndex;
+    ULONG toolbarStyle;
+
+    if (!MenuBarHandle || !ToolBarHandle)
+        return;
+
+    menuBarIndex = RebarBandToIndex(REBAR_BAND_ID_MENUBAR);
+
+    if (menuBarIndex != ULONG_MAX && menuBarIndex != 0)
+        RebarBandMove(menuBarIndex, 0);
+
+    toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+
+    if (toolbarIndex != ULONG_MAX && toolbarIndex != 1)
+    {
+        RebarBandMove(toolbarIndex, 1);
+        toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+    }
+
+    if (toolbarIndex != ULONG_MAX && RebarGetBandIndexStyle(toolbarIndex, &toolbarStyle))
+    {
+        SetFlag(toolbarStyle, RBBS_BREAK);
+        RebarSetBandIndexStyle(toolbarIndex, toolbarStyle);
+    }
+
+    if (toolbarIndex != ULONG_MAX)
+    {
+        BAND_CHILD_SIZE bandSize;
+
+        if (RebarGetBandIndexChildSize(toolbarIndex, &bandSize))
+        {
+            // Recompute the toolbar band width and height from the toolbar button size. Enabling
+            // the menu bar at runtime inserts the menu bar band onto the toolbar's row, which eats
+            // into the toolbar height; the RBBS_BREAK above moves the toolbar to its own row but
+            // the collapsed height persists. Mirror the canonical resize path (UpdateLayoutMetrics)
+            // by setting the control button height and the band child height to the same value,
+            // unconditionally, with the same 22px floor, so the toolbar reclaims its full height.
+            ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
+            LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
+            toolbarButtonHeight = __max((LONG)HIWORD(toolbarButtonSize), toolbarButtonHeight);
+            toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
+
+            SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
+
+            bandSize.MinChildWidth = LOWORD(toolbarButtonSize);
+            bandSize.InitialChildHeight = toolbarButtonHeight;
+            bandSize.MinChildHeight = toolbarButtonHeight;
+            RebarSetBandIndexChildSize(toolbarIndex, &bandSize);
+        }
+    }
+
+    SendMessage(ToolBarHandle, TB_AUTOSIZE, 0, 0);
+    SendMessage(RebarHandle, WM_SIZE, 0, 0);
+}
+
 /**
  * Creates the menu bar control.
  */
@@ -190,6 +250,8 @@ VOID MenuBarCreate(
         DestroyWindow(MenuBarHandle);
         MenuBarHandle = NULL;
     }
+
+    MenuBarInitializeLayout();
 }
 #endif
 
@@ -235,16 +297,11 @@ VOID ToolBarCreate(
 
         RebarBandInsert(REBAR_BAND_ID_TOOLBAR, ToolBarHandle, barwidth, barheight);
     }
-}
 
-#define IDB_SEARCH_ACTIVE_MODERN_LIGHT 272
-#define IDB_SEARCH_ACTIVE_MODERN_DARK 271
-#define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
-#define IDB_SEARCH_INACTIVE_MODERN_DARK 273
-#define IDB_SEARCH_REGEX_MODERN_LIGHT 268
-#define IDB_SEARCH_REGEX_MODERN_DARK 267
-#define IDB_SEARCH_CASE_MODERN_LIGHT 270
-#define IDB_SEARCH_CASE_MODERN_DARK 269
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarInitializeLayout();
+#endif
+}
 
 /**
  * Creates the search box control.
@@ -257,28 +314,25 @@ VOID SearchBoxCreate(
     ServiceTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterCallback, NULL);
     NetworkTreeFilterEntry = PhAddTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterCallback, NULL);
 
-    SearchboxHandle = PhCreateSearchNewControl(
+    SearchboxHandle = PhCreateWindowEx(
+        WC_EDIT,
+        NULL,
+        WS_CHILD | WS_CLIPSIBLINGS | ES_LEFT | ES_AUTOHSCROLL,
+        WS_EX_CLIENTEDGE,
+        0, 0, 0, 0,
         MainWindowHandle,
-        0,
-        L"Search Processes (Ctrl+K)",
-        NtCurrentImageBase(),
-        EnableThemeSupport ? MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_MODERN_LIGHT) : MAKEINTRESOURCE(IDB_SEARCH_INACTIVE_MODERN_DARK),
-        EnableThemeSupport ? MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_MODERN_LIGHT) : MAKEINTRESOURCE(IDB_SEARCH_ACTIVE_MODERN_DARK),
-        EnableThemeSupport ? MAKEINTRESOURCE(IDB_SEARCH_CASE_MODERN_LIGHT) : MAKEINTRESOURCE(IDB_SEARCH_CASE_MODERN_DARK),
-        EnableThemeSupport ? MAKEINTRESOURCE(IDB_SEARCH_REGEX_MODERN_LIGHT) : MAKEINTRESOURCE(IDB_SEARCH_REGEX_MODERN_DARK),
-        L"SearchControlRegex",
-        L"SearchControlCaseSensitive",
-        (PPH_SEARCHNEW_CALLBACK)SearchControlCallback,
+        NULL,
+        NULL,
         NULL
         );
 
-    if (SearchboxHandle)
-    {
-        if (ToolStatusConfig.AutoAddFilters)
-        {
-            PhSearchNewAddDefaultFilters(SearchboxHandle);
-        }
-    }
+    PhCreateSearchControl(
+        MainWindowHandle,
+        SearchboxHandle,
+        L"Search Processes (Ctrl+K)",
+        SearchControlCallback,
+        NULL
+        );
 }
 
 /**
@@ -376,11 +430,13 @@ VOID SearchBoxDestroy(
         PhRemoveTreeNewFilter(PhGetFilterSupportProcessTreeList(), ProcessTreeFilterEntry);
         ProcessTreeFilterEntry = NULL;
     }
+
     if (ServiceTreeFilterEntry)
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportServiceTreeList(), ServiceTreeFilterEntry);
         ServiceTreeFilterEntry = NULL;
     }
+
     if (NetworkTreeFilterEntry)
     {
         PhRemoveTreeNewFilter(PhGetFilterSupportNetworkTreeList(), NetworkTreeFilterEntry);
@@ -499,7 +555,9 @@ VOID ToolBarApplySettings(
     if (DpiChanged)
     {
         if (ToolBarImageList)
+        {
             SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
+        }
 
         ToolbarRemoveButtons();
         ToolbarLoadButtonSettings();
@@ -555,13 +613,17 @@ VOID ToolBarApplySettings(
         case PHAPP_ID_HACKER_SHOWDETAILSFORALLPROCESSES:
             {
                 if (PhGetOwnTokenAttributes().Elevated)
+                {
                     ClearFlag(buttonInfo.fsState, TBSTATE_ENABLED);
+                }
             }
             break;
         case PHAPP_ID_VIEW_ALWAYSONTOP:
             {
                 if (PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP))
+                {
                     SetFlag(buttonInfo.fsState, TBSTATE_PRESSED);
+                }
             }
             break;
         case TIDC_POWERMENUDROPDOWN:
@@ -617,11 +679,13 @@ VOID SearchBoxApplySettings(
 
         if (SearchboxHandle)
         {
-            PhSearchNewControlClear(SearchboxHandle);
+            PhSearchControlClear(SearchboxHandle);
             ShowWindow(SearchboxHandle, SW_HIDE);
 
             if (!ToolStatusConfig.SearchBoxEnabled || !RebarHandle)
+            {
                 SearchBoxDestroy();
+            }
         }
     }
 }
@@ -636,12 +700,16 @@ VOID StatusBarApplySettings(
     if (ToolStatusConfig.StatusBarEnabled)
     {
         if (StatusBarHandle && !IsWindowVisible(StatusBarHandle))
+        {
             ShowWindow(StatusBarHandle, SW_SHOW);
+        }
     }
     else
     {
         if (StatusBarHandle && IsWindowVisible(StatusBarHandle))
+        {
             ShowWindow(StatusBarHandle, SW_HIDE);
+        }
     }
 }
 
@@ -664,20 +732,28 @@ VOID ToolbarLoadSettings(
         {
             RebarCreate();
 
-            //if (ToolStatusConfig.EnableMenuBar && MainMenu && !MenuBarHandle)
-            //    MenuBarCreate();
+#if TOOLSTATUS_ENABLE_MENUBAR
+            if (ToolStatusConfig.EnableMenuBar && MainMenu && !MenuBarHandle)
+                MenuBarCreate();
+#endif
 
             if (!ToolBarHandle)
                 ToolBarCreate();
         }
 
         if (ToolStatusConfig.SearchBoxEnabled && !SearchboxHandle)
+        {
             SearchBoxCreate();
+        }
 
         if (ToolStatusConfig.StatusBarEnabled && !StatusBarHandle)
+        {
             StatusBarCreate();
+        }
 
-        //MenuBarApplySettings();
+#if TOOLSTATUS_ENABLE_MENUBAR
+        MenuBarApplySettings();
+#endif
         ToolBarApplySettings(DpiChanged);
 
         if (RebarHandle && !IsWindowVisible(RebarHandle))
@@ -687,7 +763,9 @@ VOID ToolbarLoadSettings(
     {
         if (RebarHandle)
         {
-           // MenuBarDestroy();
+#if TOOLSTATUS_ENABLE_MENUBAR
+            MenuBarDestroy();
+#endif
             ToolBarDestroy();
             RebarDestroy();
         }
@@ -732,6 +810,10 @@ VOID ToolbarCreateControls(
     ToolbarCreateGraphs();
     ReBarLoadLayoutSettings();
 
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarApplySettings();
+#endif
+
     ToolStatusApplyMainMenuVisibility(MainWindowHandle);
 
     if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
@@ -749,7 +831,9 @@ VOID ToolbarDestroyControls(
 {
     ToolbarDestroyGraphs();
     SearchBoxDestroy();
-   // MenuBarDestroy();
+#if TOOLSTATUS_ENABLE_MENUBAR
+    MenuBarDestroy();
+#endif
     ToolBarDestroy();
     RebarDestroy();
 }
@@ -1099,15 +1183,16 @@ VOID ToolbarLoadDefaultButtonSettings(
 
     for (ULONG i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
     {
+        PTBBUTTON toolbarButton = &ToolbarButtons[i];
         HBITMAP bitmap;
 
-        if (FlagOn(ToolbarButtons[i].fsStyle, BTNS_SEP))
+        if (FlagOn(toolbarButton->fsStyle, BTNS_SEP))
             continue;
 
-        if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
+        if (bitmap = ToolbarGetImage(toolbarButton->idCommand, dpiValue))
         {
             // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-            ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
+            toolbarButton->iBitmap = PhImageListAddBitmap(
                 ToolBarImageList,
                 bitmap,
                 NULL
@@ -1118,7 +1203,7 @@ VOID ToolbarLoadDefaultButtonSettings(
 
         // Note: We have to set the string here because TBIF_TEXT doesn't update
         // the button text length when the button is disabled. (dmex)
-        ToolbarButtons[i].iString = (INT_PTR)(PVOID)ToolbarGetText(ToolbarButtons[i].idCommand);
+        toolbarButton->iString = (INT_PTR)(PVOID)ToolbarGetText(toolbarButton->idCommand);
     }
 
     // Load default settings
@@ -1174,6 +1259,7 @@ VOID ToolbarLoadButtonSettings(
 
     for (ULONG index = 0; index < count; index++)
     {
+        PTBBUTTON button = &buttonArray[index];
         ULONG64 commandInteger;
         PH_STRINGREF commandIdPart;
 
@@ -1185,36 +1271,38 @@ VOID ToolbarLoadButtonSettings(
         if (!PhStringToUInt64(&commandIdPart, 10, &commandInteger))
             continue;
 
-        buttonArray[index].idCommand = (LONG)ToolbarMapStableToCommandId((ULONG)commandInteger);
-        buttonArray[index].iBitmap = I_IMAGECALLBACK;
-        buttonArray[index].fsState = TBSTATE_ENABLED;
+        button->idCommand = (LONG)ToolbarMapStableToCommandId((ULONG)commandInteger);
+        button->iBitmap = I_IMAGECALLBACK;
+        button->fsState = TBSTATE_ENABLED;
 
         if (commandInteger)
         {
-            buttonArray[index].fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
+            button->fsStyle = BTNS_BUTTON | BTNS_AUTOSIZE;
             // Note: We have to set the string here because TBIF_TEXT doesn't update
             // the button text length when the button is disabled. (dmex)
-            buttonArray[index].iString = (INT_PTR)(PVOID)ToolbarGetText((ULONG)buttonArray[index].idCommand);
+            button->iString = (INT_PTR)(PVOID)ToolbarGetText((ULONG)button->idCommand);
         }
         else
         {
-            buttonArray[index].fsStyle = BTNS_SEP;
+            button->fsStyle = BTNS_SEP;
         }
 
         // Pre-cache the image in the Toolbar array on startup.
         for (ULONG i = 0; i < ARRAYSIZE(ToolbarButtons); i++)
         {
-            if (ToolbarButtons[i].idCommand == buttonArray[index].idCommand)
+            PTBBUTTON toolbarButton = &ToolbarButtons[i];
+
+            if (toolbarButton->idCommand == button->idCommand)
             {
                 HBITMAP bitmap;
 
-                if (FlagOn(buttonArray[index].fsStyle, BTNS_SEP))
+                if (FlagOn(button->fsStyle, BTNS_SEP))
                     continue;
 
-                if (bitmap = ToolbarGetImage(ToolbarButtons[i].idCommand, dpiValue))
+                if (bitmap = ToolbarGetImage(toolbarButton->idCommand, dpiValue))
                 {
                     // Add the image, cache the value in the ToolbarButtons array, set the bitmap index.
-                    buttonArray[index].iBitmap = ToolbarButtons[i].iBitmap = PhImageListAddBitmap(
+                    button->iBitmap = toolbarButton->iBitmap = PhImageListAddBitmap(
                         ToolBarImageList,
                         bitmap,
                         NULL
@@ -1239,6 +1327,9 @@ CleanupExit:
     PhClearReference(&settingsString);
 }
 
+/**
+ * Saves the toolbar button settings to the configuration.
+ */
 VOID ToolbarSaveButtonSettings(
     VOID
     )
@@ -1284,6 +1375,9 @@ VOID ToolbarSaveButtonSettings(
     PhDereferenceObject(settingsString);
 }
 
+/**
+ * Loads the rebar layout settings from the configuration.
+ */
 VOID ReBarLoadLayoutSettings(
     VOID
     )
@@ -1293,7 +1387,12 @@ VOID ReBarLoadLayoutSettings(
     PPH_STRING settingsString;
     PH_STRINGREF remaining;
 
-    settingsString = PhGetStringSetting(SETTING_NAME_REBAR_CONFIG);
+    settingsString = PhGetStringSetting(
+#if TOOLSTATUS_ENABLE_MENUBAR
+        ToolStatusConfig.EnableMenuBar ? SETTING_NAME_REBAR_MENUBAR_CONFIG :
+#endif
+        SETTING_NAME_REBAR_CONFIG
+        );
     remaining = settingsString->sr;
 
     if (remaining.Length == 0)
@@ -1350,6 +1449,9 @@ VOID ReBarLoadLayoutSettings(
     }
 }
 
+/**
+ * Saves the rebar layout settings to the configuration.
+ */
 VOID ReBarSaveLayoutSettings(
     VOID
     )
@@ -1402,10 +1504,21 @@ VOID ReBarSaveLayoutSettings(
     }
 
     settingsString = PhFinalStringBuilderString(&stringBuilder);
-    PhSetStringSetting2(SETTING_NAME_REBAR_CONFIG, &settingsString->sr);
+    PhSetStringSetting2(
+#if TOOLSTATUS_ENABLE_MENUBAR
+        ToolStatusConfig.EnableMenuBar ? SETTING_NAME_REBAR_MENUBAR_CONFIG :
+#endif
+        SETTING_NAME_REBAR_CONFIG,
+        &settingsString->sr
+        );
     PhDereferenceObject(settingsString);
 }
 
+/**
+ * Adjusts the height of all bands in the rebar control.
+ *
+ * \param Height The new height for the bands.
+ */
 VOID RebarAdjustBandHeightLayout(
     _In_ LONG Height
     )
@@ -1422,12 +1535,20 @@ VOID RebarAdjustBandHeightLayout(
 
         if (RebarGetBandIndexChildSize(index, &rebarBandInfo))
         {
+            rebarBandInfo.InitialChildHeight = Height;
             rebarBandInfo.MinChildHeight = Height;
             RebarSetBandIndexChildSize(index, &rebarBandInfo);
         }
     }
 }
 
+/**
+ * Calculates the font size for a window.
+ *
+ * \param WindowHandle A handle to the window.
+ * \param WindowFont A handle to the font.
+ * \return The calculated height of the font, including padding.
+ */
 LONG ToolStatusGetWindowFontSize(
     _In_ HWND WindowHandle,
     _In_ HFONT WindowFont

@@ -102,50 +102,71 @@ typedef PH_TABNEW_LAYOUT_CALLBACK *PPH_TABNEW_LAYOUT_CALLBACK;
 #define PHTNM_INVALIDATEITEM     (PHTNM_FIRST + 23)  // wParam=index
 #define PHTNM_SETTHEMEDARK       (PHTNM_FIRST + 24)  // wParam=BOOLEAN
 #define PHTNM_SETCALLBACK        (PHTNM_FIRST + 25)  // wParam=PPH_TABNEW_MESSAGE_CALLBACK, lParam=context
+#define PHTNM_SAVELAYOUT         (PHTNM_FIRST + 26)  // lParam=PPH_TABNEW_LAYOUT_MESSAGE
+#define PHTNM_RESTORELAYOUT      (PHTNM_FIRST + 27)  // lParam=PPH_TABNEW_LAYOUT_MESSAGE
+#define PHTNM_ADDPAGE            (PHTNM_FIRST + 28)  // lParam=PPH_TABNEW_ADD_PAGE_MESSAGE
+#define PHTNM_FINDPAGE           (PHTNM_FIRST + 29)  // lParam=PPH_STRINGREF
+#define PHTNM_GETPAGEBYINDEX     (PHTNM_FIRST + 30)  // wParam=index
+#define PHTNM_NOTIFYPAGES        (PHTNM_FIRST + 31)  // lParam=PPH_TABNEW_NOTIFY_PAGES_MESSAGE
+#define PHTNM_GETCURRENTPAGE     (PHTNM_FIRST + 32)
+#define PHTNM_LAST               PHTNM_GETCURRENTPAGE
+
+#if defined(_PHLIB_)
+
+EXTERN_C LRESULT PhTabNewSendMessage(
+    _In_ HWND WindowHandle,
+    _In_ ULONG WindowMessage,
+    _Pre_maybenull_ _Post_valid_ WPARAM wParam,
+    _Pre_maybenull_ _Post_valid_ LPARAM lParam
+    );
+
+#else
+#define PhTabNewSendMessage SendMessage
+#endif
 
 // Convenience wrappers
 #define PhTabNew_InsertItem(hwnd, idx, item) \
-    ((INT)SendMessage((hwnd), PHTNM_INSERTITEM, (WPARAM)(idx), (LPARAM)(item)))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_INSERTITEM, (WPARAM)(idx), (LPARAM)(item)))
 #define PhTabNew_DeleteItem(hwnd, idx) \
-    ((BOOL)SendMessage((hwnd), PHTNM_DELETEITEM, (WPARAM)(idx), 0))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_DELETEITEM, (WPARAM)(idx), 0))
 #define PhTabNew_DeleteAllItems(hwnd) \
-    ((BOOL)SendMessage((hwnd), PHTNM_DELETEALLITEMS, 0, 0))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_DELETEALLITEMS, 0, 0))
 #define PhTabNew_GetItemCount(hwnd) \
-    ((INT)SendMessage((hwnd), PHTNM_GETITEMCOUNT, 0, 0))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_GETITEMCOUNT, 0, 0))
 #define PhTabNew_SetCurSel(hwnd, idx) \
-    ((INT)SendMessage((hwnd), PHTNM_SETCURSEL, (WPARAM)(idx), 0))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_SETCURSEL, (WPARAM)(idx), 0))
 #define PhTabNew_GetCurSel(hwnd) \
-    ((INT)SendMessage((hwnd), PHTNM_GETCURSEL, 0, 0))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_GETCURSEL, 0, 0))
 #define PhTabNew_SetItemText(hwnd, idx, text) \
-    ((BOOL)SendMessage((hwnd), PHTNM_SETITEMTEXT, (WPARAM)(idx), (LPARAM)(text)))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_SETITEMTEXT, (WPARAM)(idx), (LPARAM)(text)))
 #define PhTabNew_GetItemParam(hwnd, idx) \
-    ((LPARAM)SendMessage((hwnd), PHTNM_GETITEMPARAM, (WPARAM)(idx), 0))
+    ((LPARAM)PhTabNewSendMessage((hwnd), PHTNM_GETITEMPARAM, (WPARAM)(idx), 0))
 #define PhTabNew_SetItemParam(hwnd, idx, param) \
-    ((BOOL)SendMessage((hwnd), PHTNM_SETITEMPARAM, (WPARAM)(idx), (LPARAM)(param)))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_SETITEMPARAM, (WPARAM)(idx), (LPARAM)(param)))
 #define PhTabNew_GetPageRect(hwnd, prect) \
-    ((BOOL)SendMessage((hwnd), PHTNM_GETPAGERECT, 0, (LPARAM)(prect)))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_GETPAGERECT, 0, (LPARAM)(prect)))
 #define PhTabNew_SetSkin(hwnd, skin) \
-    ((BOOL)SendMessage((hwnd), PHTNM_SETSKIN, (WPARAM)(skin), 0))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_SETSKIN, (WPARAM)(skin), 0))
 #define PhTabNew_GetSkin(hwnd) \
-    ((PH_TABNEW_SKIN)SendMessage((hwnd), PHTNM_GETSKIN, 0, 0))
+    ((PH_TABNEW_SKIN)PhTabNewSendMessage((hwnd), PHTNM_GETSKIN, 0, 0))
 #define PhTabNew_SetSide(hwnd, side) \
-    ((BOOL)SendMessage((hwnd), PHTNM_SETSIDE, (WPARAM)(side), 0))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_SETSIDE, (WPARAM)(side), 0))
 #define PhTabNew_GetSide(hwnd) \
-    ((ULONG)SendMessage((hwnd), PHTNM_GETSIDE, 0, 0))
+    ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_GETSIDE, 0, 0))
 #define PhTabNew_HitTest(hwnd, info) \
-    ((INT)SendMessage((hwnd), PHTNM_HITTEST, 0, (LPARAM)(info)))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_HITTEST, 0, (LPARAM)(info)))
 #define PhTabNew_MoveItem(hwnd, from, to) \
-    ((BOOL)SendMessage((hwnd), PHTNM_MOVEITEM, (WPARAM)(from), (LPARAM)(to)))
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_MOVEITEM, (WPARAM)(from), (LPARAM)(to)))
 #define PhTabNew_SetImageList(hwnd, himl) \
-    ((HIMAGELIST)SendMessage((hwnd), PHTNM_SETIMAGELIST, (WPARAM)(himl), 0))
+    ((HIMAGELIST)PhTabNewSendMessage((hwnd), PHTNM_SETIMAGELIST, (WPARAM)(himl), 0))
 #define PhTabNew_GetRowCount(hwnd) \
-    ((INT)SendMessage((hwnd), PHTNM_GETROWCOUNT, 0, 0))
+    ((INT)PhTabNewSendMessage((hwnd), PHTNM_GETROWCOUNT, 0, 0))
 #define PhTabNew_InvalidateItem(hwnd, idx) \
-    ((VOID)SendMessage((hwnd), PHTNM_INVALIDATEITEM, (WPARAM)(idx), 0))
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_INVALIDATEITEM, (WPARAM)(idx), 0))
 #define PhTabNew_SetThemeDark(hwnd, dark) \
-    ((VOID)SendMessage((hwnd), PHTNM_SETTHEMEDARK, (WPARAM)(dark), 0))
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETTHEMEDARK, (WPARAM)(dark), 0))
 #define PhTabNew_SetCallback(hwnd, callback, context) \
-    ((VOID)SendMessage((hwnd), PHTNM_SETCALLBACK, (WPARAM)(callback), (LPARAM)(context)))
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETCALLBACK, (WPARAM)(callback), (LPARAM)(context)))
 
 PHLIBAPI
 PPH_STRING

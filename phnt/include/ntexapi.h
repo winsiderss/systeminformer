@@ -5400,7 +5400,7 @@ typedef struct _BOOT_ENTROPY_SOURCE_NT_RESULT
 // private
 typedef struct _BOOT_ENTROPY_NT_RESULT
 {
-    ULONG maxEntropySources;
+    ULONG MaxEntropySources;
     BOOT_ENTROPY_SOURCE_NT_RESULT EntropySourceResult[10];
     UCHAR SeedBytesForCng[48];
 } BOOT_ENTROPY_NT_RESULT, *PBOOT_ENTROPY_NT_RESULT;
@@ -7338,13 +7338,13 @@ typedef struct _SYSTEM_FIRMWARE_RAMDISK_INFORMATION
 // rev
 typedef struct _SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION
 {
-    ULONGLONG RecordId;
-    UCHAR EventType;
-    UCHAR SensorType;
-    USHORT GeneratorId;
-    UCHAR EvmRevision;
-    UCHAR RecordType;
-    UCHAR Data[4];
+    ULONGLONG RecordId;     // IPMI SEL (System Event Log) record identifier
+    UCHAR EventType;        // IPMI event/reading type code
+    UCHAR SensorType;       // IPMI sensor type (e.g. temperature, voltage, processor)
+    USHORT GeneratorId;     // ID of the entity that logged the event
+    UCHAR EvmRevision;      // Event Message format revision
+    UCHAR RecordType;       // SEL record type (e.g. system event vs OEM)
+    UCHAR Data[4];          // Event-specific data bytes
 } SYSTEM_WHEA_IPMI_HARDWARE_INFORMATION, *PSYSTEM_WHEA_IPMI_HARDWARE_INFORMATION;
 
 // private

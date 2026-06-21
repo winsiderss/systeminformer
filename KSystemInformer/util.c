@@ -1989,6 +1989,12 @@ NTSTATUS KphGetProcessImageName(
     fileName = PsGetProcessImageFileName(Process);
 
     status = RtlStringCbLengthA((STRSAFE_PCNZCH)fileName, 15, &len);
+    if (status == STATUS_INVALID_PARAMETER)
+    {
+        len = 15;
+        status = STATUS_SUCCESS;
+    }
+
     if (NT_SUCCESS(status))
     {
         ANSI_STRING string;

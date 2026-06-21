@@ -11,6 +11,9 @@
 
 #include "updater.h"
 
+/**
+ * \brief Dialog procedure for the updater options dialog.
+ */
 INT_PTR CALLBACK OptionsDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -192,6 +195,9 @@ INT_PTR CALLBACK OptionsDlgProc(
     return FALSE;
 }
 
+/**
+ * \brief Entry for a commit in the history.
+ */
 typedef struct _PH_UPDATER_COMMIT_ENTRY
 {
     PPH_STRING CommitHashString;
@@ -202,6 +208,11 @@ typedef struct _PH_UPDATER_COMMIT_ENTRY
     UINT64 CommitMessageCommentCount;
 } PH_UPDATER_COMMIT_ENTRY, *PPH_UPDATER_COMMIT_ENTRY;
 
+/**
+ * \brief Trims whitespace from a string.
+ * \param String The string to trim.
+ * \return The trimmed string.
+ */
 PPH_STRING TrimString(
     _In_ PPH_STRING String
     )
@@ -210,6 +221,12 @@ PPH_STRING TrimString(
     return PhCreateString3(&String->sr, 0, &whitespace);
 }
 
+/**
+ * \brief Extracts a co-author name from a commit message.
+ * \param CommitMessage The commit message.
+ * \param CommitCoAuthorName A pointer to a string that receives the co-author name.
+ * \return TRUE if a co-author name was found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhpUpdaterExtractCoAuthorName(
     _In_ PPH_STRING CommitMessage,
@@ -242,6 +259,10 @@ BOOLEAN PhpUpdaterExtractCoAuthorName(
     return TRUE;
 }
 
+/**
+ * \brief Queries the commit history from GitHub.
+ * \return A list of PH_UPDATER_COMMIT_ENTRY structures.
+ */
 PPH_LIST PhpUpdaterQueryCommitHistory(
     VOID
     )
@@ -388,6 +409,9 @@ CleanupExit:
 
 #define WM_UPDATER_COMMITS (WM_APP + 1)
 
+/**
+ * \brief Context for the commit history dialog.
+ */
 typedef struct _PH_UPDATER_COMMIT_CONTEXT
 {
     HWND WindowHandle;
@@ -401,6 +425,11 @@ typedef struct _PH_UPDATER_COMMIT_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } PH_UPDATER_COMMIT_CONTEXT, *PPH_UPDATER_COMMIT_CONTEXT;
 
+/**
+ * \brief Converts a GitHub commit date string to a local date string.
+ * \param Time The GitHub date string.
+ * \return A local date string.
+ */
 PPH_STRING PhpUpdaterCommitStringToTime(
     _In_ PPH_STRING Time
     )
@@ -466,6 +495,11 @@ PPH_STRING PhpUpdaterCommitStringToTime(
     return PhFormatDate(&localTime, NULL);
 }
 
+/**
+ * \brief Thread routine for querying commit history.
+ * \param ThreadParameter The window handle.
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
     _In_ PVOID ThreadParameter
@@ -482,6 +516,10 @@ NTSTATUS NTAPI PhpUpdaterQueryCommitHistoryThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * \brief Frees resources used by list view entries.
+ * \param Context The commit history context.
+ */
 VOID PhpUpdaterFreeListViewEntries(
     _In_ PPH_UPDATER_COMMIT_CONTEXT Context
     )
@@ -510,6 +548,9 @@ VOID PhpUpdaterFreeListViewEntries(
     }
 }
 
+/**
+ * \brief Dialog procedure for the commit history (changelog) dialog.
+ */
 INT_PTR CALLBACK TextDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,

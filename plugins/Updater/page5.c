@@ -11,6 +11,15 @@
 
 #include "updater.h"
 
+/**
+ * \brief Callback procedure for the final state task dialog pages (Install, Latest, Error).
+ * \param WindowHandle Handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \param dwRefData The updater context.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT CALLBACK FinalTaskDialogCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -50,15 +59,22 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
 
             if (buttonId == IDRETRY)
             {
+                if (context->CryptoBackend == UpdaterCryptoBackendSymCrypt)
+                    context->CryptoBackend = UpdaterCryptoBackendBCrypt;
                 ShowCheckForUpdatesDialog(context);
                 return S_FALSE;
             }
             else if (buttonId == IDYES)
             {
+#if defined(PH_BUILD_MSIX)
+                // MSIX: the platform already downloaded and installed the update.
+                // Nothing to ShellExecute; let the dialog close.
+#else
                 if (!NT_SUCCESS(UpdateShellExecute(context, WindowHandle)))
                 {
                     return S_FALSE;
                 }
+#endif
             }
         }
         break;
@@ -73,6 +89,10 @@ HRESULT CALLBACK FinalTaskDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * \brief Shows the Ready to Install dialog page.
+ * \param Context The updater context.
+ */
 VOID ShowUpdateInstallDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -82,6 +102,12 @@ VOID ShowUpdateInstallDialog(
         { IDYES, L"Install" }
     };
     TASKDIALOGCONFIG config;
+
+    if (PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS))
+    {
+        if (UpdaterShowReadyToInstallToast(Context))
+            return;
+    }
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
@@ -120,13 +146,23 @@ VOID ShowUpdateInstallDialog(
     }
     else
     {
+#if defined(PH_BUILD_MSIX)
+        config.pszMainInstruction = L"Update installed.";
+        config.pszContent = L"The update has been downloaded and installed.\r\n\r\nRestart System Informer to apply the update.";
+#else
         config.pszMainInstruction = L"Ready to install update?";
         config.pszContent = L"The update has been successfully downloaded and verified.\r\n\r\nClick Install to continue.";
+#endif
     }
 
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * \brief Generates the text describing the current latest version.
+ * \param Context The updater context.
+ * \return A string containing the formatted version text.
+ */
 PPH_STRING UpdaterGetLatestVersionText(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -179,6 +215,10 @@ PPH_STRING UpdaterGetLatestVersionText(
     return version;
 }
 
+/**
+ * \brief Shows the Latest Version dialog page.
+ * \param Context The updater context.
+ */
 VOID ShowLatestVersionDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -201,6 +241,10 @@ VOID ShowLatestVersionDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * \brief Shows the Newer Version dialog page (e.g., when running a pre-release).
+ * \param Context The updater context.
+ */
 VOID ShowNewerVersionDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
@@ -223,6 +267,12 @@ VOID ShowNewerVersionDialog(
     PhTaskDialogNavigatePage(Context->DialogHandle, &config);
 }
 
+/**
+ * \brief Shows the Update Failed dialog page.
+ * \param Context The updater context.
+ * \param HashFailed TRUE if the hash verification failed.
+ * \param SignatureFailed TRUE if the signature verification failed.
+ */
 VOID ShowUpdateFailedDialog(
     _In_ PPH_UPDATER_CONTEXT Context,
     _In_ BOOLEAN HashFailed,

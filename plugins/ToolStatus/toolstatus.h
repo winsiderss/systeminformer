@@ -30,6 +30,7 @@
 #define PLUGIN_NAME L"ToolStatus"
 #define SETTING_NAME_TOOLSTATUS_CONFIG (PLUGIN_NAME L".Config")
 #define SETTING_NAME_REBAR_CONFIG (PLUGIN_NAME L".RebarConfig")
+#define SETTING_NAME_REBAR_MENUBAR_CONFIG (PLUGIN_NAME L".RebarMenuBarConfig")
 #define SETTING_NAME_TOOLBAR_CONFIG (PLUGIN_NAME L".ToolbarButtonConfig")
 #define SETTING_NAME_TOOLBAR_GRAPH_CONFIG (PLUGIN_NAME L".ToolbarGraphConfig")
 #define SETTING_NAME_STATUSBAR_CONFIG (PLUGIN_NAME L".StatusbarConfig")
@@ -62,7 +63,7 @@
 #define TOOLBAR_SAVE_ID_ALWAYSONTOP (TOOLBAR_SAVE_ID_BASE + 6)
 #define TOOLBAR_SAVE_ID_RUNASADMINISTRATOR (TOOLBAR_SAVE_ID_BASE + 7)
 
-#define TOOLSTATUS_ENABLE_MENUBAR 0
+#define TOOLSTATUS_ENABLE_MENUBAR 1
 
 typedef enum _TOOLBAR_DISPLAY_STYLE
 {
@@ -75,6 +76,9 @@ typedef enum _TOOLBAR_COMMAND_ID
 {
     COMMAND_ID_ENABLE_MENU = 1,
     COMMAND_ID_ENABLE_SEARCHBOX,
+#if TOOLSTATUS_ENABLE_MENUBAR
+    COMMAND_ID_ENABLE_MENUBAR,
+#endif
     COMMAND_ID_TOOLBAR_LOCKUNLOCK,
     COMMAND_ID_TOOLBAR_CUSTOMIZE,
     COMMAND_ID_GRAPHS_CUSTOMIZE,
@@ -101,7 +105,10 @@ typedef enum _REBAR_BAND_ID
     REBAR_BAND_ID_CPUGRAPH,
     REBAR_BAND_ID_MEMGRAPH,
     REBAR_BAND_ID_COMMITGRAPH,
-    REBAR_BAND_ID_IOGRAPH
+    REBAR_BAND_ID_IOGRAPH,
+#if TOOLSTATUS_ENABLE_MENUBAR
+    REBAR_BAND_ID_MENUBAR
+#endif
 } REBAR_BAND;
 
 typedef enum _REBAR_DISPLAY_LOCATION
@@ -128,7 +135,9 @@ typedef union _TOOLSTATUS_CONFIG
         ULONG Reserved : 3;
         ULONG SearchAutoFocus : 1;
         ULONG ToolBarLargeIcons : 1;
-        ULONG Spare : 19;
+        ULONG FindWindowOverlayHighlight : 1;
+        ULONG FindWindowSnapshot : 1;
+        ULONG Spare : 15;
     };
 } TOOLSTATUS_CONFIG;
 
@@ -147,6 +156,9 @@ extern SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode;
 extern REBAR_DISPLAY_LOCATION RebarDisplayLocation;
 
 extern HWND RebarHandle;
+#if TOOLSTATUS_ENABLE_MENUBAR
+extern HWND MenuBarHandle;
+#endif
 extern HWND ToolBarHandle;
 extern HWND SearchboxHandle;
 extern HWND MainWindowHandle;
@@ -452,7 +464,7 @@ VOID ToolStatusApplyMainMenuVisibility(
     _In_ HWND WindowHandle
     );
 
-_Function_class_(PH_SEARCHNEW_CALLBACK)
+_Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
     _In_opt_ PVOID Context

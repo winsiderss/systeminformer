@@ -1083,7 +1083,7 @@ PPH_STRING PhpaGetSendMessageReceiver(
 
     clientIdName = PH_AUTO(PhGetClientIdName(&clientId));
 
-    if (!GetClassName(windowHandle, windowClass, sizeof(windowClass) / sizeof(WCHAR)))
+    if (!NT_SUCCESS(PhGetClassName(windowHandle, windowClass, RTL_NUMBER_OF(windowClass), NULL)))
         windowClass[0] = UNICODE_NULL;
 
     windowText = PH_AUTO(PhGetWindowText(windowHandle));

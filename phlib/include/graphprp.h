@@ -13,6 +13,7 @@
 #define _PH_PROPSHEETWINDOWNEW_H
 
 #include <tabnew.h>
+#include <guisup.h>
 
 EXTERN_C_START
 
@@ -39,6 +40,7 @@ typedef enum _PH_PROPSHEETNEW_LAYOUT
 
 typedef struct _PH_PROPSHEETNEW_PAGE
 {
+    PCWSTR Id;                     // stable persistence key; Name is used when NULL
     PCWSTR Name;                   // tab label; also used as the persistence key for SAVE_ACTIVE_PAGE
     PVOID Instance;                // HINSTANCE for the dialog template
     PCWSTR Template;               // MAKEINTRESOURCE(IDD_*) or pointer
@@ -47,6 +49,24 @@ typedef struct _PH_PROPSHEETNEW_PAGE
     ULONG Flags;                   // PH_PROPSHEETNEW_PAGE_*
     HWND DialogHandle;             // out — filled after dialog is created (NULL until then)
 } PH_PROPSHEETNEW_PAGE, *PPH_PROPSHEETNEW_PAGE;
+
+typedef VOID (NTAPI *PPH_PROPSHEETNEW_PAGE_DELETE_CALLBACK)(
+    _In_opt_ PVOID Context
+    );
+
+typedef struct _PH_PROPSHEETNEW_PAGE_DESCRIPTOR
+{
+    PCWSTR Id;
+    PCWSTR Name;
+    PVOID Instance;
+    PCWSTR Template;
+    DLGPROC DialogProc;
+    PVOID Context;
+    PPH_PROPSHEETNEW_PAGE_DELETE_CALLBACK DeleteContext;
+    ULONG Flags;
+} PH_PROPSHEETNEW_PAGE_DESCRIPTOR, *PPH_PROPSHEETNEW_PAGE_DESCRIPTOR;
+
+typedef struct _PH_PROPSHEETNEW_BUILDER PH_PROPSHEETNEW_BUILDER, *PPH_PROPSHEETNEW_BUILDER;
 
 // Fired after the host window is created and the initial page has been
 // activated, but before the host is shown. Lets callers subclass the host,
@@ -89,6 +109,73 @@ typedef struct _PH_PROPSHEETNEW
     PPH_PROPSHEETNEW_INITIALIZED_CALLBACK Initialized;        // optional
     PPH_PROPSHEETNEW_PRETRANSLATE_CALLBACK PreTranslateMessage; // optional (modal only)
 } PH_PROPSHEETNEW, *PPH_PROPSHEETNEW;
+
+PHLIBAPI
+PPH_PROPSHEETNEW_BUILDER
+NTAPI
+PhPropSheetNewBuilderCreate(
+    _In_ PPH_PROPSHEETNEW Sheet
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhPropSheetNewBuilderAddPage(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder,
+    _In_ PPH_PROPSHEETNEW_PAGE_DESCRIPTOR Descriptor
+    );
+
+PHLIBAPI
+HWND
+NTAPI
+PhPropSheetNewBuilderShow(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder
+    );
+
+PHLIBAPI
+INT_PTR
+NTAPI
+PhPropSheetNewBuilderShowModal(
+    _Inout_ PPH_PROPSHEETNEW_BUILDER Builder
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhPropSheetNewBuilderDestroy(
+    _In_opt_ PPH_PROPSHEETNEW_BUILDER Builder
+    );
+
+#define PH_PROPSHEETNEW_PAGE_LAYOUT_PARENT ((PPH_LAYOUT_ITEM)0x1)
+
+PHLIBAPI
+PPH_LAYOUT_ITEM
+NTAPI
+PhPropSheetNewPageAddLayoutItem(
+    _In_ HWND PageWindow,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
+    );
+
+PHLIBAPI
+PPH_LAYOUT_ITEM
+NTAPI
+PhPropSheetNewPageAddLayoutItemEx(
+    _In_ HWND PageWindow,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_opt_ PVOID Instance,
+    _In_opt_ PCWSTR Template
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhPropSheetNewPageLayout(
+    _In_ HWND PageWindow
+    );
 
 // Modeless: returns the host hwnd; caller is responsible for the message loop.
 PHLIBAPI

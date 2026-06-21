@@ -1047,6 +1047,7 @@ typedef struct _ET_DISCOVERED_ADAPTER
     LUID AdapterLuid;
     PPH_STRING DeviceInterface;
     ET_ADAPTER_ATTRIBUTES Attributes;
+    BOOLEAN AttributesValid; // TRUE when EtQueryAdapterAttributes succeeded
 } ET_DISCOVERED_ADAPTER, *PET_DISCOVERED_ADAPTER;
 
 typedef struct _ET_PROCESS_NPU_STATISTICS

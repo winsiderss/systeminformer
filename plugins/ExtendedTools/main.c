@@ -1636,9 +1636,14 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_CACHE_LATENCY_WINDOW_SIZE, L"@96|760,380" },
                 { StringSettingType, SETTING_NAME_CACHE_LATENCY_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_EXPLORER_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_EXPLORER_WINDOW_SIZE, L"@96|600,400" },
                 { IntegerPairSettingType, SETTING_NAME_STARTUP_TASKS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_STARTUP_TASKS_WINDOW_SIZE, L"@96|760,380" },
+                { StringSettingType, SETTING_NAME_STARTUP_TASKS_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, L"@96|760,380" },
+                { StringSettingType, SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, L"" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

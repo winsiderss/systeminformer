@@ -1823,6 +1823,7 @@ NTSTATUS KphQueryInformationObject(
                                          &returnLength,
                                          KernelMode);
                 KeUnstackDetachProcess(&apcState);
+
                 if (NT_SUCCESS(status))
                 {
                     status = KphCopyToMode(ObjectInformation,
@@ -1866,23 +1867,20 @@ NTSTATUS KphQueryInformationObject(
                                         ObjectInformationLength,
                                         &length);
                 KeUnstackDetachProcess(&apcState);
+
+                if (!NT_SUCCESS(RtlSizeTToULong(length, &returnLength)))
+                {
+                    returnLength = 0;
+                    status = STATUS_INTEGER_OVERFLOW;
+                    goto Exit;
+                }
+
                 if (NT_SUCCESS(status))
                 {
-                    if (length > ULONG_MAX)
-                    {
-                        status = STATUS_INTEGER_OVERFLOW;
-                        returnLength = 0;
-                        goto Exit;
-                    }
-
                     status = KphCopyToMode(ObjectInformation,
                                            buffer,
-                                           length,
+                                           returnLength,
                                            AccessMode);
-                    if (NT_SUCCESS(status))
-                    {
-                        returnLength = (ULONG)length;
-                    }
                 }
             }
 

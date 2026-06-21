@@ -7248,8 +7248,6 @@ VOID PhDereferenceFont(
     }
 }
 
-
-
 // Buffered paint
 //
 // Implements a UxTheme-free buffered paint API using per-thread FLS caching for
@@ -7270,7 +7268,7 @@ VOID PhDereferenceFont(
  * Per-thread buffered paint cache, stored in FLS. The PH_BP_CACHE and
  * PPH_BP_CACHE typedefs are declared in guisup.h; this completes the tag.
  */
-struct _PH_BP_CACHE
+typedef struct _PH_BP_CACHE
 {
     HDC Hdc;            // memory DC (created once, reused)
     HBITMAP Bitmap;     // DIB section currently sized AllocWidth x AllocHeight
@@ -7278,7 +7276,7 @@ struct _PH_BP_CACHE
     LONG AllocWidth;    // allocated bitmap width
     LONG AllocHeight;   // allocated bitmap height
     BOOLEAN InUse;      // nesting guard
-};
+} PH_BP_CACHE;
 
 /**
  * FLS destructor for a per-thread cache slot.
@@ -7328,7 +7326,9 @@ static PPH_BP_CACHE PhpGetBufferedPaintCache(
         cache = PhAllocateZero(sizeof(PH_BP_CACHE));
 
         if (cache)
+        {
             FlsSetValue(PhBufferedPaintFlsIndex, cache);
+        }
     }
 
     return cache;
@@ -7373,7 +7373,7 @@ static BOOLEAN PhpEnsureBufferedPaintBitmap(
 
     if (Cache->Bitmap)
     {
-        DeleteObject(Cache->Bitmap);
+        DeleteBitmap(Cache->Bitmap);
         Cache->Bitmap = NULL;
         Cache->Bits = NULL;
     }
@@ -7459,7 +7459,9 @@ BOOLEAN PhBufferedPaintInit(
     )
 {
     if (PhBufferedPaintFlsIndex == FLS_OUT_OF_INDEXES)
+    {
         PhBufferedPaintFlsIndex = FlsAlloc(PhpFreeBufferedPaintCache);
+    }
 
     return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
 }
@@ -7517,20 +7519,22 @@ BOOLEAN PhBeginBufferedPaint(
     if (width <= 0 || height <= 0)
         return FALSE;
 
-    oversized = (PH_BP_MAX_CACHE_AREA > 0) &&
-        ((LONGLONG)width * height > (LONGLONG)PH_BP_MAX_CACHE_AREA);
-
+    oversized = ((LONGLONG)width * height > (LONGLONG)PH_BP_MAX_CACHE_AREA);
     cache = oversized ? NULL : PhpGetBufferedPaintCache();
 
 #if defined(_DEBUG) || defined(DBG)
     if (cache)
+    {
         assert(!cache->InUse && "Nested PhBeginBufferedPaint on same thread!");
+    }
 #endif
 
     if (cache)
     {
-        if (PhpEnsureBufferedPaintDC(cache, TargetHdc) &&
-            PhpEnsureBufferedPaintBitmap(cache, TargetHdc, width, height))
+        if (
+            PhpEnsureBufferedPaintDC(cache, TargetHdc) &&
+            PhpEnsureBufferedPaintBitmap(cache, TargetHdc, width, height)
+            )
         {
             BufferedPaint->Cache = cache;
             BufferedPaint->TargetHdc = TargetHdc;
@@ -7540,8 +7544,9 @@ BOOLEAN PhBeginBufferedPaint(
             BufferedPaint->OwnsDc = FALSE;
             BufferedPaint->OwnsBitmap = FALSE;
             BufferedPaint->Valid = TRUE;
-            BufferedPaint->OldBitmap = (HBITMAP)SelectObject(cache->Hdc, cache->Bitmap);
+            BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
             SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+
             cache->InUse = TRUE;
             *PaintHdc = cache->Hdc;
             return TRUE;
@@ -7552,7 +7557,7 @@ BOOLEAN PhBeginBufferedPaint(
 
     // Oversized or GDI failure: allocate fresh objects for this call only.
     {
-        PPH_BP_CACHE transient = PhpAllocateTransientBufferedPaint(TargetHdc, width, height);
+        const PPH_BP_CACHE transient = PhpAllocateTransientBufferedPaint(TargetHdc, width, height);
 
         if (!transient)
             return FALSE;
@@ -7565,8 +7570,9 @@ BOOLEAN PhBeginBufferedPaint(
         BufferedPaint->OwnsDc = TRUE;
         BufferedPaint->OwnsBitmap = TRUE;
         BufferedPaint->Valid = TRUE;
-        BufferedPaint->OldBitmap = (HBITMAP)SelectObject(transient->Hdc, transient->Bitmap);
+        BufferedPaint->OldBitmap = SelectBitmap(transient->Hdc, transient->Bitmap);
         SetWindowOrgEx(transient->Hdc, TargetRect->left, TargetRect->top, NULL);
+
         *PaintHdc = transient->Hdc;
         return TRUE;
     }
@@ -7601,12 +7607,14 @@ VOID PhEndBufferedPaint(
 
     // Deselect before any DeleteObject calls.
     if (BufferedPaint->OldBitmap)
-        SelectObject(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
+    {
+        SelectBitmap(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
+    }
 
     if (BufferedPaint->OwnsDc || BufferedPaint->OwnsBitmap)
     {
         if (BufferedPaint->OwnsBitmap && BufferedPaint->Cache->Bitmap)
-            DeleteObject(BufferedPaint->Cache->Bitmap);
+            DeleteBitmap(BufferedPaint->Cache->Bitmap);
         if (BufferedPaint->OwnsDc && BufferedPaint->Cache->Hdc)
             DeleteDC(BufferedPaint->Cache->Hdc);
         PhFree(BufferedPaint->Cache);
@@ -7717,7 +7725,9 @@ BOOLEAN PhBufferedPaintSetAlpha(
         PBYTE rowPointer = base + (SIZE_T)row * rowStride + (SIZE_T)x0 * 4;
 
         for (col = x0; col < x1; col++, rowPointer += 4)
+        {
             rowPointer[3] = Alpha; // BGRA layout: byte[3] is alpha
+        }
     }
 
     return TRUE;

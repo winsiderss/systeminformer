@@ -1457,6 +1457,16 @@ PhFindLastCharInStringRef(
     );
 
 PHLIBAPI
+SIZE_T
+NTAPI
+PhFindFirstOfCharsW(
+    _In_reads_(Length) PCWCH Buffer,
+    _In_ SIZE_T Length,
+    _In_reads_(Count) PCWCH Chars,
+    _In_ ULONG Count
+    );
+
+PHLIBAPI
 ULONG_PTR
 NTAPI
 PhFindStringInStringRef(

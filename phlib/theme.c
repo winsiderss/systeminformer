@@ -691,7 +691,7 @@ VOID PhInitializeWindowTheme(
             if (WindowsVersion >= WINDOWS_10_RS5)
             {
                 WCHAR windowClassName[MAX_PATH];
-                if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+                if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
                     windowClassName[0] = UNICODE_NULL;
                 if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE) || PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
                     PhAllowDarkModeForWindow(WindowHandle, TRUE);   // HACK for dynamically generated plugin tabs
@@ -1286,7 +1286,7 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     if (PhGetWindowContext(WindowHandle, LONG_MAX)) // HACK
         return TRUE;
 
-    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+    if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
         windowClassName[0] = UNICODE_NULL;
 
     dprintf("PhpThemeWindowEnumChildWindows: %S\r\n", windowClassName);
@@ -1480,7 +1480,7 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
         NULL
         );
 
-    if (!GetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+    if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
         windowClassName[0] = UNICODE_NULL;
 
     if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
@@ -2717,7 +2717,7 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
                     LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
                     WCHAR className[MAX_PATH];
 
-                    if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                    if (!NT_SUCCESS(PhGetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className), NULL)))
                         className[0] = UNICODE_NULL;
 
                     if (PhEqualStringZ(className, WC_BUTTON, FALSE))
@@ -4137,7 +4137,7 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
 
                 if (customDraw->dwDrawStage == CDDS_PREPAINT && !(customDraw->uItemState & CDIS_FOCUS))
                 {
-                    if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                    if (!NT_SUCCESS(PhGetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className), NULL)))
                         className[0] = UNICODE_NULL;
                     if (PhEqualStringZ(className, WC_BUTTON, FALSE))
                     {

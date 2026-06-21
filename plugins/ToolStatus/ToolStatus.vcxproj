@@ -70,6 +70,7 @@
     <ClCompile Include="find.c" />
     <ClCompile Include="graph.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="menubar.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="filter.c" />
     <ClCompile Include="plugin.c" />

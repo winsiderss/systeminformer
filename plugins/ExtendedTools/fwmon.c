@@ -2201,6 +2201,47 @@ PPH_PROCESS_ITEM EtFwReferenceProcessItemForEvent(
 }
 
 /**
+ * Determines whether an address points to committed, read-accessible memory.
+ *
+ * \param Address The address to validate.
+ * \return TRUE if the start page is committed and readable, FALSE otherwise.
+ * \remarks Used to validate undocumented FWPM_NET_EVENT_INTERNAL pointer fields
+ * before dereferencing them. The struct layout is reverse-engineered and not
+ * guaranteed by Windows, so a query-based probe avoids faulting on a garbage
+ * pointer. No memory is touched.
+ */
+static BOOLEAN EtFwIsAddressReadable(
+    _In_opt_ PVOID Address
+    )
+{
+    MEMORY_BASIC_INFORMATION basicInfo;
+
+    if (!Address)
+        return FALSE;
+
+    if (!NT_SUCCESS(NtQueryVirtualMemory(
+        NtCurrentProcess(),
+        Address,
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        )))
+    {
+        return FALSE;
+    }
+
+    if (basicInfo.State != MEM_COMMIT)
+        return FALSE;
+
+    // Reject pages without read access.
+    if (basicInfo.Protect & (PAGE_NOACCESS | PAGE_GUARD))
+        return FALSE;
+
+    return TRUE;
+}
+
+/**
  * Handles WFP net event notifications.
  *
  * \param FwContext The callback context.
@@ -2442,22 +2483,22 @@ VOID CALLBACK EtFwEventCallback(
         entry.InterfaceLuid = FwInternal->InterfaceLuid;
         entry.CompartmentId = FwInternal->CompartmentId;
 
-        if (FwInternal->ServiceSids)
+        if (EtFwIsAddressReadable((PVOID)FwInternal->ServiceSids))
         {
             entry.ServiceSids = PhCreateString(FwInternal->ServiceSids);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FILTER_ORIGIN_SET) && FwInternal->FilterOrigin)
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FILTER_ORIGIN_SET) && EtFwIsAddressReadable((PVOID)FwInternal->FilterOrigin))
         {
             entry.FilterOrigin = PhCreateString(FwInternal->FilterOrigin);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FQBN_SET) && FwInternal->FqbnName)
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FQBN_SET) && EtFwIsAddressReadable((PVOID)FwInternal->FqbnName))
         {
             entry.FqbnName = PhCreateString(FwInternal->FqbnName);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_POLICY_APP_ID_SET) && FwInternal->PolicyAppId)
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_POLICY_APP_ID_SET) && EtFwIsAddressReadable((PVOID)FwInternal->PolicyAppId))
         {
             entry.PolicyAppId = PhCreateString(FwInternal->PolicyAppId);
         }

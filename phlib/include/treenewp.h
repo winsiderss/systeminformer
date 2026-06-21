@@ -13,6 +13,11 @@
 #ifndef _PH_TREENEWP_H
 #define _PH_TREENEWP_H
 
+ // Replace per-row CreateRectRgn/GetClipRgn/DeleteRgn with a single SaveDC/RestoreDC
+ // pair bracketing the row loop in PhTnpPaint. Eliminates O(N) kernel region
+ // allocations per WM_PAINT (one per visible row) at no behavioural cost.
+#define PH_TREENEW_SAVEDC_CLIP
+
 // Important notes about pointers:
 //
 // All memory allocation for nodes and strings is handled by the user. This usually means there is a
@@ -94,6 +99,23 @@ typedef struct _PH_TREENEW_CONTEXT
     LONG FixedWidthMinimum;
     LONG NormalLeft; // FixedWidth + 1 if there is a fixed column, otherwise 0
 
+    // Layout cache: last geometry written to child windows / tooltips so
+    // redundant MoveWindow / SetWindowPos / TTM_NEWTOOLRECT calls from
+    // PhTnpLayout / PhTnpLayoutHeader can be skipped. Header_Layout itself
+    // is always invoked (cheap HDM_LAYOUT query); its output is what we
+    // compare against the cache before issuing SetWindowPos.
+    RECT VScrollLastRect;
+    RECT HScrollLastRect;
+    RECT FillerBoxLastRect;
+    RECT FixedHeaderLastOutRect;
+    RECT NormalHeaderLastOutRect;
+    RECT TooltipFixedHeaderLastRect;
+    RECT TooltipNormalHeaderLastRect;
+    ULONG VScrollLastVisible : 1;
+    ULONG HScrollLastVisible : 1;
+    ULONG FillerBoxLastVisible : 1;
+    ULONG LayoutCacheUnused : 29;
+
     LONG WheelScrollLines;
     LONG TextMarginPadding;
     LONG CellMarginLeft;
@@ -151,6 +173,7 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG FlatListStructureChanged;
     ULONG FlatListPreCount;   // flat list count captured before PhTnpRestructureNodes clears the list
     ULONG FlatListAnchorEnd;  // TRUE when the END scroll anchor was active for the current structural change
+    ULONG VScrollThumbTracking; // TRUE while the user is dragging the vertical scrollbar thumb; suppresses anchoring
 
     ULONG TooltipIndex;
     ULONG TooltipId;
@@ -268,6 +291,10 @@ PPH_TREENEW_CONTEXT PhTnpCreateTreeNewContext(
     );
 
 VOID PhTnpDestroyTreeNewContext(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
+
+VOID PhTnpInvalidateLayoutCache(
     _In_ PPH_TREENEW_CONTEXT Context
     );
 

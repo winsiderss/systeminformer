@@ -3967,6 +3967,59 @@ HICON PhGdiplusConvertHBitmapToHIcon(
     _In_ HBITMAP BitmapHandle
     );
 
+HWND PhSelectWindowFromScreenSnapshot(
+    VOID
+    );
+
+typedef BOOLEAN (NTAPI* PPH_WINDOW_TARGETING_CALLBACK)(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    );
+
+typedef struct _PH_WINDOW_TARGETING_CONTEXT
+{
+    HWND OwnerWindowHandle;
+    HWND OverlayWindowHandle;
+    HWND TargetWindowHandle;
+    RECT OverlayBounds;
+    RECT TargetRect;
+    PPH_WINDOW_TARGETING_CALLBACK Callback;
+    PVOID CallbackContext;
+    BOOLEAN OwnerWindowTopMost;
+    BOOLEAN OverlayHighlight;
+    BOOLEAN TargetWindowDraw;
+    BOOLEAN Completed;
+} PH_WINDOW_TARGETING_CONTEXT, *PPH_WINDOW_TARGETING_CONTEXT;
+
+typedef enum _PH_WINDOW_TARGETING_RESULT
+{
+    PhWindowTargetingContinue,
+    PhWindowTargetingCompleted,
+    PhWindowTargetingCancelled
+} PH_WINDOW_TARGETING_RESULT;
+
+PPH_WINDOW_TARGETING_CONTEXT PhCreateWindowTargeting(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_ BOOLEAN OverlayHighlight,
+    _In_opt_ PPH_WINDOW_TARGETING_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+PH_WINDOW_TARGETING_RESULT PhProcessWindowTargetingMessage(
+    _Inout_ PPH_WINDOW_TARGETING_CONTEXT Context,
+    _In_ UINT WindowMessage,
+    _Out_opt_ HWND* TargetWindowHandle
+    );
+
+VOID PhDestroyWindowTargeting(
+    _In_opt_ PPH_WINDOW_TARGETING_CONTEXT Context
+    );
+
+HWND PhSelectWindowFromScreenTargeting(
+    _In_opt_ HWND OwnerWindowHandle,
+    _In_ BOOLEAN OverlayHighlight
+    );
+
 EXTERN_C_END
 
 #endif

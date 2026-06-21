@@ -446,6 +446,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SEGMENT_LOCKS_WINDOW_POSITION                       L"SegmentLocksWindowPosition"
 #define SETTING_SEGMENT_LOCKS_WINDOW_SIZE                           L"SegmentLocksWindowSize"
 #define SETTING_SERVICE_WINDOW_POSITION                             L"ServiceWindowPosition"
+#define SETTING_SERVICE_WINDOW_SIZE                                 L"ServiceWindowSize"
 #define SETTING_SERVICE_LIST_VIEW_COLUMNS                           L"ServiceListViewColumns"
 #define SETTING_SERVICE_TREE_LIST_COLUMNS                           L"ServiceTreeListColumns"
 #define SETTING_SERVICE_TREE_LIST_SORT                              L"ServiceTreeListSort"

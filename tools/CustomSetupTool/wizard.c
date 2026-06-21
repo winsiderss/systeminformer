@@ -203,7 +203,7 @@ INT_PTR SetupHandleDarkControlColor(
     SetTextColor((HDC)wParam, SetupWizardColorText);
     SetBkColor((HDC)wParam, SetupWizardColorWindow);
 
-    if (controlHandle && GetClassName(controlHandle, className, ARRAYSIZE(className)) && PhEqualStringZ(className, L"Edit", TRUE))
+    if (controlHandle && NT_SUCCESS(PhGetClassName(controlHandle, className, ARRAYSIZE(className), NULL)) && PhEqualStringZ(className, L"Edit", TRUE))
     {
         SetBkColor((HDC)wParam, SetupWizardColorControl);
         return (INT_PTR)SetupWizardBrushControl;
@@ -258,7 +258,6 @@ VOID SetupPaintDarkButton(
         checkRect.bottom = CustomDraw->rc.top + 13;
 
         FillRect(hdc, &checkRect, SetupWizardBrushControl);
-
         SetDCBrushColor(hdc, RGB(0, 130, 135));
         FrameRect(hdc, &checkRect, GetStockBrush(DC_BRUSH));
 
@@ -575,7 +574,7 @@ VOID SetupApplyDarkModeToControl(
     if (!SetupWizardDarkMode)
         return;
 
-    if (GetClassName(WindowHandle, className, ARRAYSIZE(className)))
+    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, ARRAYSIZE(className), NULL)))
     {
         if (PhEqualStringZ(className, L"Edit", TRUE))
         {
@@ -604,7 +603,7 @@ LRESULT SetupHandleControlCustomDraw(
     {
         WCHAR className[16];
 
-        if (GetClassName(customDraw->hdr.hwndFrom, className, ARRAYSIZE(className)))
+        if (NT_SUCCESS(PhGetClassName(customDraw->hdr.hwndFrom, className, ARRAYSIZE(className), NULL)))
         {
             if (PhEqualStringZ(className, L"Button", TRUE))
             {
@@ -831,7 +830,7 @@ static BOOL CALLBACK SetupSetWizardChildFont(
 
     fontContext = (PSETUP_WIZARD_FONT_CONTEXT)lParam;
 
-    if (GetClassName(WindowHandle, className, ARRAYSIZE(className)) && PhEqualStringZ(className, L"Button", TRUE))
+    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, ARRAYSIZE(className), NULL)) && PhEqualStringZ(className, L"Button", TRUE))
     {
         ULONG style = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
 
@@ -1306,7 +1305,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
 
         SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
-        SetDlgItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
+        PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
     }
     else
     {
@@ -1337,7 +1336,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
                             fileDialogFolderPath = PhGetFileDialogFileName(fileDialog);
                             PhTrimToNullTerminatorString(fileDialogFolderPath);
                             PhSwapReference(&context->SetupInstallPath, fileDialogFolderPath);
-                            SetDlgItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
+                            PhSetDialogItemText(WindowHandle, IDC_PATH, PhGetStringOrEmpty(context->SetupInstallPath));
                         }
 
                         PhFreeFileDialog(fileDialog);
@@ -1671,11 +1670,11 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
 
                     if (statusMessage = PhGetStatusMessage(context->LastStatus, 0))
                     {
-                        SetDlgItemText(WindowHandle, IDC_STATUS, PhGetString(statusMessage));
+                        PhSetDialogItemText(WindowHandle, IDC_STATUS, PhGetString(statusMessage));
                     }
                     else
                     {
-                        SetDlgItemText(WindowHandle, IDC_STATUS, L"An unknown error occurred.");
+                        PhSetDialogItemText(WindowHandle, IDC_STATUS, L"An unknown error occurred.");
                     }
 
                     SetupSetWizardButtons(WindowHandle, PSWIZB_BACK, TRUE, FALSE, FALSE, TRUE);

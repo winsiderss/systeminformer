@@ -89,6 +89,20 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
 
     HBRUSH FrameBrush;
     HBRUSH WindowBrush;
+    HBRUSH HotBrush;
+    HBRUSH DcBrush;
+
+    COLORREF WindowBorderOuterColor;
+    COLORREF WindowBorderInnerColor;
+    COLORREF ButtonPushedColor;
+    COLORREF ButtonHotActiveColor;
+    COLORREF ButtonHotColor;
+    COLORREF ButtonErrorColor;
+    COLORREF ButtonActiveColor;
+    COLORREF ButtonDefaultColor;
+    COLORREF FrameHotColor;
+    COLORREF CueBannerTextColor;
+    COLORREF CueBannerBackgroundColor;
 
     ULONG SearchDelayMs;
 
@@ -104,6 +118,51 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     pcre2_code* SearchboxRegexCode;
     pcre2_match_data* SearchboxRegexMatchData;
 } PH_SEARCHCONTROL_CONTEXT, *PPH_SEARCHCONTROL_CONTEXT;
+
+static COLORREF PhpSearchControlSelectColor(
+    _In_ COLORREF ThemeColor,
+    _In_ COLORREF ClassicColor
+    )
+{
+    return PhEnableThemeSupport ? ThemeColor : ClassicColor;
+}
+
+VOID PhpSearchControlInitializeColors(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    static const COLORREF WindowBorderInnerThemeColor = RGB(60, 60, 60);
+    static const COLORREF WindowBorderInnerClassicColor = RGB(60, 60, 60);
+    static const COLORREF ButtonPushedThemeColor = RGB(99, 99, 99);
+    static const COLORREF ButtonPushedClassicColor = RGB(153, 209, 255);
+    static const COLORREF ButtonHotActiveThemeColor = RGB(54, 54, 54);
+    static const COLORREF ButtonHotActiveClassicColor = RGB(133, 199, 255);
+    static const COLORREF ButtonHotThemeColor = RGB(78, 78, 78);
+    static const COLORREF ButtonHotClassicColor = RGB(205, 232, 255);
+    static const COLORREF ButtonErrorThemeColor = RGB(100, 28, 30);
+    static const COLORREF ButtonErrorClassicColor = RGB(255, 155, 155);
+    static const COLORREF ButtonActiveThemeColor = RGB(44, 44, 44);
+    static const COLORREF ButtonActiveClassicColor = RGB(123, 189, 255);
+    static const COLORREF FrameHotClassicColor = RGB(43, 43, 43);
+    static const COLORREF CueBannerTextThemeColor = RGB(170, 170, 170);
+
+    Context->DcBrush = PhGetStockBrush(DC_BRUSH);
+    Context->FrameBrush = GetSysColorBrush(COLOR_WINDOWFRAME);
+    Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
+    Context->HotBrush = GetSysColorBrush(COLOR_HOTLIGHT);
+
+    Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
+    Context->WindowBorderInnerColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
+    Context->ButtonPushedColor = PhpSearchControlSelectColor(ButtonPushedThemeColor, ButtonPushedClassicColor);
+    Context->ButtonHotActiveColor = PhpSearchControlSelectColor(ButtonHotActiveThemeColor, ButtonHotActiveClassicColor);
+    Context->ButtonHotColor = PhpSearchControlSelectColor(ButtonHotThemeColor, ButtonHotClassicColor);
+    Context->ButtonErrorColor = PhpSearchControlSelectColor(ButtonErrorThemeColor, ButtonErrorClassicColor);
+    Context->ButtonActiveColor = PhpSearchControlSelectColor(ButtonActiveThemeColor, ButtonActiveClassicColor);
+    Context->ButtonDefaultColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
+    Context->FrameHotColor = PhpSearchControlSelectColor(PhThemeWindowHighlight2Color, FrameHotClassicColor);
+    Context->CueBannerTextColor = PhpSearchControlSelectColor(CueBannerTextThemeColor, GetSysColor(COLOR_GRAYTEXT));
+    Context->CueBannerBackgroundColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
+}
 
 VOID PhpSearchControlCreateBufferedContext(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
@@ -177,8 +236,7 @@ VOID PhpSearchControlInitializeTheme(
 
     Context->ButtonWidth = PhScaleToDisplay(20, Context->WindowDpi);
     Context->BorderSize = borderSize;
-    Context->FrameBrush = GetSysColorBrush(COLOR_WINDOWFRAME);
-    Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
+    PhpSearchControlInitializeColors(Context);
 
     if (PhIsThemeActive())
     {
@@ -346,6 +404,7 @@ VOID PhpSearchControlThemeChanged(
     _In_ HWND WindowHandle
     )
 {
+    PhpSearchControlInitializeColors(Context);
     PhpSearchControlInitializeFont(Context, WindowHandle);
     PhpSearchControlInitializeTheme(Context, WindowHandle);
     PhpSearchControlInitializeImages(Context, WindowHandle);
@@ -367,22 +426,19 @@ VOID PhpSearchDrawWindow(
     _In_ PRECT WindowRect
     )
 {
-    if (PhEnableThemeSupport)
-    {
-        SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
-        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-        PatBlt(Hdc, WindowRect->left, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-        PatBlt(Hdc, WindowRect->right - 1, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
-        PatBlt(Hdc, WindowRect->left, WindowRect->top, WindowRect->right - WindowRect->left, 1, PATCOPY);
-        PatBlt(Hdc, WindowRect->left, WindowRect->bottom - 1, WindowRect->right - WindowRect->left, 1, PATCOPY);
+    SetDCBrushColor(Hdc, Context->WindowBorderOuterColor);
+    SelectBrush(Hdc, Context->DcBrush);
+    PatBlt(Hdc, WindowRect->left, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
+    PatBlt(Hdc, WindowRect->right - 1, WindowRect->top, 1, WindowRect->bottom - WindowRect->top, PATCOPY);
+    PatBlt(Hdc, WindowRect->left, WindowRect->top, WindowRect->right - WindowRect->left, 1, PATCOPY);
+    PatBlt(Hdc, WindowRect->left, WindowRect->bottom - 1, WindowRect->right - WindowRect->left, 1, PATCOPY);
 
-        SetDCBrushColor(Hdc, RGB(60, 60, 60));
-        SelectBrush(Hdc, PhGetStockBrush(DC_BRUSH));
-        PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-        PatBlt(Hdc, WindowRect->right - 2, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
-        PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-        PatBlt(Hdc, WindowRect->left + 1, WindowRect->bottom - 2, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
-    }
+    SetDCBrushColor(Hdc, Context->WindowBorderInnerColor);
+    SelectBrush(Hdc, Context->DcBrush);
+    PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
+    PatBlt(Hdc, WindowRect->right - 2, WindowRect->top + 1, 1, WindowRect->bottom - WindowRect->top - 2, PATCOPY);
+    PatBlt(Hdc, WindowRect->left + 1, WindowRect->top + 1, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
+    PatBlt(Hdc, WindowRect->left + 1, WindowRect->bottom - 2, WindowRect->right - WindowRect->left - 2, 1, PATCOPY);
 }
 
 VOID PhpSearchDrawButton(
@@ -399,83 +455,36 @@ VOID PhpSearchDrawButton(
 
     if (Button->Pushed)
     {
-        if (PhEnableThemeSupport)
-        {
-            SetDCBrushColor(Hdc, RGB(99, 99, 99));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
-        else
-        {
-            SetDCBrushColor(Hdc, RGB(153, 209, 255));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
+        SetDCBrushColor(Hdc, Context->ButtonPushedColor);
+        FillRect(Hdc, &buttonRect, Context->DcBrush);
     }
     else if (Button->Hot)
     {
         if (Button->Active && Button->ActiveImageIndex == ULONG_MAX)
         {
-            if (PhEnableThemeSupport)
-            {
-                SetDCBrushColor(Hdc, RGB(54, 54, 54));
-                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-            }
-            else
-            {
-                SetDCBrushColor(Hdc, RGB(133, 199, 255));
-                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-            }
+            SetDCBrushColor(Hdc, Context->ButtonHotActiveColor);
+            FillRect(Hdc, &buttonRect, Context->DcBrush);
         }
         else
         {
-            if (PhEnableThemeSupport)
-            {
-                SetDCBrushColor(Hdc, RGB(78, 78, 78));
-                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-            }
-            else
-            {
-                SetDCBrushColor(Hdc, RGB(205, 232, 255));
-                FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-            }
+            SetDCBrushColor(Hdc, Context->ButtonHotColor);
+            FillRect(Hdc, &buttonRect, Context->DcBrush);
         }
     }
     else if (Button->Error)
     {
-        if (PhEnableThemeSupport)
-        {
-            SetDCBrushColor(Hdc, RGB(100, 28, 30));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
-        else
-        {
-            SetDCBrushColor(Hdc, RGB(255, 155, 155));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
+        SetDCBrushColor(Hdc, Context->ButtonErrorColor);
+        FillRect(Hdc, &buttonRect, Context->DcBrush);
     }
     else if (Button->Active && Button->ActiveImageIndex == ULONG_MAX)
     {
-        if (PhEnableThemeSupport)
-        {
-            SetDCBrushColor(Hdc, RGB(44, 44, 44));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
-        else
-        {
-            SetDCBrushColor(Hdc, RGB(123, 189, 255));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
+        SetDCBrushColor(Hdc, Context->ButtonActiveColor);
+        FillRect(Hdc, &buttonRect, Context->DcBrush);
     }
     else
     {
-        if (PhEnableThemeSupport)
-        {
-            SetDCBrushColor(Hdc, RGB(60, 60, 60));
-            FillRect(Hdc, &buttonRect, PhGetStockBrush(DC_BRUSH));
-        }
-        else
-        {
-            FillRect(Hdc, &buttonRect, Context->WindowBrush);
-        }
+        SetDCBrushColor(Hdc, Context->ButtonDefaultColor);
+        FillRect(Hdc, &buttonRect, Context->DcBrush);
     }
 
     if (Button->Active && Button->ActiveImageIndex != ULONG_MAX)
@@ -805,13 +814,15 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 windowRect.bottom - (context->BorderSize + 1)
                 );
 
+            PhpSearchDrawWindow(context, WindowHandle, context->BufferedDc, &windowRectStart);
+
             //
             // NC Frame
             //
 
             if (GetFocus() == WindowHandle)
             {
-                FrameRect(context->BufferedDc, &windowRect, GetSysColorBrush(COLOR_HOTLIGHT));
+                FrameRect(context->BufferedDc, &windowRect, context->HotBrush);
                 PhInflateRect(&windowRect, -1, -1);
                 FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
             }
@@ -819,12 +830,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             {
                 SetDCBrushColor(
                     context->BufferedDc,
-                    PhEnableThemeSupport ?
-                    PhThemeWindowHighlight2Color :
-                    RGB(43, 43, 43)
+                    context->FrameHotColor
                     );
 
-                FrameRect(context->BufferedDc, &windowRect, PhGetStockBrush(DC_BRUSH));
+                FrameRect(context->BufferedDc, &windowRect, context->DcBrush);
                 PhInflateRect(&windowRect, -1, -1);
                 FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
             }
@@ -839,7 +848,6 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // NC Content
             //
 
-            PhpSearchDrawWindow(context, WindowHandle, context->BufferedDc, &windowRectStart);
             PhpSearchDrawButton(context, &context->SearchButton, WindowHandle, context->BufferedDc, &windowRectStart);
             PhpSearchDrawButton(context, &context->RegexButton, WindowHandle, context->BufferedDc, &windowRectStart);
             PhpSearchDrawButton(context, &context->CaseButton, WindowHandle, context->BufferedDc, &windowRectStart);
@@ -1083,6 +1091,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         {
             context->WindowFocus = TRUE;
             context->PreviousFocusWindowHandle = (HWND)wParam;
+
+            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
     case WM_KILLFOCUS:
@@ -1250,17 +1260,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             //
             // Background
             //
-            if (PhEnableThemeSupport)
-            {
-                SetTextColor(bufferDc, RGB(170, 170, 170));
-                SetDCBrushColor(bufferDc, RGB(60, 60, 60));
-                FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
-            }
-            else
-            {
-                SetTextColor(bufferDc, GetSysColor(COLOR_GRAYTEXT));
-                FillRect(bufferDc, &clientRect, context->WindowBrush);
-            }
+            SetTextColor(bufferDc, context->CueBannerTextColor);
+            SetDCBrushColor(bufferDc, context->CueBannerBackgroundColor);
+            FillRect(bufferDc, &clientRect, context->DcBrush);
 
             //
             // Cue text

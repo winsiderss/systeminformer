@@ -17,7 +17,7 @@ TOOLSTATUS_CONFIG ToolStatusConfig = { 0 };
 HWND ProcessTreeNewHandle = NULL;
 HWND ServiceTreeNewHandle = NULL;
 HWND NetworkTreeNewHandle = NULL;
-INT SelectedTabIndex = 0;
+LONG SelectedTabIndex = 0;
 ULONG MaxInitializationDelay = 3;
 BOOLEAN UpdateAutomatically = TRUE;
 BOOLEAN UpdateGraphs = TRUE;
@@ -33,6 +33,9 @@ TOOLBAR_DISPLAY_STYLE DisplayStyle = TOOLBAR_DISPLAY_STYLE_SELECTIVETEXT;
 SEARCHBOX_DISPLAY_MODE SearchBoxDisplayMode = SEARCHBOX_DISPLAY_MODE_ALWAYSSHOW;
 REBAR_DISPLAY_LOCATION RebarDisplayLocation = REBAR_DISPLAY_LOCATION_TOP;
 HWND RebarHandle = NULL;
+#if TOOLSTATUS_ENABLE_MENUBAR
+HWND MenuBarHandle = NULL;
+#endif
 HWND ToolBarHandle = NULL;
 HWND SearchboxHandle = NULL;
 WNDPROC MainWindowHookProc = NULL;
@@ -50,10 +53,7 @@ PPH_TN_FILTER_ENTRY NetworkTreeFilterEntry = NULL;
 PPH_PLUGIN PluginInstance = NULL;
 
 static ULONG TargetingMode = 0;
-static BOOLEAN TargetingWindow = FALSE;
-static BOOLEAN TargetingCurrentWindowDraw = FALSE;
-static BOOLEAN TargetingCompleted = FALSE;
-static HWND TargetingCurrentWindow = NULL;
+static PPH_WINDOW_TARGETING_CONTEXT TargetingContext = NULL;
 static PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 static PH_CALLBACK_REGISTRATION PluginMenuItemCallbackRegistration;
 static PH_CALLBACK_REGISTRATION MainMenuInitializingCallbackRegistration;
@@ -147,7 +147,12 @@ VOID ToolStatusApplyMainMenuVisibility(
     if (!WindowHandle || !MainMenu)
         return;
 
-    if (ToolStatusConfig.AutoHideMenu)
+    if (
+#if TOOLSTATUS_ENABLE_MENUBAR
+        (ToolStatusConfig.EnableMenuBar && MenuBarHandle) ||
+#endif
+        ToolStatusConfig.AutoHideMenu
+        )
     {
         if (GetMenu(WindowHandle))
         {
@@ -162,6 +167,58 @@ VOID ToolStatusApplyMainMenuVisibility(
     }
 }
 
+#if TOOLSTATUS_ENABLE_MENUBAR
+static VOID ToggleMenuBar(
+    _In_ HWND WindowHandle
+    )
+{
+    ULONG toolbarIndex;
+
+    ReBarSaveLayoutSettings();
+
+    ToolStatusConfig.EnableMenuBar = !ToolStatusConfig.EnableMenuBar;
+
+    PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
+
+    if (ToolStatusConfig.EnableMenuBar)
+    {
+        if (ToolStatusConfig.ToolBarEnabled && MainMenu && !MenuBarHandle)
+        {
+            if (!RebarHandle)
+                RebarCreate();
+
+            MenuBarCreate();
+        }
+
+        MenuBarApplySettings();
+    }
+    else
+    {
+        ULONG bandStyle;
+
+        RebarBandRemove(REBAR_BAND_ID_MENUBAR);
+        MenuBarDestroy();
+
+        toolbarIndex = RebarBandToIndex(REBAR_BAND_ID_TOOLBAR);
+
+        if (toolbarIndex != ULONG_MAX && RebarGetBandIndexStyle(toolbarIndex, &bandStyle))
+        {
+            ClearFlag(bandStyle, RBBS_BREAK);
+            RebarSetBandIndexStyle(toolbarIndex, bandStyle);
+        }
+    }
+
+    ReBarLoadLayoutSettings();
+
+    if (ToolStatusConfig.EnableMenuBar)
+        MenuBarApplySettings();
+
+    ToolStatusApplyMainMenuVisibility(WindowHandle);
+    ReBarSaveLayoutSettings();
+    InvalidateMainWindowLayout();
+}
+#endif
+
 VOID ShowCustomizeMenu(
     _In_ HWND WindowHandle
     )
@@ -170,6 +227,9 @@ VOID ShowCustomizeMenu(
     PPH_EMENU menu;
     PPH_EMENU_ITEM mainMenuItem;
     PPH_EMENU_ITEM searchMenuItem;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PPH_EMENU_ITEM menuBarMenuItem;
+#endif
     PPH_EMENU_ITEM lockMenuItem;
     PPH_EMENU_ITEM selectedItem;
 
@@ -179,6 +239,9 @@ VOID ShowCustomizeMenu(
     menu = PhCreateEMenu();
     PhInsertEMenuItem(menu, mainMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, searchMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL, NULL), ULONG_MAX);
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PhInsertEMenuItem(menu, menuBarMenuItem = PhCreateEMenuItem(0, COMMAND_ID_ENABLE_MENUBAR, L"Menu bar", NULL, NULL), ULONG_MAX);
+#endif
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreateMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -189,6 +252,10 @@ VOID ShowCustomizeMenu(
         mainMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.SearchBoxEnabled)
         searchMenuItem->Flags |= PH_EMENU_CHECKED;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //if (ToolStatusConfig.EnableMenuBar)
+    //    menuBarMenuItem->Flags |= PH_EMENU_CHECKED;
+#endif
     if (ToolStatusConfig.ToolBarLocked)
         lockMenuItem->Flags |= PH_EMENU_CHECKED;
 
@@ -232,6 +299,11 @@ VOID ShowCustomizeMenu(
                 }
             }
             break;
+#if TOOLSTATUS_ENABLE_MENUBAR
+        case COMMAND_ID_ENABLE_MENUBAR:
+            ToggleMenuBar(WindowHandle);
+            break;
+#endif
         case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
             {
                 ULONG bandCount;
@@ -348,24 +420,20 @@ VOID NTAPI LayoutPaddingCallback(
     {
         RECT rebarRect;
         RECT parentRect;
-        LONG desiredHeight = 0;
-        ULONG bandCount;
+        LONG desiredHeight;
 
-        // Compute the correct rebar height by summing each row's height.
-        // RB_GETROWHEIGHT takes a band index and returns the height of the row that band occupies.
-        // Bands that start a new row have RBBS_BREAK set; band 0 always starts row 0.
-        if (RebarGetBandCount(&bandCount) && bandCount > 0)
-        {
-            ULONG bandStyle;
+        // Recalculate rows before querying the height. This is required after changing
+        // RBBS_BREAK or a band's child height on a live rebar control.
+        SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
-            desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, 0, 0);
-
-            for (ULONG i = 1; i < bandCount; i++)
-            {
-                if (RebarGetBandIndexStyle(i, &bandStyle) && FlagOn(bandStyle, RBBS_BREAK))
-                    desiredHeight += (LONG)SendMessage(RebarHandle, RB_GETROWHEIGHT, i, 0);
-            }
-        }
+        // Ask the rebar for its full computed height. RB_GETBARHEIGHT returns the control's
+        // internal _cy, which the recalc accumulates as the sum of every row's line height
+        // plus the inter-row spacing (cyBottomHeight) and band-border edges. Summing
+        // RB_GETROWHEIGHT per row, or taking the max band bottom, drops that trailing
+        // spacing/edge and under-counts, clipping the last row (the toolbar/searchbox row
+        // once the menu bar pushes them onto a second row). The control's own value is the
+        // authoritative height the parent should size the rebar window to.
+        desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETBARHEIGHT, 0, 0);
 
         // Explicitly resize the rebar window to the computed height so that all rows
         // are visible. Sending WM_SIZE directly to the rebar only re-layouts bands
@@ -628,10 +696,20 @@ BOOLEAN NTAPI MessageLoopFilter(
         Message->hwnd && IsChild(MainWindowHandle, Message->hwnd)
         )
     {
+#if TOOLSTATUS_ENABLE_MENUBAR
+        if (ToolStatusConfig.EnableMenuBar && MenuBarHandle)
+        {
+            LRESULT result;
+
+            if (ToolStatusMenuBarHandleMessage(MainWindowHandle, Message->message, Message->wParam, Message->lParam, &result))
+                return TRUE;
+        }
+#endif
+
         if (TranslateAccelerator(MainWindowHandle, AcceleratorTable, Message))
             return TRUE;
 
-        if (Message->message == WM_SYSCHAR && ToolStatusConfig.AutoHideMenu && !GetMenu(MainWindowHandle))
+        if (Message->message == WM_SYSCHAR && !ToolStatusConfig.EnableMenuBar && ToolStatusConfig.AutoHideMenu && !GetMenu(MainWindowHandle))
         {
             ULONG key = (ULONG)Message->wParam;
 
@@ -654,51 +732,95 @@ BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-VOID DrawWindowBorderForTargeting(
-    _In_ HWND hWnd
+static BOOLEAN NTAPI ToolStatusTargetingCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
     )
 {
-    RECT rect;
-    HDC hdc;
-    LONG dpiValue;
+    UNREFERENCED_PARAMETER(Context);
 
-    if (!PhGetWindowRect(hWnd, &rect))
-        return;
-
-    hdc = GetWindowDC(hWnd);
-
-    if (hdc)
-    {
-        LONG penWidth;
-        LONG oldDc;
-        HPEN pen;
-        HBRUSH brush;
-
-        dpiValue = PhGetWindowDpi(hWnd);
-        penWidth = PhGetSystemMetrics(SM_CXBORDER, dpiValue) * 3;
-
-        oldDc = SaveDC(hdc);
-
-        // Get an inversion effect.
-        SetROP2(hdc, R2_NOT);
-
-        pen = CreatePen(PS_INSIDEFRAME, penWidth, RGB(0x00, 0x00, 0x00));
-        SelectPen(hdc, pen);
-
-        brush = PhGetStockBrush(NULL_BRUSH);
-        SelectBrush(hdc, brush);
-
-        // Draw the rectangle.
-        Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
-
-        // Cleanup.
-        DeletePen(pen);
-
-        RestoreDC(hdc, oldDc);
-        ReleaseDC(hWnd, hdc);
-    }
+    return ToolStatusIsValidTargetWindow(WindowHandle, NULL);
 }
 
+static VOID ToolStatusHandleTargetingResult(
+    _In_ HWND WindowHandle,
+    _In_opt_ HWND TargetWindow,
+    _In_ ULONG TargetMode
+    )
+{
+    CLIENT_ID clientId;
+
+    if (!TargetWindow)
+        return;
+
+    if (ToolStatusConfig.ResolveGhostWindows)
+    {
+        HWND hungWindow = PhHungWindowFromGhostWindow(TargetWindow);
+
+        if (hungWindow)
+            TargetWindow = hungWindow;
+    }
+
+    if (ToolStatusIsValidTargetWindow(TargetWindow, &clientId))
+    {
+        PPH_PROCESS_NODE processNode;
+
+        if (SearchboxHandle)
+        {
+            // Clear search filters before selecting the process or the
+            // selected node won't be visible if it's filtered out. (dmex)
+            PhSearchControlClear(SearchboxHandle);
+        }
+
+        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
+        {
+            SystemInformer_SelectTabPage(0);
+            //SystemInformer_ToggleVisible(FALSE);
+            SystemInformer_SelectProcessNode(processNode);
+        }
+
+        switch (TargetMode)
+        {
+        case TIDC_FINDWINDOWTHREAD:
+            {
+                PPH_PROCESS_PROPCONTEXT propContext;
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
+                {
+                    if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
+                    {
+                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
+                        PhShowProcessProperties(propContext);
+                        PhDereferenceObject(propContext);
+                    }
+
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
+                }
+            }
+            break;
+        case TIDC_FINDWINDOWKILL:
+            {
+                PPH_PROCESS_ITEM processItem;
+
+                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
+                {
+                    PhUiTerminateProcesses(WindowHandle, &processItem, 1);
+                    PhDereferenceObject(processItem);
+                }
+                else
+                {
+                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
+                }
+            }
+            break;
+        }
+    }
+}
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -754,11 +876,9 @@ VOID SetSearchFocus(
         {
             if (SearchBoxDisplayMode == SEARCHBOX_DISPLAY_MODE_HIDEINACTIVE)
             {
-                LONG dpiValue = SystemInformer_GetWindowDpi();
-
                 if (!RebarBandExists(REBAR_BAND_ID_SEARCHBOX))
                 {
-                    RebarBandInsert(REBAR_BAND_ID_SEARCHBOX, SearchboxHandle, PhScaleToDisplay(180, dpiValue), 22);
+                    SearchBoxUpdateRebarBand();
                 }
 
                 if (!IsWindowVisible(SearchboxHandle))
@@ -795,11 +915,21 @@ VOID ToggleSearchFocus(
 
 LRESULT CALLBACK MainWindowCallbackProc(
     _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
+    _In_ ULONG WindowMessage,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
     )
 {
+#if TOOLSTATUS_ENABLE_MENUBAR
+    if (ToolStatusConfig.EnableMenuBar && MenuBarHandle)
+    {
+        LRESULT result;
+
+        if (ToolStatusMenuBarHandleMessage(WindowHandle, WindowMessage, wParam, lParam, &result))
+            return result;
+    }
+#endif
+
     switch (WindowMessage)
     {
     case WM_NCCREATE:
@@ -810,6 +940,14 @@ LRESULT CALLBACK MainWindowCallbackProc(
     case WM_DESTROY:
         {
             TaskbarMainWndExiting = TRUE;
+
+            if (TargetingContext)
+            {
+                PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
+
+                TargetingContext = NULL;
+                PhDestroyWindowTargeting(targetingContext);
+            }
 
             SystemInformer_SetWindowProcedure(MainWindowHookProc);
             PhSetWindowProcedure(WindowHandle, MainWindowHookProc);
@@ -871,7 +1009,6 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             {
                                 SystemInformer_SelectTabPage(0);
                                 SystemInformer_SelectProcessNode(node);
-                                SystemInformer_ToggleVisible(FALSE);
                             }
 
                             RestoreSearchSelectedProcessId = ULONG_MAX;
@@ -893,11 +1030,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                 {
                     // If we're targeting and the user presses the Esc key, cancel the targeting.
                     // We also make sure the window doesn't get closed, by filtering out the message.
-                    if (TargetingWindow)
+                    if (TargetingContext)
                     {
-                        TargetingWindow = FALSE;
                         ReleaseCapture();
-
                         goto DefaultWndProc;
                     }
 
@@ -1126,6 +1261,17 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                 goto DefaultWndProc;
             }
+#if TOOLSTATUS_ENABLE_MENUBAR
+            else if (ToolStatusConfig.EnableMenuBar && MenuBarHandle && hdr->hwndFrom == MenuBarHandle)
+            {
+                LRESULT result;
+
+                if (ToolStatusMenuBarHandleNotify(hdr, &result))
+                    return result;
+
+                goto DefaultWndProc;
+            }
+#endif
             else if (ToolBarHandle && hdr->hwndFrom == ToolBarHandle)
             {
                 switch (hdr->code)
@@ -1251,22 +1397,23 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                         if (id == TIDC_FINDWINDOW || id == TIDC_FINDWINDOWTHREAD || id == TIDC_FINDWINDOWKILL)
                         {
-                            // Direct all mouse events to this window.
-                            SetCapture(WindowHandle);
-
-                            // Set the cursor.
-                            PhSetCursor(PhLoadCursor(NULL, IDC_CROSS));
-
-                            // Send the window to the bottom.
-                            SetWindowPos(WindowHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                            TargetingWindow = TRUE;
-                            TargetingCurrentWindow = NULL;
-                            TargetingCurrentWindowDraw = FALSE;
-                            TargetingCompleted = FALSE;
                             TargetingMode = id;
 
-                            SendMessage(WindowHandle, WM_MOUSEMOVE, 0, 0);
+                            if (ToolStatusConfig.FindWindowSnapshot)
+                            {
+                                HWND targetWindow = PhSelectWindowFromScreenSnapshot();
+
+                                ToolStatusHandleTargetingResult(WindowHandle, targetWindow, TargetingMode);
+                            }
+                            else if (!TargetingContext)
+                            {
+                                TargetingContext = PhCreateWindowTargeting(
+                                    WindowHandle,
+                                    !!ToolStatusConfig.FindWindowOverlayHighlight,
+                                    ToolStatusTargetingCallback,
+                                    NULL
+                                    );
+                            }
                         }
                     }
                     break;
@@ -1345,162 +1492,30 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                 goto DefaultWndProc;
             }
-            else
-            {
-                if (
-                    ToolStatusConfig.ToolBarEnabled &&
-                    ToolBarHandle &&
-                    ToolbarUpdateGraphsInfo(WindowHandle, hdr)
-                    )
-                {
-                    goto DefaultWndProc;
-                }
-            }
         }
         break;
     case WM_MOUSEMOVE:
         {
-            if (TargetingWindow)
+            if (TargetingContext)
             {
-                POINT cursorPos;
-                HWND windowOverMouse;
-                CLIENT_ID clientId;
-
-                if (!PhGetMessagePos(&cursorPos))
-                    break;
-
-                windowOverMouse = WindowFromPoint(cursorPos);
-
-                if (TargetingCurrentWindow != windowOverMouse)
-                {
-                    if (TargetingCurrentWindow && TargetingCurrentWindowDraw)
-                    {
-                        // Invert the old border (to remove it).
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
-
-                    if (windowOverMouse)
-                    {
-                        // Draw a rectangle over the current window (but not if it's one of our own).
-                        if (
-                            NT_SUCCESS(PhGetWindowClientId(windowOverMouse, &clientId)) &&
-                            clientId.UniqueProcess != NtCurrentProcessId()
-                            )
-                        {
-                            DrawWindowBorderForTargeting(windowOverMouse);
-                            TargetingCurrentWindowDraw = TRUE;
-                        }
-                        else
-                        {
-                            TargetingCurrentWindowDraw = FALSE;
-                        }
-                    }
-
-                    TargetingCurrentWindow = windowOverMouse;
-                }
-
+                PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, NULL);
                 goto DefaultWndProc;
             }
         }
         break;
     case WM_LBUTTONUP:
         {
-            if (TargetingWindow)
+            if (TargetingContext)
             {
-                CLIENT_ID clientId;
+                HWND targetWindow;
 
-                TargetingCompleted = TRUE;
-
-                // Reset the original cursor.
-                PhSetCursor(PhLoadCursor(NULL, IDC_ARROW));
-
-                // Bring the window back to the top, and preserve the Always on Top setting.
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
-                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                TargetingWindow = FALSE;
-                ReleaseCapture();
-
-                if (TargetingCurrentWindow)
+                if (PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, &targetWindow) == PhWindowTargetingCompleted)
                 {
-                    if (TargetingCurrentWindowDraw)
-                    {
-                        // Remove the border on the window we found.
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
+                    PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
 
-                    if (ToolStatusConfig.ResolveGhostWindows)
-                    {
-                        HWND hungWindow = PhHungWindowFromGhostWindow(TargetingCurrentWindow);
-
-                        if (hungWindow)
-                        {
-                            TargetingCurrentWindow = hungWindow;
-                        }
-                    }
-
-                    if (
-                        NT_SUCCESS(PhGetWindowClientId(TargetingCurrentWindow, &clientId)) &&
-                        clientId.UniqueProcess != NtCurrentProcessId()
-                        )
-                    {
-                        PPH_PROCESS_NODE processNode;
-
-                        if (SearchboxHandle)
-                        {
-                            // Clear search filters before selecting the process or the
-                            // selected node won't be visible if it's filtered out. (dmex)
-                            PhSearchControlClear(SearchboxHandle);
-                        }
-
-                        if (processNode = PhFindProcessNode(clientId.UniqueProcess))
-                        {
-                            SystemInformer_SelectTabPage(0);
-                            //SystemInformer_ToggleVisible(FALSE);
-                            SystemInformer_SelectProcessNode(processNode);
-                        }
-
-                        switch (TargetingMode)
-                        {
-                        case TIDC_FINDWINDOWTHREAD:
-                            {
-                                PPH_PROCESS_PROPCONTEXT propContext;
-                                PPH_PROCESS_ITEM processItem;
-
-                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
-                                {
-                                    if (propContext = PhCreateProcessPropContext(WindowHandle, processItem))
-                                    {
-                                        PhSetSelectThreadIdProcessPropContext(propContext, clientId.UniqueThread);
-                                        PhShowProcessProperties(propContext);
-                                        PhDereferenceObject(propContext);
-                                    }
-
-                                    PhDereferenceObject(processItem);
-                                }
-                                else
-                                {
-                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
-                                }
-                            }
-                            break;
-                        case TIDC_FINDWINDOWKILL:
-                            {
-                                PPH_PROCESS_ITEM processItem;
-
-                                if (processItem = PhReferenceProcessItem(clientId.UniqueProcess))
-                                {
-                                    PhUiTerminateProcesses(WindowHandle, &processItem, 1);
-                                    PhDereferenceObject(processItem);
-                                }
-                                else
-                                {
-                                    PhShowError2(WindowHandle, SystemInformer_GetWindowName(), L"The process (PID %lu) does not exist.", HandleToUlong(clientId.UniqueProcess));
-                                }
-                            }
-                            break;
-                        }
-                    }
+                    TargetingContext = NULL;
+                    PhDestroyWindowTargeting(targetingContext);
+                    ToolStatusHandleTargetingResult(WindowHandle, targetWindow, TargetingMode);
                 }
 
                 goto DefaultWndProc;
@@ -1509,26 +1524,13 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_CAPTURECHANGED:
         {
-            if (!TargetingCompleted)
+            if (TargetingContext &&
+                PhProcessWindowTargetingMessage(TargetingContext, WindowMessage, NULL) == PhWindowTargetingCancelled)
             {
-                // The user cancelled the targeting, probably by pressing the Esc key.
+                PPH_WINDOW_TARGETING_CONTEXT targetingContext = TargetingContext;
 
-                TargetingCompleted = TRUE;
-
-                // Remove the border on the currently selected window.
-                if (TargetingCurrentWindow)
-                {
-                    if (TargetingCurrentWindowDraw)
-                    {
-                        // Remove the border on the window we found.
-                        DrawWindowBorderForTargeting(TargetingCurrentWindow);
-                    }
-                }
-
-                SetWindowPos(WindowHandle, PhGetIntegerSetting(SETTING_MAIN_WINDOW_ALWAYS_ON_TOP) ? HWND_TOPMOST : HWND_TOP,
-                    0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
-
-                TargetingWindow = FALSE;
+                TargetingContext = NULL;
+                PhDestroyWindowTargeting(targetingContext);
             }
         }
         break;
@@ -1612,6 +1614,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
                     if (lParam != 0)
                         break;
 
+                    if (ToolStatusConfig.EnableMenuBar)
+                        break;
+
                     if (!ToolStatusConfig.AutoHideMenu)
                         break;
 
@@ -1652,6 +1657,9 @@ LRESULT CALLBACK MainWindowCallbackProc(
         break;
     case WM_EXITMENULOOP:
         {
+            if (ToolStatusConfig.EnableMenuBar)
+                break;
+
             if (!ToolStatusConfig.AutoHideMenu)
                 break;
 
@@ -1741,6 +1749,8 @@ VOID NTAPI MainWindowShowingCallback(
     _In_opt_ PVOID Context
     )
 {
+    MainMenu = GetMenu(MainWindowHandle);
+
     AcceleratorTable = LoadAccelerators(PluginInstance->DllBase, MAKEINTRESOURCE(IDR_MAINWND_ACCEL));
     PhRegisterMessageLoopFilter(MessageLoopFilter, NULL);
 
@@ -1757,11 +1767,7 @@ VOID NTAPI MainWindowShowingCallback(
     StatusBarLoadSettings();
     TaskbarInitialize();
 
-    MainMenu = GetMenu(MainWindowHandle);
-    if (ToolStatusConfig.AutoHideMenu)
-    {
-        SetMenu(MainWindowHandle, NULL);
-    }
+    ToolStatusApplyMainMenuVisibility(MainWindowHandle);
 
     if (ToolStatusConfig.SearchBoxEnabled && ToolStatusConfig.SearchAutoFocus && SearchboxHandle)
     {
@@ -1781,6 +1787,9 @@ VOID NTAPI MainMenuInitializingCallback(
     PPH_EMENU_ITEM menuItem;
     PPH_EMENU_ITEM mainMenuItem;
     PPH_EMENU_ITEM searchMenuItem;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PPH_EMENU_ITEM menuBarMenuItem;
+#endif
     PPH_EMENU_ITEM lockMenuItem;
 
     if (menuInfo->u.MainMenu.SubMenuIndex != PH_MENU_ITEM_LOCATION_VIEW)
@@ -1794,6 +1803,9 @@ VOID NTAPI MainMenuInitializingCallback(
     menu = PhPluginCreateEMenuItem(PluginInstance, 0, 0, L"Toolbar", NULL);
     PhInsertEMenuItem(menu, mainMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENU, L"Main menu (auto-hide)", NULL), ULONG_MAX);
     PhInsertEMenuItem(menu, searchMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_SEARCHBOX, L"Search box", NULL), ULONG_MAX);
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //PhInsertEMenuItem(menu, menuBarMenuItem = PhPluginCreateEMenuItem(PluginInstance, 0, COMMAND_ID_ENABLE_MENUBAR, L"Menu bar", NULL), ULONG_MAX);
+#endif
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
     ToolbarGraphCreatePluginMenu(menu, COMMAND_ID_GRAPHS_CUSTOMIZE);
     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1804,6 +1816,10 @@ VOID NTAPI MainMenuInitializingCallback(
         mainMenuItem->Flags |= PH_EMENU_CHECKED;
     if (ToolStatusConfig.SearchBoxEnabled)
         searchMenuItem->Flags |= PH_EMENU_CHECKED;
+#if TOOLSTATUS_ENABLE_MENUBAR
+    //if (ToolStatusConfig.EnableMenuBar)
+    //    menuBarMenuItem->Flags |= PH_EMENU_CHECKED;
+#endif
     if (ToolStatusConfig.ToolBarLocked)
         lockMenuItem->Flags |= PH_EMENU_CHECKED;
 
@@ -1860,6 +1876,23 @@ VOID NTAPI SettingsUpdatedCallback(
     )
 {
     UpdateCachedSettings();
+
+    if (MainWindowHandle)
+    {
+#if TOOLSTATUS_ENABLE_MENUBAR
+        if (MenuBarHandle)
+        {
+            PhInitializeWindowThemeMainMenu(MainMenu);
+            MenuBarApplySettings();
+        }
+#endif
+        if (StatusBarHandle)
+        {
+            SendMessage(StatusBarHandle, WM_THEMECHANGED, 0, 0);
+            InvalidateRect(StatusBarHandle, NULL, TRUE);
+            UpdateWindow(StatusBarHandle);
+        }
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -1908,6 +1941,11 @@ VOID NTAPI MenuItemCallback(
                 }
             }
             break;
+#if TOOLSTATUS_ENABLE_MENUBAR
+        case COMMAND_ID_ENABLE_MENUBAR:
+            ToggleMenuBar(menuItem->OwnerWindow);
+            break;
+#endif
         case COMMAND_ID_TOOLBAR_LOCKUNLOCK:
             {
                 ULONG bandCount;
@@ -1999,6 +2037,9 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { IntegerSettingType, SETTING_NAME_DELAYED_INITIALIZATION_MAX, L"3" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
+#if TOOLSTATUS_ENABLE_MENUBAR
+                { StringSettingType, SETTING_NAME_REBAR_MENUBAR_CONFIG, L"" },
+#endif
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },

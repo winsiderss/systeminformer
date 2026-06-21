@@ -115,12 +115,12 @@ EXTERN_C_START
 #include <ntioapi.h>
 #include <ntlsa.h>
 #include <ntlpcapi.h>
-#include <ntmisc.h>
 #include <ntpfapi.h>
 #include <ntpnpapi.h>
 #include <ntpoapi.h>
 #include <ntregapi.h>
 #include <ntrtl.h>
+#include <ntmisc.h>
 #include <ntsam.h>
 #include <ntseapi.h>
 #include <nttmapi.h>

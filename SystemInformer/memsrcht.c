@@ -911,6 +911,7 @@ VOID PhpSearchMemoryStrings(
 
     Context->NodeList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
+    Context->StringArenaList = PhCreateList(16);
 
     PhInitializeTreeNewFilterSupport(&Context->FilterSupport, Context->TreeNewHandle, Context->NodeList);
     PhAddTreeNewFilter(&Context->FilterSupport, PhpMemoryStringsTreeFilterCallback, Context);

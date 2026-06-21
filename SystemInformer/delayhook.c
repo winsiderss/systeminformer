@@ -218,7 +218,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
         {
             WCHAR windowClassName[MAX_PATH];
             HWND ParentHandle = GetParent(WindowHandle);
-            if (!GetClassName(ParentHandle, windowClassName, RTL_NUMBER_OF(windowClassName)))
+            if (!NT_SUCCESS(PhGetClassName(ParentHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
                 windowClassName[0] = UNICODE_NULL;
             if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
             {
@@ -240,7 +240,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
             RECT clientRect;
             WCHAR windowClassName[MAX_PATH];
 
-            if (!GetClassName(GetParent(WindowHandle), windowClassName, RTL_NUMBER_OF(windowClassName)))
+            if (!NT_SUCCESS(PhGetClassName(GetParent(WindowHandle), windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
                 windowClassName[0] = UNICODE_NULL;
             if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
             {
@@ -944,7 +944,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
         {
             WCHAR windowClassName[MAX_PATH];
 
-            if (!GetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName)))
+            if (!NT_SUCCESS(PhGetClassName(createStruct->hwndParent, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
                 windowClassName[0] = UNICODE_NULL;
 
             if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
@@ -1316,7 +1316,7 @@ typedef struct _TASKDIALOG_WINDOW_CONTEXT
 
 #define TASKDIALOG_CONTEXT_TAG (ULONG)'TDLG'
 
-#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!GetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName))) ClassName[0] = UNICODE_NULL
+#define GETCLASSNAME_OR_NULL(WindowHandle, ClassName) if (!NT_SUCCESS(PhGetClassName(WindowHandle, ClassName, RTL_NUMBER_OF(ClassName), NULL))) ClassName[0] = UNICODE_NULL
 
 HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     _In_ HWND hwndDlg,

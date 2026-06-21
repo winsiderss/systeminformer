@@ -37,6 +37,12 @@ typedef struct _PH_PROCESS_PROPSHEETCONTEXT
     HWND ButtonsLabelWindowHandle;
 } PH_PROCESS_PROPSHEETCONTEXT, *PPH_PROCESS_PROPSHEETCONTEXT;
 
+VOID PhpUpdateProcessPropButtonsDpi(
+    _In_ PPH_PROCESS_PROPSHEETCONTEXT PropSheetContext,
+    _In_ HWND PropSheetWindow,
+    _In_ LONG WindowDpi
+    );
+
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpProcessPropContextDeleteProcedure(
     _In_ PVOID Object,

@@ -41,6 +41,7 @@ EXPORTS
     PhCreateProcessPropPageContextEx
     PhCreateSearchControl
     PhCreateServiceListControl
+    PhCreateWindowTargeting
     PhDeleteMemoryItemList
     PhDeleteStaticWindowIcon
     PhDeleteTreeNewColumnMenu
@@ -50,6 +51,7 @@ EXPORTS
     PhDeselectAllProcessNodes
     PhDeselectAllServiceNodes
     PhDestroyWindowIcon
+    PhDestroyWindowTargeting
     PhDeviceProviderInitialization
     PhDoPropPageLayout
     PhDuplicateProcessInformation
@@ -128,6 +130,7 @@ EXPORTS
     PhLookupDevicePropertyClass
     PhLookupMemoryItemList
     PhProcessImageListInitialization
+    PhProcessWindowTargetingMessage
     PhPropPageDlgProcHeader
     PhQueryKphCounters
     PhQueryMemoryItemList
@@ -136,6 +139,7 @@ EXPORTS
     PhReferenceDeviceItemByHash
     PhReferenceDeviceTree
     PhReferenceDeviceTreeEx
+    PhReferenceFont
     PhReferenceNetworkItem
     PhReferenceProcessItem
     PhReferenceProcessItemForParent
@@ -146,6 +150,8 @@ EXPORTS
     PhReferenceServiceItem
     PhRegisterDialog
     PhRegisterMessageLoopFilter
+    PhHideToast
+    PhReleaseToast
     PhRemoveTreeNewFilter
     PhSearchControlClear
     PhSearchControlMatch
@@ -156,6 +162,8 @@ EXPORTS
     PhSearchOnlineString
     PhSelectAndEnsureVisibleProcessNode
     PhSelectAndEnsureVisibleServiceNode
+    PhSelectWindowFromScreenSnapshot
+    PhSelectWindowFromScreenTargeting
     PhSetApplicationWindowIcon
     PhSetApplicationWindowIconEx
     PhSetProcessItemAffinityMask
@@ -181,6 +189,7 @@ EXPORTS
     PhShowProcessRecordDialog
     PhShowSystemInformationDialog
     PhShowThreadAffinityDialog
+    PhShowToastEx2
     PhSiDoubleLabelYFunction
     PhSiSetColorsGraphDrawInfo
     PhSiSizeLabelYFunction
@@ -190,6 +199,7 @@ EXPORTS
     PhUnregisterMessageLoopFilter
     PhUpdateProcessNode
     PhUpdateServiceNode
+    PhUpdateToastProgress
     PhWordMatchStringRef
     PhWritePhTextHeader
 
@@ -769,6 +779,8 @@ EXPORTS
     PhFormatGuid
     PhFormatGuidToBuffer
     PhFormatImageVersionInfo
+    PhFormatMessage
+    PhFormatMessage_V
     PhFormatSize
     PhFormatTime
     PhFormatTimeSpan
@@ -958,6 +970,22 @@ EXPORTS
     PhNfGetTrayIconFont
     PhSetGraphText
 
+; graphprp
+    PhPropSheetNewBuilderAddPage
+    PhPropSheetNewBuilderCreate
+    PhPropSheetNewBuilderDestroy
+    PhPropSheetNewBuilderShow
+    PhPropSheetNewBuilderShowModal
+    PhPropSheetNewGetContext
+    PhPropSheetNewGetCurrentPage
+    PhPropSheetNewGetTabControl
+    PhPropSheetNewPageAddLayoutItem
+    PhPropSheetNewPageAddLayoutItemEx
+    PhPropSheetNewPageLayout
+    PhPropSheetNewSetCurrentPageByName
+    PhPropSheetNewShow
+    PhPropSheetNewShowModal
+
 ; guisup
     PhAddLayoutItem
     PhAddLayoutItemEx
@@ -1005,6 +1033,7 @@ EXPORTS
     PhGetStockObject
     PhGetThemeMargins
     PhGetThemePartSize
+    PhGetWindowActiveBorderColor
     PhGetWindowClientId
     PhGetWindowCompositionAttribute
     PhGetWindowContext
@@ -1153,6 +1182,7 @@ EXPORTS
     PhChangeServiceConfig2
     PhCloseServiceHandle
     PhEnumDependentServices
+    PhEnumServices
     PhGetServiceConfig
     PhGetServiceConfigFileName
     PhGetServiceDescription
@@ -1225,6 +1255,7 @@ EXPORTS
     PhGetJsonArrayLength
     PhGetJsonArrayLong64
     PhGetJsonArrayString
+    PhGetJsonInt64Object
     PhGetJsonObject
     PhGetJsonObjectAsArrayList
     PhGetJsonObjectBool
@@ -1275,6 +1306,7 @@ EXPORTS
     PhHttpCrackUrl
     PhHttpDestroy
     PhHttpDownloadString
+    PhHttpDownloadUrl
     PhHttpGetErrorMessage
     PhHttpInitialize
     PhHttpQueryHeaders
@@ -1295,6 +1327,7 @@ EXPORTS
     PhIpv4StringToAddress
     PhIpv6AddressToString
     PhIpv6StringToAddress
+    PhWinHttpUserAgentString
 
 ; ksiuser
     KphAlpcQueryInformation

@@ -302,6 +302,27 @@ DECLARE_INTERFACE_(IOwnerDataCallback, IUnknown)
     END_INTERFACE
 };
 
+#ifdef COBJMACROS
+#define IOwnerDataCallback_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IOwnerDataCallback_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IOwnerDataCallback_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IOwnerDataCallback_GetItemPosition(This,ItemIndex,Position) \
+    ((This)->lpVtbl->GetItemPosition(This,ItemIndex,Position))
+#define IOwnerDataCallback_SetItemPosition(This,ItemIndex,Position) \
+    ((This)->lpVtbl->SetItemPosition(This,ItemIndex,Position))
+#define IOwnerDataCallback_GetItemInGroup(This,GroupIndex,GroupWideItemIndex,TotalItemIndex) \
+    ((This)->lpVtbl->GetItemInGroup(This,GroupIndex,GroupWideItemIndex,TotalItemIndex))
+#define IOwnerDataCallback_GetItemGroup(This,ItemIndex,OccurrenceIndex,GroupIndex) \
+    ((This)->lpVtbl->GetItemGroup(This,ItemIndex,OccurrenceIndex,GroupIndex))
+#define IOwnerDataCallback_GetItemGroupCount(This,ItemIndex,OccurrenceCount) \
+    ((This)->lpVtbl->GetItemGroupCount(This,ItemIndex,OccurrenceCount))
+#define IOwnerDataCallback_OnCacheHint(This,FirstItem,LastItem) \
+    ((This)->lpVtbl->OnCacheHint(This,FirstItem,LastItem))
+#endif
+
 #endif // __IOwnerDataCallback_INTERFACE_DEFINED__
 
 #undef INTERFACE
@@ -419,6 +440,29 @@ DECLARE_INTERFACE_(ISubItemCallback, IUnknown)
     END_INTERFACE
 };
 
+#ifdef COBJMACROS
+#define ISubItemCallback_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define ISubItemCallback_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define ISubItemCallback_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define ISubItemCallback_GetSubItemTitle(This,SubItemIndex,Buffer,BufferSize) \
+    ((This)->lpVtbl->GetSubItemTitle(This,SubItemIndex,Buffer,BufferSize))
+#define ISubItemCallback_GetSubItemControl(This,ItemIndex,SubItemIndex,RequiredInterface,ppObject) \
+    ((This)->lpVtbl->GetSubItemControl(This,ItemIndex,SubItemIndex,RequiredInterface,ppObject))
+#define ISubItemCallback_BeginSubItemEdit(This,ItemIndex,SubItemIndex,Mode,RequiredInterface,ppObject) \
+    ((This)->lpVtbl->BeginSubItemEdit(This,ItemIndex,SubItemIndex,Mode,RequiredInterface,ppObject))
+#define ISubItemCallback_EndSubItemEdit(This,ItemIndex,SubItemIndex,Mode,ppObject) \
+    ((This)->lpVtbl->EndSubItemEdit(This,ItemIndex,SubItemIndex,Mode,ppObject))
+#define ISubItemCallback_BeginGroupEdit(This,GroupIndex,RequiredInterface,ppObject) \
+    ((This)->lpVtbl->BeginGroupEdit(This,GroupIndex,RequiredInterface,ppObject))
+#define ISubItemCallback_EndGroupEdit(This,GroupIndex,Mode,ppObject) \
+    ((This)->lpVtbl->EndGroupEdit(This,GroupIndex,Mode,ppObject))
+#define ISubItemCallback_OnInvokeVerb(This,ItemIndex,Verb) \
+    ((This)->lpVtbl->OnInvokeVerb(This,ItemIndex,Verb))
+#endif
+
 #endif // __ISubItemCallback_INTERFACE_DEFINED__
 
 #undef INTERFACE
@@ -478,6 +522,35 @@ DECLARE_INTERFACE_(IPropertyValue, IUnknown)
 
     END_INTERFACE
 };
+
+#ifdef COBJMACROS
+#define IPropertyValue_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IPropertyValue_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IPropertyValue_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IPropertyValue_SetPropertyKey(This,PropertyKey) \
+    ((This)->lpVtbl->SetPropertyKey(This,PropertyKey))
+#define IPropertyValue_GetPropertyKey(This,PropertyKey) \
+    ((This)->lpVtbl->GetPropertyKey(This,PropertyKey))
+#define IPropertyValue_GetValue(This,Value) \
+    ((This)->lpVtbl->GetValue(This,Value))
+#define IPropertyValue_InitValue(This,Value) \
+    ((This)->lpVtbl->InitValue(This,Value))
+#define IPropertyValue_HasValue(This,Value,ValueIndex) \
+    ((This)->lpVtbl->HasValue(This,Value,ValueIndex))
+#define IPropertyValue_InsertValue(This,ValueIndex,Value) \
+    ((This)->lpVtbl->InsertValue(This,ValueIndex,Value))
+#define IPropertyValue_AppendValue(This,Value) \
+    ((This)->lpVtbl->AppendValue(This,Value))
+#define IPropertyValue_DeleteValue(This,Value) \
+    ((This)->lpVtbl->DeleteValue(This,Value))
+#define IPropertyValue_GetValueAt(This,ValueIndex,Value) \
+    ((This)->lpVtbl->GetValueAt(This,ValueIndex,Value))
+#define IPropertyValue_GetCount(This,Count) \
+    ((This)->lpVtbl->GetCount(This,Count))
+#endif
 
 #endif // __IPropertyValue_INTERFACE_DEFINED__
 
@@ -548,6 +621,41 @@ DECLARE_INTERFACE_(IPropertyControlBase, IUnknown)
     END_INTERFACE
 };
 
+#ifdef COBJMACROS
+#define IPropertyControlBase_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IPropertyControlBase_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IPropertyControlBase_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IPropertyControlBase_Initialize(This,Site,Type) \
+    ((This)->lpVtbl->Initialize(This,Site,Type))
+#define IPropertyControlBase_GetSize(This,RectType,hdc,Proposed,Size) \
+    ((This)->lpVtbl->GetSize(This,RectType,hdc,Proposed,Size))
+#define IPropertyControlBase_SetWindowTheme(This,SubAppName,SubIdList) \
+    ((This)->lpVtbl->SetWindowTheme(This,SubAppName,SubIdList))
+#define IPropertyControlBase_SetFont(This,Font) \
+    ((This)->lpVtbl->SetFont(This,Font))
+#define IPropertyControlBase_SetForeColor(This,ColorRef) \
+    ((This)->lpVtbl->SetForeColor(This,ColorRef))
+#define IPropertyControlBase_GetFlags(This,Flags) \
+    ((This)->lpVtbl->GetFlags(This,Flags))
+#define IPropertyControlBase_SetFlags(This,Mask,Flags) \
+    ((This)->lpVtbl->SetFlags(This,Mask,Flags))
+#define IPropertyControlBase_AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags) \
+    ((This)->lpVtbl->AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags))
+#define IPropertyControlBase_SetValue(This,Value) \
+    ((This)->lpVtbl->SetValue(This,Value))
+#define IPropertyControlBase_InvokeDefaultAction(This) \
+    ((This)->lpVtbl->InvokeDefaultAction(This))
+#define IPropertyControlBase_Destroy(This) \
+    ((This)->lpVtbl->Destroy(This))
+#define IPropertyControlBase_SetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->SetFormatFlags(This,Flags))
+#define IPropertyControlBase_GetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->GetFormatFlags(This,Flags))
+#endif
+
 #endif // __IPropertyControlBase_INTERFACE_DEFINED__
 
 #undef INTERFACE
@@ -583,6 +691,19 @@ DECLARE_INTERFACE_(IListViewFooterCallback, IUnknown)
 
     END_INTERFACE
 };
+
+#ifdef COBJMACROS
+#define IListViewFooterCallback_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IListViewFooterCallback_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IListViewFooterCallback_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IListViewFooterCallback_OnButtonClicked(This,ItemIndex,ItemLParam,RemoveFooter) \
+    ((This)->lpVtbl->OnButtonClicked(This,ItemIndex,ItemLParam,RemoveFooter))
+#define IListViewFooterCallback_OnDestroyButton(This,ItemIndex,ItemLParam) \
+    ((This)->lpVtbl->OnDestroyButton(This,ItemIndex,ItemLParam))
+#endif
 
 #endif // __IListViewFooterCallback_INTERFACE_DEFINED__
 
@@ -634,6 +755,29 @@ DECLARE_INTERFACE_(IListViewFooter, IUnknown)
 
     END_INTERFACE
 };
+
+#ifdef COBJMACROS
+#define IListViewFooter_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IListViewFooter_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IListViewFooter_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IListViewFooter_IsVisible(This,Visible) \
+    ((This)->lpVtbl->IsVisible(This,Visible))
+#define IListViewFooter_GetFooterFocus(This,ItemIndex) \
+    ((This)->lpVtbl->GetFooterFocus(This,ItemIndex))
+#define IListViewFooter_SetFooterFocus(This,ItemIndex) \
+    ((This)->lpVtbl->SetFooterFocus(This,ItemIndex))
+#define IListViewFooter_SetIntroText(This,Text) \
+    ((This)->lpVtbl->SetIntroText(This,Text))
+#define IListViewFooter_Show(This,ShowFooter) \
+    ((This)->lpVtbl->Show(This,ShowFooter))
+#define IListViewFooter_RemoveAllButtons(This) \
+    ((This)->lpVtbl->RemoveAllButtons(This))
+#define IListViewFooter_InsertButton(This,InsertAt,ButtonText,SubText,ImageIndex,Context) \
+    ((This)->lpVtbl->InsertButton(This,InsertAt,ButtonText,SubText,ImageIndex,Context))
+#endif
 
 #endif // __IListViewFooter_INTERFACE_DEFINED__
 
@@ -728,6 +872,51 @@ DECLARE_INTERFACE_(IDrawPropertyControl, IUnknown)
 
     END_INTERFACE
 };
+
+#ifdef COBJMACROS
+#define IDrawPropertyControl_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IDrawPropertyControl_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDrawPropertyControl_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDrawPropertyControl_Initialize(This,Site,Type) \
+    ((This)->lpVtbl->Initialize(This,Site,Type))
+#define IDrawPropertyControl_GetSize(This,RectType,DeviceContext,ProposedSize,Size) \
+    ((This)->lpVtbl->GetSize(This,RectType,DeviceContext,ProposedSize,Size))
+#define IDrawPropertyControl_SetWindowTheme(This,SubAppName,SubIdList) \
+    ((This)->lpVtbl->SetWindowTheme(This,SubAppName,SubIdList))
+#define IDrawPropertyControl_SetFont(This,Font) \
+    ((This)->lpVtbl->SetFont(This,Font))
+#define IDrawPropertyControl_SetForeColor(This,ColorRef) \
+    ((This)->lpVtbl->SetForeColor(This,ColorRef))
+#define IDrawPropertyControl_GetFlags(This,Flags) \
+    ((This)->lpVtbl->GetFlags(This,Flags))
+#define IDrawPropertyControl_SetFlags(This,Mask,Flags) \
+    ((This)->lpVtbl->SetFlags(This,Mask,Flags))
+#define IDrawPropertyControl_AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags) \
+    ((This)->lpVtbl->AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags))
+#define IDrawPropertyControl_SetValue(This,Value) \
+    ((This)->lpVtbl->SetValue(This,Value))
+#define IDrawPropertyControl_InvokeDefaultAction(This) \
+    ((This)->lpVtbl->InvokeDefaultAction(This))
+#define IDrawPropertyControl_Destroy(This) \
+    ((This)->lpVtbl->Destroy(This))
+#define IDrawPropertyControl_SetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->SetFormatFlags(This,Flags))
+#define IDrawPropertyControl_GetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->GetFormatFlags(This,Flags))
+#define IDrawPropertyControl_GetDrawFlags(This,Flags) \
+    ((This)->lpVtbl->GetDrawFlags(This,Flags))
+#define IDrawPropertyControl_WindowlessDraw(This,DeviceContext,DrawingRectangle,DrawMode) \
+    ((This)->lpVtbl->WindowlessDraw(This,DeviceContext,DrawingRectangle,DrawMode))
+#define IDrawPropertyControl_HasVisibleContent(This) \
+    ((This)->lpVtbl->HasVisibleContent(This))
+#define IDrawPropertyControl_GetDisplayText(This,Text) \
+    ((This)->lpVtbl->GetDisplayText(This,Text))
+#define IDrawPropertyControl_GetTooltipInfo(This,DeviceContext,ProposedSize,TooltipFlags) \
+    ((This)->lpVtbl->GetTooltipInfo(This,DeviceContext,ProposedSize,TooltipFlags))
+#endif
 
 #endif // __IDrawPropertyControl_INTERFACE_DEFINED__
 
@@ -829,6 +1018,55 @@ DECLARE_INTERFACE_(IDrawPropertyControlWin10, IDrawPropertyControl)
     END_INTERFACE
 };
 
+#ifdef COBJMACROS
+#define IDrawPropertyControlWin10_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IDrawPropertyControlWin10_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IDrawPropertyControlWin10_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IDrawPropertyControlWin10_Initialize(This,Site,Type) \
+    ((This)->lpVtbl->Initialize(This,Site,Type))
+#define IDrawPropertyControlWin10_GetSize(This,RectType,DeviceContext,ProposedSize,Size) \
+    ((This)->lpVtbl->GetSize(This,RectType,DeviceContext,ProposedSize,Size))
+#define IDrawPropertyControlWin10_SetWindowTheme(This,SubAppName,SubIdList) \
+    ((This)->lpVtbl->SetWindowTheme(This,SubAppName,SubIdList))
+#define IDrawPropertyControlWin10_SetFont(This,Font) \
+    ((This)->lpVtbl->SetFont(This,Font))
+#define IDrawPropertyControlWin10_SetForeColor(This,ColorRef) \
+    ((This)->lpVtbl->SetForeColor(This,ColorRef))
+#define IDrawPropertyControlWin10_GetFlags(This,Flags) \
+    ((This)->lpVtbl->GetFlags(This,Flags))
+#define IDrawPropertyControlWin10_SetFlags(This,Mask,Flags) \
+    ((This)->lpVtbl->SetFlags(This,Mask,Flags))
+#define IDrawPropertyControlWin10_AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags) \
+    ((This)->lpVtbl->AdjustWindowRectPCB(This,WindowHandle,WindowRect,ClientRect,Flags))
+#define IDrawPropertyControlWin10_SetValue(This,Value) \
+    ((This)->lpVtbl->SetValue(This,Value))
+#define IDrawPropertyControlWin10_InvokeDefaultAction(This) \
+    ((This)->lpVtbl->InvokeDefaultAction(This))
+#define IDrawPropertyControlWin10_Destroy(This) \
+    ((This)->lpVtbl->Destroy(This))
+#define IDrawPropertyControlWin10_SetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->SetFormatFlags(This,Flags))
+#define IDrawPropertyControlWin10_GetFormatFlags(This,Flags) \
+    ((This)->lpVtbl->GetFormatFlags(This,Flags))
+#define IDrawPropertyControlWin10_GetDrawFlags(This,Flags) \
+    ((This)->lpVtbl->GetDrawFlags(This,Flags))
+#define IDrawPropertyControlWin10_WindowlessDraw(This,DeviceContext,DrawingRectangle,DrawMode) \
+    ((This)->lpVtbl->WindowlessDraw(This,DeviceContext,DrawingRectangle,DrawMode))
+#define IDrawPropertyControlWin10_HasVisibleContent(This) \
+    ((This)->lpVtbl->HasVisibleContent(This))
+#define IDrawPropertyControlWin10_GetDisplayText(This,Text) \
+    ((This)->lpVtbl->GetDisplayText(This,Text))
+#define IDrawPropertyControlWin10_GetTooltipInfo(This,DeviceContext,ProposedSize,TooltipFlags) \
+    ((This)->lpVtbl->GetTooltipInfo(This,DeviceContext,ProposedSize,TooltipFlags))
+#define IDrawPropertyControlWin10_SetWindowlessParentWindow(This,WindowHandle) \
+    ((This)->lpVtbl->SetWindowlessParentWindow(This,WindowHandle))
+#define IDrawPropertyControlWin10_OnDPIChanged(This) \
+    ((This)->lpVtbl->OnDPIChanged(This))
+#endif
+
 #endif // __IDrawPropertyControlWin10_INTERFACE_DEFINED__
 
 #undef INTERFACE
@@ -879,6 +1117,29 @@ DECLARE_INTERFACE_(IPropertyControl, IUnknown)
 
     END_INTERFACE
 };
+
+#ifdef COBJMACROS
+#define IPropertyControl_QueryInterface(This,riid,ppvObject) \
+    ((This)->lpVtbl->QueryInterface(This,riid,ppvObject))
+#define IPropertyControl_AddRef(This) \
+    ((This)->lpVtbl->AddRef(This))
+#define IPropertyControl_Release(This) \
+    ((This)->lpVtbl->Release(This))
+#define IPropertyControl_GetValue(This,riid,ppvObject) \
+    ((This)->lpVtbl->GetValue(This,riid,ppvObject))
+#define IPropertyControl_Create(This,ParentWindowHandle,ItemRectangle,ClipRectangle,CreateFlags) \
+    ((This)->lpVtbl->Create(This,ParentWindowHandle,ItemRectangle,ClipRectangle,CreateFlags))
+#define IPropertyControl_SetPosition(This,ItemRectangle,ClipRectangle) \
+    ((This)->lpVtbl->SetPosition(This,ItemRectangle,ClipRectangle))
+#define IPropertyControl_IsModified(This,Modified) \
+    ((This)->lpVtbl->IsModified(This,Modified))
+#define IPropertyControl_SetModified(This,Modified) \
+    ((This)->lpVtbl->SetModified(This,Modified))
+#define IPropertyControl_ValidationFailed(This,ValidationText) \
+    ((This)->lpVtbl->ValidationFailed(This,ValidationText))
+#define IPropertyControl_GetState(This,State) \
+    ((This)->lpVtbl->GetState(This,State))
+#endif
 
 #endif // __IPropertyControl_INTERFACE_DEFINED__
 

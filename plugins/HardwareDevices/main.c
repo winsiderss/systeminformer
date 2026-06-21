@@ -12,6 +12,7 @@
 
 #include "devices.h"
 #include <hndlinfo.h>
+#include <secedit.h>
 
 #include <trace.h>
 

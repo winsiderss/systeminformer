@@ -1,0 +1,6774 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/systeminformer/settings.schema.json",
+  "title": "System Informer Settings (settings.json)",
+  "description": "Schema for System Informer JSON settings file. Includes known keys and allows additional plugin keys. Each property description contains value-format notes plus a setting description.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional schema reference for editor tooling.",
+      "examples": [
+        "https://example.com/systeminformer/SystemInformer.exe.settings.schema.json"
+      ]
+    },
+    "AllowOnlyOneInstance": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: When enabled (1), allow only one running instance; when disabled (0), multiple instances may be launched.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "CloseOnEscape": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: When enabled (1), allow closing the window using the ESC (escape) key; when disabled (0), do not allow closing the window using the ESC key.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "DbgHelpSearchPath": {
+      "type": "string",
+      "description": "Setting: The search path used for symbol resolution. Contains a semicolon-delimited list of local paths and symbol server connection strings (e.g. srv*C:\\Symbols*https://msdl.microsoft.com/download/symbols) used to locate PDB files."
+    },
+    "DbgHelpUndecorate": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls whether C++ decorated symbol names are undecorated (demangled) into human-readable function signatures.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "DisabledPlugins": {
+      "type": "string",
+      "description": "Setting: A list of disabled plugins. Contains the filenames of plugins that are prevented from loading."
+    },
+    "ElevationLevel": {
+      "description": "Controls the default action when elevation is required. For example, the application automatically prompts for administrative privileges.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1",
+            "2"
+          ]
+        },
+        {
+          "type": "number"
+        }
+      ]
+    },
+    "EnableAdvancedOptions": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the Advanced tab in the settings user interface, unlocking additional functionality.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableAvxSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables use of AVX SIMD instructions for performance; can be disabled (set to 0) if AVX-related crashes occur.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableBitmapSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables support for bitmaps in menus and user interface elements.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableBreakOnTermination": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the 'Critical' option in process context menus, allowing users to mark processes as critical (termination causes a system crash).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableBootObjectsEnumerate": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls the enumeration of boot objects in the main menu.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableCommandLineTooltips": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables tooltips that display the full command line arguments when hovering over a process.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableCycleCpuUsage": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Calculates CPU usage based on CPU cycles consumed rather than time intervals, providing more accurate usage data.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableDeferredLayout": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Defers the layout and redrawing of the main window to improve performance; can be disabled (set to 0) if window-related artefacts occur. ",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableDeviceSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the monitoring and enumeration of hardware devices and drivers.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableDeviceNotifySupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables notifications for device arrival and removal events.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableImageCoherencySupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables scanning of memory images to detect modifications or code injection compared to the file on disk.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableInstantTooltips": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables instant display of tooltips without a delay when hovering over UI elements.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableHeapReflection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the use of heap reflection (Process Snapshotting) to inspect heap memory without suspending the target process.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableHeapMemoryTagging": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables support for Heap Memory Tagging (MTE) to help detect memory corruption issues.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableLastProcessShutdown": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures System Informer to shutdown as the last application during system shutdown, allowing for diagnostics of the shutdown process.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableLinuxSubsystemSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables detection and monitoring of Windows Subsystem for Linux (WSL) processes and distributions.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableHandleSnapshot": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the snapshotting of handles for enumeration, allowing the display of open handles for processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableMinidumpKernelMinidump": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the generation of kernel minidumps when preforming a process minidump.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableMinidumpSnapshot": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the use of process snapshotting (PSS) when creating minidumps to capture the process state without suspending the process.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableMonospaceFont": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the use of a monospaced font for list views and text displays.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableNetworkBoundConnections": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of network bound connections (listening ports) in the Network tab.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableNetworkResolve": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the resolution of remote IP addresses to hostnames.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableNetworkResolveDoH": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables DNS over HTTPS (DoH) for network address resolution to improve privacy and security.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableMemStringsTreeDialog": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the use of a tree view dialog for displaying memory strings.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnablePackageIconSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of icons for Windows Store packaged processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableProcessHandlePnPDeviceNameSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables resolving Plug and Play (PnP) device names from process handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnablePlugins": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the loading of plugins at startup.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnablePluginsNative": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the loading of plugins at startup using an alternative method.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableGraphMaxScale": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables automatic scaling of graphs to the maximum value observed.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableGraphMaxText": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of the maximum value as text on graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableServiceNonPoll": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables event-based monitoring for service status changes instead of periodic polling, improving performance.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableServiceNonPollNotify": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables notifications for service status changes when non-polling monitoring is active.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableServiceStage2": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables a secondary, more detailed enumeration of service information.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableServiceProgressDialog": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of a progress dialog during service control operations (e.g., start, stop).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableShellExecuteSkipIfeoDebugger": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables bypassing of Image File Execution Options (IFEO) debuggers when launching processes via ShellExecute.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableStage2": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the second stage of process information, such as image verification and signature scanning.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableStreamerMode": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables Streamer Mode, which redacts the entire application and sensitive information during screen sharing to protect your privacy.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableStartAsAdmin": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the application to automatically run as Administrator at startup.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableStartAsAdminAlwaysOnTop": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Keeps the window on top of other windows when the application is started with administrative privileges.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableDefaultSafePlugins": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the loading of the default set of safe plugins.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableSecurityAdvancedDialog": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the advanced security descriptor editor for viewing and modifying object permissions.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableShortRelativeStartTime": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays start times using a short relative format (e.g. '1m ago') instead of absolute timestamps.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableShutdownCriticalMenu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of critical shutdown options in the shutdown menu.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableShutdownBootMenu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of boot options in the shutdown menu.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableSilentCrashNotify": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables reporting of silent application crashes to the local system.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThemeSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables support for custom themes (e.g. Dark Mode).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThemeAcrylicSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables Acrylic (blur) material effects in the user interface.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThemeAcrylicWindowSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables Acrylic (blur) effects for the main window background.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThemeAnimation": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables animations for UI elements within the custom theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThemeNativeButtons": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Forces the use of native Windows-style buttons instead of custom themed buttons.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThreadStackInlineSymbols": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the resolution and display of inline function symbols in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableThreadStackLineInformation": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the retrieval and display of source line information for symbols in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableTokenRemovedPrivileges": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of privileges that have been removed from a process token.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableTooltipSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of tooltips for various user interface elements.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableUpdateDefaultFirmwareBootEntry": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Updates the default firmware boot entry to the next selected boot option.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableVersionSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the extraction and display of file version information.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableWarnings": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables general warning dialogs for potentially dangerous actions.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableWarningsRunas": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the warning dialog displayed when using the 'Run As' feature.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnableWindowText": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of text in the window title.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "EnvironmentTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration (width, order, visibility) for the environment variable list."
+    },
+    "EnvironmentTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting column and direction for the environment variable list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "EnvironmentTreeListFlags": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores flags controlling the display of the environment variable list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchControlRegex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables regular expression support in search boxes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchControlCaseSensitive": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables case-sensitive matching in search boxes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "FindObjTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the Find Handles/DLLs list."
+    },
+    "FindObjWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Find Handles/DLLs window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "FindObjWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Find Handles/DLLs window."
+    },
+    "ThreadStacksTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the thread stacks list."
+    },
+    "ThreadStacksWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the thread stacks window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ThreadStacksWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the thread stacks window."
+    },
+    "FileBrowseExecutable": {
+      "type": "string",
+      "description": "Setting: Stores the path to the executable used for file browsing."
+    },
+    "FirstRun": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Boolean flag indicating if the application is running for the first time.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "Font": {
+      "type": "string",
+      "description": "Setting: Configures the main application font."
+    },
+    "FontMonospace": {
+      "type": "string",
+      "description": "Setting: Configures the monospaced font used in specific views."
+    },
+    "FontQuality": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the font rendering quality (e.g., Cleartype).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ForceNoParent": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Forces child windows to have no parent window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HandleTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the handle list."
+    },
+    "HandleTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the handle list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HandleTreeListFlags": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores flags controlling the display of the handle list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HandlePropertiesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the handle properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HandlePropertiesWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the handle properties window."
+    },
+    "HandleStatisticsListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the handle statistics list."
+    },
+    "HandleStatisticsListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the handle statistics list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HandleStatisticsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the handle statistics window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HandleStatisticsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the handle statistics window."
+    },
+    "HideDefaultServices": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides default system services from the service list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideDriverServices": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides driver services from the service list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideFreeRegions": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides free memory regions in the memory editor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideOnClose": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Minimizes the application to the system tray instead of exiting when the window is closed.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideOnMinimize": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Minimizes the application to the system tray when the window is minimized.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideOtherUserProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides processes belonging to other users.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideSignedProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides processes that have a valid digital signature.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideMicrosoftProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides processes that are signed by Microsoft.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HideWaitingConnections": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Hides network connections in a waiting state.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HighlightingDuration": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the duration (in milliseconds) that new and terminated processes remain highlighted.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "IconBalloonShowIcon": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls the visibility of balloon notifications for the tray icon.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconBalloonMuteSound": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Mutes the sound associated with tray icon balloon notifications.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ToastNotifyEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the use of Windows toast notifications instead of classic balloon tips.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconTrayGuids": {
+      "type": "string",
+      "description": "Setting: Stores the GUIDs of tray icons to persist or manage."
+    },
+    "IconTrayPersistGuidEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables persistence of tray icon GUIDs to maintain settings across restarts.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconTrayLazyStartDelay": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Delays the creation of the tray icon at startup.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconIgnoreBalloonClick": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Ignores clicks on the tray icon balloon notifications.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconSettings": {
+      "type": "string",
+      "description": "Setting: Stores configuration data for tray icons."
+    },
+    "IconNotifyMask": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Bitmask controlling which events trigger tray icon notifications.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "IconProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Configuration for per-process tray icons.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "IconSingleClick": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables opening the main window with a single click on the tray icon.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconTogglesVisibility": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the tray icon click to toggle main window visibility (hide/show).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "IconTransparencyEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables transparency effects for tray icons.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "InformationWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the system information window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "InformationWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the system information window."
+    },
+    "ImageCoherencyScanLevel": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sets the depth/level of the image coherency scan.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "JobListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the job list view."
+    },
+    "LogEntries": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores the number of log entries to keep in the application log.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "LogListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the log list view."
+    },
+    "LogWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the log window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "LogWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the log window."
+    },
+    "MainWindowAlwaysOnTop": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Keeps the main window on top of other windows.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MainWindowClassName": {
+      "type": "string",
+      "description": "Setting: Stores the window class name for the main window."
+    },
+    "MainWindowOpacity": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls the opacity/transparency level of the main window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MainWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the main window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MainWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the main window."
+    },
+    "MainWindowState": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the state of the main window (maximized, minimized, normal).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MainWindowTabRestoreEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables restoring the previously selected tab on startup.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MainWindowTabRestoreIndex": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the index of the tab to restore on startup.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MaxSizeUnit": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Configures the unit used for maximum size display (e.g. KB, MB).",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MaxPrecisionUnit": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Configures the precision unit for values.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MemEditBytesPerRow": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the number of bytes displayed per row in the memory editor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MemEditGotoChoices": {
+      "type": "string",
+      "description": "Setting: Stores history of addresses used in the 'Go to' dialog in the memory editor."
+    },
+    "MemEditPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the memory editor window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemEditSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the memory editor window."
+    },
+    "MemFilterChoices": {
+      "type": "string",
+      "description": "Setting: Stores history of filter strings used in memory searching."
+    },
+    "MemResultsListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for memory search results."
+    },
+    "MemResultsPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the memory search results window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemResultsSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the memory search results window."
+    },
+    "MemoryListFlags": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores flags controlling the display of the memory list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MemoryTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the memory tree list."
+    },
+    "MemoryTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the memory tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemoryListsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the memory lists window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemoryReadWriteAddressChoices": {
+      "type": "string",
+      "description": "Setting: Stores history of addresses for memory read/write operations."
+    },
+    "MemoryModifiedWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the modified memory window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemoryModifiedWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the modified memory window."
+    },
+    "MemoryModifiedListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the modified memory list."
+    },
+    "MemoryModifiedListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the modified memory list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemStringsTreeListColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the memory strings list."
+    },
+    "MemStringsTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the memory strings list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemStringsTreeListFlags": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores flags controlling the display of the memory strings list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MemStringsMinimumLength": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the minimum length for strings to be detected in memory scanning.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "MemStringsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the memory strings window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MemStringsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the memory strings window."
+    },
+    "MiniInfoContainerClassName": {
+      "type": "string",
+      "description": "Setting: Stores the window class name for the mini info container."
+    },
+    "MiniInfoGraphClickSwitchesSection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls whether clicking a mini info graph switches to the matching mini info section.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoShowGraphsDefault": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows the mini info graphs section by default when only one tray icon is enabled.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoWindowClassName": {
+      "type": "string",
+      "description": "Setting: Stores the window class name for the mini info window."
+    },
+    "MiniInfoWindowEnabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the mini info window (overlay).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoWindowOpacity": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls the opacity of the mini info window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoWindowPinned": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Pins the mini info window to the desktop.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the mini info window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "MiniInfoWindowRefreshAutomatically": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables automatic refreshing of the mini info window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "MiniInfoWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the mini info window."
+    },
+    "ModuleTreeListFlags": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores flags controlling the display of the module list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ModuleTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the module list."
+    },
+    "ModuleTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the module list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NetworkTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the network list."
+    },
+    "NetworkTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the network list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NonPollFlushInterval": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the interval for flushing data when non-polling mode is active.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "NoPurgeProcessRecords": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Prevents the purging of process records for terminated processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OptionsCustomColorList": {
+      "type": "string",
+      "description": "Setting: Stores the list of custom colors defined in the options."
+    },
+    "OptionsWindowAdvancedColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the advanced options list."
+    },
+    "OptionsWindowAdvancedFlags": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores flags for the advanced options window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OptionsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the options window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "OptionsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the options window."
+    },
+    "PageFileWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the page file information window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "PageFileWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the page file information window."
+    },
+    "PageFileListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the page file list."
+    },
+    "PluginManagerTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the plugin manager list."
+    },
+    "ProcessServiceListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the process services list."
+    },
+    "ProcessTreeColumnSetConfig": {
+      "type": "string",
+      "description": "Setting: Stores the configuration for process tree column sets."
+    },
+    "ProcessTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the process tree list."
+    },
+    "ProcessTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the process tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ProcessTreeListNameDefault": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sets the default name column for the process tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ProcPropPage": {
+      "type": "string",
+      "description": "Setting: Stores the last accessed page in the process properties window."
+    },
+    "ProcPropPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the process properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ProcPropSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the process properties window."
+    },
+    "ProcStatPropPageGroupListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the process statistics groups."
+    },
+    "ProcStatPropPageGroupListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the process statistics groups.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ProcStatPropPageGroupStates": {
+      "type": "string",
+      "description": "Setting: Stores the expansion state of process statistics groups."
+    },
+    "ProgramInspectExecutables": {
+      "type": "string",
+      "description": "Setting: Stores the list of executables for the 'Inspect' program feature."
+    },
+    "PropagateCpuUsage": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Propagates CPU usage of child processes to their parents in the tree view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ReleaseChannel": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Selects the update channel (e.g., Stable, Nightly).",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "RunAsEnableAutoComplete": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables auto-complete in the 'Run As' dialog.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "RunAsProgram": {
+      "type": "string",
+      "description": "Setting: Stores the last program path used in the 'Run As' dialog."
+    },
+    "RunAsUserName": {
+      "type": "string",
+      "description": "Setting: Stores the last username used in the 'Run As' dialog."
+    },
+    "RunAsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the 'Run As' window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "RunAsPackageWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the 'Run As Package' window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "RunAsPackageWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the 'Run As Package' window."
+    },
+    "RunFileDlgState": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the state of the 'Run File' dialog.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SampleCount": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the number of samples to keep for performance graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "SampleCountAutomatic": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Automatically adjusts the sample count based on window width.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ScrollToNewProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Automatically scrolls the process list to show newly created processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ScrollToRemovedProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Automatically scrolls the process list to show where a process was removed.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchEngine": {
+      "type": "string",
+      "description": "Setting: Configures the search engine used for web searches."
+    },
+    "SegmentHeapListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the segment heap list."
+    },
+    "SegmentHeapListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the segment heap list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SegmentHeapWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the segment heap window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SegmentHeapWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the segment heap window."
+    },
+    "SegmentLocksListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the segment locks list."
+    },
+    "SegmentLocksListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the segment locks list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SegmentLocksWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the segment locks window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SegmentLocksWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the segment locks window."
+    },
+    "ServiceWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the service properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ServiceListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the service list."
+    },
+    "ServiceTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the service tree list."
+    },
+    "ServiceTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the service tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SessionShadowHotkey": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Configures the hotkey to start a session shadow.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ShowPluginLoadErrors": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays error messages if plugins fail to load.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ShowCommitInSummary": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows the commit charge in the system summary graph.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ShowCpuBelow001": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows CPU usage values below 0.01%.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ShowHexId": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays Process IDs (PIDs) in hexadecimal format.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SortChildProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sorts child processes within the tree view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SortRootProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sorts root processes in the tree view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "StartHidden": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Starts the application hidden in the system tray.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SysInfoShowCpuSpeedMhz": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays CPU speed in MHz in the system information window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SysInfoShowCpuSpeedPerCpu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays CPU speed for each individual core.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SysInfoWindowAlwaysOnTop": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Keeps the system information window on top of other windows.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SysInfoWindowOneGraphPerCpu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays a separate graph for each CPU core.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SysInfoWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the system information window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "SysInfoWindowSection": {
+      "type": "string",
+      "description": "Setting: Stores the last active section in the system information window."
+    },
+    "SysInfoWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the system information window."
+    },
+    "SysInfoWindowState": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the state of the system information window (maximized, etc.).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TaskmgrWindowState": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores the state of the task manager replacement window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ThemeWindowForegroundColor": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom foreground color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThemeWindowBackgroundColor": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom background color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThemeWindowBackground2Color": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom secondary background color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThemeWindowHighlightColor": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom highlight color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThemeWindowHighlight2Color": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom secondary highlight color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThemeWindowTextColor": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Custom text color for the theme.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThinRows": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Reduces the height of rows in list views.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ThreadTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the thread list."
+    },
+    "ThreadTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the thread list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ThreadTreeListFlags": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores flags controlling the display of the thread list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ThreadStackTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the thread stack list."
+    },
+    "ThreadStackWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the thread stack window."
+    },
+    "TokenWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the token properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "TokenWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the token properties window."
+    },
+    "TokenGroupsListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the token groups list."
+    },
+    "TokenGroupsListViewStates": {
+      "type": "string",
+      "description": "Setting: Stores the state of token groups."
+    },
+    "TokenGroupsListViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the token groups list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "TokenPrivilegesListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the token privileges list."
+    },
+    "TreeListBorderEnable": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables borders in tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListCustomColorsEnable": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables custom colors in tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListCustomColorText": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Custom text color for tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListCustomColorFocus": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Custom focus color for tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListCustomColorSelection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Custom selection color for tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListCustomRowSize": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Custom row height for tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListEnableHeaderTotals": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables displaying totals in the header of tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "TreeListEnableDragReorder": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables reordering columns by dragging in tree lists.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateInterval": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Sets the global update interval for refreshing data.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UserListTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the user list."
+    },
+    "UserListWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the user list window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "UserListWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the user list window."
+    },
+    "WmiProviderEnableHiddenMenu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables hidden menu items in the WMI provider view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WmiProviderEnableTooltipSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables tooltips in the WMI provider view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WmiProviderTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the WMI provider list."
+    },
+    "WmiProviderTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the WMI provider list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "WmiProviderTreeListFlags": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores flags controlling the display of the WMI provider list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "VdmHostListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the VDM host list."
+    },
+    "ZombieProcessesListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the zombie processes list."
+    },
+    "ZombieProcessesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the zombie processes window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ZombieProcessesWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the zombie processes window."
+    },
+    "ColorNew": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used to highlight newly created processes/services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorRemoved": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used to highlight removed processes/services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorOwnProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of processes belonging to the current user.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorOwnProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for processes belonging to the current user.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorSystemProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of system processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorSystemProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for system processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorServiceProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of service processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorServiceProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for service processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorBackgroundProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of background processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorBackgroundProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for background processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorJobProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of processes that are part of a job.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorJobProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for processes that are part of a job.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorWow64Processes": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of WOW64 (32-bit on 64-bit) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorWow64Processes": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for WOW64 processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorDebuggedProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of processes being debugged.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorDebuggedProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for processes being debugged.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorElevatedProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of elevated (admin) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorElevatedProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for elevated processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorHandleFiltered": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of filtered handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorHandleFiltered": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Color used for filtered handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UseColorImmersiveProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of immersive (UWP) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorImmersiveProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for immersive (UWP) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorUIAccessProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of UIAccess processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorUIAccessProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for UIAccess processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorPicoProcesses": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of Pico (WSL) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorPicoProcesses": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Pico (WSL) processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorSuspended": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of suspended processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorSuspended": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for suspended processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorDotNet": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of .NET processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorDotNet": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for .NET processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorPacked": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of packed/compressed images.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorPacked": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for packed/compressed images.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorLowImageCoherency": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of processes with low image coherency.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorLowImageCoherency": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for processes with low image coherency.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorPartiallySuspended": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of partially suspended processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorPartiallySuspended": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for partially suspended processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorGuiThreads": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of GUI threads.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorGuiThreads": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for GUI threads.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorRelocatedModules": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of relocated modules.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorRelocatedModules": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for relocated modules.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorProtectedHandles": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of protected handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorProtectedHandles": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for protected handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorProtectedInheritHandles": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of protected inheritable handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorProtectedInheritHandles": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for protected inheritable handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorProtectedProcess": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of protected processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorProtectedProcess": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for protected processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorInheritHandles": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of inheritable handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorInheritHandles": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for inheritable handles.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorEfficiencyMode": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of processes in Efficiency Mode.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorEfficiencyMode": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for processes in Efficiency Mode.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorServiceDisabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of disabled services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorServiceDisabled": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for disabled services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorServiceStop": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of stopped services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorServiceStop": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for stopped services.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorUnknown": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of unknown items.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorUnknown": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for unknown items.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorSystemThreadStack": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of system frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorSystemThreadStack": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for system frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorUserThreadStack": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of user frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorUserThreadStack": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for user frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UseColorInlineThreadStack": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables highlighting of inline frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorInlineThreadStack": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for inline frames in thread stacks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "GraphShowText": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Displays text values on graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "GraphColorMode": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the color mode for graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ColorCpuKernel": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Kernel CPU usage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorCpuUser": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for User CPU usage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorIoReadOther": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for I/O Read/Other usage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorIoWrite": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for I/O Write usage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorPrivate": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Private Bytes in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorPhysical": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Physical Memory in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorPowerUsage": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Power Usage in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorTemperature": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Temperature in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ColorFanRpm": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for Fan RPM in graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "KsiEnable": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the Kernel System Informer (KSystemInformer) driver.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableWarnings": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables warnings related to the kernel driver.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiServiceName": {
+      "type": "string",
+      "description": "Setting: Service name for the kernel driver."
+    },
+    "KsiObjectName": {
+      "type": "string",
+      "description": "Setting: Object name for the kernel driver."
+    },
+    "KsiPortName": {
+      "type": "string",
+      "description": "Setting: Port name for the kernel driver communication."
+    },
+    "KsiAltitude": {
+      "type": "string",
+      "description": "Setting: Altitude (load order) for the kernel driver."
+    },
+    "KsiDisableImageLoadProtection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Disables image load protection features in the kernel driver.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableSplashScreen": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the splash screen during driver load.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableLoadNative": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables loading the driver using native APIs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableLoadFilter": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the driver as a filter driver.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiUnloadOnExit": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Unloads the kernel driver when the application exits.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiRandomizedPoolTag": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Uses a randomized pool tag for driver memory allocations.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableUnloadProtection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Protects the driver from being unloaded by unauthorized processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiDynDataNoEmbedded": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Disables the use of embedded dynamic data for kernel structures.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiClientProcessProtectionLevel": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sets the protection level required for client processes.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiPreviousTemporaryDriverFile": {
+      "type": "string",
+      "description": "Setting: Stores the path of the previously used temporary driver file."
+    },
+    "KsiEnableFsFeatureOffloadRead": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables filesystem offload read features.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableFsFeatureOffloadWrite": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables filesystem offload write features.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableFsFeatureQueryOpen": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables filesystem query open features.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "KsiEnableFsFeatureBypassIO": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables filesystem BypassIO features.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ProcessHacker.DotNetTools.AsmTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the .NET assembly tree list."
+    },
+    "ProcessHacker.DotNetTools.AsmTreeListFlags": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores flags for the .NET assembly tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ProcessHacker.DotNetTools.AsmTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the .NET assembly tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ProcessHacker.DotNetTools.DotNetCategoryIndex": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores the selected category index in .NET tools.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ProcessHacker.DotNetTools.DotNetListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the .NET list."
+    },
+    "ProcessHacker.DotNetTools.DotNetListSort": {
+      "type": "string",
+      "description": "Setting: Stores sorting configuration for the .NET list."
+    },
+    "ProcessHacker.DotNetTools.DotNetListGroupStates": {
+      "type": "string",
+      "description": "Setting: Stores group expansion states for the .NET list."
+    },
+    "ProcessHacker.DotNetTools.DotNetVerifySignature": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables signature verification for .NET assemblies.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedNotifications.LogFileName": {
+      "type": "string",
+      "description": "Setting: Path to the log file for extended notifications."
+    },
+    "ExtendedNotifications.ProcessList": {
+      "type": "string",
+      "description": "Setting: List of processes configured for extended notifications."
+    },
+    "ExtendedNotifications.ServiceList": {
+      "type": "string",
+      "description": "Setting: List of services configured for extended notifications."
+    },
+    "ExtendedNotifications.DeviceList": {
+      "type": "string",
+      "description": "Setting: List of devices configured for extended notifications."
+    },
+    "ExtendedServices.EnableServicesMenu": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the extended services menu.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.FirstRun": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Indicates if Extended Tools is running for the first time.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.DiskTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the disk tree list."
+    },
+    "ExtendedTools.DiskTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the disk tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.EnableGpuPerformanceCounters": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables GPU performance counters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableNpuPerformanceCounters": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables NPU performance counters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableDiskPerformanceCounters": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables disk performance counters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableEtwMonitor": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the ETW (Event Tracing for Windows) monitor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableGpuMonitor": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the GPU monitor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableNpuMonitor": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the NPU monitor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableFpsMonitor": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the FPS (Frames Per Second) monitor.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.EnableSysInfoGraphs": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables additional system information graphs.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.UnloadedWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the unloaded modules window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.UnloadedWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the unloaded modules window."
+    },
+    "ExtendedTools.UnloadedListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the unloaded modules list."
+    },
+    "ExtendedTools.ModuleServiceWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the module service window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.ModuleServiceWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the module service window."
+    },
+    "ExtendedTools.ModuleServiceListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the module service list."
+    },
+    "ExtendedTools.GpuDetailsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the GPU details window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.GpuDetailsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the GPU details window."
+    },
+    "ExtendedTools.GpuNodesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the GPU nodes window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.GpuNodesWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the GPU nodes window."
+    },
+    "ExtendedTools.NpuNodesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the NPU nodes window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.NpuNodesWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the NPU nodes window."
+    },
+    "ExtendedTools.WsWatchWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Working Set Watch window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.WsWatchWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Working Set Watch window."
+    },
+    "ExtendedTools.WsWatchListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Working Set Watch list."
+    },
+    "ExtendedTools.TrayIconGuids": {
+      "type": "string",
+      "description": "Setting: Stores GUIDs for Extended Tools tray icons."
+    },
+    "ExtendedTools.EnableFahrenheit": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables temperature display in Fahrenheit.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.FwTreeColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the Firewall tree list."
+    },
+    "ExtendedTools.FwTreeSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the Firewall tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.FwIgnorePortScan": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Ignores port scanning activity in the Firewall view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.FwIgnoreLoopback": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Ignores loopback traffic in the Firewall view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.FwIgnoreAllow": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Ignores allowed traffic in the Firewall view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.FwSessionGuid": {
+      "type": "string",
+      "pattern": "^\\{[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\\}$",
+      "description": "GUID string.\n\nSetting: Stores the session GUID for the Firewall view."
+    },
+    "ExtendedTools.ToolbarShowSystemInfoGraph": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows the system info graph on the toolbar.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ExtendedTools.WaitChainTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the Wait Chain tree list."
+    },
+    "ExtendedTools.WaitChainWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Wait Chain window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.WaitChainWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Wait Chain window."
+    },
+    "ExtendedTools.ReparseWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Reparse Points window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.ReparseWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Reparse Points window."
+    },
+    "ExtendedTools.ReparseListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Reparse Points list."
+    },
+    "ExtendedTools.ReparseObjidListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Reparse Object ID list."
+    },
+    "ExtendedTools.ReparseSdListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Reparse Security Descriptor list."
+    },
+    "ExtendedTools.PipeEnumWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Pipe Enumeration window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.PipeEnumWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Pipe Enumeration window."
+    },
+    "ExtendedTools.PipeEnumListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Pipe Enumeration list."
+    },
+    "ExtendedTools.PipeEnumListViewColumnsWithKsi": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Pipe Enumeration list (with Kernel support)."
+    },
+    "ExtendedTools.FirmwareWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Firmware window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.FirmwareWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Firmware window."
+    },
+    "ExtendedTools.FirmwareListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Firmware list."
+    },
+    "ExtendedTools.ObjectManagerWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Object Manager window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.ObjectManagerWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Object Manager window."
+    },
+    "ExtendedTools.ObjectManagerWindowColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Object Manager window."
+    },
+    "ExtendedTools.ObjectManagerWindowListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the Object Manager window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.ObjectManagerPropertiesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Object Manager Properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.ObjectManagerLastPath": {
+      "type": "string",
+      "description": "Setting: Stores the last accessed path in the Object Manager."
+    },
+    "ExtendedTools.ObjectManagerHistory": {
+      "type": "string",
+      "description": "Setting: Stores the history of paths accessed in the Object Manager."
+    },
+    "ExtendedTools.PoolWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Pool window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.PoolWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Pool window."
+    },
+    "ExtendedTools.PoolTreeViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Pool tree view."
+    },
+    "ExtendedTools.PoolTreeViewSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the Pool tree view.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.BigPoolWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Big Pool window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.BigPoolWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Big Pool window."
+    },
+    "ExtendedTools.TpmWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the TPM window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.TpmWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the TPM window."
+    },
+    "ExtendedTools.TpmListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the TPM list."
+    },
+    "ExtendedTools.SMBIOSWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the SMBIOS window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "ExtendedTools.SMBIOSWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the SMBIOS window."
+    },
+    "ExtendedTools.SMBIOSListViewColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the SMBIOS list."
+    },
+    "ExtendedTools.SMBIOSShowUndefinedTypes": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows undefined SMBIOS types.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.EnableNDIS": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables NDIS (Network Driver Interface Specification) monitoring.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.NetworkList": {
+      "type": "string",
+      "description": "Setting: Stores the list of network adapters."
+    },
+    "HardwareDevices.NetworkWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Network Devices window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.NetworkWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Network Devices window."
+    },
+    "HardwareDevices.NetworkListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Network Devices list."
+    },
+    "HardwareDevices.NetworkListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the Network Devices list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.DiskList": {
+      "type": "string",
+      "description": "Setting: Stores the list of disk drives."
+    },
+    "HardwareDevices.DiskWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Disk Devices window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.DiskWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Disk Devices window."
+    },
+    "HardwareDevices.DiskListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Disk Devices list."
+    },
+    "HardwareDevices.SmartListColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the SMART attributes list."
+    },
+    "HardwareDevices.RaplList": {
+      "type": "string",
+      "description": "Setting: Stores the list of RAPL (Running Average Power Limit) domains."
+    },
+    "HardwareDevices.GraphicsList": {
+      "type": "string",
+      "description": "Setting: Stores the list of graphics adapters."
+    },
+    "HardwareDevices.GraphicsDetailsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Graphics Details window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.GraphicsDetailsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Graphics Details window."
+    },
+    "HardwareDevices.GraphicsNodesWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Graphics Nodes window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.GraphicsNodesWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Graphics Nodes window."
+    },
+    "HardwareDevices.GraphicsUniqueIndices": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Uses unique indices for graphics adapters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeAutoRefresh": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Automatically refreshes the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeShowDisconnected": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows disconnected devices in the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeHighlightUpperFiltered": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Highlights devices with upper filters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeHighlightLowerFiltered": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Highlights devices with lower filters.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.DeviceTreeColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores column configuration for the device tree."
+    },
+    "HardwareDevices.ColorDeviceProblem": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for devices with problems.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.ColorDeviceDisabled": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Color used for disabled devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.ColorDeviceDisconnected": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for disconnected devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.ColorDeviceHighlight": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for highlighted devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.ColorDeviceInterface": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for device interfaces.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.ColorDisabledDeviceInterface": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for disabled device interfaces.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.SortDeviceChildrenByName": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sorts child devices by name.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.ShowRootDevice": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows the root device in the tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.ShowSoftwareComponents": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows software components in the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.ShowDeviceInterfaces": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows device interfaces in the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.ShowDisabledDeviceInterfaces": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows disabled device interfaces in the device tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.DevicePropertiesPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Device Properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "HardwareDevices.DevicePropertiesSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Device Properties window."
+    },
+    "HardwareDevices.DeviceGeneralColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Device General tab."
+    },
+    "HardwareDevices.DevicePropertiesColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Device Properties tab."
+    },
+    "HardwareDevices.DeviceInterfacesColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Device Interfaces tab."
+    },
+    "HardwareDevices.ColorDeviceArrived": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Color used for newly arrived devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.DeviceHighlightingDuration": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Duration to highlight newly arrived devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "HardwareDevices.SortChildDevices": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sorts child devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "HardwareDevices.SortRootDevices": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Sorts root devices.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "NetworkTools.AddressHistory": {
+      "type": "string",
+      "description": "Setting: Stores history of addresses used in Network Tools."
+    },
+    "NetworkTools.PingWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Ping window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NetworkTools.PingWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Ping window."
+    },
+    "NetworkTools.PingMinScaling": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Minimum scaling factor for the Ping graph.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "NetworkTools.PingTimeout": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Timeout value for Ping requests.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "NetworkTools.PingSize": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Packet size for Ping requests.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "NetworkTools.TracertWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Traceroute window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NetworkTools.TracertWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Traceroute window."
+    },
+    "NetworkTools.TracertTreeColumns": {
+      "type": "string",
+      "description": "Setting: Stores column configuration for the Traceroute tree."
+    },
+    "NetworkTools.TracertTreeSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores sorting configuration for the Traceroute tree.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NetworkTools.TracertMaxHops": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Maximum number of hops for Traceroute.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "NetworkTools.WhoisWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Whois window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "NetworkTools.WhoisWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Whois window."
+    },
+    "NetworkTools.WhoisProtocalSupport": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables support for the Whois protocol.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "NetworkTools.EnableExtendedTcpStats": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables extended TCP statistics.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "NetworkTools.MaxMindApiKey": {
+      "type": "string",
+      "description": "Setting: API key for MaxMind GeoIP services."
+    },
+    "NetworkTools.MaxMindApiId": {
+      "type": "string",
+      "description": "Setting: API ID for MaxMind GeoIP services."
+    },
+    "NetworkTools.MaxMindType": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Type of MaxMind service to use.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OnlineChecks.EnableVirusTotalScanning": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables VirusTotal scanning integration.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OnlineChecks.VirusTotalHighlightDetection": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Highlights processes with positive VirusTotal detections.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OnlineChecks.VirusTotalDefautAction": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Default action for VirusTotal checks.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "OnlineChecks.VirusTotalDefautPAT": {
+      "type": "string",
+      "description": "Setting: Default Personal Access Token (PAT) for VirusTotal."
+    },
+    "OnlineChecks.HybridAnalysisDefautPAT": {
+      "type": "string",
+      "description": "Setting: Default Personal Access Token (PAT) for Hybrid Analysis."
+    },
+    "OnlineChecks.FileScanDefautPAT": {
+      "type": "string",
+      "description": "Setting: Default Personal Access Token (PAT) for File Scan."
+    },
+    "ToolStatus.Config": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Configuration for the status bar and toolbars.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ToolStatus.ToolbarDisplayStyle": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the display style of the toolbar.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ToolStatus.SearchBoxDisplayMode": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the display mode of the search box.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ToolStatus.TaskbarDisplayStyle": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the display style of the taskbar features.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ToolStatus.ToolbarShowSystemInfoGraph": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls the visibility of the system info graph on the toolbar.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "ToolStatus.DelayConfig": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Configures delay settings for tool status updates.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "ToolStatus.RebarConfig": {
+      "type": "string",
+      "description": "Setting: Stores the configuration of the rebar control."
+    },
+    "ToolStatus.ToolbarButtonConfig": {
+      "type": "string",
+      "description": "Setting: Stores the configuration of toolbar buttons."
+    },
+    "ToolStatus.StatusbarConfig": {
+      "type": "string",
+      "description": "Setting: Stores the configuration of the status bar."
+    },
+    "ToolStatus.ToolbarGraphConfig": {
+      "type": "string",
+      "description": "Setting: Stores the configuration of toolbar graphs."
+    },
+    "ToolStatus.RestoreSelectionAfterSearch": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Restores the previous selection after clearing a search.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateChecker.PromptStart": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Controls whether to prompt at startup for updates.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateChecker.UpdateCheck": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores the timestamp or status of the last update check.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "UpdateChecker.ChangelogWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the changelog window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "UpdateChecker.ChangelogWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the changelog window."
+    },
+    "UpdateChecker.ChangelogListColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the changelog list."
+    },
+    "UpdateChecker.ChangelogListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the changelog list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "UpdateChecker.UpdateMode": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Configures the mode of the update checker.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateChecker.UpdateAvailable": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Indicates if an update is available.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateChecker.UpdateData": {
+      "type": "string",
+      "description": "Setting: Stores data related to the available update."
+    },
+    "UpdateChecker.AutoCheckPage": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Automatically checks for updates when opening the update page.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UpdateChecker.ShowNotification": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows a notification when an update is available.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "UserNotes.ColorCustomList": {
+      "type": "string",
+      "description": "Setting: Stores the list of custom colors used in user notes."
+    },
+    "UserNotes.DbListColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the user notes database list."
+    },
+    "WindowExplorer.ShowDesktopWindows": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Shows windows associated with the desktop in Window Explorer.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WindowExplorer.WindowTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the window tree list."
+    },
+    "WindowExplorer.WindowsWindowPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the Windows window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "WindowExplorer.WindowsWindowSize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the Windows window."
+    },
+    "WindowExplorer.WindowsPropertyColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for window properties."
+    },
+    "WindowExplorer.WindowsPropertyPosition": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the position of the window properties window.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "WindowExplorer.WindowsPropertySize": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the size of the window properties window."
+    },
+    "WindowExplorer.WindowsPropListColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the window property list."
+    },
+    "WindowExplorer.WindowsPropStorageColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for window property storage."
+    },
+    "WindowExplorer.EnableAltEnumWindow": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables an alternative method for enumerating windows.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WindowExplorer.EnableIcons": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables the display of icons in Window Explorer.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WindowExplorer.EnableIconsInternal": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables internal icon support in Window Explorer.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "WindowExplorer.EnableWindowPreview": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables window preview on hover in Window Explorer.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchControlFuzzy": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables fuzzy matching in search controls.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "DotNetTools.AsmTreeListColumns": {
+      "type": "string",
+      "description": "Scale-prefixed setting string (often starts with '@<dpi>' and may include newlines).\n\nSetting: Stores the column configuration for the .NET assembly tree list."
+    },
+    "DotNetTools.AsmTreeListFlags": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Stores flags controlling the display of the .NET assembly tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "DotNetTools.AsmTreeListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the .NET assembly tree list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "DotNetTools.DotNetCategoryIndex": {
+      "description": "Unsigned integer encoded as hexadecimal (up to 32-bit).\n\nSetting: Stores the selected category index in .NET tools.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9A-Fa-f]{1,8}$"
+        },
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
+      ]
+    },
+    "DotNetTools.DotNetListColumns": {
+      "type": "string",
+      "description": "Setting: Stores the column configuration for the .NET list."
+    },
+    "DotNetTools.DotNetListSort": {
+      "description": "Integer pair encoded as 'x,y' (decimal).\n\nSetting: Stores the sorting configuration for the .NET list.",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^-?\\d+,-?\\d+$"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      ]
+    },
+    "DotNetTools.DotNetListGroupStates": {
+      "type": "string",
+      "description": "Setting: Stores the group expansion states for the .NET list."
+    },
+    "DotNetTools.DotNetVerifySignature": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables signature verification for .NET assemblies.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchControlInverse": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Inverts the search results (show items that do not match).",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "SearchControlNot": {
+      "description": "Boolean-like flag stored as '0' or '1'.\n\nSetting: Enables logical NOT operator in search controls.",
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "0",
+            "1"
+          ]
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    }
+  },
+  "additionalProperties": {
+    "description": "Setting value stored by System Informer. Most values are strings; some represent integers as hexadecimal or pairs as x,y.",
+    "anyOf": [
+      {
+        "type": "string",
+        "maxLength": 1048576
+      },
+      {
+        "type": "integer"
+      },
+      {
+        "type": "number"
+      },
+      {
+        "type": "boolean"
+      },
+      {
+        "type": "null"
+      },
+      {
+        "type": "object",
+        "additionalProperties": true
+      },
+      {
+        "type": "array",
+        "items": {}
+      }
+    ]
+  }
+}

@@ -432,6 +432,66 @@ VOID PhNfUninitialization(
 //#endif
 }
 
+ULONG PhNfpCountEnabledTrayIcons(
+    VOID
+    )
+{
+    ULONG count = 0;
+
+    if (!PhTrayIconItemList)
+        return 0;
+
+    for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+    {
+        PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+
+        if (icon && BooleanFlagOn(icon->Flags, PH_NF_ICON_ENABLED))
+        {
+            count++;
+
+            if (count > 1)
+                break;
+        }
+    }
+
+    return count;
+}
+
+PCWSTR PhNfpGetMiniInfoInitialSectionName(
+    _In_ PPH_NF_ICON Icon,
+    _In_opt_ PCWSTR SectionName
+    )
+{
+    if (!SectionName)
+        return NULL;
+
+    if (!PhGetIntegerSetting(SETTING_MINI_INFO_SHOW_GRAPHS_DEFAULT))
+        return SectionName;
+
+    if (PhNfpCountEnabledTrayIcons() != 1)
+        return SectionName;
+
+    if (Icon->Plugin)
+        return SectionName;
+
+    switch (Icon->SubId)
+    {
+    case PH_TRAY_ICON_ID_CPU_HISTORY:
+    case PH_TRAY_ICON_ID_CPU_USAGE:
+    case PH_TRAY_ICON_ID_CPU_TEXT:
+    case PH_TRAY_ICON_ID_PLAIN_ICON:
+    case PH_TRAY_ICON_ID_IO_HISTORY:
+    case PH_TRAY_ICON_ID_IO_TEXT:
+    case PH_TRAY_ICON_ID_COMMIT_HISTORY:
+    case PH_TRAY_ICON_ID_COMMIT_TEXT:
+    case PH_TRAY_ICON_ID_PHYSICAL_HISTORY:
+    case PH_TRAY_ICON_ID_PHYSICAL_TEXT:
+        return L"Graphs";
+    }
+
+    return SectionName;
+}
+
 VOID PhNfForwardMessage(
     _In_ HWND WindowHandle,
     _In_ ULONG_PTR WParam,
@@ -504,7 +564,9 @@ VOID PhNfForwardMessage(
 
                     if (showMiniInfoSectionData.SectionName)
                     {
-                        IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(showMiniInfoSectionData.SectionName);
+                        IconClickShowMiniInfoSectionData.SectionName = PhDuplicateStringZ(
+                            PhNfpGetMiniInfoInitialSectionName(registeredIcon, showMiniInfoSectionData.SectionName)
+                            );
                     }
 
                     PhSetTimer(WindowHandle, TIMER_ICON_CLICK_ACTIVATE, GetDoubleClickTime() + NFP_ICON_CLICK_ACTIVATE_DELAY, PhNfpIconClickActivateTimerProc);
@@ -586,7 +648,7 @@ VOID PhNfForwardMessage(
                 {
                     GetCursorPos(&location);
                     PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-                        showMiniInfoSectionData.SectionName, &location);
+                        PhNfpGetMiniInfoInitialSectionName(registeredIcon, showMiniInfoSectionData.SectionName), &location);
                 }
             }
         }
@@ -2624,6 +2686,6 @@ VOID PhNfpIconShowPopupHoverTimerProc(
     {
         GetCursorPos(&location);
         PhPinMiniInformation(MiniInfoIconPinType, 1, 0, PH_MINIINFO_DONT_CHANGE_SECTION_IF_PINNED,
-            showMiniInfoSectionData.SectionName, &location);
+            PhNfpGetMiniInfoInitialSectionName(PopupRegisteredIcon, showMiniInfoSectionData.SectionName), &location);
     }
 }

@@ -643,6 +643,7 @@ NTSTATUS PhWaitForNamedPipe(
     UNICODE_STRING objectName;
     HANDLE fileSystemHandle;
     OBJECT_ATTRIBUTES objectAttributes;
+    ULONG_PTR waitForBufferStack[64];
     PFILE_PIPE_WAIT_FOR_BUFFER waitForBuffer;
     ULONG waitForBufferLength;
 
@@ -669,7 +670,11 @@ NTSTATUS PhWaitForNamedPipe(
 
     PhInitializeStringRefLongHint(&pipeName, PipeName);
     waitForBufferLength = FIELD_OFFSET(FILE_PIPE_WAIT_FOR_BUFFER, Name) + (ULONG)pipeName.Length;
-    waitForBuffer = PhAllocate(waitForBufferLength);
+
+    if (waitForBufferLength <= sizeof(waitForBufferStack))
+        waitForBuffer = (PFILE_PIPE_WAIT_FOR_BUFFER)waitForBufferStack;
+    else
+        waitForBuffer = PhAllocate(waitForBufferLength);
 
     if (Timeout)
     {
@@ -699,7 +704,9 @@ NTSTATUS PhWaitForNamedPipe(
         0
         );
 
-    PhFree(waitForBuffer);
+    if (waitForBuffer != (PFILE_PIPE_WAIT_FOR_BUFFER)waitForBufferStack)
+        PhFree(waitForBuffer);
+
     NtClose(fileSystemHandle);
 
     return status;

@@ -16,6 +16,7 @@
 #include <phconsole.h>
 #include <guisup.h>
 
+#include <appresolver.h>
 #include <emenu.h>
 #include <mapimg.h>
 #include <secedit.h>
@@ -291,6 +292,75 @@ VOID PphProcessGeneralDlgUpdateIcons(
     SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
 }
 
+VOID PphProcessGeneralDlgUpdateProcessIcon(
+    _In_ HWND hwndDlg,
+    _In_ PPH_PROCGENERAL_CONTEXT Context,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ LONG DpiValue
+    )
+{
+    HWND iconHandle;
+    HICON oldIcon;
+    HICON newIcon;
+    HICON smallIcon;
+
+    iconHandle = GetDlgItem(hwndDlg, IDC_FILEICON);
+    newIcon = NULL;
+    smallIcon = NULL;
+
+    SetWindowPos(
+        iconHandle,
+        NULL,
+        0,
+        0,
+        PhGetSystemMetrics(SM_CXICON, DpiValue),
+        PhGetSystemMetrics(SM_CYICON, DpiValue),
+        SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
+        );
+
+    if (PhEnablePackageIconSupport && ProcessItem->FileName && ProcessItem->PackageFullName)
+    {
+        PhAppResolverGetPackageIcon(
+            ProcessItem->ProcessId,
+            ProcessItem->PackageFullName,
+            &newIcon,
+            &smallIcon,
+            DpiValue
+            );
+    }
+
+    if (!newIcon && ProcessItem->FileName)
+    {
+        PhExtractIconEx(
+            &ProcessItem->FileName->sr,
+            TRUE,
+            0,
+            PhGetSystemMetrics(SM_CXICON, DpiValue),
+            PhGetSystemMetrics(SM_CYICON, DpiValue),
+            PhGetSystemMetrics(SM_CXSMICON, DpiValue),
+            PhGetSystemMetrics(SM_CYSMICON, DpiValue),
+            &newIcon,
+            &smallIcon
+            );
+    }
+
+    if (!newIcon)
+        newIcon = PhGetImageListIcon(ProcessItem->LargeIconIndex, TRUE);
+
+    if (smallIcon)
+        DestroyIcon(smallIcon);
+
+    if (newIcon)
+    {
+        oldIcon = Static_SetIcon(iconHandle, newIcon);
+
+        if (oldIcon)
+            DestroyIcon(oldIcon);
+
+        Context->ProgramIcon = newIcon;
+    }
+}
+
 INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -357,8 +427,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             // File
 
-            context->ProgramIcon = PhGetImageListIcon(processItem->LargeIconIndex, TRUE);
-            Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->ProgramIcon);
+            PphProcessGeneralDlgUpdateProcessIcon(hwndDlg, context, processItem, PhGetWindowDpi(hwndDlg));
 
             if (PH_IS_REAL_PROCESS_ID(processItem->ProcessId))
             {
@@ -611,6 +680,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
     case WM_DPICHANGED_AFTERPARENT:
         {
             PphProcessGeneralDlgUpdateIcons(hwndDlg);
+            PphProcessGeneralDlgUpdateProcessIcon(hwndDlg, context, processItem, LOWORD(wParam));
         }
         break;
     case WM_SHOWWINDOW:

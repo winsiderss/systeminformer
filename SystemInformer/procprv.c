@@ -3786,7 +3786,7 @@ VOID PhpAddProcessRecord(
     else
     {
         // Link the process record with the existing one that we found.
-        InsertTailList(&processRecord->ListEntry, &ProcessRecord->ListEntry);
+        InsertTailListNoFence(&processRecord->ListEntry, &ProcessRecord->ListEntry);
     }
 
     PhReleaseQueuedLockExclusive(&PhProcessRecordListLock);
@@ -3805,7 +3805,7 @@ VOID PhpRemoveProcessRecord(
     assert(headProcessRecord);
 
     // Unlink the record from the list.
-    RemoveEntryList(&ProcessRecord->ListEntry);
+    RemoveEntryListNoFence(&ProcessRecord->ListEntry);
 
     if (ProcessRecord == headProcessRecord)
     {

@@ -66,6 +66,9 @@
     <ClCompile Include="resprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="resviewer.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
     <ClCompile Include="libprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
