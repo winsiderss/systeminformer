@@ -1415,6 +1415,12 @@ typedef struct _ENUM_GENERIC_PROCESS_MODULES_CONTEXT
     ULONG LoadOrderIndex;
 } ENUM_GENERIC_PROCESS_MODULES_CONTEXT, *PENUM_GENERIC_PROCESS_MODULES_CONTEXT;
 
+/**
+ * Determines the module type based on its image base address.
+ *
+ * \param ImageBase The base address of the module.
+ * \return ULONG The module type (PH_MODULE_TYPE_KERNEL_MODULE or PH_MODULE_TYPE_MODULE).
+ */
 ULONG PhGetRtlModuleType(
     _In_ PVOID ImageBase
     )
@@ -2074,49 +2080,30 @@ NTSTATUS PhEnumGenericModules(
         }
         else
         {
-            if (Flags & PH_ENUM_GENERIC_LDRDAG_MODULES)
-            {
-                status = PhEnumProcessModulesLdrDdagEx(
-                    ProcessHandle,
-                    &parameters
-                    );
-            }
-            else
-            {
-                status = PhEnumProcessModulesEx(
-                    ProcessHandle,
-                    &parameters
-                    );
-            }
+            status = PhEnumProcessModulesEx(
+                ProcessHandle,
+                &parameters
+                );
 
 #ifdef _WIN64
             PhGetProcessIsWow64(ProcessHandle, &isWow64);
 
-        // 32-bit process modules
-        if (isWow64)
-        {
-            context.Callback = Callback;
-            context.Context = Context;
-            context.Type = PH_MODULE_TYPE_WOW64_MODULE;
-            context.BaseAddressHashtable = baseAddressHashtable;
-            context.LoadOrderIndex = 0;
+            // 32-bit process modules
+            if (isWow64)
+            {
+                context.Callback = Callback;
+                context.Context = Context;
+                context.Type = PH_MODULE_TYPE_WOW64_MODULE;
+                context.BaseAddressHashtable = baseAddressHashtable;
+                context.LoadOrderIndex = 0;
 
-                if (Flags & PH_ENUM_GENERIC_LDRDAG_MODULES)
-                {
-                    status = PhEnumProcessModules32LdrDdagEx(
-                        ProcessHandle,
-                        &parameters
-                        );
-                }
-                else
-                {
-                    status = PhEnumProcessModules32Ex(
-                        ProcessHandle,
-                        &parameters
-                        );
-                }
+                status = PhEnumProcessModules32Ex(
+                    ProcessHandle,
+                    &parameters
+                    );
             }
 #endif
+        }
 
         // Mapped files and mapped images
         // This is done last because it provides the least amount of information.
