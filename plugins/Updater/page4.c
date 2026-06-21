@@ -11,6 +11,15 @@
 
 #include "updater.h"
 
+/**
+ * \brief Callback procedure for the Download Progress task dialog page.
+ * \param WindowHandle Handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \param dwRefData The updater context.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT CALLBACK ShowProgressCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -37,7 +46,11 @@ HRESULT CALLBACK ShowProgressCallbackProc(
             }
 #endif
             PhReferenceObject(context);
-            PhCreateThread2(UpdateDownloadThread, context);
+#if defined(PH_BUILD_MSIX)
+            PhCreateThread2(UpdateMsixDownloadThread, context);
+#else
+            PhCreateThread2(UpdateInstallerDownloadThreadStage1, context);
+#endif
         }
         break;
     case TDN_HYPERLINK_CLICKED:
@@ -51,11 +64,23 @@ HRESULT CALLBACK ShowProgressCallbackProc(
     return S_OK;
 }
 
+/**
+ * \brief Shows the Download Progress dialog page.
+ * \param Context The updater context.
+ */
 VOID ShowProgressDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
+
+    if (Context->StartupCheck && PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS))
+    {
+        // UpdaterShowProgressToast starts the download thread itself, so
+        // do not also drive it through the TaskDialog's TDN_NAVIGATED path.
+        if (UpdaterShowProgressToast(Context))
+            return;
+    }
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);

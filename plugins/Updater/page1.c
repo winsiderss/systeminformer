@@ -11,6 +11,16 @@
 
 #include "updater.h"
 
+/**
+ * Callback procedure for the Check for Updates task dialog page.
+ *
+ * \param WindowHandle Handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \param dwRefData The updater context.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT CALLBACK CheckForUpdatesCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -63,6 +73,11 @@ HRESULT CALLBACK CheckForUpdatesCallbackProc(
     return S_OK;
 }
 
+/**
+ * Shows the initial Check for Updates dialog page.
+ *
+ * \param Context The updater context.
+ */
 VOID ShowCheckForUpdatesDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )

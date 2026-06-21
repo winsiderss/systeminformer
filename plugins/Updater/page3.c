@@ -16,6 +16,15 @@ static TASKDIALOG_BUTTON TaskDialogButtonArray[] =
     { IDOK, L"Download" }
 };
 
+/**
+ * \brief Callback procedure for the Update Available task dialog page.
+ * \param WindowHandle Handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \param dwRefData The updater context.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT CALLBACK ShowAvailableCallbackProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -51,11 +60,22 @@ HRESULT CALLBACK ShowAvailableCallbackProc(
     return S_OK;
 }
 
+/**
+ * \brief Shows the Update Available dialog page.
+ * \param Context The updater context.
+ */
 VOID ShowAvailableDialog(
     _In_ PPH_UPDATER_CONTEXT Context
     )
 {
     TASKDIALOGCONFIG config;
+
+    if (Context->StartupCheck && PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS))
+    {
+        if (UpdaterShowAvailableToast(Context))
+            return;
+        // Fall through to TaskDialog on toast failure.
+    }
 
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
