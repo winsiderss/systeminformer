@@ -455,7 +455,7 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             HDC hdc = reinterpret_cast<HDC>(wParam);
             RECT clientRect;
 
-            if (!PhGetClientRect(WindowHandle, &clientRect))
+            if (GetClipBox(hdc, &clientRect) == ERROR)
                 break;
 
             FillRect(hdc, &clientRect, PhGetStockBrush(BLACK_BRUSH));
@@ -1056,7 +1056,7 @@ static BOOLEAN PhCreateWindowSnapshotSelection(
     wcex.style = CS_HREDRAW | CS_VREDRAW;
     wcex.lpfnWndProc = PhWindowSnapshotSelectionWndProc;
     wcex.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
-    wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    wcex.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
     wcex.lpszClassName = L"PhWindowSnapshotSelectionWindow";
 
     if (!RegisterClassEx(&wcex) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
@@ -1177,7 +1177,7 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
 
             hdc = BeginPaint(WindowHandle, &paint);
 
-            if (context && !IsRectEmpty(&context->TargetRect))
+            if (context && !PhRectEmpty(&context->TargetRect))
             {
                 RECT borderRect = context->TargetRect;
                 HPEN pen;
@@ -1212,16 +1212,18 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static RTL_ATOM windowAtom = RTL_ATOM_INVALID_ATOM;
 
     if (PhBeginInitOnce(&initOnce))
     {
-        WNDCLASS wndClass = { 0 };
+        WNDCLASSEX wcex = { 0 };
 
-        wndClass.lpfnWndProc = PhWindowTargetingOverlayWndProc;
-        wndClass.lpszClassName = PH_WINDOW_TARGETING_OVERLAY_CLASS;
-        wndClass.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
+        memset(&wcex, 0, sizeof(WNDCLASSEX));
+        wcex.lpfnWndProc = PhWindowTargetingOverlayWndProc;
+        wcex.lpszClassName = PH_WINDOW_TARGETING_OVERLAY_CLASS;
+        wcex.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
 
-        RegisterClass(&wndClass);
+        windowAtom = RegisterClassEx(&wcex);
 
         PhEndInitOnce(&initOnce);
     }
@@ -1230,7 +1232,7 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
     {
         Context->OverlayWindowHandle = CreateWindowEx(
             WS_EX_LAYERED | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
-            PH_WINDOW_TARGETING_OVERLAY_CLASS,
+            MAKEINTATOM(windowAtom),
             nullptr,
             WS_POPUP,
             0,
@@ -1294,7 +1296,7 @@ VOID PhUpdateWindowTargetingOverlay(
         SWP_NOACTIVATE | SWP_SHOWWINDOW
         );
 
-    if (!IsRectEmpty(&Context->TargetRect))
+    if (!PhRectEmpty(&Context->TargetRect))
     {
         HRGN overlayRegion;
         HRGN targetRegion;

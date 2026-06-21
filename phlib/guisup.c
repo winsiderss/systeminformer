@@ -348,14 +348,14 @@ HFONT PhDuplicateFontWithNewWeight(
 HFONT PhDuplicateFontWithNewHeight(
     _In_ HFONT Font,
     _In_ LONG NewHeight,
-    _In_ LONG dpiValue
+    _In_ LONG DpiValue
     )
 {
     LOGFONT logFont;
 
     if (GetObject(Font, sizeof(LOGFONT), &logFont))
     {
-        logFont.lfHeight = PhScaleToDisplay(NewHeight, dpiValue);
+        logFont.lfHeight = PhScaleToDisplay(NewHeight, DpiValue);
         logFont.lfQuality = (UCHAR)PhFontQuality;
         return CreateFontIndirect(&logFont);
     }
@@ -391,6 +391,7 @@ HFONT PhDuplicateFontUpdateDpiEx(
 
     return NULL;
 }
+
 HFONT PhInitializeFont(
     _In_ LONG WindowDpi
     )
@@ -7297,7 +7298,7 @@ static VOID NTAPI PhpFreeBufferedPaintCache(
     if (!cache->InUse)
     {
         if (cache->Bitmap)
-            DeleteObject(cache->Bitmap);
+            DeleteBitmap(cache->Bitmap);
         if (cache->Hdc)
             DeleteDC(cache->Hdc);
     }

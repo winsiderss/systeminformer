@@ -77,6 +77,7 @@ extern BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_DISK_TREE_LIST_COLUMNS (PLUGIN_NAME L".DiskTreeListColumns")
 #define SETTING_NAME_DISK_TREE_LIST_SORT (PLUGIN_NAME L".DiskTreeListSort")
 #define SETTING_NAME_ENABLE_GPUPERFCOUNTERS (PLUGIN_NAME L".EnableGpuPerformanceCounters")
+#define SETTING_NAME_ENABLE_GPU_ADAPTER_STATS (PLUGIN_NAME L".EnableGpuAdapterStats")
 #define SETTING_NAME_ENABLE_NPUPERFCOUNTERS (PLUGIN_NAME L".EnableNpuPerformanceCounters")
 #define SETTING_NAME_ENABLE_DISKPERFCOUNTERS (PLUGIN_NAME L".EnableDiskPerformanceCounters")
 #define SETTING_NAME_ENABLE_ETW_MONITOR (PLUGIN_NAME L".EnableEtwMonitor")
@@ -501,6 +502,15 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuCommitUsageMin; ULONG64 GpuCommitUsageMax; ULONG64 GpuCommitUsageDiff;
     ULONG64 GpuTotalUsageMin; ULONG64 GpuTotalUsageMax; ULONG64 GpuTotalUsageDiff;
 
+    // GPU PROCESS_ADAPTER diagnostics (populated only when EtGpuAdapterStatsEnabled)
+    ULONG GpuVirtualMemoryUsage;
+    ULONG GpuVidPnSourceCount;
+    ULONG64 GpuTotalBytesEvicted;
+    ULONG64 GpuDmaBufferSize;
+    ULONG GpuDmaAllocationListBytes;
+    ULONG GpuDmaPatchLocationListBytes;
+    ULONG64 GpuInterferenceTotal;
+
     // NPU
 
     PH_UINT64_DELTA NpuRunningTimeDelta;
@@ -842,6 +852,7 @@ typedef struct _ETP_GPU_ADAPTER
 EXTERN_C BOOLEAN EtGpuEnabled;
 EXTERN_C BOOLEAN EtGpuSupported;
 EXTERN_C BOOLEAN EtGpuD3DEnabled;
+EXTERN_C BOOLEAN EtGpuAdapterStatsEnabled;
 EXTERN_C BOOLEAN EtGpuD3DEnumProcesses;
 EXTERN_C BOOLEAN EtFramesEnabled;
 EXTERN_C PPH_LIST EtpGpuAdapterList;
@@ -1211,6 +1222,15 @@ INT_PTR CALLBACK OptionsDlgProc(
     _In_ LPARAM lParam
     );
 
+/**
+ * Shows the environment variables dialog.
+ *
+ * \param ParentWindowHandle The handle to the parent window.
+ */
+EXTERN_C VOID EtShowEnvironmentVariablesDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // thrdact
 
 BOOLEAN EtUiCancelIoThread(
@@ -1542,6 +1562,15 @@ VOID EtFwShowTracerWindow(
 VOID EtFwShowWhoisWindow(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT Endpoint
+    );
+
+VOID EtFwShowEventProperties(
+    _In_ HWND ParentWindowHandle,
+    _In_ PFW_EVENT_ITEM Item
+    );
+
+HANDLE EtFwGetEngineHandle(
+    VOID
     );
 
 _Success_(return)

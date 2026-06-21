@@ -20,6 +20,7 @@ static PH_CALLBACK_REGISTRATION EtGpuProcessesUpdatedCallbackRegistration;
 BOOLEAN EtGpuEnabled = FALSE;
 BOOLEAN EtGpuSupported = FALSE;
 BOOLEAN EtGpuD3DEnabled = FALSE;
+BOOLEAN EtGpuAdapterStatsEnabled = FALSE;
 BOOLEAN EtGpuD3DEnumProcesses = FALSE;
 PPH_LIST EtpGpuAdapterList;
 
@@ -73,6 +74,7 @@ VOID EtGpuMonitorInitialization(
     {
         EtGpuSupported = EtWindowsVersion >= WINDOWS_10_RS4; // Note: Changed to RS4 due to reports of BSODs on LTSB versions of RS3 (dmex)
         EtGpuD3DEnabled = EtGpuSupported && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPUPERFCOUNTERS);
+        EtGpuAdapterStatsEnabled = EtGpuSupported && !!PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_ADAPTER_STATS);
         EtGpuD3DEnumProcesses = EtWindowsVersion >= WINDOWS_11;
 
         EtpGpuAdapterList = PhCreateList(4);

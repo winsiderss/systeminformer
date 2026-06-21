@@ -248,15 +248,9 @@ VOID NTAPI MenuItemCallback(
             EtShowWbclDialog(menuItem->OwnerWindow);
         }
         break;
-    case ID_POWER_POLICIES:
     case ID_POWER_GRID:
         {
             EtShowPowerGridDialog(menuItem->OwnerWindow);
-        }
-        break;
-    case ID_SRUM:
-        {
-            EtShowSrumDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_CACHE_LATENCY:
@@ -264,9 +258,6 @@ VOID NTAPI MenuItemCallback(
             EtShowCacheLatencyDialog(menuItem->OwnerWindow);
         }
         break;
-    case ID_EXPLORER:
-        {
-            EtShowExplorerDialog(menuItem->OwnerWindow);
     }
 }
 

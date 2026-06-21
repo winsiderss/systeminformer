@@ -29,6 +29,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLESYSINFOGRAPHS), PhGetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFAHRENHEITTEMP), PhGetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT) ? BST_CHECKED : BST_UNCHECKED);
             Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFPSMONITOR), PhGetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUADAPTERSTATS), PhGetIntegerSetting(SETTING_NAME_ENABLE_GPU_ADAPTER_STATS) ? BST_CHECKED : BST_UNCHECKED);
         }
         break;
     case WM_DESTROY:
@@ -39,6 +40,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_ENABLE_SYSINFO_GRAPHS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLESYSINFOGRAPHS)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_FAHRENHEIT, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFAHRENHEITTEMP)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_ENABLE_FPS_MONITOR, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEFPSMONITOR)) == BST_CHECKED);
+            PhSetIntegerSetting(SETTING_NAME_ENABLE_GPU_ADAPTER_STATS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLEGPUADAPTERSTATS)) == BST_CHECKED);
         }
         break;
     case WM_CTLCOLORBTN:
