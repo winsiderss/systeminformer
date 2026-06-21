@@ -1786,9 +1786,15 @@ VOID PhTnpOnVScroll(
         // is a 16-bit value, so don't use it if we have too many rows.
         if (Context->FlatList->Count <= 0xffff)
             scrollInfo.nPos = Position;
+#if defined(TREENEW_VSCROLL_ANCHOR)
+        Context->VScrollThumbTracking = TRUE;
+#endif
         break;
     case SB_THUMBTRACK:
         scrollInfo.nPos = scrollInfo.nTrackPos;
+#if defined(TREENEW_VSCROLL_ANCHOR)
+        Context->VScrollThumbTracking = TRUE;
+#endif
         break;
     case SB_TOP:
         scrollInfo.nPos = 0;
@@ -1796,6 +1802,12 @@ VOID PhTnpOnVScroll(
     case SB_BOTTOM:
         scrollInfo.nPos = MAXINT;
         break;
+#if defined(TREENEW_VSCROLL_ANCHOR)
+    case SB_ENDSCROLL:
+        // The drag/scroll interaction ended; resume anchoring on subsequent structural updates.
+        Context->VScrollThumbTracking = FALSE;
+        break;
+#endif
     }
 
     scrollInfo.fMask = SIF_POS;
@@ -3285,6 +3297,9 @@ VOID PhTnpPrepareVScrollAnchor(
 
     if (FlagOn(Context->VScrollAnchorFlags, PH_TREENEW_VSCROLL_ANCHOR_PENDING))
         return;
+
+    if (Context->VScrollThumbTracking)
+        return; // user is driving the position by hand; don't fight the drag
 
     Context->VScrollAnchorFlags = PH_TREENEW_VSCROLL_ANCHOR_PENDING;
     Context->VScrollAnchorNode = NULL;
