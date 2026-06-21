@@ -52,11 +52,17 @@ typedef struct ICorDebugDataTarget ICorDebugDataTarget;
 typedef struct ICorDebugDataTargetVtbl
 {
     BEGIN_INTERFACE
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     HRESULT (STDMETHODCALLTYPE *QueryInterface)     (ICorDebugDataTarget*, REFIID, void**);
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     ULONG   (STDMETHODCALLTYPE *AddRef)             (ICorDebugDataTarget*);
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     ULONG   (STDMETHODCALLTYPE *Release)            (ICorDebugDataTarget*);
+    DECLSPEC_XFGVIRT(ICorDebugDataTarget, GetPlatform)
     HRESULT (STDMETHODCALLTYPE *GetPlatform)        (ICorDebugDataTarget*, CorDebugPlatform*);
+    DECLSPEC_XFGVIRT(ICorDebugDataTarget, ReadVirtualMemory)
     HRESULT (STDMETHODCALLTYPE *ReadVirtualMemory)  (ICorDebugDataTarget*, CORDB_ADDRESS, BYTE*, ULONG32, ULONG32*);
+    DECLSPEC_XFGVIRT(ICorDebugDataTarget, GetThreadContext)
     HRESULT (STDMETHODCALLTYPE *GetThreadContext)   (ICorDebugDataTarget*, ULONG32, ULONG32, ULONG32, BYTE*);
     END_INTERFACE
 } ICorDebugDataTargetVtbl;
@@ -70,9 +76,13 @@ typedef struct ICLRDebuggingLibraryProvider ICLRDebuggingLibraryProvider;
 typedef struct ICLRDebuggingLibraryProviderVtbl
 {
     BEGIN_INTERFACE
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     HRESULT (STDMETHODCALLTYPE *QueryInterface)  (ICLRDebuggingLibraryProvider*, REFIID, void**);
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     ULONG   (STDMETHODCALLTYPE *AddRef)          (ICLRDebuggingLibraryProvider*);
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     ULONG   (STDMETHODCALLTYPE *Release)         (ICLRDebuggingLibraryProvider*);
+    DECLSPEC_XFGVIRT(ICLRDebuggingLibraryProvider, ProvideLibrary)
     HRESULT (STDMETHODCALLTYPE *ProvideLibrary)  (ICLRDebuggingLibraryProvider*, PCWSTR, DWORD, DWORD, HMODULE*);
     END_INTERFACE
 } ICLRDebuggingLibraryProviderVtbl;
@@ -86,13 +96,18 @@ typedef struct ICLRDebugging ICLRDebugging;
 typedef struct ICLRDebuggingVtbl
 {
     BEGIN_INTERFACE
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     HRESULT (STDMETHODCALLTYPE *QueryInterface)     (ICLRDebugging*, REFIID, void**);
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     ULONG   (STDMETHODCALLTYPE *AddRef)             (ICLRDebugging*);
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     ULONG   (STDMETHODCALLTYPE *Release)            (ICLRDebugging*);
+    DECLSPEC_XFGVIRT(ICLRDebugging, OpenVirtualProcess)
     HRESULT (STDMETHODCALLTYPE *OpenVirtualProcess) (ICLRDebugging*, ULONG64, IUnknown*,
                                                      ICLRDebuggingLibraryProvider*, CLR_DEBUGGING_VERSION*,
                                                      REFIID, IUnknown**, CLR_DEBUGGING_VERSION*,
                                                      CLR_DEBUGGING_PROCESS_FLAGS*);
+    DECLSPEC_XFGVIRT(ICLRDebugging, CanUnloadNow)
     HRESULT (STDMETHODCALLTYPE *CanUnloadNow)       (ICLRDebugging*, HMODULE);
     END_INTERFACE
 } ICLRDebuggingVtbl;
@@ -110,15 +125,23 @@ typedef struct ICorDebugHeapEnum ICorDebugHeapEnum;
 typedef struct ICorDebugHeapEnumVtbl
 {
     BEGIN_INTERFACE
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     HRESULT (STDMETHODCALLTYPE *QueryInterface) (ICorDebugHeapEnum*, REFIID, void**);
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     ULONG   (STDMETHODCALLTYPE *AddRef)         (ICorDebugHeapEnum*);
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     ULONG   (STDMETHODCALLTYPE *Release)        (ICorDebugHeapEnum*);
     // ICorDebugEnum:
+    DECLSPEC_XFGVIRT(ICorDebugEnum, Skip)
     HRESULT (STDMETHODCALLTYPE *Skip)           (ICorDebugHeapEnum*, ULONG32);
+    DECLSPEC_XFGVIRT(ICorDebugEnum, Reset)
     HRESULT (STDMETHODCALLTYPE *Reset)          (ICorDebugHeapEnum*);
+    DECLSPEC_XFGVIRT(ICorDebugEnum, Clone)
     HRESULT (STDMETHODCALLTYPE *Clone)          (ICorDebugHeapEnum*, ICorDebugHeapEnum**);
+    DECLSPEC_XFGVIRT(ICorDebugEnum, GetCount)
     HRESULT (STDMETHODCALLTYPE *GetCount)       (ICorDebugHeapEnum*, ULONG32*);
     // ICorDebugHeapEnum:
+    DECLSPEC_XFGVIRT(ICorDebugHeapEnum, Next)
     HRESULT (STDMETHODCALLTYPE *Next)           (ICorDebugHeapEnum*, ULONG32, COR_HEAPOBJECT*, ULONG32*);
     END_INTERFACE
 } ICorDebugHeapEnumVtbl;
@@ -152,10 +175,15 @@ typedef struct ICorDebugProcess5 ICorDebugProcess5;
 typedef struct ICorDebugProcess5Vtbl
 {
     BEGIN_INTERFACE
+    DECLSPEC_XFGVIRT(IUnknown, QueryInterface)
     HRESULT (STDMETHODCALLTYPE *QueryInterface)       (ICorDebugProcess5*, REFIID, void**);
+    DECLSPEC_XFGVIRT(IUnknown, AddRef)
     ULONG   (STDMETHODCALLTYPE *AddRef)               (ICorDebugProcess5*);
+    DECLSPEC_XFGVIRT(IUnknown, Release)
     ULONG   (STDMETHODCALLTYPE *Release)              (ICorDebugProcess5*);
+    DECLSPEC_XFGVIRT(ICorDebugProcess5, GetGCHeapInformation)
     HRESULT (STDMETHODCALLTYPE *GetGCHeapInformation) (ICorDebugProcess5*, COR_HEAPINFO*);
+    DECLSPEC_XFGVIRT(ICorDebugProcess5, EnumerateHeap)
     HRESULT (STDMETHODCALLTYPE *EnumerateHeap)        (ICorDebugProcess5*, ICorDebugHeapEnum**);
     // Remaining methods omitted — not called
     END_INTERFACE
