@@ -173,6 +173,7 @@ typedef struct _PH_TREENEW_CONTEXT
     ULONG FlatListStructureChanged;
     ULONG FlatListPreCount;   // flat list count captured before PhTnpRestructureNodes clears the list
     ULONG FlatListAnchorEnd;  // TRUE when the END scroll anchor was active for the current structural change
+    ULONG VScrollThumbTracking; // TRUE while the user is dragging the vertical scrollbar thumb; suppresses anchoring
 
     ULONG TooltipIndex;
     ULONG TooltipId;
