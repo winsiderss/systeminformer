@@ -101,6 +101,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cacheprp.c" />
     <ClCompile Include="counters.c" />
     <ClCompile Include="disktab.c" />
     <ClCompile Include="etwdisk.c" />

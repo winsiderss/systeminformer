@@ -1564,10 +1564,10 @@ VOID EtFwShowWhoisWindow(
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
-VOID EtFwShowEventProperties(
-    _In_ HWND ParentWindowHandle,
-    _In_ PFW_EVENT_ITEM Item
-    );
+//VOID EtFwShowEventProperties(
+//    _In_ HWND ParentWindowHandle,
+//    _In_ PFW_EVENT_ITEM Item
+//    );
 
 HANDLE EtFwGetEngineHandle(
     VOID

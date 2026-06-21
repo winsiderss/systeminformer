@@ -2039,12 +2039,13 @@ VOID EtFwHandleFwCommand(
         break;
     case FW_ITEM_COMMAND_ID_PROPERTIES:
         {
-            PFW_EVENT_ITEM entry;
-
-            if (entry = EtFwGetSelectedFwItem())
-            {
-                EtFwShowEventProperties(GetParent(TreeWindowHandle), entry);
-            }
+            // TODO: re-enable once fwprp.c is committed
+            //PFW_EVENT_ITEM entry;
+            //
+            //if (entry = EtFwGetSelectedFwItem())
+            //{
+            //    EtFwShowEventProperties(GetParent(TreeWindowHandle), entry);
+            //}
         }
         break;
     case FW_ITEM_COMMAND_ID_COPY:
