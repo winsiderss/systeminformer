@@ -814,64 +814,12 @@ VOID ShowProcessPagePriorityDialog(
     PhFree(context);
 }
 
-NTSTATUS PhD3DKMTGetProcessSchedulingPriorityClass(
-    _In_ HANDLE ProcessHandle,
-    _Out_ D3DKMT_SCHEDULINGPRIORITYCLASS* SchedulingPriorityClass
-    )
-{
-    static __typeof__(&D3DKMTGetProcessSchedulingPriorityClass) D3DKMTGetProcessSchedulingPriorityClass_I = NULL;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
-        {
-            D3DKMTGetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTGetProcessSchedulingPriorityClass", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!D3DKMTGetProcessSchedulingPriorityClass_I)
-        return STATUS_NOT_SUPPORTED;
-
-    return D3DKMTGetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
-}
-
-NTSTATUS PhD3DKMTSetProcessSchedulingPriorityClass(
-    _In_ HANDLE ProcessHandle,
-    _In_ D3DKMT_SCHEDULINGPRIORITYCLASS SchedulingPriorityClass
-    )
-{
-    static __typeof__(&D3DKMTSetProcessSchedulingPriorityClass) D3DKMTSetProcessSchedulingPriorityClass_I = NULL;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PVOID baseAddress;
-
-        if (baseAddress = PhLoadLibrary(L"gdi32.dll")) // win32u.dll
-        {
-            D3DKMTSetProcessSchedulingPriorityClass_I = PhGetProcedureAddress(baseAddress, "D3DKMTSetProcessSchedulingPriorityClass", 0);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (!D3DKMTSetProcessSchedulingPriorityClass_I)
-        return STATUS_NOINTERFACE;
-
-    return D3DKMTSetProcessSchedulingPriorityClass_I(ProcessHandle, SchedulingPriorityClass);
-}
-
 VOID ShowProcessD3DKMTPriorityDialog(
     _In_ PPH_PLUGIN_MENU_ITEM MenuItem,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    D3DKMT_SCHEDULINGPRIORITYCLASS priorityClass;
+    D3DKMT_SCHEDULINGPRIORITYCLASS priorityClass = D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL;
     NTSTATUS status;
     HANDLE processHandle;
 
