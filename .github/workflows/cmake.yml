@@ -37,8 +37,10 @@ jobs:
     - name: NuGet Cache
       uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
       with:
-        path: packages
-        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config') }}
+        path: |
+          packages
+          ~\.nuget\packages
+        key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config', '**/*.csproj', '**/Directory.Packages.props', '**/packages.lock.json', '**/NuGet.Config', '**/global.json') }}
         restore-keys: nuget-${{ runner.os }}-
 
     - name: Nuget Restore
