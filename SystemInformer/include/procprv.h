@@ -293,6 +293,7 @@ typedef struct _PH_PROCESS_ITEM
     PH_UINTPTR_DELTA PrivateBytesDelta;
     PPH_STRING PackageFullName;
     PPH_STRING UserName;
+    PPH_STRING ShortUserName;
 
     PROCESS_DISK_COUNTERS DiskCounters;
     PROCESS_NETWORK_COUNTERS NetworkCounters;
