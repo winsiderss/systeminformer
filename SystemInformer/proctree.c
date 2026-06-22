@@ -233,6 +233,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SERVICES, FALSE, L"Services", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_SHORT_USERNAME, FALSE, L"Short user name", 140, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -2976,6 +2977,17 @@ BEGIN_SORT_FUNCTION(Services)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ShortUserName)
+{
+    sortResult = PhCompareStringWithNullSortOrder(
+        processItem1->ShortUserName,
+        processItem2->ShortUserName,
+        ProcessTreeListSortOrder,
+        TRUE
+    );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3163,6 +3175,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SORT_FUNCTION(StartKey),
                     SORT_FUNCTION(MitigationPolicies),
                     SORT_FUNCTION(Services),
+                    SORT_FUNCTION(ShortUserName),
                 };
                 _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
@@ -4695,6 +4708,26 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ServicesText)
                     {
                         getCellText->Text = PhGetStringRef(node->ServicesText);
+                    }
+                }
+                break;
+            case PHPRTLC_SHORT_USERNAME:
+                {
+                    if (processItem->ShortUserName)
+                    {
+                        PhDereferenceObject(processItem->ShortUserName);
+                    }
+                    if (processItem->UserName)
+                    {
+                        wchar_t* backslash = wcsrchr(processItem->UserName->Buffer, L'\\');
+                        if (backslash)
+                            processItem->ShortUserName = PhCreateString(backslash + 1);
+                        else
+                            processItem->ShortUserName = PhCreateString(processItem->UserName->Buffer);
+                    }
+                    if (processItem->ShortUserName)
+                    {
+                        getCellText->Text = PhGetStringRef(processItem->ShortUserName);
                     }
                 }
                 break;
