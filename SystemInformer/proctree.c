@@ -4713,11 +4713,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_SHORT_USERNAME:
                 {
-                    if (processItem->ShortUserName)
-                    {
-                        PhDereferenceObject(processItem->ShortUserName);
-                    }
-                    if (processItem->UserName)
+                    if (!processItem->ShortUserName && processItem->UserName)
                     {
                         wchar_t* backslash = wcsrchr(processItem->UserName->Buffer, L'\\');
                         if (backslash)
