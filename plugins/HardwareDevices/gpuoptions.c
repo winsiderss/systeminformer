@@ -488,7 +488,7 @@ VOID FindGraphicsDevices(
                     string.Length = propertyList[0].BufferSize ? propertyList[0].BufferSize - sizeof(UNICODE_NULL) : 0;
                     entry->DeviceName = PhLoadIndirectString(&string);
 
-                    if (PhIsNullOrEmptyString(locationString) && propertyList[2].BufferSize)
+                    if (PhIsNullOrEmptyString(locationString) && propertyCount >= 2 && propertyList[2].BufferSize)
                     {
                         SIZE_T returnLength;
                         PH_FORMAT format[2];
@@ -507,7 +507,7 @@ VOID FindGraphicsDevices(
                         }
                     }
 
-                    if (propertyList[3].BufferSize >= sizeof(LUID))
+                    if (propertyCount >= 3 && propertyList[3].BufferSize >= sizeof(LUID))
                     {
                         entry->AdapterLuid = *(PLUID)propertyList[3].Buffer;
                     }
