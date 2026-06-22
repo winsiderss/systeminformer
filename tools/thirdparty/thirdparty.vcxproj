@@ -176,6 +176,7 @@
     <ClCompile Include="jsonc\arraylist.c" />
     <ClCompile Include="jsonc\debug.c" />
     <ClCompile Include="jsonc\json_c_version.c" />
+    <ClCompile Include="jsonc\json_number_fast.cpp" />
     <ClCompile Include="jsonc\json_object.c" />
     <ClCompile Include="jsonc\json_object_iterator.c" />
     <ClCompile Include="jsonc\json_pointer.c" />
