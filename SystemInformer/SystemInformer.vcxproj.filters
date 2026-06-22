@@ -558,9 +558,9 @@
     <ResourceCompile Include="version.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
-    <CustomBuild Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc">
+    <ResourceCompile Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc">
       <Filter>Resources</Filter>
-    </CustomBuild>
+    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="SystemInformer.manifest">
