@@ -94,6 +94,7 @@ set(SOURCES
     "appresolver.c"
     "appruntime.c"
     "avltree.c"
+    "base64.c"
     "basestring.c"
     "basesup.c"
     "bcd.cpp"
