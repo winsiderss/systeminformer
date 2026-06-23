@@ -39,9 +39,12 @@ set(HEADERS_PRESENTMON
 source_group("Header Files\\PresentMon" FILES ${HEADERS_PRESENTMON})
 
 set(SOURCES
+    "acpitable.c"
     "cacheprp.c"
     "counters.c"
+    "cpatprp.c"
     "disktab.c"
+    "envdlg.c"
     "etwdisk.c"
     "etwmini.c"
     "etwmon.c"
@@ -75,6 +78,7 @@ set(SOURCES
     "unldll.c"
     "utils.c"
     "waitchain.c"
+    "wbcl.c"
     "wswatch.c"
 )
 source_group("Source Files" FILES ${SOURCES})
