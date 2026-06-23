@@ -27,6 +27,8 @@ set(SOURCES
     "page2.c"
     "page3.c"
     "page4.c"
+    "partner.c"
+    "scan.c"
     "upload.c"
 )
 source_group("Source Files" FILES ${SOURCES})
