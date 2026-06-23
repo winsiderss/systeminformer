@@ -42,7 +42,6 @@ set(SOURCES
     "acpitable.c"
     "cacheprp.c"
     "counters.c"
-    "cpatprp.c"
     "disktab.c"
     "envdlg.c"
     "etwdisk.c"
