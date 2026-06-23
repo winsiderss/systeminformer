@@ -448,7 +448,6 @@ VOID PhpProcessItemDeleteProcedure(
     if (processItem->VerifySignerName) PhDereferenceObject(processItem->VerifySignerName);
     if (processItem->PackageFullName) PhDereferenceObject(processItem->PackageFullName);
     if (processItem->UserName) PhDereferenceObject(processItem->UserName);
-    if (processItem->ShortUserName) PhDereferenceObject(processItem->ShortUserName);
 
     if (!PhSystemProcessorInformation.SingleProcessorGroup)
     {

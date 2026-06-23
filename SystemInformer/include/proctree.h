@@ -160,6 +160,7 @@
 #define PHPN_STARTKEY 0x800000
 #define PHPN_SERVICES 0x1000000
 #define PHPN_USERHANDLES 0x2000000
+#define PHPN_SHORTUSERNAME 0x4000000
 
 // begin_phapppub
 typedef struct _PH_PROCESS_NODE
@@ -310,6 +311,7 @@ typedef struct _PH_PROCESS_NODE
     PPH_STRING MitigationPoliciesText;
     PPH_STRING ServicesText;
     PPH_STRING ServerSiloText;
+    PPH_STRING ShortUsernameText;
 
     // Graph buffers
     PH_GRAPH_BUFFERS CpuGraphBuffers;

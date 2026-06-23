@@ -1911,6 +1911,27 @@ static VOID PhpUpdateProcessNodeServices(
     }
 }
 
+static VOID PhpUpdateProcessNodeShortUsername(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+)
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_SHORTUSERNAME))
+    {
+        PhClearReference(&ProcessNode->ShortUsernameText);
+
+        if (ProcessNode->ProcessItem->UserName)
+        {
+            wchar_t* backslash = wcsrchr(ProcessNode->ProcessItem->UserName->Buffer, L'\\');
+            if (backslash)
+                ProcessNode->ShortUsernameText = PhCreateString(backslash + 1);
+            else
+                ProcessNode->ShortUsernameText = PhCreateString(ProcessNode->ProcessItem->UserName->Buffer);
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_SHORTUSERNAME);
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     _In_ const void *_elem1, \
@@ -2979,9 +3000,11 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(ShortUserName)
 {
+    PhpUpdateProcessNodeShortUsername(node1);
+    PhpUpdateProcessNodeShortUsername(node2);
     sortResult = PhCompareStringWithNullSortOrder(
-        processItem1->ShortUserName,
-        processItem2->ShortUserName,
+        node1->ShortUsernameText,
+        node2->ShortUsernameText,
         ProcessTreeListSortOrder,
         TRUE
     );
@@ -4713,17 +4736,11 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                 break;
             case PHPRTLC_SHORT_USERNAME:
                 {
-                    if (!processItem->ShortUserName && processItem->UserName)
+                    PhpUpdateProcessNodeShortUsername(node);
+
+                    if (node->ShortUsernameText)
                     {
-                        wchar_t* backslash = wcsrchr(processItem->UserName->Buffer, L'\\');
-                        if (backslash)
-                            processItem->ShortUserName = PhCreateString(backslash + 1);
-                        else
-                            processItem->ShortUserName = PhCreateString(processItem->UserName->Buffer);
-                    }
-                    if (processItem->ShortUserName)
-                    {
-                        getCellText->Text = PhGetStringRef(processItem->ShortUserName);
+                        getCellText->Text = PhGetStringRef(node->ShortUsernameText);
                     }
                 }
                 break;
