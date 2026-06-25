@@ -694,6 +694,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ProcessStartKeyText);
     PhClearReference(&ProcessNode->MitigationPoliciesText);
     PhClearReference(&ProcessNode->ServicesText);
+    PhClearReference(&ProcessNode->ShortUsernameText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
