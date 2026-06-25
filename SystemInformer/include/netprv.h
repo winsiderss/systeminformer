@@ -139,6 +139,13 @@ PhGetTcpStateName(
     );
 // end_phapppub
 
+PHAPPAPI
+BOOLEAN
+NTAPI
+PhIsUdpExemptPort(
+    _In_ ULONG Port
+    );
+
 // iphlpapi imports
 
 typedef ULONG (WINAPI *_GetExtendedTcpTable)(
