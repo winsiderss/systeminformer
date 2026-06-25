@@ -1159,14 +1159,15 @@ VOID PhNetworkProviderUpdate(
     // Look for new network connections and update existing ones.
     for (i = 0; i < numberOfConnections; i++)
     {
+        PPH_NETWORK_CONNECTION connection = &connections[i];
         PPH_NETWORK_ITEM networkItem;
 
         // Try to find the connection in our hash set.
         networkItem = PhReferenceNetworkItem(
-            connections[i].ProtocolType,
-            &connections[i].LocalEndpoint,
-            &connections[i].RemoteEndpoint,
-            connections[i].ProcessId
+            connection->ProtocolType,
+            &connection->LocalEndpoint,
+            &connection->RemoteEndpoint,
+            connection->ProcessId
             );
 
         if (!networkItem)
@@ -1178,15 +1179,15 @@ VOID PhNetworkProviderUpdate(
             networkItem = PhCreateNetworkItem();
 
             // Fill in basic information.
-            networkItem->ProtocolType = connections[i].ProtocolType;
-            networkItem->LocalEndpoint = connections[i].LocalEndpoint;
-            networkItem->RemoteEndpoint = connections[i].RemoteEndpoint;
-            networkItem->State = connections[i].State;
-            networkItem->ProcessId = connections[i].ProcessId;
-            networkItem->CreateTime = connections[i].CreateTime;
-            networkItem->LocalScopeId = connections[i].LocalScopeId;
-            networkItem->RemoteScopeId = connections[i].RemoteScopeId;
-            PhpUpdateNetworkItemOwner(networkItem, connections[i].OwnerInfo[0]);
+            networkItem->ProtocolType = connection->ProtocolType;
+            networkItem->LocalEndpoint = connection->LocalEndpoint;
+            networkItem->RemoteEndpoint = connection->RemoteEndpoint;
+            networkItem->State = connection->State;
+            networkItem->ProcessId = connection->ProcessId;
+            networkItem->CreateTime = connection->CreateTime;
+            networkItem->LocalScopeId = connection->LocalScopeId;
+            networkItem->RemoteScopeId = connection->RemoteScopeId;
+            PhpUpdateNetworkItemOwner(networkItem, connection->OwnerInfo[0]);
 
             // Format various strings.
 
@@ -1372,9 +1373,9 @@ VOID PhNetworkProviderUpdate(
             if (InterlockedExchange(&networkItem->JustResolved, 0) != 0)
                 modified = TRUE;
 
-            if (networkItem->State != connections[i].State)
+            if (networkItem->State != connection->State)
             {
-                networkItem->State = connections[i].State;
+                networkItem->State = connection->State;
                 modified = TRUE;
             }
 
@@ -1643,18 +1644,19 @@ VOID PhpCollectHvSocket(
 _Function_class_(PH_ENUM_KEY_CALLBACK)
 static BOOLEAN NTAPI PhpHvEnumComputeSystemCallback(
     _In_ HANDLE RootDirectory,
-    _In_ PKEY_BASIC_INFORMATION Information,
+    _In_ PVOID Information,
     _In_ PVOID Context
     )
 {
+    PKEY_BASIC_INFORMATION basicInfo = (PKEY_BASIC_INFORMATION)Information;
     PPH_ARRAY guidArray = Context;
     PH_STRINGREF name;
     PH_FORMAT format[3];
     PPH_STRING string;
     GUID guid;
 
-    name.Buffer = Information->Name;
-    name.Length = Information->NameLength;
+    name.Buffer = basicInfo->Name;
+    name.Length = basicInfo->NameLength;
 
     PhInitFormatC(&format[0], L'{');
     PhInitFormatSR(&format[1], name);
@@ -2191,4 +2193,145 @@ PCPH_STRINGREF PhGetTcpStateName(
     //}
 
     return PhTcpStateStrings[0].Key;
+}
+
+VOID PhQueryUdpExemptPortRange(
+    _Inout_ PRTL_BITMAP PortBitmap
+    )
+{
+    static const PH_STRINGREF TcpipParametersKey = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\Tcpip\\Parameters");
+    static const PH_STRINGREF UdpExemptPortRangeValue = PH_STRINGREF_INIT(L"UdpExemptPortRange");
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &TcpipParametersKey,
+        0
+        )))
+    {
+        PKEY_VALUE_PARTIAL_INFORMATION valueInfo;
+        LARGE_INTEGER lastWriteTime;
+        LARGE_INTEGER bootTime;
+
+        // UdpExemptPortRange is only applied by the TCP/IP stack at boot. If the key was
+        // modified after the last boot, the current value isn't active yet, so ignore it
+        // until the next restart.
+
+        if (
+            NT_SUCCESS(PhQueryKeyLastWriteTime(keyHandle, &lastWriteTime)) &&
+            NT_SUCCESS(PhGetSystemBootTime(&bootTime)) &&
+            lastWriteTime.QuadPart > bootTime.QuadPart
+            )
+        {
+            NtClose(keyHandle);
+            return;
+        }
+
+        if (NT_SUCCESS(PhQueryValueKey(
+            keyHandle,
+            &UdpExemptPortRangeValue,
+            KeyValuePartialInformation,
+            &valueInfo
+            )))
+        {
+            if (valueInfo->Type == REG_MULTI_SZ && !(valueInfo->DataLength % sizeof(WCHAR)))
+            {
+                static const PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" \t");
+                PWCHAR cursor = (PWCHAR)valueInfo->Data;
+                PWCHAR end = (PWCHAR)PTR_ADD_OFFSET(valueInfo->Data, valueInfo->DataLength);
+
+                while (cursor < end)
+                {
+                    PH_STRINGREF remaining;
+
+                    // Walk one null-terminated MULTI_SZ string at a time. Each string is a
+                    // list of comma-separated port ranges (e.g. "5000-5100,7000").
+
+                    remaining.Buffer = cursor;
+                    remaining.Length = 0;
+
+                    while (cursor < end && *cursor != UNICODE_NULL)
+                    {
+                        remaining.Length += sizeof(WCHAR);
+                        cursor++;
+                    }
+
+                    if (cursor < end)
+                        cursor++; // skip the string's null terminator
+
+                    while (remaining.Length != 0)
+                    {
+                        PH_STRINGREF token;
+                        PH_STRINGREF firstPart;
+                        PH_STRINGREF lastPart;
+                        ULONG64 firstPort;
+                        ULONG64 lastPort;
+
+                        PhSplitStringRefAtChar(&remaining, L',', &token, &remaining);
+
+                        // Split "first-last"; a token without '-' is a single port.
+                        if (!PhSplitStringRefAtChar(&token, L'-', &firstPart, &lastPart))
+                        {
+                            lastPart = firstPart;
+                        }
+
+                        PhTrimStringRef(&firstPart, &whitespace, 0);
+                        PhTrimStringRef(&lastPart, &whitespace, 0);
+
+                        if (
+                            PhStringToUInt64(&firstPart, 10, &firstPort) &&
+                            PhStringToUInt64(&lastPart, 10, &lastPort) &&
+                            firstPort <= USHRT_MAX &&
+                            lastPort <= USHRT_MAX &&
+                            firstPort <= lastPort
+                            )
+                        {
+#ifndef PH_UDP_EXEMPT_RTL_BITMAP
+                            RtlSetBits(PortBitmap, (ULONG)firstPort, (ULONG)(lastPort - firstPort + 1));
+#else
+                            PULONG buffer = PortBitmap->Buffer;
+                            ULONG currentPort;
+
+                            for (currentPort = (ULONG)firstPort; currentPort <= (ULONG)lastPort; currentPort++)
+                            {
+                                buffer[currentPort / 32] |= 1UL << (currentPort % 32);
+                            }
+#endif
+                        }
+                    }
+                }
+            }
+
+            PhFree(valueInfo);
+        }
+
+        NtClose(keyHandle);
+    }
+}
+
+BOOLEAN PhIsUdpExemptPort(
+    _In_ ULONG Port
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static ULONG portBitmapBuffer[USHRT_MAX / 32 + 1];
+    static RTL_BITMAP portBitmap;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        RtlInitializeBitMap(&portBitmap, portBitmapBuffer, USHRT_MAX + 1);
+        PhQueryUdpExemptPortRange(&portBitmap);
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (Port > USHRT_MAX)
+        return FALSE;
+
+#ifndef PH_UDP_EXEMPT_RTL_BITMAP
+    return !!RtlTestBit(&portBitmap, Port);
+#else
+    return BooleanFlagOn(portBitmapBuffer[Port / 32], 1UL << (Port % 32));
+#endif
 }

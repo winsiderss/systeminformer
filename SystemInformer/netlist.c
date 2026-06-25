@@ -79,7 +79,6 @@ static ULONG64 NextUniqueId = 0;
 
 BOOLEAN PhNetworkTreeListStateHighlighting = TRUE;
 static PPH_POINTER_LIST NetworkNodeStateList = NULL; // list of nodes which need to be processed
-
 static PH_TN_FILTER_SUPPORT FilterSupport;
 
 VOID PhNetworkTreeListInitialization(
@@ -946,6 +945,14 @@ BOOLEAN NTAPI PhpNetworkTreeNewCallback(
             else if (!node->NetworkItem->ProcessId)
             {
                 NOTHING;
+            }
+            else if (
+                PhCsUseColorNetworkSubsystemProcess &&
+                FlagOn(node->NetworkItem->ProtocolType, PH_PROTOCOL_TYPE_UDP) &&
+                PhIsUdpExemptPort(node->NetworkItem->LocalEndpoint.Port)
+                )
+            {
+                getNodeColor->BackColor = PhCsColorNetworkSubsystemProcess;
             }
             else if (PhCsUseColorNetworkUnknownProcess && node->NetworkItem->UnknownProcess)
             {

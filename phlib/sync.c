@@ -831,6 +831,7 @@ NTSTATUS PhWaitForManyObjects(
 {
     NTSTATUS status;
     HANDLE ioCompletionHandle = NULL;
+    HANDLE waitPacketHandlesStack[MAXIMUM_WAIT_OBJECTS * 2];
     PHANDLE waitPacketHandles = NULL;
     PULONG signaledBitmapBuffer = NULL;
     RTL_BITMAP signaledBitmap;
@@ -932,12 +933,20 @@ NTSTATUS PhWaitForManyObjects(
     // Allocate arrays for packet handles and (for WaitAll) signaled tracking.
     //
 
-    waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
-
-    if (!waitPacketHandles)
+    if (ObjectCount <= RTL_NUMBER_OF(waitPacketHandlesStack))
     {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
+        waitPacketHandles = waitPacketHandlesStack;
+        memset(waitPacketHandles, 0, sizeof(waitPacketHandlesStack));
+    }
+    else
+    {
+        waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
+
+        if (!waitPacketHandles)
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
     }
 
     if (WaitForAll)
@@ -1170,7 +1179,8 @@ CleanupExit:
             }
         }
 
-        PhFree(waitPacketHandles);
+        if (waitPacketHandles != waitPacketHandlesStack)
+            PhFree(waitPacketHandles);
     }
 
     if (signaledBitmapBuffer)
@@ -1212,6 +1222,7 @@ NTSTATUS PhWaitForAnyObjects(
 {
     NTSTATUS status;
     HANDLE ioCompletionHandle = NULL;
+    HANDLE waitPacketHandlesStack[MAXIMUM_WAIT_OBJECTS * 2];
     PHANDLE waitPacketHandles = NULL;
     PVOID keyContext = NULL;
     PVOID apcContext = NULL;
@@ -1266,12 +1277,20 @@ NTSTATUS PhWaitForAnyObjects(
     // slots that hold a real handle.
     //
 
-    waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
-
-    if (!waitPacketHandles)
+    if (ObjectCount <= RTL_NUMBER_OF(waitPacketHandlesStack))
     {
-        status = STATUS_NO_MEMORY;
-        goto CleanupExit;
+        waitPacketHandles = waitPacketHandlesStack;
+        memset(waitPacketHandles, 0, sizeof(waitPacketHandlesStack));
+    }
+    else
+    {
+        waitPacketHandles = PhAllocateZero(ObjectCount * sizeof(HANDLE));
+
+        if (!waitPacketHandles)
+        {
+            status = STATUS_NO_MEMORY;
+            goto CleanupExit;
+        }
     }
 
     //
@@ -1346,7 +1365,8 @@ CleanupExit:
             }
         }
 
-        PhFree(waitPacketHandles);
+        if (waitPacketHandles != waitPacketHandlesStack)
+            PhFree(waitPacketHandles);
     }
 
     if (ioCompletionHandle)
