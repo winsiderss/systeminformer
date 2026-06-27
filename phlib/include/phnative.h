@@ -6058,6 +6058,22 @@ PhCreatePipeEx(
     _In_opt_ PSECURITY_ATTRIBUTES PipeWriteAttributes
     );
 
+typedef enum _PH_NAMED_PIPE_PREFIX_TYPE
+{
+    PhNamedPipePrefixAdministrators,
+    PhNamedPipePrefixLocalService,
+    PhNamedPipePrefixNetworkService
+} PH_NAMED_PIPE_PREFIX_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhOpenNamedPipeProtectedPrefix(
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ PH_NAMED_PIPE_PREFIX_TYPE PrefixType,
+    _In_ ACCESS_MASK DesiredAccess
+    );
+
 PHLIBAPI
 NTSTATUS
 NTAPI
