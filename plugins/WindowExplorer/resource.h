@@ -16,10 +16,12 @@
 #define IDC_LIST                        1001
 #define IDC_REFRESH                     1002
 #define IDC_FINDWINDOW                  1003
-#define IDC_WINDOWTEXT                  1004
-#define IDC_WINDOWICON                  1005
-#define IDC_WINDOWGROUPBOX              1006
-#define IDC_APPIDTEXT                   1007
+#define IDC_OPTIONS                     1004
+#define IDC_PAUSERESUME                 1037
+#define IDC_WINDOWTEXT                  1005
+#define IDC_WINDOWICON                  1006
+#define IDC_WINDOWGROUPBOX              1007
+#define IDC_APPIDTEXT                   1008
 #define IDC_SEARCHEDIT                  1035
 #define IDC_WINDOWINFO                  1036
 #define IDC_NAME                        1044
@@ -51,13 +53,21 @@
 #define ID_WINDOW_INSPECT               40028
 #define ID_WINDOW_OPENFILELOCATION      40029
 #define ID_WINDOW_SETDPI                40030
+#define ID_WINDOW_OPTIONS_ENUM_MESSAGEONLY 40031
+#define ID_WINDOW_OPTIONS_ENUM_NONVISIBLE 40032
+#define ID_WINDOW_OPTIONS_HIGHLIGHT_MESSAGEONLY 40033
+#define ID_WINDOW_OPTIONS_FIND_SNAPSHOT 40038
+#define ID_VIEW_MODE_PARENTCHILD        40034
+#define ID_VIEW_MODE_ZORDER             40035
+#define ID_VIEW_MODE_OWNER              40036
+#define ID_VIEW_MENU_SEPARATOR          40037
 
 // Next default values for new objects
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        114
-#define _APS_NEXT_COMMAND_VALUE         40031
+#define _APS_NEXT_COMMAND_VALUE         40039
 #define _APS_NEXT_CONTROL_VALUE         1037
 #define _APS_NEXT_SYMED_VALUE           107
 #endif

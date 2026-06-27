@@ -13,16 +13,50 @@
 #ifndef WNDTREE_H
 #define WNDTREE_H
 
+typedef struct _WE_WINDOW_ITEM WE_WINDOW_ITEM, *PWE_WINDOW_ITEM;
+typedef struct _WINDOWS_CONTEXT WINDOWS_CONTEXT, *PWINDOWS_CONTEXT;
+
+typedef enum _WE_WINDOW_SELECTOR_TYPE
+{
+    WeWindowSelectorAll,
+    WeWindowSelectorProcess,
+    WeWindowSelectorThread,
+    WeWindowSelectorDesktop
+} WE_WINDOW_SELECTOR_TYPE;
+
+typedef struct _WE_WINDOW_SELECTOR
+{
+    WE_WINDOW_SELECTOR_TYPE Type;
+    union
+    {
+        struct
+        {
+            HANDLE ProcessId;
+        } Process;
+        struct
+        {
+            HANDLE ThreadId;
+        } Thread;
+        struct
+        {
+            PPH_STRING DesktopName;
+        } Desktop;
+    };
+} WE_WINDOW_SELECTOR, *PWE_WINDOW_SELECTOR;
+
 #define WEWNTLC_CLASS 0
 #define WEWNTLC_HANDLE 1
 #define WEWNTLC_TEXT 2
-#define WEWNTLC_THREAD 3
-#define WEWNTLC_MODULE 4
-#define WEWNTLC_MAXIMUM 5
+#define WEWNTLC_PROCESS 3
+#define WEWNTLC_THREAD 4
+#define WEWNTLC_MODULE 5
+#define WEWNTLC_MAXIMUM 6
 
 typedef struct _WE_WINDOW_NODE
 {
     PH_TREENEW_NODE Node;
+
+    PH_SH_STATE ShState;
 
     struct _WE_WINDOW_NODE *Parent;
     PPH_LIST Children;
@@ -33,17 +67,17 @@ typedef struct _WE_WINDOW_NODE
         struct
         {
             ULONG HasChildren : 1;
-            ULONG WindowVisible : 1;
-            ULONG WindowMessageOnly : 1;
-            ULONG Spare : 28;
             ULONG ProcessIconValid : 1;
+            ULONG Spare : 30;
         };
     };
 
+    PWE_WINDOW_ITEM WindowItem;
+
+    USHORT WindowIndex;
+    USHORT WindowGeneration;
+
     HWND WindowHandle;
-    WCHAR WindowClass[64];
-    PPH_STRING WindowText;
-    CLIENT_ID ClientId;
 
     PPH_PROCESS_ITEM ProcessItem;
     union
@@ -52,6 +86,7 @@ typedef struct _WE_WINDOW_NODE
         ULONG_PTR WindowIconIndex;
     };
 
+    PPH_STRING ProcessString;
     PPH_STRING ThreadString;
     PPH_STRING ModuleString;
     PPH_STRING FileNameWin32;
@@ -61,6 +96,13 @@ typedef struct _WE_WINDOW_NODE
 
 typedef enum _WE_WINDOW_SELECTOR_TYPE WE_WINDOW_SELECTOR_TYPE;
 
+typedef enum _WE_WINDOW_VIEW_MODE
+{
+    WeWindowViewModeParentChild,
+    WeWindowViewModeZOrder,
+    WeWindowViewModeOwner
+} WE_WINDOW_VIEW_MODE;
+
 typedef struct _WE_WINDOW_TREE_CONTEXT
 {
     HWND ParentWindowHandle;
@@ -69,17 +111,33 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
 
     WE_WINDOW_SELECTOR_TYPE SelectorType;
+    WE_WINDOW_VIEW_MODE ViewMode; // New field for viewing mode
 
     union
     {
         ULONG Flags;
         struct
         {
+            ULONG EnableStateHighlighting : 1;
+
             ULONG EnableIcons : 1;
             ULONG EnableIconsInternal : 1;
-            ULONG Spare : 30;
+
+            ULONG HighlightMessageOnly : 1;
+
+            ULONG EnableWindowVisible : 1;
+            ULONG WindowVisibleOnly : 1;
+
+            ULONG EnableMessageOnly : 1;
+            ULONG WindowMessageOnly : 1;
+
+            ULONG Spare : 26;
         };
     };
+
+    COLORREF MessageOnlyWindowColor;
+    COLORREF ColorNew;
+    COLORREF ColorRemoved;
 
     ULONG_PTR SearchMatchHandle;
     PH_TN_FILTER_SUPPORT FilterSupport;
@@ -88,8 +146,13 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+    PPH_POINTER_LIST NodeStateList;
     HIMAGELIST NodeImageList;
 } WE_WINDOW_TREE_CONTEXT, *PWE_WINDOW_TREE_CONTEXT;
+
+// Set by WeAddWindowNode/WeRemoveWindowNode when the tree topology changes; honored by
+// WeTickWindowNodes and the WE_WM_WINDOWS_UPDATED handler to restructure the tree.
+extern BOOLEAN NeedsNodesStructured;
 
 VOID WeInitializeWindowTree(
     _In_ HWND ParentWindowHandle,
@@ -108,9 +171,14 @@ VOID WeInitializeWindowTreeImageList(
     _In_ PWE_WINDOW_SELECTOR Selector
     );
 
+PPH_STRING WeGetClientIdName(
+    _In_ PCLIENT_ID ClientId
+    );
+
 PWE_WINDOW_NODE WeAddWindowNode(
     _Inout_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ HWND WindowHandle
+    _In_ PWE_WINDOW_ITEM WindowItem,
+    _In_ ULONG RunId
     );
 
 PWE_WINDOW_NODE WeFindWindowNode(
@@ -118,9 +186,28 @@ PWE_WINDOW_NODE WeFindWindowNode(
     _In_ HWND WindowHandle
     );
 
-VOID WeRemoveWindowNode(
+VOID WeUpdateWindowNode(
+    _In_ PWE_WINDOW_NODE WindowNode,
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+VOID WeInvalidateWindowTreeColors(
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+VOID WeSetWindowTreeIconsEnabled(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
-    _In_ PWE_WINDOW_NODE WindowNode
+    _In_ BOOLEAN EnableIcons
+    );
+
+VOID WeRemoveWindowNode(
+    _In_ PWE_WINDOW_NODE WindowNode,
+    _In_ PWE_WINDOW_TREE_CONTEXT Context
+    );
+
+VOID WeTickWindowNodes(
+    _In_ PWINDOWS_CONTEXT Context,
+    _In_ PWE_WINDOW_TREE_CONTEXT TreeContext
     );
 
 VOID WeClearWindowTree(
@@ -131,6 +218,7 @@ PWE_WINDOW_NODE WeGetSelectedWindowNode(
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 
+_Success_(return)
 BOOLEAN WeGetSelectedWindowNodes(
     _In_ PWE_WINDOW_TREE_CONTEXT Context,
     _Out_ PWE_WINDOW_NODE** Nodes,
