@@ -7392,6 +7392,7 @@ static BOOLEAN PhpEnsureBufferedPaintBitmap(
 {
     BITMAPINFO bitmapInfo;
     HBITMAP bitmap;
+    PVOID bits;
     LONG allocWidth = __max(Width, PH_BP_MIN_DIM);
     LONG allocHeight = __max(Height, PH_BP_MIN_DIM);
 
@@ -7417,14 +7418,16 @@ static BOOLEAN PhpEnsureBufferedPaintBitmap(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &Cache->Bits, NULL, 0);
+    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &bits, NULL, 0);
 
     if (!bitmap)
         return FALSE;
 
-    Cache->Bitmap = bitmap;
     Cache->AllocWidth = allocWidth;
     Cache->AllocHeight = allocHeight;
+    Cache->Bitmap = bitmap;
+    Cache->Bits = bits;
+
     return TRUE;
 }
 
@@ -7535,11 +7538,6 @@ BOOLEAN PhBeginBufferedPaint(
     LONG height;
     BOOLEAN oversized;
     PPH_BP_CACHE cache;
-
-    assert(TargetHdc);
-    assert(TargetRect);
-    assert(BufferedPaint);
-    assert(PaintHdc);
 
     memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
     *PaintHdc = NULL;
@@ -7780,9 +7778,6 @@ BOOLEAN PhGetBufferedPaintBits(
     _Out_ PLONG WidthInPixels
     )
 {
-    assert(Bits);
-    assert(WidthInPixels);
-
     *Bits = NULL;
     *WidthInPixels = 0;
 
@@ -7875,8 +7870,6 @@ BOOLEAN PhGetBufferedPaintTargetRect(
     _Out_ PRECT Rect
     )
 {
-    assert(Rect);
-
     if (!BufferedPaint || !BufferedPaint->Valid)
     {
         memset(Rect, 0, sizeof(RECT));
@@ -7914,6 +7907,7 @@ VOID PhPaintBuffered(
     if (PhBeginBufferedPaint(PaintStruct->hdc, &PaintStruct->rcPaint, &bufferedPaint, &paintHdc))
     {
         BOOLEAN result = PaintProc(paintHdc, (PRECT)&PaintStruct->rcPaint, Context);
+
         PhEndBufferedPaint(&bufferedPaint, result);
     }
     else
@@ -7922,10 +7916,13 @@ VOID PhPaintBuffered(
     }
 }
 
-COLORREF NTAPI PhHeatMapColor(_In_ FLOAT Ratio)  // 0.0 (cool/green) to 1.0 (hot/red)
+COLORREF NTAPI PhHeatMapColor(
+    _In_ FLOAT Ratio
+    )
 {
     // Five-stop CPU heatmap palette:
     // 0.00 #2E7D32 -> 0.25 #8BC34A -> 0.50 #FBC02D -> 0.75 #F57C00 -> 1.00 #C62828
+    // 0.0 (cool/green) to 1.0 (hot/red)
     UCHAR r;
     UCHAR g;
     UCHAR b;

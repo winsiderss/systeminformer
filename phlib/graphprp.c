@@ -16,6 +16,7 @@
 #include <mapldr.h>
 
 #define PH_PROPSHEETNEW_REDRAW_FIX 1
+#define PH_PROPSHEETNEW_REDRAW_UPDATENOW 1
 
 /*
  * Custom resizable PropertySheet replacement built on PhTabNew (dmex)
@@ -83,6 +84,8 @@ struct _PH_PROPSHEETNEW_BUILDER
 typedef struct _PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT
 {
     PH_LAYOUT_MANAGER LayoutManager;
+    PVOID Instance;       // page dialog template module (for template-relative margins)
+    PCWSTR Template;       // page dialog template resource name
 } PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT, *PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT;
 
 #define PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT 0x70736c79
@@ -107,6 +110,10 @@ HWND PhPropSheetNewCreate(
     _In_ PPH_PROPSHEETNEW Sheet,
     _In_ BOOLEAN Modal,
     _Out_opt_ PPH_PROPSHEETNEW_CONTEXT* OutContext
+    );
+
+PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT PhpPropSheetNewGetPageLayoutContext(
+    _In_ HWND PageWindow
     );
 
 #define PH_PROPSHEETNEW_PADDING       7   // inner padding (px @ 96 DPI) around content
@@ -303,8 +310,47 @@ VOID PhPropSheetNewCreatePageDialog(
 
     Page->DialogHandle = windowHandle;
 
+    // Seed the page's layout context with its dialog template BEFORE the page
+    // registers its layout items. PH's layout manager normally captures anchor
+    // margins relative to the page's *current* client rect, which would force us
+    // to register at the small template size. With the template stashed here,
+    // PhPropSheetNewPageAddLayoutItemEx instead computes margins relative to the
+    // design template size regardless of the page's current size — so the page
+    // can be created at its full page-rect size up front and still anchor
+    // correctly. (Mirrors the classic procprp template-relative margin HACK.)
+    {
+        PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT layoutContext;
+
+        layoutContext = PhpPropSheetNewGetPageLayoutContext(windowHandle);
+        layoutContext->Instance = Page->Instance;
+        layoutContext->Template = Page->Template;
+    }
+
+    // Size the page to its final page-rect size immediately, off-screen. The
+    // registration below runs the page's WM_SHOWWINDOW handler ->
+    // PhEndPropPageLayout -> PhBringWindowToTop, which carries SWP_SHOWWINDOW and
+    // would otherwise make the page briefly visible (the flash). Positioning it
+    // off-screen keeps that transient invisible; we hide it again and move it
+    // on-screen (still at full size) before PhPropSheetNewSelectPage shows it.
     if (Context->TabControl && PhTabNew_GetPageRect(Context->TabControl, &pageRect))
     {
+        SetWindowPos(
+            windowHandle,
+            NULL,
+            -32000, -32000,
+            pageRect.right - pageRect.left,
+            pageRect.bottom - pageRect.top,
+            SWP_NOZORDER | SWP_NOACTIVATE
+            );
+
+        // Register layout items (template-relative margins) and lay the controls
+        // out at the full page size — the page is created at the correct size.
+        SendMessage(windowHandle, WM_SHOWWINDOW, TRUE, 0);
+        PhPropSheetNewPageLayout(windowHandle);
+
+        // Hide and move on-screen (still full size) while hidden.
+        ShowWindow(windowHandle, SW_HIDE);
+
         SetWindowPos(
             windowHandle,
             NULL,
@@ -312,8 +358,14 @@ VOID PhPropSheetNewCreatePageDialog(
             pageRect.top,
             pageRect.right - pageRect.left,
             pageRect.bottom - pageRect.top,
-            SWP_NOZORDER | SWP_NOACTIVATE
+            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
             );
+    }
+    else
+    {
+        SetWindowPos(windowHandle, NULL, -32000, -32000, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+        SendMessage(windowHandle, WM_SHOWWINDOW, TRUE, 0);
+        ShowWindow(windowHandle, SW_HIDE);
     }
 
     //PhInitializeWindowTheme(windowHandle, PhEnableThemeSupport);
@@ -440,7 +492,7 @@ VOID PhPropSheetNewLayout(
         PhPropSheetNewGetPageRect(Context, &pageRect);
     }
 
-    defer = BeginDeferWindowPos(2);
+    defer = BeginDeferWindowPos(1);
     deferFailed = !defer;
 
     if (hasCloseButton && Context->CloseButton)
@@ -458,31 +510,6 @@ VOID PhPropSheetNewLayout(
                 btnY,
                 buttonWidth,
                 buttonHeight,
-                SWP_NOZORDER | SWP_NOACTIVATE
-                );
-
-            if (nextDefer)
-                defer = nextDefer;
-            else
-            {
-                defer = NULL;
-                deferFailed = TRUE;
-            }
-        }
-    }
-
-    if (current && current->DialogHandle)
-    {
-        if (defer)
-        {
-            HDWP nextDefer = DeferWindowPos(
-                defer,
-                current->DialogHandle,
-                NULL,
-                pageRect.left,
-                pageRect.top,
-                pageRect.right - pageRect.left,
-                pageRect.bottom - pageRect.top,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
 
@@ -516,23 +543,26 @@ VOID PhPropSheetNewLayout(
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
         }
-
-        if (current && current->DialogHandle)
-        {
-            SetWindowPos(
-                current->DialogHandle,
-                NULL,
-                pageRect.left,
-                pageRect.top,
-                pageRect.right - pageRect.left,
-                pageRect.bottom - pageRect.top,
-                SWP_NOZORDER | SWP_NOACTIVATE
-                );
-        }
     }
 
+    // Position the active page outside the deferred batch via a direct
+    // SetWindowPos. Queuing the page move alongside the Close button in a single
+    // DeferWindowPos pass can drop the reposition silently, so the page would
+    // not follow the tab on resize (see PhPropSheetNewSelectPage).
     if (current && current->DialogHandle)
+    {
+        SetWindowPos(
+            current->DialogHandle,
+            NULL,
+            pageRect.left,
+            pageRect.top,
+            pageRect.right - pageRect.left,
+            pageRect.bottom - pageRect.top,
+            SWP_NOZORDER | SWP_NOACTIVATE
+            );
+
         PhPropSheetNewPageLayout(current->DialogHandle);
+    }
 
 #ifdef PH_PROPSHEETNEW_REDRAW_FIX
     if (Context->TabControl)
@@ -541,7 +571,11 @@ VOID PhPropSheetNewLayout(
             Context->TabControl,
             NULL,
             NULL,
+#ifdef PH_PROPSHEETNEW_REDRAW_UPDATENOW
+            RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW | RDW_ALLCHILDREN
+#else
             RDW_INVALIDATE | RDW_ERASE
+#endif
             );
     }
 #else
@@ -599,19 +633,16 @@ VOID PhPropSheetNewSelectPage(
 
         if ((INT)i == NewIndex)
         {
-            // Reposition the new page outside the deferred batch via
-            // MoveWindow. Avoids cases where queuing the move alongside
-            // sibling SWP_HIDEWINDOW calls in DeferWindowPos can drop the
-            // reposition silently, and guarantees the page reflows before
-            // the explicit ShowWindow below fires WM_SHOWWINDOW (where the
-            // procprp page DlgProcs install their layout items).
-            MoveWindow(
+            // Reposition outside the deferred batch because User32 can drop
+            // moves mixed with sibling SWP_HIDEWINDOW operations.
+            SetWindowPos(
                 page->DialogHandle,
+                NULL,
                 pageRect.left,
                 pageRect.top,
                 pageRect.right - pageRect.left,
                 pageRect.bottom - pageRect.top,
-                TRUE
+                SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOCOPYBITS
                 );
         }
         else
@@ -634,6 +665,7 @@ VOID PhPropSheetNewSelectPage(
     if (current->DialogHandle)
     {
         ShowWindow(current->DialogHandle, SW_SHOW);
+        PhPropSheetNewPageLayout(current->DialogHandle);
         SetFocus(current->DialogHandle);
     }
 }
@@ -1150,6 +1182,24 @@ VOID NTAPI PhPropSheetNewBuilderDeleteProcedure(
     PhDereferenceObject(Builder->Caption);
 }
 
+PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT PhpPropSheetNewGetPageLayoutContext(
+    _In_ HWND PageWindow
+    )
+{
+    PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT context;
+
+    context = PhGetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT);
+
+    if (!context)
+    {
+        context = PhAllocateZero(sizeof(PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT));
+        PhInitializeLayoutManager(&context->LayoutManager, PageWindow);
+        PhSetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT, context);
+    }
+
+    return context;
+}
+
 PPH_LAYOUT_ITEM PhPropSheetNewPageAddLayoutItem(
     _In_ HWND PageWindow,
     _In_ HWND Handle,
@@ -1182,14 +1232,18 @@ PPH_LAYOUT_ITEM PhPropSheetNewPageAddLayoutItemEx(
     RECT margin;
     PDLGTEMPLATEEX dialogTemplate;
 
-    context = PhGetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT);
+    context = PhpPropSheetNewGetPageLayoutContext(PageWindow);
 
-    if (!context)
-    {
-        context = PhAllocateZero(sizeof(PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT));
-        PhInitializeLayoutManager(&context->LayoutManager, PageWindow);
-        PhSetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT, context);
-    }
+    // Fall back to the page's stored dialog template (seeded in
+    // PhPropSheetNewCreatePageDialog) when the caller didn't pass one. This lets
+    // the common 4-arg PhPropSheetNewPageAddLayoutItem callers (e.g. procprp's
+    // PhAddPropPageLayoutItem) capture margins relative to the design template
+    // size, so the page can be positioned at its full page-rect size before
+    // registration instead of registering at template size and reflowing.
+    if (!Instance)
+        Instance = context->Instance;
+    if (!Template)
+        Template = context->Template;
 
     if (Handle == PageWindow || ParentItem == PH_PROPSHEETNEW_PAGE_LAYOUT_PARENT)
         return &context->LayoutManager.RootItem;

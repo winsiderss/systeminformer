@@ -1056,9 +1056,9 @@ VOID PhpHexEditOnPaint(
     )
 {
     RECT clientRect;
+    PH_BUFFERED_PAINT bufferedPaint;
     HDC bufferDc;
-    HBITMAP bufferBitmap;
-    HBITMAP oldBufferBitmap;
+    BOOLEAN buffered;
     LONG height;
     LONG x;
     LONG y;
@@ -1068,9 +1068,10 @@ VOID PhpHexEditOnPaint(
 
     GetClientRect(hwnd, &clientRect);
 
-    bufferDc = CreateCompatibleDC(hdc);
-    bufferBitmap = CreateCompatibleBitmap(hdc, clientRect.right, clientRect.bottom);
-    oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
+    buffered = PhBeginBufferedPaint(hdc, &PaintStruct->rcPaint, &bufferedPaint, &bufferDc);
+
+    if (!buffered)
+        bufferDc = hdc;
 
     SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
     FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
@@ -1311,10 +1312,8 @@ VOID PhpHexEditOnPaint(
         }
     }
 
-    BitBlt(hdc, 0, 0, clientRect.right, clientRect.bottom, bufferDc, 0, 0, SRCCOPY);
-    SelectBitmap(bufferDc, oldBufferBitmap);
-    DeleteBitmap(bufferBitmap);
-    DeleteDC(bufferDc);
+    if (buffered)
+        PhEndBufferedPaint(&bufferedPaint, TRUE);
 }
 
 VOID PhpHexEditUpdateScrollbars(

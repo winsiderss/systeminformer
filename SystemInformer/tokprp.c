@@ -370,6 +370,44 @@ HPROPSHEETPAGE PhCreateTokenPage(
     return propSheetPageHandle;
 }
 
+VOID NTAPI PhpTokenPageContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PhDereferenceObject(Object);
+}
+
+PPH_PROCESS_PROPPAGECONTEXT PhCreateTokenProcessPropPageContext(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ HANDLE ProcessId,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
+    )
+{
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PTOKEN_PAGE_CONTEXT tokenPageContext;
+
+    tokenPageContext = PhCreateAlloc(sizeof(TOKEN_PAGE_CONTEXT));
+    memset(tokenPageContext, 0, sizeof(TOKEN_PAGE_CONTEXT));
+    tokenPageContext->OpenObject = OpenObject;
+    tokenPageContext->CloseObject = CloseObject;
+    tokenPageContext->Context = Context;
+    tokenPageContext->HookProc = HookProc;
+    tokenPageContext->ProcessId = ProcessId;
+
+    propPageContext = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_OBJTOKEN),
+        PhpTokenPageProc,
+        tokenPageContext
+        );
+    propPageContext->PropSheetPage.lParam = (LPARAM)tokenPageContext;
+    propPageContext->ContextDeleteProcedure = PhpTokenPageContextDeleteProcedure;
+
+    return propPageContext;
+}
+
 UINT CALLBACK PhpTokenPropPageProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -1470,6 +1508,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_SESSIONID));
         }
         break;
     case WM_DESTROY:
@@ -2176,18 +2216,6 @@ INT_PTR CALLBACK PhpTokenPageProc(
         break;
     case WM_NOTIFY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_SESSIONID));
-                    return TRUE;
-                }
-                break;
-            }
-
             PhHandleListViewNotifyBehaviors(lParam, tokenPageContext->ListViewHandle, PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
 
             REFLECT_MESSAGE_DLG(hwndDlg, tokenPageContext->ListViewHandle, uMsg, wParam, lParam);
@@ -2318,23 +2346,11 @@ INT_PTR CALLBACK PhpTokenPageProc(
         }
         break;
     case WM_CTLCOLORBTN:
-        {
-            if (tokenPageContext->SinglePageContext)
-                return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-        }
-        break;
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
-        {
-            if (tokenPageContext->SinglePageContext)
-                return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-        }
-        break;
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
-        {
-            if (tokenPageContext->SinglePageContext)
-                return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
-        }
-        break;
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     }
 
     return FALSE;
@@ -2626,6 +2642,8 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                 PhInitializeWindowTheme(GetParent(hwndDlg), PhEnableThemeSupport);  // HACK (GetParent)
             else
                 PhInitializeWindowTheme(hwndDlg, FALSE);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_LINKEDTOKEN));
         }
         break;
     case WM_COMMAND:
@@ -2658,21 +2676,6 @@ INT_PTR CALLBACK PhpTokenGeneralPageProc(
                     {
                         PhShowStatus(hwndDlg, L"Unable to open the token", status, 0);
                     }
-                }
-                break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                {
-                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LONG_PTR)GetDlgItem(hwndDlg, IDC_LINKEDTOKEN));
-                    return TRUE;
                 }
                 break;
             }

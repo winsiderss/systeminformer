@@ -26,6 +26,37 @@
 #include <thirdparty.h>
 #include <phconsole.h>
 
+VOID PhApplyThemeModeWithColors(
+    _In_ ULONG Mode,
+    _In_opt_ HWND RootWindow
+    )
+{
+    if (Mode == PhThemeModeCustom)
+    {
+        PH_WINDOW_THEME_PALETTE palette;
+
+        // Seed the Custom palette from the dark base (via PhApplyThemeMode), then
+        // composite the user's per-color settings onto it so the applied palette
+        // - and the background brush derived from it - reflect the saved colors.
+        PhApplyThemeMode(PhThemeModeCustom, NULL);
+        palette = *PhGetWindowThemePalette();
+        palette.ForegroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR);
+        palette.BackgroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR);
+        palette.Background2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR);
+        palette.HighlightColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR);
+        palette.Highlight2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR);
+        palette.TextColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR);
+        PhSetWindowThemePalette(PhWindowThemeCustom1, &palette);
+
+        if (RootWindow)
+            PhReInitializeWindowTheme(RootWindow);
+    }
+    else
+    {
+        PhApplyThemeMode(Mode, RootWindow);
+    }
+}
+
 /**
  * Determines whether a process is suspended.
  *
