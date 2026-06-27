@@ -11539,7 +11539,7 @@ HRESULT PhDevGetObjects(
     HRESULT status;
 
     if (!DevGetObjects_Import())
-        return E_FAIL;
+        return HRESULT_FROM_WIN32(ERROR_PROC_NOT_FOUND);
 
     status = DevGetObjects_Import()(
         ObjectType,

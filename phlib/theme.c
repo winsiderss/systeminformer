@@ -2985,7 +2985,7 @@ LRESULT CALLBACK PhpThemeWindowGroupBoxSubclassProc(
                     PH_BUFFERED_PAINT paintBuffer;
                     HDC bufferDc;
 
-                    if (PhBeginBufferedPaint(hdc, &clientRect, &paintBuffer, &bufferDc))
+                    if (PhBeginBufferedPaint(hdc, &ps.rcPaint, &paintBuffer, &bufferDc))
                     {
                         ThemeWindowRenderClippedGroupBoxControl(WindowHandle, bufferDc, &clientRect);
                         PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -3647,7 +3647,7 @@ LRESULT CALLBACK PhpThemeWindowTabControlWndSubclassProc(
                     return 0;
                 }
 
-                if (PhBeginBufferedPaint(hdc, &clientRect, &paintBuffer, &bufferDc))
+                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
                 {
                     ThemeWindowRenderTabControl(context, WindowHandle, bufferDc, &clientRect, oldWndProc);
                     PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -4089,7 +4089,7 @@ LRESULT CALLBACK PhpThemeWindowComboBoxControlSubclassProc(
 
                 ThemeWindowComboBoxExcludeRect(context, WindowHandle, hdc, &clientRect, oldWndProc);
 
-                if (PhBeginBufferedPaint(hdc, &clientRect, &paintBuffer, &bufferDc))
+                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
                 {
                     ThemeWindowRenderComboBox(context, WindowHandle, bufferDc, &clientRect, oldWndProc);
                     PhEndBufferedPaint(&paintBuffer, TRUE);

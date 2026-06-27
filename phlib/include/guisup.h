@@ -268,6 +268,18 @@ PhDrawThemeBackground(
 PHLIBAPI
 BOOLEAN
 NTAPI
+PhDrawThemeBackgroundEx(
+    _In_ HTHEME ThemeHandle,
+    _In_ HDC hdc,
+    _In_ LONG PartId,
+    _In_ LONG StateId,
+    _In_ LPCRECT Rect,
+    _In_ PVOID Options
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
 PhDrawThemeText(
     _In_ HTHEME ThemeHandle,
     _In_ HDC hdc,
@@ -2821,6 +2833,13 @@ PhGetColorBrightness(
     return (min + max) / 2;
 }
 
+PHLIBAPI
+COLORREF
+NTAPI
+PhHeatMapColor(
+    _In_ FLOAT Ratio // 0.0 (cool/green) to 1.0 (hot/red)
+    );
+
 FORCEINLINE
 COLORREF
 PhHalveColorBrightness(
@@ -3342,6 +3361,14 @@ typedef struct _WINDOWCOMPOSITIONATTRIBUTEDATA
     PVOID Data;
     SIZE_T Length;
 } WINDOWCOMPOSITIONATTRIBUTEDATA, *PWINDOWCOMPOSITIONATTRIBUTEDATA;
+
+typedef struct _PH_WINDOW_MARGINS
+{
+    LONG Left;
+    LONG Right;
+    LONG Top;
+    LONG Bottom;
+} PH_WINDOW_MARGINS, *PPH_WINDOW_MARGINS;
 
 PHLIBAPI
 NTSTATUS

@@ -123,6 +123,7 @@ target_link_libraries(peview PRIVATE
     gdi32
     comdlg32
     advapi32
+    cfgmgr32
     shell32
     ole32
     oleaut32
@@ -143,6 +144,7 @@ target_link_options(peview PRIVATE
     /DELAYLOAD:aclui.dll
     /DELAYLOAD:advapi32.dll
     /DELAYLOAD:bcrypt.dll
+    /DELAYLOAD:cfgmgr32.dll
     /DELAYLOAD:comctl32.dll
     /DELAYLOAD:comdlg32.dll
     /DELAYLOAD:cryptui.dll

@@ -1448,15 +1448,6 @@ PhFindCharInStringRef(
     );
 
 PHLIBAPI
-ULONG_PTR
-NTAPI
-PhFindLastCharInStringRef(
-    _In_ PCPH_STRINGREF String,
-    _In_ WCHAR Character,
-    _In_ BOOLEAN IgnoreCase
-    );
-
-PHLIBAPI
 SIZE_T
 NTAPI
 PhFindFirstOfCharsW(
@@ -1464,6 +1455,15 @@ PhFindFirstOfCharsW(
     _In_ SIZE_T Length,
     _In_reads_(Count) PCWCH Chars,
     _In_ ULONG Count
+    );
+
+PHLIBAPI
+ULONG_PTR
+NTAPI
+PhFindLastCharInStringRef(
+    _In_ PCPH_STRINGREF String,
+    _In_ WCHAR Character,
+    _In_ BOOLEAN IgnoreCase
     );
 
 PHLIBAPI
@@ -4661,6 +4661,15 @@ PhConvertCopyMemoryUlong(
     _In_ SIZE_T Count
     );
 
+PHLIBAPI
+VOID
+NTAPI
+PhAddMemoryUlong(
+    _Inout_ PULONG A,
+    _In_ PULONG B,
+    _In_ ULONG Count
+    );
+
 DECLSPEC_NOALIAS
 PHLIBAPI
 VOID
@@ -4688,15 +4697,6 @@ PhConvertCopyMemorySizeT(
     _Inout_updates_(Count) PSIZE_T From,
     _Inout_updates_(Count) PFLOAT To,
     _In_ SIZE_T Count
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhAddMemoryUlong(
-    _Inout_ PULONG A,
-    _In_ PULONG B,
-    _In_ ULONG Count
     );
 
 DECLSPEC_NOALIAS

@@ -78,58 +78,6 @@ static HTHEME PhScrollNewOpenThemeData(
     return PhOpenThemeData(WindowHandle, VSCLASS_SCROLLBAR, 0);
 }
 
-static VOID PhScrollNewCreateBufferedContext(
-    _In_ PPH_SCROLLNEW_STATE State,
-    _In_ HDC Hdc
-    )
-{
-    State->BufferedDc = CreateCompatibleDC(Hdc);
-
-    if (!State->BufferedDc)
-        return;
-
-    State->BufferedRect = State->Rect;
-    State->BufferedBitmap = CreateCompatibleBitmap(
-        Hdc,
-        State->BufferedRect.right,
-        State->BufferedRect.bottom
-        );
-
-    if (!State->BufferedBitmap)
-    {
-        DeleteDC(State->BufferedDc);
-        State->BufferedDc = NULL;
-        return;
-    }
-
-    State->BufferedOldBitmap = SelectBitmap(State->BufferedDc, State->BufferedBitmap);
-}
-
-static VOID PhScrollNewDestroyBufferedContext(
-    _In_ PPH_SCROLLNEW_STATE State
-    )
-{
-    if (State->BufferedDc && State->BufferedOldBitmap)
-    {
-        SelectBitmap(State->BufferedDc, State->BufferedOldBitmap);
-        State->BufferedOldBitmap = NULL;
-    }
-
-    if (State->BufferedBitmap)
-    {
-        DeleteBitmap(State->BufferedBitmap);
-        State->BufferedBitmap = NULL;
-    }
-
-    if (State->BufferedDc)
-    {
-        DeleteDC(State->BufferedDc);
-        State->BufferedDc = NULL;
-    }
-
-    memset(&State->BufferedRect, 0, sizeof(RECT));
-}
-
 /**
  * Window procedure for the PhScrollNew window class.
  *
@@ -169,8 +117,6 @@ static LRESULT CALLBACK PhScrollNewWndProc(
         {
             PhRemoveWindowContextEx(WindowHandle);
 
-            PhScrollNewDestroyBufferedContext(state);
-
             if (state->ThemeHandle)
                 PhCloseThemeData((HTHEME)state->ThemeHandle);
 
@@ -183,14 +129,6 @@ static LRESULT CALLBACK PhScrollNewWndProc(
 
             PhGetClientRect(WindowHandle, &clientRect);
 
-            // Invalidate the buffer if client area has grown.
-            if (state->BufferedDc && (
-                state->BufferedRect.right < clientRect.right ||
-                state->BufferedRect.bottom < clientRect.bottom))
-            {
-                PhScrollNewDestroyBufferedContext(state);
-            }
-
             PhScrollNewLayout(state, &clientRect);
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
@@ -200,7 +138,9 @@ static LRESULT CALLBACK PhScrollNewWndProc(
     case WM_PAINT:
         {
             HDC hdc;
+            HDC bufferDc;
             PAINTSTRUCT paintStruct;
+            PH_BUFFERED_PAINT bufferedPaint;
 
             if (hdc = BeginPaint(WindowHandle, &paintStruct))
             {
@@ -208,23 +148,10 @@ static LRESULT CALLBACK PhScrollNewWndProc(
                 if (paintStruct.rcPaint.right  > paintStruct.rcPaint.left &&
                     paintStruct.rcPaint.bottom > paintStruct.rcPaint.top)
                 {
-                    if (!state->BufferedDc)
-                        PhScrollNewCreateBufferedContext(state, hdc);
-
-                    if (state->BufferedDc)
+                    if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &bufferedPaint, &bufferDc))
                     {
-                        PhScrollNewDraw(state, state->BufferedDc, state->ThemeHandle);
-                        BitBlt(
-                            hdc,
-                            paintStruct.rcPaint.left,
-                            paintStruct.rcPaint.top,
-                            paintStruct.rcPaint.right  - paintStruct.rcPaint.left,
-                            paintStruct.rcPaint.bottom - paintStruct.rcPaint.top,
-                            state->BufferedDc,
-                            paintStruct.rcPaint.left,
-                            paintStruct.rcPaint.top,
-                            SRCCOPY
-                            );
+                        PhScrollNewDraw(state, bufferDc, state->ThemeHandle);
+                        PhEndBufferedPaint(&bufferedPaint, TRUE);
                     }
                     else
                     {
@@ -245,8 +172,6 @@ static LRESULT CALLBACK PhScrollNewWndProc(
 
             state->ThemeHandle = PhScrollNewOpenThemeData(WindowHandle);
 
-            // Discard the buffer so it is repainted with the new theme.
-            PhScrollNewDestroyBufferedContext(state);
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
         return 0;
@@ -613,6 +538,8 @@ static VOID PhScrollNewPaintNow(
     )
 {
     HDC hdc;
+    HDC bufferDc;
+    PH_BUFFERED_PAINT bufferedPaint;
 
     if (PhRectEmpty(&State->Rect))
         return;
@@ -622,23 +549,10 @@ static VOID PhScrollNewPaintNow(
     if (!hdc)
         return;
 
-    if (!State->BufferedDc)
-        PhScrollNewCreateBufferedContext(State, hdc);
-
-    if (State->BufferedDc)
+    if (PhBeginBufferedPaint(hdc, &State->Rect, &bufferedPaint, &bufferDc))
     {
-        PhScrollNewDraw(State, State->BufferedDc, State->ThemeHandle);
-        BitBlt(
-            hdc,
-            State->Rect.left,
-            State->Rect.top,
-            State->Rect.right - State->Rect.left,
-            State->Rect.bottom - State->Rect.top,
-            State->BufferedDc,
-            State->Rect.left,
-            State->Rect.top,
-            SRCCOPY
-            );
+        PhScrollNewDraw(State, bufferDc, State->ThemeHandle);
+        PhEndBufferedPaint(&bufferedPaint, TRUE);
     }
     else
     {

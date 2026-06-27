@@ -67,7 +67,7 @@ PPH_TABNEW_CONTEXT PhCreateTabNewContext(
     context->DragSourceIndex = -1;
     context->DragTargetIndex = -1;
     context->DragOriginIndex = -1;
-    context->Skin = PhTabNewSkinWin10;
+    context->Skin = PhTabNewSkinUxTheme;
     context->Side = TNS_TOP;
     context->BaseMinTabWidth = PH_TABNEW_DEFAULT_MIN_WIDTH;
     context->BasePaddingX = PH_TABNEW_DEFAULT_PADDING_X;
@@ -349,6 +349,8 @@ VOID PhTabNewLayout(
     HDC hdc;
     HFONT oldFont;
     LONG rowHeight;
+    LONG rowCountsStack[32];
+    LONG rowWidthsStack[32];
     PLONG rowCounts = NULL;
     PLONG rowWidths = NULL;
     ULONG i;
@@ -367,8 +369,18 @@ VOID PhTabNewLayout(
 
     if (!vertical && Context->Items->Count > 0)
     {
-        rowCounts = PhAllocateZero(sizeof(LONG) * Context->Items->Count);
-        rowWidths = PhAllocateZero(sizeof(LONG) * Context->Items->Count);
+        if (Context->Items->Count <= RTL_NUMBER_OF(rowCountsStack))
+        {
+            rowCounts = rowCountsStack;
+            rowWidths = rowWidthsStack;
+            memset(rowCounts, 0, sizeof(rowCountsStack));
+            memset(rowWidths, 0, sizeof(rowWidthsStack));
+        }
+        else
+        {
+            rowCounts = PhAllocateZero(sizeof(LONG) * Context->Items->Count);
+            rowWidths = PhAllocateZero(sizeof(LONG) * Context->Items->Count);
+        }
     }
 
     // Measure widths
@@ -430,23 +442,43 @@ VOID PhTabNewLayout(
         Context->RowCount = vertical ? 1 : (Context->Items->Count > 0 ? (((PPH_TABNEW_INTERNAL_ITEM)Context->Items->Items[Context->Items->Count - 1])->Row + 1) : 1);
     }
 
-    // For TNS_TOP: new rows always expand upward. The natural wrap order
-    // assigns row 0 to early tabs and increases the row index for overflow.
-    // Invert the row->y mapping so the first row (early tabs) sits at the
-    // BOTTOM of the strip (closest to the page below), and overflow rows
-    // stack above it.
-    if (!vertical && Context->RowCount > 1 && Context->Side == TNS_TOP)
+    // Move the selected row next to the page and keep the remaining rows in
+    // logical order when read from the page edge outward.
+    if (!vertical && Context->RowCount > 1)
     {
+        LONG selectedRow = -1;
+
+        if (Context->SelectedIndex >= 0 && Context->SelectedIndex < (LONG)Context->Items->Count)
+            selectedRow = ((PPH_TABNEW_INTERNAL_ITEM)Context->Items->Items[Context->SelectedIndex])->Row;
+
         for (i = 0; i < Context->Items->Count; i++)
         {
             PPH_TABNEW_INTERNAL_ITEM item = Context->Items->Items[i];
-            LONG visualRow = Context->RowCount - 1 - item->Row;
+            LONG visualRow;
+
+            if (Context->Side == TNS_TOP)
+            {
+                if (selectedRow < 0)
+                    visualRow = Context->RowCount - 1 - item->Row;
+                else if (item->Row == selectedRow)
+                    visualRow = Context->RowCount - 1;
+                else
+                    visualRow = Context->RowCount - 1 - item->Row - (selectedRow > item->Row ? 1 : 0);
+            }
+            else
+            {
+                if (selectedRow < 0)
+                    visualRow = item->Row;
+                else if (item->Row == selectedRow)
+                    visualRow = 0;
+                else
+                    visualRow = item->Row + 1 - (selectedRow < item->Row ? 1 : 0);
+            }
+
             item->Rect.top = (LONG)(visualRow * rowHeight);
             item->Rect.bottom = (LONG)((visualRow + 1) * rowHeight);
         }
     }
-    // TNS_BOTTOM: natural wrap order is already correct (row 0 at top of
-    // strip = closest to page above; overflow rows stack below).
 
     // When there's overflow (more than one row), stretch every row's tabs
     // proportionally to fill the strip width — matches Windows TCS_MULTILINE
@@ -564,9 +596,9 @@ VOID PhTabNewLayout(
     SelectFont(hdc, oldFont);
     ReleaseDC(Context->WindowHandle, hdc);
 
-    if (rowCounts)
+    if (rowCounts && rowCounts != rowCountsStack)
         PhFree(rowCounts);
-    if (rowWidths)
+    if (rowWidths && rowWidths != rowWidthsStack)
         PhFree(rowWidths);
 
     // Compute page rect in client coords
@@ -1229,6 +1261,10 @@ VOID PhTabNewDrawItemContent(
     RECT contentRect = *ItemRect;
     LONG iconCx = 0, iconCy = 0;
 
+    // Skip the icon/text draw for tabs outside the DC's update region.
+    if (!RectVisible(Hdc, ItemRect))
+        return;
+
     contentRect.left += (LONG)Context->PaddingX;
     contentRect.right -= (LONG)Context->PaddingX;
 
@@ -1588,7 +1624,21 @@ VOID PhTabNewPaintUxTheme(
             stateId = TIS_NORMAL;
         }
 
-        PhDrawThemeBackground(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, NULL);
+        if (selected)
+        {
+            //DTBGOPTS options;
+            //FillRect(Hdc, &itemRect, Context->BackgroundBrush);
+            //memset(&options, 0, sizeof(DTBGOPTS));
+            //options.dwSize = sizeof(DTBGOPTS);
+            //options.dwFlags = DTBG_OMITCONTENT;
+            //PhDrawThemeBackgroundEx(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, &options);
+
+            FillRect(Hdc, &itemRect, PhThemeWindowBackgroundBrush);
+        }
+        else
+        {
+            PhDrawThemeBackground(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, NULL);
+        }
 
         PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
     }
@@ -1618,14 +1668,14 @@ VOID PhTabNewPaint(
 
     switch (Context->Skin)
     {
-    case PhTabNewSkinWin10:
-        PhTabNewPaintWin10(Context, Hdc, ClientRect);
-        break;
+    default:
     case PhTabNewSkinUxTheme:
         PhTabNewPaintUxTheme(Context, Hdc, ClientRect);
         break;
+    case PhTabNewSkinWin10:
+        PhTabNewPaintWin10(Context, Hdc, ClientRect);
+        break;
     case PhTabNewSkinWin7:
-    default:
         PhTabNewPaintWin7(Context, Hdc, ClientRect);
         break;
     }
@@ -2464,9 +2514,6 @@ LRESULT CALLBACK PhTabNewWndProc(
 {
     PPH_TABNEW_CONTEXT context = PhGetWindowContextEx(WindowHandle);
 
-    if (WindowMessage != WM_NCCREATE && !context)
-        return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
-
     switch (WindowMessage)
     {
     case WM_NCCREATE:
@@ -2515,64 +2562,30 @@ LRESULT CALLBACK PhTabNewWndProc(
         }
         break;
     case WM_ERASEBKGND:
-        return 1;
+        // Suppress background erasure; WM_PAINT renders the entire control using a buffer.
+        return TRUE;
     case WM_PAINT:
         {
             PAINTSTRUCT ps;
             RECT clientRect;
             HDC hdc;
-
-#ifdef PH_TABNEW_WM_PAINT
-            HDC bufferDc = NULL;
-            HBITMAP bufferBmp = NULL;
-            HBITMAP oldBmp = NULL;
-#else
             PH_BUFFERED_PAINT paintBuffer;
             HDC bufferDc;
-#endif
 
             hdc = BeginPaint(WindowHandle, &ps);
             if (!hdc) break;
 
+            if (PhRectEmpty(&ps.rcPaint))
+            {
+                EndPaint(WindowHandle, &ps);
+                break;
+            }
+
             GetClientRect(WindowHandle, &clientRect);
 
-#ifdef PH_TABNEW_WM_PAINT
-            bufferDc = CreateCompatibleDC(hdc);
-            if (bufferDc)
-            {
-                bufferBmp = CreateCompatibleBitmap(
-                    hdc,
-                    clientRect.right - clientRect.left,
-                    clientRect.bottom - clientRect.top
-                    );
-                oldBmp = bufferBmp ? SelectBitmap(bufferDc, bufferBmp) : NULL;
-            }
-
-            if (bufferDc && bufferBmp)
-            {
-                PhTabNewPaint(context, bufferDc, &clientRect);
-
-                BitBlt(
-                    hdc, 0, 0,
-                    clientRect.right - clientRect.left,
-                    clientRect.bottom - clientRect.top,
-                    bufferDc,
-                    0,
-                    0,
-                    SRCCOPY
-                    );
-
-                SelectBitmap(bufferDc, oldBmp);
-                DeleteBitmap(bufferBmp);
-                DeleteDC(bufferDc);
-            }
-            else
-            {
-                if (bufferDc) DeleteDC(bufferDc);
-                PhTabNewPaint(context, hdc, &clientRect);
-            }
-#else
-            if (PhBeginBufferedPaint(hdc, &clientRect, &paintBuffer, &bufferDc))
+            // Buffer only the invalidated region; PhTabNewPaint still lays out using the
+            // full client rect (window coordinates) and is clipped to the rcPaint buffer.
+            if (PhBeginBufferedPaint(hdc, &ps.rcPaint, &paintBuffer, &bufferDc))
             {
                 PhTabNewPaint(context, bufferDc, &clientRect);
                 PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -2581,7 +2594,6 @@ LRESULT CALLBACK PhTabNewWndProc(
             {
                 PhTabNewPaint(context, hdc, &clientRect);
             }
-#endif
 
             EndPaint(WindowHandle, &ps);
         }

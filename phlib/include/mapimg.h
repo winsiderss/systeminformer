@@ -71,6 +71,22 @@ PhMappedImageProbe(
     PhProbeAddress(Address, Length, MappedImage->ViewBase, MappedImage->ViewSize, __alignof(UCHAR));
 }
 
+FORCEINLINE
+VOID
+NTAPI
+PhMappedImageProbeUnaligned(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ VOID UNALIGNED* Address,
+    _In_ SIZE_T Length
+    )
+{
+    // Note: __unaligned only changes codegen where the pointer is dereferenced.
+    // Neither helper ever reads *Address (only (ULONG_PTR) arithmetic + IS_ALIGNED),
+    // so the new functions are inert on every target purely a type-level
+    // accommodation for improved diagnostics.
+    PhMappedImageProbe(MappedImage, (PVOID)Address, Length);
+}
+
 PHLIBAPI
 NTSTATUS
 NTAPI

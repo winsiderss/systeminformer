@@ -534,6 +534,8 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
                 );
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, handlesContext->TreeNewHandle);
         }
         break;
     case WM_DESTROY:
@@ -886,9 +888,6 @@ INT_PTR CALLBACK PhpProcessHandlesDlgProc(
             case PSN_KILLACTIVE:
                 PhSetEnabledProvider(&handlesContext->ProviderRegistration, FALSE);
                 break;
-            case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)handlesContext->TreeNewHandle);
-                return TRUE;
             }
         }
         break;

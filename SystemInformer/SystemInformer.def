@@ -587,6 +587,12 @@ EXPORTS
     PhEnumPagefiles
     PhEnumPoolTagInformation
     PhEnumProcessEnvironmentVariables
+    PhEnumProcessModules
+    PhEnumProcessModules32
+    PhEnumProcessModules32Ex
+    PhEnumProcessModulesEx
+    PhEnumProcessModulesLimited
+    PhEnumProcessModulesRundown
     PhEnumProcesses
     PhEnumProcessesEx
     PhEnumReparsePointInformation
