@@ -3640,85 +3640,6 @@ VOID PhRemoveDialogContext(
 #endif
 }
 
-}
-
-/**
- * Sets the extended window context for a window handle.
- *
- * \param[in] WindowHandle The handle to the window for which to set the context.
- * \param[in] Context A pointer to the context data to associate with the window.
- * \return This function does not return a value.
- * \remarks The window must have sufficient extra bytes allocated to store a PVOID
- * if PHNT_WINDOW_CLASS_CONTEXT is not defined.
- */
-VOID PhSetWindowContextEx(
-    _In_ HWND WindowHandle,
-    _In_ PVOID Context
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
-#else
-    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)PhEncodePtr(Context));
-#endif
-}
-
-/**
- * Removes the window context from a window handle.
- *
- * \param[in] WindowHandle The handle to the window from which to remove the context.
- * \remarks
- * If PHNT_WINDOW_CLASS_CONTEXT is defined, this function delegates to PhRemoveWindowContext
- * with MAXCHAR as the context identifier. Otherwise, it clears the window's extra data by
- * setting the window long pointer at offset 0 to NULL.
- */
-VOID PhRemoveWindowContextEx(
-    _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhRemoveWindowContext(WindowHandle, MAXCHAR);
-#else
-    //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    SetWindowLongPtr(WindowHandle, 0, (LONG_PTR)NULL);
-#endif
-}
-
-PVOID PhGetDialogContext(
-    _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    return PhGetWindowContext(WindowHandle, MAXCHAR);
-#else
-    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER));
-#endif
-}
-
-VOID PhSetDialogContext(
-    _In_ HWND WindowHandle,
-    _In_ PVOID Context
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhSetWindowContext(WindowHandle, MAXCHAR, Context);
-#else
-    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)PhEncodePtr(Context));
-#endif
-}
-
-VOID PhRemoveDialogContext(
-    _In_ HWND WindowHandle
-    )
-{
-#if defined(PHNT_WINDOW_CLASS_CONTEXT)
-    PhRemoveWindowContext(WindowHandle, MAXCHAR);
-#else
-    SetWindowLongPtr(WindowHandle, DWLP_USER, (LONG_PTR)NULL);
-#endif
-}
-
 //
 // Window and Desktop enumeration
 //
@@ -7999,4 +7920,50 @@ VOID PhPaintBuffered(
     {
         PaintProc(PaintStruct->hdc, (PRECT)&PaintStruct->rcPaint, Context);
     }
+}
+
+COLORREF NTAPI PhHeatMapColor(_In_ FLOAT Ratio)  // 0.0 (cool/green) to 1.0 (hot/red)
+{
+    // Five-stop CPU heatmap palette:
+    // 0.00 #2E7D32 -> 0.25 #8BC34A -> 0.50 #FBC02D -> 0.75 #F57C00 -> 1.00 #C62828
+    UCHAR r;
+    UCHAR g;
+    UCHAR b;
+    FLOAT t;
+
+    if (Ratio < 0.0f)
+        Ratio = 0.0f;
+    if (Ratio > 1.0f)
+        Ratio = 1.0f;
+
+    if (Ratio <= 0.25f)
+    {
+        t = Ratio / 0.25f;
+        r = (UCHAR)(46.0f + (139.0f - 46.0f) * t + 0.5f);
+        g = (UCHAR)(125.0f + (195.0f - 125.0f) * t + 0.5f);
+        b = (UCHAR)(50.0f + (74.0f - 50.0f) * t + 0.5f);
+    }
+    else if (Ratio <= 0.5f)
+    {
+        t = (Ratio - 0.25f) / 0.25f;
+        r = (UCHAR)(139.0f + (251.0f - 139.0f) * t + 0.5f);
+        g = (UCHAR)(195.0f + (192.0f - 195.0f) * t + 0.5f);
+        b = (UCHAR)(74.0f + (45.0f - 74.0f) * t + 0.5f);
+    }
+    else if (Ratio <= 0.75f)
+    {
+        t = (Ratio - 0.5f) / 0.25f;
+        r = (UCHAR)(251.0f + (245.0f - 251.0f) * t + 0.5f);
+        g = (UCHAR)(192.0f + (124.0f - 192.0f) * t + 0.5f);
+        b = (UCHAR)(45.0f + (0.0f - 45.0f) * t + 0.5f);
+    }
+    else
+    {
+        t = (Ratio - 0.75f) / 0.25f;
+        r = (UCHAR)(245.0f + (198.0f - 245.0f) * t + 0.5f);
+        g = (UCHAR)(124.0f + (40.0f - 124.0f) * t + 0.5f);
+        b = (UCHAR)(0.0f + (40.0f - 0.0f) * t + 0.5f);
+    }
+
+    return RGB(r, g, b);
 }
