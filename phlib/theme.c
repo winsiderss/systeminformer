@@ -261,6 +261,11 @@ COLORREF PhThemeWindowMenuDisabledTextColor = RGB(155, 155, 155);
 // Cached DC brush returned by PhGetStockBrush(DC_BRUSH)
 static HBRUSH PhpStockDCBrush = NULL;
 
+// Set once a palette has been explicitly selected (e.g. via PhApplyThemeMode at
+// startup) so PhInitializeWindowTheme's default-palette InitOnce does not clobber
+// the chosen theme with the hard-coded Dark/System default.
+static BOOLEAN PhpWindowThemePaletteApplied = FALSE;
+
 static CONST PH_WINDOW_THEME_PALETTE PhpWindowThemeLightPalette =
 {
     RGB(255, 255, 255), // ForegroundColor
@@ -469,6 +474,7 @@ BOOLEAN PhSetWindowThemePalette(
 
     PhpWindowThemeCurrentId = ThemeId;
     PhpApplyWindowThemePalette(selectedPalette);
+    PhpWindowThemePaletteApplied = TRUE;
 
     return TRUE;
 }
@@ -628,8 +634,11 @@ VOID PhInitializeWindowTheme(
         // Populate the palette + mirror globals before any paint code runs.
         // When custom theming is disabled, the System palette resolves from
         // GetSysColor so menus, backgrounds and borders inherit the user's
-        // current Windows color scheme instead of the dark defaults.
-        PhSetWindowThemePalette(EnableThemeSupport ? PhWindowThemeDark : PhWindowThemeSystem, NULL);
+        // current Windows color scheme instead of the dark defaults. Skip this
+        // when a palette was already selected (e.g. PhApplyThemeMode at startup)
+        // so the chosen Light/Dark/Custom theme is not overwritten.
+        if (!PhpWindowThemePaletteApplied)
+            PhSetWindowThemePalette(EnableThemeSupport ? PhWindowThemeDark : PhWindowThemeSystem, NULL);
         PhEndInitOnce(&paletteInitOnce);
     }
 
@@ -777,13 +786,16 @@ VOID PhUninitializeWindowTheme(
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
-VOID PhInitializeWindowThemeEx(
-    _In_ HWND WindowHandle
+// Reads the per-user "AppsUseLightTheme" preference from the registry. This is
+// the low-level fallback used when the uxtheme dark-mode exports are missing
+// (pre-Win10-RS5). Returns TRUE when apps should use the light theme.
+static BOOLEAN PhpQueryWindowsAppsUseLightTheme(
+    VOID
     )
 {
     static CONST PH_STRINGREF keyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize");
     HANDLE keyHandle;
-    BOOLEAN enableThemeSupport = FALSE;
+    BOOLEAN appsUseLightTheme = TRUE;
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -793,11 +805,101 @@ VOID PhInitializeWindowThemeEx(
         0
         )))
     {
-        enableThemeSupport = !PhQueryRegistryUlongZ(keyHandle, L"AppsUseLightTheme");
+        appsUseLightTheme = !!PhQueryRegistryUlongZ(keyHandle, L"AppsUseLightTheme");
         NtClose(keyHandle);
     }
 
-    PhInitializeWindowTheme(WindowHandle, enableThemeSupport);
+    return appsUseLightTheme;
+}
+
+// Resolves the undocumented uxtheme dark-mode query exports. Safe to call
+// independently of PhInitializeWindowTheme (used by PhQueryWindowsUseDarkMode
+// during early startup before the main window exists).
+static VOID PhpInitializeUxThemeDarkModeExports(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            PVOID baseAddress;
+
+            if (!(baseAddress = PhGetLoaderEntryDllBaseZ(L"uxtheme.dll")))
+                baseAddress = PhLoadLibrary(L"uxtheme.dll");
+
+            if (baseAddress)
+            {
+                ShouldAppsUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 132);
+                ShouldSystemUseDarkMode_I = PhGetDllBaseProcedureAddress(baseAddress, NULL, 138);
+            }
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+}
+
+// Determines whether application windows should use the dark theme. Prefers the
+// uxtheme ShouldAppsUseDarkMode export (reflects the "Choose your default app
+// mode" preference) and falls back to the AppsUseLightTheme registry value.
+BOOLEAN PhQueryWindowsUseDarkMode(
+    VOID
+    )
+{
+    PhpInitializeUxThemeDarkModeExports();
+
+    if (ShouldAppsUseDarkMode_I)
+        return !!ShouldAppsUseDarkMode_I();
+
+    return !PhpQueryWindowsAppsUseLightTheme();
+}
+
+// Applies a user-facing theme mode (see PH_THEME_MODE) by selecting the
+// matching palette. Only meaningful when PhEnableThemeSupport is TRUE; callers
+// must honour the master gate. When RootWindow is supplied the change is
+// applied live (palette swap + re-theme); otherwise only the palette is
+// selected (startup, before the window exists).
+VOID PhApplyThemeMode(
+    _In_ ULONG Mode,
+    _In_opt_ HWND RootWindow
+    )
+{
+    PH_WINDOW_THEME_ID themeId;
+
+    switch (Mode)
+    {
+    case PhThemeModeLight:
+        themeId = PhWindowThemeLight;
+        break;
+    case PhThemeModeDark:
+        themeId = PhWindowThemeDark;
+        break;
+    case PhThemeModeCustom:
+        // The custom palette is zero-initialized until configured; seed it from
+        // the dark palette so selecting Custom never yields an unusable UI.
+        if (PhpWindowThemeCustom1Palette.BackgroundColor == 0)
+            PhpWindowThemeCustom1Palette = PhpWindowThemeDarkPalette;
+        themeId = PhWindowThemeCustom1;
+        break;
+    case PhThemeModeAutomatic:
+    default:
+        themeId = PhQueryWindowsUseDarkMode() ? PhWindowThemeDark : PhWindowThemeLight;
+        break;
+    }
+
+    if (RootWindow)
+        PhSetCurrentWindowTheme(themeId, RootWindow);
+    else
+        PhSetWindowThemePalette(themeId, NULL);
+}
+
+VOID PhInitializeWindowThemeEx(
+    _In_ HWND WindowHandle
+    )
+{
+    PhInitializeWindowTheme(WindowHandle, PhQueryWindowsUseDarkMode());
 }
 
 VOID PhReInitializeWindowTheme(

@@ -1122,6 +1122,8 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, threadsContext->TreeNewHandle);
         }
         break;
     case WM_DESTROY:
@@ -1734,9 +1736,6 @@ INT_PTR CALLBACK PhpProcessThreadsDlgProc(
             case PSN_KILLACTIVE:
                 // Can't disable, it screws up the deltas.
                 break;
-            case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)threadsContext->TreeNewHandle);
-                return TRUE;
             }
         }
         break;

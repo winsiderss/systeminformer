@@ -290,6 +290,87 @@ NTSTATUS PhCreateNamedPipe(
 }
 
 /**
+ * Opens one of the named-pipe filesystem protected-prefix directories.
+ *
+ * The NPFS pre-creates squat-proof directories under the named-pipe device. Only the matching
+ * account or group may create pipes inside its directory, while everyone may open existing pipes.
+ * Creating a server pipe with a relative name under the returned handle prevents a lower-privileged
+ * process from squatting the pipe name before the real server starts.
+ *
+ * \param[out] DirectoryHandle Receives a handle to the protected-prefix directory. Pass this as the
+ *        RootDirectory when creating a pipe with a relative name (see PhCreateNamedPipe).
+ * \param[in] PrefixType The protected prefix to open (Administrators, LocalService or NetworkService).
+ * \param[in] DesiredAccess Requested access mask for the directory handle.
+ * \return NTSTATUS Successful or error status.
+ */
+NTSTATUS PhOpenNamedPipeProtectedPrefix(
+    _Out_ PHANDLE DirectoryHandle,
+    _In_ PH_NAMED_PIPE_PREFIX_TYPE PrefixType,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    static CONST PH_STRINGREF deviceName = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE L"ProtectedPrefix\\");
+    static CONST PH_STRINGREF administratorsName = PH_STRINGREF_INIT(L"Administrators");
+    static CONST PH_STRINGREF localServiceName = PH_STRINGREF_INIT(L"LocalService");
+    static CONST PH_STRINGREF networkServiceName = PH_STRINGREF_INIT(L"NetworkService");
+    NTSTATUS status;
+    PCPH_STRINGREF prefixName;
+    HANDLE directoryHandle;
+    PPH_STRING objectName;
+    UNICODE_STRING objectNameUs;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK isb;
+
+    switch (PrefixType)
+    {
+    case PhNamedPipePrefixAdministrators:
+        prefixName = &administratorsName;
+        break;
+    case PhNamedPipePrefixLocalService:
+        prefixName = &localServiceName;
+        break;
+    case PhNamedPipePrefixNetworkService:
+        prefixName = &networkServiceName;
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    objectName = PhConcatStringRef2(&deviceName, prefixName);
+
+    if (!PhStringRefToUnicodeString(&objectName->sr, &objectNameUs))
+    {
+        PhDereferenceObject(objectName);
+        return STATUS_NAME_TOO_LONG;
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &objectNameUs,
+        OBJ_CASE_INSENSITIVE,
+        NULL,
+        NULL
+        );
+
+    status = NtOpenFile(
+        &directoryHandle,
+        DesiredAccess | SYNCHRONIZE,
+        &objectAttributes,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        *DirectoryHandle = directoryHandle;
+    }
+
+    PhDereferenceObject(objectName);
+    return status;
+}
+
+/**
  * Connects to a named pipe.
  *
  * \param[out] PipeHandle The pipe read/write handle.

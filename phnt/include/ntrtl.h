@@ -6013,6 +6013,46 @@ RtlIsZeroMemory(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_19H2
 
+FORCEINLINE
+BOOLEAN 
+NTAPI 
+RtlIsZeroMemory(
+    _In_ PVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    PCHAR buffer = (PCHAR)Buffer;
+
+    while (((ULONG_PTR)buffer & 7) != 0 && Length != 0)
+    {
+        if (*buffer != 0)
+            return FALSE;
+
+        buffer++;
+        Length--;
+    }
+
+    while (Length >= sizeof(ULONG64))
+    {
+        if (*(PULONG64)buffer != 0)
+            return FALSE;
+
+        buffer += sizeof(ULONG64);
+        Length -= sizeof(ULONG64);
+    }
+
+    while (Length != 0)
+    {
+        if (*buffer != 0)
+            return FALSE;
+
+        buffer++;
+        Length--;
+    }
+
+    return TRUE;
+}
+
 NTSYSAPI
 ULONG
 NTAPI
@@ -8115,7 +8155,7 @@ typedef struct _RTL_DEBUG_INFORMATION
     ULONG_PTR ViewBaseDelta;                            // Offset between client and target view bases
     HANDLE EventPairClient;                             // Event pair for synchronization (client)
     HANDLE EventPairTarget;                             // Event pair for synchronization (target)
-    HANDLE TargetProcessId;                             // Target process ID or current process if RTL_QUERY_PROCESS_USE_CURRENT_PROCESS set)
+    HANDLE TargetProcessId;                             // Target process ID or current process (if RTL_QUERY_PROCESS_USE_CURRENT_PROCESS set)
     HANDLE TargetThreadHandle;                          // Target thread handle
     ULONG Flags;                                        // Query flags (RTL_QUERY_PROCESS_* flags)
     SIZE_T OffsetFree;                                  // Offset of free space in debug buffer

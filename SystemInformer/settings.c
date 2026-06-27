@@ -75,6 +75,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_ENABLE_SHUTDOWN_BOOT_MENU, L"1");
     PhpAddIntegerSetting(SETTING_ENABLE_SILENT_CRASH_NOTIFY, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, L"0");
+    PhpAddIntegerSetting(SETTING_THEME_MODE, L"0"); // PhThemeModeAutomatic
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_SUPPORT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT, L"0");
     PhpAddIntegerSetting(SETTING_ENABLE_THEME_ANIMATION, L"1");

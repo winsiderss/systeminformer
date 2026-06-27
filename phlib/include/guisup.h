@@ -3724,6 +3724,21 @@ PhInitializeThemeWindowFrame(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhQueryWindowsUseDarkMode(
+    VOID
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhApplyThemeMode(
+    _In_ ULONG Mode,
+    _In_opt_ HWND RootWindow
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhInitializeThemeWindowGroupBox(

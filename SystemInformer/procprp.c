@@ -49,7 +49,6 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_PROCESS_PROPCONTEXT propContext;
-    PROPSHEETHEADER propSheetHeader;
 
     if (PhBeginInitOnce(&initOnce))
     {
