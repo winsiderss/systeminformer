@@ -2841,7 +2841,8 @@ NTSTATUS PhGetMappedImageImportDll(
         status = PhMappedImageRvaToVa(
             ImportDll->MappedImage,
             ImportDll->Descriptor->Name,
-            (PVOID*)&ImportDll->Name);
+            &ImportDll->Name
+            );
 
         if (!NT_SUCCESS(status))
             return status;
@@ -2853,7 +2854,8 @@ NTSTATUS PhGetMappedImageImportDll(
             if (!NT_SUCCESS(PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
                 ImportDll->Descriptor->OriginalFirstThunk,
-                &ImportDll->LookupTable)))
+                &ImportDll->LookupTable
+                )))
             {
                 ImportDll->LookupTable = NULL;
             }
@@ -2863,7 +2865,8 @@ NTSTATUS PhGetMappedImageImportDll(
             if (!NT_SUCCESS(PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
                 ImportDll->Descriptor->FirstThunk,
-                &ImportDll->LookupTable)))
+                &ImportDll->LookupTable
+                )))
             {
                 ImportDll->LookupTable = NULL;
             }
@@ -2878,7 +2881,8 @@ NTSTATUS PhGetMappedImageImportDll(
             status = PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
                 ImportDll->DelayDescriptor->DllNameRVA,
-                &ImportDll->Name);
+                &ImportDll->Name
+                );
 
             if (!NT_SUCCESS(status))
                 return status;
@@ -2888,7 +2892,8 @@ NTSTATUS PhGetMappedImageImportDll(
             if (!NT_SUCCESS(PhMappedImageRvaToVa(
                 ImportDll->MappedImage,
                 ImportDll->DelayDescriptor->ImportNameTableRVA,
-                &ImportDll->LookupTable)))
+                &ImportDll->LookupTable
+                )))
             {
                 ImportDll->LookupTable = NULL;
             }
@@ -3741,7 +3746,8 @@ NTSTATUS PhGetMappedImageResources(
     status = PhMappedImageRvaToVa(
         MappedImage,
         dataDirectory->VirtualAddress,
-        &resourceDirectory);
+        &resourceDirectory
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -5273,13 +5279,16 @@ NTSTATUS PhGetMappedImageEhCont64(
     if (!RTL_CONTAINS_FIELD(config64, config64->Size, GuardEHContinuationCount))
         return STATUS_INVALID_VIEW_SIZE;
 
-    PhMappedImageVaToVa(MappedImage, (ULONG_PTR)config64->GuardEHContinuationTable, &EhContConfig->EhContTable, NULL);
+    // nt!RtlGuardRestoreContext
     EhContConfig->NumberOfEhContEntries = config64->GuardEHContinuationCount;
-
-    // taken from nt!RtlGuardRestoreContext
     EhContConfig->EntrySize = ((config64->GuardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
 
-    if (EhContConfig->EhContTable && EhContConfig->NumberOfEhContEntries)
+    if (EhContConfig->NumberOfEhContEntries && NT_SUCCESS(PhMappedImageVaToVa(
+        MappedImage,
+        (ULONG_PTR)config64->GuardEHContinuationTable,
+        &EhContConfig->EhContTable,
+        NULL
+        )) && EhContConfig->EhContTable)
     {
         __try
         {
@@ -5360,7 +5369,13 @@ NTSTATUS PhGetMappedImagePogoEntryByName(
         return GetExceptionCode();
     }
 
-    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO)
+    if (
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO
+        )
     {
         // The signature can be zero but still contain valid entries.
         if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
@@ -5441,7 +5456,13 @@ NTSTATUS PhGetMappedImagePogo(
         return GetExceptionCode();
     }
 
-    if (debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU && debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO)
+    if (
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_LTCG &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGI &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGO &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_PGU &&
+        debugEntry->Signature != IMAGE_DEBUG_POGO_SIGNATURE_SPGO
+        )
     {
         // The signature can be zero but still contain valid entries.
         if (!(debugEntry->Signature == 0 && debugEntryLength > sizeof(IMAGE_DEBUG_POGO_SIGNATURE)))
@@ -5566,8 +5587,8 @@ NTSTATUS PhGetMappedImageRelocations(
     {
         __try
         {
-            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
-            PhMappedImageProbe(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
+            PhMappedImageProbeUnaligned(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhMappedImageProbeUnaligned(MappedImage, relocationDirectory, relocationDirectory->SizeOfBlock);
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -5691,7 +5712,8 @@ NTSTATUS PhMappedImageEnumerateRelocations(
     status = PhMappedImageRvaToVa(
         MappedImage,
         dataDirectory->VirtualAddress,
-        &relocationDirectory);
+        &relocationDirectory
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -5700,7 +5722,7 @@ NTSTATUS PhMappedImageEnumerateRelocations(
 
     __try
     {
-        PhMappedImageProbe(MappedImage, relocationDirectory, dataDirectory->Size);
+        PhMappedImageProbeUnaligned(MappedImage, relocationDirectory, dataDirectory->Size);
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
@@ -5714,7 +5736,7 @@ NTSTATUS PhMappedImageEnumerateRelocations(
 
         __try
         {
-            PhMappedImageProbe(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
+            PhMappedImageProbeUnaligned(MappedImage, relocationDirectory, sizeof(IMAGE_BASE_RELOCATION));
         }
         __except (EXCEPTION_EXECUTE_HANDLER)
         {
@@ -5798,10 +5820,10 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
         {
             if (config32->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
             {
-                PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config32->DynamicValueRelocTableSection - 1];
-                SIZE_T offset = (section->PointerToRawData + config32->DynamicValueRelocTableOffset);
+                const PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config32->DynamicValueRelocTableSection - 1];
+                const SIZE_T offset = UInt32Add32To64(section->PointerToRawData, config32->DynamicValueRelocTableOffset);
 
-                if (offset < (section->PointerToRawData + section->SizeOfRawData))
+                if (offset < UInt32Add32To64(section->PointerToRawData, section->SizeOfRawData))
                 {
                     table = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
                 }
@@ -5828,8 +5850,8 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
         {
             if (config64->DynamicValueRelocTableSection <= MappedImage->NumberOfSections)
             {
-                PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config64->DynamicValueRelocTableSection - 1];
-                SIZE_T offset = (section->PointerToRawData + config64->DynamicValueRelocTableOffset);
+                const PIMAGE_SECTION_HEADER section = &MappedImage->Sections[config64->DynamicValueRelocTableSection - 1];
+                const SIZE_T offset = (section->PointerToRawData + config64->DynamicValueRelocTableOffset);
 
                 if (offset < (section->PointerToRawData + section->SizeOfRawData))
                 {
@@ -6030,7 +6052,8 @@ NTSTATUS PhpFillDynamicRelocations(
             PhMappedImageRvaToVa(
                 MappedImage,
                 base->VirtualAddress,
-                &entry.MappedImageVa);
+                &entry.MappedImageVa
+                );
 
             status = Callback(MappedImage, &entry, Context);
 
@@ -6273,6 +6296,7 @@ NTSTATUS PhpFillDynamicRelocations(
         bddInfoSize = PtrToUlong(PTR_SUB_OFFSET(BaseRelocsEnd, BaseRelocs));
         bddInfoSize -= (bddInfoSize > sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) ? sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) : bddInfoSize);
         bddInfoSize -= (bddInfoSize > header->FuncOverrideSize ? header->FuncOverrideSize : bddInfoSize);
+
         if (bddInfoSize && bddInfo->Version == 1 && bddInfo->BDDSize >= sizeof(IMAGE_BDD_DYNAMIC_RELOCATION))
         {
             bddNodes = PTR_ADD_OFFSET(bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize));
@@ -6448,7 +6472,8 @@ NTSTATUS PhpFillDynamicRelocations(
                 PhMappedImageRvaToVa(
                     MappedImage,
                     UInt32Add32To64(entry.Other.BlockRva, entry.Other.Record.Offset),
-                    &entry.MappedImageVa);
+                    &entry.MappedImageVa
+                    );
 
                 status = Callback(MappedImage, &entry, Context);
 
@@ -6882,7 +6907,8 @@ NTSTATUS PhGetMappedImageExceptionsEx(
         status = PhMappedImageRvaToVa(
             MappedImage,
             Exceptions->DataDirectoryARM64X.VirtualAddress,
-            &exceptionDirectory);
+            &exceptionDirectory
+            );
 
         if (!NT_SUCCESS(status))
             return status;
@@ -6920,7 +6946,8 @@ NTSTATUS PhGetMappedImageExceptionsEx(
         status = PhMappedImageRvaToVa(
             MappedImage,
             dataDirectory->VirtualAddress,
-            &exceptionDirectory);
+            &exceptionDirectory
+            );
 
         if (!NT_SUCCESS(status))
             return status;
@@ -7079,7 +7106,8 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
         status = PhMappedImageRvaToVa(
             MappedImage,
             metadata->VolatileAccessTable,
-            &volatileAccessTable);
+            &volatileAccessTable
+            );
 
         if (!NT_SUCCESS(status))
             return status;
@@ -7128,7 +7156,8 @@ NTSTATUS PhGetMappedImageVolatileMetadata(
         status = PhMappedImageRvaToVa(
             MappedImage,
             metadata->VolatileInfoRangeTable,
-            &volatileRangeTable);
+            &volatileRangeTable
+            );
 
         if (!NT_SUCCESS(status))
             return status;

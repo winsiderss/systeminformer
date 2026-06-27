@@ -66,13 +66,6 @@ typedef struct _PH_SCROLLNEW_STATE
 
     LONG TrackPosition;
 
-    // Double-buffering GDI objects (owned by the window class).
-
-    HDC BufferedDc;
-    HBITMAP BufferedBitmap;
-    HBITMAP BufferedOldBitmap;
-    RECT BufferedRect;
-
     // TRUE while the WM_POINTER* handler is re-entering the wndproc with a
     // translated WM_LBUTTON*/WM_MOUSEMOVE; suppresses the touch-synthesized
     // mouse-message gate during that synchronous re-entry.
@@ -85,15 +78,6 @@ static VOID PhScrollNewWndProcNotify(
     _In_ PPH_SCROLLNEW_STATE State,
     _In_ UINT ScrollCode,
     _In_ LONG NewPosition
-    );
-
-static VOID PhScrollNewCreateBufferedContext(
-    _In_ PPH_SCROLLNEW_STATE State,
-    _In_ HDC Hdc
-    );
-
-static VOID PhScrollNewDestroyBufferedContext(
-    _In_ PPH_SCROLLNEW_STATE State
     );
 
 static VOID PhScrollNewPaintNow(

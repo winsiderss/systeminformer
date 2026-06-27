@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2016
- *     dmex    2017-2023
+ *     dmex    2017-2026
  *
  */
 
@@ -270,12 +270,18 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPERTY_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WINDOWS_PROPERTY_SIZE, L"@96|690,540" },
+                { StringSettingType, SETTING_NAME_WINDOWS_PROPERTY_PAGE, L"General" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPLIST_COLUMNS, L"" },
                 { StringSettingType, SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS, L"" },
+                { StringSettingType, SETTING_NAME_WINDOWS_DWMATTRIBUTES_COLUMNS, L"" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_ALTERNATE, L"1" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_MESSAGEONLY, L"1" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_ENUM_NONVISIBLE, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY_COLOR, L"ffffcc" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS, L"1" },
                 { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL, L"0" },
-                { IntegerSettingType, SETTING_NAME_WINDOW_ENABLE_PREVIEW, L"0" },
+                { IntegerSettingType, SETTING_NAME_WINDOW_FIND_SNAPSHOT, L"1" },
             };
 
             WPP_INIT_TRACING(PLUGIN_NAME);

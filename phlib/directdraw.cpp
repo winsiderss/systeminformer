@@ -1574,6 +1574,7 @@ VOID PhDestroyWindowTargeting(
     PhRestoreWindowTargetingOwner(Context);
     PhFree(Context);
 }
+
 HWND PhSelectWindowFromScreenTargeting(
     _In_opt_ HWND OwnerWindowHandle,
     _In_ BOOLEAN OverlayHighlight

@@ -1643,6 +1643,8 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
             PhApplyTreeNewFilters(&context->TreeFilterSupport);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
         }
         break;
     case WM_DESTROY:
@@ -1904,18 +1906,6 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PhDereferenceObject(text);
                 }
                 break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)context->TreeNewHandle);
-                return TRUE;
             }
         }
         break;

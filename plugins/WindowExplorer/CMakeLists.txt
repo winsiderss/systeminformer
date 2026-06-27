@@ -13,8 +13,8 @@ set(HEADERS
 source_group("Header Files" FILES ${HEADERS})
 
 set(RESOURCES
-    "version.rc"
     "WindowExplorer.rc"
+    "version.rc"
 )
 source_group("Resource Files" FILES ${RESOURCES})
 
@@ -24,6 +24,7 @@ set(SOURCES
     "utils.c"
     "wnddlg.c"
     "wndprp.c"
+    "wndprv.c"
     "wndtree.c"
 )
 source_group("Source Files" FILES ${SOURCES})
@@ -33,12 +34,10 @@ set(ALL_FILES
     ${RESOURCES}
     ${SOURCES}
 )
-
 si_add_plugin(WindowExplorer ${ALL_FILES})
 
 target_link_libraries(WindowExplorer PRIVATE
     delayimp
-    comctl32
     comctl32
     gdi32
     ole32
@@ -48,7 +47,6 @@ target_link_libraries(WindowExplorer PRIVATE
 )
 
 target_link_options(WindowExplorer PRIVATE
-    /DELAYLOAD:comctl32.dll
     /DELAYLOAD:comctl32.dll
     /DELAYLOAD:gdi32.dll
     /DELAYLOAD:ole32.dll

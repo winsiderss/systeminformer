@@ -5283,7 +5283,6 @@ typedef PH_ENUM_GENERIC_MODULES_CALLBACK* PPH_ENUM_GENERIC_MODULES_CALLBACK;
 
 #define PH_ENUM_GENERIC_MAPPED_FILES 0x1
 #define PH_ENUM_GENERIC_MAPPED_IMAGES 0x2
-#define PH_ENUM_GENERIC_LDRDAG_MODULES 0x4 // Walk the loader DDAG dependency graph instead of the load order list. (Windows 8+)
 #define PH_ENUM_GENERIC_LIMITED_MODULES 0x8 // Enumerate image regions via virtual memory pages instead of the loader.
 
 PHLIBAPI

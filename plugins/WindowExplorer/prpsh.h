@@ -14,42 +14,31 @@
 #ifndef PV_PRP_H
 #define PV_PRP_H
 
+#include <graphprp.h>
+
 EXTERN_C_START
-
-#define PV_PROPCONTEXT_MAXPAGES 20
-
-typedef struct _PV_PROPSHEETCONTEXT
-{
-    BOOLEAN LayoutInitialized;
-    WNDPROC DefaultWindowProc;
-    PH_LAYOUT_MANAGER LayoutManager;
-    PPH_LAYOUT_ITEM TabPageItem;
-
-    HWND RefreshButtonWindowHandle;
-    WNDPROC OldRefreshButtonWndProc;
-} PV_PROPSHEETCONTEXT, *PPV_PROPSHEETCONTEXT;
 
 typedef struct _PV_PROPCONTEXT
 {
-    PROPSHEETHEADER PropSheetHeader;
-    HPROPSHEETPAGE *PropSheetPages;
+    PPH_PROPSHEETNEW_BUILDER Builder;
 } PV_PROPCONTEXT, *PPV_PROPCONTEXT;
 
 typedef struct _PV_PROPPAGECONTEXT
 {
-    PPV_PROPCONTEXT PropContext;
     PVOID Context;
-    PROPSHEETPAGE PropSheetPage;
+    PVOID Instance;
+    LPCWSTR Template;
+    DLGPROC DialogProc;
+    PCWSTR Id;
+    PCWSTR Name;
 
     BOOLEAN LayoutInitialized;
 } PV_PROPPAGECONTEXT, *PPV_PROPPAGECONTEXT;
 
-VOID HdPropInitialization(
-    VOID
-    );
-
 PPV_PROPCONTEXT HdCreatePropContext(
-    _In_ PWSTR Caption
+    _In_ PWSTR Caption,
+    _In_opt_ PVOID Context,
+    _In_opt_ PPH_PROPSHEETNEW_INITIALIZED_CALLBACK InitializedCallback
     );
 
 BOOLEAN PvAddPropPage(
@@ -57,12 +46,9 @@ BOOLEAN PvAddPropPage(
     _In_ _Assume_refs_(1) PPV_PROPPAGECONTEXT PropPageContext
     );
 
-BOOLEAN PvAddPropPage2(
-    _Inout_ PPV_PROPCONTEXT PropContext,
-    _In_ HPROPSHEETPAGE PropSheetPageHandle
-    );
-
 PPV_PROPPAGECONTEXT PvCreatePropPageContext(
+    _In_ PCWSTR Id,
+    _In_ PCWSTR Name,
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
@@ -70,6 +56,8 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContext(
 
 PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
     _In_opt_ PVOID InstanceHandle,
+    _In_ PCWSTR Id,
+    _In_ PCWSTR Name,
     _In_ LPCWSTR Template,
     _In_ DLGPROC DlgProc,
     _In_opt_ PVOID Context
@@ -79,24 +67,23 @@ _Success_(return)
 BOOLEAN
 NTAPI
 PvPropPageDlgProcHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPARAM lParam,
-    _Out_ LPPROPSHEETPAGE *PropSheetPage,
     _Out_ PPV_PROPPAGECONTEXT *PropPageContext
     );
 
 #define PH_PROP_PAGE_TAB_CONTROL_PARENT ((PPH_LAYOUT_ITEM)0x1)
 
 PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
-    _In_ HWND hwnd,
+    _In_ HWND WindowHandle,
     _In_ HWND Handle,
     _In_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor
     );
 
 VOID PvDoPropPageLayout(
-    _In_ HWND hwnd
+    _In_ HWND WindowHandle
     );
 
 _Success_(return)
@@ -104,40 +91,30 @@ FORCEINLINE
 BOOLEAN
 NTAPI
 PvPropPageDlgProcHeader(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
     _In_ LPARAM lParam,
-    _Out_ LPPROPSHEETPAGE *PropSheetPage,
     _Out_ PPV_PROPPAGECONTEXT *PropPageContext
     )
 {
-    LPPROPSHEETPAGE propSheetPage;
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (uMsg == WM_INITDIALOG)
+    if (WindowMessage == WM_INITDIALOG)
     {
-        // Save the context.
-        propSheetPage = (LPPROPSHEETPAGE)lParam;
-        propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
-
-        PhSetWindowContext(hwndDlg, 0xfff, propSheetPage);
+        propPageContext = (PPV_PROPPAGECONTEXT)lParam;
+        PhSetWindowContext(WindowHandle, 0xfff, propPageContext);
     }
     else
     {
-        propSheetPage = (LPPROPSHEETPAGE)PhGetWindowContext(hwndDlg, 0xfff);
+        propPageContext = (PPV_PROPPAGECONTEXT)PhGetWindowContext(WindowHandle, 0xfff);
 
-        if (!propSheetPage)
+        if (!propPageContext)
             return FALSE;
 
-        propPageContext = (PPV_PROPPAGECONTEXT)propSheetPage->lParam;
-
-        if (uMsg == WM_NCDESTROY)
-        {
-            PhRemoveWindowContext(hwndDlg, 0xfff);
-        }
+        if (WindowMessage == WM_NCDESTROY)
+            PhRemoveWindowContext(WindowHandle, 0xfff);
     }
 
-    *PropSheetPage = propSheetPage;
     *PropPageContext = propPageContext;
 
     return TRUE;

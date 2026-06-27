@@ -45,7 +45,11 @@ VOID FASTCALL PhfInitializeEvent(
     )
 {
     Event->Value = PH_EVENT_REFCOUNT_INC;
+
+#pragma warning(push)
+#pragma warning(disable : 6387)
     WritePointerRelease(&Event->EventHandle, NULL);
+#pragma warning(pop)
 }
 
 /**
