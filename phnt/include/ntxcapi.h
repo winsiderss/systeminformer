@@ -59,15 +59,6 @@ RtlRaiseNoncontinuableException(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_20H1
 
-_Kernel_entry_
-NTSYSCALLAPI
-NTSTATUS
-NTAPI
-NtContinue(
-    _In_ PCONTEXT ContextRecord,
-    _In_ BOOLEAN TestAlert
-    );
-
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 typedef enum _KCONTINUE_TYPE
 {
@@ -95,6 +86,15 @@ NTAPI
 NtContinueEx(
     _In_ PCONTEXT ContextRecord,
     _In_ PVOID ContinueArgument // PKCONTINUE_ARGUMENT and BOOLEAN are valid
+    );
+
+_Kernel_entry_
+NTSYSCALLAPI
+NTSTATUS
+NTAPI
+NtContinue(
+    _In_ PCONTEXT ContextRecord,
+    _In_ BOOLEAN TestAlert
     );
 
 //FORCEINLINE
