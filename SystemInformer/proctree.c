@@ -233,6 +233,7 @@ VOID PhInitializeProcessTreeList(
     PhAddTreeNewColumn(hwnd, PHPRTLC_START_KEY, FALSE, L"Start key", 120, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_MITIGATION_POLICIES, FALSE, L"Mitigation policies", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
     PhAddTreeNewColumn(hwnd, PHPRTLC_SERVICES, FALSE, L"Services", 180, PH_ALIGN_LEFT, ULONG_MAX, 0);
+    PhAddTreeNewColumn(hwnd, PHPRTLC_SHORT_USERNAME, FALSE, L"Short user name", 140, PH_ALIGN_LEFT, ULONG_MAX, 0);
 
     PhCmInitializeManager(&ProcessTreeListCm, hwnd, PHPRTLC_MAXIMUM, PhpProcessTreeNewPostSortFunction);
     PhInitializeTreeNewFilterSupport(&FilterSupport, hwnd, ProcessNodeList);
@@ -693,6 +694,7 @@ VOID PhpRemoveProcessNode(
     PhClearReference(&ProcessNode->ProcessStartKeyText);
     PhClearReference(&ProcessNode->MitigationPoliciesText);
     PhClearReference(&ProcessNode->ServicesText);
+    PhClearReference(&ProcessNode->ShortUsernameText);
 
     PhDeleteGraphBuffers(&ProcessNode->CpuGraphBuffers);
     PhDeleteGraphBuffers(&ProcessNode->PrivateGraphBuffers);
@@ -1910,6 +1912,27 @@ static VOID PhpUpdateProcessNodeServices(
     }
 }
 
+static VOID PhpUpdateProcessNodeShortUsername(
+    _Inout_ PPH_PROCESS_NODE ProcessNode
+)
+{
+    if (!FlagOn(ProcessNode->ValidMask, PHPN_SHORTUSERNAME))
+    {
+        PhClearReference(&ProcessNode->ShortUsernameText);
+
+        if (ProcessNode->ProcessItem->UserName)
+        {
+            wchar_t* backslash = wcsrchr(ProcessNode->ProcessItem->UserName->Buffer, L'\\');
+            if (backslash)
+                ProcessNode->ShortUsernameText = PhCreateString(backslash + 1);
+            else
+                ProcessNode->ShortUsernameText = PhCreateString(ProcessNode->ProcessItem->UserName->Buffer);
+        }
+
+        SetFlag(ProcessNode->ValidMask, PHPN_SHORTUSERNAME);
+    }
+}
+
 #define SORT_FUNCTION(Column) PhpProcessTreeNewCompare##Column
 #define BEGIN_SORT_FUNCTION(Column) static int __cdecl PhpProcessTreeNewCompare##Column( \
     _In_ const void *_elem1, \
@@ -2976,6 +2999,19 @@ BEGIN_SORT_FUNCTION(Services)
 }
 END_SORT_FUNCTION
 
+BEGIN_SORT_FUNCTION(ShortUserName)
+{
+    PhpUpdateProcessNodeShortUsername(node1);
+    PhpUpdateProcessNodeShortUsername(node2);
+    sortResult = PhCompareStringWithNullSortOrder(
+        node1->ShortUsernameText,
+        node2->ShortUsernameText,
+        ProcessTreeListSortOrder,
+        TRUE
+    );
+}
+END_SORT_FUNCTION
+
 BOOLEAN NTAPI PhpProcessTreeNewCallback(
     _In_ HWND hwnd,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3163,6 +3199,7 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     SORT_FUNCTION(StartKey),
                     SORT_FUNCTION(MitigationPolicies),
                     SORT_FUNCTION(Services),
+                    SORT_FUNCTION(ShortUserName),
                 };
                 _CoreCrtNonSecureSearchSortCompareFunction sortFunction;
 
@@ -4695,6 +4732,16 @@ BOOLEAN NTAPI PhpProcessTreeNewCallback(
                     if (node->ServicesText)
                     {
                         getCellText->Text = PhGetStringRef(node->ServicesText);
+                    }
+                }
+                break;
+            case PHPRTLC_SHORT_USERNAME:
+                {
+                    PhpUpdateProcessNodeShortUsername(node);
+
+                    if (node->ShortUsernameText)
+                    {
+                        getCellText->Text = PhGetStringRef(node->ShortUsernameText);
                     }
                 }
                 break;
