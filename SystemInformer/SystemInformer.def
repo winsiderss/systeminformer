@@ -592,7 +592,6 @@ EXPORTS
     PhEnumProcessModules32Ex
     PhEnumProcessModulesEx
     PhEnumProcessModulesLimited
-    PhEnumProcessModulesRundown
     PhEnumProcesses
     PhEnumProcessesEx
     PhEnumReparsePointInformation
