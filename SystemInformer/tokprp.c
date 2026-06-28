@@ -23,6 +23,7 @@
 #include <settings.h>
 #include <symprv.h>
 #include <workqueue.h>
+#include <procprp.h>
 #include <phsettings.h>
 
 typedef enum _PH_PROCESS_TOKEN_CATEGORY
