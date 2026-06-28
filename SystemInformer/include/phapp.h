@@ -1028,6 +1028,14 @@ HPROPSHEETPAGE PhCreateTokenPage(
     _In_opt_ DLGPROC HookProc
     );
 
+PPH_PROCESS_PROPPAGECONTEXT PhCreateTokenProcessPropPageContext(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_ HANDLE ProcessId,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
+    );
+
 EXTERN_C_END
 
 #endif
