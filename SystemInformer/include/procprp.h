@@ -13,6 +13,8 @@
 #ifndef PH_PROCPRP_H
 #define PH_PROCPRP_H
 
+#define PH_PROPSHEET_NEW 1
+
 typedef struct _PH_PROCESS_WAITPROPCONTEXT
 {
     SLIST_ENTRY ListEntry;
@@ -28,8 +30,12 @@ typedef struct _PH_PROCESS_PROPCONTEXT
 {
     PPH_PROCESS_ITEM ProcessItem;
     PPH_STRING Title;
+#ifdef PH_PROPSHEET_NEW
+    HWND ParentWindowHandle;
+#else
     PROPSHEETHEADER PropSheetHeader;
     HPROPSHEETPAGE* PropSheetPages;
+#endif
 
     HANDLE SelectThreadId;
 
@@ -48,17 +54,6 @@ typedef struct _PH_PROCESS_PROPCONTEXT
     ULONG PropSheetNewPageCount;
 #endif
 } PH_PROCESS_PROPCONTEXT, *PPH_PROCESS_PROPCONTEXT;
-
-// begin_phapppub
-typedef struct _PH_PROCESS_PROPPAGECONTEXT
-{
-    PPH_PROCESS_PROPCONTEXT PropContext;
-    PVOID Context;
-    PROPSHEETPAGE PropSheetPage;
-
-    BOOLEAN LayoutInitialized;
-} PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
-// end_phapppub
 
 // begin_phapppub
 PHAPPAPI

@@ -6,13 +6,14 @@
  * Authors:
  *
  *     wj32    2010
- *     dmex    2018-2019
+ *     dmex    2018-2026
  *
  */
 
 #include <phapp.h>
 #include <phplug.h>
 #include <procprv.h>
+#include <procprp.h>
 
 #include <emenu.h>
 #include <hndlinfo.h>
@@ -122,6 +123,42 @@ HPROPSHEETPAGE PhCreateJobPage(
     PhDereferenceObject(jobPageContext);
 
     return propSheetPageHandle;
+}
+
+VOID NTAPI PhpJobPageContextDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PhDereferenceObject(Object);
+}
+
+PPH_PROCESS_PROPPAGECONTEXT PhCreateJobProcessPropPageContext(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
+    )
+{
+    PPH_PROCESS_PROPPAGECONTEXT propPageContext;
+    PJOB_PAGE_CONTEXT jobPageContext;
+
+    jobPageContext = PhCreateAlloc(sizeof(JOB_PAGE_CONTEXT));
+    memset(jobPageContext, 0, sizeof(JOB_PAGE_CONTEXT));
+    jobPageContext->OpenObject = OpenObject;
+    jobPageContext->CloseObject = CloseObject;
+    jobPageContext->Context = Context;
+    jobPageContext->HookProc = HookProc;
+
+    propPageContext = PhCreateProcessPropPageContext(
+        MAKEINTRESOURCE(IDD_OBJJOB),
+        PhpJobPageProc,
+        jobPageContext
+        );
+    propPageContext->PropSheetPage.lParam = (LPARAM)jobPageContext;
+    propPageContext->ContextDeleteProcedure = PhpJobPageContextDeleteProcedure;
+
+    return propPageContext;
 }
 
 UINT CALLBACK PhpJobPropPageProc(
@@ -396,6 +433,8 @@ INT_PTR CALLBACK PhpJobPageProc(
             }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_PROCESSES));
         }
         break;
     case WM_DESTROY:
@@ -494,15 +533,6 @@ INT_PTR CALLBACK PhpJobPageProc(
         break;
     case WM_NOTIFY:
         {
-            LPNMHDR header = (LPNMHDR)lParam;
-
-            switch (header->code)
-            {
-            case PSN_QUERYINITIALFOCUS:
-                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, (LPARAM)GetDlgItem(hwndDlg, IDC_PROCESSES));
-                return TRUE;
-            }
-
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_PROCESSES), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
             PhHandleListViewNotifyBehaviors(lParam, GetDlgItem(hwndDlg, IDC_LIMITS), PH_LIST_VIEW_DEFAULT_1_BEHAVIORS);
         }

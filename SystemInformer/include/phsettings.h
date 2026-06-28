@@ -13,6 +13,8 @@
 #ifndef PH_SETTINGS_H
 #define PH_SETTINGS_H
 
+EXTERN_C_START
+
 //
 // Application Typedefs
 //
@@ -274,6 +276,8 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_SHUTDOWN_BOOT_MENU                           L"EnableShutdownBootMenu"
 #define SETTING_ENABLE_SILENT_CRASH_NOTIFY                          L"EnableSilentCrashNotify"
 #define SETTING_ENABLE_THEME_SUPPORT                                L"EnableThemeSupport"
+#define SETTING_THEME_MODE                                          L"ThemeMode"
+#define SETTING_THEME_MODE_MIGRATED                                 L"ThemeModeMigrated"
 #define SETTING_ENABLE_THEME_ACRYLIC_SUPPORT                        L"EnableThemeAcrylicSupport"
 #define SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT                 L"EnableThemeAcrylicWindowSupport"
 #define SETTING_ENABLE_THEME_ANIMATION                              L"EnableThemeAnimation"
@@ -679,5 +683,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PROCESS_MONITOR_CATEGORY_FILTER                     L"ProcessMonitorCategoryFilter"
 #define SETTING_PROCESS_MONITOR_NODE_LIMIT                          L"ProcessMonitorNodeLimit"
 // end_phapppub
+
+EXTERN_C_END
 
 #endif
