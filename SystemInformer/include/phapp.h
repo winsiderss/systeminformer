@@ -616,6 +616,25 @@ HPROPSHEETPAGE PhCreateJobPage(
     _In_opt_ DLGPROC HookProc
     );
 
+// begin_phapppub
+typedef struct _PH_PROCESS_PROPPAGECONTEXT
+{
+    PPH_PROCESS_PROPCONTEXT PropContext;
+    PVOID Context;
+    PROPSHEETPAGE PropSheetPage;
+    PPH_TYPE_DELETE_PROCEDURE ContextDeleteProcedure;
+
+    BOOLEAN LayoutInitialized;
+} PH_PROCESS_PROPPAGECONTEXT, *PPH_PROCESS_PROPPAGECONTEXT;
+// end_phapppub
+
+PPH_PROCESS_PROPPAGECONTEXT PhCreateJobProcessPropPageContext(
+    _In_ PPH_OPEN_OBJECT OpenObject,
+    _In_ PPH_CLOSE_OBJECT CloseObject,
+    _In_opt_ PVOID Context,
+    _In_opt_ DLGPROC HookProc
+    );
+
 // kdump
 
 typedef union _PH_LIVE_DUMP_OPTIONS
