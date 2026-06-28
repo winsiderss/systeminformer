@@ -440,8 +440,7 @@ FwpmNetEventEnum5_(
     _Out_ PULONG NumEntriesReturned
     );
 
-typeof(&FwpmNetEventCreateEnumHandleEx) FwpmNetEventCreateEnumHandleEx_I;
-typeof(&FwpmNetEventEnum5_) FwpmNetEventEnum5_I;
-
+EXTERN_C typeof(&FwpmNetEventCreateEnumHandleEx) FwpmNetEventCreateEnumHandleEx_I;
+EXTERN_C typeof(&FwpmNetEventEnum5_) FwpmNetEventEnum5_I;
 
 #endif
