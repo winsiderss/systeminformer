@@ -3624,6 +3624,16 @@ typedef enum _PH_WINDOW_THEME_ID
     PhWindowThemeSystem
 } PH_WINDOW_THEME_ID;
 
+// User-facing theme mode (Options > Themes combo). Only consulted when
+// PhEnableThemeSupport is TRUE; selects which palette PhApplyThemeMode applies.
+typedef enum _PH_THEME_MODE
+{
+    PhThemeModeAutomatic = 0, // follow the Windows app light/dark preference
+    PhThemeModeLight = 1,     // force the light palette
+    PhThemeModeDark = 2,      // force the dark palette
+    PhThemeModeCustom = 3     // force the custom palette (Custom1)
+} PH_THEME_MODE;
+
 typedef struct _PH_WINDOW_THEME_PALETTE
 {
     COLORREF ForegroundColor;
@@ -3710,20 +3720,6 @@ PhInitializeWindowThemeEx(
     );
 
 PHLIBAPI
-VOID
-NTAPI
-PhReInitializeWindowTheme(
-    _In_ HWND WindowHandle
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhInitializeThemeWindowFrame(
-    _In_ HWND WindowHandle
-    );
-
-PHLIBAPI
 BOOLEAN
 NTAPI
 PhQueryWindowsUseDarkMode(
@@ -3736,6 +3732,20 @@ NTAPI
 PhApplyThemeMode(
     _In_ ULONG Mode,
     _In_opt_ HWND RootWindow
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhReInitializeWindowTheme(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowFrame(
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
