@@ -104,6 +104,12 @@ VOID ToolStatusMenuBarUpdateUiState(
     SendMessage(TsMenuBarWindowHandle, TB_SETHOTITEM, INT_ERROR, 0);
     ToolStatusMenuBarResetTrackingState();
 
+    // Force a repaint now that all hot/pressed/menu-active state is cleared. The
+    // TB_SETHOTITEM above is a no-op (and triggers no repaint) when the hot item was
+    // already cleared earlier in the close sequence, which would otherwise leave the
+    // last button painted in its hot/selected state. (dmex)
+    InvalidateRect(TsMenuBarWindowHandle, NULL, FALSE);
+
     if (RestoreFocus && TsMenuBarOldFocusWindowHandle)
     {
         SetFocus(TsMenuBarOldFocusWindowHandle);
@@ -810,12 +816,9 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
                 0,
                 0
             ) == currentIndex;
-            BOOLEAN isMouseDown = SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_ISBUTTONPRESSED,
-                DrawInfo->nmcd.dwItemSpec,
-                0
-            ) == 0;
+            BOOLEAN isMenuOpen =
+                TsMenuBarMenuActive &&
+                (LONG)currentIndex == TsMenuBarPressedItemIndex;
             BOOLEAN isEnabled = SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
                 TB_ISBUTTONENABLED,
@@ -849,25 +852,13 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
                 LONG stateId;
 
                 if (!isEnabled)
-                {
                     stateId = 4; // TS_DISABLED
-                }
+                else if (isMenuOpen)
+                    stateId = 3; // TS_PRESSED (menu open / selected)
                 else if (isHighlighted)
-                {
-                    if (isMouseDown)
-                        stateId = 3; // TS_PRESSED
-                    else
-                        stateId = 2; // TS_HOT
-                }
+                    stateId = 2; // TS_HOT
                 else
-                {
-                    BOOLEAN isPressed = buttonInfo.fsState & TBSTATE_PRESSED;
-
-                    if (isPressed)
-                        stateId = 3; // TS_PRESSED
-                    else
-                        stateId = 1; // TS_NORMAL
-                }
+                    stateId = 1; // TS_NORMAL
 
                 PhDrawThemeBackground(
                     TsMenuBarThemeHandle,
@@ -880,25 +871,15 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
             }
             else
             {
-                if (isHighlighted)
+                if (isHighlighted || isMenuOpen)
                 {
                     SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_HOTLIGHT));
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {
-                    BOOLEAN isPressed = buttonInfo.fsState & TBSTATE_PRESSED;
-
-                    if (isPressed)
-                    {
-                        SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_HOTLIGHT));
-                        FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
-                    }
-                    else
-                    {
-                        SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_WINDOW));
-                        FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
-                    }
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_WINDOW));
+                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
                 }
             }
 
@@ -983,7 +964,8 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
                     buttonText,
                     (ULONG)PhCountStringZ(buttonText),
                     &textRect,
-                    DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
+                    DT_CENTER | DT_VCENTER | DT_SINGLELINE |
+                    ((DrawInfo->nmcd.uItemState & CDIS_SHOWKEYBOARDCUES) ? 0 : DT_HIDEPREFIX)
                     );
             }
 
@@ -1079,6 +1061,14 @@ BOOLEAN ToolStatusMenuBarHandleMessage(
                 virtualKey == VK_MENU
                 )
             {
+                if (!TsMenuBarMenuActive && GetFocus() == TsMenuBarWindowHandle)
+                {
+                    // Already keyboard-activated (no popup open): second Alt/F10 deactivates.
+                    TOOLSTATUS_MENUBAR_LOG("HandleMessage toggle off vk=%ld", virtualKey);
+                    ToolStatusMenuBarDeactivate(TRUE);
+                    return TRUE;
+                }
+
                 if (
                     TsMenuBarMenuActive ||
                     TsMenuBarDelayedActivation ||

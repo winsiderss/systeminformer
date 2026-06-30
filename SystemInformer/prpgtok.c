@@ -70,6 +70,29 @@ NTSTATUS PhpCloseProcessTokenForPage(
     return STATUS_SUCCESS;
 }
 
+static VOID PhpInitializeProcessTokenPageLayout(
+    _In_ HWND WindowHandle
+    )
+{
+    PPH_LAYOUT_ITEM dialogItem;
+
+    PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
+
+    // This is a big violation of abstraction...
+
+    dialogItem = PhAddPropPageLayoutItem(WindowHandle, WindowHandle, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_USER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_USERSID), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_VIRTUALIZED), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_GROUPS), dialogItem, PH_ANCHOR_ALL);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_DEFAULTPERM), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_PERMISSIONS), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+    PhAddPropPageLayoutItem(WindowHandle, GetDlgItem(WindowHandle, IDC_ADVANCED), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+    PhDoPropPageLayout(WindowHandle);
+}
+
 INT_PTR CALLBACK PhpProcessTokenHookProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -89,21 +112,7 @@ INT_PTR CALLBACK PhpProcessTokenHookProc(
         {
             if (!PhGetWindowContext(hwndDlg, 0xD)) // LayoutInitialized
             {
-                PPH_LAYOUT_ITEM dialogItem;
-
-                // This is a big violation of abstraction...
-
-                dialogItem = PhAddPropPageLayoutItem(hwndDlg, hwndDlg, PH_PROP_PAGE_TAB_CONTROL_PARENT, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USER), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_USERSID), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIRTUALIZED), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_GROUPS), dialogItem, PH_ANCHOR_ALL);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_DEFAULTPERM), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PERMISSIONS), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_ADVANCED), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-
-                PhDoPropPageLayout(hwndDlg);
+                PhpInitializeProcessTokenPageLayout(hwndDlg);
 
                 PhSetWindowContext(hwndDlg, 0xD, UlongToPtr(TRUE));
             }
