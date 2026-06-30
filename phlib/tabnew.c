@@ -7,17 +7,11 @@
  *
  *     dmex    2026
  *
- * Custom Win32 tab control: side placement (top/bottom/left/right), multi-line
- * wrap, optional per-tab close buttons, Ctrl+drag reorder, three skins
- * (Win7 Aero replica, Win10 flat, native uxtheme), dark theme support, and a
- * virtual-page model (the tab control has no real client area; consumers
- * parent page hwnds to the tab control's parent and reposition them in
- * response to PHTNN_LAYOUT).
- *
  */
 
 #include <ph.h>
 #include <guisup.h>
+#include <guisupp.h>
 #include <tabnew.h>
 #include <tabnewp.h>
 #include <vsstyle.h>
@@ -38,11 +32,10 @@ RTL_ATOM PhTabNewInitialization(
     wcex.cbSize = sizeof(WNDCLASSEX);
     wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhTabNewWndProc;
-    wcex.cbClsExtra = 0;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = NULL; // we paint everything ourselves
+    wcex.hbrBackground = NULL;
     wcex.lpszClassName = PH_TABNEW_CLASSNAME;
 
     return RegisterClassEx(&wcex);
@@ -154,6 +147,7 @@ BOOLEAN PhTabNewGetItemLayoutIdentifier(
         return FALSE;
 
     item = Context->Items->Items[Index];
+
     return Callback(Context->WindowHandle, item->Param, Identifier, CallbackContext);
 }
 
@@ -449,7 +443,9 @@ VOID PhTabNewLayout(
         LONG selectedRow = -1;
 
         if (Context->SelectedIndex >= 0 && Context->SelectedIndex < (LONG)Context->Items->Count)
+        {
             selectedRow = ((PPH_TABNEW_INTERNAL_ITEM)Context->Items->Items[Context->SelectedIndex])->Row;
+        }
 
         for (i = 0; i < Context->Items->Count; i++)
         {
@@ -737,7 +733,9 @@ LRESULT PhTabNewDispatchNotify(
     Header->code = Code;
 
     if (Context->Callback)
+    {
         return Context->Callback(Context->WindowHandle, Code, Header, NULL, Context->Context);
+    }
 
     if (!Context->ParentHandle)
         return 0;
@@ -784,11 +782,16 @@ VOID PhTabNewSendLayoutNotify(
 {
     NMTABNEWLAYOUT nm;
 
+    if (Context->LayoutDirty)
+        PhTabNewLayout(Context);
+
     nm.PageRect = Context->CachedPageRect;
 
     // Translate to parent client coords
     if (Context->ParentHandle)
+    {
         MapWindowPoints(Context->WindowHandle, Context->ParentHandle, (POINT *)&nm.PageRect, 2);
+    }
 
     PhTabNewDispatchNotify(Context, PHTNN_LAYOUT, &nm.Header);
 }
@@ -817,8 +820,10 @@ VOID PhTabNewSetSelection(
     if (Notify)
     {
         LRESULT result = PhTabNewSendNotify(Context, PHTNN_SELCHANGING, NewIndex);
+
         if (result)
             return; // Cancel
+
         // Stock TCN_* alias for legacy consumers
         PhTabNewSendNotify(Context, TCN_SELCHANGING, NewIndex);
     }
@@ -1785,7 +1790,9 @@ static BOOLEAN PhpTabNewRestoreLayout(
     remaining = *Layout;
 
     for (i = 0; i < TabContext->Items->Count; i++)
+    {
         PhAddItemList(remainingItems, TabContext->Items->Items[i]);
+    }
 
     while (remaining.Length != 0)
     {
@@ -1815,7 +1822,9 @@ static BOOLEAN PhpTabNewRestoreLayout(
     }
 
     for (i = 0; i < remainingItems->Count; i++)
+    {
         PhAddItemList(orderedItems, remainingItems->Items[i]);
+    }
 
     if (orderedItems->Count == TabContext->Items->Count)
     {

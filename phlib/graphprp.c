@@ -10,6 +10,7 @@
 
 #include <ph.h>
 #include <guisup.h>
+#include <guisupp.h>
 #include <settings.h>
 #include <tabnew.h>
 #include <graphprp.h>
@@ -1286,7 +1287,10 @@ VOID PhPropSheetNewPageLayout(
     context = PhGetWindowContext(PageWindow, PH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT_SLOT);
 
     if (context)
+    {
+        PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(PageWindow));
         PhLayoutManagerLayout(&context->LayoutManager);
+    }
 }
 
 // ---------------------------------------------------------------------------
