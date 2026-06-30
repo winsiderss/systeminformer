@@ -366,13 +366,15 @@ PhSetStringSetting(
     _In_ PCWSTR Value
     )
 {
-    PH_STRINGREF name;
     PH_STRINGREF value;
 
-    PhInitializeStringRef(&name, Name);
     PhInitializeStringRef(&value, Value);
+    {
+        PH_STRINGREF name;
 
-    PhSetStringRefSetting(&name, &value);
+        PhInitializeStringRef(&name, Name);
+        PhSetStringRefSetting(&name, &value);
+    }
 }
 
 /**
@@ -468,6 +470,11 @@ VOID PhConvertIgnoredSettings(
 
 NTSTATUS PhLoadSettings(
     _In_ PCPH_STRINGREF FileName
+    );
+
+NTSTATUS PhLoadSettingsEx(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_opt_ PBOOLEAN IsPortable
     );
 
 PHLIBAPI
@@ -588,8 +595,8 @@ PhValidWindowPlacementFromSetting(
     _In_ PCWSTR Name
     )
 {
-    PH_STRINGREF name;
     PH_INTEGER_PAIR integerPair;
+    PH_STRINGREF name;
 
     PhInitializeStringRef(&name, Name);
 

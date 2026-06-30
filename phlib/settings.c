@@ -39,14 +39,23 @@ PPH_HASHTABLE PhSettingsHashtable;
 PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 PPH_LIST PhIgnoredSettings;
 
+typedef enum _PH_SETTINGS_STORE_PRIORITY
+{
+    PhSettingsStorePriorityJson = 1,
+    PhSettingsStorePriorityXml,
+    PhSettingsStorePriorityKey,
+    PhSettingsStorePriorityReg,
+    PhSettingsStorePriorityBin
+} PH_SETTINGS_STORE_PRIORITY;
+
 // Settings store descriptors (priority order: lower = higher priority)
 static const PH_SETTINGS_STORE_DESCRIPTOR PhSettingsStores[] =
 {
-    { SettingsFormatJson, L".json", TRUE,   TRUE,   FALSE, 1 },
-    { SettingsFormatXml, L".xml",   TRUE,   FALSE,  TRUE,  2 },
-    { SettingsFormatKey, L".dat",   TRUE,   FALSE,  FALSE, 3 },
-    { SettingsFormatReg, NULL,      FALSE,  FALSE,  FALSE, 4 },
-    { SettingsFormatBin, L".bin",   TRUE,   FALSE,  FALSE, 5 },
+    { SettingsFormatJson, L".json", TRUE,   TRUE,   FALSE, PhSettingsStorePriorityJson },
+    { SettingsFormatXml, L".xml",   TRUE,   FALSE,  TRUE,  PhSettingsStorePriorityXml },
+    { SettingsFormatKey, L".dat",   TRUE,   FALSE,  FALSE, PhSettingsStorePriorityKey },
+    { SettingsFormatReg, NULL,      FALSE,  FALSE,  FALSE, PhSettingsStorePriorityReg },
+    { SettingsFormatBin, L".bin",   TRUE,   FALSE,  FALSE, PhSettingsStorePriorityBin },
 };
 
 #define PH_SETTINGS_STORE_COUNT RTL_NUMBER_OF(PhSettingsStores)
@@ -2106,6 +2115,9 @@ static ULONG PhpDiscoverSettingsStores(
     )
 {
     ULONG foundCount = 0;
+    FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
+    PPH_STRING searchPath;
+    PPH_STRING filePath;
 
     RtlZeroMemory(Results, sizeof(PH_SETTINGS_DISCOVERY_RESULT) * ResultCount);
 
@@ -2113,13 +2125,12 @@ static ULONG PhpDiscoverSettingsStores(
 
     if (!BasePath)
     {
-        PPH_STRING searchPath;
-
         // 1. Portable
         if (searchPath = PhGetApplicationFileNameZ(L".settings"))
         {
             foundCount = PhpDiscoverSettingsStores(searchPath, DefaultName, Results, ResultCount, NULL);
             PhDereferenceObject(searchPath);
+
             if (foundCount > 0)
             {
                 if (IsPortable) *IsPortable = TRUE;
@@ -2137,7 +2148,6 @@ static ULONG PhpDiscoverSettingsStores(
     }
 
     for (ULONG i = 0; i < PH_SETTINGS_STORE_COUNT; i++)
-// ... (omitting lines for brevity, but I will include them in the real tool call)
     {
         const PH_SETTINGS_STORE_DESCRIPTOR* store = &PhSettingsStores[i];
 
@@ -2149,23 +2159,14 @@ static ULONG PhpDiscoverSettingsStores(
             if (!BasePath)
                 continue;
 
-            PPH_STRING filePath = PhConcatStringRefZ(&BasePath->sr, store->Extension);
+            filePath = PhConcatStringRefZ(&BasePath->sr, store->Extension);
 
-            if (PhDoesFileExist(&filePath->sr))
+            if (NT_SUCCESS(PhQueryFullAttributesFile(&filePath->sr, &networkOpenInfo)))
             {
-                FILE_NETWORK_OPEN_INFORMATION networkOpenInfo;
-
-                if (NT_SUCCESS(PhQueryFullAttributesFile(&filePath->sr, &networkOpenInfo)))
-                {
-                    Results[i].Found = TRUE;
-                    Results[i].FilePath = filePath;
-                    Results[i].LastWriteTime = networkOpenInfo.LastWriteTime;
-                    foundCount++;
-                }
-                else
-                {
-                    PhDereferenceObject(filePath);
-                }
+                Results[i].Found = TRUE;
+                Results[i].FilePath = filePath;
+                Results[i].LastWriteTime = networkOpenInfo.LastWriteTime;
+                foundCount++;
             }
             else
             {
@@ -2188,12 +2189,8 @@ static ULONG PhpDiscoverSettingsStores(
                 0
                 )))
             {
-                //LARGE_INTEGER lastwriteTime = { 0 };
-                //PhQueryKeyLastWriteTime(keyHandle, &lastwriteTime);
-
                 Results[i].Found = TRUE;
                 Results[i].FilePath = NULL;
-                //Results[i].LastWriteTime = lastwriteTime;
                 foundCount++;
                 NtClose(keyHandle);
             }
@@ -2207,9 +2204,9 @@ static LONG PhpSelectBestSettingsStore(
     _In_reads_(PH_SETTINGS_STORE_COUNT) PPH_SETTINGS_DISCOVERY_RESULT Results
     )
 {
-    LONG preferredIndex = -1;
-    LONG newestIndex = -1;
-    LONG highestPriorityIndex = -1;
+    LONG preferredIndex = LONG_MAX;
+    LONG newestIndex = LONG_MAX;
+    LONG highestPriorityIndex = LONG_MAX;
     LARGE_INTEGER newestTime = { 0 };
     LONG highestPriority = INT_MAX;
 
@@ -2239,10 +2236,10 @@ static LONG PhpSelectBestSettingsStore(
         }
     }
 
-    if (preferredIndex >= 0)
+    if (preferredIndex != LONG_MAX)
         return preferredIndex;
 
-    if (newestIndex >= 0)
+    if (newestIndex != LONG_MAX)
         return newestIndex;
 
     return highestPriorityIndex;
@@ -2312,13 +2309,19 @@ NTSTATUS PhLoadSettingsAutoDetect(
 
     selectedIndex = PhpSelectBestSettingsStore(results);
 
-    if (selectedIndex < 0)
+    if (selectedIndex == LONG_MAX)
     {
         status = STATUS_NOT_FOUND;
         goto Cleanup;
     }
 
     const PH_SETTINGS_STORE_DESCRIPTOR* selectedStore = &PhSettingsStores[selectedIndex];
+
+    if (selectedStore->IsFileBased && !results[selectedIndex].FilePath)
+    {
+        status = STATUS_NOT_FOUND;
+        goto Cleanup;
+    }
 
     switch (selectedStore->Format)
     {
@@ -2399,7 +2402,22 @@ NTSTATUS PhLoadSettings(
     _In_ PCPH_STRINGREF FileName
     )
 {
+    return PhLoadSettingsEx(FileName, NULL);
+}
+
+NTSTATUS PhLoadSettingsEx(
+    _In_ PCPH_STRINGREF FileName,
+    _Out_opt_ PBOOLEAN IsPortable
+    )
+{
     NTSTATUS status = STATUS_INVALID_PARAMETER;
+    PPH_STRING portableSettingsBaseName = NULL;
+
+    if (IsPortable)
+        *IsPortable = FALSE;
+
+    if (IsPortable)
+        portableSettingsBaseName = PhGetApplicationFileNameZ(L".settings");
 
     // Detect format from extension
     for (ULONG i = 0; i < PH_SETTINGS_STORE_COUNT; i++)
@@ -2407,6 +2425,18 @@ NTSTATUS PhLoadSettings(
         if (PhSettingsStores[i].IsFileBased &&
             PhEndsWithStringRef2(FileName, PhSettingsStores[i].Extension, TRUE))
         {
+            if (portableSettingsBaseName)
+            {
+                PPH_STRING portableSettingsFileName;
+
+                portableSettingsFileName = PhConcatStringRefZ(&portableSettingsBaseName->sr, PhSettingsStores[i].Extension);
+
+                if (PhEqualStringRef(&portableSettingsFileName->sr, FileName, TRUE))
+                    *IsPortable = TRUE;
+
+                PhDereferenceObject(portableSettingsFileName);
+            }
+
             PhSettingsLoadedFormat = PhSettingsStores[i].Format;
 
             switch (PhSettingsStores[i].Format)
@@ -2427,6 +2457,9 @@ NTSTATUS PhLoadSettings(
             break;
         }
     }
+
+    if (portableSettingsBaseName)
+        PhDereferenceObject(portableSettingsBaseName);
 
     return status;
 }

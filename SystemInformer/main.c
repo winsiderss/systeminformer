@@ -428,7 +428,7 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
     {
         WCHAR className[256];
 
-        if (GetClassName(WindowHandle, className, RTL_NUMBER_OF(className)))
+        if (NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)))
         {
             if (PhEqualStringZ(className, PhGetString(context->WindowName), FALSE))
             {
@@ -1504,7 +1504,7 @@ VOID PhInitializeAppSettings(
 
             if (PhSettingsFileName)
             {
-                status = PhLoadSettings(&PhSettingsFileName->sr);
+                status = PhLoadSettingsEx(&PhSettingsFileName->sr, &PhPortableEnabled);
             }
         }
 
@@ -1547,165 +1547,6 @@ VOID PhInitializeAppSettings(
 
     PhUpdateCachedSettings();
 
-    //PhSettingsInitialization();
-    //PhAddDefaultSettings();
-
-    //if (!PhStartupParameters.NoSettings)
-    //{
-    //    // There are three possible locations for the settings file:
-    //    // 1. The file name given in the command line.
-    //    // 2. A file named SystemInformer.exe.settings.json in the program directory. (This changes
-    //    //    based on the executable file name.)
-    //    // 3. The default location.
-
-    //    // 1. File specified in command line
-    //    if (PhStartupParameters.SettingsFileName)
-    //    {
-    //        if (PhDetermineDosPathNameType(&PhStartupParameters.SettingsFileName->sr) == RtlPathTypeRooted)
-    //        {
-    //            PhSetReference(&PhSettingsFileName, PhStartupParameters.SettingsFileName);
-    //        }
-    //        else
-    //        {
-    //            PPH_STRING settingsFileName;
-
-    //            // Get an absolute path now.
-    //            if (NT_SUCCESS(PhGetFullPath(PhGetString(PhStartupParameters.SettingsFileName), &settingsFileName, NULL)))
-    //            {
-    //                PhMoveReference(&settingsFileName, PhDosPathNameToNtPathName(&settingsFileName->sr));
-
-    //                if (!PhIsNullOrEmptyString(settingsFileName))
-    //                {
-    //                    PhMoveReference(&PhSettingsFileName, settingsFileName);
-    //                }
-    //            }
-    //        }
-    //    }
-
-    //    // 2. File in program directory (portable mode)
-    //    if (PhIsNullOrEmptyString(PhSettingsFileName))
-    //    {
-    //        PPH_STRING settingsFileName;
-
-    //        // Try .settings.json first
-    //        if (settingsFileName = PhGetApplicationFileNameZ(L".settings.json"))
-    //        {
-    //            if (PhDoesFileExist(&settingsFileName->sr))
-    //            {
-    //                PhMoveReference(&PhSettingsFileName, settingsFileName);
-    //                PhPortableEnabled = TRUE;
-    //            }
-    //            else
-    //            {
-    //                PhDereferenceObject(settingsFileName);
-
-    //                // Try .settings.xml (legacy)
-    //                if (settingsFileName = PhGetApplicationFileNameZ(L".settings.xml"))
-    //                {
-    //                    if (PhDoesFileExist(&settingsFileName->sr))
-    //                    {
-    //                        PPH_STRING jsonFileName = PhGetBaseNameChangeExtensionZ(&settingsFileName->sr, L".json");
-
-    //                        // Convert XML to JSON
-    //                        NTSTATUS convertStatus = PhConvertSettingsXmlToJson(
-    //                            &settingsFileName->sr,
-    //                            &jsonFileName->sr
-    //                            );
-
-    //                        if (NT_SUCCESS(convertStatus))
-    //                        {
-    //                            PhMoveReference(&PhSettingsFileName, jsonFileName);
-    //                            PhPortableEnabled = TRUE;
-    //                        }
-    //                        else
-    //                        {
-    //                            PhShowStatus(NULL, L"Unable to convert settings to json format.", convertStatus, 0);
-    //                            PhDereferenceObject(jsonFileName);
-    //                        }
-    //                    }
-    //                    else
-    //                    {
-    //                        PhDereferenceObject(settingsFileName);
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
-
-    //    // 3. Default location
-    //    if (PhIsNullOrEmptyString(PhSettingsFileName))
-    //    {
-    //        PhSettingsFileName = PhGetKnownLocationZ(PH_FOLDERID_RoamingAppData, L"\\SystemInformer\\settings.json", TRUE);
-    //    }
-
-    //    if (!PhIsNullOrEmptyString(PhSettingsFileName))
-    //    {
-    //        NTSTATUS status;
-
-    //        status = PhLoadSettings(&PhSettingsFileName->sr);
-
-    //        // If JSON file not found, try to convert from XML
-    //        if (status == STATUS_OBJECT_NAME_NOT_FOUND)
-    //        {
-    //            PPH_STRING xmlFileName = PhGetBaseNameChangeExtensionZ(&PhSettingsFileName->sr, L".xml");
-
-    //            if (!PhIsNullOrEmptyString(xmlFileName))
-    //            {
-    //                if (PhDoesFileExist(&xmlFileName->sr))
-    //                {
-    //                    // Convert XML to JSON
-    //                    NTSTATUS convertStatus = PhConvertSettingsXmlToJson(
-    //                        &xmlFileName->sr,
-    //                        &PhSettingsFileName->sr
-    //                        );
-
-    //                    if (NT_SUCCESS(convertStatus))
-    //                    {
-    //                        // Retry loading from newly created JSON file
-    //                        status = PhLoadSettings(&PhSettingsFileName->sr);
-    //                    }
-    //                    else
-    //                    {
-    //                        PhShowStatus(NULL, L"Unable to convert settings to json format.", convertStatus, 0);
-    //                    }
-    //                }
-
-    //                PhDereferenceObject(xmlFileName);
-    //            }
-    //        }
-
-    //        // If we didn't find the file, it will be created. Otherwise,
-    //        // there was probably a parsing error and we don't want to
-    //        // change anything.
-    //        if (status == STATUS_FILE_CORRUPT_ERROR)
-    //        {
-    //            if (PhShowMessage2(
-    //                NULL,
-    //                TD_YES_BUTTON | TD_NO_BUTTON,
-    //                TD_WARNING_ICON,
-    //                L"System Informer's settings file is corrupt. Do you want to reset it?",
-    //                L"If you select No, the settings system will not function properly."
-    //                ) == IDYES)
-    //            {
-    //                PhResetSettingsFile(&PhSettingsFileName->sr);
-    //            }
-    //            else
-    //            {
-    //                // Pretend we don't have a settings file, the user can resolve the issue
-    //                // in this case without resetting the user(s) settings or customization to defaults.
-    //                PhDereferenceObject(PhSettingsFileName);
-    //                PhSettingsFileName = NULL;
-    //            }
-    //        }
-    //        else if (!NT_SUCCESS(status))
-    //        {
-    //            PhShowStatus(NULL, L"Unable to load the settings file.", status, 0);
-    //        }
-    //    }
-    //}
-
-    //PhUpdateCachedSettings();
-
     // Apply basic global settings.
     PhPluginsEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_PLUGINS);
     PhMaxSizeUnit = PhGetIntegerSetting(SETTING_MAX_SIZE_UNIT);
@@ -1723,6 +1564,7 @@ VOID PhInitializeAppSettings(
     PhThemeWindowHighlightColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT_COLOR);
     PhThemeWindowHighlight2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_HIGHLIGHT2_COLOR);
     PhThemeWindowTextColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_TEXT_COLOR);
+
     PhEnableThemeAcrylicSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_SUPPORT);
     PhEnableThemeAcrylicWindowSupport = WindowsVersion >= WINDOWS_11 && !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ACRYLIC_WINDOW_SUPPORT);
     PhEnableThemeNativeButtons = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_NATIVE_BUTTONS);
