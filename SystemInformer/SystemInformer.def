@@ -60,6 +60,7 @@ EXPORTS
     PhEnumNetworkItems
     PhEnumNetworkItemsByProcessId
     PhEnumProcessItems
+    PhEscapeStringForXml
     PhExecuteRunAsCommand2
     PhExecuteRunAsCommand3
     PhExpandAllProcessNodes
@@ -123,8 +124,10 @@ EXPORTS
     PhInvalidateAllProcessNodes
     PhIsProcessBackground
     PhIsProcessSuspended
+    PhIsUdpExemptPort
     PhLoadSymbolProviderOptions
     PhLogMessageEntry
+    PhLogMessageEntryEx
     PhLookupDeviceItem
     PhLookupDeviceItemByHash
     PhLookupDevicePropertyClass
