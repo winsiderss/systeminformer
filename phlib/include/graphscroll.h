@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2024
+ *     dmex    2024-2026
  *
  */
 #ifndef _PH_SCROLLNEW_H

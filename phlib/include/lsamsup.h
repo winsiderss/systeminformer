@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2023
+ *     dmex    2023-2026
  *
  */
 #ifndef _PH_LSAMSUP_H
