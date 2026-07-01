@@ -150,6 +150,7 @@
 #define IDD_OPTADVEDIT                  292
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
+#define IDC_PULLRUN                     1006
 #define IDC_FILE                        1006
 #define IDC_PROCESS                     1007
 #define IDC_COMPANYNAME                 1009
