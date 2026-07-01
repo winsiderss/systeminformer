@@ -62,6 +62,34 @@ INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
     _In_ LPARAM lParam
     )
 {
+    switch (WindowMessage)
+    {
+    case WM_INITDIALOG:
+        {
+            {
+                SetWindowPos(context->DiskReadGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+                {
+                    PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
+
+                    PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+                    PhInitializeThemeWindowGroupBoxEx(context->DiskReadGroupBox);
+                }
+            }
+
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
+    }
+
     return FALSE;
 }
 
@@ -920,13 +948,6 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However
-            // in removing the flicker from the graphs the group boxes will now flicker.
-            // It's a good tradeoff since no one stares at the group boxes.
-
-            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
             context = PhAllocateZero(sizeof(ET_DISK_CONTEXT));
             context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
@@ -944,6 +965,23 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
             EtwDiskCreateGraphs(context);
             EtwDiskCreatePanel(context);
             EtwDiskUpdatePanel(context);
+
+            {
+                SetWindowPos(context->DiskReadGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+                SetWindowPos(context->DiskWriteGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+                {
+                    PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
+                    PhSetWindowExStyle(context->DiskWriteGroupBox, WS_EX_TRANSPARENT, 0);
+
+                    PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                    PhSetWindowStyle(context->DiskWriteGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+                    PhInitializeThemeWindowGroupBoxEx(context->DiskReadGroupBox);
+                    PhInitializeThemeWindowGroupBoxEx(context->DiskWriteGroupBox);
+                }
+            }
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
@@ -1063,13 +1101,6 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However
-            // in removing the flicker from the graphs the group boxes will now flicker.
-            // It's a good tradeoff since no one stares at the group boxes.
-
-            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
             context = PhAllocateZero(sizeof(ET_NET_CONTEXT));
             context->WindowHandle = WindowHandle;
             context->Block = EtGetProcessBlock(processItem);
@@ -1087,6 +1118,23 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
             EtwNetworkCreateGraphs(context);
             EtwNetworkCreatePanel(context);
             EtwNetworkUpdatePanel(context);
+
+            {
+                SetWindowPos(context->NetworkReceiveGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+                SetWindowPos(context->NetworkSendGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+                {
+                    PhSetWindowExStyle(context->NetworkReceiveGroupBox, WS_EX_TRANSPARENT, 0);
+                    PhSetWindowExStyle(context->NetworkSendGroupBox, WS_EX_TRANSPARENT, 0);
+
+                    PhSetWindowStyle(context->NetworkReceiveGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                    PhSetWindowStyle(context->NetworkSendGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+                    PhInitializeThemeWindowGroupBoxEx(context->NetworkReceiveGroupBox);
+                    PhInitializeThemeWindowGroupBoxEx(context->NetworkSendGroupBox);
+                }
+            }
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
