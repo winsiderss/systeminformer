@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011-2015
- *     dmex    2018-2022
+ *     dmex    2018-2026
  *     jxy-s   2024
  *
  */
@@ -48,6 +48,229 @@ static PH_CALLBACK_REGISTRATION ProcessesUpdatedCallbackRegistration;
 static HANDLE EtNpuNodesThreadHandle = NULL;
 static HWND EtNpuNodesWindowHandle = NULL;
 static PH_EVENT EtNpuNodesInitializedEvent = PH_EVENT_INIT;
+
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpNpuNodesGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR *header = (NMHDR *)Parameter1;
+    ULONG i;
+
+    switch (header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+            RECT margin = NormalGraphTextMarginScaled;
+            RECT padding = NormalGraphTextPaddingScaled;
+
+            drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
+            PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, NpuNodesWindowDpi);
+
+            for (i = 0; i < EtNpuTotalNodeCount; i++)
+            {
+                if (header->hwndFrom == GraphHandle[i])
+                {
+                    PhGraphStateGetDrawInfo(
+                        &GraphState[i],
+                        getDrawInfo,
+                        EtNpuNodesHistory[i].Count
+                        );
+
+                    if (!GraphState[i].Valid)
+                    {
+                        PhCopyCircularBuffer_FLOAT(&EtNpuNodesHistory[i], GraphState[i].Data1, drawInfo->LineDataCount);
+
+                        if (EtEnableScaleGraph)
+                        {
+                            FLOAT max = 0;
+
+                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                            {
+                                max = PhMaxMemorySingles(GraphState[i].Data1, drawInfo->LineDataCount);
+                            }
+                            else
+                            {
+                                for (ULONG ii = 0; ii < drawInfo->LineDataCount; ii++)
+                                {
+                                    FLOAT data = GraphState[i].Data1[ii];
+
+                                    if (max < data)
+                                        max = data;
+                                }
+                            }
+
+                            if (max != 0)
+                            {
+                                PhDivideSinglesBySingle(
+                                    GraphState[i].Data1,
+                                    max,
+                                    drawInfo->LineDataCount
+                                    );
+                            }
+
+                            drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
+                            drawInfo->LabelYFunctionParameter = max;
+                        }
+
+                        GraphState[i].Valid = TRUE;
+                    }
+
+                    if (EtGraphShowText)
+                    {
+                        HDC hdc;
+                        FLOAT gpu;
+                        ULONG adapterIndex;
+                        PPH_STRING engineName = NULL;
+
+                        gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodesHistory[i], 0);
+
+                        if ((adapterIndex = EtGetNpuAdapterIndexFromNodeIndex(i)) != ULONG_MAX)
+                            engineName = EtGetNpuAdapterNodeDescription(adapterIndex, i);
+
+                        if (!PhIsNullOrEmptyString(engineName))
+                        {
+                            PH_FORMAT format[4];
+
+                            // %.2f%% (%s)
+                            PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
+                            PhInitFormatS(&format[1], L"% (");
+                            PhInitFormatSR(&format[2], engineName->sr);
+                            PhInitFormatC(&format[3], L')');
+
+                            PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        }
+                        else
+                        {
+                            PH_FORMAT format[4];
+
+                            // %.2f%% (Node %lu)
+                            PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
+                            PhInitFormatS(&format[1], L"% (Node ");
+                            PhInitFormatU(&format[2], i);
+                            PhInitFormatC(&format[3], L')');
+
+                            PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                        }
+
+                        hdc = Graph_GetBufferedContext(GraphHandle[i]);
+                        PhSetGraphText(
+                            hdc,
+                            drawInfo,
+                            &GraphState[i].Text->sr,
+                            &margin,
+                            &padding,
+                            PH_ALIGN_TOP | PH_ALIGN_LEFT
+                            );
+                    }
+                    else
+                    {
+                        drawInfo->Text.Buffer = NULL;
+                    }
+
+                    break;
+                }
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                for (i = 0; i < EtNpuTotalNodeCount; i++)
+                {
+                    if (header->hwndFrom == GraphHandle[i])
+                    {
+                        if (GraphState[i].TooltipIndex != getTooltipText->Index)
+                        {
+                            FLOAT gpu;
+                            ULONG adapterIndex;
+                            PPH_STRING adapterEngineName = NULL;
+                            PPH_STRING adapterDescription;
+
+                            gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodesHistory[i], getTooltipText->Index);
+                            adapterIndex = EtGetNpuAdapterIndexFromNodeIndex(i);
+
+                            if (adapterIndex != ULONG_MAX)
+                            {
+                                adapterEngineName = EtGetNpuAdapterNodeDescription(adapterIndex, i);
+                                adapterDescription = EtGetNpuAdapterDescription(adapterIndex);
+
+                                if (adapterDescription && adapterDescription->Length == 0)
+                                    PhClearReference(&adapterDescription);
+
+                                if (!adapterDescription)
+                                {
+                                    PH_FORMAT format[2];
+
+                                    // Adapter %lu
+                                    PhInitFormatS(&format[0], L"Adapter ");
+                                    PhInitFormatU(&format[1], adapterIndex);
+
+                                    adapterDescription = PhFormat(format, RTL_NUMBER_OF(format), 0);
+                                }
+                            }
+                            else
+                            {
+                                adapterDescription = PhCreateString(L"Unknown Adapter");
+                            }
+
+                            if (!PhIsNullOrEmptyString(adapterEngineName))
+                            {
+                                PH_FORMAT format[9];
+
+                                // %.2f%%\nNode %lu (%s) on %s\n%s
+                                PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
+                                PhInitFormatS(&format[1], L"%\nNode ");
+                                PhInitFormatU(&format[2], i);
+                                PhInitFormatS(&format[3], L" (");
+                                PhInitFormatSR(&format[4], adapterEngineName->sr);
+                                PhInitFormatS(&format[5], L") on ");
+                                PhInitFormatSR(&format[6], adapterDescription->sr);
+                                PhInitFormatC(&format[7], L'\n');
+                                PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                                PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                            }
+                            else
+                            {
+                                PH_FORMAT format[7];
+
+                                // %.2f%%\nNode %lu on %s\n%s
+                                PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
+                                PhInitFormatS(&format[1], L"%\nNode ");
+                                PhInitFormatU(&format[2], i);
+                                PhInitFormatS(&format[3], L" on ");
+                                PhInitFormatSR(&format[4], adapterDescription->sr);
+                                PhInitFormatC(&format[5], L'\n');
+                                PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                                PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                            }
+
+                            PhDereferenceObject(adapterDescription);
+                        }
+
+                        getTooltipText->Text = PhGetStringRef(GraphState[i].TooltipText);
+
+                        break;
+                    }
+                }
+            }
+        }
+        break;
+    }
+
+    return TRUE;
+}
 
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtpNpuNodesDialogThreadStart(
@@ -149,7 +372,13 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
 
             for (i = 0; i < EtNpuTotalNodeCount; i++)
             {
-                GraphHandle[i] = CreateWindow(
+                PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+                memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+                graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+                graphCreateParams.Callback = EtpNpuNodesGraphMessageCallback;
+
+                GraphHandle[i] = PhCreateWindow(
                     PH_GRAPH_CLASSNAME,
                     NULL,
                     WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -160,7 +389,7 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
                     WindowHandle,
                     NULL,
                     NULL,
-                    NULL
+                    &graphCreateParams
                     );
                 Graph_SetTooltip(GraphHandle[i], TRUE);
                 PhInitializeGraphState(&GraphState[i]);
@@ -307,220 +536,6 @@ INT_PTR CALLBACK EtpNpuNodesDlgProc(
             {
             case IDCANCEL:
                 DestroyWindow(WindowHandle);
-                break;
-            }
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-            ULONG i;
-
-            switch (header->code)
-            {
-            case GCN_GETDRAWINFO:
-                {
-                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
-                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-                    RECT margin = NormalGraphTextMarginScaled;
-                    RECT padding = NormalGraphTextPaddingScaled;
-
-                    drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleGraph ? PH_GRAPH_LABEL_MAX_Y : 0);
-                    PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, NpuNodesWindowDpi);
-
-                    for (i = 0; i < EtNpuTotalNodeCount; i++)
-                    {
-                        if (header->hwndFrom == GraphHandle[i])
-                        {
-                            PhGraphStateGetDrawInfo(
-                                &GraphState[i],
-                                getDrawInfo,
-                                EtNpuNodesHistory[i].Count
-                                );
-
-                            if (!GraphState[i].Valid)
-                            {
-                                PhCopyCircularBuffer_FLOAT(&EtNpuNodesHistory[i], GraphState[i].Data1, drawInfo->LineDataCount);
-
-                                if (EtEnableScaleGraph)
-                                {
-                                    FLOAT max = 0;
-
-                                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                                    {
-                                        max = PhMaxMemorySingles(GraphState[i].Data1, drawInfo->LineDataCount);
-                                    }
-                                    else
-                                    {
-                                        for (ULONG ii = 0; ii < drawInfo->LineDataCount; ii++)
-                                        {
-                                            FLOAT data = GraphState[i].Data1[ii];
-
-                                            if (max < data)
-                                                max = data;
-                                        }
-                                    }
-
-                                    if (max != 0)
-                                    {
-                                        PhDivideSinglesBySingle(
-                                            GraphState[i].Data1,
-                                            max,
-                                            drawInfo->LineDataCount
-                                            );
-                                    }
-
-                                    drawInfo->LabelYFunction = PhSiDoubleLabelYFunction;
-                                    drawInfo->LabelYFunctionParameter = max;
-                                }
-
-                                GraphState[i].Valid = TRUE;
-                            }
-
-                            if (EtGraphShowText)
-                            {
-                                HDC hdc;
-                                FLOAT gpu;
-                                ULONG adapterIndex;
-                                PPH_STRING engineName = NULL;
-
-                                gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodesHistory[i], 0);
-
-                                if ((adapterIndex = EtGetNpuAdapterIndexFromNodeIndex(i)) != ULONG_MAX)
-                                    engineName = EtGetNpuAdapterNodeDescription(adapterIndex, i);
-
-                                if (!PhIsNullOrEmptyString(engineName))
-                                {
-                                    PH_FORMAT format[4];
-
-                                    // %.2f%% (%s)
-                                    PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
-                                    PhInitFormatS(&format[1], L"% (");
-                                    PhInitFormatSR(&format[2], engineName->sr);
-                                    PhInitFormatC(&format[3], L')');
-
-                                    PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                                }
-                                else
-                                {
-                                    PH_FORMAT format[4];
-
-                                    // %.2f%% (Node %lu)
-                                    PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
-                                    PhInitFormatS(&format[1], L"% (Node ");
-                                    PhInitFormatU(&format[2], i);
-                                    PhInitFormatC(&format[3], L')');
-
-                                    PhMoveReference(&GraphState[i].Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                                }
-
-                                hdc = Graph_GetBufferedContext(GraphHandle[i]);
-                                PhSetGraphText(
-                                    hdc,
-                                    drawInfo,
-                                    &GraphState[i].Text->sr,
-                                    &margin,
-                                    &padding,
-                                    PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                    );
-                            }
-                            else
-                            {
-                                drawInfo->Text.Buffer = NULL;
-                            }
-
-                            break;
-                        }
-                    }
-                }
-                break;
-            case GCN_GETTOOLTIPTEXT:
-                {
-                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
-
-                    if (getTooltipText->Index < getTooltipText->TotalCount)
-                    {
-                        for (i = 0; i < EtNpuTotalNodeCount; i++)
-                        {
-                            if (header->hwndFrom == GraphHandle[i])
-                            {
-                                if (GraphState[i].TooltipIndex != getTooltipText->Index)
-                                {
-                                    FLOAT gpu;
-                                    ULONG adapterIndex;
-                                    PPH_STRING adapterEngineName = NULL;
-                                    PPH_STRING adapterDescription;
-
-                                    gpu = PhGetItemCircularBuffer_FLOAT(&EtNpuNodesHistory[i], getTooltipText->Index);
-                                    adapterIndex = EtGetNpuAdapterIndexFromNodeIndex(i);
-
-                                    if (adapterIndex != ULONG_MAX)
-                                    {
-                                        adapterEngineName = EtGetNpuAdapterNodeDescription(adapterIndex, i);
-                                        adapterDescription = EtGetNpuAdapterDescription(adapterIndex);
-
-                                        if (adapterDescription && adapterDescription->Length == 0)
-                                            PhClearReference(&adapterDescription);
-
-                                        if (!adapterDescription)
-                                        {
-                                            PH_FORMAT format[2];
-
-                                            // Adapter %lu
-                                            PhInitFormatS(&format[0], L"Adapter ");
-                                            PhInitFormatU(&format[1], adapterIndex);
-
-                                            adapterDescription = PhFormat(format, RTL_NUMBER_OF(format), 0);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        adapterDescription = PhCreateString(L"Unknown Adapter");
-                                    }
-
-                                    if (!PhIsNullOrEmptyString(adapterEngineName))
-                                    {
-                                        PH_FORMAT format[9];
-
-                                        // %.2f%%\nNode %lu (%s) on %s\n%s
-                                        PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
-                                        PhInitFormatS(&format[1], L"%\nNode ");
-                                        PhInitFormatU(&format[2], i);
-                                        PhInitFormatS(&format[3], L" (");
-                                        PhInitFormatSR(&format[4], adapterEngineName->sr);
-                                        PhInitFormatS(&format[5], L") on ");
-                                        PhInitFormatSR(&format[6], adapterDescription->sr);
-                                        PhInitFormatC(&format[7], L'\n');
-                                        PhInitFormatSR(&format[8], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                        PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                                    }
-                                    else
-                                    {
-                                        PH_FORMAT format[7];
-
-                                        // %.2f%%\nNode %lu on %s\n%s
-                                        PhInitFormatF(&format[0], gpu * 100, EtMaxPrecisionUnit);
-                                        PhInitFormatS(&format[1], L"%\nNode ");
-                                        PhInitFormatU(&format[2], i);
-                                        PhInitFormatS(&format[3], L" on ");
-                                        PhInitFormatSR(&format[4], adapterDescription->sr);
-                                        PhInitFormatC(&format[5], L'\n');
-                                        PhInitFormatSR(&format[6], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                        PhMoveReference(&GraphState[i].TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                                    }
-
-                                    PhDereferenceObject(adapterDescription);
-                                }
-
-                                getTooltipText->Text = PhGetStringRef(GraphState[i].TooltipText);
-
-                                break;
-                            }
-                        }
-                    }
-                }
                 break;
             }
         }

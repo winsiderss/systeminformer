@@ -63,14 +63,14 @@ EXTERN_C BOOLEAN EtIsExecutingInWow64;
 EXTERN_C BOOLEAN EtGpuFahrenheitEnabled;
 EXTERN_C BOOLEAN EtNpuFahrenheitEnabled;
 EXTERN_C ULONG EtSampleCount;
-extern ULONG ProcessesUpdatedCount;
-extern ULONG EtUpdateInterval;
-extern USHORT EtMaxPrecisionUnit;
-extern BOOLEAN EtGraphShowText;
-extern BOOLEAN EtEnableScaleGraph;
-extern BOOLEAN EtEnableScaleText;
-extern BOOLEAN EtPropagateCpuUsage;
-extern BOOLEAN EtEnableAvxSupport;
+EXTERN_C ULONG ProcessesUpdatedCount;
+EXTERN_C ULONG EtUpdateInterval;
+EXTERN_C USHORT EtMaxPrecisionUnit;
+EXTERN_C BOOLEAN EtGraphShowText;
+EXTERN_C BOOLEAN EtEnableScaleGraph;
+EXTERN_C BOOLEAN EtEnableScaleText;
+EXTERN_C BOOLEAN EtPropagateCpuUsage;
+EXTERN_C BOOLEAN EtEnableAvxSupport;
 
 #define PLUGIN_NAME L"ExtendedTools"
 #define SETTING_NAME_FIRST_RUN (PLUGIN_NAME L".FirstRun")

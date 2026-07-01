@@ -2242,6 +2242,67 @@ static BOOLEAN EtFwIsAddressReadable(
 }
 
 /**
+ * Describes the contiguous heap allocation returned by a single FwpmNetEventEnum call.
+ *
+ * \remarks The enumeration result is one block that holds the entries pointer array, the event
+ * structures and their embedded strings. The bounds let us validate undocumented string pointers
+ * by containment rather than a page probe.
+ */
+typedef struct _ET_FW_EVENT_BLOCK
+{
+    ULONG_PTR Base;
+    ULONG_PTR End;
+} ET_FW_EVENT_BLOCK, *PET_FW_EVENT_BLOCK;
+
+/**
+ * Determines whether a null-terminated string lies entirely within an enumeration block.
+ *
+ * \param Block The bounds of the enumeration allocation.
+ * \param String The string to validate.
+ * \return TRUE only if [String .. NUL] is fully contained in [Base, End); never reads past End.
+ */
+static BOOLEAN EtFwStringInBlock(
+    _In_ PET_FW_EVENT_BLOCK Block,
+    _In_opt_ PCWSTR String
+    )
+{
+    ULONG_PTR address = (ULONG_PTR)String;
+
+    if (address < Block->Base || address >= Block->End)
+        return FALSE;
+
+    // Walk for a terminator, but never step past the block end.
+    for (PCWSTR current = String; (ULONG_PTR)(current + 1) <= Block->End; current++)
+    {
+        if (*current == UNICODE_NULL)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Validates an undocumented FWPM_NET_EVENT_INTERNAL string pointer before use.
+ *
+ * \param Block The enumeration block bounds, or NULL on the live notification path.
+ * \param String The string pointer to validate.
+ * \return TRUE if the string is safe to read.
+ * \remarks On the enumeration path (Block != NULL) the string must be fully contained in the
+ * enumeration allocation. On the live path (Block == NULL) there is no block, so fall back to the
+ * page-readability probe.
+ */
+static BOOLEAN EtFwIsStringReadable(
+    _In_opt_ PET_FW_EVENT_BLOCK Block,
+    _In_opt_ PCWSTR String
+    )
+{
+    if (Block)
+        return EtFwStringInBlock(Block, String);
+
+    return EtFwIsAddressReadable((PVOID)String);
+}
+
+/**
  * Handles WFP net event notifications.
  *
  * \param FwContext The callback context.
@@ -2428,6 +2489,7 @@ VOID CALLBACK EtFwEventCallback(
     {
         const FWPM_NET_EVENT_INTERNAL* FwEventInternal = (const FWPM_NET_EVENT_INTERNAL*)FwEvent;
         const FWPM_NET_EVENT_INTERNAL_FIELDS0* FwInternal = &FwEventInternal->InternalFields;
+        PET_FW_EVENT_BLOCK FwBlock = (PET_FW_EVENT_BLOCK)FwContext;
         PPH_PROCESS_ITEM processItem;
 
         processItem = EtFwReferenceProcessItemForEvent(
@@ -2483,22 +2545,22 @@ VOID CALLBACK EtFwEventCallback(
         entry.InterfaceLuid = FwInternal->InterfaceLuid;
         entry.CompartmentId = FwInternal->CompartmentId;
 
-        if (EtFwIsAddressReadable((PVOID)FwInternal->ServiceSids))
+        if (FwInternal->ServiceSids && EtFwIsStringReadable(FwBlock, FwInternal->ServiceSids))
         {
             entry.ServiceSids = PhCreateString(FwInternal->ServiceSids);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FILTER_ORIGIN_SET) && EtFwIsAddressReadable((PVOID)FwInternal->FilterOrigin))
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FILTER_ORIGIN_SET) && EtFwIsStringReadable(FwBlock, FwInternal->FilterOrigin))
         {
             entry.FilterOrigin = PhCreateString(FwInternal->FilterOrigin);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FQBN_SET) && EtFwIsAddressReadable((PVOID)FwInternal->FqbnName))
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_FQBN_SET) && EtFwIsStringReadable(FwBlock, FwInternal->FqbnName))
         {
             entry.FqbnName = PhCreateString(FwInternal->FqbnName);
         }
 
-        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_POLICY_APP_ID_SET) && EtFwIsAddressReadable((PVOID)FwInternal->PolicyAppId))
+        if (FlagOn(FwInternal->InternalFlags, FWPM_NET_EVENT_INTERNAL_FLAG_POLICY_APP_ID_SET) && EtFwIsStringReadable(FwBlock, FwInternal->PolicyAppId))
         {
             entry.PolicyAppId = PhCreateString(FwInternal->PolicyAppId);
         }
@@ -2640,6 +2702,7 @@ ULONG EtFwMonitorEnumEvents(
 
     while (TRUE)
     {
+        ET_FW_EVENT_BLOCK block = { 0, 0 };
         FWPM_NET_EVENT** entries;
         ULONG count;
 
@@ -2654,9 +2717,20 @@ ULONG EtFwMonitorEnumEvents(
             break;
         }
 
+        if (TRUE)
+        {
+            SIZE_T blockSize = RtlSizeHeap(RtlProcessHeap(), 0, entries);
+
+            if (blockSize != SIZE_MAX)
+            {
+                block.Base = (ULONG_PTR)entries;
+                block.End = block.Base + blockSize;
+            }
+        }
+
         for (ULONG i = 0; i < count; i++)
         {
-            EtFwEventCallback(NULL, entries[i]);
+            EtFwEventCallback(block.End ? &block : NULL, entries[i]);
         }
 
         FwpmFreeMemory((PVOID*)&entries);

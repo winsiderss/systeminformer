@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2015-2023
+ *     dmex    2015-2026
  *
  */
 
@@ -329,6 +329,8 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             EtpInitializeDiskDialog();
 
             DiskDialog = WindowHandle;
+            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
+ 
             PhInitializeLayoutManager(&DiskLayoutManager, WindowHandle);
             graphItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&DiskLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -348,6 +350,8 @@ INT_PTR CALLBACK EtpDiskDialogProc(
             EtpCreateDiskGraph();
             EtpUpdateDiskGraph();
             EtpUpdateDiskPanel();
+
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -386,20 +390,6 @@ INT_PTR CALLBACK EtpDiskDialogProc(
 
             PhLayoutManagerLayout(&DiskLayoutManager);
             EtpLayoutDiskGraphs(WindowHandle);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == DiskReadGraphHandle)
-            {
-                EtpNotifyDiskReadGraph(header);
-            }
-            else if (header->hwndFrom == DiskWriteGraphHandle)
-            {
-                EtpNotifyDiskWriteGraph(header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -450,6 +440,29 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
     return FALSE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpDiskGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (header->hwndFrom == DiskReadGraphHandle)
+    {
+        EtpNotifyDiskReadGraph(header);
+    }
+    else if (header->hwndFrom == DiskWriteGraphHandle)
+    {
+        EtpNotifyDiskWriteGraph(header);
+    }
+
+    return TRUE;
+}
+
 /**
  * Creates the graphs for the disk dialog.
  */
@@ -457,6 +470,12 @@ VOID EtpCreateDiskGraph(
     VOID
     )
 {
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = EtpDiskGraphMessageCallback;
+
     DiskReadGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
@@ -468,7 +487,7 @@ VOID EtpCreateDiskGraph(
         DiskDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(DiskReadGraphHandle, TRUE);
 
@@ -483,7 +502,7 @@ VOID EtpCreateDiskGraph(
         DiskDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(DiskWriteGraphHandle, TRUE);
 }
@@ -1165,6 +1184,8 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             EtpInitializeNetworkDialog();
 
             NetworkDialog = WindowHandle;
+            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
+
             PhInitializeLayoutManager(&NetworkLayoutManager, WindowHandle);
             graphItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(WindowHandle, IDC_GRAPH_LAYOUT), NULL, PH_ANCHOR_ALL);
             panelItem = PhAddLayoutItem(&NetworkLayoutManager, GetDlgItem(WindowHandle, IDC_PANEL_LAYOUT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -1184,6 +1205,8 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             EtpCreateNetworkGraph();
             EtpUpdateNetworkGraph();
             EtpUpdateNetworkPanel();
+
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
@@ -1222,20 +1245,6 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
 
             PhLayoutManagerLayout(&NetworkLayoutManager);
             EtpLayoutNetworkGraphs(WindowHandle);
-        }
-        break;
-    case WM_NOTIFY:
-        {
-            NMHDR* header = (NMHDR*)lParam;
-
-            if (header->hwndFrom == NetworkReceiveGraphHandle)
-            {
-                EtpNotifyNetworkReceiveGraph(header);
-            }
-            else if (header->hwndFrom == NetworkSendGraphHandle)
-            {
-                EtpNotifyNetworkSendGraph(header);
-            }
         }
         break;
     case WM_CTLCOLORBTN:
@@ -1286,6 +1295,29 @@ INT_PTR CALLBACK EtpNetworkPanelDialogProc(
     return FALSE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpNetworkGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (header->hwndFrom == NetworkReceiveGraphHandle)
+    {
+        EtpNotifyNetworkReceiveGraph(header);
+    }
+    else if (header->hwndFrom == NetworkSendGraphHandle)
+    {
+        EtpNotifyNetworkSendGraph(header);
+    }
+
+    return TRUE;
+}
+
 /**
  * Creates the graphs for the network dialog.
  */
@@ -1293,7 +1325,13 @@ VOID EtpCreateNetworkGraph(
     VOID
     )
 {
-    NetworkReceiveGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = EtpNetworkGraphMessageCallback;
+
+    NetworkReceiveGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -1304,11 +1342,11 @@ VOID EtpCreateNetworkGraph(
         NetworkDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(NetworkReceiveGraphHandle, TRUE);
 
-    NetworkSendGraphHandle = CreateWindow(
+    NetworkSendGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -1319,7 +1357,7 @@ VOID EtpCreateNetworkGraph(
         NetworkDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(NetworkSendGraphHandle, TRUE);
 }

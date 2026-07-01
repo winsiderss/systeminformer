@@ -13,6 +13,7 @@ set(HEADERS
     "extension/plugin.h"
     "exttools.h"
     "framemon.h"
+    "fwmon.h"
     "gpumini.h"
     "gpumon.h"
     "gpusys.h"

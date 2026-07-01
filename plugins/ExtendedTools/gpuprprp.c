@@ -361,7 +361,7 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             // the drawing issue that arises when using WS_CLIPCHILDREN. However
             // in removing the flicker from the graphs the group boxes will now flicker.
             // It's a good tradeoff since no one stares at the group boxes.
-            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            //PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context = PhAllocateZero(sizeof(ET_GPU_CONTEXT));
             context->WindowHandle = WindowHandle;
@@ -372,6 +372,29 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             context->SharedGroupBox = GetDlgItem(WindowHandle, IDC_GROUPSHARED);
             context->CommittedGroupBox = GetDlgItem(WindowHandle, IDC_GROUPCOMMIT);
             propPageContext->Context = context;
+
+            SetWindowPos(context->GpuGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->MemGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->SharedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->CommittedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+            if (!PhGetIntegerSetting(L"EnableThemeSupport"))
+            {
+                PhSetWindowExStyle(context->GpuGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(context->MemGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(context->SharedGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(context->CommittedGroupBox, WS_EX_TRANSPARENT, 0);
+
+                PhSetWindowStyle(context->GpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(context->MemGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(context->SharedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(context->CommittedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+                PhInitializeThemeWindowGroupBoxEx(context->GpuGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(context->MemGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(context->SharedGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(context->CommittedGroupBox);
+            }
 
             //PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
 

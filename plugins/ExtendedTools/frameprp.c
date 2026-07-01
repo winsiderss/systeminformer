@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2021-2023
+ *     dmex    2021-2026
  *
  */
 
@@ -80,11 +80,613 @@ VOID FramesPropUpdateWindowDpi(
     Context->WindowDpi = PhGetWindowDpi(Context->WindowHandle);
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN FramesPropGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    PET_FRAMES_CONTEXT context = (PET_FRAMES_CONTEXT)Context;
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    switch (header->code)
+    {
+    case GCN_GETDRAWINFO:
+        {
+            PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
+            PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            if (header->hwndFrom == context->FramesPerSecondGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->FramesPerSecondGraphState, getDrawInfo, context->Block->FramesPerSecondHistory.Count);
+
+                if (!context->FramesPerSecondGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesPerSecondHistory, context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->FramesPerSecondGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->FramesPerSecondGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->FramesPerSecondGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesPerSecond, 2);
+                    PhInitFormatS(&format[1], L" FPS");
+
+                    PhMoveReference(&context->FramesPerSecondGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->FramesPerSecondGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->FramesPerSecondGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->FramesLatencyGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->FramesLatencyGraphState, getDrawInfo, context->Block->FramesLatencyHistory.Count);
+
+                if (!context->FramesLatencyGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->FramesLatencyGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->FramesLatencyGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->FramesLatencyGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesLatency, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->FramesLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->FramesLatencyGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->FramesLatencyGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->PresentIntervalGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->PresentIntervalGraphState, getDrawInfo, context->Block->FramesMsBetweenPresentsHistory.Count);
+
+                if (!context->PresentIntervalGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsBetweenPresentsHistory, context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->PresentIntervalGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->PresentIntervalGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->PresentIntervalGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesMsBetweenPresents, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->PresentIntervalGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->PresentIntervalGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->PresentIntervalGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->PresentDurationGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->PresentDurationGraphState, getDrawInfo, context->Block->FramesMsInPresentApiHistory.Count);
+
+                if (!context->PresentDurationGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsInPresentApiHistory, context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->PresentDurationGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->PresentDurationGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->PresentDurationGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesMsInPresentApi, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->PresentDurationGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->PresentDurationGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->PresentDurationGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->FramesRenderTimeGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->FramesRenderTimeGraphState, getDrawInfo, context->Block->FramesMsUntilRenderCompleteHistory.Count);
+
+                if (!context->FramesRenderTimeGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilRenderCompleteHistory, context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->FramesRenderTimeGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->FramesRenderTimeGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->FramesRenderTimeGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesMsUntilRenderComplete, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->FramesRenderTimeGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->FramesRenderTimeGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->FramesRenderTimeGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->FramesDisplayTimeGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->FramesDisplayTimeGraphState, getDrawInfo, context->Block->FramesMsUntilDisplayedHistory.Count);
+
+                if (!context->FramesDisplayTimeGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilDisplayedHistory, context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->FramesDisplayTimeGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->FramesDisplayTimeGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->FramesDisplayTimeGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesMsUntilDisplayed, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->FramesDisplayTimeGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->FramesDisplayTimeGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->FramesDisplayTimeGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+            else if (header->hwndFrom == context->FramesDisplayLatencyGraphHandle)
+            {
+                drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
+                PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, context->WindowDpi);
+                PhGraphStateGetDrawInfo(&context->FramesDisplayLatencyGraphState, getDrawInfo, context->Block->FramesDisplayLatencyHistory.Count);
+
+                if (!context->FramesDisplayLatencyGraphState.Valid)
+                {
+                    FLOAT max = 0;
+
+                    PhCopyCircularBuffer_FLOAT(&context->Block->FramesDisplayLatencyHistory, context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
+
+                    if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
+                    {
+                        max = PhMaxMemorySingles(context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
+                    }
+                    else
+                    {
+                        for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
+                        {
+                            FLOAT data = context->FramesDisplayLatencyGraphState.Data1[i];
+
+                            if (max < data)
+                                max = data;
+                        }
+                    }
+
+                    if (max != 0)
+                    {
+                        PhDivideSinglesBySingle(context->FramesDisplayLatencyGraphState.Data1, max, drawInfo->LineDataCount);
+                    }
+
+                    drawInfo->LabelYFunction = FramesLabelYFunction;
+                    drawInfo->LabelYFunctionParameter = max;
+                    context->FramesDisplayLatencyGraphState.Valid = TRUE;
+                }
+
+                if (EtGraphShowText)
+                {
+                    HDC hdc;
+                    PH_FORMAT format[2];
+
+                    PhInitFormatF(&format[0], context->Block->FramesDisplayLatency, 2);
+                    PhInitFormatS(&format[1], L" ms");
+
+                    PhMoveReference(&context->FramesDisplayLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                    hdc = Graph_GetBufferedContext(context->FramesDisplayLatencyGraphHandle);
+                    PhSetGraphText(
+                        hdc,
+                        drawInfo,
+                        &context->FramesDisplayLatencyGraphState.Text->sr,
+                        &NormalGraphTextMargin,
+                        &NormalGraphTextPadding,
+                        PH_ALIGN_TOP | PH_ALIGN_LEFT
+                        );
+                }
+                else
+                {
+                    drawInfo->Text.Buffer = NULL;
+                }
+            }
+        }
+        break;
+    case GCN_GETTOOLTIPTEXT:
+        {
+            PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)header;
+
+            if (getTooltipText->Index < getTooltipText->TotalCount)
+            {
+                if (header->hwndFrom == context->FramesPerSecondGraphHandle)
+                {
+                    if (context->FramesPerSecondGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesPerSecondHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" FPS\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->FramesPerSecondGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->FramesPerSecondGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->FramesLatencyGraphHandle)
+                {
+                    if (context->FramesLatencyGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->FramesLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->FramesLatencyGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->PresentIntervalGraphHandle)
+                {
+                    if (context->PresentIntervalGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsBetweenPresentsHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->PresentIntervalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->PresentIntervalGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->PresentDurationGraphHandle)
+                {
+                    if (context->PresentDurationGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsInPresentApiHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->PresentDurationGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->PresentDurationGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->FramesRenderTimeGraphHandle)
+                {
+                    if (context->FramesRenderTimeGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsUntilRenderCompleteHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->FramesRenderTimeGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->FramesRenderTimeGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->FramesDisplayTimeGraphHandle)
+                {
+                    if (context->FramesDisplayTimeGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsUntilDisplayedHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->FramesDisplayTimeGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->FramesDisplayTimeGraphState.TooltipText);
+                }
+                else if (header->hwndFrom == context->FramesDisplayLatencyGraphHandle)
+                {
+                    if (context->FramesDisplayLatencyGraphState.TooltipIndex != getTooltipText->Index)
+                    {
+                        FLOAT value;
+                        PH_FORMAT format[3];
+
+                        value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesDisplayLatencyHistory, getTooltipText->Index);
+
+                        PhInitFormatF(&format[0], value, 2);
+                        PhInitFormatS(&format[1], L" ms\n");
+                        PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
+
+                        PhMoveReference(&context->FramesDisplayLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
+                    }
+
+                    getTooltipText->Text = PhGetStringRef(context->FramesDisplayLatencyGraphState.TooltipText);
+                }
+            }
+        }
+        break;
+    }
+
+    return TRUE;
+}
+
 VOID FramesPropCreateGraphs(
     _In_ PET_FRAMES_CONTEXT Context
     )
 {
-    Context->FramesPerSecondGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = FramesPropGraphMessageCallback;
+    graphCreateParams.Context = Context;
+
+    Context->FramesPerSecondGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -95,11 +697,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->FramesPerSecondGraphHandle, TRUE);
 
-    Context->FramesLatencyGraphHandle = CreateWindow(
+    Context->FramesLatencyGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -110,11 +712,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->FramesLatencyGraphHandle, TRUE);
 
-    Context->PresentIntervalGraphHandle = CreateWindow(
+    Context->PresentIntervalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -125,11 +727,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->PresentIntervalGraphHandle, TRUE);
 
-    Context->PresentDurationGraphHandle = CreateWindow(
+    Context->PresentDurationGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -140,11 +742,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->PresentDurationGraphHandle, TRUE);
 
-    Context->FramesRenderTimeGraphHandle = CreateWindow(
+    Context->FramesRenderTimeGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -155,11 +757,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->FramesRenderTimeGraphHandle, TRUE);
 
-    Context->FramesDisplayTimeGraphHandle = CreateWindow(
+    Context->FramesDisplayTimeGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -170,11 +772,11 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->FramesDisplayTimeGraphHandle, TRUE);
 
-    Context->FramesDisplayLatencyGraphHandle = CreateWindow(
+    Context->FramesDisplayLatencyGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
@@ -185,7 +787,7 @@ VOID FramesPropCreateGraphs(
         Context->WindowHandle,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(Context->FramesDisplayLatencyGraphHandle, TRUE);
 }
@@ -215,8 +817,8 @@ VOID FramesPropLayoutGraphs(
     RECT margin;
     RECT innerMargin;
     LONG between;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    LONG graphWidth;
+    LONG graphHeight;
 
     Context->FramesPerSecondGraphState.Valid = FALSE;
     Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
@@ -379,9 +981,9 @@ VOID FramesPropUpdatePanel(
     presentMode = EtPresentModeToString(Context->Block->FramesPresentMode);
 
     PhInitFormatS(&format[0], L"FPS: ");
-    PhInitFormatS(&format[1], (PWSTR)presentMode);
+    PhInitFormatS(&format[1], presentMode);
     PhInitFormatS(&format[2], L" (");
-    PhInitFormatS(&format[3], (PWSTR)runtime);
+    PhInitFormatS(&format[3], runtime);
     PhInitFormatC(&format[4], L')');
 
     string = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -569,582 +1171,6 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
                 break;
             case PSN_KILLACTIVE:
                 context->Enabled = FALSE;
-                break;
-            case GCN_GETDRAWINFO:
-                {
-                    PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
-                    PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
-
-                    if (header->hwndFrom == context->FramesPerSecondGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->FramesPerSecondGraphState, getDrawInfo, context->Block->FramesPerSecondHistory.Count);
-
-                        if (!context->FramesPerSecondGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesPerSecondHistory, context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->FramesPerSecondGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->FramesPerSecondGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->FramesPerSecondGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->FramesPerSecondGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesPerSecond, 2);
-                            PhInitFormatS(&format[1], L" FPS");
-
-                            PhMoveReference(&context->FramesPerSecondGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->FramesPerSecondGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->FramesPerSecondGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->FramesLatencyGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->FramesLatencyGraphState, getDrawInfo, context->Block->FramesLatencyHistory.Count);
-
-                        if (!context->FramesLatencyGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->FramesLatencyGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->FramesLatencyGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->FramesLatencyGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->FramesLatencyGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesLatency, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->FramesLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->FramesLatencyGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->FramesLatencyGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->PresentIntervalGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_IO_WRITE), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->PresentIntervalGraphState, getDrawInfo, context->Block->FramesMsBetweenPresentsHistory.Count);
-
-                        if (!context->PresentIntervalGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsBetweenPresentsHistory, context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->PresentIntervalGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->PresentIntervalGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->PresentIntervalGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->PresentIntervalGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesMsBetweenPresents, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->PresentIntervalGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->PresentIntervalGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->PresentIntervalGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->PresentDurationGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->PresentDurationGraphState, getDrawInfo, context->Block->FramesMsInPresentApiHistory.Count);
-
-                        if (!context->PresentDurationGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsInPresentApiHistory, context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->PresentDurationGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->PresentDurationGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->PresentDurationGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->PresentDurationGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesMsInPresentApi, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->PresentDurationGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->PresentDurationGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->PresentDurationGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->FramesRenderTimeGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PRIVATE), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->FramesRenderTimeGraphState, getDrawInfo, context->Block->FramesMsUntilRenderCompleteHistory.Count);
-
-                        if (!context->FramesRenderTimeGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilRenderCompleteHistory, context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->FramesRenderTimeGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->FramesRenderTimeGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->FramesRenderTimeGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->FramesRenderTimeGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesMsUntilRenderComplete, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->FramesRenderTimeGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->FramesRenderTimeGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->FramesRenderTimeGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->FramesDisplayTimeGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_CPU_KERNEL), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->FramesDisplayTimeGraphState, getDrawInfo, context->Block->FramesMsUntilDisplayedHistory.Count);
-
-                        if (!context->FramesDisplayTimeGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesMsUntilDisplayedHistory, context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->FramesDisplayTimeGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->FramesDisplayTimeGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->FramesDisplayTimeGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->FramesDisplayTimeGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesMsUntilDisplayed, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->FramesDisplayTimeGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->FramesDisplayTimeGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->FramesDisplayTimeGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                    else if (header->hwndFrom == context->FramesDisplayLatencyGraphHandle)
-                    {
-                        drawInfo->Flags = PH_GRAPH_USE_GRID_X | PH_GRAPH_USE_GRID_Y | (EtEnableScaleText ? PH_GRAPH_LABEL_MAX_Y : 0);
-                        PhSiSetColorsGraphDrawInfo(drawInfo, PhGetIntegerSetting(SETTING_COLOR_PHYSICAL), 0, context->WindowDpi);
-                        PhGraphStateGetDrawInfo(&context->FramesDisplayLatencyGraphState, getDrawInfo, context->Block->FramesDisplayLatencyHistory.Count);
-
-                        if (!context->FramesDisplayLatencyGraphState.Valid)
-                        {
-                            FLOAT max = 0;
-
-                            PhCopyCircularBuffer_FLOAT(&context->Block->FramesDisplayLatencyHistory, context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
-
-                            if (EtEnableAvxSupport && drawInfo->LineDataCount > 128)
-                            {
-                                max = PhMaxMemorySingles(context->FramesDisplayLatencyGraphState.Data1, drawInfo->LineDataCount);
-                            }
-                            else
-                            {
-                                for (ULONG i = 0; i < drawInfo->LineDataCount; i++)
-                                {
-                                    FLOAT data = context->FramesDisplayLatencyGraphState.Data1[i];
-
-                                    if (max < data)
-                                        max = data;
-                                }
-                            }
-
-                            if (max != 0)
-                            {
-                                PhDivideSinglesBySingle(context->FramesDisplayLatencyGraphState.Data1, max, drawInfo->LineDataCount);
-                            }
-
-                            drawInfo->LabelYFunction = FramesLabelYFunction;
-                            drawInfo->LabelYFunctionParameter = max;
-                            context->FramesDisplayLatencyGraphState.Valid = TRUE;
-                        }
-
-                        if (EtGraphShowText)
-                        {
-                            HDC hdc;
-                            PH_FORMAT format[2];
-
-                            PhInitFormatF(&format[0], context->Block->FramesDisplayLatency, 2);
-                            PhInitFormatS(&format[1], L" ms");
-
-                            PhMoveReference(&context->FramesDisplayLatencyGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
-
-                            hdc = Graph_GetBufferedContext(context->FramesDisplayLatencyGraphHandle);
-                            PhSetGraphText(
-                                hdc,
-                                drawInfo,
-                                &context->FramesDisplayLatencyGraphState.Text->sr,
-                                &NormalGraphTextMargin,
-                                &NormalGraphTextPadding,
-                                PH_ALIGN_TOP | PH_ALIGN_LEFT
-                                );
-                        }
-                        else
-                        {
-                            drawInfo->Text.Buffer = NULL;
-                        }
-                    }
-                }
-                break;
-            case GCN_GETTOOLTIPTEXT:
-                {
-                    PPH_GRAPH_GETTOOLTIPTEXT getTooltipText = (PPH_GRAPH_GETTOOLTIPTEXT)lParam;
-
-                    if (getTooltipText->Index < getTooltipText->TotalCount)
-                    {
-                        if (header->hwndFrom == context->FramesPerSecondGraphHandle)
-                        {
-                            if (context->FramesPerSecondGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesPerSecondHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" FPS\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->FramesPerSecondGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->FramesPerSecondGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->FramesLatencyGraphHandle)
-                        {
-                            if (context->FramesLatencyGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesLatencyHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->FramesLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->FramesLatencyGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->PresentIntervalGraphHandle)
-                        {
-                            if (context->PresentIntervalGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsBetweenPresentsHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->PresentIntervalGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->PresentIntervalGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->PresentDurationGraphHandle)
-                        {
-                            if (context->PresentDurationGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsInPresentApiHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->PresentDurationGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->PresentDurationGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->FramesRenderTimeGraphHandle)
-                        {
-                            if (context->FramesRenderTimeGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsUntilRenderCompleteHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->FramesRenderTimeGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->FramesRenderTimeGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->FramesDisplayTimeGraphHandle)
-                        {
-                            if (context->FramesDisplayTimeGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesMsUntilDisplayedHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->FramesDisplayTimeGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->FramesDisplayTimeGraphState.TooltipText);
-                        }
-                        else if (header->hwndFrom == context->FramesDisplayLatencyGraphHandle)
-                        {
-                            if (context->FramesDisplayLatencyGraphState.TooltipIndex != getTooltipText->Index)
-                            {
-                                FLOAT value;
-                                PH_FORMAT format[3];
-
-                                value = PhGetItemCircularBuffer_FLOAT(&context->Block->FramesDisplayLatencyHistory, getTooltipText->Index);
-
-                                PhInitFormatF(&format[0], value, 2);
-                                PhInitFormatS(&format[1], L" ms\n");
-                                PhInitFormatSR(&format[2], PH_AUTO_T(PH_STRING, PhGetStatisticsTimeString(NULL, getTooltipText->Index))->sr);
-
-                                PhMoveReference(&context->FramesDisplayLatencyGraphState.TooltipText, PhFormat(format, RTL_NUMBER_OF(format), 0));
-                            }
-
-                            getTooltipText->Text = PhGetStringRef(context->FramesDisplayLatencyGraphState.TooltipText);
-                        }
-                    }
-                }
                 break;
             }
         }

@@ -10,7 +10,7 @@
  *
  * Authors:
  *
- *     dmex    2024
+ *     dmex    2024-2026
  *
  */
 
@@ -28,6 +28,8 @@
 CONST PH_STRINGREF EtUserEnvironmentKeyName = PH_STRINGREF_INIT(L"Environment");
 CONST PH_STRINGREF EtSystemEnvironmentKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Session Manager\\Environment");
 HWND EtEnvironmentVariablesWindowHandle = NULL;
+HANDLE EtEnvironmentVariablesWindowThreadHandle = NULL;
+PH_EVENT EtEnvironmentVariablesInitializedEvent = PH_EVENT_INIT;
 
 /**
  * Represents an environment variable entry.
@@ -60,6 +62,7 @@ typedef struct _ENV_EDIT_CONTEXT
     PCWSTR Name;
     PCWSTR Value;
     BOOLEAN NameReadOnly;
+    BOOLEAN ReadOnly;
     BOOLEAN Committed;
     PPH_STRING OutName;
     PPH_STRING OutValue;
@@ -76,47 +79,11 @@ typedef struct _ENV_SPLIT_CONTEXT
     HWND ListViewHandle;
     PPH_STRING Name;
     PPH_STRING Value;
+    BOOLEAN ReadOnly;
     BOOLEAN Committed;
     PH_LAYOUT_MANAGER LayoutManager;
     RECT MinimumSize;
 } ENV_SPLIT_CONTEXT, *PENV_SPLIT_CONTEXT;
-
-INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
-    _In_ HWND hwndDlg,
-    _In_ UINT uMsg,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-/**
- * Shows the environment variables dialog.
- *
- * \param ParentWindowHandle The handle to the parent window.
- */
-VOID EtShowEnvironmentVariablesDialog(
-    _In_ HWND ParentWindowHandle
-    )
-{
-    if (!EtEnvironmentVariablesWindowHandle)
-    {
-        EtEnvironmentVariablesWindowHandle = PhCreateDialog(
-            NtCurrentImageBase(),
-            MAKEINTRESOURCE(IDD_ENVIRONMENTVARIABLES),
-            NULL,
-            EtEnvironmentVariablesDlgProc,
-            NULL
-            );
-        PhRegisterDialog(EtEnvironmentVariablesWindowHandle);
-        ShowWindow(EtEnvironmentVariablesWindowHandle, SW_SHOW);
-    }
-
-    if (IsMinimized(EtEnvironmentVariablesWindowHandle))
-        ShowWindow(EtEnvironmentVariablesWindowHandle, SW_RESTORE);
-    else
-        SetForegroundWindow(EtEnvironmentVariablesWindowHandle);
-}
-
-// Registry helpers
 
 /**
  * Context for environment variable enumeration.
@@ -357,6 +324,14 @@ VOID EtClearEnvironmentEntries(
     PhClearList(Context->Entries);
 }
 
+PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
+    _In_ PENV_VARIABLES_CONTEXT Context
+    );
+
+VOID EtUpdateEnvironmentControls(
+    _In_ PENV_VARIABLES_CONTEXT Context
+    );
+
 /**
  * Refreshes the list of environment variables in the dialog.
  *
@@ -391,6 +366,26 @@ VOID EtRefreshEnvironmentVariables(
     }
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
+    EtUpdateEnvironmentControls(Context);
+}
+
+VOID EtUpdateEnvironmentControls(
+    _In_ PENV_VARIABLES_CONTEXT Context
+    )
+{
+    PENV_VARIABLE_ENTRY entry;
+    BOOLEAN protectedSystemEntry;
+
+    entry = EtGetSelectedEnvironmentEntry(Context);
+    protectedSystemEntry = entry && entry->System && !Context->Elevated;
+
+    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_ADD), !protectedSystemEntry);
+    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_EDIT), !!entry);
+    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_DELETE), entry && !protectedSystemEntry);
+
+    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_ADD), protectedSystemEntry);
+    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_EDIT), protectedSystemEntry);
+    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_DELETE), protectedSystemEntry);
 }
 
 /**
@@ -522,8 +517,15 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name ? context->Name : L"");
             PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
 
-            if (context->NameReadOnly)
+            if (context->NameReadOnly || context->ReadOnly)
                 Edit_SetReadOnly(GetDlgItem(hwndDlg, IDC_NAME), TRUE);
+
+            if (context->ReadOnly)
+            {
+                Edit_SetReadOnly(valueHandle, TRUE);
+                PhSetDialogItemText(hwndDlg, IDOK, L"Close");
+                ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
+            }
 
             PhSetWindowContext(valueHandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(valueHandle));
             PhSetWindowProcedure(valueHandle, (WNDPROC)EtEnvEditSubclassProc);
@@ -551,6 +553,12 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             case IDOK:
                 {
                     PPH_STRING name;
+
+                    if (context->ReadOnly)
+                    {
+                        EndDialog(hwndDlg, IDCANCEL);
+                        break;
+                    }
 
                     name = PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME));
 
@@ -607,6 +615,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
  * \param InitialName The initial name of the environment variable.
  * \param InitialValue The initial value of the environment variable.
  * \param NameReadOnly TRUE if the name should be read-only.
+ * \param ReadOnly TRUE if the entire dialog should be read-only.
  * \param Name Receives the new name of the environment variable.
  * \param Value Receives the new value of the environment variable.
  * \return TRUE if the user committed the changes, FALSE otherwise.
@@ -616,6 +625,7 @@ BOOLEAN EtShowEnvEditDialog(
     _In_opt_ PCWSTR InitialName,
     _In_opt_ PCWSTR InitialValue,
     _In_ BOOLEAN NameReadOnly,
+    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_STRING *Name,
     _Out_ PPH_STRING *Value
     )
@@ -626,6 +636,7 @@ BOOLEAN EtShowEnvEditDialog(
     context.Name = InitialName;
     context.Value = InitialValue;
     context.NameReadOnly = NameReadOnly;
+    context.ReadOnly = ReadOnly;
 
     PhDialogBox(
         NtCurrentImageBase(),
@@ -802,13 +813,13 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NEW), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_EDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DELETE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_EDITTEXT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_NEW), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_DELETE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDITTEXT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
@@ -819,6 +830,20 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
             EtSplitPopulateList(context);
+            ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
+            if (context->ReadOnly)
+            {
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_NEW), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_EDIT), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_BROWSE), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_DELETE), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_MOVEUP), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_MOVEDOWN), FALSE);
+                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_EDITTEXT), FALSE);
+                PhSetDialogItemText(hwndDlg, IDOK, L"Close");
+                ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
+            }
 
             PhCenterWindow(hwndDlg, NULL);
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
@@ -839,14 +864,23 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDOK:
                 {
+                    if (context->ReadOnly)
+                    {
+                        EndDialog(hwndDlg, IDCANCEL);
+                        break;
+                    }
+
                     PhMoveReference(&context->Value, EtSplitBuildValue(context->ListViewHandle));
                     context->Committed = TRUE;
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
-            case IDC_NEW:
+            case IDC_ENV_NEW:
                 {
                     PPH_STRING text = NULL;
+
+                    if (context->ReadOnly)
+                        break;
 
                     if (PhaChoiceDialog(
                         hwndDlg,
@@ -869,10 +903,13 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                     }
                 }
                 break;
-            case IDC_EDIT:
+            case IDC_ENV_EDIT:
                 {
                     INT index;
                     PPH_STRING text;
+
+                    if (context->ReadOnly)
+                        break;
 
                     index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
@@ -901,9 +938,12 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                     PhClearReference(&text);
                 }
                 break;
-            case IDC_BROWSE:
+            case IDC_ENV_BROWSE:
                 {
                     PVOID fileDialog;
+
+                    if (context->ReadOnly)
+                        break;
 
                     fileDialog = PhCreateOpenFileDialog();
                     PhSetFileDialogOptions(fileDialog, PhGetFileDialogOptions(fileDialog) | PH_FILEDIALOG_PICKFOLDERS);
@@ -933,35 +973,47 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                     PhFreeFileDialog(fileDialog);
                 }
                 break;
-            case IDC_DELETE:
+            case IDC_ENV_DELETE:
                 {
                     INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+
+                    if (context->ReadOnly)
+                        break;
 
                     if (index != INT_ERROR)
                         ListView_DeleteItem(context->ListViewHandle, index);
                 }
                 break;
-            case IDC_MOVEUP:
+            case IDC_ENV_MOVEUP:
                 {
                     INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+
+                    if (context->ReadOnly)
+                        break;
 
                     if (index != INT_ERROR)
                         EtSplitMoveItem(context->ListViewHandle, index, -1);
                 }
                 break;
-            case IDC_MOVEDOWN:
+            case IDC_ENV_MOVEDOWN:
                 {
                     INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+
+                    if (context->ReadOnly)
+                        break;
 
                     if (index != INT_ERROR)
                         EtSplitMoveItem(context->ListViewHandle, index, 1);
                 }
                 break;
-            case IDC_EDITTEXT:
+            case IDC_ENV_EDITTEXT:
                 {
                     PPH_STRING value;
                     PPH_STRING name;
                     PPH_STRING newValue;
+
+                    if (context->ReadOnly)
+                        break;
 
                     value = EtSplitBuildValue(context->ListViewHandle);
 
@@ -970,6 +1022,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                         PhGetString(context->Name),
                         PhGetString(value),
                         TRUE,
+                        FALSE,
                         &name,
                         &newValue
                         ))
@@ -985,6 +1038,14 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
             }
         }
         break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+
+            if (header->hwndFrom == context->ListViewHandle && header->code == NM_DBLCLK)
+                SendMessage(hwndDlg, WM_COMMAND, IDC_ENV_EDIT, 0);
+        }
+        break;
     case WM_DPICHANGED:
         {
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
@@ -993,6 +1054,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
         break;
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
+        ExtendedListView_SetColumnWidth(context->ListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
         break;
     case WM_SIZING:
         PhResizingMinimumSize((PRECT)lParam, wParam, context->MinimumSize.right, context->MinimumSize.bottom);
@@ -1014,6 +1076,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
  * \param ParentWindowHandle The handle to the parent window.
  * \param Name The name of the environment variable.
  * \param Value The initial value of the environment variable.
+ * \param ReadOnly TRUE if the dialog should be read-only.
  * \param NewValue Receives the new value of the environment variable.
  * \return TRUE if the user committed the changes, FALSE otherwise.
  */
@@ -1021,6 +1084,7 @@ BOOLEAN EtShowEnvSplitDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING Value,
+    _In_ BOOLEAN ReadOnly,
     _Out_ PPH_STRING *NewValue
     )
 {
@@ -1029,6 +1093,7 @@ BOOLEAN EtShowEnvSplitDialog(
     memset(&context, 0, sizeof(ENV_SPLIT_CONTEXT));
     context.Name = Name;
     context.Value = PhReferenceObject(Value);
+    context.ReadOnly = ReadOnly;
 
     PhDialogBox(
         NtCurrentImageBase(),
@@ -1051,32 +1116,6 @@ BOOLEAN EtShowEnvSplitDialog(
 // Actions
 
 /**
- * Confirms if the environment variable can be modified (checks elevation for system variables).
- *
- * \param Context The environment variables context.
- * \param System TRUE if the variable is system-wide.
- * \return TRUE if the variable can be modified, FALSE otherwise.
- */
-BOOLEAN EtConfirmReadOnly(
-    _In_ PENV_VARIABLES_CONTEXT Context,
-    _In_ BOOLEAN System
-    )
-{
-    if (System && !Context->Elevated)
-    {
-        PhShowInformation2(
-            Context->WindowHandle,
-            L"Unable to modify system environment variables.",
-            L"%s",
-            L"System environment variables can only be modified when running with administrative privileges."
-            );
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-/**
  * Handles the "Add" action for environment variables.
  *
  * \param Context The environment variables context.
@@ -1092,9 +1131,13 @@ VOID EtEnvironmentAdd(
     PPH_STRING value;
 
     selected = EtGetSelectedEnvironmentEntry(Context);
+
+    if (selected && selected->System && !Context->Elevated)
+        return;
+
     system = (selected && selected->System && Context->Elevated) ? TRUE : FALSE;
 
-    if (!EtShowEnvEditDialog(Context->WindowHandle, NULL, NULL, FALSE, &name, &value))
+    if (!EtShowEnvEditDialog(Context->WindowHandle, NULL, NULL, FALSE, FALSE, &name, &value))
         return;
 
     status = EtWriteEnvironmentVariable(system, name, value, PhFindCharInString(value, 0, L'%') != SIZE_MAX);
@@ -1123,20 +1166,20 @@ VOID EtEnvironmentEdit(
     )
 {
     PENV_VARIABLE_ENTRY entry;
+    BOOLEAN readOnly;
 
     entry = EtGetSelectedEnvironmentEntry(Context);
 
     if (!entry)
         return;
 
-    if (!EtConfirmReadOnly(Context, entry->System))
-        return;
+    readOnly = entry->System && !Context->Elevated;
 
     if (EtIsPathEnvironmentVariable(entry))
     {
         PPH_STRING newValue;
 
-        if (EtShowEnvSplitDialog(Context->WindowHandle, entry->Name, entry->Value, &newValue))
+        if (EtShowEnvSplitDialog(Context->WindowHandle, entry->Name, entry->Value, readOnly, &newValue))
         {
             NTSTATUS status;
 
@@ -1166,6 +1209,7 @@ VOID EtEnvironmentEdit(
             PhGetString(entry->Name),
             PhGetString(entry->Value),
             FALSE,
+            readOnly,
             &name,
             &value
             ))
@@ -1212,7 +1256,7 @@ VOID EtEnvironmentDelete(
     if (!entry)
         return;
 
-    if (!EtConfirmReadOnly(Context, entry->System))
+    if (entry->System && !Context->Elevated)
         return;
 
     if (!PhShowConfirmMessage(
@@ -1294,9 +1338,9 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ADD), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_EDIT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_DELETE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_ADD), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDIT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_DELETE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
@@ -1319,13 +1363,13 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             PhSaveWindowPlacementToSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterDialog(EtEnvironmentVariablesWindowHandle);
-            EtEnvironmentVariablesWindowHandle = NULL;
 
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             EtClearEnvironmentEntries(context);
             PhDereferenceObject(context->Entries);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PostQuitMessage(0);
             PhFree(context);
         }
         break;
@@ -1337,13 +1381,13 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             case IDOK:
                 DestroyWindow(hwndDlg);
                 break;
-            case IDC_ADD:
+            case IDC_ENV_ADD:
                 EtEnvironmentAdd(context);
                 break;
-            case IDC_EDIT:
+            case IDC_ENV_EDIT:
                 EtEnvironmentEdit(context);
                 break;
-            case IDC_DELETE:
+            case IDC_ENV_DELETE:
                 EtEnvironmentDelete(context);
                 break;
             }
@@ -1353,9 +1397,64 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
         {
             LPNMHDR header = (LPNMHDR)lParam;
 
-            if (header->hwndFrom == context->ListViewHandle && header->code == NM_DBLCLK)
+            if (header->hwndFrom == context->ListViewHandle && header->code == LVN_ITEMCHANGED)
+            {
+                EtUpdateEnvironmentControls(context);
+            }
+            else if (header->hwndFrom == context->ListViewHandle && header->code == NM_DBLCLK)
             {
                 EtEnvironmentEdit(context);
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if ((HWND)wParam == context->ListViewHandle)
+            {
+                POINT point;
+                PPH_EMENU menu;
+
+                point.x = GET_X_LPARAM(lParam);
+                point.y = GET_Y_LPARAM(lParam);
+
+                if (point.x == -1 && point.y == -1)
+                    PhGetListViewContextMenuPoint(context->ListViewHandle, &point);
+
+                menu = PhCreateEMenu();
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_ENV_ADD, L"&Add", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_ENV_EDIT, L"&Edit", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, IDC_ENV_DELETE, L"&Delete", NULL, NULL), ULONG_MAX);
+
+                {
+                    PENV_VARIABLE_ENTRY entry;
+                    BOOLEAN protectedSystemEntry;
+
+                    entry = EtGetSelectedEnvironmentEntry(context);
+                    protectedSystemEntry = entry && entry->System && !context->Elevated;
+
+                    if (protectedSystemEntry)
+                    {
+                        PhSetFlagsEMenuItem(menu, IDC_ENV_ADD, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                        PhSetFlagsEMenuItem(menu, IDC_ENV_DELETE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                    }
+
+                    if (!entry)
+                    {
+                        PhSetFlagsEMenuItem(menu, IDC_ENV_EDIT, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                        PhSetFlagsEMenuItem(menu, IDC_ENV_DELETE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+                    }
+                }
+
+                PhShowEMenu(
+                    menu,
+                    hwndDlg,
+                    PH_EMENU_SHOW_SEND_COMMAND | PH_EMENU_SHOW_LEFTRIGHT,
+                    PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                    point.x,
+                    point.y
+                    );
+                PhDestroyEMenu(menu);
             }
         }
         break;
@@ -1368,6 +1467,16 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
     case WM_SIZE:
         PhLayoutManagerLayout(&context->LayoutManager);
         break;
+    case WM_PH_SHOW_DIALOG:
+        {
+            if (IsMinimized(hwndDlg))
+                ShowWindow(hwndDlg, SW_RESTORE);
+            else
+                ShowWindow(hwndDlg, SW_SHOW);
+
+            SetForegroundWindow(hwndDlg);
+        }
+        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -1377,4 +1486,78 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
     }
 
     return FALSE;
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS EtEnvironmentVariablesWindowThreadStart(
+    _In_ PVOID Parameter
+    )
+{
+    BOOL result;
+    MSG message;
+    PH_AUTO_POOL autoPool;
+
+    PhInitializeAutoPool(&autoPool);
+
+    EtEnvironmentVariablesWindowHandle = PhCreateDialog(
+        NtCurrentImageBase(),
+        MAKEINTRESOURCE(IDD_ENVIRONMENTVARIABLES),
+        !!PhGetIntegerSetting(SETTING_FORCE_NO_PARENT) ? NULL : Parameter,
+        EtEnvironmentVariablesDlgProc,
+        NULL
+        );
+
+    PhSetEvent(&EtEnvironmentVariablesInitializedEvent);
+
+    ShowWindow(EtEnvironmentVariablesWindowHandle, SW_SHOW);
+    SetForegroundWindow(EtEnvironmentVariablesWindowHandle);
+
+    while (result = GetMessage(&message, NULL, 0, 0))
+    {
+        if (result == -1)
+            break;
+
+        if (!IsDialogMessage(EtEnvironmentVariablesWindowHandle, &message))
+        {
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        PhDrainAutoPool(&autoPool);
+    }
+
+    PhDeleteAutoPool(&autoPool);
+    PhResetEvent(&EtEnvironmentVariablesInitializedEvent);
+
+    if (EtEnvironmentVariablesWindowThreadHandle)
+    {
+        NtClose(EtEnvironmentVariablesWindowThreadHandle);
+        EtEnvironmentVariablesWindowThreadHandle = NULL;
+        EtEnvironmentVariablesWindowHandle = NULL;
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Shows the environment variables dialog.
+ *
+ * \param ParentWindowHandle The handle to the parent window.
+ */
+VOID EtShowEnvironmentVariablesDialog(
+    _In_ HWND ParentWindowHandle
+    )
+{
+    if (!EtEnvironmentVariablesWindowThreadHandle)
+    {
+        if (!NT_SUCCESS(PhCreateThreadEx(&EtEnvironmentVariablesWindowThreadHandle, EtEnvironmentVariablesWindowThreadStart, ParentWindowHandle)))
+        {
+            PhShowError2(NULL, L"Unable to create the window.", L"%s", L"");
+            return;
+        }
+
+        PhWaitForEvent(&EtEnvironmentVariablesInitializedEvent, NULL);
+    }
+
+    PostMessage(EtEnvironmentVariablesWindowHandle, WM_PH_SHOW_DIALOG, 0, 0);
 }

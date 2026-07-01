@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2015-2023
+ *     dmex    2015-2026
  *     jxy-s   2024
  *
  */
@@ -415,36 +415,6 @@ INT_PTR CALLBACK EtpNpuDialogProc(
             EtpLayoutNpuGraphs(WindowHandle);
         }
         break;
-    case WM_NOTIFY:
-        {
-            NMHDR *header = (NMHDR *)lParam;
-
-            if (header->hwndFrom == NpuGraphHandle)
-            {
-                EtpNotifyNpuGraph(header);
-            }
-            else if (header->hwndFrom == DedicatedGraphHandle)
-            {
-                EtpNotifyDedicatedNpuGraph(header);
-            }
-            else if (header->hwndFrom == SharedGraphHandle)
-            {
-                EtpNotifySharedNpuGraph(header);
-            }
-            else if (header->hwndFrom == PowerUsageGraphHandle)
-            {
-                EtpNotifyPowerUsageNpuGraph(header);
-            }
-            else if (header->hwndFrom == TemperatureGraphHandle)
-            {
-                EtpNotifyTemperatureNpuGraph(header);
-            }
-            else if (header->hwndFrom == FanRpmGraphHandle)
-            {
-                EtpNotifyFanRpmNpuGraph(header);
-            }
-        }
-        break;
     case WM_CTLCOLORBTN:
         return HANDLE_WM_CTLCOLORBTN(WindowHandle, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORDLG:
@@ -497,11 +467,56 @@ INT_PTR CALLBACK EtpNpuPanelDialogProc(
     return FALSE;
 }
 
+_Function_class_(PH_GRAPH_MESSAGE_CALLBACK)
+BOOLEAN EtpNpuGraphMessageCallback(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ PVOID Parameter1,
+    _In_ PVOID Parameter2,
+    _In_ PVOID Context
+    )
+{
+    NMHDR *header = (NMHDR *)Parameter1;
+
+    if (header->hwndFrom == NpuGraphHandle)
+    {
+        EtpNotifyNpuGraph(header);
+    }
+    else if (header->hwndFrom == DedicatedGraphHandle)
+    {
+        EtpNotifyDedicatedNpuGraph(header);
+    }
+    else if (header->hwndFrom == SharedGraphHandle)
+    {
+        EtpNotifySharedNpuGraph(header);
+    }
+    else if (header->hwndFrom == PowerUsageGraphHandle)
+    {
+        EtpNotifyPowerUsageNpuGraph(header);
+    }
+    else if (header->hwndFrom == TemperatureGraphHandle)
+    {
+        EtpNotifyTemperatureNpuGraph(header);
+    }
+    else if (header->hwndFrom == FanRpmGraphHandle)
+    {
+        EtpNotifyFanRpmNpuGraph(header);
+    }
+
+    return TRUE;
+}
+
 VOID EtpCreateNpuGraphs(
     VOID
     )
 {
-    NpuGraphHandle = CreateWindow(
+    PH_GRAPH_CREATEPARAMS graphCreateParams;
+
+    memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
+    graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
+    graphCreateParams.Callback = EtpNpuGraphMessageCallback;
+
+    NpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -512,11 +527,11 @@ VOID EtpCreateNpuGraphs(
         NpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(NpuGraphHandle, TRUE);
 
-    DedicatedGraphHandle = CreateWindow(
+    DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -527,11 +542,11 @@ VOID EtpCreateNpuGraphs(
         NpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(DedicatedGraphHandle, TRUE);
 
-    SharedGraphHandle = CreateWindow(
+    SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
         WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -542,13 +557,13 @@ VOID EtpCreateNpuGraphs(
         NpuDialog,
         NULL,
         NULL,
-        NULL
+        &graphCreateParams
         );
     Graph_SetTooltip(SharedGraphHandle, TRUE);
 
     if (EtNpuSupported)
     {
-        PowerUsageGraphHandle = CreateWindow(
+        PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -559,11 +574,11 @@ VOID EtpCreateNpuGraphs(
             NpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(PowerUsageGraphHandle, TRUE);
 
-        TemperatureGraphHandle = CreateWindow(
+        TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -574,11 +589,11 @@ VOID EtpCreateNpuGraphs(
             NpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(TemperatureGraphHandle, TRUE);
 
-        FanRpmGraphHandle = CreateWindow(
+        FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
             WS_VISIBLE | WS_CHILD | WS_BORDER,
@@ -589,7 +604,7 @@ VOID EtpCreateNpuGraphs(
             NpuDialog,
             NULL,
             NULL,
-            NULL
+            &graphCreateParams
             );
         Graph_SetTooltip(FanRpmGraphHandle, TRUE);
     }

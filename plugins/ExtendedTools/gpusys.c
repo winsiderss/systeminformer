@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2015-2023
+ *     dmex    2015-2026
  *
  */
 
@@ -353,6 +353,7 @@ INT_PTR CALLBACK EtpGpuDialogProc(
 
             GpuDialog = WindowHandle;
             GpuDialogWindowDpi = PhGetWindowDpi(GpuDialog);
+            PhSetWindowExStyle(WindowHandle, WS_EX_TRANSPARENT, 0);
 
             PhInitializeLayoutManager(&GpuLayoutManager, WindowHandle);
             PhAddLayoutItem(&GpuLayoutManager, GetDlgItem(WindowHandle, IDC_GPUNAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
@@ -381,6 +382,8 @@ INT_PTR CALLBACK EtpGpuDialogProc(
                 ShowWindow(GetDlgItem(WindowHandle, IDC_TEMPERATURE_L), SW_HIDE);
                 ShowWindow(GetDlgItem(WindowHandle, IDC_FAN_RPM_L), SW_HIDE);
             }
+
+            PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(L"EnableThemeSupport"));
         }
         break;
     case WM_DESTROY:
