@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2013-2023
+ *     dmex    2013-2026
  *
  */
 
@@ -448,7 +448,7 @@ CleanupExit:
     }
     else
     {
-        if (socketHandle)
+        if (socketHandle != INVALID_SOCKET)
             closesocket(socketHandle);
     }
 

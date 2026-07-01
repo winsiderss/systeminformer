@@ -6,13 +6,12 @@
  * Authors:
  *
  *     wj32    2010-2011
- *     dmex    2013-2024
+ *     dmex    2013-2026
  *
  */
 
 #include "nettools.h"
 #include <networktoolsintf.h>
-
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance;
@@ -517,9 +516,7 @@ VOID NTAPI NetworkItemDeleteCallback(
         PhDereferenceObject(extension->LatencyText);
 }
 
-FORCEINLINE
-VOID
-PhpNetworkItemToRow(
+VOID PhpNetworkItemToRow(
     _Out_ PMIB_TCPROW Row,
      _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -532,9 +529,7 @@ PhpNetworkItemToRow(
     Row->dwRemotePort = _byteswap_ushort((USHORT)NetworkItem->RemoteEndpoint.Port);
 }
 
-FORCEINLINE
-VOID
-PhpNetworkItemToRow6(
+VOID PhpNetworkItemToRow6(
     _Out_ PMIB_TCP6ROW Row,
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
@@ -627,8 +622,9 @@ VOID UpdateNetworkNode(
             if (!Extension->LocalValid)
             {
                 PPH_STRINGREF localServiceName;
+                ULONG protocol = (Node->NetworkItem->ProtocolType & PH_PROTOCOL_TYPE_TCP) ? IPPROTO_TCP : IPPROTO_UDP;
 
-                if (LookupPortServiceName(Node->NetworkItem->LocalEndpoint.Port, &localServiceName))
+                if (LookupPortServiceName(Node->NetworkItem->LocalEndpoint.Port, protocol, &localServiceName))
                 {
                     Extension->LocalServiceName = localServiceName;
                 }
@@ -642,8 +638,9 @@ VOID UpdateNetworkNode(
             if (!Extension->RemoteValid)
             {
                 PPH_STRINGREF remoteServiceName;
+                ULONG protocol = (Node->NetworkItem->ProtocolType & PH_PROTOCOL_TYPE_TCP) ? IPPROTO_TCP : IPPROTO_UDP;
 
-                if (LookupPortServiceName(Node->NetworkItem->RemoteEndpoint.Port, &remoteServiceName))
+                if (LookupPortServiceName(Node->NetworkItem->RemoteEndpoint.Port, protocol, &remoteServiceName))
                 {
                     Extension->RemoteServiceName = remoteServiceName;
                 }
@@ -862,11 +859,28 @@ VOID ProcessesUpdatedCallback(
         )
     {
         PNETWORK_EXTENSION extension = CONTAINING_RECORD(listEntry, NETWORK_EXTENSION, ListEntry);
+        PPH_NETWORK_ITEM networkItem;
 
         if (!extension || !extension->StatsEnabled)
             continue;
 
-        if (extension->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
+        networkItem = extension->NetworkItem;
+
+        if (!networkItem)
+            continue;
+
+        // eStats is only valid for established TCP connections.
+        if (networkItem->State != MIB_TCP_STATE_ESTAB)
+        {
+            extension->NumberOfBytesIn = 0;
+            extension->NumberOfBytesOut = 0;
+            extension->NumberOfLostPackets = 0;
+            extension->SampleRtt = 0;
+            extension->VarianceRtt = 0;
+            continue;
+        }
+
+        if (networkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP4)
         {
             MIB_TCPROW tcpRow;
             TCP_ESTATS_DATA_RW_v0 dataRw;
@@ -874,7 +888,7 @@ VOID ProcessesUpdatedCallback(
             TCP_ESTATS_DATA_ROD_v0 dataRod;
             TCP_ESTATS_PATH_ROD_v0 pathRod;
 
-            PhpNetworkItemToRow(&tcpRow, extension->NetworkItem);
+            PhpNetworkItemToRow(&tcpRow, networkItem);
 
             if (GetPerTcpConnectionEStats(
                 &tcpRow,
@@ -924,7 +938,7 @@ VOID ProcessesUpdatedCallback(
                 }
             }
         }
-        else if (extension->NetworkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
+        else if (networkItem->ProtocolType == PH_NETWORK_PROTOCOL_TCP6)
         {
             MIB_TCP6ROW tcp6Row;
             TCP_ESTATS_DATA_RW_v0 dataRw;
@@ -932,7 +946,7 @@ VOID ProcessesUpdatedCallback(
             TCP_ESTATS_DATA_ROD_v0 dataRod;
             TCP_ESTATS_PATH_ROD_v0 pathRod;
 
-            PhpNetworkItemToRow6(&tcp6Row, extension->NetworkItem);
+            PhpNetworkItemToRow6(&tcp6Row, networkItem);
 
             if (GetPerTcp6ConnectionEStats(
                 &tcp6Row,

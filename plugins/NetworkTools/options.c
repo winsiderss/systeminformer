@@ -65,6 +65,7 @@ INT_PTR CALLBACK OptionsDlgProc(
             PhSetIntegerSetting(SETTING_NAME_TRACERT_MAX_HOPS, PhGetDialogItemValue(WindowHandle, IDC_MAXHOPS));
             PhSetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS, Button_GetCheck(GetDlgItem(WindowHandle, IDC_ENABLE_EXTENDED_TCP)) == BST_CHECKED);
             PhSetIntegerSetting(SETTING_NAME_GEOLITE_DB_TYPE, GeoLiteDatabaseType);
+            NetworkExtensionEnabled = !!PhGetIntegerSetting(SETTING_NAME_EXTENDED_TCP_STATS);
 
             PhDeleteLayoutManager(&LayoutManager);
         }

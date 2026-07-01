@@ -50,6 +50,7 @@ extern SIZE GeoCountryImageSize;
 extern CONST PH_STRINGREF GeoDbCityFileName;
 extern CONST PH_STRINGREF GeoDbCountryFileName;
 extern HWND NetworkTreeNewHandle;
+extern BOOLEAN NetworkExtensionEnabled;
 extern PPH_STRING SearchboxText;
 
 // ICMP Packet Length: (msdn: IcmpSendEcho2/Icmp6SendEcho2)
@@ -272,6 +273,21 @@ typedef enum _NETWORK_COLUMN_ID
 
 // country.c
 
+_Success_(return)
+BOOLEAN NetToolsLookupCountryResource(
+    _In_ ULONG GeoNameID,
+    _Out_ LONG *ResourceID
+    );
+
+HIMAGELIST NetToolsGetCountryImageList(
+    _In_ HWND WindowHandle
+    );
+
+BOOLEAN NetToolsInitializeCountryImageList(
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
+    );
+
 VOID FreeGeoLiteDb(
     VOID
     );
@@ -361,15 +377,17 @@ VOID ShowDbInvalidSettingsDialog(
 // ports.c
 typedef struct _RESOLVED_PORT
 {
-    PWSTR Name;
+    PWSTR Name;       // PPH_STRINGREF via SREF()
     USHORT Port;
+    USHORT Protocol;  // IPPROTO_TCP / IPPROTO_UDP
 } RESOLVED_PORT;
 
-extern CONST RESOLVED_PORT ResolvedPortsTable[6265];
+extern CONST RESOLVED_PORT ResolvedPortsTable[];
 
 _Success_(return)
 BOOLEAN LookupPortServiceName(
     _In_ ULONG Port,
+    _In_ ULONG ProtocolType, // IPPROTO_TCP / IPPROTO_UDP
     _Out_ PPH_STRINGREF* ServiceName
     );
 

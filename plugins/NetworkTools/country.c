@@ -174,24 +174,52 @@ CONST GEODB_GEONAME_CACHE_TABLE GeoCountryResourceTable[] =
 
 GEODB_IMAGE_CACHE_TABLE GeoCountryImageTable[RTL_NUMBER_OF(GeoCountryResourceTable)];
 
-BOOLEAN NetToolsInitializeCountryImageList(
+_Success_(return)
+BOOLEAN NetToolsLookupCountryResource(
+    _In_ ULONG GeoNameID,
+    _Out_ LONG *ResourceID
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(GeoCountryResourceTable); i++)
+    {
+        if (GeoCountryResourceTable[i].GeoNameID == GeoNameID)
+        {
+            *ResourceID = GeoCountryResourceTable[i].ResourceID;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+HIMAGELIST NetToolsGetCountryImageList(
     _In_ HWND WindowHandle
     )
 {
-    LONG windowDpi;
+    if (GeoImageList)
+        return GeoImageList;
 
+    if (!WindowHandle)
+        return NULL;
+
+    NetToolsInitializeCountryImageList(WindowHandle, (ULONG)PhGetWindowDpi(WindowHandle));
+
+    return GeoImageList;
+}
+
+BOOLEAN NetToolsInitializeCountryImageList(
+    _In_ HWND WindowHandle,
+    _In_ LONG WindowDpi
+    )
+{
     if (!WindowHandle)
         return FALSE;
 
-    windowDpi = PhGetWindowDpi(WindowHandle);
-    GeoCountryImageSize.cx = PhScaleToDisplay(16, windowDpi);
-    GeoCountryImageSize.cy = PhScaleToDisplay(11, windowDpi);
-
     if (GeoImageList)
-    {
-        PhImageListDestroy(GeoImageList);
-        GeoImageList = NULL;
-    }
+        return TRUE;
+
+    GeoCountryImageSize.cx = PhScaleToDisplay(16, WindowDpi);
+    GeoCountryImageSize.cy = PhScaleToDisplay(11, WindowDpi);
 
     GeoImageList = PhImageListCreate(
         GeoCountryImageSize.cx,
@@ -201,7 +229,7 @@ BOOLEAN NetToolsInitializeCountryImageList(
         1
         );
 
-    return TRUE;
+    return GeoImageList != NULL;
 }
 
 BOOLEAN NetToolsGeoLiteInitialized(
@@ -237,14 +265,22 @@ BOOLEAN NetToolsGeoLiteInitialized(
                 PhTimeToSecondsSince1970(&systemTime, &secondsSince1970);
 
                 // Check if the Geoip database is older than 6 months (182 days = approx. 6 months).
-                if ((secondsSince1970 - GeoDbInstance.metadata.build_epoch) > (182 * 24 * 60 * 60))
+                // Guard against unsigned underflow when build_epoch is in the future (clock skew). (audit)
+                if (secondsSince1970 > GeoDbInstance.metadata.build_epoch &&
+                    (secondsSince1970 - GeoDbInstance.metadata.build_epoch) > (182 * 24 * 60 * 60))
                 {
                     GeoDbExpired = TRUE;
                 }
 
                 memset(GeoCountryImageTable, INT_ERROR, sizeof(GeoCountryImageTable));
 
-                NetToolsInitializeCountryImageList(NetworkTreeNewHandle);
+                if (NetworkTreeNewHandle)
+                {
+                    NetToolsInitializeCountryImageList(
+                        NetworkTreeNewHandle,
+                        (ULONG)PhGetWindowDpi(NetworkTreeNewHandle)
+                        );
+                }
 
                 GeoDbInitialized = TRUE;
             }
@@ -286,6 +322,8 @@ BOOLEAN GeoDbGetCityData(
     MMDB_entry_data_s mmdb_entry;
     DOUBLE cityLatitude = 0.0;
     DOUBLE cityLongitude = 0.0;
+    BOOLEAN hasLatitude = FALSE;
+    BOOLEAN hasLongitude = FALSE;
     PPH_STRING cityName = NULL;
 
     if (MMDB_get_value(GeoDbEntry, &mmdb_entry, "location", "latitude", NULL) == MMDB_SUCCESS)
@@ -293,6 +331,7 @@ BOOLEAN GeoDbGetCityData(
         if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
         {
             cityLatitude = mmdb_entry.double_value;
+            hasLatitude = TRUE;
         }
     }
 
@@ -301,6 +340,7 @@ BOOLEAN GeoDbGetCityData(
         if (mmdb_entry.has_data && mmdb_entry.type == MMDB_DATA_TYPE_DOUBLE)
         {
             cityLongitude = mmdb_entry.double_value;
+            hasLongitude = TRUE;
         }
     }
 
@@ -312,7 +352,7 @@ BOOLEAN GeoDbGetCityData(
         }
     }
 
-    if (cityLatitude && cityLongitude && cityName)
+    if (hasLatitude && hasLongitude && cityName)
     {
         *CityLatitude = cityLatitude;
         *CityLongitude = cityLongitude;
@@ -320,6 +360,7 @@ BOOLEAN GeoDbGetCityData(
         return TRUE;
     }
 
+    PhClearReference(&cityName);
     return FALSE;
 }
 
