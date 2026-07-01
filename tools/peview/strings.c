@@ -28,7 +28,10 @@ typedef struct _PV_STRINGS_SETTINGS
             ULONG ExtendedCharSet : 1;
             ULONG SkipTextSection : 1;
             ULONG SkipHighEntropySections : 1;
-            ULONG Spare : 27;
+            ULONG SkipStringsWithSymbols : 1;
+            ULONG Utf8 : 1;
+            ULONG SkipStringsWithNumbers : 1;
+            ULONG Spare : 24;
         };
 
         ULONG Flags;
@@ -57,6 +60,7 @@ typedef struct _PV_STRINGS_CONTEXT
     PH_SORT_ORDER TreeNewSortOrder;
     ULONG StringsCount;
     PPH_LIST NodeList;
+    PPH_LIST NodeRootList;
 
     BOOLEAN StopSearch;
     HANDLE SearchThreadHandle;
@@ -70,6 +74,10 @@ typedef struct _PV_STRINGS_CONTEXT
     PVOID EndPointer;
     ULONG SkipCounter;
     PPH_LIST RegionSkips;
+
+    struct _PV_STRINGS_NODE* FileSystemNode;
+    struct _PV_STRINGS_NODE* RegistryNode;
+    struct _PV_STRINGS_NODE* WebNode;
 } PV_STRINGS_CONTEXT, *PPV_STRINGS_CONTEXT;
 
 typedef enum _PV_STRINGS_TREE_COLUMN_ITEM
@@ -81,14 +89,24 @@ typedef enum _PV_STRINGS_TREE_COLUMN_ITEM
     PV_STRINGS_TREE_COLUMN_ITEM_LENGTH,
     PV_STRINGS_TREE_COLUMN_ITEM_STRING,
     PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM
-} PV_IMPORT_TREE_COLUMN_ITEM;
+} PV_STRINGS_TREE_COLUMN_ITEM;
+
+typedef enum _PV_STRINGS_NODE_TYPE
+{
+    PV_STRINGS_NODE_TYPE_STRING,
+    PV_STRINGS_NODE_TYPE_CATEGORY
+} PV_STRINGS_NODE_TYPE;
 
 typedef struct _PV_STRINGS_NODE
 {
     PH_TREENEW_NODE Node;
 
+    PV_STRINGS_NODE_TYPE Type;
+    PWSTR CategoryName;
+    PPH_LIST Children;
+
     ULONG Index;
-    BOOLEAN Unicode;
+    PH_STRING_SEARCH_ENCODING Encoding;
     ULONG_PTR Rva;
     PPH_STRING String;
 
@@ -147,6 +165,36 @@ NTSTATUS NTAPI PvpStringSearchNextBuffer(
     return STATUS_SUCCESS;
 }
 
+static PPV_STRINGS_NODE PhpCreateStringsCategoryNode(
+    _In_ PWSTR CategoryName
+    )
+{
+    PPV_STRINGS_NODE node;
+
+    node = PhAllocateZero(sizeof(PV_STRINGS_NODE));
+    node->Type = PV_STRINGS_NODE_TYPE_CATEGORY;
+    node->CategoryName = CategoryName;
+    node->Children = PhCreateList(1);
+
+    return node;
+}
+
+static PWSTR PhpGetStringEncodingName(
+    _In_ PH_STRING_SEARCH_ENCODING Encoding
+    )
+{
+    switch (Encoding)
+    {
+    case PH_STRING_SEARCH_ENCODING_UTF8:
+        return L"UTF-8";
+    case PH_STRING_SEARCH_ENCODING_UTF16:
+        return L"UTF-16";
+    case PH_STRING_SEARCH_ENCODING_ANSI:
+    default:
+        return L"ANSI";
+    }
+}
+
 _Function_class_(PH_STRING_SEARCH_CALLBACK)
 BOOLEAN NTAPI PvpStringSearchCallback(
     _In_ PPH_STRING_SEARCH_RESULT Result,
@@ -157,9 +205,10 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     PIMAGE_SECTION_HEADER section;
 
     node = PhAllocateZero(sizeof(PV_STRINGS_NODE));
+    node->Type = PV_STRINGS_NODE_TYPE_STRING;
     node->Index = ++Context->StringsCount;
     node->Rva = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, PvMappedImage.ViewBase);
-    node->Unicode = Result->Unicode;
+    node->Encoding = Result->Encoding;
     node->String = PhCreateString2(&Result->String);
 
     PhPrintUInt64(node->IndexString, node->Index);
@@ -184,7 +233,44 @@ BOOLEAN NTAPI PvpStringSearchCallback(
     }
 
     PhAcquireQueuedLockExclusive(&Context->SearchResultsLock);
-    PhAddItemList(Context->SearchResults, node);
+
+    if (PhStartsWithStringRef2(&node->String->sr, L"\\Device\\", TRUE))
+    {
+        if (!Context->FileSystemNode)
+        {
+            Context->FileSystemNode = PhpCreateStringsCategoryNode(L"File System");
+            PhAddItemList(Context->SearchResults, Context->FileSystemNode);
+        }
+
+        PhAddItemList(Context->FileSystemNode->Children, node);
+    }
+    else if (PhStartsWithStringRef2(&node->String->sr, L"\\Registry\\", TRUE))
+    {
+        if (!Context->RegistryNode)
+        {
+            Context->RegistryNode = PhpCreateStringsCategoryNode(L"Registry");
+            PhAddItemList(Context->SearchResults, Context->RegistryNode);
+        }
+
+        PhAddItemList(Context->RegistryNode->Children, node);
+    }
+    else if (
+        PhStartsWithStringRef2(&node->String->sr, L"http", TRUE) ||
+        PhStartsWithStringRef2(&node->String->sr, L"www.", TRUE)
+        )
+    {
+        if (!Context->WebNode)
+        {
+            Context->WebNode = PhpCreateStringsCategoryNode(L"Web");
+            PhAddItemList(Context->SearchResults, Context->WebNode);
+        }
+        PhAddItemList(Context->WebNode->Children, node);
+    }
+    else
+    {
+        PhAddItemList(Context->SearchResults, node);
+    }
+
     PhReleaseQueuedLockExclusive(&Context->SearchResultsLock);
 
     return !!Context->StopSearch;
@@ -275,6 +361,25 @@ VOID PvpStringsAddTreeNode(
     Entry->Node.TextCache = Entry->TextCache;
     Entry->Node.TextCacheSize = PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM;
 
+    if (Entry->Type == PV_STRINGS_NODE_TYPE_CATEGORY)
+    {
+        PhAddItemList(Context->NodeRootList, Entry);
+        Entry->Node.Expanded = TRUE;
+
+        for (ULONG i = 0; i < Entry->Children->Count; i++)
+        {
+            PPV_STRINGS_NODE childNode = Entry->Children->Items[i];
+            PhInitializeTreeNewNode(&childNode->Node);
+            memset(childNode->TextCache, 0, sizeof(PH_STRINGREF) * PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM);
+            childNode->Node.TextCache = childNode->TextCache;
+            childNode->Node.TextCacheSize = PV_STRINGS_TREE_COLUMN_ITEM_MAXIMUM;
+        }
+    }
+    else
+    {
+        PhAddItemList(Context->NodeRootList, Entry);
+    }
+
     PhAddItemList(Context->NodeList, Entry);
 
     if (Context->FilterSupport.NodeList)
@@ -296,7 +401,8 @@ VOID PvpAddPendingStringsNodes(
 
     for (i = Context->SearchResultsAddIndex; i < Context->SearchResults->Count; i++)
     {
-        PvpStringsAddTreeNode(Context, Context->SearchResults->Items[i]);
+        PPV_STRINGS_NODE entry = Context->SearchResults->Items[i];
+        PvpStringsAddTreeNode(Context, entry);
         needsFullUpdate = TRUE;
     }
     Context->SearchResultsAddIndex = i;
@@ -386,10 +492,33 @@ BOOLEAN PvpStringsTreeFilterCallback(
 
     assert(Context);
 
-    if (!context->Settings.Ansi && !node->Unicode)
+    if (node->Type == PV_STRINGS_NODE_TYPE_CATEGORY)
+        return TRUE;
+
+    if (!context->Settings.Ansi && node->Encoding == PH_STRING_SEARCH_ENCODING_ANSI)
         return FALSE;
-    if (!context->Settings.Unicode && node->Unicode)
+    if (!context->Settings.Utf8 && node->Encoding == PH_STRING_SEARCH_ENCODING_UTF8)
         return FALSE;
+    if (!context->Settings.Unicode && node->Encoding == PH_STRING_SEARCH_ENCODING_UTF16)
+        return FALSE;
+
+    if (context->Settings.SkipStringsWithNumbers)
+    {
+        for (SIZE_T i = 0; i < node->String->Length / sizeof(WCHAR); i++)
+        {
+            if (iswdigit(node->String->Buffer[i]))
+                return FALSE;
+        }
+    }
+
+    if (context->Settings.SkipStringsWithSymbols)
+    {
+        for (SIZE_T i = 0; i < node->String->Length / sizeof(WCHAR); i++)
+        {
+            if (!iswalnum(node->String->Buffer[i]))
+                return FALSE;
+        }
+    }
 
     if (!context->SearchMatchHandle)
         return TRUE;
@@ -463,13 +592,13 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Type)
 {
-    sortResult = uintcmp(node1->Unicode, node2->Unicode);
+    sortResult = uintcmp(node1->Encoding, node2->Encoding);
 }
 END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Length)
 {
-    sortResult = uintptrcmp(node1->String->Length, node2->String->Length);
+   // sortResult = uintptrcmp(node1->String->Length, node2->String->Length);
 }
 END_SORT_FUNCTION
 
@@ -540,28 +669,42 @@ BOOLEAN NTAPI PvpStringsTreeNewCallback(
             PPH_TREENEW_GET_CELL_TEXT getCellText = (PPH_TREENEW_GET_CELL_TEXT)Parameter1;
             node = (PPV_STRINGS_NODE)getCellText->Node;
 
-            switch (getCellText->Id)
+            if (node->Type == PV_STRINGS_NODE_TYPE_CATEGORY)
             {
-            case PV_STRINGS_TREE_COLUMN_ITEM_INDEX:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->IndexString);
-                break;
-            case PV_STRINGS_TREE_COLUMN_ITEM_SECTION:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->SectionName);
-                break;
-            case PV_STRINGS_TREE_COLUMN_ITEM_RVA:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->RvaString);
-                break;
-            case PV_STRINGS_TREE_COLUMN_ITEM_TYPE:
-                PhInitializeStringRef(&getCellText->Text, node->Unicode ? L"Unicode" : L"ANSI");
-                break;
-            case PV_STRINGS_TREE_COLUMN_ITEM_LENGTH:
-                PhInitializeStringRefLongHint(&getCellText->Text, node->LengthString);
-                break;
-            case PV_STRINGS_TREE_COLUMN_ITEM_STRING:
-                getCellText->Text = node->String->sr;
-                break;
-            default:
-                return FALSE;
+                if (getCellText->Id == PV_STRINGS_TREE_COLUMN_ITEM_STRING)
+                {
+                    PhInitializeStringRef(&getCellText->Text, node->CategoryName);
+                }
+                else
+                {
+                    PhInitializeStringRef(&getCellText->Text, L"");
+                }
+            }
+            else
+            {
+                switch (getCellText->Id)
+                {
+                case PV_STRINGS_TREE_COLUMN_ITEM_INDEX:
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->IndexString);
+                    break;
+                case PV_STRINGS_TREE_COLUMN_ITEM_SECTION:
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->SectionName);
+                    break;
+                case PV_STRINGS_TREE_COLUMN_ITEM_RVA:
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->RvaString);
+                    break;
+                case PV_STRINGS_TREE_COLUMN_ITEM_TYPE:
+                    PhInitializeStringRef(&getCellText->Text, PhpGetStringEncodingName(node->Encoding));
+                    break;
+                case PV_STRINGS_TREE_COLUMN_ITEM_LENGTH:
+                    PhInitializeStringRefLongHint(&getCellText->Text, node->LengthString);
+                    break;
+                case PV_STRINGS_TREE_COLUMN_ITEM_STRING:
+                    getCellText->Text = node->String->sr;
+                    break;
+                default:
+                    return FALSE;
+                }
             }
 
             getCellText->Flags = TN_CACHE;
@@ -653,6 +796,8 @@ VOID PvpDeleteStringsTree(
         PPV_STRINGS_NODE node = (PPV_STRINGS_NODE)Context->NodeList->Items[i];
 
         PhClearReference(&node->String);
+        if (node->Children)
+            PhDereferenceObject(node->Children);
         PhFree(node);
     }
 
@@ -662,12 +807,17 @@ VOID PvpDeleteStringsTree(
     }
 
     PhClearReference(&Context->NodeList);
+    PhClearReference(&Context->NodeRootList);
     PhClearReference(&Context->SearchResults);
     PhClearReference(&Context->RegionSkips);
 
     Context->SearchResultsAddIndex = 0;
     Context->StringsCount = 0;
     Context->SkipCounter = 0;
+
+    Context->FileSystemNode = NULL;
+    Context->RegistryNode = NULL;
+    Context->WebNode = NULL;
 
     PhRemoveTreeNewFilter(&Context->FilterSupport, Context->TreeFilterEntry);
     PhDeleteTreeNewFilterSupport(&Context->FilterSupport);
@@ -681,6 +831,7 @@ VOID PvpSearchStrings(
 
     PvpDeleteStringsTree(Context);
     Context->NodeList = PhCreateList(100);
+    Context->NodeRootList = PhCreateList(100);
     Context->SearchResults = PhCreateList(100);
 
     Context->ReadPointer = PvMappedImage.ViewBase;
@@ -706,6 +857,7 @@ VOID PvpInitializeStringsTree(
     Context->WindowHandle = WindowHandle;
     Context->TreeNewHandle = TreeNewHandle;
     Context->NodeList = PhCreateList(1);
+    Context->NodeRootList = PhCreateList(1);
     Context->SearchResults = PhCreateList(1);
     Context->RegionSkips = PhCreateList(1);
 
@@ -996,29 +1148,38 @@ INT_PTR CALLBACK PvStringsDlgProc(
                     PPH_EMENU menu;
                     PPH_EMENU_ITEM selectedItem;
                     PPH_EMENU_ITEM ansi;
+                    PPH_EMENU_ITEM utf8;
                     PPH_EMENU_ITEM unicode;
                     PPH_EMENU_ITEM extendedUnicode;
                     PPH_EMENU_ITEM minimumLength;
                     PPH_EMENU_ITEM skipExecutableSection;
                     PPH_EMENU_ITEM skipHighEntropySections;
+                    PPH_EMENU_ITEM skipStringsWithNumbers;
+                    PPH_EMENU_ITEM skipStringsWithSymbols;
                     PPH_EMENU_ITEM refresh;
 
                     GetWindowRect(GetDlgItem(hwndDlg, IDC_SETTINGS), &rect);
 
                     ansi = PhCreateEMenuItem(0, 1, L"ANSI", NULL, NULL);
-                    unicode = PhCreateEMenuItem(0, 2, L"Unicode", NULL, NULL);
-                    extendedUnicode = PhCreateEMenuItem(0, 3, L"Extended character set", NULL, NULL);
-                    skipExecutableSection = PhCreateEMenuItem(0, 4, L"Skip .text section", NULL, NULL);
-                    skipHighEntropySections = PhCreateEMenuItem(0, 5, L"Skip high entropy sections", NULL, NULL);
-                    minimumLength = PhCreateEMenuItem(0, 6, L"Minimum length...", NULL, NULL);
-                    refresh = PhCreateEMenuItem(0, 7, L"Refresh", NULL, NULL);
+                    utf8 = PhCreateEMenuItem(0, 2, L"UTF-8", NULL, NULL);
+                    unicode = PhCreateEMenuItem(0, 3, L"UTF-16", NULL, NULL);
+                    extendedUnicode = PhCreateEMenuItem(0, 4, L"Extended character set", NULL, NULL);
+                    skipExecutableSection = PhCreateEMenuItem(0, 5, L"Skip .text section", NULL, NULL);
+                    skipHighEntropySections = PhCreateEMenuItem(0, 6, L"Skip high entropy sections", NULL, NULL);
+                    skipStringsWithNumbers = PhCreateEMenuItem(0, 7, L"Skip strings with numbers", NULL, NULL);
+                    skipStringsWithSymbols = PhCreateEMenuItem(0, 8, L"Skip strings with symbols", NULL, NULL);
+                    minimumLength = PhCreateEMenuItem(0, 9, L"Minimum length...", NULL, NULL);
+                    refresh = PhCreateEMenuItem(0, 10, L"Refresh", NULL, NULL);
 
                     menu = PhCreateEMenu();
                     PhInsertEMenuItem(menu, ansi, ULONG_MAX);
+                    PhInsertEMenuItem(menu, utf8, ULONG_MAX);
                     PhInsertEMenuItem(menu, unicode, ULONG_MAX);
                     PhInsertEMenuItem(menu, extendedUnicode, ULONG_MAX);
                     PhInsertEMenuItem(menu, skipExecutableSection, ULONG_MAX);
                     PhInsertEMenuItem(menu, skipHighEntropySections, ULONG_MAX);
+                    PhInsertEMenuItem(menu, skipStringsWithNumbers, ULONG_MAX);
+                    PhInsertEMenuItem(menu, skipStringsWithSymbols, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, minimumLength, ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -1026,6 +1187,8 @@ INT_PTR CALLBACK PvStringsDlgProc(
 
                     if (context->Settings.Ansi)
                         ansi->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.Utf8)
+                        utf8->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.Unicode)
                         unicode->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.ExtendedCharSet)
@@ -1034,6 +1197,10 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         skipExecutableSection->Flags |= PH_EMENU_CHECKED;
                     if (context->Settings.SkipHighEntropySections)
                         skipHighEntropySections->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.SkipStringsWithNumbers)
+                        skipStringsWithNumbers->Flags |= PH_EMENU_CHECKED;
+                    if (context->Settings.SkipStringsWithSymbols)
+                        skipStringsWithSymbols->Flags |= PH_EMENU_CHECKED;
 
                     selectedItem = PhShowEMenu(
                         menu,
@@ -1049,6 +1216,12 @@ INT_PTR CALLBACK PvStringsDlgProc(
                         if (selectedItem == ansi)
                         {
                             context->Settings.Ansi = !context->Settings.Ansi;
+                            PvpSaveSettingsStrings(context);
+                            PhApplyTreeNewFilters(&context->FilterSupport);
+                        }
+                        else if (selectedItem == utf8)
+                        {
+                            context->Settings.Utf8 = !context->Settings.Utf8;
                             PvpSaveSettingsStrings(context);
                             PhApplyTreeNewFilters(&context->FilterSupport);
                         }
@@ -1075,6 +1248,18 @@ INT_PTR CALLBACK PvStringsDlgProc(
                             context->Settings.SkipHighEntropySections = !context->Settings.SkipHighEntropySections;
                             PvpSaveSettingsStrings(context);
                             PvpSearchStrings(context);
+                        }
+                        else if (selectedItem == skipStringsWithNumbers)
+                        {
+                            context->Settings.SkipStringsWithNumbers = !context->Settings.SkipStringsWithNumbers;
+                            PvpSaveSettingsStrings(context);
+                            PhApplyTreeNewFilters(&context->FilterSupport);
+                        }
+                        else if (selectedItem == skipStringsWithSymbols)
+                        {
+                            context->Settings.SkipStringsWithSymbols = !context->Settings.SkipStringsWithSymbols;
+                            PvpSaveSettingsStrings(context);
+                            PhApplyTreeNewFilters(&context->FilterSupport);
                         }
                         else if (selectedItem == minimumLength)
                         {

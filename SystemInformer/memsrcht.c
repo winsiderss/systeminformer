@@ -298,7 +298,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchTreeCallback(
     node = PhpAllocateStringNode(context);
 
     node->Index = treeContext->StringsCount;
-    node->Unicode = Result->Unicode;
+    node->Unicode = Result->Encoding == PH_STRING_SEARCH_ENCODING_UTF16;
     node->BaseAddress = context->BasicInfo.BaseAddress;
     node->Address = PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
     node->Protection = context->BasicInfo.Protect;

@@ -390,7 +390,7 @@ BOOLEAN NTAPI PhpMemoryStringSearchCallback(
 
     assert(context);
 
-    if (!context->DetectUnicode && Result->Unicode)
+    if (!context->DetectUnicode && Result->Encoding == PH_STRING_SEARCH_ENCODING_UTF16)
         return context->Options->Cancel;
 
     result = PhCreateMemoryResult(
