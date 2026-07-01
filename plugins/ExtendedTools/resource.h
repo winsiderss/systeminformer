@@ -94,6 +94,7 @@
 #define IDC_ZSENDSDELTA_V               1081
 #define IDC_ZWRITESDELTA_V              1082
 #define IDC_ZREADSDELTA_V               1083
+#define IDC_ZGROUPBOX_V                 1084
 #define IDC_PANEL_LAYOUT                1085
 #define IDC_GROUPNETRECEIVE             1088
 #define IDC_GROUPNETSEND                1089
@@ -252,14 +253,14 @@
 #define IDC_WBCL_LIST                   60032
 #define IDC_WBCL_REFRESH                60033
 #define IDC_WBCL_OPENFILE               60034
-#define IDC_ADD                         60035
-#define IDC_EDIT                        60036
-#define IDC_DELETE                      60037
-#define IDC_NEW                         60038
-#define IDC_BROWSE                      60039
-#define IDC_MOVEUP                      60040
-#define IDC_MOVEDOWN                    60041
-#define IDC_EDITTEXT                    60042
+#define IDC_ENV_ADD                     60035
+#define IDC_ENV_EDIT                    60036
+#define IDC_ENV_DELETE                  60037
+#define IDC_ENV_NEW                     60038
+#define IDC_ENV_BROWSE                  60039
+#define IDC_ENV_MOVEUP                  60040
+#define IDC_ENV_MOVEDOWN                60041
+#define IDC_ENV_EDITTEXT                60042
 
 // Next default values for new objects
 // 

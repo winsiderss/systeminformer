@@ -1066,6 +1066,9 @@ EXPORTS
     PhImageListSetIconSize
     PhImageListSetImageCount
     PhInitializeLayoutManager
+    PhInitializeThemeWindowFrame
+    PhInitializeThemeWindowGroupBox
+    PhInitializeThemeWindowGroupBoxEx
     PhInitializeWindowTheme
     PhIsThemeActive
     PhLayoutManagerLayout

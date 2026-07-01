@@ -426,7 +426,6 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
             HWND groupBoxHandle;
 
             groupBoxHandle = GetDlgItem(WindowHandle, IDC_ZGROUPBOX_V);
-            PhSetWindowExStyle(groupBoxHandle, WS_EX_TRANSPARENT, 0);
             PhSetWindowStyle(groupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(groupBoxHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             PhInitializeThemeWindowGroupBoxEx(groupBoxHandle);
