@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2013
- *     dmex    2012-2023
+ *     dmex    2012-2026
  *
  */
 
@@ -105,6 +105,7 @@ typedef struct _NETWORK_PING_CONTEXT
     HWND ParentWindowHandle;
     HWND StatusHandle;
     HWND PingGraphHandle;
+    HWND PanelWindowHandle;
     HFONT FontHandle;
 
     ULONG Timeout;
@@ -121,6 +122,8 @@ typedef struct _NETWORK_PING_CONTEXT
 
     PH_NETWORK_ACTION Action;
     PH_LAYOUT_MANAGER LayoutManager;
+    RECT PingGraphMargin;
+    RECT PingGraphMarginScaled;
     PH_WORK_QUEUE PingWorkQueue;
     PH_GRAPH_STATE PingGraphState;
     PH_CIRCULAR_BUFFER_FLOAT PingSuccessHistory;
@@ -173,6 +176,28 @@ VOID ShowWhoisWindowFromAddress(
     _In_ PH_IP_ENDPOINT RemoteEndpoint
     );
 
+_Success_(return)
+BOOLEAN WhoisExtractServerUrl(
+    _In_ PPH_STRING WhoisResponse,
+    _Out_opt_ PPH_STRING *WhoisServerAddress
+    );
+
+_Success_(return)
+BOOLEAN WhoisExtractReferralServer(
+    _In_ PPH_STRING WhoisResponse,
+    _Out_opt_ PPH_STRING *WhoisServerAddress,
+    _Out_opt_ USHORT *WhoisServerPort
+    );
+
+_Success_(return)
+BOOLEAN WhoisQueryServer(
+    _In_ PWSTR WhoisServerAddress,
+    _In_ USHORT WhoisServerPort,
+    _In_ PWSTR WhoisQueryAddress,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ PPH_STRING* WhoisQueryResponse
+    );
+
 // tracert.c
 
 typedef struct _NETWORK_TRACERT_CONTEXT
@@ -184,21 +209,31 @@ typedef struct _NETWORK_TRACERT_CONTEXT
     HFONT FontHandle;
     HFONT TreeNewFont;
     PH_LAYOUT_MANAGER LayoutManager;
+    HIMAGELIST CountryImageList;
+    SIZE CountryImageSize;
+    PPH_LIST CountryImageCache;
 
     ULONG Timeout;
     ULONG MaximumHops;
+    volatile LONG MaximumTTL;
     BOOLEAN Cancel;
     PH_WORK_QUEUE WorkQueue;
 
     ULONG TreeNewSortColumn;
     PH_SORT_ORDER TreeNewSortOrder;
+    PH_TN_FILTER_SUPPORT FilterSupport;
+    PPH_TN_FILTER_ENTRY TreeFilterEntry;
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     PPH_LIST NodeRootList;
+    SLIST_HEADER ReplyListHead;
 
     PH_IP_ENDPOINT RemoteEndpoint;
     ULONG RemoteAddressStringLength;
     WCHAR RemoteAddressString[INET6_ADDRSTRLEN];
+
+    ULONG PingIndex;
+    LONG WindowDpi;
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 VOID ShowTracertWindow(
@@ -209,6 +244,11 @@ VOID ShowTracertWindow(
 VOID ShowTracertWindowFromAddress(
     _In_ HWND ParentWindowHandle,
     _In_ PH_IP_ENDPOINT RemoteEndpoint
+    );
+
+BOOLEAN TracertInitializeCountryImageList(
+    _Inout_ PNETWORK_TRACERT_CONTEXT Context,
+    _In_ ULONG WindowDpi
     );
 
 // options.c
