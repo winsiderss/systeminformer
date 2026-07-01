@@ -66,17 +66,16 @@ INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            HWND groupBoxHandle;
+
+            PhSetWindowStyle(WindowHandle, WS_CLIPSIBLINGS | WS_CLIPCHILDREN, WS_CLIPSIBLINGS | WS_CLIPCHILDREN);
+
+            if (groupBoxHandle = GetDlgItem(WindowHandle, IDC_ZGROUPBOX_V))
             {
-                SetWindowPos(context->DiskReadGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-
-                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
-                {
-                    PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
-
-                    PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-
-                    PhInitializeThemeWindowGroupBoxEx(context->DiskReadGroupBox);
-                }
+                SetWindowPos(groupBoxHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+                PhSetWindowExStyle(groupBoxHandle, WS_EX_TRANSPARENT, 0);
+                PhSetWindowStyle(groupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhInitializeThemeWindowGroupBoxEx(groupBoxHandle);
             }
 
             PhInitializeWindowTheme(WindowHandle, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
@@ -715,8 +714,8 @@ VOID EtwDiskLayoutGraphs(
     RECT margin;
     RECT innerMargin;
     LONG between;
-    ULONG graphWidth;
-    ULONG graphHeight;
+    LONG graphWidth;
+    LONG graphHeight;
 
     margin.left = margin.top = margin.right = margin.bottom = PhScaleToDisplay(13, Context->WindowDpi);
 
@@ -967,20 +966,17 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
             EtwDiskUpdatePanel(context);
 
             {
+                PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(context->DiskWriteGroupBox, WS_EX_TRANSPARENT, 0);
+
+                PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(context->DiskWriteGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
                 SetWindowPos(context->DiskReadGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
                 SetWindowPos(context->DiskWriteGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
 
-                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
-                {
-                    PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
-                    PhSetWindowExStyle(context->DiskWriteGroupBox, WS_EX_TRANSPARENT, 0);
-
-                    PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-                    PhSetWindowStyle(context->DiskWriteGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-
-                    PhInitializeThemeWindowGroupBoxEx(context->DiskReadGroupBox);
-                    PhInitializeThemeWindowGroupBoxEx(context->DiskWriteGroupBox);
-                }
+                PhInitializeThemeWindowGroupBoxEx(context->DiskReadGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(context->DiskWriteGroupBox);
             }
 
             PhRegisterCallback(
@@ -1120,20 +1116,17 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
             EtwNetworkUpdatePanel(context);
 
             {
+                PhSetWindowExStyle(context->NetworkReceiveGroupBox, WS_EX_TRANSPARENT, 0);
+                PhSetWindowExStyle(context->NetworkSendGroupBox, WS_EX_TRANSPARENT, 0);
+
+                PhSetWindowStyle(context->NetworkReceiveGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+                PhSetWindowStyle(context->NetworkSendGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
                 SetWindowPos(context->NetworkReceiveGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
                 SetWindowPos(context->NetworkSendGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
 
-                if (!PhGetIntegerSetting(L"EnableThemeSupport"))
-                {
-                    PhSetWindowExStyle(context->NetworkReceiveGroupBox, WS_EX_TRANSPARENT, 0);
-                    PhSetWindowExStyle(context->NetworkSendGroupBox, WS_EX_TRANSPARENT, 0);
-
-                    PhSetWindowStyle(context->NetworkReceiveGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-                    PhSetWindowStyle(context->NetworkSendGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
-
-                    PhInitializeThemeWindowGroupBoxEx(context->NetworkReceiveGroupBox);
-                    PhInitializeThemeWindowGroupBoxEx(context->NetworkSendGroupBox);
-                }
+                PhInitializeThemeWindowGroupBoxEx(context->NetworkReceiveGroupBox);
+                PhInitializeThemeWindowGroupBoxEx(context->NetworkSendGroupBox);
             }
 
             PhRegisterCallback(

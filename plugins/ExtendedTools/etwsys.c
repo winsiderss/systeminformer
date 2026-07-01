@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -423,6 +423,14 @@ INT_PTR CALLBACK EtpDiskPanelDialogProc(
     {
     case WM_INITDIALOG:
         {
+            HWND groupBoxHandle;
+
+            groupBoxHandle = GetDlgItem(WindowHandle, IDC_ZGROUPBOX_V);
+            PhSetWindowExStyle(groupBoxHandle, WS_EX_TRANSPARENT, 0);
+            PhSetWindowStyle(groupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            SetWindowPos(groupBoxHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            PhInitializeThemeWindowGroupBoxEx(groupBoxHandle);
+
             DiskPanelReadsDeltaLabel = GetDlgItem(WindowHandle, IDC_ZREADSDELTA_V);
             DiskPanelReadBytesDeltaLabel = GetDlgItem(WindowHandle, IDC_ZREADBYTESDELTA_V);
             DiskPanelWritesDeltaLabel = GetDlgItem(WindowHandle, IDC_ZWRITESDELTA_V);

@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2011
- *     dmex    2015-2023
+ *     dmex    2015-2026
  *
  */
 
@@ -373,6 +373,17 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
             context->CommittedGroupBox = GetDlgItem(WindowHandle, IDC_GROUPCOMMIT);
             propPageContext->Context = context;
 
+            //PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
+
+            PhInitializeGraphState(&context->GpuGraphState);
+            PhInitializeGraphState(&context->MemoryGraphState);
+            PhInitializeGraphState(&context->MemorySharedGraphState);
+            PhInitializeGraphState(&context->GpuCommittedGraphState);
+
+            GpuPropUpdateWindowDpi(context);
+            GpuPropCreateGraphs(context);
+            GpuPropCreatePanel(context);
+
             SetWindowPos(context->GpuGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             SetWindowPos(context->MemGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             SetWindowPos(context->SharedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
@@ -395,17 +406,6 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 PhInitializeThemeWindowGroupBoxEx(context->SharedGroupBox);
                 PhInitializeThemeWindowGroupBoxEx(context->CommittedGroupBox);
             }
-
-            //PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
-
-            PhInitializeGraphState(&context->GpuGraphState);
-            PhInitializeGraphState(&context->MemoryGraphState);
-            PhInitializeGraphState(&context->MemorySharedGraphState);
-            PhInitializeGraphState(&context->GpuCommittedGraphState);
-
-            GpuPropUpdateWindowDpi(context);
-            GpuPropCreateGraphs(context);
-            GpuPropCreatePanel(context);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
