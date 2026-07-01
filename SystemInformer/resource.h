@@ -148,6 +148,7 @@
 #define IDD_CONTAINER_RUN               289
 #define IDD_CONTAINER_CREATE            291
 #define IDD_OPTADVEDIT                  292
+#define IDC_STATUS                      1002
 #define IDC_TERMINATE                   1003
 #define IDC_FILEICON                    1005
 #define IDC_PULLRUN                     1006
