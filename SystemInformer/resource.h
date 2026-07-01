@@ -55,6 +55,7 @@
 #define IDD_OPTGENERAL                  162
 #define IDD_OPTHIGHLIGHTING             163
 #define IDD_OPTTHEMES                   164
+#define IDD_OPTTRAYICON                 165
 #define IDD_CHOOSECOLUMNS               166
 #define IDD_NETSTACK                    167
 #define IDD_CREATESERVICE               168
@@ -99,6 +100,7 @@
 #define IDI_FOLDER                      217
 #define IDI_MAGNIFIER                   219
 #define IDD_EDITENV                     221
+#define IDD_EDITENVPATH                 293
 #define IDB_SEARCH_ACTIVE               223
 #define IDB_SEARCH_INACTIVE             224
 #define IDB_SEARCH_ACTIVE_BMP           225
@@ -204,6 +206,7 @@
 #define IDC_ADVANCED                    1054
 #define IDC_OWNER                       1054
 #define IDC_ENABLETHEME                 1154
+#define IDC_THEMEMODE                   1518
 #define IDC_GROUPS                      1055
 #define IDC_PRIMARYGROUP                1055
 #define IDC_VIRTUALIZATION              1056
