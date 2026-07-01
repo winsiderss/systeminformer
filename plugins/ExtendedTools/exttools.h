@@ -6,7 +6,7 @@
  * Authors:
  *
  *     wj32    2010-2015
- *     dmex    2018-2024
+ *     dmex    2018-2026
  *
  */
 
@@ -1576,6 +1576,7 @@ HANDLE EtFwGetEngineHandle(
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
+    _In_ ULONG ProtocolType,
     _Out_ PPH_STRINGREF* ServiceName
     );
 

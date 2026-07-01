@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2015-2024
+ *     dmex    2015-2026
  *
  */
 
@@ -638,7 +638,7 @@ VOID FwUpdateNodeLocalPortServiceName(
     {
         PPH_STRINGREF string;
 
-        if (EtFwLookupPortServiceName(FwNode->LocalEndpoint.Port, &string))
+        if (EtFwLookupPortServiceName(FwNode->LocalEndpoint.Port, FwNode->IpProtocol, &string))
         {
             FwNode->LocalPortServiceName = string;
         }
@@ -655,7 +655,7 @@ VOID FwUpdateNodeRemotePortServiceName(
     {
         PPH_STRINGREF string;
 
-        if (EtFwLookupPortServiceName(FwNode->RemoteEndpoint.Port, &string))
+        if (EtFwLookupPortServiceName(FwNode->RemoteEndpoint.Port, FwNode->IpProtocol, &string))
         {
             FwNode->RemotePortServiceName = string;
         }

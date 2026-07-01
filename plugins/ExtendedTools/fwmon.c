@@ -5,7 +5,7 @@
  *
  * Authors:
  *
- *     dmex    2020-2024
+ *     dmex    2020-2026
  *
  */
 
@@ -1188,18 +1188,20 @@ VOID EtFwShowWhoisWindow(
  * Looks up the service name for a TCP or UDP port.
  *
  * \param Port The port number.
+ * \param ProtocolType The IP protocol (IPPROTO_TCP / IPPROTO_UDP).
  * \param ServiceName A variable which receives the service name string reference.
  * \return TRUE if a service name was found, otherwise FALSE.
  */
 _Success_(return)
 BOOLEAN EtFwLookupPortServiceName(
     _In_ ULONG Port,
+    _In_ ULONG ProtocolType,
     _Out_ PPH_STRINGREF* ServiceName
     )
 {
     if (EtFwGetPluginInterface())
     {
-        return EtFwGetPluginInterface()->LookupPortServiceName(Port, ServiceName);
+        return EtFwGetPluginInterface()->LookupPortServiceName(Port, ProtocolType, ServiceName);
     }
 
     return FALSE;
