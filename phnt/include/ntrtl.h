@@ -4180,8 +4180,7 @@ NTAPI
 RtlGetLocaleFileMappingAddress(
     _Out_ PVOID *BaseAddress,
     _Out_ PLCID DefaultLocaleId,
-    _Out_ PLARGE_INTEGER DefaultCasingTableSize,
-    _Out_opt_ PULONG CurrentNLSVersion
+    _Out_opt_ PLARGE_INTEGER DefaultCasingTableSize
     );
 
 //
