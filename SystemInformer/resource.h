@@ -123,6 +123,8 @@
 #define IDI_UACSHIELD                   261
 #define IDD_RUNPACKAGE                  263
 #define IDD_MODIFIEDPAGES               264
+#define IDD_MEMCFG                      284
+#define IDD_GAMESENUMERATION            285
 #define IDB_SEARCH_ACTIVE_SMALL         265
 #define IDB_SEARCH_INACTIVE_SMALL       266
 #define IDB_SEARCH_REGEX_MODERN_DARK    267
@@ -132,6 +134,7 @@
 #define IDB_SEARCH_ACTIVE_MODERN_DARK   271
 #define IDB_SEARCH_ACTIVE_MODERN_LIGHT  272
 #define IDB_SEARCH_INACTIVE_MODERN_DARK 273
+#define IDD_THRDSCAN                    273
 #define IDB_SEARCH_INACTIVE_MODERN_LIGHT 274
 #define IDD_INPUT                       275
 #define IDD_CHOOSENEW                   275
@@ -150,6 +153,8 @@
 #define IDD_OPTADVEDIT                  292
 #define IDC_STATUS                      1002
 #define IDC_TERMINATE                   1003
+#define IDC_COMMAND                     1004
+#define IDC_PROCESSISOLATION            1005
 #define IDC_FILEICON                    1005
 #define IDC_PULLRUN                     1006
 #define IDC_FILE                        1006
@@ -658,15 +663,13 @@
 #define IDC_GAME_DISPLAYNAME            1477
 #define IDC_GAME_DESCRIPTION            1478
 #define IDC_GAME_CATEGORY               1479
-#define IDC_GAME_LAUNCHABLESTATE        1480
-#define IDC_GAME_TITLEID                1481
-#define IDC_GAME_EXECUTABLE             1482
-#define IDC_GAME_LAUNCHPARAMETERS       1483
-#define IDC_GAME_PACKAGE                1484
-#define IDC_GAME_GAMEMODE               1485
-#define IDC_GAME_USERCONFIGURATION      1486
 #define IDC_GAME_PROPERTIES             1487
 #define IDC_EDITTEXT                    1488
+#define IDC_GAME_MAXCPUCOUNT            1490
+#define IDC_GAME_EXCLUSIVECPUS          1491
+#define IDC_GAME_GPUTIME                1492
+#define IDC_GAME_GPUMEMORY              1493
+#define IDC_GAME_COMPOSITORMEMORY       1494
 #define IDC_VIEWTAB                     1501
 #define IDC_TOOL_REFRESH                1502
 #define IDC_TOOL_COPY                   1503
@@ -976,9 +979,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        293
+#define _APS_NEXT_RESOURCE_VALUE        294
 #define _APS_NEXT_COMMAND_VALUE         10327
-#define _APS_NEXT_CONTROL_VALUE         1518
+#define _APS_NEXT_CONTROL_VALUE         1519
 #define _APS_NEXT_SYMED_VALUE           170
 #endif
 #endif
