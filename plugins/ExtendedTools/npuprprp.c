@@ -773,10 +773,6 @@ INT_PTR CALLBACK EtpNpuPageDlgProc(
     {
     case WM_INITDIALOG:
         {
-            // We have already set the group boxes to have WS_EX_TRANSPARENT to fix
-            // the drawing issue that arises when using WS_CLIPCHILDREN. However
-            // in removing the flicker from the graphs the group boxes will now flicker.
-            // It's a good tradeoff since no one stares at the group boxes.
             PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
 
             context = PhAllocateZero(sizeof(ET_NPU_CONTEXT));
@@ -799,6 +795,21 @@ INT_PTR CALLBACK EtpNpuPageDlgProc(
             NpuPropUpdateWindowDpi(context);
             NpuPropCreateGraphs(context);
             NpuPropCreatePanel(context);
+
+            SetWindowPos(context->NpuGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->MemGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->SharedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->CommittedGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+            PhSetWindowStyle(context->NpuGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->MemGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->SharedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->CommittedGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+            PhInitializeThemeWindowGroupBoxEx(context->NpuGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->MemGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->SharedGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->CommittedGroupBox);
 
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),

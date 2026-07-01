@@ -1056,6 +1056,30 @@ INT_PTR CALLBACK EtpFramesPageDlgProc(
             FramesPropCreateGraphs(context);
             FramesPropCreatePanel(context);
 
+            SetWindowPos(context->FramesPerSecondGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->FramesLatencyGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->PresentIntervalGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->PresentDurationGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->FramesRenderTimeGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->FramesDisplayTimeGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+            SetWindowPos(context->FramesDisplayLatencyGroupBox, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+
+            PhSetWindowStyle(context->FramesPerSecondGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->FramesLatencyGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->PresentIntervalGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->PresentDurationGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->FramesRenderTimeGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->FramesDisplayTimeGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+            PhSetWindowStyle(context->FramesDisplayLatencyGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
+
+            PhInitializeThemeWindowGroupBoxEx(context->FramesPerSecondGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->FramesLatencyGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->PresentIntervalGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->PresentDurationGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->FramesRenderTimeGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->FramesDisplayTimeGroupBox);
+            PhInitializeThemeWindowGroupBoxEx(context->FramesDisplayLatencyGroupBox);
+
             PhRegisterCallback(
                 PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
                 FramesProcessesUpdatedHandler,

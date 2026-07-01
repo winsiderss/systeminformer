@@ -73,7 +73,6 @@ INT_PTR CALLBACK EtwDiskNetworkPanelDialogProc(
             if (groupBoxHandle = GetDlgItem(WindowHandle, IDC_ZGROUPBOX_V))
             {
                 SetWindowPos(groupBoxHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
-                PhSetWindowExStyle(groupBoxHandle, WS_EX_TRANSPARENT, 0);
                 PhSetWindowStyle(groupBoxHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
                 PhInitializeThemeWindowGroupBoxEx(groupBoxHandle);
             }
@@ -966,9 +965,6 @@ INT_PTR CALLBACK EtwDiskPageDlgProc(
             EtwDiskUpdatePanel(context);
 
             {
-                PhSetWindowExStyle(context->DiskReadGroupBox, WS_EX_TRANSPARENT, 0);
-                PhSetWindowExStyle(context->DiskWriteGroupBox, WS_EX_TRANSPARENT, 0);
-
                 PhSetWindowStyle(context->DiskReadGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
                 PhSetWindowStyle(context->DiskWriteGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
 
@@ -1116,9 +1112,6 @@ INT_PTR CALLBACK EtwNetworkPageDlgProc(
             EtwNetworkUpdatePanel(context);
 
             {
-                PhSetWindowExStyle(context->NetworkReceiveGroupBox, WS_EX_TRANSPARENT, 0);
-                PhSetWindowExStyle(context->NetworkSendGroupBox, WS_EX_TRANSPARENT, 0);
-
                 PhSetWindowStyle(context->NetworkReceiveGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
                 PhSetWindowStyle(context->NetworkSendGroupBox, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
 
