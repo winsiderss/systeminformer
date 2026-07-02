@@ -1288,20 +1288,10 @@ VOID PhRunAsExecuteCommmand(
             NULL
             )))
         {
-            status = PhRunAsUpdateDesktop(userSid);
-
-            if (!NT_SUCCESS(status))
-            {
-                PhFree(userSid);
-                goto CleanupExit;
-            }
-
-            status = PhRunAsUpdateWindowStation(userSid, NULL);
+            PhRunAsUpdateDesktop(userSid);
+            PhRunAsUpdateWindowStation(userSid, NULL);
 
             PhFree(userSid);
-
-            if (!NT_SUCCESS(status))
-                goto CleanupExit;
         }
     }
 
@@ -1431,7 +1421,6 @@ VOID PhRunAsExecuteCommmand(
         }
     }
 
-CleanupExit:
     if (password)
     {
         RtlSecureZeroMemory(password->Buffer, password->Length);
@@ -2430,6 +2419,7 @@ static VOID WINAPI RunAsServiceMain(
 
     memset(&RunAsServiceStop, 0, sizeof(RunAsServiceStop));
 
+    memset(&RunAsServiceStop, 0, sizeof(RunAsServiceStop));
     RunAsServiceStatusHandle = RegisterServiceCtrlHandlerEx(
         RunAsServiceName->Buffer,
         RunAsServiceHandlerEx,
@@ -3263,7 +3253,7 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                     LPNMCUSTOMDRAW customDraw = (LPNMCUSTOMDRAW)lParam;
                     WCHAR className[MAX_PATH];
 
-                    if (!GetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className)))
+                    if (!NT_SUCCESS(PhGetClassName(customDraw->hdr.hwndFrom, className, RTL_NUMBER_OF(className), NULL)))
                         className[0] = UNICODE_NULL;
 
                     if (PhEqualStringZ(className, L"Button", FALSE))
