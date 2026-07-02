@@ -433,6 +433,7 @@ namespace CustomBuildTool
             "ntpnpapi.h",
             "ntpoapi.h",
             "ntregapi.h",
+            "ntnsi.h",
             "ntrtl.h",
             "ntsam.h",
             "ntseapi.h",

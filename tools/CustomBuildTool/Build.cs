@@ -439,7 +439,7 @@ namespace CustomBuildTool
                 "README.txt",
                 "COPYRIGHT.txt",
                 "LICENSE.txt",
-                "settings.schema.json",
+                "SystemInformer\\resources\\settings.schema.json",
             ];
 
             string baseDirectory = GetBuildBaseDirectory(Flags);
@@ -453,7 +453,7 @@ namespace CustomBuildTool
                 {
                     if (Flags.HasFlag(architectureEntry.Key))
                     {
-                        string targetFilePath = Path.Join([baseDirectory, architectureEntry.Value, fileName]);
+                        string targetFilePath = Path.Join([baseDirectory, architectureEntry.Value, Path.GetFileName(fileName)]);
 
                         if (Update)
                             Win32.CopyIfNewer(fileName, targetFilePath, Flags);

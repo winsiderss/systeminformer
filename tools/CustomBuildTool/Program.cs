@@ -87,6 +87,8 @@ namespace CustomBuildTool
             rootCommand.Add(CreateCMakePipelinePackageCommand(verboseOption));
             rootCommand.Add(CreateCMakePipelineDeployCommand(verboseOption));
             rootCommand.Add(CreateCheckThirdPartyCommand());
+            rootCommand.Add(CreatePortServicesCommand());
+            rootCommand.Add(CreateUpdateCopyrightCommand());
 
             // Default handler when no command is provided
             rootCommand.SetAction(parseResult =>
@@ -132,10 +134,12 @@ namespace CustomBuildTool
                     { "-verbose", "Enables verbose output." },
 
                     { "-dyndata", "Generates dynamic data." },
+                    { "-portsgen", "Generates the port-service table from the IANA registry." },
                     { "-reflowrevert", "Revert export header to previous state." },
                     { "-reflowvalid", "Validates the current export header." },
                     { "-reflow", "Generates export header definitions." },
                     { "-vtscan", "Uploads a file to VirusTotal for scanning." },
+                    { "-update-copyright", "Updates per-author copyright years from git history." },
                     { "-write-tools-id", "Writes the tools id file (internal)." },
                 };
 
@@ -269,6 +273,43 @@ namespace CustomBuildTool
                 BuildToolsId.CheckForOutOfDateTools();
 
                 if (!Build.BuildDynamicData(a))
+                    Environment.Exit(1);
+            });
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a command that regenerates the NetworkTools port-service table from the IANA registry.
+        /// </summary>
+        /// <returns>A command configured to generate the port-service table.</returns>
+        private static Command CreatePortServicesCommand()
+        {
+            var cmd = new Command("-portsgen", "Generates the NetworkTools port-service table from the IANA registry.");
+            cmd.SetAction(_ =>
+            {
+                if (!BuildPortServices.GeneratePortServices())
+                    Environment.Exit(1);
+            });
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a command that updates per-author copyright years from git history.
+        /// </summary>
+        /// <returns>A command configured to update copyright years.</returns>
+        private static Command CreateUpdateCopyrightCommand()
+        {
+            var cmd = new Command("-update-copyright", "Updates per-author copyright years from git history.");
+            var arg = new Argument<string>("path")
+            {
+                Description = "File or directory to process (optional, defaults to repo root)",
+                DefaultValueFactory = _ => string.Empty
+            };
+            cmd.Add(arg);
+            cmd.SetAction(parseResult =>
+            {
+                string p = parseResult.GetValue(arg);
+                if (!BuildCopyright.UpdateCopyrightYears(p))
                     Environment.Exit(1);
             });
             return cmd;
