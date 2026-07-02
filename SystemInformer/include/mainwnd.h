@@ -78,8 +78,16 @@ typedef enum _PH_MAINWINDOW_CALLBACK_TYPE
     PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU,
     PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD,
     PH_MAINWINDOW_CALLBACK_TYPE_SHOW_OPTIONS,
+    PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MINIINFO_SECTION,
     PH_MAINWINDOW_CALLBACK_TYPE_MAXIMUM
 } PH_MAINWINDOW_CALLBACK_TYPE;
+
+typedef struct _PH_PLUGIN_SHOW_MINIINFO_SECTION
+{
+    BOOLEAN Show;
+    PCWSTR SectionName;
+    POINT SourcePoint;
+} PH_PLUGIN_SHOW_MINIINFO_SECTION, *PPH_PLUGIN_SHOW_MINIINFO_SECTION;
 
 PHAPPAPI
 PVOID
@@ -162,6 +170,8 @@ PhPluginInvokeWindowCallback(
     ((PPH_EMENU)PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_GET_MAIN_SUBMENU, (PVOID)(ULONG_PTR)(Index), 0))
 #define SystemInformer_SetMainSubCmd(Index, Context) \
     PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SET_MAIN_SUBCMD, (PVOID)(ULONG_PTR)(Index), (PVOID)Context)
+#define SystemInformer_ShowMiniInfoSection(Data) \
+    PhPluginInvokeWindowCallback(PH_MAINWINDOW_CALLBACK_TYPE_SHOW_MINIINFO_SECTION, 0, (PVOID)(ULONG_PTR)(Data))
 
 #define PhWindowsVersion SystemInformer_GetWindowsVersion() // Temporary backwards compat (dmex)
 // end_phapppub

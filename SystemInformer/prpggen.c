@@ -357,6 +357,9 @@ VOID PphProcessGeneralDlgUpdateProcessIcon(
         if (oldIcon)
             DestroyIcon(oldIcon);
 
+        if (Context->ProgramIcon && Context->ProgramIcon != oldIcon)
+            DestroyIcon(Context->ProgramIcon);
+
         Context->ProgramIcon = newIcon;
     }
 }

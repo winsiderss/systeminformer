@@ -1,8 +1,3 @@
-/**
- * \file envdlg.c
- * \brief Environment variables dialog for the ExtendedTools plugin.
- */
-
 /*
  * Copyright (c) 2024 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
@@ -17,10 +12,6 @@
 #include "exttools.h"
 #include <emenu.h>
 #include <cpysave.h>
-
-#define IDD_EDITENV PHAPP_IDD_EDITENV
-#define IDC_NAME PHAPP_IDC_NAME
-#define IDC_VALUE PHAPP_IDC_VALUE
 
 #define ENV_GROUP_USER 0
 #define ENV_GROUP_SYSTEM 1
@@ -49,6 +40,10 @@ typedef struct _ENV_VARIABLES_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HWND AddButtonHandle;
+    HWND EditButtonHandle;
+    HWND DeleteButtonHandle;
+    HWND OkButtonHandle;
     PH_LAYOUT_MANAGER LayoutManager;
     PPH_LIST Entries;
     BOOLEAN Elevated;
@@ -59,6 +54,10 @@ typedef struct _ENV_VARIABLES_CONTEXT
  */
 typedef struct _ENV_EDIT_CONTEXT
 {
+    HWND NameHandle;
+    HWND ValueHandle;
+    HWND OkButtonHandle;
+    HWND CancelButtonHandle;
     PCWSTR Name;
     PCWSTR Value;
     BOOLEAN NameReadOnly;
@@ -77,6 +76,15 @@ typedef struct _ENV_SPLIT_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HWND NewButtonHandle;
+    HWND EditButtonHandle;
+    HWND BrowseButtonHandle;
+    HWND DeleteButtonHandle;
+    HWND MoveUpButtonHandle;
+    HWND MoveDownButtonHandle;
+    HWND EditTextButtonHandle;
+    HWND OkButtonHandle;
+    HWND CancelButtonHandle;
     PPH_STRING Name;
     PPH_STRING Value;
     BOOLEAN ReadOnly;
@@ -379,13 +387,13 @@ VOID EtUpdateEnvironmentControls(
     entry = EtGetSelectedEnvironmentEntry(Context);
     protectedSystemEntry = entry && entry->System && !Context->Elevated;
 
-    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_ADD), !protectedSystemEntry);
-    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_EDIT), !!entry);
-    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_ENV_DELETE), entry && !protectedSystemEntry);
+    EnableWindow(Context->AddButtonHandle, !protectedSystemEntry);
+    EnableWindow(Context->EditButtonHandle, !!entry);
+    EnableWindow(Context->DeleteButtonHandle, entry && !protectedSystemEntry);
 
-    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_ADD), protectedSystemEntry);
-    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_EDIT), protectedSystemEntry);
-    Button_SetElevationRequiredState(GetDlgItem(Context->WindowHandle, IDC_ENV_DELETE), protectedSystemEntry);
+    Button_SetElevationRequiredState(Context->AddButtonHandle, protectedSystemEntry);
+    Button_SetElevationRequiredState(Context->EditButtonHandle, protectedSystemEntry);
+    Button_SetElevationRequiredState(Context->DeleteButtonHandle, protectedSystemEntry);
 }
 
 /**
@@ -494,18 +502,19 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
     {
     case WM_INITDIALOG:
         {
-            HWND valueHandle;
-
-            valueHandle = GetDlgItem(hwndDlg, IDC_VALUE);
+            context->NameHandle = GetDlgItem(hwndDlg, PHAPP_IDC_NAME);
+            context->ValueHandle = GetDlgItem(hwndDlg, PHAPP_IDC_VALUE);
+            context->OkButtonHandle = GetDlgItem(hwndDlg, IDOK);
+            context->CancelButtonHandle = GetDlgItem(hwndDlg, IDCANCEL);
 
             PhSetApplicationWindowIcon(hwndDlg);
             PhCenterWindow(hwndDlg, NULL);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, valueHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->NameHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->ValueHandle, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, context->OkButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->CancelButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhLayoutManagerLayout(&context->LayoutManager);
 
             context->MinimumSize.left = 0;
@@ -514,25 +523,25 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             context->MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name ? context->Name : L"");
-            PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
+            PhSetDialogItemText(hwndDlg, PHAPP_IDC_NAME, context->Name ? context->Name : L"");
+            PhSetDialogItemText(hwndDlg, PHAPP_IDC_VALUE, context->Value ? context->Value : L"");
 
             if (context->NameReadOnly || context->ReadOnly)
-                Edit_SetReadOnly(GetDlgItem(hwndDlg, IDC_NAME), TRUE);
+                Edit_SetReadOnly(context->NameHandle, TRUE);
 
             if (context->ReadOnly)
             {
-                Edit_SetReadOnly(valueHandle, TRUE);
+                Edit_SetReadOnly(context->ValueHandle, TRUE);
                 PhSetDialogItemText(hwndDlg, IDOK, L"Close");
-                ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
+                ShowWindow(context->CancelButtonHandle, SW_HIDE);
             }
 
-            PhSetWindowContext(valueHandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(valueHandle));
-            PhSetWindowProcedure(valueHandle, (WNDPROC)EtEnvEditSubclassProc);
+            PhSetWindowContext(context->ValueHandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(context->ValueHandle));
+            PhSetWindowProcedure(context->ValueHandle, (WNDPROC)EtEnvEditSubclassProc);
 
-            EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
+            EnableWindow(context->OkButtonHandle, PhGetWindowTextLength(context->NameHandle) > 0);
 
-            PhSetDialogFocus(hwndDlg, valueHandle);
+            PhSetDialogFocus(hwndDlg, context->ValueHandle);
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
@@ -560,7 +569,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
                         break;
                     }
 
-                    name = PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME));
+                    name = PhGetWindowText(context->NameHandle);
 
                     if (PhIsNullOrEmptyString(name))
                     {
@@ -569,16 +578,16 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
                     }
 
                     context->OutName = name;
-                    context->OutValue = PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE));
+                    context->OutValue = PhGetWindowText(context->ValueHandle);
                     context->Committed = TRUE;
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
-            case IDC_NAME:
+            case PHAPP_IDC_NAME:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                     {
-                        EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
+                        EnableWindow(context->OkButtonHandle, PhGetWindowTextLength(context->NameHandle) > 0);
                     }
                 }
                 break;
@@ -640,7 +649,7 @@ BOOLEAN EtShowEnvEditDialog(
 
     PhDialogBox(
         NtCurrentImageBase(),
-        MAKEINTRESOURCE(IDD_EDITENV),
+        MAKEINTRESOURCE(PHAPP_IDD_EDITENV),
         ParentWindowHandle,
         EtEnvEditDlgProc,
         &context
@@ -740,12 +749,12 @@ PPH_STRING EtSplitBuildValue(
  */
 VOID EtSplitMoveItem(
     _In_ HWND ListViewHandle,
-    _In_ INT Index,
-    _In_ INT Delta
+    _In_ LONG Index,
+    _In_ LONG Delta
     )
 {
-    INT count;
-    INT target;
+    LONG count;
+    LONG target;
     PPH_STRING text;
 
     count = ListView_GetItemCount(ListViewHandle);
@@ -802,6 +811,15 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->NewButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_NEW);
+            context->EditButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_EDIT);
+            context->BrowseButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_BROWSE);
+            context->DeleteButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_DELETE);
+            context->MoveUpButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_MOVEUP);
+            context->MoveDownButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_MOVEDOWN);
+            context->EditTextButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_EDITTEXT);
+            context->OkButtonHandle = GetDlgItem(hwndDlg, IDOK);
+            context->CancelButtonHandle = GetDlgItem(hwndDlg, IDCANCEL);
 
             PhSetApplicationWindowIcon(hwndDlg);
             PhSetWindowText(hwndDlg, PhaFormatString(L"Edit %s", PhGetString(context->Name))->Buffer);
@@ -813,15 +831,15 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_NEW), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDIT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_BROWSE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_DELETE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_MOVEUP), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_MOVEDOWN), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDITTEXT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->NewButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->EditButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->BrowseButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->DeleteButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->MoveUpButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->MoveDownButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->EditTextButtonHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->OkButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->CancelButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             context->MinimumSize.left = 0;
             context->MinimumSize.top = 0;
@@ -834,15 +852,15 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
             if (context->ReadOnly)
             {
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_NEW), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_EDIT), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_BROWSE), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_DELETE), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_MOVEUP), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_MOVEDOWN), FALSE);
-                EnableWindow(GetDlgItem(hwndDlg, IDC_ENV_EDITTEXT), FALSE);
+                EnableWindow(context->NewButtonHandle, FALSE);
+                EnableWindow(context->EditButtonHandle, FALSE);
+                EnableWindow(context->BrowseButtonHandle, FALSE);
+                EnableWindow(context->DeleteButtonHandle, FALSE);
+                EnableWindow(context->MoveUpButtonHandle, FALSE);
+                EnableWindow(context->MoveDownButtonHandle, FALSE);
+                EnableWindow(context->EditTextButtonHandle, FALSE);
                 PhSetDialogItemText(hwndDlg, IDOK, L"Close");
-                ShowWindow(GetDlgItem(hwndDlg, IDCANCEL), SW_HIDE);
+                ShowWindow(context->CancelButtonHandle, SW_HIDE);
             }
 
             PhCenterWindow(hwndDlg, NULL);
@@ -897,7 +915,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                     {
                         if (!PhIsNullOrEmptyString(text))
                         {
-                            INT index = PhAddListViewItem(context->ListViewHandle, MAXINT, text->Buffer, NULL);
+                            LONG index = PhAddListViewItem(context->ListViewHandle, MAXINT, text->Buffer, NULL);
                             ListView_SetItemState(context->ListViewHandle, index, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
                         }
                     }
@@ -905,7 +923,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDC_ENV_EDIT:
                 {
-                    INT index;
+                    LONG index;
                     PPH_STRING text;
 
                     if (context->ReadOnly)
@@ -954,7 +972,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
                         if (!PhIsNullOrEmptyString(fileName))
                         {
-                            INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                            LONG index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                             if (index != INT_ERROR)
                             {
@@ -975,7 +993,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDC_ENV_DELETE:
                 {
-                    INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                    LONG index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (context->ReadOnly)
                         break;
@@ -986,7 +1004,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDC_ENV_MOVEUP:
                 {
-                    INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                    LONG index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (context->ReadOnly)
                         break;
@@ -997,7 +1015,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDC_ENV_MOVEDOWN:
                 {
-                    INT index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
+                    LONG index = PhFindListViewItemByFlags(context->ListViewHandle, INT_ERROR, LVNI_SELECTED);
 
                     if (context->ReadOnly)
                         break;
@@ -1321,6 +1339,10 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->AddButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_ADD);
+            context->EditButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_EDIT);
+            context->DeleteButtonHandle = GetDlgItem(hwndDlg, IDC_ENV_DELETE);
+            context->OkButtonHandle = GetDlgItem(hwndDlg, IDOK);
             context->Entries = PhCreateList(64);
             context->Elevated = !!PhGetOwnTokenAttributes().Elevated;
 
@@ -1338,10 +1360,10 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_ADD), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_EDIT), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_DELETE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->AddButtonHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->EditButtonHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->DeleteButtonHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, context->OkButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhLoadListViewColumnsFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
 

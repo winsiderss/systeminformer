@@ -220,7 +220,7 @@ VOID PhPinMiniInformation(
         }
         else
         {
-            PhMipCalculateWindowRectangle(&PhMipSourcePoint, &windowRectangle);
+            PhMipCalculateWindowRectangle(&PhMipSourcePoint, Flags, &windowRectangle);
             SetWindowPos(
                 PhMipContainerWindow,
                 HWND_TOPMOST,
@@ -244,6 +244,28 @@ VOID PhPinMiniInformation(
     }
     else
     {
+        if (
+            SourcePoint &&
+            (Flags & PH_MINIINFO_POSITION_ABOVE_SOURCE) &&
+            PhMipContainerWindow &&
+            IsWindowVisible(PhMipContainerWindow)
+            )
+        {
+            PH_RECTANGLE windowRectangle;
+
+            PhMipSourcePoint = *SourcePoint;
+            PhMipCalculateWindowRectangle(&PhMipSourcePoint, Flags, &windowRectangle);
+            SetWindowPos(
+                PhMipContainerWindow,
+                HWND_TOPMOST,
+                windowRectangle.Left,
+                windowRectangle.Top,
+                windowRectangle.Width,
+                windowRectangle.Height,
+                SWP_NOACTIVATE
+                );
+        }
+
         if ((Flags & PH_MINIINFO_ACTIVATE_WINDOW) && PhMipContainerWindow && IsWindowVisible(PhMipContainerWindow))
             SetActiveWindow(PhMipContainerWindow);
     }
@@ -282,6 +304,8 @@ LRESULT CALLBACK PhMipContainerWndProc(
             PhMipContainerOnActivate(GET_WM_COMMAND_ID(wParam, lParam), !!HIWORD(wParam));
         }
         break;
+    case WM_MOUSEACTIVATE:
+        return MA_ACTIVATE;
     case WM_NCACTIVATE:
         {
             LRESULT result;
@@ -809,12 +833,14 @@ PH_MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
 
 VOID PhMipCalculateWindowRectangle(
     _In_ PPOINT SourcePoint,
+    _In_ ULONG Flags,
     _Out_ PPH_RECTANGLE WindowRectangle
     )
 {
     RECT windowRect;
     PH_RECTANGLE windowRectangle;
-    PH_RECTANGLE point;
+    PH_RECTANGLE bounds;
+    BOOLEAN haveBounds = FALSE;
     MONITORINFO monitorInfo = { sizeof(monitorInfo) };
 
     PhLoadWindowPlacementFromSetting(NULL, SETTING_MINI_INFO_WINDOW_SIZE, PhMipContainerWindow);
@@ -822,19 +848,11 @@ VOID PhMipCalculateWindowRectangle(
     SendMessage(PhMipContainerWindow, WM_SIZING, WMSZ_BOTTOMRIGHT, (LPARAM)&windowRect); // Adjust for the minimum size.
     PhRectToRectangle(&windowRectangle, &windowRect);
 
-    point.Left = SourcePoint->x;
-    point.Top = SourcePoint->y;
-    point.Width = 0;
-    point.Height = 0;
-    PhCenterRectangle(&windowRectangle, &point);
-
     if (GetMonitorInfo(
         MonitorFromPoint(*SourcePoint, MONITOR_DEFAULTTOPRIMARY),
         &monitorInfo
         ))
     {
-        PH_RECTANGLE bounds;
-
         if (RtlEqualMemory(&monitorInfo.rcWork, &monitorInfo.rcMonitor, sizeof(RECT)))
         {
             HWND trayWindow;
@@ -873,8 +891,50 @@ VOID PhMipCalculateWindowRectangle(
         }
 
         PhRectToRectangle(&bounds, &monitorInfo.rcWork);
-        PhAdjustRectangleToBounds(&windowRectangle, &bounds);
+        haveBounds = TRUE;
     }
+
+    if (Flags & PH_MINIINFO_POSITION_ABOVE_SOURCE)
+    {
+        HWND sourceWindow;
+        RECT sourceWindowRect;
+        LONG gap;
+        LONG sourceTop;
+        LONG sourceBottom;
+        LONG top;
+
+        sourceTop = SourcePoint->y;
+        sourceBottom = SourcePoint->y;
+
+        if ((sourceWindow = WindowFromPoint(*SourcePoint)) &&
+            PhGetWindowRect(sourceWindow, &sourceWindowRect))
+        {
+            sourceTop = sourceWindowRect.top;
+            sourceBottom = sourceWindowRect.bottom;
+        }
+
+        gap = MulDiv(4, PhGetWindowDpi(PhMipContainerWindow), USER_DEFAULT_SCREEN_DPI);
+        top = sourceTop - windowRectangle.Height - gap;
+
+        if (haveBounds && top < bounds.Top)
+            top = sourceBottom + gap;
+
+        windowRectangle.Left = SourcePoint->x - windowRectangle.Width / 2;
+        windowRectangle.Top = top;
+    }
+    else
+    {
+        PH_RECTANGLE point;
+
+        point.Left = SourcePoint->x;
+        point.Top = SourcePoint->y;
+        point.Width = 0;
+        point.Height = 0;
+        PhCenterRectangle(&windowRectangle, &point);
+    }
+
+    if (haveBounds)
+        PhAdjustRectangleToBounds(&windowRectangle, &bounds);
 
     *WindowRectangle = windowRectangle;
 }

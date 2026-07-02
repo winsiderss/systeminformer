@@ -2176,17 +2176,21 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
                 PhInitializeWindowTheme(hwndDlg, FALSE);
         }
         break;
-    case WM_DESTROY:
+    case WM_NCDESTROY:
         {
-            PhUnregisterWindowCallback(context->ParentWindow);
-
-            PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhListView_Destroy(context->ListViewClass);
 
             PhRemoveDialogContext(hwndDlg);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhUnregisterWindowCallback(context->ParentWindow);
+
+            PhSaveWindowPlacementToSetting(SETTING_HANDLE_PROPERTIES_WINDOW_POSITION, NULL, context->ParentWindow);
         }
         break;
     case WM_DPICHANGED:
@@ -2992,11 +2996,11 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
         LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
         context = PhAllocateZero(sizeof(HANDLE_PERMISSIONS_CONTEXT));
         context->HandleProperties = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
-        PhSetDialogContext(hwndDlg, context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetDialogContext(hwndDlg);
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -3060,7 +3064,7 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
 
             //PhDestroyListViewInterface(context->ListViewClass);
 
-            PhRemoveDialogContext(hwndDlg);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhFree(context);
         }

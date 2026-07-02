@@ -159,6 +159,7 @@ PH_MIP_ADJUST_PIN_RESULT PhMipAdjustPin(
 
 VOID PhMipCalculateWindowRectangle(
     _In_ PPOINT SourcePoint,
+    _In_ ULONG Flags,
     _Out_ PPH_RECTANGLE WindowRectangle
     );
 
