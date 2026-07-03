@@ -3629,24 +3629,32 @@ NTSTATUS PhSetFileRename(
 
     if (WindowsVersion >= WINDOWS_10_RS2)
     {
-        PFILE_RENAME_INFORMATION_EX renameInfo;
-        IO_STATUS_BLOCK ioStatusBlock;
-        ULONG renameInfoLength;
-
-        renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
-        renameInfo = PhAllocateStack(renameInfoLength);
-
-        if (renameInfo)
+        for (ULONG i = 0; i < 2; i++)
         {
-            RtlZeroMemory(renameInfo, renameInfoLength);
-            renameInfo->Flags = (ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0) | FILE_RENAME_POSIX_SEMANTICS;
-            renameInfo->RootDirectory = RootDirectory;
-            renameInfo->FileNameLength = (ULONG)NewFileName->Length;
-            RtlCopyMemory(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+            PFILE_RENAME_INFORMATION_EX renameInfo;
+            IO_STATUS_BLOCK ioStatusBlock;
+            ULONG renameInfoLength;
+            ULONG renameFlags;
+
+            renameInfoLength = sizeof(FILE_RENAME_INFORMATION_EX) + (ULONG)NewFileName->Length + sizeof(UNICODE_NULL);
+            renameInfo = PhAllocateStack(renameInfoLength);
+
+            if (!renameInfo)
+            {
+                status = STATUS_NO_MEMORY;
+                break;
+            }
+
+            renameFlags = ReplaceIfExists ? FILE_RENAME_REPLACE_IF_EXISTS : 0;
+
+            if (i == 0)
+            {
+                SetFlag(renameFlags, FILE_RENAME_POSIX_SEMANTICS);
+            }
 
             if (WindowsVersion >= WINDOWS_10_RS5)
             {
-                SetFlag(renameInfo->Flags, FILE_RENAME_IGNORE_READONLY_ATTRIBUTE);
+                SetFlag(renameFlags, FILE_RENAME_IGNORE_READONLY_ATTRIBUTE);
             }
             else
             {
@@ -3658,6 +3666,12 @@ NTSTATUS PhSetFileRename(
                 PhSetFileBasicInformation(FileHandle, &basicInfo);
             }
 
+            RtlZeroMemory(renameInfo, renameInfoLength);
+            renameInfo->Flags = renameFlags;
+            renameInfo->RootDirectory = RootDirectory;
+            renameInfo->FileNameLength = (ULONG)NewFileName->Length;
+            RtlCopyMemory(renameInfo->FileName, NewFileName->Buffer, NewFileName->Length);
+
             status = NtSetInformationFile(
                 FileHandle,
                 &ioStatusBlock,
@@ -3667,10 +3681,9 @@ NTSTATUS PhSetFileRename(
                 );
 
             PhFreeStack(renameInfo);
-        }
-        else
-        {
-            status = STATUS_NO_MEMORY;
+
+            if (NT_SUCCESS(status))
+                break;
         }
     }
 
