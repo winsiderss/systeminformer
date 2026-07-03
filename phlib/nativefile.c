@@ -1700,7 +1700,7 @@ NTSTATUS PhCreateDirectoryFullPathWin32(
 /**
  * Creates a directory path recursively.
  *
- * \param DirectoryPath The directory path.
+ * \param FileName The directory or filepath.
  * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhCreateDirectoryFullPath(
@@ -1912,7 +1912,7 @@ NTSTATUS PhDeleteDirectoryWin32(
 /**
  * Deletes a directory path recursively.
  *
- * \param DirectoryPath The directory path.
+ * \param FileName The directory or filepath.
  * \return NTSTATUS Successful or errant status.
  */
 NTSTATUS PhDeleteDirectoryFullPath(
