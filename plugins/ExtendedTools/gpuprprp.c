@@ -433,11 +433,9 @@ INT_PTR CALLBACK EtpGpuPageDlgProc(
                 PhEndPropPageLayout(WindowHandle, propPageContext);
         }
         break;
-    case WM_DPICHANGED_AFTERPARENT:
+    case WM_DPICHANGED_BEFOREPARENT:
         {
             GpuPropUpdateWindowDpi(context);
-
-            GpuPropLayoutGraphs(context);
         }
         break;
     case WM_NOTIFY:
