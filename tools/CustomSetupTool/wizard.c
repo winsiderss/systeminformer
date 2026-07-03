@@ -1421,6 +1421,45 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
 }
 
 /**
+ * Starts the wizard progress page worker.
+ *
+ * \param WindowHandle The wizard page window handle.
+ * \param Context The setup context.
+ */
+VOID SetupStartWizardProgress(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SETUP_CONTEXT Context
+    )
+{
+    if (!Context->ParentWindowHandle)
+        Context->ParentWindowHandle = GetParent(WindowHandle);
+
+    SetupSetWizardButtons(WindowHandle, 0, FALSE, FALSE, FALSE, TRUE);
+
+    Context->DialogHandle = WindowHandle;
+
+    if (Context->SetupProgressActive)
+        return;
+
+    Context->SetupProgressActive = TRUE;
+
+    switch (Context->SetupMode)
+    {
+    case SetupCommandUpdate:
+        {
+            PhCreateThread2(SetupUpdateBuild, Context);
+        }
+        break;
+    case SetupCommandInstall:
+    default:
+        {
+            PhCreateThread2(SetupProgressThread, Context);
+        }
+        break;
+    }
+}
+
+/**
  * Dialog procedure for the wizard installation page.
  *
  * \param WindowHandle The dialog window handle.
@@ -1445,9 +1484,16 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
 
         PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
 
+        context->ParentWindowHandle = GetParent(WindowHandle);
+
         SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
         SendMessage(GetDlgItem(WindowHandle, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 0);
+
+        if (context->SetupMode == SetupCommandUpdate)
+        {
+            PostMessage(WindowHandle, SETUP_SHOWUPDATE, 0, 0);
+        }
     }
     else
     {
@@ -1476,24 +1522,7 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
             {
             case PSN_SETACTIVE:
                 {
-                    SetupSetWizardButtons(WindowHandle, 0, FALSE, FALSE, FALSE, TRUE);
-                    context->DialogHandle = WindowHandle;
-                    context->SetupProgressActive = TRUE;
-
-                    switch (context->SetupMode)
-                    {
-                    case SetupCommandUpdate:
-                        {
-                            PhCreateThread2(SetupUpdateBuild, context);
-                        }
-                        break;
-                    case SetupCommandInstall:
-                    default:
-                        {
-                            PhCreateThread2(SetupProgressThread, context);
-                        }
-                        break;
-                    }
+                    SetupStartWizardProgress(WindowHandle, context);
                 }
                 break;
             case PSN_QUERYCANCEL:
@@ -1506,9 +1535,19 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         SetupRedrawEditBorder(WindowHandle);
         break;
     case SETUP_SHOWFINAL:
-    case SETUP_SHOWUPDATEFINAL:
         {
             PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_COMPLETED_PAGE_INDEX);
+        }
+        break;
+    case SETUP_SHOWUPDATEFINAL:
+        {
+            SetupExecuteApplication(context);
+            PropSheet_PressButton(context->ParentWindowHandle, PSBTN_FINISH);
+        }
+        break;
+    case SETUP_SHOWUPDATE:
+        {
+            SetupStartWizardProgress(WindowHandle, context);
         }
         break;
     case SETUP_SHOWERROR:
