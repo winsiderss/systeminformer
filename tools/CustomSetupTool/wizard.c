@@ -23,6 +23,7 @@
 #define IDC_PROPSHEET_DIVIDER       0x3026
 #define IDC_PROPSHEET_TOPDIVIDER    0x3027
 
+#define SETUP_WIZARD_INSTALL_PAGE_INDEX 2
 #define SETUP_WIZARD_COMPLETED_PAGE_INDEX 3
 #define SETUP_WIZARD_ERROR_PAGE_INDEX 4
 
@@ -248,14 +249,23 @@ VOID SetupPaintDarkButton(
 
     if (checkbox)
     {
+        LONG dpiValue;
+        LONG checkSize;
+        LONG checkPadding;
+        LONG checkPenWidth;
         RECT checkRect;
+
+        dpiValue = PhGetWindowDpi(windowHandle);
+        checkSize = PhScaleToDisplay(13, dpiValue);
+        checkPadding = PhScaleToDisplay(18, dpiValue);
+        checkPenWidth = PhScaleToDisplay(2, dpiValue);
 
         FillRect(hdc, &CustomDraw->rc, SetupWizardBrushWindow);
 
         checkRect.left = CustomDraw->rc.left;
-        checkRect.top = CustomDraw->rc.top + ((CustomDraw->rc.bottom - CustomDraw->rc.top) - 13) / 2;
-        checkRect.right = CustomDraw->rc.left + 13;
-        checkRect.bottom = CustomDraw->rc.top + 13;
+        checkRect.top = CustomDraw->rc.top + ((CustomDraw->rc.bottom - CustomDraw->rc.top) - checkSize) / 2;
+        checkRect.right = CustomDraw->rc.left + checkSize;
+        checkRect.bottom = checkRect.top + checkSize;
 
         FillRect(hdc, &checkRect, SetupWizardBrushControl);
         SetDCBrushColor(hdc, RGB(0, 130, 135));
@@ -266,17 +276,17 @@ VOID SetupPaintDarkButton(
             HPEN penHandle;
             HPEN oldPenHandle;
 
-            penHandle = CreatePen(PS_SOLID, 2, RGB(0, 120, 215));
+            penHandle = CreatePen(PS_SOLID, checkPenWidth, RGB(0, 120, 215));
             oldPenHandle = SelectPen(hdc, penHandle);
-            MoveToEx(hdc, checkRect.left + 3, checkRect.top + 7, NULL);
-            LineTo(hdc, checkRect.left + 6, checkRect.top + 10);
-            LineTo(hdc, checkRect.left + 11, checkRect.top + 3);
+            MoveToEx(hdc, checkRect.left + PhScaleToDisplay(3, dpiValue), checkRect.top + PhScaleToDisplay(7, dpiValue), NULL);
+            LineTo(hdc, checkRect.left + PhScaleToDisplay(6, dpiValue), checkRect.top + PhScaleToDisplay(10, dpiValue));
+            LineTo(hdc, checkRect.left + PhScaleToDisplay(11, dpiValue), checkRect.top + PhScaleToDisplay(3, dpiValue));
             SelectPen(hdc, oldPenHandle);
             DeletePen(penHandle);
         }
 
         textRect = CustomDraw->rc;
-        textRect.left += 18;
+        textRect.left += checkPadding;
     }
     else
     {
@@ -1469,7 +1479,21 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
                     SetupSetWizardButtons(WindowHandle, 0, FALSE, FALSE, FALSE, TRUE);
                     context->DialogHandle = WindowHandle;
                     context->SetupProgressActive = TRUE;
-                    PhCreateThread2(SetupProgressThread, context);
+
+                    switch (context->SetupMode)
+                    {
+                    case SetupCommandUpdate:
+                        {
+                            PhCreateThread2(SetupUpdateBuild, context);
+                        }
+                        break;
+                    case SetupCommandInstall:
+                    default:
+                        {
+                            PhCreateThread2(SetupProgressThread, context);
+                        }
+                        break;
+                    }
                 }
                 break;
             case PSN_QUERYCANCEL:
@@ -1482,11 +1506,13 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         SetupRedrawEditBorder(WindowHandle);
         break;
     case SETUP_SHOWFINAL:
+    case SETUP_SHOWUPDATEFINAL:
         {
             PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_COMPLETED_PAGE_INDEX);
         }
         break;
     case SETUP_SHOWERROR:
+    case SETUP_SHOWUPDATEERROR:
         {
             PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_ERROR_PAGE_INDEX);
         }
@@ -1502,8 +1528,12 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
-            return SetupHandleDarkControlColor(wParam, lParam);
+        {
+            if (SetupWizardDarkMode)
+            {
+                return SetupHandleDarkControlColor(wParam, lParam);
+            }
+        }
         break;
     case WM_NCDESTROY:
         SetupDestroyWizardPage(WindowHandle);
@@ -1600,8 +1630,12 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
-            return SetupHandleDarkControlColor(wParam, lParam);
+        {
+            if (SetupWizardDarkMode)
+            {
+                return SetupHandleDarkControlColor(wParam, lParam);
+            }
+        }
         break;
     case WM_NCDESTROY:
         SetupDestroyWizardPage(WindowHandle);
@@ -1817,8 +1851,10 @@ LRESULT CALLBACK PvpPropSheetWndProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
-        if (SetupWizardDarkMode)
-            return SetupHandleDarkControlColor(wParam, lParam);
+        {
+            if (SetupWizardDarkMode)
+                return SetupHandleDarkControlColor(wParam, lParam);
+        }
         break;
     case WM_NOTIFY:
         {
@@ -1892,7 +1928,6 @@ INT CALLBACK SetupPropSheetProc(
             SetupApplyWizardFonts(WindowHandle, context);
             SetupSubclassPropSheetDivider(WindowHandle, IDC_PROPSHEET_DIVIDER);
             SetupSubclassPropSheetDivider(WindowHandle, IDC_PROPSHEET_TOPDIVIDER);
-
         }
         break;
     }
@@ -1977,6 +2012,11 @@ VOID SetupShowWizard(
     header.pszCaption = L"System Informer Setup";
     header.nPages = ARRAYSIZE(pages);
     header.ppsp = pages;
+
+    if (Context->SetupMode == SetupCommandUpdate)
+    {
+        header.nStartPage = SETUP_WIZARD_INSTALL_PAGE_INDEX;
+    }
 
     PhModalPropertySheet(&header);
 }
