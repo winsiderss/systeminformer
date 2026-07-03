@@ -286,6 +286,8 @@ BOOLEAN ToolStatusMenuBarTrackPopupMenu(
     )
 {
     BOOLEAN commandHandled;
+    PPH_EMENU selectedMenu;
+    PPH_EMENU_ITEM selectedMenuItem;
 
     if (!TsMenuBarWindowHandle)
         return FALSE;
@@ -306,6 +308,8 @@ BOOLEAN ToolStatusMenuBarTrackPopupMenu(
 
     SetFocus(TsMenuBarWindowHandle);
     commandHandled = FALSE;
+    selectedMenu = NULL;
+    selectedMenuItem = NULL;
     TsMenuBarContinueHotTrack = TRUE;
 
     while (TsMenuBarContinueHotTrack)
@@ -427,13 +431,16 @@ BOOLEAN ToolStatusMenuBarTrackPopupMenu(
 
         if (selectedItem)
         {
-            TOOLSTATUS_MENUBAR_LOG("TrackPopupMenu dispatch id=%lu context=%p", selectedItem->Id, selectedItem);
-            SystemInformer_SetMainSubCmd(selectedItem->Id, selectedItem);
+            selectedMenu = menu;
+            selectedMenuItem = selectedItem;
             commandHandled = TRUE;
         }
 
         PhDeleteEMenuData(&menuData);
-        PhDestroyEMenuItem(menu);
+
+        if (!selectedItem)
+            PhDestroyEMenuItem(menu);
+
         FromKeyboard = TsMenuBarSelectFromKeyboard;
 
         if (selectedItem)
@@ -448,6 +455,15 @@ BOOLEAN ToolStatusMenuBarTrackPopupMenu(
     TsMenuBarMenuActive = FALSE;
 
     ToolStatusMenuBarDeactivate(TRUE);
+
+    if (selectedMenuItem)
+    {
+        TOOLSTATUS_MENUBAR_LOG("TrackPopupMenu dispatch id=%lu context=%p", selectedMenuItem->Id, selectedMenuItem);
+        SystemInformer_SetMainSubCmd(selectedMenuItem->Id, selectedMenuItem);
+    }
+
+    if (selectedMenu)
+        PhDestroyEMenuItem(selectedMenu);
 
     TOOLSTATUS_MENUBAR_LOG("TrackPopupMenu end handled=%lu", commandHandled);
 
