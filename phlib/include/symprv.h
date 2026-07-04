@@ -543,6 +543,14 @@ PhUnregisterSymbolProvider(
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider
     );
 
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetKitsDebuggersDirectory(
+    VOID
+    );
+
 // symprv_std.cpp (dmex)
 
 EXTERN_C VOID PhPrintCurrentStacktrace(

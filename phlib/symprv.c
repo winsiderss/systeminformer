@@ -475,39 +475,18 @@ BOOL CALLBACK PhpSymbolCallbackFunction(
 }
 
 /**
- * Completes initialization of the symbol provider.
+ * Retrieves the Windows Kits debugger directory for the current architecture.
+ *
+ * \return The path to the Debuggers\\<arch>\\ directory (with trailing backslash),
+ * or NULL when no Windows SDK is installed. The caller must dereference the string.
  */
-VOID PhpSymbolProviderCompleteInitialization(
+PPH_STRING NTAPI PhGetKitsDebuggersDirectory(
     VOID
     )
 {
     static CONST PH_STRINGREF windowsKitsRootKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows Kits\\Installed Roots");
-    static CONST PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // dbghelp.dll dependency required for MiniDumpWriteDump (dmex)
-    static CONST PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
-    static CONST PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
-    PPH_STRING winsdkPath;
-    PVOID dbgcoreHandle;
-    PVOID dbghelpHandle;
-    PVOID symsrvHandle;
+    PPH_STRING winsdkPath = NULL;
     HANDLE keyHandle;
-
-    if (
-        PhGetLoaderEntryDllBase(NULL, &dbgcoreFileName) &&
-        PhGetLoaderEntryDllBase(NULL, &dbghelpFileName) &&
-        PhGetLoaderEntryDllBase(NULL, &symsrvFileName)
-        )
-    {
-        return;
-    }
-
-#if defined(PH_SYMEVNT_WORKQUEUE)
-    PhInitializeFreeList(&PhSymEventFreeList, sizeof(PH_SYMBOL_EVENT_DATA), 5);
-#endif
-
-    winsdkPath = NULL;
-    dbgcoreHandle = NULL;
-    dbghelpHandle = NULL;
-    symsrvHandle = NULL;
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
@@ -526,19 +505,62 @@ VOID PhpSymbolProviderCompleteInitialization(
         NtClose(keyHandle);
     }
 
+    if (PhIsNullOrEmptyString(winsdkPath))
+    {
+        PhClearReference(&winsdkPath);
+        return NULL;
+    }
+
+#if defined(_AMD64_)
+    PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
+#elif defined(_ARM64_)
+    PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\arm64\\"));
+#else
+    PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));
+#endif
+
+    return winsdkPath;
+}
+
+/**
+ * Completes initialization of the symbol provider.
+ */
+VOID PhpSymbolProviderCompleteInitialization(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF dbgcoreFileName = PH_STRINGREF_INIT(L"dbgcore.dll"); // dbghelp.dll dependency required for MiniDumpWriteDump (dmex)
+    static CONST PH_STRINGREF dbghelpFileName = PH_STRINGREF_INIT(L"dbghelp.dll");
+    static CONST PH_STRINGREF symsrvFileName = PH_STRINGREF_INIT(L"symsrv.dll");
+    PPH_STRING winsdkPath;
+    PVOID dbgcoreHandle;
+    PVOID dbghelpHandle;
+    PVOID symsrvHandle;
+
+    if (
+        PhGetLoaderEntryDllBase(NULL, &dbgcoreFileName) &&
+        PhGetLoaderEntryDllBase(NULL, &dbghelpFileName) &&
+        PhGetLoaderEntryDllBase(NULL, &symsrvFileName)
+        )
+    {
+        return;
+    }
+
+#if defined(PH_SYMEVNT_WORKQUEUE)
+    PhInitializeFreeList(&PhSymEventFreeList, sizeof(PH_SYMBOL_EVENT_DATA), 5);
+#endif
+
+    winsdkPath = PhGetKitsDebuggersDirectory();
+    dbgcoreHandle = NULL;
+    dbghelpHandle = NULL;
+    symsrvHandle = NULL;
+
     if (winsdkPath)
     {
         PPH_STRING dbgcoreName;
         PPH_STRING dbghelpName;
         PPH_STRING symsrvName;
 
-#if defined(_AMD64_)
-        PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x64\\"));
-#elif defined(_ARM64_)
-        PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\arm64\\"));
-#else
-        PhMoveReference(&winsdkPath, PhConcatStringRefZ(&winsdkPath->sr, L"\\Debuggers\\x86\\"));
-#endif
         if (dbgcoreName = PhConcatStringRef3(&PhWin32ExtendedPathPrefix, &winsdkPath->sr, &dbgcoreFileName))
         {
             dbgcoreHandle = PhLoadLibrary(PhGetString(dbgcoreName));
