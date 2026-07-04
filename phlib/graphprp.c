@@ -147,7 +147,7 @@ RTL_ATOM PhPropSheetNewRegisterClass(
     wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
 #endif
     wcex.lpfnWndProc = PhPropSheetNewWndProc;
-    wcex.cbWndExtra = sizeof(PVOID);  // for PhSetWindowContextEx
+    wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
@@ -305,7 +305,7 @@ VOID PhPropSheetNewCreatePageDialog(
     // makes tab navigation traverse into the page.
     //SetWindowLongPtr(hwnd, GWL_STYLE, (GetWindowLongPtr(hwnd, GWL_STYLE) & ~(WS_POPUP | WS_CAPTION | WS_SYSMENU)) | WS_CHILD | WS_CLIPSIBLINGS);
 
-    SetWindowLongPtr(windowHandle, GWL_EXSTYLE, GetWindowLongPtr(windowHandle, GWL_EXSTYLE) | WS_EX_CONTROLPARENT);
+    PhSetWindowExStyle(windowHandle, WS_EX_CONTROLPARENT, WS_EX_CONTROLPARENT);
 
     SetParent(windowHandle, Context->WindowHandle);
 
@@ -597,20 +597,52 @@ VOID PhPropSheetNewLayout(
 // Page switching — DeferWindowPos batch mirroring mainwnd.c
 // ---------------------------------------------------------------------------
 
-VOID PhPropSheetNewSelectPage(
+LONG_PTR PhPropSheetNewSendPageNotify(
+    _In_ PPH_PROPSHEETNEW_PAGE Page,
+    _In_ UINT Code
+    )
+{
+    NMHDR header;
+
+    if (!Page || !Page->DialogHandle)
+        return 0;
+
+    memset(&header, 0, sizeof(NMHDR));
+    header.hwndFrom = Page->DialogHandle;
+    header.idFrom = 0;
+    header.code = Code;
+
+    SetWindowLongPtr(Page->DialogHandle, DWLP_MSGRESULT, 0);
+    SendMessage(Page->DialogHandle, WM_NOTIFY, 0, (LPARAM)&header);
+
+    return GetWindowLongPtr(Page->DialogHandle, DWLP_MSGRESULT);
+}
+
+BOOLEAN PhPropSheetNewSelectPage(
     _In_ PPH_PROPSHEETNEW_CONTEXT Context,
-    _In_ INT NewIndex
+    _In_ INT NewIndex,
+    _In_ BOOLEAN KillActive
     )
 {
     HDWP defer;
     RECT pageRect;
     PPH_PROPSHEETNEW_PAGE current;
+    PPH_PROPSHEETNEW_PAGE previous;
     ULONG i;
+    BOOLEAN deferFailed = FALSE;
 
     if (NewIndex < 0 || (ULONG)NewIndex >= Context->PageCount)
-        return;
+        return FALSE;
     if (NewIndex == Context->CurrentIndex)
-        return;
+        return TRUE;
+
+    previous = PhPropSheetNewPageAt(Context, Context->CurrentIndex);
+
+    if (KillActive && previous && previous->DialogHandle)
+    {
+        if (PhPropSheetNewSendPageNotify(previous, PSN_KILLACTIVE))
+            return FALSE;
+    }
 
     current = &Context->Pages[NewIndex];
 
@@ -624,6 +656,7 @@ VOID PhPropSheetNewSelectPage(
     PhPropSheetNewGetPageRect(Context, &pageRect);
 
     defer = BeginDeferWindowPos(Context->PageCount + 1);
+    deferFailed = !defer;
 
     for (i = 0; i < Context->PageCount; i++)
     {
@@ -648,17 +681,52 @@ VOID PhPropSheetNewSelectPage(
         }
         else
         {
-            defer = DeferWindowPos(
-                defer,
-                page->DialogHandle,
-                NULL,
-                0, 0, 0, 0,
-                PHP_SWP_HIDEWINDOW_ONLY
-                );
+            if (defer)
+            {
+                HDWP nextDefer;
+
+                nextDefer = DeferWindowPos(
+                    defer,
+                    page->DialogHandle,
+                    NULL,
+                    0, 0, 0, 0,
+                    PHP_SWP_HIDEWINDOW_ONLY
+                    );
+
+                if (nextDefer)
+                {
+                    defer = nextDefer;
+                }
+                else
+                {
+                    defer = NULL;
+                    deferFailed = TRUE;
+
+                    ShowWindow(page->DialogHandle, SW_HIDE);
+                }
+            }
+            else
+            {
+                ShowWindow(page->DialogHandle, SW_HIDE);
+            }
         }
     }
 
-    EndDeferWindowPos(defer);
+    if (defer && !EndDeferWindowPos(defer))
+        deferFailed = TRUE;
+
+    if (deferFailed)
+    {
+        for (i = 0; i < Context->PageCount; i++)
+        {
+            PPH_PROPSHEETNEW_PAGE page = &Context->Pages[i];
+
+            if ((INT)i == NewIndex || !page->DialogHandle)
+                continue;
+
+            ShowWindow(page->DialogHandle, SW_HIDE);
+        }
+    }
 
     Context->CurrentIndex = NewIndex;
 
@@ -667,8 +735,11 @@ VOID PhPropSheetNewSelectPage(
     {
         ShowWindow(current->DialogHandle, SW_SHOW);
         PhPropSheetNewPageLayout(current->DialogHandle);
+        PhPropSheetNewSendPageNotify(current, PSN_SETACTIVE);
         SetFocus(current->DialogHandle);
     }
+
+    return TRUE;
 }
 
 // ---------------------------------------------------------------------------
@@ -726,7 +797,7 @@ VOID PhPropSheetNewRestoreState(
         Context->CurrentIndex = -1;
         if (Context->TabControl)
             PhTabNew_SetCurSel(Context->TabControl, initialIndex);
-        PhPropSheetNewSelectPage(Context, initialIndex);
+        PhPropSheetNewSelectPage(Context, initialIndex, TRUE);
     }
 }
 
@@ -767,18 +838,6 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
 
     switch (WindowMessage)
     {
-    case PSM_GETTABCONTROL:
-        return (LRESULT)(context ? context->TabControl : NULL);
-    case PSM_GETCURRENTPAGEHWND:
-        {
-            PPH_PROPSHEETNEW_PAGE page;
-
-            if (!context)
-                return (LRESULT)NULL;
-
-            page = PhPropSheetNewPageAt(context, context->CurrentIndex);
-            return (LRESULT)(page ? page->DialogHandle : NULL);
-        }
     case WM_NCCREATE:
         {
             CREATESTRUCT *cs = (CREATESTRUCT *)lParam;
@@ -902,6 +961,8 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
         break;
     case WM_DESTROY:
         {
+            context->QuitRequested = TRUE;
+
             PhPropSheetNewSaveState(context);
 
             for (ULONG i = 0; i < context->PageCount; i++)
@@ -995,11 +1056,21 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             {
                 switch (hdr->code)
                 {
+                case PHTNN_SELCHANGING:
+                    {
+                        PPH_PROPSHEETNEW_PAGE page;
+
+                        page = PhPropSheetNewPageAt(context, context->CurrentIndex);
+
+                        if (page && page->DialogHandle)
+                            return PhPropSheetNewSendPageNotify(page, PSN_KILLACTIVE) ? TRUE : FALSE;
+                    }
+                    break;
                 case PHTNN_SELCHANGED:
                     {
                         INT sel = PhTabNew_GetCurSel(context->TabControl);
 
-                        PhPropSheetNewSelectPage(context, sel);
+                        PhPropSheetNewSelectPage(context, sel, FALSE);
                     }
                     break;
                 case PHTNN_LAYOUT:
@@ -1030,6 +1101,18 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             DestroyWindow(WindowHandle);
         }
         return 0;
+    case PSM_GETTABCONTROL:
+        return (LRESULT)(context ? context->TabControl : NULL);
+    case PSM_GETCURRENTPAGEHWND:
+        {
+            PPH_PROPSHEETNEW_PAGE page;
+
+            if (!context)
+                return (LRESULT)NULL;
+
+            page = PhPropSheetNewPageAt(context, context->CurrentIndex);
+            return (LRESULT)(page ? page->DialogHandle : NULL);
+        }
     }
 
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
@@ -1249,9 +1332,7 @@ PPH_LAYOUT_ITEM PhPropSheetNewPageAddLayoutItemEx(
     if (Handle == PageWindow || ParentItem == PH_PROPSHEETNEW_PAGE_LAYOUT_PARENT)
         return &context->LayoutManager.RootItem;
 
-    if (Instance && Template &&
-        NT_SUCCESS(PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)) &&
-        dialogTemplate)
+    if (Instance && Template && NT_SUCCESS(PhLoadResource(Instance, Template, RT_DIALOG, NULL, &dialogTemplate)))
     {
         memset(&originalPageSize, 0, sizeof(originalPageSize));
         originalPageSize.right = dialogTemplate->cx;
@@ -1490,9 +1571,11 @@ BOOLEAN PhPropSheetNewSetCurrentPageByName(
         if (context->Pages[i].Name &&
             PhEqualStringZ((PWSTR)context->Pages[i].Name, (PWSTR)Name, TRUE))
         {
+            if (!PhPropSheetNewSelectPage(context, (INT)i, TRUE))
+                return FALSE;
+
             if (context->TabControl)
                 PhTabNew_SetCurSel(context->TabControl, (INT)i);
-            PhPropSheetNewSelectPage(context, (INT)i);
             return TRUE;
         }
     }

@@ -18,7 +18,6 @@
 #include <lsasup.h>
 
 #include <devquery.h>
-#include <devpkey.h>
 #include <phafd.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20

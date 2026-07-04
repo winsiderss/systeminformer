@@ -49,6 +49,7 @@ typedef struct _PH_EXTLV_CONTEXT
     // Color and Font
     PPH_EXTLV_GET_ITEM_COLOR ItemColorFunction;
     PPH_EXTLV_GET_ITEM_FONT ItemFontFunction;
+    HFONT FontHandle;
 
     // Misc.
 
@@ -127,10 +128,14 @@ VOID PhSetExtendedListViewEx(
     context->NumberOfFallbackColumns = 0;
     context->ItemColorFunction = NULL;
     context->ItemFontFunction = NULL;
+    context->FontHandle = NULL;
     context->EnableRedraw = 1;
     context->Cursor = NULL;
 
     context->ListViewContext = PhListView_Initialize(WindowHandle);
+
+    if (context->FontHandle = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle)))
+        SetWindowFont(WindowHandle, context->FontHandle, FALSE);
 
     context->OldWndProc = PhGetWindowProcedure(WindowHandle);
     PhSetWindowContext(WindowHandle, MAXCHAR, context);
@@ -164,6 +169,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             PhRemoveWindowContext(WindowHandle, MAXCHAR);
 
             PhListView_Destroy(context->ListViewContext);
+
+            if (context->FontHandle)
+                DeleteFont(context->FontHandle);
 
             PhFree(context);
         }
@@ -730,6 +738,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            HFONT fontHandle;
             LONG listviewDpi;
             LVCOLUMN lvColumn;
             ULONG i;
@@ -740,6 +749,9 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
 
             if (context->WindowDpi == 0)
                 break;
+
+            if (fontHandle = PhCreateTreeWindowFont(listviewDpi))
+                PhSwapReferenceFont(&context->FontHandle, WindowHandle, fontHandle, TRUE);
 
             // Workaround the ListView using incorrect widths for header columns by re-setting the width. (dmex)
             // Note: This resets the width a second time after the header control has already set the width.
