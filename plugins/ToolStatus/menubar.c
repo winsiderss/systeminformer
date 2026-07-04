@@ -805,6 +805,15 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
     switch (DrawInfo->nmcd.dwDrawStage)
     {
     case CDDS_PREPAINT:
+        if (EnableThemeSupport)
+        {
+            const PH_WINDOW_THEME_PALETTE* palette = PhGetWindowThemePalette();
+
+            SetTextColor(DrawInfo->nmcd.hdc, palette->TextColor);
+            SetDCBrushColor(DrawInfo->nmcd.hdc, palette->BackgroundColor);
+            FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
+        }
+
         return CDRF_NOTIFYITEMDRAW | CDRF_NOTIFYPOSTPAINT;
     case CDDS_ITEMPREPAINT:
         {
@@ -854,48 +863,71 @@ LRESULT CALLBACK ToolStatusMenuBarDrawToolbar(
 
             BOOLEAN isDropDown = !!(buttonInfo.fsStyle & BTNS_WHOLEDROPDOWN);
 
-            if (!TsMenuBarThemeHandle)
+            if (EnableThemeSupport)
             {
-                TsMenuBarThemeHandle = PhOpenThemeData(
-                    DrawInfo->nmcd.hdr.hwndFrom,
-                    L"Toolbar",
-                    PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom)
-                );
-            }
+                const PH_WINDOW_THEME_PALETTE* palette = PhGetWindowThemePalette();
 
-            if (TsMenuBarThemeHandle)
-            {
-                LONG stateId;
-
-                if (!isEnabled)
-                    stateId = 4; // TS_DISABLED
-                else if (isMenuOpen)
-                    stateId = 3; // TS_PRESSED (menu open / selected)
-                else if (isHighlighted)
-                    stateId = 2; // TS_HOT
-                else
-                    stateId = 1; // TS_NORMAL
-
-                PhDrawThemeBackground(
-                    TsMenuBarThemeHandle,
+                SetTextColor(
                     DrawInfo->nmcd.hdc,
-                    1, // TP_BUTTON
-                    stateId,
-                    &DrawInfo->nmcd.rc,
-                    &DrawInfo->nmcd.rc
-                );
-            }
-            else
-            {
+                    isEnabled ? palette->TextColor : palette->DisabledTextColor
+                    );
+
                 if (isHighlighted || isMenuOpen)
                 {
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_HOTLIGHT));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, isMenuOpen ? palette->ForegroundColor : palette->HighlightColor);
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
                 }
                 else
                 {
-                    SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_WINDOW));
+                    SetDCBrushColor(DrawInfo->nmcd.hdc, palette->BackgroundColor);
                     FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
+                }
+            }
+            else
+            {
+                if (!TsMenuBarThemeHandle)
+                {
+                    TsMenuBarThemeHandle = PhOpenThemeData(
+                        DrawInfo->nmcd.hdr.hwndFrom,
+                        L"Toolbar",
+                        PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom)
+                    );
+                }
+
+                if (TsMenuBarThemeHandle)
+                {
+                    LONG stateId;
+
+                    if (!isEnabled)
+                        stateId = 4; // TS_DISABLED
+                    else if (isMenuOpen)
+                        stateId = 3; // TS_PRESSED (menu open / selected)
+                    else if (isHighlighted)
+                        stateId = 2; // TS_HOT
+                    else
+                        stateId = 1; // TS_NORMAL
+
+                    PhDrawThemeBackground(
+                        TsMenuBarThemeHandle,
+                        DrawInfo->nmcd.hdc,
+                        1, // TP_BUTTON
+                        stateId,
+                        &DrawInfo->nmcd.rc,
+                        &DrawInfo->nmcd.rc
+                    );
+                }
+                else
+                {
+                    if (isHighlighted || isMenuOpen)
+                    {
+                        SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_HOTLIGHT));
+                        FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
+                    }
+                    else
+                    {
+                        SetDCBrushColor(DrawInfo->nmcd.hdc, GetSysColor(COLOR_WINDOW));
+                        FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
+                    }
                 }
             }
 

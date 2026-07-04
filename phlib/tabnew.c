@@ -1159,8 +1159,23 @@ COLORREF PhTabNewBackgroundColor(
     )
 {
     if (Context->ThemeDark)
-        return PhThemeWindowBackgroundColor;
+        return PhThemeWindowBackground2Color;
     return GetSysColor(COLOR_BTNFACE);
+}
+
+/**
+ * Gets the current active page color.
+ *
+ * \param Context A pointer to the tab control context.
+ * \return The active page color.
+ */
+COLORREF PhTabNewActiveColor(
+    _In_ PPH_TABNEW_CONTEXT Context
+    )
+{
+    if (Context->ThemeDark)
+        return PhThemeWindowBackgroundColor;
+    return PhTabNewBackgroundColor(Context);
 }
 
 /**
@@ -1193,6 +1208,12 @@ VOID PhTabNewDeleteCachedResources(
         Context->BackgroundBrush = NULL;
     }
 
+    if (Context->ActiveBrush)
+    {
+        DeleteBrush(Context->ActiveBrush);
+        Context->ActiveBrush = NULL;
+    }
+
     if (Context->AccentBrush)
     {
         DeleteBrush(Context->AccentBrush);
@@ -1216,6 +1237,12 @@ VOID PhTabNewDeleteCachedResources(
         DeletePen(Context->BackgroundPen);
         Context->BackgroundPen = NULL;
     }
+
+    if (Context->ActivePen)
+    {
+        DeletePen(Context->ActivePen);
+        Context->ActivePen = NULL;
+    }
 }
 
 /**
@@ -1228,6 +1255,7 @@ VOID PhTabNewUpdateCachedResources(
     )
 {
     COLORREF backgroundColor;
+    COLORREF activeColor;
     COLORREF accentColor;
     COLORREF hotColor;
     COLORREF outlineColor;
@@ -1235,15 +1263,18 @@ VOID PhTabNewUpdateCachedResources(
     PhTabNewDeleteCachedResources(Context);
 
     backgroundColor = PhTabNewBackgroundColor(Context);
+    activeColor = PhTabNewActiveColor(Context);
     accentColor = Context->ThemeDark ? PhThemeWindowHighlightColor : GetSysColor(COLOR_HIGHLIGHT);
-    hotColor = Context->ThemeDark ? PhThemeWindowBackground2Color : RGB(0xE5, 0xF1, 0xFB);
+    hotColor = Context->ThemeDark ? PhThemeWindowHighlightColor : RGB(0xE5, 0xF1, 0xFB);
     outlineColor = Context->ThemeDark ? RGB(0x55, 0x55, 0x55) : RGB(0xAC, 0xAC, 0xAC);
 
     Context->BackgroundBrush = CreateSolidBrush(backgroundColor);
+    Context->ActiveBrush = CreateSolidBrush(activeColor);
     Context->AccentBrush = CreateSolidBrush(accentColor);
     Context->HotBrush = CreateSolidBrush(hotColor);
     Context->OutlinePen = CreatePen(PS_SOLID, 1, outlineColor);
     Context->BackgroundPen = CreatePen(PS_SOLID, 1, backgroundColor);
+    Context->ActivePen = CreatePen(PS_SOLID, 1, activeColor);
 }
 
 /**
@@ -1301,6 +1332,74 @@ VOID PhTabNewDrawItemContent(
     }
 }
 
+VOID PhTabNewDrawPageDivider(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PRECT ClientRect,
+    _In_opt_ PRECT SelectedRect
+    )
+{
+    HPEN oldPen;
+    LONG dividerPos = 0;
+    BOOLEAN vertical = (Context->Side == TNS_LEFT || Context->Side == TNS_RIGHT);
+
+    oldPen = SelectPen(Hdc, Context->OutlinePen);
+
+    switch (Context->Side)
+    {
+    case TNS_TOP:
+        dividerPos = (LONG)Context->StripThickness - 1;
+        break;
+    case TNS_BOTTOM:
+        dividerPos = (ClientRect->bottom - ClientRect->top) - (LONG)Context->StripThickness;
+        break;
+    case TNS_LEFT:
+        dividerPos = (LONG)Context->StripThickness - 1;
+        break;
+    case TNS_RIGHT:
+        dividerPos = (ClientRect->right - ClientRect->left) - (LONG)Context->StripThickness;
+        break;
+    }
+
+    if (vertical)
+    {
+        MoveToEx(Hdc, dividerPos, ClientRect->top, NULL);
+        LineTo(Hdc, dividerPos, ClientRect->bottom);
+    }
+    else
+    {
+        MoveToEx(Hdc, ClientRect->left, dividerPos, NULL);
+        LineTo(Hdc, ClientRect->right, dividerPos);
+    }
+
+    if (SelectedRect)
+    {
+        SelectPen(Hdc, Context->ActivePen);
+
+        switch (Context->Side)
+        {
+        case TNS_TOP:
+            MoveToEx(Hdc, SelectedRect->left + 1, SelectedRect->bottom - 1, NULL);
+            LineTo(Hdc, SelectedRect->right - 1, SelectedRect->bottom - 1);
+            break;
+        case TNS_BOTTOM:
+            MoveToEx(Hdc, SelectedRect->left + 1, SelectedRect->top, NULL);
+            LineTo(Hdc, SelectedRect->right - 1, SelectedRect->top);
+            break;
+        case TNS_LEFT:
+            MoveToEx(Hdc, SelectedRect->right - 1, SelectedRect->top + 1, NULL);
+            LineTo(Hdc, SelectedRect->right - 1, SelectedRect->bottom - 1);
+            break;
+        case TNS_RIGHT:
+            MoveToEx(Hdc, SelectedRect->left, SelectedRect->top + 1, NULL);
+            LineTo(Hdc, SelectedRect->left, SelectedRect->bottom - 1);
+            break;
+        }
+    }
+
+    SelectPen(Hdc, oldPen);
+}
+
 /**
  * Paints the control using the Windows 10 flat skin.
  *
@@ -1330,7 +1429,7 @@ VOID PhTabNewPaintWin10(
 
         if (selected)
         {
-            FillRect(Hdc, &itemRect, Context->BackgroundBrush);
+            FillRect(Hdc, &itemRect, Context->ActiveBrush);
 
             // Accent indicator
             {
@@ -1524,7 +1623,7 @@ VOID PhTabNewPaintWin7(
         // Selected fill extends 1 px past the divider so it merges into the page
         fillRect = itemRect;
 
-        FillRect(Hdc, &fillRect, Context->BackgroundBrush);
+        FillRect(Hdc, &fillRect, Context->ActiveBrush);
 
         // Outline — three edges; the edge facing the page is drawn in the
         // background color to erase the divider segment beneath the tab.
@@ -1538,7 +1637,7 @@ VOID PhTabNewPaintWin7(
             LineTo(Hdc, fillRect.right - 1, fillRect.top);
             LineTo(Hdc, fillRect.right - 1, fillRect.bottom);
             // Erase the divider segment underneath
-            SelectPen(Hdc, Context->BackgroundPen);
+            SelectPen(Hdc, Context->ActivePen);
             MoveToEx(Hdc, fillRect.left + 1, fillRect.bottom - 1, NULL);
             LineTo(Hdc, fillRect.right - 1, fillRect.bottom - 1);
             break;
@@ -1547,7 +1646,7 @@ VOID PhTabNewPaintWin7(
             LineTo(Hdc, fillRect.left, fillRect.bottom - 1);
             LineTo(Hdc, fillRect.right - 1, fillRect.bottom - 1);
             LineTo(Hdc, fillRect.right - 1, fillRect.top - 1);
-            SelectPen(Hdc, Context->BackgroundPen);
+            SelectPen(Hdc, Context->ActivePen);
             MoveToEx(Hdc, fillRect.left + 1, fillRect.top, NULL);
             LineTo(Hdc, fillRect.right - 1, fillRect.top);
             break;
@@ -1556,7 +1655,7 @@ VOID PhTabNewPaintWin7(
             LineTo(Hdc, fillRect.left, fillRect.top);
             LineTo(Hdc, fillRect.left, fillRect.bottom - 1);
             LineTo(Hdc, fillRect.right, fillRect.bottom - 1);
-            SelectPen(Hdc, Context->BackgroundPen);
+            SelectPen(Hdc, Context->ActivePen);
             MoveToEx(Hdc, fillRect.right - 1, fillRect.top + 1, NULL);
             LineTo(Hdc, fillRect.right - 1, fillRect.bottom - 1);
             break;
@@ -1565,7 +1664,7 @@ VOID PhTabNewPaintWin7(
             LineTo(Hdc, fillRect.right - 1, fillRect.top);
             LineTo(Hdc, fillRect.right - 1, fillRect.bottom - 1);
             LineTo(Hdc, fillRect.left - 1, fillRect.bottom - 1);
-            SelectPen(Hdc, Context->BackgroundPen);
+            SelectPen(Hdc, Context->ActivePen);
             MoveToEx(Hdc, fillRect.left, fillRect.top + 1, NULL);
             LineTo(Hdc, fillRect.left, fillRect.bottom - 1);
             break;
@@ -1604,6 +1703,55 @@ VOID PhTabNewPaintUxTheme(
     // parent paints its own client area; many of our parents don't.
     FillRect(Hdc, ClientRect, Context->BackgroundBrush);
 
+    if (Context->ThemeDark)
+    {
+        RECT selectedRect;
+        BOOLEAN hasSelectedRect = FALSE;
+
+        for (i = 0; i < Context->Items->Count; i++)
+        {
+            PPH_TABNEW_INTERNAL_ITEM item = Context->Items->Items[i];
+            RECT itemRect;
+            BOOLEAN selected = ((LONG)i == Context->SelectedIndex);
+            BOOLEAN isHot = ((LONG)i == Context->HotIndex);
+
+            PhTabNewGetItemRectInClient(Context, item, &itemRect);
+
+            if (selected)
+            {
+                selectedRect = itemRect;
+                hasSelectedRect = TRUE;
+                continue;
+            }
+
+            if (isHot)
+                FillRect(Hdc, &itemRect, Context->HotBrush);
+            else
+                FillRect(Hdc, &itemRect, Context->BackgroundBrush);
+
+            PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
+        }
+
+        if (hasSelectedRect)
+        {
+            FillRect(Hdc, &selectedRect, Context->ActiveBrush);
+            PhTabNewDrawPageDivider(Context, Hdc, ClientRect, &selectedRect);
+
+            if (Context->SelectedIndex >= 0 && (ULONG)Context->SelectedIndex < Context->Items->Count)
+            {
+                PPH_TABNEW_INTERNAL_ITEM item = Context->Items->Items[Context->SelectedIndex];
+
+                PhTabNewDrawItemContent(Context, Hdc, item, &selectedRect, text);
+            }
+        }
+        else
+        {
+            PhTabNewDrawPageDivider(Context, Hdc, ClientRect, NULL);
+        }
+
+        return;
+    }
+
     PhDrawThemeParentBackground(Context->WindowHandle, Hdc, ClientRect);
 
     for (i = 0; i < Context->Items->Count; i++)
@@ -1629,21 +1777,7 @@ VOID PhTabNewPaintUxTheme(
             stateId = TIS_NORMAL;
         }
 
-        if (selected)
-        {
-            //DTBGOPTS options;
-            //FillRect(Hdc, &itemRect, Context->BackgroundBrush);
-            //memset(&options, 0, sizeof(DTBGOPTS));
-            //options.dwSize = sizeof(DTBGOPTS);
-            //options.dwFlags = DTBG_OMITCONTENT;
-            //PhDrawThemeBackgroundEx(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, &options);
-
-            FillRect(Hdc, &itemRect, PhThemeWindowBackgroundBrush);
-        }
-        else
-        {
-            PhDrawThemeBackground(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, NULL);
-        }
+        PhDrawThemeBackground(Context->ThemeHandle, Hdc, TABP_TABITEM, stateId, &itemRect, NULL);
 
         PhTabNewDrawItemContent(Context, Hdc, item, &itemRect, text);
     }

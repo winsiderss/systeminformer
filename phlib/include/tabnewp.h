@@ -58,10 +58,12 @@ typedef struct _PH_TABNEW_CONTEXT
     HIMAGELIST ImageList;
     HTHEME ThemeHandle;        // for PhTabNewSkinUxTheme
     HBRUSH BackgroundBrush;
+    HBRUSH ActiveBrush;
     HBRUSH AccentBrush;
     HBRUSH HotBrush;
     HPEN OutlinePen;
     HPEN BackgroundPen;
+    HPEN ActivePen;
 
     union
     {

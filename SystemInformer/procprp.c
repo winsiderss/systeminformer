@@ -798,7 +798,7 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                         PhUiDebugProcess(WindowHandle, processItem);
                         break;
                     case ID_PROCESS_SEARCHONLINE:
-                        PhSearchOnlineString(WindowHandle, processItem->ProcessName->Buffer);
+                        PhSearchOnlineString(WindowHandle, PhGetString(processItem->ProcessName));
                         break;
                     case ID_PROCESS_OPENFILELOCATION:
                         {
@@ -1543,18 +1543,6 @@ BOOLEAN PhPropPageDlgProcHeader(
         *PropPageContext = propPageContext;
     if (ProcessItem)
         *ProcessItem = propPageContext->PropContext->ProcessItem;
-
-#ifdef PH_PROPSHEET_NEW
-    if (uMsg == WM_SHOWWINDOW)
-    {
-        NMHDR header;
-
-        memset(&header, 0, sizeof(NMHDR));
-        header.hwndFrom = hwndDlg;
-        header.code = IsWindowVisible(hwndDlg) ? PSN_SETACTIVE : PSN_KILLACTIVE;
-        SendMessage(hwndDlg, WM_NOTIFY, 0, (LPARAM)&header);
-    }
-#endif
 
     if (uMsg == WM_NCDESTROY)
     {

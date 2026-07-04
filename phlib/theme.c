@@ -105,6 +105,16 @@ typedef struct _PHP_THEME_PAINT_BUFFER
     RECT Rect;
 } PHP_THEME_PAINT_BUFFER, *PPHP_THEME_PAINT_BUFFER;
 
+typedef struct _PHP_THEME_WINDOW_ENUM_CONTEXT
+{
+    BOOLEAN Reinitialize;
+} PHP_THEME_WINDOW_ENUM_CONTEXT, *PPHP_THEME_WINDOW_ENUM_CONTEXT;
+
+VOID PhpApplyThemeWindow(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN Reinitialize
+    );
+
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     _In_ HWND WindowHandle,
@@ -176,6 +186,15 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
 VOID PhpThemeWindowEditThemeChanged(
     _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
     _In_ HWND WindowHandle
+    );
+
+VOID PhpThemeWindowEditDestroyBufferedContext(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context
+    );
+
+VOID PhpUninitializeWindowTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN IncludeProcessWindows
     );
 
 VOID PhWindowThemeSetDarkMode(
@@ -725,8 +744,19 @@ VOID PhUninitializeWindowTheme(
     _In_ HWND WindowHandle
     )
 {
+    PhpUninitializeWindowTheme(WindowHandle, TRUE);
+}
+
+VOID PhpUninitializeWindowTheme(
+    _In_ HWND WindowHandle,
+    _In_ BOOLEAN IncludeProcessWindows
+    )
+{
     HWND currentWindow = NULL;
     WCHAR windowClassName[MAX_PATH];
+
+    if (!WindowHandle)
+        return;
 
     if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
         windowClassName[0] = UNICODE_NULL;
@@ -735,9 +765,11 @@ VOID PhUninitializeWindowTheme(
     {
         if (currentWindow = FindWindowEx(WindowHandle, currentWindow, NULL, NULL))
         {
-            PhUninitializeWindowTheme(currentWindow);
+            PhpUninitializeWindowTheme(currentWindow, FALSE);
         }
     } while (currentWindow);
+
+    PhInitializeThemeWindowFrame(WindowHandle);
 
     if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
     {
@@ -753,12 +785,17 @@ VOID PhUninitializeWindowTheme(
         }
 
         PhSetControlTheme(WindowHandle, L"");
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
     {
         PPHP_THEME_WINDOW_TAB_CONTEXT context;
 
-        if (context = PhGetWindowContext(WindowHandle, LONG_MAX))
+        if (
+            GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhpThemeWindowTabControlWndSubclassProc &&
+            (context = PhGetWindowContext(WindowHandle, LONG_MAX))
+            )
         {
             PhSetWindowProcedure(WindowHandle, context->DefaultWindowProc);
             PhRemoveWindowContext(WindowHandle, LONG_MAX);
@@ -774,6 +811,165 @@ VOID PhUninitializeWindowTheme(
         PhAllowDarkModeForWindow(WindowHandle, FALSE);
         SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
     }
+    else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            HWND tooltipWindow = ListView_GetToolTips(WindowHandle);
+
+            PhAllowDarkModeForWindow(WindowHandle, FALSE);
+            PhSetControlTheme(WindowHandle, L"Explorer");
+            PhWindowThemeSetDarkMode(tooltipWindow, FALSE);
+        }
+
+        PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+        PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+        ListView_SetBkColor(WindowHandle, CLR_NONE);
+        ListView_SetTextBkColor(WindowHandle, CLR_NONE);
+        ListView_SetTextColor(WindowHandle, CLR_DEFAULT);
+    }
+    else if (PhEqualStringZ(windowClassName, WC_TREEVIEW, FALSE))
+    {
+        if (WindowsVersion >= WINDOWS_10_RS5)
+        {
+            HWND tooltipWindow = TreeView_GetToolTips(WindowHandle);
+
+            PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+            PhWindowThemeSetDarkMode(tooltipWindow, FALSE);
+        }
+
+        TreeView_SetBkColor(WindowHandle, CLR_NONE);
+        TreeView_SetTextColor(WindowHandle, CLR_DEFAULT);
+    }
+    else if (PhEqualStringZ(windowClassName, L"RICHEDIT50W", FALSE))
+    {
+        SendMessage(WindowHandle, WM_USER + 67, TRUE, 0);
+        PhSetWindowStyle(WindowHandle, WS_BORDER, WS_BORDER);
+        PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+        SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+    else if (
+        PhEqualStringZ(windowClassName, WC_LISTBOX, FALSE) ||
+        PhEqualStringZ(windowClassName, L"ComboLBox", FALSE)
+        )
+    {
+        PPHP_THEME_WINDOW_STATUSBAR_CONTEXT context;
+
+        if (WindowsVersion >= WINDOWS_10_RS5)
+            PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+
+        if (
+            GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhpThemeWindowListBoxControlSubclassProc &&
+            (context = PhGetWindowContext(WindowHandle, LONG_MAX))
+            )
+        {
+            PhSetWindowProcedure(WindowHandle, context->DefaultWindowProc);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+
+            if (context->ThemeHandle)
+                PhCloseThemeData(context->ThemeHandle);
+
+            PhFree(context);
+        }
+    }
+    else if (PhEqualStringZ(windowClassName, WC_COMBOBOX, FALSE))
+    {
+        PPHP_THEME_WINDOW_COMBO_CONTEXT context;
+        COMBOBOXINFO info = { sizeof(COMBOBOXINFO) };
+
+        if (SendMessage(WindowHandle, CB_GETCOMBOBOXINFO, 0, (LPARAM)&info))
+        {
+            if (info.hwndList)
+                PhWindowThemeSetDarkMode(info.hwndList, FALSE);
+        }
+
+        if (
+            GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhpThemeWindowComboBoxControlSubclassProc &&
+            (context = PhGetWindowContext(WindowHandle, LONG_MAX))
+            )
+        {
+            PhSetWindowProcedure(WindowHandle, context->DefaultWindowProc);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+
+            if (context->ThemeHandle)
+                PhCloseThemeData(context->ThemeHandle);
+
+            PhFree(context);
+        }
+
+        InvalidateRect(WindowHandle, NULL, FALSE);
+    }
+    else if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
+    {
+        WNDPROC oldWndProc;
+
+        if (WindowsVersion >= WINDOWS_10_RS5)
+            PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+
+        if (
+            GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhpThemeWindowACLUISubclassProc &&
+            (oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX))
+            )
+        {
+            PhSetWindowProcedure(WindowHandle, oldWndProc);
+            PhRemoveWindowContext(WindowHandle, LONG_MAX);
+        }
+    }
+    else if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE))
+    {
+        ULONG style = PhGetWindowStyle(WindowHandle);
+
+        if ((style & BS_TYPEMASK) == BS_GROUPBOX)
+        {
+            WNDPROC oldWndProc;
+            LONG_PTR windowProc = GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
+
+            if (
+                (windowProc == (LONG_PTR)PhpThemeWindowGroupBoxSubclassProc ||
+                windowProc == (LONG_PTR)PhThemeWindowGroupBoxExSubclassProc) &&
+                (oldWndProc = PhGetWindowContext(WindowHandle, LONG_MAX))
+                )
+            {
+                PhSetWindowProcedure(WindowHandle, oldWndProc);
+                PhRemoveWindowContext(WindowHandle, LONG_MAX);
+            }
+        }
+        else
+        {
+            PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+        }
+    }
+    else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
+    {
+        PPHP_THEME_WINDOW_EDIT_CONTEXT context;
+
+        if (PhGetWindowStyle(WindowHandle) & ES_MULTILINE)
+            PhWindowThemeSetDarkMode(WindowHandle, FALSE);
+
+        PhSetControlTheme(WindowHandle, L"Explorer");
+        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
+
+        if (
+            GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhEditBorderWndSubclassProc &&
+            (context = PhGetWindowContext(WindowHandle, SHRT_MAX))
+            )
+        {
+            PhSetWindowProcedure(WindowHandle, context->DefaultWindowProc);
+            PhRemoveWindowContext(WindowHandle, SHRT_MAX);
+
+            PhpThemeWindowEditDestroyBufferedContext(context);
+            PhFree(context);
+        }
+
+        SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+    else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
+    {
+        PhAllowDarkModeForWindow(WindowHandle, FALSE);
+        PhSetControlTheme(WindowHandle, L"Explorer");
+    }
 
     if (PhGetWindowContext(WindowHandle, LONG_MAX) && GetWindowLongPtr(WindowHandle, GWLP_WNDPROC) == (LONG_PTR)PhpThemeWindowSubclassProc)
     {
@@ -783,7 +979,27 @@ VOID PhUninitializeWindowTheme(
         PhRemoveWindowContext(WindowHandle, LONG_MAX);
     }
 
-    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+
+    if (IncludeProcessWindows)
+    {
+        currentWindow = NULL;
+
+        do
+        {
+            if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
+            {
+                ULONG processID = 0;
+
+                GetWindowThreadProcessId(currentWindow, &processID);
+
+                if (UlongToHandle(processID) == NtCurrentProcessId() && currentWindow != WindowHandle)
+                {
+                    PhpUninitializeWindowTheme(currentWindow, FALSE);
+                }
+            }
+        } while (currentWindow);
+    }
 }
 
 // Reads the per-user "AppsUseLightTheme" preference from the registry. This is
@@ -906,6 +1122,7 @@ VOID PhReInitializeWindowTheme(
     _In_ HWND WindowHandle
     )
 {
+    PHP_THEME_WINDOW_ENUM_CONTEXT enumContext;
     HWND currentWindow = NULL;
 
     PhInitializeThemeWindowFrame(WindowHandle);
@@ -920,11 +1137,17 @@ VOID PhReInitializeWindowTheme(
         //if (brush) DeleteBrush(brush);
     }
 
+    enumContext.Reinitialize = TRUE;
+
+    PhpApplyThemeWindow(WindowHandle, TRUE);
+
     PhEnumChildWindows(
         WindowHandle,
         PhpReInitializeThemeWindowEnumChildWindows,
-        NULL
+        &enumContext
         );
+
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 
     do
     {
@@ -947,21 +1170,23 @@ VOID PhReInitializeWindowTheme(
                 {
                     if (PhEqualStringZ(windowClassName, L"#32770", FALSE))
                     {
+                        PhpApplyThemeWindow(currentWindow, TRUE);
+
                         PhEnumChildWindows(
                             currentWindow,
                             PhpReInitializeThemeWindowEnumChildWindows,
-                            NULL
+                            &enumContext
                             );
                         //PhReInitializeWindowTheme(currentWindow);
                     }
 
-                    InvalidateRect(currentWindow, NULL, TRUE);
+                    RedrawWindow(currentWindow, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
                 }
             }
         }
     } while (currentWindow);
 
-    InvalidateRect(WindowHandle, NULL, FALSE);
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
 }
 
 #define DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1 19
@@ -973,6 +1198,9 @@ VOID PhReInitializeWindowTheme(
 #endif
 #ifndef DWMWA_BORDER_COLOR
 #define DWMWA_BORDER_COLOR 34
+#endif
+#ifndef DWMWA_COLOR_DEFAULT
+#define DWMWA_COLOR_DEFAULT 0xffffffff
 #endif
 #ifndef DWMWA_SYSTEMBACKDROP_TYPE
 #define DWMWA_SYSTEMBACKDROP_TYPE 38
@@ -1115,6 +1343,34 @@ VOID PhInitializeThemeWindowFrame(
             {
                 PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &PhThemeWindowBackgroundColor, sizeof(COLORREF));
             }
+        }
+        else
+        {
+            COLORREF colorAttribute;
+
+            PhAllowDarkModeForWindow(WindowHandle, FALSE);
+            PhSetControlTheme(WindowHandle, L"Explorer");
+
+            boolAttribute = FALSE;
+            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE, &boolAttribute, sizeof(BOOL));
+            PhSetWindowThemeAttribute(WindowHandle, DWMWA_USE_IMMERSIVE_DARK_MODE_BEFORE_20H1, &boolAttribute, sizeof(BOOL));
+
+            if (WindowsVersion >= WINDOWS_11)
+            {
+                colorAttribute = DWMWA_COLOR_DEFAULT;
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_CAPTION_COLOR, &colorAttribute, sizeof(COLORREF));
+                PhSetWindowThemeAttribute(WindowHandle, DWMWA_BORDER_COLOR, &colorAttribute, sizeof(COLORREF));
+            }
+
+            SetWindowPos(
+                WindowHandle,
+                NULL,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+                );
         }
 
         if (WindowsVersion >= WINDOWS_11_22H2)
@@ -1371,31 +1627,23 @@ VOID PhInitializeWindowThemeEditControl(
     InvalidateRect(EditControl, NULL, FALSE);
 }
 
-_Function_class_(PH_WINDOW_ENUM_CALLBACK)
-BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
+VOID PhpApplyThemeWindow(
     _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
+    _In_ BOOLEAN Reinitialize
     )
 {
     WCHAR windowClassName[MAX_PATH];
 
-    PhEnumChildWindows(
-        WindowHandle,
-        PhpThemeWindowEnumChildWindows,
-        NULL
-        );
-
-    if (PhGetWindowContext(WindowHandle, LONG_MAX)) // HACK
-        return TRUE;
-
     if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
         windowClassName[0] = UNICODE_NULL;
 
-    dprintf("PhpThemeWindowEnumChildWindows: %S\r\n", windowClassName);
+    if (!Reinitialize)
+        dprintf("PhpThemeWindowEnumChildWindows: %S\r\n", windowClassName);
 
     if (PhEqualStringZ(windowClassName, L"#32770", TRUE))
     {
-        PhInitializeWindowTheme(WindowHandle, TRUE);
+        if (!PhGetWindowContext(WindowHandle, LONG_MAX) || PhGetWindowProcedure(WindowHandle) != PhpThemeWindowSubclassProc)
+            PhInitializeWindowTheme(WindowHandle, TRUE);
     }
     else if (PhEqualStringZ(windowClassName, WC_BUTTON, FALSE))
     {
@@ -1403,7 +1651,10 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
         if ((style & BS_TYPEMASK) == BS_GROUPBOX)
         {
-            PhInitializeThemeWindowGroupBox(WindowHandle);
+            if (!PhGetWindowContext(WindowHandle, LONG_MAX))
+                PhInitializeThemeWindowGroupBox(WindowHandle);
+            else
+                PhSetWindowStyle(WindowHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
         }
         else    // apply theme for CheckBox, Radio (Dart Vanya)
         {
@@ -1412,7 +1663,10 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
     }
     else if (PhEqualStringZ(windowClassName, WC_TABCONTROL, FALSE))
     {
-        PhInitializeThemeWindowTabControl(WindowHandle);
+        if (!PhGetWindowContext(WindowHandle, LONG_MAX))
+            PhInitializeThemeWindowTabControl(WindowHandle);
+        else
+            SetWindowFont(WindowHandle, PhApplicationFont, FALSE);
     }
     else if (PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
     {
@@ -1518,7 +1772,10 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
-        PhInitializeWindowThemeListboxControl(WindowHandle);
+        if (!PhGetWindowContext(WindowHandle, LONG_MAX))
+            PhInitializeWindowThemeListboxControl(WindowHandle);
+        else
+            SetWindowPos(WindowHandle, HWND_TOP, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
     }
     else if (PhEqualStringZ(windowClassName, WC_COMBOBOX, FALSE))
     {
@@ -1539,7 +1796,10 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
 
         //if ((PhGetWindowStyle(WindowHandle) & CBS_DROPDOWNLIST) != CBS_DROPDOWNLIST)
         {
-            PhInitializeWindowThemeComboboxControl(WindowHandle);
+            if (!PhGetWindowContext(WindowHandle, LONG_MAX))
+                PhInitializeWindowThemeComboboxControl(WindowHandle);
+            else
+                InvalidateRect(WindowHandle, NULL, FALSE);
         }
     }
     else if (PhEqualStringZ(windowClassName, L"CHECKLIST_ACLUI", FALSE))
@@ -1549,7 +1809,8 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
 
-        PhInitializeWindowThemeACLUI(WindowHandle);
+        if (!PhGetWindowContext(WindowHandle, LONG_MAX))
+            PhInitializeWindowThemeACLUI(WindowHandle);
     }
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
@@ -1558,12 +1819,33 @@ BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
         {
             PhWindowThemeSetDarkMode(WindowHandle, TRUE);
         }
+
+        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0); // searchbox.c
     }
     else if (PhEqualStringZ(windowClassName, WC_LINK, FALSE))
     {
         // SysLink theme support (Dart Vanya)
         PhAllowDarkModeForWindow(WindowHandle, TRUE);
     }
+
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW);
+}
+
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN CALLBACK PhpThemeWindowEnumChildWindows(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_THEME_WINDOW_ENUM_CONTEXT enumContext = Context;
+
+    PhEnumChildWindows(
+        WindowHandle,
+        PhpThemeWindowEnumChildWindows,
+        Context
+        );
+
+    PhpApplyThemeWindow(WindowHandle, enumContext ? enumContext->Reinitialize : FALSE);
 
     return TRUE;
 }
@@ -1574,46 +1856,15 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     _In_opt_ PVOID Context
     )
 {
-    WCHAR windowClassName[MAX_PATH];
+    PPHP_THEME_WINDOW_ENUM_CONTEXT enumContext = Context;
 
     PhEnumChildWindows(
         WindowHandle,
         PhpReInitializeThemeWindowEnumChildWindows,
-        NULL
+        Context
         );
 
-    if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
-        windowClassName[0] = UNICODE_NULL;
-
-    if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
-    {
-        if (WindowsVersion >= WINDOWS_10_RS5)
-        {
-            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-        }
-
-        ListView_SetBkColor(WindowHandle, PhThemeWindowBackgroundColor);
-        ListView_SetTextBkColor(WindowHandle, PhThemeWindowBackgroundColor);
-        ListView_SetTextColor(WindowHandle, PhThemeWindowTextColor);
-    }
-    else if (PhEqualStringZ(windowClassName, WC_SCROLLBAR, FALSE))
-    {
-        if (WindowsVersion >= WINDOWS_10_RS5)
-        {
-            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-        }
-    }
-    else if (PhEqualStringZ(windowClassName, L"PhTreeNew", FALSE))
-    {
-        TreeNew_ThemeSupport(WindowHandle, TRUE);
-        PhWindowThemeSetDarkMode(WindowHandle, TRUE);
-    }
-    else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
-    {
-        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0); // searchbox.c
-    }
-
-    InvalidateRect(WindowHandle, NULL, TRUE);
+    PhpApplyThemeWindow(WindowHandle, enumContext ? enumContext->Reinitialize : TRUE);
 
     return TRUE;
 }
