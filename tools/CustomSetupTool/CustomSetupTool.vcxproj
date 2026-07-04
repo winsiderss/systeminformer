@@ -96,7 +96,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>thirdparty.lib;comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
@@ -114,7 +114,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>thirdparty.lib;comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
@@ -132,7 +132,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>thirdparty.lib;comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
@@ -150,7 +150,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
@@ -168,7 +168,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
@@ -186,7 +186,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>comctl32.lib;crypt32.lib;winhttp.lib;ntdll.lib;phlib.lib;shlwapi.lib;userenv.lib;windowscodecs.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DelayLoadDLLs>advapi32.dll;comctl32.dll;comdlg32.dll;gdi32.dll;ole32.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <ResourceCompile>
