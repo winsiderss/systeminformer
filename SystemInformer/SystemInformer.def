@@ -1052,6 +1052,7 @@ EXPORTS
     PhGetWindowText
     PhGetWindowTextEx
     PhGetWindowTextToBuffer
+    PhGetWindowThemePalette
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon
