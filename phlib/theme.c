@@ -1380,9 +1380,6 @@ COLORREF PhGetWindowBorderColor(
     if (IsProtectedProcess || IsIsolatedUserMode)
         return PhpWindowThemeCurrentPalette.ProtectedBorderColor;
 
-    if (WindowsVersion >= WINDOWS_11)
-        return DWMWA_COLOR_DEFAULT;
-
     return IsActive
         ? PhpWindowThemeCurrentPalette.WindowActiveBorderColor
         : PhpWindowThemeCurrentPalette.WindowInactiveBorderColor;
