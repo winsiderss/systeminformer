@@ -59,7 +59,7 @@ static ISecurityInformation3Vtbl PhSecurityInformation_VTable3 =
     PhSecurityInformation3_OpenElevatedEditor
 };
 
-static const IDataObjectVtbl PhDataObject_VTable =
+static IDataObjectVtbl PhDataObject_VTable =
 {
     PhSecurityDataObject_QueryInterface,
     PhSecurityDataObject_AddRef,
