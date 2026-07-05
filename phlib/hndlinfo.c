@@ -2447,6 +2447,7 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
     PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT threadContext;
     PSLIST_ENTRY listEntry;
     PH_QUEUED_WAIT_BLOCK waitBlock;
+    LARGE_INTEGER timeout;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -2464,6 +2465,16 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
         PhEndInitOnce(&initOnce);
     }
 
+    // Convert a relative timeout to an absolute one so that retrying the wait, after another
+    // thread steals the released entry or a spurious wakeup, only waits for the remaining
+    // time. (jxy-s)
+    if (Timeout && Timeout->QuadPart < 0)
+    {
+        PhQuerySystemTime(&timeout);
+        timeout.QuadPart -= Timeout->QuadPart;
+        Timeout = &timeout;
+    }
+
     while (TRUE)
     {
         if (listEntry = RtlInterlockedPopEntrySList(&PhpCallWithTimeoutThreadListHead))
@@ -2479,10 +2490,13 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
                 PhSetWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock);
                 break;
             }
-            else
+
+            if (PhWaitForWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock, FALSE, Timeout) == STATUS_TIMEOUT)
             {
-                PhWaitForWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, &waitBlock, FALSE, Timeout);
-                // TODO: Recompute the timeout value.
+                // The deadline passed; make one last attempt in case an entry was released
+                // after the wait timed out.
+                listEntry = RtlInterlockedPopEntrySList(&PhpCallWithTimeoutThreadListHead);
+                break;
             }
         }
         else
@@ -2490,6 +2504,9 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
             return NULL;
         }
     }
+
+    if (!listEntry)
+        return NULL;
 
     return CONTAINING_RECORD(listEntry, PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT, ListEntry);
 }
@@ -2569,11 +2586,14 @@ NTSTATUS PhpCallWithTimeout(
         // The operation timed out, or there was an error. Kill the thread. On Vista and above, the
         // thread stack is freed automatically.
         NtTerminateThread(ThreadContext->ThreadHandle, STATUS_UNSUCCESSFUL);
-        status = NtWaitForSingleObject(ThreadContext->ThreadHandle, FALSE, NULL);
+        NtWaitForSingleObject(ThreadContext->ThreadHandle, FALSE, NULL);
         NtClose(ThreadContext->ThreadHandle);
         ThreadContext->ThreadHandle = NULL;
 
-        status = STATUS_UNSUCCESSFUL;
+        if (status == STATUS_TIMEOUT)
+            status = STATUS_IO_TIMEOUT;
+        else
+            status = STATUS_UNSUCCESSFUL;
     }
 
     return status;
@@ -2619,7 +2639,7 @@ NTSTATUS PhCallWithTimeout(
     }
     else
     {
-        status = STATUS_UNSUCCESSFUL;
+        status = STATUS_IO_TIMEOUT;
     }
 
     return status;
