@@ -547,7 +547,7 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
             context->ListViewHandle = GetDlgItem(WindowHandle, IDC_POWER_GRID_LIST);
             context->SummaryHandle = GetDlgItem(WindowHandle, IDC_POWER_GRID_SUMMARY);
             context->HeaderHandle = ListView_GetHeader(context->ListViewHandle);
-            context->WindowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -608,7 +608,7 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
         {
             HFONT windowFont;
 
-            if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
             {
                 PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
                 SetWindowFont(context->SummaryHandle, context->WindowFont, TRUE);
