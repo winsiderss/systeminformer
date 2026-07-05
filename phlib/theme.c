@@ -1368,13 +1368,20 @@ COLORREF PhGetWindowBorderColor(
     )
 {
     if (!PhEnableWindowBorderColor)
+    {
+        if (WindowsVersion >= WINDOWS_11)
+            return DWMWA_COLOR_DEFAULT;
         return 0;
+    }
 
     if (IsHandleFiltered)
         return PhpWindowThemeCurrentPalette.FilteredBorderColor;
 
     if (IsProtectedProcess || IsIsolatedUserMode)
         return PhpWindowThemeCurrentPalette.ProtectedBorderColor;
+
+    if (WindowsVersion >= WINDOWS_11)
+        return DWMWA_COLOR_DEFAULT;
 
     return IsActive
         ? PhpWindowThemeCurrentPalette.WindowActiveBorderColor
@@ -3231,7 +3238,6 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
 
             return result;
         }
-        break;
     }
 
     return CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);

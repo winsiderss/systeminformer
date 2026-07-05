@@ -91,9 +91,7 @@ LRESULT CALLBACK SetupTaskDialogSubclassProc(
         {
             //ShowUpdateCompletedPageDialog(context);
 
-            SetupExecuteApplication(context);
-
-            PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDOK, 0);
+            PostMessage(context->DialogHandle, TDM_CLICK_BUTTON, IDCANCEL, 0);
         }
         break;
     case SETUP_SHOWUPDATEERROR:
@@ -606,7 +604,40 @@ INT WINAPI wWinMain(
 
     SetupParseCommandLine(context);
     
-    if (context->Silent)
+    if (!context->Silent && context->SetupMode == SetupCommandUpdate && !PhGetOwnTokenAttributes().Elevated)
+    {
+        NTSTATUS status = STATUS_FAIL_CHECK;
+        PPH_STRING applicationFileName;
+        PH_STRINGREF applicationCommandLineStringRef;
+
+        if (NT_SUCCESS(PhGetProcessCommandLineStringRef(&applicationCommandLineStringRef)))
+        {
+            if (applicationFileName = PhGetApplicationFileNameWin32())
+            {
+                PPH_STRING applicationCommandLine = PhCreateString2(&applicationCommandLineStringRef);
+
+                status = PhShellExecuteEx(
+                    NULL,
+                    PhGetString(applicationFileName),
+                    PhGetString(applicationCommandLine),
+                    NULL,
+                    SW_SHOW,
+                    PH_SHELL_EXECUTE_ADMIN,
+                    0,
+                    &context->SubProcessHandle
+                    );
+
+                PhDereferenceObject(applicationCommandLine);
+                PhDereferenceObject(applicationFileName);
+            }
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            context->LastStatus = status;
+        }
+    }
+    else if (context->Silent)
     {
         SetupSilent(context);
     }

@@ -29,6 +29,7 @@ VOID PvAddDefaultSettings(
     PhpAddIntegerSetting(L"EnableThemeAcrylicWindowSupport", L"0");
     PhpAddIntegerSetting(L"EnableThemeAnimation", L"1");
     PhpAddIntegerSetting(L"EnableThemeNativeButtons", L"0");
+    PhpAddIntegerSetting(L"EnableWindowBorderColor", L"1");
     PhpAddIntegerSetting(L"ThemeWindowForegroundColor", L"1c1c1c"); // RGB(28, 28, 28)
     PhpAddIntegerSetting(L"ThemeWindowBackgroundColor", L"2b2b2b"); // RGB(43, 43, 43)
     PhpAddIntegerSetting(L"ThemeWindowBackground2Color", L"414141"); // RGB(65, 65, 65)
@@ -123,6 +124,7 @@ VOID PvUpdateCachedSettings(
     PhMaxSizeUnit = PhGetIntegerSetting(L"MaxSizeUnit");
     PhEnableSecurityAdvancedDialog = !!PhGetIntegerSetting(L"EnableSecurityAdvancedDialog");
     PhEnableThemeSupport = !!PhGetIntegerSetting(L"EnableThemeSupport");
+    PhEnableWindowBorderColor = !!PhGetIntegerSetting(L"EnableWindowBorderColor");
     PhThemeWindowForegroundColor = PhGetIntegerSetting(L"ThemeWindowForegroundColor");
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(L"ThemeWindowBackgroundColor");
     PhThemeWindowBackground2Color = PhGetIntegerSetting(L"ThemeWindowBackground2Color");
