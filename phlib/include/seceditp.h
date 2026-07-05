@@ -45,9 +45,9 @@ typedef enum _PH_SE_OBJECT_TYPE
 
 } PH_SE_OBJECT_TYPE;
 
-typedef struct
+typedef struct _PhSecurityInformation
 {
-    ISecurityInformationVtbl *VTable;
+    ISecurityInformation Interface;
 
     ULONG RefCount;
 
@@ -73,25 +73,25 @@ typedef struct
     PVOID Context;
 } PhSecurityInformation;
 
-typedef struct
+typedef struct _PhSecurityInformation2
 {
-    ISecurityInformation2Vtbl *VTable;
+    ISecurityInformation2 Interface;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
 } PhSecurityInformation2;
 
-typedef struct
+typedef struct _PhSecurityInformation3
 {
-    ISecurityInformation3Vtbl *VTable;
+    ISecurityInformation3 Interface;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
 } PhSecurityInformation3;
 
-typedef struct
+typedef struct _PhSecurityIDataObject
 {
-    const IDataObjectVtbl *VTable;
+    IDataObject Interface;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
@@ -100,9 +100,9 @@ typedef struct
     PPH_LIST NameCache;
 } PhSecurityIDataObject;
 
-typedef struct
+typedef struct _PhEffectivePermission
 {
-    IEffectivePermissionVtbl *VTable;
+    IEffectivePermission Interface;
 
     PhSecurityInformation *Context;
     ULONG RefCount;
@@ -148,9 +148,9 @@ typedef ISecurityObjectTypeInfoEx* LPSecurityObjectTypeInfoEx;
     ((This)->lpVtbl->GetInheritSource(This,si,pACL,ppInheritArray))
 #endif
 
-typedef struct
+typedef struct _PhSecurityObjectTypeInfo
 {
-    ISecurityObjectTypeInfoExVtbl* VTable;
+    ISecurityObjectTypeInfoEx Interface;
 
     PhSecurityInformation* Context;
     ULONG RefCount;
