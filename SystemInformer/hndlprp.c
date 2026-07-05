@@ -2416,7 +2416,7 @@ VOID PhUpdateHandlePermissionsOwnerSecurity(
     BOOLEAN currentOwnerDefaulted;
     PACL currentOwner;
 
-    status = PhGetObjectSecurity(
+    status = PhGetObjectSecurityWithTimeout(
         QueryHandle,
         OWNER_SECURITY_INFORMATION,
         &currentSecurityDescriptor
@@ -2511,7 +2511,7 @@ VOID PhUpdateHandlePermissionsGroupSecurity(
     BOOLEAN currentGroupDefaulted;
     PACL currentGroupSid;
 
-    status = PhGetObjectSecurity(
+    status = PhGetObjectSecurityWithTimeout(
         QueryHandle,
         GROUP_SECURITY_INFORMATION,
         &currentSecurityDescriptor
@@ -2607,7 +2607,7 @@ VOID PhUpdateHandlePermissionsSaclSecurity(
     BOOLEAN currentSaclDefaulted;
     PACL currentSacl;
 
-    status = PhGetObjectSecurity(
+    status = PhGetObjectSecurityWithTimeout(
         QueryHandle,
         SACL_SECURITY_INFORMATION,
         &currentSecurityDescriptor
@@ -2673,7 +2673,7 @@ VOID PhUpdateHandlePermissionsLabelSecurity(
     BOOLEAN currentSaclDefaulted;
     PACL currentSacl;
 
-    status = PhGetObjectSecurity(
+    status = PhGetObjectSecurityWithTimeout(
         QueryHandle,
         LABEL_SECURITY_INFORMATION,
         &currentSecurityDescriptor
@@ -2739,7 +2739,7 @@ VOID PhUpdateHandlePermissionsDaclSecurity(
     BOOLEAN currentSaclDefaulted;
     PACL currentSacl;
 
-    status = PhGetObjectSecurity(
+    status = PhGetObjectSecurityWithTimeout(
         QueryHandle,
         DACL_SECURITY_INFORMATION,
         &currentSecurityDescriptor
@@ -3179,11 +3179,11 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
         LPPROPSHEETPAGE propSheetPage = (LPPROPSHEETPAGE)lParam;
         context = PhAllocateZero(sizeof(HANDLE_PERMISSIONS_CONTEXT));
         context->HandleProperties = (PHANDLE_PROPERTIES_CONTEXT)propSheetPage->lParam;
-        PhSetDialogContext(hwndDlg, context);
+        PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, context);
     }
     else
     {
-        context = PhGetDialogContext(hwndDlg);
+        context = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
     }
 
     if (!context)
@@ -3233,7 +3233,7 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
 
             //PhDestroyListViewInterface(context->ListViewClass);
 
-            PhRemoveDialogContext(hwndDlg);
+            PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
 
             PhFree(context);
         }

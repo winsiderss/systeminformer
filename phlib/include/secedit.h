@@ -244,6 +244,15 @@ PhSetSeObjectSecurityPowerGuid(
 //
 
 PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetObjectSecurityWithTimeout(
+    _In_ HANDLE Handle,
+    _In_ SECURITY_INFORMATION SecurityInformation,
+    _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhGetAccessEntries(

@@ -1291,7 +1291,7 @@ HRESULT STDMETHODCALLTYPE PhEffectivePermission_GetEffectivePermission(
     return HRESULT_FROM_WIN32(PhNtStatusToDosError(status));
 }
 
-NTSTATUS PhpGetObjectSecurityWithTimeout(
+NTSTATUS PhGetObjectSecurityWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
     _Out_ PSECURITY_DESCRIPTOR *SecurityDescriptor
@@ -1374,7 +1374,7 @@ NTSTATUS PhStdGetObjectSecurity(
     switch (this->ObjectType)
     {
     case PH_SE_FILE_OBJECT_TYPE:
-        status = PhpGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
+        status = PhGetObjectSecurityWithTimeout(handle, SecurityInformation, SecurityDescriptor);
         break;
     case PH_SE_SERVICE_OBJECT_TYPE:
         status = PhGetServiceObjectSecurity(handle, SecurityInformation, SecurityDescriptor);
