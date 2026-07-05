@@ -55,6 +55,7 @@ HWND FwTreeNewHandle = NULL;
 ULONG FwTreeNewSortColumn = FW_COLUMN_NAME;
 PH_SORT_ORDER FwTreeNewSortOrder = NoSortOrder;
 CONST PH_STRINGREF FwTreeEmptyText = PH_STRINGREF_INIT(L"Firewall monitoring requires System Informer to be restarted with administrative privileges.");
+CONST PH_STRINGREF FwTreeDisabledText = PH_STRINGREF_INIT(L"The Windows Defender Firewall is disabled.");
 CONST PH_STRINGREF FwTreePageText = PH_STRINGREF_INIT(L"Firewall");
 CONST PH_STRINGREF FwTreeBannerText = PH_STRINGREF_INIT(L"Search Firewall");
 PPH_STRING FwTreeErrorText = NULL;
@@ -79,6 +80,65 @@ ULONG EtFwStatus = ERROR_SUCCESS;
 PPH_POINTER_LIST EtFwNodeStateList = NULL;
 PPH_STRING EtFwStatusText = NULL;
 PPH_LIST FwNodeList = NULL;
+
+BOOLEAN EtFwIsFirewallEnabled(
+    VOID
+    )
+{
+    BOOLEAN enabled = TRUE;
+    SC_HANDLE serviceHandle;
+    SERVICE_STATUS_PROCESS statusProcess;
+
+    if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, L"mpssvc")))
+    {
+        if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &statusProcess)))
+        {
+            if (statusProcess.dwCurrentState != SERVICE_RUNNING)
+            {
+                enabled = FALSE;
+            }
+        }
+        PhCloseServiceHandle(serviceHandle);
+    }
+    else
+    {
+        enabled = FALSE;
+    }
+
+    if (!enabled)
+        return FALSE;
+
+    HANDLE keyHandle;
+    ULONG domainEnabled = 1;
+    ULONG privateEnabled = 1;
+    ULONG publicEnabled = 1;
+
+    if (NT_SUCCESS(PhOpenKeyZ(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile", 0)))
+    {
+        domainEnabled = PhQueryRegistryUlongZ(keyHandle, L"EnableFirewall");
+        if (domainEnabled == ULONG_MAX) domainEnabled = 1;
+        NtClose(keyHandle);
+    }
+    if (NT_SUCCESS(PhOpenKeyZ(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile", 0)))
+    {
+        privateEnabled = PhQueryRegistryUlongZ(keyHandle, L"EnableFirewall");
+        if (privateEnabled == ULONG_MAX) privateEnabled = 1;
+        NtClose(keyHandle);
+    }
+    if (NT_SUCCESS(PhOpenKeyZ(&keyHandle, KEY_READ, PH_KEY_LOCAL_MACHINE, L"SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\PublicProfile", 0)))
+    {
+        publicEnabled = PhQueryRegistryUlongZ(keyHandle, L"EnableFirewall");
+        if (publicEnabled == ULONG_MAX) publicEnabled = 1;
+        NtClose(keyHandle);
+    }
+
+    if (domainEnabled == 0 && privateEnabled == 0 && publicEnabled == 0)
+    {
+        return FALSE;
+    }
+
+    return TRUE;
+}
 
 /**
  * Callback for the firewall tab page.
@@ -159,6 +219,10 @@ BOOLEAN FwTabPageCallback(
 
             if (EtFwEnabled)
             {
+                if (!EtFwIsFirewallEnabled())
+                {
+                    TreeNew_SetEmptyText(FwTreeNewHandle, &FwTreeDisabledText, 0);
+                }
                 EtFwMonitorEnumEvents();
             }
             else
