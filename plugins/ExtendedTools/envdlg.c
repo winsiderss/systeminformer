@@ -168,7 +168,7 @@ VOID EtReadEnvironmentKey(
 
     if (NT_SUCCESS(PhOpenKey(
         &keyHandle,
-        KEY_READ,
+        KEY_QUERY_VALUE,
         RootDirectory,
         KeyName,
         0
@@ -387,13 +387,9 @@ VOID EtUpdateEnvironmentControls(
     entry = EtGetSelectedEnvironmentEntry(Context);
     protectedSystemEntry = entry && entry->System && !Context->Elevated;
 
-    EnableWindow(Context->AddButtonHandle, !protectedSystemEntry);
+    EnableWindow(Context->AddButtonHandle, TRUE);
     EnableWindow(Context->EditButtonHandle, !!entry);
     EnableWindow(Context->DeleteButtonHandle, entry && !protectedSystemEntry);
-
-    Button_SetElevationRequiredState(Context->AddButtonHandle, protectedSystemEntry);
-    Button_SetElevationRequiredState(Context->EditButtonHandle, protectedSystemEntry);
-    Button_SetElevationRequiredState(Context->DeleteButtonHandle, protectedSystemEntry);
 }
 
 /**
@@ -502,13 +498,13 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
     {
     case WM_INITDIALOG:
         {
-            context->NameHandle = GetDlgItem(hwndDlg, PHAPP_IDC_NAME);
-            context->ValueHandle = GetDlgItem(hwndDlg, PHAPP_IDC_VALUE);
+            context->NameHandle = GetDlgItem(hwndDlg, IDC_ENV_NAME);
+            context->ValueHandle = GetDlgItem(hwndDlg, IDC_ENV_VALUE);
             context->OkButtonHandle = GetDlgItem(hwndDlg, IDOK);
             context->CancelButtonHandle = GetDlgItem(hwndDlg, IDCANCEL);
 
             PhSetApplicationWindowIcon(hwndDlg);
-            PhCenterWindow(hwndDlg, NULL);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->NameHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
@@ -523,8 +519,8 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             context->MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhSetDialogItemText(hwndDlg, PHAPP_IDC_NAME, context->Name ? context->Name : L"");
-            PhSetDialogItemText(hwndDlg, PHAPP_IDC_VALUE, context->Value ? context->Value : L"");
+            PhSetDialogItemText(hwndDlg, IDC_ENV_NAME, context->Name ? context->Name : L"");
+            PhSetDialogItemText(hwndDlg, IDC_ENV_VALUE, context->Value ? context->Value : L"");
 
             if (context->NameReadOnly || context->ReadOnly)
                 Edit_SetReadOnly(context->NameHandle, TRUE);
@@ -532,8 +528,6 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
             if (context->ReadOnly)
             {
                 Edit_SetReadOnly(context->ValueHandle, TRUE);
-                PhSetDialogItemText(hwndDlg, IDOK, L"Close");
-                ShowWindow(context->CancelButtonHandle, SW_HIDE);
             }
 
             PhSetWindowContext(context->ValueHandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(context->ValueHandle));
@@ -563,12 +557,6 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
                 {
                     PPH_STRING name;
 
-                    if (context->ReadOnly)
-                    {
-                        EndDialog(hwndDlg, IDCANCEL);
-                        break;
-                    }
-
                     name = PhGetWindowText(context->NameHandle);
 
                     if (PhIsNullOrEmptyString(name))
@@ -583,7 +571,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
                     EndDialog(hwndDlg, IDOK);
                 }
                 break;
-            case PHAPP_IDC_NAME:
+            case IDC_ENV_NAME:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                     {
@@ -648,8 +636,8 @@ BOOLEAN EtShowEnvEditDialog(
     context.ReadOnly = ReadOnly;
 
     PhDialogBox(
-        NtCurrentImageBase(),
-        MAKEINTRESOURCE(PHAPP_IDD_EDITENV),
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_ENVEDIT),
         ParentWindowHandle,
         EtEnvEditDlgProc,
         &context
@@ -859,11 +847,9 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 EnableWindow(context->MoveUpButtonHandle, FALSE);
                 EnableWindow(context->MoveDownButtonHandle, FALSE);
                 EnableWindow(context->EditTextButtonHandle, FALSE);
-                PhSetDialogItemText(hwndDlg, IDOK, L"Close");
-                ShowWindow(context->CancelButtonHandle, SW_HIDE);
             }
 
-            PhCenterWindow(hwndDlg, NULL);
+            PhCenterWindow(hwndDlg, GetParent(hwndDlg));
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
         break;
@@ -882,12 +868,6 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
                 break;
             case IDOK:
                 {
-                    if (context->ReadOnly)
-                    {
-                        EndDialog(hwndDlg, IDCANCEL);
-                        break;
-                    }
-
                     PhMoveReference(&context->Value, EtSplitBuildValue(context->ListViewHandle));
                     context->Committed = TRUE;
                     EndDialog(hwndDlg, IDOK);
@@ -1149,10 +1129,6 @@ VOID EtEnvironmentAdd(
     PPH_STRING value;
 
     selected = EtGetSelectedEnvironmentEntry(Context);
-
-    if (selected && selected->System && !Context->Elevated)
-        return;
-
     system = (selected && selected->System && Context->Elevated) ? TRUE : FALSE;
 
     if (!EtShowEnvEditDialog(Context->WindowHandle, NULL, NULL, FALSE, FALSE, &name, &value))
@@ -1233,13 +1209,15 @@ VOID EtEnvironmentEdit(
             ))
         {
             NTSTATUS status;
+            BOOLEAN nameChanged;
 
-            // Delete the old variable if the name changed.
-            if (!PhEqualString(name, entry->Name, FALSE))
-                EtDeleteEnvironmentVariable(entry->System, entry->Name);
+            nameChanged = !PhEqualString(name, entry->Name, FALSE);
 
             status = EtWriteEnvironmentVariable(entry->System, name, value, entry->Expand ||
                 PhFindCharInString(value, 0, L'%') != SIZE_MAX);
+
+            if (NT_SUCCESS(status) && nameChanged)
+                status = EtDeleteEnvironmentVariable(entry->System, entry->Name);
 
             if (NT_SUCCESS(status))
             {
@@ -1372,7 +1350,7 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
             else
-                PhCenterWindow(hwndDlg, NULL);
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhSetDialogFocus(hwndDlg, context->ListViewHandle);
 
@@ -1457,7 +1435,6 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
 
                     if (protectedSystemEntry)
                     {
-                        PhSetFlagsEMenuItem(menu, IDC_ENV_ADD, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                         PhSetFlagsEMenuItem(menu, IDC_ENV_DELETE, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
                     }
 

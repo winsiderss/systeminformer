@@ -236,7 +236,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
             context->WindowHandle = WindowHandle;
             context->ListViewHandle = GetDlgItem(WindowHandle, IDC_FIRMWARE_BOOT_LIST);
             context->ParentWindowHandle = (HWND)lParam;
-            context->WindowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -295,7 +295,7 @@ INT_PTR CALLBACK EtFirmwareDlgProc(
         {
             HFONT windowFont;
 
-            if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
                 PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, PhGetWindowDpi(WindowHandle));
