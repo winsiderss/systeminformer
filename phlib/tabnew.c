@@ -236,6 +236,16 @@ VOID PhTabNewUpdateFont(
     }
 }
 
+BOOLEAN PhTabNewUseDarkTheme(
+    VOID
+    )
+{
+    if (!PhEnableThemeSupport)
+        return FALSE;
+
+    return PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+}
+
 /**
  * Updates the theme handle and dark mode status.
  *
@@ -268,7 +278,7 @@ VOID PhTabNewUpdateTheme(
         Context->ThemeHandle = PhOpenThemeData(Context->WindowHandle, themeClass, Context->WindowDpi);
     }
 
-    Context->ThemeDark = !!PhEnableThemeSupport;
+    Context->ThemeDark = PhTabNewUseDarkTheme();
 }
 
 /**

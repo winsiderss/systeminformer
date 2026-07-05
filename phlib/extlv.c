@@ -521,7 +521,7 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
                     break;
 
                 availableWidth = clientRect.right;
-                if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & WS_VSCROLL)
+                if (PhGetWindowStyle(WindowHandle) & WS_VSCROLL)
                     availableWidth -= PhGetSystemMetrics(SM_CXVSCROLL, context->WindowDpi);
 
                 i = 0;

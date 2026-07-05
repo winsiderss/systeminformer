@@ -162,6 +162,16 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 // Helpers
 // ---------------------------------------------------------------------------
 
+BOOLEAN PhPropSheetNewUseDarkBackground(
+    VOID
+    )
+{
+    if (!PhEnableThemeSupport)
+        return FALSE;
+
+    return PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+}
+
 LONG PhPropSheetNewScaleDpi(
     _In_ LONG Value96,
     _In_ LONG Dpi
@@ -1003,6 +1013,45 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             if (!IsMinimized(WindowHandle))
             {
                 PhPropSheetNewLayout(context);
+            }
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clientRect;
+
+            if (PhPropSheetNewUseDarkBackground())
+            {
+                GetClientRect(WindowHandle, &clientRect);
+                FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
+
+                return TRUE;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORSTATIC:
+        {
+            if (PhPropSheetNewUseDarkBackground())
+            {
+                LONG type;
+
+                switch (WindowMessage)
+                {
+                case WM_CTLCOLORBTN:
+                    type = CTLCOLOR_BTN;
+                    break;
+                case WM_CTLCOLORDLG:
+                    type = CTLCOLOR_DLG;
+                    break;
+                default:
+                    type = CTLCOLOR_STATIC;
+                    break;
+                }
+
+                return (LRESULT)PhWindowThemeControlColor(WindowHandle, (HDC)wParam, (HWND)lParam, type);
             }
         }
         break;

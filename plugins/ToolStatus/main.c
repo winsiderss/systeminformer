@@ -1889,10 +1889,9 @@ VOID NTAPI SettingsUpdatedCallback(
             InvalidateRect(MenuBarHandle, NULL, TRUE);
         }
 #endif
-        if (RebarHandle)
-        {
-            InvalidateRect(RebarHandle, NULL, TRUE);
-        }
+        // Re-push the themed band colors so a live theme mode switch recolors the
+        // exposed band background (e.g. right of the menu bar) and repaints.
+        RebarUpdateBandColors();
 
         if (ToolBarHandle)
         {

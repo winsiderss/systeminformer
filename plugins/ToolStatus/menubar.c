@@ -688,7 +688,7 @@ HWND ToolStatusMenuBarCreateWindow(
         return NULL;
 
     SendMessage(windowHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
-    //SendMessage(windowHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
+    SendMessage(windowHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS);
     //SendMessage(windowHandle, TB_SETBITMAPSIZE, 0, MAKELONG(5, 5));
     SendMessage(windowHandle, TB_SETPADDING, 0, MAKELONG(20, 6));
 
@@ -708,8 +708,7 @@ HWND ToolStatusMenuBarCreateWindow(
     TsMenuBarContinueHotTrack = FALSE;
     TsMenuBarSelectFromKeyboard = FALSE;
     TsMenuBarDelayedActivation = FALSE;
-    TsMenuBarRtlLayout =
-        !!(GetWindowLongPtr(windowHandle, GWL_EXSTYLE) & WS_EX_LAYOUTRTL);
+    TsMenuBarRtlLayout = !!(PhGetWindowStyleEx(windowHandle) & WS_EX_LAYOUTRTL);
 
     ToolStatusMenuBarUpdateUiState(FALSE);
     TOOLSTATUS_MENUBAR_LOG("CreateWindow success WindowHandle=%p", windowHandle);
@@ -732,7 +731,7 @@ BOOLEAN ToolStatusMenuBarLoadMenu(
     TsMenuBarWindowHandle = WindowHandle;
     TsMenuBarParentWindowHandle = GetParent(WindowHandle);
     TsMenuBarRtlLayout =
-        !!(GetWindowLongPtr(WindowHandle, GWL_EXSTYLE) & WS_EX_LAYOUTRTL);
+        !!(PhGetWindowStyleEx(WindowHandle) & WS_EX_LAYOUTRTL);
 
     while (SendMessage(WindowHandle, TB_BUTTONCOUNT, 0, 0) > 0)
     {

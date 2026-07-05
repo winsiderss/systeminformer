@@ -239,7 +239,7 @@ VOID SetupPaintDarkButton(
     HBRUSH brushHandle;
 
     state = (ULONG)SendMessage(windowHandle, BM_GETSTATE, 0, 0);
-    style = (ULONG)GetWindowLongPtr(windowHandle, GWL_STYLE);
+    style = PhGetWindowStyle(windowHandle);
 
     pushed = !!(state & BST_PUSHED);
     hot = !!(state & BST_HOT);
@@ -842,7 +842,7 @@ static BOOL CALLBACK SetupSetWizardChildFont(
 
     if (NT_SUCCESS(PhGetClassName(WindowHandle, className, ARRAYSIZE(className), NULL)) && PhEqualStringZ(className, L"Button", TRUE))
     {
-        ULONG style = (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
+        ULONG style = PhGetWindowStyle(WindowHandle);
 
         if ((style & BS_TYPEMASK) == BS_PUSHBUTTON || (style & BS_TYPEMASK) == BS_DEFPUSHBUTTON)
         {

@@ -2823,26 +2823,16 @@ LRESULT CALLBACK PhThemeWindowDrawRebar(
     _In_ LPNMCUSTOMDRAW DrawInfo
     )
 {
-    // temp chevron workaround until location/state supported.
-    if (DrawInfo->dwDrawStage != CDDS_PREPAINT)
-        return CDRF_DODEFAULT;
-
     switch (DrawInfo->dwDrawStage)
     {
     case CDDS_PREPAINT:
         {
-            //REBARBANDINFO bandinfo = { sizeof(REBARBANDINFO), RBBIM_CHILD | RBBIM_STYLE | RBBIM_CHEVRONLOCATION | RBBIM_CHEVRONSTATE };
-            //BOOL havebandinfo = (BOOL)SendMessage(DrawInfo->hdr.hwndFrom, RB_GETBANDINFO, DrawInfo->dwItemSpec, (LPARAM)&bandinfo);
-
             SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
             FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
         }
         return CDRF_NOTIFYITEMDRAW;
     case CDDS_ITEMPREPAINT:
-        {
-
-        }
-        return CDRF_SKIPDEFAULT;
+        return CDRF_DODEFAULT;
     }
 
     return CDRF_DODEFAULT;

@@ -243,6 +243,10 @@ VOID RebarSetBarInfo(
     VOID
     );
 
+VOID RebarUpdateBandColors(
+    VOID
+    );
+
 _Success_(return)
 BOOLEAN RebarGetBandIndexStyle(
     _In_ ULONG BandIndex,
