@@ -461,6 +461,8 @@ VOID EtpGpuUpdateProcessSegmentInformation(
     ULONG64 dedicatedUsage;
     ULONG64 sharedUsage;
     ULONG64 commitUsage;
+    ULONG64 dedicatedCommitted;
+    ULONG64 sharedCommitted;
 
     if (!Block->ProcessItem->QueryHandle)
         return;
@@ -468,10 +470,36 @@ VOID EtpGpuUpdateProcessSegmentInformation(
     dedicatedUsage = 0;
     sharedUsage = 0;
     commitUsage = 0;
+    dedicatedCommitted = 0;
+    sharedCommitted = 0;
 
     for (i = 0; i < EtpGpuAdapterList->Count; i++)
     {
         gpuAdapter = EtpGpuAdapterList->Items[i];
+
+        // Query dedicated usage (local segment group)
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+        queryStatistics.hProcess = Block->ProcessItem->QueryHandle;
+        queryStatistics.QueryProcessSegmentGroup = D3DKMT_MEMORY_SEGMENT_GROUP_LOCAL;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+        {
+            dedicatedUsage += queryStatistics.QueryResult.ProcessSegmentGroupInformation.Usage;
+        }
+
+        // Query shared usage (non-local segment group)
+        memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+        queryStatistics.Type = D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP;
+        queryStatistics.AdapterLuid = gpuAdapter->AdapterLuid;
+        queryStatistics.hProcess = Block->ProcessItem->QueryHandle;
+        queryStatistics.QueryProcessSegmentGroup = D3DKMT_MEMORY_SEGMENT_GROUP_NON_LOCAL;
+
+        if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+        {
+            sharedUsage += queryStatistics.QueryResult.ProcessSegmentGroupInformation.Usage;
+        }
 
         for (j = 0; j < gpuAdapter->SegmentCount; j++)
         {
@@ -491,9 +519,9 @@ VOID EtpGpuUpdateProcessSegmentInformation(
                     bytesCommitted = (ULONG)queryStatistics.QueryResult.ProcessSegmentInformation.BytesCommitted;
 
                 if (RtlCheckBit(&gpuAdapter->ApertureBitMap, j))
-                    sharedUsage += bytesCommitted;
+                    sharedCommitted += bytesCommitted;
                 else
-                    dedicatedUsage += bytesCommitted;
+                    dedicatedCommitted += bytesCommitted;
             }
         }
 
@@ -511,6 +539,8 @@ VOID EtpGpuUpdateProcessSegmentInformation(
     Block->GpuDedicatedUsage = dedicatedUsage;
     Block->GpuSharedUsage = sharedUsage;
     Block->GpuCommitUsage = commitUsage;
+    Block->GpuDedicatedCommitted = dedicatedCommitted;
+    Block->GpuSharedCommitted = sharedCommitted;
 }
 
 /**
@@ -1075,6 +1105,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
             ULONG64 sharedUsage;
             ULONG64 dedicatedUsage;
             ULONG64 commitUsage;
+            ULONG64 dedicatedCommitted;
+            ULONG64 sharedCommitted;
 
             if (found)
             {
@@ -1084,18 +1116,24 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                     block->ProcessItem->ProcessId,
                     &sharedUsage,
                     &dedicatedUsage,
-                    &commitUsage
+                    &commitUsage,
+                    &dedicatedCommitted,
+                    &sharedCommitted
                     ))
                 {
                     block->GpuSharedUsage = sharedUsage;
                     block->GpuDedicatedUsage = dedicatedUsage;
                     block->GpuCommitUsage = commitUsage;
+                    block->GpuDedicatedCommitted = dedicatedCommitted;
+                    block->GpuSharedCommitted = sharedCommitted;
                 }
                 else
                 {
                     block->GpuSharedUsage = 0;
                     block->GpuDedicatedUsage = 0;
                     block->GpuCommitUsage = 0;
+                    block->GpuDedicatedCommitted = 0;
+                    block->GpuSharedCommitted = 0;
                 }
 
                 EtpGpuUpdateProcessAdapterStatistics(block);
@@ -1107,6 +1145,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 block->GpuSharedUsage = 0;
                 block->GpuDedicatedUsage = 0;
                 block->GpuCommitUsage = 0;
+                block->GpuDedicatedCommitted = 0;
+                block->GpuSharedCommitted = 0;
                 EtpZeroProcessGpuAdapterStatistics(block);
             }
 
@@ -1138,6 +1178,8 @@ VOID NTAPI EtGpuProcessesUpdatedCallback(
                 block->GpuDedicatedUsage = 0;
                 block->GpuSharedUsage = 0;
                 block->GpuCommitUsage = 0;
+                block->GpuDedicatedCommitted = 0;
+                block->GpuSharedCommitted = 0;
                 block->GpuNodeUtilization = 0;
                 EtpZeroProcessGpuAdapterStatistics(block);
             }

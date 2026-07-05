@@ -104,8 +104,8 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_HARDFAULTSDELTA, L"Hard faults delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_PEAKTHREADS, L"Peak threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPU, L"GPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_GPUDEDICATEDBYTES, L"GPU dedicated bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_GPUSHAREDBYTES, L"GPU shared bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUDEDICATEDBYTES, L"GPU dedicated bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUSHAREDBYTES, L"GPU shared bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKREADRATE, L"Disk read rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKWRITERATE, L"Disk write rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKTOTALRATE, L"Disk total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
@@ -114,8 +114,12 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_NETWORKTOTALRATE, L"Network total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_FPS, L"FPS", 50, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_NPU, L"NPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_NPUDEDICATEDBYTES, L"NPU dedicated bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_NPUSHAREDBYTES, L"NPU shared bytes", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUDEDICATEDBYTES, L"NPU dedicated bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUSHAREDBYTES, L"NPU shared bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES, L"GPU dedicated bytes (committed)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUSHAREDCOMMITTEDBYTES, L"GPU shared bytes (committed)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES, L"NPU dedicated bytes (committed)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_NPUSHAREDCOMMITTEDBYTES, L"NPU shared bytes (committed)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_FIREWALLALLOWS, L"Firewall allows", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_FIREWALLBLOCKS, L"Firewall blocks", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_FIREWALLALLOWSDELTA, L"Firewall allows delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
@@ -413,6 +417,36 @@ VOID EtProcessTreeNewMessage(
                     EtFormatSize(gpuSharedUsage, block, message);
                 }
                 break;
+            case ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES:
+                {
+                    ULONG64 gpuDedicatedCommitted = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuDedicatedCommitted),
+                        &gpuDedicatedCommitted
+                        );
+
+                    EtFormatSize(gpuDedicatedCommitted, block, message);
+                }
+                break;
+            case ETPRTNC_GPUSHAREDCOMMITTEDBYTES:
+                {
+                    ULONG64 gpuSharedCommitted = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, GpuSharedCommitted),
+                        &gpuSharedCommitted
+                        );
+
+                    EtFormatSize(gpuSharedCommitted, block, message);
+                }
+                break;
             case ETPRTNC_DISKREADRATE:
                 {
                     ULONG64 number = 0;
@@ -530,6 +564,36 @@ VOID EtProcessTreeNewMessage(
                     EtFormatSize(npuSharedUsage, block, message);
                 }
                 break;
+            case ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES:
+                {
+                    ULONG64 npuDedicatedCommitted = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, NpuDedicatedCommitted),
+                        &npuDedicatedCommitted
+                        );
+
+                    EtFormatSize(npuDedicatedCommitted, block, message);
+                }
+                break;
+            case ETPRTNC_NPUSHAREDCOMMITTEDBYTES:
+                {
+                    ULONG64 npuSharedCommitted = 0;
+
+                    PhpAggregateFieldIfNeeded(
+                        processNode,
+                        AggregateTypeInt64,
+                        block,
+                        FIELD_OFFSET(ET_PROCESS_BLOCK, NpuSharedCommitted),
+                        &npuSharedCommitted
+                        );
+
+                    EtFormatSize(npuSharedCommitted, block, message);
+                }
+                break;
             case ETPRTNC_FIREWALLALLOWS:
                 {
                     ULONG64 firewallAllowCount = 0;
@@ -614,6 +678,8 @@ VOID EtProcessTreeNewMessage(
             block->TextCacheValid[ETPRTNC_GPU] = FALSE;
             block->TextCacheValid[ETPRTNC_GPUDEDICATEDBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_GPUSHAREDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_GPUSHAREDCOMMITTEDBYTES] = FALSE;
 
             block->TextCacheValid[ETPRTNC_DISKTOTALRATE] = FALSE;
             block->TextCacheValid[ETPRTNC_NETWORKTOTALRATE] = FALSE;
@@ -623,6 +689,8 @@ VOID EtProcessTreeNewMessage(
             block->TextCacheValid[ETPRTNC_NPU] = FALSE;
             block->TextCacheValid[ETPRTNC_NPUDEDICATEDBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_NPUSHAREDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES] = FALSE;
+            block->TextCacheValid[ETPRTNC_NPUSHAREDCOMMITTEDBYTES] = FALSE;
 
             block->TextCacheValid[ETPRTNC_FIREWALLALLOWS] = FALSE;
             block->TextCacheValid[ETPRTNC_FIREWALLBLOCKS] = FALSE;
@@ -665,6 +733,8 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_GPU:
         case ETPRTNC_GPUDEDICATEDBYTES:
         case ETPRTNC_GPUSHAREDBYTES:
+        case ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES:
+        case ETPRTNC_GPUSHAREDCOMMITTEDBYTES:
         case ETPRTNC_DISKREADRATE:
         case ETPRTNC_DISKWRITERATE:
         case ETPRTNC_DISKTOTALRATE:
@@ -675,6 +745,8 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NPU:
         case ETPRTNC_NPUDEDICATEDBYTES:
         case ETPRTNC_NPUSHAREDBYTES:
+        case ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES:
+        case ETPRTNC_NPUSHAREDCOMMITTEDBYTES:
         case ETPRTNC_FIREWALLALLOWS:
         case ETPRTNC_FIREWALLBLOCKS:
         case ETPRTNC_FIREWALLALLOWSDELTA:
@@ -790,6 +862,12 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_GPUSHAREDBYTES:
                 number += block->GpuSharedUsage;
                 break;
+            case ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES:
+                number += block->GpuDedicatedCommitted;
+                break;
+            case ETPRTNC_GPUSHAREDCOMMITTEDBYTES:
+                number += block->GpuSharedCommitted;
+                break;
             case ETPRTNC_DISKREADRATE:
                 number += block->DiskReadRawDelta.Delta;
                 break;
@@ -819,6 +897,12 @@ VOID EtProcessTreeNewMessage(
                 break;
             case ETPRTNC_NPUSHAREDBYTES:
                 number += block->NpuSharedUsage;
+                break;
+            case ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES:
+                number += block->NpuDedicatedCommitted;
+                break;
+            case ETPRTNC_NPUSHAREDCOMMITTEDBYTES:
+                number += block->NpuSharedCommitted;
                 break;
             case ETPRTNC_FIREWALLALLOWS:
                 number += block->FirewallAllowCount;
@@ -881,8 +965,12 @@ VOID EtProcessTreeNewMessage(
         case ETPRTNC_NETWORKTOTALBYTESDELTA:
         case ETPRTNC_GPUDEDICATEDBYTES:
         case ETPRTNC_GPUSHAREDBYTES:
+        case ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES:
+        case ETPRTNC_GPUSHAREDCOMMITTEDBYTES:
         case ETPRTNC_NPUDEDICATEDBYTES:
         case ETPRTNC_NPUSHAREDBYTES:
+        case ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES:
+        case ETPRTNC_NPUSHAREDCOMMITTEDBYTES:
             {
                 PH_FORMAT format[1];
 
@@ -1138,6 +1226,12 @@ LONG EtpProcessTreeNewSortFunction(
     case ETPRTNC_GPUSHAREDBYTES:
         result = ET_SORT_AGGREGATE_IF_NEEDED(GpuSharedUsage);
         break;
+    case ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(GpuDedicatedCommitted);
+        break;
+    case ETPRTNC_GPUSHAREDCOMMITTEDBYTES:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(GpuSharedCommitted);
+        break;
     case ETPRTNC_DISKREADRATE:
         result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadRawDelta.Delta);
         break;
@@ -1167,6 +1261,12 @@ LONG EtpProcessTreeNewSortFunction(
         break;
     case ETPRTNC_NPUSHAREDBYTES:
         result = ET_SORT_AGGREGATE_IF_NEEDED(NpuSharedUsage);
+        break;
+    case ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NpuDedicatedCommitted);
+        break;
+    case ETPRTNC_NPUSHAREDCOMMITTEDBYTES:
+        result = ET_SORT_AGGREGATE_IF_NEEDED(NpuSharedCommitted);
         break;
     case ETPRTNC_FIREWALLALLOWS:
         result = ET_SORT_AGGREGATE_IF_NEEDED(FirewallAllowCount);

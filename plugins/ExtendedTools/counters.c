@@ -55,6 +55,8 @@ typedef struct _ET_GPU_PROCESS_COUNTER
     ULONGLONG SharedUsage;
     ULONGLONG DedicatedUsage;
     ULONGLONG CommitUsage;
+    ULONGLONG DedicatedCommitted;
+    ULONGLONG SharedCommitted;
 } ET_GPU_PROCESS_COUNTER, *PET_GPU_PROCESS_COUNTER;
 
 //{978C167D-4764-4D9C-9824-14747351DC81} - "GPU Engine"
@@ -80,8 +82,10 @@ DEFINE_GUID(GUID_GPU_ADAPTERMEMORY, 0xBE2139C7, 0xAB81, 0x424D, 0xB1, 0x07, 0xD8
 // [5] Shared Usage
 DEFINE_GUID(GUID_GPU_PROCESSMEMORY, 0xF802502B, 0x77B4, 0x4713, 0x81, 0xB3, 0x3B, 0xE0, 0x57, 0x59, 0xDA, 0x5D);
 #define ET_GPU_PROCESSMEMORY_TOTALCOMMITTED_INDEX 1
-#define ET_GPU_PROCESSMEMORY_DEDICATEDUSAGE_INDEX 4
-#define ET_GPU_PROCESSMEMORY_SHAREDUSAGE_INDEX 5
+#define ET_GPU_PROCESSMEMORY_DEDICATEDUSAGE_INDEX 2
+#define ET_GPU_PROCESSMEMORY_SHAREDUSAGE_INDEX 3
+#define ET_GPU_PROCESSMEMORY_DEDICATEDCOMMITTED_INDEX 4
+#define ET_GPU_PROCESSMEMORY_SHAREDCOMMITTED_INDEX 5
 
 //{F9ED01F5-8F3E-4956-973F-9F05BC96F489} - "GPU Non Local Adapter Memory"
 //{227419D5-F6D8-4FB7-85D6-2CAC1725E4A9} - "GPU Local Adapter Memory"
@@ -117,6 +121,8 @@ typedef struct _ET_GPU_PROCESS_PERFCOUNTER
     ULONGLONG SharedUsage;
     ULONGLONG DedicatedUsage;
     ULONGLONG CommitUsage;
+    ULONGLONG DedicatedCommitted;
+    ULONGLONG SharedCommitted;
 } ET_GPU_PROCESS_PERFCOUNTER, *PET_GPU_PROCESS_PERFCOUNTER;
 
 typedef struct _ET_GPU_ADAPTER_PERFCOUNTER
@@ -143,6 +149,8 @@ typedef struct _ET_GPU_PROCESSMEMORY_PERF_COUNTER
     ULONGLONG SharedUsage;
     ULONGLONG DedicatedUsage;
     ULONGLONG CommitUsage;
+    ULONGLONG DedicatedCommitted;
+    ULONGLONG SharedCommitted;
 } ET_GPU_PROCESSMEMORY_PERF_COUNTER, *PET_GPU_PROCESSMEMORY_PERF_COUNTER;
 
 typedef struct _ET_GPU_ADAPTER_PERF_COUNTER
@@ -655,6 +663,8 @@ PET_GPU_PROCESS_PERFCOUNTER EtPerfCounterAddOrUpdateGpuProcessCounters(
         entry->SharedUsage = CounterInstance.SharedUsage;
         entry->DedicatedUsage = CounterInstance.DedicatedUsage;
         entry->CommitUsage = CounterInstance.CommitUsage;
+        entry->DedicatedCommitted = CounterInstance.DedicatedCommitted;
+        entry->SharedCommitted = CounterInstance.SharedCommitted;
         return entry;
     }
     else
@@ -677,6 +687,8 @@ PET_GPU_PROCESS_PERFCOUNTER EtPerfCounterAddOrUpdateGpuProcessCounters(
             lookupEntry.SharedUsage = CounterInstance.SharedUsage;
             lookupEntry.DedicatedUsage = CounterInstance.DedicatedUsage;
             lookupEntry.CommitUsage = CounterInstance.CommitUsage;
+            lookupEntry.DedicatedCommitted = CounterInstance.DedicatedCommitted;
+            lookupEntry.SharedCommitted = CounterInstance.SharedCommitted;
 
             PhAddEntryHashtable(EtPerfCounterProcessInstanceHashTable, &lookupEntry);
         }
@@ -1039,6 +1051,8 @@ VOID EtPerfCounterGpuProcessUtilizationCounter(
         entry->SharedUsage = CounterInstance->SharedUsage;
         entry->DedicatedUsage = CounterInstance->DedicatedUsage;
         entry->CommitUsage = CounterInstance->CommitUsage;
+        entry->DedicatedCommitted = CounterInstance->DedicatedCommitted;
+        entry->SharedCommitted = CounterInstance->SharedCommitted;
     }
     else
     {
@@ -1050,6 +1064,8 @@ VOID EtPerfCounterGpuProcessUtilizationCounter(
         lookupEntry.SharedUsage = CounterInstance->SharedUsage;
         lookupEntry.DedicatedUsage = CounterInstance->DedicatedUsage;
         lookupEntry.CommitUsage = CounterInstance->CommitUsage;
+        lookupEntry.DedicatedCommitted = CounterInstance->DedicatedCommitted;
+        lookupEntry.SharedCommitted = CounterInstance->SharedCommitted;
 
         PhAddEntryHashtable(EtGpuProcessCounterHashTable, &lookupEntry);
     }
@@ -1659,6 +1675,12 @@ NTSTATUS EtpUpdatePerfCounterData(
                                     case ET_GPU_PROCESSMEMORY_SHAREDUSAGE_INDEX:
                                         gpuProcessCounters[j].SharedUsage = currentCounterData->Value;
                                         break;
+                                    case ET_GPU_PROCESSMEMORY_DEDICATEDCOMMITTED_INDEX:
+                                        gpuProcessCounters[j].DedicatedCommitted = currentCounterData->Value;
+                                        break;
+                                    case ET_GPU_PROCESSMEMORY_SHAREDCOMMITTED_INDEX:
+                                        gpuProcessCounters[j].SharedCommitted = currentCounterData->Value;
+                                        break;
                                     }
                                 }
                             }
@@ -1793,12 +1815,16 @@ BOOLEAN EtpLookupProcessGpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
     _Out_ PULONG64 SharedUsage,
     _Out_ PULONG64 DedicatedUsage,
-    _Out_ PULONG64 CommitUsage
+    _Out_ PULONG64 CommitUsage,
+    _Out_ PULONG64 DedicatedCommitted,
+    _Out_ PULONG64 SharedCommitted
     )
 {
     ULONG64 sharedUsage = 0;
     ULONG64 dedicatedUsage = 0;
     ULONG64 commitUsage = 0;
+    ULONG64 dedicatedCommitted = 0;
+    ULONG64 sharedCommitted = 0;
     ULONG enumerationKey;
     PET_GPU_PROCESS_COUNTER entry;
 
@@ -1821,15 +1847,19 @@ BOOLEAN EtpLookupProcessGpuMemoryCounters(
                 sharedUsage += entry->SharedUsage;
                 dedicatedUsage += entry->DedicatedUsage;
                 commitUsage += entry->CommitUsage;
+                dedicatedCommitted += entry->DedicatedCommitted;
+                sharedCommitted += entry->SharedCommitted;
             }
         }
     }
 
-    if (sharedUsage || dedicatedUsage || commitUsage)
+    if (sharedUsage || dedicatedUsage || commitUsage || dedicatedCommitted || sharedCommitted)
     {
         *SharedUsage = sharedUsage;
         *DedicatedUsage = dedicatedUsage;
         *CommitUsage = commitUsage;
+        *DedicatedCommitted = dedicatedCommitted;
+        *SharedCommitted = sharedCommitted;
         return TRUE;
     }
 
@@ -1989,7 +2019,9 @@ BOOLEAN EtLookupProcessGpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
     _Out_ PULONG64 SharedUsage,
     _Out_ PULONG64 DedicatedUsage,
-    _Out_ PULONG64 CommitUsage
+    _Out_ PULONG64 CommitUsage,
+    _Out_ PULONG64 DedicatedCommitted,
+    _Out_ PULONG64 SharedCommitted
     )
 {
     return EtpLookupProcessGpuMemoryCounters(
@@ -1997,7 +2029,9 @@ BOOLEAN EtLookupProcessGpuMemoryCounters(
         ProcessId,
         SharedUsage,
         DedicatedUsage,
-        CommitUsage
+        CommitUsage,
+        DedicatedCommitted,
+        SharedCommitted
         );
 }
 
@@ -2041,7 +2075,9 @@ BOOLEAN EtLookupProcessNpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
     _Out_ PULONG64 SharedUsage,
     _Out_ PULONG64 DedicatedUsage,
-    _Out_ PULONG64 CommitUsage
+    _Out_ PULONG64 CommitUsage,
+    _Out_ PULONG64 DedicatedCommitted,
+    _Out_ PULONG64 SharedCommitted
     )
 {
     return EtpLookupProcessGpuMemoryCounters(
@@ -2049,7 +2085,9 @@ BOOLEAN EtLookupProcessNpuMemoryCounters(
         ProcessId,
         SharedUsage,
         DedicatedUsage,
-        CommitUsage
+        CommitUsage,
+        DedicatedCommitted,
+        SharedCommitted
         );
 }
 
