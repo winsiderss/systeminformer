@@ -973,7 +973,7 @@ NTSTATUS PhSaveJsonObjectToFile(
 
     // Create the directory if it does not exist.
 
-    status = PhCreateDirectoryFullPathWin32(FileName);
+    status = PhCreateDirectoryFullPath(FileName);
 
     if (!NT_SUCCESS(status))
         goto CleanupExit;
