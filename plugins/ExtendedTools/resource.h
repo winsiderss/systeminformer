@@ -243,6 +243,7 @@
 #define ID_ENVIRONMENT_VARIABLES        60006
 #define IDD_ENVIRONMENTVARIABLES        60007
 #define IDD_ENVEDIT_LIST                60008
+#define IDD_ENVEDIT                     60009
 #define IDD_FWEVENT_GENERAL             60010
 #define IDD_FWEVENT_LAYER               60011
 #define ID_ACPI                         60020
@@ -261,6 +262,8 @@
 #define IDC_ENV_MOVEUP                  60040
 #define IDC_ENV_MOVEDOWN                60041
 #define IDC_ENV_EDITTEXT                60042
+#define IDC_ENV_NAME                    60043
+#define IDC_ENV_VALUE                   60044
 
 // Next default values for new objects
 // 
