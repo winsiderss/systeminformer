@@ -794,7 +794,6 @@ VOID PhHandleProviderUpdate(
                         found = TRUE;
                     }
                     else
-
                     {
                         if (
                             handleItem->Handle == (*tempHashtableValue)->HandleValue &&

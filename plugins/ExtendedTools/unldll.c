@@ -482,7 +482,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
             HWND lvHandle;
 
             context->ListViewHandle = lvHandle = GetDlgItem(WindowHandle, IDC_LIST);
-            context->WindowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -574,7 +574,7 @@ INT_PTR CALLBACK EtpUnloadedDllsDlgProc(
         {
             HFONT windowFont;
 
-            if (windowFont = PhCreateApplicationFont(PhGetWindowDpi(WindowHandle)))
+            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
                 PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));

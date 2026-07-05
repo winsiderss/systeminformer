@@ -421,6 +421,80 @@ static VOID PhpResolveSystemPalette(
     Palette->MenuDisabledTextColor = grayText;
 }
 
+typedef struct _PHP_THEME_WINDOW_CLASS_BRUSH_CONTEXT
+{
+    HBRUSH PreviousBrush;
+} PHP_THEME_WINDOW_CLASS_BRUSH_CONTEXT, *PPHP_THEME_WINDOW_CLASS_BRUSH_CONTEXT;
+
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+static BOOLEAN CALLBACK PhpUpdateThemeWindowClassBrushEnumChildWindows(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_THEME_WINDOW_CLASS_BRUSH_CONTEXT context = Context;
+    HBRUSH classBrush;
+
+    PhEnumChildWindows(
+        WindowHandle,
+        PhpUpdateThemeWindowClassBrushEnumChildWindows,
+        Context
+        );
+
+    classBrush = (HBRUSH)GetClassLongPtr(WindowHandle, GCLP_HBRBACKGROUND);
+
+    if (classBrush == context->PreviousBrush)
+    {
+        SetClassLongPtr(WindowHandle, GCLP_HBRBACKGROUND, (LONG_PTR)PhThemeWindowBackgroundBrush);
+    }
+
+    if (PhGetWindowProcedure(WindowHandle) == PhEditBorderWndSubclassProc)
+    {
+        PPHP_THEME_WINDOW_EDIT_CONTEXT editContext;
+
+        if (editContext = PhGetWindowContext(WindowHandle, SHRT_MAX))
+        {
+            if (editContext->WindowBrush == context->PreviousBrush)
+                editContext->WindowBrush = PhThemeWindowBackgroundBrush;
+
+            editContext->FrameBrush = PhpStockDCBrush;
+        }
+    }
+
+    return TRUE;
+}
+
+static VOID PhpUpdateThemeWindowClassBrushes(
+    _In_ HBRUSH PreviousBrush
+    )
+{
+    PHP_THEME_WINDOW_CLASS_BRUSH_CONTEXT context;
+    HWND currentWindow = NULL;
+
+    if (!PreviousBrush)
+        return;
+
+    context.PreviousBrush = PreviousBrush;
+
+    do
+    {
+        if (currentWindow = FindWindowEx(NULL, currentWindow, NULL, NULL))
+        {
+            ULONG processID = 0;
+
+            GetWindowThreadProcessId(currentWindow, &processID);
+
+            if (UlongToHandle(processID) == NtCurrentProcessId())
+            {
+                PhpUpdateThemeWindowClassBrushEnumChildWindows(
+                    currentWindow,
+                    &context
+                    );
+            }
+        }
+    } while (currentWindow);
+}
+
 static VOID PhpApplyWindowThemePalette(
     _In_ const PH_WINDOW_THEME_PALETTE* Palette
     )
@@ -451,6 +525,8 @@ static VOID PhpApplyWindowThemePalette(
 
     previousBrush = PhThemeWindowBackgroundBrush;
     PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+    PhpUpdateThemeWindowClassBrushes(previousBrush);
 
     if (previousBrush)
         DeleteBrush(previousBrush);
@@ -809,6 +885,10 @@ VOID PhpUninitializeWindowTheme(
     else if (PhEqualStringZ(windowClassName, L"PhScrollNew", FALSE))
     {
         PhAllowDarkModeForWindow(WindowHandle, FALSE);
+        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
+    }
+    else if (PhEqualStringZ(windowClassName, L"PhTabNew", FALSE))
+    {
         SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
@@ -1682,6 +1762,13 @@ VOID PhpApplyThemeWindow(
             PhAllowDarkModeForWindow(WindowHandle, TRUE);
             SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
         }
+    }
+    else if (PhEqualStringZ(windowClassName, L"PhTabNew", FALSE))
+    {
+        // The control rebuilds its cached theme brushes from the current palette
+        // on WM_THEMECHANGED; without this a runtime palette switch leaves the
+        // tab strip painted with the previous theme's colors.
+        SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0);
     }
     else if (PhEqualStringZ(windowClassName, WC_LISTVIEW, FALSE))
     {

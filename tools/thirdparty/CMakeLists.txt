@@ -278,7 +278,6 @@ set(SOURCES_SYMCRYPT
     "SymCrypt/lib/ec_short_weierstrass.c"
     "SymCrypt/lib/ec_twisted_edwards.c"
     "SymCrypt/lib/env_generic.c"
-    "SymCrypt/lib/env_Win10Sgx.c"
     "SymCrypt/lib/env_windowsUserModeWin7.c"
     "SymCrypt/lib/env_windowsUserModeWin8_1.c"
     "SymCrypt/lib/equal.c"

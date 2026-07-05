@@ -1833,6 +1833,7 @@ VOID UpdateCachedSettings(
     IconSingleClick = !!PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK);
     EnableAvxSupport = !!PhGetIntegerSetting(SETTING_ENABLE_AVX_SUPPORT);
     EnableGraphMaxScale = !!PhGetIntegerSetting(SETTING_ENABLE_GRAPH_MAX_SCALE);
+    EnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
 
     if (ToolbarInitialized)
     {
@@ -1884,8 +1885,20 @@ VOID NTAPI SettingsUpdatedCallback(
         {
             PhInitializeWindowThemeMainMenu(MainMenu);
             MenuBarApplySettings();
+
+            InvalidateRect(MenuBarHandle, NULL, TRUE);
         }
 #endif
+        if (RebarHandle)
+        {
+            InvalidateRect(RebarHandle, NULL, TRUE);
+        }
+
+        if (ToolBarHandle)
+        {
+            InvalidateRect(ToolBarHandle, NULL, TRUE);
+        }
+
         if (StatusBarHandle)
         {
             SendMessage(StatusBarHandle, WM_THEMECHANGED, 0, 0);

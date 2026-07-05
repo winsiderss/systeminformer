@@ -361,6 +361,14 @@ LRESULT CALLBACK PhMwpWndProc(
     case WM_NCPAINT:
     case WM_NCACTIVATE:
         {
+            if (WindowMessage == WM_NCACTIVATE)
+            {
+                COLORREF borderColor = PhGetWindowActiveBorderColor(!!wParam);
+
+                if (borderColor)
+                    PhSetWindowBorderColor(WindowHandle, borderColor);
+            }
+
             if (WindowsVersion >= WINDOWS_10 && !PhEnableThemeSupport)
             {
                 LRESULT result = DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
@@ -5089,6 +5097,7 @@ VOID PhMwpAddIconProcesses(
     _In_ ULONG NumberOfProcesses
     )
 {
+    LONG taskbarDpi;
     ULONG i;
     PPH_PROCESS_ITEM *processItems;
     ULONG numberOfProcessItems;
@@ -5141,6 +5150,8 @@ VOID PhMwpAddIconProcesses(
     PhRemoveAllEMenuItems(Menu);
 
     // Add the processes.
+
+    taskbarDpi = PhGetTaskbarDpi();
 
     for (i = 0; i < processList->Count; i++)
     {

@@ -3095,13 +3095,11 @@ static BOOLEAN NTAPI PhMipGraphsListSectionCallback(
     {
     case MiListSectionCreate:
         {
-            static const PH_STRINGREF sysCpuTitle = PH_STRINGREF_INIT(L"CPU");
-            static const PH_STRINGREF sysMemTitle = PH_STRINGREF_INIT(L"Memory");
-            static const PH_STRINGREF sysIoTitle = PH_STRINGREF_INIT(L"I/O");
-            static const PH_STRINGREF miCpuTitle = PH_STRINGREF_INIT(L"CPU");
-            static const PH_STRINGREF miCommitTitle = PH_STRINGREF_INIT(L"Commit charge");
-            static const PH_STRINGREF miPhysicalTitle = PH_STRINGREF_INIT(L"Physical memory");
-            static const PH_STRINGREF miIoTitle = PH_STRINGREF_INIT(L"I/O");
+            static const PH_STRINGREF cpuTitle = PH_STRINGREF_INIT(L"CPU");
+            static const PH_STRINGREF memTitle = PH_STRINGREF_INIT(L"Memory");
+            static const PH_STRINGREF ioTitle = PH_STRINGREF_INIT(L"I/O");
+            static const PH_STRINGREF commitTitle = PH_STRINGREF_INIT(L"Commit charge");
+            static const PH_STRINGREF physicalTitle = PH_STRINGREF_INIT(L"Physical memory");
 
             graphsSection = PhAllocateZero(sizeof(PH_MIP_GRAPHS_SECTION));
             graphsSection->ListSection = ListSection;
@@ -3117,19 +3115,19 @@ static BOOLEAN NTAPI PhMipGraphsListSectionCallback(
             }
 
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Kind = MipGraphRowSysInfoCpu;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Title = sysCpuTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Title = cpuTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Kind = MipGraphRowSysInfoMemory;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Title = sysMemTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Title = memTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Kind = MipGraphRowSysInfoIo;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Title = sysIoTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Title = ioTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Kind = MipGraphRowMiniInfoCpu;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Title = miCpuTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Title = cpuTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Kind = MipGraphRowMiniInfoCommit;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Title = miCommitTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Title = commitTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Kind = MipGraphRowMiniInfoPhysical;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Title = miPhysicalTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Title = physicalTitle;
             ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Kind = MipGraphRowMiniInfoIo;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Title = miIoTitle;
+            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Title = ioTitle;
         }
         return TRUE;
     case MiListSectionDestroy:

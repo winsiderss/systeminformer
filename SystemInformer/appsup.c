@@ -57,6 +57,22 @@ VOID PhApplyThemeModeWithColors(
     }
 }
 
+BOOLEAN PhIsThemeModeDark(
+    _In_ ULONG Mode
+    )
+{
+    switch (Mode)
+    {
+    case PhThemeModeDark:
+    case PhThemeModeCustom:
+        return TRUE;
+    case PhThemeModeAutomatic:
+        return PhQueryWindowsUseDarkMode();
+    }
+
+    return FALSE;
+}
+
 /**
  * Determines whether a process is suspended.
  *

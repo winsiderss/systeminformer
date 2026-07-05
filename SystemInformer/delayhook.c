@@ -651,6 +651,9 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
             RECT windowRect;
             HRGN updateRegion;
 
+            if (!PhEnableThemeSupport)
+                break;
+
             // The searchbox control does its own theme drawing.
             if (PhGetWindowContext(WindowHandle, SHRT_MAX))
                 break;

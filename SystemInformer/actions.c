@@ -6123,7 +6123,7 @@ static NTSTATUS PhUiServiceRestartCallback(
                 60 * 1000
                 );
 
-            if (NT_SUCCESS(status))
+            if (status == STATUS_SUCCESS)
             {
                 status = PhStartService(serviceHandle, 0, NULL);
 
@@ -6211,7 +6211,7 @@ BOOLEAN PhUiRestartServices(
                     60 * 1000
                     );
 
-                if (NT_SUCCESS(status))
+                if (status == STATUS_SUCCESS)
                 {
                     status = PhStartService(serviceHandle, 0, NULL);
 
@@ -6223,7 +6223,7 @@ BOOLEAN PhUiRestartServices(
                             60 * 1000
                             );
 
-                        if (NT_SUCCESS(status))
+                        if (status == STATUS_SUCCESS)
                         {
                             success = TRUE;
                         }

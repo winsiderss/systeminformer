@@ -148,7 +148,7 @@ NTSTATUS KphConnect(
         PhCloseServiceHandle(serviceHandle);
         serviceHandle = NULL;
 
-        if (!NT_SUCCESS(status))
+        if (status != STATUS_SUCCESS)
             goto CreateAndConnectEnd;
 
         status = KphCommsStart(
@@ -181,7 +181,7 @@ NTSTATUS KphConnect(
         NULL
         );
 
-    if (!NT_SUCCESS(status))
+    if (status != STATUS_SUCCESS)
         goto CreateAndConnectEnd;
 
     created = TRUE;
