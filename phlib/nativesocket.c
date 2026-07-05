@@ -6,6 +6,7 @@
  * Authors:
  *
  *     diversenok   2025
+ *     jxy-s        2026
  *
  */
 
@@ -1495,38 +1496,61 @@ PPH_STRING PhAfdFormatInterfaceOption(
 }
 
 /**
- * Formats a human-readable name for an AFD socket.
+ * Retrieves the address information required to format a human-readable name for an AFD socket.
  *
  * \param[in] SocketHandle An AFD socket handle.
+ * \param[out] AddressInfo A buffer with the socket address information.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhAfdQuerySocketAddressInfo(
+    _In_ HANDLE SocketHandle,
+    _Out_ PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo
+    )
+{
+    RtlZeroMemory(AddressInfo, sizeof(PH_AFD_SOCKET_ADDRESS_INFORMATION));
+
+    AddressInfo->HasSharedInfo = NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &AddressInfo->SharedInfo));
+    AddressInfo->HasLocalAddress = NT_SUCCESS(PhAfdQueryAddress(SocketHandle, FALSE, &AddressInfo->LocalAddress));
+    AddressInfo->HasRemoteAddress = NT_SUCCESS(PhAfdQueryAddress(SocketHandle, TRUE, &AddressInfo->RemoteAddress));
+
+    if (AddressInfo->HasSharedInfo || AddressInfo->HasLocalAddress || AddressInfo->HasRemoteAddress)
+        return STATUS_SUCCESS;
+
+    return STATUS_UNSUCCESSFUL;
+}
+
+/**
+ * Formats a human-readable name for an AFD socket.
+ *
+ * \param[in] AddressInfo The socket address information from PhAfdQuerySocketAddressInfo.
  * \return The best handle name representation available on success, or NULL on error.
  */
 _Maybenull_
 PPH_STRING PhAfdFormatSocketBestName(
-    _In_ HANDLE SocketHandle
+    _In_ PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo
     )
 {
     PPH_STRING string = NULL;
     PH_FORMAT format[9];
     ULONG count = 0;
-    SOCK_SHARED_INFO sharedInfo;
     PPH_STRING addressString = NULL;
     PPH_STRING remoteAddressString = NULL;
 
     PhInitFormatS(&format[count++], L"AFD socket:");
 
-    if (NT_SUCCESS(PhAfdQuerySharedInfo(SocketHandle, &sharedInfo)))
+    if (AddressInfo->HasSharedInfo)
     {
         PCWSTR detail;
 
         // State
-        if (detail = PhpAfdGetSocketStateString(sharedInfo.State))
+        if (detail = PhpAfdGetSocketStateString(AddressInfo->SharedInfo.State))
         {
             PhInitFormatC(&format[count++], L' ');
             PhInitFormatS(&format[count++], detail);
         }
 
         // Protocol
-        if (detail = PhpAfdGetProtocolSummary(sharedInfo.AddressFamily, sharedInfo.Protocol))
+        if (detail = PhpAfdGetProtocolSummary(AddressInfo->SharedInfo.AddressFamily, AddressInfo->SharedInfo.Protocol))
         {
             PhInitFormatC(&format[count++], L' ');
             PhInitFormatS(&format[count++], detail);
@@ -1534,7 +1558,8 @@ PPH_STRING PhAfdFormatSocketBestName(
     }
 
     // Local address
-    if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, FALSE, &addressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
+    if (AddressInfo->HasLocalAddress &&
+        NT_SUCCESS(PhAfdFormatAddress(&AddressInfo->LocalAddress, &addressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
         !PhIsNullOrEmptyString(addressString))
     {
         PhInitFormatS(&format[count++], L" on ");
@@ -1542,7 +1567,8 @@ PPH_STRING PhAfdFormatSocketBestName(
     }
 
     // Remote address
-    if (NT_SUCCESS(PhAfdQueryFormatAddress(SocketHandle, TRUE, &remoteAddressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
+    if (AddressInfo->HasRemoteAddress &&
+        NT_SUCCESS(PhAfdFormatAddress(&AddressInfo->RemoteAddress, &remoteAddressString, PH_AFD_ADDRESS_SIMPLIFY)) &&
         !PhIsNullOrEmptyString(remoteAddressString))
     {
         PhInitFormatS(&format[count++], L" to ");

@@ -41,7 +41,8 @@ typedef enum _PHP_QUERY_OBJECT_WORK
     NtQuerySecurityObjectWork,
     NtSetSecurityObjectWork,
     NtQueryFileInformationWork,
-    KphQueryFileInformationWork
+    KphQueryFileInformationWork,
+    PhAfdQuerySocketAddressInfoWork
 } PHP_QUERY_OBJECT_WORK;
 
 typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
@@ -91,6 +92,12 @@ typedef struct _PHP_QUERY_OBJECT_COMMON_CONTEXT
             PULONG ReturnLength;
         } KphQueryFileInformation;
 
+        struct
+        {
+            HANDLE Handle;
+            PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo;
+        } PhAfdQuerySocketAddressInfo;
+
     } u;
 } PHP_QUERY_OBJECT_COMMON_CONTEXT, *PPHP_QUERY_OBJECT_COMMON_CONTEXT;
 
@@ -112,6 +119,11 @@ NTSTATUS PhpCallWithTimeout(
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
+    );
+
+NTSTATUS PhpAfdQuerySocketAddressInfoWithTimeout(
+    _In_ HANDLE Handle,
+    _Out_ PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo
     );
 
 BOOLEAN PhEnableProcessHandlePnPDeviceNameSupport = FALSE;
@@ -1261,7 +1273,14 @@ NTSTATUS PhpGetBestObjectName(
 
                 if (NT_SUCCESS(status))
                 {
-                    bestObjectName = PhAfdFormatSocketBestName(dupHandle);
+                    PH_AFD_SOCKET_ADDRESS_INFORMATION addressInfo;
+
+                    // Issue the queries on a worker thread since they can hang indefinitely on
+                    // unresponsive socket handles (e.g. some duplicated AFD handles), then format
+                    // the name here. (jxy-s)
+                    if (NT_SUCCESS(PhpAfdQuerySocketAddressInfoWithTimeout(dupHandle, &addressInfo)))
+                        bestObjectName = PhAfdFormatSocketBestName(&addressInfo);
+
                     PhQueryCloseHandle(dupHandle);
                 }
             }
@@ -2642,6 +2661,12 @@ NTSTATUS PhpCommonQueryObjectRoutine(
                 *context->u.KphQueryFileInformation.ReturnLength = (ULONG)isb.Information;
         }
         break;
+    case PhAfdQuerySocketAddressInfoWork:
+        context->Status = PhAfdQuerySocketAddressInfo(
+            context->u.PhAfdQuerySocketAddressInfo.Handle,
+            context->u.PhAfdQuerySocketAddressInfo.AddressInfo
+            );
+        break;
     default:
         context->Status = STATUS_INVALID_PARAMETER;
         break;
@@ -2776,3 +2801,18 @@ NTSTATUS PhCallKphQueryFileInformationWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+NTSTATUS PhpAfdQuerySocketAddressInfoWithTimeout(
+    _In_ HANDLE Handle,
+    _Out_ PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo
+    )
+{
+    PPHP_QUERY_OBJECT_COMMON_CONTEXT context;
+
+    context = PhAllocate(sizeof(PHP_QUERY_OBJECT_COMMON_CONTEXT));
+    context->Work = PhAfdQuerySocketAddressInfoWork;
+    context->Status = STATUS_UNSUCCESSFUL;
+    context->u.PhAfdQuerySocketAddressInfo.Handle = Handle;
+    context->u.PhAfdQuerySocketAddressInfo.AddressInfo = AddressInfo;
+
+    return PhpCommonQueryObjectWithTimeout(context);
+}
