@@ -1045,7 +1045,7 @@ NTSTATUS PhMappedImageVaToVa(
 
         // Calculate offset within the section: RVA - Section->VirtualAddress.
 
-        status = RtlULongPtrSub(Va, section->VirtualAddress, &sectionOffset);
+        status = RtlULongPtrSub(rva, section->VirtualAddress, &sectionOffset);
 
         if (!NT_SUCCESS(status))
             return status;
