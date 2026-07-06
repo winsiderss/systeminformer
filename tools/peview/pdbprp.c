@@ -297,7 +297,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Value)
 {
-    sortResult = PhCompareString(node1->Value, node2->Value, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->Value, node2->Value, ((PPDB_SYMBOL_CONTEXT)_context)->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
