@@ -1994,7 +1994,7 @@ NTSTATUS SetupWriteFileAtomic(
 
     if (finalExists)
     {
-        stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
+        stagingName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".new");
 
         if (!stagingName)
         {
@@ -2077,8 +2077,8 @@ NTSTATUS SetupCommitFile(
     if (!(sessionId = SetupGetSessionId(Context)))
         return STATUS_NO_MEMORY;
 
-    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
-    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+    stagingName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".new");
+    backupName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".bak");
 
     if (!PhDoesFileExistWin32(PhGetString(stagingName)))
     {
@@ -2126,11 +2126,20 @@ NTSTATUS SetupCommitFile(
 
         if (NT_SUCCESS(status))
         {
-            PPH_STRING baseName = PhGetBaseName(backupName);
+            PPH_STRING baseName;
 
-            status = PhSetFileRename(targetHandle, NULL, TRUE, &baseName->sr);
+            if (baseName = PhGetBaseName(backupName))
+            {
+                status = PhSetFileRename(
+                    targetHandle,
+                    NULL,
+                    TRUE,
+                    &baseName->sr
+                    );
 
-            PhDereferenceObject(baseName);
+                PhDereferenceObject(baseName);
+            }
+
             NtClose(targetHandle);
         }
 
@@ -2198,8 +2207,8 @@ NTSTATUS SetupRollbackFile(
     if (!(sessionId = SetupGetSessionId(Context)))
         return STATUS_NO_MEMORY;
 
-    stagingName = PhFormatString(L"%s.%s.new", PhGetString(FinalName), PhGetString(sessionId));
-    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+    stagingName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".new");
+    backupName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".bak");
 
     // Delete .new
     PhDeleteFileWin32(PhGetString(stagingName));
@@ -2263,7 +2272,7 @@ NTSTATUS SetupFinalizeFile(
     if (!(sessionId = SetupGetSessionId(Context)))
         return STATUS_NO_MEMORY;
 
-    backupName = PhFormatString(L"%s.%s.bak", PhGetString(FinalName), PhGetString(sessionId));
+    backupName = PhConcatStrings(4, PhGetString(FinalName), L".", PhGetString(sessionId), L".bak");
 
     // Delete .bak (best effort)
     if (!PhDeleteFileWin32(PhGetString(backupName)))
