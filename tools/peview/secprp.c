@@ -193,14 +193,7 @@ VOID PvInitializeCertificateTree(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
     TreeNew_SetTriState(Context->TreeNewHandle, TRUE);
     TreeNew_SetSort(Context->TreeNewHandle, PV_CERTIFICATE_TREE_COLUMN_NAME_INDEX, NoSortOrder);
-    {
-        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-        if (treelistCustomRowSize && treelistCustomRowSize < 15)
-            treelistCustomRowSize = 15;
-
-        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
-    }
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PvpGetTreeNewRowHeight());
 
     settings = PhGetStringSetting(L"ImageSecurityTreeColumns");
     PhCmLoadSettings(Context->TreeNewHandle, &settings->sr);
@@ -412,7 +405,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Issuer)
 {
-    sortResult = PhCompareString(node1->Issuer, node2->Issuer, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->Issuer, node2->Issuer, ((PPV_PE_CERTIFICATE_CONTEXT)_context)->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -430,7 +423,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Thumbprint)
 {
-    sortResult = PhCompareString(node1->Thumbprint, node2->Thumbprint, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->Thumbprint, node2->Thumbprint, ((PPV_PE_CERTIFICATE_CONTEXT)_context)->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
@@ -442,7 +435,7 @@ END_SORT_FUNCTION
 
 BEGIN_SORT_FUNCTION(Alg)
 {
-    sortResult = PhCompareString(node1->Algorithm, node2->Algorithm, TRUE);
+    sortResult = PhCompareStringWithNullSortOrder(node1->Algorithm, node2->Algorithm, ((PPV_PE_CERTIFICATE_CONTEXT)_context)->TreeNewSortOrder, TRUE);
 }
 END_SORT_FUNCTION
 
