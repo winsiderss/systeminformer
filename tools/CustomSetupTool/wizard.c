@@ -1198,7 +1198,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
             switch (header->code)
             {
             case PSN_SETACTIVE:
-                SetupSetWizardButtons(WindowHandle, PSWIZB_NEXT, FALSE, TRUE, FALSE, TRUE);
+                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
                 SetupSetWizardButtonText(context->ParentWindowHandle, IDC_PROPSHEET_NEXT, L"Uninstall");
                 if (!PhGetOwnTokenAttributes().Elevated)
                 {
@@ -2187,8 +2187,8 @@ VOID SetupShowWizard(
     pages[0].hInstance = PhInstanceHandle;
     if (Context->SetupMode == SetupCommandUninstall)
     {
-        pages[0].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL);
-        pages[0].pfnDlgProc = SetupUninstallPageDlgProc;
+        pages[0].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL_WELCOME);
+        pages[0].pfnDlgProc = SetupWelcomePageDlgProc;
     }
     else
     {
@@ -2200,8 +2200,16 @@ VOID SetupShowWizard(
     pages[1].dwSize = sizeof(PROPSHEETPAGE);
     pages[1].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[1].hInstance = PhInstanceHandle;
-    pages[1].pszTemplate = MAKEINTRESOURCE(IDD_CONFIG);
-    pages[1].pfnDlgProc = SetupConfigPageDlgProc;
+    if (Context->SetupMode == SetupCommandUninstall)
+    {
+        pages[1].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL);
+        pages[1].pfnDlgProc = SetupUninstallPageDlgProc;
+    }
+    else
+    {
+        pages[1].pszTemplate = MAKEINTRESOURCE(IDD_CONFIG);
+        pages[1].pfnDlgProc = SetupConfigPageDlgProc;
+    }
     pages[1].lParam = (LPARAM)Context;
 
     pages[2].dwSize = sizeof(PROPSHEETPAGE);

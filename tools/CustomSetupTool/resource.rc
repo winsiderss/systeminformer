@@ -47,6 +47,18 @@ BEGIN
     LTEXT           "Click Next to continue, or Cancel to exit setup.",IDC_STATIC,148,126,240,14
 END
 
+IDD_UNINSTALL_WELCOME DIALOGEX 0, 0, 408, 234
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "System Informer Uninstall"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    CONTROL         "",IDC_SIDEBAR,"Static",SS_BITMAP,21,20,140,212
+    LTEXT           "Welcome to the System Informer Uninstall Wizard",IDC_TITLE,148,4,250,34
+    LTEXT           "This will uninstall System Informer on your computer. System Informer helps you monitor system resources, debug software, and detect malware.",IDC_STATIC,148,55,240,30
+    LTEXT           "It is recommended you close all other applications before continuing.",IDC_STATIC,148,94,240,18
+    LTEXT           "Click Next to continue, or Cancel to exit uninstallation.",IDC_STATIC,148,126,240,14
+END
+
 IDD_CONFIG DIALOGEX 0, 0, 408, 234
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
 CAPTION "Setup Options"
@@ -169,6 +181,11 @@ END
 GUIDELINES DESIGNINFO
 BEGIN
     IDD_WELCOME, DIALOG
+    BEGIN
+        RIGHTMARGIN, 398
+    END
+
+    IDD_UNINSTALL_WELCOME, DIALOG
     BEGIN
         RIGHTMARGIN, 398
     END

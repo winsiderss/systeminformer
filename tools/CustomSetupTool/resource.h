@@ -13,6 +13,7 @@
 #define IDD_REPAIR                      109
 #define IDB_PNG1                        110
 #define IDD_ERROR                       111
+#define IDD_UNINSTALL_WELCOME           112
 #define IDC_PATH                        1001
 #define IDC_BROWSE                      1002
 #define IDC_PROGRESS                    1003
