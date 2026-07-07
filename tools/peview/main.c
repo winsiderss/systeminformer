@@ -149,7 +149,6 @@ INT WINAPI wWinMain(
     PhSettingsInitialization();
     PvInitializeSettings();
     PvPropInitialization();
-    PhToolTipsWindowInitialization();
     PhScrollNewWindowInitialization();
     PhTreeNewInitialization();
     PvInitializeSuperclassControls();
