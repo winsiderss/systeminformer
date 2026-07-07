@@ -113,10 +113,15 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     if (Context->SetupRemoveAppData)
         SetupDeleteAppdataDirectory(Context);
 
+    SetupSetProgressText(Context, L"Uninstall complete.", NULL);
+    SetupSetProgressValue(Context, 100);
+    Context->SetupProgressActive = FALSE;
     PostMessage(Context->DialogHandle, SETUP_SHOWUNINSTALLFINAL, 0, 0);
     return STATUS_SUCCESS;
 
 CleanupExit:
+    SetupSetProgressText(Context, L"Uninstall failed.", NULL);
+    Context->SetupProgressActive = FALSE;
     PostMessage(Context->DialogHandle, SETUP_SHOWUNINSTALLERROR, 0, 0);
     return STATUS_UNSUCCESSFUL;
 }
