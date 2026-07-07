@@ -11764,7 +11764,7 @@ NTSTATUS PhDevOpenObjectKey(
                 }
             }
         }
-        else if (Flags == PH_DEVKEY_HARDWARE)
+        else if (FlagOn(Flags, PH_DEVKEY_HARDWARE))
         {
             // HARDWARE Key: \Registry\Machine\System\CurrentControlSet\Enum\{InstanceID}\Device Parameters
             static const PH_STRINGREF base = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Enum\\");
