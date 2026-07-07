@@ -23,6 +23,7 @@
 #include <prsht.h>
 #include <prpsh.h>
 #include <graphscroll.h>
+#include <graphtips.h>
 #include <treenew.h>
 #include <secedit.h>
 #include <settings.h>
@@ -51,6 +52,20 @@ FORCEINLINE PCWSTR PvpGetStringOrNa(
     )
 {
     return PhGetStringOrDefault(String, L"N/A");
+}
+
+FORCEINLINE LONG PvpGetTreeNewRowHeight(
+    VOID
+    )
+{
+    LONG rowHeight;
+
+    rowHeight = (LONG)PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+    if (rowHeight && rowHeight < 15)
+        rowHeight = 15;
+
+    return rowHeight;
 }
 
 BOOLEAN PvpLoadDbgHelp(
@@ -153,6 +168,11 @@ VOID PvSaveWindowState(
 
 VOID PvConfigTreeBorders(
     _In_ HWND WindowHandle
+    );
+
+VOID PvConfigListViewFont(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
     );
 
 VOID PvSetListViewImageList(

@@ -213,6 +213,7 @@ INT_PTR CALLBACK PvpPeClrTablePreviewDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PvConfigListViewFont(hwndDlg, context->ListViewHandle);
             PhSetExtendedListView(context->ListViewHandle);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
@@ -234,6 +235,9 @@ INT_PTR CALLBACK PvpPeClrTablePreviewDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"ImageClrTablesListViewColumns", context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(L"ImageClrTablePreviewListViewColumns", context->ListViewHandle);
+
             PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);
@@ -510,6 +514,7 @@ INT_PTR CALLBACK PvpPeClrTablesDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PvConfigListViewFont(hwndDlg, context->ListViewHandle);
             PhSetExtendedListView(context->ListViewHandle);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
@@ -520,6 +525,8 @@ INT_PTR CALLBACK PvpPeClrTablesDlgProc(
             PhAddListViewColumn(context->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 120, L"RVA (start)");
             PhAddListViewColumn(context->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 120, L"RVA (end)");
             PhAddListViewColumn(context->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 200, L"Hash");
+            PhLoadListViewColumnsFromSetting(L"ImageClrTablesListViewColumns", context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageClrTablePreviewListViewColumns", context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
