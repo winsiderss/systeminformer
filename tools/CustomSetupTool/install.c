@@ -153,6 +153,7 @@ NTSTATUS CALLBACK SetupProgressThread(
     SetupSetProgressText(context, L"Installation complete.", NULL);
     SetupSetProgressValue(context, 100);
     context->SetupProgressActive = FALSE;
+    context->SetupCompleted = TRUE;
     PostMessage(context->DialogHandle, SETUP_SHOWFINAL, 0, 0);
     return STATUS_SUCCESS;
 
