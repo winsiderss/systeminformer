@@ -418,6 +418,14 @@ VOID PvConfigTreeBorders(
     }
 }
 
+VOID PvConfigListViewFont(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
+    )
+{
+    SetWindowFont(ListViewHandle, GetWindowFont(WindowHandle), TRUE);
+}
+
 #pragma region copied from appsup.c
 
 VOID PhInitializeTreeNewColumnMenu(

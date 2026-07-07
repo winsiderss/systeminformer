@@ -80,7 +80,8 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG Hide : 1;
             ULONG NeedsReboot : 1;
             ULONG SetupProgressActive : 1;
-            ULONG Spare : 25;
+            ULONG SetupCompleted : 1;
+            ULONG Spare : 24;
         };
     };
 

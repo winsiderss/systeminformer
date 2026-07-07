@@ -478,14 +478,7 @@ INT_PTR CALLBACK PvPeImportsDlgProc(
             PvConfigTreeBorders(context->TreeNewHandle);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingImportsText, 0);
-            {
-                ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-                if (treelistCustomRowSize && treelistCustomRowSize < 15)
-                    treelistCustomRowSize = 15;
-
-                TreeNew_SetRowHeight(context->TreeNewHandle, treelistCustomRowSize);
-            }
+            TreeNew_SetRowHeight(context->TreeNewHandle, PvpGetTreeNewRowHeight());
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
             PhAddLayoutItem(&context->LayoutManager, context->SearchHandle, NULL, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);

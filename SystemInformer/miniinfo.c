@@ -2196,7 +2196,12 @@ BOOLEAN PhMipListSectionTreeNewCallback(
         return TRUE;
     case TreeNewLeftClick:
         {
-            PhMipClearListSectionSelection(listSection);
+            PPH_TREENEW_MOUSE_EVENT mouseEvent = Parameter1;
+
+            if (mouseEvent && !mouseEvent->Node)
+            {
+                PhMipClearListSectionSelection(listSection);
+            }
         }
         break;
     case TreeNewLeftDoubleClick:

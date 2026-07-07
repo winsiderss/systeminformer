@@ -53,6 +53,20 @@ FORCEINLINE PCWSTR PvpGetStringOrNa(
     return PhGetStringOrDefault(String, L"N/A");
 }
 
+FORCEINLINE LONG PvpGetTreeNewRowHeight(
+    VOID
+    )
+{
+    LONG rowHeight;
+
+    rowHeight = (LONG)PhGetIntegerSetting(L"TreeListCustomRowSize");
+
+    if (rowHeight && rowHeight < 15)
+        rowHeight = 15;
+
+    return rowHeight;
+}
+
 BOOLEAN PvpLoadDbgHelp(
     _Inout_ PPH_SYMBOL_PROVIDER* SymbolProvider
     );
@@ -153,6 +167,11 @@ VOID PvSaveWindowState(
 
 VOID PvConfigTreeBorders(
     _In_ HWND WindowHandle
+    );
+
+VOID PvConfigListViewFont(
+    _In_ HWND WindowHandle,
+    _In_ HWND ListViewHandle
     );
 
 VOID PvSetListViewImageList(
