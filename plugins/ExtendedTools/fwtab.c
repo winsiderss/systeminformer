@@ -85,24 +85,17 @@ BOOLEAN EtFwIsFirewallEnabled(
     VOID
     )
 {
-    BOOLEAN enabled = TRUE;
-    SC_HANDLE serviceHandle;
-    SERVICE_STATUS_PROCESS statusProcess;
+    BOOLEAN enabled = FALSE;
+    PPH_SERVICE_ITEM serviceItem;
 
-    if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_STATUS, L"mpssvc")))
+    if (serviceItem = PhReferenceServiceItemZ(L"mpssvc"))
     {
-        if (NT_SUCCESS(PhQueryServiceStatus(serviceHandle, &statusProcess)))
+        if (serviceItem->State == SERVICE_RUNNING)
         {
-            if (statusProcess.dwCurrentState != SERVICE_RUNNING)
-            {
-                enabled = FALSE;
-            }
+            enabled = TRUE;
         }
-        PhCloseServiceHandle(serviceHandle);
-    }
-    else
-    {
-        enabled = FALSE;
+
+        PhDereferenceObject(serviceItem);
     }
 
     if (!enabled)
