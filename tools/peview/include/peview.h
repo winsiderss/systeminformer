@@ -23,7 +23,6 @@
 #include <prsht.h>
 #include <prpsh.h>
 #include <graphscroll.h>
-#include <graphtips.h>
 #include <treenew.h>
 #include <secedit.h>
 #include <settings.h>
