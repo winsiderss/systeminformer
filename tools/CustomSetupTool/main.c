@@ -269,7 +269,7 @@ VOID SetupShowDialog(
 
     TaskDialogIndirect(&config, NULL, NULL, &value);
 
-    if (value)
+    if (Context->SetupMode == SetupCommandInstall && Context->SetupCompleted && value)
     {
         SetupExecuteApplication(Context);
     }

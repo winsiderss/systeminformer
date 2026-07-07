@@ -80,7 +80,8 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG Hide : 1;
             ULONG NeedsReboot : 1;
             ULONG SetupProgressActive : 1;
-            ULONG Spare : 25;
+            ULONG SetupCompleted : 1;
+            ULONG Spare : 24;
         };
     };
 
@@ -113,6 +114,13 @@ LRESULT SetupHandleControlCustomDraw(
 
 VOID SetupShowWizard(
     _In_ PPH_SETUP_CONTEXT Context
+    );
+
+INT_PTR CALLBACK SetupUninstallPageDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 VOID ShowWelcomePageDialog(

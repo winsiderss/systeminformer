@@ -113,6 +113,7 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     if (Context->SetupRemoveAppData)
         SetupDeleteAppdataDirectory(Context);
 
+    Context->SetupCompleted = TRUE;
     PostMessage(Context->DialogHandle, SETUP_SHOWUNINSTALLFINAL, 0, 0);
     return STATUS_SUCCESS;
 
