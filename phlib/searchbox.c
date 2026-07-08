@@ -84,7 +84,6 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
 
     HBRUSH FrameBrush;
     HBRUSH WindowBrush;
-    HBRUSH HotBrush;
     HBRUSH DcBrush;
 
     COLORREF WindowBorderOuterColor;
@@ -144,9 +143,7 @@ VOID PhpSearchControlInitializeColors(
     static const COLORREF CueBannerTextThemeColor = RGB(170, 170, 170);
 
     Context->DcBrush = PhGetStockBrush(DC_BRUSH);
-    Context->FrameBrush = GetSysColorBrush(COLOR_WINDOWFRAME);
     Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
-    Context->HotBrush = GetSysColorBrush(COLOR_HOTLIGHT);
 
     Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
     Context->WindowBorderInnerColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
