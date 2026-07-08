@@ -82,7 +82,6 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     HIMAGELIST ImageListHandle;
     PPH_STRING CueBannerText;
 
-    HBRUSH FrameBrush;
     HBRUSH WindowBrush;
     HBRUSH DcBrush;
 
