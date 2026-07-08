@@ -316,6 +316,16 @@ PhIsThemeBackgroundPartiallyTransparent(
     );
 
 PHLIBAPI
+VOID
+NTAPI
+PhTheme_PaintControlBorder(
+    _In_ HDC Dc,
+    _In_ RECT* Rect,
+    _In_ BOOLEAN Focused,
+    _In_ BOOLEAN Hot
+    );
+
+PHLIBAPI
 BOOLEAN
 NTAPI
 PhDrawThemeParentBackground(
@@ -3207,6 +3217,54 @@ PhImageListSetIconSize(
     _In_ HIMAGELIST ImageListHandle,
     _In_ LONG cx,
     _In_ LONG cy
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListBeginDrag(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ LONG Track,
+    _In_ LONG HotspotX,
+    _In_ LONG HotspotY
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDragEnter(
+    _In_ HWND LockWindowHandle,
+    _In_ LONG x,
+    _In_ LONG y
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDragShowNolock(
+    _In_ BOOLEAN Show
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDragMove(
+    _In_ LONG x,
+    _In_ LONG y
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhImageListDragLeave(
+    _In_ HWND LockWindowHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhImageListEndDrag(
+    VOID
     );
 
 #define PH_SHUTDOWN_RESTART 0x1
