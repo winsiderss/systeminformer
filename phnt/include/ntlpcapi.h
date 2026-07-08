@@ -700,41 +700,52 @@ typedef struct _ALPC_CONTEXT_ATTR
 // begin_rev
 #define ALPC_HANDLEFLG_DUPLICATE_SAME_ACCESS 0x10000
 #define ALPC_HANDLEFLG_DUPLICATE_SAME_ATTRIBUTES 0x20000
+#define ALPC_HANDLEFLG_INDIRECT 0x40000
 #define ALPC_HANDLEFLG_DUPLICATE_INHERIT 0x80000
 // end_rev
+
+#define ALPC_INDIRECT_HANDLE_MAX 512
 
 // private
 typedef struct _ALPC_HANDLE_ATTR32
 {
     ULONG Flags;
-    ULONG Reserved0;
-    ULONG SameAccess;
-    ULONG SameAttributes;
-    ULONG Indirect;
-    ULONG Inherit;
-    ULONG Reserved1;
     ULONG Handle;
     ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
     ACCESS_MASK DesiredAccess;
-    ACCESS_MASK GrantedAccess;
 } ALPC_HANDLE_ATTR32, *PALPC_HANDLE_ATTR32;
 
 // private
 typedef struct _ALPC_HANDLE_ATTR
 {
-    ULONG Flags;
-    ULONG Reserved0;
-    ULONG SameAccess;
-    ULONG SameAttributes;
-    ULONG Indirect;
-    ULONG Inherit;
-    ULONG Reserved1;
-    HANDLE Handle;
-    PALPC_HANDLE_ATTR32 HandleAttrArray;
-    ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
-    ULONG HandleCount;
-    ACCESS_MASK DesiredAccess;
-    ACCESS_MASK GrantedAccess;
+    union
+    {
+        ULONG Flags;
+        struct
+        {
+            ULONG Reserved0 : 16;
+            ULONG SameAccess : 1;
+            ULONG SameAttributes : 1;
+            ULONG Indirect : 1;
+            ULONG Inherit : 1;
+            ULONG Reserved1 : 12;
+        };
+    };
+
+    union
+    {
+        struct
+        {
+            HANDLE Handle;
+            ULONG ObjectType; // ObjectTypeCode, not ObjectTypeIndex
+            ACCESS_MASK DesiredAccess;
+        };
+        struct
+        {
+            PALPC_HANDLE_ATTR32 HandleAttrArray;
+            ULONG HandleCount;
+        };
+    };
 } ALPC_HANDLE_ATTR, *PALPC_HANDLE_ATTR;
 
 /*
