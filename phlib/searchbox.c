@@ -436,6 +436,7 @@ static VOID PhpSearchControlPaintButton(
     )
 {
     RECT buttonRect;
+    ULONG imageIndex;
 
     PhpSearchControlButtonRect(Context, Button, WindowRect, &buttonRect);
 
