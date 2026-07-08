@@ -17,6 +17,26 @@
 #include <vsstyle.h>
 #include <uxtheme.h>
 
+HBRUSH PhTabNewGetBackgroundBrush(
+    VOID
+    );
+
+VOID PhTabNewUpdateClassBackground(
+    _In_ HWND WindowHandle
+    );
+
+COLORREF PhTabNewTextColor(
+    _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+VOID PhTabNewDrawItemContent(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PPH_TABNEW_INTERNAL_ITEM Item,
+    _In_ PRECT ItemRect,
+    _In_ COLORREF TextColor
+    );
+
 /**
  * Initializes the tab control class.
  *
@@ -35,7 +55,7 @@ RTL_ATOM PhTabNewInitialization(
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = NULL;
+    wcex.hbrBackground = PhTabNewGetBackgroundBrush();
     wcex.lpszClassName = PH_TABNEW_CLASSNAME;
 
     return RegisterClassEx(&wcex);
@@ -53,13 +73,13 @@ PPH_TABNEW_CONTEXT PhCreateTabNewContext(
     PPH_TABNEW_CONTEXT context;
 
     context = PhAllocateZero(sizeof(PH_TABNEW_CONTEXT));
-    context->Items = PhCreateList(8);
-    context->Pages = PhCreateList(8);
+    context->Items = PhCreateList(PH_TABNEW_INITIAL_LIST_CAPACITY);
+    context->Pages = PhCreateList(PH_TABNEW_INITIAL_LIST_CAPACITY);
     context->SelectedIndex = LONG_ERROR;
-    context->HotIndex = -1;
-    context->DragSourceIndex = -1;
-    context->DragTargetIndex = -1;
-    context->DragOriginIndex = -1;
+    context->HotIndex = LONG_ERROR;
+    context->DragSourceIndex = LONG_ERROR;
+    context->DragTargetIndex = LONG_ERROR;
+    context->DragOriginIndex = LONG_ERROR;
     context->Skin = PhTabNewSkinUxTheme;
     context->Side = TNS_TOP;
     context->BaseMinTabWidth = PH_TABNEW_DEFAULT_MIN_WIDTH;
@@ -120,6 +140,12 @@ VOID PhDestroyTabNewContext(
         PhDereferenceObject(Context->Pages);
     }
 
+    if (Context->DragImageList)
+    {
+        PhImageListDestroy(Context->DragImageList);
+        Context->DragImageList = NULL;
+    }
+
     if (Context->Font)
         DeleteFont(Context->Font);
 
@@ -169,7 +195,7 @@ BOOLEAN PhTabNewReadLayoutToken(
 
     while (index < count && cursor[index] >= L'0' && cursor[index] <= L'9')
     {
-        length = (length * 10) + (ULONG)(cursor[index] - L'0');
+        length = (length * PH_TABNEW_LAYOUT_DECIMAL_RADIX) + (ULONG)(cursor[index] - L'0');
         index++;
     }
 
@@ -222,7 +248,7 @@ VOID PhTabNewUpdateFont(
     HFONT newFont;
 
     newFont = PhCreateCommonFont(
-        -11,
+        PH_TABNEW_DEFAULT_FONT_HEIGHT,
         FW_NORMAL,
         Context->WindowHandle,
         Context->WindowDpi
@@ -243,7 +269,22 @@ BOOLEAN PhTabNewUseDarkTheme(
     if (!PhEnableThemeSupport)
         return FALSE;
 
-    return PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+    return PhGetColorBrightness(PhThemeWindowBackgroundColor) < PH_TABNEW_DARK_THEME_BRIGHTNESS;
+}
+
+HBRUSH PhTabNewGetBackgroundBrush(
+    VOID
+    )
+{
+    if (PhTabNewUseDarkTheme())
+    {
+        if (!PhThemeWindowBackgroundBrush)
+            PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+        return PhThemeWindowBackgroundBrush;
+    }
+
+    return (HBRUSH)(COLOR_BTNFACE + 1);
 }
 
 /**
@@ -255,6 +296,8 @@ VOID PhTabNewUpdateTheme(
     _In_ PPH_TABNEW_CONTEXT Context
     )
 {
+    Context->ThemeDark = PhTabNewUseDarkTheme();
+
     if (Context->ThemeHandle)
     {
         PhCloseThemeData(Context->ThemeHandle);
@@ -263,22 +306,8 @@ VOID PhTabNewUpdateTheme(
 
     if (Context->Skin == PhTabNewSkinUxTheme)
     {
-        PCWSTR themeClass;
-
-        switch (Context->Side)
-        {
-        case TNS_BOTTOM:
-        case TNS_LEFT:
-        case TNS_RIGHT:
-        default:
-            themeClass = L"Tab";
-            break;
-        }
-
-        Context->ThemeHandle = PhOpenThemeData(Context->WindowHandle, themeClass, Context->WindowDpi);
+        Context->ThemeHandle = PhOpenThemeData(Context->WindowHandle, L"Tab", Context->WindowDpi);
     }
-
-    Context->ThemeDark = PhTabNewUseDarkTheme();
 }
 
 /**
@@ -330,7 +359,7 @@ LONG PhMeasureTabWidth(
     if (Item->ImageIndex >= 0 && Context->ImageList)
     {
         LONG iconCx, iconCy;
-        ImageList_GetIconSize(Context->ImageList, &iconCx, &iconCy);
+        PhImageListGetIconSize(Context->ImageList, &iconCx, &iconCy);
         width += iconCx + Context->PaddingX;
     }
 
@@ -353,8 +382,8 @@ VOID PhTabNewLayout(
     HDC hdc;
     HFONT oldFont;
     LONG rowHeight;
-    LONG rowCountsStack[32];
-    LONG rowWidthsStack[32];
+    LONG rowCountsStack[PH_TABNEW_ROW_STACK_COUNT];
+    LONG rowWidthsStack[PH_TABNEW_ROW_STACK_COUNT];
     PLONG rowCounts = NULL;
     PLONG rowWidths = NULL;
     ULONG i;
@@ -443,14 +472,24 @@ VOID PhTabNewLayout(
             }
         }
 
-        Context->RowCount = vertical ? 1 : (Context->Items->Count > 0 ? (((PPH_TABNEW_INTERNAL_ITEM)Context->Items->Items[Context->Items->Count - 1])->Row + 1) : 1);
+        if (vertical || Context->Items->Count == 0)
+        {
+            Context->RowCount = 1;
+        }
+        else
+        {
+            PPH_TABNEW_INTERNAL_ITEM lastItem;
+
+            lastItem = Context->Items->Items[Context->Items->Count - 1];
+            Context->RowCount = lastItem->Row + 1;
+        }
     }
 
     // Move the selected row next to the page and keep the remaining rows in
     // logical order when read from the page edge outward.
     if (!vertical && Context->RowCount > 1)
     {
-        LONG selectedRow = -1;
+        LONG selectedRow = LONG_ERROR;
 
         if (Context->SelectedIndex >= 0 && Context->SelectedIndex < (LONG)Context->Items->Count)
         {
@@ -687,7 +726,7 @@ VOID PhTabNewGetItemRectInClient(
  * \param Context A pointer to the tab control context.
  * \param Point The point to test, in client coordinates.
  * \param Flags A pointer to a variable that receives hit-test result flags.
- * \return The index of the tab at the given point, or -1 if no tab is present.
+ * \return The index of the tab at the given point, or LONG_ERROR if no tab is present.
  */
 LONG PhTabNewHitTest(
     _In_ PPH_TABNEW_CONTEXT Context,
@@ -697,7 +736,7 @@ LONG PhTabNewHitTest(
 {
     ULONG i;
     ULONG flags = TNHT_NOWHERE;
-    LONG result = -1;
+    LONG result = LONG_ERROR;
 
     for (i = 0; i < Context->Items->Count; i++)
     {
@@ -758,7 +797,7 @@ LRESULT PhTabNewDispatchNotify(
  *
  * \param Context A pointer to the tab control context.
  * \param Code The notification code.
- * \param ItemIndex The index of the item, or -1.
+ * \param ItemIndex The index of the item, or LONG_ERROR.
  * \return The result of the notification.
  */
 LRESULT PhTabNewSendNotify(
@@ -793,14 +832,16 @@ VOID PhTabNewSendLayoutNotify(
     NMTABNEWLAYOUT nm;
 
     if (Context->LayoutDirty)
+    {
         PhTabNewLayout(Context);
+    }
 
     nm.PageRect = Context->CachedPageRect;
 
     // Translate to parent client coords
     if (Context->ParentHandle)
     {
-        MapWindowPoints(Context->WindowHandle, Context->ParentHandle, (POINT *)&nm.PageRect, 2);
+        MapWindowRect(Context->WindowHandle, Context->ParentHandle, &nm.PageRect);
     }
 
     PhTabNewDispatchNotify(Context, PHTNN_LAYOUT, &nm.Header);
@@ -821,7 +862,7 @@ VOID PhTabNewSetSelection(
 {
     LONG oldIndex = Context->SelectedIndex;
 
-    if (NewIndex < -1 || NewIndex >= (LONG)Context->Items->Count)
+    if (NewIndex < LONG_ERROR || NewIndex >= (LONG)Context->Items->Count)
         return;
 
     if (NewIndex == oldIndex)
@@ -947,7 +988,7 @@ BOOL PhTabNewDeleteItem(
         if (newSel >= (LONG)Context->Items->Count)
             newSel = (LONG)Context->Items->Count - 1;
 
-        Context->SelectedIndex = -1;
+        Context->SelectedIndex = LONG_ERROR;
         PhTabNewSetSelection(Context, newSel, TRUE);
     }
     else if (Context->SelectedIndex > Index)
@@ -956,7 +997,7 @@ BOOL PhTabNewDeleteItem(
     }
 
     if (Context->HotIndex >= (LONG)Context->Items->Count)
-        Context->HotIndex = -1;
+        Context->HotIndex = LONG_ERROR;
 
     Context->LayoutDirty = TRUE;
     PhTabNewLayout(Context);
@@ -1039,7 +1080,193 @@ BOOL PhTabNewMoveItem(
 
 // ---------------------------------------------------------------------------
 // Drag and drop reorder (Ctrl+drag)
+//
+// Uses a ListView-style deferred reorder: while dragging, the underlying item
+// order is left untouched. A floating drag image (built with the ImageList
+// drag API) follows the cursor and an insertion marker shows the drop gap.
+// The reorder is committed once, on drop.
 // ---------------------------------------------------------------------------
+
+/**
+ * Builds a drag image (an ImageList) from the snapshot of a tab.
+ *
+ * \param Context A pointer to the tab control context.
+ * \param ItemIndex The index of the item to snapshot.
+ * \param Hotspot Receives the cursor offset within the tab (drag hotspot).
+ * \param Point The current cursor position, in client coordinates.
+ * \return The created ImageList, or NULL on failure. Caller destroys it.
+ */
+HIMAGELIST PhTabNewCreateDragImage(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _Out_ PPOINT Hotspot,
+    _In_ POINT Point
+    )
+{
+    PPH_TABNEW_INTERNAL_ITEM item;
+    HIMAGELIST imageList = NULL;
+    RECT itemRect;
+    LONG width;
+    LONG height;
+    HDC screenDc;
+    HDC memoryDc;
+    HBITMAP bitmap;
+    HBITMAP oldBitmap;
+    HFONT oldFont;
+
+    Hotspot->x = 0;
+    Hotspot->y = 0;
+
+    if (ItemIndex < 0 || (ULONG)ItemIndex >= Context->Items->Count)
+        return NULL;
+
+    item = Context->Items->Items[ItemIndex];
+    PhTabNewGetItemRectInClient(Context, item, &itemRect);
+
+    width = itemRect.right - itemRect.left;
+    height = itemRect.bottom - itemRect.top;
+
+    if (width <= 0 || height <= 0)
+        return NULL;
+
+    Hotspot->x = Point.x - itemRect.left;
+    Hotspot->y = Point.y - itemRect.top;
+
+    screenDc = GetDC(Context->WindowHandle);
+    memoryDc = CreateCompatibleDC(screenDc);
+    bitmap = CreateCompatibleBitmap(screenDc, width, height);
+    oldBitmap = SelectBitmap(memoryDc, bitmap);
+
+    // Render the tab into the bitmap with its client rect mapped to (0, 0).
+    {
+        RECT localRect = { 0, 0, width, height };
+
+        FillRect(memoryDc, &localRect, Context->ActiveBrush ? Context->ActiveBrush : Context->BackgroundBrush);
+
+        if (Context->OutlinePen)
+        {
+            HPEN oldPen = SelectPen(memoryDc, Context->OutlinePen);
+            HBRUSH oldBrush = SelectBrush(memoryDc, GetStockBrush(NULL_BRUSH));
+            Rectangle(memoryDc, 0, 0, width, height);
+            SelectBrush(memoryDc, oldBrush);
+            SelectPen(memoryDc, oldPen);
+        }
+
+        oldFont = SelectFont(memoryDc, Context->Font ? Context->Font : GetStockFont(DEFAULT_GUI_FONT));
+        PhTabNewDrawItemContent(Context, memoryDc, item, &localRect, PhTabNewTextColor(Context));
+        SelectFont(memoryDc, oldFont);
+    }
+
+    SelectBitmap(memoryDc, oldBitmap);
+    DeleteDC(memoryDc);
+    ReleaseDC(Context->WindowHandle, screenDc);
+
+    imageList = PhImageListCreate(width, height, ILC_COLOR32, 1, 0);
+
+    if (imageList)
+        PhImageListAddBitmap(imageList, bitmap, NULL);
+
+    DeleteBitmap(bitmap);
+
+    return imageList;
+}
+
+/**
+ * Computes the drop gap and insertion-marker rectangle for a cursor position.
+ *
+ * \param Context A pointer to the tab control context.
+ * \param Point The cursor position, in client coordinates.
+ * \param InsertIndex Receives the insertion gap in [0, Items->Count].
+ * \param Marker Receives the insertion-marker rectangle, in client coordinates.
+ */
+VOID PhTabNewComputeDropTarget(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ POINT Point,
+    _Out_ PLONG InsertIndex,
+    _Out_ PRECT Marker
+    )
+{
+    BOOLEAN vertical = (Context->Side == TNS_LEFT || Context->Side == TNS_RIGHT);
+    LONG count = (LONG)Context->Items->Count;
+    LONG gap = count;
+    LONG hot;
+    ULONG flags;
+    PPH_TABNEW_INTERNAL_ITEM refItem;
+    RECT refRect;
+    LONG boundary;
+    LONG half = Context->InsertMarkerWidth > 0 ? Context->InsertMarkerWidth / 2 : PH_TABNEW_PIXEL_OVERLAP;
+
+    PhSetRectEmpty(Marker);
+
+    if (count == 0)
+    {
+        *InsertIndex = 0;
+        return;
+    }
+
+    hot = PhTabNewHitTest(Context, Point, &flags);
+
+    if (hot >= 0)
+    {
+        PPH_TABNEW_INTERNAL_ITEM hotItem = Context->Items->Items[hot];
+        RECT hotRect;
+        LONG mid;
+
+        PhTabNewGetItemRectInClient(Context, hotItem, &hotRect);
+
+        if (vertical)
+        {
+            mid = (hotRect.top + hotRect.bottom) / 2;
+            gap = (Point.y < mid) ? hot : hot + 1;
+        }
+        else
+        {
+            mid = (hotRect.left + hotRect.right) / 2;
+            gap = (Point.x < mid) ? hot : hot + 1;
+        }
+    }
+    else
+    {
+        // Not over a tab: snap to the nearest end on the cursor's row.
+        gap = count;
+    }
+
+    if (gap < 0)
+        gap = 0;
+    if (gap > count)
+        gap = count;
+
+    *InsertIndex = gap;
+
+    // Build the marker rectangle from the adjacent tab.
+    if (gap < count)
+    {
+        refItem = Context->Items->Items[gap];
+        PhTabNewGetItemRectInClient(Context, refItem, &refRect);
+        boundary = vertical ? refRect.top : refRect.left;
+    }
+    else
+    {
+        refItem = Context->Items->Items[count - 1];
+        PhTabNewGetItemRectInClient(Context, refItem, &refRect);
+        boundary = vertical ? refRect.bottom : refRect.right;
+    }
+
+    if (vertical)
+    {
+        Marker->left = refRect.left;
+        Marker->right = refRect.right;
+        Marker->top = boundary - half;
+        Marker->bottom = boundary + half + PH_TABNEW_PIXEL_OVERLAP;
+    }
+    else
+    {
+        Marker->top = refRect.top;
+        Marker->bottom = refRect.bottom;
+        Marker->left = boundary - half;
+        Marker->right = boundary + half + PH_TABNEW_PIXEL_OVERLAP;
+    }
+}
 
 /**
  * Starts a tab reorder drag operation.
@@ -1058,11 +1285,12 @@ VOID PhTabNewBeginDrag(
         return;
 
     Context->DragSourceIndex = ItemIndex;
-    Context->DragTargetIndex = ItemIndex;
+    Context->DragTargetIndex = LONG_ERROR;
     Context->DragOriginIndex = ItemIndex;
     Context->DragStartPoint = Point;
     Context->DragArmed = TRUE;
     Context->DragActive = FALSE;
+    PhSetRectEmpty(&Context->DragInsertMarker);
 
     SetCapture(Context->WindowHandle);
 }
@@ -1078,7 +1306,8 @@ VOID PhTabNewUpdateDrag(
     _In_ POINT Point
     )
 {
-    LONG target;
+    LONG insertIndex;
+    RECT marker;
 
     if (!Context->DragArmed)
         return;
@@ -1087,23 +1316,44 @@ VOID PhTabNewUpdateDrag(
     {
         LONG dx = abs(Point.x - Context->DragStartPoint.x);
         LONG dy = abs(Point.y - Context->DragStartPoint.y);
+        POINT hotspot;
 
         if (dx < GetSystemMetrics(SM_CXDRAG) && dy < GetSystemMetrics(SM_CYDRAG))
             return;
 
         Context->DragActive = TRUE;
-
         PhSetCursor(PhLoadCursor(NULL, IDC_SIZEALL));
+
+        // Build and begin showing the floating drag image.
+        Context->DragImageList = PhTabNewCreateDragImage(Context, Context->DragOriginIndex, &hotspot, Point);
+
+        if (Context->DragImageList)
+        {
+            PhImageListBeginDrag(Context->DragImageList, 0, hotspot.x, hotspot.y);
+            PhImageListDragEnter(Context->WindowHandle, Point.x, Point.y);
+        }
     }
 
-    target = PhTabNewHitTest(Context, Point, NULL);
-    if (target < 0 || target == Context->DragSourceIndex)
-        return;
+    PhTabNewComputeDropTarget(Context, Point, &insertIndex, &marker);
 
-    // Move source toward target
-    PhTabNewMoveItem(Context, Context->DragSourceIndex, target, FALSE);
-    Context->DragSourceIndex = target;
-    Context->DragTargetIndex = target;
+    // Repaint the insertion marker if the gap changed, hiding the drag image
+    // around our own drawing so the ImageList compositor stays consistent.
+    if (insertIndex != Context->DragTargetIndex)
+    {
+        if (Context->DragImageList)
+            PhImageListDragShowNolock(FALSE);
+
+        Context->DragTargetIndex = insertIndex;
+        Context->DragInsertMarker = marker;
+        InvalidateRect(Context->WindowHandle, NULL, FALSE);
+        UpdateWindow(Context->WindowHandle);
+
+        if (Context->DragImageList)
+            PhImageListDragShowNolock(TRUE);
+    }
+
+    if (Context->DragImageList)
+        PhImageListDragMove(Point.x, Point.y);
 }
 
 /**
@@ -1117,26 +1367,47 @@ VOID PhTabNewEndDrag(
     _In_ BOOLEAN Cancel
     )
 {
-    LONG finalIndex = Context->DragSourceIndex;
     LONG originalIndex = Context->DragOriginIndex;
+    LONG insertIndex = Context->DragTargetIndex;
     BOOLEAN wasActive = !!Context->DragActive;
+    LONG finalIndex = originalIndex;
+
+    // Clear the drag state before releasing capture. ReleaseCapture delivers
+    // WM_CAPTURECHANGED synchronously, which re-enters this function; clearing
+    // the flags first makes that reentrant call a no-op instead of a spurious
+    // second teardown.
+    Context->DragArmed = FALSE;
+    Context->DragActive = FALSE;
+
+    // Tear down the floating drag image.
+    if (Context->DragImageList)
+    {
+        PhImageListDragLeave(Context->WindowHandle);
+        PhImageListEndDrag();
+        PhImageListDestroy(Context->DragImageList);
+        Context->DragImageList = NULL;
+    }
 
     if (GetCapture() == Context->WindowHandle)
     {
         ReleaseCapture();
     }
 
-    if (Cancel && originalIndex >= 0 && finalIndex >= 0 && finalIndex != originalIndex)
+    // Commit the reorder once, translating the insertion gap into a final index.
+    if (wasActive && !Cancel && originalIndex >= 0 && insertIndex >= 0)
     {
-        PhTabNewMoveItem(Context, finalIndex, originalIndex, FALSE);
-        finalIndex = originalIndex;
+        LONG target = (insertIndex > originalIndex) ? insertIndex - 1 : insertIndex;
+
+        if (target != originalIndex)
+        {
+            PhTabNewMoveItem(Context, originalIndex, target, FALSE);
+            finalIndex = target;
+        }
     }
 
-    Context->DragArmed = FALSE;
-    Context->DragActive = FALSE;
     PhSetRectEmpty(&Context->DragInsertMarker);
 
-    if (wasActive && !Cancel && finalIndex >= 0 && originalIndex >= 0 && originalIndex != finalIndex)
+    if (wasActive && !Cancel && originalIndex >= 0 && originalIndex != finalIndex)
     {
         NMTABNEWREORDER nm;
 
@@ -1153,9 +1424,9 @@ VOID PhTabNewEndDrag(
     }
 
     InvalidateRect(Context->WindowHandle, NULL, FALSE);
-    Context->DragSourceIndex = -1;
-    Context->DragTargetIndex = -1;
-    Context->DragOriginIndex = -1;
+    Context->DragSourceIndex = LONG_ERROR;
+    Context->DragTargetIndex = LONG_ERROR;
+    Context->DragOriginIndex = LONG_ERROR;
 }
 
 /**
@@ -1275,16 +1546,16 @@ VOID PhTabNewUpdateCachedResources(
     backgroundColor = PhTabNewBackgroundColor(Context);
     activeColor = PhTabNewActiveColor(Context);
     accentColor = Context->ThemeDark ? PhThemeWindowHighlightColor : GetSysColor(COLOR_HIGHLIGHT);
-    hotColor = Context->ThemeDark ? PhThemeWindowHighlightColor : RGB(0xE5, 0xF1, 0xFB);
-    outlineColor = Context->ThemeDark ? RGB(0x55, 0x55, 0x55) : RGB(0xAC, 0xAC, 0xAC);
+    hotColor = Context->ThemeDark ? PhThemeWindowHighlightColor : PH_TABNEW_LIGHT_HOT_COLOR;
+    outlineColor = Context->ThemeDark ? PH_TABNEW_DARK_OUTLINE_COLOR : PH_TABNEW_LIGHT_OUTLINE_COLOR;
 
     Context->BackgroundBrush = CreateSolidBrush(backgroundColor);
     Context->ActiveBrush = CreateSolidBrush(activeColor);
     Context->AccentBrush = CreateSolidBrush(accentColor);
     Context->HotBrush = CreateSolidBrush(hotColor);
-    Context->OutlinePen = CreatePen(PS_SOLID, 1, outlineColor);
-    Context->BackgroundPen = CreatePen(PS_SOLID, 1, backgroundColor);
-    Context->ActivePen = CreatePen(PS_SOLID, 1, activeColor);
+    Context->OutlinePen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, outlineColor);
+    Context->BackgroundPen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, backgroundColor);
+    Context->ActivePen = CreatePen(PS_SOLID, PH_TABNEW_PEN_WIDTH, activeColor);
 }
 
 /**
@@ -1316,14 +1587,15 @@ VOID PhTabNewDrawItemContent(
 
     if (Item->ImageIndex >= 0 && Context->ImageList)
     {
-        ImageList_GetIconSize(Context->ImageList, &iconCx, &iconCy);
-        ImageList_Draw(
+        PhImageListGetIconSize(Context->ImageList, &iconCx, &iconCy);
+        PhImageListDrawIcon(
             Context->ImageList,
             Item->ImageIndex,
             Hdc,
             contentRect.left,
             contentRect.top + ((contentRect.bottom - contentRect.top) - iconCy) / 2,
-            ILD_NORMAL
+            ILD_NORMAL,
+            FALSE
             );
         contentRect.left += iconCx + (LONG)Context->PaddingX;
     }
@@ -1444,7 +1716,7 @@ VOID PhTabNewPaintWin10(
             // Accent indicator
             {
                 RECT accentRect = itemRect;
-                LONG t = 2;
+                LONG t = PH_TABNEW_ACCENT_THICKNESS;
 
                 switch (Context->Side)
                 {
@@ -1485,10 +1757,10 @@ VOID PhTabNewPaintWin7(
     )
 {
     COLORREF text = PhTabNewTextColor(Context);
-    COLORREF inacTop = Context->ThemeDark ? RGB(0x33, 0x33, 0x33) : RGB(0xF5, 0xF5, 0xF5);
-    COLORREF inacBot = Context->ThemeDark ? RGB(0x28, 0x28, 0x28) : RGB(0xE2, 0xE2, 0xE2);
-    COLORREF hotTop  = Context->ThemeDark ? RGB(0x3D, 0x4A, 0x5C) : RGB(0xEA, 0xF6, 0xFD);
-    COLORREF hotBot  = Context->ThemeDark ? RGB(0x2A, 0x36, 0x48) : RGB(0xD9, 0xEE, 0xF7);
+    COLORREF inacTop = Context->ThemeDark ? PH_TABNEW_DARK_INACTIVE_TOP : PH_TABNEW_LIGHT_INACTIVE_TOP;
+    COLORREF inacBot = Context->ThemeDark ? PH_TABNEW_DARK_INACTIVE_BOTTOM : PH_TABNEW_LIGHT_INACTIVE_BOTTOM;
+    COLORREF hotTop  = Context->ThemeDark ? PH_TABNEW_DARK_HOT_TOP : PH_TABNEW_LIGHT_HOT_TOP;
+    COLORREF hotBot  = Context->ThemeDark ? PH_TABNEW_DARK_HOT_BOTTOM : PH_TABNEW_LIGHT_HOT_BOTTOM;
     HPEN oldPen;
     ULONG i;
     LONG selected = Context->SelectedIndex;
@@ -1503,8 +1775,8 @@ VOID PhTabNewPaintWin7(
     {
         PPH_TABNEW_INTERNAL_ITEM item;
         RECT itemRect;
-        TRIVERTEX vert[2];
-        GRADIENT_RECT gRect = { 0, 1 };
+        TRIVERTEX vert[PH_TABNEW_TRIVERTEX_COUNT];
+        GRADIENT_RECT gRect = { PH_TABNEW_GRADIENT_RECT_LOWER, PH_TABNEW_GRADIENT_RECT_UPPER };
         BOOLEAN isHot;
         COLORREF top, bot;
         RECT fillRect;
@@ -1517,17 +1789,17 @@ VOID PhTabNewPaintWin7(
 
         PhTabNewGetItemRectInClient(Context, item, &itemRect);
 
-        // Inactive tabs sit 2 px shorter than the strip so the selected tab
+        // Inactive tabs sit shorter than the strip so the selected tab
         // visually rises above them (classic Aero "raised selected" effect).
-        // The far edge is also inset 1 px so the divider shows through.
+        // The far edge is also inset so the divider shows through.
         fillRect = itemRect;
 
         switch (Context->Side)
         {
-        case TNS_TOP:    fillRect.top += 2; fillRect.bottom -= 1; break;
-        case TNS_BOTTOM: fillRect.bottom -= 2; fillRect.top += 1; break;
-        case TNS_LEFT:   fillRect.left += 2; fillRect.right -= 1; break;
-        case TNS_RIGHT:  fillRect.right -= 2; fillRect.left += 1; break;
+        case TNS_TOP:    fillRect.top += PH_TABNEW_AERO_TAB_INSET; fillRect.bottom -= PH_TABNEW_PIXEL_OVERLAP; break;
+        case TNS_BOTTOM: fillRect.bottom -= PH_TABNEW_AERO_TAB_INSET; fillRect.top += PH_TABNEW_PIXEL_OVERLAP; break;
+        case TNS_LEFT:   fillRect.left += PH_TABNEW_AERO_TAB_INSET; fillRect.right -= PH_TABNEW_PIXEL_OVERLAP; break;
+        case TNS_RIGHT:  fillRect.right -= PH_TABNEW_AERO_TAB_INSET; fillRect.left += PH_TABNEW_PIXEL_OVERLAP; break;
         }
 
         if (isHot)
@@ -1542,22 +1814,22 @@ VOID PhTabNewPaintWin7(
         }
 
         vert[0].x = fillRect.left;  vert[0].y = fillRect.top;
-        vert[0].Red   = (USHORT)(GetRValue(top) << 8);
-        vert[0].Green = (USHORT)(GetGValue(top) << 8);
-        vert[0].Blue  = (USHORT)(GetBValue(top) << 8);
+        vert[0].Red   = (USHORT)(GetRValue(top) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
+        vert[0].Green = (USHORT)(GetGValue(top) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
+        vert[0].Blue  = (USHORT)(GetBValue(top) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
         vert[0].Alpha = 0;
         vert[1].x = fillRect.right; vert[1].y = fillRect.bottom;
-        vert[1].Red   = (USHORT)(GetRValue(bot) << 8);
-        vert[1].Green = (USHORT)(GetGValue(bot) << 8);
-        vert[1].Blue  = (USHORT)(GetBValue(bot) << 8);
+        vert[1].Red   = (USHORT)(GetRValue(bot) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
+        vert[1].Green = (USHORT)(GetGValue(bot) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
+        vert[1].Blue  = (USHORT)(GetBValue(bot) << PH_TABNEW_TRIVERTEX_COLOR_SHIFT);
         vert[1].Alpha = 0;
 
         //GradientFill(
         //    Hdc,
         //    vert,
-        //    2,
+        //    PH_TABNEW_TRIVERTEX_COUNT,
         //    &gRect,
-        //    1,
+        //    PH_TABNEW_PIXEL_OVERLAP,
         //    vertical ? GRADIENT_FILL_RECT_H : GRADIENT_FILL_RECT_V);
 
         // Outline — three edges only (skip the edge adjacent to the divider)
@@ -1829,6 +2101,12 @@ VOID PhTabNewPaint(
         break;
     }
 
+    // Draw the drop insertion marker on top of the strip during a drag.
+    if (Context->DragActive && !PhRectEmpty(&Context->DragInsertMarker))
+    {
+        FillRect(Hdc, &Context->DragInsertMarker, Context->AccentBrush ? Context->AccentBrush : GetSysColorBrush(COLOR_HIGHLIGHT));
+    }
+
     if (Context->StyleFlags & TNS_DRAW_PANEL)
     {
         NMTABNEWDRAWPANEL drawPanel;
@@ -1874,7 +2152,7 @@ static PPH_STRING PhpTabNewSaveLayout(
     PH_STRING_BUILDER stringBuilder;
     ULONG i;
 
-    PhInitializeStringBuilder(&stringBuilder, 0x80);
+    PhInitializeStringBuilder(&stringBuilder, PH_TABNEW_LAYOUT_BUILDER_SIZE);
 
     for (i = 0; i < TabContext->Items->Count; i++)
     {
@@ -2042,7 +2320,7 @@ static PPH_TABNEW_PAGE PhpTabNewAddPage(
 {
     PPH_TABNEW_PAGE page;
     PH_TABNEW_INSERTITEM item;
-    WCHAR nameBuffer[256];
+    WCHAR nameBuffer[PH_TABNEW_PAGE_NAME_LENGTH];
     LONG index;
 
     page = PhAllocateZero(sizeof(PH_TABNEW_PAGE));
@@ -2062,9 +2340,9 @@ static PPH_TABNEW_PAGE PhpTabNewAddPage(
     nameBuffer[min(Name->Length / sizeof(WCHAR), RTL_NUMBER_OF(nameBuffer) - 1)] = 0;
 
     item.Text = nameBuffer;
-    item.ImageIndex = -1;
+    item.ImageIndex = LONG_ERROR;
     item.Param = (LPARAM)page;
-    index = PhTabNewInsertItem(TabContext, -1, &item);
+    index = PhTabNewInsertItem(TabContext, LONG_ERROR, &item);
     page->Index = index;
 
     PhAddItemList(TabContext->Pages, page);
@@ -2260,8 +2538,8 @@ static LRESULT PhpTabNewOnUserMessage(
 
             PhClearList(Context->Items);
 
-            Context->SelectedIndex = -1;
-            Context->HotIndex = -1;
+            Context->SelectedIndex = LONG_ERROR;
+            Context->HotIndex = LONG_ERROR;
             Context->LayoutDirty = TRUE;
 
             PhTabNewLayout(Context);
@@ -2379,7 +2657,7 @@ static LRESULT PhpTabNewOnUserMessage(
     case PHTNM_HITTEST:
         {
             PPH_TABNEW_HITTESTINFO info = (PPH_TABNEW_HITTESTINFO)LParam;
-            if (!info) return -1;
+            if (!info) return LONG_ERROR;
             info->ItemIndex = PhTabNewHitTest(Context, info->Point, &info->Flags);
             return (LRESULT)info->ItemIndex;
         }
@@ -2462,6 +2740,7 @@ static LRESULT PhpTabNewOnUserMessage(
 
             return (LRESULT)PhpTabNewSaveLayout(Context, message->Callback, message->Context);
         }
+        break;
     case PHTNM_RESTORELAYOUT:
         {
             PPH_TABNEW_LAYOUT_MESSAGE message = (PPH_TABNEW_LAYOUT_MESSAGE)LParam;
@@ -2471,6 +2750,7 @@ static LRESULT PhpTabNewOnUserMessage(
 
             return (LRESULT)PhpTabNewRestoreLayout(Context, message->Layout, message->Callback, message->Context);
         }
+        break;
     case PHTNM_ADDPAGE:
         {
             PPH_TABNEW_ADD_PAGE_MESSAGE message = (PPH_TABNEW_ADD_PAGE_MESSAGE)LParam;
@@ -2480,6 +2760,7 @@ static LRESULT PhpTabNewOnUserMessage(
 
             return (LRESULT)PhpTabNewAddPage(Context, message->Name, message->Flags, message->Callback, message->Context);
         }
+        break;
     case PHTNM_FINDPAGE:
         {
             PPH_STRINGREF name = (PPH_STRINGREF)LParam;
@@ -2489,6 +2770,7 @@ static LRESULT PhpTabNewOnUserMessage(
 
             return (LRESULT)PhpTabNewFindPage(Context, name);
         }
+        break;
     case PHTNM_GETPAGEBYINDEX:
         return (LRESULT)PhpTabNewGetPageByIndex(Context, (LONG)WParam);
     case PHTNM_NOTIFYPAGES:
@@ -2524,8 +2806,8 @@ static LRESULT PhpTabNewOnUserMessage(
 
             PhClearList(Context->Items);
 
-            Context->SelectedIndex = -1;
-            Context->HotIndex = -1;
+            Context->SelectedIndex = LONG_ERROR;
+            Context->HotIndex = LONG_ERROR;
             Context->LayoutDirty = TRUE;
 
             PhTabNewLayout(Context);
@@ -2539,10 +2821,11 @@ static LRESULT PhpTabNewOnUserMessage(
 
             PH_TABNEW_INSERTITEM ins;
             ins.Text = (tci && (tci->mask & TCIF_TEXT)) ? tci->pszText : L"";
-            ins.ImageIndex = (tci && (tci->mask & TCIF_IMAGE)) ? tci->iImage : -1;
+            ins.ImageIndex = (tci && (tci->mask & TCIF_IMAGE)) ? tci->iImage : LONG_ERROR;
             ins.Param = (tci && (tci->mask & TCIF_PARAM)) ? tci->lParam : 0;
             return (LRESULT)PhTabNewInsertItem(Context, (LONG)WParam, &ins);
         }
+        break;
     case TCM_ADJUSTRECT:
         {
             PRECT rc = (PRECT)LParam;
@@ -2681,7 +2964,6 @@ LRESULT CALLBACK PhTabNewWndProc(
             context->Side = style & TNS_SIDE_MASK;
             context->StyleFlags = style & ~TNS_SIDE_MASK;
             context->WindowDpi = PhGetWindowDpi(WindowHandle);
-            // TNS_REORDER is on by default
             context->StyleFlags |= TNS_REORDER;
 
             if (cs->lpCreateParams)
@@ -2715,7 +2997,6 @@ LRESULT CALLBACK PhTabNewWndProc(
         }
         break;
     case WM_ERASEBKGND:
-        // Suppress background erasure; WM_PAINT renders the entire control using a buffer.
         return TRUE;
     case WM_PAINT:
         {
@@ -2779,6 +3060,7 @@ LRESULT CALLBACK PhTabNewWndProc(
         break;
     case WM_THEMECHANGED:
     case WM_SETTINGCHANGE:
+    case WM_SYSCOLORCHANGE:
         {
             PhTabNewUpdateTheme(context);
             PhTabNewUpdateCachedResources(context);
@@ -2848,9 +3130,9 @@ LRESULT CALLBACK PhTabNewWndProc(
         {
             context->TrackingMouse = FALSE;
 
-            if (context->HotIndex != -1)
+            if (context->HotIndex != LONG_ERROR)
             {
-                context->HotIndex = -1;
+                context->HotIndex = LONG_ERROR;
                 InvalidateRect(WindowHandle, NULL, FALSE);
             }
         }
@@ -2925,11 +3207,109 @@ LRESULT CALLBACK PhTabNewWndProc(
             PhTabNewSendNotify(context, PHTNN_RCLICK, hit);
         }
         break;
+    case WM_GETDLGCODE:
+        {
+            PMSG message = (PMSG)lParam;
+
+            if (message && message->message == WM_KEYDOWN)
+            {
+                switch (message->wParam)
+                {
+                case VK_TAB:
+                    if (GetKeyState(VK_CONTROL) < 0)
+                        return DLGC_WANTMESSAGE;
+                    break;
+                case VK_HOME:
+                case VK_END:
+                    return DLGC_WANTARROWS | DLGC_WANTMESSAGE;
+                }
+            }
+
+            return DLGC_WANTARROWS;
+        }
     case WM_KEYDOWN:
         {
+            BOOLEAN handled = FALSE;
+            LONG count;
+            LONG newIndex;
+
             if (wParam == VK_ESCAPE && (context->DragArmed || context->DragActive))
             {
                 PhTabNewEndDrag(context, TRUE);
+                return 0;
+            }
+
+            count = (LONG)context->Items->Count;
+
+            if (count <= 0)
+                break;
+
+            newIndex = context->SelectedIndex;
+
+            switch (wParam)
+            {
+            case VK_TAB:
+                if (GetKeyState(VK_CONTROL) < 0)
+                {
+                    handled = TRUE;
+
+                    if (GetKeyState(VK_SHIFT) < 0)
+                    {
+                        if (newIndex > 0)
+                            newIndex--;
+                        else
+                            newIndex = count - 1;
+                    }
+                    else
+                    {
+                        if (newIndex >= 0 && newIndex < count - 1)
+                            newIndex++;
+                        else
+                            newIndex = 0;
+                    }
+                }
+                break;
+            case VK_LEFT:
+            case VK_UP:
+                handled = TRUE;
+
+                if (newIndex > 0)
+                    newIndex--;
+                else
+                    newIndex = count - 1;
+                break;
+            case VK_RIGHT:
+            case VK_DOWN:
+                handled = TRUE;
+
+                if (newIndex >= 0 && newIndex < count - 1)
+                    newIndex++;
+                else
+                    newIndex = 0;
+                break;
+            case VK_HOME:
+                handled = TRUE;
+                newIndex = 0;
+                break;
+            case VK_END:
+                handled = TRUE;
+                newIndex = count - 1;
+                break;
+            default:
+                break;
+            }
+
+            if (handled)
+            {
+                if (newIndex != context->SelectedIndex)
+                {
+                    PhTabNewSetSelection(context, newIndex, TRUE);
+
+                    if (IsWindow(WindowHandle))
+                        SetFocus(WindowHandle);
+                }
+
+                return 0;
             }
         }
         break;
