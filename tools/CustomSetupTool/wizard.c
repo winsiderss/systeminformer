@@ -23,9 +23,10 @@
 #define IDC_PROPSHEET_DIVIDER       0x3026
 #define IDC_PROPSHEET_TOPDIVIDER    0x3027
 
-#define SETUP_WIZARD_INSTALL_PAGE_INDEX 2
-#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 3
-#define SETUP_WIZARD_ERROR_PAGE_INDEX 4
+#define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 2
+#define SETUP_WIZARD_INSTALL_PAGE_INDEX 3
+#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 4
+#define SETUP_WIZARD_ERROR_PAGE_INDEX 5
 
 typedef BOOL (WINAPI* SETUP_SHOULDAPPSUSEDARKMODE)(VOID);
 typedef BOOL (WINAPI* SETUP_ALLOWDARKMODEFORWINDOW)(_In_ HWND WindowHandle, _In_ BOOL Allow);
@@ -315,7 +316,7 @@ VOID SetupPaintDarkButton(
         if (focused)
         {
             RECT focusRect = CustomDraw->rc;
-            InflateRect(&focusRect, -3, -3);
+            PhInflateRect(&focusRect, -3, -3);
             //DrawFocusRect(DcHandle, &focusRect);
         }
 
@@ -1123,6 +1124,7 @@ VOID SetupSetWizardButtons(
     parentWindowHandle = GetParent(WindowHandle);
     PropSheet_SetWizButtons(parentWindowHandle, Buttons);
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_BACK, L"< &Back");
+    SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_NEXT, L"&Next >");
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_BACK, ShowBack);
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_NEXT, ShowNext);
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
@@ -1537,6 +1539,150 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
                         SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
+
+                    if (context->SetupMode == SetupCommandInstall)
+                    {
+                        PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_INSTALL_PAGE_INDEX);
+                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                        return TRUE;
+                    }
+                }
+                break;
+            }
+        }
+        break;
+    case WM_DPICHANGED:
+    case WM_DPICHANGED_AFTERPARENT:
+        SetupRedrawEditBorder(WindowHandle);
+        break;
+    case WM_ERASEBKGND:
+        if (SetupWizardDarkMode)
+        {
+            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+            return TRUE;
+        }
+        break;
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLOREDIT:
+        if (SetupWizardDarkMode)
+            return SetupHandleDarkControlColor(wParam, lParam);
+        break;
+    case WM_NCDESTROY:
+        SetupDestroyWizardPage(WindowHandle);
+        break;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Dialog procedure for the wizard uninstall page.
+ *
+ * \param WindowHandle The dialog window handle.
+ * \param uMsg The window message.
+ * \param wParam Additional message information.
+ * \param lParam Additional message information.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
+INT_PTR CALLBACK SetupUninstallPageDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_SETUP_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
+        context = (PPH_SETUP_CONTEXT)page->lParam;
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
+        SetupApplyDarkModeToPage(WindowHandle);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+            LRESULT result;
+
+            result = SetupHandleControlCustomDraw((LPNMCUSTOMDRAW)lParam);
+
+            if (result != CDRF_DODEFAULT)
+            {
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, result);
+                return TRUE;
+            }
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                {
+                    SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
+                    SetupSetWizardButtonText(context->ParentWindowHandle, IDC_PROPSHEET_NEXT, L"&Uninstall");
+
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        Button_SetElevationRequiredState(GetDlgItem(context->ParentWindowHandle, IDC_PROPSHEET_NEXT), TRUE);
+                    }
+                }
+                break;
+            case PSN_QUERYCANCEL:
+                return !SetupCancelWizard(WindowHandle, context);
+            case PSN_WIZNEXT:
+                {
+#ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
+                    if (!PhGetOwnTokenAttributes().Elevated)
+                    {
+                        NTSTATUS status;
+                        PPH_STRING applicationFileName;
+                        PH_STRINGREF applicationCommandLine;
+
+                        if (NT_SUCCESS(status = PhGetProcessCommandLineStringRef(&applicationCommandLine)))
+                        {
+                            if (applicationFileName = PhGetApplicationFileNameWin32())
+                            {
+                                status = PhShellExecuteEx(
+                                    NULL,
+                                    PhGetString(applicationFileName),
+                                    PhGetStringRefZ(&applicationCommandLine),
+                                    NULL,
+                                    SW_SHOW,
+                                    PH_SHELL_EXECUTE_ADMIN,
+                                    0,
+                                    NULL
+                                    );
+
+                                if (NT_SUCCESS(status))
+                                {
+                                    PhExitApplication(status);
+                                }
+                                else
+                                {
+                                    PhShowStatus(NULL, L"Unable to restart the application.", status, 0);
+                                }
+
+                                PhDereferenceObject(applicationFileName);
+                            }
+                        }
+
+                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
+                        return TRUE;
+                    }
+#endif
                 }
                 break;
             }
@@ -1593,6 +1739,11 @@ VOID SetupStartWizardProgress(
 
     switch (Context->SetupMode)
     {
+    case SetupCommandUninstall:
+        {
+            PhCreateThread2(SetupUninstallBuild, Context);
+        }
+        break;
     case SetupCommandUpdate:
         {
             PhCreateThread2(SetupUpdateBuild, Context);
@@ -1642,6 +1793,12 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
         SendMessage(GetDlgItem(WindowHandle, IDC_PROGRESS), PBM_SETMARQUEE, TRUE, 0);
+
+        if (context->SetupMode == SetupCommandUninstall)
+        {
+            PhSetDialogItemText(WindowHandle, IDC_TITLE, L"Uninstalling");
+            PhSetDialogItemText(WindowHandle, IDC_SUBTITLE, L"Please wait while Setup removes System Informer from your computer.");
+        }
 
         if (context->SetupMode == SetupCommandUpdate)
         {
@@ -1701,6 +1858,11 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
     case SETUP_SHOWUPDATEFINAL:
         {
             SetupExecuteApplication(context);
+            PropSheet_PressButton(context->ParentWindowHandle, PSBTN_FINISH);
+        }
+        break;
+    case SETUP_SHOWUNINSTALLFINAL:
+        {
             PropSheet_PressButton(context->ParentWindowHandle, PSBTN_FINISH);
         }
         break;
@@ -1933,7 +2095,10 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZBACK:
-                PropSheet_SetCurSel(context->ParentWindowHandle, NULL, 0);
+                if (context->SetupMode == SetupCommandUninstall)
+                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_UNINSTALL_PAGE_INDEX);
+                else
+                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, 0);
                 SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                 return TRUE;
             }
@@ -2160,7 +2325,7 @@ VOID SetupShowWizard(
     )
 {
     LONG dpiValue;
-    PROPSHEETPAGE pages[5];
+    PROPSHEETPAGE pages[6];
     PROPSHEETHEADER header;
 
     dpiValue = PhGetMonitorDpi(NULL, NULL);
@@ -2215,23 +2380,30 @@ VOID SetupShowWizard(
     pages[2].dwSize = sizeof(PROPSHEETPAGE);
     pages[2].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[2].hInstance = PhInstanceHandle;
-    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_INSTALL);
-    pages[2].pfnDlgProc = SetupInstallPageDlgProc;
+    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL);
+    pages[2].pfnDlgProc = SetupUninstallPageDlgProc;
     pages[2].lParam = (LPARAM)Context;
 
     pages[3].dwSize = sizeof(PROPSHEETPAGE);
     pages[3].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[3].hInstance = PhInstanceHandle;
-    pages[3].pszTemplate = MAKEINTRESOURCE(IDD_COMPLETED);
-    pages[3].pfnDlgProc = SetupCompletedPageDlgProc;
+    pages[3].pszTemplate = MAKEINTRESOURCE(IDD_INSTALL);
+    pages[3].pfnDlgProc = SetupInstallPageDlgProc;
     pages[3].lParam = (LPARAM)Context;
 
     pages[4].dwSize = sizeof(PROPSHEETPAGE);
     pages[4].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[4].hInstance = PhInstanceHandle;
-    pages[4].pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
-    pages[4].pfnDlgProc = SetupErrorPageDlgProc;
+    pages[4].pszTemplate = MAKEINTRESOURCE(IDD_COMPLETED);
+    pages[4].pfnDlgProc = SetupCompletedPageDlgProc;
     pages[4].lParam = (LPARAM)Context;
+
+    pages[5].dwSize = sizeof(PROPSHEETPAGE);
+    pages[5].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
+    pages[5].hInstance = PhInstanceHandle;
+    pages[5].pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
+    pages[5].pfnDlgProc = SetupErrorPageDlgProc;
+    pages[5].lParam = (LPARAM)Context;
 
     memset(&header, 0, sizeof(PROPSHEETHEADER));
     header.dwSize = sizeof(PROPSHEETHEADER);
@@ -2247,7 +2419,11 @@ VOID SetupShowWizard(
     header.nPages = ARRAYSIZE(pages);
     header.ppsp = pages;
 
-    if (Context->SetupMode == SetupCommandUpdate)
+    if (Context->SetupMode == SetupCommandUninstall)
+    {
+        header.nStartPage = SETUP_WIZARD_UNINSTALL_PAGE_INDEX;
+    }
+    else if (Context->SetupMode == SetupCommandUpdate)
     {
         header.nStartPage = SETUP_WIZARD_INSTALL_PAGE_INDEX;
     }

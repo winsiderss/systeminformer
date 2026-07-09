@@ -1133,14 +1133,7 @@ VOID PvInitializeDirectoryTree(
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_SSDEEP, TRUE, L"SSDEEP", 80, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_SSDEEP, 0, 0);
     PhAddTreeNewColumnEx2(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_TLSH, TRUE, L"TLSH", 80, PH_ALIGN_LEFT, PV_DIRECTORY_TREE_COLUMN_ITEM_TLSH, 0, 0);
 
-    {
-        ULONG treelistCustomRowSize = PhGetIntegerSetting(L"TreeListCustomRowSize");
-
-        if (treelistCustomRowSize && treelistCustomRowSize < 15)
-            treelistCustomRowSize = 15;
-
-        TreeNew_SetRowHeight(Context->TreeNewHandle, treelistCustomRowSize);
-    }
+    TreeNew_SetRowHeight(Context->TreeNewHandle, PvpGetTreeNewRowHeight());
 
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, PV_DIRECTORY_TREE_COLUMN_ITEM_INDEX, AscendingSortOrder);

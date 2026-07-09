@@ -93,10 +93,11 @@ typedef struct _PH_TABNEW_CONTEXT
     LONG InsertMarkerWidth;    // effective (DPI-scaled)
 
     LONG DragSourceIndex;
-    LONG DragTargetIndex;
+    LONG DragTargetIndex;   // insertion gap [0, Items->Count], -1 when none
     LONG DragOriginIndex;
     POINT DragStartPoint;
-    RECT DragInsertMarker;
+    RECT DragInsertMarker;  // in client coords; empty when not shown
+    HIMAGELIST DragImageList;
 
     RECT CachedPageRect;       // last computed, in client coords
 } PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
@@ -105,6 +106,33 @@ typedef struct _PH_TABNEW_CONTEXT
 #define PH_TABNEW_DEFAULT_PADDING_X     10
 #define PH_TABNEW_DEFAULT_PADDING_Y     6
 #define PH_TABNEW_INSERT_MARKER_WIDTH   3
+#define PH_TABNEW_INITIAL_LIST_CAPACITY 8
+#define PH_TABNEW_DEFAULT_FONT_HEIGHT   -11
+#define PH_TABNEW_DARK_THEME_BRIGHTNESS 128
+#define PH_TABNEW_ROW_STACK_COUNT       32
+#define PH_TABNEW_PEN_WIDTH             1
+#define PH_TABNEW_ACCENT_THICKNESS      2
+#define PH_TABNEW_AERO_TAB_INSET        2
+#define PH_TABNEW_PIXEL_OVERLAP         1
+#define PH_TABNEW_LAYOUT_BUILDER_SIZE   0x80
+#define PH_TABNEW_PAGE_NAME_LENGTH      256
+#define PH_TABNEW_LAYOUT_DECIMAL_RADIX  10
+#define PH_TABNEW_TRIVERTEX_COLOR_SHIFT 8
+#define PH_TABNEW_TRIVERTEX_COUNT       2
+#define PH_TABNEW_GRADIENT_RECT_LOWER   0
+#define PH_TABNEW_GRADIENT_RECT_UPPER   1
+
+#define PH_TABNEW_LIGHT_HOT_COLOR       RGB(0xE5, 0xF1, 0xFB)
+#define PH_TABNEW_LIGHT_OUTLINE_COLOR   RGB(0xAC, 0xAC, 0xAC)
+#define PH_TABNEW_DARK_OUTLINE_COLOR    RGB(0x55, 0x55, 0x55)
+#define PH_TABNEW_DARK_INACTIVE_TOP     RGB(0x33, 0x33, 0x33)
+#define PH_TABNEW_DARK_INACTIVE_BOTTOM  RGB(0x28, 0x28, 0x28)
+#define PH_TABNEW_LIGHT_INACTIVE_TOP    RGB(0xF5, 0xF5, 0xF5)
+#define PH_TABNEW_LIGHT_INACTIVE_BOTTOM RGB(0xE2, 0xE2, 0xE2)
+#define PH_TABNEW_DARK_HOT_TOP          RGB(0x3D, 0x4A, 0x5C)
+#define PH_TABNEW_DARK_HOT_BOTTOM       RGB(0x2A, 0x36, 0x48)
+#define PH_TABNEW_LIGHT_HOT_TOP         RGB(0xEA, 0xF6, 0xFD)
+#define PH_TABNEW_LIGHT_HOT_BOTTOM      RGB(0xD9, 0xEE, 0xF7)
 
 LRESULT CALLBACK PhTabNewWndProc(
     _In_ HWND WindowHandle,
@@ -196,6 +224,20 @@ VOID PhTabNewUpdateFont(
 
 VOID PhTabNewUpdateTheme(
     _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+HIMAGELIST PhTabNewCreateDragImage(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _Out_ PPOINT Hotspot,
+    _In_ POINT Point
+    );
+
+VOID PhTabNewComputeDropTarget(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ POINT Point,
+    _Out_ PLONG InsertIndex,
+    _Out_ PRECT Marker
     );
 
 VOID PhTabNewBeginDrag(
