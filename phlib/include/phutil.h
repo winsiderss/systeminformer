@@ -2822,10 +2822,10 @@ PhDevCloseObjectQuery(
     _In_ HDEVQUERY QueryHandle
     );
 
-#define PH_DEVKEY_HARDWARE        (0x00000000)
-#define PH_DEVKEY_SOFTWARE        (0x00000001)
-#define PH_DEVKEY_USER            (0x00000100)
-#define PH_DEVKEY_CONFIG          (0x00000200)
+#define PH_DEVKEY_HARDWARE        (0x00000001)
+#define PH_DEVKEY_SOFTWARE        (0x00000002)
+#define PH_DEVKEY_USER            (0x00000004)
+#define PH_DEVKEY_CONFIG          (0x00000008)
 
 PHLIBAPI
 NTSTATUS

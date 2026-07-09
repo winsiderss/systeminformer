@@ -649,7 +649,7 @@ BOOLEAN HardwareDeviceOpenKey(
 
         if (bestObjectName)
         {
-            // HKLM\SYSTEM\ControlSet\Control\Class\ += DEVPKEY_Device_Driver
+            PhMoveReference(&bestObjectName, PhFormatNativeKeyName(bestObjectName));
             PhShellOpenKey2(ParentWindow, bestObjectName);
             PhDereferenceObject(bestObjectName);
         }

@@ -190,11 +190,13 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
+            PvConfigListViewFont(WindowHandle, context->ListViewHandle);
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"View");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 60, L"Type");
             PhAddListViewColumn(context->ListViewHandle, 2, 2, 2, LVCFMT_LEFT, 100, L"Start");
             PhAddListViewColumn(context->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"End");
             PhSetExtendedListView(context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageMappingsListViewColumns", context->ListViewHandle);
             PvConfigTreeBorders(context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
@@ -218,6 +220,8 @@ INT_PTR CALLBACK PvpMappingsDlgProc(
         break;
     case WM_DESTROY:
         {
+            PhSaveListViewColumnsToSetting(L"ImageMappingsListViewColumns", context->ListViewHandle);
+
             PhDeleteLayoutManager(&context->LayoutManager);
 
             PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);

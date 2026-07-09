@@ -5698,6 +5698,54 @@ BOOLEAN PhImageListSetIconSize(
     return SUCCEEDED(IImageList2_SetIconSize((IImageList2*)ImageListHandle, cx, cy));
 }
 
+BOOLEAN PhImageListBeginDrag(
+    _In_ HIMAGELIST ImageListHandle,
+    _In_ LONG Track,
+    _In_ LONG HotspotX,
+    _In_ LONG HotspotY
+    )
+{
+    return !!ImageList_BeginDrag(ImageListHandle, Track, HotspotX, HotspotY);
+}
+
+BOOLEAN PhImageListDragEnter(
+    _In_ HWND LockWindowHandle,
+    _In_ LONG x,
+    _In_ LONG y
+    )
+{
+    return !!ImageList_DragEnter(LockWindowHandle, x, y);
+}
+
+BOOLEAN PhImageListDragShowNolock(
+    _In_ BOOLEAN Show
+    )
+{
+    return !!ImageList_DragShowNolock(Show);
+}
+
+BOOLEAN PhImageListDragMove(
+    _In_ LONG x,
+    _In_ LONG y
+    )
+{
+    return !!ImageList_DragMove(x, y);
+}
+
+BOOLEAN PhImageListDragLeave(
+    _In_ HWND LockWindowHandle
+    )
+{
+    return !!ImageList_DragLeave(LockWindowHandle);
+}
+
+VOID PhImageListEndDrag(
+    VOID
+    )
+{
+    ImageList_EndDrag();
+}
+
 static const PH_FLAG_MAPPING PhpInitiateShutdownMappings[] =
 {
     { PH_SHUTDOWN_RESTART, SHUTDOWN_RESTART },

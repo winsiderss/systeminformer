@@ -941,9 +941,8 @@ BOOLEAN NTAPI DeviceTreeCallback(
                             {
                                 PPH_DEVICE_PROPERTY deviceId = PhGetDeviceProperty(deviceItem, PhDevicePropertyMatchingDeviceId);
                                 PPH_STRING searchId = NULL;
-
-                                if (deviceId->Valid && deviceId->StringList && deviceId->StringList->Count > 0)
-                                    searchId = deviceId->StringList->Items[0];
+                                if (deviceId->Valid && !PhIsNullOrEmptyString(deviceId->String))
+                                    searchId = deviceId->String;
                                 else
                                     searchId = deviceItem->InstanceId;
 

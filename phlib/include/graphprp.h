@@ -23,7 +23,7 @@ EXTERN_C_START
 // Host flags
 #define PH_PROPSHEETNEW_RESIZABLE        0x00000001  // WS_THICKFRAME + min-size enforcement
 #define PH_PROPSHEETNEW_MODELESS         0x00000002  // PhPropSheetNewShow returns the host hwnd immediately
-#define PH_PROPSHEETNEW_CENTER           0x00000004  // center on parent on first show
+#define PH_PROPSHEETNEW_CENTER           0x00000004  // center on parent when RestoreState doesn't position the host
 #define PH_PROPSHEETNEW_NOICON           0x00000008  // suppress WM_SETICON
 #define PH_PROPSHEETNEW_SAVE_PLACEMENT   0x00000010  // honour SettingNamePosition / SettingNameSize
 #define PH_PROPSHEETNEW_SAVE_ACTIVE_PAGE 0x00000020  // honour SettingNameActivePage
@@ -40,8 +40,8 @@ typedef enum _PH_PROPSHEETNEW_LAYOUT
 
 typedef struct _PH_PROPSHEETNEW_PAGE
 {
-    PCWSTR Id;                     // stable persistence key; Name is used when NULL
-    PCWSTR Name;                   // tab label; also used as the persistence key for SAVE_ACTIVE_PAGE
+    PCWSTR Id;                     // stable caller-defined page key; Name is used when NULL
+    PCWSTR Name;                   // tab label
     PVOID Instance;                // HINSTANCE for the dialog template
     PCWSTR Template;               // MAKEINTRESOURCE(IDD_*) or pointer
     DLGPROC DialogProc;
