@@ -782,15 +782,29 @@ NTSTATUS UpdateCheckSilentThread(
                     NULL
                     )))
                 {
-                    // We have data we're going to cache and pass into the dialog
+                    // Keep the update data alive for the notification or dialog path.
                     context->HaveData = TRUE;
+
+                    if (PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS) && UpdaterShowAvailableToast(context))
+                    {
+                        PhDereferenceObject(context);
+                        goto CleanupExit;
+                    }
+
                     ShowUpdateDialog(context);
                 }
             }
             else
             {
-                // We have data we're going to cache and pass into the dialog
+                // Keep the update data alive for the notification or dialog path.
                 context->HaveData = TRUE;
+
+                if (PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS) && UpdaterShowAvailableToast(context))
+                {
+                    PhDereferenceObject(context);
+                    goto CleanupExit;
+                }
+
                 // Show the dialog asynchronously on a new thread.
                 ShowUpdateDialog(context);
             }
@@ -1461,15 +1475,6 @@ VOID ShowUpdateDialog(
     _In_opt_ PPH_UPDATER_CONTEXT Context
     )
 {
-    if (Context && Context->HaveData && PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS))
-    {
-        if (UpdaterShowAvailableToast(Context))
-        {
-            PhDereferenceObject(Context);
-            return;
-        }
-    }
-
     if (!UpdateDialogThreadHandle)
     {
         if (!NT_SUCCESS(PhCreateThreadEx(&UpdateDialogThreadHandle, ShowUpdateDialogThread, Context)))
@@ -1527,7 +1532,7 @@ VOID ShowStartupUpdateDialog(
     {
         PVOID jsonObject;
 
-        if (NT_SUCCESS(PhCreateJsonParserEx(&jsonObject, jsonString, TRUE)))
+        if (NT_SUCCESS(PhCreateJsonParserEx(&jsonObject, jsonString, FALSE)))
         {
             ULONG majorVersion;
             ULONG minorVersion;
