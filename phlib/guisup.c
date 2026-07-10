@@ -3558,8 +3558,15 @@ PVOID PhGetWindowContextEx(
 #if defined(PHNT_WINDOW_CLASS_CONTEXT)
     return PhGetWindowContext(WindowHandle, MAXCHAR);
 #else
+    LONG_PTR context;
+
     //assert(GetClassLongPtr(WindowHandle, GCL_CBWNDEXTRA) == sizeof(PVOID));
-    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, 0));
+    context = GetWindowLongPtr(WindowHandle, 0);
+
+    if (!context)
+        return NULL;
+
+    return PhDecodePtr((PVOID)context);
 #endif
 }
 
@@ -3613,7 +3620,14 @@ PVOID PhGetDialogContext(
 #if defined(PHNT_WINDOW_CLASS_CONTEXT)
     return PhGetWindowContext(WindowHandle, MAXCHAR);
 #else
-    return PhDecodePtr((PVOID)GetWindowLongPtr(WindowHandle, DWLP_USER));
+    LONG_PTR context;
+
+    context = GetWindowLongPtr(WindowHandle, DWLP_USER);
+
+    if (!context)
+        return NULL;
+
+    return PhDecodePtr((PVOID)context);
 #endif
 }
 

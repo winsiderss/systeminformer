@@ -103,12 +103,6 @@ VOID ShowUpdateInstallDialog(
     };
     TASKDIALOGCONFIG config;
 
-    if (PhGetIntegerSetting(SETTING_NAME_TOAST_NOTIFICATIONS))
-    {
-        if (UpdaterShowReadyToInstallToast(Context))
-            return;
-    }
-
     memset(&config, 0, sizeof(TASKDIALOGCONFIG));
     config.cbSize = sizeof(TASKDIALOGCONFIG);
     config.dwFlags = TDF_USE_HICON_MAIN | TDF_ALLOW_DIALOG_CANCELLATION | TDF_CAN_BE_MINIMIZED;

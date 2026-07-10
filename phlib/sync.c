@@ -635,6 +635,7 @@ VOID FASTCALL PhfEndInitOnce(
 
 typeof(&NtCreateWaitCompletionPacket) NtCreateWaitCompletionPacket_I = NULL;
 typeof(&NtAssociateWaitCompletionPacket) NtAssociateWaitCompletionPacket_I = NULL;
+typeof(&NtCancelWaitCompletionPacket) NtCancelWaitCompletionPacket_I = NULL;
 
 BOOLEAN PhInitializeWaitCompletionImports(
     VOID
@@ -650,6 +651,7 @@ BOOLEAN PhInitializeWaitCompletionImports(
         {
             NtCreateWaitCompletionPacket_I = (typeof(&NtCreateWaitCompletionPacket))PhGetDllBaseProcedureAddress(baseAddress, "NtCreateWaitCompletionPacket", 0);
             NtAssociateWaitCompletionPacket_I = (typeof(&NtAssociateWaitCompletionPacket))PhGetDllBaseProcedureAddress(baseAddress, "NtAssociateWaitCompletionPacket", 0);
+            NtCancelWaitCompletionPacket_I = (typeof(&NtCancelWaitCompletionPacket))PhGetDllBaseProcedureAddress(baseAddress, "NtCancelWaitCompletionPacket", 0);
         }
 
         PhEndInitOnce(&initOnce);
@@ -734,6 +736,28 @@ NTSTATUS PhAssociateWaitCompletionPacket(
         );
 }
 
+/**
+ * Cancels a wait completion packet.
+ *
+ * \param WaitCompletionPacketHandle A handle to the wait completion packet.
+ * \param RemoveSignaledPacket Whether to remove an already signaled packet from the target queue.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/devnotes/ntcancelwaitcompletionpacket
+ */
+NTSTATUS PhCancelWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
+    )
+{
+    if (!PhInitializeWaitCompletionImports() || !NtCancelWaitCompletionPacket_I)
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    return NtCancelWaitCompletionPacket_I(
+        WaitCompletionPacketHandle,
+        RemoveSignaledPacket
+        );
+}
+
 //
 // After a wait completion packet fires it is consumed and stops monitoring
 // its target. For WaitAll across auto-reset events / semaphores this means
@@ -771,7 +795,7 @@ static NTSTATUS PhpReassociateWaitCompletionPacket(
     status = PhCreateWaitCompletionPacket(
         &newPacket,
         WAIT_COMPLETION_PACKET_ALL_ACCESS
-    );
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -785,7 +809,7 @@ static NTSTATUS PhpReassociateWaitCompletionPacket(
         STATUS_SUCCESS,
         STATUS_SUCCESS,
         &alreadySignaled
-    );
+        );
 
     if (!NT_SUCCESS(status))
     {
@@ -1178,7 +1202,7 @@ CleanupExit:
         {
             if (waitPacketHandles[i])
             {
-                NtCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
+                PhCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
                 NtClose(waitPacketHandles[i]);
             }
         }
@@ -1364,7 +1388,7 @@ CleanupExit:
         {
             if (waitPacketHandles[i])
             {
-                NtCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
+                PhCancelWaitCompletionPacket(waitPacketHandles[i], TRUE);
                 NtClose(waitPacketHandles[i]);
             }
         }

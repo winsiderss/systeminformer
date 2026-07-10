@@ -105,11 +105,30 @@ VOID UpdaterLaunchInstaller(
     // Launch the cached installer; mirrors the IDYES path in
     // FinalTaskDialogCallbackProc (page5.c). NULL parent because there is
     // no active dialog window in the toast flow.
+    Context->ElevationRequired = !!UpdateCheckDirectoryElevationRequired();
+
+#ifdef FORCE_ELEVATION_CHECK
+    Context->ElevationRequired = TRUE;
+#endif
+
     if (!NT_SUCCESS(UpdateShellExecute(Context, NULL)))
     {
         // Re-emit the ready-to-install toast on failure so the user can
         // try again. UpdateShellExecute already surfaces UAC errors.
     }
+}
+
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI UpdaterToastInstallThread(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_UPDATER_CONTEXT updaterContext = (PPH_UPDATER_CONTEXT)Parameter;
+
+    UpdaterLaunchInstaller(updaterContext);
+
+    PhDereferenceObject(updaterContext);
+    return STATUS_SUCCESS;
 }
 
 VOID UpdaterUpdateProgressToast(
@@ -342,9 +361,16 @@ VOID NTAPI UpdaterReadyToInstallToastCallback(
     updaterContext = toastContext->UpdaterContext;
 
     if (Reason == PhToastReasonAction &&
-        UpdaterToastActionMatches(Arguments, UPDATER_TOAST_ACTION_INSTALL))
+        (!Arguments || !Arguments[0] ||
+        UpdaterToastActionMatches(Arguments, UPDATER_TOAST_ACTION_INSTALL)))
     {
-        UpdaterLaunchInstaller(updaterContext);
+        PhReferenceObject(updaterContext); // released by UpdaterToastInstallThread
+
+        if (!NT_SUCCESS(PhCreateThread2(UpdaterToastInstallThread, updaterContext)))
+        {
+            PhDereferenceObject(updaterContext); // undo the thread reference
+            UpdaterLaunchInstaller(updaterContext);
+        }
     }
 
     InterlockedCompareExchangePointer((PVOID volatile*)&UpdaterReadyToInstallToast, NULL, toastContext->Toast);
@@ -554,7 +580,6 @@ BOOLEAN UpdaterShowReadyToInstallToast(
         L"<action content=\"Cancel\" arguments=\"dismiss\" activationType=\"system\"/>"
         L"</actions>"
         L"</toast>",
-        PhGetStringOrEmpty(versionEsc),
         PhGetStringOrEmpty(versionEsc)
         );
 
