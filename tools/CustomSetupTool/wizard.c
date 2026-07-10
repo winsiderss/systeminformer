@@ -1260,7 +1260,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                                 PhDereferenceObject(applicationFileName);
                             }
                         }
-                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
+                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
 #endif
@@ -1557,7 +1557,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
                             }
                         }
 
-                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
+                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
 #endif
