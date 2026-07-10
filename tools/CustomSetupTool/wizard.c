@@ -23,6 +23,7 @@
 #define IDC_PROPSHEET_DIVIDER       0x3026
 #define IDC_PROPSHEET_TOPDIVIDER    0x3027
 
+#define SETUP_WIZARD_WELCOME_PAGE_INDEX 0
 #define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 2
 #define SETUP_WIZARD_INSTALL_PAGE_INDEX 3
 #define SETUP_WIZARD_COMPLETED_PAGE_INDEX 4
@@ -1214,6 +1215,13 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
                     if (PhGetOwnTokenAttributes().Elevated)
                     {
+                        if (context->SetupMode == SetupCommandUninstall)
+                        {
+                            PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_UNINSTALL_PAGE_INDEX);
+                            SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                            return TRUE;
+                        }
+
                         if (!context->SetupIsLegacyUpdate && NT_SUCCESS(SetupLegacySetupInstalled()))
                         {
                             //SetupShowMessagePromptForLegacyVersion();
@@ -1455,6 +1463,17 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
 
         SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
         SetupApplyDarkModeToPage(WindowHandle);
+
+        if (PhGetOwnTokenAttributes().Elevated)
+        {
+            ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_SHOW);
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), TRUE);
+        }
+        else
+        {
+            ShowWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), SW_HIDE);
+            EnableWindow(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS), FALSE);
+        }
     }
     else
     {
@@ -1494,6 +1513,13 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
                 break;
             case PSN_QUERYCANCEL:
                 return !SetupCancelWizard(WindowHandle, context);
+            case PSN_WIZBACK:
+                {
+                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_WELCOME_PAGE_INDEX);
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                    return TRUE;
+                }
+                break;
             case PSN_WIZNEXT:
                 {
 #ifndef FORCE_TEST_UPDATE_LOCAL_INSTALL
@@ -1535,6 +1561,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
                         return TRUE;
                     }
 #endif
+                    context->SetupRemoveAppData = (IsDlgButtonChecked(WindowHandle, IDC_REMOVESETTINGS) == BST_CHECKED);
                 }
                 break;
             }
