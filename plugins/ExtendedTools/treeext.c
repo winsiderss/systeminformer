@@ -43,6 +43,7 @@ typedef struct _COLUMN_INFO
 
 static ULONG ProcessTreeListSortColumn;
 static PH_SORT_ORDER ProcessTreeListSortOrder;
+static PPH_LIST EtGpuNodeColumnTextList;
 
 VOID EtpAddTreeNewColumn(
     _In_ PPH_PLUGIN_TREENEW_INFORMATION TreeNewInfo,
@@ -103,7 +104,6 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_HARDFAULTS, L"Hard faults", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_HARDFAULTSDELTA, L"Hard faults delta", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_PEAKTHREADS, L"Peak threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
-        { ETPRTNC_GPU, L"GPU", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPUDEDICATEDBYTES, L"GPU dedicated bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPUSHAREDBYTES, L"GPU shared bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKREADRATE, L"Disk read rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
@@ -135,6 +135,67 @@ VOID EtProcessTreeNewInitializing(
             columns[i].TextFlags, columns[i].SortDescending, EtpProcessTreeNewSortFunction);
     }
 
+    if (EtGpuEnabled && EtGpuTotalNodeCount)
+    {
+        ULONG adapterCount = EtGetGpuAdapterCount();
+        ULONG previousAdapterIndex = ULONG_MAX;
+        ULONG adapterNodeIndex = 0;
+
+        EtGpuNodeColumnTextList = PhCreateList(adapterCount + EtGpuTotalNodeCount);
+
+        for (i = 0; i < adapterCount; i++)
+        {
+            PPH_STRING columnText;
+
+            columnText = PhFormatString(L"GPU %lu", i);
+            PhAddItemList(EtGpuNodeColumnTextList, columnText);
+            EtpAddTreeNewColumn(
+                treeNewInfo,
+                ETPRTNC_GPUADAPTER_FIRST + i,
+                columnText->Buffer,
+                55,
+                PH_ALIGN_RIGHT,
+                DT_RIGHT,
+                TRUE,
+                EtpProcessTreeNewSortFunction
+                );
+        }
+
+        for (i = 0; i < EtGpuTotalNodeCount; i++)
+        {
+            ULONG adapterIndex;
+            PPH_STRING nodeName;
+            PPH_STRING columnText;
+
+            adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(i);
+            nodeName = EtGetGpuAdapterNodeDescription(adapterIndex, i);
+
+            if (adapterIndex == previousAdapterIndex)
+                adapterNodeIndex++;
+            else
+                adapterNodeIndex = 0;
+
+            previousAdapterIndex = adapterIndex;
+
+            if (nodeName && nodeName->Length)
+                columnText = PhFormatString(L"GPU %lu node %lu (%s)", adapterIndex, adapterNodeIndex, nodeName->Buffer);
+            else
+                columnText = PhFormatString(L"GPU %lu node %lu", adapterIndex, adapterNodeIndex);
+
+            PhAddItemList(EtGpuNodeColumnTextList, columnText);
+            EtpAddTreeNewColumn(
+                treeNewInfo,
+                ETPRTNC_GPUNODE_FIRST + i,
+                columnText->Buffer,
+                75,
+                PH_ALIGN_RIGHT,
+                DT_RIGHT,
+                TRUE,
+                EtpProcessTreeNewSortFunction
+                );
+        }
+    }
+
     PhPluginEnableTreeNewNotify(PluginInstance, treeNewInfo->CmData);
 }
 
@@ -147,6 +208,102 @@ static VOID PhpAggregateFieldIfNeeded(
     )
 {
     PhAggregateProcessFieldIfNeeded(ProcessNode, Type, AggregateProcessItem, BaseAddress, FieldOffset, AggregatedValue);
+}
+
+static VOID EtpAggregateGpuNode(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ ULONG NodeIndex,
+    _Inout_ PFLOAT Value
+    )
+{
+    PET_PROCESS_BLOCK block;
+
+    block = EtGetProcessBlock(ProcessNode->ProcessItem);
+
+    if (block && block->GpuNodesUtilization)
+        *Value += block->GpuNodesUtilization[NodeIndex];
+
+    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
+        EtpAggregateGpuNode(ProcessNode->Children->Items[i], NodeIndex, Value);
+}
+
+static FLOAT EtpGetGpuNodeValue(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ ULONG NodeIndex
+    )
+{
+    FLOAT value = 0;
+
+    if (!EtPropagateCpuUsage || ProcessNode->Node.Expanded ||
+        ProcessTreeListSortOrder != NoSortOrder)
+    {
+        if (Block->GpuNodesUtilization)
+            value = Block->GpuNodesUtilization[NodeIndex];
+    }
+    else
+    {
+        EtpAggregateGpuNode(ProcessNode, NodeIndex, &value);
+    }
+
+    return min(value, 1.f);
+}
+
+static FLOAT EtpGetGpuAdapterOwnValue(
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ ULONG AdapterIndex
+    )
+{
+    FLOAT value = 0;
+
+    if (!Block->GpuNodesUtilization)
+        return 0;
+
+    for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+    {
+        if (EtGetGpuAdapterIndexFromNodeIndex(i) == AdapterIndex)
+            value += Block->GpuNodesUtilization[i];
+    }
+
+    return value;
+}
+
+static VOID EtpAggregateGpuAdapter(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ ULONG AdapterIndex,
+    _Inout_ PFLOAT Value
+    )
+{
+    PET_PROCESS_BLOCK block;
+
+    block = EtGetProcessBlock(ProcessNode->ProcessItem);
+
+    if (block)
+        *Value += EtpGetGpuAdapterOwnValue(block, AdapterIndex);
+
+    for (ULONG i = 0; i < ProcessNode->Children->Count; i++)
+        EtpAggregateGpuAdapter(ProcessNode->Children->Items[i], AdapterIndex, Value);
+}
+
+static FLOAT EtpGetGpuAdapterValue(
+    _In_ PPH_PROCESS_NODE ProcessNode,
+    _In_ PET_PROCESS_BLOCK Block,
+    _In_ ULONG AdapterIndex
+    )
+{
+    FLOAT value = 0;
+
+    if (!EtPropagateCpuUsage || ProcessNode->Node.Expanded ||
+        ProcessTreeListSortOrder != NoSortOrder)
+    {
+        value = EtpGetGpuAdapterOwnValue(Block, AdapterIndex);
+    }
+    else
+    {
+        EtpAggregateGpuAdapter(ProcessNode, AdapterIndex, &value);
+    }
+
+    return value;
 }
 
 VOID EtProcessTreeNewMessage(
@@ -162,6 +319,62 @@ VOID EtProcessTreeNewMessage(
         PPH_TREENEW_GET_CELL_TEXT getCellText = message->Parameter1;
         processNode = (PPH_PROCESS_NODE)getCellText->Node;
         block = EtGetProcessBlock(processNode->ProcessItem);
+
+        if ((message->SubId >= ETPRTNC_GPUADAPTER_FIRST &&
+            message->SubId < ETPRTNC_GPUADAPTER_FIRST + EtGetGpuAdapterCount()) ||
+            (message->SubId >= ETPRTNC_GPUNODE_FIRST &&
+            message->SubId < ETPRTNC_GPUNODE_FIRST + EtGpuTotalNodeCount))
+        {
+            ULONG cacheIndex;
+            FLOAT gpuUsage;
+            PWCHAR textBuffer;
+
+            if (message->SubId >= ETPRTNC_GPUNODE_FIRST)
+            {
+                ULONG nodeIndex = message->SubId - ETPRTNC_GPUNODE_FIRST;
+
+                cacheIndex = EtGetGpuAdapterCount() + nodeIndex;
+                gpuUsage = EtpGetGpuNodeValue(processNode, block, nodeIndex) * 100;
+            }
+            else
+            {
+                ULONG adapterIndex = message->SubId - ETPRTNC_GPUADAPTER_FIRST;
+
+                cacheIndex = adapterIndex;
+                gpuUsage = EtpGetGpuAdapterValue(processNode, block, adapterIndex) * 100;
+            }
+
+            PhAcquireQueuedLockExclusive(&block->TextCacheLock);
+
+            textBuffer = block->GpuNodesTextCache + cacheIndex * 64;
+
+            if (!block->GpuNodesTextCacheValid[cacheIndex])
+            {
+                block->GpuNodesTextCacheLength[cacheIndex] = 0;
+
+                if (gpuUsage >= 0.01f)
+                {
+                    PH_FORMAT format;
+                    SIZE_T returnLength;
+
+                    PhInitFormatF(&format, gpuUsage, 2);
+
+                    if (PhFormatToBuffer(&format, 1, textBuffer, sizeof(WCHAR) * 64, &returnLength))
+                        block->GpuNodesTextCacheLength[cacheIndex] = returnLength - sizeof(UNICODE_NULL);
+                }
+
+                block->GpuNodesTextCacheValid[cacheIndex] = TRUE;
+            }
+
+            if (block->GpuNodesTextCacheLength[cacheIndex])
+            {
+                getCellText->Text.Buffer = textBuffer;
+                getCellText->Text.Length = block->GpuNodesTextCacheLength[cacheIndex];
+            }
+
+            PhReleaseQueuedLockExclusive(&block->TextCacheLock);
+            return;
+        }
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
 
@@ -669,6 +882,9 @@ VOID EtProcessTreeNewMessage(
 
         if (EtPropagateCpuUsage)
         {
+            if (block->GpuNodesTextCacheValid)
+                memset(block->GpuNodesTextCacheValid, 0, sizeof(BOOLEAN) * (EtGetGpuAdapterCount() + EtGpuTotalNodeCount));
+
             block->TextCacheValid[ETPRTNC_DISKTOTALBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_NETWORKTOTALBYTES] = FALSE;
 
@@ -704,6 +920,55 @@ VOID EtProcessTreeNewMessage(
         SIZE_T returnLength;
         FLOAT decimal = 0;
         ULONG64 number = 0;
+
+        if ((message->SubId >= ETPRTNC_GPUADAPTER_FIRST &&
+            message->SubId < ETPRTNC_GPUADAPTER_FIRST + EtGetGpuAdapterCount()) ||
+            (message->SubId >= ETPRTNC_GPUNODE_FIRST &&
+            message->SubId < ETPRTNC_GPUNODE_FIRST + EtGpuTotalNodeCount))
+        {
+            BOOLEAN nodeColumn = message->SubId >= ETPRTNC_GPUNODE_FIRST;
+            ULONG valueIndex = nodeColumn ?
+                message->SubId - ETPRTNC_GPUNODE_FIRST :
+                message->SubId - ETPRTNC_GPUADAPTER_FIRST;
+
+            listEntry = EtProcessBlockListHead.Flink;
+
+            while (listEntry != &EtProcessBlockListHead)
+            {
+                block = CONTAINING_RECORD(listEntry, ET_PROCESS_BLOCK, ListEntry);
+
+                if (!(block->ProcessItem->State & PH_PROCESS_ITEM_REMOVED) &&
+                    block->ProcessNode && block->ProcessNode->Node.Visible &&
+                    block->GpuNodesUtilization)
+                {
+                    if (nodeColumn)
+                        decimal += block->GpuNodesUtilization[valueIndex];
+                    else
+                        decimal += EtpGetGpuAdapterOwnValue(block, valueIndex);
+                }
+
+                listEntry = listEntry->Flink;
+            }
+
+            if (decimal != 0.f)
+            {
+                PH_FORMAT format[2];
+
+                if (nodeColumn)
+                    decimal = min(decimal, 1.f);
+
+                PhInitFormatF(&format[0], decimal * 100.f, 2);
+                PhInitFormatC(&format[1], L'%');
+
+                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), getHeaderText->TextCache, getHeaderText->TextCacheSize, &returnLength))
+                {
+                    getHeaderText->Text.Buffer = getHeaderText->TextCache;
+                    getHeaderText->Text.Length = returnLength - sizeof(UNICODE_NULL);
+                }
+            }
+
+            return;
+        }
 
         switch (message->SubId)
         {
@@ -1145,6 +1410,26 @@ LONG EtpProcessTreeNewSortFunction(
     block2 = EtGetProcessBlock(node2->ProcessItem);
 
     result = 0;
+
+    if (SubId >= ETPRTNC_GPUADAPTER_FIRST &&
+        SubId < ETPRTNC_GPUADAPTER_FIRST + EtGetGpuAdapterCount())
+    {
+        ULONG adapterIndex = SubId - ETPRTNC_GPUADAPTER_FIRST;
+        FLOAT value1 = EtpGetGpuAdapterValue(node1, block1, adapterIndex);
+        FLOAT value2 = EtpGetGpuAdapterValue(node2, block2, adapterIndex);
+
+        return singlecmp(value1, value2);
+    }
+
+    if (SubId >= ETPRTNC_GPUNODE_FIRST &&
+        SubId < ETPRTNC_GPUNODE_FIRST + EtGpuTotalNodeCount)
+    {
+        ULONG nodeIndex = SubId - ETPRTNC_GPUNODE_FIRST;
+        FLOAT value1 = EtpGetGpuNodeValue(node1, block1, nodeIndex);
+        FLOAT value2 = EtpGetGpuNodeValue(node2, block2, nodeIndex);
+
+        return singlecmp(value1, value2);
+    }
 
     switch (SubId)
     {
