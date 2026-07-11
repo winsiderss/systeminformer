@@ -574,7 +574,7 @@ VOID PhDrawGraphDirect(
         if (DrawInfo->TextFont)
             oldFont = SelectFont(hdc, DrawInfo->TextFont);
 
-        //SetBkMode(hdc, TRANSPARENT);
+        SetBkMode(hdc, TRANSPARENT);
 
         // Fill in the text box.
         SetDCBrushColor(hdc, DrawInfo->TextBoxColor);
