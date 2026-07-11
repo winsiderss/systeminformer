@@ -10,6 +10,7 @@
  */
 
 #include "wndexp.h"
+#include <graphprp.h>
 
 PPH_OBJECT_TYPE PvpPropContextType = NULL;
 PPH_OBJECT_TYPE PvpPropPageContextType = NULL;
@@ -55,14 +56,14 @@ PPV_PROPCONTEXT HdCreatePropContext(
     sheet.Skin = PhTabNewSkinUxTheme;
     sheet.Flags = PH_PROPSHEETNEW_RESIZABLE |
         PH_PROPSHEETNEW_CENTER |
+        PH_PROPSHEETNEW_CLOSE_BUTTON |
         PH_PROPSHEETNEW_SAVE_PLACEMENT |
-        PH_PROPSHEETNEW_SAVE_ACTIVE_PAGE |
-        PH_PROPSHEETNEW_CLOSE_BUTTON;
+        PH_PROPSHEETNEW_SAVE_ACTIVE_PAGE;
+    sheet.Context = Context;
+    sheet.Initialized = InitializedCallback;
     sheet.SettingNamePosition = SETTING_NAME_WINDOWS_PROPERTY_POSITION;
     sheet.SettingNameSize = SETTING_NAME_WINDOWS_PROPERTY_SIZE;
     sheet.SettingNameActivePage = SETTING_NAME_WINDOWS_PROPERTY_PAGE;
-    sheet.Context = Context;
-    sheet.Initialized = InitializedCallback;
     propContext->Builder = PhPropSheetNewBuilderCreate(&sheet);
 
     return propContext;
