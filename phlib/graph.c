@@ -582,7 +582,13 @@ VOID PhDrawGraphDirect(
 
         // Draw the text.
         SetTextColor(hdc, DrawInfo->TextColor);
-        DrawText(hdc, DrawInfo->Text2.Buffer, (ULONG)DrawInfo->Text2.Length / sizeof(WCHAR), &DrawInfo->TextRect2, DT_NOCLIP);
+        DrawText(
+            hdc,
+            DrawInfo->Text2.Buffer,
+            (ULONG)DrawInfo->Text2.Length / sizeof(WCHAR),
+            &DrawInfo->TextRect2,
+            DT_NOCLIP | DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL
+            );
 
         if (oldFont)
             SelectFont(hdc, oldFont);
@@ -664,7 +670,13 @@ VOID PhSetGraphText2(
     )
 {
     HFONT oldFont = NULL;
-    RECT calcRect = { 0, 0, DrawInfo->Width, DrawInfo->Height };
+    RECT calcRect =
+    {
+        0,
+        0,
+        max(0L, DrawInfo->Width - Margin->left - Margin->right - Padding->left - Padding->right),
+        DrawInfo->Height
+    };
     UINT flags = DT_NOPREFIX | DT_WORDBREAK | DT_EDITCONTROL;
     PH_RECTANGLE boxRectangle;
     PH_RECTANGLE textRectangle;
