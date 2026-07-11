@@ -45,6 +45,90 @@ CONST PH_STRINGREF AppCompatFlagsLayersKeyName = PH_STRINGREF_INIT(L"Software\\M
 CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 CONST PH_STRINGREF LocalDumpsKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\Windows Error Reporting\\LocalDumps");
 
+PPH_STRING SetupGetRegisteredStartMenuFolder(
+    _Out_ PBOOLEAN CreateShortcuts
+    )
+{
+    PPH_STRING folderName = NULL;
+
+    *CreateShortcuts = FALSE;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(UninstallKeyNames); i++)
+    {
+        HANDLE keyHandle;
+
+        if (NT_SUCCESS(PhOpenKey(
+            &keyHandle,
+            KEY_READ | KEY_WOW64_64KEY,
+            PH_KEY_LOCAL_MACHINE,
+            &UninstallKeyNames[i],
+            0
+            )))
+        {
+            folderName = PhQueryRegistryStringZ(keyHandle, L"StartMenuFolder");
+
+            if (folderName)
+                *CreateShortcuts = !!PhQueryRegistryUlongZ(keyHandle, L"CreateStartMenuShortcuts");
+
+            NtClose(keyHandle);
+            break;
+        }
+    }
+
+    return folderName;
+}
+
+VOID SetupInitializeShortcutOptions(
+    _Inout_ PPH_SETUP_CONTEXT Context
+    )
+{
+    PPH_STRING previousInstallPath;
+    PPH_STRING currentInstallPath;
+    PPH_STRING shortcutPath;
+    PPH_STRING registeredFolderName;
+    BOOLEAN registeredCreateShortcuts;
+
+    if (Context->SetupShortcutOptionsInitialized)
+        return;
+
+    Context->SetupShortcutOptionsInitialized = TRUE;
+    previousInstallPath = GetApplicationInstallPath();
+    currentInstallPath = SetupCreateFullPath(Context->SetupInstallPath, L"");
+    registeredFolderName = SetupGetRegisteredStartMenuFolder(&registeredCreateShortcuts);
+
+    if (!PhIsNullOrEmptyString(previousInstallPath) &&
+        !PhIsNullOrEmptyString(currentInstallPath) &&
+        PhEqualStringRef(&previousInstallPath->sr, &currentInstallPath->sr, TRUE))
+    {
+        Context->SetupCreateStartMenuShortcuts = FALSE;
+        Context->SetupCreateDesktopShortcut = FALSE;
+
+        if (registeredFolderName)
+        {
+            PhSetReference(&Context->SetupStartMenuFolderName, registeredFolderName);
+            PhSetReference(&Context->SetupPreviousStartMenuFolderName, registeredFolderName);
+            Context->SetupCreateStartMenuShortcuts = registeredCreateShortcuts;
+        }
+        else if (shortcutPath = PhGetKnownFolderPathZ(&FOLDERID_CommonPrograms, L"\\System Informer.lnk"))
+        {
+            if (PhDoesFileExistWin32(PhGetString(shortcutPath)))
+                Context->SetupCreateStartMenuShortcuts = TRUE;
+
+            PhDereferenceObject(shortcutPath);
+        }
+
+        if (shortcutPath = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+        {
+            Context->SetupCreateDesktopShortcut = PhDoesFileExistWin32(PhGetString(shortcutPath));
+            PhDereferenceObject(shortcutPath);
+        }
+    }
+
+    PhClearReference(&previousInstallPath);
+    PhClearReference(&currentInstallPath);
+    PhClearReference(&registeredFolderName);
+}
+
 /**
  * Deletes the uninstall keys for System Informer.
  */
@@ -119,6 +203,9 @@ NTSTATUS SetupCreateUninstallKey(
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"");
         PhSetValueKeyStringZ(keyHandle, L"InstallLocation", &string->sr);
+
+        PhSetValueKeyStringZ(keyHandle, L"StartMenuFolder", &Context->SetupStartMenuFolderName->sr);
+        PhSetValueKeyUlong(keyHandle, L"CreateStartMenuShortcuts", Context->SetupCreateStartMenuShortcuts);
 
         string = SetupCreateFullPath(Context->SetupInstallPath, L"\\systeminformer-setup.exe");
         PhMoveReference(&string, PhQuoteCommandLine(&string->sr, TRUE));
@@ -847,50 +934,91 @@ VOID SetupDeleteLocalDumpsKey(
  * Creates desktop and start menu shortcuts.
  *
  * \param Context The setup context.
+ * \param UpdateDesktopShortcut Whether to create the desktop shortcut.
  */
 VOID SetupCreateShortcuts(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN UpdateDesktopShortcut
     )
 {
     PPH_STRING string;
     PPH_STRING clientPathString;
+    PPH_STRING folderSuffix;
     HRESULT status;
 
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    if (Context->SetupCreateStartMenuShortcuts)
     {
-        if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
+        if (!PhIsNullOrEmptyString(Context->SetupStartMenuFolderName))
         {
-            status = SetupCreateLink(
-                PhGetString(string),
-                PhGetString(clientPathString),
-                PhGetString(Context->SetupInstallPath),
-                L"SystemInformer"
-                );
+            folderSuffix = PhFormatString(L"\\%s", PhGetString(Context->SetupStartMenuFolderName));
 
-            PhDereferenceObject(clientPathString);
+            if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
+            {
+                PhCreateDirectoryWin32(&string->sr);
+                PhDereferenceObject(string);
+            }
+
+            PhMoveReference(
+                &folderSuffix,
+                PhFormatString(L"\\%s\\System Informer.lnk", PhGetString(Context->SetupStartMenuFolderName))
+                );
+        }
+        else
+        {
+            folderSuffix = PhCreateString(L"\\System Informer.lnk");
         }
 
-        PhDereferenceObject(string);
-    }
-
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
-    {
-        if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe"))
+        if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
         {
-            status = SetupCreateLink(
-                PhGetString(string),
-                PhGetString(clientPathString),
-                PhGetString(Context->SetupInstallPath),
-                L"SystemInformer_PEViewer"
-                );
+            if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
+            {
+                status = SetupCreateLink(
+                    PhGetString(string),
+                    PhGetString(clientPathString),
+                    PhGetString(Context->SetupInstallPath),
+                    L"SystemInformer"
+                    );
 
-            PhDereferenceObject(clientPathString);
+                PhDereferenceObject(clientPathString);
+            }
+
+            PhDereferenceObject(string);
         }
 
-        PhDereferenceObject(string);
+        if (!PhIsNullOrEmptyString(Context->SetupStartMenuFolderName))
+        {
+            PhMoveReference(
+                &folderSuffix,
+                PhFormatString(L"\\%s\\PE Viewer.lnk", PhGetString(Context->SetupStartMenuFolderName))
+                );
+        }
+        else
+        {
+            PhMoveReference(&folderSuffix, PhCreateString(L"\\PE Viewer.lnk"));
+        }
+
+        if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
+        {
+            if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\peview.exe"))
+            {
+                status = SetupCreateLink(
+                    PhGetString(string),
+                    PhGetString(clientPathString),
+                    PhGetString(Context->SetupInstallPath),
+                    L"SystemInformer_PEViewer"
+                    );
+
+                PhDereferenceObject(clientPathString);
+            }
+
+            PhDereferenceObject(string);
+        }
+
+        PhDereferenceObject(folderSuffix);
     }
 
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    if (UpdateDesktopShortcut && Context->SetupCreateDesktopShortcut &&
+        (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk")))
     {
         if (clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe"))
         {
@@ -912,30 +1040,133 @@ VOID SetupCreateShortcuts(
     // PhGetKnownLocation(CSIDL_COMMON_PROGRAMS, L"\\PE Viewer.lnk")
 }
 
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN CALLBACK SetupCheckEmptyDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PH_STRINGREF fileName;
+
+    fileName.Buffer = Information->FileName;
+    fileName.Length = Information->FileNameLength;
+
+    if (PhEqualStringRef2(&fileName, L".", FALSE) ||
+        PhEqualStringRef2(&fileName, L"..", FALSE))
+    {
+        return TRUE;
+    }
+
+    *(PBOOLEAN)Context = FALSE;
+    return FALSE;
+}
+
+VOID SetupDeleteDirectoryIfEmpty(
+    _In_ PPH_STRING DirectoryPath
+    )
+{
+    HANDLE directoryHandle;
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(DirectoryPath),
+        FILE_LIST_DIRECTORY | DELETE | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+        )))
+    {
+        BOOLEAN directoryEmpty = TRUE;
+
+        if (NT_SUCCESS(PhEnumDirectoryFile(
+            directoryHandle,
+            NULL,
+            SetupCheckEmptyDirectoryCallback,
+            &directoryEmpty
+            )) && directoryEmpty)
+        {
+            PhSetFileDelete(directoryHandle);
+        }
+
+        NtClose(directoryHandle);
+    }
+}
+
 /**
  * Deletes desktop and start menu shortcuts.
  *
  * \param Context The setup context.
+ * \param UpdateDesktopShortcut Whether to delete the desktop shortcut.
+ * \param RemoveStartMenuFolder Whether to remove the previous folder when empty.
  */
 VOID SetupDeleteShortcuts(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN UpdateDesktopShortcut,
+    _In_ BOOLEAN RemoveStartMenuFolder
     )
 {
     PPH_STRING string;
+    PPH_STRING folderSuffix;
+    PPH_STRING folderNames[] =
+    {
+        Context->SetupPreviousStartMenuFolderName,
+        Context->SetupStartMenuFolderName,
+    };
 
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\System Informer.lnk"))
+    // Remove shortcuts created by older installers directly in Programs.
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_CommonPrograms, L"\\System Informer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_ProgramData, L"\\Microsoft\\Windows\\Start Menu\\Programs\\PE Viewer.lnk"))
+    if (string = PhGetKnownFolderPathZ(&FOLDERID_CommonPrograms, L"\\PE Viewer.lnk"))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);
     }
 
-    if (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+    for (ULONG i = 0; i < RTL_NUMBER_OF(folderNames); i++)
+    {
+        if (PhIsNullOrEmptyString(folderNames[i]))
+            continue;
+
+        folderSuffix = PhFormatString(L"\\%s\\System Informer.lnk", PhGetString(folderNames[i]));
+
+        if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
+        {
+            PhDeleteFileWin32(string->Buffer);
+            PhDereferenceObject(string);
+        }
+
+        PhMoveReference(&folderSuffix, PhFormatString(L"\\%s\\PE Viewer.lnk", PhGetString(folderNames[i])));
+
+        if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
+        {
+            PhDeleteFileWin32(string->Buffer);
+            PhDereferenceObject(string);
+        }
+
+        PhDereferenceObject(folderSuffix);
+    }
+
+    if (RemoveStartMenuFolder && !PhIsNullOrEmptyString(Context->SetupPreviousStartMenuFolderName))
+    {
+        folderSuffix = PhFormatString(L"\\%s", PhGetString(Context->SetupPreviousStartMenuFolderName));
+
+        if (string = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, &folderSuffix->sr))
+        {
+            SetupDeleteDirectoryIfEmpty(string);
+            PhDereferenceObject(string);
+        }
+
+        PhDereferenceObject(folderSuffix);
+    }
+
+    if (UpdateDesktopShortcut &&
+        (string = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk")))
     {
         PhDeleteFileWin32(string->Buffer);
         PhDereferenceObject(string);

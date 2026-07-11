@@ -24,10 +24,11 @@
 #define IDC_PROPSHEET_TOPDIVIDER    0x3027
 
 #define SETUP_WIZARD_WELCOME_PAGE_INDEX 0
-#define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 2
-#define SETUP_WIZARD_INSTALL_PAGE_INDEX 3
-#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 4
-#define SETUP_WIZARD_ERROR_PAGE_INDEX 5
+#define SETUP_WIZARD_SHORTCUTS_PAGE_INDEX 2
+#define SETUP_WIZARD_UNINSTALL_PAGE_INDEX 3
+#define SETUP_WIZARD_INSTALL_PAGE_INDEX 4
+#define SETUP_WIZARD_COMPLETED_PAGE_INDEX 5
+#define SETUP_WIZARD_ERROR_PAGE_INDEX 6
 
 typedef BOOL (WINAPI* SETUP_SHOULDAPPSUSEDARKMODE)(VOID);
 typedef BOOL (WINAPI* SETUP_ALLOWDARKMODEFORWINDOW)(_In_ HWND WindowHandle, _In_ BOOL Allow);
@@ -459,11 +460,11 @@ VOID SetupRedrawPropSheetDividers(
 }
 
 /**
- * Redraws the non-client border of an edit control.
+ * Redraws the non-client border of a control.
  *
- * \param WindowHandle The edit control window handle.
+ * \param WindowHandle The control window handle.
  */
-VOID SetupRedrawEditBorder(
+VOID SetupRedrawControlBorder(
     _In_ HWND WindowHandle
     )
 {
@@ -476,11 +477,11 @@ VOID SetupRedrawEditBorder(
 }
 
 /**
- * Draws a Windows 7 style edit border without painting the client area.
+ * Draws a dark control border without painting the client area.
  *
- * \param WindowHandle The edit control window handle.
+ * \param WindowHandle The control window handle.
  */
-VOID SetupPaintEditBorder(
+VOID SetupPaintControlBorder(
     _In_ HWND WindowHandle,
     _In_ WPARAM wParam
     )
@@ -535,9 +536,9 @@ VOID SetupPaintEditBorder(
 }
 
 /**
- * Subclass procedure for edit border painting.
+ * Subclass procedure for dark control border painting.
  */
-LRESULT CALLBACK SetupDarkEditSubclassProc(
+LRESULT CALLBACK SetupDarkControlBorderSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -551,21 +552,21 @@ LRESULT CALLBACK SetupDarkEditSubclassProc(
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        RemoveWindowSubclass(WindowHandle, SetupDarkEditSubclassProc, SubclassId);
+        RemoveWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SubclassId);
         break;
     case WM_NCPAINT:
         result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
-        SetupPaintEditBorder(WindowHandle, wParam);
+        SetupPaintControlBorder(WindowHandle, wParam);
         return result;
     case WM_NCACTIVATE:
         result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
-        SetupPaintEditBorder(WindowHandle, wParam);
+        SetupPaintControlBorder(WindowHandle, wParam);
         return result;
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
     case WM_ENABLE:
         result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         return result;
     }
 
@@ -590,8 +591,14 @@ VOID SetupApplyDarkModeToControl(
     {
         if (PhEqualStringZ(className, L"Edit", TRUE))
         {
-            SetWindowSubclass(WindowHandle, SetupDarkEditSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
-            SetupRedrawEditBorder(WindowHandle);
+            SetWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
+            SetupRedrawControlBorder(WindowHandle);
+        }
+        else if (PhEqualStringZ(className, L"ListBox", TRUE))
+        {
+            PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
+            SetWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
+            SetupRedrawControlBorder(WindowHandle);
         }
         else if (PhEqualStringZ(className, L"msctls_progress32", TRUE))
         {
@@ -1271,7 +1278,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
         {
@@ -1402,7 +1409,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
 
                     if (context->SetupMode == SetupCommandInstall)
                     {
-                        PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_INSTALL_PAGE_INDEX);
+                        PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_SHORTCUTS_PAGE_INDEX);
                         SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
                         return TRUE;
                     }
@@ -1413,7 +1420,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
         if (SetupWizardDarkMode)
@@ -1426,6 +1433,208 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLOREDIT:
+        if (SetupWizardDarkMode)
+            return SetupHandleDarkControlColor(wParam, lParam);
+        break;
+    case WM_NCDESTROY:
+        SetupDestroyWizardPage(WindowHandle);
+        break;
+    }
+
+    return FALSE;
+}
+
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+static BOOLEAN CALLBACK SetupEnumStartMenuFoldersCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_ PVOID Context
+    )
+{
+    PH_STRINGREF folderName;
+    PPH_STRING folderNameString;
+
+    folderName.Buffer = Information->FileName;
+    folderName.Length = Information->FileNameLength;
+
+    if (!FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_DIRECTORY) ||
+        PhEqualStringRef2(&folderName, L".", FALSE) ||
+        PhEqualStringRef2(&folderName, L"..", FALSE))
+    {
+        return TRUE;
+    }
+
+    folderNameString = PhCreateString2(&folderName);
+    ListBox_AddString((HWND)Context, PhGetString(folderNameString));
+    PhDereferenceObject(folderNameString);
+
+    return TRUE;
+}
+
+static VOID SetupPopulateStartMenuFolders(
+    _In_ HWND ListBoxHandle
+    )
+{
+    PPH_STRING programsPath;
+    HANDLE directoryHandle;
+
+    if (!(programsPath = PhGetKnownFolderPath(&FOLDERID_CommonPrograms, NULL)))
+        return;
+
+    if (NT_SUCCESS(PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(programsPath),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PhEnumDirectoryFile(directoryHandle, NULL, SetupEnumStartMenuFoldersCallback, ListBoxHandle);
+        NtClose(directoryHandle);
+    }
+
+    PhDereferenceObject(programsPath);
+}
+
+INT_PTR CALLBACK SetupShortcutsPageDlgProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_SETUP_CONTEXT context;
+
+    if (uMsg == WM_INITDIALOG)
+    {
+        LPPROPSHEETPAGE page = (LPPROPSHEETPAGE)lParam;
+        context = (PPH_SETUP_CONTEXT)page->lParam;
+        PhSetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT, context);
+
+        SetupInitializeWizardTitleFont(context, WindowHandle, FALSE);
+        SetupApplyDarkModeToPage(WindowHandle);
+        PhSetDialogItemText(WindowHandle, IDC_STARTMENUFOLDER, PhGetStringOrEmpty(context->SetupStartMenuFolderName));
+        SendDlgItemMessage(
+            WindowHandle,
+            IDC_STARTMENUFOLDER,
+            EM_SETCUEBANNER,
+            TRUE,
+            (LPARAM)L"No folder will be created"
+            );
+        SetupPopulateStartMenuFolders(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDERLIST));
+        CheckDlgButton(
+            WindowHandle,
+            IDC_NOSTARTMENUSHORTCUTS,
+            context->SetupCreateStartMenuShortcuts ? BST_UNCHECKED : BST_CHECKED
+            );
+        CheckDlgButton(
+            WindowHandle,
+            IDC_DESKTOPSHORTCUT,
+            context->SetupCreateDesktopShortcut ? BST_CHECKED : BST_UNCHECKED
+            );
+        EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDER), context->SetupCreateStartMenuShortcuts);
+        EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDERLIST), context->SetupCreateStartMenuShortcuts);
+    }
+    else
+    {
+        context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+    }
+
+    if (!context)
+        return FALSE;
+
+    switch (uMsg)
+    {
+    case WM_COMMAND:
+        switch (LOWORD(wParam))
+        {
+        case IDC_STARTMENUFOLDERLIST:
+            if (HIWORD(wParam) == LBN_SELCHANGE)
+            {
+                WCHAR folderName[MAX_PATH];
+                LONG index = ListBox_GetCurSel((HWND)lParam);
+
+                if (index != LB_ERR)
+                {
+                    ListBox_GetText((HWND)lParam, index, folderName);
+                    PhSetDialogItemText(WindowHandle, IDC_STARTMENUFOLDER, folderName);
+                }
+            }
+            break;
+        case IDC_NOSTARTMENUSHORTCUTS:
+            if (HIWORD(wParam) == BN_CLICKED)
+            {
+                BOOLEAN enable = IsDlgButtonChecked(WindowHandle, IDC_NOSTARTMENUSHORTCUTS) != BST_CHECKED;
+                EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDER), enable);
+                EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDERLIST), enable);
+            }
+            break;
+        }
+        break;
+    case WM_NOTIFY:
+        {
+            LPNMHDR header = (LPNMHDR)lParam;
+            LRESULT result = SetupHandleControlCustomDraw((LPNMCUSTOMDRAW)lParam);
+
+            if (result != CDRF_DODEFAULT)
+            {
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, result);
+                return TRUE;
+            }
+
+            switch (header->code)
+            {
+            case PSN_SETACTIVE:
+                SetupSetWizardButtons(WindowHandle, PSWIZB_BACK | PSWIZB_NEXT, TRUE, TRUE, FALSE, TRUE);
+                break;
+            case PSN_QUERYCANCEL:
+                return !SetupCancelWizard(WindowHandle, context);
+            case PSN_WIZNEXT:
+                {
+                    WCHAR folderName[MAX_PATH];
+
+                    context->SetupCreateStartMenuShortcuts =
+                        IsDlgButtonChecked(WindowHandle, IDC_NOSTARTMENUSHORTCUTS) != BST_CHECKED;
+                    context->SetupCreateDesktopShortcut =
+                        IsDlgButtonChecked(WindowHandle, IDC_DESKTOPSHORTCUT) == BST_CHECKED;
+                    GetDlgItemText(WindowHandle, IDC_STARTMENUFOLDER, folderName, RTL_NUMBER_OF(folderName));
+
+                    if (context->SetupCreateStartMenuShortcuts &&
+                        wcspbrk(folderName, L"\\/:*?\"<>|"))
+                    {
+                        PhShowMessage2(
+                            WindowHandle,
+                            TD_OK_BUTTON,
+                            TD_WARNING_ICON,
+                            L"Invalid Start Menu folder",
+                            L"Enter a valid Start Menu folder name."
+                            );
+                        SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                        return TRUE;
+                    }
+
+                    PhMoveReference(&context->SetupStartMenuFolderName, PhCreateString(folderName));
+                    PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_INSTALL_PAGE_INDEX);
+                    SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, -1);
+                    return TRUE;
+                }
+            }
+        }
+        break;
+    case WM_ERASEBKGND:
+        if (SetupWizardDarkMode)
+        {
+            SetupPaintDarkBackground(WindowHandle, (HDC)wParam);
+            return TRUE;
+        }
+        break;
+    case WM_CTLCOLORDLG:
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLOREDIT:
+    case WM_CTLCOLORLISTBOX:
         if (SetupWizardDarkMode)
             return SetupHandleDarkControlColor(wParam, lParam);
         break;
@@ -1569,7 +1778,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
         if (SetupWizardDarkMode)
@@ -1716,7 +1925,7 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case SETUP_SHOWFINAL:
         {
@@ -1844,7 +2053,7 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
         {
@@ -1958,7 +2167,7 @@ INT_PTR CALLBACK SetupErrorPageDlgProc(
         break;
     case WM_DPICHANGED:
     case WM_DPICHANGED_AFTERPARENT:
-        SetupRedrawEditBorder(WindowHandle);
+        SetupRedrawControlBorder(WindowHandle);
         break;
     case WM_ERASEBKGND:
         if (SetupWizardDarkMode)
@@ -2031,7 +2240,7 @@ LRESULT CALLBACK PvpPropSheetWndProc(
             SetupUpdateWizardFonts(WindowHandle, propSheetContext, HIWORD(wParam));
             SetupUpdateWindowBorderColor(WindowHandle, TRUE);
             SetupRedrawPropSheetDividers(WindowHandle);
-            SetupRedrawEditBorder(WindowHandle);
+            SetupRedrawControlBorder(WindowHandle);
 
             return result;
         }
@@ -2177,7 +2386,7 @@ VOID SetupShowWizard(
     )
 {
     LONG dpiValue;
-    PROPSHEETPAGE pages[6];
+    PROPSHEETPAGE pages[7];
     PROPSHEETHEADER header;
 
     dpiValue = PhGetMonitorDpi(NULL, NULL);
@@ -2216,30 +2425,37 @@ VOID SetupShowWizard(
     pages[2].dwSize = sizeof(PROPSHEETPAGE);
     pages[2].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[2].hInstance = PhInstanceHandle;
-    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL);
-    pages[2].pfnDlgProc = SetupUninstallPageDlgProc;
+    pages[2].pszTemplate = MAKEINTRESOURCE(IDD_SHORTCUTS);
+    pages[2].pfnDlgProc = SetupShortcutsPageDlgProc;
     pages[2].lParam = (LPARAM)Context;
 
     pages[3].dwSize = sizeof(PROPSHEETPAGE);
     pages[3].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[3].hInstance = PhInstanceHandle;
-    pages[3].pszTemplate = MAKEINTRESOURCE(IDD_INSTALL);
-    pages[3].pfnDlgProc = SetupInstallPageDlgProc;
+    pages[3].pszTemplate = MAKEINTRESOURCE(IDD_UNINSTALL);
+    pages[3].pfnDlgProc = SetupUninstallPageDlgProc;
     pages[3].lParam = (LPARAM)Context;
 
     pages[4].dwSize = sizeof(PROPSHEETPAGE);
     pages[4].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[4].hInstance = PhInstanceHandle;
-    pages[4].pszTemplate = MAKEINTRESOURCE(IDD_COMPLETED);
-    pages[4].pfnDlgProc = SetupCompletedPageDlgProc;
+    pages[4].pszTemplate = MAKEINTRESOURCE(IDD_INSTALL);
+    pages[4].pfnDlgProc = SetupInstallPageDlgProc;
     pages[4].lParam = (LPARAM)Context;
 
     pages[5].dwSize = sizeof(PROPSHEETPAGE);
     pages[5].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
     pages[5].hInstance = PhInstanceHandle;
-    pages[5].pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
-    pages[5].pfnDlgProc = SetupErrorPageDlgProc;
+    pages[5].pszTemplate = MAKEINTRESOURCE(IDD_COMPLETED);
+    pages[5].pfnDlgProc = SetupCompletedPageDlgProc;
     pages[5].lParam = (LPARAM)Context;
+
+    pages[6].dwSize = sizeof(PROPSHEETPAGE);
+    pages[6].dwFlags = PSP_DEFAULT | PSP_PREMATURE;
+    pages[6].hInstance = PhInstanceHandle;
+    pages[6].pszTemplate = MAKEINTRESOURCE(IDD_ERROR);
+    pages[6].pfnDlgProc = SetupErrorPageDlgProc;
+    pages[6].lParam = (LPARAM)Context;
 
     memset(&header, 0, sizeof(PROPSHEETHEADER));
     header.dwSize = sizeof(PROPSHEETHEADER);
