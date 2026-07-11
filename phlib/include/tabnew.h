@@ -37,6 +37,9 @@ PhTabNewInitialization(
 #define TNS_RIGHTALIGN    0x00000040  // right-align row 0 (default = left)
 #define TNS_DRAW_PANEL    0x00000080  // send PHTNN_DRAWPANEL during paint
 
+// Runtime flags
+#define PHTNF_THIN_TABS   0x00000001  // use native common-control tab metrics
+
 // Visual skin
 typedef enum _PH_TABNEW_SKIN
 {
@@ -75,6 +78,8 @@ BOOLEAN NTAPI PH_TABNEW_LAYOUT_CALLBACK(
     );
 typedef PH_TABNEW_LAYOUT_CALLBACK *PPH_TABNEW_LAYOUT_CALLBACK;
 
+typedef struct _PH_TABNEW_CONTEXT PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
+
 // Messages
 #define PHTNM_FIRST              (WM_USER + 0x600)
 #define PHTNM_INSERTITEM         (PHTNM_FIRST + 1)   // wParam=index, lParam=PPH_TABNEW_INSERTITEM
@@ -109,7 +114,59 @@ typedef PH_TABNEW_LAYOUT_CALLBACK *PPH_TABNEW_LAYOUT_CALLBACK;
 #define PHTNM_GETPAGEBYINDEX     (PHTNM_FIRST + 30)  // wParam=index
 #define PHTNM_NOTIFYPAGES        (PHTNM_FIRST + 31)  // lParam=PPH_TABNEW_NOTIFY_PAGES_MESSAGE
 #define PHTNM_GETCURRENTPAGE     (PHTNM_FIRST + 32)
-#define PHTNM_LAST               PHTNM_GETCURRENTPAGE
+#define PHTNM_SETFLAGS           (PHTNM_FIRST + 33)  // wParam=PHTNF_*, returns old flags
+#define PHTNM_SELECTPAGE         (PHTNM_FIRST + 34)  // wParam=PPH_TABNEW_PAGE
+#define PHTNM_LAST               PHTNM_SELECTPAGE
+
+// Page helper types (used by the message parameter structures below)
+
+typedef enum _PH_TABNEW_PAGE_MESSAGE
+{
+    PhTabNewPageCreate,
+    PhTabNewPageDestroy,
+    PhTabNewPageCreateWindow,    // Parameter1=PHWND (out)
+    PhTabNewPageSelected,
+    PhTabNewPageLoadSettings,
+    PhTabNewPageSaveSettings,
+    PhTabNewPageFontChanged,
+    PhTabNewPageDpiChanged,
+    PhTabNewPageMaximum
+} PH_TABNEW_PAGE_MESSAGE;
+
+typedef struct _PH_TABNEW_PAGE PH_TABNEW_PAGE, *PPH_TABNEW_PAGE;
+
+typedef _Function_class_(PH_TABNEW_PAGE_CALLBACK)
+BOOLEAN NTAPI PH_TABNEW_PAGE_CALLBACK(
+    _In_ PPH_TABNEW_PAGE Page,
+    _In_ PH_TABNEW_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    );
+typedef PH_TABNEW_PAGE_CALLBACK *PPH_TABNEW_PAGE_CALLBACK;
+
+// Message parameter structures
+
+typedef struct _PH_TABNEW_LAYOUT_MESSAGE
+{
+    PPH_STRINGREF Layout;
+    PPH_TABNEW_LAYOUT_CALLBACK Callback;
+    PVOID Context;
+} PH_TABNEW_LAYOUT_MESSAGE, *PPH_TABNEW_LAYOUT_MESSAGE;
+
+typedef struct _PH_TABNEW_ADD_PAGE_MESSAGE
+{
+    PPH_STRINGREF Name;
+    ULONG Flags;
+    PPH_TABNEW_PAGE_CALLBACK Callback;
+    PVOID Context;
+} PH_TABNEW_ADD_PAGE_MESSAGE, *PPH_TABNEW_ADD_PAGE_MESSAGE;
+
+typedef struct _PH_TABNEW_NOTIFY_PAGES_MESSAGE
+{
+    PH_TABNEW_PAGE_MESSAGE Message;
+    PVOID Parameter1;
+    PVOID Parameter2;
+} PH_TABNEW_NOTIFY_PAGES_MESSAGE, *PPH_TABNEW_NOTIFY_PAGES_MESSAGE;
 
 #if defined(_PHLIB_)
 
@@ -120,11 +177,6 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     _Pre_maybenull_ _Post_valid_ LPARAM lParam
     );
 
-#else
-#define PhTabNewSendMessage SendMessage
-#endif
-
-// Convenience wrappers
 #define PhTabNew_InsertItem(hwnd, idx, item) \
     ((INT)PhTabNewSendMessage((hwnd), PHTNM_INSERTITEM, (WPARAM)(idx), (LPARAM)(item)))
 #define PhTabNew_DeleteItem(hwnd, idx) \
@@ -137,6 +189,8 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((INT)PhTabNewSendMessage((hwnd), PHTNM_SETCURSEL, (WPARAM)(idx), 0))
 #define PhTabNew_GetCurSel(hwnd) \
     ((INT)PhTabNewSendMessage((hwnd), PHTNM_GETCURSEL, 0, 0))
+#define PhTabNew_GetItemText(hwnd, idx, psr) \
+    ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_GETITEMTEXT, (WPARAM)(idx), (LPARAM)(psr)))
 #define PhTabNew_SetItemText(hwnd, idx, text) \
     ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_SETITEMTEXT, (WPARAM)(idx), (LPARAM)(text)))
 #define PhTabNew_GetItemParam(hwnd, idx) \
@@ -159,6 +213,12 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((BOOL)PhTabNewSendMessage((hwnd), PHTNM_MOVEITEM, (WPARAM)(from), (LPARAM)(to)))
 #define PhTabNew_SetImageList(hwnd, himl) \
     ((HIMAGELIST)PhTabNewSendMessage((hwnd), PHTNM_SETIMAGELIST, (WPARAM)(himl), 0))
+#define PhTabNew_GetImageList(hwnd) \
+    ((HIMAGELIST)PhTabNewSendMessage((hwnd), PHTNM_GETIMAGELIST, 0, 0))
+#define PhTabNew_SetPadding(hwnd, cx, cy) \
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETPADDING, (WPARAM)(cx), (LPARAM)(cy)))
+#define PhTabNew_SetMinTabWidth(hwnd, px) \
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETMINTABWIDTH, (WPARAM)(px), 0))
 #define PhTabNew_GetRowCount(hwnd) \
     ((INT)PhTabNewSendMessage((hwnd), PHTNM_GETROWCOUNT, 0, 0))
 #define PhTabNew_InvalidateItem(hwnd, idx) \
@@ -167,30 +227,176 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETTHEMEDARK, (WPARAM)(dark), 0))
 #define PhTabNew_SetCallback(hwnd, callback, context) \
     ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SETCALLBACK, (WPARAM)(callback), (LPARAM)(context)))
+#define PhTabNew_FindPage(hwnd, name) \
+    ((PPH_TABNEW_PAGE)PhTabNewSendMessage((hwnd), PHTNM_FINDPAGE, 0, (LPARAM)(name)))
+#define PhTabNew_GetPageByIndex(hwnd, idx) \
+    ((PPH_TABNEW_PAGE)PhTabNewSendMessage((hwnd), PHTNM_GETPAGEBYINDEX, (WPARAM)(idx), 0))
+#define PhTabNew_GetCurrentPage(hwnd) \
+    ((PPH_TABNEW_PAGE)PhTabNewSendMessage((hwnd), PHTNM_GETCURRENTPAGE, 0, 0))
+#define PhTabNew_SetFlags(hwnd, flags) \
+    ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_SETFLAGS, (WPARAM)(flags), 0))
+#define PhTabNew_SelectPage(hwnd, page) \
+    ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SELECTPAGE, (WPARAM)(page), 0))
 
-PHLIBAPI
+#else
+
+#define PhTabNew_InsertItem(hwnd, idx, item) \
+    ((INT)SendMessage((hwnd), PHTNM_INSERTITEM, (WPARAM)(idx), (LPARAM)(item)))
+#define PhTabNew_DeleteItem(hwnd, idx) \
+    ((BOOL)SendMessage((hwnd), PHTNM_DELETEITEM, (WPARAM)(idx), 0))
+#define PhTabNew_DeleteAllItems(hwnd) \
+    ((BOOL)SendMessage((hwnd), PHTNM_DELETEALLITEMS, 0, 0))
+#define PhTabNew_GetItemCount(hwnd) \
+    ((INT)SendMessage((hwnd), PHTNM_GETITEMCOUNT, 0, 0))
+#define PhTabNew_SetCurSel(hwnd, idx) \
+    ((INT)SendMessage((hwnd), PHTNM_SETCURSEL, (WPARAM)(idx), 0))
+#define PhTabNew_GetCurSel(hwnd) \
+    ((INT)SendMessage((hwnd), PHTNM_GETCURSEL, 0, 0))
+#define PhTabNew_GetItemText(hwnd, idx, psr) \
+    ((BOOL)SendMessage((hwnd), PHTNM_GETITEMTEXT, (WPARAM)(idx), (LPARAM)(psr)))
+#define PhTabNew_SetItemText(hwnd, idx, text) \
+    ((BOOL)SendMessage((hwnd), PHTNM_SETITEMTEXT, (WPARAM)(idx), (LPARAM)(text)))
+#define PhTabNew_GetItemParam(hwnd, idx) \
+    ((LPARAM)SendMessage((hwnd), PHTNM_GETITEMPARAM, (WPARAM)(idx), 0))
+#define PhTabNew_SetItemParam(hwnd, idx, param) \
+    ((BOOL)SendMessage((hwnd), PHTNM_SETITEMPARAM, (WPARAM)(idx), (LPARAM)(param)))
+#define PhTabNew_GetPageRect(hwnd, prect) \
+    ((BOOL)SendMessage((hwnd), PHTNM_GETPAGERECT, 0, (LPARAM)(prect)))
+#define PhTabNew_SetSkin(hwnd, skin) \
+    ((BOOL)SendMessage((hwnd), PHTNM_SETSKIN, (WPARAM)(skin), 0))
+#define PhTabNew_GetSkin(hwnd) \
+    ((PH_TABNEW_SKIN)SendMessage((hwnd), PHTNM_GETSKIN, 0, 0))
+#define PhTabNew_SetSide(hwnd, side) \
+    ((BOOL)SendMessage((hwnd), PHTNM_SETSIDE, (WPARAM)(side), 0))
+#define PhTabNew_GetSide(hwnd) \
+    ((ULONG)SendMessage((hwnd), PHTNM_GETSIDE, 0, 0))
+#define PhTabNew_HitTest(hwnd, info) \
+    ((INT)SendMessage((hwnd), PHTNM_HITTEST, 0, (LPARAM)(info)))
+#define PhTabNew_MoveItem(hwnd, from, to) \
+    ((BOOL)SendMessage((hwnd), PHTNM_MOVEITEM, (WPARAM)(from), (LPARAM)(to)))
+#define PhTabNew_SetImageList(hwnd, himl) \
+    ((HIMAGELIST)SendMessage((hwnd), PHTNM_SETIMAGELIST, (WPARAM)(himl), 0))
+#define PhTabNew_GetImageList(hwnd) \
+    ((HIMAGELIST)SendMessage((hwnd), PHTNM_GETIMAGELIST, 0, 0))
+#define PhTabNew_SetPadding(hwnd, cx, cy) \
+    ((VOID)SendMessage((hwnd), PHTNM_SETPADDING, (WPARAM)(cx), (LPARAM)(cy)))
+#define PhTabNew_SetMinTabWidth(hwnd, px) \
+    ((VOID)SendMessage((hwnd), PHTNM_SETMINTABWIDTH, (WPARAM)(px), 0))
+#define PhTabNew_GetRowCount(hwnd) \
+    ((INT)SendMessage((hwnd), PHTNM_GETROWCOUNT, 0, 0))
+#define PhTabNew_InvalidateItem(hwnd, idx) \
+    ((VOID)SendMessage((hwnd), PHTNM_INVALIDATEITEM, (WPARAM)(idx), 0))
+#define PhTabNew_SetThemeDark(hwnd, dark) \
+    ((VOID)SendMessage((hwnd), PHTNM_SETTHEMEDARK, (WPARAM)(dark), 0))
+#define PhTabNew_SetCallback(hwnd, callback, context) \
+    ((VOID)SendMessage((hwnd), PHTNM_SETCALLBACK, (WPARAM)(callback), (LPARAM)(context)))
+#define PhTabNew_FindPage(hwnd, name) \
+    ((PPH_TABNEW_PAGE)SendMessage((hwnd), PHTNM_FINDPAGE, 0, (LPARAM)(name)))
+#define PhTabNew_GetPageByIndex(hwnd, idx) \
+    ((PPH_TABNEW_PAGE)SendMessage((hwnd), PHTNM_GETPAGEBYINDEX, (WPARAM)(idx), 0))
+#define PhTabNew_GetCurrentPage(hwnd) \
+    ((PPH_TABNEW_PAGE)SendMessage((hwnd), PHTNM_GETCURRENTPAGE, 0, 0))
+#define PhTabNew_SetFlags(hwnd, flags) \
+    ((ULONG)SendMessage((hwnd), PHTNM_SETFLAGS, (WPARAM)(flags), 0))
+#define PhTabNew_SelectPage(hwnd, page) \
+    ((VOID)SendMessage((hwnd), PHTNM_SELECTPAGE, (WPARAM)(page), 0))
+
+#endif
+
+FORCEINLINE
 PPH_STRING
-NTAPI
-PhTabNewSaveLayout(
-    _In_ HWND TabControl,
+PhTabNew_SaveLayout(
+    _In_ HWND WindowHandle,
     _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
     _In_opt_ PVOID Context
-    );
+    )
+{
+    PH_TABNEW_LAYOUT_MESSAGE message;
 
-PHLIBAPI
+    message.Layout = NULL;
+    message.Callback = Callback;
+    message.Context = Context;
+
+#if defined(_PHLIB_)
+    return (PPH_STRING)PhTabNewSendMessage(WindowHandle, PHTNM_SAVELAYOUT, 0, (LPARAM)&message);
+#else
+    return (PPH_STRING)SendMessage(WindowHandle, PHTNM_SAVELAYOUT, 0, (LPARAM)&message);
+#endif
+}
+
+FORCEINLINE
 BOOLEAN
-NTAPI
-PhTabNewRestoreLayout(
-    _In_ HWND TabControl,
+PhTabNew_RestoreLayout(
+    _In_ HWND WindowHandle,
     _In_ PPH_STRINGREF Layout,
     _In_ PPH_TABNEW_LAYOUT_CALLBACK Callback,
     _In_opt_ PVOID Context
-    );
+    )
+{
+    PH_TABNEW_LAYOUT_MESSAGE message;
+
+    message.Layout = Layout;
+    message.Callback = Callback;
+    message.Context = Context;
+
+#if defined(_PHLIB_)
+    return (BOOLEAN)PhTabNewSendMessage(WindowHandle, PHTNM_RESTORELAYOUT, 0, (LPARAM)&message);
+#else
+    return (BOOLEAN)SendMessage(WindowHandle, PHTNM_RESTORELAYOUT, 0, (LPARAM)&message);
+#endif
+}
+
+FORCEINLINE
+PPH_TABNEW_PAGE
+PhTabNew_AddPage(
+    _In_ HWND WindowHandle,
+    _In_ PPH_STRINGREF Name,
+    _In_ ULONG Flags,
+    _In_ PPH_TABNEW_PAGE_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    PH_TABNEW_ADD_PAGE_MESSAGE message;
+
+    message.Name = Name;
+    message.Flags = Flags;
+    message.Callback = Callback;
+    message.Context = Context;
+
+#if defined(_PHLIB_)
+    return (PPH_TABNEW_PAGE)PhTabNewSendMessage(WindowHandle, PHTNM_ADDPAGE, 0, (LPARAM)&message);
+#else
+    return (PPH_TABNEW_PAGE)SendMessage(WindowHandle, PHTNM_ADDPAGE, 0, (LPARAM)&message);
+#endif
+}
+
+FORCEINLINE
+VOID
+PhTabNew_NotifyPages(
+    _In_ HWND WindowHandle,
+    _In_ PH_TABNEW_PAGE_MESSAGE Message,
+    _In_opt_ PVOID Parameter1,
+    _In_opt_ PVOID Parameter2
+    )
+{
+    PH_TABNEW_NOTIFY_PAGES_MESSAGE message;
+
+    message.Message = Message;
+    message.Parameter1 = Parameter1;
+    message.Parameter2 = Parameter2;
+
+#if defined(_PHLIB_)
+    PhTabNewSendMessage(WindowHandle, PHTNM_NOTIFYPAGES, 0, (LPARAM)&message);
+#else
+    SendMessage(WindowHandle, PHTNM_NOTIFYPAGES, 0, (LPARAM)&message);
+#endif
+}
 
 // Notifications via WM_NOTIFY -> NMHDR.code
 #define PHTNN_FIRST          (0U - 1100U)
 #define PHTNN_SELCHANGING    (PHTNN_FIRST - 1)
 #define PHTNN_SELCHANGED     (PHTNN_FIRST - 2)
+#define PHTNN_DELETEITEM     (PHTNN_FIRST - 3)
 #define PHTNN_LAYOUT         (PHTNN_FIRST - 4)
 #define PHTNN_REORDERED      (PHTNN_FIRST - 5)
 #define PHTNN_RCLICK         (PHTNN_FIRST - 6)
@@ -246,30 +452,6 @@ typedef struct _NMTABNEWDRAWPANEL
 // Page helper layer (optional, mirrors the PhMwp* main-window pattern)
 // -------------------------------------------------------------------------
 
-typedef enum _PH_TABNEW_PAGE_MESSAGE
-{
-    PhTabNewPageCreate,
-    PhTabNewPageDestroy,
-    PhTabNewPageCreateWindow,    // Parameter1=PHWND (out)
-    PhTabNewPageSelected,
-    PhTabNewPageLoadSettings,
-    PhTabNewPageSaveSettings,
-    PhTabNewPageFontChanged,
-    PhTabNewPageDpiChanged,
-    PhTabNewPageMaximum
-} PH_TABNEW_PAGE_MESSAGE;
-
-typedef struct _PH_TABNEW_PAGE PH_TABNEW_PAGE, *PPH_TABNEW_PAGE;
-
-typedef _Function_class_(PH_TABNEW_PAGE_CALLBACK)
-BOOLEAN NTAPI PH_TABNEW_PAGE_CALLBACK(
-    _In_ PPH_TABNEW_PAGE Page,
-    _In_ PH_TABNEW_PAGE_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
-    );
-typedef PH_TABNEW_PAGE_CALLBACK *PPH_TABNEW_PAGE_CALLBACK;
-
 typedef struct _PH_TABNEW_PAGE
 {
     PH_STRINGREF Name;
@@ -291,58 +473,6 @@ typedef struct _PH_TABNEW_PAGE
         };
     };
 } PH_TABNEW_PAGE, *PPH_TABNEW_PAGE;
-
-PHLIBAPI
-PPH_TABNEW_PAGE
-NTAPI
-PhTabNewAddPage(
-    _In_ HWND TabControl,
-    _In_ PPH_STRINGREF Name,
-    _In_ ULONG Flags,
-    _In_ PPH_TABNEW_PAGE_CALLBACK Callback,
-    _In_opt_ PVOID Context
-    );
-
-PHLIBAPI
-PPH_TABNEW_PAGE
-NTAPI
-PhTabNewFindPage(
-    _In_ HWND TabControl,
-    _In_ PPH_STRINGREF Name
-    );
-
-PHLIBAPI
-PPH_TABNEW_PAGE
-NTAPI
-PhTabNewGetPageByIndex(
-    _In_ HWND TabControl,
-    _In_ LONG Index
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhTabNewSelectPage(
-    _In_ HWND TabControl,
-    _In_ PPH_TABNEW_PAGE Page
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhTabNewNotifyAllPages(
-    _In_ HWND TabControl,
-    _In_ PH_TABNEW_PAGE_MESSAGE Message,
-    _In_opt_ PVOID Parameter1,
-    _In_opt_ PVOID Parameter2
-    );
-
-PHLIBAPI
-PPH_TABNEW_PAGE
-NTAPI
-PhTabNewGetCurrentPage(
-    _In_ HWND TabControl
-    );
 
 // -------------------------------------------------------------------------
 // PropertySheet replacement

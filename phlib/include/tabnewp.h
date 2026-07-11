@@ -12,14 +12,13 @@
 #ifndef _PH_TABNEWP_H
 #define _PH_TABNEWP_H
 
-#include <tabnew.h>
-
 EXTERN_C_START
 
 typedef struct _PH_TABNEW_INTERNAL_ITEM
 {
     PPH_STRING Text;
     LPARAM Param;
+    PPH_TABNEW_PAGE Page;
     LONG ImageIndex;
     RECT Rect;            // strip-local
     LONG Row;             // for multi-line
@@ -52,6 +51,7 @@ typedef struct _PH_TABNEW_CONTEXT
     PH_TABNEW_SKIN Skin;
     ULONG Side;                // TNS_TOP/BOTTOM/LEFT/RIGHT
     ULONG StyleFlags;          // TNS_MULTILINE | TNS_FIXEDWIDTH | TNS_REORDER
+    ULONG TabFlags;            // PHTNF_*
 
     LONG WindowDpi;
     HFONT Font;
@@ -59,6 +59,7 @@ typedef struct _PH_TABNEW_CONTEXT
     HTHEME ThemeHandle;        // for PhTabNewSkinUxTheme
     HBRUSH BackgroundBrush;
     HBRUSH ActiveBrush;
+    HBRUSH WindowBackgroundBrush; // non-owned: theme window background (or BackgroundBrush fallback)
     HBRUSH AccentBrush;
     HBRUSH HotBrush;
     HPEN OutlinePen;
@@ -77,7 +78,8 @@ typedef struct _PH_TABNEW_CONTEXT
             ULONG LayoutDirty : 1;
             ULONG HasFocus : 1;
             ULONG LayoutSuspended : 1;
-            ULONG Spare : 25;
+            ULONG OwnFont : 1;
+            ULONG Spare : 24;
         };
     };
 
@@ -87,6 +89,7 @@ typedef struct _PH_TABNEW_CONTEXT
     LONG MinTabWidth;          // effective (DPI-scaled)
     LONG PaddingX;             // effective (DPI-scaled)
     LONG PaddingY;             // effective (DPI-scaled)
+    LONG UxThemeTabHeight;     // native UxTheme tab item height
     LONG BaseMinTabWidth;      // 96-dpi base value
     LONG BasePaddingX;         // 96-dpi base value
     LONG BasePaddingY;         // 96-dpi base value
@@ -102,9 +105,9 @@ typedef struct _PH_TABNEW_CONTEXT
     RECT CachedPageRect;       // last computed, in client coords
 } PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
 
-#define PH_TABNEW_DEFAULT_MIN_WIDTH     60
+#define PH_TABNEW_DEFAULT_MIN_WIDTH     30
 #define PH_TABNEW_DEFAULT_PADDING_X     10
-#define PH_TABNEW_DEFAULT_PADDING_Y     6
+#define PH_TABNEW_DEFAULT_PADDING_Y     4
 #define PH_TABNEW_INSERT_MARKER_WIDTH   3
 #define PH_TABNEW_INITIAL_LIST_CAPACITY 8
 #define PH_TABNEW_DEFAULT_FONT_HEIGHT   -11
@@ -149,6 +152,7 @@ VOID PhTabNewUpdateCachedResources(
     _In_ PPH_TABNEW_CONTEXT Context
     );
 
+_Success_(return)
 BOOLEAN PhTabNewGetItemLayoutIdentifier(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ LONG Index,
@@ -157,6 +161,7 @@ BOOLEAN PhTabNewGetItemLayoutIdentifier(
     _Out_ PPH_STRINGREF Identifier
     );
 
+_Success_(return)
 BOOLEAN PhTabNewReadLayoutToken(
     _Inout_ PPH_STRINGREF Remaining,
     _Out_ PPH_STRINGREF Token
@@ -171,7 +176,8 @@ BOOL PhTabNewMoveItem(
 
 // Internal helpers
 VOID PhTabNewLayout(
-    _In_ PPH_TABNEW_CONTEXT Context
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_opt_ HDC Hdc
     );
 
 VOID PhTabNewPaint(
@@ -254,6 +260,32 @@ VOID PhTabNewUpdateDrag(
 VOID PhTabNewEndDrag(
     _In_ PPH_TABNEW_CONTEXT Context,
     _In_ BOOLEAN Cancel
+    );
+
+HBRUSH PhTabNewGetBackgroundBrush(
+    VOID
+    );
+
+VOID PhTabNewUpdateClassBackground(
+    _In_ HWND WindowHandle
+    );
+
+COLORREF PhTabNewTextColor(
+    _In_ PPH_TABNEW_CONTEXT Context
+    );
+
+VOID PhTabNewDrawItemContent(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ HDC Hdc,
+    _In_ PPH_TABNEW_INTERNAL_ITEM Item,
+    _In_ PRECT ItemRect,
+    _In_ COLORREF TextColor
+    );
+
+VOID PhTabNewSendDeleteNotify(
+    _In_ PPH_TABNEW_CONTEXT Context,
+    _In_ LONG ItemIndex,
+    _In_ LPARAM ItemParam
     );
 
 EXTERN_C_END
