@@ -332,6 +332,8 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES 43
 #define ETPRTNC_NPUSHAREDCOMMITTEDBYTES 44
 #define ETPRTNC_MAXIMUM 44
+#define ETPRTNC_GPUADAPTER_FIRST 0x800
+#define ETPRTNC_GPUNODE_FIRST 0x1000
 
 // Network list columns
 
@@ -485,7 +487,11 @@ typedef struct _ET_PROCESS_BLOCK
     // GPU
 
     PH_UINT64_DELTA GpuRunningTimeDelta;
-    //PPH_UINT64_DELTA GpuTotalRunningTimeDelta;
+    PPH_UINT64_DELTA GpuNodesRunningTimeDelta;
+    PFLOAT GpuNodesUtilization;
+    PBOOLEAN GpuNodesTextCacheValid;
+    PSIZE_T GpuNodesTextCacheLength;
+    PWCHAR GpuNodesTextCache;
     //PPH_CIRCULAR_BUFFER_FLOAT GpuTotalNodesHistory;
 
     FLOAT GpuCurrentUsage;
@@ -1268,6 +1274,12 @@ VOID EtPerfCounterInitialization(
 
 FLOAT EtLookupProcessGpuUtilization(
     _In_ HANDLE ProcessId
+    );
+
+FLOAT EtLookupProcessGpuEngineUtilization(
+    _In_ HANDLE ProcessId,
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
     );
 
 _Success_(return)
