@@ -117,7 +117,8 @@ BOOLEAN PhMainWndInitialization(
 
     // Initialize the window.
 
-    PhMainWndHandle = CreateWindow(
+    PhMainWndHandle = CreateWindowEx(
+        ((PhStartupParameters.ShowHidden || PhGetIntegerSetting(SETTING_START_HIDDEN)) && !PhStartupParameters.ShowVisible && PhNfIconsEnabled()) ? WS_EX_NOACTIVATE : 0,
         MAKEINTATOM(windowAtom),
         NULL,
         WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? WS_CLIPCHILDREN : 0),
