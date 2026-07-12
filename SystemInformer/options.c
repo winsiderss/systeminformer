@@ -18,6 +18,7 @@
 #include <cpysave.h>
 #include <settings.h>
 #include <emenu.h>
+#include <json.h>
 
 #include <mainwnd.h>
 #include <mainwndp.h>
@@ -43,6 +44,20 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
     );
 
 INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpOptionsTrayIconDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PhpOptionsThemesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -134,6 +149,7 @@ static BOOLEAN RestartRequired = FALSE;
 
 // General
 static BOOLEAN GeneralListViewStateInitializing = FALSE;
+static BOOLEAN ThemeListViewStateInitializing = FALSE;
 static CONST PH_STRINGREF CurrentUserRunKeyName = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows\\CurrentVersion\\Run");
 static BOOLEAN CurrentUserRunPresent = FALSE;
 static HFONT CurrentFontInstance = NULL;
@@ -275,6 +291,73 @@ static VOID PhReloadGeneralSection(
     GeneralListViewStateInitializing = FALSE;
 }
 
+static VOID PhReloadThemesSection(
+    VOID
+    )
+{
+    static PH_STRINGREF themesName = PH_STRINGREF_INIT(L"Themes");
+    PPH_OPTIONS_SECTION section;
+
+    section = PhOptionsFindSection(&themesName);
+    if (!section || !section->DialogHandle)
+        return;
+
+    ThemeListViewStateInitializing = TRUE;
+    Button_SetCheck(GetDlgItem(section->DialogHandle, IDC_ENABLETHEME), PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) ? BST_CHECKED : BST_UNCHECKED);
+    ComboBox_SetCurSel(GetDlgItem(section->DialogHandle, IDC_THEMEMODE), PhGetIntegerSetting(SETTING_THEME_MODE));
+    EnableWindow(GetDlgItem(section->DialogHandle, IDC_THEMEMODE), PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) != 0);
+    ThemeListViewStateInitializing = FALSE;
+}
+
+static VOID PhpApplyThemeSupportSetting(
+    _In_ HWND hwndDlg
+    )
+{
+    BOOLEAN enableThemeSupport;
+
+    enableThemeSupport = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETHEME)) == BST_CHECKED;
+    PhSetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, enableThemeSupport);
+    PhUpdateCachedSettings();
+
+    // The theme mode combo is only meaningful while theme support is enabled.
+    EnableWindow(GetDlgItem(hwndDlg, IDC_THEMEMODE), enableThemeSupport);
+
+    // Control superclasses (statusbar, menus, dialogs) are only registered during
+    // startup while theme support is enabled, so the toggle cannot be applied to
+    // windows that already exist. PhEnableThemeSupport keeps the startup state and
+    // the new setting takes effect after a restart.
+    if (enableThemeSupport != PhEnableThemeSupport)
+        PhShowOptionsRestartRequired(hwndDlg);
+}
+
+static VOID PhpApplyThemeModeSetting(
+    _In_ HWND hwndDlg
+    )
+{
+    INT mode;
+
+    mode = ComboBox_GetCurSel(GetDlgItem(hwndDlg, IDC_THEMEMODE));
+
+    if (mode == CB_ERR)
+        return;
+
+    PhSetIntegerSetting(SETTING_THEME_MODE, mode);
+
+    // Graph drawing keys off GraphColorMode rather than the window palette;
+    // pair a dark palette with dark graph backgrounds (same override the
+    // advanced options page applies).
+    if (PhEnableThemeSupport && PhIsThemeModeDark(mode))
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1);
+
+    PhUpdateCachedSettings();
+
+    if (PhEnableThemeSupport)
+    {
+        PhApplyThemeModeWithColors(mode, PhMainWndHandle);
+        PhMwpInitializeMainMenu(PhMainWndHandle);
+    }
+}
+
 static VOID PhpOptionsSetImageList(
     _In_ HWND WindowHandle,
     _In_ BOOLEAN Treeview
@@ -361,6 +444,7 @@ INT_PTR CALLBACK PhOptionsDialogProc(
                 section = PhOptionsCreateSection(L"General", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGENERAL), PhpOptionsGeneralDlgProc, NULL);
                 PhOptionsCreateSectionAdvanced(L"Advanced", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTADVANCED), PhpOptionsAdvancedDlgProc, NULL);
                 PhOptionsCreateSection(L"Highlighting", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTHIGHLIGHTING), PhpOptionsHighlightingDlgProc, NULL);
+                PhOptionsCreateSection(L"Tray Icon", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTTRAYICON), PhpOptionsTrayIconDlgProc, NULL);
                 PhOptionsCreateSection(L"Graphs", PhInstanceHandle, MAKEINTRESOURCE(IDD_OPTGRAPHS), PhpOptionsGraphsDlgProc, NULL);
                 PhOptionsCreateSection(L"Plugins", PhInstanceHandle, MAKEINTRESOURCE(IDD_PLUGINS), PhPluginsDlgProc, NULL);
 
@@ -412,13 +496,13 @@ INT_PTR CALLBACK PhOptionsDialogProc(
             {
                 section = SectionList->Items[i];
 
-                if (PhEqualStringRef2(&section->Name, L"General", TRUE))
-                {
-                    PhpAdvancedPageSave(section->DialogHandle);
-                }
-
-                PhOptionsDestroySection(section);
+            if (PhEqualStringRef2(&section->Name, L"General", TRUE))
+            {
+                PhpAdvancedPageSave(section->DialogHandle);
             }
+
+            PhOptionsDestroySection(section);
+        }
 
             SystemInformer_Invoke(PhpOptionsNotifyChangeCallback, NULL);
 
@@ -1623,8 +1707,12 @@ VOID PhShowOptionsRestartRequired(
     _In_ HWND WindowHandle
     )
 {
+    HWND ownerWindowHandle;
+
+    ownerWindowHandle = WindowHandle && IsWindow(WindowHandle) ? WindowHandle : PhMainWndHandle;
+
     if (PhShowMessage2(
-        PhMainWndHandle,
+        ownerWindowHandle,
         TD_YES_BUTTON | TD_NO_BUTTON,
         TD_INFORMATION_ICON,
         L"One or more options you have changed requires a restart of System Informer.",
@@ -1634,7 +1722,7 @@ VOID PhShowOptionsRestartRequired(
         SystemInformer_PrepareForEarlyShutdown();
 
         if (NT_SUCCESS(PhShellProcessHacker(
-            WindowHandle,
+            ownerWindowHandle,
             L"-v -newinstance",
             SW_SHOW,
             PH_SHELL_EXECUTE_DEFAULT,
@@ -2299,6 +2387,28 @@ INT_PTR CALLBACK PhpOptionsGeneralDlgProc(
     return FALSE;
 }
 
+// Editor parameters passed to PhpOptionsAdvancedEditDlgProc. SettingSchema (when present) is owned
+// by the advanced context's schema object and remains valid for the lifetime of the modal dialog.
+typedef struct _PH_OPTIONS_ADVANCED_EDIT_CONTEXT
+{
+    PPH_SETTING Setting;
+    PPH_STRING Description;
+    PVOID SettingSchema;
+} PH_OPTIONS_ADVANCED_EDIT_CONTEXT, *PPH_OPTIONS_ADVANCED_EDIT_CONTEXT;
+
+static PPH_STRING OptionsAdvancedFormatSupportedValues(
+    _In_ PVOID SettingSchema,
+    _In_ PH_SETTING_TYPE Type
+    );
+
+_Success_(return)
+static BOOLEAN OptionsAdvancedValidateAgainstSchema(
+    _In_ PVOID SettingSchema,
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRING Value,
+    _Out_ PPH_STRING* Warning
+    );
+
 static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2312,23 +2422,59 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
     {
     case WM_INITDIALOG:
         {
-            PPH_SETTING setting = (PPH_SETTING)lParam;
+            PPH_OPTIONS_ADVANCED_EDIT_CONTEXT editContext = (PPH_OPTIONS_ADVANCED_EDIT_CONTEXT)lParam;
+            PPH_SETTING setting = editContext->Setting;
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhSetWindowText(hwndDlg, L"Setting Editor");
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, setting);
+            PhSetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT, editContext);
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_DESCRIPTION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_SUPPORTED), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_VALUE), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
             PhSetDialogItemText(hwndDlg, IDC_NAME, setting->Name.Buffer);
             PhSetDialogItemText(hwndDlg, IDC_VALUE, PH_AUTO_T(PH_STRING, PhSettingToString(setting->Type, setting))->Buffer);
+
+            if (editContext->Description)
+            {
+                // Schema descriptions use lone '\n'; convert to '\r\n' for the multiline edit control.
+                PH_STRING_BUILDER stringBuilder;
+                SIZE_T length = editContext->Description->Length / sizeof(WCHAR);
+
+                PhInitializeStringBuilder(&stringBuilder, editContext->Description->Length + 16);
+
+                for (SIZE_T i = 0; i < length; i++)
+                {
+                    WCHAR character = editContext->Description->Buffer[i];
+
+                    if (character == L'\n' && (i == 0 || editContext->Description->Buffer[i - 1] != L'\r'))
+                        PhAppendStringBuilder2(&stringBuilder, L"\r\n");
+                    else
+                        PhAppendCharStringBuilder(&stringBuilder, character);
+                }
+
+                PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, stringBuilder.String->Buffer);
+                PhDeleteStringBuilder(&stringBuilder);
+            }
+            else
+            {
+                PhSetDialogItemText(hwndDlg, IDC_DESCRIPTION, L"No schema description available.");
+            }
+
+            if (editContext->SettingSchema)
+            {
+                PPH_STRING supported = OptionsAdvancedFormatSupportedValues(editContext->SettingSchema, setting->Type);
+                PhSetDialogItemText(hwndDlg, IDC_SUPPORTED, supported->Buffer);
+                PhDereferenceObject(supported);
+            }
 
             EnableWindow(GetDlgItem(hwndDlg, IDC_NAME), FALSE);
 
@@ -2364,8 +2510,27 @@ static INT_PTR CALLBACK PhpOptionsAdvancedEditDlgProc(
                 break;
             case IDOK:
                 {
-                    PPH_SETTING setting = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+                    PPH_OPTIONS_ADVANCED_EDIT_CONTEXT editContext = PhGetWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
+                    PPH_SETTING setting = editContext->Setting;
                     PPH_STRING settingValue = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+
+                    // Schema validation is advisory: warn on a constraint violation but still apply the value.
+                    if (editContext->SettingSchema)
+                    {
+                        PPH_STRING warning;
+
+                        if (!OptionsAdvancedValidateAgainstSchema(editContext->SettingSchema, setting->Type, settingValue, &warning))
+                        {
+                            PhShowWarning2(
+                                hwndDlg,
+                                L"The value is outside the schema's supported values.",
+                                L"\"%s\" is not one of the supported values (%s).\r\nThe value was applied anyway.",
+                                settingValue->Buffer,
+                                PhGetString(warning)
+                                );
+                            PhClearReference(&warning);
+                        }
+                    }
 
                     if (!PhSettingFromString(
                         setting->Type,
@@ -2433,6 +2598,9 @@ typedef struct _PH_OPTIONS_ADVANCED_CONTEXT
     PPH_HASHTABLE NodeHashtable;
     PPH_LIST NodeList;
     ULONG_PTR SearchMatchHandle;
+
+    PVOID SchemaObject;     // Root settings.schema.json object (owns the tree, freed on delete).
+    PVOID SchemaProperties; // The "properties" object inside SchemaObject (not owned).
 } PH_OPTIONS_ADVANCED_CONTEXT, *PPH_OPTIONS_ADVANCED_CONTEXT;
 
 typedef enum _PH_OPTIONS_ADVANCED_TREE_ITEM_MENU
@@ -2449,6 +2617,7 @@ typedef enum _PH_OPTIONS_ADVANCED_COLUMN_ITEM
     PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE,
     PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE,
     PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT,
+    PH_OPTIONS_ADVANCED_COLUMN_ITEM_DESCRIPTION,
     PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM
 } PH_OPTIONS_ADVANCED_COLUMN_ITEM;
 
@@ -2461,6 +2630,8 @@ typedef struct _PH_OPTIONS_ADVANCED_ROOT_NODE
     PPH_STRING Name;
     PPH_STRING ValueString;
     PPH_STRING DefaultString;
+    PPH_STRING Description;     // Schema description, or NULL when no schema is loaded.
+    PVOID SettingSchema;       // Per-setting schema object (owned by Context->SchemaObject).
 
     PH_STRINGREF TextCache[PH_OPTIONS_ADVANCED_COLUMN_ITEM_MAXIMUM];
 } PH_OPTIONS_ADVANCED_ROOT_NODE, *PPH_OPTIONS_ADVANCED_ROOT_NODE;
@@ -2507,6 +2678,266 @@ BEGIN_SORT_FUNCTION(Default)
     sortResult = PhCompareString(node1->DefaultString, node2->DefaultString, TRUE);
 }
 END_SORT_FUNCTION
+
+BEGIN_SORT_FUNCTION(Description)
+{
+    sortResult = PhCompareStringWithNull(node1->Description, node2->Description, TRUE);
+}
+END_SORT_FUNCTION
+
+// settings.schema.json support: load the schema describing every setting and use it to surface
+// descriptions, supported values and value validation in the advanced options editor.
+
+static VOID OptionsAdvancedLoadSchema(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    PPH_STRING fileName;
+    PVOID object;
+
+    if (fileName = PhGetApplicationDirectoryFileNameZ(L"settings.schema.json", TRUE))
+    {
+        if (NT_SUCCESS(PhLoadJsonObjectFromFile(&object, &fileName->sr)))
+        {
+            Context->SchemaObject = object;
+            Context->SchemaProperties = PhGetJsonObject(object, "properties");
+        }
+
+        PhDereferenceObject(fileName);
+    }
+}
+
+static VOID OptionsAdvancedFreeSchema(
+    _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
+    )
+{
+    if (Context->SchemaObject)
+    {
+        PhFreeJsonObject(Context->SchemaObject);
+        Context->SchemaObject = NULL;
+        Context->SchemaProperties = NULL;
+    }
+}
+
+// Returns the per-setting schema object (owned by Context->SchemaObject), or NULL.
+static PVOID OptionsAdvancedGetSettingSchema(
+    _In_ PPH_OPTIONS_ADVANCED_CONTEXT Context,
+    _In_ PCPH_STRINGREF Name
+    )
+{
+    PVOID object;
+    PPH_BYTES name;
+
+    if (!Context->SchemaProperties)
+        return NULL;
+
+    name = PhConvertUtf16ToUtf8Ex(Name->Buffer, Name->Length);
+    object = PhGetJsonObject(Context->SchemaProperties, name->Buffer);
+    PhDereferenceObject(name);
+
+    return object;
+}
+
+// Finds a constraint node (e.g. "enum", "minimum", "maximum") either at the top level of the
+// setting schema or inside one of its "anyOf" branches.
+static PVOID OptionsAdvancedFindSchemaNode(
+    _In_ PVOID SettingSchema,
+    _In_ PCSTR Key
+    )
+{
+    PVOID node;
+    PVOID anyOf;
+
+    if (node = PhGetJsonObject(SettingSchema, Key))
+        return node;
+
+    if (anyOf = PhGetJsonObject(SettingSchema, "anyOf"))
+    {
+        ULONG count = PhGetJsonArrayLength(anyOf);
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            PVOID entry;
+
+            if ((entry = PhGetJsonArrayIndexObject(anyOf, i)) && (node = PhGetJsonObject(entry, Key)))
+                return node;
+        }
+    }
+
+    return NULL;
+}
+
+// Builds a human-readable supported-values hint. Schema constraints are expressed in decimal;
+// integer settings are entered/displayed in hexadecimal, so integer constraints are converted.
+static PPH_STRING OptionsAdvancedFormatSupportedValues(
+    _In_ PVOID SettingSchema,
+    _In_ PH_SETTING_TYPE Type
+    )
+{
+    PH_STRING_BUILDER stringBuilder;
+    PVOID enumObject;
+    PVOID minimumNode;
+    PVOID maximumNode;
+
+    PhInitializeStringBuilder(&stringBuilder, 64);
+
+    enumObject = OptionsAdvancedFindSchemaNode(SettingSchema, "enum");
+    minimumNode = OptionsAdvancedFindSchemaNode(SettingSchema, "minimum");
+    maximumNode = OptionsAdvancedFindSchemaNode(SettingSchema, "maximum");
+
+    if (enumObject && PhGetJsonObjectType(enumObject) == PH_JSON_OBJECT_TYPE_ARRAY)
+    {
+        ULONG count = PhGetJsonArrayLength(enumObject);
+        BOOLEAN first = TRUE;
+
+        if (Type == IntegerSettingType)
+            PhAppendStringBuilder2(&stringBuilder, L"(hex) ");
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            PVOID element;
+            PPH_STRING value;
+
+            if (!(element = PhGetJsonArrayIndexObject(enumObject, i)))
+                continue;
+
+            value = PhGetJsonObjectString(element);
+
+            if (!first)
+                PhAppendStringBuilder2(&stringBuilder, L", ");
+            first = FALSE;
+
+            if (Type == IntegerSettingType)
+            {
+                ULONG64 integer;
+
+                if (PhStringToInteger64(&value->sr, 10, &integer))
+                    PhAppendFormatStringBuilder(&stringBuilder, L"%I64x", integer);
+                else
+                    PhAppendStringBuilder(&stringBuilder, &value->sr);
+            }
+            else
+            {
+                PhAppendStringBuilder(&stringBuilder, &value->sr);
+            }
+
+            PhDereferenceObject(value);
+        }
+    }
+    else if (minimumNode || maximumNode)
+    {
+        ULONG64 minimum = minimumNode ? (ULONG64)PhGetJsonInt64Object(minimumNode) : 0;
+        ULONG64 maximum = maximumNode ? (ULONG64)PhGetJsonInt64Object(maximumNode) : 0;
+
+        if (Type == IntegerSettingType)
+            PhAppendFormatStringBuilder(&stringBuilder, L"(hex) %I64x - %I64x", minimum, maximum);
+        else
+            PhAppendFormatStringBuilder(&stringBuilder, L"%I64u - %I64u", minimum, maximum);
+    }
+    else
+    {
+        switch (Type)
+        {
+        case StringSettingType:
+            PhAppendStringBuilder2(&stringBuilder, L"String");
+            break;
+        case IntegerSettingType:
+            PhAppendStringBuilder2(&stringBuilder, L"Integer (hex)");
+            break;
+        case IntegerPairSettingType:
+            PhAppendStringBuilder2(&stringBuilder, L"x,y");
+            break;
+        case ScalableIntegerPairSettingType:
+            PhAppendStringBuilder2(&stringBuilder, L"@dpi|x,y");
+            break;
+        }
+    }
+
+    return PhFinalStringBuilderString(&stringBuilder);
+}
+
+// Validates Value against the schema's enum/range constraints. Returns TRUE when the value is
+// acceptable (or unconstrained); on FALSE, Warning receives the supported-values hint. Comparisons
+// are numeric so that hexadecimal entry never clashes with the schema's decimal constraints.
+_Success_(return)
+static BOOLEAN OptionsAdvancedValidateAgainstSchema(
+    _In_ PVOID SettingSchema,
+    _In_ PH_SETTING_TYPE Type,
+    _In_ PPH_STRING Value,
+    _Out_ PPH_STRING* Warning
+    )
+{
+    PVOID enumObject;
+    PVOID minimumNode;
+    PVOID maximumNode;
+
+    *Warning = NULL;
+
+    enumObject = OptionsAdvancedFindSchemaNode(SettingSchema, "enum");
+
+    if (enumObject && PhGetJsonObjectType(enumObject) == PH_JSON_OBJECT_TYPE_ARRAY)
+    {
+        ULONG count = PhGetJsonArrayLength(enumObject);
+        ULONG64 value64 = 0;
+        BOOLEAN valueIsInteger;
+
+        valueIsInteger = (Type == IntegerSettingType) && PhStringToInteger64(&Value->sr, 16, &value64);
+
+        for (ULONG i = 0; i < count; i++)
+        {
+            PVOID element;
+            PPH_STRING member;
+            BOOLEAN match = FALSE;
+
+            if (!(element = PhGetJsonArrayIndexObject(enumObject, i)))
+                continue;
+
+            member = PhGetJsonObjectString(element);
+
+            if (valueIsInteger)
+            {
+                ULONG64 member64;
+
+                if (PhStringToInteger64(&member->sr, 10, &member64) && member64 == value64)
+                    match = TRUE;
+            }
+            else if (PhEqualString(member, Value, FALSE))
+            {
+                match = TRUE;
+            }
+
+            PhDereferenceObject(member);
+
+            if (match)
+                return TRUE;
+        }
+
+        *Warning = OptionsAdvancedFormatSupportedValues(SettingSchema, Type);
+        return FALSE;
+    }
+
+    minimumNode = OptionsAdvancedFindSchemaNode(SettingSchema, "minimum");
+    maximumNode = OptionsAdvancedFindSchemaNode(SettingSchema, "maximum");
+
+    if ((minimumNode || maximumNode) && Type == IntegerSettingType)
+    {
+        ULONG64 value64;
+
+        if (PhStringToInteger64(&Value->sr, 16, &value64))
+        {
+            ULONG64 minimum = minimumNode ? (ULONG64)PhGetJsonInt64Object(minimumNode) : 0;
+            ULONG64 maximum = maximumNode ? (ULONG64)PhGetJsonInt64Object(maximumNode) : MAXULONG64;
+
+            if (value64 < minimum || value64 > maximum)
+            {
+                *Warning = OptionsAdvancedFormatSupportedValues(SettingSchema, Type);
+                return FALSE;
+            }
+        }
+    }
+
+    return TRUE;
+}
 
 VOID OptionsAdvancedLoadSettingsTreeList(
     _Inout_ PPH_OPTIONS_ADVANCED_CONTEXT Context
@@ -2581,6 +3012,7 @@ VOID DestroyOptionsAdvancedNode(
     PhClearReference(&Node->Name);
     PhClearReference(&Node->ValueString);
     PhClearReference(&Node->DefaultString);
+    PhClearReference(&Node->Description);
 
     PhFree(Node);
 }
@@ -2606,6 +3038,10 @@ PPH_OPTIONS_ADVANCED_ROOT_NODE AddOptionsAdvancedNode(
     node->Name = PhCreateString2(&Setting->Name);
     node->ValueString = PhSettingToString(Setting->Type, Setting);
     node->DefaultString = PhCreateString2(&Setting->DefaultValue);
+    node->SettingSchema = OptionsAdvancedGetSettingSchema(Context, &Setting->Name);
+
+    if (node->SettingSchema)
+        node->Description = PhGetJsonValueAsString(node->SettingSchema, "description");
 
     PhAddEntryHashtable(Context->NodeHashtable, &node);
     PhAddItemList(Context->NodeList, node);
@@ -2693,6 +3129,7 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
                     SORT_FUNCTION(Type),
                     SORT_FUNCTION(Value),
                     SORT_FUNCTION(Default),
+                    SORT_FUNCTION(Description),
                 };
                 _CoreCrtSecureSearchSortCompareFunction sortFunction;
 
@@ -2753,6 +3190,9 @@ BOOLEAN NTAPI OptionsAdvancedTreeNewCallback(
                 break;
             case PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT:
                 getCellText->Text = PhGetStringRef(node->DefaultString);
+                break;
+            case PH_OPTIONS_ADVANCED_COLUMN_ITEM_DESCRIPTION:
+                getCellText->Text = PhGetStringRef(node->Description);
                 break;
             default:
                 return FALSE;
@@ -2957,6 +3397,9 @@ VOID InitializeOptionsAdvancedTree(
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_TYPE, TRUE, L"Type", 100, PH_ALIGN_LEFT, 1, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_VALUE, TRUE, L"Value", 200, PH_ALIGN_LEFT, 2, 0, TRUE);
     PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DEFAULT, TRUE, L"Default", 200, PH_ALIGN_LEFT, 3, 0, TRUE);
+    PhAddTreeNewColumnEx(Context->TreeNewHandle, PH_OPTIONS_ADVANCED_COLUMN_ITEM_DESCRIPTION, TRUE, L"Description", 300, PH_ALIGN_LEFT, 4, 0, FALSE);
+
+    OptionsAdvancedLoadSchema(Context);
 
     PhInitializeTreeNewFilterSupport(&Context->TreeFilterSupport, Context->TreeNewHandle, Context->NodeList);
 
@@ -2979,6 +3422,8 @@ VOID DeleteOptionsAdvancedTree(
 
     PhDereferenceObject(Context->NodeHashtable);
     PhDereferenceObject(Context->NodeList);
+
+    OptionsAdvancedFreeSchema(Context);
 }
 
 #pragma endregion
@@ -3279,12 +3724,18 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
 
                     if (node = GetSelectedOptionsAdvancedNode(context))
                     {
+                        PH_OPTIONS_ADVANCED_EDIT_CONTEXT editContext;
+
+                        editContext.Setting = node->Setting;
+                        editContext.Description = node->Description;
+                        editContext.SettingSchema = node->SettingSchema;
+
                         PhDialogBox(
                             PhInstanceHandle,
-                            MAKEINTRESOURCE(IDD_EDITENV),
+                            MAKEINTRESOURCE(IDD_OPTADVEDIT),
                             hwndDlg,
                             PhpOptionsAdvancedEditDlgProc,
-                            node->Setting
+                            &editContext
                             );
 
                         PhMoveReference(
@@ -3552,6 +4003,9 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             ColorBox_SetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS), PhCsColorRemoved);
             ColorBox_ThemeSupport(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS), PhEnableThemeSupport);
 
+            // Enable Window Border Color
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_WINDOW_BORDER_COLOR), PhGetIntegerSetting(SETTING_ENABLE_WINDOW_BORDER_COLOR) ? BST_CHECKED : BST_UNCHECKED);
+
             // Highlighting
             HighlightingListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
             PhSetListViewStyle(HighlightingListViewHandle, FALSE, TRUE);
@@ -3583,6 +4037,7 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             }
 
             PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ENABLE_WINDOW_BORDER_COLOR), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
             PhAddLayoutItem(&LayoutManager, HighlightingListViewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_INFO), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT | PH_LAYOUT_FORCE_INVALIDATE);
             PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ENABLEALL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
@@ -3594,6 +4049,8 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
             PH_SET_INTEGER_CACHED_SETTING(HighlightingDuration, PhGetDialogItemValue(hwndDlg, IDC_HIGHLIGHTINGDURATION));
             PH_SET_INTEGER_CACHED_SETTING(ColorNew, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_NEWOBJECTS)));
             PH_SET_INTEGER_CACHED_SETTING(ColorRemoved, ColorBox_GetColor(GetDlgItem(hwndDlg, IDC_REMOVEDOBJECTS)));
+
+            PhSetIntegerSetting(SETTING_ENABLE_WINDOW_BORDER_COLOR, Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLE_WINDOW_BORDER_COLOR)) == BST_CHECKED);
 
             for (ULONG i = 0; i < RTL_NUMBER_OF(ColorItems); i++)
             {
@@ -3745,10 +4202,11 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
                     if (item && item->Id == IDC_RESET)
                     {
-                        PH_STRINGREF SettingName;
-                        PH_STRINGREF UseSettingName;
                         PPH_SETTING Color;
                         PPH_SETTING UseColor;
+
+                        PH_STRINGREF SettingName;
+                        PH_STRINGREF UseSettingName;
 
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         PhInitializeStringRef(&UseSettingName, ColorItem->UseSettingName);
@@ -3792,9 +4250,10 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
 
                 if (item && item->Id == IDC_RESET)
                 {
-                    PH_STRINGREF SettingName;
                     PPH_SETTING Color;
                     BOOLEAN setNew = (HWND)wParam == GetDlgItem(hwndDlg, IDC_NEWOBJECTS);
+
+                    PH_STRINGREF SettingName;
 
                     PhInitializeStringRef(&SettingName, setNew ? SETTING_COLOR_NEW : SETTING_COLOR_REMOVED);
                     Color = PhGetSetting(&SettingName);
@@ -3815,6 +4274,258 @@ INT_PTR CALLBACK PhpOptionsHighlightingDlgProc(
         return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
     case WM_CTLCOLORSTATIC:
         return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+typedef struct _PH_TRAYICON_NOTIFY_ITEM
+{
+    ULONG Bit;
+    PWSTR Name;
+} PH_TRAYICON_NOTIFY_ITEM, *PPH_TRAYICON_NOTIFY_ITEM;
+
+static PH_TRAYICON_NOTIFY_ITEM TrayIconNotifyItems[] =
+{
+    { PH_NOTIFY_PROCESS_CREATE, L"New processes" },
+    { PH_NOTIFY_PROCESS_DELETE, L"Terminated processes" },
+    { PH_NOTIFY_SERVICE_CREATE, L"New services" },
+    { PH_NOTIFY_SERVICE_START, L"Started services" },
+    { PH_NOTIFY_SERVICE_STOP, L"Stopped services" },
+    { PH_NOTIFY_SERVICE_DELETE, L"Deleted services" },
+    { PH_NOTIFY_SERVICE_MODIFIED, L"Modified services" },
+    { PH_NOTIFY_DEVICE_ARRIVED, L"Arrived devices" },
+    { PH_NOTIFY_DEVICE_REMOVED, L"Removed devices" },
+};
+
+#define PH_OPTIONS_TRAY_ICON_GROUP_NOTIFICATIONS 1
+#define PH_OPTIONS_TRAY_ICON_GROUP_TRAY_ICONS 2
+
+INT_PTR CALLBACK PhpOptionsTrayIconDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+    static HWND IconListViewHandle;
+    static BOOLEAN RestartRequired;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            ULONG notifyMask;
+
+            RestartRequired = FALSE;
+
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_LAZYSTART), PhGetIntegerSetting(SETTING_ICON_TRAY_LAZY_START_DELAY) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_PERSISTLAYOUT), PhGetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_TRANSPARENTICONS), PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED) ? BST_CHECKED : BST_UNCHECKED);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_SINGLECLICK), PhGetIntegerSetting(SETTING_ICON_SINGLE_CLICK) ? BST_CHECKED : BST_UNCHECKED);
+
+            notifyMask = PhGetIntegerSetting(SETTING_ICON_NOTIFY_MASK);
+
+            IconListViewHandle = GetDlgItem(hwndDlg, IDC_TRAYICON_ICONLIST);
+            PhSetListViewStyle(IconListViewHandle, FALSE, TRUE);
+            ListView_SetExtendedListViewStyleEx(IconListViewHandle, LVS_EX_CHECKBOXES, LVS_EX_CHECKBOXES);
+            PhAddListViewColumn(IconListViewHandle, 0, 0, 0, LVCFMT_LEFT, 230, L"Name");
+            PhSetExtendedListView(IconListViewHandle);
+            ListView_EnableGroupView(IconListViewHandle, TRUE);
+            PhAddListViewGroup(IconListViewHandle, PH_OPTIONS_TRAY_ICON_GROUP_NOTIFICATIONS, L"Notifications");
+            PhAddListViewGroup(IconListViewHandle, PH_OPTIONS_TRAY_ICON_GROUP_TRAY_ICONS, L"Tray icons");
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(TrayIconNotifyItems); i++)
+            {
+                INT lvItemIndex;
+
+                if ((TrayIconNotifyItems[i].Bit == PH_NOTIFY_DEVICE_ARRIVED || TrayIconNotifyItems[i].Bit == PH_NOTIFY_DEVICE_REMOVED) &&
+                    WindowsVersion < WINDOWS_10)
+                {
+                    continue;
+                }
+
+                lvItemIndex = PhAddListViewGroupItem(
+                    IconListViewHandle,
+                    PH_OPTIONS_TRAY_ICON_GROUP_NOTIFICATIONS,
+                    MAXINT,
+                    TrayIconNotifyItems[i].Name,
+                    &TrayIconNotifyItems[i]
+                    );
+                ListView_SetCheckState(IconListViewHandle, lvItemIndex, !!(notifyMask & TrayIconNotifyItems[i].Bit));
+            }
+
+            for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+            {
+                PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+                INT lvItemIndex;
+
+                lvItemIndex = PhAddListViewGroupItem(
+                    IconListViewHandle,
+                    PH_OPTIONS_TRAY_ICON_GROUP_TRAY_ICONS,
+                    MAXINT,
+                    icon->Text,
+                    icon
+                    );
+                ListView_SetCheckState(IconListViewHandle, lvItemIndex, !!(icon->Flags & PH_NF_ICON_ENABLED));
+            }
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TRAYICON_LAZYSTART), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TRAYICON_PERSISTLAYOUT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TRAYICON_TRANSPARENTICONS), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TRAYICON_SINGLECLICK), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_TRAYICON_RESETLAYOUT), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, IconListViewHandle, NULL, PH_ANCHOR_ALL);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            EXTERN_C BOOLEAN PhNfTransparencyEnabled;
+            BOOLEAN lazyStart;
+            BOOLEAN persistLayout;
+            BOOLEAN transparentIcons;
+            ULONG notifyMask;
+
+            lazyStart = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_LAZYSTART)) == BST_CHECKED;
+            persistLayout = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_PERSISTLAYOUT)) == BST_CHECKED;
+            transparentIcons = Button_GetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_TRANSPARENTICONS)) == BST_CHECKED;
+
+            if (lazyStart != !!PhGetIntegerSetting(SETTING_ICON_TRAY_LAZY_START_DELAY))
+                RestartRequired = TRUE;
+            if (persistLayout != !!PhGetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED))
+                RestartRequired = TRUE;
+            if (transparentIcons != !!PhGetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED))
+                RestartRequired = TRUE;
+
+            PhSetIntegerSetting(SETTING_ICON_TRAY_LAZY_START_DELAY, lazyStart);
+            PhSetIntegerSetting(SETTING_ICON_TRAY_PERSIST_GUID_ENABLED, persistLayout);
+            PhSetIntegerSetting(SETTING_ICON_TRANSPARENCY_ENABLED, transparentIcons);
+            PhSetIntegerSetting(SETTING_ICON_SINGLE_CLICK, Button_GetCheck(GetDlgItem(hwndDlg, IDC_TRAYICON_SINGLECLICK)) == BST_CHECKED);
+
+            PhNfTransparencyEnabled = transparentIcons;
+
+            notifyMask = 0;
+
+            for (ULONG i = 0; i < RTL_NUMBER_OF(TrayIconNotifyItems); i++)
+            {
+                INT index;
+
+                index = PhFindListViewItemByParam(IconListViewHandle, INT_ERROR, &TrayIconNotifyItems[i]);
+                if (index != INT_ERROR && ListView_GetCheckState(IconListViewHandle, index))
+                    notifyMask |= TrayIconNotifyItems[i].Bit;
+            }
+
+            PhSetIntegerSetting(SETTING_ICON_NOTIFY_MASK, notifyMask);
+            PhMwpNotifyIconNotifyMask = notifyMask;
+
+            for (ULONG i = 0; i < PhTrayIconItemList->Count; i++)
+            {
+                PPH_NF_ICON icon = PhTrayIconItemList->Items[i];
+                INT index;
+
+                index = PhFindListViewItemByParam(IconListViewHandle, INT_ERROR, icon);
+                if (index != INT_ERROR)
+                    PhNfSetVisibleIcon(icon, !!ListView_GetCheckState(IconListViewHandle, index));
+            }
+
+            PhNfSaveSettings();
+
+            if (RestartRequired)
+                PhShowOptionsRestartRequired(hwndDlg);
+
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_DPICHANGED_AFTERPARENT:
+        {
+            PhLayoutManagerUpdate(&LayoutManager, PhGetWindowDpi(hwndDlg));
+            PhLayoutManagerLayout(&LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&LayoutManager);
+
+            ExtendedListView_SetColumnWidth(IconListViewHandle, 0, ELVSCW_AUTOSIZE_REMAININGSPACE);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            switch (GET_WM_COMMAND_ID(wParam, lParam))
+            {
+            case IDC_TRAYICON_RESETLAYOUT:
+                {
+                    EXTERN_C VOID PhNfLoadGuids(VOID);
+
+                    PhSetStringSetting(SETTING_ICON_TRAY_GUIDS, L"");
+                    PhNfLoadGuids();
+                    RestartRequired = TRUE;
+                }
+                break;
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+        return HANDLE_WM_CTLCOLORBTN(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORDLG:
+        return HANDLE_WM_CTLCOLORDLG(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    case WM_CTLCOLORSTATIC:
+        return HANDLE_WM_CTLCOLORSTATIC(hwndDlg, wParam, lParam, PhWindowThemeControlColor);
+    }
+
+    return FALSE;
+}
+
+INT_PTR CALLBACK PhpOptionsThemesDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    static PH_LAYOUT_MANAGER LayoutManager;
+
+    switch (uMsg)
+    {
+    case WM_INITDIALOG:
+        {
+            HWND comboHandle;
+
+            PhInitializeLayoutManager(&LayoutManager, hwndDlg);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_ENABLETHEME), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+            PhAddLayoutItem(&LayoutManager, GetDlgItem(hwndDlg, IDC_THEMEMODE), NULL, PH_ANCHOR_TOP | PH_ANCHOR_LEFT);
+
+            SetDlgItemCheckForSetting(hwndDlg, IDC_ENABLETHEME, SETTING_ENABLE_THEME_SUPPORT);
+
+            comboHandle = GetDlgItem(hwndDlg, IDC_THEMEMODE);
+            ComboBox_AddString(comboHandle, L"Automatic");
+            ComboBox_AddString(comboHandle, L"Light");
+            ComboBox_AddString(comboHandle, L"Dark");
+            ComboBox_AddString(comboHandle, L"Custom");
+            ComboBox_SetCurSel(comboHandle, PhGetIntegerSetting(SETTING_THEME_MODE));
+            EnableWindow(comboHandle, PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT) != 0);
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDeleteLayoutManager(&LayoutManager);
+        }
+        break;
+    case WM_COMMAND:
+        {
+            if (GET_WM_COMMAND_ID(wParam, lParam) == IDC_ENABLETHEME && !ThemeListViewStateInitializing)
+            {
+                PhpApplyThemeSupportSetting(hwndDlg);
+            }
+            else if (GET_WM_COMMAND_ID(wParam, lParam) == IDC_THEMEMODE &&
+                GET_WM_COMMAND_CMD(wParam, lParam) == CBN_SELCHANGE && !ThemeListViewStateInitializing)
+            {
+                PhpApplyThemeModeSetting(hwndDlg);
+            }
+        }
+        break;
     }
 
     return FALSE;
@@ -4012,8 +4723,9 @@ INT_PTR CALLBACK PhpOptionsGraphsDlgProc(
 
                     if (item && item->Id == IDC_RESET)
                     {
-                        PH_STRINGREF SettingName;
                         PPH_SETTING Color;
+
+                        PH_STRINGREF SettingName;
 
                         PhInitializeStringRef(&SettingName, ColorItem->SettingName);
                         Color = PhGetSetting(&SettingName);

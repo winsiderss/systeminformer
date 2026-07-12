@@ -114,6 +114,50 @@ PPH_STRING GeoLiteDatabaseNameFormatString(
     }
 }
 
+/**
+ * Validates a server-supplied download file name (from the Content-Disposition
+ * header) is a safe single path component before it is appended to the cache
+ * directory. Rejects path separators, traversal, reserved and control characters.
+ *
+ * \param FileName The file name to validate.
+ * \return TRUE if the file name is a safe leaf name, FALSE otherwise.
+ */
+BOOLEAN GeoLiteValidateFileName(
+    _In_ PPH_STRING FileName
+    )
+{
+    SIZE_T length;
+    SIZE_T i;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return FALSE;
+
+    length = FileName->Length / sizeof(WCHAR);
+
+    if (length >= 255)
+        return FALSE;
+
+    for (i = 0; i < length; i++)
+    {
+        WCHAR c = FileName->Buffer[i];
+
+        // Reject path separators, reserved characters and controls.
+        if (c == L'\\' || c == L'/' || c == L':' ||
+            c == L'*' || c == L'?' || c == L'"' ||
+            c == L'<' || c == L'>' || c == L'|' ||
+            c < 32)
+        {
+            return FALSE;
+        }
+
+        // Reject path traversal.
+        if (c == L'.' && (i + 1) < length && FileName->Buffer[i + 1] == L'.')
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 NTSTATUS ExtractUpdateToFile(
     _In_ PPH_STRING WorkingDirectory,
     _In_ PPH_STRING CompressedFileName,
@@ -278,6 +322,14 @@ BOOLEAN GeoLiteDownloadUpdateToFile(
     PhDereferenceObject(httpString);
 
     if (!PhEndsWithString2(httpHeaderFileName, L".tar.gz", TRUE))
+    {
+        status = STATUS_FAIL_CHECK;
+        goto CleanupExit;
+    }
+
+    // Reject a server-supplied name that is not a safe leaf (path traversal, separators).
+
+    if (!GeoLiteValidateFileName(httpHeaderFileName))
     {
         status = STATUS_FAIL_CHECK;
         goto CleanupExit;
