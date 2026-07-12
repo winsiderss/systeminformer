@@ -2014,6 +2014,45 @@ FLOAT EtLookupProcessGpuUtilization(
     return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
+FLOAT EtLookupProcessGpuEngineUtilization(
+    _In_ HANDLE ProcessId,
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    )
+{
+    FLOAT value = 0;
+    ULONG enumerationKey;
+    PET_GPU_ENGINE_COUNTER entry;
+
+    if (!EtGpuRunningTimeHashTable)
+        return 0;
+
+    PhAcquireQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    enumerationKey = 0;
+
+    while (PhEnumHashtable(EtGpuRunningTimeHashTable, (PVOID*)&entry, &enumerationKey))
+    {
+        if (
+            entry->ProcessId == HandleToUlong(ProcessId) &&
+            entry->AdapterLuid == AdapterLuid.LowPart &&
+            entry->EngineId == EngineId
+            )
+        {
+            value += entry->ValueF;
+        }
+    }
+
+    PhReleaseQueuedLockShared(&EtGpuRunningTimeHashTableLock);
+
+    value /= 100;
+
+    if (value > 1)
+        value = 1;
+
+    return value;
+}
+
 _Success_(return)
 BOOLEAN EtLookupProcessGpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
