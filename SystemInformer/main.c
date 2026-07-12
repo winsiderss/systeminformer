@@ -1558,6 +1558,7 @@ VOID PhInitializeAppSettings(
     PhEnableHighResolution = WindowsVersion >= WINDOWS_11 && PhGetIntegerSetting(SETTING_ENABLE_HIGH_RESOLUTION);
 
     PhEnableThemeSupport = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
+    PhEnableWindowBorderColor = !!PhGetIntegerSetting(SETTING_ENABLE_WINDOW_BORDER_COLOR);
     PhThemeWindowForegroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_FOREGROUND_COLOR);
     PhThemeWindowBackgroundColor = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND_COLOR);
     PhThemeWindowBackground2Color = PhGetIntegerSetting(SETTING_THEME_WINDOW_BACKGROUND2_COLOR);
