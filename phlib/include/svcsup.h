@@ -134,6 +134,22 @@ PhChangeServiceConfig(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhChangeServiceConfigRegistry(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR LoadOrderGroup,
+    _In_opt_ PCWSTR ServiceStartName,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ BOOLEAN DelayedStartSpecified,
+    _In_ BOOLEAN DelayedStart
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhChangeServiceConfig2(
     _In_ SC_HANDLE ServiceHandle,
     _In_ ULONG ServiceConfigLevel,

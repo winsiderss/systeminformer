@@ -262,7 +262,25 @@ VOID PhSvcHandleConnectionRequest(
         clientId.UniqueProcess = (HANDLE)message64->h.ClientId.UniqueProcess;
         clientId.UniqueThread = (HANDLE)message64->h.ClientId.UniqueThread;
 
-#if defined(PH_BUILD_API)
+#if defined(DEBUG)
+        PPH_STRING referenceFileName;
+        PPH_STRING remoteFileName;
+
+        referenceFileName = NULL;
+        PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &referenceFileName);
+        PH_AUTO(referenceFileName);
+
+        remoteFileName = NULL;
+        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
+        PH_AUTO(remoteFileName);
+
+        if (PhIsNullOrEmptyString(referenceFileName) || PhIsNullOrEmptyString(remoteFileName) || !PhEqualString(referenceFileName, remoteFileName, FALSE))
+        {
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
+#endif // DEBUG
+#if defined(PH_BUILD_API) && !defined(DEBUG)
         PPH_STRING remoteFileName;
 
         remoteFileName = NULL;
@@ -274,7 +292,7 @@ VOID PhSvcHandleConnectionRequest(
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
-#endif // PH_BUILD_API
+#endif // PH_BUILD_API && !DEBUG
     }
     else
     {
@@ -302,7 +320,7 @@ VOID PhSvcHandleConnectionRequest(
             return;
         }
 #endif // DEBUG
-#if defined(PH_BUILD_API)
+#if defined(PH_BUILD_API) && !defined(DEBUG)
         remoteFileName = NULL;
         clientId = message->h.ClientId;
         PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
@@ -313,7 +331,7 @@ VOID PhSvcHandleConnectionRequest(
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
-#endif // PH_BUILD_API
+#endif // PH_BUILD_API && !DEBUG
     }
 
     client = PhSvcCreateClient(&clientId);

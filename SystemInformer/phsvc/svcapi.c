@@ -797,6 +797,8 @@ NTSTATUS PhSvcApiChangeServiceConfig(
     PPH_STRING displayName = NULL;
     ULONG tagId = 0;
     SC_HANDLE serviceHandle;
+    BOOLEAN serviceConfigChanged = FALSE;
+    BOOLEAN registryFallbackUsed = FALSE;
 
     if (!NT_SUCCESS(status = PhSvcCaptureString(&Payload->u.ChangeServiceConfig.i.ServiceName, FALSE, &serviceName)))
         goto CleanupExit;
@@ -833,13 +835,48 @@ NTSTATUS PhSvcApiChangeServiceConfig(
 
         if (NT_SUCCESS(status))
         {
+            serviceConfigChanged = TRUE;
             Payload->u.ChangeServiceConfig.o.TagId = tagId;
+
+            if (Payload->u.ChangeServiceConfig.i.DelayedStartSpecified)
+            {
+                status = PhSetServiceDelayedAutoStart(
+                    serviceHandle,
+                    Payload->u.ChangeServiceConfig.i.DelayedStart
+                    );
+            }
         }
 
         PhCloseServiceHandle(serviceHandle);
     }
 
+    if (
+        status == STATUS_ACCESS_DENIED &&
+        (!password || serviceConfigChanged) &&
+        Payload->u.ChangeServiceConfig.i.RegistryFallbackAllowed
+        )
+    {
+        status = PhChangeServiceConfigRegistry(
+            &serviceName->sr,
+            serviceConfigChanged ? SERVICE_NO_CHANGE : Payload->u.ChangeServiceConfig.i.ServiceType,
+            serviceConfigChanged ? SERVICE_NO_CHANGE : Payload->u.ChangeServiceConfig.i.StartType,
+            serviceConfigChanged ? SERVICE_NO_CHANGE : Payload->u.ChangeServiceConfig.i.ErrorControl,
+            serviceConfigChanged ? NULL : PhGetString(binaryPathName),
+            serviceConfigChanged ? NULL : PhGetString(loadOrderGroup),
+            serviceConfigChanged ? NULL : PhGetString(serviceStartName),
+            serviceConfigChanged ? NULL : PhGetString(displayName),
+            Payload->u.ChangeServiceConfig.i.DelayedStartSpecified,
+            Payload->u.ChangeServiceConfig.i.DelayedStart
+            );
+
+        if (NT_SUCCESS(status))
+            registryFallbackUsed = TRUE;
+    }
+
 CleanupExit:
+    if (NT_SUCCESS(status))
+        Payload->u.ChangeServiceConfig.o.RegistryFallbackUsed = registryFallbackUsed;
+
     PhClearReference(&displayName);
 
     if (password)

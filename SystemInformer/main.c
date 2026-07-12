@@ -98,6 +98,7 @@ INT WINAPI wWinMain(
     PhInitializeCallbacks();
 
     if (PhEnableKsiSupport &&
+        !PhStartupParameters.PhSvc &&
         !PhStartupParameters.ShowOptions)
     {
         PhInitializeKsi();

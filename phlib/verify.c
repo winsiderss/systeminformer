@@ -610,16 +610,38 @@ NTSTATUS PhpVerifyGetHashFromFileHandle(
     {
         if (!CryptCATAdminCalcHashFromFileHandle2(catAdminHandle, FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            ULONG error = GetLastError();
+
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+
+            if (
+                HRESULT_FACILITY(error) == FACILITY_WIN32 ||
+                HRESULT_FACILITY(error) == FACILITY_WINDOWS
+                )
+            {
+                return PhNtStatusFromHResult(error);
+            }
+
+            return PhDosErrorToNtStatus(error);
         }
     }
     else
     {
         if (!CryptCATAdminCalcHashFromFileHandle(FileHandle, FileHashLength, FileHashBuffer, 0))
         {
+            ULONG error = GetLastError();
+
             CryptCATAdminReleaseContext(catAdminHandle, 0);
-            return PhGetLastWin32ErrorAsNtStatus();
+
+            if (
+                HRESULT_FACILITY(error) == FACILITY_WIN32 ||
+                HRESULT_FACILITY(error) == FACILITY_WINDOWS
+                )
+            {
+                return PhNtStatusFromHResult(error);
+            }
+
+            return PhDosErrorToNtStatus(error);
         }
     }
 

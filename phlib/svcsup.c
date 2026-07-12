@@ -580,6 +580,108 @@ NTSTATUS PhChangeServiceConfig(
 }
 
 /**
+ * Changes a service configuration directly in the registry.
+ *
+ * The Service Control Manager does not observe these changes until Windows is restarted.
+ * Passwords are intentionally unsupported because service account passwords are stored as LSA secrets.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhChangeServiceConfigRegistry(
+    _In_ PPH_STRINGREF ServiceName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR LoadOrderGroup,
+    _In_opt_ PCWSTR ServiceStartName,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ BOOLEAN DelayedStartSpecified,
+    _In_ BOOLEAN DelayedStart
+    )
+{
+    static CONST PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services");
+    NTSTATUS status;
+    HANDLE servicesKeyHandle;
+    HANDLE keyHandle;
+    UNICODE_STRING serviceName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    ULONG value;
+
+    status = PhOpenKey(
+        &servicesKeyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &servicesKeyName,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!PhStringRefToUnicodeString(ServiceName, &serviceName))
+    {
+        NtClose(servicesKeyHandle);
+        return STATUS_NAME_TOO_LONG;
+    }
+
+    InitializeObjectAttributes(
+        &objectAttributes,
+        &serviceName,
+        OBJ_CASE_INSENSITIVE,
+        servicesKeyHandle,
+        NULL
+        );
+
+    status = NtOpenKeyEx(
+        &keyHandle,
+        KEY_SET_VALUE,
+        &objectAttributes,
+        REG_OPTION_BACKUP_RESTORE
+        );
+    NtClose(servicesKeyHandle);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+#define SET_DWORD_IF_CHANGED(Name, Value) \
+    if ((Value) != SERVICE_NO_CHANGE) \
+    { \
+        value = (Value); \
+        if (!NT_SUCCESS(status = PhSetValueKeyZ(keyHandle, (Name), REG_DWORD, &value, sizeof(value)))) \
+            goto CleanupExit; \
+    }
+
+#define SET_STRING_IF_PRESENT(Name, Type, Value) \
+    if (Value) \
+    { \
+        if (!NT_SUCCESS(status = PhSetValueKeyZ(keyHandle, (Name), (Type), (PVOID)(Value), (ULONG)(PhCountStringZ(Value) + 1) * sizeof(WCHAR)))) \
+            goto CleanupExit; \
+    }
+
+    SET_DWORD_IF_CHANGED(L"Type", ServiceType);
+    SET_DWORD_IF_CHANGED(L"Start", StartType);
+    SET_DWORD_IF_CHANGED(L"ErrorControl", ErrorControl);
+    SET_STRING_IF_PRESENT(L"ImagePath", REG_EXPAND_SZ, BinaryPathName);
+    SET_STRING_IF_PRESENT(L"Group", REG_SZ, LoadOrderGroup);
+    SET_STRING_IF_PRESENT(L"ObjectName", REG_SZ, ServiceStartName);
+    SET_STRING_IF_PRESENT(L"DisplayName", REG_SZ, DisplayName);
+
+    if (DelayedStartSpecified)
+    {
+        value = DelayedStart;
+        status = PhSetValueKeyZ(keyHandle, L"DelayedAutoStart", REG_DWORD, &value, sizeof(value));
+    }
+
+CleanupExit:
+    NtClose(keyHandle);
+    return status;
+
+#undef SET_STRING_IF_PRESENT
+#undef SET_DWORD_IF_CHANGED
+}
+
+/**
  * Changes optional configuration parameters of a service.
  *
  * \param ServiceHandle Handle to the service.
