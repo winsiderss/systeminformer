@@ -141,7 +141,10 @@ VOID SetupUpdateWindowBorderColor(
     if (!SetupWizardDarkMode || !SetupDwmSetWindowAttribute_I)
         return;
 
-    borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : SetupWizardColorWindowInactiveBorder;
+    if (WindowsVersion >= WINDOWS_11)
+        borderColor = 0xffffffff; // DWMWA_COLOR_DEFAULT
+    else
+        borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : SetupWizardColorWindowInactiveBorder;
     SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
@@ -1934,8 +1937,7 @@ INT_PTR CALLBACK SetupInstallPageDlgProc(
         break;
     case SETUP_SHOWUPDATEFINAL:
         {
-            SetupExecuteApplication(context);
-            PropSheet_PressButton(context->ParentWindowHandle, PSBTN_FINISH);
+            PropSheet_SetCurSel(context->ParentWindowHandle, NULL, SETUP_WIZARD_COMPLETED_PAGE_INDEX);
         }
         break;
     case SETUP_SHOWUNINSTALLFINAL:
