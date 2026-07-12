@@ -3735,7 +3735,6 @@ INT_PTR CALLBACK PhpOptionsAdvancedDlgProc(
                             MAKEINTRESOURCE(IDD_OPTADVEDIT),
                             hwndDlg,
                             PhpOptionsAdvancedEditDlgProc,
-                            node->Setting
                             &editContext
                             );
 
