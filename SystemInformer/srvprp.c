@@ -71,6 +71,39 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
     _In_ LPARAM lParam
     );
 
+BOOLEAN PhpIsServiceRegistryFallbackStatus(
+    _In_ NTSTATUS Status
+    )
+{
+    return Status == STATUS_ACCESS_DENIED;
+}
+
+BOOLEAN PhpConfirmServiceRegistryFallback(
+    _In_ HWND WindowHandle
+    )
+{
+    ULONG button;
+    TASKDIALOGCONFIG config;
+
+    memset(&config, 0, sizeof(TASKDIALOGCONFIG));
+    config.cbSize = sizeof(TASKDIALOGCONFIG);
+    config.hwndParent = WindowHandle;
+    config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW;
+    config.dwCommonButtons = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+    config.pszWindowTitle = PhApplicationName;
+    config.pszMainIcon = TD_WARNING_ICON;
+    config.pszMainInstruction = L"Change the service configuration directly?";
+    config.pszContent =
+        L"The Service Control Manager rejected this change. System Informer can write the service configuration directly to the registry, but doing so bypasses Service Control Manager protections and may be detected by security software.\n\n"
+        L"The running Service Control Manager will remain out of sync with the registry until Windows is restarted. The change will not appear in System Informer or take effect before the restart.";
+    config.nDefaultButton = IDNO;
+
+    if (PhShowTaskDialog(&config, &button, NULL, NULL))
+        return button == IDYES;
+
+    return FALSE;
+}
+
 /**
  * Callback function to open a service object.
  *
@@ -833,8 +866,22 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     {
                         if (PhGetOwnTokenAttributes().Elevated)
                         {
+                            if (
+                                !PhpIsServiceRegistryFallbackStatus(status) ||
+                                !PhGetIntegerSetting(SETTING_ENABLE_SERVICE_REGISTRY_FALLBACK)
+                                )
+                            {
+                                goto ErrorCase;
+                            }
+
                             if (newServicePassword && !serviceConfigChanged)
                                 goto ErrorCase;
+
+                            if (!PhpConfirmServiceRegistryFallback(hwndDlg))
+                            {
+                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                                goto Cleanup;
+                            }
 
                             status = PhChangeServiceConfigRegistry(
                                 &serviceItem->Name->sr,
@@ -876,9 +923,42 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                                 NULL,
                                 delayedStartChanged,
                                 newDelayedStart,
-                                TRUE,
+                                FALSE,
                                 &registryFallbackUsed
                                 );
+
+                            if (
+                                !NT_SUCCESS(status) &&
+                                !newServicePassword &&
+                                PhpIsServiceRegistryFallbackStatus(status) &&
+                                PhGetIntegerSetting(SETTING_ENABLE_SERVICE_REGISTRY_FALLBACK)
+                                )
+                            {
+                                if (!PhpConfirmServiceRegistryFallback(hwndDlg))
+                                {
+                                    PhUiDisconnectFromPhSvc();
+                                    SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                                    goto Cleanup;
+                                }
+
+                                status = PhSvcCallChangeServiceConfigEx(
+                                    PhGetString(serviceItem->Name),
+                                    newServiceType,
+                                    newServiceStartType,
+                                    newServiceErrorControl,
+                                    PhGetString(newServiceBinaryPath),
+                                    PhGetString(newServiceGroup),
+                                    NULL,
+                                    NULL,
+                                    PhGetString(newServiceUserAccount),
+                                    PhGetString(newServicePassword),
+                                    NULL,
+                                    delayedStartChanged,
+                                    newDelayedStart,
+                                    TRUE,
+                                    &registryFallbackUsed
+                                    );
+                            }
 
                             PhUiDisconnectFromPhSvc();
 
@@ -887,19 +967,8 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                         }
                     }
 
-                    if (registryFallbackUsed)
-                    {
-                        PhShowInformation2(
-                            hwndDlg,
-                            L"Service configuration changed",
-                            L"%s",
-                            L"The Service Control Manager could not apply the change, so the service configuration was updated in the registry. The change will take effect after Windows is restarted."
-                            );
-                    }
-                    else
-                    {
+                    if (!registryFallbackUsed)
                         PhMarkNeedsConfigUpdateServiceItem(serviceItem);
-                    }
 
                     goto Cleanup;
 ErrorCase:

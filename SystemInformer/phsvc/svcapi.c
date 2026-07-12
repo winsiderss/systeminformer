@@ -851,7 +851,7 @@ NTSTATUS PhSvcApiChangeServiceConfig(
     }
 
     if (
-        !NT_SUCCESS(status) &&
+        status == STATUS_ACCESS_DENIED &&
         (!password || serviceConfigChanged) &&
         Payload->u.ChangeServiceConfig.i.RegistryFallbackAllowed
         )

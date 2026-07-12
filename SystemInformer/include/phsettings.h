@@ -264,6 +264,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_SERVICE_NON_POLL_NOTIFY                      L"EnableServiceNonPollNotify"
 #define SETTING_ENABLE_SERVICE_STAGE2                               L"EnableServiceStage2"
 #define SETTING_ENABLE_SERVICE_PROGRESS_DIALOG                      L"EnableServiceProgressDialog"
+#define SETTING_ENABLE_SERVICE_REGISTRY_FALLBACK                    L"EnableServiceRegistryFallback"
 #define SETTING_ENABLE_SHELL_EXECUTE_SKIP_IFEO_DEBUGGER             L"EnableShellExecuteSkipIfeoDebugger"
 #define SETTING_ENABLE_STAGE2                                       L"EnableStage2"
 #define SETTING_ENABLE_STREAMER_MODE                                L"EnableStreamerMode"
