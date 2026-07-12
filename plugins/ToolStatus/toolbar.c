@@ -45,11 +45,12 @@ HWND ToolbarCreateWindow(
     _In_ HWND ParentWindowHandle
     )
 {
-    HWND toolbarHandle = PhCreateWindow(
+    HWND toolbarHandle = PhCreateWindowEx(
         TOOLBARCLASSNAME,
         NULL,
         WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | CCS_NOPARENTALIGN | CCS_NODIVIDER |
         TBSTYLE_FLAT | TBSTYLE_LIST | TBSTYLE_TRANSPARENT | TBSTYLE_TOOLTIPS | TBSTYLE_AUTOSIZE,
+        WS_EX_TOOLWINDOW,
         0, 0, 0, 0,
         ParentWindowHandle,
         NULL,
@@ -61,6 +62,8 @@ HWND ToolbarCreateWindow(
     SendMessage(toolbarHandle, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);
     // Set the toolbar extended toolbar styles.
     SendMessage(toolbarHandle, TB_SETEXTENDEDSTYLE, 0, TBSTYLE_EX_DOUBLEBUFFER | TBSTYLE_EX_MIXEDBUTTONS | TBSTYLE_EX_HIDECLIPPEDBUTTONS);
+    SendMessage(toolbarHandle, TB_SETMAXTEXTROWS, 1, 0);
+    SendMessage(toolbarHandle, TB_SETBUTTONWIDTH, 0, MAKELONG(0, 200));
 
     return toolbarHandle;
 }
@@ -140,6 +143,22 @@ VOID ToolbarUpdateImageList(
                 );
         }
     }
+}
+
+VOID ToolbarUpdateWindowStyle(
+    VOID
+    )
+{
+    if (!ToolBarHandle)
+        return;
+
+    //PhSetWindowStyle(
+    //    ToolBarHandle,
+    //    TBSTYLE_TRANSPARENT,
+    //    EnableThemeSupport ? 0 : TBSTYLE_TRANSPARENT
+    //    );
+
+    //InvalidateRect(ToolBarHandle, NULL, TRUE);
 }
 
 /**
@@ -263,6 +282,7 @@ VOID ToolBarCreate(
     )
 {
     ToolBarHandle = ToolbarCreateWindow(RebarHandle);
+    ToolbarUpdateWindowStyle();
 
     if (ToolBarImageList)
         SendMessage(ToolBarHandle, TB_SETIMAGELIST, 0, (LPARAM)ToolBarImageList);
@@ -317,7 +337,7 @@ VOID SearchBoxCreate(
     SearchboxHandle = PhCreateWindowEx(
         WC_EDIT,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | ES_LEFT | ES_AUTOHSCROLL,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | ES_LEFT | ES_AUTOHSCROLL,
         WS_EX_CLIENTEDGE,
         0, 0, 0, 0,
         MainWindowHandle,

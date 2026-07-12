@@ -303,6 +303,10 @@ VOID ToolbarUpdateImageList(
     _In_ BOOLEAN DpiChanged
     );
 
+VOID ToolbarUpdateWindowStyle(
+    VOID
+    );
+
 VOID RebarCreate(
     VOID
     );
