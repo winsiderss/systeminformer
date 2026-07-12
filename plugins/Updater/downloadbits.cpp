@@ -328,8 +328,8 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
 
     if (Context->DialogHandle)
     {
-        SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, (LPARAM)L"Initializing BITS download...");
-        SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, (LPARAM)L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s");
+        SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_MAIN_INSTRUCTION, reinterpret_cast<LPARAM>(L"Initializing BITS download..."));
+        SendMessage(Context->DialogHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_CONTENT, reinterpret_cast<LPARAM>(L"Downloaded: ~ of ~ (0%)\r\nSpeed: ~ KB/s"));
     }
     else if (Context->ToastMode)
     {
@@ -556,7 +556,7 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
         result = NtWaitForSingleObject(
             callback->GetCompletionEvent(),
             FALSE,
-            PhTimeoutFromMilliseconds(&timeout, 200)
+            PhTimeoutFromMilliseconds(&timeout, 1000)
             );
 
         if (result == WAIT_FAILED)

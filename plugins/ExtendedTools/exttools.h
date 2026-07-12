@@ -327,7 +327,11 @@ typedef struct _ET_DISK_NODE
 #define ETPRTNC_FIREWALLBLOCKS 38
 #define ETPRTNC_FIREWALLALLOWSDELTA 39
 #define ETPRTNC_FIREWALLBLOCKSDELTA 40
-#define ETPRTNC_MAXIMUM 40
+#define ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES 41
+#define ETPRTNC_GPUSHAREDCOMMITTEDBYTES 42
+#define ETPRTNC_NPUDEDICATEDCOMMITTEDBYTES 43
+#define ETPRTNC_NPUSHAREDCOMMITTEDBYTES 44
+#define ETPRTNC_MAXIMUM 44
 
 // Network list columns
 
@@ -497,6 +501,8 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 GpuDedicatedUsage;
     ULONG64 GpuSharedUsage;
     ULONG64 GpuCommitUsage;
+    ULONG64 GpuDedicatedCommitted;
+    ULONG64 GpuSharedCommitted;
     ULONG64 GpuDedicatedUsageMin; ULONG64 GpuDedicatedUsageMax; ULONG64 GpuDedicatedUsageDiff;
     ULONG64 GpuSharedUsageMin; ULONG64 GpuSharedUsageMax; ULONG64 GpuSharedUsageDiff;
     ULONG64 GpuCommitUsageMin; ULONG64 GpuCommitUsageMax; ULONG64 GpuCommitUsageDiff;
@@ -530,6 +536,8 @@ typedef struct _ET_PROCESS_BLOCK
     ULONG64 NpuDedicatedUsage;
     ULONG64 NpuSharedUsage;
     ULONG64 NpuCommitUsage;
+    ULONG64 NpuDedicatedCommitted;
+    ULONG64 NpuSharedCommitted;
 
     // Frames
 
@@ -1267,7 +1275,9 @@ BOOLEAN EtLookupProcessGpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
     _Out_ PULONG64 SharedUsage,
     _Out_ PULONG64 DedicatedUsage,
-    _Out_ PULONG64 CommitUsage
+    _Out_ PULONG64 CommitUsage,
+    _Out_ PULONG64 DedicatedCommitted,
+    _Out_ PULONG64 SharedCommitted
     );
 
 FLOAT EtLookupTotalGpuUtilization(
@@ -1295,7 +1305,9 @@ BOOLEAN EtLookupProcessNpuMemoryCounters(
     _In_opt_ HANDLE ProcessId,
     _Out_ PULONG64 SharedUsage,
     _Out_ PULONG64 DedicatedUsage,
-    _Out_ PULONG64 CommitUsage
+    _Out_ PULONG64 CommitUsage,
+    _Out_ PULONG64 DedicatedCommitted,
+    _Out_ PULONG64 SharedCommitted
     );
 
 FLOAT EtLookupTotalNpuUtilization(

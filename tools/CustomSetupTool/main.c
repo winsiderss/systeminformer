@@ -596,6 +596,9 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
 
     context = PhAllocateZero(sizeof(PH_SETUP_CONTEXT));
+    context->SetupCreateStartMenuShortcuts = TRUE;
+    context->SetupCreateDesktopShortcut = TRUE;
+    context->SetupStartMenuFolderName = PhReferenceEmptyString();
 
     if (PhIsNullOrEmptyString(context->SetupInstallPath))
     {
@@ -603,6 +606,7 @@ INT WINAPI wWinMain(
     }
 
     SetupParseCommandLine(context);
+    SetupInitializeShortcutOptions(context);
     
     if (!context->Silent && context->SetupMode == SetupCommandUpdate && !PhGetOwnTokenAttributes().Elevated)
     {

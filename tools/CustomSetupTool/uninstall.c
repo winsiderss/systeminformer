@@ -59,7 +59,7 @@ NTSTATUS CALLBACK SetupUninstallBuild(
     //
     // Remove all shortcuts.
     //
-    SetupDeleteShortcuts(Context);
+    SetupDeleteShortcuts(Context, TRUE, TRUE);
 
     //
     // Remove the uninstaller.

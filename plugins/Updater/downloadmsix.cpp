@@ -316,12 +316,12 @@ NTSTATUS UpdaterMsixDownloadAndInstall(
     )
 {
     HRESULT status;
-    ComPtr<ABI::Windows::Services::Store::IStoreContextStatics> storeContextStatics;
-    ComPtr<ABI::Windows::Services::Store::IStoreContext> storeContext;
     ComPtr<IInitializeWithWindow> initializeWithWindow;
+    ComPtr<__x_ABI_CWindows_CServices_CStore_CIStoreContextStatics> storeContextStatics;
+    ComPtr<__x_ABI_CWindows_CServices_CStore_CIStoreContext> storeContext;
     ComPtr<__FIIterable_1_Windows__CServices__CStore__CStorePackageUpdate> updatesIterable;
     ComPtr<__FIAsyncOperationWithProgress_2_Windows__CServices__CStore__CStorePackageUpdateResult_Windows__CServices__CStore__CStorePackageUpdateStatus> asyncOperation;
-    ComPtr<ABI::Windows::Services::Store::IStorePackageUpdateResult> result;
+    ComPtr<__x_ABI_CWindows_CServices_CStore_CIStorePackageUpdateResult> result;
     ABI::Windows::Services::Store::StorePackageUpdateState updateState = ABI::Windows::Services::Store::StorePackageUpdateState::StorePackageUpdateState_Pending;
 
     // No stashed Store update set means we came through the AppInstaller path;
@@ -332,7 +332,7 @@ NTSTATUS UpdaterMsixDownloadAndInstall(
     status = PhGetActivationFactory(
         L"Windows.Services.Store.dll",
         RuntimeClass_Windows_Services_Store_StoreContext,
-        __uuidof(ABI::Windows::Services::Store::IStoreContextStatics),
+        ABI::Windows::Services::Store::IID_IStoreContextStatics,
         reinterpret_cast<PVOID*>(storeContextStatics.GetAddressOf())
         );
 

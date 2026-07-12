@@ -52,6 +52,7 @@
 #endif
 
 DECLSPEC_SELECTANY GUID FOLDERID_PublicDesktop = { 0xC4AA340D, 0xF20F, 0x4863, { 0xAF, 0xEF, 0xF8, 0x7E, 0xF2, 0xE6, 0xBA, 0x25 } };
+DECLSPEC_SELECTANY GUID FOLDERID_CommonPrograms = { 0x0139D44E, 0x6AFE, 0x49F2, { 0x86, 0x90, 0x3D, 0xAF, 0xCA, 0xE6, 0xFF, 0xB8 } };
 
 typedef enum _SETUP_COMMAND_TYPE
 {
@@ -81,13 +82,18 @@ typedef struct _PH_SETUP_CONTEXT
             ULONG NeedsReboot : 1;
             ULONG SetupProgressActive : 1;
             ULONG SetupCompleted : 1;
-            ULONG Spare : 24;
+            ULONG SetupCreateStartMenuShortcuts : 1;
+            ULONG SetupCreateDesktopShortcut : 1;
+            ULONG SetupShortcutOptionsInitialized : 1;
+            ULONG Spare : 21;
         };
     };
 
     SETUP_COMMAND_TYPE SetupMode;
     PPH_STRING SetupInstallPath;
     PPH_STRING SetupServiceName;
+    PPH_STRING SetupStartMenuFolderName;
+    PPH_STRING SetupPreviousStartMenuFolderName;
 
     NTSTATUS LastStatus;
 
@@ -219,10 +225,16 @@ VOID SetupDeleteLocalDumpsKey(
     );
 
 VOID SetupCreateShortcuts(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN UpdateDesktopShortcut
+    );
+VOID SetupInitializeShortcutOptions(
+    _Inout_ PPH_SETUP_CONTEXT Context
     );
 VOID SetupDeleteShortcuts(
-    _In_ PPH_SETUP_CONTEXT Context
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN UpdateDesktopShortcut,
+    _In_ BOOLEAN RemoveStartMenuFolder
     );
 
 NTSTATUS SetupCreateUninstallFile(

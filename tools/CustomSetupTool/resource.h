@@ -13,6 +13,8 @@
 #define IDD_REPAIR                      109
 #define IDB_PNG1                        110
 #define IDD_ERROR                       111
+#define IDD_UNINSTALL_WELCOME           112
+#define IDD_SHORTCUTS                   113
 #define IDC_PATH                        1001
 #define IDC_BROWSE                      1002
 #define IDC_PROGRESS                    1003
@@ -23,15 +25,20 @@
 #define IDC_PAGEICON                    1008
 #define IDC_SIDEBAR                     1009
 #define IDC_SIDEBARICON                 1010
+#define IDC_REMOVESETTINGS              1011
+#define IDC_STARTMENUFOLDER             1012
+#define IDC_STARTMENUFOLDERLIST         1013
+#define IDC_NOSTARTMENUSHORTCUTS        1014
+#define IDC_DESKTOPSHORTCUT             1015
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        114
 #define _APS_NEXT_COMMAND_VALUE         40002
-#define _APS_NEXT_CONTROL_VALUE         1011
+#define _APS_NEXT_CONTROL_VALUE         1016
 #define _APS_NEXT_SYMED_VALUE           105
 #endif
 #endif

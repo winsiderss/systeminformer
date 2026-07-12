@@ -32,27 +32,15 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
 {
     WNDPROC DefaultWindowProc;
     LONG WindowDpi;
-    struct
-    {
-       BOOLEAN Flags;
-       union
-       {
-            BOOLEAN NonMouseActive : 1;
-            BOOLEAN MouseActive : 1;
-            BOOLEAN HotTrack : 1;
-            BOOLEAN Hot : 1;
-            BOOLEAN Spare : 4;
-       };
-    };
-
-    HTHEME ThemeHandle;
+    // legacy bitfield replaced by explicit flags (status kept in Flags field when needed)
+    BOOLEAN MouseActive;
     POINT CursorPos;
 
-    HDC BufferedDc;
-    HBITMAP BufferedOldBitmap;
-    HBITMAP BufferedBitmap;
-    RECT BufferedContextRect;
+    HTHEME ThemeHandle;
+    ULONG Flags; // status flags for statusbar context (bitfield replacement)
 } PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
+
+#define PHP_THEME_STATUSBAR_FLAG_HOT (1u << 3)
 
 typedef struct _PHP_THEME_WINDOW_COMBO_CONTEXT
 {
@@ -68,30 +56,22 @@ typedef struct _PHP_THEME_WINDOW_EDIT_CONTEXT
     WNDPROC DefaultWindowProc;
     HWND ParentWindowHandle;
     LONG WindowDpi;
-    BOOLEAN WindowFocus;
-    HWND PreviousFocusWindowHandle;
 
     struct
     {
-       BOOLEAN Flags;
-       union
-       {
-            BOOLEAN NonMouseActive : 1;
-            BOOLEAN MouseActive : 1;
-            BOOLEAN HotTrack : 1;
-            BOOLEAN Hot : 1;
-            BOOLEAN Spare : 4;
-       };
+        ULONG Hot : 1;
+        ULONG HotTrack : 1;
+        ULONG WindowFocus : 1;
+        ULONG ReadOnly : 1;
+        ULONG Multiline : 1;
+        ULONG Spare : 27;
     };
+
+    HWND PreviousFocusWindowHandle;
 
     HBRUSH WindowBrush;
     HBRUSH FrameBrush;
     LONG BorderSize;
-
-    HDC BufferedDc;
-    HBITMAP BufferedOldBitmap;
-    HBITMAP BufferedBitmap;
-    RECT BufferedContextRect;
 } PHP_THEME_WINDOW_EDIT_CONTEXT, *PPHP_THEME_WINDOW_EDIT_CONTEXT;
 
 typedef struct _PHP_THEME_PAINT_BUFFER
@@ -188,8 +168,34 @@ VOID PhpThemeWindowEditThemeChanged(
     _In_ HWND WindowHandle
     );
 
-VOID PhpThemeWindowEditDestroyBufferedContext(
-    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context
+VOID PhpThemeWindowEditRedrawFrame(
+    _In_ HWND WindowHandle
+    );
+
+VOID PhpThemeWindowEditExcludeClient(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ PRECT WindowRect,
+    _In_ PRECT ScreenWindowRect
+    );
+
+VOID PhpThemeWindowEditPaintNativeFrame(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ WNDPROC DefaultWindowProc,
+    _In_ WPARAM wParam
+    );
+
+BOOLEAN PhpThemeWindowEditPaintFrame(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam
+    );
+
+VOID PhpThemeWindowEditUpdateFrameStyle(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
     );
 
 VOID PhpUninitializeWindowTheme(
@@ -1039,7 +1045,6 @@ VOID PhpUninitializeWindowTheme(
             PhSetWindowProcedure(WindowHandle, context->DefaultWindowProc);
             PhRemoveWindowContext(WindowHandle, SHRT_MAX);
 
-            PhpThemeWindowEditDestroyBufferedContext(context);
             PhFree(context);
         }
 
@@ -1564,9 +1569,20 @@ VOID PhWindowThemeMainMenuBorder(
         PhOffsetRect(&clientRect, -windowRect.left, -windowRect.top);
 
         // the rcBar is offset by the window rect (thanks to adzm) (dmex)
+        // Cover the entire gap between the bottom of the menu bar and the top
+        // of the client area — a fixed 1px leaves a residual line at high DPI.
         RECT rcAnnoyingLine = clientRect;
+        MENUBARINFO menuBarInfo = { sizeof(MENUBARINFO) };
+
         rcAnnoyingLine.bottom = rcAnnoyingLine.top;
-        rcAnnoyingLine.top--;
+
+        if (GetMenuBarInfo(WindowHandle, OBJID_MENU, 0, &menuBarInfo))
+            rcAnnoyingLine.top = menuBarInfo.rcBar.bottom - windowRect.top;
+        else
+            rcAnnoyingLine.top--;
+
+        if (rcAnnoyingLine.top >= rcAnnoyingLine.bottom)
+            rcAnnoyingLine.top = rcAnnoyingLine.bottom - 1;
 
         if (hdc = GetWindowDC(WindowHandle))
         {
@@ -1694,20 +1710,30 @@ VOID PhInitializeWindowThemeEditControl(
     )
 {
     PPHP_THEME_WINDOW_EDIT_CONTEXT context;
+    WCHAR windowClassName[MAX_PATH];
+
+    if (!NT_SUCCESS(PhGetClassName(EditControl, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
+        return;
+    if (!PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
+        return;
+    if (PhGetWindowContext(EditControl, SHRT_MAX))
+        return;
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_EDIT_CONTEXT));
     context->DefaultWindowProc = PhGetWindowProcedure(EditControl);
     context->ParentWindowHandle = GetParent(EditControl);
     context->WindowDpi = PhGetWindowDpi(EditControl);
-    context->PreviousFocusWindowHandle = NULL;
-    context->WindowFocus = FALSE;
+    context->WindowFocus = GetFocus() == EditControl;
+    context->BorderSize = PhGetSystemMetrics(SM_CXBORDER, context->WindowDpi);
 
     PhpThemeWindowEditThemeChanged(context, EditControl);
 
     PhSetWindowContext(EditControl, SHRT_MAX, context);
     PhSetWindowProcedure(EditControl, PhEditBorderWndSubclassProc);
-
+    PhpThemeWindowEditUpdateFrameStyle(context, EditControl);
     SetWindowPos(EditControl, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+    //PhpThemeWindowEditRedrawFrame(EditControl);
     InvalidateRect(EditControl, NULL, FALSE);
 }
 
@@ -1720,9 +1746,6 @@ VOID PhpApplyThemeWindow(
 
     if (!NT_SUCCESS(PhGetClassName(WindowHandle, windowClassName, RTL_NUMBER_OF(windowClassName), NULL)))
         windowClassName[0] = UNICODE_NULL;
-
-    if (!Reinitialize)
-        dprintf("PhpThemeWindowEnumChildWindows: %S\r\n", windowClassName);
 
     if (PhEqualStringZ(windowClassName, L"#32770", TRUE))
     {
@@ -1905,11 +1928,18 @@ VOID PhpApplyThemeWindow(
     }
     else if (PhEqualStringZ(windowClassName, WC_EDIT, FALSE))
     {
-        // Fix scrollbar on multiline edit (Dart Vanya)
+        // Multiline edits keep the native (dark) theme border. Single-line bordered edits get a
+        // custom border from PhInitializeWindowThemeEditControl, so don't apply DarkMode_Explorer
+        // to them or it draws a competing native edge underneath the custom one. (dmex)
         if (PhGetWindowStyle(WindowHandle) & ES_MULTILINE)
         {
-            PhWindowThemeSetDarkMode(WindowHandle, TRUE);
+            PhWindowThemeSetDarkMode(
+                WindowHandle,
+                PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128
+                );
         }
+
+        PhInitializeWindowThemeEditControl(WindowHandle);
 
         SendMessage(WindowHandle, WM_THEMECHANGED, 0, 0); // searchbox.c
     }
@@ -2831,7 +2861,8 @@ LRESULT CALLBACK PhThemeWindowDrawRebar(
     {
     case CDDS_PREPAINT:
         {
-            SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor);
+            // Note: The background is erased by the WM_PAINT in PhRebarWindowHookProcedure
+            SetTextColor(DrawInfo->hdc, PhThemeWindowTextColor); 
             FillRect(DrawInfo->hdc, &DrawInfo->rc, PhThemeWindowBackgroundBrush);
         }
         return CDRF_NOTIFYITEMDRAW;
@@ -2863,6 +2894,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
             LONG dpiValue;
             INT bitmapWidth = 0;
             INT bitmapHeight = 0;
+            LONG edgeWidth;
 
             ULONG currentIndex = (ULONG)SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
@@ -2876,12 +2908,6 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                 0,
                 0
                 ) == currentIndex;
-            BOOLEAN isMouseDown = SendMessage(
-                DrawInfo->nmcd.hdr.hwndFrom,
-                TB_ISBUTTONPRESSED,
-                DrawInfo->nmcd.dwItemSpec,
-                0
-                ) == 0;
             BOOLEAN isEnabled = SendMessage(
                 DrawInfo->nmcd.hdr.hwndFrom,
                 TB_ISBUTTONENABLED,
@@ -2900,13 +2926,6 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
             }
 
             BOOLEAN isDropDown = !!(buttonInfo.fsStyle & BTNS_WHOLEDROPDOWN);
-
-            //if (isMouseDown)
-            //{
-            //    SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
-            //    SetDCBrushColor(DrawInfo->nmcd.hdc, RGB(0xff, 0xff, 0xff));
-            //    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhGetStockBrush(DC_BRUSH));
-            //}
 
             if (isHighlighted)
             {
@@ -2950,6 +2969,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
             }
 
             dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
+            edgeWidth = PhGetSystemMetrics(SM_CXEDGE, dpiValue);
 
             SelectFont(DrawInfo->nmcd.hdc, GetWindowFont(DrawInfo->nmcd.hdr.hwndFrom));
 
@@ -2971,8 +2991,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
                     if (buttonInfo.fsStyle & BTNS_SHOWTEXT)
                     {
-                        DrawInfo->nmcd.rc.left += PhGetSystemMetrics(SM_CXEDGE, dpiValue); // PhScaleToDisplay(5, dpiValue);
-                        x = DrawInfo->nmcd.rc.left;
+                        x = DrawInfo->nmcd.rc.left + edgeWidth;
                         y = DrawInfo->nmcd.rc.top + ((DrawInfo->nmcd.rc.bottom - DrawInfo->nmcd.rc.top) - bitmapHeight) / 2;
                     }
                     else
@@ -2994,8 +3013,9 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     if (isDropDown)
                     {
                         HDC hdc = DrawInfo->nmcd.hdc;
-                        LPRECT rc = &DrawInfo->nmcd.rc;
-                        int triangleLeft = rc->right - 11, triangleTop = (rc->bottom - rc->top) / 2 - 2;
+                        RECT glyphRect = DrawInfo->nmcd.rc;
+                        int triangleLeft = glyphRect.right - 11;
+                        int triangleTop = (glyphRect.bottom - glyphRect.top) / 2 - 2;
                         POINT vertices[] = { {triangleLeft, triangleTop}, {triangleLeft + 6, triangleTop}, {triangleLeft + 3, triangleTop + 3} };
                         SetDCPenColor(hdc, PHP_THEME_WINDOW_DROPDOWN_GLYPH_COLOR);
                         SetDCBrushColor(hdc, PHP_THEME_WINDOW_DROPDOWN_GLYPH_COLOR);
@@ -3024,7 +3044,7 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
                     (LPARAM)buttonText
                     );
 
-                textRect.left += bitmapWidth - (isDropDown * 12); // PhScaleToDisplay(10, dpiValue);
+                textRect.left += edgeWidth + bitmapWidth - (isDropDown * 12); // PhScaleToDisplay(10, dpiValue);
                 DrawText(
                     DrawInfo->nmcd.hdc,
                     buttonText,
@@ -3041,6 +3061,83 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
     }
 
     return CDRF_DODEFAULT;
+}
+
+VOID PhpThemeWindowDrawListViewGroupButton(
+    _In_ HDC Hdc,
+    _In_ PRECT HeaderRect,
+    _In_ LONG DpiValue,
+    _In_ BOOLEAN Collapsed
+    )
+{
+    INT savedDc;
+    RECT buttonRect;
+    POINT arrow[3];
+    LONG buttonSize;
+    LONG buttonMargin;
+    LONG arrowWidth;
+    LONG arrowHeight;
+    LONG centerX;
+    LONG centerY;
+
+    buttonSize = PhScaleToDisplay(14, DpiValue);
+    buttonMargin = PhScaleToDisplay(6, DpiValue);
+    arrowWidth = PhScaleToDisplay(6, DpiValue);
+    arrowHeight = PhScaleToDisplay(7, DpiValue);
+
+    if (buttonSize < 10)
+        buttonSize = 10;
+    if (arrowWidth < 4)
+        arrowWidth = 4;
+    if (arrowHeight < 5)
+        arrowHeight = 5;
+
+    if (HeaderRect->right - HeaderRect->left < buttonSize + buttonMargin)
+        return;
+
+    buttonRect.right = HeaderRect->right - buttonMargin;
+    buttonRect.left = buttonRect.right - buttonSize;
+    buttonRect.top = HeaderRect->top + ((HeaderRect->bottom - HeaderRect->top) - buttonSize) / 2;
+    buttonRect.bottom = buttonRect.top + buttonSize;
+
+    savedDc = SaveDC(Hdc);
+    if (!savedDc)
+        return;
+
+    SelectPen(Hdc, PhGetStockPen(DC_PEN));
+    SelectBrush(Hdc, PhpStockDCBrush);
+
+    SetDCPenColor(Hdc, PhThemeWindowTextColor);
+    SetDCBrushColor(Hdc, PhThemeWindowBackground2Color);
+    Ellipse(Hdc, buttonRect.left, buttonRect.top, buttonRect.right, buttonRect.bottom);
+
+    centerX = buttonRect.left + (buttonRect.right - buttonRect.left) / 2;
+    centerY = buttonRect.top + (buttonRect.bottom - buttonRect.top) / 2;
+
+    if (Collapsed)
+    {
+        arrow[0].x = centerX + arrowWidth / 2;
+        arrow[0].y = centerY;
+        arrow[1].x = centerX - arrowWidth / 2;
+        arrow[1].y = centerY - arrowHeight / 2;
+        arrow[2].x = centerX - arrowWidth / 2;
+        arrow[2].y = centerY + arrowHeight / 2;
+    }
+    else
+    {
+        arrow[0].x = centerX;
+        arrow[0].y = centerY + arrowHeight / 2;
+        arrow[1].x = centerX - arrowWidth / 2;
+        arrow[1].y = centerY - arrowHeight / 2;
+        arrow[2].x = centerX + arrowWidth / 2;
+        arrow[2].y = centerY - arrowHeight / 2;
+    }
+
+    SetDCPenColor(Hdc, PhThemeWindowTextColor);
+    SetDCBrushColor(Hdc, PhThemeWindowTextColor);
+    Polygon(Hdc, arrow, RTL_NUMBER_OF(arrow));
+
+    RestoreDC(Hdc, savedDc);
 }
 
 LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
@@ -3077,10 +3174,14 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
 
             memset(&groupInfo, 0, sizeof(LVGROUP));
             groupInfo.cbSize = sizeof(LVGROUP);
-            groupInfo.mask = LVGF_HEADER;
+            groupInfo.mask = LVGF_HEADER | LVGF_STATE;
+            groupInfo.stateMask = LVGS_COLLAPSIBLE | LVGS_COLLAPSED;
 
             if (ListView_GetGroupInfo(DrawInfo->nmcd.hdr.hwndFrom, (ULONG)DrawInfo->nmcd.dwItemSpec, &groupInfo) != INT_ERROR)
             {
+                RECT textRect;
+                BOOLEAN collapsible;
+
                 SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
                 SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowBackground2Color);
 
@@ -3090,17 +3191,37 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
                 DrawInfo->rcText.top -= PhScaleToDisplay(2, dpiValue);
                 DrawInfo->rcText.bottom += PhScaleToDisplay(2, dpiValue);
 
+                textRect = DrawInfo->rcText;
+                collapsible = !!(groupInfo.state & LVGS_COLLAPSIBLE);
+
+                if (collapsible)
+                {
+                    textRect.right -= PhScaleToDisplay(26, dpiValue);
+
+                    if (textRect.right < textRect.left)
+                        textRect.right = textRect.left;
+                }
+
                 if (groupInfo.pszHeader)
                 {
-                    DrawInfo->rcText.left += PhScaleToDisplay(10, dpiValue);
+                    textRect.left += PhScaleToDisplay(10, dpiValue);
                     DrawText(
                         DrawInfo->nmcd.hdc,
                         groupInfo.pszHeader,
                         (UINT)PhCountStringZ(groupInfo.pszHeader),
-                        &DrawInfo->rcText,
+                        &textRect,
                         DT_LEFT | DT_VCENTER | DT_SINGLELINE | DT_HIDEPREFIX
                         );
-                    DrawInfo->rcText.left -= PhScaleToDisplay(10, dpiValue);
+                }
+
+                if (collapsible)
+                {
+                    PhpThemeWindowDrawListViewGroupButton(
+                        DrawInfo->nmcd.hdc,
+                        &DrawInfo->rcText,
+                        dpiValue,
+                        !!(groupInfo.state & LVGS_COLLAPSED)
+                        );
                 }
             }
 
@@ -3138,6 +3259,17 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
         {
             PhSetWindowProcedure(hWnd, oldWndProc);
             PhRemoveWindowContext(hWnd, LONG_MAX);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clientRect;
+
+            GetClientRect(hWnd, &clientRect);
+            FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
+
+            return TRUE;
         }
         break;
     case WM_NOTIFY:
@@ -4192,8 +4324,11 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
             RECT windowRect;
             HRGN updateRegion;
             LONG dpiValue = context->WindowDpi;
-            INT cxEdge = PhGetSystemMetrics(SM_CXEDGE, dpiValue);
-            INT cyEdge = PhGetSystemMetrics(SM_CYEDGE, dpiValue);
+            // WM_NCCALCSIZE above returns 1px of the default edge to the client
+            // area, so the remaining non-client band is one pixel narrower than
+            // SM_CXEDGE/SM_CYEDGE. Use the same band width everywhere below.
+            INT cxEdge = max(PhGetSystemMetrics(SM_CXEDGE, dpiValue) - 1, 1);
+            INT cyEdge = max(PhGetSystemMetrics(SM_CYEDGE, dpiValue) - 1, 1);
 
             updateRegion = (HRGN)wParam;
 
@@ -4246,7 +4381,7 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
 
                 ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
-                if (context->Hot)
+                if (context->Flags & PHP_THEME_STATUSBAR_FLAG_HOT)
                 {
                     SetDCBrushColor(hdc, PhThemeWindowHighlightColor);
                     FrameRect(hdc, &windowRect, PhpStockDCBrush);
@@ -4546,7 +4681,7 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam
-)
+    )  
 {
     WNDPROC oldWndProc;
 
@@ -4612,47 +4747,49 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
     return CallWindowProc(oldWndProc, WindowHandle, uMsg, wParam, lParam);
 }
 
-VOID PhpThemeWindowEditCreateBufferedContext(
-    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+VOID PhTheme_PaintControlBorder(
     _In_ HDC Hdc,
-    _In_ PRECT BufferRect
+    _In_ PRECT Rect,
+    _In_ BOOLEAN Focused,
+    _In_ BOOLEAN Hot
     )
 {
-    Context->BufferedDc = CreateCompatibleDC(Hdc);
+    COLORREF outerColor;
+    //COLORREF innerColor;
 
-    if (!Context->BufferedDc)
-        return;
-
-    Context->BufferedContextRect = *BufferRect;
-    Context->BufferedBitmap = CreateCompatibleBitmap(
-        Hdc,
-        Context->BufferedContextRect.right,
-        Context->BufferedContextRect.bottom
-        );
-
-    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedDc, Context->BufferedBitmap);
-}
-
-VOID PhpThemeWindowEditDestroyBufferedContext(
-    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context
-    )
-{
-    if (Context->BufferedDc && Context->BufferedOldBitmap)
+    if (Focused)
     {
-        SelectBitmap(Context->BufferedDc, Context->BufferedOldBitmap);
+        outerColor = PhThemeWindowFocusBorderColor;
+        //innerColor = PhThemeWindowEditHotBorderColor;
+    }
+    else if (Hot)
+    {
+        outerColor = PhThemeWindowEditHotBorderColor;
+        //innerColor = PhThemeWindowEditNormalBorderColor;
+    }
+    else
+    {
+        outerColor = PhThemeWindowScrollbarColor;// PhThemeWindowWindowFrameColor;
+        //innerColor = PhThemeWindowEditNormalBorderColor;
     }
 
-    if (Context->BufferedBitmap)
-    {
-        DeleteBitmap(Context->BufferedBitmap);
-        Context->BufferedBitmap = NULL;
-    }
+    // Fill the entire non-client band first so no ring of stale pixels survives
+    // between the frame lines. The caller excludes the client area from the clip,
+    // so this cannot bleed into client pixels.
+    //FillRect(Hdc, Rect, PhThemeWindowBackgroundBrush);
 
-    if (Context->BufferedDc)
-    {
-        DeleteDC(Context->BufferedDc);
-        Context->BufferedDc = NULL;
-    }
+    // Draw outer border (1px)
+    SetDCBrushColor(Hdc, outerColor);
+    FrameRect(Hdc, Rect, PhGetStockBrush(DC_BRUSH));
+
+    // Draw inner border (1px) if space remains. The inner line sits directly
+    // inside the outer line so both fit within the reserved WS_EX_CLIENTEDGE band.
+    RECT rcInner = *Rect;
+    PhInflateRect(&rcInner, -1, -1);
+    //if (rcInner.right > rcInner.left && rcInner.bottom > rcInner.top)
+    //{
+        FrameRect(Hdc, &rcInner, PhThemeWindowBackgroundBrush);
+    //}
 }
 
 VOID PhpThemeWindowEditThemeChanged(
@@ -4660,10 +4797,177 @@ VOID PhpThemeWindowEditThemeChanged(
     _In_ HWND WindowHandle
     )
 {
-    Context->WindowBrush = PhThemeWindowBackgroundBrush;
-    Context->FrameBrush = PhpStockDCBrush; // Will use DCBrushColor
+    ULONG style;
 
-    Context->BorderSize = PhGetSystemMetrics(SM_CXBORDER, Context->WindowDpi);
+    style = PhGetWindowStyle(WindowHandle);
+
+    Context->ReadOnly = !!(style & ES_READONLY);
+    Context->Multiline = !!(style & ES_MULTILINE);
+    Context->WindowFocus = GetFocus() == WindowHandle;
+
+    Context->WindowBrush = PhGetStockBrush(DC_BRUSH);
+    Context->FrameBrush = PhGetStockBrush(DC_BRUSH);
+    // Match the non-client band actually reserved by WS_EX_CLIENTEDGE so the
+    // painted frame and the client exclusion stay in sync across DPI changes.
+    Context->BorderSize = PhGetSystemMetrics(SM_CXEDGE, Context->WindowDpi);
+}
+
+VOID PhpThemeWindowEditRedrawFrame(
+    _In_ HWND WindowHandle
+    )
+{
+    RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+}
+
+VOID PhpThemeWindowEditUpdateFrameStyle(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle
+    )
+{
+    //PhSetWindowExStyle(WindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
+}
+
+VOID PhpThemeWindowEditExcludeClient(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc,
+    _In_ PRECT WindowRect,
+    _In_ PRECT ScreenWindowRect
+    )
+{
+    ExcludeClipRect(
+        Hdc,
+        WindowRect->left + Context->BorderSize,
+        WindowRect->top + Context->BorderSize,
+        WindowRect->right - Context->BorderSize,
+        WindowRect->bottom - Context->BorderSize
+        );
+
+    if (Context->Multiline)
+    {
+        ULONG style;
+
+        style = PhGetWindowStyle(WindowHandle);
+
+        if (style & WS_VSCROLL)
+        {
+            SCROLLBARINFO scrollInfo = { sizeof(SCROLLBARINFO) };
+
+            if (GetScrollBarInfo(WindowHandle, OBJID_VSCROLL, &scrollInfo) &&
+                (scrollInfo.rgstate[0] & STATE_SYSTEM_INVISIBLE) == 0)
+            {
+                RECT scrollBarRect = scrollInfo.rcScrollBar;
+
+                PhOffsetRect(&scrollBarRect, -ScreenWindowRect->left, -ScreenWindowRect->top);
+                ExcludeClipRect(Hdc, scrollBarRect.left, scrollBarRect.top, scrollBarRect.right, scrollBarRect.bottom);
+            }
+        }
+
+        if (style & WS_HSCROLL)
+        {
+            SCROLLBARINFO scrollInfo = { sizeof(SCROLLBARINFO) };
+
+            if (GetScrollBarInfo(WindowHandle, OBJID_HSCROLL, &scrollInfo) &&
+                (scrollInfo.rgstate[0] & STATE_SYSTEM_INVISIBLE) == 0)
+            {
+                RECT scrollBarRect = scrollInfo.rcScrollBar;
+
+                PhOffsetRect(&scrollBarRect, -ScreenWindowRect->left, -ScreenWindowRect->top);
+                ExcludeClipRect(Hdc, scrollBarRect.left, scrollBarRect.top, scrollBarRect.right, scrollBarRect.bottom);
+            }
+        }
+    }
+}
+
+VOID PhpThemeWindowEditPaintNativeFrame(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ WNDPROC DefaultWindowProc,
+    _In_ WPARAM wParam
+    )
+{
+    RECT windowRect;
+    HRGN updateRegion;
+    HRGN nativeRegion;
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return;
+
+    PhInflateRect(&windowRect, -Context->BorderSize, -Context->BorderSize);
+
+    if (windowRect.right <= windowRect.left || windowRect.bottom <= windowRect.top)
+        return;
+
+    if (nativeRegion = CreateRectRgn(
+        windowRect.left,
+        windowRect.top,
+        windowRect.right,
+        windowRect.bottom
+        ))
+    {
+        updateRegion = (HRGN)wParam;
+
+        if (updateRegion && updateRegion != HRGN_FULL)
+        {
+            CombineRgn(nativeRegion, nativeRegion, updateRegion, RGN_AND);
+        }
+
+        CallWindowProc(DefaultWindowProc, WindowHandle, WM_NCPAINT, (WPARAM)nativeRegion, 0);
+        DeleteRgn(nativeRegion);
+    }
+}
+
+BOOLEAN PhpThemeWindowEditPaintFrame(
+    _In_ PPHP_THEME_WINDOW_EDIT_CONTEXT Context,
+    _In_ HWND WindowHandle,
+    _In_ WPARAM wParam
+    )
+{
+    RECT windowRect;
+    LONG width;
+    LONG height;
+    HDC hdc = NULL;
+    HRGN updateRegion;
+    ULONG flags;
+    RECT screenWindowRect;
+
+    // Only paint when matching non-client space was reserved (WS_EX_CLIENTEDGE);
+    // otherwise the frame lands on client pixels and WM_PAINT overdraws it.
+    ///if (!Context->DrawCustomBorder)
+    //    return FALSE;
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return TRUE;
+
+    screenWindowRect = windowRect;
+
+    width = windowRect.right - windowRect.left;
+    height = windowRect.bottom - windowRect.top;
+
+    if (width <= 0 || height <= 0)
+        return TRUE;
+
+    updateRegion = (HRGN)wParam;
+    if (updateRegion == HRGN_FULL)
+        updateRegion = NULL;
+
+    flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
+
+    if (updateRegion)
+        flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
+
+    hdc = GetDCEx(WindowHandle, updateRegion, flags);
+    if (!hdc)
+        return TRUE;
+
+    PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
+
+    PhpThemeWindowEditExcludeClient(Context, WindowHandle, hdc, &windowRect, &screenWindowRect);
+    PhTheme_PaintControlBorder(hdc, &windowRect, !!Context->WindowFocus, !!Context->Hot);
+
+    ReleaseDC(WindowHandle, hdc);
+
+    return TRUE;
 }
 
 LRESULT CALLBACK PhEditBorderWndSubclassProc(
@@ -4688,208 +4992,168 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
             PhSetWindowProcedure(WindowHandle, oldWndProc);
             PhRemoveWindowContext(WindowHandle, SHRT_MAX);
 
-            PhpThemeWindowEditDestroyBufferedContext(context);
             PhFree(context);
         }
         break;
+    case WM_SHOWWINDOW:
+        {
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
+            if (wParam)
+            {
+                PhpThemeWindowEditRedrawFrame(WindowHandle);
+            }
+
+            return result;
+        }
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_STYLECHANGED:
+        {
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+            if (wParam == GWL_STYLE)
+            {
+                PhpThemeWindowEditThemeChanged(context, WindowHandle);
+                PhpThemeWindowEditUpdateFrameStyle(context, WindowHandle);
+
+                SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+                RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            }
+
+            return result;
+        }
     case WM_NCPAINT:
         {
-            RECT windowRect;
-            RECT windowRectStart;
-            RECT bufferRect;
-            LONG width;
-            LONG height;
-            HDC hdc;
-            HRGN updateRegion;
-            ULONG flags;
+            //if (!context->DrawCustomBorder)
+            //    return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
-            if (!PhGetWindowRect(WindowHandle, &windowRect))
-                break;
+            PhpThemeWindowEditPaintNativeFrame(context, WindowHandle, oldWndProc, wParam);
 
-            width = windowRect.right - windowRect.left;
-            height = windowRect.bottom - windowRect.top;
-
-            if (width <= 0 || height <= 0)
-                break;
-
-            updateRegion = (HRGN)wParam;
-            if (updateRegion == HRGN_FULL)
-                updateRegion = NULL;
-
-            flags = DCX_WINDOW | DCX_CACHE | DCX_USESTYLE;
-
-            if (updateRegion)
-                flags |= DCX_INTERSECTRGN | DCX_NODELETERGN;
-
-            hdc = GetDCEx(WindowHandle, updateRegion, flags);
-            if (!hdc)
-                break;
-
-            //
-            // Normalize window coordinates → (0,0)
-            //
-
-            PhOffsetRect(&windowRect, -windowRect.left, -windowRect.top);
-            windowRectStart = windowRect;
-
-            bufferRect.left = 0;
-            bufferRect.top = 0;
-            bufferRect.right = width;
-            bufferRect.bottom = height;
-
-            if (context->BufferedDc && (
-                context->BufferedContextRect.right < bufferRect.right ||
-                context->BufferedContextRect.bottom < bufferRect.bottom))
-            {
-                PhpThemeWindowEditDestroyBufferedContext(context);
-            }
-
-            if (!context->BufferedDc)
-                PhpThemeWindowEditCreateBufferedContext(context, hdc, &bufferRect);
-
-            if (!context->BufferedDc)
-                goto Cleanup;
-
-            //
-            // Exclude client area from NC drawing
-            //
-
-            ExcludeClipRect(
-                hdc,
-                windowRect.left + (context->BorderSize + 1),
-                windowRect.top + (context->BorderSize + 1),
-                windowRect.right - (context->BorderSize + 1),
-                windowRect.bottom - (context->BorderSize + 1)
-                );
-
-            //
-            // NC Frame
-            //
-
-            if (GetFocus() == WindowHandle)
-            {
-                SetDCBrushColor(context->BufferedDc, PhThemeWindowFocusBorderColor);
-                FrameRect(context->BufferedDc, &windowRect, PhpStockDCBrush);
-                PhInflateRect(&windowRect, -1, -1);
-                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-            }
-            else if (context->Hot)
-            {
-                SetDCBrushColor(context->BufferedDc, PhThemeWindowEditHotBorderColor);
-
-                FrameRect(context->BufferedDc, &windowRect, PhpStockDCBrush);
-                PhInflateRect(&windowRect, -1, -1);
-                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-            }
-            else
-            {
-                SetDCBrushColor(context->BufferedDc, PhThemeWindowEditNormalBorderColor);
-
-                FrameRect(context->BufferedDc, &windowRect, context->FrameBrush);
-                PhInflateRect(&windowRect, -1, -1);
-                FrameRect(context->BufferedDc, &windowRect, context->WindowBrush);
-            }
-
-            //
-            // Commit to the target DC.
-            //
-
-            BitBlt(hdc, 0, 0, bufferRect.right, bufferRect.bottom, context->BufferedDc, 0, 0, SRCCOPY);
-
-        Cleanup:
-            ReleaseDC(WindowHandle, hdc);
+            if (!PhpThemeWindowEditPaintFrame(context, WindowHandle, wParam))
+                return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
         }
         return 0;
-
     case WM_MOUSEMOVE:
-        {
-            if (!context->MouseActive)
-            {
-                TRACKMOUSEEVENT trackEvent = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, WindowHandle, 0 };
-                TrackMouseEvent(&trackEvent);
-                context->MouseActive = TRUE;
-
-                if (!context->Hot)
-                {
-                    context->Hot = TRUE;
-                    RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-                }
-            }
-        }
-        break;
-    case WM_MOUSELEAVE:
-        {
-            context->MouseActive = FALSE;
-
-            if (!context->NonMouseActive && context->Hot)
-            {
-                context->Hot = FALSE;
-                RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-            }
-        }
-        break;
     case WM_NCMOUSEMOVE:
         {
-            if (!context->NonMouseActive)
-            {
-                TRACKMOUSEEVENT trackEvent = { sizeof(TRACKMOUSEEVENT), TME_LEAVE | TME_NONCLIENT, WindowHandle, 0 };
-                TrackMouseEvent(&trackEvent);
-                context->NonMouseActive = TRUE;
+            LRESULT result;
+            POINT windowPoint;
+            RECT windowRect;
 
-                if (!context->Hot)
+            if (PhGetMessagePos(&windowPoint) && PhGetWindowRect(WindowHandle, &windowRect))
+            {
+                BOOLEAN hot;
+                BOOLEAN hotChanged;
+
+                hot = PhPtInRect(&windowRect, &windowPoint);
+                hotChanged = context->Hot != hot;
+                context->Hot = hot;
+
+                if (!context->HotTrack)
                 {
-                    context->Hot = TRUE;
-                    RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+                    TRACKMOUSEEVENT trackMouseEvent;
+
+                    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                    trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
+                    trackMouseEvent.hwndTrack = WindowHandle;
+                    trackMouseEvent.dwHoverTime = 0;
+
+                    context->HotTrack = TRUE;
+
+                    TrackMouseEvent(&trackMouseEvent);
                 }
+
+                result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+                if (hotChanged)
+                    PhpThemeWindowEditRedrawFrame(WindowHandle);
+
+                return result;
             }
+
+            result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+            return result;
         }
-        break;
+    case WM_MOUSELEAVE:
     case WM_NCMOUSELEAVE:
         {
-            context->NonMouseActive = FALSE;
+            LRESULT result;
+            POINT windowPoint;
+            RECT windowRect;
+            BOOLEAN hot = FALSE;
+            BOOLEAN hotChanged;
 
-            if (!context->MouseActive && context->Hot)
-            {
-                context->Hot = FALSE;
+            context->HotTrack = FALSE;
+
+            if (PhGetMessagePos(&windowPoint) && PhGetWindowRect(WindowHandle, &windowRect))
+                hot = PhPtInRect(&windowRect, &windowPoint);
+
+            hotChanged = context->Hot != hot;
+            context->Hot = hot;
+
+            result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+            if (hotChanged)
                 RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
-            }
-        }
-        break;
 
+            return result;
+        }
     case WM_SETFOCUS:
         {
+            LRESULT result;
+
             context->WindowFocus = TRUE;
             context->PreviousFocusWindowHandle = (HWND)wParam;
-        }
-        break;
-    case WM_KILLFOCUS:
-        {
-            context->WindowFocus = FALSE;
+
+            result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+            return result;
         }
-        break;
+    case WM_KILLFOCUS:
+        {
+            LRESULT result;
+
+            context->WindowFocus = FALSE;
+
+            result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
+            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+            return result;
+        }
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         {
-            PhpThemeWindowEditThemeChanged(context, WindowHandle);
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
+            PhpThemeWindowEditThemeChanged(context, WindowHandle);
+            PhpThemeWindowEditUpdateFrameStyle(context, WindowHandle);
             SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+            return result;
         }
-        break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
+
             context->WindowDpi = PhGetWindowDpi(context->ParentWindowHandle);
 
             PhpThemeWindowEditThemeChanged(context, WindowHandle);
-
+            PhpThemeWindowEditUpdateFrameStyle(context, WindowHandle);
             SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+
+            return result;
         }
-        break;
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);

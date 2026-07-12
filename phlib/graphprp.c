@@ -11,10 +11,11 @@
 #include <ph.h>
 #include <guisup.h>
 #include <guisupp.h>
-#include <settings.h>
 #include <tabnew.h>
 #include <graphprp.h>
 #include <mapldr.h>
+
+#include <settings.h>
 
 #define PH_PROPSHEETNEW_REDRAW_FIX 1
 #define PH_PROPSHEETNEW_REDRAW_UPDATENOW 1
@@ -44,7 +45,7 @@ typedef struct _PH_PROPSHEETNEW_CONTEXT
 
     PPH_PROPSHEETNEW_PAGE Pages;   // owned mirror of Sheet.Pages
     ULONG PageCount;
-    INT CurrentIndex;              // -1 until first activation
+    LONG CurrentIndex;              // -1 until first activation
 
     SIZE MinimumSize96;            // 96-DPI baseline pixels
     SIZE MinimumSize;
@@ -113,6 +114,18 @@ HWND PhPropSheetNewCreate(
     _Out_opt_ PPH_PROPSHEETNEW_CONTEXT* OutContext
     );
 
+BOOLEAN PhPropSheetNewUseDarkBackground(
+    VOID
+    );
+
+HBRUSH PhPropSheetNewGetBackgroundBrush(
+    VOID
+    );
+
+VOID PhPropSheetNewUpdateClassBackground(
+    _In_ HWND WindowHandle
+    );
+
 PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT PhpPropSheetNewGetPageLayoutContext(
     _In_ HWND PageWindow
     );
@@ -141,16 +154,12 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-#ifdef PH_PROPSHEETNEW_REDRAW_FIX
-    wcex.style = CS_GLOBALCLASS | CS_DBLCLKS | CS_HREDRAW | CS_VREDRAW;
-#else
     wcex.style = CS_GLOBALCLASS | CS_DBLCLKS;
-#endif
     wcex.lpfnWndProc = PhPropSheetNewWndProc;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
-    wcex.hbrBackground = (HBRUSH)(COLOR_BTNFACE + 1);
+    wcex.hbrBackground = PhPropSheetNewGetBackgroundBrush();
     wcex.lpszClassName = PH_PROPSHEETNEW_CLASSNAME;
 
     PhPropSheetNewClassRegistered = TRUE;
@@ -170,6 +179,28 @@ BOOLEAN PhPropSheetNewUseDarkBackground(
         return FALSE;
 
     return PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+}
+
+HBRUSH PhPropSheetNewGetBackgroundBrush(
+    VOID
+    )
+{
+    if (PhPropSheetNewUseDarkBackground())
+    {
+        if (!PhThemeWindowBackgroundBrush)
+            PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
+
+        return PhThemeWindowBackgroundBrush;
+    }
+
+    return (HBRUSH)(COLOR_BTNFACE + 1);
+}
+
+VOID PhPropSheetNewUpdateClassBackground(
+    _In_ HWND WindowHandle
+    )
+{
+    SetClassLongPtr(WindowHandle, GCLP_HBRBACKGROUND, (LONG_PTR)PhPropSheetNewGetBackgroundBrush());
 }
 
 LONG PhPropSheetNewScaleDpi(
@@ -277,10 +308,10 @@ VOID PhPropSheetNewUpdateFont(
 
 PPH_PROPSHEETNEW_PAGE PhPropSheetNewPageAt(
     _In_ PPH_PROPSHEETNEW_CONTEXT Context,
-    _In_ INT TabIndex
+    _In_ ULONG TabIndex
     )
 {
-    if (TabIndex < 0 || (ULONG)TabIndex >= Context->PageCount)
+    if (TabIndex < 0 || TabIndex >= Context->PageCount)
         return NULL;
 
     return &Context->Pages[TabIndex];
@@ -313,7 +344,7 @@ VOID PhPropSheetNewCreatePageDialog(
     // from PROPSHEETPAGE-style templates are typically created with
     // WS_POPUP|WS_CAPTION|WS_SYSMENU which we strip here. WS_EX_CONTROLPARENT
     // makes tab navigation traverse into the page.
-    //SetWindowLongPtr(hwnd, GWL_STYLE, (GetWindowLongPtr(hwnd, GWL_STYLE) & ~(WS_POPUP | WS_CAPTION | WS_SYSMENU)) | WS_CHILD | WS_CLIPSIBLINGS);
+    //SetWindowLongPtr(hwnd, GWL_STYLE, (PhGetWindowStyle(hwnd) & ~(WS_POPUP | WS_CAPTION | WS_SYSMENU)) | WS_CHILD | WS_CLIPSIBLINGS);
 
     PhSetWindowExStyle(windowHandle, WS_EX_CONTROLPARENT, WS_EX_CONTROLPARENT);
 
@@ -589,6 +620,20 @@ VOID PhPropSheetNewLayout(
 #endif
             );
     }
+
+    // The host class omits CS_HREDRAW/CS_VREDRAW, so growing the window does not
+    // invalidate the host's own client margins (the padding strips around the tab
+    // control). Invalidate the uncovered right/bottom strips so WM_ERASEBKGND
+    // repaints them; leaving them stale renders as garbage past the tab's edge.
+    {
+        RECT rightStrip = { tabRect.right, clientRect.top, clientRect.right, clientRect.bottom };
+        RECT bottomStrip = { clientRect.left, tabRect.bottom, clientRect.right, clientRect.bottom };
+
+        if (rightStrip.right > rightStrip.left)
+            InvalidateRect(Context->WindowHandle, &rightStrip, TRUE);
+        if (bottomStrip.bottom > bottomStrip.top)
+            InvalidateRect(Context->WindowHandle, &bottomStrip, TRUE);
+    }
 #else
     if (tabResized)
     {
@@ -609,7 +654,7 @@ VOID PhPropSheetNewLayout(
 
 LONG_PTR PhPropSheetNewSendPageNotify(
     _In_ PPH_PROPSHEETNEW_PAGE Page,
-    _In_ UINT Code
+    _In_ ULONG Code
     )
 {
     NMHDR header;
@@ -630,7 +675,7 @@ LONG_PTR PhPropSheetNewSendPageNotify(
 
 BOOLEAN PhPropSheetNewSelectPage(
     _In_ PPH_PROPSHEETNEW_CONTEXT Context,
-    _In_ INT NewIndex,
+    _In_ LONG NewIndex,
     _In_ BOOLEAN KillActive
     )
 {
@@ -789,7 +834,7 @@ VOID PhPropSheetNewRestoreState(
 
                 if (pageId && PhEqualStringZ(saved->Buffer, (PWSTR)pageId, TRUE))
                 {
-                    initialIndex = (INT)i;
+                    initialIndex = (LONG)i;
                     break;
                 }
             }
@@ -801,8 +846,7 @@ VOID PhPropSheetNewRestoreState(
         }
     }
 
-    // Drive the standard selection path so the page gets created/positioned.
-    if (Context->PageCount > 0)
+    if (Context->PageCount > 0 && Context->CurrentIndex < 0)
     {
         Context->CurrentIndex = -1;
         if (Context->TabControl)
@@ -837,6 +881,40 @@ VOID PhPropSheetNewSaveState(
     }
 }
 
+static BOOLEAN PhpPropSheetNewHandleKeyboardNavigation(
+    _In_ PPH_PROPSHEETNEW_CONTEXT Context,
+    _In_ PMSG Message
+    )
+{
+    LONG newIndex;
+
+    if (!Context || !Message || !Context->TabControl)
+        return FALSE;
+    if (Message->hwnd != Context->WindowHandle && !IsChild(Context->WindowHandle, Message->hwnd))
+        return FALSE;
+    if (Message->message != WM_KEYDOWN)
+        return FALSE;
+    if (Message->wParam != VK_TAB)
+        return FALSE;
+    if (GetKeyState(VK_CONTROL) >= 0)
+        return FALSE;
+    if (Context->PageCount <= 1)
+        return TRUE;
+
+    newIndex = Context->CurrentIndex;
+
+    if (newIndex < 0 || (ULONG)newIndex >= Context->PageCount)
+        newIndex = 0;
+    else if (GetKeyState(VK_SHIFT) < 0)
+        newIndex = newIndex > 0 ? newIndex - 1 : (LONG)Context->PageCount - 1;
+    else
+        newIndex = (ULONG)newIndex + 1 < Context->PageCount ? newIndex + 1 : 0;
+
+    PhTabNew_SetCurSel(Context->TabControl, newIndex);
+
+    return TRUE;
+}
+
 LRESULT CALLBACK PhPropSheetNewWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -867,7 +945,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
 
             PhPropSheetNewInitializeMinimumSize(context);
 
-            tabStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+            tabStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP;
             tabStyle |= (context->Sheet.Layout == PhPropSheetNewLayoutLeft) ? TNS_LEFT : TNS_TOP;
 
             context->TabControl = PhCreateWindow(
@@ -1021,15 +1099,11 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
             HDC hdc = (HDC)wParam;
             RECT clientRect;
 
-            if (PhPropSheetNewUseDarkBackground())
-            {
-                GetClientRect(WindowHandle, &clientRect);
-                FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
+            GetClientRect(WindowHandle, &clientRect);
+            FillRect(hdc, &clientRect, PhPropSheetNewGetBackgroundBrush());
 
-                return TRUE;
-            }
+            return TRUE;
         }
-        break;
     case WM_CTLCOLORBTN:
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
@@ -1065,6 +1139,14 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
                 );
         }
         return TRUE;
+    case WM_SETTINGCHANGE:
+    case WM_SYSCOLORCHANGE:
+    case WM_THEMECHANGED:
+        {
+            PhPropSheetNewUpdateClassBackground(WindowHandle);
+            InvalidateRect(WindowHandle, NULL, TRUE);
+        }
+        break;
     case WM_DPICHANGED:
         {
             PRECT newRect = (PRECT)lParam;
@@ -1117,7 +1199,7 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
                     break;
                 case PHTNN_SELCHANGED:
                     {
-                        INT sel = PhTabNew_GetCurSel(context->TabControl);
+                        LONG sel = PhTabNew_GetCurSel(context->TabControl);
 
                         PhPropSheetNewSelectPage(context, sel, FALSE);
                     }
@@ -1296,8 +1378,6 @@ VOID NTAPI PhPropSheetNewBuilderDeleteProcedure(
 {
     PPH_PROPSHEETNEW_BUILDER Builder = Object;
     ULONG i;
-
-    UNREFERENCED_PARAMETER(Flags);
 
     for (i = 0; i < Builder->Pages->Count; i++)
     {
@@ -1557,6 +1637,10 @@ INT_PTR PhPropSheetNewShowModal(
         {
             // Message consumed by the caller.
         }
+        else if (PhpPropSheetNewHandleKeyboardNavigation(context, &msg))
+        {
+            // Message consumed by built-in property sheet navigation.
+        }
         else if (!IsDialogMessage(hwnd, &msg))
         {
             TranslateMessage(&msg);
@@ -1620,11 +1704,11 @@ BOOLEAN PhPropSheetNewSetCurrentPageByName(
         if (context->Pages[i].Name &&
             PhEqualStringZ((PWSTR)context->Pages[i].Name, (PWSTR)Name, TRUE))
         {
-            if (!PhPropSheetNewSelectPage(context, (INT)i, TRUE))
+            if (!PhPropSheetNewSelectPage(context, (LONG)i, TRUE))
                 return FALSE;
 
             if (context->TabControl)
-                PhTabNew_SetCurSel(context->TabControl, (INT)i);
+                PhTabNew_SetCurSel(context->TabControl, (LONG)i);
             return TRUE;
         }
     }

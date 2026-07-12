@@ -22,6 +22,23 @@ DEFINE_GUID(WIN8_CONTEXT_GUID, 0x4a2f28e3, 0x53b9, 0x4441, 0xba, 0x9c, 0xd6, 0x9
 DEFINE_GUID(WINBLUE_CONTEXT_GUID, 0x1f676c76, 0x80e1, 0x4239, 0x95, 0xbb, 0x83, 0xd0, 0xf6, 0xd0, 0xda, 0x78);
 DEFINE_GUID(WIN10_CONTEXT_GUID, 0x8e0f7a12, 0xbfb3, 0x4fe8, 0xb9, 0xa5, 0x48, 0xfd, 0x50, 0xa1, 0x5a, 0x9a);
 
+// Applies the given theme mode. For Custom mode the user's per-color theme
+// settings are composited onto the palette before it is applied; other modes
+// defer to phlib's PhApplyThemeMode. Pass RootWindow to re-theme live, or NULL
+// to only select the palette (startup, before the window exists).
+VOID
+PhApplyThemeModeWithColors(
+    _In_ ULONG Mode,
+    _In_opt_ HWND RootWindow
+    );
+
+// Whether the given theme mode resolves to a dark palette (Automatic follows
+// the Windows dark mode setting; Custom is seeded from the dark palette).
+BOOLEAN
+PhIsThemeModeDark(
+    _In_ ULONG Mode
+    );
+
 // begin_phapppub
 PHAPPAPI
 BOOLEAN
