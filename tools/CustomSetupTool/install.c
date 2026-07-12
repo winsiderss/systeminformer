@@ -24,8 +24,44 @@ NTSTATUS CALLBACK SetupProgressThread(
 {
     PPH_SETUP_CONTEXT context = (PPH_SETUP_CONTEXT)Context;
     NTSTATUS status;
+    BOOLEAN updateDesktopShortcut = TRUE;
+    BOOLEAN desktopShortcutExists = FALSE;
+    BOOLEAN removeStartMenuFolder = FALSE;
+    PPH_STRING previousInstallPath;
+    PPH_STRING currentInstallPath;
+    PPH_STRING desktopShortcutPath;
 
     context->SetupProgressActive = TRUE;
+
+    previousInstallPath = GetApplicationInstallPath();
+    currentInstallPath = SetupCreateFullPath(context->SetupInstallPath, L"");
+
+    if (!PhIsNullOrEmptyString(previousInstallPath) &&
+        !PhIsNullOrEmptyString(currentInstallPath) &&
+        PhEqualStringRef(&previousInstallPath->sr, &currentInstallPath->sr, TRUE))
+    {
+        if (desktopShortcutPath = PhGetKnownFolderPathZ(&FOLDERID_PublicDesktop, L"\\System Informer.lnk"))
+        {
+            desktopShortcutExists = PhDoesFileExistWin32(PhGetString(desktopShortcutPath));
+            PhDereferenceObject(desktopShortcutPath);
+        }
+
+        updateDesktopShortcut = context->SetupCreateDesktopShortcut != desktopShortcutExists;
+    }
+
+    PhClearReference(&previousInstallPath);
+    PhClearReference(&currentInstallPath);
+
+    if (!PhIsNullOrEmptyString(context->SetupPreviousStartMenuFolderName) &&
+        (!context->SetupCreateStartMenuShortcuts ||
+        !PhEqualStringRef(
+            &context->SetupPreviousStartMenuFolderName->sr,
+            &context->SetupStartMenuFolderName->sr,
+            TRUE
+            )))
+    {
+        removeStartMenuFolder = TRUE;
+    }
 
     //
     // Create the folder.
@@ -91,7 +127,7 @@ NTSTATUS CALLBACK SetupProgressThread(
     // Delete all shortcuts for cleanup
 
     SetupSetProgressText(context, L"Removing previous shortcuts...", NULL);
-    SetupDeleteShortcuts(Context);
+    SetupDeleteShortcuts(Context, updateDesktopShortcut, removeStartMenuFolder);
 
     //
     // Create the uninstaller.
@@ -131,7 +167,7 @@ NTSTATUS CALLBACK SetupProgressThread(
     //
 
     SetupSetProgressText(context, L"Creating shortcuts...", NULL);
-    SetupCreateShortcuts(Context);
+    SetupCreateShortcuts(Context, updateDesktopShortcut);
 
     // Set the default image execution options.
     //
