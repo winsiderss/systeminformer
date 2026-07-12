@@ -761,6 +761,10 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     PPH_STRING newServiceBinaryPath = NULL;
                     PPH_STRING newServiceUserAccount = NULL;
                     PPH_STRING newServicePassword = NULL;
+                    BOOLEAN newDelayedStart;
+                    BOOLEAN delayedStartChanged;
+                    BOOLEAN serviceConfigChanged = FALSE;
+                    BOOLEAN registryFallbackUsed = FALSE;
 
                     SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_NOERROR);
 
@@ -793,6 +797,9 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                     if (Button_GetCheck(context->PassCheckBoxWindowHandle) == BST_CHECKED)
                         newServicePassword = PhGetWindowText(context->PassBoxWindowHandle);
 
+                    newDelayedStart = Button_GetCheck(context->DelayedStartWindowHandle) == BST_CHECKED;
+                    delayedStartChanged = newDelayedStart != context->OldDelayedStart;
+
                     status = PhOpenService(&serviceHandle, SERVICE_CHANGE_CONFIG, PhGetString(serviceItem->Name));
 
                     if (NT_SUCCESS(status))
@@ -813,84 +820,85 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
 
                         if (NT_SUCCESS(status))
                         {
-                            BOOLEAN newDelayedStart;
+                            serviceConfigChanged = TRUE;
 
-                            newDelayedStart = Button_GetCheck(context->DelayedStartWindowHandle) == BST_CHECKED;
+                            if (delayedStartChanged)
+                                status = PhSetServiceDelayedAutoStart(serviceHandle, newDelayedStart);
+                        }
 
-                            if (newDelayedStart != context->OldDelayedStart)
-                            {
-                                PhSetServiceDelayedAutoStart(serviceHandle, newDelayedStart);
-                            }
+                        PhCloseServiceHandle(serviceHandle);
+                    }
 
-                            PhMarkNeedsConfigUpdateServiceItem(serviceItem);
+                    if (!NT_SUCCESS(status))
+                    {
+                        if (PhGetOwnTokenAttributes().Elevated)
+                        {
+                            if (newServicePassword && !serviceConfigChanged)
+                                goto ErrorCase;
 
-                            PhCloseServiceHandle(serviceHandle);
+                            status = PhChangeServiceConfigRegistry(
+                                &serviceItem->Name->sr,
+                                serviceConfigChanged ? SERVICE_NO_CHANGE : newServiceType,
+                                serviceConfigChanged ? SERVICE_NO_CHANGE : newServiceStartType,
+                                serviceConfigChanged ? SERVICE_NO_CHANGE : newServiceErrorControl,
+                                serviceConfigChanged ? NULL : PhGetString(newServiceBinaryPath),
+                                serviceConfigChanged ? NULL : PhGetString(newServiceGroup),
+                                serviceConfigChanged ? NULL : PhGetString(newServiceUserAccount),
+                                NULL,
+                                delayedStartChanged,
+                                newDelayedStart
+                                );
+
+                            if (!NT_SUCCESS(status))
+                                goto ErrorCase;
+
+                            registryFallbackUsed = TRUE;
                         }
                         else
                         {
-                            PhCloseServiceHandle(serviceHandle);
-                            goto ErrorCase;
+                            if (!PhUiConnectToPhSvc(hwndDlg, FALSE))
+                            {
+                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
+                                goto Cleanup;
+                            }
+
+                            status = PhSvcCallChangeServiceConfigEx(
+                                PhGetString(serviceItem->Name),
+                                newServiceType,
+                                newServiceStartType,
+                                newServiceErrorControl,
+                                PhGetString(newServiceBinaryPath),
+                                PhGetString(newServiceGroup),
+                                NULL,
+                                NULL,
+                                PhGetString(newServiceUserAccount),
+                                PhGetString(newServicePassword),
+                                NULL,
+                                delayedStartChanged,
+                                newDelayedStart,
+                                TRUE,
+                                &registryFallbackUsed
+                                );
+
+                            PhUiDisconnectFromPhSvc();
+
+                            if (!NT_SUCCESS(status))
+                                goto ErrorCase;
                         }
+                    }
+
+                    if (registryFallbackUsed)
+                    {
+                        PhShowInformation2(
+                            hwndDlg,
+                            L"Service configuration changed",
+                            L"%s",
+                            L"The Service Control Manager could not apply the change, so the service configuration was updated in the registry. The change will take effect after Windows is restarted."
+                            );
                     }
                     else
                     {
-                        if (status == STATUS_ACCESS_DENIED && !PhGetOwnTokenAttributes().Elevated)
-                        {
-                            // Elevate using phsvc.
-                            if (PhUiConnectToPhSvc(hwndDlg, FALSE))
-                            {
-                                status = PhSvcCallChangeServiceConfig(
-                                    PhGetString(serviceItem->Name),
-                                    newServiceType,
-                                    newServiceStartType,
-                                    newServiceErrorControl,
-                                    PhGetString(newServiceBinaryPath),
-                                    PhGetString(newServiceGroup),
-                                    NULL,
-                                    NULL,
-                                    PhGetString(newServiceUserAccount),
-                                    PhGetString(newServicePassword),
-                                    NULL
-                                    );
-
-                                if (NT_SUCCESS(status))
-                                {
-                                    BOOLEAN newDelayedStart;
-
-                                    newDelayedStart = Button_GetCheck(context->DelayedStartWindowHandle) == BST_CHECKED;
-
-                                    if (newDelayedStart != context->OldDelayedStart)
-                                    {
-                                        SERVICE_DELAYED_AUTO_START_INFO info;
-
-                                        info.fDelayedAutostart = newDelayedStart;
-                                        PhSvcCallChangeServiceConfig2(
-                                            PhGetString(serviceItem->Name),
-                                            SERVICE_CONFIG_DELAYED_AUTO_START_INFO,
-                                            &info
-                                            );
-                                    }
-
-                                    PhMarkNeedsConfigUpdateServiceItem(serviceItem);
-                                }
-
-                                PhUiDisconnectFromPhSvc();
-
-                                if (!NT_SUCCESS(status))
-                                {
-                                    goto ErrorCase;
-                                }
-                            }
-                            else
-                            {
-                                // User cancelled elevation.
-                                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, PSNRET_INVALID);
-                            }
-                        }
-                        else
-                        {
-                            goto ErrorCase;
-                        }
+                        PhMarkNeedsConfigUpdateServiceItem(serviceItem);
                     }
 
                     goto Cleanup;

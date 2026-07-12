@@ -463,8 +463,6 @@ BOOLEAN PhUiConnectToPhSvcEx(
                 {
                     ULONG attempts = 10;
 
-                    started = TRUE;
-
                     // Try to connect several times because the server may take
                     // a while to initialize.
                     do
@@ -478,11 +476,21 @@ BOOLEAN PhUiConnectToPhSvcEx(
 
                     } while (--attempts != 0);
 
-                    // Increment the reference count even if we failed.
-                    // We don't want to prompt the user again.
-
-                    PhSvcCurrentMode = Mode;
-                    _InterlockedIncrement(&PhSvcReferenceCount);
+                    if (NT_SUCCESS(status))
+                    {
+                        started = TRUE;
+                        PhSvcCurrentMode = Mode;
+                        _InterlockedIncrement(&PhSvcReferenceCount);
+                    }
+                    else
+                    {
+                        PhShowStatus(
+                            WindowHandle,
+                            L"Unable to connect to the service helper.",
+                            status,
+                            0
+                            );
+                    }
                 }
             }
         }

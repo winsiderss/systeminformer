@@ -542,7 +542,7 @@ CleanupExit:
     return status;
 }
 
-NTSTATUS PhSvcCallChangeServiceConfig(
+NTSTATUS PhSvcCallChangeServiceConfigEx(
     _In_ PCWSTR ServiceName,
     _In_ ULONG ServiceType,
     _In_ ULONG StartType,
@@ -553,7 +553,11 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     _In_opt_ PCWSTR Dependencies,
     _In_opt_ PCWSTR ServiceStartName,
     _In_opt_ PCWSTR Password,
-    _In_opt_ PCWSTR DisplayName
+    _In_opt_ PCWSTR DisplayName,
+    _In_ BOOLEAN DelayedStartSpecified,
+    _In_ BOOLEAN DelayedStart,
+    _In_ BOOLEAN RegistryFallbackAllowed,
+    _Out_ PBOOLEAN RegistryFallbackUsed
     )
 {
     NTSTATUS status;
@@ -578,6 +582,10 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     m.p.u.ChangeServiceConfig.i.StartType = StartType;
     m.p.u.ChangeServiceConfig.i.ErrorControl = ErrorControl;
     m.p.u.ChangeServiceConfig.i.TagIdSpecified = TagId != NULL;
+    m.p.u.ChangeServiceConfig.i.DelayedStartSpecified = DelayedStartSpecified;
+    m.p.u.ChangeServiceConfig.i.DelayedStart = DelayedStart;
+    m.p.u.ChangeServiceConfig.i.RegistryFallbackAllowed = RegistryFallbackAllowed;
+    *RegistryFallbackUsed = FALSE;
 
     status = STATUS_NO_MEMORY;
 
@@ -626,6 +634,8 @@ NTSTATUS PhSvcCallChangeServiceConfig(
 
     if (NT_SUCCESS(status))
     {
+        *RegistryFallbackUsed = m.p.u.ChangeServiceConfig.o.RegistryFallbackUsed;
+
         if (TagId)
             *TagId = m.p.u.ChangeServiceConfig.o.TagId;
     }
@@ -646,6 +656,41 @@ CleanupExit:
     if (serviceName) PhSvcpFreeHeap(serviceName);
 
     return status;
+}
+
+NTSTATUS PhSvcCallChangeServiceConfig(
+    _In_ PCWSTR ServiceName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR LoadOrderGroup,
+    _Out_opt_ PULONG TagId,
+    _In_opt_ PCWSTR Dependencies,
+    _In_opt_ PCWSTR ServiceStartName,
+    _In_opt_ PCWSTR Password,
+    _In_opt_ PCWSTR DisplayName
+    )
+{
+    BOOLEAN registryFallbackUsed;
+
+    return PhSvcCallChangeServiceConfigEx(
+        ServiceName,
+        ServiceType,
+        StartType,
+        ErrorControl,
+        BinaryPathName,
+        LoadOrderGroup,
+        TagId,
+        Dependencies,
+        ServiceStartName,
+        Password,
+        DisplayName,
+        FALSE,
+        FALSE,
+        FALSE,
+        &registryFallbackUsed
+        );
 }
 
 PVOID PhSvcpPackRoot(

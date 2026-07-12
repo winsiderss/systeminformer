@@ -13,8 +13,13 @@
 #ifndef PH_PHSVCAPI_H
 #define PH_PHSVCAPI_H
 
+#ifdef DEBUG
+#define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\SiSvcApiPortDebug")
+#define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\SiSvcWow64ApiPortDebug")
+#else
 #define PHSVC_PORT_NAME (L"\\BaseNamedObjects\\SiSvcApiPort")
 #define PHSVC_WOW64_PORT_NAME (L"\\BaseNamedObjects\\SiSvcWow64ApiPort")
+#endif
 
 typedef enum _PHSVC_API_NUMBER
 {
@@ -167,10 +172,14 @@ typedef union _PHSVC_API_CHANGESERVICECONFIG
         PH_RELATIVE_STRINGREF Password;
         PH_RELATIVE_STRINGREF DisplayName;
         BOOLEAN TagIdSpecified;
+        BOOLEAN DelayedStartSpecified;
+        BOOLEAN DelayedStart;
+        BOOLEAN RegistryFallbackAllowed;
     } i;
     struct
     {
         ULONG TagId;
+        BOOLEAN RegistryFallbackUsed;
     } o;
 } PHSVC_API_CHANGESERVICECONFIG, *PPHSVC_API_CHANGESERVICECONFIG;
 

@@ -97,6 +97,25 @@ NTSTATUS PhSvcCallChangeServiceConfig(
     );
 
 PHAPPAPI
+NTSTATUS PhSvcCallChangeServiceConfigEx(
+    _In_ PCWSTR ServiceName,
+    _In_ ULONG ServiceType,
+    _In_ ULONG StartType,
+    _In_ ULONG ErrorControl,
+    _In_opt_ PCWSTR BinaryPathName,
+    _In_opt_ PCWSTR LoadOrderGroup,
+    _Out_opt_ PULONG TagId,
+    _In_opt_ PCWSTR Dependencies,
+    _In_opt_ PCWSTR ServiceStartName,
+    _In_opt_ PCWSTR Password,
+    _In_opt_ PCWSTR DisplayName,
+    _In_ BOOLEAN DelayedStartSpecified,
+    _In_ BOOLEAN DelayedStart,
+    _In_ BOOLEAN RegistryFallbackAllowed,
+    _Out_ PBOOLEAN RegistryFallbackUsed
+    );
+
+PHAPPAPI
 NTSTATUS PhSvcCallChangeServiceConfig2(
     _In_ PCWSTR ServiceName,
     _In_ ULONG InfoLevel,
