@@ -424,7 +424,7 @@ VOID NTAPI LayoutPaddingCallback(
 
         // Recalculate rows before querying the height. This is required after changing
         // RBBS_BREAK or a band's child height on a live rebar control.
-        SendMessage(RebarHandle, WM_SIZE, 0, 0);
+        //SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
         // Ask the rebar for its full computed height. RB_GETBARHEIGHT returns the control's
         // internal _cy, which the recalc accumulates as the sum of every row's line height
@@ -440,12 +440,17 @@ VOID NTAPI LayoutPaddingCallback(
         // within the existing window bounds and does not grow the window itself.
         if (desiredHeight > 0 && PhGetClientRect(MainWindowHandle, &parentRect))
         {
-            SetWindowPos(RebarHandle, NULL, 0, 0,
-                parentRect.right, desiredHeight,
-                SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            // Skip the resize when the rebar already has the desired size; the
+            // SetWindowPos relayout would only repaint and flicker for nothing.
+            if (!(PhGetWindowRect(RebarHandle, &rebarRect) &&
+                rebarRect.right - rebarRect.left == parentRect.right &&
+                rebarRect.bottom - rebarRect.top == desiredHeight))
+            {
+                SetWindowPos(RebarHandle, NULL, 0, 0,
+                    parentRect.right, desiredHeight,
+                    SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            }
         }
-
-        SendMessage(RebarHandle, WM_SIZE, 0, 0);
 
         if (PhGetClientRect(RebarHandle, &rebarRect))
         {
@@ -1336,6 +1341,7 @@ LRESULT CALLBACK MainWindowCallbackProc(
                         LPNMTOOLBAR toolbar = (LPNMTOOLBAR)hdr;
                         PPH_EMENU menu;
                         PPH_EMENU_ITEM selectedItem;
+                        ULONG buttonState;
 
                         if (toolbar->iItem != TIDC_POWERMENUDROPDOWN)
                             break;
@@ -1370,6 +1376,20 @@ LRESULT CALLBACK MainWindowCallbackProc(
 
                         MapWindowRect(ToolBarHandle, HWND_DESKTOP, &toolbar->rcButton);
 
+                        buttonState = (ULONG)SendMessage(ToolBarHandle, TB_GETSTATE, toolbar->iItem, 0);
+
+                        if (buttonState != (ULONG)INT_ERROR)
+                        {
+                            SendMessage(
+                                ToolBarHandle,
+                                TB_SETSTATE,
+                                toolbar->iItem,
+                                MAKELONG(buttonState | TBSTATE_PRESSED, 0)
+                                );
+                        }
+
+                        SetForegroundWindow(WindowHandle);
+
                         selectedItem = PhShowEMenu(
                             menu,
                             WindowHandle,
@@ -1378,6 +1398,18 @@ LRESULT CALLBACK MainWindowCallbackProc(
                             toolbar->rcButton.left,
                             toolbar->rcButton.bottom
                             );
+
+                        PostMessage(WindowHandle, WM_NULL, 0, 0);
+
+                        if (buttonState != (ULONG)INT_ERROR)
+                        {
+                            SendMessage(
+                                ToolBarHandle,
+                                TB_SETSTATE,
+                                toolbar->iItem,
+                                MAKELONG(buttonState, 0)
+                                );
+                        }
 
                         if (selectedItem && selectedItem->Id != ULONG_MAX)
                         {
@@ -1895,6 +1927,7 @@ VOID NTAPI SettingsUpdatedCallback(
 
         if (ToolBarHandle)
         {
+            ToolbarUpdateWindowStyle();
             InvalidateRect(ToolBarHandle, NULL, TRUE);
         }
 

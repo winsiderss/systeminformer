@@ -80,100 +80,6 @@ static HMENU SubMenuHandles[5];
 static PPH_EMENU SubMenuObjects[5];
 static ULONG SelectedUserSessionId = ULONG_MAX;
 
-_Function_class_(PH_TABNEW_LAYOUT_CALLBACK)
-BOOLEAN NTAPI PhpMwpTabLayoutCallback(
-    _In_ HWND WindowHandle,
-    _In_ LPARAM ItemParam,
-    _Out_ PPH_STRINGREF Identifier,
-    _In_opt_ PVOID Context
-    )
-{
-    PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)ItemParam;
-
-    if (!page)
-        return FALSE;
-
-    *Identifier = page->Name;
-    return TRUE;
-}
-
-VOID PhMwpSaveTabLayoutSetting(
-    VOID
-    )
-{
-    PPH_STRING layout;
-
-    if (!TabControlHandle)
-        return;
-
-    layout = PhTabNewSaveLayout(TabControlHandle, PhpMwpTabLayoutCallback, NULL);
-    if (!layout)
-        return;
-
-    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
-    PhDereferenceObject(layout);
-}
-
-VOID PhMwpSyncTabPageIndexes(
-    VOID
-    )
-{
-    LONG i;
-    LONG count;
-
-    if (!TabControlHandle || !PageList)
-        return;
-
-    count = PhTabNew_GetItemCount(TabControlHandle);
-    for (i = 0; i < count; i++)
-    {
-        PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, i);
-
-        if (page)
-            page->Index = i;
-    }
-}
-
-VOID PhMwpUpdateTabRestoreState(
-    VOID
-    )
-{
-    LONG selectedIndex;
-    PPH_MAIN_TAB_PAGE page;
-
-    if (!TabControlHandle ||
-        !IsWindowVisible(TabControlHandle) ||
-        !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
-        return;
-
-    selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
-    if (selectedIndex < 0)
-        return;
-
-    page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, selectedIndex);
-    if (!page)
-        return;
-
-    PhSetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, (ULONG)selectedIndex);
-    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_RESTORE_NAME, &page->Name);
-}
-
-VOID PhMwpRestoreTabLayout(
-    VOID
-    )
-{
-    PPH_STRING layout;
-
-    if (!TabControlHandle)
-        return;
-
-    layout = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT);
-    if (layout->Length == 0)
-        return;
-
-    PhTabNewRestoreLayout(TabControlHandle, &layout->sr, PhpMwpTabLayoutCallback, NULL);
-}
-
 /**
  * Initializes the main window and data providers.
  *
@@ -214,7 +120,7 @@ BOOLEAN PhMainWndInitialization(
     PhMainWndHandle = CreateWindow(
         MAKEINTATOM(windowAtom),
         NULL,
-        WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? 0 : WS_CLIPCHILDREN),
+        WS_OVERLAPPEDWINDOW | (PhEnableDeferredLayout ? WS_CLIPCHILDREN : 0),
         windowRectangle.Left,
         windowRectangle.Top,
         windowRectangle.Width,
@@ -689,9 +595,9 @@ VOID PhMwpInitializeControls(
     }
 
     TabControlHandle = PhCreateWindow(
-        PH_TABNEW_CLASSNAME,
+        MAKEINTATOM(PhTabNewWindowAtom),
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | TNS_TOP | TNS_MULTILINE | TNS_REORDER,
+        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP | TNS_TOP | TNS_MULTILINE | TNS_REORDER | TNS_FIXEDWIDTH,
         0,
         0,
         0,
@@ -2786,7 +2692,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_TAB_NEXT:
         {
-            ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+            ULONG selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
 
             if (selectedIndex != PageList->Count - 1)
                 selectedIndex++;
@@ -2798,7 +2704,7 @@ VOID PhMwpOnCommand(
         break;
     case ID_TAB_PREV:
         {
-            ULONG selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+            ULONG selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
 
             if (selectedIndex != 0)
                 selectedIndex--;
@@ -4601,6 +4507,100 @@ VOID PhMwpInitializeSectionMenuItems(
         PhRemoveEMenuItem(Menu, NULL, StartIndex);
 }
 
+_Function_class_(PH_TABNEW_LAYOUT_CALLBACK)
+BOOLEAN NTAPI PhpMwpTabLayoutCallback(
+    _In_ HWND WindowHandle,
+    _In_ LPARAM ItemParam,
+    _Out_ PPH_STRINGREF Identifier,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)ItemParam;
+
+    if (!page)
+        return FALSE;
+
+    *Identifier = page->Name;
+    return TRUE;
+}
+
+VOID PhMwpSaveTabLayoutSetting(
+    VOID
+    )
+{
+    PPH_STRING layout;
+
+    if (!TabControlHandle)
+        return;
+
+    layout = PhTabNew_SaveLayout(TabControlHandle, PhpMwpTabLayoutCallback, NULL);
+    if (!layout)
+        return;
+
+    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
+    PhDereferenceObject(layout);
+}
+
+VOID PhMwpSyncTabPageIndexes(
+    VOID
+    )
+{
+    LONG i;
+    LONG count;
+
+    if (!TabControlHandle || !PageList)
+        return;
+
+    count = PhTabNew_GetItemCount(TabControlHandle);
+    for (i = 0; i < count; i++)
+    {
+        PPH_MAIN_TAB_PAGE page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, i);
+
+        if (page)
+            page->Index = i;
+    }
+}
+
+VOID PhMwpUpdateTabRestoreState(
+    VOID
+    )
+{
+    LONG selectedIndex;
+    PPH_MAIN_TAB_PAGE page;
+
+    if (!TabControlHandle ||
+        !IsWindowVisible(TabControlHandle) ||
+        !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
+        return;
+
+    selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
+    if (selectedIndex < 0)
+        return;
+
+    page = (PPH_MAIN_TAB_PAGE)PhTabNew_GetItemParam(TabControlHandle, selectedIndex);
+    if (!page)
+        return;
+
+    PhSetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_INDEX, (ULONG)selectedIndex);
+    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_RESTORE_NAME, &page->Name);
+}
+
+VOID PhMwpRestoreTabLayout(
+    VOID
+    )
+{
+    PPH_STRING layout;
+
+    if (!TabControlHandle)
+        return;
+
+    layout = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT);
+    if (layout->Length == 0)
+        return;
+
+    PhTabNew_RestoreLayout(TabControlHandle, &layout->sr, PhpMwpTabLayoutCallback, NULL);
+}
+
 /**
  * Adjusts the layout of the tab control in the main window by updating the deferred window positioning handle.
  * \param DeferHandle Pointer to a handle used for deferred window positioning (HDWP).
@@ -4657,14 +4657,14 @@ VOID PhMwpNotifyTabControl(
     _In_ NMHDR *Header
     )
 {
-    if (Header->code == TCN_SELCHANGING || Header->code == PHTNN_SELCHANGING)
+    if (Header->code == PHTNN_SELCHANGING)
     {
-        OldTabIndex = TabCtrl_GetCurSel(TabControlHandle);
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
     }
-    else if (Header->code == TCN_SELCHANGE || Header->code == PHTNN_SELCHANGED)
+    else if (Header->code == PHTNN_SELCHANGED)
     {
         PhMwpSelectionChangedTabControl(OldTabIndex);
-        OldTabIndex = TabCtrl_GetCurSel(TabControlHandle);
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
     }
     else if (Header->code == PHTNN_LAYOUT)
     {
@@ -4692,10 +4692,18 @@ VOID PhMwpSelectionChangedTabControl(
     HDWP deferHandle;
     ULONG i;
 
-    selectedIndex = TabCtrl_GetCurSel(TabControlHandle);
+    selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
 
     if (selectedIndex == OldIndex)
         return;
+
+    // Refresh each page's cached Index from the live tab order. After a drag
+    // reorder the strip order changes but the cached page->Index is only
+    // updated via the PHTNN_REORDERED notification; syncing here guarantees the
+    // index-to-page match below reflects the current strip regardless of how
+    // the order was last changed. (Otherwise clicking a moved tab selects the
+    // page that previously occupied that index.)
+    PhMwpSyncTabPageIndexes();
 
     deferHandle = BeginDeferWindowPos(3);
 
@@ -4765,6 +4773,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
 {
     PPH_MAIN_TAB_PAGE page;
     PPH_STRING name;
+    PH_TABNEW_INSERTITEM item;
     //HDWP deferHandle;
 
     page = PhAllocateZero(sizeof(PH_MAIN_TAB_PAGE));
@@ -4776,17 +4785,14 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
     PhAddItemList(PageList, page);
 
     name = PhCreateString2(&page->Name);
-    page->Index = PhAddTabControlTab(TabControlHandle, MAXINT, name->Buffer);
+    item.Text = name->Buffer;
+    item.ImageIndex = LONG_ERROR;
+    item.Param = (LPARAM)page;
+
+    page->Index = PhTabNew_InsertItem(TabControlHandle, MAXINT, &item);
     PhDereferenceObject(name);
     if (page->Index < 0)
     {
-        PhRemoveItemList(PageList, PageList->Count - 1);
-        PhFree(page);
-        return NULL;
-    }
-    if (!PhTabNew_SetItemParam(TabControlHandle, page->Index, (LPARAM)page))
-    {
-        PhTabNew_DeleteItem(TabControlHandle, page->Index);
         PhRemoveItemList(PageList, PageList->Count - 1);
         PhFree(page);
         return NULL;
@@ -4810,11 +4816,7 @@ VOID PhMwpSelectPage(
     _In_ ULONG Index
     )
 {
-    LONG oldIndex;
-
-    oldIndex = TabCtrl_GetCurSel(TabControlHandle);
-    TabCtrl_SetCurSel(TabControlHandle, Index);
-    PhMwpSelectionChangedTabControl(oldIndex);
+    PhTabNew_SetCurSel(TabControlHandle, Index);
 }
 
 /**
@@ -5666,6 +5668,7 @@ VOID PhProcessInvokeQueue(
         entry = CONTAINING_RECORD(listEntry, PH_INVOKE_ENTRY, ListEntry);
         listEntry = listEntry->Next;
 
+        if (!PhMainWndEarlyExit && !PhMainWndExiting)
         {
             PINVOKE_START_ROUTINE function;
 

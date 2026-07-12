@@ -806,7 +806,6 @@ VOID PhPropSheetNewRestoreState(
     )
 {
     ULONG initialIndex = 0;
-    BOOLEAN positioned = FALSE;
 
     if (FlagOn(Context->Sheet.Flags, PH_PROPSHEETNEW_SAVE_PLACEMENT) &&
         (Context->Sheet.SettingNamePosition || Context->Sheet.SettingNameSize))
@@ -851,8 +850,8 @@ VOID PhPropSheetNewRestoreState(
     {
         Context->CurrentIndex = -1;
         if (Context->TabControl)
-            PhTabNew_SetCurSel(Context->TabControl, 0);
-        PhPropSheetNewSelectPage(Context, 0, TRUE);
+            PhTabNew_SetCurSel(Context->TabControl, initialIndex);
+        PhPropSheetNewSelectPage(Context, initialIndex, TRUE);
     }
 }
 
@@ -1379,8 +1378,6 @@ VOID NTAPI PhPropSheetNewBuilderDeleteProcedure(
 {
     PPH_PROPSHEETNEW_BUILDER Builder = Object;
     ULONG i;
-
-    UNREFERENCED_PARAMETER(Flags);
 
     for (i = 0; i < Builder->Pages->Count; i++)
     {

@@ -646,6 +646,8 @@ VOID NTAPI ProcessItemsUpdatedCallback(
 
         PhAcquireQueuedLockExclusive(&block->TextCacheLock);
         memset(block->TextCacheValid, 0, sizeof(block->TextCacheValid));
+        if (block->GpuNodesTextCacheValid)
+            memset(block->GpuNodesTextCacheValid, 0, sizeof(BOOLEAN) * (EtGetGpuAdapterCount() + EtGpuTotalNodeCount));
         PhReleaseQueuedLockExclusive(&block->TextCacheLock);
 
         listEntry = listEntry->Flink;
@@ -1404,6 +1406,17 @@ VOID EtInitializeProcessBlock(
     Block->ProcessItem = ProcessItem;
     PhInitializeQueuedLock(&Block->TextCacheLock);
 
+    if (EtGpuEnabled && EtGpuTotalNodeCount)
+    {
+        ULONG gpuColumnCount = EtGetGpuAdapterCount() + EtGpuTotalNodeCount;
+
+        Block->GpuNodesRunningTimeDelta = PhAllocateZero(sizeof(PH_UINT64_DELTA) * EtGpuTotalNodeCount);
+        Block->GpuNodesUtilization = PhAllocateZero(sizeof(FLOAT) * EtGpuTotalNodeCount);
+        Block->GpuNodesTextCacheValid = PhAllocateZero(sizeof(BOOLEAN) * gpuColumnCount);
+        Block->GpuNodesTextCacheLength = PhAllocateZero(sizeof(SIZE_T) * gpuColumnCount);
+        Block->GpuNodesTextCache = PhAllocateZero(sizeof(WCHAR) * 64 * gpuColumnCount);
+    }
+
     InsertTailList(&EtProcessBlockListHead, &Block->ListEntry);
 }
 
@@ -1420,6 +1433,11 @@ VOID EtDeleteProcessBlock(
     PhDeleteCircularBuffer_ULONG(&Block->GpuMemorySharedHistory);
     PhDeleteCircularBuffer_ULONG(&Block->GpuMemoryHistory);
     PhDeleteCircularBuffer_FLOAT(&Block->GpuHistory);
+    PhFree(Block->GpuNodesRunningTimeDelta);
+    PhFree(Block->GpuNodesUtilization);
+    PhFree(Block->GpuNodesTextCacheValid);
+    PhFree(Block->GpuNodesTextCacheLength);
+    PhFree(Block->GpuNodesTextCache);
 
     PhDeleteCircularBuffer_ULONG(&Block->NpuCommittedHistory);
     PhDeleteCircularBuffer_ULONG(&Block->NpuMemorySharedHistory);

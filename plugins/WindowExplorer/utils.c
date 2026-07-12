@@ -556,7 +556,7 @@ WE_WINDOW_SUBGROUP WeDetermineWindowSubgroup(
     *ResolvedWindow = WindowHandle;
     subgroupType = WeWindowSubgroupShell;
 
-    if (GetWindowLongPtr(WindowHandle, GWL_STYLE) & WS_VISIBLE)
+    if (PhGetWindowStyle(WindowHandle) & WS_VISIBLE)
     {
         subgroupType = WeWindowSubgroupStandard;
 

@@ -308,6 +308,14 @@ VOID PhMwpSaveWindowState(
 // Misc.
 //
 
+VOID PhMwpSaveTabLayoutSetting(
+    VOID
+    );
+
+VOID PhMwpRestoreTabLayout(
+    VOID
+    );
+
 VOID PhMwpUpdateLayoutPadding(
     VOID
     );

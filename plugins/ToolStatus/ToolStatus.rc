@@ -1,6 +1,5 @@
 // Microsoft Visual C++ generated resource script.
 //
-
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -24,17 +23,17 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\r\n"
     "\0"
@@ -48,7 +47,7 @@ END
 // Dialog
 //
 
-IDD_OPTIONS DIALOGEX 0, 0, 231, 197
+IDD_OPTIONS DIALOGEX 0, 0, 231, 195
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
@@ -63,8 +62,8 @@ BEGIN
     CONTROL         "Enable auto focus to search box",IDC_ENABLE_AUTOFOCUS_SEARCH,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,102,210,10
     LTEXT           "Note: Right-click the toolbar on the main window to customize the icons and graphs.",IDC_STATIC,7,7,157,18
-    COMBOBOX        IDC_CURRENT,14,165,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Select the graph to show on the taskbar:",IDC_STATIC,14,154,132,8
+    COMBOBOX        IDC_CURRENT,14,174,119,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select the graph to show on the taskbar:",IDC_STATIC,14,163,132,8
     CONTROL         "Enable large toolbar icons",IDC_ENABLE_LARGETOOLBARICON,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,114,98,10
     CONTROL         "Use screen overlay when finding windows",IDC_FINDWINDOW_OVERLAY,
@@ -130,7 +129,6 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 224
         TOPMARGIN, 7
-        BOTTOMMARGIN, 217
     END
 
     IDD_CUSTOMIZE_TB, DIALOG
