@@ -27,6 +27,16 @@ NTSTATUS CALLBACK SetupUpdateBuild(
 
     context->SetupProgressActive = TRUE;
 
+#if !defined(PH_BUILD_API)
+    SetupSetProgressText(context, L"Downloading update...", NULL);
+
+    if (!NT_SUCCESS(status = SetupDownloadBuildZip(context)))
+    {
+        context->LastStatus = status;
+        goto CleanupExit;
+    }
+#endif
+
     //
     // Create the folder.
     //
@@ -121,6 +131,7 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     SetupSetProgressText(context, L"Update complete.", NULL);
     SetupSetProgressValue(context, 100);
     context->SetupProgressActive = FALSE;
+    SetupDeleteBuildZip(context);
     PostMessage(context->DialogHandle, SETUP_SHOWUPDATEFINAL, 0, 0);
     return STATUS_SUCCESS;
 
@@ -128,6 +139,7 @@ CleanupExit:
 
     SetupSetProgressText(context, L"Update failed.", NULL);
     context->SetupProgressActive = FALSE;
+    SetupDeleteBuildZip(context);
     PostMessage(context->DialogHandle, SETUP_SHOWUPDATEERROR, 0, 0);
     return STATUS_UNSUCCESSFUL;
 }

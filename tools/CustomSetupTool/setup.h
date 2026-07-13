@@ -46,6 +46,7 @@
 #define SETUP_SHOWUPDATE (WM_APP + 8)
 #define SETUP_SHOWUPDATEFINAL (WM_APP + 9)
 #define SETUP_SHOWUPDATEERROR (WM_APP + 10)
+#define SETUP_MAX_DOWNLOAD_SIZE (2ULL * 1024 * 1024 * 1024)
 
 #ifdef DEBUG
 //#define FORCE_TEST_UPDATE_LOCAL_INSTALL 1
@@ -104,6 +105,7 @@ typedef struct _PH_SETUP_CONTEXT
     HANDLE SubProcessHandle;
 
     PPH_STRING SessionId;
+    PPH_STRING SetupBuildZipPath;
 } PH_SETUP_CONTEXT, *PPH_SETUP_CONTEXT;
 
 VOID SetupParseCommandLine(
@@ -346,15 +348,15 @@ NTSTATUS SetupHashFile(
     ((ULONGLONG)(revision) <<  0))
 
 ULONG64 ParseVersionString(
-    _Inout_ PPH_STRING VersionString
+    _In_ PPH_STRING VersionString
     );
 
-BOOLEAN SetupQueryUpdateDataWithFailover(
+NTSTATUS SetupDownloadBuildZip(
     _Inout_ PPH_SETUP_CONTEXT Context
     );
 
-BOOLEAN UpdateDownloadUpdateData(
-    _In_ PPH_SETUP_CONTEXT Context
+VOID SetupDeleteBuildZip(
+    _Inout_ PPH_SETUP_CONTEXT Context
     );
 
 // extract.c

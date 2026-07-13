@@ -596,24 +596,67 @@ NTSTATUS CALLBACK SetupExtractBuild(
     USHORT nativeArchitecture;
     PPH_LIST stagedFiles = NULL;
 
-    status = PhLoadResource(
-        NtCurrentImageBase(),
-        MAKEINTRESOURCE(IDR_BIN_DATA),
-        RT_RCDATA,
-        &resourceLength,
-        &resourceBuffer
-        );
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    zipBufferLength = resourceLength;
-    zipBuffer = PhAllocate(zipBufferLength);
-
-    if (!PhBase64Decode((PCSTR)resourceBuffer, resourceLength, zipBuffer, zipBufferLength, &zipBufferLength))
+    if (Context->SetupBuildZipPath)
     {
-        status = STATUS_INVALID_BUFFER_SIZE;
-        goto CleanupExit;
+        HANDLE zipFileHandle = NULL;
+        LARGE_INTEGER zipFileSize;
+        ULONG bytesRead;
+
+        status = PhCreateFileWin32Ex(
+            &zipFileHandle,
+            PhGetString(Context->SetupBuildZipPath),
+            FILE_GENERIC_READ,
+            NULL,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+            status = PhGetFileSize(zipFileHandle, &zipFileSize);
+
+        if (NT_SUCCESS(status) && (zipFileSize.QuadPart <= 0 || zipFileSize.QuadPart > SETUP_MAX_DOWNLOAD_SIZE))
+            status = STATUS_FILE_TOO_LARGE;
+
+        if (NT_SUCCESS(status))
+        {
+            zipBufferLength = (SIZE_T)zipFileSize.QuadPart;
+            zipBuffer = PhAllocate(zipBufferLength);
+            status = PhReadFile(zipFileHandle, zipBuffer, (ULONG)zipBufferLength, NULL, &bytesRead);
+
+            if (NT_SUCCESS(status) && bytesRead != zipBufferLength)
+                status = STATUS_END_OF_FILE;
+        }
+
+        if (zipFileHandle)
+            NtClose(zipFileHandle);
+
+        if (!NT_SUCCESS(status))
+            goto CleanupExit;
+    }
+    else
+    {
+        status = PhLoadResource(
+            NtCurrentImageBase(),
+            MAKEINTRESOURCE(IDR_BIN_DATA),
+            RT_RCDATA,
+            &resourceLength,
+            &resourceBuffer
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        zipBufferLength = resourceLength;
+        zipBuffer = PhAllocate(zipBufferLength);
+
+        if (!PhBase64Decode((PCSTR)resourceBuffer, resourceLength, zipBuffer, zipBufferLength, &zipBufferLength))
+        {
+            status = STATUS_INVALID_BUFFER_SIZE;
+            goto CleanupExit;
+        }
     }
 
     if (!mz_zip_reader_init_mem(&zipFileArchive, zipBuffer, zipBufferLength, 0))

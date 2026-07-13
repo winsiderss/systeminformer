@@ -50,7 +50,9 @@ END
 //
 // RCDATA
 //
+#ifdef PH_BUILD_API
 IDR_BIN_DATA            RCDATA                  "../../build/output/systeminformer-build-bin.b64"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
