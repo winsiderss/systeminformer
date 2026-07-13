@@ -519,7 +519,7 @@ VOID EtpCreateNpuGraphs(
     NpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -534,7 +534,7 @@ VOID EtpCreateNpuGraphs(
     DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -549,7 +549,7 @@ VOID EtpCreateNpuGraphs(
     SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -566,7 +566,7 @@ VOID EtpCreateNpuGraphs(
         PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -581,7 +581,7 @@ VOID EtpCreateNpuGraphs(
         TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -596,7 +596,7 @@ VOID EtpCreateNpuGraphs(
         FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
