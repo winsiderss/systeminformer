@@ -45,7 +45,7 @@ PPHSVC_CLIENT PhSvcCreateClient(
         client->ClientId = *ClientId;
     }
 
-    client->ProcessHandle = processHandle;
+    client->ProcessHandle = ProcessHandle;
 
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     InsertTailListNoFence(&PhSvcClientListHead, &client->ListEntry);
