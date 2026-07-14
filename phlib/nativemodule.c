@@ -1342,16 +1342,17 @@ NTSTATUS PhEnumProcessModules32Ex(
 _Function_class_(PH_ENUM_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhSetProcessModuleLoadCount32Callback(
     _In_ HANDLE ProcessHandle,
-    _In_ PLDR_DATA_TABLE_ENTRY32 Entry,
+    _In_ PVOID Entry,
     _In_ PVOID AddressOfEntry,
     _In_ ULONG SizeOfEntry,
     _In_ PVOID Context1,
     _In_opt_ PVOID Context2
     )
 {
+    PLDR_DATA_TABLE_ENTRY32 entry = Entry;
     PSET_PROCESS_MODULE_LOAD_COUNT_CONTEXT context = Context1;
 
-    if (UlongToPtr(Entry->DllBase) == context->BaseAddress)
+    if (UlongToPtr(entry->DllBase) == context->BaseAddress)
     {
         context->Status = PhWriteVirtualMemory(
             ProcessHandle,

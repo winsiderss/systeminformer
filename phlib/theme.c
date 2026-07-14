@@ -2927,45 +2927,38 @@ LRESULT CALLBACK PhThemeWindowDrawToolbar(
 
             BOOLEAN isDropDown = !!(buttonInfo.fsStyle & BTNS_WHOLEDROPDOWN);
 
-            if (isHighlighted)
+            BOOLEAN isPressed = !!(buttonInfo.fsState & TBSTATE_PRESSED);
+            BOOLEAN isChecked = !!(buttonInfo.fsState & TBSTATE_CHECKED);
+
+            SetTextColor(
+                DrawInfo->nmcd.hdc,
+                isEnabled ? PhThemeWindowTextColor : PHP_THEME_WINDOW_DISABLED_TEXT_COLOR
+                );
+
+            if (isPressed)
             {
-                //INT stateId;
-                //// Themed background
-                //if (node->Selected)
-                //{
-                //    if (i == Context->HotNodeIndex)
-                //        stateId = TREIS_HOTSELECTED;
-                //    else if (!Context->HasFocus)
-                //        stateId = TREIS_SELECTEDNOTFOCUS;
-                //    else
-                //        stateId = TREIS_SELECTED;
-                //}
-                //else
-                //{
-                //    if (i == Context->HotNodeIndex)
-                //        stateId = TREIS_HOT;
-                //    else
-                //        stateId = INT_MAX;
-                //}
-                //// Themed background
-                //if (stateId != INT_MAX)
-                //if (!Context->FixedColumnVisible)
-                //{
-                //    rowRect.left = Context->NormalLeft - hScrollPosition;
-                //}
-                SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
+                // click: mouse currently held down
+                PhpThemeFillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PHP_THEME_WINDOW_PRESSED_COLOR);
+            }
+            else if (isChecked)
+            {
+                // active / latched: reuse pressed color; brighten when also hovered
+                PhpThemeFillRect(
+                    DrawInfo->nmcd.hdc,
+                    &DrawInfo->nmcd.rc,
+                    isHighlighted ? PhThemeWindowHighlight2Color : PHP_THEME_WINDOW_PRESSED_COLOR
+                    );
+            }
+            else if (isHighlighted)
+            {
+                // hover
                 SetDCBrushColor(DrawInfo->nmcd.hdc, PhThemeWindowHighlightColor);
                 FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhpStockDCBrush);
             }
             else
             {
-                BOOLEAN isPressed = buttonInfo.fsState & TBSTATE_PRESSED;
-                SetTextColor(DrawInfo->nmcd.hdc, PhThemeWindowTextColor);
-                if (!isPressed)
-                    FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
-                else {
-                    PhpThemeFillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PHP_THEME_WINDOW_PRESSED_COLOR);
-                }
+                // normal
+                FillRect(DrawInfo->nmcd.hdc, &DrawInfo->nmcd.rc, PhThemeWindowBackgroundBrush);
             }
 
             dpiValue = PhGetWindowDpi(DrawInfo->nmcd.hdr.hwndFrom);
@@ -3753,6 +3746,8 @@ VOID ThemeWindowRenderTabControl(
     tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
     tabItem.pszText = tabHeaderText;
 
+    HBRUSH dcBrush = PhGetStockBrush(DC_BRUSH);
+
     for (INT pass = 0; pass < 2; pass++)
     {
         for (INT i = 0; i < count; i++)
@@ -3782,12 +3777,12 @@ VOID ThemeWindowRenderTabControl(
                 SetDCBrushColor(bufferDc, hot ? PhThemeWindowBackground2Color : PhThemeWindowBackgroundColor);
             }
 
-            FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &itemRect, dcBrush);
 
             if (selected)
             {
                 SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
-                FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+                FrameRect(bufferDc, &itemRect, dcBrush);
             }
 
             if (selected)
@@ -3796,7 +3791,7 @@ VOID ThemeWindowRenderTabControl(
 
                 selectedGap.top = itemRect.bottom - cyEdge;
                 SetDCBrushColor(bufferDc, hot ? PhThemeWindowBackground2Color : PhThemeWindowBackgroundColor);
-                FillRect(bufferDc, &selectedGap, PhGetStockBrush(DC_BRUSH));
+                FillRect(bufferDc, &selectedGap, dcBrush);
             }
 
             if (TabCtrl_GetItem(WindowHandle, i, &tabItem))
@@ -3912,6 +3907,8 @@ VOID ThemeWindowRenderTabControlOld(
     tabItem.cchTextMax = RTL_NUMBER_OF(tabHeaderText);
     tabItem.pszText = tabHeaderText;
 
+    HBRUSH dcBrush = PhGetStockBrush(DC_BRUSH);
+
     for (INT i = 0; i < count; i++)
     {
         if (i == currentSelection)
@@ -3946,7 +3943,7 @@ VOID ThemeWindowRenderTabControlOld(
             //case 1: // Old colors
             //SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowHighlightColor);
-            FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(bufferDc, &itemRect, dcBrush);
 
             //itemRectHighlighted = itemRect;
             //itemHighlighted = i;
@@ -3976,7 +3973,7 @@ VOID ThemeWindowRenderTabControlOld(
             {
                 // SetTextColor(bufferDc, PhThemeWindowTextColor);
                 SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
-                FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+                FillRect(bufferDc, &itemRect, dcBrush);
                 //SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
                 //FrameRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
             }
@@ -4005,7 +4002,7 @@ VOID ThemeWindowRenderTabControlOld(
         PhInflateRect(&itemRect, 1, 1);     // draw selected tab slightly bigger
         itemRect.bottom -= 1;
         SetDCBrushColor(bufferDc, PhPtInRect(&itemRect, &Context->CursorPos) ? PhThemeWindowHighlightColor : RGB(0x50, 0x50, 0x50));
-        FillRect(bufferDc, &itemRect, PhGetStockBrush(DC_BRUSH));
+        FillRect(bufferDc, &itemRect, dcBrush);
 
         if (TabCtrl_GetItem(WindowHandle, currentSelection, &tabItem))
         {
@@ -4327,8 +4324,8 @@ LRESULT CALLBACK PhpThemeWindowListBoxControlSubclassProc(
             // WM_NCCALCSIZE above returns 1px of the default edge to the client
             // area, so the remaining non-client band is one pixel narrower than
             // SM_CXEDGE/SM_CYEDGE. Use the same band width everywhere below.
-            INT cxEdge = max(PhGetSystemMetrics(SM_CXEDGE, dpiValue) - 1, 1);
-            INT cyEdge = max(PhGetSystemMetrics(SM_CYEDGE, dpiValue) - 1, 1);
+            INT cxEdge = PhGetSystemMetrics(SM_CXEDGE, dpiValue);
+            INT cyEdge = PhGetSystemMetrics(SM_CYEDGE, dpiValue);
 
             updateRegion = (HRGN)wParam;
 
@@ -5042,6 +5039,20 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
             POINT windowPoint;
             RECT windowRect;
 
+            if (!context->HotTrack)
+            {
+                TRACKMOUSEEVENT trackMouseEvent;
+
+                trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
+                trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
+                trackMouseEvent.hwndTrack = WindowHandle;
+                trackMouseEvent.dwHoverTime = 0;
+
+                context->HotTrack = TRUE;
+
+                TrackMouseEvent(&trackMouseEvent);
+            }
+
             if (PhGetMessagePos(&windowPoint) && PhGetWindowRect(WindowHandle, &windowRect))
             {
                 BOOLEAN hot;
@@ -5050,20 +5061,6 @@ LRESULT CALLBACK PhEditBorderWndSubclassProc(
                 hot = PhPtInRect(&windowRect, &windowPoint);
                 hotChanged = context->Hot != hot;
                 context->Hot = hot;
-
-                if (!context->HotTrack)
-                {
-                    TRACKMOUSEEVENT trackMouseEvent;
-
-                    trackMouseEvent.cbSize = sizeof(TRACKMOUSEEVENT);
-                    trackMouseEvent.dwFlags = TME_LEAVE | TME_NONCLIENT;
-                    trackMouseEvent.hwndTrack = WindowHandle;
-                    trackMouseEvent.dwHoverTime = 0;
-
-                    context->HotTrack = TRUE;
-
-                    TrackMouseEvent(&trackMouseEvent);
-                }
 
                 result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 

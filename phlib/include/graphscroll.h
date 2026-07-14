@@ -17,6 +17,19 @@ EXTERN_C_START
 
 #define PH_SCROLLNEW_CLASSNAME L"PhScrollNew"
 
+// Visual skin. Values must stay in sync with PH_TABNEW_SKIN (tabnew.h) so the
+// Options combo index maps directly to both.
+typedef enum _PH_SCROLLNEW_SKIN
+{
+    PhScrollNewSkinWin7 = 0,     // classic uxtheme scrollbar (aero look)
+    PhScrollNewSkinWin10 = 1,    // flat custom-painted scrollbar
+    PhScrollNewSkinUxTheme = 2   // native/dark themed scrollbar (default)
+} PH_SCROLLNEW_SKIN;
+
+// Selected scrollbar skin (a PH_SCROLLNEW_SKIN value). Set by the application
+// from the ScrollBarSkin setting; read by the PhScrollNew draw path.
+extern ULONG PhScrollBarSkin;
+
 typedef enum _PH_SCROLLNEW_PART
 {
     PhScrollNewPartNone,
@@ -101,6 +114,14 @@ static VOID PhScrollNewRepeatPress(
 static UINT PhScrollNewPartToScrollCode(
     _In_ PPH_SCROLLNEW_STATE State,
     _In_ PH_SCROLLNEW_PART Part
+    );
+
+static LRESULT PhScrollNewOnUserMessage(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ UINT Message,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
     );
 
 static LRESULT CALLBACK PhScrollNewWndProc(

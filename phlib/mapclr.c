@@ -71,7 +71,6 @@ static NTSTATUS PhClrUncompressData(
 // HeapSizes flag indicating an extra 4-byte field follows the row-count array.
 #define PH_CLR_HEAPSIZE_EXTRADATA 0x40
 
-#include <pshpack1.h>
 typedef struct _PH_CLR_STORAGESIGNATURE
 {
     ULONG Signature;
@@ -107,7 +106,11 @@ typedef struct _PH_CLR_TABLESHEADER
     ULONG64 SortedMask;
     // ULONG RowCounts[popcount(ValidMask)];
 } PH_CLR_TABLESHEADER, *PPH_CLR_TABLESHEADER;
-#include <poppack.h>
+
+C_ASSERT(sizeof(PH_CLR_STORAGESIGNATURE) == 16);
+C_ASSERT(sizeof(PH_CLR_STORAGEHEADER) == 4);
+C_ASSERT(UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name) == 8);
+C_ASSERT(sizeof(PH_CLR_TABLESHEADER) == 24);
 
 // Schema authoring column codes (see PhClrTableSchema).
 #define CC_I1   0x00

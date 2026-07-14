@@ -15,6 +15,18 @@
 BOOLEAN EtFramesEnabled = FALSE;
 static PPH_HASHTABLE EtFramesHashTable = nullptr;
 static PH_QUEUED_LOCK EtFramesHashTableLock = PH_QUEUED_LOCK_INIT;
+static PH_CALLBACK_REGISTRATION EtFramesProcessesUpdatedCallbackRegistration;
+
+static VOID NTAPI EtFramesProcessesUpdatedCallback(
+    _In_opt_ PVOID Parameter,
+    _In_opt_ PVOID Context
+    )
+{
+    // Nudge the FPS output thread to recompute right before the UI reads the
+    // results, so it stays aligned with the process-provider update interval
+    // instead of free-running.
+    EtFramesSignalUpdate();
+}
 
 static BOOLEAN NTAPI EtFramesEqualFunction(
     _In_ PVOID Entry1,
@@ -60,6 +72,13 @@ VOID EtFramesMonitorInitialization(
         EtFramesHashFunction,
         10
         );
+
+    PhRegisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+        EtFramesProcessesUpdatedCallback,
+        nullptr,
+        &EtFramesProcessesUpdatedCallbackRegistration
+        );
 }
 
 VOID EtFramesMonitorUninitialization(
@@ -68,6 +87,11 @@ VOID EtFramesMonitorUninitialization(
 {
     if (EtFramesEnabled)
     {
+        PhUnregisterCallback(
+            PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
+            &EtFramesProcessesUpdatedCallbackRegistration
+            );
+
         StopFpsTraceSession();
     }
 }

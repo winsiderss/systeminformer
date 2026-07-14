@@ -48,6 +48,36 @@ typedef struct _ET_FRAMES_CONTEXT
 static RECT NormalGraphTextMargin = { 5, 5, 5, 5 };
 static RECT NormalGraphTextPadding = { 3, 3, 3, 3 };
 
+static VOID FramesPropEnsureHistory(
+    _In_ PET_FRAMES_CONTEXT Context
+    )
+{
+    PET_PROCESS_BLOCK block;
+
+    if (!EtFramesEnabled)
+        return;
+
+    block = Context->Block;
+
+    if (!block)
+        return;
+
+    if (!block->FramesPerSecondHistory.Data || block->FramesPerSecondHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesPerSecondHistory, block->FramesPerSecond);
+    if (!block->FramesLatencyHistory.Data || block->FramesLatencyHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesLatencyHistory, block->FramesLatency);
+    if (!block->FramesMsBetweenPresentsHistory.Data || block->FramesMsBetweenPresentsHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesMsBetweenPresentsHistory, block->FramesMsBetweenPresents);
+    if (!block->FramesMsInPresentApiHistory.Data || block->FramesMsInPresentApiHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesMsInPresentApiHistory, block->FramesMsInPresentApi);
+    if (!block->FramesMsUntilRenderCompleteHistory.Data || block->FramesMsUntilRenderCompleteHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesMsUntilRenderCompleteHistory, block->FramesMsUntilRenderComplete);
+    if (!block->FramesMsUntilDisplayedHistory.Data || block->FramesMsUntilDisplayedHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesMsUntilDisplayedHistory, block->FramesMsUntilDisplayed);
+    if (!block->FramesDisplayLatencyHistory.Data || block->FramesDisplayLatencyHistory.Count == 0)
+        ET_CIRCULAR_BUFFER_ADD_FLOAT(&block->FramesDisplayLatencyHistory, block->FramesDisplayLatency);
+}
+
 PPH_STRING FramesLabelYFunction(
     _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
     _In_ ULONG DataIndex,
@@ -98,6 +128,8 @@ BOOLEAN FramesPropGraphMessageCallback(
         {
             PPH_GRAPH_GETDRAWINFO getDrawInfo = (PPH_GRAPH_GETDRAWINFO)header;
             PPH_GRAPH_DRAW_INFO drawInfo = getDrawInfo->DrawInfo;
+
+            FramesPropEnsureHistory(context);
 
             if (header->hwndFrom == context->FramesPerSecondGraphHandle)
             {
@@ -939,6 +971,8 @@ VOID FramesPropUpdateGraphs(
     _In_ PET_FRAMES_CONTEXT Context
     )
 {
+    FramesPropEnsureHistory(Context);
+
     Context->FramesPerSecondGraphState.Valid = FALSE;
     Context->FramesPerSecondGraphState.TooltipIndex = ULONG_MAX;
     Graph_Update(Context->FramesPerSecondGraphHandle);
