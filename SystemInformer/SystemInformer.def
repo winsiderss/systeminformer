@@ -1086,6 +1086,7 @@ EXPORTS
     PhRemoveWindowContext
     PhRemoveWindowContextEx
     PhSelectComboBoxString
+    PhSendMessageTimeout
     PhSetClipboardString
     PhSetControlTheme
     PhSetDialogContext
