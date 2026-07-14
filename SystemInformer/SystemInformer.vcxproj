@@ -264,6 +264,7 @@
     <ClCompile Include="log.c" />
     <ClCompile Include="logwnd.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="localization.c" />
     <ClCompile Include="mainwnd.c" />
     <ClCompile Include="mdump.c" />
     <ClCompile Include="memedit.c" />
@@ -381,6 +382,8 @@
     <ClInclude Include="include\hidnproc.h" />
     <ClInclude Include="include\memsrch.h" />
     <ClInclude Include="include\phapp.h" />
+    <ClInclude Include="include\localization.h" />
+    <ClInclude Include="include\localizationres.h" />
     <ClInclude Include="include\phsvc.h" />
     <ClInclude Include="include\phsvcapi.h" />
     <ClInclude Include="include\phappres.h" />

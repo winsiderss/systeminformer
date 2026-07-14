@@ -84,6 +84,9 @@
     <ClCompile Include="main.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="localization.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="mainwnd.c">
       <Filter>System Informer</Filter>
     </ClCompile>
@@ -363,6 +366,12 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="include\phapp.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\localization.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="include\localizationres.h">
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="sdk\phdk.h">
