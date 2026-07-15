@@ -227,7 +227,7 @@ NTSTATUS PhMergeSystemAcls(
 
     // Allocate new ACL (header + aligned payload).
 
-    requiredSize = sizeof(ACL) + ALIGN_UP_BY(requiredSize, sizeof(ULONG));
+    requiredSize = (ULONG)sizeof(ACL) + ALIGN_UP_BY(requiredSize, sizeof(ULONG));
 
     if (requiredSize > USHORT_MAX)
         return STATUS_INVALID_PARAMETER;

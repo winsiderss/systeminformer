@@ -615,10 +615,14 @@ NTSTATUS CALLBACK SetupExtractBuild(
             );
 
         if (NT_SUCCESS(status))
+        {
             status = PhGetFileSize(zipFileHandle, &zipFileSize);
+        }
 
         if (NT_SUCCESS(status) && (zipFileSize.QuadPart <= 0 || zipFileSize.QuadPart > SETUP_MAX_DOWNLOAD_SIZE))
+        {
             status = STATUS_FILE_TOO_LARGE;
+        }
 
         if (NT_SUCCESS(status))
         {

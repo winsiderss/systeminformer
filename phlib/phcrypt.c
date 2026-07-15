@@ -711,19 +711,19 @@ NTSTATUS NTAPI PhSymCryptHashInit(
     if (!Context)
         return STATUS_INVALID_PARAMETER;
 
-    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
-
     if (!PhSymCryptResolveHashAlgorithm(Algorithm, &hashAlgorithm, &hashResultSize))
         return STATUS_NOT_SUPPORTED;
 
     if (SymCryptHashStateSize(hashAlgorithm) > PH_SYMCRYPT_HASH_STATE_BUFFER_SIZE)
         return STATUS_BUFFER_TOO_SMALL;
 
+    memset(Context, 0, sizeof(PH_SYMCRYPT_HASH_CONTEXT));
     Context->Algorithm = (PVOID)hashAlgorithm;
     Context->ResultSize = hashResultSize;
     Context->StateSize = (ULONG)SymCryptHashStateSize(hashAlgorithm);
 
     SymCryptHashInit(hashAlgorithm, Context->State);
+
     return STATUS_SUCCESS;
 }
 
@@ -1129,7 +1129,9 @@ NTSTATUS NTAPI PhSymCryptGetProperty(
     if (NT_SUCCESS(PhSymCryptHashAlgorithmIdToAlgorithm(AlgorithmId, &hashAlgorithm, &value)))
     {
         if (PhEqualStringZ(Property, BCRYPT_HASH_LENGTH, TRUE))
+        {
             return PhpSymCryptWriteProperty(&value, sizeof(value), Output, OutputLength, ResultLength);
+        }
 
         if (PhEqualStringZ(Property, BCRYPT_OBJECT_LENGTH, TRUE))
         {

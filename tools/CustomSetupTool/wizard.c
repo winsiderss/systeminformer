@@ -1304,7 +1304,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                                 }
                                 else
                                 {
-                                    PhShowStatus(NULL, L"Unable to restart the application.", status, 0);
+                                    PhShowStatus(WindowHandle, L"Unable to restart the application.", status, 0);
                                 }
 
                                 PhDereferenceObject(applicationFileName);

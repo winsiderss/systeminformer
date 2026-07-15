@@ -401,8 +401,12 @@ VOID ShowUninstallErrorPageDialog(
 
     config.cxWidth = 200;
     config.pszWindowTitle = PhApplicationName;
+    PPH_STRING statusMessage = NULL;
+
     if (Context->LastStatus)
-        config.pszMainInstruction = PhGetStatusMessage(Context->LastStatus, 0)->Buffer;
+        statusMessage = PhGetStatusMessage(Context->LastStatus, 0);
+    if (statusMessage)
+        config.pszMainInstruction = statusMessage->Buffer;
     else
         config.pszMainInstruction = L"Uninstall failed with an error.";
     config.pszContent = L"Click retry to try again or close to exit setup.";

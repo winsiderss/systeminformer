@@ -1601,7 +1601,7 @@ static HRESULT NTAPI PhpHideToastWorker(
     _In_opt_ PVOID Parameter
     )
 {
-    auto entry = reinterpret_cast<PH::ToastV2*>(Parameter);
+    const auto entry = static_cast<PH::ToastV2*>(Parameter);
 
     if (entry->Notifier && entry->Toast)
         entry->Notifier->Hide(entry->Toast.Get());
@@ -1623,7 +1623,7 @@ static HRESULT NTAPI PhpReleaseToastWorker(
     _In_opt_ PVOID Parameter
     )
 {
-    auto entry = reinterpret_cast<PH::ToastV2*>(Parameter);
+    const auto entry = static_cast<PH::ToastV2*>(Parameter);
 
     if (entry->Handler && entry->Toast)
     {

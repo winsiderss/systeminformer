@@ -1375,7 +1375,7 @@ FORCEINLINE LONG EtpSortAggregateIfNeeded2(
     PhpAggregateFieldIfNeeded(ProcessNode1, AggregateTypeInt64, Block1, FieldOffset1, &number1);
     PhpAggregateFieldIfNeeded(ProcessNode1, AggregateTypeInt64, Block1, FieldOffset2, &number1);
 
-    PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset2, &number2);
+    PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset1, &number2);
     PhpAggregateFieldIfNeeded(ProcessNode2, AggregateTypeInt64, Block2, FieldOffset2, &number2);
 
     return uint64cmp(number1, number2);

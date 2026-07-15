@@ -2052,6 +2052,12 @@ NTSTATUS SetupShutdownApplication(
         NULL
         );
 
+    PhEnumDirectoryObjects(
+        PhGetNamespaceHandle2(),
+        PhpPreviousInstancesCallback,
+        NULL
+        );
+
     status = PhCreateFileWin32(
         &directoryHandle,
         PhGetString(Context->SetupInstallPath),

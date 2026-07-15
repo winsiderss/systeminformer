@@ -211,7 +211,7 @@ INT_PTR CALLBACK GraphicsDeviceNodesDlgProc(
                 context->GraphHandle[i] = PhCreateWindow(
                     PH_GRAPH_CLASSNAME,
                     NULL,
-                    WS_VISIBLE | WS_CHILD | WS_BORDER,
+                    WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
                     0,
                     0,
                     0,
