@@ -88,7 +88,8 @@ static BOOLEAN PhpIsLocalizationResourceTrusted(
     PPH_STRING applicationSignerName = NULL;
     PPH_STRING translationSignerName = NULL;
 
-    // 未启用内核驱动的社区构建可以使用未签名翻译资源，避免阻断本地开发。
+    // Community builds without KSI can load unsigned translation resources for local development.
+    // 未启用 KSI 的社区构建可加载未签名翻译资源，便于本地开发。
     if (!PhEnableKsiSupport)
         return TRUE;
 
@@ -131,6 +132,8 @@ static PPH_STRING PhpLoadLocalizedString(
     HRSRC resourceHandle;
     HGLOBAL resourceData;
     PWSTR resourceBlock;
+    PBYTE resourceEnd;
+    ULONG resourceSize;
     USHORT stringLength;
     ULONG stringIndex;
 
@@ -143,6 +146,14 @@ static PPH_STRING PhpLoadLocalizedString(
     if (!resourceHandle)
         return NULL;
 
+    resourceSize = SizeofResource(
+        PhLocalizationResourceModule,
+        resourceHandle
+        );
+
+    if (resourceSize < sizeof(USHORT))
+        return NULL;
+
     resourceData = LoadResource(PhLocalizationResourceModule, resourceHandle);
 
     if (!resourceData)
@@ -153,18 +164,31 @@ static PPH_STRING PhpLoadLocalizedString(
     if (!resourceBlock)
         return NULL;
 
+    resourceEnd = PTR_ADD_OFFSET(resourceBlock, resourceSize);
     stringIndex = ResourceId & 0xf;
 
-    for (ULONG i = 0; i < stringIndex; i++)
-        resourceBlock += 1 + resourceBlock[0];
+    for (ULONG i = 0; i <= stringIndex; i++)
+    {
+        if ((SIZE_T)(resourceEnd - (PBYTE)resourceBlock) < sizeof(USHORT))
+            return NULL;
 
-    stringLength = resourceBlock[0];
+        stringLength = resourceBlock[0];
+        resourceBlock++;
+
+        if ((SIZE_T)(resourceEnd - (PBYTE)resourceBlock) < stringLength * sizeof(WCHAR))
+            return NULL;
+
+        if (i == stringIndex)
+            break;
+
+        resourceBlock += stringLength;
+    }
 
     if (stringLength == 0)
         return NULL;
 
     return PhCreateStringEx(
-        resourceBlock + 1,
+        resourceBlock,
         stringLength * sizeof(WCHAR)
         );
 }
@@ -174,10 +198,14 @@ VOID PhInitializeLocalization(
     )
 {
     static CONST PH_STRINGREF automaticLocale = PH_STRINGREF_INIT(L"auto");
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     PPH_STRING configuredLocale;
     PPH_STRING localeName = NULL;
     PPH_STRING relativeFileName = NULL;
     PPH_STRING translationFileName = NULL;
+
+    if (!PhBeginInitOnce(&initOnce))
+        return;
 
     configuredLocale = PhGetStringSetting(SETTING_LANGUAGE);
 
@@ -223,6 +251,8 @@ CleanupExit:
         PhDereferenceObject(relativeFileName);
     if (localeName)
         PhDereferenceObject(localeName);
+
+    PhEndInitOnce(&initOnce);
 }
 
 PCWSTR PhGetLocalizedString(
