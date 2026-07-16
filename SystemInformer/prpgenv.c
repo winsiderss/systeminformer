@@ -873,6 +873,114 @@ INT_PTR PhpShowEditEnvDialog(
     return result;
 }
 
+BOOLEAN PhpIsMultiEntryEnvironmentVariable(
+    _In_ PPH_STRING Name,
+    _In_opt_ PPH_STRING Value
+    )
+{
+    if (
+        PhEqualString2(Name, L"Path", FALSE) ||
+        PhEqualString2(Name, L"PATHEXT", FALSE) ||
+        PhEqualString2(Name, L"LIBPATH", FALSE)
+        )
+    {
+        return TRUE;
+    }
+
+    if (Value && PhFindCharInString(Value, 0, L';') != SIZE_MAX)
+        return TRUE;
+
+    return FALSE;
+}
+
+BOOLEAN PhpEditEnvironmentNode(
+    _Inout_ PPH_ENVIRONMENT_CONTEXT Context,
+    _In_ PPHP_PROCESS_ENVIRONMENT_TREENODE Node,
+    _Out_ PBOOLEAN Refresh
+    )
+{
+    BOOLEAN refresh = FALSE;
+
+    *Refresh = FALSE;
+
+    if (!Node || Node->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+        return FALSE;
+
+    if (Node->ValueText && PhpIsMultiEntryEnvironmentVariable(Node->NameText, Node->ValueText))
+    {
+        PPH_STRING newValue;
+
+        if (PhShowEnvironmentVariableSplitDialog(
+            Context->WindowHandle,
+            Node->NameText,
+            Node->ValueText,
+            FALSE,
+            &newValue
+            ))
+        {
+            NTSTATUS status = STATUS_SUCCESS;
+
+            if (!PhEqualString(newValue, Node->ValueText, FALSE))
+            {
+                EDIT_ENV_DIALOG_CONTEXT editContext;
+
+                if (PhGetIntegerSetting(SETTING_ENABLE_WARNINGS) && !PhShowConfirmMessage(
+                    Context->WindowHandle,
+                    L"edit",
+                    L"the selected environment variable",
+                    L"Some programs may restrict access or ban your account when editing the environment variable(s) of the process.",
+                    FALSE
+                    ))
+                {
+                    PhDereferenceObject(newValue);
+                    return TRUE;
+                }
+
+                memset(&editContext, 0, sizeof(EDIT_ENV_DIALOG_CONTEXT));
+                editContext.ProcessItem = Context->ProcessItem;
+                editContext.Name = Node->NameText->Buffer;
+                editContext.Value = Node->ValueText->Buffer;
+
+                status = PhpEditDlgSetEnvironment(
+                    &editContext,
+                    Context->ProcessItem,
+                    Node->NameText,
+                    newValue
+                    );
+
+                if (status == STATUS_TIMEOUT)
+                {
+                    PhShowStatus(Context->WindowHandle, L"Unable to set the environment variable.", 0, WAIT_TIMEOUT);
+                }
+                else if (!NT_SUCCESS(status))
+                {
+                    PhShowStatus(Context->WindowHandle, L"Unable to set the environment variable.", status, 0);
+                }
+                else
+                {
+                    refresh = TRUE;
+                }
+            }
+
+            PhDereferenceObject(newValue);
+        }
+    }
+    else
+    {
+        PhpShowEditEnvDialog(
+            Context->WindowHandle,
+            Context->ProcessItem,
+            Node->NameText->Buffer,
+            Node->ValueText ? Node->ValueText->Buffer : NULL,
+            &refresh
+            );
+    }
+
+    *Refresh = refresh;
+
+    return TRUE;
+}
+
 VOID PhpShowEnvironmentNodeContextMenu(
     _In_ PPH_ENVIRONMENT_CONTEXT Context,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenuEvent
@@ -1804,16 +1912,10 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
                     BOOLEAN refresh;
 
-                    if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                    if (!PhpEditEnvironmentNode(context, item, &refresh))
                         break;
 
-                    if (PhpShowEditEnvDialog(
-                        hwndDlg,
-                        context->ProcessItem,
-                        item->NameText->Buffer,
-                        item->ValueText->Buffer,
-                        &refresh
-                        ) == IDOK && refresh)
+                    if (refresh)
                     {
                         if (processItem->IsSubsystemProcess)
                         {
@@ -1831,16 +1933,10 @@ INT_PTR CALLBACK PhpProcessEnvironmentDlgProc(
                     PPHP_PROCESS_ENVIRONMENT_TREENODE item = PhpGetSelectedEnvironmentNode(context);
                     BOOLEAN refresh;
 
-                    if (!item || item->Type & PROCESS_ENVIRONMENT_TREENODE_TYPE_GROUP)
+                    if (!PhpEditEnvironmentNode(context, item, &refresh))
                         break;
 
-                    if (PhpShowEditEnvDialog(
-                        context->WindowHandle,
-                        context->ProcessItem,
-                        item->NameText->Buffer,
-                        item->ValueText->Buffer,
-                        &refresh
-                        ) == IDOK && refresh)
+                    if (refresh)
                     {
                         if (processItem->IsSubsystemProcess)
                         {
