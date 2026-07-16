@@ -439,10 +439,12 @@ namespace CustomBuildTool
                 "README.txt",
                 "COPYRIGHT.txt",
                 "LICENSE.txt",
-                "SystemInformer\\resources\\settings.schema.json",
             ];
 
             string baseDirectory = GetBuildBaseDirectory(Flags);
+
+            if (Update && !CopySettingsSchemaFile(Flags))
+                return false;
 
             if (!Flags.HasFlag(BuildFlags.BuildRelease))
                 return true;
@@ -460,6 +462,40 @@ namespace CustomBuildTool
                         else
                             Win32.DeleteFile(targetFilePath, Flags);
                     }
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Copies the settings schema into the Resources folder for each selected build output.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if operation succeeds.</returns>
+        public static bool CopySettingsSchemaFile(BuildFlags Flags)
+        {
+            var configurationsMap = new Dictionary<(BuildFlags configuration, BuildFlags architecture), string>
+            {
+                { (BuildFlags.BuildDebug, BuildFlags.Build32bit), "Debug32\\Resources" },
+                { (BuildFlags.BuildDebug, BuildFlags.Build64bit), "Debug64\\Resources" },
+                { (BuildFlags.BuildDebug, BuildFlags.BuildArm64bit), "DebugARM64\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.Build32bit), "Release32\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.Build64bit), "Release64\\Resources" },
+                { (BuildFlags.BuildRelease, BuildFlags.BuildArm64bit), "ReleaseARM64\\Resources" }
+            };
+
+            string baseDirectory = GetBuildBaseDirectory(Flags);
+            string sourceFileName = Path.Join([BuildWorkingFolder, "SystemInformer\\resources\\settings.schema.json"]);
+
+            foreach (var configurationEntry in configurationsMap)
+            {
+                if (Flags.HasFlag(configurationEntry.Key.configuration) && Flags.HasFlag(configurationEntry.Key.architecture))
+                {
+                    Win32.CopyIfNewer(
+                        sourceFileName,
+                        Path.Join([baseDirectory, configurationEntry.Value, Path.GetFileName(sourceFileName)]),
+                        Flags);
                 }
             }
 
