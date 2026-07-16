@@ -26,6 +26,9 @@ CommonBitmapToIcon(
 
     maskBitmap = CreateBitmap(Width, Height, 1, 1, NULL);
 
+    if (!maskBitmap)
+        return NULL;
+
     iconInfo.fIcon = TRUE;
     iconInfo.hbmColor = BitmapHandle;
     iconInfo.hbmMask = maskBitmap;
