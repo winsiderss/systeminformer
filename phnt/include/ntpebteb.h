@@ -27,12 +27,28 @@ typedef struct _RTL_SRWLOCK RTL_SRWLOCK, *PRTL_SRWLOCK;
 typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
 typedef struct _LDR_RESLOADER_RET LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
 typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
-typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 typedef struct tagSOleTlsData SOleTlsData, *PSOleTlsData;
 typedef struct _KERNEL_CALLBACK_TABLE KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 typedef struct _GDI_HANDLE_ENTRY GDI_HANDLE_ENTRY, *PGDI_HANDLE_ENTRY;
 typedef struct _SHIM_PROCESS_CONTEXT SHIM_PROCESS_CONTEXT, *PSHIM_PROCESS_CONTEXT;
 typedef struct _HEAP HEAP, *PHEAP;
+
+/**
+ * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+ */
+typedef struct _PEB_LDR_DATA
+{
+    ULONG Length;
+    BOOLEAN Initialized;
+    HANDLE SsHandle;
+    LIST_ENTRY InLoadOrderModuleList;
+    LIST_ENTRY InMemoryOrderModuleList;
+    LIST_ENTRY InInitializationOrderModuleList;
+    PVOID EntryInProgress;
+    BOOLEAN ShutdownInProgress;
+    HANDLE ShutdownThreadId;
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
 
 #ifndef DOS_MAX_COMPONENT_LENGTH
 #define DOS_MAX_COMPONENT_LENGTH 255
