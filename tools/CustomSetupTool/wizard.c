@@ -141,10 +141,7 @@ VOID SetupUpdateWindowBorderColor(
     if (!SetupWizardDarkMode || !SetupDwmSetWindowAttribute_I)
         return;
 
-    if (WindowsVersion >= WINDOWS_11)
-        borderColor = 0xffffffff; // DWMWA_COLOR_DEFAULT
-    else
-        borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : SetupWizardColorWindowInactiveBorder;
+    borderColor = Active ? GetSysColor(COLOR_HOTLIGHT) : SetupWizardColorWindowInactiveBorder;
     SetupDwmSetWindowAttribute_I(WindowHandle, SETUP_DWM_BORDER_COLOR, &borderColor, sizeof(borderColor));
 }
 
@@ -377,15 +374,18 @@ LRESULT CALLBACK SetupDividerSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR SubclassId,
-    _In_ DWORD_PTR RefData
+    _In_ LPARAM lParam
     )
 {
+    WNDPROC previousProcedure;
+
+    previousProcedure = (WNDPROC)PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
+
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        RemoveWindowSubclass(WindowHandle, SetupDividerSubclassProc, SubclassId);
+        PhSetWindowProcedure(WindowHandle, previousProcedure);
+        PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         break;
     case WM_ERASEBKGND:
         return TRUE;
@@ -410,7 +410,7 @@ LRESULT CALLBACK SetupDividerSubclassProc(
         return 0;
     }
 
-    return DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+    return CallWindowProc(previousProcedure, WindowHandle, uMsg, wParam, lParam);
 }
 
 /**
@@ -428,7 +428,19 @@ VOID SetupSubclassPropSheetDivider(
 
     if (dividerHandle = GetDlgItem(ParentWindowHandle, ControlId))
     {
-        SetWindowSubclass(dividerHandle, SetupDividerSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
+        if (!PhGetWindowContext(dividerHandle, PH_WINDOW_CONTEXT_DEFAULT))
+        {
+            WNDPROC previousProcedure;
+
+            previousProcedure = PhGetWindowProcedure(dividerHandle);
+            PhSetWindowProcedure(dividerHandle, SetupDividerSubclassProc);
+            PhSetWindowContext(
+                dividerHandle,
+                PH_WINDOW_CONTEXT_DEFAULT,
+                previousProcedure
+                );
+        }
+
         InvalidateRect(dividerHandle, NULL, TRUE);
     }
 }
@@ -545,35 +557,37 @@ LRESULT CALLBACK SetupDarkControlBorderSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
-    _In_ LPARAM lParam,
-    _In_ UINT_PTR SubclassId,
-    _In_ DWORD_PTR RefData
+    _In_ LPARAM lParam
     )
 {
     LRESULT result;
+    WNDPROC previousProcedure;
+
+    previousProcedure = (WNDPROC)PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
 
     switch (uMsg)
     {
     case WM_NCDESTROY:
-        RemoveWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SubclassId);
+        PhSetWindowProcedure(WindowHandle, previousProcedure);
+        PhRemoveWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT);
         break;
     case WM_NCPAINT:
-        result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+        result = CallWindowProc(previousProcedure, WindowHandle, uMsg, wParam, lParam);
         SetupPaintControlBorder(WindowHandle, wParam);
         return result;
     case WM_NCACTIVATE:
-        result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+        result = CallWindowProc(previousProcedure, WindowHandle, uMsg, wParam, lParam);
         SetupPaintControlBorder(WindowHandle, wParam);
         return result;
     case WM_SETFOCUS:
     case WM_KILLFOCUS:
     case WM_ENABLE:
-        result = DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+        result = CallWindowProc(previousProcedure, WindowHandle, uMsg, wParam, lParam);
         SetupRedrawControlBorder(WindowHandle);
         return result;
     }
 
-    return DefSubclassProc(WindowHandle, uMsg, wParam, lParam);
+    return CallWindowProc(previousProcedure, WindowHandle, uMsg, wParam, lParam);
 }
 
 /**
@@ -594,13 +608,37 @@ VOID SetupApplyDarkModeToControl(
     {
         if (PhEqualStringZ(className, L"Edit", TRUE))
         {
-            SetWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
+            if (!PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT))
+            {
+                WNDPROC previousProcedure;
+
+                previousProcedure = PhGetWindowProcedure(WindowHandle);
+                PhSetWindowProcedure(WindowHandle, SetupDarkControlBorderSubclassProc);
+                PhSetWindowContext(
+                    WindowHandle,
+                    PH_WINDOW_CONTEXT_DEFAULT,
+                    previousProcedure
+                    );
+            }
+
             SetupRedrawControlBorder(WindowHandle);
         }
         else if (PhEqualStringZ(className, L"ListBox", TRUE))
         {
             PhSetControlTheme(WindowHandle, L"DarkMode_Explorer");
-            SetWindowSubclass(WindowHandle, SetupDarkControlBorderSubclassProc, SETUP_DARKMODE_SUBCLASS_ID, 0);
+            if (!PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT))
+            {
+                WNDPROC previousProcedure;
+
+                previousProcedure = PhGetWindowProcedure(WindowHandle);
+                PhSetWindowProcedure(WindowHandle, SetupDarkControlBorderSubclassProc);
+                PhSetWindowContext(
+                    WindowHandle,
+                    PH_WINDOW_CONTEXT_DEFAULT,
+                    previousProcedure
+                    );
+            }
+
             SetupRedrawControlBorder(WindowHandle);
         }
         else if (PhEqualStringZ(className, L"msctls_progress32", TRUE))
@@ -646,9 +684,10 @@ LRESULT SetupHandleControlCustomDraw(
 /**
  * Applies local dark-mode handling to all child controls.
  */
-BOOL CALLBACK SetupApplyDarkModeToChildControl(
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN NTAPI SetupApplyDarkModeToChildControl(
     _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
+    _In_opt_ PVOID Context
     )
 {
     SetupApplyDarkModeToControl(WindowHandle);
@@ -668,7 +707,7 @@ VOID SetupApplyDarkModeToPage(
         return;
 
     SetupAllowDarkModeForWindow(WindowHandle);
-    EnumChildWindows(WindowHandle, SetupApplyDarkModeToChildControl, 0);
+    PhEnumChildWindows(WindowHandle, SetupApplyDarkModeToChildControl, NULL);
     InvalidateRect(WindowHandle, NULL, TRUE);
 }
 
@@ -724,16 +763,6 @@ static HFONT SetupCreateWizardFont(
         );
 }
 
-static BOOL CALLBACK SetupSetWizardChildFont(
-    _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
-    );
-
-static BOOL CALLBACK SetupInvalidateWizardChildWindow(
-    _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
-    );
-
 typedef struct _SETUP_PROPSHEETCONTEXT
 {
     BOOLEAN LayoutInitialized;
@@ -744,7 +773,7 @@ typedef struct _SETUP_PROPSHEETCONTEXT
     LONG DialogDpi;
 } PV_PROPSHEETCONTEXT, * PPV_PROPSHEETCONTEXT;
 
-static VOID SetupDeleteWizardFonts(
+VOID SetupDeleteWizardFonts(
     _Inout_ PSETUP_WIZARD_FONT_CONTEXT FontContext
     )
 {
@@ -773,7 +802,7 @@ static VOID SetupDeleteWizardFonts(
     }
 }
 
-static BOOLEAN SetupCreateWizardFonts(
+BOOLEAN SetupCreateWizardFonts(
     _In_ HWND WindowHandle,
     _In_ LONG WindowDpi,
     _Out_ PSETUP_WIZARD_FONT_CONTEXT FontContext
@@ -801,56 +830,22 @@ static BOOLEAN SetupCreateWizardFonts(
 }
 
 /**
- * Applies the wizard fonts to a page.
- *
- * \param WindowHandle The wizard page window handle.
- * \param LargeTitle TRUE to use the welcome/completed page title font.
- */
-static VOID SetupApplyWizardPageFonts(
-    _In_ HWND WindowHandle,
-    _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
-    _In_ BOOLEAN LargeTitle
-    )
-{
-    PSETUP_WIZARD_FONT_CONTEXT fontContext;
-
-    SetupInitializeDarkMode();
-    fontContext = &PropSheetContext->Fonts;
-
-    if (fontContext->PageFont)
-        SetWindowFont(WindowHandle, fontContext->PageFont, TRUE);
-
-    if (fontContext->PageFont)
-        EnumChildWindows(WindowHandle, SetupSetWizardChildFont, (LPARAM)fontContext);
-
-    if (LargeTitle)
-    {
-        if (fontContext->LargeTitleFont)
-            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), fontContext->LargeTitleFont, TRUE);
-    }
-    else
-    {
-        if (fontContext->TitleFont)
-            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), fontContext->TitleFont, TRUE);
-    }
-}
-
-/**
  * Sets the wizard page font for a child window.
  *
  * \param WindowHandle The child window handle.
  * \param lParam The font handle.
  * \return TRUE to continue enumeration.
  */
-static BOOL CALLBACK SetupSetWizardChildFont(
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN NTAPI SetupSetWizardChildFont(
     _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
+    _In_opt_ PVOID Context
     )
 {
     PSETUP_WIZARD_FONT_CONTEXT fontContext;
     WCHAR className[16];
 
-    fontContext = (PSETUP_WIZARD_FONT_CONTEXT)lParam;
+    fontContext = (PSETUP_WIZARD_FONT_CONTEXT)Context;
 
     if (NT_SUCCESS(PhGetClassName(WindowHandle, className, ARRAYSIZE(className), NULL)) && PhEqualStringZ(className, L"Button", TRUE))
     {
@@ -872,9 +867,45 @@ static BOOL CALLBACK SetupSetWizardChildFont(
     return TRUE;
 }
 
-BOOL CALLBACK SetupInvalidateWizardChildWindow(
+/**
+ * Applies the wizard fonts to a page.
+ *
+ * \param WindowHandle The wizard page window handle.
+ * \param LargeTitle TRUE to use the welcome/completed page title font.
+ */
+VOID SetupApplyWizardPageFonts(
     _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
+    _In_ PPV_PROPSHEETCONTEXT PropSheetContext,
+    _In_ BOOLEAN LargeTitle
+    )
+{
+    PSETUP_WIZARD_FONT_CONTEXT fontContext;
+
+    SetupInitializeDarkMode();
+    fontContext = &PropSheetContext->Fonts;
+
+    if (fontContext->PageFont)
+        SetWindowFont(WindowHandle, fontContext->PageFont, TRUE);
+
+    if (fontContext->PageFont)
+        PhEnumChildWindows(WindowHandle, SetupSetWizardChildFont, fontContext);
+
+    if (LargeTitle)
+    {
+        if (fontContext->LargeTitleFont)
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), fontContext->LargeTitleFont, TRUE);
+    }
+    else
+    {
+        if (fontContext->TitleFont)
+            SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), fontContext->TitleFont, TRUE);
+    }
+}
+
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN NTAPI SetupInvalidateWizardChildWindow(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
     )
 {
     InvalidateRect(WindowHandle, NULL, TRUE);
@@ -1000,7 +1031,7 @@ VOID SetupUpdateWizardFonts(
     }
 
     SetupApplyWizardFonts(ParentWindowHandle, PropSheetContext);
-    EnumChildWindows(ParentWindowHandle, SetupInvalidateWizardChildWindow, 0);
+    PhEnumChildWindows(ParentWindowHandle, SetupInvalidateWizardChildWindow, NULL);
     InvalidateRect(ParentWindowHandle, NULL, TRUE);
     UpdateWindow(ParentWindowHandle);
     SetupDeleteWizardFonts(&oldFonts);
@@ -1188,6 +1219,15 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
             context->ParentWindowHandle = GetParent(WindowHandle);
 
             PhCenterWindow(context->ParentWindowHandle, NULL);
+
+            ShowWindow(context->ParentWindowHandle, SW_SHOW);
+            UpdateWindow(context->ParentWindowHandle);
+
+            if (!SetForegroundWindow(context->ParentWindowHandle))
+            {
+                PhBringWindowToTop(context->ParentWindowHandle);
+            }
+
             SetupInitializeWizardTitleFont(context, WindowHandle, TRUE);
             SetupLoadWelcomeBitmap(WindowHandle);
             SetupApplyDarkModeToPage(WindowHandle);
@@ -1248,7 +1288,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                             if (applicationFileName = PhGetApplicationFileNameWin32())
                             {
                                 status = PhShellExecuteEx(
-                                    NULL,
+                                    WindowHandle,
                                     PhGetString(applicationFileName),
                                     PhGetStringRefZ(&applicationCommandLine),
                                     NULL,
@@ -1264,7 +1304,7 @@ INT_PTR CALLBACK SetupWelcomePageDlgProc(
                                 }
                                 else
                                 {
-                                    PhShowStatus(NULL, L"Unable to restart the application.", status, 0);
+                                    PhShowStatus(WindowHandle, L"Unable to restart the application.", status, 0);
                                 }
 
                                 PhDereferenceObject(applicationFileName);
@@ -1400,7 +1440,7 @@ INT_PTR CALLBACK SetupConfigPageDlgProc(
                 {
                     WCHAR path[MAX_PATH];
 
-                    GetDlgItemText(WindowHandle, IDC_PATH, path, MAX_PATH);
+                    PhGetWindowTextToBuffer(GetDlgItem(WindowHandle, IDC_PATH), 0, path, RTL_NUMBER_OF(path), NULL);
 
                     PhSwapReference(&context->SetupInstallPath, PhCreateString(path));
 
@@ -1556,20 +1596,24 @@ INT_PTR CALLBACK SetupShortcutsPageDlgProc(
         case IDC_STARTMENUFOLDERLIST:
             if (HIWORD(wParam) == LBN_SELCHANGE)
             {
-                WCHAR folderName[MAX_PATH];
                 LONG index = ListBox_GetCurSel((HWND)lParam);
 
                 if (index != LB_ERR)
                 {
-                    ListBox_GetText((HWND)lParam, index, folderName);
-                    PhSetDialogItemText(WindowHandle, IDC_STARTMENUFOLDER, folderName);
+                    PPH_STRING folderName;
+
+                    if (folderName = PhGetListBoxString((HWND)lParam, index))
+                    {
+                        PhSetDialogItemText(WindowHandle, IDC_STARTMENUFOLDER, folderName->Buffer);
+                        PhDereferenceObject(folderName);
+                    }
                 }
             }
             break;
         case IDC_NOSTARTMENUSHORTCUTS:
             if (HIWORD(wParam) == BN_CLICKED)
             {
-                BOOLEAN enable = IsDlgButtonChecked(WindowHandle, IDC_NOSTARTMENUSHORTCUTS) != BST_CHECKED;
+                BOOLEAN enable = Button_GetCheck(GetDlgItem(WindowHandle, IDC_NOSTARTMENUSHORTCUTS)) != BST_CHECKED;
                 EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDER), enable);
                 EnableWindow(GetDlgItem(WindowHandle, IDC_STARTMENUFOLDERLIST), enable);
             }
@@ -1597,15 +1641,36 @@ INT_PTR CALLBACK SetupShortcutsPageDlgProc(
             case PSN_WIZNEXT:
                 {
                     WCHAR folderName[MAX_PATH];
+                    PH_STRINGREF folderNameSr;
+                    ULONG returnLength;
 
-                    context->SetupCreateStartMenuShortcuts =
-                        IsDlgButtonChecked(WindowHandle, IDC_NOSTARTMENUSHORTCUTS) != BST_CHECKED;
-                    context->SetupCreateDesktopShortcut =
-                        IsDlgButtonChecked(WindowHandle, IDC_DESKTOPSHORTCUT) == BST_CHECKED;
-                    GetDlgItemText(WindowHandle, IDC_STARTMENUFOLDER, folderName, RTL_NUMBER_OF(folderName));
+                    context->SetupCreateStartMenuShortcuts = Button_GetCheck(GetDlgItem(WindowHandle, IDC_NOSTARTMENUSHORTCUTS)) != BST_CHECKED;
+                    context->SetupCreateDesktopShortcut = Button_GetCheck(GetDlgItem(WindowHandle, IDC_DESKTOPSHORTCUT)) == BST_CHECKED;
+
+                    if (!NT_SUCCESS(PhGetWindowTextToBuffer(
+                        GetDlgItem(WindowHandle, IDC_STARTMENUFOLDER),
+                        0,
+                        folderName,
+                        RTL_NUMBER_OF(folderName),
+                        &returnLength
+                        )))
+                    {
+                        return FALSE;
+                    }
+
+                    folderNameSr.Buffer = folderName;
+                    folderNameSr.Length = returnLength * sizeof(WCHAR);
 
                     if (context->SetupCreateStartMenuShortcuts &&
-                        wcspbrk(folderName, L"\\/:*?\"<>|"))
+                        (PhFindCharInStringRef(&folderNameSr, L'\\', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'/', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L':', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'*', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'?', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'\"', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'<', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'>', FALSE) != SIZE_MAX ||
+                        PhFindCharInStringRef(&folderNameSr, L'|', FALSE) != SIZE_MAX))
                     {
                         PhShowMessage2(
                             WindowHandle,
@@ -1773,7 +1838,7 @@ INT_PTR CALLBACK SetupUninstallPageDlgProc(
                         return TRUE;
                     }
 #endif
-                    context->SetupRemoveAppData = (IsDlgButtonChecked(WindowHandle, IDC_REMOVESETTINGS) == BST_CHECKED);
+                    context->SetupRemoveAppData = (Button_GetCheck(GetDlgItem(WindowHandle, IDC_REMOVESETTINGS)) == BST_CHECKED);
                 }
                 break;
             }
@@ -2044,7 +2109,7 @@ INT_PTR CALLBACK SetupCompletedPageDlgProc(
                 return !SetupCancelWizard(WindowHandle, context);
             case PSN_WIZFINISH:
                 {
-                    if (IsDlgButtonChecked(WindowHandle, IDC_STARTAPP) == BST_CHECKED)
+                    if (Button_GetCheck(GetDlgItem(WindowHandle, IDC_STARTAPP)) == BST_CHECKED)
                     {
                         SetupExecuteApplication(context);
                     }
@@ -2349,7 +2414,6 @@ INT CALLBACK SetupPropSheetProc(
         {
             PPV_PROPSHEETCONTEXT context;
 
-            PhCenterWindow(WindowHandle, NULL);
             SetupInitializeDarkMode();
             SetupAllowDarkModeForWindow(WindowHandle);
             SetupUpdateWindowBorderColor(WindowHandle, TRUE);

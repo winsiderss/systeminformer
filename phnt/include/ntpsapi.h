@@ -147,23 +147,6 @@
 //
 
 /**
- * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
- */
-typedef struct _PEB_LDR_DATA
-{
-    ULONG Length;
-    BOOLEAN Initialized;
-    HANDLE SsHandle;
-    LIST_ENTRY InLoadOrderModuleList;
-    LIST_ENTRY InMemoryOrderModuleList;
-    LIST_ENTRY InInitializationOrderModuleList;
-    PVOID EntryInProgress;
-    BOOLEAN ShutdownInProgress;
-    HANDLE ShutdownThreadId;
-} PEB_LDR_DATA, *PPEB_LDR_DATA;
-
-/**
  * The INITIAL_TEB structure contains information about the initial stack for a thread.
  * This structure is used when creating a new thread to specify the stack boundaries and allocation base.
  * It also contains information about the previous stack if the thread is being recreated.

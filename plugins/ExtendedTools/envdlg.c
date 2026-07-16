@@ -269,12 +269,11 @@ VOID EtBroadcastEnvironmentChange(
     VOID
     )
 {
-    SendMessageTimeout(
+    PhSendMessageTimeout(
         HWND_BROADCAST,
         WM_SETTINGCHANGE,
         0,
         (LPARAM)L"Environment",
-        SMTO_ABORTIFHUNG,
         5000,
         NULL
         );

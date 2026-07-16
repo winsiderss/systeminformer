@@ -263,7 +263,7 @@ BOOLEAN EtpNpuSysInfoSectionCallback(
                 drawPanel->SubTitle = PhFormat(format, 5, 64);
 
                 // %.2f%%\n%s
-                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
                 PhInitFormatSize(&format[2], EtNpuSharedUsage);
 
@@ -274,7 +274,7 @@ BOOLEAN EtpNpuSysInfoSectionCallback(
                 PH_FORMAT format[2];
 
                 // %.2f%%\n
-                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, 2);
+                PhInitFormatF(&format[0], EtNpuNodeUsage * 100, EtMaxPrecisionUnit);
                 PhInitFormatS(&format[1], L"%\n");
 
                 drawPanel->SubTitle = PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -519,7 +519,7 @@ VOID EtpCreateNpuGraphs(
     NpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -534,7 +534,7 @@ VOID EtpCreateNpuGraphs(
     DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -549,7 +549,7 @@ VOID EtpCreateNpuGraphs(
     SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -566,7 +566,7 @@ VOID EtpCreateNpuGraphs(
         PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -581,7 +581,7 @@ VOID EtpCreateNpuGraphs(
         TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -596,7 +596,7 @@ VOID EtpCreateNpuGraphs(
         FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -836,7 +836,7 @@ PPH_STRING EtpNpuTemperatureGraphLabelYFunction(
     else
     {
         PhInitFormatF(&format[0], (Value * Parameter), 1);
-        PhInitFormatS(&format[1], L"\u00b0C\n");
+        PhInitFormatS(&format[1], L"\u00b0C");
     }
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);
@@ -851,7 +851,7 @@ PPH_STRING EtpNpuFanRpmGraphLabelYFunction(
 {
     PH_FORMAT format[2];
 
-    PhInitFormatU(&format[0], ((ULONG)Value * (ULONG)Parameter));
+    PhInitFormatU(&format[0], (ULONG)(Value * Parameter));
     PhInitFormatS(&format[1], L" RPM\n");
 
     return PhFormat(format, RTL_NUMBER_OF(format), 0);

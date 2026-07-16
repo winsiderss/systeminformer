@@ -27,12 +27,28 @@ typedef struct _RTL_SRWLOCK RTL_SRWLOCK, *PRTL_SRWLOCK;
 typedef struct _SILO_USER_SHARED_DATA *PSILO_USER_SHARED_DATA;
 typedef struct _LDR_RESLOADER_RET LDR_RESLOADER_RET, *PLDR_RESLOADER_RET;
 typedef struct _LEAP_SECOND_DATA *PLEAP_SECOND_DATA;
-typedef struct _PEB_LDR_DATA PEB_LDR_DATA, *PPEB_LDR_DATA;
 typedef struct tagSOleTlsData SOleTlsData, *PSOleTlsData;
 typedef struct _KERNEL_CALLBACK_TABLE KERNEL_CALLBACK_TABLE, *PKERNEL_CALLBACK_TABLE;
 typedef struct _GDI_HANDLE_ENTRY GDI_HANDLE_ENTRY, *PGDI_HANDLE_ENTRY;
 typedef struct _SHIM_PROCESS_CONTEXT SHIM_PROCESS_CONTEXT, *PSHIM_PROCESS_CONTEXT;
 typedef struct _HEAP HEAP, *PHEAP;
+
+/**
+ * The PEB_LDR_DATA structure contains information about the loaded modules for the process.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winternl/ns-winternl-peb_ldr_data
+ */
+typedef struct _PEB_LDR_DATA
+{
+    ULONG Length;
+    BOOLEAN Initialized;
+    HANDLE SsHandle;
+    LIST_ENTRY InLoadOrderModuleList;
+    LIST_ENTRY InMemoryOrderModuleList;
+    LIST_ENTRY InInitializationOrderModuleList;
+    PVOID EntryInProgress;
+    BOOLEAN ShutdownInProgress;
+    HANDLE ShutdownThreadId;
+} PEB_LDR_DATA, *PPEB_LDR_DATA;
 
 #ifndef DOS_MAX_COMPONENT_LENGTH
 #define DOS_MAX_COMPONENT_LENGTH 255
@@ -920,18 +936,50 @@ typedef struct _PEB
         {
             ULONG SixtySecondEnabled : 1; // Leap seconds enabled.
             ULONG Reserved : 31;
-        };
+        } LeapSecondFlag;
     };
 
     //
     // Global flags for the process.
     //
-    ULONG NtGlobalFlag2;
+    union
+    {
+        ULONG NtGlobalFlags2;
+        struct
+        {
+            ULONG EnableLeapSecond : 1; // GlobalFlag2 bit 0.
+            ULONG Reserved : 31;
+        } NtGlobalFlag2;
+    };
 
     //
     // Extended feature disable mask (AVX). // since WIN11
     //
-    ULONGLONG ExtendedFeatureDisableMask;
+    union
+    {
+        ULONGLONG ExtendedFeatureDisableMask;
+        struct
+        {
+            ULONGLONG LegacyFloatingPointDisabled : 1;
+            ULONGLONG LegacySseDisabled : 1;
+            ULONGLONG AvxDisabled : 1;
+            ULONGLONG MpxBndregsDisabled : 1;
+            ULONGLONG MpxBndcsrDisabled : 1;
+            ULONGLONG Avx512OpmaskDisabled : 1;
+            ULONGLONG Avx512ZmmHi256Disabled : 1;
+            ULONGLONG Avx512Zmm16HiDisabled : 1;
+            ULONGLONG IptDisabled : 1;
+            ULONGLONG PkruDisabled : 1;
+            ULONGLONG Reserved0 : 1;
+            ULONGLONG CetUserDisabled : 1;
+            ULONGLONG CetSupervisorDisabled : 1;
+            ULONGLONG Reserved1 : 4;
+            ULONGLONG AmxTileDisabled : 1;
+            ULONGLONG AmxBf16Disabled : 1;
+            ULONGLONG AmxInt8Disabled : 1;
+            ULONGLONG Reserved2 : 44;
+        };
+    };
 } PEB, *PPEB;
 
 #ifdef _WIN64
@@ -1671,7 +1719,31 @@ typedef struct _TEB
     //
     // Extended feature disable mask (AVX).
     //
-    ULONGLONG ExtendedFeatureDisableMask;
+    union
+    {
+        ULONGLONG ExtendedFeatureDisableMask;
+        struct
+        {
+            ULONGLONG LegacyFloatingPointDisabled : 1;
+            ULONGLONG LegacySseDisabled : 1;
+            ULONGLONG AvxDisabled : 1;
+            ULONGLONG MpxBndregsDisabled : 1;
+            ULONGLONG MpxBndcsrDisabled : 1;
+            ULONGLONG Avx512OpmaskDisabled : 1;
+            ULONGLONG Avx512ZmmHi256Disabled : 1;
+            ULONGLONG Avx512Zmm16HiDisabled : 1;
+            ULONGLONG IptDisabled : 1;
+            ULONGLONG PkruDisabled : 1;
+            ULONGLONG Reserved0 : 1;
+            ULONGLONG CetUserDisabled : 1;
+            ULONGLONG CetSupervisorDisabled : 1;
+            ULONGLONG Reserved1 : 4;
+            ULONGLONG AmxTileDisabled : 1;
+            ULONGLONG AmxBf16Disabled : 1;
+            ULONGLONG AmxInt8Disabled : 1;
+            ULONGLONG Reserved2 : 44;
+        };
+    };
 
     //
     // Reserved.

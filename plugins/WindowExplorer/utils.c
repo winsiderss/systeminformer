@@ -162,15 +162,13 @@ HICON WeGetWindowIcon(
     )
 {
     ULONG_PTR windowIcon = 0;
-    LRESULT status;
+    BOOLEAN status;
 
-    status = SendMessageTimeout(WindowHandle, WM_GETICON, ICON_SMALL2, 0,
-        SMTO_ABORTIFHUNG | SMTO_BLOCK, 100, &windowIcon);
+    status = PhSendMessageTimeout(WindowHandle, WM_GETICON, ICON_SMALL2, 0, 100, &windowIcon);
 
     if (status == 0 || windowIcon == 0)
     {
-        status = SendMessageTimeout(WindowHandle, WM_GETICON, 0, 0,
-            SMTO_ABORTIFHUNG | SMTO_BLOCK, 100, &windowIcon);
+        status = PhSendMessageTimeout(WindowHandle, WM_GETICON, 0, 0, 100, &windowIcon);
     }
 
     if (status == 0 || windowIcon == 0)
@@ -612,7 +610,8 @@ NTSTATUS WeDetermineDllhostProcessNameFromWindow(
         if (propVar.vt == VT_LPWSTR)
         {
             PH_STRINGREF sourceRef;
-            PhInitializeStringRef(&sourceRef, propVar.pwszVal);
+
+            PhInitializeStringRefLongHint(&sourceRef, propVar.pwszVal);
 
             if (sourceRef.Length > 0 && sourceRef.Buffer[0] == L'@')
             {

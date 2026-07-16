@@ -567,9 +567,16 @@ DOUBLE PhReadTimeStampFrequency(
     for (volatile ULONG i = 0; i < 1000000; ++i) {}
 
     // Pin thread to CPU 0 for consistent TSC readings across the measurement.
+    // Only pin when the original mask was retrieved so it can be restored afterwards.
 
-    PhGetThreadAffinityMask(NtCurrentThread(), &affinityMask);
-    PhSetThreadAffinityMask(NtCurrentThread(), 1);
+    if (NT_SUCCESS(PhGetThreadAffinityMask(NtCurrentThread(), &affinityMask)))
+    {
+        PhSetThreadAffinityMask(NtCurrentThread(), 1);
+    }
+    else
+    {
+        affinityMask = 0;
+    }
 
     // Capture start timestamps with speculation barriers for ordering.
 
@@ -578,12 +585,12 @@ DOUBLE PhReadTimeStampFrequency(
     startTsc = ReadTimeStampCounter();
     SpeculationFence();
 
-    // Busy-wait for calibration interval, unrolled to dilute QPC overhead.
+    // Busy-wait for calibration interval.
 
     do
     {
         YieldProcessor();
-        yieldCount += 8;
+        yieldCount++;
 
         PhQueryPerformanceCounter(&endTime);
     } while ((endTime.QuadPart - startTime.QuadPart) < calibrationIntervalTicks);
@@ -604,15 +611,22 @@ DOUBLE PhReadTimeStampFrequency(
     const ULONG64 elapsedTscTicks = endTsc - startTsc;
     const DOUBLE elapsedSeconds = (DOUBLE)(endTime.QuadPart - startTime.QuadPart) / performanceFrequency.QuadPart;
 
-    // Calculate cycles per yield: elapsed_tsc_ticks / yield_count.
+    // Sanity-check the measurement: cycles per yield must be a finite, positive value.
+    // A zero yield count would mean the busy-wait never ran, invalidating the result.
+    // The comparison is evaluated in all builds so the value is not an unused local.
 
-    const DOUBLE CyclesPerYield = (DOUBLE)elapsedTscTicks / (DOUBLE)yieldCount;
+    const DOUBLE cyclesPerYield = yieldCount ? (DOUBLE)elapsedTscTicks / (DOUBLE)yieldCount : 0.0;
+
+    if (!(cyclesPerYield > 0.0))
+    {
+        NT_ASSERT(FALSE);
+    }
 
     // Calculate TSC frequency: tsc_delta / elapsed_seconds.
 
-    const DOUBLE TscFrequency = (DOUBLE)elapsedTscTicks / elapsedSeconds;
+    const DOUBLE tscFrequency = (DOUBLE)elapsedTscTicks / elapsedSeconds;
 
-    return TscFrequency;
+    return tscFrequency;
 }
 
 /**

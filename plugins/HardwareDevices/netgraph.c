@@ -234,7 +234,7 @@ VOID NetworkDeviceCreateGraphs(
     Context->GraphSendHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -249,7 +249,7 @@ VOID NetworkDeviceCreateGraphs(
     Context->GraphReceiveHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,

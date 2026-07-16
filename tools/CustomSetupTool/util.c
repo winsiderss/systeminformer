@@ -1880,7 +1880,7 @@ static NTSTATUS NTAPI PhpPreviousInstancesCallback(
         if (hwnd)
         {
             PhEndWindowSession(hwnd);
-            //SendMessageTimeout(hwnd, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+            //PhSendMessageTimeout(hwnd, WM_QUIT, 0, 0, 5000, NULL);
         }
 
         if (processHandle)
@@ -1994,7 +1994,7 @@ static BOOLEAN CALLBACK SetupCheckDirectoryCallback(
                                     ))
                                 {
                                     PhEndWindowSession(windowHandle);
-                                    //SendMessageTimeout(windowHandle, WM_QUIT, 0, 0, SMTO_BLOCK, 5000, NULL);
+                                    //PhSendMessageTimeout(windowHandle, WM_QUIT, 0, 0, 5000, NULL);
                                 }
 
                                 status = NtTerminateProcess(processHandle, 1);
@@ -2048,6 +2048,12 @@ NTSTATUS SetupShutdownApplication(
 
     PhEnumDirectoryObjects(
         PhGetNamespaceHandle(),
+        PhpPreviousInstancesCallback,
+        NULL
+        );
+
+    PhEnumDirectoryObjects(
+        PhGetNamespaceHandle2(),
         PhpPreviousInstancesCallback,
         NULL
         );

@@ -457,7 +457,7 @@ VOID PhEnumJsonArrayObject(
 {
     if (PhGetJsonObjectType(Object) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
-        json_object_iter iter;
+        json_object_iter iter = { 0 };
 
         json_object_object_foreachC(Object, iter)
         {
@@ -475,7 +475,7 @@ PVOID PhGetJsonObjectAsArrayList(
 
     if (PhGetJsonObjectType(Object) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
-        json_object_iter iter;
+        json_object_iter iter = { 0 };
 
         listArray = PhCreateList(1);
 

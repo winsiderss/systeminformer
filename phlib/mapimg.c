@@ -3607,10 +3607,169 @@ NTSTATUS PhGetMappedImageCfgEntry(
 }
 
 /**
+ * Validates a resource directory header and its entry array against the mapped view.
+ *
+ * \param MappedImage The mapped image.
+ * \param ResourceDirectory The root resource directory.
+ * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
+ * \param Directory The nested directory to validate.
+ * \param EntryCount A variable that receives the number of directory entries.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpProbeMappedImageResourceDirectory(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ ULONG DirectorySize,
+    _In_ PIMAGE_RESOURCE_DIRECTORY Directory,
+    _Out_ PULONG EntryCount
+    )
+{
+    ULONG count;
+    SIZE_T entriesSize;
+
+    // The directory header must lie within the resource data directory region.
+
+    if (
+        (ULONG_PTR)Directory < (ULONG_PTR)ResourceDirectory ||
+        (ULONG_PTR)PTR_ADD_OFFSET(Directory, sizeof(IMAGE_RESOURCE_DIRECTORY)) >
+        (ULONG_PTR)PTR_ADD_OFFSET(ResourceDirectory, DirectorySize)
+        )
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    __try
+    {
+        PhMappedImageProbe(MappedImage, Directory, sizeof(IMAGE_RESOURCE_DIRECTORY));
+
+        count = Directory->NumberOfNamedEntries + Directory->NumberOfIdEntries;
+        entriesSize = (SIZE_T)count * sizeof(IMAGE_RESOURCE_DIRECTORY_ENTRY);
+
+        PhMappedImageProbe(
+            MappedImage,
+            PTR_ADD_OFFSET(Directory, sizeof(IMAGE_RESOURCE_DIRECTORY)),
+            entriesSize
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    // The entry array must also stay within the resource data directory region.
+
+    if (
+        (ULONG_PTR)PTR_ADD_OFFSET(Directory, sizeof(IMAGE_RESOURCE_DIRECTORY) + entriesSize) >
+        (ULONG_PTR)PTR_ADD_OFFSET(ResourceDirectory, DirectorySize)
+        )
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    *EntryCount = count;
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Validates the name string referenced by a resource directory entry.
+ *
+ * \param MappedImage The mapped image.
+ * \param ResourceDirectory The root resource directory.
+ * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
+ * \param Entry The directory entry whose name string is validated.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpProbeMappedImageResourceEntryString(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ ULONG DirectorySize,
+    _In_ PIMAGE_RESOURCE_DIRECTORY_ENTRY Entry
+    )
+{
+    PIMAGE_RESOURCE_DIR_STRING_U resourceString;
+
+    if (!Entry->NameIsString)
+        return STATUS_SUCCESS;
+
+    if (
+        Entry->NameOffset > DirectorySize ||
+        DirectorySize - Entry->NameOffset < sizeof(IMAGE_RESOURCE_DIR_STRING_U)
+        )
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    resourceString = PTR_ADD_OFFSET(ResourceDirectory, Entry->NameOffset);
+
+    __try
+    {
+        PhMappedImageProbe(MappedImage, resourceString, sizeof(IMAGE_RESOURCE_DIR_STRING_U));
+        PhMappedImageProbe(
+            MappedImage,
+            resourceString,
+            FIELD_OFFSET(IMAGE_RESOURCE_DIR_STRING_U, NameString) +
+            (SIZE_T)resourceString->Length * sizeof(WCHAR)
+            );
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Validates the resource data entry referenced by a leaf directory entry.
+ *
+ * \param MappedImage The mapped image.
+ * \param ResourceDirectory The root resource directory.
+ * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
+ * \param OffsetToData The offset (from the root directory) of the data entry.
+ * \param DataEntry A variable that receives the validated data entry pointer.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpProbeMappedImageResourceDataEntry(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ ULONG DirectorySize,
+    _In_ ULONG OffsetToData,
+    _Out_ PIMAGE_RESOURCE_DATA_ENTRY* DataEntry
+    )
+{
+    PIMAGE_RESOURCE_DATA_ENTRY dataEntry;
+
+    if (
+        OffsetToData > DirectorySize ||
+        DirectorySize - OffsetToData < sizeof(IMAGE_RESOURCE_DATA_ENTRY)
+        )
+    {
+        return STATUS_INVALID_IMAGE_FORMAT;
+    }
+
+    dataEntry = PTR_ADD_OFFSET(ResourceDirectory, OffsetToData);
+
+    __try
+    {
+        PhMappedImageProbe(MappedImage, dataEntry, sizeof(IMAGE_RESOURCE_DATA_ENTRY));
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    *DataEntry = dataEntry;
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Searches a resource directory for a given name or ID using binary search.
  *
  * \param MappedImage The MappedImage parameter.
  * \param ResourceDirectory The root resource directory.
+ * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
  * \param SearchDirectory The directory to search in.
  * \param Name The Name parameter (ID or string).
  * \param Entry A pointer to a variable that receives the directory entry.
@@ -3619,6 +3778,7 @@ NTSTATUS PhGetMappedImageCfgEntry(
 static NTSTATUS PhpSearchMappedImageResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
+    _In_ ULONG DirectorySize,
     _In_ PIMAGE_RESOURCE_DIRECTORY SearchDirectory,
     _In_ PCWSTR Name,
     _Out_ PIMAGE_RESOURCE_DIRECTORY_ENTRY* Entry
@@ -3677,6 +3837,18 @@ static NTSTATUS PhpSearchMappedImageResourceDirectory(
             if (!entries[i].NameIsString)
             {
                 // This should not happen in a valid PE file for the named entries section.
+                high = i - 1;
+                continue;
+            }
+
+            if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+                MappedImage,
+                ResourceDirectory,
+                DirectorySize,
+                &entries[i]
+                )))
+            {
+                // The name string points outside the resource directory; skip this entry.
                 high = i - 1;
                 continue;
             }
@@ -3763,10 +3935,22 @@ NTSTATUS PhGetMappedImageResources(
 
     // NOTE: We can't use LdrEnumResources here because we're using an image mapped with SEC_COMMIT.
 
+    // Validate the root directory and its entry array against the mapped view.
+
+    status = PhpProbeMappedImageResourceDirectory(
+        MappedImage,
+        resourceDirectory,
+        dataDirectory->Size,
+        resourceDirectory,
+        &resourceTypeCount
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     // Do a scan to determine how many resources there are.
 
     resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
 
     for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
     {
@@ -3774,8 +3958,19 @@ NTSTATUS PhGetMappedImageResources(
             continue; // return STATUS_RESOURCE_TYPE_NOT_FOUND;
 
         nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+
+        if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+            MappedImage,
+            resourceDirectory,
+            dataDirectory->Size,
+            nameDirectory,
+            &resourceNameCount
+            )))
+        {
+            continue;
+        }
+
         resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
 
         for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
         {
@@ -3783,8 +3978,19 @@ NTSTATUS PhGetMappedImageResources(
                 continue; // return STATUS_RESOURCE_NAME_NOT_FOUND;
 
             languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+
+            if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+                MappedImage,
+                resourceDirectory,
+                dataDirectory->Size,
+                languageDirectory,
+                &resourceLanguageCount
+                )))
+            {
+                continue;
+            }
+
             resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
 
             for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
             {
@@ -3806,7 +4012,6 @@ NTSTATUS PhGetMappedImageResources(
     // Enumerate the resources adding them into our buffer.
 
     resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
 
     for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
     {
@@ -3814,8 +4019,31 @@ NTSTATUS PhGetMappedImageResources(
             continue;
 
         nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+
+        if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+            MappedImage,
+            resourceDirectory,
+            dataDirectory->Size,
+            nameDirectory,
+            &resourceNameCount
+            )))
+        {
+            continue;
+        }
+
+        // Validate the type name string before NAME_FROM_RESOURCE_ENTRY dereferences it.
+
+        if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+            MappedImage,
+            resourceDirectory,
+            dataDirectory->Size,
+            resourceType
+            )))
+        {
+            continue;
+        }
+
         resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
 
         for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
         {
@@ -3823,8 +4051,29 @@ NTSTATUS PhGetMappedImageResources(
                 continue;
 
             languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+
+            if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+                MappedImage,
+                resourceDirectory,
+                dataDirectory->Size,
+                languageDirectory,
+                &resourceLanguageCount
+                )))
+            {
+                continue;
+            }
+
+            if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+                MappedImage,
+                resourceDirectory,
+                dataDirectory->Size,
+                resourceName
+                )))
+            {
+                continue;
+            }
+
             resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
 
             for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
             {
@@ -3833,7 +4082,26 @@ NTSTATUS PhGetMappedImageResources(
                 if (resourceLanguage->DataIsDirectory)
                     continue;
 
-                resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
+                if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+                    MappedImage,
+                    resourceDirectory,
+                    dataDirectory->Size,
+                    resourceLanguage
+                    )))
+                {
+                    continue;
+                }
+
+                if (!NT_SUCCESS(PhpProbeMappedImageResourceDataEntry(
+                    MappedImage,
+                    resourceDirectory,
+                    dataDirectory->Size,
+                    resourceLanguage->OffsetToData,
+                    &resourceData
+                    )))
+                {
+                    continue;
+                }
 
                 {
                     PH_IMAGE_RESOURCE_ENTRY entry;
@@ -3921,8 +4189,18 @@ NTSTATUS PhGetMappedImageResource(
         return GetExceptionCode();
     }
 
+    status = PhpProbeMappedImageResourceDirectory(
+        MappedImage,
+        resourceDirectory,
+        dataDirectory->Size,
+        resourceDirectory,
+        &resourceTypeCount
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     resourceType = PTR_ADD_OFFSET(resourceDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-    resourceTypeCount = resourceDirectory->NumberOfNamedEntries + resourceDirectory->NumberOfIdEntries;
 
     for (ULONG i = 0; i < resourceTypeCount; ++i, ++resourceType)
     {
@@ -3930,8 +4208,19 @@ NTSTATUS PhGetMappedImageResource(
             continue;
 
         nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
+
+        if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+            MappedImage,
+            resourceDirectory,
+            dataDirectory->Size,
+            nameDirectory,
+            &resourceNameCount
+            )))
+        {
+            continue;
+        }
+
         resourceName = PTR_ADD_OFFSET(nameDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-        resourceNameCount = nameDirectory->NumberOfNamedEntries + nameDirectory->NumberOfIdEntries;
 
         for (ULONG j = 0; j < resourceNameCount; ++j, ++resourceName)
         {
@@ -3939,8 +4228,19 @@ NTSTATUS PhGetMappedImageResource(
                 continue;
 
             languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
+
+            if (!NT_SUCCESS(PhpProbeMappedImageResourceDirectory(
+                MappedImage,
+                resourceDirectory,
+                dataDirectory->Size,
+                languageDirectory,
+                &resourceLanguageCount
+                )))
+            {
+                continue;
+            }
+
             resourceLanguage = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
-            resourceLanguageCount = languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries;
 
             for (ULONG k = 0; k < resourceLanguageCount; ++k, ++resourceLanguage)
             {
@@ -3964,6 +4264,16 @@ NTSTATUS PhGetMappedImageResource(
 
                     if (!resourceType->NameIsString)
                         continue;
+
+                    if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+                        MappedImage,
+                        resourceDirectory,
+                        dataDirectory->Size,
+                        resourceType
+                        )))
+                    {
+                        continue;
+                    }
 
                     resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceType->NameOffset);
                     string1.Buffer = resourceString->NameString;
@@ -3990,6 +4300,16 @@ NTSTATUS PhGetMappedImageResource(
                     if (!resourceName->NameIsString)
                         continue;
 
+                    if (!NT_SUCCESS(PhpProbeMappedImageResourceEntryString(
+                        MappedImage,
+                        resourceDirectory,
+                        dataDirectory->Size,
+                        resourceName
+                        )))
+                    {
+                        continue;
+                    }
+
                     resourceString = PTR_ADD_OFFSET(resourceDirectory, resourceName->NameOffset);
                     string1.Buffer = resourceString->NameString;
                     string1.Length = resourceString->Length * sizeof(WCHAR);
@@ -4007,7 +4327,16 @@ NTSTATUS PhGetMappedImageResource(
                         continue;
                 }
 
-                resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
+                if (!NT_SUCCESS(PhpProbeMappedImageResourceDataEntry(
+                    MappedImage,
+                    resourceDirectory,
+                    dataDirectory->Size,
+                    resourceLanguage->OffsetToData,
+                    &resourceData
+                    )))
+                {
+                    continue;
+                }
 
                 if (ResourceLength)
                 {
@@ -4055,6 +4384,9 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceName;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceLanguage;
+    ULONG resourceTypeCount;
+    ULONG resourceNameCount;
+    ULONG resourceLanguageCount;
 
     // Get a pointer to the resource directory.
 
@@ -4085,9 +4417,21 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
     }
 
     // Level 1: Type
+    status = PhpProbeMappedImageResourceDirectory(
+        MappedImage,
+        resourceDirectory,
+        dataDirectory->Size,
+        resourceDirectory,
+        &resourceTypeCount
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     status = PhpSearchMappedImageResourceDirectory(
         MappedImage,
         resourceDirectory,
+        dataDirectory->Size,
         resourceDirectory,
         Type,
         &resourceType
@@ -4102,9 +4446,21 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
     // Level 2: Name
     nameDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceType->OffsetToDirectory);
 
+    status = PhpProbeMappedImageResourceDirectory(
+        MappedImage,
+        resourceDirectory,
+        dataDirectory->Size,
+        nameDirectory,
+        &resourceNameCount
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     status = PhpSearchMappedImageResourceDirectory(
         MappedImage,
         resourceDirectory,
+        dataDirectory->Size,
         nameDirectory,
         Name,
         &resourceName
@@ -4119,11 +4475,23 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
     // Level 3: Language
     languageDirectory = PTR_ADD_OFFSET(resourceDirectory, resourceName->OffsetToDirectory);
 
+    status = PhpProbeMappedImageResourceDirectory(
+        MappedImage,
+        resourceDirectory,
+        dataDirectory->Size,
+        languageDirectory,
+        &resourceLanguageCount
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
     if (Language)
     {
         status = PhpSearchMappedImageResourceDirectory(
             MappedImage,
             resourceDirectory,
+            dataDirectory->Size,
             languageDirectory,
             UlongToPtr(Language),
             &resourceLanguage
@@ -4138,7 +4506,7 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
         PIMAGE_RESOURCE_DIRECTORY_ENTRY entries;
         entries = PTR_ADD_OFFSET(languageDirectory, sizeof(IMAGE_RESOURCE_DIRECTORY));
 
-        if (languageDirectory->NumberOfNamedEntries + languageDirectory->NumberOfIdEntries == 0)
+        if (resourceLanguageCount == 0)
             return STATUS_RESOURCE_LANG_NOT_FOUND;
 
         resourceLanguage = &entries[0];
@@ -4150,7 +4518,16 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
     {
         PIMAGE_RESOURCE_DATA_ENTRY resourceData;
 
-        resourceData = PTR_ADD_OFFSET(resourceDirectory, resourceLanguage->OffsetToData);
+        status = PhpProbeMappedImageResourceDataEntry(
+            MappedImage,
+            resourceDirectory,
+            dataDirectory->Size,
+            resourceLanguage->OffsetToData,
+            &resourceData
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         if (ResourceLength)
         {
@@ -4413,23 +4790,38 @@ NTSTATUS PhGetMappedImageTlsCallbacks(
     if (!NT_SUCCESS(status))
         return status;
 
-    // Do a scan to determine how many callbacks there are.
+    // Do a scan to determine how many callbacks there are. The callback array is scanned until a
+    // zero terminator, but a malformed image can place the array near the end of the mapping without
+    // a terminator; bound the scan by the mapped view to avoid an out-of-bounds read (and guard with
+    // SEH as defense-in-depth, matching the other parsers in this file).
 
     if (TlsCallbacks->CallbackAddress)
     {
-        if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        {
-            PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+        ULONG_PTR viewEnd = (ULONG_PTR)MappedImage->ViewBase + MappedImage->ViewSize;
+        ULONG_PTR callbackAddress = (ULONG_PTR)TlsCallbacks->CallbackAddress;
 
-            for (ULONG i = 0; array[i]; i++)
-                count++;
+        __try
+        {
+            if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                PULONG array = (PULONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+                ULONG_PTR maxCount = callbackAddress < viewEnd ? (viewEnd - callbackAddress) / sizeof(ULONG) : 0;
+
+                for (ULONG i = 0; i < maxCount && array[i]; i++)
+                    count++;
+            }
+            else
+            {
+                PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
+                ULONG_PTR maxCount = callbackAddress < viewEnd ? (viewEnd - callbackAddress) / sizeof(ULONGLONG) : 0;
+
+                for (ULONG i = 0; i < maxCount && array[i]; i++)
+                    count++;
+            }
         }
-        else
+        __except (EXCEPTION_EXECUTE_HANDLER)
         {
-            PULONGLONG array = (PULONGLONG)(PULONG_PTR)TlsCallbacks->CallbackAddress;
-
-            for (ULONG i = 0; array[i]; i++)
-                count++;
+            return GetExceptionCode();
         }
     }
 

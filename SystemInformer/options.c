@@ -1061,21 +1061,21 @@ static BOOLEAN PathMatchesPh(
     if (!(fileName = PhGetApplicationFileNameWin32()))
         return FALSE;
 
-    if (PhEqualString(OldTaskMgrDebugger, fileName, TRUE))
+    if (PhEqualString(Path, fileName, TRUE))
     {
         match = TRUE;
     }
     // Allow for a quoted value.
     else if (
-        OldTaskMgrDebugger->Length == fileName->Length + 4 &&
-        OldTaskMgrDebugger->Buffer[0] == L'"' &&
-        OldTaskMgrDebugger->Buffer[OldTaskMgrDebugger->Length / sizeof(WCHAR) - 1] == L'"'
+        Path->Length == fileName->Length + 4 &&
+        Path->Buffer[0] == L'"' &&
+        Path->Buffer[Path->Length / sizeof(WCHAR) - 1] == L'"'
         )
     {
         PH_STRINGREF partInside;
 
-        partInside.Buffer = &OldTaskMgrDebugger->Buffer[1];
-        partInside.Length = OldTaskMgrDebugger->Length - 2 * sizeof(WCHAR);
+        partInside.Buffer = &Path->Buffer[1];
+        partInside.Length = Path->Length - 2 * sizeof(WCHAR);
 
         if (PhEqualStringRef(&partInside, &fileName->sr, TRUE))
             match = TRUE;
@@ -3057,19 +3057,19 @@ PPH_OPTIONS_ADVANCED_ROOT_NODE FindOptionsAdvancedNode(
     _In_ PPH_STRING Name
     )
 {
-    PH_OPTIONS_ADVANCED_ROOT_NODE lookupPluginsNode;
-    PPH_OPTIONS_ADVANCED_ROOT_NODE lookupPluginsNodePtr = &lookupPluginsNode;
-    PPH_OPTIONS_ADVANCED_ROOT_NODE* pluginsNode;
+    PH_OPTIONS_ADVANCED_ROOT_NODE lookupNode;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE lookupNodePtr = &lookupNode;
+    PPH_OPTIONS_ADVANCED_ROOT_NODE* foundNode;
 
-    lookupPluginsNode.Name = Name;
+    lookupNode.Name = Name;
 
-    pluginsNode = (PPH_OPTIONS_ADVANCED_ROOT_NODE*)PhFindEntryHashtable(
+    foundNode = (PPH_OPTIONS_ADVANCED_ROOT_NODE*)PhFindEntryHashtable(
         Context->NodeHashtable,
-        &lookupPluginsNodePtr
+        &lookupNodePtr
         );
 
-    if (pluginsNode)
-        return *pluginsNode;
+    if (foundNode)
+        return *foundNode;
     else
         return NULL;
 }
@@ -3449,57 +3449,7 @@ BOOLEAN PhpOptionsAdvancedTreeFilterCallback(
     PPH_OPTIONS_ADVANCED_ROOT_NODE node = (PPH_OPTIONS_ADVANCED_ROOT_NODE)Node;
     PPH_OPTIONS_ADVANCED_CONTEXT context = Context;
 
-    if (context->HideModified)
-    {
-        switch (node->Type)
-        {
-        case StringSettingType:
-        case IntegerPairSettingType:
-        case ScalableIntegerPairSettingType:
-            {
-                if (PhEqualString(node->DefaultString, node->ValueString, TRUE))
-                {
-                    if (context->HideDefault)
-                    {
-                        return FALSE;
-                    }
-                }
-                else
-                {
-                    if (context->HideModified)
-                    {
-                        return FALSE;
-                    }
-                }
-            }
-            break;
-        case IntegerSettingType:
-            {
-                ULONG64 integer;
-
-                if (PhStringToInteger64(&node->DefaultString->sr, 16, &integer))
-                {
-                    if (node->Setting->u.Integer == (ULONG)integer)
-                    {
-                        if (context->HideDefault)
-                        {
-                            return FALSE;
-                        }
-                    }
-                    else
-                    {
-                        if (context->HideModified)
-                        {
-                            return FALSE;
-                        }
-                    }
-                }
-            }
-            break;
-        }
-    }
-
-    if (context->HideDefault)
+    if (context->HideModified || context->HideDefault)
     {
         switch (node->Type)
         {

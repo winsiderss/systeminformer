@@ -2578,7 +2578,7 @@ static PPH_TABNEW_PAGE PhpTabNewFindPage(
 /**
  * Retrieves a page in the tab control by index.
  *
- * \param TabControl A handle to the tab control window.
+ * \param TabContext A handle to the tab control window.
  * \param Index The index of the page to retrieve.
  * \return A pointer to the page structure if found, otherwise NULL.
  */
@@ -2596,7 +2596,7 @@ PPH_TABNEW_PAGE PhpTabNewGetPageByIndex(
 /**
  * Selects a specific page in the tab control.
  *
- * \param TabControl A handle to the tab control window.
+ * \param TabContext A handle to the tab control window.
  * \param Page A pointer to the page to select.
  */
 VOID PhpTabNewSelectPage(

@@ -91,6 +91,9 @@ BOOLEAN StartFpsTraceSession(
 VOID StopFpsTraceSession(
     VOID
     );
+VOID EtFramesSignalUpdate(
+    VOID
+    );
 
 EXTERN_C_END
 

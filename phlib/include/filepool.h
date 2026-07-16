@@ -40,6 +40,12 @@ extern "C" {
 /** The number of free lists for segments. */
 #define PH_FP_FREE_LIST_COUNT 8
 
+/** The minimum valid segment shift (power-of-two segment size). Below this the derived
+ * block shift would underflow PH_FP_BLOCK_COUNT_SHIFT. */
+#define PH_FP_SEGMENT_SHIFT_MIN 16
+/** The maximum valid segment shift. Above this the segment size no longer fits sanely. */
+#define PH_FP_SEGMENT_SHIFT_MAX 28
+
 // Block flags
 /** The block is the beginning of a large allocation (one that spans several segments). */
 #define PH_FP_BLOCK_LARGE_ALLOCATION 0x1

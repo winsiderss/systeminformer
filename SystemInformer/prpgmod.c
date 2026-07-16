@@ -1086,18 +1086,21 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
                             PhSaveSettingsModuleList(&modulesContext->ListContext);
 
                             PhInvalidateAllModuleBaseAddressNodes(&modulesContext->ListContext);
+                            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                         }
                         else if (selectedItem->Id == PH_MODULE_FLAGS_HIGHLIGHT_NATIVE_MODULES)
                         {
                             PhSetIntegerSetting(SETTING_USE_COLOR_MODULE_SYSTEM, !PhCsUseColorModuleSystem);
                             PhCsUseColorModuleSystem = !PhCsUseColorModuleSystem;
                             PhInvalidateAllModuleNodes(&modulesContext->ListContext);
+                            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                         }
                         else if (selectedItem->Id == PH_MODULE_FLAGS_HIGHLIGHT_MAPPED_MODULES)
                         {
                             PhSetIntegerSetting(SETTING_USE_COLOR_MODULE_MAPPED, !PhCsUseColorModuleMapped);
                             PhCsUseColorModuleMapped = !PhCsUseColorModuleMapped;
                             PhInvalidateAllModuleNodes(&modulesContext->ListContext);
+                            PhApplyTreeNewFilters(&modulesContext->ListContext.TreeFilterSupport);
                         }
                         else
                         {

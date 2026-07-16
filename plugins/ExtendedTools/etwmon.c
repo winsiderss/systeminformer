@@ -533,7 +533,7 @@ VOID NTAPI EtpEtwEventCallback(
                 // corresponds to the local socket not the source endpoint. (DavidXanatos)
                 source.Address.Type = PH_NETWORK_TYPE_IPV4;
                 memcpy(source.Address.Ipv4, data->DestinationAddress, sizeof(IN_ADDR));
-                source.Port = _byteswap_ushort(data->SourcePort);
+                source.Port = _byteswap_ushort(data->DestinationPort);
                 //destination.Address.Type = PH_NETWORK_TYPE_IPV4;
                 //destination.Address.Ipv4 = data->saddr.s_addr;
                 //destination.Port = _byteswap_ushort(data->dport);

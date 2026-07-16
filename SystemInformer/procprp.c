@@ -37,9 +37,6 @@ PPH_OBJECT_TYPE PhpProcessPropPageContextType = NULL;
 PPH_OBJECT_TYPE PhpProcessPropPageWaitContextType = NULL;
 PH_STRINGREF PhProcessPropPageLoadingText = PH_STRINGREF_INIT(L"Loading...");
 static RECT MinimumSize = { -1, -1, -1, -1 };
-static COLORREF PhpProcessPropWindowInactiveBorderColor = RGB(90, 90, 90);
-static COLORREF PhpProcessPropProtectedBorderColor = RGB(255, 128, 0);
-static COLORREF PhpProcessPropFilteredBorderColor = RGB(255, 0, 0);
 SLIST_HEADER WaitContextQueryListHead = { 0 };
 
 PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
@@ -81,32 +78,6 @@ PPH_PROCESS_PROPCONTEXT PhCreateProcessPropContext(
     {
         PhSetReference(&propContext->Title, ProcessItem->ProcessName);
     }
-
-#ifndef PH_PROPSHEET_NEW
-    memset(&propSheetHeader, 0, sizeof(PROPSHEETHEADER));
-    propSheetHeader.dwSize = sizeof(PROPSHEETHEADER);
-    propSheetHeader.dwFlags =
-        PSH_MODELESS |
-        PSH_NOAPPLYNOW |
-        PSH_NOCONTEXTHELP |
-        PSH_PROPTITLE |
-        PSH_USECALLBACK |
-        PSH_USEHICON;
-    propSheetHeader.hInstance = PhInstanceHandle;
-    propSheetHeader.hwndParent = ParentWindowHandle;
-    propSheetHeader.hIcon = PhGetImageListIcon(ProcessItem->SmallIconIndex, FALSE);
-    propSheetHeader.pszCaption = PhGetString(propContext->Title);
-    propSheetHeader.pfnCallback = PhpPropSheetProc;
-
-    propSheetHeader.nPages = 0;
-    propSheetHeader.nStartPage = 0;
-    propSheetHeader.phpage = propContext->PropSheetPages;
-
-    if (PhCsForceNoParent)
-        propSheetHeader.hwndParent = NULL;
-
-    memcpy(&propContext->PropSheetHeader, &propSheetHeader, sizeof(PROPSHEETHEADER));
-#endif
 
     PhSetReference(&propContext->ProcessItem, ProcessItem);
 

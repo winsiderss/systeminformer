@@ -1691,7 +1691,7 @@ VOID PhGenerateGuidEx(
     _Out_ PGUID Guid
     )
 {
-    GUID_EX guid;
+    GUID_EX guid = { 0 };
 
     PhSymCryptRandom(guid.Data, sizeof(guid.Data));
 
@@ -3082,7 +3082,7 @@ PPH_STRING PhFormatEnergy(
 
     ULONG unit = PH_ENERGY_MJ;
     ULONG maxUnit;
-    PH_FORMAT format;
+    PH_FORMAT format = { 0 };
     PH_FORMAT formats[2];
 
     if (MaxEnergyUnit == ULONG_MAX)
@@ -9211,7 +9211,9 @@ CleanupExit:
  * \param PortableDirectory TRUE to use the application directory, FALSE to use the roaming app data directory.
  * \param FileName The name of the file.
  * \param NativeFileName TRUE to return a native path, FALSE for a Win32 path.
- * \return A pointer to a string containing the full path to the cache file.
+ * \return A pointer to a string containing the full path to the cache file, or NULL
+ * if FileName is empty or not a safe leaf name, the base directory cannot be
+ * determined, or the cache directory cannot be created.
  */
 PPH_STRING PhCreateCacheFile(
     _In_ BOOLEAN PortableDirectory,
@@ -9224,11 +9226,40 @@ PPH_STRING PhCreateCacheFile(
     PPH_STRING cacheFilePath;
     PH_STRINGREF randomAlphaStringRef;
     WCHAR randomAlphaString[32] = L"";
+    SIZE_T i;
+
+    // FileName is treated as a trusted leaf name and appended directly to the cache directory. 
+    // Reject path separators and traversal so a caller cannot escape the cache directory.
+
+    if (PhIsNullOrEmptyString(FileName))
+        return NULL;
+
+    for (i = 0; i < FileName->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = FileName->Buffer[i];
+
+        if (c == L'\\' || c == L'/')
+            return NULL;
+        if (c == L'.' && (i + 1) < FileName->Length / sizeof(WCHAR) && FileName->Buffer[i + 1] == L'.')
+            return NULL;
+        if (c == L':' || c < 0x20) // NTFS alternate data streams, drive-relative paths, control characters
+            return NULL;
+    }
+
+    // Reject trailing dot/space: Win32 silently strips these, so the created name
+    // would not match the returned string. (DOS device names such as CON or NUL
+    // are not rejected here; they fail later at file creation.)
+    {
+        WCHAR last = FileName->Buffer[FileName->Length / sizeof(WCHAR) - 1];
+
+        if (last == L'.' || last == L' ')
+            return NULL;
+    }
 
     if (PortableDirectory)
-        cacheDirectory = PhGetApplicationDirectoryFileName(&settingsDirectory, TRUE);
+        cacheDirectory = PhGetApplicationDirectoryFileName(&settingsDirectory, NativeFileName);
     else
-        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, TRUE);
+        cacheDirectory = PhGetRoamingAppDataDirectory(&settingsDirectory, NativeFileName);
 
     if (PhIsNullOrEmptyString(cacheDirectory))
         return NULL;
@@ -9249,29 +9280,25 @@ PPH_STRING PhCreateCacheFile(
         &FileName->sr
         ));
 
-    if (!NT_SUCCESS(PhCreateDirectoryFullPath(&cacheFilePath->sr)))
-    {
-        PhDereferenceObject(cacheFilePath);
-        PhDereferenceObject(cacheDirectory);
-        return NULL;
-    }
-
+    // cacheFilePath is already in the requested flavor (native or Win32);
+    // use the matching helper, both strip the trailing file name before
+    // creating the directory chain.
     if (NativeFileName)
     {
-        PPH_STRING cacheFileName;
-
-        if (cacheFileName = PhDosPathNameToNtPathName(&cacheFilePath->sr))
+        if (!NT_SUCCESS(PhCreateDirectoryFullPath(&cacheFilePath->sr)))
         {
-            PhMoveReference(&cacheFilePath, cacheFileName);
+            PhDereferenceObject(cacheFilePath);
+            PhDereferenceObject(cacheDirectory);
+            return NULL;
         }
     }
     else
     {
-        PPH_STRING cacheFileName;
-
-        if (cacheFileName = PhResolveDevicePrefix(&cacheFilePath->sr))
+        if (!NT_SUCCESS(PhCreateDirectoryFullPathWin32(&cacheFilePath->sr)))
         {
-            PhMoveReference(&cacheFilePath, cacheFileName);
+            PhDereferenceObject(cacheFilePath);
+            PhDereferenceObject(cacheDirectory);
+            return NULL;
         }
     }
 

@@ -840,8 +840,9 @@ VOID LoadGraphicsDeviceImages(
         {
             PhImageListAddIcon(imageList, largeIcon);
             ListView_SetImageList(Context->ListViewHandle, imageList, LVSIL_SMALL);
-            DestroyIcon(largeIcon);
         }
+
+        DestroyIcon(largeIcon);
     }
 
     PhDereferenceObject(deviceIconPath);

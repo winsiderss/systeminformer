@@ -159,7 +159,7 @@ VOID GraphicsDeviceCreateGraphs(
     Context->GpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -174,7 +174,7 @@ VOID GraphicsDeviceCreateGraphs(
     Context->DedicatedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -189,7 +189,7 @@ VOID GraphicsDeviceCreateGraphs(
     Context->SharedGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -206,7 +206,7 @@ VOID GraphicsDeviceCreateGraphs(
         Context->PowerUsageGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -221,7 +221,7 @@ VOID GraphicsDeviceCreateGraphs(
         Context->TemperatureGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,
@@ -236,7 +236,7 @@ VOID GraphicsDeviceCreateGraphs(
         Context->FanRpmGraphHandle = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_VISIBLE | WS_CHILD | WS_BORDER,
+            WS_VISIBLE | WS_CHILD | WS_BORDER | WS_CLIPSIBLINGS,
             0,
             0,
             0,

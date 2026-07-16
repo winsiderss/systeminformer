@@ -9901,9 +9901,9 @@ NTAPI
 NtGetNlsSectionPtr(
     _In_ ULONG SectionType,
     _In_ ULONG SectionData,
-    _In_ PVOID ContextData,
-    _Out_ PVOID *SectionPointer,
-    _Out_ PULONG SectionSize
+    _Out_opt_ PVOID *ContextData, // Must be NULL for user-mode callers.
+    _When_(ContextData == NULL, _Out_) _When_(ContextData != NULL, _Out_opt_) PVOID *SectionPointer,
+    _Out_opt_ PSIZE_T SectionSize
     );
 
 #if (PHNT_VERSION < PHNT_WINDOWS_7)

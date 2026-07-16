@@ -2273,6 +2273,11 @@ typedef struct _WMI_FILE_IO_WOW64
     WCHAR FileName[1];
 } WMI_FILE_IO_WOW64, *PWMI_FILE_IO_WOW64;
 
+// The connection id fields follow the ports without natural alignment,
+// so the network event structures must be byte-packed.
+#include <pshpack1.h>
+
+// TcpIp TypeGroup1 (receive and other non-send events), Version >= 1.
 typedef struct _WMI_TCPIP_V4
 {
     ULONG ProcessId;
@@ -2281,7 +2286,24 @@ typedef struct _WMI_TCPIP_V4
     UCHAR SourceAddress[4];
     USHORT DestinationPort;
     USHORT SourcePort;
+    ULONG_PTR ConnectionId;
+    ULONG SequenceNumber;
 } WMI_TCPIP_V4, *PWMI_TCPIP_V4;
+
+// TcpIp send events carry timing fields before the sequence number.
+typedef struct _WMI_TCPIP_SEND_V4
+{
+    ULONG ProcessId;
+    ULONG TransferSize;
+    UCHAR DestinationAddress[4];
+    UCHAR SourceAddress[4];
+    USHORT DestinationPort;
+    USHORT SourcePort;
+    ULONG StartTime;
+    ULONG EndTime;
+    ULONG SequenceNumber;
+    ULONG_PTR ConnectionId;
+} WMI_TCPIP_SEND_V4, *PWMI_TCPIP_SEND_V4;
 
 typedef struct _WMI_TCPIP_V6
 {
@@ -2291,12 +2313,29 @@ typedef struct _WMI_TCPIP_V6
     UCHAR SourceAddress[16];
     USHORT DestinationPort;
     USHORT SourcePort;
+    ULONG_PTR ConnectionId;
+    ULONG SequenceNumber;
 } WMI_TCPIP_V6, *PWMI_TCPIP_V6;
 
+typedef struct _WMI_TCPIP_SEND_V6
+{
+    ULONG ProcessId;
+    ULONG TransferSize;
+    UCHAR DestinationAddress[16];
+    UCHAR SourceAddress[16];
+    USHORT DestinationPort;
+    USHORT SourcePort;
+    ULONG StartTime;
+    ULONG EndTime;
+    ULONG SequenceNumber;
+    ULONG_PTR ConnectionId;
+} WMI_TCPIP_SEND_V6, *PWMI_TCPIP_SEND_V6;
+
+// UdpIp TypeGroup1, Version >= 1. The layout matches TcpIp through SourcePort.
 typedef struct _WMI_UDP_V4
 {
     ULONG ProcessId;
-    USHORT TransferSize;
+    ULONG TransferSize;
     UCHAR DestinationAddress[4];
     UCHAR SourceAddress[4];
     USHORT DestinationPort;
@@ -2306,12 +2345,16 @@ typedef struct _WMI_UDP_V4
 typedef struct _WMI_UDP_V6
 {
     ULONG ProcessId;
-    USHORT TransferSize;
+    ULONG TransferSize;
     UCHAR DestinationAddress[16];
     UCHAR SourceAddress[16];
     USHORT DestinationPort;
     USHORT SourcePort;
+    ULONG SequenceNumber;
+    ULONG_PTR ConnectionId;
 } WMI_UDP_V6, *PWMI_UDP_V6;
+
+#include <poppack.h>
 
 typedef struct _WMI_PAGE_FAULT
 {

@@ -344,11 +344,6 @@ static PH_CALLBACK_REGISTRATION ServiceProviderUpdatedRegistration;
 static SLIST_HEADER PhDeviceNotifyListHead;
 static PH_FREE_LIST PhDeviceNotifyFreeList;
 
-#if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
-// Note: This propkey is required for building with 22H1 and older Windows SDK (dmex)
-DEFINE_DEVPROPKEY(DEVPKEY_Device_FirmwareVendor, 0x540b947e, 0x8b40, 0x45bc, 0xa8, 0xa2, 0x6a, 0x0b, 0x89, 0x4c, 0xbd, 0xa2, 26);   // DEVPROP_TYPE_STRING
-#endif
-
 #define DEVPROP_FILL_FLAG_CLASS  0x00000001
 
 _Function_class_(PH_DEVICE_PROPERTY_FILL_CALLBACK)

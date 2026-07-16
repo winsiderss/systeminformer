@@ -40,6 +40,7 @@
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(ProjectDir)include\</AdditionalIncludeDirectories>
       <AdditionalOptions>/kernel /utf-8 /INTEGRITYCHECK /d1nodatetime %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Platform)'=='x64'">/d2guardretpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'=='ARM64'">/d2ImportCallOptimization %(AdditionalOptions)</AdditionalOptions>
       <CallingConvention>StdCall</CallingConvention>
       <ConformanceMode>true</ConformanceMode>
       <ControlFlowGuard>Guard</ControlFlowGuard>
@@ -71,6 +72,7 @@
       <AdditionalOptions>/INTEGRITYCHECK /DEPENDENTLOADFLAG:0x800 /FILEALIGN:0x1000 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions>/NATVIS:$(SystemInformerRoot)SystemInformer.natvis %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Platform)'=='x64'">/guard:retpoline %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions Condition="'$(Platform)'=='ARM64'">/IMPORTCALLOPTIMIZATION:YES %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)'=='Release'">/BREPRO /NOVCFEATURE /NOCOFFGRPINFO %(AdditionalOptions)</AdditionalOptions>
       <CETCompat Condition="'$(Platform)'!='ARM64'">true</CETCompat>
       <LinkTimeCodeGeneration Condition="'$(Configuration)'=='Release'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>

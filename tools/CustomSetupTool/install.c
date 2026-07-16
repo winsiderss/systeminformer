@@ -52,13 +52,8 @@ NTSTATUS CALLBACK SetupProgressThread(
     PhClearReference(&previousInstallPath);
     PhClearReference(&currentInstallPath);
 
-    if (!PhIsNullOrEmptyString(context->SetupPreviousStartMenuFolderName) &&
-        (!context->SetupCreateStartMenuShortcuts ||
-        !PhEqualStringRef(
-            &context->SetupPreviousStartMenuFolderName->sr,
-            &context->SetupStartMenuFolderName->sr,
-            TRUE
-            )))
+    if (!PhIsNullOrEmptyString(context->SetupPreviousStartMenuFolderName) && (!context->SetupCreateStartMenuShortcuts ||
+        !PhEqualStringRef(&context->SetupPreviousStartMenuFolderName->sr, &context->SetupStartMenuFolderName->sr, TRUE)))
     {
         removeStartMenuFolder = TRUE;
     }
