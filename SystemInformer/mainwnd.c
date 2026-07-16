@@ -4734,7 +4734,14 @@ VOID PhMwpSelectionChangedTabControl(
             if (page->WindowHandle)
             {
                 deferHandle = DeferWindowPos(deferHandle, page->WindowHandle, NULL, 0, 0, 0, 0, SWP_SHOWWINDOW_ONLY);
-                SetFocus(page->WindowHandle);
+
+                // SetFocus on a child activates its top-level parent, and a newly started
+                // process has foreground rights, so focusing the page while the main window
+                // is still hidden (startup runs this before PhMwpShowWindow) steals foreground
+                // from the user. Skip updating the page focus here while hidden; PhMwpOnSetFocus 
+                // forwards focus to CurrentPage when the window is actually activated. (#2989) (dmex)
+                if (IsWindowVisible(PhMainWndHandle))
+                    SetFocus(page->WindowHandle);
             }
         }
         else if (page->Index == OldIndex)
