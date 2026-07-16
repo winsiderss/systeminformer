@@ -920,18 +920,50 @@ typedef struct _PEB
         {
             ULONG SixtySecondEnabled : 1; // Leap seconds enabled.
             ULONG Reserved : 31;
-        };
+        } LeapSecondFlag;
     };
 
     //
     // Global flags for the process.
     //
-    ULONG NtGlobalFlag2;
+    union
+    {
+        ULONG NtGlobalFlags2;
+        struct
+        {
+            ULONG EnableLeapSecond : 1; // GlobalFlag2 bit 0.
+            ULONG Reserved : 31;
+        } NtGlobalFlag2;
+    };
 
     //
     // Extended feature disable mask (AVX). // since WIN11
     //
-    ULONGLONG ExtendedFeatureDisableMask;
+    union
+    {
+        ULONGLONG ExtendedFeatureDisableMask;
+        struct
+        {
+            ULONGLONG LegacyFloatingPointDisabled : 1;
+            ULONGLONG LegacySseDisabled : 1;
+            ULONGLONG AvxDisabled : 1;
+            ULONGLONG MpxBndregsDisabled : 1;
+            ULONGLONG MpxBndcsrDisabled : 1;
+            ULONGLONG Avx512OpmaskDisabled : 1;
+            ULONGLONG Avx512ZmmHi256Disabled : 1;
+            ULONGLONG Avx512Zmm16HiDisabled : 1;
+            ULONGLONG IptDisabled : 1;
+            ULONGLONG PkruDisabled : 1;
+            ULONGLONG Reserved0 : 1;
+            ULONGLONG CetUserDisabled : 1;
+            ULONGLONG CetSupervisorDisabled : 1;
+            ULONGLONG Reserved1 : 4;
+            ULONGLONG AmxTileDisabled : 1;
+            ULONGLONG AmxBf16Disabled : 1;
+            ULONGLONG AmxInt8Disabled : 1;
+            ULONGLONG Reserved2 : 44;
+        };
+    };
 } PEB, *PPEB;
 
 #ifdef _WIN64
@@ -1671,7 +1703,31 @@ typedef struct _TEB
     //
     // Extended feature disable mask (AVX).
     //
-    ULONGLONG ExtendedFeatureDisableMask;
+    union
+    {
+        ULONGLONG ExtendedFeatureDisableMask;
+        struct
+        {
+            ULONGLONG LegacyFloatingPointDisabled : 1;
+            ULONGLONG LegacySseDisabled : 1;
+            ULONGLONG AvxDisabled : 1;
+            ULONGLONG MpxBndregsDisabled : 1;
+            ULONGLONG MpxBndcsrDisabled : 1;
+            ULONGLONG Avx512OpmaskDisabled : 1;
+            ULONGLONG Avx512ZmmHi256Disabled : 1;
+            ULONGLONG Avx512Zmm16HiDisabled : 1;
+            ULONGLONG IptDisabled : 1;
+            ULONGLONG PkruDisabled : 1;
+            ULONGLONG Reserved0 : 1;
+            ULONGLONG CetUserDisabled : 1;
+            ULONGLONG CetSupervisorDisabled : 1;
+            ULONGLONG Reserved1 : 4;
+            ULONGLONG AmxTileDisabled : 1;
+            ULONGLONG AmxBf16Disabled : 1;
+            ULONGLONG AmxInt8Disabled : 1;
+            ULONGLONG Reserved2 : 44;
+        };
+    };
 
     //
     // Reserved.
