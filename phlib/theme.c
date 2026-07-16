@@ -107,6 +107,12 @@ BOOLEAN CALLBACK PhpReInitializeThemeWindowEnumChildWindows(
     _In_opt_ PVOID Context
     );
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+static BOOLEAN CALLBACK PhpThemeWindowForwardSysColorChangeCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    );
+
 LRESULT CALLBACK PhpThemeWindowSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -3234,6 +3240,20 @@ LRESULT CALLBACK PhpThemeWindowDrawListViewGroup(
     return CDRF_DODEFAULT;
 }
 
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+static BOOLEAN CALLBACK PhpThemeWindowForwardSysColorChangeCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    // WM_SYSCOLORCHANGE is only delivered to top-level windows; forward it to
+    // descendant common controls (e.g. toolbars using the "3D Objects" color) so
+    // they refresh their cached system colors instead of painting with stale ones.
+    SendMessage(WindowHandle, WM_SYSCOLORCHANGE, 0, 0);
+
+    return TRUE;
+}
+
 LRESULT CALLBACK PhpThemeWindowSubclassProc(
     _In_ HWND hWnd,
     _In_ UINT uMsg,
@@ -3263,6 +3283,15 @@ LRESULT CALLBACK PhpThemeWindowSubclassProc(
             FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
 
             return TRUE;
+        }
+        break;
+    case WM_SYSCOLORCHANGE:
+        {
+            LRESULT result = CallWindowProc(oldWndProc, hWnd, uMsg, wParam, lParam);
+
+            PhEnumChildWindows(hWnd, PhpThemeWindowForwardSysColorChangeCallback, NULL);
+
+            return result;
         }
         break;
     case WM_NOTIFY:
