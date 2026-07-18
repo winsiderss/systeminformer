@@ -1569,6 +1569,11 @@ VOID PhMwpOnCommand(
             PhShowPagefilesDialog(WindowHandle);
         }
         break;
+    case ID_TOOLS_ENVIRONMENT_VARIABLES:
+        {
+            PhShowEnvironmentVariablesDialog(WindowHandle);
+        }
+        break;
     case ID_TOOLS_LIVEDUMP:
         {
             PhShowLiveDumpDialog(WindowHandle);
@@ -3739,6 +3744,7 @@ PPH_EMENU PhpCreateToolsMenu(
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_THREADSTACKS, L"&Search thread stacks", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ZOMBIEPROCESSES, L"&Zombie processes", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_PAGEFILES, L"&Pagefiles", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(0, ID_TOOLS_ENVIRONMENT_VARIABLES, L"&Environment variables", NULL, NULL), ULONG_MAX);
     PhInsertEMenuItem(ToolsMenu, PhCreateEMenuItem(
         (PhCsEnableProcessMonitor && KsiLevel() >= KphLevelMed) ? 0 : PH_EMENU_DISABLED,
         ID_TOOLS_INFORMER, L"&Process monitor", NULL, NULL), ULONG_MAX);
