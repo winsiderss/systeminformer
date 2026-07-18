@@ -187,7 +187,10 @@ VOID PhpThreadProviderDeleteProcedure(
             data = CONTAINING_RECORD(entry, PH_THREAD_QUERY_DATA, ListEntry);
             entry = entry->Next;
 
+            PhClearReference(&data->StartAddressWin32String);
+            PhClearReference(&data->StartAddressWin32FileName);
             PhClearReference(&data->StartAddressString);
+            PhClearReference(&data->StartAddressFileName);
             PhClearReference(&data->ServiceName);
             PhDereferenceObject(data->ThreadItem);
             PhFree(data);
@@ -277,6 +280,8 @@ VOID PhpThreadItemDeleteProcedure(
     if (threadItem->FreezeHandle) NtClose(threadItem->FreezeHandle);
     if (threadItem->StartAddressWin32String) PhDereferenceObject(threadItem->StartAddressWin32String);
     if (threadItem->StartAddressWin32FileName) PhDereferenceObject(threadItem->StartAddressWin32FileName);
+    if (threadItem->StartAddressString) PhDereferenceObject(threadItem->StartAddressString);
+    if (threadItem->StartAddressFileName) PhDereferenceObject(threadItem->StartAddressFileName);
     if (threadItem->ServiceName) PhDereferenceObject(threadItem->ServiceName);
 
     if (!PhSystemProcessorInformation.SingleProcessorGroup)
@@ -1045,15 +1050,22 @@ VOID PhpThreadProviderUpdate(
             if (WindowsVersion >= WINDOWS_11_22H2 && threadItem->ThreadHandle)
             {
                 POWER_THROTTLING_THREAD_STATE powerThrottlingState;
+                BOOLEAN powerThrottling = FALSE;
 
                 if (NT_SUCCESS(PhGetThreadPowerThrottlingState(threadItem->ThreadHandle, &powerThrottlingState)))
                 {
                     if (powerThrottlingState.ControlMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED &&
                         powerThrottlingState.StateMask & POWER_THROTTLING_THREAD_EXECUTION_SPEED)
                     {
-                        threadItem->PowerThrottling = TRUE;
+                        powerThrottling = TRUE;
                     }
                 }
+
+                threadItem->PowerThrottling = powerThrottling;
+            }
+            else
+            {
+                threadItem->PowerThrottling = FALSE;
             }
 
             PhpQueueThreadQuery(threadProvider, threadItem);
