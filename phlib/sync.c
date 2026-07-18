@@ -219,7 +219,7 @@ VOID FASTCALL PhfResetEvent(
         if (!(oldValue & PH_EVENT_SET))
             return;
 
-        newValue = oldValue & ~(ULONG_PTR)PH_EVENT_SET;
+        newValue = (oldValue & ~(ULONG_PTR)PH_EVENT_SET) + PH_EVENT_REFCOUNT_INC;
     } while ((ULONG_PTR)_InterlockedCompareExchangePointer(
         (PVOID *)&Event->Value,
         (PVOID)newValue,
