@@ -106,6 +106,7 @@ VOID EtProcessTreeNewInitializing(
         { ETPRTNC_PEAKTHREADS, L"Peak threads", 45, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPUDEDICATEDBYTES, L"GPU dedicated bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_GPUSHAREDBYTES, L"GPU shared bytes (resident)", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
+        { ETPRTNC_GPUENGINE, L"GPU engine", 80, PH_ALIGN_LEFT, DT_LEFT, TRUE },
         { ETPRTNC_DISKREADRATE, L"Disk read rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKWRITERATE, L"Disk write rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
         { ETPRTNC_DISKTOTALRATE, L"Disk total rate", 70, PH_ALIGN_RIGHT, DT_RIGHT, TRUE },
@@ -142,17 +143,6 @@ VOID EtProcessTreeNewInitializing(
         ULONG adapterNodeIndex = 0;
 
         EtGpuNodeColumnTextList = PhCreateList(adapterCount + EtGpuTotalNodeCount);
-
-        EtpAddTreeNewColumn(
-            treeNewInfo,
-            ETPRTNC_GPUENGINE,
-            L"GPU engine",
-            80,
-            PH_ALIGN_LEFT,
-            DT_LEFT,
-            TRUE,
-            EtpProcessTreeNewSortFunction
-            );
 
         for (i = 0; i < adapterCount; i++)
         {
