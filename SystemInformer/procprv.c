@@ -1597,6 +1597,8 @@ VOID PhpFillProcessItem(
 
                 ProcessItem->CommandLine = PhCreateString2(&commandLine);
             }
+
+            PhFree(telemetryInfo);
         }
         else // N.B. Telemetry info does not succeed for all processes.
         {
@@ -4688,6 +4690,8 @@ PPH_PROCESS_ITEM PhCreateProcessItemFromHandle(
             {
                 processItem->CommandLine = PhCreateStringEx(CommandLineBuffer, CommandLineLength - sizeof(UNICODE_NULL));
             }
+
+            PhFree(telemetryInfo);
         }
     }
 

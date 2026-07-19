@@ -728,7 +728,11 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
 
     Context->BlurredBitmap = CreateCompatibleBitmap(ScreenDC, screenWidth, screenHeight);
     if (!Context->BlurredBitmap)
+    {
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredDC = nullptr;
         return FALSE;
+    }
 
     Context->OldBlurredBitmap = SelectBitmap(Context->BlurredDC, Context->BlurredBitmap);
 
@@ -743,12 +747,24 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
 
     smallDC = CreateCompatibleDC(ScreenDC);
     if (!smallDC)
+    {
+        SelectBitmap(Context->BlurredDC, Context->OldBlurredBitmap);
+        DeleteBitmap(Context->BlurredBitmap);
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredBitmap = nullptr;
+        Context->BlurredDC = nullptr;
         return FALSE;
+    }
 
     smallBitmap = CreateCompatibleBitmap(ScreenDC, smallWidth, smallHeight);
     if (!smallBitmap)
     {
         DeleteDC(smallDC);
+        SelectBitmap(Context->BlurredDC, Context->OldBlurredBitmap);
+        DeleteBitmap(Context->BlurredBitmap);
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredBitmap = nullptr;
+        Context->BlurredDC = nullptr;
         return FALSE;
     }
 
@@ -1193,8 +1209,8 @@ static LRESULT CALLBACK PhWindowTargetingOverlayWndProc(
                 brush = PhGetStockBrush(NULL_BRUSH);
                 SelectBrush(hdc, brush);
                 Rectangle(hdc, borderRect.left, borderRect.top, borderRect.right, borderRect.bottom);
-                DeletePen(pen);
                 RestoreDC(hdc, oldDc);
+                DeletePen(pen);
             }
 
             EndPaint(WindowHandle, &paint);
@@ -1379,9 +1395,8 @@ VOID PhDrawWindowBorderForTargeting(
 
         Rectangle(hdc, 0, 0, rect.right - rect.left, rect.bottom - rect.top);
 
-        DeletePen(pen);
-
         RestoreDC(hdc, oldDc);
+        DeletePen(pen);
         ReleaseDC(WindowHandle, hdc);
     }
 }

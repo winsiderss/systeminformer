@@ -175,7 +175,7 @@ VOID PhPinMiniInformation(
             PhMipContainerWindow = PhCreateWindowEx(
                 MAKEINTATOM(windowAtom),
                 NULL,
-                WS_BORDER | WS_THICKFRAME | WS_POPUP,
+                WS_BORDER | WS_THICKFRAME | WS_POPUP | WS_CLIPCHILDREN,
                 WS_EX_TOOLWINDOW,
                 0,
                 0,
@@ -520,8 +520,8 @@ VOID PhMipContainerOnSize(
 {
     if (PhMipWindow)
     {
-        InvalidateRect(PhMipContainerWindow, NULL, FALSE);
         PhMipLayout();
+        InvalidateRect(PhMipWindow, NULL, FALSE);
     }
 }
 
@@ -544,7 +544,7 @@ BOOLEAN PhMipContainerOnEraseBkgnd(
     _In_ HDC hdc
     )
 {
-    return FALSE;
+    return TRUE;
 }
 
 VOID PhMipContainerOnTimer(
@@ -1148,11 +1148,15 @@ VOID PhMipLayout(
     if (!PhGetClientRect(PhMipContainerWindow, &clientRect))
         return;
 
-    MoveWindow(
+    SetWindowPos(
         PhMipWindow,
-        clientRect.left, clientRect.top,
-        clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
-        FALSE
+        NULL,
+        clientRect.left,
+        clientRect.top,
+        clientRect.right - clientRect.left,
+        clientRect.bottom - clientRect.top,
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER |
+        SWP_NOSENDCHANGING | SWP_NOREDRAW
         );
 
     PhLayoutManagerLayout(&PhMipLayoutManager);
@@ -1434,6 +1438,12 @@ typedef struct _PH_MIP_GRAPH_ROW_NODE
     PPH_STRING TooltipText;
 } PH_MIP_GRAPH_ROW_NODE, *PPH_MIP_GRAPH_ROW_NODE;
 
+typedef struct _PH_MIP_GRAPH_ROW_DEFINITION
+{
+    PH_MIP_GRAPH_ROW_KIND Kind;
+    PH_STRINGREF Title;
+} PH_MIP_GRAPH_ROW_DEFINITION, *PPH_MIP_GRAPH_ROW_DEFINITION;
+
 typedef struct _PH_MIP_GRAPHS_SECTION
 {
     PPH_MINIINFO_LIST_SECTION ListSection;
@@ -1465,6 +1475,14 @@ static VOID PhMipGraphsDeleteGraphContext(
 
 static VOID PhMipGraphsInvalidateStates(
     _In_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    );
+
+static PPH_MIP_GRAPH_ROW_NODE PhMipGraphsCreateRowNode(
+    _In_ const PH_MIP_GRAPH_ROW_DEFINITION* Definition
+    );
+
+static VOID PhMipGraphsInitializeRows(
+    _Inout_ PPH_MIP_GRAPHS_SECTION GraphsSection
     );
 
 static VOID PhMipGraphsDrawFadeOut(
@@ -2944,6 +2962,39 @@ static VOID PhMipGraphsInvalidateStates(
     }
 }
 
+static PPH_MIP_GRAPH_ROW_NODE PhMipGraphsCreateRowNode(
+    _In_ const PH_MIP_GRAPH_ROW_DEFINITION* Definition
+    )
+{
+    PPH_MIP_GRAPH_ROW_NODE node;
+
+    node = PhAllocateZero(sizeof(PH_MIP_GRAPH_ROW_NODE));
+    PhInitializeTreeNewNode(&node->Node);
+    PhInitializeGraphState(&node->GraphState);
+    node->Kind = Definition->Kind;
+    node->Title = Definition->Title;
+
+    return node;
+}
+
+static VOID PhMipGraphsInitializeRows(
+    _Inout_ PPH_MIP_GRAPHS_SECTION GraphsSection
+    )
+{
+    static const PH_MIP_GRAPH_ROW_DEFINITION rows[] =
+    {
+        { MipGraphRowMiniInfoCpu, PH_STRINGREF_INIT(L"CPU") },
+        { MipGraphRowMiniInfoCommit, PH_STRINGREF_INIT(L"Commit charge") },
+        { MipGraphRowMiniInfoPhysical, PH_STRINGREF_INIT(L"Physical memory") },
+        { MipGraphRowMiniInfoIo, PH_STRINGREF_INIT(L"I/O") }
+    };
+
+    GraphsSection->NodeList = PhCreateList(RTL_NUMBER_OF(rows));
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(rows); i++)
+        PhAddItemList(GraphsSection->NodeList, PhMipGraphsCreateRowNode(&rows[i]));
+}
+
 static VOID PhMipGraphsDrawFadeOut(
     _Inout_ PVOID Bits,
     _In_ LONG Width,
@@ -3100,39 +3151,10 @@ static BOOLEAN NTAPI PhMipGraphsListSectionCallback(
     {
     case MiListSectionCreate:
         {
-            static const PH_STRINGREF cpuTitle = PH_STRINGREF_INIT(L"CPU");
-            static const PH_STRINGREF memTitle = PH_STRINGREF_INIT(L"Memory");
-            static const PH_STRINGREF ioTitle = PH_STRINGREF_INIT(L"I/O");
-            static const PH_STRINGREF commitTitle = PH_STRINGREF_INIT(L"Commit charge");
-            static const PH_STRINGREF physicalTitle = PH_STRINGREF_INIT(L"Physical memory");
-
             graphsSection = PhAllocateZero(sizeof(PH_MIP_GRAPHS_SECTION));
             graphsSection->ListSection = ListSection;
-            graphsSection->NodeList = PhCreateList(8);
             ListSection->Context = graphsSection;
-
-            for (ULONG i = 0; i < 7; i++)
-            {
-                PPH_MIP_GRAPH_ROW_NODE node = PhAllocateZero(sizeof(PH_MIP_GRAPH_ROW_NODE));
-                PhInitializeTreeNewNode(&node->Node);
-                PhInitializeGraphState(&node->GraphState);
-                PhAddItemList(graphsSection->NodeList, node);
-            }
-
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Kind = MipGraphRowSysInfoCpu;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[0])->Title = cpuTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Kind = MipGraphRowSysInfoMemory;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[1])->Title = memTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Kind = MipGraphRowSysInfoIo;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[2])->Title = ioTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Kind = MipGraphRowMiniInfoCpu;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[3])->Title = cpuTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Kind = MipGraphRowMiniInfoCommit;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[4])->Title = commitTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Kind = MipGraphRowMiniInfoPhysical;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[5])->Title = physicalTitle;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Kind = MipGraphRowMiniInfoIo;
-            ((PPH_MIP_GRAPH_ROW_NODE)graphsSection->NodeList->Items[6])->Title = ioTitle;
+            PhMipGraphsInitializeRows(graphsSection);
         }
         return TRUE;
     case MiListSectionDestroy:

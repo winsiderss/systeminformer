@@ -188,45 +188,17 @@ BOOLEAN FASTCALL PhfWaitForEvent(
  * \param Event A pointer to an event object.
  * \remarks This function is not thread-safe. Make sure no other threads are using the event when
  * you call this function.
- * \remarks Safe to call concurrently with PhWaitForEvent. The PH_EVENT_SET bit is cleared
- * atomically while preserving the refcount field, so waiters that have already incremented
- * the refcount are not stomped. A waiter currently inside RtlWaitOnAddress has captured a
- * value with PH_EVENT_SET clear (otherwise it would have broken out of the loop), so
- * clearing the bit does not invalidate its undesired value — no spurious wake is needed.
  */
 VOID FASTCALL PhfResetEvent(
     _Inout_ PPH_EVENT Event
     )
 {
-#if defined(PH_EVENT_UNSAFE_RESET)
-
-    assert(!Event->EventHandle);
+    //assert(!Event->EventHandle);
 
     if (PhTestEvent(Event))
     {
         WriteULongPtrRelease(&Event->Value, PH_EVENT_REFCOUNT_INC);
     }
-
-#else
-
-    ULONG_PTR oldValue;
-    ULONG_PTR newValue;
-
-    do
-    {
-        oldValue = ReadULongPtrAcquire(&Event->Value);
-
-        if (!(oldValue & PH_EVENT_SET))
-            return;
-
-        newValue = oldValue & ~(ULONG_PTR)PH_EVENT_SET;
-    } while ((ULONG_PTR)_InterlockedCompareExchangePointer(
-        (PVOID *)&Event->Value,
-        (PVOID)newValue,
-        (PVOID)oldValue
-        ) != oldValue);
-
-#endif
 }
 
 /**

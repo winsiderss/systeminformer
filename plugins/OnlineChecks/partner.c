@@ -235,30 +235,30 @@ VOID NTAPI MainWindowShowingCallback(
     _In_ PVOID Context
     )
 {
-    //INT_PTR result;
+    INT_PTR result;
 
-    //if (PhGetIntegerSetting(SETTING_NAME_PARTNER_PROMPT_SHOWN))
-    //    return;
+    if (PhGetIntegerSetting(SETTING_NAME_PARTNER_PROMPT_SHOWN))
+        return;
 
-    //result = PhDialogBox(
-    //    PluginInstance->DllBase,
-    //    MAKEINTRESOURCE(IDD_PARTNER),
-    //    SystemInformer_GetWindowHandle(),
-    //    PartnerDialogProc,
-    //    NULL
-    //    );
+    result = PhDialogBox(
+        PluginInstance->DllBase,
+        MAKEINTRESOURCE(IDD_PARTNER),
+        SystemInformer_GetWindowHandle(),
+        PartnerDialogProc,
+        NULL
+        );
 
-    //PhSetIntegerSetting(SETTING_NAME_PARTNER_PROMPT_SHOWN, TRUE);
+    PhSetIntegerSetting(SETTING_NAME_PARTNER_PROMPT_SHOWN, TRUE);
 
-    //if (result == IDC_PARTNER_CONFIGURE)
-    //{
-    //    SystemInformer_Invoke(OnlineChecksShowPartnerOptions, NULL);
-    //}
-    //else
-    //{
-    //    PhSetIntegerSetting(SETTING_NAME_SCAN_ENABLED, TRUE);
-    //    PhSetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED, TRUE);
-    //    PhSetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED, TRUE);
-    //    SystemInformer_Invoke(OnlineChecksRestartForPartner, NULL);
-    //}
+    if (result == IDC_PARTNER_CONFIGURE)
+    {
+        SystemInformer_Invoke(OnlineChecksShowPartnerOptions, NULL);
+    }
+    else
+    {
+        PhSetIntegerSetting(SETTING_NAME_SCAN_ENABLED, TRUE);
+        PhSetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_LOOKUPS_ENABLED, TRUE);
+        PhSetIntegerSetting(SETTING_NAME_HYBRIDANALYSIS_SUBMIT_ENABLED, TRUE);
+        SystemInformer_Invoke(OnlineChecksRestartForPartner, NULL);
+    }
 }
