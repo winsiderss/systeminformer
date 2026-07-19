@@ -143,6 +143,17 @@ VOID EtProcessTreeNewInitializing(
 
         EtGpuNodeColumnTextList = PhCreateList(adapterCount + EtGpuTotalNodeCount);
 
+        EtpAddTreeNewColumn(
+            treeNewInfo,
+            ETPRTNC_GPUENGINE,
+            L"GPU engine",
+            80,
+            PH_ALIGN_LEFT,
+            DT_LEFT,
+            TRUE,
+            EtpProcessTreeNewSortFunction
+            );
+
         for (i = 0; i < adapterCount; i++)
         {
             PPH_STRING columnText;
@@ -584,6 +595,56 @@ VOID EtProcessTreeNewMessage(
             case ETPRTNC_PEAKTHREADS:
                 EtFormatInt64(block->ProcessItem->PeakNumberOfThreads, block, message);
                 break;
+            case ETPRTNC_GPUENGINE:
+                {
+                    ULONG maxNodeIndex = ULONG_MAX;
+                    FLOAT maxNodeValue = -1.0f;
+
+                    for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+                    {
+                        FLOAT nodeValue = EtpGetGpuNodeValue(processNode, block, i);
+                        if (nodeValue > maxNodeValue)
+                        {
+                            maxNodeValue = nodeValue;
+                            maxNodeIndex = i;
+                        }
+                    }
+
+                    if (maxNodeValue >= 0.0001f && maxNodeIndex != ULONG_MAX)
+                    {
+                        ULONG adapterIndex = EtGetGpuAdapterIndexFromNodeIndex(maxNodeIndex);
+                        PPH_STRING nodeName = EtGetGpuAdapterNodeDescription(adapterIndex, maxNodeIndex);
+                        PETP_GPU_ADAPTER gpuAdapter = EtpGpuAdapterList->Items[adapterIndex];
+                        ULONG localNodeIndex = maxNodeIndex - gpuAdapter->FirstNodeIndex;
+                        PH_FORMAT format[5];
+                        ULONG formatCount = 0;
+
+                        PhInitFormatS(&format[formatCount++], L"GPU ");
+                        PhInitFormatU(&format[formatCount++], adapterIndex);
+
+                        if (nodeName && nodeName->Length)
+                        {
+                            PhInitFormatS(&format[formatCount++], L" - ");
+                            PhInitFormatSR(&format[formatCount++], nodeName->sr);
+                        }
+                        else
+                        {
+                            PhInitFormatS(&format[formatCount++], L" - Node ");
+                            PhInitFormatU(&format[formatCount++], localNodeIndex);
+                        }
+
+                        SIZE_T returnLength;
+                        if (PhFormatToBuffer(format, formatCount, block->TextCache[message->SubId], sizeof(block->TextCache[message->SubId]), &returnLength))
+                            block->TextCacheLength[message->SubId] = returnLength - sizeof(UNICODE_NULL);
+                        else
+                            block->TextCacheLength[message->SubId] = 0;
+                    }
+                    else
+                    {
+                        block->TextCacheLength[message->SubId] = 0;
+                    }
+                }
+                break;
             case ETPRTNC_GPU:
                 {
                     FLOAT gpuUsage = 0;
@@ -892,6 +953,7 @@ VOID EtProcessTreeNewMessage(
             block->TextCacheValid[ETPRTNC_NETWORKTOTALBYTESDELTA] = FALSE;
 
             block->TextCacheValid[ETPRTNC_GPU] = FALSE;
+            block->TextCacheValid[ETPRTNC_GPUENGINE] = FALSE;
             block->TextCacheValid[ETPRTNC_GPUDEDICATEDBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_GPUSHAREDBYTES] = FALSE;
             block->TextCacheValid[ETPRTNC_GPUDEDICATEDCOMMITTEDBYTES] = FALSE;
@@ -1433,6 +1495,28 @@ LONG EtpProcessTreeNewSortFunction(
 
     switch (SubId)
     {
+    case ETPRTNC_GPUENGINE:
+        {
+            FLOAT value1 = 0;
+            FLOAT value2 = 0;
+
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+            {
+                FLOAT val = EtpGetGpuNodeValue(node1, block1, i);
+                if (val > value1)
+                    value1 = val;
+            }
+
+            for (ULONG i = 0; i < EtGpuTotalNodeCount; i++)
+            {
+                FLOAT val = EtpGetGpuNodeValue(node2, block2, i);
+                if (val > value2)
+                    value2 = val;
+            }
+
+            result = singlecmp(value1, value2);
+        }
+        break;
     case ETPRTNC_DISKREADS:
         result = ET_SORT_AGGREGATE_IF_NEEDED(DiskReadCount);
         break;
