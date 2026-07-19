@@ -848,12 +848,6 @@ NTSTATUS PhpNetworkItemQueryWorker(
             PhReleaseQueuedLockExclusive(&PhpResolveCacheHashtableLock);
         }
     }
-    else
-    {
-        PhReferenceObject(cacheItem->HostString);
-        data->HostString = cacheItem->HostString;
-    }
-
     RtlInterlockedPushEntrySList(&PhNetworkItemQueryListHead, &data->ListEntry);
 
     return STATUS_SUCCESS;
@@ -930,8 +924,6 @@ VOID PhNetworkItemResolveHostname(
 
         if (cacheItem)
         {
-            PhReferenceObject(cacheItem->HostString);
-            NetworkItem->LocalHostString = cacheItem->HostString;
             NetworkItem->LocalHostnameResolved = TRUE;
         }
         else
