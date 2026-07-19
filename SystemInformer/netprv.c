@@ -817,6 +817,8 @@ NTSTATUS PhpNetworkItemQueryWorker(
 
     PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
     cacheItem = PhpLookupResolveCacheItem(&data->Address);
+    if (cacheItem)
+        data->HostString = PhReferenceObject(cacheItem->HostString);
     PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
     if (!cacheItem)
@@ -919,6 +921,11 @@ VOID PhNetworkItemResolveHostname(
     {
         PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
         cacheItem = PhpLookupResolveCacheItem(&NetworkItem->LocalEndpoint.Address);
+        if (cacheItem)
+        {
+            PhReferenceObject(cacheItem->HostString);
+            PhMoveReference(&NetworkItem->LocalHostString, cacheItem->HostString);
+        }
         PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
         if (cacheItem)
@@ -943,12 +950,15 @@ VOID PhNetworkItemResolveHostname(
     {
         PhAcquireQueuedLockShared(&PhpResolveCacheHashtableLock);
         cacheItem = PhpLookupResolveCacheItem(&NetworkItem->RemoteEndpoint.Address);
+        if (cacheItem)
+        {
+            PhReferenceObject(cacheItem->HostString);
+            PhMoveReference(&NetworkItem->RemoteHostString, cacheItem->HostString);
+        }
         PhReleaseQueuedLockShared(&PhpResolveCacheHashtableLock);
 
         if (cacheItem)
         {
-            PhReferenceObject(cacheItem->HostString);
-            NetworkItem->RemoteHostString = cacheItem->HostString;
             NetworkItem->RemoteHostnameResolved = TRUE;
         }
         else
@@ -1021,11 +1031,6 @@ VOID PhFlushNetworkQueryData(
     PSLIST_ENTRY entry;
     PPH_NETWORK_ITEM_QUERY_DATA data;
 
-    if (!FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
-        return;
-    //if (!RtlFirstEntrySList(&PhNetworkItemQueryListHead))
-    //    return;
-
     entry = RtlInterlockedFlushSList(&PhNetworkItemQueryListHead);
 
     while (entry)
@@ -1033,18 +1038,25 @@ VOID PhFlushNetworkQueryData(
         data = CONTAINING_RECORD(entry, PH_NETWORK_ITEM_QUERY_DATA, ListEntry);
         entry = entry->Next;
 
-        if (data->Remote)
+        if (FlagOn(PhNetworkProviderFlagsMask, PH_NETWORK_PROVIDER_FLAG_HOSTNAME))
         {
-            PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
-            data->NetworkItem->RemoteHostnameResolved = TRUE;
+            if (data->Remote)
+            {
+                PhMoveReference(&data->NetworkItem->RemoteHostString, data->HostString);
+                data->NetworkItem->RemoteHostnameResolved = TRUE;
+            }
+            else
+            {
+                PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
+                data->NetworkItem->LocalHostnameResolved = TRUE;
+            }
+
+            InterlockedExchange(&data->NetworkItem->JustResolved, TRUE);
         }
         else
         {
-            PhMoveReference(&data->NetworkItem->LocalHostString, data->HostString);
-            data->NetworkItem->LocalHostnameResolved = TRUE;
+            PhClearReference(&data->HostString);
         }
-
-        InterlockedExchange(&data->NetworkItem->JustResolved, TRUE);
 
         PhDereferenceObject(data->NetworkItem);
         PhFree(data);
@@ -1460,6 +1472,12 @@ PHVSOCKET_LISTENERS PhpGetHvSocketListeners(
             break;
         }
 
+        if (length > PH_LARGE_BUFFER_SIZE / 2)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            break;
+        }
+
         length *= 2;
         listeners = PhReAllocate(listeners, length);
     }
@@ -1497,6 +1515,12 @@ PHVSOCKET_CONNECTIONS PhpGetHvSocketConnections(
         status = PhHvSocketGetConnections(SystemHandle, VmId, connections, length, &length);
         if (status != STATUS_BUFFER_TOO_SMALL || length == 0)
         {
+            break;
+        }
+
+        if (length > PH_LARGE_BUFFER_SIZE / 2)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
             break;
         }
 
