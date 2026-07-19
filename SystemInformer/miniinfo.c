@@ -175,7 +175,7 @@ VOID PhPinMiniInformation(
             PhMipContainerWindow = PhCreateWindowEx(
                 MAKEINTATOM(windowAtom),
                 NULL,
-                WS_BORDER | WS_THICKFRAME | WS_POPUP,
+                WS_BORDER | WS_THICKFRAME | WS_POPUP | WS_CLIPCHILDREN,
                 WS_EX_TOOLWINDOW,
                 0,
                 0,
@@ -520,8 +520,8 @@ VOID PhMipContainerOnSize(
 {
     if (PhMipWindow)
     {
-        InvalidateRect(PhMipContainerWindow, NULL, FALSE);
         PhMipLayout();
+        InvalidateRect(PhMipWindow, NULL, FALSE);
     }
 }
 
@@ -544,7 +544,7 @@ BOOLEAN PhMipContainerOnEraseBkgnd(
     _In_ HDC hdc
     )
 {
-    return FALSE;
+    return TRUE;
 }
 
 VOID PhMipContainerOnTimer(
@@ -1148,11 +1148,15 @@ VOID PhMipLayout(
     if (!PhGetClientRect(PhMipContainerWindow, &clientRect))
         return;
 
-    MoveWindow(
+    SetWindowPos(
         PhMipWindow,
-        clientRect.left, clientRect.top,
-        clientRect.right - clientRect.left, clientRect.bottom - clientRect.top,
-        FALSE
+        NULL,
+        clientRect.left,
+        clientRect.top,
+        clientRect.right - clientRect.left,
+        clientRect.bottom - clientRect.top,
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER |
+        SWP_NOSENDCHANGING | SWP_NOREDRAW
         );
 
     PhLayoutManagerLayout(&PhMipLayoutManager);
