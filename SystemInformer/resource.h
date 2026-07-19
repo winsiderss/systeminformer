@@ -99,8 +99,8 @@
 #define IDI_PIN                         216
 #define IDI_FOLDER                      217
 #define IDI_MAGNIFIER                   219
-#define IDD_EDITENV                     221
-#define IDD_EDITENVPATH                 293
+#define IDD_ENVEDIT                     221
+#define IDD_ENVEDIT_LIST                293
 #define IDD_ENVIRONMENTVARIABLES        294
 #define IDB_SEARCH_ACTIVE               223
 #define IDB_SEARCH_INACTIVE             224
@@ -695,6 +695,8 @@
 #define IDC_ENV_MOVEUP                  1535
 #define IDC_ENV_MOVEDOWN                1536
 #define IDC_ENV_EDITTEXT                1537
+#define IDC_ENV_NAME                    1538
+#define IDC_ENV_VALUE                   1539
 #define IDC_TREEMODE                    1516
 #define IDC_SUPPORTED                   1517
 #define IDC_TRAYICON_LAZYSTART          1520
@@ -990,6 +992,7 @@
 #define ID_THREAD_REGISTERS             10324
 #define ID_TOOLS_RUNCONTAINER           10325
 #define ID_HACKER_ATTACHTOPROCESS       10326
+#define ID_TOOLS_ENVIRONMENT_VARIABLES  10327
 
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000

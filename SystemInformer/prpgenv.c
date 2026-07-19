@@ -709,14 +709,14 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
         {
             HWND windowhandle;
 
-            windowhandle = GetDlgItem(hwndDlg, IDC_VALUE);
+            windowhandle = GetDlgItem(hwndDlg, IDC_ENV_VALUE);
 
             PhSetApplicationWindowIcon(hwndDlg);
 
             PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ENV_NAME), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, windowhandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
@@ -728,8 +728,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
             context->MinimumSize.bottom = 140;
             MapDialogRect(hwndDlg, &context->MinimumSize);
 
-            PhSetDialogItemText(hwndDlg, IDC_NAME, context->Name);
-            PhSetDialogItemText(hwndDlg, IDC_VALUE, context->Value ? context->Value : L"");
+            PhSetDialogItemText(hwndDlg, IDC_ENV_NAME, context->Name);
+            PhSetDialogItemText(hwndDlg, IDC_ENV_VALUE, context->Value ? context->Value : L"");
 
             PhSetWindowContext(windowhandle, PH_WINDOW_CONTEXT_DEFAULT, PhGetWindowProcedure(windowhandle));
             PhSetWindowProcedure(windowhandle, (WNDPROC)PhpEditEnvSubclassProc);
@@ -772,8 +772,8 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                         break;
                     }
 
-                    name = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_NAME)));
-                    value = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_VALUE)));
+                    name = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ENV_NAME)));
+                    value = PH_AUTO(PhGetWindowText(GetDlgItem(hwndDlg, IDC_ENV_VALUE)));
 
                     if (!PhIsNullOrEmptyString(name))
                     {
@@ -805,11 +805,11 @@ INT_PTR CALLBACK PhpEditEnvDlgProc(
                     }
                 }
                 break;
-            case IDC_NAME:
+            case IDC_ENV_NAME:
                 {
                     if (GET_WM_COMMAND_CMD(wParam, lParam) == EN_CHANGE)
                     {
-                        EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_NAME)) > 0);
+                        EnableWindow(GetDlgItem(hwndDlg, IDOK), PhGetWindowTextLength(GetDlgItem(hwndDlg, IDC_ENV_NAME)) > 0);
                     }
                 }
                 break;
@@ -861,7 +861,7 @@ INT_PTR PhpShowEditEnvDialog(
 
     result = PhDialogBox(
         PhInstanceHandle,
-        MAKEINTRESOURCE(IDD_EDITENV),
+        MAKEINTRESOURCE(IDD_ENVEDIT),
         ParentWindowHandle,
         PhpEditEnvDlgProc,
         &context
