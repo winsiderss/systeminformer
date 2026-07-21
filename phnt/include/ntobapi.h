@@ -183,7 +183,7 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION
     BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_25H2)
+#if (PHNT_VERSION >= PHNT_WINDOWS_11_25H2)
 /**
  * Controls runtime object reference-count tracing in the kernel Object Manager.
  *
@@ -207,7 +207,7 @@ typedef struct _OBJECT_SET_REF_TRACE_INFORMATION
     UNICODE_STRING ProcessName;  // optional: restrict tracing to objects owned by this process name
     UNICODE_STRING PoolTags;     // optional: restrict tracing to objects with these pool tags (semicolon-delimited, e.g. L"ObTr;File")
 } OBJECT_SET_REF_TRACE_INFORMATION, *POBJECT_SET_REF_TRACE_INFORMATION;
-#endif // (PHNT_VERSION >= PHNT_WINDOWS_25H2)
+#endif // (PHNT_VERSION >= PHNT_WINDOWS_11_25H2)
 
 //
 // Objects, handles
