@@ -167,7 +167,13 @@ BOOLEAN FwTabPageCallback(
                 {
                     PPH_STRING statusMessage;
 
-                    if (statusMessage = PhGetStatusMessage(0, EtFwStatus))
+                    if (EtFwStatus == EPT_S_NOT_REGISTERED)
+                    {
+                        EtFwStatusText = PhFormatString(
+                            L"The Base Filtering Engine service is not running. Firewall events cannot be monitored. (%lu)",
+                            EtFwStatus);
+                    }
+                    else if (statusMessage = PhGetStatusMessage(0, EtFwStatus))
                     {
                         EtFwStatusText = PhFormatString(
                             L"%s %s (%lu)",
