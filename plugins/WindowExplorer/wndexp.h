@@ -35,6 +35,7 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_NAME_WINDOW_ENUM_NONVISIBLE (PLUGIN_NAME L".EnumNonVisible")
 #define SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY (PLUGIN_NAME L".HighlightMessageOnly")
 #define SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY_COLOR (PLUGIN_NAME L".HighlightMessageOnlyColor")
+#define SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED (PLUGIN_NAME L".HighlightLayered")
 #define SETTING_NAME_WINDOW_ENABLE_ICONS (PLUGIN_NAME L".EnableIcons")
 #define SETTING_NAME_WINDOW_ENABLE_ICONS_INTERNAL (PLUGIN_NAME L".EnableIconsInternal")
 #define SETTING_NAME_WINDOW_FIND_SNAPSHOT (PLUGIN_NAME L".FindWindowSnapshot")
@@ -48,6 +49,9 @@ extern PPH_PLUGIN PluginInstance;
 #define SETTING_NAME_WINDOWS_PROPLIST_COLUMNS (PLUGIN_NAME L".WindowsPropListColumns")
 #define SETTING_NAME_WINDOWS_PROPSTORAGE_COLUMNS (PLUGIN_NAME L".WindowsPropStorageColumns")
 #define SETTING_NAME_WINDOWS_DWMATTRIBUTES_COLUMNS (PLUGIN_NAME L".WindowsDwmAttributesColumns")
+#define SETTING_NAME_WINDOWS_UIA_COLUMNS (PLUGIN_NAME L".WindowsUiaColumns")
+#define SETTING_NAME_WINDOWS_CHILDREN_COLUMNS (PLUGIN_NAME L".WindowsChildrenColumns")
+#define SETTING_NAME_APPLICATIONS_TREE_LIST_COLUMNS (PLUGIN_NAME L".ApplicationsTreeListColumns")
 
 #define WE_WM_WINDOWS_UPDATED (WM_APP + 301)
 
@@ -77,6 +81,7 @@ typedef struct _WINDOWS_CONTEXT
 
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
+    HWND HighlightingOverlayWindow;
 
     BOOLEAN TargetingWindow;
     BOOLEAN TargetingCurrentWindowDraw;
@@ -166,6 +171,7 @@ typedef struct _WINDOW_PROPERTIES_CONTEXT
     ULONG PropsListCount;
     HWND HighlightingWindow;
     ULONG HighlightingWindowCount;
+    HWND HighlightingOverlayWindow;
 
     CLIENT_ID ClientId;
     PH_INITONCE SymbolProviderInitOnce;
@@ -306,9 +312,24 @@ VOID WeInvertWindowBorder(
     _In_ HWND hWnd
     );
 
+VOID WeShowWindowHighlightOverlay(
+    _Inout_ HWND *OverlayWindow,
+    _In_ HWND TargetWindow
+    );
+
+VOID WeHideWindowHighlightOverlay(
+    _Inout_ HWND *OverlayWindow
+    );
+
 NTSTATUS CallerIdentityIsHostedWindow(
     _In_ HWND WindowHandle,
     _Out_ PULONG IsHosted
+    );
+
+// apptab
+
+VOID WeInitializeApplicationsTab(
+    VOID
     );
 
 typedef enum _WE_WINDOW_SUBGROUP

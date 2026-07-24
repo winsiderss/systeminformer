@@ -999,7 +999,7 @@ VOID WeSnapshotModeStart(
     if (PhGetIntegerSetting(SETTING_NAME_WINDOW_FIND_SNAPSHOT))
         selectedWindow = PhSelectWindowFromScreenSnapshot();
     else
-        selectedWindow = PhSelectWindowFromScreenTargeting(DialogHandle, FALSE);
+        selectedWindow = PhSelectWindowFromScreenTargeting(DialogHandle, TRUE);
 
     // Process the selected window
     if (selectedWindow && IsWindow(selectedWindow))
@@ -1289,6 +1289,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             }
 
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
+            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
 
             PhSaveWindowPlacementToSetting(SETTING_NAME_WINDOWS_WINDOW_POSITION, SETTING_NAME_WINDOWS_WINDOW_SIZE, WindowHandle);
 
@@ -1795,7 +1796,9 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (context->HighlightingWindow)
+                        if (context->HighlightingOverlayWindow)
+                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+                        else if (context->HighlightingWindow)
                         {
                             if (context->HighlightingWindowCount & 1)
                                 WeInvertWindowBorder(context->HighlightingWindow);
@@ -1803,6 +1806,8 @@ INT_PTR CALLBACK WepWindowsDlgProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
+                        if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
+                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
                         PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }
@@ -1997,6 +2002,15 @@ INT_PTR CALLBACK WepWindowsDlgProc(
             {
             case PH_WINDOW_TIMER_DEFAULT:
                 {
+                    if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED) && context->HighlightingWindowCount > 0)
+                    {
+                        if (context->HighlightingWindow && IsWindow(context->HighlightingWindow))
+                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
+
+                        if (--context->HighlightingWindowCount == 0)
+                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+                    }
+
                     //if (context->TreeContext.EnableStateHighlighting)
                     //{
                     //    PH_TICK_SH_STATE_TN(
@@ -2422,6 +2436,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
     case WM_DESTROY:
         {
             PhKillTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT);
+            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
 
             PhSetEnabledProvider(&context->ProviderRegistration, FALSE);
             PhUnregisterProvider(&context->ProviderRegistration);
@@ -2950,7 +2965,9 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                     if (selectedNode = WeGetSelectedWindowNode(&context->TreeContext))
                     {
-                        if (context->HighlightingWindow)
+                        if (context->HighlightingOverlayWindow)
+                            WeHideWindowHighlightOverlay(&context->HighlightingOverlayWindow);
+                        else if (context->HighlightingWindow)
                         {
                             if (context->HighlightingWindowCount & 1)
                                 WeInvertWindowBorder(context->HighlightingWindow);
@@ -2958,6 +2975,8 @@ INT_PTR CALLBACK WepWindowsPageProc(
 
                         context->HighlightingWindow = selectedNode->WindowHandle;
                         context->HighlightingWindowCount = 10;
+                        if (PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_LAYERED))
+                            WeShowWindowHighlightOverlay(&context->HighlightingOverlayWindow, context->HighlightingWindow);
                         PhSetTimer(WindowHandle, PH_WINDOW_TIMER_DEFAULT, 100, NULL);
                     }
                 }

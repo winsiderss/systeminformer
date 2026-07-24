@@ -12,22 +12,22 @@
 #include "wndexp.h"
 #include <graphprp.h>
 
-PPH_OBJECT_TYPE PvpPropContextType = NULL;
-PPH_OBJECT_TYPE PvpPropPageContextType = NULL;
+PPH_OBJECT_TYPE WepPropContextType = NULL;
+PPH_OBJECT_TYPE WepPropPageContextType = NULL;
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
-VOID NTAPI PvpPropContextDeleteProcedure(
+VOID NTAPI WepPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
-VOID NTAPI PvpPropPageContextDeleteProcedure(
+VOID NTAPI WepPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     );
 
-VOID NTAPI PvpDereferencePropPageContext(
+VOID NTAPI WepDereferencePropPageContext(
     _In_opt_ PVOID Context
     )
 {
@@ -44,16 +44,16 @@ PPV_PROPCONTEXT HdCreatePropContext(
     PPV_PROPCONTEXT propContext;
     PH_PROPSHEETNEW sheet;
 
-    if (!PvpPropContextType)
-        PvpPropContextType = PhCreateObjectType(L"HdPropContext2", 0, PvpPropContextDeleteProcedure);
+    if (!WepPropContextType)
+        WepPropContextType = PhCreateObjectType(L"HdPropContext2", 0, WepPropContextDeleteProcedure);
 
-    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), PvpPropContextType);
+    propContext = PhCreateObject(sizeof(PV_PROPCONTEXT), WepPropContextType);
     memset(propContext, 0, sizeof(PV_PROPCONTEXT));
 
     memset(&sheet, 0, sizeof(PH_PROPSHEETNEW));
     sheet.Caption = Caption;
     sheet.Layout = PhPropSheetNewLayoutTop;
-    sheet.Skin = PhTabNewSkinUxTheme;
+    sheet.Theme = PhTabNewThemeUxTheme;
     sheet.Flags = PH_PROPSHEETNEW_RESIZABLE |
         PH_PROPSHEETNEW_CENTER |
         PH_PROPSHEETNEW_CLOSE_BUTTON |
@@ -70,7 +70,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
 }
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
-VOID NTAPI PvpPropContextDeleteProcedure(
+VOID NTAPI WepPropContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
@@ -81,7 +81,7 @@ VOID NTAPI PvpPropContextDeleteProcedure(
 }
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
-VOID NTAPI PvpPropPageContextDeleteProcedure(
+VOID NTAPI WepPropPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
     )
@@ -137,7 +137,7 @@ BOOLEAN PvAddPropPage(
     descriptor.Template = PropPageContext->Template;
     descriptor.DialogProc = PropPageContext->DialogProc;
     descriptor.Context = PropPageContext;
-    descriptor.DeleteContext = PvpDereferencePropPageContext;
+    descriptor.DeleteContext = WepDereferencePropPageContext;
 
     return PhPropSheetNewBuilderAddPage(PropContext->Builder, &descriptor);
 }
@@ -164,10 +164,10 @@ PPV_PROPPAGECONTEXT PvCreatePropPageContextEx(
 {
     PPV_PROPPAGECONTEXT propPageContext;
 
-    if (!PvpPropPageContextType)
-        PvpPropPageContextType = PhCreateObjectType(L"HdPropPageContext2", 0, PvpPropPageContextDeleteProcedure);
+    if (!WepPropPageContextType)
+        WepPropPageContextType = PhCreateObjectType(L"HdPropPageContext2", 0, WepPropPageContextDeleteProcedure);
 
-    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), PvpPropPageContextType);
+    propPageContext = PhCreateObject(sizeof(PV_PROPPAGECONTEXT), WepPropPageContextType);
     memset(propPageContext, 0, sizeof(PV_PROPPAGECONTEXT));
 
     propPageContext->Context = Context;
@@ -227,5 +227,5 @@ VOID PvDoPropPageLayout(
     _In_ HWND WindowHandle
     )
 {
-    PhPropSheetNewPageLayout(WindowHandle);
+    PhPropSheetNewRequestPageLayout(WindowHandle);
 }
