@@ -13,5 +13,6 @@
     <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
     <BuildDependency Project="phlib/phlib.vcxproj" />
   </Project>
+  <Project Path="translations/zh-CN/SystemInformer.zh-CN.vcxproj" Id="6a13f914-ea73-4a7f-bb2d-77d0490f126d" />
   <Project Path="tools/peview/peview.vcxproj" Id="72c124a2-3c80-41c6-aba1-c4948b713204" />
 </Solution>

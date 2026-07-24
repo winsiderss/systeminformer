@@ -307,6 +307,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_THREAD_STACKS_WINDOW_SIZE                           L"ThreadStacksWindowSize"
 #define SETTING_FILE_BROWSE_EXECUTABLE                              L"FileBrowseExecutable"
 #define SETTING_FIRST_RUN                                           L"FirstRun"
+#define SETTING_LANGUAGE                                            L"Language"
 #define SETTING_FONT                                                L"Font"
 #define SETTING_FONT_MONOSPACE                                      L"FontMonospace"
 #define SETTING_FONT_QUALITY                                        L"FontQuality"
