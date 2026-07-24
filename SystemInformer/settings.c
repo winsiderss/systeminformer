@@ -271,6 +271,7 @@ VOID PhAddDefaultSettings(
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU, L"0");
     PhpAddIntegerPairSetting(SETTING_SYSINFO_WINDOW_POSITION, L"200,200");
     PhpAddStringSetting(SETTING_SYSINFO_WINDOW_SECTION, L"");
+    PhpAddStringSetting(SETTING_SYSINFO_SECTION_ORDER, L"");
     PhpAddScalableIntegerPairSetting(SETTING_SYSINFO_WINDOW_SIZE, L"@96|900,590");
     PhpAddIntegerSetting(SETTING_SYSINFO_WINDOW_STATE, L"1");
     PhpAddIntegerSetting(SETTING_TASKMGR_WINDOW_STATE, L"0");
