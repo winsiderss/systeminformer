@@ -528,6 +528,7 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                     if (!(propContext = propPageContext->PropContext))
                         break;
                 }
+
                 if (!PhGetWindowRect(propSheetContext->OptionsButtonWindowHandle, &rect))
                     break;
 
@@ -1189,7 +1190,7 @@ BOOLEAN PhAddProcessPropPage(
 
         titles[idx] = PhpReadDialogTemplateTitle(psp->hInstance, psp->pszTemplate);
 
-        pages[idx].Name = titles[idx] ? PhGetString(titles[idx]) : L"";
+        pages[idx].Name = PhGetStringOrEmpty(titles[idx]);
         pages[idx].Instance = psp->hInstance;
         pages[idx].Template = psp->pszTemplate;
         pages[idx].DialogProc = psp->pfnDlgProc;

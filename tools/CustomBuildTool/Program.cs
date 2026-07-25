@@ -572,6 +572,7 @@ namespace CustomBuildTool
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags);
+                if (!Build.CopySettingsSchemaFile(flags)) Environment.Exit(1);
                 Build.ShowBuildStats();
             });
             return cmd;
@@ -720,6 +721,7 @@ namespace CustomBuildTool
                 if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
                 if (!Build.CopyResourceFiles(flags)) Environment.Exit(1);
+                if (!Build.CopySettingsSchemaFile(flags)) Environment.Exit(1);
                 if (!Build.BuildSdk(flags)) Environment.Exit(1);
                 if (!Build.CopyKernelDriver(flags)) Environment.Exit(1);
                 if (!Build.CopyWow64Files(flags)) Environment.Exit(1);
@@ -748,6 +750,7 @@ namespace CustomBuildTool
 
                 if (!Build.BuildSolutionParallel("SystemInformer.sln", flags)) Environment.Exit(1);
                 if (!Build.BuildSolutionParallel("plugins\\Plugins.sln", flags)) Environment.Exit(1);
+                if (!Build.CopySettingsSchemaFile(flags)) Environment.Exit(1);
 
                 Build.ShowBuildStats();
             });
@@ -918,6 +921,7 @@ namespace CustomBuildTool
                     Environment.Exit(1);
 
                 Build.CopyWow64Files(flags);
+                if (!Build.CopySettingsSchemaFile(flags)) Environment.Exit(1);
                 Build.ShowBuildStats();
             });
             return cmd;

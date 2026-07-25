@@ -15,6 +15,140 @@
 #include <propsys.h>
 #include <shellapi.h>
 
+#define WE_HIGHLIGHT_OVERLAY_CLASS L"SystemInformerWindowExplorerHighlightOverlay"
+#define WE_HIGHLIGHT_OVERLAY_COLOR RGB(0xff, 0x00, 0xff)
+
+static LRESULT CALLBACK WeWindowHighlightOverlayWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    switch (WindowMessage)
+    {
+    case WM_ERASEBKGND:
+        return TRUE;
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paintStruct;
+            HDC hdc;
+            RECT rect;
+            HBRUSH brush;
+            HPEN pen;
+            HGDIOBJ oldBrush;
+            HGDIOBJ oldPen;
+
+            hdc = BeginPaint(WindowHandle, &paintStruct);
+            GetClientRect(WindowHandle, &rect);
+            brush = CreateSolidBrush(WE_HIGHLIGHT_OVERLAY_COLOR);
+            pen = CreatePen(PS_SOLID, max(2, PhGetSystemMetrics(SM_CXBORDER, PhGetWindowDpi(WindowHandle)) * 3), RGB(0x00, 0x78, 0xd7));
+            oldBrush = SelectObject(hdc, brush);
+            oldPen = SelectObject(hdc, pen);
+            FillRect(hdc, &rect, brush);
+            InflateRect(&rect, -1, -1);
+            Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
+            SelectObject(hdc, oldPen);
+            SelectObject(hdc, oldBrush);
+            DeletePen(pen);
+            DeleteBrush(brush);
+            EndPaint(WindowHandle, &paintStruct);
+        }
+        return 0;
+    }
+
+    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+RTL_ATOM WeInitializeWindowHighlightOverlayClass(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static RTL_ATOM highlightWindowAtom = RTL_ATOM_INVALID_ATOM;
+
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
+
+        wcex.lpfnWndProc = WeWindowHighlightOverlayWndProc;
+        wcex.hInstance = PluginInstance->DllBase;
+        wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
+        wcex.lpszClassName = WE_HIGHLIGHT_OVERLAY_CLASS;
+
+        highlightWindowAtom = RegisterClassEx(&wcex);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return highlightWindowAtom;
+}
+
+VOID WeShowWindowHighlightOverlay(
+    _Inout_ HWND *OverlayWindow,
+    _In_ HWND TargetWindow
+    )
+{
+    RECT rect;
+
+    if (!IsWindow(TargetWindow) || !PhGetWindowRect(TargetWindow, &rect))
+    {
+        WeHideWindowHighlightOverlay(OverlayWindow);
+        return;
+    }
+
+    if (!*OverlayWindow)
+    {
+        RTL_ATOM highlightWindowAtom;
+        
+        highlightWindowAtom = WeInitializeWindowHighlightOverlayClass();
+
+        *OverlayWindow = PhCreateWindowEx(
+            MAKEINTATOM(highlightWindowAtom),
+            NULL,
+            WS_POPUP | WS_DISABLED,
+            WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            NULL,
+            NULL,
+            PluginInstance->DllBase,
+            NULL
+            );
+
+        if (!*OverlayWindow)
+            return;
+
+        SetLayeredWindowAttributes(*OverlayWindow, WE_HIGHLIGHT_OVERLAY_COLOR, 0, LWA_COLORKEY);
+    }
+
+    SetWindowPos(
+        *OverlayWindow,
+        HWND_TOPMOST,
+        rect.left,
+        rect.top,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        SWP_NOACTIVATE | SWP_SHOWWINDOW
+        );
+    InvalidateRect(*OverlayWindow, NULL, FALSE);
+    UpdateWindow(*OverlayWindow);
+}
+
+VOID WeHideWindowHighlightOverlay(
+    _Inout_ HWND *OverlayWindow
+    )
+{
+    if (*OverlayWindow)
+    {
+        DestroyWindow(*OverlayWindow);
+        *OverlayWindow = NULL;
+    }
+}
+
 // {602D4995-B13A-429B-A66E-1935E44F4317}, 101
 static const PROPERTYKEY PKEY_ITaskbarList2 = { { 0x602D4995, 0xB13A, 0x429B, { 0xA6, 0x6E, 0x19, 0x35, 0xE4, 0x4F, 0x43, 0x17 } }, 101 };
 // {9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3}, 4
@@ -341,8 +475,8 @@ VOID WeDrawWindowBorderForTargeting(
         SelectBrush(hdc, brush);
         Rectangle(hdc, rect.left, rect.top, rect.right, rect.bottom);
 
-        DeletePen(pen);
         RestoreDC(hdc, oldDc);
+        DeletePen(pen);
         ReleaseDC(NULL, hdc);
     }
 }
@@ -755,7 +889,11 @@ static BOOLEAN WeCreateBlurredSnapshotBitmap(
 
     Context->BlurredBitmap = CreateCompatibleBitmap(ScreenDC, screenWidth, screenHeight);
     if (!Context->BlurredBitmap)
+    {
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredDC = NULL;
         return FALSE;
+    }
 
     Context->OldBlurredBitmap = SelectBitmap(Context->BlurredDC, Context->BlurredBitmap);
 
@@ -770,12 +908,24 @@ static BOOLEAN WeCreateBlurredSnapshotBitmap(
 
     smallDC = CreateCompatibleDC(ScreenDC);
     if (!smallDC)
+    {
+        SelectBitmap(Context->BlurredDC, Context->OldBlurredBitmap);
+        DeleteBitmap(Context->BlurredBitmap);
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredBitmap = NULL;
+        Context->BlurredDC = NULL;
         return FALSE;
+    }
 
     smallBitmap = CreateCompatibleBitmap(ScreenDC, smallWidth, smallHeight);
     if (!smallBitmap)
     {
         DeleteDC(smallDC);
+        SelectBitmap(Context->BlurredDC, Context->OldBlurredBitmap);
+        DeleteBitmap(Context->BlurredBitmap);
+        DeleteDC(Context->BlurredDC);
+        Context->BlurredBitmap = NULL;
+        Context->BlurredDC = NULL;
         return FALSE;
     }
 

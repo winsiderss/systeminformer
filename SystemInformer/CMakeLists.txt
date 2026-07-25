@@ -154,6 +154,7 @@ set(SOURCES
     "procprv.c"
     "procrec.c"
     "proctree.c"
+    "envdlg.c"
     "prpgenv.c"
     "prpggen.c"
     "prpghndl.c"

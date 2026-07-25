@@ -794,6 +794,30 @@ VOID PhShowPagefilesDialog(
     _In_ HWND ParentWindowHandle
     );
 
+// envdlg
+
+BOOLEAN PhShowEnvironmentVariableEditDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_opt_ PCWSTR InitialName,
+    _In_opt_ PCWSTR InitialValue,
+    _In_ BOOLEAN NameReadOnly,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PPH_STRING *Name,
+    _Out_ PPH_STRING *Value
+    );
+
+BOOLEAN PhShowEnvironmentVariableSplitDialog(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_STRING Name,
+    _In_ PPH_STRING Value,
+    _In_ BOOLEAN ReadOnly,
+    _Out_ PPH_STRING *NewValue
+    );
+
+VOID PhShowEnvironmentVariablesDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
 // plugman
 
 INT_PTR CALLBACK PhPluginsDlgProc(

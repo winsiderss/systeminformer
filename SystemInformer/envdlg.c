@@ -9,18 +9,21 @@
  *
  */
 
-#include "exttools.h"
+#include <phapp.h>
+#include <settings.h>
+#include <phsettings.h>
 #include <emenu.h>
 #include <cpysave.h>
+#include <mainwnd.h>
 
 #define ENV_GROUP_USER 0
 #define ENV_GROUP_SYSTEM 1
 
-CONST PH_STRINGREF EtUserEnvironmentKeyName = PH_STRINGREF_INIT(L"Environment");
-CONST PH_STRINGREF EtSystemEnvironmentKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Session Manager\\Environment");
-HWND EtEnvironmentVariablesWindowHandle = NULL;
-HANDLE EtEnvironmentVariablesWindowThreadHandle = NULL;
-PH_EVENT EtEnvironmentVariablesInitializedEvent = PH_EVENT_INIT;
+static CONST PH_STRINGREF EtUserEnvironmentKeyName = PH_STRINGREF_INIT(L"Environment");
+static CONST PH_STRINGREF EtSystemEnvironmentKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\Session Manager\\Environment");
+static HWND EtEnvironmentVariablesWindowHandle = NULL;
+static HANDLE EtEnvironmentVariablesWindowThreadHandle = NULL;
+static PH_EVENT EtEnvironmentVariablesInitializedEvent = PH_EVENT_INIT;
 
 /**
  * Represents an environment variable entry.
@@ -111,7 +114,7 @@ typedef struct _ENV_ENUM_CONTEXT
  * \return TRUE to continue enumeration, FALSE to stop.
  */
 _Function_class_(PH_ENUM_KEY_CALLBACK)
-BOOLEAN NTAPI EtEnumEnvironmentKeyCallback(
+static BOOLEAN NTAPI EtEnumEnvironmentKeyCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
     _In_ PVOID Context
@@ -153,7 +156,7 @@ BOOLEAN NTAPI EtEnumEnvironmentKeyCallback(
  * \param System TRUE if the variables are system-wide.
  * \param Entries The list to receive the environment variable entries.
  */
-VOID EtReadEnvironmentKey(
+static VOID EtReadEnvironmentKey(
     _In_ HANDLE RootDirectory,
     _In_ PCPH_STRINGREF KeyName,
     _In_ BOOLEAN System,
@@ -194,7 +197,7 @@ VOID EtReadEnvironmentKey(
  * \param Expand TRUE if the variable should be written as REG_EXPAND_SZ.
  * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
  */
-NTSTATUS EtWriteEnvironmentVariable(
+static NTSTATUS EtWriteEnvironmentVariable(
     _In_ BOOLEAN System,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING Value,
@@ -237,7 +240,7 @@ NTSTATUS EtWriteEnvironmentVariable(
  * \param Name The name of the variable.
  * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
  */
-NTSTATUS EtDeleteEnvironmentVariable(
+static NTSTATUS EtDeleteEnvironmentVariable(
     _In_ BOOLEAN System,
     _In_ PPH_STRING Name
     )
@@ -265,7 +268,7 @@ NTSTATUS EtDeleteEnvironmentVariable(
 /**
  * Broadcasts a message to all windows that environment variables have changed.
  */
-VOID EtBroadcastEnvironmentChange(
+static VOID EtBroadcastEnvironmentChange(
     VOID
     )
 {
@@ -286,7 +289,7 @@ VOID EtBroadcastEnvironmentChange(
  * \param Entry The environment variable entry.
  * \return TRUE if the variable is path-like, FALSE otherwise.
  */
-BOOLEAN EtIsPathEnvironmentVariable(
+static BOOLEAN EtIsPathEnvironmentVariable(
     _In_ PENV_VARIABLE_ENTRY Entry
     )
 {
@@ -310,7 +313,7 @@ BOOLEAN EtIsPathEnvironmentVariable(
  *
  * \param Context The environment variables context.
  */
-VOID EtClearEnvironmentEntries(
+static VOID EtClearEnvironmentEntries(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -331,11 +334,11 @@ VOID EtClearEnvironmentEntries(
     PhClearList(Context->Entries);
 }
 
-PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
+static PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
     _In_ PENV_VARIABLES_CONTEXT Context
     );
 
-VOID EtUpdateEnvironmentControls(
+static VOID EtUpdateEnvironmentControls(
     _In_ PENV_VARIABLES_CONTEXT Context
     );
 
@@ -344,7 +347,7 @@ VOID EtUpdateEnvironmentControls(
  *
  * \param Context The environment variables context.
  */
-VOID EtRefreshEnvironmentVariables(
+static VOID EtRefreshEnvironmentVariables(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -376,7 +379,7 @@ VOID EtRefreshEnvironmentVariables(
     EtUpdateEnvironmentControls(Context);
 }
 
-VOID EtUpdateEnvironmentControls(
+static VOID EtUpdateEnvironmentControls(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -397,7 +400,7 @@ VOID EtUpdateEnvironmentControls(
  * \param Context The environment variables context.
  * \return The selected environment variable entry, or NULL if no entry is selected.
  */
-PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
+static PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -415,7 +418,7 @@ PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
     return NULL;
 }
 
-// Edit dialog (reuses IDD_EDITENV)
+// Edit dialog (IDD_ENVEDIT)
 
 /**
  * Subclass procedure for the environment variable value edit control.
@@ -426,7 +429,7 @@ PENV_VARIABLE_ENTRY EtGetSelectedEnvironmentEntry(
  * \param lParam The message-specific parameter.
  * \return The message result.
  */
-ULONG_PTR CALLBACK EtEnvEditSubclassProc(
+static ULONG_PTR CALLBACK EtEnvEditSubclassProc(
     _In_ HWND WindowHandle,
     _In_ ULONG WindowMessage,
     _In_ ULONG_PTR wParam,
@@ -471,7 +474,7 @@ ULONG_PTR CALLBACK EtEnvEditSubclassProc(
  * \param lParam The message-specific parameter.
  * \return The message result.
  */
-INT_PTR CALLBACK EtEnvEditDlgProc(
+static INT_PTR CALLBACK EtEnvEditDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -616,7 +619,7 @@ INT_PTR CALLBACK EtEnvEditDlgProc(
  * \param Value Receives the new value of the environment variable.
  * \return TRUE if the user committed the changes, FALSE otherwise.
  */
-BOOLEAN EtShowEnvEditDialog(
+BOOLEAN PhShowEnvironmentVariableEditDialog(
     _In_ HWND ParentWindowHandle,
     _In_opt_ PCWSTR InitialName,
     _In_opt_ PCWSTR InitialValue,
@@ -635,7 +638,7 @@ BOOLEAN EtShowEnvEditDialog(
     context.ReadOnly = ReadOnly;
 
     PhDialogBox(
-        PluginInstance->DllBase,
+        PhInstanceHandle,
         MAKEINTRESOURCE(IDD_ENVEDIT),
         ParentWindowHandle,
         EtEnvEditDlgProc,
@@ -659,7 +662,7 @@ BOOLEAN EtShowEnvEditDialog(
  *
  * \param Context The environment split context.
  */
-VOID EtSplitPopulateList(
+static VOID EtSplitPopulateList(
     _In_ PENV_SPLIT_CONTEXT Context
     )
 {
@@ -696,7 +699,7 @@ VOID EtSplitPopulateList(
  * \param ListViewHandle The handle to the list view.
  * \return A string representing the combined values, separated by semicolons.
  */
-PPH_STRING EtSplitBuildValue(
+static PPH_STRING EtSplitBuildValue(
     _In_ HWND ListViewHandle
     )
 {
@@ -734,7 +737,7 @@ PPH_STRING EtSplitBuildValue(
  * \param Index The index of the item to move.
  * \param Delta The number of positions to move the item (negative for up, positive for down).
  */
-VOID EtSplitMoveItem(
+static VOID EtSplitMoveItem(
     _In_ HWND ListViewHandle,
     _In_ LONG Index,
     _In_ LONG Delta
@@ -770,7 +773,7 @@ VOID EtSplitMoveItem(
  * \param lParam The message-specific parameter.
  * \return The message result.
  */
-INT_PTR CALLBACK EtEnvSplitDlgProc(
+static INT_PTR CALLBACK EtEnvSplitDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1014,7 +1017,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
 
                     value = EtSplitBuildValue(context->ListViewHandle);
 
-                    if (EtShowEnvEditDialog(
+                    if (PhShowEnvironmentVariableEditDialog(
                         hwndDlg,
                         PhGetString(context->Name),
                         PhGetString(value),
@@ -1077,7 +1080,7 @@ INT_PTR CALLBACK EtEnvSplitDlgProc(
  * \param NewValue Receives the new value of the environment variable.
  * \return TRUE if the user committed the changes, FALSE otherwise.
  */
-BOOLEAN EtShowEnvSplitDialog(
+BOOLEAN PhShowEnvironmentVariableSplitDialog(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_STRING Name,
     _In_ PPH_STRING Value,
@@ -1117,7 +1120,7 @@ BOOLEAN EtShowEnvSplitDialog(
  *
  * \param Context The environment variables context.
  */
-VOID EtEnvironmentAdd(
+static VOID EtEnvironmentAdd(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -1130,7 +1133,7 @@ VOID EtEnvironmentAdd(
     selected = EtGetSelectedEnvironmentEntry(Context);
     system = (selected && selected->System && Context->Elevated) ? TRUE : FALSE;
 
-    if (!EtShowEnvEditDialog(Context->WindowHandle, NULL, NULL, FALSE, FALSE, &name, &value))
+    if (!PhShowEnvironmentVariableEditDialog(Context->WindowHandle, NULL, NULL, FALSE, FALSE, &name, &value))
         return;
 
     status = EtWriteEnvironmentVariable(system, name, value, PhFindCharInString(value, 0, L'%') != SIZE_MAX);
@@ -1154,7 +1157,7 @@ VOID EtEnvironmentAdd(
  *
  * \param Context The environment variables context.
  */
-VOID EtEnvironmentEdit(
+static VOID EtEnvironmentEdit(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -1172,7 +1175,7 @@ VOID EtEnvironmentEdit(
     {
         PPH_STRING newValue;
 
-        if (EtShowEnvSplitDialog(Context->WindowHandle, entry->Name, entry->Value, readOnly, &newValue))
+        if (PhShowEnvironmentVariableSplitDialog(Context->WindowHandle, entry->Name, entry->Value, readOnly, &newValue))
         {
             NTSTATUS status;
 
@@ -1197,7 +1200,7 @@ VOID EtEnvironmentEdit(
         PPH_STRING name;
         PPH_STRING value;
 
-        if (EtShowEnvEditDialog(
+        if (PhShowEnvironmentVariableEditDialog(
             Context->WindowHandle,
             PhGetString(entry->Name),
             PhGetString(entry->Value),
@@ -1239,7 +1242,7 @@ VOID EtEnvironmentEdit(
  *
  * \param Context The environment variables context.
  */
-VOID EtEnvironmentDelete(
+static VOID EtEnvironmentDelete(
     _In_ PENV_VARIABLES_CONTEXT Context
     )
 {
@@ -1287,7 +1290,7 @@ VOID EtEnvironmentDelete(
  * \param lParam The message-specific parameter.
  * \return The message result.
  */
-INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
+static INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,
@@ -1342,12 +1345,12 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->DeleteButtonHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, context->OkButtonHandle, NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
 
-            PhLoadListViewColumnsFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhLoadListViewColumnsFromSetting(SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
 
             EtRefreshEnvironmentVariables(context);
 
-            if (PhValidWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
-                PhLoadWindowPlacementFromSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
+            if (PhValidWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
@@ -1358,8 +1361,8 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveListViewColumnsToSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
-            PhSaveWindowPlacementToSetting(SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_NAME_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
+            PhSaveListViewColumnsToSetting(SETTING_ENVIRONMENT_VARIABLES_LIST_VIEW_COLUMNS, context->ListViewHandle);
+            PhSaveWindowPlacementToSetting(SETTING_ENVIRONMENT_VARIABLES_WINDOW_POSITION, SETTING_ENVIRONMENT_VARIABLES_WINDOW_SIZE, hwndDlg);
 
             PhUnregisterDialog(EtEnvironmentVariablesWindowHandle);
 
@@ -1487,7 +1490,7 @@ INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
-NTSTATUS EtEnvironmentVariablesWindowThreadStart(
+static NTSTATUS EtEnvironmentVariablesWindowThreadStart(
     _In_ PVOID Parameter
     )
 {
@@ -1505,10 +1508,23 @@ NTSTATUS EtEnvironmentVariablesWindowThreadStart(
         NULL
         );
 
+    if (EtEnvironmentVariablesWindowHandle)
+        PhRegisterDialog(EtEnvironmentVariablesWindowHandle);
+
     PhSetEvent(&EtEnvironmentVariablesInitializedEvent);
 
-    ShowWindow(EtEnvironmentVariablesWindowHandle, SW_SHOW);
-    SetForegroundWindow(EtEnvironmentVariablesWindowHandle);
+    if (!EtEnvironmentVariablesWindowHandle)
+    {
+        PhDeleteAutoPool(&autoPool);
+
+        if (EtEnvironmentVariablesWindowThreadHandle)
+        {
+            NtClose(EtEnvironmentVariablesWindowThreadHandle);
+            EtEnvironmentVariablesWindowThreadHandle = NULL;
+        }
+
+        return STATUS_UNSUCCESSFUL;
+    }
 
     while (result = GetMessage(&message, NULL, 0, 0))
     {
@@ -1542,7 +1558,7 @@ NTSTATUS EtEnvironmentVariablesWindowThreadStart(
  *
  * \param ParentWindowHandle The handle to the parent window.
  */
-VOID EtShowEnvironmentVariablesDialog(
+VOID PhShowEnvironmentVariablesDialog(
     _In_ HWND ParentWindowHandle
     )
 {
@@ -1555,6 +1571,13 @@ VOID EtShowEnvironmentVariablesDialog(
         }
 
         PhWaitForEvent(&EtEnvironmentVariablesInitializedEvent, NULL);
+
+        if (!EtEnvironmentVariablesWindowHandle)
+        {
+            PhResetEvent(&EtEnvironmentVariablesInitializedEvent);
+            PhShowError2(NULL, L"Unable to create the window.", L"%s", L"");
+            return;
+        }
     }
 
     PostMessage(EtEnvironmentVariablesWindowHandle, WM_PH_SHOW_DIALOG, 0, 0);

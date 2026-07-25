@@ -44,7 +44,6 @@ set(SOURCES
     "cacheprp.c"
     "counters.c"
     "disktab.c"
-    "envdlg.c"
     "etwdisk.c"
     "etwmini.c"
     "etwmon.c"

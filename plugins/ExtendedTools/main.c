@@ -234,11 +234,6 @@ VOID NTAPI MenuItemCallback(
             EtShowPoolTableDialog(menuItem->OwnerWindow);
         }
         break;
-    case ID_ENVIRONMENT_VARIABLES:
-        {
-            EtShowEnvironmentVariablesDialog(menuItem->OwnerWindow);
-        }
-        break;
     case ID_TPM:
         {
             EtShowTpmDialog(menuItem->OwnerWindow);
@@ -311,7 +306,6 @@ VOID NTAPI MainMenuInitializingCallback(
     }
 
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POOL_TABLE, L"Poo&l Table", NULL), ULONG_MAX);
-    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_ENVIRONMENT_VARIABLES, L"&Environment variables", NULL), ULONG_MAX);
     //PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_OBJMGR, L"&Object Manager", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_SMBIOS, L"SM&BIOS", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_ACPI, L"&ACPI Tables", NULL), ULONG_MAX);

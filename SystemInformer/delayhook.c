@@ -152,6 +152,46 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
             return (INT_PTR)PhGetStockBrush(DC_BRUSH);
         }
         break;
+    case WM_ERASEBKGND:
+        {
+            if (!PhEnableThemeSupport)
+                break;
+        }
+        return TRUE;
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paintStruct;
+            //PH_BUFFERED_PAINT paintBuffer;
+            //HDC bufferDc;
+            HDC hdc;
+
+            if (!PhEnableThemeSupport)
+                break;
+
+            if (!(hdc = BeginPaint(WindowHandle, &paintStruct)))
+                break;
+
+            if (PhRectEmpty(&paintStruct.rcPaint))
+            {
+                EndPaint(WindowHandle, &paintStruct);
+                return 0;
+            }
+
+            //if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
+            //{
+            //    FillRect(bufferDc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
+            //    CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)bufferDc, PRF_CLIENT);
+            //    PhEndBufferedPaint(&paintBuffer, TRUE);
+            //}
+            //else
+            {
+                FillRect(hdc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
+                CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)hdc, PRF_CLIENT);
+            }
+
+            EndPaint(WindowHandle, &paintStruct);
+        }
+        return 0;
     }
 
     return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
