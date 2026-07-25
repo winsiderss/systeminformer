@@ -227,5 +227,5 @@ VOID PvDoPropPageLayout(
     _In_ HWND WindowHandle
     )
 {
-    PhPropSheetNewRequestPageLayout(WindowHandle);
+    PhPropSheetNewPageLayout(WindowHandle);
 }
