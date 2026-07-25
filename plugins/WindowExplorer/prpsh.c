@@ -53,7 +53,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
     memset(&sheet, 0, sizeof(PH_PROPSHEETNEW));
     sheet.Caption = Caption;
     sheet.Layout = PhPropSheetNewLayoutTop;
-    sheet.Theme = PhTabNewThemeUxTheme;
+    sheet.Skin = PhTabNewSkinUxTheme;
     sheet.Flags = PH_PROPSHEETNEW_RESIZABLE |
         PH_PROPSHEETNEW_CENTER |
         PH_PROPSHEETNEW_CLOSE_BUTTON |
