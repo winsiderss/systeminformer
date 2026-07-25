@@ -993,6 +993,32 @@
 #define ID_TOOLS_RUNCONTAINER           10325
 #define ID_HACKER_ATTACHTOPROCESS       10326
 #define ID_TOOLS_ENVIRONMENT_VARIABLES  10327
+#define ID_AFFINITY_ALL                 10330
+#define ID_AFFINITY_PCORES              10331
+#define ID_AFFINITY_ECORES              10332
+#define ID_AFFINITY_EVEN                10333
+#define ID_AFFINITY_ODD                 10334
+#define ID_AFFINITY_FIRSTHALF           10335
+#define ID_AFFINITY_SECONDHALF          10336
+#define ID_AFFINITY_CUSTOM_1            10337
+#define ID_AFFINITY_CUSTOM_2            10338
+#define ID_AFFINITY_CUSTOM_3            10339
+#define ID_AFFINITY_CUSTOM_4            10340
+#define ID_AFFINITY_SAVE_PRESET_1       10341
+#define ID_AFFINITY_SAVE_PRESET_2       10342
+#define ID_AFFINITY_SAVE_PRESET_3       10343
+#define ID_AFFINITY_SAVE_PRESET_4       10344
+#define ID_AFFINITY_CLEAR_PRESET_1      10345
+#define ID_AFFINITY_CLEAR_PRESET_2      10346
+#define ID_AFFINITY_CLEAR_PRESET_3      10347
+#define ID_AFFINITY_CLEAR_PRESET_4      10348
+#define ID_AFFINITY_CLEAR_ALL_PRESETS   10349
+#define ID_AFFINITY_CCD_FIRST           10350
+#define ID_AFFINITY_CCD_LAST            10370
+#define ID_AFFINITY_NUMA_FIRST          10371
+#define ID_AFFINITY_NUMA_LAST           10390
+
+#define IDC_PRESETS                     1520
 
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
