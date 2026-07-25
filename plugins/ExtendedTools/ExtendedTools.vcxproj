@@ -107,7 +107,6 @@
     <ClCompile Include="etwdisk.c" />
     <ClCompile Include="etwmini.c" />
     <ClCompile Include="etwmon.c" />
-    <ClCompile Include="envdlg.c" />
     <ClCompile Include="firmware.c" />
     <ClCompile Include="firmware_editor.c" />
     <ClCompile Include="frameprp.c" />

@@ -42,6 +42,9 @@
     <ClCompile Include="chdlg.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="envdlg.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="chproc.c">
       <Filter>System Informer</Filter>
     </ClCompile>
