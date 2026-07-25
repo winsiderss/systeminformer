@@ -475,6 +475,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_SYSINFO_WINDOW_ONE_GRAPH_PER_CPU                    L"SysInfoWindowOneGraphPerCpu"
 #define SETTING_SYSINFO_WINDOW_POSITION                             L"SysInfoWindowPosition"
 #define SETTING_SYSINFO_WINDOW_SECTION                              L"SysInfoWindowSection"
+#define SETTING_SYSINFO_SECTION_ORDER                               L"SysInfoSectionOrder"
 #define SETTING_SYSINFO_WINDOW_SIZE                                 L"SysInfoWindowSize"
 #define SETTING_SYSINFO_WINDOW_STATE                                L"SysInfoWindowState"
 #define SETTING_TASKMGR_WINDOW_STATE                                L"TaskmgrWindowState"

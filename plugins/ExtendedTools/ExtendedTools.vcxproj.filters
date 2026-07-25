@@ -45,9 +45,6 @@
     <ClCompile Include="etwmon.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="envdlg.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="etwstat.c">
       <Filter>Source Files</Filter>
     </ClCompile>
