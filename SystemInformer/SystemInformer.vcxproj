@@ -235,6 +235,7 @@
     <ClCompile Include="appsup.c" />
     <ClCompile Include="chcol.c" />
     <ClCompile Include="chdlg.c" />
+    <ClCompile Include="envdlg.c" />
     <ClCompile Include="chproc.c" />
     <ClCompile Include="colmgr.c" />
     <ClCompile Include="colsetmgr.c" />

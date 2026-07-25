@@ -656,6 +656,17 @@ PhWordMatchStringLongHintZ(
     return PhWordMatchStringRef(&SearchText->sr, &text);
 }
 
+FORCEINLINE
+USHORT
+NTAPI
+PhGetWindowUniqueId(
+    _In_opt_ HWND WindowHandle
+    )
+{
+    // The upper word of a USER handle contains the entry's 15-bit uniqueness counter (wUniq).
+    return (USHORT)(HandleToUlong(WindowHandle) >> 16) & 0x7FFF;
+}
+
 PHAPPAPI
 PVOID
 NTAPI
