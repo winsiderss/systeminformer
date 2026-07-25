@@ -1863,7 +1863,7 @@ LdrSetImplicitPathOptions(
     );
 #endif
 
-#if (PHNT_VERSION >= PHNT_WINDOWS_10RS3)
+#if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // private
 /**
  * The LdrControlFlowGuardEnforced routine checks if Control Flow Guard is enforced.
