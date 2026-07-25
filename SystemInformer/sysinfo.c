@@ -45,6 +45,7 @@
 #include <guisup.h>
 #include <phplug.h>
 #include <phsettings.h>
+#include <emenu.h>
 
 HWND PhSipWindow = NULL;
 static HANDLE PhSipThread = NULL;
@@ -76,6 +77,183 @@ static LONG SummaryContentHeight;
 static LONG SummaryGraphHeight;
 static LONG SummaryGraphSpacing;
 #endif
+
+VOID PhSipLayoutSummaryView(VOID);
+VOID PhSipLayoutSectionView(VOID);
+
+VOID PhSipSaveSectionOrder(
+    VOID
+    )
+{
+    PH_STRING_BUILDER sb;
+    ULONG i;
+    PPH_SYSINFO_SECTION section;
+    PPH_STRING orderString;
+
+    PhInitializeStringBuilder(&sb, 128);
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+        PhAppendStringBuilder(&sb, &section->Name);
+        if (i < SectionList->Count - 1)
+            PhAppendCharStringBuilder(&sb, L',');
+    }
+
+    orderString = PhFinalStringBuilderString(&sb);
+    PhSetStringSetting2(SETTING_SYSINFO_SECTION_ORDER, &orderString->sr);
+    PhDereferenceObject(orderString);
+}
+
+VOID PhSipLoadSectionOrder(
+    VOID
+    )
+{
+    PPH_STRING orderSetting;
+    PH_STRINGREF remainingPart;
+    PH_STRINGREF part;
+    PPH_LIST newSectionList;
+    ULONG i;
+    PPH_SYSINFO_SECTION section;
+
+    orderSetting = PhaGetStringSetting(SETTING_SYSINFO_SECTION_ORDER);
+    if (PhIsNullOrEmptyString(orderSetting))
+        return;
+
+    newSectionList = PhCreateList(SectionList->Count);
+    remainingPart = orderSetting->sr;
+
+    while (remainingPart.Length != 0)
+    {
+        if (!PhSplitStringRefAtChar(&remainingPart, L',', &part, &remainingPart))
+        {
+            part = remainingPart;
+            remainingPart.Length = 0;
+        }
+
+        for (i = 0; i < SectionList->Count; i++)
+        {
+            section = SectionList->Items[i];
+
+            if (PhEqualStringRef(&section->Name, &part, TRUE))
+            {
+                if (PhFindItemList(newSectionList, section) == ULONG_MAX)
+                {
+                    PhAddItemList(newSectionList, section);
+                }
+                break;
+            }
+        }
+    }
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        section = SectionList->Items[i];
+        if (PhFindItemList(newSectionList, section) == ULONG_MAX)
+        {
+            PhAddItemList(newSectionList, section);
+        }
+    }
+
+    if (newSectionList->Count == SectionList->Count)
+    {
+        for (i = 0; i < SectionList->Count; i++)
+        {
+            SectionList->Items[i] = newSectionList->Items[i];
+        }
+    }
+
+    PhDereferenceObject(newSectionList);
+}
+
+VOID PhSipShowSectionContextMenu(
+    _In_ PPH_SYSINFO_SECTION Section,
+    _In_ HWND WindowHandle,
+    _In_ HWND TargetWindow,
+    _In_ INT X,
+    _In_ INT Y
+    )
+{
+    PPH_EMENU menu;
+    PPH_EMENU_ITEM moveUpItem;
+    PPH_EMENU_ITEM moveDownItem;
+    PPH_EMENU_ITEM selectedItem;
+    ULONG index = ULONG_MAX;
+    ULONG i;
+
+    for (i = 0; i < SectionList->Count; i++)
+    {
+        if (SectionList->Items[i] == Section)
+        {
+            index = i;
+            break;
+        }
+    }
+
+    if (index == ULONG_MAX)
+        return;
+
+    menu = PhCreateEMenu();
+    moveUpItem = PhCreateEMenuItem(0, 1, L"Move Up", NULL, NULL);
+    moveDownItem = PhCreateEMenuItem(0, 2, L"Move Down", NULL, NULL);
+
+    if (index == 0)
+        moveUpItem->Flags |= PH_EMENU_DISABLED;
+    if (index == SectionList->Count - 1)
+        moveDownItem->Flags |= PH_EMENU_DISABLED;
+
+    PhInsertEMenuItem(menu, moveUpItem, ULONG_MAX);
+    PhInsertEMenuItem(menu, moveDownItem, ULONG_MAX);
+
+    if (X == -1 && Y == -1)
+    {
+        RECT rect;
+        GetWindowRect(TargetWindow, &rect);
+        X = rect.left + (rect.right - rect.left) / 2;
+        Y = rect.top + (rect.bottom - rect.top) / 2;
+    }
+
+    selectedItem = PhShowEMenu(
+        menu,
+        WindowHandle,
+        PH_EMENU_SHOW_LEFTRIGHT,
+        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+        X,
+        Y
+        );
+
+    if (selectedItem)
+    {
+        if (selectedItem->Id == 1) // Move Up
+        {
+            SectionList->Items[index] = SectionList->Items[index - 1];
+            SectionList->Items[index - 1] = Section;
+            PhSipSaveSectionOrder();
+
+            if (CurrentView == SysInfoSummaryView)
+                PhSipLayoutSummaryView();
+            else
+                PhSipLayoutSectionView();
+
+            InvalidateRect(PhSipWindow, NULL, TRUE);
+        }
+        else if (selectedItem->Id == 2) // Move Down
+        {
+            SectionList->Items[index] = SectionList->Items[index + 1];
+            SectionList->Items[index + 1] = Section;
+            PhSipSaveSectionOrder();
+
+            if (CurrentView == SysInfoSummaryView)
+                PhSipLayoutSummaryView();
+            else
+                PhSipLayoutSectionView();
+
+            InvalidateRect(PhSipWindow, NULL, TRUE);
+        }
+    }
+
+    PhDestroyEMenu(menu);
+}
 
 VOID PhShowSystemInformationDialog(
     _In_opt_ PCWSTR SectionName
@@ -453,6 +631,8 @@ VOID PhSipOnInitDialog(
         pointers.RestoreSummaryView = PhSipRestoreSummaryView;
         PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackSystemInformationInitializing), &pointers);
     }
+
+    PhSipLoadSectionOrder();
 
     SeparatorControl = PhCreateWindow(
         WC_STATIC,
@@ -2598,6 +2778,12 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             PhSipEnterSectionView(section);
         }
         break;
+    case WM_CONTEXTMENU:
+        {
+            PhSipShowSectionContextMenu(section, hwnd, (HWND)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+            return 0;
+        }
+        break;
     case WM_UPDATEUISTATE:
         {
             switch (LOWORD(wParam))
@@ -2744,6 +2930,15 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
                 RestoreSummaryControlHasFocus = FALSE;
                 RestoreSummaryControlHot = FALSE;
                 InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+            }
+        }
+        break;
+    case WM_CONTEXTMENU:
+        {
+            if (section)
+            {
+                PhSipShowSectionContextMenu(section, hwnd, (HWND)wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+                return 0;
             }
         }
         break;
