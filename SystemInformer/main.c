@@ -118,6 +118,7 @@ INT WINAPI wWinMain(
 
     PhInitializeAppSystem();
     PhEmInitialization();
+    PhInitializeI18n();
 
     if (PhStartupParameters.ShowOptions)
     {
