@@ -6750,6 +6750,8 @@ NTSTATUS PhpFillDynamicRelocations(
                         entry.FuncOverride.BDDOffset = funcOverride->BDDOffset;
                         entry.FuncOverride.Rvas = rvas;
                         entry.FuncOverride.RvasCount = rvasCount;
+                        entry.FuncOverride.BDDRegion = bddInfoSize ? bddInfo : NULL;
+                        entry.FuncOverride.BDDRegionSize = bddInfoSize;
 
                         entry.ImageBaseVa = PTR_ADD_OFFSET(
                             MappedImage->NtHeaders->OptionalHeader.ImageBase,
@@ -7174,6 +7176,361 @@ VOID PhFreeMappedImageDynamicRelocations(
         Relocations->RelocationEntries = NULL;
         Relocations->NumberOfEntries = 0;
     }
+}
+
+// Feature numbers >= this are treated as "not present" by the loader, so the FALSE (Left)
+// edge is always taken. This is the ceiling checked in RtlpSelectFunctionFromBinaryDecisionDiagram.
+// (Exposed to callers as PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS.)
+#define PH_FUNCTION_OVERRIDE_MAX_FEATURE PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS
+
+/**
+ * Locates the sub-BDD (nodes + count) for a function-override entry.
+ *
+ * The BDD region begins with an IMAGE_BDD_INFO header; each override entry names a byte
+ * offset (BDDOffset) into that region where its own IMAGE_BDD_INFO header lives, followed
+ * by BDDSize bytes of nodes. This mirrors the region walk in RtlpParseBinaryDecisionDiagram.
+ *
+ * \param Entry The function-override relocation entry.
+ * \param Nodes Receives a pointer to the entry's BDD node array.
+ * \param NodesCount Receives the number of nodes.
+ * \return NTSTATUS Successful or errant status.
+ */
+static NTSTATUS PhpGetFunctionOverrideBddNodes(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _Out_ PIMAGE_BDD_DYNAMIC_RELOCATION* Nodes,
+    _Out_ PULONG NodesCount
+    )
+{
+    PIMAGE_BDD_INFO bddInfo;
+    PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
+    ULONG available;
+    ULONG headerEnd;
+
+    *Nodes = NULL;
+    *NodesCount = 0;
+
+    // When BDDOffset is zero and the offset-0 header was already resolved at capture time,
+    // reuse it directly (common case; also covers callers that lack a region pointer).
+    if (Entry->FuncOverride.BDDOffset == 0 && Entry->FuncOverride.BDDNodes)
+    {
+        *Nodes = Entry->FuncOverride.BDDNodes;
+        *NodesCount = Entry->FuncOverride.BDDNodesCount;
+        return STATUS_SUCCESS;
+    }
+
+    if (!Entry->FuncOverride.BDDRegion || Entry->FuncOverride.BDDRegionSize < sizeof(IMAGE_BDD_INFO))
+        return STATUS_INVALID_PARAMETER;
+
+    // The header must sit wholly within the region.
+    if (Entry->FuncOverride.BDDOffset > Entry->FuncOverride.BDDRegionSize - sizeof(IMAGE_BDD_INFO))
+        return STATUS_INVALID_PARAMETER;
+    headerEnd = Entry->FuncOverride.BDDOffset + sizeof(IMAGE_BDD_INFO);
+
+    bddInfo = PTR_ADD_OFFSET(Entry->FuncOverride.BDDRegion, Entry->FuncOverride.BDDOffset);
+
+    if (bddInfo->Version != 1)
+        return STATUS_NOT_SUPPORTED;
+    if (bddInfo->BDDSize < sizeof(IMAGE_BDD_DYNAMIC_RELOCATION))
+        return STATUS_INVALID_PARAMETER;
+
+    // BDDSize bytes of nodes must fit after the header, inside the region.
+    available = Entry->FuncOverride.BDDRegionSize - headerEnd;
+    if (bddInfo->BDDSize > available)
+        return STATUS_INVALID_PARAMETER;
+
+    nodes = PTR_ADD_OFFSET(bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize));
+
+    *Nodes = nodes;
+    *NodesCount = bddInfo->BDDSize / sizeof(IMAGE_BDD_DYNAMIC_RELOCATION);
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Builds a terminal outcome from a reached leaf node.
+ */
+static NTSTATUS PhpFunctionOverrideBuildOutcome(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PIMAGE_BDD_DYNAMIC_RELOCATION Node,
+    _In_ ULONG NodeIndex,
+    _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
+    )
+{
+    // A node with both edges zero is the "keep original" terminal; otherwise the terminal is
+    // a self-loop (Left == Right == its own index) whose Value indexes the candidate RVAs.
+    if (Node->Left == 0 && Node->Right == 0)
+    {
+        Outcome->Type = PhFunctionOverrideKeepOriginal;
+        Outcome->NodeIndex = NodeIndex;
+        Outcome->Rva = Entry->FuncOverride.OriginalRva;
+        Outcome->RvaIndex = ULONG_MAX;
+        return STATUS_SUCCESS;
+    }
+
+    if (Node->Value >= Entry->FuncOverride.RvasCount || !Entry->FuncOverride.Rvas)
+        return STATUS_INVALID_PARAMETER;
+
+    Outcome->Type = PhFunctionOverrideReplace;
+    Outcome->NodeIndex = NodeIndex;
+    Outcome->Rva = Entry->FuncOverride.Rvas[Node->Value];
+    Outcome->RvaIndex = Node->Value;
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Resolves a function-override BDD for a concrete capability set, matching the loader.
+ *
+ * \param Entry The function-override relocation entry.
+ * \param Capabilities Optional little-endian capability bit array indexed by feature number.
+ * \param CapabilitiesLength Length of \a Capabilities in bytes.
+ * \param Outcome Receives the resolved terminal.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhFunctionOverrideResolveBdd(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_reads_bytes_opt_(CapabilitiesLength) PVOID Capabilities,
+    _In_ ULONG CapabilitiesLength,
+    _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
+    )
+{
+    NTSTATUS status;
+    PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
+    ULONG nodesCount;
+    ULONG index;
+    ULONG steps;
+
+    RtlZeroMemory(Outcome, sizeof(PH_FUNCTION_OVERRIDE_OUTCOME));
+
+    if (Entry->Symbol != IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhpGetFunctionOverrideBddNodes(Entry, &nodes, &nodesCount);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    // Walk from the root (index 0). Bound the loop by the node count to reject cyclic graphs
+    // that are not simple self-loop terminals.
+    index = 0;
+
+    for (steps = 0; steps <= nodesCount; steps++)
+    {
+        PIMAGE_BDD_DYNAMIC_RELOCATION node;
+
+        if (index >= nodesCount)
+            return STATUS_INVALID_PARAMETER;
+
+        node = &nodes[index];
+
+        // Terminal: keep-original (both edges zero) or self-loop leaf.
+        if ((node->Left == 0 && node->Right == 0) ||
+            (node->Left == index && node->Right == index))
+        {
+            return PhpFunctionOverrideBuildOutcome(Entry, node, index, Outcome);
+        }
+
+        // Internal node: Value is a feature number. Features at/above the ceiling are never
+        // present, so take the FALSE (Left) edge; otherwise branch on the capability bit.
+        if (node->Value >= PH_FUNCTION_OVERRIDE_MAX_FEATURE)
+        {
+            index = node->Left;
+        }
+        else
+        {
+            ULONG byteIndex = node->Value / 8;
+            ULONG bitMask = 1u << (node->Value & 7);
+            BOOLEAN featureSet;
+
+            featureSet =
+                Capabilities &&
+                byteIndex < CapabilitiesLength &&
+                (((PUCHAR)Capabilities)[byteIndex] & bitMask) != 0;
+
+            index = featureSet ? node->Right : node->Left;
+        }
+    }
+
+    // Exceeded the node count without reaching a terminal: malformed BDD.
+    return STATUS_INVALID_PARAMETER;
+}
+
+typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
+{
+    PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry;
+    PPH_FUNCTION_OVERRIDE_BDD_CALLBACK Callback;
+    PVOID Context;
+    PIMAGE_BDD_DYNAMIC_RELOCATION Nodes;
+    ULONG NodesCount;
+    PULONG Visited;   // node indices already emitted as terminals (dedupes shared leaves)
+    ULONG VisitedCount;
+    BOOLEAN Stopped;
+} PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT, *PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT;
+
+/**
+ * Depth-first walk of a function-override BDD emitting each distinct terminal once.
+ */
+static NTSTATUS PhpFunctionOverrideWalk(
+    _In_ PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_ ULONG Depth
+    )
+{
+    PIMAGE_BDD_DYNAMIC_RELOCATION node;
+
+    if (Context->Stopped)
+        return STATUS_SUCCESS;
+
+    // Depth is bounded by the node count; a longer path implies a cycle through internal nodes.
+    if (Index >= Context->NodesCount || Depth > Context->NodesCount)
+        return STATUS_INVALID_PARAMETER;
+
+    node = &Context->Nodes[Index];
+
+    if ((node->Left == 0 && node->Right == 0) ||
+        (node->Left == Index && node->Right == Index))
+    {
+        PH_FUNCTION_OVERRIDE_OUTCOME outcome;
+        NTSTATUS status;
+
+        // Emit each terminal node only once even when multiple paths converge on it.
+        for (ULONG i = 0; i < Context->VisitedCount; i++)
+        {
+            if (Context->Visited[i] == Index)
+                return STATUS_SUCCESS;
+        }
+
+        status = PhpFunctionOverrideBuildOutcome(Context->Entry, node, Index, &outcome);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        Context->Visited[Context->VisitedCount++] = Index;
+
+        if (!Context->Callback(Context->Entry, &outcome, Context->Context))
+            Context->Stopped = TRUE;
+
+        return STATUS_SUCCESS;
+    }
+
+    if (node->Value < PH_FUNCTION_OVERRIDE_MAX_FEATURE)
+    {
+        NTSTATUS status;
+
+        // Both edges are reachable for a real feature; recurse into each.
+        status = PhpFunctionOverrideWalk(Context, node->Right, Depth + 1);
+
+        if (!NT_SUCCESS(status))
+            return status;
+    }
+
+    // Features at/above the ceiling only ever take the FALSE edge.
+    return PhpFunctionOverrideWalk(Context, node->Left, Depth + 1);
+}
+
+/**
+ * Enumerates every distinct terminal reachable in a function-override BDD.
+ *
+ * \param Entry The function-override relocation entry.
+ * \param Callback Invoked once per distinct terminal; return FALSE to stop.
+ * \param Context Optional caller context passed to \a Callback.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhFunctionOverrideEnumerateBdd(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_BDD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT context;
+    PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
+    ULONG nodesCount;
+
+    if (Entry->Symbol != IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhpGetFunctionOverrideBddNodes(Entry, &nodes, &nodesCount);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    RtlZeroMemory(&context, sizeof(context));
+    context.Entry = Entry;
+    context.Callback = Callback;
+    context.Context = Context;
+    context.Nodes = nodes;
+    context.NodesCount = nodesCount;
+    context.Visited = PhAllocate(nodesCount * sizeof(ULONG));
+
+    if (!context.Visited)
+        return STATUS_NO_MEMORY;
+
+    status = PhpFunctionOverrideWalk(&context, 0, 0);
+
+    PhFree(context.Visited);
+
+    return status;
+}
+
+/**
+ * Enumerates every node of a function-override sub-BDD in index order for tree layout.
+ *
+ * Each node is classified as an internal capability-test (feature number + FALSE/TRUE edges)
+ * or a terminal (resolved outcome). Nodes are reported in index order so callers can build the
+ * tree directly from the edges without a second pass.
+ *
+ * \param Entry The function-override relocation entry.
+ * \param Callback Invoked once per node; return FALSE to stop.
+ * \param Context Optional caller context passed to \a Callback.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhFunctionOverrideEnumerateBddNodes(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_NODE_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    )
+{
+    NTSTATUS status;
+    PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
+    ULONG nodesCount;
+
+    if (Entry->Symbol != IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhpGetFunctionOverrideBddNodes(Entry, &nodes, &nodesCount);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG index = 0; index < nodesCount; index++)
+    {
+        PIMAGE_BDD_DYNAMIC_RELOCATION node = &nodes[index];
+        PH_FUNCTION_OVERRIDE_BDD_NODE item;
+
+        RtlZeroMemory(&item, sizeof(item));
+        item.Index = index;
+
+        if ((node->Left == 0 && node->Right == 0) ||
+            (node->Left == index && node->Right == index))
+        {
+            item.IsTerminal = TRUE;
+
+            // A malformed leaf (out-of-range RVA index) is reported but its outcome is left
+            // zeroed rather than failing the whole enumeration; the caller sees the node exists.
+            PhpFunctionOverrideBuildOutcome(Entry, node, index, &item.Terminal);
+        }
+        else
+        {
+            item.IsTerminal = FALSE;
+            item.Internal.FeatureNumber = node->Value;
+            item.Internal.FalseEdge = node->Left;
+            item.Internal.TrueEdge = node->Right;
+        }
+
+        if (!Callback(Entry, &item, Context))
+            break;
+    }
+
+    return STATUS_SUCCESS;
 }
 
 /**

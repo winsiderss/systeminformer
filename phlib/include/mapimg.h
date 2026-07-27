@@ -1088,6 +1088,8 @@ typedef struct _PH_IMAGE_DYNAMIC_RELOC_ENTRY
             ULONG BDDOffset;
             PULONG Rvas;
             ULONG RvasCount;
+            PVOID BDDRegion;
+            ULONG BDDRegionSize;
         } FuncOverride;
 
         // IMAGE_DYNAMIC_RELOCATION_ARM64X
@@ -1219,6 +1221,82 @@ VOID
 NTAPI
 PhFreeMappedImageDynamicRelocations(
     _In_opt_ PPH_MAPPED_IMAGE_DYNAMIC_RELOC Relocations
+    );
+
+typedef enum _PH_FUNCTION_OVERRIDE_OUTCOME_TYPE
+{
+    PhFunctionOverrideKeepOriginal = 0,
+    PhFunctionOverrideReplace = 1,
+} PH_FUNCTION_OVERRIDE_OUTCOME_TYPE;
+
+typedef struct _PH_FUNCTION_OVERRIDE_OUTCOME
+{
+    PH_FUNCTION_OVERRIDE_OUTCOME_TYPE Type;
+    ULONG NodeIndex;
+    ULONG Rva;
+    ULONG RvaIndex;
+} PH_FUNCTION_OVERRIDE_OUTCOME, *PPH_FUNCTION_OVERRIDE_OUTCOME;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFunctionOverrideResolveBdd(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_reads_bytes_opt_(CapabilitiesLength) PVOID Capabilities,
+    _In_ ULONG CapabilitiesLength,
+    _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
+    );
+
+typedef _Function_class_(PH_FUNCTION_OVERRIDE_BDD_CALLBACK)
+BOOLEAN NTAPI PH_FUNCTION_OVERRIDE_BDD_CALLBACK(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome,
+    _In_opt_ PVOID Context
+    );
+typedef PH_FUNCTION_OVERRIDE_BDD_CALLBACK *PPH_FUNCTION_OVERRIDE_BDD_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFunctionOverrideEnumerateBdd(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_BDD_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+
+#define PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS 0x161
+
+typedef struct _PH_FUNCTION_OVERRIDE_BDD_NODE
+{
+    ULONG Index;
+    BOOLEAN IsTerminal;
+    union
+    {
+        struct
+        {
+            ULONG FeatureNumber;
+            ULONG FalseEdge;
+            ULONG TrueEdge;
+        } Internal;
+        PH_FUNCTION_OVERRIDE_OUTCOME Terminal;
+    };
+} PH_FUNCTION_OVERRIDE_BDD_NODE, *PPH_FUNCTION_OVERRIDE_BDD_NODE;
+
+typedef _Function_class_(PH_FUNCTION_OVERRIDE_NODE_CALLBACK)
+BOOLEAN NTAPI PH_FUNCTION_OVERRIDE_NODE_CALLBACK(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_BDD_NODE Node,
+    _In_opt_ PVOID Context
+    );
+typedef PH_FUNCTION_OVERRIDE_NODE_CALLBACK *PPH_FUNCTION_OVERRIDE_NODE_CALLBACK;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhFunctionOverrideEnumerateBddNodes(
+    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
+    _In_ PPH_FUNCTION_OVERRIDE_NODE_CALLBACK Callback,
+    _In_opt_ PVOID Context
     );
 
 typedef struct _PH_MAPPED_IMAGE_EXCEPTIONS
