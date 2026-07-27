@@ -1624,8 +1624,12 @@ VOID PhTnpOnMouseWheel(
     )
 {
     // The normal mouse wheel can affect both the vertical scrollbar and the horizontal scrollbar,
-    // but the vertical scrollbar takes precedence.
-    if (Context->VScrollVisible)
+    // but the vertical scrollbar takes precedence unless the Shift key is held for horizontal scrolling.
+    if ((VirtualKeys & MK_SHIFT) && Context->HScrollVisible)
+    {
+        PhTnpProcessMouseHWheel(Context, -Distance);
+    }
+    else if (Context->VScrollVisible)
     {
         PhTnpProcessMouseVWheel(Context, -Distance);
     }

@@ -4717,7 +4717,9 @@ LRESULT CALLBACK PhpThemeWindowACLUISubclassProc(
     switch (uMsg)
     {
     case WM_VSCROLL:
+    case WM_HSCROLL:
     case WM_MOUSEWHEEL:
+    case WM_MOUSEHWHEEL:
         InvalidateRect(WindowHandle, NULL, FALSE);
         break;
     case WM_NOTIFY:
