@@ -313,6 +313,7 @@ NTSTATUS NetworkTracertThreadStart(
     )
 {
     PNETWORK_TRACERT_CONTEXT context = (PNETWORK_TRACERT_CONTEXT)Parameter;
+    context->TracingActive = TRUE;
     HANDLE icmpHandle = INVALID_HANDLE_VALUE;
     SOCKADDR_STORAGE sourceAddress = { 0 };
     SOCKADDR_STORAGE destinationAddress = { 0 };
@@ -432,6 +433,9 @@ NTSTATUS NetworkTracertThreadStart(
 
                     memcpy_s(&last4ReplyAddress, sizeof(IN_ADDR), &reply4->Address, sizeof(IN_ADDR));
 
+                    ((PSOCKADDR_IN)&node->SocketAddress)->sin_family = AF_INET;
+                    ((PSOCKADDR_IN)&node->SocketAddress)->sin_addr.s_addr = reply4->Address;
+                    node->HasAddress = TRUE;
                     TracertQueueHostLookup(
                         context,
                         node,
@@ -440,6 +444,7 @@ NTSTATUS NetworkTracertThreadStart(
 
                     node->PingStatus[ii] = reply4->Status;
                     node->PingList[ii] = icmpCurrentPingMs;
+                    node->PingCount++;
                     UpdateTracertNode(context, node);
 
                     if (reply4->Status == IP_SUCCESS)
@@ -513,6 +518,9 @@ NTSTATUS NetworkTracertThreadStart(
 
                     memcpy(&last6ReplyAddress, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
 
+                    ((PSOCKADDR_IN6)&node->SocketAddress)->sin6_family = AF_INET6;
+                    memcpy(&((PSOCKADDR_IN6)&node->SocketAddress)->sin6_addr, &reply6->Address.sin6_addr, sizeof(IN6_ADDR));
+                    node->HasAddress = TRUE;
                     TracertQueueHostLookup(
                         context,
                         node,
@@ -521,6 +529,7 @@ NTSTATUS NetworkTracertThreadStart(
 
                     node->PingStatus[ii] = reply6->Status;
                     node->PingList[ii] = icmpCurrentPingMs;
+                    node->PingCount++;
                     UpdateTracertNode(context, node);
 
                     if (reply6->Status == IP_SUCCESS)
@@ -576,11 +585,142 @@ NTSTATUS NetworkTracertThreadStart(
         pingOptions.Ttl++;
     }
 
+    while (context->PingContinuous && !context->Cancel)
+    {
+        PPH_LIST nodesToPing;
+
+        nodesToPing = PhCreateList(context->NodeList->Count);
+        for (ULONG n = 0; n < context->NodeList->Count; n++)
+        {
+            PTRACERT_ROOT_NODE node = context->NodeList->Items[n];
+            PhReferenceObject(node);
+            PhAddItemList(nodesToPing, node);
+        }
+
+        for (ULONG n = 0; n < nodesToPing->Count; n++)
+        {
+            PTRACERT_ROOT_NODE node = nodesToPing->Items[n];
+
+            if (context->Cancel || !context->PingContinuous)
+                break;
+
+            if (!node->HasAddress)
+                continue;
+
+            ULONG ii = node->PingCount % DEFAULT_MAXIMUM_PINGS;
+
+            if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV4)
+            {
+                IP_OPTION_INFORMATION directOptions = { UCHAR_MAX, 0, IP_FLAG_DF, 0 };
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMP_ECHO_REPLY), icmpEchoBuffer->Length);
+                icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
+
+                PhQueryPerformanceCounter(&performanceCounterStart);
+
+                icmpReplyCount = IcmpSendEcho2Ex(
+                    icmpHandle,
+                    0,
+                    NULL,
+                    NULL,
+                    ((PSOCKADDR_IN)&sourceAddress)->sin_addr.s_addr,
+                    ((PSOCKADDR_IN)&node->SocketAddress)->sin_addr.s_addr,
+                    icmpEchoBuffer->Buffer,
+                    (USHORT)icmpEchoBuffer->Length,
+                    &directOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    context->Timeout
+                    );
+
+                PhQueryPerformanceCounter(&performanceCounterEnd);
+
+                if (icmpReplyCount > 0)
+                {
+                    PICMP_ECHO_REPLY reply4 = (PICMP_ECHO_REPLY)icmpReplyBuffer;
+
+                    performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+                    performanceCounterTime *= 1000000;
+                    performanceCounterTime /= performanceCounterFrequency.QuadPart;
+                    performanceCounterTime /= 1000;
+                    icmpCurrentOverhead = (ULONG)performanceCounterTime - reply4->RoundTripTime;
+                    icmpCurrentPingMs = performanceCounterTime - (FLOAT)icmpCurrentOverhead;
+
+                    node->PingStatus[ii] = reply4->Status;
+                    node->PingList[ii] = icmpCurrentPingMs;
+                }
+                else
+                {
+                    node->PingStatus[ii] = GetLastError();
+                }
+
+                node->PingCount++;
+                UpdateTracertNode(context, node);
+                PhFree(icmpReplyBuffer);
+            }
+            else if (context->RemoteEndpoint.Address.Type == PH_NETWORK_TYPE_IPV6)
+            {
+                IP_OPTION_INFORMATION directOptions = { UCHAR_MAX, 0, IP_FLAG_DF, 0 };
+                icmpReplyLength = ICMP_BUFFER_SIZE(sizeof(ICMPV6_ECHO_REPLY), icmpEchoBuffer->Length);
+                icmpReplyBuffer = PhAllocateZero(icmpReplyLength);
+
+                PhQueryPerformanceCounter(&performanceCounterStart);
+
+                icmpReplyCount = Icmp6SendEcho2(
+                    icmpHandle,
+                    0,
+                    NULL,
+                    NULL,
+                    ((PSOCKADDR_IN6)&sourceAddress),
+                    ((PSOCKADDR_IN6)&node->SocketAddress),
+                    icmpEchoBuffer->Buffer,
+                    (USHORT)icmpEchoBuffer->Length,
+                    &directOptions,
+                    icmpReplyBuffer,
+                    icmpReplyLength,
+                    context->Timeout
+                    );
+
+                PhQueryPerformanceCounter(&performanceCounterEnd);
+
+                if (icmpReplyCount > 0)
+                {
+                    PICMPV6_ECHO_REPLY reply6 = (PICMPV6_ECHO_REPLY)icmpReplyBuffer;
+
+                    performanceCounterTime = (FLOAT)(performanceCounterEnd.QuadPart - performanceCounterStart.QuadPart);
+                    performanceCounterTime *= 1000000;
+                    performanceCounterTime /= performanceCounterFrequency.QuadPart;
+                    performanceCounterTime /= 1000;
+                    icmpCurrentOverhead = (ULONG)performanceCounterTime - reply6->RoundTripTime;
+                    icmpCurrentPingMs = performanceCounterTime - (FLOAT)icmpCurrentOverhead;
+
+                    node->PingStatus[ii] = reply6->Status;
+                    node->PingList[ii] = icmpCurrentPingMs;
+                }
+                else
+                {
+                    node->PingStatus[ii] = GetLastError();
+                }
+
+                node->PingCount++;
+                UpdateTracertNode(context, node);
+                PhFree(icmpReplyBuffer);
+            }
+        }
+
+        for (ULONG n = 0; n < nodesToPing->Count; n++)
+        {
+            PhDereferenceObject(nodesToPing->Items[n]);
+        }
+        PhDereferenceObject(nodesToPing);
+
+        PhDelayExecution(1000);
+    }
 CleanupExit:
 
     if (icmpHandle && icmpHandle != INVALID_HANDLE_VALUE)
         IcmpCloseHandle(icmpHandle);
 
+    context->TracingActive = FALSE;
     PostMessage(context->WindowHandle, NTM_RECEIVEDFINISH, 0, (LPARAM)icmpReplyStatusFatal);
     PhDereferenceObject(context);
     PhClearReference(&icmpEchoBuffer);
@@ -786,6 +926,9 @@ INT_PTR CALLBACK TracertDlgProc(
             PhAddLayoutItem(&context->LayoutManager, context->TreeNewHandle, NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_REFRESH), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_RIGHT);
+            context->PingContinuous = !!PhGetIntegerSetting(SETTING_NAME_TRACERT_PING_CONTINUOUS);
+            Button_SetCheck(GetDlgItem(hwndDlg, IDC_PING_CONTINUOUS), context->PingContinuous ? BST_CHECKED : BST_UNCHECKED);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_CONTINUOUS), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_TRACERT_WINDOW_POSITION, SETTING_NAME_TRACERT_WINDOW_SIZE, hwndDlg);
@@ -850,6 +993,21 @@ INT_PTR CALLBACK TracertDlgProc(
 
                     PhReferenceObject(context);
                     PhCreateThread2(NetworkTracertThreadStart, context);
+                }
+                break;
+            case IDC_PING_CONTINUOUS:
+                {
+                    BOOLEAN checked = Button_GetCheck(GetDlgItem(hwndDlg, IDC_PING_CONTINUOUS)) == BST_CHECKED;
+                    context->PingContinuous = checked;
+                    PhSetIntegerSetting(SETTING_NAME_TRACERT_PING_CONTINUOUS, checked);
+
+                    if (checked && !context->TracingActive)
+                    {
+                        context->TracingActive = TRUE;
+                        EnableWindow(GetDlgItem(hwndDlg, IDC_REFRESH), TRUE);
+                        PhReferenceObject(context);
+                        PhCreateThread2(NetworkTracertThreadStart, context);
+                    }
                 }
                 break;
             case TRACERT_SHOWCONTEXTMENU:
@@ -979,13 +1137,13 @@ INT_PTR CALLBACK TracertDlgProc(
             PhSetWindowText(context->WindowHandle, PhaFormatString(
                 L"Tracing %s... %s",
                 context->RemoteAddressString,
-                failed ? L"error" : L"complete"
+                failed ? L"error" : (context->PingContinuous ? L"continuous ping active" : L"complete")
                 )->Buffer);
             PhSetWindowText(GetDlgItem(hwndDlg, IDC_STATUS), PhaFormatString(
                 L"Tracing route to %s with %lu bytes of data... %s.",
                 context->RemoteAddressString,
                 PhGetIntegerSetting(SETTING_NAME_PING_SIZE),
-                failed ? L"error" : L"complete"
+                failed ? L"error" : (context->PingContinuous ? L"continuous ping active" : L"complete")
                 )->Buffer);
 
             TreeNew_NodesStructured(context->TreeNewHandle);

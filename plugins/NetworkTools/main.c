@@ -1023,6 +1023,7 @@ LOGICAL DllMain(
                 { StringSettingType, SETTING_NAME_TRACERT_TREE_LIST_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_TRACERT_TREE_LIST_SORT, L"0,1" },
                 { IntegerSettingType, SETTING_NAME_TRACERT_MAX_HOPS, L"14" },
+                { IntegerSettingType, SETTING_NAME_TRACERT_PING_CONTINUOUS, L"0" },
                 { IntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WHOIS_WINDOW_SIZE, L"@96|600,365" },
                 { IntegerSettingType, SETTING_NAME_WHOIS_IPV6_SUPPORT, L"0" },

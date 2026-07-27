@@ -35,6 +35,7 @@
 #define SETTING_NAME_TRACERT_TREE_LIST_COLUMNS (PLUGIN_NAME L".TracertTreeColumns")
 #define SETTING_NAME_TRACERT_TREE_LIST_SORT (PLUGIN_NAME L".TracertTreeSort")
 #define SETTING_NAME_TRACERT_MAX_HOPS (PLUGIN_NAME L".TracertMaxHops")
+#define SETTING_NAME_TRACERT_PING_CONTINUOUS (PLUGIN_NAME L".TracertPingContinuous")
 #define SETTING_NAME_WHOIS_WINDOW_POSITION (PLUGIN_NAME L".WhoisWindowPosition")
 #define SETTING_NAME_WHOIS_WINDOW_SIZE (PLUGIN_NAME L".WhoisWindowSize")
 #define SETTING_NAME_WHOIS_IPV6_SUPPORT (PLUGIN_NAME L".WhoisProtocolSupport")
@@ -234,6 +235,8 @@ typedef struct _NETWORK_TRACERT_CONTEXT
 
     ULONG PingIndex;
     LONG WindowDpi;
+    volatile BOOLEAN PingContinuous;
+    volatile BOOLEAN TracingActive;
 } NETWORK_TRACERT_CONTEXT, *PNETWORK_TRACERT_CONTEXT;
 
 VOID ShowTracertWindow(
