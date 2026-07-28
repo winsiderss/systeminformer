@@ -5742,7 +5742,7 @@ NTSTATUS PhGetMappedImagePogoEntryByName(
     PIMAGE_DEBUG_POGO_SIGNATURE debugEntry;
     PIMAGE_DEBUG_POGO_ENTRY debugPogoEntry;
 
-    status = PhGetMappedImageDebugEntryByType(   
+    status = PhGetMappedImageDebugEntryByType(
         MappedImage,
         IMAGE_DEBUG_TYPE_POGO,
         &debugEntryLength,
@@ -6284,7 +6284,7 @@ NTSTATUS PhGetMappedImageDynamicRelocationsTable(
     {
         *Table = table;
     }
-    
+
     return STATUS_SUCCESS;
 }
 
@@ -7360,8 +7360,9 @@ typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
     PVOID Context;
     PIMAGE_BDD_DYNAMIC_RELOCATION Nodes;
     ULONG NodesCount;
-    PULONG Visited;   // node indices already emitted as terminals (dedupes shared leaves)
+    PULONG Visited;    // node indices already emitted as terminals (dedupes shared leaves)
     ULONG VisitedCount;
+    PBOOLEAN Expanded; // internal nodes already recursed into (a BDD is a DAG; avoids exponential re-walk)
     BOOLEAN Stopped;
 } PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT, *PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT;
 
@@ -7370,8 +7371,7 @@ typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
  */
 static NTSTATUS PhpFunctionOverrideWalk(
     _In_ PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT Context,
-    _In_ ULONG Index,
-    _In_ ULONG Depth
+    _In_ ULONG Index
     )
 {
     PIMAGE_BDD_DYNAMIC_RELOCATION node;
@@ -7379,8 +7379,7 @@ static NTSTATUS PhpFunctionOverrideWalk(
     if (Context->Stopped)
         return STATUS_SUCCESS;
 
-    // Depth is bounded by the node count; a longer path implies a cycle through internal nodes.
-    if (Index >= Context->NodesCount || Depth > Context->NodesCount)
+    if (Index >= Context->NodesCount)
         return STATUS_INVALID_PARAMETER;
 
     node = &Context->Nodes[Index];
@@ -7411,19 +7410,27 @@ static NTSTATUS PhpFunctionOverrideWalk(
         return STATUS_SUCCESS;
     }
 
+    // A BDD is a DAG: internal nodes are shared across paths. Expand each at most once so a
+    // diamond-shaped diagram is walked in O(nodes) rather than exponentially (and so any
+    // malformed back-edge terminates).
+    if (Context->Expanded[Index])
+        return STATUS_SUCCESS;
+
+    Context->Expanded[Index] = TRUE;
+
     if (node->Value < PH_FUNCTION_OVERRIDE_MAX_FEATURE)
     {
         NTSTATUS status;
 
         // Both edges are reachable for a real feature; recurse into each.
-        status = PhpFunctionOverrideWalk(Context, node->Right, Depth + 1);
+        status = PhpFunctionOverrideWalk(Context, node->Right);
 
         if (!NT_SUCCESS(status))
             return status;
     }
 
     // Features at/above the ceiling only ever take the FALSE edge.
-    return PhpFunctionOverrideWalk(Context, node->Left, Depth + 1);
+    return PhpFunctionOverrideWalk(Context, node->Left);
 }
 
 /**
@@ -7464,8 +7471,17 @@ NTSTATUS PhFunctionOverrideEnumerateBdd(
     if (!context.Visited)
         return STATUS_NO_MEMORY;
 
-    status = PhpFunctionOverrideWalk(&context, 0, 0);
+    context.Expanded = PhAllocateZero(nodesCount * sizeof(BOOLEAN));
 
+    if (!context.Expanded)
+    {
+        PhFree(context.Visited);
+        return STATUS_NO_MEMORY;
+    }
+
+    status = PhpFunctionOverrideWalk(&context, 0);
+
+    PhFree(context.Expanded);
     PhFree(context.Visited);
 
     return status;
@@ -8442,7 +8458,7 @@ NTSTATUS PhGetMappedImageSecurity(
     directorySize = dataDirectory->Size;
 
     // The security directory VirtualAddress is a file offset (not an RVA).
-        
+
     directoryBase = PTR_ADD_OFFSET(MappedImage->ViewBase, dataDirectory->VirtualAddress);
 
     __try
