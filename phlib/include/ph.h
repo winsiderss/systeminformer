@@ -17,5 +17,6 @@
 #include <phnative.h>
 #include <phnativeinl.h>
 #include <phutil.h>
+#include <phi18n.h>
 
 #endif

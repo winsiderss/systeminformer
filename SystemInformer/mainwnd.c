@@ -1355,6 +1355,18 @@ VOID PhMwpOnCommand(
     case ID_VIEW_SYSTEMINFORMATION:
         PhShowSystemInformationDialog(NULL);
         break;
+    case ID_LANGUAGE_EN_US:
+        PhSetCurrentLanguage(L"en-US");
+        PhSetStringSetting(L"Language", L"en-US");
+        PhMwpInitializeMainMenu(WindowHandle);
+        DrawMenuBar(WindowHandle);
+        break;
+    case ID_LANGUAGE_ZH_CN:
+        PhSetCurrentLanguage(L"zh-CN");
+        PhSetStringSetting(L"Language", L"zh-CN");
+        PhMwpInitializeMainMenu(WindowHandle);
+        DrawMenuBar(WindowHandle);
+        break;
     case ID_NOTIFICATIONS_ENABLEALL:
     case ID_NOTIFICATIONS_DISABLEALL:
     case ID_NOTIFICATIONS_NEWPROCESSES:
@@ -3723,6 +3735,19 @@ PPH_EMENU PhpCreateViewMenu(
 
     PhInsertEMenuItem(ViewMenu, PhCreateEMenuItem(0, ID_VIEW_UPDATEAUTOMATICALLY, L"Refresh a&utomatically\bF6", NULL, NULL), ULONG_MAX);
 
+    menuItem = PhCreateEMenuItem(0, 0, PH_I18N(L"&Language"), NULL, NULL);
+    {
+        PPH_EMENU_ITEM itemEn = PhCreateEMenuItem(0, ID_LANGUAGE_EN_US, L"English", NULL, NULL);
+        PPH_EMENU_ITEM itemZh = PhCreateEMenuItem(0, ID_LANGUAGE_ZH_CN, L"简体中文", NULL, NULL);
+        if (PhEqualStringZ(PhGetCurrentLanguage(), L"en-US", TRUE))
+            itemEn->Flags |= PH_EMENU_CHECKED;
+        else
+            itemZh->Flags |= PH_EMENU_CHECKED;
+        PhInsertEMenuItem(menuItem, itemEn, ULONG_MAX);
+        PhInsertEMenuItem(menuItem, itemZh, ULONG_MAX);
+    }
+    PhInsertEMenuItem(ViewMenu, menuItem, ULONG_MAX);
+
     return ViewMenu;
 }
 
@@ -3846,31 +3871,31 @@ PPH_EMENU PhpCreateMainMenu(
             PPH_EMENU_ITEM menuItem;
             menu->Flags |= PH_EMENU_MAINMENU;
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, L"&System", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, PH_I18N(L"&System"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateSystemMenu(menuItem, TRUE), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, PH_I18N(L"&View"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateViewMenu(menuItem), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, PH_I18N(L"&Tools"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, PH_I18N(L"&Users"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem, TRUE), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"&Help", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, PH_I18N(L"&Help"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);

@@ -276,6 +276,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_SHUTDOWN_BOOT_MENU                           L"EnableShutdownBootMenu"
 #define SETTING_ENABLE_SILENT_CRASH_NOTIFY                          L"EnableSilentCrashNotify"
 #define SETTING_ENABLE_THEME_SUPPORT                                L"EnableThemeSupport"
+#define SETTING_LANGUAGE                                            L"Language"
 #define SETTING_THEME_MODE                                          L"ThemeMode"
 #define SETTING_THEME_MODE_MIGRATED                                 L"ThemeModeMigrated"
 #define SETTING_SCROLLBAR_THEME                                     L"ScrollBarTheme"

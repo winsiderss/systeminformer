@@ -238,8 +238,10 @@
     <ClCompile Include="verify.c" />
     <ClCompile Include="workqueue.c" />
     <ClCompile Include="wslsup.c" />
+    <ClCompile Include="i18n.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\phi18n.h" />
     <ClInclude Include="include\apiimport.h" />
     <ClInclude Include="include\appresolver.h" />
     <ClInclude Include="include\appresolverp.h" />

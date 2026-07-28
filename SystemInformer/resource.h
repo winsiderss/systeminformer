@@ -790,6 +790,8 @@
 #define ID_THREAD_FREEZE                10086
 #define ID_THREAD_THAW                  10087
 #define ID_VIEW_SYSTEMINFORMATION       10091
+#define ID_LANGUAGE_EN_US               60001
+#define ID_LANGUAGE_ZH_CN               60002
 #define ID_TRAYICONS_CPUHISTORY         10093
 #define ID_TRAYICONS_CPUUSAGE           10094
 #define ID_TRAYICONS_COMMITHISTORY      10096
