@@ -361,6 +361,50 @@ BOOLEAN NTAPI PvDynRelocBddCollectCallback(
     return TRUE;
 }
 
+// Translates a single function-override BDD feature number into a human-readable term.
+//
+// The feature-number space is assigned by ntoskrnl's RtlpInitFunctionOverrideCapabilities. The CPU
+// family/model/vendor selectors it derives from the processor signature are fused and named by the
+// condition builder (which sees the whole AND-chain); this routine handles the standalone terms.
+// Vendor and CPUID names are recovered from RtlGetCpuVendor / RtlpCpuFeatureTable and are exact;
+// unmapped hardcoded capability IDs (e.g. 315, 326) stay as "feature N" rather than be guessed.
+PPH_STRING PvDynRelocFeatureString(
+    _In_ ULONG Feature
+    )
+{
+    switch (Feature)
+    {
+    // Vendor selector (RtlGetCpuVendor -> capability, see RtlpInitFunctionOverrideCapabilities):
+    // Intel=8, AMD=9, Centaur/Zhaoxin=10; 7 = set for every supported vendor.
+    case 7: return PhCreateString(L"any CPU vendor");
+    case 8: return PhCreateString(L"Intel");
+    case 9: return PhCreateString(L"AMD");
+    case 10: return PhCreateString(L"Centaur/Zhaoxin");
+    // Hardcoded capability IDs with recoverable meaning.
+    case 325: return PhCreateString(L"SMEP");                  // guard-dispatch EsSmep vs EsNoSmep
+    case 327: return PhCreateString(L"hypervisor compatible");
+    // CPUID instruction-set bits, recovered from RtlpCpuFeatureTable (leaf/register/bit).
+    case 0:   return PhCreateString(L"ERMS");     // CPUID.7:EBX[9]  (Enhanced REP MOVSB)
+    case 1:   return PhCreateString(L"FSRM");     // CPUID.7:EDX[4]  (Fast Short REP MOV)
+    case 316: return PhCreateString(L"AVX");      // CPUID.1:ECX[28]
+    case 317: return PhCreateString(L"AVX2");     // CPUID.7:EBX[5]
+    case 318: return PhCreateString(L"AVX-512F"); // CPUID.7:EBX[16]
+    case 324: return PhCreateString(L"SSE4.1");   // CPUID.1:ECX[19]
+    }
+
+    // Everything else (unconditional baseline capability IDs like 315/326, and other hardcoded
+    // SCP/CFG IDs) has no published name; show the raw number.
+    return PhFormatString(L"feature %lu", Feature);
+}
+
+// CPU-signature field ranges (base + field value) from RtlpInitFunctionOverrideCapabilities.
+#define PV_DYNRELOC_IS_MODEL(f)       ((f) >= 11 && (f) <= 26)   // CPUID base model    [4:7]
+#define PV_DYNRELOC_IS_EXTMODEL(f)    ((f) >= 27 && (f) <= 42)   // CPUID extended model [16:19]
+#define PV_DYNRELOC_IS_FAMILY(f)      ((f) >= 43 && (f) <= 58)   // CPUID base family   [8:11]
+#define PV_DYNRELOC_IS_EXTFAMILY(f)   ((f) >= 59 && (f) <= 314)  // CPUID extended family [20:27]
+#define PV_DYNRELOC_IS_CPUIDENT(f)    (PV_DYNRELOC_IS_MODEL(f) || PV_DYNRELOC_IS_EXTMODEL(f) || \
+                                       PV_DYNRELOC_IS_FAMILY(f) || PV_DYNRELOC_IS_EXTFAMILY(f))
+
 PPH_STRING PvDynRelocOutcomeString(
     _In_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
     )
@@ -371,164 +415,234 @@ PPH_STRING PvDynRelocOutcomeString(
     return PhFormatString(L"override[%lu]", Outcome->RvaIndex);
 }
 
-// Emits a single leaf (terminal) row under ParentNode: the resolved target RVA in the RVA column
-// (so it sorts and resolves Section/Symbol) and the outcome kind in Info.
-VOID PvDynRelocAddBddLeaf(
-    _Inout_ PPV_PE_DYNRELOC_CONTEXT Context,
-    _In_ PPV_DYNRELOC_NODE ParentNode,
-    _In_ PPH_FUNCTION_OVERRIDE_BDD_NODE Node
+// Builds the AND-chain condition string starting at *Index, following TRUE edges through fresh
+// internal nodes that share the head's FALSE target. On return *Index is the "then" target taken
+// when every feature is present, CommonFalse is the shared else target, and AlwaysAbsent is set if
+// any term is an always-absent feature (so the whole AND can never hold). Each consumed node is
+// marked Expanded.
+PPH_STRING PvDynRelocBuildCondition(
+    _In_ PPH_LIST Nodes,
+    _Inout_ PULONG Index,
+    _Out_ PULONG CommonFalse,
+    _Out_ PBOOLEAN AlwaysAbsent,
+    _Inout_ PBOOLEAN Expanded
     )
 {
-    PPV_DYNRELOC_NODE treeNode;
+    PPH_FUNCTION_OVERRIDE_BDD_NODE node = Nodes->Items[*Index];
+    PH_STRING_BUILDER sb;
+    ULONG commonFalse = node->Internal.FalseEdge;
+    ULONG thenIndex = *Index;
+    BOOLEAN alwaysAbsent = FALSE;
+    BOOLEAN needAnd = FALSE;
 
-    treeNode = PvAddDynRelocNode(
-        Context,
-        ParentNode,
-        PH_AUTO_T(PH_STRING, PhFormatString(L"0x%lx", Node->Terminal.Rva))->Buffer,
-        NULL,
-        PvDynRelocOutcomeString(&Node->Terminal)
-        );
+    // CPU-signature pieces are accumulated and fused into "family F, model 0xMM" (matching the
+    // DisplayFamily/DisplayModel formula in RtlGetProcessorSignature) rather than shown as three
+    // separate raw fields. Presence flags track which pieces the AND-chain actually constrained.
+    BOOLEAN haveFamily = FALSE, haveExtFamily = FALSE, haveModel = FALSE, haveExtModel = FALSE;
+    ULONG family = 0, extFamily = 0, model = 0, extModel = 0;
 
-    PvDynRelocSetRvaColumns(treeNode, Node->Terminal.Rva);
+    PhInitializeStringBuilder(&sb, 64);
+
+    // Walk the AND-chain: nodes linked by TRUE edges that share the common FALSE target.
+    for (;;)
+    {
+        PPH_FUNCTION_OVERRIDE_BDD_NODE link;
+        ULONG feature;
+
+        if (thenIndex >= Nodes->Count)
+            break;
+
+        link = Nodes->Items[thenIndex];
+
+        // Stop at a terminal, an already-expanded node, or a node with a different else target.
+        if (thenIndex != *Index &&
+            (link->IsTerminal || Expanded[thenIndex] || link->Internal.FalseEdge != commonFalse))
+            break;
+
+        feature = link->Internal.FeatureNumber;
+
+        if (feature >= PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS)
+            alwaysAbsent = TRUE;
+
+        if (PV_DYNRELOC_IS_FAMILY(feature))      { haveFamily = TRUE; family = feature - 43; }
+        else if (PV_DYNRELOC_IS_EXTFAMILY(feature)) { haveExtFamily = TRUE; extFamily = feature - 59; }
+        else if (PV_DYNRELOC_IS_MODEL(feature))     { haveModel = TRUE; model = feature - 11; }
+        else if (PV_DYNRELOC_IS_EXTMODEL(feature))  { haveExtModel = TRUE; extModel = feature - 27; }
+        else
+        {
+            // A non-signature feature: render inline in encounter order (space-separated tags).
+            if (needAnd) PhAppendStringBuilder2(&sb, L" ");
+            PhAppendStringBuilder2(&sb, PH_AUTO_T(PH_STRING, PvDynRelocFeatureString(feature))->Buffer);
+            needAnd = TRUE;
+        }
+
+        Expanded[thenIndex] = TRUE;
+        thenIndex = link->Internal.TrueEdge;
+    }
+
+    // Emit the fused CPU-signature term, if any signature field was constrained.
+    if (haveFamily || haveExtFamily || haveModel || haveExtModel)
+    {
+        if (needAnd) PhAppendStringBuilder2(&sb, L" ");
+
+        if (haveFamily)
+        {
+            // DisplayFamily folds extended family only for base family 15.
+            ULONG displayFamily = (family == 15 && haveExtFamily) ? family + extFamily : family;
+            PhAppendFormatStringBuilder(&sb, L"family %lu", displayFamily);
+        }
+        else if (haveExtFamily)
+        {
+            PhAppendFormatStringBuilder(&sb, L"ext family %lu", extFamily);
+        }
+
+        if (haveModel || haveExtModel)
+        {
+            // DisplayModel folds extended model for base family 6 and 15 (RtlGetProcessorSignature).
+            ULONG displayModel = ((family == 6 || family == 15) && haveExtModel)
+                ? ((extModel << 4) | model)
+                : model;
+
+            if (haveFamily || haveExtFamily)
+                PhAppendStringBuilder2(&sb, L" ");
+
+            if (haveModel && (haveExtModel || haveFamily))
+                PhAppendFormatStringBuilder(&sb, L"model 0x%02lX", displayModel);
+            else if (haveModel)
+                PhAppendFormatStringBuilder(&sb, L"model %lu", model);
+            else
+                PhAppendFormatStringBuilder(&sb, L"ext model %lu", extModel);
+        }
+
+        needAnd = TRUE;
+    }
+
+    if (!needAnd)
+        PhAppendStringBuilder2(&sb, L"(unconstrained)");
+
+    *Index = thenIndex;
+    *CommonFalse = commonFalse;
+    *AlwaysAbsent = alwaysAbsent;
+    return PhFinalStringBuilderString(&sb);
 }
 
-// Lays out the BDD node at Index as content under ParentNode, reading like C.
+// Renders the BDD rooted at Index as a flat, priority-ordered outcome list under ParentNode.
 //
-// Two shapes are flattened so the tree stays shallow and legible:
+// Real function-override BDDs are feature-priority ladders: each else-spine rung is an AND of
+// features guarding a single outcome, with a final unconditional default. Each rung is emitted as
+// ONE row -- RVA + resolved symbol for the target, the override index / "keep original" tag in the
+// Type column, and the guard condition ("if ...", "else if ...", "else") in Info -- so the whole
+// decision reads as a flat list rather than a nested tree.
 //
-//   * else-spine: internal nodes chained by their FALSE (feature-absent) edge become sibling
-//     "if" / "else if" / ... / "else" rows rather than ever-deeper nesting.
-//   * AND-chain: a run of internal nodes chained by their TRUE (feature-present) edge that all
-//     share one common FALSE target is a short-circuit AND, collapsed into a single
-//     "if (feature A && feature B && ...)" row. Only a genuine sub-decision inside a then-branch
-//     (a TRUE target that is itself a fresh decision) increases depth.
+// The BDD format does permit a rung whose then-branch is itself a further decision; that case
+// cannot be one flat row, so it falls back to a nested condition row with the sub-decision beneath
+// it. A BDD is a DAG, so each internal node is expanded at most once (Expanded); a node reached
+// again emits a compact "(shared node N)" reference.
 //
-// A BDD is a DAG: each internal node is expanded at most once (tracked in Expanded); a node
-// reached again elsewhere emits a compact "(shared node N)" reference instead of being re-walked
-// (which would be exponential and, for malformed back-edges, unbounded).
-//
-// Root call passes ParentNode = the "Decision tree" node and Index = 0. A terminal root (an
-// unconditional override) renders as a single outcome row with no if/else.
-VOID PvDynRelocAddBddNode(
+// Root call passes Index = 0. A terminal root (unconditional override) is a single outcome row.
+// Count is incremented once per emitted outcome row (leaf), not for condition or shared-ref rows.
+VOID PvDynRelocAddBddOutcomes(
     _Inout_ PPV_PE_DYNRELOC_CONTEXT Context,
     _In_ PPV_DYNRELOC_NODE ParentNode,
     _In_ PPH_LIST Nodes,
     _In_ ULONG Index,
-    _In_ PBOOLEAN Expanded
+    _In_ PBOOLEAN Expanded,
+    _Inout_ PULONG Count
     )
 {
-    BOOLEAN first = TRUE; // first link in the else-spine -> "if"; subsequent -> "else if"
+    BOOLEAN first = TRUE; // first rung is the primary; the trailing terminal is the (default)
 
     for (;;)
     {
         PPH_FUNCTION_OVERRIDE_BDD_NODE node;
-        PPV_DYNRELOC_NODE condNode;
-        PH_STRING_BUILDER conditionBuilder;
+        PPV_DYNRELOC_NODE row;
+        PPH_STRING condition;
+        PPH_STRING guard;
         ULONG commonFalse;
         ULONG thenIndex;
-        BOOLEAN alwaysAbsent = FALSE;
-        PPH_STRING info;
+        BOOLEAN alwaysAbsent;
 
         if (Index >= Nodes->Count)
             return;
 
         node = Nodes->Items[Index];
 
-        // Tail of the else-spine: a terminal outcome, or a shared node we cannot re-expand. When it
-        // is the very first link there was no preceding condition, so emit it directly (an
-        // unconditional outcome); otherwise wrap it in a trailing "else".
+        // Else-spine tail: the fall-through outcome taken when no condition above matched.
         if (node->IsTerminal)
         {
-            if (first)
-            {
-                PvDynRelocAddBddLeaf(Context, ParentNode, node);
-            }
-            else
-            {
-                PPV_DYNRELOC_NODE elseNode = PvAddDynRelocNode(Context, ParentNode, L"else", NULL, NULL);
-                PvDynRelocAddBddLeaf(Context, elseNode, node);
-            }
+            row = PvAddDynRelocNode(
+                Context,
+                ParentNode,
+                PH_AUTO_T(PH_STRING, PhFormatString(L"0x%lx", node->Terminal.Rva))->Buffer,
+                PH_AUTO_T(PH_STRING, PvDynRelocOutcomeString(&node->Terminal))->Buffer,
+                first ? NULL : PhCreateString(L"(default)")
+                );
+            PvDynRelocSetRvaColumns(row, node->Terminal.Rva);
+            (*Count)++;
             return;
         }
 
         if (Expanded[Index])
         {
-            info = PhFormatString(L"(shared node %lu)", Index);
-
-            if (first)
-            {
-                PvAddDynRelocNode(Context, ParentNode, NULL, NULL, info);
-            }
-            else
-            {
-                PPV_DYNRELOC_NODE elseNode = PvAddDynRelocNode(Context, ParentNode, L"else", NULL, NULL);
-                PvAddDynRelocNode(Context, elseNode, NULL, NULL, info);
-            }
+            PvAddDynRelocNode(Context, ParentNode, NULL, NULL,
+                PhFormatString(L"(shared node %lu)", Index));
             return;
         }
 
-        // Collapse a short-circuit AND: follow TRUE edges while each node is a fresh internal node
-        // sharing the head's FALSE target, accumulating "feature A && feature B && ...". thenIndex
-        // is the body taken when every feature is present; commonFalse continues the else-spine.
-        commonFalse = node->Internal.FalseEdge;
-        thenIndex = node->Internal.TrueEdge;
+        // Collapse the AND-chain for this rung; thenIndex becomes the then-target. The list is a
+        // priority ladder (first match wins), so conditions stand alone without if/else-if noise.
+        thenIndex = Index;
+        condition = PvDynRelocBuildCondition(Nodes, &thenIndex, &commonFalse, &alwaysAbsent, Expanded);
 
-        PhInitializeStringBuilder(&conditionBuilder, 40);
-        PhAppendFormatStringBuilder(&conditionBuilder, L"%ls (feature %lu", first ? L"if" : L"else if", node->Internal.FeatureNumber);
-
-        if (node->Internal.FeatureNumber >= PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS)
-            alwaysAbsent = TRUE;
-
-        Expanded[Index] = TRUE;
-
-        for (;;)
+        if (alwaysAbsent)
         {
-            PPH_FUNCTION_OVERRIDE_BDD_NODE nextNode;
-
-            if (thenIndex >= Nodes->Count)
-                break;
-
-            nextNode = Nodes->Items[thenIndex];
-
-            // Extend the AND only through fresh internal nodes that share the common FALSE target;
-            // anything else is the then-body (or a distinct sub-decision) and ends the chain.
-            if (nextNode->IsTerminal || Expanded[thenIndex] || nextNode->Internal.FalseEdge != commonFalse)
-                break;
-
-            PhAppendFormatStringBuilder(&conditionBuilder, L" && feature %lu", nextNode->Internal.FeatureNumber);
-
-            if (nextNode->Internal.FeatureNumber >= PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS)
-                alwaysAbsent = TRUE;
-
-            Expanded[thenIndex] = TRUE;
-            thenIndex = nextNode->Internal.TrueEdge;
+            guard = PhFormatString(L"%ls (always absent)", condition->Buffer);
+            PhDereferenceObject(condition);
+        }
+        else
+        {
+            guard = condition; // transfer ownership to the row
         }
 
-        PhAppendCharStringBuilder(&conditionBuilder, L')');
+        if (thenIndex < Nodes->Count && !alwaysAbsent && ((PPH_FUNCTION_OVERRIDE_BDD_NODE)Nodes->Items[thenIndex])->IsTerminal)
+        {
+            // Flat case: the guarded body is a single outcome -> one combined row.
+            PPH_FUNCTION_OVERRIDE_BDD_NODE thenNode = Nodes->Items[thenIndex];
 
-        info = alwaysAbsent ? PhCreateString(L"always absent") : NULL;
+            row = PvAddDynRelocNode(
+                Context,
+                ParentNode,
+                PH_AUTO_T(PH_STRING, PhFormatString(L"0x%lx", thenNode->Terminal.Rva))->Buffer,
+                PH_AUTO_T(PH_STRING, PvDynRelocOutcomeString(&thenNode->Terminal))->Buffer,
+                guard
+                );
+            PvDynRelocSetRvaColumns(row, thenNode->Terminal.Rva);
+            (*Count)++;
+        }
+        else
+        {
+            // Fallback: an always-absent guard (then-branch unreachable) or a genuine sub-decision.
+            // Emit the condition row; nest the sub-decision beneath it when one is reachable.
+            row = PvAddDynRelocNode(
+                Context,
+                ParentNode,
+                NULL,
+                NULL,
+                guard
+                );
 
-        condNode = PvAddDynRelocNode(
-            Context,
-            ParentNode,
-            PhFinalStringBuilderString(&conditionBuilder)->Buffer,
-            NULL,
-            info
-            );
-        PhDeleteStringBuilder(&conditionBuilder);
+            if (!alwaysAbsent)
+                PvDynRelocAddBddOutcomes(Context, row, Nodes, thenIndex, Expanded, Count);
+        }
 
-        // then-branch: every feature present. Never reached if any term is an always-absent feature
-        // (at or above the loader ceiling), in which case the AND can never be satisfied.
-        if (!alwaysAbsent)
-            PvDynRelocAddBddNode(Context, condNode, Nodes, thenIndex, Expanded);
-
-        // Continue the else-spine (all-features-absent path) as siblings.
+        // Continue down the else-spine as sibling rungs.
         Index = commonFalse;
         first = FALSE;
     }
 }
 
-VOID PvDynRelocAddOverrideDecisionTree(
+// Populates ParentNode with the flattened outcome list and returns the number of outcome rows.
+ULONG PvDynRelocAddOverrideDecisionTree(
     _Inout_ PPV_PE_DYNRELOC_CONTEXT Context,
     _In_ PPV_DYNRELOC_NODE ParentNode,
     _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Representative
@@ -536,6 +650,7 @@ VOID PvDynRelocAddOverrideDecisionTree(
 {
     PV_DYNRELOC_BDD_COLLECT collect;
     PBOOLEAN expanded;
+    ULONG count = 0;
 
     collect.Nodes = PhCreateList(8);
 
@@ -547,18 +662,20 @@ VOID PvDynRelocAddOverrideDecisionTree(
         for (ULONG i = 0; i < collect.Nodes->Count; i++)
             PhFree(collect.Nodes->Items[i]);
         PhDereferenceObject(collect.Nodes);
-        return;
+        return 0;
     }
 
     expanded = PhAllocateZero(collect.Nodes->Count * sizeof(BOOLEAN));
 
-    PvDynRelocAddBddNode(Context, ParentNode, collect.Nodes, 0, expanded);
+    PvDynRelocAddBddOutcomes(Context, ParentNode, collect.Nodes, 0, expanded, &count);
 
     PhFree(expanded);
 
     for (ULONG i = 0; i < collect.Nodes->Count; i++)
         PhFree(collect.Nodes->Items[i]);
     PhDereferenceObject(collect.Nodes);
+
+    return count;
 }
 
 VOID PvEnumerateDynamicRelocationEntries(
@@ -680,12 +797,17 @@ VOID PvEnumerateDynamicRelocationEntries(
             treeNode = PvAddDynRelocNode(
                 Context,
                 group->RootNode,
-                L"Decision tree",
+                NULL,
                 NULL,
                 NULL
                 );
 
-            PvDynRelocAddOverrideDecisionTree(Context, treeNode, group->Representative);
+            {
+                ULONG outcomeCount = PvDynRelocAddOverrideDecisionTree(Context, treeNode, group->Representative);
+
+                // Label the group node with the outcome count, mirroring "Patch sites (N)".
+                treeNode->Rva = PhFormatString(L"Outcomes (%lu)", outcomeCount);
+            }
 
             if (baselineString)
                 PhDereferenceObject(baselineString);
