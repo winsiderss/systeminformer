@@ -13,6 +13,8 @@
 #include <peview.h>
 #include "colmgr.h"
 
+#include <overridecapabilities.h>
+
 #define WM_PV_DYNRELOC_CONTEXTMENU (WM_APP + 801)
 
 typedef enum _PV_DYNRELOC_TREE_COLUMN
@@ -334,10 +336,30 @@ PWSTR PvDynRelocOverrideTypeName(
 {
     switch (Type)
     {
+    case IMAGE_FUNCTION_OVERRIDE_INVALID: return L"INVALID";
     case IMAGE_FUNCTION_OVERRIDE_X64_REL32: return L"X64 REL32";
     case IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26: return L"ARM64 BRANCH26";
     case IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK: return L"ARM64 THUNK";
     default: return L"UNKNOWN";
+    }
+}
+
+// Bytes the loader rewrites at a patch site, which is a property of the record type (taken from
+// RtlpParseFunctionOverrideRelocations): a THUNK patch is twice the width of a branch/rel32 one.
+// Returns 0 for types with no defined width.
+ULONG PvDynRelocOverridePatchWidth(
+    _In_ ULONG Type
+    )
+{
+    switch (Type)
+    {
+    case IMAGE_FUNCTION_OVERRIDE_X64_REL32:
+    case IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26:
+        return 4;
+    case IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK:
+        return 8;
+    default:
+        return 0;
     }
 }
 
@@ -363,45 +385,232 @@ BOOLEAN NTAPI PvDynRelocBddCollectCallback(
 
 // Translates a single function-override BDD feature number into a human-readable term.
 //
-// The feature-number space is assigned by ntoskrnl's RtlpInitFunctionOverrideCapabilities. The CPU
-// family/model/vendor selectors it derives from the processor signature are fused and named by the
-// condition builder (which sees the whole AND-chain); this routine handles the standalone terms.
-// Vendor and CPUID names are recovered from RtlGetCpuVendor / RtlpCpuFeatureTable and are exact;
-// unmapped hardcoded capability IDs (e.g. 315, 326) stay as "feature N" rather than be guessed.
+// Names come from the SDK overridecapabilities.h (OVRDCAP_*), which is authoritative: the numbers
+// there are the same space ntoskrnl's RtlpInitFunctionOverrideCapabilities populates. Two families
+// are deliberately not spelled out here:
+//
+//  - CPU-signature selectors (vendor / family / model and their extended forms) are fused by the
+//    condition builder into "Intel family 6 model 0x8F", which reads far better than sixteen
+//    separate OVRDCAP_AMD64_CPU_FAMILY_n terms. Only the vendor names are handled below.
+//  - Capability-set markers (V1/V2/V3/V4_CAPSET) gate on the OS knowing a capability set at all,
+//    not on hardware, so they are labelled as such to distinguish them from feature tests.
+//
+// Feature numbers are per-architecture and never overlap, so one switch covers both namespaces.
 PPH_STRING PvDynRelocFeatureString(
     _In_ ULONG Feature
     )
 {
-    switch (Feature)
+    PWSTR name = NULL;
+
+    // A set top bit marks an "OS Special Function": the OS supplies the implementation (e.g. from
+    // ntdll) rather than the image selecting one of its own bodies.
+    if (Feature & 0x80000000)
     {
-    // Vendor selector (RtlGetCpuVendor -> capability, see RtlpInitFunctionOverrideCapabilities):
-    // Intel=8, AMD=9, Centaur/Zhaoxin=10; 7 = set for every supported vendor.
-    case 7: return PhCreateString(L"any CPU vendor");
-    case 8: return PhCreateString(L"Intel");
-    case 9: return PhCreateString(L"AMD");
-    case 10: return PhCreateString(L"Centaur/Zhaoxin");
-    // Hardcoded capability IDs with recoverable meaning.
-    case 325: return PhCreateString(L"SMEP");                  // guard-dispatch EsSmep vs EsNoSmep
-    case 327: return PhCreateString(L"hypervisor compatible");
-    // CPUID instruction-set bits, recovered from RtlpCpuFeatureTable (leaf/register/bit).
-    case 0:   return PhCreateString(L"ERMS");     // CPUID.7:EBX[9]  (Enhanced REP MOVSB)
-    case 1:   return PhCreateString(L"FSRM");     // CPUID.7:EDX[4]  (Fast Short REP MOV)
-    case 316: return PhCreateString(L"AVX");      // CPUID.1:ECX[28]
-    case 317: return PhCreateString(L"AVX2");     // CPUID.7:EBX[5]
-    case 318: return PhCreateString(L"AVX-512F"); // CPUID.7:EBX[16]
-    case 324: return PhCreateString(L"SSE4.1");   // CPUID.1:ECX[19]
+        if (Feature == OVRDCAP_ALWAYS_OFF)
+            return PhCreateString(L"never");
+
+        return PhFormatString(L"OS special function %lu", Feature & ~0x80000000ul);
     }
 
-    // Everything else (unconditional baseline capability IDs like 315/326, and other hardcoded
-    // SCP/CFG IDs) has no published name; show the raw number.
+    switch (Feature)
+    {
+    // ---- AMD64 -----------------------------------------------------------------------------
+
+    // Vendor selectors. The remaining CPU-signature ranges are fused by the caller.
+    case OVRDCAP_AMD64_CPU_MANUFACTURER_RECOGNIZED: name = L"any known CPU vendor"; break;
+    case OVRDCAP_AMD64_CPU_MANUFACTURER_INTEL:      name = L"Intel"; break;
+    case OVRDCAP_AMD64_CPU_MANUFACTURER_AMD:        name = L"AMD"; break;
+    case OVRDCAP_AMD64_CPU_MANUFACTURER_VIA:        name = L"VIA"; break;
+
+    // String/memory-copy instruction capabilities.
+    case OVRDCAP_AMD64_ERMSB:                   name = L"ERMSB"; break;
+    case OVRDCAP_AMD64_FAST_SHORT_REPMOV:       name = L"fast short REP MOV"; break;
+    case OVRDCAP_AMD64_FAST_ZERO_LEN_REPMOV:    name = L"fast zero-length REP MOV"; break;
+    case OVRDCAP_AMD64_FAST_SHORT_REPSTOSB:     name = L"fast short REP STOSB"; break;
+    case OVRDCAP_AMD64_FAST_SHORT_REPCMPSB:     name = L"fast short REP CMPSB"; break;
+
+    // Execution mode.
+    case OVRDCAP_AMD64_USERMODE:                name = L"user mode"; break;
+    case OVRDCAP_AMD64_KERNELMODE:              name = L"kernel mode"; break;
+
+    // Instruction-set extensions.
+    case OVRDCAP_AMD64_AVX:                     name = L"AVX"; break;
+    case OVRDCAP_AMD64_AVX2:                    name = L"AVX2"; break;
+    case OVRDCAP_AMD64_AVX512F:                 name = L"AVX-512F"; break;
+    case OVRDCAP_AMD64_SSE41:                   name = L"SSE4.1"; break;
+
+    // Control-flow guard dispatch variants (values fixed; hard coded in the compiler).
+    case OVRDCAP_AMD64_CFG_CHECK_OPT:           name = L"CFG check optimization"; break;
+    case OVRDCAP_AMD64_CFG_DISPATCH_OPT:        name = L"CFG dispatch optimization"; break;
+    case OVRDCAP_AMD64_XFG_DISPATCH_OPT:        name = L"XFG dispatch optimization"; break;
+    case OVRDCAP_AMD64_KCFG_DISPATCH_KSCP:      name = L"kCFG dispatch (KSCP)"; break;
+
+    // Supervisor-mode protections.
+    case OVRDCAP_AMD64_SMEP:                    name = L"SMEP"; break;
+    case OVRDCAP_AMD64_SMAP:                    name = L"SMAP"; break;
+
+    case OVRDCAP_AMD64_NOT_LIVE_MIGRATEABLE:    name = L"not live-migrateable"; break;
+
+    // User-mode access (UMA) special-function overrides.
+    case OVRDCAP_AMD64_UMA_DISPATCH_KSCP:                   name = L"UMA dispatch (KSCP)"; break;
+    case OVRDCAP_AMD64_UMA_COPY_FROM_USER_SO:               name = L"UMA copy-from-user"; break;
+    case OVRDCAP_AMD64_UMA_COPY_TO_USER_SO:                 name = L"UMA copy-to-user"; break;
+    case OVRDCAP_AMD64_UMA_COPY_TO_USER_FROM_USER_SO:       name = L"UMA copy-to-user-from-user"; break;
+    case OVRDCAP_AMD64_UMA_MOVE_TO_USER_FROM_USER_SO:       name = L"UMA move-to-user-from-user"; break;
+    case OVRDCAP_AMD64_UMA_SET_USER_MEMORY_SO:              name = L"UMA set-user-memory"; break;
+    case OVRDCAP_AMD64_UMA_READ_UCHAR_FROM_USER_SO:         name = L"UMA read UCHAR"; break;
+    case OVRDCAP_AMD64_UMA_WRITE_UCHAR_TO_USER_SO:          name = L"UMA write UCHAR"; break;
+    case OVRDCAP_AMD64_UMA_READ_USHORT_FROM_USER_SO:        name = L"UMA read USHORT"; break;
+    case OVRDCAP_AMD64_UMA_WRITE_USHORT_TO_USER_SO:         name = L"UMA write USHORT"; break;
+    case OVRDCAP_AMD64_UMA_READ_ULONG_FROM_USER_SO:         name = L"UMA read ULONG"; break;
+    case OVRDCAP_AMD64_UMA_WRITE_ULONG_TO_USER_SO:          name = L"UMA write ULONG"; break;
+    case OVRDCAP_AMD64_UMA_READ_ULONG64_FROM_USER_SO:       name = L"UMA read ULONG64"; break;
+    case OVRDCAP_AMD64_UMA_WRITE_ULONG64_TO_USER_SO:        name = L"UMA write ULONG64"; break;
+    case OVRDCAP_AMD64_UMA_STRING_LENGTH_FROM_USER_SO:      name = L"UMA string length"; break;
+    case OVRDCAP_AMD64_UMA_WSTRING_LENGTH_FROM_USER_SO:     name = L"UMA wide string length"; break;
+    case OVRDCAP_AMD64_UMA_COPY_FROM_USER_NON_TEMPORAL_SO:  name = L"UMA copy-from-user (non-temporal)"; break;
+    case OVRDCAP_AMD64_UMA_COPY_TO_USER_NON_TEMPORAL_SO:    name = L"UMA copy-to-user (non-temporal)"; break;
+    case OVRDCAP_AMD64_UMA_CAS_64_TO_USER_SO:               name = L"UMA compare-exchange 64"; break;
+    case OVRDCAP_AMD64_UMA_IOR_32_TO_USER_SO:               name = L"UMA interlocked-or 32"; break;
+    case OVRDCAP_AMD64_UMA_IOR_64_TO_USER_SO:               name = L"UMA interlocked-or 64"; break;
+    case OVRDCAP_AMD64_UMA_IAND_32_TO_USER_SO:              name = L"UMA interlocked-and 32"; break;
+    case OVRDCAP_AMD64_UMA_IAND_64_TO_USER_SO:              name = L"UMA interlocked-and 64"; break;
+
+    // Capability-set version markers: the OS is aware of this capability set.
+    case OVRDCAP_AMD64_V1_CAPSET:               name = L"AMD64 capability set v1"; break;
+    case OVRDCAP_AMD64_V2_CAPSET:               name = L"AMD64 capability set v2"; break;
+    case OVRDCAP_AMD64_V3_CAPSET:               name = L"AMD64 capability set v3"; break;
+    case OVRDCAP_AMD64_V4_CAPSET:               name = L"AMD64 capability set v4"; break;
+
+    // ---- ARM64 -----------------------------------------------------------------------------
+
+    case OVRDCAP_ARM64_USERMODE:                name = L"user mode"; break;
+    case OVRDCAP_ARM64_KERNELMODE:              name = L"kernel mode"; break;
+
+    // Cryptographic and arithmetic extensions.
+    case OVRDCAP_ARM64_SHA256:                  name = L"SHA-256"; break;
+    case OVRDCAP_ARM64_SHA512:                  name = L"SHA-512"; break;
+    case OVRDCAP_ARM64_SHA3:                    name = L"SHA-3"; break;
+    case OVRDCAP_ARM64_SM3:                     name = L"SM3"; break;
+    case OVRDCAP_ARM64_SM4:                     name = L"SM4"; break;
+    case OVRDCAP_ARM64_LSE:                     name = L"LSE"; break;
+    case OVRDCAP_ARM64_LSE2:                    name = L"LSE2"; break;
+    case OVRDCAP_ARM64_RDM:                     name = L"RDM"; break;
+    case OVRDCAP_ARM64_DP:                      name = L"dot product"; break;
+    case OVRDCAP_ARM64_FHM:                     name = L"FHM"; break;
+    case OVRDCAP_ARM64_FLAGM:                   name = L"FlagM"; break;
+    case OVRDCAP_ARM64_FLAGM2:                  name = L"FlagM2"; break;
+    case OVRDCAP_ARM64_FCMA:                    name = L"FCMA"; break;
+    case OVRDCAP_ARM64_LRCPC:                   name = L"LRCPC"; break;
+    case OVRDCAP_ARM64_LRCPC2:                  name = L"LRCPC2"; break;
+    case OVRDCAP_ARM64_BF16:                    name = L"BF16"; break;
+    case OVRDCAP_ARM64_I8MM:                    name = L"I8MM"; break;
+    case OVRDCAP_ARM64_FP16:                    name = L"FP16"; break;
+    case OVRDCAP_ARM64_SVE:                     name = L"SVE"; break;
+    case OVRDCAP_ARM64_SVE2:                    name = L"SVE2"; break;
+    case OVRDCAP_ARM64_F32MM:                   name = L"F32MM"; break;
+    case OVRDCAP_ARM64_F64MM:                   name = L"F64MM"; break;
+
+    // Control-flow guard dispatch variants (values fixed; hard coded in the compiler).
+    case OVRDCAP_ARM64_CFG_CHECK_OPT:           name = L"CFG check optimization"; break;
+    case OVRDCAP_ARM64_CFG_DISPATCH_OPT:        name = L"CFG dispatch optimization"; break;
+    case OVRDCAP_ARM64_EC_CFG_CHECK_OPT:        name = L"EC CFG check optimization"; break;
+    case OVRDCAP_ARM64_EC_ICALL_CHECK_OPT:      name = L"EC indirect-call check optimization"; break;
+    case OVRDCAP_ARM64_EC_CALL_CHECK_OPT:       name = L"EC call check optimization"; break;
+    case OVRDCAP_ARM64_KCFG_CHECK_KSCP:         name = L"kCFG check (KSCP)"; break;
+
+    // Alignment and cache behaviour.
+    case OVRDCAP_ARM64_UNALIGNED_CRT_STRESS_TEST: name = L"unaligned CRT stress test"; break;
+    case OVRDCAP_ARM64_UNALIGNED_CRT:           name = L"unaligned CRT"; break;
+    case OVRDCAP_ARM64_DCZVA:                   name = L"DC ZVA"; break;
+    case OVRDCAP_ARM64_DCZVA_STRIDE_64BYTES:    name = L"DC ZVA 64-byte stride"; break;
+
+    case OVRDCAP_ARM64_PAN:                     name = L"PAN"; break;
+    case OVRDCAP_ARM64_NO_DEVICE_MEMORY_ALLOCATION: name = L"no device-memory allocation"; break;
+    case OVRDCAP_ARM64_NOT_LIVE_MIGRATEABLE:    name = L"not live-migrateable"; break;
+    case OVRDCAP_ARM64_HYPERVISOR_VENDOR_MICROSOFT: name = L"Microsoft hypervisor"; break;
+
+    // CPU implementers.
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_ARM:         name = L"ARM"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_BROADCOM:    name = L"Broadcom"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_CAVIUM:      name = L"Cavium"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_DEC:         name = L"DEC"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_FUJITSU:     name = L"Fujitsu"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_INFINEON:    name = L"Infineon"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_MOTOROLA_OR_FREESCALE: name = L"Motorola/Freescale"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_NVIDIA:      name = L"NVIDIA"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_APPLIED_MICRO_CIRCUITS: name = L"Applied Micro Circuits"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_QUALCOMM:    name = L"Qualcomm"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_MARVELL:     name = L"Marvell"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_INTEL:       name = L"Intel"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_AMPERE:      name = L"Ampere"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_MICROSOFT:   name = L"Microsoft"; break;
+    case OVRDCAP_ARM64_CPU_IMPLEMENTER_APPLE:       name = L"Apple"; break;
+
+    // Qualcomm chipsets.
+    case OVRDCAP_ARM64_QC_CHIPSET_850:          name = L"Qualcomm 850"; break;
+    case OVRDCAP_ARM64_QC_CHIPSET_8180:         name = L"Qualcomm 8180"; break;
+    case OVRDCAP_ARM64_QC_CHIPSET_8280:         name = L"Qualcomm 8280"; break;
+    case OVRDCAP_ARM64_QC_CHIPSET_8380:         name = L"Qualcomm 8380"; break;
+
+    // User-mode access (UMA) special-function overrides.
+    case OVRDCAP_ARM64_UMA_DISPATCH_KSCP:                   name = L"UMA dispatch (KSCP)"; break;
+    case OVRDCAP_ARM64_UMA_COPY_FROM_USER_SO:               name = L"UMA copy-from-user"; break;
+    case OVRDCAP_ARM64_UMA_COPY_TO_USER_SO:                 name = L"UMA copy-to-user"; break;
+    case OVRDCAP_ARM64_UMA_COPY_TO_USER_FROM_USER_SO:       name = L"UMA copy-to-user-from-user"; break;
+    case OVRDCAP_ARM64_UMA_MOVE_TO_USER_FROM_USER_SO:       name = L"UMA move-to-user-from-user"; break;
+    case OVRDCAP_ARM64_UMA_SET_USER_MEMORY_SO:              name = L"UMA set-user-memory"; break;
+    case OVRDCAP_ARM64_UMA_READ_UCHAR_FROM_USER_SO:         name = L"UMA read UCHAR"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_UCHAR_TO_USER_SO:          name = L"UMA write UCHAR"; break;
+    case OVRDCAP_ARM64_UMA_READ_USHORT_FROM_USER_SO:        name = L"UMA read USHORT"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_USHORT_TO_USER_SO:         name = L"UMA write USHORT"; break;
+    case OVRDCAP_ARM64_UMA_READ_ULONG_FROM_USER_SO:         name = L"UMA read ULONG"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_ULONG_TO_USER_SO:          name = L"UMA write ULONG"; break;
+    case OVRDCAP_ARM64_UMA_READ_ULONG64_FROM_USER_SO:       name = L"UMA read ULONG64"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_ULONG64_TO_USER_SO:        name = L"UMA write ULONG64"; break;
+    case OVRDCAP_ARM64_UMA_STRING_LENGTH_FROM_USER_SO:      name = L"UMA string length"; break;
+    case OVRDCAP_ARM64_UMA_WSTRING_LENGTH_FROM_USER_SO:     name = L"UMA wide string length"; break;
+    case OVRDCAP_ARM64_UMA_READ_UCHAR_FROM_USER_ACQ_SO:     name = L"UMA read UCHAR (acquire)"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_UCHAR_TO_USER_REL_SO:      name = L"UMA write UCHAR (release)"; break;
+    case OVRDCAP_ARM64_UMA_READ_USHORT_FROM_USER_ACQ_SO:    name = L"UMA read USHORT (acquire)"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_USHORT_TO_USER_REL_SO:     name = L"UMA write USHORT (release)"; break;
+    case OVRDCAP_ARM64_UMA_READ_ULONG_FROM_USER_ACQ_SO:     name = L"UMA read ULONG (acquire)"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_ULONG_TO_USER_REL_SO:      name = L"UMA write ULONG (release)"; break;
+    case OVRDCAP_ARM64_UMA_READ_ULONG64_FROM_USER_ACQ_SO:   name = L"UMA read ULONG64 (acquire)"; break;
+    case OVRDCAP_ARM64_UMA_WRITE_ULONG64_TO_USER_REL_SO:    name = L"UMA write ULONG64 (release)"; break;
+    case OVRDCAP_ARM64_UMA_COPY_FROM_USER_NON_TEMPORAL_SO:  name = L"UMA copy-from-user (non-temporal)"; break;
+    case OVRDCAP_ARM64_UMA_COPY_TO_USER_NON_TEMPORAL_SO:    name = L"UMA copy-to-user (non-temporal)"; break;
+    case OVRDCAP_ARM64_UMA_CAS_64_TO_USER_SO:               name = L"UMA compare-exchange 64"; break;
+    case OVRDCAP_ARM64_UMA_IOR_32_TO_USER_SO:               name = L"UMA interlocked-or 32"; break;
+    case OVRDCAP_ARM64_UMA_IOR_64_TO_USER_SO:               name = L"UMA interlocked-or 64"; break;
+    case OVRDCAP_ARM64_UMA_IAND_32_TO_USER_SO:              name = L"UMA interlocked-and 32"; break;
+    case OVRDCAP_ARM64_UMA_IAND_64_TO_USER_SO:              name = L"UMA interlocked-and 64"; break;
+
+    // Capability-set version markers: the OS is aware of this capability set.
+    case OVRDCAP_ARM64_V1_CAPSET:               name = L"ARM64 capability set v1"; break;
+    case OVRDCAP_ARM64_V2_CAPSET:               name = L"ARM64 capability set v2"; break;
+    case OVRDCAP_ARM64_V3_CAPSET:               name = L"ARM64 capability set v3"; break;
+    case OVRDCAP_ARM64_V4_CAPSET:               name = L"ARM64 capability set v4"; break;
+    }
+
+    if (name)
+        return PhCreateString(name);
+
+    // A number inside a namespace but not named by the SDK header this build was compiled
+    // against: a newer OS capability. Show the raw value.
     return PhFormatString(L"feature %lu", Feature);
 }
 
-// CPU-signature field ranges (base + field value) from RtlpInitFunctionOverrideCapabilities.
-#define PV_DYNRELOC_IS_MODEL(f)       ((f) >= 11 && (f) <= 26)   // CPUID base model    [4:7]
-#define PV_DYNRELOC_IS_EXTMODEL(f)    ((f) >= 27 && (f) <= 42)   // CPUID extended model [16:19]
-#define PV_DYNRELOC_IS_FAMILY(f)      ((f) >= 43 && (f) <= 58)   // CPUID base family   [8:11]
-#define PV_DYNRELOC_IS_EXTFAMILY(f)   ((f) >= 59 && (f) <= 314)  // CPUID extended family [20:27]
+// CPU-signature field ranges. Each is a base capability plus the field value, so a run of
+// consecutive numbers encodes one field; the caller fuses them into a single readable term.
+#define PV_DYNRELOC_IS_MODEL(f)       ((f) >= OVRDCAP_AMD64_CPU_MODEL_0 && \
+                                       (f) <= OVRDCAP_AMD64_CPU_MODEL_15)
+#define PV_DYNRELOC_IS_EXTMODEL(f)    ((f) >= OVRDCAP_AMD64_CPU_EXTENDED_MODEL_0 && \
+                                       (f) <= OVRDCAP_AMD64_CPU_EXTENDED_MODEL_15)
+#define PV_DYNRELOC_IS_FAMILY(f)      ((f) >= OVRDCAP_AMD64_CPU_FAMILY_0 && \
+                                       (f) <= OVRDCAP_AMD64_CPU_FAMILY_15)
+#define PV_DYNRELOC_IS_EXTFAMILY(f)   ((f) >= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_0 && \
+                                       (f) <= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_255)
 #define PV_DYNRELOC_IS_CPUIDENT(f)    (PV_DYNRELOC_IS_MODEL(f) || PV_DYNRELOC_IS_EXTMODEL(f) || \
                                        PV_DYNRELOC_IS_FAMILY(f) || PV_DYNRELOC_IS_EXTFAMILY(f))
 
@@ -461,13 +670,13 @@ PPH_STRING PvDynRelocBuildCondition(
 
         feature = link->Internal.FeatureNumber;
 
-        if (feature >= PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS)
+        if (PhFunctionOverrideIsFeatureAlwaysAbsent(feature))
             alwaysAbsent = TRUE;
 
-        if (PV_DYNRELOC_IS_FAMILY(feature))      { haveFamily = TRUE; family = feature - 43; }
-        else if (PV_DYNRELOC_IS_EXTFAMILY(feature)) { haveExtFamily = TRUE; extFamily = feature - 59; }
-        else if (PV_DYNRELOC_IS_MODEL(feature))     { haveModel = TRUE; model = feature - 11; }
-        else if (PV_DYNRELOC_IS_EXTMODEL(feature))  { haveExtModel = TRUE; extModel = feature - 27; }
+        if (PV_DYNRELOC_IS_FAMILY(feature))      { haveFamily = TRUE; family = feature - OVRDCAP_AMD64_CPU_FAMILY_0; }
+        else if (PV_DYNRELOC_IS_EXTFAMILY(feature)) { haveExtFamily = TRUE; extFamily = feature - OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_0; }
+        else if (PV_DYNRELOC_IS_MODEL(feature))     { haveModel = TRUE; model = feature - OVRDCAP_AMD64_CPU_MODEL_0; }
+        else if (PV_DYNRELOC_IS_EXTMODEL(feature))  { haveExtModel = TRUE; extModel = feature - OVRDCAP_AMD64_CPU_EXTENDED_MODEL_0; }
         else
         {
             // A non-signature feature: render inline in encounter order (space-separated tags).
@@ -481,15 +690,28 @@ PPH_STRING PvDynRelocBuildCondition(
     }
 
     // Emit the fused CPU-signature term, if any signature field was constrained.
+    //
+    // Fusion must not lose information: the guards form a first-match-wins ladder, so two rungs
+    // that render identically read as a contradiction. Real BDDs do distinguish "base family 15
+    // AND extended family 0" from "base family 15" alone (ntoskrnl's KeCopyPage has both, as
+    // consecutive rungs), and folding the former to DisplayFamily 15 makes it indistinguishable
+    // from the latter. So when base family 15 folds an extended family, name both fields instead.
     if (haveFamily || haveExtFamily || haveModel || haveExtModel)
     {
         if (needAnd) PhAppendStringBuilder2(&sb, L" ");
 
         if (haveFamily)
         {
-            // DisplayFamily folds extended family only for base family 15.
-            ULONG displayFamily = (family == 15 && haveExtFamily) ? family + extFamily : family;
-            PhAppendFormatStringBuilder(&sb, L"family %lu", displayFamily);
+            if (family == 15 && haveExtFamily)
+            {
+                // DisplayFamily folds extended family only for base family 15. Show the fused
+                // value plus the extended field that produced it, so the rung stays identifiable.
+                PhAppendFormatStringBuilder(&sb, L"family %lu (15+%lu)", family + extFamily, extFamily);
+            }
+            else
+            {
+                PhAppendFormatStringBuilder(&sb, L"family %lu", family);
+            }
         }
         else if (haveExtFamily)
         {
@@ -498,20 +720,35 @@ PPH_STRING PvDynRelocBuildCondition(
 
         if (haveModel || haveExtModel)
         {
-            // DisplayModel folds extended model for base family 6 and 15 (RtlGetProcessorSignature).
-            ULONG displayModel = ((family == 6 || family == 15) && haveExtModel)
-                ? ((extModel << 4) | model)
-                : model;
-
             if (haveFamily || haveExtFamily)
                 PhAppendStringBuilder2(&sb, L" ");
 
-            if (haveModel && (haveExtModel || haveFamily))
-                PhAppendFormatStringBuilder(&sb, L"model 0x%02lX", displayModel);
+            if (haveModel && haveExtModel && (family == 6 || family == 15))
+            {
+                // DisplayModel folds extended model for base family 6 and 15
+                // (RtlGetProcessorSignature). As with family above, name the extended field too so
+                // this rung cannot collapse onto one that constrained only the base model.
+                PhAppendFormatStringBuilder(
+                    &sb,
+                    L"model 0x%02lX (%lu:%lu)",
+                    (extModel << 4) | model,
+                    extModel,
+                    model
+                    );
+            }
+            else if (haveModel && haveExtModel)
+            {
+                // Base family does not fold the extended model: both fields stand alone.
+                PhAppendFormatStringBuilder(&sb, L"model %lu ext model %lu", model, extModel);
+            }
             else if (haveModel)
+            {
                 PhAppendFormatStringBuilder(&sb, L"model %lu", model);
+            }
             else
+            {
                 PhAppendFormatStringBuilder(&sb, L"ext model %lu", extModel);
+            }
         }
 
         needAnd = TRUE;
@@ -762,13 +999,6 @@ VOID PvEnumerateDynamicRelocationEntries(
             PPV_DYNRELOC_OVERRIDE_GROUP group = groups->Items[j];
             PPV_DYNRELOC_NODE sitesNode;
             PPV_DYNRELOC_NODE treeNode;
-            PH_FUNCTION_OVERRIDE_OUTCOME baseline;
-            PPH_STRING baselineString = NULL;
-
-            // Baseline resolution (no features present) is what the loader picks on a machine
-            // lacking every optional capability; every site under this override resolves the same.
-            if (NT_SUCCESS(PhFunctionOverrideResolveBdd(group->Representative, NULL, 0, &baseline)))
-                baselineString = PvDynRelocOutcomeString(&baseline);
 
             sitesNode = PvAddDynRelocNode(
                 Context,
@@ -778,17 +1008,25 @@ VOID PvEnumerateDynamicRelocationEntries(
                 NULL
                 );
 
+            // Which outcome a site ends up with is a property of the shared decision diagram, not
+            // of the site, and it cannot be determined from the file: the deciding capabilities are
+            // set at boot from the CPU. The Outcomes list below enumerates every possibility with
+            // its guard, so no per-site resolution is claimed here -- Info carries the patch width,
+            // which is file-derived and not otherwise visible.
             for (ULONG k = 0; k < group->Sites->Count; k++)
             {
                 PPH_IMAGE_DYNAMIC_RELOC_ENTRY site = group->Sites->Items[k];
                 PPV_DYNRELOC_NODE siteNode;
+                ULONG patchWidth;
+
+                patchWidth = PvDynRelocOverridePatchWidth(site->FuncOverride.Record.Type);
 
                 siteNode = PvAddDynRelocNode(
                     Context,
                     sitesNode,
                     PH_AUTO_T(PH_STRING, PhFormatString(L"0x%lx", site->FuncOverride.BlockRva + site->FuncOverride.Record.Offset))->Buffer,
                     PvDynRelocOverrideTypeName(site->FuncOverride.Record.Type),
-                    baselineString ? PhFormatString(L"resolves to %ls (baseline)", baselineString->Buffer) : NULL
+                    patchWidth ? PhFormatString(L"%lu bytes", patchWidth) : NULL
                     );
 
                 PvDynRelocSetEntryColumns(siteNode, site);
@@ -808,9 +1046,6 @@ VOID PvEnumerateDynamicRelocationEntries(
                 // Label the group node with the outcome count, mirroring "Patch sites (N)".
                 treeNode->Rva = PhFormatString(L"Outcomes (%lu)", outcomeCount);
             }
-
-            if (baselineString)
-                PhDereferenceObject(baselineString);
         }
 
         PhFreeMappedImageDynamicRelocations(&relocations);
