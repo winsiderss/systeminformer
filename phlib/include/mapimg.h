@@ -1237,16 +1237,6 @@ typedef struct _PH_FUNCTION_OVERRIDE_OUTCOME
     ULONG RvaIndex;
 } PH_FUNCTION_OVERRIDE_OUTCOME, *PPH_FUNCTION_OVERRIDE_OUTCOME;
 
-PHLIBAPI
-NTSTATUS
-NTAPI
-PhFunctionOverrideResolveBdd(
-    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
-    _In_reads_bytes_opt_(CapabilitiesLength) PVOID Capabilities,
-    _In_ ULONG CapabilitiesLength,
-    _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
-    );
-
 typedef _Function_class_(PH_FUNCTION_OVERRIDE_BDD_CALLBACK)
 BOOLEAN NTAPI PH_FUNCTION_OVERRIDE_BDD_CALLBACK(
     _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
@@ -1264,7 +1254,12 @@ PhFunctionOverrideEnumerateBdd(
     _In_opt_ PVOID Context
     );
 
-#define PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS 0x161
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhFunctionOverrideIsFeatureAlwaysAbsent(
+    _In_ ULONG Feature
+    );
 
 typedef struct _PH_FUNCTION_OVERRIDE_BDD_NODE
 {

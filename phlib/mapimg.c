@@ -7178,10 +7178,22 @@ VOID PhFreeMappedImageDynamicRelocations(
     }
 }
 
-// Feature numbers >= this are treated as "not present" by the loader, so the FALSE (Left)
-// edge is always taken. This is the ceiling checked in RtlpSelectFunctionFromBinaryDecisionDiagram.
-// (Exposed to callers as PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS.)
-#define PH_FUNCTION_OVERRIDE_MAX_FEATURE PH_FUNCTION_OVERRIDE_FEATURE_ALWAYS
+#define PH_OVRDCAP_NAMESPACE_WIDTH 0x00010000
+#define PH_OVRDCAP_AMD64_FIRST     0x00000000
+#define PH_OVRDCAP_ARM64_FIRST     0x00010000
+
+BOOLEAN PhFunctionOverrideIsFeatureAlwaysAbsent(
+    _In_ ULONG Feature
+    )
+{
+    if (Feature - PH_OVRDCAP_AMD64_FIRST < PH_OVRDCAP_NAMESPACE_WIDTH)
+        return FALSE;
+
+    if (Feature - PH_OVRDCAP_ARM64_FIRST < PH_OVRDCAP_NAMESPACE_WIDTH)
+        return FALSE;
+
+    return TRUE;
+}
 
 /**
  * Locates the sub-BDD (nodes + count) for a function-override entry.
@@ -7276,83 +7288,6 @@ static NTSTATUS PhpFunctionOverrideBuildOutcome(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves a function-override BDD for a concrete capability set, matching the loader.
- *
- * \param Entry The function-override relocation entry.
- * \param Capabilities Optional little-endian capability bit array indexed by feature number.
- * \param CapabilitiesLength Length of \a Capabilities in bytes.
- * \param Outcome Receives the resolved terminal.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhFunctionOverrideResolveBdd(
-    _In_ PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry,
-    _In_reads_bytes_opt_(CapabilitiesLength) PVOID Capabilities,
-    _In_ ULONG CapabilitiesLength,
-    _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
-    )
-{
-    NTSTATUS status;
-    PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
-    ULONG nodesCount;
-    ULONG index;
-    ULONG steps;
-
-    RtlZeroMemory(Outcome, sizeof(PH_FUNCTION_OVERRIDE_OUTCOME));
-
-    if (Entry->Symbol != IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
-        return STATUS_INVALID_PARAMETER;
-
-    status = PhpGetFunctionOverrideBddNodes(Entry, &nodes, &nodesCount);
-
-    if (!NT_SUCCESS(status))
-        return status;
-
-    // Walk from the root (index 0). Bound the loop by the node count to reject cyclic graphs
-    // that are not simple self-loop terminals.
-    index = 0;
-
-    for (steps = 0; steps <= nodesCount; steps++)
-    {
-        PIMAGE_BDD_DYNAMIC_RELOCATION node;
-
-        if (index >= nodesCount)
-            return STATUS_INVALID_PARAMETER;
-
-        node = &nodes[index];
-
-        // Terminal: keep-original (both edges zero) or self-loop leaf.
-        if ((node->Left == 0 && node->Right == 0) ||
-            (node->Left == index && node->Right == index))
-        {
-            return PhpFunctionOverrideBuildOutcome(Entry, node, index, Outcome);
-        }
-
-        // Internal node: Value is a feature number. Features at/above the ceiling are never
-        // present, so take the FALSE (Left) edge; otherwise branch on the capability bit.
-        if (node->Value >= PH_FUNCTION_OVERRIDE_MAX_FEATURE)
-        {
-            index = node->Left;
-        }
-        else
-        {
-            ULONG byteIndex = node->Value / 8;
-            ULONG bitMask = 1u << (node->Value & 7);
-            BOOLEAN featureSet;
-
-            featureSet =
-                Capabilities &&
-                byteIndex < CapabilitiesLength &&
-                (((PUCHAR)Capabilities)[byteIndex] & bitMask) != 0;
-
-            index = featureSet ? node->Right : node->Left;
-        }
-    }
-
-    // Exceeded the node count without reaching a terminal: malformed BDD.
-    return STATUS_INVALID_PARAMETER;
-}
-
 typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
 {
     PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry;
@@ -7418,7 +7353,7 @@ static NTSTATUS PhpFunctionOverrideWalk(
 
     Context->Expanded[Index] = TRUE;
 
-    if (node->Value < PH_FUNCTION_OVERRIDE_MAX_FEATURE)
+    if (!PhFunctionOverrideIsFeatureAlwaysAbsent(node->Value))
     {
         NTSTATUS status;
 
@@ -7429,7 +7364,7 @@ static NTSTATUS PhpFunctionOverrideWalk(
             return status;
     }
 
-    // Features at/above the ceiling only ever take the FALSE edge.
+    // A feature outside every known namespace only ever takes the FALSE edge.
     return PhpFunctionOverrideWalk(Context, node->Left);
 }
 
