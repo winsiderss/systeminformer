@@ -169,7 +169,7 @@ VOID KphReferenceObject(
 
     header = KphObjectToObjectHeader(Object);
 
-    NT_VERIFY(InterlockedIncrementSSizeTNoFence(&header->PointerCount) > 0);
+    NT_VERIFY(InterlockedIncrementSSizeTNoFence(&header->PointerCount) > 1);
 }
 
 /**
@@ -294,7 +294,7 @@ VOID KphpAtomicAcquireObjectLockShared(
 
     KPH_NPAGED_CODE_DISPATCH_MIN();
 
-    object = ReadULongPtrAcquire(&ObjectRef->Object);
+    object = ReadULongPtrNoFence(&ObjectRef->Object);
 
     for (;; YieldProcessor())
     {
@@ -305,15 +305,15 @@ VOID KphpAtomicAcquireObjectLockShared(
 
         if (lock >= KPH_ATOMIC_OBJECT_REF_SHARED_MAX)
         {
-            object = ReadULongPtrAcquire(&ObjectRef->Object);
+            object = ReadULongPtrNoFence(&ObjectRef->Object);
             continue;
         }
 
         expected = object;
 
-        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                                    object + 1,
-                                                    expected);
+        object = InterlockedCompareExchangeULongPtrAcquire(&ObjectRef->Object,
+                                                           object + 1,
+                                                           expected);
         if (object == expected)
         {
             break;
@@ -339,7 +339,7 @@ VOID KphpAtomicReleaseObjectLockShared(
 
     KPH_NPAGED_CODE_DISPATCH_MIN();
 
-    object = InterlockedDecrementULongPtr(&ObjectRef->Object);
+    object = InterlockedDecrementULongPtrRelease(&ObjectRef->Object);
 
     object = object & KPH_ATOMIC_OBJECT_REF_SHARED_MAX;
 
@@ -364,7 +364,7 @@ VOID KphpAtomicAcquireObjectLockExclusive(
 
     KPH_NPAGED_CODE_DISPATCH_MIN();
 
-    object = ReadULongPtrAcquire(&ObjectRef->Object);
+    object = ReadULongPtrNoFence(&ObjectRef->Object);
 
     for (;; YieldProcessor())
     {
@@ -373,16 +373,16 @@ VOID KphpAtomicAcquireObjectLockExclusive(
 
         if (object & KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG)
         {
-            object = ReadULongPtrAcquire(&ObjectRef->Object);
+            object = ReadULongPtrNoFence(&ObjectRef->Object);
             continue;
         }
 
         locked = object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
         expected = object;
 
-        object = InterlockedCompareExchangeULongPtr(&ObjectRef->Object,
-                                                    locked,
-                                                    expected);
+        object = InterlockedCompareExchangeULongPtrAcquire(&ObjectRef->Object,
+                                                           locked,
+                                                           expected);
         if (object == expected)
         {
             break;
@@ -413,8 +413,9 @@ VOID KphpAtomicReleaseObjectLockExclusive(
 
     KPH_NPAGED_CODE_DISPATCH_MIN();
 
-    result = InterlockedBitTestAndResetULongPtr(&ObjectRef->Object,
-                                                KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT);
+    result = InterlockedBitTestAndResetULongPtrRelease(
+                                           &ObjectRef->Object,
+                                           KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_BIT);
 
     NT_ASSERT(result);
 }
@@ -511,7 +512,7 @@ PVOID KphpAtomicStoreObjectReference(
 
     object = (ULONG_PTR)Object | KPH_ATOMIC_OBJECT_REF_EXCLUSIVE_FLAG;
 
-    InterlockedExchangeULongPtr(&ObjectRef->Object, object);
+    WriteULongPtrRelease(&ObjectRef->Object, object);
 
     KphpAtomicReleaseObjectLockExclusive(ObjectRef);
 
