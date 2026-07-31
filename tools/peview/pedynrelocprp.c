@@ -642,6 +642,8 @@ PPH_STRING PvDynRelocFeatureString(
 #define PV_DYNRELOC_IS_EXTFAMILY(f)   ((f) >= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_0 && \
                                        (f) <= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_255)
 
+#define PV_DYNRELOC_MAX_BDD_DEPTH 128
+
 PPH_STRING PvDynRelocOutcomeString(
     _In_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
     )
@@ -815,18 +817,26 @@ PPH_STRING PvDynRelocBuildCondition(
 // it. A BDD is a DAG, so each internal node is expanded at most once (Expanded); a node reached
 // again emits a compact "(shared node N)" reference.
 //
-// Root call passes Index = 0. A terminal root (unconditional override) is a single outcome row.
-// Count is incremented once per emitted outcome row (leaf), not for condition or shared-ref rows.
+// Root call passes Index = 0 and Depth = 0. A terminal root (unconditional override) is a single
+// outcome row. Count is incremented once per emitted outcome row (leaf), not for condition or
+// shared-ref rows.
 VOID PvDynRelocAddBddOutcomes(
     _Inout_ PPV_PE_DYNRELOC_CONTEXT Context,
     _In_ PPV_DYNRELOC_NODE ParentNode,
     _In_ PPH_LIST Nodes,
     _In_ ULONG Index,
-    _In_ PBOOLEAN Expanded,
-    _Inout_ PULONG Count
+    _Inout_ PBOOLEAN Expanded,
+    _Inout_ PULONG Count,
+    _In_ ULONG Depth
     )
 {
     BOOLEAN first = TRUE; // first rung is the primary; the trailing terminal is the (default)
+
+    if (Depth >= PV_DYNRELOC_MAX_BDD_DEPTH)
+    {
+        PvAddDynRelocNode(Context, ParentNode, NULL, NULL, PhCreateString(L"(nesting too deep)"));
+        return;
+    }
 
     for (;;)
     {
@@ -908,7 +918,7 @@ VOID PvDynRelocAddBddOutcomes(
                 );
 
             if (!alwaysAbsent)
-                PvDynRelocAddBddOutcomes(Context, row, Nodes, thenIndex, Expanded, Count);
+                PvDynRelocAddBddOutcomes(Context, row, Nodes, thenIndex, Expanded, Count, Depth + 1);
         }
 
         // Continue down the else-spine as sibling rungs.
@@ -943,7 +953,7 @@ ULONG PvDynRelocAddOverrideDecisionTree(
 
     expanded = PhAllocateZero(collect.Nodes->Count * sizeof(BOOLEAN));
 
-    PvDynRelocAddBddOutcomes(Context, ParentNode, collect.Nodes, 0, expanded, &count);
+    PvDynRelocAddBddOutcomes(Context, ParentNode, collect.Nodes, 0, expanded, &count, 0);
 
     PhFree(expanded);
 
@@ -1553,7 +1563,7 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
             if (context->ThreadHandle)
             {
                 context->Cancel = TRUE;
-                PhWaitForSingleObject(context->ThreadHandle, 10000);
+                PhWaitForSingleObject(context->ThreadHandle, INFINITE);
                 NtClose(context->ThreadHandle);
                 context->ThreadHandle = NULL;
             }
