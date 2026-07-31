@@ -6689,7 +6689,10 @@ NTSTATUS PhpFillDynamicRelocations(
         bddInfoSize -= (bddInfoSize > sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) ? sizeof(IMAGE_FUNCTION_OVERRIDE_HEADER) : bddInfoSize);
         bddInfoSize -= (bddInfoSize > header->FuncOverrideSize ? header->FuncOverrideSize : bddInfoSize);
 
-        if (bddInfoSize && bddInfo->Version == 1 && bddInfo->BDDSize >= sizeof(IMAGE_BDD_DYNAMIC_RELOCATION))
+        if (bddInfoSize >= RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize) &&
+            bddInfo->Version == 1 &&
+            bddInfo->BDDSize >= sizeof(IMAGE_BDD_DYNAMIC_RELOCATION) &&
+            bddInfo->BDDSize <= bddInfoSize - RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize))
         {
             bddNodes = PTR_ADD_OFFSET(bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize));
             bddNodesCount = bddInfo->BDDSize / sizeof(IMAGE_BDD_DYNAMIC_RELOCATION);
@@ -6909,6 +6912,9 @@ PVOID PhpFillDynamicRelocationsArray32(
     end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION32, BaseRelocSize));
     end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
 
+    if (end > RelocsEnd)
+        end = RelocsEnd;
+
     PhpFillDynamicRelocations(MappedImage, (ULONGLONG)Relocs->Symbol, base, end, Callback, Context);
 
     next = Relocs;
@@ -6947,6 +6953,9 @@ PVOID PhpFillDynamicRelocationsArray64(
     end = PTR_ADD_OFFSET(Relocs, RTL_SIZEOF_THROUGH_FIELD(IMAGE_DYNAMIC_RELOCATION64, BaseRelocSize));
     end = PTR_ADD_OFFSET(end, Relocs->BaseRelocSize);
 
+    if (end > RelocsEnd)
+        end = RelocsEnd;
+
     PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Callback, Context);
 
     next = Relocs;
@@ -6984,6 +6993,11 @@ PVOID PhpFillDynamicRelocationsArray32v2(
     base = PTR_ADD_OFFSET(Relocs, Relocs->HeaderSize);
     end = PTR_ADD_OFFSET(base, Relocs->FixupInfoSize);
 
+    if ((PVOID)base > RelocsEnd)
+        base = RelocsEnd;
+    if (end > RelocsEnd)
+        end = RelocsEnd;
+
     PhpFillDynamicRelocations(MappedImage, (ULONGLONG)Relocs->Symbol, base, end, Callback, Context);
 
     next = Relocs;
@@ -7020,6 +7034,11 @@ PVOID PhpFillDynamicRelocationsArray64v2(
 
     base = PTR_ADD_OFFSET(Relocs, Relocs->HeaderSize);
     end = PTR_ADD_OFFSET(base, Relocs->FixupInfoSize);
+
+    if ((PVOID)base > RelocsEnd)
+        base = RelocsEnd;
+    if (end > RelocsEnd)
+        end = RelocsEnd;
 
     PhpFillDynamicRelocations(MappedImage, Relocs->Symbol, base, end, Callback, Context);
 
@@ -7186,6 +7205,14 @@ BOOLEAN PhFunctionOverrideIsFeatureAlwaysAbsent(
     _In_ ULONG Feature
     )
 {
+    // OVRDCAP_ALWAYS_OFF (0x7FFFFFFF) is defined never to be set.
+    if (Feature == 0x7FFFFFFF)
+        return TRUE;
+
+    // A set top bit marks an "OS Special Function"
+    if (Feature & 0x80000000)
+        return FALSE;
+
     if (Feature - PH_OVRDCAP_AMD64_FIRST < PH_OVRDCAP_NAMESPACE_WIDTH)
         return FALSE;
 
@@ -7215,20 +7242,12 @@ static NTSTATUS PhpGetFunctionOverrideBddNodes(
 {
     PIMAGE_BDD_INFO bddInfo;
     PIMAGE_BDD_DYNAMIC_RELOCATION nodes;
+    ULONG nodesCount;
     ULONG available;
     ULONG headerEnd;
 
     *Nodes = NULL;
     *NodesCount = 0;
-
-    // When BDDOffset is zero and the offset-0 header was already resolved at capture time,
-    // reuse it directly (common case; also covers callers that lack a region pointer).
-    if (Entry->FuncOverride.BDDOffset == 0 && Entry->FuncOverride.BDDNodes)
-    {
-        *Nodes = Entry->FuncOverride.BDDNodes;
-        *NodesCount = Entry->FuncOverride.BDDNodesCount;
-        return STATUS_SUCCESS;
-    }
 
     if (!Entry->FuncOverride.BDDRegion || Entry->FuncOverride.BDDRegionSize < sizeof(IMAGE_BDD_INFO))
         return STATUS_INVALID_PARAMETER;
@@ -7251,9 +7270,23 @@ static NTSTATUS PhpGetFunctionOverrideBddNodes(
         return STATUS_INVALID_PARAMETER;
 
     nodes = PTR_ADD_OFFSET(bddInfo, RTL_SIZEOF_THROUGH_FIELD(IMAGE_BDD_INFO, BDDSize));
+    nodesCount = bddInfo->BDDSize / sizeof(IMAGE_BDD_DYNAMIC_RELOCATION);
+
+    for (ULONG i = 0; i < nodesCount; i++)
+    {
+        if (nodes[i].Left == 0 && nodes[i].Right == 0)
+            continue;
+        if (nodes[i].Left == i && nodes[i].Right == i)
+            continue;
+
+        if (nodes[i].Left >= nodesCount || nodes[i].Right >= nodesCount)
+            return STATUS_INVALID_PARAMETER;
+        if (nodes[i].Right <= i)
+            return STATUS_INVALID_PARAMETER;
+    }
 
     *Nodes = nodes;
-    *NodesCount = bddInfo->BDDSize / sizeof(IMAGE_BDD_DYNAMIC_RELOCATION);
+    *NodesCount = nodesCount;
     return STATUS_SUCCESS;
 }
 
@@ -7267,14 +7300,17 @@ static NTSTATUS PhpFunctionOverrideBuildOutcome(
     _Out_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
     )
 {
+    Outcome->Type = PhFunctionOverrideInvalid;
+    Outcome->NodeIndex = NodeIndex;
+    Outcome->Rva = 0;
+    Outcome->RvaIndex = ULONG_MAX;
+
     // A node with both edges zero is the "keep original" terminal; otherwise the terminal is
     // a self-loop (Left == Right == its own index) whose Value indexes the candidate RVAs.
     if (Node->Left == 0 && Node->Right == 0)
     {
         Outcome->Type = PhFunctionOverrideKeepOriginal;
-        Outcome->NodeIndex = NodeIndex;
         Outcome->Rva = Entry->FuncOverride.OriginalRva;
-        Outcome->RvaIndex = ULONG_MAX;
         return STATUS_SUCCESS;
     }
 
@@ -7282,7 +7318,6 @@ static NTSTATUS PhpFunctionOverrideBuildOutcome(
         return STATUS_INVALID_PARAMETER;
 
     Outcome->Type = PhFunctionOverrideReplace;
-    Outcome->NodeIndex = NodeIndex;
     Outcome->Rva = Entry->FuncOverride.Rvas[Node->Value];
     Outcome->RvaIndex = Node->Value;
     return STATUS_SUCCESS;
@@ -7401,13 +7436,12 @@ NTSTATUS PhFunctionOverrideEnumerateBdd(
     context.Context = Context;
     context.Nodes = nodes;
     context.NodesCount = nodesCount;
-    context.Visited = PhAllocate(nodesCount * sizeof(ULONG));
 
+    context.Visited = PhAllocateSafe(nodesCount * sizeof(ULONG));
     if (!context.Visited)
         return STATUS_NO_MEMORY;
 
-    context.Expanded = PhAllocateZero(nodesCount * sizeof(BOOLEAN));
-
+    context.Expanded = PhAllocateZeroSafe(nodesCount * sizeof(BOOLEAN));
     if (!context.Expanded)
     {
         PhFree(context.Visited);
@@ -7465,8 +7499,9 @@ NTSTATUS PhFunctionOverrideEnumerateBddNodes(
         {
             item.IsTerminal = TRUE;
 
-            // A malformed leaf (out-of-range RVA index) is reported but its outcome is left
-            // zeroed rather than failing the whole enumeration; the caller sees the node exists.
+            // A malformed leaf (out-of-range RVA index) is still reported so the caller sees the node
+            // exists; PhpFunctionOverrideBuildOutcome marks it Invalid rather than leaving it zeroed,
+            // since zero is KeepOriginal and would make a corrupt leaf look like a genuine one.
             PhpFunctionOverrideBuildOutcome(Entry, node, index, &item.Terminal);
         }
         else

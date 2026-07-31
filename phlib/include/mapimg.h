@@ -1227,6 +1227,7 @@ typedef enum _PH_FUNCTION_OVERRIDE_OUTCOME_TYPE
 {
     PhFunctionOverrideKeepOriginal = 0,
     PhFunctionOverrideReplace = 1,
+    PhFunctionOverrideInvalid = 2,
 } PH_FUNCTION_OVERRIDE_OUTCOME_TYPE;
 
 typedef struct _PH_FUNCTION_OVERRIDE_OUTCOME
