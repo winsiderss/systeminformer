@@ -39,7 +39,7 @@ typedef struct _PV_DYNRELOC_NODE
     PPH_STRING Symbol;
 
     ULONG64 RvaValue;   // numeric key for sorting the RVA column
-    BOOLEAN HasRvaValue; // FALSE for structural rows (Patch sites, Decision tree, TRUE/FALSE edges)
+    BOOLEAN HasRvaValue; // FALSE for structural rows (Patch sites, Outcomes)
 
     struct _PV_DYNRELOC_NODE* Parent;
     PPH_LIST Children;
@@ -61,6 +61,9 @@ typedef struct _PV_PE_DYNRELOC_CONTEXT
     ULONG_PTR SearchMatchHandle;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
+    HANDLE ThreadHandle;
+    BOOLEAN Loading;
+    BOOLEAN Cancel;
 } PV_PE_DYNRELOC_CONTEXT, *PPV_PE_DYNRELOC_CONTEXT;
 
 static PH_STRINGREF LoadingDynRelocText = PH_STRINGREF_INIT(L"Loading dynamic relocations from image...");
@@ -110,7 +113,7 @@ PPV_DYNRELOC_NODE PvAddDynRelocNode(
     node->Children = PhCreateList(1);
 
     // Derive a numeric key for RVA-column sorting only when the cell actually holds an address;
-    // structural rows (Patch sites, Decision tree) and edge labels (TRUE/FALSE) sort as 0.
+    // structural rows (Patch sites, Outcomes) sort as 0.
     if (Rva && Rva[0] == L'0' && (Rva[1] == L'x' || Rva[1] == L'X'))
     {
         ULONG64 value;
@@ -299,7 +302,20 @@ PPH_STRING PvDynRelocEntryInfoString(
         *TypeName = L"BRANCH";
         return PhFormatString(L"Register %u", Entry->SwitchBranch.Record.RegisterNumber);
     default:
-        *TypeName = L"";
+        // Entries with no dedicated DVRT symbol carry an ordinary base-relocation record; name it
+        // from the record type as the flat list did (this should only be ABS in practice, but the
+        // rest are named for visibility rather than shown as a blank Type column).
+        switch (Entry->Other.Record.Type)
+        {
+        case IMAGE_REL_BASED_ABSOLUTE:    *TypeName = L"ABS"; break;
+        case IMAGE_REL_BASED_HIGH:        *TypeName = L"HIGH"; break;
+        case IMAGE_REL_BASED_LOW:         *TypeName = L"LOW"; break;
+        case IMAGE_REL_BASED_HIGHLOW:     *TypeName = L"HIGHLOW"; break;
+        case IMAGE_REL_BASED_DIR64:       *TypeName = L"DIR64"; break;
+        case IMAGE_REL_BASED_ARM_MOV32:   *TypeName = L"MOV32"; break;
+        case IMAGE_REL_BASED_THUMB_MOV32: *TypeName = L"MOV32(T)"; break;
+        default:                          *TypeName = L""; break;
+        }
         return PhFormatString(L"0x%llx", Entry->Symbol);
     }
 }
@@ -385,31 +401,41 @@ BOOLEAN NTAPI PvDynRelocBddCollectCallback(
 
 // Translates a single function-override BDD feature number into a human-readable term.
 //
-// Names come from the SDK overridecapabilities.h (OVRDCAP_*), which is authoritative: the numbers
-// there are the same space ntoskrnl's RtlpInitFunctionOverrideCapabilities populates. Two families
-// are deliberately not spelled out here:
+// Names come from the SDK overridecapabilities.h (OVRDCAP_*), which defines the capability numbering
+// the linker emits into the BDD. Two families are deliberately not spelled out here:
 //
 //  - CPU-signature selectors (vendor / family / model and their extended forms) are fused by the
-//    condition builder into "Intel family 6 model 0x8F", which reads far better than sixteen
-//    separate OVRDCAP_AMD64_CPU_FAMILY_n terms. Only the vendor names are handled below.
-//  - Capability-set markers (V1/V2/V3/V4_CAPSET) gate on the OS knowing a capability set at all,
-//    not on hardware, so they are labelled as such to distinguish them from feature tests.
+//    condition builder into "Intel family 6 model 0x8F", which reads far better than the 304
+//    separate OVRDCAP_AMD64_CPU_* terms those four ranges span (16 family, 256 extended family,
+//    16 model, 16 extended model). Only the vendor names are handled below.
+//  - Capability-set markers (V1/V2/V3/V4_CAPSET) gate on the OS knowing a capability set at all
+//    rather than on hardware, so they are named as capability sets to read differently from a
+//    feature test.
 //
-// Feature numbers are per-architecture and never overlap, so one switch covers both namespaces.
+// Feature numbers are per-architecture and never overlap (the header guarantees this, because AMD64
+// code runs on ARM64 under emulation), so one switch covers both namespaces.
 PPH_STRING PvDynRelocFeatureString(
     _In_ ULONG Feature
     )
 {
     PWSTR name = NULL;
 
+    // OVRDCAP_ALWAYS_OFF is 0x7FFFFFFF -- the top bit is CLEAR, so this must be tested before (not
+    // inside) the top-bit branch below.
+    if (Feature == OVRDCAP_ALWAYS_OFF)
+        return PhCreateString(L"never");
+
     // A set top bit marks an "OS Special Function": the OS supplies the implementation (e.g. from
-    // ntdll) rather than the image selecting one of its own bodies.
+    // ntdll) rather than the image selecting one of its own bodies. The low 31 bits are still a
+    // capability number, so name it if we can.
     if (Feature & 0x80000000)
     {
-        if (Feature == OVRDCAP_ALWAYS_OFF)
-            return PhCreateString(L"never");
+        ULONG capability = Feature & ~0x80000000ul;
+        PPH_STRING inner = PvDynRelocFeatureString(capability);
+        PPH_STRING result = PhFormatString(L"OS special function: %ls", inner->Buffer);
 
-        return PhFormatString(L"OS special function %lu", Feature & ~0x80000000ul);
+        PhDereferenceObject(inner);
+        return result;
     }
 
     switch (Feature)
@@ -552,6 +578,9 @@ PPH_STRING PvDynRelocFeatureString(
     case OVRDCAP_ARM64_QC_CHIPSET_8180:         name = L"Qualcomm 8180"; break;
     case OVRDCAP_ARM64_QC_CHIPSET_8280:         name = L"Qualcomm 8280"; break;
     case OVRDCAP_ARM64_QC_CHIPSET_8380:         name = L"Qualcomm 8380"; break;
+#ifdef OVRDCAP_ARM64_QC_CHIPSET_8480
+    case OVRDCAP_ARM64_QC_CHIPSET_8480:         name = L"Qualcomm 8480"; break;
+#endif
 
     // User-mode access (UMA) special-function overrides.
     case OVRDCAP_ARM64_UMA_DISPATCH_KSCP:                   name = L"UMA dispatch (KSCP)"; break;
@@ -596,9 +625,10 @@ PPH_STRING PvDynRelocFeatureString(
     if (name)
         return PhCreateString(name);
 
-    // A number inside a namespace but not named by the SDK header this build was compiled
-    // against: a newer OS capability. Show the raw value.
-    return PhFormatString(L"feature %lu", Feature);
+    // A number inside a namespace that this switch does not name: either a capability added after the
+    // SDK header this build was compiled against, or one deliberately left to the caller's signature
+    // fusion. Show the raw value in hex so it can be matched against overridecapabilities.h.
+    return PhFormatString(L"feature 0x%lx", Feature);
 }
 
 // CPU-signature field ranges. Each is a base capability plus the field value, so a run of
@@ -611,17 +641,20 @@ PPH_STRING PvDynRelocFeatureString(
                                        (f) <= OVRDCAP_AMD64_CPU_FAMILY_15)
 #define PV_DYNRELOC_IS_EXTFAMILY(f)   ((f) >= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_0 && \
                                        (f) <= OVRDCAP_AMD64_CPU_EXTENDED_FAMILY_255)
-#define PV_DYNRELOC_IS_CPUIDENT(f)    (PV_DYNRELOC_IS_MODEL(f) || PV_DYNRELOC_IS_EXTMODEL(f) || \
-                                       PV_DYNRELOC_IS_FAMILY(f) || PV_DYNRELOC_IS_EXTFAMILY(f))
 
 PPH_STRING PvDynRelocOutcomeString(
     _In_ PPH_FUNCTION_OVERRIDE_OUTCOME Outcome
     )
 {
-    if (Outcome->Type == PhFunctionOverrideKeepOriginal)
+    switch (Outcome->Type)
+    {
+    case PhFunctionOverrideKeepOriginal:
         return PhCreateString(L"keep original");
-
-    return PhFormatString(L"override[%lu]", Outcome->RvaIndex);
+    case PhFunctionOverrideInvalid:
+        return PhCreateString(L"(malformed terminal)");
+    default:
+        return PhFormatString(L"override[%lu]", Outcome->RvaIndex);
+    }
 }
 
 // Builds the AND-chain condition string starting at *Index, following TRUE edges through fresh
@@ -691,22 +724,28 @@ PPH_STRING PvDynRelocBuildCondition(
 
     // Emit the fused CPU-signature term, if any signature field was constrained.
     //
-    // Fusion must not lose information: the guards form a first-match-wins ladder, so two rungs
-    // that render identically read as a contradiction. Real BDDs do distinguish "base family 15
-    // AND extended family 0" from "base family 15" alone (ntoskrnl's KeCopyPage has both, as
-    // consecutive rungs), and folding the former to DisplayFamily 15 makes it indistinguishable
-    // from the latter. So when base family 15 folds an extended family, name both fields instead.
+    // Fusion must be injective: the guards form a first-match-wins ladder, so two rungs that render
+    // identically read as a contradiction. Rungs can differ purely by which fields they constrain --
+    // "base family F AND extended family E" versus "base family F" alone (observed as consecutive
+    // rungs in ntoskrnl 26100's KeCopyPage at F=15) -- so a field that was constrained is always
+    // named, even when DisplayFamily/DisplayModel folding would otherwise absorb it into a single
+    // number. Presenting the fold is useful; presenting only the fold loses the rung's identity.
     if (haveFamily || haveExtFamily || haveModel || haveExtModel)
     {
         if (needAnd) PhAppendStringBuilder2(&sb, L" ");
 
         if (haveFamily)
         {
-            if (family == 15 && haveExtFamily)
+            if (haveExtFamily)
             {
-                // DisplayFamily folds extended family only for base family 15. Show the fused
-                // value plus the extended field that produced it, so the rung stays identifiable.
-                PhAppendFormatStringBuilder(&sb, L"family %lu (15+%lu)", family + extFamily, extFamily);
+                // A constrained extended family must always be visible. DisplayFamily folds it only
+                // for base family 15, so show the fused value there and the raw pair otherwise --
+                // either way the rendering names both fields, so no two rungs that differ in
+                // extended family can collapse to the same string.
+                if (family == 15)
+                    PhAppendFormatStringBuilder(&sb, L"family %lu (15+%lu)", family + extFamily, extFamily);
+                else
+                    PhAppendFormatStringBuilder(&sb, L"family %lu ext family %lu", family, extFamily);
             }
             else
             {
@@ -933,6 +972,9 @@ VOID PvEnumerateDynamicRelocationEntries(
         {
             PPH_IMAGE_DYNAMIC_RELOC_ENTRY entry = &relocations.RelocationEntries[i];
 
+            if (Context->Cancel)
+                break;
+
             if (entry->Symbol == IMAGE_DYNAMIC_RELOCATION_FUNCTION_OVERRIDE)
             {
                 PPV_DYNRELOC_OVERRIDE_GROUP group = NULL;
@@ -1000,6 +1042,9 @@ VOID PvEnumerateDynamicRelocationEntries(
             PPV_DYNRELOC_NODE sitesNode;
             PPV_DYNRELOC_NODE treeNode;
 
+            if (Context->Cancel)
+                break;
+
             sitesNode = PvAddDynRelocNode(
                 Context,
                 group->RootNode,
@@ -1018,6 +1063,11 @@ VOID PvEnumerateDynamicRelocationEntries(
                 PPH_IMAGE_DYNAMIC_RELOC_ENTRY site = group->Sites->Items[k];
                 PPV_DYNRELOC_NODE siteNode;
                 ULONG patchWidth;
+
+                // Each site resolves a symbol under the global symbol lock, so a large override
+                // (ntoskrnl has one with 4707 sites) is where a close-during-load lands.
+                if (Context->Cancel)
+                    break;
 
                 patchWidth = PvDynRelocOverridePatchWidth(site->FuncOverride.Record.Type);
 
@@ -1062,6 +1112,7 @@ VOID PvEnumerateDynamicRelocationEntries(
 
 // Builds the tree off the UI thread (symbol resolution can be slow) and notifies the dialog to
 // structure the tree once the nodes are ready.
+_Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PvpPeDynRelocEnumerateThread(
     _In_ PPV_PE_DYNRELOC_CONTEXT Context
     )
@@ -1201,6 +1252,13 @@ BOOLEAN NTAPI PvDynRelocTreeNewCallback(
 
             if (!node)
             {
+                if (context->Loading)
+                {
+                    getChildren->Children = NULL;
+                    getChildren->NumberOfChildren = 0;
+                    return TRUE;
+                }
+
                 // Sort only the root list; child rows (patch sites, BDD edges) keep their
                 // structural insertion order regardless of the active column sort.
                 static CONST _CoreCrtSecureSearchSortCompareFunction sortFunctions[] =
@@ -1349,6 +1407,44 @@ BOOLEAN PvDynRelocTreeFilterCallback(
     return FALSE;
 }
 
+// Makes every filter-matched row reachable: a match can sit several levels down (override -> Patch
+// sites -> site, or override -> Outcomes -> outcome), and PhApplyTreeNewFilters marks Visible per node
+// without consulting ancestors. Force each match's ancestor chain visible and expanded so the match is
+// actually on screen, mirroring the reveal-upwards behaviour of the certificates tree.
+VOID PvRevealDynRelocMatches(
+    _In_ PPV_PE_DYNRELOC_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_DYNRELOC_NODE node = Context->NodeList->Items[i];
+        PPV_DYNRELOC_NODE parent;
+
+        if (!node->Node.Visible)
+            continue;
+
+        for (parent = node->Parent; parent; parent = parent->Parent)
+        {
+            parent->Node.Visible = TRUE;
+            parent->Node.Expanded = TRUE;
+        }
+    }
+}
+
+// Restores the compact default view once the search box is cleared.
+VOID PvCollapseDynRelocNodes(
+    _In_ PPV_PE_DYNRELOC_CONTEXT Context
+    )
+{
+    for (ULONG i = 0; i < Context->NodeList->Count; i++)
+    {
+        PPV_DYNRELOC_NODE node = Context->NodeList->Items[i];
+
+        if (node->Children->Count != 0)
+            node->Node.Expanded = FALSE;
+    }
+}
+
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpPeDynRelocSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -1361,7 +1457,23 @@ VOID NTAPI PvpPeDynRelocSearchControlCallback(
 
     context->SearchMatchHandle = MatchHandle;
 
+    // PhApplyTreeNewFilters walks the whole NodeList; skip it while the worker is still appending.
+    // WM_PV_SEARCH_FINISHED re-applies the filter once the list is stable.
+    if (context->Loading)
+        return;
+
     PhApplyTreeNewFilters(&context->FilterSupport);
+
+    // PhApplyTreeNewFilters sets Visible per node with no regard for ancestors, and this tree opens
+    // collapsed -- so a match on a nested row (an override's patch site or outcome) would be filtered
+    // in yet stay off-screen behind a collapsed or hidden parent. Reveal matches by expanding and
+    // showing their ancestor chain; on an empty query, restore the compact collapsed view.
+    if (context->SearchMatchHandle)
+        PvRevealDynRelocMatches(context);
+    else
+        PvCollapseDynRelocNodes(context);
+
+    TreeNew_NodesStructured(context->TreeNewHandle);
 }
 
 INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
@@ -1420,13 +1532,32 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &LoadingDynRelocText, 0);
 
-            PhCreateThread2(PvpPeDynRelocEnumerateThread, context);
+            // Loading must be set before the worker starts: it is what keeps UI-thread readers off
+            // NodeList/NodeRootList while the worker appends to them.
+            context->Loading = TRUE;
+
+            if (!NT_SUCCESS(PhCreateThreadEx(&context->ThreadHandle, PvpPeDynRelocEnumerateThread, context)))
+            {
+                context->ThreadHandle = NULL;
+                context->Loading = FALSE;
+                TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyDynRelocText, 0);
+            }
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
     case WM_DESTROY:
         {
+            // The worker writes into NodeList/NodeRootList and into the nodes themselves, so it must
+            // be finished before PvDeleteDynRelocTree frees any of that. Ask it to stop, then join.
+            if (context->ThreadHandle)
+            {
+                context->Cancel = TRUE;
+                PhWaitForSingleObject(context->ThreadHandle, 10000);
+                NtClose(context->ThreadHandle);
+                context->ThreadHandle = NULL;
+            }
+
             PvDeleteDynRelocTree(context);
 
             PhDeleteLayoutManager(&context->LayoutManager);
@@ -1448,9 +1579,18 @@ INT_PTR CALLBACK PvpPeDynamicRelocationDlgProc(
         break;
     case WM_PV_SEARCH_FINISHED:
         {
+            // Publish the worker's results: after this point the lists are stable and UI-thread
+            // readers (TreeNewGetChildren, the filter callback) may touch them.
+            context->Loading = FALSE;
+
             TreeNew_SetRedraw(context->TreeNewHandle, FALSE);
             TreeNew_NodesStructured(context->TreeNewHandle);
             PhApplyTreeNewFilters(&context->FilterSupport);
+
+            // A query typed while loading was deferred; honour it now that the list is stable.
+            if (context->SearchMatchHandle)
+                PvRevealDynRelocMatches(context);
+
             TreeNew_SetRedraw(context->TreeNewHandle, TRUE);
 
             TreeNew_SetEmptyText(context->TreeNewHandle, &EmptyDynRelocText, 0);
