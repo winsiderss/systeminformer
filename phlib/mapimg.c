@@ -7323,6 +7323,8 @@ static NTSTATUS PhpFunctionOverrideBuildOutcome(
     return STATUS_SUCCESS;
 }
 
+#define PHP_FUNCTION_OVERRIDE_MAX_BDD_DEPTH 128
+
 typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
 {
     PPH_IMAGE_DYNAMIC_RELOC_ENTRY Entry;
@@ -7338,69 +7340,79 @@ typedef struct _PHP_FUNCTION_OVERRIDE_ENUM_CONTEXT
 
 /**
  * Depth-first walk of a function-override BDD emitting each distinct terminal once.
+ *
+ * Depth counts only TRUE-edge nesting: the FALSE edge is the else spine, a chain of sibling rungs
+ * rather than nesting, so it is followed in this frame. Root call passes Index = 0, Depth = 0.
  */
 static NTSTATUS PhpFunctionOverrideWalk(
-    _In_ PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT Context,
-    _In_ ULONG Index
+    _Inout_ PPHP_FUNCTION_OVERRIDE_ENUM_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_ ULONG Depth
     )
 {
-    PIMAGE_BDD_DYNAMIC_RELOCATION node;
-
-    if (Context->Stopped)
-        return STATUS_SUCCESS;
-
-    if (Index >= Context->NodesCount)
+    if (Depth >= PHP_FUNCTION_OVERRIDE_MAX_BDD_DEPTH)
         return STATUS_INVALID_PARAMETER;
 
-    node = &Context->Nodes[Index];
-
-    if ((node->Left == 0 && node->Right == 0) ||
-        (node->Left == Index && node->Right == Index))
+    for (;;)
     {
-        PH_FUNCTION_OVERRIDE_OUTCOME outcome;
-        NTSTATUS status;
+        PIMAGE_BDD_DYNAMIC_RELOCATION node;
 
-        // Emit each terminal node only once even when multiple paths converge on it.
-        for (ULONG i = 0; i < Context->VisitedCount; i++)
+        if (Context->Stopped)
+            return STATUS_SUCCESS;
+
+        if (Index >= Context->NodesCount)
+            return STATUS_INVALID_PARAMETER;
+
+        node = &Context->Nodes[Index];
+
+        if ((node->Left == 0 && node->Right == 0) ||
+            (node->Left == Index && node->Right == Index))
         {
-            if (Context->Visited[i] == Index)
-                return STATUS_SUCCESS;
+            PH_FUNCTION_OVERRIDE_OUTCOME outcome;
+            NTSTATUS status;
+
+            // Emit each terminal node only once even when multiple paths converge on it.
+            for (ULONG i = 0; i < Context->VisitedCount; i++)
+            {
+                if (Context->Visited[i] == Index)
+                    return STATUS_SUCCESS;
+            }
+
+            status = PhpFunctionOverrideBuildOutcome(Context->Entry, node, Index, &outcome);
+
+            if (!NT_SUCCESS(status))
+                return status;
+
+            Context->Visited[Context->VisitedCount++] = Index;
+
+            if (!Context->Callback(Context->Entry, &outcome, Context->Context))
+                Context->Stopped = TRUE;
+
+            return STATUS_SUCCESS;
         }
 
-        status = PhpFunctionOverrideBuildOutcome(Context->Entry, node, Index, &outcome);
+        // A BDD is a DAG: internal nodes are shared across paths. Expand each at most once so a
+        // diamond-shaped diagram is walked in O(nodes) rather than exponentially (and so any
+        // malformed back-edge terminates). This is also what bounds the loop below.
+        if (Context->Expanded[Index])
+            return STATUS_SUCCESS;
 
-        if (!NT_SUCCESS(status))
-            return status;
+        Context->Expanded[Index] = TRUE;
 
-        Context->Visited[Context->VisitedCount++] = Index;
+        if (!PhFunctionOverrideIsFeatureAlwaysAbsent(node->Value))
+        {
+            NTSTATUS status;
 
-        if (!Context->Callback(Context->Entry, &outcome, Context->Context))
-            Context->Stopped = TRUE;
+            // Both edges are reachable for a real feature; the TRUE edge is a genuine sub-decision.
+            status = PhpFunctionOverrideWalk(Context, node->Right, Depth + 1);
 
-        return STATUS_SUCCESS;
+            if (!NT_SUCCESS(status))
+                return status;
+        }
+
+        // A feature outside every known namespace only ever takes the FALSE edge.
+        Index = node->Left;
     }
-
-    // A BDD is a DAG: internal nodes are shared across paths. Expand each at most once so a
-    // diamond-shaped diagram is walked in O(nodes) rather than exponentially (and so any
-    // malformed back-edge terminates).
-    if (Context->Expanded[Index])
-        return STATUS_SUCCESS;
-
-    Context->Expanded[Index] = TRUE;
-
-    if (!PhFunctionOverrideIsFeatureAlwaysAbsent(node->Value))
-    {
-        NTSTATUS status;
-
-        // Both edges are reachable for a real feature; recurse into each.
-        status = PhpFunctionOverrideWalk(Context, node->Right);
-
-        if (!NT_SUCCESS(status))
-            return status;
-    }
-
-    // A feature outside every known namespace only ever takes the FALSE edge.
-    return PhpFunctionOverrideWalk(Context, node->Left);
 }
 
 /**
@@ -7448,7 +7460,7 @@ NTSTATUS PhFunctionOverrideEnumerateBdd(
         return STATUS_NO_MEMORY;
     }
 
-    status = PhpFunctionOverrideWalk(&context, 0);
+    status = PhpFunctionOverrideWalk(&context, 0, 0);
 
     PhFree(context.Expanded);
     PhFree(context.Visited);
