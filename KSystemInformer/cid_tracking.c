@@ -1172,6 +1172,11 @@ NTSTATUS KphCidInitialize(
     status = KphCidTableCreate(&KphpCidTable);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KphCidTableCreate failed: %!STATUS!",
+                      status);
+
         return status;
     }
 
