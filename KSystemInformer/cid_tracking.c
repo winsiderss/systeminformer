@@ -384,7 +384,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
  * \param[in] Object The process context object to initialize.
  * \param[in] Parameter The kernel process object associated with this context.
  *
- * \return STATUS_SUCCESS
+ * \return Successful or errant result.
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -997,9 +997,9 @@ Exit:
  * \brief Initializes a thread context.
  *
  * \param[in] Object The thread context object to initialize.
- * \param[in] Parameter Unused
+ * \param[in] Parameter The kernel thread object associated with this context.
  *
- * \return STATUS_SUCCESS
+ * \return Successful or errant result.
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
