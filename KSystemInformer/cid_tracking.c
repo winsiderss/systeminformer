@@ -28,6 +28,7 @@ PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
+static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpCidApcTypeName = RTL_CONSTANT_STRING(L"KphCidApc");
@@ -39,7 +40,6 @@ static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
 static LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
-static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 static ULONG64 KphpProcessSequence = 0;
 
 /**
