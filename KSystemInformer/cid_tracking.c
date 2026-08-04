@@ -144,7 +144,6 @@ PKPH_PROCESS_CONTEXT KphGetEProcessContext(
         return KphGetSystemProcessContext();
     }
 
-#pragma prefast(suppress: 28121) // SAL is incorrect
     processId = PsGetProcessId(Process);
 
     return KphGetProcessContext(processId);
