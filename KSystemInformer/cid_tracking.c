@@ -252,7 +252,7 @@ PVOID KSIAPI KphpAllocateCidApc(
 /**
  * \brief Initializes a CID APC object.
  *
- * \param[in] Object The CID APC object to initialize.
+ * \param[in,out] Object The CID APC object to initialize.
  * \param[in] Parameter Unused.
  *
  * \return STATUS_SUCCESS
@@ -281,7 +281,7 @@ NTSTATUS KSIAPI KphpInitializeCidApc(
 /**
  * \brief Deletes a CID APC object.
  *
- * \param[in] Object The CID APC  object to delete.
+ * \param[in,out] Object The CID APC  object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
@@ -381,7 +381,7 @@ PVOID KSIAPI KphpAllocateProcessContext(
 /**
  * \brief Initializes a process context.
  *
- * \param[in] Object The process context object to initialize.
+ * \param[in,out] Object The process context object to initialize.
  * \param[in] Parameter The kernel process object associated with this context.
  *
  * \return Successful or errant result.
@@ -662,7 +662,7 @@ Exit:
 /**
  * \brief Deletes a process context.
  *
- * \param[in] Object The process context object to delete.
+ * \param[in,out] Object The process context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -833,10 +833,10 @@ VOID KphpInitializeWSLThreadContext(
  * \brief APC routine for thread tracking.
  *
  * \param[in] Apc The ACP executed, contained within the CID APC.
- * \param[in] NormalRoutine Unused.
- * \param[in] NormalContext Unused.
- * \param[in] SystemArgument1 Unused.
- * \param[in] SystemArgument2 Unused.
+ * \param[in,out] NormalRoutine Unused.
+ * \param[in,out] NormalContext Unused.
+ * \param[in,out] SystemArgument1 Unused.
+ * \param[in,out] SystemArgument2 Unused.
  */
 _Function_class_(KSI_KKERNEL_ROUTINE)
 _IRQL_requires_(APC_LEVEL)
@@ -996,7 +996,7 @@ Exit:
 /**
  * \brief Initializes a thread context.
  *
- * \param[in] Object The thread context object to initialize.
+ * \param[in,out] Object The thread context object to initialize.
  * \param[in] Parameter The kernel thread object associated with this context.
  *
  * \return Successful or errant result.
@@ -1105,7 +1105,7 @@ Exit:
 /**
  * \brief Deletes a thread context.
  *
- * \param[in] Object The thread context object to delete.
+ * \param[in,out] Object The thread context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1451,7 +1451,6 @@ PVOID KphpTrackContext(
  *
  * \param[in] Cid The CID of the object to being tracking.
  * \param[in] ObjectType The expected object type if the CID.
- * \param[in] ObjectBodySize The size of the context body.
  *
  * \return Pointer to the context object, null if not found or the object is
  * not of the expected type. The caller *must* dereference the object when they

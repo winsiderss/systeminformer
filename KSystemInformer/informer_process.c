@@ -77,9 +77,9 @@ VOID KphpFreeProcessCreateApc(
 /**
  * \brief Performing process tracking.
  *
- * \param[in] Process The process object from the notification callback.
+ * \param[in,out] Process The process object from the notification callback.
  * \param[in] ProcessId Process ID from the notification callback.
- * \param[in] CreateInfo The create information from the callback.
+ * \param[in,out] CreateInfo The create information from the callback.
  *
  * \return Pointer to the process context, may be null, the caller should
  * dereference this object if it is non-null.
