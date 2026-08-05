@@ -1468,7 +1468,7 @@ PVOID KphpUntrackContext(
 
     KPH_PAGED_CODE();
 
-    entry = KphCidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidLookupEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
@@ -1591,6 +1591,7 @@ NTSTATUS KphCidPopulate(
 
     for (info = KPH_FIRST_PROCESS(buffer); info; info = KPH_NEXT_PROCESS(info))
     {
+        NTSTATUS lookupStatus
         PKPH_PROCESS_CONTEXT process;
         PEPROCESS processObject;
 
@@ -1622,14 +1623,14 @@ NTSTATUS KphCidPopulate(
             // Otherwise there is the possibility of an object leak from TOCTOU.
             //
 
-            status = PsLookupProcessByProcessId(info->UniqueProcessId,
-                                                &processObject);
-            if (!NT_SUCCESS(status))
+            lookupStatus = PsLookupProcessByProcessId(info->UniqueProcessId,
+                                                      &processObject);
+            if (!NT_SUCCESS(lookupStatus))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "PsLookupProcessByProcessId failed: %!STATUS!",
-                              status);
+                              lookupStatus);
 
                 continue;
             }
@@ -1661,6 +1662,7 @@ NTSTATUS KphCidPopulate(
                           TRACKING,
                           "KphpTrackContext failed (process %lu)",
                           HandleToULong(info->UniqueProcessId));
+
             continue;
         }
 
@@ -1681,9 +1683,9 @@ NTSTATUS KphCidPopulate(
 
             threadInfo = &info->Threads[i];
 
-            status = PsLookupThreadByThreadId(threadInfo->ClientId.UniqueThread,
-                                              &threadObject);
-            if (!NT_SUCCESS(status))
+            lookupStatus = PsLookupThreadByThreadId(threadInfo->ClientId.UniqueThread,
+                                                    &threadObject);
+            if (!NT_SUCCESS(lookupStatus))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
@@ -1692,7 +1694,7 @@ NTSTATUS KphCidPopulate(
                               HandleToULong(threadInfo->ClientId.UniqueThread),
                               &process->ImageName,
                               HandleToULong(process->ProcessId),
-                              status);
+                              lookupStatus);
 
                 continue;
             }
