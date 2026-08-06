@@ -1591,7 +1591,7 @@ NTSTATUS KphCidPopulate(
 
     for (info = KPH_FIRST_PROCESS(buffer); info; info = KPH_NEXT_PROCESS(info))
     {
-        NTSTATUS lookupStatus
+        NTSTATUS lookupStatus;
         PKPH_PROCESS_CONTEXT process;
         PEPROCESS processObject;
 
