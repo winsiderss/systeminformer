@@ -1,0 +1,16 @@
+#pragma code_page(65001)
+
+#include <windows.h>
+#include "../../SystemInformer/include/localizationres.h"
+
+// 简体中文翻译资源；缺失字符串由主程序自动回退为英文。
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+
+STRINGTABLE
+BEGIN
+    IDS_PH_MAIN_MENU_SYSTEM "系统(&S)"
+    IDS_PH_MAIN_MENU_VIEW   "界面(&V)"
+    IDS_PH_MAIN_MENU_TOOLS  "工具(&T)"
+    IDS_PH_MAIN_MENU_USERS  "用户(&U)"
+    IDS_PH_MAIN_MENU_HELP   "帮助(&H)"
+END

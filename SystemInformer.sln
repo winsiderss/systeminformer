@@ -20,6 +20,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "kphlib", "kphlib\kphlib_um.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "phnt", "phnt\phnt.vcxitems", "{3BDF0453-A79D-4BD0-B80B-D90C8ED0D180}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SystemInformer.zh-CN", "translations\zh-CN\SystemInformer.zh-CN.vcxproj", "{6A13F914-EA73-4A7F-BB2D-77D0490F126D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM64 = Debug|ARM64
@@ -90,6 +92,18 @@ Global
 		{F1757430-8EEE-49DF-A5F1-0999A53BB4A0}.Release|Win32.Build.0 = Release|Win32
 		{F1757430-8EEE-49DF-A5F1-0999A53BB4A0}.Release|x64.ActiveCfg = Release|x64
 		{F1757430-8EEE-49DF-A5F1-0999A53BB4A0}.Release|x64.Build.0 = Release|x64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|ARM64.Build.0 = Debug|ARM64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|Win32.Build.0 = Debug|Win32
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|x64.ActiveCfg = Debug|x64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Debug|x64.Build.0 = Debug|x64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|ARM64.ActiveCfg = Release|ARM64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|ARM64.Build.0 = Release|ARM64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|Win32.ActiveCfg = Release|Win32
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|Win32.Build.0 = Release|Win32
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|x64.ActiveCfg = Release|x64
+		{6A13F914-EA73-4A7F-BB2D-77D0490F126D}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
