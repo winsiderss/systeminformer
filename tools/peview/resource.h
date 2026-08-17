@@ -54,6 +54,7 @@
 #define IDD_GETLOADLIBRARY              175
 #define IDD_PECLRTABLEPREVIEW           176
 #define IDD_PERESOURCEVIEW              177
+#define IDD_PEDYNAMICRELOC             178
 #define IDD_CONTAINER                   205
 #define IDB_SEARCH_REGEX_MODERN_DARK    206
 #define IDB_SEARCH_REGEX_MODERN_LIGHT   207
@@ -121,7 +122,7 @@
 //
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        177
+#define _APS_NEXT_RESOURCE_VALUE        179
 #define _APS_NEXT_COMMAND_VALUE         40001
 #define _APS_NEXT_CONTROL_VALUE         1038
 #define _APS_NEXT_SYMED_VALUE           115

@@ -459,7 +459,7 @@ VOID PvAddTreeViewSections(
         PvCreateTabSection(
             L"Dynamic Relocations",
             PhInstanceHandle,
-            MAKEINTRESOURCE(IDD_PERELOCATIONS),
+            MAKEINTRESOURCE(IDD_PEDYNAMICRELOC),
             PvpPeDynamicRelocationDlgProc,
             NULL
             );
