@@ -244,6 +244,14 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(SETTING_SEARCH_ENGINE, L"https://duckduckgo.com/?q=\"%s\"");
     PhpAddStringSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_COLUMNS, L"");
     PhpAddStringSetting(SETTING_SEGMENT_HEAP_LIST_VIEW_SORT, L"0,1");
+    PhpAddIntegerSetting(SETTING_AFFINITY_PRESET_MASK_1, L"0");
+    PhpAddIntegerSetting(SETTING_AFFINITY_PRESET_MASK_2, L"0");
+    PhpAddIntegerSetting(SETTING_AFFINITY_PRESET_MASK_3, L"0");
+    PhpAddIntegerSetting(SETTING_AFFINITY_PRESET_MASK_4, L"0");
+    PhpAddStringSetting(SETTING_AFFINITY_PRESET_NAME_1, L"Preset 1");
+    PhpAddStringSetting(SETTING_AFFINITY_PRESET_NAME_2, L"Preset 2");
+    PhpAddStringSetting(SETTING_AFFINITY_PRESET_NAME_3, L"Preset 3");
+    PhpAddStringSetting(SETTING_AFFINITY_PRESET_NAME_4, L"Preset 4");
     PhpAddIntegerPairSetting(SETTING_SEGMENT_HEAP_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_SEGMENT_HEAP_WINDOW_SIZE, L"@96|450,500");
     PhpAddStringSetting(SETTING_SEGMENT_LOCKS_LIST_VIEW_COLUMNS, L"");

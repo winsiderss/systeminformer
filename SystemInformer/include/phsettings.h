@@ -688,6 +688,15 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PROCESS_MONITOR_WINDOW_SIZE                         L"ProcessMonitorWindowSize"
 #define SETTING_PROCESS_MONITOR_CATEGORY_FILTER                     L"ProcessMonitorCategoryFilter"
 #define SETTING_PROCESS_MONITOR_NODE_LIMIT                          L"ProcessMonitorNodeLimit"
+
+#define SETTING_AFFINITY_PRESET_MASK_1                              L"AffinityPresetMask1"
+#define SETTING_AFFINITY_PRESET_MASK_2                              L"AffinityPresetMask2"
+#define SETTING_AFFINITY_PRESET_MASK_3                              L"AffinityPresetMask3"
+#define SETTING_AFFINITY_PRESET_MASK_4                              L"AffinityPresetMask4"
+#define SETTING_AFFINITY_PRESET_NAME_1                              L"AffinityPresetName1"
+#define SETTING_AFFINITY_PRESET_NAME_2                              L"AffinityPresetName2"
+#define SETTING_AFFINITY_PRESET_NAME_3                              L"AffinityPresetName3"
+#define SETTING_AFFINITY_PRESET_NAME_4                              L"AffinityPresetName4"
 // end_phapppub
 
 EXTERN_C_END

@@ -2095,6 +2095,42 @@ VOID PhMwpOnCommand(
             }
         }
         break;
+    case ID_AFFINITY_ALL:
+    case ID_AFFINITY_PCORES:
+    case ID_AFFINITY_ECORES:
+    case ID_AFFINITY_EVEN:
+    case ID_AFFINITY_ODD:
+    case ID_AFFINITY_FIRSTHALF:
+    case ID_AFFINITY_SECONDHALF:
+    case ID_AFFINITY_CUSTOM_1:
+    case ID_AFFINITY_CUSTOM_2:
+    case ID_AFFINITY_CUSTOM_3:
+    case ID_AFFINITY_CUSTOM_4:
+    case ID_AFFINITY_SAVE_PRESET_1:
+    case ID_AFFINITY_SAVE_PRESET_2:
+    case ID_AFFINITY_SAVE_PRESET_3:
+    case ID_AFFINITY_SAVE_PRESET_4:
+    case ID_AFFINITY_CLEAR_PRESET_1:
+    case ID_AFFINITY_CLEAR_PRESET_2:
+    case ID_AFFINITY_CLEAR_PRESET_3:
+    case ID_AFFINITY_CLEAR_PRESET_4:
+    case ID_AFFINITY_CLEAR_ALL_PRESETS:
+    case ID_AFFINITY_CCD_FIRST: case ID_AFFINITY_CCD_FIRST + 1: case ID_AFFINITY_CCD_FIRST + 2: case ID_AFFINITY_CCD_FIRST + 3:
+    case ID_AFFINITY_CCD_FIRST + 4: case ID_AFFINITY_CCD_FIRST + 5: case ID_AFFINITY_CCD_FIRST + 6: case ID_AFFINITY_CCD_FIRST + 7:
+    case ID_AFFINITY_NUMA_FIRST: case ID_AFFINITY_NUMA_FIRST + 1: case ID_AFFINITY_NUMA_FIRST + 2: case ID_AFFINITY_NUMA_FIRST + 3:
+        {
+            PPH_PROCESS_ITEM *processes;
+            ULONG numberOfProcesses;
+
+            if (PhGetSelectedProcessItems(&processes, &numberOfProcesses))
+            {
+                PhReferenceObjects(processes, numberOfProcesses);
+                PhUiSetAffinityPresetProcesses(WindowHandle, processes, numberOfProcesses, Id);
+                PhDereferenceObjects(processes, numberOfProcesses);
+                PhFree(processes);
+            }
+        }
+        break;
     case ID_MISCELLANEOUS_ACTIVITY:
         {
             PPH_PROCESS_ITEM processItem = PhGetSelectedProcessItem();

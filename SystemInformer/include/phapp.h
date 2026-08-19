@@ -409,6 +409,38 @@ VOID PhShowProcessAffinityDialog(
     _In_opt_ PPH_THREAD_ITEM ThreadItem
     );
 
+BOOLEAN PhGetSystemProcessorEfficiencyMasks(
+    _In_ USHORT Group,
+    _Out_ PKAFFINITY PerformanceMask,
+    _Out_ PKAFFINITY EfficiencyMask
+    );
+
+KAFFINITY PhGetAffinityPresetMask(
+    _In_ USHORT Group,
+    _In_ ULONG PresetId
+    );
+
+VOID PhUiSetAffinityPresetProcesses(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
+    _In_ ULONG PresetId
+    );
+
+struct _PH_EMENU_ITEM;
+
+VOID PhAddAffinityPresetsToEMenu(
+    _In_ struct _PH_EMENU_ITEM *Menu,
+    _In_ USHORT Group,
+    _In_ BOOLEAN IncludeSaveItems
+    );
+
+BOOLEAN PhSaveCustomAffinityPreset(
+    _In_ ULONG PresetIndex,
+    _In_ KAFFINITY Mask,
+    _In_opt_ PCWSTR Name
+    );
+
 // begin_phapppub
 _Success_(return)
 PHAPPAPI
