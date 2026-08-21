@@ -1011,7 +1011,7 @@ VOID KphpInitializeEaCacheContext(
 
     InitializeObjectAttributes(&objectAttributes,
                                &objectName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                FileHandle,
                                NULL);
 

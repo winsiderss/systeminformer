@@ -98,7 +98,7 @@ NTSTATUS KphInitializeKnownDll(
 
         InitializeObjectAttributes(&objectAttributes,
                                    &info->SectionName,
-                                   OBJ_KERNEL_HANDLE,
+                                   OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                    NULL,
                                    NULL);
 
