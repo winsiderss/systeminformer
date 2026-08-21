@@ -8718,8 +8718,6 @@ typedef enum _HARDERROR_RESPONSE
  * \param[out] Response Receives the user's response to the error dialog.
  * \return NTSTATUS Successful or errant status.
  */
-_Analysis_noreturn_
-DECLSPEC_NORETURN
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
