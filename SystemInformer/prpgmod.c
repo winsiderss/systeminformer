@@ -103,6 +103,7 @@ VOID PhpInitializeModuleMenu(
     else
     {
         PhSetFlagsAllEMenuItems(Menu, PH_EMENU_DISABLED, PH_EMENU_DISABLED);
+        PhEnableEMenuItem(Menu, ID_MODULE_SEARCH_EXPORTS, TRUE);
         PhEnableEMenuItem(Menu, ID_MODULE_COPY, TRUE);
     }
 }
@@ -126,6 +127,8 @@ VOID PhShowModuleContextMenu(
         PH_PLUGIN_MENU_INFORMATION menuInfo;
 
         menu = PhCreateEMenu();
+        PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_SEARCH_EXPORTS, L"Search e&xports...", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_UNLOAD, L"&Unload\bDel", NULL, NULL), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
         PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_MODULE_OPENFILELOCATION, L"Open &file location\bCtrl+Enter", NULL, NULL), ULONG_MAX);
@@ -895,6 +898,11 @@ INT_PTR CALLBACK PhpProcessModulesDlgProc(
             case ID_SHOWCONTEXTMENU:
                 {
                     PhShowModuleContextMenu(hwndDlg, processItem, modulesContext, (PPH_TREENEW_CONTEXT_MENU)lParam);
+                }
+                break;
+            case ID_MODULE_SEARCH_EXPORTS:
+                {
+                    PhShowModuleExportsDialog(hwndDlg, processItem->ProcessId, processItem->ProcessName);
                 }
                 break;
             case ID_MODULE_UNLOAD:
