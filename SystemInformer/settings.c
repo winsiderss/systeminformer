@@ -101,6 +101,9 @@ VOID PhAddDefaultSettings(
     PhpAddStringSetting(SETTING_FIND_OBJ_TREE_LIST_COLUMNS, L"");
     PhpAddIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_FIND_OBJ_WINDOW_SIZE, L"@96|550,420");
+    PhpAddStringSetting(SETTING_MODEXPORTS_TREE_LIST_COLUMNS, L"");
+    PhpAddIntegerPairSetting(SETTING_MODEXPORTS_WINDOW_POSITION, L"0,0");
+    PhpAddScalableIntegerPairSetting(SETTING_MODEXPORTS_WINDOW_SIZE, L"@96|550,420");
     PhpAddStringSetting(SETTING_THREAD_STACKS_TREE_LIST_COLUMNS, L"");
     PhpAddIntegerPairSetting(SETTING_THREAD_STACKS_WINDOW_POSITION, L"0,0");
     PhpAddScalableIntegerPairSetting(SETTING_THREAD_STACKS_WINDOW_SIZE, L"@96|550,420");
