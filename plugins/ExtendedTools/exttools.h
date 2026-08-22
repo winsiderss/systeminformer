@@ -143,6 +143,9 @@ EXTERN_C BOOLEAN EtEnableAvxSupport;
 #define SETTING_NAME_WBCL_WINDOW_POSITION (PLUGIN_NAME L".WbclWindowPosition")
 #define SETTING_NAME_WBCL_WINDOW_SIZE (PLUGIN_NAME L".WbclWindowSize")
 #define SETTING_NAME_WBCL_LISTVIEW_COLUMNS (PLUGIN_NAME L".WbclListViewColumns")
+#define SETTING_NAME_PROCTRACE_WINDOW_POSITION (PLUGIN_NAME L".ProcessTraceWindowPosition")
+#define SETTING_NAME_PROCTRACE_WINDOW_SIZE (PLUGIN_NAME L".ProcessTraceWindowSize")
+#define SETTING_NAME_PROCTRACE_COLUMNS (PLUGIN_NAME L".ProcessTraceListColumns")
 #define SETTING_NAME_SMBIOS_WINDOW_POSITION (PLUGIN_NAME L".SMBIOSWindowPosition")
 #define SETTING_NAME_SMBIOS_WINDOW_SIZE (PLUGIN_NAME L".SMBIOSWindowSize")
 #define SETTING_NAME_SMBIOS_INFO_COLUMNS (PLUGIN_NAME L".SMBIOSListViewColumns")
@@ -1952,6 +1955,18 @@ VOID EtShowTpmDialog(
 // wbcl
 
 VOID EtShowWbclDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// process trace
+
+VOID EtShowProcessTraceDialog(
+    _In_ HWND ParentWindowHandle
+    );
+
+// startup apps
+
+VOID EtShowStartupAppsDialog(
     _In_ HWND ParentWindowHandle
     );
 

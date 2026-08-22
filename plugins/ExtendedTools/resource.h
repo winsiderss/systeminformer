@@ -264,6 +264,21 @@
 #define IDC_ENV_EDITTEXT                60042
 #define IDC_ENV_NAME                    60043
 #define IDC_ENV_VALUE                   60044
+#define ID_PROCTRACE                    60100
+#define IDD_PROCTRACE                   60101
+#define IDC_PROCTRACE_TREE              60102
+#define IDC_PROCTRACE_CLEAR             60103
+#define IDC_PROCTRACE_COPY              60104
+#define IDC_PROCTRACE_GOTOPROCESS       60105
+#define ID_STARTUP_TASKS                60005
+#define IDC_STARTUP_TREE                60122
+#define IDC_STARTUP_SEARCH              60123
+#define IDC_STARTUP_ENABLEDISABLE       60124
+#define IDC_STARTUP_DELETE              60125
+#define IDC_STARTUP_REFRESH             60126
+#define IDC_STARTUP_OPENLOCATION        60127
+#define IDC_STARTUP_COPY                60128
+#define IDC_STARTUP_GOTOENTRY           60129
 
 // Next default values for new objects
 // 
