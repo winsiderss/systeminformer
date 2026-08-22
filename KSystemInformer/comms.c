@@ -2551,7 +2551,7 @@ NTSTATUS KphCommsStart(
 
     InitializeObjectAttributes(&objectAttributes,
                                KphPortName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                securityDescriptor);
 

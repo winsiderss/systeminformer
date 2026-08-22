@@ -268,7 +268,7 @@ NTSTATUS KphFltRegister(
 
     InitializeObjectAttributes(&objectAttributes,
                                &keyName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
@@ -335,7 +335,7 @@ NTSTATUS KphFltRegister(
 
     InitializeObjectAttributes(&objectAttributes,
                                &keyName,
-                               OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
