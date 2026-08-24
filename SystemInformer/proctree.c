@@ -2539,8 +2539,8 @@ BEGIN_SORT_FUNCTION(IoReadsDelta)
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Value), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoReadCountDelta.Delta), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
@@ -2551,8 +2551,8 @@ BEGIN_SORT_FUNCTION(IoWritesDelta)
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Value), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoWriteCountDelta.Delta), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
@@ -2563,8 +2563,8 @@ BEGIN_SORT_FUNCTION(IoOtherDelta)
     ULONG64 number1 = 0;
     ULONG64 number2 = 0;
 
-    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number1);
-    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Value), &number2);
+    PhpAggregateFieldIfNeeded(node1, AggregateTypeInt64, AggregateProcessItem, processItem1, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number1);
+    PhpAggregateFieldIfNeeded(node2, AggregateTypeInt64, AggregateProcessItem, processItem2, FIELD_OFFSET(PH_PROCESS_ITEM, IoOtherCountDelta.Delta), &number2);
 
     sortResult = uint64cmp(number1, number2);
 }
