@@ -2073,7 +2073,7 @@ NTSTATUS KphOpenParametersKey(
 
     InitializeObjectAttributes(&objectAttributes,
                                &parametersKeyName,
-                               OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+                               OBJ_KERNEL_HANDLE | OBJ_DONT_REPARSE,
                                NULL,
                                NULL);
 
