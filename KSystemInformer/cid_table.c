@@ -353,7 +353,7 @@ PKPH_CID_TABLE_ENTRY KphpCidExpandTableFor(
         // unlikely we'll ever get here. The system is likely to run out of
         // memory before this happens. It also should be impossible given the
         // limit enforced by handle tables for PspCidTable. Unless Microsoft
-        // changes it, the limit is 1 << 24.
+        // changes it, the limit is ((1 << 24) - 0x10000) = 16,711,680.
         //
         NT_ASSERT(FALSE);
         return NULL;

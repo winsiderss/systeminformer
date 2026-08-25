@@ -288,22 +288,22 @@ NTSTATUS DriverEntry(
         goto Exit;
     }
 
-    status = KphFltRegister(DriverObject, RegistryPath);
-    if (!NT_SUCCESS(status))
-    {
-        KphTracePrint(TRACE_LEVEL_ERROR,
-                      GENERAL,
-                      "Failed to register mini-filter: %!STATUS!",
-                      status);
-        goto Exit;
-    }
-
     status = KphCidInitialize();
     if (!NT_SUCCESS(status))
     {
         KphTracePrint(TRACE_LEVEL_ERROR,
                       GENERAL,
                       "Failed to initialize CID tracking: %!STATUS!",
+                      status);
+        goto Exit;
+    }
+
+    status = KphFltRegister(DriverObject, RegistryPath);
+    if (!NT_SUCCESS(status))
+    {
+        KphTracePrint(TRACE_LEVEL_ERROR,
+                      GENERAL,
+                      "Failed to register mini-filter: %!STATUS!",
                       status);
         goto Exit;
     }
