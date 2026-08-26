@@ -286,10 +286,21 @@ static NTSTATUS NTAPI PhImageCoherencyDynamicRelocationCallback(
     {
         rva = UInt32Add32To64(Entry->FuncOverride.BlockRva, Entry->FuncOverride.Record.Offset);
 
-        if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        //
+        // The loader patches a fixed width per override type (see RtlpParseFunctionOverrideRelocations):
+        // X64 REL32 and ARM64 BRANCH26 rewrite 4 bytes; ARM64 THUNK rewrites 8. Use the record type
+        // rather than the image magic so x64 REL32 sites don't over-skip trailing code bytes.
+        //
+        switch (Entry->FuncOverride.Record.Type)
+        {
+        case IMAGE_FUNCTION_OVERRIDE_X64_REL32:
+        case IMAGE_FUNCTION_OVERRIDE_ARM64_BRANCH26:
             size = 4;
-        else if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            break;
+        case IMAGE_FUNCTION_OVERRIDE_ARM64_THUNK:
             size = 8;
+            break;
+        }
     }
     else
     {

@@ -41,6 +41,7 @@ target_link_libraries(WindowExplorer PRIVATE
     comctl32
     gdi32
     ole32
+    oleaut32
     propsys
     shell32
     user32
@@ -50,6 +51,7 @@ target_link_options(WindowExplorer PRIVATE
     /DELAYLOAD:comctl32.dll
     /DELAYLOAD:gdi32.dll
     /DELAYLOAD:ole32.dll
+    /DELAYLOAD:oleaut32.dll
     /DELAYLOAD:propsys.dll
     /DELAYLOAD:shell32.dll
     /DELAYLOAD:user32.dll

@@ -28,6 +28,7 @@ PKPH_OBJECT_TYPE KphThreadContextType = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpCidApcLookaside = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpProcessContextLookaside = NULL;
 static PKPH_NPAGED_LOOKASIDE_OBJECT KphpThreadContextLookaside = NULL;
+static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 KPH_PROTECTED_DATA_SECTION_POP();
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
 static const UNICODE_STRING KphpCidApcTypeName = RTL_CONSTANT_STRING(L"KphCidApc");
@@ -39,7 +40,6 @@ static BOOLEAN KphpCidTrackingInitialized = FALSE;
 static KPH_CID_TABLE KphpCidTable;
 static LONG KphpCidPopulated = 0;
 static KEVENT KphpCidPopulatedEvent;
-static PKPH_PROCESS_CONTEXT KphpSystemProcessContext = NULL;
 static ULONG64 KphpProcessSequence = 0;
 
 /**
@@ -144,7 +144,6 @@ PKPH_PROCESS_CONTEXT KphGetEProcessContext(
         return KphGetSystemProcessContext();
     }
 
-#pragma prefast(suppress: 28121) // SAL is incorrect
     processId = PsGetProcessId(Process);
 
     return KphGetProcessContext(processId);
@@ -253,7 +252,7 @@ PVOID KSIAPI KphpAllocateCidApc(
 /**
  * \brief Initializes a CID APC object.
  *
- * \param[in] Object The CID APC object to initialize.
+ * \param[in,out] Object The CID APC object to initialize.
  * \param[in] Parameter Unused.
  *
  * \return STATUS_SUCCESS
@@ -282,7 +281,7 @@ NTSTATUS KSIAPI KphpInitializeCidApc(
 /**
  * \brief Deletes a CID APC object.
  *
- * \param[in] Object The CID APC  object to delete.
+ * \param[in,out] Object The CID APC  object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
@@ -382,10 +381,10 @@ PVOID KSIAPI KphpAllocateProcessContext(
 /**
  * \brief Initializes a process context.
  *
- * \param[in] Object The process context object to initialize.
+ * \param[in,out] Object The process context object to initialize.
  * \param[in] Parameter The kernel process object associated with this context.
  *
- * \return STATUS_SUCCESS
+ * \return Successful or errant result.
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -663,7 +662,7 @@ Exit:
 /**
  * \brief Deletes a process context.
  *
- * \param[in] Object The process context object to delete.
+ * \param[in,out] Object The process context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -834,10 +833,10 @@ VOID KphpInitializeWSLThreadContext(
  * \brief APC routine for thread tracking.
  *
  * \param[in] Apc The ACP executed, contained within the CID APC.
- * \param[in] NormalRoutine Unused.
- * \param[in] NormalContext Unused.
- * \param[in] SystemArgument1 Unused.
- * \param[in] SystemArgument2 Unused.
+ * \param[in,out] NormalRoutine Unused.
+ * \param[in,out] NormalContext Unused.
+ * \param[in,out] SystemArgument1 Unused.
+ * \param[in,out] SystemArgument2 Unused.
  */
 _Function_class_(KSI_KKERNEL_ROUTINE)
 _IRQL_requires_(APC_LEVEL)
@@ -997,10 +996,10 @@ Exit:
 /**
  * \brief Initializes a thread context.
  *
- * \param[in] Object The thread context object to initialize.
- * \param[in] Parameter Unused
+ * \param[in,out] Object The thread context object to initialize.
+ * \param[in] Parameter The kernel thread object associated with this context.
  *
- * \return STATUS_SUCCESS
+ * \return Successful or errant result.
  */
 _Function_class_(KPH_TYPE_INITIALIZE_PROCEDURE)
 _IRQL_requires_max_(APC_LEVEL)
@@ -1106,7 +1105,7 @@ Exit:
 /**
  * \brief Deletes a thread context.
  *
- * \param[in] Object The thread context object to delete.
+ * \param[in,out] Object The thread context object to delete.
  */
 _Function_class_(KPH_TYPE_DELETE_PROCEDURE)
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1172,6 +1171,11 @@ NTSTATUS KphCidInitialize(
     status = KphCidTableCreate(&KphpCidTable);
     if (!NT_SUCCESS(status))
     {
+        KphTracePrint(TRACE_LEVEL_VERBOSE,
+                      TRACKING,
+                      "KphCidTableCreate failed: %!STATUS!",
+                      status);
+
         return status;
     }
 
@@ -1447,7 +1451,6 @@ PVOID KphpTrackContext(
  *
  * \param[in] Cid The CID of the object to being tracking.
  * \param[in] ObjectType The expected object type if the CID.
- * \param[in] ObjectBodySize The size of the context body.
  *
  * \return Pointer to the context object, null if not found or the object is
  * not of the expected type. The caller *must* dereference the object when they
@@ -1465,7 +1468,7 @@ PVOID KphpUntrackContext(
 
     KPH_PAGED_CODE();
 
-    entry = KphCidGetEntry(Cid, &KphpCidTable);
+    entry = KphCidLookupEntry(Cid, &KphpCidTable);
     if (!entry)
     {
         return NULL;
@@ -1588,6 +1591,7 @@ NTSTATUS KphCidPopulate(
 
     for (info = KPH_FIRST_PROCESS(buffer); info; info = KPH_NEXT_PROCESS(info))
     {
+        NTSTATUS lookupStatus;
         PKPH_PROCESS_CONTEXT process;
         PEPROCESS processObject;
 
@@ -1619,14 +1623,14 @@ NTSTATUS KphCidPopulate(
             // Otherwise there is the possibility of an object leak from TOCTOU.
             //
 
-            status = PsLookupProcessByProcessId(info->UniqueProcessId,
-                                                &processObject);
-            if (!NT_SUCCESS(status))
+            lookupStatus = PsLookupProcessByProcessId(info->UniqueProcessId,
+                                                      &processObject);
+            if (!NT_SUCCESS(lookupStatus))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
                               "PsLookupProcessByProcessId failed: %!STATUS!",
-                              status);
+                              lookupStatus);
 
                 continue;
             }
@@ -1658,6 +1662,7 @@ NTSTATUS KphCidPopulate(
                           TRACKING,
                           "KphpTrackContext failed (process %lu)",
                           HandleToULong(info->UniqueProcessId));
+
             continue;
         }
 
@@ -1678,9 +1683,9 @@ NTSTATUS KphCidPopulate(
 
             threadInfo = &info->Threads[i];
 
-            status = PsLookupThreadByThreadId(threadInfo->ClientId.UniqueThread,
-                                              &threadObject);
-            if (!NT_SUCCESS(status))
+            lookupStatus = PsLookupThreadByThreadId(threadInfo->ClientId.UniqueThread,
+                                                    &threadObject);
+            if (!NT_SUCCESS(lookupStatus))
             {
                 KphTracePrint(TRACE_LEVEL_VERBOSE,
                               TRACKING,
@@ -1689,7 +1694,7 @@ NTSTATUS KphCidPopulate(
                               HandleToULong(threadInfo->ClientId.UniqueThread),
                               &process->ImageName,
                               HandleToULong(process->ProcessId),
-                              status);
+                              lookupStatus);
 
                 continue;
             }
