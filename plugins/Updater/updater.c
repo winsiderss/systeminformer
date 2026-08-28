@@ -41,6 +41,9 @@ VOID UpdateContextDeleteProcedure(
 {
     PPH_UPDATER_CONTEXT context = Object;
 
+    if (context->SetupFileHandle)
+        NtClose(context->SetupFileHandle);
+
     if (context->SetupFilePath)
     {
         if (context->Cleanup)
@@ -50,9 +53,6 @@ VOID UpdateContextDeleteProcedure(
 
         PhDereferenceObject(context->SetupFilePath);
     }
-
-    if (context->SetupFileHandle)
-        NtClose(context->SetupFileHandle);
 
     if (context->Version)
         PhDereferenceObject(context->Version);

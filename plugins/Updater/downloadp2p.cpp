@@ -12,7 +12,7 @@
 //
 // This file implements Delivery Optimization (DO) for downloading updates.
 // Delivery Optimization (DO) is enabled by default on Windows 10 and Windows 11,
-// and the primary peer-to-peer (P2P) distribution mechanism for Windows Updates, 
+// and the primary peer-to-peer (P2P) distribution mechanism for Windows Updates,
 // Microsoft Store apps, and Windows Defender definitions.
 //
 
@@ -246,6 +246,12 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithDeliveryOptimization(
         UpdaterUpdateProgressToast(Context, L"Initializing Delivery Optimization...");
 
     memset(Result, 0, sizeof(UPDATER_DOWNLOAD_RESULT));
+
+    if (Context->SetupFileHandle)
+    {
+        NtClose(Context->SetupFileHandle);
+        Context->SetupFileHandle = NULL;
+    }
 
     if (Context->SetupFilePath)
     {

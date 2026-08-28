@@ -338,6 +338,12 @@ EXTERN_C NTSTATUS UpdateDownloadFileWithBits(
 
     memset(Result, 0, sizeof(UPDATER_DOWNLOAD_RESULT));
 
+    if (Context->SetupFileHandle)
+    {
+        NtClose(Context->SetupFileHandle);
+        Context->SetupFileHandle = NULL;
+    }
+
     if (Context->SetupFilePath)
     {
         PhDeleteCacheFile(Context->SetupFilePath, FALSE);
