@@ -240,37 +240,143 @@ BOOLEAN PhSvcHandleVerify(
     return status;
 }
 
+BOOLEAN PhSvcHandleClientIntegrity(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE tokenHandle;
+    MANDATORY_LEVEL_RID integrityLevelRID;
+
+    tokenHandle = NULL;
+    integrityLevelRID = SECURITY_MANDATORY_UNTRUSTED_RID;
+
+    status = PhOpenProcessToken(
+        ProcessHandle,
+        TOKEN_QUERY,
+        &tokenHandle
+        );
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    status = PhGetTokenIntegrityLevelRID(tokenHandle, &integrityLevelRID, NULL);
+    NtClose(tokenHandle);
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    return integrityLevelRID >= SECURITY_MANDATORY_MEDIUM_RID;
+}
+
+BOOLEAN PhSvcHandleClientFileName(
+    _In_ HANDLE ProcessHandle,
+    _In_ BOOLEAN IsWow64Client,
+    _Out_ PPH_STRING *RemoteFileName
+    )
+{
+    BOOLEAN status;
+    PPH_STRING referenceFileName;
+    PPH_STRING referenceDirectory;
+    PPH_STRING remoteFileName;
+
+    status = FALSE;
+    referenceFileName = NULL;
+    referenceDirectory = NULL;
+    remoteFileName = NULL;
+    *RemoteFileName = NULL;
+
+    PhGetProcessImageFileName(NtCurrentProcess(), &referenceFileName);
+    PH_AUTO(referenceFileName);
+
+    PhGetProcessImageFileName(ProcessHandle, &remoteFileName);
+    PH_AUTO(remoteFileName);
+
+    if (IsWow64Client)
+    {
+        if (!PhIsNullOrEmptyString(referenceFileName))
+        {
+            referenceDirectory = PhGetBaseDirectory(referenceFileName);
+            PH_AUTO(referenceDirectory);
+        }
+
+        if (!PhIsNullOrEmptyString(referenceDirectory) &&
+            !PhIsNullOrEmptyString(remoteFileName) &&
+            PhStartsWithString2(remoteFileName, PhGetString(referenceDirectory), TRUE))
+        {
+            status = TRUE;
+        }
+    }
+    else
+    {
+        if (!PhIsNullOrEmptyString(referenceFileName) &&
+            !PhIsNullOrEmptyString(remoteFileName) &&
+            PhEqualString(referenceFileName, remoteFileName, FALSE))
+        {
+            status = TRUE;
+        }
+    }
+
+    if (!status)
+        return FALSE;
+
+    *RemoteFileName = PhReferenceObject(remoteFileName);
+    return TRUE;
+}
+
 VOID PhSvcHandleConnectionRequest(
     _In_ PPORT_MESSAGE PortMessage
     )
 {
     NTSTATUS status;
+    BOOLEAN isWow64Client;
     PPHSVC_API_MSG message;
     PPHSVC_API_MSG64 message64;
     CLIENT_ID clientId;
     PPHSVC_CLIENT client;
     HANDLE portHandle;
+    HANDLE processHandle = NULL;
+    PPH_STRING remoteFileName;
     REMOTE_PORT_VIEW clientView;
     REMOTE_PORT_VIEW64 clientView64;
     PREMOTE_PORT_VIEW actualClientView;
 
+    isWow64Client = PhIsExecutingInWow64();
     message = (PPHSVC_API_MSG)PortMessage;
     message64 = (PPHSVC_API_MSG64)PortMessage;
+    remoteFileName = NULL;
 
-    if (PhIsExecutingInWow64())
+    if (isWow64Client)
     {
         clientId.UniqueProcess = (HANDLE)message64->h.ClientId.UniqueProcess;
         clientId.UniqueThread = (HANDLE)message64->h.ClientId.UniqueThread;
 
-#if defined(PH_BUILD_API)
-        PPH_STRING remoteFileName;
+        if (!NT_SUCCESS(PhOpenProcessClientId(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &clientId)))
+        {
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
 
-        remoteFileName = NULL;
-        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
+        if (!PhSvcHandleClientIntegrity(processHandle))
+        {
+            NtClose(processHandle);
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
+
+        if (!PhSvcHandleClientFileName(processHandle, isWow64Client, &remoteFileName))
+        {
+            NtClose(processHandle);
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
+
         PH_AUTO(remoteFileName);
 
-        if (PhIsNullOrEmptyString(remoteFileName) || !PhSvcHandleVerify(&remoteFileName->sr))
+#if defined(PH_BUILD_API)
+        if (!PhSvcHandleVerify(&remoteFileName->sr))
         {
+            NtClose(processHandle);
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
@@ -280,46 +386,45 @@ VOID PhSvcHandleConnectionRequest(
     {
         clientId = message->h.ClientId;
 
-#if defined(DEBUG) || defined(PH_BUILD_API)
-        PPH_STRING remoteFileName;
-#endif
-#if defined(DEBUG)
-        PPH_STRING referenceFileName;
-
         // Make sure that the remote process is System Informer and not some other program.
 
-        referenceFileName = NULL;
-        PhGetProcessImageFileNameByProcessId(NtCurrentProcessId(), &referenceFileName);
-        PH_AUTO(referenceFileName);
-
-        remoteFileName = NULL;
-        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
-        PH_AUTO(remoteFileName);
-
-        if (PhIsNullOrEmptyString(referenceFileName) || PhIsNullOrEmptyString(remoteFileName) || !PhEqualString(referenceFileName, remoteFileName, FALSE))
+        if (!NT_SUCCESS(PhOpenProcessClientId(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, &clientId)))
         {
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
-#endif // DEBUG
-#if defined(PH_BUILD_API)
-        remoteFileName = NULL;
-        clientId = message->h.ClientId;
-        PhGetProcessImageFileNameByProcessId(clientId.UniqueProcess, &remoteFileName);
+
+        if (!PhSvcHandleClientIntegrity(processHandle))
+        {
+            NtClose(processHandle);
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
+
+        if (!PhSvcHandleClientFileName(processHandle, isWow64Client, &remoteFileName))
+        {
+            NtClose(processHandle);
+            NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
+            return;
+        }
+
         PH_AUTO(remoteFileName);
 
-        if (PhIsNullOrEmptyString(remoteFileName) || !PhSvcHandleVerify(&remoteFileName->sr))
+#if defined(PH_BUILD_API)
+        if (!PhSvcHandleVerify(&remoteFileName->sr))
         {
+            NtClose(processHandle);
             NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
             return;
         }
 #endif // PH_BUILD_API
     }
 
-    client = PhSvcCreateClient(&clientId);
+    client = PhSvcCreateClient(&clientId, processHandle);
 
     if (!client)
     {
+        NtClose(processHandle);
         NtAcceptConnectPort(&portHandle, NULL, PortMessage, FALSE, NULL, NULL);
         return;
     }

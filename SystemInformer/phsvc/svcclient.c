@@ -23,7 +23,8 @@ RTL_STATIC_LIST_HEAD(PhSvcClientListHead);
 PH_QUEUED_LOCK PhSvcClientListLock = PH_QUEUED_LOCK_INIT;
 
 PPHSVC_CLIENT PhSvcCreateClient(
-    _In_opt_ PCLIENT_ID ClientId
+    _In_opt_ PCLIENT_ID ClientId,
+    _In_ HANDLE ProcessHandle
     )
 {
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
@@ -40,7 +41,11 @@ PPHSVC_CLIENT PhSvcCreateClient(
     PhInitializeEvent(&client->ReadyEvent);
 
     if (ClientId)
+    {
         client->ClientId = *ClientId;
+    }
+
+    client->ProcessHandle = ProcessHandle;
 
     PhAcquireQueuedLockExclusive(&PhSvcClientListLock);
     InsertTailListNoFence(&PhSvcClientListHead, &client->ListEntry);
@@ -63,6 +68,9 @@ VOID NTAPI PhSvcpClientDeleteProcedure(
 
     if (client->PortHandle)
         NtClose(client->PortHandle);
+
+    if (client->ProcessHandle)
+        NtClose(client->ProcessHandle);
 }
 
 PPHSVC_CLIENT PhSvcReferenceClientByClientId(

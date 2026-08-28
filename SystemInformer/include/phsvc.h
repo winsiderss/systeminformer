@@ -44,12 +44,14 @@ typedef struct _PHSVC_CLIENT
     PH_EVENT ReadyEvent;
     CLIENT_ID ClientId;
     HANDLE PortHandle;
+    HANDLE ProcessHandle;
     PVOID ClientViewBase;
     PVOID ClientViewLimit;
 } PHSVC_CLIENT, *PPHSVC_CLIENT;
 
 PPHSVC_CLIENT PhSvcCreateClient(
-    _In_opt_ PCLIENT_ID ClientId
+    _In_opt_ PCLIENT_ID ClientId,
+    _In_ HANDLE ProcessHandle
     );
 
 PPHSVC_CLIENT PhSvcReferenceClientByClientId(
