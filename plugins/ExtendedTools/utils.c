@@ -664,7 +664,7 @@ BOOLEAN EtQueryDeviceProperties(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(instanceIdString),
-        DevQueryFlagNone,
+        DevQueryFlagLocalize,
         RTL_NUMBER_OF(deviceProperties),
         deviceProperties,
         &devicePropertyCount,

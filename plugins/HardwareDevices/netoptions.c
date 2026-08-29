@@ -343,7 +343,7 @@ BOOLEAN QueryNetworkDeviceInterfaceDescription(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         instanceIdProperty->Buffer,
-        DevQueryFlagNone,
+        DevQueryFlagLocalize,
         RTL_NUMBER_OF(deviceProperties),
         deviceProperties,
         &devicePropertyCount,

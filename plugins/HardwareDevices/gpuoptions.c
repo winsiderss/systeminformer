@@ -314,7 +314,7 @@ PPH_STRING GraphicsDeviceQueryInterfaceName(
             if (HR_SUCCESS(PhDevGetObjectProperties(
                 DevObjectTypeDevice,
                 instanceIdProperty->Buffer,
-                DevQueryFlagNone,
+                DevQueryFlagLocalize,
                 RTL_NUMBER_OF(requestedDeviceProperties),
                 requestedDeviceProperties,
                 &devicePropertyCount,

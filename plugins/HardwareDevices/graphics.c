@@ -717,7 +717,7 @@ PPH_STRING GraphicsQueryDeviceDescription(
     if (HR_SUCCESS(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         DeviceInstanceId,
-        DevQueryFlagNone,
+        DevQueryFlagLocalize,
         RTL_NUMBER_OF(requestedProperties),
         requestedProperties,
         &propertyCount,
@@ -863,7 +863,7 @@ BOOLEAN GraphicsQueryDeviceProperties(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(instanceId),
-        DevQueryFlagNone,
+        DevQueryFlagLocalize,
         RTL_NUMBER_OF(requestedProperties),
         requestedProperties,
         &propertyCount,
