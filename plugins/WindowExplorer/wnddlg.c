@@ -148,6 +148,10 @@ VOID WepRefreshWindows(
     _In_ PWINDOWS_CONTEXT Context
     )
 {
+    // The tree is rebuilt below using the synchronous enumeration, which does not necessarily
+    // cover the same windows as the provider. Make the provider re-raise every window so the
+    // tree ends up with the same contents as an initial population.
+    WeResetWindowProvider(Context->WindowProvider);
     PhBoostProvider(&Context->ProviderRegistration, NULL);
 
     TreeNew_SetRedraw(Context->TreeNewHandle, FALSE);

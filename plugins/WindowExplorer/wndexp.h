@@ -386,6 +386,7 @@ typedef struct _WE_WINDOW_PROVIDER
 {
     PPH_HASHTABLE WindowHashtable;
     PH_QUEUED_LOCK WindowHashtableLock;
+    LONG ResetRequested;
 
     PH_CALLBACK WindowAddedEvent;
     PH_CALLBACK WindowModifiedEvent;
@@ -398,6 +399,10 @@ PWE_WINDOW_PROVIDER WeCreateWindowProvider(
     );
 
 VOID WeDeleteWindowProvider(
+    _In_ PWE_WINDOW_PROVIDER Provider
+    );
+
+VOID WeResetWindowProvider(
     _In_ PWE_WINDOW_PROVIDER Provider
     );
 

@@ -109,6 +109,19 @@ VOID WeDeleteWindowProvider(
 }
 
 /**
+ * Requests that the provider forget all known windows on its next update, so that every window
+ * is raised through the added event again. Used when the consumer has discarded its view.
+ *
+ * \param[in] Provider The window provider.
+ */
+VOID WeResetWindowProvider(
+    _In_ PWE_WINDOW_PROVIDER Provider
+    )
+{
+    InterlockedExchange(&Provider->ResetRequested, TRUE);
+}
+
+/**
  * Creates a window item.
  *
  * \param[in] WindowHandle The window handle.
@@ -1053,6 +1066,27 @@ VOID WeWindowProviderUpdate(
     ULONG i;
 
     PhTraceFuncEnter("Window provider run count: %lu", context->WindowProviderRunCount);
+
+    // Forget all known windows if a reset was requested, so this run raises the added event for
+    // every window rather than only for windows that are new since the previous run.
+    if (InterlockedExchange(&provider->ResetRequested, FALSE))
+    {
+        PH_HASHTABLE_ENUM_CONTEXT enumContext;
+        PWE_WINDOW_ITEM *windowItem;
+
+        PhAcquireQueuedLockExclusive(&provider->WindowHashtableLock);
+
+        PhBeginEnumHashtable(provider->WindowHashtable, &enumContext);
+
+        while (windowItem = PhNextEnumHashtable(&enumContext))
+        {
+            WeDeleteWindowItem(*windowItem);
+        }
+
+        PhClearHashtable(provider->WindowHashtable);
+
+        PhReleaseQueuedLockExclusive(&provider->WindowHashtableLock);
+    }
 
     // Enumerate all windows
     status = WeEnumerateWindows(&context->Selector, &windows, &numberOfWindows);
