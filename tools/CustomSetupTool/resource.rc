@@ -122,7 +122,7 @@ BEGIN
     LTEXT           "System Informer Setup Wizard failed",IDC_TITLE,148,4,250,34
     LTEXT           "Setup was unable to complete the operation.",IDC_STATIC,148,55,240,14
     LTEXT           "",IDC_STATUS,148,78,240,42
-    LTEXT           "Click Finish to exit Setup.",IDC_STATIC,148,130,240,14
+    LTEXT           "Click Retry to try again, or Cancel to exit Setup.",IDC_STATIC,148,130,240,14
 END
 
 IDD_UNINSTALL DIALOGEX 0, 0, 408, 234
