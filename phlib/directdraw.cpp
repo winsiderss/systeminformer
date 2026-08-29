@@ -566,13 +566,6 @@ typedef struct _PH_WINDOW_SNAPSHOT_CONTEXT
     BOOLEAN IsActive;
 } PH_WINDOW_SNAPSHOT_CONTEXT, *PPH_WINDOW_SNAPSHOT_CONTEXT;
 
-typedef struct _PH_WINDOW_FROM_POINT_CONTEXT
-{
-    HWND SnapshotWindow;
-    HWND WindowHandle;
-    POINT Point;
-} PH_WINDOW_FROM_POINT_CONTEXT, *PPH_WINDOW_FROM_POINT_CONTEXT;
-
 static BOOLEAN PhIntersectRect(
     _Out_ PRECT Result,
     _In_ PRECT Rect1,
@@ -587,68 +580,31 @@ static BOOLEAN PhIntersectRect(
     return Result->right > Result->left && Result->bottom > Result->top;
 }
 
-static BOOL CALLBACK PhWindowFromPointEnumProc(
-    _In_ HWND WindowHandle,
-    _In_ LPARAM lParam
-    )
-{
-    PPH_WINDOW_FROM_POINT_CONTEXT context;
-    RECT windowRect;
-
-    context = (PPH_WINDOW_FROM_POINT_CONTEXT)lParam;
-
-    if (WindowHandle == context->SnapshotWindow)
-        return TRUE;
-
-    if (!IsWindowVisible(WindowHandle))
-        return TRUE;
-
-    if (!PhGetWindowRect(WindowHandle, &windowRect))
-        return TRUE;
-
-    if (!PtInRect(&windowRect, context->Point))
-        return TRUE;
-
-    context->WindowHandle = WindowHandle;
-
-    return FALSE;
-}
-
+/**
+ * Locates the window beneath the snapshot window at the specified screen point.
+ *
+ * The snapshot window covers the whole virtual screen, so it is made transparent to hit-testing
+ * for the duration of the query. This lets WindowFromPoint resolve the underlying window while
+ * honouring cloaking, window regions, layered transparency and disabled/hidden state the same
+ * way the system does for ordinary mouse input.
+ *
+ * \param SnapshotWindow The snapshot window.
+ * \param Point The point, in screen coordinates.
+ * \return The window beneath the snapshot window, or NULL if there is none.
+ */
 static HWND PhWindowFromPointBelowSnapshot(
     _In_ HWND SnapshotWindow,
     _In_ POINT Point
     )
 {
-    PH_WINDOW_FROM_POINT_CONTEXT context;
     HWND windowHandle;
 
-    context.SnapshotWindow = SnapshotWindow;
-    context.WindowHandle = nullptr;
-    context.Point = Point;
+    PhSetWindowExStyle(SnapshotWindow, WS_EX_TRANSPARENT, WS_EX_TRANSPARENT);
+    windowHandle = WindowFromPoint(Point);
+    PhSetWindowExStyle(SnapshotWindow, WS_EX_TRANSPARENT, 0);
 
-    EnumWindows(PhWindowFromPointEnumProc, (LPARAM)&context);
-
-    windowHandle = context.WindowHandle;
-
-    while (windowHandle)
-    {
-        POINT clientPoint;
-        HWND childWindowHandle;
-
-        clientPoint = Point;
-        ScreenToClient(windowHandle, &clientPoint);
-
-        childWindowHandle = ChildWindowFromPointEx(
-            windowHandle,
-            clientPoint,
-            CWP_SKIPINVISIBLE | CWP_SKIPDISABLED
-            );
-
-        if (!childWindowHandle || childWindowHandle == windowHandle)
-            break;
-
-        windowHandle = childWindowHandle;
-    }
+    if (windowHandle == SnapshotWindow)
+        return nullptr;
 
     return windowHandle;
 }
@@ -1082,7 +1038,7 @@ static BOOLEAN PhCreateWindowSnapshotSelection(
     }
 
     Context->SnapshotWindow = CreateWindowEx(
-        WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+        WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
         L"PhWindowSnapshotSelectionWindow",
         nullptr,
         WS_POPUP | WS_VISIBLE,
@@ -1101,6 +1057,10 @@ static BOOLEAN PhCreateWindowSnapshotSelection(
         PhDestroyWindowSnapshotSelection(Context);
         return FALSE;
     }
+
+    // The window is layered so it can be made transparent to hit-testing while resolving the
+    // window beneath it (see PhWindowFromPointBelowSnapshot). Keep it fully opaque.
+    SetLayeredWindowAttributes(Context->SnapshotWindow, 0, 255, LWA_ALPHA);
 
     Context->IsActive = TRUE;
 

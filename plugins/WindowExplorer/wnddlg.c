@@ -1014,7 +1014,6 @@ VOID WeSnapshotModeStart(
     _In_ PWINDOWS_CONTEXT Context
     )
 {
-    CLIENT_ID clientId;
     PWE_WINDOW_NODE windowNode;
     HWND selectedWindow;
 
@@ -1031,20 +1030,16 @@ VOID WeSnapshotModeStart(
         if (hungWindow)
             selectedWindow = hungWindow;
 
-        // Check if it's not our own process
-        if (NT_SUCCESS(PhGetWindowClientId(selectedWindow, &clientId)) &&
-            clientId.UniqueProcess != NtCurrentProcessId())
+        // Find and select the window node in the tree. Windows belonging to this process are
+        // valid targets too (for example when viewing System Informer's own windows).
+        if (windowNode = WeFindWindowNode(&Context->TreeContext, selectedWindow))
         {
-            // Find and select the window node in the tree
-            if (windowNode = WeFindWindowNode(&Context->TreeContext, selectedWindow))
-            {
-                WeSelectAndEnsureVisibleWindowNodes(&Context->TreeContext, &windowNode, 1);
-                SetFocus(Context->TreeNewHandle);
-            }
-            else
-            {
-                WeDeselectAllWindowNodes(&Context->TreeContext);
-            }
+            WeSelectAndEnsureVisibleWindowNodes(&Context->TreeContext, &windowNode, 1);
+            SetFocus(Context->TreeNewHandle);
+        }
+        else
+        {
+            WeDeselectAllWindowNodes(&Context->TreeContext);
         }
     }
 }
