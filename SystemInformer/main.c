@@ -1254,9 +1254,24 @@ NTSTATUS PhInitializeExecutionPolicy(
 
     if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
     {
-        if (NT_SUCCESS(PhShellExecuteEx(NULL, L"taskmgr.exe", NULL, NULL, SW_SHOW, 0, 0, NULL)))
+        PPH_STRING fileName;
+
+        // Launch Task Manager while ignoring the IFEO Debugger value. When System Informer is the
+        // Task Manager replacement, a regular ShellExecute of taskmgr.exe would start another
+        // System Informer instance, which sees Shift still held and repeats the launch, looping
+        // until the key is released.
+
+        if (fileName = PhGetSystemDirectoryWin32Z(L"\\taskmgr.exe"))
         {
-            PhExitApplication(STATUS_SUCCESS);
+            BOOLEAN started;
+
+            started = PhCreateProcessIgnoreIfeoDebugger(PhGetString(fileName), NULL);
+            PhDereferenceObject(fileName);
+
+            if (started)
+            {
+                PhExitApplication(STATUS_SUCCESS);
+            }
         }
     }
 
