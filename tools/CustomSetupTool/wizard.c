@@ -1165,6 +1165,8 @@ VOID SetupSetWizardButtons(
     PropSheet_SetWizButtons(parentWindowHandle, Buttons);
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_BACK, L"< &Back");
     SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_NEXT, L"&Next >");
+    SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_FINISH, L"&Finish");
+    SetupSetWizardButtonText(parentWindowHandle, IDC_PROPSHEET_CANCEL, L"Cancel");
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_BACK, ShowBack);
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_NEXT, ShowNext);
     SetupEnableWizardButton(parentWindowHandle, IDC_PROPSHEET_FINISH, ShowFinish);
