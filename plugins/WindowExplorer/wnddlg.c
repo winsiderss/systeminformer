@@ -163,6 +163,24 @@ VOID WepRefreshWindows(
     TreeNew_SetRedraw(Context->TreeNewHandle, TRUE);
 }
 
+VOID WepToggleProviderPaused(
+    _In_ PWINDOWS_CONTEXT Context
+    )
+{
+    Context->ProviderPaused = !Context->ProviderPaused;
+
+    PhSetEnabledProvider(&Context->ProviderRegistration, !Context->ProviderPaused);
+
+    if (Context->ProviderPaused)
+    {
+        SetWindowText(Context->PauseResumeButtonHandle, L"Resume");
+    }
+    else
+    {
+        SetWindowText(Context->PauseResumeButtonHandle, L"Pause");
+    }
+}
+
 //VOID WepEnumerateParentChildWindows(
 //    _In_ PWINDOWS_CONTEXT Context,
 //    _In_opt_ HANDLE FilterProcessId,
@@ -1967,18 +1985,7 @@ INT_PTR CALLBACK WepWindowsDlgProc(
                 break;
             case IDC_PAUSERESUME:
                 {
-                    context->ProviderPaused = !context->ProviderPaused;
-
-                    PhSetEnabledProvider(&context->ProviderRegistration, !context->ProviderPaused);
-
-                    if (context->ProviderPaused)
-                    {
-                        SetWindowText(context->PauseResumeButtonHandle, L"Resume");
-                    }
-                    else
-                    {
-                        SetWindowText(context->PauseResumeButtonHandle, L"Pause");
-                    }
+                    WepToggleProviderPaused(context);
                 }
                 break;
             }
@@ -2269,6 +2276,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             context->TreeNewHandle = GetDlgItem(WindowHandle, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(WindowHandle, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(WindowHandle, IDC_FINDWINDOW);
+            context->PauseResumeButtonHandle = GetDlgItem(WindowHandle, IDC_PAUSERESUME);
             context->TreeWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
 
             WeInitializeWindowTree(WindowHandle, context->TreeNewHandle, &context->TreeContext);
@@ -2577,6 +2585,11 @@ INT_PTR CALLBACK WepWindowsPageProc(
                     WepRefreshWindows(context);
 
                     PhApplyTreeNewFilters(&context->TreeContext.FilterSupport);
+                }
+                break;
+            case IDC_PAUSERESUME:
+                {
+                    WepToggleProviderPaused(context);
                 }
                 break;
             case IDC_OPTIONS:
