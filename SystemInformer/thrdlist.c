@@ -464,16 +464,23 @@ VOID PhpUpdateThreadNodeNameText(
     _In_ PPH_THREAD_NODE ThreadNode
     )
 {
-    PhClearReference(&ThreadNode->NameText);
-
-    if (WindowsVersion >= WINDOWS_10_RS1 && ThreadNode->ThreadItem->ThreadHandle)
+    if (!FlagOn(ThreadNode->ValidMask, PHTN_NAME))
     {
-        PPH_STRING threadName;
+        // The tree list caches a non-owning reference to NameText, drop it before releasing the string.
+        PhInitializeEmptyStringRef(&ThreadNode->TextCache[PH_THREAD_TREELIST_COLUMN_NAME]);
+        PhClearReference(&ThreadNode->NameText);
 
-        if (NT_SUCCESS(PhGetThreadName(ThreadNode->ThreadItem->ThreadHandle, &threadName)))
+        if (WindowsVersion >= WINDOWS_10_RS1 && ThreadNode->ThreadItem->ThreadHandle)
         {
-            PhMoveReference(&ThreadNode->NameText, threadName);
+            PPH_STRING threadName;
+
+            if (NT_SUCCESS(PhGetThreadName(ThreadNode->ThreadItem->ThreadHandle, &threadName)))
+            {
+                PhMoveReference(&ThreadNode->NameText, threadName);
+            }
         }
+
+        SetFlag(ThreadNode->ValidMask, PHTN_NAME);
     }
 }
 
