@@ -163,6 +163,9 @@ typedef struct _PH_TREENEW_CONTEXT
     FLOAT VScrollRemainder;
     FLOAT HScrollRemainder;
 
+    POINT GesturePanLast; // last pan location (screen coordinates)
+    LONG GesturePanRemainder; // vertical pan pixels not yet converted to rows
+
     LONG SearchMessageTime;
     PWSTR SearchString;
     ULONG SearchStringCount;
@@ -436,6 +439,12 @@ VOID PhTnpOnMouseHWheel(
     _In_ ULONG VirtualKeys,
     _In_ LONG CursorX,
     _In_ LONG CursorY
+    );
+
+BOOLEAN PhTnpOnGesture(
+    _In_ HWND WindowHandle,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HGESTUREINFO GestureInfoHandle
     );
 
 VOID PhTnpOnContextMenu(

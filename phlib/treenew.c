@@ -289,6 +289,12 @@ LRESULT CALLBACK PhTnpWndProc(
             PhTnpOnMouseHWheel(WindowHandle, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
         }
         break;
+    case WM_GESTURE:
+        {
+            if (PhTnpOnGesture(WindowHandle, context, (HGESTUREINFO)lParam))
+                return 0;
+        }
+        break;
     case WM_CONTEXTMENU:
         {
             if (!context->SuspendUpdateStructure)
@@ -617,6 +623,21 @@ BOOLEAN PhTnpOnCreate(
         )))
     {
         return FALSE;
+    }
+
+    // The scrollbars are custom controls (PhScrollNew) rather than WC_SCROLLBAR, so the system
+    // no longer translates touch panning into WM_VSCROLL for us. Opt in to pan gestures and
+    // handle them directly (WM_GESTURE), otherwise the touch contact is promoted to mouse
+    // messages and drag-selects rows instead of scrolling. This matches the legacy behavior:
+    // single-finger vertical pans scroll, single-finger horizontal drags remain mouse input.
+    {
+        GESTURECONFIG gestureConfig;
+
+        gestureConfig.dwID = GID_PAN;
+        gestureConfig.dwWant = GC_PAN | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY | GC_PAN_WITH_GUTTER | GC_PAN_WITH_INERTIA;
+        gestureConfig.dwBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY;
+
+        SetGestureConfig(WindowHandle, 0, 1, &gestureConfig, sizeof(GESTURECONFIG));
     }
 
 #if defined(DEBUG)
@@ -1655,6 +1676,108 @@ VOID PhTnpOnMouseHWheel(
     )
 {
     PhTnpProcessMouseHWheel(Context, Distance);
+}
+
+/**
+ * Handles the WM_GESTURE message for the treenew control.
+ *
+ * \param WindowHandle Handle to the window.
+ * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
+ * \param GestureInfoHandle Handle to the gesture information.
+ *
+ * \return TRUE if the gesture was handled, FALSE if it should be passed to DefWindowProc.
+ */
+BOOLEAN PhTnpOnGesture(
+    _In_ HWND WindowHandle,
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HGESTUREINFO GestureInfoHandle
+    )
+{
+    GESTUREINFO gestureInfo;
+    LONG deltaX;
+    LONG deltaY;
+    SCROLLINFO scrollInfo;
+    LONG oldPosition;
+
+    memset(&gestureInfo, 0, sizeof(GESTUREINFO));
+    gestureInfo.cbSize = sizeof(GESTUREINFO);
+
+    if (!GetGestureInfo(GestureInfoHandle, &gestureInfo))
+        return FALSE;
+
+    // GID_BEGIN and GID_END must be passed to DefWindowProc.
+    if (gestureInfo.dwID != GID_PAN)
+        return FALSE;
+
+    if (FlagOn(gestureInfo.dwFlags, GF_BEGIN))
+    {
+        Context->GesturePanLast.x = gestureInfo.ptsLocation.x;
+        Context->GesturePanLast.y = gestureInfo.ptsLocation.y;
+        Context->GesturePanRemainder = 0;
+
+        CloseGestureInfoHandle(GestureInfoHandle);
+        return TRUE;
+    }
+
+    // The content follows the finger, so the scroll delta is the inverse of the pan delta.
+    deltaX = Context->GesturePanLast.x - gestureInfo.ptsLocation.x;
+    deltaY = Context->GesturePanLast.y - gestureInfo.ptsLocation.y;
+    Context->GesturePanLast.x = gestureInfo.ptsLocation.x;
+    Context->GesturePanLast.y = gestureInfo.ptsLocation.y;
+
+    if (Context->VScrollVisible && Context->RowHeight > 0)
+    {
+        LONG rows;
+
+        // Vertical scrolling is in rows, accumulate the pixel delta until it covers whole rows.
+        Context->GesturePanRemainder += deltaY;
+        rows = Context->GesturePanRemainder / Context->RowHeight;
+        Context->GesturePanRemainder -= rows * Context->RowHeight;
+
+        if (rows != 0)
+        {
+            scrollInfo.cbSize = sizeof(SCROLLINFO);
+            scrollInfo.fMask = SIF_ALL;
+            GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+            oldPosition = scrollInfo.nPos;
+
+            scrollInfo.nPos += rows;
+
+            scrollInfo.fMask = SIF_POS;
+            SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+            GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+
+            if (scrollInfo.nPos != oldPosition)
+            {
+                Context->VScrollPosition = scrollInfo.nPos;
+                PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
+            }
+        }
+    }
+
+    if (Context->HScrollVisible && deltaX != 0)
+    {
+        // Horizontal scrolling is in pixels.
+        scrollInfo.cbSize = sizeof(SCROLLINFO);
+        scrollInfo.fMask = SIF_ALL;
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+        oldPosition = scrollInfo.nPos;
+
+        scrollInfo.nPos += deltaX;
+
+        scrollInfo.fMask = SIF_POS;
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+
+        if (scrollInfo.nPos != oldPosition)
+        {
+            Context->HScrollPosition = scrollInfo.nPos;
+            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
+        }
+    }
+
+    CloseGestureInfoHandle(GestureInfoHandle);
+    return TRUE;
 }
 
 /**
