@@ -4722,6 +4722,12 @@ BOOLEAN PhTnpGetCellText(
     return FALSE;
 }
 
+typedef struct _PHP_TREENEW_INSERT_FRAME
+{
+    PPH_TREENEW_NODE Node;
+    ULONG Level;
+} PHP_TREENEW_INSERT_FRAME, *PPHP_TREENEW_INSERT_FRAME;
+
 /**
  * Restructures the flat list of visible nodes based on the tree hierarchy.
  *
@@ -4731,6 +4737,7 @@ VOID PhTnpRestructureNodes(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
+    PH_ARRAY stack;
     PPH_TREENEW_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
@@ -4754,10 +4761,14 @@ VOID PhTnpRestructureNodes(
     Context->FlatListStructureChanged = TRUE;
 #endif
 
+    PhInitializeArray(&stack, sizeof(PHP_TREENEW_INSERT_FRAME), 16);
+
     for (i = 0; i < numberOfChildren; i++)
     {
-        PhTnpInsertNodeChildren(Context, children[i], 0);
+        PhTnpInsertNodeChildren(Context, &stack, children[i], 0);
     }
+
+    PhDeleteArray(&stack);
 
     if (!Context->FocusNodeFound)
         Context->FocusNode = NULL; // focused node is no longer present
@@ -4770,55 +4781,79 @@ VOID PhTnpRestructureNodes(
 }
 
 /**
- * Inserts child nodes into the flat list recursively.
+ * Inserts a node and its expanded descendants into the flat list in pre-order.
+ *
+ * The tree is walked with an explicit stack rather than recursion because the depth of the tree is
+ * controlled by the caller's data (e.g. a chain of processes each started by the previous one) and
+ * recursing once per level overflows the thread stack on very deep trees.
  *
  * \param Context Pointer to the treenew context structure.
- * \param Node Pointer to the parent node.
- * \param Level The nesting level of the children.
+ * \param Stack An initialized, empty array of PHP_TREENEW_INSERT_FRAME used as the traversal stack.
+ * It is empty again on return and can be reused for the next call.
+ * \param Node Pointer to the node to insert.
+ * \param Level The nesting level of the node.
  */
 VOID PhTnpInsertNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_ARRAY Stack,
     _In_ PPH_TREENEW_NODE Node,
     _In_ ULONG Level
     )
 {
+    PHP_TREENEW_INSERT_FRAME frame;
+    PPH_TREENEW_NODE node;
     PPH_TREENEW_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
     ULONG nextLevel;
 
-    if (Node->Visible)
+    frame.Node = Node;
+    frame.Level = Level;
+    PhAddItemArray(Stack, &frame);
+
+    while (Stack->Count != 0)
     {
-        Node->Level = Level;
+        frame = *(PPHP_TREENEW_INSERT_FRAME)PhItemArray(Stack, Stack->Count - 1);
+        PhRemoveItemsArray(Stack, Stack->Count - 1, 1);
+        node = frame.Node;
 
-        Node->Index = Context->FlatList->Count;
-        PhAddItemList(Context->FlatList, Node);
-
-        if (Context->FocusNode == Node)
-            Context->FocusNodeFound = TRUE;
-
-        nextLevel = Level + 1;
-    }
-    else
-    {
-        nextLevel = 0; // children of this node should be level 0
-    }
-
-    if (!(Node->s.IsLeaf = PhTnpIsNodeLeaf(Context, Node)))
-    {
-        Context->CanAnyExpand = TRUE;
-
-        if (Node->Expanded)
+        if (node->Visible)
         {
-            if (PhTnpGetNodeChildren(Context, Node, &children, &numberOfChildren))
-            {
-                for (i = 0; i < numberOfChildren; i++)
-                {
-                    PhTnpInsertNodeChildren(Context, children[i], nextLevel);
-                }
+            node->Level = frame.Level;
 
-                if (numberOfChildren == 0)
-                    Node->s.IsLeaf = TRUE;
+            node->Index = Context->FlatList->Count;
+            PhAddItemList(Context->FlatList, node);
+
+            if (Context->FocusNode == node)
+                Context->FocusNodeFound = TRUE;
+
+            nextLevel = frame.Level + 1;
+        }
+        else
+        {
+            nextLevel = 0; // children of this node should be level 0
+        }
+
+        if (!(node->s.IsLeaf = PhTnpIsNodeLeaf(Context, node)))
+        {
+            Context->CanAnyExpand = TRUE;
+
+            if (node->Expanded)
+            {
+                if (PhTnpGetNodeChildren(Context, node, &children, &numberOfChildren))
+                {
+                    // Push the children in reverse so that the first child is popped (and its
+                    // subtree inserted) before its siblings, preserving the pre-order traversal.
+                    for (i = numberOfChildren; i != 0; i--)
+                    {
+                        frame.Node = children[i - 1];
+                        frame.Level = nextLevel;
+                        PhAddItemArray(Stack, &frame);
+                    }
+
+                    if (numberOfChildren == 0)
+                        node->s.IsLeaf = TRUE;
+                }
             }
         }
     }

@@ -714,6 +714,7 @@ VOID PhTnpRestructureNodes(
 
 VOID PhTnpInsertNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
+    _Inout_ PPH_ARRAY Stack,
     _In_ PPH_TREENEW_NODE Node,
     _In_ ULONG Level
     );
