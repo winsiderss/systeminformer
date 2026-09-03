@@ -26,9 +26,9 @@ typedef struct _KPH_PARAMETER
 } KPH_PARAMETER, *PKPH_PARAMETER;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpDefaultAltitude = RTL_CONSTANT_STRING(L"385210.5");
-static const UNICODE_STRING KphpDefaultPortName = RTL_CONSTANT_STRING(L"\\KSystemInformer");
-static const UNICODE_STRING KphpDefaultSystemProcessName = RTL_CONSTANT_STRING(L"System Informer Kernel");
+DECLARE_CONST_UNICODE_STRING(KphpDefaultAltitude, L"385210.5");
+DECLARE_CONST_UNICODE_STRING(KphpDefaultPortName, L"\\KSystemInformer");
+DECLARE_CONST_UNICODE_STRING(KphpDefaultSystemProcessName, L"System Informer Kernel");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 PUNICODE_STRING KphAltitude = NULL;

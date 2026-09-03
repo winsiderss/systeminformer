@@ -20,8 +20,8 @@ typedef struct _KPH_LOOKASIDE_INIT
 } KPH_LOOKASIDE_INIT, *PKPH_LOOKASIDE_INIT;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphPagedLookaside");
-static const UNICODE_STRING KphpNPagedLookasideObjectTypeName = RTL_CONSTANT_STRING(L"KphNPagedLookaside");
+DECLARE_CONST_UNICODE_STRING(KphpPagedLookasideObjectTypeName, L"KphPagedLookaside");
+DECLARE_CONST_UNICODE_STRING(KphpNPagedLookasideObjectTypeName, L"KphNPagedLookaside");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PKPH_OBJECT_TYPE KphpPagedLookasideObjectType = NULL;

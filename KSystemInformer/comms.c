@@ -30,10 +30,10 @@ typedef struct _KPHM_QUEUE_ITEM
 } KPHM_QUEUE_ITEM, *PKPHM_QUEUE_ITEM;
 
 KPH_PROTECTED_DATA_SECTION_RO_PUSH();
-static const UNICODE_STRING KphpClientTypeName = RTL_CONSTANT_STRING(L"KphClient");
-static const UNICODE_STRING KphpClientInformerStateTypeName = RTL_CONSTANT_STRING(L"KphClientInformerState");
+DECLARE_CONST_UNICODE_STRING(KphpClientTypeName, L"KphClient");
+DECLARE_CONST_UNICODE_STRING(KphpClientInformerStateTypeName, L"KphClientInformerState");
 static const LARGE_INTEGER KphpMessageMinTimeout = KPH_TIMEOUT(300);
-static const UNICODE_STRING KphpMessageQueueThreadName = RTL_CONSTANT_STRING(L"System Informer Message Queue");
+DECLARE_CONST_UNICODE_STRING(KphpMessageQueueThreadName, L"System Informer Message Queue");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 KPH_PROTECTED_DATA_SECTION_PUSH();
 static PFLT_PORT KphpFltServerPort = NULL;

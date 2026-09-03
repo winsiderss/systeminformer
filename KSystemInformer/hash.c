@@ -116,7 +116,7 @@ static const KPH_HASHING_EACACHE_INFORMATION KphpHashEaCacheInfo[] =
     { (512 / 8), RTL_CONSTANT_STRING(KPH_HASH_EACACHE_SHA512) },
 };
 C_ASSERT(ARRAYSIZE(KphpHashEaCacheInfo) == MaxKphHashAlgorithm);
-static const UNICODE_STRING KphpDefaultStream = RTL_CONSTANT_STRING(L"::$DATA");
+DECLARE_CONST_UNICODE_STRING(KphpDefaultStream, L"::$DATA");
 KPH_PROTECTED_DATA_SECTION_RO_POP();
 static BOOLEAN KphpHashingInitialized = FALSE;
 static BYTE KphpHashingEaList[KPH_HASH_EACACHE_MAX_LENGTH] = { 0 };
