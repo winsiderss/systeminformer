@@ -424,7 +424,10 @@ FORCEINLINE BOOLEAN PhpValidateParentProcessNode(
     _In_ PPH_PROCESS_NODE Parent
     )
 {
-    if (WindowsVersion >= WINDOWS_10_RS3)
+    // Sequence numbers are only populated when the process extension is available (see
+    // PhReferenceProcessItemForParent). Without it every sequence number is zero and the
+    // comparison would accept any parent, allowing PID reuse to form a cycle in the tree.
+    if (PhEnableProcessExtension)
     {
         return PH_IS_FAKE_PROCESS_ID(Child->ProcessId) ||
             Parent->ProcessItem->ProcessSequenceNumber <= Child->ProcessItem->ProcessSequenceNumber;
