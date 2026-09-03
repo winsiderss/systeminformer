@@ -277,6 +277,7 @@
     <ClCompile Include="memsrcht.c" />
     <ClCompile Include="miniinfo.c" />
     <ClCompile Include="modlist.c" />
+    <ClCompile Include="modexports.c" />
     <ClCompile Include="modprv.c" />
     <ClCompile Include="mtgndlg.c" />
     <ClCompile Include="mwpgdev.c" />

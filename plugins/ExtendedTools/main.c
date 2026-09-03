@@ -254,6 +254,16 @@ VOID NTAPI MenuItemCallback(
             EtShowCacheLatencyDialog(menuItem->OwnerWindow);
         }
         break;
+    case ID_PROCTRACE:
+        {
+            EtShowProcessTraceDialog(menuItem->OwnerWindow);
+        }
+        break;
+    case ID_STARTUP_TASKS:
+        {
+            EtShowStartupAppsDialog(menuItem->OwnerWindow);
+        }
+        break;
     }
 }
 
@@ -315,6 +325,8 @@ VOID NTAPI MainMenuInitializingCallback(
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_POWER_GRID, L"Power &Forecast", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_CACHE_LATENCY, L"Cache &Latency", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PIPE_ENUM, L"&Named Pipes", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_PROCTRACE, L"Process &Tracker", NULL), ULONG_MAX);
+    PhInsertEMenuItem(systemMenu, PhPluginCreateEMenuItem(PluginInstance, 0, ID_STARTUP_TASKS, L"Startup &Apps", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparsePointsMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_POINTS, L"NTFS Reparse Points", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseObjIdMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_OBJID, L"NTFS Object Identifiers", NULL), ULONG_MAX);
     PhInsertEMenuItem(systemMenu, reparseSsdlMenu = PhPluginCreateEMenuItem(PluginInstance, 0, ID_REPARSE_SDDL, L"NTFS Security Descriptors", NULL), ULONG_MAX);
@@ -1627,6 +1639,9 @@ LOGICAL DllMain(
                 { IntegerPairSettingType, SETTING_NAME_WBCL_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_WBCL_WINDOW_SIZE, L"@96|600,320" },
                 { StringSettingType, SETTING_NAME_WBCL_LISTVIEW_COLUMNS, L"" },
+                { IntegerPairSettingType, SETTING_NAME_PROCTRACE_WINDOW_POSITION, L"0,0" },
+                { ScalableIntegerPairSettingType, SETTING_NAME_PROCTRACE_WINDOW_SIZE, L"@96|641,383" },
+                { StringSettingType, SETTING_NAME_PROCTRACE_COLUMNS, L"" },
                 { IntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_POSITION, L"0,0" },
                 { ScalableIntegerPairSettingType, SETTING_NAME_SMBIOS_WINDOW_SIZE, L"@96|490,340" },
                 { StringSettingType, SETTING_NAME_SMBIOS_INFO_COLUMNS, L"" },
