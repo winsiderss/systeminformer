@@ -314,10 +314,22 @@ static VOID PhpApplyThemeSupportSetting(
     )
 {
     BOOLEAN enableThemeSupport;
+    BOOLEAN themeSupportWasEnabled;
 
+    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
     enableThemeSupport = Button_GetCheck(GetDlgItem(hwndDlg, IDC_ENABLETHEME)) == BST_CHECKED;
     PhSetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT, enableThemeSupport);
+
+    // Enabling theme support forces dark graph backgrounds (GraphColorMode); undo that
+    // override when theme support is turned off so the graphs return to the light colors.
+    if (themeSupportWasEnabled && !enableThemeSupport)
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0);
+
     PhUpdateCachedSettings();
+
+    // The General page also lists this setting and saves its check state when the options
+    // dialog closes, so reload it or the stale state would revert the change made here.
+    PhReloadGeneralSection();
 
     // The theme mode combo is only meaningful while theme support is enabled.
     EnableWindow(GetDlgItem(hwndDlg, IDC_THEMEMODE), enableThemeSupport);
@@ -1790,9 +1802,12 @@ static VOID PhpAdvancedPageSave(
 {
     HWND listViewHandle;
     ULONG sampleCount;
+    BOOLEAN themeSupportWasEnabled;
 
     if (!hwndDlg)
         return;
+
+    themeSupportWasEnabled = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT);
 
     listViewHandle = GetDlgItem(hwndDlg, IDC_SETTINGS);
     sampleCount = PhGetDialogItemValue(hwndDlg, IDC_SAMPLECOUNT);
@@ -1865,6 +1880,10 @@ static VOID PhpAdvancedPageSave(
     if (PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT)) // PhGetIntegerSetting required (dmex)
     {
         PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 1); // HACK switch to dark theme. (dmex)
+    }
+    else if (themeSupportWasEnabled)
+    {
+        PhSetIntegerSetting(SETTING_GRAPH_COLOR_MODE, 0); // Undo the override above when theme support is turned off.
     }
 
     WriteCurrentUserRun(
