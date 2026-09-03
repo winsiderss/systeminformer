@@ -1354,7 +1354,10 @@ static INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
             else
                 PhCenterWindow(hwndDlg, GetParent(hwndDlg));
 
-            PhSetDialogFocus(hwndDlg, context->ListViewHandle);
+            // N.B. Do not set focus here. The dialog is owned by the main window, whose thread is
+            // blocked waiting for this dialog to be created, and SetFocus on a window owned by a
+            // window on another thread synchronizes with that thread. Focus is set when the dialog
+            // is shown (WM_PH_SHOW_DIALOG) instead.
 
             PhInitializeWindowTheme(hwndDlg, !!PhGetIntegerSetting(SETTING_ENABLE_THEME_SUPPORT));
         }
@@ -1476,6 +1479,7 @@ static INT_PTR CALLBACK EtEnvironmentVariablesDlgProc(
                 ShowWindow(hwndDlg, SW_SHOW);
 
             SetForegroundWindow(hwndDlg);
+            PhSetDialogFocus(hwndDlg, context->ListViewHandle);
         }
         break;
     case WM_CTLCOLORBTN:
