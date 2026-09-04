@@ -87,6 +87,7 @@ EXPORTS
     PhGetFilterSupportServiceTreeList
     PhGetGeneralCallback
     PhGetImageListIcon
+    PhGetLocalizedString
     PhGetListViewContextMenuPoint
     PhGetProcessBasicInformation
     PhGetProcessIsSuspended
@@ -117,6 +118,7 @@ EXPORTS
     PhInitializeTreeNewColumnMenu
     PhInitializeTreeNewColumnMenuEx
     PhInitializeTreeNewFilterSupport
+    PhInitializeLocalization
     PhInitializeWindowThemeMainMenu
     PhInsertCopyCellEMenuItem
     PhInsertCopyListViewEMenuItem

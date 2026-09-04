@@ -106,6 +106,7 @@ VOID PhAddDefaultSettings(
     PhpAddScalableIntegerPairSetting(SETTING_THREAD_STACKS_WINDOW_SIZE, L"@96|550,420");
     PhpAddStringSetting(SETTING_FILE_BROWSE_EXECUTABLE, L"%SystemRoot%\\explorer.exe /select,\"%s\"");
     PhpAddIntegerSetting(SETTING_FIRST_RUN, L"1");
+    PhpAddStringSetting(SETTING_LANGUAGE, L"auto");
     PhpAddStringSetting(SETTING_FONT, L""); // null
     PhpAddStringSetting(SETTING_FONT_MONOSPACE, L""); // null
     PhpAddIntegerSetting(SETTING_FONT_QUALITY, L"0");
