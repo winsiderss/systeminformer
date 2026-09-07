@@ -30,22 +30,35 @@ si_add_executable(simcp ${ALL_FILES})
 
 target_include_directories(simcp PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    "${SI_ROOT}/phlib/include"
-    "${SI_ROOT}/kphlib/include"
-)
-
-target_compile_definitions(simcp PRIVATE
-    _PHLIB_
 )
 
 target_link_libraries(simcp PRIVATE
+    phnt
+    phlib
+    kphlib_um
+    delayimp
+    user32
+    gdi32
+    comdlg32
+    advapi32
+    ole32
     bcrypt
     crypt32
     gdiplus
-    phlib
     ntdll
     userenv
     winhttp
+)
+
+target_link_options(simcp PRIVATE
+    /DELAYLOAD:advapi32.dll
+    /DELAYLOAD:comctl32.dll
+    /DELAYLOAD:comdlg32.dll
+    /DELAYLOAD:gdi32.dll
+    /DELAYLOAD:ole32.dll
+    /DELAYLOAD:user32.dll
+    /DELAYLOAD:winhttp.dll
+    /DELAYLOAD:winsta.dll
 )
 
 if(MSVC)

@@ -51,4 +51,5 @@ target_include_directories(AgentTools PRIVATE
 
 target_link_libraries(AgentTools PRIVATE
     user32
+    gdi32
 )
