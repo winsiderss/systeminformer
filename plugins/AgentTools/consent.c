@@ -506,7 +506,7 @@ VOID AtpCreateSessionPolicyControls(
 {
     static PCWSTR longLabel = L"Authorization this session:";
     static PCWSTR shortLabel = L"This session:";
-    static PCWSTR items[] = { L"Always ask", L"Delegate to client", L"Not required" };
+    static PCWSTR items[] = { L"Ask every time", L"Allow for this session", L"Delegate to client" };
     AT_BUTTON_ROW row;
     PCWSTR labelText;
     HFONT font;
@@ -617,18 +617,18 @@ VOID AtpCreateSessionPolicyControls(
     SetWindowPos(label, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
     SetWindowPos(combo, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-    // Same words as the Authorization column in Options; the effect here lasts for the connection.
+    // The choice lasts for this connection; the persistent setting lives in Options.
     index = ComboBox_AddString(combo, items[0]);
     ComboBox_SetItemData(combo, index, AtSessionAsk);
+    index = ComboBox_AddString(combo, items[1]);
+    ComboBox_SetItemData(combo, index, AtSessionAllow);
 
     if (Request->OfferDelegate)
     {
-        index = ComboBox_AddString(combo, items[1]);
+        index = ComboBox_AddString(combo, items[2]);
         ComboBox_SetItemData(combo, index, AtSessionDelegate);
     }
 
-    index = ComboBox_AddString(combo, items[2]);
-    ComboBox_SetItemData(combo, index, AtSessionAllow);
     ComboBox_SetCurSel(combo, 0);
 
     // The dialog was themed before these controls existed. In dark mode, run theming again so the
@@ -714,7 +714,7 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
 
 
         buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = request->Action->ButtonText;
+        buttons[0].pszButtonText = L"Approve";
         buttons[1].nButtonID = IDNO;
         buttons[1].pszButtonText = L"Deny";
         config.cButtons = RTL_NUMBER_OF(buttons);
@@ -866,21 +866,14 @@ AT_CONSENT_RESULT AtpAskUser(
         request->Instruction = PhFormatString(L"%s?", Action->Headline);
     }
 
-    if (Action->Tier == AtTierWrite)
-    {
-        request->Content = PhReferenceObject(requester);
-        request->OfferPolicies = TRUE;
-        request->OfferDelegate = Call->ClientElicitation;
-    }
-    else if (Action->Tier == AtTierSensitiveRead)
-    {
-        request->Content = PhFormatString(L"%s\n\nThe grant lasts for this connection. Environment blocks often contain secrets.", PhGetString(requester));
-    }
+    // Every tool asks the same way; the drop-down decides whether this connection is asked again.
+    request->OfferPolicies = TRUE;
+    request->OfferDelegate = Call->ClientElicitation;
+
+    if (Action->Tier == AtTierSensitiveRead)
+        request->Content = PhFormatString(L"%s\n\nThis data can contain secrets.", PhGetString(requester));
     else
-    {
-        // Plain reads have no target: the grant covers the tool for this connection.
-        request->Content = PhFormatString(L"%s\n\nThe grant lasts for this connection.", PhGetString(requester));
-    }
+        request->Content = PhReferenceObject(requester);
 
     PhDereferenceObject(requester);
 
@@ -1034,9 +1027,8 @@ AT_CONSENT_RESULT AtConsentGate(
     if (confirm == AT_CONFIRM_NONE)
         return AtConsentAllowed;
 
-    // A grant already held by this connection: reads earn one by being allowed once,
-    // writes only when the user picked it in the dialog. Disconnect clears the table under the
-    // lock from another thread.
+    // A grant already held by this connection, chosen in the dialog (or, for reads, through the
+    // client's prompt). Disconnect clears the table under the lock from another thread.
     PhAcquireQueuedLockExclusive(&connection->Lock);
     policy = connection->SessionPolicy[Action->Action];
     PhReleaseQueuedLockExclusive(&connection->Lock);
@@ -1067,17 +1059,20 @@ AT_CONSENT_RESULT AtConsentGate(
         // Dialogs are off for this action: the client's elicitation UI is the human check, and
         // without one the call is refused.
         result = AtMcpElicitConsent(Call, Action, Target);
-    }
 
-    switch (result)
-    {
-    case AtConsentAllowed:
-        if (Action->Tier != AtTierWrite)
+        // The client's prompt offers no session choice. Its message says a read is granted for
+        // the rest of the session, so honour that; writes are asked every time.
+        if (result == AtConsentAllowed && Action->Tier != AtTierWrite)
         {
             PhAcquireQueuedLockExclusive(&connection->Lock);
             connection->SessionPolicy[Action->Action] = AtSessionAllow;
             PhReleaseQueuedLockExclusive(&connection->Lock);
         }
+    }
+
+    switch (result)
+    {
+    case AtConsentAllowed:
         AtAudit(connection, Action, Target, L"allowed");
         break;
     case AtConsentDenied:

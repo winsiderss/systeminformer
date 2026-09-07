@@ -733,6 +733,7 @@ PAT_CONNECTION AtpCreateConnection(
     connection->PipeHandle = PipeHandle;
     connection->ConnectionId = (ULONG)_InterlockedIncrement((PLONG)&AtNextConnectionId) - 1;
     PhInitializeQueuedLock(&connection->Lock);
+    InitializeListHead(&connection->DeferredRequests);
     PhQuerySystemTime(&connection->ConnectTime);
 
     return connection;

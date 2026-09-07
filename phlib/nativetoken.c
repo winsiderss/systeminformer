@@ -1828,6 +1828,81 @@ NTSTATUS PhAdjustPrivilege(
 }
 
 /**
+ * Enables a privilege for the current thread only, leaving the process token untouched.
+ *
+ * A thread that is not impersonating gets an impersonation copy of its own process token
+ * (RtlImpersonateSelf) with the privilege enabled on it; the release reverts the impersonation.
+ * A thread that is already impersonating keeps its token: the privilege is enabled on that token
+ * and the release restores the previous state without ending the impersonation. Acquisitions nest;
+ * release them in reverse order.
+ *
+ * \param Privilege The privilege constant to enable (SE_*_PRIVILEGE).
+ * \param State Receives what the release must undo.
+ * \return NTSTATUS Successful or errant status. STATUS_PRIVILEGE_NOT_HELD when the token does not
+ * hold the privilege.
+ */
+NTSTATUS PhAcquireCurrentThreadPrivilege(
+    _In_ LONG Privilege,
+    _Out_ PPH_THREAD_PRIVILEGE_STATE State
+    )
+{
+    NTSTATUS status;
+    BOOLEAN wasEnabled = FALSE;
+
+    memset(State, 0, sizeof(PH_THREAD_PRIVILEGE_STATE));
+    State->Privilege = Privilege;
+
+    // Client = TRUE adjusts the thread's impersonation token and reports STATUS_NO_TOKEN when
+    // there is none; that is the case that installs a copy of the process token.
+    status = RtlAdjustPrivilege(Privilege, TRUE, TRUE, &wasEnabled);
+
+    if (status == STATUS_NO_TOKEN)
+    {
+        status = RtlImpersonateSelf(SecurityImpersonation);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        status = RtlAdjustPrivilege(Privilege, TRUE, TRUE, &wasEnabled);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhRevertImpersonationToken(NtCurrentThread());
+            return status;
+        }
+
+        State->Impersonated = TRUE;
+    }
+
+    if (NT_SUCCESS(status))
+        State->WasEnabled = wasEnabled;
+
+    return status;
+}
+
+/**
+ * Undoes PhAcquireCurrentThreadPrivilege: restores the privilege's previous state on the thread's
+ * impersonation token and then reverts the impersonation if the acquisition installed it.
+ *
+ * \param State The state written by PhAcquireCurrentThreadPrivilege. Releases must pair with
+ * acquisitions in reverse order. There is nothing a caller can do about a failed release, so
+ * each step is verified rather than returned.
+ */
+VOID PhReleaseCurrentThreadPrivilege(
+    _In_ PPH_THREAD_PRIVILEGE_STATE State
+    )
+{
+    BOOLEAN wasEnabled;
+
+    // Restored even when the token is about to be discarded: it verifies that the thread still
+    // carries the token the acquisition adjusted, which a release out of order would break.
+    NT_VERIFY(NT_SUCCESS(RtlAdjustPrivilege(State->Privilege, State->WasEnabled, TRUE, &wasEnabled)));
+
+    if (State->Impersonated)
+        NT_VERIFY(NT_SUCCESS(PhRevertImpersonationToken(NtCurrentThread())));
+}
+
+/**
  * Modifies a token group by name or SID.
  *
  * \param TokenHandle A handle to a token with TOKEN_ADJUST_GROUPS access.

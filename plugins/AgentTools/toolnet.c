@@ -105,8 +105,8 @@ NTSTATUS AtFindNetworkConnection(
     ULONG protocolType;
     ULONG64 localPort;
     ULONG64 remotePort;
-    PPH_NETWORK_ITEM* networkItems;
-    ULONG numberOfNetworkItems;
+    PPH_NETWORK_CONNECTION connections;
+    ULONG numberOfConnections;
     PPH_NETWORK_ITEM found = NULL;
     ULONG i;
 
@@ -126,11 +126,20 @@ NTSTATUS AtFindNetworkConnection(
         return STATUS_INVALID_PARAMETER;
     }
 
-    PhEnumNetworkItems(&networkItems, &numberOfNetworkItems);
-
-    for (i = 0; i < numberOfNetworkItems && !found; i++)
+    // The live table, not the provider cache: the cache is only maintained while the Network tab
+    // is showing.
+    if (!PhGetNetworkConnections(&connections, &numberOfConnections))
     {
-        PPH_NETWORK_ITEM item = networkItems[i];
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"Enumerating the network connections failed.");
+        PhClearReference(&protocolString);
+        PhClearReference(&localString);
+        PhClearReference(&remoteString);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    for (i = 0; i < numberOfConnections && !found; i++)
+    {
+        PPH_NETWORK_CONNECTION item = &connections[i];
         PPH_STRING itemLocal;
         PPH_STRING itemRemote;
 
@@ -163,10 +172,7 @@ NTSTATUS AtFindNetworkConnection(
         PhDereferenceObject(itemRemote);
     }
 
-    for (i = 0; i < numberOfNetworkItems; i++)
-        PhDereferenceObject(networkItems[i]);
-
-    PhFree(networkItems);
+    PhFree(connections);
     PhClearReference(&protocolString);
     PhClearReference(&localString);
     PhClearReference(&remoteString);
@@ -248,8 +254,8 @@ VOID AtpListNetworkConnections(
     )
 {
     AT_NETWORK_FILTER filter;
-    PPH_NETWORK_ITEM* networkItems;
-    ULONG numberOfNetworkItems;
+    PPH_NETWORK_CONNECTION connections;
+    ULONG numberOfConnections;
     PPH_STRING protocol;
     ULONG64 pid;
     ULONG64 port;
@@ -285,19 +291,63 @@ VOID AtpListNetworkConnections(
         }
     }
 
-    PhEnumNetworkItems(&networkItems, &numberOfNetworkItems);
+    // The live table, not the provider cache: the cache is only maintained while the Network tab
+    // is showing. A cached item, when there is one, still supplies the names the provider resolved.
+    if (!PhGetNetworkConnections(&connections, &numberOfConnections))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"Enumerating the network connections failed.");
+        PhClearReference(&filter.State);
+        PhClearReference(&filter.AddressContains);
+        return;
+    }
 
     structured = PhCreateJsonObject();
     rows = PhCreateJsonArray();
 
-    for (i = 0; i < numberOfNetworkItems; i++)
+    for (i = 0; i < numberOfConnections; i++)
     {
-        PPH_NETWORK_ITEM item = networkItems[i];
+        PPH_NETWORK_CONNECTION connection = &connections[i];
+        PH_NETWORK_ITEM view;
+        PPH_NETWORK_ITEM item = &view;
+        PPH_NETWORK_ITEM cachedItem;
+        PPH_PROCESS_ITEM processItem = NULL;
         PPH_STRING local;
         PPH_STRING remote;
         PCPH_STRINGREF stateName = NULL;
-        BOOLEAN isTcp = !!(item->ProtocolType & PH_PROTOCOL_TYPE_TCP);
+        BOOLEAN isTcp = !!(connection->ProtocolType & PH_PROTOCOL_TYPE_TCP);
         PVOID row;
+
+        // A cache-shaped view of the live entry, so the filter and the row see one thing.
+        memset(&view, 0, sizeof(PH_NETWORK_ITEM));
+        view.ProtocolType = connection->ProtocolType;
+        view.LocalEndpoint = connection->LocalEndpoint;
+        view.RemoteEndpoint = connection->RemoteEndpoint;
+        view.State = connection->State;
+        view.ProcessId = connection->ProcessId;
+        view.CreateTime = connection->CreateTime;
+        view.LocalScopeId = connection->LocalScopeId;
+        view.RemoteScopeId = connection->RemoteScopeId;
+
+        if (connection->ProcessId)
+            processItem = PhReferenceProcessItem(connection->ProcessId);
+
+        cachedItem = PhReferenceNetworkItem(
+            connection->ProtocolType,
+            &connection->LocalEndpoint,
+            &connection->RemoteEndpoint,
+            connection->ProcessId
+            );
+
+        if (cachedItem)
+        {
+            view.ProcessName = cachedItem->ProcessName;
+            view.OwnerName = cachedItem->OwnerName;
+            view.LocalHostString = cachedItem->LocalHostString;
+            view.RemoteHostString = cachedItem->RemoteHostString;
+        }
+
+        if (!view.ProcessName && processItem)
+            view.ProcessName = processItem->ProcessName;
 
         local = AtFormatNetworkEndpoint(&item->LocalEndpoint, item->ProtocolType, item->LocalScopeId, FALSE);
         remote = AtFormatNetworkEndpoint(&item->RemoteEndpoint, item->ProtocolType, item->RemoteScopeId, FALSE);
@@ -305,54 +355,47 @@ VOID AtpListNetworkConnections(
         if (isTcp)
             stateName = PhGetTcpStateName(item->State);
 
-        if (!AtpNetworkMatchesFilter(&filter, item, local, remote, stateName))
+        if (AtpNetworkMatchesFilter(&filter, item, local, remote, stateName))
         {
-            PhDereferenceObject(local);
-            PhDereferenceObject(remote);
-            continue;
-        }
+            row = PhCreateJsonObject();
+            AtJsonAddStringZ(row, "protocol", AtProtocolTypeString(item->ProtocolType));
+            AtJsonAddString(row, "local_address", local);
+            PhAddJsonObjectUInt64(row, "local_port", item->LocalEndpoint.Port);
+            AtJsonAddString(row, "remote_address", remote);
+            PhAddJsonObjectUInt64(row, "remote_port", item->RemoteEndpoint.Port);
+            AtJsonAddStringRef(row, "state", stateName);
 
-        row = PhCreateJsonObject();
-        AtJsonAddStringZ(row, "protocol", AtProtocolTypeString(item->ProtocolType));
-        AtJsonAddString(row, "local_address", local);
-        PhAddJsonObjectUInt64(row, "local_port", item->LocalEndpoint.Port);
-        AtJsonAddString(row, "remote_address", remote);
-        PhAddJsonObjectUInt64(row, "remote_port", item->RemoteEndpoint.Port);
-        AtJsonAddStringRef(row, "state", stateName);
-
-        if (item->ProcessId)
-        {
-            PPH_PROCESS_ITEM processItem;
-
-            PhAddJsonObjectUInt64(row, "pid", HandleToUlong(item->ProcessId));
-
-            if (processItem = PhReferenceProcessItem(item->ProcessId))
+            if (item->ProcessId)
             {
-                PhAddJsonObjectUInt64(row, "process_sequence_number", processItem->ProcessSequenceNumber);
-                PhDereferenceObject(processItem);
+                PhAddJsonObjectUInt64(row, "pid", HandleToUlong(item->ProcessId));
+
+                if (processItem)
+                    PhAddJsonObjectUInt64(row, "process_sequence_number", processItem->ProcessSequenceNumber);
+                else
+                    AtJsonAddNull(row, "process_sequence_number");
             }
             else
             {
+                AtJsonAddNull(row, "pid");
                 AtJsonAddNull(row, "process_sequence_number");
             }
-        }
-        else
-        {
-            AtJsonAddNull(row, "pid");
-            AtJsonAddNull(row, "process_sequence_number");
-        }
 
-        AtJsonAddString(row, "process_name", item->ProcessName);
-        AtJsonAddString(row, "owner_name", item->OwnerName);
-        AtJsonAddString(row, "remote_host", item->RemoteHostString);
-        AtJsonAddTime(row, "create_time", &item->CreateTime);
+            AtJsonAddString(row, "process_name", item->ProcessName);
+            AtJsonAddString(row, "owner_name", item->OwnerName);
+            AtJsonAddString(row, "remote_host", item->RemoteHostString);
+            AtJsonAddTime(row, "create_time", &item->CreateTime);
 
-        PhAddJsonArrayObject(rows, row);
-        count++;
+            PhAddJsonArrayObject(rows, row);
+            count++;
+        }
 
         PhDereferenceObject(local);
         PhDereferenceObject(remote);
+        PhClearReference(&cachedItem);
+        PhClearReference(&processItem);
     }
+
+    PhFree(connections);
 
     PhAddJsonObjectValue(structured, "connections", rows);
     PhAddJsonObjectUInt64(structured, "count", count);
@@ -360,10 +403,6 @@ VOID AtpListNetworkConnections(
 
     Result->StructuredContent = structured;
 
-    for (i = 0; i < numberOfNetworkItems; i++)
-        PhDereferenceObject(networkItems[i]);
-
-    PhFree(networkItems);
     PhClearReference(&filter.State);
     PhClearReference(&filter.AddressContains);
 }

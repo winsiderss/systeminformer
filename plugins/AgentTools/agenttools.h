@@ -131,7 +131,6 @@ typedef struct _AT_ACTION_INFO
     PWSTR ConfirmSetting;
     PWSTR Verb;
     PWSTR Headline;
-    PWSTR ButtonText;
     PWSTR AuditName;
 } AT_ACTION_INFO, *PAT_ACTION_INFO;
 typedef CONST AT_ACTION_INFO *PCAT_ACTION_INFO;
@@ -179,6 +178,8 @@ typedef enum _AT_SESSION_POLICY
 } AT_SESSION_POLICY;
 
 #define AT_MAX_PENDING_CONSENTS 8
+#define AT_MAX_DEFERRED_REQUESTS 32 // queued behind a consent wait, per connection
+#define AT_MAX_DEFERRED_BYTES (1024 * 1024)
 
 typedef struct _AT_PENDING_CONSENT
 {
@@ -197,6 +198,16 @@ typedef enum _AT_APPROVAL
 } AT_APPROVAL;
 
 C_ASSERT(sizeof(AT_APPROVAL) == sizeof(LONG));
+
+// A request that arrived while a call on the connection was waiting for consent. It runs, in
+// order, once that call has finished.
+typedef struct _AT_DEFERRED_REQUEST
+{
+    LIST_ENTRY ListEntry;
+    PPH_BYTES IdJson;
+    ULONG Length;
+    UCHAR Payload[ANYSIZE_ARRAY];
+} AT_DEFERRED_REQUEST, *PAT_DEFERRED_REQUEST;
 
 typedef struct _AT_CONNECTION
 {
@@ -237,6 +248,9 @@ typedef struct _AT_CONNECTION
 
     PPH_BYTES InFlightId;
     BOOLEAN InFlightCancelled;
+    LIST_ENTRY DeferredRequests; // connection thread only
+    ULONG DeferredCount;
+    SIZE_T DeferredBytes;
 
     AT_SESSION_POLICY SessionPolicy[AtActionMaximum];
     AT_PENDING_CONSENT Pending[AT_MAX_PENDING_CONSENTS];

@@ -759,6 +759,44 @@ VOID AtpHandleToolsCall(
     PhReleaseQueuedLockExclusive(&Connection->Lock);
 }
 
+BOOLEAN AtpDeferRequest(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_reads_bytes_(Length) PVOID Payload,
+    _In_ ULONG Length
+    )
+{
+    PAT_DEFERRED_REQUEST request;
+
+    // A bounded queue: a client cannot grow the process by streaming requests into a wait.
+    if (Connection->DeferredCount >= AT_MAX_DEFERRED_REQUESTS ||
+        Connection->DeferredBytes + Length > AT_MAX_DEFERRED_BYTES)
+    {
+        return FALSE;
+    }
+
+    request = PhAllocate(UFIELD_OFFSET(AT_DEFERRED_REQUEST, Payload) + Length);
+    request->IdJson = PhReferenceObject(IdJson);
+    request->Length = Length;
+    memcpy(request->Payload, Payload, Length);
+    InsertTailList(&Connection->DeferredRequests, &request->ListEntry);
+    Connection->DeferredCount++;
+    Connection->DeferredBytes += Length;
+
+    return TRUE;
+}
+
+VOID AtpFreeDeferredRequest(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PAT_DEFERRED_REQUEST Request
+    )
+{
+    Connection->DeferredCount--;
+    Connection->DeferredBytes -= Request->Length;
+    PhDereferenceObject(Request->IdJson);
+    PhFree(Request);
+}
+
 VOID AtpHandleNotification(
     _In_ PAT_CONNECTION Connection,
     _In_ PPH_STRING Method,
@@ -776,6 +814,7 @@ VOID AtpHandleNotification(
     {
         PVOID requestId;
         PPH_BYTES requestIdJson;
+        PLIST_ENTRY entry;
 
         if (Params && (requestId = PhGetJsonObject(Params, "requestId")))
         {
@@ -792,6 +831,22 @@ VOID AtpHandleNotification(
                 }
 
                 PhReleaseQueuedLockExclusive(&Connection->Lock);
+
+                // A request still queued behind a consent wait is dropped without a response.
+                for (entry = Connection->DeferredRequests.Flink; entry != &Connection->DeferredRequests; )
+                {
+                    PAT_DEFERRED_REQUEST deferred = CONTAINING_RECORD(entry, AT_DEFERRED_REQUEST, ListEntry);
+
+                    entry = entry->Flink;
+
+                    if (deferred->IdJson->Length == requestIdJson->Length &&
+                        memcmp(deferred->IdJson->Buffer, requestIdJson->Buffer, requestIdJson->Length) == 0)
+                    {
+                        RemoveEntryList(&deferred->ListEntry);
+                        AtpFreeDeferredRequest(Connection, deferred);
+                    }
+                }
+
                 PhDereferenceObject(requestIdJson);
             }
         }
@@ -896,7 +951,9 @@ AT_INCOMING_RESULT AtpProcessIncoming(
         }
         else if (DuringWait)
         {
-            AtpSendError(Connection, idJson, AT_JSONRPC_INTERNAL_ERROR, "A tool call is already in progress on this connection", NULL);
+            // Behind the call that is waiting for consent; it runs once that call has finished.
+            if (!AtpDeferRequest(Connection, idJson, Payload, Length))
+                AtpSendError(Connection, idJson, AT_JSONRPC_INTERNAL_ERROR, "Too many requests are queued behind a confirmation on this connection", NULL);
         }
         else if (AtpEqualStringUtf8(method, "initialize"))
         {
@@ -930,13 +987,30 @@ VOID AtMcpHandleMessage(
     )
 {
     AtpProcessIncoming(Connection, Payload, Length, FALSE, 0, NULL);
+
+    // Requests that arrived during a consent wait, in order. One of them may wait in turn and
+    // queue more behind it.
+    while (!AtConnectionIsClosing(Connection) && !IsListEmpty(&Connection->DeferredRequests))
+    {
+        PAT_DEFERRED_REQUEST request;
+
+        request = CONTAINING_RECORD(RemoveHeadList(&Connection->DeferredRequests), AT_DEFERRED_REQUEST, ListEntry);
+        AtpProcessIncoming(Connection, request->Payload, request->Length, FALSE, 0, NULL);
+        AtpFreeDeferredRequest(Connection, request);
+    }
 }
 
 VOID AtMcpDeleteConnectionState(
     _In_ PAT_CONNECTION Connection
     )
 {
-    NOTHING;
+    while (!IsListEmpty(&Connection->DeferredRequests))
+    {
+        PAT_DEFERRED_REQUEST request;
+
+        request = CONTAINING_RECORD(RemoveHeadList(&Connection->DeferredRequests), AT_DEFERRED_REQUEST, ListEntry);
+        AtpFreeDeferredRequest(Connection, request);
+    }
 }
 
 BOOLEAN AtMcpPumpDuringWait(

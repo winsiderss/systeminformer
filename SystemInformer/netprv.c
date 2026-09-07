@@ -23,19 +23,6 @@
 #include <hvsocketcontrol.h>
 #include <trace.h>
 
-typedef struct _PH_NETWORK_CONNECTION
-{
-    ULONG ProtocolType;
-    PH_IP_ENDPOINT LocalEndpoint;
-    PH_IP_ENDPOINT RemoteEndpoint;
-    MIB_TCP_STATE State;
-    HANDLE ProcessId;
-    LARGE_INTEGER CreateTime;
-    ULONGLONG OwnerInfo[PH_NETWORK_OWNER_INFO_SIZE];
-    ULONG LocalScopeId; // Ipv6
-    ULONG RemoteScopeId; // Ipv6
-} PH_NETWORK_CONNECTION, *PPH_NETWORK_CONNECTION;
-
 typedef struct _PH_NETWORK_ITEM_QUERY_DATA
 {
     SLIST_ENTRY ListEntry;
@@ -69,12 +56,6 @@ ULONG NTAPI PhpResolveCacheHashtableHashFunction(
     _In_ PVOID Entry
     );
 
-_Success_(return)
-BOOLEAN PhGetNetworkConnections(
-    _Out_ PPH_NETWORK_CONNECTION *Connections,
-    _Out_ PULONG NumberOfConnections
-    );
-
 PPH_OBJECT_TYPE PhNetworkItemType = NULL;
 PH_QUEUED_LOCK PhNetworkHashSetLock = PH_QUEUED_LOCK_INIT;
 PPH_HASH_ENTRY PhNetworkHashSet[256] = PH_HASH_SET_INIT;
@@ -90,11 +71,32 @@ ULONG PhNetworkProviderFlagsMask = 0;
 static PPH_HASHTABLE PhpResolveCacheHashtable = NULL;
 static PH_QUEUED_LOCK PhpResolveCacheHashtableLock = PH_QUEUED_LOCK_INIT;
 
-static BOOLEAN NetworkImportDone = FALSE;
 static _GetExtendedTcpTable GetExtendedTcpTable_I = NULL;
 static _GetExtendedUdpTable GetExtendedUdpTable_I = NULL;
 static _InternalGetBoundTcpEndpointTable GetBoundTcpEndpointTable_I = NULL;
 static _InternalGetBoundTcp6EndpointTable GetBoundTcp6EndpointTable_I = NULL;
+
+VOID PhpInitializeNetworkImports(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID iphlpapi;
+
+        if (iphlpapi = PhLoadLibrary(L"iphlpapi.dll"))
+        {
+            GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
+            GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
+            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
+            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+}
 
 /**
  * Initializes the network provider.
@@ -1073,21 +1075,6 @@ VOID PhNetworkProviderUpdate(
 
     PhTraceFuncEnter("Network provider run count: %lu", runCount);
 
-    if (!NetworkImportDone)
-    {
-        PVOID iphlpapi;
-
-        if (iphlpapi = PhLoadLibrary(L"iphlpapi.dll"))
-        {
-            GetExtendedTcpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedTcpTable", 0);
-            GetExtendedUdpTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "GetExtendedUdpTable", 0);
-            GetBoundTcpEndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcpEndpointTable", 0);
-            GetBoundTcp6EndpointTable_I = PhGetDllBaseProcedureAddress(iphlpapi, "InternalGetBoundTcp6EndpointTable", 0);
-        }
-
-        NetworkImportDone = TRUE;
-    }
-
     if (!PhGetNetworkConnections(&connections, &numberOfConnections))
     {
         PhTraceFuncExit("Failed to get network connections: %lu", runCount);
@@ -1764,6 +1751,11 @@ BOOLEAN PhGetNetworkConnections(
     ULONG count = 0;
     ULONG index = 0;
     PPH_NETWORK_CONNECTION connections;
+
+    PhpInitializeNetworkImports();
+
+    if (!GetExtendedTcpTable_I || !GetExtendedUdpTable_I)
+        return FALSE;
 
     // TCP IPv4
 

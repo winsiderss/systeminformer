@@ -291,6 +291,11 @@ VOID AtpGetKsiStatus(
     )
 {
     KPH_LEVEL level;
+    ULONG64 duration;
+    ULONG64 durationDown;
+    ULONG64 durationUp;
+    LARGE_INTEGER counter;
+    LARGE_INTEGER frequency;
     PVOID structured;
 
     level = KsiLevel();
@@ -298,9 +303,23 @@ VOID AtpGetKsiStatus(
     structured = PhCreateJsonObject();
     PhAddJsonObjectBoolean(structured, "connected", level != KphLevelNone);
     AtJsonAddStringZ(structured, "level", AtpKphLevelString(level));
-    AtJsonAddNull(structured, "driver_image_path");
-    AtJsonAddNull(structured, "driver_service_name");
-    AtJsonAddNull(structured, "driver_size");
+
+    // One round trip into the driver, timed on the host clock: a health check for the connection.
+    if (NT_SUCCESS(PhQueryKphCounters(&duration, &durationDown, &durationUp)) &&
+        NT_SUCCESS(NtQueryPerformanceCounter(&counter, &frequency)) &&
+        frequency.QuadPart)
+    {
+        PVOID roundTrip = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(roundTrip, "total_microseconds", duration * 1000000 / frequency.QuadPart);
+        PhAddJsonObjectUInt64(roundTrip, "to_kernel_microseconds", durationDown * 1000000 / frequency.QuadPart);
+        PhAddJsonObjectUInt64(roundTrip, "from_kernel_microseconds", durationUp * 1000000 / frequency.QuadPart);
+        PhAddJsonObjectValue(structured, "round_trip", roundTrip);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "round_trip");
+    }
 
     AtAddSnapshot(structured);
 
@@ -545,6 +564,7 @@ VOID AtpGetUefiVariables(
     PVOID structured;
     PVOID rows;
     ULONG count = 0;
+    PH_THREAD_PRIVILEGE_STATE privilegeState;
 
     if (AtpGetFirmwareType() != FirmwareTypeUefi)
     {
@@ -552,8 +572,19 @@ VOID AtpGetUefiVariables(
         return;
     }
 
-    // Requires SeSystemEnvironmentPrivilege, so this fails with STATUS_PRIVILEGE_NOT_HELD unless System Informer is elevated.
+    // SeSystemEnvironmentPrivilege must be enabled, not merely held; an elevated token holds it
+    // disabled. Enable it for this thread only, so the process token is untouched. Without it the
+    // enumeration fails with STATUS_PRIVILEGE_NOT_HELD.
+    status = PhAcquireCurrentThreadPrivilege(SE_SYSTEM_ENVIRONMENT_PRIVILEGE, &privilegeState);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Enabling SeSystemEnvironmentPrivilege");
+        return;
+    }
+
     status = PhEnumFirmwareEnvironmentValues(SystemEnvironmentValueInformation, &variables);
+    PhReleaseCurrentThreadPrivilege(&privilegeState);
 
     if (!NT_SUCCESS(status))
     {

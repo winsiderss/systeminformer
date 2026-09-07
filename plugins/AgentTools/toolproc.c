@@ -722,7 +722,7 @@ VOID AtpGetProcessToken(
             PVOID row = PhCreateJsonObject();
             PPH_STRING name = NULL;
 
-            if (PhLookupPrivilegeName(&privileges->Privileges[i].Luid, &name))
+            if (NT_SUCCESS(PhLookupPrivilegeName(&privileges->Privileges[i].Luid, &name)))
             {
                 AtJsonAddString(row, "name", name);
                 PhDereferenceObject(name);

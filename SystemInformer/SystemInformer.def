@@ -552,6 +552,7 @@ EXPORTS
     PhGetSMBIOSString
 
 ; phnative
+    PhAcquireCurrentThreadPrivilege
     PhAdjustPrivilege
     PhConnectPipe
     PhCreateDirectoryFullPathWin32
@@ -718,6 +719,7 @@ EXPORTS
     PhResolveDevicePrefix
     PhResumeProcess
     PhResumeThread
+    PhReleaseCurrentThreadPrivilege
     PhRevertImpersonationToken
     PhSetFileAllocationSize
     PhSetFileDelete
@@ -837,6 +839,7 @@ EXPORTS
     PhGetMessage
     PhGetMemoryRegionUseText
     PhGetMonitorDpi
+    PhGetNetworkConnections
     PhGetNtMessage
     PhGetNtSystemRoot
     PhGetRoamingAppDataDirectory
