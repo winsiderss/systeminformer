@@ -561,6 +561,7 @@ EXPORTS
     PhCreateJobObject
     PhCreateKey
     PhCreateNamedPipe
+    PhCreateNamedPipeEx
     PhCreatePipe
     PhDeleteDirectoryWin32
     PhDeleteFile
@@ -655,6 +656,7 @@ EXPORTS
     PhGetProcessPowerThrottlingState
     PhGetProcessPriorityBoost
     PhGetProcessPriorityClass
+    PhGetProcessSequenceNumber
     PhGetProcessUnloadedDlls
     PhGetProcessWindowTitle
     PhGetProcessWorkingSetInformation
@@ -676,6 +678,7 @@ EXPORTS
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
+    PhImpersonateClientOfNamedPipe
     PhImpersonateToken
     PhIsDebuggerPresent
     PhIsFirmwareSupported
@@ -1256,6 +1259,7 @@ EXPORTS
     PhAddJsonObject
     PhAddJsonObject2
     PhAddJsonObjectBoolean
+    PhAddJsonObjectDouble
     PhAddJsonObjectInt64
     PhJsonObjectToString
     PhJsonObjectToJsonString

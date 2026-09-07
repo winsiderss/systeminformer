@@ -1,0 +1,217 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{9E3F2D1A-6B4C-4F8E-A2D7-5C1B8E0F3A64}</ProjectGuid>
+    <RootNamespace>simcp</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectName>simcp</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(SolutionDir)phnt\phnt.vcxitems" />
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>bcrypt.lib;crypt32.lib;gdiplus.lib;phlib.lib;thirdparty.lib;ntdll.lib;userenv.lib;winhttp.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <ResourceCompile>
+      <AdditionalIncludeDirectories>$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Manifest>
+      <AdditionalManifestFiles>simcp.manifest</AdditionalManifestFiles>
+    </Manifest>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\simcp.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="version.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="simcp.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="$(SolutionDir)phlib\phlib.vcxproj">
+      <Project>{477d0215-f252-41a1-874b-f27e3ea1ed17}</Project>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

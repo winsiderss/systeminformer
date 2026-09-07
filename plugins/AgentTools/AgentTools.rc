@@ -1,0 +1,125 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "winres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "#include ""winres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_OPTIONS DIALOGEX 0, 0, 317, 225
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Serve agent tools (MCP) for this session",IDC_ENABLED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,7,220,10
+    LTEXT           "",IDC_STATUS,7,20,303,10
+    CONTROL         "Ask before allowing an agent to connect",IDC_CONFIRM_CONNECTIONS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,33,260,10
+    CONTROL         "Allow sandboxed clients (AppContainer or low integrity)",IDC_ALLOW_SANDBOXED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,260,10
+    EDITTEXT        IDC_SEARCH,7,61,303,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_TOOLS,"PhTreeNew",WS_CLIPCHILDREN | WS_TABSTOP | 0x2,7,79,303,121,WS_EX_CLIENTEDGE
+    LTEXT           "Delegate to client uses the client's prompt. Not required never asks.",IDC_NOTE,7,205,303,16
+END
+
+IDD_OPTIONS_AGENTS DIALOGEX 0, 0, 317, 225
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+EXSTYLE WS_EX_CONTROLPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Connected agents",IDC_AGENTS_GROUP,7,7,303,92
+    CONTROL         "",IDC_AGENTS,"PhTreeNew",WS_CLIPCHILDREN | WS_TABSTOP | 0x2,14,19,289,58,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Disconnect",IDC_DISCONNECT,253,80,50,13
+    GROUPBOX        "Client configuration",IDC_CONFIG_GROUP,7,104,303,114
+    COMBOBOX        IDC_CONFIG_TARGET,14,116,130,60,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Copy",IDC_COPY,253,116,50,13
+    EDITTEXT        IDC_SNIPPET,14,133,289,78,ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | WS_VSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_OPTIONS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 310
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 218
+    END
+
+    IDD_OPTIONS_AGENTS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 310
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 218
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED

@@ -9,6 +9,7 @@
     <File Path="include/toolstatusintf.h" />
     <File Path="Plugins.props" />
   </Folder>
+  <Project Path="AgentTools/AgentTools.vcxproj" Id="c7a1e2d3-4b5f-4e6a-9d8c-1f2e3a4b5c6d" />
   <Project Path="DotNetTools/DotNetTools.vcxproj" Id="2b3235b0-31e1-44da-81a1-183f40517e47" />
   <Project Path="ExtendedNotifications/ExtendedNotifications.vcxproj" Id="80e791b8-ac98-407e-8ff9-5154af50e887" />
   <Project Path="ExtendedServices/ExtendedServices.vcxproj" Id="ac547368-d861-4b88-b5d4-e3b1f1aeeedd" />

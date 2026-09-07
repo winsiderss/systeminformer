@@ -24,6 +24,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ExtendedTools", "ExtendedTo
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WindowExplorer", "WindowExplorer\WindowExplorer.vcxproj", "{37488DC1-E45F-4626-A87C-3A854A153D1A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AgentTools", "AgentTools\AgentTools.vcxproj", "{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}"
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DotNetTools", "DotNetTools\DotNetTools.vcxproj", "{2B3235B0-31E1-44DA-81A1-183F40517E47}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Updater", "Updater\Updater.vcxproj", "{A0C1595C-FA3E-4B7A-936C-306BC6294C5E}"
@@ -42,6 +44,18 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|ARM64.Build.0 = Debug|ARM64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|Win32.Build.0 = Debug|Win32
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|x64.ActiveCfg = Debug|x64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Debug|x64.Build.0 = Debug|x64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|ARM64.ActiveCfg = Release|ARM64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|ARM64.Build.0 = Release|ARM64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|Win32.ActiveCfg = Release|Win32
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|Win32.Build.0 = Release|Win32
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|x64.ActiveCfg = Release|x64
+		{C7A1E2D3-4B5F-4E6A-9D8C-1F2E3A4B5C6D}.Release|x64.Build.0 = Release|x64
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Debug|ARM64.ActiveCfg = Debug|ARM64
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Debug|ARM64.Build.0 = Debug|ARM64
 		{80E791B8-AC98-407E-8FF9-5154AF50E887}.Debug|Win32.ActiveCfg = Debug|Win32

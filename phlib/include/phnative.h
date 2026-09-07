@@ -6073,7 +6073,6 @@ PhOpenNamedPipeProtectedPrefix(
     _In_ PH_NAMED_PIPE_PREFIX_TYPE PrefixType,
     _In_ ACCESS_MASK DesiredAccess
     );
-
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -6103,6 +6102,19 @@ PhCreateNamedPipeZ(
 
     return PhCreateNamedPipe(PipeHandle, &pipeName);
 }
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateNamedPipeEx(
+    _Out_ PHANDLE PipeHandle,
+    _In_ PCPH_STRINGREF PipeName,
+    _In_opt_ HANDLE RootDirectory,
+    _In_opt_ PSECURITY_DESCRIPTOR SecurityDescriptor,
+    _In_ ULONG CreateDisposition,
+    _In_ ULONG PipeType,
+    _In_ ULONG MaximumInstances
+    );
 
 PHLIBAPI
 NTSTATUS

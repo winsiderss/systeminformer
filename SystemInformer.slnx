@@ -14,4 +14,7 @@
     <BuildDependency Project="phlib/phlib.vcxproj" />
   </Project>
   <Project Path="tools/peview/peview.vcxproj" Id="72c124a2-3c80-41c6-aba1-c4948b713204" />
+  <Project Path="tools/simcp/simcp.vcxproj" Id="9e3f2d1a-6b4c-4f8e-a2d7-5c1b8e0f3a64">
+    <BuildDependency Project="phlib/phlib.vcxproj" />
+  </Project>
 </Solution>

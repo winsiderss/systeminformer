@@ -6,3 +6,4 @@
 
 add_subdirectory(thirdparty)
 add_subdirectory(peview)
+add_subdirectory(simcp)
