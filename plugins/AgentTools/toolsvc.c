@@ -44,10 +44,6 @@ BOOLEAN AtParseServiceStartType(
     return FALSE;
 }
 
-/**
- * Validates set_service_config arguments and returns a human description of the change for the
- * consent prompt, or NULL with a structured error.
- */
 PPH_STRING AtFormatServiceConfigParameter(
     _In_opt_ PVOID Arguments,
     _Inout_ PAT_TOOL_RESULT Result
@@ -92,7 +88,7 @@ PPH_STRING AtFormatServiceConfigParameter(
     return PhFinalStringBuilderString(&builder);
 }
 
-static PCWSTR AtpServiceTypeString(
+PCWSTR AtpServiceTypeString(
     _In_ ULONG Type
     )
 {
@@ -112,7 +108,7 @@ static PCWSTR AtpServiceTypeString(
     return NULL;
 }
 
-static VOID AtpAddControlsAccepted(
+VOID AtpAddControlsAccepted(
     _In_ PVOID Object,
     _In_ ULONG ControlsAccepted
     )
@@ -135,7 +131,7 @@ static VOID AtpAddControlsAccepted(
     PhAddJsonObjectValue(Object, "controls_accepted", controls);
 }
 
-static VOID AtpFillServiceRow(
+VOID AtpFillServiceRow(
     _In_ PVOID Object,
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -186,7 +182,7 @@ typedef struct _AT_SERVICE_FILTER
     HANDLE Pid;
 } AT_SERVICE_FILTER, *PAT_SERVICE_FILTER;
 
-static BOOLEAN AtpServiceMatchesFilter(
+BOOLEAN AtpServiceMatchesFilter(
     _In_ PAT_SERVICE_FILTER Filter,
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
@@ -221,7 +217,7 @@ static BOOLEAN AtpServiceMatchesFilter(
     return TRUE;
 }
 
-static VOID AtpListServices(
+VOID AtpListServices(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -318,7 +314,7 @@ static VOID AtpListServices(
     PhClearReference(&filter.NameContains);
 }
 
-static VOID AtpGetService(
+VOID AtpGetService(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -461,10 +457,7 @@ static VOID AtpGetService(
     PhDereferenceObject(serviceItem);
 }
 
-/**
- * Waits up to AT_SERVICE_STOP_WAIT_MS for a service to reach the stopped state.
- */
-static NTSTATUS AtpWaitForServiceStop(
+NTSTATUS AtpWaitForServiceStop(
     _In_ SC_HANDLE ServiceHandle
     )
 {
@@ -485,7 +478,7 @@ static NTSTATUS AtpWaitForServiceStop(
     return STATUS_SUCCESS; // could not query; assume the caller's stop succeeded
 }
 
-static VOID AtpControlService(
+VOID AtpControlService(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,

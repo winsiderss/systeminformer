@@ -11,13 +11,6 @@
 
 #include "agenttools.h"
 
-/**
- * Resolves a process named by pid (and optionally process_sequence_number) against the provider
- * cache and, when the action touches the process, opens it with exactly the rights the action needs
- * and proves the handle is the process the cache describes. The caller holds the handle across the
- * consent wait, so the pid cannot be recycled underneath an approval and the action runs on the
- * object the user was shown.
- */
 NTSTATUS AtResolveProcessTarget(
     _In_opt_ PVOID Arguments,
     _In_ BOOLEAN RequireSequenceNumber,
@@ -132,12 +125,7 @@ NTSTATUS AtResolveProcessTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves a thread named by tid inside a process named by pid and process_sequence_number. The
- * thread is opened with the rights the action needs and its owning process is checked against the
- * resolved process, so a tid from another process is refused.
- */
-static NTSTATUS AtpResolveThreadTarget(
+NTSTATUS AtpResolveThreadTarget(
     _In_opt_ PVOID Arguments,
     _In_ BOOLEAN RequireSequenceNumber,
     _In_ ACCESS_MASK ThreadAccess,
@@ -210,11 +198,7 @@ static NTSTATUS AtpResolveThreadTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves a service named by name against the service provider cache and, when the action needs
- * one, opens it with the rights the action needs.
- */
-static NTSTATUS AtpResolveServiceTarget(
+NTSTATUS AtpResolveServiceTarget(
     _In_opt_ PVOID Arguments,
     _In_ ACCESS_MASK ServiceAccess,
     _Out_ PAT_TARGET Target,
@@ -266,11 +250,7 @@ static NTSTATUS AtpResolveServiceTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves a handle named by handle inside a process named by pid and process_sequence_number,
- * locating it in the system handle table so the object it refers to is bound into the target.
- */
-static NTSTATUS AtpResolveHandleTarget(
+NTSTATUS AtpResolveHandleTarget(
     _In_opt_ PVOID Arguments,
     _In_ ACCESS_MASK ProcessAccess,
     _Out_ PAT_TARGET Target,
@@ -374,11 +354,7 @@ static NTSTATUS AtpResolveHandleTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves a TCP connection named by its endpoints inside a process named by pid and
- * process_sequence_number, against the live connection table.
- */
-static NTSTATUS AtpResolveConnectionTarget(
+NTSTATUS AtpResolveConnectionTarget(
     _In_opt_ PVOID Arguments,
     _Out_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
@@ -422,11 +398,7 @@ static NTSTATUS AtpResolveConnectionTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Parses the value an action sets and records it on the target, so the consent prompt names it
- * and a delegated consent is bound to it.
- */
-static NTSTATUS AtpResolveTargetParameter(
+NTSTATUS AtpResolveTargetParameter(
     _In_ PCAT_TOOL Tool,
     _In_opt_ PVOID Arguments,
     _Inout_ PAT_TARGET Target,
@@ -504,11 +476,6 @@ static NTSTATUS AtpResolveTargetParameter(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves the target of a tool call from its arguments according to the action's target kind,
- * leaving the target empty for actions that have none. On failure the result carries a structured
- * error and the target holds nothing.
- */
 NTSTATUS AtResolveTarget(
     _In_ PCAT_TOOL Tool,
     _In_opt_ PVOID Arguments,
@@ -593,7 +560,7 @@ VOID AtSetTargetParameter(
     PhMoveReference(&Target->Parameter, PhCreateString(Parameter));
 }
 
-static PPH_STRING AtpFormatProcessHeadline(
+PPH_STRING AtpFormatProcessHeadline(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
@@ -604,9 +571,6 @@ static PPH_STRING AtpFormatProcessHeadline(
         );
 }
 
-/**
- * One line naming the target, for the consent dialog's headline.
- */
 PPH_STRING AtFormatTargetHeadline(
     _In_ PAT_TARGET Target
     )
@@ -652,7 +616,7 @@ PPH_STRING AtFormatTargetHeadline(
     return result;
 }
 
-static VOID AtpAppendProcessDescription(
+VOID AtpAppendProcessDescription(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -671,10 +635,6 @@ static VOID AtpAppendProcessDescription(
         PhAppendFormatStringBuilder(Builder, L"\nUser: %s", PhGetString(ProcessItem->UserName));
 }
 
-/**
- * A multi-line description of the target with everything System Informer can authenticate about
- * it, for the client's elicitation prompt.
- */
 PPH_STRING AtFormatTargetDescription(
     _In_ PAT_TARGET Target
     )
@@ -732,9 +692,6 @@ PPH_STRING AtFormatTargetDescription(
     return PhFinalStringBuilderString(&builder);
 }
 
-/**
- * One line naming the target unambiguously, for the audit log.
- */
 PPH_STRING AtFormatTargetAudit(
     _In_ PAT_TARGET Target
     )

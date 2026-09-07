@@ -156,6 +156,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetKsiStatus, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_ksi_status"),
         L"read the kernel driver status", L"Allow reading the kernel driver status", L"Allow", L"get_ksi_status"
     },
+    {
+        AtActionGetPagefileInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
+        L"read pagefile information", L"Allow reading pagefile information", L"Allow", L"get_pagefile_info"
+    },
+    {
+        AtActionListStartupEntries, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
+        L"list autostart entries", L"Allow listing autostart entries", L"Allow", L"list_startup_entries"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -172,15 +180,6 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     {
         AtActionSearchProcessMemory, AtTierSensitiveRead, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_memory"),
         L"search the memory of processes", L"Search the memory of", L"Allow", L"search_process_memory"
-    },
-    // more system inspection
-    {
-        AtActionGetPagefileInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
-        L"read pagefile information", L"Allow reading pagefile information", L"Allow", L"get_pagefile_info"
-    },
-    {
-        AtActionListStartupEntries, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
-        L"list autostart entries", L"Allow listing autostart entries", L"Allow", L"list_startup_entries"
     },
 };
 
@@ -1003,6 +1002,47 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"connected\"]},"
         AT_READ_ANNOTATIONS "}"
     },
+    {
+        "get_pagefile_info", L"Get pagefile information", AtTierRead, AtActionGetPagefileInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_pagefile_info"), SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
+        "{\"name\":\"get_pagefile_info\",\"title\":\"Get pagefile information\","
+        "\"description\":\"Lists the system paging files with their current and peak usage. Sizes are bytes.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pagefiles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"total_bytes\":{\"type\":\"integer\"},"
+        "\"in_use_bytes\":{\"type\":\"integer\"},"
+        "\"peak_bytes\":{\"type\":\"integer\"}"
+        "},\"required\":[\"total_bytes\",\"in_use_bytes\",\"peak_bytes\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pagefiles\",\"count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_startup_entries", L"List autostart entries", AtTierRead, AtActionListStartupEntries,
+        SETTING_NAME_TOOL_ACCESS(L"list_startup_entries"), SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
+        "{\"name\":\"list_startup_entries\",\"title\":\"List autostart entries\","
+        "\"description\":\"Lists programs configured to run at logon from the registry Run/RunOnce keys (machine and "
+        "current user, including the 32-bit view) and the Startup folders. This is where persistence commonly hides. "
+        "Commands and paths are attacker-controlled. " AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the entry name or command\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"entries\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"command\":{\"type\":[\"string\",\"null\"]},"
+        "\"location\":{\"type\":\"string\",\"description\":\"Where the entry was found, e.g. HKLM\\\\...\\\\Run or a Startup folder path\"},"
+        "\"scope\":{\"type\":\"string\",\"description\":\"machine or user\"},"
+        "\"kind\":{\"type\":\"string\",\"description\":\"registry_run, registry_run_once or startup_folder\"}"
+        "},\"required\":[\"location\",\"scope\",\"kind\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"entries\",\"count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
     //
     // Files and memory
     //
@@ -1104,50 +1144,6 @@ CONST AT_TOOL AtTools[] =
         "\"bytes_scanned\":{\"type\":\"integer\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"matches\",\"count\"]},"
-        AT_READ_ANNOTATIONS "}"
-    },
-    //
-    // More system inspection
-    //
-    {
-        "get_pagefile_info", L"Get pagefile information", AtTierRead, AtActionGetPagefileInfo,
-        SETTING_NAME_TOOL_ACCESS(L"get_pagefile_info"), SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
-        "{\"name\":\"get_pagefile_info\",\"title\":\"Get pagefile information\","
-        "\"description\":\"Lists the system paging files with their current and peak usage. Sizes are bytes.\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
-        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"pagefiles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
-        "\"name\":{\"type\":[\"string\",\"null\"]},"
-        "\"total_bytes\":{\"type\":\"integer\"},"
-        "\"in_use_bytes\":{\"type\":\"integer\"},"
-        "\"peak_bytes\":{\"type\":\"integer\"}"
-        "},\"required\":[\"total_bytes\",\"in_use_bytes\",\"peak_bytes\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
-        AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pagefiles\",\"count\"]},"
-        AT_READ_ANNOTATIONS "}"
-    },
-    {
-        "list_startup_entries", L"List autostart entries", AtTierRead, AtActionListStartupEntries,
-        SETTING_NAME_TOOL_ACCESS(L"list_startup_entries"), SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
-        "{\"name\":\"list_startup_entries\",\"title\":\"List autostart entries\","
-        "\"description\":\"Lists programs configured to run at logon from the registry Run/RunOnce keys (machine and "
-        "current user, including the 32-bit view) and the Startup folders. This is where persistence commonly hides. "
-        "Commands and paths are attacker-controlled. " AT_UNTRUSTED_NOTE "\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the entry name or command\"}"
-        "},\"additionalProperties\":false},"
-        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"entries\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
-        "\"name\":{\"type\":[\"string\",\"null\"]},"
-        "\"command\":{\"type\":[\"string\",\"null\"]},"
-        "\"location\":{\"type\":\"string\",\"description\":\"Where the entry was found, e.g. HKLM\\\\...\\\\Run or a Startup folder path\"},"
-        "\"scope\":{\"type\":\"string\",\"description\":\"machine or user\"},"
-        "\"kind\":{\"type\":\"string\",\"description\":\"registry_run, registry_run_once or startup_folder\"}"
-        "},\"required\":[\"location\",\"scope\",\"kind\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
-        AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"entries\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
 };

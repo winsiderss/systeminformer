@@ -24,6 +24,8 @@ set(SOURCES
     "schema.c"
     "server.c"
     "target.c"
+    "toolmod.c"
+    "toolproc.c"
     "tools.c"
     "toolmem.c"
     "toolpe.c"

@@ -21,7 +21,7 @@ typedef struct _AT_STARTUP_CONTEXT
     ULONG Count;
 } AT_STARTUP_CONTEXT, *PAT_STARTUP_CONTEXT;
 
-static BOOLEAN AtpStartupMatches(
+BOOLEAN AtpStartupMatches(
     _In_ PAT_STARTUP_CONTEXT Context,
     _In_opt_ PPH_STRING Name,
     _In_opt_ PPH_STRING Command
@@ -33,7 +33,7 @@ static BOOLEAN AtpStartupMatches(
     return AtContainsString(Name, Context->NameContains) || AtContainsString(Command, Context->NameContains);
 }
 
-static VOID AtpAddStartupEntry(
+VOID AtpAddStartupEntry(
     _In_ PAT_STARTUP_CONTEXT Context,
     _In_opt_ PPH_STRING Name,
     _In_opt_ PPH_STRING Command
@@ -55,7 +55,7 @@ static VOID AtpAddStartupEntry(
 }
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
-static BOOLEAN NTAPI AtpStartupValueCallback(
+BOOLEAN NTAPI AtpStartupValueCallback(
     _In_ HANDLE RootDirectory,
     _In_ PKEY_VALUE_FULL_INFORMATION Information,
     _In_opt_ PVOID Context
@@ -88,7 +88,7 @@ static BOOLEAN NTAPI AtpStartupValueCallback(
     return TRUE;
 }
 
-static VOID AtpReadRunKey(
+VOID AtpReadRunKey(
     _In_ HANDLE RootDirectory,
     _In_ PCWSTR SubKey,
     _In_ PCSTR Location,
@@ -122,7 +122,7 @@ static VOID AtpReadRunKey(
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
-static BOOLEAN NTAPI AtpStartupFolderCallback(
+BOOLEAN NTAPI AtpStartupFolderCallback(
     _In_ HANDLE RootDirectory,
     _In_ PFILE_DIRECTORY_INFORMATION Information,
     _In_opt_ PVOID Context
@@ -149,7 +149,7 @@ static BOOLEAN NTAPI AtpStartupFolderCallback(
     return TRUE;
 }
 
-static VOID AtpReadStartupFolder(
+VOID AtpReadStartupFolder(
     _In_ ULONG Folder,
     _In_ PCSTR Scope,
     _In_ PPH_STRING NameContains,

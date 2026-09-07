@@ -98,14 +98,13 @@ typedef enum _AT_ACTION
     AtActionGetSystemInfo,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,
+    AtActionGetPagefileInfo,
+    AtActionListStartupEntries,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetImageInfo,
     AtActionReadProcessMemory,
     AtActionSearchProcessMemory,
-    // more system inspection
-    AtActionGetPagefileInfo,
-    AtActionListStartupEntries,
     AtActionMaximum,
 } AT_ACTION;
 
@@ -552,6 +551,13 @@ PPH_STRING AtFormatServiceConfigParameter(
 // Tool implementations by area
 
 VOID AtProcessInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtModuleInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

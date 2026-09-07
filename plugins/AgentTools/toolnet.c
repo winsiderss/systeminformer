@@ -56,9 +56,6 @@ BOOLEAN AtParseProtocolType(
     return TRUE;
 }
 
-/**
- * Formats an endpoint address, and optionally the port, as text.
- */
 PPH_STRING AtFormatNetworkEndpoint(
     _In_ PPH_IP_ENDPOINT Endpoint,
     _In_ ULONG ProtocolType,
@@ -95,10 +92,6 @@ PPH_STRING AtFormatNetworkEndpoint(
     return address;
 }
 
-/**
- * Finds a live network connection matching the endpoints in the arguments and owned by the given
- * process. Returns a private scalar copy the caller frees with PhFree.
- */
 NTSTATUS AtFindNetworkConnection(
     _In_opt_ PVOID Arguments,
     _In_opt_ PPH_PROCESS_ITEM ProcessItem,
@@ -202,7 +195,7 @@ typedef struct _AT_NETWORK_FILTER
     BOOLEAN ExcludeListeners;
 } AT_NETWORK_FILTER, *PAT_NETWORK_FILTER;
 
-static BOOLEAN AtpNetworkMatchesFilter(
+BOOLEAN AtpNetworkMatchesFilter(
     _In_ PAT_NETWORK_FILTER Filter,
     _In_ PPH_NETWORK_ITEM Item,
     _In_ PPH_STRING Local,
@@ -249,7 +242,7 @@ static BOOLEAN AtpNetworkMatchesFilter(
     return TRUE;
 }
 
-static VOID AtpListNetworkConnections(
+VOID AtpListNetworkConnections(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -375,7 +368,7 @@ static VOID AtpListNetworkConnections(
     PhClearReference(&filter.AddressContains);
 }
 
-static VOID AtpCloseNetworkConnection(
+VOID AtpCloseNetworkConnection(
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )

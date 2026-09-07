@@ -14,7 +14,7 @@
 #define AT_STACK_DEFAULT_FRAMES 64
 #define AT_STACK_MAXIMUM_FRAMES 512
 
-static PCWSTR AtpThreadStateString(
+PCWSTR AtpThreadStateString(
     _In_ KTHREAD_STATE State
     )
 {
@@ -38,7 +38,7 @@ static PCWSTR AtpThreadStateString(
     return NULL;
 }
 
-static PCWSTR AtpWaitReasonString(
+PCWSTR AtpWaitReasonString(
     _In_ KWAIT_REASON WaitReason
     )
 {
@@ -95,10 +95,7 @@ static PCWSTR AtpWaitReasonString(
     return NULL;
 }
 
-/**
- * Creates a symbol provider for a process with modules loaded, or NULL when symbols are not wanted.
- */
-static PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
+PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
     _In_ HANDLE ProcessId
     )
 {
@@ -113,7 +110,7 @@ static PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
     return symbolProvider;
 }
 
-static VOID AtpGetProcessThreads(
+VOID AtpGetProcessThreads(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -247,7 +244,7 @@ typedef struct _AT_STACK_CONTEXT
 } AT_STACK_CONTEXT, *PAT_STACK_CONTEXT;
 
 _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
-static BOOLEAN NTAPI AtpStackFrameCallback(
+BOOLEAN NTAPI AtpStackFrameCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
     )
@@ -291,7 +288,7 @@ static BOOLEAN NTAPI AtpStackFrameCallback(
     return TRUE;
 }
 
-static VOID AtpGetThreadStack(
+VOID AtpGetThreadStack(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
@@ -356,7 +353,7 @@ static VOID AtpGetThreadStack(
     Result->StructuredContent = structured;
 }
 
-static VOID AtpControlThread(
+VOID AtpControlThread(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result

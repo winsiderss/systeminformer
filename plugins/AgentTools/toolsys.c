@@ -19,7 +19,7 @@ __declspec(dllimport) FLOAT PhCpuUserUsage;
 // System information
 //
 
-static PCWSTR AtpKphLevelString(
+PCWSTR AtpKphLevelString(
     _In_ KPH_LEVEL Level
     )
 {
@@ -42,7 +42,7 @@ static PCWSTR AtpKphLevelString(
     return NULL;
 }
 
-static VOID AtpGetSystemInfo(
+VOID AtpGetSystemInfo(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
@@ -162,344 +162,7 @@ static VOID AtpGetSystemInfo(
     Result->StructuredContent = structured;
 }
 
-//
-// Process token
-//
-
-static VOID AtpAddSidStrings(
-    _In_ PVOID Object,
-    _In_ PCSTR NameKey,
-    _In_ PCSTR SidKey,
-    _In_opt_ PSID Sid
-    )
-{
-    PPH_STRING fullName;
-    PPH_STRING sidString;
-
-    if (!Sid)
-    {
-        if (NameKey)
-            AtJsonAddNull(Object, NameKey);
-        if (SidKey)
-            AtJsonAddNull(Object, SidKey);
-        return;
-    }
-
-    if (NameKey)
-    {
-        fullName = PhGetSidFullName(Sid, TRUE, NULL);
-        AtJsonAddString(Object, NameKey, fullName);
-        PhClearReference(&fullName);
-    }
-
-    if (SidKey)
-    {
-        sidString = PhSidToStringSid(Sid);
-        AtJsonAddString(Object, SidKey, sidString);
-        PhClearReference(&sidString);
-    }
-}
-
-static VOID AtpAddGroupFlags(
-    _In_ PVOID Object,
-    _In_ ULONG Attributes
-    )
-{
-    PVOID flags = PhCreateJsonArray();
-
-    if (Attributes & SE_GROUP_ENABLED)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("enabled"));
-    if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("enabled_by_default"));
-    if (Attributes & SE_GROUP_MANDATORY)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("mandatory"));
-    if (Attributes & SE_GROUP_OWNER)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("owner"));
-    if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("use_for_deny_only"));
-    if (Attributes & SE_GROUP_LOGON_ID)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("logon_id"));
-    if (Attributes & SE_GROUP_INTEGRITY)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("integrity"));
-    if (Attributes & SE_GROUP_RESOURCE)
-        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("resource"));
-
-    PhAddJsonObjectValue(Object, "flags", flags);
-}
-
-static ULONG AtpQueryTokenUlong(
-    _In_ HANDLE TokenHandle,
-    _In_ TOKEN_INFORMATION_CLASS InfoClass
-    )
-{
-    ULONG value = 0;
-    ULONG returnLength;
-
-    NtQueryInformationToken(TokenHandle, InfoClass, &value, sizeof(value), &returnLength);
-
-    return value;
-}
-
-static VOID AtpGetProcessToken(
-    _In_ PAT_TOOL_CALL Call,
-    _Inout_ PAT_TOOL_RESULT Result
-    )
-{
-    NTSTATUS status;
-    AT_TARGET target;
-    HANDLE processHandle;
-    HANDLE tokenHandle;
-    PVOID structured;
-    PH_TOKEN_USER tokenUser;
-    PH_TOKEN_OWNER tokenOwner;
-    PTOKEN_PRIMARY_GROUP primaryGroup;
-    PTOKEN_GROUPS groups;
-    PTOKEN_PRIVILEGES privileges;
-    PH_TOKEN_APPCONTAINER appContainerSid;
-    PVOID groupArray;
-    PVOID privilegeArray;
-    ULONG i;
-
-    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
-        return;
-
-    if (!PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ||
-        !NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, target.ProcessItem->ProcessId)))
-    {
-        AtSetToolStatusError(Result, PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ? status : STATUS_INVALID_CID, L"Opening the process");
-        AtDeleteTarget(&target);
-        return;
-    }
-
-    status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
-    NtClose(processHandle);
-
-    if (!NT_SUCCESS(status))
-    {
-        AtSetToolStatusError(Result, status, L"Opening the process token");
-        AtDeleteTarget(&target);
-        return;
-    }
-
-    structured = PhCreateJsonObject();
-    AtFillProcessIdentity(structured, target.ProcessItem);
-
-    if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
-        AtpAddSidStrings(structured, "user", "user_sid", tokenUser.User.Sid);
-    else
-    {
-        AtJsonAddNull(structured, "user");
-        AtJsonAddNull(structured, "user_sid");
-    }
-
-    if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
-        AtpAddSidStrings(structured, "owner", NULL, tokenOwner.Owner.Sid);
-    else
-        AtJsonAddNull(structured, "owner");
-
-    if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &primaryGroup)))
-    {
-        AtpAddSidStrings(structured, "primary_group", NULL, primaryGroup->PrimaryGroup);
-        PhFree(primaryGroup);
-    }
-    else
-    {
-        AtJsonAddNull(structured, "primary_group");
-    }
-
-    AtJsonAddStringRef(structured, "integrity_level", target.ProcessItem->IntegrityString);
-    AtJsonAddStringZ(structured, "elevation_type",
-        target.ProcessItem->ElevationType == TokenElevationTypeFull ? L"Full" :
-        target.ProcessItem->ElevationType == TokenElevationTypeLimited ? L"Limited" :
-        target.ProcessItem->ElevationType == TokenElevationTypeDefault ? L"Default" : NULL);
-    PhAddJsonObjectBoolean(structured, "is_elevated", !!target.ProcessItem->IsElevated);
-    PhAddJsonObjectUInt64(structured, "session_id", AtpQueryTokenUlong(tokenHandle, TokenSessionId));
-
-    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)) &&
-        appContainerSid.TokenAppContainer.TokenAppContainer)
-    {
-        PhAddJsonObjectBoolean(structured, "is_app_container", TRUE);
-        AtpAddSidStrings(structured, NULL, "app_container_sid", appContainerSid.TokenAppContainer.TokenAppContainer);
-    }
-    else
-    {
-        PhAddJsonObjectBoolean(structured, "is_app_container", FALSE);
-        AtJsonAddNull(structured, "app_container_sid");
-    }
-
-    AtJsonAddString(structured, "package_full_name", target.ProcessItem->PackageFullName);
-    PhAddJsonObjectBoolean(structured, "is_restricted", !!AtpQueryTokenUlong(tokenHandle, TokenHasRestrictions));
-    PhAddJsonObjectBoolean(structured, "ui_access", !!AtpQueryTokenUlong(tokenHandle, TokenUIAccess));
-    PhAddJsonObjectBoolean(structured, "virtualization_allowed", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationAllowed));
-    PhAddJsonObjectBoolean(structured, "virtualization_enabled", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationEnabled));
-
-    groupArray = PhCreateJsonArray();
-
-    if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &groups)))
-    {
-        for (i = 0; i < groups->GroupCount; i++)
-        {
-            PVOID row = PhCreateJsonObject();
-
-            AtpAddSidStrings(row, "name", "sid", groups->Groups[i].Sid);
-            AtpAddGroupFlags(row, groups->Groups[i].Attributes);
-            PhAddJsonArrayObject(groupArray, row);
-        }
-
-        PhFree(groups);
-    }
-
-    PhAddJsonObjectValue(structured, "groups", groupArray);
-
-    privilegeArray = PhCreateJsonArray();
-
-    if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &privileges)))
-    {
-        for (i = 0; i < privileges->PrivilegeCount; i++)
-        {
-            PVOID row = PhCreateJsonObject();
-            PPH_STRING name = NULL;
-
-            if (PhLookupPrivilegeName(&privileges->Privileges[i].Luid, &name))
-            {
-                AtJsonAddString(row, "name", name);
-                PhDereferenceObject(name);
-            }
-            else
-            {
-                AtJsonAddNull(row, "name");
-            }
-
-            PhAddJsonObjectBoolean(row, "enabled", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED));
-            PhAddJsonObjectBoolean(row, "enabled_by_default", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT));
-            PhAddJsonObjectBoolean(row, "removed", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_REMOVED));
-            PhAddJsonArrayObject(privilegeArray, row);
-        }
-
-        PhFree(privileges);
-    }
-
-    PhAddJsonObjectValue(structured, "privileges", privilegeArray);
-    AtAddSnapshot(structured);
-
-    Result->StructuredContent = structured;
-
-    NtClose(tokenHandle);
-    AtDeleteTarget(&target);
-}
-
-//
-// Process windows
-//
-
-typedef struct _AT_WINDOW_CONTEXT
-{
-    HANDLE ProcessId;
-    BOOLEAN VisibleOnly;
-    PVOID Windows;
-    ULONG Count;
-} AT_WINDOW_CONTEXT, *PAT_WINDOW_CONTEXT;
-
-_Function_class_(PH_WINDOW_ENUM_CALLBACK)
-static BOOLEAN NTAPI AtpWindowCallback(
-    _In_ HWND WindowHandle,
-    _In_opt_ PVOID Context
-    )
-{
-    PAT_WINDOW_CONTEXT context = Context;
-    CLIENT_ID clientId;
-    PVOID row;
-    PPH_STRING text;
-    WCHAR className[256];
-    RECT rect;
-    BOOLEAN visible;
-
-    clientId.UniqueProcess = NULL;
-    clientId.UniqueThread = NULL;
-    GetWindowThreadProcessId(WindowHandle, (PDWORD)&clientId.UniqueProcess);
-
-    if (clientId.UniqueProcess != context->ProcessId)
-        return TRUE;
-
-    visible = !!IsWindowVisible(WindowHandle);
-
-    if (context->VisibleOnly && !visible)
-        return TRUE;
-
-    row = PhCreateJsonObject();
-    AtJsonAddPointer(row, "handle", WindowHandle);
-
-    text = PhGetWindowText(WindowHandle);
-    AtJsonAddString(row, "title", text);
-    PhClearReference(&text);
-
-    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)))
-        AtJsonAddStringZ(row, "class_name", className);
-    else
-        AtJsonAddNull(row, "class_name");
-
-    PhAddJsonObjectUInt64(row, "tid", GetWindowThreadProcessId(WindowHandle, NULL));
-    PhAddJsonObjectBoolean(row, "is_visible", visible);
-    PhAddJsonObjectBoolean(row, "is_minimized", !!IsIconic(WindowHandle));
-    PhAddJsonObjectBoolean(row, "is_hung", !!IsHungAppWindow(WindowHandle));
-
-    if (GetWindowRect(WindowHandle, &rect))
-    {
-        PVOID rectObject = PhCreateJsonObject();
-
-        PhAddJsonObjectInt64(rectObject, "left", rect.left);
-        PhAddJsonObjectInt64(rectObject, "top", rect.top);
-        PhAddJsonObjectInt64(rectObject, "right", rect.right);
-        PhAddJsonObjectInt64(rectObject, "bottom", rect.bottom);
-        PhAddJsonObjectValue(row, "rect", rectObject);
-    }
-
-    PhAddJsonArrayObject(context->Windows, row);
-    context->Count++;
-
-    return TRUE;
-}
-
-static VOID AtpGetProcessWindows(
-    _In_ PAT_TOOL_CALL Call,
-    _Inout_ PAT_TOOL_RESULT Result
-    )
-{
-    AT_TARGET target;
-    AT_WINDOW_CONTEXT context;
-    PVOID visibleMember;
-    PVOID structured;
-
-    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
-        return;
-
-    memset(&context, 0, sizeof(AT_WINDOW_CONTEXT));
-    context.ProcessId = target.ProcessItem->ProcessId;
-    context.VisibleOnly = TRUE;
-    context.Windows = PhCreateJsonArray();
-
-    // visible_only defaults to true unless the caller passes false.
-    if (visibleMember = AtJsonGetObjectMember(Call->Arguments, "visible_only", PH_JSON_OBJECT_TYPE_BOOLEAN))
-        context.VisibleOnly = AtJsonGetObjectBoolean(Call->Arguments, "visible_only");
-
-    PhEnumWindows(AtpWindowCallback, &context);
-
-    structured = PhCreateJsonObject();
-    AtFillProcessIdentity(structured, target.ProcessItem);
-    PhAddJsonObjectValue(structured, "windows", context.Windows);
-    PhAddJsonObjectUInt64(structured, "count", context.Count);
-    AtAddSnapshot(structured);
-
-    Result->StructuredContent = structured;
-
-    AtDeleteTarget(&target);
-}
-
-//
-// Kernel drivers
-//
-
-static VOID AtpListKernelDrivers(
+VOID AtpListKernelDrivers(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -591,7 +254,7 @@ static VOID AtpListKernelDrivers(
 // KSI driver status
 //
 
-static VOID AtpGetKsiStatus(
+VOID AtpGetKsiStatus(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
@@ -616,7 +279,7 @@ static VOID AtpGetKsiStatus(
 // Pagefile information
 //
 
-static VOID AtpGetPagefileInfo(
+VOID AtpGetPagefileInfo(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
@@ -702,12 +365,6 @@ VOID AtSystemInvokeTool(
     {
     case AtActionGetSystemInfo:
         AtpGetSystemInfo(Result);
-        break;
-    case AtActionGetProcessToken:
-        AtpGetProcessToken(Call, Result);
-        break;
-    case AtActionGetProcessWindows:
-        AtpGetProcessWindows(Call, Result);
         break;
     case AtActionListKernelDrivers:
         AtpListKernelDrivers(Call, Result);

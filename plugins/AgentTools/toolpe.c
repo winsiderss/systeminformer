@@ -21,7 +21,7 @@
 // verify_file_signature
 //
 
-static PCWSTR AtpVerifyResultText(
+PCWSTR AtpVerifyResultText(
     _In_ VERIFY_RESULT Result
     )
 {
@@ -32,7 +32,7 @@ static PCWSTR AtpVerifyResultText(
     return text ? text : L"Unknown";
 }
 
-static VOID AtpVerifyFileSignature(
+VOID AtpVerifyFileSignature(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -67,7 +67,7 @@ static VOID AtpVerifyFileSignature(
 // get_image_info
 //
 
-static PCWSTR AtpMachineString(
+PCWSTR AtpMachineString(
     _In_ USHORT Machine
     )
 {
@@ -88,7 +88,7 @@ static PCWSTR AtpMachineString(
     return NULL;
 }
 
-static PCWSTR AtpSubsystemString(
+PCWSTR AtpSubsystemString(
     _In_ USHORT Subsystem
     )
 {
@@ -113,7 +113,7 @@ static PCWSTR AtpSubsystemString(
     return NULL;
 }
 
-static VOID AtpAddFlagStrings(
+VOID AtpAddFlagStrings(
     _In_ PVOID Object,
     _In_ PCSTR Key,
     _In_ ULONG Value,
@@ -145,7 +145,7 @@ static VOID AtpAddFlagStrings(
     PhAddJsonObjectValue(Object, Key, array);
 }
 
-static VOID AtpGetImageInfo(
+VOID AtpGetImageInfo(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -338,7 +338,7 @@ static VOID AtpGetImageInfo(
 // read_process_memory
 //
 
-static VOID AtpRenderBytes(
+VOID AtpRenderBytes(
     _In_ PVOID Object,
     _In_reads_bytes_(Size) PUCHAR Bytes,
     _In_ SIZE_T Size
@@ -369,7 +369,7 @@ static VOID AtpRenderBytes(
     PhFree(ascii);
 }
 
-static VOID AtpReadProcessMemory(
+VOID AtpReadProcessMemory(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
@@ -421,7 +421,7 @@ static VOID AtpReadProcessMemory(
 // search_process_memory
 //
 
-static BOOLEAN AtpHexDigit(
+BOOLEAN AtpHexDigit(
     _In_ WCHAR Character,
     _Out_ PUCHAR Value
     )
@@ -438,7 +438,7 @@ static BOOLEAN AtpHexDigit(
     return TRUE;
 }
 
-static BOOLEAN AtpBuildSearchPattern(
+BOOLEAN AtpBuildSearchPattern(
     _In_opt_ PVOID Arguments,
     _Out_writes_bytes_to_(AT_SEARCH_MAX_PATTERN, *Length) PUCHAR Pattern,
     _Out_ PULONG Length,
@@ -521,7 +521,7 @@ CleanupExit:
     return count != 0 && !Result->ErrorCode;
 }
 
-static VOID AtpSearchProcessMemory(
+VOID AtpSearchProcessMemory(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result

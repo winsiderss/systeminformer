@@ -14,123 +14,6 @@
 //
 // Modules
 //
-
-static PCWSTR AtpModuleTypeString(
-    _In_ ULONG Type
-    )
-{
-    switch (Type)
-    {
-    case PH_MODULE_TYPE_MODULE:
-        return L"module";
-    case PH_MODULE_TYPE_MAPPED_FILE:
-        return L"mapped_file";
-    case PH_MODULE_TYPE_WOW64_MODULE:
-        return L"wow64_module";
-    case PH_MODULE_TYPE_KERNEL_MODULE:
-        return L"kernel_module";
-    case PH_MODULE_TYPE_MAPPED_IMAGE:
-        return L"mapped_image";
-    case PH_MODULE_TYPE_ENCLAVE_MODULE:
-        return L"enclave";
-    }
-
-    return L"unknown";
-}
-
-typedef struct _AT_MODULE_CONTEXT
-{
-    PVOID Modules;
-    ULONG Count;
-    PPH_STRING NameContains;
-} AT_MODULE_CONTEXT, *PAT_MODULE_CONTEXT;
-
-_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
-static BOOLEAN NTAPI AtpModuleCallback(
-    _In_ PPH_MODULE_INFO Module,
-    _In_opt_ PVOID Context
-    )
-{
-    PAT_MODULE_CONTEXT context = Context;
-    PVOID row;
-
-    if (context->NameContains &&
-        !AtContainsString(Module->Name, context->NameContains) &&
-        !AtContainsString(Module->FileName, context->NameContains))
-    {
-        return TRUE;
-    }
-
-    row = PhCreateJsonObject();
-    AtJsonAddString(row, "name", Module->Name);
-    AtJsonAddWin32FileName(row, "file_path", Module->FileName);
-    AtJsonAddStringZ(row, "type", AtpModuleTypeString(Module->Type));
-    AtJsonAddPointer(row, "base_address", Module->BaseAddress);
-    PhAddJsonObjectUInt64(row, "size", Module->Size);
-    AtJsonAddPointer(row, "entry_point", Module->EntryPoint);
-
-    if (Module->LoadOrderIndex != USHRT_MAX)
-        PhAddJsonObjectUInt64(row, "load_order_index", Module->LoadOrderIndex);
-    else
-        AtJsonAddNull(row, "load_order_index");
-
-    if (Module->LoadCount != USHRT_MAX)
-        PhAddJsonObjectUInt64(row, "load_count", Module->LoadCount);
-    else
-        AtJsonAddNull(row, "load_count");
-
-    AtJsonAddTime(row, "load_time", &Module->LoadTime);
-
-    PhAddJsonArrayObject(context->Modules, row);
-    context->Count++;
-
-    return TRUE;
-}
-
-static VOID AtpGetProcessModules(
-    _In_ PAT_TOOL_CALL Call,
-    _Inout_ PAT_TOOL_RESULT Result
-    )
-{
-    NTSTATUS status;
-    AT_TARGET target;
-    AT_MODULE_CONTEXT context;
-    ULONG flags = 0;
-    PVOID structured;
-
-    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
-        return;
-
-    memset(&context, 0, sizeof(AT_MODULE_CONTEXT));
-    context.Modules = PhCreateJsonArray();
-    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
-
-    if (AtJsonGetObjectBoolean(Call->Arguments, "include_mapped_files"))
-        flags = PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES;
-
-    status = PhEnumGenericModules(target.ProcessItem->ProcessId, NULL, flags, AtpModuleCallback, &context);
-
-    if (!NT_SUCCESS(status) && context.Count == 0)
-    {
-        AtSetToolStatusError(Result, status, L"Enumerating modules");
-        PhFreeJsonObject(context.Modules);
-        PhClearReference(&context.NameContains);
-        AtDeleteTarget(&target);
-        return;
-    }
-
-    structured = PhCreateJsonObject();
-    AtFillProcessIdentity(structured, target.ProcessItem);
-    PhAddJsonObjectValue(structured, "modules", context.Modules);
-    PhAddJsonObjectUInt64(structured, "count", context.Count);
-    AtAddSnapshot(structured);
-
-    Result->StructuredContent = structured;
-
-    PhClearReference(&context.NameContains);
-    AtDeleteTarget(&target);
-}
-
 //
 // Handles
 //
@@ -141,7 +24,7 @@ typedef struct _AT_TYPE_COUNT
     ULONG Count;
 } AT_TYPE_COUNT, *PAT_TYPE_COUNT;
 
-static VOID AtpAddHandleRow(
+VOID AtpAddHandleRow(
     _In_ PVOID Row,
     _In_ PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handle,
     _In_opt_ PPH_STRING TypeName
@@ -155,7 +38,7 @@ static VOID AtpAddHandleRow(
     PhAddJsonObjectBoolean(Row, "protect_from_close", !!FlagOn(Handle->HandleAttributes, OBJ_PROTECT_CLOSE));
 }
 
-static VOID AtpGetProcessHandles(
+VOID AtpGetProcessHandles(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET SensitiveTarget,
@@ -344,7 +227,7 @@ Next:
     AtDeleteTarget(&localTarget);
 }
 
-static VOID AtpCloseHandle(
+VOID AtpCloseHandle(
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -390,7 +273,7 @@ static VOID AtpCloseHandle(
 // Memory regions
 //
 
-static PCWSTR AtpMemoryStateString(
+PCWSTR AtpMemoryStateString(
     _In_ ULONG State
     )
 {
@@ -402,7 +285,7 @@ static PCWSTR AtpMemoryStateString(
     return L"free";
 }
 
-static PCWSTR AtpMemoryTypeString(
+PCWSTR AtpMemoryTypeString(
     _In_ ULONG Type
     )
 {
@@ -416,11 +299,7 @@ static PCWSTR AtpMemoryTypeString(
     return NULL;
 }
 
-/**
- * Formats a memory protection mask the way System Informer's memory view does. PhGetMemoryProtectionString
- * is not exported to plugins, so this mirrors it for the page-protection flags that matter.
- */
-static PCWSTR AtpMemoryProtectionString(
+PCWSTR AtpMemoryProtectionString(
     _In_ ULONG Protection
     )
 {
@@ -446,7 +325,7 @@ static PCWSTR AtpMemoryProtectionString(
     return NULL;
 }
 
-static VOID AtpGetProcessMemoryRegions(
+VOID AtpGetProcessMemoryRegions(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -537,7 +416,7 @@ static VOID AtpGetProcessMemoryRegions(
 // Minidump
 //
 
-static VOID AtpCreateProcessMinidump(
+VOID AtpCreateProcessMinidump(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
@@ -615,9 +494,6 @@ VOID AtMemoryInvokeTool(
 {
     switch (Tool->Action)
     {
-    case AtActionGetProcessModules:
-        AtpGetProcessModules(Call, Result);
-        break;
     case AtActionGetProcessHandles:
     case AtActionGetProcessHandlesDetailed:
         AtpGetProcessHandles(Tool, Call, Target, Result);

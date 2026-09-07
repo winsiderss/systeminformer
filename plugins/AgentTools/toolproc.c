@@ -1,0 +1,895 @@
+/*
+ * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
+ *
+ * This file is part of System Informer.
+ *
+ * Authors:
+ *
+ *     jxy-s   2026
+ *
+ */
+
+
+#include "agenttools.h"
+
+//
+// Process detail helpers
+//
+
+PCWSTR AtpElevationTypeString(
+    _In_ TOKEN_ELEVATION_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case TokenElevationTypeDefault:
+        return L"Default";
+    case TokenElevationTypeFull:
+        return L"Full";
+    case TokenElevationTypeLimited:
+        return L"Limited";
+    }
+
+    return NULL;
+}
+
+PCWSTR AtpProtectionString(
+    _In_ PS_PROTECTION Protection
+    )
+{
+    if (Protection.Type == PsProtectedTypeNone)
+        return NULL;
+
+    switch (Protection.Signer)
+    {
+    case PsProtectedSignerAuthenticode:
+        return Protection.Type == PsProtectedTypeProtected ? L"Authenticode" : L"Authenticode (Light)";
+    case PsProtectedSignerCodeGen:
+        return Protection.Type == PsProtectedTypeProtected ? L"CodeGen" : L"CodeGen (Light)";
+    case PsProtectedSignerAntimalware:
+        return Protection.Type == PsProtectedTypeProtected ? L"Antimalware" : L"Antimalware (Light)";
+    case PsProtectedSignerLsa:
+        return Protection.Type == PsProtectedTypeProtected ? L"Lsa" : L"Lsa (Light)";
+    case PsProtectedSignerWindows:
+        return Protection.Type == PsProtectedTypeProtected ? L"Windows" : L"Windows (Light)";
+    case PsProtectedSignerWinTcb:
+        return Protection.Type == PsProtectedTypeProtected ? L"WinTcb" : L"WinTcb (Light)";
+    case PsProtectedSignerWinSystem:
+        return Protection.Type == PsProtectedTypeProtected ? L"WinSystem" : L"WinSystem (Light)";
+    case PsProtectedSignerApp:
+        return Protection.Type == PsProtectedTypeProtected ? L"App" : L"App (Light)";
+    }
+
+    return Protection.Type == PsProtectedTypeProtected ? L"Protected" : L"Protected (Light)";
+}
+
+PCWSTR AtpNativeArchitectureString(
+    VOID
+    )
+{
+#if defined(_M_ARM64)
+    return L"ARM64";
+#elif defined(_M_X64)
+    return L"x64";
+#else
+    return L"x86";
+#endif
+}
+
+VOID AtpAddParentPid(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (ProcessItem->ParentProcessId)
+        PhAddJsonObjectUInt64(Object, "parent_pid", HandleToUlong(ProcessItem->ParentProcessId));
+    else
+        AtJsonAddNull(Object, "parent_pid");
+}
+
+//
+// Processes
+//
+
+PVOID AtpCreateProcessRow(
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PVOID row;
+
+    row = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(row, "pid", HandleToUlong(ProcessItem->ProcessId));
+    PhAddJsonObjectUInt64(row, "process_sequence_number", ProcessItem->ProcessSequenceNumber);
+    AtpAddParentPid(row, ProcessItem);
+    AtJsonAddString(row, "name", ProcessItem->ProcessName);
+    AtJsonAddString(row, "user", ProcessItem->UserName);
+    PhAddJsonObjectUInt64(row, "session_id", ProcessItem->SessionId);
+    AtJsonAddTime(row, "start_time", &ProcessItem->CreateTime);
+    PhAddJsonObjectDouble(row, "cpu_usage", ProcessItem->CpuUsage);
+    PhAddJsonObjectUInt64(row, "private_bytes", ProcessItem->VmCounters.PagefileUsage);
+    PhAddJsonObjectUInt64(row, "working_set_bytes", ProcessItem->VmCounters.WorkingSetSize);
+    PhAddJsonObjectUInt64(row, "thread_count", ProcessItem->NumberOfThreads);
+    PhAddJsonObjectUInt64(row, "handle_count", ProcessItem->NumberOfHandles);
+    PhAddJsonObjectBoolean(row, "is_suspended", !!ProcessItem->IsSuspended);
+
+    return row;
+}
+
+VOID AtpFillProcessDetail(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    HANDLE processHandle;
+    PVOID services;
+
+    PhAddJsonObjectUInt64(Object, "pid", HandleToUlong(ProcessItem->ProcessId));
+    PhAddJsonObjectUInt64(Object, "process_sequence_number", ProcessItem->ProcessSequenceNumber);
+
+    if (ProcessItem->ProcessStartKey)
+    {
+        PH_FORMAT format[1];
+        PPH_STRING startKey;
+
+        PhInitFormatI64U(&format[0], ProcessItem->ProcessStartKey);
+        startKey = PhFormat(format, RTL_NUMBER_OF(format), 24);
+        AtJsonAddString(Object, "process_start_key", startKey);
+        PhDereferenceObject(startKey);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "process_start_key");
+    }
+
+    AtpAddParentPid(Object, ProcessItem);
+    AtJsonAddString(Object, "name", ProcessItem->ProcessName);
+    AtJsonAddWin32FileName(Object, "image_path", ProcessItem->FileName);
+    AtJsonAddString(Object, "image_path_native", ProcessItem->FileName);
+    AtJsonAddString(Object, "command_line", ProcessItem->CommandLine);
+
+    // The current directory lives in the PEB; read it when the process lets us.
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId) &&
+        NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ, ProcessItem->ProcessId)))
+    {
+        PPH_STRING currentDirectory = NULL;
+
+        if (NT_SUCCESS(PhGetProcessPebString(processHandle, PhpoCurrentDirectory, &currentDirectory)))
+        {
+            AtJsonAddString(Object, "current_directory", currentDirectory);
+            PhDereferenceObject(currentDirectory);
+        }
+        else
+        {
+            AtJsonAddNull(Object, "current_directory");
+        }
+
+        NtClose(processHandle);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "current_directory");
+    }
+
+    AtJsonAddString(Object, "user", ProcessItem->UserName);
+    PhAddJsonObjectUInt64(Object, "session_id", ProcessItem->SessionId);
+    AtJsonAddTime(Object, "start_time", &ProcessItem->CreateTime);
+    AtJsonAddDuration(Object, "kernel_time", ProcessItem->KernelTime.QuadPart);
+    AtJsonAddDuration(Object, "user_time", ProcessItem->UserTime.QuadPart);
+    AtJsonAddStringRef(Object, "integrity_level", ProcessItem->IntegrityString);
+    AtJsonAddStringZ(Object, "elevation_type", AtpElevationTypeString(ProcessItem->ElevationType));
+    PhAddJsonObjectBoolean(Object, "is_elevated", !!ProcessItem->IsElevated);
+    AtJsonAddStringZ(Object, "verify_result", AtVerifyResultString(ProcessItem->VerifyResult));
+    AtJsonAddString(Object, "verify_signer", ProcessItem->VerifySignerName);
+    AtJsonAddString(Object, "package_full_name", ProcessItem->PackageFullName);
+    PhAddJsonObjectBoolean(Object, "is_protected_process", !!ProcessItem->IsProtectedProcess);
+    AtJsonAddStringZ(Object, "protection", AtpProtectionString(ProcessItem->Protection));
+    PhAddJsonObjectBoolean(Object, "is_secure_process", !!ProcessItem->IsSecureProcess);
+    PhAddJsonObjectBoolean(Object, "is_wow64", !!ProcessItem->IsWow64Process);
+    AtJsonAddStringZ(Object, "architecture", ProcessItem->IsWow64Process ? L"x86" : AtpNativeArchitectureString());
+    PhAddJsonObjectBoolean(Object, "is_suspended", !!ProcessItem->IsSuspended);
+    PhAddJsonObjectBoolean(Object, "is_being_debugged", !!ProcessItem->IsBeingDebugged);
+    PhAddJsonObjectBoolean(Object, "is_in_job", !!ProcessItem->IsInJob);
+    PhAddJsonObjectBoolean(Object, "is_immersive", !!ProcessItem->IsImmersive);
+    PhAddJsonObjectBoolean(Object, "is_packaged", !!ProcessItem->IsPackagedProcess);
+    PhAddJsonObjectBoolean(Object, "is_dotnet", !!ProcessItem->IsDotNet);
+    PhAddJsonObjectBoolean(Object, "is_subsystem_process", !!ProcessItem->IsSubsystemProcess);
+
+    if (ProcessItem->ConsoleHostProcessId)
+        PhAddJsonObjectUInt64(Object, "console_host_pid", HandleToUlong(ProcessItem->ConsoleHostProcessId));
+    else
+        AtJsonAddNull(Object, "console_host_pid");
+
+    AtJsonAddStringZ(Object, "priority_class", AtPriorityClassString(ProcessItem->PriorityClass));
+    PhAddJsonObjectInt64(Object, "base_priority", ProcessItem->BasePriority);
+    PhAddJsonObjectDouble(Object, "cpu_usage", ProcessItem->CpuUsage);
+    PhAddJsonObjectUInt64(Object, "private_bytes", ProcessItem->VmCounters.PagefileUsage);
+    PhAddJsonObjectUInt64(Object, "peak_private_bytes", ProcessItem->VmCounters.PeakPagefileUsage);
+    PhAddJsonObjectUInt64(Object, "working_set_bytes", ProcessItem->VmCounters.WorkingSetSize);
+    PhAddJsonObjectUInt64(Object, "peak_working_set_bytes", ProcessItem->VmCounters.PeakWorkingSetSize);
+    PhAddJsonObjectUInt64(Object, "virtual_size", ProcessItem->VmCounters.VirtualSize);
+    PhAddJsonObjectUInt64(Object, "page_faults", ProcessItem->VmCounters.PageFaultCount);
+    PhAddJsonObjectUInt64(Object, "io_read_bytes", ProcessItem->IoCounters.ReadTransferCount);
+    PhAddJsonObjectUInt64(Object, "io_write_bytes", ProcessItem->IoCounters.WriteTransferCount);
+    PhAddJsonObjectUInt64(Object, "io_other_bytes", ProcessItem->IoCounters.OtherTransferCount);
+    PhAddJsonObjectUInt64(Object, "thread_count", ProcessItem->NumberOfThreads);
+    PhAddJsonObjectUInt64(Object, "handle_count", ProcessItem->NumberOfHandles);
+
+    services = PhCreateJsonArray();
+
+    PhAcquireQueuedLockShared(&ProcessItem->ServiceListLock);
+
+    if (ProcessItem->ServiceList)
+    {
+        ULONG enumerationKey = 0;
+        PPH_SERVICE_ITEM serviceItem;
+
+        while (PhEnumPointerList(ProcessItem->ServiceList, &enumerationKey, &serviceItem))
+        {
+            PPH_BYTES utf8;
+
+            if (serviceItem->Name && (utf8 = PhConvertUtf16ToUtf8Ex(serviceItem->Name->Buffer, serviceItem->Name->Length)))
+            {
+                PhAddJsonArrayObject(services, PhCreateJsonStringObject(utf8->Buffer));
+                PhDereferenceObject(utf8);
+            }
+        }
+    }
+
+    PhReleaseQueuedLockShared(&ProcessItem->ServiceListLock);
+
+    PhAddJsonObjectValue(Object, "services", services);
+    PhAddJsonObjectBoolean(Object, "access_denied", !ProcessItem->IsHandleValid);
+}
+
+typedef struct _AT_LIST_FILTER
+{
+    PPH_STRING NameContains;
+    PPH_STRING UserContains;
+    PVOID Pids; // JSON array or NULL
+    BOOLEAN HaveParentPid;
+    HANDLE ParentPid;
+    BOOLEAN IncludeTree;
+} AT_LIST_FILTER, *PAT_LIST_FILTER;
+
+BOOLEAN AtpMatchesFilter(
+    _In_ PAT_LIST_FILTER Filter,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    if (!AtContainsString(ProcessItem->ProcessName, Filter->NameContains))
+        return FALSE;
+
+    if (!AtContainsString(ProcessItem->UserName, Filter->UserContains))
+        return FALSE;
+
+    if (Filter->HaveParentPid && ProcessItem->ParentProcessId != Filter->ParentPid)
+        return FALSE;
+
+    if (Filter->Pids)
+    {
+        ULONG count = PhGetJsonArrayLength(Filter->Pids);
+        ULONG i;
+        BOOLEAN found = FALSE;
+
+        for (i = 0; i < count; i++)
+        {
+            if ((ULONG64)PhGetJsonArrayLong64(Filter->Pids, i) == HandleToUlong(ProcessItem->ProcessId))
+            {
+                found = TRUE;
+                break;
+            }
+        }
+
+        if (!found)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID AtpListProcesses(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_LIST_FILTER filter;
+    PPH_PROCESS_ITEM* processItems;
+    ULONG numberOfProcessItems;
+    PBOOLEAN matched;
+    PVOID structured;
+    PVOID rows;
+    ULONG count = 0;
+    ULONG i;
+    ULONG64 parentPid;
+
+    memset(&filter, 0, sizeof(AT_LIST_FILTER));
+
+    if (Call->Arguments)
+    {
+        filter.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+        filter.UserContains = AtGetArgumentString(Call->Arguments, "user_contains");
+        filter.Pids = AtJsonGetObjectMember(Call->Arguments, "pids", PH_JSON_OBJECT_TYPE_ARRAY);
+        filter.IncludeTree = AtJsonGetObjectBoolean(Call->Arguments, "include_tree");
+
+        if (AtGetArgumentUInt64(Call->Arguments, "parent_pid", &parentPid) && parentPid <= MAXULONG)
+        {
+            filter.HaveParentPid = TRUE;
+            filter.ParentPid = UlongToHandle((ULONG)parentPid);
+        }
+    }
+
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+    matched = PhAllocateZero(numberOfProcessItems * sizeof(BOOLEAN));
+
+    for (i = 0; i < numberOfProcessItems; i++)
+        matched[i] = AtpMatchesFilter(&filter, processItems[i]);
+
+    if (filter.IncludeTree)
+    {
+        BOOLEAN changed;
+
+        // Descendants: a process whose parent (by pid, and created after that parent so a
+        // recycled parent pid does not adopt it) is matched.
+        do
+        {
+            changed = FALSE;
+
+            for (i = 0; i < numberOfProcessItems; i++)
+            {
+                ULONG j;
+
+                if (matched[i])
+                    continue;
+
+                for (j = 0; j < numberOfProcessItems; j++)
+                {
+                    if (matched[j] &&
+                        processItems[j]->ProcessId == processItems[i]->ParentProcessId &&
+                        processItems[j]->CreateTime.QuadPart <= processItems[i]->CreateTime.QuadPart)
+                    {
+                        matched[i] = TRUE;
+                        changed = TRUE;
+                        break;
+                    }
+                }
+            }
+        } while (changed);
+    }
+
+    structured = PhCreateJsonObject();
+    rows = PhCreateJsonArray();
+
+    for (i = 0; i < numberOfProcessItems; i++)
+    {
+        if (!matched[i])
+            continue;
+
+        PhAddJsonArrayObject(rows, AtpCreateProcessRow(processItems[i]));
+        count++;
+    }
+
+    PhAddJsonObjectValue(structured, "processes", rows);
+    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    for (i = 0; i < numberOfProcessItems; i++)
+        PhDereferenceObject(processItems[i]);
+
+    PhFree(processItems);
+    PhFree(matched);
+    PhClearReference(&filter.NameContains);
+    PhClearReference(&filter.UserContains);
+}
+
+VOID AtpGetProcess(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_TARGET target;
+    PVOID structured;
+
+    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
+        return;
+
+    structured = PhCreateJsonObject();
+    AtpFillProcessDetail(structured, target.ProcessItem);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteTarget(&target);
+}
+
+VOID AtpGetProcessEnvironment(
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PVOID environment;
+    ULONG environmentLength;
+    ULONG enumerationKey;
+    PH_ENVIRONMENT_VARIABLE variable;
+    PVOID structured;
+    PVOID variables;
+    ULONG count = 0;
+
+    status = PhGetProcessEnvironment(
+        Target->ProcessHandle,
+        !!Target->ProcessItem->IsWow64Process,
+        &environment,
+        &environmentLength
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Reading the environment block");
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(structured, "pid", HandleToUlong(Target->ProcessItem->ProcessId));
+    PhAddJsonObjectUInt64(structured, "process_sequence_number", Target->ProcessItem->ProcessSequenceNumber);
+    variables = PhCreateJsonArray();
+
+    enumerationKey = 0;
+
+    while (NT_SUCCESS(PhEnumProcessEnvironmentVariables(environment, environmentLength, &enumerationKey, &variable)))
+    {
+        PVOID entry;
+
+        entry = PhCreateJsonObject();
+        AtJsonAddStringRef(entry, "name", &variable.Name);
+        AtJsonAddStringRef(entry, "value", &variable.Value);
+        PhAddJsonArrayObject(variables, entry);
+        count++;
+    }
+
+    PhFreePage(environment);
+
+    PhAddJsonObjectValue(structured, "variables", variables);
+    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
+VOID AtpControlProcess(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PVOID structured;
+    ULONG priorityClass = 0;
+    IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
+
+    switch (Tool->Action)
+    {
+    case AtActionTerminateProcess:
+        status = PhTerminateProcess(Target->ProcessHandle, STATUS_SUCCESS);
+        break;
+    case AtActionSuspendProcess:
+        status = PhSuspendProcess(Target->ProcessHandle);
+        break;
+    case AtActionResumeProcess:
+        status = PhResumeProcess(Target->ProcessHandle);
+        break;
+    case AtActionSetProcessPriority:
+        {
+            PPH_STRING value = AtGetArgumentString(Call->Arguments, "priority_class");
+
+            // Validated when the target was resolved.
+            NT_VERIFY(AtParsePriorityClass(value, &priorityClass));
+            PhClearReference(&value);
+            status = PhSetProcessPriorityClass(Target->ProcessHandle, (UCHAR)priorityClass);
+        }
+        break;
+    case AtActionSetProcessIoPriority:
+        {
+            PPH_STRING value = AtGetArgumentString(Call->Arguments, "io_priority");
+
+            NT_VERIFY(AtParseIoPriority(value, &ioPriority));
+            PhClearReference(&value);
+            status = PhSetProcessIoPriority(Target->ProcessHandle, ioPriority);
+        }
+        break;
+    default:
+        status = STATUS_NOT_IMPLEMENTED;
+        break;
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"The operation");
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    PhAddJsonObject(structured, "action", Tool->Name);
+
+    if (Tool->Action == AtActionSetProcessPriority)
+        AtJsonAddStringZ(structured, "priority_class", AtPriorityClassString(priorityClass));
+    else if (Tool->Action == AtActionSetProcessIoPriority)
+        AtJsonAddStringZ(structured, "io_priority", AtIoPriorityString(ioPriority));
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
+//
+// Process token
+//
+
+VOID AtpAddSidStrings(
+    _In_ PVOID Object,
+    _In_ PCSTR NameKey,
+    _In_ PCSTR SidKey,
+    _In_opt_ PSID Sid
+    )
+{
+    PPH_STRING fullName;
+    PPH_STRING sidString;
+
+    if (!Sid)
+    {
+        if (NameKey)
+            AtJsonAddNull(Object, NameKey);
+        if (SidKey)
+            AtJsonAddNull(Object, SidKey);
+        return;
+    }
+
+    if (NameKey)
+    {
+        fullName = PhGetSidFullName(Sid, TRUE, NULL);
+        AtJsonAddString(Object, NameKey, fullName);
+        PhClearReference(&fullName);
+    }
+
+    if (SidKey)
+    {
+        sidString = PhSidToStringSid(Sid);
+        AtJsonAddString(Object, SidKey, sidString);
+        PhClearReference(&sidString);
+    }
+}
+
+VOID AtpAddGroupFlags(
+    _In_ PVOID Object,
+    _In_ ULONG Attributes
+    )
+{
+    PVOID flags = PhCreateJsonArray();
+
+    if (Attributes & SE_GROUP_ENABLED)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("enabled"));
+    if (Attributes & SE_GROUP_ENABLED_BY_DEFAULT)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("enabled_by_default"));
+    if (Attributes & SE_GROUP_MANDATORY)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("mandatory"));
+    if (Attributes & SE_GROUP_OWNER)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("owner"));
+    if (Attributes & SE_GROUP_USE_FOR_DENY_ONLY)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("use_for_deny_only"));
+    if (Attributes & SE_GROUP_LOGON_ID)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("logon_id"));
+    if (Attributes & SE_GROUP_INTEGRITY)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("integrity"));
+    if (Attributes & SE_GROUP_RESOURCE)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("resource"));
+
+    PhAddJsonObjectValue(Object, "flags", flags);
+}
+
+ULONG AtpQueryTokenUlong(
+    _In_ HANDLE TokenHandle,
+    _In_ TOKEN_INFORMATION_CLASS InfoClass
+    )
+{
+    ULONG value = 0;
+    ULONG returnLength;
+
+    NtQueryInformationToken(TokenHandle, InfoClass, &value, sizeof(value), &returnLength);
+
+    return value;
+}
+
+VOID AtpGetProcessToken(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_TARGET target;
+    HANDLE processHandle;
+    HANDLE tokenHandle;
+    PVOID structured;
+    PH_TOKEN_USER tokenUser;
+    PH_TOKEN_OWNER tokenOwner;
+    PTOKEN_PRIMARY_GROUP primaryGroup;
+    PTOKEN_GROUPS groups;
+    PTOKEN_PRIVILEGES privileges;
+    PH_TOKEN_APPCONTAINER appContainerSid;
+    PVOID groupArray;
+    PVOID privilegeArray;
+    ULONG i;
+
+    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
+        return;
+
+    if (!PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ||
+        !NT_SUCCESS(status = PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, target.ProcessItem->ProcessId)))
+    {
+        AtSetToolStatusError(Result, PH_IS_REAL_PROCESS_ID(target.ProcessItem->ProcessId) ? status : STATUS_INVALID_CID, L"Opening the process");
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    status = PhOpenProcessToken(processHandle, TOKEN_QUERY, &tokenHandle);
+    NtClose(processHandle);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the process token");
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+
+    if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+        AtpAddSidStrings(structured, "user", "user_sid", tokenUser.User.Sid);
+    else
+    {
+        AtJsonAddNull(structured, "user");
+        AtJsonAddNull(structured, "user_sid");
+    }
+
+    if (NT_SUCCESS(PhGetTokenOwner(tokenHandle, &tokenOwner)))
+        AtpAddSidStrings(structured, "owner", NULL, tokenOwner.Owner.Sid);
+    else
+        AtJsonAddNull(structured, "owner");
+
+    if (NT_SUCCESS(PhGetTokenPrimaryGroup(tokenHandle, &primaryGroup)))
+    {
+        AtpAddSidStrings(structured, "primary_group", NULL, primaryGroup->PrimaryGroup);
+        PhFree(primaryGroup);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "primary_group");
+    }
+
+    AtJsonAddStringRef(structured, "integrity_level", target.ProcessItem->IntegrityString);
+    AtJsonAddStringZ(structured, "elevation_type",
+        target.ProcessItem->ElevationType == TokenElevationTypeFull ? L"Full" :
+        target.ProcessItem->ElevationType == TokenElevationTypeLimited ? L"Limited" :
+        target.ProcessItem->ElevationType == TokenElevationTypeDefault ? L"Default" : NULL);
+    PhAddJsonObjectBoolean(structured, "is_elevated", !!target.ProcessItem->IsElevated);
+    PhAddJsonObjectUInt64(structured, "session_id", AtpQueryTokenUlong(tokenHandle, TokenSessionId));
+
+    if (NT_SUCCESS(PhGetTokenAppContainerSid(tokenHandle, &appContainerSid)) &&
+        appContainerSid.TokenAppContainer.TokenAppContainer)
+    {
+        PhAddJsonObjectBoolean(structured, "is_app_container", TRUE);
+        AtpAddSidStrings(structured, NULL, "app_container_sid", appContainerSid.TokenAppContainer.TokenAppContainer);
+    }
+    else
+    {
+        PhAddJsonObjectBoolean(structured, "is_app_container", FALSE);
+        AtJsonAddNull(structured, "app_container_sid");
+    }
+
+    AtJsonAddString(structured, "package_full_name", target.ProcessItem->PackageFullName);
+    PhAddJsonObjectBoolean(structured, "is_restricted", !!AtpQueryTokenUlong(tokenHandle, TokenHasRestrictions));
+    PhAddJsonObjectBoolean(structured, "ui_access", !!AtpQueryTokenUlong(tokenHandle, TokenUIAccess));
+    PhAddJsonObjectBoolean(structured, "virtualization_allowed", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationAllowed));
+    PhAddJsonObjectBoolean(structured, "virtualization_enabled", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationEnabled));
+
+    groupArray = PhCreateJsonArray();
+
+    if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &groups)))
+    {
+        for (i = 0; i < groups->GroupCount; i++)
+        {
+            PVOID row = PhCreateJsonObject();
+
+            AtpAddSidStrings(row, "name", "sid", groups->Groups[i].Sid);
+            AtpAddGroupFlags(row, groups->Groups[i].Attributes);
+            PhAddJsonArrayObject(groupArray, row);
+        }
+
+        PhFree(groups);
+    }
+
+    PhAddJsonObjectValue(structured, "groups", groupArray);
+
+    privilegeArray = PhCreateJsonArray();
+
+    if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &privileges)))
+    {
+        for (i = 0; i < privileges->PrivilegeCount; i++)
+        {
+            PVOID row = PhCreateJsonObject();
+            PPH_STRING name = NULL;
+
+            if (PhLookupPrivilegeName(&privileges->Privileges[i].Luid, &name))
+            {
+                AtJsonAddString(row, "name", name);
+                PhDereferenceObject(name);
+            }
+            else
+            {
+                AtJsonAddNull(row, "name");
+            }
+
+            PhAddJsonObjectBoolean(row, "enabled", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED));
+            PhAddJsonObjectBoolean(row, "enabled_by_default", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_ENABLED_BY_DEFAULT));
+            PhAddJsonObjectBoolean(row, "removed", !!(privileges->Privileges[i].Attributes & SE_PRIVILEGE_REMOVED));
+            PhAddJsonArrayObject(privilegeArray, row);
+        }
+
+        PhFree(privileges);
+    }
+
+    PhAddJsonObjectValue(structured, "privileges", privilegeArray);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    NtClose(tokenHandle);
+    AtDeleteTarget(&target);
+}
+
+//
+// Process windows
+//
+
+typedef struct _AT_WINDOW_CONTEXT
+{
+    HANDLE ProcessId;
+    BOOLEAN VisibleOnly;
+    PVOID Windows;
+    ULONG Count;
+} AT_WINDOW_CONTEXT, *PAT_WINDOW_CONTEXT;
+
+_Function_class_(PH_WINDOW_ENUM_CALLBACK)
+BOOLEAN NTAPI AtpWindowCallback(
+    _In_ HWND WindowHandle,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_WINDOW_CONTEXT context = Context;
+    CLIENT_ID clientId;
+    PVOID row;
+    PPH_STRING text;
+    WCHAR className[256];
+    RECT rect;
+    BOOLEAN visible;
+
+    clientId.UniqueProcess = NULL;
+    clientId.UniqueThread = NULL;
+    GetWindowThreadProcessId(WindowHandle, (PDWORD)&clientId.UniqueProcess);
+
+    if (clientId.UniqueProcess != context->ProcessId)
+        return TRUE;
+
+    visible = !!IsWindowVisible(WindowHandle);
+
+    if (context->VisibleOnly && !visible)
+        return TRUE;
+
+    row = PhCreateJsonObject();
+    AtJsonAddPointer(row, "handle", WindowHandle);
+
+    text = PhGetWindowText(WindowHandle);
+    AtJsonAddString(row, "title", text);
+    PhClearReference(&text);
+
+    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)))
+        AtJsonAddStringZ(row, "class_name", className);
+    else
+        AtJsonAddNull(row, "class_name");
+
+    PhAddJsonObjectUInt64(row, "tid", GetWindowThreadProcessId(WindowHandle, NULL));
+    PhAddJsonObjectBoolean(row, "is_visible", visible);
+    PhAddJsonObjectBoolean(row, "is_minimized", !!IsIconic(WindowHandle));
+    PhAddJsonObjectBoolean(row, "is_hung", !!IsHungAppWindow(WindowHandle));
+
+    if (GetWindowRect(WindowHandle, &rect))
+    {
+        PVOID rectObject = PhCreateJsonObject();
+
+        PhAddJsonObjectInt64(rectObject, "left", rect.left);
+        PhAddJsonObjectInt64(rectObject, "top", rect.top);
+        PhAddJsonObjectInt64(rectObject, "right", rect.right);
+        PhAddJsonObjectInt64(rectObject, "bottom", rect.bottom);
+        PhAddJsonObjectValue(row, "rect", rectObject);
+    }
+
+    PhAddJsonArrayObject(context->Windows, row);
+    context->Count++;
+
+    return TRUE;
+}
+
+VOID AtpGetProcessWindows(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_TARGET target;
+    AT_WINDOW_CONTEXT context;
+    PVOID visibleMember;
+    PVOID structured;
+
+    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
+        return;
+
+    memset(&context, 0, sizeof(AT_WINDOW_CONTEXT));
+    context.ProcessId = target.ProcessItem->ProcessId;
+    context.VisibleOnly = TRUE;
+    context.Windows = PhCreateJsonArray();
+
+    // visible_only defaults to true unless the caller passes false.
+    if (visibleMember = AtJsonGetObjectMember(Call->Arguments, "visible_only", PH_JSON_OBJECT_TYPE_BOOLEAN))
+        context.VisibleOnly = AtJsonGetObjectBoolean(Call->Arguments, "visible_only");
+
+    PhEnumWindows(AtpWindowCallback, &context);
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+    PhAddJsonObjectValue(structured, "windows", context.Windows);
+    PhAddJsonObjectUInt64(structured, "count", context.Count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteTarget(&target);
+}
+
+VOID AtProcessInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    switch (Tool->Action)
+    {
+    case AtActionListProcesses:
+        AtpListProcesses(Call, Result);
+        break;
+    case AtActionGetProcess:
+        AtpGetProcess(Call, Result);
+        break;
+    case AtActionReadProcessEnvironment:
+        AtpGetProcessEnvironment(Target, Result);
+        break;
+    case AtActionTerminateProcess:
+    case AtActionSuspendProcess:
+    case AtActionResumeProcess:
+    case AtActionSetProcessPriority:
+    case AtActionSetProcessIoPriority:
+        AtpControlProcess(Tool, Call, Target, Result);
+        break;
+    case AtActionGetProcessToken:
+        AtpGetProcessToken(Call, Result);
+        break;
+    case AtActionGetProcessWindows:
+        AtpGetProcessWindows(Call, Result);
+        break;
+    default:
+        AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
+        break;
+    }
+}
