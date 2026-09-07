@@ -527,6 +527,10 @@ VOID AtInvokeTool(
     case AtActionGetKsiStatus:
     case AtActionGetPagefileInfo:
     case AtActionListStartupEntries:
+    case AtActionGetSmbiosInfo:
+    case AtActionGetUefiVariables:
+    case AtActionGetTpmInfo:
+    case AtActionGetSystemEnvironment:
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:

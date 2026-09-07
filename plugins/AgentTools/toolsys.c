@@ -10,6 +10,8 @@
  */
 
 #include "agenttools.h"
+#include <phfirmware.h>
+#include <mapldr.h>
 
 // Provider CPU usage, exported as data by SystemInformer.exe.
 __declspec(dllimport) FLOAT PhCpuKernelUsage;
@@ -40,6 +42,35 @@ PCWSTR AtpKphLevelString(
     }
 
     return NULL;
+}
+
+FIRMWARE_TYPE AtpGetFirmwareType(
+    VOID
+    )
+{
+    SYSTEM_BOOT_ENVIRONMENT_INFORMATION bootInfo;
+
+    memset(&bootInfo, 0, sizeof(bootInfo));
+
+    if (NT_SUCCESS(NtQuerySystemInformation(SystemBootEnvironmentInformation, &bootInfo, sizeof(bootInfo), NULL)))
+        return bootInfo.FirmwareType;
+
+    return FirmwareTypeUnknown;
+}
+
+PCWSTR AtpFirmwareTypeString(
+    _In_ FIRMWARE_TYPE FirmwareType
+    )
+{
+    switch (FirmwareType)
+    {
+    case FirmwareTypeBios:
+        return L"bios";
+    case FirmwareTypeUefi:
+        return L"uefi";
+    }
+
+    return L"unknown";
 }
 
 VOID AtpGetSystemInfo(
@@ -99,6 +130,7 @@ VOID AtpGetSystemInfo(
     memset(&basicInfo, 0, sizeof(basicInfo));
     NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(basicInfo), NULL);
     PhAddJsonObjectUInt64(structured, "processor_count", basicInfo.NumberOfProcessors);
+    AtJsonAddStringZ(structured, "firmware_type", AtpFirmwareTypeString(AtpGetFirmwareType()));
     PhAddJsonObjectDouble(structured, "cpu_usage", (DOUBLE)PhCpuKernelUsage + (DOUBLE)PhCpuUserUsage);
     PhAddJsonObjectDouble(structured, "cpu_kernel_usage", (DOUBLE)PhCpuKernelUsage);
     PhAddJsonObjectDouble(structured, "cpu_user_usage", (DOUBLE)PhCpuUserUsage);
@@ -354,6 +386,504 @@ VOID AtpGetPagefileInfo(
     Result->StructuredContent = structured;
 }
 
+//
+// SMBIOS information
+//
+
+typedef struct _AT_SMBIOS_CONTEXT
+{
+    PVOID Object;
+    BOOLEAN VersionAdded;
+} AT_SMBIOS_CONTEXT, *PAT_SMBIOS_CONTEXT;
+
+VOID AtpAddSmbiosString(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR Index
+    )
+{
+    PPH_STRING string;
+
+    if (NT_SUCCESS(PhGetSMBIOSString(EnumHandle, Index, &string)))
+    {
+        AtJsonAddString(Object, Key, string);
+        PhDereferenceObject(string);
+    }
+}
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI AtpSmbiosCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_SMBIOS_CONTEXT context = Context;
+
+    if (!context)
+        return FALSE;
+
+    if (!context->VersionAdded)
+    {
+        PPH_STRING version;
+
+        version = PhFormatString(L"%hhu.%hhu", MajorVersion, MinorVersion);
+        AtJsonAddString(context->Object, "smbios_version", version);
+        PhDereferenceObject(version);
+        context->VersionAdded = TRUE;
+    }
+
+    switch (Entry->Header.Type)
+    {
+    case SMBIOS_FIRMWARE_INFORMATION_TYPE:
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Firmware, Vendor))
+            AtpAddSmbiosString(context->Object, "bios_vendor", EnumHandle, Entry->Firmware.Vendor);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Firmware, Version))
+            AtpAddSmbiosString(context->Object, "bios_version", EnumHandle, Entry->Firmware.Version);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Firmware, ReleaseDate))
+            AtpAddSmbiosString(context->Object, "bios_release_date", EnumHandle, Entry->Firmware.ReleaseDate);
+        if (PH_SMBIOS_CONTAINS_FIELD(Entry, Firmware, MinorRelease) &&
+            !(Entry->Firmware.MajorRelease == 0xFF && Entry->Firmware.MinorRelease == 0xFF))
+        {
+            PPH_STRING revision;
+
+            revision = PhFormatString(L"%hhu.%hhu", Entry->Firmware.MajorRelease, Entry->Firmware.MinorRelease);
+            AtJsonAddString(context->Object, "bios_revision", revision);
+            PhDereferenceObject(revision);
+        }
+        break;
+    case SMBIOS_SYSTEM_INFORMATION_TYPE:
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Manufacturer))
+            AtpAddSmbiosString(context->Object, "system_manufacturer", EnumHandle, Entry->System.Manufacturer);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, System, ProductName))
+            AtpAddSmbiosString(context->Object, "system_product", EnumHandle, Entry->System.ProductName);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Version))
+            AtpAddSmbiosString(context->Object, "system_version", EnumHandle, Entry->System.Version);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, System, Family))
+            AtpAddSmbiosString(context->Object, "system_family", EnumHandle, Entry->System.Family);
+        // Serial number and system UUID are machine-unique identifiers, deliberately omitted.
+        break;
+    case SMBIOS_BASEBOARD_INFORMATION_TYPE:
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Manufacturer))
+            AtpAddSmbiosString(context->Object, "baseboard_manufacturer", EnumHandle, Entry->Baseboard.Manufacturer);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Product))
+            AtpAddSmbiosString(context->Object, "baseboard_product", EnumHandle, Entry->Baseboard.Product);
+        if (PH_SMBIOS_CONTAINS_STRING(Entry, Baseboard, Version))
+            AtpAddSmbiosString(context->Object, "baseboard_version", EnumHandle, Entry->Baseboard.Version);
+        break;
+    }
+
+    return FALSE;
+}
+
+VOID AtpGetSmbiosInfo(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_SMBIOS_CONTEXT context;
+    PVOID structured;
+
+    structured = PhCreateJsonObject();
+    context.Object = structured;
+    context.VersionAdded = FALSE;
+
+    // A malformed table tail ends the walk but the entries already parsed are still valid, so the
+    // status is ignored, as the SMBIOS viewer does.
+    PhEnumSMBIOS(AtpSmbiosCallback, &context);
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+}
+
+//
+// UEFI variables
+//
+
+// Values are opaque binary; large blobs (e.g. db/dbx) are emitted as a bounded hex prefix.
+#define AT_UEFI_VALUE_HEX_LIMIT 256
+
+VOID AtpAddUefiAttributes(
+    _In_ PVOID Object,
+    _In_ ULONG Attributes
+    )
+{
+    PVOID flags;
+
+    flags = PhCreateJsonArray();
+
+    if (Attributes & EFI_VARIABLE_NON_VOLATILE)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("non_volatile"));
+    if (Attributes & EFI_VARIABLE_BOOTSERVICE_ACCESS)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("boot_service_access"));
+    if (Attributes & EFI_VARIABLE_RUNTIME_ACCESS)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("runtime_access"));
+    if (Attributes & EFI_VARIABLE_HARDWARE_ERROR_RECORD)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("hardware_error_record"));
+    if (Attributes & EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("authenticated_write_access"));
+    if (Attributes & EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("time_based_authenticated_write_access"));
+    if (Attributes & EFI_VARIABLE_APPEND_WRITE)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("append_write"));
+    if (Attributes & EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS)
+        PhAddJsonArrayObject(flags, PhCreateJsonStringObject("enhanced_authenticated_access"));
+
+    PhAddJsonObjectUInt64(Object, "attributes", Attributes);
+    PhAddJsonObjectValue(Object, "attribute_flags", flags);
+}
+
+VOID AtpGetUefiVariables(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PVOID variables;
+    PVARIABLE_NAME_AND_VALUE variable;
+    PVOID structured;
+    PVOID rows;
+    ULONG count = 0;
+
+    if (AtpGetFirmwareType() != FirmwareTypeUefi)
+    {
+        AtSetToolError(Result, "failed", STATUS_NOT_SUPPORTED, L"This machine did not boot in UEFI mode; firmware variables are not available.");
+        return;
+    }
+
+    // Requires SeSystemEnvironmentPrivilege, so this fails with STATUS_PRIVILEGE_NOT_HELD unless System Informer is elevated.
+    status = PhEnumFirmwareEnvironmentValues(SystemEnvironmentValueInformation, &variables);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Enumerating firmware environment variables");
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    rows = PhCreateJsonArray();
+
+    for (variable = PH_FIRST_FIRMWARE_VALUE(variables); variable; variable = PH_NEXT_FIRMWARE_VALUE(variable))
+    {
+        PVOID row = PhCreateJsonObject();
+        PPH_STRING string;
+
+        AtJsonAddStringZ(row, "name", variable->Name);
+        string = PhFormatGuid(&variable->VendorGuid);
+        AtJsonAddString(row, "vendor_guid", string);
+        PhDereferenceObject(string);
+        AtpAddUefiAttributes(row, variable->Attributes);
+        PhAddJsonObjectUInt64(row, "value_length", variable->ValueLength);
+
+        if (variable->ValueLength)
+        {
+            ULONG length = min(variable->ValueLength, AT_UEFI_VALUE_HEX_LIMIT);
+
+            string = PhBufferToHexString(PTR_ADD_OFFSET(variable, variable->ValueOffset), length);
+            AtJsonAddString(row, "value_hex", string);
+            PhDereferenceObject(string);
+            PhAddJsonObjectBoolean(row, "value_truncated", variable->ValueLength > length);
+        }
+
+        PhAddJsonArrayObject(rows, row);
+        count++;
+    }
+
+    PhFree(variables);
+
+    PhAddJsonObjectValue(structured, "variables", rows);
+    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
+//
+// TPM information
+//
+
+// Mirrors TPM_DEVICE_INFO from tbs.h; tbs.dll is loaded at runtime so the plugin does not link tbs.lib.
+typedef struct _AT_TPM_DEVICE_INFO
+{
+    ULONG StructVersion;
+    ULONG TpmVersion;
+    ULONG TpmInterfaceType;
+    ULONG TpmImpRevision;
+} AT_TPM_DEVICE_INFO, *PAT_TPM_DEVICE_INFO;
+
+typedef ULONG (WINAPI* AT_TBSI_GET_DEVICE_INFO)(
+    _In_ ULONG Size,
+    _Out_writes_bytes_(Size) PVOID Info
+    );
+
+PCWSTR AtpTpmVersionString(
+    _In_ ULONG Version
+    )
+{
+    switch (Version)
+    {
+    case 1:
+        return L"1.2";
+    case 2:
+        return L"2.0";
+    }
+
+    return L"unknown";
+}
+
+PCWSTR AtpTpmInterfaceTypeString(
+    _In_ ULONG InterfaceType
+    )
+{
+    switch (InterfaceType)
+    {
+    case 1:
+        return L"port_or_mmio";
+    case 2:
+        return L"trustzone";
+    case 3:
+        return L"hardware";
+    case 4:
+        return L"emulator";
+    case 5:
+        return L"spb";
+    }
+
+    return L"unknown";
+}
+
+_Function_class_(PH_ENUM_SMBIOS_CALLBACK)
+BOOLEAN NTAPI AtpTpmSmbiosCallback(
+    _In_ ULONG_PTR EnumHandle,
+    _In_ UCHAR MajorVersion,
+    _In_ UCHAR MinorVersion,
+    _In_ PPH_SMBIOS_ENTRY Entry,
+    _In_opt_ PVOID Context
+    )
+{
+    PVOID object = Context;
+    PVOID smbios;
+    UCHAR major = 0;
+
+    if (!object || Entry->Header.Type != SMBIOS_TPM_DEVICE_INFORMATION_TYPE)
+        return FALSE;
+
+    smbios = PhCreateJsonObject();
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, VendorID))
+    {
+        WCHAR vendor[5];
+
+        vendor[0] = (WCHAR)Entry->TPMDevice.VendorID[0];
+        vendor[1] = (WCHAR)Entry->TPMDevice.VendorID[1];
+        vendor[2] = (WCHAR)Entry->TPMDevice.VendorID[2];
+        vendor[3] = (WCHAR)Entry->TPMDevice.VendorID[3];
+        vendor[4] = UNICODE_NULL;
+        AtJsonAddStringZ(smbios, "vendor_id", vendor);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, MinorSpecVersion))
+    {
+        PPH_STRING version;
+
+        major = Entry->TPMDevice.MajorSpecVersion;
+        version = PhFormatString(L"%hhu.%hhu", Entry->TPMDevice.MajorSpecVersion, Entry->TPMDevice.MinorSpecVersion);
+        AtJsonAddString(smbios, "spec_version", version);
+        PhDereferenceObject(version);
+    }
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, FirmwareVersion1))
+    {
+        ULONG64 version = Entry->TPMDevice.FirmwareVersion1;
+
+        // For TPM 2.0 the two fields form one 64-bit version; for 1.2 only the first is meaningful.
+        if (major >= 2)
+        {
+            version <<= 32;
+
+            if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, FirmwareVersion2))
+                version |= Entry->TPMDevice.FirmwareVersion2;
+        }
+
+        PhAddJsonObjectUInt64(smbios, "firmware_version", version);
+    }
+
+    if (PH_SMBIOS_CONTAINS_STRING(Entry, TPMDevice, Description))
+        AtpAddSmbiosString(smbios, "description", EnumHandle, Entry->TPMDevice.Description);
+
+    if (PH_SMBIOS_CONTAINS_FIELD(Entry, TPMDevice, Characteristics))
+    {
+        ULONG64 characteristics = Entry->TPMDevice.Characteristics;
+
+        PhAddJsonObjectBoolean(smbios, "configurable_via_firmware_update", !!(characteristics & SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_FIRMWARE_UPDATE));
+        PhAddJsonObjectBoolean(smbios, "configurable_via_software_update", !!(characteristics & SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_SOFTWARE_UPDATE));
+        PhAddJsonObjectBoolean(smbios, "configurable_via_proprietary_update", !!(characteristics & SMBIOS_TPM_DEVICE_CONFIGURABLE_VIA_PROPRIETARY_UPDATE));
+    }
+
+    PhAddJsonObjectValue(object, "smbios", smbios);
+
+    return TRUE;
+}
+
+VOID AtpGetTpmInfo(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static AT_TBSI_GET_DEVICE_INFO Tbsi_GetDeviceInfo_I = NULL;
+    PVOID structured;
+    AT_TPM_DEVICE_INFO deviceInfo;
+    BOOLEAN present = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"tbs.dll"))
+            Tbsi_GetDeviceInfo_I = PhGetProcedureAddress(baseAddress, "Tbsi_GetDeviceInfo", 0);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    structured = PhCreateJsonObject();
+
+    // TBS reports the TPM the OS is using; SMBIOS describes what the firmware advertises.
+    memset(&deviceInfo, 0, sizeof(deviceInfo));
+
+    if (Tbsi_GetDeviceInfo_I && Tbsi_GetDeviceInfo_I(sizeof(deviceInfo), &deviceInfo) == 0)
+    {
+        present = TRUE;
+        AtJsonAddStringZ(structured, "version", AtpTpmVersionString(deviceInfo.TpmVersion));
+        AtJsonAddStringZ(structured, "interface_type", AtpTpmInterfaceTypeString(deviceInfo.TpmInterfaceType));
+        PhAddJsonObjectUInt64(structured, "implementation_revision", deviceInfo.TpmImpRevision);
+    }
+
+    PhAddJsonObjectBoolean(structured, "present", present);
+
+    PhEnumSMBIOS(AtpTpmSmbiosCallback, structured);
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
+//
+// System environment variables
+//
+
+typedef struct _AT_ENVIRONMENT_CONTEXT
+{
+    PVOID Entries;
+    PCWSTR Scope;
+    ULONG Count;
+} AT_ENVIRONMENT_CONTEXT, *PAT_ENVIRONMENT_CONTEXT;
+
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI AtpEnvironmentValueCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_ENVIRONMENT_CONTEXT context = Context;
+    PVOID entry;
+    PPH_STRING name;
+    PPH_STRING value = NULL;
+
+    if (!context)
+        return TRUE;
+
+    if (Information->Type == REG_SZ || Information->Type == REG_EXPAND_SZ)
+    {
+        // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
+        SIZE_T dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
+
+        // Trim a trailing null from the value if present.
+        if (dataLength >= sizeof(WCHAR) &&
+            *(PWCHAR)PTR_ADD_OFFSET(Information, Information->DataOffset + dataLength - sizeof(WCHAR)) == UNICODE_NULL)
+        {
+            dataLength -= sizeof(WCHAR);
+        }
+
+        value = PhCreateStringEx(PTR_ADD_OFFSET(Information, Information->DataOffset), dataLength);
+    }
+
+    name = PhCreateStringEx(Information->Name, Information->NameLength);
+
+    entry = PhCreateJsonObject();
+    AtJsonAddString(entry, "name", name);
+    AtJsonAddString(entry, "value", value);
+    AtJsonAddStringZ(entry, "scope", context->Scope);
+    PhAddJsonArrayObject(context->Entries, entry);
+    context->Count++;
+
+    PhClearReference(&name);
+    PhClearReference(&value);
+
+    return TRUE;
+}
+
+VOID AtpReadEnvironmentKey(
+    _In_ HANDLE RootDirectory,
+    _In_ PCWSTR SubKey,
+    _In_ PCWSTR Scope,
+    _In_ PVOID Entries,
+    _Inout_ PULONG Count
+    )
+{
+    AT_ENVIRONMENT_CONTEXT context;
+    HANDLE keyHandle;
+    PH_STRINGREF subKey;
+
+    context.Entries = Entries;
+    context.Scope = Scope;
+    context.Count = 0;
+
+    PhInitializeStringRef(&subKey, SubKey);
+
+    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, RootDirectory, &subKey, 0)))
+    {
+        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpEnvironmentValueCallback, &context);
+        NtClose(keyHandle);
+    }
+
+    *Count += context.Count;
+}
+
+VOID AtpGetSystemEnvironment(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PVOID structured;
+    PVOID rows;
+    ULONG count = 0;
+
+    structured = PhCreateJsonObject();
+    rows = PhCreateJsonArray();
+
+    AtpReadEnvironmentKey(
+        PH_KEY_LOCAL_MACHINE,
+        L"System\\CurrentControlSet\\Control\\Session Manager\\Environment",
+        L"machine",
+        rows,
+        &count
+        );
+    AtpReadEnvironmentKey(
+        PH_KEY_CURRENT_USER,
+        L"Environment",
+        L"user",
+        rows,
+        &count
+        );
+
+    PhAddJsonObjectValue(structured, "variables", rows);
+    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -377,6 +907,18 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionListStartupEntries:
         AtListStartupEntries(Call, Result);
+        break;
+    case AtActionGetSmbiosInfo:
+        AtpGetSmbiosInfo(Result);
+        break;
+    case AtActionGetUefiVariables:
+        AtpGetUefiVariables(Result);
+        break;
+    case AtActionGetTpmInfo:
+        AtpGetTpmInfo(Result);
+        break;
+    case AtActionGetSystemEnvironment:
+        AtpGetSystemEnvironment(Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

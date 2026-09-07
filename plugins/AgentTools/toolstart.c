@@ -67,7 +67,8 @@ BOOLEAN NTAPI AtpStartupValueCallback(
 
     if (Information->Type == REG_SZ || Information->Type == REG_EXPAND_SZ)
     {
-        SIZE_T dataLength = Information->DataLength;
+        // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
+        SIZE_T dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
 
         // Trim a trailing null from the value if present.
         if (dataLength >= sizeof(WCHAR) &&

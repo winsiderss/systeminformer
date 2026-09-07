@@ -164,6 +164,22 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListStartupEntries, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
         L"list autostart entries", L"Allow listing autostart entries", L"Allow", L"list_startup_entries"
     },
+    {
+        AtActionGetSmbiosInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_smbios_info"),
+        L"read SMBIOS information", L"Allow reading SMBIOS information", L"Allow", L"get_smbios_info"
+    },
+    {
+        AtActionGetUefiVariables, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_uefi_variables"),
+        L"read UEFI variables", L"Allow reading UEFI variables", L"Allow", L"get_uefi_variables"
+    },
+    {
+        AtActionGetTpmInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_tpm_info"),
+        L"read TPM information", L"Allow reading TPM information", L"Allow", L"get_tpm_info"
+    },
+    {
+        AtActionGetSystemEnvironment, AtTierSensitiveRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_environment"),
+        L"read the persisted system and user environment variables", L"Allow reading system environment variables", L"Allow", L"get_system_environment"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -935,6 +951,7 @@ CONST AT_TOOL AtTools[] =
         "\"boot_time\":{\"type\":[\"string\",\"null\"]},"
         "\"uptime_seconds\":{\"type\":\"number\"},"
         "\"processor_count\":{\"type\":\"integer\"},"
+        "\"firmware_type\":{\"type\":\"string\",\"description\":\"uefi, bios or unknown\"},"
         "\"cpu_usage\":{\"type\":\"number\",\"description\":\"Fraction 0..1 over the last provider interval\"},"
         "\"cpu_kernel_usage\":{\"type\":\"number\"},"
         "\"cpu_user_usage\":{\"type\":\"number\"},"
@@ -1041,6 +1058,100 @@ CONST AT_TOOL AtTools[] =
         "\"count\":{\"type\":\"integer\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"entries\",\"count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_smbios_info", L"Get SMBIOS information", AtTierRead, AtActionGetSmbiosInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_smbios_info"), SETTING_NAME_TOOL_CONFIRM(L"get_smbios_info"),
+        "{\"name\":\"get_smbios_info\",\"title\":\"Get SMBIOS information\","
+        "\"description\":\"Reports firmware (BIOS/UEFI), system and baseboard identification from the SMBIOS tables. "
+        "Machine-unique identifiers (serial numbers, system UUID) are deliberately omitted. Fields are absent when the "
+        "firmware does not supply them. Use get_uefi_variables for firmware environment variables and get_tpm_info for the TPM.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"smbios_version\":{\"type\":\"string\",\"description\":\"SMBIOS specification version, e.g. 3.5\"},"
+        "\"bios_vendor\":{\"type\":\"string\"},"
+        "\"bios_version\":{\"type\":\"string\"},"
+        "\"bios_release_date\":{\"type\":\"string\"},"
+        "\"bios_revision\":{\"type\":\"string\"},"
+        "\"system_manufacturer\":{\"type\":\"string\"},"
+        "\"system_product\":{\"type\":\"string\"},"
+        "\"system_version\":{\"type\":\"string\"},"
+        "\"system_family\":{\"type\":\"string\"},"
+        "\"baseboard_manufacturer\":{\"type\":\"string\"},"
+        "\"baseboard_product\":{\"type\":\"string\"},"
+        "\"baseboard_version\":{\"type\":\"string\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_uefi_variables", L"Get UEFI variables", AtTierRead, AtActionGetUefiVariables,
+        SETTING_NAME_TOOL_ACCESS(L"get_uefi_variables"), SETTING_NAME_TOOL_CONFIRM(L"get_uefi_variables"),
+        "{\"name\":\"get_uefi_variables\",\"title\":\"Get UEFI firmware variables\","
+        "\"description\":\"Lists the UEFI firmware environment variables (for example BootOrder, Boot####, SecureBoot, "
+        "PK/KEK/db/dbx) with their vendor GUID, attributes and a bounded hex prefix of the raw value. Fails when the machine "
+        "did not boot in UEFI mode, and requires SeSystemEnvironmentPrivilege, so it fails with access denied unless System "
+        "Informer is elevated. Values are opaque firmware data. " AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"variables\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\"},"
+        "\"vendor_guid\":{\"type\":\"string\"},"
+        "\"attributes\":{\"type\":\"integer\",\"description\":\"Raw EFI_VARIABLE_* attribute bits\"},"
+        "\"attribute_flags\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"value_length\":{\"type\":\"integer\"},"
+        "\"value_hex\":{\"type\":\"string\",\"description\":\"Hex of the first 256 bytes of the value; absent when empty\"},"
+        "\"value_truncated\":{\"type\":\"boolean\"}"
+        "},\"required\":[\"name\",\"vendor_guid\",\"attributes\",\"attribute_flags\",\"value_length\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"variables\",\"count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_tpm_info", L"Get TPM information", AtTierRead, AtActionGetTpmInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_tpm_info"), SETTING_NAME_TOOL_CONFIRM(L"get_tpm_info"),
+        "{\"name\":\"get_tpm_info\",\"title\":\"Get TPM information\","
+        "\"description\":\"Reports whether the OS has a usable Trusted Platform Module (via TPM Base Services) with its "
+        "version and interface type, plus the TPM device description the firmware advertises in SMBIOS when present. "
+        "Does not read TPM NV storage or PCRs.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"present\":{\"type\":\"boolean\",\"description\":\"True when TPM Base Services reports a TPM\"},"
+        "\"version\":{\"type\":\"string\",\"description\":\"1.2, 2.0 or unknown\"},"
+        "\"interface_type\":{\"type\":\"string\",\"description\":\"hardware, trustzone, emulator, spb, port_or_mmio or unknown\"},"
+        "\"implementation_revision\":{\"type\":\"integer\"},"
+        "\"smbios\":{\"type\":\"object\",\"description\":\"SMBIOS TPM device entry; absent when the firmware does not publish one\",\"properties\":{"
+        "\"vendor_id\":{\"type\":\"string\"},"
+        "\"spec_version\":{\"type\":\"string\"},"
+        "\"firmware_version\":{\"type\":\"integer\"},"
+        "\"description\":{\"type\":\"string\"},"
+        "\"configurable_via_firmware_update\":{\"type\":\"boolean\"},"
+        "\"configurable_via_software_update\":{\"type\":\"boolean\"},"
+        "\"configurable_via_proprietary_update\":{\"type\":\"boolean\"}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"present\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_system_environment", L"Get system environment variables", AtTierSensitiveRead, AtActionGetSystemEnvironment,
+        SETTING_NAME_TOOL_ACCESS(L"get_system_environment"), SETTING_NAME_TOOL_CONFIRM(L"get_system_environment"),
+        "{\"name\":\"get_system_environment\",\"title\":\"Get system environment variables\","
+        "\"description\":\"Lists the persisted machine-wide and current-user environment variables from the registry. "
+        "Values are the stored (unexpanded) strings; REG_EXPAND_SZ references such as %SystemRoot% are not resolved. "
+        "User environment variables routinely contain API keys and tokens. " AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"variables\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"value\":{\"type\":[\"string\",\"null\"]},"
+        "\"scope\":{\"type\":\"string\",\"description\":\"machine or user\"}"
+        "},\"required\":[\"scope\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"variables\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     //

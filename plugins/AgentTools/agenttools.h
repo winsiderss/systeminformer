@@ -100,6 +100,10 @@ typedef enum _AT_ACTION
     AtActionGetKsiStatus,
     AtActionGetPagefileInfo,
     AtActionListStartupEntries,
+    AtActionGetSmbiosInfo,
+    AtActionGetUefiVariables,
+    AtActionGetTpmInfo,
+    AtActionGetSystemEnvironment,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetImageInfo,
