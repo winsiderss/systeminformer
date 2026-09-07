@@ -77,7 +77,18 @@ ULONG AtToolDefaultConfirm(
     _In_ PCAT_TOOL Tool
     )
 {
-    return Tool->Tier == AtTierRead ? AT_CONFIRM_NONE : AT_CONFIRM_ALWAYS;
+    switch (Tool->Action)
+    {
+    // Reads that describe the kernel or fingerprint the machine are asked about by default.
+    case AtActionListKernelDrivers:
+    case AtActionGetKsiStatus:
+    case AtActionGetSmbiosInfo:
+    case AtActionGetUefiVariables:
+    case AtActionGetTpmInfo:
+        return AT_CONFIRM_ALWAYS;
+    default:
+        return Tool->Tier == AtTierRead ? AT_CONFIRM_NONE : AT_CONFIRM_ALWAYS;
+    }
 }
 
 VOID AtRegisterToolSettings(
