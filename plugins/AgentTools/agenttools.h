@@ -40,12 +40,12 @@
 
 #define AT_ACCESS_DENIED 0
 #define AT_ACCESS_ALLOWED 1
-#define AT_CONFIRM_NONE 0 // not required: nobody is asked
-#define AT_CONFIRM_ALWAYS 1 // System Informer shows its own dialog
-#define AT_CONFIRM_DELEGATE 2 // delegated to the client's elicitation UI
-#define AT_SCHEMA_VERSION 1 // MCP tool schema version. Bump on a breaking change; additive changes keep it.
-#define AT_CONSENT_TIMEOUT_MS (60 * 1000) // from the moment the dialog is on screen
-#define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000) // from submission, while queued behind other dialogs
+#define AT_CONFIRM_NONE 0
+#define AT_CONFIRM_ALWAYS 1
+#define AT_CONFIRM_DELEGATE 2
+#define AT_SCHEMA_VERSION 1
+#define AT_CONSENT_TIMEOUT_MS (60 * 1000)
+#define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000)
 #define AT_ELICITATION_TIMEOUT_MS (10 * 60 * 1000)
 #define AT_PENDING_CONSENT_TIMEOUT_MS (5 * 60 * 1000)
 
@@ -127,7 +127,7 @@ typedef struct _AT_ACTION_INFO
     AT_ACTION Action;
     AT_TIER Tier;
     AT_TARGET_KIND TargetKind;
-    ACCESS_MASK TargetAccess; // process access for process targets, thread access for thread targets, service access for service targets
+    ACCESS_MASK TargetAccess;
     PWSTR ConfirmSetting;
     PWSTR Verb;
     PWSTR Headline;
@@ -137,17 +137,11 @@ typedef CONST AT_ACTION_INFO *PCAT_ACTION_INFO;
 
 extern CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum];
 
-/**
- * The object a tool call acts on, resolved against the provider caches and, where the action needs
- * one, opened with exactly the rights the action needs. The consent dialog, the audit log and the
- * elicitation prompt all describe the target from this structure, and pending client-side consent
- * is bound to Identity so a retry cannot be redirected to a different object.
- */
 typedef struct _AT_TARGET
 {
     AT_TARGET_KIND Kind;
 
-    PPH_PROCESS_ITEM ProcessItem; // process, thread, handle and connection targets (optional for connections)
+    PPH_PROCESS_ITEM ProcessItem;
     HANDLE ProcessHandle;
 
     HANDLE ThreadId;
@@ -163,10 +157,10 @@ typedef struct _AT_TARGET
     PPH_STRING HandleTypeName;
     PPH_STRING HandleObjectName;
 
-    PPH_NETWORK_ITEM NetworkItem; // connection targets; a private copy, never the cached item
+    PPH_NETWORK_ITEM NetworkItem;
     PPH_STRING ConnectionText;
 
-    PPH_STRING Parameter; // what the action sets the target to, when it takes a value
+    PPH_STRING Parameter;
     ULONG64 Identity[4];
 } AT_TARGET, *PAT_TARGET;
 
@@ -177,8 +171,8 @@ typedef enum _AT_SESSION_POLICY
     AtSessionDelegate,
 } AT_SESSION_POLICY;
 
-#define AT_MAX_PENDING_CONSENTS 8
-#define AT_MAX_DEFERRED_REQUESTS 32 // queued behind a consent wait, per connection
+#define AT_MAX_PENDING_CONSENTS 16
+#define AT_MAX_DEFERRED_REQUESTS 512
 #define AT_MAX_DEFERRED_BYTES (1024 * 1024)
 
 typedef struct _AT_PENDING_CONSENT
@@ -199,8 +193,6 @@ typedef enum _AT_APPROVAL
 
 C_ASSERT(sizeof(AT_APPROVAL) == sizeof(LONG));
 
-// A request that arrived while a call on the connection was waiting for consent. It runs, in
-// order, once that call has finished.
 typedef struct _AT_DEFERRED_REQUEST
 {
     LIST_ENTRY ListEntry;
@@ -248,7 +240,7 @@ typedef struct _AT_CONNECTION
 
     PPH_BYTES InFlightId;
     BOOLEAN InFlightCancelled;
-    LIST_ENTRY DeferredRequests; // connection thread only
+    LIST_ENTRY DeferredRequests;
     ULONG DeferredCount;
     SIZE_T DeferredBytes;
 

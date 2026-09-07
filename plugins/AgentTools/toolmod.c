@@ -12,10 +12,6 @@
 
 #include "agenttools.h"
 
-//
-// Process modules
-//
-
 PCWSTR AtpModuleTypeString(
     _In_ ULONG Type
     )

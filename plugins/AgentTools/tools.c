@@ -163,10 +163,6 @@ VOID AtEnumTools(
     }
 }
 
-//
-// Shared helpers
-//
-
 VOID AtAddSnapshot(
     _In_ PVOID Object
     )
@@ -476,10 +472,6 @@ VOID AtFillProcessIdentity(
     PhAddJsonObjectUInt64(Object, "process_sequence_number", ProcessItem->ProcessSequenceNumber);
     AtJsonAddString(Object, "name", ProcessItem->ProcessName);
 }
-
-//
-// Dispatch
-//
 
 VOID AtInvokeTool(
     _In_ PCAT_TOOL Tool,

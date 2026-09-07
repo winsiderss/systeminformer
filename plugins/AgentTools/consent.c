@@ -60,8 +60,6 @@ VOID AtpCreateSessionPolicyControls(
     _In_ PAT_CONSENT_REQUEST Request
     );
 
-// Centers a window on the monitor the user is working on: the one holding the foreground window,
-// else the one under the cursor.
 VOID AtpCenterWindowOnUserMonitor(
     _In_ HWND WindowHandle
     )
@@ -111,7 +109,7 @@ VOID AtpDereferenceConsentRequest(
     _In_ PAT_CONSENT_REQUEST Request
     )
 {
-    if (_InterlockedDecrement(&Request->RefCount) == 0)
+    if (InterlockedDecrement(&Request->RefCount) == 0)
     {
         if (Request->MainIcon)
             DestroyIcon(Request->MainIcon);
@@ -474,7 +472,7 @@ HRESULT CALLBACK AtpConsentDialogCallback(
                 }
             }
 
-            // Bounded wait (6): deny when nobody answers.
+            // Bounded wait: deny when nobody answers.
             if (elapsed >= AT_CONSENT_TIMEOUT_MS || ReadAcquire(&request->Abandoned))
             {
                 if (elapsed >= AT_CONSENT_TIMEOUT_MS)

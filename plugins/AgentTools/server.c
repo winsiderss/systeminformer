@@ -491,7 +491,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (Hello->BrokerVersion != SIMCP_VERSION)
         return SimcpHelloRejectedVersion;
 
-    // 1. Capture the token, then revert. Every decision below is made from the captured token.
+    // Capture the token, then revert. Every decision below is made from the captured token.
 
     status = PhImpersonateClientOfNamedPipe(Connection->PipeHandle);
 
@@ -504,7 +504,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (!NT_SUCCESS(status))
         return SimcpHelloRejectedInternal;
 
-    // 2. Same user as System Informer.
+    // Same user as System Informer.
 
     if (!NT_SUCCESS(PhGetTokenUser(tokenHandle, &clientUser)) ||
         !NT_SUCCESS(PhGetTokenUser(NtCurrentProcessToken(), &ownUser)))
@@ -518,7 +518,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
         goto CleanupExit;
     }
 
-    // Same session as System Informer (D21). Pipe names are global; the session in the name is
+    // Same session as System Informer. Pipe names are global; the session in the name is
     // a convention, not a boundary.
 
     if (!NT_SUCCESS(NtQueryInformationToken(tokenHandle, TokenSessionId, &sessionId, sizeof(sessionId), &(ULONG){ 0 })) ||
@@ -528,7 +528,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
         goto CleanupExit;
     }
 
-    // 3. Integrity level and AppContainer.
+    // Integrity level and AppContainer.
 
     if (!NT_SUCCESS(PhGetTokenIntegrityLevelRID(tokenHandle, &Connection->IntegrityRid, &integrityString)))
         goto CleanupExit;
@@ -555,7 +555,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
         }
     }
 
-    // 4. The connecting binary is our own broker.
+    // The connecting binary is our own broker.
 
     if (!NT_SUCCESS(PhGetNamedPipeClientProcessId(Connection->PipeHandle, &clientProcessId)))
         goto CleanupExit;
@@ -577,7 +577,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     Connection->BrokerProcessId = Hello->BrokerProcessId;
     Connection->UserName = PhGetSidFullName(clientUser.User.Sid, TRUE, NULL);
 
-    // 5. Display-only context.
+    // Display-only context.
 
     AtpResolveLauncher(Connection, Hello);
 
@@ -731,7 +731,7 @@ PAT_CONNECTION AtpCreateConnection(
     connection = PhCreateObject(sizeof(AT_CONNECTION), AtConnectionType);
     memset(connection, 0, sizeof(AT_CONNECTION));
     connection->PipeHandle = PipeHandle;
-    connection->ConnectionId = (ULONG)_InterlockedIncrement((PLONG)&AtNextConnectionId) - 1;
+    connection->ConnectionId = (ULONG)InterlockedIncrement((PLONG)&AtNextConnectionId) - 1;
     PhInitializeQueuedLock(&connection->Lock);
     InitializeListHead(&connection->DeferredRequests);
     PhQuerySystemTime(&connection->ConnectTime);
@@ -855,7 +855,7 @@ NTSTATUS AtServerStart(
         goto CleanupExit;
 
     // FILE_CREATE: a second instance of System Informer in this session, or a squatter, makes
-    // this fail and the options page says so (D21).
+    // this fail and the options page says so.
     status = AtpCreatePipeInstance(TRUE, &pipeHandle);
 
     if (!NT_SUCCESS(status))

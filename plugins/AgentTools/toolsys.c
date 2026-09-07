@@ -17,10 +17,6 @@
 __declspec(dllimport) FLOAT PhCpuKernelUsage;
 __declspec(dllimport) FLOAT PhCpuUserUsage;
 
-//
-// System information
-//
-
 PCWSTR AtpKphLevelString(
     _In_ KPH_LEVEL Level
     )
@@ -155,7 +151,6 @@ VOID AtpGetSystemInfo(
 
     PhAddJsonObjectUInt64(structured, "page_size", basicInfo.PageSize);
 
-    // Process/thread/handle totals from the provider cache.
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
 
     for (i = 0; i < numberOfProcessItems; i++)
@@ -282,10 +277,6 @@ VOID AtpListKernelDrivers(
     Result->StructuredContent = structured;
 }
 
-//
-// KSI driver status
-//
-
 VOID AtpGetKsiStatus(
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -325,10 +316,6 @@ VOID AtpGetKsiStatus(
 
     Result->StructuredContent = structured;
 }
-
-//
-// Pagefile information
-//
 
 VOID AtpGetPagefileInfo(
     _Inout_ PAT_TOOL_RESULT Result
@@ -404,10 +391,6 @@ VOID AtpGetPagefileInfo(
 
     Result->StructuredContent = structured;
 }
-
-//
-// SMBIOS information
-//
 
 typedef struct _AT_SMBIOS_CONTEXT
 {
@@ -517,10 +500,6 @@ VOID AtpGetSmbiosInfo(
     Result->StructuredContent = structured;
 }
 
-//
-// UEFI variables
-//
-
 // Values are opaque binary; large blobs (e.g. db/dbx) are emitted as a bounded hex prefix.
 #define AT_UEFI_VALUE_HEX_LIMIT 256
 
@@ -629,10 +608,6 @@ VOID AtpGetUefiVariables(
 
     Result->StructuredContent = structured;
 }
-
-//
-// TPM information
-//
 
 // Mirrors TPM_DEVICE_INFO from tbs.h; tbs.dll is loaded at runtime so the plugin does not link tbs.lib.
 typedef struct _AT_TPM_DEVICE_INFO
@@ -799,10 +774,6 @@ VOID AtpGetTpmInfo(
     Result->StructuredContent = structured;
 }
 
-//
-// System environment variables
-//
-
 typedef struct _AT_ENVIRONMENT_CONTEXT
 {
     PVOID Entries;
@@ -830,7 +801,6 @@ BOOLEAN NTAPI AtpEnvironmentValueCallback(
         // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
         SIZE_T dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
 
-        // Trim a trailing null from the value if present.
         if (dataLength >= sizeof(WCHAR) &&
             *(PWCHAR)PTR_ADD_OFFSET(Information, Information->DataOffset + dataLength - sizeof(WCHAR)) == UNICODE_NULL)
         {

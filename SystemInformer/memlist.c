@@ -534,10 +534,7 @@ extern PCWSTR PhGetProcessHeapClassText(
     _In_ ULONG HeapClass
     );
 
-PHAPPAPI
-PPH_STRING
-NTAPI
-PhGetMemoryRegionUseText(
+PPH_STRING PhGetMemoryRegionUseText(
     _In_ PPH_MEMORY_ITEM MemoryItem
     )
 {

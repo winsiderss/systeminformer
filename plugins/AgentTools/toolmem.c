@@ -11,13 +11,6 @@
 
 #include "agenttools.h"
 
-//
-// Modules
-//
-//
-// Handles
-//
-
 typedef struct _AT_TYPE_COUNT
 {
     PPH_STRING Name;
@@ -269,10 +262,6 @@ VOID AtpCloseHandle(
     Result->StructuredContent = structured;
 }
 
-//
-// Memory regions
-//
-
 PCWSTR AtpMemoryStateString(
     _In_ ULONG State
     )
@@ -411,10 +400,6 @@ VOID AtpGetProcessMemoryRegions(
 
     AtDeleteTarget(&target);
 }
-
-//
-// Minidump
-//
 
 VOID AtpCreateProcessMinidump(
     _In_ PAT_TOOL_CALL Call,

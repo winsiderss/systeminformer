@@ -12,10 +12,6 @@
 
 #include "agenttools.h"
 
-//
-// Process detail helpers
-//
-
 PCWSTR AtpElevationTypeString(
     _In_ TOKEN_ELEVATION_TYPE Type
     )
@@ -86,10 +82,6 @@ VOID AtpAddParentPid(
     else
         AtJsonAddNull(Object, "parent_pid");
 }
-
-//
-// Processes
-//
 
 PVOID AtpCreateProcessRow(
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -245,7 +237,7 @@ typedef struct _AT_LIST_FILTER
 {
     PPH_STRING NameContains;
     PPH_STRING UserContains;
-    PVOID Pids; // JSON array or NULL
+    PVOID Pids;
     BOOLEAN HaveParentPid;
     HANDLE ParentPid;
     BOOLEAN IncludeTree;
@@ -524,10 +516,6 @@ VOID AtpControlProcess(
     Result->StructuredContent = structured;
 }
 
-//
-// Process token
-//
-
 VOID AtpAddSidStrings(
     _In_ PVOID Object,
     _In_ PCSTR NameKey,
@@ -750,10 +738,6 @@ VOID AtpGetProcessToken(
     AtDeleteTarget(&target);
 }
 
-//
-// Process windows
-//
-
 typedef struct _AT_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
@@ -840,7 +824,6 @@ VOID AtpGetProcessWindows(
     context.VisibleOnly = TRUE;
     context.Windows = PhCreateJsonArray();
 
-    // visible_only defaults to true unless the caller passes false.
     if (visibleMember = AtJsonGetObjectMember(Call->Arguments, "visible_only", PH_JSON_OBJECT_TYPE_BOOLEAN))
         context.VisibleOnly = AtJsonGetObjectBoolean(Call->Arguments, "visible_only");
 

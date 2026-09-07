@@ -11,12 +11,6 @@
 
 #include "agenttools.h"
 
-//
-// The tool contract: one action per tool with its tier, target and access, and the MCP definition
-// (input and output schema) served by tools/list. Additive changes keep AT_SCHEMA_VERSION; a change
-// that breaks an existing field bumps it.
-//
-
 CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 {
     {
@@ -324,9 +318,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 
 CONST AT_TOOL AtTools[] =
 {
-    //
-    // Processes
-    //
+    // processes
     {
         "list_processes", L"List processes", AtTierRead, AtActionListProcesses,
         SETTING_NAME_TOOL_ACCESS(L"list_processes"), SETTING_NAME_TOOL_CONFIRM(L"list_processes"),
@@ -757,9 +749,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"handle\"]},"
         AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
-    //
-    // Threads
-    //
+    // threads
     {
         "suspend_thread", L"Suspend thread", AtTierWrite, AtActionSuspendThread,
         SETTING_NAME_TOOL_ACCESS(L"suspend_thread"), SETTING_NAME_TOOL_CONFIRM(L"suspend_thread"),
@@ -788,9 +778,7 @@ CONST AT_TOOL AtTools[] =
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
         AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
-    //
-    // Services
-    //
+    // services
     {
         "list_services", L"List services", AtTierRead, AtActionListServices,
         SETTING_NAME_TOOL_ACCESS(L"list_services"), SETTING_NAME_TOOL_CONFIRM(L"list_services"),
@@ -886,9 +874,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"name\",\"action\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
-    //
-    // Network
-    //
+    // network
     {
         "list_network_connections", L"List network connections", AtTierRead, AtActionListNetworkConnections,
         SETTING_NAME_TOOL_ACCESS(L"list_network_connections"), SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
@@ -932,9 +918,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"connection\"]},"
         AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
-    //
-    // System
-    //
+    // system
     {
         "get_system_info", L"Get system information", AtTierRead, AtActionGetSystemInfo,
         SETTING_NAME_TOOL_ACCESS(L"get_system_info"), SETTING_NAME_TOOL_CONFIRM(L"get_system_info"),
@@ -1155,9 +1139,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"variables\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
-    //
-    // Files and memory
-    //
+    // files and memory
     {
         "verify_file_signature", L"Verify file signature", AtTierRead, AtActionVerifyFileSignature,
         SETTING_NAME_TOOL_ACCESS(L"verify_file_signature"), SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),

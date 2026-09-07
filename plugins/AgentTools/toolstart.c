@@ -70,7 +70,6 @@ BOOLEAN NTAPI AtpStartupValueCallback(
         // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
         SIZE_T dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
 
-        // Trim a trailing null from the value if present.
         if (dataLength >= sizeof(WCHAR) &&
             *(PWCHAR)PTR_ADD_OFFSET(Information, Information->DataOffset + dataLength - sizeof(WCHAR)) == UNICODE_NULL)
         {
@@ -137,7 +136,6 @@ BOOLEAN NTAPI AtpStartupFolderCallback(
 
     name = PhCreateStringEx(Information->FileName, Information->FileNameLength);
 
-    // Skip the "." and ".." entries and desktop.ini.
     if (!PhEqualStringZ(name->Buffer, L".", TRUE) &&
         !PhEqualStringZ(name->Buffer, L"..", TRUE) &&
         !PhEqualStringZ(name->Buffer, L"desktop.ini", TRUE))
@@ -173,7 +171,6 @@ VOID AtpReadStartupFolder(
     context.Kind = "startup_folder";
     context.Count = 0;
 
-    // The location string is the folder path itself.
     if (locationUtf8 = PhConvertUtf16ToUtf8Ex(folderPath->Buffer, folderPath->Length))
     {
         context.Location = locationUtf8->Buffer;

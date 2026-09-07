@@ -175,7 +175,7 @@ typedef struct _AT_SERVICE_FILTER
 {
     PPH_STRING NameContains;
     BOOLEAN HaveState;
-    ULONG State; // SERVICE_RUNNING etc; 0xffffffff means "any pending"
+    ULONG State;
     BOOLEAN HaveType;
     BOOLEAN Driver;
     BOOLEAN HavePid;

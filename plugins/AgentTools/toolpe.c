@@ -17,18 +17,12 @@
 #define AT_SEARCH_MAX_RESULTS 1000
 #define AT_SEARCH_MAX_PATTERN 256
 
-//
-// verify_file_signature
-//
-
 PCWSTR AtpVerifyResultText(
     _In_ VERIFY_RESULT Result
     )
 {
     PCWSTR text = AtVerifyResultString(Result);
 
-    // AtVerifyResultString returns NULL for VrUnknown and any value it does not name; a signature
-    // tool should always report a concrete state.
     return text ? text : L"Unknown";
 }
 
@@ -62,10 +56,6 @@ VOID AtpVerifyFileSignature(
     PhClearReference(&signer);
     PhDereferenceObject(path);
 }
-
-//
-// get_image_info
-//
 
 PCWSTR AtpMachineString(
     _In_ USHORT Machine
@@ -334,10 +324,6 @@ VOID AtpGetImageInfo(
     PhDereferenceObject(path);
 }
 
-//
-// read_process_memory
-//
-
 VOID AtpRenderBytes(
     _In_ PVOID Object,
     _In_reads_bytes_(Size) PUCHAR Bytes,
@@ -416,10 +402,6 @@ VOID AtpReadProcessMemory(
 
     PhFree(buffer);
 }
-
-//
-// search_process_memory
-//
 
 BOOLEAN AtpHexDigit(
     _In_ WCHAR Character,
