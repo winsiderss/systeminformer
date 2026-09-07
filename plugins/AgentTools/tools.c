@@ -1068,7 +1068,14 @@ VOID AtInvokeTool(
     case AtActionGetProcessToken:
     case AtActionGetProcessWindows:
     case AtActionListKernelDrivers:
+    case AtActionGetKsiStatus:
         AtSystemInvokeTool(Tool, Call, Target, Result);
+        break;
+    case AtActionVerifyFileSignature:
+    case AtActionGetImageInfo:
+    case AtActionReadProcessMemory:
+    case AtActionSearchProcessMemory:
+        AtPeInvokeTool(Tool, Call, Target, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

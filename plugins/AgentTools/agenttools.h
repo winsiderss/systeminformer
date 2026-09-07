@@ -97,6 +97,12 @@ typedef enum _AT_ACTION
     // system
     AtActionGetSystemInfo,
     AtActionListKernelDrivers,
+    AtActionGetKsiStatus,
+    // files and memory
+    AtActionVerifyFileSignature,
+    AtActionGetImageInfo,
+    AtActionReadProcessMemory,
+    AtActionSearchProcessMemory,
     AtActionMaximum,
 } AT_ACTION;
 
@@ -578,6 +584,13 @@ VOID AtNetworkInvokeTool(
     );
 
 VOID AtSystemInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtPeInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

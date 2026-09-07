@@ -587,6 +587,31 @@ static VOID AtpListKernelDrivers(
     Result->StructuredContent = structured;
 }
 
+//
+// KSI driver status
+//
+
+static VOID AtpGetKsiStatus(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    KPH_LEVEL level;
+    PVOID structured;
+
+    level = KsiLevel();
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(structured, "connected", level != KphLevelNone);
+    AtJsonAddStringZ(structured, "level", AtpKphLevelString(level));
+    AtJsonAddNull(structured, "driver_image_path");
+    AtJsonAddNull(structured, "driver_service_name");
+    AtJsonAddNull(structured, "driver_size");
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -607,6 +632,9 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionListKernelDrivers:
         AtpListKernelDrivers(Call, Result);
+        break;
+    case AtActionGetKsiStatus:
+        AtpGetKsiStatus(Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

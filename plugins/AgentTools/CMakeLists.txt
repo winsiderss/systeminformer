@@ -26,6 +26,7 @@ set(SOURCES
     "target.c"
     "tools.c"
     "toolmem.c"
+    "toolpe.c"
     "toolnet.c"
     "toolsvc.c"
     "toolsys.c"
