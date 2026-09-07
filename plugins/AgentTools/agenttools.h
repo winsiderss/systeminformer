@@ -19,6 +19,11 @@
 #include <json.h>
 #include <verify.h>
 #include <workqueue.h>
+#include <hndlinfo.h>
+#include <svcsup.h>
+#include <lsasup.h>
+#include <symprv.h>
+#include <kphuser.h>
 #include <simcp.h>
 
 #include "resource.h"
@@ -56,20 +61,61 @@ typedef enum _AT_TIER
 typedef enum _AT_ACTION
 {
     AtActionConnect,
+    // processes
     AtActionListProcesses,
     AtActionGetProcess,
+    AtActionGetProcessModules,
+    AtActionGetProcessThreads,
+    AtActionGetProcessHandles,
+    AtActionGetProcessMemoryRegions,
+    AtActionGetProcessToken,
+    AtActionGetProcessWindows,
     AtActionReadProcessEnvironment,
+    AtActionGetProcessHandlesDetailed,
+    AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,
+    AtActionSetProcessPriority,
+    AtActionSetProcessIoPriority,
+    AtActionCreateProcessMinidump,
+    AtActionCloseHandle,
+    // threads
+    AtActionSuspendThread,
+    AtActionResumeThread,
+    AtActionTerminateThread,
+    // services
+    AtActionListServices,
+    AtActionGetService,
+    AtActionStartService,
+    AtActionStopService,
+    AtActionRestartService,
+    AtActionSetServiceConfig,
+    // network
+    AtActionListNetworkConnections,
+    AtActionCloseNetworkConnection,
+    // system
+    AtActionGetSystemInfo,
+    AtActionListKernelDrivers,
     AtActionMaximum,
 } AT_ACTION;
+
+typedef enum _AT_TARGET_KIND
+{
+    AtTargetNone,
+    AtTargetProcess,
+    AtTargetThread,
+    AtTargetService,
+    AtTargetHandle,
+    AtTargetConnection,
+} AT_TARGET_KIND;
 
 typedef struct _AT_ACTION_INFO
 {
     AT_ACTION Action;
     AT_TIER Tier;
-    ACCESS_MASK TargetAccess;
+    AT_TARGET_KIND TargetKind;
+    ACCESS_MASK TargetAccess; // process access for process targets, thread access for thread targets, service access for service targets
     PWSTR ConfirmSetting;
     PWSTR Verb;
     PWSTR Headline;
@@ -79,6 +125,39 @@ typedef struct _AT_ACTION_INFO
 typedef CONST AT_ACTION_INFO *PCAT_ACTION_INFO;
 
 extern CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum];
+
+/**
+ * The object a tool call acts on, resolved against the provider caches and, where the action needs
+ * one, opened with exactly the rights the action needs. The consent dialog, the audit log and the
+ * elicitation prompt all describe the target from this structure, and pending client-side consent
+ * is bound to Identity so a retry cannot be redirected to a different object.
+ */
+typedef struct _AT_TARGET
+{
+    AT_TARGET_KIND Kind;
+
+    PPH_PROCESS_ITEM ProcessItem; // process, thread, handle and connection targets (optional for connections)
+    HANDLE ProcessHandle;
+
+    HANDLE ThreadId;
+    HANDLE ThreadHandle;
+
+    PPH_SERVICE_ITEM ServiceItem;
+    SC_HANDLE ServiceHandle;
+
+    HANDLE HandleValue;
+    ULONG HandleTypeIndex;
+    ULONG HandleAttributes;
+    PVOID HandleObject;
+    PPH_STRING HandleTypeName;
+    PPH_STRING HandleObjectName;
+
+    PPH_NETWORK_ITEM NetworkItem; // connection targets; a private copy, never the cached item
+    PPH_STRING ConnectionText;
+
+    PPH_STRING Parameter; // what the action sets the target to, when it takes a value
+    ULONG64 Identity[4];
+} AT_TARGET, *PAT_TARGET;
 
 typedef enum _AT_SESSION_POLICY
 {
@@ -93,8 +172,7 @@ typedef struct _AT_PENDING_CONSENT
 {
     BOOLEAN Used;
     AT_ACTION Action;
-    ULONG ProcessId;
-    ULONGLONG ProcessSequenceNumber;
+    ULONG64 Identity[4];
     ULONG64 Nonce;
     LARGE_INTEGER Expiry;
 } AT_PENDING_CONSENT, *PAT_PENDING_CONSENT;
@@ -256,7 +334,7 @@ VOID AtMcpDeleteConnectionState(
 AT_CONSENT_RESULT AtMcpElicitConsent(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     );
 
 BOOLEAN AtMcpPumpDuringWait(
@@ -348,19 +426,10 @@ VOID AtEnumTools(
     _In_ PVOID ToolsArray
     );
 
-NTSTATUS AtResolveTargetProcess(
-    _In_ PCAT_TOOL Tool,
-    _In_opt_ PVOID Arguments,
-    _Out_ PPH_PROCESS_ITEM* ProcessItem,
-    _Out_ PHANDLE ProcessHandle,
-    _Inout_ PAT_TOOL_RESULT Result
-    );
-
 VOID AtInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
-    _In_opt_ HANDLE ProcessHandle,
+    _Inout_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     );
 
@@ -372,7 +441,207 @@ VOID AtSetToolError(
     ...
     );
 
+VOID AtSetToolStatusError(
+    _Inout_ PAT_TOOL_RESULT Result,
+    _In_ NTSTATUS Status,
+    _In_ PCWSTR Operation
+    );
+
 VOID AtDeleteToolResult(
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+// Shared helpers for tool implementations (tools.c)
+
+VOID AtAddSnapshot(
+    _In_ PVOID Object
+    );
+
+BOOLEAN AtGetArgumentUInt64(
+    _In_opt_ PVOID Arguments,
+    _In_ PCSTR Key,
+    _Out_ PULONG64 Value
+    );
+
+BOOLEAN AtGetArgumentPointer(
+    _In_opt_ PVOID Arguments,
+    _In_ PCSTR Key,
+    _Out_ PULONG64 Value
+    );
+
+PPH_STRING AtGetArgumentString(
+    _In_opt_ PVOID Arguments,
+    _In_ PCSTR Key
+    );
+
+VOID AtJsonAddStringZ(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_opt_ PCWSTR String
+    );
+
+VOID AtJsonAddPointer(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_opt_ PVOID Pointer
+    );
+
+VOID AtJsonAddWin32FileName(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_opt_ PPH_STRING NativeFileName
+    );
+
+VOID AtJsonAddDuration(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Duration100ns
+    );
+
+BOOLEAN AtContainsString(
+    _In_opt_ PPH_STRING String,
+    _In_opt_ PPH_STRING Needle
+    );
+
+PCWSTR AtVerifyResultString(
+    _In_ VERIFY_RESULT Result
+    );
+
+PCWSTR AtIoPriorityString(
+    _In_ IO_PRIORITY_HINT IoPriority
+    );
+
+PCWSTR AtPriorityClassString(
+    _In_ ULONG PriorityClass
+    );
+
+VOID AtFillProcessIdentity(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    );
+
+BOOLEAN AtParsePriorityClass(
+    _In_opt_ PPH_STRING String,
+    _Out_ PULONG PriorityClass
+    );
+
+BOOLEAN AtParseIoPriority(
+    _In_opt_ PPH_STRING String,
+    _Out_ IO_PRIORITY_HINT* IoPriority
+    );
+
+BOOLEAN AtParseServiceStartType(
+    _In_opt_ PPH_STRING String,
+    _Out_ PULONG StartType
+    );
+
+PPH_STRING AtFormatServiceConfigParameter(
+    _In_opt_ PVOID Arguments,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+// Tool implementations by area
+
+VOID AtProcessInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtThreadInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtMemoryInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtServiceInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtNetworkInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtSystemInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+// target.c
+
+NTSTATUS AtResolveTarget(
+    _In_ PCAT_TOOL Tool,
+    _In_opt_ PVOID Arguments,
+    _Out_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+NTSTATUS AtResolveProcessTarget(
+    _In_opt_ PVOID Arguments,
+    _In_ BOOLEAN RequireSequenceNumber,
+    _In_ ACCESS_MASK ProcessAccess,
+    _Out_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtDeleteTarget(
+    _Inout_ PAT_TARGET Target
+    );
+
+VOID AtSetTargetParameter(
+    _Inout_ PAT_TARGET Target,
+    _In_ PCWSTR Parameter
+    );
+
+PPH_STRING AtFormatTargetHeadline(
+    _In_ PAT_TARGET Target
+    );
+
+PPH_STRING AtFormatTargetDescription(
+    _In_ PAT_TARGET Target
+    );
+
+PPH_STRING AtFormatTargetAudit(
+    _In_ PAT_TARGET Target
+    );
+
+PPH_STRING AtFormatNetworkEndpoint(
+    _In_ PPH_IP_ENDPOINT Endpoint,
+    _In_ ULONG ProtocolType,
+    _In_ ULONG ScopeId,
+    _In_ BOOLEAN IncludePort
+    );
+
+PCWSTR AtProtocolTypeString(
+    _In_ ULONG ProtocolType
+    );
+
+BOOLEAN AtParseProtocolType(
+    _In_opt_ PPH_STRING String,
+    _Out_ PULONG ProtocolType
+    );
+
+NTSTATUS AtFindNetworkConnection(
+    _In_opt_ PVOID Arguments,
+    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _Out_ PPH_NETWORK_ITEM* NetworkItem,
     _Inout_ PAT_TOOL_RESULT Result
     );
 
@@ -401,11 +670,7 @@ VOID AtConsentReleaseConnection(
 AT_CONSENT_RESULT AtConsentGate(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
-    );
-
-PPH_STRING AtFormatTargetDescription(
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     );
 
 PPH_STRING AtFormatCallerDescription(
@@ -415,7 +680,7 @@ PPH_STRING AtFormatCallerDescription(
 VOID AtAudit(
     _In_ PAT_CONNECTION Connection,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PAT_TARGET Target,
     _In_ PCWSTR Outcome
     );
 

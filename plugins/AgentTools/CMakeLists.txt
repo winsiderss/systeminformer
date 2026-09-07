@@ -21,8 +21,15 @@ set(SOURCES
     "main.c"
     "mcp.c"
     "options.c"
+    "schema.c"
     "server.c"
+    "target.c"
     "tools.c"
+    "toolmem.c"
+    "toolnet.c"
+    "toolsvc.c"
+    "toolsys.c"
+    "toolthrd.c"
 )
 source_group("Source Files" FILES ${SOURCES})
 

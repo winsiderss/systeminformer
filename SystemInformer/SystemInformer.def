@@ -339,6 +339,8 @@ EXPORTS
 
 ; phconfig
     PhIsExecutingInWow64
+    PhCpuKernelUsage DATA
+    PhCpuUserUsage DATA
     PhSystemBasicInformation DATA
 
 ; phbasesup
@@ -718,12 +720,14 @@ EXPORTS
     PhResumeThread
     PhRevertImpersonationToken
     PhSetFileAllocationSize
+    PhSetFileDelete
     PhSetFileIoPriorityHint
     PhSetFilePosition
     PhSetFileSize
     PhSetFirmwareEnvironmentVariable
     PhSetObjectSecurity
     PhSetProcessPowerThrottlingState
+    PhSetProcessIoPriority
     PhSetProcessPriorityBoost
     PhSetProcessPriorityClass
     PhSetThreadAffinityMask
@@ -740,6 +744,7 @@ EXPORTS
     PhSuspendProcess
     PhSuspendThread
     PhTerminateProcess
+    PhTerminateThread
     PhThawProcess
     PhTraceControl
     PhTransceiveNamedPipe
@@ -830,6 +835,7 @@ EXPORTS
     PhGetKnownFolderPath
     PhGetKnownLocation
     PhGetMessage
+    PhGetMemoryRegionUseText
     PhGetMonitorDpi
     PhGetNtMessage
     PhGetNtSystemRoot
@@ -1198,6 +1204,7 @@ EXPORTS
     PhStdSetObjectSecurity
 
 ; svcsup
+    PhChangeServiceConfig
     PhChangeServiceConfig2
     PhCloseServiceHandle
     PhEnumDependentServices
@@ -1205,6 +1212,9 @@ EXPORTS
     PhGetServiceConfig
     PhGetServiceConfigFileName
     PhGetServiceDescription
+    PhGetServiceDelayedAutoStart
+    PhSetServiceDelayedAutoStart
+    PhSetTcpEntry
     PhGetServiceDllParameter
     PhGetServiceErrorControlInteger
     PhGetServiceErrorControlString
@@ -1270,6 +1280,7 @@ EXPORTS
     PhCreateJsonObject
     PhCreateJsonParser
     PhCreateJsonParserEx
+    PhCreateJsonStringObject
     PhFreeJsonObject
     PhGetJsonArrayIndexObject
     PhGetJsonArrayLength

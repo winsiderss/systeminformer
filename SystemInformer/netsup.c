@@ -408,7 +408,10 @@ NTSTATUS PhNsiSetAllParameters(
 #endif
 }
 
-NTSTATUS PhSetTcpEntry(
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhSetTcpEntry(
     _In_ PPH_NETWORK_ITEM NetworkItem
     )
 {

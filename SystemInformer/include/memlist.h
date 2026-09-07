@@ -164,9 +164,14 @@ VOID PhExpandAllMemoryNodes(
     _In_ BOOLEAN Expand
     );
 
-PPH_STRING PhGetMemoryRegionUseText(
+// begin_phapppub
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetMemoryRegionUseText(
     _In_ PPH_MEMORY_ITEM MemoryItem
     );
+// end_phapppub
 
 PPH_MEMORY_NODE PhGetSelectedMemoryNode(
     _In_ PPH_MEMORY_LIST_CONTEXT Context

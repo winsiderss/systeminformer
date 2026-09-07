@@ -201,10 +201,13 @@ typedef ULONG (WINAPI *_InternalGetBoundTcp6EndpointTable)(
 
 // netsup
 
+// begin_phapppub
+PHAPPAPI
 NTSTATUS
 NTAPI
 PhSetTcpEntry(
     _In_ PPH_NETWORK_ITEM NetworkItem
     );
+// end_phapppub
 
 #endif

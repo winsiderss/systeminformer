@@ -231,6 +231,13 @@ PhAddJsonObjectDouble(
 PHLIBAPI
 PVOID
 NTAPI
+PhCreateJsonStringObject(
+    _In_ PCSTR Value
+    );
+
+PHLIBAPI
+PVOID
+NTAPI
 PhCreateJsonArray(
     VOID
     );

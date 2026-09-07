@@ -74,8 +74,15 @@
     <ClCompile Include="main.c" />
     <ClCompile Include="mcp.c" />
     <ClCompile Include="options.c" />
+    <ClCompile Include="schema.c" />
     <ClCompile Include="server.c" />
+    <ClCompile Include="target.c" />
     <ClCompile Include="tools.c" />
+    <ClCompile Include="toolmem.c" />
+    <ClCompile Include="toolnet.c" />
+    <ClCompile Include="toolsvc.c" />
+    <ClCompile Include="toolsys.c" />
+    <ClCompile Include="toolthrd.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="agenttools.h" />

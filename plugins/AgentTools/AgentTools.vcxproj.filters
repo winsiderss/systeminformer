@@ -27,10 +27,31 @@
     <ClCompile Include="options.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="schema.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="server.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="target.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="tools.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolmem.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolnet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolsvc.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolsys.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="toolthrd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

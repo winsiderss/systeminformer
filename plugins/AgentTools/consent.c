@@ -84,44 +84,6 @@ VOID AtpDereferenceConsentRequest(
     }
 }
 
-PPH_STRING AtFormatTargetDescription(
-    _In_ PPH_PROCESS_ITEM ProcessItem
-    )
-{
-    PH_STRING_BUILDER builder;
-    PH_FORMAT format[6];
-
-    PhInitializeStringBuilder(&builder, 256);
-
-    PhInitFormatS(&format[0], PhGetStringOrDefault(ProcessItem->ProcessName, L"(unnamed)"));
-    PhInitFormatS(&format[1], L" (PID ");
-    PhInitFormatU(&format[2], HandleToUlong(ProcessItem->ProcessId));
-    PhInitFormatS(&format[3], L", sequence ");
-    PhInitFormatI64U(&format[4], ProcessItem->ProcessSequenceNumber);
-    PhInitFormatS(&format[5], L")");
-    PhAppendFormatStringBuilder(&builder, L"%s", PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 64))->Buffer);
-
-    PhAppendFormatStringBuilder(&builder, L"\nImage: %s", PhGetStringOrDefault(ProcessItem->FileName, L"(unknown)"));
-
-    if (ProcessItem->VerifyResult == VrTrusted)
-    {
-        PhAppendFormatStringBuilder(&builder, L"\nSigner: Trusted (%s)", PhGetStringOrDefault(ProcessItem->VerifySignerName, L"unknown"));
-    }
-    else if (ProcessItem->VerifyResult == VrUnknown)
-    {
-        PhAppendStringBuilder2(&builder, L"\nSigner: not verified");
-    }
-    else
-    {
-        PhAppendStringBuilder2(&builder, L"\nSigner: not trusted");
-    }
-
-    if (ProcessItem->UserName)
-        PhAppendFormatStringBuilder(&builder, L"\nUser: %s", PhGetString(ProcessItem->UserName));
-
-    return PhFinalStringBuilderString(&builder);
-}
-
 VOID AtpEnsureLauncherVerified(
     _In_ PAT_CONNECTION Connection
     )
@@ -347,29 +309,32 @@ PPH_STRING AtFormatCallerDescription(
 VOID AtAudit(
     _In_ PAT_CONNECTION Connection,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PAT_TARGET Target,
     _In_ PCWSTR Outcome
     )
 {
     PPH_STRING message;
     PPH_STRING client;
+    PPH_STRING target = NULL;
 
     PhAcquireQueuedLockExclusive(&Connection->Lock);
     client = Connection->ClientName ? PhReferenceObject(Connection->ClientName) : NULL;
     PhReleaseQueuedLockExclusive(&Connection->Lock);
 
-    if (ProcessItem)
+    if (Target && Target->Kind != AtTargetNone)
+        target = AtFormatTargetAudit(Target);
+
+    if (target)
     {
         message = PhFormatString(
-            L"AgentTools: connection %u (%s, client %s) %s on %s (PID %u, sequence %I64u, %s): %s",
+            L"AgentTools: connection %u (%s, client %s) %s on %s%s%s: %s",
             Connection->ConnectionId,
             PhGetStringOrDefault(Connection->UserName, L"unknown user"),
             PhGetStringOrDefault(client, L"unidentified"),
             Action->AuditName,
-            PhGetStringOrDefault(ProcessItem->ProcessName, L"(unnamed)"),
-            HandleToUlong(ProcessItem->ProcessId),
-            ProcessItem->ProcessSequenceNumber,
-            PhGetStringOrDefault(ProcessItem->FileName, L"unknown image"),
+            PhGetString(target),
+            Target->Parameter ? L" to " : L"",
+            Target->Parameter ? PhGetString(Target->Parameter) : L"",
             Outcome
             );
     }
@@ -391,6 +356,7 @@ VOID AtAudit(
         PhDereferenceObject(message);
     }
 
+    PhClearReference(&target);
     PhClearReference(&client);
 }
 
@@ -868,7 +834,7 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
 AT_CONSENT_RESULT AtpAskUser(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PAT_TARGET Target,
     _Out_ AT_SESSION_POLICY* Policy
     )
 {
@@ -880,15 +846,20 @@ AT_CONSENT_RESULT AtpAskUser(
     requester = AtpFormatRequester(connection);
     request = AtpCreateConsentRequest(Action, connection);
 
-    // The headline is the one thing to check: the action and its target. The body is who asks.
-    if (ProcessItem)
+    // The headline is the one thing to check: the action, its target and, when the action sets a
+    // value, that value. The body is who asks.
+    if (Target && Target->Kind != AtTargetNone)
     {
+        PPH_STRING headline = AtFormatTargetHeadline(Target);
+
         request->Instruction = PhFormatString(
-            L"%s %s (PID %lu)?",
+            L"%s %s%s%s?",
             Action->Headline,
-            PhGetStringOrDefault(ProcessItem->ProcessName, L"this process"),
-            HandleToUlong(ProcessItem->ProcessId)
+            PhGetString(headline),
+            Target->Parameter ? L" to " : L"",
+            Target->Parameter ? PhGetString(Target->Parameter) : L""
             );
+        PhDereferenceObject(headline);
     }
     else
     {
@@ -1048,7 +1019,7 @@ VOID AtConsentReleaseConnection(
 AT_CONSENT_RESULT AtConsentGate(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     )
 {
     PAT_CONNECTION connection = Call->Connection;
@@ -1075,7 +1046,7 @@ AT_CONSENT_RESULT AtConsentGate(
 
     if (confirm == AT_CONFIRM_ALWAYS && policy != AtSessionDelegate)
     {
-        result = AtpAskUser(Call, Action, ProcessItem, &policy);
+        result = AtpAskUser(Call, Action, Target, &policy);
 
         if (result == AtConsentAllowed && policy != AtSessionAsk)
         {
@@ -1095,7 +1066,7 @@ AT_CONSENT_RESULT AtConsentGate(
     {
         // Dialogs are off for this action: the client's elicitation UI is the human check, and
         // without one the call is refused.
-        result = AtMcpElicitConsent(Call, Action, ProcessItem);
+        result = AtMcpElicitConsent(Call, Action, Target);
     }
 
     switch (result)
@@ -1107,28 +1078,28 @@ AT_CONSENT_RESULT AtConsentGate(
             connection->SessionPolicy[Action->Action] = AtSessionAllow;
             PhReleaseQueuedLockExclusive(&connection->Lock);
         }
-        AtAudit(connection, Action, ProcessItem, L"allowed");
+        AtAudit(connection, Action, Target, L"allowed");
         break;
     case AtConsentDenied:
-        AtAudit(connection, Action, ProcessItem, L"denied by the user");
+        AtAudit(connection, Action, Target, L"denied by the user");
         break;
     case AtConsentTimeout:
-        AtAudit(connection, Action, ProcessItem, L"denied (no answer in time)");
+        AtAudit(connection, Action, Target, L"denied (no answer in time)");
         break;
     case AtConsentDeclined:
-        AtAudit(connection, Action, ProcessItem, L"declined through the client");
+        AtAudit(connection, Action, Target, L"declined through the client");
         break;
     case AtConsentCancelled:
-        AtAudit(connection, Action, ProcessItem, L"cancelled by the client");
+        AtAudit(connection, Action, Target, L"cancelled by the client");
         break;
     case AtConsentElicitationRequired:
-        AtAudit(connection, Action, ProcessItem, L"refused (confirmation delegated to a client without elicitation)");
+        AtAudit(connection, Action, Target, L"refused (confirmation delegated to a client without elicitation)");
         break;
     case AtConsentInputRequired:
-        AtAudit(connection, Action, ProcessItem, L"confirmation requested through the client");
+        AtAudit(connection, Action, Target, L"confirmation requested through the client");
         break;
     default:
-        AtAudit(connection, Action, ProcessItem, L"confirmation failed");
+        AtAudit(connection, Action, Target, L"confirmation failed");
         break;
     }
 

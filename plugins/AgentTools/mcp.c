@@ -656,8 +656,7 @@ VOID AtpHandleToolsCall(
     PCAT_TOOL tool;
     AT_TOOL_CALL call;
     AT_TOOL_RESULT result;
-    PPH_PROCESS_ITEM processItem = NULL;
-    HANDLE processHandle = NULL;
+    AT_TARGET target;
     BOOLEAN sendResult = TRUE;
 
     if (!(name = PhGetJsonValueAsString(Params, "name")))
@@ -685,6 +684,7 @@ VOID AtpHandleToolsCall(
     call.InputResponses = AtJsonGetObjectMember(Params, "inputResponses", PH_JSON_OBJECT_TYPE_OBJECT);
 
     memset(&result, 0, sizeof(AT_TOOL_RESULT));
+    memset(&target, 0, sizeof(AT_TARGET));
 
     PhAcquireQueuedLockExclusive(&Connection->Lock);
     PhMoveReference(&Connection->InFlightId, PhReferenceObject(IdJson));
@@ -704,15 +704,16 @@ VOID AtpHandleToolsCall(
     {
         BOOLEAN gate;
 
-        // Reads carry no target and are granted per connection; everything else names one process.
+        // Reads are granted per connection and carry no target through the gate (the tool resolves
+        // its own); everything else names one object, resolved and held open across the consent.
         if (tool->Tier == AtTierRead)
             gate = TRUE;
         else
-            gate = NT_SUCCESS(AtResolveTargetProcess(tool, call.Arguments, &processItem, &processHandle, &result));
+            gate = NT_SUCCESS(AtResolveTarget(tool, call.Arguments, &target, &result));
 
         if (gate)
         {
-            switch (AtConsentGate(&call, &AtActionInfo[tool->Action], processItem))
+            switch (AtConsentGate(&call, &AtActionInfo[tool->Action], target.Kind != AtTargetNone ? &target : NULL))
             {
             case AtConsentAllowed:
                 break;
@@ -744,17 +745,12 @@ VOID AtpHandleToolsCall(
     if (sendResult)
     {
         if (!result.ErrorCode)
-            AtInvokeTool(tool, &call, processItem, processHandle, &result);
+            AtInvokeTool(tool, &call, &target, &result);
 
         AtpSendToolResult(&call, &result);
     }
 
-    if (processHandle)
-        NtClose(processHandle);
-
-    if (processItem)
-        PhDereferenceObject(processItem);
-
+    AtDeleteTarget(&target);
     AtDeleteToolResult(&result);
     PhClearReference(&call.RequestState);
 
@@ -996,7 +992,7 @@ BOOLEAN AtMcpPumpDuringWait(
 PVOID AtpCreateElicitationParams(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem,
+    _In_opt_ PAT_TARGET Target,
     _In_ BOOLEAN IncludeMode
     )
 {
@@ -1009,24 +1005,26 @@ PVOID AtpCreateElicitationParams(
     PPH_STRING caller;
     PPH_STRING message;
 
-    target = ProcessItem ? AtFormatTargetDescription(ProcessItem) : NULL;
+    target = Target ? AtFormatTargetDescription(Target) : NULL;
     caller = AtFormatCallerDescription(Call->Connection);
 
     if (Action->Tier == AtTierWrite)
     {
         message = PhFormatString(
-            L"System Informer: allow the connected agent to %s this process?\n\n%s\n\nRequested by: %s\n\nThis request was made by an AI agent through System Informer. Confirm only if you intended it.",
+            L"System Informer: allow the connected agent to %s%s%s?\n\n%s\n\nRequested by: %s\n\nThis request was made by an AI agent through System Informer. Confirm only if you intended it.",
             Action->Verb,
-            PhGetString(target),
+            Target && Target->Parameter ? L" to " : L"",
+            Target && Target->Parameter ? PhGetString(Target->Parameter) : L"",
+            PhGetStringOrDefault(target, L"(no target)"),
             PhGetString(caller)
             );
     }
     else if (Action->Tier == AtTierSensitiveRead)
     {
         message = PhFormatString(
-            L"System Informer: allow the connected agent to %s for the rest of this session?\n\nFirst target: %s\n\nRequested by: %s\n\nEnvironment blocks routinely contain tokens and secrets. Confirm only if you intended it.",
+            L"System Informer: allow the connected agent to %s for the rest of this session?\n\nFirst target: %s\n\nRequested by: %s\n\nThis data can contain secrets, and the grant covers every target for the rest of the session. Confirm only if you intended it.",
             Action->Verb,
-            PhGetString(target),
+            PhGetStringOrDefault(target, L"(none)"),
             PhGetString(caller)
             );
     }
@@ -1098,7 +1096,7 @@ AT_CONSENT_RESULT AtpInterpretElicitResult(
 AT_CONSENT_RESULT AtpElicitLegacy(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     )
 {
     PAT_CONNECTION connection = Call->Connection;
@@ -1111,7 +1109,7 @@ AT_CONSENT_RESULT AtpElicitLegacy(
     includeMode = connection->ProtocolVersion && !AtpEqualStringUtf8(connection->ProtocolVersion, "2025-06-18") &&
         !AtpEqualStringUtf8(connection->ProtocolVersion, "2025-03-26") && !AtpEqualStringUtf8(connection->ProtocolVersion, "2024-11-05");
 
-    AtpSendRequest(connection, requestId, "elicitation/create", AtpCreateElicitationParams(Call, Action, ProcessItem, includeMode));
+    AtpSendRequest(connection, requestId, "elicitation/create", AtpCreateElicitationParams(Call, Action, Target, includeMode));
 
     startTick = NtGetTickCount64();
 
@@ -1217,7 +1215,7 @@ PAT_PENDING_CONSENT AtpAllocatePendingConsent(
 AT_CONSENT_RESULT AtpElicitModern(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     )
 {
     PAT_CONNECTION connection = Call->Connection;
@@ -1228,8 +1226,10 @@ AT_CONSENT_RESULT AtpElicitModern(
     LARGE_INTEGER now;
     PH_FORMAT format[1];
     PPH_STRING requestState;
-    ULONG processId = ProcessItem ? HandleToUlong(ProcessItem->ProcessId) : 0;
-    ULONGLONG processSequenceNumber = ProcessItem ? ProcessItem->ProcessSequenceNumber : 0;
+    ULONG64 identity[4] = { 0 };
+
+    if (Target)
+        memcpy(identity, Target->Identity, sizeof(identity));
 
     // A retry that carries our state and the client's answer.
 
@@ -1243,8 +1243,7 @@ AT_CONSENT_RESULT AtpElicitModern(
         matches =
             pending->Expiry.QuadPart >= now.QuadPart &&
             pending->Action == Action->Action &&
-            pending->ProcessId == processId &&
-            pending->ProcessSequenceNumber == processSequenceNumber;
+            memcmp(pending->Identity, identity, sizeof(identity)) == 0;
 
         pending->Used = FALSE;
 
@@ -1260,8 +1259,7 @@ AT_CONSENT_RESULT AtpElicitModern(
     PhQuerySystemTime(&now);
     pending->Used = TRUE;
     pending->Action = Action->Action;
-    pending->ProcessId = processId;
-    pending->ProcessSequenceNumber = processSequenceNumber;
+    memcpy(pending->Identity, identity, sizeof(identity));
     pending->Nonce = ((ULONG64)PhGenerateRandomNumber64() << 1) ^ PhGenerateRandomNumber64();
     pending->Expiry.QuadPart = now.QuadPart + (LONGLONG)AT_PENDING_CONSENT_TIMEOUT_MS * PH_TIMEOUT_MS;
 
@@ -1273,7 +1271,7 @@ AT_CONSENT_RESULT AtpElicitModern(
     inputRequests = PhCreateJsonObject();
     request = PhCreateJsonObject();
     PhAddJsonObject(request, "method", "elicitation/create");
-    PhAddJsonObjectValue(request, "params", AtpCreateElicitationParams(Call, Action, ProcessItem, TRUE));
+    PhAddJsonObjectValue(request, "params", AtpCreateElicitationParams(Call, Action, Target, TRUE));
     PhAddJsonObjectValue(inputRequests, "consent", request);
     PhAddJsonObjectValue(result, "inputRequests", inputRequests);
     AtJsonAddString(result, "requestState", requestState);
@@ -1287,14 +1285,14 @@ AT_CONSENT_RESULT AtpElicitModern(
 AT_CONSENT_RESULT AtMcpElicitConsent(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
-    _In_opt_ PPH_PROCESS_ITEM ProcessItem
+    _In_opt_ PAT_TARGET Target
     )
 {
     if (!Call->ClientElicitation)
         return AtConsentElicitationRequired;
 
     if (Call->Modern)
-        return AtpElicitModern(Call, Action, ProcessItem);
+        return AtpElicitModern(Call, Action, Target);
     else
-        return AtpElicitLegacy(Call, Action, ProcessItem);
+        return AtpElicitLegacy(Call, Action, Target);
 }
