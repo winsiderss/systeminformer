@@ -60,6 +60,49 @@ VOID AtpCreateSessionPolicyControls(
     _In_ PAT_CONSENT_REQUEST Request
     );
 
+// Centers a window on the monitor the user is working on: the one holding the foreground window,
+// else the one under the cursor.
+VOID AtpCenterWindowOnUserMonitor(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND foregroundWindow;
+    HMONITOR monitor = NULL;
+    MONITORINFO monitorInfo;
+    RECT rect;
+    PH_RECTANGLE rectangle;
+    PH_RECTANGLE bounds;
+
+    if (foregroundWindow = GetForegroundWindow())
+        monitor = MonitorFromWindow(foregroundWindow, MONITOR_DEFAULTTONULL);
+
+    if (!monitor)
+    {
+        POINT cursor;
+
+        if (GetCursorPos(&cursor))
+            monitor = MonitorFromPoint(cursor, MONITOR_DEFAULTTONEAREST);
+    }
+
+    memset(&monitorInfo, 0, sizeof(MONITORINFO));
+    monitorInfo.cbSize = sizeof(MONITORINFO);
+
+    if (!monitor || !GetMonitorInfo(monitor, &monitorInfo))
+    {
+        PhCenterWindow(WindowHandle, NULL);
+        return;
+    }
+
+    if (!PhGetWindowRect(WindowHandle, &rect))
+        return;
+
+    PhRectToRectangle(&rectangle, &rect);
+    PhRectToRectangle(&bounds, &monitorInfo.rcWork);
+    PhCenterRectangle(&rectangle, &bounds);
+
+    MoveWindow(WindowHandle, rectangle.Left, rectangle.Top, rectangle.Width, rectangle.Height, FALSE);
+}
+
 PPH_STRING AtpFormatConnectionRequester(
     _In_ PAT_CONNECTION Connection
     );
@@ -374,8 +417,6 @@ HRESULT CALLBACK AtpConsentDialogCallback(
     {
     case TDN_CREATED:
         {
-            HWND mainWindow;
-
             request->DialogHandle = WindowHandle;
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -383,13 +424,9 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             // capture API; screen readers are unaffected.
             SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
 
-            // Unowned, so place it over the main window ourselves when that is on screen.
-            mainWindow = SystemInformer_GetWindowHandle();
-
-            if (mainWindow && IsWindowVisible(mainWindow) && !IsMinimized(mainWindow))
-                PhCenterWindow(WindowHandle, mainWindow);
-            else
-                PhCenterWindow(WindowHandle, NULL);
+            // Where the user is looking, not where the main window sits: a consent prompt that
+            // comes up on another monitor is a consent prompt that gets missed.
+            AtpCenterWindowOnUserMonitor(WindowHandle);
 
             // The countdown and the waiter's bound both run from here, not from submission.
             request->ShownTick = NtGetTickCount64();
