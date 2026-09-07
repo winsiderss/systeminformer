@@ -1069,6 +1069,8 @@ VOID AtInvokeTool(
     case AtActionGetProcessWindows:
     case AtActionListKernelDrivers:
     case AtActionGetKsiStatus:
+    case AtActionGetPagefileInfo:
+    case AtActionListStartupEntries:
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:

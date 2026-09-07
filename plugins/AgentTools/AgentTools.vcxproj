@@ -75,6 +75,7 @@
     <ClCompile Include="mcp.c" />
     <ClCompile Include="options.c" />
     <ClCompile Include="toolpe.c" />
+    <ClCompile Include="toolstart.c" />
     <ClCompile Include="schema.c" />
     <ClCompile Include="server.c" />
     <ClCompile Include="target.c" />

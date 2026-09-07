@@ -45,6 +45,9 @@
     <ClCompile Include="toolpe.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolstart.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolnet.c">
       <Filter>Source Files</Filter>
     </ClCompile>

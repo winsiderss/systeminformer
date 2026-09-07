@@ -612,6 +612,85 @@ static VOID AtpGetKsiStatus(
     Result->StructuredContent = structured;
 }
 
+//
+// Pagefile information
+//
+
+static VOID AtpGetPagefileInfo(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG bufferSize = 0x200;
+    ULONG returnLength = 0;
+    PSYSTEM_PAGEFILE_INFORMATION pagefile;
+    ULONG pageSize;
+    PVOID structured;
+    PVOID rows;
+    ULONG count = 0;
+
+    {
+        SYSTEM_BASIC_INFORMATION basicInfo;
+
+        memset(&basicInfo, 0, sizeof(basicInfo));
+        NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(basicInfo), NULL);
+        pageSize = basicInfo.PageSize ? basicInfo.PageSize : PAGE_SIZE;
+    }
+
+    buffer = PhAllocate(bufferSize);
+
+    while ((status = NtQuerySystemInformation(SystemPageFileInformation, buffer, bufferSize, &returnLength)) == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(buffer);
+        bufferSize *= 2;
+        buffer = PhAllocate(bufferSize);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Querying pagefile information");
+        PhFree(buffer);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    rows = PhCreateJsonArray();
+
+    // An empty result (no configured pagefile) returns zero bytes.
+    if (returnLength >= sizeof(SYSTEM_PAGEFILE_INFORMATION))
+    {
+        pagefile = buffer;
+
+        for (;;)
+        {
+            PVOID row = PhCreateJsonObject();
+            PH_STRINGREF name;
+
+            PhUnicodeStringToStringRef(&pagefile->PageFileName, &name);
+            AtJsonAddStringRef(row, "name", &name);
+            PhAddJsonObjectUInt64(row, "total_bytes", (ULONG64)pagefile->TotalSize * pageSize);
+            PhAddJsonObjectUInt64(row, "in_use_bytes", (ULONG64)pagefile->TotalInUse * pageSize);
+            PhAddJsonObjectUInt64(row, "peak_bytes", (ULONG64)pagefile->PeakUsage * pageSize);
+            PhAddJsonArrayObject(rows, row);
+            count++;
+
+            if (pagefile->NextEntryOffset == 0)
+                break;
+
+            pagefile = PTR_ADD_OFFSET(pagefile, pagefile->NextEntryOffset);
+        }
+    }
+
+    PhFree(buffer);
+
+    PhAddJsonObjectValue(structured, "pagefiles", rows);
+    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -635,6 +714,12 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionGetKsiStatus:
         AtpGetKsiStatus(Result);
+        break;
+    case AtActionGetPagefileInfo:
+        AtpGetPagefileInfo(Result);
+        break;
+    case AtActionListStartupEntries:
+        AtListStartupEntries(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
