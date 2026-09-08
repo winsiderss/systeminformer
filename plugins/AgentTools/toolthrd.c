@@ -113,6 +113,261 @@ PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
 // One process worth of threads, out of a snapshot the caller already took so a batch enumerates
 // once. Returns NULL when the process is not in that snapshot; in summary mode the threads are
 // counted but no rows are built.
+// The modules of a process by address range. A thread whose start address falls in none of them did
+// not start in anything that was loaded as a module, which is the shape injected code has; deriving
+// that from the module list rather than from symbols means it works with no symbol server, no PDBs
+// and no symbol path at all.
+
+typedef struct _AT_THREAD_MODULE
+{
+    ULONG_PTR Base;
+    ULONG_PTR End;
+    PPH_STRING FileName;
+} AT_THREAD_MODULE, *PAT_THREAD_MODULE;
+
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
+BOOLEAN NTAPI AtpThreadModuleCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PPH_LIST list = Context;
+    PAT_THREAD_MODULE entry;
+
+    if (!list || !Module->BaseAddress || !Module->Size)
+        return TRUE;
+
+    entry = PhAllocate(sizeof(AT_THREAD_MODULE));
+    entry->Base = (ULONG_PTR)Module->BaseAddress;
+    entry->End = entry->Base + Module->Size;
+    PhSetReference(&entry->FileName, Module->FileName);
+    PhAddItemList(list, entry);
+
+    return TRUE;
+}
+
+PPH_LIST AtpCreateThreadModuleList(
+    _In_ HANDLE ProcessId
+    )
+{
+    PPH_LIST list;
+
+    list = PhCreateList(64);
+    PhEnumGenericModules(ProcessId, NULL, PH_ENUM_GENERIC_MAPPED_IMAGES, AtpThreadModuleCallback, list);
+
+    return list;
+}
+
+VOID AtpDestroyThreadModuleList(
+    _In_ PPH_LIST List
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < List->Count; i++)
+    {
+        PAT_THREAD_MODULE entry = List->Items[i];
+
+        PhClearReference(&entry->FileName);
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(List);
+}
+
+PPH_STRING AtpFindThreadModule(
+    _In_opt_ PPH_LIST List,
+    _In_opt_ PVOID Address
+    )
+{
+    ULONG i;
+
+    if (!List || !Address)
+        return NULL;
+
+    for (i = 0; i < List->Count; i++)
+    {
+        PAT_THREAD_MODULE entry = List->Items[i];
+
+        if ((ULONG_PTR)Address >= entry->Base && (ULONG_PTR)Address < entry->End)
+            return entry->FileName;
+    }
+
+    return NULL;
+}
+
+PCWSTR AtpResolveLevelString(
+    _In_ PH_SYMBOL_RESOLVE_LEVEL Level
+    )
+{
+    switch (Level)
+    {
+    case PhsrlFunction:
+        return L"function";
+    case PhsrlModule:
+        return L"module";
+    case PhsrlAddress:
+        return L"address";
+    }
+
+    return NULL;
+}
+
+// The system-wide thread enumeration reports a start address of zero to a caller that is not
+// elevated: the field is withheld rather than absent, which is why System Informer's own thread
+// provider asks each thread for it (thrdprv.c:905). Same here, when the thread can be opened.
+PVOID AtpQueryThreadStartAddress(
+    _In_ HANDLE ThreadId
+    )
+{
+    HANDLE threadHandle;
+    PVOID startAddress = NULL;
+
+    // The information class wants full query access on some builds; limited is the fallback.
+    if (!NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_INFORMATION, ThreadId)) &&
+        !NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_LIMITED_INFORMATION, ThreadId)))
+    {
+        return NULL;
+    }
+
+    if (!NT_SUCCESS(NtQueryInformationThread(
+        threadHandle,
+        ThreadQuerySetWin32StartAddress,
+        &startAddress,
+        sizeof(PVOID),
+        NULL
+        )))
+    {
+        startAddress = NULL;
+    }
+
+    NtClose(threadHandle);
+
+    return startAddress;
+}
+
+// The per-thread detail that needs the thread itself opened. Everything here is null when it could
+// not be read, and the whole block is only gathered when the caller asks, because a process with a
+// few hundred threads would otherwise cost a few hundred opens and several queries each.
+VOID AtpAddThreadDetails(
+    _In_ PVOID Row,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_opt_ HANDLE ProcessHandle
+    )
+{
+    HANDLE threadHandle;
+    THREAD_BASIC_INFORMATION basicInfo;
+    THREAD_CYCLE_TIME_INFORMATION cycleTime;
+    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
+    PROCESSOR_NUMBER idealProcessor;
+    IO_PRIORITY_HINT ioPriority;
+    ULONG pagePriority;
+    ULONG ioPending;
+    GUITHREADINFO guiThreadInfo;
+
+    // GetGUIThreadInfo needs no handle at all and answers the question a stack alone does not:
+    // whether this thread owns windows.
+    memset(&guiThreadInfo, 0, sizeof(GUITHREADINFO));
+    guiThreadInfo.cbSize = sizeof(GUITHREADINFO);
+    PhAddJsonObjectBoolean(Row, "is_gui_thread", !!GetGUIThreadInfo(HandleToUlong(ThreadId), &guiThreadInfo));
+
+    // The last system call and the pending-I/O flag need full query access; everything else is
+    // happy with limited, so fall back rather than lose the whole row.
+    if (!NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_INFORMATION, ThreadId)) &&
+        !NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_LIMITED_INFORMATION, ThreadId)))
+    {
+        AtJsonAddNull(Row, "affinity");
+        AtJsonAddNull(Row, "ideal_processor");
+        AtJsonAddNull(Row, "io_priority");
+        AtJsonAddNull(Row, "page_priority");
+        AtJsonAddNull(Row, "cycle_time");
+        AtJsonAddNull(Row, "last_system_call");
+        AtJsonAddNull(Row, "io_pending");
+        AtJsonAddNull(Row, "service_name");
+        return;
+    }
+
+    if (NT_SUCCESS(PhGetThreadBasicInformation(threadHandle, &basicInfo)))
+        AtJsonAddHex(Row, "affinity", basicInfo.AffinityMask);
+    else
+        AtJsonAddNull(Row, "affinity");
+
+    if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadIdealProcessorEx, &idealProcessor, sizeof(PROCESSOR_NUMBER), NULL)))
+    {
+        PVOID entry = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(entry, "group", idealProcessor.Group);
+        PhAddJsonObjectUInt64(entry, "number", idealProcessor.Number);
+        PhAddJsonObjectValue(Row, "ideal_processor", entry);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "ideal_processor");
+    }
+
+    if (NT_SUCCESS(PhGetThreadIoPriority(threadHandle, &ioPriority)))
+        AtJsonAddStringZ(Row, "io_priority", AtIoPriorityString(ioPriority));
+    else
+        AtJsonAddNull(Row, "io_priority");
+
+    if (NT_SUCCESS(PhGetThreadPagePriority(threadHandle, &pagePriority)))
+        PhAddJsonObjectUInt64(Row, "page_priority", pagePriority);
+    else
+        AtJsonAddNull(Row, "page_priority");
+
+    // The total, not a rate: computing a per-thread rate needs two samples, and the provider that
+    // keeps those only runs while a process properties window is open. Compared against the other
+    // threads of the same process it still says which one is doing the work.
+    if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadCycleTime, &cycleTime, sizeof(THREAD_CYCLE_TIME_INFORMATION), NULL)))
+        PhAddJsonObjectUInt64(Row, "cycle_time", cycleTime.AccumulatedCycles);
+    else
+        AtJsonAddNull(Row, "cycle_time");
+
+    if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadLastSystemCall, &lastSystemCall, sizeof(THREAD_LAST_SYSCALL_INFORMATION), NULL)))
+    {
+        PVOID entry = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(entry, "number", lastSystemCall.SystemCallNumber);
+        AtJsonAddDuration(entry, "wait_seconds", lastSystemCall.WaitTime);
+        PhAddJsonObjectValue(Row, "last_system_call", entry);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "last_system_call");
+    }
+
+    if (NT_SUCCESS(NtQueryInformationThread(threadHandle, ThreadIsIoPending, &ioPending, sizeof(ULONG), NULL)))
+        PhAddJsonObjectBoolean(Row, "io_pending", !!ioPending);
+    else
+        AtJsonAddNull(Row, "io_pending");
+
+    // Which service a thread belongs to inside a shared host, which is the only way to tell them
+    // apart in svchost.
+    if (ProcessHandle)
+    {
+        PVOID serviceTag;
+
+        if (NT_SUCCESS(PhGetThreadServiceTag(threadHandle, ProcessHandle, &serviceTag)) && serviceTag)
+        {
+            PPH_STRING serviceName = PhGetServiceNameFromTag(ProcessId, serviceTag);
+
+            AtJsonAddString(Row, "service_name", serviceName);
+            PhClearReference(&serviceName);
+        }
+        else
+        {
+            AtJsonAddNull(Row, "service_name");
+        }
+    }
+    else
+    {
+        AtJsonAddNull(Row, "service_name");
+    }
+
+    NtClose(threadHandle);
+}
+
 PVOID AtpCreateThreadsResult(
     _In_ PAT_TOOL_CALL Call,
     _In_ PVOID Processes,
@@ -122,12 +377,24 @@ PVOID AtpCreateThreadsResult(
 {
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+    HANDLE processHandle = NULL;
+    PPH_LIST moduleList = NULL;
+    BOOLEAN includeDetails;
     AT_ROWS rows;
     PVOID structured;
     ULONG i;
 
     if (!(process = PhFindProcessInformation(Processes, ProcessItem->ProcessId)))
         return NULL;
+
+    includeDetails = !Summary && AtJsonGetObjectBoolean(Call->Arguments, "include_details");
+
+    if (includeDetails)
+        moduleList = AtpCreateThreadModuleList(ProcessItem->ProcessId);
+
+    // One process handle for the whole walk; the service tag query needs it.
+    if (includeDetails && PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+        PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
 
     if (!Summary && AtJsonGetObjectBoolean(Call->Arguments, "resolve_start_addresses"))
         symbolProvider = AtpCreateSymbolProvider(ProcessItem->ProcessId);
@@ -175,13 +442,21 @@ PVOID AtpCreateThreadsResult(
         PhAddJsonObjectInt64(row, "base_priority", thread->ThreadInfo.BasePriority);
 
         startAddress = thread->Win32StartAddress ? thread->Win32StartAddress : thread->ThreadInfo.StartAddress;
+
+        if (!startAddress)
+            startAddress = AtpQueryThreadStartAddress(thread->ThreadInfo.ClientId.UniqueThread);
+
         AtJsonAddPointer(row, "start_address", startAddress);
 
         if (symbolProvider && startAddress)
         {
             PPH_STRING symbol;
+            PH_SYMBOL_RESOLVE_LEVEL resolveLevel = PhsrlInvalid;
+            PPH_STRING moduleName = NULL;
 
-            if (symbol = PhGetSymbolFromAddress(symbolProvider, startAddress, NULL, NULL, NULL, NULL))
+            // The resolve level says how much of the name to believe: a module plus offset is a
+            // fact, a symbol name came from a file on disk that the process does not have to match.
+            if (symbol = PhGetSymbolFromAddress(symbolProvider, startAddress, &resolveLevel, &moduleName, NULL, NULL))
             {
                 AtJsonAddString(row, "start_address_symbol", symbol);
                 PhDereferenceObject(symbol);
@@ -190,14 +465,23 @@ PVOID AtpCreateThreadsResult(
             {
                 AtJsonAddNull(row, "start_address_symbol");
             }
+
+            AtJsonAddStringZ(row, "start_address_resolve_level", AtpResolveLevelString(resolveLevel));
+            PhClearReference(&moduleName);
         }
         else
         {
             AtJsonAddNull(row, "start_address_symbol");
+            AtJsonAddNull(row, "start_address_resolve_level");
         }
+
+        // Independent of symbols: null here means the thread started outside every loaded module.
+        AtJsonAddWin32FileName(row, "start_address_module", AtpFindThreadModule(moduleList, startAddress));
 
         createTime.QuadPart = thread->ThreadInfo.CreateTime.QuadPart;
         AtJsonAddTime(row, "create_time", &createTime);
+        AtJsonAddDuration(row, "wait_seconds", thread->ThreadInfo.WaitTime);
+        PhAddJsonObjectInt64(row, "priority_delta", thread->ThreadInfo.Priority - thread->ThreadInfo.BasePriority);
         AtJsonAddDuration(row, "kernel_time", thread->ThreadInfo.KernelTime.QuadPart);
         AtJsonAddDuration(row, "user_time", thread->ThreadInfo.UserTime.QuadPart);
         PhAddJsonObjectUInt64(row, "context_switches", thread->ThreadInfo.ContextSwitches);
@@ -208,8 +492,17 @@ PVOID AtpCreateThreadsResult(
             (thread->ThreadInfo.WaitReason == Suspended || thread->ThreadInfo.WaitReason == WrSuspended)
             );
 
+        if (includeDetails)
+            AtpAddThreadDetails(row, ProcessItem->ProcessId, thread->ThreadInfo.ClientId.UniqueThread, processHandle);
+
         AtAddRow(&rows, row);
     }
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    if (moduleList)
+        AtpDestroyThreadModuleList(moduleList);
 
     if (Summary)
     {
