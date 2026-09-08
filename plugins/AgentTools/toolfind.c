@@ -783,12 +783,14 @@ NTSTATUS NTAPI AtpObjectDirectoryCallback(
     PVOID row;
 
     if (!context)
-        return STATUS_INVALID_PARAMETER;
+        return STATUS_NO_MORE_ENTRIES;
 
+    // STATUS_NO_MORE_ENTRIES is the only status PhEnumDirectoryObjects stops on; anything else and
+    // it keeps calling back over the rest of the directory.
     if (NtGetTickCount64() > context->Deadline)
     {
         context->TimedOut = TRUE;
-        return STATUS_TIMEOUT;
+        return STATUS_NO_MORE_ENTRIES;
     }
 
     isDirectory = PhEqualStringRef2(TypeName, L"Directory", TRUE);
@@ -936,6 +938,629 @@ VOID AtpListObjectDirectory(
     PhDereferenceObject(path);
 }
 
+// A single named object, once list_object_directory or find_handles has produced its path. What a
+// listing cannot say: how many references the object has, what its security descriptor allows, and
+// the state only the object's own query call knows - whether a mutex is held and by which thread,
+// whether an event is signalled, how big a section is and what image backs it.
+//
+// Device, file, ALPC port and filter port objects are described but never opened. Opening a device
+// object is a real I/O open with whatever side effects the driver decides; a read tool asking a
+// question must not be one of the things that happens to the machine.
+
+typedef enum _AT_OBJECT_KIND
+{
+    AtObjectKindOther,
+    AtObjectKindDirectory,
+    AtObjectKindSymbolicLink,
+    AtObjectKindMutant,
+    AtObjectKindEvent,
+    AtObjectKindSemaphore,
+    AtObjectKindTimer,
+    AtObjectKindSection,
+    AtObjectKindJob,
+    AtObjectKindKeyedEvent,
+    AtObjectKindIoCompletion,
+    AtObjectKindDriver
+} AT_OBJECT_KIND;
+
+typedef struct _AT_OBJECT_LOOKUP_CONTEXT
+{
+    PH_STRINGREF Name;
+    PPH_STRING TypeName;
+} AT_OBJECT_LOOKUP_CONTEXT, *PAT_OBJECT_LOOKUP_CONTEXT;
+
+AT_OBJECT_KIND AtpObjectKindFromTypeName(
+    _In_opt_ PPH_STRING TypeName
+    )
+{
+    if (PhIsNullOrEmptyString(TypeName))
+        return AtObjectKindOther;
+
+    if (PhEqualString2(TypeName, L"Directory", TRUE))
+        return AtObjectKindDirectory;
+    if (PhEqualString2(TypeName, L"SymbolicLink", TRUE))
+        return AtObjectKindSymbolicLink;
+    if (PhEqualString2(TypeName, L"Mutant", TRUE))
+        return AtObjectKindMutant;
+    if (PhEqualString2(TypeName, L"Event", TRUE))
+        return AtObjectKindEvent;
+    if (PhEqualString2(TypeName, L"Semaphore", TRUE))
+        return AtObjectKindSemaphore;
+    if (PhEqualString2(TypeName, L"Timer", TRUE) || PhEqualString2(TypeName, L"IRTimer", TRUE))
+        return AtObjectKindTimer;
+    if (PhEqualString2(TypeName, L"Section", TRUE))
+        return AtObjectKindSection;
+    if (PhEqualString2(TypeName, L"Job", TRUE))
+        return AtObjectKindJob;
+    if (PhEqualString2(TypeName, L"KeyedEvent", TRUE))
+        return AtObjectKindKeyedEvent;
+    if (PhEqualString2(TypeName, L"IoCompletion", TRUE))
+        return AtObjectKindIoCompletion;
+    if (PhEqualString2(TypeName, L"Driver", TRUE))
+        return AtObjectKindDriver;
+
+    return AtObjectKindOther;
+}
+
+ACCESS_MASK AtpObjectQueryAccess(
+    _In_ AT_OBJECT_KIND Kind
+    )
+{
+    switch (Kind)
+    {
+    case AtObjectKindDirectory:
+        return DIRECTORY_QUERY;
+    case AtObjectKindSymbolicLink:
+        return SYMBOLIC_LINK_QUERY;
+    case AtObjectKindMutant:
+        return MUTANT_QUERY_STATE;
+    case AtObjectKindEvent:
+        return EVENT_QUERY_STATE;
+    case AtObjectKindSemaphore:
+        return SEMAPHORE_QUERY_STATE;
+    case AtObjectKindTimer:
+        return TIMER_QUERY_STATE;
+    case AtObjectKindSection:
+        return SECTION_QUERY;
+    case AtObjectKindJob:
+        return JOB_OBJECT_QUERY;
+    case AtObjectKindIoCompletion:
+        return IO_COMPLETION_QUERY_STATE;
+    }
+
+    return 0;
+}
+
+NTSTATUS AtpOpenNamespaceObject(
+    _Out_ PHANDLE Handle,
+    _In_ AT_OBJECT_KIND Kind,
+    _In_ PPH_STRING Path,
+    _In_ ACCESS_MASK DesiredAccess
+    )
+{
+    NTSTATUS status;
+    UNICODE_STRING objectName;
+    OBJECT_ATTRIBUTES objectAttributes;
+
+    *Handle = NULL;
+
+    if (Kind == AtObjectKindDriver)
+        return PhOpenDriver(Handle, DesiredAccess, NULL, &Path->sr);
+
+    if (!PhStringRefToUnicodeString(&Path->sr, &objectName))
+        return STATUS_NAME_TOO_LONG;
+
+    InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+    switch (Kind)
+    {
+    case AtObjectKindDirectory:
+        status = NtOpenDirectoryObject(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindSymbolicLink:
+        status = NtOpenSymbolicLinkObject(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindMutant:
+        status = NtOpenMutant(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindEvent:
+        status = NtOpenEvent(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindSemaphore:
+        status = NtOpenSemaphore(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindTimer:
+        status = NtOpenTimer(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindSection:
+        status = NtOpenSection(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindJob:
+        status = NtOpenJobObject(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindKeyedEvent:
+        status = NtOpenKeyedEvent(Handle, DesiredAccess, &objectAttributes);
+        break;
+    case AtObjectKindIoCompletion:
+        status = NtOpenIoCompletion(Handle, DesiredAccess, &objectAttributes);
+        break;
+    default:
+        status = STATUS_NOT_SUPPORTED;
+        break;
+    }
+
+    return status;
+}
+
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+NTSTATUS NTAPI AtpObjectLookupCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_OBJECT_LOOKUP_CONTEXT context = Context;
+
+    if (!context)
+        return STATUS_NO_MORE_ENTRIES;
+
+    if (!PhEqualStringRef(Name, &context->Name, TRUE))
+        return STATUS_SUCCESS;
+
+    context->TypeName = PhCreateString2(TypeName);
+
+    return STATUS_NO_MORE_ENTRIES;
+}
+
+// The type decides which open call and which query call apply, so it has to be known before anything
+// else. The caller can say, and usually can because a listing just told them; otherwise the parent
+// directory is asked about this one name.
+PPH_STRING AtpLookupObjectTypeName(
+    _In_ PPH_STRING Path,
+    _Out_ PNTSTATUS DirectoryStatus
+    )
+{
+    AT_OBJECT_LOOKUP_CONTEXT context;
+    PH_STRINGREF directoryPart;
+    PH_STRINGREF namePart;
+    PPH_STRING directoryName;
+    HANDLE directoryHandle;
+
+    *DirectoryStatus = STATUS_SUCCESS;
+
+    if (PhEqualString2(Path, L"\\", FALSE))
+        return PhCreateString(L"Directory");
+
+    if (!PhSplitStringRefAtLastChar(&Path->sr, OBJ_NAME_PATH_SEPARATOR, &directoryPart, &namePart))
+    {
+        *DirectoryStatus = STATUS_OBJECT_PATH_INVALID;
+        return NULL;
+    }
+
+    memset(&context, 0, sizeof(AT_OBJECT_LOOKUP_CONTEXT));
+    context.Name = namePart;
+
+    directoryName = directoryPart.Length != 0 ? PhCreateString2(&directoryPart) : PhCreateString(L"\\");
+
+    *DirectoryStatus = PhOpenDirectoryObject(&directoryHandle, DIRECTORY_QUERY, NULL, &directoryName->sr);
+
+    if (NT_SUCCESS(*DirectoryStatus))
+    {
+        PhEnumDirectoryObjects(directoryHandle, AtpObjectLookupCallback, &context);
+        NtClose(directoryHandle);
+    }
+
+    PhDereferenceObject(directoryName);
+
+    return context.TypeName;
+}
+
+VOID AtpAddMutantDetails(
+    _In_ PVOID Structured,
+    _In_ HANDLE Handle
+    )
+{
+    MUTANT_BASIC_INFORMATION basicInfo;
+    MUTANT_OWNER_INFORMATION ownerInfo;
+    PVOID details;
+
+    if (!NT_SUCCESS(NtQueryMutant(Handle, MutantBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
+        return;
+
+    details = PhCreateJsonObject();
+    PhAddJsonObjectInt64(details, "count", basicInfo.CurrentCount);
+    PhAddJsonObjectBoolean(details, "owned_by_caller", !!basicInfo.OwnedByCaller);
+    PhAddJsonObjectBoolean(details, "abandoned", !!basicInfo.AbandonedState);
+
+    // The owner is the interesting half: a held mutex names the thread that is holding up everyone
+    // else waiting on it. It is only reported while the mutex is actually owned.
+    if (NT_SUCCESS(NtQueryMutant(Handle, MutantOwnerInformation, &ownerInfo, sizeof(ownerInfo), NULL)) &&
+        ownerInfo.ClientId.UniqueProcess)
+    {
+        PVOID owner = PhCreateJsonObject();
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(ownerInfo.ClientId.UniqueProcess))
+        {
+            AtFillProcessIdentity(owner, processItem);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            PhAddJsonObjectUInt64(owner, "pid", HandleToUlong(ownerInfo.ClientId.UniqueProcess));
+        }
+
+        PhAddJsonObjectUInt64(owner, "tid", HandleToUlong(ownerInfo.ClientId.UniqueThread));
+        PhAddJsonObjectValue(details, "owner", owner);
+    }
+    else
+    {
+        AtJsonAddNull(details, "owner");
+    }
+
+    PhAddJsonObjectValue(Structured, "mutant", details);
+}
+
+VOID AtpAddSectionDetails(
+    _In_ PVOID Structured,
+    _In_ HANDLE Handle
+    )
+{
+    static CONST ULONG sectionFlags[] =
+    {
+        SEC_BASED, SEC_NO_CHANGE, SEC_FILE, SEC_IMAGE, SEC_PROTECTED_IMAGE,
+        SEC_RESERVE, SEC_COMMIT, SEC_NOCACHE, SEC_WRITECOMBINE, SEC_LARGE_PAGES
+    };
+    static CONST PWSTR sectionNames[] =
+    {
+        L"based", L"no_change", L"file", L"image", L"protected_image",
+        L"reserve", L"commit", L"no_cache", L"write_combine", L"large_pages"
+    };
+    SECTION_BASIC_INFORMATION basicInfo;
+    SECTION_IMAGE_INFORMATION imageInfo;
+    PVOID details;
+
+    if (!NT_SUCCESS(NtQuerySection(Handle, SectionBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
+        return;
+
+    details = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(details, "size", basicInfo.MaximumSize.QuadPart);
+    AtJsonAddPointer(details, "base_address", basicInfo.BaseAddress);
+    AtJsonAddFlagStrings(details, "attributes", basicInfo.AllocationAttributes,
+        sectionFlags, (CONST PWSTR*)sectionNames, RTL_NUMBER_OF(sectionFlags));
+
+    if (FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
+        NT_SUCCESS(NtQuerySection(Handle, SectionImageInformation, &imageInfo, sizeof(imageInfo), NULL)))
+    {
+        PVOID image = PhCreateJsonObject();
+
+        AtJsonAddStringZ(image, "machine", AtMachineString(imageInfo.Machine));
+        AtJsonAddStringZ(image, "subsystem", AtSubsystemString((USHORT)imageInfo.SubSystemType));
+        AtJsonAddPointer(image, "entry_point", imageInfo.TransferAddress);
+        PhAddJsonObjectUInt64(image, "image_file_size", imageInfo.ImageFileSize);
+        PhAddJsonObjectUInt64(image, "maximum_stack_size", imageInfo.MaximumStackSize);
+        PhAddJsonObjectBoolean(image, "contains_code", !!imageInfo.ImageContainsCode);
+        PhAddJsonObjectBoolean(image, "dynamically_relocated", !!imageInfo.ImageDynamicallyRelocated);
+        PhAddJsonObjectBoolean(image, "dotnet_il_only", !!imageInfo.ComPlusILOnly);
+        PhAddJsonObjectValue(details, "image", image);
+    }
+    else
+    {
+        AtJsonAddNull(details, "image");
+    }
+
+    PhAddJsonObjectValue(Structured, "section", details);
+}
+
+VOID AtpAddJobDetails(
+    _In_ PVOID Structured,
+    _In_ HANDLE Handle
+    )
+{
+    PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+    PVOID details;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetJobProcessIdList(Handle, &processIdList)))
+        return;
+
+    details = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(details, "assigned_process_count", processIdList->NumberOfAssignedProcesses);
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+    {
+        PVOID row = PhCreateJsonObject();
+        HANDLE processId = (HANDLE)processIdList->ProcessIdList[i];
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(processId))
+        {
+            AtFillProcessIdentity(row, processItem);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            PhAddJsonObjectUInt64(row, "pid", HandleToUlong(processId));
+        }
+
+        PhAddJsonArrayObject(array, row);
+    }
+
+    PhAddJsonObjectValue(details, "processes", array);
+    PhAddJsonObjectValue(Structured, "job", details);
+    PhFree(processIdList);
+}
+
+VOID AtpAddDriverDetails(
+    _In_ PVOID Structured,
+    _In_ HANDLE Handle
+    )
+{
+    PVOID details;
+    PPH_STRING string;
+
+    details = PhCreateJsonObject();
+
+    if (NT_SUCCESS(PhGetDriverName(Handle, &string)))
+    {
+        AtJsonAddString(details, "name", string);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        AtJsonAddNull(details, "name");
+    }
+
+    if (NT_SUCCESS(PhGetDriverImageFileName(Handle, &string)))
+    {
+        AtJsonAddString(details, "image_file_name", string);
+        AtJsonAddWin32FileName(details, "image_path", string);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        AtJsonAddNull(details, "image_file_name");
+        AtJsonAddNull(details, "image_path");
+    }
+
+    if (NT_SUCCESS(PhGetDriverServiceKeyName(Handle, &string)))
+    {
+        AtJsonAddString(details, "service_key_name", string);
+        PhDereferenceObject(string);
+    }
+    else
+    {
+        AtJsonAddNull(details, "service_key_name");
+    }
+
+    PhAddJsonObjectValue(Structured, "driver", details);
+}
+
+VOID AtpAddObjectDetails(
+    _In_ PVOID Structured,
+    _In_ AT_OBJECT_KIND Kind,
+    _In_ HANDLE Handle
+    )
+{
+    switch (Kind)
+    {
+    case AtObjectKindMutant:
+        AtpAddMutantDetails(Structured, Handle);
+        break;
+    case AtObjectKindEvent:
+        {
+            EVENT_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(NtQueryEvent(Handle, EventBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
+            {
+                PVOID details = PhCreateJsonObject();
+
+                AtJsonAddStringZ(details, "event_type",
+                    basicInfo.EventType == NotificationEvent ? L"notification" : L"synchronization");
+                PhAddJsonObjectBoolean(details, "signaled", !!basicInfo.EventState);
+                PhAddJsonObjectValue(Structured, "event", details);
+            }
+        }
+        break;
+    case AtObjectKindSemaphore:
+        {
+            SEMAPHORE_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(NtQuerySemaphore(Handle, SemaphoreBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
+            {
+                PVOID details = PhCreateJsonObject();
+
+                PhAddJsonObjectInt64(details, "count", basicInfo.CurrentCount);
+                PhAddJsonObjectInt64(details, "maximum_count", basicInfo.MaximumCount);
+                PhAddJsonObjectValue(Structured, "semaphore", details);
+            }
+        }
+        break;
+    case AtObjectKindTimer:
+        {
+            TIMER_BASIC_INFORMATION basicInfo;
+
+            if (NT_SUCCESS(NtQueryTimer(Handle, TimerBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
+            {
+                PVOID details = PhCreateJsonObject();
+
+                PhAddJsonObjectBoolean(details, "signaled", !!basicInfo.TimerState);
+
+                // Remaining time counts down as a negative interval and means nothing once the timer
+                // has signalled.
+                if (!basicInfo.TimerState && basicInfo.RemainingTime.QuadPart < 0)
+                    AtJsonAddDuration(details, "remaining", (ULONG64)-basicInfo.RemainingTime.QuadPart);
+                else
+                    AtJsonAddNull(details, "remaining");
+
+                PhAddJsonObjectValue(Structured, "timer", details);
+            }
+        }
+        break;
+    case AtObjectKindSection:
+        AtpAddSectionDetails(Structured, Handle);
+        break;
+    case AtObjectKindJob:
+        AtpAddJobDetails(Structured, Handle);
+        break;
+    case AtObjectKindDriver:
+        AtpAddDriverDetails(Structured, Handle);
+        break;
+    }
+}
+
+VOID AtpGetObjectInfo(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST ULONG attributeFlags[] =
+    {
+        OBJ_INHERIT, OBJ_PERMANENT, OBJ_EXCLUSIVE, OBJ_CASE_INSENSITIVE,
+        OBJ_OPENIF, OBJ_OPENLINK, OBJ_KERNEL_HANDLE, OBJ_FORCE_ACCESS_CHECK
+    };
+    static CONST PWSTR attributeNames[] =
+    {
+        L"inherit", L"permanent", L"exclusive", L"case_insensitive",
+        L"open_if", L"open_link", L"kernel_handle", L"force_access_check"
+    };
+    NTSTATUS status;
+    NTSTATUS directoryStatus = STATUS_SUCCESS;
+    PPH_STRING path;
+    PPH_STRING typeName;
+    PPH_STRING target = NULL;
+    AT_OBJECT_KIND kind;
+    ACCESS_MASK queryAccess;
+    HANDLE objectHandle = NULL;
+    PVOID structured;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required");
+        return;
+    }
+
+    if (!(typeName = AtGetArgumentString(Call->Arguments, "type_name")))
+        typeName = AtpLookupObjectTypeName(path, &directoryStatus);
+
+    kind = AtpObjectKindFromTypeName(typeName);
+    queryAccess = AtpObjectQueryAccess(kind);
+
+    // READ_CONTROL is what the security descriptor needs and the type access is what the state needs;
+    // ask for both, then for each alone, so one being refused does not cost the other.
+    status = AtpOpenNamespaceObject(&objectHandle, kind, path, queryAccess | READ_CONTROL);
+
+    if (!NT_SUCCESS(status) && queryAccess)
+        status = AtpOpenNamespaceObject(&objectHandle, kind, path, queryAccess);
+
+    if (!NT_SUCCESS(status))
+        status = AtpOpenNamespaceObject(&objectHandle, kind, path, READ_CONTROL);
+
+    if (kind == AtObjectKindSymbolicLink)
+        PhQuerySymbolicLinkObject(&target, NULL, &path->sr);
+
+    // Nothing opened, no link target and no type: either the parent directory could not be listed -
+    // \\Driver needs elevation for that - or the name is genuinely not there. Those are different
+    // answers and the caller acts differently on each.
+    if (!objectHandle && !target && PhIsNullOrEmptyString(typeName))
+    {
+        if (!NT_SUCCESS(directoryStatus))
+            AtSetToolStatusError(Result, directoryStatus, L"Listing the parent directory");
+        else
+            AtSetToolStatusError(Result, STATUS_OBJECT_NAME_NOT_FOUND, L"Finding the object");
+        PhClearReference(&typeName);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    AtJsonAddString(structured, "type", typeName);
+    PhAddJsonObjectBoolean(structured, "opened", !!objectHandle);
+
+    if (objectHandle)
+    {
+        OBJECT_BASIC_INFORMATION basicInfo;
+        PPH_STRING sddl;
+        PPH_STRING queriedTypeName;
+
+        AtJsonAddNull(structured, "open_error");
+
+        if (NT_SUCCESS(PhGetHandleInformation(
+            NtCurrentProcess(),
+            objectHandle,
+            ULONG_MAX,
+            &basicInfo,
+            &queriedTypeName,
+            NULL,
+            NULL
+            )))
+        {
+            // The type the object itself reports, rather than the one the directory listing gave.
+            if (!PhIsNullOrEmptyString(queriedTypeName))
+                AtJsonAddString(structured, "type", queriedTypeName);
+
+            PhClearReference(&queriedTypeName);
+
+            // Measured against a mutex held by one known process: the handle this call opened is
+            // not in the count, so this is what everything else is holding.
+            PhAddJsonObjectUInt64(structured, "handle_count", basicInfo.HandleCount);
+            PhAddJsonObjectUInt64(structured, "pointer_count", basicInfo.PointerCount);
+            PhAddJsonObjectUInt64(structured, "paged_pool_charge", basicInfo.PagedPoolCharge);
+            PhAddJsonObjectUInt64(structured, "non_paged_pool_charge", basicInfo.NonPagedPoolCharge);
+            AtJsonAddHex(structured, "granted_access", basicInfo.GrantedAccess);
+            AtJsonAddFlagStrings(structured, "attributes", basicInfo.Attributes,
+                attributeFlags, (CONST PWSTR*)attributeNames, RTL_NUMBER_OF(attributeFlags));
+        }
+
+        if (NT_SUCCESS(PhGetObjectSecurityDescriptorAsString(objectHandle, &sddl)))
+        {
+            AtJsonAddString(structured, "security_descriptor", sddl);
+            PhDereferenceObject(sddl);
+        }
+        else
+        {
+            AtJsonAddNull(structured, "security_descriptor");
+        }
+
+        AtpAddObjectDetails(structured, kind, objectHandle);
+        NtClose(objectHandle);
+    }
+    else
+    {
+        if (kind == AtObjectKindOther)
+        {
+            AtJsonAddStringZ(structured, "open_error", L"objects of this type are not opened by this tool");
+        }
+        else
+        {
+            PPH_STRING message;
+
+            message = PhGetStatusMessage(status, 0);
+            AtJsonAddString(structured, "open_error", message);
+            PhClearReference(&message);
+        }
+
+        AtJsonAddNull(structured, "security_descriptor");
+    }
+
+    if (kind == AtObjectKindSymbolicLink)
+    {
+        AtJsonAddString(structured, "target", target);
+        PhClearReference(&target);
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    PhClearReference(&typeName);
+    PhDereferenceObject(path);
+}
+
 VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -958,6 +1583,9 @@ VOID AtFindInvokeTool(
         break;
     case AtActionListObjectDirectory:
         AtpListObjectDirectory(Call, Result);
+        break;
+    case AtActionGetObjectInfo:
+        AtpGetObjectInfo(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

@@ -57,84 +57,6 @@ VOID AtpVerifyFileSignature(
     PhDereferenceObject(path);
 }
 
-PCWSTR AtpMachineString(
-    _In_ USHORT Machine
-    )
-{
-    switch (Machine)
-    {
-    case IMAGE_FILE_MACHINE_I386:
-        return L"x86";
-    case IMAGE_FILE_MACHINE_AMD64:
-        return L"x64";
-    case IMAGE_FILE_MACHINE_ARM64:
-        return L"ARM64";
-    case IMAGE_FILE_MACHINE_ARMNT:
-        return L"ARM";
-    case IMAGE_FILE_MACHINE_IA64:
-        return L"IA64";
-    }
-
-    return NULL;
-}
-
-PCWSTR AtpSubsystemString(
-    _In_ USHORT Subsystem
-    )
-{
-    switch (Subsystem)
-    {
-    case IMAGE_SUBSYSTEM_NATIVE:
-        return L"native";
-    case IMAGE_SUBSYSTEM_WINDOWS_GUI:
-        return L"windows_gui";
-    case IMAGE_SUBSYSTEM_WINDOWS_CUI:
-        return L"windows_cui";
-    case IMAGE_SUBSYSTEM_EFI_APPLICATION:
-        return L"efi_application";
-    case IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-        return L"efi_boot_service_driver";
-    case IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-        return L"efi_runtime_driver";
-    case IMAGE_SUBSYSTEM_XBOX:
-        return L"xbox";
-    }
-
-    return NULL;
-}
-
-VOID AtpAddFlagStrings(
-    _In_ PVOID Object,
-    _In_ PCSTR Key,
-    _In_ ULONG Value,
-    _In_reads_(Count) CONST ULONG* Flags,
-    _In_reads_(Count) CONST PWSTR* Names,
-    _In_ ULONG Count
-    )
-{
-    PVOID array = PhCreateJsonArray();
-    ULONG i;
-
-    for (i = 0; i < Count; i++)
-    {
-        if (Value & Flags[i])
-        {
-            PH_STRINGREF sr;
-            PPH_BYTES utf8;
-
-            PhInitializeStringRef(&sr, Names[i]);
-
-            if (utf8 = PhConvertUtf16ToUtf8Ex(sr.Buffer, sr.Length))
-            {
-                PhAddJsonArrayObject(array, PhCreateJsonStringObject(utf8->Buffer));
-                PhDereferenceObject(utf8);
-            }
-        }
-    }
-
-    PhAddJsonObjectValue(Object, Key, array);
-}
-
 VOID AtpGetImageInfo(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -239,7 +161,7 @@ VOID AtpGetImageInfo(
 
     structured = PhCreateJsonObject();
     AtJsonAddString(structured, "path", path);
-    AtJsonAddStringZ(structured, "machine", AtpMachineString(ntHeaders->FileHeader.Machine));
+    AtJsonAddStringZ(structured, "machine", AtMachineString(ntHeaders->FileHeader.Machine));
     PhAddJsonObjectBoolean(structured, "is_64bit", is64);
 
     if (is64)
@@ -265,7 +187,7 @@ VOID AtpGetImageInfo(
         checkSum = opt->CheckSum;
     }
 
-    AtJsonAddStringZ(structured, "subsystem", AtpSubsystemString(subsystem));
+    AtJsonAddStringZ(structured, "subsystem", AtSubsystemString(subsystem));
 
     timeStamp = ntHeaders->FileHeader.TimeDateStamp;
 
@@ -286,8 +208,8 @@ VOID AtpGetImageInfo(
     PhAddJsonObjectUInt64(structured, "size_of_image", sizeOfImage);
     PhAddJsonObjectUInt64(structured, "checksum", checkSum);
 
-    AtpAddFlagStrings(structured, "characteristics", ntHeaders->FileHeader.Characteristics, fileFlags, (CONST PWSTR*)fileNames, RTL_NUMBER_OF(fileFlags));
-    AtpAddFlagStrings(structured, "dll_characteristics", dllCharacteristics, dllFlags, (CONST PWSTR*)dllNames, RTL_NUMBER_OF(dllFlags));
+    AtJsonAddFlagStrings(structured, "characteristics", ntHeaders->FileHeader.Characteristics, fileFlags, (CONST PWSTR*)fileNames, RTL_NUMBER_OF(fileFlags));
+    AtJsonAddFlagStrings(structured, "dll_characteristics", dllCharacteristics, dllFlags, (CONST PWSTR*)dllNames, RTL_NUMBER_OF(dllFlags));
 
     sections = PhCreateJsonArray();
 
@@ -305,7 +227,7 @@ VOID AtpGetImageInfo(
         AtJsonAddPointer(row, "virtual_address", (PVOID)(ULONG_PTR)section->VirtualAddress);
         PhAddJsonObjectUInt64(row, "virtual_size", section->Misc.VirtualSize);
         PhAddJsonObjectUInt64(row, "raw_size", section->SizeOfRawData);
-        AtpAddFlagStrings(row, "characteristics", section->Characteristics, scnFlags, (CONST PWSTR*)scnNames, RTL_NUMBER_OF(scnFlags));
+        AtJsonAddFlagStrings(row, "characteristics", section->Characteristics, scnFlags, (CONST PWSTR*)scnNames, RTL_NUMBER_OF(scnFlags));
         PhAddJsonArrayObject(sections, row);
     }
 

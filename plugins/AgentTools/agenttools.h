@@ -94,6 +94,7 @@ typedef enum _AT_ACTION
     AtActionFindModules,
     AtActionGetFileUsers,
     AtActionListObjectDirectory,
+    AtActionGetObjectInfo,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
@@ -753,6 +754,23 @@ PCWSTR AtIoPriorityString(
 
 PCWSTR AtPriorityClassString(
     _In_ ULONG PriorityClass
+    );
+
+PCWSTR AtMachineString(
+    _In_ USHORT Machine
+    );
+
+PCWSTR AtSubsystemString(
+    _In_ USHORT Subsystem
+    );
+
+VOID AtJsonAddFlagStrings(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG Value,
+    _In_reads_(Count) CONST ULONG* Flags,
+    _In_reads_(Count) CONST PWSTR* Names,
+    _In_ ULONG Count
     );
 
 VOID AtFillProcessIdentity(

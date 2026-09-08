@@ -630,6 +630,7 @@ EXPORTS
     PhGetNamedPipeClientProcessId
     PhGetNamedPipeServerProcessId
     PhGetObjectSecurity
+    PhGetObjectSecurityDescriptorAsString
     PhGetObjectTypeIndexName
     PhGetObjectTypeNumber
     PhGetOwnTokenAttributes
