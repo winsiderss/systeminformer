@@ -562,6 +562,43 @@ NTSTATUS AtpResolveTargetParameter(
                 text = PhFormatString(L"mask 0x%I64x", mask);
         }
         break;
+    case AtActionCloseWindow:
+    case AtActionSetWindowState:
+        {
+            ULONG64 handleValue = 0;
+            ULONG showCommand;
+            BOOLEAN foreground;
+
+            if (!AtGetArgumentPointer(Arguments, "handle", &handleValue) || handleValue == 0)
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"handle is required; take it from list_windows or get_process_windows.");
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            if (Tool->Action == AtActionSetWindowState)
+            {
+                value = AtGetArgumentString(Arguments, "state");
+
+                if (!AtParseWindowState(value, &showCommand, &foreground))
+                {
+                    AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                        L"state must be one of show, hide, minimize, maximize, restore, foreground.");
+                    PhClearReference(&value);
+                    return STATUS_INVALID_PARAMETER;
+                }
+
+                // The window is named in the approval as well as the change: the process alone
+                // does not say which of its windows this is about.
+                text = PhFormatString(L"window 0x%I64x %s", handleValue, value->Buffer);
+                PhClearReference(&value);
+            }
+            else
+            {
+                text = PhFormatString(L"window 0x%I64x", handleValue);
+            }
+        }
+        break;
     case AtActionSetProcessPagePriority:
         {
             ULONG64 pagePriority = 0;

@@ -89,6 +89,8 @@ typedef enum _AT_ACTION
     AtActionGetProcessWindows,
     AtActionListWindows,
     AtActionGetWindowInfo,
+    AtActionCloseWindow,
+    AtActionSetWindowState,
     AtActionGetDotNetAssemblies,
     AtActionGetProcessNotes,
     AtActionSetProcessComment,
@@ -935,6 +937,12 @@ VOID AtNoteInvokeTool(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
+    );
+
+BOOLEAN AtParseWindowState(
+    _In_opt_ PPH_STRING String,
+    _Out_ PULONG ShowCommand,
+    _Out_ PBOOLEAN Foreground
     );
 
 VOID AtWindowInvokeTool(

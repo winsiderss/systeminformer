@@ -1444,6 +1444,8 @@ VOID AtInvokeTool(
         AtNoteInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListWindows:
+    case AtActionCloseWindow:
+    case AtActionSetWindowState:
     case AtActionGetWindowInfo:
         AtWindowInvokeTool(Tool, Call, Target, Result);
         break;

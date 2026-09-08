@@ -466,6 +466,141 @@ VOID AtpGetWindowInfo(
     Result->StructuredContent = structured;
 }
 
+// How long to give a window to act on a close before reporting whether it is still there. A
+// window that is still open after this is the normal case for anything that asks before closing.
+#define AT_WINDOW_CLOSE_WAIT_MS 500
+
+BOOLEAN AtParseWindowState(
+    _In_opt_ PPH_STRING String,
+    _Out_ PULONG ShowCommand,
+    _Out_ PBOOLEAN Foreground
+    )
+{
+    *ShowCommand = SW_SHOW;
+    *Foreground = FALSE;
+
+    if (!String)
+        return FALSE;
+
+    if (PhEqualString2(String, L"show", TRUE))
+        *ShowCommand = SW_SHOW;
+    else if (PhEqualString2(String, L"hide", TRUE))
+        *ShowCommand = SW_HIDE;
+    else if (PhEqualString2(String, L"minimize", TRUE))
+        *ShowCommand = SW_MINIMIZE;
+    else if (PhEqualString2(String, L"maximize", TRUE))
+        *ShowCommand = SW_MAXIMIZE;
+    else if (PhEqualString2(String, L"restore", TRUE))
+        *ShowCommand = SW_RESTORE;
+    else if (PhEqualString2(String, L"foreground", TRUE))
+        *Foreground = TRUE;
+    else
+        return FALSE;
+
+    return TRUE;
+}
+
+/**
+ * A window is named by its handle, and a handle is only a handle: the process that owns it is
+ * checked against the process the caller said it was, so a window handle that has been reused by
+ * another process since it was listed is refused rather than acted on.
+ */
+VOID AtpControlWindow(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    ULONG64 handleValue = 0;
+    HWND windowHandle;
+    HANDLE windowProcessId = NULL;
+    PPH_STRING stateString;
+    PVOID structured;
+    ULONG showCommand = SW_SHOW;
+    BOOLEAN foreground = FALSE;
+
+    NT_VERIFY(AtGetArgumentPointer(Call->Arguments, "handle", &handleValue));
+    windowHandle = (HWND)(ULONG_PTR)handleValue;
+
+    if (!IsWindow(windowHandle))
+    {
+        AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"That window handle does not name a window.");
+        return;
+    }
+
+    GetWindowThreadProcessId(windowHandle, (PDWORD)&windowProcessId);
+
+    if (windowProcessId != Target->ProcessItem->ProcessId)
+    {
+        AtSetToolError(
+            Result,
+            "identity_mismatch",
+            STATUS_INVALID_HANDLE,
+            L"That window belongs to pid %lu, not to pid %lu; window handles are reused. Re-list and try again.",
+            HandleToUlong(windowProcessId),
+            HandleToUlong(Target->ProcessItem->ProcessId)
+            );
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtpAddWindowIdentity(structured, windowHandle);
+    PhAddJsonObject(structured, "action", Tool->Name);
+
+    if (Tool->Action == AtActionCloseWindow)
+    {
+        // Posted, not sent: a window that is not answering its message queue would hang this
+        // thread, and closing is a request in any case - the application decides what to do with
+        // it, including asking the user first.
+        PostMessage(windowHandle, WM_CLOSE, 0, 0);
+        PhDelayExecution(AT_WINDOW_CLOSE_WAIT_MS);
+
+        PhAddJsonObjectBoolean(structured, "still_exists", !!IsWindow(windowHandle));
+        AtJsonAddNull(structured, "state");
+    }
+    else
+    {
+        stateString = AtGetArgumentString(Call->Arguments, "state");
+
+        // Validated when the target was resolved, so the user approved this exact change.
+        NT_VERIFY(AtParseWindowState(stateString, &showCommand, &foreground));
+
+        if (foreground)
+        {
+            WINDOWPLACEMENT placement = { sizeof(placement) };
+
+            // A minimized window brought forward has to be restored first or it comes forward as
+            // an icon, which is what the application's own Bring to Front does.
+            if (GetWindowPlacement(windowHandle, &placement) &&
+                (placement.showCmd == SW_SHOWMINIMIZED || placement.showCmd == SW_MINIMIZE))
+            {
+                ShowWindowAsync(windowHandle, SW_RESTORE);
+            }
+
+            SetForegroundWindow(windowHandle);
+        }
+        else
+        {
+            // Async: the change is queued to the window's own thread rather than waiting on it.
+            ShowWindowAsync(windowHandle, showCommand);
+        }
+
+        PhDelayExecution(AT_WINDOW_CLOSE_WAIT_MS);
+
+        AtJsonAddString(structured, "state", stateString);
+        PhAddJsonObjectBoolean(structured, "still_exists", !!IsWindow(windowHandle));
+        PhClearReference(&stateString);
+    }
+
+    // What the window looks like now, read after the change rather than assumed from it.
+    if (IsWindow(windowHandle))
+        AtpAddWindowState(structured, windowHandle);
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+}
+
 VOID AtWindowInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -473,10 +608,12 @@ VOID AtWindowInvokeTool(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
-    UNREFERENCED_PARAMETER(Target);
-
     switch (Tool->Action)
     {
+    case AtActionCloseWindow:
+    case AtActionSetWindowState:
+        AtpControlWindow(Tool, Call, Target, Result);
+        break;
     case AtActionListWindows:
         AtpListWindows(Call, Result);
         break;

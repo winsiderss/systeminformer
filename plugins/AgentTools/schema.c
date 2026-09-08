@@ -79,6 +79,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the details of a window", L"Allow reading window details", L"get_window_info"
     },
     {
+        AtActionCloseWindow, AtTierWrite, AtConsentClassNone, AtTargetProcess, 0, SETTING_NAME_TOOL_CONFIRM(L"close_window"),
+        L"ask the following window to close", L"Close a window of", L"close_window"
+    },
+    {
+        AtActionSetWindowState, AtTierWrite, AtConsentClassNone, AtTargetProcess, 0, SETTING_NAME_TOOL_CONFIRM(L"set_window_state"),
+        L"show, hide or resize the following window", L"Change a window of", L"set_window_state"
+    },
+    {
         AtActionGetDotNetAssemblies, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
         L"read the managed assemblies of processes", L"Allow reading managed assemblies", L"get_dotnet_assemblies"
     },
@@ -2718,6 +2726,72 @@ CONST AT_TOOL AtTools[] =
         AT_WRITE_ANNOTATIONS "}"
     },
     // network
+    {
+        "close_window", L"Close a window", AtTierWrite, AtActionCloseWindow,
+        SETTING_NAME_TOOL_ACCESS(L"close_window"), SETTING_NAME_TOOL_CONFIRM(L"close_window"),
+        "{\"name\":\"close_window\",\"title\":\"Ask a window to close\","
+        "\"description\":\"Asks a window to close, the way clicking its close button does. THIS IS A REQUEST, NOT "
+        "A KILL: the message is posted to the window and the application decides what to do with it, which may be "
+        "to prompt about unsaved work, to close a document instead of the program, or to ignore it. It is the "
+        "polite alternative to terminate_process for a program with a user interface, and it loses nothing. The "
+        "answer is read half a second later: still_exists true usually means the application is asking the user "
+        "something, not that the call failed - check again with get_window_info. The pid names the process the "
+        "window must belong to, because window handles are reused. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES ","
+        "\"handle\":{\"type\":\"string\",\"description\":\"Window handle from list_windows or get_process_windows\"}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"handle\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"handle\":{\"type\":\"string\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"title\":{\"type\":[\"string\",\"null\"]},"
+        "\"class_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"action\":{\"type\":\"string\"},"
+        "\"still_exists\":{\"type\":\"boolean\",\"description\":\"Whether the window is still there half a second after the request\"},"
+        "\"state\":{\"type\":[\"string\",\"null\"]},"
+        "\"is_visible\":{\"type\":\"boolean\",\"description\":\"Read from the window afterwards; absent when the window is gone\"},"
+        "\"is_minimized\":{\"type\":\"boolean\"},"
+        "\"is_maximized\":{\"type\":\"boolean\"},"
+        "\"is_enabled\":{\"type\":\"boolean\"},"
+        "\"is_hung\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "set_window_state", L"Set window state", AtTierWrite, AtActionSetWindowState,
+        SETTING_NAME_TOOL_ACCESS(L"set_window_state"), SETTING_NAME_TOOL_CONFIRM(L"set_window_state"),
+        "{\"name\":\"set_window_state\",\"title\":\"Show, hide or resize a window\","
+        "\"description\":\"Shows, hides, minimizes, maximizes, restores or brings forward a window. hide makes a "
+        "window vanish without telling the application, which keeps running and may put it back; it is not a way "
+        "to stop anything. foreground restores a minimized window first, and Windows may refuse to change the "
+        "foreground at all when the caller has no input focus - the state that comes back is read from the window "
+        "afterwards rather than assumed, so compare it with what was asked for. The pid names the process the "
+        "window must belong to, because window handles are reused. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES ","
+        "\"handle\":{\"type\":\"string\",\"description\":\"Window handle from list_windows or get_process_windows\"},"
+        "\"state\":{\"type\":\"string\",\"enum\":[\"show\",\"hide\",\"minimize\",\"maximize\",\"restore\",\"foreground\"]}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"handle\",\"state\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"handle\":{\"type\":\"string\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"title\":{\"type\":[\"string\",\"null\"]},"
+        "\"class_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"action\":{\"type\":\"string\"},"
+        "\"state\":{\"type\":[\"string\",\"null\"],\"description\":\"What was asked for\"},"
+        "\"still_exists\":{\"type\":\"boolean\"},"
+        "\"is_visible\":{\"type\":\"boolean\",\"description\":\"Read from the window after the change, not assumed from it\"},"
+        "\"is_minimized\":{\"type\":\"boolean\"},"
+        "\"is_maximized\":{\"type\":\"boolean\"},"
+        "\"is_enabled\":{\"type\":\"boolean\"},"
+        "\"is_hung\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
     {
         "get_dotnet_assemblies", L"Get .NET assemblies", AtTierRead, AtActionGetDotNetAssemblies,
         SETTING_NAME_TOOL_ACCESS(L"get_dotnet_assemblies"), SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
