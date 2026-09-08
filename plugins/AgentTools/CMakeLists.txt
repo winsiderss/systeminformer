@@ -26,6 +26,7 @@ set(SOURCES
     "server.c"
     "snapshot.c"
     "target.c"
+    "toolgpu.c"
     "toolhist.c"
     "toolmod.c"
     "toolmtgn.c"

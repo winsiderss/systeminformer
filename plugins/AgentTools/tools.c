@@ -1038,6 +1038,9 @@ VOID AtInvokeTool(
     case AtActionRankProcesses:
         AtHistoryInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetGpuUsage:
+        AtGpuInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionListRecentEvents:
     case AtActionListRecentProcessExits:
         AtEventInvokeTool(Tool, Call, Target, Result);

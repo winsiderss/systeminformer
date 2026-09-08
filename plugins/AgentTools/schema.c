@@ -167,6 +167,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the recent history of the system", L"Allow reading system history", L"get_system_history"
     },
     {
+        AtActionGetGpuUsage, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_gpu_usage"),
+        L"read graphics adapter utilization", L"Allow reading GPU utilization", L"get_gpu_usage"
+    },
+    {
         AtActionListKernelDrivers, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
         L"list kernel drivers", L"Allow listing kernel drivers", L"list_kernel_drivers"
     },
@@ -1499,6 +1503,52 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_gpu_usage", L"Get GPU usage", AtTierRead, AtActionGetGpuUsage,
+        SETTING_NAME_TOOL_ACCESS(L"get_gpu_usage"), SETTING_NAME_TOOL_CONFIRM(L"get_gpu_usage"),
+        "{\"name\":\"get_gpu_usage\",\"title\":\"Get GPU usage\","
+        "\"description\":\"What the graphics adapters are doing: utilization overall and per engine (3d, video_decode, "
+        "copy and so on), and how much dedicated and shared video memory is in use against each adapter's limit. The "
+        "adapters and their engines come from the graphics kernel, but the utilization figures are collected by the "
+        "ExtendedTools plugin from the graphics performance counters: without it there is no answer at all, and with "
+        "its GPU monitor or performance counters turned off every usage figure is null rather than zero, because a "
+        "GPU nobody is watching must not read as an idle GPU. Check collector to tell the two apart. "
+        AT_PAGE_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"adapters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"luid\":{\"type\":\"string\",\"description\":\"Adapter LUID as a 64-bit hex string; stable while the adapter is present\"},"
+        "\"description\":{\"type\":[\"string\",\"null\"],\"description\":\"Adapter name as the display driver reports it\"},"
+        "\"render_supported\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"display_supported\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"software_device\":{\"type\":[\"boolean\",\"null\"],\"description\":\"A software renderer rather than hardware; it will always read as idle\"},"
+        "\"compute_only\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Compute accelerator with no display output\"},"
+        "\"gpu_usage\":{\"type\":[\"number\",\"null\"],\"description\":\"Busiest engine of this adapter, 0..1; null when nothing is collecting\"},"
+        "\"dedicated_memory_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Dedicated video memory in use; null when nothing is collecting\"},"
+        "\"shared_memory_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Shared system memory in use by this adapter; null when nothing is collecting\"},"
+        "\"dedicated_memory_limit_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Dedicated video memory the adapter has\"},"
+        "\"shared_memory_limit_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"engines\":{\"type\":\"array\",\"description\":\"One entry per engine the adapter reports\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"engine_id\":{\"type\":\"integer\",\"description\":\"Node ordinal on this adapter\"},"
+        "\"engine_type\":{\"type\":[\"string\",\"null\"],\"description\":\"other, 3d, video_decode, video_encode, video_processing, scene_assembly, copy, overlay, crypto or video_codec\"},"
+        "\"gpu_usage\":{\"type\":[\"number\",\"null\"],\"description\":\"Utilization of this engine, 0..1; null when nothing is collecting\"}"
+        "},\"required\":[\"engine_id\"]}}"
+        "},\"required\":[\"luid\",\"engines\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"gpu_usage\":{\"type\":[\"number\",\"null\"],\"description\":\"Busiest adapter, 0..1, not a sum: utilization of two adapters does not add up\"},"
+        "\"dedicated_memory_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Dedicated video memory in use across all adapters\"},"
+        "\"shared_memory_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"collector\":{\"type\":\"object\",\"description\":\"Why the usage figures are what they are\",\"properties\":{"
+        "\"gpu_monitor_enabled\":{\"type\":\"boolean\",\"description\":\"ExtendedTools.EnableGpuMonitor\"},"
+        "\"performance_counters_enabled\":{\"type\":\"boolean\",\"description\":\"ExtendedTools.EnableGpuPerformanceCounters\"},"
+        "\"usage_available\":{\"type\":\"boolean\",\"description\":\"False means every gpu_usage and memory-in-use figure is null\"}"
+        "},\"required\":[\"gpu_monitor_enabled\",\"performance_counters_enabled\",\"usage_available\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

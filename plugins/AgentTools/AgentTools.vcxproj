@@ -81,6 +81,7 @@
     <ClCompile Include="server.c" />
     <ClCompile Include="snapshot.c" />
     <ClCompile Include="target.c" />
+    <ClCompile Include="toolgpu.c" />
     <ClCompile Include="toolhist.c" />
     <ClCompile Include="toolmod.c" />
     <ClCompile Include="toolmtgn.c" />
