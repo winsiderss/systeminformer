@@ -6604,16 +6604,9 @@ NTSTATUS PhGetSecurityDescriptorAsString(
         &stringSecurityDescriptorLength
         ))
     {
-        if (stringSecurityDescriptorLength & 1) // validate the string length
-        {
-            LocalFree(stringSecurityDescriptor);
-            return STATUS_FAIL_CHECK;
-        }
-
-        *SecurityDescriptorString = PhCreateStringEx(
-            stringSecurityDescriptor,
-            stringSecurityDescriptorLength * sizeof(WCHAR)
-            );
+        // The returned length is the size of the buffer in characters, terminator included, and can
+        // be larger than the string itself, so it must not be used as the string length.
+        *SecurityDescriptorString = PhCreateString(stringSecurityDescriptor);
         LocalFree(stringSecurityDescriptor);
         return STATUS_SUCCESS;
     }
