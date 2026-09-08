@@ -174,6 +174,7 @@ typedef enum _AT_ACTION
     AtActionListDirectory,
     AtActionGetObjectSecurity,
     AtActionListPoolTags,
+    AtActionSetProcessAffinity,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,

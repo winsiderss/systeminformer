@@ -1019,6 +1019,14 @@ VOID AtpControlProcess(
     PVOID structured;
     ULONG priorityClass = 0;
     IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
+    GROUP_AFFINITY groupAffinity;
+    KAFFINITY previousMask = 0;
+    ULONG64 affinityMask = 0;
+    ULONG64 affinityGroup = 0;
+    BOOLEAN hasGroup = FALSE;
+    BOOLEAN hasPreviousMask = FALSE;
+
+    memset(&groupAffinity, 0, sizeof(groupAffinity));
 
     switch (Tool->Action)
     {
@@ -1050,6 +1058,28 @@ VOID AtpControlProcess(
             status = PhSetProcessIoPriority(Target->ProcessHandle, ioPriority);
         }
         break;
+    case AtActionSetProcessAffinity:
+        {
+            // Validated when the target was resolved, so the user approved this exact mask.
+            NT_VERIFY(AtGetArgumentUInt64(Call->Arguments, "affinity_mask", &affinityMask));
+            hasGroup = AtGetArgumentUInt64(Call->Arguments, "group", &affinityGroup);
+
+            // Read before writing: the mask a process had is the only way back to it, and nothing
+            // else records it.
+            hasPreviousMask = NT_SUCCESS(PhGetProcessAffinityMask(Target->ProcessHandle, &previousMask));
+
+            if (hasGroup)
+            {
+                groupAffinity.Group = (USHORT)affinityGroup;
+                groupAffinity.Mask = (KAFFINITY)affinityMask;
+                status = PhSetProcessGroupAffinity(Target->ProcessHandle, groupAffinity);
+            }
+            else
+            {
+                status = PhSetProcessAffinityMask(Target->ProcessHandle, (KAFFINITY)affinityMask);
+            }
+        }
+        break;
     default:
         status = STATUS_NOT_IMPLEMENTED;
         break;
@@ -1069,6 +1099,20 @@ VOID AtpControlProcess(
         AtJsonAddStringZ(structured, "priority_class", AtPriorityClassString(priorityClass));
     else if (Tool->Action == AtActionSetProcessIoPriority)
         AtJsonAddStringZ(structured, "io_priority", AtIoPriorityString(ioPriority));
+    else if (Tool->Action == AtActionSetProcessAffinity)
+    {
+        AtJsonAddHex(structured, "affinity_mask", affinityMask);
+
+        if (hasGroup)
+            PhAddJsonObjectUInt64(structured, "group", affinityGroup);
+        else
+            AtJsonAddNull(structured, "group");
+
+        if (hasPreviousMask)
+            AtJsonAddHex(structured, "previous_affinity_mask", previousMask);
+        else
+            AtJsonAddNull(structured, "previous_affinity_mask");
+    }
 
     AtAddSnapshot(structured);
 
@@ -2118,6 +2162,7 @@ VOID AtProcessInvokeTool(
     case AtActionResumeProcess:
     case AtActionSetProcessPriority:
     case AtActionSetProcessIoPriority:
+    case AtActionSetProcessAffinity:
         AtpControlProcess(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessToken:

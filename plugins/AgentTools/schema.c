@@ -406,6 +406,11 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListPoolTags, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_pool_tags"),
         L"read kernel pool usage by tag", L"Allow reading kernel pool usage", L"list_pool_tags"
     },
+    {
+        AtActionSetProcessAffinity, AtTierWrite, AtConsentClassNone, AtTargetProcess,
+        PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_affinity"),
+        L"set which processors the following process may run on", L"Set the processor affinity of", L"set_process_affinity"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -2324,6 +2329,32 @@ CONST AT_TOOL AtTools[] =
         "\"priority_class\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"priority_class\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "set_process_affinity", L"Set process affinity", AtTierWrite, AtActionSetProcessAffinity,
+        SETTING_NAME_TOOL_ACCESS(L"set_process_affinity"), SETTING_NAME_TOOL_CONFIRM(L"set_process_affinity"),
+        "{\"name\":\"set_process_affinity\",\"title\":\"Set which processors a process may run on\","
+        "\"description\":\"Restricts a process to a set of processors. Bit 0 is processor 0, so 0x3 is the first "
+        "two and 0xff is the first eight. A mask of zero is refused: it is not \\\"no restriction\\\", it is a "
+        "process that can run nowhere. The mask a process had is returned as previous_affinity_mask, which is the "
+        "only record of it - nothing else remembers what it was, so keep it if the restriction is meant to be "
+        "temporary; get_process reports the current mask as well. On a machine with more than 64 processors an "
+        "affinity mask covers ONE processor group, and group says which; without it the mask applies to the group "
+        "the process is already in. Narrowing affinity is a blunt instrument - a process pinned to one processor "
+        "runs slower rather than politely - and it survives until something sets it back. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES ","
+        "\"affinity_mask\":{\"type\":\"integer\",\"description\":\"One bit per processor, at least one bit set\"},"
+        "\"group\":{\"type\":\"integer\",\"description\":\"The processor group the mask belongs to; omit on a machine with one group\"}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"affinity_mask\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"action\":{\"type\":\"string\"},"
+        "\"affinity_mask\":{\"type\":\"string\",\"description\":\"The mask that was set, as hex\"},"
+        "\"group\":{\"type\":[\"integer\",\"null\"]},"
+        "\"previous_affinity_mask\":{\"type\":[\"string\",\"null\"],\"description\":\"What it was before this call; null when it could not be read\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"affinity_mask\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
     {

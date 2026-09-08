@@ -511,6 +511,50 @@ NTSTATUS AtpResolveTargetParameter(
             PhClearReference(&value);
         }
         break;
+    case AtActionSetProcessAffinity:
+        {
+            SYSTEM_BASIC_INFORMATION basicInfo;
+            ULONG64 mask = 0;
+            ULONG64 group = 0;
+            BOOLEAN hasGroup;
+
+            if (!AtGetArgumentUInt64(Arguments, "affinity_mask", &mask) || mask == 0)
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"affinity_mask is required and must name at least one processor; a mask of zero is not "
+                    L"\"no restriction\", it is a process that can run nowhere.");
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            hasGroup = AtGetArgumentUInt64(Arguments, "group", &group);
+
+            // Only the processors of one group can be in a mask, and which processors those are
+            // depends on the group - so the system's own set is only the right fence for a call
+            // that did not name one.
+            memset(&basicInfo, 0, sizeof(basicInfo));
+
+            if (!hasGroup &&
+                NT_SUCCESS(NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(basicInfo), NULL)) &&
+                (mask & ~(ULONG64)basicInfo.ActiveProcessorsAffinityMask) != 0)
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"affinity_mask names a processor this machine does not have; the active processors are 0x%I64x.",
+                    (ULONG64)basicInfo.ActiveProcessorsAffinityMask);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            if (hasGroup && group > MAXUSHORT)
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"group is out of range.");
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            if (hasGroup)
+                text = PhFormatString(L"group %I64u mask 0x%I64x", group, mask);
+            else
+                text = PhFormatString(L"mask 0x%I64x", mask);
+        }
+        break;
     case AtActionSetServiceConfig:
         {
             text = AtFormatServiceConfigParameter(Arguments, Result);

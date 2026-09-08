@@ -754,6 +754,8 @@ EXPORTS
     PhSetObjectSecurity
     PhSetProcessPowerThrottlingState
     PhSetProcessIoPriority
+    PhSetProcessAffinityMask
+    PhSetProcessGroupAffinity
     PhSetProcessPriorityBoost
     PhSetProcessPriorityClass
     PhSetThreadAffinityMask
