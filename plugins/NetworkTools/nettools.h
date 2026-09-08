@@ -150,6 +150,27 @@ VOID ShowPingWindowFromAddress(
 
 // whois.c
 
+typedef VOID (NTAPI* PNETWORKTOOLS_WHOIS_PROGRESS)(
+    _In_ PCWSTR Message,
+    _In_opt_ PVOID Context
+    );
+
+_Success_(return)
+BOOLEAN NetworkToolsQueryWhois(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _In_opt_ PNETWORKTOOLS_WHOIS_PROGRESS Progress,
+    _In_opt_ PVOID Context,
+    _Out_ PPH_STRING* Response
+    );
+
+_Success_(return)
+BOOLEAN NTAPI NetworkToolsWhoisQuery(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ PPH_STRING* Response
+    );
+
 typedef struct _NETWORK_WHOIS_CONTEXT
 {
     HWND WindowHandle;

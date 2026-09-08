@@ -14,7 +14,7 @@
 #define _NETWORKTOOLSINTF_H
 
 #define NETWORKTOOLS_PLUGIN_NAME L"NetworkTools"
-#define NETWORKTOOLS_INTERFACE_VERSION 2
+#define NETWORKTOOLS_INTERFACE_VERSION 3
 
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _In_ PH_IP_ADDRESS RemoteAddress,
@@ -53,6 +53,23 @@ typedef VOID (NTAPI* PNETWORKTOOLS_SHOWWINDOW_WHOIS)(
     _In_ PH_IP_ENDPOINT Endpoint
     );
 
+/**
+ * Queries the registration record for an address, following the referral chain.
+ *
+ * \param Address The address to ask about.
+ * \param Ipv6Support Reach whois servers over IPv6 when they have an AAAA record.
+ * \param Response The assembled text of the responses. The caller dereferences it.
+ * \return TRUE if a server answered.
+ *
+ * \remarks This talks to whois servers on the internet: whois.iana.org first, then the registry it
+ * names, then whatever that one refers to. It blocks for as long as those exchanges take.
+ */
+typedef BOOLEAN (NTAPI* PNETWORKTOOLS_WHOIS_QUERY)(
+    _In_ PCWSTR Address,
+    _In_ BOOLEAN Ipv6Support,
+    _Out_ PPH_STRING* Response
+    );
+
 typedef struct _NETWORKTOOLS_INTERFACE
 {
     ULONG Version;
@@ -63,6 +80,7 @@ typedef struct _NETWORKTOOLS_INTERFACE
     PNETWORKTOOLS_SHOWWINDOW_PING ShowPingWindow;
     PNETWORKTOOLS_SHOWWINDOW_TRACERT ShowTracertWindow;
     PNETWORKTOOLS_SHOWWINDOW_WHOIS ShowWhoisWindow;
+    PNETWORKTOOLS_WHOIS_QUERY QueryWhois; // Version 3
 } NETWORKTOOLS_INTERFACE, *PNETWORKTOOLS_INTERFACE;
 
 #endif

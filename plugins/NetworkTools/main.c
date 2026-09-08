@@ -37,7 +37,8 @@ NETWORKTOOLS_INTERFACE PluginInterface =
     DrawCountryIcon,
     ShowPingWindowFromAddress,
     ShowTracertWindowFromAddress,
-    ShowWhoisWindowFromAddress
+    ShowWhoisWindowFromAddress,
+    NetworkToolsWhoisQuery
 };
 
 _Function_class_(PH_CALLBACK_FUNCTION)
