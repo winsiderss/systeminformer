@@ -262,9 +262,13 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_TARGET_INPUT_SCHEMA \
     "{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES "},\"required\":[\"pid\",\"process_sequence_number\"],\"additionalProperties\":false}"
 
+#define AT_THREAD_IDENTITY_INPUT_PROPERTIES \
+    "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"}," \
+    "\"create_time\":{\"type\":\"string\",\"description\":\"Optional; the create_time of that thread row. Tids are reused inside a process, so when it is given the call is refused if it no longer matches the live thread\"}"
+
 #define AT_THREAD_TARGET_INPUT_SCHEMA \
     "{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES "," \
-    "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"}" \
+    AT_THREAD_IDENTITY_INPUT_PROPERTIES \
     "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\"],\"additionalProperties\":false}"
 
 #define AT_ACTION_OUTPUT_SCHEMA \
@@ -658,7 +662,7 @@ CONST AT_TOOL AtTools[] =
         "several seconds while symbols load. Symbol names are read from files on disk and can be misleading in a hostile process. "
         AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
-        "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"},"
+        AT_THREAD_IDENTITY_INPUT_PROPERTIES ","
         "\"max_frames\":{\"type\":\"integer\",\"description\":\"Stop after this many frames (default 64, maximum 512)\"}"
         "},\"required\":[\"pid\",\"tid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"

@@ -713,6 +713,10 @@ VOID AtSetTargetParameter(
     _In_ PCWSTR Parameter
     );
 
+PPH_STRING AtFormatThreadCreateTime(
+    _In_ HANDLE ThreadHandle
+    );
+
 PPH_STRING AtFormatTargetHeadline(
     _In_ PAT_TARGET Target
     );

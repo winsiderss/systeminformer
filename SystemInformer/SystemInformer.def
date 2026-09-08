@@ -671,6 +671,7 @@ EXPORTS
     PhGetThreadIoPriority
     PhGetThreadIsTerminated
     PhGetThreadName
+    PhGetThreadTimes
     PhGetThreadPagePriority
     PhGetTokenAppContainerSid
     PhGetTokenGroups

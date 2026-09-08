@@ -125,6 +125,23 @@ NTSTATUS AtResolveProcessTarget(
     return STATUS_SUCCESS;
 }
 
+// The ISO 8601 form of a thread's creation time, the same text get_process_threads returns in a
+// thread row. Tid reuse inside a process is what process_sequence_number solves for pids.
+PPH_STRING AtFormatThreadCreateTime(
+    _In_ HANDLE ThreadHandle
+    )
+{
+    KERNEL_USER_TIMES times;
+    SYSTEMTIME systemTime;
+
+    if (!NT_SUCCESS(PhGetThreadTimes(ThreadHandle, &times)) || times.CreateTime.QuadPart == 0)
+        return NULL;
+
+    PhLargeIntegerToSystemTime(&systemTime, &times.CreateTime);
+
+    return PhFormatSystemTimeISO(&systemTime);
+}
+
 NTSTATUS AtpResolveThreadTarget(
     _In_opt_ PVOID Arguments,
     _In_ BOOLEAN RequireSequenceNumber,
@@ -137,6 +154,7 @@ NTSTATUS AtpResolveThreadTarget(
     ULONG64 threadId;
     HANDLE threadHandle;
     THREAD_BASIC_INFORMATION basicInfo;
+    PPH_STRING createTime;
 
     memset(Target, 0, sizeof(AT_TARGET));
 
@@ -188,6 +206,49 @@ NTSTATUS AtpResolveThreadTarget(
         NtClose(threadHandle);
         AtDeleteTarget(Target);
         return STATUS_INVALID_CID;
+    }
+
+    // Optional, like process_sequence_number on a read: when the caller passes the create_time it
+    // saw, a recycled tid is refused instead of acted on.
+    if (createTime = AtGetArgumentString(Arguments, "create_time"))
+    {
+        PPH_STRING liveCreateTime = AtFormatThreadCreateTime(threadHandle);
+
+        if (!liveCreateTime)
+        {
+            AtSetToolError(
+                Result,
+                "identity_mismatch",
+                STATUS_INVALID_CID,
+                L"The creation time of thread %llu could not be read, so its identity could not be checked.",
+                threadId
+                );
+            PhDereferenceObject(createTime);
+            NtClose(threadHandle);
+            AtDeleteTarget(Target);
+            return STATUS_INVALID_CID;
+        }
+
+        if (!PhEqualString(liveCreateTime, createTime, TRUE))
+        {
+            AtSetToolError(
+                Result,
+                "identity_mismatch",
+                STATUS_INVALID_CID,
+                L"Thread %llu was created at %s, not %s; the tid has been reused. Re-list the threads and try again.",
+                threadId,
+                PhGetString(liveCreateTime),
+                PhGetString(createTime)
+                );
+            PhDereferenceObject(liveCreateTime);
+            PhDereferenceObject(createTime);
+            NtClose(threadHandle);
+            AtDeleteTarget(Target);
+            return STATUS_INVALID_CID;
+        }
+
+        PhDereferenceObject(liveCreateTime);
+        PhDereferenceObject(createTime);
     }
 
     Target->Kind = AtTargetThread;
