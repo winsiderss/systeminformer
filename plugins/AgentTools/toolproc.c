@@ -107,11 +107,32 @@ PVOID AtpCreateProcessRow(
     return row;
 }
 
+// Bytes (or events) per second from a per-run delta. The provider's interval is not the configured
+// one when System Informer is throttling, so it is read rather than assumed, and reported alongside
+// so the caller can see what the rates were divided by.
+VOID AtpAddRate(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Delta,
+    _In_ ULONG IntervalMs
+    )
+{
+    if (IntervalMs == 0)
+    {
+        AtJsonAddNull(Object, Key);
+        return;
+    }
+
+    PhAddJsonObjectDouble(Object, Key, (DOUBLE)Delta * 1000.0 / IntervalMs);
+}
+
 VOID AtpFillProcessDetail(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
+    ULONG interval = AtGetUpdateInterval();
+
     HANDLE processHandle;
     PVOID services;
 
@@ -194,6 +215,27 @@ VOID AtpFillProcessDetail(
     AtJsonAddStringZ(Object, "priority_class", AtPriorityClassString(ProcessItem->PriorityClass));
     PhAddJsonObjectInt64(Object, "base_priority", ProcessItem->BasePriority);
     PhAddJsonObjectDouble(Object, "cpu_usage", ProcessItem->CpuUsage);
+    PhAddJsonObjectDouble(Object, "cpu_kernel_usage", ProcessItem->CpuKernelUsage);
+    PhAddJsonObjectDouble(Object, "cpu_user_usage", ProcessItem->CpuUserUsage);
+    PhAddJsonObjectUInt64(Object, "update_interval_ms", interval);
+
+    // What changed in the last provider run, which is how to see what a process is doing now rather
+    // than what it has done since it started.
+    AtpAddRate(Object, "io_read_rate", ProcessItem->IoReadDelta.Delta, interval);
+    AtpAddRate(Object, "io_write_rate", ProcessItem->IoWriteDelta.Delta, interval);
+    AtpAddRate(Object, "io_other_rate", ProcessItem->IoOtherDelta.Delta, interval);
+    PhAddJsonObjectUInt64(Object, "io_read_delta", ProcessItem->IoReadDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "io_write_delta", ProcessItem->IoWriteDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "io_other_delta", ProcessItem->IoOtherDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "context_switches_delta", ProcessItem->ContextSwitchesDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "page_faults_delta", ProcessItem->PageFaultsDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "hard_faults_delta", ProcessItem->HardFaultsDelta.Delta);
+    PhAddJsonObjectUInt64(Object, "cycle_time_delta", ProcessItem->CycleTimeDelta.Delta);
+
+    // Memory can be given back, and the delta is computed unsigned, so it wraps rather than going
+    // negative: read it back as signed so a process releasing memory reports a fall, not a
+    // nonsensical several exabytes.
+    PhAddJsonObjectInt64(Object, "private_bytes_delta", (LONG64)(LONG_PTR)ProcessItem->PrivateBytesDelta.Delta);
     PhAddJsonObjectUInt64(Object, "private_bytes", ProcessItem->VmCounters.PagefileUsage);
     PhAddJsonObjectUInt64(Object, "peak_private_bytes", ProcessItem->VmCounters.PeakPagefileUsage);
     PhAddJsonObjectUInt64(Object, "working_set_bytes", ProcessItem->VmCounters.WorkingSetSize);
