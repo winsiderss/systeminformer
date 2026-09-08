@@ -604,6 +604,7 @@ VOID AtpGetProcessThreads(
 
 typedef struct _AT_STACK_CONTEXT
 {
+    BOOLEAN ManagedSymbols;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PVOID Frames;
     ULONG Count;
@@ -612,6 +613,73 @@ typedef struct _AT_STACK_CONTEXT
 } AT_STACK_CONTEXT, *PAT_STACK_CONTEXT;
 
 _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
+// A managed frame has no native symbol worth reading: dbghelp resolves it to whatever jitted code
+// happens to sit at that address, or to nothing at all. The DotNetTools plugin can name it, through
+// the thread stack control callback the application fires around its own walk, so this fires the
+// same sequence: initialize, announce the default walk, resolve each frame, tear down.
+//
+// Not done for a 32-bit process on a 64-bit build. DotNetTools reaches a WOW64 target's CLR through
+// phsvc, and starting phsvc prompts for elevation - a background tool call must not put a consent
+// dialog on the screen, and would block on it for as long as it took to answer.
+VOID AtpBeginManagedSymbols(
+    _Inout_ PAT_STACK_CONTEXT Context,
+    _In_ PAT_TARGET Target,
+    _In_opt_ HANDLE ProcessHandle
+    )
+{
+    PH_PLUGIN_THREAD_STACK_CONTROL control;
+    BOOLEAN isWow64 = FALSE;
+
+    if (!ProcessHandle)
+        return;
+
+#ifdef _WIN64
+    if (!NT_SUCCESS(PhGetProcessIsWow64(ProcessHandle, &isWow64)) || isWow64)
+        return;
+#endif
+
+    memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
+    control.Type = PluginThreadStackInitializing;
+    control.UniqueKey = Context;
+    control.u.Initializing.ProcessId = Target->ProcessItem->ProcessId;
+    control.u.Initializing.ThreadId = Target->ThreadId;
+    control.u.Initializing.ThreadHandle = Target->ThreadHandle;
+    control.u.Initializing.ProcessHandle = ProcessHandle;
+    control.u.Initializing.SymbolProvider = Context->SymbolProvider;
+    control.u.Initializing.CustomWalk = FALSE;
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+    // CustomWalk is deliberately ignored: this tool always walks the stack itself, which is the
+    // path the application takes whenever a custom walk is unavailable or fails, and the plugin
+    // still gets to name every frame.
+    memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
+    control.Type = PluginThreadStackBeginDefaultWalkStack;
+    control.UniqueKey = Context;
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+    Context->ManagedSymbols = TRUE;
+}
+
+VOID AtpEndManagedSymbols(
+    _Inout_ PAT_STACK_CONTEXT Context
+    )
+{
+    PH_PLUGIN_THREAD_STACK_CONTROL control;
+
+    if (!Context->ManagedSymbols)
+        return;
+
+    memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
+    control.Type = PluginThreadStackEndDefaultWalkStack;
+    control.UniqueKey = Context;
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+    memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
+    control.Type = PluginThreadStackUninitializing;
+    control.UniqueKey = Context;
+    PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+}
+
 BOOLEAN NTAPI AtpStackFrameCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
@@ -621,6 +689,7 @@ BOOLEAN NTAPI AtpStackFrameCallback(
     PVOID row;
     PPH_STRING symbol;
     PPH_STRING fileName = NULL;
+    BOOLEAN managed = FALSE;
 
     if (context->Count >= context->MaximumFrames)
     {
@@ -635,17 +704,35 @@ BOOLEAN NTAPI AtpStackFrameCallback(
     AtJsonAddPointer(row, "frame_address", StackFrame->FrameAddress);
     AtJsonAddPointer(row, "stack_address", StackFrame->StackAddress);
 
-    if (symbol = PhGetSymbolFromAddress(context->SymbolProvider, StackFrame->PcAddress, NULL, &fileName, NULL, NULL))
+    symbol = PhGetSymbolFromAddress(context->SymbolProvider, StackFrame->PcAddress, NULL, &fileName, NULL, NULL);
+
+    if (context->ManagedSymbols)
     {
-        AtJsonAddString(row, "symbol", symbol);
-        PhDereferenceObject(symbol);
-    }
-    else
-    {
-        AtJsonAddNull(row, "symbol");
+        PH_PLUGIN_THREAD_STACK_CONTROL control;
+        PPH_STRING nativeSymbol = symbol;
+
+        // DotNetTools answers this with the managed method name for a frame the CLR owns, and
+        // leaves the symbol alone for the rest. It takes ownership of what it is given and hands
+        // back what it wants reported, so the returned pointer changing is what says the frame was
+        // managed - there is no other way to tell a jitted frame from an unresolved native one.
+        memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
+        control.Type = PluginThreadStackResolveSymbol;
+        control.UniqueKey = context;
+        control.u.ResolveSymbol.StackFrame = StackFrame;
+        control.u.ResolveSymbol.Symbol = symbol;
+        control.u.ResolveSymbol.FileName = fileName;
+
+        PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
+
+        managed = control.u.ResolveSymbol.Symbol != nativeSymbol;
+        symbol = control.u.ResolveSymbol.Symbol;
+        fileName = control.u.ResolveSymbol.FileName;
     }
 
+    AtJsonAddString(row, "symbol", symbol);
     AtJsonAddString(row, "module", fileName);
+    PhAddJsonObjectBoolean(row, "is_managed", managed);
+    PhClearReference(&symbol);
     PhClearReference(&fileName);
 
     PhAddJsonObjectBoolean(row, "is_kernel", !!FlagOn(StackFrame->Flags, PH_THREAD_STACK_FRAME_KERNEL));
@@ -688,6 +775,8 @@ VOID AtpGetThreadStack(
     clientId.UniqueThread = Target->ThreadId;
     context.Frames = PhCreateJsonArray();
 
+    AtpBeginManagedSymbols(&context, Target, processHandle);
+
     status = PhWalkThreadStack(
         Target->ThreadHandle,
         processHandle,
@@ -697,6 +786,8 @@ VOID AtpGetThreadStack(
         AtpStackFrameCallback,
         &context
         );
+
+    AtpEndManagedSymbols(&context);
 
     if (processHandle)
         NtClose(processHandle);
@@ -716,6 +807,7 @@ VOID AtpGetThreadStack(
     PhAddJsonObjectValue(structured, "frames", context.Frames);
     PhAddJsonObjectUInt64(structured, "count", context.Count);
     PhAddJsonObjectBoolean(structured, "truncated", context.Truncated);
+    PhAddJsonObjectBoolean(structured, "managed_symbols", context.ManagedSymbols);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
