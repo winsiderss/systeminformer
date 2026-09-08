@@ -147,6 +147,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read system information", L"Allow reading system information", L"get_system_info"
     },
     {
+        AtActionGetSystemHistory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_history"),
+        L"read the recent history of the system", L"Allow reading system history", L"get_system_history"
+    },
+    {
         AtActionListKernelDrivers, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
         L"list kernel drivers", L"Allow listing kernel drivers", L"list_kernel_drivers"
     },
@@ -1115,6 +1119,57 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"elevated\",\"etw\",\"gpu\",\"dotnet\",\"online_checks\",\"process_monitor\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"os_build\",\"uptime_seconds\",\"processor_count\",\"ksi_connected\",\"capabilities\",\"updates_paused\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_system_history", L"Get system history", AtTierRead, AtActionGetSystemHistory,
+        SETTING_NAME_TOOL_ACCESS(L"get_system_history"), SETTING_NAME_TOOL_CONFIRM(L"get_system_history"),
+        "{\"name\":\"get_system_history\",\"title\":\"Get system history\","
+        "\"description\":\"What the machine as a whole has been doing over the last window_seconds, from System "
+        "Informer's own history: CPU, I/O bytes, commit and physical memory in use per provider run, each as average, "
+        "maximum and last. Set include_samples for the series itself, most recent first; each sample also names the "
+        "process that used the most CPU and the most I/O in that run, which is how to find what spiked at a given "
+        "moment. Those are process ids only, and the process may since have exited. include_per_cpu summarises each "
+        "processor over the window. "
+        AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"window_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How far back to look; default 60, capped by what the history holds\"},"
+        "\"include_samples\":{\"type\":\"boolean\",\"description\":\"Also return the individual samples, most recent first\"},"
+        "\"include_per_cpu\":{\"type\":\"boolean\",\"description\":\"Also summarise each processor over the window\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"update_interval_ms\":{\"type\":\"integer\",\"description\":\"Milliseconds between samples\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"description\":\"Seconds actually covered\"},"
+        "\"sample_count\":{\"type\":\"integer\"},"
+        "\"processor_count\":{\"type\":\"integer\",\"description\":\"Processors in this processor group\"},"
+        "\"cpu_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"cpu_kernel_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"cpu_user_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"io_read_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the bytes read in the window") ","
+        "\"io_write_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the bytes written in the window") ","
+        "\"io_other_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the other I/O bytes in the window") ","
+        "\"commit_bytes\":" AT_HISTORY_STATS_SCHEMA("Committed bytes at each sample") ","
+        "\"physical_in_use_bytes\":" AT_HISTORY_STATS_SCHEMA("Physical memory in use at each sample") ","
+        "\"per_cpu\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_per_cpu was set\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"index\":{\"type\":\"integer\"},"
+        "\"cpu_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of that processor, 0..1")
+        "},\"required\":[\"index\",\"cpu_usage\"]}},"
+        "\"samples\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_samples was set; most recent first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"time\":{\"type\":[\"string\",\"null\"]},"
+        "\"cpu_usage\":{\"type\":\"number\"},"
+        "\"cpu_kernel_usage\":{\"type\":\"number\"},"
+        "\"cpu_user_usage\":{\"type\":\"number\"},"
+        "\"io_read_bytes\":{\"type\":\"integer\"},"
+        "\"io_write_bytes\":{\"type\":\"integer\"},"
+        "\"io_other_bytes\":{\"type\":\"integer\"},"
+        "\"commit_bytes\":{\"type\":\"integer\"},"
+        "\"physical_in_use_bytes\":{\"type\":\"integer\"},"
+        "\"max_cpu_pid\":{\"type\":[\"integer\",\"null\"],\"description\":\"Process that used the most CPU in that sample; may have exited\"},"
+        "\"max_io_pid\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

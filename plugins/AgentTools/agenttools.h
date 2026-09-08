@@ -100,6 +100,7 @@ typedef enum _AT_ACTION
     AtActionCloseNetworkConnection,
     // system
     AtActionGetSystemInfo,
+    AtActionGetSystemHistory,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,
     AtActionGetPagefileInfo,

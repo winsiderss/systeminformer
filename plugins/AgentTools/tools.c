@@ -981,6 +981,7 @@ VOID AtInvokeTool(
         AtModuleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessHistory:
+    case AtActionGetSystemHistory:
         AtHistoryInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessHandles:
