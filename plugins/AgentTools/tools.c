@@ -1416,6 +1416,7 @@ VOID AtInvokeTool(
     case AtActionGetSystemEnvironment:
     case AtActionGetMemoryDetails:
     case AtActionGetSecurityPosture:
+    case AtActionGetCpuInfo:
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:

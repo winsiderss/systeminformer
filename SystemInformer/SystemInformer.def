@@ -681,6 +681,7 @@ EXPORTS
     PhGetProcessWsCounters
     PhGetSectionFileName
     PhGetKernelDebuggerInformation
+    PhGetProcessorNominalFrequency
     PhGetSystemCompressionStoreInformation
     PhGetSystemFileCacheSize
     PhGetVirtualStatus
@@ -868,6 +869,7 @@ EXPORTS
     PhGetStatusMessage
     PhGetSystemDirectory
     PhGetSystemLogicalProcessorInformation
+    PhGetSystemLogicalProcessorRelationInformation
     PhGetSystemMetrics
     PhGetSystemParametersInfo
     PhGetSystemRoot

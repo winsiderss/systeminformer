@@ -162,6 +162,7 @@ typedef enum _AT_ACTION
     AtActionGetSystemEnvironment,
     AtActionGetMemoryDetails,
     AtActionGetSecurityPosture,
+    AtActionGetCpuInfo,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,

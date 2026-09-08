@@ -358,6 +358,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetSecurityPosture, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_security_posture"),
         L"read the machine's security configuration", L"Allow reading the security configuration", L"get_security_posture"
     },
+    {
+        AtActionGetCpuInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_cpu_info"),
+        L"read the processor layout", L"Allow reading the processor layout", L"get_cpu_info"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3715,6 +3719,71 @@ CONST AT_TOOL AtTools[] =
         "\"system_informer_elevated\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"virtualization\",\"ksi_level\",\"system_informer_elevated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_cpu_info", L"Get processor information", AtTierRead, AtActionGetCpuInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_cpu_info"), SETTING_NAME_TOOL_CONFIRM(L"get_cpu_info"),
+        "{\"name\":\"get_cpu_info\",\"title\":\"Get processor information\","
+        "\"description\":\"What the processors are and how they are arranged. A core count on its own explains "
+        "little: which logical processors share a core, which share a last-level cache, which NUMA node they "
+        "are on, and on a hybrid part which are the performance cores and which the efficiency ones, are what "
+        "say whether work pinned somewhere is pinned somewhere useful. Parked cores are reported too - a "
+        "machine that looks half idle may simply have half its cores parked. efficiency_class is 0 on every "
+        "processor of a part that is not hybrid, so efficiency_classes says whether the field means anything "
+        "here. The usage figures are the same instantaneous ones get_system_info reports; there are no rates "
+        "for interrupts or system calls, because a rate needs two samples and this takes one - "
+        "get_system_history is fed by the provider that samples. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"brand\":{\"type\":[\"string\",\"null\"],\"description\":\"The processor's own brand string\"},"
+        "\"architecture\":{\"type\":\"string\"},"
+        "\"logical_processor_count\":{\"type\":\"integer\"},"
+        "\"page_size\":{\"type\":\"integer\"},"
+        "\"allocation_granularity\":{\"type\":\"integer\"},"
+        "\"topology\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"cores\":{\"type\":\"integer\"},"
+        "\"logical_processors\":{\"type\":\"integer\"},"
+        "\"packages\":{\"type\":\"integer\",\"description\":\"Physical sockets\"},"
+        "\"numa_nodes\":{\"type\":\"integer\"},"
+        "\"hyperthreaded\":{\"type\":\"boolean\",\"description\":\"More logical processors than cores\"}"
+        "}},"
+        "\"caches\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"level\":{\"type\":\"integer\"},"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"unified, instruction, data or trace\"},"
+        "\"size_bytes\":{\"type\":\"integer\"},"
+        "\"line_size\":{\"type\":\"integer\"},"
+        "\"associativity\":{\"type\":\"integer\"},"
+        "\"group\":{\"type\":\"integer\"},"
+        "\"processor_mask\":{\"type\":\"string\",\"description\":\"Which logical processors in that group share this cache, hexadecimal\"}"
+        "},\"required\":[\"level\",\"size_bytes\"]}},"
+        "\"processors\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"id\":{\"type\":\"integer\",\"description\":\"CPU set id, which is what SetThreadSelectedCpuSets takes\"},"
+        "\"group\":{\"type\":\"integer\"},"
+        "\"logical_processor_index\":{\"type\":\"integer\"},"
+        "\"core_index\":{\"type\":\"integer\",\"description\":\"Two logical processors sharing this are the two threads of one core\"},"
+        "\"last_level_cache_index\":{\"type\":\"integer\"},"
+        "\"numa_node_index\":{\"type\":\"integer\"},"
+        "\"efficiency_class\":{\"type\":\"integer\",\"description\":\"Higher is more performant; always 0 on a part that is not hybrid\"},"
+        "\"scheduling_class\":{\"type\":\"integer\"},"
+        "\"parked\":{\"type\":\"boolean\"},"
+        "\"allocated\":{\"type\":\"boolean\"},"
+        "\"real_time\":{\"type\":\"boolean\"},"
+        "\"nominal_frequency_mhz\":{\"type\":[\"integer\",\"null\"],\"description\":\"The branded frequency, not the current one\"}"
+        "},\"required\":[\"id\",\"group\",\"core_index\",\"parked\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"parked_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Across every processor, not only the page returned\"},"
+        "\"efficiency_classes\":{\"type\":[\"integer\",\"null\"],\"description\":\"How many distinct classes exist; 1 means the part is not hybrid\"},"
+        "\"usage\":{\"type\":\"object\",\"properties\":{"
+        "\"cpu_usage\":{\"type\":\"number\"},"
+        "\"cpu_kernel_usage\":{\"type\":\"number\"},"
+        "\"cpu_user_usage\":{\"type\":\"number\"}"
+        "}},"
+        "\"virtualization\":{\"type\":[\"string\",\"null\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"architecture\",\"logical_processor_count\",\"page_size\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

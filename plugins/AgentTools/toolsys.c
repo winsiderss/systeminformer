@@ -1375,6 +1375,296 @@ VOID AtpGetSecurityPosture(
     Result->StructuredContent = structured;
 }
 
+// What the processors are and how they are arranged. A core count on its own explains very little:
+// which logical processors share a core, which share a cache, which NUMA node they are on, and -
+// on a hybrid part - which are the performance cores and which the efficiency ones, are what say
+// whether a thread pinned somewhere is pinned somewhere useful.
+
+PPH_STRING AtpGetCpuBrandString(
+    VOID
+    )
+{
+    SYSTEM_PROCESSOR_BRAND_STRING brandString;
+    PPH_STRING brand;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemProcessorBrandString,
+        &brandString,
+        sizeof(SYSTEM_PROCESSOR_BRAND_STRING),
+        NULL
+        )))
+    {
+        return NULL;
+    }
+
+    // The field is a fixed buffer the firmware filled and is padded with spaces on most parts.
+    brand = PhConvertUtf8ToUtf16Ex(brandString.BrandString, sizeof(brandString.BrandString) - sizeof(ANSI_NULL));
+
+    if (brand)
+    {
+        static CONST PH_STRINGREF whitespace = PH_STRINGREF_INIT(L" ");
+
+        PhTrimToNullTerminatorString(brand);
+        PhTrimStringRef(&brand->sr, &whitespace, 0);
+        PhMoveReference(&brand, PhCreateString2(&brand->sr));
+    }
+
+    return brand;
+}
+
+PCWSTR AtpCacheTypeString(
+    _In_ PROCESSOR_CACHE_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case CacheUnified:
+        return L"unified";
+    case CacheInstruction:
+        return L"instruction";
+    case CacheData:
+        return L"data";
+    case CacheTrace:
+        return L"trace";
+    }
+
+    return NULL;
+}
+
+VOID AtpAddCpuCaches(
+    _In_ PVOID Structured
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX buffer;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX entry;
+    ULONG bufferLength;
+    ULONG offset;
+    PVOID array;
+
+    if (!NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationCache, &buffer, &bufferLength)))
+    {
+        AtJsonAddNull(Structured, "caches");
+        return;
+    }
+
+    array = PhCreateJsonArray();
+
+    // Variable-length records: each carries its own size and the next one follows it.
+    for (offset = 0; offset + sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX) <= bufferLength; offset += entry->Size)
+    {
+        PVOID row;
+
+        entry = PTR_ADD_OFFSET(buffer, offset);
+
+        if (entry->Size == 0)
+            break;
+        if (entry->Relationship != RelationCache)
+            continue;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "level", entry->Cache.Level);
+        AtJsonAddStringZ(row, "type", AtpCacheTypeString(entry->Cache.Type));
+        PhAddJsonObjectUInt64(row, "size_bytes", entry->Cache.CacheSize);
+        PhAddJsonObjectUInt64(row, "line_size", entry->Cache.LineSize);
+        PhAddJsonObjectUInt64(row, "associativity", entry->Cache.Associativity);
+        PhAddJsonObjectUInt64(row, "group", entry->Cache.GroupMask.Group);
+        AtJsonAddHex(row, "processor_mask", entry->Cache.GroupMask.Mask);
+        PhAddJsonArrayObject(array, row);
+    }
+
+    PhAddJsonObjectValue(Structured, "caches", array);
+    PhFree(buffer);
+}
+
+VOID AtpAddCpuProcessors(
+    _In_ PVOID Structured,
+    _In_ PAT_TOOL_CALL Call
+    )
+{
+    PSYSTEM_CPU_SET_INFORMATION buffer;
+    ULONG bufferLength = 0;
+    ULONG offset;
+    AT_ROWS rows;
+    ULONG efficiencyClasses = 0;
+    ULONG parkedCount = 0;
+
+    // One query answers the whole per-processor picture: which core and cache and NUMA node each
+    // logical processor belongs to, whether it is parked, and its efficiency class.
+    if (!NT_SUCCESS(NtQuerySystemInformationEx(
+        SystemCpuSetInformation,
+        &(HANDLE){ NULL },
+        sizeof(HANDLE),
+        NULL,
+        0,
+        &bufferLength
+        )) && bufferLength == 0)
+    {
+        AtJsonAddNull(Structured, "processors");
+        AtJsonAddNull(Structured, "parked_count");
+        AtJsonAddNull(Structured, "efficiency_classes");
+        return;
+    }
+
+    buffer = PhAllocate(bufferLength);
+
+    if (!NT_SUCCESS(NtQuerySystemInformationEx(
+        SystemCpuSetInformation,
+        &(HANDLE){ NULL },
+        sizeof(HANDLE),
+        buffer,
+        bufferLength,
+        &bufferLength
+        )))
+    {
+        AtJsonAddNull(Structured, "processors");
+        AtJsonAddNull(Structured, "parked_count");
+        AtJsonAddNull(Structured, "efficiency_classes");
+        PhFree(buffer);
+        return;
+    }
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (offset = 0; offset < bufferLength; )
+    {
+        PSYSTEM_CPU_SET_INFORMATION entry = PTR_ADD_OFFSET(buffer, offset);
+        PH_PROCESSOR_NUMBER processorNumber;
+        ULONG frequency;
+        PVOID row;
+
+        if (entry->Size == 0)
+            break;
+
+        offset += entry->Size;
+
+        if (entry->Type != CpuSetInformation)
+            continue;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "id", entry->CpuSet.Id);
+        PhAddJsonObjectUInt64(row, "group", entry->CpuSet.Group);
+        PhAddJsonObjectUInt64(row, "logical_processor_index", entry->CpuSet.LogicalProcessorIndex);
+        PhAddJsonObjectUInt64(row, "core_index", entry->CpuSet.CoreIndex);
+        PhAddJsonObjectUInt64(row, "last_level_cache_index", entry->CpuSet.LastLevelCacheIndex);
+        PhAddJsonObjectUInt64(row, "numa_node_index", entry->CpuSet.NumaNodeIndex);
+        // On a hybrid part this is what separates performance cores from efficiency cores: the
+        // higher the class, the more performant. Every processor reports 0 on a part that is not
+        // hybrid, which is why the count of distinct classes is reported alongside.
+        PhAddJsonObjectUInt64(row, "efficiency_class", entry->CpuSet.EfficiencyClass);
+        PhAddJsonObjectUInt64(row, "scheduling_class", entry->CpuSet.SchedulingClass);
+        PhAddJsonObjectBoolean(row, "parked", !!entry->CpuSet.Parked);
+        PhAddJsonObjectBoolean(row, "allocated", !!entry->CpuSet.Allocated);
+        PhAddJsonObjectBoolean(row, "real_time", !!entry->CpuSet.RealTime);
+
+        processorNumber.Group = entry->CpuSet.Group;
+        processorNumber.Number = entry->CpuSet.LogicalProcessorIndex;
+
+        if (NT_SUCCESS(PhGetProcessorNominalFrequency(&processorNumber, &frequency)))
+            PhAddJsonObjectUInt64(row, "nominal_frequency_mhz", frequency);
+        else
+            AtJsonAddNull(row, "nominal_frequency_mhz");
+
+        if (entry->CpuSet.Parked)
+            parkedCount++;
+
+        SetFlag(efficiencyClasses, 1ul << (entry->CpuSet.EfficiencyClass & 31));
+
+        AtAddRow(&rows, row);
+    }
+
+    AtAddRows(Structured, "processors", &rows);
+    PhAddJsonObjectUInt64(Structured, "parked_count", parkedCount);
+    {
+        ULONG classCount = 0;
+        ULONG i;
+
+        for (i = 0; i < 32; i++)
+        {
+            if (FlagOn(efficiencyClasses, 1ul << i))
+                classCount++;
+        }
+
+        PhAddJsonObjectUInt64(Structured, "efficiency_classes", classCount);
+    }
+
+    AtDeleteRows(&rows);
+    PhFree(buffer);
+}
+
+VOID AtpGetCpuInfo(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    SYSTEM_BASIC_INFORMATION basicInfo;
+    PH_LOGICAL_PROCESSOR_INFORMATION logicalInfo;
+    PPH_STRING brand;
+    PVOID structured;
+    PVOID entry;
+
+    memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The processor information could not be read.");
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+
+    brand = AtpGetCpuBrandString();
+    AtJsonAddString(structured, "brand", brand);
+    PhClearReference(&brand);
+
+#if defined(_M_ARM64)
+    PhAddJsonObject(structured, "architecture", "ARM64");
+#elif defined(_M_X64)
+    PhAddJsonObject(structured, "architecture", "x64");
+#else
+    PhAddJsonObject(structured, "architecture", "x86");
+#endif
+
+    PhAddJsonObjectUInt64(structured, "logical_processor_count", basicInfo.NumberOfProcessors);
+    PhAddJsonObjectUInt64(structured, "page_size", basicInfo.PageSize);
+    PhAddJsonObjectUInt64(structured, "allocation_granularity", basicInfo.AllocationGranularity);
+
+    if (NT_SUCCESS(PhGetSystemLogicalProcessorRelationInformation(&logicalInfo)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "cores", logicalInfo.ProcessorCoreCount);
+        PhAddJsonObjectUInt64(entry, "logical_processors", logicalInfo.ProcessorLogicalCount);
+        PhAddJsonObjectUInt64(entry, "packages", logicalInfo.ProcessorPackageCount);
+        PhAddJsonObjectUInt64(entry, "numa_nodes", logicalInfo.ProcessorNumaCount);
+        PhAddJsonObjectBoolean(
+            entry,
+            "hyperthreaded",
+            logicalInfo.ProcessorCoreCount != 0 && logicalInfo.ProcessorLogicalCount > logicalInfo.ProcessorCoreCount
+            );
+        PhAddJsonObjectValue(structured, "topology", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "topology");
+    }
+
+    AtpAddCpuCaches(structured);
+    AtpAddCpuProcessors(structured, Call);
+
+    // Counters since boot, not rates: a rate needs two samples and this call takes one. Sample
+    // twice and subtract, or use get_system_history, which is fed by the provider that does.
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectDouble(entry, "cpu_usage", (DOUBLE)PhCpuKernelUsage + (DOUBLE)PhCpuUserUsage);
+    PhAddJsonObjectDouble(entry, "cpu_kernel_usage", (DOUBLE)PhCpuKernelUsage);
+    PhAddJsonObjectDouble(entry, "cpu_user_usage", (DOUBLE)PhCpuUserUsage);
+    PhAddJsonObjectValue(structured, "usage", entry);
+
+    AtJsonAddStringZ(structured, "virtualization", AtpVirtualStatusString(PhGetVirtualStatus()));
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1416,6 +1706,9 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionGetSecurityPosture:
         AtpGetSecurityPosture(Call, Result);
+        break;
+    case AtActionGetCpuInfo:
+        AtpGetCpuInfo(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
