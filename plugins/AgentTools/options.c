@@ -17,6 +17,7 @@
 #define AT_COLUMN_TOOL 0
 #define AT_COLUMN_ACCESS 1
 #define AT_COLUMN_AUTHORIZATION 2
+#define AT_COLUMN_TIER 3
 
 #define AT_MENU_ACCESS_ALLOWED 1
 #define AT_MENU_ACCESS_DENIED 2
@@ -426,6 +427,9 @@ int __cdecl AtpToolsSortFunction(
         case AT_COLUMN_AUTHORIZATION:
             result = uintcmp(PhGetIntegerSetting(node1->Tool->ConfirmSetting), PhGetIntegerSetting(node2->Tool->ConfirmSetting));
             break;
+        case AT_COLUMN_TIER:
+            result = uintcmp(node1->Tool->Tier, node2->Tool->Tier);
+            break;
         }
     }
 
@@ -525,6 +529,9 @@ BOOLEAN NTAPI AtpToolsTreeNewCallback(
             case AT_COLUMN_AUTHORIZATION:
                 PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)AtpAuthorizationText(node->Tool));
                 break;
+            case AT_COLUMN_TIER:
+                PhInitializeStringRefLongHint(&getCellText->Text, (PWSTR)AtTierString(node->Tool->Tier));
+                break;
             default:
                 return FALSE;
             }
@@ -615,8 +622,9 @@ INT_PTR CALLBACK AtOptionsDlgProc(
             TreeNew_SetTriState(treeNew, TRUE);
             TreeNew_SetSort(treeNew, AT_COLUMN_TOOL, NoSortOrder);
             PhAddTreeNewColumn(treeNew, AT_COLUMN_TOOL, TRUE, L"Tool", 240, PH_ALIGN_LEFT, 0, 0);
-            PhAddTreeNewColumn(treeNew, AT_COLUMN_ACCESS, TRUE, L"Access", 70, PH_ALIGN_LEFT, 1, 0);
-            PhAddTreeNewColumn(treeNew, AT_COLUMN_AUTHORIZATION, TRUE, L"Authorization", 120, PH_ALIGN_LEFT, 2, 0);
+            PhAddTreeNewColumn(treeNew, AT_COLUMN_TIER, TRUE, L"Kind", 100, PH_ALIGN_LEFT, 1, 0);
+            PhAddTreeNewColumn(treeNew, AT_COLUMN_ACCESS, TRUE, L"Access", 70, PH_ALIGN_LEFT, 2, 0);
+            PhAddTreeNewColumn(treeNew, AT_COLUMN_AUTHORIZATION, TRUE, L"Authorization", 120, PH_ALIGN_LEFT, 3, 0);
 
             columns = PhGetStringSetting(SETTING_NAME_TOOLS_LISTVIEW_COLUMNS);
             PhCmLoadSettings(treeNew, &columns->sr);

@@ -177,6 +177,7 @@ ULONG AtToolDefaultConfirm(
     case AtActionGetTpmInfo:
         return AT_CONFIRM_ALWAYS;
     default:
+        // Everything but a plain read is asked about, network egress included.
         return Tool->Tier == AtTierRead ? AT_CONFIRM_NONE : AT_CONFIRM_ALWAYS;
     }
 }
@@ -788,6 +789,25 @@ PCWSTR AtKphLevelString(
     return NULL;
 }
 
+PCWSTR AtTierString(
+    _In_ AT_TIER Tier
+    )
+{
+    switch (Tier)
+    {
+    case AtTierRead:
+        return L"Read";
+    case AtTierSensitiveRead:
+        return L"Sensitive read";
+    case AtTierWrite:
+        return L"Write";
+    case AtTierNetworkEgress:
+        return L"Network egress";
+    }
+
+    return NULL;
+}
+
 PCWSTR AtVerifyResultString(
     _In_ VERIFY_RESULT Result
     )
@@ -1001,7 +1021,7 @@ VOID AtInvokeTool(
         break;
     }
 
-    if (action->Tier != AtTierRead && Target->Kind != AtTargetNone)
+    if (action->Tier != AtTierRead && (Target->Kind != AtTargetNone || action->Tier == AtTierNetworkEgress))
     {
         AtAudit(
             Call->Connection,

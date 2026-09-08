@@ -908,6 +908,8 @@ AT_CONSENT_RESULT AtpAskUser(
 
     if (Action->Tier == AtTierSensitiveRead)
         request->Content = PhFormatString(L"%s\n\nThis data can contain secrets.", PhGetString(requester));
+    else if (Action->Tier == AtTierNetworkEgress)
+        request->Content = PhFormatString(L"%s\n\nThis sends the request off this machine to a service on the internet.", PhGetString(requester));
     else
         request->Content = PhReferenceObject(requester);
 
@@ -1188,8 +1190,11 @@ AT_CONSENT_RESULT AtConsentGate(
 
         // The client's prompt offers no session choice. Its message says a read is granted for
         // the rest of the session, so honour that; writes are asked every time.
-        if (result == AtConsentAllowed && Action->Tier != AtTierWrite)
+        if (result == AtConsentAllowed &&
+            (Action->Tier == AtTierRead || Action->Tier == AtTierSensitiveRead))
+        {
             AtpSetSessionPolicy(connection, Action, AtSessionAllow);
+        }
     }
 
     switch (result)

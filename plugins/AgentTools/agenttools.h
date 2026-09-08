@@ -55,7 +55,10 @@ typedef enum _AT_TIER
 {
     AtTierRead,
     AtTierSensitiveRead,
-    AtTierWrite
+    AtTierWrite,
+    // Sends something off this machine: an address, a file hash. The data is small, but where it
+    // goes is not the user's machine, so it is asked about by default and never granted implicitly.
+    AtTierNetworkEgress
 } AT_TIER;
 
 typedef enum _AT_ACTION
@@ -657,6 +660,10 @@ VOID AtJsonAddDuration(
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle
+    );
+
+PCWSTR AtTierString(
+    _In_ AT_TIER Tier
     );
 
 PCWSTR AtVerifyResultString(

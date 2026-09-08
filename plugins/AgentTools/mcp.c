@@ -1111,6 +1111,16 @@ PVOID AtpCreateElicitationParams(
             classDescription ? classDescription : L"every target"
             );
     }
+    else if (Action->Tier == AtTierNetworkEgress)
+    {
+        message = PhFormatString(
+            L"System Informer: allow the connected agent to %s%s%s?\n\nRequested by: %s\n\nThis sends the request off this machine to a service on the internet. Confirm only if you intended it.",
+            Action->Verb,
+            Target && Target->Parameter ? L" " : L"",
+            Target && Target->Parameter ? PhGetString(Target->Parameter) : L"",
+            PhGetString(caller)
+            );
+    }
     else
     {
         message = PhFormatString(
