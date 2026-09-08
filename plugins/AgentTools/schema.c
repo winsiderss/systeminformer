@@ -198,6 +198,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"query whois servers about the following address", L"Query whois servers about", L"whois_lookup"
     },
     {
+        AtActionListFirewallEvents, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_firewall_events"),
+        L"read the firewall event log", L"Read the firewall event log", L"list_firewall_events"
+    },
+    {
         AtActionListNetworkConnections, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
         L"list network connections", L"Allow listing network connections", L"list_network_connections"
     },
@@ -1871,6 +1875,47 @@ CONST AT_TOOL AtTools[] =
         "\"country_geoname_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"GeoNames identifier, not an ISO country code\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"address\",\"family\",\"is_private\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_firewall_events", L"List firewall events", AtTierSensitiveRead, AtActionListFirewallEvents,
+        SETTING_NAME_TOOL_ACCESS(L"list_firewall_events"), SETTING_NAME_TOOL_CONFIRM(L"list_firewall_events"),
+        "{\"name\":\"list_firewall_events\",\"title\":\"List firewall events\","
+        "\"description\":\"Connections the Windows Filtering Platform has recorded allowing or dropping, with the "
+        "program, the addresses and ports, the filter that decided and the user it ran as. drops_only narrows it to "
+        "the blocks, which is what a program failing to reach the network looks like from the outside. Needs "
+        "elevation: the filtering engine will not open otherwise. This reports what the platform has already "
+        "collected and does not switch collection on, because that setting is machine-wide and belongs to whoever "
+        "set it - so check collector.collection_enabled before reading an empty list as a quiet machine. Every "
+        "field of an event is optional in the platform's own format and is null when it was not recorded. "
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"drops_only\":{\"type\":\"boolean\",\"description\":\"Only events where something was blocked\"},"
+        "\"application_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the program's path\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"events\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"time\":{\"type\":[\"string\",\"null\"]},"
+        "\"type\":{\"type\":\"string\",\"description\":\"classify_drop, classify_allow, capability_drop, ipsec_kernel_drop and so on\"},"
+        "\"application\":{\"type\":[\"string\",\"null\"],\"description\":\"The program the platform attributed the packet to\"},"
+        "\"direction\":{\"type\":[\"string\",\"null\"],\"description\":\"inbound, outbound, forward or bidirectional; null for events that are not about a packet\"},"
+        "\"local_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"local_port\":{\"type\":[\"integer\",\"null\"]},"
+        "\"remote_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"remote_port\":{\"type\":[\"integer\",\"null\"]},"
+        "\"ip_protocol\":{\"type\":[\"integer\",\"null\"],\"description\":\"IP protocol number; 6 is TCP and 17 is UDP\"},"
+        "\"user_sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"filter_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"The filter that made the decision\"},"
+        "\"layer_id\":{\"type\":[\"integer\",\"null\"]},"
+        "\"is_loopback\":{\"type\":[\"boolean\",\"null\"]}"
+        "},\"required\":[\"type\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"collector\":{\"type\":\"object\",\"properties\":{"
+        "\"collection_enabled\":{\"type\":\"boolean\",\"description\":\"False means nothing is being recorded, so an empty list says nothing about the machine\"}"
+        "},\"required\":[\"collection_enabled\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"events\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

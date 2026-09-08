@@ -69,6 +69,9 @@
     <ClCompile Include="toolegrs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolfw.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolgpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>

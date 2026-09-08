@@ -117,6 +117,7 @@ typedef enum _AT_ACTION
     AtActionLookupIpCountry,
     AtActionPingHost,
     AtActionWhoisLookup,
+    AtActionListFirewallEvents,
     AtActionListNetworkConnections,
     AtActionCloseNetworkConnection,
     // system
@@ -879,6 +880,13 @@ VOID AtMemoryInvokeTool(
     );
 
 VOID AtServiceInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtFirewallInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
