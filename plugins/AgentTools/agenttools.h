@@ -21,6 +21,8 @@
 #include <workqueue.h>
 #include <hndlinfo.h>
 #include <secedit.h>
+
+#include "../ExtendedTools/extension/plugin.h"
 #include <svcsup.h>
 #include <lsasup.h>
 #include <symprv.h>
@@ -107,6 +109,7 @@ typedef enum _AT_ACTION
     AtActionGetSystemInfo,
     AtActionGetSystemHistory,
     AtActionGetGpuUsage,
+    AtActionGetProcessIoRates,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,
     AtActionGetPagefileInfo,
@@ -633,6 +636,19 @@ VOID AtAddSnapshot(
     _In_ PVOID Object
     );
 
+// The ExtendedTools plugin interface, or NULL when that plugin is absent or too old. It publishes
+// the GPU and per-process I/O counters that System Informer itself does not collect.
+PEXTENDEDTOOLS_INTERFACE AtGetExtendedToolsInterface(
+    VOID
+    );
+
+VOID AtAddRate(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Delta,
+    _In_ ULONG IntervalMs
+    );
+
 BOOLEAN AtGetArgumentUInt64(
     _In_opt_ PVOID Arguments,
     _In_ PCSTR Key,
@@ -742,6 +758,13 @@ VOID AtProcessInvokeTool(
     );
 
 VOID AtEventInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtIoInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

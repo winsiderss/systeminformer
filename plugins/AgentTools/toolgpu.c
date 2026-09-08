@@ -12,8 +12,6 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
-#include "../ExtendedTools/extension/plugin.h"
-
 // GPU utilization is not System Informer's own data: ExtendedTools collects it from the graphics
 // performance counters and publishes it on its plugin interface, keyed by adapter LUID. So this
 // tool enumerates the adapters itself (D3DKMT, which also gives their names, engines and memory
@@ -22,31 +20,6 @@
 // The interface answers 0 for an adapter it has no counters for, which is exactly what an idle
 // GPU looks like. Everything that comes from it is therefore reported as null, not zero, unless
 // the collector is actually running, and `collector` says which of its two settings is off.
-
-PEXTENDEDTOOLS_INTERFACE AtpGetExtendedToolsInterface(
-    VOID
-    )
-{
-    static PEXTENDEDTOOLS_INTERFACE pluginInterface = NULL;
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        PPH_PLUGIN plugin;
-
-        if (plugin = PhFindPlugin(EXTENDEDTOOLS_PLUGIN_NAME))
-        {
-            pluginInterface = PhGetPluginInformation(plugin)->Interface;
-
-            if (pluginInterface && pluginInterface->Version < EXTENDEDTOOLS_INTERFACE_VERSION)
-                pluginInterface = NULL;
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    return pluginInterface;
-}
 
 // Mirrors EtGpuMonitorInitialization: the counters that back the interface are only collected when
 // the GPU monitor is on and its performance-counter mode is enabled.
@@ -362,7 +335,7 @@ VOID AtpGetGpuUsage(
     ULONG64 shared = 0;
     ULONG i;
 
-    pluginInterface = AtpGetExtendedToolsInterface();
+    pluginInterface = AtGetExtendedToolsInterface();
 
     if (!pluginInterface)
     {

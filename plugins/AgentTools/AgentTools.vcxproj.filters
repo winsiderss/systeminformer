@@ -54,6 +54,9 @@
     <ClCompile Include="toolhist.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolio.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolmtgn.c">
       <Filter>Source Files</Filter>
     </ClCompile>

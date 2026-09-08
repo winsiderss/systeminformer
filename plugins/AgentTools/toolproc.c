@@ -265,22 +265,6 @@ VOID AtpAddParent(
     PhDereferenceObject(parent);
 }
 
-VOID AtpAddRate(
-    _In_ PVOID Object,
-    _In_ PCSTR Key,
-    _In_ ULONG64 Delta,
-    _In_ ULONG IntervalMs
-    )
-{
-    if (IntervalMs == 0)
-    {
-        AtJsonAddNull(Object, Key);
-        return;
-    }
-
-    PhAddJsonObjectDouble(Object, Key, (DOUBLE)Delta * 1000.0 / IntervalMs);
-}
-
 // The Statistics tab's numbers, which need the process opened and so are only gathered on request.
 // Anything that could not be read is null rather than zero: a zero working set or no GUI handles is
 // itself a finding, and must not be manufactured by a failed query.
@@ -612,9 +596,9 @@ VOID AtpFillProcessDetail(
 
     // What changed in the last provider run, which is how to see what a process is doing now rather
     // than what it has done since it started.
-    AtpAddRate(Object, "io_read_rate", ProcessItem->IoReadDelta.Delta, interval);
-    AtpAddRate(Object, "io_write_rate", ProcessItem->IoWriteDelta.Delta, interval);
-    AtpAddRate(Object, "io_other_rate", ProcessItem->IoOtherDelta.Delta, interval);
+    AtAddRate(Object, "io_read_rate", ProcessItem->IoReadDelta.Delta, interval);
+    AtAddRate(Object, "io_write_rate", ProcessItem->IoWriteDelta.Delta, interval);
+    AtAddRate(Object, "io_other_rate", ProcessItem->IoOtherDelta.Delta, interval);
     PhAddJsonObjectUInt64(Object, "io_read_delta", ProcessItem->IoReadDelta.Delta);
     PhAddJsonObjectUInt64(Object, "io_write_delta", ProcessItem->IoWriteDelta.Delta);
     PhAddJsonObjectUInt64(Object, "io_other_delta", ProcessItem->IoOtherDelta.Delta);

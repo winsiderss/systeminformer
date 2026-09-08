@@ -51,6 +51,49 @@ VOID AtSetToolStatusError(
     PhClearReference(&message);
 }
 
+PEXTENDEDTOOLS_INTERFACE AtGetExtendedToolsInterface(
+    VOID
+    )
+{
+    static PEXTENDEDTOOLS_INTERFACE pluginInterface = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_PLUGIN plugin;
+
+        if (plugin = PhFindPlugin(EXTENDEDTOOLS_PLUGIN_NAME))
+        {
+            pluginInterface = PhGetPluginInformation(plugin)->Interface;
+
+            if (pluginInterface && pluginInterface->Version < EXTENDEDTOOLS_INTERFACE_VERSION)
+                pluginInterface = NULL;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return pluginInterface;
+}
+
+// A per-second rate from a delta and the interval it covers. Null when the interval is unknown,
+// because a rate divided by a guess is worse than no rate.
+VOID AtAddRate(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Delta,
+    _In_ ULONG IntervalMs
+    )
+{
+    if (IntervalMs == 0)
+    {
+        AtJsonAddNull(Object, Key);
+        return;
+    }
+
+    PhAddJsonObjectDouble(Object, Key, (DOUBLE)Delta * 1000.0 / IntervalMs);
+}
+
 VOID AtSetToolHint(
     _Inout_ PAT_TOOL_RESULT Result,
     _In_ ULONG Hints
@@ -1040,6 +1083,9 @@ VOID AtInvokeTool(
         break;
     case AtActionGetGpuUsage:
         AtGpuInvokeTool(Tool, Call, Target, Result);
+        break;
+    case AtActionGetProcessIoRates:
+        AtIoInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListRecentEvents:
     case AtActionListRecentProcessExits:

@@ -171,6 +171,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read graphics adapter utilization", L"Allow reading GPU utilization", L"get_gpu_usage"
     },
     {
+        AtActionGetProcessIoRates, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_io_rates"),
+        L"read the disk and network I/O of processes", L"Allow reading process I/O rates", L"get_process_io_rates"
+    },
+    {
         AtActionListKernelDrivers, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
         L"list kernel drivers", L"Allow listing kernel drivers", L"list_kernel_drivers"
     },
@@ -1503,6 +1507,58 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_io_rates", L"Get process I/O rates", AtTierRead, AtActionGetProcessIoRates,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_io_rates"), SETTING_NAME_TOOL_CONFIRM(L"get_process_io_rates"),
+        "{\"name\":\"get_process_io_rates\",\"title\":\"Get process I/O rates\","
+        "\"description\":\"How much disk and network I/O a process is doing now, not just since it started: bytes and "
+        "operations in the last provider run, the rate that works out to, and the busiest run seen so far. get_process "
+        "reports the cumulative totals; this is what says whether the process is busy at this moment. The counters are "
+        "kept by the ExtendedTools plugin, and which of them exist depends on what is collecting: without the kernel "
+        "trace session (which needs elevation and ExtendedTools.EnableEtwMonitor) there are no network operation "
+        "counts, and before Windows 11 24H2 no network bytes either. Whatever is not being collected is null rather "
+        "than zero, because an idle process and an unwatched one must not read the same; collector says which source "
+        "was available. "
+        AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"update_interval_ms\":{\"type\":\"integer\",\"description\":\"Milliseconds the deltas cover, which is what the rates were divided by\"},"
+        "\"disk\":{\"type\":\"object\",\"properties\":{"
+        "\"read_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Cumulative since the process was first observed\"},"
+        "\"write_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"read_operations\":{\"type\":[\"integer\",\"null\"]},"
+        "\"write_operations\":{\"type\":[\"integer\",\"null\"]},"
+        "\"read_bytes_delta\":{\"type\":[\"integer\",\"null\"],\"description\":\"In the last provider run\"},"
+        "\"write_bytes_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"read_operations_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"write_operations_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"read_rate\":{\"type\":[\"number\",\"null\"],\"description\":\"Bytes per second in the last provider run\"},"
+        "\"write_rate\":{\"type\":[\"number\",\"null\"]},"
+        "\"peak_bytes_delta\":{\"type\":[\"integer\",\"null\"],\"description\":\"Most bytes read and written in any one run since this System Informer instance started watching, which is not the life of the process\"}"
+        "}},"
+        "\"network\":{\"type\":\"object\",\"properties\":{"
+        "\"receive_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"send_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"receive_operations\":{\"type\":[\"integer\",\"null\"],\"description\":\"Null without the kernel trace session; there is no other source\"},"
+        "\"send_operations\":{\"type\":[\"integer\",\"null\"]},"
+        "\"receive_bytes_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"send_bytes_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"receive_operations_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"send_operations_delta\":{\"type\":[\"integer\",\"null\"]},"
+        "\"receive_rate\":{\"type\":[\"number\",\"null\"],\"description\":\"Bytes per second in the last provider run\"},"
+        "\"send_rate\":{\"type\":[\"number\",\"null\"]},"
+        "\"peak_bytes_delta\":{\"type\":[\"integer\",\"null\"],\"description\":\"Busiest run since this instance started watching\"}"
+        "}},"
+        "\"collector\":{\"type\":\"object\",\"description\":\"Why the figures are what they are\",\"properties\":{"
+        "\"etw_enabled\":{\"type\":\"boolean\",\"description\":\"The kernel trace session is running; the only source of operation counts\"},"
+        "\"disk_counters_enabled\":{\"type\":\"boolean\",\"description\":\"ExtendedTools.EnableDiskPerformanceCounters\"},"
+        "\"have_sample\":{\"type\":\"boolean\",\"description\":\"False on a freshly started instance: the deltas are not meaningful yet\"}"
+        "},\"required\":[\"etw_enabled\",\"disk_counters_enabled\",\"have_sample\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"disk\",\"network\",\"collector\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
