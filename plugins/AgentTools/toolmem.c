@@ -31,6 +31,37 @@ VOID AtpAddHandleRow(
     PhAddJsonObjectBoolean(Row, "protect_from_close", !!FlagOn(Handle->HandleAttributes, OBJ_PROTECT_CLOSE));
 }
 
+// The access mask spelled out against the type's own rights, so an agent does not have to know that
+// 0x1f0fff means "everything" for a process and something else for a key.
+VOID AtpAddGrantedAccessSymbolic(
+    _In_ PVOID Row,
+    _In_ ACCESS_MASK GrantedAccess,
+    _In_opt_ PPH_STRING TypeName
+    )
+{
+    PPH_ACCESS_ENTRY accessEntries;
+    ULONG numberOfAccessEntries;
+    PPH_STRING accessString;
+
+    if (!TypeName || GrantedAccess == 0)
+    {
+        AtJsonAddNull(Row, "granted_access_symbolic");
+        return;
+    }
+
+    if (!PhGetAccessEntries(PhGetString(TypeName), &accessEntries, &numberOfAccessEntries))
+    {
+        AtJsonAddNull(Row, "granted_access_symbolic");
+        return;
+    }
+
+    accessString = PhGetAccessString(GrantedAccess, accessEntries, numberOfAccessEntries);
+    AtJsonAddString(Row, "granted_access_symbolic", accessString);
+
+    PhClearReference(&accessString);
+    PhFree(accessEntries);
+}
+
 VOID AtpGetProcessHandles(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -98,6 +129,8 @@ VOID AtpGetProcessHandles(
         PPH_STRING typeName = NULL;
         PPH_STRING objectName = NULL;
         PPH_STRING bestName = NULL;
+        OBJECT_BASIC_INFORMATION basicInfo;
+        BOOLEAN haveBasicInfo = FALSE;
         PVOID row;
 
         if (entry->UniqueProcessId != target->ProcessItem->ProcessId)
@@ -107,7 +140,20 @@ VOID AtpGetProcessHandles(
         {
             if (detailed)
             {
-                PhGetHandleInformation(processHandle, entry->HandleValue, entry->ObjectTypeIndex, NULL, &typeName, &objectName, &bestName);
+                // The same call that names the object also returns how many handles and references
+                // the object has and what it costs the pools, so the detail is free here.
+                haveBasicInfo = NT_SUCCESS(PhGetHandleInformationEx(
+                    processHandle,
+                    entry->HandleValue,
+                    entry->ObjectTypeIndex,
+                    0,
+                    NULL,
+                    &basicInfo,
+                    &typeName,
+                    &objectName,
+                    &bestName,
+                    NULL
+                    ));
             }
             else
             {
@@ -164,6 +210,24 @@ VOID AtpGetProcessHandles(
                 AtJsonAddString(row, "object_name", objectName);
                 AtJsonAddString(row, "best_name", bestName);
                 AtJsonAddPointer(row, "object_address", entry->Object);
+                AtpAddGrantedAccessSymbolic(row, entry->GrantedAccess, typeName);
+
+                if (haveBasicInfo)
+                {
+                    // How many other handles exist to the same object, which is what says whether
+                    // closing this one actually releases anything.
+                    PhAddJsonObjectUInt64(row, "handle_count", basicInfo.HandleCount);
+                    PhAddJsonObjectUInt64(row, "pointer_count", basicInfo.PointerCount);
+                    PhAddJsonObjectUInt64(row, "paged_pool_charge", basicInfo.PagedPoolCharge);
+                    PhAddJsonObjectUInt64(row, "non_paged_pool_charge", basicInfo.NonPagedPoolCharge);
+                }
+                else
+                {
+                    AtJsonAddNull(row, "handle_count");
+                    AtJsonAddNull(row, "pointer_count");
+                    AtJsonAddNull(row, "paged_pool_charge");
+                    AtJsonAddNull(row, "non_paged_pool_charge");
+                }
             }
 
             AtAddRow(&rows, row);

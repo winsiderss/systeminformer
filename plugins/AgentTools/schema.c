@@ -1003,7 +1003,12 @@ CONST AT_TOOL AtTools[] =
         "\"handles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_HANDLE_ROW_PROPERTIES ","
         "\"object_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Native object name\"},"
         "\"best_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Friendlier name: Win32 path, process name and pid, key path\"},"
-        "\"object_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Kernel object address; two handles with the same address refer to the same object\"}"
+        "\"object_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Kernel object address; two handles with the same address refer to the same object\"},"
+        "\"granted_access_symbolic\":{\"type\":[\"string\",\"null\"],\"description\":\"The access mask spelled out in the rights of that object type\"},"
+        "\"handle_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Handles to this object across the system, so closing one only releases it when this is 1\"},"
+        "\"pointer_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"paged_pool_charge\":{\"type\":[\"integer\",\"null\"]},"
+        "\"non_paged_pool_charge\":{\"type\":[\"integer\",\"null\"]}"
         "},\"required\":[\"handle\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA

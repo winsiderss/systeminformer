@@ -20,6 +20,7 @@
 #include <verify.h>
 #include <workqueue.h>
 #include <hndlinfo.h>
+#include <secedit.h>
 #include <svcsup.h>
 #include <lsasup.h>
 #include <symprv.h>
