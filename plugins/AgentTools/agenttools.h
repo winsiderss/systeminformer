@@ -29,6 +29,7 @@
 #include <svcsup.h>
 #include <lsasup.h>
 #include <symprv.h>
+#include <strsrch.h>
 #include <kphuser.h>
 #include <simcp.h>
 
@@ -108,6 +109,7 @@ typedef enum _AT_ACTION
     AtActionGetThreadWaitChain,
     AtActionAnalyzeThreadWait,
     AtActionResolveSymbol,
+    AtActionSearchProcessStrings,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,
@@ -648,6 +650,18 @@ PPH_PROCESS_ITEM AtBatchReferenceProcessItem(
     _In_ PAT_BATCH Batch,
     _In_ ULONG Index,
     _Out_ PULONG ProcessId
+    );
+
+PCWSTR AtStringEncodingString(
+    _In_ PH_STRING_SEARCH_ENCODING Encoding
+    );
+
+_Success_(return)
+BOOLEAN AtGetArgumentEncoding(
+    _In_opt_ PVOID Arguments,
+    _Out_ PPH_STRING_SEARCH_ENCODING Encoding,
+    _Out_ PBOOLEAN HaveEncoding,
+    _Inout_ PAT_TOOL_RESULT Result
     );
 
 PVOID AtCreateBatchError(

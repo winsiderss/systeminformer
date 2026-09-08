@@ -1267,23 +1267,6 @@ typedef struct _AT_STRINGS_CONTEXT
     ULONG Count;
 } AT_STRINGS_CONTEXT, *PAT_STRINGS_CONTEXT;
 
-PCWSTR AtpStringEncodingString(
-    _In_ PH_STRING_SEARCH_ENCODING Encoding
-    )
-{
-    switch (Encoding)
-    {
-    case PH_STRING_SEARCH_ENCODING_ANSI:
-        return L"ansi";
-    case PH_STRING_SEARCH_ENCODING_UTF8:
-        return L"utf8";
-    case PH_STRING_SEARCH_ENCODING_UTF16:
-        return L"utf16";
-    }
-
-    return NULL;
-}
-
 // The image is mapped as a data file, so an address inside the view is a file offset. A section has
 // to be found by its raw data range for that reason; matching it against VirtualAddress instead
 // attributes strings to whichever section happens to hold that RVA, which is a different section.
@@ -1376,7 +1359,7 @@ BOOLEAN NTAPI AtpStringSearchCallback(
     row = PhCreateJsonObject();
     AtJsonAddStringRef(row, "string", &Result->String);
     PhAddJsonObjectUInt64(row, "length", Result->String.Length / sizeof(WCHAR));
-    AtJsonAddStringZ(row, "encoding", AtpStringEncodingString(Result->Encoding));
+    AtJsonAddStringZ(row, "encoding", AtStringEncodingString(Result->Encoding));
     AtJsonAddHex(row, "file_offset", offset);
 
     if (section)
@@ -1411,7 +1394,6 @@ VOID AtpGetImageStrings(
     AT_STRINGS_CONTEXT context;
     PH_MAPPED_IMAGE mappedImage;
     PPH_STRING path;
-    PPH_STRING encoding;
     HANDLE fileHandle;
     ULONG64 minimumLength = AT_STRINGS_DEFAULT_LENGTH;
     PVOID structured;
@@ -1426,31 +1408,11 @@ VOID AtpGetImageStrings(
     memset(&context, 0, sizeof(AT_STRINGS_CONTEXT));
     context.Contains = AtGetArgumentString(Call->Arguments, "contains");
 
-    if (encoding = AtGetArgumentString(Call->Arguments, "encoding"))
+    if (!AtGetArgumentEncoding(Call->Arguments, &context.Encoding, &context.HaveEncoding, Result))
     {
-        context.HaveEncoding = TRUE;
-
-        if (PhEqualString2(encoding, L"ansi", TRUE))
-            context.Encoding = PH_STRING_SEARCH_ENCODING_ANSI;
-        else if (PhEqualString2(encoding, L"utf8", TRUE))
-            context.Encoding = PH_STRING_SEARCH_ENCODING_UTF8;
-        else if (PhEqualString2(encoding, L"utf16", TRUE))
-            context.Encoding = PH_STRING_SEARCH_ENCODING_UTF16;
-        else
-        {
-            AtSetToolError(
-                Result,
-                "invalid_arguments",
-                STATUS_INVALID_PARAMETER,
-                L"encoding must be ansi, utf8 or utf16."
-                );
-            PhDereferenceObject(encoding);
-            PhClearReference(&context.Contains);
-            PhDereferenceObject(path);
-            return;
-        }
-
-        PhDereferenceObject(encoding);
+        PhClearReference(&context.Contains);
+        PhDereferenceObject(path);
+        return;
     }
 
     if (AtGetArgumentUInt64(Call->Arguments, "minimum_length", &minimumLength))

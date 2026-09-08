@@ -159,6 +159,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"resolve symbols", L"Resolve symbols", L"resolve_symbol"
     },
     {
+        AtActionSearchProcessStrings, AtTierSensitiveRead, AtConsentClassProcessMemory, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_strings"),
+        L"read the strings in the memory of", L"Read the strings in the memory of", L"search_process_strings"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -1991,6 +1995,50 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"mode\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "search_process_strings", L"Search process strings", AtTierSensitiveRead, AtActionSearchProcessStrings,
+        SETTING_NAME_TOOL_ACCESS(L"search_process_strings"), SETTING_NAME_TOOL_CONFIRM(L"search_process_strings"),
+        "{\"name\":\"search_process_strings\",\"title\":\"Search process strings\","
+        "\"description\":\"Reads the strings a process is holding in memory right now. get_image_strings reads "
+        "what is in a file; these are the ones that only exist once it runs - a command line it built, a url it "
+        "resolved, a decrypted configuration, a path it was handed. Use it before search_process_memory, which "
+        "needs to be told what to look for. Private memory only by default, because image and mapped regions "
+        "are a file's own contents and get_image_strings reads those from the file without touching the "
+        "process. Every match reports where it is, so an address can go straight to read_process_memory or "
+        "get_process_memory_regions. The scan stops at max_results or max_seconds, whichever comes first, and "
+        "says which. A string that straddles two one-megabyte read boundaries is missed. "
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"minimum_length\":{\"type\":\"integer\",\"minimum\":4,\"maximum\":256,\"description\":\"Shortest run of characters to count as a string; default 8\"},"
+        "\"contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring; only strings containing it are returned\"},"
+        "\"encoding\":{\"type\":\"string\",\"enum\":[\"ansi\",\"utf8\",\"utf16\"],\"description\":\"Keep only this encoding; all three are searched either way\"},"
+        "\"region_types\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"private\",\"image\",\"mapped\"]},\"description\":\"Which memory to read; default private only\"},"
+        "\"extended_char_set\":{\"type\":\"boolean\",\"description\":\"Count the printable characters above 0x7f as part of a string\"},"
+        "\"max_results\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":5000,\"description\":\"Stop after this many strings; default 200\"},"
+        "\"max_seconds\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":60,\"description\":\"Stop after this long; default 10\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"minimum_length\":{\"type\":\"integer\"},"
+        "\"strings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"string\":{\"type\":\"string\"},"
+        "\"length\":{\"type\":\"integer\",\"description\":\"In characters\"},"
+        "\"encoding\":{\"type\":[\"string\",\"null\"],\"description\":\"ansi, utf8 or utf16\"},"
+        "\"address\":{\"type\":\"string\",\"description\":\"Hexadecimal address in the process\"},"
+        "\"region_base\":{\"type\":\"string\"},"
+        "\"region_type\":{\"type\":[\"string\",\"null\"],\"description\":\"private, image or mapped\"},"
+        "\"protection\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"string\",\"length\",\"address\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"regions_scanned\":{\"type\":\"integer\"},"
+        "\"bytes_scanned\":{\"type\":\"integer\"},"
+        "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"max_results was hit, so the scan did not finish\"},"
+        "\"timed_out\":{\"type\":\"boolean\",\"description\":\"max_seconds was hit, so the scan did not finish\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\",\"timed_out\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

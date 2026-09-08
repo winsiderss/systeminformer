@@ -810,6 +810,304 @@ VOID AtpCreateProcessMinidump(
     Result->StructuredContent = structured;
 }
 
+// The strings a process is holding right now, which is the step before searching for one. A file's
+// strings are in the file and get_image_strings reads them there; these are the ones that only exist
+// once it is running - a command line it built, a url it resolved, a decrypted config, a path it was
+// handed. Reading them is reading process memory, so this is the same consent as read_process_memory.
+
+#define AT_MEMORY_STRINGS_DEFAULT_LENGTH 8
+#define AT_MEMORY_STRINGS_MINIMUM_LENGTH 4
+#define AT_MEMORY_STRINGS_MAXIMUM_LENGTH 256
+#define AT_MEMORY_STRINGS_DEFAULT_RESULTS 200
+#define AT_MEMORY_STRINGS_MAXIMUM_RESULTS 5000
+#define AT_MEMORY_STRINGS_DEFAULT_SECONDS 10
+#define AT_MEMORY_STRINGS_MAXIMUM_SECONDS 60
+#define AT_MEMORY_STRINGS_BUFFER (1024 * 1024)
+
+typedef struct _AT_MEMORY_STRINGS_CONTEXT
+{
+    AT_ROWS Rows;
+    PPH_STRING Contains;
+    PH_STRING_SEARCH_ENCODING Encoding;
+    BOOLEAN HaveEncoding;
+    BOOLEAN LimitReached;
+    BOOLEAN TimedOut;
+    ULONG Limit;
+    ULONG Count;
+    ULONG64 Deadline;
+    ULONG64 BytesScanned;
+    ULONG RegionsScanned;
+    ULONG TypeMask;
+
+    HANDLE ProcessHandle;
+    PPH_MEMORY_ITEM_LIST List;
+    PLIST_ENTRY Entry;
+    PPH_MEMORY_ITEM Item;
+    ULONG_PTR NextReadAddress;
+    SIZE_T Remaining;
+    PVOID CurrentReadAddress;
+    PVOID Buffer;
+    SIZE_T BufferSize;
+} AT_MEMORY_STRINGS_CONTEXT, *PAT_MEMORY_STRINGS_CONTEXT;
+
+BOOLEAN AtpMemoryStringsRegionWanted(
+    _In_ PAT_MEMORY_STRINGS_CONTEXT Context,
+    _In_ PPH_MEMORY_ITEM Item
+    )
+{
+    if (!FlagOn(Item->State, MEM_COMMIT))
+        return FALSE;
+    if (FlagOn(Item->Protect, PAGE_NOACCESS | PAGE_GUARD))
+        return FALSE;
+    if (!FlagOn(Item->Protect, PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
+        PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY))
+    {
+        return FALSE;
+    }
+
+    return !!FlagOn(Item->Type, Context->TypeMask);
+}
+
+// One chunk of one region at a time. A string that straddles two chunks is missed, which is what
+// every scanner that reads in chunks does; the chunk is a megabyte, so it is the rare one.
+_Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
+_Must_inspect_result_
+NTSTATUS NTAPI AtpMemoryStringsNextBuffer(
+    _Inout_bytecount_(*Length) PVOID* Buffer,
+    _Out_ PSIZE_T Length,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_MEMORY_STRINGS_CONTEXT context = Context;
+
+    *Buffer = NULL;
+    *Length = 0;
+
+    if (!context)
+        return STATUS_SUCCESS;
+
+    while (TRUE)
+    {
+        SIZE_T chunk;
+        SIZE_T read = 0;
+
+        if (context->Count >= context->Limit)
+        {
+            context->LimitReached = TRUE;
+            return STATUS_SUCCESS;
+        }
+
+        if (NtGetTickCount64() > context->Deadline)
+        {
+            context->TimedOut = TRUE;
+            return STATUS_SUCCESS;
+        }
+
+        // Nothing left of the current region: take the next one that qualifies.
+        while (context->Remaining == 0)
+        {
+            if (context->Entry == &context->List->ListHead)
+                return STATUS_SUCCESS;
+
+            context->Item = CONTAINING_RECORD(context->Entry, PH_MEMORY_ITEM, ListEntry);
+            context->Entry = context->Entry->Flink;
+
+            if (!AtpMemoryStringsRegionWanted(context, context->Item))
+                continue;
+
+            context->NextReadAddress = (ULONG_PTR)context->Item->BaseAddress;
+            context->Remaining = context->Item->RegionSize;
+            context->RegionsScanned++;
+        }
+
+        chunk = min(context->Remaining, context->BufferSize);
+        context->CurrentReadAddress = (PVOID)context->NextReadAddress;
+        context->NextReadAddress += chunk;
+        context->Remaining -= chunk;
+
+        // A region can go away or refuse to be read between the enumeration and now; that is one
+        // chunk skipped rather than the end of the scan.
+        if (!NT_SUCCESS(PhReadVirtualMemory(
+            context->ProcessHandle,
+            context->CurrentReadAddress,
+            context->Buffer,
+            chunk,
+            &read
+            )) || read == 0)
+        {
+            continue;
+        }
+
+        context->BytesScanned += read;
+        *Buffer = context->Buffer;
+        *Length = read;
+
+        return STATUS_SUCCESS;
+    }
+}
+
+_Function_class_(PH_STRING_SEARCH_CALLBACK)
+_Must_inspect_result_
+BOOLEAN NTAPI AtpMemoryStringsCallback(
+    _In_ PPH_STRING_SEARCH_RESULT Result,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_MEMORY_STRINGS_CONTEXT context = Context;
+    PVOID row;
+    PVOID address;
+
+    if (!context)
+        return TRUE;
+
+    if (context->HaveEncoding && Result->Encoding != context->Encoding)
+        return FALSE;
+
+    // An index, not a boolean: SIZE_MAX is not found and 0 is found at the start.
+    if (context->Contains &&
+        PhFindStringInStringRef(&Result->String, &context->Contains->sr, TRUE) == SIZE_MAX)
+    {
+        return FALSE;
+    }
+
+    if (context->Count >= context->Limit)
+    {
+        context->LimitReached = TRUE;
+        return TRUE;
+    }
+
+    context->Count++;
+
+    // Where the string is in the target, not where it landed in the scan buffer.
+    address = PTR_ADD_OFFSET(context->CurrentReadAddress, PTR_SUB_OFFSET(Result->Address, context->Buffer));
+
+    row = PhCreateJsonObject();
+    AtJsonAddStringRef(row, "string", &Result->String);
+    PhAddJsonObjectUInt64(row, "length", Result->String.Length / sizeof(WCHAR));
+    AtJsonAddStringZ(row, "encoding", AtStringEncodingString(Result->Encoding));
+    AtJsonAddPointer(row, "address", address);
+    AtJsonAddPointer(row, "region_base", context->Item->BaseAddress);
+    AtJsonAddStringZ(row, "region_type", AtpMemoryTypeString(context->Item->Type));
+    AtJsonAddStringZ(row, "protection", AtpMemoryProtectionString(context->Item->Protect));
+
+    AtAddRow(&context->Rows, row);
+
+    return FALSE;
+}
+
+VOID AtpSearchProcessStrings(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_MEMORY_STRINGS_CONTEXT context;
+    PH_MEMORY_ITEM_LIST list;
+    PVOID types;
+    ULONG64 minimumLength = AT_MEMORY_STRINGS_DEFAULT_LENGTH;
+    ULONG64 maxResults;
+    ULONG64 seconds = AT_MEMORY_STRINGS_DEFAULT_SECONDS;
+    PVOID structured;
+
+    memset(&context, 0, sizeof(AT_MEMORY_STRINGS_CONTEXT));
+    context.Limit = AT_MEMORY_STRINGS_DEFAULT_RESULTS;
+    context.Contains = AtGetArgumentString(Call->Arguments, "contains");
+
+    if (!AtGetArgumentEncoding(Call->Arguments, &context.Encoding, &context.HaveEncoding, Result))
+    {
+        PhClearReference(&context.Contains);
+        return;
+    }
+
+    if (AtGetArgumentUInt64(Call->Arguments, "minimum_length", &minimumLength))
+        minimumLength = min(max(minimumLength, AT_MEMORY_STRINGS_MINIMUM_LENGTH), AT_MEMORY_STRINGS_MAXIMUM_LENGTH);
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_results", &maxResults) && maxResults > 0)
+        context.Limit = (ULONG)min(maxResults, AT_MEMORY_STRINGS_MAXIMUM_RESULTS);
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_seconds", &seconds))
+        seconds = min(max(seconds, 1), AT_MEMORY_STRINGS_MAXIMUM_SECONDS);
+
+    // Private memory by default: image and mapped regions are a file's contents, which
+    // get_image_strings reads from the file itself without touching the process.
+    context.TypeMask = 0;
+
+    if (types = AtJsonGetObjectMember(Call->Arguments, "region_types", PH_JSON_OBJECT_TYPE_ARRAY))
+    {
+        ULONG count = PhGetJsonArrayLength(types);
+        ULONG i;
+
+        for (i = 0; i < count; i++)
+        {
+            PPH_STRING type = PhGetJsonObjectString(PhGetJsonArrayIndexObject(types, i));
+
+            if (!type)
+                continue;
+
+            if (PhEqualString2(type, L"private", TRUE))
+                SetFlag(context.TypeMask, MEM_PRIVATE);
+            else if (PhEqualString2(type, L"image", TRUE))
+                SetFlag(context.TypeMask, MEM_IMAGE);
+            else if (PhEqualString2(type, L"mapped", TRUE))
+                SetFlag(context.TypeMask, MEM_MAPPED);
+
+            PhDereferenceObject(type);
+        }
+    }
+
+    if (context.TypeMask == 0)
+        context.TypeMask = MEM_PRIVATE;
+
+    if (!NT_SUCCESS(PhQueryMemoryItemList(Target->ProcessItem->ProcessId, PH_QUERY_MEMORY_IGNORE_FREE, &list)))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The process memory could not be enumerated.");
+        PhClearReference(&context.Contains);
+        return;
+    }
+
+    // PhAllocatePage returns NULL rather than raising, so this is checked before anything is built.
+    if (!(context.Buffer = PhAllocatePage(AT_MEMORY_STRINGS_BUFFER, NULL)))
+    {
+        AtSetToolError(Result, "failed", STATUS_NO_MEMORY, L"The scan buffer could not be allocated.");
+        PhDeleteMemoryItemList(&list);
+        PhClearReference(&context.Contains);
+        return;
+    }
+
+    context.BufferSize = AT_MEMORY_STRINGS_BUFFER;
+    context.ProcessHandle = Target->ProcessHandle;
+    context.List = &list;
+    context.Entry = list.ListHead.Flink;
+    context.Deadline = NtGetTickCount64() + seconds * 1000;
+
+    AtInitializeRows(&context.Rows, Call->Arguments);
+
+    PhSearchStrings(
+        (ULONG)minimumLength,
+        AtJsonGetObjectBoolean(Call->Arguments, "extended_char_set"),
+        AtpMemoryStringsNextBuffer,
+        AtpMemoryStringsCallback,
+        &context
+        );
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    PhAddJsonObjectUInt64(structured, "minimum_length", minimumLength);
+    AtAddRows(structured, "strings", &context.Rows);
+    PhAddJsonObjectUInt64(structured, "regions_scanned", context.RegionsScanned);
+    PhAddJsonObjectUInt64(structured, "bytes_scanned", context.BytesScanned);
+    PhAddJsonObjectBoolean(structured, "limit_reached", context.LimitReached);
+    PhAddJsonObjectBoolean(structured, "timed_out", context.TimedOut);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&context.Rows);
+    PhFreePage(context.Buffer);
+    PhDeleteMemoryItemList(&list);
+    PhClearReference(&context.Contains);
+}
+
 VOID AtMemoryInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -825,6 +1123,9 @@ VOID AtMemoryInvokeTool(
         break;
     case AtActionGetProcessMemoryRegions:
         AtpGetProcessMemoryRegions(Call, Result);
+        break;
+    case AtActionSearchProcessStrings:
+        AtpSearchProcessStrings(Call, Target, Result);
         break;
     case AtActionCreateProcessMinidump:
         AtpCreateProcessMinidump(Call, Target, Result);

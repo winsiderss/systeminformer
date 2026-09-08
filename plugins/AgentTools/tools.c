@@ -356,6 +356,65 @@ PPH_PROCESS_ITEM AtBatchReferenceProcessItem(
     return PhReferenceProcessItem(UlongToHandle((ULONG)processId));
 }
 
+PCWSTR AtStringEncodingString(
+    _In_ PH_STRING_SEARCH_ENCODING Encoding
+    )
+{
+    switch (Encoding)
+    {
+    case PH_STRING_SEARCH_ENCODING_ANSI:
+        return L"ansi";
+    case PH_STRING_SEARCH_ENCODING_UTF8:
+        return L"utf8";
+    case PH_STRING_SEARCH_ENCODING_UTF16:
+        return L"utf16";
+    }
+
+    return NULL;
+}
+
+// The string search finds all three encodings at once and reports which one each result was; the
+// argument narrows what is kept rather than what is looked for.
+_Success_(return)
+BOOLEAN AtGetArgumentEncoding(
+    _In_opt_ PVOID Arguments,
+    _Out_ PPH_STRING_SEARCH_ENCODING Encoding,
+    _Out_ PBOOLEAN HaveEncoding,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING encoding;
+
+    *Encoding = PH_STRING_SEARCH_ENCODING_ANSI;
+    *HaveEncoding = FALSE;
+
+    if (!(encoding = AtGetArgumentString(Arguments, "encoding")))
+        return TRUE;
+
+    if (PhEqualString2(encoding, L"ansi", TRUE))
+        *Encoding = PH_STRING_SEARCH_ENCODING_ANSI;
+    else if (PhEqualString2(encoding, L"utf8", TRUE))
+        *Encoding = PH_STRING_SEARCH_ENCODING_UTF8;
+    else if (PhEqualString2(encoding, L"utf16", TRUE))
+        *Encoding = PH_STRING_SEARCH_ENCODING_UTF16;
+    else
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_INVALID_PARAMETER,
+            L"encoding must be ansi, utf8 or utf16."
+            );
+        PhDereferenceObject(encoding);
+        return FALSE;
+    }
+
+    *HaveEncoding = TRUE;
+    PhDereferenceObject(encoding);
+
+    return TRUE;
+}
+
 PVOID AtCreateBatchError(
     _In_ ULONG ProcessId,
     _In_ PCSTR ErrorCode,
@@ -1303,6 +1362,7 @@ VOID AtInvokeTool(
     case AtActionGetProcessHandles:
     case AtActionGetProcessHandlesDetailed:
     case AtActionGetProcessMemoryRegions:
+    case AtActionSearchProcessStrings:
     case AtActionCreateProcessMinidump:
     case AtActionCloseHandle:
         AtMemoryInvokeTool(Tool, Call, Target, Result);
