@@ -39,6 +39,9 @@
     <ClCompile Include="toolmod.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolnote.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolproc.c">
       <Filter>Source Files</Filter>
     </ClCompile>

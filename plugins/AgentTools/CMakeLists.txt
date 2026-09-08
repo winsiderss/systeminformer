@@ -34,6 +34,7 @@ set(SOURCES
     "toolio.c"
     "toolmod.c"
     "toolmtgn.c"
+    "toolnote.c"
     "toolproc.c"
     "toolwnd.c"
     "tools.c"

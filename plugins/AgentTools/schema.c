@@ -79,6 +79,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the details of a window", L"Allow reading window details", L"get_window_info"
     },
     {
+        AtActionGetProcessNotes, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_notes"),
+        L"read the notes saved against processes", L"Allow reading saved process notes", L"get_process_notes"
+    },
+    {
+        AtActionSetProcessComment, AtTierWrite, AtConsentClassNone, AtTargetProcess, 0, SETTING_NAME_TOOL_CONFIRM(L"set_process_comment"),
+        L"save a comment against the following program", L"Save a comment against", L"set_process_comment"
+    },
+    {
         AtActionReadProcessEnvironment, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_environment"),
         L"read environment variables of processes", L"Read the environment of", L"get_process_environment"
     },
@@ -1402,6 +1410,59 @@ CONST AT_TOOL AtTools[] =
         AT_WRITE_ANNOTATIONS "}"
     },
     // network
+    {
+        "get_process_notes", L"Get saved process notes", AtTierRead, AtActionGetProcessNotes,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_notes"), SETTING_NAME_TOOL_CONFIRM(L"get_process_notes"),
+        "{\"name\":\"get_process_notes\",\"title\":\"Get saved process notes\","
+        "\"description\":\"What the user has saved against this program in the UserNotes plugin: their comment, and "
+        "the priority, affinity, colour and collapse settings the plugin reapplies every time the program runs. "
+        "Those saved settings explain a process running at a priority nobody set by hand, which nothing else here "
+        "would account for. Entries are filed under the program's file name or its whole command line and matched "
+        "says which one answered, because the command line entry is the one that takes effect. has_entry false "
+        "means nothing is saved, which is the normal case and not an error. Comments are text the user wrote. "
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"has_entry\":{\"type\":\"boolean\"},"
+        "\"matched\":{\"type\":[\"string\",\"null\"],\"description\":\"file_name or command_line; which key the entry is filed under\"},"
+        "\"comment\":{\"type\":[\"string\",\"null\"]},"
+        "\"saved_priority_class\":{\"type\":[\"string\",\"null\"],\"description\":\"Priority class reapplied at every start\"},"
+        "\"saved_io_priority\":{\"type\":[\"integer\",\"null\"]},"
+        "\"saved_page_priority\":{\"type\":[\"integer\",\"null\"]},"
+        "\"saved_affinity_mask\":{\"type\":[\"string\",\"null\"],\"description\":\"Processor affinity reapplied at every start, hex\"},"
+        "\"highlight_color\":{\"type\":[\"string\",\"null\"],\"description\":\"Row highlight colour, hex BGR\"},"
+        "\"collapse\":{\"type\":\"boolean\"},"
+        "\"boost\":{\"type\":\"boolean\"},"
+        "\"efficiency\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"has_entry\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "set_process_comment", L"Save a process comment", AtTierWrite, AtActionSetProcessComment,
+        SETTING_NAME_TOOL_ACCESS(L"set_process_comment"), SETTING_NAME_TOOL_CONFIRM(L"set_process_comment"),
+        "{\"name\":\"set_process_comment\",\"title\":\"Save a process comment\","
+        "\"description\":\"Saves a comment against this program in the UserNotes plugin, or clears it when comment "
+        "is empty or omitted. This does not annotate the running process: the entry is filed under the program's "
+        "file name, or under its whole command line with match_command_line, so it outlives this process and "
+        "applies to every future run of the same program. It is written to the plugin's database on disk and shows "
+        "in the Comment column. Clearing a comment leaves any priority or colour saved in the same entry alone. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Required; fails the call if the pid has been reused\"},"
+        "\"comment\":{\"type\":\"string\",\"description\":\"The comment to save; empty or omitted clears it\"},"
+        "\"match_command_line\":{\"type\":\"boolean\",\"description\":\"File under this process's whole command line rather than its file name\"}"
+        "},\"required\":[\"pid\",\"process_sequence_number\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"matched\":{\"type\":\"string\",\"description\":\"file_name or command_line; the key the comment was filed under\"},"
+        "\"comment\":{\"type\":[\"string\",\"null\"]},"
+        "\"cleared\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"matched\",\"cleared\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
     {
         "list_windows", L"List windows", AtTierRead, AtActionListWindows,
         SETTING_NAME_TOOL_ACCESS(L"list_windows"), SETTING_NAME_TOOL_CONFIRM(L"list_windows"),

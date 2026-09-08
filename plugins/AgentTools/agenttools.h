@@ -83,6 +83,8 @@ typedef enum _AT_ACTION
     AtActionGetProcessWindows,
     AtActionListWindows,
     AtActionGetWindowInfo,
+    AtActionGetProcessNotes,
+    AtActionSetProcessComment,
     AtActionReadProcessEnvironment,
     AtActionGetProcessHandlesDetailed,
     AtActionGetThreadStack,
@@ -780,6 +782,13 @@ VOID AtEventInvokeTool(
     );
 
 VOID AtIoInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtNoteInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

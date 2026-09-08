@@ -1093,6 +1093,10 @@ VOID AtInvokeTool(
     case AtActionListNetworkAdapters:
         AtAdapterInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetProcessNotes:
+    case AtActionSetProcessComment:
+        AtNoteInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionListWindows:
     case AtActionGetWindowInfo:
         AtWindowInvokeTool(Tool, Call, Target, Result);
