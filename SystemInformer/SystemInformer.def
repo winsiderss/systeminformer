@@ -628,8 +628,10 @@ EXPORTS
     PhGetFilePosition
     PhGetFileSize
     PhGetFirmwareEnvironmentVariable
+    PhGetJobBasicAndIoAccounting
     PhGetJobBasicLimits
     PhGetJobBasicUiRestrictions
+    PhGetJobExtendedLimits
     PhGetJobProcessIdList
     PhGetKernelFileName
     PhGetKernelFileNameEx
@@ -1414,6 +1416,7 @@ EXPORTS
     KphOpenDevice
     KphOpenDeviceBaseDevice
     KphOpenDeviceDriver
+    KphOpenProcessJob
     KphQueryInformationDriver
     KphQueryInformationObject
     KphQuerySectionMappingsInfo

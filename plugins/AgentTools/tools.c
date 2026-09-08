@@ -1298,6 +1298,7 @@ VOID AtInvokeTool(
     case AtActionSetProcessIoPriority:
     case AtActionGetProcessToken:
     case AtActionGetProcessWindows:
+    case AtActionGetProcessJob:
         AtProcessInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessThreads:

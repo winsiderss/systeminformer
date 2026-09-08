@@ -175,6 +175,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"find the modified pages of an image in", L"Find the modified image pages in", L"get_image_page_modifications"
     },
     {
+        AtActionGetProcessJob, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_job"),
+        L"read job objects", L"Allow reading job objects", L"get_process_job"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -2160,6 +2164,67 @@ CONST AT_TOOL AtTools[] =
         "\"modified_count\":{\"type\":\"integer\",\"description\":\"How many of them are no longer the file's\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"pages\",\"count\",\"total_count\",\"truncated\",\"page_count\",\"modified_count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_job", L"Get process job", AtTierRead, AtActionGetProcessJob,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_job"), SETTING_NAME_TOOL_CONFIRM(L"get_process_job"),
+        "{\"name\":\"get_process_job\",\"title\":\"Get process job\","
+        "\"description\":\"The job a process belongs to. A job is how Windows puts a fence around a group of "
+        "processes - a container, a sandbox, a service host, a browser's renderers - and the limits are what "
+        "the fence is: how much memory they may use between them, how many may run, what they are not allowed "
+        "to do. The other processes in the job are the group. Whether a process is in a job is answerable by "
+        "anyone; opening the job to read it has no user-mode route at all and needs the System Informer "
+        "driver, so without it the answer stops at is_in_job and says why. Each limit is null unless its flag "
+        "is set in flags: a maximum of zero processes and no maximum are not the same fence. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"is_in_job\":{\"type\":\"boolean\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The job object's name; an unnamed job has none\"},"
+        "\"error\":{\"type\":[\"string\",\"null\"],\"description\":\"Set when the process is in a job that could not be opened\"},"
+        "\"message\":{\"type\":[\"string\",\"null\"]},"
+        "\"limits\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"flags\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Which limits are set; every other field here is null unless its flag is listed\"},"
+        "\"active_process_limit\":{\"type\":[\"integer\",\"null\"]},"
+        "\"priority_class\":{\"type\":[\"integer\",\"null\"]},"
+        "\"scheduling_class\":{\"type\":[\"integer\",\"null\"]},"
+        "\"affinity\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal processor mask\"},"
+        "\"minimum_working_set\":{\"type\":[\"integer\",\"null\"]},"
+        "\"maximum_working_set\":{\"type\":[\"integer\",\"null\"]},"
+        "\"per_process_user_time\":{\"type\":[\"number\",\"null\"],\"description\":\"Seconds\"},"
+        "\"per_job_user_time\":{\"type\":[\"number\",\"null\"]},"
+        "\"process_memory_limit\":{\"type\":[\"integer\",\"null\"]},"
+        "\"job_memory_limit\":{\"type\":[\"integer\",\"null\"]},"
+        "\"peak_process_memory_used\":{\"type\":\"integer\"},"
+        "\"peak_job_memory_used\":{\"type\":\"integer\"}"
+        "}},"
+        "\"ui_restrictions\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"What the processes in the job may not touch\"},"
+        "\"accounting\":{\"type\":[\"object\",\"null\"],\"description\":\"Totals for every process that has ever been in the job, not only the live ones\",\"properties\":{"
+        "\"total_user_time\":{\"type\":\"number\"},"
+        "\"total_kernel_time\":{\"type\":\"number\"},"
+        "\"total_page_fault_count\":{\"type\":\"integer\"},"
+        "\"total_processes\":{\"type\":\"integer\"},"
+        "\"active_processes\":{\"type\":\"integer\"},"
+        "\"terminated_processes\":{\"type\":\"integer\"},"
+        "\"read_operation_count\":{\"type\":\"integer\"},"
+        "\"write_operation_count\":{\"type\":\"integer\"},"
+        "\"other_operation_count\":{\"type\":\"integer\"},"
+        "\"read_transfer_count\":{\"type\":\"integer\"},"
+        "\"write_transfer_count\":{\"type\":\"integer\"},"
+        "\"other_transfer_count\":{\"type\":\"integer\"}"
+        "}},"
+        "\"processes\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"pid\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"is_in_job\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

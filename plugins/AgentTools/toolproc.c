@@ -1396,6 +1396,302 @@ VOID AtpGetProcessWindows(
     AtDeleteTarget(&target);
 }
 
+// The job a process belongs to. A job is how Windows puts a fence around a group of processes - a
+// container, a sandbox, a service host, a browser's renderers - and the fence is what the limits
+// say: how much memory, how many processes, what they may not do. Whether a process is in one is
+// answerable by anyone; opening the job to read it needs the System Informer driver.
+
+VOID AtpAddJobLimits(
+    _In_ PVOID Object,
+    _In_ HANDLE JobHandle
+    )
+{
+    static CONST ULONG limitFlags[] =
+    {
+        JOB_OBJECT_LIMIT_WORKINGSET, JOB_OBJECT_LIMIT_PROCESS_TIME, JOB_OBJECT_LIMIT_JOB_TIME,
+        JOB_OBJECT_LIMIT_ACTIVE_PROCESS, JOB_OBJECT_LIMIT_AFFINITY, JOB_OBJECT_LIMIT_PRIORITY_CLASS,
+        JOB_OBJECT_LIMIT_PRESERVE_JOB_TIME, JOB_OBJECT_LIMIT_SCHEDULING_CLASS,
+        JOB_OBJECT_LIMIT_PROCESS_MEMORY, JOB_OBJECT_LIMIT_JOB_MEMORY,
+        JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION, JOB_OBJECT_LIMIT_BREAKAWAY_OK,
+        JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
+        JOB_OBJECT_LIMIT_SUBSET_AFFINITY,
+    };
+    static CONST PWSTR limitNames[] =
+    {
+        L"working_set", L"process_time", L"job_time", L"active_process", L"affinity",
+        L"priority_class", L"preserve_job_time", L"scheduling_class", L"process_memory",
+        L"job_memory", L"die_on_unhandled_exception", L"breakaway_ok", L"silent_breakaway_ok",
+        L"kill_on_job_close", L"subset_affinity",
+    };
+    static CONST ULONG uiFlags[] =
+    {
+        JOB_OBJECT_UILIMIT_HANDLES, JOB_OBJECT_UILIMIT_READCLIPBOARD,
+        JOB_OBJECT_UILIMIT_WRITECLIPBOARD, JOB_OBJECT_UILIMIT_SYSTEMPARAMETERS,
+        JOB_OBJECT_UILIMIT_DISPLAYSETTINGS, JOB_OBJECT_UILIMIT_GLOBALATOMS,
+        JOB_OBJECT_UILIMIT_DESKTOP, JOB_OBJECT_UILIMIT_EXITWINDOWS,
+    };
+    static CONST PWSTR uiNames[] =
+    {
+        L"handles", L"read_clipboard", L"write_clipboard", L"system_parameters",
+        L"display_settings", L"global_atoms", L"desktop", L"exit_windows",
+    };
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedLimits;
+    JOBOBJECT_BASIC_UI_RESTRICTIONS uiRestrictions;
+    PVOID entry;
+
+    if (NT_SUCCESS(PhGetJobExtendedLimits(JobHandle, &extendedLimits)))
+    {
+        PJOBOBJECT_BASIC_LIMIT_INFORMATION basic = &extendedLimits.BasicLimitInformation;
+
+        entry = PhCreateJsonObject();
+        AtJsonAddFlagStrings(entry, "flags", basic->LimitFlags, limitFlags, (CONST PWSTR*)limitNames, RTL_NUMBER_OF(limitFlags));
+
+        // Each limit is only set when its flag is, so the rest are null rather than zero: a
+        // maximum of zero processes and no maximum at all are not the same fence.
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_ACTIVE_PROCESS))
+            PhAddJsonObjectUInt64(entry, "active_process_limit", basic->ActiveProcessLimit);
+        else
+            AtJsonAddNull(entry, "active_process_limit");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_PRIORITY_CLASS))
+            PhAddJsonObjectUInt64(entry, "priority_class", basic->PriorityClass);
+        else
+            AtJsonAddNull(entry, "priority_class");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_SCHEDULING_CLASS))
+            PhAddJsonObjectUInt64(entry, "scheduling_class", basic->SchedulingClass);
+        else
+            AtJsonAddNull(entry, "scheduling_class");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_AFFINITY))
+            AtJsonAddHex(entry, "affinity", basic->Affinity);
+        else
+            AtJsonAddNull(entry, "affinity");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_WORKINGSET))
+        {
+            PhAddJsonObjectUInt64(entry, "minimum_working_set", basic->MinimumWorkingSetSize);
+            PhAddJsonObjectUInt64(entry, "maximum_working_set", basic->MaximumWorkingSetSize);
+        }
+        else
+        {
+            AtJsonAddNull(entry, "minimum_working_set");
+            AtJsonAddNull(entry, "maximum_working_set");
+        }
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_PROCESS_TIME))
+            AtJsonAddDuration(entry, "per_process_user_time", basic->PerProcessUserTimeLimit.QuadPart);
+        else
+            AtJsonAddNull(entry, "per_process_user_time");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_JOB_TIME))
+            AtJsonAddDuration(entry, "per_job_user_time", basic->PerJobUserTimeLimit.QuadPart);
+        else
+            AtJsonAddNull(entry, "per_job_user_time");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_PROCESS_MEMORY))
+            PhAddJsonObjectUInt64(entry, "process_memory_limit", extendedLimits.ProcessMemoryLimit);
+        else
+            AtJsonAddNull(entry, "process_memory_limit");
+
+        if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_JOB_MEMORY))
+            PhAddJsonObjectUInt64(entry, "job_memory_limit", extendedLimits.JobMemoryLimit);
+        else
+            AtJsonAddNull(entry, "job_memory_limit");
+
+        PhAddJsonObjectUInt64(entry, "peak_process_memory_used", extendedLimits.PeakProcessMemoryUsed);
+        PhAddJsonObjectUInt64(entry, "peak_job_memory_used", extendedLimits.PeakJobMemoryUsed);
+        PhAddJsonObjectValue(Object, "limits", entry);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "limits");
+    }
+
+    if (NT_SUCCESS(PhGetJobBasicUiRestrictions(JobHandle, &uiRestrictions)))
+    {
+        AtJsonAddFlagStrings(Object, "ui_restrictions", uiRestrictions.UIRestrictionsClass, uiFlags, (CONST PWSTR*)uiNames, RTL_NUMBER_OF(uiFlags));
+    }
+    else
+    {
+        AtJsonAddNull(Object, "ui_restrictions");
+    }
+}
+
+VOID AtpAddJobAccounting(
+    _In_ PVOID Object,
+    _In_ HANDLE JobHandle
+    )
+{
+    JOBOBJECT_BASIC_AND_IO_ACCOUNTING_INFORMATION accounting;
+    PVOID entry;
+
+    if (!NT_SUCCESS(PhGetJobBasicAndIoAccounting(JobHandle, &accounting)))
+    {
+        AtJsonAddNull(Object, "accounting");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    AtJsonAddDuration(entry, "total_user_time", accounting.BasicInfo.TotalUserTime.QuadPart);
+    AtJsonAddDuration(entry, "total_kernel_time", accounting.BasicInfo.TotalKernelTime.QuadPart);
+    PhAddJsonObjectUInt64(entry, "total_page_fault_count", accounting.BasicInfo.TotalPageFaultCount);
+    PhAddJsonObjectUInt64(entry, "total_processes", accounting.BasicInfo.TotalProcesses);
+    PhAddJsonObjectUInt64(entry, "active_processes", accounting.BasicInfo.ActiveProcesses);
+    PhAddJsonObjectUInt64(entry, "terminated_processes", accounting.BasicInfo.TotalTerminatedProcesses);
+    PhAddJsonObjectUInt64(entry, "read_operation_count", accounting.IoInfo.ReadOperationCount);
+    PhAddJsonObjectUInt64(entry, "write_operation_count", accounting.IoInfo.WriteOperationCount);
+    PhAddJsonObjectUInt64(entry, "other_operation_count", accounting.IoInfo.OtherOperationCount);
+    PhAddJsonObjectUInt64(entry, "read_transfer_count", accounting.IoInfo.ReadTransferCount);
+    PhAddJsonObjectUInt64(entry, "write_transfer_count", accounting.IoInfo.WriteTransferCount);
+    PhAddJsonObjectUInt64(entry, "other_transfer_count", accounting.IoInfo.OtherTransferCount);
+    PhAddJsonObjectValue(Object, "accounting", entry);
+}
+
+VOID AtpAddJobProcesses(
+    _In_ PVOID Object,
+    _In_ HANDLE JobHandle,
+    _In_ PAT_TOOL_CALL Call
+    )
+{
+    PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
+    AT_ROWS rows;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetJobProcessIdList(JobHandle, &processIdList)))
+    {
+        AtJsonAddNull(Object, "processes");
+        return;
+    }
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < processIdList->NumberOfProcessIdsInList; i++)
+    {
+        HANDLE processId = (HANDLE)processIdList->ProcessIdList[i];
+        PPH_PROCESS_ITEM processItem;
+        PVOID row;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "pid", HandleToUlong(processId));
+
+        if (processItem = PhReferenceProcessItem(processId))
+        {
+            AtJsonAddString(row, "name", processItem->ProcessName);
+            PhAddJsonObjectUInt64(row, "process_sequence_number", processItem->ProcessSequenceNumber);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            AtJsonAddNull(row, "name");
+            AtJsonAddNull(row, "process_sequence_number");
+        }
+
+        AtAddRow(&rows, row);
+    }
+
+    AtAddRows(Object, "processes", &rows);
+    AtDeleteRows(&rows);
+    PhFree(processIdList);
+}
+
+VOID AtpGetProcessJob(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_TARGET target;
+    HANDLE jobHandle = NULL;
+    BOOLEAN isInJob = FALSE;
+    PVOID structured;
+
+    status = AtResolveProcessTarget(Call->Arguments, FALSE, PROCESS_QUERY_LIMITED_INFORMATION, &target, Result);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    // Anyone can ask whether a process is in a job; STATUS_PROCESS_NOT_IN_JOB is the answer "no"
+    // rather than a failure to find out.
+    if (target.ProcessHandle)
+    {
+        status = NtIsProcessInJob(target.ProcessHandle, NULL);
+        isInJob = status == STATUS_PROCESS_IN_JOB;
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+    PhAddJsonObjectBoolean(structured, "is_in_job", isInJob);
+
+    // Reading the job itself means holding a handle to it, and there is no user-mode way to get one
+    // from a process: the driver opens it. Without the driver the answer stops at is_in_job, and the
+    // level is checked rather than the call attempted - KphCreateUserMessage asserts when there is
+    // no connection, which in a debug build is a message box on a background thread.
+    if (isInJob && target.ProcessHandle && KsiLevel() != KphLevelNone)
+        status = KphOpenProcessJob(target.ProcessHandle, JOB_OBJECT_QUERY, &jobHandle);
+    else
+        status = STATUS_NOT_SUPPORTED;
+
+    if (isInJob && NT_SUCCESS(status) && jobHandle)
+    {
+        PPH_STRING name = NULL;
+
+        PhGetHandleInformation(NtCurrentProcess(), jobHandle, ULONG_MAX, NULL, NULL, NULL, &name);
+        AtJsonAddString(structured, "name", name);
+        PhClearReference(&name);
+
+        AtpAddJobLimits(structured, jobHandle);
+        AtpAddJobAccounting(structured, jobHandle);
+        AtpAddJobProcesses(structured, jobHandle, Call);
+        AtJsonAddNull(structured, "error");
+        AtJsonAddNull(structured, "message");
+
+        NtClose(jobHandle);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "name");
+        AtJsonAddNull(structured, "limits");
+        AtJsonAddNull(structured, "ui_restrictions");
+        AtJsonAddNull(structured, "accounting");
+        AtJsonAddNull(structured, "processes");
+
+        if (isInJob && KsiLevel() == KphLevelNone)
+        {
+            PPH_STRING message;
+
+            message = PhFormatString(
+                L"The process is in a job, but opening one has no user-mode route: it comes from the "
+                L"System Informer driver, which is not available to this instance (access level: %s).",
+                AtKphLevelString(KsiLevel())
+                );
+
+            PhAddJsonObject(structured, "error", "failed");
+            AtJsonAddString(structured, "message", message);
+            AtSetToolHint(Result, AT_HINT_NEEDS_DRIVER);
+            PhClearReference(&message);
+        }
+        else if (isInJob)
+        {
+            PPH_STRING message = PhGetStatusMessage(status, 0);
+
+            PhAddJsonObject(structured, "error", status == STATUS_ACCESS_DENIED ? "access_denied" : "failed");
+            AtJsonAddStringZ(structured, "message", PhGetStringOrDefault(message, L"unknown error"));
+            PhClearReference(&message);
+        }
+        else
+        {
+            AtJsonAddNull(structured, "error");
+            AtJsonAddNull(structured, "message");
+        }
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    AtDeleteTarget(&target);
+}
+
 VOID AtProcessInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1426,6 +1722,9 @@ VOID AtProcessInvokeTool(
         break;
     case AtActionGetProcessWindows:
         AtpGetProcessWindows(Call, Result);
+        break;
+    case AtActionGetProcessJob:
+        AtpGetProcessJob(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

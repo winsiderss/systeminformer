@@ -113,6 +113,7 @@ typedef enum _AT_ACTION
     AtActionGetProcessUnloadedModules,
     AtActionGetProcessImageCoherency,
     AtActionGetImagePageModifications,
+    AtActionGetProcessJob,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,
