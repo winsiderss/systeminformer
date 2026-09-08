@@ -69,6 +69,14 @@ PhVerifyFileIsChainedToMicrosoft(
     _In_ BOOLEAN NativeFileName
     );
 
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhVerifyFileIsSystemInformer(
+    _In_ PCPH_STRINGREF FileName,
+    _In_ BOOLEAN NativeFileName
+    );
+
 typedef struct _CERT_CONTEXT CERT_CONTEXT;
 typedef CERT_CONTEXT *PCERT_CONTEXT;
 
