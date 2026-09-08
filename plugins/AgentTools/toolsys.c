@@ -46,6 +46,47 @@ PCWSTR AtpFirmwareTypeString(
     return L"unknown";
 }
 
+// What this System Informer instance can actually answer, so an agent stops calling tools that will
+// only return null. Another plugin's setting is only read when that plugin is loaded to register it.
+VOID AtpAddCapabilities(
+    _In_ PVOID Object,
+    _In_ KPH_LEVEL KphLevel,
+    _In_ BOOLEAN Elevated
+    )
+{
+    PVOID capabilities;
+    BOOLEAN extendedTools;
+
+    capabilities = PhCreateJsonObject();
+    extendedTools = !!PhFindPlugin(L"ExtendedTools");
+
+    AtJsonAddStringZ(capabilities, "ksi_level", AtKphLevelString(KphLevel));
+    PhAddJsonObjectBoolean(capabilities, "elevated", Elevated);
+
+    // Mirrors EtEtwMonitorInitialization: the kernel trace session needs elevation and the setting.
+    PhAddJsonObjectBoolean(
+        capabilities,
+        "etw",
+        extendedTools && Elevated && !!PhGetIntegerSetting(L"ExtendedTools.EnableEtwMonitor")
+        );
+    PhAddJsonObjectBoolean(
+        capabilities,
+        "gpu",
+        extendedTools && !!PhGetIntegerSetting(L"ExtendedTools.EnableGpuMonitor")
+        );
+    PhAddJsonObjectBoolean(capabilities, "dotnet", !!PhFindPlugin(L"DotNetTools"));
+    PhAddJsonObjectBoolean(capabilities, "online_checks", !!PhFindPlugin(L"OnlineChecks"));
+
+    // Mirrors the main window: the informer feed needs the driver at medium and the setting.
+    PhAddJsonObjectBoolean(
+        capabilities,
+        "process_monitor",
+        KphLevel >= KphLevelMed && !!PhGetIntegerSetting(L"EnableProcessMonitor")
+        );
+
+    PhAddJsonObjectValue(Object, "capabilities", capabilities);
+}
+
 VOID AtpGetSystemInfo(
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -60,6 +101,7 @@ VOID AtpGetSystemInfo(
     ULONG64 threadCount = 0;
     ULONG64 handleCount = 0;
     KPH_LEVEL kphLevel;
+    BOOLEAN elevated;
     ULONG i;
     WCHAR computerName[256];
     ULONG computerNameLength = RTL_NUMBER_OF(computerName);
@@ -153,13 +195,15 @@ VOID AtpGetSystemInfo(
         AtJsonAddNull(structured, "system_informer_version");
     }
 
-    PhAddJsonObjectBoolean(structured, "system_informer_elevated", !!PhGetOwnTokenAttributes().Elevated);
+    elevated = !!PhGetOwnTokenAttributes().Elevated;
+    PhAddJsonObjectBoolean(structured, "system_informer_elevated", elevated);
     PhAddJsonObjectUInt64(structured, "system_informer_pid", HandleToUlong(NtCurrentProcessId()));
 
     kphLevel = KsiLevel();
     PhAddJsonObjectBoolean(structured, "ksi_connected", kphLevel != KphLevelNone);
     AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(kphLevel));
     PhAddJsonObjectUInt64(structured, "schema_version", AT_SCHEMA_VERSION);
+    AtpAddCapabilities(structured, kphLevel, elevated);
 
     AtAddSnapshot(structured);
 

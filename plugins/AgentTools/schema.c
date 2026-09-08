@@ -965,6 +965,8 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_system_info\",\"title\":\"Get system information\","
         "\"description\":\"Returns a summary of the system: OS version and build, uptime, processors, CPU usage, memory and commit "
         "charge, process/thread/handle totals, System Informer's own version, elevation and kernel driver (KSI) status. "
+        "capabilities says which optional data sources this instance can answer from; check it before calling a tool that "
+        "depends on one, rather than calling it and getting nulls. "
         AT_SNAPSHOT_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
@@ -994,8 +996,17 @@ CONST AT_TOOL AtTools[] =
         "\"ksi_connected\":{\"type\":\"boolean\",\"description\":\"Whether the System Informer kernel driver is loaded and connected\"},"
         "\"ksi_level\":{\"type\":[\"string\",\"null\"],\"description\":\"Driver access level: none, min, low, med, high or max\"},"
         "\"schema_version\":{\"type\":\"integer\"},"
+        "\"capabilities\":{\"type\":\"object\",\"properties\":{"
+        "\"ksi_level\":{\"type\":[\"string\",\"null\"],\"description\":\"Driver access level: none, min, low, med, high or max\"},"
+        "\"elevated\":{\"type\":\"boolean\",\"description\":\"System Informer is running elevated\"},"
+        "\"etw\":{\"type\":\"boolean\",\"description\":\"ExtendedTools is loaded with its ETW monitor running: disk and network rates per process\"},"
+        "\"gpu\":{\"type\":\"boolean\",\"description\":\"ExtendedTools is loaded with GPU monitoring enabled\"},"
+        "\"dotnet\":{\"type\":\"boolean\",\"description\":\"DotNetTools is loaded: managed assemblies and managed stack frames\"},"
+        "\"online_checks\":{\"type\":\"boolean\",\"description\":\"OnlineChecks is loaded: cached file reputation lookups\"},"
+        "\"process_monitor\":{\"type\":\"boolean\",\"description\":\"The kernel informer feed is running (driver at med or above and the setting enabled)\"}"
+        "},\"required\":[\"elevated\",\"etw\",\"gpu\",\"dotnet\",\"online_checks\",\"process_monitor\"]},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"os_build\",\"uptime_seconds\",\"processor_count\",\"ksi_connected\",\"updates_paused\"]},"
+        "},\"required\":[\"os_build\",\"uptime_seconds\",\"processor_count\",\"ksi_connected\",\"capabilities\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
