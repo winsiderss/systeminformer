@@ -155,6 +155,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"analyze what a thread is waiting on", L"Analyze the wait of", L"analyze_thread_wait"
     },
     {
+        AtActionResolveSymbol, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"resolve_symbol"),
+        L"resolve symbols", L"Resolve symbols", L"resolve_symbol"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -1942,6 +1946,51 @@ CONST AT_TOOL AtTools[] =
         "}}"
         "}}"
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"system_call_number\",\"kind\",\"waiting_on\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "resolve_symbol", L"Resolve symbol", AtTierSensitiveRead, AtActionResolveSymbol,
+        SETTING_NAME_TOOL_ACCESS(L"resolve_symbol"), SETTING_NAME_TOOL_CONFIRM(L"resolve_symbol"),
+        "{\"name\":\"resolve_symbol\",\"title\":\"Resolve symbol\","
+        "\"description\":\"Turns an address into a name, or a name into an address. Every other tool here hands "
+        "back addresses - a thread's start_address, a stack frame's pc, a pointer read out of memory, an "
+        "export - and on their own they mean nothing. Give a pid to resolve against the modules a running "
+        "process has loaded, or a path to resolve against a file on disk, which is loaded at the base it was "
+        "linked for so its addresses and rvas are the ones every PE tool reports. resolve_level says how much "
+        "of the answer to believe: function means a symbol file or an export table named it, module means only "
+        "the module it lives in is known, and displacement is how far into the symbol the address is. The first "
+        "call for a process can take several seconds while symbols load. "
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Resolve against this running process; give either pid or path\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"Resolve against this file on disk instead\"},"
+        "\"address\":{\"type\":\"string\",\"description\":\"Hexadecimal address to name; exactly one of address, rva or name\"},"
+        "\"rva\":{\"type\":\"integer\",\"description\":\"Offset from the image base, with path only\"},"
+        "\"name\":{\"type\":\"string\",\"description\":\"Symbol to look up, the reverse direction. Give the bare name: a module!symbol form needs that module's symbol file, and without one only the bare name matches from the export table. A bare name is searched across every module, so check the module that comes back\"},"
+        "\"include_line\":{\"type\":\"boolean\",\"description\":\"Look up the source file and line, which needs private symbols\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"mode\":{\"type\":\"string\",\"description\":\"process or file\"},"
+        "\"pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The symbol's own name, without the module or the offset\"},"
+        "\"path\":{\"type\":[\"string\",\"null\"]},"
+        "\"image_base\":{\"type\":[\"string\",\"null\"],\"description\":\"The base the file was loaded at, file mode only\"},"
+        "\"image_size\":{\"type\":[\"integer\",\"null\"]},"
+        "\"address\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal\"},"
+        "\"rva\":{\"type\":[\"integer\",\"null\"],\"description\":\"Offset from image_base, file mode only\"},"
+        "\"symbol\":{\"type\":[\"string\",\"null\"],\"description\":\"module!function+offset, as far as it resolved\"},"
+        "\"module\":{\"type\":[\"string\",\"null\"]},"
+        "\"module_base\":{\"type\":[\"string\",\"null\"],\"description\":\"Set when a name was looked up\"},"
+        "\"size\":{\"type\":[\"integer\",\"null\"]},"
+        "\"displacement\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal bytes past the start of the symbol. 0xffffffffffffffff means the address sits before every symbol the module has, which is what an address with no symbols near it looks like\"},"
+        "\"resolve_level\":{\"type\":[\"string\",\"null\"],\"description\":\"function, module or address\"},"
+        "\"line\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"file\":{\"type\":\"string\"},"
+        "\"number\":{\"type\":\"integer\"}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"mode\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

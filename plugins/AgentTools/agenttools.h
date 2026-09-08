@@ -107,6 +107,7 @@ typedef enum _AT_ACTION
     AtActionGetProcessStacks,
     AtActionGetThreadWaitChain,
     AtActionAnalyzeThreadWait,
+    AtActionResolveSymbol,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,

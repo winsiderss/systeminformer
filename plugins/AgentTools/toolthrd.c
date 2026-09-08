@@ -10,6 +10,7 @@
  */
 
 #include "agenttools.h"
+#include <mapimg.h>
 
 #define AT_STACK_DEFAULT_FRAMES 64
 #define AT_STACK_MAXIMUM_FRAMES 512
@@ -1090,6 +1091,303 @@ VOID AtpGetProcessStacks(
     PhFree(processes);
 }
 
+// An address on its own means nothing. Every other tool here hands back addresses - a thread's start
+// address, a frame's pc, a pointer found in memory, an export - and this is what turns one back into
+// a name, or a name into an address. A running process resolves against the modules it has loaded; a
+// file on disk resolves against itself, loaded at the base it asks for, so the answers are that
+// file's own addresses rather than any process's.
+
+VOID AtpAddSymbolLine(
+    _In_ PVOID Structured,
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID Address
+    )
+{
+    PPH_STRING fileName;
+    PH_SYMBOL_LINE_INFORMATION lineInformation;
+
+    if (PhGetLineFromAddress(SymbolProvider, Address, &fileName, NULL, &lineInformation))
+    {
+        PVOID line = PhCreateJsonObject();
+
+        AtJsonAddString(line, "file", fileName);
+        PhAddJsonObjectUInt64(line, "number", lineInformation.LineNumber);
+        PhAddJsonObjectValue(Structured, "line", line);
+        PhClearReference(&fileName);
+    }
+    else
+    {
+        AtJsonAddNull(Structured, "line");
+    }
+}
+
+// The file loaded at the base it was linked for, which is what peview does, so an address here is
+// the address the file itself talks about and the rva is the offset every PE tool reports.
+PPH_SYMBOL_PROVIDER AtpCreateFileSymbolProvider(
+    _In_ PPH_STRING FileName,
+    _Out_ PVOID *ImageBase,
+    _Out_ PULONG ImageSize
+    )
+{
+    NTSTATUS status;
+    PH_MAPPED_IMAGE mappedImage;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    PVOID imageBase;
+    ULONG imageSize;
+
+    status = PhLoadMappedImageEx(&FileName->sr, NULL, &mappedImage);
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&mappedImage.NtHeaders->OptionalHeader;
+
+        imageBase = (PVOID)optionalHeader->ImageBase;
+        imageSize = optionalHeader->SizeOfImage;
+    }
+    else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+    {
+        imageBase = (PVOID)(ULONG_PTR)mappedImage.NtHeaders32->OptionalHeader.ImageBase;
+        imageSize = mappedImage.NtHeaders32->OptionalHeader.SizeOfImage;
+    }
+    else
+    {
+        PhUnloadMappedImage(&mappedImage);
+        return NULL;
+    }
+
+    PhUnloadMappedImage(&mappedImage);
+
+    if (!(symbolProvider = PhCreateSymbolProvider(NULL)))
+        return NULL;
+
+    PhLoadSymbolProviderOptions(symbolProvider);
+
+    if (!PhLoadModuleSymbolProvider(symbolProvider, FileName, imageBase, imageSize))
+    {
+        PhDereferenceObject(symbolProvider);
+        return NULL;
+    }
+
+    *ImageBase = imageBase;
+    *ImageSize = imageSize;
+
+    return symbolProvider;
+}
+
+VOID AtpResolveSymbol(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_TARGET target;
+    PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+    PPH_STRING path;
+    PPH_STRING name;
+    PPH_STRING nativePath = NULL;
+    ULONG64 address = 0;
+    PVOID imageBase = NULL;
+    ULONG imageSize = 0;
+    ULONG64 rva = 0;
+    BOOLEAN haveAddress;
+    BOOLEAN haveRva;
+    BOOLEAN isFile;
+    PVOID structured;
+
+    memset(&target, 0, sizeof(AT_TARGET));
+
+    path = AtGetArgumentString(Call->Arguments, "path");
+    name = AtGetArgumentString(Call->Arguments, "name");
+    haveAddress = AtGetArgumentPointer(Call->Arguments, "address", &address);
+    haveRva = AtGetArgumentUInt64(Call->Arguments, "rva", &rva);
+    isFile = !!path;
+
+    if (!isFile && !AtJsonGetObjectMember(Call->Arguments, "pid", PH_JSON_OBJECT_TYPE_INT))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"Either pid or path is required.");
+        PhClearReference(&path);
+        PhClearReference(&name);
+        return;
+    }
+
+    if ((haveAddress ? 1 : 0) + (haveRva ? 1 : 0) + (name ? 1 : 0) != 1)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"Exactly one of address, rva or name is required.");
+        PhClearReference(&path);
+        PhClearReference(&name);
+        return;
+    }
+
+    if (haveRva && !isFile)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"rva is only meaningful with path; a running process takes an address.");
+        PhClearReference(&path);
+        PhClearReference(&name);
+        return;
+    }
+
+    if (isFile)
+    {
+        nativePath = PhDosPathNameToNtPathName(&path->sr);
+
+        if (!nativePath)
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_OBJECT_PATH_INVALID, L"The path could not be resolved.");
+            PhClearReference(&path);
+            PhClearReference(&name);
+            return;
+        }
+
+        symbolProvider = AtpCreateFileSymbolProvider(nativePath, &imageBase, &imageSize);
+
+        if (!symbolProvider)
+        {
+            AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The file could not be loaded for symbols.");
+            PhClearReference(&nativePath);
+            PhClearReference(&path);
+            PhClearReference(&name);
+            return;
+        }
+
+        if (haveRva)
+            address = (ULONG64)PTR_ADD_OFFSET(imageBase, rva);
+    }
+    else
+    {
+        status = AtResolveProcessTarget(Call->Arguments, FALSE, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, &target, Result);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhClearReference(&name);
+            return;
+        }
+
+        symbolProvider = AtpCreateSymbolProvider(target.ProcessItem->ProcessId);
+
+        if (!symbolProvider)
+        {
+            AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The symbol provider could not be created.");
+            AtDeleteTarget(&target);
+            PhClearReference(&name);
+            return;
+        }
+    }
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObject(structured, "mode", isFile ? "file" : "process");
+
+    if (isFile)
+    {
+        AtJsonAddString(structured, "path", path);
+        AtJsonAddPointer(structured, "image_base", imageBase);
+        PhAddJsonObjectUInt64(structured, "image_size", imageSize);
+    }
+    else
+    {
+        AtFillProcessIdentity(structured, target.ProcessItem);
+    }
+
+    if (name)
+    {
+        PH_SYMBOL_INFORMATION information;
+
+        // The reverse direction. dbghelp wants module!symbol or a bare name, and answers from the
+        // export table when there is no symbol file, which is why a name can resolve with no pdb.
+        if (PhGetSymbolFromName(symbolProvider, PhGetString(name), &information))
+        {
+            PPH_STRING symbol;
+            PPH_STRING fileName = NULL;
+            PH_SYMBOL_RESOLVE_LEVEL resolveLevel = PhsrlInvalid;
+
+            AtJsonAddString(structured, "name", name);
+            AtJsonAddPointer(structured, "address", information.Address);
+            AtJsonAddPointer(structured, "module_base", information.ModuleBase);
+            PhAddJsonObjectUInt64(structured, "size", information.Size);
+
+            if (isFile)
+                PhAddJsonObjectUInt64(structured, "rva", (ULONG64)PTR_SUB_OFFSET(information.Address, imageBase));
+            else
+                AtJsonAddNull(structured, "rva");
+
+            // A bare name is searched across every loaded module, so the answer can come from a
+            // module the caller did not have in mind - an import thunk in the executable rather
+            // than the function in the library. Resolving the address back says which one it is.
+            symbol = PhGetSymbolFromAddress(symbolProvider, information.Address, &resolveLevel, &fileName, NULL, NULL);
+
+            AtJsonAddString(structured, "symbol", symbol);
+            AtJsonAddWin32FileName(structured, "module", fileName);
+            AtJsonAddStringZ(structured, "resolve_level", AtpResolveLevelString(resolveLevel));
+            AtJsonAddNull(structured, "displacement");
+            PhClearReference(&symbol);
+            PhClearReference(&fileName);
+
+            if (AtJsonGetObjectBoolean(Call->Arguments, "include_line"))
+                AtpAddSymbolLine(structured, symbolProvider, information.Address);
+            else
+                AtJsonAddNull(structured, "line");
+        }
+        else
+        {
+            AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"No symbol named %s was found. A name resolves only from a symbol file or an export table.", PhGetString(name));
+            PhFreeJsonObject(structured);
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        PPH_STRING symbol;
+        PPH_STRING fileName = NULL;
+        PPH_STRING symbolName = NULL;
+        PH_SYMBOL_RESOLVE_LEVEL resolveLevel = PhsrlInvalid;
+        ULONG64 displacement = 0;
+
+        symbol = PhGetSymbolFromAddress(symbolProvider, (PVOID)address, &resolveLevel, &fileName, &symbolName, &displacement);
+
+        AtJsonAddPointer(structured, "address", (PVOID)address);
+
+        if (isFile)
+            PhAddJsonObjectUInt64(structured, "rva", (ULONG64)PTR_SUB_OFFSET(address, imageBase));
+        else
+            AtJsonAddNull(structured, "rva");
+
+        AtJsonAddString(structured, "symbol", symbol);
+        AtJsonAddString(structured, "name", symbolName);
+        AtJsonAddWin32FileName(structured, "module", fileName);
+        AtJsonAddHex(structured, "displacement", displacement);
+        // The resolve level says how much of the answer to believe: an address that resolved only to
+        // a module is a fact about where it lives, a function name came from a symbol file.
+        AtJsonAddStringZ(structured, "resolve_level", AtpResolveLevelString(resolveLevel));
+        AtJsonAddNull(structured, "module_base");
+        AtJsonAddNull(structured, "size");
+
+        if (AtJsonGetObjectBoolean(Call->Arguments, "include_line"))
+            AtpAddSymbolLine(structured, symbolProvider, (PVOID)address);
+        else
+            AtJsonAddNull(structured, "line");
+
+        PhClearReference(&symbol);
+        PhClearReference(&fileName);
+        PhClearReference(&symbolName);
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+CleanupExit:
+
+    PhDereferenceObject(symbolProvider);
+
+    if (!isFile)
+        AtDeleteTarget(&target);
+
+    PhClearReference(&nativePath);
+    PhClearReference(&path);
+    PhClearReference(&name);
+}
+
 VOID AtpControlThread(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TARGET Target,
@@ -1147,6 +1445,9 @@ VOID AtThreadInvokeTool(
         break;
     case AtActionGetProcessStacks:
         AtpGetProcessStacks(Call, Target, Result);
+        break;
+    case AtActionResolveSymbol:
+        AtpResolveSymbol(Call, Result);
         break;
     case AtActionSuspendThread:
     case AtActionResumeThread:
