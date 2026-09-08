@@ -103,6 +103,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"search every process for handles to an object", L"Search every process for handles", L"find_handles"
     },
     {
+        AtActionFindModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"find_modules"),
+        L"search every process for a loaded module", L"Allow searching processes for modules", L"find_modules"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1195,6 +1199,52 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; the machine was not fully searched\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handles\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"named\",\"timed_out\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "find_modules", L"Find modules", AtTierRead, AtActionFindModules,
+        SETTING_NAME_TOOL_ACCESS(L"find_modules"), SETTING_NAME_TOOL_CONFIRM(L"find_modules"),
+        "{\"name\":\"find_modules\",\"title\":\"Find modules\","
+        "\"description\":\"Searches every process for a loaded module, mapped image or mapped file, which is how "
+        "to find every process a DLL has been loaded into. get_process_modules answers for a process already "
+        "known; this finds the processes. unsigned_only is the version of the question worth asking - a DLL "
+        "loaded into a dozen processes that nothing vouches for - and it verifies as it goes, remembering each "
+        "file's result so a DLL loaded everywhere is only verified once. It means anything that did not come "
+        "back trusted, which is not the same as unsigned: read signature and signer before concluding, because "
+        "a file signed with a certificate current policy rejects reports a security policy failure and still "
+        "names its signer. Loaded modules and mapped images only, unless include_mapped_files is set: a mapped "
+        "database or cache file is not code and every one of them would be reported. Give at least one of "
+        "name_contains, unsigned_only or pid. The scan stops after max_seconds and says so in timed_out, and an "
+        "empty answer from a scan that ran out of time means nothing. Module names and paths come from the "
+        "processes themselves. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or its path\"},"
+        "\"unsigned_only\":{\"type\":\"boolean\",\"description\":\"Only modules whose signature does not verify; implies verify_signatures\"},"
+        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each distinct file once and report the result\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only this process\"},"
+        "\"max_seconds\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":60,\"description\":\"How long to spend scanning; default 20\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"modules\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"file_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"module, mapped_file, mapped_image, wow64_module or kernel_module\"},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"signature\":{\"type\":[\"string\",\"null\"],\"description\":\"Null unless verification was asked for\"},"
+        "\"signer\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"pid\",\"name\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"scanned\":{\"type\":\"integer\",\"description\":\"Module entries examined across all processes\"},"
+        "\"files_verified\":{\"type\":\"integer\",\"description\":\"Distinct files actually verified; far smaller than scanned\"},"
+        "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; not every process was walked\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"modules\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"timed_out\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

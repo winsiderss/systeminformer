@@ -91,6 +91,7 @@ typedef enum _AT_ACTION
     AtActionReadProcessEnvironment,
     AtActionGetProcessHandlesDetailed,
     AtActionFindHandles,
+    AtActionFindModules,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
@@ -730,6 +731,10 @@ BOOLEAN AtParseTime(
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle
+    );
+
+PCWSTR AtModuleTypeString(
+    _In_ ULONG Type
     );
 
 PCWSTR AtVerifyResultString(

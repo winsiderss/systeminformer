@@ -1132,6 +1132,7 @@ VOID AtInvokeTool(
         AtServiceInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionFindHandles:
+    case AtActionFindModules:
         AtFindInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListFirewallEvents:

@@ -12,7 +12,7 @@
 
 #include "agenttools.h"
 
-PCWSTR AtpModuleTypeString(
+PCWSTR AtModuleTypeString(
     _In_ ULONG Type
     )
 {
@@ -173,7 +173,7 @@ BOOLEAN NTAPI AtpModuleCallback(
     row = PhCreateJsonObject();
     AtJsonAddString(row, "name", Module->Name);
     AtJsonAddWin32FileName(row, "file_path", Module->FileName);
-    AtJsonAddStringZ(row, "type", AtpModuleTypeString(Module->Type));
+    AtJsonAddStringZ(row, "type", AtModuleTypeString(Module->Type));
     AtJsonAddPointer(row, "base_address", Module->BaseAddress);
     PhAddJsonObjectUInt64(row, "size", Module->Size);
     AtJsonAddPointer(row, "entry_point", Module->EntryPoint);
