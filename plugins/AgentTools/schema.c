@@ -402,6 +402,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetObjectSecurity, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_object_security"),
         L"read who is allowed what on an object", L"Allow reading object security", L"get_object_security"
     },
+    {
+        AtActionListPoolTags, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_pool_tags"),
+        L"read kernel pool usage by tag", L"Allow reading kernel pool usage", L"list_pool_tags"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3974,6 +3978,54 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_pool_tags", L"List kernel pool usage by tag", AtTierRead, AtActionListPoolTags,
+        SETTING_NAME_TOOL_ACCESS(L"list_pool_tags"), SETTING_NAME_TOOL_CONFIRM(L"list_pool_tags"),
+        "{\"name\":\"list_pool_tags\",\"title\":\"List kernel pool usage by tag\","
+        "\"description\":\"Kernel memory by the four-character tag it was allocated with. A leak in the kernel "
+        "has no process to blame it on - the tag is the only thing naming the owner - so this is how a machine "
+        "losing memory with no process growing is triaged. A SINGLE CALL PROVES NOTHING: every number here is a "
+        "running total, and a tag holding a lot of memory is usually a tag that is meant to. Call it, wait, call "
+        "it again, and look at which tag's total_bytes GREW; get_memory_details says whether the paged or "
+        "nonpaged pool is the one growing and so which column to look at. Big allocations are tracked one by one "
+        "by the kernel rather than by tag and are folded in here as big_allocations and big_bytes, which the tag "
+        "table alone does not show. What a tag means is not in Windows: ExtendedTools' Pool Monitor reads "
+        "pooltag.txt from the debugging tools when they are installed, and the tag is otherwise a string to "
+        "search for in the driver files. " AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"tag\":{\"type\":\"string\",\"description\":\"One exact four-character tag\"},"
+        "\"min_bytes\":{\"type\":\"integer\",\"description\":\"Only tags holding at least this many bytes, which is what makes the list readable\"},"
+        AT_SORT_INPUT_PROPERTIES("\"total_bytes\",\"paged_bytes\",\"nonpaged_bytes\",\"big_bytes\",\"paged_current\",\"nonpaged_current\"") ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"tags\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"tag\":{\"type\":\"string\",\"description\":\"The four characters, with a byte that is not printable shown as a dot\"},"
+        "\"tag_value\":{\"type\":\"string\"},"
+        "\"protected\":{\"type\":\"boolean\",\"description\":\"The high bit of the tag, which marks a protected allocation and is not part of the name\"},"
+        "\"paged_allocs\":{\"type\":\"integer\"},"
+        "\"paged_frees\":{\"type\":\"integer\"},"
+        "\"paged_current\":{\"type\":\"integer\",\"description\":\"Allocations not yet freed. These counters are 32 bit and wrap, so this can be negative on a machine that has been up a long time\"},"
+        "\"paged_bytes\":{\"type\":\"integer\"},"
+        "\"nonpaged_allocs\":{\"type\":\"integer\"},"
+        "\"nonpaged_frees\":{\"type\":\"integer\"},"
+        "\"nonpaged_current\":{\"type\":\"integer\"},"
+        "\"nonpaged_bytes\":{\"type\":\"integer\"},"
+        "\"total_bytes\":{\"type\":\"integer\",\"description\":\"paged_bytes + nonpaged_bytes, which is the number to watch across two calls\"},"
+        "\"big_allocations\":{\"type\":\"integer\"},"
+        "\"big_bytes\":{\"type\":\"integer\"}"
+        "},\"required\":[\"tag\",\"tag_value\",\"total_bytes\"]}},"
+        "\"tag_count\":{\"type\":\"integer\",\"description\":\"Tags the kernel reported, before min_bytes and any paging\"},"
+        "\"paged_bytes_total\":{\"type\":\"integer\"},"
+        "\"nonpaged_bytes_total\":{\"type\":\"integer\"},"
+        "\"big_pool_read\":{\"type\":\"boolean\",\"description\":\"False means the big allocation list could not be read, so big_bytes is 0 everywhere rather than there being none\"},"
+        "\"big_pool_allocations\":{\"type\":[\"integer\",\"null\"]},"
+        "\"big_pool_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"tags\",\"tag_count\",\"big_pool_read\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

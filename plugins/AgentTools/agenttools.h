@@ -173,6 +173,7 @@ typedef enum _AT_ACTION
     AtActionGetDriverObject,
     AtActionListDirectory,
     AtActionGetObjectSecurity,
+    AtActionListPoolTags,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,

@@ -1471,6 +1471,7 @@ VOID AtInvokeTool(
         AtNetworkInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetSystemInfo:
+    case AtActionListPoolTags:
     case AtActionListKernelDrivers:
     case AtActionGetKsiStatus:
     case AtActionGetPagefileInfo:

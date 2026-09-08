@@ -1665,6 +1665,200 @@ VOID AtpGetCpuInfo(
     Result->StructuredContent = structured;
 }
 
+// Kernel pool by tag. A leak in kernel memory has no process to blame it on: the only thing that
+// identifies the owner is the four-character tag the allocation was made with, and the way to find
+// one is to look at which tag is holding memory now and to look again later.
+typedef struct _AT_POOL_TAG_ENTRY
+{
+    ULONG TagUlong;
+    ULONG PagedAllocs;
+    ULONG PagedFrees;
+    ULONG64 PagedUsed;
+    ULONG NonPagedAllocs;
+    ULONG NonPagedFrees;
+    ULONG64 NonPagedUsed;
+    ULONG BigAllocations;
+    ULONG64 BigBytes;
+} AT_POOL_TAG_ENTRY, *PAT_POOL_TAG_ENTRY;
+
+// The high bit of the tag marks a protected allocation rather than being part of the name.
+#define AT_POOL_TAG_PROTECTED 0x80000000
+
+/**
+ * The tag as four characters. A tag is four bytes and nothing stops a driver putting anything in
+ * them, so a byte that is not printable is shown as a dot rather than as whatever it decodes to.
+ */
+PPH_STRING AtpFormatPoolTag(
+    _In_ ULONG TagUlong
+    )
+{
+    WCHAR buffer[5];
+    UCHAR bytes[4];
+    ULONG i;
+
+    *(PULONG)bytes = TagUlong & ~AT_POOL_TAG_PROTECTED;
+
+    for (i = 0; i < 4; i++)
+        buffer[i] = (bytes[i] >= 0x20 && bytes[i] <= 0x7e) ? (WCHAR)bytes[i] : L'.';
+
+    buffer[4] = UNICODE_NULL;
+
+    return PhCreateString(buffer);
+}
+
+VOID AtpListPoolTags(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_ROWS rows;
+    PSYSTEM_POOLTAG_INFORMATION poolTable = NULL;
+    PSYSTEM_BIGPOOL_INFORMATION bigPool = NULL;
+    PPH_HASHTABLE index = NULL;
+    PAT_POOL_TAG_ENTRY entries = NULL;
+    PPH_STRING tagFilter;
+    PVOID structured;
+    ULONG64 minimumBytes = 0;
+    ULONG64 pagedTotal = 0;
+    ULONG64 nonPagedTotal = 0;
+    ULONG64 bigTotal = 0;
+    ULONG bigCount = 0;
+    ULONG i;
+
+    if (!NT_SUCCESS(status = PhEnumPoolTagInformation(&poolTable)))
+    {
+        AtSetToolStatusError(Result, status, L"Reading the pool tag table");
+        return;
+    }
+
+    tagFilter = AtGetArgumentString(Call->Arguments, "tag");
+    AtGetArgumentUInt64(Call->Arguments, "min_bytes", &minimumBytes);
+
+    entries = PhAllocateZero(sizeof(AT_POOL_TAG_ENTRY) * poolTable->Count);
+    index = PhCreateSimpleHashtable(poolTable->Count);
+
+    for (i = 0; i < poolTable->Count; i++)
+    {
+        PSYSTEM_POOLTAG tag = &poolTable->TagInfo[i];
+
+        entries[i].TagUlong = tag->TagUlong;
+        entries[i].PagedAllocs = tag->PagedAllocs;
+        entries[i].PagedFrees = tag->PagedFrees;
+        entries[i].PagedUsed = tag->PagedUsed;
+        entries[i].NonPagedAllocs = tag->NonPagedAllocs;
+        entries[i].NonPagedFrees = tag->NonPagedFrees;
+        entries[i].NonPagedUsed = tag->NonPagedUsed;
+
+        pagedTotal += tag->PagedUsed;
+        nonPagedTotal += tag->NonPagedUsed;
+
+        // The index maps a tag to its row so the big pool list can be folded in by tag; the value
+        // is the row number plus one, because a hashtable cannot hold a null value.
+        PhAddItemSimpleHashtable(index, (PVOID)(ULONG_PTR)tag->TagUlong, (PVOID)(ULONG_PTR)(i + 1));
+    }
+
+    // Allocations too big for the pool blocks are tracked one by one rather than by tag, so they
+    // are counted per tag here: a tag whose big allocations are growing is a leak the tag table
+    // alone does not show.
+    if (NT_SUCCESS(PhEnumBigPoolInformation(&bigPool)))
+    {
+        for (i = 0; i < bigPool->Count; i++)
+        {
+            PSYSTEM_BIGPOOL_ENTRY allocation = &bigPool->AllocatedInfo[i];
+            PVOID* found;
+
+            bigCount++;
+            bigTotal += allocation->SizeInBytes;
+
+            if (found = PhFindItemSimpleHashtable(index, (PVOID)(ULONG_PTR)allocation->TagUlong))
+            {
+                PAT_POOL_TAG_ENTRY entry = &entries[(ULONG)(ULONG_PTR)*found - 1];
+
+                entry->BigAllocations++;
+                entry->BigBytes += allocation->SizeInBytes;
+            }
+        }
+    }
+
+    structured = PhCreateJsonObject();
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < poolTable->Count; i++)
+    {
+        PAT_POOL_TAG_ENTRY entry = &entries[i];
+        PPH_STRING tag;
+        PVOID row;
+        ULONG64 totalBytes;
+
+        totalBytes = entry->PagedUsed + entry->NonPagedUsed;
+
+        if (totalBytes < minimumBytes)
+            continue;
+
+        tag = AtpFormatPoolTag(entry->TagUlong);
+
+        if (tagFilter && !PhEqualString(tag, tagFilter, TRUE))
+        {
+            PhDereferenceObject(tag);
+            continue;
+        }
+
+        row = PhCreateJsonObject();
+        AtJsonAddString(row, "tag", tag);
+        AtJsonAddHex(row, "tag_value", entry->TagUlong);
+        PhAddJsonObjectBoolean(row, "protected", !!(entry->TagUlong & AT_POOL_TAG_PROTECTED));
+
+        PhAddJsonObjectUInt64(row, "paged_allocs", entry->PagedAllocs);
+        PhAddJsonObjectUInt64(row, "paged_frees", entry->PagedFrees);
+        // Allocation counts are 32 bit and wrap, so the difference is reported as the signed number
+        // it is rather than as an enormous unsigned one.
+        PhAddJsonObjectInt64(row, "paged_current", (LONG)(entry->PagedAllocs - entry->PagedFrees));
+        PhAddJsonObjectUInt64(row, "paged_bytes", entry->PagedUsed);
+
+        PhAddJsonObjectUInt64(row, "nonpaged_allocs", entry->NonPagedAllocs);
+        PhAddJsonObjectUInt64(row, "nonpaged_frees", entry->NonPagedFrees);
+        PhAddJsonObjectInt64(row, "nonpaged_current", (LONG)(entry->NonPagedAllocs - entry->NonPagedFrees));
+        PhAddJsonObjectUInt64(row, "nonpaged_bytes", entry->NonPagedUsed);
+
+        PhAddJsonObjectUInt64(row, "total_bytes", totalBytes);
+        PhAddJsonObjectUInt64(row, "big_allocations", entry->BigAllocations);
+        PhAddJsonObjectUInt64(row, "big_bytes", entry->BigBytes);
+
+        AtAddRow(&rows, row);
+        PhDereferenceObject(tag);
+    }
+
+    AtAddRows(structured, "tags", &rows);
+    PhAddJsonObjectUInt64(structured, "tag_count", poolTable->Count);
+    PhAddJsonObjectUInt64(structured, "paged_bytes_total", pagedTotal);
+    PhAddJsonObjectUInt64(structured, "nonpaged_bytes_total", nonPagedTotal);
+    PhAddJsonObjectBoolean(structured, "big_pool_read", !!bigPool);
+
+    if (bigPool)
+    {
+        PhAddJsonObjectUInt64(structured, "big_pool_allocations", bigCount);
+        PhAddJsonObjectUInt64(structured, "big_pool_bytes", bigTotal);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "big_pool_allocations");
+        AtJsonAddNull(structured, "big_pool_bytes");
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    PhDereferenceObject(index);
+    PhFree(entries);
+    PhClearReference(&tagFilter);
+
+    if (bigPool)
+        PhFree(bigPool);
+
+    PhFree(poolTable);
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1676,6 +1870,9 @@ VOID AtSystemInvokeTool(
     {
     case AtActionGetSystemInfo:
         AtpGetSystemInfo(Result);
+        break;
+    case AtActionListPoolTags:
+        AtpListPoolTags(Call, Result);
         break;
     case AtActionListKernelDrivers:
         AtpListKernelDrivers(Call, Result);
