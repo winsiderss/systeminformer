@@ -461,13 +461,11 @@ BOOLEAN SimcpValidateServer(
         goto CleanupExit;
     }
 
-#if defined(PH_BUILD_API)
-    if (PhVerifyFile(PhGetString(remoteFileName), NULL) != VrTrusted)
+    if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, FALSE))
     {
         *FailureMessage = "the System Informer signature could not be verified";
         goto CleanupExit;
     }
-#endif
 
     result = TRUE;
 

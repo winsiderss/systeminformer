@@ -423,13 +423,11 @@ SIMCP_HELLO_STATUS AtpValidateBrokerImage(
         goto CleanupExit;
     }
 
-#if defined(PH_BUILD_API)
-    if (PhVerifyFile(PhGetString(remoteFileName), NULL) != VrTrusted)
+    if (!PhVerifyFileIsSystemInformer(&remoteFileName->sr, FALSE))
     {
         result = SimcpHelloRejectedSignature;
         goto CleanupExit;
     }
-#endif
 
     result = SimcpHelloAccepted;
 
