@@ -453,3 +453,258 @@ VOID AtpGetFileScanResultCached(
     PhClearReference(&sha256);
     PhClearReference(&path);
 }
+
+// Asking a third party about a file. Only the hash goes out, never the file, but a hash is enough to
+// tell someone that this machine holds this exact file - which is why these sit in the egress tier
+// and are asked about every time rather than granted for a session.
+
+// A SHA-256 is 64 hexadecimal characters and nothing else. Checked here rather than sent, because a
+// malformed hash is a request that leaves the machine and comes back with nothing.
+BOOLEAN AtpIsSha256(
+    _In_opt_ PPH_STRING Hash
+    )
+{
+    SIZE_T i;
+
+    if (!Hash || Hash->Length != 64 * sizeof(WCHAR))
+        return FALSE;
+
+    for (i = 0; i < 64; i++)
+    {
+        WCHAR c = Hash->Buffer[i];
+
+        if (!((c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f') || (c >= L'A' && c <= L'F')))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+PPH_STRING AtpResolveLookupHash(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING sha256;
+    PPH_STRING path;
+
+    sha256 = AtGetArgumentString(Call->Arguments, "sha256");
+    path = AtGetArgumentString(Call->Arguments, "path");
+
+    if (!sha256 && path)
+        sha256 = AtHashFileSha256(path);
+
+    PhClearReference(&path);
+
+    if (!AtpIsSha256(sha256))
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_INVALID_PARAMETER,
+            sha256 ? L"sha256 must be 64 hexadecimal characters." : L"sha256 or a readable path is required."
+            );
+        PhClearReference(&sha256);
+        return NULL;
+    }
+
+    return sha256;
+}
+
+VOID AtpLookupFileHashVirusTotal(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PONLINECHECKS_INTERFACE pluginInterface;
+    PPH_STRING sha256;
+    ONLINECHECKS_VIRUSTOTAL_REPORT report;
+    ONLINECHECKS_VIRUSTOTAL_RESULT cached;
+    PVOID structured;
+
+    if (!(pluginInterface = AtGetOnlineChecksInterface()))
+    {
+        AtSetToolError(
+            Result,
+            "plugin_missing",
+            STATUS_NOT_SUPPORTED,
+            L"The OnlineChecks plugin is not loaded, so there is nothing to ask VirusTotal with."
+            );
+        AtSetToolHint(Result, AT_HINT_PLUGIN_MISSING);
+        return;
+    }
+
+    if (!(sha256 = AtpResolveLookupHash(Call, Result)))
+        return;
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "sha256", sha256);
+
+    // A cached verdict answers without a request. The caller can turn that off, because a stale
+    // verdict is exactly what someone re-checking a file is trying to get past.
+    if (AtJsonGetObjectBoolean(Call->Arguments, "force_refresh") == FALSE)
+    {
+        LARGE_INTEGER now;
+
+        PhQuerySystemTime(&now);
+        memset(&cached, 0, sizeof(ONLINECHECKS_VIRUSTOTAL_RESULT));
+
+        if (pluginInterface->QueryCachedVirusTotal(sha256, &cached) == OnlineChecksLookupFound &&
+            cached.Expiry.QuadPart > now.QuadPart)
+        {
+            PhAddJsonObjectBoolean(structured, "from_cache", TRUE);
+            PhAddJsonObjectUInt64(structured, "http_status", cached.HttpStatus);
+            AtJsonAddNull(structured, "scan_date");
+
+            if (cached.HttpStatus == 200)
+            {
+                PhAddJsonObjectUInt64(structured, "malicious", cached.Malicious);
+                PhAddJsonObjectUInt64(structured, "undetected", cached.Undetected);
+            }
+            else
+            {
+                AtJsonAddNull(structured, "malicious");
+                AtJsonAddNull(structured, "undetected");
+            }
+
+            Result->StructuredContent = structured;
+            PhDereferenceObject(sha256);
+            return;
+        }
+    }
+
+    memset(&report, 0, sizeof(ONLINECHECKS_VIRUSTOTAL_REPORT));
+    status = pluginInterface->LookupVirusTotal(sha256, &report);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Asking VirusTotal");
+        PhFreeJsonObject(structured);
+        PhDereferenceObject(sha256);
+        return;
+    }
+
+    PhAddJsonObjectBoolean(structured, "from_cache", FALSE);
+    PhAddJsonObjectUInt64(structured, "http_status", report.HttpStatus);
+    AtJsonAddString(structured, "scan_date", report.ScanDate);
+
+    // 404 is a file VirusTotal has never been given. Reporting zero detections for it would read as
+    // a clean verdict, which is the opposite of what it means.
+    if (report.HttpStatus == 200)
+    {
+        PhAddJsonObjectUInt64(structured, "malicious", report.Malicious);
+        PhAddJsonObjectUInt64(structured, "undetected", report.Undetected);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "malicious");
+        AtJsonAddNull(structured, "undetected");
+    }
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&report.ScanDate);
+    PhDereferenceObject(sha256);
+}
+
+VOID AtpLookupFileHashHybridAnalysis(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PONLINECHECKS_INTERFACE pluginInterface;
+    PPH_STRING sha256;
+    ONLINECHECKS_HYBRIDANALYSIS_REPORT report;
+    ONLINECHECKS_HYBRIDANALYSIS_RESULT cached;
+    PVOID structured;
+
+    if (!(pluginInterface = AtGetOnlineChecksInterface()))
+    {
+        AtSetToolError(
+            Result,
+            "plugin_missing",
+            STATUS_NOT_SUPPORTED,
+            L"The OnlineChecks plugin is not loaded, so there is nothing to ask Hybrid Analysis with."
+            );
+        AtSetToolHint(Result, AT_HINT_PLUGIN_MISSING);
+        return;
+    }
+
+    if (!(sha256 = AtpResolveLookupHash(Call, Result)))
+        return;
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "sha256", sha256);
+
+    if (AtJsonGetObjectBoolean(Call->Arguments, "force_refresh") == FALSE)
+    {
+        LARGE_INTEGER now;
+
+        PhQuerySystemTime(&now);
+        memset(&cached, 0, sizeof(ONLINECHECKS_HYBRIDANALYSIS_RESULT));
+
+        if (pluginInterface->QueryCachedHybridAnalysis(sha256, &cached) == OnlineChecksLookupFound &&
+            cached.Expiry.QuadPart > now.QuadPart)
+        {
+            PhAddJsonObjectBoolean(structured, "from_cache", TRUE);
+            PhAddJsonObjectUInt64(structured, "http_status", cached.HttpStatus);
+            AtJsonAddNull(structured, "threat_score");
+            AtJsonAddNull(structured, "verdict");
+
+            if (cached.HttpStatus == 200)
+            {
+                PhAddJsonObjectUInt64(structured, "multiscan_percent", cached.MultiscanResult);
+                AtJsonAddString(structured, "family", cached.VxFamily);
+            }
+            else
+            {
+                AtJsonAddNull(structured, "multiscan_percent");
+                AtJsonAddNull(structured, "family");
+            }
+
+            Result->StructuredContent = structured;
+            PhClearReference(&cached.VxFamily);
+            PhDereferenceObject(sha256);
+            return;
+        }
+
+        PhClearReference(&cached.VxFamily);
+    }
+
+    memset(&report, 0, sizeof(ONLINECHECKS_HYBRIDANALYSIS_REPORT));
+    status = pluginInterface->LookupHybridAnalysis(sha256, &report);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Asking Hybrid Analysis");
+        PhFreeJsonObject(structured);
+        PhDereferenceObject(sha256);
+        return;
+    }
+
+    PhAddJsonObjectBoolean(structured, "from_cache", FALSE);
+    PhAddJsonObjectUInt64(structured, "http_status", report.HttpStatus);
+
+    if (report.HttpStatus == 200)
+    {
+        PhAddJsonObjectUInt64(structured, "multiscan_percent", report.MultiscanResult);
+        PhAddJsonObjectUInt64(structured, "threat_score", report.ThreatScore);
+        AtJsonAddString(structured, "verdict", report.Verdict);
+        AtJsonAddString(structured, "family", report.VxFamily);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "multiscan_percent");
+        AtJsonAddNull(structured, "threat_score");
+        AtJsonAddNull(structured, "verdict");
+        AtJsonAddNull(structured, "family");
+    }
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&report.Verdict);
+    PhClearReference(&report.VxFamily);
+    PhDereferenceObject(sha256);
+}

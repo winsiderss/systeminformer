@@ -156,6 +156,8 @@ typedef enum _AT_ACTION
     AtActionGetImageStrings,
     AtActionGetFileInfo,
     AtActionGetFileScanResultCached,
+    AtActionLookupFileHashVirusTotal,
+    AtActionLookupFileHashHybridAnalysis,
     AtActionGetImageInfo,
     AtActionReadProcessMemory,
     AtActionSearchProcessMemory,
@@ -998,6 +1000,16 @@ PPH_STRING AtHashFileSha256(
 
 PONLINECHECKS_INTERFACE AtGetOnlineChecksInterface(
     VOID
+    );
+
+VOID AtpLookupFileHashVirusTotal(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtpLookupFileHashHybridAnalysis(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
     );
 
 VOID AtpGetFileScanResultCached(

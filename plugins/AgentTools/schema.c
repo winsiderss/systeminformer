@@ -336,6 +336,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read a cached scan verdict", L"Allow reading cached scan verdicts", L"get_file_scan_result_cached"
     },
     {
+        AtActionLookupFileHashVirusTotal, AtTierNetworkEgress, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"lookup_file_hash_virustotal"),
+        L"ask VirusTotal about a file hash", L"Send a file hash to VirusTotal", L"lookup_file_hash_virustotal"
+    },
+    {
+        AtActionLookupFileHashHybridAnalysis, AtTierNetworkEgress, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"lookup_file_hash_hybrid_analysis"),
+        L"ask Hybrid Analysis about a file hash", L"Send a file hash to Hybrid Analysis", L"lookup_file_hash_hybrid_analysis"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3185,6 +3193,59 @@ CONST AT_TOOL AtTools[] =
         "\"is_pe_image\":{\"type\":\"boolean\"}"
         "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
         AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "lookup_file_hash_virustotal", L"Ask VirusTotal about a hash", AtTierNetworkEgress, AtActionLookupFileHashVirusTotal,
+        SETTING_NAME_TOOL_ACCESS(L"lookup_file_hash_virustotal"), SETTING_NAME_TOOL_CONFIRM(L"lookup_file_hash_virustotal"),
+        "{\"name\":\"lookup_file_hash_virustotal\",\"title\":\"Ask VirusTotal about a hash\","
+        "\"description\":\"Asks VirusTotal what it knows about a file, by SHA-256. THIS LEAVES THE MACHINE. Only the "
+        "hash is sent, never the file, but a hash tells whoever receives it that this machine holds that exact file. "
+        "Without a personal access token configured in OnlineChecks the request goes through System Informer's proxy "
+        "and carries an installation identifier; with one it goes to VirusTotal directly. A current cached verdict "
+        "answers without a request unless force_refresh is set, and get_file_scan_result_cached does that with no "
+        "possibility of a request at all. http_status 404 means VirusTotal has never been given this file, which is "
+        "not a clean verdict; the counts are null for anything but 200. A count of zero detections is not proof a "
+        "file is safe. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+                "\"sha256\":{\"type\":\"string\",\"description\":\"The file's SHA-256 as hex, from get_file_hashes\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"A file to hash and then look up, when the hash is not already known. The file itself is never sent\"},"
+        "\"force_refresh\":{\"type\":\"boolean\",\"description\":\"Ask even when a cached verdict is still current. Default false, so a fresh cached answer is returned without a request\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sha256\":{\"type\":\"string\"},"
+        "\"from_cache\":{\"type\":\"boolean\",\"description\":\"True when no request was made\"},"
+        "\"http_status\":{\"type\":\"integer\",\"description\":\"200 carried a verdict; 404 means the file is unknown to VirusTotal\"},"
+        "\"scan_date\":{\"type\":[\"string\",\"null\"],\"description\":\"When VirusTotal last analysed the file; null for a cached answer\"},"
+        "\"malicious\":{\"type\":[\"integer\",\"null\"],\"description\":\"Engines that flagged the file; null unless http_status is 200\"},"
+        "\"undetected\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"sha256\",\"from_cache\",\"http_status\"]},"
+        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
+    },
+    {
+        "lookup_file_hash_hybrid_analysis", L"Ask Hybrid Analysis about a hash", AtTierNetworkEgress, AtActionLookupFileHashHybridAnalysis,
+        SETTING_NAME_TOOL_ACCESS(L"lookup_file_hash_hybrid_analysis"), SETTING_NAME_TOOL_CONFIRM(L"lookup_file_hash_hybrid_analysis"),
+        "{\"name\":\"lookup_file_hash_hybrid_analysis\",\"title\":\"Ask Hybrid Analysis about a hash\","
+        "\"description\":\"Asks Hybrid Analysis what it knows about a file, by SHA-256. THIS LEAVES THE MACHINE, on the "
+        "same terms as the VirusTotal lookup: the hash is sent, the file is not, and without a personal access token "
+        "the request goes through System Informer's proxy with an installation identifier. A current cached verdict "
+        "answers without a request unless force_refresh is set. The counts are null for anything but http_status 200. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+                "\"sha256\":{\"type\":\"string\",\"description\":\"The file's SHA-256 as hex, from get_file_hashes\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"A file to hash and then look up, when the hash is not already known. The file itself is never sent\"},"
+        "\"force_refresh\":{\"type\":\"boolean\",\"description\":\"Ask even when a cached verdict is still current. Default false, so a fresh cached answer is returned without a request\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sha256\":{\"type\":\"string\"},"
+        "\"from_cache\":{\"type\":\"boolean\",\"description\":\"True when no request was made\"},"
+        "\"http_status\":{\"type\":\"integer\"},"
+        "\"multiscan_percent\":{\"type\":[\"integer\",\"null\"],\"description\":\"Percentage of engines that flagged the file\"},"
+        "\"threat_score\":{\"type\":[\"integer\",\"null\"],\"description\":\"Null for a cached answer, which does not store it\"},"
+        "\"verdict\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for a cached answer\"},"
+        "\"family\":{\"type\":[\"string\",\"null\"],\"description\":\"The malware family name, when one was assigned\"}"
+        "},\"required\":[\"sha256\",\"from_cache\",\"http_status\"]},"
+        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
     },
     {
         "get_file_scan_result_cached", L"Get cached scan verdict", AtTierRead, AtActionGetFileScanResultCached,

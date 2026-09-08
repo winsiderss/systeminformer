@@ -1351,6 +1351,8 @@ VOID AtInvokeTool(
     case AtActionGetImageStrings:
     case AtActionGetFileInfo:
     case AtActionGetFileScanResultCached:
+    case AtActionLookupFileHashVirusTotal:
+    case AtActionLookupFileHashHybridAnalysis:
     case AtActionGetImageInfo:
     case AtActionReadProcessMemory:
     case AtActionSearchProcessMemory:

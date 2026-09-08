@@ -1195,6 +1195,12 @@ VOID AtPeInvokeTool(
     case AtActionGetFileScanResultCached:
         AtpGetFileScanResultCached(Call, Result);
         break;
+    case AtActionLookupFileHashVirusTotal:
+        AtpLookupFileHashVirusTotal(Call, Result);
+        break;
+    case AtActionLookupFileHashHybridAnalysis:
+        AtpLookupFileHashHybridAnalysis(Call, Result);
+        break;
     case AtActionGetFileHashes:
         AtpGetFileHashes(Call, Result);
         break;
