@@ -17,29 +17,6 @@
 __declspec(dllimport) FLOAT PhCpuKernelUsage;
 __declspec(dllimport) FLOAT PhCpuUserUsage;
 
-PCWSTR AtpKphLevelString(
-    _In_ KPH_LEVEL Level
-    )
-{
-    switch (Level)
-    {
-    case KphLevelNone:
-        return L"none";
-    case KphLevelMin:
-        return L"min";
-    case KphLevelLow:
-        return L"low";
-    case KphLevelMed:
-        return L"med";
-    case KphLevelHigh:
-        return L"high";
-    case KphLevelMax:
-        return L"max";
-    }
-
-    return NULL;
-}
-
 FIRMWARE_TYPE AtpGetFirmwareType(
     VOID
     )
@@ -181,7 +158,7 @@ VOID AtpGetSystemInfo(
 
     kphLevel = KsiLevel();
     PhAddJsonObjectBoolean(structured, "ksi_connected", kphLevel != KphLevelNone);
-    AtJsonAddStringZ(structured, "ksi_level", AtpKphLevelString(kphLevel));
+    AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(kphLevel));
     PhAddJsonObjectUInt64(structured, "schema_version", AT_SCHEMA_VERSION);
 
     AtAddSnapshot(structured);
@@ -290,7 +267,7 @@ VOID AtpGetKsiStatus(
 
     structured = PhCreateJsonObject();
     PhAddJsonObjectBoolean(structured, "connected", level != KphLevelNone);
-    AtJsonAddStringZ(structured, "level", AtpKphLevelString(level));
+    AtJsonAddStringZ(structured, "level", AtKphLevelString(level));
 
     // One round trip into the driver, timed on the host clock: a health check for the connection.
     if (NT_SUCCESS(PhQueryKphCounters(&duration, &durationDown, &durationUp)) &&

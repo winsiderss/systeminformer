@@ -397,12 +397,22 @@ PVOID AtJsonGetObjectMember(
 
 // tools.c
 
+// Hints carried on a tool error: what would have to change for the call to work. Only the hints
+// that hold are sent; an absent hint means the change would not help.
+
+#define AT_HINT_NEEDS_ELEVATION 0x00000001ul
+#define AT_HINT_NEEDS_DRIVER 0x00000002ul
+#define AT_HINT_CONSENT_REQUIRED 0x00000004ul
+#define AT_HINT_PLUGIN_MISSING 0x00000008ul
+#define AT_HINT_RETRYABLE 0x00000010ul
+
 typedef struct _AT_TOOL_RESULT
 {
     PVOID StructuredContent;
     PCSTR ErrorCode;
     PPH_STRING ErrorMessage;
     NTSTATUS Status;
+    ULONG Hints;
 } AT_TOOL_RESULT, *PAT_TOOL_RESULT;
 
 typedef struct _AT_TOOL
@@ -463,6 +473,16 @@ VOID AtSetToolStatusError(
     _Inout_ PAT_TOOL_RESULT Result,
     _In_ NTSTATUS Status,
     _In_ PCWSTR Operation
+    );
+
+VOID AtSetToolHint(
+    _Inout_ PAT_TOOL_RESULT Result,
+    _In_ ULONG Hints
+    );
+
+VOID AtAddErrorHints(
+    _In_ PVOID Error,
+    _In_ PAT_TOOL_RESULT Result
     );
 
 VOID AtDeleteToolResult(
@@ -565,6 +585,10 @@ BOOLEAN AtContainsString(
 
 PCWSTR AtVerifyResultString(
     _In_ VERIFY_RESULT Result
+    );
+
+PCWSTR AtKphLevelString(
+    _In_ KPH_LEVEL Level
     );
 
 PCWSTR AtIoPriorityString(

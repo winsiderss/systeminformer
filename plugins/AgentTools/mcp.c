@@ -43,7 +43,11 @@ static CONST CHAR AtServerInstructions[] =
     "A process is identified by pid together with process_sequence_number; mutating tools require both "
     "and refuse a mismatch because pids are reused. "
     "Mutating tools and sensitive reads are disabled unless the user enabled them in System Informer's "
-    "options, and may require the user's confirmation in System Informer or through this client.";
+    "options, and may require the user's confirmation in System Informer or through this client. "
+    "A failed call returns isError with a JSON object holding error, message and ntstatus, plus whichever "
+    "of needs_elevation, needs_driver (with the current ksi_level), consent_required, plugin_missing and "
+    "retryable apply; an absent hint means that change would not help, so route the user instead of "
+    "retrying blindly.";
 
 typedef enum _AT_INCOMING_RESULT
 {
@@ -614,6 +618,8 @@ VOID AtpSendToolResult(
 
         if (!NT_SUCCESS(ToolResult->Status))
             PhAddJsonObjectInt64(error, "ntstatus", (LONG)ToolResult->Status);
+
+        AtAddErrorHints(error, ToolResult);
 
         if (text = AtpSerialize(error))
         {

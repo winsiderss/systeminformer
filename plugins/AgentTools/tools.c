@@ -51,6 +51,96 @@ VOID AtSetToolStatusError(
     PhClearReference(&message);
 }
 
+VOID AtSetToolHint(
+    _Inout_ PAT_TOOL_RESULT Result,
+    _In_ ULONG Hints
+    )
+{
+    SetFlag(Result->Hints, Hints);
+}
+
+BOOLEAN AtpIsConsentError(
+    _In_opt_ PCSTR ErrorCode
+    )
+{
+    static CONST PCSTR codes[] =
+    {
+        "disabled",
+        "consent_denied",
+        "consent_timeout",
+        "consent_declined",
+        "consent_failed",
+        "elicitation_required",
+    };
+    ULONG i;
+
+    if (!ErrorCode)
+        return FALSE;
+
+    for (i = 0; i < RTL_NUMBER_OF(codes); i++)
+    {
+        if (strcmp(ErrorCode, codes[i]) == 0)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID AtAddErrorHints(
+    _In_ PVOID Error,
+    _In_ PAT_TOOL_RESULT Result
+    )
+{
+    KPH_LEVEL level = KsiLevel();
+    ULONG hints = Result->Hints;
+
+    if (AtpIsConsentError(Result->ErrorCode))
+        SetFlag(hints, AT_HINT_CONSENT_REQUIRED);
+
+    if (Result->Status == STATUS_ACCESS_DENIED || Result->Status == STATUS_PRIVILEGE_NOT_HELD)
+    {
+        if (!PhGetOwnTokenAttributes().Elevated)
+            SetFlag(hints, AT_HINT_NEEDS_ELEVATION);
+
+        // Only when the driver is absent entirely: a connected driver already gave what it can,
+        // and the level a plugin-loaded instance gets is capped by design.
+        if (level == KphLevelNone)
+            SetFlag(hints, AT_HINT_NEEDS_DRIVER);
+    }
+
+    switch (Result->Status)
+    {
+    case STATUS_INSUFFICIENT_RESOURCES:
+    case STATUS_NO_MEMORY:
+    case STATUS_TIMEOUT:
+    case STATUS_RETRY:
+        SetFlag(hints, AT_HINT_RETRYABLE);
+        break;
+    }
+
+    // The user was asked and did not answer in time; asking again can still succeed.
+    if (Result->ErrorCode && strcmp(Result->ErrorCode, "consent_timeout") == 0)
+        SetFlag(hints, AT_HINT_RETRYABLE);
+
+    if (FlagOn(hints, AT_HINT_NEEDS_ELEVATION))
+        PhAddJsonObjectBoolean(Error, "needs_elevation", TRUE);
+
+    if (FlagOn(hints, AT_HINT_NEEDS_DRIVER))
+    {
+        PhAddJsonObjectBoolean(Error, "needs_driver", TRUE);
+        AtJsonAddStringZ(Error, "ksi_level", AtKphLevelString(level));
+    }
+
+    if (FlagOn(hints, AT_HINT_CONSENT_REQUIRED))
+        PhAddJsonObjectBoolean(Error, "consent_required", TRUE);
+
+    if (FlagOn(hints, AT_HINT_PLUGIN_MISSING))
+        PhAddJsonObjectBoolean(Error, "plugin_missing", TRUE);
+
+    if (FlagOn(hints, AT_HINT_RETRYABLE))
+        PhAddJsonObjectBoolean(Error, "retryable", TRUE);
+}
+
 VOID AtDeleteToolResult(
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -582,6 +672,29 @@ BOOLEAN AtContainsString(
         return FALSE;
 
     return PhFindStringInStringRef(&String->sr, &Needle->sr, TRUE) != SIZE_MAX;
+}
+
+PCWSTR AtKphLevelString(
+    _In_ KPH_LEVEL Level
+    )
+{
+    switch (Level)
+    {
+    case KphLevelNone:
+        return L"none";
+    case KphLevelMin:
+        return L"min";
+    case KphLevelLow:
+        return L"low";
+    case KphLevelMed:
+        return L"med";
+    case KphLevelHigh:
+        return L"high";
+    case KphLevelMax:
+        return L"max";
+    }
+
+    return NULL;
 }
 
 PCWSTR AtVerifyResultString(
