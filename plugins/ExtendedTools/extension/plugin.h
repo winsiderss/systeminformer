@@ -14,7 +14,7 @@
 #define ETPLUGINEXT_H
 
 #define EXTENDEDTOOLS_PLUGIN_NAME L"ExtendedTools"
-#define EXTENDEDTOOLS_INTERFACE_VERSION 1
+#define EXTENDEDTOOLS_INTERFACE_VERSION 2
 
 typedef FLOAT (NTAPI* PEXTENDEDTOOLS_GET_GPUADAPTERUTILIZATION)(
     _In_ LUID AdapterLuid
@@ -30,6 +30,53 @@ typedef FLOAT (NTAPI* PEXTENDEDTOOLS_GET_GPUADAPTERENGINEUTILIZATION)(
     _In_ ULONG EngineId
     );
 
+/**
+ * Per-process disk and network I/O as ExtendedTools accumulates it.
+ *
+ * emarks The counters have two independent sources and each field is only as good as the source
+ * that fills it. The kernel trace session attributes disk and network events to processes and is
+ * the only source of the operation counts; the disk and network counters on the process item fill
+ * in the byte totals without it. EtwEnabled and DiskCountersEnabled say which of the two were
+ * running, so a reader can tell "nothing happened" from "nobody was watching".
+ *
+ * The block is written by the process provider on its own thread and is copied out without
+ * synchronisation, so a reader can see a total from one run beside a delta from the next.
+ */
+typedef struct _EXTENDEDTOOLS_PROCESS_IO
+{
+    BOOLEAN EtwEnabled;         // The kernel trace session is running (elevation + EnableEtwMonitor).
+    BOOLEAN DiskCountersEnabled;// Disk byte totals are being taken from the process item.
+    BOOLEAN HaveSample;         // A provider run has completed, so the deltas mean something.
+
+    ULONG64 DiskReadBytes;
+    ULONG64 DiskWriteBytes;
+    ULONG64 NetworkReceiveBytes;
+    ULONG64 NetworkSendBytes;
+
+    ULONG64 DiskReadCount;      // Operations, not bytes.
+    ULONG64 DiskWriteCount;
+    ULONG64 NetworkReceiveCount;
+    ULONG64 NetworkSendCount;
+
+    ULONG64 DiskReadBytesDelta; // In the last provider run.
+    ULONG64 DiskWriteBytesDelta;
+    ULONG64 NetworkReceiveBytesDelta;
+    ULONG64 NetworkSendBytesDelta;
+
+    ULONG64 DiskReadCountDelta;
+    ULONG64 DiskWriteCountDelta;
+    ULONG64 NetworkReceiveCountDelta;
+    ULONG64 NetworkSendCountDelta;
+
+    ULONG64 DiskTotalBytesDeltaPeak;    // Busiest run seen since the process was first observed.
+    ULONG64 NetworkTotalBytesDeltaPeak;
+} EXTENDEDTOOLS_PROCESS_IO, *PEXTENDEDTOOLS_PROCESS_IO;
+
+typedef BOOLEAN (NTAPI* PEXTENDEDTOOLS_GET_PROCESSIO)(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics
+    );
+
 typedef struct _EXTENDEDTOOLS_INTERFACE
 {
     ULONG Version;
@@ -37,6 +84,7 @@ typedef struct _EXTENDEDTOOLS_INTERFACE
     PEXTENDEDTOOLS_GET_GPUADAPTERDEDICATED GetGpuAdapterDedicated;
     PEXTENDEDTOOLS_GET_GPUADAPTERSHARED GetGpuAdapterShared;
     PEXTENDEDTOOLS_GET_GPUADAPTERENGINEUTILIZATION GetGpuAdapterEngineUtilization;
+    PEXTENDEDTOOLS_GET_PROCESSIO GetProcessIoStatistics; // Version 2
 } EXTENDEDTOOLS_INTERFACE, *PEXTENDEDTOOLS_INTERFACE;
 
 extern EXTENDEDTOOLS_INTERFACE PluginInterface;

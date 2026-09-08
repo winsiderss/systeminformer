@@ -145,6 +145,63 @@ VOID EtEtwStatisticsUninitialization(
     EtEtwMonitorUninitialization();
 }
 
+/**
+ * Copies out the disk and network I/O accumulated for a process.
+ *
+ * \param ProcessId The process to report on.
+ * \param Statistics The copied statistics. Not written unless the process is known.
+ * eturn TRUE if the process was found, FALSE otherwise.
+ *
+ * emarks EXTENDEDTOOLS_INTERFACE. The caller is told which collectors were running because a
+ * counter that is zero because nothing is watching reads exactly like one that is zero because
+ * nothing happened.
+ */
+BOOLEAN EtLookupProcessIoStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics
+    )
+{
+    PPH_PROCESS_ITEM processItem;
+    PET_PROCESS_BLOCK block;
+
+    if (!(processItem = PhReferenceProcessItem(ProcessId)))
+        return FALSE;
+
+    block = EtGetProcessBlock(processItem);
+
+    memset(Statistics, 0, sizeof(EXTENDEDTOOLS_PROCESS_IO));
+    Statistics->EtwEnabled = EtEtwEnabled;
+    Statistics->DiskCountersEnabled = EtDiskCountersEnabled;
+    Statistics->HaveSample = block->HaveDiskSample;
+
+    Statistics->DiskReadBytes = block->DiskReadRaw;
+    Statistics->DiskWriteBytes = block->DiskWriteRaw;
+    Statistics->NetworkReceiveBytes = block->NetworkReceiveRaw;
+    Statistics->NetworkSendBytes = block->NetworkSendRaw;
+
+    Statistics->DiskReadCount = block->DiskReadCount;
+    Statistics->DiskWriteCount = block->DiskWriteCount;
+    Statistics->NetworkReceiveCount = block->NetworkReceiveCount;
+    Statistics->NetworkSendCount = block->NetworkSendCount;
+
+    Statistics->DiskReadBytesDelta = block->DiskReadRawDelta.Delta;
+    Statistics->DiskWriteBytesDelta = block->DiskWriteRawDelta.Delta;
+    Statistics->NetworkReceiveBytesDelta = block->NetworkReceiveRawDelta.Delta;
+    Statistics->NetworkSendBytesDelta = block->NetworkSendRawDelta.Delta;
+
+    Statistics->DiskReadCountDelta = block->DiskReadDelta.Delta;
+    Statistics->DiskWriteCountDelta = block->DiskWriteDelta.Delta;
+    Statistics->NetworkReceiveCountDelta = block->NetworkReceiveDelta.Delta;
+    Statistics->NetworkSendCountDelta = block->NetworkSendDelta.Delta;
+
+    Statistics->DiskTotalBytesDeltaPeak = block->DiskTotalRawDeltaMax;
+    Statistics->NetworkTotalBytesDeltaPeak = block->NetworkTotalRawDeltaMax;
+
+    PhDereferenceObject(processItem);
+
+    return TRUE;
+}
+
 
 /**
  * Processes a disk I/O event and updates statistics.

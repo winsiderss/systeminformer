@@ -23,6 +23,7 @@
 
 #include "resource.h"
 
+#include "extension\plugin.h"
 #include "framemon.h"
 #include "tpm.h"
 
@@ -1359,6 +1360,12 @@ ULONG64 EtLookupTotalGpuAdapterDedicated(
 // EXTENDEDTOOLS_INTERFACE
 ULONG64 EtLookupTotalGpuAdapterShared(
     _In_ LUID AdapterLuid
+    );
+
+// EXTENDEDTOOLS_INTERFACE
+BOOLEAN EtLookupProcessIoStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics
     );
 
 // Firewall
