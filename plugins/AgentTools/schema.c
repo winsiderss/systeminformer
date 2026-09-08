@@ -79,6 +79,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the details of a window", L"Allow reading window details", L"get_window_info"
     },
     {
+        AtActionGetDotNetAssemblies, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
+        L"read the managed assemblies of processes", L"Allow reading managed assemblies", L"get_dotnet_assemblies"
+    },
+    {
         AtActionGetProcessNotes, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_notes"),
         L"read the notes saved against processes", L"Allow reading saved process notes", L"get_process_notes"
     },
@@ -1415,6 +1419,49 @@ CONST AT_TOOL AtTools[] =
         AT_WRITE_ANNOTATIONS "}"
     },
     // network
+    {
+        "get_dotnet_assemblies", L"Get .NET assemblies", AtTierRead, AtActionGetDotNetAssemblies,
+        SETTING_NAME_TOOL_ACCESS(L"get_dotnet_assemblies"), SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
+        "{\"name\":\"get_dotnet_assemblies\",\"title\":\"Get .NET assemblies\","
+        "\"description\":\"The managed assemblies a .NET process has loaded, by application domain, read from its "
+        "runtime rather than from its mapped images. get_process_modules cannot answer this: an assembly is not a "
+        "mapped image, and one emitted at run time or loaded from a byte array has no file behind it at all. Those "
+        "are the interesting ones - is_dynamic, is_dynamic_module and is_memory_stream mark code that was never on "
+        "disk, which is what a reflection loader leaves behind, and dynamic_only asks for just those. mvid "
+        "identifies the exact build of an assembly. A process with no CLR is not_found rather than an empty list, "
+        "and a 32-bit process is refused because reading its runtime needs a helper that prompts for elevation. "
+        "Assembly names come from the process being inspected. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Optional; fails the call if the pid has been reused\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the assembly, display or module name\"},"
+        "\"dynamic_only\":{\"type\":\"boolean\",\"description\":\"Only assemblies and modules the runtime generated rather than loaded from a file\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"assemblies\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"As the runtime names it, which for a file-backed assembly is its path\"},"
+        "\"display_name\":{\"type\":[\"string\",\"null\"],\"description\":\"The assembly's simple or fully qualified name\"},"
+        "\"module_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"native_image_file\":{\"type\":[\"string\",\"null\"],\"description\":\"Precompiled native image the module was loaded from, when there is one\"},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"app_domain\":{\"type\":[\"string\",\"null\"]},"
+        "\"app_domain_type\":{\"type\":\"string\",\"description\":\"application (an ordinary domain, which the runtime itself calls dynamic), shared or system\"},"
+        "\"app_domain_number\":{\"type\":\"integer\"},"
+        "\"is_dynamic\":{\"type\":\"boolean\",\"description\":\"The assembly was generated at run time\"},"
+        "\"is_reflection\":{\"type\":\"boolean\"},"
+        "\"is_dynamic_module\":{\"type\":\"boolean\"},"
+        "\"is_memory_stream\":{\"type\":\"boolean\",\"description\":\"Loaded from memory rather than from a file\"},"
+        "\"is_main_module\":{\"type\":\"boolean\"},"
+        "\"mvid\":{\"type\":[\"string\",\"null\"],\"description\":\"Module version id; identifies the exact build\"}"
+        "},\"required\":[\"app_domain_type\",\"is_dynamic\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"assemblies\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
     {
         "get_process_notes", L"Get saved process notes", AtTierRead, AtActionGetProcessNotes,
         SETTING_NAME_TOOL_ACCESS(L"get_process_notes"), SETTING_NAME_TOOL_CONFIRM(L"get_process_notes"),

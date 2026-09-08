@@ -63,6 +63,9 @@
     <ClCompile Include="tooldisk.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tooldnet.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolgpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>

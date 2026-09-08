@@ -1093,6 +1093,9 @@ VOID AtInvokeTool(
     case AtActionListNetworkAdapters:
         AtAdapterInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetDotNetAssemblies:
+        AtDotNetInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessNotes:
     case AtActionSetProcessComment:
         AtNoteInvokeTool(Tool, Call, Target, Result);
