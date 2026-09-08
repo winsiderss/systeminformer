@@ -375,6 +375,203 @@ PCWSTR AtpMemoryProtectionString(
     return NULL;
 }
 
+PCWSTR AtpMemoryRegionTypeString(
+    _In_ PH_MEMORY_REGION_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case CustomRegion:
+        return L"custom";
+    case UnusableRegion:
+        return L"unusable";
+    case MappedFileRegion:
+        return L"mapped_file";
+    case UserSharedDataRegion:
+        return L"user_shared_data";
+    case PebRegion:
+    case Peb32Region:
+        return L"peb";
+    case TebRegion:
+    case Teb32Region:
+        return L"teb";
+    case StackRegion:
+    case Stack32Region:
+        return L"stack";
+    case HeapRegion:
+    case Heap32Region:
+        return L"heap";
+    case HeapSegmentRegion:
+    case HeapSegment32Region:
+        return L"heap_segment";
+    case CfgBitmapRegion:
+    case CfgBitmap32Region:
+        return L"cfg_bitmap";
+    case ApiSetMapRegion:
+        return L"api_set_map";
+    case HypervisorSharedDataRegion:
+        return L"hypervisor_shared_data";
+    case ReadOnlySharedMemoryRegion:
+        return L"read_only_shared_memory";
+    case CodePageDataRegion:
+        return L"code_page_data";
+    case GdiSharedHandleTableRegion:
+        return L"gdi_shared_handle_table";
+    case ShimDataRegion:
+        return L"shim_data";
+    case ActivationContextDataRegion:
+        return L"activation_context_data";
+    case WerRegistrationDataRegion:
+        return L"wer_registration_data";
+    case SiloSharedDataRegion:
+        return L"silo_shared_data";
+    case TelemetryCoverageRegion:
+        return L"telemetry_coverage";
+    case ProcessParametersRegion:
+        return L"process_parameters";
+    case LeapSecondDataRegion:
+        return L"leap_second_data";
+    case DesktopHeapRegion:
+        return L"desktop_heap";
+    }
+
+    return NULL;
+}
+
+// How the kernel judged the image backing this region. Unsigned executable memory in a process that
+// should only be running signed code is the point of asking.
+PCWSTR AtpSigningLevelString(
+    _In_ SE_SIGNING_LEVEL SigningLevel
+    )
+{
+    switch (SigningLevel)
+    {
+    case SE_SIGNING_LEVEL_UNCHECKED:
+        return L"unchecked";
+    case SE_SIGNING_LEVEL_UNSIGNED:
+        return L"unsigned";
+    case SE_SIGNING_LEVEL_ENTERPRISE:
+        return L"enterprise";
+    case SE_SIGNING_LEVEL_DEVELOPER:
+        return L"developer";
+    case SE_SIGNING_LEVEL_AUTHENTICODE:
+        return L"authenticode";
+    case SE_SIGNING_LEVEL_STORE:
+        return L"store";
+    case SE_SIGNING_LEVEL_ANTIMALWARE:
+        return L"antimalware";
+    case SE_SIGNING_LEVEL_MICROSOFT:
+        return L"microsoft";
+    case SE_SIGNING_LEVEL_DYNAMIC_CODEGEN:
+        return L"dynamic_codegen";
+    case SE_SIGNING_LEVEL_WINDOWS:
+        return L"windows";
+    case SE_SIGNING_LEVEL_WINDOWS_TCB:
+        return L"windows_tcb";
+    }
+
+    return NULL;
+}
+
+VOID AtpAddRegionFlags(
+    _In_ PVOID Row,
+    _In_ PPH_MEMORY_ITEM Item
+    )
+{
+    PVOID array = PhCreateJsonArray();
+
+    #define AT_ADD_REGION_FLAG(Member, Name) \
+        if (Item->Member) PhAddJsonArrayObject(array, PhCreateJsonStringObject(Name))
+
+    AT_ADD_REGION_FLAG(Private, "private");
+    AT_ADD_REGION_FLAG(MappedDataFile, "mapped_data_file");
+    AT_ADD_REGION_FLAG(MappedImage, "mapped_image");
+    AT_ADD_REGION_FLAG(MappedPageFile, "mapped_page_file");
+    AT_ADD_REGION_FLAG(MappedPhysical, "mapped_physical");
+    AT_ADD_REGION_FLAG(DirectMapped, "direct_mapped");
+    AT_ADD_REGION_FLAG(SoftwareEnclave, "software_enclave");
+    AT_ADD_REGION_FLAG(PageSize64K, "page_size_64k");
+    AT_ADD_REGION_FLAG(PlaceholderReservation, "placeholder_reservation");
+    AT_ADD_REGION_FLAG(MappedAwe, "mapped_awe");
+    AT_ADD_REGION_FLAG(MappedWriteWatch, "mapped_write_watch");
+    AT_ADD_REGION_FLAG(PageSizeLarge, "page_size_large");
+    AT_ADD_REGION_FLAG(PageSizeHuge, "page_size_huge");
+
+    PhAddJsonObjectValue(Row, "flags", array);
+}
+
+// What the region is for, in typed fields rather than only in the sentence "use" carries.
+VOID AtpAddRegionDetail(
+    _In_ PVOID Row,
+    _In_ PPH_MEMORY_ITEM Item,
+    _In_ ULONG PageSize
+    )
+{
+    PVOID entry;
+
+    AtJsonAddStringZ(Row, "region_type", AtpMemoryRegionTypeString(Item->RegionType));
+    AtpAddRegionFlags(Row, Item);
+    PhAddJsonObjectUInt64(Row, "page_priority", Item->Priority);
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "total_bytes", (ULONG64)Item->TotalWorkingSetPages * PageSize);
+    PhAddJsonObjectUInt64(entry, "private_bytes", (ULONG64)Item->PrivateWorkingSetPages * PageSize);
+    PhAddJsonObjectUInt64(entry, "shared_bytes", (ULONG64)Item->SharedWorkingSetPages * PageSize);
+    PhAddJsonObjectUInt64(entry, "shareable_bytes", (ULONG64)Item->ShareableWorkingSetPages * PageSize);
+    PhAddJsonObjectUInt64(entry, "locked_bytes", (ULONG64)Item->LockedWorkingSetPages * PageSize);
+    PhAddJsonObjectValue(Row, "working_set", entry);
+
+    switch (Item->RegionType)
+    {
+    case MappedFileRegion:
+        AtJsonAddWin32FileName(Row, "mapped_file", Item->u.MappedFile.FileName);
+
+        if (Item->u.MappedFile.SigningLevelValid)
+            AtJsonAddStringZ(Row, "signing_level", AtpSigningLevelString(Item->u.MappedFile.SigningLevel));
+        else
+            AtJsonAddNull(Row, "signing_level");
+
+        AtJsonAddNull(Row, "thread_id");
+        AtJsonAddNull(Row, "heap");
+        break;
+    case TebRegion:
+    case Teb32Region:
+        AtJsonAddNull(Row, "mapped_file");
+        AtJsonAddNull(Row, "signing_level");
+        PhAddJsonObjectUInt64(Row, "thread_id", HandleToUlong(Item->u.Teb.ThreadId));
+        AtJsonAddNull(Row, "heap");
+        break;
+    case StackRegion:
+    case Stack32Region:
+        AtJsonAddNull(Row, "mapped_file");
+        AtJsonAddNull(Row, "signing_level");
+        PhAddJsonObjectUInt64(Row, "thread_id", HandleToUlong(Item->u.Stack.ThreadId));
+        AtJsonAddNull(Row, "heap");
+        break;
+    case HeapRegion:
+    case Heap32Region:
+        AtJsonAddNull(Row, "mapped_file");
+        AtJsonAddNull(Row, "signing_level");
+        AtJsonAddNull(Row, "thread_id");
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "index", Item->u.Heap.Index);
+
+        if (Item->u.Heap.ClassValid)
+            PhAddJsonObjectUInt64(entry, "class", Item->u.Heap.Class);
+        else
+            AtJsonAddNull(entry, "class");
+
+        PhAddJsonObjectValue(Row, "heap", entry);
+        break;
+    default:
+        AtJsonAddNull(Row, "mapped_file");
+        AtJsonAddNull(Row, "signing_level");
+        AtJsonAddNull(Row, "thread_id");
+        AtJsonAddNull(Row, "heap");
+        break;
+    }
+}
+
 VOID AtpGetProcessMemoryRegions(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -386,6 +583,19 @@ VOID AtpGetProcessMemoryRegions(
     ULONG flags = PH_QUERY_MEMORY_REGION_TYPE | PH_QUERY_MEMORY_WS_COUNTERS;
     BOOLEAN includeFree;
     BOOLEAN allocationsOnly;
+    BOOLEAN summaryOnly;
+    ULONG pageSize;
+    ULONG64 totalCommitted = 0;
+    ULONG64 totalPrivate = 0;
+    ULONG64 totalWorkingSet = 0;
+    ULONG64 totalPrivateWorkingSet = 0;
+    ULONG committedRegions = 0;
+    ULONG reservedRegions = 0;
+    ULONG freeRegions = 0;
+    ULONG imageRegions = 0;
+    ULONG privateRegions = 0;
+    ULONG executablePrivateRegions = 0;
+    ULONG64 executablePrivateBytes = 0;
     PLIST_ENTRY entry;
     AT_ROWS rows;
     PVOID structured;
@@ -395,6 +605,8 @@ VOID AtpGetProcessMemoryRegions(
 
     includeFree = AtJsonGetObjectBoolean(Call->Arguments, "include_free");
     allocationsOnly = AtJsonGetObjectBoolean(Call->Arguments, "allocations_only");
+    summaryOnly = AtJsonGetObjectBoolean(Call->Arguments, "summary_only");
+    pageSize = PhSystemBasicInformation.PageSize;
 
     if (!includeFree)
         flags |= PH_QUERY_MEMORY_IGNORE_FREE;
@@ -414,6 +626,42 @@ VOID AtpGetProcessMemoryRegions(
 
     for (entry = list.ListHead.Flink; entry != &list.ListHead; entry = entry->Flink)
     {
+        PPH_MEMORY_ITEM summaryItem = CONTAINING_RECORD(entry, PH_MEMORY_ITEM, ListEntry);
+
+        // The rollup counts every region, not only the ones a filter or a page would return.
+        totalCommitted += summaryItem->CommittedSize;
+        totalPrivate += summaryItem->PrivateSize;
+        totalWorkingSet += (ULONG64)summaryItem->TotalWorkingSetPages * pageSize;
+        totalPrivateWorkingSet += (ULONG64)summaryItem->PrivateWorkingSetPages * pageSize;
+
+        if (summaryItem->State & MEM_COMMIT)
+            committedRegions++;
+        else if (summaryItem->State & MEM_RESERVE)
+            reservedRegions++;
+        else
+            freeRegions++;
+
+        if (summaryItem->MappedImage)
+            imageRegions++;
+        else if (summaryItem->Private)
+            privateRegions++;
+
+        // Private memory that is executable is what shellcode lives in, so it is worth a number of
+        // its own rather than making the caller walk every region to find out.
+        if ((summaryItem->State & MEM_COMMIT) &&
+            summaryItem->Private &&
+            FlagOn(summaryItem->Protect, PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY))
+        {
+            executablePrivateRegions++;
+            executablePrivateBytes += summaryItem->RegionSize;
+        }
+    }
+
+    for (entry = list.ListHead.Flink; entry != &list.ListHead; entry = entry->Flink)
+    {
+        if (summaryOnly)
+            break;
+
         PPH_MEMORY_ITEM item = CONTAINING_RECORD(entry, PH_MEMORY_ITEM, ListEntry);
         PPH_STRING use;
         PVOID row;
@@ -445,13 +693,47 @@ VOID AtpGetProcessMemoryRegions(
 
         PhAddJsonObjectUInt64(row, "committed_bytes", item->CommittedSize);
         PhAddJsonObjectUInt64(row, "private_bytes", item->PrivateSize);
+        AtpAddRegionDetail(row, item, pageSize);
 
         AtAddRow(&rows, row);
     }
 
     PhDeleteMemoryItemList(&list);
 
-    AtAddRows(structured, "regions", &rows);
+    {
+        PVOID summary = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(summary, "committed_bytes", totalCommitted);
+        PhAddJsonObjectUInt64(summary, "private_bytes", totalPrivate);
+        PhAddJsonObjectUInt64(summary, "working_set_bytes", totalWorkingSet);
+        PhAddJsonObjectUInt64(summary, "private_working_set_bytes", totalPrivateWorkingSet);
+        PhAddJsonObjectUInt64(summary, "committed_regions", committedRegions);
+        PhAddJsonObjectUInt64(summary, "reserved_regions", reservedRegions);
+        PhAddJsonObjectUInt64(summary, "free_regions", freeRegions);
+        PhAddJsonObjectUInt64(summary, "image_regions", imageRegions);
+        PhAddJsonObjectUInt64(summary, "private_regions", privateRegions);
+        PhAddJsonObjectUInt64(summary, "executable_private_regions", executablePrivateRegions);
+        PhAddJsonObjectUInt64(summary, "executable_private_bytes", executablePrivateBytes);
+        PhAddJsonObjectValue(structured, "summary", summary);
+    }
+
+    if (summaryOnly)
+    {
+        // No rows were built, but the paging fields are part of every list answer: report zero
+        // returned out of the regions that exist, rather than leaving the caller to wonder.
+        AtDeleteRows(&rows);
+        AtJsonAddNull(structured, "regions");
+        PhAddJsonObjectUInt64(structured, "count", 0);
+        PhAddJsonObjectUInt64(structured, "total_count", (ULONG64)committedRegions + reservedRegions + freeRegions);
+        PhAddJsonObjectUInt64(structured, "offset", 0);
+        PhAddJsonObjectUInt64(structured, "limit", 0);
+        PhAddJsonObjectBoolean(structured, "truncated", FALSE);
+    }
+    else
+    {
+        AtAddRows(structured, "regions", &rows);
+    }
+
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
