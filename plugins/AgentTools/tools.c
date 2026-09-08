@@ -270,11 +270,61 @@ PCAT_TOOL AtFindTool(
     return NULL;
 }
 
+PCAT_RESOURCE AtFindResource(
+    _In_ PPH_STRING Uri
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AtResourceCount; i++)
+    {
+        PPH_STRING uri;
+        BOOLEAN match;
+
+        uri = PhZeroExtendToUtf16(AtResources[i].Uri);
+        match = PhEqualString(Uri, uri, FALSE);
+        PhDereferenceObject(uri);
+
+        if (match)
+            return &AtResources[i];
+    }
+
+    return NULL;
+}
+
 BOOLEAN AtIsToolEnabled(
     _In_ PCAT_TOOL Tool
     )
 {
     return PhGetIntegerSetting(Tool->AccessSetting) == AT_ACCESS_ALLOWED;
+}
+
+// A resource whose tool is turned off is not listed: the resource is that tool's answer under
+// another name, and offering it would be offering a way around the setting.
+VOID AtEnumResources(
+    _In_ PVOID ResourcesArray
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AtResourceCount; i++)
+    {
+        PPH_STRING name;
+        PCAT_TOOL tool;
+        PVOID definition;
+
+        name = PhZeroExtendToUtf16(AtResources[i].ToolName);
+        tool = AtFindTool(name);
+        PhDereferenceObject(name);
+
+        if (!tool || !AtIsToolEnabled(tool))
+            continue;
+
+        if (NT_SUCCESS(PhCreateJsonParser(&definition, AtResources[i].Definition)))
+            PhAddJsonArrayObject(ResourcesArray, definition);
+        else
+            NT_ASSERT(FALSE); // a definition in schema.c does not parse
+    }
 }
 
 VOID AtEnumTools(

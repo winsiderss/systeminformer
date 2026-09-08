@@ -578,6 +578,30 @@ typedef CONST AT_TOOL *PCAT_TOOL;
 extern CONST AT_TOOL AtTools[];
 extern CONST ULONG AtToolCount;
 
+// A resource is a saved call: a uri, the tool that answers it, and the arguments it is answered
+// with. Reading one goes through the same enable check, the same consent gate and the same
+// invocation as calling that tool by hand, so a resource can never reach anything a tool cannot.
+typedef struct _AT_RESOURCE
+{
+    PCSTR Uri;
+    PCSTR ToolName;
+    PCSTR Arguments;
+    PCSTR Definition;
+} AT_RESOURCE, *PAT_RESOURCE;
+
+typedef CONST AT_RESOURCE* PCAT_RESOURCE;
+
+extern CONST AT_RESOURCE AtResources[];
+extern CONST ULONG AtResourceCount;
+
+PCAT_RESOURCE AtFindResource(
+    _In_ PPH_STRING Uri
+    );
+
+VOID AtEnumResources(
+    _In_ PVOID ResourcesArray
+    );
+
 PCAT_TOOL AtFindTool(
     _In_ PPH_STRING Name
     );

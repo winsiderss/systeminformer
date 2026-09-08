@@ -228,6 +228,7 @@ PVOID AtpCreateCapabilities(
 
     capabilities = PhCreateJsonObject();
     PhAddJsonObjectValue(capabilities, "tools", PhCreateJsonObject());
+    PhAddJsonObjectValue(capabilities, "resources", PhCreateJsonObject());
 
     return capabilities;
 }
@@ -579,6 +580,23 @@ VOID AtpHandleToolsList(
     AtpSendResult(Connection, IdJson, result, Modern);
 }
 
+VOID AtpHandleResourcesList(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_ BOOLEAN Modern
+    )
+{
+    PVOID result;
+    PVOID resources;
+
+    result = PhCreateJsonObject();
+    resources = PhCreateJsonArray();
+    AtEnumResources(resources);
+    PhAddJsonObjectValue(result, "resources", resources);
+
+    AtpSendResult(Connection, IdJson, result, Modern);
+}
+
 PVOID AtpCreateTextContent(
     _In_ PPH_BYTES Text
     )
@@ -759,6 +777,158 @@ VOID AtpHandleToolsCall(
     AtDeleteTarget(&target);
     AtDeleteToolResult(&result);
     PhClearReference(&call.RequestState);
+
+    PhAcquireQueuedLockExclusive(&Connection->Lock);
+    PhClearReference(&Connection->InFlightId);
+    PhReleaseQueuedLockExclusive(&Connection->Lock);
+}
+
+/**
+ * Reading a resource is calling its tool. The uri picks the tool and the arguments; everything
+ * after that - the enable check, the consent gate, the invocation, the audit - is the same path a
+ * tools/call takes, so a resource cannot reach anything a tool cannot.
+ */
+VOID AtpHandleResourcesRead(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_opt_ PVOID Params,
+    _In_ PAT_REQUEST_META Meta
+    )
+{
+    PPH_STRING uri;
+    PPH_STRING toolName;
+    PCAT_RESOURCE resource;
+    PCAT_TOOL tool;
+    AT_TOOL_CALL call;
+    AT_TOOL_RESULT result;
+    AT_TARGET target;
+    PVOID arguments = NULL;
+    PPH_BYTES text = NULL;
+
+    if (!(uri = PhGetJsonValueAsString(Params, "uri")))
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS, "Missing resource uri", NULL);
+        return;
+    }
+
+    resource = AtFindResource(uri);
+
+    if (!resource)
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS, "Unknown resource", NULL);
+        PhDereferenceObject(uri);
+        return;
+    }
+
+    toolName = PhZeroExtendToUtf16(resource->ToolName);
+    tool = AtFindTool(toolName);
+    PhDereferenceObject(toolName);
+
+    if (!tool)
+    {
+        NT_ASSERT(FALSE); // a resource in schema.c names a tool that is not there
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR, "Unknown resource", NULL);
+        PhDereferenceObject(uri);
+        return;
+    }
+
+    if (!AtIsToolEnabled(tool))
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS,
+            "The tool behind this resource is disabled in System Informer's AgentTools options", NULL);
+        PhDereferenceObject(uri);
+        return;
+    }
+
+    if (!NT_SUCCESS(PhCreateJsonParser(&arguments, resource->Arguments)))
+    {
+        NT_ASSERT(FALSE); // arguments in schema.c do not parse
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR, "Resource arguments could not be read", NULL);
+        PhDereferenceObject(uri);
+        return;
+    }
+
+    memset(&call, 0, sizeof(AT_TOOL_CALL));
+    call.Connection = Connection;
+    call.IdJson = IdJson;
+    call.Modern = Meta->Modern;
+    call.ClientElicitation = Meta->Modern ? Meta->Elicitation : Connection->LegacyElicitation;
+    call.Arguments = arguments;
+
+    memset(&result, 0, sizeof(AT_TOOL_RESULT));
+    memset(&target, 0, sizeof(AT_TARGET));
+
+    PhAcquireQueuedLockExclusive(&Connection->Lock);
+    PhMoveReference(&Connection->InFlightId, PhReferenceObject(IdJson));
+    Connection->InFlightCancelled = FALSE;
+    Connection->CallCount++;
+    PhReleaseQueuedLockExclusive(&Connection->Lock);
+
+    // Every resource is backed by a read, which carries no target through the gate.
+    NT_ASSERT(tool->Tier == AtTierRead);
+
+    if (AtConsentWaitForConnection(Connection) != AtConsentAllowed ||
+        AtConsentGate(&call, &AtActionInfo[tool->Action], NULL) != AtConsentAllowed)
+    {
+        // A resource read has nowhere to put a consent conversation - there is no isError shape
+        // for it - so a refusal is a protocol error naming what happened.
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS,
+            "The user did not allow this resource to be read", NULL);
+    }
+    else
+    {
+        AtInvokeTool(tool, &call, &target, &result);
+
+        if (result.ErrorCode)
+        {
+            PPH_BYTES message = NULL;
+
+            // The tool's own message, not just its code: a resource read has no isError shape to
+            // carry the detail, so it goes in the protocol error or it is lost.
+            if (result.ErrorMessage)
+                message = PhConvertUtf16ToUtf8Ex(result.ErrorMessage->Buffer, result.ErrorMessage->Length);
+
+            AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR,
+                message ? message->Buffer : result.ErrorCode, NULL);
+
+            PhClearReference(&message);
+        }
+        else
+        {
+            if (!result.StructuredContent)
+                result.StructuredContent = PhCreateJsonObject();
+
+            if (text = AtpSerialize(result.StructuredContent))
+            {
+                PVOID contents;
+                PVOID entry;
+                PVOID root;
+
+                entry = PhCreateJsonObject();
+                PhAddJsonObject(entry, "uri", resource->Uri);
+                PhAddJsonObject(entry, "mimeType", "application/json");
+                PhAddJsonObjectUtf8(entry, "text", text);
+
+                contents = PhCreateJsonArray();
+                PhAddJsonArrayObject(contents, entry);
+
+                root = PhCreateJsonObject();
+                PhAddJsonObjectValue(root, "contents", contents);
+
+                AtpSendResult(Connection, IdJson, root, Meta->Modern);
+                PhDereferenceObject(text);
+            }
+            else
+            {
+                AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR, "The resource could not be serialized", NULL);
+            }
+        }
+    }
+
+    AtDeleteTarget(&target);
+    AtDeleteToolResult(&result);
+    PhFreeJsonObject(arguments);
+    PhDereferenceObject(uri);
 
     PhAcquireQueuedLockExclusive(&Connection->Lock);
     PhClearReference(&Connection->InFlightId);
@@ -948,6 +1118,19 @@ AT_INCOMING_RESULT AtpProcessIncoming(
         {
             AtpHandleToolsList(Connection, idJson, meta.Modern);
         }
+        else if (AtpEqualStringUtf8(method, "resources/list"))
+        {
+            AtpHandleResourcesList(Connection, idJson, meta.Modern);
+        }
+        else if (AtpEqualStringUtf8(method, "resources/templates/list"))
+        {
+            // No templated resources: the answer is an empty list rather than a method the client
+            // has to discover is missing.
+            PVOID result = PhCreateJsonObject();
+
+            PhAddJsonObjectValue(result, "resourceTemplates", PhCreateJsonArray());
+            AtpSendResult(Connection, idJson, result, meta.Modern);
+        }
         else if (AtpEqualStringUtf8(method, "server/discover"))
         {
             if (meta.Modern)
@@ -968,6 +1151,10 @@ AT_INCOMING_RESULT AtpProcessIncoming(
         else if (AtpEqualStringUtf8(method, "tools/call"))
         {
             AtpHandleToolsCall(Connection, idJson, params, &meta);
+        }
+        else if (AtpEqualStringUtf8(method, "resources/read"))
+        {
+            AtpHandleResourcesRead(Connection, idJson, params, &meta);
         }
         else
         {
