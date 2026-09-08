@@ -1129,6 +1129,7 @@ EXPORTS
 
 ; hndlinfo
     PhCallKphQueryFileInformationWithTimeout
+    PhCallNtQueryFileInformationWithTimeout
     PhCompareObjects
     PhEnumObjectTypes
     PhFormatNativeKeyName

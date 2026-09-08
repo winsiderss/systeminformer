@@ -1108,6 +1108,57 @@ VOID AtJsonAddFlagStrings(
     PhAddJsonObjectValue(Object, Key, array);
 }
 
+// A section, rendered the same way whether the information came from the object itself or from the
+// driver on behalf of another process. The caller queries; this only formats.
+VOID AtAddSectionInfo(
+    _In_ PVOID Structured,
+    _In_ PSECTION_BASIC_INFORMATION Basic,
+    _In_opt_ PSECTION_IMAGE_INFORMATION Image,
+    _In_opt_ PPH_STRING FileName
+    )
+{
+    static CONST ULONG sectionFlags[] =
+    {
+        SEC_BASED, SEC_NO_CHANGE, SEC_FILE, SEC_IMAGE, SEC_PROTECTED_IMAGE,
+        SEC_RESERVE, SEC_COMMIT, SEC_NOCACHE, SEC_WRITECOMBINE, SEC_LARGE_PAGES
+    };
+    static CONST PWSTR sectionNames[] =
+    {
+        L"based", L"no_change", L"file", L"image", L"protected_image",
+        L"reserve", L"commit", L"no_cache", L"write_combine", L"large_pages"
+    };
+    PVOID details;
+
+    details = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(details, "size", Basic->MaximumSize.QuadPart);
+    AtJsonAddPointer(details, "base_address", Basic->BaseAddress);
+    AtJsonAddFlagStrings(details, "attributes", Basic->AllocationAttributes,
+        sectionFlags, (CONST PWSTR*)sectionNames, RTL_NUMBER_OF(sectionFlags));
+    AtJsonAddString(details, "file_name", FileName);
+    AtJsonAddWin32FileName(details, "file_path", FileName);
+
+    if (Image)
+    {
+        PVOID image = PhCreateJsonObject();
+
+        AtJsonAddStringZ(image, "machine", AtMachineString(Image->Machine));
+        AtJsonAddStringZ(image, "subsystem", AtSubsystemString((USHORT)Image->SubSystemType));
+        AtJsonAddPointer(image, "entry_point", Image->TransferAddress);
+        PhAddJsonObjectUInt64(image, "image_file_size", Image->ImageFileSize);
+        PhAddJsonObjectUInt64(image, "maximum_stack_size", Image->MaximumStackSize);
+        PhAddJsonObjectBoolean(image, "contains_code", !!Image->ImageContainsCode);
+        PhAddJsonObjectBoolean(image, "dynamically_relocated", !!Image->ImageDynamicallyRelocated);
+        PhAddJsonObjectBoolean(image, "dotnet_il_only", !!Image->ComPlusILOnly);
+        PhAddJsonObjectValue(details, "image", image);
+    }
+    else
+    {
+        AtJsonAddNull(details, "image");
+    }
+
+    PhAddJsonObjectValue(Structured, "section", details);
+}
+
 VOID AtFillProcessIdentity(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -1217,6 +1268,7 @@ VOID AtInvokeTool(
         AtFindInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetAlpcPortInfo:
+    case AtActionGetHandleDetails:
         AtHandleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListFirewallEvents:

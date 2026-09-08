@@ -96,6 +96,7 @@ typedef enum _AT_ACTION
     AtActionListObjectDirectory,
     AtActionGetObjectInfo,
     AtActionGetAlpcPortInfo,
+    AtActionGetHandleDetails,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
@@ -772,6 +773,13 @@ VOID AtJsonAddFlagStrings(
     _In_reads_(Count) CONST ULONG* Flags,
     _In_reads_(Count) CONST PWSTR* Names,
     _In_ ULONG Count
+    );
+
+VOID AtAddSectionInfo(
+    _In_ PVOID Structured,
+    _In_ PSECTION_BASIC_INFORMATION Basic,
+    _In_opt_ PSECTION_IMAGE_INFORMATION Image,
+    _In_opt_ PPH_STRING FileName
     );
 
 VOID AtFillProcessIdentity(

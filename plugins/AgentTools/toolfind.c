@@ -1207,50 +1207,19 @@ VOID AtpAddSectionDetails(
     _In_ HANDLE Handle
     )
 {
-    static CONST ULONG sectionFlags[] =
-    {
-        SEC_BASED, SEC_NO_CHANGE, SEC_FILE, SEC_IMAGE, SEC_PROTECTED_IMAGE,
-        SEC_RESERVE, SEC_COMMIT, SEC_NOCACHE, SEC_WRITECOMBINE, SEC_LARGE_PAGES
-    };
-    static CONST PWSTR sectionNames[] =
-    {
-        L"based", L"no_change", L"file", L"image", L"protected_image",
-        L"reserve", L"commit", L"no_cache", L"write_combine", L"large_pages"
-    };
     SECTION_BASIC_INFORMATION basicInfo;
     SECTION_IMAGE_INFORMATION imageInfo;
-    PVOID details;
+    BOOLEAN haveImage;
 
     if (!NT_SUCCESS(NtQuerySection(Handle, SectionBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
         return;
 
-    details = PhCreateJsonObject();
-    PhAddJsonObjectUInt64(details, "size", basicInfo.MaximumSize.QuadPart);
-    AtJsonAddPointer(details, "base_address", basicInfo.BaseAddress);
-    AtJsonAddFlagStrings(details, "attributes", basicInfo.AllocationAttributes,
-        sectionFlags, (CONST PWSTR*)sectionNames, RTL_NUMBER_OF(sectionFlags));
+    haveImage = FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
+        NT_SUCCESS(NtQuerySection(Handle, SectionImageInformation, &imageInfo, sizeof(imageInfo), NULL));
 
-    if (FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
-        NT_SUCCESS(NtQuerySection(Handle, SectionImageInformation, &imageInfo, sizeof(imageInfo), NULL)))
-    {
-        PVOID image = PhCreateJsonObject();
-
-        AtJsonAddStringZ(image, "machine", AtMachineString(imageInfo.Machine));
-        AtJsonAddStringZ(image, "subsystem", AtSubsystemString((USHORT)imageInfo.SubSystemType));
-        AtJsonAddPointer(image, "entry_point", imageInfo.TransferAddress);
-        PhAddJsonObjectUInt64(image, "image_file_size", imageInfo.ImageFileSize);
-        PhAddJsonObjectUInt64(image, "maximum_stack_size", imageInfo.MaximumStackSize);
-        PhAddJsonObjectBoolean(image, "contains_code", !!imageInfo.ImageContainsCode);
-        PhAddJsonObjectBoolean(image, "dynamically_relocated", !!imageInfo.ImageDynamicallyRelocated);
-        PhAddJsonObjectBoolean(image, "dotnet_il_only", !!imageInfo.ComPlusILOnly);
-        PhAddJsonObjectValue(details, "image", image);
-    }
-    else
-    {
-        AtJsonAddNull(details, "image");
-    }
-
-    PhAddJsonObjectValue(Structured, "section", details);
+    // The backing file name needs the driver, so a named section reports one only through
+    // get_handle_details.
+    AtAddSectionInfo(Structured, &basicInfo, haveImage ? &imageInfo : NULL, NULL);
 }
 
 VOID AtpAddJobDetails(
