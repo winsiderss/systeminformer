@@ -167,6 +167,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list unloaded modules", L"Allow listing unloaded modules", L"get_process_unloaded_modules"
     },
     {
+        AtActionGetProcessImageCoherency, AtTierSensitiveRead, AtConsentClassProcessMemory, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_image_coherency"),
+        L"compare the images in memory with their files for", L"Compare the images in memory with their files for", L"get_process_image_coherency"
+    },
+    {
+        AtActionGetImagePageModifications, AtTierSensitiveRead, AtConsentClassProcessMemory, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_image_page_modifications"),
+        L"find the modified pages of an image in", L"Find the modified image pages in", L"get_image_page_modifications"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -2077,6 +2085,81 @@ CONST AT_TOOL AtTools[] =
         "\"is_wow64\":{\"type\":\"boolean\",\"description\":\"The process is 32-bit on 64-bit Windows, so this list is not its own unload ring\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_image_coherency", L"Get image coherency", AtTierSensitiveRead, AtActionGetProcessImageCoherency,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_image_coherency"), SETTING_NAME_TOOL_CONFIRM(L"get_process_image_coherency"),
+        "{\"name\":\"get_process_image_coherency\",\"title\":\"Get image coherency\","
+        "\"description\":\"How much of an image in memory still matches the file it was loaded from, as a "
+        "fraction from 0 to 1. A packer that unpacks over itself, a hollowed process and a module full of "
+        "inline hooks all leave the mapped copy saying something different from the file on disk. Most normal "
+        "processes sit at or very near 1; what matters is a value that is much lower than its neighbours, not "
+        "any particular number. A .NET process is expected to be lower, because the runtime writes over its "
+        "own image. scan_type trades time for coverage. An image that could not be compared reports an error "
+        "instead of a number, because there is no fraction to give. Use get_image_page_modifications to see "
+        "which pages differ. "
+        AT_SENSITIVE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"scan_type\":{\"type\":\"string\",\"enum\":[\"quick\",\"normal\",\"full\",\"shared_original\"],\"description\":\"quick (default) reads the header and a few pages of each executable section; normal reads up to 40 MiB of each; full reads all of them and looks for code caves; shared_original only asks the kernel which pages are still the file's, which is the cheapest and the least detailed\"},"
+        "\"include_modules\":{\"type\":\"boolean\",\"description\":\"Also compare every loaded module against its own file. This is a scan per module\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"With include_modules, only modules whose name or path contains this\"},"
+        "\"max_modules\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":512,\"description\":\"Stop after this many modules; default 32\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"file_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"scan_type\":{\"type\":\"string\"},"
+        "\"coherency\":{\"type\":[\"number\",\"null\"],\"description\":\"0 to 1; null when the image could not be compared\"},"
+        "\"error\":{\"type\":[\"string\",\"null\"]},"
+        "\"message\":{\"type\":[\"string\",\"null\"]},"
+        "\"modules\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"file_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"coherency\":{\"type\":[\"number\",\"null\"]},"
+        "\"error\":{\"type\":[\"string\",\"null\"]},"
+        "\"message\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"name\",\"size\"]}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"scan_type\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_image_page_modifications", L"Get modified image pages", AtTierSensitiveRead, AtActionGetImagePageModifications,
+        SETTING_NAME_TOOL_ACCESS(L"get_image_page_modifications"), SETTING_NAME_TOOL_CONFIRM(L"get_image_page_modifications"),
+        "{\"name\":\"get_image_page_modifications\",\"title\":\"Get modified image pages\","
+        "\"description\":\"Which pages of a loaded image are no longer the file's. Windows maps an image shared "
+        "and copy-on-write, so a page that has been written to - an inline hook at the top of a function, a "
+        "patched import - stops being backed by the file and says so in its working set attributes. "
+        "get_process_image_coherency says how much of an image differs; this says where. Addresses go straight "
+        "to resolve_symbol, or resolve_symbols asks for the name here. Relocations and the import address table "
+        "are legitimate reasons for a page to differ, so read the names rather than the count. Defaults to the "
+        "process's own image; name a module or give an address inside one for anything else. "
+        AT_SENSITIVE_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"module_name\":{\"type\":\"string\",\"description\":\"A module of that process, for example ntdll.dll\"},"
+        "\"base_address\":{\"type\":\"string\",\"description\":\"Hexadecimal address anywhere inside the module instead\"},"
+        "\"resolve_symbols\":{\"type\":\"boolean\",\"description\":\"Name each modified page, which loads symbols for the process the first time\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"file_path\":{\"type\":[\"string\",\"null\"],\"description\":\"The module the pages belong to\"},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"pages\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\"},"
+        "\"valid\":{\"type\":\"boolean\",\"description\":\"The page is resident; a page can differ and be paged out\"},"
+        "\"symbol\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"address\",\"valid\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"page_count\":{\"type\":\"integer\",\"description\":\"Pages the image has\"},"
+        "\"modified_count\":{\"type\":\"integer\",\"description\":\"How many of them are no longer the file's\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"pages\",\"count\",\"total_count\",\"truncated\",\"page_count\",\"modified_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

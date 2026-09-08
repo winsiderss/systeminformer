@@ -111,6 +111,8 @@ typedef enum _AT_ACTION
     AtActionResolveSymbol,
     AtActionSearchProcessStrings,
     AtActionGetProcessUnloadedModules,
+    AtActionGetProcessImageCoherency,
+    AtActionGetImagePageModifications,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,
@@ -651,6 +653,23 @@ PPH_PROCESS_ITEM AtBatchReferenceProcessItem(
     _In_ PAT_BATCH Batch,
     _In_ ULONG Index,
     _Out_ PULONG ProcessId
+    );
+
+PPH_SYMBOL_PROVIDER AtCreateSymbolProvider(
+    _In_ HANDLE ProcessId
+    );
+
+// Finds one module of a process: by an address inside it, by name, or the process's own image when
+// neither is given. Returns FALSE when there is no such module.
+_Success_(return)
+BOOLEAN AtFindProcessModule(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ PVOID Address,
+    _In_opt_ PPH_STRING Name,
+    _Out_ PVOID *BaseAddress,
+    _Out_ PSIZE_T Size,
+    _Out_ PPH_STRING *FileName
     );
 
 PCWSTR AtStringEncodingString(

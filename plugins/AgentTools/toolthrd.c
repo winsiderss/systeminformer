@@ -96,7 +96,7 @@ PCWSTR AtpWaitReasonString(
     return NULL;
 }
 
-PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
+PPH_SYMBOL_PROVIDER AtCreateSymbolProvider(
     _In_ HANDLE ProcessId
     )
 {
@@ -398,7 +398,7 @@ PVOID AtpCreateThreadsResult(
         PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
 
     if (!Summary && AtJsonGetObjectBoolean(Call->Arguments, "resolve_start_addresses"))
-        symbolProvider = AtpCreateSymbolProvider(ProcessItem->ProcessId);
+        symbolProvider = AtCreateSymbolProvider(ProcessItem->ProcessId);
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, ProcessItem);
@@ -790,7 +790,7 @@ VOID AtpGetThreadStack(
 
     context.IncludeLines = AtJsonGetObjectBoolean(Call->Arguments, "include_lines");
 
-    if (!(context.SymbolProvider = AtpCreateSymbolProvider(Target->ProcessItem->ProcessId)))
+    if (!(context.SymbolProvider = AtCreateSymbolProvider(Target->ProcessItem->ProcessId)))
     {
         AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The symbol provider could not be created.");
         return;
@@ -988,7 +988,7 @@ VOID AtpGetProcessStacks(
 
     walkCount = (ULONG)min(threadCount, maximumThreads);
 
-    if (!(symbolProvider = AtpCreateSymbolProvider(Target->ProcessItem->ProcessId)))
+    if (!(symbolProvider = AtCreateSymbolProvider(Target->ProcessItem->ProcessId)))
     {
         AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The symbol provider could not be created.");
         PhClearReference(&order);
@@ -1265,7 +1265,7 @@ VOID AtpResolveSymbol(
             return;
         }
 
-        symbolProvider = AtpCreateSymbolProvider(target.ProcessItem->ProcessId);
+        symbolProvider = AtCreateSymbolProvider(target.ProcessItem->ProcessId);
 
         if (!symbolProvider)
         {

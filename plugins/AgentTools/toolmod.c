@@ -455,6 +455,413 @@ VOID AtpGetProcessUnloadedModules(
     AtDeleteTarget(&target);
 }
 
+#define AT_COHERENCY_DEFAULT_MODULES 32
+#define AT_COHERENCY_MAXIMUM_MODULES 512
+
+typedef struct _AT_FIND_MODULE_CONTEXT
+{
+    PVOID Address;
+    PPH_STRING Name;
+    BOOLEAN Found;
+    PVOID BaseAddress;
+    SIZE_T Size;
+    PPH_STRING FileName;
+} AT_FIND_MODULE_CONTEXT, *PAT_FIND_MODULE_CONTEXT;
+
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
+BOOLEAN NTAPI AtpFindModuleCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_FIND_MODULE_CONTEXT context = Context;
+
+    if (!context || context->Found || !Module->BaseAddress)
+        return TRUE;
+
+    if (context->Address)
+    {
+        // Anywhere inside the module, so an address from a stack frame or a page finds its owner.
+        if ((ULONG_PTR)context->Address < (ULONG_PTR)Module->BaseAddress ||
+            (ULONG_PTR)context->Address >= (ULONG_PTR)Module->BaseAddress + Module->Size)
+        {
+            return TRUE;
+        }
+    }
+    else if (context->Name)
+    {
+        if (!Module->Name || !PhEqualString(Module->Name, context->Name, TRUE))
+            return TRUE;
+    }
+    else if (Module->LoadOrderIndex != 0)
+    {
+        // No address and no name: the process's own image, which is always the first module.
+        return TRUE;
+    }
+
+    context->Found = TRUE;
+    context->BaseAddress = Module->BaseAddress;
+    context->Size = Module->Size;
+    PhSetReference(&context->FileName, Module->FileName);
+
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN AtFindProcessModule(
+    _In_ HANDLE ProcessId,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_opt_ PVOID Address,
+    _In_opt_ PPH_STRING Name,
+    _Out_ PVOID *BaseAddress,
+    _Out_ PSIZE_T Size,
+    _Out_ PPH_STRING *FileName
+    )
+{
+    AT_FIND_MODULE_CONTEXT context;
+
+    memset(&context, 0, sizeof(AT_FIND_MODULE_CONTEXT));
+    context.Address = Address;
+    context.Name = Name;
+
+    PhEnumGenericModules(ProcessId, ProcessHandle, 0, AtpFindModuleCallback, &context);
+
+    if (!context.Found)
+    {
+        PhClearReference(&context.FileName);
+        return FALSE;
+    }
+
+    *BaseAddress = context.BaseAddress;
+    *Size = context.Size;
+    *FileName = context.FileName;
+
+    return TRUE;
+}
+
+// How much of an image in memory still matches the file it was loaded from. A packer that unpacks
+// over itself, a hollowed process, and a module with inline hooks all leave the mapped copy saying
+// something different from the file on disk; coherency is how much of it still agrees.
+
+PH_IMAGE_COHERENCY_SCAN_TYPE AtpCoherencyScanType(
+    _In_opt_ PPH_STRING Name
+    )
+{
+    if (!Name)
+        return PhImageCoherencyQuick;
+
+    if (PhEqualString2(Name, L"normal", TRUE))
+        return PhImageCoherencyNormal;
+    if (PhEqualString2(Name, L"full", TRUE))
+        return PhImageCoherencyFull;
+    if (PhEqualString2(Name, L"shared_original", TRUE))
+        return PhImageCoherencySharedOriginal;
+
+    return PhImageCoherencyQuick;
+}
+
+VOID AtpAddCoherency(
+    _In_ PVOID Object,
+    _In_ NTSTATUS Status,
+    _In_ FLOAT Coherency
+    )
+{
+    if (NT_SUCCESS(Status))
+    {
+        PhAddJsonObjectDouble(Object, "coherency", Coherency);
+        AtJsonAddNull(Object, "error");
+        AtJsonAddNull(Object, "message");
+    }
+    else
+    {
+        PPH_STRING message = PhGetStatusMessage(Status, 0);
+
+        // A number is not invented for an image that could not be compared: without the file, or
+        // without the rights to read the mapping, there is no ratio to report.
+        AtJsonAddNull(Object, "coherency");
+        PhAddJsonObject(Object, "error", Status == STATUS_ACCESS_DENIED ? "access_denied" : "failed");
+        AtJsonAddStringZ(Object, "message", PhGetStringOrDefault(message, L"unknown error"));
+        PhClearReference(&message);
+    }
+}
+
+typedef struct _AT_COHERENCY_CONTEXT
+{
+    AT_ROWS Rows;
+    PPH_STRING NameContains;
+    HANDLE ProcessHandle;
+    PH_IMAGE_COHERENCY_SCAN_TYPE ScanType;
+    ULONG Limit;
+} AT_COHERENCY_CONTEXT, *PAT_COHERENCY_CONTEXT;
+
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
+BOOLEAN NTAPI AtpCoherencyModuleCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_COHERENCY_CONTEXT context = Context;
+    NTSTATUS status;
+    FLOAT coherency = 0;
+    PVOID row;
+
+    if (!context || !Module->FileName)
+        return TRUE;
+
+    if (context->NameContains &&
+        !AtContainsString(Module->Name, context->NameContains) &&
+        !AtContainsString(Module->FileName, context->NameContains))
+    {
+        return TRUE;
+    }
+
+    // Every module is a scan of its own, so the number of them is capped rather than the time.
+    if (context->Rows.TotalCount >= context->Limit)
+        return TRUE;
+
+    status = PhGetProcessModuleImageCoherency(
+        Module->FileName,
+        context->ProcessHandle,
+        Module->BaseAddress,
+        Module->Size,
+        FALSE,
+        context->ScanType,
+        &coherency
+        );
+
+    row = PhCreateJsonObject();
+    AtJsonAddString(row, "name", Module->Name);
+    AtJsonAddWin32FileName(row, "file_path", Module->FileName);
+    AtJsonAddPointer(row, "base_address", Module->BaseAddress);
+    PhAddJsonObjectUInt64(row, "size", Module->Size);
+    AtpAddCoherency(row, status, coherency);
+
+    AtAddRow(&context->Rows, row);
+
+    return TRUE;
+}
+
+VOID AtpGetProcessImageCoherency(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_COHERENCY_CONTEXT context;
+    PPH_STRING scanTypeName;
+    FLOAT coherency = 0;
+    ULONG64 maxModules = AT_COHERENCY_DEFAULT_MODULES;
+    PVOID structured;
+
+    memset(&context, 0, sizeof(AT_COHERENCY_CONTEXT));
+
+    if (!Target->ProcessItem->FileName)
+    {
+        AtSetToolError(Result, "failed", STATUS_NOT_FOUND, L"The process has no image file to compare against.");
+        return;
+    }
+
+    scanTypeName = AtGetArgumentString(Call->Arguments, "scan_type");
+    context.ScanType = AtpCoherencyScanType(scanTypeName);
+
+    status = PhGetProcessImageCoherency(
+        Target->ProcessItem->FileName,
+        Target->ProcessItem->ProcessId,
+        context.ScanType,
+        &coherency
+        );
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    AtJsonAddWin32FileName(structured, "file_path", Target->ProcessItem->FileName);
+    AtJsonAddStringZ(structured, "scan_type", scanTypeName ? PhGetString(scanTypeName) : L"quick");
+    AtpAddCoherency(structured, status, coherency);
+
+    if (AtJsonGetObjectBoolean(Call->Arguments, "include_modules"))
+    {
+        if (AtGetArgumentUInt64(Call->Arguments, "max_modules", &maxModules) && maxModules > 0)
+            maxModules = min(maxModules, AT_COHERENCY_MAXIMUM_MODULES);
+
+        context.Limit = (ULONG)maxModules;
+        context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+        context.ProcessHandle = Target->ProcessHandle;
+
+        AtInitializeRows(&context.Rows, Call->Arguments);
+        PhEnumGenericModules(Target->ProcessItem->ProcessId, Target->ProcessHandle, 0, AtpCoherencyModuleCallback, &context);
+        AtAddRows(structured, "modules", &context.Rows);
+        AtDeleteRows(&context.Rows);
+        PhClearReference(&context.NameContains);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "modules");
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    PhClearReference(&scanTypeName);
+}
+
+// The pages of a mapped image that are no longer the file's. Windows maps an image shared and
+// copy-on-write; a page that has been written to - an inline hook at the top of a function, a
+// patched jump table - stops being backed by the file and says so in its working set attributes.
+// Which pages those are is the answer; the addresses can go straight to resolve_symbol.
+
+typedef struct _AT_PAGE_MODIFICATION_CONTEXT
+{
+    AT_ROWS Rows;
+    PPH_SYMBOL_PROVIDER SymbolProvider;
+    SIZE_T PageCount;
+    SIZE_T ModifiedCount;
+} AT_PAGE_MODIFICATION_CONTEXT, *PAT_PAGE_MODIFICATION_CONTEXT;
+
+_Function_class_(PH_ENUM_MEMORY_ATTRIBUTE_CALLBACK)
+NTSTATUS NTAPI AtpPageModificationCallback(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID BaseAddress,
+    _In_ SIZE_T SizeOfImage,
+    _In_ ULONG_PTR NumberOfEntries,
+    _In_ PMEMORY_WORKING_SET_EX_INFORMATION Blocks,
+    _In_ PVOID Context
+    )
+{
+    PAT_PAGE_MODIFICATION_CONTEXT context = Context;
+    ULONG_PTR i;
+
+    UNREFERENCED_PARAMETER(ProcessHandle);
+    UNREFERENCED_PARAMETER(BaseAddress);
+    UNREFERENCED_PARAMETER(SizeOfImage);
+
+    if (!context)
+        return STATUS_SUCCESS;
+
+    for (i = 0; i < NumberOfEntries; i++)
+    {
+        PMEMORY_WORKING_SET_EX_INFORMATION page = &Blocks[i];
+        PVOID row;
+
+        context->PageCount++;
+
+        // SharedOriginal is the whole test: the page still comes from the file's mapping. A page
+        // that has lost that is a page this process wrote over.
+        if (page->VirtualAttributes.SharedOriginal)
+            continue;
+
+        context->ModifiedCount++;
+
+        row = PhCreateJsonObject();
+        AtJsonAddPointer(row, "address", page->VirtualAddress);
+        PhAddJsonObjectBoolean(row, "valid", !!page->VirtualAttributes.Valid);
+
+        if (context->SymbolProvider)
+        {
+            PPH_STRING symbol;
+
+            symbol = PhGetSymbolFromAddress(context->SymbolProvider, page->VirtualAddress, NULL, NULL, NULL, NULL);
+            AtJsonAddString(row, "symbol", symbol);
+            PhClearReference(&symbol);
+        }
+        else
+        {
+            AtJsonAddNull(row, "symbol");
+        }
+
+        AtAddRow(&context->Rows, row);
+    }
+
+    return STATUS_SUCCESS;
+}
+
+VOID AtpGetImagePageModifications(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_PAGE_MODIFICATION_CONTEXT context;
+    PPH_STRING moduleName;
+    PPH_STRING fileName = NULL;
+    PVOID baseAddress = NULL;
+    SIZE_T size = 0;
+    ULONG64 address;
+    PVOID structured;
+
+    memset(&context, 0, sizeof(AT_PAGE_MODIFICATION_CONTEXT));
+
+    moduleName = AtGetArgumentString(Call->Arguments, "module_name");
+
+    if (AtGetArgumentPointer(Call->Arguments, "base_address", &address) && address != 0)
+    {
+        if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, (PVOID)address, NULL, &baseAddress, &size, &fileName))
+        {
+            AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"No module of that process is loaded at that address.");
+            PhClearReference(&moduleName);
+            return;
+        }
+    }
+    else if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, NULL, moduleName, &baseAddress, &size, &fileName))
+    {
+        AtSetToolError(
+            Result,
+            "not_found",
+            STATUS_NOT_FOUND,
+            moduleName ? L"That process has no module named %s." : L"The process's own image could not be found in its module list.",
+            PhGetStringOrEmpty(moduleName)
+            );
+        PhClearReference(&moduleName);
+        return;
+    }
+
+    if (AtJsonGetObjectBoolean(Call->Arguments, "resolve_symbols"))
+        context.SymbolProvider = AtCreateSymbolProvider(Target->ProcessItem->ProcessId);
+
+    AtInitializeRows(&context.Rows, Call->Arguments);
+
+    status = PhEnumVirtualMemoryAttributes(
+        Target->ProcessHandle,
+        baseAddress,
+        size,
+        AtpPageModificationCallback,
+        &context
+        );
+
+    if (!NT_SUCCESS(status) && context.PageCount == 0)
+    {
+        AtSetToolStatusError(Result, status, L"Reading the page attributes");
+        AtDeleteRows(&context.Rows);
+
+        if (context.SymbolProvider)
+            PhDereferenceObject(context.SymbolProvider);
+
+        PhClearReference(&fileName);
+        PhClearReference(&moduleName);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    AtJsonAddWin32FileName(structured, "file_path", fileName);
+    AtJsonAddPointer(structured, "base_address", baseAddress);
+    PhAddJsonObjectUInt64(structured, "size", size);
+    AtAddRows(structured, "pages", &context.Rows);
+    PhAddJsonObjectUInt64(structured, "page_count", context.PageCount);
+    PhAddJsonObjectUInt64(structured, "modified_count", context.ModifiedCount);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&context.Rows);
+
+    if (context.SymbolProvider)
+        PhDereferenceObject(context.SymbolProvider);
+
+    PhClearReference(&fileName);
+    PhClearReference(&moduleName);
+}
+
 VOID AtModuleInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -471,6 +878,12 @@ VOID AtModuleInvokeTool(
         break;
     case AtActionGetProcessUnloadedModules:
         AtpGetProcessUnloadedModules(Call, Result);
+        break;
+    case AtActionGetProcessImageCoherency:
+        AtpGetProcessImageCoherency(Call, Target, Result);
+        break;
+    case AtActionGetImagePageModifications:
+        AtpGetImagePageModifications(Call, Target, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

@@ -606,6 +606,7 @@ EXPORTS
     PhEnumProcesses
     PhEnumProcessesEx
     PhEnumReparsePointInformation
+    PhEnumVirtualMemoryAttributes
     PhFilterConnectCommunicationPort
     PhFindProcessInformation
     PhFindProcessInformationByImageName
@@ -656,6 +657,8 @@ EXPORTS
     PhGetProcessImageFileName
     PhGetProcessImageFileNameById
     PhGetProcessImageFileNameByProcessId
+    PhGetProcessImageCoherency
+    PhGetProcessModuleImageCoherency
     PhGetProcessImageFileNameWin32
     PhGetProcessIoPriority
     PhGetProcessIdsUsingFile

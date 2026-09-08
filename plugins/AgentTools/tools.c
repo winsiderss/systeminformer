@@ -1315,6 +1315,8 @@ VOID AtInvokeTool(
         break;
     case AtActionGetProcessModules:
     case AtActionGetProcessUnloadedModules:
+    case AtActionGetProcessImageCoherency:
+    case AtActionGetImagePageModifications:
         AtModuleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessMitigations:
