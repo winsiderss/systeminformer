@@ -12,6 +12,7 @@
 #include "agenttools.h"
 #include <mapimg.h>
 #include <wintrust.h>
+#include <phcrypt.h>
 
 // The parts of a PE that get_image_info returns only when asked for. The default answer stays the
 // summary, because an agent that wants the imports of one file should not have to read the exports
@@ -1009,6 +1010,233 @@ VOID AtpAddImageEntropy(
     PhAddJsonObjectDouble(entry, "mean", mean);
     PhAddJsonObjectDouble(entry, "variance", variance);
     PhAddJsonObjectValue(Structured, "entropy", entry);
+}
+
+// The import hash. Not a hash of the file at all: a hash of the list of functions the file imports,
+// in the order the linker wrote them, which is stable across recompiles of the same source and
+// distinctive enough to group samples that share a builder.
+//
+// The rules are conventions rather than a specification, and getting any of them wrong produces a
+// hash that matches nothing anywhere. As implemented everywhere and here: lower case, a .dll, .sys
+// or .ocx extension stripped and any other kept, "dll.function" joined by commas, ordinal imports
+// written "dll.ordN" - except for the three DLLs whose ordinals everyone resolves to names - and
+// delay loaded imports left out entirely.
+
+typedef struct _AT_IMPHASH_ORDINALS
+{
+    PPH_HASHTABLE Tables[3];
+    BOOLEAN Tried[3];
+} AT_IMPHASH_ORDINALS, *PAT_IMPHASH_ORDINALS;
+
+CONST PH_STRINGREF AtImphashOrdinalDlls[3] =
+{
+    PH_STRINGREF_INIT(L"oleaut32.dll"),
+    PH_STRINGREF_INIT(L"ws2_32.dll"),
+    PH_STRINGREF_INIT(L"wsock32.dll"),
+};
+
+CONST PH_STRINGREF AtImphashOrdinalPaths[3] =
+{
+    PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\oleaut32.dll"),
+    PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\ws2_32.dll"),
+    PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\wsock32.dll"),
+};
+
+// Built from the DLL on this machine rather than from a table baked into the source, and only when
+// an ordinal import from one of the three actually turns up.
+PPH_HASHTABLE AtpImphashOrdinalTable(
+    _Inout_ PAT_IMPHASH_ORDINALS Ordinals,
+    _In_ ULONG Index
+    )
+{
+    PH_MAPPED_IMAGE mappedImage;
+    PH_MAPPED_IMAGE_EXPORTS exports;
+    ULONG i;
+
+    if (Ordinals->Tried[Index])
+        return Ordinals->Tables[Index];
+
+    Ordinals->Tried[Index] = TRUE;
+
+    if (!NT_SUCCESS(PhLoadMappedImageEx(&AtImphashOrdinalPaths[Index], NULL, &mappedImage)))
+        return NULL;
+
+    if (NT_SUCCESS(PhGetMappedImageExports(&exports, &mappedImage)))
+    {
+        Ordinals->Tables[Index] = PhCreateSimpleHashtable(exports.NumberOfEntries);
+
+        for (i = 0; i < exports.NumberOfEntries; i++)
+        {
+            PH_MAPPED_IMAGE_EXPORT_ENTRY entry;
+
+            if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &entry)) && entry.Name)
+            {
+                PhAddItemSimpleHashtable(
+                    Ordinals->Tables[Index],
+                    UlongToPtr(entry.Ordinal),
+                    PhZeroExtendToUtf16((PSTR)entry.Name)
+                    );
+            }
+        }
+    }
+
+    PhUnloadMappedImage(&mappedImage);
+
+    return Ordinals->Tables[Index];
+}
+
+PPH_STRING AtpImphashOrdinalName(
+    _Inout_ PAT_IMPHASH_ORDINALS Ordinals,
+    _In_ PPH_STRING DllName,
+    _In_ USHORT Ordinal
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < RTL_NUMBER_OF(AtImphashOrdinalDlls); i++)
+    {
+        PPH_HASHTABLE table;
+        PPH_STRING name;
+
+        if (!PhStartsWithStringRef(&DllName->sr, &AtImphashOrdinalDlls[i], TRUE))
+            continue;
+
+        if (!(table = AtpImphashOrdinalTable(Ordinals, i)))
+            return NULL;
+
+        if (name = PhFindItemSimpleHashtable2(table, UlongToPtr(Ordinal)))
+            return PhReferenceObject(name);
+
+        return NULL;
+    }
+
+    return NULL;
+}
+
+VOID AtpImphashDeleteOrdinals(
+    _Inout_ PAT_IMPHASH_ORDINALS Ordinals
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < RTL_NUMBER_OF(Ordinals->Tables); i++)
+    {
+        PPH_KEY_VALUE_PAIR pair;
+        ULONG enumerationKey = 0;
+
+        if (!Ordinals->Tables[i])
+            continue;
+
+        while (PhEnumHashtable(Ordinals->Tables[i], &pair, &enumerationKey))
+        {
+            if (pair->Value)
+                PhDereferenceObject(pair->Value);
+        }
+
+        PhDereferenceObject(Ordinals->Tables[i]);
+    }
+}
+
+PPH_STRING AtGetImageImphash(
+    _In_ PVOID MappedImage
+    )
+{
+    static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L".");
+    AT_IMPHASH_ORDINALS ordinals;
+    PH_MAPPED_IMAGE_IMPORTS imports;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_STRING result = NULL;
+    PPH_BYTES utf8;
+    PH_SYMCRYPT_HASH_CONTEXT hashContext;
+    UCHAR hash[PH_SYMCRYPT_MD5_RESULT_SIZE];
+    ULONG i;
+    ULONG j;
+
+    if (!NT_SUCCESS(PhGetMappedImageImports(&imports, MappedImage)))
+        return NULL;
+
+    memset(&ordinals, 0, sizeof(AT_IMPHASH_ORDINALS));
+    PhInitializeStringBuilder(&stringBuilder, 0x200);
+
+    for (i = 0; i < imports.NumberOfDlls; i++)
+    {
+        PH_MAPPED_IMAGE_IMPORT_DLL importDll;
+
+        if (!NT_SUCCESS(PhGetMappedImageImportDll(&imports, i, &importDll)) || !importDll.Name)
+            continue;
+
+        for (j = 0; j < importDll.NumberOfEntries; j++)
+        {
+            PH_MAPPED_IMAGE_IMPORT_ENTRY entry;
+            PPH_STRING dllString;
+            PPH_STRING dllName;
+            PPH_STRING functionName;
+            PPH_STRING importName;
+            ULONG_PTR indexOfExtension = SIZE_MAX;
+
+            if (!NT_SUCCESS(PhGetMappedImageImportEntry(&importDll, j, &entry)))
+                continue;
+
+            dllString = PhZeroExtendToUtf16((PSTR)importDll.Name);
+
+            // Only these three extensions come off. A name ending in anything else keeps it, which
+            // is the rule everyone implements and nobody writes down.
+            if (PhEndsWithString2(dllString, L".dll", TRUE) ||
+                PhEndsWithString2(dllString, L".sys", TRUE) ||
+                PhEndsWithString2(dllString, L".ocx", TRUE))
+            {
+                indexOfExtension = PhFindLastCharInString(dllString, 0, L'.');
+            }
+
+            if (indexOfExtension != SIZE_MAX)
+                dllName = PhSubstring(dllString, 0, indexOfExtension);
+            else
+                dllName = PhReferenceObject(dllString);
+
+            if (entry.Name)
+            {
+                functionName = PhZeroExtendToUtf16((PSTR)entry.Name);
+            }
+            else if (!(functionName = AtpImphashOrdinalName(&ordinals, dllString, entry.Ordinal)))
+            {
+                functionName = PhFormatString(L"ord%u", entry.Ordinal);
+            }
+
+            importName = PhConcatStringRef3(&dllName->sr, &separator, &functionName->sr);
+            PhLowerStringRef(&importName->sr);
+
+            PhAppendStringBuilder(&stringBuilder, &importName->sr);
+            PhAppendStringBuilder2(&stringBuilder, L",");
+
+            PhDereferenceObject(importName);
+            PhDereferenceObject(functionName);
+            PhDereferenceObject(dllName);
+            PhDereferenceObject(dllString);
+        }
+    }
+
+    AtpImphashDeleteOrdinals(&ordinals);
+
+    if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
+        PhRemoveEndStringBuilder(&stringBuilder, 1);
+
+    if (!PhIsNullOrEmptyString(stringBuilder.String) &&
+        (utf8 = PhConvertUtf16ToUtf8Ex(stringBuilder.String->Buffer, stringBuilder.String->Length)))
+    {
+        if (NT_SUCCESS(PhSymCryptHashInit(PH_SYMCRYPT_MD5_ALGORITHM, &hashContext)) &&
+            NT_SUCCESS(PhSymCryptHashData(&hashContext, utf8->Buffer, utf8->Length)) &&
+            NT_SUCCESS(PhSymCryptHashFinal(&hashContext, hash, sizeof(hash))))
+        {
+            result = PhBufferToHexStringEx(hash, sizeof(hash), FALSE);
+        }
+
+        PhSymCryptDestroyHash(&hashContext, sizeof(hash));
+        PhDereferenceObject(utf8);
+    }
+
+    PhDeleteStringBuilder(&stringBuilder);
+
+    return result;
 }
 
 VOID AtAddImageSections(

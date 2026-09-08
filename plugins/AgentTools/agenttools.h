@@ -988,6 +988,10 @@ ULONG AtpParseImageSections(
     _Out_ PPH_STRING* Invalid
     );
 
+PPH_STRING AtGetImageImphash(
+    _In_ PVOID MappedImage
+    );
+
 VOID AtAddImageSections(
     _In_ PVOID Structured,
     _In_ PVOID MappedImage,

@@ -569,6 +569,11 @@ VOID AtpGetFileHashes(
             {
                 AtJsonAddNull(structured, "wdac_sha256");
             }
+
+            // Not a hash of the file: a hash of what it imports.
+            string = AtGetImageImphash(&mappedImage);
+            AtJsonAddString(structured, "imphash", string);
+            PhClearReference(&string);
         }
 
         PhUnloadMappedImage(&mappedImage);
@@ -578,6 +583,7 @@ VOID AtpGetFileHashes(
     {
         AtJsonAddNull(structured, "authenticode_sha256");
         AtJsonAddNull(structured, "wdac_sha256");
+        AtJsonAddNull(structured, "imphash");
     }
 
     PhAddJsonObjectBoolean(structured, "is_pe_image", isImage);
