@@ -680,6 +680,8 @@ EXPORTS
     PhGetProcessWorkingSetInformation
     PhGetProcessWsCounters
     PhGetSectionFileName
+    PhGetSystemCompressionStoreInformation
+    PhGetSystemFileCacheSize
     PhGetThreadAffinityMask
     PhGetThreadBasePriority
     PhGetThreadBasicInformation

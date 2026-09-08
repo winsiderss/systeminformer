@@ -350,6 +350,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetSystemEnvironment, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_environment"),
         L"read the persisted system and user environment variables", L"Allow reading system environment variables", L"get_system_environment"
     },
+    {
+        AtActionGetMemoryDetails, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_memory_details"),
+        L"read where the machine's memory is", L"Allow reading memory details", L"get_memory_details"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3550,6 +3554,82 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"present\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_memory_details", L"Get memory details", AtTierRead, AtActionGetMemoryDetails,
+        SETTING_NAME_TOOL_ACCESS(L"get_memory_details"), SETTING_NAME_TOOL_CONFIRM(L"get_memory_details"),
+        "{\"name\":\"get_memory_details\",\"title\":\"Get memory details\","
+        "\"description\":\"Where the machine's RAM actually is. Available is not free: on a healthy machine most "
+        "memory sits on the standby list holding file and page-file contents already read once, and handing it "
+        "to something else costs only the time to drop it. A machine with a gigabyte free and twenty on standby "
+        "is not short of memory; one with a gigabyte free and nothing on standby is. Standby is kept in eight "
+        "priority buckets and the low ones are taken first, so their shape says whether the cache is under "
+        "pressure. Also reports the modified list (dirty pages waiting to be written), the paged and non-paged "
+        "pools, the file cache and the compression store. Pool LIMITS are not here: they live in kernel "
+        "variables that need symbols and the driver, and a limit read from anywhere else would be a guess. "
+        "get_system_info carries the same physical and commit totals for a quick look.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"page_size\":{\"type\":\"integer\"},"
+        "\"physical_total_bytes\":{\"type\":\"integer\"},"
+        "\"physical_available_bytes\":{\"type\":[\"integer\",\"null\"],\"description\":\"Free plus standby plus zeroed: what can be handed out without writing anything to disk\"},"
+        "\"resident_available_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"cache_resident_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"commit\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"total_bytes\":{\"type\":\"integer\"},"
+        "\"limit_bytes\":{\"type\":\"integer\",\"description\":\"RAM plus the page files; commit running at the limit is what makes allocations fail\"},"
+        "\"peak_bytes\":{\"type\":\"integer\"}"
+        "}},"
+        "\"lists\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"zeroed_bytes\":{\"type\":\"integer\"},"
+        "\"free_bytes\":{\"type\":\"integer\",\"description\":\"Not yet zeroed, and not holding anything\"},"
+        "\"modified_bytes\":{\"type\":\"integer\",\"description\":\"Dirty pages that must be written before they can be reused\"},"
+        "\"modified_no_write_bytes\":{\"type\":\"integer\"},"
+        "\"modified_page_file_bytes\":{\"type\":\"integer\"},"
+        "\"bad_bytes\":{\"type\":\"integer\",\"description\":\"Pages the memory manager has taken out of service\"},"
+        "\"standby_bytes\":{\"type\":\"integer\",\"description\":\"The cache: available, but still holding something\"},"
+        "\"repurposed_pages\":{\"type\":\"integer\",\"description\":\"A running count since boot of pages taken back from standby, not a current size - it passes the size of RAM on any machine that has been up a while\"},"
+        "\"by_priority\":{\"type\":\"array\",\"description\":\"Eight buckets; 0 is repurposed first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"priority\":{\"type\":\"integer\"},"
+        "\"standby_bytes\":{\"type\":\"integer\"},"
+        "\"repurposed_pages\":{\"type\":\"integer\"}"
+        "},\"required\":[\"priority\",\"standby_bytes\",\"repurposed_pages\"]}}"
+        "}},"
+        "\"pools\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"paged_bytes\":{\"type\":\"integer\"},"
+        "\"paged_available_bytes\":{\"type\":\"integer\",\"description\":\"Address space still available to the paged pool. This is virtual and is far larger than RAM on 64-bit\"},"
+        "\"paged_resident_bytes\":{\"type\":\"integer\"},"
+        "\"non_paged_bytes\":{\"type\":\"integer\"},"
+        "\"paged_allocs\":{\"type\":\"integer\"},"
+        "\"paged_frees\":{\"type\":\"integer\"},"
+        "\"non_paged_allocs\":{\"type\":\"integer\"},"
+        "\"non_paged_frees\":{\"type\":\"integer\"}"
+        "}},"
+        "\"file_cache\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"current_bytes\":{\"type\":\"integer\"},"
+        "\"peak_bytes\":{\"type\":\"integer\"},"
+        "\"minimum_working_set_bytes\":{\"type\":\"integer\"},"
+        "\"maximum_working_set_bytes\":{\"type\":\"integer\"},"
+        "\"current_including_transition_bytes\":{\"type\":\"integer\"},"
+        "\"page_fault_count\":{\"type\":\"integer\"}"
+        "}},"
+        "\"compression_store\":{\"type\":[\"object\",\"null\"],\"description\":\"Compressed pages live inside this process's working set, so they are not on any list above\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"working_set_bytes\":{\"type\":\"integer\"},"
+        "\"total_data_compressed_bytes\":{\"type\":\"integer\",\"description\":\"What was put in\"},"
+        "\"total_compressed_size_bytes\":{\"type\":\"integer\",\"description\":\"What it takes up now\"},"
+        "\"total_unique_data_compressed_bytes\":{\"type\":\"integer\"}"
+        "}},"
+        "\"page_faults\":{\"type\":[\"object\",\"null\"],\"description\":\"What kind of pressure this is: a transition fault comes back from the standby list and costs nothing, demand_zero is new memory being handed out. All of these are 32-bit counters that wrap, so a subset can read as larger than the total on a machine that has been up a while\",\"properties\":{"
+        "\"total\":{\"type\":\"integer\"},"
+        "\"transition\":{\"type\":\"integer\"},"
+        "\"cache_transition\":{\"type\":\"integer\"},"
+        "\"demand_zero\":{\"type\":\"integer\"},"
+        "\"copy_on_write\":{\"type\":\"integer\"}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"page_size\",\"physical_total_bytes\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

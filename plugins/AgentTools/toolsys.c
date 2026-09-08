@@ -931,6 +931,181 @@ VOID AtpGetSystemEnvironment(
     Result->StructuredContent = structured;
 }
 
+// Where the machine's RAM actually is. "Available" is not "free": most of a healthy machine's memory
+// sits on the standby list holding file and page-file contents that have already been read once, and
+// giving it to something else costs only the time to drop it. A machine with a gigabyte free and
+// twenty on standby is not short of memory; one with a gigabyte free and nothing on standby is.
+
+VOID AtpAddMemoryList(
+    _In_ PVOID Structured,
+    _In_ ULONG PageSize
+    )
+{
+    SYSTEM_MEMORY_LIST_INFORMATION memoryList;
+    ULONG64 standby = 0;
+    ULONG64 repurposed = 0;
+    PVOID entry;
+    PVOID priorities;
+    ULONG i;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemMemoryListInformation,
+        &memoryList,
+        sizeof(SYSTEM_MEMORY_LIST_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "lists");
+        return;
+    }
+
+    priorities = PhCreateJsonArray();
+
+    // Standby is kept in eight priority buckets and the total is their sum; the buckets are what
+    // say whether the cache is holding anything worth keeping. Priority 0 is repurposed first, so
+    // a machine under pressure has its low buckets emptied and its high ones intact.
+    for (i = 0; i < RTL_NUMBER_OF(memoryList.PageCountByPriority); i++)
+    {
+        PVOID row = PhCreateJsonObject();
+
+        standby += memoryList.PageCountByPriority[i];
+        repurposed += memoryList.RepurposedPagesByPriority[i];
+
+        PhAddJsonObjectUInt64(row, "priority", i);
+        PhAddJsonObjectUInt64(row, "standby_bytes", (ULONG64)memoryList.PageCountByPriority[i] * PageSize);
+        PhAddJsonObjectUInt64(row, "repurposed_pages", memoryList.RepurposedPagesByPriority[i]);
+        PhAddJsonArrayObject(priorities, row);
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "zeroed_bytes", (ULONG64)memoryList.ZeroPageCount * PageSize);
+    PhAddJsonObjectUInt64(entry, "free_bytes", (ULONG64)memoryList.FreePageCount * PageSize);
+    PhAddJsonObjectUInt64(entry, "modified_bytes", (ULONG64)memoryList.ModifiedPageCount * PageSize);
+    PhAddJsonObjectUInt64(entry, "modified_no_write_bytes", (ULONG64)memoryList.ModifiedNoWritePageCount * PageSize);
+    PhAddJsonObjectUInt64(entry, "modified_page_file_bytes", (ULONG64)memoryList.ModifiedPageCountPageFile * PageSize);
+    PhAddJsonObjectUInt64(entry, "bad_bytes", (ULONG64)memoryList.BadPageCount * PageSize);
+    PhAddJsonObjectUInt64(entry, "standby_bytes", standby * PageSize);
+    PhAddJsonObjectUInt64(entry, "repurposed_pages", repurposed);
+    PhAddJsonObjectValue(entry, "by_priority", priorities);
+    PhAddJsonObjectValue(Structured, "lists", entry);
+}
+
+VOID AtpGetMemoryDetails(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    SYSTEM_BASIC_INFORMATION basicInfo;
+    SYSTEM_PERFORMANCE_INFORMATION perfInfo;
+    SYSTEM_FILECACHE_INFORMATION cacheInfo;
+    PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
+    ULONG pageSize;
+    PVOID structured;
+    PVOID entry;
+
+    UNREFERENCED_PARAMETER(Call);
+
+    memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The system memory information could not be read.");
+        return;
+    }
+
+    pageSize = basicInfo.PageSize;
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(structured, "page_size", pageSize);
+    PhAddJsonObjectUInt64(structured, "physical_total_bytes", (ULONG64)basicInfo.NumberOfPhysicalPages * pageSize);
+
+    memset(&perfInfo, 0, sizeof(SYSTEM_PERFORMANCE_INFORMATION));
+
+    if (NT_SUCCESS(NtQuerySystemInformation(SystemPerformanceInformation, &perfInfo, sizeof(SYSTEM_PERFORMANCE_INFORMATION), NULL)))
+    {
+        PhAddJsonObjectUInt64(structured, "physical_available_bytes", (ULONG64)perfInfo.AvailablePages * pageSize);
+        PhAddJsonObjectUInt64(structured, "resident_available_bytes", (ULONG64)perfInfo.ResidentAvailablePages * pageSize);
+        PhAddJsonObjectUInt64(structured, "cache_resident_bytes", (ULONG64)perfInfo.ResidentSystemCachePage * pageSize);
+
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "total_bytes", (ULONG64)perfInfo.CommittedPages * pageSize);
+        PhAddJsonObjectUInt64(entry, "limit_bytes", (ULONG64)perfInfo.CommitLimit * pageSize);
+        PhAddJsonObjectUInt64(entry, "peak_bytes", (ULONG64)perfInfo.PeakCommitment * pageSize);
+        PhAddJsonObjectValue(structured, "commit", entry);
+
+        // Pool usage is here for anyone; the pool LIMITS are only in kernel variables that need
+        // symbols and the driver to read, so they are deliberately not reported rather than guessed.
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "paged_bytes", (ULONG64)perfInfo.PagedPoolPages * pageSize);
+        PhAddJsonObjectUInt64(entry, "paged_available_bytes", (ULONG64)perfInfo.AvailablePagedPoolPages * pageSize);
+        PhAddJsonObjectUInt64(entry, "paged_resident_bytes", (ULONG64)perfInfo.ResidentPagedPoolPage * pageSize);
+        PhAddJsonObjectUInt64(entry, "non_paged_bytes", (ULONG64)perfInfo.NonPagedPoolPages * pageSize);
+        PhAddJsonObjectUInt64(entry, "paged_allocs", perfInfo.PagedPoolAllocs);
+        PhAddJsonObjectUInt64(entry, "paged_frees", perfInfo.PagedPoolFrees);
+        PhAddJsonObjectUInt64(entry, "non_paged_allocs", perfInfo.NonPagedPoolAllocs);
+        PhAddJsonObjectUInt64(entry, "non_paged_frees", perfInfo.NonPagedPoolFrees);
+        PhAddJsonObjectValue(structured, "pools", entry);
+
+        // The fault breakdown, which says what kind of pressure this is: transitions come back
+        // from the standby list and cost nothing, demand-zero is new memory being handed out.
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "total", perfInfo.PageFaultCount);
+        PhAddJsonObjectUInt64(entry, "transition", perfInfo.TransitionCount);
+        PhAddJsonObjectUInt64(entry, "cache_transition", perfInfo.CacheTransitionCount);
+        PhAddJsonObjectUInt64(entry, "demand_zero", perfInfo.DemandZeroCount);
+        PhAddJsonObjectUInt64(entry, "copy_on_write", perfInfo.CopyOnWriteCount);
+        PhAddJsonObjectValue(structured, "page_faults", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "physical_available_bytes");
+        AtJsonAddNull(structured, "resident_available_bytes");
+        AtJsonAddNull(structured, "cache_resident_bytes");
+        AtJsonAddNull(structured, "commit");
+        AtJsonAddNull(structured, "pools");
+        AtJsonAddNull(structured, "page_faults");
+    }
+
+    AtpAddMemoryList(structured, pageSize);
+
+    if (NT_SUCCESS(PhGetSystemFileCacheSize(&cacheInfo)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "current_bytes", cacheInfo.CurrentSize);
+        PhAddJsonObjectUInt64(entry, "peak_bytes", cacheInfo.PeakSize);
+        PhAddJsonObjectUInt64(entry, "minimum_working_set_bytes", cacheInfo.MinimumWorkingSet);
+        PhAddJsonObjectUInt64(entry, "maximum_working_set_bytes", cacheInfo.MaximumWorkingSet);
+        PhAddJsonObjectUInt64(entry, "current_including_transition_bytes", cacheInfo.CurrentSizeIncludingTransitionInPages);
+        PhAddJsonObjectUInt64(entry, "page_fault_count", cacheInfo.PageFaultCount);
+        PhAddJsonObjectValue(structured, "file_cache", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "file_cache");
+    }
+
+    // The compression store is a process holding compressed pages, so the memory it accounts for is
+    // not on any list above: it is inside that process's working set.
+    if (NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "pid", compressionInfo.CompressionPid);
+        PhAddJsonObjectUInt64(entry, "working_set_bytes", compressionInfo.WorkingSetSize);
+        PhAddJsonObjectUInt64(entry, "total_data_compressed_bytes", compressionInfo.TotalDataCompressed);
+        PhAddJsonObjectUInt64(entry, "total_compressed_size_bytes", compressionInfo.TotalCompressedSize);
+        PhAddJsonObjectUInt64(entry, "total_unique_data_compressed_bytes", compressionInfo.TotalUniqueDataCompressed);
+        PhAddJsonObjectValue(structured, "compression_store", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "compression_store");
+    }
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -966,6 +1141,9 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionGetSystemEnvironment:
         AtpGetSystemEnvironment(Call, Result);
+        break;
+    case AtActionGetMemoryDetails:
+        AtpGetMemoryDetails(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

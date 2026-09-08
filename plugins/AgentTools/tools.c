@@ -1414,6 +1414,7 @@ VOID AtInvokeTool(
     case AtActionGetUefiVariables:
     case AtActionGetTpmInfo:
     case AtActionGetSystemEnvironment:
+    case AtActionGetMemoryDetails:
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:
