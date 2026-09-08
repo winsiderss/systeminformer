@@ -1432,6 +1432,7 @@ VOID AtInvokeTool(
         break;
     case AtActionListDevices:
     case AtActionGetDeviceResources:
+    case AtActionSetDeviceEnabled:
         AtDeviceInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListNetworkAdapters:

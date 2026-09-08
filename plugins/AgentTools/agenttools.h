@@ -156,6 +156,7 @@ typedef enum _AT_ACTION
     AtActionGetProcessGpuStats,
     AtActionListDevices,
     AtActionGetDeviceResources,
+    AtActionSetDeviceEnabled,
     AtActionGetProcessIoRates,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,

@@ -337,6 +337,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the hardware resources of a device", L"Allow reading device resources", L"get_device_resources"
     },
     {
+        AtActionSetDeviceEnabled, AtTierWrite, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"set_device_enabled"),
+        L"enable or disable the following device", L"Change the state of", L"set_device_enabled"
+    },
+    {
         AtActionGetProcessIoRates, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_io_rates"),
         L"read the disk and network I/O of processes", L"Allow reading process I/O rates", L"get_process_io_rates"
     },
@@ -3527,6 +3531,34 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"instance_id\",\"resources\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "set_device_enabled", L"Enable or disable a device", AtTierWrite, AtActionSetDeviceEnabled,
+        SETTING_NAME_TOOL_ACCESS(L"set_device_enabled"), SETTING_NAME_TOOL_CONFIRM(L"set_device_enabled"),
+        "{\"name\":\"set_device_enabled\",\"title\":\"Enable or disable a device\","
+        "\"description\":\"Turns a device off or back on, as Device Manager does. THINK ABOUT WHAT THE DEVICE IS "
+        "BEFORE DISABLING IT: this is the disk the system is running from, the network adapter this session is "
+        "arriving over, or the keyboard, as readily as it is a webcam. Disabling the wrong one ends the "
+        "conversation and may need physical access to undo. Read the device with list_devices first - name, class "
+        "and service - and prefer disabling something the machine is not depending on. The disable is not asked to "
+        "persist, so a restart brings the device back, which is the safety net rather than the plan. Needs "
+        "elevation. The state is read back from the device node afterwards: is_disabled true confirms it, and a "
+        "problem_code that is not 22 means something else is wrong with the device - a device in use can refuse "
+        "to stop. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"instance_id\":{\"type\":\"string\",\"description\":\"Device instance id from list_devices\"},"
+        "\"enabled\":{\"type\":\"boolean\",\"description\":\"true to enable, false to disable\"}"
+        "},\"required\":[\"instance_id\",\"enabled\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"instance_id\":{\"type\":\"string\"},"
+        "\"action\":{\"type\":\"string\"},"
+        "\"enabled\":{\"type\":\"boolean\",\"description\":\"What was asked for\"},"
+        "\"has_problem\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"problem_code\":{\"type\":[\"integer\",\"null\"],\"description\":\"22 is CM_PROB_DISABLED, which is what a device this disabled should report\"},"
+        "\"is_disabled\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Read from the device node after the change, not assumed from it\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"instance_id\",\"action\",\"enabled\"]},"
+        AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
     {
         "list_gpu_adapters", L"List graphics adapters", AtTierRead, AtActionListGpuAdapters,

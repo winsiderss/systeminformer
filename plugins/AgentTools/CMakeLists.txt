@@ -76,4 +76,5 @@ target_link_libraries(AgentTools PRIVATE
     user32
     gdi32
     winsta
+    cfgmgr32
 )

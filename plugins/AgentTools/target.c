@@ -562,6 +562,31 @@ NTSTATUS AtpResolveTargetParameter(
                 text = PhFormatString(L"mask 0x%I64x", mask);
         }
         break;
+    case AtActionSetDeviceEnabled:
+        {
+            value = AtGetArgumentString(Arguments, "instance_id");
+
+            if (PhIsNullOrEmptyString(value))
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"instance_id is required; take it from list_devices.");
+                PhClearReference(&value);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            if (!AtJsonGetObjectMember(Arguments, "enabled", PH_JSON_OBJECT_TYPE_BOOLEAN))
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"enabled is required: true to enable the device, false to disable it.");
+                PhClearReference(&value);
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            text = PhFormatString(L"%s %s", AtJsonGetObjectBoolean(Arguments, "enabled") ? L"enable" : L"DISABLE",
+                value->Buffer);
+            PhClearReference(&value);
+        }
+        break;
     case AtActionCloseWindow:
     case AtActionSetWindowState:
         {

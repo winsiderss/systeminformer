@@ -428,6 +428,82 @@ VOID AtpGetDeviceResources(
     PhDereferenceObject(instanceId);
 }
 
+/**
+ * Turning a device off, and back on. The whole of it is two configuration manager calls; the care
+ * is in what is said about them.
+ */
+VOID AtpSetDeviceEnabled(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    CONFIGRET result;
+    DEVINST deviceInstance;
+    PPH_STRING instanceId;
+    PVOID structured;
+    ULONG status = 0;
+    ULONG problem = 0;
+    BOOLEAN enable;
+
+    // Both validated when the target was resolved, so the user approved this device and this
+    // direction.
+    instanceId = AtGetArgumentString(Call->Arguments, "instance_id");
+    enable = AtJsonGetObjectBoolean(Call->Arguments, "enabled");
+
+    // PHANTOM finds a node that is not started, which is exactly the state a disabled device is
+    // in - without it a device could be disabled and then not found to enable again.
+    result = CM_Locate_DevNode(&deviceInstance, PhGetString(instanceId), CM_LOCATE_DEVNODE_PHANTOM);
+
+    if (result != CR_SUCCESS)
+    {
+        AtSetToolError(Result, "not_found", PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
+            L"No device with that instance id; list_devices reports the ones there are.");
+        PhClearReference(&instanceId);
+        return;
+    }
+
+    if (enable)
+        result = CM_Enable_DevInst(deviceInstance, 0);
+    else
+        result = CM_Disable_DevInst(deviceInstance, 0);
+
+    if (result != CR_SUCCESS)
+    {
+        AtSetToolStatusError(
+            Result,
+            PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
+            enable ? L"Enabling the device" : L"Disabling the device"
+            );
+        PhClearReference(&instanceId);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "instance_id", instanceId);
+    PhAddJsonObject(structured, "action", "set_device_enabled");
+    PhAddJsonObjectBoolean(structured, "enabled", enable);
+
+    // Read back from the device node rather than assumed from the call: a device can refuse to
+    // stop because something is using it, and the problem code is where that shows.
+    if (CM_Get_DevNode_Status(&status, &problem, deviceInstance, 0) == CR_SUCCESS)
+    {
+        PhAddJsonObjectBoolean(structured, "has_problem", !!(status & DN_HAS_PROBLEM));
+        PhAddJsonObjectUInt64(structured, "problem_code", problem);
+        PhAddJsonObjectBoolean(structured, "is_disabled", problem == CM_PROB_DISABLED);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "has_problem");
+        AtJsonAddNull(structured, "problem_code");
+        AtJsonAddNull(structured, "is_disabled");
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    PhClearReference(&instanceId);
+}
+
 VOID AtDeviceInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -444,6 +520,9 @@ VOID AtDeviceInvokeTool(
         break;
     case AtActionGetDeviceResources:
         AtpGetDeviceResources(Call, Result);
+        break;
+    case AtActionSetDeviceEnabled:
+        AtpSetDeviceEnabled(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
