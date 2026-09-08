@@ -110,6 +110,161 @@ PVOID AtpCreateProcessRow(
 // Bytes (or events) per second from a per-run delta. The provider's interval is not the configured
 // one when System Informer is throttling, so it is read rather than assumed, and reported alongside
 // so the caller can see what the rates were divided by.
+PCWSTR AtpKnownProcessTypeString(
+    _In_ PH_KNOWN_PROCESS_TYPE Type
+    )
+{
+    switch (Type & KnownProcessTypeMask)
+    {
+    case SystemProcessType:
+        return L"system";
+    case SessionManagerProcessType:
+        return L"session_manager";
+    case WindowsSubsystemProcessType:
+        return L"windows_subsystem";
+    case WindowsStartupProcessType:
+        return L"windows_startup";
+    case ServiceControlManagerProcessType:
+        return L"service_control_manager";
+    case LocalSecurityAuthorityProcessType:
+        return L"local_security_authority";
+    case LocalSessionManagerProcessType:
+        return L"local_session_manager";
+    case WindowsLogonProcessType:
+        return L"windows_logon";
+    case ServiceHostProcessType:
+        return L"service_host";
+    case RunDllAsAppProcessType:
+        return L"rundll_as_app";
+    case ComSurrogateProcessType:
+        return L"com_surrogate";
+    case TaskHostProcessType:
+        return L"task_host";
+    case ExplorerProcessType:
+        return L"explorer";
+    case UmdfHostProcessType:
+        return L"umdf_host";
+    case NtVdmHostProcessType:
+        return L"ntvdm_host";
+    case WmiProviderHostType:
+        return L"wmi_provider_host";
+    }
+
+    return NULL;
+}
+
+// A host process's own image says nothing about what it is running: svchost is a group, rundll32 is
+// somebody else's entry point, dllhost is a COM object. That is the part worth reading.
+VOID AtpAddKnownCommandLine(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PH_KNOWN_PROCESS_COMMAND_LINE knownCommandLine;
+    PVOID entry;
+
+    if (!ProcessItem->CommandLine ||
+        (ProcessItem->KnownProcessType & KnownProcessTypeMask) == UnknownProcessType ||
+        !PhaGetProcessKnownCommandLine(ProcessItem->CommandLine, ProcessItem->KnownProcessType, &knownCommandLine))
+    {
+        AtJsonAddNull(Object, "known_command_line");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+
+    switch (ProcessItem->KnownProcessType & KnownProcessTypeMask)
+    {
+    case ServiceHostProcessType:
+        AtJsonAddString(entry, "service_group", knownCommandLine.ServiceHost.GroupName);
+        break;
+    case RunDllAsAppProcessType:
+        AtJsonAddWin32FileName(entry, "target_file", knownCommandLine.RunDllAsApp.FileName);
+        AtJsonAddString(entry, "target_procedure", knownCommandLine.RunDllAsApp.ProcedureName);
+        break;
+    case ComSurrogateProcessType:
+        {
+            PPH_STRING guid = PhFormatGuid(&knownCommandLine.ComSurrogate.Guid);
+
+            AtJsonAddString(entry, "com_clsid", guid);
+            AtJsonAddString(entry, "com_name", knownCommandLine.ComSurrogate.Name);
+            AtJsonAddWin32FileName(entry, "com_file", knownCommandLine.ComSurrogate.FileName);
+            PhClearReference(&guid);
+        }
+        break;
+    default:
+        PhFreeJsonObject(entry);
+        AtJsonAddNull(Object, "known_command_line");
+        return;
+    }
+
+    PhAddJsonObjectValue(Object, "known_command_line", entry);
+}
+
+// The parent as it was when this process started, which is the only honest way to name it: the pid
+// on its own may since have been reused by something unrelated.
+VOID AtpAddParent(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PPH_PROCESS_RECORD record;
+    PPH_PROCESS_ITEM parent;
+    PVOID entry;
+
+    if (!ProcessItem->ParentProcessId)
+    {
+        AtJsonAddNull(Object, "parent");
+        return;
+    }
+
+    // The record for the parent as it was at this process's start, which also covers a parent that
+    // has since exited.
+    if (record = PhFindProcessRecord(ProcessItem->ParentProcessId, &ProcessItem->CreateTime))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(record->ProcessId));
+        PhAddJsonObjectUInt64(entry, "process_sequence_number", record->ProcessSequenceNumber);
+        AtJsonAddString(entry, "name", record->ProcessName);
+        AtJsonAddWin32FileName(entry, "image_path", record->FileName);
+        AtJsonAddString(entry, "command_line", record->CommandLine);
+        AtJsonAddTime(entry, "start_time", &record->CreateTime);
+        PhAddJsonObjectBoolean(entry, "still_running", !FlagOn(record->Flags, PH_PROCESS_RECORD_DEAD));
+
+        PhAddJsonObjectValue(Object, "parent", entry);
+        PhDereferenceProcessRecord(record);
+        return;
+    }
+
+    // No record kept: fall back to the live process, but only when it could actually be the parent.
+    // A parent that started after its child is a different process wearing a recycled pid, and
+    // naming it would be worse than saying nothing.
+    if (!(parent = PhReferenceProcessItem(ProcessItem->ParentProcessId)))
+    {
+        AtJsonAddNull(Object, "parent");
+        return;
+    }
+
+    if (parent->CreateTime.QuadPart > ProcessItem->CreateTime.QuadPart)
+    {
+        AtJsonAddNull(Object, "parent");
+        PhDereferenceObject(parent);
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(parent->ProcessId));
+    PhAddJsonObjectUInt64(entry, "process_sequence_number", parent->ProcessSequenceNumber);
+    AtJsonAddString(entry, "name", parent->ProcessName);
+    AtJsonAddWin32FileName(entry, "image_path", parent->FileName);
+    AtJsonAddString(entry, "command_line", parent->CommandLine);
+    AtJsonAddTime(entry, "start_time", &parent->CreateTime);
+    PhAddJsonObjectBoolean(entry, "still_running", TRUE);
+
+    PhAddJsonObjectValue(Object, "parent", entry);
+    PhDereferenceObject(parent);
+}
+
 VOID AtpAddRate(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -132,6 +287,7 @@ VOID AtpFillProcessDetail(
     )
 {
     ULONG interval = AtGetUpdateInterval();
+    BOOLEAN stage2 = !!PhGetIntegerSetting(L"EnableStage2");
 
     HANDLE processHandle;
     PVOID services;
@@ -206,6 +362,131 @@ VOID AtpFillProcessDetail(
     PhAddJsonObjectBoolean(Object, "is_packaged", !!ProcessItem->IsPackagedProcess);
     PhAddJsonObjectBoolean(Object, "is_dotnet", !!ProcessItem->IsDotNet);
     PhAddJsonObjectBoolean(Object, "is_subsystem_process", !!ProcessItem->IsSubsystemProcess);
+    PhAddJsonObjectBoolean(Object, "is_ui_access", !!ProcessItem->IsUIAccessEnabled);
+    PhAddJsonObjectBoolean(Object, "is_frozen", !!ProcessItem->IsFrozenProcess);
+    PhAddJsonObjectBoolean(Object, "is_background", !!ProcessItem->IsBackgroundProcess);
+    PhAddJsonObjectBoolean(Object, "is_cross_session", !!ProcessItem->IsCrossSessionProcess);
+    PhAddJsonObjectBoolean(Object, "is_power_throttling", !!ProcessItem->IsPowerThrottling);
+    PhAddJsonObjectBoolean(Object, "is_system_process", !!ProcessItem->IsSystemProcess);
+    PhAddJsonObjectBoolean(Object, "is_secure_system", !!ProcessItem->IsSecureSystem);
+    PhAddJsonObjectBoolean(Object, "is_partially_suspended", !!ProcessItem->IsPartiallySuspended);
+    PhAddJsonObjectBoolean(Object, "is_in_significant_job", !!ProcessItem->IsInSignificantJob);
+    PhAddJsonObjectBoolean(Object, "is_snapshot", !!ProcessItem->IsSnapshotProcess);
+    if (stage2)
+        PhAddJsonObjectBoolean(Object, "is_packed", !!ProcessItem->IsPacked);
+    else
+        AtJsonAddNull(Object, "is_packed");
+
+    // What the image says about itself, which is the first thing a person reads and the first thing
+    // an impostor gets wrong.
+    {
+        PVOID version = PhCreateJsonObject();
+
+        AtJsonAddString(version, "company", ProcessItem->VersionInfo.CompanyName);
+        AtJsonAddString(version, "description", ProcessItem->VersionInfo.FileDescription);
+        AtJsonAddString(version, "file_version", ProcessItem->VersionInfo.FileVersion);
+        AtJsonAddString(version, "product", ProcessItem->VersionInfo.ProductName);
+        PhAddJsonObjectValue(Object, "version_info", version);
+    }
+
+    AtJsonAddStringZ(Object, "known_type", AtpKnownProcessTypeString(ProcessItem->KnownProcessType));
+    AtpAddKnownCommandLine(Object, ProcessItem);
+    AtpAddParent(Object, ProcessItem);
+
+    // Import counts and the packed heuristic come from stage 2, which the user can turn off, and
+    // ULONG_MAX is the provider's "could not read the image" sentinel. Both are null rather than a
+    // zero that would read as "imports nothing", which is itself a finding.
+    if (stage2 && ProcessItem->ImportFunctions != ULONG_MAX)
+        PhAddJsonObjectUInt64(Object, "import_functions", ProcessItem->ImportFunctions);
+    else
+        AtJsonAddNull(Object, "import_functions");
+
+    if (stage2 && ProcessItem->ImportModules != ULONG_MAX)
+        PhAddJsonObjectUInt64(Object, "import_modules", ProcessItem->ImportModules);
+    else
+        AtJsonAddNull(Object, "import_modules");
+    AtJsonAddHex(Object, "image_checksum", ProcessItem->ImageChecksum);
+
+    if (ProcessItem->ImageTimeStamp)
+    {
+        LARGE_INTEGER timeStamp;
+
+        PhSecondsSince1970ToTime(ProcessItem->ImageTimeStamp, &timeStamp);
+        AtJsonAddTime(Object, "image_timestamp", &timeStamp);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "image_timestamp");
+    }
+
+    // How much of the image in memory still matches the file on disk. System Informer only computes
+    // this when coherency support is on and the scan level is not zero; at level zero it marks the
+    // status successful and leaves the value at zero, so trusting the status alone would report
+    // every process on a default configuration as completely incoherent, which is what an injected
+    // image looks like. Null unless it was really measured.
+    if (PhGetIntegerSetting(L"EnableImageCoherencySupport") &&
+        PhGetIntegerSetting(L"ImageCoherencyScanLevel") != 0 &&
+        NT_SUCCESS(ProcessItem->ImageCoherencyStatus))
+    {
+        PhAddJsonObjectDouble(Object, "image_coherency", ProcessItem->ImageCoherency);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "image_coherency");
+    }
+
+    // A path-shaped name that no longer resolves: the process is running from a file that is gone.
+    if (ProcessItem->FileName &&
+        ProcessItem->FileName->Length >= sizeof(WCHAR) &&
+        ProcessItem->FileName->Buffer[0] == OBJ_NAME_PATH_SEPARATOR)
+    {
+        PhAddJsonObjectBoolean(Object, "image_file_exists", !!PhDoesFileExist(&ProcessItem->FileName->sr));
+    }
+    else
+    {
+        AtJsonAddNull(Object, "image_file_exists");
+    }
+
+    {
+        PVOID disk = PhCreateJsonObject();
+        PVOID network = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(disk, "read_bytes", ProcessItem->DiskCounters.BytesRead);
+        PhAddJsonObjectUInt64(disk, "write_bytes", ProcessItem->DiskCounters.BytesWritten);
+        PhAddJsonObjectUInt64(disk, "read_operations", ProcessItem->DiskCounters.ReadOperationCount);
+        PhAddJsonObjectUInt64(disk, "write_operations", ProcessItem->DiskCounters.WriteOperationCount);
+        PhAddJsonObjectUInt64(disk, "flush_operations", ProcessItem->DiskCounters.FlushOperationCount);
+        PhAddJsonObjectValue(Object, "disk_counters", disk);
+
+        // PROCESS_NETWORK_COUNTERS carries byte totals only; there are no packet counts to report.
+        PhAddJsonObjectUInt64(network, "bytes_in", ProcessItem->NetworkCounters.BytesIn);
+        PhAddJsonObjectUInt64(network, "bytes_out", ProcessItem->NetworkCounters.BytesOut);
+        PhAddJsonObjectValue(Object, "network_counters", network);
+    }
+
+    PhAddJsonObjectUInt64(Object, "shared_commit_bytes", ProcessItem->SharedCommitCharge);
+    PhAddJsonObjectUInt64(Object, "working_set_private_bytes", ProcessItem->WorkingSetPrivateSize);
+    PhAddJsonObjectUInt64(Object, "peak_thread_count", ProcessItem->PeakNumberOfThreads);
+    PhAddJsonObjectUInt64(Object, "hard_fault_count", ProcessItem->HardFaultCount);
+    PhAddJsonObjectUInt64(Object, "context_switches", ProcessItem->ContextSwitches);
+    PhAddJsonObjectUInt64(Object, "job_object_id", ProcessItem->JobObjectId);
+
+    if (ProcessItem->LxssProcessId)
+        PhAddJsonObjectUInt64(Object, "lxss_pid", ProcessItem->LxssProcessId);
+    else
+        AtJsonAddNull(Object, "lxss_pid");
+
+    if (ProcessItem->Sid)
+    {
+        PPH_STRING sid = PhSidToStringSid(ProcessItem->Sid);
+
+        AtJsonAddString(Object, "sid", sid);
+        PhClearReference(&sid);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "sid");
+    }
 
     if (ProcessItem->ConsoleHostProcessId)
         PhAddJsonObjectUInt64(Object, "console_host_pid", HandleToUlong(ProcessItem->ConsoleHostProcessId));
