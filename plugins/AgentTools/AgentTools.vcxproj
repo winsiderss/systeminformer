@@ -71,6 +71,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="consent.c" />
+    <ClCompile Include="events.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="mcp.c" />
     <ClCompile Include="options.c" />

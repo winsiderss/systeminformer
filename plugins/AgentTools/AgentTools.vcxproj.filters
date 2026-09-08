@@ -51,6 +51,9 @@
     <ClCompile Include="toolhist.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="events.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolmem.c">
       <Filter>Source Files</Filter>
     </ClCompile>

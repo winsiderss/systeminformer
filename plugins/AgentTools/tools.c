@@ -985,6 +985,9 @@ VOID AtInvokeTool(
     case AtActionRankProcesses:
         AtHistoryInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionListRecentEvents:
+        AtEventInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessHandles:
     case AtActionGetProcessHandlesDetailed:
     case AtActionGetProcessMemoryRegions:

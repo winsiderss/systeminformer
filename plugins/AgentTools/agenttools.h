@@ -69,6 +69,7 @@ typedef enum _AT_ACTION
     AtActionGetProcess,
     AtActionGetProcessHistory,
     AtActionRankProcesses,
+    AtActionListRecentEvents,
     AtActionGetProcessModules,
     AtActionGetProcessThreads,
     AtActionGetProcessHandles,
@@ -417,6 +418,16 @@ PVOID AtJsonGetObjectMember(
     _In_ PH_JSON_OBJECT_TYPE Type
     );
 
+// events.c
+
+VOID AtEventsInitialize(
+    VOID
+    );
+
+VOID AtEventsUninitialize(
+    VOID
+    );
+
 // snapshot.c
 
 VOID AtSnapshotInitialize(
@@ -718,6 +729,13 @@ PPH_STRING AtFormatServiceConfigParameter(
 // Tool implementations by area
 
 VOID AtProcessInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtEventInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

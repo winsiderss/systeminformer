@@ -35,6 +35,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"rank processes by recent activity", L"Allow ranking processes by recent activity", L"rank_processes"
     },
     {
+        AtActionListRecentEvents, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_recent_events"),
+        L"read recently logged events", L"Allow reading recently logged events", L"list_recent_events"
+    },
+    {
         AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
@@ -573,6 +577,44 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"ranked_by\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_recent_events", L"List recent events", AtTierRead, AtActionListRecentEvents,
+        SETTING_NAME_TOOL_ACCESS(L"list_recent_events"), SETTING_NAME_TOOL_CONFIRM(L"list_recent_events"),
+        "{\"name\":\"list_recent_events\",\"title\":\"List recent events\","
+        "\"description\":\"Processes that started or exited, services that changed state, and devices that arrived or "
+        "were removed, as System Informer saw them happen. Read it as a feed: pass the next_cursor of the previous "
+        "answer as since_cursor to get only what happened since, oldest first. dropped says how many events fell out "
+        "of the buffer before that cursor was read, and has_more says another call will return more right now. The "
+        "buffer only holds what happened since System Informer's agent tools were loaded, and it is bounded, so this "
+        "is not an audit log. Events come from System Informer's providers, which sample: a process that starts and "
+        "exits between two runs is never seen at all, so the absence of an event is not evidence that nothing ran. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"since_cursor\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Return events after this cursor; omit or 0 for everything still held\"},"
+        "\"kinds\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"process_create\",\"process_exit\",\"service_create\",\"service_delete\",\"service_start\",\"service_stop\",\"service_continue\",\"service_pause\",\"device_arrived\",\"device_removed\"]},\"description\":\"Only these kinds of event\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only process events for this process id\"},"
+        "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"Maximum events in this batch; default 200\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"events\":{\"type\":\"array\",\"description\":\"Oldest first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"cursor\":{\"type\":\"integer\"},"
+        "\"kind\":{\"type\":\"string\"},"
+        "\"time\":{\"type\":[\"string\",\"null\"]},"
+        "\"pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"Process name, service name, device name or message text\"},"
+        "\"parent_pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"parent_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"exit_status\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal NTSTATUS, on a process exit\"},"
+        "\"detail\":{\"type\":[\"string\",\"null\"],\"description\":\"Parent name, service display name or device classification\"}"
+        "},\"required\":[\"cursor\",\"kind\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        "\"next_cursor\":{\"type\":\"integer\",\"description\":\"Pass as since_cursor next time\"},"
+        "\"dropped\":{\"type\":\"integer\",\"description\":\"Events lost from the buffer before since_cursor was read\"},"
+        "\"has_more\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"events\",\"count\",\"next_cursor\",\"dropped\",\"has_more\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

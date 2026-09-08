@@ -18,6 +18,7 @@ source_group("Resource Files" FILES ${RESOURCES})
 
 set(SOURCES
     "consent.c"
+    "events.c"
     "main.c"
     "mcp.c"
     "options.c"
