@@ -281,6 +281,116 @@ VOID AtpAddRate(
     PhAddJsonObjectDouble(Object, Key, (DOUBLE)Delta * 1000.0 / IntervalMs);
 }
 
+// The Statistics tab's numbers, which need the process opened and so are only gathered on request.
+// Anything that could not be read is null rather than zero: a zero working set or no GUI handles is
+// itself a finding, and must not be manufactured by a failed query.
+VOID AtpAddProcessStatistics(
+    _In_ PVOID Object,
+    _In_ PPH_PROCESS_ITEM ProcessItem
+    )
+{
+    PVOID statistics;
+    PVOID entry;
+    HANDLE processHandle = NULL;
+    PH_PROCESS_WS_COUNTERS wsCounters;
+    IO_PRIORITY_HINT ioPriority;
+    ULONG pagePriority;
+    ULONG depStatus;
+    LARGE_INTEGER now;
+
+    statistics = PhCreateJsonObject();
+
+    if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
+    {
+        PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION,
+            ProcessItem->ProcessId
+            );
+    }
+
+    // Pool charges and the page file charge are already on the item; only the working set breakdown
+    // needs the process.
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "paged_pool_bytes", ProcessItem->VmCounters.QuotaPagedPoolUsage);
+    PhAddJsonObjectUInt64(entry, "peak_paged_pool_bytes", ProcessItem->VmCounters.QuotaPeakPagedPoolUsage);
+    PhAddJsonObjectUInt64(entry, "non_paged_pool_bytes", ProcessItem->VmCounters.QuotaNonPagedPoolUsage);
+    PhAddJsonObjectUInt64(entry, "peak_non_paged_pool_bytes", ProcessItem->VmCounters.QuotaPeakNonPagedPoolUsage);
+    PhAddJsonObjectUInt64(entry, "page_file_bytes", ProcessItem->VmCounters.PagefileUsage);
+    PhAddJsonObjectUInt64(entry, "peak_page_file_bytes", ProcessItem->VmCounters.PeakPagefileUsage);
+    PhAddJsonObjectValue(statistics, "quota", entry);
+
+    if (processHandle && NT_SUCCESS(PhGetProcessWsCounters(processHandle, &wsCounters)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "total_bytes", (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE);
+        PhAddJsonObjectUInt64(entry, "private_bytes", (ULONG64)wsCounters.NumberOfPrivatePages * PAGE_SIZE);
+        PhAddJsonObjectUInt64(entry, "shared_bytes", (ULONG64)wsCounters.NumberOfSharedPages * PAGE_SIZE);
+        PhAddJsonObjectUInt64(entry, "shareable_bytes", (ULONG64)wsCounters.NumberOfShareablePages * PAGE_SIZE);
+        PhAddJsonObjectValue(statistics, "working_set", entry);
+    }
+    else
+    {
+        AtJsonAddNull(statistics, "working_set");
+    }
+
+    // GDI and USER handles, which is how a leaking UI process is recognised. GetGuiResources is a
+    // plain Win32 call, so no phlib export is involved.
+    if (processHandle)
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "gdi_handles", GetGuiResources(processHandle, GR_GDIOBJECTS));
+        PhAddJsonObjectUInt64(entry, "gdi_handles_peak", GetGuiResources(processHandle, GR_GDIOBJECTS_PEAK));
+        PhAddJsonObjectUInt64(entry, "user_handles", GetGuiResources(processHandle, GR_USEROBJECTS));
+        PhAddJsonObjectUInt64(entry, "user_handles_peak", GetGuiResources(processHandle, GR_USEROBJECTS_PEAK));
+        PhAddJsonObjectValue(statistics, "gui_resources", entry);
+    }
+    else
+    {
+        AtJsonAddNull(statistics, "gui_resources");
+    }
+
+    if (processHandle && NT_SUCCESS(PhGetProcessPagePriority(processHandle, &pagePriority)))
+        PhAddJsonObjectUInt64(statistics, "page_priority", pagePriority);
+    else
+        AtJsonAddNull(statistics, "page_priority");
+
+    if (processHandle && NT_SUCCESS(PhGetProcessIoPriority(processHandle, &ioPriority)))
+        AtJsonAddStringZ(statistics, "io_priority", AtIoPriorityString(ioPriority));
+    else
+        AtJsonAddNull(statistics, "io_priority");
+
+    if (processHandle && NT_SUCCESS(PhGetProcessDepStatus(processHandle, &depStatus)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectBoolean(entry, "enabled", !!FlagOn(depStatus, PH_PROCESS_DEP_ENABLED));
+        PhAddJsonObjectBoolean(entry, "permanent", !!FlagOn(depStatus, PH_PROCESS_DEP_PERMANENT));
+        PhAddJsonObjectBoolean(entry, "atl_thunk_emulation_disabled", !!FlagOn(depStatus, PH_PROCESS_DEP_ATL_THUNK_EMULATION_DISABLED));
+        PhAddJsonObjectValue(statistics, "dep", entry);
+    }
+    else
+    {
+        AtJsonAddNull(statistics, "dep");
+    }
+
+    // The running total the provider keeps alongside the per-run delta.
+    PhAddJsonObjectUInt64(statistics, "cycle_time", ProcessItem->CycleTimeDelta.Value);
+    PhAddJsonObjectUInt64(statistics, "page_faults", ProcessItem->VmCounters.PageFaultCount);
+    PhAddJsonObjectUInt64(statistics, "peak_virtual_size", ProcessItem->VmCounters.PeakVirtualSize);
+
+    PhQuerySystemTime(&now);
+
+    if (ProcessItem->CreateTime.QuadPart && now.QuadPart > ProcessItem->CreateTime.QuadPart)
+        AtJsonAddDuration(statistics, "uptime_seconds", now.QuadPart - ProcessItem->CreateTime.QuadPart);
+    else
+        AtJsonAddNull(statistics, "uptime_seconds");
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    PhAddJsonObjectValue(Object, "statistics", statistics);
+}
+
 VOID AtpFillProcessDetail(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -774,6 +884,7 @@ VOID AtpGetProcess(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    BOOLEAN includeStatistics = AtJsonGetObjectBoolean(Call->Arguments, "include_statistics");
     AT_BATCH batch;
     AT_TARGET target;
     PVOID structured;
@@ -810,6 +921,9 @@ VOID AtpGetProcess(
             {
                 entry = PhCreateJsonObject();
                 AtpFillProcessDetail(entry, processItem);
+
+                if (includeStatistics)
+                    AtpAddProcessStatistics(entry, processItem);
             }
 
             PhAddJsonArrayObject(results, entry);
@@ -825,6 +939,10 @@ VOID AtpGetProcess(
 
     structured = PhCreateJsonObject();
     AtpFillProcessDetail(structured, target.ProcessItem);
+
+    if (includeStatistics)
+        AtpAddProcessStatistics(structured, target.ProcessItem);
+
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
