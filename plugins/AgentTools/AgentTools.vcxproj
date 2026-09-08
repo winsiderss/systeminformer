@@ -105,6 +105,7 @@
     <ClCompile Include="toolsvc.c" />
     <ClCompile Include="toolsys.c" />
     <ClCompile Include="toolthrd.c" />
+    <ClCompile Include="toolwait.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="agenttools.h" />

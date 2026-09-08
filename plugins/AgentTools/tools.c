@@ -1249,6 +1249,9 @@ VOID AtInvokeTool(
     case AtActionTerminateThread:
         AtThreadInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetThreadWaitChain:
+        AtWaitInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessModules:
         AtModuleInvokeTool(Tool, Call, Target, Result);
         break;

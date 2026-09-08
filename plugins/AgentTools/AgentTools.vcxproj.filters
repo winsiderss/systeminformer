@@ -120,6 +120,9 @@
     <ClCompile Include="toolthrd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolwait.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="agenttools.h">

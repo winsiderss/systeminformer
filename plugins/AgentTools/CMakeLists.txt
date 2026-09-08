@@ -52,6 +52,7 @@ set(SOURCES
     "toolsvc.c"
     "toolsys.c"
     "toolthrd.c"
+    "toolwait.c"
 )
 source_group("Source Files" FILES ${SOURCES})
 

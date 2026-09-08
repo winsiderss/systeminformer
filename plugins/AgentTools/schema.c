@@ -147,6 +147,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read thread stacks", L"Read the thread stacks of", L"get_process_stacks"
     },
     {
+        AtActionGetThreadWaitChain, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_thread_wait_chain"),
+        L"read wait chains", L"Read the wait chains of", L"get_thread_wait_chain"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -1844,6 +1848,52 @@ CONST AT_TOOL AtTools[] =
         "\"truncated\":{\"type\":\"boolean\",\"description\":\"More threads than max_threads; the rest were not walked\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_thread_wait_chain", L"Read thread wait chains", AtTierSensitiveRead, AtActionGetThreadWaitChain,
+        SETTING_NAME_TOOL_ACCESS(L"get_thread_wait_chain"), SETTING_NAME_TOOL_CONFIRM(L"get_thread_wait_chain"),
+        "{\"name\":\"get_thread_wait_chain\",\"title\":\"Get thread wait chain\","
+        "\"description\":\"Follows what each thread of a process is waiting on, and who holds it: the chain "
+        "alternates thread nodes and the objects between them, and crosses into other processes. A stack shows "
+        "that a thread is waiting; this shows which thread would have to move for it to continue. "
+        "is_deadlocked marks a chain that closes into a cycle, which is a deadlock rather than a slow call. "
+        "Critical sections, mutexes, ALPC, COM calls, SendMessage, and socket and SMB waits are followed. "
+        "Threads in another user's processes need elevation and answer no_access. Chains stop at 16 nodes. "
+        "COM call chains that need the ole32 helper are not registered here, so a chain through a COM call can "
+        "end at a com node without naming the server. "
+        AT_SENSITIVE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"tid\":{\"type\":\"integer\",\"description\":\"One thread of that process; omit for every thread. A tid that is not this process's thread is refused\"},"
+        "\"max_threads\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":512,\"description\":\"Stop after this many threads (default 64)\"}"
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"threads\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"is_deadlocked\":{\"type\":\"boolean\",\"description\":\"The chain closes into a cycle\"},"
+        "\"node_count\":{\"type\":\"integer\"},"
+        "\"truncated\":{\"type\":\"boolean\",\"description\":\"The chain was longer than the 16 nodes the API returns\"},"
+        "\"error\":{\"type\":[\"string\",\"null\"],\"description\":\"Set when this thread's chain could not be read; the other threads are still reported\"},"
+        "\"message\":{\"type\":[\"string\",\"null\"]},"
+        "\"nodes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"index\":{\"type\":\"integer\",\"description\":\"0 is the thread that was asked about; each later node is what the one before it waits on\"},"
+        "\"object_type\":{\"type\":[\"string\",\"null\"],\"description\":\"thread, critical_section, mutex, alpc, com, com_activation, send_message, thread_wait, process_wait, socket_io, smb_io or unknown\"},"
+        "\"object_status\":{\"type\":[\"string\",\"null\"],\"description\":\"running, blocked, owned, not_owned, abandoned, pid_only, pid_only_rpcss, no_access, unknown or error\"},"
+        "\"pid\":{\"type\":[\"integer\",\"null\"],\"description\":\"Thread nodes only\"},"
+        "\"tid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"wait_milliseconds\":{\"type\":[\"integer\",\"null\"]},"
+        "\"context_switches\":{\"type\":[\"integer\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The object's name, for the nodes that are not threads and are named at all\"}"
+        "},\"required\":[\"index\"]}}"
+        "},\"required\":[\"tid\",\"nodes\",\"node_count\",\"is_deadlocked\"]}},"
+        "\"count\":{\"type\":\"integer\",\"description\":\"Threads reported\"},"
+        "\"total_count\":{\"type\":\"integer\",\"description\":\"Threads the process had\"},"
+        "\"truncated\":{\"type\":\"boolean\"},"
+        "\"deadlocked_count\":{\"type\":\"integer\",\"description\":\"How many of the chains closed into a cycle\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\",\"deadlocked_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

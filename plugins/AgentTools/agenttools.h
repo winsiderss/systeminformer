@@ -105,6 +105,7 @@ typedef enum _AT_ACTION
     AtActionFindObjectHandles,
     AtActionGetThreadStack,
     AtActionGetProcessStacks,
+    AtActionGetThreadWaitChain,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,
@@ -924,6 +925,13 @@ VOID AtModuleInvokeTool(
     );
 
 VOID AtThreadInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtWaitInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
