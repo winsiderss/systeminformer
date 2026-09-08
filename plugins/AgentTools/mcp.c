@@ -229,6 +229,7 @@ PVOID AtpCreateCapabilities(
     capabilities = PhCreateJsonObject();
     PhAddJsonObjectValue(capabilities, "tools", PhCreateJsonObject());
     PhAddJsonObjectValue(capabilities, "resources", PhCreateJsonObject());
+    PhAddJsonObjectValue(capabilities, "prompts", PhCreateJsonObject());
 
     return capabilities;
 }
@@ -578,6 +579,128 @@ VOID AtpHandleToolsList(
     PhAddJsonObjectValue(result, "tools", tools);
 
     AtpSendResult(Connection, IdJson, result, Modern);
+}
+
+VOID AtpHandlePromptsList(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_ BOOLEAN Modern
+    )
+{
+    PVOID result;
+    PVOID prompts;
+
+    result = PhCreateJsonObject();
+    prompts = PhCreateJsonArray();
+    AtEnumPrompts(prompts);
+    PhAddJsonObjectValue(result, "prompts", prompts);
+
+    AtpSendResult(Connection, IdJson, result, Modern);
+}
+
+/**
+ * The prompt text with its one placeholder filled in. The value is the caller's, so it goes in as
+ * the text it is and nothing is interpreted: a prompt is a message for the model to read, and the
+ * model is told in the text itself that names and paths are evidence rather than instructions.
+ */
+PPH_BYTES AtpFormatPrompt(
+    _In_ PCAT_PROMPT Prompt,
+    _In_opt_ PVOID Arguments
+    )
+{
+    PPH_STRING text;
+    PPH_STRING placeholder;
+    PPH_STRING value = NULL;
+    PH_STRINGREF before;
+    PH_STRINGREF after;
+    PPH_BYTES bytes;
+
+    text = PhZeroExtendToUtf16(Prompt->Text);
+
+    if (!Prompt->Argument)
+    {
+        bytes = PhConvertUtf16ToUtf8Ex(text->Buffer, text->Length);
+        PhDereferenceObject(text);
+        return bytes;
+    }
+
+    if (Arguments)
+        value = PhGetJsonValueAsString(Arguments, Prompt->Argument);
+
+    if (PhIsNullOrEmptyString(value))
+        PhMoveReference(&value, PhZeroExtendToUtf16(Prompt->Fallback));
+
+    placeholder = PhFormatString(L"{%hs}", Prompt->Argument);
+
+    if (PhSplitStringRefAtString(&text->sr, &placeholder->sr, FALSE, &before, &after))
+    {
+        PPH_STRING filled;
+
+        filled = PhConcatStringRef3(&before, &value->sr, &after);
+        PhMoveReference(&text, filled);
+    }
+
+    PhDereferenceObject(placeholder);
+    PhClearReference(&value);
+
+    bytes = PhConvertUtf16ToUtf8Ex(text->Buffer, text->Length);
+    PhDereferenceObject(text);
+
+    return bytes;
+}
+
+VOID AtpHandlePromptsGet(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_opt_ PVOID Params,
+    _In_ BOOLEAN Modern
+    )
+{
+    PPH_STRING name;
+    PCAT_PROMPT prompt;
+    PPH_BYTES text;
+    PVOID result;
+    PVOID messages;
+    PVOID message;
+    PVOID content;
+
+    if (!(name = PhGetJsonValueAsString(Params, "name")))
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS, "Missing prompt name", NULL);
+        return;
+    }
+
+    prompt = AtFindPrompt(name);
+    PhDereferenceObject(name);
+
+    if (!prompt)
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INVALID_PARAMS, "Unknown prompt", NULL);
+        return;
+    }
+
+    if (!(text = AtpFormatPrompt(prompt, AtJsonGetObjectMember(Params, "arguments", PH_JSON_OBJECT_TYPE_OBJECT))))
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR, "The prompt could not be built", NULL);
+        return;
+    }
+
+    content = PhCreateJsonObject();
+    PhAddJsonObject(content, "type", "text");
+    PhAddJsonObjectUtf8(content, "text", text);
+
+    message = PhCreateJsonObject();
+    PhAddJsonObject(message, "role", "user");
+    PhAddJsonObjectValue(message, "content", content);
+
+    messages = PhCreateJsonArray();
+    PhAddJsonArrayObject(messages, message);
+
+    result = PhCreateJsonObject();
+    PhAddJsonObjectValue(result, "messages", messages);
+
+    AtpSendResult(Connection, IdJson, result, Modern);
+    PhDereferenceObject(text);
 }
 
 VOID AtpHandleResourcesList(
@@ -1121,6 +1244,15 @@ AT_INCOMING_RESULT AtpProcessIncoming(
         else if (AtpEqualStringUtf8(method, "resources/list"))
         {
             AtpHandleResourcesList(Connection, idJson, meta.Modern);
+        }
+        else if (AtpEqualStringUtf8(method, "prompts/list"))
+        {
+            AtpHandlePromptsList(Connection, idJson, meta.Modern);
+        }
+        else if (AtpEqualStringUtf8(method, "prompts/get"))
+        {
+            // A prompt is text: no gate, no tool, nothing to defer behind a consent wait.
+            AtpHandlePromptsGet(Connection, idJson, params, meta.Modern);
         }
         else if (AtpEqualStringUtf8(method, "resources/templates/list"))
         {

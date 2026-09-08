@@ -598,6 +598,31 @@ PCAT_RESOURCE AtFindResource(
     _In_ PPH_STRING Uri
     );
 
+// A prompt is text and nothing else: it runs nothing, reads nothing, and needs no gate. Argument
+// is the one placeholder its text carries, written {name}, and Fallback is what stands in when the
+// caller does not give it.
+typedef struct _AT_PROMPT
+{
+    PCSTR Name;
+    PCSTR Argument;
+    PCSTR Fallback;
+    PCSTR Definition;
+    PCSTR Text;
+} AT_PROMPT, *PAT_PROMPT;
+
+typedef CONST AT_PROMPT* PCAT_PROMPT;
+
+extern CONST AT_PROMPT AtPrompts[];
+extern CONST ULONG AtPromptCount;
+
+PCAT_PROMPT AtFindPrompt(
+    _In_ PPH_STRING Name
+    );
+
+VOID AtEnumPrompts(
+    _In_ PVOID PromptsArray
+    );
+
 VOID AtEnumResources(
     _In_ PVOID ResourcesArray
     );

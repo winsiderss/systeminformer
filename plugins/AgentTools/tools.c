@@ -270,6 +270,45 @@ PCAT_TOOL AtFindTool(
     return NULL;
 }
 
+PCAT_PROMPT AtFindPrompt(
+    _In_ PPH_STRING Name
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AtPromptCount; i++)
+    {
+        PPH_STRING name;
+        BOOLEAN match;
+
+        name = PhZeroExtendToUtf16(AtPrompts[i].Name);
+        match = PhEqualString(Name, name, FALSE);
+        PhDereferenceObject(name);
+
+        if (match)
+            return &AtPrompts[i];
+    }
+
+    return NULL;
+}
+
+VOID AtEnumPrompts(
+    _In_ PVOID PromptsArray
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AtPromptCount; i++)
+    {
+        PVOID definition;
+
+        if (NT_SUCCESS(PhCreateJsonParser(&definition, AtPrompts[i].Definition)))
+            PhAddJsonArrayObject(PromptsArray, definition);
+        else
+            NT_ASSERT(FALSE); // a definition in schema.c does not parse
+    }
+}
+
 PCAT_RESOURCE AtFindResource(
     _In_ PPH_STRING Uri
     )
