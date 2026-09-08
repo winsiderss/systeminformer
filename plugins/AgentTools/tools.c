@@ -312,6 +312,22 @@ VOID AtJsonAddWin32FileName(
     PhClearReference(&fileName);
 }
 
+VOID AtJsonAddHex(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Value
+    )
+{
+    PH_FORMAT format[2];
+    PPH_STRING string;
+
+    PhInitFormatS(&format[0], L"0x");
+    PhInitFormatI64X(&format[1], Value);
+    string = PhFormat(format, RTL_NUMBER_OF(format), 24);
+    AtJsonAddString(Object, Key, string);
+    PhDereferenceObject(string);
+}
+
 VOID AtJsonAddDuration(
     _In_ PVOID Object,
     _In_ PCSTR Key,

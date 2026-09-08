@@ -25,7 +25,7 @@ VOID AtpAddHandleRow(
 {
     AtJsonAddPointer(Row, "handle", Handle->HandleValue);
     AtJsonAddString(Row, "type_name", TypeName);
-    AtJsonAddPointer(Row, "granted_access", (PVOID)(ULONG_PTR)Handle->GrantedAccess);
+    AtJsonAddHex(Row, "granted_access", Handle->GrantedAccess);
     PhAddJsonObjectUInt64(Row, "attributes", Handle->HandleAttributes);
     PhAddJsonObjectBoolean(Row, "inherit", !!FlagOn(Handle->HandleAttributes, OBJ_INHERIT));
     PhAddJsonObjectBoolean(Row, "protect_from_close", !!FlagOn(Handle->HandleAttributes, OBJ_PROTECT_CLOSE));

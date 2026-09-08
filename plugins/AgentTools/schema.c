@@ -1175,7 +1175,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_64bit\":{\"type\":\"boolean\"},"
         "\"subsystem\":{\"type\":[\"string\",\"null\"],\"description\":\"native, windows_gui, windows_cui, efi and so on\"},"
         "\"time_date_stamp\":{\"type\":[\"string\",\"null\"],\"description\":\"Link timestamp; may be a reproducible-build hash\"},"
-        "\"entry_point\":{\"type\":\"string\",\"description\":\"RVA of the entry point\"},"
+        "\"entry_point\":{\"type\":[\"string\",\"null\"],\"description\":\"RVA of the entry point; null when the image has none (ntdll.dll, resource-only DLLs)\"},"
         "\"image_base\":{\"type\":\"string\"},"
         "\"size_of_image\":{\"type\":\"integer\"},"
         "\"checksum\":{\"type\":\"integer\"},"

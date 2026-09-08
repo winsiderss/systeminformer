@@ -504,6 +504,12 @@ VOID AtJsonAddPointer(
     _In_opt_ PVOID Pointer
     );
 
+VOID AtJsonAddHex(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ ULONG64 Value
+    );
+
 VOID AtJsonAddWin32FileName(
     _In_ PVOID Object,
     _In_ PCSTR Key,
