@@ -362,6 +362,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetCpuInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_cpu_info"),
         L"read the processor layout", L"Allow reading the processor layout", L"get_cpu_info"
     },
+    {
+        AtActionListLogonSessions, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_logon_sessions"),
+        L"list who is logged on", L"List the logon sessions", L"list_logon_sessions"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3784,6 +3788,59 @@ CONST AT_TOOL AtTools[] =
         "\"virtualization\":{\"type\":[\"string\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"architecture\",\"logical_processor_count\",\"page_size\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_logon_sessions", L"List logon sessions", AtTierSensitiveRead, AtActionListLogonSessions,
+        SETTING_NAME_TOOL_ACCESS(L"list_logon_sessions"), SETTING_NAME_TOOL_CONFIRM(L"list_logon_sessions"),
+        "{\"name\":\"list_logon_sessions\",\"title\":\"List logon sessions\","
+        "\"description\":\"Who is logged on, and how. Every process runs as somebody, and the logon session is "
+        "where that somebody came from: typed at the keyboard (interactive), arrived over the network, started "
+        "as a service, or came in over RDP (remote_interactive). It is the first thing to establish about a "
+        "machine, because who could have started a process is answered against this list. A machine with "
+        "nobody at it and a remote_interactive session is a different machine from one without. Note that "
+        "there are always more sessions than people: services, the two built-in system sessions and each "
+        "network authentication get one. WITHOUT ELEVATION ONLY THIS ACCOUNT'S OWN SESSIONS CAN BE READ - "
+        "every other one, including SYSTEM and every service, is refused - so compare unreadable_count "
+        "against enumerated_count before concluding who is on the machine. Fields the running Windows does "
+        "not fill in are null, because the structure grows between versions and says how far it goes. "
+        AT_SENSITIVE_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"user_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the account name\"},"
+        "\"logon_type\":{\"type\":\"string\",\"enum\":[\"interactive\",\"network\",\"batch\",\"service\",\"proxy\",\"unlock\",\"network_cleartext\",\"new_credentials\",\"remote_interactive\",\"cached_interactive\",\"cached_remote_interactive\",\"cached_unlock\"]},"
+        "\"session_id\":{\"type\":\"integer\",\"description\":\"Only sessions in this terminal services session\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sessions\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"logon_id\":{\"type\":\"string\",\"description\":\"The LUID as hexadecimal; this is what a token's authentication id refers to\"},"
+        "\"user_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_domain\":{\"type\":[\"string\",\"null\"]},"
+        "\"authentication_package\":{\"type\":[\"string\",\"null\"],\"description\":\"NTLM, Kerberos, Negotiate and so on\"},"
+        "\"logon_type\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_type_value\":{\"type\":[\"integer\",\"null\"]},"
+        "\"session_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Terminal services session\"},"
+        "\"sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_server\":{\"type\":[\"string\",\"null\"]},"
+        "\"dns_domain_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"upn\":{\"type\":[\"string\",\"null\"]},"
+        "\"user_flags_value\":{\"type\":[\"string\",\"null\"]},"
+        "\"user_flags\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}},"
+        "\"last_logon_info\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"last_successful_logon\":{\"type\":[\"string\",\"null\"]},"
+        "\"last_failed_logon\":{\"type\":[\"string\",\"null\"]},"
+        "\"failed_attempts_since_last_success\":{\"type\":\"integer\"}"
+        "}},"
+        "\"logon_script\":{\"type\":[\"string\",\"null\"]},"
+        "\"home_directory\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"logon_id\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"enumerated_count\":{\"type\":\"integer\",\"description\":\"Logon sessions the machine has, including the ones that could not be read\"},"
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"How many were refused; without elevation this is every session belonging to anybody else\"},"
+        "\"elevated\":{\"type\":\"boolean\",\"description\":\"Whether System Informer is elevated, which is what decides the above\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"enumerated_count\",\"unreadable_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
