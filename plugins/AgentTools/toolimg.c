@@ -182,7 +182,10 @@ VOID AtpAddImageHeaders(
 
     if (is64)
     {
-        PIMAGE_OPTIONAL_HEADER64 opt = &MappedImage->NtHeaders->OptionalHeader;
+        // NtHeaders carries whichever optional header this build of System Informer was compiled
+        // for, so on a 32-bit build it is the 32-bit one even when the mapped file is PE32+. The
+        // cast is how phlib reads a 64-bit optional header out of it (mapimg.c, PhGetMappedImageLoadConfig64).
+        PIMAGE_OPTIONAL_HEADER64 opt = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
 
         AT_ADD_OPTIONAL(opt);
     }
@@ -226,8 +229,10 @@ VOID AtpAddImageDirectories(
 
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
     {
-        directories = MappedImage->NtHeaders->OptionalHeader.DataDirectory;
-        count = MappedImage->NtHeaders->OptionalHeader.NumberOfRvaAndSizes;
+        PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
+
+        directories = optionalHeader->DataDirectory;
+        count = optionalHeader->NumberOfRvaAndSizes;
     }
     else
     {
@@ -700,7 +705,7 @@ VOID AtpAddImageCertificates(
     // The security directory is the one that does not hold an RVA: its VirtualAddress is a file
     // offset, because the certificate is not mapped when the image is loaded.
     if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-        directory = &MappedImage->NtHeaders->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+        directory = &((PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader)->DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
     else
         directory = &MappedImage->NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
 
