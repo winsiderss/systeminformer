@@ -233,6 +233,16 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"start the following service", L"Start", L"start_service"
     },
     {
+        AtActionPauseService, AtTierWrite, AtConsentClassNone, AtTargetService,
+        SERVICE_PAUSE_CONTINUE | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"pause_service"),
+        L"pause the following service", L"Pause", L"pause_service"
+    },
+    {
+        AtActionContinueService, AtTierWrite, AtConsentClassNone, AtTargetService,
+        SERVICE_PAUSE_CONTINUE | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"continue_service"),
+        L"continue the following service", L"Continue", L"continue_service"
+    },
+    {
         AtActionStopService, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_STOP | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"stop_service"),
         L"stop the following service", L"Stop", L"stop_service"
     },
@@ -2631,6 +2641,30 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"start_service"), SETTING_NAME_TOOL_CONFIRM(L"start_service"),
         "{\"name\":\"start_service\",\"title\":\"Start service\","
         "\"description\":\"Starts a service or driver. " AT_SERVICE_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
+        "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "pause_service", L"Pause service", AtTierWrite, AtActionPauseService,
+        SETTING_NAME_TOOL_ACCESS(L"pause_service"), SETTING_NAME_TOOL_CONFIRM(L"pause_service"),
+        "{\"name\":\"pause_service\",\"title\":\"Pause service\","
+        "\"description\":\"Pauses a service. MOST SERVICES CANNOT BE PAUSED: pausing is something a service has "
+        "to implement, and what one accepts is listed by get_service as controls_accepted - a service without "
+        "pause_continue there is refused here rather than being asked and failing with a message about control "
+        "messages. What pausing means is the service's own decision: it keeps running and stops taking new work, "
+        "and how completely is up to whoever wrote it. Use stop_service to actually stop one. "
+        AT_SERVICE_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
+        "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "continue_service", L"Continue service", AtTierWrite, AtActionContinueService,
+        SETTING_NAME_TOOL_ACCESS(L"continue_service"), SETTING_NAME_TOOL_CONFIRM(L"continue_service"),
+        "{\"name\":\"continue_service\",\"title\":\"Continue service\","
+        "\"description\":\"Resumes a service that was paused. Only a service that accepts pause_continue can be "
+        "continued, and only from paused - the state field says where it ended up. " AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
         AT_WRITE_ANNOTATIONS "}"

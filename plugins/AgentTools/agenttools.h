@@ -129,6 +129,8 @@ typedef enum _AT_ACTION
     AtActionListServices,
     AtActionGetService,
     AtActionStartService,
+    AtActionPauseService,
+    AtActionContinueService,
     AtActionStopService,
     AtActionRestartService,
     AtActionSetServiceConfig,

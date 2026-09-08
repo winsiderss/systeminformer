@@ -841,6 +841,30 @@ VOID AtpControlService(
     case AtActionStartService:
         status = PhStartService(serviceHandle, 0, NULL);
         break;
+    case AtActionPauseService:
+    case AtActionContinueService:
+        {
+            // Most services do not implement pause at all, and the error for asking is
+            // "cannot accept control messages at this time", which reads like a timing problem.
+            // What the service accepts is in its own status, so it is read and said plainly.
+            if (NT_SUCCESS(status = PhQueryServiceStatus(serviceHandle, &serviceStatus)) &&
+                !FlagOn(serviceStatus.dwControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE))
+            {
+                AtSetToolError(Result, "failed", STATUS_NOT_SUPPORTED,
+                    L"%s does not accept pause and continue; get_service lists what a service accepts "
+                    L"under controls_accepted, and most accept only stop.",
+                    PhGetString(serviceItem->Name)
+                    );
+                return;
+            }
+
+            if (NT_SUCCESS(status))
+            {
+                status = Tool->Action == AtActionPauseService ?
+                    PhPauseService(serviceHandle) : PhContinueService(serviceHandle);
+            }
+        }
+        break;
     case AtActionStopService:
         status = PhStopService(serviceHandle);
         break;
@@ -959,6 +983,8 @@ VOID AtServiceInvokeTool(
     case AtActionStartService:
     case AtActionStopService:
     case AtActionRestartService:
+    case AtActionPauseService:
+    case AtActionContinueService:
     case AtActionSetServiceConfig:
         AtpControlService(Tool, Call, Target, Result);
         break;

@@ -1470,6 +1470,8 @@ VOID AtInvokeTool(
     case AtActionListServices:
     case AtActionGetService:
     case AtActionStartService:
+    case AtActionPauseService:
+    case AtActionContinueService:
     case AtActionStopService:
     case AtActionRestartService:
     case AtActionSetServiceConfig:

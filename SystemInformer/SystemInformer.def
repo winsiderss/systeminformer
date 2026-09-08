@@ -1292,6 +1292,8 @@ EXPORTS
     PhQueryServiceConfig2
     PhQueryServiceStatus
     PhQueryServiceVariableSize
+    PhContinueService
+    PhPauseService
     PhStartService
     PhStopService
 
