@@ -40,7 +40,87 @@ typedef struct _AT_MODULE_CONTEXT
     AT_ROWS Modules;
     PPH_STRING NameContains;
     BOOLEAN Summary;
+    BOOLEAN IncludeDetails;
+    BOOLEAN UnsignedOnly;
 } AT_MODULE_CONTEXT, *PAT_MODULE_CONTEXT;
+
+PCWSTR AtpLoadReasonString(
+    _In_ USHORT LoadReason
+    )
+{
+    switch (LoadReason)
+    {
+    case LoadReasonStaticDependency:
+        return L"static_dependency";
+    case LoadReasonStaticForwarderDependency:
+        return L"static_forwarder_dependency";
+    case LoadReasonDynamicForwarderDependency:
+        return L"dynamic_forwarder_dependency";
+    case LoadReasonDelayloadDependency:
+        return L"delayload_dependency";
+    case LoadReasonDynamicLoad:
+        return L"dynamic_load";
+    case LoadReasonAsImageLoad:
+        return L"as_image_load";
+    case LoadReasonAsDataLoad:
+        return L"as_data_load";
+    case LoadReasonEnclavePrimary:
+        return L"enclave_primary";
+    case LoadReasonEnclaveDependency:
+        return L"enclave_dependency";
+    }
+
+    return NULL;
+}
+
+// What the file on disk says and who signed it. Verification is not cached here, so it is only done
+// when the caller asked for the detail or is filtering on it.
+VOID AtpAddModuleDetails(
+    _In_ PVOID Row,
+    _In_ PPH_STRING FileName,
+    _In_ VERIFY_RESULT VerifyResult,
+    _In_opt_ PPH_STRING Signer
+    )
+{
+    PH_IMAGE_VERSION_INFO versionInfo;
+    FILE_NETWORK_OPEN_INFORMATION fileInfo;
+    PPH_STRING win32FileName;
+    PVOID entry;
+
+    AtJsonAddStringZ(Row, "verify_result", AtVerifyResultString(VerifyResult));
+    AtJsonAddString(Row, "verify_signer", Signer);
+    PhAddJsonObjectBoolean(Row, "is_microsoft_signed", !!PhVerifyFileIsChainedToMicrosoft(&FileName->sr, TRUE));
+
+    win32FileName = PhGetFileName(FileName);
+
+    if (win32FileName && NT_SUCCESS(PhInitializeImageVersionInfo(&versionInfo, win32FileName->Buffer)))
+    {
+        entry = PhCreateJsonObject();
+        AtJsonAddString(entry, "company", versionInfo.CompanyName);
+        AtJsonAddString(entry, "description", versionInfo.FileDescription);
+        AtJsonAddString(entry, "file_version", versionInfo.FileVersion);
+        AtJsonAddString(entry, "product", versionInfo.ProductName);
+        PhAddJsonObjectValue(Row, "version_info", entry);
+        PhDeleteImageVersionInfo(&versionInfo);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "version_info");
+    }
+
+    if (win32FileName && NT_SUCCESS(PhQueryFullAttributesFileWin32(win32FileName->Buffer, &fileInfo)))
+    {
+        PhAddJsonObjectUInt64(Row, "file_size", fileInfo.EndOfFile.QuadPart);
+        AtJsonAddTime(Row, "file_modified_time", &fileInfo.LastWriteTime);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "file_size");
+        AtJsonAddNull(Row, "file_modified_time");
+    }
+
+    PhClearReference(&win32FileName);
+}
 
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 BOOLEAN NTAPI AtpModuleCallback(
@@ -50,6 +130,9 @@ BOOLEAN NTAPI AtpModuleCallback(
 {
     PAT_MODULE_CONTEXT context = Context;
     PVOID row;
+    VERIFY_RESULT verifyResult = VrUnknown;
+    PPH_STRING signer = NULL;
+    BOOLEAN verified = FALSE;
 
     if (context->NameContains &&
         !AtContainsString(Module->Name, context->NameContains) &&
@@ -62,6 +145,28 @@ BOOLEAN NTAPI AtpModuleCallback(
     {
         // A triage pass wants the count, not a row per module.
         AtAddRow(&context->Modules, NULL);
+        return TRUE;
+    }
+
+    // Verification is needed for the unsigned_only filter as well as for the detail, so it happens
+    // before the row is built and decides whether there is a row at all.
+    if ((context->IncludeDetails || context->UnsignedOnly) && Module->FileName)
+    {
+        // PhVerifyFile takes a Win32 path; handing it the native one it came with returns "unknown"
+        // for everything, which reads as "nothing here is signed".
+        PPH_STRING win32FileName = PhGetFileName(Module->FileName);
+
+        if (win32FileName)
+        {
+            verifyResult = PhVerifyFile(win32FileName->Buffer, &signer);
+            verified = TRUE;
+            PhDereferenceObject(win32FileName);
+        }
+    }
+
+    if (context->UnsignedOnly && (!verified || verifyResult == VrTrusted))
+    {
+        PhClearReference(&signer);
         return TRUE;
     }
 
@@ -85,6 +190,34 @@ BOOLEAN NTAPI AtpModuleCallback(
 
     AtJsonAddTime(row, "load_time", &Module->LoadTime);
 
+    // Free from the module entry: where it wanted to be loaded, and why it was loaded at all.
+    AtJsonAddPointer(row, "original_base_address", Module->OriginalBaseAddress);
+    PhAddJsonObjectBoolean(
+        row,
+        "is_not_at_base",
+        Module->OriginalBaseAddress != NULL && Module->OriginalBaseAddress != Module->BaseAddress
+        );
+
+    if (Module->LoadReason != USHRT_MAX)
+        AtJsonAddStringZ(row, "load_reason", AtpLoadReasonString(Module->LoadReason));
+    else
+        AtJsonAddNull(row, "load_reason");
+
+    if (verified)
+    {
+        AtpAddModuleDetails(row, Module->FileName, verifyResult, signer);
+    }
+    else if (context->IncludeDetails)
+    {
+        AtJsonAddNull(row, "verify_result");
+        AtJsonAddNull(row, "verify_signer");
+        AtJsonAddNull(row, "is_microsoft_signed");
+        AtJsonAddNull(row, "version_info");
+        AtJsonAddNull(row, "file_size");
+        AtJsonAddNull(row, "file_modified_time");
+    }
+
+    PhClearReference(&signer);
     AtAddRow(&context->Modules, row);
 
     return TRUE;
@@ -107,6 +240,8 @@ PVOID AtpCreateModulesResult(
     AtInitializeRows(&context.Modules, Call->Arguments);
     context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
     context.Summary = Summary;
+    context.IncludeDetails = !Summary && AtJsonGetObjectBoolean(Call->Arguments, "include_details");
+    context.UnsignedOnly = AtJsonGetObjectBoolean(Call->Arguments, "unsigned_only");
 
     if (AtJsonGetObjectBoolean(Call->Arguments, "include_mapped_files"))
         flags = PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES;
