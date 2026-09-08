@@ -2014,6 +2014,56 @@ FLOAT EtLookupProcessGpuUtilization(
     return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
+/**
+ * Copies out the graphics work and video memory attributed to a process.
+ *
+ * \param ProcessId The process to report on.
+ * \param Statistics The copied statistics. Not written unless GPU monitoring is running.
+ * eturn TRUE if GPU monitoring is running, FALSE otherwise.
+ *
+ * emarks EXTENDEDTOOLS_INTERFACE. A process that is not using the GPU reads as zero, which is
+ * also what every process reads as when the performance counters are not being collected; the
+ * caller is told which case it is looking at rather than left to guess.
+ */
+BOOLEAN EtLookupProcessGpuStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
+    )
+{
+    ULONG64 sharedUsage;
+    ULONG64 dedicatedUsage;
+    ULONG64 commitUsage;
+    ULONG64 dedicatedCommitted;
+    ULONG64 sharedCommitted;
+
+    if (!EtGpuEnabled)
+        return FALSE;
+
+    memset(Statistics, 0, sizeof(EXTENDEDTOOLS_PROCESS_GPU));
+    Statistics->GpuEnabled = EtGpuEnabled;
+    Statistics->PerformanceCountersEnabled = EtGpuD3DEnabled;
+    Statistics->Utilization = EtLookupProcessGpuUtilization(ProcessId);
+
+    if (EtLookupProcessGpuMemoryCounters(
+        ProcessId,
+        &sharedUsage,
+        &dedicatedUsage,
+        &commitUsage,
+        &dedicatedCommitted,
+        &sharedCommitted
+        ))
+    {
+        Statistics->SharedBytes = sharedUsage;
+        Statistics->DedicatedBytes = dedicatedUsage;
+        Statistics->CommitBytes = commitUsage;
+        Statistics->DedicatedCommittedBytes = dedicatedCommitted;
+        Statistics->SharedCommittedBytes = sharedCommitted;
+    }
+
+    return TRUE;
+}
+
+// EXTENDEDTOOLS_INTERFACE
 FLOAT EtLookupProcessGpuEngineUtilization(
     _In_ HANDLE ProcessId,
     _In_ LUID AdapterLuid,

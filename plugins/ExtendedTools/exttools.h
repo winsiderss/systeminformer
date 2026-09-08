@@ -1363,6 +1363,12 @@ ULONG64 EtLookupTotalGpuAdapterShared(
     );
 
 // EXTENDEDTOOLS_INTERFACE
+BOOLEAN EtLookupProcessGpuStatistics(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
+    );
+
+// EXTENDEDTOOLS_INTERFACE
 BOOLEAN EtLookupProcessIoStatistics(
     _In_ HANDLE ProcessId,
     _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics

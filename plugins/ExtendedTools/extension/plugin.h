@@ -14,7 +14,7 @@
 #define ETPLUGINEXT_H
 
 #define EXTENDEDTOOLS_PLUGIN_NAME L"ExtendedTools"
-#define EXTENDEDTOOLS_INTERFACE_VERSION 2
+#define EXTENDEDTOOLS_INTERFACE_VERSION 3
 
 typedef FLOAT (NTAPI* PEXTENDEDTOOLS_GET_GPUADAPTERUTILIZATION)(
     _In_ LUID AdapterLuid
@@ -33,7 +33,8 @@ typedef FLOAT (NTAPI* PEXTENDEDTOOLS_GET_GPUADAPTERENGINEUTILIZATION)(
 /**
  * Per-process disk and network I/O as ExtendedTools accumulates it.
  *
- * emarks The counters have two independent sources and each field is only as good as the source
+ * 
+emarks The counters have two independent sources and each field is only as good as the source
  * that fills it. The kernel trace session attributes disk and network events to processes and is
  * the only source of the operation counts; the disk and network counters on the process item fill
  * in the byte totals without it. EtwEnabled and DiskCountersEnabled say which of the two were
@@ -77,6 +78,38 @@ typedef BOOLEAN (NTAPI* PEXTENDEDTOOLS_GET_PROCESSIO)(
     _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics
     );
 
+/**
+ * The graphics work and video memory attributed to one process.
+ *
+ * emarks These come from the graphics performance counters, which ExtendedTools only collects
+ * when its GPU monitor and performance-counter mode are both on. PerformanceCountersEnabled says
+ * whether they were: with the collector off every field here is zero, and a process that is not
+ * using the GPU is zero too.
+ */
+typedef struct _EXTENDEDTOOLS_PROCESS_GPU
+{
+    BOOLEAN GpuEnabled;                 // GPU monitoring found adapters and started.
+    BOOLEAN PerformanceCountersEnabled; // The counters these values are read from are being collected.
+
+    FLOAT Utilization;                  // 0..1, this process's engine shares added up and capped.
+    ULONG64 DedicatedBytes;
+    ULONG64 SharedBytes;
+    ULONG64 CommitBytes;
+    ULONG64 DedicatedCommittedBytes;
+    ULONG64 SharedCommittedBytes;
+} EXTENDEDTOOLS_PROCESS_GPU, *PEXTENDEDTOOLS_PROCESS_GPU;
+
+typedef BOOLEAN (NTAPI* PEXTENDEDTOOLS_GET_PROCESSGPU)(
+    _In_ HANDLE ProcessId,
+    _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
+    );
+
+typedef FLOAT (NTAPI* PEXTENDEDTOOLS_GET_PROCESSGPUENGINE)(
+    _In_ HANDLE ProcessId,
+    _In_ LUID AdapterLuid,
+    _In_ ULONG EngineId
+    );
+
 typedef struct _EXTENDEDTOOLS_INTERFACE
 {
     ULONG Version;
@@ -85,6 +118,8 @@ typedef struct _EXTENDEDTOOLS_INTERFACE
     PEXTENDEDTOOLS_GET_GPUADAPTERSHARED GetGpuAdapterShared;
     PEXTENDEDTOOLS_GET_GPUADAPTERENGINEUTILIZATION GetGpuAdapterEngineUtilization;
     PEXTENDEDTOOLS_GET_PROCESSIO GetProcessIoStatistics; // Version 2
+    PEXTENDEDTOOLS_GET_PROCESSGPU GetProcessGpuStatistics; // Version 3
+    PEXTENDEDTOOLS_GET_PROCESSGPUENGINE GetProcessGpuEngineUtilization; // Version 3
 } EXTENDEDTOOLS_INTERFACE, *PEXTENDEDTOOLS_INTERFACE;
 
 extern EXTENDEDTOOLS_INTERFACE PluginInterface;
