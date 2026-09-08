@@ -802,6 +802,10 @@ PAT_AGENT_NODE AtpCreateAgentNode(
 
     for (i = 0; i < AtActionMaximum; i++)
     {
+        // A class grant is named once, by the class, not by every action that shares it.
+        if (AtActionInfo[i].Class != AtConsentClassNone)
+            continue;
+
         if (Connection->SessionPolicy[i] != AtSessionAsk)
         {
             if (grants.String->Length)
@@ -810,6 +814,20 @@ PAT_AGENT_NODE AtpCreateAgentNode(
             PhAppendStringBuilder2(&grants, AtActionInfo[i].AuditName);
 
             if (Connection->SessionPolicy[i] == AtSessionDelegate)
+                PhAppendStringBuilder2(&grants, L" (client)");
+        }
+    }
+
+    for (i = AtConsentClassNone + 1; i < AtConsentClassMaximum; i++)
+    {
+        if (Connection->ClassPolicy[i] != AtSessionAsk)
+        {
+            if (grants.String->Length)
+                PhAppendStringBuilder2(&grants, L", ");
+
+            PhAppendStringBuilder2(&grants, (PWSTR)AtConsentClassDescription(i));
+
+            if (Connection->ClassPolicy[i] == AtSessionDelegate)
                 PhAppendStringBuilder2(&grants, L" (client)");
         }
     }
@@ -871,6 +889,7 @@ VOID AtpRefreshAgents(
     TreeNew_SetRedraw(treeNew, TRUE);
 
     EnableWindow(GetDlgItem(Context->WindowHandle, IDC_DISCONNECT), selectedNode != NULL);
+    EnableWindow(GetDlgItem(Context->WindowHandle, IDC_REVOKE_GRANTS), selectedNode != NULL);
 }
 
 int __cdecl AtpAgentsSortFunction(
@@ -997,6 +1016,7 @@ BOOLEAN NTAPI AtpAgentsTreeNewCallback(
 
             context->SelectedConnectionId = node ? node->ConnectionId : 0;
             EnableWindow(GetDlgItem(context->WindowHandle, IDC_DISCONNECT), node != NULL);
+            EnableWindow(GetDlgItem(context->WindowHandle, IDC_REVOKE_GRANTS), node != NULL);
         }
         return TRUE;
     }
@@ -1131,6 +1151,7 @@ INT_PTR CALLBACK AtAgentsDlgProc(
             PhInitializeLayoutManager(&context->LayoutManager, WindowHandle);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_AGENTS_GROUP), NULL, PH_ANCHOR_ALL);
             PhAddLayoutItem(&context->LayoutManager, treeNew, NULL, PH_ANCHOR_ALL);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REVOKE_GRANTS), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_DISCONNECT), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_CONFIG_GROUP), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, configTarget, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
@@ -1185,6 +1206,16 @@ INT_PTR CALLBACK AtAgentsDlgProc(
                     if (context->SelectedConnectionId)
                     {
                         AtServerDisconnect(context->SelectedConnectionId);
+                        AtpRefreshAgents(context);
+                    }
+                }
+                break;
+            case IDC_REVOKE_GRANTS:
+                {
+                    // Takes back every "allow for this session" without dropping the connection.
+                    if (context->SelectedConnectionId)
+                    {
+                        AtConsentRevokeGrants(context->SelectedConnectionId);
                         AtpRefreshAgents(context);
                     }
                 }

@@ -112,6 +112,20 @@ typedef enum _AT_ACTION
     AtActionMaximum,
 } AT_ACTION;
 
+// A session grant covers a class of data rather than one tool, so a scan that reads the same thing
+// across every process asks once instead of once per process, and a later tool that reads exactly
+// that data joins the grant the user already made. A class is deliberately narrow: it groups tools
+// that expose the same data about the same objects, never merely related ones. AtConsentClassNone
+// keys the grant by the action itself.
+typedef enum _AT_CONSENT_CLASS
+{
+    AtConsentClassNone,
+    AtConsentClassHandleNames,
+    AtConsentClassThreadStacks,
+    AtConsentClassProcessMemory,
+    AtConsentClassMaximum
+} AT_CONSENT_CLASS;
+
 typedef enum _AT_TARGET_KIND
 {
     AtTargetNone,
@@ -126,6 +140,7 @@ typedef struct _AT_ACTION_INFO
 {
     AT_ACTION Action;
     AT_TIER Tier;
+    AT_CONSENT_CLASS Class;
     AT_TARGET_KIND TargetKind;
     ACCESS_MASK TargetAccess;
     PWSTR ConfirmSetting;
@@ -245,6 +260,7 @@ typedef struct _AT_CONNECTION
     SIZE_T DeferredBytes;
 
     AT_SESSION_POLICY SessionPolicy[AtActionMaximum];
+    AT_SESSION_POLICY ClassPolicy[AtConsentClassMaximum];
     AT_PENDING_CONSENT Pending[AT_MAX_PENDING_CONSENTS];
 
     PH_QUEUED_LOCK Lock;
@@ -842,6 +858,17 @@ AT_CONSENT_RESULT AtConsentGate(
 
 PPH_STRING AtFormatCallerDescription(
     _In_ PAT_CONNECTION Connection
+    );
+
+// What a session grant for this action covers, in the user's words; NULL when the grant is the
+// action itself.
+PCWSTR AtConsentClassDescription(
+    _In_ AT_CONSENT_CLASS Class
+    );
+
+// Drops every session grant this connection holds, without disconnecting it.
+VOID AtConsentRevokeGrants(
+    _In_ ULONG ConnectionId
     );
 
 VOID AtAudit(

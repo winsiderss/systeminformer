@@ -876,6 +876,7 @@ AT_CONSENT_RESULT AtpAskUser(
     PAT_CONNECTION connection = Call->Connection;
     PAT_CONSENT_REQUEST request;
     PPH_STRING requester;
+    PCWSTR classDescription;
     AT_CONSENT_RESULT result;
 
     requester = AtpFormatRequester(connection);
@@ -909,6 +910,16 @@ AT_CONSENT_RESULT AtpAskUser(
         request->Content = PhFormatString(L"%s\n\nThis data can contain secrets.", PhGetString(requester));
     else
         request->Content = PhReferenceObject(requester);
+
+    // Allowing for the session is not "this target again": say what it actually covers.
+    if (classDescription = AtConsentClassDescription(Action->Class))
+    {
+        PhMoveReference(&request->Content, PhFormatString(
+            L"%s\n\nAllowing this for the session allows %s until this agent disconnects or you revoke it in Options.",
+            PhGetString(request->Content),
+            classDescription
+            ));
+    }
 
     PhDereferenceObject(requester);
 
@@ -1044,6 +1055,90 @@ VOID AtConsentReleaseConnection(
     AtpDereferenceConsentRequest(request);
 }
 
+PCWSTR AtConsentClassDescription(
+    _In_ AT_CONSENT_CLASS Class
+    )
+{
+    switch (Class)
+    {
+    case AtConsentClassHandleNames:
+        return L"reading the names of the objects behind handles, in any process";
+    case AtConsentClassThreadStacks:
+        return L"reading thread stacks and their symbols, in any process";
+    case AtConsentClassProcessMemory:
+        return L"reading the contents of process memory, in any process";
+    }
+
+    return NULL;
+}
+
+// A grant is held against the action's class when it has one, so a tool that reads exactly the same
+// data does not ask again, and against the action itself when it does not.
+AT_SESSION_POLICY AtpGetSessionPolicy(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PCAT_ACTION_INFO Action
+    )
+{
+    AT_SESSION_POLICY policy;
+
+    PhAcquireQueuedLockExclusive(&Connection->Lock);
+
+    if (Action->Class != AtConsentClassNone)
+        policy = Connection->ClassPolicy[Action->Class];
+    else
+        policy = Connection->SessionPolicy[Action->Action];
+
+    PhReleaseQueuedLockExclusive(&Connection->Lock);
+
+    return policy;
+}
+
+VOID AtpSetSessionPolicy(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PCAT_ACTION_INFO Action,
+    _In_ AT_SESSION_POLICY Policy
+    )
+{
+    PhAcquireQueuedLockExclusive(&Connection->Lock);
+
+    if (Action->Class != AtConsentClassNone)
+        Connection->ClassPolicy[Action->Class] = Policy;
+    else
+        Connection->SessionPolicy[Action->Action] = Policy;
+
+    PhReleaseQueuedLockExclusive(&Connection->Lock);
+}
+
+VOID AtConsentRevokeGrants(
+    _In_ ULONG ConnectionId
+    )
+{
+    PPH_LIST connections;
+    ULONG i;
+
+    connections = AtServerSnapshotConnections();
+
+    if (!connections)
+        return;
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        if (connection->ConnectionId != ConnectionId)
+            continue;
+
+        PhAcquireQueuedLockExclusive(&connection->Lock);
+        memset(connection->SessionPolicy, 0, sizeof(connection->SessionPolicy));
+        memset(connection->ClassPolicy, 0, sizeof(connection->ClassPolicy));
+        PhReleaseQueuedLockExclusive(&connection->Lock);
+
+        AtAudit(connection, &AtActionInfo[AtActionConnect], NULL, L"session grants revoked");
+    }
+
+    PhDereferenceObject(connections);
+}
+
 AT_CONSENT_RESULT AtConsentGate(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,
@@ -1063,10 +1158,8 @@ AT_CONSENT_RESULT AtConsentGate(
         return AtConsentAllowed;
 
     // A grant already held by this connection, chosen in the dialog (or, for reads, through the
-    // client's prompt). Disconnect clears the table under the lock from another thread.
-    PhAcquireQueuedLockExclusive(&connection->Lock);
-    policy = connection->SessionPolicy[Action->Action];
-    PhReleaseQueuedLockExclusive(&connection->Lock);
+    // client's prompt). Revoke grants, or Disconnect, clears it from the options page.
+    policy = AtpGetSessionPolicy(connection, Action);
 
     if (policy == AtSessionAllow)
         return AtConsentAllowed;
@@ -1077,10 +1170,8 @@ AT_CONSENT_RESULT AtConsentGate(
 
         if (result == AtConsentAllowed && policy != AtSessionAsk)
         {
-            // The choice lasts for this connection only; Disconnect on the options page voids it.
-            PhAcquireQueuedLockExclusive(&connection->Lock);
-            connection->SessionPolicy[Action->Action] = policy;
-            PhReleaseQueuedLockExclusive(&connection->Lock);
+            // The choice lasts for this connection only; Revoke grants voids it.
+            AtpSetSessionPolicy(connection, Action, policy);
             AtAudit(
                 connection,
                 Action,
@@ -1098,11 +1189,7 @@ AT_CONSENT_RESULT AtConsentGate(
         // The client's prompt offers no session choice. Its message says a read is granted for
         // the rest of the session, so honour that; writes are asked every time.
         if (result == AtConsentAllowed && Action->Tier != AtTierWrite)
-        {
-            PhAcquireQueuedLockExclusive(&connection->Lock);
-            connection->SessionPolicy[Action->Action] = AtSessionAllow;
-            PhReleaseQueuedLockExclusive(&connection->Lock);
-        }
+            AtpSetSessionPolicy(connection, Action, AtSessionAllow);
     }
 
     switch (result)

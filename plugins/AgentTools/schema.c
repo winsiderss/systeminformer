@@ -14,181 +14,181 @@
 CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 {
     {
-        AtActionConnect, AtTierRead, AtTargetNone, 0, SETTING_NAME_CONFIRM_CONNECTIONS,
+        AtActionConnect, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_CONFIRM_CONNECTIONS,
         L"connect", L"Allow this agent to connect to System Informer", L"connect"
     },
     // processes
     {
-        AtActionListProcesses, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_processes"),
+        AtActionListProcesses, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_processes"),
         L"list processes", L"Allow listing processes", L"list_processes"
     },
     {
-        AtActionGetProcess, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process"),
+        AtActionGetProcess, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process"),
         L"read process details", L"Allow reading process details", L"get_process"
     },
     {
-        AtActionGetProcessModules, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
+        AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
     {
-        AtActionGetProcessThreads, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_threads"),
+        AtActionGetProcessThreads, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_threads"),
         L"list the threads of processes", L"Allow listing process threads", L"get_process_threads"
     },
     {
-        AtActionGetProcessHandles, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles"),
+        AtActionGetProcessHandles, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles"),
         L"list the handles of processes", L"Allow listing process handles", L"get_process_handles"
     },
     {
-        AtActionGetProcessMemoryRegions, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_memory_regions"),
+        AtActionGetProcessMemoryRegions, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_memory_regions"),
         L"list the memory regions of processes", L"Allow listing process memory regions", L"get_process_memory_regions"
     },
     {
-        AtActionGetProcessToken, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_token"),
+        AtActionGetProcessToken, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_token"),
         L"read the tokens of processes", L"Allow reading process tokens", L"get_process_token"
     },
     {
-        AtActionGetProcessWindows, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_windows"),
+        AtActionGetProcessWindows, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_windows"),
         L"list the windows of processes", L"Allow listing process windows", L"get_process_windows"
     },
     {
-        AtActionReadProcessEnvironment, AtTierSensitiveRead, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_environment"),
+        AtActionReadProcessEnvironment, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_environment"),
         L"read environment variables of processes", L"Read the environment of", L"get_process_environment"
     },
     {
-        AtActionGetProcessHandlesDetailed, AtTierSensitiveRead, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles_detailed"),
+        AtActionGetProcessHandlesDetailed, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles_detailed"),
         L"read the object names behind process handles", L"Read the handle names of", L"get_process_handles_detailed"
     },
     {
-        AtActionGetThreadStack, AtTierSensitiveRead, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
+        AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
     {
-        AtActionTerminateProcess, AtTierWrite, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
+        AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
     {
-        AtActionSuspendProcess, AtTierWrite, AtTargetProcess, PROCESS_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"suspend_process"),
+        AtActionSuspendProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"suspend_process"),
         L"suspend the following process", L"Suspend", L"suspend_process"
     },
     {
-        AtActionResumeProcess, AtTierWrite, AtTargetProcess, PROCESS_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"resume_process"),
+        AtActionResumeProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"resume_process"),
         L"resume the following process", L"Resume", L"resume_process"
     },
     {
-        AtActionSetProcessPriority, AtTierWrite, AtTargetProcess, PROCESS_SET_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_priority"),
+        AtActionSetProcessPriority, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_SET_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_priority"),
         L"set the priority of the following process", L"Set the priority of", L"set_process_priority"
     },
     {
-        AtActionSetProcessIoPriority, AtTierWrite, AtTargetProcess, PROCESS_SET_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_io_priority"),
+        AtActionSetProcessIoPriority, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_SET_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_io_priority"),
         L"set the I/O priority of the following process", L"Set the I/O priority of", L"set_process_io_priority"
     },
     {
-        AtActionCreateProcessMinidump, AtTierWrite, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"create_process_minidump"),
+        AtActionCreateProcessMinidump, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"create_process_minidump"),
         L"write a memory dump of the following process", L"Write a memory dump of", L"create_process_minidump"
     },
     {
-        AtActionCloseHandle, AtTierWrite, AtTargetHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"close_handle"),
+        AtActionCloseHandle, AtTierWrite, AtConsentClassNone, AtTargetHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"close_handle"),
         L"close the following handle", L"Close", L"close_handle"
     },
     // threads
     {
-        AtActionSuspendThread, AtTierWrite, AtTargetThread, THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"suspend_thread"),
+        AtActionSuspendThread, AtTierWrite, AtConsentClassNone, AtTargetThread, THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"suspend_thread"),
         L"suspend the following thread", L"Suspend", L"suspend_thread"
     },
     {
-        AtActionResumeThread, AtTierWrite, AtTargetThread, THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"resume_thread"),
+        AtActionResumeThread, AtTierWrite, AtConsentClassNone, AtTargetThread, THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"resume_thread"),
         L"resume the following thread", L"Resume", L"resume_thread"
     },
     {
-        AtActionTerminateThread, AtTierWrite, AtTargetThread, THREAD_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_thread"),
+        AtActionTerminateThread, AtTierWrite, AtConsentClassNone, AtTargetThread, THREAD_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_thread"),
         L"terminate the following thread", L"Terminate", L"terminate_thread"
     },
     // services
     {
-        AtActionListServices, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_services"),
+        AtActionListServices, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_services"),
         L"list services", L"Allow listing services", L"list_services"
     },
     {
-        AtActionGetService, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_service"),
+        AtActionGetService, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_service"),
         L"read service details", L"Allow reading service details", L"get_service"
     },
     {
-        AtActionStartService, AtTierWrite, AtTargetService, SERVICE_START | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"start_service"),
+        AtActionStartService, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_START | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"start_service"),
         L"start the following service", L"Start", L"start_service"
     },
     {
-        AtActionStopService, AtTierWrite, AtTargetService, SERVICE_STOP | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"stop_service"),
+        AtActionStopService, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_STOP | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"stop_service"),
         L"stop the following service", L"Stop", L"stop_service"
     },
     {
-        AtActionRestartService, AtTierWrite, AtTargetService, SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"restart_service"),
+        AtActionRestartService, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_STOP | SERVICE_START | SERVICE_QUERY_STATUS, SETTING_NAME_TOOL_CONFIRM(L"restart_service"),
         L"restart the following service", L"Restart", L"restart_service"
     },
     {
-        AtActionSetServiceConfig, AtTierWrite, AtTargetService, SERVICE_CHANGE_CONFIG | SERVICE_QUERY_CONFIG, SETTING_NAME_TOOL_CONFIRM(L"set_service_config"),
+        AtActionSetServiceConfig, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_CHANGE_CONFIG | SERVICE_QUERY_CONFIG, SETTING_NAME_TOOL_CONFIRM(L"set_service_config"),
         L"change the configuration of the following service", L"Change the configuration of", L"set_service_config"
     },
     // network
     {
-        AtActionListNetworkConnections, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
+        AtActionListNetworkConnections, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
         L"list network connections", L"Allow listing network connections", L"list_network_connections"
     },
     {
-        AtActionCloseNetworkConnection, AtTierWrite, AtTargetConnection, 0, SETTING_NAME_TOOL_CONFIRM(L"close_network_connection"),
+        AtActionCloseNetworkConnection, AtTierWrite, AtConsentClassNone, AtTargetConnection, 0, SETTING_NAME_TOOL_CONFIRM(L"close_network_connection"),
         L"close the following network connection", L"Close", L"close_network_connection"
     },
     // system
     {
-        AtActionGetSystemInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_info"),
+        AtActionGetSystemInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_info"),
         L"read system information", L"Allow reading system information", L"get_system_info"
     },
     {
-        AtActionListKernelDrivers, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
+        AtActionListKernelDrivers, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
         L"list kernel drivers", L"Allow listing kernel drivers", L"list_kernel_drivers"
     },
     {
-        AtActionGetKsiStatus, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_ksi_status"),
+        AtActionGetKsiStatus, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_ksi_status"),
         L"read the kernel driver status", L"Allow reading the kernel driver status", L"get_ksi_status"
     },
     {
-        AtActionGetPagefileInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
+        AtActionGetPagefileInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
         L"read pagefile information", L"Allow reading pagefile information", L"get_pagefile_info"
     },
     {
-        AtActionListStartupEntries, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
+        AtActionListStartupEntries, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_startup_entries"),
         L"list autostart entries", L"Allow listing autostart entries", L"list_startup_entries"
     },
     {
-        AtActionGetSmbiosInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_smbios_info"),
+        AtActionGetSmbiosInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_smbios_info"),
         L"read SMBIOS information", L"Allow reading SMBIOS information", L"get_smbios_info"
     },
     {
-        AtActionGetUefiVariables, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_uefi_variables"),
+        AtActionGetUefiVariables, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_uefi_variables"),
         L"read UEFI variables", L"Allow reading UEFI variables", L"get_uefi_variables"
     },
     {
-        AtActionGetTpmInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_tpm_info"),
+        AtActionGetTpmInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_tpm_info"),
         L"read TPM information", L"Allow reading TPM information", L"get_tpm_info"
     },
     {
-        AtActionGetSystemEnvironment, AtTierSensitiveRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_environment"),
+        AtActionGetSystemEnvironment, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_system_environment"),
         L"read the persisted system and user environment variables", L"Allow reading system environment variables", L"get_system_environment"
     },
     // files and memory
     {
-        AtActionVerifyFileSignature, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
+        AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
         L"verify file signatures", L"Allow verifying file signatures", L"verify_file_signature"
     },
     {
-        AtActionGetImageInfo, AtTierRead, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
+        AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
     {
-        AtActionReadProcessMemory, AtTierSensitiveRead, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"read_process_memory"),
+        AtActionReadProcessMemory, AtTierSensitiveRead, AtConsentClassProcessMemory, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"read_process_memory"),
         L"read the memory of processes", L"Read the memory of", L"read_process_memory"
     },
     {
-        AtActionSearchProcessMemory, AtTierSensitiveRead, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_memory"),
+        AtActionSearchProcessMemory, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_memory"),
         L"search the memory of processes", L"Search the memory of", L"search_process_memory"
     },
 };
