@@ -180,6 +180,8 @@ typedef struct _AT_SERVICE_FILTER
     BOOLEAN Driver;
     BOOLEAN HavePid;
     HANDLE Pid;
+    BOOLEAN ExcludeMicrosoft;
+    BOOLEAN UnsignedOnly;
 } AT_SERVICE_FILTER, *PAT_SERVICE_FILTER;
 
 BOOLEAN AtpServiceMatchesFilter(
@@ -214,6 +216,14 @@ BOOLEAN AtpServiceMatchesFilter(
     if (Filter->HavePid && ServiceItem->ProcessId != Filter->Pid)
         return FALSE;
 
+    // Last, and only when asked: each of these verifies the service image on disk, so the cheap
+    // filters above have already thrown away everything they can.
+    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ServiceItem->FileName))
+        return FALSE;
+
+    if (Filter->UnsignedOnly && AtVerifyFileName(ServiceItem->FileName, NULL) == VrTrusted)
+        return FALSE;
+
     return TRUE;
 }
 
@@ -231,13 +241,17 @@ VOID AtpListServices(
     ULONG64 sinceSnapshotId;
     AT_ROWS rows;
     PVOID structured;
+    BOOLEAN verifySignatures;
     ULONG i;
 
     memset(&filter, 0, sizeof(AT_SERVICE_FILTER));
+    verifySignatures = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
 
     if (Call->Arguments)
     {
         filter.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+        filter.ExcludeMicrosoft = AtJsonGetObjectBoolean(Call->Arguments, "exclude_microsoft");
+        filter.UnsignedOnly = AtJsonGetObjectBoolean(Call->Arguments, "unsigned_only");
 
         if (state = AtGetArgumentString(Call->Arguments, "state"))
         {
@@ -297,6 +311,11 @@ VOID AtpListServices(
 
         row = PhCreateJsonObject();
         AtpFillServiceRow(row, serviceItem);
+
+        // A verification per service, so only when the caller asked for the field or filtered on it.
+        if (verifySignatures)
+            PhAddJsonObjectBoolean(row, "is_microsoft_signed", AtIsMicrosoftSigned(serviceItem->FileName));
+
         AtAddRow(&rows, row);
 
         PhDereferenceObject(serviceItem);
@@ -655,31 +674,11 @@ VOID AtpGetService(
     AtpFillServiceRow(structured, serviceItem);
     AtpAddServiceKeyModifiedTime(structured, serviceItem->Name);
 
-    // Chains to a Microsoft root, which is a different question from the signer name reading as
-    // Microsoft. The path is converted and declared Win32 rather than trusting what the cache holds:
-    // telling this function a Win32 path is native makes every service look unsigned.
+    // Named is_microsoft_signed, like every other row that carries it.
     if (serviceItem->FileName)
-    {
-        PPH_STRING win32FileName = PhGetFileName(serviceItem->FileName);
-
-        if (win32FileName)
-        {
-            PhAddJsonObjectBoolean(
-                structured,
-                "is_microsoft",
-                !!PhVerifyFileIsChainedToMicrosoft(&win32FileName->sr, FALSE)
-                );
-            PhDereferenceObject(win32FileName);
-        }
-        else
-        {
-            AtJsonAddNull(structured, "is_microsoft");
-        }
-    }
+        PhAddJsonObjectBoolean(structured, "is_microsoft_signed", AtIsMicrosoftSigned(serviceItem->FileName));
     else
-    {
-        AtJsonAddNull(structured, "is_microsoft");
-    }
+        AtJsonAddNull(structured, "is_microsoft_signed");
 
     if (NT_SUCCESS(PhOpenService(
         &serviceHandle,

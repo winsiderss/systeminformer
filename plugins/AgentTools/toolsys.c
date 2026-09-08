@@ -219,6 +219,11 @@ VOID AtpListKernelDrivers(
     PRTL_PROCESS_MODULES modules;
     PPH_STRING nameContains;
     BOOLEAN verify;
+    BOOLEAN verifySignatures;
+    BOOLEAN needVerify;
+    BOOLEAN needMicrosoft;
+    BOOLEAN excludeMicrosoft;
+    BOOLEAN unsignedOnly;
     AT_ROWS rows;
     PVOID structured;
     ULONG i;
@@ -232,7 +237,15 @@ VOID AtpListKernelDrivers(
     }
 
     nameContains = AtGetArgumentString(Call->Arguments, "name_contains");
-    verify = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
+    excludeMicrosoft = AtJsonGetObjectBoolean(Call->Arguments, "exclude_microsoft");
+    unsignedOnly = AtJsonGetObjectBoolean(Call->Arguments, "unsigned_only");
+    verifySignatures = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
+
+    // Each of these is a separate full signature check of the same file, so each is done only if
+    // something actually needs its answer. Asking for both doubles the wait for no reason.
+    needVerify = verifySignatures || unsignedOnly;
+    needMicrosoft = verifySignatures || excludeMicrosoft;
+    verify = needVerify || needMicrosoft;
 
     structured = PhCreateJsonObject();
     AtInitializeRows(&rows, Call->Arguments);
@@ -265,19 +278,47 @@ VOID AtpListKernelDrivers(
         if (verify && fileName)
         {
             PPH_STRING signer = NULL;
-            VERIFY_RESULT verifyResult;
-            PPH_STRING win32FileName = PhGetFileName(fileName);
+            VERIFY_RESULT verifyResult = VrUnknown;
+            BOOLEAN microsoft = FALSE;
 
-            verifyResult = PhVerifyFile(PhGetString(win32FileName), &signer);
-            AtJsonAddStringZ(row, "verify_result", AtVerifyResultString(verifyResult));
-            AtJsonAddString(row, "verify_signer", signer);
+            if (needVerify)
+                verifyResult = AtVerifyFileName(fileName, &signer);
+
+            if (needMicrosoft)
+                microsoft = AtIsMicrosoftSigned(fileName);
+
+            if ((excludeMicrosoft && microsoft) || (unsignedOnly && verifyResult == VrTrusted))
+            {
+                PhClearReference(&signer);
+                PhFreeJsonObject(row);
+                PhClearReference(&fileName);
+                PhClearReference(&name);
+                continue;
+            }
+
+            if (needVerify)
+            {
+                AtJsonAddStringZ(row, "verify_result", AtVerifyResultString(verifyResult));
+                AtJsonAddString(row, "verify_signer", signer);
+            }
+            else
+            {
+                AtJsonAddNull(row, "verify_result");
+                AtJsonAddNull(row, "verify_signer");
+            }
+
+            if (needMicrosoft)
+                PhAddJsonObjectBoolean(row, "is_microsoft_signed", microsoft);
+            else
+                AtJsonAddNull(row, "is_microsoft_signed");
+
             PhClearReference(&signer);
-            PhClearReference(&win32FileName);
         }
         else
         {
             AtJsonAddNull(row, "verify_result");
             AtJsonAddNull(row, "verify_signer");
+            AtJsonAddNull(row, "is_microsoft_signed");
         }
 
         AtAddRow(&rows, row);

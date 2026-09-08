@@ -48,7 +48,9 @@
 #define AT_CONFIRM_NONE 0
 #define AT_CONFIRM_ALWAYS 1
 #define AT_CONFIRM_DELEGATE 2
-#define AT_SCHEMA_VERSION 1
+// 2: get_service is_microsoft and verify_file_signature is_microsoft_chained both became
+// is_microsoft_signed, the name every other row that carries the field already used.
+#define AT_SCHEMA_VERSION 2
 #define AT_CONSENT_TIMEOUT_MS (60 * 1000)
 #define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000)
 #define AT_ELICITATION_TIMEOUT_MS (10 * 60 * 1000)
@@ -776,6 +778,15 @@ VOID AtJsonAddFlagStrings(
     _In_reads_(Count) CONST ULONG* Flags,
     _In_reads_(Count) CONST PWSTR* Names,
     _In_ ULONG Count
+    );
+
+BOOLEAN AtIsMicrosoftSigned(
+    _In_opt_ PPH_STRING FileName
+    );
+
+VERIFY_RESULT AtVerifyFileName(
+    _In_opt_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *Signer
     );
 
 VOID AtAddSectionInfo(

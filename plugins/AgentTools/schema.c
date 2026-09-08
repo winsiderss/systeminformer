@@ -434,6 +434,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"working_set_bytes\":{\"type\":\"integer\"}," \
     "\"thread_count\":{\"type\":\"integer\"}," \
     "\"handle_count\":{\"type\":\"integer\"}," \
+    "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The image on disk chains to a Microsoft root, which is stronger than the signer name reading as Microsoft. Null unless it was asked for\"}," \
     "\"is_suspended\":{\"type\":\"boolean\"}" \
     "},\"required\":[\"pid\",\"process_sequence_number\"]}"
 
@@ -494,6 +495,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"image_path\":{\"type\":[\"string\",\"null\"]}," \
     "\"verify_result\":{\"type\":[\"string\",\"null\"]}," \
     "\"verify_signer\":{\"type\":[\"string\",\"null\"]}," \
+    "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The image on disk chains to a Microsoft root, which is stronger than the signer name reading as Microsoft. Null unless it was asked for\"}," \
     "\"runs_in_system_process\":{\"type\":\"boolean\"}"
 
 #define AT_SERVICE_ACTION_OUTPUT_SCHEMA \
@@ -551,6 +553,9 @@ CONST AT_TOOL AtTools[] =
         "\"started_within_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"Only processes started in the last this many seconds\"},"
         "\"protected_only\":{\"type\":\"boolean\",\"description\":\"Only protected processes\"},"
         "\"image_missing_only\":{\"type\":\"boolean\",\"description\":\"Only processes whose image file is no longer on disk, which cannot be checked against anything. Pseudo processes that never had an image, such as Registry, are not included\"},"
+        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Add is_microsoft_signed to each row. One signature verification per row, so pair it with a filter\"},"
+        "\"exclude_microsoft\":{\"type\":\"boolean\",\"description\":\"Drop everything whose image chains to a Microsoft root. This verifies each row that survived the other filters, so narrow it down first\"},"
+        "\"unsigned_only\":{\"type\":\"boolean\",\"description\":\"Keep only rows whose image does not verify as trusted. Same cost\"},"
         AT_SORT_INPUT_PROPERTIES("\"pid\",\"parent_pid\",\"name\",\"user\",\"session_id\",\"start_time\",\"cpu_usage\",\"private_bytes\",\"working_set_bytes\",\"thread_count\",\"handle_count\"") ","
         AT_PAGE_INPUT_PROPERTIES ","
         AT_DELTA_INPUT_PROPERTY
@@ -1883,6 +1888,9 @@ CONST AT_TOOL AtTools[] =
         "\"state\":{\"type\":\"string\",\"enum\":[\"running\",\"stopped\",\"paused\",\"pending\"],\"description\":\"Only services in this state; pending covers every transitional state\"},"
         "\"type\":{\"type\":\"string\",\"enum\":[\"service\",\"driver\"],\"description\":\"Only Win32 services or only kernel/file system drivers\"},"
         "\"pid\":{\"type\":\"integer\",\"description\":\"Only services hosted by this process\"},"
+        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Add is_microsoft_signed to each row. One signature verification per row, so pair it with a filter\"},"
+        "\"exclude_microsoft\":{\"type\":\"boolean\",\"description\":\"Drop everything whose image chains to a Microsoft root. This verifies each row that survived the other filters, so narrow it down first\"},"
+        "\"unsigned_only\":{\"type\":\"boolean\",\"description\":\"Keep only rows whose image does not verify as trusted. Same cost\"},"
         AT_SORT_INPUT_PROPERTIES("\"name\",\"display_name\",\"type\",\"state\",\"start_type\",\"pid\"") ","
         AT_PAGE_INPUT_PROPERTIES ","
         AT_DELTA_INPUT_PROPERTY
@@ -1930,7 +1938,7 @@ CONST AT_TOOL AtTools[] =
         "\"required_privileges\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}},"
         "\"dependents\":{\"type\":[\"array\",\"null\"],\"description\":\"Services that depend on this one, which is what stopping it would take down\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":[\"string\",\"null\"]},\"display_name\":{\"type\":[\"string\",\"null\"]}}}},"
-        "\"is_microsoft\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The service image chains to a Microsoft root\"},"
+        "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The service image chains to a Microsoft root\"},"
         "\"key_modified_time\":{\"type\":[\"string\",\"null\"],\"description\":\"When the service's registry key was last written, however it was changed\"},"
         "\"exit_code\":{\"type\":\"integer\"},"
         "\"service_specific_exit_code\":{\"type\":\"integer\"},"
@@ -2899,11 +2907,14 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"list_kernel_drivers"), SETTING_NAME_TOOL_CONFIRM(L"list_kernel_drivers"),
         "{\"name\":\"list_kernel_drivers\",\"title\":\"List loaded kernel modules\","
         "\"description\":\"Lists the kernel modules (drivers) currently loaded, with image path, base address and size, and the "
-        "signature status of the image file when verify_signatures is true. "
+        "signature status of the image file when verify_signatures is true. A third-party driver is the interesting "
+        "case, so exclude_microsoft is the filter to reach for. "
         AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or path\"},"
-        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each image's Authenticode signature (slow on first use)\"},"
+        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each image's Authenticode signature and report is_microsoft_signed (slow on first use)\"},"
+        "\"exclude_microsoft\":{\"type\":\"boolean\",\"description\":\"Drop everything whose image chains to a Microsoft root. This verifies each row that survived the other filters, so narrow it down first\"},"
+        "\"unsigned_only\":{\"type\":\"boolean\",\"description\":\"Keep only rows whose image does not verify as trusted. Same cost\"},"
         AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
@@ -2915,7 +2926,8 @@ CONST AT_TOOL AtTools[] =
         "\"load_order_index\":{\"type\":\"integer\"},"
         "\"load_count\":{\"type\":\"integer\"},"
         "\"verify_result\":{\"type\":[\"string\",\"null\"]},"
-        "\"verify_signer\":{\"type\":[\"string\",\"null\"]}"
+        "\"verify_signer\":{\"type\":[\"string\",\"null\"]},"
+        "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Chains to a Microsoft root, which is stronger than the signer name reading as Microsoft. Null unless verified\"}"
         "},\"required\":[\"base_address\",\"size\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
@@ -3099,7 +3111,7 @@ CONST AT_TOOL AtTools[] =
         "\"verify_result\":{\"type\":\"string\",\"description\":\"Trusted, No signature, Expired certificate, Revoked certificate, Not trusted, Security policy failure or Invalid hash\"},"
         "\"is_trusted\":{\"type\":\"boolean\"},"
         "\"signer\":{\"type\":[\"string\",\"null\"]},"
-        "\"is_microsoft_chained\":{\"type\":\"boolean\",\"description\":\"The signature chains to a Microsoft root\"},"
+        "\"is_microsoft_signed\":{\"type\":\"boolean\",\"description\":\"The signature chains to a Microsoft root\"},"
         "\"has_embedded_signature\":{\"type\":\"boolean\",\"description\":\"The file carries a signature of its own\"},"
         "\"signature_source\":{\"type\":[\"string\",\"null\"],\"enum\":[\"embedded\",\"catalog\",null],"
         "\"description\":\"catalog means trusted with no signature of its own\"},"
@@ -3117,7 +3129,7 @@ CONST AT_TOOL AtTools[] =
         "\"not_after\":{\"type\":\"string\",\"description\":\"ISO 8601 UTC\"}"
         "},\"required\":[\"is_primary\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES
-        "},\"required\":[\"path\",\"verify_result\",\"is_trusted\",\"is_microsoft_chained\",\"has_embedded_signature\"]},"
+        "},\"required\":[\"path\",\"verify_result\",\"is_trusted\",\"is_microsoft_signed\",\"has_embedded_signature\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

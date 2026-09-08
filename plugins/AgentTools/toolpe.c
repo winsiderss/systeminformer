@@ -284,8 +284,7 @@ VOID AtpVerifyFileSignature(
 
     // A second pass, and the one bit that matters most: whether the chain ends at Microsoft's root
     // rather than at any root the machine happens to trust.
-    PhAddJsonObjectBoolean(structured, "is_microsoft_chained",
-        !!PhVerifyFileIsChainedToMicrosoft(&path->sr, FALSE));
+    PhAddJsonObjectBoolean(structured, "is_microsoft_signed", AtIsMicrosoftSigned(path));
 
     if (includeChain)
     {

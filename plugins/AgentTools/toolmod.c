@@ -89,7 +89,7 @@ VOID AtpAddModuleDetails(
 
     AtJsonAddStringZ(Row, "verify_result", AtVerifyResultString(VerifyResult));
     AtJsonAddString(Row, "verify_signer", Signer);
-    PhAddJsonObjectBoolean(Row, "is_microsoft_signed", !!PhVerifyFileIsChainedToMicrosoft(&FileName->sr, TRUE));
+    PhAddJsonObjectBoolean(Row, "is_microsoft_signed", AtIsMicrosoftSigned(FileName));
 
     win32FileName = PhGetFileName(FileName);
 
@@ -152,16 +152,8 @@ BOOLEAN NTAPI AtpModuleCallback(
     // before the row is built and decides whether there is a row at all.
     if ((context->IncludeDetails || context->UnsignedOnly) && Module->FileName)
     {
-        // PhVerifyFile takes a Win32 path; handing it the native one it came with returns "unknown"
-        // for everything, which reads as "nothing here is signed".
-        PPH_STRING win32FileName = PhGetFileName(Module->FileName);
-
-        if (win32FileName)
-        {
-            verifyResult = PhVerifyFile(win32FileName->Buffer, &signer);
-            verified = TRUE;
-            PhDereferenceObject(win32FileName);
-        }
+        verifyResult = AtVerifyFileName(Module->FileName, &signer);
+        verified = TRUE;
     }
 
     if (context->UnsignedOnly && (!verified || verifyResult == VrTrusted))

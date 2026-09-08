@@ -84,7 +84,8 @@ VOID AtpAddParentPid(
 }
 
 PVOID AtpCreateProcessRow(
-    _In_ PPH_PROCESS_ITEM ProcessItem
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN VerifySignatures
     )
 {
     PVOID row;
@@ -103,6 +104,10 @@ PVOID AtpCreateProcessRow(
     PhAddJsonObjectUInt64(row, "thread_count", ProcessItem->NumberOfThreads);
     PhAddJsonObjectUInt64(row, "handle_count", ProcessItem->NumberOfHandles);
     PhAddJsonObjectBoolean(row, "is_suspended", !!ProcessItem->IsSuspended);
+
+    // A full signature verification per process, so only when asked for.
+    if (VerifySignatures)
+        PhAddJsonObjectBoolean(row, "is_microsoft_signed", AtIsMicrosoftSigned(ProcessItem->FileName));
 
     return row;
 }
@@ -443,6 +448,9 @@ VOID AtpFillProcessDetail(
     PhAddJsonObjectBoolean(Object, "is_elevated", !!ProcessItem->IsElevated);
     AtJsonAddStringZ(Object, "verify_result", AtVerifyResultString(ProcessItem->VerifyResult));
     AtJsonAddString(Object, "verify_signer", ProcessItem->VerifySignerName);
+    // Verified here rather than taken from the provider, which only fills verify_result in when the
+    // signature stage is enabled and reports nothing at all when it is not.
+    PhAddJsonObjectBoolean(Object, "is_microsoft_signed", AtIsMicrosoftSigned(ProcessItem->FileName));
     AtJsonAddString(Object, "package_full_name", ProcessItem->PackageFullName);
     PhAddJsonObjectBoolean(Object, "is_protected_process", !!ProcessItem->IsProtectedProcess);
     AtJsonAddStringZ(Object, "protection", AtpProtectionString(ProcessItem->Protection));
@@ -662,6 +670,8 @@ typedef struct _AT_LIST_FILTER
     BOOLEAN HaveParentPid;
     HANDLE ParentPid;
     BOOLEAN IncludeTree;
+    BOOLEAN ExcludeMicrosoft;
+    BOOLEAN UnsignedOnly;
 } AT_LIST_FILTER, *PAT_LIST_FILTER;
 
 BOOLEAN AtpMatchesFilter(
@@ -704,6 +714,14 @@ BOOLEAN AtpMatchesFilter(
         }
     }
 
+    // Last, and only when asked: each of these is a signature verification of the image on disk, so
+    // every cheap filter above has already thrown away everything it can.
+    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ProcessItem->FileName))
+        return FALSE;
+
+    if (Filter->UnsignedOnly && AtVerifyFileName(ProcessItem->FileName, NULL) == VrTrusted)
+        return FALSE;
+
     if (Filter->Pids)
     {
         ULONG count = PhGetJsonArrayLength(Filter->Pids);
@@ -742,8 +760,10 @@ VOID AtpListProcesses(
     ULONG64 sinceSnapshotId;
     ULONG64 startedWithin;
     PPH_STRING startedAfter;
+    BOOLEAN verifySignatures;
 
     memset(&filter, 0, sizeof(AT_LIST_FILTER));
+    verifySignatures = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
 
     if (Call->Arguments)
     {
@@ -753,6 +773,8 @@ VOID AtpListProcesses(
         filter.IncludeTree = AtJsonGetObjectBoolean(Call->Arguments, "include_tree");
         filter.ProtectedOnly = AtJsonGetObjectBoolean(Call->Arguments, "protected_only");
         filter.ImageMissingOnly = AtJsonGetObjectBoolean(Call->Arguments, "image_missing_only");
+        filter.ExcludeMicrosoft = AtJsonGetObjectBoolean(Call->Arguments, "exclude_microsoft");
+        filter.UnsignedOnly = AtJsonGetObjectBoolean(Call->Arguments, "unsigned_only");
 
         if (startedAfter = AtGetArgumentString(Call->Arguments, "started_after"))
         {
@@ -842,7 +864,7 @@ VOID AtpListProcesses(
         if (!matched[i])
             continue;
 
-        AtAddRow(&rows, AtpCreateProcessRow(processItems[i]));
+        AtAddRow(&rows, AtpCreateProcessRow(processItems[i], verifySignatures));
     }
 
     AtAddRows(structured, "processes", &rows);
@@ -899,7 +921,7 @@ VOID AtpGetProcess(
 
             if (batch.Summary)
             {
-                entry = AtpCreateProcessRow(processItem);
+                entry = AtpCreateProcessRow(processItem, FALSE);
             }
             else
             {

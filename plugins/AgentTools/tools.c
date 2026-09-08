@@ -1110,6 +1110,55 @@ VOID AtJsonAddFlagStrings(
 
 // A section, rendered the same way whether the information came from the object itself or from the
 // driver on behalf of another process. The caller queries; this only formats.
+// Whether the file's signature chains to a Microsoft root, which is a different question from the
+// signer name reading as Microsoft: anyone can put that in a certificate, and a binary signed
+// through a Microsoft CA does not chain to the root Windows itself is signed with.
+//
+// Both of these convert to a Win32 path first and say so. Telling PhVerifyFileIsChainedToMicrosoft
+// that a Win32 path is native, or handing PhVerifyFile a native one, makes every file look unsigned
+// - and an "unsigned" answer is the one nobody questions.
+BOOLEAN AtIsMicrosoftSigned(
+    _In_opt_ PPH_STRING FileName
+    )
+{
+    PPH_STRING win32FileName;
+    BOOLEAN chained;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return FALSE;
+
+    if (!(win32FileName = PhGetFileName(FileName)))
+        return FALSE;
+
+    chained = !!PhVerifyFileIsChainedToMicrosoft(&win32FileName->sr, FALSE);
+    PhDereferenceObject(win32FileName);
+
+    return chained;
+}
+
+VERIFY_RESULT AtVerifyFileName(
+    _In_opt_ PPH_STRING FileName,
+    _Out_opt_ PPH_STRING *Signer
+    )
+{
+    PPH_STRING win32FileName;
+    VERIFY_RESULT result;
+
+    if (Signer)
+        *Signer = NULL;
+
+    if (PhIsNullOrEmptyString(FileName))
+        return VrUnknown;
+
+    if (!(win32FileName = PhGetFileName(FileName)))
+        return VrUnknown;
+
+    result = PhVerifyFile(PhGetString(win32FileName), Signer);
+    PhDereferenceObject(win32FileName);
+
+    return result;
+}
+
 VOID AtAddSectionInfo(
     _In_ PVOID Structured,
     _In_ PSECTION_BASIC_INFORMATION Basic,
