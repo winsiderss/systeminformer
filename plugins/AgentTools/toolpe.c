@@ -10,6 +10,8 @@
  */
 
 #include "agenttools.h"
+#include <mapldr.h>
+#include <wincrypt.h>
 #include <mapimg.h>
 
 #define AT_READ_MEMORY_MAX (64 * 1024)
@@ -26,14 +28,202 @@ PCWSTR AtpVerifyResultText(
     return text ? text : L"Unknown";
 }
 
+// crypt32 is resolved at the point of use, the way phlib does it (verify.c): nothing in the tree
+// links it, and a certificate detail is not worth an import table entry on every load.
+typedef DWORD (WINAPI* AT_CERT_GET_NAME_STRING_W)(
+    _In_ PCCERT_CONTEXT CertContext,
+    _In_ DWORD Type,
+    _In_ DWORD Flags,
+    _In_opt_ PVOID TypePara,
+    _Out_writes_opt_(NameStringSize) PWSTR NameString,
+    _In_ DWORD NameStringSize
+    );
+
+typedef BOOL (WINAPI* AT_CERT_GET_CONTEXT_PROPERTY)(
+    _In_ PCCERT_CONTEXT CertContext,
+    _In_ DWORD PropId,
+    _Out_writes_bytes_to_opt_(*DataSize, *DataSize) PVOID Data,
+    _Inout_ PDWORD DataSize
+    );
+
+PPH_STRING AtpGetCertificateName(
+    _In_ PCERT_CONTEXT Certificate,
+    _In_ ULONG Flags
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static AT_CERT_GET_NAME_STRING_W CertGetNameStringW_I = NULL;
+    WCHAR buffer[256];
+    ULONG length;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        CertGetNameStringW_I = PhGetModuleProcAddress(L"crypt32.dll", "CertGetNameStringW");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!CertGetNameStringW_I)
+        return NULL;
+
+    length = CertGetNameStringW_I(
+        (PCCERT_CONTEXT)Certificate,
+        CERT_NAME_SIMPLE_DISPLAY_TYPE,
+        Flags,
+        NULL,
+        buffer,
+        RTL_NUMBER_OF(buffer)
+        );
+
+    // One character back means the empty string plus its terminator.
+    if (length <= 1)
+        return NULL;
+
+    return PhCreateStringEx(buffer, (length - 1) * sizeof(WCHAR));
+}
+
+PPH_STRING AtpGetCertificateThumbprint(
+    _In_ PCERT_CONTEXT Certificate
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static AT_CERT_GET_CONTEXT_PROPERTY CertGetCertificateContextProperty_I = NULL;
+    UCHAR hash[32];
+    ULONG hashLength = sizeof(hash);
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        CertGetCertificateContextProperty_I =
+            PhGetModuleProcAddress(L"crypt32.dll", "CertGetCertificateContextProperty");
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (!CertGetCertificateContextProperty_I)
+        return NULL;
+
+    if (!CertGetCertificateContextProperty_I((PCCERT_CONTEXT)Certificate, CERT_SHA1_HASH_PROP_ID, hash, &hashLength))
+        return NULL;
+
+    return PhBufferToHexString(hash, hashLength);
+}
+
+// A serial number is stored least significant byte first and is always written the other way round.
+PPH_STRING AtpGetCertificateSerialNumber(
+    _In_ PCERT_CONTEXT Certificate
+    )
+{
+    static CONST WCHAR digits[] = L"0123456789ABCDEF";
+    PCRYPT_INTEGER_BLOB serial = &((PCCERT_CONTEXT)Certificate)->pCertInfo->SerialNumber;
+    PPH_STRING string;
+    ULONG i;
+
+    if (serial->cbData == 0)
+        return NULL;
+
+    string = PhCreateStringEx(NULL, serial->cbData * 2 * sizeof(WCHAR));
+
+    for (i = 0; i < serial->cbData; i++)
+    {
+        UCHAR value = serial->pbData[serial->cbData - i - 1];
+
+        string->Buffer[i * 2] = digits[value >> 4];
+        string->Buffer[i * 2 + 1] = digits[value & 0xf];
+    }
+
+    return string;
+}
+
+// One entry per signature on the file, not per certificate in a chain: a file can carry more than
+// one signature (a SHA-1 and a SHA-256, say) and PhVerifyFileEx returns the signing certificate of
+// each. The issuer name is as far up the chain as this goes.
+VOID AtpAddCertificate(
+    _In_ PAT_ROWS Rows,
+    _In_ PCERT_CONTEXT Certificate,
+    _In_ BOOLEAN IsPrimary
+    )
+{
+    PVOID row;
+    PPH_STRING string;
+    PCERT_INFO certificateInfo = ((PCCERT_CONTEXT)Certificate)->pCertInfo;
+
+    row = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(row, "is_primary", IsPrimary);
+
+    string = PhGetSignerNameFromCertificate(Certificate);
+    AtJsonAddString(row, "signer", string);
+    PhClearReference(&string);
+
+    string = AtpGetCertificateName(Certificate, 0);
+    AtJsonAddString(row, "subject", string);
+    PhClearReference(&string);
+
+    string = AtpGetCertificateName(Certificate, CERT_NAME_ISSUER_FLAG);
+    AtJsonAddString(row, "issuer", string);
+    PhClearReference(&string);
+
+    string = AtpGetCertificateThumbprint(Certificate);
+    AtJsonAddString(row, "thumbprint", string);
+    PhClearReference(&string);
+
+    string = AtpGetCertificateSerialNumber(Certificate);
+    AtJsonAddString(row, "serial_number", string);
+    PhClearReference(&string);
+
+    AtJsonAddTime(row, "not_before", (PLARGE_INTEGER)&certificateInfo->NotBefore);
+    AtJsonAddTime(row, "not_after", (PLARGE_INTEGER)&certificateInfo->NotAfter);
+
+    AtAddRow(Rows, row);
+}
+
+// Whether the file carries its own signature, which is the difference between a binary that is
+// signed and one that is merely vouched for by a catalog the OS shipped.
+BOOLEAN AtpHasEmbeddedSignature(
+    _In_ HANDLE FileHandle,
+    _Out_ PBOOLEAN IsImage
+    )
+{
+    PH_MAPPED_IMAGE mappedImage;
+    BOOLEAN embedded = FALSE;
+
+    *IsImage = FALSE;
+
+    if (!NT_SUCCESS(PhLoadMappedImageEx(NULL, FileHandle, &mappedImage)))
+        return FALSE;
+
+    if (mappedImage.Signature == IMAGE_DOS_SIGNATURE)
+    {
+        *IsImage = TRUE;
+
+        if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        {
+            embedded = mappedImage.NtHeaders64->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
+        }
+        else if (mappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            embedded = mappedImage.NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY].Size != 0;
+        }
+    }
+
+    PhUnloadMappedImage(&mappedImage);
+
+    return embedded;
+}
+
 VOID AtpVerifyFileSignature(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    NTSTATUS status;
     PPH_STRING path;
-    VERIFY_RESULT verifyResult;
+    PH_VERIFY_FILE_INFO info;
+    HANDLE fileHandle;
+    VERIFY_RESULT verifyResult = VrUnknown;
+    PCERT_CONTEXT *signatures = NULL;
+    ULONG numberOfSignatures = 0;
     PPH_STRING signer = NULL;
+    BOOLEAN includeChain;
+    BOOLEAN embedded;
+    BOOLEAN isImage;
     PVOID structured;
 
     if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
@@ -43,17 +233,79 @@ VOID AtpVerifyFileSignature(
         return;
     }
 
-    verifyResult = PhVerifyFile(PhGetString(path), &signer);
+    includeChain = AtJsonGetObjectBoolean(Call->Arguments, "include_chain");
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(path),
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the file");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    // Never let a signature check reach the network: a revocation lookup on an attacker-chosen file
+    // is an outbound request the caller did not ask for.
+    memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
+    info.FileHandle = fileHandle;
+    info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
+
+    status = PhVerifyFileEx(&info, &verifyResult, &signatures, &numberOfSignatures);
+
+    if (NT_SUCCESS(status) && numberOfSignatures != 0)
+        signer = PhGetSignerNameFromCertificate(signatures[0]);
+
+    embedded = AtpHasEmbeddedSignature(fileHandle, &isImage);
 
     structured = PhCreateJsonObject();
     AtJsonAddString(structured, "path", path);
     AtJsonAddStringZ(structured, "verify_result", AtpVerifyResultText(verifyResult));
     PhAddJsonObjectBoolean(structured, "is_trusted", verifyResult == VrTrusted);
     AtJsonAddString(structured, "signer", signer);
+    PhAddJsonObjectBoolean(structured, "has_embedded_signature", embedded);
+
+    // A trusted file with no signature of its own was vouched for by a catalog.
+    if (embedded)
+        AtJsonAddStringZ(structured, "signature_source", L"embedded");
+    else if (verifyResult == VrTrusted)
+        AtJsonAddStringZ(structured, "signature_source", L"catalog");
+    else
+        AtJsonAddNull(structured, "signature_source");
+
+    PhAddJsonObjectBoolean(structured, "is_pe_image", isImage);
+
+    // A second pass, and the one bit that matters most: whether the chain ends at Microsoft's root
+    // rather than at any root the machine happens to trust.
+    PhAddJsonObjectBoolean(structured, "is_microsoft_chained",
+        !!PhVerifyFileIsChainedToMicrosoft(&path->sr, FALSE));
+
+    if (includeChain)
+    {
+        AT_ROWS rows;
+        ULONG i;
+
+        AtInitializeRows(&rows, Call->Arguments);
+
+        for (i = 0; i < numberOfSignatures; i++)
+            AtpAddCertificate(&rows, signatures[i], i == 0);
+
+        AtAddRows(structured, "signatures", &rows);
+        AtDeleteRows(&rows);
+    }
 
     Result->StructuredContent = structured;
 
+    PhFreeVerifySignatures(signatures, numberOfSignatures);
     PhClearReference(&signer);
+    NtClose(fileHandle);
     PhDereferenceObject(path);
 }
 

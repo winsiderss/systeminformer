@@ -1261,7 +1261,10 @@ EXPORTS
     PhWriteMiniDumpProcess
 
 ; verify
+    PhFreeVerifySignatures
+    PhGetSignerNameFromCertificate
     PhVerifyFile
+    PhVerifyFileEx
     PhVerifyFileIsChainedToMicrosoft
     PhVerifyFileIsSystemInformer
 
