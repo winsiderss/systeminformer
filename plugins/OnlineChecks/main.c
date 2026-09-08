@@ -114,11 +114,85 @@ ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
     return OnlineChecksLookupFound;
 }
 
+/**
+ * Asks VirusTotal about a file hash, over the network.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Report The report, written only on success.
+ * \return Successful or errant status.
+ *
+ * \remarks ONLINECHECKS_INTERFACE. Sends a request. Only the hash goes out, never the file, and it
+ * goes to System Informer's proxy unless a personal access token is configured.
+ */
+NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_VIRUSTOTAL_REPORT Report
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiKey;
+    PVIRUSTOTAL_FILE_REPORT report;
+
+    apiKey = PhGetStringSetting(SETTING_NAME_VIRUSTOTAL_DEFAULT_PAT);
+    status = VirusTotalRequestFileReport(Sha256, apiKey, &report);
+    PhClearReference(&apiKey);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    Report->HttpStatus = report->HttpStatus;
+    Report->Malicious = report->Malicious;
+    Report->Undetected = report->Undetected;
+    Report->ScanDate = report->ScanDate ? PhReferenceObject(report->ScanDate) : NULL;
+
+    VirusTotalFreeFileReport(report);
+
+    return STATUS_SUCCESS;
+}
+
+/**
+ * Asks Hybrid Analysis about a file hash, over the network.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Report The report, written only on success.
+ * \return Successful or errant status.
+ *
+ * \remarks ONLINECHECKS_INTERFACE. Sends a request, on the same terms as the VirusTotal one.
+ */
+NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_HYBRIDANALYSIS_REPORT Report
+    )
+{
+    NTSTATUS status;
+    PPH_STRING apiKey;
+    PHYBRIDANALYSIS_FILE_REPORT report;
+
+    apiKey = PhGetStringSetting(SETTING_NAME_HYBRIDANALYSIS_DEFAULT_PAT);
+    status = HybridAnalysisRequestFileReport(Sha256, apiKey, &report);
+    PhClearReference(&apiKey);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    Report->HttpStatus = report->HttpStatus;
+    Report->ThreatScore = report->ThreatScore;
+    Report->MultiscanResult = report->MultiscanResult;
+    Report->Verdict = report->Verdict ? PhReferenceObject(report->Verdict) : NULL;
+    Report->VxFamily = report->VxFamily ? PhReferenceObject(report->VxFamily) : NULL;
+
+    HybridAnalysisFreeFileReport(report);
+
+    return STATUS_SUCCESS;
+}
+
 static ONLINECHECKS_INTERFACE PluginInterface =
 {
     ONLINECHECKS_INTERFACE_VERSION,
     OnlineChecksQueryCachedVirusTotal,
     OnlineChecksQueryCachedHybridAnalysis,
+    OnlineChecksLookupVirusTotal,
+    OnlineChecksLookupHybridAnalysis,
 };
 
 _Function_class_(PH_CALLBACK_FUNCTION)

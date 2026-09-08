@@ -13,7 +13,7 @@
 #define _ONLINECHECKSINTF_H
 
 #define ONLINECHECKS_PLUGIN_NAME L"OnlineChecks"
-#define ONLINECHECKS_INTERFACE_VERSION 1
+#define ONLINECHECKS_INTERFACE_VERSION 2
 
 /**
  * Why a cached lookup returned what it did.
@@ -84,11 +84,70 @@ typedef ONLINECHECKS_LOOKUP_RESULT (NTAPI* PONLINECHECKS_QUERY_HYBRIDANALYSIS)(
     _Out_ PONLINECHECKS_HYBRIDANALYSIS_RESULT Result
     );
 
+/**
+ * A live VirusTotal report.
+ *
+ * \remarks The counts mean something only when HttpStatus is 200. 404 is a file VirusTotal has never
+ * been given, which is not the same as a clean verdict.
+ */
+typedef struct _ONLINECHECKS_VIRUSTOTAL_REPORT
+{
+    ULONG HttpStatus;
+    ULONG64 Malicious;
+    ULONG64 Undetected;
+    PPH_STRING ScanDate;    // Referenced; the caller dereferences it. NULL when there is none.
+} ONLINECHECKS_VIRUSTOTAL_REPORT, *PONLINECHECKS_VIRUSTOTAL_REPORT;
+
+/**
+ * A live Hybrid Analysis report.
+ */
+typedef struct _ONLINECHECKS_HYBRIDANALYSIS_REPORT
+{
+    ULONG HttpStatus;
+    ULONG64 ThreatScore;
+    ULONG64 MultiscanResult;
+    PPH_STRING Verdict;     // Referenced; the caller dereferences it. NULL when there is none.
+    PPH_STRING VxFamily;    // Referenced; the caller dereferences it. NULL when there is none.
+} ONLINECHECKS_HYBRIDANALYSIS_REPORT, *PONLINECHECKS_HYBRIDANALYSIS_REPORT;
+
+/**
+ * Asks VirusTotal about a file hash, over the network.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Report The report. Written only on success.
+ * \return Successful or errant status.
+ *
+ * \remarks THIS SENDS A REQUEST. Only the hash is sent, never the file. With no personal access
+ * token configured the request goes to System Informer's proxy at systeminformer.io carrying an
+ * installation identifier; with one it goes to VirusTotal directly. Either way it leaves the
+ * machine, and a hash is enough to tell a third party that this machine holds this exact file.
+ */
+typedef NTSTATUS (NTAPI* PONLINECHECKS_LOOKUP_VIRUSTOTAL)(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_VIRUSTOTAL_REPORT Report
+    );
+
+/**
+ * Asks Hybrid Analysis about a file hash, over the network.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Report The report. Written only on success.
+ * \return Successful or errant status.
+ *
+ * \remarks THIS SENDS A REQUEST, on the same terms as the VirusTotal one.
+ */
+typedef NTSTATUS (NTAPI* PONLINECHECKS_LOOKUP_HYBRIDANALYSIS)(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_HYBRIDANALYSIS_REPORT Report
+    );
+
 typedef struct _ONLINECHECKS_INTERFACE
 {
     ULONG Version;
     PONLINECHECKS_QUERY_VIRUSTOTAL QueryCachedVirusTotal;
     PONLINECHECKS_QUERY_HYBRIDANALYSIS QueryCachedHybridAnalysis;
+    PONLINECHECKS_LOOKUP_VIRUSTOTAL LookupVirusTotal;
+    PONLINECHECKS_LOOKUP_HYBRIDANALYSIS LookupHybridAnalysis;
 } ONLINECHECKS_INTERFACE, *PONLINECHECKS_INTERFACE;
 
 #endif
