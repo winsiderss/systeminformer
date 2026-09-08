@@ -150,6 +150,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     },
     // network
     {
+        AtActionListNetworkAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),
+        L"list the network adapters", L"Allow listing network adapters", L"list_network_adapters"
+    },
+    {
         AtActionListNetworkConnections, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
         L"list network connections", L"Allow listing network connections", L"list_network_connections"
     },
@@ -1378,6 +1382,60 @@ CONST AT_TOOL AtTools[] =
         AT_WRITE_ANNOTATIONS "}"
     },
     // network
+    {
+        "list_network_adapters", L"List network adapters", AtTierRead, AtActionListNetworkAdapters,
+        SETTING_NAME_TOOL_ACCESS(L"list_network_adapters"), SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),
+        "{\"name\":\"list_network_adapters\",\"title\":\"List network adapters\","
+        "\"description\":\"Every network interface on this machine and how it is configured: type and operational "
+        "status, MAC address, MTU and link speed, the addresses assigned to it with their prefix lengths, its "
+        "gateways and DNS servers, and the interface counters including errors and discards. This is the machine's "
+        "own configuration, the ipconfig view; list_network_connections is what is talking over it. Rising in_errors "
+        "or in_discards on an otherwise healthy link is the sign of a physical problem. Tunnels and virtual adapters "
+        "are included, so check type before treating a row as hardware, and the NDIS filter-module "
+        "pseudo-interfaces are left out unless include_all_interfaces is set. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the adapter name or description\"},"
+        "\"connected_only\":{\"type\":\"boolean\",\"description\":\"Only interfaces whose operational status is up\"},"
+        "\"include_all_interfaces\":{\"type\":\"boolean\",\"description\":\"Also the pseudo-interfaces NDIS filter modules expose (QoS scheduler, WFP layers); off by default because they are not adapters\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"adapters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The name shown in Network Connections\"},"
+        "\"description\":{\"type\":[\"string\",\"null\"],\"description\":\"The adapter hardware or driver description\"},"
+        "\"guid\":{\"type\":[\"string\",\"null\"],\"description\":\"Interface GUID, as it appears in the registry\"},"
+        "\"interface_index\":{\"type\":\"integer\"},"
+        "\"interface_luid\":{\"type\":\"string\"},"
+        "\"type\":{\"type\":\"string\",\"description\":\"ethernet, wireless, loopback, ppp, tunnel, firewire, token_ring, atm, mobile_broadband, other or unknown\"},"
+        "\"operational_status\":{\"type\":\"string\",\"description\":\"up, down, testing, dormant, not_present, lower_layer_down or unknown\"},"
+        "\"connected\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Media connect state, which is whether a cable or radio is actually attached\"},"
+        "\"mac_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"mtu\":{\"type\":\"integer\"},"
+        "\"transmit_link_speed_bps\":{\"type\":\"integer\"},"
+        "\"receive_link_speed_bps\":{\"type\":\"integer\"},"
+        "\"dns_suffix\":{\"type\":[\"string\",\"null\"]},"
+        "\"dhcp_enabled\":{\"type\":\"boolean\"},"
+        "\"dynamic_dns_enabled\":{\"type\":\"boolean\"},"
+        "\"addresses\":{\"type\":\"array\",\"description\":\"Unicast addresses as address/prefix\",\"items\":{\"type\":\"string\"}},"
+        "\"gateways\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"dns_servers\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"counters\":{\"type\":[\"object\",\"null\"],\"description\":\"Since the interface came up; null when the interface could not be queried\",\"properties\":{"
+        "\"in_octets\":{\"type\":\"integer\"},"
+        "\"out_octets\":{\"type\":\"integer\"},"
+        "\"in_unicast_packets\":{\"type\":\"integer\"},"
+        "\"out_unicast_packets\":{\"type\":\"integer\"},"
+        "\"in_errors\":{\"type\":\"integer\"},"
+        "\"out_errors\":{\"type\":\"integer\"},"
+        "\"in_discards\":{\"type\":\"integer\"},"
+        "\"out_discards\":{\"type\":\"integer\"}"
+        "}}"
+        "},\"required\":[\"interface_index\",\"type\",\"operational_status\",\"addresses\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
     {
         "list_network_connections", L"List network connections", AtTierRead, AtActionListNetworkConnections,
         SETTING_NAME_TOOL_ACCESS(L"list_network_connections"), SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),

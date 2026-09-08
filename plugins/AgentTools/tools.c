@@ -1090,6 +1090,9 @@ VOID AtInvokeTool(
     case AtActionGetDeviceResources:
         AtDeviceInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionListNetworkAdapters:
+        AtAdapterInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessIoRates:
         AtIoInvokeTool(Tool, Call, Target, Result);
         break;

@@ -103,6 +103,7 @@ typedef enum _AT_ACTION
     AtActionRestartService,
     AtActionSetServiceConfig,
     // network
+    AtActionListNetworkAdapters,
     AtActionListNetworkConnections,
     AtActionCloseNetworkConnection,
     // system
@@ -769,6 +770,13 @@ VOID AtEventInvokeTool(
     );
 
 VOID AtIoInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtAdapterInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
