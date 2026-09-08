@@ -1123,6 +1123,9 @@ VOID AtPeInvokeTool(
     case AtActionGetImageInfo:
         AtpGetImageInfo(Call, Result);
         break;
+    case AtActionGetImageStrings:
+        AtpGetImageStrings(Call, Result);
+        break;
     case AtActionGetFileHashes:
         AtpGetFileHashes(Call, Result);
         break;

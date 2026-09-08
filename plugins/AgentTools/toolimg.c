@@ -13,6 +13,7 @@
 #include <mapimg.h>
 #include <wintrust.h>
 #include <phcrypt.h>
+#include <strsrch.h>
 
 // The parts of a PE that get_image_info returns only when asked for. The default answer stays the
 // summary, because an agent that wants the imports of one file should not have to read the exports
@@ -1237,6 +1238,279 @@ PPH_STRING AtGetImageImphash(
     PhDeleteStringBuilder(&stringBuilder);
 
     return result;
+}
+
+// The printable strings in a file, which is the oldest triage tool there is and still the fastest
+// way to see what a binary talks to. The on-disk twin of search_process_memory.
+
+#define AT_STRINGS_DEFAULT_LENGTH 6
+#define AT_STRINGS_MINIMUM_LENGTH 4
+#define AT_STRINGS_MAXIMUM_LENGTH 256
+// Without a filter a few megabytes of binary yields tens of thousands of strings, and every one of
+// them would be built into JSON before paging could throw it away.
+#define AT_STRINGS_MAXIMUM_RESULTS 20000
+
+typedef struct _AT_STRINGS_CONTEXT
+{
+    AT_ROWS Rows;
+    PPH_MAPPED_IMAGE MappedImage;
+    PPH_STRING Contains;
+    PH_STRING_SEARCH_ENCODING Encoding;
+    BOOLEAN HaveEncoding;
+    BOOLEAN Delivered;
+    BOOLEAN LimitReached;
+    ULONG Count;
+} AT_STRINGS_CONTEXT, *PAT_STRINGS_CONTEXT;
+
+PCWSTR AtpStringEncodingString(
+    _In_ PH_STRING_SEARCH_ENCODING Encoding
+    )
+{
+    switch (Encoding)
+    {
+    case PH_STRING_SEARCH_ENCODING_ANSI:
+        return L"ansi";
+    case PH_STRING_SEARCH_ENCODING_UTF8:
+        return L"utf8";
+    case PH_STRING_SEARCH_ENCODING_UTF16:
+        return L"utf16";
+    }
+
+    return NULL;
+}
+
+// The image is mapped as a data file, so an address inside the view is a file offset. A section has
+// to be found by its raw data range for that reason; matching it against VirtualAddress instead
+// attributes strings to whichever section happens to hold that RVA, which is a different section.
+PIMAGE_SECTION_HEADER AtpSectionFromFileOffset(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG_PTR Offset
+    )
+{
+    USHORT i;
+
+    for (i = 0; i < MappedImage->NumberOfSections; i++)
+    {
+        PIMAGE_SECTION_HEADER section = &MappedImage->Sections[i];
+
+        if (section->SizeOfRawData != 0 &&
+            Offset >= section->PointerToRawData &&
+            Offset < (ULONG_PTR)section->PointerToRawData + section->SizeOfRawData)
+        {
+            return section;
+        }
+    }
+
+    return NULL;
+}
+
+_Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
+_Must_inspect_result_
+NTSTATUS NTAPI AtpStringSearchNextBuffer(
+    _Inout_bytecount_(*Length) PVOID* Buffer,
+    _Out_ PSIZE_T Length,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_STRINGS_CONTEXT context = Context;
+
+    if (!context || context->Delivered)
+    {
+        *Buffer = NULL;
+        *Length = 0;
+        return STATUS_SUCCESS;
+    }
+
+    // The whole file at once: it is already mapped, and a zero length is how the search is told
+    // there is no more.
+    context->Delivered = TRUE;
+    *Buffer = context->MappedImage->ViewBase;
+    *Length = context->MappedImage->ViewSize;
+
+    return STATUS_SUCCESS;
+}
+
+_Function_class_(PH_STRING_SEARCH_CALLBACK)
+_Must_inspect_result_
+BOOLEAN NTAPI AtpStringSearchCallback(
+    _In_ PPH_STRING_SEARCH_RESULT Result,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_STRINGS_CONTEXT context = Context;
+    PIMAGE_SECTION_HEADER section;
+    ULONG_PTR offset;
+    PVOID row;
+
+    if (!context)
+        return TRUE;
+
+    if (context->HaveEncoding && Result->Encoding != context->Encoding)
+        return FALSE;
+
+    // PhFindStringInStringRef returns an index, not a boolean: SIZE_MAX means not found, and 0 means
+    // found at the very start. Testing it for truth drops exactly the strings that begin with the
+    // thing being searched for, which is the one case that always has a match.
+    if (context->Contains &&
+        PhFindStringInStringRef(&Result->String, &context->Contains->sr, TRUE) == SIZE_MAX)
+    {
+        return FALSE;
+    }
+
+    if (context->Count >= AT_STRINGS_MAXIMUM_RESULTS)
+    {
+        context->LimitReached = TRUE;
+        return TRUE;
+    }
+
+    context->Count++;
+
+    offset = (ULONG_PTR)PTR_SUB_OFFSET(Result->Address, context->MappedImage->ViewBase);
+    section = AtpSectionFromFileOffset(context->MappedImage, offset);
+
+    row = PhCreateJsonObject();
+    AtJsonAddStringRef(row, "string", &Result->String);
+    PhAddJsonObjectUInt64(row, "length", Result->String.Length / sizeof(WCHAR));
+    AtJsonAddStringZ(row, "encoding", AtpStringEncodingString(Result->Encoding));
+    AtJsonAddHex(row, "file_offset", offset);
+
+    if (section)
+    {
+        CHAR name[IMAGE_SIZEOF_SHORT_NAME + 1];
+
+        memcpy(name, section->Name, IMAGE_SIZEOF_SHORT_NAME);
+        name[IMAGE_SIZEOF_SHORT_NAME] = ANSI_NULL;
+        PhAddJsonObject(row, "section", name);
+
+        // The address the string will have once the image is loaded, which is what every other tool
+        // reports an address as.
+        AtJsonAddHex(row, "rva", section->VirtualAddress + (offset - section->PointerToRawData));
+    }
+    else
+    {
+        AtJsonAddNull(row, "section");
+        AtJsonAddNull(row, "rva");
+    }
+
+    AtAddRow(&context->Rows, row);
+
+    return FALSE;
+}
+
+VOID AtpGetImageStrings(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_STRINGS_CONTEXT context;
+    PH_MAPPED_IMAGE mappedImage;
+    PPH_STRING path;
+    PPH_STRING encoding;
+    HANDLE fileHandle;
+    ULONG64 minimumLength = AT_STRINGS_DEFAULT_LENGTH;
+    PVOID structured;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        PhClearReference(&path);
+        return;
+    }
+
+    memset(&context, 0, sizeof(AT_STRINGS_CONTEXT));
+    context.Contains = AtGetArgumentString(Call->Arguments, "contains");
+
+    if (encoding = AtGetArgumentString(Call->Arguments, "encoding"))
+    {
+        context.HaveEncoding = TRUE;
+
+        if (PhEqualString2(encoding, L"ansi", TRUE))
+            context.Encoding = PH_STRING_SEARCH_ENCODING_ANSI;
+        else if (PhEqualString2(encoding, L"utf8", TRUE))
+            context.Encoding = PH_STRING_SEARCH_ENCODING_UTF8;
+        else if (PhEqualString2(encoding, L"utf16", TRUE))
+            context.Encoding = PH_STRING_SEARCH_ENCODING_UTF16;
+        else
+        {
+            AtSetToolError(
+                Result,
+                "invalid_arguments",
+                STATUS_INVALID_PARAMETER,
+                L"encoding must be ansi, utf8 or utf16."
+                );
+            PhDereferenceObject(encoding);
+            PhClearReference(&context.Contains);
+            PhDereferenceObject(path);
+            return;
+        }
+
+        PhDereferenceObject(encoding);
+    }
+
+    if (AtGetArgumentUInt64(Call->Arguments, "minimum_length", &minimumLength))
+    {
+        minimumLength = min(max(minimumLength, AT_STRINGS_MINIMUM_LENGTH), AT_STRINGS_MAXIMUM_LENGTH);
+    }
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(path),
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the file");
+        PhClearReference(&context.Contains);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    status = PhLoadMappedImageEx(NULL, fileHandle, &mappedImage);
+    NtClose(fileHandle);
+
+    // The file opened, so a mapping failure here is about its format rather than about access.
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolError(
+            Result,
+            "invalid_image",
+            status,
+            L"The file could not be mapped as a PE image; get_image_strings reads executables."
+            );
+        PhClearReference(&context.Contains);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    context.MappedImage = &mappedImage;
+    AtInitializeRows(&context.Rows, Call->Arguments);
+
+    PhSearchStrings(
+        (ULONG)minimumLength,
+        AtJsonGetObjectBoolean(Call->Arguments, "extended_char_set"),
+        AtpStringSearchNextBuffer,
+        AtpStringSearchCallback,
+        &context
+        );
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    PhAddJsonObjectUInt64(structured, "minimum_length", minimumLength);
+    AtAddRows(structured, "strings", &context.Rows);
+    PhAddJsonObjectBoolean(structured, "limit_reached", context.LimitReached);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&context.Rows);
+    PhUnloadMappedImage(&mappedImage);
+    PhClearReference(&context.Contains);
+    PhDereferenceObject(path);
 }
 
 VOID AtAddImageSections(

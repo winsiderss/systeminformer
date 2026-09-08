@@ -324,6 +324,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"hash a file", L"Allow hashing files", L"get_file_hashes"
     },
     {
+        AtActionGetImageStrings, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_strings"),
+        L"read the strings in a file", L"Allow reading strings out of files", L"get_image_strings"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3172,6 +3176,43 @@ CONST AT_TOOL AtTools[] =
         "implementation does; delay loaded imports are excluded, as every implementation does\"},"
         "\"is_pe_image\":{\"type\":\"boolean\"}"
         "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_image_strings", L"Read strings from a file", AtTierRead, AtActionGetImageStrings,
+        SETTING_NAME_TOOL_ACCESS(L"get_image_strings"), SETTING_NAME_TOOL_CONFIRM(L"get_image_strings"),
+        "{\"name\":\"get_image_strings\",\"title\":\"Read strings from a file\","
+        "\"description\":\"Pulls the printable strings out of a file on disk - the oldest triage move there is, and "
+        "still the fastest way to see what a binary names: the URLs it talks to, the registry keys it touches, the "
+        "files it opens. ANSI, UTF-8 and UTF-16 are all found. Use contains to look for something specific rather "
+        "than reading everything, because a few megabytes of binary holds tens of thousands of strings and only the "
+        "first 20000 matches are kept. Each result carries the file offset it was found at and the section it falls "
+        "in, plus the address it will have once the image is loaded. A string being present says only that it is in "
+        "the file: it may be a resource, a compiler artifact, or dead code that never runs. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"Absolute Win32 path of the file\"},"
+        "\"contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring; only strings containing it are returned\"},"
+        "\"minimum_length\":{\"type\":\"integer\",\"minimum\":4,\"maximum\":256,\"description\":\"Shortest run of printable characters to count as a string; default 6\"},"
+        "\"encoding\":{\"type\":\"string\",\"enum\":[\"ansi\",\"utf8\",\"utf16\"],\"description\":\"Only strings of this encoding\"},"
+        "\"extended_char_set\":{\"type\":\"boolean\",\"description\":\"Count the extended character set as printable too; default false\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"minimum_length\":{\"type\":\"integer\"},"
+        "\"strings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"string\":{\"type\":\"string\"},"
+        "\"length\":{\"type\":\"integer\",\"description\":\"In characters\"},"
+        "\"encoding\":{\"type\":[\"string\",\"null\"],\"enum\":[\"ansi\",\"utf8\",\"utf16\",null]},"
+        "\"file_offset\":{\"type\":\"string\"},"
+        "\"section\":{\"type\":[\"string\",\"null\"],\"description\":\"The section whose raw data holds it, or null when it is outside every section\"},"
+        "\"rva\":{\"type\":[\"string\",\"null\"],\"description\":\"Where it lands once the image is loaded; null when it is not in a section\"}"
+        "},\"required\":[\"string\",\"length\",\"file_offset\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"The search stopped at 20000 matches and the file holds more\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"path\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

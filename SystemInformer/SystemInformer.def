@@ -526,6 +526,7 @@ EXPORTS
     PhResizeArray
     PhResizeList
     PhRoundUpToPowerOfTwo
+    PhSearchStrings
     PhSecondsSince1970ToTime
     PhSplitStringRef
     PhSplitStringRefAtChar
