@@ -72,6 +72,7 @@ typedef enum _AT_ACTION
     AtActionRankProcesses,
     AtActionListRecentEvents,
     AtActionListRecentProcessExits,
+    AtActionGetProcessMitigations,
     AtActionGetProcessModules,
     AtActionGetProcessThreads,
     AtActionGetProcessHandles,
@@ -747,6 +748,13 @@ VOID AtEventInvokeTool(
     );
 
 VOID AtHistoryInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtMitigationInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

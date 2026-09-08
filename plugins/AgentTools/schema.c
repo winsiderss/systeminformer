@@ -43,6 +43,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read what recently exited", L"Allow reading what recently exited", L"list_recent_process_exits"
     },
     {
+        AtActionGetProcessMitigations, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_mitigations"),
+        L"read the exploit mitigations of processes", L"Allow reading process mitigations", L"get_process_mitigations"
+    },
+    {
         AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
@@ -748,6 +752,40 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_mitigations", L"Get process mitigations", AtTierRead, AtActionGetProcessMitigations,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_mitigations"), SETTING_NAME_TOOL_CONFIRM(L"get_process_mitigations"),
+        "{\"name\":\"get_process_mitigations\",\"title\":\"Get process mitigations\","
+        "\"description\":\"The exploit mitigations a process is running with, asked of the process itself: ASLR, "
+        "dynamic code restrictions, Control Flow Guard including XFG, CET user shadow stacks, binary signature and "
+        "image load restrictions, child process creation and the rest. DEP is not part of this set; get_process with "
+        "include_statistics reports it. A policy that could not "
+        "be queried is null rather than false, because a mitigation being off and a mitigation being unreadable are "
+        "different answers. "
+        AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"mitigations\":{\"type\":\"object\",\"description\":\"One member per policy; each is an object of flags, or null when that policy could not be read\",\"properties\":{"
+        
+        "\"aslr\":{\"type\":[\"object\",\"null\"]},"
+        "\"dynamic_code\":{\"type\":[\"object\",\"null\"],\"description\":\"prohibit_dynamic_code stops the process generating or modifying executable code\"},"
+        "\"strict_handle_check\":{\"type\":[\"object\",\"null\"]},"
+        "\"system_call_disable\":{\"type\":[\"object\",\"null\"]},"
+        "\"extension_point_disable\":{\"type\":[\"object\",\"null\"],\"description\":\"Blocks legacy extension point DLL injection\"},"
+        "\"control_flow_guard\":{\"type\":[\"object\",\"null\"],\"description\":\"Includes enable_xfg and its audit mode\"},"
+        "\"binary_signature\":{\"type\":[\"object\",\"null\"],\"description\":\"microsoft_signed_only means the process will not load unsigned code\"},"
+        "\"image_load\":{\"type\":[\"object\",\"null\"]},"
+        "\"payload_restriction\":{\"type\":[\"object\",\"null\"],\"description\":\"Export and import address filtering and ROP defences\"},"
+        "\"child_process\":{\"type\":[\"object\",\"null\"]},"
+        "\"side_channel_isolation\":{\"type\":[\"object\",\"null\"]},"
+        "\"user_shadow_stack\":{\"type\":[\"object\",\"null\"],\"description\":\"CET; enable_user_shadow_stack is the one that matters\"},"
+        "\"redirection_trust\":{\"type\":[\"object\",\"null\"]}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"mitigations\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

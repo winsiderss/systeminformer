@@ -83,6 +83,7 @@
     <ClCompile Include="target.c" />
     <ClCompile Include="toolhist.c" />
     <ClCompile Include="toolmod.c" />
+    <ClCompile Include="toolmtgn.c" />
     <ClCompile Include="toolproc.c" />
     <ClCompile Include="tools.c" />
     <ClCompile Include="toolmem.c" />

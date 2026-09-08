@@ -28,6 +28,7 @@ set(SOURCES
     "target.c"
     "toolhist.c"
     "toolmod.c"
+    "toolmtgn.c"
     "toolproc.c"
     "tools.c"
     "toolmem.c"

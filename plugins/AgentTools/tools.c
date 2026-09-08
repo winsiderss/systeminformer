@@ -1030,6 +1030,9 @@ VOID AtInvokeTool(
     case AtActionGetProcessModules:
         AtModuleInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetProcessMitigations:
+        AtMitigationInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessHistory:
     case AtActionGetSystemHistory:
     case AtActionRankProcesses:
