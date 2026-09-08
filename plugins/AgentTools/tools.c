@@ -1424,6 +1424,9 @@ VOID AtInvokeTool(
     case AtActionLookupAccount:
         AtSessionInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionListScheduledTasks:
+        AtTaskInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionVerifyFileSignature:
     case AtActionGetFileHashes:
     case AtActionGetImageStrings:

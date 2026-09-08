@@ -374,6 +374,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionLookupAccount, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"lookup_account"),
         L"look up accounts and SIDs", L"Allow looking up accounts", L"lookup_account"
     },
+    {
+        AtActionListScheduledTasks, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_scheduled_tasks"),
+        L"list the scheduled tasks", L"Allow listing scheduled tasks", L"list_scheduled_tasks"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3921,6 +3925,84 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_scheduled_tasks", L"List scheduled tasks", AtTierRead, AtActionListScheduledTasks,
+        SETTING_NAME_TOOL_ACCESS(L"list_scheduled_tasks"), SETTING_NAME_TOOL_CONFIRM(L"list_scheduled_tasks"),
+        "{\"name\":\"list_scheduled_tasks\",\"title\":\"List scheduled tasks\","
+        "\"description\":\"The other half of what runs without anybody starting it. list_startup_entries "
+        "covers the Run keys and the startup folder; the task scheduler is the larger list, and a task can "
+        "wait for a boot, a logon, an idle period or an event in the log, run as SYSTEM with no session, and "
+        "sit in a folder nested well out of sight. Each row says what the task runs (actions), who it runs as "
+        "(user_id, run_level, logon_type) and whether it has run lately (last_run_time, last_result). Answers "
+        "come from the scheduler service rather than the files under System32\\\\Tasks, so they are the task "
+        "as registered. Hidden tasks are always included. A task can be listed by a caller who is not allowed "
+        "to read what it runs: definition_readable says so, and those rows carry null actions rather than an "
+        "empty list. Set include_details for the triggers, the registration information and the full settings. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"folder\":{\"type\":\"string\",\"description\":\"Start at this task folder and include everything below it, for example \\\\Microsoft\\\\Windows; default is the root\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive match on the task name or its full path\"},"
+        "\"action_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive match on what an action runs: the image path or its arguments, or the class and data of a COM handler. Tasks whose definition cannot be read are dropped, because there is nothing to match\"},"
+        "\"state\":{\"type\":\"string\",\"enum\":[\"unknown\",\"disabled\",\"queued\",\"ready\",\"running\"]},"
+        "\"enabled_only\":{\"type\":\"boolean\"},"
+        "\"hidden_only\":{\"type\":\"boolean\",\"description\":\"Only tasks that asked not to be shown\"},"
+        "\"exclude_microsoft_folder\":{\"type\":\"boolean\",\"description\":\"Skip tasks under \\\\Microsoft\\\\, where Windows keeps its own. A folder name is not a signature - anything able to write there would be skipped too\"},"
+        "\"include_details\":{\"type\":\"boolean\",\"description\":\"Add triggers, registration information and the full settings to each row\"},"
+        AT_SORT_INPUT_PROPERTIES("\"name\",\"path\",\"state\",\"last_run_time\",\"next_run_time\",\"last_result\",\"missed_runs\"") ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"tasks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"path\":{\"type\":[\"string\",\"null\"],\"description\":\"Full task path, for example \\\\Microsoft\\\\Windows\\\\Defrag\\\\ScheduledDefrag\"},"
+        "\"folder\":{\"type\":[\"string\",\"null\"]},"
+        "\"enabled\":{\"type\":\"boolean\"},"
+        "\"state\":{\"type\":[\"string\",\"null\"]},"
+        "\"state_value\":{\"type\":\"integer\"},"
+        "\"hidden\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"last_run_time\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for a task that has never run\"},"
+        "\"next_run_time\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for a task with no run scheduled, which includes every disabled one\"},"
+        "\"last_result\":{\"type\":[\"integer\",\"null\"],\"description\":\"What the last run returned; 0 is success, and for an exec action this is the process exit code. A task that has never run reports 267011 (0x41303, SCHED_S_TASK_HAS_NOT_RUN) rather than nothing\"},"
+        "\"last_result_hex\":{\"type\":[\"string\",\"null\"]},"
+        "\"missed_runs\":{\"type\":[\"integer\",\"null\"]},"
+        "\"definition_readable\":{\"type\":\"boolean\",\"description\":\"Whether this caller may read what the task runs; the fields below are null when it may not\"},"
+        "\"user_id\":{\"type\":[\"string\",\"null\"],\"description\":\"Written as whoever registered the task chose to: a name, a SID, or a built-in alias. lookup_account turns any of those into the others\"},"
+        "\"group_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_type\":{\"type\":[\"string\",\"null\"]},"
+        "\"run_level\":{\"type\":[\"string\",\"null\"],\"description\":\"limited or highest\"},"
+        "\"actions\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"exec, com_handler, send_email or show_message\"},"
+        "\"type_value\":{\"type\":\"integer\"},"
+        "\"path\":{\"type\":[\"string\",\"null\"],\"description\":\"What an exec action runs, as written, so environment references are not expanded\"},"
+        "\"arguments\":{\"type\":[\"string\",\"null\"]},"
+        "\"working_directory\":{\"type\":[\"string\",\"null\"]},"
+        "\"class_id\":{\"type\":[\"string\",\"null\"],\"description\":\"The class a COM handler action loads in the scheduler's own host process\"},"
+        "\"data\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"type_value\"]}},"
+        "\"triggers\":{\"type\":[\"array\",\"null\"],\"description\":\"Only with include_details\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"type\":{\"type\":[\"string\",\"null\"]},"
+        "\"type_value\":{\"type\":\"integer\"},"
+        "\"id\":{\"type\":[\"string\",\"null\"]},"
+        "\"enabled\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"start_boundary\":{\"type\":[\"string\",\"null\"],\"description\":\"The scheduler's own ISO 8601 text, kept as it wrote it\"},"
+        "\"end_boundary\":{\"type\":[\"string\",\"null\"]},"
+        "\"execution_time_limit\":{\"type\":[\"string\",\"null\"],\"description\":\"An ISO 8601 duration, for example PT1H\"}"
+        "},\"required\":[\"type_value\"]}},"
+        "\"author\":{\"type\":[\"string\",\"null\"],\"description\":\"Only with include_details\"},"
+        "\"description\":{\"type\":[\"string\",\"null\"]},"
+        "\"registration_date\":{\"type\":[\"string\",\"null\"]},"
+        "\"source\":{\"type\":[\"string\",\"null\"]},"
+        "\"uri\":{\"type\":[\"string\",\"null\"]},"
+        "\"settings\":{\"type\":[\"object\",\"null\"],\"description\":\"Only with include_details\"}"
+        "},\"required\":[\"enabled\",\"state_value\",\"definition_readable\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"folder_count\":{\"type\":\"integer\",\"description\":\"Task folders walked\"},"
+        "\"enumerated_count\":{\"type\":\"integer\",\"description\":\"Tasks seen before the filters were applied\"},"
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Tasks or folders this caller could not read\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"tasks\",\"count\",\"total_count\",\"truncated\",\"folder_count\",\"enumerated_count\",\"unreadable_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

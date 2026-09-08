@@ -107,6 +107,7 @@
     <ClCompile Include="toolnet.c" />
     <ClCompile Include="toolsvc.c" />
     <ClCompile Include="toolsess.c" />
+    <ClCompile Include="tooltask.c" />
     <ClCompile Include="toolsys.c" />
     <ClCompile Include="toolthrd.c" />
     <ClCompile Include="toolwait.c" />

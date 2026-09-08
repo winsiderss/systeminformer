@@ -166,6 +166,7 @@ typedef enum _AT_ACTION
     AtActionListLogonSessions,
     AtActionListTerminalSessions,
     AtActionLookupAccount,
+    AtActionListScheduledTasks,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
@@ -975,6 +976,13 @@ VOID AtThreadInvokeTool(
     );
 
 VOID AtSessionInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtTaskInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

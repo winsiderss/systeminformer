@@ -51,6 +51,7 @@ set(SOURCES
     "toolnet.c"
     "toolsvc.c"
     "toolsess.c"
+    "tooltask.c"
     "toolsys.c"
     "toolthrd.c"
     "toolwait.c"
