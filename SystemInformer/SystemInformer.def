@@ -560,6 +560,7 @@ EXPORTS
     PhCreateEvent
     PhCreateFile
     PhCreateFileWin32
+    PhCreateSection
     PhCreateFileWin32Ex
     PhCreateJobObject
     PhCreateKey
@@ -1380,6 +1381,8 @@ EXPORTS
     KphOpenDeviceDriver
     KphQueryInformationDriver
     KphQueryInformationObject
+    KphQuerySectionMappingsInfo
+    KphQueryVirtualMemory
     KsiEnumerateProcessHandles
     KsiLevel
     KsiQueryHashInformationFile

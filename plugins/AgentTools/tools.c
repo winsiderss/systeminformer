@@ -1270,6 +1270,8 @@ VOID AtInvokeTool(
     case AtActionGetAlpcPortInfo:
     case AtActionGetHandleDetails:
     case AtActionListNamedPipes:
+    case AtActionGetSectionMappings:
+    case AtActionFindObjectHandles:
         AtHandleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListFirewallEvents:

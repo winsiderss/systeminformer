@@ -131,6 +131,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list named pipes", L"Allow listing named pipes", L"list_named_pipes"
     },
     {
+        AtActionGetSectionMappings, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_section_mappings"),
+        L"list which processes map a section", L"Allow listing section mappings", L"get_section_mappings"
+    },
+    {
+        AtActionFindObjectHandles, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"find_object_handles"),
+        L"find every handle to one object", L"Find every handle to an object", L"find_object_handles"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1614,6 +1622,86 @@ CONST AT_TOOL AtTools[] =
         "\"connected\":{\"type\":\"boolean\",\"description\":\"Whether this call opened the pipes it listed\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pipes\",\"count\",\"total_count\",\"truncated\",\"connected\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_section_mappings", L"Get section mappings", AtTierRead, AtActionGetSectionMappings,
+        SETTING_NAME_TOOL_ACCESS(L"get_section_mappings"), SETTING_NAME_TOOL_CONFIRM(L"get_section_mappings"),
+        "{\"name\":\"get_section_mappings\",\"title\":\"Get section mappings\","
+        "\"description\":\"Says which processes have a file or a section mapped into memory, and where. Give it a "
+        "path and it answers 'who has this DLL loaded', including processes that map it without ever holding a "
+        "handle open - the mapping list belongs to the kernel's control area for the file, not to any one section "
+        "object, so a section opened here reports everyone's views. Give it a pid and an address instead and it "
+        "answers 'what else maps the memory at this address in this process'. Give it a pid and a Section handle "
+        "and it reports that section's views. A file has two independent mapping lists: image, which is what the "
+        "loader uses for a DLL, and data, which is what a reader or scanner gets; both are reported and the section "
+        "field says which. Needs the System Informer driver at medium access, which is the only thing that can read "
+        "a control area. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"Win32 path of a file; reports every process mapping it\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"With address or handle\"},"
+        "\"address\":{\"type\":[\"string\",\"integer\"],\"description\":\"An address in that process, decimal or 0x hex; "
+        "reports the views of whatever section backs it\"},"
+        "\"handle\":{\"type\":[\"string\",\"integer\"],\"description\":\"A Section handle in that process, from get_process_handles\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Optional; when given, a recycled pid is refused\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":[\"string\",\"null\"],\"description\":\"The file that was asked about, when one was\"},"
+        "\"mappings\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"view_type\":{\"type\":[\"string\",\"null\"],\"enum\":[\"process\",\"session\",\"system_cache\",null],"
+        "\"description\":\"A process view has a pid; a session or system cache view belongs to nobody\"},"
+        "\"section\":{\"type\":[\"string\",\"null\"],\"enum\":[\"image\",\"data\",null],"
+        "\"description\":\"Which of the file's two mapping lists this view is in; null when a section was named directly\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":\"string\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"},"
+        "\"start_address\":{\"type\":\"string\"},"
+        "\"end_address\":{\"type\":\"string\"},"
+        "\"size\":{\"type\":\"integer\"}"
+        "},\"required\":[\"view_type\",\"start_address\",\"end_address\",\"size\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"mappings\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "find_object_handles", L"Find handles to an object", AtTierSensitiveRead, AtActionFindObjectHandles,
+        SETTING_NAME_TOOL_ACCESS(L"find_object_handles"), SETTING_NAME_TOOL_CONFIRM(L"find_object_handles"),
+        "{\"name\":\"find_object_handles\",\"title\":\"Find handles to an object\","
+        "\"description\":\"Given one handle, finds every handle in the system that refers to the same kernel object. "
+        "This is a different question from find_handles, which matches on the object's name: two handles can share a "
+        "name and be different objects, and an unnamed object - most of the events, mutexes and sections that matter "
+        "in a hang - has no name to match on at all. Use it to find who else is holding the thing a process is "
+        "blocked on. Needs elevation: the kernel only reports the object address behind a handle to a caller allowed "
+        "to see kernel addresses, and without it nothing can be compared, which is said rather than answered with an "
+        "empty list. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"handle\":{\"type\":[\"string\",\"integer\"],\"description\":\"Handle value from get_process_handles, decimal or 0x hex\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Optional; when given, a recycled pid is refused\"},"
+        "\"type_name\":{\"type\":\"string\",\"description\":\"Optional; the call is refused if the handle is not this type\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\",\"handle\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"type\":{\"type\":[\"string\",\"null\"]},"
+        "\"object_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"object_address\":{\"type\":\"string\",\"description\":\"The kernel object every listed handle points at\"},"
+        "\"handles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":\"string\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"},"
+        "\"handle\":{\"type\":\"string\"},"
+        "\"granted_access\":{\"type\":\"string\"},"
+        "\"inherit\":{\"type\":\"boolean\"},"
+        "\"protect_from_close\":{\"type\":\"boolean\"},"
+        "\"is_reference\":{\"type\":\"boolean\",\"description\":\"True for the handle that was asked about\"}"
+        "},\"required\":[\"pid\",\"handle\",\"is_reference\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"object_address\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

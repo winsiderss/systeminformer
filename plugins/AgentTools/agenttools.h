@@ -98,6 +98,8 @@ typedef enum _AT_ACTION
     AtActionGetAlpcPortInfo,
     AtActionGetHandleDetails,
     AtActionListNamedPipes,
+    AtActionGetSectionMappings,
+    AtActionFindObjectHandles,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,

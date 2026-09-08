@@ -1101,6 +1101,376 @@ VOID AtpListNamedPipes(
     PhClearReference(&context.NameContains);
 }
 
+// Who else has this mapped. A section object's mappings live on the control area the kernel keeps
+// per file, not on the section handle, so a section created here from a file reports every process
+// that has that file mapped - which is how peview's Mappings page works (tools/peview/mappings.c).
+// Only the driver can read that list.
+
+VOID AtpAddMappingEntries(
+    _In_ PAT_ROWS Rows,
+    _In_ PKPH_SECTION_MAPPINGS_INFORMATION Mappings,
+    _In_opt_ PCWSTR Kind
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Mappings->NumberOfMappings; i++)
+    {
+        PKPH_SECTION_MAP_ENTRY entry = &Mappings->Mappings[i];
+        PVOID row = PhCreateJsonObject();
+        PCWSTR viewType;
+
+        switch (entry->ViewMapType)
+        {
+        case VIEW_MAP_TYPE_PROCESS:
+            viewType = L"process";
+            break;
+        case VIEW_MAP_TYPE_SESSION:
+            viewType = L"session";
+            break;
+        case VIEW_MAP_TYPE_SYSTEM_CACHE:
+            viewType = L"system_cache";
+            break;
+        default:
+            viewType = NULL;
+            break;
+        }
+
+        AtJsonAddStringZ(row, "view_type", viewType);
+        AtJsonAddStringZ(row, "section", Kind);
+
+        // Only a process view belongs to a process; a session or cache view has no owner.
+        if (entry->ViewMapType == VIEW_MAP_TYPE_PROCESS && entry->ProcessId)
+        {
+            PPH_PROCESS_ITEM processItem;
+
+            if (processItem = PhReferenceProcessItem(entry->ProcessId))
+            {
+                AtFillProcessIdentity(row, processItem);
+                PhDereferenceObject(processItem);
+            }
+            else
+            {
+                PhAddJsonObjectUInt64(row, "pid", HandleToUlong(entry->ProcessId));
+            }
+        }
+
+        AtJsonAddPointer(row, "start_address", entry->StartVa);
+        AtJsonAddPointer(row, "end_address", entry->EndVa);
+        PhAddJsonObjectUInt64(row, "size", (ULONG_PTR)entry->EndVa - (ULONG_PTR)entry->StartVa);
+
+        AtAddRow(Rows, row);
+    }
+}
+
+VOID AtpAddSectionMappings(
+    _In_ PAT_ROWS Rows,
+    _In_ HANDLE SectionHandle,
+    _In_ PCWSTR Kind
+    )
+{
+    PKPH_SECTION_MAPPINGS_INFORMATION mappings;
+
+    if (!NT_SUCCESS(KphQuerySectionMappingsInfo(SectionHandle, &mappings)))
+        return;
+
+    AtpAddMappingEntries(Rows, mappings, Kind);
+    PhFree(mappings);
+}
+
+// The image and the data section of a file are different control areas with different mapping lists:
+// a DLL loaded by the loader is in the image one, the same file read by a scanner is in the data one.
+VOID AtpAddFileSectionMappings(
+    _In_ PAT_ROWS Rows,
+    _In_ PPH_STRING FileName,
+    _Inout_ PNTSTATUS Status
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    HANDLE sectionHandle;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        *Status = status;
+        return;
+    }
+
+    *Status = STATUS_SUCCESS;
+
+    if (NT_SUCCESS(PhCreateSection(&sectionHandle, SECTION_QUERY | SECTION_MAP_READ, NULL,
+        PAGE_READONLY, SEC_IMAGE_NO_EXECUTE, fileHandle)))
+    {
+        AtpAddSectionMappings(Rows, sectionHandle, L"image");
+        NtClose(sectionHandle);
+    }
+
+    if (NT_SUCCESS(PhCreateSection(&sectionHandle, SECTION_QUERY | SECTION_MAP_READ, NULL,
+        PAGE_READONLY, SEC_COMMIT, fileHandle)))
+    {
+        AtpAddSectionMappings(Rows, sectionHandle, L"data");
+        NtClose(sectionHandle);
+    }
+
+    NtClose(fileHandle);
+}
+
+VOID AtpGetSectionMappings(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+    AT_TARGET target;
+    AT_ROWS rows;
+    PPH_STRING path;
+    ULONG64 address = 0;
+    BOOLEAN haveAddress;
+    PVOID structured;
+
+    memset(&target, 0, sizeof(AT_TARGET));
+    path = AtGetArgumentString(Call->Arguments, "path");
+    haveAddress = AtGetArgumentPointer(Call->Arguments, "address", &address);
+
+    // Everything here is the driver reading the control area; there is no user-mode equivalent.
+    if (KsiLevel() < KphLevelMed)
+    {
+        AtSetToolError(
+            Result,
+            "failed",
+            STATUS_NOT_SUPPORTED,
+            L"Section mappings come from the System Informer driver, which is not available to this instance (access level: %s).",
+            AtKphLevelString(KsiLevel())
+            );
+        AtSetToolHint(Result, AT_HINT_NEEDS_DRIVER);
+        PhClearReference(&path);
+        return;
+    }
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    if (path)
+    {
+        AtpAddFileSectionMappings(&rows, path, &status);
+
+        if (!NT_SUCCESS(status))
+        {
+            AtSetToolStatusError(Result, status, L"Opening the file");
+            AtDeleteRows(&rows);
+            PhDereferenceObject(path);
+            return;
+        }
+    }
+    else if (haveAddress)
+    {
+        HANDLE sectionHandle;
+        KPH_MEMORY_DATA_SECTION dataSection;
+
+        if (!NT_SUCCESS(status = AtResolveProcessTarget(Call->Arguments, FALSE,
+            PROCESS_QUERY_LIMITED_INFORMATION, &target, Result)))
+        {
+            AtDeleteRows(&rows);
+            return;
+        }
+
+        // An address can be backed by an image section, a data section, or neither.
+        if (NT_SUCCESS(KphQueryVirtualMemory(target.ProcessHandle, (PVOID)(ULONG_PTR)address,
+            KphMemoryImageSection, &sectionHandle, sizeof(sectionHandle), NULL)))
+        {
+            AtpAddSectionMappings(&rows, sectionHandle, L"image");
+            NtClose(sectionHandle);
+        }
+
+        if (NT_SUCCESS(KphQueryVirtualMemory(target.ProcessHandle, (PVOID)(ULONG_PTR)address,
+            KphMemoryDataSection, &dataSection, sizeof(dataSection), NULL)))
+        {
+            AtpAddSectionMappings(&rows, dataSection.SectionHandle, L"data");
+            NtClose(dataSection.SectionHandle);
+        }
+    }
+    else
+    {
+        PKPH_SECTION_MAPPINGS_INFORMATION mappings;
+        ULONG returnLength = 0;
+        ULONG bufferSize;
+
+        if (!NT_SUCCESS(status = AtResolveHandleTarget(Call->Arguments, FALSE,
+            PROCESS_QUERY_LIMITED_INFORMATION, &target, Result)))
+        {
+            AtDeleteRows(&rows);
+            return;
+        }
+
+        if (!target.HandleTypeName || !PhEqualString2(target.HandleTypeName, L"Section", TRUE))
+        {
+            AtSetToolError(
+                Result,
+                "identity_mismatch",
+                STATUS_OBJECT_TYPE_MISMATCH,
+                L"Handle 0x%llx in pid %lu is a %s handle, not a Section.",
+                (ULONG64)(ULONG_PTR)target.HandleValue,
+                HandleToUlong(target.ProcessItem->ProcessId),
+                PhGetStringOrDefault(target.HandleTypeName, L"(unknown type)")
+                );
+            AtDeleteRows(&rows);
+            AtDeleteTarget(&target);
+            return;
+        }
+
+        // The section is another process's, so the mappings come through the object class rather
+        // than through a section handle of our own.
+        bufferSize = 0x400;
+        mappings = PhAllocate(bufferSize);
+
+        status = KphQueryInformationObject(target.ProcessHandle, target.HandleValue,
+            KphObjectSectionMappingsInformation, mappings, bufferSize, &returnLength);
+
+        if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && returnLength > bufferSize)
+        {
+            PhFree(mappings);
+            bufferSize = returnLength;
+            mappings = PhAllocate(bufferSize);
+
+            status = KphQueryInformationObject(target.ProcessHandle, target.HandleValue,
+                KphObjectSectionMappingsInformation, mappings, bufferSize, &returnLength);
+        }
+
+        if (!NT_SUCCESS(status))
+        {
+            AtSetToolStatusError(Result, status, L"Querying the section mappings");
+            PhFree(mappings);
+            AtDeleteRows(&rows);
+            AtDeleteTarget(&target);
+            return;
+        }
+
+        AtpAddMappingEntries(&rows, mappings, NULL);
+
+        PhFree(mappings);
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    AtAddRows(structured, "mappings", &rows);
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&rows);
+    AtDeleteTarget(&target);
+    PhClearReference(&path);
+}
+
+// Every handle in the system that refers to the same object as this one. find_handles matches on the
+// object's *name*, which is a different question: two handles can share a name and be different
+// objects, and an unnamed object - most events, mutexes and sections that matter - cannot be found by
+// name at all. This matches on the object itself.
+//
+// The kernel only tells a caller the object address of a handle when that caller is allowed to see
+// kernel addresses, so this needs elevation. Without it every address is zero and no comparison is
+// possible, which is said rather than answered with an empty list.
+
+VOID AtpFindObjectHandles(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_TARGET target;
+    AT_ROWS rows;
+    PSYSTEM_HANDLE_INFORMATION_EX handles;
+    PVOID object = NULL;
+    PVOID structured;
+    ULONG_PTR i;
+
+    memset(&target, 0, sizeof(AT_TARGET));
+
+    status = AtResolveHandleTarget(Call->Arguments, FALSE, 0, &target, Result);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    object = target.HandleObject;
+
+    if (!object)
+    {
+        AtSetToolError(
+            Result,
+            "access_denied",
+            STATUS_ACCESS_DENIED,
+            L"The kernel did not report an object address for handle 0x%llx in pid %lu, so no other handle can be matched to it. Kernel addresses are withheld from an unelevated caller.",
+            (ULONG64)(ULONG_PTR)target.HandleValue,
+            HandleToUlong(target.ProcessItem->ProcessId)
+            );
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    status = PhEnumHandlesEx(&handles);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Enumerating handles");
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < handles->NumberOfHandles; i++)
+    {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = &handles->Handles[i];
+        PPH_PROCESS_ITEM processItem;
+        PVOID row;
+
+        if (entry->Object != object)
+            continue;
+
+        row = PhCreateJsonObject();
+
+        if (processItem = PhReferenceProcessItem(entry->UniqueProcessId))
+        {
+            AtFillProcessIdentity(row, processItem);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            PhAddJsonObjectUInt64(row, "pid", HandleToUlong(entry->UniqueProcessId));
+        }
+
+        AtJsonAddPointer(row, "handle", entry->HandleValue);
+        AtJsonAddHex(row, "granted_access", entry->GrantedAccess);
+        PhAddJsonObjectBoolean(row, "inherit", !!FlagOn(entry->HandleAttributes, OBJ_INHERIT));
+        PhAddJsonObjectBoolean(row, "protect_from_close", !!FlagOn(entry->HandleAttributes, OBJ_PROTECT_CLOSE));
+        PhAddJsonObjectBoolean(row, "is_reference",
+            entry->UniqueProcessId == target.ProcessItem->ProcessId &&
+            entry->HandleValue == target.HandleValue);
+
+        AtAddRow(&rows, row);
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "type", target.HandleTypeName);
+    AtJsonAddString(structured, "object_name", target.HandleObjectName);
+    AtJsonAddPointer(structured, "object_address", object);
+    AtAddRows(structured, "handles", &rows);
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&rows);
+    PhFree(handles);
+    AtDeleteTarget(&target);
+}
+
 VOID AtHandleInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1118,6 +1488,12 @@ VOID AtHandleInvokeTool(
         break;
     case AtActionListNamedPipes:
         AtpListNamedPipes(Call, Result);
+        break;
+    case AtActionGetSectionMappings:
+        AtpGetSectionMappings(Call, Result);
+        break;
+    case AtActionFindObjectHandles:
+        AtpFindObjectHandles(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"Unhandled tool.");
