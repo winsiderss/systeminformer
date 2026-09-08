@@ -1156,6 +1156,9 @@ EXPORTS
     PhLoadMappedImage
     PhGetMappedImageAuthenticodeHash
     PhGetMappedImageDataDirectory
+    PhGetMappedImageEntropy
+    PhGetMappedImageProdIdHeader
+    PhGetMappedImageTlsCallbacks
     PhGetMappedImageDebug
     PhGetMappedImageDebugEntryByType
     PhGetMappedImageDelayImports
@@ -1169,6 +1172,7 @@ EXPORTS
     PhGetMappedImageLoadConfig32
     PhGetMappedImageLoadConfig64
     PhGetMappedImageResource
+    PhGetMappedImageResources
     PhGetMappedImageWdacHash
     PhLoadMappedImageEx
     PhLoadMappedImageHeaderPageSize

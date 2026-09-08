@@ -26,7 +26,12 @@
 #define AT_IMAGE_SECTION_VERSION_INFO 0x0040
 #define AT_IMAGE_SECTION_DEBUG        0x0080
 #define AT_IMAGE_SECTION_CERTIFICATES 0x0100
-#define AT_IMAGE_SECTION_ALL          0x01ff
+#define AT_IMAGE_SECTION_RICH_HEADER  0x0200
+#define AT_IMAGE_SECTION_TLS          0x0400
+#define AT_IMAGE_SECTION_RESOURCES    0x0800
+#define AT_IMAGE_SECTION_CLR          0x1000
+#define AT_IMAGE_SECTION_ENTROPY      0x2000
+#define AT_IMAGE_SECTION_ALL          0x3fff
 
 // A manifest is XML and an image can carry a big one; more than this is a file to look at with
 // something else.
@@ -56,6 +61,11 @@ ULONG AtpParseImageSections(
         { L"version_info", AT_IMAGE_SECTION_VERSION_INFO },
         { L"debug", AT_IMAGE_SECTION_DEBUG },
         { L"certificates", AT_IMAGE_SECTION_CERTIFICATES },
+        { L"rich_header", AT_IMAGE_SECTION_RICH_HEADER },
+        { L"tls", AT_IMAGE_SECTION_TLS },
+        { L"resources", AT_IMAGE_SECTION_RESOURCES },
+        { L"clr", AT_IMAGE_SECTION_CLR },
+        { L"entropy", AT_IMAGE_SECTION_ENTROPY },
         { L"all", AT_IMAGE_SECTION_ALL },
     };
     ULONG flags = 0;
@@ -718,6 +728,289 @@ VOID AtpAddImageCertificates(
     PhAddJsonObjectValue(Structured, "certificates", array);
 }
 
+// The Rich header is the linker's own record of what built the file: a list of tool ids and build
+// numbers, obfuscated with a checksum key, that no compiler documents and every compiler writes. Two
+// binaries built on the same machine with the same toolchain carry the same one, which is why it is
+// used to group samples that share nothing else.
+VOID AtpAddImageRichHeader(
+    _In_ PVOID Structured,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    PH_MAPPED_IMAGE_PRODID prodId;
+    PVOID entry;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetMappedImageProdIdHeader(MappedImage, &prodId)))
+    {
+        AtJsonAddNull(Structured, "rich_header");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(entry, "valid", !!prodId.Valid);
+    AtJsonAddString(entry, "checksum", prodId.Key);
+    AtJsonAddString(entry, "hash", prodId.Hash);
+    AtJsonAddString(entry, "raw_hash", prodId.RawHash);
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < prodId.NumberOfEntries; i++)
+    {
+        PVOID row = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(row, "product_id", prodId.ProdIdEntries[i].ProductId);
+        PhAddJsonObjectUInt64(row, "product_build", prodId.ProdIdEntries[i].ProductBuild);
+        PhAddJsonObjectUInt64(row, "count", prodId.ProdIdEntries[i].ProductCount);
+        PhAddJsonArrayObject(array, row);
+    }
+
+    PhAddJsonObjectValue(entry, "entries", array);
+    PhAddJsonObjectValue(Structured, "rich_header", entry);
+
+    PhClearReference(&prodId.Key);
+    PhClearReference(&prodId.Hash);
+    PhClearReference(&prodId.RawHash);
+
+    if (prodId.ProdIdEntries)
+        PhFree(prodId.ProdIdEntries);
+}
+
+// TLS callbacks run before the entry point does, on every thread. That makes them the quietest place
+// in a PE to put code, so what is in the list matters more than that there is a list.
+VOID AtpAddImageTls(
+    _In_ PVOID Structured,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    PH_MAPPED_IMAGE_TLS_CALLBACKS tls;
+    PVOID entry;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhGetMappedImageTlsCallbacks(&tls, MappedImage)))
+    {
+        AtJsonAddNull(Structured, "tls");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+
+    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+    {
+        AtJsonAddHex(entry, "start_address_of_raw_data", tls.TlsDirectory64->StartAddressOfRawData);
+        AtJsonAddHex(entry, "end_address_of_raw_data", tls.TlsDirectory64->EndAddressOfRawData);
+        AtJsonAddHex(entry, "address_of_index", tls.TlsDirectory64->AddressOfIndex);
+        AtJsonAddHex(entry, "address_of_callbacks", tls.TlsDirectory64->AddressOfCallBacks);
+        PhAddJsonObjectUInt64(entry, "size_of_zero_fill", tls.TlsDirectory64->SizeOfZeroFill);
+        AtJsonAddHex(entry, "characteristics", tls.TlsDirectory64->Characteristics);
+    }
+    else
+    {
+        AtJsonAddHex(entry, "start_address_of_raw_data", tls.TlsDirectory32->StartAddressOfRawData);
+        AtJsonAddHex(entry, "end_address_of_raw_data", tls.TlsDirectory32->EndAddressOfRawData);
+        AtJsonAddHex(entry, "address_of_index", tls.TlsDirectory32->AddressOfIndex);
+        AtJsonAddHex(entry, "address_of_callbacks", tls.TlsDirectory32->AddressOfCallBacks);
+        PhAddJsonObjectUInt64(entry, "size_of_zero_fill", tls.TlsDirectory32->SizeOfZeroFill);
+        AtJsonAddHex(entry, "characteristics", tls.TlsDirectory32->Characteristics);
+    }
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < tls.NumberOfEntries; i++)
+    {
+        PVOID row = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(row, "index", tls.Entries[i].Index);
+        AtJsonAddHex(row, "address", tls.Entries[i].Address);
+        PhAddJsonArrayObject(array, row);
+    }
+
+    PhAddJsonObjectValue(entry, "callbacks", array);
+    PhAddJsonObjectValue(Structured, "tls", entry);
+
+    if (tls.Entries)
+        PhFree(tls.Entries);
+}
+
+PCWSTR AtpResourceTypeString(
+    _In_ ULONG_PTR Type
+    )
+{
+    if (!IS_INTRESOURCE(Type))
+        return NULL;
+
+    switch ((ULONG)Type)
+    {
+    case 1: return L"cursor";
+    case 2: return L"bitmap";
+    case 3: return L"icon";
+    case 4: return L"menu";
+    case 5: return L"dialog";
+    case 6: return L"string";
+    case 7: return L"fontdir";
+    case 8: return L"font";
+    case 9: return L"accelerator";
+    case 10: return L"rcdata";
+    case 11: return L"messagetable";
+    case 12: return L"group_cursor";
+    case 14: return L"group_icon";
+    case 16: return L"version";
+    case 17: return L"dlginclude";
+    case 19: return L"plugplay";
+    case 20: return L"vxd";
+    case 21: return L"anicursor";
+    case 22: return L"aniicon";
+    case 23: return L"html";
+    case 24: return L"manifest";
+    }
+
+    return NULL;
+}
+
+// A resource type or name is either a small integer or a pointer into the image to a counted string.
+// The pointer comes from the file, so it is checked against the view before it is followed.
+VOID AtpAddResourceIdentifier(
+    _In_ PVOID Row,
+    _In_ PCSTR Key,
+    _In_ PCSTR NameKey,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG_PTR Value
+    )
+{
+    if (IS_INTRESOURCE(Value))
+    {
+        PhAddJsonObjectUInt64(Row, Key, (ULONG)Value);
+        AtJsonAddNull(Row, NameKey);
+        return;
+    }
+
+    AtJsonAddNull(Row, Key);
+    AtJsonAddNull(Row, NameKey);
+
+    if ((PVOID)Value >= MappedImage->ViewBase &&
+        PTR_ADD_OFFSET(Value, sizeof(IMAGE_RESOURCE_DIR_STRING_U)) <= PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize))
+    {
+        PIMAGE_RESOURCE_DIR_STRING_U string = (PIMAGE_RESOURCE_DIR_STRING_U)Value;
+        SIZE_T length = string->Length * sizeof(WCHAR);
+
+        if (PTR_ADD_OFFSET(string->NameString, length) <= PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize))
+        {
+            PH_STRINGREF name;
+
+            name.Buffer = string->NameString;
+            name.Length = length;
+            AtJsonAddStringRef(Row, NameKey, &name);
+        }
+    }
+}
+
+VOID AtpAddImageResources(
+    _In_ PVOID Structured,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PAT_TOOL_CALL Call
+    )
+{
+    PH_MAPPED_IMAGE_RESOURCES resources;
+    AT_ROWS rows;
+    SIZE_T i;
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    if (NT_SUCCESS(PhGetMappedImageResources(&resources, MappedImage)))
+    {
+        for (i = 0; i < resources.NumberOfEntries; i++)
+        {
+            PPH_IMAGE_RESOURCE_ENTRY resource = &resources.ResourceEntries[i];
+            PVOID row = PhCreateJsonObject();
+
+            AtpAddResourceIdentifier(row, "type_id", "type_name", MappedImage, resource->Type);
+            AtJsonAddStringZ(row, "type", AtpResourceTypeString(resource->Type));
+            AtpAddResourceIdentifier(row, "name_id", "name", MappedImage, resource->Name);
+            PhAddJsonObjectUInt64(row, "language", resource->Language);
+            AtJsonAddHex(row, "offset", resource->Offset);
+            PhAddJsonObjectUInt64(row, "size", resource->Size);
+            PhAddJsonObjectUInt64(row, "code_page", resource->CodePage);
+            AtAddRow(&rows, row);
+        }
+
+        if (resources.ResourceEntries)
+            PhFree(resources.ResourceEntries);
+    }
+
+    AtAddRows(Structured, "resources", &rows);
+    AtDeleteRows(&rows);
+}
+
+VOID AtpAddImageClr(
+    _In_ PVOID Structured,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    static CONST ULONG clrFlags[] =
+    {
+        COMIMAGE_FLAGS_ILONLY, COMIMAGE_FLAGS_32BITREQUIRED, COMIMAGE_FLAGS_IL_LIBRARY,
+        COMIMAGE_FLAGS_STRONGNAMESIGNED, COMIMAGE_FLAGS_NATIVE_ENTRYPOINT,
+        COMIMAGE_FLAGS_TRACKDEBUGDATA, COMIMAGE_FLAGS_32BITPREFERRED
+    };
+    static CONST PWSTR clrNames[] =
+    {
+        L"il_only", L"32bit_required", L"il_library",
+        L"strong_name_signed", L"native_entry_point",
+        L"track_debug_data", L"32bit_preferred"
+    };
+    PIMAGE_COR20_HEADER cor20;
+    PVOID entry;
+
+    // The COM descriptor directory is what makes a PE a managed assembly; a native binary has none.
+    cor20 = PhGetMappedImageDirectoryEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR);
+
+    if (!cor20)
+    {
+        AtJsonAddNull(Structured, "clr");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "runtime_version_major", cor20->MajorRuntimeVersion);
+    PhAddJsonObjectUInt64(entry, "runtime_version_minor", cor20->MinorRuntimeVersion);
+    AtJsonAddHex(entry, "flags", cor20->Flags);
+    AtJsonAddFlagStrings(entry, "flag_names", cor20->Flags,
+        clrFlags, (CONST PWSTR*)clrNames, RTL_NUMBER_OF(clrFlags));
+    AtJsonAddHex(entry, "entry_point_token", cor20->EntryPointToken);
+    AtJsonAddHex(entry, "metadata_address", cor20->MetaData.VirtualAddress);
+    PhAddJsonObjectUInt64(entry, "metadata_size", cor20->MetaData.Size);
+    AtJsonAddHex(entry, "strong_name_signature_address", cor20->StrongNameSignature.VirtualAddress);
+    PhAddJsonObjectUInt64(entry, "strong_name_signature_size", cor20->StrongNameSignature.Size);
+    PhAddJsonObjectValue(Structured, "clr", entry);
+}
+
+// High entropy means compressed or encrypted, which is what a packer leaves behind - and also what a
+// legitimately compressed resource section looks like, so it is a question rather than an answer.
+VOID AtpAddImageEntropy(
+    _In_ PVOID Structured,
+    _In_ PPH_MAPPED_IMAGE MappedImage
+    )
+{
+    FLOAT entropy;
+    FLOAT mean;
+    FLOAT variance;
+    PVOID entry;
+
+    if (!PhGetMappedImageEntropy(MappedImage, &entropy, &mean, &variance))
+    {
+        AtJsonAddNull(Structured, "entropy");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectDouble(entry, "entropy", entropy);
+    PhAddJsonObjectDouble(entry, "mean", mean);
+    PhAddJsonObjectDouble(entry, "variance", variance);
+    PhAddJsonObjectValue(Structured, "entropy", entry);
+}
+
 VOID AtAddImageSections(
     _In_ PVOID Structured,
     _In_ PPH_MAPPED_IMAGE MappedImage,
@@ -752,4 +1045,19 @@ VOID AtAddImageSections(
 
     if (Sections & AT_IMAGE_SECTION_CERTIFICATES)
         AtpAddImageCertificates(Structured, MappedImage);
+
+    if (Sections & AT_IMAGE_SECTION_RICH_HEADER)
+        AtpAddImageRichHeader(Structured, MappedImage);
+
+    if (Sections & AT_IMAGE_SECTION_TLS)
+        AtpAddImageTls(Structured, MappedImage);
+
+    if (Sections & AT_IMAGE_SECTION_RESOURCES)
+        AtpAddImageResources(Structured, MappedImage, Call);
+
+    if (Sections & AT_IMAGE_SECTION_CLR)
+        AtpAddImageClr(Structured, MappedImage);
+
+    if (Sections & AT_IMAGE_SECTION_ENTROPY)
+        AtpAddImageEntropy(Structured, MappedImage);
 }
