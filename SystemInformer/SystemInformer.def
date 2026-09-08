@@ -1154,6 +1154,8 @@ EXPORTS
 
 ; mapimg
     PhLoadMappedImage
+    PhGetMappedImageAuthenticodeHash
+    PhGetMappedImageWdacHash
     PhLoadMappedImageEx
     PhLoadMappedImageHeaderPageSize
     PhUnloadMappedImage

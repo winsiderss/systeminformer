@@ -1347,6 +1347,7 @@ VOID AtInvokeTool(
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:
+    case AtActionGetFileHashes:
     case AtActionGetImageInfo:
     case AtActionReadProcessMemory:
     case AtActionSearchProcessMemory:

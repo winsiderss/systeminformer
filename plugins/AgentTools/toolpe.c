@@ -12,6 +12,7 @@
 #include "agenttools.h"
 #include <mapldr.h>
 #include <wincrypt.h>
+#include <phcrypt.h>
 #include <mapimg.h>
 
 #define AT_READ_MEMORY_MAX (64 * 1024)
@@ -304,6 +305,285 @@ VOID AtpVerifyFileSignature(
 
     PhFreeVerifySignatures(signatures, numberOfSignatures);
     PhClearReference(&signer);
+    NtClose(fileHandle);
+    PhDereferenceObject(path);
+}
+
+// The hash is the key every prevalence lookup is keyed on, and the reason a file has more than one
+// is that they answer different questions. A plain file hash changes when anything in the file
+// changes, signature included. The Authenticode hash deliberately skips the certificate and the
+// fields that signing rewrites, so it is the same before and after a file is signed - which is what
+// makes it the right thing to compare a suspect binary against a known one.
+
+#define AT_HASH_CHUNK_SIZE (1024 * 1024)
+#define AT_HASH_MAXIMUM_SIZE (2ULL * 1024 * 1024 * 1024)
+
+typedef struct _AT_HASH_REQUEST
+{
+    PCSTR Key;
+    PCWSTR Name;
+    PH_SYMCRYPT_HASH_ALGORITHM Algorithm;
+    ULONG Size;
+    BOOLEAN Wanted;
+    PH_SYMCRYPT_HASH_CONTEXT Context;
+} AT_HASH_REQUEST, *PAT_HASH_REQUEST;
+
+VOID AtpGetFileHashes(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_HASH_REQUEST requests[] =
+    {
+        { "md5", L"md5", PH_SYMCRYPT_MD5_ALGORITHM, PH_SYMCRYPT_MD5_RESULT_SIZE, FALSE },
+        { "sha1", L"sha1", PH_SYMCRYPT_SHA1_ALGORITHM, PH_SYMCRYPT_SHA1_RESULT_SIZE, FALSE },
+        { "sha256", L"sha256", PH_SYMCRYPT_SHA256_ALGORITHM, PH_SYMCRYPT_SHA256_RESULT_SIZE, FALSE },
+        { "sha512", L"sha512", PH_SYMCRYPT_SHA512_ALGORITHM, PH_SYMCRYPT_SHA512_RESULT_SIZE, FALSE },
+    };
+    NTSTATUS status;
+    PPH_STRING path;
+    HANDLE fileHandle;
+    PVOID algorithms;
+    PVOID buffer;
+    PVOID structured;
+    LARGE_INTEGER fileSize;
+    LARGE_INTEGER offset;
+    PH_MAPPED_IMAGE mappedImage;
+    BOOLEAN isImage = FALSE;
+    ULONG wanted = 0;
+    ULONG i;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        PhClearReference(&path);
+        return;
+    }
+
+    if (algorithms = AtJsonGetObjectMember(Call->Arguments, "algorithms", PH_JSON_OBJECT_TYPE_ARRAY))
+    {
+        ULONG count = PhGetJsonArrayLength(algorithms);
+        ULONG j;
+
+        for (j = 0; j < count; j++)
+        {
+            PPH_STRING name = PhGetJsonObjectString(PhGetJsonArrayIndexObject(algorithms, j));
+
+            if (!name)
+                continue;
+
+            for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+            {
+                if (PhEqualString2(name, requests[i].Name, TRUE))
+                {
+                    requests[i].Wanted = TRUE;
+                    break;
+                }
+            }
+
+            if (i == RTL_NUMBER_OF(requests))
+            {
+                AtSetToolError(
+                    Result,
+                    "invalid_arguments",
+                    STATUS_INVALID_PARAMETER,
+                    L"%s is not one of md5, sha1, sha256 or sha512.",
+                    PhGetString(name)
+                    );
+                PhDereferenceObject(name);
+                PhDereferenceObject(path);
+                return;
+            }
+
+            PhDereferenceObject(name);
+        }
+    }
+    else
+    {
+        // The three every lookup service is keyed on.
+        requests[0].Wanted = TRUE;
+        requests[1].Wanted = TRUE;
+        requests[2].Wanted = TRUE;
+    }
+
+    for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+    {
+        if (requests[i].Wanted)
+            wanted++;
+    }
+
+    if (wanted == 0)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"algorithms was empty.");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(path),
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the file");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    if (!NT_SUCCESS(status = PhGetFileSize(fileHandle, &fileSize)))
+    {
+        AtSetToolStatusError(Result, status, L"Reading the file size");
+        NtClose(fileHandle);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    // The whole file has to be read to hash it and the server answers one call at a time, so there
+    // is a size past which this is not a reasonable thing to ask for.
+    if ((ULONG64)fileSize.QuadPart > AT_HASH_MAXIMUM_SIZE)
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_FILE_TOO_LARGE,
+            L"The file is %llu bytes; hashing is limited to %llu.",
+            (ULONG64)fileSize.QuadPart,
+            (ULONG64)AT_HASH_MAXIMUM_SIZE
+            );
+        NtClose(fileHandle);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+    {
+        if (requests[i].Wanted && !NT_SUCCESS(status = PhSymCryptHashInit(requests[i].Algorithm, &requests[i].Context)))
+        {
+            AtSetToolStatusError(Result, status, L"Starting the hash");
+            NtClose(fileHandle);
+            PhDereferenceObject(path);
+            return;
+        }
+    }
+
+    // One pass over the file feeding every requested hash, rather than a pass each.
+    buffer = PhAllocate(AT_HASH_CHUNK_SIZE);
+    offset.QuadPart = 0;
+
+    while (offset.QuadPart < fileSize.QuadPart)
+    {
+        ULONG read = 0;
+
+        status = PhReadFile(fileHandle, buffer, AT_HASH_CHUNK_SIZE, &offset, &read);
+
+        if (!NT_SUCCESS(status) || read == 0)
+            break;
+
+        for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+        {
+            if (requests[i].Wanted)
+                PhSymCryptHashData(&requests[i].Context, buffer, read);
+        }
+
+        offset.QuadPart += read;
+    }
+
+    PhFree(buffer);
+
+    if (offset.QuadPart != fileSize.QuadPart)
+    {
+        AtSetToolStatusError(Result, NT_SUCCESS(status) ? STATUS_END_OF_FILE : status, L"Reading the file");
+
+        for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+        {
+            if (requests[i].Wanted)
+                PhSymCryptDestroyHash(&requests[i].Context, requests[i].Size);
+        }
+
+        NtClose(fileHandle);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    PhAddJsonObjectUInt64(structured, "size", fileSize.QuadPart);
+
+    for (i = 0; i < RTL_NUMBER_OF(requests); i++)
+    {
+        UCHAR hash[PH_SYMCRYPT_SHA512_RESULT_SIZE];
+        PPH_STRING string;
+
+        if (!requests[i].Wanted)
+        {
+            AtJsonAddNull(structured, requests[i].Key);
+            continue;
+        }
+
+        if (NT_SUCCESS(PhSymCryptHashFinal(&requests[i].Context, hash, requests[i].Size)) &&
+            (string = PhBufferToHexStringEx(hash, requests[i].Size, FALSE)))
+        {
+            AtJsonAddString(structured, requests[i].Key, string);
+            PhDereferenceObject(string);
+        }
+        else
+        {
+            AtJsonAddNull(structured, requests[i].Key);
+        }
+
+        PhSymCryptDestroyHash(&requests[i].Context, requests[i].Size);
+    }
+
+    // The hashes that only mean anything for a PE image, and only the driver of the format knows
+    // which bytes they cover.
+    if (NT_SUCCESS(PhLoadMappedImageEx(NULL, fileHandle, &mappedImage)))
+    {
+        if (mappedImage.Signature == IMAGE_DOS_SIGNATURE)
+        {
+            PPH_STRING string;
+
+            isImage = TRUE;
+
+            if (NT_SUCCESS(PhGetMappedImageAuthenticodeHash(&mappedImage, Sha256HashAlgorithm, &string)))
+            {
+                AtJsonAddString(structured, "authenticode_sha256", string);
+                PhDereferenceObject(string);
+            }
+            else
+            {
+                AtJsonAddNull(structured, "authenticode_sha256");
+            }
+
+            if (NT_SUCCESS(PhGetMappedImageWdacHash(&mappedImage, Sha256HashAlgorithm, &string)))
+            {
+                AtJsonAddString(structured, "wdac_sha256", string);
+                PhDereferenceObject(string);
+            }
+            else
+            {
+                AtJsonAddNull(structured, "wdac_sha256");
+            }
+        }
+
+        PhUnloadMappedImage(&mappedImage);
+    }
+
+    if (!isImage)
+    {
+        AtJsonAddNull(structured, "authenticode_sha256");
+        AtJsonAddNull(structured, "wdac_sha256");
+    }
+
+    PhAddJsonObjectBoolean(structured, "is_pe_image", isImage);
+
+    Result->StructuredContent = structured;
+
     NtClose(fileHandle);
     PhDereferenceObject(path);
 }
@@ -809,6 +1089,9 @@ VOID AtPeInvokeTool(
         break;
     case AtActionGetImageInfo:
         AtpGetImageInfo(Call, Result);
+        break;
+    case AtActionGetFileHashes:
+        AtpGetFileHashes(Call, Result);
         break;
     case AtActionReadProcessMemory:
         AtpReadProcessMemory(Call, Target, Result);

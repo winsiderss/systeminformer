@@ -320,6 +320,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"verify file signatures", L"Allow verifying file signatures", L"verify_file_signature"
     },
     {
+        AtActionGetFileHashes, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_file_hashes"),
+        L"hash a file", L"Allow hashing files", L"get_file_hashes"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3130,6 +3134,38 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"is_primary\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES
         "},\"required\":[\"path\",\"verify_result\",\"is_trusted\",\"is_microsoft_signed\",\"has_embedded_signature\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_file_hashes", L"Hash a file", AtTierRead, AtActionGetFileHashes,
+        SETTING_NAME_TOOL_ACCESS(L"get_file_hashes"), SETTING_NAME_TOOL_CONFIRM(L"get_file_hashes"),
+        "{\"name\":\"get_file_hashes\",\"title\":\"Hash a file\","
+        "\"description\":\"Hashes a file on disk. These are the keys every reputation and prevalence lookup is "
+        "indexed on, and the way to tell whether two files are the same file. For a PE image it also returns the "
+        "Authenticode hash, which deliberately skips the certificate and the header fields that signing rewrites, "
+        "so it is unchanged by signing a binary - that is the one to compare a suspect binary against a known one "
+        "with - and the WDAC page hash used by code integrity policy. Default algorithms are md5, sha1 and sha256; "
+        "the file is read once no matter how many are asked for. Hashing reads the whole file and the server "
+        "answers one call at a time, so files over 2 GB are refused. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"Absolute Win32 path of the file\"},"
+        "\"algorithms\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"md5\",\"sha1\",\"sha256\",\"sha512\"]},"
+        "\"description\":\"Which file hashes to compute; default md5, sha1 and sha256\"}"
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"md5\":{\"type\":[\"string\",\"null\"],\"description\":\"Lowercase hex; null when not requested\"},"
+        "\"sha1\":{\"type\":[\"string\",\"null\"]},"
+        "\"sha256\":{\"type\":[\"string\",\"null\"]},"
+        "\"sha512\":{\"type\":[\"string\",\"null\"]},"
+        "\"authenticode_sha256\":{\"type\":[\"string\",\"null\"],\"description\":\"PE images only. Covers the file "
+        "except the certificate and the fields signing rewrites, so it survives signing\"},"
+        "\"wdac_sha256\":{\"type\":[\"string\",\"null\"],\"description\":\"PE images only. The page hash code "
+        "integrity policy is written against\"},"
+        "\"is_pe_image\":{\"type\":\"boolean\"}"
+        "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
