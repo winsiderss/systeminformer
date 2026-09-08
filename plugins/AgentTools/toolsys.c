@@ -1106,6 +1106,275 @@ VOID AtpGetMemoryDetails(
     Result->StructuredContent = structured;
 }
 
+// What the machine's own defences are set to. Every field here is a fact about the kernel's
+// configuration rather than about any process: whether images have to be signed, whether the
+// hypervisor is enforcing that, whether a kernel debugger is attached, which speculative execution
+// mitigations are on. It is the first thing to read when deciding how much to trust anything else
+// this server says - a machine with test signing on and a debugger attached can be lying about
+// everything.
+
+PCWSTR AtpVirtualStatusString(
+    _In_ PH_VIRTUAL_STATUS Status
+    )
+{
+    switch (Status)
+    {
+    case PhVirtualStatusEnabledHyperV:
+        return L"enabled_hyper_v";
+    case PhVirtualStatusEnabledFirmware:
+        return L"enabled_firmware";
+    case PhVirtualStatusDisabledWithHyperV:
+        return L"disabled_with_hyper_v";
+    case PhVirtualStatusDisabled:
+        return L"disabled";
+    case PhVirtualStatusVirtualMachine:
+        return L"virtual_machine";
+    case PhVirtualStatusNotCapable:
+        return L"not_capable";
+    }
+
+    return NULL;
+}
+
+VOID AtpAddSecureBoot(
+    _In_ PVOID Structured
+    )
+{
+    SYSTEM_SECUREBOOT_INFORMATION secureBoot;
+    PVOID entry;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemSecureBootInformation,
+        &secureBoot,
+        sizeof(SYSTEM_SECUREBOOT_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "secure_boot");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(entry, "enabled", !!secureBoot.SecureBootEnabled);
+    PhAddJsonObjectBoolean(entry, "capable", !!secureBoot.SecureBootCapable);
+    PhAddJsonObjectValue(Structured, "secure_boot", entry);
+}
+
+VOID AtpAddCodeIntegrity(
+    _In_ PVOID Structured
+    )
+{
+    static CONST ULONG optionFlags[] =
+    {
+        CODEINTEGRITY_OPTION_ENABLED, CODEINTEGRITY_OPTION_TESTSIGN,
+        CODEINTEGRITY_OPTION_UMCI_ENABLED, CODEINTEGRITY_OPTION_UMCI_AUDITMODE_ENABLED,
+        CODEINTEGRITY_OPTION_UMCI_EXCLUSIONPATHS_ENABLED, CODEINTEGRITY_OPTION_TEST_BUILD,
+        CODEINTEGRITY_OPTION_PREPRODUCTION_BUILD, CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED,
+        CODEINTEGRITY_OPTION_FLIGHT_BUILD, CODEINTEGRITY_OPTION_FLIGHTING_ENABLED,
+        CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED, CODEINTEGRITY_OPTION_HVCI_KMCI_AUDITMODE_ENABLED,
+        CODEINTEGRITY_OPTION_HVCI_KMCI_STRICTMODE_ENABLED, CODEINTEGRITY_OPTION_HVCI_IUM_ENABLED,
+        CODEINTEGRITY_OPTION_WHQL_ENFORCEMENT_ENABLED, CODEINTEGRITY_OPTION_WHQL_AUDITMODE_ENABLED,
+    };
+    static CONST PWSTR optionNames[] =
+    {
+        L"enabled", L"test_signing", L"umci_enabled", L"umci_audit_mode",
+        L"umci_exclusion_paths", L"test_build", L"preproduction_build", L"debug_mode",
+        L"flight_build", L"flighting_enabled", L"hvci_kmci_enabled", L"hvci_kmci_audit_mode",
+        L"hvci_kmci_strict_mode", L"hvci_ium_enabled", L"whql_enforcement", L"whql_audit_mode",
+    };
+    SYSTEM_CODEINTEGRITY_INFORMATION codeIntegrity;
+    PVOID entry;
+
+    memset(&codeIntegrity, 0, sizeof(SYSTEM_CODEINTEGRITY_INFORMATION));
+    codeIntegrity.Length = sizeof(SYSTEM_CODEINTEGRITY_INFORMATION);
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemCodeIntegrityInformation,
+        &codeIntegrity,
+        sizeof(SYSTEM_CODEINTEGRITY_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "code_integrity");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    AtJsonAddHex(entry, "options_value", codeIntegrity.CodeIntegrityOptions);
+    AtJsonAddFlagStrings(entry, "options", codeIntegrity.CodeIntegrityOptions, optionFlags, (CONST PWSTR*)optionNames, RTL_NUMBER_OF(optionFlags));
+    PhAddJsonObjectBoolean(entry, "enabled", !!FlagOn(codeIntegrity.CodeIntegrityOptions, CODEINTEGRITY_OPTION_ENABLED));
+    PhAddJsonObjectBoolean(entry, "test_signing", !!FlagOn(codeIntegrity.CodeIntegrityOptions, CODEINTEGRITY_OPTION_TESTSIGN));
+    PhAddJsonObjectBoolean(entry, "debug_mode", !!FlagOn(codeIntegrity.CodeIntegrityOptions, CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED));
+    PhAddJsonObjectValue(Structured, "code_integrity", entry);
+}
+
+VOID AtpAddVirtualizationSecurity(
+    _In_ PVOID Structured
+    )
+{
+    SYSTEM_ISOLATED_USER_MODE_INFORMATION isolatedUserMode;
+    PVOID entry;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemIsolatedUserModeInformation,
+        &isolatedUserMode,
+        sizeof(SYSTEM_ISOLATED_USER_MODE_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "vbs");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(entry, "secure_kernel_running", !!isolatedUserMode.SecureKernelRunning);
+    PhAddJsonObjectBoolean(entry, "hvci_enabled", !!isolatedUserMode.HvciEnabled);
+    PhAddJsonObjectBoolean(entry, "hvci_strict_mode", !!isolatedUserMode.HvciStrictMode);
+    PhAddJsonObjectBoolean(entry, "hvci_disable_allowed", !!isolatedUserMode.HvciDisableAllowed);
+    PhAddJsonObjectBoolean(entry, "debug_enabled", !!isolatedUserMode.DebugEnabled);
+    PhAddJsonObjectBoolean(entry, "firmware_page_protection", !!isolatedUserMode.FirmwarePageProtection);
+    PhAddJsonObjectBoolean(entry, "trustlet_running", !!isolatedUserMode.TrustletRunning);
+    PhAddJsonObjectBoolean(entry, "hardware_enforced_vbs", !!isolatedUserMode.HardwareEnforcedVbs);
+    PhAddJsonObjectBoolean(entry, "encryption_key_available", !!isolatedUserMode.EncryptionKeyAvailable);
+    PhAddJsonObjectBoolean(entry, "encryption_key_tpm_bound", !!isolatedUserMode.EncryptionKeyTpmBound);
+    PhAddJsonObjectValue(Structured, "vbs", entry);
+}
+
+VOID AtpAddKvaShadow(
+    _In_ PVOID Structured
+    )
+{
+    SYSTEM_KERNEL_VA_SHADOW_INFORMATION kvaShadow;
+    PVOID entry;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemKernelVaShadowInformation,
+        &kvaShadow,
+        sizeof(SYSTEM_KERNEL_VA_SHADOW_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "kva_shadow");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    AtJsonAddHex(entry, "flags_value", kvaShadow.KvaShadowFlags);
+    PhAddJsonObjectBoolean(entry, "enabled", !!kvaShadow.KvaShadowEnabled);
+    PhAddJsonObjectBoolean(entry, "required", !!kvaShadow.KvaShadowRequired);
+    PhAddJsonObjectBoolean(entry, "required_available", !!kvaShadow.KvaShadowRequiredAvailable);
+    PhAddJsonObjectBoolean(entry, "pcid", !!kvaShadow.KvaShadowPcid);
+    PhAddJsonObjectBoolean(entry, "invpcid", !!kvaShadow.KvaShadowInvpcid);
+    PhAddJsonObjectBoolean(entry, "l1_data_cache_flush_supported", !!kvaShadow.L1DataCacheFlushSupported);
+    PhAddJsonObjectBoolean(entry, "l1_terminal_fault_mitigation", !!kvaShadow.L1TerminalFaultMitigationPresent);
+    PhAddJsonObjectValue(Structured, "kva_shadow", entry);
+}
+
+VOID AtpAddSpeculationControl(
+    _In_ PVOID Structured
+    )
+{
+    SYSTEM_SPECULATION_CONTROL_INFORMATION speculation;
+    PVOID entry;
+
+    if (!NT_SUCCESS(NtQuerySystemInformation(
+        SystemSpeculationControlInformation,
+        &speculation,
+        sizeof(SYSTEM_SPECULATION_CONTROL_INFORMATION),
+        NULL
+        )))
+    {
+        AtJsonAddNull(Structured, "speculation_control");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    AtJsonAddHex(entry, "flags_value", speculation.SpeculationControlFlags.Flags);
+    PhAddJsonObjectBoolean(entry, "branch_prediction_barrier_enabled", !!speculation.SpeculationControlFlags.BpbEnabled);
+    PhAddJsonObjectBoolean(entry, "branch_prediction_barrier_disabled_by_policy", !!speculation.SpeculationControlFlags.BpbDisabledSystemPolicy);
+    PhAddJsonObjectBoolean(entry, "branch_prediction_barrier_no_hardware", !!speculation.SpeculationControlFlags.BpbDisabledNoHardwareSupport);
+    PhAddJsonObjectBoolean(entry, "ibrs_present", !!speculation.SpeculationControlFlags.IbrsPresent);
+    PhAddJsonObjectBoolean(entry, "enhanced_ibrs", !!speculation.SpeculationControlFlags.EnhancedIbrs);
+    PhAddJsonObjectBoolean(entry, "stibp_present", !!speculation.SpeculationControlFlags.StibpPresent);
+    PhAddJsonObjectBoolean(entry, "smep_present", !!speculation.SpeculationControlFlags.SmepPresent);
+    PhAddJsonObjectBoolean(entry, "retpoline_enabled", !!speculation.SpeculationControlFlags.SpecCtrlRetpolineEnabled);
+    PhAddJsonObjectBoolean(entry, "import_optimization_enabled", !!speculation.SpeculationControlFlags.SpecCtrlImportOptimizationEnabled);
+    PhAddJsonObjectBoolean(entry, "ssbd_available", !!speculation.SpeculationControlFlags.SpeculativeStoreBypassDisableAvailable);
+    PhAddJsonObjectBoolean(entry, "ssbd_system_wide", !!speculation.SpeculationControlFlags.SpeculativeStoreBypassDisabledSystemWide);
+    PhAddJsonObjectBoolean(entry, "ssbd_kernel", !!speculation.SpeculationControlFlags.SpeculativeStoreBypassDisabledKernel);
+    PhAddJsonObjectValue(Structured, "speculation_control", entry);
+}
+
+VOID AtpAddShadowStack(
+    _In_ PVOID Structured
+    )
+{
+    SYSTEM_SHADOW_STACK_INFORMATION shadowStack;
+    PVOID entry;
+
+    if (!NT_SUCCESS(PhGetSystemShadowStackInformation(&shadowStack)))
+    {
+        AtJsonAddNull(Structured, "cet");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    AtJsonAddHex(entry, "flags_value", shadowStack.Flags);
+    PhAddJsonObjectBoolean(entry, "capable", !!shadowStack.CetCapable);
+    PhAddJsonObjectBoolean(entry, "user_allowed", !!shadowStack.UserCetAllowed);
+    PhAddJsonObjectBoolean(entry, "kernel_enabled", !!shadowStack.KernelCetEnabled);
+    PhAddJsonObjectBoolean(entry, "kernel_audit_mode", !!shadowStack.KernelCetAuditModeEnabled);
+    PhAddJsonObjectValue(Structured, "cet", entry);
+}
+
+VOID AtpGetSecurityPosture(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    BOOLEAN debuggerEnabled = FALSE;
+    BOOLEAN debuggerPresent = FALSE;
+    PVOID structured;
+    PVOID entry;
+
+    UNREFERENCED_PARAMETER(Call);
+
+    structured = PhCreateJsonObject();
+
+    AtpAddSecureBoot(structured);
+    AtpAddCodeIntegrity(structured);
+    AtpAddVirtualizationSecurity(structured);
+    AtpAddKvaShadow(structured);
+    AtpAddSpeculationControl(structured);
+    AtpAddShadowStack(structured);
+
+    // A kernel debugger can read and write anything, so it is reported next to the mitigations
+    // rather than buried: it is the one setting that makes all the others beside the point.
+    if (NT_SUCCESS(PhGetKernelDebuggerInformation(&debuggerEnabled, &debuggerPresent)))
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectBoolean(entry, "enabled", debuggerEnabled);
+        PhAddJsonObjectBoolean(entry, "present", debuggerPresent);
+        PhAddJsonObjectValue(structured, "kernel_debugger", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "kernel_debugger");
+    }
+
+    AtJsonAddStringZ(structured, "virtualization", AtpVirtualStatusString(PhGetVirtualStatus()));
+    AtJsonAddStringZ(structured, "firmware_type", AtpFirmwareTypeString(AtpGetFirmwareType()));
+
+    // The driver's own state belongs here too, because it is what decides how much of the rest of
+    // this server works; get_ksi_status has the detail.
+    AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(KsiLevel()));
+    PhAddJsonObjectBoolean(structured, "system_informer_elevated", !!PhGetOwnTokenAttributes().Elevated);
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtSystemInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1144,6 +1413,9 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionGetMemoryDetails:
         AtpGetMemoryDetails(Call, Result);
+        break;
+    case AtActionGetSecurityPosture:
+        AtpGetSecurityPosture(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
