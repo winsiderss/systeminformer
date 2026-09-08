@@ -11,6 +11,8 @@
 
 #include "agenttools.h"
 
+#include <networktoolsintf.h>
+
 PCWSTR AtProtocolTypeString(
     _In_ ULONG ProtocolType
     )
@@ -54,6 +56,184 @@ BOOLEAN AtParseProtocolType(
         return FALSE;
 
     return TRUE;
+}
+
+// The NetworkTools plugin knows two things about an endpoint that nothing else here does: which
+// country an address is registered to, from the GeoLite database it ships, and what a well-known
+// port is usually for. Both are local lookups - no traffic leaves the machine for either.
+
+PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
+    VOID
+    )
+{
+    static PNETWORKTOOLS_INTERFACE pluginInterface = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_PLUGIN plugin;
+
+        if (plugin = PhFindPlugin(NETWORKTOOLS_PLUGIN_NAME))
+        {
+            pluginInterface = PhGetPluginInformation(plugin)->Interface;
+
+            if (pluginInterface && pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
+                pluginInterface = NULL;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return pluginInterface;
+}
+
+// An address the database will never answer for. The lookup refuses these itself, so without this
+// a private address and an address the database does not cover look identical from outside.
+BOOLEAN AtpIsPrivateAddress(
+    _In_ PPH_IP_ADDRESS Address
+    )
+{
+    if (Address->Type == PH_NETWORK_TYPE_IPV4)
+    {
+        return !!(IN4_IS_ADDR_UNSPECIFIED(&Address->InAddr) ||
+            IN4_IS_ADDR_LOOPBACK(&Address->InAddr) ||
+            IN4_IS_ADDR_BROADCAST(&Address->InAddr) ||
+            IN4_IS_ADDR_MULTICAST(&Address->InAddr) ||
+            IN4_IS_ADDR_LINKLOCAL(&Address->InAddr) ||
+            IN4_IS_ADDR_MC_LINKLOCAL(&Address->InAddr) ||
+            IN4_IS_ADDR_RFC1918(&Address->InAddr));
+    }
+
+    if (Address->Type == PH_NETWORK_TYPE_IPV6)
+    {
+        return !!(IN6_IS_ADDR_UNSPECIFIED(&Address->In6Addr) ||
+            IN6_IS_ADDR_LOOPBACK(&Address->In6Addr) ||
+            IN6_IS_ADDR_MULTICAST(&Address->In6Addr) ||
+            IN6_IS_ADDR_LINKLOCAL(&Address->In6Addr) ||
+            IN6_IS_ADDR_MC_LINKLOCAL(&Address->In6Addr));
+    }
+
+    return TRUE;
+}
+
+VOID AtpAddCountry(
+    _In_ PVOID Object,
+    _In_opt_ PNETWORKTOOLS_INTERFACE Interface,
+    _In_ PPH_IP_ADDRESS Address
+    )
+{
+    ULONG geoNameId = 0;
+    PPH_STRING countryName = NULL;
+
+    if (Interface && !AtpIsPrivateAddress(Address) &&
+        Interface->LookupCountryCode(*Address, &geoNameId, &countryName))
+    {
+        // A lookup can succeed with only one of the two: an address the database knows but has
+        // no country name for comes back with an identifier of zero, which is not an identifier.
+        AtJsonAddString(Object, "country", countryName);
+
+        if (geoNameId)
+            PhAddJsonObjectUInt64(Object, "country_geoname_id", geoNameId);
+        else
+            AtJsonAddNull(Object, "country_geoname_id");
+
+        // Not an ISO code: the database returns a GeoNames identifier, and calling it a country
+        // code would have a reader expecting two letters.
+        PhClearReference(&countryName);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "country");
+        AtJsonAddNull(Object, "country_geoname_id");
+    }
+}
+
+VOID AtpAddServiceName(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_opt_ PNETWORKTOOLS_INTERFACE Interface,
+    _In_ ULONG Port,
+    _In_ ULONG ProtocolType
+    )
+{
+    PPH_STRINGREF serviceName;
+
+    if (Interface && Port && Interface->LookupPortServiceName(
+        Port,
+        FlagOn(ProtocolType, PH_PROTOCOL_TYPE_TCP) ? IPPROTO_TCP : IPPROTO_UDP,
+        &serviceName
+        ))
+    {
+        AtJsonAddStringRef(Object, Key, serviceName);
+    }
+    else
+    {
+        AtJsonAddNull(Object, Key);
+    }
+}
+
+VOID AtpLookupIpCountry(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PNETWORKTOOLS_INTERFACE pluginInterface;
+    PPH_STRING address;
+    PH_IP_ADDRESS ipAddress;
+    PVOID structured;
+
+    if (!(pluginInterface = AtGetNetworkToolsInterface()))
+    {
+        AtSetToolHint(Result, AT_HINT_PLUGIN_MISSING);
+        AtSetToolError(
+            Result,
+            "plugin_missing",
+            STATUS_NOT_FOUND,
+            L"The NetworkTools plugin is not loaded, so there is no geolocation database to read."
+            );
+        return;
+    }
+
+    if (!(address = AtGetArgumentString(Call->Arguments, "address")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"address is required.");
+        return;
+    }
+
+    memset(&ipAddress, 0, sizeof(PH_IP_ADDRESS));
+
+    {
+        USHORT port = 0;
+        ULONG scopeId = 0;
+
+        if (NT_SUCCESS(PhIpv4StringToAddress(address->Buffer, TRUE, &ipAddress.InAddr, &port)))
+        {
+            ipAddress.Type = PH_NETWORK_TYPE_IPV4;
+        }
+        else if (NT_SUCCESS(PhIpv6StringToAddress(address->Buffer, &ipAddress.In6Addr, &scopeId, &port)))
+        {
+            ipAddress.Type = PH_NETWORK_TYPE_IPV6;
+        }
+        else
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"That is not an IPv4 or IPv6 address.");
+            PhDereferenceObject(address);
+            return;
+        }
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "address", address);
+    PhAddJsonObject(structured, "family", ipAddress.Type == PH_NETWORK_TYPE_IPV6 ? "ipv6" : "ipv4");
+    // Reported separately so a null country can be read: a private address was never going to have
+    // one, a public address without one means the database did not cover it or is not installed.
+    PhAddJsonObjectBoolean(structured, "is_private", AtpIsPrivateAddress(&ipAddress));
+    AtpAddCountry(structured, pluginInterface, &ipAddress);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhDereferenceObject(address);
 }
 
 PPH_STRING AtFormatNetworkEndpoint(
@@ -255,6 +435,7 @@ VOID AtpListNetworkConnections(
 {
     AT_NETWORK_FILTER filter;
     PPH_NETWORK_CONNECTION connections;
+    PNETWORKTOOLS_INTERFACE networkTools;
     ULONG numberOfConnections;
     PPH_STRING protocol;
     ULONG64 pid;
@@ -302,6 +483,8 @@ VOID AtpListNetworkConnections(
 
     structured = PhCreateJsonObject();
     AtInitializeRows(&rows, Call->Arguments);
+
+    networkTools = AtGetNetworkToolsInterface();
 
     for (i = 0; i < numberOfConnections; i++)
     {
@@ -384,6 +567,10 @@ VOID AtpListNetworkConnections(
             AtJsonAddString(row, "remote_host", item->RemoteHostString);
             AtJsonAddTime(row, "create_time", &item->CreateTime);
 
+            AtpAddServiceName(row, "local_service", networkTools, item->LocalEndpoint.Port, item->ProtocolType);
+            AtpAddServiceName(row, "remote_service", networkTools, item->RemoteEndpoint.Port, item->ProtocolType);
+            AtpAddCountry(row, networkTools, &item->RemoteEndpoint.Address);
+
             AtAddRow(&rows, row);
         }
 
@@ -444,6 +631,9 @@ VOID AtNetworkInvokeTool(
 {
     switch (Tool->Action)
     {
+    case AtActionLookupIpCountry:
+        AtpLookupIpCountry(Call, Result);
+        break;
     case AtActionListNetworkConnections:
         AtpListNetworkConnections(Call, Result);
         break;

@@ -112,6 +112,7 @@ typedef enum _AT_ACTION
     AtActionGetDiskIdentity,
     AtActionGetDiskHealth,
     AtActionListNetworkAdapters,
+    AtActionLookupIpCountry,
     AtActionListNetworkConnections,
     AtActionCloseNetworkConnection,
     // system

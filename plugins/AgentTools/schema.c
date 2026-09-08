@@ -186,6 +186,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list the network adapters", L"Allow listing network adapters", L"list_network_adapters"
     },
     {
+        AtActionLookupIpCountry, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"lookup_ip_country"),
+        L"look up which country an address belongs to", L"Allow looking up address countries", L"lookup_ip_country"
+    },
+    {
         AtActionListNetworkConnections, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
         L"list network connections", L"Allow listing network connections", L"list_network_connections"
     },
@@ -470,6 +474,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"process_name\":{\"type\":[\"string\",\"null\"]}," \
     "\"owner_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Owning service or module when known\"}," \
     "\"remote_host\":{\"type\":[\"string\",\"null\"],\"description\":\"Resolved host name when the cache has one\"}," \
+    "\"local_service\":{\"type\":[\"string\",\"null\"],\"description\":\"What that port is usually for, from a local table; a name, not evidence of what is listening\"}," \
+    "\"remote_service\":{\"type\":[\"string\",\"null\"]}," \
+    "\"country\":{\"type\":[\"string\",\"null\"],\"description\":\"Country the remote address is registered to, from the local GeoLite database; null for a private address\"}," \
+    "\"country_geoname_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"GeoNames identifier, not an ISO country code\"}," \
     "\"create_time\":{\"type\":[\"string\",\"null\"]}"
 
 CONST AT_TOOL AtTools[] =
@@ -1776,6 +1784,29 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "lookup_ip_country", L"Look up an address country", AtTierRead, AtActionLookupIpCountry,
+        SETTING_NAME_TOOL_ACCESS(L"lookup_ip_country"), SETTING_NAME_TOOL_CONFIRM(L"lookup_ip_country"),
+        "{\"name\":\"lookup_ip_country\",\"title\":\"Look up an address country\","
+        "\"description\":\"Which country an IP address is registered to, from the GeoLite database the NetworkTools "
+        "plugin keeps on disk. Nothing is sent anywhere: this is a local file lookup, not a query to a "
+        "geolocation service, and it says where an address is registered rather than where anything actually is. "
+        "is_private is reported separately so a null country can be read - a private, loopback, link-local or "
+        "multicast address was never going to have one, while a public address without one means the database "
+        "does not cover it or is not installed. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\",\"description\":\"An IPv4 or IPv6 address\"}"
+        "},\"required\":[\"address\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\"},"
+        "\"family\":{\"type\":\"string\",\"description\":\"ipv4 or ipv6\"},"
+        "\"is_private\":{\"type\":\"boolean\",\"description\":\"Private, loopback, link-local, multicast or unspecified\"},"
+        "\"country\":{\"type\":[\"string\",\"null\"],\"description\":\"English country name, or the continent when the database has only that\"},"
+        "\"country_geoname_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"GeoNames identifier, not an ISO country code\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"address\",\"family\",\"is_private\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
