@@ -170,6 +170,7 @@ typedef enum _AT_ACTION
     AtActionListWmiSubscriptions,
     AtActionListHiddenProcesses,
     AtActionGetProcessKsiState,
+    AtActionGetDriverObject,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,

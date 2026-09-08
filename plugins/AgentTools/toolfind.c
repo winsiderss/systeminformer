@@ -1264,8 +1264,61 @@ VOID AtpAddJobDetails(
     PhFree(processIdList);
 }
 
-VOID AtpAddDriverDetails(
-    _In_ PVOID Structured,
+// From wdm.h and ntddk.h: the DRIVER_OBJECT flags, which are kernel-only headers a plugin does not
+// include. builtin means the object belongs to the HAL or the PnP manager rather than to a file.
+#define AT_DRVO_UNLOAD_INVOKED 0x00000001
+#define AT_DRVO_LEGACY_DRIVER 0x00000002
+#define AT_DRVO_BUILTIN_DRIVER 0x00000004
+#define AT_DRVO_REINIT_REGISTERED 0x00000008
+#define AT_DRVO_INITIALIZED 0x00000010
+#define AT_DRVO_BOOTREINIT_REGISTERED 0x00000020
+#define AT_DRVO_LEGACY_RESOURCES 0x00000040
+
+VOID AtpAddDriverBasicInformation(
+    _In_ PVOID Details,
+    _In_ HANDLE Handle
+    )
+{
+    static CONST ULONG driverFlags[] =
+    {
+        AT_DRVO_UNLOAD_INVOKED, AT_DRVO_LEGACY_DRIVER, AT_DRVO_BUILTIN_DRIVER,
+        AT_DRVO_REINIT_REGISTERED, AT_DRVO_INITIALIZED, AT_DRVO_BOOTREINIT_REGISTERED,
+        AT_DRVO_LEGACY_RESOURCES
+    };
+    static CONST PWSTR driverNames[] =
+    {
+        L"unload_invoked", L"legacy_driver", L"builtin_driver",
+        L"reinit_registered", L"initialized", L"bootreinit_registered",
+        L"legacy_resources"
+    };
+    KPH_DRIVER_BASIC_INFORMATION basicInfo;
+
+    memset(&basicInfo, 0, sizeof(basicInfo));
+
+    if (NT_SUCCESS(KphQueryInformationDriver(
+        Handle,
+        KphDriverBasicInformation,
+        &basicInfo,
+        sizeof(basicInfo),
+        NULL
+        )))
+    {
+        AtJsonAddPointer(Details, "start_address", basicInfo.DriverStart);
+        PhAddJsonObjectUInt64(Details, "size", basicInfo.DriverSize);
+        AtJsonAddHex(Details, "flags", basicInfo.Flags);
+        AtJsonAddFlagStrings(Details, "flag_names", basicInfo.Flags,
+            driverFlags, driverNames, RTL_NUMBER_OF(driverFlags));
+    }
+    else
+    {
+        AtJsonAddNull(Details, "start_address");
+        AtJsonAddNull(Details, "size");
+        AtJsonAddNull(Details, "flags");
+        AtJsonAddNull(Details, "flag_names");
+    }
+}
+
+PVOID AtpCreateDriverDetails(
     _In_ HANDLE Handle
     )
 {
@@ -1306,8 +1359,34 @@ VOID AtpAddDriverDetails(
         AtJsonAddNull(details, "service_key_name");
     }
 
-    PhAddJsonObjectValue(Structured, "driver", details);
+    AtpAddDriverBasicInformation(details, Handle);
+
+    return details;
 }
+
+VOID AtpAddDriverDetails(
+    _In_ PVOID Structured,
+    _In_ HANDLE Handle
+    )
+{
+    PhAddJsonObjectValue(Structured, "driver", AtpCreateDriverDetails(Handle));
+}
+
+/**
+ * A driver a device names, or null where there is none to name.
+ */
+VOID AtpAddDeviceDriver(
+    _In_ PVOID Structured,
+    _In_ PCSTR Key,
+    _In_opt_ HANDLE Handle
+    )
+{
+    if (Handle)
+        PhAddJsonObjectValue(Structured, Key, AtpCreateDriverDetails(Handle));
+    else
+        AtJsonAddNull(Structured, Key);
+}
+
 
 VOID AtpAddObjectDetails(
     _In_ PVOID Structured,
@@ -1530,6 +1609,136 @@ VOID AtpGetObjectInfo(
     PhDereferenceObject(path);
 }
 
+/**
+ * A driver object, or the driver that owns a device object. The device direction is the one nothing
+ * else answers: a device names the driver at the top of its stack and, underneath any filters, the
+ * driver of the device the stack is built on.
+ */
+VOID AtpGetDriverObject(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST PH_STRINGREF driverPrefix = PH_STRINGREF_INIT(L"\\Driver\\");
+    static CONST PH_STRINGREF devicePrefix = PH_STRINGREF_INIT(L"\\Device\\");
+    NTSTATUS status;
+    PPH_STRING path;
+    PVOID structured;
+    HANDLE driverHandle = NULL;
+    HANDLE deviceHandle = NULL;
+    HANDLE baseDeviceHandle = NULL;
+    HANDLE baseDriverHandle = NULL;
+    BOOLEAN isDevice;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"path is required: a driver object such as \\Driver\\disk, or a device object such as \\Device\\HarddiskVolume3.");
+        return;
+    }
+
+    // The argument is judged before the environment is: a path that names neither kind is wrong
+    // whether or not the driver is there, and answering with the driver instead would send the
+    // caller looking for a driver they do not need.
+    isDevice = PhStartsWithStringRef(&path->sr, &devicePrefix, TRUE);
+
+    if (!isDevice && !PhStartsWithStringRef(&path->sr, &driverPrefix, TRUE))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"path must name an object under \\Driver or \\Device.");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    // Everything here comes from the driver reaching into the object; there is no user-mode route
+    // to a driver object at all, and PhOpenDriver itself refuses below maximum access.
+    if (KsiLevel() != KphLevelMax)
+    {
+        AtSetToolError(
+            Result,
+            "failed",
+            STATUS_NOT_SUPPORTED,
+            L"Driver and device objects are read through the System Informer driver at maximum "
+            L"access, which is not available to this instance (access level: %s).",
+            AtKphLevelString(KsiLevel())
+            );
+        AtSetToolHint(Result, AT_HINT_NEEDS_DRIVER);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    if (isDevice)
+    {
+        UNICODE_STRING objectName;
+        OBJECT_ATTRIBUTES objectAttributes;
+
+        if (!PhStringRefToUnicodeString(&path->sr, &objectName))
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_NAME_TOO_LONG, L"The path is too long.");
+            PhDereferenceObject(path);
+            return;
+        }
+
+        InitializeObjectAttributes(&objectAttributes, &objectName, OBJ_CASE_INSENSITIVE, NULL, NULL);
+
+        status = KphOpenDevice(&deviceHandle, READ_CONTROL, &objectAttributes);
+
+        if (NT_SUCCESS(status))
+        {
+            // The device's own driver is the top of the stack; the base device is what the stack
+            // was built on, and its driver is the one actually doing the work under any filters.
+            KphOpenDeviceDriver(deviceHandle, READ_CONTROL, &driverHandle);
+
+            if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceHandle, READ_CONTROL, &baseDeviceHandle)))
+                KphOpenDeviceDriver(baseDeviceHandle, READ_CONTROL, &baseDriverHandle);
+        }
+    }
+    else
+    {
+        status = PhOpenDriver(&driverHandle, 0, NULL, &path->sr);
+    }
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, isDevice ? L"Opening the device object" : L"Opening the driver object");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    PhAddJsonObject(structured, "kind", isDevice ? "device" : "driver");
+    AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(KsiLevel()));
+
+    AtpAddDeviceDriver(structured, "driver", driverHandle);
+
+    if (isDevice)
+    {
+        // Null base_driver means the device has no stack under it, not that it has no driver.
+        AtpAddDeviceDriver(structured, "base_driver", baseDriverHandle);
+        PhAddJsonObjectBoolean(structured, "has_device_stack", !!baseDeviceHandle);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "base_driver");
+        AtJsonAddNull(structured, "has_device_stack");
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    if (baseDriverHandle)
+        NtClose(baseDriverHandle);
+    if (baseDeviceHandle)
+        NtClose(baseDeviceHandle);
+    if (driverHandle)
+        NtClose(driverHandle);
+    if (deviceHandle)
+        NtClose(deviceHandle);
+
+    PhDereferenceObject(path);
+}
+
 VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1541,6 +1750,9 @@ VOID AtFindInvokeTool(
 
     switch (Tool->Action)
     {
+    case AtActionGetDriverObject:
+        AtpGetDriverObject(Call, Result);
+        break;
     case AtActionFindHandles:
         AtpFindHandles(Call, Result);
         break;

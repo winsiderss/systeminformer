@@ -1386,6 +1386,7 @@ VOID AtInvokeTool(
     case AtActionGetFileUsers:
     case AtActionListObjectDirectory:
     case AtActionGetObjectInfo:
+    case AtActionGetDriverObject:
         AtFindInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetAlpcPortInfo:

@@ -390,6 +390,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetProcessKsiState, AtTierRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_process_ksi_state"),
         L"read the driver's view of a process", L"Allow reading the driver's view of a process", L"get_process_ksi_state"
     },
+    {
+        AtActionGetDriverObject, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_driver_object"),
+        L"read a driver or device object", L"Allow reading driver and device objects", L"get_driver_object"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3962,6 +3966,43 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_driver_object", L"Get a driver or device object", AtTierRead, AtActionGetDriverObject,
+        SETTING_NAME_TOOL_ACCESS(L"get_driver_object"), SETTING_NAME_TOOL_CONFIRM(L"get_driver_object"),
+        "{\"name\":\"get_driver_object\",\"title\":\"Get a driver or device object\","
+        "\"description\":\"Reads a driver object (\\\\Driver\\\\disk) or asks a device object "
+        "(\\\\Device\\\\HarddiskVolume3) which driver owns it. The device direction is the one nothing else "
+        "answers: driver is the top of the device's stack, which on a filtered device is the filter rather than "
+        "the thing doing the work, and base_driver is the driver of the device the stack was built on. A driver "
+        "row carries where it is in kernel memory (start_address, size), its flags, its image and its service "
+        "key - so a driver whose image_file_name is somewhere unusual, or which has no service key at all, is "
+        "worth looking at, and image_path can go straight to verify_file_signature or get_file_hashes. "
+        "list_object_directory on \\\\Driver or \\\\Device lists the names to ask about; get_object_info answers "
+        "for a driver name too but knows nothing about devices or kernel addresses. Needs the System Informer "
+        "driver at maximum access - a driver object has no user-mode route at all.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"An object under \\\\Driver or \\\\Device\"}"
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"kind\":{\"type\":\"string\",\"description\":\"driver or device\"},"
+        "\"ksi_level\":{\"type\":[\"string\",\"null\"]},"
+        "\"driver\":{\"type\":[\"object\",\"null\"],\"description\":\"For a device, the driver at the top of its stack\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"image_file_name\":{\"type\":[\"string\",\"null\"],\"description\":\"The native path of the image the driver was loaded from\"},"
+        "\"image_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"service_key_name\":{\"type\":[\"string\",\"null\"],\"description\":\"The service the driver was loaded as; a driver with none was not loaded through the service manager\"},"
+        "\"start_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Where the driver is in kernel memory\"},"
+        "\"size\":{\"type\":[\"integer\",\"null\"]},"
+        "\"flags\":{\"type\":[\"string\",\"null\"],\"description\":\"The raw DRIVER_OBJECT flags, as hex\"},"
+        "\"flag_names\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}}"
+        "}},"
+        "\"base_driver\":{\"type\":[\"object\",\"null\"],\"description\":\"The driver of the device at the bottom of the stack; null for a driver path, and null for a device with nothing under it\"},"
+        "\"has_device_stack\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Whether the device has a device under it at all, which tells a null base_driver from a device that is its own base\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"path\",\"kind\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
