@@ -1155,6 +1155,20 @@ EXPORTS
 ; mapimg
     PhLoadMappedImage
     PhGetMappedImageAuthenticodeHash
+    PhGetMappedImageDataDirectory
+    PhGetMappedImageDebug
+    PhGetMappedImageDebugEntryByType
+    PhGetMappedImageDelayImports
+    PhGetMappedImageDirectoryEntry
+    PhGetMappedImageExportEntry
+    PhGetMappedImageExportFunction
+    PhGetMappedImageExports
+    PhGetMappedImageImportDll
+    PhGetMappedImageImportEntry
+    PhGetMappedImageImports
+    PhGetMappedImageLoadConfig32
+    PhGetMappedImageLoadConfig64
+    PhGetMappedImageResource
     PhGetMappedImageWdacHash
     PhLoadMappedImageEx
     PhLoadMappedImageHeaderPageSize

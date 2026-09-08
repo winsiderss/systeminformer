@@ -35,6 +35,7 @@ set(SOURCES
     "toolfw.c"
     "toolgpu.c"
     "toolhndl.c"
+    "toolimg.c"
     "toolhist.c"
     "toolio.c"
     "toolmod.c"

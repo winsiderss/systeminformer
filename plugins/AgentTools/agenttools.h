@@ -983,6 +983,19 @@ VOID AtSystemInvokeTool(
     _Inout_ PAT_TOOL_RESULT Result
     );
 
+ULONG AtpParseImageSections(
+    _In_opt_ PVOID Sections,
+    _Out_ PPH_STRING* Invalid
+    );
+
+VOID AtAddImageSections(
+    _In_ PVOID Structured,
+    _In_ PVOID MappedImage,
+    _In_ PPH_STRING FileName,
+    _In_ ULONG Sections,
+    _In_ PAT_TOOL_CALL Call
+    );
+
 VOID AtPeInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,

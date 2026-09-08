@@ -81,6 +81,9 @@
     <ClCompile Include="toolhndl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolimg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolhist.c">
       <Filter>Source Files</Filter>
     </ClCompile>

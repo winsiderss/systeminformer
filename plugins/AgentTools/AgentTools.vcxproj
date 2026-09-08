@@ -90,6 +90,7 @@
     <ClCompile Include="toolfw.c" />
     <ClCompile Include="toolgpu.c" />
     <ClCompile Include="toolhndl.c" />
+    <ClCompile Include="toolimg.c" />
     <ClCompile Include="toolhist.c" />
     <ClCompile Include="toolio.c" />
     <ClCompile Include="toolmod.c" />

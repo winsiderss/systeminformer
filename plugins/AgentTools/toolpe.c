@@ -640,7 +640,8 @@ VOID AtpGetImageInfo(
     VERIFY_RESULT verifyResult;
     PPH_STRING signer = NULL;
     PVOID structured;
-    PVOID sections;
+    PVOID sectionArray;
+    ULONG sections;
     USHORT i;
 
     if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
@@ -652,6 +653,29 @@ VOID AtpGetImageInfo(
 
     // Open the Win32 path read-only and let the mapper work on the handle; passing a Win32 path
     // straight to PhLoadMappedImageEx would be treated as an NT path.
+    {
+        PPH_STRING invalid;
+
+        sections = AtpParseImageSections(
+            AtJsonGetObjectMember(Call->Arguments, "sections", PH_JSON_OBJECT_TYPE_ARRAY),
+            &invalid
+            );
+
+        if (invalid)
+        {
+            AtSetToolError(
+                Result,
+                "invalid_arguments",
+                STATUS_INVALID_PARAMETER,
+                L"%s is not a section of a PE image this tool knows about.",
+                PhGetString(invalid)
+                );
+            PhDereferenceObject(invalid);
+            PhDereferenceObject(path);
+            return;
+        }
+    }
+
     status = PhCreateFileWin32(
         &fileHandle,
         PhGetString(path),
@@ -742,7 +766,7 @@ VOID AtpGetImageInfo(
     AtJsonAddFlagStrings(structured, "characteristics", ntHeaders->FileHeader.Characteristics, fileFlags, (CONST PWSTR*)fileNames, RTL_NUMBER_OF(fileFlags));
     AtJsonAddFlagStrings(structured, "dll_characteristics", dllCharacteristics, dllFlags, (CONST PWSTR*)dllNames, RTL_NUMBER_OF(dllFlags));
 
-    sections = PhCreateJsonArray();
+    sectionArray = PhCreateJsonArray();
 
     for (i = 0; i < mappedImage.NumberOfSections; i++)
     {
@@ -759,11 +783,14 @@ VOID AtpGetImageInfo(
         PhAddJsonObjectUInt64(row, "virtual_size", section->Misc.VirtualSize);
         PhAddJsonObjectUInt64(row, "raw_size", section->SizeOfRawData);
         AtJsonAddFlagStrings(row, "characteristics", section->Characteristics, scnFlags, (CONST PWSTR*)scnNames, RTL_NUMBER_OF(scnFlags));
-        PhAddJsonArrayObject(sections, row);
+        PhAddJsonArrayObject(sectionArray, row);
     }
 
-    PhAddJsonObjectValue(structured, "sections", sections);
+    PhAddJsonObjectValue(structured, "sections", sectionArray);
     PhAddJsonObjectUInt64(structured, "section_count", mappedImage.NumberOfSections);
+
+    // Everything past the summary, and only what was asked for.
+    AtAddImageSections(structured, &mappedImage, path, sections, Call);
 
     PhUnloadMappedImage(&mappedImage);
 
