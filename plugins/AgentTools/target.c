@@ -465,15 +465,22 @@ NTSTATUS AtpResolveConnectionTarget(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Validates the arguments of a write and builds the text the user is asked to approve. The text
+ * comes back to the caller rather than being written into the target: every target resolver clears
+ * the target as it starts, so anything left there beforehand is lost.
+ */
 NTSTATUS AtpResolveTargetParameter(
     _In_ PCAT_TOOL Tool,
     _In_opt_ PVOID Arguments,
-    _Inout_ PAT_TARGET Target,
+    _Out_ PPH_STRING* Parameter,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
     PPH_STRING value;
     PPH_STRING text = NULL;
+
+    *Parameter = NULL;
 
     switch (Tool->Action)
     {
@@ -598,8 +605,7 @@ NTSTATUS AtpResolveTargetParameter(
         return STATUS_SUCCESS;
     }
 
-    PhMoveReference(&Target->Parameter, text);
-    Target->Identity[3] ^= (ULONG64)PhHashStringRefEx(&text->sr, TRUE, PH_STRING_HASH_X65599) << 32;
+    *Parameter = text;
 
     return STATUS_SUCCESS;
 }
@@ -614,8 +620,17 @@ NTSTATUS AtResolveTarget(
     NTSTATUS status;
     PCAT_ACTION_INFO action = &AtActionInfo[Tool->Action];
     BOOLEAN requireSequenceNumber = Tool->Tier == AtTierWrite;
+    PPH_STRING parameter = NULL;
 
     memset(Target, 0, sizeof(AT_TARGET));
+
+    // The arguments are judged before the object is opened. A write naming a change that makes no
+    // sense is wrong whether or not the caller could have made it, and reporting access_denied for
+    // it sends the caller looking for a permission when what they need is a different argument.
+    status = AtpResolveTargetParameter(Tool, Arguments, &parameter, Result);
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     switch (action->TargetKind)
     {
@@ -643,14 +658,18 @@ NTSTATUS AtResolveTarget(
     }
 
     if (!NT_SUCCESS(status))
-        return status;
-
-    status = AtpResolveTargetParameter(Tool, Arguments, Target, Result);
-
-    if (!NT_SUCCESS(status))
     {
+        PhClearReference(&parameter);
         AtDeleteTarget(Target);
         return status;
+    }
+
+    // The parameter is part of what the user approves, so it is folded into the identity here -
+    // after the target resolution, which clears the target and sets the rest of it.
+    if (parameter)
+    {
+        Target->Identity[3] ^= (ULONG64)PhHashStringRefEx(&parameter->sr, TRUE, PH_STRING_HASH_X65599) << 32;
+        PhMoveReference(&Target->Parameter, parameter);
     }
 
     return STATUS_SUCCESS;

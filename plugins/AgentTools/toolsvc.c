@@ -11,6 +11,9 @@
 
 #include "agenttools.h"
 
+// The service manager keeps a description of its own; this is well past anything a real one
+// carries and stops a caller writing a novel into the registry.
+#define AT_SERVICE_DESCRIPTION_MAXIMUM 1024
 #define AT_SERVICE_STOP_WAIT_MS 30000
 #define AT_SERVICE_STOP_POLL_MS 250
 
@@ -50,16 +53,28 @@ PPH_STRING AtFormatServiceConfigParameter(
     )
 {
     PPH_STRING startTypeString;
+    PPH_STRING description;
     PVOID delayedMember;
     ULONG startType;
     PH_STRING_BUILDER builder;
 
     startTypeString = AtGetArgumentString(Arguments, "start_type");
     delayedMember = AtJsonGetObjectMember(Arguments, "delayed_auto_start", PH_JSON_OBJECT_TYPE_BOOLEAN);
+    description = AtGetArgumentString(Arguments, "description");
 
-    if (!startTypeString && !delayedMember)
+    if (!startTypeString && !delayedMember && !description)
     {
-        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"At least one of start_type and delayed_auto_start is required.");
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"At least one of start_type, delayed_auto_start and description is required.");
+        return NULL;
+    }
+
+    if (description && description->Length > AT_SERVICE_DESCRIPTION_MAXIMUM * sizeof(WCHAR))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"description must be %lu characters or fewer.", (ULONG)AT_SERVICE_DESCRIPTION_MAXIMUM);
+        PhClearReference(&description);
+        PhClearReference(&startTypeString);
         return NULL;
     }
 
@@ -83,6 +98,17 @@ PPH_STRING AtFormatServiceConfigParameter(
         PhAppendStringBuilder2(&builder, AtJsonGetObjectBoolean(Arguments, "delayed_auto_start") ? L"delayed start on" : L"delayed start off");
     }
 
+    // The text is what the user is asked to approve, so the description goes in it whole: a
+    // change to what a service says about itself is only reviewable if it can be read.
+    if (description)
+    {
+        if (startTypeString || delayedMember)
+            PhAppendStringBuilder2(&builder, L", ");
+
+        PhAppendFormatStringBuilder(&builder, L"description \"%s\"", description->Buffer);
+    }
+
+    PhClearReference(&description);
     PhClearReference(&startTypeString);
 
     return PhFinalStringBuilderString(&builder);
@@ -902,6 +928,22 @@ VOID AtpControlService(
 
             if (NT_SUCCESS(configStatus) && delayedMember)
                 configStatus = PhSetServiceDelayedAutoStart(serviceHandle, AtJsonGetObjectBoolean(Call->Arguments, "delayed_auto_start"));
+
+            if (NT_SUCCESS(configStatus))
+            {
+                PPH_STRING description = AtGetArgumentString(Call->Arguments, "description");
+
+                if (description)
+                {
+                    SERVICE_DESCRIPTION descriptionInfo;
+
+                    // An empty string clears the description rather than being refused: a service
+                    // with nothing to say about itself is a state the caller can want.
+                    descriptionInfo.lpDescription = description->Buffer;
+                    configStatus = PhChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, &descriptionInfo);
+                    PhDereferenceObject(description);
+                }
+            }
 
             status = configStatus;
         }
