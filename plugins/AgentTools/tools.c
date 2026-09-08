@@ -1299,6 +1299,7 @@ VOID AtInvokeTool(
     case AtActionGetProcessToken:
     case AtActionGetProcessWindows:
     case AtActionGetProcessJob:
+    case AtActionListHiddenProcesses:
         AtProcessInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessThreads:

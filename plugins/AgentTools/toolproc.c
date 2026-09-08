@@ -1692,6 +1692,247 @@ VOID AtpGetProcessJob(
     AtDeleteTarget(&target);
 }
 
+// A scan finds every process it can open, not only the interesting ones, and a machine has hundreds.
+#define AT_HIDDEN_MAXIMUM_ENTRIES 4096
+
+typedef struct _AT_HIDDEN_ENTRY
+{
+    HANDLE ProcessId;
+    PPH_STRING FileName;
+    PH_ZOMBIE_PROCESS_TYPE Type;
+    ULONG HandleCount;
+    BOOLEAN HasHandleCount;
+} AT_HIDDEN_ENTRY, *PAT_HIDDEN_ENTRY;
+
+typedef struct _AT_HIDDEN_CONTEXT
+{
+    PPH_LIST Entries;
+    PPH_HASHTABLE Seen;
+    ULONG EnumeratedCount;
+    ULONG NormalCount;
+    BOOLEAN IncludeNormal;
+    BOOLEAN LimitReached;
+} AT_HIDDEN_CONTEXT, *PAT_HIDDEN_CONTEXT;
+
+PCWSTR AtpZombieTypeString(
+    _In_ PH_ZOMBIE_PROCESS_TYPE Type
+    )
+{
+    switch (Type)
+    {
+    case UnknownProcess:
+        return L"unknown";
+    case NormalProcess:
+        return L"normal";
+    case ZombieProcess:
+        return L"zombie";
+    case TerminatedProcess:
+        return L"terminated";
+    }
+
+    return NULL;
+}
+
+BOOLEAN AtpParseZombieMethod(
+    _In_opt_ PPH_STRING Name,
+    _Out_ PH_ZOMBIE_PROCESS_METHOD* Method
+    )
+{
+    *Method = BruteForceScanMethod;
+
+    if (!Name)
+        return TRUE;
+
+    if (PhEqualString2(Name, L"brute_force", TRUE))
+        *Method = BruteForceScanMethod;
+    else if (PhEqualString2(Name, L"csr_handles", TRUE))
+        *Method = CsrHandlesScanMethod;
+    else if (PhEqualString2(Name, L"process_handles", TRUE))
+        *Method = ProcessHandleScanMethod;
+    else if (PhEqualString2(Name, L"registry", TRUE))
+        *Method = RegistryScanMethod;
+    else if (PhEqualString2(Name, L"etw_guid", TRUE))
+        *Method = EtwGuidScanMethod;
+    else if (PhEqualString2(Name, L"ntdll", TRUE))
+        *Method = NtdllScanMethod;
+    else
+        return FALSE;
+
+    return TRUE;
+}
+
+_Function_class_(PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK)
+BOOLEAN NTAPI AtpZombieProcessCallback(
+    _In_ PPH_ZOMBIE_PROCESS_ENTRY Process,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_HIDDEN_CONTEXT context = Context;
+    PAT_HIDDEN_ENTRY entry;
+
+    if (!context)
+        return FALSE;
+
+    context->EnumeratedCount++;
+
+    // A method may report the same process many times over - the ETW scan names one for every GUID
+    // it registered - so the first sighting of a process id is the one that is kept, which is what
+    // the application's own callback does.
+    if (PhFindItemSimpleHashtable(context->Seen, Process->ProcessId))
+        return TRUE;
+
+    PhAddItemSimpleHashtable(context->Seen, Process->ProcessId, NULL);
+
+    if (context->Entries->Count >= AT_HIDDEN_MAXIMUM_ENTRIES)
+    {
+        context->LimitReached = TRUE;
+        return FALSE;
+    }
+
+    entry = PhAllocateZero(sizeof(AT_HIDDEN_ENTRY));
+    entry->ProcessId = Process->ProcessId;
+    entry->Type = Process->Type;
+    entry->HandleCount = Process->HandleCount;
+    entry->HasHandleCount = Process->HasHandleCount;
+    PhSetReference(&entry->FileName, Process->FileName);
+    PhAddItemList(context->Entries, entry);
+
+    return TRUE;
+}
+
+/**
+ * Cross-view detection: everything a scan can find, against everything the process list reports.
+ */
+VOID AtpListHiddenProcesses(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_HIDDEN_CONTEXT context;
+    AT_ROWS rows;
+    PH_ZOMBIE_PROCESS_METHOD method;
+    PPH_STRING methodName;
+    PVOID structured;
+    PVOID processes = NULL;
+    ULONG i;
+
+    methodName = AtGetArgumentString(Call->Arguments, "method");
+
+    if (!AtpParseZombieMethod(methodName, &method))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"method must be brute_force, csr_handles, process_handles, registry, etw_guid or ntdll.");
+        PhClearReference(&methodName);
+        return;
+    }
+
+    memset(&context, 0, sizeof(AT_HIDDEN_CONTEXT));
+    context.Entries = PhCreateList(64);
+    context.Seen = PhCreateSimpleHashtable(64);
+    context.IncludeNormal = AtJsonGetObjectBoolean(Call->Arguments, "include_normal");
+
+    status = PhEnumZombieProcesses(method, AtpZombieProcessCallback, &context);
+
+    if (!NT_SUCCESS(status))
+    {
+        PPH_STRING operation;
+
+        operation = PhFormatString(L"The %s scan",
+            PhGetStringOrDefault(methodName, L"brute_force"));
+        AtSetToolStatusError(Result, status, PhGetString(operation));
+        PhDereferenceObject(operation);
+        goto CleanupExit;
+    }
+
+    // The list is read again after the scan rather than before it: a process that started or exited
+    // while the scan was running is in one view and not the other, and that - not a rootkit - is
+    // what almost every disagreement between the two is.
+    PhEnumProcesses(&processes);
+
+    structured = PhCreateJsonObject();
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < context.Entries->Count; i++)
+    {
+        PAT_HIDDEN_ENTRY entry = context.Entries->Items[i];
+        PVOID row;
+        PPH_STRING baseName = NULL;
+        BOOLEAN inList = FALSE;
+
+        if (processes)
+        {
+            PSYSTEM_PROCESS_INFORMATION process;
+
+            process = PH_FIRST_PROCESS(processes);
+
+            do
+            {
+                if (process->UniqueProcessId == entry->ProcessId)
+                {
+                    inList = TRUE;
+                    break;
+                }
+            } while (process = PH_NEXT_PROCESS(process));
+        }
+
+        // The cross-view answer decides what is worth returning, not the scan's own idea of the
+        // type: a protected process the scan cannot read is "unknown" to it and is right there in
+        // the process list.
+        if (inList)
+        {
+            context.NormalCount++;
+
+            if (!context.IncludeNormal)
+                continue;
+        }
+
+        if (entry->FileName)
+            baseName = PhGetBaseName(entry->FileName);
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "pid", HandleToUlong(entry->ProcessId));
+        AtJsonAddString(row, "name", baseName);
+        AtJsonAddWin32FileName(row, "file_path", entry->FileName);
+        AtJsonAddStringZ(row, "type", AtpZombieTypeString(entry->Type));
+        PhAddJsonObjectBoolean(row, "in_process_list", inList);
+
+        if (entry->HasHandleCount)
+            PhAddJsonObjectUInt64(row, "handle_count", entry->HandleCount);
+        else
+            AtJsonAddNull(row, "handle_count");
+
+        PhClearReference(&baseName);
+        AtAddRow(&rows, row);
+    }
+
+    if (processes)
+        PhFree(processes);
+
+    AtAddRows(structured, "processes", &rows);
+    AtJsonAddStringZ(structured, "method", PhGetStringOrDefault(methodName, L"brute_force"));
+    PhAddJsonObjectUInt64(structured, "enumerated_count", context.EnumeratedCount);
+    PhAddJsonObjectUInt64(structured, "distinct_count", context.Entries->Count);
+    PhAddJsonObjectUInt64(structured, "normal_count", context.NormalCount);
+    PhAddJsonObjectBoolean(structured, "scan_limit_reached", context.LimitReached);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+CleanupExit:
+    for (i = 0; i < context.Entries->Count; i++)
+    {
+        PAT_HIDDEN_ENTRY entry = context.Entries->Items[i];
+
+        PhClearReference(&entry->FileName);
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(context.Entries);
+    PhDereferenceObject(context.Seen);
+    PhClearReference(&methodName);
+}
+
 VOID AtProcessInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1725,6 +1966,9 @@ VOID AtProcessInvokeTool(
         break;
     case AtActionGetProcessJob:
         AtpGetProcessJob(Call, Result);
+        break;
+    case AtActionListHiddenProcesses:
+        AtpListHiddenProcesses(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

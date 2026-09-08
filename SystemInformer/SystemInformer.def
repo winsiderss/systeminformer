@@ -58,6 +58,7 @@ EXPORTS
     PhDuplicateProcessNodeList
     PhEnumDeviceResources
     PhEnumNetworkItems
+    PhEnumZombieProcesses
     PhEnumNetworkItemsByProcessId
     PhEnumProcessItems
     PhEscapeStringForXml

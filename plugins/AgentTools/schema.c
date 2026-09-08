@@ -382,6 +382,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListWmiSubscriptions, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_wmi_subscriptions"),
         L"list the WMI event subscriptions", L"Allow listing WMI event subscriptions", L"list_wmi_subscriptions"
     },
+    {
+        AtActionListHiddenProcesses, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_hidden_processes"),
+        L"scan for processes the process list does not report", L"Allow scanning for hidden processes", L"list_hidden_processes"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3954,6 +3958,50 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_hidden_processes", L"Scan for hidden processes", AtTierSensitiveRead, AtActionListHiddenProcesses,
+        SETTING_NAME_TOOL_ACCESS(L"list_hidden_processes"), SETTING_NAME_TOOL_CONFIRM(L"list_hidden_processes"),
+        "{\"name\":\"list_hidden_processes\",\"title\":\"Scan for hidden processes\","
+        "\"description\":\"Cross-view detection: finds processes by a route that does not go through the process "
+        "list, then says which of them the process list also reports. A process the scan finds and the list does "
+        "not is what a rootkit hiding a process looks like. READ THE TYPE BEFORE CALLING ANYTHING A FINDING: most "
+        "results are not rootkits. A zombie is a process that has exited while something still holds a reference "
+        "to it - a handle leak, which is common and harmless - and terminated means the same thing with an exit "
+        "time to prove it. A process that started or exited while the scan was running is in one view and not the "
+        "other, which is the usual reason type and in_process_list disagree; run the scan twice and compare "
+        "before believing it. Methods see different things: brute_force opens every process id in turn and finds "
+        "anything openable, csr_handles reads the handles the Windows subsystem holds (which misses native "
+        "processes, and needs elevation), process_handles walks every process handle on the machine, and "
+        "registry, etw_guid and ntdll each read a table a process is registered in for another reason. Rows the "
+        "process list also reports are left out unless include_normal is set - and that decision is made on "
+        "in_process_list, not on the scan's own type, because a protected process the scan cannot read is unknown "
+        "to it and right there in the list. enumerated_count and normal_count say how many there were either way. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"method\":{\"type\":\"string\",\"enum\":[\"brute_force\",\"csr_handles\",\"process_handles\",\"registry\",\"etw_guid\",\"ntdll\"],"
+        "\"description\":\"How to look; default brute_force, which is the only one that works without elevation\"},"
+        "\"include_normal\":{\"type\":\"boolean\",\"description\":\"Also return the processes the process list reports, which is most of them\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"processes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"file_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"normal (the list reports it too), zombie (the list does not, and it has no exit time), terminated (it has exited and something still holds it) or unknown (the method cannot tell)\"},"
+        "\"in_process_list\":{\"type\":\"boolean\",\"description\":\"Whether the process list reports this pid, checked after the scan finished. Disagreeing with type means the process appeared or went away while the scan was running\"},"
+        "\"handle_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Handles open to the process object, not counting the scan's own, where the method could read it. A zombie kept alive by one leaked handle reads as 1; zero means nothing holds a handle, so something holds a reference instead\"}"
+        "},\"required\":[\"pid\",\"in_process_list\"]}},"
+        "\"method\":{\"type\":\"string\"},"
+        "\"enumerated_count\":{\"type\":\"integer\",\"description\":\"Every sighting the scan made, including the same process more than once - the ETW scan names a process for each GUID it registered\"},"
+        "\"distinct_count\":{\"type\":\"integer\",\"description\":\"Distinct processes out of those, which is what the rows are drawn from\"},"
+        "\"normal_count\":{\"type\":\"integer\",\"description\":\"How many of the distinct ones the process list also reports\"},"
+        "\"scan_limit_reached\":{\"type\":\"boolean\",\"description\":\"The scan stopped at its own cap, so the list is short for a reason that is not paging\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"processes\",\"method\",\"enumerated_count\",\"distinct_count\",\"normal_count\",\"scan_limit_reached\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

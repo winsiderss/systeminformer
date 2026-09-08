@@ -576,6 +576,49 @@ VOID PhShowZombieProcessesDialog(
     VOID
     );
 
+// begin_phapppub
+typedef enum _PH_ZOMBIE_PROCESS_METHOD
+{
+    BruteForceScanMethod,
+    CsrHandlesScanMethod,
+    ProcessHandleScanMethod,
+    RegistryScanMethod,
+    EtwGuidScanMethod,
+    NtdllScanMethod,
+} PH_ZOMBIE_PROCESS_METHOD;
+
+typedef enum _PH_ZOMBIE_PROCESS_TYPE
+{
+    UnknownProcess,
+    NormalProcess,
+    ZombieProcess,
+    TerminatedProcess
+} PH_ZOMBIE_PROCESS_TYPE;
+
+typedef struct _PH_ZOMBIE_PROCESS_ENTRY
+{
+    HANDLE ProcessId;
+    PPH_STRING FileName;
+    PH_ZOMBIE_PROCESS_TYPE Type;
+    ULONG HandleCount;
+    BOOLEAN HasHandleCount;
+} PH_ZOMBIE_PROCESS_ENTRY, *PPH_ZOMBIE_PROCESS_ENTRY;
+
+typedef BOOLEAN (NTAPI *PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK)(
+    _In_ PPH_ZOMBIE_PROCESS_ENTRY Process,
+    _In_opt_ PVOID Context
+    );
+
+PHAPPAPI
+NTSTATUS
+NTAPI
+PhEnumZombieProcesses(
+    _In_ PH_ZOMBIE_PROCESS_METHOD Method,
+    _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+// end_phapppub
+
 // hndlprp
 
 VOID PhShowHandleProperties(

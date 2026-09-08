@@ -168,6 +168,7 @@ typedef enum _AT_ACTION
     AtActionLookupAccount,
     AtActionListScheduledTasks,
     AtActionListWmiSubscriptions,
+    AtActionListHiddenProcesses,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
