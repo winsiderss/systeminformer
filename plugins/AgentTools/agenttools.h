@@ -688,10 +688,6 @@ BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING Needle
     );
 
-PCWSTR AtTierString(
-    _In_ AT_TIER Tier
-    );
-
 PCWSTR AtVerifyResultString(
     _In_ VERIFY_RESULT Result
     );

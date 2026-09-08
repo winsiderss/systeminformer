@@ -858,25 +858,6 @@ PCWSTR AtKphLevelString(
     return NULL;
 }
 
-PCWSTR AtTierString(
-    _In_ AT_TIER Tier
-    )
-{
-    switch (Tier)
-    {
-    case AtTierRead:
-        return L"Read";
-    case AtTierSensitiveRead:
-        return L"Sensitive read";
-    case AtTierWrite:
-        return L"Write";
-    case AtTierNetworkEgress:
-        return L"Network egress";
-    }
-
-    return NULL;
-}
-
 PCWSTR AtVerifyResultString(
     _In_ VERIFY_RESULT Result
     )
