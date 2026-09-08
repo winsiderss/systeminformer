@@ -253,6 +253,95 @@ VOID AtEnumTools(
     }
 }
 
+_Success_(return)
+BOOLEAN AtInitializeBatch(
+    _Out_ PAT_BATCH Batch,
+    _In_opt_ PVOID Arguments,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    memset(Batch, 0, sizeof(AT_BATCH));
+
+    if (!(Batch->Pids = AtJsonGetObjectMember(Arguments, "pids", PH_JSON_OBJECT_TYPE_ARRAY)))
+        return TRUE;
+
+    Batch->Count = PhGetJsonArrayLength(Batch->Pids);
+
+    if (Batch->Count == 0)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"pids must not be empty.");
+        return FALSE;
+    }
+
+    if (Batch->Count > AT_MAX_BATCH_PIDS)
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_INVALID_PARAMETER,
+            L"pids holds %lu entries; at most %lu can be asked about in one call.",
+            Batch->Count,
+            (ULONG)AT_MAX_BATCH_PIDS
+            );
+        return FALSE;
+    }
+
+    Batch->Summary = AtJsonGetObjectBoolean(Arguments, "summary");
+
+    return TRUE;
+}
+
+PPH_PROCESS_ITEM AtBatchReferenceProcessItem(
+    _In_ PAT_BATCH Batch,
+    _In_ ULONG Index,
+    _Out_ PULONG ProcessId
+    )
+{
+    ULONG64 processId;
+
+    processId = (ULONG64)PhGetJsonArrayLong64(Batch->Pids, Index);
+
+    if (processId > MAXULONG)
+    {
+        *ProcessId = 0;
+        return NULL;
+    }
+
+    *ProcessId = (ULONG)processId;
+
+    return PhReferenceProcessItem(UlongToHandle((ULONG)processId));
+}
+
+PVOID AtCreateBatchError(
+    _In_ ULONG ProcessId,
+    _In_ PCSTR ErrorCode,
+    _In_ PCWSTR Message
+    )
+{
+    PVOID entry;
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "pid", ProcessId);
+    PhAddJsonObject(entry, "error", ErrorCode);
+    AtJsonAddStringZ(entry, "message", Message);
+
+    return entry;
+}
+
+PVOID AtCreateBatchResult(
+    _In_ PVOID Results
+    )
+{
+    PVOID structured;
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectValue(structured, "results", Results);
+    PhAddJsonObjectUInt64(structured, "result_count", PhGetJsonArrayLength(Results));
+    AtAddSnapshot(structured);
+
+    return structured;
+}
+
 // Paging and sorting for the list tools.
 
 typedef enum _AT_SORT_RANK

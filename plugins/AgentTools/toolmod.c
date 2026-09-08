@@ -39,6 +39,7 @@ typedef struct _AT_MODULE_CONTEXT
 {
     AT_ROWS Modules;
     PPH_STRING NameContains;
+    BOOLEAN Summary;
 } AT_MODULE_CONTEXT, *PAT_MODULE_CONTEXT;
 
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
@@ -54,6 +55,13 @@ BOOLEAN NTAPI AtpModuleCallback(
         !AtContainsString(Module->Name, context->NameContains) &&
         !AtContainsString(Module->FileName, context->NameContains))
     {
+        return TRUE;
+    }
+
+    if (context->Summary)
+    {
+        // A triage pass wants the count, not a row per module.
+        AtAddRow(&context->Modules, NULL);
         return TRUE;
     }
 
@@ -82,46 +90,124 @@ BOOLEAN NTAPI AtpModuleCallback(
     return TRUE;
 }
 
+// One process worth of modules. Returns NULL, with Status set, when nothing could be enumerated;
+// in summary mode the rows are counted but never built.
+PVOID AtpCreateModulesResult(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN Summary,
+    _Out_ PNTSTATUS Status
+    )
+{
+    AT_MODULE_CONTEXT context;
+    ULONG flags = 0;
+    PVOID entry;
+
+    memset(&context, 0, sizeof(AT_MODULE_CONTEXT));
+    AtInitializeRows(&context.Modules, Call->Arguments);
+    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    context.Summary = Summary;
+
+    if (AtJsonGetObjectBoolean(Call->Arguments, "include_mapped_files"))
+        flags = PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES;
+
+    *Status = PhEnumGenericModules(ProcessItem->ProcessId, NULL, flags, AtpModuleCallback, &context);
+
+    if (!NT_SUCCESS(*Status) && context.Modules.TotalCount == 0)
+    {
+        AtDeleteRows(&context.Modules);
+        PhClearReference(&context.NameContains);
+        return NULL;
+    }
+
+    entry = PhCreateJsonObject();
+    AtFillProcessIdentity(entry, ProcessItem);
+
+    if (Summary)
+    {
+        PhAddJsonObjectUInt64(entry, "count", context.Modules.TotalCount);
+        AtDeleteRows(&context.Modules);
+    }
+    else
+    {
+        AtAddRows(entry, "modules", &context.Modules);
+    }
+
+    PhClearReference(&context.NameContains);
+
+    return entry;
+}
+
 VOID AtpGetProcessModules(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
     NTSTATUS status;
+    AT_BATCH batch;
     AT_TARGET target;
-    AT_MODULE_CONTEXT context;
-    ULONG flags = 0;
     PVOID structured;
+
+    if (!AtInitializeBatch(&batch, Call->Arguments, Result))
+        return;
+
+    if (batch.Pids)
+    {
+        PVOID results = PhCreateJsonArray();
+        ULONG i;
+
+        for (i = 0; i < batch.Count; i++)
+        {
+            PPH_PROCESS_ITEM processItem;
+            ULONG processId;
+            PVOID entry;
+
+            if (!(processItem = AtBatchReferenceProcessItem(&batch, i, &processId)))
+            {
+                PhAddJsonArrayObject(results, AtCreateBatchError(
+                    processId,
+                    "not_found",
+                    L"No process with this pid is in the provider cache."
+                    ));
+                continue;
+            }
+
+            if (entry = AtpCreateModulesResult(Call, processItem, batch.Summary, &status))
+            {
+                PhAddJsonArrayObject(results, entry);
+            }
+            else
+            {
+                PhAddJsonArrayObject(results, AtCreateBatchError(
+                    processId,
+                    status == STATUS_ACCESS_DENIED ? "access_denied" : "failed",
+                    L"The modules of this process could not be enumerated."
+                    ));
+            }
+
+            PhDereferenceObject(processItem);
+        }
+
+        Result->StructuredContent = AtCreateBatchResult(results);
+        return;
+    }
 
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
         return;
 
-    memset(&context, 0, sizeof(AT_MODULE_CONTEXT));
-    AtInitializeRows(&context.Modules, Call->Arguments);
-    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    structured = AtpCreateModulesResult(Call, target.ProcessItem, FALSE, &status);
 
-    if (AtJsonGetObjectBoolean(Call->Arguments, "include_mapped_files"))
-        flags = PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES;
-
-    status = PhEnumGenericModules(target.ProcessItem->ProcessId, NULL, flags, AtpModuleCallback, &context);
-
-    if (!NT_SUCCESS(status) && context.Modules.TotalCount == 0)
+    if (!structured)
     {
         AtSetToolStatusError(Result, status, L"Enumerating modules");
-        AtDeleteRows(&context.Modules);
-        PhClearReference(&context.NameContains);
         AtDeleteTarget(&target);
         return;
     }
 
-    structured = PhCreateJsonObject();
-    AtFillProcessIdentity(structured, target.ProcessItem);
-    AtAddRows(structured, "modules", &context.Modules);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
 
-    PhClearReference(&context.NameContains);
     AtDeleteTarget(&target);
 }
 

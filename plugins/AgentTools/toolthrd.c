@@ -110,45 +110,30 @@ PPH_SYMBOL_PROVIDER AtpCreateSymbolProvider(
     return symbolProvider;
 }
 
-VOID AtpGetProcessThreads(
+// One process worth of threads, out of a snapshot the caller already took so a batch enumerates
+// once. Returns NULL when the process is not in that snapshot; in summary mode the threads are
+// counted but no rows are built.
+PVOID AtpCreateThreadsResult(
     _In_ PAT_TOOL_CALL Call,
-    _Inout_ PAT_TOOL_RESULT Result
+    _In_ PVOID Processes,
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN Summary
     )
 {
-    NTSTATUS status;
-    AT_TARGET target;
-    PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_SYMBOL_PROVIDER symbolProvider = NULL;
     AT_ROWS rows;
     PVOID structured;
     ULONG i;
 
-    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
-        return;
+    if (!(process = PhFindProcessInformation(Processes, ProcessItem->ProcessId)))
+        return NULL;
 
-    status = PhEnumProcessesEx(&processes, SystemExtendedProcessInformation);
-
-    if (!NT_SUCCESS(status))
-    {
-        AtSetToolStatusError(Result, status, L"Enumerating threads");
-        AtDeleteTarget(&target);
-        return;
-    }
-
-    if (!(process = PhFindProcessInformation(processes, target.ProcessItem->ProcessId)))
-    {
-        AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"pid %lu has exited.", HandleToUlong(target.ProcessItem->ProcessId));
-        PhFree(processes);
-        AtDeleteTarget(&target);
-        return;
-    }
-
-    if (AtJsonGetObjectBoolean(Call->Arguments, "resolve_start_addresses"))
-        symbolProvider = AtpCreateSymbolProvider(target.ProcessItem->ProcessId);
+    if (!Summary && AtJsonGetObjectBoolean(Call->Arguments, "resolve_start_addresses"))
+        symbolProvider = AtpCreateSymbolProvider(ProcessItem->ProcessId);
 
     structured = PhCreateJsonObject();
-    AtFillProcessIdentity(structured, target.ProcessItem);
+    AtFillProcessIdentity(structured, ProcessItem);
     AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < process->NumberOfThreads; i++)
@@ -159,6 +144,13 @@ VOID AtpGetProcessThreads(
         PPH_STRING name = NULL;
         PVOID startAddress;
         LARGE_INTEGER createTime;
+
+        if (Summary)
+        {
+            // A triage pass wants the count, not a row per thread.
+            AtAddRow(&rows, NULL);
+            continue;
+        }
 
         row = PhCreateJsonObject();
         PhAddJsonObjectUInt64(row, "tid", HandleToUlong(thread->ThreadInfo.ClientId.UniqueThread));
@@ -219,13 +211,99 @@ VOID AtpGetProcessThreads(
         AtAddRow(&rows, row);
     }
 
-    AtAddRows(structured, "threads", &rows);
-    AtAddSnapshot(structured);
-
-    Result->StructuredContent = structured;
+    if (Summary)
+    {
+        PhAddJsonObjectUInt64(structured, "count", rows.TotalCount);
+        AtDeleteRows(&rows);
+    }
+    else
+    {
+        AtAddRows(structured, "threads", &rows);
+    }
 
     if (symbolProvider)
         PhDereferenceObject(symbolProvider);
+
+    return structured;
+}
+
+VOID AtpGetProcessThreads(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_BATCH batch;
+    AT_TARGET target;
+    PVOID processes;
+    PVOID structured;
+
+    if (!AtInitializeBatch(&batch, Call->Arguments, Result))
+        return;
+
+    status = PhEnumProcessesEx(&processes, SystemExtendedProcessInformation);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Enumerating threads");
+        return;
+    }
+
+    if (batch.Pids)
+    {
+        PVOID results = PhCreateJsonArray();
+        ULONG i;
+
+        for (i = 0; i < batch.Count; i++)
+        {
+            PPH_PROCESS_ITEM processItem;
+            ULONG processId;
+            PVOID entry = NULL;
+
+            if (processItem = AtBatchReferenceProcessItem(&batch, i, &processId))
+            {
+                entry = AtpCreateThreadsResult(Call, processes, processItem, batch.Summary);
+                PhDereferenceObject(processItem);
+            }
+
+            if (entry)
+            {
+                PhAddJsonArrayObject(results, entry);
+            }
+            else
+            {
+                PhAddJsonArrayObject(results, AtCreateBatchError(
+                    processId,
+                    "not_found",
+                    L"This pid is not in the provider cache or has exited."
+                    ));
+            }
+        }
+
+        Result->StructuredContent = AtCreateBatchResult(results);
+        PhFree(processes);
+        return;
+    }
+
+    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
+    {
+        PhFree(processes);
+        return;
+    }
+
+    structured = AtpCreateThreadsResult(Call, processes, target.ProcessItem, FALSE);
+
+    if (!structured)
+    {
+        AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"pid %lu has exited.", HandleToUlong(target.ProcessItem->ProcessId));
+        PhFree(processes);
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
 
     PhFree(processes);
     AtDeleteTarget(&target);

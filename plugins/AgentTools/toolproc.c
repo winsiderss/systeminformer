@@ -377,8 +377,51 @@ VOID AtpGetProcess(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    AT_BATCH batch;
     AT_TARGET target;
     PVOID structured;
+
+    if (!AtInitializeBatch(&batch, Call->Arguments, Result))
+        return;
+
+    if (batch.Pids)
+    {
+        PVOID results = PhCreateJsonArray();
+        ULONG i;
+
+        for (i = 0; i < batch.Count; i++)
+        {
+            PPH_PROCESS_ITEM processItem;
+            ULONG processId;
+            PVOID entry;
+
+            if (!(processItem = AtBatchReferenceProcessItem(&batch, i, &processId)))
+            {
+                PhAddJsonArrayObject(results, AtCreateBatchError(
+                    processId,
+                    "not_found",
+                    L"No process with this pid is in the provider cache."
+                    ));
+                continue;
+            }
+
+            if (batch.Summary)
+            {
+                entry = AtpCreateProcessRow(processItem);
+            }
+            else
+            {
+                entry = PhCreateJsonObject();
+                AtpFillProcessDetail(entry, processItem);
+            }
+
+            PhAddJsonArrayObject(results, entry);
+            PhDereferenceObject(processItem);
+        }
+
+        Result->StructuredContent = AtCreateBatchResult(results);
+        return;
+    }
 
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
         return;

@@ -507,6 +507,42 @@ typedef struct _AT_ROWS
     ULONG TotalCount;
 } AT_ROWS, *PAT_ROWS;
 
+// pids[] batching on the per-process reads: one call for a triage pass over many processes
+// instead of one round trip each. A pid that cannot be answered becomes an error entry rather
+// than failing the whole call.
+
+#define AT_MAX_BATCH_PIDS 64
+
+typedef struct _AT_BATCH
+{
+    PVOID Pids;
+    ULONG Count;
+    BOOLEAN Summary;
+} AT_BATCH, *PAT_BATCH;
+
+_Success_(return)
+BOOLEAN AtInitializeBatch(
+    _Out_ PAT_BATCH Batch,
+    _In_opt_ PVOID Arguments,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+PPH_PROCESS_ITEM AtBatchReferenceProcessItem(
+    _In_ PAT_BATCH Batch,
+    _In_ ULONG Index,
+    _Out_ PULONG ProcessId
+    );
+
+PVOID AtCreateBatchError(
+    _In_ ULONG ProcessId,
+    _In_ PCSTR ErrorCode,
+    _In_ PCWSTR Message
+    );
+
+PVOID AtCreateBatchResult(
+    _In_ PVOID Results
+    );
+
 VOID AtInitializeRows(
     _Out_ PAT_ROWS Rows,
     _In_opt_ PVOID Arguments

@@ -199,6 +199,21 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_SENSITIVE_NOTE "This is a sensitive read: it is disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 #define AT_SERVICE_WRITE_NOTE "Requires the service name (not the display name) from list_services. Disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 
+#define AT_BATCH_NOTE "Pass pids for a batch: results holds one entry per requested pid, in the order asked, and a pid that could not be answered becomes an entry with error and message instead of failing the call. summary makes each entry compact and only applies to a batch. "
+
+#define AT_BATCH_INPUT_PROPERTIES \
+    "\"pids\":{\"type\":\"array\",\"items\":{\"type\":\"integer\"},\"minItems\":1,\"maxItems\":64,\"description\":\"Ask about these processes in one call instead of pid; at most 64\"}," \
+    "\"summary\":{\"type\":\"boolean\",\"description\":\"With pids, return a compact entry per process instead of full detail\"}"
+
+#define AT_BATCH_RESULTS_SCHEMA(Detail) \
+    "\"results\":{\"type\":\"array\",\"description\":\"One entry per pid in pids, in order. " Detail " A pid that could not be answered has error and message instead.\"," \
+    "\"items\":{\"type\":\"object\",\"properties\":{" \
+    "\"pid\":{\"type\":\"integer\"}," \
+    "\"error\":{\"type\":\"string\"}," \
+    "\"message\":{\"type\":[\"string\",\"null\"]}" \
+    "},\"required\":[\"pid\"]}}," \
+    "\"result_count\":{\"type\":\"integer\"}"
+
 #define AT_PAGE_NOTE "Rows are paged: limit defaults to 200, total_count is the number of matching rows and truncated says more follow this page. "
 
 #define AT_PAGE_INPUT_PROPERTIES \
@@ -369,8 +384,10 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Returns detail for one process from System Informer's provider cache: command line, image path, "
         "integrity, elevation, signature status and signer, package identity, protection, counters. Fields System Informer "
         "could not read are null and access_denied is true. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
-        "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
+        AT_BATCH_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        AT_BATCH_INPUT_PROPERTIES
+        "},\"anyOf\":[{\"required\":[\"pid\"]},{\"required\":[\"pids\"]}],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\"},"
         "\"process_sequence_number\":{\"type\":\"integer\"},"
@@ -421,8 +438,10 @@ CONST AT_TOOL AtTools[] =
         "\"handle_count\":{\"type\":\"integer\"},"
         "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Services hosted by this process\"},"
         "\"access_denied\":{\"type\":\"boolean\"},"
+        AT_BATCH_RESULTS_SCHEMA("Each entry is this same object, or the compact row of list_processes when summary is set.") ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"access_denied\",\"updates_paused\"]},"
+        "},\"required\":[\"updates_paused\"],"
+        "\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"access_denied\"]},{\"required\":[\"results\",\"result_count\"]}]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -430,13 +449,14 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"get_process_modules"), SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         "{\"name\":\"get_process_modules\",\"title\":\"List process modules\","
         "\"description\":\"Lists the modules (DLLs) loaded in a process, optionally with mapped files. Addresses are hexadecimal strings. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
+        AT_BATCH_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"include_mapped_files\":{\"type\":\"boolean\",\"description\":\"Also list mapped data files and images that are not loaded modules\"},"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or path\"},"
         AT_SORT_INPUT_PROPERTIES("\"name\",\"file_path\",\"type\",\"size\",\"load_order_index\",\"load_count\",\"load_time\"") ","
-        AT_PAGE_INPUT_PROPERTIES
-        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        AT_PAGE_INPUT_PROPERTIES ","
+        AT_BATCH_INPUT_PROPERTIES
+        "},\"anyOf\":[{\"required\":[\"pid\"]},{\"required\":[\"pids\"]}],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
         "\"modules\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
@@ -451,8 +471,9 @@ CONST AT_TOOL AtTools[] =
         "\"load_time\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"base_address\",\"size\",\"type\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_BATCH_RESULTS_SCHEMA("Each entry carries the process identity and its modules with the same paging fields, or just count when summary is set.") ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
+        "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -461,12 +482,13 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_process_threads\",\"title\":\"List process threads\","
         "\"description\":\"Lists the threads of a process with state, wait reason, priorities, times and start address. tid together "
         "with pid and process_sequence_number identifies a thread to the thread tools. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
+        AT_BATCH_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"resolve_start_addresses\":{\"type\":\"boolean\",\"description\":\"Resolve start addresses to symbols (loads symbols; slow on first use)\"},"
         AT_SORT_INPUT_PROPERTIES("\"tid\",\"name\",\"state\",\"priority\",\"base_priority\",\"create_time\",\"kernel_time\",\"user_time\",\"context_switches\"") ","
-        AT_PAGE_INPUT_PROPERTIES
-        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        AT_PAGE_INPUT_PROPERTIES ","
+        AT_BATCH_INPUT_PROPERTIES
+        "},\"anyOf\":[{\"required\":[\"pid\"]},{\"required\":[\"pids\"]}],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
         "\"threads\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
@@ -485,8 +507,9 @@ CONST AT_TOOL AtTools[] =
         "\"is_suspended\":{\"type\":\"boolean\"}"
         "},\"required\":[\"tid\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_BATCH_RESULTS_SCHEMA("Each entry carries the process identity and its threads with the same paging fields, or just count when summary is set.") ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},"
+        "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
