@@ -756,6 +756,7 @@ EXPORTS
     PhSetProcessIoPriority
     PhSetProcessAffinityMask
     PhSetProcessGroupAffinity
+    PhSetProcessPagePriority
     PhSetProcessPriorityBoost
     PhSetProcessPriorityClass
     PhSetThreadAffinityMask

@@ -175,6 +175,7 @@ typedef enum _AT_ACTION
     AtActionGetObjectSecurity,
     AtActionListPoolTags,
     AtActionSetProcessAffinity,
+    AtActionSetProcessPagePriority,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
@@ -822,6 +823,10 @@ PCWSTR AtVerifyResultString(
 
 PCWSTR AtKphLevelString(
     _In_ KPH_LEVEL Level
+    );
+
+PCWSTR AtPagePriorityString(
+    _In_ ULONG PagePriority
     );
 
 PCWSTR AtIoPriorityString(

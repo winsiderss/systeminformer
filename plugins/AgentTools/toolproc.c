@@ -1021,6 +1021,9 @@ VOID AtpControlProcess(
     IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
     GROUP_AFFINITY groupAffinity;
     KAFFINITY previousMask = 0;
+    ULONG previousPagePriority = 0;
+    ULONG64 pagePriority = 0;
+    BOOLEAN hasPreviousPagePriority = FALSE;
     ULONG64 affinityMask = 0;
     ULONG64 affinityGroup = 0;
     BOOLEAN hasGroup = FALSE;
@@ -1056,6 +1059,17 @@ VOID AtpControlProcess(
             NT_VERIFY(AtParseIoPriority(value, &ioPriority));
             PhClearReference(&value);
             status = PhSetProcessIoPriority(Target->ProcessHandle, ioPriority);
+        }
+        break;
+    case AtActionSetProcessPagePriority:
+        {
+            // Validated when the target was resolved.
+            NT_VERIFY(AtGetArgumentUInt64(Call->Arguments, "page_priority", &pagePriority));
+
+            // Read before writing: the level a process had is the only way back to it.
+            hasPreviousPagePriority = NT_SUCCESS(PhGetProcessPagePriority(Target->ProcessHandle, &previousPagePriority));
+
+            status = PhSetProcessPagePriority(Target->ProcessHandle, (ULONG)pagePriority);
         }
         break;
     case AtActionSetProcessAffinity:
@@ -1099,6 +1113,22 @@ VOID AtpControlProcess(
         AtJsonAddStringZ(structured, "priority_class", AtPriorityClassString(priorityClass));
     else if (Tool->Action == AtActionSetProcessIoPriority)
         AtJsonAddStringZ(structured, "io_priority", AtIoPriorityString(ioPriority));
+    else if (Tool->Action == AtActionSetProcessPagePriority)
+    {
+        PhAddJsonObjectUInt64(structured, "page_priority", pagePriority);
+        AtJsonAddStringZ(structured, "page_priority_name", AtPagePriorityString((ULONG)pagePriority));
+
+        if (hasPreviousPagePriority)
+        {
+            PhAddJsonObjectUInt64(structured, "previous_page_priority", previousPagePriority);
+            AtJsonAddStringZ(structured, "previous_page_priority_name", AtPagePriorityString(previousPagePriority));
+        }
+        else
+        {
+            AtJsonAddNull(structured, "previous_page_priority");
+            AtJsonAddNull(structured, "previous_page_priority_name");
+        }
+    }
     else if (Tool->Action == AtActionSetProcessAffinity)
     {
         AtJsonAddHex(structured, "affinity_mask", affinityMask);
@@ -2163,6 +2193,7 @@ VOID AtProcessInvokeTool(
     case AtActionSetProcessPriority:
     case AtActionSetProcessIoPriority:
     case AtActionSetProcessAffinity:
+    case AtActionSetProcessPagePriority:
         AtpControlProcess(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessToken:

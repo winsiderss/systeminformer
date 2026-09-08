@@ -555,6 +555,23 @@ NTSTATUS AtpResolveTargetParameter(
                 text = PhFormatString(L"mask 0x%I64x", mask);
         }
         break;
+    case AtActionSetProcessPagePriority:
+        {
+            ULONG64 pagePriority = 0;
+
+            if (!AtGetArgumentUInt64(Arguments, "page_priority", &pagePriority) ||
+                pagePriority > MEMORY_PRIORITY_NORMAL)
+            {
+                AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                    L"page_priority is required and must be 0 to 5: 0 lowest, 1 very low, 2 low, 3 medium, "
+                    L"4 below normal, 5 normal.");
+                return STATUS_INVALID_PARAMETER;
+            }
+
+            text = PhFormatString(L"page priority %I64u (%s)", pagePriority,
+                AtPagePriorityString((ULONG)pagePriority));
+        }
+        break;
     case AtActionSetServiceConfig:
         {
             text = AtFormatServiceConfigParameter(Arguments, Result);

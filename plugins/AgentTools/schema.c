@@ -411,6 +411,11 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_affinity"),
         L"set which processors the following process may run on", L"Set the processor affinity of", L"set_process_affinity"
     },
+    {
+        AtActionSetProcessPagePriority, AtTierWrite, AtConsentClassNone, AtTargetProcess,
+        PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_page_priority"),
+        L"set the memory priority of the following process", L"Set the memory priority of", L"set_process_page_priority"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -2329,6 +2334,30 @@ CONST AT_TOOL AtTools[] =
         "\"priority_class\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"priority_class\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "set_process_page_priority", L"Set process page priority", AtTierWrite, AtActionSetProcessPagePriority,
+        SETTING_NAME_TOOL_ACCESS(L"set_process_page_priority"), SETTING_NAME_TOOL_CONFIRM(L"set_process_page_priority"),
+        "{\"name\":\"set_process_page_priority\",\"title\":\"Set process page priority\","
+        "\"description\":\"Sets the memory priority of a process, which decides whose pages are trimmed first "
+        "when the machine needs memory back. 5 is what a process starts with; lower it and the process keeps "
+        "running while its pages become the first to go, which is what makes a background process cheaper without "
+        "stopping it. It does not cap how much memory the process can have. The level it had is returned as "
+        "previous_page_priority, which is the only record of it, and get_process reports the current one under "
+        "statistics. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES ","
+        "\"page_priority\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":5,\"description\":\"0 lowest, 1 very low, 2 low, 3 medium, 4 below normal, 5 normal\"}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"page_priority\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"action\":{\"type\":\"string\"},"
+        "\"page_priority\":{\"type\":\"integer\"},"
+        "\"page_priority_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"previous_page_priority\":{\"type\":[\"integer\",\"null\"],\"description\":\"What it was before this call; null when it could not be read\"},"
+        "\"previous_page_priority_name\":{\"type\":[\"string\",\"null\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"page_priority\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
     {

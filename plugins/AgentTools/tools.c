@@ -1068,6 +1068,33 @@ PCWSTR AtIoPriorityString(
     return NULL;
 }
 
+/**
+ * The memory priority levels, which are the numbers every tool here reports a page priority as.
+ * Five is the default a process starts with; below it the pages are the first to be trimmed.
+ */
+PCWSTR AtPagePriorityString(
+    _In_ ULONG PagePriority
+    )
+{
+    switch (PagePriority)
+    {
+    case MEMORY_PRIORITY_LOWEST:
+        return L"lowest";
+    case MEMORY_PRIORITY_VERY_LOW:
+        return L"very_low";
+    case MEMORY_PRIORITY_LOW:
+        return L"low";
+    case MEMORY_PRIORITY_MEDIUM:
+        return L"medium";
+    case MEMORY_PRIORITY_BELOW_NORMAL:
+        return L"below_normal";
+    case MEMORY_PRIORITY_NORMAL:
+        return L"normal";
+    }
+
+    return NULL;
+}
+
 PCWSTR AtPriorityClassString(
     _In_ ULONG PriorityClass
     )
@@ -1359,6 +1386,7 @@ VOID AtInvokeTool(
     case AtActionSetProcessPriority:
     case AtActionSetProcessIoPriority:
     case AtActionSetProcessAffinity:
+    case AtActionSetProcessPagePriority:
     case AtActionGetProcessToken:
     case AtActionGetProcessWindows:
     case AtActionGetProcessJob:
