@@ -171,6 +171,7 @@ typedef enum _AT_ACTION
     AtActionListHiddenProcesses,
     AtActionGetProcessKsiState,
     AtActionGetDriverObject,
+    AtActionListDirectory,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
@@ -1102,6 +1103,11 @@ VOID AtpGetFileScanResultCached(
     );
 
 VOID AtpGetFileInfo(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtpListDirectory(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     );

@@ -1192,6 +1192,9 @@ VOID AtPeInvokeTool(
     case AtActionGetFileInfo:
         AtpGetFileInfo(Call, Result);
         break;
+    case AtActionListDirectory:
+        AtpListDirectory(Call, Result);
+        break;
     case AtActionGetFileScanResultCached:
         AtpGetFileScanResultCached(Call, Result);
         break;

@@ -394,6 +394,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetDriverObject, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_driver_object"),
         L"read a driver or device object", L"Allow reading driver and device objects", L"get_driver_object"
     },
+    {
+        AtActionListDirectory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_directory"),
+        L"list the contents of a directory", L"Allow listing directories", L"list_directory"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3966,6 +3970,45 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_directory", L"List a directory", AtTierRead, AtActionListDirectory,
+        SETTING_NAME_TOOL_ACCESS(L"list_directory"), SETTING_NAME_TOOL_CONFIRM(L"list_directory"),
+        "{\"name\":\"list_directory\",\"title\":\"List a directory\","
+        "\"description\":\"Lists what is in a directory: names, sizes, attributes and times. This is the context "
+        "around a file another tool named - what else is in the folder an autostart entry points at, what was "
+        "written to a directory at about the time something ran, whether the name beside a legitimate one is a "
+        "near-copy of it. One directory per call and never recursive, so a tree is walked one call at a time. "
+        "Nothing is read from any file; use get_file_info, get_file_hashes or get_image_info for that. A "
+        "directory this account may not list is refused rather than returned empty. Names are chosen by whoever "
+        "wrote the files. " AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"The directory, as a Win32 path\"},"
+        "\"pattern\":{\"type\":\"string\",\"description\":\"A filesystem search pattern the filesystem itself applies, e.g. *.exe. Faster than name_contains on a large directory, and matches the whole name rather than part of it\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the name\"},"
+        "\"directories_only\":{\"type\":\"boolean\"},"
+        "\"files_only\":{\"type\":\"boolean\"},"
+        AT_SORT_INPUT_PROPERTIES("\"name\",\"size\",\"last_write_time\",\"creation_time\"") ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"entries\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\"},"
+        "\"is_directory\":{\"type\":\"boolean\"},"
+        "\"size\":{\"type\":\"integer\",\"description\":\"Bytes of data; a directory reports whatever the filesystem keeps for it, not the size of its contents\"},"
+        "\"allocation_size\":{\"type\":\"integer\"},"
+        "\"attributes_value\":{\"type\":\"string\"},"
+        "\"attributes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"creation_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"last_access_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"last_write_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"change_time\":{\"type\":[\"string\",\"null\"],\"description\":\"When the file's metadata last changed, which a program that backdates last_write_time does not get to choose\"}"
+        "},\"required\":[\"name\",\"is_directory\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"path\",\"entries\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

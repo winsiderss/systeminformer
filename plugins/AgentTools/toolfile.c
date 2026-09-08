@@ -152,9 +152,9 @@ VOID AtpAddFileHardLinks(
     PhFree(links);
 }
 
-VOID AtpGetFileInfo(
-    _In_ PAT_TOOL_CALL Call,
-    _Inout_ PAT_TOOL_RESULT Result
+VOID AtpAddFileAttributes(
+    _In_ PVOID Object,
+    _In_ ULONG Attributes
     )
 {
     static CONST ULONG attributeFlags[] =
@@ -179,6 +179,17 @@ VOID AtpGetFileInfo(
         L"pinned", L"unpinned", L"recall_on_open",
         L"recall_on_data_access"
     };
+
+    AtJsonAddHex(Object, "attributes_value", Attributes);
+    AtJsonAddFlagStrings(Object, "attributes", Attributes,
+        attributeFlags, (CONST PWSTR*)attributeNames, RTL_NUMBER_OF(attributeFlags));
+}
+
+VOID AtpGetFileInfo(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
     NTSTATUS status;
     PPH_STRING path;
     PPH_STRING nativePath = NULL;
@@ -235,9 +246,7 @@ VOID AtpGetFileInfo(
     PhAddJsonObjectUInt64(structured, "allocation_size", allInformation->StandardInformation.AllocationSize.QuadPart);
     PhAddJsonObjectUInt64(structured, "hard_link_count", allInformation->StandardInformation.NumberOfLinks);
     PhAddJsonObjectBoolean(structured, "delete_pending", !!allInformation->StandardInformation.DeletePending);
-    AtJsonAddHex(structured, "attributes_value", allInformation->BasicInformation.FileAttributes);
-    AtJsonAddFlagStrings(structured, "attributes", allInformation->BasicInformation.FileAttributes,
-        attributeFlags, (CONST PWSTR*)attributeNames, RTL_NUMBER_OF(attributeFlags));
+    AtpAddFileAttributes(structured, allInformation->BasicInformation.FileAttributes);
     AtJsonAddTime(structured, "creation_time", &allInformation->BasicInformation.CreationTime);
     AtJsonAddTime(structured, "last_access_time", &allInformation->BasicInformation.LastAccessTime);
     AtJsonAddTime(structured, "last_write_time", &allInformation->BasicInformation.LastWriteTime);
@@ -1099,6 +1108,155 @@ VOID AtpReadRegistryKey(
     PhDereferenceObject(context.Subkeys);
     NtClose(keyHandle);
     PhDereferenceObject(subKey);
+    PhClearReference(&context.NameContains);
+    PhDereferenceObject(path);
+}
+
+// Filesystem context: what is next to a file, and when. A listing is capped and never recursive -
+// the tool answers "what is in this directory", and a caller that wants a tree asks for each one.
+typedef struct _AT_DIRECTORY_CONTEXT
+{
+    PAT_ROWS Rows;
+    PPH_STRING NameContains;
+    BOOLEAN DirectoriesOnly;
+    BOOLEAN FilesOnly;
+    ULONG EnumeratedCount;
+} AT_DIRECTORY_CONTEXT, *PAT_DIRECTORY_CONTEXT;
+
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+BOOLEAN NTAPI AtpDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PFILE_DIRECTORY_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_DIRECTORY_CONTEXT context = Context;
+    PH_STRINGREF name;
+    PPH_STRING nameString;
+    PVOID row;
+    BOOLEAN isDirectory;
+
+    if (!context)
+        return FALSE;
+
+    name.Buffer = Information->FileName;
+    name.Length = Information->FileNameLength;
+
+    // The two names every directory has for itself are not entries in it.
+    if (PhEqualStringRef2(&name, L".", FALSE) || PhEqualStringRef2(&name, L"..", FALSE))
+        return TRUE;
+
+    isDirectory = !!(Information->FileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+    if ((context->DirectoriesOnly && !isDirectory) || (context->FilesOnly && isDirectory))
+        return TRUE;
+
+    nameString = PhCreateString2(&name);
+
+    if (!AtContainsString(nameString, context->NameContains))
+    {
+        PhDereferenceObject(nameString);
+        return TRUE;
+    }
+
+    context->EnumeratedCount++;
+
+    row = PhCreateJsonObject();
+    AtJsonAddString(row, "name", nameString);
+    PhAddJsonObjectBoolean(row, "is_directory", isDirectory);
+
+    // A directory's size is whatever the filesystem keeps for it, not the size of what is in it.
+    PhAddJsonObjectUInt64(row, "size", Information->EndOfFile.QuadPart);
+    PhAddJsonObjectUInt64(row, "allocation_size", Information->AllocationSize.QuadPart);
+    AtpAddFileAttributes(row, Information->FileAttributes);
+    AtJsonAddTime(row, "creation_time", &Information->CreationTime);
+    AtJsonAddTime(row, "last_access_time", &Information->LastAccessTime);
+    AtJsonAddTime(row, "last_write_time", &Information->LastWriteTime);
+    AtJsonAddTime(row, "change_time", &Information->ChangeTime);
+
+    AtAddRow(context->Rows, row);
+    PhDereferenceObject(nameString);
+
+    return TRUE;
+}
+
+VOID AtpListDirectory(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_DIRECTORY_CONTEXT context;
+    AT_ROWS rows;
+    PPH_STRING path;
+    PPH_STRING pattern;
+    PH_STRINGREF patternRef;
+    HANDLE directoryHandle;
+    PVOID structured;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        return;
+    }
+
+    memset(&context, 0, sizeof(AT_DIRECTORY_CONTEXT));
+    context.Rows = &rows;
+    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    context.DirectoriesOnly = AtJsonGetObjectBoolean(Call->Arguments, "directories_only");
+    context.FilesOnly = AtJsonGetObjectBoolean(Call->Arguments, "files_only");
+    pattern = AtGetArgumentString(Call->Arguments, "pattern");
+
+    if (context.DirectoriesOnly && context.FilesOnly)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"directories_only and files_only cannot both be set.");
+        goto CleanupExit;
+    }
+
+    // FILE_LIST_DIRECTORY is the only right this needs; a directory nobody may list refuses here
+    // rather than coming back empty.
+    status = PhCreateFileWin32(
+        &directoryHandle,
+        PhGetString(path),
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        FILE_ATTRIBUTE_DIRECTORY,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the directory");
+        goto CleanupExit;
+    }
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    if (pattern)
+        patternRef = pattern->sr;
+
+    status = PhEnumDirectoryFile(directoryHandle, pattern ? &patternRef : NULL, AtpDirectoryCallback, &context);
+    NtClose(directoryHandle);
+
+    // Nothing matched is not a failure; the pattern being nonsense is.
+    if (!NT_SUCCESS(status) && status != STATUS_NO_MORE_FILES && status != STATUS_NO_SUCH_FILE)
+    {
+        AtSetToolStatusError(Result, status, L"Listing the directory");
+        AtDeleteRows(&rows);
+        goto CleanupExit;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    AtAddRows(structured, "entries", &rows);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+CleanupExit:
+    PhClearReference(&pattern);
     PhClearReference(&context.NameContains);
     PhDereferenceObject(path);
 }
