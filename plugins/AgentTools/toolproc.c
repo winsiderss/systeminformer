@@ -1021,6 +1021,9 @@ VOID AtpControlProcess(
     IO_PRIORITY_HINT ioPriority = IoPriorityNormal;
     GROUP_AFFINITY groupAffinity;
     KAFFINITY previousMask = 0;
+    PH_PROCESS_WS_COUNTERS wsCounters;
+    ULONG64 workingSetBefore = 0;
+    BOOLEAN hasWorkingSetBefore = FALSE;
     ULONG previousPagePriority = 0;
     ULONG64 pagePriority = 0;
     BOOLEAN hasPreviousPagePriority = FALSE;
@@ -1059,6 +1062,14 @@ VOID AtpControlProcess(
             NT_VERIFY(AtParseIoPriority(value, &ioPriority));
             PhClearReference(&value);
             status = PhSetProcessIoPriority(Target->ProcessHandle, ioPriority);
+        }
+        break;
+    case AtActionEmptyProcessWorkingSet:
+        {
+            if (hasWorkingSetBefore = NT_SUCCESS(PhGetProcessWsCounters(Target->ProcessHandle, &wsCounters)))
+                workingSetBefore = (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE;
+
+            status = PhSetProcessEmptyWorkingSet(Target->ProcessHandle);
         }
         break;
     case AtActionSetProcessPagePriority:
@@ -1113,6 +1124,20 @@ VOID AtpControlProcess(
         AtJsonAddStringZ(structured, "priority_class", AtPriorityClassString(priorityClass));
     else if (Tool->Action == AtActionSetProcessIoPriority)
         AtJsonAddStringZ(structured, "io_priority", AtIoPriorityString(ioPriority));
+    else if (Tool->Action == AtActionEmptyProcessWorkingSet)
+    {
+        if (hasWorkingSetBefore)
+            PhAddJsonObjectUInt64(structured, "working_set_bytes_before", workingSetBefore);
+        else
+            AtJsonAddNull(structured, "working_set_bytes_before");
+
+        // Read straight after the call, which is the only honest place to read it: the process is
+        // running and is already faulting back whatever it still needs.
+        if (NT_SUCCESS(PhGetProcessWsCounters(Target->ProcessHandle, &wsCounters)))
+            PhAddJsonObjectUInt64(structured, "working_set_bytes_after", (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE);
+        else
+            AtJsonAddNull(structured, "working_set_bytes_after");
+    }
     else if (Tool->Action == AtActionSetProcessPagePriority)
     {
         PhAddJsonObjectUInt64(structured, "page_priority", pagePriority);
@@ -2194,6 +2219,7 @@ VOID AtProcessInvokeTool(
     case AtActionSetProcessIoPriority:
     case AtActionSetProcessAffinity:
     case AtActionSetProcessPagePriority:
+    case AtActionEmptyProcessWorkingSet:
         AtpControlProcess(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessToken:

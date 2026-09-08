@@ -1387,6 +1387,7 @@ VOID AtInvokeTool(
     case AtActionSetProcessIoPriority:
     case AtActionSetProcessAffinity:
     case AtActionSetProcessPagePriority:
+    case AtActionEmptyProcessWorkingSet:
     case AtActionGetProcessToken:
     case AtActionGetProcessWindows:
     case AtActionGetProcessJob:

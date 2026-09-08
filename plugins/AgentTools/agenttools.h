@@ -176,6 +176,7 @@ typedef enum _AT_ACTION
     AtActionListPoolTags,
     AtActionSetProcessAffinity,
     AtActionSetProcessPagePriority,
+    AtActionEmptyProcessWorkingSet,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,

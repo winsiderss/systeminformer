@@ -416,6 +416,11 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         PROCESS_SET_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"set_process_page_priority"),
         L"set the memory priority of the following process", L"Set the memory priority of", L"set_process_page_priority"
     },
+    {
+        AtActionEmptyProcessWorkingSet, AtTierWrite, AtConsentClassNone, AtTargetProcess,
+        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"empty_process_working_set"),
+        L"empty the working set of the following process", L"Empty the working set of", L"empty_process_working_set"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -2334,6 +2339,28 @@ CONST AT_TOOL AtTools[] =
         "\"priority_class\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"priority_class\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "empty_process_working_set", L"Empty a process working set", AtTierWrite, AtActionEmptyProcessWorkingSet,
+        SETTING_NAME_TOOL_ACCESS(L"empty_process_working_set"), SETTING_NAME_TOOL_CONFIRM(L"empty_process_working_set"),
+        "{\"name\":\"empty_process_working_set\",\"title\":\"Empty a process working set\","
+        "\"description\":\"Pushes a process's pages out of physical memory. THIS DOES NOT FREE MEMORY, and the "
+        "number it makes go down is not the memory the process is using: the pages are written to the pagefile or "
+        "moved to the standby list, and the process faults back whatever it still needs as it runs, which costs "
+        "time and disk. The working set is smaller afterwards and the machine has no more memory available than "
+        "it did. It is useful for finding out how much of a process's working set is actually live - empty it, "
+        "wait, and read the working set again with get_process - and for pushing an idle process out of the way "
+        "on a machine that is short of memory. working_set_bytes_after is read the instant the call returns, so "
+        "on a busy process it is already climbing. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"action\":{\"type\":\"string\"},"
+        "\"working_set_bytes_before\":{\"type\":[\"integer\",\"null\"]},"
+        "\"working_set_bytes_after\":{\"type\":[\"integer\",\"null\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"action\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
     {
