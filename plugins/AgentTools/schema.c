@@ -99,6 +99,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the object names behind process handles", L"Read the handle names of", L"get_process_handles_detailed"
     },
     {
+        AtActionFindHandles, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"find_handles"),
+        L"search every process for handles to an object", L"Search every process for handles", L"find_handles"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1151,6 +1155,46 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "find_handles", L"Find handles", AtTierSensitiveRead, AtActionFindHandles,
+        SETTING_NAME_TOOL_ACCESS(L"find_handles"), SETTING_NAME_TOOL_CONFIRM(L"find_handles"),
+        "{\"name\":\"find_handles\",\"title\":\"Find handles\","
+        "\"description\":\"Searches every process for handles whose object matches, which is how to find what is "
+        "holding a file that will not delete, or a registry key, or a named mutex. get_process_handles_detailed "
+        "answers for a process already known; this finds the process. Rows carry pid and process_sequence_number "
+        "with the handle, so a row can be passed straight to close_handle. Give at least one of name_contains, "
+        "type_name or pid: a search with no filter would name every handle on the machine. type_name is the "
+        "cheapest filter by far, because a handle's type is known without opening anything. The scan stops after "
+        "max_seconds and says so in timed_out - a scan that ran out of time has looked at part of the machine, so "
+        "an empty answer from it means nothing. Names come from the objects themselves. "
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the object's name\"},"
+        "\"type_name\":{\"type\":\"string\",\"description\":\"Exact object type, e.g. File, Key, Mutant, Section, Event\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only handles held by this process\"},"
+        "\"max_seconds\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":60,\"description\":\"How long to spend scanning; default 20\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"handles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"handle\":{\"type\":\"string\",\"description\":\"Pass with the pid to close_handle\"},"
+        "\"type\":{\"type\":[\"string\",\"null\"]},"
+        "\"object_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"best_name\":{\"type\":[\"string\",\"null\"],\"description\":\"The most useful name, e.g. a Win32 path for a file\"},"
+        "\"object_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Two handles with the same address are to the same object\"},"
+        "\"granted_access\":{\"type\":\"string\"}"
+        "},\"required\":[\"pid\",\"handle\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"scanned\":{\"type\":\"integer\",\"description\":\"Handles that passed the cheap filters and were considered\"},"
+        "\"named\":{\"type\":\"integer\",\"description\":\"Handles whose object could actually be named\"},"
+        "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; the machine was not fully searched\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"handles\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"named\",\"timed_out\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

@@ -90,6 +90,7 @@ typedef enum _AT_ACTION
     AtActionSetProcessComment,
     AtActionReadProcessEnvironment,
     AtActionGetProcessHandlesDetailed,
+    AtActionFindHandles,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
@@ -880,6 +881,13 @@ VOID AtMemoryInvokeTool(
     );
 
 VOID AtServiceInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
