@@ -423,6 +423,10 @@ CONST AT_TOOL AtTools[] =
         "\"parent_pid\":{\"type\":\"integer\",\"description\":\"Only direct children of this process id\"},"
         "\"user_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the user name\"},"
         "\"include_tree\":{\"type\":\"boolean\",\"description\":\"Also include every descendant of the matched processes\"},"
+        "\"started_after\":{\"type\":\"string\",\"description\":\"Only processes started after this ISO 8601 time, as returned in start_time. Compared at millisecond resolution, so passing a process\u0027s own start_time excludes that process\"},"
+        "\"started_within_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"Only processes started in the last this many seconds\"},"
+        "\"protected_only\":{\"type\":\"boolean\",\"description\":\"Only protected processes\"},"
+        "\"image_missing_only\":{\"type\":\"boolean\",\"description\":\"Only processes whose image file is no longer on disk, which cannot be checked against anything. Pseudo processes that never had an image, such as Registry, are not included\"},"
         AT_SORT_INPUT_PROPERTIES("\"pid\",\"parent_pid\",\"name\",\"user\",\"session_id\",\"start_time\",\"cpu_usage\",\"private_bytes\",\"working_set_bytes\",\"thread_count\",\"handle_count\"") ","
         AT_PAGE_INPUT_PROPERTIES ","
         AT_DELTA_INPUT_PROPERTY

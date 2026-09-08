@@ -677,6 +677,12 @@ VOID AtJsonAddDuration(
     _In_ ULONG64 Duration100ns
     );
 
+_Success_(return)
+BOOLEAN AtParseTime(
+    _In_opt_ PPH_STRING String,
+    _Out_ PLARGE_INTEGER Time
+    );
+
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle

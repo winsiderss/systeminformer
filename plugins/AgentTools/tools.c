@@ -753,6 +753,75 @@ VOID AtJsonAddDuration(
     PhAddJsonObjectDouble(Object, Key, (DOUBLE)Duration100ns / (DOUBLE)PH_TICKS_PER_SEC);
 }
 
+// Parses the ISO 8601 form this server emits, so a time it returned can be handed straight back:
+// YYYY-MM-DDTHH:MM:SS, optionally with milliseconds and a trailing Z. Deliberately strict — a
+// half-understood time silently filters the wrong rows.
+_Success_(return)
+BOOLEAN AtParseTime(
+    _In_opt_ PPH_STRING String,
+    _Out_ PLARGE_INTEGER Time
+    )
+{
+    static CONST struct { ULONG Offset; ULONG Length; } fields[] =
+    {
+        { 0, 4 },   // year
+        { 5, 2 },   // month
+        { 8, 2 },   // day
+        { 11, 2 },  // hour
+        { 14, 2 },  // minute
+        { 17, 2 },  // second
+    };
+    SYSTEMTIME systemTime;
+    PUSHORT values[RTL_NUMBER_OF(fields)];
+    ULONG i;
+
+    if (!String || String->Length < 19 * sizeof(WCHAR))
+        return FALSE;
+
+    if (String->Buffer[4] != L'-' || String->Buffer[7] != L'-' ||
+        (String->Buffer[10] != L'T' && String->Buffer[10] != L' ') ||
+        String->Buffer[13] != L':' || String->Buffer[16] != L':')
+    {
+        return FALSE;
+    }
+
+    memset(&systemTime, 0, sizeof(SYSTEMTIME));
+    values[0] = &systemTime.wYear;
+    values[1] = &systemTime.wMonth;
+    values[2] = &systemTime.wDay;
+    values[3] = &systemTime.wHour;
+    values[4] = &systemTime.wMinute;
+    values[5] = &systemTime.wSecond;
+
+    for (i = 0; i < RTL_NUMBER_OF(fields); i++)
+    {
+        PH_STRINGREF part;
+        ULONG64 value;
+
+        part.Buffer = &String->Buffer[fields[i].Offset];
+        part.Length = fields[i].Length * sizeof(WCHAR);
+
+        if (!PhStringToUInt64(&part, 10, &value) || value > USHRT_MAX)
+            return FALSE;
+
+        *values[i] = (USHORT)value;
+    }
+
+    if (String->Length >= 23 * sizeof(WCHAR) && String->Buffer[19] == L'.')
+    {
+        PH_STRINGREF part;
+        ULONG64 value;
+
+        part.Buffer = &String->Buffer[20];
+        part.Length = 3 * sizeof(WCHAR);
+
+        if (PhStringToUInt64(&part, 10, &value) && value <= 999)
+            systemTime.wMilliseconds = (USHORT)value;
+    }
+
+    return !!PhSystemTimeToLargeInteger(Time, &systemTime);
+}
+
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle

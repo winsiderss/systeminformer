@@ -235,6 +235,10 @@ VOID AtpFillProcessDetail(
 
 typedef struct _AT_LIST_FILTER
 {
+    LARGE_INTEGER StartedAfter;
+    BOOLEAN HaveStartedAfter;
+    BOOLEAN ProtectedOnly;
+    BOOLEAN ImageMissingOnly;
     PPH_STRING NameContains;
     PPH_STRING UserContains;
     PVOID Pids;
@@ -256,6 +260,32 @@ BOOLEAN AtpMatchesFilter(
 
     if (Filter->HaveParentPid && ProcessItem->ParentProcessId != Filter->ParentPid)
         return FALSE;
+
+    // Compared at the resolution the time was written in: a caller passing back a start_time it was
+    // given means "after that process", so everything within that same millisecond is excluded.
+    if (Filter->HaveStartedAfter &&
+        ProcessItem->CreateTime.QuadPart < Filter->StartedAfter.QuadPart + PH_TICKS_PER_MS)
+    {
+        return FALSE;
+    }
+
+    if (Filter->ProtectedOnly && !ProcessItem->IsProtectedProcess)
+        return FALSE;
+
+    // The image the process was started from is no longer on disk: a process running from a
+    // deleted file cannot be checked against anything, which is the reason to ask. A pseudo
+    // process such as Registry or Memory Compression has a name where the path would be and no
+    // image at all, which is not the same thing and is not what this asks for.
+    if (Filter->ImageMissingOnly)
+    {
+        if (!ProcessItem->FileName ||
+            ProcessItem->FileName->Length < sizeof(WCHAR) ||
+            ProcessItem->FileName->Buffer[0] != OBJ_NAME_PATH_SEPARATOR ||
+            PhDoesFileExist(&ProcessItem->FileName->sr))
+        {
+            return FALSE;
+        }
+    }
 
     if (Filter->Pids)
     {
@@ -293,6 +323,8 @@ VOID AtpListProcesses(
     ULONG i;
     ULONG64 parentPid;
     ULONG64 sinceSnapshotId;
+    ULONG64 startedWithin;
+    PPH_STRING startedAfter;
 
     memset(&filter, 0, sizeof(AT_LIST_FILTER));
 
@@ -302,6 +334,43 @@ VOID AtpListProcesses(
         filter.UserContains = AtGetArgumentString(Call->Arguments, "user_contains");
         filter.Pids = AtJsonGetObjectMember(Call->Arguments, "pids", PH_JSON_OBJECT_TYPE_ARRAY);
         filter.IncludeTree = AtJsonGetObjectBoolean(Call->Arguments, "include_tree");
+        filter.ProtectedOnly = AtJsonGetObjectBoolean(Call->Arguments, "protected_only");
+        filter.ImageMissingOnly = AtJsonGetObjectBoolean(Call->Arguments, "image_missing_only");
+
+        if (startedAfter = AtGetArgumentString(Call->Arguments, "started_after"))
+        {
+            if (!AtParseTime(startedAfter, &filter.StartedAfter))
+            {
+                AtSetToolError(
+                    Result,
+                    "invalid_arguments",
+                    STATUS_INVALID_PARAMETER,
+                    L"started_after must be an ISO 8601 time such as 2026-09-08T01:02:03Z, as returned in start_time."
+                    );
+                PhDereferenceObject(startedAfter);
+                PhClearReference(&filter.NameContains);
+                PhClearReference(&filter.UserContains);
+                return;
+            }
+
+            filter.HaveStartedAfter = TRUE;
+            PhDereferenceObject(startedAfter);
+        }
+
+        // A window rather than an instant, which is what "started recently" usually means.
+        if (AtGetArgumentUInt64(Call->Arguments, "started_within_seconds", &startedWithin) && startedWithin)
+        {
+            LARGE_INTEGER now;
+
+            PhQuerySystemTime(&now);
+            now.QuadPart -= (LONG64)min(startedWithin, MAXLONG64 / PH_TICKS_PER_SEC) * PH_TICKS_PER_SEC;
+
+            if (!filter.HaveStartedAfter || now.QuadPart > filter.StartedAfter.QuadPart)
+            {
+                filter.StartedAfter = now;
+                filter.HaveStartedAfter = TRUE;
+            }
+        }
 
         if (AtGetArgumentUInt64(Call->Arguments, "parent_pid", &parentPid) && parentPid <= MAXULONG)
         {
