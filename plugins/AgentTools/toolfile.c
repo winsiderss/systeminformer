@@ -63,11 +63,22 @@ VOID AtpAddFileStreams(
     _In_ HANDLE FileHandle
     )
 {
+    NTSTATUS status;
     PVOID streams;
     PFILE_STREAM_INFORMATION stream;
     PVOID array;
 
-    if (!NT_SUCCESS(PhEnumFileStreams(FileHandle, &streams)))
+    status = PhEnumFileStreams(FileHandle, &streams);
+
+    // A directory has no streams at all. That is an empty list, not an unreadable one, and the two
+    // have to look different or "no alternate stream here" and "could not look" read the same.
+    if (status == STATUS_NO_MORE_ENTRIES)
+    {
+        PhAddJsonObjectValue(Structured, "streams", PhCreateJsonArray());
+        return;
+    }
+
+    if (!NT_SUCCESS(status))
     {
         AtJsonAddNull(Structured, "streams");
         return;
@@ -103,11 +114,20 @@ VOID AtpAddFileHardLinks(
     _In_ HANDLE FileHandle
     )
 {
+    NTSTATUS status;
     PFILE_LINKS_INFORMATION links;
     PFILE_LINK_ENTRY_INFORMATION link;
     PVOID array;
 
-    if (!NT_SUCCESS(PhEnumFileHardLinks(FileHandle, &links)))
+    status = PhEnumFileHardLinks(FileHandle, &links);
+
+    if (status == STATUS_NO_MORE_ENTRIES)
+    {
+        PhAddJsonObjectValue(Structured, "hard_links", PhCreateJsonArray());
+        return;
+    }
+
+    if (!NT_SUCCESS(status))
     {
         AtJsonAddNull(Structured, "hard_links");
         return;

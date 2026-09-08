@@ -3069,7 +3069,19 @@ NTSTATUS PhpQueryFileVariableSize(
 
     if (NT_SUCCESS(status))
     {
-        *Buffer = buffer;
+        // The query can succeed with nothing to return: a directory has no streams, and a file can
+        // report no links. The buffer is left untouched in that case, and every caller walks what it
+        // gets back as a linked list, so handing it over would have them walking whatever the
+        // allocator last left in that memory.
+        if (ioStatusBlock.Information == 0)
+        {
+            PhFree(buffer);
+            status = STATUS_NO_MORE_ENTRIES;
+        }
+        else
+        {
+            *Buffer = buffer;
+        }
     }
     else
     {
@@ -3084,7 +3096,7 @@ NTSTATUS PhpQueryFileVariableSize(
  *
  * \param FileHandle Handle to the file.
  * \param Streams Receives a pointer to the allocated buffer with stream information.
- * \return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status. STATUS_NO_MORE_ENTRIES when the file has no streams.
  */
 NTSTATUS PhEnumFileStreams(
     _In_ HANDLE FileHandle,
@@ -3103,7 +3115,7 @@ NTSTATUS PhEnumFileStreams(
  *
  * \param FileHandle Handle to the file.
  * \param HardLinks Receives a pointer to the allocated buffer with hard link information.
- * \return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status. STATUS_NO_MORE_ENTRIES when the file has no links.
  */
 NTSTATUS PhEnumFileHardLinks(
     _In_ HANDLE FileHandle,
