@@ -332,6 +332,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read file metadata", L"Allow reading file metadata", L"get_file_info"
     },
     {
+        AtActionGetFileScanResultCached, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_file_scan_result_cached"),
+        L"read a cached scan verdict", L"Allow reading cached scan verdicts", L"get_file_scan_result_cached"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3180,6 +3184,53 @@ CONST AT_TOOL AtTools[] =
         "implementation does; delay loaded imports are excluded, as every implementation does\"},"
         "\"is_pe_image\":{\"type\":\"boolean\"}"
         "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_file_scan_result_cached", L"Get cached scan verdict", AtTierRead, AtActionGetFileScanResultCached,
+        SETTING_NAME_TOOL_ACCESS(L"get_file_scan_result_cached"), SETTING_NAME_TOOL_CONFIRM(L"get_file_scan_result_cached"),
+        "{\"name\":\"get_file_scan_result_cached\",\"title\":\"Get cached scan verdict\","
+        "\"description\":\"Reads the VirusTotal and Hybrid Analysis verdicts OnlineChecks already has stored for a "
+        "file, by SHA-256. Nothing leaves this machine: no request is made and no scan is queued, so a file nobody "
+        "has looked up stays that way. This answers whether anyone has already told us about this file, which is a "
+        "different question from what the services would say now. Give it a hash, or a path to hash first. "
+        "Read lookup before reading anything else: unavailable means OnlineChecks scanning is switched off and there "
+        "is no database at all, which is not the same as the file being unknown to the service. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sha256\":{\"type\":\"string\",\"description\":\"The file's SHA-256 as hex, from get_file_hashes\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"A file to hash and then look up, when the hash is not already known\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sha256\":{\"type\":\"string\"},"
+        "\"path\":{\"type\":[\"string\",\"null\"]},"
+        "\"virustotal\":{\"type\":\"object\",\"properties\":{"
+                "\"lookup\":{\"type\":[\"string\",\"null\"],\"enum\":[\"found\",\"not_cached\",\"unavailable\",null],"
+        "\"description\":\"found: a cached verdict. not_cached: the database was searched and has nothing for this "
+        "hash. unavailable: OnlineChecks scanning is off, so there is no database - which is not the same as the "
+        "file being unknown\"},"
+        "\"http_status\":{\"type\":\"integer\",\"description\":\"The response that produced the row. 200 carried a "
+        "verdict, 404 means the service had never seen the file, anything else was a failure cached to avoid asking "
+        "again\"},"
+        "\"expiry\":{\"type\":\"string\",\"description\":\"ISO 8601 UTC. When the row stops being used\"},"
+        "\"expired\":{\"type\":\"boolean\"},"
+        "\"malicious\":{\"type\":[\"integer\",\"null\"],\"description\":\"Engines that flagged the file; null unless http_status is 200\"},"
+        "\"undetected\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"lookup\"]},"
+        "\"hybrid_analysis\":{\"type\":\"object\",\"properties\":{"
+                "\"lookup\":{\"type\":[\"string\",\"null\"],\"enum\":[\"found\",\"not_cached\",\"unavailable\",null],"
+        "\"description\":\"found: a cached verdict. not_cached: the database was searched and has nothing for this "
+        "hash. unavailable: OnlineChecks scanning is off, so there is no database - which is not the same as the "
+        "file being unknown\"},"
+        "\"http_status\":{\"type\":\"integer\",\"description\":\"The response that produced the row. 200 carried a "
+        "verdict, 404 means the service had never seen the file, anything else was a failure cached to avoid asking "
+        "again\"},"
+        "\"expiry\":{\"type\":\"string\",\"description\":\"ISO 8601 UTC. When the row stops being used\"},"
+        "\"expired\":{\"type\":\"boolean\"},"
+        "\"multiscan_percent\":{\"type\":[\"integer\",\"null\"],\"description\":\"Percentage of engines that flagged the file; null unless http_status is 200\"},"
+        "\"family\":{\"type\":[\"string\",\"null\"],\"description\":\"The malware family name, when one was assigned\"}"
+        "},\"required\":[\"lookup\"]}"
+        "},\"required\":[\"sha256\",\"virustotal\",\"hybrid_analysis\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

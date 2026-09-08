@@ -23,6 +23,7 @@
 #include <secedit.h>
 
 #include <networktoolsintf.h>
+#include <onlinechecksintf.h>
 
 #include "../ExtendedTools/extension/plugin.h"
 #include <svcsup.h>
@@ -154,6 +155,7 @@ typedef enum _AT_ACTION
     AtActionGetFileHashes,
     AtActionGetImageStrings,
     AtActionGetFileInfo,
+    AtActionGetFileScanResultCached,
     AtActionGetImageInfo,
     AtActionReadProcessMemory,
     AtActionSearchProcessMemory,
@@ -988,6 +990,19 @@ VOID AtSystemInvokeTool(
 ULONG AtpParseImageSections(
     _In_opt_ PVOID Sections,
     _Out_ PPH_STRING* Invalid
+    );
+
+PPH_STRING AtHashFileSha256(
+    _In_ PPH_STRING FileName
+    );
+
+PONLINECHECKS_INTERFACE AtGetOnlineChecksInterface(
+    VOID
+    );
+
+VOID AtpGetFileScanResultCached(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
     );
 
 VOID AtpGetFileInfo(

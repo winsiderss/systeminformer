@@ -296,3 +296,160 @@ VOID AtpGetFileInfo(
     NtClose(fileHandle);
     PhDereferenceObject(path);
 }
+
+PONLINECHECKS_INTERFACE AtGetOnlineChecksInterface(
+    VOID
+    )
+{
+    static PONLINECHECKS_INTERFACE pluginInterface = NULL;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PPH_PLUGIN plugin;
+
+        if (plugin = PhFindPlugin(ONLINECHECKS_PLUGIN_NAME))
+        {
+            pluginInterface = PhGetPluginInformation(plugin)->Interface;
+
+            if (pluginInterface && pluginInterface->Version < ONLINECHECKS_INTERFACE_VERSION)
+                pluginInterface = NULL;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return pluginInterface;
+}
+
+PCWSTR AtpScanLookupString(
+    _In_ ONLINECHECKS_LOOKUP_RESULT Lookup
+    )
+{
+    switch (Lookup)
+    {
+    case OnlineChecksLookupFound:
+        return L"found";
+    case OnlineChecksLookupNotFound:
+        return L"not_cached";
+    case OnlineChecksLookupUnavailable:
+        return L"unavailable";
+    }
+
+    return NULL;
+}
+
+// The verdict OnlineChecks already has on disk, and nothing else. No request is made, so a file
+// nobody has looked up stays unlooked-up: this answers "has anyone already told us about this",
+// which is a different question from "what does VirusTotal say".
+VOID AtpGetFileScanResultCached(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PONLINECHECKS_INTERFACE pluginInterface;
+    PPH_STRING sha256;
+    PPH_STRING path;
+    ONLINECHECKS_VIRUSTOTAL_RESULT virusTotal;
+    ONLINECHECKS_HYBRIDANALYSIS_RESULT hybridAnalysis;
+    ONLINECHECKS_LOOKUP_RESULT lookup;
+    LARGE_INTEGER now;
+    PVOID structured;
+    PVOID entry;
+
+    if (!(pluginInterface = AtGetOnlineChecksInterface()))
+    {
+        AtSetToolError(
+            Result,
+            "plugin_missing",
+            STATUS_NOT_SUPPORTED,
+            L"The OnlineChecks plugin is not loaded, so there is no scan database to read."
+            );
+        AtSetToolHint(Result, AT_HINT_PLUGIN_MISSING);
+        return;
+    }
+
+    sha256 = AtGetArgumentString(Call->Arguments, "sha256");
+    path = AtGetArgumentString(Call->Arguments, "path");
+
+    if (!sha256 && path)
+        sha256 = AtHashFileSha256(path);
+
+    if (PhIsNullOrEmptyString(sha256))
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_INVALID_PARAMETER,
+            path ? L"The file could not be read to hash it." : L"sha256 or path is required."
+            );
+        PhClearReference(&sha256);
+        PhClearReference(&path);
+        return;
+    }
+
+    PhQuerySystemTime(&now);
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "sha256", sha256);
+    AtJsonAddString(structured, "path", path);
+
+    memset(&virusTotal, 0, sizeof(ONLINECHECKS_VIRUSTOTAL_RESULT));
+    lookup = pluginInterface->QueryCachedVirusTotal(sha256, &virusTotal);
+    entry = PhCreateJsonObject();
+    AtJsonAddStringZ(entry, "lookup", AtpScanLookupString(lookup));
+
+    if (lookup == OnlineChecksLookupFound)
+    {
+        PhAddJsonObjectUInt64(entry, "http_status", virusTotal.HttpStatus);
+        AtJsonAddTime(entry, "expiry", &virusTotal.Expiry);
+        PhAddJsonObjectBoolean(entry, "expired", virusTotal.Expiry.QuadPart < now.QuadPart);
+
+        // Only a 200 carried a verdict; the counts on any other status are the zeroes the row was
+        // written with, and reporting them as "nothing detected this" would be a lie.
+        if (virusTotal.HttpStatus == 200)
+        {
+            PhAddJsonObjectUInt64(entry, "malicious", virusTotal.Malicious);
+            PhAddJsonObjectUInt64(entry, "undetected", virusTotal.Undetected);
+        }
+        else
+        {
+            AtJsonAddNull(entry, "malicious");
+            AtJsonAddNull(entry, "undetected");
+        }
+    }
+
+    PhAddJsonObjectValue(structured, "virustotal", entry);
+
+    memset(&hybridAnalysis, 0, sizeof(ONLINECHECKS_HYBRIDANALYSIS_RESULT));
+    lookup = pluginInterface->QueryCachedHybridAnalysis(sha256, &hybridAnalysis);
+    entry = PhCreateJsonObject();
+    AtJsonAddStringZ(entry, "lookup", AtpScanLookupString(lookup));
+
+    if (lookup == OnlineChecksLookupFound)
+    {
+        PhAddJsonObjectUInt64(entry, "http_status", hybridAnalysis.HttpStatus);
+        AtJsonAddTime(entry, "expiry", &hybridAnalysis.Expiry);
+        PhAddJsonObjectBoolean(entry, "expired", hybridAnalysis.Expiry.QuadPart < now.QuadPart);
+
+        if (hybridAnalysis.HttpStatus == 200)
+        {
+            PhAddJsonObjectUInt64(entry, "multiscan_percent", hybridAnalysis.MultiscanResult);
+            AtJsonAddString(entry, "family", hybridAnalysis.VxFamily);
+        }
+        else
+        {
+            AtJsonAddNull(entry, "multiscan_percent");
+            AtJsonAddNull(entry, "family");
+        }
+
+        PhClearReference(&hybridAnalysis.VxFamily);
+    }
+
+    PhAddJsonObjectValue(structured, "hybrid_analysis", entry);
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&sha256);
+    PhClearReference(&path);
+}

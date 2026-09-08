@@ -1350,6 +1350,7 @@ VOID AtInvokeTool(
     case AtActionGetFileHashes:
     case AtActionGetImageStrings:
     case AtActionGetFileInfo:
+    case AtActionGetFileScanResultCached:
     case AtActionGetImageInfo:
     case AtActionReadProcessMemory:
     case AtActionSearchProcessMemory:

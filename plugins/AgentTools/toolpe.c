@@ -328,6 +328,69 @@ typedef struct _AT_HASH_REQUEST
     PH_SYMCRYPT_HASH_CONTEXT Context;
 } AT_HASH_REQUEST, *PAT_HASH_REQUEST;
 
+// The SHA-256 of a file, which is the key everything else is looked up by.
+PPH_STRING AtHashFileSha256(
+    _In_ PPH_STRING FileName
+    )
+{
+    NTSTATUS status;
+    HANDLE fileHandle;
+    PH_SYMCRYPT_HASH_CONTEXT hashContext;
+    UCHAR hash[PH_SYMCRYPT_SHA256_RESULT_SIZE];
+    PVOID buffer;
+    LARGE_INTEGER fileSize;
+    LARGE_INTEGER offset;
+    PPH_STRING result = NULL;
+
+    status = PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(FileName),
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    if (!NT_SUCCESS(PhGetFileSize(fileHandle, &fileSize)) ||
+        (ULONG64)fileSize.QuadPart > AT_HASH_MAXIMUM_SIZE ||
+        !NT_SUCCESS(PhSymCryptHashInit(PH_SYMCRYPT_SHA256_ALGORITHM, &hashContext)))
+    {
+        NtClose(fileHandle);
+        return NULL;
+    }
+
+    buffer = PhAllocate(AT_HASH_CHUNK_SIZE);
+    offset.QuadPart = 0;
+
+    while (offset.QuadPart < fileSize.QuadPart)
+    {
+        ULONG read = 0;
+
+        if (!NT_SUCCESS(PhReadFile(fileHandle, buffer, AT_HASH_CHUNK_SIZE, &offset, &read)) || read == 0)
+            break;
+
+        PhSymCryptHashData(&hashContext, buffer, read);
+        offset.QuadPart += read;
+    }
+
+    PhFree(buffer);
+
+    if (offset.QuadPart == fileSize.QuadPart &&
+        NT_SUCCESS(PhSymCryptHashFinal(&hashContext, hash, sizeof(hash))))
+    {
+        result = PhBufferToHexStringEx(hash, sizeof(hash), FALSE);
+    }
+
+    PhSymCryptDestroyHash(&hashContext, sizeof(hash));
+    NtClose(fileHandle);
+
+    return result;
+}
+
 VOID AtpGetFileHashes(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -1128,6 +1191,9 @@ VOID AtPeInvokeTool(
         break;
     case AtActionGetFileInfo:
         AtpGetFileInfo(Call, Result);
+        break;
+    case AtActionGetFileScanResultCached:
+        AtpGetFileScanResultCached(Call, Result);
         break;
     case AtActionGetFileHashes:
         AtpGetFileHashes(Call, Result);
