@@ -108,6 +108,7 @@
     <ClCompile Include="toolsvc.c" />
     <ClCompile Include="toolsess.c" />
     <ClCompile Include="tooltask.c" />
+    <ClCompile Include="toolwmi.c" />
     <ClCompile Include="toolsys.c" />
     <ClCompile Include="toolthrd.c" />
     <ClCompile Include="toolwait.c" />

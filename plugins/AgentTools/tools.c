@@ -1427,6 +1427,9 @@ VOID AtInvokeTool(
     case AtActionListScheduledTasks:
         AtTaskInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionListWmiSubscriptions:
+        AtWmiInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionVerifyFileSignature:
     case AtActionGetFileHashes:
     case AtActionGetImageStrings:

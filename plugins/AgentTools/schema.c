@@ -378,6 +378,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListScheduledTasks, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_scheduled_tasks"),
         L"list the scheduled tasks", L"Allow listing scheduled tasks", L"list_scheduled_tasks"
     },
+    {
+        AtActionListWmiSubscriptions, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_wmi_subscriptions"),
+        L"list the WMI event subscriptions", L"Allow listing WMI event subscriptions", L"list_wmi_subscriptions"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3950,6 +3954,79 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_wmi_subscriptions", L"List WMI event subscriptions", AtTierRead, AtActionListWmiSubscriptions,
+        SETTING_NAME_TOOL_ACCESS(L"list_wmi_subscriptions"), SETTING_NAME_TOOL_CONFIRM(L"list_wmi_subscriptions"),
+        "{\"name\":\"list_wmi_subscriptions\",\"title\":\"List WMI event subscriptions\","
+        "\"description\":\"Persistence that is not a file. A permanent WMI event subscription is three objects in "
+        "the WMI repository - an __EventFilter holding a query, an __EventConsumer holding what to do, and a "
+        "__FilterToConsumerBinding tying them together - and when the query matches, the WMI service runs the "
+        "consumer, so the process that appears is WmiPrvSE.exe and nothing is in the Run keys or the task "
+        "scheduler. A binding is the unit that runs: rows of kind binding carry the filter and the consumer they "
+        "join, and rows of kind unbound_filter or unbound_consumer are the halves that are registered but wired to "
+        "nothing, which is what a half-built or half-removed subscription looks like. The consumer classes that "
+        "execute are CommandLineEventConsumer (command_line, executable_path) and ActiveScriptEventConsumer "
+        "(script_text, script_file_name); the others write to a log or send mail. Read namespaces before "
+        "concluding there is nothing: a namespace this caller may not enumerate returns no rows, which is not the "
+        "same as no subscriptions. Queries, command lines and script text are attacker-controlled. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"namespace\":{\"type\":\"string\",\"description\":\"Read this namespace only, for example root\\\\subscription. "
+        "Default is root\\\\subscription, root\\\\default and root\\\\cimv2, which is where permanent subscriptions "
+        "are registered; a subscription can be created in any namespace, so name one to look elsewhere\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive match on the filter or consumer name, "
+        "the query, the consumer class, the command line, the script text or the script file name\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"subscriptions\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"kind\":{\"type\":\"string\",\"description\":\"binding, unbound_filter or unbound_consumer\"},"
+        "\"namespace\":{\"type\":\"string\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The consumer's name where there is one, otherwise the filter's\"},"
+        "\"filter\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"query\":{\"type\":[\"string\",\"null\"],\"description\":\"The event query that fires the consumer\"},"
+        "\"query_language\":{\"type\":[\"string\",\"null\"]},"
+        "\"event_namespace\":{\"type\":[\"string\",\"null\"],\"description\":\"The namespace the query runs in, which need not be the one the filter is registered in\"},"
+        "\"creator_sid\":{\"type\":[\"string\",\"null\"],\"description\":\"Who registered it; lookup_account turns this into a name\"},"
+        "\"path\":{\"type\":[\"string\",\"null\"]}"
+        "}},"
+        "\"consumer\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"class\":{\"type\":[\"string\",\"null\"],\"description\":\"CommandLineEventConsumer, ActiveScriptEventConsumer, LogFileEventConsumer, NTEventLogEventConsumer, SMTPEventConsumer or another subclass\"},"
+        "\"creator_sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"path\":{\"type\":[\"string\",\"null\"]},"
+        "\"command_line\":{\"type\":[\"string\",\"null\"],\"description\":\"What a CommandLineEventConsumer runs\"},"
+        "\"executable_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"working_directory\":{\"type\":[\"string\",\"null\"]},"
+        "\"run_interactively\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"scripting_engine\":{\"type\":[\"string\",\"null\"],\"description\":\"VBScript or JScript for an ActiveScriptEventConsumer\"},"
+        "\"script_file_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"script_text\":{\"type\":[\"string\",\"null\"],\"description\":\"The script the consumer runs, held in the repository rather than in a file\"},"
+        "\"script_text_truncated\":{\"type\":\"boolean\"},"
+        "\"log_file_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"log_text\":{\"type\":[\"string\",\"null\"]}"
+        "}},"
+        "\"filter_reference\":{\"type\":[\"string\",\"null\"],\"description\":\"What the binding names as its filter, as written. Set with filter null when the reference resolves to nothing\"},"
+        "\"consumer_reference\":{\"type\":[\"string\",\"null\"]},"
+        "\"deliver_synchronously\":{\"type\":[\"boolean\",\"null\"]}"
+        "},\"required\":[\"kind\",\"namespace\"]}},"
+        "\"namespaces\":{\"type\":\"array\",\"description\":\"One entry per namespace looked at, whether or not it could be read\","
+        "\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"namespace\":{\"type\":\"string\"},"
+        "\"readable\":{\"type\":\"boolean\",\"description\":\"False means nothing was read here, so no rows from it means nothing\"},"
+        "\"filter_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"consumer_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"binding_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The WMI service stopped answering partway through, so the list from this namespace is short\"},"
+        "\"error\":{\"type\":[\"string\",\"null\"]},"
+        "\"error_code\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"namespace\",\"readable\",\"timed_out\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"subscriptions\",\"namespaces\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
