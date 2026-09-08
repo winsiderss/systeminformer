@@ -316,6 +316,314 @@ VOID AtpListServices(
     PhClearReference(&filter.NameContains);
 }
 
+PCWSTR AtpServiceTriggerTypeString(
+    _In_ ULONG Type
+    )
+{
+    switch (Type)
+    {
+    case SERVICE_TRIGGER_TYPE_DEVICE_INTERFACE_ARRIVAL:
+        return L"device_interface_arrival";
+    case SERVICE_TRIGGER_TYPE_IP_ADDRESS_AVAILABILITY:
+        return L"ip_address_availability";
+    case SERVICE_TRIGGER_TYPE_DOMAIN_JOIN:
+        return L"domain_join";
+    case SERVICE_TRIGGER_TYPE_FIREWALL_PORT_EVENT:
+        return L"firewall_port_event";
+    case SERVICE_TRIGGER_TYPE_GROUP_POLICY:
+        return L"group_policy";
+    case SERVICE_TRIGGER_TYPE_NETWORK_ENDPOINT:
+        return L"network_endpoint";
+    case SERVICE_TRIGGER_TYPE_CUSTOM_SYSTEM_STATE_CHANGE:
+        return L"custom_system_state_change";
+    case SERVICE_TRIGGER_TYPE_CUSTOM:
+        return L"custom";
+    case SERVICE_TRIGGER_TYPE_AGGREGATE:
+        return L"aggregate";
+    }
+
+    return NULL;
+}
+
+PCWSTR AtpServiceSidTypeString(
+    _In_ ULONG SidType
+    )
+{
+    switch (SidType)
+    {
+    case SERVICE_SID_TYPE_NONE:
+        return L"none";
+    case SERVICE_SID_TYPE_UNRESTRICTED:
+        return L"unrestricted";
+    case SERVICE_SID_TYPE_RESTRICTED:
+        return L"restricted";
+    }
+
+    return NULL;
+}
+
+PCWSTR AtpServiceActionString(
+    _In_ ULONG Action
+    )
+{
+    switch (Action)
+    {
+    case SC_ACTION_NONE:
+        return L"none";
+    case SC_ACTION_RESTART:
+        return L"restart";
+    case SC_ACTION_REBOOT:
+        return L"reboot";
+    case SC_ACTION_RUN_COMMAND:
+        return L"run_command";
+    }
+
+    return NULL;
+}
+
+// What starts this service without anyone asking. A service with no start type of its own can still
+// be brought up by a device arriving or a port opening, which is why the triggers are worth reading.
+VOID AtpAddServiceTriggers(
+    _In_ PVOID Object,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    PSERVICE_TRIGGER_INFO triggerInfo;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_TRIGGER_INFO, &triggerInfo)))
+    {
+        AtJsonAddNull(Object, "triggers");
+        return;
+    }
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < triggerInfo->cTriggers; i++)
+    {
+        PSERVICE_TRIGGER trigger = &triggerInfo->pTriggers[i];
+        PVOID entry;
+
+        entry = PhCreateJsonObject();
+        AtJsonAddStringZ(entry, "type", AtpServiceTriggerTypeString(trigger->dwTriggerType));
+        PhAddJsonObject(entry, "action", trigger->dwAction == SERVICE_TRIGGER_ACTION_SERVICE_START ? "start" : "stop");
+
+        if (trigger->pTriggerSubtype)
+        {
+            PPH_STRING guid = PhFormatGuid(trigger->pTriggerSubtype);
+
+            AtJsonAddString(entry, "subtype", guid);
+            PhClearReference(&guid);
+        }
+        else
+        {
+            AtJsonAddNull(entry, "subtype");
+        }
+
+        PhAddJsonObjectUInt64(entry, "data_item_count", trigger->cDataItems);
+        PhAddJsonArrayObject(array, entry);
+    }
+
+    PhAddJsonObjectValue(Object, "triggers", array);
+    PhFree(triggerInfo);
+}
+
+// What the service control manager does when the service dies, which is how something restarts
+// itself no matter how often it is stopped.
+VOID AtpAddServiceRecovery(
+    _In_ PVOID Object,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    LPSERVICE_FAILURE_ACTIONS failureActions;
+    LPSERVICE_FAILURE_ACTIONS_FLAG failureFlag;
+    PVOID entry;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_FAILURE_ACTIONS, &failureActions)))
+    {
+        AtJsonAddNull(Object, "recovery");
+        return;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "reset_period_seconds", failureActions->dwResetPeriod);
+    AtJsonAddStringZ(entry, "reboot_message", failureActions->lpRebootMsg);
+    AtJsonAddStringZ(entry, "command", failureActions->lpCommand);
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < failureActions->cActions; i++)
+    {
+        PVOID action = PhCreateJsonObject();
+
+        AtJsonAddStringZ(action, "action", AtpServiceActionString(failureActions->lpsaActions[i].Type));
+        PhAddJsonObjectUInt64(action, "delay_ms", failureActions->lpsaActions[i].Delay);
+        PhAddJsonArrayObject(array, action);
+    }
+
+    PhAddJsonObjectValue(entry, "actions", array);
+
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_FAILURE_ACTIONS_FLAG, &failureFlag)))
+    {
+        PhAddJsonObjectBoolean(entry, "on_non_crash_failures", !!failureFlag->fFailureActionsOnNonCrashFailures);
+        PhFree(failureFlag);
+    }
+    else
+    {
+        AtJsonAddNull(entry, "on_non_crash_failures");
+    }
+
+    PhAddJsonObjectValue(Object, "recovery", entry);
+    PhFree(failureActions);
+}
+
+VOID AtpAddServiceSecurityConfig(
+    _In_ PVOID Object,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    LPSERVICE_SID_INFO sidInfo;
+    PSERVICE_LAUNCH_PROTECTED_INFO protectedInfo;
+    LPSERVICE_PRESHUTDOWN_INFO preshutdownInfo;
+    PWSTR privileges;
+
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_SERVICE_SID_INFO, &sidInfo)))
+    {
+        AtJsonAddStringZ(Object, "sid_type", AtpServiceSidTypeString(sidInfo->dwServiceSidType));
+        PhFree(sidInfo);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "sid_type");
+    }
+
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_LAUNCH_PROTECTED, &protectedInfo)))
+    {
+        PhAddJsonObjectUInt64(Object, "launch_protected", protectedInfo->dwLaunchProtected);
+        PhFree(protectedInfo);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "launch_protected");
+    }
+
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_PRESHUTDOWN_INFO, &preshutdownInfo)))
+    {
+        PhAddJsonObjectUInt64(Object, "preshutdown_timeout_ms", preshutdownInfo->dwPreshutdownTimeout);
+        PhFree(preshutdownInfo);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "preshutdown_timeout_ms");
+    }
+
+    // A service that asks for more privileges than it needs is worth noticing.
+    if (NT_SUCCESS(PhQueryServiceVariableSize(ServiceHandle, SERVICE_CONFIG_REQUIRED_PRIVILEGES_INFO, &privileges)))
+    {
+        LPSERVICE_REQUIRED_PRIVILEGES_INFOW info = (LPSERVICE_REQUIRED_PRIVILEGES_INFOW)privileges;
+        PVOID array = PhCreateJsonArray();
+        PWSTR current = info->pmszRequiredPrivileges;
+
+        // Double-null-terminated list.
+        if (current)
+        {
+            while (*current)
+            {
+                PH_STRINGREF sr;
+                PPH_BYTES utf8;
+
+                PhInitializeStringRef(&sr, current);
+
+                if (utf8 = PhConvertUtf16ToUtf8Ex(sr.Buffer, sr.Length))
+                {
+                    PhAddJsonArrayObject(array, PhCreateJsonStringObject(utf8->Buffer));
+                    PhDereferenceObject(utf8);
+                }
+
+                current += sr.Length / sizeof(WCHAR) + 1;
+            }
+        }
+
+        PhAddJsonObjectValue(Object, "required_privileges", array);
+        PhFree(privileges);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "required_privileges");
+    }
+}
+
+VOID AtpAddServiceDependents(
+    _In_ PVOID Object,
+    _In_ SC_HANDLE ServiceHandle
+    )
+{
+    LPENUM_SERVICE_STATUS dependents;
+    ULONG count;
+    PVOID array;
+    ULONG i;
+
+    if (!NT_SUCCESS(PhEnumDependentServices(ServiceHandle, &dependents, &count)))
+    {
+        AtJsonAddNull(Object, "dependents");
+        return;
+    }
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < count; i++)
+    {
+        PVOID entry = PhCreateJsonObject();
+
+        AtJsonAddStringZ(entry, "name", dependents[i].lpServiceName);
+        AtJsonAddStringZ(entry, "display_name", dependents[i].lpDisplayName);
+        PhAddJsonArrayObject(array, entry);
+    }
+
+    PhAddJsonObjectValue(Object, "dependents", array);
+    PhFree(dependents);
+}
+
+// The last time anything changed under the service's registry key, which is when its configuration
+// was last touched whether or not the service control manager was used.
+VOID AtpAddServiceKeyModifiedTime(
+    _In_ PVOID Object,
+    _In_ PPH_STRING ServiceName
+    )
+{
+    static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
+    HANDLE keyHandle;
+    PPH_STRING keyName;
+    KEY_BASIC_INFORMATION basicInfo;
+    ULONG returnLength;
+
+    keyName = PhConcatStringRef2(&servicesKeyName, &ServiceName->sr);
+
+    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &keyName->sr, 0)))
+    {
+        if (NT_SUCCESS(NtQueryKey(keyHandle, KeyBasicInformation, &basicInfo, sizeof(basicInfo), &returnLength)) ||
+            returnLength >= RTL_SIZEOF_THROUGH_FIELD(KEY_BASIC_INFORMATION, LastWriteTime))
+        {
+            AtJsonAddTime(Object, "key_modified_time", &basicInfo.LastWriteTime);
+        }
+        else
+        {
+            AtJsonAddNull(Object, "key_modified_time");
+        }
+
+        NtClose(keyHandle);
+    }
+    else
+    {
+        AtJsonAddNull(Object, "key_modified_time");
+    }
+
+    PhDereferenceObject(keyName);
+}
+
 VOID AtpGetService(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -345,13 +653,49 @@ VOID AtpGetService(
 
     structured = PhCreateJsonObject();
     AtpFillServiceRow(structured, serviceItem);
+    AtpAddServiceKeyModifiedTime(structured, serviceItem->Name);
 
-    if (NT_SUCCESS(PhOpenService(&serviceHandle, SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS, PhGetString(serviceItem->Name))))
+    // Chains to a Microsoft root, which is a different question from the signer name reading as
+    // Microsoft. The path is converted and declared Win32 rather than trusting what the cache holds:
+    // telling this function a Win32 path is native makes every service look unsigned.
+    if (serviceItem->FileName)
+    {
+        PPH_STRING win32FileName = PhGetFileName(serviceItem->FileName);
+
+        if (win32FileName)
+        {
+            PhAddJsonObjectBoolean(
+                structured,
+                "is_microsoft",
+                !!PhVerifyFileIsChainedToMicrosoft(&win32FileName->sr, FALSE)
+                );
+            PhDereferenceObject(win32FileName);
+        }
+        else
+        {
+            AtJsonAddNull(structured, "is_microsoft");
+        }
+    }
+    else
+    {
+        AtJsonAddNull(structured, "is_microsoft");
+    }
+
+    if (NT_SUCCESS(PhOpenService(
+        &serviceHandle,
+        SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS,
+        PhGetString(serviceItem->Name)
+        )))
     {
         LPQUERY_SERVICE_CONFIG config;
         PPH_STRING description;
         SERVICE_STATUS_PROCESS status;
         BOOLEAN delayedAutoStart;
+
+        AtpAddServiceTriggers(structured, serviceHandle);
+        AtpAddServiceRecovery(structured, serviceHandle);
+        AtpAddServiceSecurityConfig(structured, serviceHandle);
+        AtpAddServiceDependents(structured, serviceHandle);
 
         if (description = PhGetServiceDescription(serviceHandle))
         {
