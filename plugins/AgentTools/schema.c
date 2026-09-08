@@ -107,6 +107,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"search every process for a loaded module", L"Allow searching processes for modules", L"find_modules"
     },
     {
+        AtActionGetFileUsers, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_file_users"),
+        L"find which processes are using a file", L"Allow finding which processes use a file", L"get_file_users"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1245,6 +1249,44 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; not every process was walked\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"modules\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"timed_out\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_file_users", L"Find who is using a file", AtTierRead, AtActionGetFileUsers,
+        SETTING_NAME_TOOL_ACCESS(L"get_file_users"), SETTING_NAME_TOOL_CONFIRM(L"get_file_users"),
+        "{\"name\":\"get_file_users\",\"title\":\"Find who is using a file\","
+        "\"description\":\"Which processes are using one file, which is the question behind why a file cannot be "
+        "deleted or replaced. There are two ways to be using a file and neither implies the other, so both are "
+        "reported: handle_users are the processes holding a handle to it, answered by the filesystem itself, and "
+        "mapped_users are the processes that have it mapped into their address space, which is how a running "
+        "executable holds its own image and usually without any handle at all. handle_users is null rather than "
+        "empty when the filesystem does not answer that query, because nobody having it open and nobody being "
+        "able to ask are different findings. The mapped half only covers processes whose module list can be "
+        "read, so without elevation it undercounts: on this machine ntdll.dll reports 307 processes holding a "
+        "handle and 125 with it mapped. Takes a Win32 or native path; the file is opened for attributes only "
+        "and shared every way, so asking does not itself put the file in use. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"The file to ask about\"},"
+        "\"skip_mapped\":{\"type\":\"boolean\",\"description\":\"Skip the mapped half, which walks every process's modules\"}"
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"native_path\":{\"type\":[\"string\",\"null\"],\"description\":\"The path as the kernel names it, resolved from the opened handle\"},"
+        "\"handle_users_supported\":{\"type\":\"boolean\",\"description\":\"Whether the filesystem answered the open-handle query\"},"
+        "\"handle_users\":{\"type\":[\"array\",\"null\"],\"description\":\"Null when the filesystem does not support the query\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"pid\"]}},"
+        "\"mapped_users\":{\"type\":[\"array\",\"null\"],\"description\":\"Null when skip_mapped was set\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"type\":{\"type\":[\"string\",\"null\"]},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"pid\"]}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"path\",\"handle_users_supported\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

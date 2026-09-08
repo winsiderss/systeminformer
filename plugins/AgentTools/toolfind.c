@@ -498,6 +498,249 @@ VOID AtpFindModules(
     PhClearReference(&context.NameContains);
 }
 
+// Who is using one named file, which is the question behind "why can this not be deleted". Two
+// different answers, because there are two ways to be using a file and neither implies the other:
+// a process can hold a handle to it, and a process can have it mapped into its address space. A
+// running executable's own image is usually the second without the first.
+//
+// The filesystem answers the handle half itself. The mapped half is a walk of every process's
+// modules, the same walk find_modules does.
+
+typedef struct _AT_FILE_MAPPED_CONTEXT
+{
+    PVOID Array;
+    PPH_STRING Win32FileName;
+    PPH_STRING BaseName;
+    PPH_PROCESS_ITEM ProcessItem;
+    ULONG Count;
+} AT_FILE_MAPPED_CONTEXT, *PAT_FILE_MAPPED_CONTEXT;
+
+_Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
+BOOLEAN NTAPI AtpFileMappedCallback(
+    _In_ PPH_MODULE_INFO Module,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_FILE_MAPPED_CONTEXT context = Context;
+    PVOID entry;
+
+    if (!context)
+        return FALSE;
+
+    // Skip, not stop: returning FALSE ends the walk for the whole process, and a module with no
+    // file name is common enough that it would end most of them at the first entry.
+    if (!Module->FileName)
+        return TRUE;
+
+    // The two sides do not agree on how a path is spelled - one comes from a file handle, the
+    // other from a module list - so the file name is compared first because it is cheap and
+    // almost always decides, and only a match pays for converting both to their Win32 form.
+    {
+        PPH_STRING baseName = PhGetBaseName(Module->FileName);
+        BOOLEAN sameName;
+
+        if (!baseName)
+            return TRUE;
+
+        sameName = PhEqualString(baseName, context->BaseName, TRUE);
+        PhDereferenceObject(baseName);
+
+        if (!sameName)
+            return TRUE;
+    }
+
+    {
+        PPH_STRING win32FileName = PhGetFileName(Module->FileName);
+        BOOLEAN samePath;
+
+        if (!win32FileName)
+            return TRUE;
+
+        samePath = PhEqualString(win32FileName, context->Win32FileName, TRUE);
+        PhDereferenceObject(win32FileName);
+
+        if (!samePath)
+            return TRUE;
+    }
+
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(context->ProcessItem->ProcessId));
+    PhAddJsonObjectUInt64(entry, "process_sequence_number", context->ProcessItem->ProcessSequenceNumber);
+    AtJsonAddString(entry, "process_name", context->ProcessItem->ProcessName);
+    AtJsonAddStringZ(entry, "type", AtModuleTypeString(Module->Type));
+    AtJsonAddPointer(entry, "base_address", Module->BaseAddress);
+
+    PhAddJsonArrayObject(context->Array, entry);
+    context->Count++;
+
+    return TRUE;
+}
+
+VOID AtpAddFileHandleUsers(
+    _In_ PVOID Object,
+    _In_ HANDLE FileHandle,
+    _Out_ PBOOLEAN Supported
+    )
+{
+    PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+    PVOID array;
+    ULONG i;
+
+    *Supported = FALSE;
+
+    if (!NT_SUCCESS(PhGetProcessIdsUsingFile(FileHandle, &processIds)))
+    {
+        // Not every filesystem answers this. Saying nobody has the file open would be a different
+        // claim from saying nobody could be asked.
+        AtJsonAddNull(Object, "handle_users");
+        return;
+    }
+
+    *Supported = TRUE;
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+    {
+        HANDLE processId = (HANDLE)processIds->ProcessIdList[i];
+        PPH_PROCESS_ITEM processItem;
+        PVOID entry;
+
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(processId));
+
+        if (processItem = PhReferenceProcessItem(processId))
+        {
+            PhAddJsonObjectUInt64(entry, "process_sequence_number", processItem->ProcessSequenceNumber);
+            AtJsonAddString(entry, "process_name", processItem->ProcessName);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            AtJsonAddNull(entry, "process_sequence_number");
+            AtJsonAddNull(entry, "process_name");
+        }
+
+        PhAddJsonArrayObject(array, entry);
+    }
+
+    PhAddJsonObjectValue(Object, "handle_users", array);
+    PhFree(processIds);
+}
+
+VOID AtpGetFileUsers(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING path;
+    PPH_STRING nativeFileName = NULL;
+    HANDLE fileHandle;
+    NTSTATUS status;
+    PVOID structured;
+    BOOLEAN supported = FALSE;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        return;
+    }
+
+    // Opened for attributes only and shared every way, so asking who has the file does not itself
+    // become another reason the file is in use, and so a file open for exclusive write still
+    // answers.
+    status = PhCreateFileWin32(
+        &fileHandle,
+        path->Buffer,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the file");
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+
+    AtpAddFileHandleUsers(structured, fileHandle, &supported);
+    PhAddJsonObjectBoolean(structured, "handle_users_supported", supported);
+
+    // The name the module list carries is the native one, and it comes from the handle rather
+    // than from the argument so that a Win32 path, a relative path and a native path all match.
+    PhGetFileHandleName(fileHandle, &nativeFileName);
+    NtClose(fileHandle);
+
+    if (!nativeFileName)
+        nativeFileName = PhReferenceObject(path);
+
+    if (AtJsonGetObjectBoolean(Call->Arguments, "skip_mapped"))
+    {
+        AtJsonAddNull(structured, "mapped_users");
+    }
+    else
+    {
+        AT_FILE_MAPPED_CONTEXT context;
+        PPH_PROCESS_ITEM* processItems;
+        ULONG numberOfProcessItems;
+        ULONG i;
+
+        memset(&context, 0, sizeof(AT_FILE_MAPPED_CONTEXT));
+        context.Array = PhCreateJsonArray();
+        context.Win32FileName = PhGetFileName(nativeFileName);
+        context.BaseName = PhGetBaseName(nativeFileName);
+
+        if (!context.Win32FileName || !context.BaseName)
+        {
+            PhClearReference(&context.Win32FileName);
+            PhClearReference(&context.BaseName);
+            AtJsonAddNull(structured, "mapped_users");
+            PhFreeJsonObject(context.Array);
+            goto FinishExit;
+        }
+
+        PhEnumProcessItems(&processItems, &numberOfProcessItems);
+
+        for (i = 0; i < numberOfProcessItems; i++)
+        {
+            if (!PH_IS_REAL_PROCESS_ID(processItems[i]->ProcessId))
+                continue;
+
+            context.ProcessItem = processItems[i];
+
+            PhEnumGenericModules(
+                processItems[i]->ProcessId,
+                NULL,
+                PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
+                AtpFileMappedCallback,
+                &context
+                );
+        }
+
+        PhDereferenceObjects(processItems, numberOfProcessItems);
+        PhFree(processItems);
+
+        PhAddJsonObjectValue(structured, "mapped_users", context.Array);
+        PhClearReference(&context.Win32FileName);
+        PhClearReference(&context.BaseName);
+    }
+
+FinishExit:
+
+    AtJsonAddString(structured, "native_path", nativeFileName);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&nativeFileName);
+    PhDereferenceObject(path);
+}
+
 VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -514,6 +757,9 @@ VOID AtFindInvokeTool(
         break;
     case AtActionFindModules:
         AtpFindModules(Call, Result);
+        break;
+    case AtActionGetFileUsers:
+        AtpGetFileUsers(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

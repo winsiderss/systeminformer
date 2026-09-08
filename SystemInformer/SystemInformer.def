@@ -615,6 +615,7 @@ EXPORTS
     PhGetDriverServiceKeyName
     PhGetFileFullAttributesInformation
     PhGetFileId
+    PhGetFileHandleName
     PhGetFileName
     PhGetFilePosition
     PhGetFileSize
@@ -649,6 +650,7 @@ EXPORTS
     PhGetProcessImageFileNameByProcessId
     PhGetProcessImageFileNameWin32
     PhGetProcessIoPriority
+    PhGetProcessIdsUsingFile
     PhGetProcessIsDotNet
     PhGetProcessIsDotNetEx
     PhGetProcessIsTerminated
