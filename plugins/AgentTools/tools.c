@@ -1269,6 +1269,7 @@ VOID AtInvokeTool(
         break;
     case AtActionGetAlpcPortInfo:
     case AtActionGetHandleDetails:
+    case AtActionListNamedPipes:
         AtHandleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListFirewallEvents:

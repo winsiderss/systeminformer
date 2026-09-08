@@ -97,6 +97,7 @@ typedef enum _AT_ACTION
     AtActionGetObjectInfo,
     AtActionGetAlpcPortInfo,
     AtActionGetHandleDetails,
+    AtActionListNamedPipes,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,

@@ -127,6 +127,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"inspect the object behind a handle", L"Inspect the objects held by", L"get_handle_details"
     },
     {
+        AtActionListNamedPipes, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_named_pipes"),
+        L"list named pipes", L"Allow listing named pipes", L"list_named_pipes"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1567,6 +1571,49 @@ CONST AT_TOOL AtTools[] =
         "\"provider_guid\":{\"type\":\"string\"},\"session_id\":{\"type\":\"integer\"}}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"handle\",\"source\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_named_pipes", L"List named pipes", AtTierRead, AtActionListNamedPipes,
+        SETTING_NAME_TOOL_ACCESS(L"list_named_pipes"), SETTING_NAME_TOOL_CONFIRM(L"list_named_pipes"),
+        "{\"name\":\"list_named_pipes\",\"title\":\"List named pipes\","
+        "\"description\":\"Lists every named pipe on the machine: what services and applications are listening for "
+        "local IPC, and how many instances of each are open. Names and instance counts come from the pipe "
+        "directory and cost nothing. Everything else - the server process, the pipe state, its type and quotas - "
+        "requires opening the pipe, and there is no way to open a named pipe without connecting to it as a client: "
+        "an instance is taken, the server's connect completes, and a server that treats a connection as a request "
+        "has just been given one. So connect defaults to false and those fields are absent; pass connect true only "
+        "when that is acceptable. When it is used, the connection is made with anonymous impersonation so a pipe "
+        "server cannot impersonate System Informer, and only what the server chose when it created the pipe is "
+        "reported - the pipe's state, read mode and available bytes describe the connection this call made, not "
+        "the pipe, so they are deliberately not returned. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the pipe name\"},"
+        "\"connect\":{\"type\":\"boolean\",\"description\":\"Open each listed pipe to report its server and state. "
+        "This connects to every pipe listed, so filter with name_contains first. Default false\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pipes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"Win32 form, \\\\\\\\.\\\\pipe\\\\<name>\"},"
+        "\"native_path\":{\"type\":\"string\"},"
+        "\"current_instances\":{\"type\":\"integer\",\"description\":\"Instances of this pipe that exist now\"},"
+        "\"maximum_instances\":{\"type\":[\"integer\",\"null\"],\"description\":\"Null means unlimited\"},"
+        "\"connect_error\":{\"type\":[\"string\",\"null\"],\"description\":\"connect only: why this pipe could not be opened\"},"
+        "\"server\":{\"type\":\"object\",\"description\":\"connect only: the process serving the pipe\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},\"name\":{\"type\":\"string\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"}},\"required\":[\"pid\"]},"
+        "\"configuration\":{\"type\":[\"string\",\"null\"],\"enum\":[\"inbound\",\"outbound\",\"duplex\",null],\"description\":\"connect only\"},"
+        "\"type\":{\"type\":\"string\",\"enum\":[\"byte_stream\",\"message\"],\"description\":\"connect only\"},"
+        "\"reject_remote_clients\":{\"type\":\"boolean\",\"description\":\"connect only\"},"
+        "\"outbound_quota\":{\"type\":\"integer\",\"description\":\"connect only\"}"
+        "},\"required\":[\"name\",\"path\",\"native_path\",\"current_instances\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"connected\":{\"type\":\"boolean\",\"description\":\"Whether this call opened the pipes it listed\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pipes\",\"count\",\"total_count\",\"truncated\",\"connected\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

@@ -850,6 +850,257 @@ VOID AtpGetHandleDetails(
         NtClose(dupProcessHandle);
 }
 
+// The named pipe namespace. Every pipe on the machine is listed by name, which is what says whether
+// a service is listening at all and what a process is talking to.
+//
+// Listing is free; asking a pipe about itself is not. There is no query on a named pipe that does
+// not open it, and opening one connects to it as a client - the server's connect completes, an
+// instance is taken, and a server that treats a connection as a request has just had one. phlib says
+// so in as many words (native.c, PhpGetProcessIsDotNet: "NtQueryAttributesFile and other query
+// functions connect to the pipe and should be avoided"). So connect defaults to false and the caller
+// has to ask for the details knowing what they cost.
+
+typedef struct _AT_PIPE_ENTRY
+{
+    PPH_STRING Name;
+    ULONG CurrentInstances;
+    ULONG MaximumInstances;
+} AT_PIPE_ENTRY, *PAT_PIPE_ENTRY;
+
+typedef struct _AT_PIPE_CONTEXT
+{
+    PPH_LIST Pipes;
+    PPH_STRING NameContains;
+} AT_PIPE_CONTEXT, *PAT_PIPE_CONTEXT;
+
+_Function_class_(PH_ENUM_DIRECTORY_FILE)
+BOOLEAN NTAPI AtpNamedPipeCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_PIPE_CONTEXT context = Context;
+    PFILE_DIRECTORY_INFORMATION information = Information;
+    PAT_PIPE_ENTRY entry;
+    PPH_STRING name;
+
+    if (!context)
+        return FALSE;
+
+    name = PhCreateStringEx(information->FileName, information->FileNameLength);
+
+    if (context->NameContains && !AtContainsString(name, context->NameContains))
+    {
+        PhDereferenceObject(name);
+        return TRUE;
+    }
+
+    // NPFS reports the instance counts through the size fields of the directory entry, which is the
+    // only thing about a pipe that can be learned without connecting to it.
+    entry = PhAllocate(sizeof(AT_PIPE_ENTRY));
+    entry->Name = name;
+    entry->CurrentInstances = information->EndOfFile.LowPart;
+    entry->MaximumInstances = information->AllocationSize.LowPart;
+    PhAddItemList(context->Pipes, entry);
+
+    return TRUE;
+}
+
+PCWSTR AtpPipeConfigurationString(
+    _In_ ULONG Configuration
+    )
+{
+    switch (Configuration)
+    {
+    case FILE_PIPE_INBOUND:
+        return L"inbound";
+    case FILE_PIPE_OUTBOUND:
+        return L"outbound";
+    case FILE_PIPE_FULL_DUPLEX:
+        return L"duplex";
+    }
+
+    return NULL;
+}
+
+// Opening the pipe by name is a client connection, so it is done only when the caller asked for it,
+// and always with anonymous impersonation: a pipe server can impersonate whoever connects to it, and
+// System Informer is exactly the token nobody should hand over.
+VOID AtpAddPipeDetails(
+    _In_ PVOID Row,
+    _In_ HANDLE RootDirectory,
+    _In_ PPH_STRING Name
+    )
+{
+    NTSTATUS status;
+    HANDLE pipeHandle;
+    UNICODE_STRING fileName;
+    OBJECT_ATTRIBUTES objectAttributes;
+    IO_STATUS_BLOCK isb;
+    FILE_PIPE_LOCAL_INFORMATION localInfo;
+    HANDLE serverProcessId;
+    SECURITY_QUALITY_OF_SERVICE securityQos =
+    {
+        sizeof(SECURITY_QUALITY_OF_SERVICE),
+        SecurityAnonymous,
+        SECURITY_STATIC_TRACKING,
+        FALSE
+    };
+
+    if (!PhStringRefToUnicodeString(&Name->sr, &fileName))
+        return;
+
+    InitializeObjectAttributes(&objectAttributes, &fileName, OBJ_CASE_INSENSITIVE, RootDirectory, NULL);
+    objectAttributes.SecurityQualityOfService = &securityQos;
+
+    status = NtOpenFile(
+        &pipeHandle,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        &objectAttributes,
+        &isb,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PPH_STRING message = PhGetStatusMessage(status, 0);
+
+        AtJsonAddString(Row, "connect_error", message);
+        PhClearReference(&message);
+        return;
+    }
+
+    AtJsonAddNull(Row, "connect_error");
+
+    if (NT_SUCCESS(PhGetNamedPipeServerProcessId(pipeHandle, &serverProcessId)))
+    {
+        PVOID server = PhCreateJsonObject();
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(serverProcessId))
+        {
+            AtFillProcessIdentity(server, processItem);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            PhAddJsonObjectUInt64(server, "pid", HandleToUlong(serverProcessId));
+        }
+
+        PhAddJsonObjectValue(Row, "server", server);
+    }
+
+    // Only what the server decided when it created the pipe. The state, the read mode, the
+    // completion mode and the bytes available all describe the client handle this call just opened -
+    // the state is "connected" because connecting is how it was asked - so they are not reported.
+    if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &localInfo, sizeof(localInfo), FilePipeLocalInformation)))
+    {
+        AtJsonAddStringZ(Row, "configuration", AtpPipeConfigurationString(localInfo.NamedPipeConfiguration));
+        AtJsonAddStringZ(Row, "type",
+            FlagOn(localInfo.NamedPipeType, FILE_PIPE_MESSAGE_TYPE) ? L"message" : L"byte_stream");
+        PhAddJsonObjectBoolean(Row, "reject_remote_clients",
+            !!FlagOn(localInfo.NamedPipeType, FILE_PIPE_REJECT_REMOTE_CLIENTS));
+        PhAddJsonObjectUInt64(Row, "outbound_quota", localInfo.OutboundQuota);
+    }
+
+    NtClose(pipeHandle);
+}
+
+VOID AtpListNamedPipes(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST PH_STRINGREF pipeDirectory = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
+    NTSTATUS status;
+    AT_PIPE_CONTEXT context;
+    AT_ROWS rows;
+    HANDLE directoryHandle;
+    BOOLEAN connect;
+    PVOID structured;
+    ULONG i;
+
+    memset(&context, 0, sizeof(AT_PIPE_CONTEXT));
+    context.Pipes = PhCreateList(64);
+    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    connect = AtJsonGetObjectBoolean(Call->Arguments, "connect");
+
+    status = PhOpenFile(
+        &directoryHandle,
+        &pipeDirectory,
+        FILE_LIST_DIRECTORY | SYNCHRONIZE,
+        NULL,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the named pipe directory");
+        PhClearReference(&context.NameContains);
+        PhDereferenceObject(context.Pipes);
+        return;
+    }
+
+    // Names first, then any connecting: a directory enumeration and a client connection on the same
+    // synchronous handle do not belong interleaved.
+    PhEnumDirectoryFile(directoryHandle, NULL, AtpNamedPipeCallback, &context);
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < context.Pipes->Count; i++)
+    {
+        PAT_PIPE_ENTRY entry = context.Pipes->Items[i];
+        PVOID row = PhCreateJsonObject();
+        PPH_STRING path;
+
+        AtJsonAddString(row, "name", entry->Name);
+
+        path = PhConcatStringRef2(&pipeDirectory, &entry->Name->sr);
+        AtJsonAddString(row, "native_path", path);
+        PhDereferenceObject(path);
+
+        path = PhConcatStrings2(L"\\\\.\\pipe\\", PhGetString(entry->Name));
+        AtJsonAddString(row, "path", path);
+        PhDereferenceObject(path);
+
+        PhAddJsonObjectUInt64(row, "current_instances", entry->CurrentInstances);
+
+        if (entry->MaximumInstances == FILE_PIPE_UNLIMITED_INSTANCES)
+            AtJsonAddNull(row, "maximum_instances");
+        else
+            PhAddJsonObjectUInt64(row, "maximum_instances", entry->MaximumInstances);
+
+        if (connect)
+            AtpAddPipeDetails(row, directoryHandle, entry->Name);
+
+        AtAddRow(&rows, row);
+    }
+
+    structured = PhCreateJsonObject();
+    AtAddRows(structured, "pipes", &rows);
+    PhAddJsonObjectBoolean(structured, "connected", connect);
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&rows);
+    NtClose(directoryHandle);
+
+    for (i = 0; i < context.Pipes->Count; i++)
+    {
+        PAT_PIPE_ENTRY entry = context.Pipes->Items[i];
+
+        PhDereferenceObject(entry->Name);
+        PhFree(entry);
+    }
+
+    PhDereferenceObject(context.Pipes);
+    PhClearReference(&context.NameContains);
+}
+
 VOID AtHandleInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -864,6 +1115,9 @@ VOID AtHandleInvokeTool(
         break;
     case AtActionGetHandleDetails:
         AtpGetHandleDetails(Call, Target, Result);
+        break;
+    case AtActionListNamedPipes:
+        AtpListNamedPipes(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"Unhandled tool.");
