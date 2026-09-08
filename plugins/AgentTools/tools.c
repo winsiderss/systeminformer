@@ -582,6 +582,8 @@ VOID AtAddSnapshot(
 {
     LARGE_INTEGER time;
 
+    PhAddJsonObjectUInt64(Object, "snapshot_id", AtGetSnapshotId());
+
     if (PhGetStatisticsTime(NULL, 0, &time))
         AtJsonAddTime(Object, "snapshot_time", &time);
     else

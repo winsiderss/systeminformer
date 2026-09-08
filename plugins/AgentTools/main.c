@@ -101,6 +101,7 @@ VOID NTAPI LoadCallback(
     )
 {
     AtConsentInitialize();
+    AtSnapshotInitialize();
 
     // Off by default: nothing listens until the user enables it in options.
     if (PhGetIntegerSetting(SETTING_NAME_ENABLED))
@@ -116,6 +117,7 @@ VOID NTAPI UnloadCallback(
     )
 {
     AtServerStop(SimcpCloseServerShutdown);
+    AtSnapshotUninitialize();
     AtConsentUninitialize();
 }
 

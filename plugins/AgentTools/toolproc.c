@@ -292,6 +292,7 @@ VOID AtpListProcesses(
     PVOID structured;
     ULONG i;
     ULONG64 parentPid;
+    ULONG64 sinceSnapshotId;
 
     memset(&filter, 0, sizeof(AT_LIST_FILTER));
 
@@ -359,6 +360,10 @@ VOID AtpListProcesses(
     }
 
     AtAddRows(structured, "processes", &rows);
+
+    if (AtGetArgumentUInt64(Call->Arguments, "since_snapshot_id", &sinceSnapshotId))
+        AtAddProcessChanges(structured, (ULONG)min(sinceSnapshotId, MAXULONG));
+
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

@@ -228,6 +228,7 @@ VOID AtpListServices(
     PPH_STRING state;
     PPH_STRING type;
     ULONG64 pid;
+    ULONG64 sinceSnapshotId;
     AT_ROWS rows;
     PVOID structured;
     ULONG i;
@@ -304,6 +305,10 @@ VOID AtpListServices(
     PhFree(services);
 
     AtAddRows(structured, "services", &rows);
+
+    if (AtGetArgumentUInt64(Call->Arguments, "since_snapshot_id", &sinceSnapshotId))
+        AtAddServiceChanges(structured, (ULONG)min(sinceSnapshotId, MAXULONG));
+
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

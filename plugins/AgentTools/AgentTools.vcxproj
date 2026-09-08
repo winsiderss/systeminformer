@@ -78,6 +78,7 @@
     <ClCompile Include="toolstart.c" />
     <ClCompile Include="schema.c" />
     <ClCompile Include="server.c" />
+    <ClCompile Include="snapshot.c" />
     <ClCompile Include="target.c" />
     <ClCompile Include="toolmod.c" />
     <ClCompile Include="toolproc.c" />

@@ -395,6 +395,30 @@ PVOID AtJsonGetObjectMember(
     _In_ PH_JSON_OBJECT_TYPE Type
     );
 
+// snapshot.c
+
+VOID AtSnapshotInitialize(
+    VOID
+    );
+
+VOID AtSnapshotUninitialize(
+    VOID
+    );
+
+ULONG AtGetSnapshotId(
+    VOID
+    );
+
+VOID AtAddProcessChanges(
+    _In_ PVOID Object,
+    _In_ ULONG SinceId
+    );
+
+VOID AtAddServiceChanges(
+    _In_ PVOID Object,
+    _In_ ULONG SinceId
+    );
+
 // tools.c
 
 // Hints carried on a tool error: what would have to change for the call to work. Only the hints

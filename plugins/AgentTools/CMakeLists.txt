@@ -23,6 +23,7 @@ set(SOURCES
     "options.c"
     "schema.c"
     "server.c"
+    "snapshot.c"
     "target.c"
     "toolmod.c"
     "toolproc.c"

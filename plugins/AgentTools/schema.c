@@ -214,6 +214,26 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "},\"required\":[\"pid\"]}}," \
     "\"result_count\":{\"type\":\"integer\"}"
 
+#define AT_DELTA_NOTE "Pass since_snapshot_id (the snapshot_id of an earlier answer) to also get changes: what was added, changed and removed in the whole cache since then, whatever the filters are. changes.complete is false when the delta could not be described from what is still remembered, meaning the listing itself is the answer. "
+
+#define AT_DELTA_INPUT_PROPERTY \
+    "\"since_snapshot_id\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"snapshot_id from an earlier call; adds changes since that provider run\"}"
+
+#define AT_DELTA_OUTPUT_SCHEMA(Row) \
+    "\"changes\":{\"type\":\"object\",\"description\":\"Present only when since_snapshot_id was given; covers the whole cache, not just the rows returned\",\"properties\":{" \
+    "\"since_snapshot_id\":{\"type\":\"integer\"}," \
+    "\"complete\":{\"type\":\"boolean\",\"description\":\"False when the delta could not be described from what is still remembered; re-list instead\"}," \
+    "\"added\":{\"type\":\"array\",\"items\":" Row "}," \
+    "\"changed\":{\"type\":\"array\",\"items\":" Row "}," \
+    "\"removed\":{\"type\":\"array\",\"items\":" Row "}" \
+    "},\"required\":[\"since_snapshot_id\",\"complete\",\"added\",\"changed\",\"removed\"]}"
+
+#define AT_PROCESS_CHANGE_ROW_SCHEMA \
+    "{\"type\":\"object\",\"properties\":{" AT_PROCESS_IDENTITY_SCHEMA "},\"required\":[\"pid\",\"process_sequence_number\"]}"
+
+#define AT_SERVICE_CHANGE_ROW_SCHEMA \
+    "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"name\"]}"
+
 #define AT_PAGE_NOTE "Rows are paged: limit defaults to 200, total_count is the number of matching rows and truncated says more follow this page. "
 
 #define AT_PAGE_INPUT_PROPERTIES \
@@ -236,6 +256,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_DESTRUCTIVE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false}"
 
 #define AT_SNAPSHOT_SCHEMA \
+    "\"snapshot_id\":{\"type\":\"integer\",\"description\":\"Provider run this answer came from; keep it and pass it as since_snapshot_id to ask what changed\"}," \
     "\"snapshot_time\":{\"type\":[\"string\",\"null\"],\"description\":\"ISO 8601 UTC time of the provider snapshot\"}," \
     "\"updates_paused\":{\"type\":\"boolean\"}"
 
@@ -360,7 +381,7 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"list_processes"), SETTING_NAME_TOOL_CONFIRM(L"list_processes"),
         "{\"name\":\"list_processes\",\"title\":\"List processes\","
         "\"description\":\"Lists running processes from System Informer's provider cache. Filters are ANDed. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE AT_DELTA_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the process name\"},"
         "\"pids\":{\"type\":\"array\",\"items\":{\"type\":\"integer\"},\"description\":\"Only these process ids\"},"
@@ -368,11 +389,13 @@ CONST AT_TOOL AtTools[] =
         "\"user_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the user name\"},"
         "\"include_tree\":{\"type\":\"boolean\",\"description\":\"Also include every descendant of the matched processes\"},"
         AT_SORT_INPUT_PROPERTIES("\"pid\",\"parent_pid\",\"name\",\"user\",\"session_id\",\"start_time\",\"cpu_usage\",\"private_bytes\",\"working_set_bytes\",\"thread_count\",\"handle_count\"") ","
-        AT_PAGE_INPUT_PROPERTIES
+        AT_PAGE_INPUT_PROPERTIES ","
+        AT_DELTA_INPUT_PROPERTY
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"processes\":{\"type\":\"array\",\"items\":" AT_PROCESS_ROW_SCHEMA "},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_DELTA_OUTPUT_SCHEMA(AT_PROCESS_CHANGE_ROW_SCHEMA) ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -844,18 +867,20 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"list_services\",\"title\":\"List services\","
         "\"description\":\"Lists services and kernel drivers registered with the service control manager, with state, start type, "
         "hosting process and the signature status of the service image from System Informer's cache. Filters are ANDed. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE AT_DELTA_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the service name or display name\"},"
         "\"state\":{\"type\":\"string\",\"enum\":[\"running\",\"stopped\",\"paused\",\"pending\"],\"description\":\"Only services in this state; pending covers every transitional state\"},"
         "\"type\":{\"type\":\"string\",\"enum\":[\"service\",\"driver\"],\"description\":\"Only Win32 services or only kernel/file system drivers\"},"
         "\"pid\":{\"type\":\"integer\",\"description\":\"Only services hosted by this process\"},"
         AT_SORT_INPUT_PROPERTIES("\"name\",\"display_name\",\"type\",\"state\",\"start_type\",\"pid\"") ","
-        AT_PAGE_INPUT_PROPERTIES
+        AT_PAGE_INPUT_PROPERTIES ","
+        AT_DELTA_INPUT_PROPERTY
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_SERVICE_ROW_PROPERTIES "},\"required\":[\"name\",\"is_driver\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_DELTA_OUTPUT_SCHEMA(AT_SERVICE_CHANGE_ROW_SCHEMA) ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
