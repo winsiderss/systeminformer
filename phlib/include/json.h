@@ -107,6 +107,13 @@ PhGetJsonInt64Object(
     );
 
 PHLIBAPI
+DOUBLE
+NTAPI
+PhGetJsonDoubleObject(
+    _In_ PVOID Object
+    );
+
+PHLIBAPI
 PVOID
 NTAPI
 PhCreateJsonObject(

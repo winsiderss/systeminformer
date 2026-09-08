@@ -13,12 +13,11 @@
 
 typedef struct _AT_STARTUP_CONTEXT
 {
-    PVOID Entries;
+    PAT_ROWS Entries;
     PPH_STRING NameContains;
     PCSTR Location;
     PCSTR Scope;
     PCSTR Kind;
-    ULONG Count;
 } AT_STARTUP_CONTEXT, *PAT_STARTUP_CONTEXT;
 
 BOOLEAN AtpStartupMatches(
@@ -50,8 +49,7 @@ VOID AtpAddStartupEntry(
     PhAddJsonObject(entry, "location", Context->Location);
     PhAddJsonObject(entry, "scope", Context->Scope);
     PhAddJsonObject(entry, "kind", Context->Kind);
-    PhAddJsonArrayObject(Context->Entries, entry);
-    Context->Count++;
+    AtAddRow(Context->Entries, entry);
 }
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
@@ -95,8 +93,7 @@ VOID AtpReadRunKey(
     _In_ PCSTR Scope,
     _In_ PCSTR Kind,
     _In_ PPH_STRING NameContains,
-    _In_ PVOID Entries,
-    _Inout_ PULONG Count
+    _Inout_ PAT_ROWS Entries
     )
 {
     AT_STARTUP_CONTEXT context;
@@ -108,7 +105,6 @@ VOID AtpReadRunKey(
     context.Location = Location;
     context.Scope = Scope;
     context.Kind = Kind;
-    context.Count = 0;
 
     PhInitializeStringRef(&subKey, SubKey);
 
@@ -117,8 +113,6 @@ VOID AtpReadRunKey(
         PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpStartupValueCallback, &context);
         NtClose(keyHandle);
     }
-
-    *Count += context.Count;
 }
 
 _Function_class_(PH_ENUM_DIRECTORY_FILE)
@@ -152,8 +146,7 @@ VOID AtpReadStartupFolder(
     _In_ ULONG Folder,
     _In_ PCSTR Scope,
     _In_ PPH_STRING NameContains,
-    _In_ PVOID Entries,
-    _Inout_ PULONG Count
+    _Inout_ PAT_ROWS Entries
     )
 {
     static PH_STRINGREF startupSuffix = PH_STRINGREF_INIT(L"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
@@ -169,7 +162,6 @@ VOID AtpReadStartupFolder(
     context.NameContains = NameContains;
     context.Scope = Scope;
     context.Kind = "startup_folder";
-    context.Count = 0;
 
     if (locationUtf8 = PhConvertUtf16ToUtf8Ex(folderPath->Buffer, folderPath->Length))
     {
@@ -193,8 +185,6 @@ VOID AtpReadStartupFolder(
     }
 
     PhDereferenceObject(folderPath);
-
-    *Count += context.Count;
 }
 
 VOID AtListStartupEntries(
@@ -203,31 +193,29 @@ VOID AtListStartupEntries(
     )
 {
     PPH_STRING nameContains;
+    AT_ROWS entries;
     PVOID structured;
-    PVOID entries;
-    ULONG count = 0;
 
     nameContains = AtGetArgumentString(Call->Arguments, "name_contains");
 
     structured = PhCreateJsonObject();
-    entries = PhCreateJsonArray();
+    AtInitializeRows(&entries, Call->Arguments);
 
     AtpReadRunKey(PH_KEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "machine", "registry_run", nameContains, entries, &count);
+        "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "machine", "registry_run", nameContains, &entries);
     AtpReadRunKey(PH_KEY_LOCAL_MACHINE, L"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
-        "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "machine", "registry_run_once", nameContains, entries, &count);
+        "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "machine", "registry_run_once", nameContains, &entries);
     AtpReadRunKey(PH_KEY_LOCAL_MACHINE, L"Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "HKLM\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run", "machine", "registry_run", nameContains, entries, &count);
+        "HKLM\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run", "machine", "registry_run", nameContains, &entries);
     AtpReadRunKey(PH_KEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "user", "registry_run", nameContains, entries, &count);
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", "user", "registry_run", nameContains, &entries);
     AtpReadRunKey(PH_KEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce",
-        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "user", "registry_run_once", nameContains, entries, &count);
+        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\RunOnce", "user", "registry_run_once", nameContains, &entries);
 
-    AtpReadStartupFolder(PH_FOLDERID_RoamingAppData, "user", nameContains, entries, &count);
-    AtpReadStartupFolder(PH_FOLDERID_ProgramData, "machine", nameContains, entries, &count);
+    AtpReadStartupFolder(PH_FOLDERID_RoamingAppData, "user", nameContains, &entries);
+    AtpReadStartupFolder(PH_FOLDERID_ProgramData, "machine", nameContains, &entries);
 
-    PhAddJsonObjectValue(structured, "entries", entries);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "entries", &entries);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

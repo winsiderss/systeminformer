@@ -228,9 +228,8 @@ VOID AtpListServices(
     PPH_STRING state;
     PPH_STRING type;
     ULONG64 pid;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
     ULONG i;
 
     memset(&filter, 0, sizeof(AT_SERVICE_FILTER));
@@ -279,7 +278,7 @@ VOID AtpListServices(
     }
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < numberOfServiceItems; i++)
     {
@@ -297,16 +296,14 @@ VOID AtpListServices(
 
         row = PhCreateJsonObject();
         AtpFillServiceRow(row, serviceItem);
-        PhAddJsonArrayObject(rows, row);
-        count++;
+        AtAddRow(&rows, row);
 
         PhDereferenceObject(serviceItem);
     }
 
     PhFree(services);
 
-    PhAddJsonObjectValue(structured, "services", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "services", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

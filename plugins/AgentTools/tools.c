@@ -163,6 +163,240 @@ VOID AtEnumTools(
     }
 }
 
+// Paging and sorting for the list tools.
+
+typedef enum _AT_SORT_RANK
+{
+    AtSortRankNull,
+    AtSortRankBoolean,
+    AtSortRankNumber,
+    AtSortRankString,
+    AtSortRankOther
+} AT_SORT_RANK;
+
+typedef struct _AT_ROW_SORT_ENTRY
+{
+    PVOID Row;
+    ULONG Index;
+    AT_SORT_RANK Rank;
+    BOOLEAN Integral;
+    LONG64 Integer;
+    DOUBLE Double;
+    PPH_STRING String;
+} AT_ROW_SORT_ENTRY, *PAT_ROW_SORT_ENTRY;
+
+VOID AtInitializeRows(
+    _Out_ PAT_ROWS Rows,
+    _In_opt_ PVOID Arguments
+    )
+{
+    ULONG64 value;
+
+    memset(Rows, 0, sizeof(AT_ROWS));
+
+    Rows->Rows = PhCreateList(64);
+    Rows->Limit = AT_ROWS_DEFAULT_LIMIT;
+
+    if (AtGetArgumentUInt64(Arguments, "limit", &value) && value != 0)
+        Rows->Limit = (ULONG)min(value, AT_ROWS_MAXIMUM_LIMIT);
+
+    if (AtGetArgumentUInt64(Arguments, "offset", &value))
+        Rows->Offset = (ULONG)min(value, MAXULONG);
+
+    Rows->SortBy = AtGetArgumentString(Arguments, "sort_by");
+    Rows->Descending = AtJsonGetObjectBoolean(Arguments, "descending");
+}
+
+// Row is optional: a counts-only mode counts the match without building a row for it.
+VOID AtAddRow(
+    _Inout_ PAT_ROWS Rows,
+    _In_opt_ PVOID Row
+    )
+{
+    Rows->TotalCount++;
+
+    if (Row)
+        PhAddItemList(Rows->Rows, Row);
+}
+
+VOID AtpInitializeSortEntry(
+    _Out_ PAT_ROW_SORT_ENTRY Entry,
+    _In_ PVOID Row,
+    _In_ ULONG Index,
+    _In_ PCSTR Key
+    )
+{
+    PVOID member;
+
+    memset(Entry, 0, sizeof(AT_ROW_SORT_ENTRY));
+    Entry->Row = Row;
+    Entry->Index = Index;
+    Entry->Rank = AtSortRankNull;
+
+    if (!(member = PhGetJsonObject(Row, Key)))
+        return;
+
+    switch (PhGetJsonObjectType(member))
+    {
+    case PH_JSON_OBJECT_TYPE_NULL:
+        break;
+    case PH_JSON_OBJECT_TYPE_BOOLEAN:
+        Entry->Rank = AtSortRankBoolean;
+        Entry->Integral = TRUE;
+        Entry->Integer = PhGetJsonInt64Object(member);
+        break;
+    case PH_JSON_OBJECT_TYPE_INT:
+        Entry->Rank = AtSortRankNumber;
+        Entry->Integral = TRUE;
+        Entry->Integer = PhGetJsonInt64Object(member);
+        Entry->Double = (DOUBLE)Entry->Integer;
+        break;
+    case PH_JSON_OBJECT_TYPE_DOUBLE:
+        Entry->Rank = AtSortRankNumber;
+        Entry->Double = PhGetJsonDoubleObject(member);
+        break;
+    case PH_JSON_OBJECT_TYPE_STRING:
+        Entry->Rank = AtSortRankString;
+        Entry->String = PhGetJsonObjectString(member);
+        break;
+    default:
+        Entry->Rank = AtSortRankOther;
+        break;
+    }
+}
+
+int __cdecl AtpCompareRowSortEntries(
+    _In_ void* Context,
+    _In_ const void* Elem1,
+    _In_ const void* Elem2
+    )
+{
+    PAT_ROWS rows = Context;
+    PAT_ROW_SORT_ENTRY entry1 = (PAT_ROW_SORT_ENTRY)Elem1;
+    PAT_ROW_SORT_ENTRY entry2 = (PAT_ROW_SORT_ENTRY)Elem2;
+    int result;
+
+    if (entry1->Rank != entry2->Rank)
+    {
+        result = entry1->Rank < entry2->Rank ? -1 : 1;
+    }
+    else
+    {
+        switch (entry1->Rank)
+        {
+        case AtSortRankBoolean:
+            result = int64cmp(entry1->Integer, entry2->Integer);
+            break;
+        case AtSortRankNumber:
+            if (entry1->Integral && entry2->Integral)
+                result = int64cmp(entry1->Integer, entry2->Integer);
+            else if (entry1->Double < entry2->Double)
+                result = -1;
+            else if (entry1->Double > entry2->Double)
+                result = 1;
+            else
+                result = 0;
+            break;
+        case AtSortRankString:
+            result = PhCompareString(entry1->String, entry2->String, TRUE);
+            break;
+        default:
+            result = 0;
+            break;
+        }
+    }
+
+    if (rows->Descending)
+        result = -result;
+
+    // Ties keep enumeration order in both directions, so paging is deterministic.
+    if (result == 0)
+        result = uintcmp(entry1->Index, entry2->Index);
+
+    return result;
+}
+
+VOID AtpSortRows(
+    _Inout_ PAT_ROWS Rows
+    )
+{
+    PPH_BYTES key;
+    PAT_ROW_SORT_ENTRY entries;
+    ULONG i;
+
+    key = PhConvertUtf16ToUtf8Ex(Rows->SortBy->Buffer, Rows->SortBy->Length);
+    entries = PhAllocate(Rows->Rows->Count * sizeof(AT_ROW_SORT_ENTRY));
+
+    for (i = 0; i < Rows->Rows->Count; i++)
+        AtpInitializeSortEntry(&entries[i], Rows->Rows->Items[i], i, key->Buffer);
+
+    qsort_s(entries, Rows->Rows->Count, sizeof(AT_ROW_SORT_ENTRY), AtpCompareRowSortEntries, Rows);
+
+    for (i = 0; i < Rows->Rows->Count; i++)
+    {
+        Rows->Rows->Items[i] = entries[i].Row;
+        PhClearReference(&entries[i].String);
+    }
+
+    PhFree(entries);
+    PhDereferenceObject(key);
+}
+
+VOID AtAddRows(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _Inout_ PAT_ROWS Rows
+    )
+{
+    PVOID array;
+    ULONG count = 0;
+    ULONG i;
+
+    if (Rows->SortBy && Rows->Rows->Count > 1)
+        AtpSortRows(Rows);
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < Rows->Rows->Count; i++)
+    {
+        if (i < Rows->Offset || count >= Rows->Limit)
+        {
+            PhFreeJsonObject(Rows->Rows->Items[i]);
+            continue;
+        }
+
+        PhAddJsonArrayObject(array, Rows->Rows->Items[i]);
+        count++;
+    }
+
+    PhAddJsonObjectValue(Object, Key, array);
+    PhAddJsonObjectUInt64(Object, "count", count);
+    PhAddJsonObjectUInt64(Object, "total_count", Rows->TotalCount);
+    PhAddJsonObjectUInt64(Object, "offset", Rows->Offset);
+    PhAddJsonObjectUInt64(Object, "limit", Rows->Limit);
+    PhAddJsonObjectBoolean(Object, "truncated", (ULONG64)Rows->Offset + count < Rows->Rows->Count);
+
+    PhClearReference(&Rows->Rows);
+    PhClearReference(&Rows->SortBy);
+}
+
+VOID AtDeleteRows(
+    _Inout_ PAT_ROWS Rows
+    )
+{
+    ULONG i;
+
+    if (Rows->Rows)
+    {
+        for (i = 0; i < Rows->Rows->Count; i++)
+            PhFreeJsonObject(Rows->Rows->Items[i]);
+
+        PhClearReference(&Rows->Rows);
+    }
+
+    PhClearReference(&Rows->SortBy);
+}
+
 VOID AtAddSnapshot(
     _In_ PVOID Object
     )

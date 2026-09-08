@@ -199,6 +199,23 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_SENSITIVE_NOTE "This is a sensitive read: it is disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 #define AT_SERVICE_WRITE_NOTE "Requires the service name (not the display name) from list_services. Disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 
+#define AT_PAGE_NOTE "Rows are paged: limit defaults to 200, total_count is the number of matching rows and truncated says more follow this page. "
+
+#define AT_PAGE_INPUT_PROPERTIES \
+    "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"Maximum rows to return; default 200\"}," \
+    "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Rows to skip before returning, for paging with total_count\"}"
+
+#define AT_SORT_INPUT_PROPERTIES(Fields) \
+    "\"sort_by\":{\"type\":\"string\",\"enum\":[" Fields "],\"description\":\"Row field to sort by, before limit and offset are applied; rows whose field is null sort first\"}," \
+    "\"descending\":{\"type\":\"boolean\",\"description\":\"Sort descending instead of ascending\"}"
+
+#define AT_PAGE_OUTPUT_PROPERTIES \
+    "\"count\":{\"type\":\"integer\",\"description\":\"Rows returned in this page\"}," \
+    "\"total_count\":{\"type\":\"integer\",\"description\":\"Rows matching before limit and offset were applied\"}," \
+    "\"offset\":{\"type\":\"integer\"}," \
+    "\"limit\":{\"type\":\"integer\"}," \
+    "\"truncated\":{\"type\":\"boolean\",\"description\":\"More rows follow this page\"}"
+
 #define AT_READ_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
 #define AT_WRITE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
 #define AT_DESTRUCTIVE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false}"
@@ -330,13 +347,15 @@ CONST AT_TOOL AtTools[] =
         "\"pids\":{\"type\":\"array\",\"items\":{\"type\":\"integer\"},\"description\":\"Only these process ids\"},"
         "\"parent_pid\":{\"type\":\"integer\",\"description\":\"Only direct children of this process id\"},"
         "\"user_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the user name\"},"
-        "\"include_tree\":{\"type\":\"boolean\",\"description\":\"Also include every descendant of the matched processes\"}"
+        "\"include_tree\":{\"type\":\"boolean\",\"description\":\"Also include every descendant of the matched processes\"},"
+        AT_SORT_INPUT_PROPERTIES("\"pid\",\"parent_pid\",\"name\",\"user\",\"session_id\",\"start_time\",\"cpu_usage\",\"private_bytes\",\"working_set_bytes\",\"thread_count\",\"handle_count\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"processes\":{\"type\":\"array\",\"items\":" AT_PROCESS_ROW_SCHEMA "},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"processes\",\"count\",\"updates_paused\"]},"
+        "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -407,10 +426,12 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"get_process_modules"), SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         "{\"name\":\"get_process_modules\",\"title\":\"List process modules\","
         "\"description\":\"Lists the modules (DLLs) loaded in a process, optionally with mapped files. Addresses are hexadecimal strings. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"include_mapped_files\":{\"type\":\"boolean\",\"description\":\"Also list mapped data files and images that are not loaded modules\"},"
-        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or path\"}"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or path\"},"
+        AT_SORT_INPUT_PROPERTIES("\"name\",\"file_path\",\"type\",\"size\",\"load_order_index\",\"load_count\",\"load_time\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -425,9 +446,9 @@ CONST AT_TOOL AtTools[] =
         "\"load_count\":{\"type\":[\"integer\",\"null\"]},"
         "\"load_time\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"base_address\",\"size\",\"type\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -436,9 +457,11 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_process_threads\",\"title\":\"List process threads\","
         "\"description\":\"Lists the threads of a process with state, wait reason, priorities, times and start address. tid together "
         "with pid and process_sequence_number identifies a thread to the thread tools. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
-        "\"resolve_start_addresses\":{\"type\":\"boolean\",\"description\":\"Resolve start addresses to symbols (loads symbols; slow on first use)\"}"
+        "\"resolve_start_addresses\":{\"type\":\"boolean\",\"description\":\"Resolve start addresses to symbols (loads symbols; slow on first use)\"},"
+        AT_SORT_INPUT_PROPERTIES("\"tid\",\"name\",\"state\",\"priority\",\"base_priority\",\"create_time\",\"kernel_time\",\"user_time\",\"context_switches\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -457,9 +480,9 @@ CONST AT_TOOL AtTools[] =
         "\"context_switches\":{\"type\":\"integer\"},"
         "\"is_suspended\":{\"type\":\"boolean\"}"
         "},\"required\":[\"tid\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -468,18 +491,20 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_process_handles\",\"title\":\"List process handles\","
         "\"description\":\"Lists the handles of a process by type with the granted access and attributes, plus a count per type. "
         "Object names are not included; use get_process_handles_detailed for those. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"type_name\":{\"type\":\"string\",\"description\":\"Only handles of this object type, e.g. File, Key, Event, Process\"},"
-        "\"counts_only\":{\"type\":\"boolean\",\"description\":\"Return only the per-type counts\"}"
+        "\"counts_only\":{\"type\":\"boolean\",\"description\":\"Return only the per-type counts\"},"
+        AT_SORT_INPUT_PROPERTIES("\"type_name\",\"attributes\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
         "\"counts_by_type\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type_name\":{\"type\":\"string\"},\"count\":{\"type\":\"integer\"}},\"required\":[\"type_name\",\"count\"]},\"description\":\"Handle count per object type\"},"
         "\"handles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_HANDLE_ROW_PROPERTIES "},\"required\":[\"handle\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"counts_by_type\",\"handles\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"counts_by_type\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -488,10 +513,12 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_process_memory_regions\",\"title\":\"List process memory regions\","
         "\"description\":\"Lists the virtual memory regions of a process (state, protection, type, size, what the region is used for: "
         "image, mapped file, heap, stack, TEB, PEB and so on). No memory contents are returned. Addresses are hexadecimal strings. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"include_free\":{\"type\":\"boolean\",\"description\":\"Also list free regions\"},"
-        "\"allocations_only\":{\"type\":\"boolean\",\"description\":\"Only list allocation bases, not every sub-region\"}"
+        "\"allocations_only\":{\"type\":\"boolean\",\"description\":\"Only list allocation bases, not every sub-region\"},"
+        AT_SORT_INPUT_PROPERTIES("\"size\",\"state\",\"type\",\"protection\",\"use\",\"committed_bytes\",\"private_bytes\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -507,9 +534,9 @@ CONST AT_TOOL AtTools[] =
         "\"committed_bytes\":{\"type\":\"integer\"},"
         "\"private_bytes\":{\"type\":\"integer\"}"
         "},\"required\":[\"base_address\",\"size\",\"state\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"regions\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"regions\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -555,9 +582,10 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_process_windows\",\"title\":\"List process windows\","
         "\"description\":\"Lists the top-level windows owned by a process on the current desktop: handle, title, class, visibility, "
         "owning thread. Window titles are attacker-controlled text. "
-        AT_UNTRUSTED_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
-        "\"visible_only\":{\"type\":\"boolean\",\"description\":\"Only visible windows (default true)\"}"
+        "\"visible_only\":{\"type\":\"boolean\",\"description\":\"Only visible windows (default true)\"},"
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -571,9 +599,9 @@ CONST AT_TOOL AtTools[] =
         "\"is_hung\":{\"type\":\"boolean\"},"
         "\"rect\":{\"type\":\"object\",\"properties\":{\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},\"right\":{\"type\":\"integer\"},\"bottom\":{\"type\":\"integer\"}}}"
         "},\"required\":[\"handle\",\"tid\",\"is_visible\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"windows\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"windows\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -581,16 +609,18 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"get_process_environment"), SETTING_NAME_TOOL_CONFIRM(L"get_process_environment"),
         "{\"name\":\"get_process_environment\",\"title\":\"Get process environment variables\","
         "\"description\":\"Reads the live environment block of a process. Environment blocks routinely contain tokens and secrets. "
-        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
-        "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\"},"
         "\"process_sequence_number\":{\"type\":\"integer\"},"
         "\"variables\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":\"string\"},\"value\":{\"type\":\"string\"}},\"required\":[\"name\",\"value\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"variables\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"variables\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -600,10 +630,12 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Lists the handles of a process with the name of the object behind each one: file paths, registry keys, "
         "named pipes, sections, events, and the target of process and thread handles. Object names reveal what a process is "
         "touching and can include user data paths. "
-        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         "\"type_name\":{\"type\":\"string\",\"description\":\"Only handles of this object type, e.g. File, Key, Section\"},"
-        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the object name\"}"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the object name\"},"
+        AT_SORT_INPUT_PROPERTIES("\"type_name\",\"attributes\",\"object_name\",\"best_name\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -612,9 +644,9 @@ CONST AT_TOOL AtTools[] =
         "\"best_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Friendlier name: Win32 path, process name and pid, key path\"},"
         "\"object_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Kernel object address; two handles with the same address refer to the same object\"}"
         "},\"required\":[\"handle\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"handles\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -785,18 +817,20 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"list_services\",\"title\":\"List services\","
         "\"description\":\"Lists services and kernel drivers registered with the service control manager, with state, start type, "
         "hosting process and the signature status of the service image from System Informer's cache. Filters are ANDed. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the service name or display name\"},"
         "\"state\":{\"type\":\"string\",\"enum\":[\"running\",\"stopped\",\"paused\",\"pending\"],\"description\":\"Only services in this state; pending covers every transitional state\"},"
         "\"type\":{\"type\":\"string\",\"enum\":[\"service\",\"driver\"],\"description\":\"Only Win32 services or only kernel/file system drivers\"},"
-        "\"pid\":{\"type\":\"integer\",\"description\":\"Only services hosted by this process\"}"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only services hosted by this process\"},"
+        AT_SORT_INPUT_PROPERTIES("\"name\",\"display_name\",\"type\",\"state\",\"start_type\",\"pid\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_SERVICE_ROW_PROPERTIES "},\"required\":[\"name\",\"is_driver\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"services\",\"count\",\"updates_paused\"]},"
+        "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -881,20 +915,22 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"list_network_connections\",\"title\":\"List network connections\","
         "\"description\":\"Lists TCP connections and listeners and UDP endpoints with the owning process, from a live enumeration "
         "joined with System Informer's cache for owner and host names. Filters are ANDed. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\",\"description\":\"Only connections owned by this process\"},"
         "\"protocol\":{\"type\":\"string\",\"enum\":[\"tcp\",\"tcp6\",\"udp\",\"udp6\",\"hyperv\"]},"
         "\"state\":{\"type\":\"string\",\"description\":\"Only TCP connections in this state, e.g. established, listen, time_wait\"},"
         "\"address_contains\":{\"type\":\"string\",\"description\":\"Substring of the local or remote address or resolved host\"},"
         "\"port\":{\"type\":\"integer\",\"description\":\"Only connections with this local or remote port\"},"
-        "\"exclude_listeners\":{\"type\":\"boolean\",\"description\":\"Omit listening TCP sockets and UDP endpoints\"}"
+        "\"exclude_listeners\":{\"type\":\"boolean\",\"description\":\"Omit listening TCP sockets and UDP endpoints\"},"
+        AT_SORT_INPUT_PROPERTIES("\"protocol\",\"local_address\",\"local_port\",\"remote_address\",\"remote_port\",\"state\",\"pid\",\"process_name\",\"owner_name\",\"create_time\"") ","
+        AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"connections\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_CONNECTION_ROW_PROPERTIES "},\"required\":[\"protocol\",\"local_port\",\"remote_port\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"connections\",\"count\",\"updates_paused\"]},"
+        "},\"required\":[\"connections\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -964,10 +1000,11 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"list_kernel_drivers\",\"title\":\"List loaded kernel modules\","
         "\"description\":\"Lists the kernel modules (drivers) currently loaded, with image path, base address and size, and the "
         "signature status of the image file when verify_signatures is true. "
-        AT_UNTRUSTED_NOTE "\","
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the module name or path\"},"
-        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each image's Authenticode signature (slow on first use)\"}"
+        "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each image's Authenticode signature (slow on first use)\"},"
+        AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"drivers\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
@@ -980,9 +1017,9 @@ CONST AT_TOOL AtTools[] =
         "\"verify_result\":{\"type\":[\"string\",\"null\"]},"
         "\"verify_signer\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"base_address\",\"size\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"drivers\",\"count\"]},"
+        "},\"required\":[\"drivers\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -1009,7 +1046,7 @@ CONST AT_TOOL AtTools[] =
         SETTING_NAME_TOOL_ACCESS(L"get_pagefile_info"), SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
         "{\"name\":\"get_pagefile_info\",\"title\":\"Get pagefile information\","
         "\"description\":\"Lists the system paging files with their current and peak usage. Sizes are bytes.\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PAGE_INPUT_PROPERTIES "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pagefiles\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":[\"string\",\"null\"]},"
@@ -1017,9 +1054,9 @@ CONST AT_TOOL AtTools[] =
         "\"in_use_bytes\":{\"type\":\"integer\"},"
         "\"peak_bytes\":{\"type\":\"integer\"}"
         "},\"required\":[\"total_bytes\",\"in_use_bytes\",\"peak_bytes\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pagefiles\",\"count\"]},"
+        "},\"required\":[\"pagefiles\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -1028,9 +1065,10 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"list_startup_entries\",\"title\":\"List autostart entries\","
         "\"description\":\"Lists programs configured to run at logon from the registry Run/RunOnce keys (machine and "
         "current user, including the 32-bit view) and the Startup folders. This is where persistence commonly hides. "
-        "Commands and paths are attacker-controlled. " AT_UNTRUSTED_NOTE "\","
+        "Commands and paths are attacker-controlled. " AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the entry name or command\"}"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the entry name or command\"},"
+        AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"entries\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
@@ -1040,9 +1078,9 @@ CONST AT_TOOL AtTools[] =
         "\"scope\":{\"type\":\"string\",\"description\":\"machine or user\"},"
         "\"kind\":{\"type\":\"string\",\"description\":\"registry_run, registry_run_once or startup_folder\"}"
         "},\"required\":[\"location\",\"scope\",\"kind\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"entries\",\"count\"]},"
+        "},\"required\":[\"entries\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -1077,8 +1115,8 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Lists the UEFI firmware environment variables (for example BootOrder, Boot####, SecureBoot, "
         "PK/KEK/db/dbx) with their vendor GUID, attributes and a bounded hex prefix of the raw value. Fails when the machine "
         "did not boot in UEFI mode, and requires SeSystemEnvironmentPrivilege, so it fails with access denied unless System "
-        "Informer is elevated. Values are opaque firmware data. " AT_UNTRUSTED_NOTE "\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "Informer is elevated. Values are opaque firmware data. " AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PAGE_INPUT_PROPERTIES "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"variables\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":\"string\"},"
@@ -1089,9 +1127,9 @@ CONST AT_TOOL AtTools[] =
         "\"value_hex\":{\"type\":\"string\",\"description\":\"Hex of the first 256 bytes of the value; absent when empty\"},"
         "\"value_truncated\":{\"type\":\"boolean\"}"
         "},\"required\":[\"name\",\"vendor_guid\",\"attributes\",\"attribute_flags\",\"value_length\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"variables\",\"count\"]},"
+        "},\"required\":[\"variables\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -1126,17 +1164,17 @@ CONST AT_TOOL AtTools[] =
         "{\"name\":\"get_system_environment\",\"title\":\"Get system environment variables\","
         "\"description\":\"Lists the persisted machine-wide and current-user environment variables from the registry. "
         "Values are the stored (unexpanded) strings; REG_EXPAND_SZ references such as %SystemRoot% are not resolved. "
-        "User environment variables routinely contain API keys and tokens. " AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
+        "User environment variables routinely contain API keys and tokens. " AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PAGE_INPUT_PROPERTIES "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"variables\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":[\"string\",\"null\"]},"
         "\"value\":{\"type\":[\"string\",\"null\"]},"
         "\"scope\":{\"type\":\"string\",\"description\":\"machine or user\"}"
         "},\"required\":[\"scope\"]}},"
-        "\"count\":{\"type\":\"integer\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"variables\",\"count\"]},"
+        "},\"required\":[\"variables\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     // files and memory

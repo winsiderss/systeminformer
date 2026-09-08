@@ -253,6 +253,13 @@ LONGLONG PhGetJsonInt64Object(
     return json_object_get_int64(Object);
 }
 
+DOUBLE PhGetJsonDoubleObject(
+    _In_ PVOID Object
+    )
+{
+    return json_object_get_double(Object);
+}
+
 PVOID PhCreateJsonObject(
     VOID
     )

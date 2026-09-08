@@ -120,9 +120,8 @@ VOID AtpGetProcessThreads(
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_SYMBOL_PROVIDER symbolProvider = NULL;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID threads;
-    ULONG count = 0;
     ULONG i;
 
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
@@ -150,7 +149,7 @@ VOID AtpGetProcessThreads(
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
-    threads = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < process->NumberOfThreads; i++)
     {
@@ -217,12 +216,10 @@ VOID AtpGetProcessThreads(
             (thread->ThreadInfo.WaitReason == Suspended || thread->ThreadInfo.WaitReason == WrSuspended)
             );
 
-        PhAddJsonArrayObject(threads, row);
-        count++;
+        AtAddRow(&rows, row);
     }
 
-    PhAddJsonObjectValue(structured, "threads", threads);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "threads", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

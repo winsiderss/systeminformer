@@ -198,9 +198,8 @@ VOID AtpListKernelDrivers(
     PRTL_PROCESS_MODULES modules;
     PPH_STRING nameContains;
     BOOLEAN verify;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
     ULONG i;
 
     status = PhEnumKernelModules(&modules);
@@ -215,7 +214,7 @@ VOID AtpListKernelDrivers(
     verify = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < modules->NumberOfModules; i++)
     {
@@ -260,8 +259,7 @@ VOID AtpListKernelDrivers(
             AtJsonAddNull(row, "verify_signer");
         }
 
-        PhAddJsonArrayObject(rows, row);
-        count++;
+        AtAddRow(&rows, row);
 
         PhClearReference(&fileName);
         PhClearReference(&name);
@@ -270,8 +268,7 @@ VOID AtpListKernelDrivers(
     PhFree(modules);
     PhClearReference(&nameContains);
 
-    PhAddJsonObjectValue(structured, "drivers", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "drivers", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -318,6 +315,7 @@ VOID AtpGetKsiStatus(
 }
 
 VOID AtpGetPagefileInfo(
+    _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
@@ -327,9 +325,8 @@ VOID AtpGetPagefileInfo(
     ULONG returnLength = 0;
     PSYSTEM_PAGEFILE_INFORMATION pagefile;
     ULONG pageSize;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
 
     {
         SYSTEM_BASIC_INFORMATION basicInfo;
@@ -356,7 +353,7 @@ VOID AtpGetPagefileInfo(
     }
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     // An empty result (no configured pagefile) returns zero bytes.
     if (returnLength >= sizeof(SYSTEM_PAGEFILE_INFORMATION))
@@ -373,8 +370,7 @@ VOID AtpGetPagefileInfo(
             PhAddJsonObjectUInt64(row, "total_bytes", (ULONG64)pagefile->TotalSize * pageSize);
             PhAddJsonObjectUInt64(row, "in_use_bytes", (ULONG64)pagefile->TotalInUse * pageSize);
             PhAddJsonObjectUInt64(row, "peak_bytes", (ULONG64)pagefile->PeakUsage * pageSize);
-            PhAddJsonArrayObject(rows, row);
-            count++;
+            AtAddRow(&rows, row);
 
             if (pagefile->NextEntryOffset == 0)
                 break;
@@ -385,8 +381,7 @@ VOID AtpGetPagefileInfo(
 
     PhFree(buffer);
 
-    PhAddJsonObjectValue(structured, "pagefiles", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "pagefiles", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -534,15 +529,15 @@ VOID AtpAddUefiAttributes(
 }
 
 VOID AtpGetUefiVariables(
+    _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
     NTSTATUS status;
     PVOID variables;
     PVARIABLE_NAME_AND_VALUE variable;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
     PH_THREAD_PRIVILEGE_STATE privilegeState;
 
     if (AtpGetFirmwareType() != FirmwareTypeUefi)
@@ -572,7 +567,7 @@ VOID AtpGetUefiVariables(
     }
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (variable = PH_FIRST_FIRMWARE_VALUE(variables); variable; variable = PH_NEXT_FIRMWARE_VALUE(variable))
     {
@@ -596,14 +591,12 @@ VOID AtpGetUefiVariables(
             PhAddJsonObjectBoolean(row, "value_truncated", variable->ValueLength > length);
         }
 
-        PhAddJsonArrayObject(rows, row);
-        count++;
+        AtAddRow(&rows, row);
     }
 
     PhFree(variables);
 
-    PhAddJsonObjectValue(structured, "variables", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "variables", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -776,9 +769,8 @@ VOID AtpGetTpmInfo(
 
 typedef struct _AT_ENVIRONMENT_CONTEXT
 {
-    PVOID Entries;
+    PAT_ROWS Entries;
     PCWSTR Scope;
-    ULONG Count;
 } AT_ENVIRONMENT_CONTEXT, *PAT_ENVIRONMENT_CONTEXT;
 
 _Function_class_(PH_ENUM_KEY_CALLBACK)
@@ -816,8 +808,7 @@ BOOLEAN NTAPI AtpEnvironmentValueCallback(
     AtJsonAddString(entry, "name", name);
     AtJsonAddString(entry, "value", value);
     AtJsonAddStringZ(entry, "scope", context->Scope);
-    PhAddJsonArrayObject(context->Entries, entry);
-    context->Count++;
+    AtAddRow(context->Entries, entry);
 
     PhClearReference(&name);
     PhClearReference(&value);
@@ -829,8 +820,7 @@ VOID AtpReadEnvironmentKey(
     _In_ HANDLE RootDirectory,
     _In_ PCWSTR SubKey,
     _In_ PCWSTR Scope,
-    _In_ PVOID Entries,
-    _Inout_ PULONG Count
+    _Inout_ PAT_ROWS Entries
     )
 {
     AT_ENVIRONMENT_CONTEXT context;
@@ -839,7 +829,6 @@ VOID AtpReadEnvironmentKey(
 
     context.Entries = Entries;
     context.Scope = Scope;
-    context.Count = 0;
 
     PhInitializeStringRef(&subKey, SubKey);
 
@@ -848,38 +837,33 @@ VOID AtpReadEnvironmentKey(
         PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpEnvironmentValueCallback, &context);
         NtClose(keyHandle);
     }
-
-    *Count += context.Count;
 }
 
 VOID AtpGetSystemEnvironment(
+    _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     AtpReadEnvironmentKey(
         PH_KEY_LOCAL_MACHINE,
         L"System\\CurrentControlSet\\Control\\Session Manager\\Environment",
         L"machine",
-        rows,
-        &count
+        &rows
         );
     AtpReadEnvironmentKey(
         PH_KEY_CURRENT_USER,
         L"Environment",
         L"user",
-        rows,
-        &count
+        &rows
         );
 
-    PhAddJsonObjectValue(structured, "variables", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "variables", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -904,7 +888,7 @@ VOID AtSystemInvokeTool(
         AtpGetKsiStatus(Result);
         break;
     case AtActionGetPagefileInfo:
-        AtpGetPagefileInfo(Result);
+        AtpGetPagefileInfo(Call, Result);
         break;
     case AtActionListStartupEntries:
         AtListStartupEntries(Call, Result);
@@ -913,13 +897,13 @@ VOID AtSystemInvokeTool(
         AtpGetSmbiosInfo(Result);
         break;
     case AtActionGetUefiVariables:
-        AtpGetUefiVariables(Result);
+        AtpGetUefiVariables(Call, Result);
         break;
     case AtActionGetTpmInfo:
         AtpGetTpmInfo(Result);
         break;
     case AtActionGetSystemEnvironment:
-        AtpGetSystemEnvironment(Result);
+        AtpGetSystemEnvironment(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

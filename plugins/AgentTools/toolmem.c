@@ -47,12 +47,11 @@ VOID AtpGetProcessHandles(
     PPH_STRING nameFilter;
     BOOLEAN detailed = Tool->Action == AtActionGetProcessHandlesDetailed;
     BOOLEAN countsOnly = !detailed && AtJsonGetObjectBoolean(Call->Arguments, "counts_only");
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
     PVOID counts;
     PPH_LIST typeCounts;
     ULONG_PTR i;
-    ULONG count = 0;
 
     memset(&localTarget, 0, sizeof(AT_TARGET));
 
@@ -90,7 +89,7 @@ VOID AtpGetProcessHandles(
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target->ProcessItem);
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
     typeCounts = PhCreateList(16); // AT_TYPE_COUNT entries; avoids dynamic JSON keys
 
     for (i = 0; i < handles->NumberOfHandles; i++)
@@ -150,9 +149,12 @@ VOID AtpGetProcessHandles(
             typeCount->Count++;
         }
 
-        count++;
-
-        if (!countsOnly)
+        if (countsOnly)
+        {
+            // Counted for counts_by_type and total_count; no row is built for it.
+            AtAddRow(&rows, NULL);
+        }
+        else
         {
             row = PhCreateJsonObject();
             AtpAddHandleRow(row, entry, typeName);
@@ -164,7 +166,7 @@ VOID AtpGetProcessHandles(
                 AtJsonAddPointer(row, "object_address", entry->Object);
             }
 
-            PhAddJsonArrayObject(rows, row);
+            AtAddRow(&rows, row);
         }
 
 Next:
@@ -207,12 +209,7 @@ Next:
 
     PhDereferenceObject(typeCounts);
 
-    if (countsOnly)
-        PhFreeJsonObject(rows);
-    else
-        PhAddJsonObjectValue(structured, "handles", rows);
-
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "handles", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -326,9 +323,8 @@ VOID AtpGetProcessMemoryRegions(
     BOOLEAN includeFree;
     BOOLEAN allocationsOnly;
     PLIST_ENTRY entry;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID regions;
-    ULONG count = 0;
 
     if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
         return;
@@ -350,7 +346,7 @@ VOID AtpGetProcessMemoryRegions(
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
-    regions = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (entry = list.ListHead.Flink; entry != &list.ListHead; entry = entry->Flink)
     {
@@ -386,14 +382,12 @@ VOID AtpGetProcessMemoryRegions(
         PhAddJsonObjectUInt64(row, "committed_bytes", item->CommittedSize);
         PhAddJsonObjectUInt64(row, "private_bytes", item->PrivateSize);
 
-        PhAddJsonArrayObject(regions, row);
-        count++;
+        AtAddRow(&rows, row);
     }
 
     PhDeleteMemoryItemList(&list);
 
-    PhAddJsonObjectValue(structured, "regions", regions);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "regions", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

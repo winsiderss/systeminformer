@@ -471,6 +471,42 @@ VOID AtDeleteToolResult(
 
 // Shared helpers for tool implementations (tools.c)
 
+// Paging and sorting for the list tools. Rows are collected in enumeration order, optionally
+// sorted by one of their own fields, then the [offset, offset + limit) window is emitted.
+
+#define AT_ROWS_DEFAULT_LIMIT 200
+#define AT_ROWS_MAXIMUM_LIMIT 10000
+
+typedef struct _AT_ROWS
+{
+    PPH_LIST Rows;
+    PPH_STRING SortBy;
+    BOOLEAN Descending;
+    ULONG Limit;
+    ULONG Offset;
+    ULONG TotalCount;
+} AT_ROWS, *PAT_ROWS;
+
+VOID AtInitializeRows(
+    _Out_ PAT_ROWS Rows,
+    _In_opt_ PVOID Arguments
+    );
+
+VOID AtAddRow(
+    _Inout_ PAT_ROWS Rows,
+    _In_opt_ PVOID Row
+    );
+
+VOID AtAddRows(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _Inout_ PAT_ROWS Rows
+    );
+
+VOID AtDeleteRows(
+    _Inout_ PAT_ROWS Rows
+    );
+
 VOID AtAddSnapshot(
     _In_ PVOID Object
     );

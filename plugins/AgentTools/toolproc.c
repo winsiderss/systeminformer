@@ -285,12 +285,11 @@ VOID AtpListProcesses(
     )
 {
     AT_LIST_FILTER filter;
+    AT_ROWS rows;
     PPH_PROCESS_ITEM* processItems;
     ULONG numberOfProcessItems;
     PBOOLEAN matched;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
     ULONG i;
     ULONG64 parentPid;
 
@@ -349,19 +348,17 @@ VOID AtpListProcesses(
     }
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < numberOfProcessItems; i++)
     {
         if (!matched[i])
             continue;
 
-        PhAddJsonArrayObject(rows, AtpCreateProcessRow(processItems[i]));
-        count++;
+        AtAddRow(&rows, AtpCreateProcessRow(processItems[i]));
     }
 
-    PhAddJsonObjectValue(structured, "processes", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "processes", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -396,6 +393,7 @@ VOID AtpGetProcess(
 }
 
 VOID AtpGetProcessEnvironment(
+    _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -405,9 +403,8 @@ VOID AtpGetProcessEnvironment(
     ULONG environmentLength;
     ULONG enumerationKey;
     PH_ENVIRONMENT_VARIABLE variable;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID variables;
-    ULONG count = 0;
 
     status = PhGetProcessEnvironment(
         Target->ProcessHandle,
@@ -425,7 +422,7 @@ VOID AtpGetProcessEnvironment(
     structured = PhCreateJsonObject();
     PhAddJsonObjectUInt64(structured, "pid", HandleToUlong(Target->ProcessItem->ProcessId));
     PhAddJsonObjectUInt64(structured, "process_sequence_number", Target->ProcessItem->ProcessSequenceNumber);
-    variables = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     enumerationKey = 0;
 
@@ -436,14 +433,12 @@ VOID AtpGetProcessEnvironment(
         entry = PhCreateJsonObject();
         AtJsonAddStringRef(entry, "name", &variable.Name);
         AtJsonAddStringRef(entry, "value", &variable.Value);
-        PhAddJsonArrayObject(variables, entry);
-        count++;
+        AtAddRow(&rows, entry);
     }
 
     PhFreePage(environment);
 
-    PhAddJsonObjectValue(structured, "variables", variables);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "variables", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -742,8 +737,7 @@ typedef struct _AT_WINDOW_CONTEXT
 {
     HANDLE ProcessId;
     BOOLEAN VisibleOnly;
-    PVOID Windows;
-    ULONG Count;
+    AT_ROWS Windows;
 } AT_WINDOW_CONTEXT, *PAT_WINDOW_CONTEXT;
 
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
@@ -800,8 +794,7 @@ BOOLEAN NTAPI AtpWindowCallback(
         PhAddJsonObjectValue(row, "rect", rectObject);
     }
 
-    PhAddJsonArrayObject(context->Windows, row);
-    context->Count++;
+    AtAddRow(&context->Windows, row);
 
     return TRUE;
 }
@@ -822,7 +815,7 @@ VOID AtpGetProcessWindows(
     memset(&context, 0, sizeof(AT_WINDOW_CONTEXT));
     context.ProcessId = target.ProcessItem->ProcessId;
     context.VisibleOnly = TRUE;
-    context.Windows = PhCreateJsonArray();
+    AtInitializeRows(&context.Windows, Call->Arguments);
 
     if (visibleMember = AtJsonGetObjectMember(Call->Arguments, "visible_only", PH_JSON_OBJECT_TYPE_BOOLEAN))
         context.VisibleOnly = AtJsonGetObjectBoolean(Call->Arguments, "visible_only");
@@ -831,8 +824,7 @@ VOID AtpGetProcessWindows(
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
-    PhAddJsonObjectValue(structured, "windows", context.Windows);
-    PhAddJsonObjectUInt64(structured, "count", context.Count);
+    AtAddRows(structured, "windows", &context.Windows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -856,7 +848,7 @@ VOID AtProcessInvokeTool(
         AtpGetProcess(Call, Result);
         break;
     case AtActionReadProcessEnvironment:
-        AtpGetProcessEnvironment(Target, Result);
+        AtpGetProcessEnvironment(Call, Target, Result);
         break;
     case AtActionTerminateProcess:
     case AtActionSuspendProcess:

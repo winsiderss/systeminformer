@@ -37,8 +37,7 @@ PCWSTR AtpModuleTypeString(
 
 typedef struct _AT_MODULE_CONTEXT
 {
-    PVOID Modules;
-    ULONG Count;
+    AT_ROWS Modules;
     PPH_STRING NameContains;
 } AT_MODULE_CONTEXT, *PAT_MODULE_CONTEXT;
 
@@ -78,8 +77,7 @@ BOOLEAN NTAPI AtpModuleCallback(
 
     AtJsonAddTime(row, "load_time", &Module->LoadTime);
 
-    PhAddJsonArrayObject(context->Modules, row);
-    context->Count++;
+    AtAddRow(&context->Modules, row);
 
     return TRUE;
 }
@@ -99,7 +97,7 @@ VOID AtpGetProcessModules(
         return;
 
     memset(&context, 0, sizeof(AT_MODULE_CONTEXT));
-    context.Modules = PhCreateJsonArray();
+    AtInitializeRows(&context.Modules, Call->Arguments);
     context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
 
     if (AtJsonGetObjectBoolean(Call->Arguments, "include_mapped_files"))
@@ -107,10 +105,10 @@ VOID AtpGetProcessModules(
 
     status = PhEnumGenericModules(target.ProcessItem->ProcessId, NULL, flags, AtpModuleCallback, &context);
 
-    if (!NT_SUCCESS(status) && context.Count == 0)
+    if (!NT_SUCCESS(status) && context.Modules.TotalCount == 0)
     {
         AtSetToolStatusError(Result, status, L"Enumerating modules");
-        PhFreeJsonObject(context.Modules);
+        AtDeleteRows(&context.Modules);
         PhClearReference(&context.NameContains);
         AtDeleteTarget(&target);
         return;
@@ -118,8 +116,7 @@ VOID AtpGetProcessModules(
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
-    PhAddJsonObjectValue(structured, "modules", context.Modules);
-    PhAddJsonObjectUInt64(structured, "count", context.Count);
+    AtAddRows(structured, "modules", &context.Modules);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

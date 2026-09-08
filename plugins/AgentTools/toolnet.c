@@ -259,9 +259,8 @@ VOID AtpListNetworkConnections(
     PPH_STRING protocol;
     ULONG64 pid;
     ULONG64 port;
+    AT_ROWS rows;
     PVOID structured;
-    PVOID rows;
-    ULONG count = 0;
     ULONG i;
 
     memset(&filter, 0, sizeof(AT_NETWORK_FILTER));
@@ -302,7 +301,7 @@ VOID AtpListNetworkConnections(
     }
 
     structured = PhCreateJsonObject();
-    rows = PhCreateJsonArray();
+    AtInitializeRows(&rows, Call->Arguments);
 
     for (i = 0; i < numberOfConnections; i++)
     {
@@ -385,8 +384,7 @@ VOID AtpListNetworkConnections(
             AtJsonAddString(row, "remote_host", item->RemoteHostString);
             AtJsonAddTime(row, "create_time", &item->CreateTime);
 
-            PhAddJsonArrayObject(rows, row);
-            count++;
+            AtAddRow(&rows, row);
         }
 
         PhDereferenceObject(local);
@@ -397,8 +395,7 @@ VOID AtpListNetworkConnections(
 
     PhFree(connections);
 
-    PhAddJsonObjectValue(structured, "connections", rows);
-    PhAddJsonObjectUInt64(structured, "count", count);
+    AtAddRows(structured, "connections", &rows);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
