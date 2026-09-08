@@ -398,6 +398,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListDirectory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_directory"),
         L"list the contents of a directory", L"Allow listing directories", L"list_directory"
     },
+    {
+        AtActionGetObjectSecurity, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_object_security"),
+        L"read who is allowed what on an object", L"Allow reading object security", L"get_object_security"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3970,6 +3974,70 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_object_security", L"Get object security", AtTierRead, AtActionGetObjectSecurity,
+        SETTING_NAME_TOOL_ACCESS(L"get_object_security"), SETTING_NAME_TOOL_CONFIRM(L"get_object_security"),
+        "{\"name\":\"get_object_security\",\"title\":\"Get object security\","
+        "\"description\":\"Who is allowed to do what to something, taken apart rather than handed over as SDDL: "
+        "the owner, the group, the integrity label, and one row per access control entry with the trustee named "
+        "and its mask decoded into the rights that object type actually has. Names one of a file or directory "
+        "(path), a registry key (path with a hive prefix), a service (service_name), a process (pid), a thread "
+        "(tid), or decodes a descriptor another tool returned (sddl - get_object_info gives one for a namespace "
+        "object). What to look for: an entry granting write to a group that should not have it on something that "
+        "runs (a service's own image, an autostart entry's directory), dacl_protected on something that should "
+        "inherit, or an owner that is not the account you expect - an object's owner can always rewrite its "
+        "permissions. Absent and empty are opposite answers: dacl null with dacl_present false means no list at "
+        "all, which allows everyone everything, while an empty dacl array means nobody is allowed anything. This "
+        "reads permissions and never changes them.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"A file or directory, or a registry key such as HKLM\\\\Software\\\\...\"},"
+        "\"type\":{\"type\":\"string\",\"description\":\"file or registry, when a path is ambiguous; with sddl, the object type whose rights the masks should be read against, e.g. File, Key, Process, Thread, Service, Section, Event\"},"
+        "\"service_name\":{\"type\":\"string\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\",\"description\":\"A thread, which takes precedence over pid\"},"
+        "\"sddl\":{\"type\":\"string\",\"description\":\"Decode this descriptor instead of opening anything\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"kind\":{\"type\":\"string\",\"description\":\"file, registry, service, process, thread or descriptor\"},"
+        "\"path\":{\"type\":[\"string\",\"null\"]},"
+        "\"pid\":{\"type\":[\"integer\",\"null\"],\"description\":\"The process or thread id that was read\"},"
+        "\"access_type\":{\"type\":[\"string\",\"null\"],\"description\":\"The object type the masks were decoded against; null means they are reported as numbers only\"},"
+        "\"owner\":{\"type\":\"object\",\"properties\":{"
+        "\"sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"Null when the SID cannot be named, which a deleted account and an unreachable domain both look like\"}"
+        "}},"
+        "\"group\":{\"type\":\"object\",\"properties\":{"
+        "\"sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]}"
+        "}},"
+        "\"dacl\":{\"type\":[\"array\",\"null\"],\"description\":\"Null when there is no list at all, which allows everyone everything\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"allowed, denied, audit, mandatory_label and the object and callback variants\"},"
+        "\"type_value\":{\"type\":\"integer\"},"
+        "\"sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"access_mask\":{\"type\":[\"string\",\"null\"]},"
+        "\"access\":{\"type\":[\"string\",\"null\"],\"description\":\"The mask read as rights of that object type\"},"
+        "\"flags\":{\"type\":\"string\"},"
+        "\"flag_names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"inherited\":{\"type\":\"boolean\",\"description\":\"The entry came from a parent rather than being set here\"}"
+        "}}},"
+        "\"dacl_present\":{\"type\":\"boolean\"},"
+        "\"integrity\":{\"type\":[\"object\",\"null\"],\"description\":\"The mandatory label. Null is the normal case and means medium\",\"properties\":{"
+        "\"sid\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"policy\":{\"type\":\"string\"},"
+        "\"no_write_up\":{\"type\":\"boolean\"},"
+        "\"no_read_up\":{\"type\":\"boolean\",\"description\":\"A lower integrity process cannot read the object at all\"},"
+        "\"no_execute_up\":{\"type\":\"boolean\"}"
+        "}},"
+        "\"control\":{\"type\":[\"string\",\"null\"]},"
+        "\"dacl_protected\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The list does not inherit from the parent\"},"
+        "\"dacl_auto_inherited\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"sddl\":{\"type\":[\"string\",\"null\"],\"description\":\"The whole descriptor as a string, for a caller that wants to compare or store it\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"kind\",\"owner\",\"group\",\"dacl_present\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

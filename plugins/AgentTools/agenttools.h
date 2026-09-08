@@ -172,6 +172,7 @@ typedef enum _AT_ACTION
     AtActionGetProcessKsiState,
     AtActionGetDriverObject,
     AtActionListDirectory,
+    AtActionGetObjectSecurity,
     // files and memory
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
@@ -797,6 +798,13 @@ BOOLEAN AtParseTime(
     _Out_ PLARGE_INTEGER Time
     );
 
+VOID AtParseRegistryPath(
+    _In_ PPH_STRING Path,
+    _Out_ PHANDLE Root,
+    _Out_ PPH_STRING* SubKey,
+    _Out_ PCWSTR* NativeRoot
+    );
+
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle
@@ -995,6 +1003,13 @@ VOID AtTaskInvokeTool(
     );
 
 VOID AtWmiInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtSecurityInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

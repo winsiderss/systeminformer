@@ -974,22 +974,6 @@ VOID AtpReadRegistryKey(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
-    static CONST struct
-    {
-        PCWSTR Prefix;
-        HANDLE Root;
-        PCWSTR Native;
-    } roots[] =
-    {
-        { L"HKEY_LOCAL_MACHINE", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
-        { L"HKLM", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
-        { L"HKEY_CURRENT_USER", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
-        { L"HKCU", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
-        { L"HKEY_USERS", PH_KEY_USERS, L"\\Registry\\User" },
-        { L"HKU", PH_KEY_USERS, L"\\Registry\\User" },
-        { L"HKEY_CLASSES_ROOT", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
-        { L"HKCR", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
-    };
     NTSTATUS status;
     AT_REGISTRY_CONTEXT context;
     PPH_STRING path;
@@ -1019,33 +1003,7 @@ VOID AtpReadRegistryKey(
         context.MaxData = (ULONG)min(max(maxData, 16), 1024 * 1024);
 
     // A hive prefix picks the root and the rest is relative to it; a native path opens on its own.
-    for (i = 0; i < RTL_NUMBER_OF(roots); i++)
-    {
-        PH_STRINGREF prefix;
-        PH_STRINGREF remaining;
-
-        PhInitializeStringRef(&prefix, roots[i].Prefix);
-
-        if (!PhStartsWithStringRef(&path->sr, &prefix, TRUE))
-            continue;
-
-        remaining = path->sr;
-        PhSkipStringRef(&remaining, prefix.Length);
-
-        if (remaining.Length != 0 && remaining.Buffer[0] != OBJ_NAME_PATH_SEPARATOR)
-            continue;
-
-        if (remaining.Length != 0)
-            PhSkipStringRef(&remaining, sizeof(WCHAR));
-
-        rootDirectory = roots[i].Root;
-        nativeRoot = roots[i].Native;
-        subKey = PhCreateString2(&remaining);
-        break;
-    }
-
-    if (!subKey)
-        subKey = PhReferenceObject(path);
+    AtParseRegistryPath(path, &rootDirectory, &subKey, &nativeRoot);
 
     status = PhOpenKey(&keyHandle, KEY_READ, rootDirectory, &subKey->sr, 0);
 

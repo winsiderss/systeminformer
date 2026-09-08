@@ -52,6 +52,7 @@ set(SOURCES
     "toolsvc.c"
     "toolsess.c"
     "tooltask.c"
+    "toolsec.c"
     "toolwmi.c"
     "toolsys.c"
     "toolthrd.c"

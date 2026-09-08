@@ -924,6 +924,68 @@ BOOLEAN AtParseTime(
     return !!PhSystemTimeToLargeInteger(Time, &systemTime);
 }
 
+/**
+ * Splits a registry path into the root it names and the rest. A hive prefix picks a predefined
+ * root and the remainder is relative to it; a native \Registry path opens on its own, with no
+ * root and NativeRoot left null.
+ */
+VOID AtParseRegistryPath(
+    _In_ PPH_STRING Path,
+    _Out_ PHANDLE Root,
+    _Out_ PPH_STRING* SubKey,
+    _Out_ PCWSTR* NativeRoot
+    )
+{
+    static CONST struct
+    {
+        PCWSTR Prefix;
+        HANDLE Root;
+        PCWSTR Native;
+    } roots[] =
+    {
+        { L"HKEY_LOCAL_MACHINE", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
+        { L"HKLM", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
+        { L"HKEY_CURRENT_USER", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
+        { L"HKCU", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
+        { L"HKEY_USERS", PH_KEY_USERS, L"\\Registry\\User" },
+        { L"HKU", PH_KEY_USERS, L"\\Registry\\User" },
+        { L"HKEY_CLASSES_ROOT", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
+        { L"HKCR", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
+    };
+    ULONG i;
+
+    *Root = NULL;
+    *SubKey = NULL;
+    *NativeRoot = NULL;
+
+    for (i = 0; i < RTL_NUMBER_OF(roots); i++)
+    {
+        PH_STRINGREF prefix;
+        PH_STRINGREF remaining;
+
+        PhInitializeStringRef(&prefix, roots[i].Prefix);
+
+        if (!PhStartsWithStringRef(&Path->sr, &prefix, TRUE))
+            continue;
+
+        remaining = Path->sr;
+        PhSkipStringRef(&remaining, prefix.Length);
+
+        if (remaining.Length != 0 && remaining.Buffer[0] != OBJ_NAME_PATH_SEPARATOR)
+            continue;
+
+        if (remaining.Length != 0)
+            PhSkipStringRef(&remaining, sizeof(WCHAR));
+
+        *Root = roots[i].Root;
+        *NativeRoot = roots[i].Native;
+        *SubKey = PhCreateString2(&remaining);
+        return;
+    }
+
+    *SubKey = PhReferenceObject(Path);
+}
+
 BOOLEAN AtContainsString(
     _In_opt_ PPH_STRING String,
     _In_opt_ PPH_STRING Needle
@@ -1432,6 +1494,9 @@ VOID AtInvokeTool(
         break;
     case AtActionListWmiSubscriptions:
         AtWmiInvokeTool(Tool, Call, Target, Result);
+        break;
+    case AtActionGetObjectSecurity:
+        AtSecurityInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:
     case AtActionGetFileHashes:
