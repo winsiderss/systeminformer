@@ -728,3 +728,377 @@ VOID AtpLookupFileHashHybridAnalysis(
     PhClearReference(&report.VxFamily);
     PhDereferenceObject(sha256);
 }
+
+// A registry key: what is under it and what the values say. Nothing else in the server can read the
+// registry, and persistence lives there - a Run entry, a service's ImagePath, a shell extension.
+
+// Binary values can be large and are rarely interesting past the first part of them.
+#define AT_REGISTRY_MAX_DATA 4096
+#define AT_REGISTRY_MAX_SUBKEYS 4096
+
+typedef struct _AT_REGISTRY_CONTEXT
+{
+    AT_ROWS Values;
+    PPH_LIST Subkeys;
+    PPH_STRING NameContains;
+    ULONG MaxData;
+} AT_REGISTRY_CONTEXT, *PAT_REGISTRY_CONTEXT;
+
+PCWSTR AtpRegistryTypeString(
+    _In_ ULONG Type
+    )
+{
+    switch (Type)
+    {
+    case REG_NONE:
+        return L"REG_NONE";
+    case REG_SZ:
+        return L"REG_SZ";
+    case REG_EXPAND_SZ:
+        return L"REG_EXPAND_SZ";
+    case REG_BINARY:
+        return L"REG_BINARY";
+    case REG_DWORD:
+        return L"REG_DWORD";
+    case REG_DWORD_BIG_ENDIAN:
+        return L"REG_DWORD_BIG_ENDIAN";
+    case REG_LINK:
+        return L"REG_LINK";
+    case REG_MULTI_SZ:
+        return L"REG_MULTI_SZ";
+    case REG_RESOURCE_LIST:
+        return L"REG_RESOURCE_LIST";
+    case REG_FULL_RESOURCE_DESCRIPTOR:
+        return L"REG_FULL_RESOURCE_DESCRIPTOR";
+    case REG_RESOURCE_REQUIREMENTS_LIST:
+        return L"REG_RESOURCE_REQUIREMENTS_LIST";
+    case REG_QWORD:
+        return L"REG_QWORD";
+    }
+
+    return NULL;
+}
+
+// Registry string data carries whatever the writer put there: it is not guaranteed to be terminated,
+// and not guaranteed to be an even number of bytes either.
+PPH_STRING AtpRegistryString(
+    _In_reads_bytes_(DataLength) PVOID Data,
+    _In_ ULONG DataLength
+    )
+{
+    SIZE_T length = DataLength & ~(SIZE_T)(sizeof(WCHAR) - 1);
+
+    if (length >= sizeof(WCHAR) &&
+        *(PWCHAR)PTR_ADD_OFFSET(Data, length - sizeof(WCHAR)) == UNICODE_NULL)
+    {
+        length -= sizeof(WCHAR);
+    }
+
+    return PhCreateStringEx(Data, length);
+}
+
+VOID AtpAddRegistryValue(
+    _In_ PVOID Row,
+    _In_ ULONG Type,
+    _In_reads_bytes_(DataLength) PVOID Data,
+    _In_ ULONG DataLength,
+    _In_ ULONG MaxData
+    )
+{
+    PhAddJsonObjectUInt64(Row, "data_size", DataLength);
+    AtJsonAddStringZ(Row, "type", AtpRegistryTypeString(Type));
+    PhAddJsonObjectUInt64(Row, "type_value", Type);
+    PhAddJsonObjectBoolean(Row, "truncated", DataLength > MaxData);
+
+    switch (Type)
+    {
+    case REG_SZ:
+    case REG_EXPAND_SZ:
+    case REG_LINK:
+        {
+            PPH_STRING string = AtpRegistryString(Data, min(DataLength, MaxData));
+
+            AtJsonAddString(Row, "data", string);
+            AtJsonAddNull(Row, "data_strings");
+            PhClearReference(&string);
+        }
+        break;
+    case REG_MULTI_SZ:
+        {
+            // A sequence of terminated strings ending in an empty one. A writer that leaves the
+            // final terminator off is common enough that running off the end has to be guarded.
+            PVOID array = PhCreateJsonArray();
+            SIZE_T length = min(DataLength, MaxData) & ~(SIZE_T)(sizeof(WCHAR) - 1);
+            SIZE_T offset = 0;
+
+            while (offset < length)
+            {
+                PWCHAR start = PTR_ADD_OFFSET(Data, offset);
+                SIZE_T remaining = (length - offset) / sizeof(WCHAR);
+                SIZE_T i;
+
+                for (i = 0; i < remaining && start[i] != UNICODE_NULL; i++)
+                    NOTHING;
+
+                if (i == 0)
+                    break;
+
+                PhAddJsonArrayObject(array, PhCreateJsonStringObject(
+                    PH_AUTO_T(PH_BYTES, PhConvertUtf16ToUtf8Ex(start, i * sizeof(WCHAR)))->Buffer));
+
+                offset += (i + 1) * sizeof(WCHAR);
+            }
+
+            AtJsonAddNull(Row, "data");
+            PhAddJsonObjectValue(Row, "data_strings", array);
+        }
+        break;
+    case REG_DWORD:
+        if (DataLength >= sizeof(ULONG))
+            PhAddJsonObjectUInt64(Row, "data_number", *(PULONG)Data);
+        AtJsonAddNull(Row, "data");
+        AtJsonAddNull(Row, "data_strings");
+        break;
+    case REG_DWORD_BIG_ENDIAN:
+        if (DataLength >= sizeof(ULONG))
+            PhAddJsonObjectUInt64(Row, "data_number", _byteswap_ulong(*(PULONG)Data));
+        AtJsonAddNull(Row, "data");
+        AtJsonAddNull(Row, "data_strings");
+        break;
+    case REG_QWORD:
+        if (DataLength >= sizeof(ULONG64))
+            PhAddJsonObjectUInt64(Row, "data_number", *(PULONG64)Data);
+        AtJsonAddNull(Row, "data");
+        AtJsonAddNull(Row, "data_strings");
+        break;
+    default:
+        {
+            // Everything else is bytes, and hex is the only honest rendering of bytes.
+            PPH_STRING string = PhBufferToHexStringEx(Data, min(DataLength, MaxData), FALSE);
+
+            AtJsonAddString(Row, "data_hex", string);
+            AtJsonAddNull(Row, "data");
+            AtJsonAddNull(Row, "data_strings");
+            PhClearReference(&string);
+        }
+        break;
+    }
+}
+
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI AtpRegistryValueCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_REGISTRY_CONTEXT context = Context;
+    PKEY_VALUE_FULL_INFORMATION information = Information;
+    PPH_STRING name;
+    PVOID row;
+
+    if (!context)
+        return FALSE;
+
+    // The unnamed value is the key's default, which every editor shows as "(Default)".
+    name = information->NameLength ?
+        PhCreateStringEx(information->Name, information->NameLength) : NULL;
+
+    if (context->NameContains && !AtContainsString(name, context->NameContains))
+    {
+        PhClearReference(&name);
+        return TRUE;
+    }
+
+    row = PhCreateJsonObject();
+    AtJsonAddString(row, "name", name);
+    PhAddJsonObjectBoolean(row, "is_default", !information->NameLength);
+    AtpAddRegistryValue(
+        row,
+        information->Type,
+        PTR_ADD_OFFSET(information, information->DataOffset),
+        information->DataLength,
+        context->MaxData
+        );
+    AtAddRow(&context->Values, row);
+
+    PhClearReference(&name);
+
+    return TRUE;
+}
+
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI AtpRegistrySubkeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PVOID Information,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_REGISTRY_CONTEXT context = Context;
+    PKEY_BASIC_INFORMATION information = Information;
+    PVOID row;
+    PPH_STRING name;
+
+    if (!context || context->Subkeys->Count >= AT_REGISTRY_MAX_SUBKEYS)
+        return FALSE;
+
+    name = PhCreateStringEx(information->Name, information->NameLength);
+
+    if (context->NameContains && !AtContainsString(name, context->NameContains))
+    {
+        PhClearReference(&name);
+        return TRUE;
+    }
+
+    row = PhCreateJsonObject();
+    AtJsonAddString(row, "name", name);
+    AtJsonAddTime(row, "last_write_time", &information->LastWriteTime);
+    PhAddItemList(context->Subkeys, row);
+
+    PhClearReference(&name);
+
+    return TRUE;
+}
+
+VOID AtpReadRegistryKey(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST struct
+    {
+        PCWSTR Prefix;
+        HANDLE Root;
+        PCWSTR Native;
+    } roots[] =
+    {
+        { L"HKEY_LOCAL_MACHINE", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
+        { L"HKLM", PH_KEY_LOCAL_MACHINE, L"\\Registry\\Machine" },
+        { L"HKEY_CURRENT_USER", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
+        { L"HKCU", PH_KEY_CURRENT_USER, L"\\Registry\\User\\<current>" },
+        { L"HKEY_USERS", PH_KEY_USERS, L"\\Registry\\User" },
+        { L"HKU", PH_KEY_USERS, L"\\Registry\\User" },
+        { L"HKEY_CLASSES_ROOT", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
+        { L"HKCR", PH_KEY_CLASSES_ROOT, L"\\Registry\\Machine\\Software\\Classes" },
+    };
+    NTSTATUS status;
+    AT_REGISTRY_CONTEXT context;
+    PPH_STRING path;
+    PPH_STRING subKey = NULL;
+    HANDLE rootDirectory = NULL;
+    HANDLE keyHandle;
+    PCWSTR nativeRoot = NULL;
+    KEY_FULL_INFORMATION keyInformation;
+    LARGE_INTEGER lastWriteTime;
+    ULONG64 maxData = AT_REGISTRY_MAX_DATA;
+    PVOID structured;
+    PVOID array;
+    ULONG i;
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        PhClearReference(&path);
+        return;
+    }
+
+    memset(&context, 0, sizeof(AT_REGISTRY_CONTEXT));
+    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    context.MaxData = AT_REGISTRY_MAX_DATA;
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_data_bytes", &maxData))
+        context.MaxData = (ULONG)min(max(maxData, 16), 1024 * 1024);
+
+    // A hive prefix picks the root and the rest is relative to it; a native path opens on its own.
+    for (i = 0; i < RTL_NUMBER_OF(roots); i++)
+    {
+        PH_STRINGREF prefix;
+        PH_STRINGREF remaining;
+
+        PhInitializeStringRef(&prefix, roots[i].Prefix);
+
+        if (!PhStartsWithStringRef(&path->sr, &prefix, TRUE))
+            continue;
+
+        remaining = path->sr;
+        PhSkipStringRef(&remaining, prefix.Length);
+
+        if (remaining.Length != 0 && remaining.Buffer[0] != OBJ_NAME_PATH_SEPARATOR)
+            continue;
+
+        if (remaining.Length != 0)
+            PhSkipStringRef(&remaining, sizeof(WCHAR));
+
+        rootDirectory = roots[i].Root;
+        nativeRoot = roots[i].Native;
+        subKey = PhCreateString2(&remaining);
+        break;
+    }
+
+    if (!subKey)
+        subKey = PhReferenceObject(path);
+
+    status = PhOpenKey(&keyHandle, KEY_READ, rootDirectory, &subKey->sr, 0);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Opening the key");
+        PhDereferenceObject(subKey);
+        PhClearReference(&context.NameContains);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    AtJsonAddStringZ(structured, "root", nativeRoot);
+
+    if (NT_SUCCESS(PhQueryKeyLastWriteTime(keyHandle, &lastWriteTime)))
+        AtJsonAddTime(structured, "last_write_time", &lastWriteTime);
+    else
+        AtJsonAddNull(structured, "last_write_time");
+
+    if (NT_SUCCESS(PhQueryKeyInformation(keyHandle, &keyInformation)))
+    {
+        PhAddJsonObjectUInt64(structured, "subkey_count", keyInformation.SubKeys);
+        PhAddJsonObjectUInt64(structured, "value_count", keyInformation.Values);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "subkey_count");
+        AtJsonAddNull(structured, "value_count");
+    }
+
+    AtInitializeRows(&context.Values, Call->Arguments);
+    context.Subkeys = PhCreateList(16);
+
+    if (AtJsonGetObjectMember(Call->Arguments, "include_values", PH_JSON_OBJECT_TYPE_BOOLEAN) == NULL ||
+        AtJsonGetObjectBoolean(Call->Arguments, "include_values"))
+    {
+        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpRegistryValueCallback, &context);
+    }
+
+    if (AtJsonGetObjectMember(Call->Arguments, "include_subkeys", PH_JSON_OBJECT_TYPE_BOOLEAN) == NULL ||
+        AtJsonGetObjectBoolean(Call->Arguments, "include_subkeys"))
+    {
+        PhEnumerateKey(keyHandle, KeyBasicInformation, AtpRegistrySubkeyCallback, &context);
+    }
+
+    AtAddRows(structured, "values", &context.Values);
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < context.Subkeys->Count; i++)
+        PhAddJsonArrayObject(array, context.Subkeys->Items[i]);
+
+    PhAddJsonObjectValue(structured, "subkeys", array);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&context.Values);
+    PhDereferenceObject(context.Subkeys);
+    NtClose(keyHandle);
+    PhDereferenceObject(subKey);
+    PhClearReference(&context.NameContains);
+    PhDereferenceObject(path);
+}

@@ -344,6 +344,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"ask Hybrid Analysis about a file hash", L"Send a file hash to Hybrid Analysis", L"lookup_file_hash_hybrid_analysis"
     },
     {
+        AtActionReadRegistryKey, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"read_registry_key"),
+        L"read a registry key", L"Allow reading registry keys", L"read_registry_key"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3246,6 +3250,52 @@ CONST AT_TOOL AtTools[] =
         "\"family\":{\"type\":[\"string\",\"null\"],\"description\":\"The malware family name, when one was assigned\"}"
         "},\"required\":[\"sha256\",\"from_cache\",\"http_status\"]},"
         "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
+    },
+    {
+        "read_registry_key", L"Read a registry key", AtTierRead, AtActionReadRegistryKey,
+        SETTING_NAME_TOOL_ACCESS(L"read_registry_key"), SETTING_NAME_TOOL_CONFIRM(L"read_registry_key"),
+        "{\"name\":\"read_registry_key\",\"title\":\"Read a registry key\","
+        "\"description\":\"Reads a registry key: its values, decoded by type, and the names of its subkeys. This is "
+        "where persistence lives - a Run entry, a service's ImagePath, a shell extension, an image file execution "
+        "option - and nothing else here can see it. Takes a hive prefix (HKLM, HKCU, HKU, HKCR, or the long forms) "
+        "or a native \\\\Registry path. Reads with this account's rights, so a key it cannot open is refused rather "
+        "than returned empty. Strings arrive in data, multi strings in data_strings, numbers in data_number and "
+        "everything else as hex in data_hex, because registry data is whatever the writer put there. Values can "
+        "hold credentials; this returns what it is asked for. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"For example HKLM\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run\"},"
+        "\"include_values\":{\"type\":\"boolean\",\"description\":\"Default true\"},"
+        "\"include_subkeys\":{\"type\":\"boolean\",\"description\":\"Default true. Names only, one level; read a subkey by asking for it\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring; applies to both value and subkey names\"},"
+        "\"max_data_bytes\":{\"type\":\"integer\",\"minimum\":16,\"maximum\":1048576,\"description\":\"How much of each value to return; default 4096, and truncated says when it was not all of it\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"root\":{\"type\":[\"string\",\"null\"],\"description\":\"The native path the hive prefix resolved to\"},"
+        "\"last_write_time\":{\"type\":[\"string\",\"null\"],\"description\":\"ISO 8601 UTC. Changes when a value under this key changes\"},"
+        "\"subkey_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"What the key reports, before any name filter\"},"
+        "\"value_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"values\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for the key's default value\"},"
+        "\"is_default\":{\"type\":\"boolean\"},"
+        "\"type\":{\"type\":[\"string\",\"null\"],\"description\":\"REG_SZ, REG_DWORD, REG_BINARY and so on\"},"
+        "\"type_value\":{\"type\":\"integer\"},"
+        "\"data_size\":{\"type\":\"integer\",\"description\":\"The value's full size, whatever was returned\"},"
+        "\"truncated\":{\"type\":\"boolean\"},"
+        "\"data\":{\"type\":[\"string\",\"null\"],\"description\":\"String types only\"},"
+        "\"data_strings\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"REG_MULTI_SZ only\"},"
+        "\"data_number\":{\"type\":\"integer\",\"description\":\"REG_DWORD and REG_QWORD only\"},"
+        "\"data_hex\":{\"type\":\"string\",\"description\":\"Everything else, including REG_BINARY\"}"
+        "},\"required\":[\"is_default\",\"type_value\",\"data_size\",\"truncated\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"subkeys\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\"},"
+        "\"last_write_time\":{\"type\":\"string\"}"
+        "},\"required\":[\"name\"]}}"
+        "},\"required\":[\"path\",\"values\",\"subkeys\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
     },
     {
         "get_file_scan_result_cached", L"Get cached scan verdict", AtTierRead, AtActionGetFileScanResultCached,

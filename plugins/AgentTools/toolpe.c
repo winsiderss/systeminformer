@@ -1201,6 +1201,9 @@ VOID AtPeInvokeTool(
     case AtActionLookupFileHashHybridAnalysis:
         AtpLookupFileHashHybridAnalysis(Call, Result);
         break;
+    case AtActionReadRegistryKey:
+        AtpReadRegistryKey(Call, Result);
+        break;
     case AtActionGetFileHashes:
         AtpGetFileHashes(Call, Result);
         break;
