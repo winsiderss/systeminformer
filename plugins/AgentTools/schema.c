@@ -39,6 +39,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read recently logged events", L"Allow reading recently logged events", L"list_recent_events"
     },
     {
+        AtActionListRecentProcessExits, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_recent_process_exits"),
+        L"read what recently exited", L"Allow reading what recently exited", L"list_recent_process_exits"
+    },
+    {
         AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
@@ -615,6 +619,43 @@ CONST AT_TOOL AtTools[] =
         "\"has_more\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"events\",\"count\",\"next_cursor\",\"dropped\",\"has_more\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_recent_process_exits", L"List recent process exits", AtTierRead, AtActionListRecentProcessExits,
+        SETTING_NAME_TOOL_ACCESS(L"list_recent_process_exits"), SETTING_NAME_TOOL_CONFIRM(L"list_recent_process_exits"),
+        "{\"name\":\"list_recent_process_exits\",\"title\":\"List recent process exits\","
+        "\"description\":\"Processes that have exited, newest first, with what they were: command line, image path, "
+        "user, parent, how long they ran and the status they exited with. A process that has exited is gone from "
+        "every other tool, so this is the only way to ask what just ran and died. Kept from when the agent tools were "
+        "loaded, bounded to the most recent few hundred, and built from System Informer's provider, which samples: a "
+        "process that started and exited between two runs was never seen and is not here. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the name or command line\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only exits of this process id\"},"
+        "\"failed_only\":{\"type\":\"boolean\",\"description\":\"Only processes that exited with a non-zero code\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"processes\":{\"type\":\"array\",\"description\":\"Newest first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"image_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"command_line\":{\"type\":[\"string\",\"null\"]},"
+        "\"user\":{\"type\":[\"string\",\"null\"]},"
+        "\"session_id\":{\"type\":\"integer\"},"
+        "\"start_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"exit_time\":{\"type\":[\"string\",\"null\"],\"description\":\"When System Informer saw it gone, which is the end of the run that noticed\"},"
+        "\"lifetime_seconds\":{\"type\":[\"number\",\"null\"]},"
+        "\"exit_status\":{\"type\":[\"string\",\"null\"],\"description\":\"The raw value in hexadecimal; null when it could not be read\"},"
+        "\"exit_code\":{\"type\":[\"integer\",\"null\"],\"description\":\"The same value as a number, which is what a program returning a code set\"},"
+        "\"exit_success\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Whether the value is zero. An exit code is not an NTSTATUS, so a non-zero value is a failure even when it would read as an NTSTATUS success\"},"
+        "\"parent_pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"parent_name\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"pid\",\"process_sequence_number\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

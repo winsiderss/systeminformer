@@ -69,6 +69,34 @@ typedef struct _AT_EVENT
     PPH_STRING Detail;
 } AT_EVENT, *PAT_EVENT;
 
+// A process that has exited is gone from every list, so what it was has to be kept at the moment it
+// went: the command line and image path are the point, since that is what an agent is asking about
+// when it asks what just ran and died.
+
+#define AT_EXIT_RING_SIZE 256
+
+typedef struct _AT_PROCESS_EXIT
+{
+    BOOLEAN Used;
+    HANDLE ProcessId;
+    ULONG64 SequenceNumber;
+    HANDLE ParentProcessId;
+    ULONG SessionId;
+    NTSTATUS ExitStatus;
+    BOOLEAN HaveExitStatus;
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER ExitTime;
+    PPH_STRING Name;
+    PPH_STRING FileName;
+    PPH_STRING CommandLine;
+    PPH_STRING UserName;
+    PPH_STRING ParentName;
+} AT_PROCESS_EXIT, *PAT_PROCESS_EXIT;
+
+static AT_PROCESS_EXIT AtExitRing[AT_EXIT_RING_SIZE];
+static ULONG AtExitNext = 0;
+static ULONG AtExitCount = 0;
+
 static PH_QUEUED_LOCK AtEventLock = PH_QUEUED_LOCK_INIT;
 static AT_EVENT AtEventRing[AT_EVENT_RING_SIZE];
 static ULONG64 AtEventNextCursor = 1;
@@ -124,6 +152,58 @@ PAT_EVENT AtpPushEvent(
     PhQuerySystemTime(&event->Time);
 
     return event;
+}
+
+// Lock held.
+VOID AtpRecordProcessExit(
+    _In_ PPH_PROCESS_ITEM ProcessItem,
+    _In_ BOOLEAN HaveExitStatus,
+    _In_ NTSTATUS ExitStatus
+    )
+{
+    PAT_PROCESS_EXIT exit;
+
+    exit = &AtExitRing[AtExitNext];
+    AtExitNext = (AtExitNext + 1) % AT_EXIT_RING_SIZE;
+
+    if (exit->Used)
+    {
+        PhClearReference(&exit->Name);
+        PhClearReference(&exit->FileName);
+        PhClearReference(&exit->CommandLine);
+        PhClearReference(&exit->UserName);
+        PhClearReference(&exit->ParentName);
+    }
+    else
+    {
+        AtExitCount++;
+    }
+
+    memset(exit, 0, sizeof(AT_PROCESS_EXIT));
+    exit->Used = TRUE;
+    exit->ProcessId = ProcessItem->ProcessId;
+    exit->SequenceNumber = ProcessItem->ProcessSequenceNumber;
+    exit->ParentProcessId = ProcessItem->ParentProcessId;
+    exit->SessionId = ProcessItem->SessionId;
+    exit->CreateTime = ProcessItem->CreateTime;
+    exit->ExitStatus = ExitStatus;
+    exit->HaveExitStatus = HaveExitStatus;
+    PhQuerySystemTime(&exit->ExitTime);
+    PhSetReference(&exit->Name, ProcessItem->ProcessName);
+    PhSetReference(&exit->FileName, ProcessItem->FileName);
+    PhSetReference(&exit->CommandLine, ProcessItem->CommandLine);
+    PhSetReference(&exit->UserName, ProcessItem->UserName);
+
+    if (ProcessItem->ParentProcessId)
+    {
+        PPH_PROCESS_ITEM parent;
+
+        if (parent = PhReferenceProcessItem(ProcessItem->ParentProcessId))
+        {
+            PhSetReference(&exit->ParentName, parent->ProcessName);
+            PhDereferenceObject(parent);
+        }
+    }
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -196,6 +276,8 @@ VOID NTAPI AtpEventProcessRemovedCallback(
         event->ExitStatus = basicInfo.ExitStatus;
         event->HaveExitStatus = TRUE;
     }
+
+    AtpRecordProcessExit(processItem, haveExitStatus, haveExitStatus ? basicInfo.ExitStatus : 0);
 
     PhReleaseQueuedLockExclusive(&AtEventLock);
 }
@@ -412,6 +494,19 @@ VOID AtEventsUninitialize(
     for (i = 0; i < AT_EVENT_RING_SIZE; i++)
         AtpClearEvent(&AtEventRing[i]);
 
+    for (i = 0; i < AT_EXIT_RING_SIZE; i++)
+    {
+        PhClearReference(&AtExitRing[i].Name);
+        PhClearReference(&AtExitRing[i].FileName);
+        PhClearReference(&AtExitRing[i].CommandLine);
+        PhClearReference(&AtExitRing[i].UserName);
+        PhClearReference(&AtExitRing[i].ParentName);
+        memset(&AtExitRing[i], 0, sizeof(AT_PROCESS_EXIT));
+    }
+
+    AtExitNext = 0;
+    AtExitCount = 0;
+
     PhReleaseQueuedLockExclusive(&AtEventLock);
 }
 
@@ -566,6 +661,105 @@ VOID AtpListRecentEvents(
     Result->StructuredContent = structured;
 }
 
+VOID AtpListRecentProcessExits(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_ROWS rows;
+    PVOID structured;
+    PPH_STRING nameContains;
+    ULONG64 pid;
+    BOOLEAN havePid;
+    BOOLEAN failedOnly;
+    ULONG i;
+    ULONG index;
+
+    nameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    havePid = AtGetArgumentUInt64(Call->Arguments, "pid", &pid) && pid <= MAXULONG;
+    failedOnly = AtJsonGetObjectBoolean(Call->Arguments, "failed_only");
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    PhAcquireQueuedLockShared(&AtEventLock);
+
+    // Newest first: what just died is what is being asked about.
+    for (i = 0; i < AtExitCount; i++)
+    {
+        PAT_PROCESS_EXIT exit;
+        PVOID row;
+
+        index = (AtExitNext + AT_EXIT_RING_SIZE - 1 - i) % AT_EXIT_RING_SIZE;
+        exit = &AtExitRing[index];
+
+        if (!exit->Used)
+            continue;
+
+        if (!AtContainsString(exit->Name, nameContains) &&
+            !AtContainsString(exit->CommandLine, nameContains))
+        {
+            continue;
+        }
+
+        if (havePid && exit->ProcessId != UlongToHandle((ULONG)pid))
+            continue;
+
+        // Non-zero, not NT_SUCCESS: a process exit code is not an NTSTATUS. A program that
+        // returns 7 has failed, but 0x7 has severity zero and NT_SUCCESS calls it success. Zero is
+        // the only value that means success in both readings.
+        if (failedOnly && (!exit->HaveExitStatus || exit->ExitStatus == 0))
+            continue;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "pid", HandleToUlong(exit->ProcessId));
+        PhAddJsonObjectUInt64(row, "process_sequence_number", exit->SequenceNumber);
+        AtJsonAddString(row, "name", exit->Name);
+        AtJsonAddWin32FileName(row, "image_path", exit->FileName);
+        AtJsonAddString(row, "command_line", exit->CommandLine);
+        AtJsonAddString(row, "user", exit->UserName);
+        PhAddJsonObjectUInt64(row, "session_id", exit->SessionId);
+        AtJsonAddTime(row, "start_time", &exit->CreateTime);
+        AtJsonAddTime(row, "exit_time", &exit->ExitTime);
+
+        if (exit->CreateTime.QuadPart && exit->ExitTime.QuadPart > exit->CreateTime.QuadPart)
+            AtJsonAddDuration(row, "lifetime_seconds", exit->ExitTime.QuadPart - exit->CreateTime.QuadPart);
+        else
+            AtJsonAddNull(row, "lifetime_seconds");
+
+        if (exit->HaveExitStatus)
+        {
+            AtJsonAddHex(row, "exit_status", (ULONG)exit->ExitStatus);
+            PhAddJsonObjectUInt64(row, "exit_code", (ULONG)exit->ExitStatus);
+            PhAddJsonObjectBoolean(row, "exit_success", exit->ExitStatus == 0);
+        }
+        else
+        {
+            AtJsonAddNull(row, "exit_status");
+            AtJsonAddNull(row, "exit_code");
+            AtJsonAddNull(row, "exit_success");
+        }
+
+        if (exit->ParentProcessId)
+            PhAddJsonObjectUInt64(row, "parent_pid", HandleToUlong(exit->ParentProcessId));
+        else
+            AtJsonAddNull(row, "parent_pid");
+
+        AtJsonAddString(row, "parent_name", exit->ParentName);
+
+        AtAddRow(&rows, row);
+    }
+
+    PhReleaseQueuedLockShared(&AtEventLock);
+
+    structured = PhCreateJsonObject();
+    AtAddRows(structured, "processes", &rows);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&nameContains);
+}
+
 VOID AtEventInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -579,6 +773,9 @@ VOID AtEventInvokeTool(
     {
     case AtActionListRecentEvents:
         AtpListRecentEvents(Call, Result);
+        break;
+    case AtActionListRecentProcessExits:
+        AtpListRecentProcessExits(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
