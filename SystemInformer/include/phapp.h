@@ -669,9 +669,14 @@ VOID PhShowInformerWindow(
 
 // ksyscall
 
-PPH_STRING PhGetSystemCallNumberName(
+// begin_phapppub
+PHAPPAPI
+PPH_STRING
+NTAPI
+PhGetSystemCallNumberName(
     _In_ USHORT SystemCallNumber
     );
+// end_phapppub
 
 // logwnd
 

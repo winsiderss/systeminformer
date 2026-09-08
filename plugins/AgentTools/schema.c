@@ -151,6 +151,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read wait chains", L"Read the wait chains of", L"get_thread_wait_chain"
     },
     {
+        AtActionAnalyzeThreadWait, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetThread, THREAD_GET_CONTEXT | THREAD_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"analyze_thread_wait"),
+        L"analyze what a thread is waiting on", L"Analyze the wait of", L"analyze_thread_wait"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -1894,6 +1898,50 @@ CONST AT_TOOL AtTools[] =
         "\"deadlocked_count\":{\"type\":\"integer\",\"description\":\"How many of the chains closed into a cycle\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\",\"deadlocked_count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "analyze_thread_wait", L"Analyze thread wait", AtTierSensitiveRead, AtActionAnalyzeThreadWait,
+        SETTING_NAME_TOOL_ACCESS(L"analyze_thread_wait"), SETTING_NAME_TOOL_CONFIRM(L"analyze_thread_wait"),
+        "{\"name\":\"analyze_thread_wait\",\"title\":\"Analyze thread wait\","
+        "\"description\":\"Names the thing one thread is blocked on. The system call the thread is sitting in "
+        "carries its first argument, which for a wait or a file read is a handle, so the object is named by "
+        "reading it out of the target's handle table - the event, the mutex, the named pipe, the file. "
+        "get_thread_wait_chain says who holds a lock; this says which object, including for waits no chain "
+        "covers. kind is object, objects, file_io, user_message (the thread is inside SendMessage to a window "
+        "that is not answering, and the window and its owner are reported), alpc (the port and the process on "
+        "the other end), or unknown. A wait on several objects reports how many, not which: recovering the "
+        "rest of the arguments needs a stack walk that only works for a 32-bit target. Naming the object needs "
+        "duplicate rights on the process; without them the system call and its argument are still reported. "
+        AT_SENSITIVE_NOTE "\","
+        "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"system_call\":{\"type\":[\"string\",\"null\"],\"description\":\"The call the thread is in, named from the ntdll and win32k export tables; null when the number is not in either\"},"
+        "\"system_call_number\":{\"type\":\"integer\"},"
+        "\"first_argument\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal; a handle for the object and file_io kinds, a count for objects\"},"
+        "\"wait_seconds\":{\"type\":[\"number\",\"null\"],\"description\":\"How long the thread has been in this call\"},"
+        "\"kind\":{\"type\":\"string\",\"description\":\"object, objects, file_io, user_message, alpc or unknown\"},"
+        "\"waiting_on\":{\"type\":\"object\",\"description\":\"Only the fields belonging to kind are filled\",\"properties\":{"
+        "\"handle\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal handle in the target process\"},"
+        "\"type_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Event, Mutant, File, and so on\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"The object's name; null for an unnamed object or without duplicate rights\"},"
+        "\"count\":{\"type\":[\"integer\",\"null\"],\"description\":\"How many objects the thread is waiting on\"},"
+        "\"window\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"window\":{\"type\":\"string\"},"
+        "\"pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"tid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"class_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"text\":{\"type\":[\"string\",\"null\"]}"
+        "}},"
+        "\"alpc\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"port_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"connected_pid\":{\"type\":\"integer\"},"
+        "\"connected_process_name\":{\"type\":[\"string\",\"null\"]}"
+        "}}"
+        "}}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"system_call_number\",\"kind\",\"waiting_on\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

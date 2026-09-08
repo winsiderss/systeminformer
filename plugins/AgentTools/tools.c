@@ -1250,6 +1250,7 @@ VOID AtInvokeTool(
         AtThreadInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetThreadWaitChain:
+    case AtActionAnalyzeThreadWait:
         AtWaitInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessModules:

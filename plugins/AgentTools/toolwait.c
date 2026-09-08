@@ -354,6 +354,231 @@ VOID AtpGetThreadWaitChain(
     Result->StructuredContent = structured;
 }
 
+// What one thread is blocked on, from the system call it is sitting in. The wait chain says who
+// holds the object; this says which object, by name. ThreadLastSystemCall carries the first argument
+// of that call, which for a wait or a file read is the handle - so the object can be named by
+// duplicating that handle out of the target.
+//
+// This is the passive path of the application's own analysis (anawait.c). The other path walks the
+// stack to recover the remaining arguments, which only works for a 32-bit target, so a wait on
+// several objects reports how many rather than which.
+
+VOID AtpAddWaitHandleInfo(
+    _In_ PVOID Waiting,
+    _In_opt_ HANDLE ProcessHandle,
+    _In_ HANDLE Handle
+    )
+{
+    PPH_STRING typeName = NULL;
+    PPH_STRING bestObjectName = NULL;
+
+    AtJsonAddPointer(Waiting, "handle", Handle);
+
+    if (ProcessHandle)
+    {
+        PhGetHandleInformation(
+            ProcessHandle,
+            Handle,
+            ULONG_MAX,
+            NULL,
+            &typeName,
+            NULL,
+            &bestObjectName
+            );
+    }
+
+    AtJsonAddString(Waiting, "type_name", typeName);
+    AtJsonAddString(Waiting, "name", bestObjectName);
+    PhClearReference(&typeName);
+    PhClearReference(&bestObjectName);
+}
+
+BOOLEAN AtpAddWaitWindowInfo(
+    _In_ PVOID Waiting,
+    _In_ HANDLE ThreadId
+    )
+{
+    HWND windowHandle;
+    CLIENT_ID clientId;
+    PVOID window;
+    PPH_STRING text;
+    WCHAR className[64];
+
+    if (!NT_SUCCESS(PhGetSendMessageReceiver(ThreadId, &windowHandle)))
+        return FALSE;
+
+    window = PhCreateJsonObject();
+    AtJsonAddPointer(window, "window", windowHandle);
+
+    if (NT_SUCCESS(PhGetWindowClientId(windowHandle, &clientId)))
+    {
+        PhAddJsonObjectUInt64(window, "pid", HandleToUlong(clientId.UniqueProcess));
+        PhAddJsonObjectUInt64(window, "tid", HandleToUlong(clientId.UniqueThread));
+    }
+    else
+    {
+        AtJsonAddNull(window, "pid");
+        AtJsonAddNull(window, "tid");
+    }
+
+    if (NT_SUCCESS(PhGetClassName(windowHandle, className, RTL_NUMBER_OF(className), NULL)))
+        AtJsonAddStringZ(window, "class_name", className);
+    else
+        AtJsonAddNull(window, "class_name");
+
+    text = PhGetWindowText(windowHandle);
+    AtJsonAddString(window, "text", text);
+    PhClearReference(&text);
+
+    PhAddJsonObjectValue(Waiting, "window", window);
+
+    return TRUE;
+}
+
+BOOLEAN AtpAddWaitAlpcInfo(
+    _In_ PVOID Waiting,
+    _In_ HANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    PALPC_SERVER_INFORMATION serverInformation;
+    ULONG bufferLength;
+    BOOLEAN found = FALSE;
+
+    bufferLength = 0x110;
+    serverInformation = PhAllocate(bufferLength);
+    serverInformation->In.ThreadHandle = ThreadHandle;
+
+    status = NtAlpcQueryInformation(NULL, AlpcServerInformation, serverInformation, bufferLength, &bufferLength);
+
+    if (status == STATUS_INFO_LENGTH_MISMATCH)
+    {
+        PhFree(serverInformation);
+        serverInformation = PhAllocate(bufferLength);
+        serverInformation->In.ThreadHandle = ThreadHandle;
+
+        status = NtAlpcQueryInformation(NULL, AlpcServerInformation, serverInformation, bufferLength, &bufferLength);
+    }
+
+    // ThreadBlocked is what says the thread is waiting on the port rather than merely owning it.
+    if (NT_SUCCESS(status) && serverInformation->Out.ThreadBlocked)
+    {
+        PVOID alpc = PhCreateJsonObject();
+        PPH_STRING portName;
+        PPH_PROCESS_ITEM processItem;
+
+        portName = PhCreateStringFromUnicodeString(&serverInformation->Out.ConnectionPortName);
+        AtJsonAddString(alpc, "port_name", portName);
+        PhClearReference(&portName);
+
+        PhAddJsonObjectUInt64(alpc, "connected_pid", HandleToUlong(serverInformation->Out.ConnectedProcessId));
+
+        if (processItem = PhReferenceProcessItem(serverInformation->Out.ConnectedProcessId))
+        {
+            AtJsonAddString(alpc, "connected_process_name", processItem->ProcessName);
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            AtJsonAddNull(alpc, "connected_process_name");
+        }
+
+        PhAddJsonObjectValue(Waiting, "alpc", alpc);
+        found = TRUE;
+    }
+
+    PhFree(serverInformation);
+
+    return found;
+}
+
+VOID AtpAnalyzeThreadWait(
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    THREAD_LAST_SYSCALL_INFORMATION lastSystemCall;
+    PPH_STRING systemCallName;
+    HANDLE processHandle = NULL;
+    PCSTR kind = "unknown";
+    PVOID waiting;
+    PVOID structured;
+
+    status = PhGetThreadLastSystemCall(Target->ThreadHandle, &lastSystemCall);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Reading the thread's last system call");
+        return;
+    }
+
+    systemCallName = PhGetSystemCallNumberName(lastSystemCall.SystemCallNumber);
+
+    // Naming the object means reading it out of the target's handle table, which needs duplicate
+    // rights. Without them the system call and its argument are still reported.
+    PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE, Target->ProcessItem->ProcessId);
+
+    waiting = PhCreateJsonObject();
+    AtJsonAddNull(waiting, "handle");
+    AtJsonAddNull(waiting, "type_name");
+    AtJsonAddNull(waiting, "name");
+    AtJsonAddNull(waiting, "count");
+    AtJsonAddNull(waiting, "window");
+    AtJsonAddNull(waiting, "alpc");
+
+    if (systemCallName && PhEqualString2(systemCallName, L"NtWaitForSingleObject", TRUE))
+    {
+        kind = "object";
+        AtpAddWaitHandleInfo(waiting, processHandle, lastSystemCall.FirstArgument);
+    }
+    else if (systemCallName && (
+        PhEqualString2(systemCallName, L"NtWaitForMultipleObjects", TRUE) ||
+        PhEqualString2(systemCallName, L"NtUserMsgWaitForMultipleObjects", TRUE) ||
+        PhEqualString2(systemCallName, L"NtUserMsgWaitForMultipleObjectsEx", TRUE)
+        ))
+    {
+        // The count is the only argument this path can recover; which objects they are needs the
+        // stack walk the 32-bit path does.
+        kind = "objects";
+        PhAddJsonObjectUInt64(waiting, "count", PtrToUlong(lastSystemCall.FirstArgument));
+    }
+    else if (systemCallName && (
+        PhEqualString2(systemCallName, L"NtReadFile", TRUE) ||
+        PhEqualString2(systemCallName, L"NtWriteFile", TRUE)
+        ))
+    {
+        kind = "file_io";
+        AtpAddWaitHandleInfo(waiting, processHandle, lastSystemCall.FirstArgument);
+    }
+    else if (AtpAddWaitWindowInfo(waiting, Target->ThreadId))
+    {
+        kind = "user_message";
+    }
+    else if (AtpAddWaitAlpcInfo(waiting, Target->ThreadHandle))
+    {
+        kind = "alpc";
+    }
+
+    if (processHandle)
+        NtClose(processHandle);
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    PhAddJsonObjectUInt64(structured, "tid", HandleToUlong(Target->ThreadId));
+    AtJsonAddString(structured, "system_call", systemCallName);
+    PhAddJsonObjectUInt64(structured, "system_call_number", lastSystemCall.SystemCallNumber);
+    AtJsonAddPointer(structured, "first_argument", lastSystemCall.FirstArgument);
+    AtJsonAddDuration(structured, "wait_seconds", lastSystemCall.WaitTime);
+    PhAddJsonObject(structured, "kind", kind);
+    PhAddJsonObjectValue(structured, "waiting_on", waiting);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&systemCallName);
+}
+
 VOID AtWaitInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -365,6 +590,9 @@ VOID AtWaitInvokeTool(
     {
     case AtActionGetThreadWaitChain:
         AtpGetThreadWaitChain(Call, Target, Result);
+        break;
+    case AtActionAnalyzeThreadWait:
+        AtpAnalyzeThreadWait(Target, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
