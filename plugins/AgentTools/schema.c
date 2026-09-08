@@ -171,6 +171,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read graphics adapter utilization", L"Allow reading GPU utilization", L"get_gpu_usage"
     },
     {
+        AtActionListGpuAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_gpu_adapters"),
+        L"list the graphics adapters", L"Allow listing graphics adapters", L"list_gpu_adapters"
+    },
+    {
+        AtActionGetProcessGpuStats, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_gpu_stats"),
+        L"read the graphics usage of processes", L"Allow reading process GPU usage", L"get_process_gpu_stats"
+    },
+    {
         AtActionGetProcessIoRates, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_io_rates"),
         L"read the disk and network I/O of processes", L"Allow reading process I/O rates", L"get_process_io_rates"
     },
@@ -1507,6 +1515,102 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_gpu_adapters", L"List graphics adapters", AtTierRead, AtActionListGpuAdapters,
+        SETTING_NAME_TOOL_ACCESS(L"list_gpu_adapters"), SETTING_NAME_TOOL_CONFIRM(L"list_gpu_adapters"),
+        "{\"name\":\"list_gpu_adapters\",\"title\":\"List graphics adapters\","
+        "\"description\":\"What graphics adapters this machine has, as the graphics kernel describes them: name and "
+        "chip, PCI vendor and device ids, driver model, memory limits, engines and their types, and the sensors the "
+        "driver chooses to expose. A machine reports more adapters than it has cards, so read software_device and "
+        "compute_only before treating a row as hardware. tdr_count is how many times the adapter has been reset out "
+        "from under its clients, which is worth checking when an application keeps losing its device. This is the "
+        "inventory; get_gpu_usage says what they are doing. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"adapters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"luid\":{\"type\":\"string\",\"description\":\"Adapter LUID as a 64-bit hex string; the same value get_gpu_usage reports\"},"
+        "\"description\":{\"type\":[\"string\",\"null\"]},"
+        "\"chip_type\":{\"type\":[\"string\",\"null\"]},"
+        "\"bios_string\":{\"type\":[\"string\",\"null\"]},"
+        "\"dac_type\":{\"type\":[\"string\",\"null\"]},"
+        "\"vendor_id\":{\"type\":[\"string\",\"null\"],\"description\":\"PCI vendor id, hex\"},"
+        "\"device_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"subsystem_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"sub_vendor_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"revision_id\":{\"type\":[\"integer\",\"null\"]},"
+        "\"physical_adapter_index\":{\"type\":[\"integer\",\"null\"],\"description\":\"Index within a linked-adapter chain\"},"
+        "\"wddm_version\":{\"type\":[\"string\",\"null\"],\"description\":\"Display driver model the adapter runs, e.g. 3.1\"},"
+        "\"render_supported\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"display_supported\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"software_device\":{\"type\":[\"boolean\",\"null\"],\"description\":\"A software renderer rather than hardware\"},"
+        "\"compute_only\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"dedicated_memory_limit_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"shared_memory_limit_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"node_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Engines the adapter exposes\"},"
+        "\"segment_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Memory segments\"},"
+        "\"display_source_count\":{\"type\":[\"integer\",\"null\"]},"
+        "\"tdr_count\":{\"type\":[\"integer\",\"null\"],\"description\":\"Timeout detection and recovery resets since boot\"},"
+        "\"power_usage_percent\":{\"type\":[\"number\",\"null\"],\"description\":\"Share of the adapter's power budget, not watts; null when the driver reports nothing\"},"
+        "\"temperature_celsius\":{\"type\":[\"number\",\"null\"]},"
+        "\"fan_rpm\":{\"type\":[\"integer\",\"null\"]},"
+        "\"memory_frequency_hz\":{\"type\":[\"integer\",\"null\"]},"
+        "\"memory_frequency_max_hz\":{\"type\":[\"integer\",\"null\"]},"
+        "\"engines\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"engine_id\":{\"type\":\"integer\"},"
+        "\"engine_type\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"engine_id\"]}}"
+        "},\"required\":[\"luid\",\"engines\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_gpu_stats", L"Get process GPU usage", AtTierRead, AtActionGetProcessGpuStats,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_gpu_stats"), SETTING_NAME_TOOL_CONFIRM(L"get_process_gpu_stats"),
+        "{\"name\":\"get_process_gpu_stats\",\"title\":\"Get process GPU usage\","
+        "\"description\":\"The graphics work and video memory attributed to one process: utilization as a fraction, "
+        "dedicated and shared video memory in use, and what it has committed. Set include_engines for the same figure "
+        "per engine of every adapter, which is how to tell rendering from video decode. Note the process figure is "
+        "the sum of that process's engine shares capped at 1, while get_gpu_usage reports an adapter's busiest single "
+        "engine, so the two are not comparable. Collected by the ExtendedTools plugin: without it the call fails, and "
+        "with its GPU monitor or performance counters off every figure is null rather than zero, because a process "
+        "using no GPU and a machine measuring no GPU must not read the same. "
+        AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Process id\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Optional; fails the call if the pid has been reused\"},"
+        "\"include_engines\":{\"type\":\"boolean\",\"description\":\"Also break the usage down by adapter and engine\"}"
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"gpu_usage\":{\"type\":[\"number\",\"null\"],\"description\":\"This process's engine shares added up, 0..1\"},"
+        "\"dedicated_memory_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"shared_memory_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"commit_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"dedicated_committed_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"shared_committed_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"adapters\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_engines was set\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"luid\":{\"type\":\"string\"},"
+        "\"description\":{\"type\":[\"string\",\"null\"]},"
+        "\"engines\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"engine_id\":{\"type\":\"integer\"},"
+        "\"engine_type\":{\"type\":[\"string\",\"null\"]},"
+        "\"gpu_usage\":{\"type\":\"number\",\"description\":\"This process's share of that engine, 0..1\"}"
+        "},\"required\":[\"engine_id\",\"gpu_usage\"]}}"
+        "},\"required\":[\"luid\",\"engines\"]}},"
+        "\"collector\":{\"type\":\"object\",\"properties\":{"
+        "\"gpu_monitor_enabled\":{\"type\":\"boolean\"},"
+        "\"performance_counters_enabled\":{\"type\":\"boolean\"},"
+        "\"usage_available\":{\"type\":\"boolean\",\"description\":\"False means every figure above is null\"}"
+        "},\"required\":[\"gpu_monitor_enabled\",\"performance_counters_enabled\",\"usage_available\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"collector\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

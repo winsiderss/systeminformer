@@ -109,6 +109,8 @@ typedef enum _AT_ACTION
     AtActionGetSystemInfo,
     AtActionGetSystemHistory,
     AtActionGetGpuUsage,
+    AtActionListGpuAdapters,
+    AtActionGetProcessGpuStats,
     AtActionGetProcessIoRates,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,

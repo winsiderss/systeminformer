@@ -182,6 +182,34 @@ ULONG AtpQueryAdapterNodeCount(
     return 0;
 }
 
+// What an engine is for, asked of the adapter itself. The ordinal alone says nothing: engine 1 is
+// video decode on one card and a copy engine on the next.
+VOID AtpAddEngineType(
+    _In_ PVOID Engine,
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ ULONG NodeOrdinal
+    )
+{
+    D3DKMT_NODEMETADATA metaData;
+
+    memset(&metaData, 0, sizeof(D3DKMT_NODEMETADATA));
+    metaData.NodeOrdinalAndAdapterIndex = MAKEWORD(NodeOrdinal, 0);
+
+    if (NT_SUCCESS(AtpQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_NODEMETADATA,
+        &metaData,
+        sizeof(D3DKMT_NODEMETADATA)
+        )))
+    {
+        PhAddJsonObject(Engine, "engine_type", AtpGpuEngineTypeString(metaData.NodeData.EngineType));
+    }
+    else
+    {
+        AtJsonAddNull(Engine, "engine_type");
+    }
+}
+
 // One entry per engine the adapter reports, named by what it does, so "the GPU is busy" can be
 // told apart from "something is decoding video".
 VOID AtpAddAdapterEngines(
@@ -200,28 +228,12 @@ VOID AtpAddAdapterEngines(
 
     for (i = 0; i < nodeCount; i++)
     {
-        D3DKMT_NODEMETADATA metaData;
         PVOID engine;
 
         engine = PhCreateJsonObject();
         PhAddJsonObjectUInt64(engine, "engine_id", i);
 
-        memset(&metaData, 0, sizeof(D3DKMT_NODEMETADATA));
-        metaData.NodeOrdinalAndAdapterIndex = MAKEWORD(i, 0);
-
-        if (NT_SUCCESS(AtpQueryAdapterInformation(
-            AdapterHandle,
-            KMTQAITYPE_NODEMETADATA,
-            &metaData,
-            sizeof(D3DKMT_NODEMETADATA)
-            )))
-        {
-            PhAddJsonObject(engine, "engine_type", AtpGpuEngineTypeString(metaData.NodeData.EngineType));
-        }
-        else
-        {
-            AtJsonAddNull(engine, "engine_type");
-        }
+        AtpAddEngineType(engine, AdapterHandle, i);
 
         if (Interface)
             PhAddJsonObjectDouble(engine, "gpu_usage", Interface->GetGpuAdapterEngineUtilization(AdapterLuid, i));
@@ -433,6 +445,386 @@ VOID AtpGetGpuUsage(
     AtDeleteRows(&rows);
 }
 
+// The inventory queries: what each adapter is, rather than what it is doing.
+
+VOID AtpAddAdapterIdentity(
+    _In_ PVOID Row,
+    _In_ D3DKMT_HANDLE AdapterHandle
+    )
+{
+    D3DKMT_ADAPTERREGISTRYINFO registryInfo;
+
+    memset(&registryInfo, 0, sizeof(D3DKMT_ADAPTERREGISTRYINFO));
+
+    if (NT_SUCCESS(AtpQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_ADAPTERREGISTRYINFO,
+        &registryInfo,
+        sizeof(D3DKMT_ADAPTERREGISTRYINFO)
+        )))
+    {
+        registryInfo.AdapterString[RTL_NUMBER_OF(registryInfo.AdapterString) - 1] = UNICODE_NULL;
+        registryInfo.ChipType[RTL_NUMBER_OF(registryInfo.ChipType) - 1] = UNICODE_NULL;
+        registryInfo.BiosString[RTL_NUMBER_OF(registryInfo.BiosString) - 1] = UNICODE_NULL;
+        registryInfo.DacType[RTL_NUMBER_OF(registryInfo.DacType) - 1] = UNICODE_NULL;
+
+        AtJsonAddStringZ(Row, "description", registryInfo.AdapterString);
+        AtJsonAddStringZ(Row, "chip_type", registryInfo.ChipType);
+        AtJsonAddStringZ(Row, "bios_string", registryInfo.BiosString);
+        AtJsonAddStringZ(Row, "dac_type", registryInfo.DacType);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "description");
+        AtJsonAddNull(Row, "chip_type");
+        AtJsonAddNull(Row, "bios_string");
+        AtJsonAddNull(Row, "dac_type");
+    }
+}
+
+VOID AtpAddAdapterDeviceIds(
+    _In_ PVOID Row,
+    _In_ D3DKMT_HANDLE AdapterHandle
+    )
+{
+    D3DKMT_QUERY_DEVICE_IDS deviceIds;
+
+    memset(&deviceIds, 0, sizeof(D3DKMT_QUERY_DEVICE_IDS));
+
+    if (NT_SUCCESS(AtpQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_PHYSICALADAPTERDEVICEIDS,
+        &deviceIds,
+        sizeof(D3DKMT_QUERY_DEVICE_IDS)
+        )))
+    {
+        AtJsonAddHex(Row, "vendor_id", deviceIds.DeviceIds.VendorID);
+        AtJsonAddHex(Row, "device_id", deviceIds.DeviceIds.DeviceID);
+        AtJsonAddHex(Row, "subsystem_id", deviceIds.DeviceIds.SubSystemID);
+        AtJsonAddHex(Row, "sub_vendor_id", deviceIds.DeviceIds.SubVendorID);
+        PhAddJsonObjectUInt64(Row, "revision_id", deviceIds.DeviceIds.RevisionID);
+        PhAddJsonObjectUInt64(Row, "physical_adapter_index", deviceIds.PhysicalAdapterIndex);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "vendor_id");
+        AtJsonAddNull(Row, "device_id");
+        AtJsonAddNull(Row, "subsystem_id");
+        AtJsonAddNull(Row, "sub_vendor_id");
+        AtJsonAddNull(Row, "revision_id");
+        AtJsonAddNull(Row, "physical_adapter_index");
+    }
+}
+
+// The enumeration value is the WDDM version times a thousand, so it is formatted from the number
+// rather than matched against a table that would need editing for every future release.
+VOID AtpAddAdapterDriverModel(
+    _In_ PVOID Row,
+    _In_ D3DKMT_HANDLE AdapterHandle
+    )
+{
+    D3DKMT_DRIVERVERSION driverVersion = 0;
+
+    if (NT_SUCCESS(AtpQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_DRIVERVERSION,
+        &driverVersion,
+        sizeof(D3DKMT_DRIVERVERSION)
+        )) && driverVersion >= 1000)
+    {
+        PPH_STRING version = PhFormatString(L"%lu.%lu", (ULONG)driverVersion / 1000, ((ULONG)driverVersion % 1000) / 100);
+
+        AtJsonAddString(Row, "wddm_version", version);
+        PhClearReference(&version);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "wddm_version");
+    }
+}
+
+VOID AtpAddAdapterStatistics(
+    _In_ PVOID Row,
+    _In_ LUID AdapterLuid
+    )
+{
+    D3DKMT_QUERYSTATISTICS queryStatistics;
+
+    memset(&queryStatistics, 0, sizeof(D3DKMT_QUERYSTATISTICS));
+    queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
+    queryStatistics.AdapterLuid = AdapterLuid;
+
+    if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+    {
+        PhAddJsonObjectUInt64(Row, "node_count", queryStatistics.QueryResult.AdapterInformation.NodeCount);
+        PhAddJsonObjectUInt64(Row, "segment_count", queryStatistics.QueryResult.AdapterInformation.NbSegments);
+        PhAddJsonObjectUInt64(Row, "display_source_count", queryStatistics.QueryResult.AdapterInformation.VidPnSourceCount);
+        // How many times this adapter has been reset out from under its clients.
+        PhAddJsonObjectUInt64(Row, "tdr_count", queryStatistics.QueryResult.AdapterInformation.TdrDetectedCount);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "node_count");
+        AtJsonAddNull(Row, "segment_count");
+        AtJsonAddNull(Row, "display_source_count");
+        AtJsonAddNull(Row, "tdr_count");
+    }
+}
+
+// Power is a share of what the adapter is allowed to draw, not watts, and temperature arrives in
+// tenths of a degree. Both are whatever the driver chooses to report, and many report nothing.
+VOID AtpAddAdapterSensors(
+    _In_ PVOID Row,
+    _In_ D3DKMT_HANDLE AdapterHandle
+    )
+{
+    D3DKMT_ADAPTER_PERFDATA perfData;
+
+    memset(&perfData, 0, sizeof(D3DKMT_ADAPTER_PERFDATA));
+
+    if (NT_SUCCESS(AtpQueryAdapterInformation(
+        AdapterHandle,
+        KMTQAITYPE_ADAPTERPERFDATA,
+        &perfData,
+        sizeof(D3DKMT_ADAPTER_PERFDATA)
+        )))
+    {
+        PhAddJsonObjectDouble(Row, "power_usage_percent", (DOUBLE)perfData.Power / 10);
+        PhAddJsonObjectDouble(Row, "temperature_celsius", (DOUBLE)perfData.Temperature / 10);
+        PhAddJsonObjectUInt64(Row, "fan_rpm", perfData.FanRPM);
+        PhAddJsonObjectUInt64(Row, "memory_frequency_hz", perfData.MemoryFrequency);
+        PhAddJsonObjectUInt64(Row, "memory_frequency_max_hz", perfData.MaxMemoryFrequency);
+    }
+    else
+    {
+        AtJsonAddNull(Row, "power_usage_percent");
+        AtJsonAddNull(Row, "temperature_celsius");
+        AtJsonAddNull(Row, "fan_rpm");
+        AtJsonAddNull(Row, "memory_frequency_hz");
+        AtJsonAddNull(Row, "memory_frequency_max_hz");
+    }
+}
+
+VOID AtpAddAdapterEngineList(
+    _In_ PVOID Row,
+    _In_ D3DKMT_HANDLE AdapterHandle,
+    _In_ LUID AdapterLuid
+    )
+{
+    PVOID engines;
+    ULONG nodeCount;
+    ULONG i;
+
+    nodeCount = AtpQueryAdapterNodeCount(AdapterLuid);
+    engines = PhCreateJsonArray();
+
+    for (i = 0; i < nodeCount; i++)
+    {
+        PVOID engine = PhCreateJsonObject();
+
+        PhAddJsonObjectUInt64(engine, "engine_id", i);
+        AtpAddEngineType(engine, AdapterHandle, i);
+        PhAddJsonArrayObject(engines, engine);
+    }
+
+    PhAddJsonObjectValue(Row, "engines", engines);
+}
+
+VOID AtpListGpuAdapters(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    D3DKMT_ADAPTERINFO* adapters;
+    ULONG adapterCount;
+    AT_ROWS rows;
+    PVOID structured;
+    ULONG i;
+
+    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount))
+    {
+        AtSetToolStatusError(Result, STATUS_UNSUCCESSFUL, L"Enumerating the graphics adapters");
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < adapterCount; i++)
+    {
+        PVOID row;
+
+        row = PhCreateJsonObject();
+        AtJsonAddHex(row, "luid", ((ULONG64)(ULONG)adapters[i].AdapterLuid.HighPart << 32) | adapters[i].AdapterLuid.LowPart);
+        AtpAddAdapterIdentity(row, adapters[i].hAdapter);
+        AtpAddAdapterDeviceIds(row, adapters[i].hAdapter);
+        AtpAddAdapterDriverModel(row, adapters[i].hAdapter);
+        AtpAddAdapterType(row, adapters[i].hAdapter);
+        AtpAddAdapterMemoryLimits(row, adapters[i].hAdapter);
+        AtpAddAdapterStatistics(row, adapters[i].AdapterLuid);
+        AtpAddAdapterSensors(row, adapters[i].hAdapter);
+        AtpAddAdapterEngineList(row, adapters[i].hAdapter, adapters[i].AdapterLuid);
+
+        AtAddRow(&rows, row);
+    }
+
+    AtAddRows(structured, "adapters", &rows);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    for (i = 0; i < adapterCount; i++)
+        AtpCloseAdapterHandle(adapters[i].hAdapter);
+
+    PhFree(adapters);
+    AtDeleteRows(&rows);
+}
+
+// Per-process graphics work. The engine breakdown is opt-in because a machine with three adapters
+// reports sixty-odd engines and nearly all of them are idle for any one process.
+VOID AtpAddProcessAdapterEngines(
+    _In_ PVOID Object,
+    _In_ PEXTENDEDTOOLS_INTERFACE Interface,
+    _In_ HANDLE ProcessId
+    )
+{
+    D3DKMT_ADAPTERINFO* adapters;
+    ULONG adapterCount;
+    PVOID array;
+    ULONG i;
+
+    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount))
+    {
+        AtJsonAddNull(Object, "adapters");
+        return;
+    }
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < adapterCount; i++)
+    {
+        PVOID entry;
+        PVOID engines;
+        ULONG nodeCount;
+        ULONG j;
+
+        entry = PhCreateJsonObject();
+        AtJsonAddHex(entry, "luid", ((ULONG64)(ULONG)adapters[i].AdapterLuid.HighPart << 32) | adapters[i].AdapterLuid.LowPart);
+        AtpAddAdapterDescription(entry, adapters[i].hAdapter);
+
+        nodeCount = AtpQueryAdapterNodeCount(adapters[i].AdapterLuid);
+        engines = PhCreateJsonArray();
+
+        for (j = 0; j < nodeCount; j++)
+        {
+            PVOID engine = PhCreateJsonObject();
+
+            PhAddJsonObjectUInt64(engine, "engine_id", j);
+            AtpAddEngineType(engine, adapters[i].hAdapter, j);
+            PhAddJsonObjectDouble(
+                engine,
+                "gpu_usage",
+                Interface->GetProcessGpuEngineUtilization(ProcessId, adapters[i].AdapterLuid, j)
+                );
+
+            PhAddJsonArrayObject(engines, engine);
+        }
+
+        PhAddJsonObjectValue(entry, "engines", engines);
+        PhAddJsonArrayObject(array, entry);
+
+        AtpCloseAdapterHandle(adapters[i].hAdapter);
+    }
+
+    PhAddJsonObjectValue(Object, "adapters", array);
+    PhFree(adapters);
+}
+
+VOID AtpGetProcessGpuStats(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PEXTENDEDTOOLS_INTERFACE pluginInterface;
+    EXTENDEDTOOLS_PROCESS_GPU statistics;
+    AT_TARGET target;
+    PVOID structured;
+    PVOID collector;
+    BOOLEAN available;
+
+    pluginInterface = AtGetExtendedToolsInterface();
+
+    if (!pluginInterface)
+    {
+        AtSetToolHint(Result, AT_HINT_PLUGIN_MISSING);
+        AtSetToolError(
+            Result,
+            "plugin_missing",
+            STATUS_NOT_FOUND,
+            L"The ExtendedTools plugin is not loaded, so nothing is collecting per-process GPU usage."
+            );
+        return;
+    }
+
+    if (!NT_SUCCESS(AtResolveProcessTarget(Call->Arguments, FALSE, 0, &target, Result)))
+        return;
+
+    if (!pluginInterface->GetProcessGpuStatistics(target.ProcessItem->ProcessId, &statistics))
+    {
+        AtSetToolError(
+            Result,
+            "unavailable",
+            STATUS_NOT_SUPPORTED,
+            L"GPU monitoring is not running in this System Informer instance."
+            );
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    // Same rule as get_gpu_usage: with the counters off every process reads as idle, so say
+    // nothing rather than say zero.
+    available = statistics.PerformanceCountersEnabled;
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+
+    if (available)
+    {
+        PhAddJsonObjectDouble(structured, "gpu_usage", statistics.Utilization);
+        PhAddJsonObjectUInt64(structured, "dedicated_memory_bytes", statistics.DedicatedBytes);
+        PhAddJsonObjectUInt64(structured, "shared_memory_bytes", statistics.SharedBytes);
+        PhAddJsonObjectUInt64(structured, "commit_bytes", statistics.CommitBytes);
+        PhAddJsonObjectUInt64(structured, "dedicated_committed_bytes", statistics.DedicatedCommittedBytes);
+        PhAddJsonObjectUInt64(structured, "shared_committed_bytes", statistics.SharedCommittedBytes);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "gpu_usage");
+        AtJsonAddNull(structured, "dedicated_memory_bytes");
+        AtJsonAddNull(structured, "shared_memory_bytes");
+        AtJsonAddNull(structured, "commit_bytes");
+        AtJsonAddNull(structured, "dedicated_committed_bytes");
+        AtJsonAddNull(structured, "shared_committed_bytes");
+    }
+
+    if (available && AtJsonGetObjectBoolean(Call->Arguments, "include_engines"))
+        AtpAddProcessAdapterEngines(structured, pluginInterface, target.ProcessItem->ProcessId);
+    else
+        AtJsonAddNull(structured, "adapters");
+
+    collector = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(collector, "gpu_monitor_enabled", statistics.GpuEnabled);
+    PhAddJsonObjectBoolean(collector, "performance_counters_enabled", statistics.PerformanceCountersEnabled);
+    PhAddJsonObjectBoolean(collector, "usage_available", available);
+    PhAddJsonObjectValue(structured, "collector", collector);
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteTarget(&target);
+}
+
 VOID AtGpuInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -446,6 +838,12 @@ VOID AtGpuInvokeTool(
     {
     case AtActionGetGpuUsage:
         AtpGetGpuUsage(Call, Result);
+        break;
+    case AtActionListGpuAdapters:
+        AtpListGpuAdapters(Call, Result);
+        break;
+    case AtActionGetProcessGpuStats:
+        AtpGetProcessGpuStats(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
