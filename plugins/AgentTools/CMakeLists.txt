@@ -35,6 +35,7 @@ set(SOURCES
     "toolmod.c"
     "toolmtgn.c"
     "toolproc.c"
+    "toolwnd.c"
     "tools.c"
     "toolmem.c"
     "toolpe.c"

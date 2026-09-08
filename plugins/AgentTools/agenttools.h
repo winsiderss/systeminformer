@@ -81,6 +81,8 @@ typedef enum _AT_ACTION
     AtActionGetProcessMemoryRegions,
     AtActionGetProcessToken,
     AtActionGetProcessWindows,
+    AtActionListWindows,
+    AtActionGetWindowInfo,
     AtActionReadProcessEnvironment,
     AtActionGetProcessHandlesDetailed,
     AtActionGetThreadStack,
@@ -173,6 +175,11 @@ typedef struct _AT_ACTION_INFO
 typedef CONST AT_ACTION_INFO *PCAT_ACTION_INFO;
 
 extern CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum];
+
+// Checks that AtActionInfo is in the order it is indexed in; see the definition.
+VOID AtVerifySchema(
+    VOID
+    );
 
 typedef struct _AT_TARGET
 {
@@ -773,6 +780,13 @@ VOID AtEventInvokeTool(
     );
 
 VOID AtIoInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtWindowInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

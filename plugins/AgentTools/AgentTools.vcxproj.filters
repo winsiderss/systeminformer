@@ -42,6 +42,9 @@
     <ClCompile Include="toolproc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolwnd.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="tools.c">
       <Filter>Source Files</Filter>
     </ClCompile>

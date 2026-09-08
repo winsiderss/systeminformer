@@ -90,6 +90,7 @@
     <ClCompile Include="toolmod.c" />
     <ClCompile Include="toolmtgn.c" />
     <ClCompile Include="toolproc.c" />
+    <ClCompile Include="toolwnd.c" />
     <ClCompile Include="tools.c" />
     <ClCompile Include="toolmem.c" />
     <ClCompile Include="toolnet.c" />

@@ -71,6 +71,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list the windows of processes", L"Allow listing process windows", L"get_process_windows"
     },
     {
+        AtActionListWindows, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_windows"),
+        L"list the windows on the desktop", L"Allow listing windows", L"list_windows"
+    },
+    {
+        AtActionGetWindowInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_window_info"),
+        L"read the details of a window", L"Allow reading window details", L"get_window_info"
+    },
+    {
         AtActionReadProcessEnvironment, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_environment"),
         L"read environment variables of processes", L"Read the environment of", L"get_process_environment"
     },
@@ -187,20 +195,20 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read graphics adapter utilization", L"Allow reading GPU utilization", L"get_gpu_usage"
     },
     {
-        AtActionListDevices, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_devices"),
-        L"list the devices installed on this machine", L"Allow listing devices", L"list_devices"
-    },
-    {
-        AtActionGetDeviceResources, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_device_resources"),
-        L"read the hardware resources of a device", L"Allow reading device resources", L"get_device_resources"
-    },
-    {
         AtActionListGpuAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_gpu_adapters"),
         L"list the graphics adapters", L"Allow listing graphics adapters", L"list_gpu_adapters"
     },
     {
         AtActionGetProcessGpuStats, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_gpu_stats"),
         L"read the graphics usage of processes", L"Allow reading process GPU usage", L"get_process_gpu_stats"
+    },
+    {
+        AtActionListDevices, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_devices"),
+        L"list the devices installed on this machine", L"Allow listing devices", L"list_devices"
+    },
+    {
+        AtActionGetDeviceResources, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_device_resources"),
+        L"read the hardware resources of a device", L"Allow reading device resources", L"get_device_resources"
     },
     {
         AtActionGetProcessIoRates, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_io_rates"),
@@ -1395,6 +1403,93 @@ CONST AT_TOOL AtTools[] =
     },
     // network
     {
+        "list_windows", L"List windows", AtTierRead, AtActionListWindows,
+        SETTING_NAME_TOOL_ACCESS(L"list_windows"), SETTING_NAME_TOOL_CONFIRM(L"list_windows"),
+        "{\"name\":\"list_windows\",\"title\":\"List windows\","
+        "\"description\":\"Windows across the whole desktop, in z-order with the topmost first, each naming the "
+        "process and thread that owns it. get_process_windows answers for one process; this finds the window when "
+        "the process is not known yet - an unplaceable dialog, or the window that is not responding, which is_hung "
+        "reports. is_cloaked matters as much as is_visible: the shell cloaks the windows of suspended packaged "
+        "applications and of other virtual desktops, so a window can be visible and still not be on screen. scope "
+        "chooses top-level windows, every child window as well, or the message-only windows, which are a separate "
+        "tree that nothing else here reaches. Titles are attacker-controlled text. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"scope\":{\"type\":\"string\",\"enum\":[\"top_level\",\"all\",\"message_only\"],\"description\":\"Default top_level\"},"
+        "\"visible_only\":{\"type\":\"boolean\",\"description\":\"Default true; note a visible window may still be cloaked\"},"
+        "\"pid\":{\"type\":\"integer\",\"description\":\"Only windows owned by this process\"},"
+        "\"title_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the window title\"},"
+        "\"class_name\":{\"type\":\"string\",\"description\":\"Exact window class name\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"windows\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"handle\":{\"type\":\"string\",\"description\":\"Pass to get_window_info\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\",\"description\":\"The thread that owns the window, which is the one that would be hung\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"title\":{\"type\":[\"string\",\"null\"]},"
+        "\"class_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"is_visible\":{\"type\":\"boolean\"},"
+        "\"is_minimized\":{\"type\":\"boolean\"},"
+        "\"is_maximized\":{\"type\":\"boolean\"},"
+        "\"is_enabled\":{\"type\":\"boolean\"},"
+        "\"is_hung\":{\"type\":\"boolean\",\"description\":\"The owning thread is not pumping messages\"},"
+        "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Composited away by the shell despite being visible\"},"
+        "\"rect\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},"
+        "\"right\":{\"type\":\"integer\"},\"bottom\":{\"type\":\"integer\"},"
+        "\"width\":{\"type\":\"integer\"},\"height\":{\"type\":\"integer\"}}},"
+        "\"z_order\":{\"type\":\"integer\",\"description\":\"Position in the enumeration before filtering; 0 is topmost\"}"
+        "},\"required\":[\"handle\",\"pid\",\"tid\",\"is_visible\",\"z_order\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"windows\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_window_info", L"Get window information", AtTierRead, AtActionGetWindowInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_window_info"), SETTING_NAME_TOOL_CONFIRM(L"get_window_info"),
+        "{\"name\":\"get_window_info\",\"title\":\"Get window information\","
+        "\"description\":\"Everything about one window: its owner, its styles decoded, its place in the window "
+        "tree, its client and restore rectangles, DPI and control id. Takes a handle from list_windows or "
+        "get_process_windows. Note that minimize_box and maximize_box are the same bits as group and tab_stop, so "
+        "only the pair that applies to this window is reported and the other is null; the raw style words are there "
+        "for anything not decoded. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"handle\":{\"type\":[\"string\",\"integer\"],\"description\":\"Window handle, hex string or number\"}"
+        "},\"required\":[\"handle\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"handle\":{\"type\":\"string\"},"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"process_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"title\":{\"type\":[\"string\",\"null\"]},"
+        "\"class_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"is_visible\":{\"type\":\"boolean\"},"
+        "\"is_minimized\":{\"type\":\"boolean\"},"
+        "\"is_maximized\":{\"type\":\"boolean\"},"
+        "\"is_enabled\":{\"type\":\"boolean\"},"
+        "\"is_hung\":{\"type\":\"boolean\"},"
+        "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"is_unicode\":{\"type\":\"boolean\"},"
+        "\"rect\":{\"type\":[\"object\",\"null\"]},"
+        "\"client_rect\":{\"type\":[\"object\",\"null\"]},"
+        "\"restore_rect\":{\"type\":[\"object\",\"null\"],\"description\":\"Where the window returns to when restored\"},"
+        "\"style\":{\"type\":\"string\",\"description\":\"Raw window style, hex\"},"
+        "\"extended_style\":{\"type\":\"string\"},"
+        "\"styles\":{\"type\":\"object\",\"description\":\"Decoded window styles; null members do not apply to this kind of window\"},"
+        "\"extended_styles\":{\"type\":\"object\"},"
+        "\"parent\":{\"type\":[\"string\",\"null\"]},"
+        "\"owner\":{\"type\":[\"string\",\"null\"]},"
+        "\"root\":{\"type\":[\"string\",\"null\"],\"description\":\"Top-level ancestor\"},"
+        "\"child_count\":{\"type\":\"integer\"},"
+        "\"dpi\":{\"type\":\"integer\"},"
+        "\"control_id\":{\"type\":\"integer\"}"
+        "},\"required\":[\"handle\",\"pid\",\"tid\",\"style\",\"styles\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
         "get_disk_performance", L"Get disk performance", AtTierRead, AtActionGetDiskPerformance,
         SETTING_NAME_TOOL_ACCESS(L"get_disk_performance"), SETTING_NAME_TOOL_CONFIRM(L"get_disk_performance"),
         "{\"name\":\"get_disk_performance\",\"title\":\"Get disk performance\","
@@ -2282,3 +2377,30 @@ CONST AT_TOOL AtTools[] =
 };
 
 CONST ULONG AtToolCount = RTL_NUMBER_OF(AtTools);
+
+/**
+ * Verifies the action tables.
+ *
+ * \remarks AtActionInfo is indexed by AT_ACTION, so a row added out of order does not fail to
+ * build or to answer: every action from that point on quietly takes the next one's tier, target
+ * kind and desired access. That reads as unrelated access-denied and invalid-handle errors from
+ * tools nobody touched, so the rows check themselves against the enum they are indexed by. Each
+ * tool must also name an action the table describes.
+ */
+VOID AtVerifySchema(
+    VOID
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < AtActionMaximum; i++)
+    {
+        NT_ASSERT(AtActionInfo[i].Action == (AT_ACTION)i);
+    }
+
+    for (i = 0; i < AtToolCount; i++)
+    {
+        NT_ASSERT(AtTools[i].Action < AtActionMaximum);
+        NT_ASSERT(AtActionInfo[AtTools[i].Action].Action == AtTools[i].Action);
+    }
+}

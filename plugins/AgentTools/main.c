@@ -100,6 +100,7 @@ VOID NTAPI LoadCallback(
     _In_ PVOID Context
     )
 {
+    AtVerifySchema();
     AtConsentInitialize();
     AtSnapshotInitialize();
     AtEventsInitialize();
