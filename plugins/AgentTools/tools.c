@@ -1243,6 +1243,7 @@ VOID AtInvokeTool(
         break;
     case AtActionGetProcessThreads:
     case AtActionGetThreadStack:
+    case AtActionGetProcessStacks:
     case AtActionSuspendThread:
     case AtActionResumeThread:
     case AtActionTerminateThread:

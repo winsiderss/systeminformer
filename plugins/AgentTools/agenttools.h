@@ -104,6 +104,7 @@ typedef enum _AT_ACTION
     AtActionGetSectionMappings,
     AtActionFindObjectHandles,
     AtActionGetThreadStack,
+    AtActionGetProcessStacks,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,

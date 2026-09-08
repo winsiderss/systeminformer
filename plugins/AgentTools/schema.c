@@ -143,6 +143,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
     {
+        AtActionGetProcessStacks, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"get_process_stacks"),
+        L"read thread stacks", L"Read the thread stacks of", L"get_process_stacks"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -485,6 +489,17 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_THREAD_IDENTITY_INPUT_PROPERTIES \
     "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"}," \
     "\"create_time\":{\"type\":\"string\",\"description\":\"Optional; the create_time of that thread row. Tids are reused inside a process, so when it is given the call is refused if it no longer matches the live thread\"}"
+
+// Source lines come out of the same private symbols a symbol name does, so nearly every frame of a
+// Microsoft binary answers null here even when the lookup is asked for.
+#define AT_STACK_LINE_INPUT_PROPERTY \
+    "\"include_lines\":{\"type\":\"boolean\",\"description\":\"Look up the source file and line of each frame. Only frames whose module has private symbols on the symbol path have one\"}"
+
+#define AT_STACK_LINE_SCHEMA \
+    "\"line\":{\"type\":[\"object\",\"null\"],\"description\":\"Present only when include_lines was asked for\",\"properties\":{" \
+    "\"file\":{\"type\":\"string\"}," \
+    "\"number\":{\"type\":\"integer\"}" \
+    "},\"required\":[\"file\",\"number\"]}"
 
 #define AT_THREAD_TARGET_INPUT_SCHEMA \
     "{\"type\":\"object\",\"properties\":{" AT_TARGET_INPUT_PROPERTIES "," \
@@ -1750,7 +1765,8 @@ CONST AT_TOOL AtTools[] =
         AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         AT_THREAD_IDENTITY_INPUT_PROPERTIES ","
-        "\"max_frames\":{\"type\":\"integer\",\"description\":\"Stop after this many frames (default 64, maximum 512)\"}"
+        "\"max_frames\":{\"type\":\"integer\",\"description\":\"Stop after this many frames (default 64, maximum 512)\"},"
+        AT_STACK_LINE_INPUT_PROPERTY
         "},\"required\":[\"pid\",\"tid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -1764,13 +1780,70 @@ CONST AT_TOOL AtTools[] =
         "\"symbol\":{\"type\":[\"string\",\"null\"],\"description\":\"module!function+offset when resolved\"},"
         "\"module\":{\"type\":[\"string\",\"null\"]},"
         "\"is_kernel\":{\"type\":\"boolean\"},"
-        "\"is_managed\":{\"type\":\"boolean\",\"description\":\"The frame is jitted code the .NET runtime named; symbol is the managed method\"}"
+        "\"is_managed\":{\"type\":\"boolean\",\"description\":\"The frame is jitted code the .NET runtime named; symbol is the managed method\"},"
+        AT_STACK_LINE_SCHEMA
         "},\"required\":[\"index\",\"pc\",\"is_kernel\"]}},"
         "\"count\":{\"type\":\"integer\"},"
         "\"truncated\":{\"type\":\"boolean\"},"
         "\"managed_symbols\":{\"type\":\"boolean\",\"description\":\"Whether managed frames were resolved at all; false for a 32-bit target on 64-bit Windows or when the process could not be opened\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"frames\",\"count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_stacks", L"Read process thread stacks", AtTierSensitiveRead, AtActionGetProcessStacks,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_stacks"), SETTING_NAME_TOOL_CONFIRM(L"get_process_stacks"),
+        "{\"name\":\"get_process_stacks\",\"title\":\"Get process thread stacks\","
+        "\"description\":\"Walks the call stacks of a process's threads in one call: what a hung or spinning process "
+        "is actually doing, which is otherwise a get_process_threads call followed by a get_thread_stack per thread, "
+        "each with its own prompt. Each thread is briefly suspended while its stack is walked. Symbols load once for "
+        "the process rather than once per thread, so the first call can still take several seconds but the rest of the "
+        "threads are nearly free. Threads are ranked and the first max_threads of them are walked; the rest are left "
+        "alone and truncated says so. A thread that cannot be opened, or that exits mid-walk, is one row with an error "
+        "rather than a failed call. In a .NET process the DotNetTools plugin names the jitted frames, marked by "
+        "is_managed - see get_thread_stack for when that is not done. "
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"max_threads\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":64,\"description\":\"How many threads to walk (default 8, maximum 64)\"},"
+        "\"order\":{\"type\":\"string\",\"enum\":[\"cpu_time\",\"newest\",\"tid\"],\"description\":\"Which threads max_threads keeps. cpu_time (the default) is the most CPU consumed since the thread started, not current usage - it finds the spinner in a busy process; newest is the most recently created, which is where injected work shows up; tid is the raw order\"},"
+        "\"max_frames\":{\"type\":\"integer\",\"description\":\"Stop after this many frames per thread (default 64, maximum 512)\"},"
+        AT_STACK_LINE_INPUT_PROPERTY
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"order\":{\"type\":\"string\",\"description\":\"The ordering the selection used\"},"
+        "\"threads\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"state\":{\"type\":[\"string\",\"null\"]},"
+        "\"wait_reason\":{\"type\":[\"string\",\"null\"],\"description\":\"Why a waiting thread is waiting; null when it is not waiting\"},"
+        "\"wait_seconds\":{\"type\":[\"number\",\"null\"]},"
+        "\"kernel_time\":{\"type\":[\"number\",\"null\"],\"description\":\"Seconds of kernel time consumed since the thread started\"},"
+        "\"user_time\":{\"type\":[\"number\",\"null\"]},"
+        "\"create_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"error\":{\"type\":[\"string\",\"null\"],\"description\":\"Set when this thread's stack could not be read; the other threads are still reported\"},"
+        "\"message\":{\"type\":[\"string\",\"null\"]},"
+        "\"frames\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"index\":{\"type\":\"integer\"},"
+        "\"pc\":{\"type\":\"string\",\"description\":\"Hexadecimal instruction pointer\"},"
+        "\"return_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"frame_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"stack_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"symbol\":{\"type\":[\"string\",\"null\"],\"description\":\"module!function+offset when resolved\"},"
+        "\"module\":{\"type\":[\"string\",\"null\"]},"
+        "\"is_kernel\":{\"type\":\"boolean\"},"
+        "\"is_managed\":{\"type\":\"boolean\"},"
+        AT_STACK_LINE_SCHEMA
+        "},\"required\":[\"index\",\"pc\",\"is_kernel\"]}},"
+        "\"frame_count\":{\"type\":\"integer\"},"
+        "\"truncated\":{\"type\":\"boolean\",\"description\":\"The walk stopped at max_frames\"},"
+        "\"managed_symbols\":{\"type\":\"boolean\"}"
+        "},\"required\":[\"tid\",\"frames\",\"frame_count\"]}},"
+        "\"count\":{\"type\":\"integer\",\"description\":\"Threads walked\"},"
+        "\"total_count\":{\"type\":\"integer\",\"description\":\"Threads the process had\"},"
+        "\"truncated\":{\"type\":\"boolean\",\"description\":\"More threads than max_threads; the rest were not walked\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

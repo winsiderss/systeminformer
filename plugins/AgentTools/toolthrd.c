@@ -605,6 +605,7 @@ VOID AtpGetProcessThreads(
 typedef struct _AT_STACK_CONTEXT
 {
     BOOLEAN ManagedSymbols;
+    BOOLEAN IncludeLines;
     PPH_SYMBOL_PROVIDER SymbolProvider;
     PVOID Frames;
     ULONG Count;
@@ -623,7 +624,9 @@ _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 // dialog on the screen, and would block on it for as long as it took to answer.
 VOID AtpBeginManagedSymbols(
     _Inout_ PAT_STACK_CONTEXT Context,
-    _In_ PAT_TARGET Target,
+    _In_ HANDLE ProcessId,
+    _In_ HANDLE ThreadId,
+    _In_ HANDLE ThreadHandle,
     _In_opt_ HANDLE ProcessHandle
     )
 {
@@ -641,9 +644,9 @@ VOID AtpBeginManagedSymbols(
     memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
     control.Type = PluginThreadStackInitializing;
     control.UniqueKey = Context;
-    control.u.Initializing.ProcessId = Target->ProcessItem->ProcessId;
-    control.u.Initializing.ThreadId = Target->ThreadId;
-    control.u.Initializing.ThreadHandle = Target->ThreadHandle;
+    control.u.Initializing.ProcessId = ProcessId;
+    control.u.Initializing.ThreadId = ThreadId;
+    control.u.Initializing.ThreadHandle = ThreadHandle;
     control.u.Initializing.ProcessHandle = ProcessHandle;
     control.u.Initializing.SymbolProvider = Context->SymbolProvider;
     control.u.Initializing.CustomWalk = FALSE;
@@ -735,6 +738,28 @@ BOOLEAN NTAPI AtpStackFrameCallback(
     PhClearReference(&symbol);
     PhClearReference(&fileName);
 
+    // Only a frame whose module has private symbols on the symbol path has a line at all, so most
+    // frames answer null here even when the lookup is asked for.
+    if (context->IncludeLines)
+    {
+        PPH_STRING lineFileName;
+        PH_SYMBOL_LINE_INFORMATION lineInformation;
+
+        if (PhGetLineFromAddress(context->SymbolProvider, StackFrame->PcAddress, &lineFileName, NULL, &lineInformation))
+        {
+            PVOID line = PhCreateJsonObject();
+
+            AtJsonAddString(line, "file", lineFileName);
+            PhAddJsonObjectUInt64(line, "number", lineInformation.LineNumber);
+            PhAddJsonObjectValue(row, "line", line);
+            PhClearReference(&lineFileName);
+        }
+        else
+        {
+            AtJsonAddNull(row, "line");
+        }
+    }
+
     PhAddJsonObjectBoolean(row, "is_kernel", !!FlagOn(StackFrame->Flags, PH_THREAD_STACK_FRAME_KERNEL));
 
     PhAddJsonArrayObject(context->Frames, row);
@@ -762,6 +787,8 @@ VOID AtpGetThreadStack(
     if (AtGetArgumentUInt64(Call->Arguments, "max_frames", &maxFrames) && maxFrames > 0)
         context.MaximumFrames = (ULONG)min(maxFrames, AT_STACK_MAXIMUM_FRAMES);
 
+    context.IncludeLines = AtJsonGetObjectBoolean(Call->Arguments, "include_lines");
+
     if (!(context.SymbolProvider = AtpCreateSymbolProvider(Target->ProcessItem->ProcessId)))
     {
         AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The symbol provider could not be created.");
@@ -775,7 +802,13 @@ VOID AtpGetThreadStack(
     clientId.UniqueThread = Target->ThreadId;
     context.Frames = PhCreateJsonArray();
 
-    AtpBeginManagedSymbols(&context, Target, processHandle);
+    AtpBeginManagedSymbols(
+        &context,
+        Target->ProcessItem->ProcessId,
+        Target->ThreadId,
+        Target->ThreadHandle,
+        processHandle
+        );
 
     status = PhWalkThreadStack(
         Target->ThreadHandle,
@@ -811,6 +844,250 @@ VOID AtpGetThreadStack(
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
+}
+
+// Every thread of one process, walked under a single symbol provider and a single consent. The
+// provider is what costs here: creating it loads the process's modules and the symbol files behind
+// them, so asking thread by thread pays that again on every call and this pays it once.
+
+#define AT_STACKS_DEFAULT_THREADS 8
+#define AT_STACKS_MAXIMUM_THREADS 64
+
+typedef struct _AT_STACK_THREAD
+{
+    HANDLE ThreadId;
+    ULONG64 CpuTime;
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    KTHREAD_STATE State;
+    KWAIT_REASON WaitReason;
+    ULONG WaitTime;
+} AT_STACK_THREAD, *PAT_STACK_THREAD;
+
+int __cdecl AtpCompareStackThreads(
+    _In_ void* Context,
+    _In_ const void* Elem1,
+    _In_ const void* Elem2
+    )
+{
+    PAT_STACK_THREAD thread1 = (PAT_STACK_THREAD)Elem1;
+    PAT_STACK_THREAD thread2 = (PAT_STACK_THREAD)Elem2;
+    PPH_STRING order = Context;
+
+    if (order && PhEqualString2(order, L"tid", TRUE))
+        return uint64cmp(HandleToUlong(thread1->ThreadId), HandleToUlong(thread2->ThreadId));
+
+    if (order && PhEqualString2(order, L"newest", TRUE))
+        return int64cmp(thread2->CreateTime.QuadPart, thread1->CreateTime.QuadPart);
+
+    return uint64cmp(thread2->CpuTime, thread1->CpuTime);
+}
+
+VOID AtpAddStackThreadIdentity(
+    _In_ PVOID Row,
+    _In_ PAT_STACK_THREAD Thread
+    )
+{
+    HANDLE threadHandle;
+    PPH_STRING name = NULL;
+
+    PhAddJsonObjectUInt64(Row, "tid", HandleToUlong(Thread->ThreadId));
+
+    if (NT_SUCCESS(PhOpenThread(&threadHandle, THREAD_QUERY_LIMITED_INFORMATION, Thread->ThreadId)))
+    {
+        PhGetThreadName(threadHandle, &name);
+        NtClose(threadHandle);
+    }
+
+    AtJsonAddString(Row, "name", name);
+    PhClearReference(&name);
+
+    AtJsonAddStringZ(Row, "state", AtpThreadStateString(Thread->State));
+
+    if (Thread->State == Waiting)
+        AtJsonAddStringZ(Row, "wait_reason", AtpWaitReasonString(Thread->WaitReason));
+    else
+        AtJsonAddNull(Row, "wait_reason");
+
+    AtJsonAddDuration(Row, "wait_seconds", Thread->WaitTime);
+    AtJsonAddDuration(Row, "kernel_time", Thread->KernelTime.QuadPart);
+    AtJsonAddDuration(Row, "user_time", Thread->UserTime.QuadPart);
+    AtJsonAddTime(Row, "create_time", &Thread->CreateTime);
+}
+
+VOID AtpGetProcessStacks(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    PVOID processes;
+    PSYSTEM_PROCESS_INFORMATION process;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+    PPH_STRING order;
+    PAT_STACK_THREAD threads;
+    ULONG threadCount;
+    ULONG walkCount;
+    ULONG64 maximumThreads = AT_STACKS_DEFAULT_THREADS;
+    ULONG64 maximumFrames = AT_STACK_DEFAULT_FRAMES;
+    BOOLEAN includeLines;
+    PVOID array;
+    PVOID structured;
+    ULONG i;
+
+    // Extended, because the thread array is read as SYSTEM_EXTENDED_THREAD_INFORMATION below and a
+    // plain enumeration returns the smaller SYSTEM_THREAD_INFORMATION at a different stride.
+    if (!NT_SUCCESS(status = PhEnumProcessesEx(&processes, SystemExtendedProcessInformation)))
+    {
+        AtSetToolStatusError(Result, status, L"Enumerating the processes");
+        return;
+    }
+
+    if (!(process = PhFindProcessInformation(processes, Target->ProcessItem->ProcessId)))
+    {
+        AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"The process is no longer running.");
+        PhFree(processes);
+        return;
+    }
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_threads", &maximumThreads) && maximumThreads == 0)
+        maximumThreads = AT_STACKS_DEFAULT_THREADS;
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_frames", &maximumFrames) && maximumFrames == 0)
+        maximumFrames = AT_STACK_DEFAULT_FRAMES;
+
+    maximumThreads = min(maximumThreads, AT_STACKS_MAXIMUM_THREADS);
+    maximumFrames = min(maximumFrames, AT_STACK_MAXIMUM_FRAMES);
+    includeLines = AtJsonGetObjectBoolean(Call->Arguments, "include_lines");
+    order = AtGetArgumentString(Call->Arguments, "order");
+
+    // The threads are taken out of the snapshot before any walking starts, so the selection is made
+    // against one consistent view rather than against a process that is still creating threads.
+    threadCount = process->NumberOfThreads;
+    threads = PhAllocate(sizeof(AT_STACK_THREAD) * max(threadCount, 1));
+
+    for (i = 0; i < threadCount; i++)
+    {
+        PSYSTEM_EXTENDED_THREAD_INFORMATION thread = &((PSYSTEM_EXTENDED_THREAD_INFORMATION)process->Threads)[i];
+
+        threads[i].ThreadId = thread->ThreadInfo.ClientId.UniqueThread;
+        threads[i].KernelTime = thread->ThreadInfo.KernelTime;
+        threads[i].UserTime = thread->ThreadInfo.UserTime;
+        threads[i].CpuTime = (ULONG64)(thread->ThreadInfo.KernelTime.QuadPart + thread->ThreadInfo.UserTime.QuadPart);
+        threads[i].CreateTime = thread->ThreadInfo.CreateTime;
+        threads[i].State = thread->ThreadInfo.ThreadState;
+        threads[i].WaitReason = thread->ThreadInfo.WaitReason;
+        threads[i].WaitTime = thread->ThreadInfo.WaitTime;
+    }
+
+    if (threadCount > 1)
+        qsort_s(threads, threadCount, sizeof(AT_STACK_THREAD), AtpCompareStackThreads, order);
+
+    walkCount = (ULONG)min(threadCount, maximumThreads);
+
+    if (!(symbolProvider = AtpCreateSymbolProvider(Target->ProcessItem->ProcessId)))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The symbol provider could not be created.");
+        PhClearReference(&order);
+        PhFree(threads);
+        PhFree(processes);
+        return;
+    }
+
+    array = PhCreateJsonArray();
+
+    for (i = 0; i < walkCount; i++)
+    {
+        AT_STACK_CONTEXT context;
+        CLIENT_ID clientId;
+        HANDLE threadHandle;
+        PVOID row;
+
+        row = PhCreateJsonObject();
+        AtpAddStackThreadIdentity(row, &threads[i]);
+
+        memset(&context, 0, sizeof(AT_STACK_CONTEXT));
+        context.SymbolProvider = symbolProvider;
+        context.MaximumFrames = (ULONG)maximumFrames;
+        context.IncludeLines = includeLines;
+        context.Frames = PhCreateJsonArray();
+
+        // A thread that cannot be opened or walked becomes one row that says so. Failing the whole
+        // call over it would throw away the stacks of every other thread, and a thread exiting
+        // while a process is being looked at is ordinary rather than exceptional.
+        status = PhOpenThread(
+            &threadHandle,
+            THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
+            threads[i].ThreadId
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            clientId.UniqueProcess = Target->ProcessItem->ProcessId;
+            clientId.UniqueThread = threads[i].ThreadId;
+
+            AtpBeginManagedSymbols(
+                &context,
+                Target->ProcessItem->ProcessId,
+                threads[i].ThreadId,
+                threadHandle,
+                Target->ProcessHandle
+                );
+
+            status = PhWalkThreadStack(
+                threadHandle,
+                Target->ProcessHandle,
+                &clientId,
+                symbolProvider,
+                PH_WALK_USER_STACK | PH_WALK_USER_WOW64_STACK | PH_WALK_KERNEL_STACK,
+                AtpStackFrameCallback,
+                &context
+                );
+
+            AtpEndManagedSymbols(&context);
+            NtClose(threadHandle);
+        }
+
+        if (!NT_SUCCESS(status) && context.Count == 0)
+        {
+            PPH_STRING message = PhGetStatusMessage(status, 0);
+
+            PhAddJsonObject(row, "error", status == STATUS_ACCESS_DENIED ? "access_denied" : "failed");
+            AtJsonAddStringZ(row, "message", PhGetStringOrDefault(message, L"unknown error"));
+            PhClearReference(&message);
+        }
+        else
+        {
+            AtJsonAddNull(row, "error");
+            AtJsonAddNull(row, "message");
+        }
+
+        PhAddJsonObjectValue(row, "frames", context.Frames);
+        PhAddJsonObjectUInt64(row, "frame_count", context.Count);
+        PhAddJsonObjectBoolean(row, "truncated", context.Truncated);
+        PhAddJsonObjectBoolean(row, "managed_symbols", context.ManagedSymbols);
+
+        PhAddJsonArrayObject(array, row);
+    }
+
+    PhDereferenceObject(symbolProvider);
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, Target->ProcessItem);
+    AtJsonAddStringZ(structured, "order", order ? PhGetString(order) : L"cpu_time");
+    PhAddJsonObjectValue(structured, "threads", array);
+    PhAddJsonObjectUInt64(structured, "count", walkCount);
+    PhAddJsonObjectUInt64(structured, "total_count", threadCount);
+    PhAddJsonObjectBoolean(structured, "truncated", walkCount < threadCount);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    PhClearReference(&order);
+    PhFree(threads);
+    PhFree(processes);
 }
 
 VOID AtpControlThread(
@@ -867,6 +1144,9 @@ VOID AtThreadInvokeTool(
         break;
     case AtActionGetThreadStack:
         AtpGetThreadStack(Call, Target, Result);
+        break;
+    case AtActionGetProcessStacks:
+        AtpGetProcessStacks(Call, Target, Result);
         break;
     case AtActionSuspendThread:
     case AtActionResumeThread:
