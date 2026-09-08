@@ -1371,6 +1371,7 @@ EXPORTS
     PhWinHttpUserAgentString
 
 ; ksiuser
+    KphAlpcQueryCommunicationsNamesInfo
     KphAlpcQueryInformation
     KphDuplicateObject
     KphOpenDevice

@@ -311,8 +311,9 @@ NTSTATUS AtpResolveServiceTarget(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS AtpResolveHandleTarget(
+NTSTATUS AtResolveHandleTarget(
     _In_opt_ PVOID Arguments,
+    _In_ BOOLEAN RequireSequenceNumber,
     _In_ ACCESS_MASK ProcessAccess,
     _Out_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
@@ -335,7 +336,7 @@ NTSTATUS AtpResolveHandleTarget(
         return STATUS_INVALID_PARAMETER;
     }
 
-    status = AtResolveProcessTarget(Arguments, TRUE, ProcessAccess, Target, Result);
+    status = AtResolveProcessTarget(Arguments, RequireSequenceNumber, ProcessAccess, Target, Result);
 
     if (!NT_SUCCESS(status))
         return status;
@@ -385,6 +386,11 @@ NTSTATUS AtpResolveHandleTarget(
         NULL,
         &bestName
         );
+
+    // Naming the object needs the object, which needs PROCESS_DUP_HANDLE or the driver. The type
+    // does not: it is in the handle table entry, and a caller that only asked to read still gets it.
+    if (!typeName)
+        typeName = PhGetObjectTypeIndexName(Target->HandleTypeIndex);
 
     Target->HandleTypeName = typeName;
     Target->HandleObjectName = bestName;
@@ -565,7 +571,7 @@ NTSTATUS AtResolveTarget(
         status = AtpResolveServiceTarget(Arguments, action->TargetAccess, Target, Result);
         break;
     case AtTargetHandle:
-        status = AtpResolveHandleTarget(Arguments, action->TargetAccess, Target, Result);
+        status = AtResolveHandleTarget(Arguments, requireSequenceNumber, action->TargetAccess, Target, Result);
         break;
     case AtTargetConnection:
         status = AtpResolveConnectionTarget(Arguments, Target, Result);

@@ -95,6 +95,7 @@ typedef enum _AT_ACTION
     AtActionGetFileUsers,
     AtActionListObjectDirectory,
     AtActionGetObjectInfo,
+    AtActionGetAlpcPortInfo,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
@@ -912,6 +913,13 @@ VOID AtServiceInvokeTool(
     _Inout_ PAT_TOOL_RESULT Result
     );
 
+VOID AtHandleInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
 VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -974,6 +982,14 @@ NTSTATUS AtResolveTarget(
     );
 
 NTSTATUS AtResolveProcessTarget(
+    _In_opt_ PVOID Arguments,
+    _In_ BOOLEAN RequireSequenceNumber,
+    _In_ ACCESS_MASK ProcessAccess,
+    _Out_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+NTSTATUS AtResolveHandleTarget(
     _In_opt_ PVOID Arguments,
     _In_ BOOLEAN RequireSequenceNumber,
     _In_ ACCESS_MASK ProcessAccess,

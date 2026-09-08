@@ -1216,6 +1216,9 @@ VOID AtInvokeTool(
     case AtActionGetObjectInfo:
         AtFindInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetAlpcPortInfo:
+        AtHandleInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionListFirewallEvents:
         AtFirewallInvokeTool(Tool, Call, Target, Result);
         break;

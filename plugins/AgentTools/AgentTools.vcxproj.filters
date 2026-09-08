@@ -78,6 +78,9 @@
     <ClCompile Include="toolgpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolhndl.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolhist.c">
       <Filter>Source Files</Filter>
     </ClCompile>
