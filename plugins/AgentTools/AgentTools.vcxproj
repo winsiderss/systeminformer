@@ -68,6 +68,9 @@
     <ClCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)tools\simcp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="consent.c" />

@@ -12,6 +12,7 @@
 #include "agenttools.h"
 #include <ntlsa.h>
 #include <mapldr.h>
+#include <winsta.h>
 
 // The SDK's ntsecapi.h redefines the LSA structures phnt already declares, so the handful of flag
 // values needed here are spelled out the way the application's own user list does it.
@@ -336,6 +337,158 @@ NextSession:
     PhClearReference(&logonTypeFilter);
 }
 
+// The terminal services sessions the machine has. Every process belongs to one, and a session is
+// where a desktop lives: session 0 holds the services and no desktop at all, and every interactive
+// user gets one of their own. A disconnected session is the interesting shape - somebody logged on,
+// their programs are still running, and nobody is looking at the screen - and a session whose
+// client is a remote address is somebody who arrived over the network.
+
+PCWSTR AtpWinStationStateString(
+    _In_ WINSTATIONSTATECLASS State
+    )
+{
+    switch (State)
+    {
+    case State_Active:
+        return L"active";
+    case State_Connected:
+        return L"connected";
+    case State_ConnectQuery:
+        return L"connect_query";
+    case State_Shadow:
+        return L"shadow";
+    case State_Disconnected:
+        return L"disconnected";
+    case State_Idle:
+        return L"idle";
+    case State_Listen:
+        return L"listen";
+    case State_Reset:
+        return L"reset";
+    case State_Down:
+        return L"down";
+    case State_Init:
+        return L"init";
+    }
+
+    return NULL;
+}
+
+VOID AtpAddWinStationTime(
+    _In_ PVOID Row,
+    _In_ PCSTR Key,
+    _In_ PLARGE_INTEGER Time
+    )
+{
+    // A session that has never connected, or never been disconnected, carries a zero here rather
+    // than a time, and 1601 is not an answer to when it happened.
+    if (Time->QuadPart == 0)
+        AtJsonAddNull(Row, Key);
+    else
+        AtJsonAddTime(Row, Key, Time);
+}
+
+VOID AtpAddTerminalSessionDetails(
+    _In_ PVOID Row,
+    _In_ ULONG SessionId
+    )
+{
+    WINSTATIONINFORMATION information;
+    ULONG returnLength;
+
+    memset(&information, 0, sizeof(WINSTATIONINFORMATION));
+
+    if (!WinStationQueryInformationW(
+        WINSTATION_CURRENT_SERVER,
+        SessionId,
+        WinStationInformation,
+        &information,
+        sizeof(WINSTATIONINFORMATION),
+        &returnLength
+        ))
+    {
+        AtJsonAddNull(Row, "user_name");
+        AtJsonAddNull(Row, "domain");
+        AtJsonAddNull(Row, "logon_time");
+        AtJsonAddNull(Row, "connect_time");
+        AtJsonAddNull(Row, "disconnect_time");
+        AtJsonAddNull(Row, "last_input_time");
+        AtJsonAddNull(Row, "idle_seconds");
+        AtJsonAddNull(Row, "bytes_sent");
+        AtJsonAddNull(Row, "bytes_received");
+        return;
+    }
+
+    AtJsonAddStringZ(Row, "user_name", information.UserName[0] ? information.UserName : NULL);
+    AtJsonAddStringZ(Row, "domain", information.Domain[0] ? information.Domain : NULL);
+    AtpAddWinStationTime(Row, "logon_time", &information.LogonTime);
+    AtpAddWinStationTime(Row, "connect_time", &information.ConnectTime);
+    AtpAddWinStationTime(Row, "disconnect_time", &information.DisconnectTime);
+    AtpAddWinStationTime(Row, "last_input_time", &information.LastInputTime);
+
+    // How long since anybody touched it, worked out against the session's own clock rather than
+    // this process's, because the two are the same machine but the API hands both back.
+    if (information.LastInputTime.QuadPart != 0 && information.CurrentTime.QuadPart != 0)
+        AtJsonAddDuration(Row, "idle_seconds", information.CurrentTime.QuadPart - information.LastInputTime.QuadPart);
+    else
+        AtJsonAddNull(Row, "idle_seconds");
+
+    PhAddJsonObjectUInt64(Row, "bytes_sent", information.Status.Output.Bytes);
+    PhAddJsonObjectUInt64(Row, "bytes_received", information.Status.Input.Bytes);
+}
+
+VOID AtpListTerminalSessions(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PSESSIONIDW sessions = NULL;
+    ULONG sessionCount = 0;
+    AT_ROWS rows;
+    PPH_STRING stateFilter;
+    PVOID structured;
+    ULONG i;
+
+    if (!WinStationEnumerateW(WINSTATION_CURRENT_SERVER, &sessions, &sessionCount))
+    {
+        AtSetToolStatusError(Result, PhGetLastWin32ErrorAsNtStatus(), L"Enumerating the sessions");
+        return;
+    }
+
+    stateFilter = AtGetArgumentString(Call->Arguments, "state");
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    for (i = 0; i < sessionCount; i++)
+    {
+        PCWSTR state = AtpWinStationStateString(sessions[i].State);
+        PVOID row;
+
+        if (stateFilter && (!state || !PhEqualString2(stateFilter, state, TRUE)))
+            continue;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "session_id", sessions[i].SessionId);
+        AtJsonAddStringZ(row, "name", sessions[i].WinStationName[0] ? sessions[i].WinStationName : NULL);
+        AtJsonAddStringZ(row, "state", state);
+        PhAddJsonObjectUInt64(row, "state_value", sessions[i].State);
+        AtpAddTerminalSessionDetails(row, sessions[i].SessionId);
+        AtAddRow(&rows, row);
+    }
+
+    WinStationFreeMemory(sessions);
+
+    structured = PhCreateJsonObject();
+    AtAddRows(structured, "sessions", &rows);
+    PhAddJsonObjectUInt64(structured, "current_session_id", NtCurrentPeb()->SessionId);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&rows);
+    PhClearReference(&stateFilter);
+}
+
 VOID AtSessionInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -349,6 +502,9 @@ VOID AtSessionInvokeTool(
     {
     case AtActionListLogonSessions:
         AtpListLogonSessions(Call, Result);
+        break;
+    case AtActionListTerminalSessions:
+        AtpListTerminalSessions(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

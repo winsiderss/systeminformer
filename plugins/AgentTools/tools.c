@@ -1420,6 +1420,7 @@ VOID AtInvokeTool(
         AtSystemInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListLogonSessions:
+    case AtActionListTerminalSessions:
         AtSessionInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:

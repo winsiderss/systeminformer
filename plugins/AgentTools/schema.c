@@ -366,6 +366,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListLogonSessions, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_logon_sessions"),
         L"list who is logged on", L"List the logon sessions", L"list_logon_sessions"
     },
+    {
+        AtActionListTerminalSessions, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_terminal_sessions"),
+        L"list the terminal services sessions", L"Allow listing terminal sessions", L"list_terminal_sessions"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3841,6 +3845,44 @@ CONST AT_TOOL AtTools[] =
         "\"elevated\":{\"type\":\"boolean\",\"description\":\"Whether System Informer is elevated, which is what decides the above\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"enumerated_count\",\"unreadable_count\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_terminal_sessions", L"List terminal sessions", AtTierRead, AtActionListTerminalSessions,
+        SETTING_NAME_TOOL_ACCESS(L"list_terminal_sessions"), SETTING_NAME_TOOL_CONFIRM(L"list_terminal_sessions"),
+        "{\"name\":\"list_terminal_sessions\",\"title\":\"List terminal sessions\","
+        "\"description\":\"The sessions the machine has. Every process belongs to one, and a session is where a "
+        "desktop lives: session 0 holds the services and has no desktop at all, and each interactive user gets "
+        "one of their own. The shape worth looking for is a disconnected session - somebody logged on, their "
+        "programs are still running, and nobody is looking at the screen - which is what an RDP session left "
+        "behind looks like. idle_seconds is how long since anything was typed or clicked in that session. "
+        "list_logon_sessions says who those users are and how they authenticated; the session_id field joins "
+        "the two. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"state\":{\"type\":\"string\",\"enum\":[\"active\",\"connected\",\"connect_query\",\"shadow\",\"disconnected\",\"idle\",\"listen\",\"reset\",\"down\",\"init\"]},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sessions\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"session_id\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"Console, RDP-Tcp#0, Services and so on\"},"
+        "\"state\":{\"type\":[\"string\",\"null\"]},"
+        "\"state_value\":{\"type\":\"integer\"},"
+        "\"user_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"domain\":{\"type\":[\"string\",\"null\"]},"
+        "\"logon_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"connect_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"disconnect_time\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for a session that has never been disconnected\"},"
+        "\"last_input_time\":{\"type\":[\"string\",\"null\"]},"
+        "\"idle_seconds\":{\"type\":[\"number\",\"null\"],\"description\":\"Since the last input in that session\"},"
+        "\"bytes_sent\":{\"type\":[\"integer\",\"null\"],\"description\":\"Over the session's protocol; zero for a local console\"},"
+        "\"bytes_received\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"session_id\",\"state_value\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"current_session_id\":{\"type\":\"integer\",\"description\":\"The session System Informer itself is in\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"current_session_id\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
