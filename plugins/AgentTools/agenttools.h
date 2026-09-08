@@ -153,6 +153,7 @@ typedef enum _AT_ACTION
     AtActionVerifyFileSignature,
     AtActionGetFileHashes,
     AtActionGetImageStrings,
+    AtActionGetFileInfo,
     AtActionGetImageInfo,
     AtActionReadProcessMemory,
     AtActionSearchProcessMemory,
@@ -987,6 +988,11 @@ VOID AtSystemInvokeTool(
 ULONG AtpParseImageSections(
     _In_opt_ PVOID Sections,
     _Out_ PPH_STRING* Invalid
+    );
+
+VOID AtpGetFileInfo(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
     );
 
 VOID AtpGetImageStrings(

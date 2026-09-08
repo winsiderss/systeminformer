@@ -586,6 +586,7 @@ EXPORTS
     PhEnumerateValueKey
     PhEnumerateValueKeyEx
     PhEnumFileStreams
+    PhEnumFileHardLinks
     PhEnumFirmwareEnvironmentValues
     PhEnumGenericModules
     PhEnumHandlesEx
@@ -617,6 +618,9 @@ EXPORTS
     PhGetDriverServiceKeyName
     PhGetFileFullAttributesInformation
     PhGetFileId
+    PhGetFileMotw
+    PhGetFileUsn
+    PhGetFileAllInformation
     PhGetFileHandleName
     PhGetFileName
     PhGetFilePosition

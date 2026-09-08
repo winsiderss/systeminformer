@@ -33,6 +33,7 @@ set(SOURCES
     "toolegrs.c"
     "toolfind.c"
     "toolfw.c"
+    "toolfile.c"
     "toolgpu.c"
     "toolhndl.c"
     "toolimg.c"

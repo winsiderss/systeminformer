@@ -88,6 +88,7 @@
     <ClCompile Include="toolegrs.c" />
     <ClCompile Include="toolfind.c" />
     <ClCompile Include="toolfw.c" />
+    <ClCompile Include="toolfile.c" />
     <ClCompile Include="toolgpu.c" />
     <ClCompile Include="toolhndl.c" />
     <ClCompile Include="toolimg.c" />

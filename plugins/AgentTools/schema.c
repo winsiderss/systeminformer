@@ -328,6 +328,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the strings in a file", L"Allow reading strings out of files", L"get_image_strings"
     },
     {
+        AtActionGetFileInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_file_info"),
+        L"read file metadata", L"Allow reading file metadata", L"get_file_info"
+    },
+    {
         AtActionGetImageInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_image_info"),
         L"inspect executable images", L"Allow inspecting executable images", L"get_image_info"
     },
@@ -3176,6 +3180,61 @@ CONST AT_TOOL AtTools[] =
         "implementation does; delay loaded imports are excluded, as every implementation does\"},"
         "\"is_pe_image\":{\"type\":\"boolean\"}"
         "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_file_info", L"Get file info", AtTierRead, AtActionGetFileInfo,
+        SETTING_NAME_TOOL_ACCESS(L"get_file_info"), SETTING_NAME_TOOL_CONFIRM(L"get_file_info"),
+        "{\"name\":\"get_file_info\",\"title\":\"Get file info\","
+        "\"description\":\"What the file system knows about a file, as opposed to what is inside it: size, "
+        "attributes, the four timestamps, the file id and update sequence number, and how many names point at "
+        "it. Two of these are not on any properties dialog. The alternate data streams are where a file keeps "
+        "content nothing shows by default, and are listed here with their sizes. The Mark of the Web is how "
+        "Windows remembers that a file was downloaded, which zone it came from and often the URL it came from; "
+        "a file with no Mark of the Web was not necessarily created locally, because the mark is only applied "
+        "by software that bothers to. Works on directories too. Opens with FILE_READ_ATTRIBUTES only, so a "
+        "file another process holds exclusively still answers. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"Absolute Win32 path of the file or directory\"},"
+        "\"include_hard_links\":{\"type\":\"boolean\",\"description\":\"List the other names for this file. "
+        "hard_link_count is always reported; the names cost an extra query. Default false\"}"
+        "},\"required\":[\"path\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"is_directory\":{\"type\":\"boolean\"},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"allocation_size\":{\"type\":\"integer\",\"description\":\"What it occupies on disk, which is smaller than size for a compressed or sparse file\"},"
+        "\"hard_link_count\":{\"type\":\"integer\",\"description\":\"Names pointing at this data; more than one means deleting this path does not delete the file\"},"
+        "\"delete_pending\":{\"type\":\"boolean\"},"
+        "\"attributes_value\":{\"type\":\"string\"},"
+        "\"attributes\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"hidden, system, reparse_point, encrypted, ...\"},"
+        "\"creation_time\":{\"type\":\"string\",\"description\":\"ISO 8601 UTC\"},"
+        "\"last_access_time\":{\"type\":\"string\"},"
+        "\"last_write_time\":{\"type\":\"string\"},"
+        "\"change_time\":{\"type\":\"string\",\"description\":\"When the metadata last changed, which a program cannot backdate the way it can the write time\"},"
+        "\"index_number\":{\"type\":\"integer\"},"
+        "\"ea_size\":{\"type\":\"integer\"},"
+        "\"file_id\":{\"type\":[\"string\",\"null\"],\"description\":\"128 bit file id, hex. Identifies the file on its volume regardless of its name\"},"
+        "\"volume_serial_number\":{\"type\":[\"string\",\"null\"],\"description\":\"Hex. Identifies the volume the file is on, and pairs with file_id to identify the file itself\"},"
+        "\"usn\":{\"type\":[\"integer\",\"null\"],\"description\":\"Update sequence number; it changes every time the file does\"},"
+        "\"streams\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\",\"description\":\"::$DATA is the file itself\"},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"allocation_size\":{\"type\":\"integer\"},"
+        "\"is_alternate\":{\"type\":\"boolean\",\"description\":\"True for everything that is not the file's own data\"}"
+        "},\"required\":[\"name\",\"size\",\"is_alternate\"]}},"
+        "\"hard_links\":{\"type\":[\"array\",\"null\"],\"description\":\"include_hard_links only\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\",\"description\":\"The file name of this link, without its directory\"},"
+        "\"parent_file_id\":{\"type\":\"integer\",\"description\":\"The directory holding it, by file id\"}"
+        "},\"required\":[\"name\"]}},"
+        "\"motw\":{\"type\":[\"object\",\"null\"],\"description\":\"Null when the file carries no Mark of the Web\",\"properties\":{"
+        "\"zone\":{\"type\":[\"string\",\"null\"],\"enum\":[\"local_computer\",\"local_intranet\",\"trusted_sites\",\"internet\",\"restricted_sites\",null]},"
+        "\"zone_id\":{\"type\":\"integer\"},"
+        "\"referrer_url\":{\"type\":[\"string\",\"null\"],\"description\":\"The page the download came from\"},"
+        "\"host_url\":{\"type\":[\"string\",\"null\"],\"description\":\"The URL the file itself came from\"}"
+        "}}"
+        "},\"required\":[\"path\",\"is_directory\",\"size\",\"attributes\",\"hard_link_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

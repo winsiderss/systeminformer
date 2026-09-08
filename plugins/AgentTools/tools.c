@@ -1349,6 +1349,7 @@ VOID AtInvokeTool(
     case AtActionVerifyFileSignature:
     case AtActionGetFileHashes:
     case AtActionGetImageStrings:
+    case AtActionGetFileInfo:
     case AtActionGetImageInfo:
     case AtActionReadProcessMemory:
     case AtActionSearchProcessMemory:
