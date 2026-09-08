@@ -1022,6 +1022,8 @@ VOID AtpControlProcess(
     GROUP_AFFINITY groupAffinity;
     KAFFINITY previousMask = 0;
     PH_PROCESS_WS_COUNTERS wsCounters;
+    BOOLEAN freezeChanged = FALSE;
+    BOOLEAN freezeHeldHere = FALSE;
     ULONG64 workingSetBefore = 0;
     BOOLEAN hasWorkingSetBefore = FALSE;
     ULONG previousPagePriority = 0;
@@ -1062,6 +1064,59 @@ VOID AtpControlProcess(
             NT_VERIFY(AtParseIoPriority(value, &ioPriority));
             PhClearReference(&value);
             status = PhSetProcessIoPriority(Target->ProcessHandle, ioPriority);
+        }
+        break;
+    case AtActionFreezeProcess:
+        {
+            HANDLE freezeHandle;
+            HANDLE previousHandle;
+
+            // A freeze lasts exactly as long as the state change handle does, so the handle has to
+            // live somewhere: it goes on the process item, which is where the application's own
+            // Freeze keeps it. One owner means the Processes window and this agree about what is
+            // frozen, and either can thaw what the other froze - and it means closing System
+            // Informer thaws everything, which is what the application warns about.
+            if (ReadPointerAcquire(&Target->ProcessItem->FreezeHandle))
+            {
+                freezeHeldHere = TRUE;
+                status = STATUS_SUCCESS;
+                break;
+            }
+
+            status = PhFreezeProcess(&freezeHandle, Target->ProcessHandle);
+
+            if (NT_SUCCESS(status))
+            {
+                previousHandle = InterlockedExchangePointer(&Target->ProcessItem->FreezeHandle, freezeHandle);
+
+                if (previousHandle)
+                    NtClose(previousHandle);
+
+                freezeChanged = TRUE;
+                freezeHeldHere = TRUE;
+            }
+        }
+        break;
+    case AtActionThawProcess:
+        {
+            HANDLE freezeHandle;
+
+            freezeHandle = InterlockedExchangePointer(&Target->ProcessItem->FreezeHandle, NULL);
+
+            if (!freezeHandle)
+            {
+                // Nothing here froze it. It may still be frozen by something else, which the
+                // frozen field reports and this cannot undo.
+                status = STATUS_SUCCESS;
+                break;
+            }
+
+            status = PhThawProcess(freezeHandle, Target->ProcessHandle);
+
+            // Closing the handle ends the freeze on its own, so it is closed either way rather
+            // than left open holding a process that was meant to be released.
+            NtClose(freezeHandle);
+            freezeChanged = TRUE;
         }
         break;
     case AtActionEmptyProcessWorkingSet:
@@ -1124,6 +1179,20 @@ VOID AtpControlProcess(
         AtJsonAddStringZ(structured, "priority_class", AtPriorityClassString(priorityClass));
     else if (Tool->Action == AtActionSetProcessIoPriority)
         AtJsonAddStringZ(structured, "io_priority", AtIoPriorityString(ioPriority));
+    else if (Tool->Action == AtActionFreezeProcess || Tool->Action == AtActionThawProcess)
+    {
+        PROCESS_EXTENDED_BASIC_INFORMATION extendedInfo;
+
+        // Asked of the process rather than taken from the provider, which only refreshes once a
+        // second - and rather than assumed from the call having succeeded.
+        if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(Target->ProcessHandle, &extendedInfo)))
+            PhAddJsonObjectBoolean(structured, "frozen", !!extendedInfo.IsFrozen);
+        else
+            AtJsonAddNull(structured, "frozen");
+
+        PhAddJsonObjectBoolean(structured, "changed", freezeChanged);
+        PhAddJsonObjectBoolean(structured, "frozen_by_this_instance", freezeHeldHere);
+    }
     else if (Tool->Action == AtActionEmptyProcessWorkingSet)
     {
         if (hasWorkingSetBefore)
@@ -2220,6 +2289,8 @@ VOID AtProcessInvokeTool(
     case AtActionSetProcessAffinity:
     case AtActionSetProcessPagePriority:
     case AtActionEmptyProcessWorkingSet:
+    case AtActionFreezeProcess:
+    case AtActionThawProcess:
         AtpControlProcess(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessToken:

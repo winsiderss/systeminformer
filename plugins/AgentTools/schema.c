@@ -421,6 +421,18 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"empty_process_working_set"),
         L"empty the working set of the following process", L"Empty the working set of", L"empty_process_working_set"
     },
+    {
+        AtActionFreezeProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME | PROCESS_QUERY_LIMITED_INFORMATION,
+        SETTING_NAME_TOOL_CONFIRM(L"freeze_process"),
+        L"freeze the following process", L"Freeze", L"freeze_process"
+    },
+    {
+        AtActionThawProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess,
+        PROCESS_SET_INFORMATION | PROCESS_SUSPEND_RESUME | PROCESS_QUERY_LIMITED_INFORMATION,
+        SETTING_NAME_TOOL_CONFIRM(L"thaw_process"),
+        L"thaw the following process", L"Thaw", L"thaw_process"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -2339,6 +2351,48 @@ CONST AT_TOOL AtTools[] =
         "\"priority_class\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"priority_class\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "freeze_process", L"Freeze a process", AtTierWrite, AtActionFreezeProcess,
+        SETTING_NAME_TOOL_ACCESS(L"freeze_process"), SETTING_NAME_TOOL_CONFIRM(L"freeze_process"),
+        "{\"name\":\"freeze_process\",\"title\":\"Freeze a process\","
+        "\"description\":\"Freezes a process: every thread stops, and unlike suspend_process the freeze is held "
+        "by the kernel as a state of the process rather than by a suspend count on each thread, so threads created "
+        "while it is frozen are frozen too and nothing can resume it thread by thread. THE FREEZE IS HELD BY THIS "
+        "SYSTEM INFORMER: it lasts as long as the handle does, so closing System Informer thaws everything it "
+        "froze, and a restart cannot thaw what the last one left. frozen is asked of the process itself, so it is "
+        "true for a process frozen by something else as well; frozen_by_this_instance says whether thaw_process "
+        "can undo it here. Freezing an already frozen process changes nothing and says so with changed false. "
+        AT_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"action\":{\"type\":\"string\"},"
+        "\"frozen\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The state of the process itself after the call, whoever froze it\"},"
+        "\"changed\":{\"type\":\"boolean\",\"description\":\"False means the call did nothing, because it was already in that state here\"},"
+        "\"frozen_by_this_instance\":{\"type\":\"boolean\",\"description\":\"Whether this System Informer holds the freeze, which is what thaw_process needs\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"changed\",\"frozen_by_this_instance\"]},"
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "thaw_process", L"Thaw a process", AtTierWrite, AtActionThawProcess,
+        SETTING_NAME_TOOL_ACCESS(L"thaw_process"), SETTING_NAME_TOOL_CONFIRM(L"thaw_process"),
+        "{\"name\":\"thaw_process\",\"title\":\"Thaw a process\","
+        "\"description\":\"Ends a freeze this System Informer is holding. It can only undo a freeze made here: a "
+        "process frozen by something else - or by a System Informer that has since closed - comes back with "
+        "changed false and frozen still true, because the handle holding it is not ours to close. Thawing a "
+        "process that is not frozen changes nothing. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"action\":{\"type\":\"string\"},"
+        "\"frozen\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"changed\":{\"type\":\"boolean\"},"
+        "\"frozen_by_this_instance\":{\"type\":\"boolean\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"changed\",\"frozen_by_this_instance\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
     {
