@@ -27,6 +27,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read process details", L"Allow reading process details", L"get_process"
     },
     {
+        AtActionGetProcessHistory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_history"),
+        L"read the recent history of processes", L"Allow reading process history", L"get_process_history"
+    },
+    {
         AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
@@ -233,6 +237,21 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 
 #define AT_SERVICE_CHANGE_ROW_SCHEMA \
     "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":[\"string\",\"null\"]}},\"required\":[\"name\"]}"
+
+#define AT_HISTORY_STATS_SCHEMA(Detail) \
+    "{\"type\":\"object\",\"description\":\"" Detail "\",\"properties\":{" \
+    "\"average\":{\"type\":\"number\"}," \
+    "\"maximum\":{\"type\":\"number\"}," \
+    "\"last\":{\"type\":\"number\"}" \
+    "},\"required\":[\"average\",\"maximum\",\"last\"]}"
+
+#define AT_HISTORY_TOTAL_STATS_SCHEMA(Detail) \
+    "{\"type\":\"object\",\"description\":\"" Detail "\",\"properties\":{" \
+    "\"average\":{\"type\":\"number\"}," \
+    "\"maximum\":{\"type\":\"number\"}," \
+    "\"last\":{\"type\":\"number\"}," \
+    "\"total\":{\"type\":\"number\"}" \
+    "},\"required\":[\"average\",\"maximum\",\"last\",\"total\"]}"
 
 #define AT_PAGE_NOTE "Rows are paged: limit defaults to 200, total_count is the number of matching rows and truncated says more follow this page. "
 
@@ -465,6 +484,47 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"updates_paused\"],"
         "\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"access_denied\"]},{\"required\":[\"results\",\"result_count\"]}]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_history", L"Get process history", AtTierRead, AtActionGetProcessHistory,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_history"), SETTING_NAME_TOOL_CONFIRM(L"get_process_history"),
+        "{\"name\":\"get_process_history\",\"title\":\"Get process history\","
+        "\"description\":\"What one process has been doing over the last window_seconds, from System Informer's own "
+        "per-process history: CPU, I/O bytes and private bytes per provider run. Answers \\\"was it busy a minute ago\\\" "
+        "without polling. Each series reports average, maximum and last, and the I/O series also report the total moved "
+        "in the window. Set include_samples for the series itself, most recent first. The history only covers the time "
+        "the process has been running while System Informer was watching it. "
+        AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        "\"window_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How far back to look; default 60, capped by what the history holds\"},"
+        "\"include_samples\":{\"type\":\"boolean\",\"description\":\"Also return the individual samples, most recent first\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"update_interval_ms\":{\"type\":\"integer\",\"description\":\"Milliseconds between samples\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"description\":\"Seconds actually covered, which is less than asked for when the history is shorter\"},"
+        "\"sample_count\":{\"type\":\"integer\"},"
+        "\"cpu_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"cpu_kernel_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"cpu_user_usage\":" AT_HISTORY_STATS_SCHEMA("Fraction of total CPU, 0..1") ","
+        "\"io_read_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the bytes read in the window") ","
+        "\"io_write_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the bytes written in the window") ","
+        "\"io_other_bytes\":" AT_HISTORY_TOTAL_STATS_SCHEMA("Bytes per sample; total is the other I/O bytes in the window") ","
+        "\"private_bytes\":" AT_HISTORY_STATS_SCHEMA("Private bytes held at each sample") ","
+        "\"samples\":{\"type\":[\"array\",\"null\"],\"description\":\"Null unless include_samples was set; most recent first\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"time\":{\"type\":[\"string\",\"null\"]},"
+        "\"cpu_usage\":{\"type\":\"number\"},"
+        "\"cpu_kernel_usage\":{\"type\":\"number\"},"
+        "\"cpu_user_usage\":{\"type\":\"number\"},"
+        "\"io_read_bytes\":{\"type\":\"integer\"},"
+        "\"io_write_bytes\":{\"type\":\"integer\"},"
+        "\"io_other_bytes\":{\"type\":\"integer\"},"
+        "\"private_bytes\":{\"type\":\"integer\"}"
+        "},\"required\":[\"cpu_usage\",\"private_bytes\"]}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"update_interval_ms\",\"sample_count\",\"cpu_usage\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

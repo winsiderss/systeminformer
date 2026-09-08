@@ -48,6 +48,9 @@
     <ClCompile Include="snapshot.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="toolhist.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolmem.c">
       <Filter>Source Files</Filter>
     </ClCompile>

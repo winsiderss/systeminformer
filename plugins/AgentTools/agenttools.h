@@ -67,6 +67,7 @@ typedef enum _AT_ACTION
     // processes
     AtActionListProcesses,
     AtActionGetProcess,
+    AtActionGetProcessHistory,
     AtActionGetProcessModules,
     AtActionGetProcessThreads,
     AtActionGetProcessHandles,
@@ -428,6 +429,11 @@ ULONG AtGetSnapshotId(
     VOID
     );
 
+// The provider's update interval in milliseconds, from the last provider run.
+ULONG AtGetUpdateInterval(
+    VOID
+    );
+
 VOID AtAddProcessChanges(
     _In_ PVOID Object,
     _In_ ULONG SinceId
@@ -710,6 +716,13 @@ PPH_STRING AtFormatServiceConfigParameter(
 // Tool implementations by area
 
 VOID AtProcessInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtHistoryInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,

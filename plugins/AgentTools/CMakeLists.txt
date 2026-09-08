@@ -25,6 +25,7 @@ set(SOURCES
     "server.c"
     "snapshot.c"
     "target.c"
+    "toolhist.c"
     "toolmod.c"
     "toolproc.c"
     "tools.c"

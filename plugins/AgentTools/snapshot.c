@@ -39,6 +39,7 @@ typedef struct _AT_CHANGE
 
 static PH_QUEUED_LOCK AtSnapshotLock = PH_QUEUED_LOCK_INIT;
 static LONG AtSnapshotId = 0;
+static LONG AtUpdateInterval = 1000;
 static ULONG AtSnapshotTrackingSinceId = 0;
 static ULONG AtSnapshotOldestForgottenId = 0;
 static PPH_LIST AtProcessChanges = NULL;
@@ -57,6 +58,13 @@ ULONG AtGetSnapshotId(
     )
 {
     return (ULONG)ReadAcquire(&AtSnapshotId);
+}
+
+ULONG AtGetUpdateInterval(
+    VOID
+    )
+{
+    return (ULONG)ReadAcquire(&AtUpdateInterval);
 }
 
 // The id of the run in progress. A provider raises its item events during a run and publishes the
@@ -251,8 +259,15 @@ VOID NTAPI AtpProcessUpdatedCallback(
 {
     PPH_PROVIDER_UPDATED_EVENT event = Parameter;
 
-    if (event)
-        WriteRelease(&AtSnapshotId, (LONG)event->RunCount);
+    if (!event)
+        return;
+
+    WriteRelease(&AtSnapshotId, (LONG)event->RunCount);
+
+    // The interval the history buffers are sampled at; a sample index is that many milliseconds
+    // further into the past.
+    if (event->UpdateInterval != 0)
+        WriteRelease(&AtUpdateInterval, (LONG)event->UpdateInterval);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
