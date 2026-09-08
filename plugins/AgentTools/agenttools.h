@@ -93,6 +93,7 @@ typedef enum _AT_ACTION
     AtActionFindHandles,
     AtActionFindModules,
     AtActionGetFileUsers,
+    AtActionListObjectDirectory,
     AtActionGetThreadStack,
     AtActionTerminateProcess,
     AtActionSuspendProcess,

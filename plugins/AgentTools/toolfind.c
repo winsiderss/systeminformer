@@ -741,6 +741,201 @@ FinishExit:
     PhDereferenceObject(path);
 }
 
+// The object namespace, the tree the kernel keeps its named objects in and that nothing on a
+// normal machine shows you. What lives here: the device objects drivers publish, the section
+// objects shared memory is built on, the mutexes an installer uses to notice a second copy of
+// itself, and the symbolic links that make C: mean a volume.
+//
+// Directories are listed one level at a time by default, because \GLOBAL?? alone has thousands of
+// entries and recursing the whole namespace answers no question anyone asked.
+
+#define AT_OBJECT_MAX_DEPTH 8
+
+typedef struct _AT_OBJECT_DIRECTORY_CONTEXT
+{
+    AT_ROWS Rows;
+    PPH_STRING TypeName;
+    PPH_STRING NameContains;
+    ULONG MaximumDepth;
+    ULONG Depth;
+    PPH_STRING Path;
+    ULONG64 Deadline;
+    BOOLEAN TimedOut;
+    BOOLEAN ResolveLinks;
+} AT_OBJECT_DIRECTORY_CONTEXT, *PAT_OBJECT_DIRECTORY_CONTEXT;
+
+NTSTATUS AtpEnumObjectDirectory(
+    _In_ PAT_OBJECT_DIRECTORY_CONTEXT Context,
+    _In_ PPH_STRING Path
+    );
+
+_Function_class_(PH_ENUM_DIRECTORY_OBJECTS)
+NTSTATUS NTAPI AtpObjectDirectoryCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PPH_STRINGREF Name,
+    _In_ PPH_STRINGREF TypeName,
+    _In_opt_ PVOID Context
+    )
+{
+    PAT_OBJECT_DIRECTORY_CONTEXT context = Context;
+    PPH_STRING childPath;
+    BOOLEAN isDirectory;
+    PVOID row;
+
+    if (!context)
+        return STATUS_INVALID_PARAMETER;
+
+    if (NtGetTickCount64() > context->Deadline)
+    {
+        context->TimedOut = TRUE;
+        return STATUS_TIMEOUT;
+    }
+
+    isDirectory = PhEqualStringRef2(TypeName, L"Directory", TRUE);
+
+    // The parent path already ends in a separator only when it is the root.
+    if (PhEqualString2(context->Path, L"\\", FALSE))
+        childPath = PhConcatStringRef2(&context->Path->sr, Name);
+    else
+    {
+        static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
+
+        childPath = PhConcatStringRef3(&context->Path->sr, &separator, Name);
+    }
+
+    if ((!context->TypeName || PhEqualStringRef(TypeName, &context->TypeName->sr, TRUE)) &&
+        (!context->NameContains || AtContainsString(childPath, context->NameContains)))
+    {
+        row = PhCreateJsonObject();
+        AtJsonAddStringRef(row, "name", Name);
+        AtJsonAddString(row, "path", childPath);
+        AtJsonAddStringRef(row, "type", TypeName);
+        PhAddJsonObjectUInt64(row, "depth", context->Depth);
+
+        // A symbolic link is only interesting for what it points at; \GLOBAL?? is mostly links.
+        if (context->ResolveLinks && PhEqualStringRef2(TypeName, L"SymbolicLink", TRUE))
+        {
+            PPH_STRING target = NULL;
+
+            if (NT_SUCCESS(PhQuerySymbolicLinkObject(&target, RootDirectory, Name)))
+            {
+                AtJsonAddString(row, "target", target);
+                PhClearReference(&target);
+            }
+            else
+            {
+                AtJsonAddNull(row, "target");
+            }
+        }
+        else
+        {
+            AtJsonAddNull(row, "target");
+        }
+
+        AtAddRow(&context->Rows, row);
+    }
+
+    if (isDirectory && context->Depth + 1 < context->MaximumDepth)
+    {
+        PPH_STRING parentPath = context->Path;
+
+        context->Depth++;
+        context->Path = childPath;
+
+        AtpEnumObjectDirectory(context, childPath);
+
+        context->Path = parentPath;
+        context->Depth--;
+    }
+
+    PhDereferenceObject(childPath);
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS AtpEnumObjectDirectory(
+    _In_ PAT_OBJECT_DIRECTORY_CONTEXT Context,
+    _In_ PPH_STRING Path
+    )
+{
+    NTSTATUS status;
+    HANDLE directoryHandle;
+
+    status = PhOpenDirectoryObject(&directoryHandle, DIRECTORY_QUERY, NULL, &Path->sr);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhEnumDirectoryObjects(directoryHandle, AtpObjectDirectoryCallback, Context);
+
+    NtClose(directoryHandle);
+
+    return status;
+}
+
+VOID AtpListObjectDirectory(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_OBJECT_DIRECTORY_CONTEXT context;
+    PPH_STRING path;
+    PVOID structured;
+    PVOID resolveMember;
+    ULONG64 depth = 1;
+    ULONG64 seconds = AT_FIND_DEFAULT_SECONDS;
+    NTSTATUS status;
+
+    memset(&context, 0, sizeof(AT_OBJECT_DIRECTORY_CONTEXT));
+
+    if (!(path = AtGetArgumentString(Call->Arguments, "path")))
+        path = PhCreateString(L"\\");
+
+    context.TypeName = AtGetArgumentString(Call->Arguments, "type_name");
+    context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+    context.MaximumDepth = 1;
+    context.ResolveLinks = TRUE;
+
+    if (resolveMember = AtJsonGetObjectMember(Call->Arguments, "resolve_links", PH_JSON_OBJECT_TYPE_BOOLEAN))
+        context.ResolveLinks = AtJsonGetObjectBoolean(Call->Arguments, "resolve_links");
+
+    if (AtGetArgumentUInt64(Call->Arguments, "depth", &depth))
+        context.MaximumDepth = (ULONG)min(max(depth, 1), AT_OBJECT_MAX_DEPTH);
+
+    if (AtGetArgumentUInt64(Call->Arguments, "max_seconds", &seconds))
+        seconds = min(max(seconds, 1), AT_FIND_MAXIMUM_SECONDS);
+
+    context.Deadline = NtGetTickCount64() + seconds * 1000;
+    context.Path = path;
+
+    AtInitializeRows(&context.Rows, Call->Arguments);
+
+    status = AtpEnumObjectDirectory(&context, path);
+
+    if (!NT_SUCCESS(status) && status != STATUS_TIMEOUT && context.Rows.Rows->Count == 0)
+    {
+        AtSetToolStatusError(Result, status, L"Opening the object directory");
+        AtDeleteRows(&context.Rows);
+        PhClearReference(&context.TypeName);
+        PhClearReference(&context.NameContains);
+        PhDereferenceObject(path);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtJsonAddString(structured, "path", path);
+    AtAddRows(structured, "objects", &context.Rows);
+    PhAddJsonObjectBoolean(structured, "timed_out", context.TimedOut);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&context.Rows);
+    PhClearReference(&context.TypeName);
+    PhClearReference(&context.NameContains);
+    PhDereferenceObject(path);
+}
+
 VOID AtFindInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -760,6 +955,9 @@ VOID AtFindInvokeTool(
         break;
     case AtActionGetFileUsers:
         AtpGetFileUsers(Call, Result);
+        break;
+    case AtActionListObjectDirectory:
+        AtpListObjectDirectory(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

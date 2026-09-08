@@ -111,6 +111,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"find which processes are using a file", L"Allow finding which processes use a file", L"get_file_users"
     },
     {
+        AtActionListObjectDirectory, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_object_directory"),
+        L"list the kernel object namespace", L"Allow listing the object namespace", L"list_object_directory"
+    },
+    {
         AtActionGetThreadStack, AtTierSensitiveRead, AtConsentClassThreadStacks, AtTargetThread, THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME, SETTING_NAME_TOOL_CONFIRM(L"get_thread_stack"),
         L"read thread stacks", L"Read the stack of", L"get_thread_stack"
     },
@@ -1287,6 +1291,42 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"pid\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"handle_users_supported\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_object_directory", L"List the object namespace", AtTierRead, AtActionListObjectDirectory,
+        SETTING_NAME_TOOL_ACCESS(L"list_object_directory"), SETTING_NAME_TOOL_CONFIRM(L"list_object_directory"),
+        "{\"name\":\"list_object_directory\",\"title\":\"List the object namespace\","
+        "\"description\":\"Lists a directory of the kernel object namespace, the tree the system keeps its named "
+        "objects in: the device objects drivers publish under \\\\Device, the sections shared memory is built on "
+        "and the mutexes under \\\\BaseNamedObjects, and the symbolic links under \\\\GLOBAL?? that make C: mean a "
+        "volume. Default path is the root and default depth is one level, because \\\\GLOBAL?? alone has thousands "
+        "of entries. Symbolic link targets are resolved unless resolve_links is false. A directory the caller "
+        "cannot open is skipped rather than failing the call, so a listing can be incomplete without saying so; "
+        "names here are chosen by whatever created the object. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\",\"description\":\"Directory to list, e.g. \\\\Device or \\\\BaseNamedObjects; default the root\"},"
+        "\"depth\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":8,\"description\":\"Levels to descend; default 1\"},"
+        "\"type_name\":{\"type\":\"string\",\"description\":\"Exact object type, e.g. Directory, SymbolicLink, Section, Mutant, Device\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the object's path\"},"
+        "\"resolve_links\":{\"type\":\"boolean\",\"description\":\"Follow symbolic links to report their target; default true\"},"
+        "\"max_seconds\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":60,\"description\":\"How long to spend walking; default 20\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"path\":{\"type\":\"string\"},"
+        "\"objects\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"name\":{\"type\":\"string\"},"
+        "\"path\":{\"type\":\"string\",\"description\":\"Full path, which get_object_info and find_handles both take\"},"
+        "\"type\":{\"type\":\"string\"},"
+        "\"depth\":{\"type\":\"integer\",\"description\":\"0 for entries directly in the listed directory\"},"
+        "\"target\":{\"type\":[\"string\",\"null\"],\"description\":\"What a symbolic link points at; null for anything else\"}"
+        "},\"required\":[\"name\",\"path\",\"type\",\"depth\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The walk stopped early and the listing is partial\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"path\",\"objects\",\"count\",\"total_count\",\"truncated\",\"timed_out\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

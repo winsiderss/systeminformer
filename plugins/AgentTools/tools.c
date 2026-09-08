@@ -1134,6 +1134,7 @@ VOID AtInvokeTool(
     case AtActionFindHandles:
     case AtActionFindModules:
     case AtActionGetFileUsers:
+    case AtActionListObjectDirectory:
         AtFindInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionListFirewallEvents:
