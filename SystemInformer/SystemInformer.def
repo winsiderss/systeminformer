@@ -1170,6 +1170,11 @@ EXPORTS
     PhLookupPrivilegeValue
     PhLookupSid
     PhOpenLsaPolicy
+    PhGetCapabilitySidName
+    PhIsDomainJoined
+    PhGetSidAccountTypeString
+    PhGetSidAuthorityName
+    PhCreateServiceSidToStringSid
     PhSidToStringSid
 
 ; mapimg

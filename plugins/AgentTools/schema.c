@@ -370,6 +370,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListTerminalSessions, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_terminal_sessions"),
         L"list the terminal services sessions", L"Allow listing terminal sessions", L"list_terminal_sessions"
     },
+    {
+        AtActionLookupAccount, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"lookup_account"),
+        L"look up accounts and SIDs", L"Allow looking up accounts", L"lookup_account"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3883,6 +3887,40 @@ CONST AT_TOOL AtTools[] =
         "\"current_session_id\":{\"type\":\"integer\",\"description\":\"The session System Informer itself is in\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"current_session_id\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "lookup_account", L"Look up an account", AtTierRead, AtActionLookupAccount,
+        SETTING_NAME_TOOL_ACCESS(L"lookup_account"), SETTING_NAME_TOOL_CONFIRM(L"lookup_account"),
+        "{\"name\":\"lookup_account\",\"title\":\"Look up an account\","
+        "\"description\":\"A SID and a name are two spellings of the same thing, and nearly every other tool "
+        "here hands back one of them: a process's user, a handle's owner, a logon session, a service's own "
+        "account. This turns either into the other and says what kind of thing it names - a real user, a "
+        "group, a well-known alias, a service, an application capability - because S-1-5-80-... and \\\"a "
+        "service\\\" are the same answer and only one of them can be read. Give service_name to derive a "
+        "service's own SID, which works whether or not the service is installed. A SID that no authority can "
+        "name is still a valid SID: resolved says whether a name was found, which is how an account from an "
+        "unreachable domain and a deleted one both look.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sid\":{\"type\":\"string\",\"description\":\"For example S-1-5-18; exactly one of sid, name or service_name\"},"
+        "\"name\":{\"type\":\"string\",\"description\":\"An account name, with or without a domain: jxy, BUILTIN\\\\Administrators, NT AUTHORITY\\\\SYSTEM\"},"
+        "\"service_name\":{\"type\":\"string\",\"description\":\"Derive the SID a service runs under from its name\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"sid\":{\"type\":\"string\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"domain\":{\"type\":[\"string\",\"null\"]},"
+        "\"full_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Domain and name together, as the rest of the tools spell it\"},"
+        "\"use\":{\"type\":[\"string\",\"null\"],\"description\":\"user, group, domain, alias, well_known_group, deleted_account, computer, label, logon_session, invalid or unknown\"},"
+        "\"resolved\":{\"type\":\"boolean\",\"description\":\"Whether a name was found for the SID at all\"},"
+        "\"account_type\":{\"type\":[\"string\",\"null\"],\"description\":\"Local, domain, Microsoft account, application package and so on\"},"
+        "\"authority\":{\"type\":[\"string\",\"null\"],\"description\":\"The SID's issuing authority, for example NT AUTHORITY\"},"
+        "\"capability_name\":{\"type\":[\"string\",\"null\"],\"description\":\"For an application capability SID, which has no account behind it\"},"
+        "\"is_capability\":{\"type\":\"boolean\"},"
+        "\"service_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Echoed when the SID was derived from a service name\"},"
+        "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

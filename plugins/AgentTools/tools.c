@@ -1421,6 +1421,7 @@ VOID AtInvokeTool(
         break;
     case AtActionListLogonSessions:
     case AtActionListTerminalSessions:
+    case AtActionLookupAccount:
         AtSessionInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionVerifyFileSignature:

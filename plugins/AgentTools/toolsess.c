@@ -13,6 +13,7 @@
 #include <ntlsa.h>
 #include <mapldr.h>
 #include <winsta.h>
+#include <sddl.h>
 
 // The SDK's ntsecapi.h redefines the LSA structures phnt already declares, so the handful of flag
 // values needed here are spelled out the way the application's own user list does it.
@@ -489,6 +490,174 @@ VOID AtpListTerminalSessions(
     PhClearReference(&stateFilter);
 }
 
+// A SID and a name are two spellings of the same thing, and nearly every other tool here hands back
+// one of them: a process's user, a handle's owner, a logon session, a service's own account. This
+// turns either into the other, and says what kind of thing it names - a real user, a group, a
+// well-known alias, a service, an app capability - because "S-1-5-80-..." and "a service" are the
+// same answer and only one of them is readable.
+
+PCWSTR AtpSidNameUseString(
+    _In_ SID_NAME_USE Use
+    )
+{
+    switch (Use)
+    {
+    case SidTypeUser:
+        return L"user";
+    case SidTypeGroup:
+        return L"group";
+    case SidTypeDomain:
+        return L"domain";
+    case SidTypeAlias:
+        return L"alias";
+    case SidTypeWellKnownGroup:
+        return L"well_known_group";
+    case SidTypeDeletedAccount:
+        return L"deleted_account";
+    case SidTypeInvalid:
+        return L"invalid";
+    case SidTypeUnknown:
+        return L"unknown";
+    case SidTypeComputer:
+        return L"computer";
+    case SidTypeLabel:
+        return L"label";
+    case SidTypeLogonSession:
+        return L"logon_session";
+    }
+
+    return NULL;
+}
+
+VOID AtpAddAccountDetails(
+    _In_ PVOID Structured,
+    _In_ PSID Sid
+    )
+{
+    PPH_STRING sidString;
+    PPH_STRING name = NULL;
+    PPH_STRING domainName = NULL;
+    PPH_STRING fullName;
+    PPH_STRING authority;
+    PPH_STRING capabilityName;
+    SID_NAME_USE use = SidTypeUnknown;
+    NTSTATUS status;
+
+    sidString = PhSidToStringSid(Sid);
+    AtJsonAddString(Structured, "sid", sidString);
+    PhClearReference(&sidString);
+
+    // A SID that no authority can name is still a valid SID, and saying so is the answer: an
+    // account from a domain this machine cannot reach, or one that has been deleted, looks exactly
+    // like this.
+    status = PhLookupSid(Sid, &name, &domainName, &use);
+
+    AtJsonAddString(Structured, "name", name);
+    AtJsonAddString(Structured, "domain", domainName);
+    AtJsonAddStringZ(Structured, "use", AtpSidNameUseString(use));
+    PhAddJsonObjectBoolean(Structured, "resolved", NT_SUCCESS(status));
+
+    fullName = PhGetSidFullName(Sid, TRUE, NULL);
+    AtJsonAddString(Structured, "full_name", fullName);
+    PhClearReference(&fullName);
+
+    AtJsonAddStringZ(Structured, "account_type", PhGetSidAccountTypeString(Sid));
+
+    authority = PhGetSidAuthorityName(Sid);
+    AtJsonAddString(Structured, "authority", authority);
+    PhClearReference(&authority);
+
+    // An application capability SID has no account behind it at all; its name comes from a
+    // different table, and without it the SID is an unreadable string of digits.
+    capabilityName = PhGetCapabilitySidName(Sid);
+    AtJsonAddString(Structured, "capability_name", capabilityName);
+    PhAddJsonObjectBoolean(Structured, "is_capability", !!capabilityName);
+    PhClearReference(&capabilityName);
+
+    PhClearReference(&name);
+    PhClearReference(&domainName);
+}
+
+VOID AtpLookupAccount(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING sidString;
+    PPH_STRING name;
+    PPH_STRING serviceName;
+    PSID sid = NULL;
+    BOOLEAN localFree = FALSE;
+    PVOID structured;
+
+    sidString = AtGetArgumentString(Call->Arguments, "sid");
+    name = AtGetArgumentString(Call->Arguments, "name");
+    serviceName = AtGetArgumentString(Call->Arguments, "service_name");
+
+    if ((sidString ? 1 : 0) + (name ? 1 : 0) + (serviceName ? 1 : 0) != 1)
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"Exactly one of sid, name or service_name is required.");
+        goto CleanupExit;
+    }
+
+    // A service's SID is derived from its name rather than looked up, so it answers for a service
+    // that is not installed as readily as for one that is.
+    if (serviceName)
+    {
+        PPH_STRING serviceSid = PhCreateServiceSidToStringSid(&serviceName->sr);
+
+        if (!serviceSid)
+        {
+            AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"A service SID could not be derived from that name.");
+            goto CleanupExit;
+        }
+
+        PhMoveReference(&sidString, serviceSid);
+    }
+
+    if (sidString)
+    {
+        if (!ConvertStringSidToSidW(PhGetString(sidString), &sid))
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_SID, L"%s is not a SID.", PhGetString(sidString));
+            goto CleanupExit;
+        }
+
+        localFree = TRUE;
+    }
+    else
+    {
+        if (!NT_SUCCESS(PhLookupName(&name->sr, &sid, NULL, NULL)) || !sid)
+        {
+            AtSetToolError(Result, "not_found", STATUS_NONE_MAPPED, L"No account named %s could be found.", PhGetString(name));
+            goto CleanupExit;
+        }
+    }
+
+    structured = PhCreateJsonObject();
+    AtpAddAccountDetails(structured, sid);
+    AtJsonAddString(structured, "service_name", serviceName);
+    PhAddJsonObjectBoolean(structured, "domain_joined", PhIsDomainJoined());
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+CleanupExit:
+
+    if (sid)
+    {
+        // ConvertStringSidToSidW allocates with LocalAlloc; PhLookupName allocates with PhAllocate.
+        if (localFree)
+            LocalFree(sid);
+        else
+            PhFree(sid);
+    }
+
+    PhClearReference(&sidString);
+    PhClearReference(&name);
+    PhClearReference(&serviceName);
+}
+
 VOID AtSessionInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -505,6 +674,9 @@ VOID AtSessionInvokeTool(
         break;
     case AtActionListTerminalSessions:
         AtpListTerminalSessions(Call, Result);
+        break;
+    case AtActionLookupAccount:
+        AtpLookupAccount(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
