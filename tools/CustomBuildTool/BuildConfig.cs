@@ -160,6 +160,7 @@ namespace CustomBuildTool
             "searchbox.h",
             "secedit.h",
             "settings.h",
+            "strsrch.h",
             "svcsup.h",
             "symprv.h",
             "tabnew.h",
