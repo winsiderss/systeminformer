@@ -43,6 +43,84 @@ BOOLEAN VirusTotalLookupsEnabled = FALSE;
 LIST_ENTRY ScanExtensionsListHead = { &ScanExtensionsListHead, &ScanExtensionsListHead };
 PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
+
+// ONLINECHECKS_INTERFACE
+
+/**
+ * Reads a cached VirusTotal verdict for a file hash.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Result The cached verdict, written only when one was found.
+ * \return Whether a verdict was found, none was cached, or there was nowhere to look.
+ *
+ * \remarks ONLINECHECKS_INTERFACE. Reads the local database and nothing else: no request is made
+ * and no scan is queued. The database is opened only when scanning is enabled, which is why a
+ * caller is told that separately rather than being handed an empty answer.
+ */
+ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedVirusTotal(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_VIRUSTOTAL_RESULT Result
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 malicious;
+    ULONG64 undetected;
+
+    if (!ScanningInitialized)
+        return OnlineChecksLookupUnavailable;
+
+    if (!QueryDBVirusTotal(Sha256, &httpStatus, &expiry, &malicious, &undetected))
+        return OnlineChecksLookupNotFound;
+
+    Result->HttpStatus = httpStatus;
+    Result->Expiry = expiry;
+    Result->Malicious = malicious;
+    Result->Undetected = undetected;
+
+    return OnlineChecksLookupFound;
+}
+
+/**
+ * Reads a cached Hybrid Analysis verdict for a file hash.
+ *
+ * \param Sha256 The file's SHA-256, as hexadecimal text.
+ * \param Result The cached verdict, written only when one was found.
+ * \return Whether a verdict was found, none was cached, or there was nowhere to look.
+ *
+ * \remarks ONLINECHECKS_INTERFACE. As above: local database only.
+ */
+ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
+    _In_ PPH_STRING Sha256,
+    _Out_ PONLINECHECKS_HYBRIDANALYSIS_RESULT Result
+    )
+{
+    ULONG httpStatus;
+    LARGE_INTEGER expiry;
+    ULONG64 multiscanResult;
+    PPH_STRING vxFamily;
+
+    if (!ScanningInitialized)
+        return OnlineChecksLookupUnavailable;
+
+    if (!QueryDBHybridAnalysis(Sha256, &httpStatus, &expiry, &multiscanResult, &vxFamily))
+        return OnlineChecksLookupNotFound;
+
+    Result->HttpStatus = httpStatus;
+    Result->Expiry = expiry;
+    Result->MultiscanResult = multiscanResult;
+    Result->VxFamily = vxFamily;
+
+    return OnlineChecksLookupFound;
+}
+
+static ONLINECHECKS_INTERFACE PluginInterface =
+{
+    ONLINECHECKS_INTERFACE_VERSION,
+    OnlineChecksQueryCachedVirusTotal,
+    OnlineChecksQueryCachedHybridAnalysis,
+};
+
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI LoadCallback(
     _In_ PVOID Parameter,
@@ -1056,6 +1134,7 @@ LOGICAL DllMain(
             if (!PluginInstance)
                 return FALSE;
 
+            info->Interface = &PluginInterface;
             info->DisplayName = L"Online Checks";
             info->Description = L"Allows files to be checked with online services.";
 
