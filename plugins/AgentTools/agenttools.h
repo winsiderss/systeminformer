@@ -127,6 +127,7 @@ typedef enum _AT_ACTION
     AtActionSuspendThread,
     AtActionResumeThread,
     AtActionTerminateThread,
+    AtActionCancelThreadIo,
     // services
     AtActionListServices,
     AtActionGetService,

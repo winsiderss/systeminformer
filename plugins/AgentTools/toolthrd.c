@@ -1396,9 +1396,25 @@ VOID AtpControlThread(
 {
     NTSTATUS status;
     PVOID structured;
+    IO_STATUS_BLOCK isb;
+    BOOLEAN hadPendingIo = FALSE;
 
     switch (Tool->Action)
     {
+    case AtActionCancelThreadIo:
+        // THREAD_TERMINATE is what this call wants, which is more than it sounds like: cancelling
+        // a thread's I/O is as disruptive to the thread as stopping it, and the access reflects it.
+        status = NtCancelSynchronousIoFile(Target->ThreadHandle, NULL, &isb);
+
+        // Nothing to cancel is an answer, not a failure: a thread that is not waiting on
+        // synchronous I/O reports STATUS_NOT_FOUND, and reporting that as an error would send a
+        // caller looking for a permission problem that is not there.
+        if (status == STATUS_NOT_FOUND)
+            status = STATUS_SUCCESS;
+        else if (NT_SUCCESS(status))
+            hadPendingIo = TRUE;
+
+        break;
     case AtActionSuspendThread:
         status = PhSuspendThread(Target->ThreadHandle, NULL);
         break;
@@ -1423,6 +1439,10 @@ VOID AtpControlThread(
     AtFillProcessIdentity(structured, Target->ProcessItem);
     PhAddJsonObjectUInt64(structured, "tid", HandleToUlong(Target->ThreadId));
     PhAddJsonObject(structured, "action", Tool->Name);
+
+    if (Tool->Action == AtActionCancelThreadIo)
+        PhAddJsonObjectBoolean(structured, "cancelled", hadPendingIo);
+
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
@@ -1452,6 +1472,7 @@ VOID AtThreadInvokeTool(
     case AtActionSuspendThread:
     case AtActionResumeThread:
     case AtActionTerminateThread:
+    case AtActionCancelThreadIo:
         AtpControlThread(Tool, Target, Result);
         break;
     default:

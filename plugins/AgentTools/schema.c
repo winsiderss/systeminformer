@@ -227,6 +227,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionTerminateThread, AtTierWrite, AtConsentClassNone, AtTargetThread, THREAD_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_thread"),
         L"terminate the following thread", L"Terminate", L"terminate_thread"
     },
+    {
+        AtActionCancelThreadIo, AtTierWrite, AtConsentClassNone, AtTargetThread, THREAD_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"cancel_thread_io"),
+        L"cancel the synchronous I/O of the following thread", L"Cancel the I/O of", L"cancel_thread_io"
+    },
     // services
     {
         AtActionListServices, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_services"),
@@ -2560,6 +2564,28 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Resumes one suspended thread of a process. The thread must belong to pid. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
+        AT_WRITE_ANNOTATIONS "}"
+    },
+    {
+        "cancel_thread_io", L"Cancel thread I/O", AtTierWrite, AtActionCancelThreadIo,
+        SETTING_NAME_TOOL_ACCESS(L"cancel_thread_io"), SETTING_NAME_TOOL_CONFIRM(L"cancel_thread_io"),
+        "{\"name\":\"cancel_thread_io\",\"title\":\"Cancel a thread's synchronous I/O\","
+        "\"description\":\"Unsticks a thread that is blocked in a synchronous read or write - a file on a share "
+        "that has gone away, a pipe nobody is answering, a device that is not responding - by failing the call it "
+        "is waiting in. The thread carries on from there with an error, which is far less damaging than "
+        "terminate_thread, but it is still an I/O the program believes it issued: it may handle the failure badly "
+        "or lose what it was writing. ONLY SYNCHRONOUS I/O: a thread waiting on overlapped I/O, on a lock, or on "
+        "anything else is untouched. cancelled false means there was nothing to cancel, which is a normal answer "
+        "and not a failure - get_thread_wait_chain or analyze_thread_wait says what a thread is actually waiting "
+        "on. The thread must belong to pid. " AT_WRITE_NOTE "\","
+        "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"tid\":{\"type\":\"integer\"},"
+        "\"action\":{\"type\":\"string\"},"
+        "\"cancelled\":{\"type\":\"boolean\",\"description\":\"True when an I/O was actually cancelled; false when the thread had none waiting\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"action\",\"cancelled\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
     {

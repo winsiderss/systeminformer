@@ -1404,6 +1404,7 @@ VOID AtInvokeTool(
     case AtActionSuspendThread:
     case AtActionResumeThread:
     case AtActionTerminateThread:
+    case AtActionCancelThreadIo:
         AtThreadInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetThreadWaitChain:
