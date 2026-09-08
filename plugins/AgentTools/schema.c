@@ -31,6 +31,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the recent history of processes", L"Allow reading process history", L"get_process_history"
     },
     {
+        AtActionRankProcesses, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"rank_processes"),
+        L"rank processes by recent activity", L"Allow ranking processes by recent activity", L"rank_processes"
+    },
+    {
         AtActionGetProcessModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_modules"),
         L"list the modules of processes", L"Allow listing process modules", L"get_process_modules"
     },
@@ -529,6 +533,46 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"cpu_usage\",\"private_bytes\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"update_interval_ms\",\"sample_count\",\"cpu_usage\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "rank_processes", L"Rank processes by recent activity", AtTierRead, AtActionRankProcesses,
+        SETTING_NAME_TOOL_ACCESS(L"rank_processes"), SETTING_NAME_TOOL_CONFIRM(L"rank_processes"),
+        "{\"name\":\"rank_processes\",\"title\":\"Rank processes by recent activity\","
+        "\"description\":\"The processes that have used the most of something over the last window_seconds, from "
+        "System Informer's own per-process history. Needs no sampling pause: the history is already recorded, so this "
+        "answers \\\"what has been eating the CPU for the last minute\\\" in one call rather than two calls and a "
+        "subtraction. Every row carries all of the metrics, not just the ranked one, so the ranking can be judged "
+        "without asking again. A process younger than the window is ranked on the samples it has, which sample_count "
+        "reports. "
+        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"rank_by\":{\"type\":\"string\",\"enum\":[\"cpu\",\"io\",\"io_read\",\"io_write\",\"private_bytes_growth\",\"private_bytes\"],\"description\":\"What to rank by, highest first; default cpu\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"minimum\":1,\"description\":\"How far back to look; default 60, capped by what the history holds\"},"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the process name\"},"
+        "\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"How many to return; default 10\"},"
+        "\"offset\":{\"type\":\"integer\",\"minimum\":0,\"description\":\"Rows to skip, to walk further down the ranking\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"ranked_by\":{\"type\":[\"string\",\"null\"],\"description\":\"The row field the ranking used\"},"
+        "\"update_interval_ms\":{\"type\":\"integer\"},"
+        "\"window_seconds\":{\"type\":\"integer\",\"description\":\"The window that was asked for, rounded to whole samples; each row's sample_count says how much history that process actually had\"},"
+        "\"processes\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"user\":{\"type\":[\"string\",\"null\"]},"
+        "\"sample_count\":{\"type\":\"integer\",\"description\":\"Samples this process had in the window\"},"
+        "\"cpu_usage_average\":{\"type\":\"number\",\"description\":\"Mean fraction of total CPU over the window\"},"
+        "\"cpu_usage_maximum\":{\"type\":\"number\"},"
+        "\"cpu_usage\":{\"type\":\"number\",\"description\":\"The most recent value, for comparison with list_processes\"},"
+        "\"io_bytes_total\":{\"type\":\"number\",\"description\":\"Read, write and other bytes in the window\"},"
+        "\"io_read_bytes_total\":{\"type\":\"number\"},"
+        "\"io_write_bytes_total\":{\"type\":\"number\"},"
+        "\"private_bytes\":{\"type\":\"integer\"},"
+        "\"private_bytes_growth\":{\"type\":\"integer\",\"description\":\"Newest minus oldest in the window; negative when memory was given back\"}"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"sample_count\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"ranked_by\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

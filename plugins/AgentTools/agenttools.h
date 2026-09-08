@@ -68,6 +68,7 @@ typedef enum _AT_ACTION
     AtActionListProcesses,
     AtActionGetProcess,
     AtActionGetProcessHistory,
+    AtActionRankProcesses,
     AtActionGetProcessModules,
     AtActionGetProcessThreads,
     AtActionGetProcessHandles,

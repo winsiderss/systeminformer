@@ -982,6 +982,7 @@ VOID AtInvokeTool(
         break;
     case AtActionGetProcessHistory:
     case AtActionGetSystemHistory:
+    case AtActionRankProcesses:
         AtHistoryInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessHandles:

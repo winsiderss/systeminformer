@@ -427,6 +427,197 @@ VOID AtpGetSystemHistory(
     Result->StructuredContent = structured;
 }
 
+// Top-N over a window, from the same history the other two tools read. The point is that it needs
+// no sampling pause: "which process has been eating the CPU for the last minute" is already
+// recorded, so the agent does not have to call twice and subtract.
+
+#define AT_RANK_DEFAULT_LIMIT 10
+
+typedef struct _AT_RANK_METRIC
+{
+    PCWSTR Name;
+    PCSTR Field;
+} AT_RANK_METRIC, *PAT_RANK_METRIC;
+
+static CONST AT_RANK_METRIC AtRankMetrics[] =
+{
+    { L"cpu", "cpu_usage_average" },
+    { L"io", "io_bytes_total" },
+    { L"io_read", "io_read_bytes_total" },
+    { L"io_write", "io_write_bytes_total" },
+    { L"private_bytes_growth", "private_bytes_growth" },
+    { L"private_bytes", "private_bytes" },
+};
+
+PCSTR AtpRankField(
+    _In_opt_ PPH_STRING RankBy
+    )
+{
+    ULONG i;
+
+    if (!RankBy)
+        return AtRankMetrics[0].Field;
+
+    for (i = 0; i < RTL_NUMBER_OF(AtRankMetrics); i++)
+    {
+        if (PhEqualStringZ(RankBy->Buffer, AtRankMetrics[i].Name, TRUE))
+            return AtRankMetrics[i].Field;
+    }
+
+    return NULL;
+}
+
+VOID AtpRankProcesses(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    AT_ROWS rows;
+    PVOID structured;
+    PPH_PROCESS_ITEM* processItems;
+    ULONG numberOfProcessItems;
+    PPH_STRING rankBy;
+    PPH_STRING nameContains;
+    PCSTR field;
+    ULONG interval;
+    ULONG64 windowSeconds;
+    ULONG64 limit;
+    ULONG windowSamples;
+    ULONG i;
+    ULONG j;
+
+    rankBy = AtGetArgumentString(Call->Arguments, "rank_by");
+    field = AtpRankField(rankBy);
+    PhClearReference(&rankBy);
+
+    if (!field)
+    {
+        AtSetToolError(
+            Result,
+            "invalid_arguments",
+            STATUS_INVALID_PARAMETER,
+            L"rank_by must be cpu, io, io_read, io_write, private_bytes_growth or private_bytes."
+            );
+        return;
+    }
+
+    interval = AtGetUpdateInterval();
+
+    if (!AtGetArgumentUInt64(Call->Arguments, "window_seconds", &windowSeconds) || windowSeconds == 0)
+        windowSeconds = AT_HISTORY_DEFAULT_WINDOW_SECONDS;
+
+    windowSamples = (ULONG)min(windowSeconds * 1000 / interval, MAXLONG);
+
+    if (windowSamples == 0)
+        windowSamples = 1;
+
+    nameContains = AtGetArgumentString(Call->Arguments, "name_contains");
+
+    AtInitializeRows(&rows, Call->Arguments);
+
+    // Ranking is the whole point of the tool, so the order is the metric's, not the caller's, and
+    // a top-N default is more useful here than the list default.
+    PhMoveReference(&rows.SortBy, PhZeroExtendToUtf16(field));
+    rows.Descending = TRUE;
+
+    if (!AtGetArgumentUInt64(Call->Arguments, "limit", &limit))
+        rows.Limit = AT_RANK_DEFAULT_LIMIT;
+
+    PhEnumProcessItems(&processItems, &numberOfProcessItems);
+
+    for (i = 0; i < numberOfProcessItems; i++)
+    {
+        PPH_PROCESS_ITEM processItem = processItems[i];
+        AT_HISTORY_STATS cpu;
+        AT_HISTORY_STATS io;
+        AT_HISTORY_STATS ioRead;
+        AT_HISTORY_STATS ioWrite;
+        ULONG available;
+        SIZE_T newestPrivate = 0;
+        SIZE_T oldestPrivate = 0;
+        PVOID row;
+
+        if (!AtContainsString(processItem->ProcessName, nameContains))
+            continue;
+
+        memset(&cpu, 0, sizeof(AT_HISTORY_STATS));
+        memset(&io, 0, sizeof(AT_HISTORY_STATS));
+        memset(&ioRead, 0, sizeof(AT_HISTORY_STATS));
+        memset(&ioWrite, 0, sizeof(AT_HISTORY_STATS));
+
+        available = processItem->CpuKernelHistory.Count;
+        available = min(available, processItem->CpuUserHistory.Count);
+        available = min(available, processItem->IoReadHistory.Count);
+        available = min(available, processItem->IoWriteHistory.Count);
+        available = min(available, processItem->IoOtherHistory.Count);
+        available = min(available, processItem->PrivateBytesHistory.Count);
+        available = min(available, windowSamples);
+
+        for (j = 0; j < available; j++)
+        {
+            FLOAT kernel;
+            FLOAT user;
+            ULONG64 read;
+            ULONG64 write;
+            ULONG64 other;
+            SIZE_T bytes;
+            LARGE_INTEGER time;
+
+            if (!PhGetStatisticsTime(processItem, j, &time))
+                break;
+
+            kernel = PhGetItemCircularBuffer_FLOAT(&processItem->CpuKernelHistory, j);
+            user = PhGetItemCircularBuffer_FLOAT(&processItem->CpuUserHistory, j);
+            read = PhGetItemCircularBuffer_ULONG64(&processItem->IoReadHistory, j);
+            write = PhGetItemCircularBuffer_ULONG64(&processItem->IoWriteHistory, j);
+            other = PhGetItemCircularBuffer_ULONG64(&processItem->IoOtherHistory, j);
+            bytes = PhGetItemCircularBuffer_SIZE_T(&processItem->PrivateBytesHistory, j);
+
+            AtpAccumulate(&cpu, (DOUBLE)kernel + user);
+            AtpAccumulate(&ioRead, (DOUBLE)read);
+            AtpAccumulate(&ioWrite, (DOUBLE)write);
+            AtpAccumulate(&io, (DOUBLE)read + write + other);
+
+            if (cpu.Count == 1)
+                newestPrivate = bytes;
+
+            oldestPrivate = bytes;
+        }
+
+        row = PhCreateJsonObject();
+        AtFillProcessIdentity(row, processItem);
+        AtJsonAddString(row, "user", processItem->UserName);
+        PhAddJsonObjectUInt64(row, "sample_count", cpu.Count);
+        PhAddJsonObjectDouble(row, "cpu_usage_average", cpu.Count ? cpu.Total / cpu.Count : 0.0);
+        PhAddJsonObjectDouble(row, "cpu_usage_maximum", cpu.Count ? cpu.Maximum : 0.0);
+        PhAddJsonObjectDouble(row, "io_bytes_total", io.Total);
+        PhAddJsonObjectDouble(row, "io_read_bytes_total", ioRead.Total);
+        PhAddJsonObjectDouble(row, "io_write_bytes_total", ioWrite.Total);
+        PhAddJsonObjectUInt64(row, "private_bytes", processItem->VmCounters.PagefileUsage);
+
+        // Newest minus oldest in the window: negative when the process gave memory back.
+        PhAddJsonObjectInt64(row, "private_bytes_growth", (LONG64)newestPrivate - (LONG64)oldestPrivate);
+
+        PhAddJsonObjectDouble(row, "cpu_usage", processItem->CpuUsage);
+        AtAddRow(&rows, row);
+    }
+
+    for (i = 0; i < numberOfProcessItems; i++)
+        PhDereferenceObject(processItems[i]);
+
+    PhFree(processItems);
+    PhClearReference(&nameContains);
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(structured, "update_interval_ms", interval);
+    PhAddJsonObjectUInt64(structured, "window_seconds", (ULONG64)windowSamples * interval / 1000);
+    AtJsonAddStringZ(structured, "ranked_by", PhGetStringOrEmpty(rows.SortBy));
+    AtAddRows(structured, "processes", &rows);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtHistoryInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -443,6 +634,9 @@ VOID AtHistoryInvokeTool(
         break;
     case AtActionGetSystemHistory:
         AtpGetSystemHistory(Call, Result);
+        break;
+    case AtActionRankProcesses:
+        AtpRankProcesses(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
