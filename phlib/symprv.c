@@ -1047,7 +1047,8 @@ VOID PhpSymbolInfoAnsiToUnicode(
  * \param[out,opt] ResolveLevel A pointer to a variable that receives the resolution level.
  * \param[out,opt] FileName A pointer to a variable that receives the module file name.
  * \param[out,opt] SymbolName A pointer to a variable that receives the symbol name.
- * \param[out,opt] Displacement A pointer to a variable that receives the displacement.
+ * \param[out,opt] Displacement A pointer to a variable that receives the displacement from the
+ * symbol, which is zero when the address did not resolve to one.
  * \return A string representing the symbol, or NULL on failure.
  */
 _Success_(return != NULL)
@@ -1064,7 +1065,9 @@ PPH_STRING PhGetSymbolFromAddress(
     ULONG nameLength;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
-    ULONG64 displacement;
+    // The address and module resolution paths never reach the query that fills this in, and both
+    // still hand it to the caller on the way out.
+    ULONG64 displacement = 0;
     PPH_STRING modFileName = NULL;
     PPH_STRING modBaseName = NULL;
     PVOID modBase = NULL;
@@ -3244,7 +3247,9 @@ PPH_STRING PhGetSymbolFromInlineContext(
     ULONG nameLength;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
-    ULONG64 displacement;
+    // The address and module resolution paths never reach the query that fills this in, and both
+    // still hand it to the caller on the way out.
+    ULONG64 displacement = 0;
     PPH_STRING modFileName = NULL;
     PPH_STRING modBaseName = NULL;
     PVOID modBase = NULL;
