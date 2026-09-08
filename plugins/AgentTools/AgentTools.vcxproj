@@ -83,6 +83,7 @@
     <ClCompile Include="target.c" />
     <ClCompile Include="tooladpt.c" />
     <ClCompile Include="tooldev.c" />
+    <ClCompile Include="tooldisk.c" />
     <ClCompile Include="toolgpu.c" />
     <ClCompile Include="toolhist.c" />
     <ClCompile Include="toolio.c" />

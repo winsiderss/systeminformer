@@ -1093,6 +1093,11 @@ VOID AtInvokeTool(
     case AtActionListNetworkAdapters:
         AtAdapterInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionGetDiskPerformance:
+    case AtActionGetDiskIdentity:
+    case AtActionGetDiskHealth:
+        AtDiskInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessIoRates:
         AtIoInvokeTool(Tool, Call, Target, Result);
         break;

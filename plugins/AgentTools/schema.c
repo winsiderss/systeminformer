@@ -150,6 +150,18 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     },
     // network
     {
+        AtActionGetDiskPerformance, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_disk_performance"),
+        L"read disk performance counters", L"Allow reading disk performance", L"get_disk_performance"
+    },
+    {
+        AtActionGetDiskIdentity, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_disk_identity"),
+        L"read the make and model of the disks", L"Allow reading disk identity", L"get_disk_identity"
+    },
+    {
+        AtActionGetDiskHealth, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_disk_health"),
+        L"read the health data of the disks", L"Read the health data of the disks", L"get_disk_health"
+    },
+    {
         AtActionListNetworkAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),
         L"list the network adapters", L"Allow listing network adapters", L"list_network_adapters"
     },
@@ -1382,6 +1394,128 @@ CONST AT_TOOL AtTools[] =
         AT_WRITE_ANNOTATIONS "}"
     },
     // network
+    {
+        "get_disk_performance", L"Get disk performance", AtTierRead, AtActionGetDiskPerformance,
+        SETTING_NAME_TOOL_ACCESS(L"get_disk_performance"), SETTING_NAME_TOOL_CONFIRM(L"get_disk_performance"),
+        "{\"name\":\"get_disk_performance\",\"title\":\"Get disk performance\","
+        "\"description\":\"The storage stack's own counters for each physical disk: bytes and operations read and "
+        "written, the time spent reading, writing and idle, and the current queue depth. The counters are cumulative "
+        "since the driver loaded, so a rate needs two calls a known time apart; queue depth is instantaneous and is "
+        "the quickest answer to whether a disk is the bottleneck. Rows are keyed on disk_number, the same number "
+        "get_disk_identity and get_disk_health report. A disk whose counters the stack will not return is left out "
+        "rather than reported as idle. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":\"integer\",\"description\":\"Only this physical disk\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"model\":{\"type\":[\"string\",\"null\"]},"
+        "\"bytes_read\":{\"type\":\"integer\"},"
+        "\"bytes_written\":{\"type\":\"integer\"},"
+        "\"read_count\":{\"type\":\"integer\"},"
+        "\"write_count\":{\"type\":\"integer\"},"
+        "\"read_time_100ns\":{\"type\":\"integer\"},"
+        "\"write_time_100ns\":{\"type\":\"integer\"},"
+        "\"idle_time_100ns\":{\"type\":\"integer\"},"
+        "\"query_time_100ns\":{\"type\":\"integer\",\"description\":\"When the counters were sampled, so two calls can be differenced\"},"
+        "\"split_count\":{\"type\":\"integer\"},"
+        "\"queue_depth\":{\"type\":\"integer\",\"description\":\"Requests outstanding right now\"}"
+        "},\"required\":[\"disk_number\",\"bytes_read\",\"bytes_written\",\"queue_depth\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_disk_identity", L"Get disk identity", AtTierRead, AtActionGetDiskIdentity,
+        SETTING_NAME_TOOL_ACCESS(L"get_disk_identity"), SETTING_NAME_TOOL_CONFIRM(L"get_disk_identity"),
+        "{\"name\":\"get_disk_identity\",\"title\":\"Get disk identity\","
+        "\"description\":\"What each physical disk is: vendor, model, firmware revision and serial number, the bus "
+        "it is on, whether its media is removable, and its geometry and total size. Virtual and file-backed disks "
+        "are included and their bus_type says so. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":\"integer\",\"description\":\"Only this physical disk\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"device_path\":{\"type\":[\"string\",\"null\"]},"
+        "\"vendor\":{\"type\":[\"string\",\"null\"]},"
+        "\"model\":{\"type\":[\"string\",\"null\"]},"
+        "\"revision\":{\"type\":[\"string\",\"null\"],\"description\":\"Firmware revision\"},"
+        "\"serial_number\":{\"type\":[\"string\",\"null\"]},"
+        "\"bus_type\":{\"type\":[\"string\",\"null\"],\"description\":\"nvme, sata, usb, virtual and so on\"},"
+        "\"removable\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"command_queueing\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"size_bytes\":{\"type\":[\"integer\",\"null\"]},"
+        "\"bytes_per_sector\":{\"type\":[\"integer\",\"null\"]},"
+        "\"sectors_per_track\":{\"type\":[\"integer\",\"null\"]},"
+        "\"tracks_per_cylinder\":{\"type\":[\"integer\",\"null\"]},"
+        "\"cylinders\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"disk_number\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_disk_health", L"Get disk health", AtTierSensitiveRead, AtActionGetDiskHealth,
+        SETTING_NAME_TOOL_ACCESS(L"get_disk_health"), SETTING_NAME_TOOL_CONFIRM(L"get_disk_health"),
+        "{\"name\":\"get_disk_health\",\"title\":\"Get disk health\","
+        "\"description\":\"How worn each disk is and whether it is predicting its own failure. For SATA and SAS "
+        "disks that is the SMART attribute table: id, current and worst normalised values, and the six-byte raw "
+        "value. Attribute ids are vendor specific and are reported as numbers rather than guessed at by name; only "
+        "the two flag bits the specification defines are named. For NVMe it is the health log: temperature, spare "
+        "capacity, percentage of rated life used, power-on hours, unsafe shutdowns, media errors and the critical "
+        "warning bits. A disk answers one of the two, rarely both, and a bus that carries neither (USB bridges "
+        "commonly) returns null for both rather than a clean bill of health. "
+        AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":\"integer\",\"description\":\"Only this physical disk\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"disks\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"disk_number\":{\"type\":[\"integer\",\"null\"]},"
+        "\"model\":{\"type\":[\"string\",\"null\"]},"
+        "\"predicted_failure\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The disk's own failure prediction; null when it does not answer\"},"
+        "\"smart_attributes\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"id\":{\"type\":\"integer\",\"description\":\"Vendor-specific attribute id\"},"
+        "\"current_value\":{\"type\":\"integer\",\"description\":\"Normalised, higher is better; compare against worst_value\"},"
+        "\"worst_value\":{\"type\":\"integer\"},"
+        "\"raw_value\":{\"type\":\"integer\",\"description\":\"The full six-byte raw counter\"},"
+        "\"flags\":{\"type\":\"string\"},"
+        "\"pre_failure\":{\"type\":\"boolean\",\"description\":\"The attribute is a failure predictor rather than advisory\"},"
+        "\"online_collection\":{\"type\":\"boolean\"}"
+        "},\"required\":[\"id\",\"current_value\",\"worst_value\",\"raw_value\"]}},"
+        "\"nvme\":{\"type\":[\"object\",\"null\"],\"description\":\"Null unless the disk answers the NVMe health log\",\"properties\":{"
+        "\"temperature_celsius\":{\"type\":[\"integer\",\"null\"]},"
+        "\"available_spare_percent\":{\"type\":\"integer\"},"
+        "\"available_spare_threshold_percent\":{\"type\":\"integer\"},"
+        "\"percentage_used\":{\"type\":\"integer\",\"description\":\"Share of the drive's rated endurance consumed; can exceed 100\"},"
+        "\"power_on_hours\":{\"type\":\"integer\"},"
+        "\"power_cycles\":{\"type\":\"integer\"},"
+        "\"unsafe_shutdowns\":{\"type\":\"integer\"},"
+        "\"media_errors\":{\"type\":\"integer\",\"description\":\"Unrecovered data integrity errors; anything but zero matters\"},"
+        "\"error_log_entries\":{\"type\":\"integer\"},"
+        "\"data_read_bytes\":{\"type\":\"integer\"},"
+        "\"data_written_bytes\":{\"type\":\"integer\"},"
+        "\"spare_below_threshold\":{\"type\":\"boolean\"},"
+        "\"temperature_threshold_exceeded\":{\"type\":\"boolean\"},"
+        "\"reliability_degraded\":{\"type\":\"boolean\"},"
+        "\"read_only_mode\":{\"type\":\"boolean\"},"
+        "\"volatile_memory_backup_failed\":{\"type\":\"boolean\"}"
+        "}}"
+        "},\"required\":[\"disk_number\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
     {
         "list_network_adapters", L"List network adapters", AtTierRead, AtActionListNetworkAdapters,
         SETTING_NAME_TOOL_ACCESS(L"list_network_adapters"), SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),

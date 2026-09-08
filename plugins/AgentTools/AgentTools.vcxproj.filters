@@ -54,6 +54,9 @@
     <ClCompile Include="tooldev.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tooldisk.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolgpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>

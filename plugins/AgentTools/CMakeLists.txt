@@ -28,6 +28,7 @@ set(SOURCES
     "target.c"
     "tooladpt.c"
     "tooldev.c"
+    "tooldisk.c"
     "toolgpu.c"
     "toolhist.c"
     "toolio.c"

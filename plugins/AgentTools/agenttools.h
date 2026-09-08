@@ -103,6 +103,9 @@ typedef enum _AT_ACTION
     AtActionRestartService,
     AtActionSetServiceConfig,
     // network
+    AtActionGetDiskPerformance,
+    AtActionGetDiskIdentity,
+    AtActionGetDiskHealth,
     AtActionListNetworkAdapters,
     AtActionListNetworkConnections,
     AtActionCloseNetworkConnection,
@@ -770,6 +773,13 @@ VOID AtEventInvokeTool(
     );
 
 VOID AtIoInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtDiskInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
