@@ -1692,6 +1692,168 @@ VOID AtpGetProcessJob(
     AtDeleteTarget(&target);
 }
 
+/**
+ * Which of the driver's own state thresholds a process meets. The driver decides what it will do
+ * for a process by comparing its state against these, so the name of the highest one it satisfies
+ * says more than the flag list does.
+ */
+PCWSTR AtpProcessStateLevelString(
+    _In_ KPH_PROCESS_STATE State
+    )
+{
+    if ((State & KPH_PROCESS_STATE_MAXIMUM) == KPH_PROCESS_STATE_MAXIMUM)
+        return L"maximum";
+    if ((State & KPH_PROCESS_STATE_HIGH) == KPH_PROCESS_STATE_HIGH)
+        return L"high";
+    if ((State & KPH_PROCESS_STATE_MEDIUM) == KPH_PROCESS_STATE_MEDIUM)
+        return L"medium";
+    if ((State & KPH_PROCESS_STATE_LOW) == KPH_PROCESS_STATE_LOW)
+        return L"low";
+    if ((State & KPH_PROCESS_STATE_MINIMUM) == KPH_PROCESS_STATE_MINIMUM)
+        return L"minimum";
+
+    return L"none";
+}
+
+/**
+ * What the driver knows about a process, which is not what user mode can ask for: whether it was
+ * created before anything could tamper with it, what it has loaded since, and who created it.
+ */
+VOID AtpGetProcessKsiState(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST ULONG stateFlags[] =
+    {
+        KPH_PROCESS_SECURELY_CREATED, KPH_PROCESS_VERIFIED_PROCESS, KPH_PROCESS_PROTECTED_PROCESS,
+        KPH_PROCESS_NO_UNTRUSTED_IMAGES, KPH_PROCESS_HAS_FILE_OBJECT,
+        KPH_PROCESS_HAS_SECTION_OBJECT_POINTERS, KPH_PROCESS_NO_USER_WRITABLE_REFERENCES,
+        KPH_PROCESS_NO_FILE_TRANSACTION, KPH_PROCESS_NOT_BEING_DEBUGGED,
+        KPH_PROCESS_NO_WRITABLE_FILE_OBJECT, KPH_PROCESS_CREATE_NOTIFICATION
+    };
+    static CONST PWSTR stateNames[] =
+    {
+        L"securely_created", L"verified_process", L"protected_process",
+        L"no_untrusted_images", L"has_file_object",
+        L"has_section_object_pointers", L"no_user_writable_references",
+        L"no_file_transaction", L"not_being_debugged",
+        L"no_writable_file_object", L"create_notification"
+    };
+    NTSTATUS status;
+    AT_TARGET target;
+    KPH_PROCESS_BASIC_INFORMATION basicInfo;
+    PVOID structured;
+    PVOID entry;
+
+    // A read-tier tool resolves its own target: the dispatcher only resolves for the tiers that
+    // hold an object open across a consent prompt, so the target it hands a read is empty.
+    status = AtResolveProcessTarget(Call->Arguments, FALSE, PROCESS_QUERY_LIMITED_INFORMATION, &target, Result);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    // Every Kph call needs the level checked before it: KphCreateUserMessage asserts when there is
+    // no connection, which in a debug build is a message box on this thread.
+    if (KsiLevel() < KphLevelMed)
+    {
+        AtSetToolError(
+            Result,
+            "failed",
+            STATUS_NOT_SUPPORTED,
+            L"This is the System Informer driver's own view of a process and there is no user-mode "
+            L"equivalent; the driver is not available to this instance (access level: %s).",
+            AtKphLevelString(KsiLevel())
+            );
+        AtSetToolHint(Result, AT_HINT_NEEDS_DRIVER);
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    memset(&basicInfo, 0, sizeof(basicInfo));
+
+    status = KphQueryInformationProcess(
+        target.ProcessHandle,
+        KphProcessBasicInformation,
+        &basicInfo,
+        sizeof(basicInfo),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Querying the driver for the process state");
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+    AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(KsiLevel()));
+
+    AtJsonAddHex(structured, "state", (ULONG)basicInfo.ProcessState);
+    AtJsonAddFlagStrings(structured, "state_names", (ULONG)basicInfo.ProcessState,
+        stateFlags, stateNames, RTL_NUMBER_OF(stateFlags));
+    AtJsonAddStringZ(structured, "state_level", AtpProcessStateLevelString(basicInfo.ProcessState));
+
+    PhAddJsonObjectBoolean(structured, "verified_process", !!basicInfo.VerifiedProcess);
+    PhAddJsonObjectBoolean(structured, "securely_created", !!basicInfo.SecurelyCreated);
+    PhAddJsonObjectBoolean(structured, "protected_process", !!basicInfo.Protected);
+    PhAddJsonObjectBoolean(structured, "create_notification", !!basicInfo.CreateNotification);
+    PhAddJsonObjectBoolean(structured, "exit_notification", !!basicInfo.ExitNotification);
+    PhAddJsonObjectBoolean(structured, "is_wow64", !!basicInfo.IsWow64);
+    PhAddJsonObjectBoolean(structured, "is_subsystem_process", !!basicInfo.IsSubsystemProcess);
+
+    AtJsonAddHex(structured, "process_start_key", basicInfo.ProcessStartKey);
+    PhAddJsonObjectUInt64(structured, "user_writable_references", basicInfo.UserWritableReferences);
+    PhAddJsonObjectUInt64(structured, "thread_count", basicInfo.NumberOfThreads);
+
+    // The creator is the process and thread that asked for this one, recorded when it was created.
+    // It stays right after the parent has exited, which is when the process list's parent stops
+    // meaning anything.
+    entry = PhCreateJsonObject();
+    PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(basicInfo.CreatorClientId.UniqueProcess));
+    PhAddJsonObjectUInt64(entry, "tid", HandleToUlong(basicInfo.CreatorClientId.UniqueThread));
+    PhAddJsonObjectValue(structured, "creator", entry);
+
+    PhAddJsonObjectUInt64(structured, "image_loads", basicInfo.NumberOfImageLoads);
+
+    // Only tracked for a verified process: reporting zero for any other one would read as "nothing
+    // untrusted was loaded" when the truth is that nobody was counting.
+    if (basicInfo.VerifiedProcess)
+    {
+        entry = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(entry, "microsoft", basicInfo.NumberOfMicrosoftImageLoads);
+        PhAddJsonObjectUInt64(entry, "antimalware", basicInfo.NumberOfAntimalwareImageLoads);
+        PhAddJsonObjectUInt64(entry, "verified", basicInfo.NumberOfVerifiedImageLoads);
+        PhAddJsonObjectUInt64(entry, "untrusted", basicInfo.NumberOfUntrustedImageLoads);
+        PhAddJsonObjectValue(structured, "image_load_counts", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "image_load_counts");
+    }
+
+    // Only valid if the process is protected, and a mask of zero means "nothing is allowed", which
+    // is a different answer from "there is no protection to describe".
+    if (basicInfo.Protected)
+    {
+        entry = PhCreateJsonObject();
+        AtJsonAddHex(entry, "process_allowed_mask", basicInfo.ProcessAllowedMask);
+        AtJsonAddHex(entry, "thread_allowed_mask", basicInfo.ThreadAllowedMask);
+        PhAddJsonObjectValue(structured, "protection", entry);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "protection");
+    }
+
+    AtAddSnapshot(structured);
+    Result->StructuredContent = structured;
+
+    AtDeleteTarget(&target);
+}
+
 // A scan finds every process it can open, not only the interesting ones, and a machine has hundreds.
 #define AT_HIDDEN_MAXIMUM_ENTRIES 4096
 
@@ -1969,6 +2131,9 @@ VOID AtProcessInvokeTool(
         break;
     case AtActionListHiddenProcesses:
         AtpListHiddenProcesses(Call, Result);
+        break;
+    case AtActionGetProcessKsiState:
+        AtpGetProcessKsiState(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");

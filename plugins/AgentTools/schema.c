@@ -386,6 +386,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionListHiddenProcesses, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_hidden_processes"),
         L"scan for processes the process list does not report", L"Allow scanning for hidden processes", L"list_hidden_processes"
     },
+    {
+        AtActionGetProcessKsiState, AtTierRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_process_ksi_state"),
+        L"read the driver's view of a process", L"Allow reading the driver's view of a process", L"get_process_ksi_state"
+    },
     // files and memory
     {
         AtActionVerifyFileSignature, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"verify_file_signature"),
@@ -3958,6 +3962,60 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_ksi_state", L"Get the driver's view of a process", AtTierRead, AtActionGetProcessKsiState,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_ksi_state"), SETTING_NAME_TOOL_CONFIRM(L"get_process_ksi_state"),
+        "{\"name\":\"get_process_ksi_state\",\"title\":\"Get the driver's view of a process\","
+        "\"description\":\"What the System Informer driver knows about a process, which is not what user mode can "
+        "ask for. The driver watches a process from the moment it is created, so it can say whether it was created "
+        "before anything could tamper with it (securely_created), whether its image verified (verified_process), "
+        "and what it has loaded since - image_load_counts separates Microsoft, antimalware, verified and untrusted "
+        "images, and an untrusted load into an otherwise verified process is the finding this exists for. creator "
+        "is the process and thread that asked for this one, recorded at creation, so it still names the creator "
+        "after that process has exited, which is when the parent in the process list stops meaning anything. "
+        "state_level is which of the driver's own thresholds the state meets, which is what the driver itself uses "
+        "to decide what it will do for the process. Needs the driver at medium access or better; without it there "
+        "is nothing to fall back to and the call is refused rather than answered from somewhere else.\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"process_sequence_number\":{\"type\":\"integer\"},"
+        "\"name\":{\"type\":\"string\"}"
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"ksi_level\":{\"type\":[\"string\",\"null\"]},"
+        "\"state\":{\"type\":\"string\",\"description\":\"The raw KPH_PROCESS_STATE mask, as hex\"},"
+        "\"state_names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
+        "\"state_level\":{\"type\":[\"string\",\"null\"],\"description\":\"The highest threshold the state meets: maximum, high, medium, low, minimum or none\"},"
+        "\"verified_process\":{\"type\":\"boolean\"},"
+        "\"securely_created\":{\"type\":\"boolean\",\"description\":\"The driver saw the creation and nothing had a writable reference to the image\"},"
+        "\"protected_process\":{\"type\":\"boolean\"},"
+        "\"create_notification\":{\"type\":\"boolean\"},"
+        "\"exit_notification\":{\"type\":\"boolean\"},"
+        "\"is_wow64\":{\"type\":\"boolean\"},"
+        "\"is_subsystem_process\":{\"type\":\"boolean\"},"
+        "\"process_start_key\":{\"type\":\"string\",\"description\":\"The boot-unique key for this process, as hex; unlike a pid it is never reused\"},"
+        "\"user_writable_references\":{\"type\":\"integer\",\"description\":\"Writable references user mode holds to the image section; anything but zero means the image on disk could have been changed under it\"},"
+        "\"thread_count\":{\"type\":\"integer\"},"
+        "\"creator\":{\"type\":\"object\",\"properties\":{"
+        "\"pid\":{\"type\":\"integer\"},"
+        "\"tid\":{\"type\":\"integer\"}"
+        "}},"
+        "\"image_loads\":{\"type\":\"integer\"},"
+        "\"image_load_counts\":{\"type\":[\"object\",\"null\"],\"description\":\"Only tracked for a verified process; null for any other, which is not the same as zero of each\",\"properties\":{"
+        "\"microsoft\":{\"type\":\"integer\"},"
+        "\"antimalware\":{\"type\":\"integer\"},"
+        "\"verified\":{\"type\":\"integer\"},"
+        "\"untrusted\":{\"type\":\"integer\"}"
+        "}},"
+        "\"protection\":{\"type\":[\"object\",\"null\"],\"description\":\"Only valid for a protected process; null otherwise, which is not the same as a mask of zero\",\"properties\":{"
+        "\"process_allowed_mask\":{\"type\":\"string\"},"
+        "\"thread_allowed_mask\":{\"type\":\"string\"}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"state\",\"state_names\",\"verified_process\",\"securely_created\",\"protected_process\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

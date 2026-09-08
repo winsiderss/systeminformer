@@ -1431,6 +1431,7 @@ EXPORTS
     KphOpenProcessJob
     KphQueryInformationDriver
     KphQueryInformationObject
+    KphQueryInformationProcess
     KphQuerySectionMappingsInfo
     KphQueryVirtualMemory
     KsiEnumerateProcessHandles

@@ -1300,6 +1300,7 @@ VOID AtInvokeTool(
     case AtActionGetProcessWindows:
     case AtActionGetProcessJob:
     case AtActionListHiddenProcesses:
+    case AtActionGetProcessKsiState:
         AtProcessInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessThreads:
