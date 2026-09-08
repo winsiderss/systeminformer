@@ -171,6 +171,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read graphics adapter utilization", L"Allow reading GPU utilization", L"get_gpu_usage"
     },
     {
+        AtActionListDevices, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_devices"),
+        L"list the devices installed on this machine", L"Allow listing devices", L"list_devices"
+    },
+    {
+        AtActionGetDeviceResources, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_device_resources"),
+        L"read the hardware resources of a device", L"Allow reading device resources", L"get_device_resources"
+    },
+    {
         AtActionListGpuAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_gpu_adapters"),
         L"list the graphics adapters", L"Allow listing graphics adapters", L"list_gpu_adapters"
     },
@@ -1515,6 +1523,90 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "list_devices", L"List devices", AtTierRead, AtActionListDevices,
+        SETTING_NAME_TOOL_ACCESS(L"list_devices"), SETTING_NAME_TOOL_CONFIRM(L"list_devices"),
+        "{\"name\":\"list_devices\",\"title\":\"List devices\","
+        "\"description\":\"The device tree, the same nodes Device Manager shows: what is installed, the class and "
+        "enumerator it came from, the kernel service behind it, and whether the node is reporting a problem. "
+        "has_problem comes from the devnode status rather than the problem code, because a node whose properties "
+        "could not be read is given a phantom problem code and is not actually faulty. Set include_driver for the "
+        "driver, its version and date, and the upper and lower filter drivers - a filter is where something that "
+        "wants to see every request to a device installs itself, so an unexpected one is worth looking at. Device "
+        "and manufacturer names come from the hardware and its INF. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"name_contains\":{\"type\":\"string\",\"description\":\"Case-insensitive substring of the device name or instance id\"},"
+        "\"device_class\":{\"type\":\"string\",\"description\":\"Exact device class, e.g. Display or Net\"},"
+        "\"service\":{\"type\":\"string\",\"description\":\"Exact name of the kernel service driving the device\"},"
+        "\"problems_only\":{\"type\":\"boolean\",\"description\":\"Only devices whose devnode reports a problem\"},"
+        "\"include_driver\":{\"type\":\"boolean\",\"description\":\"Also return driver, version, date, location and filter drivers\"},"
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"devices\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"instance_id\":{\"type\":[\"string\",\"null\"],\"description\":\"Pass to get_device_resources\"},"
+        "\"parent_instance_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"description\":{\"type\":[\"string\",\"null\"]},"
+        "\"manufacturer\":{\"type\":[\"string\",\"null\"]},"
+        "\"device_class\":{\"type\":[\"string\",\"null\"]},"
+        "\"enumerator\":{\"type\":[\"string\",\"null\"],\"description\":\"Bus the device was enumerated from, e.g. PCI or USB\"},"
+        "\"service\":{\"type\":[\"string\",\"null\"],\"description\":\"Kernel service driving it; feed to list_kernel_drivers or get_service\"},"
+        "\"has_problem\":{\"type\":\"boolean\"},"
+        "\"problem_code\":{\"type\":\"integer\",\"description\":\"CM_PROB_* value; only meaningful when has_problem\"},"
+        "\"devnode_status\":{\"type\":\"string\",\"description\":\"DN_* status flags, hex\"},"
+        "\"children_count\":{\"type\":\"integer\"},"
+        "\"interface_count\":{\"type\":\"integer\"},"
+        "\"has_upper_filters\":{\"type\":\"boolean\"},"
+        "\"has_lower_filters\":{\"type\":\"boolean\"},"
+        "\"driver\":{\"type\":[\"string\",\"null\"],\"description\":\"Null unless include_driver was set\"},"
+        "\"driver_version\":{\"type\":[\"string\",\"null\"]},"
+        "\"driver_date\":{\"type\":[\"string\",\"null\"],\"description\":\"ISO 8601 UTC\"},"
+        "\"location_info\":{\"type\":[\"string\",\"null\"]},"
+        "\"upper_filters\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}},"
+        "\"lower_filters\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}}"
+        "},\"required\":[\"instance_id\",\"has_problem\",\"problem_code\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"devices\",\"count\",\"total_count\",\"truncated\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_device_resources", L"Get device resources", AtTierRead, AtActionGetDeviceResources,
+        SETTING_NAME_TOOL_ACCESS(L"get_device_resources"), SETTING_NAME_TOOL_CONFIRM(L"get_device_resources"),
+        "{\"name\":\"get_device_resources\",\"title\":\"Get device resources\","
+        "\"description\":\"The hardware resources a device was actually given: memory windows, I/O port ranges, "
+        "interrupts and their affinity, DMA channels and bus numbers. Ranges are reported as numbers rather than "
+        "rendered text so they can be compared against an address. Takes the instance_id from list_devices. A device "
+        "with no allocated configuration returns an empty list, which is normal for software and virtual nodes. "
+        "Driver-private entries are omitted: they carry no meaning outside the driver that wrote them. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"instance_id\":{\"type\":\"string\",\"description\":\"Device instance id from list_devices\"}"
+        "},\"required\":[\"instance_id\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"instance_id\":{\"type\":[\"string\",\"null\"]},"
+        "\"name\":{\"type\":[\"string\",\"null\"]},"
+        "\"problem_code\":{\"type\":\"integer\"},"
+        "\"resources\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"type\":{\"type\":\"string\",\"description\":\"memory, memory_large, io_port, irq, dma, bus_number, class_specific, connection or other\"},"
+        "\"start\":{\"type\":[\"string\",\"integer\",\"null\"],\"description\":\"Hex string for address and port ranges, a number for bus numbers\"},"
+        "\"end\":{\"type\":[\"string\",\"integer\",\"null\"]},"
+        "\"length\":{\"type\":[\"integer\",\"null\"]},"
+        "\"number\":{\"type\":[\"integer\",\"null\"],\"description\":\"Interrupt number; negative for message-signalled interrupts, as Device Manager shows them\"},"
+        "\"affinity\":{\"type\":[\"string\",\"null\"],\"description\":\"Processor affinity of the interrupt, hex\"},"
+        "\"channel\":{\"type\":[\"integer\",\"null\"],\"description\":\"DMA channel\"},"
+        "\"class_guid\":{\"type\":[\"string\",\"null\"]},"
+        "\"connection_class\":{\"type\":[\"integer\",\"null\"]},"
+        "\"connection_type\":{\"type\":[\"integer\",\"null\"]},"
+        "\"connection_id\":{\"type\":[\"integer\",\"null\"]},"
+        "\"resource_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Raw ResType_* value, for a kind with no decoding here\"}"
+        "},\"required\":[\"type\"]}},"
+        "\"count\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"instance_id\",\"resources\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

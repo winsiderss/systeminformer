@@ -1086,6 +1086,10 @@ VOID AtInvokeTool(
     case AtActionGetProcessGpuStats:
         AtGpuInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionListDevices:
+    case AtActionGetDeviceResources:
+        AtDeviceInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionGetProcessIoRates:
         AtIoInvokeTool(Tool, Call, Target, Result);
         break;

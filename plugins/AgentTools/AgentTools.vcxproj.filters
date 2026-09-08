@@ -48,6 +48,9 @@
     <ClCompile Include="snapshot.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tooldev.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="toolgpu.c">
       <Filter>Source Files</Filter>
     </ClCompile>
