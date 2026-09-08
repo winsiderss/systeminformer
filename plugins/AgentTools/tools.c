@@ -1314,6 +1314,7 @@ VOID AtInvokeTool(
         AtWaitInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessModules:
+    case AtActionGetProcessUnloadedModules:
         AtModuleInvokeTool(Tool, Call, Target, Result);
         break;
     case AtActionGetProcessMitigations:

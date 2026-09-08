@@ -163,6 +163,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the strings in the memory of", L"Read the strings in the memory of", L"search_process_strings"
     },
     {
+        AtActionGetProcessUnloadedModules, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_unloaded_modules"),
+        L"list unloaded modules", L"Allow listing unloaded modules", L"get_process_unloaded_modules"
+    },
+    {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
         L"terminate the following process", L"Terminate", L"terminate_process"
     },
@@ -2039,6 +2043,40 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"max_seconds was hit, so the scan did not finish\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\",\"timed_out\"]},"
+        AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "get_process_unloaded_modules", L"Get unloaded modules", AtTierRead, AtActionGetProcessUnloadedModules,
+        SETTING_NAME_TOOL_ACCESS(L"get_process_unloaded_modules"), SETTING_NAME_TOOL_CONFIRM(L"get_process_unloaded_modules"),
+        "{\"name\":\"get_process_unloaded_modules\",\"title\":\"Get unloaded modules\","
+        "\"description\":\"The modules a process has unloaded. ntdll keeps a small ring of these, and it outlives "
+        "the module itself: a dll that was injected, ran and unloaded leaves nothing in get_process_modules and "
+        "an entry here. The ring is short and wraps, so this is evidence of what happened rather than a complete "
+        "history, and a process that has unloaded nothing returns an empty list. The record is what ntdll kept - "
+        "a name of at most 31 characters, the base it was at, and the image's own timestamp, checksum and "
+        "version - not a file on disk, so nothing here can be verified against one. For a 32-bit process on "
+        "64-bit Windows this reads the 64-bit ring, which is not where its own unloads are recorded; is_wow64 "
+        "says when that is the case. "
+        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
+        AT_PAGE_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        AT_PROCESS_IDENTITY_SCHEMA ","
+        "\"modules\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"sequence\":{\"type\":\"integer\",\"description\":\"The order it was unloaded in; higher is more recent\"},"
+        "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"As ntdll recorded it, truncated to 31 characters\"},"
+        "\"base_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Hexadecimal address it was loaded at\"},"
+        "\"size\":{\"type\":\"integer\"},"
+        "\"checksum\":{\"type\":[\"string\",\"null\"],\"description\":\"The image's checksum, hexadecimal\"},"
+        "\"time_date_stamp\":{\"type\":[\"string\",\"null\"],\"description\":\"The raw field from the image header, hexadecimal\"},"
+        "\"time_date_stamp_utc\":{\"type\":[\"string\",\"null\"],\"description\":\"That field read as a build time, ISO 8601 UTC, and null when it cannot be one - a reproducible build stores a content hash there, which as a time lands in the future\"},"
+        "\"version\":{\"type\":[\"string\",\"null\"]}"
+        "},\"required\":[\"sequence\",\"size\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"is_wow64\":{\"type\":\"boolean\",\"description\":\"The process is 32-bit on 64-bit Windows, so this list is not its own unload ring\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

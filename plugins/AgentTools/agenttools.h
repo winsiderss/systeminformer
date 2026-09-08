@@ -110,6 +110,7 @@ typedef enum _AT_ACTION
     AtActionAnalyzeThreadWait,
     AtActionResolveSymbol,
     AtActionSearchProcessStrings,
+    AtActionGetProcessUnloadedModules,
     AtActionTerminateProcess,
     AtActionSuspendProcess,
     AtActionResumeProcess,

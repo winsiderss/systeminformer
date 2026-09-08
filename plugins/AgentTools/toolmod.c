@@ -338,6 +338,123 @@ VOID AtpGetProcessModules(
     AtDeleteTarget(&target);
 }
 
+// The modules a process has unloaded. ntdll keeps a small ring of them, which outlives the module
+// itself: a dll that was injected, did its work and unloaded leaves nothing in the module list and
+// an entry here. The ring is short and wraps, so this is evidence rather than a complete history.
+
+VOID AtpGetProcessUnloadedModules(
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    NTSTATUS status;
+    AT_TARGET target;
+    AT_ROWS rows;
+    PVOID eventTrace = NULL;
+    PVOID currentEvent;
+    ULONG elementSize = 0;
+    ULONG elementCount = 0;
+    BOOLEAN isWow64 = FALSE;
+    PVOID structured;
+    ULONG i;
+
+    status = AtResolveProcessTarget(Call->Arguments, FALSE, PROCESS_QUERY_LIMITED_INFORMATION, &target, Result);
+
+    if (!NT_SUCCESS(status))
+        return;
+
+    status = PhGetProcessUnloadedDlls(
+        target.ProcessItem->ProcessId,
+        &eventTrace,
+        &elementSize,
+        &elementCount
+        );
+
+    // A process that has never unloaded anything has no trace at all, which is an empty list and
+    // not a failure to read one.
+    if (!NT_SUCCESS(status) && status != STATUS_NOT_FOUND)
+    {
+        AtSetToolStatusError(Result, status, L"Reading the unloaded module trace");
+        AtDeleteTarget(&target);
+        return;
+    }
+
+    if (target.ProcessHandle)
+        PhGetProcessIsWow64(target.ProcessHandle, &isWow64);
+
+    AtInitializeRows(&rows, Call->Arguments);
+    currentEvent = eventTrace;
+
+    for (i = 0; NT_SUCCESS(status) && i < elementCount; i++)
+    {
+        PRTL_UNLOAD_EVENT_TRACE event = currentEvent;
+        LARGE_INTEGER time;
+        LARGE_INTEGER now;
+        PPH_STRING name;
+        PPH_STRING version;
+        PVOID row;
+
+        // The ring is a fixed array that is only partly filled; a null base is where it ends.
+        if (!event->BaseAddress)
+            break;
+
+        row = PhCreateJsonObject();
+        PhAddJsonObjectUInt64(row, "sequence", event->Sequence);
+
+        // The name is a fixed field and is not guaranteed to be terminated.
+        name = PhCreateStringEx(event->ImageName, sizeof(event->ImageName));
+        PhTrimToNullTerminatorString(name);
+        AtJsonAddString(row, "name", name);
+        PhClearReference(&name);
+
+        AtJsonAddPointer(row, "base_address", event->BaseAddress);
+        PhAddJsonObjectUInt64(row, "size", event->SizeOfImage);
+        AtJsonAddHex(row, "checksum", event->CheckSum);
+
+        // The raw field, always, and a date only when the value can be one. A reproducible build
+        // puts a content hash in this field instead of a time, and a hash read as seconds since
+        // 1970 lands in the future - wtsapi32.dll on this machine reads as the year 2102. Reporting
+        // that as the module's build date would be a fact the caller cannot check.
+        AtJsonAddHex(row, "time_date_stamp", event->TimeDateStamp);
+        PhSecondsSince1970ToTime(event->TimeDateStamp, &time);
+        PhQuerySystemTime(&now);
+
+        if (event->TimeDateStamp && time.QuadPart <= now.QuadPart)
+            AtJsonAddTime(row, "time_date_stamp_utc", &time);
+        else
+            AtJsonAddNull(row, "time_date_stamp_utc");
+
+        version = PhFormatString(
+            L"%hu.%hu.%hu.%hu",
+            HIWORD(event->Version[0]),
+            LOWORD(event->Version[0]),
+            HIWORD(event->Version[1]),
+            LOWORD(event->Version[1])
+            );
+        AtJsonAddString(row, "version", version);
+        PhClearReference(&version);
+
+        AtAddRow(&rows, row);
+
+        currentEvent = PTR_ADD_OFFSET(currentEvent, elementSize);
+    }
+
+    structured = PhCreateJsonObject();
+    AtFillProcessIdentity(structured, target.ProcessItem);
+    AtAddRows(structured, "modules", &rows);
+    PhAddJsonObjectBoolean(structured, "is_wow64", isWow64);
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+
+    AtDeleteRows(&rows);
+
+    if (eventTrace)
+        PhFree(eventTrace);
+
+    AtDeleteTarget(&target);
+}
+
 VOID AtModuleInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -351,6 +468,9 @@ VOID AtModuleInvokeTool(
     {
     case AtActionGetProcessModules:
         AtpGetProcessModules(Call, Result);
+        break;
+    case AtActionGetProcessUnloadedModules:
+        AtpGetProcessUnloadedModules(Call, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
