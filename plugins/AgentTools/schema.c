@@ -190,6 +190,14 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"look up which country an address belongs to", L"Allow looking up address countries", L"lookup_ip_country"
     },
     {
+        AtActionPingHost, AtTierNetworkEgress, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"ping_host"),
+        L"send ICMP echo requests to the following address", L"Send pings to", L"ping_host"
+    },
+    {
+        AtActionWhoisLookup, AtTierNetworkEgress, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"whois_lookup"),
+        L"query whois servers about the following address", L"Query whois servers about", L"whois_lookup"
+    },
+    {
         AtActionListNetworkConnections, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_connections"),
         L"list network connections", L"Allow listing network connections", L"list_network_connections"
     },
@@ -1785,6 +1793,62 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
+    },
+    {
+        "ping_host", L"Ping a host", AtTierNetworkEgress, AtActionPingHost,
+        SETTING_NAME_TOOL_ACCESS(L"ping_host"), SETTING_NAME_TOOL_CONFIRM(L"ping_host"),
+        "{\"name\":\"ping_host\",\"title\":\"Ping a host\","
+        "\"description\":\"Sends ICMP echo requests to an address and reports what came back: each reply with its "
+        "round trip in milliseconds, how many were lost, and the minimum, maximum and average of the ones that "
+        "answered. This leaves the machine, and the address is whatever the caller names, so it is asked about "
+        "separately from reading tools. Takes an address, not a host name - resolving a name would be a second "
+        "thing to send and a second thing to go wrong. A reply that did not arrive reports why in status: "
+        "timed_out is silence, destination_host_unreachable is a router answering on the target's behalf, and "
+        "the two are different findings. \","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\",\"description\":\"An IPv4 or IPv6 address\"},"
+        "\"count\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":16,\"description\":\"Echo requests to send; default 4\"},"
+        "\"timeout_ms\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":10000,\"description\":\"How long to wait for each reply; default 1000\"}"
+        "},\"required\":[\"address\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\"},"
+        "\"family\":{\"type\":\"string\"},"
+        "\"sent\":{\"type\":\"integer\"},"
+        "\"received\":{\"type\":\"integer\"},"
+        "\"lost\":{\"type\":\"integer\"},"
+        "\"replies\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
+        "\"sequence\":{\"type\":\"integer\"},"
+        "\"replied\":{\"type\":\"boolean\"},"
+        "\"status\":{\"type\":\"string\",\"description\":\"success, timed_out, destination_host_unreachable, ttl_expired_in_transit and so on\"},"
+        "\"round_trip_ms\":{\"type\":[\"integer\",\"null\"]}"
+        "},\"required\":[\"sequence\",\"replied\",\"status\"]}},"
+        "\"minimum_round_trip_ms\":{\"type\":[\"integer\",\"null\"],\"description\":\"Null when nothing replied; a zero would read as an instant reply\"},"
+        "\"maximum_round_trip_ms\":{\"type\":[\"integer\",\"null\"]},"
+        "\"average_round_trip_ms\":{\"type\":[\"number\",\"null\"]},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"address\",\"sent\",\"received\",\"lost\",\"replies\"]},"
+        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":true}}"
+    },
+    {
+        "whois_lookup", L"Look up an address registration", AtTierNetworkEgress, AtActionWhoisLookup,
+        SETTING_NAME_TOOL_ACCESS(L"whois_lookup"), SETTING_NAME_TOOL_CONFIRM(L"whois_lookup"),
+        "{\"name\":\"whois_lookup\",\"title\":\"Look up an address registration\","
+        "\"description\":\"Who an address is registered to, asked of the whois servers: whois.iana.org first, then "
+        "the regional registry it names, then whatever that one refers the query to. This sends the address to "
+        "third parties on the internet and blocks until they answer, which is why it is asked about separately. "
+        "The response is the registries' own text, unparsed, and it is written by whoever registered the address. "
+        "Takes an address, not a domain name. "
+        AT_UNTRUSTED_NOTE "\","
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\",\"description\":\"An IPv4 or IPv6 address\"}"
+        "},\"required\":[\"address\"],\"additionalProperties\":false},"
+        "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
+        "\"address\":{\"type\":\"string\"},"
+        "\"family\":{\"type\":\"string\"},"
+        "\"response\":{\"type\":[\"string\",\"null\"],\"description\":\"The registries' replies, including which server referred the query onward\"},"
+        AT_SNAPSHOT_SCHEMA
+        "},\"required\":[\"address\",\"response\"]},"
+        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
     },
     {
         "lookup_ip_country", L"Look up an address country", AtTierRead, AtActionLookupIpCountry,

@@ -1131,6 +1131,10 @@ VOID AtInvokeTool(
     case AtActionSetServiceConfig:
         AtServiceInvokeTool(Tool, Call, Target, Result);
         break;
+    case AtActionPingHost:
+    case AtActionWhoisLookup:
+        AtEgressInvokeTool(Tool, Call, Target, Result);
+        break;
     case AtActionLookupIpCountry:
     case AtActionListNetworkConnections:
     case AtActionCloseNetworkConnection:

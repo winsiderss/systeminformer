@@ -30,6 +30,7 @@ set(SOURCES
     "tooldev.c"
     "tooldisk.c"
     "tooldnet.c"
+    "toolegrs.c"
     "toolgpu.c"
     "toolhist.c"
     "toolio.c"

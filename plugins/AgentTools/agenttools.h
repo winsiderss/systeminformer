@@ -22,6 +22,8 @@
 #include <hndlinfo.h>
 #include <secedit.h>
 
+#include <networktoolsintf.h>
+
 #include "../ExtendedTools/extension/plugin.h"
 #include <svcsup.h>
 #include <lsasup.h>
@@ -113,6 +115,8 @@ typedef enum _AT_ACTION
     AtActionGetDiskHealth,
     AtActionListNetworkAdapters,
     AtActionLookupIpCountry,
+    AtActionPingHost,
+    AtActionWhoisLookup,
     AtActionListNetworkConnections,
     AtActionCloseNetworkConnection,
     // system
@@ -879,6 +883,18 @@ VOID AtServiceInvokeTool(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
+    );
+
+VOID AtEgressInvokeTool(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
+// The NetworkTools plugin interface, or NULL when that plugin is absent or too old (toolnet.c).
+PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
+    VOID
     );
 
 VOID AtNetworkInvokeTool(
