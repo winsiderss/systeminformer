@@ -404,6 +404,59 @@ VOID AtAudit(
     PhClearReference(&client);
 }
 
+/**
+ * Announces a consent prompt, with the sound an elevation prompt uses.
+ *
+ * \remarks A task dialog plays a system sound for a stock icon, but TDF_USE_HICON_MAIN suppresses
+ * it, so the prompt would otherwise arrive in silence.
+ *
+ * The event is resolved to a file here rather than passed to PlaySound as an alias, because with
+ * SND_NODEFAULT PlaySound "returns silently" when it cannot play what it was given - it reports
+ * success and plays nothing, so a failure is indistinguishable from a sound and the fallback never
+ * runs. Reading the value says whether the event is configured at all, and playing the file says
+ * whether it worked.
+ *
+ * An event configured to nothing is a user who silenced the elevation prompt, not a reason to say
+ * nothing at all: this prompt still has to be noticed, so it falls back to the exclamation.
+ */
+VOID AtpPlayConsentSound(
+    VOID
+    )
+{
+    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"AppEvents\\Schemes\\Apps\\.Default\\WindowsUAC\\.Current");
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static PPH_STRING soundFileName = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        HANDLE keyHandle;
+
+        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_CURRENT_USER, &keyName, 0)))
+        {
+            PPH_STRING value;
+
+            // The default value of the key, which is the path, and REG_EXPAND_SZ on some machines.
+            if (value = PhQueryRegistryString(keyHandle, NULL))
+            {
+                if (value->Length)
+                    soundFileName = PhExpandEnvironmentStrings(&value->sr);
+
+                PhDereferenceObject(value);
+            }
+
+            NtClose(keyHandle);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    // No SND_NODEFAULT: a file that will not play has to report that, so the fallback can run.
+    if (soundFileName && PlaySound(PhGetString(soundFileName), NULL, SND_FILENAME | SND_ASYNC))
+        return;
+
+    MessageBeep(MB_ICONWARNING);
+}
+
 HRESULT CALLBACK AtpConsentDialogCallback(
     _In_ HWND WindowHandle,
     _In_ UINT Notification,
@@ -431,14 +484,7 @@ HRESULT CALLBACK AtpConsentDialogCallback(
 
             // A custom main icon suppresses the task dialog's own sound, so without this the
             // prompt arrives in silence; a stock icon would have been announced.
-            //
-            // WindowsUAC is the sound event an elevation prompt uses, which is the one a user has
-            // already learned means "something is asking permission" - the generic exclamation is
-            // the sound of an error instead. SND_NODEFAULT so a machine where that event is
-            // silenced stays silent rather than substituting the default beep; if the event is not
-            // there at all, fall back to the exclamation rather than saying nothing.
-            if (!PlaySound(L"WindowsUAC", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT))
-                MessageBeep(MB_ICONWARNING);
+            AtpPlayConsentSound();
 
             // Topmost because the foreground cannot be relied on: a worker thread may not take it
             // while the user is typing elsewhere, and a prompt that only flashes in the taskbar is
