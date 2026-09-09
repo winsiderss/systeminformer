@@ -40,15 +40,6 @@ typedef struct _AT_IMAGE_SECTION_NAME
     ULONG Flag;
 } AT_IMAGE_SECTION_NAME;
 
-/**
- * Converts a null terminated string inside a mapped image to a PH_STRING.
- *
- * \param MappedImage The image the string must lie within.
- * \param String The string. The image content chooses this address, so it is treated as untrusted.
- *
- * \return The string, or NULL if it starts outside the view, is not terminated inside the view, or
- * could not be read.
- */
 PPH_STRING AtpCreateImageString(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_opt_ PSTR String

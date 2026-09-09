@@ -277,10 +277,6 @@ VOID AtpAddProcessStatistics(
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
-        // Asking for both rights at once fails outright where only the limited one is grantable,
-        // and every field below that needs a handle then comes back null - including the page and
-        // I/O priorities, which the limited right alone can answer. Full first, limited as the
-        // fallback, the way AtpQueryThreadStartAddress does it.
         if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
             PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
     }
@@ -1077,12 +1073,7 @@ VOID AtpControlProcess(
         {
             HANDLE freezeHandle;
 
-            // The record is not given up until the thaw has actually happened. Closing the handle
-            // is itself what ends the freeze, so clearing and closing first would thaw the process,
-            // lose the Processes window's record of it, and still report a failure - which is the
-            // opposite of every one of the three. PhUiThawTreeProcess orders it this way too.
             freezeHandle = ReadPointerAcquire(&Target->ProcessItem->FreezeHandle);
-
             if (!freezeHandle)
             {
                 // No freeze handle of ours; nothing to undo from here.
@@ -1103,10 +1094,6 @@ VOID AtpControlProcess(
         break;
     case AtActionEmptyProcessWorkingSet:
         {
-            // The counters come from NtQueryVirtualMemory, which wants PROCESS_QUERY_INFORMATION
-            // while the operation itself needs only PROCESS_SET_QUOTA. Asking for both at
-            // resolution refused the whole call wherever the query right was not grantable, so the
-            // figures are read through a handle of their own and are simply absent without it.
             if (NT_SUCCESS(PhOpenProcess(&workingSetHandle, PROCESS_QUERY_INFORMATION, Target->ProcessItem->ProcessId)))
             {
                 if (hasWorkingSetBefore = NT_SUCCESS(PhGetProcessWsCounters(workingSetHandle, &wsCounters)))

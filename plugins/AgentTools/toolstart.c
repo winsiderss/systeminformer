@@ -56,12 +56,6 @@ FORCEINLINE HANDLE AtpStartupRoot(
     return Machine ? PH_KEY_LOCAL_MACHINE : PH_KEY_CURRENT_USER;
 }
 
-/**
- * Records a startup location that exists but could not be read.
- *
- * \remarks A location that is simply not present is not a gap in the answer, so only a failure
- * other than "not found" is counted.
- */
 FORCEINLINE VOID AtpStartupUnreadable(
     _Inout_ PAT_STARTUP_CONTEXT Context,
     _In_ NTSTATUS Status

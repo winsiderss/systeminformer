@@ -869,8 +869,6 @@ BOOLEAN AtpMemoryStringsRegionWanted(
     return !!FlagOn(Item->Type, Context->TypeMask);
 }
 
-// One chunk of one region at a time. A string that straddles two chunks is missed, which is what
-// every scanner that reads in chunks does; the chunk is a megabyte, so it is the rare one.
 _Function_class_(PH_STRING_SEARCH_NEXT_BUFFER)
 _Must_inspect_result_
 NTSTATUS NTAPI AtpMemoryStringsNextBuffer(

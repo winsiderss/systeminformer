@@ -169,12 +169,6 @@ VOID AtpAddCertificate(
     AtAddRow(Rows, row);
 }
 
-/**
- * Answers whether a file carries a signature of its own.
- *
- * \param Known Set when the file could be mapped and the question actually answered. A file that
- * could not be mapped answers FALSE here, which is not the same as one that has no signature.
- */
 BOOLEAN AtpHasEmbeddedSignature(
     _In_ HANDLE FileHandle,
     _Out_ PBOOLEAN IsImage,

@@ -845,14 +845,6 @@ CleanupExit:
     return answered;
 }
 
-/**
- * Looks up an address registration.
- *
- * 
-eturn TRUE when a whois server actually answered. Response is set either way: on FALSE it
- * carries the diagnostic text saying how far the lookup got, which is what the Whois window shows,
- * so there is no _Success_ here - the parameter is always written.
- */
 // NETWORKTOOLS_INTERFACE
 BOOLEAN NTAPI NetworkToolsWhoisQuery(
     _In_ PCWSTR Address,

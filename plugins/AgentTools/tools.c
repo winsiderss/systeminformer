@@ -29,10 +29,6 @@ VOID AtSetToolError(
     va_end(argptr);
 }
 
-/**
- * Converts an HRESULT to the NTSTATUS the tool result reports, so that a Win32-backed failure keeps
- * the code AtSetToolStatusError and AtAddErrorHints read.
- */
 NTSTATUS AtHResultToStatus(
     _In_ HRESULT Result
     )
@@ -778,12 +774,6 @@ VOID AtAddRows(
     AtpAddRows(Object, Key, NULL, Rows);
 }
 
-/**
- * Adds a paged list whose paging fields carry the list's own name, for a tool that returns more
- * than one of them. AtAddRows writes count, total_count, offset, limit and truncated at the top
- * level, so a second list appends a second set of the same keys and a reader keeps only one - the
- * other lists then look complete whatever was cut from them.
- */
 VOID AtAddRowsNamed(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -1376,15 +1366,6 @@ VOID AtJsonAddFlagStrings(
     PhAddJsonObjectValue(Object, Key, array);
 }
 
-/**
- * Determines whether a file's signature chains to a Microsoft root.
- *
- * \param FileName The native file name, or NULL.
- * \param Known Set to TRUE only when the answer was reached, so a caller can tell "not Microsoft"
- * from "could not be determined". A filter passes NULL and treats the unknown case as not Microsoft.
- *
- * \return TRUE if the signature chains to a Microsoft root.
- */
 BOOLEAN AtIsMicrosoftSigned(
     _In_opt_ PPH_STRING FileName,
     _Out_opt_ PBOOLEAN Known
@@ -1529,10 +1510,6 @@ VOID AtFillProcessIdentity(
     AtJsonAddString(Object, "name", ProcessItem->ProcessName);
 }
 
-/**
- * Answers whether a tool's own schema declares a sort key, reading the enum out of the definition
- * so the accepted list cannot drift from the one the client was given.
- */
 BOOLEAN AtpToolDeclaresSortKey(
     _In_ PCAT_TOOL Tool,
     _In_ PPH_STRING Key
@@ -1579,13 +1556,6 @@ BOOLEAN AtpToolDeclaresSortKey(
     return found;
 }
 
-/**
- * Rejects paging arguments a tool cannot honour. Without this a limit of the wrong JSON type falls
- * back to the default and the answer echoes that default as though it had been asked for, and an
- * unrecognised sort key ranks every row null, so the sort silently does nothing.
- *
- * \return TRUE when the arguments can be honoured.
- */
 BOOLEAN AtpValidatePagingArguments(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,

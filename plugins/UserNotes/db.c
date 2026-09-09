@@ -27,9 +27,6 @@ ULONG NTAPI ObjectDbHashFunction(
 PPH_STRING ObjectDbPath = NULL;
 PPH_HASHTABLE ObjectDb = NULL;
 PH_QUEUED_LOCK ObjectDbLock = PH_QUEUED_LOCK_INIT;
-// Serialises whole saves. The database lock cannot: it is released before the file is written,
-// and two savers would then race for one fixed temporary path opened with no sharing, so one
-// of them would simply lose. Reachable off the UI thread since the plugin interface arrived.
 static PH_QUEUED_LOCK ObjectDbSaveLock = PH_QUEUED_LOCK_INIT;
 PH_STRINGREF IfeoKeyPath = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\");
 PH_STRINGREF IfeoPerfOptionsKeyPath = PH_STRINGREF_INIT(L"\\PerfOptions");

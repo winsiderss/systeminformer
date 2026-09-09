@@ -310,11 +310,8 @@ typedef struct _AT_DEFERRED_REQUEST
 
 typedef enum _AT_STDIO_ORIGIN
 {
-    // Nothing is claimed: unreadable, not duplicatable, or no holder came back.
     AtStdioUnverified,
-    // The broker's stdin is not a pipe, so there is no client on the other end.
     AtStdioConsole,
-    // Holders of the broker's stdin, the broker itself among them.
     AtStdioResolved
 } AT_STDIO_ORIGIN;
 
@@ -345,9 +342,6 @@ typedef struct _AT_CONNECTION
     ULONG LauncherProcessId;
     PPH_STRING LauncherImageName;
 
-    // Derived from the broker's standard handles rather than from anything it reports: simcp is an
-    // MCP stdio server, so whoever created those pipes is driving the session, and reparenting the
-    // broker does not move them.
     AT_STDIO_ORIGIN StdioOrigin;
     PPH_LIST StdioClientIds;
     BOOLEAN LauncherVerifyChecked;

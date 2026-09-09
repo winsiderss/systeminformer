@@ -162,10 +162,6 @@ VOID AtpEnsureLauncherVerified(
     PhClearReference(&signer);
 }
 
-/**
- * Names the processes holding the broker's standard handles. The broker is one of them, so an
- * ordinary session lists two; a third is a process that took a copy of the pipe.
- */
 VOID AtpAppendStdioClients(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ PAT_CONNECTION Connection
@@ -194,10 +190,6 @@ VOID AtpAppendStdioClients(
     }
 }
 
-/**
- * Answers whether the launcher the client named holds none of the broker's standard handles, which
- * is what a forged parent looks like. Only answered when the handles were actually resolved.
- */
 BOOLEAN AtpLauncherContradictsStdio(
     _In_ PAT_CONNECTION Connection
     )
@@ -1063,12 +1055,6 @@ AT_CONSENT_RESULT AtpAskUser(
     return result;
 }
 
-/**
- * Confirms a standing grant on its own, after the request that offered it was approved.
- *
- * \return TRUE if the grant was confirmed. A refusal, a timeout, or a dialog that could not be
- * shown all return FALSE, which withholds the grant without affecting the approved request.
- */
 BOOLEAN AtpConfirmSessionPolicy(
     _In_ PAT_TOOL_CALL Call,
     _In_ PCAT_ACTION_INFO Action,

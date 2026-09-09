@@ -303,15 +303,6 @@ VOID AdvanceRateLimitCutoff(
     } while (InterlockedCompareExchange64(Target, New, prev) != prev);
 }
 
-/**
- * Records what a service said about a request made outside the scanner, so the two share one view
- * of the shared key's standing. The scanner learns from its own 429s and 401s; a lookup made
- * through the plugin interface used to tell it nothing, and the scanner would go on asking - and
- * go on showing "Rate limited" - for traffic it never sent.
- *
- * Deliberately does not touch the database: a status about the key is not a verdict about a file,
- * and only the scanner's own results are cached.
- */
 VOID ScanNoteVirusTotalHttpStatus(
     _In_ ULONG HttpStatus
     )

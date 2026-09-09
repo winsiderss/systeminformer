@@ -383,16 +383,6 @@ VOID AtpSendRequest(
 
 #define AT_CLIENT_STRING_MAX_CHARS 256
 
-/**
- * Answers whether a character from a client may not appear in text the user is shown.
- *
- * The C0 range and delete are the obvious ones. The rest are the characters that change how the
- * text around them reads rather than adding anything of their own: the bidirectional overrides and
- * embeddings, which can make a tool name display in reverse; the zero-width joiners and the
- * zero-width no-break space, which hide a join; and the separators Windows controls treat as a
- * line break, which would let a client push its own line into a consent prompt; and the two
- * noncharacters.
- */
 BOOLEAN AtpIsUnsafeClientChar(
     _In_ WCHAR Character
     )
@@ -508,12 +498,6 @@ BOOLEAN AtpHasFormElicitation(
     return !!PhGetJsonObject(elicitation, "form");
 }
 
-/**
- * Reads the request's _meta block.
- *
- * \return TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read;
- * on FALSE the refusal has already been sent.
- */
 BOOLEAN AtpParseRequestMeta(
     _In_ PAT_CONNECTION Connection,
     _In_ PPH_BYTES IdJson,

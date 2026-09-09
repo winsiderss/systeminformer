@@ -445,18 +445,6 @@ CleanupExit:
     return result;
 }
 
-/**
- * Derives the client from the broker's standard handles.
- *
- * The identity a client reports about its own launcher is not evidence: PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
- * lets any same-user process choose what the broker's parent appears to be. Its standard handles cannot be
- * chosen that way - simcp is an MCP stdio server, so the pipes were made by whatever is actually driving the
- * session, and reparenting moves the parent without moving the pipe.
- *
- * Every holder is recorded, not the first: a handle can be duplicated into a decoy, but the process driving
- * the session cannot remove itself. The broker is itself a holder, so a plain client is two - a reader
- * looking for an anomaly wants a third, not a second.
- */
 VOID AtpResolveStdioClient(
     _Inout_ PAT_CONNECTION Connection
     )
@@ -755,11 +743,6 @@ BOOLEAN AtpHandshake(
     return NT_SUCCESS(status);
 }
 
-/**
- * Closes connections that have not finished the handshake in time.
- *
- * \return The number of connections still within the handshake deadline.
- */
 ULONG AtpExpireUnauthenticated(
     VOID
     )

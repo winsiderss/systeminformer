@@ -199,10 +199,6 @@ VOID AtpFillServiceRow(
     PhAddJsonObjectBoolean(Object, "details_available", TRUE);
 }
 
-/**
- * Fills a row from the service control manager's own answer, for a service the provider cache has
- * not seen yet. The SCM carries the identity and the state; everything the cache adds is null.
- */
 VOID AtpFillServiceStatusRow(
     _In_ PVOID Object,
     _In_ LPENUM_SERVICE_STATUS_PROCESS Service
@@ -287,10 +283,6 @@ BOOLEAN AtpServiceMatchesFilter(
     return TRUE;
 }
 
-/**
- * Applies the filters that the service control manager's own answer can decide, for a service the
- * provider cache has not seen yet.
- */
 BOOLEAN AtpServiceStatusMatchesFilter(
     _In_ PAT_SERVICE_FILTER Filter,
     _In_ LPENUM_SERVICE_STATUS_PROCESS Service

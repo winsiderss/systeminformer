@@ -1577,7 +1577,7 @@ TryAppLocal:
     if (!mscordacBaseAddress && dataTargetDirectory)
     {
         PPH_STRING fileName;
- 
+
         // We couldn't find any compatible versions of the CLR installed. Try loading
         // the version of the CLR included with the application after checking the
         // digital signature was from Microsoft. (dmex)
