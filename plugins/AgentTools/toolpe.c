@@ -394,7 +394,11 @@ PPH_STRING AtHashFileSha256(
         if (!NT_SUCCESS(PhReadFile(fileHandle, buffer, AT_HASH_CHUNK_SIZE, &offset, &read)) || read == 0)
             break;
 
-        PhSymCryptHashData(&hashContext, buffer, read);
+        // A chunk that did not go into the hash makes the digest one of a different byte stream,
+        // which is well formed and wrong; the completeness check below turns that into no answer.
+        if (!NT_SUCCESS(PhSymCryptHashData(&hashContext, buffer, read)))
+            break;
+
         offset.QuadPart += read;
     }
 
@@ -434,6 +438,7 @@ VOID AtpGetFileHashes(
     LARGE_INTEGER offset;
     PH_MAPPED_IMAGE mappedImage;
     BOOLEAN isImage = FALSE;
+    BOOLEAN hashFailed = FALSE;
     ULONG wanted = 0;
     ULONG i;
 
@@ -571,9 +576,17 @@ VOID AtpGetFileHashes(
 
         for (i = 0; i < RTL_NUMBER_OF(requests); i++)
         {
-            if (requests[i].Wanted)
-                PhSymCryptHashData(&requests[i].Context, buffer, read);
+            // A chunk that did not go into a hash makes that digest one of a different byte
+            // stream: well formed, and not the file's.
+            if (requests[i].Wanted && !NT_SUCCESS(status = PhSymCryptHashData(&requests[i].Context, buffer, read)))
+            {
+                hashFailed = TRUE;
+                break;
+            }
         }
+
+        if (hashFailed)
+            break;
 
         offset.QuadPart += read;
     }
@@ -582,7 +595,8 @@ VOID AtpGetFileHashes(
 
     if (offset.QuadPart != fileSize.QuadPart)
     {
-        AtSetToolStatusError(Result, NT_SUCCESS(status) ? STATUS_END_OF_FILE : status, L"Reading the file");
+        AtSetToolStatusError(Result, NT_SUCCESS(status) ? STATUS_END_OF_FILE : status,
+            hashFailed ? L"Hashing the file" : L"Reading the file");
 
         for (i = 0; i < RTL_NUMBER_OF(requests); i++)
         {

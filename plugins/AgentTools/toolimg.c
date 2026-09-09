@@ -1131,13 +1131,24 @@ PPH_HASHTABLE AtpImphashOrdinalTable(
     return Ordinals->Tables[Index];
 }
 
+/**
+ * Names an import that came in by ordinal, for the handful of libraries whose ordinals everyone
+ * agrees to spell out.
+ *
+ * \param Unresolved Set when this is one of those libraries and its table could not be built. The
+ * ord%u fallback is the right answer for every other import, but not for one of these: it would
+ * produce a hash that is well formed and matches nothing anybody else computed.
+ */
 PPH_STRING AtpImphashOrdinalName(
     _Inout_ PAT_IMPHASH_ORDINALS Ordinals,
     _In_ PPH_STRING DllName,
-    _In_ USHORT Ordinal
+    _In_ USHORT Ordinal,
+    _Out_ PBOOLEAN Unresolved
     )
 {
     ULONG i;
+
+    *Unresolved = FALSE;
 
     for (i = 0; i < RTL_NUMBER_OF(AtImphashOrdinalDlls); i++)
     {
@@ -1148,8 +1159,13 @@ PPH_STRING AtpImphashOrdinalName(
             continue;
 
         if (!(table = AtpImphashOrdinalTable(Ordinals, i)))
+        {
+            *Unresolved = TRUE;
             return NULL;
+        }
 
+        // An ordinal the table does not carry falls back like any other, which is what every other
+        // implementation does with one.
         if (name = PhFindItemSimpleHashtable2(table, UlongToPtr(Ordinal)))
             return PhReferenceObject(name);
 
@@ -1195,6 +1211,7 @@ PPH_STRING AtGetImageImphash(
     PPH_BYTES utf8;
     PH_SYMCRYPT_HASH_CONTEXT hashContext;
     UCHAR hash[PH_SYMCRYPT_MD5_RESULT_SIZE];
+    BOOLEAN failed = FALSE;
     ULONG i;
     ULONG j;
 
@@ -1241,9 +1258,24 @@ PPH_STRING AtGetImageImphash(
                 dllName = PhReferenceObject(dllString);
 
             if (entry.Name)
+            {
                 functionName = AtpCreateImageString(MappedImage, (PSTR)entry.Name);
+            }
             else
-                functionName = AtpImphashOrdinalName(&ordinals, dllString, entry.Ordinal);
+            {
+                BOOLEAN unresolved;
+
+                functionName = AtpImphashOrdinalName(&ordinals, dllString, entry.Ordinal, &unresolved);
+
+                if (unresolved)
+                {
+                    // No hash at all beats one that looks right and matches nothing.
+                    failed = TRUE;
+                    PhDereferenceObject(dllName);
+                    PhDereferenceObject(dllString);
+                    goto CleanupExit;
+                }
+            }
 
             if (!functionName)
                 functionName = PhFormatString(L"ord%u", entry.Ordinal);
@@ -1261,7 +1293,15 @@ PPH_STRING AtGetImageImphash(
         }
     }
 
+CleanupExit:
+
     AtpImphashDeleteOrdinals(&ordinals);
+
+    if (failed)
+    {
+        PhDeleteStringBuilder(&stringBuilder);
+        return NULL;
+    }
 
     if (PhEndsWithString2(stringBuilder.String, L",", FALSE))
         PhRemoveEndStringBuilder(&stringBuilder, 1);
