@@ -20,6 +20,7 @@
 #include <verify.h>
 #include <workqueue.h>
 #include <hndlinfo.h>
+#include <mapimg.h>
 #include <secedit.h>
 
 #include <networktoolsintf.h>
@@ -1198,7 +1199,7 @@ PPH_STRING AtGetImageImphash(
 
 VOID AtAddImageSections(
     _In_ PVOID Structured,
-    _In_ PVOID MappedImage,
+    _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PPH_STRING FileName,
     _In_ ULONG Sections,
     _In_ PAT_TOOL_CALL Call
