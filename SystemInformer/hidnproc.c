@@ -795,6 +795,10 @@ NTSTATUS PhpCreateProcessItemForZombieProcess(
     return status;
 }
 
+// How far past the highest process identifier in use the brute force scan keeps going, to cover one
+// freed just before the scan or handed out while it runs.
+#define PH_ZOMBIE_SCAN_HEADROOM 0x10000
+
 NTSTATUS PhpEnumZombieProcessesBruteForce(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -804,6 +808,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
     PVOID processes;
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_LIST pids;
+    ULONG maximumPid;
     ULONG pid;
     BOOLEAN stop = FALSE;
 
@@ -812,16 +817,29 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
 
     pids = PhCreateList(40);
 
+    // The ceiling used to be a fixed 65536. On a machine that has been running for a while that is
+    // below every identifier in use - a process created now is given one above it - so the scan
+    // walked a range nothing lives in and reported finding nothing, on the window whose whole
+    // purpose is to show what the process list leaves out. The live list is what says how far the
+    // kernel has actually got.
+    maximumPid = 65536;
+
     process = PH_FIRST_PROCESS(processes);
 
     do
     {
         PhAddItemList(pids, process->UniqueProcessId);
+
+        if (HandleToUlong(process->UniqueProcessId) > maximumPid)
+            maximumPid = HandleToUlong(process->UniqueProcessId);
     } while (process = PH_NEXT_PROCESS(process));
 
     PhFree(processes);
 
-    for (pid = 8; pid <= 65536; pid += 4)
+    if (!NT_SUCCESS(RtlULongAdd(maximumPid, PH_ZOMBIE_SCAN_HEADROOM, &maximumPid)))
+        maximumPid = MAXULONG - 4;
+
+    for (pid = 8; pid <= maximumPid; pid += 4)
     {
         NTSTATUS status2;
         HANDLE processHandle;
