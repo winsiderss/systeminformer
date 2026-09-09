@@ -413,7 +413,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"scan for processes the process list does not report", L"Allow scanning for hidden processes", L"list_hidden_processes"
     },
     {
-        AtActionGetProcessKsiState, AtTierRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_process_ksi_state"),
+        AtActionGetProcessKsiState, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_ksi_state"),
         L"read the driver's view of a process", L"Allow reading the driver's view of a process", L"get_process_ksi_state"
     },
     {
