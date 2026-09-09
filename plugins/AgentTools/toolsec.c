@@ -299,7 +299,6 @@ VOID AtpAddIntegrity(
             PACE_HEADER ace;
             PVOID entry;
             PSID sid;
-            PPH_STRING string;
 
             if (!NT_SUCCESS(RtlGetAce(Sacl, i, &ace)))
                 break;
@@ -322,9 +321,6 @@ VOID AtpAddIntegrity(
                 !!(((PSYSTEM_MANDATORY_LABEL_ACE)ace)->Mask & SYSTEM_MANDATORY_LABEL_NO_READ_UP));
             PhAddJsonObjectBoolean(entry, "no_execute_up",
                 !!(((PSYSTEM_MANDATORY_LABEL_ACE)ace)->Mask & SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP));
-
-            if (string = PhGetSidFullName(sid, TRUE, NULL))
-                PhDereferenceObject(string);
 
             PhAddJsonObjectValue(Structured, "integrity", entry);
             return;
@@ -563,10 +559,17 @@ VOID AtpGetObjectSecurity(
     AtJsonAddStringZ(structured, "kind", AtpSecurityKindString(kind));
     AtJsonAddString(structured, "path", path);
 
-    if (kind == AtSecurityKindProcess || kind == AtSecurityKindThread)
-        PhAddJsonObjectUInt64(structured, "pid", kind == AtSecurityKindThread ? threadId : processId);
+    // A thread was addressed by tid, and reporting it under pid made the answer name a process
+    // that was never asked about.
+    if (kind == AtSecurityKindProcess)
+        PhAddJsonObjectUInt64(structured, "pid", processId);
     else
         AtJsonAddNull(structured, "pid");
+
+    if (kind == AtSecurityKindThread)
+        PhAddJsonObjectUInt64(structured, "tid", threadId);
+    else
+        AtJsonAddNull(structured, "tid");
 
     if (accessEntries)
         AtJsonAddString(structured, "access_type", typeName && kind == AtSecurityKindDescriptor ?
