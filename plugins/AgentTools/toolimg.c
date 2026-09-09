@@ -690,8 +690,8 @@ VOID AtpAddImageCertificates(
 {
     PIMAGE_DATA_DIRECTORY directory;
     PVOID array;
-    ULONG offset;
-    ULONG end;
+    ULONG64 offset;
+    ULONG64 end;
 
     array = PhCreateJsonArray();
 
@@ -703,11 +703,11 @@ VOID AtpAddImageCertificates(
         directory = &MappedImage->NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
 
     offset = directory->VirtualAddress;
-    end = directory->VirtualAddress + directory->Size;
+    end = (ULONG64)directory->VirtualAddress + directory->Size;
 
-    while (directory->Size != 0 && offset + sizeof(WIN_CERTIFICATE) <= end && offset + sizeof(WIN_CERTIFICATE) <= MappedImage->ViewSize)
+    while (offset + sizeof(WIN_CERTIFICATE) <= end && offset + sizeof(WIN_CERTIFICATE) <= MappedImage->ViewSize)
     {
-        LPWIN_CERTIFICATE certificate = PTR_ADD_OFFSET(MappedImage->ViewBase, offset);
+        LPWIN_CERTIFICATE certificate = PTR_ADD_OFFSET(MappedImage->ViewBase, (SIZE_T)offset);
         PVOID row;
 
         if (certificate->dwLength < sizeof(WIN_CERTIFICATE) || offset + certificate->dwLength > end)
@@ -721,8 +721,9 @@ VOID AtpAddImageCertificates(
         AtJsonAddHex(row, "offset", offset);
         PhAddJsonArrayObject(array, row);
 
-        // Every entry is padded to an eight byte boundary.
-        offset += ALIGN_UP_BY(certificate->dwLength, 8);
+        // Every entry is padded to an eight byte boundary; dwLength is at least
+        // sizeof(WIN_CERTIFICATE) here, so the walk always advances.
+        offset += ((ULONG64)certificate->dwLength + 7) & ~(ULONG64)7;
     }
 
     PhAddJsonObjectValue(Structured, "certificates", array);
