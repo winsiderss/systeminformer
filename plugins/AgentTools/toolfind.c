@@ -1281,6 +1281,33 @@ VOID AtpAddDriverBasicInformation(
     }
 }
 
+/**
+ * Answers whether two driver handles name the same driver object, which is how a device with
+ * nothing attached beneath it is told from one sitting on a stack.
+ */
+BOOLEAN AtpSameDriverObject(
+    _In_ HANDLE FirstHandle,
+    _In_ HANDLE SecondHandle
+    )
+{
+    PPH_STRING first;
+    PPH_STRING second;
+    BOOLEAN same = FALSE;
+
+    if (!NT_SUCCESS(PhGetDriverName(FirstHandle, &first)))
+        return FALSE;
+
+    if (NT_SUCCESS(PhGetDriverName(SecondHandle, &second)))
+    {
+        same = PhEqualString(first, second, TRUE);
+        PhDereferenceObject(second);
+    }
+
+    PhDereferenceObject(first);
+
+    return same;
+}
+
 PVOID AtpCreateDriverDetails(
     _In_ HANDLE Handle
     )
@@ -1576,6 +1603,8 @@ VOID AtpGetDriverObject(
     static CONST PH_STRINGREF driverPrefix = PH_STRINGREF_INIT(L"\\Driver\\");
     static CONST PH_STRINGREF devicePrefix = PH_STRINGREF_INIT(L"\\Device\\");
     NTSTATUS status;
+    NTSTATUS driverStatus = STATUS_UNSUCCESSFUL;
+    NTSTATUS baseDriverStatus = STATUS_UNSUCCESSFUL;
     PPH_STRING path;
     PVOID structured;
     HANDLE driverHandle = NULL;
@@ -1640,10 +1669,10 @@ VOID AtpGetDriverObject(
         {
             // The device's own driver is the top of the stack; the base device is what the stack
             // was built on, and its driver is the one actually doing the work under any filters.
-            KphOpenDeviceDriver(deviceHandle, READ_CONTROL, &driverHandle);
+            driverStatus = KphOpenDeviceDriver(deviceHandle, READ_CONTROL, &driverHandle);
 
             if (NT_SUCCESS(KphOpenDeviceBaseDevice(deviceHandle, READ_CONTROL, &baseDeviceHandle)))
-                KphOpenDeviceDriver(baseDeviceHandle, READ_CONTROL, &baseDriverHandle);
+                baseDriverStatus = KphOpenDeviceDriver(baseDeviceHandle, READ_CONTROL, &baseDriverHandle);
         }
     }
     else
@@ -1669,13 +1698,27 @@ VOID AtpGetDriverObject(
 
     if (isDevice)
     {
-        // Null base_driver means the device has no stack under it, not that it has no driver.
+        // Every device object belongs to a driver, so a null driver here is the open having been
+        // refused rather than an absence, and only the status can say which.
+        PhAddJsonObjectBoolean(structured, "driver_readable", NT_SUCCESS(driverStatus));
         AtpAddDeviceDriver(structured, "base_driver", baseDriverHandle);
-        PhAddJsonObjectBoolean(structured, "has_device_stack", !!baseDeviceHandle);
+        PhAddJsonObjectBoolean(structured, "base_driver_readable", NT_SUCCESS(baseDriverStatus));
+
+        // IoGetDeviceAttachmentBaseRef answers the device itself when nothing is attached beneath
+        // it, so opening the base device proves nothing; a stack shows as a different driver at the
+        // bottom of it. Null when either end could not be read to compare.
+        if (NT_SUCCESS(driverStatus) && NT_SUCCESS(baseDriverStatus))
+            PhAddJsonObjectBoolean(structured, "has_device_stack",
+                !AtpSameDriverObject(driverHandle, baseDriverHandle));
+        else
+            AtJsonAddNull(structured, "has_device_stack");
     }
     else
     {
+        // The driver object was opened by name, and the open was checked above.
+        PhAddJsonObjectBoolean(structured, "driver_readable", TRUE);
         AtJsonAddNull(structured, "base_driver");
+        AtJsonAddNull(structured, "base_driver_readable");
         AtJsonAddNull(structured, "has_device_stack");
     }
 

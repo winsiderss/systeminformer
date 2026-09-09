@@ -4502,10 +4502,12 @@ CONST AT_TOOL AtTools[] =
         "\"flags\":{\"type\":[\"string\",\"null\"],\"description\":\"The raw DRIVER_OBJECT flags, as hex\"},"
         "\"flag_names\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}}"
         "}},"
-        "\"base_driver\":{\"type\":[\"object\",\"null\"],\"description\":\"The driver of the device at the bottom of the stack; null for a driver path, and null for a device with nothing under it\"},"
-        "\"has_device_stack\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Whether the device has a device under it at all, which tells a null base_driver from a device that is its own base\"},"
+        "\"driver_readable\":{\"type\":\"boolean\",\"description\":\"The driver object was opened. Every device belongs to a driver, so a null driver with this false is a refusal, never an absence\"},"
+        "\"base_driver\":{\"type\":[\"object\",\"null\"],\"description\":\"The driver of the device at the bottom of the attachment chain; null for a driver path, and null when it could not be opened\"},"
+        "\"base_driver_readable\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The driver at the bottom of the chain was opened; null for a driver path\"},"
+        "\"has_device_stack\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Something is attached beneath this device, judged by the bottom of the chain belonging to a different driver - the base of a device with nothing attached is the device itself. Null when either end could not be read to compare, and for a driver path\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"path\",\"kind\"]},"
+        "},\"required\":[\"path\",\"kind\",\"driver_readable\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
