@@ -145,6 +145,11 @@ NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     Report->Undetected = report->Undetected;
     Report->ScanDate = report->ScanDate ? PhReferenceObject(report->ScanDate) : NULL;
 
+    // Store it, so the next caller is answered from here rather than by asking again. Without this
+    // a repeated lookup sent the hash out every time and the cached query never found anything.
+    if (ScanningInitialized)
+        CacheVirusTotalReport(Sha256, report->HttpStatus, report->Malicious, report->Undetected);
+
     VirusTotalFreeFileReport(report);
 
     return STATUS_SUCCESS;
@@ -180,6 +185,19 @@ NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
     Report->MultiscanResult = report->MultiscanResult;
     Report->Verdict = report->Verdict ? PhReferenceObject(report->Verdict) : NULL;
     Report->VxFamily = report->VxFamily ? PhReferenceObject(report->VxFamily) : NULL;
+
+    // As above: cached here so a repeat is answered locally instead of leaving the machine again.
+    if (ScanningInitialized)
+    {
+        CacheHybridAnalysisReport(
+            Sha256,
+            report->HttpStatus,
+            report->MultiscanResult,
+            report->VxFamily,
+            report->ThreatScore,
+            report->Verdict
+            );
+    }
 
     HybridAnalysisFreeFileReport(report);
 

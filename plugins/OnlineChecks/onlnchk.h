@@ -457,6 +457,22 @@ BOOLEAN QueryDBHybridAnalysis(
     _Out_ PPH_STRING* VxFamily
     );
 
+VOID CacheVirusTotalReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 Malicious,
+    _In_ ULONG64 Undetected
+    );
+
+VOID CacheHybridAnalysisReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 MultiscanResult,
+    _In_opt_ PPH_STRING VxFamily,
+    _In_ ULONG64 ThreatScore,
+    _In_opt_ PPH_STRING Verdict
+    );
+
 BOOLEAN InitializeScanning(
     VOID
     );

@@ -623,6 +623,89 @@ VOID UpdateDBHybridAnalysis(
     PhDereferenceObject(iso);
 }
 
+/**
+ * Stores a verdict fetched outside the scanner in the scan database.
+ *
+ * \param Hash The file's SHA-256, as hexadecimal text.
+ * \param HttpStatus The status the service answered with.
+ * \param Malicious Detections, meaningful only for 200.
+ * \param Undetected Non-detections, meaningful only for 200.
+ *
+ * \remarks For a one-off lookup - the plugin interface - rather than for a scan item, so it carries
+ * no scan state and touches none of the rate-limit bookkeeping. The expiry policy is the scanner's
+ * own, so a verdict cached here ages out exactly as one the scanner fetched.
+ *
+ * A rate-limited or unauthorized answer is deliberately not stored: those are about this machine's
+ * relationship with the service rather than about the file, and the scanner keeps that state.
+ */
+VOID CacheVirusTotalReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 Malicious,
+    _In_ ULONG64 Undetected
+    )
+{
+    LARGE_INTEGER systemTime;
+    LARGE_INTEGER expiry;
+
+    if (HttpStatus == 429 || HttpStatus == 401 || HttpStatus == 403)
+        return;
+
+    PhQuerySystemTime(&systemTime);
+
+    if (HttpStatus == 200)
+    {
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
+        UpdateDBVirusTotal(Hash, HttpStatus, &expiry, Malicious, Undetected);
+    }
+    else
+    {
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+        UpdateDBVirusTotal(Hash, HttpStatus, &expiry, 0, 0);
+    }
+}
+
+/**
+ * Stores a Hybrid Analysis verdict fetched outside the scanner in the scan database.
+ *
+ * \param Hash The file's SHA-256, as hexadecimal text.
+ * \param HttpStatus The status the service answered with.
+ * \param MultiscanResult The multiscan percentage, meaningful only for 200.
+ * \param VxFamily The malware family, when the service named one.
+ * \param ThreatScore The threat score, meaningful only for 200.
+ * \param Verdict The verdict text, when the service gave one.
+ *
+ * \remarks As CacheVirusTotalReport.
+ */
+VOID CacheHybridAnalysisReport(
+    _In_ PPH_STRING Hash,
+    _In_ ULONG HttpStatus,
+    _In_ ULONG64 MultiscanResult,
+    _In_opt_ PPH_STRING VxFamily,
+    _In_ ULONG64 ThreatScore,
+    _In_opt_ PPH_STRING Verdict
+    )
+{
+    LARGE_INTEGER systemTime;
+    LARGE_INTEGER expiry;
+
+    if (HttpStatus == 429 || HttpStatus == 401 || HttpStatus == 403)
+        return;
+
+    PhQuerySystemTime(&systemTime);
+
+    if (HttpStatus == 200)
+    {
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
+        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, MultiscanResult, VxFamily, ThreatScore, Verdict);
+    }
+    else
+    {
+        expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
+        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, 0, NULL, 0, NULL);
+    }
+}
+
 BOOLEAN TryApplyHybridAnalysisCacheHit(
     _In_ PSCAN_ITEM Item,
     _In_ PLARGE_INTEGER SystemTime
