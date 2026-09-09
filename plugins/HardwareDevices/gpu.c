@@ -471,7 +471,8 @@ PEXTENDEDTOOLS_INTERFACE GraphicsDeviceGetPluginInterface(
         {
             pluginInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
 
-            if (pluginInterface->Version < EXTENDEDTOOLS_INTERFACE_VERSION)
+            // A plugin that is loaded need not publish an interface.
+            if (pluginInterface && pluginInterface->Version < EXTENDEDTOOLS_INTERFACE_VERSION)
                 pluginInterface = NULL;
         }
 

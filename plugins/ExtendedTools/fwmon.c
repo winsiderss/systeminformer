@@ -1115,7 +1115,10 @@ PNETWORKTOOLS_INTERFACE EtFwGetPluginInterface(
     {
         pluginInterface = PhGetPluginInformation(toolStatusPlugin)->Interface;
 
-        if (pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
+        // A plugin that is loaded need not publish an interface, and this only became reachable
+        // when the plugin name was corrected: the old one never matched, so the lookup always
+        // failed before it got here.
+        if (pluginInterface && pluginInterface->Version < NETWORKTOOLS_INTERFACE_VERSION)
             pluginInterface = NULL;
     }
 
