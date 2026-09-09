@@ -340,6 +340,9 @@ VOID AtpGetThreadWaitChain(
     PhAddJsonObjectUInt64(structured, "count", context.Count);
     PhAddJsonObjectUInt64(structured, "total_count", context.TotalCount);
     PhAddJsonObjectBoolean(structured, "truncated", context.Count < context.TotalCount);
+    // An enumeration that stopped partway is not the same as a row cap, and this is the tool that
+    // answers whether anything is deadlocked: a thread that was never walked is a missed cycle.
+    PhAddJsonObjectBoolean(structured, "threads_complete", NT_SUCCESS(status));
     PhAddJsonObjectUInt64(structured, "deadlocked_count", context.DeadlockCount);
     AtAddSnapshot(structured);
 

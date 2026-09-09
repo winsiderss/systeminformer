@@ -2035,8 +2035,9 @@ CONST AT_TOOL AtTools[] =
         "\"total_count\":{\"type\":\"integer\",\"description\":\"Threads the process had\"},"
         "\"truncated\":{\"type\":\"boolean\"},"
         "\"deadlocked_count\":{\"type\":\"integer\",\"description\":\"How many of the chains closed into a cycle\"},"
+        "\"threads_complete\":{\"type\":\"boolean\",\"description\":\"Every thread was walked. False when the enumeration stopped partway, which is not the same as truncated and means a deadlock could have been missed\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\",\"deadlocked_count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\",\"deadlocked_count\",\"threads_complete\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
