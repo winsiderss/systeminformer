@@ -1964,9 +1964,11 @@ VOID AtpGetProcessKsiState(
         stateFlags, stateNames, RTL_NUMBER_OF(stateFlags));
     AtJsonAddStringZ(structured, "state_level", AtpProcessStateLevelString(basicInfo.ProcessState));
 
-    PhAddJsonObjectBoolean(structured, "verified_process", !!basicInfo.VerifiedProcess);
-    PhAddJsonObjectBoolean(structured, "securely_created", !!basicInfo.SecurelyCreated);
-    PhAddJsonObjectBoolean(structured, "protected_process", !!basicInfo.Protected);
+    // Verified, securely created and protected are the driver's own trust relationship with a
+    // client it is protecting, not properties of any process: "protected" here is KSI protecting
+    // the process, which has nothing to do with a Windows protected process (get_process reports
+    // that one). They are reported through state_names alone, in the driver's own vocabulary,
+    // rather than lifted out as booleans that would read as general facts about the process.
     PhAddJsonObjectBoolean(structured, "create_notification", !!basicInfo.CreateNotification);
     PhAddJsonObjectBoolean(structured, "exit_notification", !!basicInfo.ExitNotification);
     PhAddJsonObjectBoolean(structured, "is_wow64", !!basicInfo.IsWow64);
@@ -1988,7 +1990,7 @@ VOID AtpGetProcessKsiState(
 
     // Only tracked for a verified process: reporting zero for any other one would read as "nothing
     // untrusted was loaded" when the truth is that nobody was counting.
-    if (basicInfo.VerifiedProcess)
+    if (FlagOn(basicInfo.ProcessState, KPH_PROCESS_VERIFIED_PROCESS))
     {
         entry = PhCreateJsonObject();
         PhAddJsonObjectUInt64(entry, "microsoft", basicInfo.NumberOfMicrosoftImageLoads);
@@ -2002,19 +2004,10 @@ VOID AtpGetProcessKsiState(
         AtJsonAddNull(structured, "image_load_counts");
     }
 
-    // Only valid if the process is protected, and a mask of zero means "nothing is allowed", which
-    // is a different answer from "there is no protection to describe".
-    if (basicInfo.Protected)
-    {
-        entry = PhCreateJsonObject();
-        AtJsonAddHex(entry, "process_allowed_mask", basicInfo.ProcessAllowedMask);
-        AtJsonAddHex(entry, "thread_allowed_mask", basicInfo.ThreadAllowedMask);
-        PhAddJsonObjectValue(structured, "protection", entry);
-    }
-    else
-    {
-        AtJsonAddNull(structured, "protection");
-    }
+    // The allowed masks are not reported: they exist only for a process the driver is protecting,
+    // which is System Informer's own, so for any process worth asking about they would always be
+    // null - and where they are not, they describe System Informer's own defences rather than
+    // anything about the target.
 
     AtAddSnapshot(structured);
     Result->StructuredContent = structured;
