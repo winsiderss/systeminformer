@@ -11,6 +11,10 @@
 
 #include "agenttools.h"
 
+// The driver sizes some object queries from state that can move between the sizing call and
+// the read, so a grow can come up short more than once; a few attempts, then give up.
+#define AT_QUERY_MAXIMUM_ATTEMPTS 8
+
 PCWSTR AtpAlpcPortTypeString(
     _In_ ULONG State
     )
@@ -303,23 +307,29 @@ PPH_STRING AtpQueryObjectString(
     PVOID buffer;
     ULONG bufferSize = 0x100;
     ULONG returnLength = 0;
+    ULONG attempt;
 
     if (!Query->UseDriver)
         return NULL;
 
     buffer = PhAllocate(bufferSize);
 
-    status = KphQueryInformationObject(Query->ProcessHandle, Query->Handle,
-        ObjectInformationClass, buffer, bufferSize, &returnLength);
-
-    if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && returnLength > bufferSize)
+    // Bounded retry rather than one attempt: the driver sizes some of these from state that can
+    // change between the two calls, so a single grow can be short again through no fault of ours.
+    for (attempt = 0; attempt < AT_QUERY_MAXIMUM_ATTEMPTS; attempt++)
     {
+        status = KphQueryInformationObject(Query->ProcessHandle, Query->Handle,
+            ObjectInformationClass, buffer, bufferSize, &returnLength);
+
+        if ((status != STATUS_BUFFER_OVERFLOW && status != STATUS_BUFFER_TOO_SMALL) ||
+            returnLength <= bufferSize)
+        {
+            break;
+        }
+
         PhFree(buffer);
         bufferSize = returnLength;
         buffer = PhAllocate(bufferSize);
-
-        status = KphQueryInformationObject(Query->ProcessHandle, Query->Handle,
-            ObjectInformationClass, buffer, bufferSize, &returnLength);
     }
 
     if (NT_SUCCESS(status))
@@ -1298,6 +1308,7 @@ VOID AtpGetSectionMappings(
         PKPH_SECTION_MAPPINGS_INFORMATION mappings;
         ULONG returnLength = 0;
         ULONG bufferSize;
+        ULONG attempt;
 
         if (!NT_SUCCESS(status = AtResolveHandleTarget(Call->Arguments, FALSE,
             PROCESS_QUERY_LIMITED_INFORMATION, &target, Result)))
@@ -1327,17 +1338,22 @@ VOID AtpGetSectionMappings(
         bufferSize = 0x400;
         mappings = PhAllocate(bufferSize);
 
-        status = KphQueryInformationObject(target.ProcessHandle, target.HandleValue,
-            KphObjectSectionMappingsInformation, mappings, bufferSize, &returnLength);
-
-        if ((status == STATUS_BUFFER_OVERFLOW || status == STATUS_BUFFER_TOO_SMALL) && returnLength > bufferSize)
+        // The driver sizes this from the live mapping list, so a mapping created between the two
+        // calls makes a single grow short again; that is a busy section, not a hard error.
+        for (attempt = 0; attempt < AT_QUERY_MAXIMUM_ATTEMPTS; attempt++)
         {
+            status = KphQueryInformationObject(target.ProcessHandle, target.HandleValue,
+                KphObjectSectionMappingsInformation, mappings, bufferSize, &returnLength);
+
+            if ((status != STATUS_BUFFER_OVERFLOW && status != STATUS_BUFFER_TOO_SMALL) ||
+                returnLength <= bufferSize)
+            {
+                break;
+            }
+
             PhFree(mappings);
             bufferSize = returnLength;
             mappings = PhAllocate(bufferSize);
-
-            status = KphQueryInformationObject(target.ProcessHandle, target.HandleValue,
-                KphObjectSectionMappingsInformation, mappings, bufferSize, &returnLength);
         }
 
         if (!NT_SUCCESS(status))
