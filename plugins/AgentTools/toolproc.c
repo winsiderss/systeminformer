@@ -2068,8 +2068,9 @@ BOOLEAN AtpParseZombieMethod(
 
     if (PhEqualString2(Name, L"brute_force", TRUE))
         *Method = BruteForceScanMethod;
-    else if (PhEqualString2(Name, L"csr_handles", TRUE))
-        *Method = CsrHandlesScanMethod;
+    // csr_handles is not offered: reading the subsystem's handle table needs PROCESS_DUP_HANDLE on
+    // csrss, which a protected process does not grant to anyone, so on any Windows that runs csrss
+    // protected - which is all of them now - the scan only ever fails.
     else if (PhEqualString2(Name, L"process_handles", TRUE))
         *Method = ProcessHandleScanMethod;
     else if (PhEqualString2(Name, L"registry", TRUE))
@@ -2145,7 +2146,7 @@ VOID AtpListHiddenProcesses(
     if (!AtpParseZombieMethod(methodName, &method))
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
-            L"method must be brute_force, csr_handles, process_handles, registry, etw_guid or ntdll.");
+            L"method must be brute_force, process_handles, registry, etw_guid or ntdll.");
         PhClearReference(&methodName);
         return;
     }
