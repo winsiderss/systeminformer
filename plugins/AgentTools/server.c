@@ -897,15 +897,20 @@ VOID AtpCancelAndWaitForThread(
     _In_ HANDLE ThreadHandle
     )
 {
-    LARGE_INTEGER timeout;
-
     while (TRUE)
     {
         IO_STATUS_BLOCK isb;
+        ULONG wait;
 
         NtCancelSynchronousIoFile(ThreadHandle, NULL, &isb);
 
-        if (NtWaitForSingleObject(ThreadHandle, FALSE, PhTimeoutFromMilliseconds(&timeout, 100)) != STATUS_TIMEOUT)
+        // A consent dialog on the work queue sends messages to whatever thread owns the window it
+        // is raising over, which is the thread that stops the server from the options page. A plain
+        // wait would not answer them and both sides would hold. Input is deliberately not dispatched:
+        // this runs inside a dialog handler that must not be re-entered.
+        wait = MsgWaitForMultipleObjects(1, &ThreadHandle, FALSE, 100, QS_SENDMESSAGE);
+
+        if (wait != WAIT_TIMEOUT && wait != WAIT_OBJECT_0 + 1)
             break;
     }
 }
