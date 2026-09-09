@@ -169,18 +169,28 @@ VOID AtpAddCertificate(
     AtAddRow(Rows, row);
 }
 
+/**
+ * Answers whether a file carries a signature of its own.
+ *
+ * \param Known Set when the file could be mapped and the question actually answered. A file that
+ * could not be mapped answers FALSE here, which is not the same as one that has no signature.
+ */
 BOOLEAN AtpHasEmbeddedSignature(
     _In_ HANDLE FileHandle,
-    _Out_ PBOOLEAN IsImage
+    _Out_ PBOOLEAN IsImage,
+    _Out_ PBOOLEAN Known
     )
 {
     PH_MAPPED_IMAGE mappedImage;
     BOOLEAN embedded = FALSE;
 
     *IsImage = FALSE;
+    *Known = FALSE;
 
     if (!NT_SUCCESS(PhLoadMappedImageEx(NULL, FileHandle, &mappedImage)))
         return FALSE;
+
+    *Known = TRUE;
 
     if (mappedImage.Signature == IMAGE_DOS_SIGNATURE)
     {
@@ -216,7 +226,9 @@ VOID AtpVerifyFileSignature(
     PPH_STRING signer = NULL;
     BOOLEAN includeChain;
     BOOLEAN embedded;
+    BOOLEAN embeddedKnown;
     BOOLEAN isImage;
+    BOOLEAN verified;
     PVOID structured;
 
     if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
@@ -251,29 +263,53 @@ VOID AtpVerifyFileSignature(
     info.FileHandle = fileHandle;
     info.Flags = PH_VERIFY_PREVENT_NETWORK_ACCESS;
 
+    // PhVerifyFileEx leaves the result untouched when it could not verify at all - wintrust
+    // failing to initialise answers STATUS_NOT_SUPPORTED without writing one - so the status is
+    // what says whether there is an answer to report.
     status = PhVerifyFileEx(&info, &verifyResult, &signatures, &numberOfSignatures);
+    verified = NT_SUCCESS(status);
 
-    if (NT_SUCCESS(status) && numberOfSignatures != 0)
+    if (verified && numberOfSignatures != 0)
         signer = PhGetSignerNameFromCertificate(signatures[0]);
 
-    embedded = AtpHasEmbeddedSignature(fileHandle, &isImage);
+    embedded = AtpHasEmbeddedSignature(fileHandle, &isImage, &embeddedKnown);
 
     structured = PhCreateJsonObject();
     AtJsonAddString(structured, "path", path);
-    AtJsonAddStringZ(structured, "verify_result", AtpVerifyResultText(verifyResult));
-    PhAddJsonObjectBoolean(structured, "is_trusted", verifyResult == VrTrusted);
-    AtJsonAddString(structured, "signer", signer);
-    PhAddJsonObjectBoolean(structured, "has_embedded_signature", embedded);
+    PhAddJsonObjectBoolean(structured, "verification_ran", verified);
 
-    // A trusted file with no signature of its own was vouched for by a catalog.
-    if (embedded)
+    if (verified)
+    {
+        AtJsonAddStringZ(structured, "verify_result", AtpVerifyResultText(verifyResult));
+        PhAddJsonObjectBoolean(structured, "is_trusted", verifyResult == VrTrusted);
+    }
+    else
+    {
+        // A verification that never ran is not a file that failed one.
+        AtJsonAddNull(structured, "verify_result");
+        AtJsonAddNull(structured, "is_trusted");
+    }
+
+    AtJsonAddString(structured, "signer", signer);
+
+    if (embeddedKnown)
+        PhAddJsonObjectBoolean(structured, "has_embedded_signature", embedded);
+    else
+        AtJsonAddNull(structured, "has_embedded_signature");
+
+    // A trusted file with no signature of its own was vouched for by a catalog - which can only be
+    // said once both halves are known.
+    if (embeddedKnown && embedded)
         AtJsonAddStringZ(structured, "signature_source", L"embedded");
-    else if (verifyResult == VrTrusted)
+    else if (embeddedKnown && verified && verifyResult == VrTrusted)
         AtJsonAddStringZ(structured, "signature_source", L"catalog");
     else
         AtJsonAddNull(structured, "signature_source");
 
-    PhAddJsonObjectBoolean(structured, "is_pe_image", isImage);
+    if (embeddedKnown)
+        PhAddJsonObjectBoolean(structured, "is_pe_image", isImage);
+    else
+        AtJsonAddNull(structured, "is_pe_image");
 
     // A second pass, and the one bit that matters most: whether the chain ends at Microsoft's root
     // rather than at any root the machine happens to trust.
