@@ -680,7 +680,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"verify_result\":{\"type\":[\"string\",\"null\"]}," \
     "\"verify_signer\":{\"type\":[\"string\",\"null\"]}," \
     "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The image on disk chains to a Microsoft root, which is stronger than the signer name reading as Microsoft. Null unless it was asked for\"}," \
-    "\"runs_in_system_process\":{\"type\":\"boolean\"}"
+    "\"runs_in_system_process\":{\"type\":[\"boolean\",\"null\"]},"     "\"details_available\":{\"type\":\"boolean\",\"description\":\"False for a service the SCM lists but the cache has not seen yet, usually one created seconds ago: the identity and the state are the SCM's own and every cached field is null\"}"
 
 #define AT_SERVICE_ACTION_OUTPUT_SCHEMA \
     "{\"type\":\"object\",\"properties\":{" \
@@ -2630,11 +2630,12 @@ CONST AT_TOOL AtTools[] =
         AT_DELTA_INPUT_PROPERTY
         "},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_SERVICE_ROW_PROPERTIES "},\"required\":[\"name\",\"is_driver\"]}},"
+        "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{" AT_SERVICE_ROW_PROPERTIES "},\"required\":[\"name\",\"is_driver\",\"details_available\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_DELTA_OUTPUT_SCHEMA(AT_SERVICE_CHANGE_ROW_SCHEMA) ","
+        "\"uncached_count\":{\"type\":\"integer\",\"description\":\"Rows built from the service control manager alone because the cache had not seen them yet\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
+        "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\",\"uncached_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
@@ -2678,7 +2679,7 @@ CONST AT_TOOL AtTools[] =
         "\"service_specific_exit_code\":{\"type\":\"integer\"},"
         "\"access_denied\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"name\",\"is_driver\",\"dependencies\",\"controls_accepted\",\"access_denied\"]},"
+        "},\"required\":[\"name\",\"is_driver\",\"dependencies\",\"controls_accepted\",\"access_denied\",\"details_available\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

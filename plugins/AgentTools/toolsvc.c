@@ -195,6 +195,39 @@ VOID AtpFillServiceRow(
     AtJsonAddStringZ(Object, "verify_result", AtVerifyResultString(ServiceItem->VerifyResult));
     AtJsonAddString(Object, "verify_signer", ServiceItem->VerifySignerName);
     PhAddJsonObjectBoolean(Object, "runs_in_system_process", !!(ServiceItem->Flags & SERVICE_RUNS_IN_SYSTEM_PROCESS));
+    PhAddJsonObjectBoolean(Object, "details_available", TRUE);
+}
+
+/**
+ * Fills a row from the service control manager's own answer, for a service the provider cache has
+ * not seen yet. The SCM carries the identity and the state; everything the cache adds is null.
+ */
+VOID AtpFillServiceStatusRow(
+    _In_ PVOID Object,
+    _In_ LPENUM_SERVICE_STATUS_PROCESS Service
+    )
+{
+    ULONG type = Service->ServiceStatusProcess.dwServiceType;
+    ULONG processId = Service->ServiceStatusProcess.dwProcessId;
+
+    AtJsonAddStringZ(Object, "name", Service->lpServiceName);
+    AtJsonAddStringZ(Object, "display_name", Service->lpDisplayName);
+    AtJsonAddStringZ(Object, "type", AtpServiceTypeString(type));
+    PhAddJsonObjectBoolean(Object, "is_driver", !!(type & SERVICE_DRIVER));
+    AtJsonAddStringRef(Object, "state", PhGetServiceStateString(Service->ServiceStatusProcess.dwCurrentState));
+    AtJsonAddNull(Object, "start_type");
+
+    if (processId)
+        PhAddJsonObjectUInt64(Object, "pid", processId);
+    else
+        AtJsonAddNull(Object, "pid");
+
+    AtJsonAddNull(Object, "process_sequence_number");
+    AtJsonAddNull(Object, "image_path");
+    AtJsonAddNull(Object, "verify_result");
+    AtJsonAddNull(Object, "verify_signer");
+    AtJsonAddNull(Object, "runs_in_system_process");
+    PhAddJsonObjectBoolean(Object, "details_available", FALSE);
 }
 
 typedef struct _AT_SERVICE_FILTER
@@ -253,6 +286,61 @@ BOOLEAN AtpServiceMatchesFilter(
     return TRUE;
 }
 
+/**
+ * Applies the filters that the service control manager's own answer can decide, for a service the
+ * provider cache has not seen yet.
+ */
+BOOLEAN AtpServiceStatusMatchesFilter(
+    _In_ PAT_SERVICE_FILTER Filter,
+    _In_ LPENUM_SERVICE_STATUS_PROCESS Service
+    )
+{
+    ULONG state = Service->ServiceStatusProcess.dwCurrentState;
+    ULONG type = Service->ServiceStatusProcess.dwServiceType;
+
+    if (Filter->NameContains)
+    {
+        PH_STRINGREF name;
+        PH_STRINGREF displayName;
+
+        PhInitializeStringRefLongHint(&name, Service->lpServiceName);
+
+        if (Service->lpDisplayName)
+            PhInitializeStringRefLongHint(&displayName, Service->lpDisplayName);
+        else
+            PhInitializeEmptyStringRef(&displayName);
+
+        if (PhFindStringInStringRef(&name, &Filter->NameContains->sr, TRUE) == SIZE_MAX &&
+            PhFindStringInStringRef(&displayName, &Filter->NameContains->sr, TRUE) == SIZE_MAX)
+        {
+            return FALSE;
+        }
+    }
+
+    if (Filter->HaveState)
+    {
+        if (Filter->State == MAXULONG)
+        {
+            if (state == SERVICE_RUNNING || state == SERVICE_STOPPED || state == SERVICE_PAUSED)
+                return FALSE;
+        }
+        else if (state != Filter->State)
+        {
+            return FALSE;
+        }
+    }
+
+    if (Filter->HaveType && (!!(type & SERVICE_DRIVER)) != Filter->Driver)
+        return FALSE;
+
+    if (Filter->HavePid && UlongToHandle(Service->ServiceStatusProcess.dwProcessId) != Filter->Pid)
+        return FALSE;
+
+    // ExcludeMicrosoft and UnsignedOnly both verify the service image, which is one of the fields
+    // only the cache holds, so a service it has not seen yet is kept rather than judged on a guess.
+    return TRUE;
+}
+
 VOID AtpListServices(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -269,6 +357,7 @@ VOID AtpListServices(
     PVOID structured;
     BOOLEAN verifySignatures;
     ULONG i;
+    ULONG uncachedCount = 0;
 
     memset(&filter, 0, sizeof(AT_SERVICE_FILTER));
     verifySignatures = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
@@ -326,8 +415,25 @@ VOID AtpListServices(
         PPH_SERVICE_ITEM serviceItem;
         PVOID row;
 
+        // A service the cache has not seen yet - typically one created since the last provider
+        // tick - is still a service the SCM lists, so it is reported from what the SCM said rather
+        // than dropped out of the listing and the counts alike.
         if (!(serviceItem = PhReferenceServiceItemZ(services[i].lpServiceName)))
+        {
+            if (!AtpServiceStatusMatchesFilter(&filter, &services[i]))
+                continue;
+
+            uncachedCount++;
+
+            row = PhCreateJsonObject();
+            AtpFillServiceStatusRow(row, &services[i]);
+
+            if (verifySignatures)
+                AtJsonAddMicrosoftSigned(row, "is_microsoft_signed", NULL);
+
+            AtAddRow(&rows, row);
             continue;
+        }
 
         if (!AtpServiceMatchesFilter(&filter, serviceItem))
         {
@@ -350,6 +456,7 @@ VOID AtpListServices(
     PhFree(services);
 
     AtAddRows(structured, "services", &rows);
+    PhAddJsonObjectUInt64(structured, "uncached_count", uncachedCount);
 
     if (AtGetArgumentUInt64(Call->Arguments, "since_snapshot_id", &sinceSnapshotId))
         AtAddServiceChanges(structured, (ULONG)min(sinceSnapshotId, MAXULONG));
