@@ -390,8 +390,8 @@ VOID AtpSendRequest(
  * text around them reads rather than adding anything of their own: the bidirectional overrides and
  * embeddings, which can make a tool name display in reverse; the zero-width joiners and the
  * zero-width no-break space, which hide a join; and the separators Windows controls treat as a
- * line break, which would let a client push its own line into a consent prompt. The two
- * noncharacters are rejected as well, no client having any business sending them.
+ * line break, which would let a client push its own line into a consent prompt; and the two
+ * noncharacters.
  */
 BOOLEAN AtpIsUnsafeClientChar(
     _In_ WCHAR Character
@@ -924,8 +924,7 @@ VOID AtpHandleToolsCall(
     {
         BOOLEAN gate;
 
-        // Reads resolve their own target and pass none through the gate; every other tier resolves
-        // first, and passes one only when the action names an object.
+        // Reads resolve their own target; other tiers resolve first and pass one only if there is one.
         if (tool->Tier == AtTierRead)
             gate = TRUE;
         else

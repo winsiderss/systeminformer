@@ -9222,8 +9222,7 @@ PPH_STRING PhCreateCacheFile(
     WCHAR randomAlphaString[32] = L"";
     SIZE_T i;
 
-    // FileName becomes a leaf name under the cache directory: reject separators, traversal,
-    // streams and control characters so a caller cannot escape it.
+    // FileName becomes a leaf name: reject separators, traversal, streams and control characters.
 
     if (PhIsNullOrEmptyString(FileName))
         return NULL;

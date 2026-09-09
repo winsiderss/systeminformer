@@ -261,8 +261,7 @@ VOID AtpAddStartupEntry(
 
     resolved = AtpResolveStartupImage(Image ? Image : Command, Context->ImageKind, &imagePath, &imageExists);
 
-    // Only a file that is there is verified; a missing one answers unknown, which is already how
-    // the field reads.
+    // Only a file that is there is verified; a missing one answers unknown.
     if (Context->Verify && imageExists)
         verifyResult = AtVerifyFileName(imagePath, &signer);
 
@@ -1044,8 +1043,7 @@ VOID AtpAddClsidEntry(
 
     module = AtpResolveClsidModule(Clsid, &friendlyName);
 
-    // A class that names no server has no file to look at, and the class identifier is not a
-    // module name.
+    // A class that names no server has no file, and the class identifier is not a module name.
     imageKind = Context->ImageKind;
 
     if (!module)

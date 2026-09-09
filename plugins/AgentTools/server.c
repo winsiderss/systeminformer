@@ -604,8 +604,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (Hello->BrokerVersion != SIMCP_VERSION)
         return SimcpHelloRejectedVersion;
 
-    // Capture the token, then revert. The caller checks below are made from the captured token;
-    // the broker checks come from the pipe's client process.
+    // Capture the token, then revert. The broker checks below come from the pipe's client process.
 
     status = PhImpersonateClientOfNamedPipe(Connection->PipeHandle);
 

@@ -1043,8 +1043,7 @@ VOID AtpControlService(
                 {
                     SERVICE_DESCRIPTION descriptionInfo;
 
-                    // An empty description is not a value: the argument reader returns null for it,
-                    // so it is ignored, and a call carrying nothing else is refused.
+                    // An empty description reads as null, so it is ignored rather than applied.
                     descriptionInfo.lpDescription = description->Buffer;
                     configStatus = PhChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, &descriptionInfo);
                     PhDereferenceObject(description);

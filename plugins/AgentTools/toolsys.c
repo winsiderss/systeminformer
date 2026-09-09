@@ -1661,8 +1661,7 @@ VOID AtpGetCpuInfo(
     AtpAddCpuCaches(structured);
     AtpAddCpuProcessors(structured, Call);
 
-    // The provider's own per-interval usage fractions, not counters since boot: the same figures
-    // get_system_history records.
+    // Per-interval usage fractions from the provider, not counters since boot.
     entry = PhCreateJsonObject();
     PhAddJsonObjectDouble(entry, "cpu_usage", (DOUBLE)PhCpuKernelUsage + (DOUBLE)PhCpuUserUsage);
     PhAddJsonObjectDouble(entry, "cpu_kernel_usage", (DOUBLE)PhCpuKernelUsage);
@@ -1770,8 +1769,7 @@ VOID AtpListPoolTags(
         pagedTotal += tag->PagedUsed;
         nonPagedTotal += tag->NonPagedUsed;
 
-        // The index maps a tag to its row so the big pool list can be folded in by tag; the stored
-        // value is the row number plus one, and the read below subtracts it.
+        // Tag to row, biased by one so the big pool list can be folded in; the read subtracts it.
         PhAddItemSimpleHashtable(index, (PVOID)(ULONG_PTR)tag->TagUlong, (PVOID)(ULONG_PTR)(i + 1));
     }
 

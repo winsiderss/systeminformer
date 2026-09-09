@@ -310,14 +310,11 @@ typedef struct _AT_DEFERRED_REQUEST
 
 typedef enum _AT_STDIO_ORIGIN
 {
-    // Nothing is claimed: the broker's parameters could not be read, the handle could not be
-    // duplicated, or no holder came back.
+    // Nothing is claimed: unreadable, not duplicatable, or no holder came back.
     AtStdioUnverified,
-    // The broker's stdin is not a pipe - a console, a redirected file, NUL - so there is no client
-    // on the other end of it.
+    // The broker's stdin is not a pipe, so there is no client on the other end.
     AtStdioConsole,
-    // At least one process holds the broker's stdin file object; the broker is itself one of
-    // them.
+    // Holders of the broker's stdin, the broker itself among them.
     AtStdioResolved
 } AT_STDIO_ORIGIN;
 

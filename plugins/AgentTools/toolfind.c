@@ -168,8 +168,7 @@ VOID AtpFindHandles(
         {
             HANDLE opened = NULL;
 
-            // Duplicating the handle is what names most objects; an entry whose process cannot be
-            // opened at all is dropped below.
+            // Duplicating the handle names most objects; a process that will not open is dropped below.
             if (!NT_SUCCESS(PhOpenProcess(&opened, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, entry->UniqueProcessId)))
                 PhOpenProcess(&opened, PROCESS_QUERY_INFORMATION, entry->UniqueProcessId);
 
@@ -521,8 +520,7 @@ BOOLEAN NTAPI AtpFileMappedCallback(
     if (!Module->FileName)
         return TRUE;
 
-    // The base names are compared first; only a match pays for converting the module path to
-    // Win32 form.
+    // Base names first; only a match pays for converting the module path to Win32 form.
     {
         PPH_STRING baseName = PhGetBaseName(Module->FileName);
         BOOLEAN sameName;
@@ -1190,8 +1188,7 @@ VOID AtpAddSectionDetails(
     haveImage = FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
         NT_SUCCESS(NtQuerySection(Handle, SectionImageInformation, &imageInfo, sizeof(imageInfo), NULL));
 
-    // Naming the backing file needs SECTION_MAP_READ to map a view; this scan opens sections with
-    // SECTION_QUERY alone, so only get_handle_details reports one.
+    // Naming the backing file needs SECTION_MAP_READ; this scan opens SECTION_QUERY alone.
     AtAddSectionInfo(Structured, &basicInfo, haveImage ? &imageInfo : NULL, NULL);
 }
 
@@ -1549,8 +1546,7 @@ VOID AtpGetObjectInfo(
 
             PhClearReference(&queriedTypeName);
 
-            // Without the driver the handle this call opened is subtracted; with it the count is
-            // raw and includes this one.
+            // Without the driver this call's own handle is subtracted; with it the count is raw.
             PhAddJsonObjectUInt64(structured, "handle_count", basicInfo.HandleCount);
             PhAddJsonObjectUInt64(structured, "pointer_count", basicInfo.PointerCount);
             PhAddJsonObjectUInt64(structured, "paged_pool_charge", basicInfo.PagedPoolCharge);

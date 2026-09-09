@@ -122,8 +122,7 @@ VOID AtpAddCountry(
     if (Interface && !AtpIsPrivateAddress(Address) &&
         Interface->LookupCountryCode(*Address, &geoNameId, &countryName))
     {
-        // The lookup answers TRUE even for an address it does not know, with a zero identifier and
-        // no name; the two always come together.
+        // TRUE even for an address it does not know; identifier and name come together or not at all.
         AtJsonAddString(Object, "country", countryName);
 
         // Not an ISO code: the database returns a GeoNames identifier, and calling it a country

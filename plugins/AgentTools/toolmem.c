@@ -108,8 +108,7 @@ VOID AtpGetProcessHandles(
         return;
     }
 
-    // Detailed reads use the resolved handle, or their own PROCESS_DUP_HANDLE one without the
-    // driver; plain reads open just enough to name types.
+    // Detailed reads use the resolved handle, or their own without the driver; plain reads name types.
     if (detailed)
     {
         processHandle = target->ProcessHandle;

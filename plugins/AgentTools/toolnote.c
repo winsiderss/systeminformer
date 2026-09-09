@@ -175,8 +175,7 @@ VOID AtpSetProcessComment(
         matchCommandLine
         ))
     {
-        // A failure here is a missing entry or a database that could not be saved; the two are not
-        // told apart.
+        // A missing entry or a database that could not be saved; not told apart.
         AtSetToolError(
             Result,
             "not_found",
