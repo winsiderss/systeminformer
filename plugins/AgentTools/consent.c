@@ -1321,8 +1321,7 @@ AT_CONSENT_RESULT AtConsentGate(
         return AtConsentAllowed;
 
     // A grant already held by this connection, chosen in the dialog (or, for reads, through the
-    // client's prompt). Revoke grants clears it from the options page; Disconnect clears only the
-    // per-action half.
+    // client's prompt). Revoke grants, or Disconnect, clears it from the options page.
     policy = AtpGetSessionPolicy(connection, Action);
 
     if (policy == AtSessionAllow)

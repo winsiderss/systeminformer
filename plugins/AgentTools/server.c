@@ -1213,10 +1213,10 @@ VOID AtServerDisconnect(
         {
             AtConnectionClose(connection, SimcpCloseUserDisconnected, 0);
 
-            // Disconnecting voids the per-action session grants; class grants are cleared only by
-            // Revoke grants.
+            // Disconnecting voids every grant held by this session, per-action and class alike.
             PhAcquireQueuedLockExclusive(&connection->Lock);
             memset(connection->SessionPolicy, 0, sizeof(connection->SessionPolicy));
+            memset(connection->ClassPolicy, 0, sizeof(connection->ClassPolicy));
             PhReleaseQueuedLockExclusive(&connection->Lock);
         }
 

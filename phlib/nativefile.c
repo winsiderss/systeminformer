@@ -91,20 +91,6 @@ NTSTATUS PhCreateFileWin32(
  * \li \c FILE_DOES_NOT_EXIST The file was not opened because it did not exist and \c FILE_OPEN or
  * \c FILE_OVERWRITE was specified in \a CreateDisposition.
  */
-/**
- * Creates or opens a file with extended options.
- *
- * \param FileHandle A variable that receives the file handle.
- * \param FileName The Win32 file name.
- * \param DesiredAccess The desired access to the file.
- * \param AllocationSize The initial allocation size if the file is being created, overwritten, or superseded.
- * \param FileAttributes File attributes applied if the file is created or overwritten.
- * \param ShareAccess The file access granted to other threads.
- * \param CreateDisposition The action to perform if the file does or does not exist.
- * \param CreateOptions The options to apply when the file is opened or created.
- * \param CreateStatus A variable that receives creation information.
- * \return NTSTATUS Successful or errant status.
- */
 NTSTATUS PhCreateFileWin32Ex(
     _Out_ PHANDLE FileHandle,
     _In_ PCWSTR FileName,
