@@ -661,22 +661,31 @@ VOID CacheHybridAnalysisReport(
 {
     LARGE_INTEGER systemTime;
     LARGE_INTEGER expiry;
+    PPH_STRING vxFamily;
+    PPH_STRING verdict;
 
     if (HttpStatus == 429 || HttpStatus == 401 || HttpStatus == 403)
         return;
 
     PhQuerySystemTime(&systemTime);
 
+    // UpdateDBHybridAnalysis binds both strings unconditionally.
+    vxFamily = VxFamily ? PhReferenceObject(VxFamily) : PhReferenceEmptyString();
+    verdict = Verdict ? PhReferenceObject(Verdict) : PhReferenceEmptyString();
+
     if (HttpStatus == 200)
     {
         expiry.QuadPart = MakeExpiry(&systemTime, ScanOKExpMin, ScanOKExpMax);
-        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, MultiscanResult, VxFamily, ThreatScore, Verdict);
+        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, MultiscanResult, vxFamily, ThreatScore, verdict);
     }
     else
     {
         expiry.QuadPart = MakeExpiry(&systemTime, ScanNoResponseExpMin, ScanNoResponseExpMax);
-        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, 0, NULL, 0, NULL);
+        UpdateDBHybridAnalysis(Hash, HttpStatus, &expiry, 0, vxFamily, 0, verdict);
     }
+
+    PhDereferenceObject(vxFamily);
+    PhDereferenceObject(verdict);
 }
 
 BOOLEAN TryApplyHybridAnalysisCacheHit(
