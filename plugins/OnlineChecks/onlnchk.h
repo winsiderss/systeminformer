@@ -166,6 +166,14 @@ VOID NTAPI OptionsSettingsUpdatedCallback(
 
 // exclude.c
 
+VOID ScanNoteVirusTotalHttpStatus(
+    _In_ ULONG HttpStatus
+    );
+
+VOID ScanNoteHybridAnalysisHttpStatus(
+    _In_ ULONG HttpStatus
+    );
+
 VOID ScanLoadExclusions(
     VOID
     );

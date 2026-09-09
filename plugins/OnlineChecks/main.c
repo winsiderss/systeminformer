@@ -111,6 +111,10 @@ NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     if (!NT_SUCCESS(status))
         return status;
 
+    // The scanner shares this key, so what the service said about it is fed back even
+    // though this request was not the scanner's.
+    ScanNoteVirusTotalHttpStatus(report->HttpStatus);
+
     Report->HttpStatus = report->HttpStatus;
     Report->Malicious = report->Malicious;
     Report->Undetected = report->Undetected;
@@ -141,6 +145,10 @@ NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
 
     if (!NT_SUCCESS(status))
         return status;
+
+    // The scanner shares this key, so what the service said about it is fed back even
+    // though this request was not the scanner's.
+    ScanNoteHybridAnalysisHttpStatus(report->HttpStatus);
 
     Report->HttpStatus = report->HttpStatus;
     Report->ThreatScore = report->ThreatScore;
