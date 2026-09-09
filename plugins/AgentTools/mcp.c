@@ -234,62 +234,22 @@ PVOID AtpCreateCapabilities(
     return capabilities;
 }
 
-VOID AtpSendLine(
+NTSTATUS AtpSendLine(
     _In_ PAT_CONNECTION Connection,
     _In_ PPH_BYTES Line
     )
 {
-    AtConnectionSend(Connection, SimcpMcp, Line->Buffer, (ULONG)Line->Length);
-}
+    NTSTATUS status;
 
-VOID AtpSendResult(
-    _In_ PAT_CONNECTION Connection,
-    _In_ PPH_BYTES IdJson,
-    _In_ PVOID Result,
-    _In_ BOOLEAN Modern
-    )
-{
-    static CONST CHAR head[] = "{\"jsonrpc\":\"2.0\",\"id\":";
-    static CONST CHAR middle[] = ",\"result\":";
-    static CONST CHAR tail[] = "}";
-    PH_BYTES_BUILDER builder;
-    PPH_BYTES resultJson;
-    PPH_BYTES line;
+    status = AtConnectionSend(Connection, SimcpMcp, Line->Buffer, (ULONG)Line->Length);
 
-    if (Modern)
-    {
-        PVOID meta;
+    // A write that fails means the other end is gone or the pipe is broken, and nothing further
+    // will reach the client; the handshake treats the same failure the same way. Closing here
+    // stops the rest of this exchange being written into a pipe that cannot carry it.
+    if (!NT_SUCCESS(status))
+        AtConnectionClose(Connection, SimcpCloseUserDisconnected, (ULONG)status);
 
-        if (!PhGetJsonObject(Result, "resultType"))
-            PhAddJsonObject(Result, "resultType", "complete");
-
-        if (!(meta = AtJsonGetObjectMember(Result, "_meta", PH_JSON_OBJECT_TYPE_OBJECT)))
-        {
-            meta = PhCreateJsonObject();
-            PhAddJsonObjectValue(Result, "_meta", meta);
-        }
-
-        PhAddJsonObjectValue(meta, AT_META_SERVER_INFO, AtpCreateServerInfo());
-    }
-
-    resultJson = AtpSerialize(Result);
-    PhFreeJsonObject(Result);
-
-    if (!resultJson)
-        return;
-
-    PhInitializeBytesBuilder(&builder, resultJson->Length + IdJson->Length + 64);
-    PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
-    PhAppendBytesBuilderEx(&builder, IdJson->Buffer, IdJson->Length, 0, NULL);
-    PhAppendBytesBuilderEx(&builder, (PVOID)middle, sizeof(middle) - 1, 0, NULL);
-    PhAppendBytesBuilderEx(&builder, resultJson->Buffer, resultJson->Length, 0, NULL);
-    PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
-    line = PhFinalBytesBuilderBytes(&builder);
-
-    AtpSendLine(Connection, line);
-
-    PhDereferenceObject(line);
-    PhDereferenceObject(resultJson);
+    return status;
 }
 
 VOID AtpSendError(
@@ -339,6 +299,61 @@ VOID AtpSendError(
 
     PhDereferenceObject(line);
     PhDereferenceObject(errorJson);
+}
+
+VOID AtpSendResult(
+    _In_ PAT_CONNECTION Connection,
+    _In_ PPH_BYTES IdJson,
+    _In_ PVOID Result,
+    _In_ BOOLEAN Modern
+    )
+{
+    static CONST CHAR head[] = "{\"jsonrpc\":\"2.0\",\"id\":";
+    static CONST CHAR middle[] = ",\"result\":";
+    static CONST CHAR tail[] = "}";
+    PH_BYTES_BUILDER builder;
+    PPH_BYTES resultJson;
+    PPH_BYTES line;
+
+    if (Modern)
+    {
+        PVOID meta;
+
+        if (!PhGetJsonObject(Result, "resultType"))
+            PhAddJsonObject(Result, "resultType", "complete");
+
+        if (!(meta = AtJsonGetObjectMember(Result, "_meta", PH_JSON_OBJECT_TYPE_OBJECT)))
+        {
+            meta = PhCreateJsonObject();
+            PhAddJsonObjectValue(Result, "_meta", meta);
+        }
+
+        PhAddJsonObjectValue(meta, AT_META_SERVER_INFO, AtpCreateServerInfo());
+    }
+
+    resultJson = AtpSerialize(Result);
+    PhFreeJsonObject(Result);
+
+    // The call has already run by now, so dropping the reply would leave the client believing a
+    // write it asked for never happened. It is told the answer was lost instead.
+    if (!resultJson)
+    {
+        AtpSendError(Connection, IdJson, AT_JSONRPC_INTERNAL_ERROR, "The result could not be serialized", NULL);
+        return;
+    }
+
+    PhInitializeBytesBuilder(&builder, resultJson->Length + IdJson->Length + 64);
+    PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, IdJson->Buffer, IdJson->Length, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)middle, sizeof(middle) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, resultJson->Buffer, resultJson->Length, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
+    line = PhFinalBytesBuilderBytes(&builder);
+
+    AtpSendLine(Connection, line);
+
+    PhDereferenceObject(line);
+    PhDereferenceObject(resultJson);
 }
 
 VOID AtpSendRequest(
@@ -737,6 +752,16 @@ VOID AtpSendToolResult(
     )
 {
     PVOID result;
+
+    // A handler that set neither an error nor an answer took a path that forgot to set one.
+    // Publishing the empty object would present that as a successful empty result, so it is
+    // reported as the internal error it is instead.
+    if (!ToolResult->ErrorCode && !ToolResult->StructuredContent)
+    {
+        NT_ASSERT(FALSE);
+        AtSetToolError(ToolResult, "internal_error", STATUS_INTERNAL_ERROR,
+            L"The tool returned neither a result nor an error.");
+    }
 
     result = PhCreateJsonObject();
 
