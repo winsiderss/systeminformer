@@ -135,6 +135,13 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
 
     SIZE_T NumberOfImageLoads;
 
+    //
+    // These are copied verbatim from the process context, so the layout must match
+    // KPH_PROCESS_CONTEXT exactly. Whether a process is verified, securely created or protected
+    // is not here: it is derived state and is reported through ProcessState above, as
+    // KPH_PROCESS_VERIFIED_PROCESS, KPH_PROCESS_SECURELY_CREATED and
+    // KPH_PROCESS_PROTECTED_PROCESS.
+    //
     union
     {
         ULONG Flags;
@@ -142,13 +149,11 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
         {
             ULONG CreateNotification : 1;
             ULONG ExitNotification : 1;
-            ULONG VerifiedProcess : 1;
-            ULONG SecurelyCreated : 1;
-            ULONG Protected : 1;
             ULONG IsWow64 : 1;
             ULONG IsSubsystemProcess : 1;
             ULONG AllocatedImageName : 1;
-            ULONG Reserved : 24;
+            ULONG SystemAllocatedImageFileName : 1;
+            ULONG Reserved : 26;
         };
     };
 
