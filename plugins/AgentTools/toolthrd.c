@@ -902,6 +902,7 @@ VOID AtpGetProcessStacks(
 {
     NTSTATUS status;
     PVOID processes;
+    SIZE_T threadsSize;
     PSYSTEM_PROCESS_INFORMATION process;
     PPH_SYMBOL_PROVIDER symbolProvider;
     PPH_STRING order;
@@ -944,7 +945,15 @@ VOID AtpGetProcessStacks(
     // The threads are taken out of the snapshot before any walking starts, so the selection is made
     // against one consistent view rather than against a process that is still creating threads.
     threadCount = process->NumberOfThreads;
-    threads = PhAllocate(sizeof(AT_STACK_THREAD) * max(threadCount, 1));
+    // threadCount comes from the snapshot, so the size is checked rather than assumed to fit.
+    if (!NT_SUCCESS(RtlSizeTMult(sizeof(AT_STACK_THREAD), max(threadCount, 1), &threadsSize)))
+    {
+        AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"That process has too many threads to walk.");
+        PhFree(processes);
+        return;
+    }
+
+    threads = PhAllocate(threadsSize);
 
     for (i = 0; i < threadCount; i++)
     {

@@ -1696,13 +1696,19 @@ PPH_STRING AtpFormatPoolTag(
     )
 {
     WCHAR buffer[5];
-    UCHAR bytes[4];
+    ULONG tag;
     ULONG i;
 
-    *(PULONG)bytes = TagUlong & ~AT_POOL_TAG_PROTECTED;
+    // The four characters are the tag's own bytes, taken out of it by shifting rather than by
+    // writing a ULONG through a byte array.
+    tag = TagUlong & ~AT_POOL_TAG_PROTECTED;
 
     for (i = 0; i < 4; i++)
-        buffer[i] = (bytes[i] >= 0x20 && bytes[i] <= 0x7e) ? (WCHAR)bytes[i] : L'.';
+    {
+        UCHAR value = (UCHAR)(tag >> (i * 8));
+
+        buffer[i] = (value >= 0x20 && value <= 0x7e) ? (WCHAR)value : L'.';
+    }
 
     buffer[4] = UNICODE_NULL;
 
@@ -1720,6 +1726,7 @@ VOID AtpListPoolTags(
     PSYSTEM_BIGPOOL_INFORMATION bigPool = NULL;
     PPH_HASHTABLE index = NULL;
     PAT_POOL_TAG_ENTRY entries = NULL;
+    SIZE_T entriesSize;
     PPH_STRING tagFilter;
     PVOID structured;
     ULONG64 minimumBytes = 0;
@@ -1738,7 +1745,14 @@ VOID AtpListPoolTags(
     tagFilter = AtGetArgumentString(Call->Arguments, "tag");
     AtGetArgumentUInt64(Call->Arguments, "min_bytes", &minimumBytes);
 
-    entries = PhAllocateZero(sizeof(AT_POOL_TAG_ENTRY) * poolTable->Count);
+    if (!NT_SUCCESS(RtlSizeTMult(sizeof(AT_POOL_TAG_ENTRY), poolTable->Count, &entriesSize)))
+    {
+        AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"The pool tag table is too large to read.");
+        PhFree(poolTable);
+        return;
+    }
+
+    entries = PhAllocateZero(entriesSize);
     index = PhCreateSimpleHashtable(poolTable->Count);
 
     for (i = 0; i < poolTable->Count; i++)

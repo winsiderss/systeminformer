@@ -724,6 +724,7 @@ VOID AtpListProcesses(
     AT_ROWS rows;
     PPH_PROCESS_ITEM* processItems;
     ULONG numberOfProcessItems;
+    SIZE_T matchedSize;
     PBOOLEAN matched;
     PVOID structured;
     ULONG i;
@@ -790,7 +791,14 @@ VOID AtpListProcesses(
     }
 
     PhEnumProcessItems(&processItems, &numberOfProcessItems);
-    matched = PhAllocateZero(numberOfProcessItems * sizeof(BOOLEAN));
+    if (!NT_SUCCESS(RtlSizeTMult(numberOfProcessItems, sizeof(BOOLEAN), &matchedSize)))
+    {
+        AtSetToolError(Result, "failed", STATUS_INTEGER_OVERFLOW, L"There are too many processes to filter.");
+        PhFree(processItems);
+        return;
+    }
+
+    matched = PhAllocateZero(matchedSize);
 
     for (i = 0; i < numberOfProcessItems; i++)
         matched[i] = AtpMatchesFilter(&filter, processItems[i]);
