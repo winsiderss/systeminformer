@@ -52,7 +52,11 @@
 #define AT_CONFIRM_DELEGATE 2
 // 2: get_service is_microsoft and verify_file_signature is_microsoft_chained both became
 // is_microsoft_signed, the name every other row that carries the field already used.
-#define AT_SCHEMA_VERSION 2
+// 3: get_process_ksi_state dropped verified_process, securely_created, protected_process and
+// protection - driver state that is reported through state_names and was read as though it
+// described the process; and list_hidden_processes dropped the csr_handles method, which cannot
+// work while csrss is a protected process.
+#define AT_SCHEMA_VERSION 3
 #define AT_CONSENT_TIMEOUT_MS (60 * 1000)
 #define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000)
 #define AT_ELICITATION_TIMEOUT_MS (10 * 60 * 1000)
