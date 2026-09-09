@@ -1482,6 +1482,9 @@ BOOLEAN NTAPI AtpWindowCallback(
     RECT rect;
     BOOLEAN visible;
 
+    if (!context)
+        return TRUE;
+
     clientId.UniqueProcess = NULL;
     clientId.UniqueThread = NULL;
     GetWindowThreadProcessId(WindowHandle, (PDWORD)&clientId.UniqueProcess);

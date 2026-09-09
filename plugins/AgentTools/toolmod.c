@@ -132,6 +132,9 @@ BOOLEAN NTAPI AtpModuleCallback(
     PPH_STRING signer = NULL;
     BOOLEAN verified = FALSE;
 
+    if (!context)
+        return TRUE;
+
     if (context->NameContains &&
         !AtContainsString(Module->Name, context->NameContains) &&
         !AtContainsString(Module->FileName, context->NameContains))
@@ -890,8 +893,6 @@ VOID AtModuleInvokeTool(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
-    UNREFERENCED_PARAMETER(Target);
-
     switch (Tool->Action)
     {
     case AtActionGetProcessModules:

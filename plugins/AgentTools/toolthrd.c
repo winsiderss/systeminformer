@@ -678,6 +678,9 @@ BOOLEAN NTAPI AtpStackFrameCallback(
     PPH_STRING fileName = NULL;
     BOOLEAN managed = FALSE;
 
+    if (!context)
+        return TRUE;
+
     if (context->Count >= context->MaximumFrames)
     {
         context->Truncated = TRUE;
