@@ -391,7 +391,11 @@ VOID AtpAddImageImports(
         AtpAddImportDllRows(&rows, &imports, TRUE);
 
     PhAddJsonObjectBoolean(Structured, "imports_complete", complete);
-    AtAddRows(Structured, "imports", &rows);
+    {
+        static CONST AT_ROWS_KEYS keys = AT_ROWS_KEYS_FOR("imports_");
+
+        AtAddRowsNamed(Structured, "imports", &keys, &rows);
+    }
     AtDeleteRows(&rows);
 }
 
@@ -469,7 +473,11 @@ VOID AtpAddImageExports(
         }
     }
 
-    AtAddRows(Structured, "exports", &rows);
+    {
+        static CONST AT_ROWS_KEYS keys = AT_ROWS_KEYS_FOR("exports_");
+
+        AtAddRowsNamed(Structured, "exports", &keys, &rows);
+    }
     AtDeleteRows(&rows);
 }
 
@@ -1001,7 +1009,11 @@ VOID AtpAddImageResources(
             PhFree(resources.ResourceEntries);
     }
 
-    AtAddRows(Structured, "resources", &rows);
+    {
+        static CONST AT_ROWS_KEYS keys = AT_ROWS_KEYS_FOR("resources_");
+
+        AtAddRowsNamed(Structured, "resources", &keys, &rows);
+    }
     AtDeleteRows(&rows);
 }
 

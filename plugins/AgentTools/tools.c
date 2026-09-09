@@ -718,15 +718,22 @@ VOID AtpSortRows(
     PhDereferenceObject(key);
 }
 
-VOID AtAddRows(
+VOID AtpAddRows(
     _In_ PVOID Object,
     _In_ PCSTR Key,
+    _In_opt_ PCAT_ROWS_KEYS Keys,
     _Inout_ PAT_ROWS Rows
     )
 {
+    // The json layer stores key pointers rather than copying them, so every key here has to be a
+    // literal with the lifetime of the module; a formatted one would be read after it went away.
+    static CONST AT_ROWS_KEYS plainKeys = AT_ROWS_KEYS_FOR("");
     PVOID array;
     ULONG count = 0;
     ULONG i;
+
+    if (!Keys)
+        Keys = &plainKeys;
 
     if (Rows->SortBy && Rows->Rows->Count > 1)
         AtpSortRows(Rows);
@@ -746,14 +753,39 @@ VOID AtAddRows(
     }
 
     PhAddJsonObjectValue(Object, Key, array);
-    PhAddJsonObjectUInt64(Object, "count", count);
-    PhAddJsonObjectUInt64(Object, "total_count", Rows->TotalCount);
-    PhAddJsonObjectUInt64(Object, "offset", Rows->Offset);
-    PhAddJsonObjectUInt64(Object, "limit", Rows->Limit);
-    PhAddJsonObjectBoolean(Object, "truncated", (ULONG64)Rows->Offset + count < Rows->Rows->Count);
+    PhAddJsonObjectUInt64(Object, Keys->Count, count);
+    PhAddJsonObjectUInt64(Object, Keys->TotalCount, Rows->TotalCount);
+    PhAddJsonObjectUInt64(Object, Keys->Offset, Rows->Offset);
+    PhAddJsonObjectUInt64(Object, Keys->Limit, Rows->Limit);
+    PhAddJsonObjectBoolean(Object, Keys->Truncated, (ULONG64)Rows->Offset + count < Rows->Rows->Count);
 
     PhClearReference(&Rows->Rows);
     PhClearReference(&Rows->SortBy);
+}
+
+VOID AtAddRows(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _Inout_ PAT_ROWS Rows
+    )
+{
+    AtpAddRows(Object, Key, NULL, Rows);
+}
+
+/**
+ * Adds a paged list whose paging fields carry the list's own name, for a tool that returns more
+ * than one of them. AtAddRows writes count, total_count, offset, limit and truncated at the top
+ * level, so a second list appends a second set of the same keys and a reader keeps only one - the
+ * other lists then look complete whatever was cut from them.
+ */
+VOID AtAddRowsNamed(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PCAT_ROWS_KEYS Keys,
+    _Inout_ PAT_ROWS Rows
+    )
+{
+    AtpAddRows(Object, Key, Keys, Rows);
 }
 
 VOID AtDeleteRows(
@@ -1546,7 +1578,8 @@ BOOLEAN AtpToolDeclaresSortKey(
  * back to the default and the answer echoes that default as though it had been asked for, and an
  * unrecognised sort key ranks every row null, so the sort silently does nothing.
  *
- * eturn TRUE when the arguments can be honoured.
+ * 
+eturn TRUE when the arguments can be honoured.
  */
 BOOLEAN AtpValidatePagingArguments(
     _In_ PCAT_TOOL Tool,

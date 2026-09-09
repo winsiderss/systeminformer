@@ -771,6 +771,32 @@ VOID AtAddRows(
     _Inout_ PAT_ROWS Rows
     );
 
+/**
+ * The five paging field names one list writes. A tool returning more than one list gives each its
+ * own set, because these go in beside the list rather than inside it and a second plain set would
+ * simply be a second copy of the same keys.
+ */
+typedef struct _AT_ROWS_KEYS
+{
+    PCSTR Count;
+    PCSTR TotalCount;
+    PCSTR Offset;
+    PCSTR Limit;
+    PCSTR Truncated;
+} AT_ROWS_KEYS, *PAT_ROWS_KEYS;
+typedef CONST AT_ROWS_KEYS *PCAT_ROWS_KEYS;
+
+// Literal concatenation, so the names live as long as the module: the json layer keeps the key
+// pointer it is given and never copies it.
+#define AT_ROWS_KEYS_FOR(Prefix)     { Prefix "count", Prefix "total_count", Prefix "offset", Prefix "limit", Prefix "truncated" }
+
+VOID AtAddRowsNamed(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PCAT_ROWS_KEYS Keys,
+    _Inout_ PAT_ROWS Rows
+    );
+
 VOID AtDeleteRows(
     _Inout_ PAT_ROWS Rows
     );
