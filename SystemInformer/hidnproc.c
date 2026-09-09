@@ -795,8 +795,9 @@ NTSTATUS PhpCreateProcessItemForZombieProcess(
     return status;
 }
 
-#define PH_ZOMBIE_MAXIUMUM_PID_START 65536
-#define PH_ZOMBIE_SCAN_HEADROOM      0x10000
+#define PH_ZOMBIE_LIMIT_PID_MIN 65536
+#define PH_ZOMBIE_LIMIT_PID_MAX 0xffff0000
+#define PH_ZOMBIE_SCAN_HEADROOM 0x10000
 
 NTSTATUS PhpEnumZombieProcessesBruteForce(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
@@ -816,7 +817,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
 
     pids = PhCreateList(40);
 
-    maximumPid = PH_ZOMBIE_MAXIUMUM_PID_START;
+    maximumPid = PH_ZOMBIE_LIMIT_PID_MIN;
     process = PH_FIRST_PROCESS(processes);
     do
     {
@@ -829,7 +830,7 @@ NTSTATUS PhpEnumZombieProcessesBruteForce(
     PhFree(processes);
 
     if (!NT_SUCCESS(RtlULongAdd(maximumPid, PH_ZOMBIE_SCAN_HEADROOM, &maximumPid)))
-        maximumPid = PH_ZOMBIE_MAXIUMUM_PID_START;
+        maximumPid = PH_ZOMBIE_LIMIT_PID_MAX;
 
     for (pid = 8; pid <= maximumPid; pid += 4)
     {
