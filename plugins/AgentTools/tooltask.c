@@ -32,6 +32,7 @@ typedef struct _AT_TASK_CONTEXT
     ULONG FolderCount;
     ULONG EnumeratedCount;
     ULONG UnreadableCount;
+    ULONG TruncatedCount;
 } AT_TASK_CONTEXT, *PAT_TASK_CONTEXT;
 
 NTSTATUS AtpTaskStatus(
@@ -348,6 +349,7 @@ PVOID AtpTaskCreateActionRow(
 }
 
 PVOID AtpTaskCreateActions(
+    _In_ PAT_TASK_CONTEXT Context,
     _In_ IActionCollection* Actions,
     _In_opt_ PPH_STRING ActionContains,
     _Out_ PBOOLEAN Matched
@@ -359,17 +361,24 @@ PVOID AtpTaskCreateActions(
 
     *Matched = FALSE;
 
-    array = PhCreateJsonArray();
-
+    // An unreadable count is not an empty action list, which would read as a task that runs nothing.
     if (HR_FAILED(IActionCollection_get_Count(Actions, &count)))
-        return array;
+    {
+        Context->UnreadableCount++;
+        return NULL;
+    }
+
+    array = PhCreateJsonArray();
 
     for (i = 1; i <= count; i++)
     {
         IAction* action;
 
         if (HR_FAILED(IActionCollection_get_Item(Actions, i, &action)))
+        {
+            Context->UnreadableCount++;
             continue;
+        }
 
         PhAddJsonArrayObject(array, AtpTaskCreateActionRow(action, ActionContains, Matched));
 
@@ -380,6 +389,7 @@ PVOID AtpTaskCreateActions(
 }
 
 PVOID AtpTaskCreateTriggers(
+    _In_ PAT_TASK_CONTEXT Context,
     _In_ ITriggerCollection* Triggers
     )
 {
@@ -387,10 +397,14 @@ PVOID AtpTaskCreateTriggers(
     LONG count = 0;
     LONG i;
 
-    array = PhCreateJsonArray();
-
+    // As with the actions, an unreadable count would otherwise read as a task nothing starts.
     if (HR_FAILED(ITriggerCollection_get_Count(Triggers, &count)))
-        return array;
+    {
+        Context->UnreadableCount++;
+        return NULL;
+    }
+
+    array = PhCreateJsonArray();
 
     for (i = 1; i <= count; i++)
     {
@@ -401,7 +415,10 @@ PVOID AtpTaskCreateTriggers(
         BSTR string = NULL;
 
         if (HR_FAILED(ITriggerCollection_get_Item(Triggers, i, &trigger)))
+        {
+            Context->UnreadableCount++;
             continue;
+        }
 
         row = PhCreateJsonObject();
 
@@ -596,11 +613,18 @@ BOOLEAN AtpTaskAddDefinition(
 
     if (HR_SUCCESS(ITaskDefinition_get_Actions(definition, &actions)))
     {
-        PhAddJsonObjectValue(Row, "actions", AtpTaskCreateActions(actions, Context->ActionContains, &actionMatched));
+        PVOID array = AtpTaskCreateActions(Context, actions, Context->ActionContains, &actionMatched);
+
+        if (array)
+            PhAddJsonObjectValue(Row, "actions", array);
+        else
+            AtJsonAddNull(Row, "actions");
+
         IActionCollection_Release(actions);
     }
     else
     {
+        Context->UnreadableCount++;
         AtJsonAddNull(Row, "actions");
     }
 
@@ -610,11 +634,18 @@ BOOLEAN AtpTaskAddDefinition(
 
         if (HR_SUCCESS(ITaskDefinition_get_Triggers(definition, &triggers)))
         {
-            PhAddJsonObjectValue(Row, "triggers", AtpTaskCreateTriggers(triggers));
+            PVOID array = AtpTaskCreateTriggers(Context, triggers);
+
+            if (array)
+                PhAddJsonObjectValue(Row, "triggers", array);
+            else
+                AtJsonAddNull(Row, "triggers");
+
             ITriggerCollection_Release(triggers);
         }
         else
         {
+            Context->UnreadableCount++;
             AtJsonAddNull(Row, "triggers");
         }
     }
@@ -643,6 +674,7 @@ VOID AtpTaskAddTask(
     TASK_STATE state = TASK_STATE_UNKNOWN;
     VARIANT_BOOL enabled = VARIANT_FALSE;
     PCWSTR stateString;
+    HRESULT enabledResult;
     HRESULT result;
     LONG value = 0;
     DATE date = 0.0;
@@ -675,17 +707,19 @@ VOID AtpTaskAddTask(
     if (Context->StateFilter && (!stateString || !PhEqualString2(Context->StateFilter, stateString, TRUE)))
         goto CleanupExit;
 
-    if (HR_FAILED(IRegisteredTask_get_Enabled(Task, &enabled)))
-        enabled = VARIANT_FALSE;
+    // A task whose enabled state cannot be read is not a disabled task, so the filter keeps it
+    // rather than dropping it on a guess; the sibling state field reports "unknown" for the same
+    // reason.
+    enabledResult = IRegisteredTask_get_Enabled(Task, &enabled);
 
-    if (Context->EnabledOnly && enabled == VARIANT_FALSE)
+    if (Context->EnabledOnly && HR_SUCCESS(enabledResult) && enabled == VARIANT_FALSE)
         goto CleanupExit;
 
     row = PhCreateJsonObject();
     AtJsonAddString(row, "name", name);
     AtJsonAddString(row, "path", path);
     AtJsonAddString(row, "folder", FolderPath);
-    PhAddJsonObjectBoolean(row, "enabled", enabled != VARIANT_FALSE);
+    AtpTaskAddVariantBoolean(row, "enabled", enabledResult, enabled);
     AtJsonAddStringZ(row, "state", stateString);
     PhAddJsonObjectUInt64(row, "state_value", state);
 
@@ -779,6 +813,10 @@ VOID AtpTaskEnumerateFolder(
                 IRegisteredTask_Release(task);
             }
         }
+        else
+        {
+            Context->UnreadableCount++;
+        }
 
         IRegisteredTaskCollection_Release(tasks);
     }
@@ -787,33 +825,51 @@ VOID AtpTaskEnumerateFolder(
         Context->UnreadableCount++;
     }
 
-    if (Depth < AT_TASK_MAX_DEPTH && HR_SUCCESS(ITaskFolder_GetFolders(Folder, 0, &folders)))
+    if (HR_SUCCESS(ITaskFolder_GetFolders(Folder, 0, &folders)))
     {
         count = 0;
 
         if (HR_SUCCESS(ITaskFolderCollection_get_Count(folders, &count)))
         {
-            for (i = 1; i <= count; i++)
+            // Recursion stops at the depth cap, but a folder that still has children there is a
+            // subtree that went unwalked rather than one that is empty.
+            if (Depth >= AT_TASK_MAX_DEPTH)
             {
-                ITaskFolder* folder;
-                VARIANT index;
-
-                V_VT(&index) = VT_I4;
-                V_I4(&index) = i;
-
-                if (HR_FAILED(ITaskFolderCollection_get_Item(folders, index, &folder)))
-                {
-                    Context->UnreadableCount++;
-                    continue;
-                }
-
-                AtpTaskEnumerateFolder(Context, folder, Depth + 1);
-
-                ITaskFolder_Release(folder);
+                if (count > 0)
+                    Context->TruncatedCount++;
             }
+            else
+            {
+                for (i = 1; i <= count; i++)
+                {
+                    ITaskFolder* folder;
+                    VARIANT index;
+
+                    V_VT(&index) = VT_I4;
+                    V_I4(&index) = i;
+
+                    if (HR_FAILED(ITaskFolderCollection_get_Item(folders, index, &folder)))
+                    {
+                        Context->UnreadableCount++;
+                        continue;
+                    }
+
+                    AtpTaskEnumerateFolder(Context, folder, Depth + 1);
+
+                    ITaskFolder_Release(folder);
+                }
+            }
+        }
+        else
+        {
+            Context->UnreadableCount++;
         }
 
         ITaskFolderCollection_Release(folders);
+    }
+    else
+    {
+        Context->UnreadableCount++;
     }
 
     PhClearReference(&folderPath);
@@ -898,6 +954,7 @@ VOID AtpListScheduledTasks(
     PhAddJsonObjectUInt64(structured, "folder_count", context.FolderCount);
     PhAddJsonObjectUInt64(structured, "enumerated_count", context.EnumeratedCount);
     PhAddJsonObjectUInt64(structured, "unreadable_count", context.UnreadableCount);
+    PhAddJsonObjectUInt64(structured, "unwalked_folder_count", context.TruncatedCount);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;

@@ -4060,7 +4060,7 @@ CONST AT_TOOL AtTools[] =
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"secure_boot\":{\"type\":[\"object\",\"null\"],\"properties\":{"
-        "\"enabled\":{\"type\":\"boolean\"},"
+        "\"enabled\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Null when the scheduler would not say; such a task is kept even under enabled_only\"},"
         "\"capable\":{\"type\":\"boolean\",\"description\":\"The firmware could do it, whether or not it is on\"}"
         "}},"
         "\"code_integrity\":{\"type\":[\"object\",\"null\"],\"properties\":{"
@@ -4684,7 +4684,8 @@ CONST AT_TOOL AtTools[] =
         "come from the scheduler service rather than the files under System32\\\\Tasks, so they are the task "
         "as registered. Hidden tasks are always included. A task can be listed by a caller who is not allowed "
         "to read what it runs: definition_readable says so, and those rows carry null actions rather than an "
-        "empty list. Set include_details for the triggers, the registration information and the full settings. "
+        "empty list. Anything else that could not be read is null too, never a confident false or an empty "
+        "list. Set include_details for the triggers, the registration information and the full settings. "
         AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"folder\":{\"type\":\"string\",\"description\":\"Start at this task folder and include everything below it, for example \\\\Microsoft\\\\Windows; default is the root\"},"
@@ -4745,9 +4746,10 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"folder_count\":{\"type\":\"integer\",\"description\":\"Task folders walked\"},"
         "\"enumerated_count\":{\"type\":\"integer\",\"description\":\"Tasks seen before the filters were applied\"},"
-        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Tasks or folders this caller could not read\"},"
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Tasks, folders or task properties this caller could not read\"},"
+        "\"unwalked_folder_count\":{\"type\":\"integer\",\"description\":\"Folders whose children were left unwalked at the nesting cap\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"tasks\",\"count\",\"total_count\",\"truncated\",\"folder_count\",\"enumerated_count\",\"unreadable_count\"]},"
+        "},\"required\":[\"tasks\",\"count\",\"total_count\",\"truncated\",\"folder_count\",\"enumerated_count\",\"unreadable_count\",\"unwalked_folder_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {
