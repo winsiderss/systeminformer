@@ -15,11 +15,8 @@
 
 // The assemblies a .NET process has loaded, which get_process_modules cannot see: an assembly is
 // not a mapped image, and one loaded from memory or emitted at run time has no file behind it at
-// all. That last kind is worth the tool on its own - code that was never on disk is what a
-// reflection loader leaves behind.
-//
-// Read through the DotNetTools plugin, which walks the target's runtime with the debugging data
-// access layer.
+// all. Read through DotNetTools, which walks the target's runtime with the debugging data access
+// layer.
 
 typedef struct _AT_ASSEMBLY_CONTEXT
 {
@@ -57,9 +54,8 @@ PCSTR AtpAppDomainTypeString(
     _In_ ULONG AppDomainType
     )
 {
-    // DN_CLR_APPDOMAIN_TYPE. Its first value is the runtime's word for an ordinary application
-    // domain, "dynamic", which reported next to is_dynamic would read as an assembly the runtime
-    // generated. It is called what it is instead.
+    // DN_CLR_APPDOMAIN_TYPE's first value is the runtime's word for an ordinary application domain,
+    // "dynamic", which reported next to is_dynamic would read as an assembly the runtime generated.
     switch (AppDomainType)
     {
     case 0:

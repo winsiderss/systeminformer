@@ -870,9 +870,9 @@ VOID AtpControlService(
     case AtActionPauseService:
     case AtActionContinueService:
         {
-            // Most services do not implement pause at all, and the error for asking is
-            // "cannot accept control messages at this time", which reads like a timing problem.
-            // What the service accepts is in its own status, so it is read and said plainly.
+            // Most services do not implement pause, and the error for asking is "cannot accept
+            // control messages at this time", which reads like a timing problem. What the service
+            // accepts is in its own status.
             if (NT_SUCCESS(status = PhQueryServiceStatus(serviceHandle, &serviceStatus)) &&
                 !FlagOn(serviceStatus.dwControlsAccepted, SERVICE_ACCEPT_PAUSE_CONTINUE))
             {

@@ -338,9 +338,9 @@ VOID AtpGetProcessModules(
     AtDeleteTarget(&target);
 }
 
-// The modules a process has unloaded. ntdll keeps a small ring of them, which outlives the module
-// itself: a dll that was injected, did its work and unloaded leaves nothing in the module list and
-// an entry here. The ring is short and wraps, so this is evidence rather than a complete history.
+// ntdll keeps a small ring of unloaded modules, which outlives the module itself: a dll that was
+// injected, did its work and unloaded leaves an entry here and nothing in the module list. The ring
+// wraps.
 
 VOID AtpGetProcessUnloadedModules(
     _In_ PAT_TOOL_CALL Call,
@@ -411,10 +411,9 @@ VOID AtpGetProcessUnloadedModules(
         PhAddJsonObjectUInt64(row, "size", event->SizeOfImage);
         AtJsonAddHex(row, "checksum", event->CheckSum);
 
-        // The raw field, always, and a date only when the value can be one. A reproducible build
-        // puts a content hash in this field instead of a time, and a hash read as seconds since
-        // 1970 lands in the future - wtsapi32.dll on this machine reads as the year 2102. Reporting
-        // that as the module's build date would be a fact the caller cannot check.
+        // A reproducible build puts a content hash in this field instead of a time, and a hash read
+        // as seconds since 1970 lands in the future, so a date is reported only when the value can
+        // be one.
         AtJsonAddHex(row, "time_date_stamp", event->TimeDateStamp);
         PhSecondsSince1970ToTime(event->TimeDateStamp, &time);
         PhQuerySystemTime(&now);
@@ -539,9 +538,8 @@ BOOLEAN AtFindProcessModule(
     return TRUE;
 }
 
-// How much of an image in memory still matches the file it was loaded from. A packer that unpacks
-// over itself, a hollowed process, and a module with inline hooks all leave the mapped copy saying
-// something different from the file on disk; coherency is how much of it still agrees.
+// How much of an image in memory still matches the file it was loaded from. A packer, a hollowed
+// process and inline hooks all leave the mapped copy disagreeing with the file.
 
 PH_IMAGE_COHERENCY_SCAN_TYPE AtpCoherencyScanType(
     _In_opt_ PPH_STRING Name
@@ -704,10 +702,8 @@ VOID AtpGetProcessImageCoherency(
     PhClearReference(&scanTypeName);
 }
 
-// The pages of a mapped image that are no longer the file's. Windows maps an image shared and
-// copy-on-write; a page that has been written to - an inline hook at the top of a function, a
+// Windows maps an image copy-on-write, so a page that has been written to - an inline hook, a
 // patched jump table - stops being backed by the file and says so in its working set attributes.
-// Which pages those are is the answer; the addresses can go straight to resolve_symbol.
 
 typedef struct _AT_PAGE_MODIFICATION_CONTEXT
 {

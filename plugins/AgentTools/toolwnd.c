@@ -12,13 +12,9 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
-// Windows across the whole desktop, rather than get_process_windows' one process. What this is
-// for: finding the window that is not responding, finding which process owns a dialog nobody can
-// place, and telling a window that is genuinely on screen from one that is merely not hidden.
-//
-// Enumeration follows WindowExplorer: PhEnumWindowsEx rather than EnumWindows, because EnumWindows
-// does not return the windows of packaged applications, and message-only windows are a separate
-// tree that has to be walked on its own.
+// Windows across the whole desktop, rather than get_process_windows' one process. Enumeration
+// follows WindowExplorer: PhEnumWindowsEx rather than EnumWindows, which does not return the
+// windows of packaged applications, and message-only windows are a separate tree.
 
 typedef enum _AT_WINDOW_SCOPE
 {
@@ -40,8 +36,7 @@ typedef struct _AT_WINDOW_LIST_CONTEXT
 } AT_WINDOW_LIST_CONTEXT, *PAT_WINDOW_LIST_CONTEXT;
 
 // A window can be WS_VISIBLE and still not be on screen: the shell cloaks the windows of suspended
-// packaged applications and of virtual desktops other than the current one. Without this a triage
-// tool reports a dozen visible windows that nobody can see.
+// packaged applications and of other virtual desktops.
 BOOLEAN AtpIsWindowCloaked(
     _In_ HWND WindowHandle,
     _Out_ PBOOLEAN Cloaked
@@ -227,8 +222,7 @@ VOID AtpEnumerateChildWindows(
     ULONG i = 0;
 
     // FindWindowEx rather than GetWindow(GW_CHILD): the message-only parent has no child chain to
-    // walk, so GetWindow reports that this machine has no message-only windows at all, which is
-    // never true. The iteration cap is against a list that changes while it is being walked.
+    // walk. The iteration cap is against a list that changes while it is walked.
     while (i < 0x4000 && (child = FindWindowEx(ParentHandle, child, NULL, NULL)))
     {
         AtpAddWindowRow(Context, child, Context->ZOrder++);
@@ -304,8 +298,7 @@ VOID AtpListWindows(
     if (context.Scope == AtWindowScopeMessageOnly)
     {
         // Message-only windows are children of a dedicated parent and are never reached by the
-        // desktop enumeration; a process that only owns one has no windows as far as anything
-        // else here is concerned.
+        // desktop enumeration.
         AtpEnumerateChildWindows(&context, HWND_MESSAGE);
     }
     else
@@ -358,8 +351,7 @@ VOID AtpAddWindowStyles(
     PhAddJsonObjectBoolean(styles, "clip_siblings", !!FlagOn(style, WS_CLIPSIBLINGS));
 
     // WS_MINIMIZEBOX and WS_MAXIMIZEBOX are the same two bits as WS_GROUP and WS_TABSTOP; which
-    // pair a bit means depends on whether the window is a child. Reporting all four would be
-    // wrong about two of them for every window.
+    // pair a bit means depends on whether the window is a child.
     if (isChild)
     {
         PhAddJsonObjectBoolean(styles, "group", !!FlagOn(style, WS_GROUP));
@@ -551,8 +543,7 @@ VOID AtpControlWindow(
     if (Tool->Action == AtActionCloseWindow)
     {
         // Posted, not sent: a window that is not answering its message queue would hang this
-        // thread, and closing is a request in any case - the application decides what to do with
-        // it, including asking the user first.
+        // thread, and closing is a request in any case.
         PostMessage(windowHandle, WM_CLOSE, 0, 0);
         PhDelayExecution(AT_WINDOW_CLOSE_WAIT_MS);
 

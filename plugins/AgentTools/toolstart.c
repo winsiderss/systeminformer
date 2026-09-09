@@ -11,9 +11,9 @@
 
 #include "agenttools.h"
 
-// How the text an entry carries has to be read to find the file it runs. A Run value is a command
-// line with arguments after it; an AppInit or LSA entry is a bare module name the loader resolves
-// out of the system directory; a Startup folder entry is already a path.
+// How the text an entry carries has to be read to find the file it runs: a Run value is a command
+// line with arguments, an AppInit or LSA entry is a bare module name, a Startup folder entry is
+// already a path.
 typedef enum _AT_STARTUP_IMAGE
 {
     AtStartupImageNone,
@@ -179,8 +179,7 @@ BOOLEAN AtpResolveStartupImage(
             PPH_STRING fullFileName;
 
             // The fuzzy parse is how the application tells a program from its arguments when
-            // neither is quoted; it searches for the file as it goes and hands back a full path
-            // only when it found one.
+            // neither is quoted; it hands back a full path only when it found one.
             if (PhParseCommandLineFuzzy(&expanded->sr, &fileName, &arguments, &fullFileName))
             {
                 if (fullFileName)
@@ -199,8 +198,8 @@ BOOLEAN AtpResolveStartupImage(
                 PH_STRINGREF rest;
 
                 // Nothing it tried was on disk, so it handed back the whole line. The first token
-                // is the program - which is the answer that matters for an entry pointing at a file
-                // that is not there.
+                // is the program, which is what matters for an entry pointing at a file that is not
+                // there.
                 if (!PhSplitStringRefAtChar(&expanded->sr, L' ', &fileName, &rest))
                     fileName = expanded->sr;
 
@@ -785,9 +784,8 @@ VOID AtpReadAppInitDlls(
 
     if (value = PhQueryRegistryStringZ(keyHandle, L"AppInit_DLLs"))
     {
-        // The list is only loaded when LoadAppInit_DLLs says so, and a value that is present but
-        // switched off is not something that runs - reporting it without saying which reads as
-        // persistence that is in force.
+        // The list only runs when LoadAppInit_DLLs says so; reporting a value that is present but
+        // switched off without saying so reads as persistence that is in force.
         load = PhQueryRegistryUlongZ(keyHandle, L"LoadAppInit_DLLs");
         enabled = load != ULONG_MAX && load != 0;
 
@@ -1224,9 +1222,8 @@ VOID AtListStartupEntries(
     context.Entries = &entries;
     context.NameContains = AtGetArgumentString(Call->Arguments, "name_contains");
     context.KindFilter = AtGetArgumentString(Call->Arguments, "kind");
-    // Off unless asked for. Verifying one file is not bounded: a catalog lookup hashes the whole
-    // image and, on a large third-party binary, takes a minute of its own - so verifying every
-    // autostart entry on a machine that has a dozen of them is minutes, not seconds.
+    // Off unless asked for: a catalog lookup hashes the whole image, so verifying a dozen autostart
+    // entries is minutes rather than seconds.
     context.Verify = AtJsonGetObjectBoolean(Call->Arguments, "verify");
 
     structured = PhCreateJsonObject();

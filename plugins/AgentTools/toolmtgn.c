@@ -11,18 +11,11 @@
 
 #include "agenttools.h"
 
-// The exploit mitigations a process is actually running with, asked of the process rather than read
-// from a cache. System Informer only maintains its cached CFG and CET flags while the matching tree
-// column is on screen, so a headless read of those would always say "off"; get_process leaves them
-// out and this tool answers for them.
-//
-// A policy that could not be queried is null, never false: "the kernel says this is off" and "this
-// could not be asked" are different answers, and only one of them is a finding.
-//
-// Every flag is read through its named bitfield rather than a hand-written mask. Numbering them by
-// hand is how a security answer goes quietly wrong: an early draft of this file reported Control
-// Flow Guard from the wrong bit and had bottom-up randomisation and force-relocate swapped, which
-// no build error and no schema check would ever have caught.
+// The exploit mitigations a process is running with, asked of the process rather than read from a
+// cache: System Informer only maintains its CFG and CET flags while the matching column is on
+// screen. A policy that could not be queried is null, never false. Every flag is read through its
+// named bitfield rather than a hand-written mask - an early draft numbered them by hand and
+// reported Control Flow Guard from the wrong bit, which no build error would have caught.
 
 _Success_(return)
 BOOLEAN AtpQueryMitigationPolicy(

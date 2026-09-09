@@ -69,7 +69,7 @@
       <AdditionalIncludeDirectories>$(SystemInformerRoot)tools\simcp\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>cfgmgr32.lib;winsta.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>cfgmgr32.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

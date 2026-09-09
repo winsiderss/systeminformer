@@ -11,13 +11,8 @@
 
 #include "agenttools.h"
 
-// Who is holding a thing, across every process: the question get_process_handles_detailed cannot
-// answer, because it needs to be told the process first. This is what says which process has the
-// file that will not delete, or which one still has the registry key or the mutex.
-//
-// The scan opens every process it can and asks each handle for its name, so it is not free. It
-// refuses to run with no filter at all, filters on what is cheap before it names anything, and
-// stops on a time budget rather than running for as long as it takes.
+// Who is holding a thing, across every process. The scan opens every process it can and names every
+// handle, so it refuses to run with no filter and stops on a time budget.
 
 #define AT_FIND_DEFAULT_SECONDS 20
 #define AT_FIND_MAXIMUM_SECONDS 60
@@ -241,12 +236,8 @@ VOID AtpFindHandles(
     PhClearReference(&context.TypeName);
 }
 
-// The same question for loaded code: which processes have this module mapped. ListDLLs answers it
-// for one machine-wide search; this adds the signature, because "which processes loaded this
-// unsigned DLL" is the version of the question worth asking.
-//
-// Verification is by far the most expensive part, and the same DLL is loaded in a hundred
-// processes, so a result is looked up once per file and remembered for the rest of the scan.
+// Which processes have this module mapped, with the signature. A verification is looked up once per
+// file and remembered for the rest of the scan.
 
 typedef struct _AT_FIND_MODULES_CONTEXT
 {
@@ -454,10 +445,8 @@ VOID AtpFindModules(
         context.ProcessName = processItem->ProcessName;
         context.ProcessSequenceNumber = processItem->ProcessSequenceNumber;
 
-        // Mapped images as well as loaded modules, because an image mapped without being loaded
-        // is exactly what is worth finding. Mapped data files are left out unless asked for: they
-        // are not code, so every one of them is trivially unsigned, and including them buries a
-        // machine-wide unsigned_only search under cache and database files.
+        // Mapped images as well as loaded modules. Mapped data files are left out unless asked for:
+        // they are not code, so every one is trivially unsigned.
         PhEnumGenericModules(
             processItem->ProcessId,
             NULL,
@@ -498,13 +487,8 @@ VOID AtpFindModules(
     PhClearReference(&context.NameContains);
 }
 
-// Who is using one named file, which is the question behind "why can this not be deleted". Two
-// different answers, because there are two ways to be using a file and neither implies the other:
-// a process can hold a handle to it, and a process can have it mapped into its address space. A
-// running executable's own image is usually the second without the first.
-//
-// The filesystem answers the handle half itself. The mapped half is a walk of every process's
-// modules, the same walk find_modules does.
+// Who is using one named file. A process can hold a handle to it and a process can have it mapped,
+// and neither implies the other.
 
 typedef struct _AT_FILE_MAPPED_CONTEXT
 {
@@ -532,9 +516,8 @@ BOOLEAN NTAPI AtpFileMappedCallback(
     if (!Module->FileName)
         return TRUE;
 
-    // The two sides do not agree on how a path is spelled - one comes from a file handle, the
-    // other from a module list - so the file name is compared first because it is cheap and
-    // almost always decides, and only a match pays for converting both to their Win32 form.
+    // The two sides spell paths differently, so the file name is compared first and only a match
+    // pays for converting both to Win32 form.
     {
         PPH_STRING baseName = PhGetBaseName(Module->FileName);
         BOOLEAN sameName;
@@ -645,9 +628,8 @@ VOID AtpGetFileUsers(
         return;
     }
 
-    // Opened for attributes only and shared every way, so asking who has the file does not itself
-    // become another reason the file is in use, and so a file open for exclusive write still
-    // answers.
+    // Opened for attributes only and shared every way, so asking does not itself put the file in
+    // use.
     status = PhCreateFileWin32(
         &fileHandle,
         path->Buffer,
@@ -741,13 +723,8 @@ FinishExit:
     PhDereferenceObject(path);
 }
 
-// The object namespace, the tree the kernel keeps its named objects in and that nothing on a
-// normal machine shows you. What lives here: the device objects drivers publish, the section
-// objects shared memory is built on, the mutexes an installer uses to notice a second copy of
-// itself, and the symbolic links that make C: mean a volume.
-//
-// Directories are listed one level at a time by default, because \GLOBAL?? alone has thousands of
-// entries and recursing the whole namespace answers no question anyone asked.
+// The kernel object namespace. Listed one level at a time by default: \GLOBAL?? alone has thousands
+// of entries.
 
 #define AT_OBJECT_MAX_DEPTH 8
 
@@ -938,14 +915,9 @@ VOID AtpListObjectDirectory(
     PhDereferenceObject(path);
 }
 
-// A single named object, once list_object_directory or find_handles has produced its path. What a
-// listing cannot say: how many references the object has, what its security descriptor allows, and
-// the state only the object's own query call knows - whether a mutex is held and by which thread,
-// whether an event is signalled, how big a section is and what image backs it.
-//
-// Device, file, ALPC port and filter port objects are described but never opened. Opening a device
-// object is a real I/O open with whatever side effects the driver decides; a read tool asking a
-// question must not be one of the things that happens to the machine.
+// One named object, given its path. Device, file, ALPC port and filter port objects are described
+// but never opened: opening a device object is a real I/O open with whatever side effects its
+// driver decides.
 
 typedef enum _AT_OBJECT_KIND
 {
@@ -1113,9 +1085,8 @@ NTSTATUS NTAPI AtpObjectLookupCallback(
     return STATUS_NO_MORE_ENTRIES;
 }
 
-// The type decides which open call and which query call apply, so it has to be known before anything
-// else. The caller can say, and usually can because a listing just told them; otherwise the parent
-// directory is asked about this one name.
+// The type decides which open and query calls apply, so it is known first: from the caller, or by
+// asking the parent directory.
 PPH_STRING AtpLookupObjectTypeName(
     _In_ PPH_STRING Path,
     _Out_ PNTSTATUS DirectoryStatus
@@ -1511,9 +1482,8 @@ VOID AtpGetObjectInfo(
     if (kind == AtObjectKindSymbolicLink)
         PhQuerySymbolicLinkObject(&target, NULL, &path->sr);
 
-    // Nothing opened, no link target and no type: either the parent directory could not be listed -
-    // \\Driver needs elevation for that - or the name is genuinely not there. Those are different
-    // answers and the caller acts differently on each.
+    // Either the parent directory could not be listed - \Driver needs elevation - or the name is
+    // not there. Different answers.
     if (!objectHandle && !target && PhIsNullOrEmptyString(typeName))
     {
         if (!NT_SUCCESS(directoryStatus))
@@ -1637,9 +1607,8 @@ VOID AtpGetDriverObject(
         return;
     }
 
-    // The argument is judged before the environment is: a path that names neither kind is wrong
-    // whether or not the driver is there, and answering with the driver instead would send the
-    // caller looking for a driver they do not need.
+    // The argument is judged before the environment: a path naming neither kind is wrong whether or
+    // not the driver is there.
     isDevice = PhStartsWithStringRef(&path->sr, &devicePrefix, TRUE);
 
     if (!isDevice && !PhStartsWithStringRef(&path->sr, &driverPrefix, TRUE))

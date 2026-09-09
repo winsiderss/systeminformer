@@ -115,11 +115,9 @@ VOID AtpGetProcessHandles(
     {
         processHandle = target->ProcessHandle;
 
-        // Resolution asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so that a protected
-        // process resolves at all - it will never grant PROCESS_DUP_HANDLE. With the driver the
-        // objects are read in place and that is enough. Without it the names come from duplicating
-        // each handle, which needs more, so a second handle is opened just for that; a process that
-        // refuses it still lists its handles, without names.
+        // Resolution asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so a protected process
+        // resolves at all. With the driver the objects are read in place; without it the names come
+        // from duplicating each handle, so a second handle is opened just for that.
         if (KsiLevel() < KphLevelMed)
         {
             if (NT_SUCCESS(PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION, target->ProcessItem->ProcessId)))
@@ -170,10 +168,9 @@ VOID AtpGetProcessHandles(
                 ));
         }
 
-        // The type comes from the handle's own type index and needs no handle to the process at
-        // all. Asking only when the process could be opened left every row of a protected process
-        // with a null type, which the type filter drops and the per-type counts do not bucket - so
-        // the tool answered nothing for exactly the processes worth asking about.
+        // The type comes from the handle's own type index and needs no handle to the process.
+        // Asking only when the process could be opened left every row of a protected process with a
+        // null type.
         if (!typeName)
             PhGetObjectTypeName(processHandle, entry->HandleValue, entry->ObjectTypeIndex, &typeName);
 
@@ -829,10 +826,8 @@ VOID AtpCreateProcessMinidump(
     Result->StructuredContent = structured;
 }
 
-// The strings a process is holding right now, which is the step before searching for one. A file's
-// strings are in the file and get_image_strings reads them there; these are the ones that only exist
-// once it is running - a command line it built, a url it resolved, a decrypted config, a path it was
-// handed. Reading them is reading process memory, so this is the same consent as read_process_memory.
+// The strings a process is holding now, as opposed to the ones in its file. Reading them is reading
+// process memory, so this is the same consent as read_process_memory.
 
 #define AT_MEMORY_STRINGS_DEFAULT_LENGTH 8
 #define AT_MEMORY_STRINGS_MINIMUM_LENGTH 4

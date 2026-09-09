@@ -12,12 +12,8 @@
 #include "agenttools.h"
 #include <cfgmgr32.h>
 
-// The device tree the application already builds, which is the same set of nodes Device Manager
-// shows: what is installed, what driver and service is behind it, and which nodes are reporting a
-// problem code. get_device_resources then says what hardware a node was actually given.
-//
-// Every property here is read through PhGetDeviceProperty, which fills it on first use, so a node
-// nobody has asked about is not any more expensive than one that has been.
+// The device tree the application already builds, the same nodes Device Manager shows. Every
+// property is read through PhGetDeviceProperty, which fills it on first use.
 
 VOID AtpAddDeviceProperty(
     _In_ PVOID Object,
@@ -196,9 +192,8 @@ VOID AtpListDevices(
         AtpAddDeviceProperty(row, "enumerator", item, PhDevicePropertyEnumeratorName);
         AtpAddDeviceProperty(row, "service", item, PhDevicePropertyService);
 
-        // The devnode status is what says a device is in trouble, not the problem code: a node the
-        // property could not be read from is given CM_PROB_PHANTOM, so testing the code alone
-        // reports a problem on every device that has merely gone away.
+        // The devnode status is what says a device is in trouble, not the problem code: a node
+        // whose properties could not be read is given CM_PROB_PHANTOM.
         PhAddJsonObjectBoolean(row, "has_problem", !!FlagOn(item->DevNodeStatus, DN_HAS_PROBLEM));
         PhAddJsonObjectUInt64(row, "problem_code", item->ProblemCode);
         AtJsonAddHex(row, "devnode_status", item->DevNodeStatus);
@@ -250,9 +245,8 @@ typedef struct _AT_DEVICE_RESOURCES
     ULONG Count;
 } AT_DEVICE_RESOURCES, *PAT_DEVICE_RESOURCES;
 
-// Each resource kind carries its own descriptor, so the ranges are reported as numbers rather than
-// rendered into a string: an agent comparing a device's memory window against an address needs the
-// numbers, and the end of a range is not the same as its start.
+// Each resource kind carries its own descriptor, so ranges are reported as numbers rather than
+// rendered into a string.
 _Function_class_(PH_DEVICE_ENUM_RESOURCES_CALLBACK)
 BOOLEAN NTAPI AtpDeviceResourceCallback(
     _In_ ULONG LogicalConfig,
@@ -471,9 +465,8 @@ VOID AtpSetDeviceEnabled(
     if (result != CR_SUCCESS)
     {
         // Most of what the configuration manager refuses with has no Win32 equivalent, so mapping
-        // it alone reports the fallback - "the handle is in an invalid state" - whatever went
-        // wrong. The two that actually happen say opposite things about whether to try again, so
-        // they are named rather than left to the caller to look up.
+        // alone reports the fallback whatever went wrong. The two that actually happen say opposite
+        // things about whether to try again.
         AtSetToolError(
             Result,
             "failed",

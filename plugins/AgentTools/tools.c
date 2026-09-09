@@ -944,9 +944,8 @@ VOID AtJsonAddDuration(
     PhAddJsonObjectDouble(Object, Key, (DOUBLE)Duration100ns / (DOUBLE)PH_TICKS_PER_SEC);
 }
 
-// Parses the ISO 8601 form this server emits, so a time it returned can be handed straight back:
-// YYYY-MM-DDTHH:MM:SS, optionally with milliseconds and a trailing Z. Deliberately strict — a
-// half-understood time silently filters the wrong rows.
+// Parses the ISO 8601 form this server emits, so a time it returned can be handed straight back.
+// Deliberately strict: a half-understood time silently filters the wrong rows.
 _Success_(return)
 BOOLEAN AtParseTime(
     _In_opt_ PPH_STRING String,
@@ -1346,14 +1345,10 @@ VOID AtJsonAddFlagStrings(
 }
 
 // A section, rendered the same way whether the information came from the object itself or from the
-// driver on behalf of another process. The caller queries; this only formats.
-// Whether the file's signature chains to a Microsoft root, which is a different question from the
-// signer name reading as Microsoft: anyone can put that in a certificate, and a binary signed
-// through a Microsoft CA does not chain to the root Windows itself is signed with.
-//
-// Both of these convert to a Win32 path first and say so. Telling PhVerifyFileIsChainedToMicrosoft
-// that a Win32 path is native, or handing PhVerifyFile a native one, makes every file look unsigned
-// - and an "unsigned" answer is the one nobody questions.
+// driver on behalf of another process. Whether the file's signature chains to a Microsoft root is a
+// different question from the signer name reading as Microsoft. Both convert to a Win32 path first:
+// telling PhVerifyFileIsChainedToMicrosoft that a Win32 path is native, or handing PhVerifyFile a
+// native one, makes every file look unsigned.
 BOOLEAN AtIsMicrosoftSigned(
     _In_opt_ PPH_STRING FileName
     )

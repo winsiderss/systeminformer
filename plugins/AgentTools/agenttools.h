@@ -50,13 +50,7 @@
 #define AT_CONFIRM_NONE 0
 #define AT_CONFIRM_ALWAYS 1
 #define AT_CONFIRM_DELEGATE 2
-// 2: get_service is_microsoft and verify_file_signature is_microsoft_chained both became
-// is_microsoft_signed, the name every other row that carries the field already used.
-// 3: get_process_ksi_state dropped verified_process, securely_created, protected_process and
-// protection - driver state that is reported through state_names and was read as though it
-// described the process; and list_hidden_processes dropped the csr_handles method, which cannot
-// work while csrss is a protected process.
-#define AT_SCHEMA_VERSION 3
+#define AT_SCHEMA_VERSION 1
 #define AT_CONSENT_TIMEOUT_MS (60 * 1000)
 #define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000)
 #define AT_ELICITATION_TIMEOUT_MS (10 * 60 * 1000)
@@ -204,11 +198,9 @@ typedef enum _AT_ACTION
     AtActionMaximum,
 } AT_ACTION;
 
-// A session grant covers a class of data rather than one tool, so a scan that reads the same thing
-// across every process asks once instead of once per process, and a later tool that reads exactly
-// that data joins the grant the user already made. A class is deliberately narrow: it groups tools
-// that expose the same data about the same objects, never merely related ones. AtConsentClassNone
-// keys the grant by the action itself.
+// A session grant covers a class of data rather than one tool, so a scan reading the same thing
+// across every process asks once. A class groups tools that expose the same data about the same
+// objects; AtConsentClassNone keys the grant by the action itself.
 typedef enum _AT_CONSENT_CLASS
 {
     AtConsentClassNone,
@@ -587,9 +579,8 @@ typedef CONST AT_TOOL *PCAT_TOOL;
 extern CONST AT_TOOL AtTools[];
 extern CONST ULONG AtToolCount;
 
-// A resource is a saved call: a uri, the tool that answers it, and the arguments it is answered
-// with. Reading one goes through the same enable check, the same consent gate and the same
-// invocation as calling that tool by hand, so a resource can never reach anything a tool cannot.
+// A resource is a saved call: a uri, the tool that answers it, and the arguments. Reading one goes
+// through the same enable check, consent gate and invocation as calling that tool.
 typedef struct _AT_RESOURCE
 {
     PCSTR Uri;
@@ -607,9 +598,8 @@ PCAT_RESOURCE AtFindResource(
     _In_ PPH_STRING Uri
     );
 
-// A prompt is text and nothing else: it runs nothing, reads nothing, and needs no gate. Argument
-// is the one placeholder its text carries, written {name}, and Fallback is what stands in when the
-// caller does not give it.
+// A prompt is text: it runs nothing and needs no gate. Argument is the one placeholder its text
+// carries, written {name}, and Fallback stands in when the caller does not give it.
 typedef struct _AT_PROMPT
 {
     PCSTR Name;
@@ -713,9 +703,8 @@ typedef struct _AT_ROWS
     ULONG TotalCount;
 } AT_ROWS, *PAT_ROWS;
 
-// pids[] batching on the per-process reads: one call for a triage pass over many processes
-// instead of one round trip each. A pid that cannot be answered becomes an error entry rather
-// than failing the whole call.
+// pids[] batching on the per-process reads. A pid that cannot be answered becomes an error entry
+// rather than failing the whole call.
 
 #define AT_MAX_BATCH_PIDS 64
 

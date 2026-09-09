@@ -12,17 +12,13 @@
 #include "agenttools.h"
 #include <nvme.h>
 
-// The physical disks, asked directly rather than through the HardwareDevices plugin, which only
-// samples the drives a user picked in its options.
-//
-// All three tools enumerate the same way and key their rows on disk_number, so an agent can join
-// what a disk is with what it is doing and how worn it is. Everything opens the device with
-// FILE_READ_ATTRIBUTES only, which is enough for these queries and needs no elevation.
+// The physical disks, asked directly rather than through HardwareDevices, which only samples the
+// drives a user picked. All three tools key their rows on disk_number, and everything opens the
+// device with FILE_READ_ATTRIBUTES only.
 
 // SMART attributes arrive as a 512-byte vendor block: a two-byte header then up to thirty
-// twelve-byte records. The fields are read at their byte offsets rather than through a struct,
-// because a struct of these types is fourteen bytes once the compiler has aligned it and the
-// mistake would only show as attributes read one byte further out on each record.
+// twelve-byte records. The fields are read at their byte offsets because a struct of these types is
+// fourteen bytes once aligned.
 #define AT_SMART_HEADER_SIZE 2
 #define AT_SMART_ATTRIBUTE_SIZE 12
 #define AT_SMART_ATTRIBUTE_COUNT 30
@@ -324,9 +320,8 @@ VOID AtpAddDiskIdentity(
     }
 }
 
-// The counters the storage stack keeps for the disk. They are cumulative since the driver loaded,
-// so what matters is the difference between two calls; the times are in 100ns units, and idle time
-// against busy time is what says whether the disk is the bottleneck.
+// The counters are cumulative since the driver loaded, so what matters is the difference between
+// two calls; the times are in 100ns units.
 BOOLEAN AtpAddDiskPerformance(
     _In_ PVOID Row,
     _In_ HANDLE DeviceHandle

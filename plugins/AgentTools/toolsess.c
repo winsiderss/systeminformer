@@ -33,10 +33,8 @@
 #define LOGON_NO_ELEVATION          0x40000
 #define LOGON_MANAGED_SERVICE       0x80000
 
-// Who is logged on, and how. A process runs as somebody, and the logon session is where that
-// somebody came from: typed at the keyboard, arrived over the network, started as a service, or
-// came in over RDP. It is the first thing to establish about a machine, because every later
-// question - whose process is this, who could have started it - is answered against this list.
+// Who is logged on, and how. The logon session is where a process's user came from: typed at the
+// keyboard, arrived over the network, started as a service, or came in over RDP.
 
 static NTSTATUS (NTAPI* AtpLsaFreeReturnBuffer)(
     _In_ PVOID Buffer
@@ -278,11 +276,10 @@ VOID AtpListLogonSessions(
         PPH_STRING userName = NULL;
         PVOID row;
 
-        // Two reasons this fails, and both matter. The session can have ended between the
-        // enumeration and the query, and - far more often - a caller that is not elevated is
-        // refused the sessions belonging to anybody else, including every service and SYSTEM
-        // logon. Counted rather than passed over, because the difference between "these are the
-        // sessions" and "these are the sessions I was allowed to read" is the whole answer.
+        // Two reasons this fails: the session can have ended between the enumeration and the query,
+        // and a caller that is not elevated is refused every session but its own. Counted rather
+        // than passed over, because "these are the sessions" and "these are the sessions I was
+        // allowed to read" are different answers.
         if (!NT_SUCCESS(AtpLsaGetLogonSessionData(&logonSessions[i], &data)))
         {
             unreadableCount++;
@@ -338,11 +335,9 @@ NextSession:
     PhClearReference(&logonTypeFilter);
 }
 
-// The terminal services sessions the machine has. Every process belongs to one, and a session is
-// where a desktop lives: session 0 holds the services and no desktop at all, and every interactive
-// user gets one of their own. A disconnected session is the interesting shape - somebody logged on,
-// their programs are still running, and nobody is looking at the screen - and a session whose
-// client is a remote address is somebody who arrived over the network.
+// The terminal services sessions. Session 0 holds the services and no desktop; every interactive
+// user gets one of their own. A disconnected session is somebody whose programs are still running
+// with nobody looking at the screen.
 
 PCWSTR AtpWinStationStateString(
     _In_ WINSTATIONSTATECLASS State
@@ -491,10 +486,7 @@ VOID AtpListTerminalSessions(
 }
 
 // A SID and a name are two spellings of the same thing, and nearly every other tool here hands back
-// one of them: a process's user, a handle's owner, a logon session, a service's own account. This
-// turns either into the other, and says what kind of thing it names - a real user, a group, a
-// well-known alias, a service, an app capability - because "S-1-5-80-..." and "a service" are the
-// same answer and only one of them is readable.
+// one of them. This turns either into the other and says what kind of thing it names.
 
 PCWSTR AtpSidNameUseString(
     _In_ SID_NAME_USE Use
@@ -547,9 +539,8 @@ VOID AtpAddAccountDetails(
     AtJsonAddString(Structured, "sid", sidString);
     PhClearReference(&sidString);
 
-    // A SID that no authority can name is still a valid SID, and saying so is the answer: an
-    // account from a domain this machine cannot reach, or one that has been deleted, looks exactly
-    // like this.
+    // A SID that no authority can name is still a valid SID: an account from a domain this machine
+    // cannot reach, or one that has been deleted, looks exactly like this.
     status = PhLookupSid(Sid, &name, &domainName, &use);
 
     AtJsonAddString(Structured, "name", name);

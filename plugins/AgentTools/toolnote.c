@@ -13,13 +13,9 @@
 
 #include <usernotesintf.h>
 
-// What the user has saved against a process in the UserNotes plugin: the comment, and the priority,
-// affinity and colour settings the plugin reapplies whenever that program runs again. Those saved
-// settings are the reason this is worth reading rather than guessing: a process running at a
-// priority nobody set by hand is usually one of these, and nothing else in this server would say so.
-//
-// The database is keyed on the file name or on the whole command line, never on the pid, so a
-// comment written here outlives the process and applies to every future run of the same program.
+// What the user has saved against a process in UserNotes: the comment, and the priority, affinity
+// and colour the plugin reapplies whenever that program runs again. The database is keyed on the
+// file name or on the whole command line, never on the pid.
 
 PUSERNOTES_INTERFACE AtGetUserNotesInterface(
     VOID

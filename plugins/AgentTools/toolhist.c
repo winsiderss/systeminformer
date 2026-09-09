@@ -11,10 +11,8 @@
 
 #include "agenttools.h"
 
-// History over the provider's circular buffers: what a process has been doing for the last N
-// seconds, without the agent having to poll and diff. Index 0 is the most recent sample, and
-// PhGetStatisticsTime maps an index to its wall clock time (and refuses one that is older than the
-// buffer holds, which is what bounds the walk).
+// History over the provider's circular buffers. Index 0 is the most recent sample;
+// PhGetStatisticsTime refuses an index older than the buffer holds, which bounds the walk.
 
 #define AT_HISTORY_DEFAULT_WINDOW_SECONDS 60
 
@@ -41,9 +39,8 @@ VOID AtpAccumulate(
     Stats->Count++;
 }
 
-// Aggregates for one series. The samples are per-tick values, so the average of a rate series is a
-// rate and the total of a byte series is the bytes moved in the window; both are given rather than
-// making the agent guess which one the field is.
+// The samples are per-tick, so the average of a rate series is a rate and the total of a byte
+// series is the bytes moved in the window.
 VOID AtpAddStats(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -202,9 +199,8 @@ VOID AtpGetProcessHistory(
     AtDeleteTarget(&target);
 }
 
-// The system-wide twin of get_process_history. The per-CPU series are summarised per processor
-// rather than returned in full: on a large machine the full set is thousands of samples that say
-// less than "core 12 was pinned".
+// The per-CPU series are summarised per processor: the full set is thousands of samples on a large
+// machine.
 VOID AtpGetSystemHistory(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -242,9 +238,8 @@ VOID AtpGetSystemHistory(
 
     pageSize = basicInfo.PageSize;
 
-    // The processors of this group. System Informer allocates its per-CPU histories for every
-    // processor across every group, so this count never runs past that array; on a machine with
-    // more than one group the per_cpu summary covers this group only.
+    // System Informer allocates per-CPU histories across every group, so this count never runs past
+    // that array; per_cpu covers this group only.
     processorCount = basicInfo.NumberOfProcessors;
 
     PhPluginGetSystemStatistics(&statistics);
@@ -289,8 +284,8 @@ VOID AtpGetSystemHistory(
         perCpu = PhAllocateZero(processorCount * sizeof(AT_HISTORY_STATS));
 
         // CpusKernelHistory is the address of the provider's array pointer, not an array of
-        // pointers: the buffer for a processor is (*CpusKernelHistory)[j]. Indexing the field
-        // directly reads whatever globals follow it and yields a garbage sample count.
+        // pointers: the buffer is (*CpusKernelHistory)[j]. Indexing the field directly reads
+        // whatever globals follow it.
         for (j = 0; j < processorCount; j++)
         {
             PPH_CIRCULAR_BUFFER_FLOAT kernelHistory = &(*statistics.CpusKernelHistory)[j];
@@ -427,9 +422,7 @@ VOID AtpGetSystemHistory(
     Result->StructuredContent = structured;
 }
 
-// Top-N over a window, from the same history the other two tools read. The point is that it needs
-// no sampling pause: "which process has been eating the CPU for the last minute" is already
-// recorded, so the agent does not have to call twice and subtract.
+// Top-N over a window from the same history, so no sampling pause is needed.
 
 #define AT_RANK_DEFAULT_LIMIT 10
 

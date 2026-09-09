@@ -13,11 +13,9 @@
 #include <wbemidl.h>
 
 // Persistence that is not a file. A permanent WMI event subscription is three objects in the
-// repository - an __EventFilter holding a query, an __EventConsumer holding what to do, and a
-// __FilterToConsumerBinding tying them together - and when the query matches, the WMI service runs
-// the consumer. Nothing is on disk, nothing is in the Run keys, and the thing that runs the payload
-// is WmiPrvSE.exe. A binding is the unit that matters: a filter or a consumer on its own does
-// nothing, which is why the rows here are bindings first and orphans second.
+// repository - an __EventFilter, an __EventConsumer and a __FilterToConsumerBinding - and when the
+// query matches, the WMI service runs the consumer. A binding is the unit that matters: a filter or
+// a consumer alone does nothing.
 
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);

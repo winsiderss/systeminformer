@@ -750,9 +750,8 @@ VOID AtpSendToolResult(
         PVOID error;
         PPH_BYTES text;
 
-        // Tool execution errors are actionable for the model: isError plus a structured
-        // description in the text block. No structuredContent, so output schema validation
-        // is not tripped by the error shape.
+        // isError plus a structured description in the text block, and no structuredContent, so
+        // output schema validation is not tripped by the error shape.
         error = PhCreateJsonObject();
         PhAddJsonObject(error, "error", ToolResult->ErrorCode);
         AtJsonAddString(error, "message", ToolResult->ErrorMessage);

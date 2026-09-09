@@ -12,14 +12,9 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
-// GPU utilization is not System Informer's own data: ExtendedTools collects it from the graphics
-// performance counters and publishes it on its plugin interface, keyed by adapter LUID. So this
-// tool enumerates the adapters itself (D3DKMT, which also gives their names, engines and memory
-// limits) and asks ExtendedTools what each one is doing.
-//
-// The interface answers 0 for an adapter it has no counters for, which is exactly what an idle
-// GPU looks like. Everything that comes from it is therefore reported as null, not zero, unless
-// the collector is actually running, and `collector` says which of its two settings is off.
+// GPU utilization comes from ExtendedTools, keyed by adapter LUID; the adapters are enumerated here
+// with D3DKMT. The interface answers 0 for an adapter it has no counters for, so those figures are
+// null unless the collector is running.
 
 // Mirrors EtGpuMonitorInitialization: the counters that back the interface are only collected when
 // the GPU monitor is on and its performance-counter mode is enabled.
@@ -95,9 +90,8 @@ VOID AtpCloseAdapterHandle(
     D3DKMTCloseAdapter(&closeAdapter);
 }
 
-// EnumAdapters3 is preferred because compute-only and display-only adapters are left out of the
-// older enumeration by design; it only exists from Windows 10 20H1, so EnumAdapters2 is the
-// fallback. Both hand back opened adapter handles that the caller has to close.
+// EnumAdapters3 includes compute-only and display-only adapters and exists from Windows 10 20H1, so
+// EnumAdapters2 is the fallback. Both hand back handles the caller closes.
 _Success_(return)
 BOOLEAN AtpEnumerateGraphicsAdapters(
     _Outptr_result_maybenull_ D3DKMT_ADAPTERINFO** Adapters,
@@ -246,9 +240,8 @@ VOID AtpAddAdapterEngines(
     PhAddJsonObjectValue(Row, "engines", engines);
 }
 
-// What sort of adapter this is, straight from its own type flags. A machine reports more adapters
-// than it has cards: software renderers, compute-only devices and paravirtualized adapters all
-// enumerate alongside the real ones, and only these flags tell them apart.
+// A machine reports more adapters than it has cards - software renderers, compute-only and
+// paravirtualized devices - and only these flags tell them apart.
 VOID AtpAddAdapterType(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle

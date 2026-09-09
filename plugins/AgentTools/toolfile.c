@@ -11,10 +11,9 @@
 
 #include "agenttools.h"
 
-// What the file system knows about a file, as opposed to what is inside it. The two things here that
-// are not on any properties dialog: the alternate data streams, which are where a file keeps content
-// nothing shows by default, and the Mark of the Web, which is how Windows remembers that a file was
-// downloaded and from where.
+// What the file system knows about a file. The two things not on any properties dialog: the
+// alternate data streams, and the Mark of the Web that records that a file was downloaded and from
+// where.
 
 VOID AtpTrimTrailingNewline(
     _Inout_opt_ PPH_STRING String
@@ -286,11 +285,9 @@ VOID AtpGetFileInfo(
     else
         AtJsonAddNull(structured, "hard_links");
 
-    // PhGetFileMotw opens <name>:Zone.Identifier with PhCreateFile, which takes a native path. A
-    // Win32 path here fails to open and every file comes back with no Mark of the Web, which reads
-    // as "nothing was downloaded" rather than as a mistake.
-    // PhGetFileMotw hands back the values with the line's carriage return still on the end, and a URL
-    // with a control character in it is wrong for everything downstream.
+    // PhGetFileMotw opens <name>:Zone.Identifier with PhCreateFile, which takes a native path; a
+    // Win32 path fails to open and every file comes back with no Mark of the Web. It also hands
+    // back values with the line's carriage return still on the end.
     if (nativePath = PhDosPathNameToNtPathName(&path->sr))
     {
         if (NT_SUCCESS(PhGetFileMotw(&nativePath->sr, &zoneId, &referrerUrl, &hostUrl)))
@@ -368,9 +365,8 @@ PCWSTR AtpScanLookupString(
     return NULL;
 }
 
-// The verdict OnlineChecks already has on disk, and nothing else. No request is made, so a file
-// nobody has looked up stays unlooked-up: this answers "has anyone already told us about this",
-// which is a different question from "what does VirusTotal say".
+// The verdict OnlineChecks already has on disk, and nothing else. No request is made: this answers
+// whether anyone has already told us about this file.
 VOID AtpGetFileScanResultCached(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -483,9 +479,8 @@ VOID AtpGetFileScanResultCached(
     PhClearReference(&path);
 }
 
-// Asking a third party about a file. Only the hash goes out, never the file, but a hash is enough to
-// tell someone that this machine holds this exact file - which is why these sit in the egress tier
-// and are asked about every time rather than granted for a session.
+// Only the hash goes out, never the file, but a hash is enough to tell someone that this machine
+// holds this exact file - which is why these sit in the egress tier.
 
 // A SHA-256 is 64 hexadecimal characters and nothing else. Checked here rather than sent, because a
 // malformed hash is a request that leaves the machine and comes back with nothing.

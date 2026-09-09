@@ -58,9 +58,8 @@ BOOLEAN AtParseProtocolType(
     return TRUE;
 }
 
-// The NetworkTools plugin knows two things about an endpoint that nothing else here does: which
-// country an address is registered to, from the GeoLite database it ships, and what a well-known
-// port is usually for. Both are local lookups - no traffic leaves the machine for either.
+// NetworkTools knows two things about an endpoint that nothing else here does: the country an
+// address is registered to, and what a well-known port is usually for. Both are local lookups.
 
 PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
     VOID

@@ -11,15 +11,10 @@
 
 #include "agenttools.h"
 
-// Disk and network I/O for one process, from the counters ExtendedTools accumulates. get_process
-// already reports the process item's own cumulative totals; what is here and nowhere else is the
-// per-run delta that makes a rate, the operation counts, and the busiest run seen so far.
-//
-// Which of these figures exist depends on which collector is running, and a missing collector is
-// invisible in the numbers themselves: without the kernel trace session there are no network
-// operation counts at all, and before Windows 11 24H2 no network bytes either, because that is
-// when the process item started carrying them. Anything not being collected is null rather than
-// zero, and `collector` says which source was available.
+// Disk and network I/O for one process, from the counters ExtendedTools accumulates: the per-run
+// delta that makes a rate, the operation counts, and the busiest run seen. Which figures exist
+// depends on the collector - no network operation counts without the kernel trace session, and no
+// network bytes before Windows 11 24H2 - so anything not collected is null rather than zero.
 
 VOID AtpAddIoValue(
     _In_ PVOID Object,

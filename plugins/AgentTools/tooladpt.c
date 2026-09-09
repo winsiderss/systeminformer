@@ -13,13 +13,9 @@
 #include <mapldr.h>
 #include <iphlpapi.h>
 
-// The network interfaces this machine has, with the addresses and the counters that belong to
-// each. The HardwareDevices plugin only samples the adapters a user picked in its options, so
-// this asks the IP helper directly and reports every interface, whether or not anyone is
-// watching it.
-//
-// iphlpapi is resolved at run time, the way the other plugins do it, so the plugin gains no link
-// dependency for a tool most callers will never use.
+// The network interfaces this machine has. HardwareDevices only samples the adapters a user picked
+// in its options, so this asks the IP helper directly and reports every interface. iphlpapi is
+// resolved at run time, so the plugin gains no link dependency.
 
 static PVOID AtpIphlpapiBaseAddress = NULL;
 static typeof(&GetAdaptersAddresses) AtpGetAdaptersAddresses = NULL;
@@ -287,10 +283,9 @@ VOID AtpListNetworkAdapters(
     connectedOnly = AtJsonGetObjectBoolean(Call->Arguments, "connected_only");
     includeAllInterfaces = AtJsonGetObjectBoolean(Call->Arguments, "include_all_interfaces");
 
-    // By default only the interfaces bound to TCP/IP, which is what the machine actually has. The
-    // full enumeration adds one pseudo-interface per NDIS filter module bound to each adapter -
-    // QoS Packet Scheduler, the WFP layers and so on - which on an ordinary machine turns four
-    // adapters into thirty-five and answers a question nobody asked.
+    // By default only the interfaces bound to TCP/IP. The full enumeration adds one
+    // pseudo-interface per NDIS filter module bound to each adapter, which turns four adapters into
+    // thirty-five.
     flags = GAA_FLAG_INCLUDE_GATEWAYS | GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST;
 
     if (includeAllInterfaces)

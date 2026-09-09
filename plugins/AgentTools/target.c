@@ -604,9 +604,8 @@ NTSTATUS AtpResolveTargetParameter(
 
             hasGroup = AtGetArgumentUInt64(Arguments, "group", &group);
 
-            // Only the processors of one group can be in a mask, and which processors those are
-            // depends on the group - so the system's own set is only the right fence for a call
-            // that did not name one.
+            // Only the processors of one group can be in a mask, so the system's own set is the
+            // right fence only for a call that did not name a group.
             memset(&basicInfo, 0, sizeof(basicInfo));
 
             if (!hasGroup &&
@@ -756,9 +755,9 @@ NTSTATUS AtResolveTarget(
 
     memset(Target, 0, sizeof(AT_TARGET));
 
-    // The arguments are judged before the object is opened. A write naming a change that makes no
-    // sense is wrong whether or not the caller could have made it, and reporting access_denied for
-    // it sends the caller looking for a permission when what they need is a different argument.
+    // The arguments are judged before the object is opened: a write naming a change that makes no
+    // sense is wrong whether or not the caller could have made it, and access_denied would send
+    // them looking for a permission.
     status = AtpResolveTargetParameter(Tool, Arguments, &parameter, Result);
 
     if (!NT_SUCCESS(status))

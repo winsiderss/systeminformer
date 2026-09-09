@@ -11,9 +11,6 @@
 
 #include "agenttools.h"
 
-// PlaySound, for the elevation prompt's own sound event.
-#include <mmsystem.h>
-
 typedef struct _AT_CONSENT_REQUEST
 {
     LONG RefCount;
@@ -404,79 +401,6 @@ VOID AtAudit(
     PhClearReference(&client);
 }
 
-/**
- * Plays one sound file and waits for it, on a thread with nothing else to do.
- *
- * \param Parameter The file to play; a reference this takes over.
- * \return NTSTATUS Successful or errant status.
- */
-_Function_class_(USER_THREAD_START_ROUTINE)
-NTSTATUS NTAPI AtpPlayConsentSoundThread(
-    _In_ PVOID Parameter
-    )
-{
-    PPH_STRING fileName = Parameter;
-
-    if (!PlaySoundW(PhGetString(fileName), NULL, SND_FILENAME))
-        MessageBeep(MB_ICONWARNING);
-
-    PhDereferenceObject(fileName);
-
-    return STATUS_SUCCESS;
-}
-
-/**
- * Announces a consent prompt, with the sound an elevation prompt uses.
- *
- * \remarks A task dialog plays a system sound for a stock icon, but TDF_USE_HICON_MAIN suppresses
- * it, so the prompt would otherwise arrive in silence.
- *
- * The event is resolved to a file here rather than passed to PlaySound as an alias, because with
- * SND_NODEFAULT PlaySound "returns silently" when it cannot play what it was given - it reports
- * success and plays nothing, so a failure is indistinguishable from a sound and the fallback never
- * runs. Reading the value says whether the event is configured at all, and playing the file says
- * whether it worked.
- *
- * An event configured to nothing is a user who silenced the elevation prompt, not a reason to say
- * nothing at all: this prompt still has to be noticed, so it falls back to the exclamation.
- */
-VOID AtpPlayConsentSound(
-    VOID
-    )
-{
-    static CONST PH_STRINGREF keyName = PH_STRINGREF_INIT(L"AppEvents\\Schemes\\Apps\\.Default\\WindowsUAC\\.Current");
-    static PH_INITONCE initOnce = PH_INITONCE_INIT;
-    static PPH_STRING soundFileName = NULL;
-
-    if (PhBeginInitOnce(&initOnce))
-    {
-        HANDLE keyHandle;
-
-        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_READ, PH_KEY_CURRENT_USER, &keyName, 0)))
-        {
-            PPH_STRING value;
-
-            // The default value of the key, which is the path, and REG_EXPAND_SZ on some machines.
-            if (value = PhQueryRegistryString(keyHandle, NULL))
-            {
-                if (value->Length)
-                    soundFileName = PhExpandEnvironmentStrings(&value->sr);
-
-                PhDereferenceObject(value);
-            }
-
-            NtClose(keyHandle);
-        }
-
-        PhEndInitOnce(&initOnce);
-    }
-
-    if (soundFileName)
-        PhQueueUserWorkItem(AtpPlayConsentSoundThread, PhReferenceObject(soundFileName));
-    else
-        MessageBeep(MB_ICONWARNING);
-}
-
 HRESULT CALLBACK AtpConsentDialogCallback(
     _In_ HWND WindowHandle,
     _In_ UINT Notification,
@@ -502,14 +426,11 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             // comes up on another monitor is a consent prompt that gets missed.
             AtpCenterWindowOnUserMonitor(WindowHandle);
 
-            // A custom main icon suppresses the task dialog's own sound, so without this the
-            // prompt arrives in silence; a stock icon would have been announced.
-            AtpPlayConsentSound();
+            // A custom main icon suppresses the task dialog's own sound.
+            MessageBeep(MB_ICONEXCLAMATION);
 
             // Topmost because the foreground cannot be relied on: a worker thread may not take it
-            // while the user is typing elsewhere, and a prompt that only flashes in the taskbar is
-            // one that gets missed. This raises the window above others without taking the input
-            // focus or the desktop from whatever the user is doing.
+            // while the user is typing elsewhere. Raised without taking the input focus.
             SetWindowPos(WindowHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
             // The countdown and the waiter's bound both run from here, not from submission.

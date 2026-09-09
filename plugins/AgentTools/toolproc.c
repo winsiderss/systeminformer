@@ -112,9 +112,7 @@ PVOID AtpCreateProcessRow(
     return row;
 }
 
-// Bytes (or events) per second from a per-run delta. The provider's interval is not the configured
-// one when System Informer is throttling, so it is read rather than assumed, and reported alongside
-// so the caller can see what the rates were divided by.
+// Rates use the provider's actual interval, which is not the configured one while throttling.
 PCWSTR AtpKnownProcessTypeString(
     _In_ PH_KNOWN_PROCESS_TYPE Type
     )
@@ -158,8 +156,8 @@ PCWSTR AtpKnownProcessTypeString(
     return NULL;
 }
 
-// A host process's own image says nothing about what it is running: svchost is a group, rundll32 is
-// somebody else's entry point, dllhost is a COM object. That is the part worth reading.
+// What a host process is really running: svchost's group, rundll32's entry point, dllhost's COM
+// object.
 VOID AtpAddKnownCommandLine(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -206,8 +204,7 @@ VOID AtpAddKnownCommandLine(
     PhAddJsonObjectValue(Object, "known_command_line", entry);
 }
 
-// The parent as it was when this process started, which is the only honest way to name it: the pid
-// on its own may since have been reused by something unrelated.
+// The parent as it was at this process's start; the pid alone may since have been reused.
 VOID AtpAddParent(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -223,8 +220,6 @@ VOID AtpAddParent(
         return;
     }
 
-    // The record for the parent as it was at this process's start, which also covers a parent that
-    // has since exited.
     if (record = PhFindProcessRecord(ProcessItem->ParentProcessId, &ProcessItem->CreateTime))
     {
         entry = PhCreateJsonObject();
@@ -241,9 +236,7 @@ VOID AtpAddParent(
         return;
     }
 
-    // No record kept: fall back to the live process, but only when it could actually be the parent.
-    // A parent that started after its child is a different process wearing a recycled pid, and
-    // naming it would be worse than saying nothing.
+    // A parent that started after its child is a recycled pid, not the parent.
     if (!(parent = PhReferenceProcessItem(ProcessItem->ParentProcessId)))
     {
         AtJsonAddNull(Object, "parent");
@@ -270,9 +263,7 @@ VOID AtpAddParent(
     PhDereferenceObject(parent);
 }
 
-// The Statistics tab's numbers, which need the process opened and so are only gathered on request.
-// Anything that could not be read is null rather than zero: a zero working set or no GUI handles is
-// itself a finding, and must not be manufactured by a failed query.
+// Needs the process opened, so only on request. Anything unreadable is null rather than zero.
 VOID AtpAddProcessStatistics(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -298,8 +289,7 @@ VOID AtpAddProcessStatistics(
             );
     }
 
-    // Pool charges and the page file charge are already on the item; only the working set breakdown
-    // needs the process.
+    // Only the working set breakdown needs the process.
     entry = PhCreateJsonObject();
     PhAddJsonObjectUInt64(entry, "paged_pool_bytes", ProcessItem->VmCounters.QuotaPagedPoolUsage);
     PhAddJsonObjectUInt64(entry, "peak_paged_pool_bytes", ProcessItem->VmCounters.QuotaPeakPagedPoolUsage);
@@ -323,8 +313,7 @@ VOID AtpAddProcessStatistics(
         AtJsonAddNull(statistics, "working_set");
     }
 
-    // GDI and USER handles, which is how a leaking UI process is recognised. GetGuiResources is a
-    // plain Win32 call, so no phlib export is involved.
+    // GDI and USER handles, which is how a leaking UI process is recognised.
     if (processHandle)
     {
         entry = PhCreateJsonObject();
@@ -448,8 +437,7 @@ VOID AtpFillProcessDetail(
     PhAddJsonObjectBoolean(Object, "is_elevated", !!ProcessItem->IsElevated);
     AtJsonAddStringZ(Object, "verify_result", AtVerifyResultString(ProcessItem->VerifyResult));
     AtJsonAddString(Object, "verify_signer", ProcessItem->VerifySignerName);
-    // Verified here rather than taken from the provider, which only fills verify_result in when the
-    // signature stage is enabled and reports nothing at all when it is not.
+    // Verified here: the provider only fills verify_result when the signature stage is enabled.
     PhAddJsonObjectBoolean(Object, "is_microsoft_signed", AtIsMicrosoftSigned(ProcessItem->FileName));
     AtJsonAddString(Object, "package_full_name", ProcessItem->PackageFullName);
     PhAddJsonObjectBoolean(Object, "is_protected_process", !!ProcessItem->IsProtectedProcess);
@@ -479,8 +467,6 @@ VOID AtpFillProcessDetail(
     else
         AtJsonAddNull(Object, "is_packed");
 
-    // What the image says about itself, which is the first thing a person reads and the first thing
-    // an impostor gets wrong.
     {
         PVOID version = PhCreateJsonObject();
 
@@ -495,9 +481,8 @@ VOID AtpFillProcessDetail(
     AtpAddKnownCommandLine(Object, ProcessItem);
     AtpAddParent(Object, ProcessItem);
 
-    // Import counts and the packed heuristic come from stage 2, which the user can turn off, and
-    // ULONG_MAX is the provider's "could not read the image" sentinel. Both are null rather than a
-    // zero that would read as "imports nothing", which is itself a finding.
+    // ULONG_MAX is the provider's "could not read the image" sentinel; null rather than a zero that
+    // reads as "imports nothing".
     if (stage2 && ProcessItem->ImportFunctions != ULONG_MAX)
         PhAddJsonObjectUInt64(Object, "import_functions", ProcessItem->ImportFunctions);
     else
@@ -521,11 +506,8 @@ VOID AtpFillProcessDetail(
         AtJsonAddNull(Object, "image_timestamp");
     }
 
-    // How much of the image in memory still matches the file on disk. System Informer only computes
-    // this when coherency support is on and the scan level is not zero; at level zero it marks the
-    // status successful and leaves the value at zero, so trusting the status alone would report
-    // every process on a default configuration as completely incoherent, which is what an injected
-    // image looks like. Null unless it was really measured.
+    // Null unless really measured: at scan level zero the status is successful and the value zero,
+    // which would report every process as incoherent.
     if (PhGetIntegerSetting(L"EnableImageCoherencySupport") &&
         PhGetIntegerSetting(L"ImageCoherencyScanLevel") != 0 &&
         NT_SUCCESS(ProcessItem->ImageCoherencyStatus))
@@ -602,8 +584,7 @@ VOID AtpFillProcessDetail(
     PhAddJsonObjectDouble(Object, "cpu_user_usage", ProcessItem->CpuUserUsage);
     PhAddJsonObjectUInt64(Object, "update_interval_ms", interval);
 
-    // What changed in the last provider run, which is how to see what a process is doing now rather
-    // than what it has done since it started.
+    // What changed in the last provider run.
     AtAddRate(Object, "io_read_rate", ProcessItem->IoReadDelta.Delta, interval);
     AtAddRate(Object, "io_write_rate", ProcessItem->IoWriteDelta.Delta, interval);
     AtAddRate(Object, "io_other_rate", ProcessItem->IoOtherDelta.Delta, interval);
@@ -615,9 +596,7 @@ VOID AtpFillProcessDetail(
     PhAddJsonObjectUInt64(Object, "hard_faults_delta", ProcessItem->HardFaultsDelta.Delta);
     PhAddJsonObjectUInt64(Object, "cycle_time_delta", ProcessItem->CycleTimeDelta.Delta);
 
-    // Memory can be given back, and the delta is computed unsigned, so it wraps rather than going
-    // negative: read it back as signed so a process releasing memory reports a fall, not a
-    // nonsensical several exabytes.
+    // The delta is unsigned and wraps; read back as signed so a fall is not several exabytes.
     PhAddJsonObjectInt64(Object, "private_bytes_delta", (LONG64)(LONG_PTR)ProcessItem->PrivateBytesDelta.Delta);
     PhAddJsonObjectUInt64(Object, "private_bytes", ProcessItem->VmCounters.PagefileUsage);
     PhAddJsonObjectUInt64(Object, "peak_private_bytes", ProcessItem->VmCounters.PeakPagefileUsage);
@@ -688,8 +667,7 @@ BOOLEAN AtpMatchesFilter(
     if (Filter->HaveParentPid && ProcessItem->ParentProcessId != Filter->ParentPid)
         return FALSE;
 
-    // Compared at the resolution the time was written in: a caller passing back a start_time it was
-    // given means "after that process", so everything within that same millisecond is excluded.
+    // Compared at the resolution the time was written in, so the named process itself is excluded.
     if (Filter->HaveStartedAfter &&
         ProcessItem->CreateTime.QuadPart < Filter->StartedAfter.QuadPart + PH_TICKS_PER_MS)
     {
@@ -699,10 +677,8 @@ BOOLEAN AtpMatchesFilter(
     if (Filter->ProtectedOnly && !ProcessItem->IsProtectedProcess)
         return FALSE;
 
-    // The image the process was started from is no longer on disk: a process running from a
-    // deleted file cannot be checked against anything, which is the reason to ask. A pseudo
-    // process such as Registry or Memory Compression has a name where the path would be and no
-    // image at all, which is not the same thing and is not what this asks for.
+    // A pseudo process such as Registry has a name where the path would be and no image, which is
+    // not a missing image.
     if (Filter->ImageMissingOnly)
     {
         if (!ProcessItem->FileName ||
@@ -714,8 +690,7 @@ BOOLEAN AtpMatchesFilter(
         }
     }
 
-    // Last, and only when asked: each of these is a signature verification of the image on disk, so
-    // every cheap filter above has already thrown away everything it can.
+    // One signature verification per row, so every cheap filter runs first.
     if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ProcessItem->FileName))
         return FALSE;
 
@@ -828,8 +803,8 @@ VOID AtpListProcesses(
     {
         BOOLEAN changed;
 
-        // Descendants: a process whose parent (by pid, and created after that parent so a
-        // recycled parent pid does not adopt it) is matched.
+        // Descendants, matched on a parent created before the child so a recycled parent pid does
+        // not adopt it.
         do
         {
             changed = FALSE;
@@ -1051,7 +1026,6 @@ VOID AtpControlProcess(
         {
             PPH_STRING value = AtGetArgumentString(Call->Arguments, "priority_class");
 
-            // Validated when the target was resolved.
             NT_VERIFY(AtParsePriorityClass(value, &priorityClass));
             PhClearReference(&value);
             status = PhSetProcessPriorityClass(Target->ProcessHandle, (UCHAR)priorityClass);
@@ -1071,11 +1045,8 @@ VOID AtpControlProcess(
             HANDLE freezeHandle;
             HANDLE previousHandle;
 
-            // A freeze lasts exactly as long as the state change handle does, so the handle has to
-            // live somewhere: it goes on the process item, which is where the application's own
-            // Freeze keeps it. One owner means the Processes window and this agree about what is
-            // frozen, and either can thaw what the other froze - and it means closing System
-            // Informer thaws everything, which is what the application warns about.
+            // The freeze lasts as long as the handle, which lives on the process item so the
+            // Processes window and this agree about what is frozen.
             if (ReadPointerAcquire(&Target->ProcessItem->FreezeHandle))
             {
                 freezeHeldHere = TRUE;
@@ -1105,16 +1076,14 @@ VOID AtpControlProcess(
 
             if (!freezeHandle)
             {
-                // Nothing here froze it. It may still be frozen by something else, which the
-                // frozen field reports and this cannot undo.
+                // Frozen by something else; this cannot undo it.
                 status = STATUS_SUCCESS;
                 break;
             }
 
             status = PhThawProcess(freezeHandle, Target->ProcessHandle);
 
-            // Closing the handle ends the freeze on its own, so it is closed either way rather
-            // than left open holding a process that was meant to be released.
+            // Closing the handle ends the freeze, so it is closed either way.
             NtClose(freezeHandle);
             freezeChanged = TRUE;
         }
@@ -1129,7 +1098,6 @@ VOID AtpControlProcess(
         break;
     case AtActionSetProcessPagePriority:
         {
-            // Validated when the target was resolved.
             NT_VERIFY(AtGetArgumentUInt64(Call->Arguments, "page_priority", &pagePriority));
 
             // Read before writing: the level a process had is the only way back to it.
@@ -1140,12 +1108,10 @@ VOID AtpControlProcess(
         break;
     case AtActionSetProcessAffinity:
         {
-            // Validated when the target was resolved, so the user approved this exact mask.
             NT_VERIFY(AtGetArgumentUInt64(Call->Arguments, "affinity_mask", &affinityMask));
             hasGroup = AtGetArgumentUInt64(Call->Arguments, "group", &affinityGroup);
 
-            // Read before writing: the mask a process had is the only way back to it, and nothing
-            // else records it.
+            // Read before writing: nothing else records the previous mask.
             hasPreviousMask = NT_SUCCESS(PhGetProcessAffinityMask(Target->ProcessHandle, &previousMask));
 
             if (hasGroup)
@@ -1183,8 +1149,8 @@ VOID AtpControlProcess(
     {
         PROCESS_EXTENDED_BASIC_INFORMATION extendedInfo;
 
-        // Asked of the process rather than taken from the provider, which only refreshes once a
-        // second - and rather than assumed from the call having succeeded.
+        // Asked of the process rather than assumed from the call, and rather than the once-a-second
+        // provider.
         if (NT_SUCCESS(PhGetProcessExtendedBasicInformation(Target->ProcessHandle, &extendedInfo)))
             PhAddJsonObjectBoolean(structured, "frozen", !!extendedInfo.IsFrozen);
         else
@@ -1200,8 +1166,7 @@ VOID AtpControlProcess(
         else
             AtJsonAddNull(structured, "working_set_bytes_before");
 
-        // Read straight after the call, which is the only honest place to read it: the process is
-        // running and is already faulting back whatever it still needs.
+        // Read straight after the call; the process is already faulting pages back.
         if (NT_SUCCESS(PhGetProcessWsCounters(Target->ProcessHandle, &wsCounters)))
             PhAddJsonObjectUInt64(structured, "working_set_bytes_after", (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE);
         else
@@ -1564,10 +1529,8 @@ VOID AtpGetProcessWindows(
     AtDeleteTarget(&target);
 }
 
-// The job a process belongs to. A job is how Windows puts a fence around a group of processes - a
-// container, a sandbox, a service host, a browser's renderers - and the fence is what the limits
-// say: how much memory, how many processes, what they may not do. Whether a process is in one is
-// answerable by anyone; opening the job to read it needs the System Informer driver.
+// The job a process belongs to. Whether it is in one is answerable by anyone; opening the job needs
+// the driver.
 
 VOID AtpAddJobLimits(
     _In_ PVOID Object,
@@ -1614,8 +1577,8 @@ VOID AtpAddJobLimits(
         entry = PhCreateJsonObject();
         AtJsonAddFlagStrings(entry, "flags", basic->LimitFlags, limitFlags, (CONST PWSTR*)limitNames, RTL_NUMBER_OF(limitFlags));
 
-        // Each limit is only set when its flag is, so the rest are null rather than zero: a
-        // maximum of zero processes and no maximum at all are not the same fence.
+        // Each limit is null unless its flag is set: a maximum of zero and no maximum are
+        // different.
         if (FlagOn(basic->LimitFlags, JOB_OBJECT_LIMIT_ACTIVE_PROCESS))
             PhAddJsonObjectUInt64(entry, "active_process_limit", basic->ActiveProcessLimit);
         else
@@ -1779,8 +1742,7 @@ VOID AtpGetProcessJob(
     if (!NT_SUCCESS(status))
         return;
 
-    // Anyone can ask whether a process is in a job; STATUS_PROCESS_NOT_IN_JOB is the answer "no"
-    // rather than a failure to find out.
+    // STATUS_PROCESS_NOT_IN_JOB is the answer "no", not a failure.
     if (target.ProcessHandle)
     {
         status = NtIsProcessInJob(target.ProcessHandle, NULL);
@@ -1791,10 +1753,8 @@ VOID AtpGetProcessJob(
     AtFillProcessIdentity(structured, target.ProcessItem);
     PhAddJsonObjectBoolean(structured, "is_in_job", isInJob);
 
-    // Reading the job itself means holding a handle to it, and there is no user-mode way to get one
-    // from a process: the driver opens it. Without the driver the answer stops at is_in_job, and the
-    // level is checked rather than the call attempted - KphCreateUserMessage asserts when there is
-    // no connection, which in a debug build is a message box on a background thread.
+    // There is no user-mode way to open a process's job. The level is checked rather than the call
+    // attempted: KphCreateUserMessage asserts with no connection.
     if (isInJob && target.ProcessHandle && KsiLevel() != KphLevelNone)
         status = KphOpenProcessJob(target.ProcessHandle, JOB_OBJECT_QUERY, &jobHandle);
     else
@@ -1914,15 +1874,14 @@ VOID AtpGetProcessKsiState(
     PVOID structured;
     PVOID entry;
 
-    // A read-tier tool resolves its own target: the dispatcher only resolves for the tiers that
-    // hold an object open across a consent prompt, so the target it hands a read is empty.
+    // A read-tier tool resolves its own target; the dispatcher only resolves for tiers that hold an
+    // object across a prompt.
     status = AtResolveProcessTarget(Call->Arguments, FALSE, PROCESS_QUERY_LIMITED_INFORMATION, &target, Result);
 
     if (!NT_SUCCESS(status))
         return;
 
-    // Every Kph call needs the level checked before it: KphCreateUserMessage asserts when there is
-    // no connection, which in a debug build is a message box on this thread.
+    // KphCreateUserMessage asserts when there is no connection.
     if (KsiLevel() < KphLevelMed)
     {
         AtSetToolError(
@@ -1964,11 +1923,8 @@ VOID AtpGetProcessKsiState(
         stateFlags, stateNames, RTL_NUMBER_OF(stateFlags));
     AtJsonAddStringZ(structured, "state_level", AtpProcessStateLevelString(basicInfo.ProcessState));
 
-    // Verified, securely created and protected are the driver's own trust relationship with a
-    // client it is protecting, not properties of any process: "protected" here is KSI protecting
-    // the process, which has nothing to do with a Windows protected process (get_process reports
-    // that one). They are reported through state_names alone, in the driver's own vocabulary,
-    // rather than lifted out as booleans that would read as general facts about the process.
+    // These describe the driver's trust relationship with a client it protects, not the process,
+    // and state_names carries them. Not a Windows protected process.
     PhAddJsonObjectBoolean(structured, "create_notification", !!basicInfo.CreateNotification);
     PhAddJsonObjectBoolean(structured, "exit_notification", !!basicInfo.ExitNotification);
     PhAddJsonObjectBoolean(structured, "is_wow64", !!basicInfo.IsWow64);
@@ -1978,9 +1934,7 @@ VOID AtpGetProcessKsiState(
     PhAddJsonObjectUInt64(structured, "user_writable_references", basicInfo.UserWritableReferences);
     PhAddJsonObjectUInt64(structured, "thread_count", basicInfo.NumberOfThreads);
 
-    // The creator is the process and thread that asked for this one, recorded when it was created.
-    // It stays right after the parent has exited, which is when the process list's parent stops
-    // meaning anything.
+    // Recorded at creation, so it still names the creator after that process has exited.
     entry = PhCreateJsonObject();
     PhAddJsonObjectUInt64(entry, "pid", HandleToUlong(basicInfo.CreatorClientId.UniqueProcess));
     PhAddJsonObjectUInt64(entry, "tid", HandleToUlong(basicInfo.CreatorClientId.UniqueThread));
@@ -1988,8 +1942,8 @@ VOID AtpGetProcessKsiState(
 
     PhAddJsonObjectUInt64(structured, "image_loads", basicInfo.NumberOfImageLoads);
 
-    // Only tracked for a verified process: reporting zero for any other one would read as "nothing
-    // untrusted was loaded" when the truth is that nobody was counting.
+    // Only tracked for a verified process; zero for any other would read as "nothing untrusted was
+    // loaded".
     if (FlagOn(basicInfo.ProcessState, KPH_PROCESS_VERIFIED_PROCESS))
     {
         entry = PhCreateJsonObject();
@@ -2004,10 +1958,8 @@ VOID AtpGetProcessKsiState(
         AtJsonAddNull(structured, "image_load_counts");
     }
 
-    // The allowed masks are not reported: they exist only for a process the driver is protecting,
-    // which is System Informer's own, so for any process worth asking about they would always be
-    // null - and where they are not, they describe System Informer's own defences rather than
-    // anything about the target.
+    // The allowed masks are not reported: they exist only for a process the driver protects, which
+    // is System Informer's own.
 
     AtAddSnapshot(structured);
     Result->StructuredContent = structured;
@@ -2068,9 +2020,8 @@ BOOLEAN AtpParseZombieMethod(
 
     if (PhEqualString2(Name, L"brute_force", TRUE))
         *Method = BruteForceScanMethod;
-    // csr_handles is not offered: reading the subsystem's handle table needs PROCESS_DUP_HANDLE on
-    // csrss, which a protected process does not grant to anyone, so on any Windows that runs csrss
-    // protected - which is all of them now - the scan only ever fails.
+    // csr_handles is not offered: it needs PROCESS_DUP_HANDLE on csrss, which a protected process
+    // grants to nobody.
     else if (PhEqualString2(Name, L"process_handles", TRUE))
         *Method = ProcessHandleScanMethod;
     else if (PhEqualString2(Name, L"registry", TRUE))
@@ -2099,9 +2050,7 @@ BOOLEAN NTAPI AtpZombieProcessCallback(
 
     context->EnumeratedCount++;
 
-    // A method may report the same process many times over - the ETW scan names one for every GUID
-    // it registered - so the first sighting of a process id is the one that is kept, which is what
-    // the application's own callback does.
+    // A method can report the same process many times; the first sighting is kept.
     if (PhFindItemSimpleHashtable(context->Seen, Process->ProcessId))
         return TRUE;
 
@@ -2169,9 +2118,8 @@ VOID AtpListHiddenProcesses(
         goto CleanupExit;
     }
 
-    // The list is read again after the scan rather than before it: a process that started or exited
-    // while the scan was running is in one view and not the other, and that - not a rootkit - is
-    // what almost every disagreement between the two is.
+    // The list is read after the scan: a process that started or exited during it is in one view
+    // and not the other.
     PhEnumProcesses(&processes);
 
     structured = PhCreateJsonObject();
@@ -2200,9 +2148,8 @@ VOID AtpListHiddenProcesses(
             } while (process = PH_NEXT_PROCESS(process));
         }
 
-        // The cross-view answer decides what is worth returning, not the scan's own idea of the
-        // type: a protected process the scan cannot read is "unknown" to it and is right there in
-        // the process list.
+        // Decided on in_process_list, not the scan's type: a protected process is "unknown" to the
+        // scan and right there in the list.
         if (inList)
         {
             context.NormalCount++;

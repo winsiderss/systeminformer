@@ -12,19 +12,16 @@
 #include "agenttools.h"
 #include <wct.h>
 
-// WCTP_GETINFO_ALL_FLAGS in the SDK header leaves out network I/O, so the flags are spelled out
-// here the way ExtendedTools does: a thread blocked on an SMB or socket wait is exactly the kind of
-// hang this answers.
+// WCTP_GETINFO_ALL_FLAGS leaves out network I/O, so the flags are spelled out here the way
+// ExtendedTools does.
 #define AT_WCT_GETINFO_ALL_FLAGS \
     (WCT_OUT_OF_PROC_FLAG | WCT_OUT_OF_PROC_COM_FLAG | WCT_OUT_OF_PROC_CS_FLAG | WCT_NETWORK_IO_FLAG)
 
 #define AT_WAIT_CHAIN_DEFAULT_THREADS 64
 #define AT_WAIT_CHAIN_MAXIMUM_THREADS 512
 
-// Who is waiting on whom. A thread blocked on a lock says nothing about which thread holds it, and a
-// stack shows the wait but not the owner; the Wait Chain Traversal API walks the ownership edges the
-// kernel and the window manager know about, across processes, and says when the chain closes into a
-// cycle - which is a deadlock, not a slow call.
+// Who is waiting on whom. A stack shows the wait but not the owner; the Wait Chain Traversal API
+// walks the ownership edges across processes and says when the chain closes into a cycle.
 
 PCWSTR AtpWaitChainObjectTypeString(
     _In_ ULONG ObjectType
@@ -297,8 +294,7 @@ VOID AtpGetThreadWaitChain(
         CLIENT_ID clientId;
 
         // A tid is only meaningful inside the process it was given with, and tids are reused, so
-        // the thread is opened by client id - which the kernel refuses if it is not that process's
-        // thread - rather than passed straight to an API that takes a bare tid.
+        // the thread is opened by client id rather than passed to an API taking a bare tid.
         clientId.UniqueProcess = Target->ProcessItem->ProcessId;
         clientId.UniqueThread = UlongToHandle((ULONG)threadId);
 
@@ -354,14 +350,11 @@ VOID AtpGetThreadWaitChain(
     Result->StructuredContent = structured;
 }
 
-// What one thread is blocked on, from the system call it is sitting in. The wait chain says who
-// holds the object; this says which object, by name. ThreadLastSystemCall carries the first argument
-// of that call, which for a wait or a file read is the handle - so the object can be named by
-// duplicating that handle out of the target.
-//
-// This is the passive path of the application's own analysis (anawait.c). The other path walks the
-// stack to recover the remaining arguments, which only works for a 32-bit target, so a wait on
-// several objects reports how many rather than which.
+// What one thread is blocked on, from the system call it is sitting in. ThreadLastSystemCall
+// carries the first argument of that call, which for a wait or a file read is the handle, so the
+// object is named by duplicating it out of the target. This is the passive path of the
+// application's own analysis (anawait.c); the other walks the stack to recover the remaining
+// arguments, which only works for a 32-bit target.
 
 VOID AtpAddWaitHandleInfo(
     _In_ PVOID Waiting,

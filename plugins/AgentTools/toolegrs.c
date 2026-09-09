@@ -14,13 +14,10 @@
 
 #include <networktoolsintf.h>
 
-// The two tools that reach off the machine, and the only ones in this server that do. Everything
-// else answers from what the system already knows; these send packets to an address the caller
-// chose, which is why they sit in their own consent tier and are asked about separately.
-//
-// ping_host is implemented here rather than borrowed from NetworkTools, whose ping runs on a
-// dialog's own thread and reports into its window. whois_lookup goes through the plugin, which
-// knows the referral chain.
+// The two tools that reach off the machine, and the only ones here that do, which is why they sit
+// in their own consent tier. ping_host is implemented here rather than borrowed from NetworkTools,
+// whose ping runs on a dialog's own thread; whois_lookup goes through the plugin, which knows the
+// referral chain.
 
 // The reply buffer has to hold the reply, the payload, an ICMP error message, an IO_STATUS_BLOCK
 // and any options, which is what the helper documents and what NetworkTools uses.

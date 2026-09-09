@@ -11,9 +11,8 @@
 
 #include "agenttools.h"
 
-// What one handle really refers to, when the handle list can only give a name. ALPC is the transport
-// almost every RPC call on Windows rides on, and an ALPC port handle by itself says nothing about who
-// is on the other end - the kernel knows, and the System Informer driver is the only way to ask.
+// What one handle refers to when the handle list can only give a name. An ALPC port handle says
+// nothing about who is on the other end; only the driver can ask.
 
 PCWSTR AtpAlpcPortTypeString(
     _In_ ULONG State
@@ -243,11 +242,10 @@ VOID AtpGetAlpcPortInfo(
     AtDeleteTarget(&target);
 }
 
-// The object behind a handle, without duplicating it. The driver can read a file object's state,
-// a section's backing file or an ETW registration's GUID on behalf of another process, which is the
-// only way to see inside a protected process - nothing else can even open one for PROCESS_DUP_HANDLE.
-// Without the driver the handle is duplicated instead and the parts that survive that are reported,
-// with source saying which route the answer came by.
+// The object behind a handle, without duplicating it. The driver reads a file object's state, a
+// section's backing file or an ETW registration's GUID on behalf of another process, which is the
+// only route into a protected process; without it the handle is duplicated and source says which
+// route was taken.
 
 typedef struct _AT_HANDLE_QUERY
 {
@@ -751,9 +749,8 @@ VOID AtpGetHandleDetails(
     query.Handle = Target->HandleValue;
     query.UseDriver = KsiLevel() >= KphLevelMed;
 
-    // Without the driver the object has to come here to be read. That needs PROCESS_DUP_HANDLE,
-    // which a protected process will never give, so the driver path is the only one that reaches
-    // those - the answer says which route it took rather than pretending they are the same.
+    // Without the driver the object has to come here to be read, which needs PROCESS_DUP_HANDLE -
+    // never granted by a protected process.
     if (!query.UseDriver)
     {
         if (NT_SUCCESS(PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE, Target->ProcessItem->ProcessId)))
@@ -789,9 +786,8 @@ VOID AtpGetHandleDetails(
         }
     }
 
-    // The driver names the object during target resolution; the duplicate path could not, because
-    // resolution deliberately asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so that a
-    // protected process still resolves. Now that the object is here, it can be named.
+    // Resolution asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so a protected process
+    // still resolves, so the duplicate path could not name the object until now.
     if (!Target->HandleObjectName && query.LocalHandle)
     {
         // The type index is what selects the best-name routine for a process, thread or key handle;
@@ -850,15 +846,9 @@ VOID AtpGetHandleDetails(
         NtClose(dupProcessHandle);
 }
 
-// The named pipe namespace. Every pipe on the machine is listed by name, which is what says whether
-// a service is listening at all and what a process is talking to.
-//
-// Listing is free; asking a pipe about itself is not. There is no query on a named pipe that does
-// not open it, and opening one connects to it as a client - the server's connect completes, an
-// instance is taken, and a server that treats a connection as a request has just had one. phlib says
-// so in as many words (native.c, PhpGetProcessIsDotNet: "NtQueryAttributesFile and other query
-// functions connect to the pipe and should be avoided"). So connect defaults to false and the caller
-// has to ask for the details knowing what they cost.
+// The named pipe namespace. Listing is free; asking a pipe about itself is not - there is no query
+// that does not open it, and opening one connects as a client, taking an instance and completing
+// the server's connect. So connect defaults to false.
 
 typedef struct _AT_PIPE_ENTRY
 {
@@ -924,9 +914,8 @@ PCWSTR AtpPipeConfigurationString(
     return NULL;
 }
 
-// Opening the pipe by name is a client connection, so it is done only when the caller asked for it,
-// and always with anonymous impersonation: a pipe server can impersonate whoever connects to it, and
-// System Informer is exactly the token nobody should hand over.
+// Opening the pipe by name is a client connection, so always with anonymous impersonation: a pipe
+// server can impersonate whoever connects to it.
 VOID AtpAddPipeDetails(
     _In_ PVOID Row,
     _In_ HANDLE RootDirectory,
@@ -992,9 +981,8 @@ VOID AtpAddPipeDetails(
         PhAddJsonObjectValue(Row, "server", server);
     }
 
-    // Only what the server decided when it created the pipe. The state, the read mode, the
-    // completion mode and the bytes available all describe the client handle this call just opened -
-    // the state is "connected" because connecting is how it was asked - so they are not reported.
+    // Only what the server decided when it created the pipe; the state, read mode, completion mode
+    // and bytes available all describe the client handle this call just opened.
     if (NT_SUCCESS(NtQueryInformationFile(pipeHandle, &isb, &localInfo, sizeof(localInfo), FilePipeLocalInformation)))
     {
         AtJsonAddStringZ(Row, "configuration", AtpPipeConfigurationString(localInfo.NamedPipeConfiguration));
@@ -1101,10 +1089,9 @@ VOID AtpListNamedPipes(
     PhClearReference(&context.NameContains);
 }
 
-// Who else has this mapped. A section object's mappings live on the control area the kernel keeps
-// per file, not on the section handle, so a section created here from a file reports every process
-// that has that file mapped - which is how peview's Mappings page works (tools/peview/mappings.c).
-// Only the driver can read that list.
+// A section's mappings live on the control area the kernel keeps per file, not on the section
+// handle, so a section created here from a file reports every process mapping that file. Only the
+// driver can read it.
 
 VOID AtpAddMappingEntries(
     _In_ PAT_ROWS Rows,
@@ -1370,14 +1357,9 @@ VOID AtpGetSectionMappings(
     PhClearReference(&path);
 }
 
-// Every handle in the system that refers to the same object as this one. find_handles matches on the
-// object's *name*, which is a different question: two handles can share a name and be different
-// objects, and an unnamed object - most events, mutexes and sections that matter - cannot be found by
-// name at all. This matches on the object itself.
-//
-// The kernel only tells a caller the object address of a handle when that caller is allowed to see
-// kernel addresses, so this needs elevation. Without it every address is zero and no comparison is
-// possible, which is said rather than answered with an empty list.
+// Every handle referring to the same object. find_handles matches on the object's name, which is a
+// different question: an unnamed object cannot be found by name at all. The kernel only reveals a
+// handle's object address to a caller allowed to see kernel addresses, so this needs elevation.
 
 VOID AtpFindObjectHandles(
     _In_ PAT_TOOL_CALL Call,

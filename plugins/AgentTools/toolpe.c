@@ -133,9 +133,8 @@ PPH_STRING AtpGetCertificateSerialNumber(
     return string;
 }
 
-// One entry per signature on the file, not per certificate in a chain: a file can carry more than
-// one signature (a SHA-1 and a SHA-256, say) and PhVerifyFileEx returns the signing certificate of
-// each. The issuer name is as far up the chain as this goes.
+// One entry per signature on the file, not per certificate in a chain: a file can carry a SHA-1 and
+// a SHA-256 signature, and PhVerifyFileEx returns the signing certificate of each.
 VOID AtpAddCertificate(
     _In_ PAT_ROWS Rows,
     _In_ PCERT_CONTEXT Certificate,
@@ -309,11 +308,9 @@ VOID AtpVerifyFileSignature(
     PhDereferenceObject(path);
 }
 
-// The hash is the key every prevalence lookup is keyed on, and the reason a file has more than one
-// is that they answer different questions. A plain file hash changes when anything in the file
-// changes, signature included. The Authenticode hash deliberately skips the certificate and the
-// fields that signing rewrites, so it is the same before and after a file is signed - which is what
-// makes it the right thing to compare a suspect binary against a known one.
+// A plain file hash changes when anything in the file changes, signature included. The Authenticode
+// hash skips the certificate and the fields signing rewrites, so it is the same before and after
+// signing - which is what makes it the right thing to compare a suspect binary against a known one.
 
 #define AT_HASH_CHUNK_SIZE (1024 * 1024)
 #define AT_HASH_MAXIMUM_SIZE (2ULL * 1024 * 1024 * 1024)

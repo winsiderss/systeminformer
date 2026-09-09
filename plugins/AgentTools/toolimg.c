@@ -15,9 +15,8 @@
 #include <phcrypt.h>
 #include <strsrch.h>
 
-// The parts of a PE that get_image_info returns only when asked for. The default answer stays the
-// summary, because an agent that wants the imports of one file should not have to read the exports
-// of every file it looked at first.
+// The parts of a PE that get_image_info returns only when asked for; the default answer stays the
+// summary.
 
 #define AT_IMAGE_SECTION_HEADERS      0x0001
 #define AT_IMAGE_SECTION_DIRECTORIES  0x0002
@@ -182,9 +181,9 @@ VOID AtpAddImageHeaders(
 
     if (is64)
     {
-        // NtHeaders carries whichever optional header this build of System Informer was compiled
-        // for, so on a 32-bit build it is the 32-bit one even when the mapped file is PE32+. The
-        // cast is how phlib reads a 64-bit optional header out of it (mapimg.c, PhGetMappedImageLoadConfig64).
+        // NtHeaders carries whichever optional header this build was compiled for, so on a 32-bit
+        // build it is the 32-bit one even for a PE32+ file. The cast is how phlib reads a 64-bit
+        // optional header out of it (mapimg.c).
         PIMAGE_OPTIONAL_HEADER64 opt = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
 
         AT_ADD_OPTIONAL(opt);
@@ -735,10 +734,8 @@ VOID AtpAddImageCertificates(
     PhAddJsonObjectValue(Structured, "certificates", array);
 }
 
-// The Rich header is the linker's own record of what built the file: a list of tool ids and build
-// numbers, obfuscated with a checksum key, that no compiler documents and every compiler writes. Two
-// binaries built on the same machine with the same toolchain carry the same one, which is why it is
-// used to group samples that share nothing else.
+// The linker's own record of what built the file: tool ids and build numbers, obfuscated with a
+// checksum key, undocumented and written by every compiler.
 VOID AtpAddImageRichHeader(
     _In_ PVOID Structured,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -1018,15 +1015,11 @@ VOID AtpAddImageEntropy(
     PhAddJsonObjectValue(Structured, "entropy", entry);
 }
 
-// The import hash. Not a hash of the file at all: a hash of the list of functions the file imports,
-// in the order the linker wrote them, which is stable across recompiles of the same source and
-// distinctive enough to group samples that share a builder.
-//
-// The rules are conventions rather than a specification, and getting any of them wrong produces a
-// hash that matches nothing anywhere. As implemented everywhere and here: lower case, a .dll, .sys
-// or .ocx extension stripped and any other kept, "dll.function" joined by commas, ordinal imports
-// written "dll.ordN" - except for the three DLLs whose ordinals everyone resolves to names - and
-// delay loaded imports left out entirely.
+// The import hash: a hash of the imported function list, not of the file. The rules are conventions
+// rather than a specification, and getting one wrong produces a hash that matches nothing - lower
+// case, a .dll, .sys or .ocx extension stripped and any other kept, "dll.function" joined by
+// commas, ordinals written "dll.ordN" except for the three DLLs whose ordinals everyone resolves to
+// names, and delay loaded imports left out.
 
 typedef struct _AT_IMPHASH_ORDINALS
 {
@@ -1267,9 +1260,9 @@ typedef struct _AT_STRINGS_CONTEXT
     ULONG Count;
 } AT_STRINGS_CONTEXT, *PAT_STRINGS_CONTEXT;
 
-// The image is mapped as a data file, so an address inside the view is a file offset. A section has
-// to be found by its raw data range for that reason; matching it against VirtualAddress instead
-// attributes strings to whichever section happens to hold that RVA, which is a different section.
+// The image is mapped as a data file, so an address in the view is a file offset and a section is
+// found by its raw data range. Matching against VirtualAddress attributes strings to a different
+// section.
 PIMAGE_SECTION_HEADER AtpSectionFromFileOffset(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG_PTR Offset
@@ -1336,9 +1329,8 @@ BOOLEAN NTAPI AtpStringSearchCallback(
     if (context->HaveEncoding && Result->Encoding != context->Encoding)
         return FALSE;
 
-    // PhFindStringInStringRef returns an index, not a boolean: SIZE_MAX means not found, and 0 means
-    // found at the very start. Testing it for truth drops exactly the strings that begin with the
-    // thing being searched for, which is the one case that always has a match.
+    // PhFindStringInStringRef returns an index, not a boolean: SIZE_MAX is not found and 0 is found
+    // at the start. Testing it for truth drops exactly the strings that begin with the search text.
     if (context->Contains &&
         PhFindStringInStringRef(&Result->String, &context->Contains->sr, TRUE) == SIZE_MAX)
     {

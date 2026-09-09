@@ -306,9 +306,8 @@ NTSTATUS AtConnectionSend(
     header.Type = Type;
     header.PayloadLength = PayloadLength;
 
-    // All pipe I/O happens on the connection thread: the handle is synchronous, and a
-    // synchronous file object serializes every operation on it, so a write from another thread
-    // would block behind a pending read.
+    // All pipe I/O happens on the connection thread: the handle is synchronous, so a write from
+    // another thread would block behind a pending read.
     assert(NtCurrentThreadId() == Connection->ThreadId);
 
     status = PhWriteFile(Connection->PipeHandle, &header, sizeof(SIMCP_HEADER), NULL, NULL);
@@ -927,9 +926,7 @@ VOID AtServerStop(
 
     PhReleaseQueuedLockExclusive(&AtServerLock);
 
-    // Join the listener outside the lock: its failure path takes the lock to publish the
-    // failure. Start and Stop are both driven from the main thread, so nothing restarts the
-    // server before this returns.
+    // Join the listener outside the lock: its failure path takes the lock to publish the failure.
     if (listenerThreadHandle)
     {
         AtpCancelAndWaitForThread(listenerThreadHandle);

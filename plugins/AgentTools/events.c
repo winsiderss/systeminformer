@@ -12,17 +12,11 @@
 #include "agenttools.h"
 
 // A bounded ring of what happened: processes starting and exiting, services changing state, devices
-// arriving and going away.
-//
-// System Informer logs all of this itself, but a plugin only receives the log entry as an opaque
-// pointer plus a formatter that renders it as a sentence, and prose is exactly what this server does
-// not return. The events are therefore built from the provider callbacks, which hand over the typed
-// items: the same source the app's own log is written from.
-//
-// Nothing before the plugin loaded can be answered, and the ring is bounded, so this is a recent
-// feed and not an audit log. Reads are by cursor rather than index because the ring moves under the
-// reader: a client asks for what happened after the cursor it last saw and is told plainly how many
-// events it missed, rather than being handed a shorter list that looks complete.
+// arriving and going away. Built from the provider callbacks rather than the application's log,
+// which hands a plugin only an opaque pointer and a formatter that renders prose. Nothing before
+// the plugin loaded can be answered and the ring is bounded, so this is a recent feed and not an
+// audit log. Reads are by cursor because the ring moves under the reader: a client is told how many
+// events it missed rather than handed a shorter list that looks complete.
 
 #define AT_EVENT_RING_SIZE 512
 
@@ -70,8 +64,7 @@ typedef struct _AT_EVENT
 } AT_EVENT, *PAT_EVENT;
 
 // A process that has exited is gone from every list, so what it was has to be kept at the moment it
-// went: the command line and image path are the point, since that is what an agent is asking about
-// when it asks what just ran and died.
+// went: the command line and image path are the point.
 
 #define AT_EXIT_RING_SIZE 256
 
@@ -111,10 +104,9 @@ static PH_CALLBACK_REGISTRATION AtEventDeviceRegistration;
 static PH_CALLBACK_REGISTRATION AtEventProcessUpdatedRegistration;
 static PH_CALLBACK_REGISTRATION AtEventServiceUpdatedRegistration;
 
-// A provider raises an added event for everything that exists on its first run. That is the
-// enumeration of what was already there, not news, and on this machine it is several hundred
-// events that would fill the ring before anything real happened. Additions only count once the
-// provider that raises them has completed a run.
+// A provider raises an added event for everything that exists on its first run - several hundred
+// here - which would fill the ring before anything real happened. Additions only count once the
+// provider has completed a run.
 static LONG AtEventProcessProviderRan = 0;
 static LONG AtEventServiceProviderRan = 0;
 
@@ -351,10 +343,8 @@ VOID NTAPI AtpEventServiceModifiedCallback(
     if (!data || !data->ServiceItem)
         return;
 
-    // Only transitions. The provider raises this for any change to a service item, which on a
-    // normal machine is hundreds of events a minute that say nothing an agent can act on and push
-    // the process events out of the ring; "what changed about services" is what
-    // list_services with since_snapshot_id answers.
+    // Only transitions. The provider raises this for any change to a service item, which is
+    // hundreds of events a minute that would push the process events out of the ring.
     if (data->OldService.State == data->ServiceItem->State)
         return;
 
@@ -579,8 +569,7 @@ VOID AtpListRecentEvents(
     PhAcquireQueuedLockShared(&AtEventLock);
 
     // What was asked for but is no longer held. A client that has never read starts at the oldest
-    // kept event and is not told it missed what happened before the plugin loaded, which it could
-    // not have seen in any case.
+    // kept event and is not told it missed what happened before the plugin loaded.
     if (sinceCursor != 0 && sinceCursor + 1 < AtEventOldestCursor)
         dropped = AtEventOldestCursor - sinceCursor - 1;
 
@@ -704,9 +693,9 @@ VOID AtpListRecentProcessExits(
         if (havePid && exit->ProcessId != UlongToHandle((ULONG)pid))
             continue;
 
-        // Non-zero, not NT_SUCCESS: a process exit code is not an NTSTATUS. A program that
-        // returns 7 has failed, but 0x7 has severity zero and NT_SUCCESS calls it success. Zero is
-        // the only value that means success in both readings.
+        // Non-zero, not NT_SUCCESS: a process exit code is not an NTSTATUS. 0x7 has severity zero
+        // and NT_SUCCESS calls it success, so zero is the only value that means success in both
+        // readings.
         if (failedOnly && (!exit->HaveExitStatus || exit->ExitStatus == 0))
             continue;
 

@@ -12,16 +12,10 @@
 #include "agenttools.h"
 
 // Snapshot identity and change tracking. Every read carries the snapshot id of the provider run it
-// came from; a client that kept the id from its last list can ask what changed since, instead of
-// diffing two full listings itself.
-//
-// The id is the process provider's own run count, and service changes are stamped with the id
-// current when the service provider saw them: both providers run on the same interval, so one id
-// space describes the whole cache.
-//
-// Live entries are bounded by the machine (a few hundred processes, a few hundred services) and
-// removed ones by AT_SNAPSHOT_REMOVED_LIMIT, so the lists stay small enough that a linear scan is
-// cheaper than a hash table would be to maintain.
+// came from, so a client can ask what changed since instead of diffing two listings. The id is the
+// process provider's run count, and service changes are stamped with the id current when the
+// service provider saw them. Live entries are bounded by the machine and removed ones by
+// AT_SNAPSHOT_REMOVED_LIMIT, so a linear scan is cheaper than maintaining a hash table.
 
 #define AT_SNAPSHOT_REMOVED_LIMIT 256
 
@@ -67,9 +61,9 @@ ULONG AtGetUpdateInterval(
     return (ULONG)ReadAcquire(&AtUpdateInterval);
 }
 
-// The id of the run in progress. A provider raises its item events during a run and publishes the
-// run count only at the end of it, so a change seen now belongs to the run about to be published:
-// stamping it with the last published id would hide it from a client holding that id.
+// A provider raises its item events during a run and publishes the run count only at the end, so a
+// change seen now belongs to the run about to be published: stamping it with the last published id
+// would hide it from a client holding that id.
 ULONG AtpChangeId(
     VOID
     )

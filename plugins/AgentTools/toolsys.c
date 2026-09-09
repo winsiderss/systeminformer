@@ -609,8 +609,7 @@ VOID AtpGetUefiVariables(
     }
 
     // SeSystemEnvironmentPrivilege must be enabled, not merely held; an elevated token holds it
-    // disabled. Enable it for this thread only, so the process token is untouched. Without it the
-    // enumeration fails with STATUS_PRIVILEGE_NOT_HELD.
+    // disabled. Enabled for this thread only, so the process token is untouched.
     status = PhAcquireCurrentThreadPrivilege(SE_SYSTEM_ENVIRONMENT_PRIVILEGE, &privilegeState);
 
     if (!NT_SUCCESS(status))
@@ -931,10 +930,8 @@ VOID AtpGetSystemEnvironment(
     Result->StructuredContent = structured;
 }
 
-// Where the machine's RAM actually is. "Available" is not "free": most of a healthy machine's memory
-// sits on the standby list holding file and page-file contents that have already been read once, and
-// giving it to something else costs only the time to drop it. A machine with a gigabyte free and
-// twenty on standby is not short of memory; one with a gigabyte free and nothing on standby is.
+// "Available" is not "free": most of a healthy machine's memory sits on the standby list holding
+// what has already been read once, and giving it away costs only the time to drop it.
 
 VOID AtpAddMemoryList(
     _In_ PVOID Structured,
@@ -961,9 +958,9 @@ VOID AtpAddMemoryList(
 
     priorities = PhCreateJsonArray();
 
-    // Standby is kept in eight priority buckets and the total is their sum; the buckets are what
-    // say whether the cache is holding anything worth keeping. Priority 0 is repurposed first, so
-    // a machine under pressure has its low buckets emptied and its high ones intact.
+    // Standby is kept in eight priority buckets and the total is their sum. Priority 0 is
+    // repurposed first, so a machine under pressure has its low buckets emptied and its high ones
+    // intact.
     for (i = 0; i < RTL_NUMBER_OF(memoryList.PageCountByPriority); i++)
     {
         PVOID row = PhCreateJsonObject();
@@ -1106,12 +1103,10 @@ VOID AtpGetMemoryDetails(
     Result->StructuredContent = structured;
 }
 
-// What the machine's own defences are set to. Every field here is a fact about the kernel's
-// configuration rather than about any process: whether images have to be signed, whether the
-// hypervisor is enforcing that, whether a kernel debugger is attached, which speculative execution
-// mitigations are on. It is the first thing to read when deciding how much to trust anything else
-// this server says - a machine with test signing on and a debugger attached can be lying about
-// everything.
+// What the machine's own defences are set to: whether images have to be signed, whether the
+// hypervisor enforces it, whether a kernel debugger is attached. Read this first when deciding how
+// much to trust anything else here - a machine with test signing on and a debugger attached can be
+// lying about all of it.
 
 PCWSTR AtpVirtualStatusString(
     _In_ PH_VIRTUAL_STATUS Status

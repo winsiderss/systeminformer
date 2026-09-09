@@ -21,17 +21,11 @@
 #define AT_FWP_DIRECTION_MAP_FORWARD 0x3902
 #define AT_FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
 
-// The connections Windows Filtering Platform has recorded allowing or dropping. This reads what the
-// platform already has rather than starting a collector of its own: the roadmap called for an
-// independent FwpmNetEventSubscribe so as not to depend on the Firewall tab being open, but
-// subscribing means turning on FWPM_ENGINE_COLLECT_NET_EVENTS, which is a machine-wide setting that
-// ExtendedTools also owns and turns off again when its tab closes. Two subscribers in one process
-// fighting over one global switch is worse than a tool that reports what is there and says plainly
-// when nothing is being collected.
-//
-// Every field of a net event is gated by a flag in its header. A field whose flag is clear holds
-// whatever was in the buffer, so each one is reported only when its flag says it was set, and null
-// otherwise.
+// The connections Windows Filtering Platform has recorded. This reads what the platform already
+// collects rather than subscribing: FWPM_ENGINE_COLLECT_NET_EVENTS is machine-wide and
+// ExtendedTools owns it too. Every field of a net event is gated by a flag in its header; one whose
+// flag is clear holds whatever was in the buffer, so each is reported only when its flag says it
+// was set.
 
 static PVOID AtpFwpuclntBaseAddress = NULL;
 static ULONG (WINAPI *AtpFwpmEngineOpen)(PCWSTR, ULONG, PSEC_WINNT_AUTH_IDENTITY_W, const FWPM_SESSION0*, HANDLE*) = NULL;
@@ -390,9 +384,8 @@ VOID AtpListFirewallEvents(
     pathContains = AtGetArgumentString(Call->Arguments, "application_contains");
     dropsOnly = AtJsonGetObjectBoolean(Call->Arguments, "drops_only");
 
-    // Whether anything is recording. This tool does not turn it on: the switch is machine-wide and
-    // belongs to whoever set it, and an empty list from a machine that is not collecting must not
-    // read as a machine with no firewall activity.
+    // This does not turn collection on: the switch is machine-wide. An empty list from a machine
+    // that is not collecting must not read as no firewall activity.
     if (AtpFwpmEngineGetOption &&
         AtpFwpmEngineGetOption(engineHandle, FWPM_ENGINE_COLLECT_NET_EVENTS, &collecting) == ERROR_SUCCESS &&
         collecting)

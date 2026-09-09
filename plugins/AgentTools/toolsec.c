@@ -14,10 +14,9 @@
 #include <aclapi.h>
 #include <sddl.h>
 
-// Who is allowed to do what to something. An SDDL string is the whole answer in one field and is
-// unreadable without parsing it, so the descriptor is taken apart here: the owner, the group, the
-// integrity label and one row per access control entry, each with the trustee named and the access
-// mask decoded into the rights that object type actually has.
+// Who is allowed to do what to something. An SDDL string is the whole answer in one unreadable
+// field, so the descriptor is taken apart: owner, group, integrity label, and one row per access
+// control entry with the access mask decoded into the rights that object type has.
 
 typedef enum _AT_SECURITY_KIND
 {

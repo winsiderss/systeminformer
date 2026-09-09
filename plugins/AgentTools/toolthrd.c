@@ -616,13 +616,10 @@ typedef struct _AT_STACK_CONTEXT
 
 _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 // A managed frame has no native symbol worth reading: dbghelp resolves it to whatever jitted code
-// happens to sit at that address, or to nothing at all. The DotNetTools plugin can name it, through
-// the thread stack control callback the application fires around its own walk, so this fires the
-// same sequence: initialize, announce the default walk, resolve each frame, tear down.
-//
-// Not done for a 32-bit process on a 64-bit build. DotNetTools reaches a WOW64 target's CLR through
-// phsvc, and starting phsvc prompts for elevation - a background tool call must not put a consent
-// dialog on the screen, and would block on it for as long as it took to answer.
+// sits at that address. DotNetTools can name it through the thread stack control callback, so this
+// fires the same sequence: initialize, announce the default walk, resolve each frame, tear down.
+// Not done for a 32-bit process on a 64-bit build, because DotNetTools reaches a WOW64 target's CLR
+// through phsvc and starting phsvc prompts for elevation.
 VOID AtpBeginManagedSymbols(
     _Inout_ PAT_STACK_CONTEXT Context,
     _In_ HANDLE ProcessId,
@@ -653,9 +650,8 @@ VOID AtpBeginManagedSymbols(
     control.u.Initializing.CustomWalk = FALSE;
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
 
-    // CustomWalk is deliberately ignored: this tool always walks the stack itself, which is the
-    // path the application takes whenever a custom walk is unavailable or fails, and the plugin
-    // still gets to name every frame.
+    // CustomWalk is ignored: this always walks the stack itself, which is the path the application
+    // takes when a custom walk is unavailable, and the plugin still names every frame.
     memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
     control.Type = PluginThreadStackBeginDefaultWalkStack;
     control.UniqueKey = Context;
@@ -715,10 +711,8 @@ BOOLEAN NTAPI AtpStackFrameCallback(
         PH_PLUGIN_THREAD_STACK_CONTROL control;
         PPH_STRING nativeSymbol = symbol;
 
-        // DotNetTools answers this with the managed method name for a frame the CLR owns, and
-        // leaves the symbol alone for the rest. It takes ownership of what it is given and hands
-        // back what it wants reported, so the returned pointer changing is what says the frame was
-        // managed - there is no other way to tell a jitted frame from an unresolved native one.
+        // DotNetTools takes ownership of the symbol it is given and hands back what it wants
+        // reported, so the returned pointer changing is what says the frame was managed.
         memset(&control, 0, sizeof(PH_PLUGIN_THREAD_STACK_CONTROL));
         control.Type = PluginThreadStackResolveSymbol;
         control.UniqueKey = context;
@@ -847,9 +841,8 @@ VOID AtpGetThreadStack(
     Result->StructuredContent = structured;
 }
 
-// Every thread of one process, walked under a single symbol provider and a single consent. The
-// provider is what costs here: creating it loads the process's modules and the symbol files behind
-// them, so asking thread by thread pays that again on every call and this pays it once.
+// Every thread of one process under a single symbol provider: creating one loads the process's
+// modules and their symbol files, so asking thread by thread pays that again on every call.
 
 #define AT_STACKS_DEFAULT_THREADS 8
 #define AT_STACKS_MAXIMUM_THREADS 64
@@ -1015,9 +1008,8 @@ VOID AtpGetProcessStacks(
         context.IncludeLines = includeLines;
         context.Frames = PhCreateJsonArray();
 
-        // A thread that cannot be opened or walked becomes one row that says so. Failing the whole
-        // call over it would throw away the stacks of every other thread, and a thread exiting
-        // while a process is being looked at is ordinary rather than exceptional.
+        // A thread that cannot be opened or walked becomes one row that says so; failing the whole
+        // call would throw away every other thread's stack.
         status = PhOpenThread(
             &threadHandle,
             THREAD_QUERY_INFORMATION | THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME,
@@ -1091,11 +1083,9 @@ VOID AtpGetProcessStacks(
     PhFree(processes);
 }
 
-// An address on its own means nothing. Every other tool here hands back addresses - a thread's start
-// address, a frame's pc, a pointer found in memory, an export - and this is what turns one back into
-// a name, or a name into an address. A running process resolves against the modules it has loaded; a
-// file on disk resolves against itself, loaded at the base it asks for, so the answers are that
-// file's own addresses rather than any process's.
+// Turns an address back into a name, or a name into an address. A running process resolves against
+// the modules it has loaded; a file on disk resolves against itself at the base it asks for, so the
+// answers are that file's own addresses.
 
 VOID AtpAddSymbolLine(
     _In_ PVOID Structured,
@@ -1313,8 +1303,8 @@ VOID AtpResolveSymbol(
                 AtJsonAddNull(structured, "rva");
 
             // A bare name is searched across every loaded module, so the answer can come from a
-            // module the caller did not have in mind - an import thunk in the executable rather
-            // than the function in the library. Resolving the address back says which one it is.
+            // module the caller did not have in mind - an import thunk rather than the function
+            // itself. Resolving the address back says which.
             symbol = PhGetSymbolFromAddress(symbolProvider, information.Address, &resolveLevel, &fileName, NULL, NULL);
 
             AtJsonAddString(structured, "symbol", symbol);
@@ -1406,9 +1396,9 @@ VOID AtpControlThread(
         // a thread's I/O is as disruptive to the thread as stopping it, and the access reflects it.
         status = NtCancelSynchronousIoFile(Target->ThreadHandle, NULL, &isb);
 
-        // Nothing to cancel is an answer, not a failure: a thread that is not waiting on
-        // synchronous I/O reports STATUS_NOT_FOUND, and reporting that as an error would send a
-        // caller looking for a permission problem that is not there.
+        // Nothing to cancel is an answer, not a failure: a thread not waiting on synchronous I/O
+        // reports STATUS_NOT_FOUND, and reporting that as an error sends a caller looking for a
+        // permission problem.
         if (status == STATUS_NOT_FOUND)
             status = STATUS_SUCCESS;
         else if (NT_SUCCESS(status))
