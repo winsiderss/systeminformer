@@ -10,7 +10,7 @@
  */
 
 #include "devices.h"
-#include "../ExtendedTools/extension/plugin.h"
+#include <extendedtoolsintf.h>
 
 BOOLEAN GraphicsGraphShowText = FALSE;
 BOOLEAN GraphicsEnableScaleGraph = FALSE;

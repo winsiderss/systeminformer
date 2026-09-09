@@ -11,7 +11,6 @@
  */
 
 #include "exttools.h"
-#include "extension\plugin.h"
 #include <trace.h>
 
 PPH_PLUGIN PluginInstance = NULL;

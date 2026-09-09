@@ -10,7 +10,6 @@ set(HEADERS
     "etwmini.h"
     "etwmon.h"
     "etwsys.h"
-    "extension/plugin.h"
     "exttools.h"
     "framemon.h"
     "fwmon.h"

@@ -14,6 +14,7 @@
 #define EXTTOOLS_H
 
 #include <phdk.h>
+#include <extendedtoolsintf.h>
 #include <phappresource.h>
 #include <settings.h>
 #include <mapldr.h>
@@ -23,7 +24,6 @@
 
 #include "resource.h"
 
-#include "extension\plugin.h"
 #include "framemon.h"
 #include "tpm.h"
 
@@ -2035,5 +2035,8 @@ EXTERN_C VOID EtShowSrumDialog(
 VOID EtShowCacheLatencyDialog(
     _In_ HWND ParentWindowHandle
     );
+
+// This plugin's own instance of the interface it publishes.
+extern EXTENDEDTOOLS_INTERFACE PluginInterface;
 
 #endif

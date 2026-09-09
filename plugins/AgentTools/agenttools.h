@@ -26,7 +26,7 @@
 #include <networktoolsintf.h>
 #include <onlinechecksintf.h>
 
-#include "../ExtendedTools/extension/plugin.h"
+#include <extendedtoolsintf.h>
 #include <svcsup.h>
 #include <lsasup.h>
 #include <symprv.h>
