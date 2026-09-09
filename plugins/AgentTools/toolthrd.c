@@ -140,13 +140,14 @@ BOOLEAN NTAPI AtpThreadModuleCallback(
 }
 
 PPH_LIST AtpCreateThreadModuleList(
-    _In_ HANDLE ProcessId
+    _In_ HANDLE ProcessId,
+    _Out_ PBOOLEAN Complete
     )
 {
     PPH_LIST list;
 
     list = PhCreateList(64);
-    PhEnumGenericModules(ProcessId, NULL, PH_ENUM_GENERIC_MAPPED_IMAGES, AtpThreadModuleCallback, list);
+    *Complete = NT_SUCCESS(PhEnumGenericModules(ProcessId, NULL, PH_ENUM_GENERIC_MAPPED_IMAGES, AtpThreadModuleCallback, list));
 
     return list;
 }
@@ -366,6 +367,7 @@ PVOID AtpCreateThreadsResult(
     PPH_SYMBOL_PROVIDER symbolProvider = NULL;
     HANDLE processHandle = NULL;
     PPH_LIST moduleList = NULL;
+    BOOLEAN modulesComplete = TRUE;
     BOOLEAN includeDetails;
     AT_ROWS rows;
     PVOID structured;
@@ -377,7 +379,7 @@ PVOID AtpCreateThreadsResult(
     includeDetails = !Summary && AtJsonGetObjectBoolean(Call->Arguments, "include_details");
 
     if (includeDetails)
-        moduleList = AtpCreateThreadModuleList(ProcessItem->ProcessId);
+        moduleList = AtpCreateThreadModuleList(ProcessItem->ProcessId, &modulesComplete);
 
     // One process handle for the whole walk; the service tag query needs it.
     if (includeDetails && PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
@@ -490,6 +492,10 @@ PVOID AtpCreateThreadsResult(
 
     if (moduleList)
         AtpDestroyThreadModuleList(moduleList);
+
+    // start_address_module is null both for a thread that started outside every module and for a
+    // module list that could not be read, so the two are told apart here.
+    PhAddJsonObjectBoolean(structured, "modules_complete", modulesComplete);
 
     if (Summary)
     {

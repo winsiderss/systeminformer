@@ -1139,6 +1139,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"base_address\",\"size\",\"type\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_BATCH_RESULTS_SCHEMA("Each entry carries the process identity and its modules with the same paging fields, or just count when summary is set.") ","
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the module walk did not finish; a wow64 process is read in two passes and either can fail, so the list may be partial\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
         AT_READ_ANNOTATIONS "}"
@@ -1189,6 +1190,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"tid\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_BATCH_RESULTS_SCHEMA("Each entry carries the process identity and its threads with the same paging fields, or just count when summary is set.") ","
+        "\"modules_complete\":{\"type\":\"boolean\",\"description\":\"False when the module list could not be read, in which case a null start_address_module means unknown rather than outside every module\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
         AT_READ_ANNOTATIONS "}"
@@ -1463,6 +1465,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"scanned\":{\"type\":\"integer\",\"description\":\"Module entries examined across all processes\"},"
         "\"files_verified\":{\"type\":\"integer\",\"description\":\"Distinct files actually verified; far smaller than scanned\"},"
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Processes whose module list could not be read. Above zero, a module reported as loaded nowhere may simply be loaded in one of these\"},"
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; not every process was walked\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"modules\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"timed_out\"]},"
@@ -1495,6 +1498,7 @@ CONST AT_TOOL AtTools[] =
         "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"]},"
         "\"process_name\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"pid\"]}},"
+        "\"mapped_users_unreadable\":{\"type\":[\"integer\",\"null\"],\"description\":\"Processes whose mapped files could not be read; null when skip_mapped was set. Above zero, this list is partial\"},"
         "\"mapped_users\":{\"type\":[\"array\",\"null\"],\"description\":\"Null when skip_mapped was set\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\"},"
         "\"process_sequence_number\":{\"type\":\"integer\"},"
@@ -2236,6 +2240,7 @@ CONST AT_TOOL AtTools[] =
         "\"error\":{\"type\":[\"string\",\"null\"]},"
         "\"message\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"name\",\"size\"]}},"
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the module walk did not finish, so the modules listed are a partial set\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"scan_type\"]},"
         AT_READ_ANNOTATIONS "}"

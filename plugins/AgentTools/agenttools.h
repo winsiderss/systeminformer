@@ -724,7 +724,8 @@ BOOLEAN AtFindProcessModule(
     _In_opt_ PPH_STRING Name,
     _Out_ PVOID *BaseAddress,
     _Out_ PSIZE_T Size,
-    _Out_ PPH_STRING *FileName
+    _Out_ PPH_STRING *FileName,
+    _Out_opt_ PNTSTATUS EnumStatus
     );
 
 PCWSTR AtStringEncodingString(

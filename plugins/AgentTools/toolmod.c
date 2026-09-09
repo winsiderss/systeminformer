@@ -246,6 +246,10 @@ PVOID AtpCreateModulesResult(
     entry = PhCreateJsonObject();
     AtFillProcessIdentity(entry, ProcessItem);
 
+    // A wow64 process is read in two passes and only the second decides the status, so a partial
+    // list is entirely possible; it is returned, and said to be partial.
+    PhAddJsonObjectBoolean(entry, "enumeration_complete", NT_SUCCESS(*Status));
+
     if (Summary)
     {
         PhAddJsonObjectUInt64(entry, "count", context.Modules.TotalCount);
@@ -506,16 +510,21 @@ BOOLEAN AtFindProcessModule(
     _In_opt_ PPH_STRING Name,
     _Out_ PVOID *BaseAddress,
     _Out_ PSIZE_T Size,
-    _Out_ PPH_STRING *FileName
+    _Out_ PPH_STRING *FileName,
+    _Out_opt_ PNTSTATUS EnumStatus
     )
 {
     AT_FIND_MODULE_CONTEXT context;
+    NTSTATUS status;
 
     memset(&context, 0, sizeof(AT_FIND_MODULE_CONTEXT));
     context.Address = Address;
     context.Name = Name;
 
-    PhEnumGenericModules(ProcessId, ProcessHandle, 0, AtpFindModuleCallback, &context);
+    status = PhEnumGenericModules(ProcessId, ProcessHandle, 0, AtpFindModuleCallback, &context);
+
+    if (EnumStatus)
+        *EnumStatus = status;
 
     if (!context.Found)
     {
@@ -675,7 +684,8 @@ VOID AtpGetProcessImageCoherency(
         context.ProcessHandle = Target->ProcessHandle;
 
         AtInitializeRows(&context.Rows, Call->Arguments);
-        PhEnumGenericModules(Target->ProcessItem->ProcessId, Target->ProcessHandle, 0, AtpCoherencyModuleCallback, &context);
+        PhAddJsonObjectBoolean(structured, "enumeration_complete",
+            NT_SUCCESS(PhEnumGenericModules(Target->ProcessItem->ProcessId, Target->ProcessHandle, 0, AtpCoherencyModuleCallback, &context)));
         AtAddRows(structured, "modules", &context.Rows);
         AtDeleteRows(&context.Rows);
         PhClearReference(&context.NameContains);
@@ -763,6 +773,7 @@ VOID AtpGetImagePageModifications(
     )
 {
     NTSTATUS status;
+    NTSTATUS enumStatus = STATUS_SUCCESS;
     AT_PAGE_MODIFICATION_CONTEXT context;
     PPH_STRING moduleName;
     PPH_STRING fileName = NULL;
@@ -777,15 +788,23 @@ VOID AtpGetImagePageModifications(
 
     if (AtGetArgumentPointer(Call->Arguments, "base_address", &address) && address != 0)
     {
-        if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, (PVOID)address, NULL, &baseAddress, &size, &fileName))
+        if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, (PVOID)address, NULL, &baseAddress, &size, &fileName, &enumStatus))
         {
             AtSetToolError(Result, "not_found", STATUS_NOT_FOUND, L"No module of that process is loaded at that address.");
             PhClearReference(&moduleName);
             return;
         }
     }
-    else if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, NULL, moduleName, &baseAddress, &size, &fileName))
+    else if (!AtFindProcessModule(Target->ProcessItem->ProcessId, Target->ProcessHandle, NULL, moduleName, &baseAddress, &size, &fileName, &enumStatus))
     {
+        // Not finding it in a list that could not be read is not the same as it not being there.
+        if (!NT_SUCCESS(enumStatus))
+        {
+            AtSetToolStatusError(Result, enumStatus, L"Enumerating the process's modules");
+            PhClearReference(&moduleName);
+            return;
+        }
+
         AtSetToolError(
             Result,
             "not_found",

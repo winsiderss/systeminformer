@@ -247,6 +247,7 @@ typedef struct _AT_FIND_MODULES_CONTEXT
     ULONG64 Deadline;
     ULONG Scanned;
     ULONG Verified;
+    ULONG Unreadable;
     BOOLEAN TimedOut;
 } AT_FIND_MODULES_CONTEXT, *PAT_FIND_MODULES_CONTEXT;
 
@@ -439,13 +440,18 @@ VOID AtpFindModules(
 
         // Mapped images as well as loaded modules. Mapped data files are left out unless asked for:
         // they are not code, so every one is trivially unsigned.
-        PhEnumGenericModules(
+        // A process whose modules cannot be read is counted, not skipped silently: this tool is
+        // asked whether a module is loaded anywhere, and "nowhere" has to mean everywhere was looked.
+        if (!NT_SUCCESS(PhEnumGenericModules(
             processItem->ProcessId,
             NULL,
             context.IncludeMappedFiles ? (PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES) : PH_ENUM_GENERIC_MAPPED_IMAGES,
             AtpFindModulesCallback,
             &context
-            );
+            )))
+        {
+            context.Unreadable++;
+        }
     }
 
     PhDereferenceObjects(processItems, numberOfProcessItems);
@@ -470,6 +476,7 @@ VOID AtpFindModules(
     AtAddRows(structured, "modules", &context.Rows);
     PhAddJsonObjectUInt64(structured, "scanned", context.Scanned);
     PhAddJsonObjectUInt64(structured, "files_verified", context.Verified);
+    PhAddJsonObjectUInt64(structured, "unreadable_count", context.Unreadable);
     PhAddJsonObjectBoolean(structured, "timed_out", context.TimedOut);
     AtAddSnapshot(structured);
 
@@ -486,6 +493,7 @@ typedef struct _AT_FILE_MAPPED_CONTEXT
     PPH_STRING BaseName;
     PPH_PROCESS_ITEM ProcessItem;
     ULONG Count;
+    ULONG Unreadable;
 } AT_FILE_MAPPED_CONTEXT, *PAT_FILE_MAPPED_CONTEXT;
 
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
@@ -653,6 +661,7 @@ VOID AtpGetFileUsers(
     if (AtJsonGetObjectBoolean(Call->Arguments, "skip_mapped"))
     {
         AtJsonAddNull(structured, "mapped_users");
+        AtJsonAddNull(structured, "mapped_users_unreadable");
     }
     else
     {
@@ -671,6 +680,7 @@ VOID AtpGetFileUsers(
             PhClearReference(&context.Win32FileName);
             PhClearReference(&context.BaseName);
             AtJsonAddNull(structured, "mapped_users");
+            AtJsonAddNull(structured, "mapped_users_unreadable");
             PhFreeJsonObject(context.Array);
             goto FinishExit;
         }
@@ -684,19 +694,23 @@ VOID AtpGetFileUsers(
 
             context.ProcessItem = processItems[i];
 
-            PhEnumGenericModules(
+            if (!NT_SUCCESS(PhEnumGenericModules(
                 processItems[i]->ProcessId,
                 NULL,
                 PH_ENUM_GENERIC_MAPPED_FILES | PH_ENUM_GENERIC_MAPPED_IMAGES,
                 AtpFileMappedCallback,
                 &context
-                );
+                )))
+            {
+                context.Unreadable++;
+            }
         }
 
         PhDereferenceObjects(processItems, numberOfProcessItems);
         PhFree(processItems);
 
         PhAddJsonObjectValue(structured, "mapped_users", context.Array);
+        PhAddJsonObjectUInt64(structured, "mapped_users_unreadable", context.Unreadable);
         PhClearReference(&context.Win32FileName);
         PhClearReference(&context.BaseName);
     }
