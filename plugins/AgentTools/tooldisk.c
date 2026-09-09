@@ -226,15 +226,32 @@ VOID AtpAddDescriptorString(
 {
     PPH_STRING string;
     PPH_STRING trimmed;
+    PSTR text;
+    ULONG available;
+    ULONG length;
 
-    if (!Offset)
+    // The offsets are the device's own numbers, so a string is read only once it is known to start
+    // inside the descriptor and to be terminated inside it as well.
+    if (!Offset || Offset >= Descriptor->Size)
+    {
+        AtJsonAddNull(Object, Key);
+        return;
+    }
+
+    text = PTR_ADD_OFFSET(Descriptor, Offset);
+    available = Descriptor->Size - Offset;
+
+    for (length = 0; length < available && text[length]; length++)
+        NOTHING;
+
+    if (length == available)
     {
         AtJsonAddNull(Object, Key);
         return;
     }
 
     // The descriptor holds raw INQUIRY bytes, which are not guaranteed to be UTF-8.
-    if (!(string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(Descriptor, Offset))))
+    if (!(string = PhConvertUtf8ToUtf16Ex(text, length)))
     {
         AtJsonAddNull(Object, Key);
         return;
@@ -457,6 +474,8 @@ VOID AtpAddNvmeHealth(
     PSTORAGE_PROTOCOL_DATA_DESCRIPTOR descriptor;
     PNVME_HEALTH_INFO_LOG health;
     ULONG returnedLength = 0;
+    ULONG dataOffset;
+    ULONG dataEnd;
     PVOID entry;
     ULONG temperature;
 
@@ -500,6 +519,17 @@ VOID AtpAddNvmeHealth(
 
     if (protocolData->ProtocolDataOffset < sizeof(STORAGE_PROTOCOL_SPECIFIC_DATA) ||
         protocolData->ProtocolDataLength < sizeof(NVME_HEALTH_INFO_LOG))
+    {
+        AtJsonAddNull(Row, "nvme");
+        return;
+    }
+
+    // Both numbers come from the device and are about to be read through into a buffer on the
+    // stack, so the log has to be shown to end inside what the call actually returned.
+    if (!NT_SUCCESS(RtlULongAdd((ULONG)(ULONG_PTR)PTR_SUB_OFFSET(protocolData, buffer), protocolData->ProtocolDataOffset, &dataOffset)) ||
+        !NT_SUCCESS(RtlULongAdd(dataOffset, sizeof(NVME_HEALTH_INFO_LOG), &dataEnd)) ||
+        dataEnd > returnedLength ||
+        dataEnd > sizeof(buffer))
     {
         AtJsonAddNull(Row, "nvme");
         return;
