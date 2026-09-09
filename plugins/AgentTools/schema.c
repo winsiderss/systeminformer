@@ -1454,6 +1454,7 @@ CONST AT_TOOL AtTools[] =
         "\"unsigned_only\":{\"type\":\"boolean\",\"description\":\"Only modules whose signature does not verify; implies verify_signatures\"},"
         "\"verify_signatures\":{\"type\":\"boolean\",\"description\":\"Verify each distinct file once and report the result\"},"
         "\"pid\":{\"type\":\"integer\",\"description\":\"Only this process\"},"
+        "\"include_mapped_files\":{\"type\":\"boolean\",\"description\":\"Also mapped data files, which are not code and so are trivially unsigned\"},"
         "\"max_seconds\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":60,\"description\":\"How long to spend scanning; default 20\"},"
         AT_PAGE_INPUT_PROPERTIES
         "},\"additionalProperties\":false},"
