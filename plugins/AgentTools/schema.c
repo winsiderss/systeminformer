@@ -4378,7 +4378,8 @@ CONST AT_TOOL AtTools[] =
         "runs (a service's own image, an autostart entry's directory), dacl_protected on something that should "
         "inherit, or an owner that is not the account you expect - an object's owner can always rewrite its "
         "permissions. Absent and empty are opposite answers: dacl null with dacl_present false means no list at "
-        "all, which allows everyone everything, while an empty dacl array means nobody is allowed anything. This "
+        "all, which allows everyone everything, while an empty dacl array means nobody is allowed anything; a "
+        "null dacl_present is neither, and means the list could not be read. This "
         "reads permissions and never changes them.\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"path\":{\"type\":\"string\",\"description\":\"A file or directory, or a registry key such as HKLM\\\\Software\\\\...\"},"
@@ -4412,8 +4413,8 @@ CONST AT_TOOL AtTools[] =
         "\"flag_names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
         "\"inherited\":{\"type\":\"boolean\",\"description\":\"The entry came from a parent rather than being set here\"}"
         "}}},"
-        "\"dacl_present\":{\"type\":\"boolean\"},"
-        "\"integrity\":{\"type\":[\"object\",\"null\"],\"description\":\"The mandatory label. Null is the normal case and means medium\",\"properties\":{"
+        "\"dacl_present\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Null when the list could not be read at all, which is not the same as false\"},"
+        "\"integrity\":{\"type\":[\"object\",\"null\"],\"description\":\"The mandatory label. Null means the object carries none, which is medium - but only when integrity_readable is true\",\"properties\":{"
         "\"sid\":{\"type\":[\"string\",\"null\"]},"
         "\"name\":{\"type\":[\"string\",\"null\"]},"
         "\"policy\":{\"type\":\"string\"},"
@@ -4424,9 +4425,10 @@ CONST AT_TOOL AtTools[] =
         "\"control\":{\"type\":[\"string\",\"null\"]},"
         "\"dacl_protected\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The list does not inherit from the parent\"},"
         "\"dacl_auto_inherited\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"integrity_readable\":{\"type\":\"boolean\",\"description\":\"The label was actually looked for. False for a service, whose descriptor cannot be asked for one, and when the query failed: integrity is null either way and proves nothing\"},"
         "\"sddl\":{\"type\":[\"string\",\"null\"],\"description\":\"The whole descriptor as a string, for a caller that wants to compare or store it\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"kind\",\"owner\",\"group\",\"dacl_present\"]},"
+        "},\"required\":[\"kind\",\"owner\",\"group\",\"dacl_present\",\"integrity_readable\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

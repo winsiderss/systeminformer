@@ -332,7 +332,8 @@ VOID AtpAddIntegrity(
     }
 
     // No label is the normal case and means medium integrity, which is why it is null rather than
-    // an invented level.
+    // an invented level. The caller tells that apart from a label nobody could read by way of
+    // integrity_readable, which is false in the second case.
     AtJsonAddNull(Structured, "integrity");
 }
 
@@ -422,6 +423,7 @@ VOID AtpGetObjectSecurity(
     PPH_STRING sddl = NULL;
     PSECURITY_DESCRIPTOR securityDescriptor = NULL;
     BOOLEAN localDescriptor = FALSE;
+    BOOLEAN labelQueried = TRUE;
     PPH_ACCESS_ENTRY accessEntries = NULL;
     ULONG numberOfAccessEntries = 0;
     HANDLE handle = NULL;
@@ -511,8 +513,12 @@ VOID AtpGetObjectSecurity(
 
         // The label lives in the SACL, and asking for it needs no privilege the way the audit part
         // of a SACL does; asking for both together fails, so the label is asked for on its own.
+        // SE_SERVICE refuses it outright, so a service is the one kind whose label is never read
+        // and must not be reported as simply absent.
         if (kind == AtSecurityKindService)
         {
+            labelQueried = FALSE;
+
             status = PhGetSeObjectSecurity(
                 handle,
                 SE_SERVICE,
@@ -590,19 +596,38 @@ VOID AtpGetObjectSecurity(
     acl = NULL;
 
     if (NT_SUCCESS(RtlGetDaclSecurityDescriptor(securityDescriptor, &present, &acl, &defaulted)))
+    {
         AtpAddAcl(structured, "dacl", acl, present, accessEntries, numberOfAccessEntries);
+        PhAddJsonObjectBoolean(structured, "dacl_present", !!present);
+    }
     else
+    {
+        // A query that failed is not a DACL that is absent, and absent is the permissive answer:
+        // it means everyone is allowed everything.
         AtJsonAddNull(structured, "dacl");
-
-    PhAddJsonObjectBoolean(structured, "dacl_present", !!present);
+        AtJsonAddNull(structured, "dacl_present");
+    }
 
     present = FALSE;
     acl = NULL;
 
-    if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(securityDescriptor, &present, &acl, &defaulted)))
-        AtpAddIntegrity(structured, acl, present);
-    else
+    // A null integrity means the object carries no label, which is medium - so it can only be
+    // reported once the label has actually been looked for and found absent.
+    if (!labelQueried)
+    {
         AtJsonAddNull(structured, "integrity");
+        PhAddJsonObjectBoolean(structured, "integrity_readable", FALSE);
+    }
+    else if (NT_SUCCESS(RtlGetSaclSecurityDescriptor(securityDescriptor, &present, &acl, &defaulted)))
+    {
+        AtpAddIntegrity(structured, acl, present);
+        PhAddJsonObjectBoolean(structured, "integrity_readable", TRUE);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "integrity");
+        PhAddJsonObjectBoolean(structured, "integrity_readable", FALSE);
+    }
 
     if (NT_SUCCESS(RtlGetControlSecurityDescriptor(securityDescriptor, &control, &revision)))
     {
