@@ -2939,7 +2939,10 @@ BOOLEAN NTAPI UserNotesSetProcessComment(
 
     UnlockDb();
 
-    SaveDb();
+    // The comment is only set as far as the caller is concerned once it has reached the file.
+    if (!NT_SUCCESS(SaveDb()))
+        return FALSE;
+
     InvalidateProcessComments();
 
     return TRUE;
