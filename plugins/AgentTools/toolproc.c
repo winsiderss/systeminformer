@@ -1067,7 +1067,11 @@ VOID AtpControlProcess(
         {
             HANDLE freezeHandle;
 
-            freezeHandle = InterlockedExchangePointer(&Target->ProcessItem->FreezeHandle, NULL);
+            // The record is not given up until the thaw has actually happened. Closing the handle
+            // is itself what ends the freeze, so clearing and closing first would thaw the process,
+            // lose the Processes window's record of it, and still report a failure - which is the
+            // opposite of every one of the three. PhUiThawTreeProcess orders it this way too.
+            freezeHandle = ReadPointerAcquire(&Target->ProcessItem->FreezeHandle);
 
             if (!freezeHandle)
             {
@@ -1078,9 +1082,13 @@ VOID AtpControlProcess(
 
             status = PhThawProcess(freezeHandle, Target->ProcessHandle);
 
-            // Closing the handle ends the freeze, so it is closed either way.
-            NtClose(freezeHandle);
-            freezeChanged = TRUE;
+            if (NT_SUCCESS(status))
+            {
+                if (freezeHandle = InterlockedExchangePointer(&Target->ProcessItem->FreezeHandle, NULL))
+                    NtClose(freezeHandle);
+
+                freezeChanged = TRUE;
+            }
         }
         break;
     case AtActionEmptyProcessWorkingSet:
