@@ -45,19 +45,15 @@ BOOLEAN AtpInitializeFirewall(
             AtpFwpmNetEventCreateEnumHandle = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventCreateEnumHandle0", 0);
             AtpFwpmNetEventDestroyEnumHandle = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventDestroyEnumHandle0", 0);
 
-            // The newest enumeration the platform offers; each version returns a wider event, and
-            // the fields this tool reads live in the header every version shares.
+            // The newest enumeration the platform offers, and no lower than 3. The events are read
+            // as FWPM_NET_EVENT, whose header is FWPM_NET_EVENT_HEADER3; versions 3, 4 and 5 all
+            // carry that header, while 2, 1 and 0 carry HEADER2, HEADER1 and HEADER0, which are
+            // laid out differently. Falling back to those would read one structure as another.
             AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum5", 0);
             if (!AtpFwpmNetEventEnum)
                 AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum4", 0);
             if (!AtpFwpmNetEventEnum)
                 AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum3", 0);
-            if (!AtpFwpmNetEventEnum)
-                AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum2", 0);
-            if (!AtpFwpmNetEventEnum)
-                AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum1", 0);
-            if (!AtpFwpmNetEventEnum)
-                AtpFwpmNetEventEnum = PhGetProcedureAddress(AtpFwpuclntBaseAddress, "FwpmNetEventEnum0", 0);
         }
 
         PhEndInitOnce(&initOnce);
