@@ -463,7 +463,8 @@ BOOLEAN AtpHasFormElicitation(
 /**
  * Reads the request's _meta block.
  *
- * eturn TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read
+ * 
+eturn TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read
  * whatever the answer, because the caller uses it to shape the refusal as well as the reply.
  */
 BOOLEAN AtpParseRequestMeta(
@@ -1278,10 +1279,10 @@ AT_INCOMING_RESULT AtpProcessIncoming(
         {
             // No templated resources: the answer is an empty list rather than a method the client
             // has to discover is missing.
-            PVOID result = PhCreateJsonObject();
+            PVOID templates = PhCreateJsonObject();
 
-            PhAddJsonObjectValue(result, "resourceTemplates", PhCreateJsonArray());
-            AtpSendResult(Connection, idJson, result, meta.Modern);
+            PhAddJsonObjectValue(templates, "resourceTemplates", PhCreateJsonArray());
+            AtpSendResult(Connection, idJson, templates, meta.Modern);
         }
         else if (AtpEqualStringUtf8(method, "server/discover"))
         {
@@ -1689,7 +1690,9 @@ AT_CONSENT_RESULT AtpElicitModern(
     pending->Used = TRUE;
     pending->Action = Action->Action;
     memcpy(pending->Identity, identity, sizeof(identity));
-    pending->Nonce = ((ULONG64)PhGenerateRandomNumber64() << 1) ^ PhGenerateRandomNumber64();
+    // One call: PhGenerateRandomNumber64 already returns a full 64 bits, and shifting one of them
+    // left by one only threw the top bit away.
+    pending->Nonce = PhGenerateRandomNumber64();
     pending->Expiry.QuadPart = now.QuadPart + (LONGLONG)AT_PENDING_CONSENT_TIMEOUT_MS * PH_TIMEOUT_MS;
 
     PhInitFormatI64X(&format[0], pending->Nonce);
