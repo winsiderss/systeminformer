@@ -2792,6 +2792,8 @@ CONST AT_TOOL AtTools[] =
         "\"is_maximized\":{\"type\":\"boolean\"},"
         "\"is_enabled\":{\"type\":\"boolean\"},"
         "\"is_hung\":{\"type\":\"boolean\"},"
+        "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground, read after any change rather than assumed from it\"},"
+        "\"request_accepted\":{\"type\":\"boolean\",\"description\":\"Whether the system accepted the request at all. False means it was refused, usually by UIPI or the foreground lock, which is not the same as the window declining\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
         AT_WRITE_ANNOTATIONS "}"
@@ -2825,6 +2827,8 @@ CONST AT_TOOL AtTools[] =
         "\"is_maximized\":{\"type\":\"boolean\"},"
         "\"is_enabled\":{\"type\":\"boolean\"},"
         "\"is_hung\":{\"type\":\"boolean\"},"
+        "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground, read after any change rather than assumed from it\"},"
+        "\"request_accepted\":{\"type\":\"boolean\",\"description\":\"Whether the system accepted the request at all. False means it was refused, usually by UIPI or the foreground lock, which is not the same as the window declining\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
         AT_WRITE_ANNOTATIONS "}"
@@ -2958,6 +2962,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_maximized\":{\"type\":\"boolean\"},"
         "\"is_enabled\":{\"type\":\"boolean\"},"
         "\"is_hung\":{\"type\":\"boolean\",\"description\":\"The owning thread is not pumping messages\"},"
+        "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground\"},"
         "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Composited away by the shell despite being visible\"},"
         "\"rect\":{\"type\":[\"object\",\"null\"],\"properties\":{"
         "\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},"
@@ -2994,6 +2999,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_maximized\":{\"type\":\"boolean\"},"
         "\"is_enabled\":{\"type\":\"boolean\"},"
         "\"is_hung\":{\"type\":\"boolean\"},"
+        "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground\"},"
         "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         "\"is_unicode\":{\"type\":\"boolean\"},"
         "\"rect\":{\"type\":[\"object\",\"null\"]},"

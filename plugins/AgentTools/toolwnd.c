@@ -132,6 +132,7 @@ VOID AtpAddWindowState(
     PhAddJsonObjectBoolean(Object, "is_maximized", !!IsZoomed(WindowHandle));
     PhAddJsonObjectBoolean(Object, "is_enabled", !!IsWindowEnabled(WindowHandle));
     PhAddJsonObjectBoolean(Object, "is_hung", !!IsHungAppWindow(WindowHandle));
+    PhAddJsonObjectBoolean(Object, "is_foreground", GetForegroundWindow() == WindowHandle);
 
     if (AtpIsWindowCloaked(WindowHandle, &cloaked))
         PhAddJsonObjectBoolean(Object, "is_cloaked", cloaked);
@@ -505,6 +506,7 @@ VOID AtpControlWindow(
     PVOID structured;
     ULONG showCommand = SW_SHOW;
     BOOLEAN foreground = FALSE;
+    BOOLEAN accepted;
 
     NT_VERIFY(AtGetArgumentPointer(Call->Arguments, "handle", &handleValue));
     windowHandle = (HWND)(ULONG_PTR)handleValue;
@@ -538,9 +540,12 @@ VOID AtpControlWindow(
     {
         // Posted, not sent: a window that is not answering its message queue would hang this
         // thread, and closing is a request in any case.
-        PostMessage(windowHandle, WM_CLOSE, 0, 0);
+        // UIPI refuses a post to a higher integrity window, which is not the same as the window
+        // declining to close.
+        accepted = !!PostMessage(windowHandle, WM_CLOSE, 0, 0);
         PhDelayExecution(AT_WINDOW_CLOSE_WAIT_MS);
 
+        PhAddJsonObjectBoolean(structured, "request_accepted", accepted);
         PhAddJsonObjectBoolean(structured, "still_exists", !!IsWindow(windowHandle));
         AtJsonAddNull(structured, "state");
     }
@@ -563,16 +568,18 @@ VOID AtpControlWindow(
                 ShowWindowAsync(windowHandle, SW_RESTORE);
             }
 
-            SetForegroundWindow(windowHandle);
+            // Routinely refused by the foreground lock rules, so the answer is not assumed.
+            accepted = !!SetForegroundWindow(windowHandle);
         }
         else
         {
             // Async: the change is queued to the window's own thread rather than waiting on it.
-            ShowWindowAsync(windowHandle, showCommand);
+            accepted = !!ShowWindowAsync(windowHandle, showCommand);
         }
 
         PhDelayExecution(AT_WINDOW_CLOSE_WAIT_MS);
 
+        PhAddJsonObjectBoolean(structured, "request_accepted", accepted);
         AtJsonAddString(structured, "state", stateString);
         PhAddJsonObjectBoolean(structured, "still_exists", !!IsWindow(windowHandle));
         PhClearReference(&stateString);
