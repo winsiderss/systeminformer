@@ -81,6 +81,7 @@ PPH_STRING AtFormatServiceConfigParameter(
     if (startTypeString && !AtParseServiceStartType(startTypeString, &startType))
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"start_type must be one of boot, system, auto, demand, disabled.");
+        PhClearReference(&description);
         PhClearReference(&startTypeString);
         return NULL;
     }
