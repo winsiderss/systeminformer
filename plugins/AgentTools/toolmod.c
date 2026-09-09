@@ -359,6 +359,29 @@ VOID AtpGetProcessUnloadedModules(
     if (!NT_SUCCESS(status))
         return;
 
+    if (target.ProcessHandle)
+        PhGetProcessIsWow64(target.ProcessHandle, &isWow64);
+
+#ifdef _WIN64
+    // A 32-bit process records its unloads as RTL_UNLOAD_EVENT_TRACE32, and reading them means
+    // going through the 32-bit phsvc the way ExtendedTools does at unldll.c:90. Nothing here can do
+    // that, and reading the trace at host bitness would walk records of the wrong shape and answer
+    // with whatever they happened to line up with.
+    if (isWow64)
+    {
+        AtSetToolError(
+            Result,
+            "failed",
+            STATUS_NOT_SUPPORTED,
+            L"pid %lu is a 32-bit process, and its unloaded module trace is laid out for 32-bit; "
+            L"reading it needs the 32-bit helper this tool has no route to.",
+            HandleToUlong(target.ProcessItem->ProcessId)
+            );
+        AtDeleteTarget(&target);
+        return;
+    }
+#endif
+
     status = PhGetProcessUnloadedDlls(
         target.ProcessItem->ProcessId,
         &eventTrace,
@@ -374,9 +397,6 @@ VOID AtpGetProcessUnloadedModules(
         AtDeleteTarget(&target);
         return;
     }
-
-    if (target.ProcessHandle)
-        PhGetProcessIsWow64(target.ProcessHandle, &isWow64);
 
     AtInitializeRows(&rows, Call->Arguments);
     currentEvent = eventTrace;

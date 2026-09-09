@@ -2182,9 +2182,9 @@ CONST AT_TOOL AtTools[] =
         "an entry here. The ring is short and wraps, so this is evidence of what happened rather than a complete "
         "history, and a process that has unloaded nothing returns an empty list. The record is what ntdll kept - "
         "a name of at most 31 characters, the base it was at, and the image's own timestamp, checksum and "
-        "version - not a file on disk, so nothing here can be verified against one. For a 32-bit process on "
-        "64-bit Windows this reads the 64-bit ring, which is not where its own unloads are recorded; is_wow64 "
-        "says when that is the case. "
+        "version - not a file on disk, so nothing here can be verified against one. A 32-bit process on "
+        "64-bit Windows records its unloads in a differently shaped ring that this cannot read, and is refused "
+        "rather than answered from the wrong one. "
         AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         AT_PAGE_INPUT_PROPERTIES
@@ -2202,7 +2202,7 @@ CONST AT_TOOL AtTools[] =
         "\"version\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"sequence\",\"size\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
-        "\"is_wow64\":{\"type\":\"boolean\",\"description\":\"The process is 32-bit on 64-bit Windows, so this list is not its own unload ring\"},"
+        "\"is_wow64\":{\"type\":\"boolean\",\"description\":\"Always false here: a 32-bit process on 64-bit Windows is refused rather than answered from the wrong ring\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
