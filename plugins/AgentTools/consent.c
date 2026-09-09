@@ -32,6 +32,8 @@ typedef struct _AT_CONSENT_REQUEST
     PPH_STRING Footer;
     BOOLEAN OfferPolicies;
     BOOLEAN OfferDelegate;
+    PCWSTR AcceptText;
+    PCWSTR DeclineText;
     HWND ComboHandle;
 
     BOOLEAN Allowed;
@@ -767,9 +769,9 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
 
 
         buttons[0].nButtonID = IDYES;
-        buttons[0].pszButtonText = L"Approve";
+        buttons[0].pszButtonText = request->AcceptText ? request->AcceptText : L"Approve";
         buttons[1].nButtonID = IDNO;
-        buttons[1].pszButtonText = L"Deny";
+        buttons[1].pszButtonText = request->DeclineText ? request->DeclineText : L"Deny";
         config.cButtons = RTL_NUMBER_OF(buttons);
         config.pButtons = buttons;
         config.nDefaultButton = IDNO;
@@ -950,6 +952,66 @@ AT_CONSENT_RESULT AtpAskUser(
     AtpDereferenceConsentRequest(request);
 
     return result;
+}
+
+/**
+ * Confirms a standing grant on its own, after the request that offered it was approved.
+ *
+ * \return TRUE if the grant was confirmed. A refusal, a timeout, or a dialog that could not be
+ * shown all return FALSE, which withholds the grant without affecting the approved request.
+ */
+BOOLEAN AtpConfirmSessionPolicy(
+    _In_ PAT_TOOL_CALL Call,
+    _In_ PCAT_ACTION_INFO Action,
+    _In_ AT_SESSION_POLICY Policy
+    )
+{
+    static CONST PH_STRINGREF undo = PH_STRINGREF_INIT(
+        L"\n\nRevoke grants on the Agents options page, or disconnecting the agent, undoes it.");
+    PAT_CONNECTION connection = Call->Connection;
+    PAT_CONSENT_REQUEST request;
+    AT_SESSION_POLICY policy;
+    AT_CONSENT_RESULT result;
+    PPH_STRING content;
+    PCWSTR scope;
+
+    request = AtpCreateConsentRequest(Action, connection);
+    PhMoveReference(&request->Footer,
+        PhFormatString(L"No answer in %u seconds keeps asking each time.", AT_CONSENT_TIMEOUT_MS / 1000));
+
+    if (Policy == AtSessionDelegate)
+    {
+        request->Instruction = PhCreateString(L"Let the client confirm this from now on?");
+        content = PhFormatString(
+            L"Later requests to %s are confirmed by the connected client instead of by System "
+            L"Informer, which cannot check how the client presents them.",
+            Action->Verb
+            );
+        request->AcceptText = L"Let the client ask";
+        request->DeclineText = L"Keep asking here";
+    }
+    else
+    {
+        request->Instruction = PhCreateString(L"Stop asking about this for this connection?");
+
+        // A classed grant covers every tool in the class, and the description says so.
+        if (scope = AtConsentClassDescription(Action->Class))
+            content = PhFormatString(L"This connection will be able to %s without being asked again.", scope);
+        else
+            content = PhFormatString(L"This connection will be able to %s, against any target, without being asked again.", Action->Verb);
+
+        request->AcceptText = L"Stop asking";
+        request->DeclineText = L"Ask each time";
+    }
+
+    request->Content = PhConcatStringRef2(&content->sr, &undo);
+    PhDereferenceObject(content);
+
+    AtpSubmitConsentRequest(request);
+    result = AtpWaitForConsentRequest(connection, request, TRUE, &policy);
+    AtpDereferenceConsentRequest(request);
+
+    return result == AtConsentAllowed;
 }
 
 PPH_STRING AtpFormatConnectionRequester(
@@ -1179,16 +1241,26 @@ AT_CONSENT_RESULT AtConsentGate(
     {
         result = AtpAskUser(Call, Action, Target, &policy);
 
+        // A standing grant is broader than the request that was just approved, so it is confirmed
+        // on its own. Declining withholds only the grant: this call was already allowed.
         if (result == AtConsentAllowed && policy != AtSessionAsk)
         {
-            // The choice lasts for this connection only; Revoke grants voids it.
-            AtpSetSessionPolicy(connection, Action, policy);
-            AtAudit(
-                connection,
-                Action,
-                NULL,
-                policy == AtSessionAllow ? L"granted for this connection" : L"delegated to the client's prompt for this connection"
-                );
+            if (AtpConfirmSessionPolicy(Call, Action, policy))
+            {
+                // The choice lasts for this connection only; Revoke grants voids it.
+                AtpSetSessionPolicy(connection, Action, policy);
+                AtAudit(
+                    connection,
+                    Action,
+                    NULL,
+                    policy == AtSessionAllow ? L"granted for this connection" : L"delegated to the client's prompt for this connection"
+                    );
+            }
+            else
+            {
+                policy = AtSessionAsk;
+                AtAudit(connection, Action, NULL, L"standing grant not confirmed; this call only");
+            }
         }
     }
     else
