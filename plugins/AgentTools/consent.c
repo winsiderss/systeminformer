@@ -291,16 +291,16 @@ HICON AtpCreateRequestIcon(
     _In_ PAT_CONNECTION Connection
     )
 {
-    PPH_STRING launcher = NULL;
+    PPH_STRING clientImageName = NULL;
     HANDLE clientProcessId = NULL;
     ULONG clientCount = 0;
     ULONG i;
     LONG dpi;
     LONG largeSize;
     LONG smallSize;
-    HICON launcherIcon = NULL;
+    HICON clientIcon = NULL;
     HICON unusedIcon = NULL;
-    HBITMAP launcherBitmap = NULL;
+    HBITMAP clientBitmap = NULL;
     HBITMAP shieldBitmap = NULL;
     HBITMAP compositeBitmap = NULL;
     HBITMAP maskBitmap = NULL;
@@ -334,37 +334,31 @@ HICON AtpCreateRequestIcon(
 
     PhReleaseQueuedLockExclusive(&Connection->Lock);
 
+    // Not the process provider: a client that has just started is not in it yet, which is the
+    // ordinary case here.
     if (clientCount == 1)
-    {
-        PPH_PROCESS_ITEM processItem;
+        PhGetProcessImageFileNameByProcessId(clientProcessId, &clientImageName);
 
-        if (processItem = PhReferenceProcessItem(clientProcessId))
-        {
-            PhSetReference(&launcher, processItem->FileName);
-            PhDereferenceObject(processItem);
-        }
-    }
-
-    if (!launcher)
+    if (!clientImageName)
         return NULL;
 
     dpi = PhGetWindowDpi(SystemInformer_GetWindowHandle());
     largeSize = PhGetSystemMetrics(SM_CXICON, dpi);
     smallSize = PhGetSystemMetrics(SM_CXSMICON, dpi);
 
-    PhExtractIconEx(&launcher->sr, FALSE, 0, largeSize, largeSize, smallSize, smallSize, &launcherIcon, &unusedIcon);
-    PhDereferenceObject(launcher);
+    PhExtractIconEx(&clientImageName->sr, TRUE, 0, largeSize, largeSize, smallSize, smallSize, &clientIcon, &unusedIcon);
+    PhDereferenceObject(clientImageName);
 
     if (unusedIcon)
         DestroyIcon(unusedIcon);
-    if (!launcherIcon)
+    if (!clientIcon)
         return NULL;
 
     // Both helpers yield premultiplied 32-bit bitmaps, so a plain alpha blend composes them.
-    launcherBitmap = PhIconToBitmap(launcherIcon, largeSize, largeSize);
-    DestroyIcon(launcherIcon);
+    clientBitmap = PhIconToBitmap(clientIcon, largeSize, largeSize);
+    DestroyIcon(clientIcon);
 
-    if (!launcherBitmap)
+    if (!clientBitmap)
         return NULL;
 
     memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
@@ -383,7 +377,7 @@ HICON AtpCreateRequestIcon(
     {
         oldComposite = SelectObject(compositeDc, compositeBitmap);
 
-        oldSource = SelectObject(sourceDc, launcherBitmap);
+        oldSource = SelectObject(sourceDc, clientBitmap);
         GdiAlphaBlend(compositeDc, 0, 0, largeSize, largeSize, sourceDc, 0, 0, largeSize, largeSize, blend);
 
         SelectObject(sourceDc, shieldBitmap);
@@ -410,7 +404,7 @@ HICON AtpCreateRequestIcon(
     if (shieldBitmap)
         DeleteBitmap(shieldBitmap);
 
-    DeleteBitmap(launcherBitmap);
+    DeleteBitmap(clientBitmap);
 
     return result;
 }

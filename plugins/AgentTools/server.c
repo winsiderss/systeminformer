@@ -1072,18 +1072,23 @@ VOID AtpCancelAndWaitForThread(
     while (TRUE)
     {
         IO_STATUS_BLOCK isb;
+        MSG message;
         ULONG wait;
 
         NtCancelSynchronousIoFile(ThreadHandle, NULL, &isb);
 
         // A consent dialog on the work queue sends messages to whatever thread owns the window it
         // is raising over, which is the thread that stops the server from the options page. A plain
-        // wait would not answer them and both sides would hold. Input is deliberately not dispatched:
-        // this runs inside a dialog handler that must not be re-entered.
+        // wait would not answer them and both sides would hold.
         wait = MsgWaitForMultipleObjects(1, &ThreadHandle, FALSE, 100, QS_SENDMESSAGE);
 
         if (wait != WAIT_TIMEOUT && wait != WAIT_OBJECT_0 + 1)
             break;
+
+        // Waking on QS_SENDMESSAGE does not deliver the message; PeekMessage does, and without it
+        // the flag stays set and this spins. PM_NOREMOVE leaves posted input queued, because this
+        // runs inside a dialog handler that must not be re-entered.
+        PeekMessage(&message, NULL, 0, 0, PM_NOREMOVE);
     }
 }
 
