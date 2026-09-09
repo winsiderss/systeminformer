@@ -252,7 +252,8 @@ VOID AtpPingHost(
                 (ULONG)timeout
                 );
 
-            status = replyCount ? reply->Status : IP_REQ_TIMED_OUT;
+            // A zero reply count is any failure at all, not a timeout; the reason is the last error.
+            status = replyCount ? reply->Status : GetLastError();
             roundTripTime = replyCount ? reply->RoundTripTime : 0;
         }
         else
@@ -274,13 +275,15 @@ VOID AtpPingHost(
                 (ULONG)timeout
                 );
 
-            status = replyCount ? reply->Status : IP_REQ_TIMED_OUT;
+            // A zero reply count is any failure at all, not a timeout; the reason is the last error.
+            status = replyCount ? reply->Status : GetLastError();
             roundTripTime = replyCount ? reply->RoundTripTime : 0;
         }
 
         entry = PhCreateJsonObject();
         PhAddJsonObjectUInt64(entry, "sequence", i);
         PhAddJsonObject(entry, "status", AtpIpStatusString(status));
+        AtJsonAddHex(entry, "status_code", status);
         PhAddJsonObjectBoolean(entry, "replied", status == IP_SUCCESS);
 
         if (status == IP_SUCCESS)
