@@ -2099,8 +2099,14 @@ VOID AtpListHiddenProcesses(
     }
 
     // The list is read after the scan: a process that started or exited during it is in one view
-    // and not the other.
-    PhEnumProcesses(&processes);
+    // and not the other. Without it every entry would report as not in the process list.
+    status = PhEnumProcesses(&processes);
+
+    if (!NT_SUCCESS(status))
+    {
+        AtSetToolStatusError(Result, status, L"Reading the process list");
+        goto CleanupExit;
+    }
 
     structured = PhCreateJsonObject();
     AtInitializeRows(&rows, Call->Arguments);
