@@ -774,6 +774,8 @@ VOID AtpGetService(
     PPH_SERVICE_ITEM serviceItem;
     SC_HANDLE serviceHandle;
     PVOID structured;
+    NTSTATUS openStatus;
+    NTSTATUS configStatus;
     BOOLEAN accessDenied = FALSE;
 
     if (!(name = AtGetArgumentString(Call->Arguments, "name")) || name->Length == 0)
@@ -802,11 +804,13 @@ VOID AtpGetService(
     else
         AtJsonAddNull(structured, "is_microsoft_signed");
 
-    if (NT_SUCCESS(PhOpenService(
+    openStatus = PhOpenService(
         &serviceHandle,
         SERVICE_QUERY_CONFIG | SERVICE_QUERY_STATUS | SERVICE_ENUMERATE_DEPENDENTS,
         PhGetString(serviceItem->Name)
-        )))
+        );
+
+    if (NT_SUCCESS(openStatus))
     {
         LPQUERY_SERVICE_CONFIG config;
         PPH_STRING description;
@@ -828,7 +832,7 @@ VOID AtpGetService(
             AtJsonAddNull(structured, "description");
         }
 
-        if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &config)))
+        if (NT_SUCCESS(configStatus = PhGetServiceConfig(serviceHandle, &config)))
         {
             AtJsonAddStringZ(structured, "binary_path", config->lpBinaryPathName);
             AtJsonAddStringZ(structured, "account", config->lpServiceStartName);
@@ -871,7 +875,10 @@ VOID AtpGetService(
         }
         else
         {
-            accessDenied = TRUE;
+            // Only a refusal is a refusal. A service that went away between the listing and this
+            // call fails here too, and calling that access_denied sends the caller after a
+            // permission it already holds.
+            accessDenied = configStatus == STATUS_ACCESS_DENIED;
             AtJsonAddNull(structured, "binary_path");
             AtJsonAddNull(structured, "account");
             AtJsonAddNull(structured, "error_control");
@@ -902,7 +909,7 @@ VOID AtpGetService(
     }
     else
     {
-        accessDenied = TRUE;
+        accessDenied = openStatus == STATUS_ACCESS_DENIED;
         AtJsonAddNull(structured, "description");
         AtJsonAddNull(structured, "binary_path");
         AtJsonAddNull(structured, "account");

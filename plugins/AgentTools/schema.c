@@ -2678,7 +2678,7 @@ CONST AT_TOOL AtTools[] =
         "\"key_modified_time\":{\"type\":[\"string\",\"null\"],\"description\":\"When the service's registry key was last written, however it was changed\"},"
         "\"exit_code\":{\"type\":\"integer\"},"
         "\"service_specific_exit_code\":{\"type\":\"integer\"},"
-        "\"access_denied\":{\"type\":\"boolean\"},"
+        "\"access_denied\":{\"type\":\"boolean\",\"description\":\"The service manager refused the query, so the null fields are ones this caller may not read. A service that has gone away since the listing fails too, and is not this\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"name\",\"is_driver\",\"dependencies\",\"controls_accepted\",\"access_denied\",\"details_available\"]},"
         AT_READ_ANNOTATIONS "}"
