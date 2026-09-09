@@ -30,6 +30,7 @@ typedef struct _AT_CONSENT_REQUEST
     PPH_STRING Instruction;
     PPH_STRING Content;
     PPH_STRING Footer;
+    PPH_STRING FooterUpdate;
     BOOLEAN OfferPolicies;
     BOOLEAN OfferDelegate;
     PCWSTR AcceptText;
@@ -120,6 +121,7 @@ VOID AtpDereferenceConsentRequest(
         PhClearReference(&Request->Instruction);
         PhClearReference(&Request->Content);
         PhClearReference(&Request->Footer);
+        PhClearReference(&Request->FooterUpdate);
 
         if (Request->Connection)
             PhDereferenceObject(Request->Connection);
@@ -500,7 +502,10 @@ HRESULT CALLBACK AtpConsentDialogCallback(
                 PhInitFormatS(&format[2], L" seconds.");
                 footer = PhFormat(format, RTL_NUMBER_OF(format), 64);
                 SendMessage(WindowHandle, TDM_UPDATE_ELEMENT_TEXT, TDE_FOOTER, (LPARAM)footer->Buffer);
-                PhMoveReference(&request->Footer, footer);
+
+                // Footer is what config.pszFooter points at for the life of the dialog; the
+                // countdown replaces this one instead.
+                PhMoveReference(&request->FooterUpdate, footer);
             }
         }
         break;
