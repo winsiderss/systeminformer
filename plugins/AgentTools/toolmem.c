@@ -136,30 +136,30 @@ VOID AtpGetProcessHandles(
         if (entry->UniqueProcessId != target->ProcessItem->ProcessId)
             continue;
 
-        if (processHandle)
+        if (processHandle && detailed)
         {
-            if (detailed)
-            {
-                // The same call that names the object also returns how many handles and references
-                // the object has and what it costs the pools, so the detail is free here.
-                haveBasicInfo = NT_SUCCESS(PhGetHandleInformationEx(
-                    processHandle,
-                    entry->HandleValue,
-                    entry->ObjectTypeIndex,
-                    0,
-                    NULL,
-                    &basicInfo,
-                    &typeName,
-                    &objectName,
-                    &bestName,
-                    NULL
-                    ));
-            }
-            else
-            {
-                PhGetObjectTypeName(processHandle, entry->HandleValue, entry->ObjectTypeIndex, &typeName);
-            }
+            // The same call that names the object also returns how many handles and references
+            // the object has and what it costs the pools, so the detail is free here.
+            haveBasicInfo = NT_SUCCESS(PhGetHandleInformationEx(
+                processHandle,
+                entry->HandleValue,
+                entry->ObjectTypeIndex,
+                0,
+                NULL,
+                &basicInfo,
+                &typeName,
+                &objectName,
+                &bestName,
+                NULL
+                ));
         }
+
+        // The type comes from the handle's own type index and needs no handle to the process at
+        // all. Asking only when the process could be opened left every row of a protected process
+        // with a null type, which the type filter drops and the per-type counts do not bucket - so
+        // the tool answered nothing for exactly the processes worth asking about.
+        if (!typeName)
+            PhGetObjectTypeName(processHandle, entry->HandleValue, entry->ObjectTypeIndex, &typeName);
 
         if (typeFilter && (!typeName || !PhEqualString(typeName, typeFilter, TRUE)))
             goto Next;
