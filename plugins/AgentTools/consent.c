@@ -37,6 +37,7 @@ typedef struct _AT_CONSENT_REQUEST
     BOOLEAN Allowed;
     AT_SESSION_POLICY Policy;
     BOOLEAN TimedOut;
+    BOOLEAN Failed;
 } AT_CONSENT_REQUEST, *PAT_CONSENT_REQUEST;
 
 static PH_WORK_QUEUE AtConsentWorkQueue;
@@ -686,6 +687,7 @@ VOID AtpCompleteConnectionRequest(
     )
 {
     PAT_CONNECTION connection = Request->Connection;
+    PCWSTR reason;
 
     // The connection went away before anyone answered: nothing to record.
     if (ReadAcquire(&Request->Abandoned) && !Request->TimedOut)
@@ -699,7 +701,15 @@ VOID AtpCompleteConnectionRequest(
     }
 
     WriteRelease((PLONG)&connection->Approval, AtApprovalDenied);
-    AtAudit(connection, &AtActionInfo[AtActionConnect], NULL, Request->TimedOut ? L"denied (no answer in time)" : L"denied by the user");
+
+    if (Request->Failed)
+        reason = L"denied (the confirmation could not be shown)";
+    else if (Request->TimedOut)
+        reason = L"denied (no answer in time)";
+    else
+        reason = L"denied by the user";
+
+    AtAudit(connection, &AtActionInfo[AtActionConnect], NULL, reason);
 
     if (Request->TimedOut)
     {
@@ -709,7 +719,8 @@ VOID AtpCompleteConnectionRequest(
             );
     }
 
-    AtConnectionClose(connection, SimcpCloseRejected, SimcpHelloRejectedByUser);
+    AtConnectionClose(connection, SimcpCloseRejected,
+        Request->Failed ? SimcpHelloRejectedInternal : SimcpHelloRejectedByUser);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -763,8 +774,12 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
         config.pButtons = buttons;
         config.nDefaultButton = IDNO;
 
+        // A dialog that could not be shown is not a decision, and must not be reported as one.
         if (!PhShowTaskDialog(&config, &button, NULL, NULL))
+        {
+            request->Failed = TRUE;
             button = IDNO;
+        }
     }
 
     // A late answer is not a decision: the waiter already denied.
@@ -834,6 +849,8 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
         {
             if (Request->TimedOut)
                 result = AtConsentTimeout;
+            else if (Request->Failed)
+                result = AtConsentFailed;
             else
                 result = Request->Allowed ? AtConsentAllowed : AtConsentDenied;
 
