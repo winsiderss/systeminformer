@@ -556,7 +556,7 @@ VOID AtpLookupFileHashVirusTotal(
 
     // A cached verdict answers without a request. The caller can turn that off, because a stale
     // verdict is exactly what someone re-checking a file is trying to get past.
-    if (AtJsonGetObjectBoolean(Call->Arguments, "force_refresh") == FALSE)
+    if (!AtJsonGetObjectBoolean(Call->Arguments, "force_refresh"))
     {
         LARGE_INTEGER now;
 
@@ -651,7 +651,7 @@ VOID AtpLookupFileHashHybridAnalysis(
     structured = PhCreateJsonObject();
     AtJsonAddString(structured, "sha256", sha256);
 
-    if (AtJsonGetObjectBoolean(Call->Arguments, "force_refresh") == FALSE)
+    if (!AtJsonGetObjectBoolean(Call->Arguments, "force_refresh"))
     {
         LARGE_INTEGER now;
 
