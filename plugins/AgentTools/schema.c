@@ -3295,8 +3295,9 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"type\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"collector\":{\"type\":\"object\",\"properties\":{"
-        "\"collection_enabled\":{\"type\":\"boolean\",\"description\":\"False means nothing is being recorded, so an empty list says nothing about the machine\"}"
-        "},\"required\":[\"collection_enabled\"]},"
+        "\"collection_enabled\":{\"type\":\"boolean\",\"description\":\"False means nothing is being recorded, so an empty list says nothing about the machine\"},"
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False means the event enumeration stopped early, so the list is partial and a missing event proves nothing\"}"
+        "},\"required\":[\"collection_enabled\",\"enumeration_complete\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"events\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
         AT_READ_ANNOTATIONS "}"

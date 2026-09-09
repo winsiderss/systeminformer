@@ -366,6 +366,7 @@ VOID AtpListFirewallEvents(
     PVOID structured;
     PVOID collector;
     ULONG status;
+    BOOLEAN enumComplete = TRUE;
 
     if (!AtpInitializeFirewall())
     {
@@ -417,7 +418,10 @@ VOID AtpListFirewallEvents(
         status = AtpFwpmNetEventEnum(engineHandle, enumHandle, ULONG_MAX, &entries, &count);
 
         if (status != ERROR_SUCCESS)
+        {
+            enumComplete = FALSE;
             break;
+        }
 
         if (count == 0)
         {
@@ -434,10 +438,21 @@ VOID AtpListFirewallEvents(
     AtpFwpmNetEventDestroyEnumHandle(engineHandle, enumHandle);
     AtpFwpmEngineClose(engineHandle);
 
+    // Nothing was read at all, so there is no partial answer worth returning.
+    if (!enumComplete && rows.TotalCount == 0)
+    {
+        AtSetToolStatusError(Result, PhDosErrorToNtStatus(status), L"Enumerating the firewall events");
+        PhFreeJsonObject(structured);
+        AtDeleteRows(&rows);
+        PhClearReference(&pathContains);
+        return;
+    }
+
     AtAddRows(structured, "events", &rows);
 
     collector = PhCreateJsonObject();
     PhAddJsonObjectBoolean(collector, "collection_enabled", collectionEnabled);
+    PhAddJsonObjectBoolean(collector, "enumeration_complete", enumComplete);
     PhAddJsonObjectValue(structured, "collector", collector);
 
     AtAddSnapshot(structured);
