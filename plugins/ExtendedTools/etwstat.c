@@ -406,17 +406,20 @@ VOID NTAPI EtEtwProcessesUpdatedCallback(
                 if (block->DiskWriteRaw < diskWriteRaw)
                     block->DiskWriteRaw = diskWriteRaw;
             }
+        }
 
-            if (EtWindowsVersion >= WINDOWS_11_24H2)
-            {
-                ULONG64 networkReadRaw = block->ProcessItem->NetworkCounters.BytesIn;
-                ULONG64 networkWriteRaw = block->ProcessItem->NetworkCounters.BytesOut;
+        // Outside the disk counters setting on purpose: these are the process provider's own
+        // network counters, which it reads on 24H2 whatever that setting says, and nesting them
+        // here reported a real zero for every process whenever disk counters were turned off.
+        if (EtWindowsVersion >= WINDOWS_11_24H2)
+        {
+            ULONG64 networkReadRaw = block->ProcessItem->NetworkCounters.BytesIn;
+            ULONG64 networkWriteRaw = block->ProcessItem->NetworkCounters.BytesOut;
 
-                if (block->NetworkReceiveRaw < networkReadRaw)
-                    block->NetworkReceiveRaw = networkReadRaw;
-                if (block->NetworkSendRaw < networkWriteRaw)
-                    block->NetworkSendRaw = networkWriteRaw;
-            }
+            if (block->NetworkReceiveRaw < networkReadRaw)
+                block->NetworkReceiveRaw = networkReadRaw;
+            if (block->NetworkSendRaw < networkWriteRaw)
+                block->NetworkSendRaw = networkWriteRaw;
         }
 
         PhUpdateDelta(&block->DiskReadDelta, block->DiskReadCount);
