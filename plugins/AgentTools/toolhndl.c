@@ -973,6 +973,7 @@ VOID AtpListNamedPipes(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    BOOLEAN enumComplete = TRUE;
     static CONST PH_STRINGREF pipeDirectory = PH_STRINGREF_INIT(DEVICE_NAMED_PIPE);
     NTSTATUS status;
     AT_PIPE_CONTEXT context;
@@ -1007,7 +1008,8 @@ VOID AtpListNamedPipes(
 
     // Names first, then any connecting: a directory enumeration and a client connection on the same
     // synchronous handle do not belong interleaved.
-    PhEnumDirectoryFile(directoryHandle, NULL, AtpNamedPipeCallback, &context);
+
+    enumComplete = NT_SUCCESS(PhEnumDirectoryFile(directoryHandle, NULL, AtpNamedPipeCallback, &context));
 
     AtInitializeRows(&rows, Call->Arguments);
 
@@ -1041,6 +1043,7 @@ VOID AtpListNamedPipes(
     }
 
     structured = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(structured, "enumeration_complete", enumComplete);
     AtAddRows(structured, "pipes", &rows);
     PhAddJsonObjectBoolean(structured, "connected", connect);
     AtAddSnapshot(structured);

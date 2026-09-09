@@ -373,15 +373,24 @@ VOID AtpAddImageImports(
 {
     PH_MAPPED_IMAGE_IMPORTS imports;
     AT_ROWS rows;
+    NTSTATUS status;
+    BOOLEAN complete;
 
     AtInitializeRows(&rows, Call->Arguments);
 
-    if (NT_SUCCESS(PhGetMappedImageImports(&imports, MappedImage)))
+    // A directory that could not be parsed leaves an empty list behind, which on a packed or
+    // malformed image is the interesting case rather than the absent one. An image that simply has
+    // no import directory answers STATUS_NOT_FOUND and is complete: ntdll is the obvious example.
+    status = PhGetMappedImageImports(&imports, MappedImage);
+    complete = NT_SUCCESS(status) || status == STATUS_NOT_FOUND;
+
+    if (NT_SUCCESS(status))
         AtpAddImportDllRows(&rows, &imports, FALSE);
 
     if (NT_SUCCESS(PhGetMappedImageDelayImports(&imports, MappedImage)))
         AtpAddImportDllRows(&rows, &imports, TRUE);
 
+    PhAddJsonObjectBoolean(Structured, "imports_complete", complete);
     AtAddRows(Structured, "imports", &rows);
     AtDeleteRows(&rows);
 }
@@ -394,11 +403,17 @@ VOID AtpAddImageExports(
 {
     PH_MAPPED_IMAGE_EXPORTS exports;
     AT_ROWS rows;
+    NTSTATUS status;
+    BOOLEAN complete;
     ULONG i;
 
     AtInitializeRows(&rows, Call->Arguments);
 
-    if (NT_SUCCESS(PhGetMappedImageExports(&exports, MappedImage)))
+    status = PhGetMappedImageExports(&exports, MappedImage);
+    complete = NT_SUCCESS(status) || status == STATUS_NOT_FOUND;
+    PhAddJsonObjectBoolean(Structured, "exports_complete", complete);
+
+    if (NT_SUCCESS(status))
     {
         for (i = 0; i < exports.NumberOfEntries; i++)
         {

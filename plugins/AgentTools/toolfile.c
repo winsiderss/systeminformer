@@ -952,6 +952,7 @@ VOID AtpReadRegistryKey(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    BOOLEAN enumComplete = TRUE;
     NTSTATUS status;
     AT_REGISTRY_CONTEXT context;
     PPH_STRING path;
@@ -1020,15 +1021,16 @@ VOID AtpReadRegistryKey(
     if (AtJsonGetObjectMember(Call->Arguments, "include_values", PH_JSON_OBJECT_TYPE_BOOLEAN) == NULL ||
         AtJsonGetObjectBoolean(Call->Arguments, "include_values"))
     {
-        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpRegistryValueCallback, &context);
+        enumComplete &= NT_SUCCESS(PhEnumerateValueKey(keyHandle, KeyValueFullInformation, AtpRegistryValueCallback, &context));
     }
 
     if (AtJsonGetObjectMember(Call->Arguments, "include_subkeys", PH_JSON_OBJECT_TYPE_BOOLEAN) == NULL ||
         AtJsonGetObjectBoolean(Call->Arguments, "include_subkeys"))
     {
-        PhEnumerateKey(keyHandle, KeyBasicInformation, AtpRegistrySubkeyCallback, &context);
+        enumComplete &= NT_SUCCESS(PhEnumerateKey(keyHandle, KeyBasicInformation, AtpRegistrySubkeyCallback, &context));
     }
 
+    PhAddJsonObjectBoolean(structured, "enumeration_complete", enumComplete);
     AtAddRows(structured, "values", &context.Values);
 
     array = PhCreateJsonArray();

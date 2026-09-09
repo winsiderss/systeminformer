@@ -1330,6 +1330,7 @@ CONST AT_TOOL AtTools[] =
         "\"rect\":{\"type\":\"object\",\"properties\":{\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},\"right\":{\"type\":\"integer\"},\"bottom\":{\"type\":\"integer\"}}}"
         "},\"required\":[\"handle\",\"tid\",\"is_visible\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the window enumeration did not finish, so a window missing from this list may still exist\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"windows\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -1813,6 +1814,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"name\",\"path\",\"native_path\",\"current_instances\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"connected\":{\"type\":\"boolean\",\"description\":\"Whether this call opened the pipes it listed\"},"
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the pipe directory walk did not finish, so a pipe missing from this list may still exist\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pipes\",\"count\",\"total_count\",\"truncated\",\"connected\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -3535,6 +3537,7 @@ CONST AT_TOOL AtTools[] =
         "\"resource_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"Raw ResType_* value, for a kind with no decoding here\"}"
         "},\"required\":[\"type\"]}},"
         "\"count\":{\"type\":\"integer\"},"
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the resource walk did not finish, so an empty list does not mean the device was given nothing\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"instance_id\",\"resources\",\"count\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -5072,6 +5075,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"string\",\"length\",\"file_offset\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"The search stopped at 20000 matches and the file holds more\"},"
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when a values or subkeys enumeration did not finish, so this listing is partial\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -5227,6 +5231,8 @@ CONST AT_TOOL AtTools[] =
         "\"size\":{\"type\":\"integer\",\"description\":\"Bytes actually read\"},"
         "\"hex\":{\"type\":\"string\",\"description\":\"Lowercase hex of the bytes read\"},"
         "\"ascii\":{\"type\":\"string\",\"description\":\"Printable bytes as ASCII, others as a dot\"},"
+        "\"imports_complete\":{\"type\":\"boolean\",\"description\":\"False when the import directory could not be parsed; an empty imports list then says nothing about the image\"},"
+        "\"exports_complete\":{\"type\":\"boolean\",\"description\":\"False when the export directory could not be parsed; an empty exports list then says nothing about the image\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"address\",\"size\",\"hex\"]},"
         AT_READ_ANNOTATIONS "}"

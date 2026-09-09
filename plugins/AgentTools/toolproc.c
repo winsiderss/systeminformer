@@ -1504,6 +1504,7 @@ VOID AtpGetProcessWindows(
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
+    BOOLEAN enumComplete = TRUE;
     AT_TARGET target;
     AT_WINDOW_CONTEXT context;
     PVOID visibleMember;
@@ -1520,10 +1521,11 @@ VOID AtpGetProcessWindows(
     if (visibleMember = AtJsonGetObjectMember(Call->Arguments, "visible_only", PH_JSON_OBJECT_TYPE_BOOLEAN))
         context.VisibleOnly = AtJsonGetObjectBoolean(Call->Arguments, "visible_only");
 
-    PhEnumWindows(AtpWindowCallback, &context);
+    enumComplete = !!PhEnumWindows(AtpWindowCallback, &context);
 
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
+    PhAddJsonObjectBoolean(structured, "enumeration_complete", enumComplete);
     AtAddRows(structured, "windows", &context.Windows);
     AtAddSnapshot(structured);
 

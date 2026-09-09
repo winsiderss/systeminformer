@@ -403,7 +403,8 @@ VOID AtpGetDeviceResources(
     resources.Count = 0;
 
     // The allocated configuration: what the device was actually given, not what it could accept.
-    PhEnumDeviceResources(item, ALLOC_LOG_CONF, AtpDeviceResourceCallback, &resources);
+    PhAddJsonObjectBoolean(structured, "enumeration_complete",
+        !!PhEnumDeviceResources(item, ALLOC_LOG_CONF, AtpDeviceResourceCallback, &resources));
 
     PhAddJsonObjectValue(structured, "resources", resources.Array);
     PhAddJsonObjectUInt64(structured, "count", resources.Count);
