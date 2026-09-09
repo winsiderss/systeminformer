@@ -11,6 +11,9 @@
 
 #include "agenttools.h"
 
+// PlaySound, for the elevation prompt's own sound event.
+#include <mmsystem.h>
+
 typedef struct _AT_CONSENT_REQUEST
 {
     LONG RefCount;
@@ -427,9 +430,15 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             AtpCenterWindowOnUserMonitor(WindowHandle);
 
             // A custom main icon suppresses the task dialog's own sound, so without this the
-            // prompt arrives in silence; a stock icon would have been announced. The prompt is
-            // heard as well as seen, the way an elevation prompt is.
-            MessageBeep(MB_ICONWARNING);
+            // prompt arrives in silence; a stock icon would have been announced.
+            //
+            // WindowsUAC is the sound event an elevation prompt uses, which is the one a user has
+            // already learned means "something is asking permission" - the generic exclamation is
+            // the sound of an error instead. SND_NODEFAULT so a machine where that event is
+            // silenced stays silent rather than substituting the default beep; if the event is not
+            // there at all, fall back to the exclamation rather than saying nothing.
+            if (!PlaySound(L"WindowsUAC", NULL, SND_ALIAS | SND_ASYNC | SND_NODEFAULT))
+                MessageBeep(MB_ICONWARNING);
 
             // Topmost because the foreground cannot be relied on: a worker thread may not take it
             // while the user is typing elsewhere, and a prompt that only flashes in the taskbar is
@@ -887,7 +896,6 @@ AT_CONSENT_RESULT AtpAskUser(
     PAT_CONNECTION connection = Call->Connection;
     PAT_CONSENT_REQUEST request;
     PPH_STRING requester;
-    PCWSTR classDescription;
     AT_CONSENT_RESULT result;
 
     requester = AtpFormatRequester(connection);
@@ -922,15 +930,8 @@ AT_CONSENT_RESULT AtpAskUser(
     else
         request->Content = PhReferenceObject(requester);
 
-    // Allowing for the session is not "this target again": say what it actually covers.
-    if (classDescription = AtConsentClassDescription(Action->Class))
-    {
-        PhMoveReference(&request->Content, PhFormatString(
-            L"%s\n\nAllowing this for the session allows %s until this agent disconnects or you revoke it in Options.",
-            PhGetString(request->Content),
-            classDescription
-            ));
-    }
+    // What allowing for the session covers is the drop-down's own business: it is labelled and its
+    // entries say it, so spelling it out again here only lengthened the prompt.
 
     PhDereferenceObject(requester);
 
