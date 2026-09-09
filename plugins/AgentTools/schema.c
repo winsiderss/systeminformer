@@ -5274,9 +5274,10 @@ CONST AT_TOOL AtTools[] =
         "\"matches\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"description\":\"Hexadecimal address of a match\"}},"
         "\"count\":{\"type\":\"integer\"},"
         "\"truncated\":{\"type\":\"boolean\",\"description\":\"True when max_results was reached\"},"
-        "\"bytes_scanned\":{\"type\":\"integer\"},"
+        "\"bytes_scanned\":{\"type\":\"integer\",\"description\":\"Distinct bytes examined; the overlap between chunks is not counted twice\"},"
+        "\"unreadable_bytes\":{\"type\":\"integer\",\"description\":\"Committed bytes the read was refused on. Above zero, no matches is not the same as no matches present\"},"
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"pid\",\"process_sequence_number\",\"matches\",\"count\"]},"
+        "},\"required\":[\"pid\",\"process_sequence_number\",\"matches\",\"count\",\"unreadable_bytes\"]},"
         AT_READ_ANNOTATIONS "}"
     },
 };

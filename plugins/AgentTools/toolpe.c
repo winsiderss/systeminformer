@@ -1103,6 +1103,8 @@ VOID AtpSearchProcessMemory(
     PVOID buffer;
     ULONG bufferSize = 1024 * 1024;
     ULONG64 bytesScanned = 0;
+    ULONG64 unreadableBytes = 0;
+    SIZE_T overlap;
     PVOID structured;
     PVOID matches;
     ULONG count = 0;
@@ -1149,17 +1151,35 @@ VOID AtpSearchProcessMemory(
 
         base = (ULONG_PTR)item->BaseAddress;
         remaining = item->RegionSize;
+        overlap = 0;
 
-        while (remaining > 0 && !truncated)
+        // A tail shorter than the pattern cannot hold it.
+        while (remaining >= patternLength && !truncated)
         {
             SIZE_T chunk = min(remaining, bufferSize);
             SIZE_T read = 0;
+            SIZE_T advance;
             SIZE_T i;
 
-            if (NT_SUCCESS(PhReadVirtualMemory(Target->ProcessHandle, (PVOID)base, buffer, chunk, &read)) && read >= patternLength)
+            if (!NT_SUCCESS(PhReadVirtualMemory(Target->ProcessHandle, (PVOID)base, buffer, chunk, &read)) ||
+                read < patternLength)
             {
-                bytesScanned += read;
+                // Memory that could not be read is not memory the pattern is absent from, and a
+                // silent skip is what turns an unreadable process into "no matches".
+                unreadableBytes += chunk;
+                base += chunk;
+                remaining -= chunk;
+                overlap = 0;
+                continue;
+            }
 
+            // The overlap was already counted against the chunk it came from.
+            bytesScanned += read - overlap;
+
+            if (read < chunk)
+                unreadableBytes += chunk - read;
+
+            {
                 for (i = 0; i + patternLength <= read; i++)
                 {
                     if (memcmp((PUCHAR)buffer + i, pattern, patternLength) == 0)
@@ -1190,8 +1210,15 @@ VOID AtpSearchProcessMemory(
                 }
             }
 
-            base += chunk;
-            remaining -= chunk;
+            // Chunks overlap by one byte short of the pattern, so a match lying across a boundary
+            // is whole in the next chunk. The two ranges of match positions cannot meet - a match
+            // found here starts before base + chunk - patternLength + 1, which is where the next
+            // chunk begins - so nothing is reported twice.
+            advance = read < chunk ? chunk : chunk - (patternLength - 1);
+            overlap = chunk - advance;
+
+            base += advance;
+            remaining -= advance;
         }
     }
 
@@ -1202,6 +1229,7 @@ VOID AtpSearchProcessMemory(
     PhAddJsonObjectUInt64(structured, "count", count);
     PhAddJsonObjectBoolean(structured, "truncated", truncated);
     PhAddJsonObjectUInt64(structured, "bytes_scanned", bytesScanned);
+    PhAddJsonObjectUInt64(structured, "unreadable_bytes", unreadableBytes);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
