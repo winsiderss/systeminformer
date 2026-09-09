@@ -416,6 +416,27 @@ VOID AtpGetDeviceResources(
     PhDereferenceObject(instanceId);
 }
 
+/**
+ * Picks the tool error code for a configuration manager result, so that a refusal is not reported
+ * as a device that does not exist and a denial is not reported as a flat failure.
+ */
+PCSTR AtpDeviceErrorCode(
+    _In_ CONFIGRET Result
+    )
+{
+    switch (Result)
+    {
+    case CR_NO_SUCH_DEVNODE:
+    case CR_INVALID_DEVNODE:
+    case CR_INVALID_DEVICE_ID:
+        return "not_found";
+    case CR_ACCESS_DENIED:
+        return "access_denied";
+    }
+
+    return "failed";
+}
+
 VOID AtpSetDeviceEnabled(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,
@@ -441,8 +462,19 @@ VOID AtpSetDeviceEnabled(
 
     if (result != CR_SUCCESS)
     {
-        AtSetToolError(Result, "not_found", PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
-            L"No device with that instance id; list_devices reports the ones there are.");
+        // The target resolved this same instance id a moment ago, so a failure here is usually the
+        // configuration manager refusing the node rather than the device being absent.
+        AtSetToolError(
+            Result,
+            AtpDeviceErrorCode(result),
+            PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
+            L"The device node could not be opened (CONFIGRET %lu).%s",
+            (ULONG)result,
+            result == CR_NO_SUCH_DEVNODE || result == CR_INVALID_DEVNODE || result == CR_INVALID_DEVICE_ID ?
+                L" No device with that instance id; list_devices reports the ones there are." :
+                L" The device was there when the target was resolved, so this is a refusal rather "
+                L"than an absence."
+            );
         PhClearReference(&instanceId);
         return;
     }
@@ -459,7 +491,7 @@ VOID AtpSetDeviceEnabled(
         // things about whether to try again.
         AtSetToolError(
             Result,
-            "failed",
+            AtpDeviceErrorCode(result),
             PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
             L"%s failed (CONFIGRET %lu).%s",
             enable ? L"Enabling the device" : L"Disabling the device",
