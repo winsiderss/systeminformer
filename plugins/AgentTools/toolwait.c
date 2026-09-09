@@ -534,6 +534,9 @@ VOID AtpAnalyzeThreadWait(
     }
     else if (systemCallName && (
         PhEqualString2(systemCallName, L"NtWaitForMultipleObjects", TRUE) ||
+        // The 32 variant is what a WOW64 thread waits in, and it takes the count first as well.
+        // Without it every waiting thread of a 32-bit process was classified unknown.
+        PhEqualString2(systemCallName, L"NtWaitForMultipleObjects32", TRUE) ||
         PhEqualString2(systemCallName, L"NtUserMsgWaitForMultipleObjects", TRUE) ||
         PhEqualString2(systemCallName, L"NtUserMsgWaitForMultipleObjectsEx", TRUE)
         ))
