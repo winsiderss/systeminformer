@@ -557,7 +557,13 @@ VOID AtpListRecentEvents(
         dropped = AtEventOldestCursor - sinceCursor - 1;
 
     cursor = max(sinceCursor + 1, AtEventOldestCursor);
-    nextCursor = sinceCursor;
+
+    // Where the client has effectively got to, which is not always where it asked from: once the
+    // ring has moved past its cursor, everything before the oldest event still held is gone. A
+    // walked event advances this below, including one the filters reject, but a slot overwritten
+    // under the walk does not - and a client that saw only those would be handed back its old
+    // cursor and told about the same drop again on its next poll.
+    nextCursor = cursor - 1;
 
     for (; cursor < AtEventNextCursor; cursor++)
     {
