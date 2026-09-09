@@ -144,6 +144,7 @@ NTSTATUS AtpResolveThreadTarget(
     _In_opt_ PVOID Arguments,
     _In_ BOOLEAN RequireSequenceNumber,
     _In_ ACCESS_MASK ThreadAccess,
+    _In_ BOOLEAN SuspendIsOptional,
     _Out_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -172,6 +173,17 @@ NTSTATUS AtpResolveThreadTarget(
         ThreadAccess | THREAD_QUERY_LIMITED_INFORMATION,
         UlongToHandle((ULONG)threadId)
         );
+
+    // THREAD_SUSPEND_RESUME is outside KPH_THREAD_READ_ACCESS, so asking for it loses the driver
+    // route and with it every thread only the driver can open. The walk suspends if it may.
+    if (!NT_SUCCESS(status) && SuspendIsOptional && FlagOn(ThreadAccess, THREAD_SUSPEND_RESUME))
+    {
+        status = PhOpenThread(
+            &threadHandle,
+            (ThreadAccess & ~THREAD_SUSPEND_RESUME) | THREAD_QUERY_LIMITED_INFORMATION,
+            UlongToHandle((ULONG)threadId)
+            );
+    }
 
     if (!NT_SUCCESS(status))
     {
@@ -753,7 +765,7 @@ NTSTATUS AtResolveTarget(
         status = AtResolveProcessTarget(Arguments, requireSequenceNumber, action->TargetAccess, Target, Result);
         break;
     case AtTargetThread:
-        status = AtpResolveThreadTarget(Arguments, requireSequenceNumber, action->TargetAccess, Target, Result);
+        status = AtpResolveThreadTarget(Arguments, requireSequenceNumber, action->TargetAccess, Tool->Tier != AtTierWrite, Target, Result);
         break;
     case AtTargetService:
         status = AtpResolveServiceTarget(Arguments, action->TargetAccess, Target, Result);
