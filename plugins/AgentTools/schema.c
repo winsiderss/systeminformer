@@ -501,7 +501,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the memory of processes", L"Read the memory of", L"read_process_memory"
     },
     {
-        AtActionSearchProcessMemory, AtTierSensitiveRead, AtConsentClassNone, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_memory"),
+        AtActionSearchProcessMemory, AtTierSensitiveRead, AtConsentClassProcessMemory, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, SETTING_NAME_TOOL_CONFIRM(L"search_process_memory"),
         L"search the memory of processes", L"Search the memory of", L"search_process_memory"
     },
 };
