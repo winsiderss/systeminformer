@@ -969,6 +969,15 @@ VOID AtServerStop(
     }
 
     PhDereferenceObject(connections);
+
+    // The next start rebuilds both from the settings in force then.
+    PhClearReference(&AtPipeName);
+
+    if (AtPipeSecurityDescriptor)
+    {
+        PhFree(AtPipeSecurityDescriptor);
+        AtPipeSecurityDescriptor = NULL;
+    }
 }
 
 AT_SERVER_STATE AtServerGetState(
