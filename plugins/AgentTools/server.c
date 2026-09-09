@@ -650,6 +650,8 @@ NTSTATUS NTAPI AtpConnectionThread(
 
     PhInitializeAutoPool(&autoPool);
 
+    PhWaitForEvent(&connection->StartedEvent, NULL);
+
     if (AtpRegisterConnection(connection) && AtpHandshake(connection))
     {
         connection->Authenticated = TRUE;
@@ -730,6 +732,7 @@ PAT_CONNECTION AtpCreateConnection(
     connection->PipeHandle = PipeHandle;
     connection->ConnectionId = (ULONG)InterlockedIncrement((PLONG)&AtNextConnectionId) - 1;
     PhInitializeQueuedLock(&connection->Lock);
+    PhInitializeEvent(&connection->StartedEvent);
     InitializeListHead(&connection->DeferredRequests);
     PhQuerySystemTime(&connection->ConnectTime);
 
@@ -796,6 +799,12 @@ NTSTATUS NTAPI AtpListenerThread(
         {
             PhDisconnectNamedPipe(pipeHandle);
             PhDereferenceObject(connection);
+        }
+        else
+        {
+            // The thread waits for this. It must not reach the connection list before the handle
+            // that AtServerStop cancels and joins it by is stored.
+            PhSetEvent(&connection->StartedEvent);
         }
 
         PhDereferenceObject(connection);

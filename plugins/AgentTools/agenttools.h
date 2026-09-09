@@ -311,6 +311,7 @@ typedef struct _AT_CONNECTION
     HANDLE PipeHandle;
     HANDLE ThreadHandle;
     HANDLE ThreadId;
+    PH_EVENT StartedEvent;
     LONG Closing;
     ULONG CloseDetail;
     BOOLEAN CloseSent;
