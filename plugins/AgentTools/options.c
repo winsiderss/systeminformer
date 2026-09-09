@@ -1063,13 +1063,13 @@ VOID AtpUpdateSnippet(
     {
     case 1:
         snippet = PhFormatString(
-            L"// .vscode/mcp.json\r\n{\r\n  \"servers\": {\r\n    \"systeminformer\": { \"type\": \"stdio\", \"command\": \"%s\" }\r\n  }\r\n}",
+            L"{\r\n  \"servers\": {\r\n    \"systeminformer\": { \"type\": \"stdio\", \"command\": \"%s\" }\r\n  }\r\n}",
             PhGetString(escapedPath)
             );
         break;
     case 2:
         snippet = PhFormatString(
-            L"// claude_desktop_config.json\r\n{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"command\": \"%s\" }\r\n  }\r\n}",
+            L"{\r\n  \"mcpServers\": {\r\n    \"systeminformer\": { \"command\": \"%s\" }\r\n  }\r\n}",
             PhGetString(escapedPath)
             );
         break;
