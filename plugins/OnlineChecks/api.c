@@ -514,7 +514,10 @@ NTSTATUS HybridAnalysisRequestFileReport(
     if (PhIsNullOrEmptyString(ApiKey))
     {
         if (!HybridAnalysisHeaderStrings(&httpHeaderString, &httpPathString, NULL, FileHash, L"/onlinechecks/hybrid-analysis/api/v2/overview/"))
-            return STATUS_UNSUCCESSFUL;
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto CleanupExit;
+        }
         if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"systeminformer.io", PH_HTTP_DEFAULT_HTTPS_PORT)))
             goto CleanupExit;
 
@@ -523,7 +526,10 @@ NTSTATUS HybridAnalysisRequestFileReport(
     else
     {
         if (!HybridAnalysisHeaderStrings(&httpHeaderString, &httpPathString, ApiKey, FileHash, L"/api/v2/overview/"))
-            return STATUS_UNSUCCESSFUL;
+        {
+            status = STATUS_UNSUCCESSFUL;
+            goto CleanupExit;
+        }
         if (!NT_SUCCESS(status = PhHttpConnect(httpContext, L"hybrid-analysis.com", PH_HTTP_DEFAULT_HTTPS_PORT)))
             goto CleanupExit;
     }
@@ -577,6 +583,14 @@ NTSTATUS HybridAnalysisRequestFileReport(
 
 CleanupExit:
     PhHttpDestroy(httpContext);
+
+    // Freed here rather than at each failure: the report is built in pieces, and anything going
+    // wrong after the allocation used to leave the whole thing, strings and all, behind.
+    if (result)
+        HybridAnalysisFreeFileReport(result);
+
+    if (jsonRootObject)
+        PhFreeJsonObject(jsonRootObject);
 
     PhClearReference(&httpHeaderClientId);
     PhClearReference(&httpHeaderString);
