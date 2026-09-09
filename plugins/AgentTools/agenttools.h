@@ -55,6 +55,8 @@
 #define AT_CONSENT_QUEUE_TIMEOUT_MS (5 * 60 * 1000)
 #define AT_ELICITATION_TIMEOUT_MS (10 * 60 * 1000)
 #define AT_PENDING_CONSENT_TIMEOUT_MS (5 * 60 * 1000)
+#define AT_HANDSHAKE_TIMEOUT_MS (10 * 1000)
+#define AT_MAX_UNAUTHENTICATED 8
 
 extern PPH_PLUGIN PluginInstance;
 
@@ -312,11 +314,12 @@ typedef struct _AT_CONNECTION
     HANDLE ThreadHandle;
     HANDLE ThreadId;
     PH_EVENT StartedEvent;
+    ULONG64 ConnectTick;
     LONG Closing;
     ULONG CloseDetail;
     BOOLEAN CloseSent;
     BOOLEAN Registered;
-    BOOLEAN Authenticated;
+    LONG Authenticated;
     AT_APPROVAL Approval;
     PVOID ApprovalRequest;
 

@@ -861,7 +861,7 @@ VOID AtpRefreshAgents(
         PAT_CONNECTION connection = connections->Items[i];
         PAT_AGENT_NODE node;
 
-        if (connection->Authenticated)
+        if (ReadAcquire(&connection->Authenticated))
         {
             node = AtpCreateAgentNode(connection);
 

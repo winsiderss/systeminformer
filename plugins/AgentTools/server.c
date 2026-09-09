@@ -638,6 +638,44 @@ BOOLEAN AtpHandshake(
     return NT_SUCCESS(status);
 }
 
+/**
+ * Closes connections that have not finished the handshake in time.
+ *
+ * \return The number of connections still within the handshake deadline.
+ */
+ULONG AtpExpireUnauthenticated(
+    VOID
+    )
+{
+    PPH_LIST connections;
+    ULONG64 now;
+    ULONG pending = 0;
+    ULONG i;
+
+    connections = AtServerSnapshotConnections();
+    now = NtGetTickCount64();
+
+    for (i = 0; i < connections->Count; i++)
+    {
+        PAT_CONNECTION connection = connections->Items[i];
+
+        if (ReadAcquire(&connection->Authenticated))
+            continue;
+
+        if (now - connection->ConnectTick > AT_HANDSHAKE_TIMEOUT_MS)
+            AtConnectionClose(connection, SimcpCloseRejected, SimcpHelloRejectedInternal);
+        else
+            pending++;
+    }
+
+    for (i = 0; i < connections->Count; i++)
+        PhDereferenceObject(connections->Items[i]);
+
+    PhDereferenceObject(connections);
+
+    return pending;
+}
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI AtpConnectionThread(
     _In_ PVOID Parameter
@@ -654,7 +692,7 @@ NTSTATUS NTAPI AtpConnectionThread(
 
     if (AtpRegisterConnection(connection) && AtpHandshake(connection))
     {
-        connection->Authenticated = TRUE;
+        WriteRelease(&connection->Authenticated, 1);
 
         AtConsentRequestConnection(connection);
 
@@ -735,6 +773,7 @@ PAT_CONNECTION AtpCreateConnection(
     PhInitializeEvent(&connection->StartedEvent);
     InitializeListHead(&connection->DeferredRequests);
     PhQuerySystemTime(&connection->ConnectTime);
+    connection->ConnectTick = NtGetTickCount64();
 
     return connection;
 }
@@ -779,6 +818,22 @@ NTSTATUS NTAPI AtpListenerThread(
         {
             NtClose(pipeHandle);
             PhDelayExecution(250);
+
+            if (!NT_SUCCESS(status = AtpCreatePipeInstance(FALSE, &pipeHandle)))
+            {
+                AtpListenerFailed(status);
+                break;
+            }
+
+            continue;
+        }
+
+        // A client that connects and never sends Hello would otherwise hold a thread and a pipe
+        // instance forever, so stale ones are dropped and the rest are capped.
+        if (AtpExpireUnauthenticated() >= AT_MAX_UNAUTHENTICATED)
+        {
+            PhDisconnectNamedPipe(pipeHandle);
+            NtClose(pipeHandle);
 
             if (!NT_SUCCESS(status = AtpCreatePipeInstance(FALSE, &pipeHandle)))
             {
