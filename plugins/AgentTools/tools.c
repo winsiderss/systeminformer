@@ -1615,7 +1615,9 @@ VOID AtInvokeTool(
         break;
     }
 
-    if (action->Tier != AtTierRead && (Target->Kind != AtTargetNone || action->Tier == AtTierNetworkEgress))
+    // Anything but a plain read is recorded, with or without a target: a sensitive read that names
+    // no target still reads what the tier exists to gate.
+    if (action->Tier != AtTierRead)
     {
         AtAudit(
             Call->Connection,
