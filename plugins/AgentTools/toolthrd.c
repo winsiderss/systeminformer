@@ -606,7 +606,6 @@ typedef struct _AT_STACK_CONTEXT
     BOOLEAN Truncated;
 } AT_STACK_CONTEXT, *PAT_STACK_CONTEXT;
 
-_Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 VOID AtpBeginManagedSymbols(
     _Inout_ PAT_STACK_CONTEXT Context,
     _In_ HANDLE ProcessId,
@@ -667,6 +666,7 @@ VOID AtpEndManagedSymbols(
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackThreadStackControl), &control);
 }
 
+_Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
 BOOLEAN NTAPI AtpStackFrameCallback(
     _In_ PPH_THREAD_STACK_FRAME StackFrame,
     _In_opt_ PVOID Context
