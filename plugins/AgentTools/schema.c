@@ -510,6 +510,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_SNAPSHOT_NOTE "snapshot_time is when the provider cache was last refreshed; updates_paused means the cache is stale. "
 #define AT_WRITE_NOTE "Requires pid and process_sequence_number from a prior list_processes or get_process call; the call is refused if the live process no longer matches. Disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 #define AT_SENSITIVE_NOTE "This is a sensitive read: it is disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
+#define AT_DEVICE_WRITE_NOTE "Requires the device instance id from list_devices. Disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 #define AT_SERVICE_WRITE_NOTE "Requires the service name (not the display name) from list_services. Disabled unless the user enabled it in System Informer's options; the user is asked to confirm it in System Informer or through this client unless they granted it for the session. "
 
 #define AT_BATCH_NOTE "Pass pids for a batch: results holds one entry per requested pid, in the order asked, and a pid that could not be answered becomes an entry with error and message instead of failing the call. summary makes each entry compact and only applies to a batch. "
@@ -3594,7 +3595,7 @@ CONST AT_TOOL AtTools[] =
         "persist, so a restart brings the device back, which is the safety net rather than the plan. Needs "
         "elevation. The state is read back from the device node afterwards: is_disabled true confirms it, and a "
         "problem_code that is not 22 means something else is wrong with the device - a device in use can refuse "
-        "to stop. " AT_WRITE_NOTE "\","
+        "to stop. " AT_DEVICE_WRITE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"instance_id\":{\"type\":\"string\",\"description\":\"Device instance id from list_devices\"},"
         "\"enabled\":{\"type\":\"boolean\",\"description\":\"true to enable, false to disable\"}"
