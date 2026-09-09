@@ -123,6 +123,7 @@ VOID AtpFindHandles(
     {
         PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = &handles->Handles[i];
         HANDLE processHandle;
+        PVOID *cached;
         PPH_STRING typeName = NULL;
         PPH_STRING objectName = NULL;
         PPH_STRING bestName = NULL;
@@ -156,7 +157,14 @@ VOID AtpFindHandles(
 
         context.Scanned++;
 
-        if (!(processHandle = PhFindItemSimpleHashtable2(processHandles, entry->UniqueProcessId)))
+        // The entry, not the value: a cached NULL is the answer that a process could not be
+        // opened, and PhFindItemSimpleHashtable2 reports that the same way it reports an entry
+        // that was never made, which would retry every unopenable process once per handle.
+        if (cached = PhFindItemSimpleHashtable(processHandles, entry->UniqueProcessId))
+        {
+            processHandle = *cached;
+        }
+        else
         {
             HANDLE opened = NULL;
 
