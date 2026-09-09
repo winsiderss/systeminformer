@@ -63,7 +63,7 @@ VOID AtpTaskAddBstr(
 {
     PPH_STRING string = NULL;
 
-    if (SUCCEEDED(Result))
+    if (HR_SUCCESS(Result))
         string = AtpTaskStringFromBstr(*String);
 
     AtJsonAddString(Object, Key, string);
@@ -84,7 +84,7 @@ VOID AtpTaskAddDate(
     SYSTEMTIME utcTime;
     LARGE_INTEGER time;
 
-    if (Result != S_OK || Date < 1.0 ||
+    if (HR_FAILED(Result) || Date < 1.0 ||
         !VariantTimeToSystemTime(Date, &localTime) ||
         !TzSpecificLocalTimeToSystemTime(NULL, &localTime, &utcTime) ||
         !PhSystemTimeToLargeInteger(&time, &utcTime))
@@ -262,7 +262,7 @@ VOID AtpTaskAddVariantBoolean(
     _In_ VARIANT_BOOL Value
     )
 {
-    if (SUCCEEDED(Result))
+    if (HR_SUCCESS(Result))
         PhAddJsonObjectBoolean(Object, Key, Value != VARIANT_FALSE);
     else
         AtJsonAddNull(Object, Key);
@@ -279,7 +279,7 @@ VOID AtpTaskAddMatchedBstr(
 {
     PPH_STRING string = NULL;
 
-    if (SUCCEEDED(Result))
+    if (HR_SUCCESS(Result))
         string = AtpTaskStringFromBstr(*String);
 
     if (Contains && AtContainsString(string, Contains))
@@ -306,13 +306,13 @@ PVOID AtpTaskCreateActionRow(
 
     row = PhCreateJsonObject();
 
-    if (FAILED(IAction_get_Type(Action, &type)))
+    if (HR_FAILED(IAction_get_Type(Action, &type)))
         type = TASK_ACTION_EXEC;
 
     AtJsonAddStringZ(row, "type", AtpTaskActionTypeString(type));
     PhAddJsonObjectUInt64(row, "type_value", type);
 
-    if (SUCCEEDED(IAction_QueryInterface(Action, &IID_IExecAction, &execAction)))
+    if (HR_SUCCESS(IAction_QueryInterface(Action, &IID_IExecAction, &execAction)))
     {
         // The arguments are as much a part of what an action runs as the image is: a task that
         // hosts its payload in rundll32 or a shell says so nowhere else.
@@ -324,7 +324,7 @@ PVOID AtpTaskCreateActionRow(
 
         IExecAction_Release(execAction);
     }
-    else if (SUCCEEDED(IAction_QueryInterface(Action, &IID_IComHandlerAction, &comAction)))
+    else if (HR_SUCCESS(IAction_QueryInterface(Action, &IID_IComHandlerAction, &comAction)))
     {
         AtJsonAddNull(row, "path");
         AtJsonAddNull(row, "arguments");
@@ -361,14 +361,14 @@ PVOID AtpTaskCreateActions(
 
     array = PhCreateJsonArray();
 
-    if (FAILED(IActionCollection_get_Count(Actions, &count)))
+    if (HR_FAILED(IActionCollection_get_Count(Actions, &count)))
         return array;
 
     for (i = 1; i <= count; i++)
     {
         IAction* action;
 
-        if (FAILED(IActionCollection_get_Item(Actions, i, &action)))
+        if (HR_FAILED(IActionCollection_get_Item(Actions, i, &action)))
             continue;
 
         PhAddJsonArrayObject(array, AtpTaskCreateActionRow(action, ActionContains, Matched));
@@ -389,7 +389,7 @@ PVOID AtpTaskCreateTriggers(
 
     array = PhCreateJsonArray();
 
-    if (FAILED(ITriggerCollection_get_Count(Triggers, &count)))
+    if (HR_FAILED(ITriggerCollection_get_Count(Triggers, &count)))
         return array;
 
     for (i = 1; i <= count; i++)
@@ -400,12 +400,12 @@ PVOID AtpTaskCreateTriggers(
         VARIANT_BOOL enabled = VARIANT_FALSE;
         BSTR string = NULL;
 
-        if (FAILED(ITriggerCollection_get_Item(Triggers, i, &trigger)))
+        if (HR_FAILED(ITriggerCollection_get_Item(Triggers, i, &trigger)))
             continue;
 
         row = PhCreateJsonObject();
 
-        if (FAILED(ITrigger_get_Type(trigger, &type)))
+        if (HR_FAILED(ITrigger_get_Type(trigger, &type)))
             type = TASK_TRIGGER_EVENT;
 
         AtJsonAddStringZ(row, "type", AtpTaskTriggerTypeString(type));
@@ -433,7 +433,7 @@ VOID AtpTaskAddRegistrationInfo(
     IRegistrationInfo* info;
     BSTR string = NULL;
 
-    if (FAILED(ITaskDefinition_get_RegistrationInfo(Definition, &info)))
+    if (HR_FAILED(ITaskDefinition_get_RegistrationInfo(Definition, &info)))
     {
         AtJsonAddNull(Row, "author");
         AtJsonAddNull(Row, "description");
@@ -478,17 +478,17 @@ VOID AtpTaskAddSettingsDetails(
     AtpTaskAddBstr(settings, "delete_expired_task_after", ITaskSettings_get_DeleteExpiredTaskAfter(Settings, &string), &string);
     AtpTaskAddBstr(settings, "restart_interval", ITaskSettings_get_RestartInterval(Settings, &string), &string);
 
-    if (SUCCEEDED(ITaskSettings_get_Priority(Settings, &priority)))
+    if (HR_SUCCESS(ITaskSettings_get_Priority(Settings, &priority)))
         PhAddJsonObjectUInt64(settings, "priority", priority);
     else
         AtJsonAddNull(settings, "priority");
 
-    if (SUCCEEDED(ITaskSettings_get_MultipleInstances(Settings, &policy)))
+    if (HR_SUCCESS(ITaskSettings_get_MultipleInstances(Settings, &policy)))
         AtJsonAddStringZ(settings, "multiple_instances", AtpTaskInstancesPolicyString(policy));
     else
         AtJsonAddNull(settings, "multiple_instances");
 
-    if (SUCCEEDED(ITaskSettings_get_Compatibility(Settings, &compatibility)))
+    if (HR_SUCCESS(ITaskSettings_get_Compatibility(Settings, &compatibility)))
         AtJsonAddStringZ(settings, "compatibility", AtpTaskCompatibilityString(compatibility));
     else
         AtJsonAddNull(settings, "compatibility");
@@ -506,7 +506,7 @@ VOID AtpTaskAddPrincipal(
     TASK_RUNLEVEL_TYPE runLevel = TASK_RUNLEVEL_LUA;
     BSTR string = NULL;
 
-    if (FAILED(ITaskDefinition_get_Principal(Definition, &principal)))
+    if (HR_FAILED(ITaskDefinition_get_Principal(Definition, &principal)))
     {
         AtJsonAddNull(Row, "user_id");
         AtJsonAddNull(Row, "group_id");
@@ -520,12 +520,12 @@ VOID AtpTaskAddPrincipal(
     AtpTaskAddBstr(Row, "user_id", IPrincipal_get_UserId(principal, &string), &string);
     AtpTaskAddBstr(Row, "group_id", IPrincipal_get_GroupId(principal, &string), &string);
 
-    if (SUCCEEDED(IPrincipal_get_LogonType(principal, &logonType)))
+    if (HR_SUCCESS(IPrincipal_get_LogonType(principal, &logonType)))
         AtJsonAddStringZ(Row, "logon_type", AtpTaskLogonTypeString(logonType));
     else
         AtJsonAddNull(Row, "logon_type");
 
-    if (SUCCEEDED(IPrincipal_get_RunLevel(principal, &runLevel)))
+    if (HR_SUCCESS(IPrincipal_get_RunLevel(principal, &runLevel)))
         AtJsonAddStringZ(Row, "run_level", AtpTaskRunLevelString(runLevel));
     else
         AtJsonAddNull(Row, "run_level");
@@ -548,7 +548,7 @@ BOOLEAN AtpTaskAddDefinition(
     BOOLEAN hidden = FALSE;
     BOOLEAN haveHidden = FALSE;
 
-    if (FAILED(IRegisteredTask_get_Definition(Task, &definition)))
+    if (HR_FAILED(IRegisteredTask_get_Definition(Task, &definition)))
     {
         Context->UnreadableCount++;
 
@@ -567,11 +567,11 @@ BOOLEAN AtpTaskAddDefinition(
 
     PhAddJsonObjectBoolean(Row, "definition_readable", TRUE);
 
-    if (SUCCEEDED(ITaskDefinition_get_Settings(definition, &settings)))
+    if (HR_SUCCESS(ITaskDefinition_get_Settings(definition, &settings)))
     {
         VARIANT_BOOL value = VARIANT_FALSE;
 
-        if (SUCCEEDED(ITaskSettings_get_Hidden(settings, &value)))
+        if (HR_SUCCESS(ITaskSettings_get_Hidden(settings, &value)))
         {
             hidden = value != VARIANT_FALSE;
             haveHidden = TRUE;
@@ -594,7 +594,7 @@ BOOLEAN AtpTaskAddDefinition(
 
     AtpTaskAddPrincipal(Row, definition);
 
-    if (SUCCEEDED(ITaskDefinition_get_Actions(definition, &actions)))
+    if (HR_SUCCESS(ITaskDefinition_get_Actions(definition, &actions)))
     {
         PhAddJsonObjectValue(Row, "actions", AtpTaskCreateActions(actions, Context->ActionContains, &actionMatched));
         IActionCollection_Release(actions);
@@ -608,7 +608,7 @@ BOOLEAN AtpTaskAddDefinition(
     {
         AtpTaskAddRegistrationInfo(Row, definition);
 
-        if (SUCCEEDED(ITaskDefinition_get_Triggers(definition, &triggers)))
+        if (HR_SUCCESS(ITaskDefinition_get_Triggers(definition, &triggers)))
         {
             PhAddJsonObjectValue(Row, "triggers", AtpTaskCreateTriggers(triggers));
             ITriggerCollection_Release(triggers);
@@ -644,19 +644,19 @@ VOID AtpTaskAddTask(
     VARIANT_BOOL enabled = VARIANT_FALSE;
     PCWSTR stateString;
     HRESULT result;
-    LONG value;
-    DATE date;
+    LONG value = 0;
+    DATE date = 0.0;
     BSTR string = NULL;
 
     Context->EnumeratedCount++;
 
-    if (SUCCEEDED(IRegisteredTask_get_Name(Task, &string)))
+    if (HR_SUCCESS(IRegisteredTask_get_Name(Task, &string)))
     {
         name = AtpTaskStringFromBstr(string);
         SysFreeString(string);
     }
 
-    if (SUCCEEDED(IRegisteredTask_get_Path(Task, &string)))
+    if (HR_SUCCESS(IRegisteredTask_get_Path(Task, &string)))
     {
         path = AtpTaskStringFromBstr(string);
         SysFreeString(string);
@@ -667,7 +667,7 @@ VOID AtpTaskAddTask(
     if (Context->ExcludeMicrosoftFolder && path && PhStartsWithStringRef(&path->sr, &microsoftFolder, TRUE))
         goto CleanupExit;
 
-    if (FAILED(IRegisteredTask_get_State(Task, &state)))
+    if (HR_FAILED(IRegisteredTask_get_State(Task, &state)))
         state = TASK_STATE_UNKNOWN;
 
     stateString = AtpTaskStateString(state);
@@ -675,7 +675,7 @@ VOID AtpTaskAddTask(
     if (Context->StateFilter && (!stateString || !PhEqualString2(Context->StateFilter, stateString, TRUE)))
         goto CleanupExit;
 
-    if (FAILED(IRegisteredTask_get_Enabled(Task, &enabled)))
+    if (HR_FAILED(IRegisteredTask_get_Enabled(Task, &enabled)))
         enabled = VARIANT_FALSE;
 
     if (Context->EnabledOnly && enabled == VARIANT_FALSE)
@@ -696,7 +696,7 @@ VOID AtpTaskAddTask(
 
     // The exit code of the last run, as the scheduler recorded it. It is an HRESULT-shaped value
     // that carries a process exit code for an exec action, so it is signed and reported both ways.
-    if (SUCCEEDED(IRegisteredTask_get_LastTaskResult(Task, &value)))
+    if (HR_SUCCESS(IRegisteredTask_get_LastTaskResult(Task, &value)))
     {
         PhAddJsonObjectInt64(row, "last_result", value);
         AtJsonAddHex(row, "last_result_hex", (ULONG)value);
@@ -707,7 +707,7 @@ VOID AtpTaskAddTask(
         AtJsonAddNull(row, "last_result_hex");
     }
 
-    if (SUCCEEDED(IRegisteredTask_get_NumberOfMissedRuns(Task, &value)))
+    if (HR_SUCCESS(IRegisteredTask_get_NumberOfMissedRuns(Task, &value)))
         PhAddJsonObjectInt64(row, "missed_runs", value);
     else
         AtJsonAddNull(row, "missed_runs");
@@ -747,18 +747,18 @@ VOID AtpTaskEnumerateFolder(
 
     Context->FolderCount++;
 
-    if (SUCCEEDED(ITaskFolder_get_Path(Folder, &string)))
+    if (HR_SUCCESS(ITaskFolder_get_Path(Folder, &string)))
     {
         folderPath = AtpTaskStringFromBstr(string);
         SysFreeString(string);
     }
 
     // TASK_ENUM_HIDDEN, because a task that asked not to be shown is the one worth seeing.
-    if (SUCCEEDED(ITaskFolder_GetTasks(Folder, TASK_ENUM_HIDDEN, &tasks)))
+    if (HR_SUCCESS(ITaskFolder_GetTasks(Folder, TASK_ENUM_HIDDEN, &tasks)))
     {
         count = 0;
 
-        if (SUCCEEDED(IRegisteredTaskCollection_get_Count(tasks, &count)))
+        if (HR_SUCCESS(IRegisteredTaskCollection_get_Count(tasks, &count)))
         {
             for (i = 1; i <= count; i++)
             {
@@ -768,7 +768,7 @@ VOID AtpTaskEnumerateFolder(
                 V_VT(&index) = VT_I4;
                 V_I4(&index) = i;
 
-                if (FAILED(IRegisteredTaskCollection_get_Item(tasks, index, &task)))
+                if (HR_FAILED(IRegisteredTaskCollection_get_Item(tasks, index, &task)))
                 {
                     Context->UnreadableCount++;
                     continue;
@@ -787,11 +787,11 @@ VOID AtpTaskEnumerateFolder(
         Context->UnreadableCount++;
     }
 
-    if (Depth < AT_TASK_MAX_DEPTH && SUCCEEDED(ITaskFolder_GetFolders(Folder, 0, &folders)))
+    if (Depth < AT_TASK_MAX_DEPTH && HR_SUCCESS(ITaskFolder_GetFolders(Folder, 0, &folders)))
     {
         count = 0;
 
-        if (SUCCEEDED(ITaskFolderCollection_get_Count(folders, &count)))
+        if (HR_SUCCESS(ITaskFolderCollection_get_Count(folders, &count)))
         {
             for (i = 1; i <= count; i++)
             {
@@ -801,7 +801,7 @@ VOID AtpTaskEnumerateFolder(
                 V_VT(&index) = VT_I4;
                 V_I4(&index) = i;
 
-                if (FAILED(ITaskFolderCollection_get_Item(folders, index, &folder)))
+                if (HR_FAILED(ITaskFolderCollection_get_Item(folders, index, &folder)))
                 {
                     Context->UnreadableCount++;
                     continue;
@@ -846,7 +846,7 @@ VOID AtpListScheduledTasks(
         &taskService
         );
 
-    if (FAILED(result))
+    if (HR_FAILED(result))
     {
         AtSetToolError(Result, "failed", AtpTaskStatus(result),
             L"The task scheduler could not be reached (0x%08x).", result);
@@ -855,7 +855,7 @@ VOID AtpListScheduledTasks(
 
     result = ITaskService_Connect(taskService, empty, empty, empty, empty);
 
-    if (FAILED(result))
+    if (HR_FAILED(result))
     {
         AtSetToolError(Result, "failed", AtpTaskStatus(result),
             L"Connecting to the task scheduler service failed (0x%08x).", result);
@@ -869,7 +869,7 @@ VOID AtpListScheduledTasks(
 
     result = ITaskService_GetFolder(taskService, folderString, &taskFolder);
 
-    if (FAILED(result))
+    if (HR_FAILED(result))
     {
         AtSetToolError(Result, "not_found", AtpTaskStatus(result),
             L"No task folder named %s could be opened (0x%08x).",
