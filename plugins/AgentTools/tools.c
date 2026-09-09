@@ -700,7 +700,13 @@ VOID AtpSortRows(
     PAT_ROW_SORT_ENTRY entries;
     ULONG i;
 
-    key = PhConvertUtf16ToUtf8Ex(Rows->SortBy->Buffer, Rows->SortBy->Length);
+    // The key is client text, and an unpaired surrogate has no UTF-8 form; every other conversion
+    // in the plugin checks for it. Since the paging arguments are validated against the tool's own
+    // declared keys this should no longer be reachable, which makes it the second line of defence
+    // rather than the first. Rows are left in enumeration order, as they are with no sort_by.
+    if (!(key = PhConvertUtf16ToUtf8Ex(Rows->SortBy->Buffer, Rows->SortBy->Length)))
+        return;
+
     entries = PhAllocate(Rows->Rows->Count * sizeof(AT_ROW_SORT_ENTRY));
 
     for (i = 0; i < Rows->Rows->Count; i++)
