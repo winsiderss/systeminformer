@@ -887,6 +887,7 @@ CONST AT_TOOL AtTools[] =
         "\"thread_count\":{\"type\":\"integer\"},"
         "\"handle_count\":{\"type\":\"integer\"},"
         "\"services\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"Services hosted by this process\"},"
+        "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The image on disk chains to a Microsoft root; null when it could not be read\"},"
         "\"access_denied\":{\"type\":\"boolean\"},"
         "\"statistics\":{\"type\":\"object\",\"description\":\"Only when include_statistics was set. A member is null when it could not be read, never zero\",\"properties\":{"
         "\"working_set\":{\"type\":[\"object\",\"null\"],\"properties\":{"
@@ -951,6 +952,7 @@ CONST AT_TOOL AtTools[] =
         "\"io_other_bytes\":{\"type\":\"integer\"},"
         "\"private_bytes\":{\"type\":\"integer\"}"
         "},\"required\":[\"cpu_usage\",\"private_bytes\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"update_interval_ms\",\"sample_count\",\"cpu_usage\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -1019,6 +1021,7 @@ CONST AT_TOOL AtTools[] =
         "\"kind\":{\"type\":\"string\"},"
         "\"time\":{\"type\":[\"string\",\"null\"]},"
         "\"pid\":{\"type\":[\"integer\",\"null\"]},"
+        "\"process_sequence_number\":{\"type\":[\"integer\",\"null\"],\"description\":\"Boot-unique identity of the process the event is about; pass with pid to mutating tools\"},"
         "\"name\":{\"type\":[\"string\",\"null\"],\"description\":\"Process name, service name, device name or message text\"},"
         "\"parent_pid\":{\"type\":[\"integer\",\"null\"]},"
         "\"parent_name\":{\"type\":[\"string\",\"null\"]},"
@@ -1624,7 +1627,11 @@ CONST AT_TOOL AtTools[] =
         "\"name\":{\"type\":[\"string\",\"null\"]},"
         "\"image_file_name\":{\"type\":[\"string\",\"null\"]},"
         "\"image_path\":{\"type\":[\"string\",\"null\"]},"
-        "\"service_key_name\":{\"type\":[\"string\",\"null\"]}}},"
+        "\"service_key_name\":{\"type\":[\"string\",\"null\"]},"
+        "\"start_address\":{\"type\":[\"string\",\"null\"]},"
+        "\"size\":{\"type\":[\"integer\",\"null\"]},"
+        "\"flags\":{\"type\":[\"string\",\"null\"]},"
+        "\"flag_names\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}}}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"type\",\"opened\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -2088,7 +2095,8 @@ CONST AT_TOOL AtTools[] =
         "\"connected_pid\":{\"type\":\"integer\"},"
         "\"connected_process_name\":{\"type\":[\"string\",\"null\"]}"
         "}}"
-        "}}"
+        "}},"
+        AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"system_call_number\",\"kind\",\"waiting_on\"]},"
         AT_READ_ANNOTATIONS "}"
     },
@@ -2252,6 +2260,7 @@ CONST AT_TOOL AtTools[] =
         "\"message\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"name\",\"size\"]}},"
         "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the module walk did not finish, so the modules listed are a partial set\"},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"scan_type\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -2804,6 +2813,11 @@ CONST AT_TOOL AtTools[] =
         "\"is_hung\":{\"type\":\"boolean\"},"
         "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground, read after any change rather than assumed from it\"},"
         "\"request_accepted\":{\"type\":\"boolean\",\"description\":\"Whether the system accepted the request at all. False means it was refused, usually by UIPI or the foreground lock, which is not the same as the window declining\"},"
+        "\"rect\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},"
+        "\"right\":{\"type\":\"integer\"},\"bottom\":{\"type\":\"integer\"},"
+        "\"width\":{\"type\":\"integer\"},\"height\":{\"type\":\"integer\"}}},"
+        "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
         AT_WRITE_ANNOTATIONS "}"
@@ -2839,6 +2853,11 @@ CONST AT_TOOL AtTools[] =
         "\"is_hung\":{\"type\":\"boolean\"},"
         "\"is_foreground\":{\"type\":\"boolean\",\"description\":\"Whether this window has the foreground, read after any change rather than assumed from it\"},"
         "\"request_accepted\":{\"type\":\"boolean\",\"description\":\"Whether the system accepted the request at all. False means it was refused, usually by UIPI or the foreground lock, which is not the same as the window declining\"},"
+        "\"rect\":{\"type\":[\"object\",\"null\"],\"properties\":{"
+        "\"left\":{\"type\":\"integer\"},\"top\":{\"type\":\"integer\"},"
+        "\"right\":{\"type\":\"integer\"},\"bottom\":{\"type\":\"integer\"},"
+        "\"width\":{\"type\":\"integer\"},\"height\":{\"type\":\"integer\"}}},"
+        "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
         AT_WRITE_ANNOTATIONS "}"
@@ -3024,7 +3043,8 @@ CONST AT_TOOL AtTools[] =
         "\"root\":{\"type\":[\"string\",\"null\"],\"description\":\"Top-level ancestor\"},"
         "\"child_count\":{\"type\":\"integer\"},"
         "\"dpi\":{\"type\":\"integer\"},"
-        "\"control_id\":{\"type\":\"integer\"}"
+        "\"control_id\":{\"type\":\"integer\"},"
+        AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"pid\",\"tid\",\"style\",\"styles\"]},"
         AT_READ_ANNOTATIONS "}"
     },
@@ -3472,6 +3492,7 @@ CONST AT_TOOL AtTools[] =
         "\"max_cpu_pid\":{\"type\":[\"integer\",\"null\"],\"description\":\"Process that used the most CPU in that sample; may have exited\"},"
         "\"max_io_pid\":{\"type\":[\"integer\",\"null\"]}"
         "},\"required\":[\"cpu_usage\",\"commit_bytes\"]}},"
+        AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -4960,6 +4981,7 @@ CONST AT_TOOL AtTools[] =
         "\"data_hex\":{\"type\":\"string\",\"description\":\"Everything else, including REG_BINARY\"}"
         "},\"required\":[\"is_default\",\"type_value\",\"data_size\",\"truncated\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when a values or subkeys enumeration did not finish, so this listing is partial\"},"
         "\"subkeys\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{"
         "\"name\":{\"type\":\"string\"},"
         "\"last_write_time\":{\"type\":\"string\"}"
@@ -5186,6 +5208,8 @@ CONST AT_TOOL AtTools[] =
         "\"type\":{\"type\":[\"string\",\"null\"]},\"type_value\":{\"type\":\"string\"},"
         "\"offset\":{\"type\":\"string\",\"description\":\"File offset, not an RVA\"}}}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"imports_complete\":{\"type\":\"boolean\",\"description\":\"The import directory was read whole; false when it could not be walked to the end\"},"
+        "\"exports_complete\":{\"type\":\"boolean\",\"description\":\"The export directory was read whole; false when it could not be walked to the end\"},"
         "\"rich_header\":{\"type\":[\"object\",\"null\"],\"description\":\"sections rich_header. The linker's "
         "record of the tools that built the file, obfuscated with a checksum key. Two binaries built by the same "
         "toolchain carry the same one\",\"properties\":{"
