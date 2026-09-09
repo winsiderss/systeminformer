@@ -471,18 +471,26 @@ VOID AtpSetDeviceEnabled(
     if (result != CR_SUCCESS)
     {
         // Most of what the configuration manager refuses with has no Win32 equivalent, so mapping
-        // it alone reports the fallback - "the handle is in an invalid state" - for a device that
-        // is simply not disableable or whose removal was vetoed. The CONFIGRET is named as well,
-        // because it is the only part that says which.
+        // it alone reports the fallback - "the handle is in an invalid state" - whatever went
+        // wrong. The two that actually happen say opposite things about whether to try again, so
+        // they are named rather than left to the caller to look up.
         AtSetToolError(
             Result,
             "failed",
             PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
-            L"%s failed (CONFIGRET %lu). A device that is not disableable on its own, or whose "
-            L"removal something vetoed, is refused here; list_devices shows what the node is and "
-            L"whether it has a parent worth asking about instead.",
+            L"%s failed (CONFIGRET %lu).%s",
             enable ? L"Enabling the device" : L"Disabling the device",
-            (ULONG)result
+            (ULONG)result,
+            result == CR_REMOVE_VETOED ?
+                L" A driver in the device's stack refused to stop it, which usually means something "
+                L"is using it. This disable is not asked to persist, so it has to stop the device "
+                L"now and cannot defer to a restart the way Device Manager does; close whatever is "
+                L"using the device and try again." :
+            result == CR_NOT_DISABLEABLE ?
+                L" The device reports that it cannot be disabled at all, so trying again will not "
+                L"help - a device the system is running on says this." :
+                L" list_devices shows what the node is and whether it has a parent worth asking "
+                L"about instead."
             );
         PhClearReference(&instanceId);
         return;
