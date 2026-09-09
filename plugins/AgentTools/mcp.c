@@ -1423,7 +1423,7 @@ PVOID AtpCreateElicitationParams(
         PCWSTR classDescription = AtConsentClassDescription(Action->Class);
 
         message = PhFormatString(
-            L"System Informer: allow the connected agent to %s for the rest of this session?\n\nFirst target: %s\n\nRequested by: %s\n\nThis data can contain secrets, and the grant covers %s for the rest of the session. Confirm only if you intended it.",
+            L"System Informer: allow the connected agent to %s for the rest of this session?\n\nFirst target: %s\n\nRequested by: %s\n\nThe grant covers %s for the rest of the session. Confirm only if you intended it.",
             Action->Verb,
             PhGetStringOrDefault(target, L"(none)"),
             PhGetString(caller),

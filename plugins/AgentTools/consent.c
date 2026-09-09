@@ -426,6 +426,17 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             // comes up on another monitor is a consent prompt that gets missed.
             AtpCenterWindowOnUserMonitor(WindowHandle);
 
+            // A custom main icon suppresses the task dialog's own sound, so without this the
+            // prompt arrives in silence; a stock icon would have been announced. The prompt is
+            // heard as well as seen, the way an elevation prompt is.
+            MessageBeep(MB_ICONWARNING);
+
+            // Topmost because the foreground cannot be relied on: a worker thread may not take it
+            // while the user is typing elsewhere, and a prompt that only flashes in the taskbar is
+            // one that gets missed. This raises the window above others without taking the input
+            // focus or the desktop from whatever the user is doing.
+            SetWindowPos(WindowHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+
             // The countdown and the waiter's bound both run from here, not from submission.
             request->ShownTick = NtGetTickCount64();
             WriteRelease(&request->Shown, 1);
@@ -906,9 +917,7 @@ AT_CONSENT_RESULT AtpAskUser(
     request->OfferPolicies = TRUE;
     request->OfferDelegate = Call->ClientElicitation;
 
-    if (Action->Tier == AtTierSensitiveRead)
-        request->Content = PhFormatString(L"%s\n\nThis data can contain secrets.", PhGetString(requester));
-    else if (Action->Tier == AtTierNetworkEgress)
+    if (Action->Tier == AtTierNetworkEgress)
         request->Content = PhFormatString(L"%s\n\nThis sends the request off this machine to a service on the internet.", PhGetString(requester));
     else
         request->Content = PhReferenceObject(requester);
