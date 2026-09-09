@@ -136,11 +136,8 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
     SIZE_T NumberOfImageLoads;
 
     //
-    // These are copied verbatim from the process context, so the layout must match
-    // KPH_PROCESS_CONTEXT exactly. Whether a process is verified, securely created or protected
-    // is not here: it is derived state and is reported through ProcessState above, as
-    // KPH_PROCESS_VERIFIED_PROCESS, KPH_PROCESS_SECURELY_CREATED and
-    // KPH_PROCESS_PROTECTED_PROCESS.
+    // Copied verbatim from the process context, so the layout must match KPH_PROCESS_CONTEXT.
+    // Verified, securely created and protected are derived state and are in ProcessState above.
     //
     union
     {
@@ -160,7 +157,7 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
     SIZE_T NumberOfThreads;
 
     //
-    // Only valid if Protected flag is set.
+    // Only valid if KPH_PROCESS_PROTECTED_PROCESS is set in ProcessState.
     //
     ACCESS_MASK ProcessAllowedMask;
     ACCESS_MASK ThreadAllowedMask;

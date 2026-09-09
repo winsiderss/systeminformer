@@ -236,9 +236,7 @@ DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
 #endif
 
     // Whether the data access layer attaches is the real test, so it is tried first and the
-    // detection is only used to explain a failure. The assembly page does the same, and for the
-    // same reason: the section check misses processes that are plainly running a runtime, and
-    // asking without it misses others.
+    // detection is only used to explain a failure.
     if (!(support = CreateClrProcessSupport(ProcessId)))
     {
         if (!NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, PH_CLR_USE_SECTION_CHECK, &isDotNet, NULL)) || !isDotNet)
