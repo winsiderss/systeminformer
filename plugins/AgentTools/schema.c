@@ -4769,7 +4769,7 @@ CONST AT_TOOL AtTools[] =
         "\"verify_result\":{\"type\":\"string\",\"description\":\"Trusted, No signature, Expired certificate, Revoked certificate, Not trusted, Security policy failure or Invalid hash\"},"
         "\"is_trusted\":{\"type\":\"boolean\"},"
         "\"signer\":{\"type\":[\"string\",\"null\"]},"
-        "\"is_microsoft_signed\":{\"type\":\"boolean\",\"description\":\"The signature chains to a Microsoft root\"},"
+        "\"is_microsoft_signed\":{\"type\":[\"boolean\",\"null\"],\"description\":\"The signature chains to a Microsoft root; null when the file could not be read to find out\"},"
         "\"has_embedded_signature\":{\"type\":\"boolean\",\"description\":\"The file carries a signature of its own\"},"
         "\"signature_source\":{\"type\":[\"string\",\"null\"],\"enum\":[\"embedded\",\"catalog\",null],"
         "\"description\":\"catalog means trusted with no signature of its own\"},"

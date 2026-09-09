@@ -278,12 +278,13 @@ VOID AtpListKernelDrivers(
             PPH_STRING signer = NULL;
             VERIFY_RESULT verifyResult = VrUnknown;
             BOOLEAN microsoft = FALSE;
+            BOOLEAN microsoftKnown = FALSE;
 
             if (needVerify)
                 verifyResult = AtVerifyFileName(fileName, &signer);
 
             if (needMicrosoft)
-                microsoft = AtIsMicrosoftSigned(fileName);
+                microsoft = AtIsMicrosoftSigned(fileName, &microsoftKnown);
 
             if ((excludeMicrosoft && microsoft) || (unsignedOnly && verifyResult == VrTrusted))
             {
@@ -305,7 +306,7 @@ VOID AtpListKernelDrivers(
                 AtJsonAddNull(row, "verify_signer");
             }
 
-            if (needMicrosoft)
+            if (needMicrosoft && microsoftKnown)
                 PhAddJsonObjectBoolean(row, "is_microsoft_signed", microsoft);
             else
                 AtJsonAddNull(row, "is_microsoft_signed");

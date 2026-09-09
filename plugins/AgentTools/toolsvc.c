@@ -244,7 +244,7 @@ BOOLEAN AtpServiceMatchesFilter(
 
     // Last, and only when asked: each of these verifies the service image on disk, so the cheap
     // filters above have already thrown away everything they can.
-    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ServiceItem->FileName))
+    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ServiceItem->FileName, NULL))
         return FALSE;
 
     if (Filter->UnsignedOnly && AtVerifyFileName(ServiceItem->FileName, NULL) == VrTrusted)
@@ -340,7 +340,7 @@ VOID AtpListServices(
 
         // A verification per service, so only when the caller asked for the field or filtered on it.
         if (verifySignatures)
-            PhAddJsonObjectBoolean(row, "is_microsoft_signed", AtIsMicrosoftSigned(serviceItem->FileName));
+            AtJsonAddMicrosoftSigned(row, "is_microsoft_signed", serviceItem->FileName);
 
         AtAddRow(&rows, row);
 
@@ -690,7 +690,7 @@ VOID AtpGetService(
 
     // Named is_microsoft_signed, like every other row that carries it.
     if (serviceItem->FileName)
-        PhAddJsonObjectBoolean(structured, "is_microsoft_signed", AtIsMicrosoftSigned(serviceItem->FileName));
+        AtJsonAddMicrosoftSigned(structured, "is_microsoft_signed", serviceItem->FileName);
     else
         AtJsonAddNull(structured, "is_microsoft_signed");
 

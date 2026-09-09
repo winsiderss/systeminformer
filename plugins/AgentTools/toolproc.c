@@ -107,7 +107,7 @@ PVOID AtpCreateProcessRow(
 
     // A full signature verification per process, so only when asked for.
     if (VerifySignatures)
-        PhAddJsonObjectBoolean(row, "is_microsoft_signed", AtIsMicrosoftSigned(ProcessItem->FileName));
+        AtJsonAddMicrosoftSigned(row, "is_microsoft_signed", ProcessItem->FileName);
 
     return row;
 }
@@ -433,7 +433,7 @@ VOID AtpFillProcessDetail(
     AtJsonAddStringZ(Object, "verify_result", AtVerifyResultString(ProcessItem->VerifyResult));
     AtJsonAddString(Object, "verify_signer", ProcessItem->VerifySignerName);
     // Verified here: the provider only fills verify_result when the signature stage is enabled.
-    PhAddJsonObjectBoolean(Object, "is_microsoft_signed", AtIsMicrosoftSigned(ProcessItem->FileName));
+    AtJsonAddMicrosoftSigned(Object, "is_microsoft_signed", ProcessItem->FileName);
     AtJsonAddString(Object, "package_full_name", ProcessItem->PackageFullName);
     PhAddJsonObjectBoolean(Object, "is_protected_process", !!ProcessItem->IsProtectedProcess);
     AtJsonAddStringZ(Object, "protection", AtpProtectionString(ProcessItem->Protection));
@@ -686,7 +686,7 @@ BOOLEAN AtpMatchesFilter(
     }
 
     // One signature verification per row, so every cheap filter runs first.
-    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ProcessItem->FileName))
+    if (Filter->ExcludeMicrosoft && AtIsMicrosoftSigned(ProcessItem->FileName, NULL))
         return FALSE;
 
     if (Filter->UnsignedOnly && AtVerifyFileName(ProcessItem->FileName, NULL) == VrTrusted)

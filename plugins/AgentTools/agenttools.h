@@ -891,6 +891,13 @@ VOID AtJsonAddFlagStrings(
     );
 
 BOOLEAN AtIsMicrosoftSigned(
+    _In_opt_ PPH_STRING FileName,
+    _Out_opt_ PBOOLEAN Known
+    );
+
+VOID AtJsonAddMicrosoftSigned(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
     _In_opt_ PPH_STRING FileName
     );
 

@@ -1324,12 +1324,26 @@ VOID AtJsonAddFlagStrings(
     PhAddJsonObjectValue(Object, Key, array);
 }
 
+/**
+ * Determines whether a file's signature chains to a Microsoft root.
+ *
+ * \param FileName The native file name, or NULL.
+ * \param Known Set to TRUE only when the answer was reached, so a caller can tell "not Microsoft"
+ * from "could not be determined". A filter passes NULL and treats the unknown case as not Microsoft.
+ *
+ * \return TRUE if the signature chains to a Microsoft root.
+ */
 BOOLEAN AtIsMicrosoftSigned(
-    _In_opt_ PPH_STRING FileName
+    _In_opt_ PPH_STRING FileName,
+    _Out_opt_ PBOOLEAN Known
     )
 {
     PPH_STRING win32FileName;
+    HANDLE fileHandle;
     BOOLEAN chained;
+
+    if (Known)
+        *Known = FALSE;
 
     if (PhIsNullOrEmptyString(FileName))
         return FALSE;
@@ -1337,10 +1351,48 @@ BOOLEAN AtIsMicrosoftSigned(
     if (!(win32FileName = PhGetFileName(FileName)))
         return FALSE;
 
+    // PhVerifyFileIsChainedToMicrosoft answers FALSE both for a file that is not Microsoft signed
+    // and for one it could not read, so readability is established before the answer is claimed.
+    if (!NT_SUCCESS(PhCreateFileWin32(
+        &fileHandle,
+        PhGetString(win32FileName),
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_ATTRIBUTE_NORMAL,
+        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        )))
+    {
+        PhDereferenceObject(win32FileName);
+        return FALSE;
+    }
+
+    NtClose(fileHandle);
+
     chained = !!PhVerifyFileIsChainedToMicrosoft(&win32FileName->sr, FALSE);
     PhDereferenceObject(win32FileName);
 
+    if (Known)
+        *Known = TRUE;
+
     return chained;
+}
+
+VOID AtJsonAddMicrosoftSigned(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_opt_ PPH_STRING FileName
+    )
+{
+    BOOLEAN known;
+    BOOLEAN microsoft;
+
+    microsoft = AtIsMicrosoftSigned(FileName, &known);
+
+    if (known)
+        PhAddJsonObjectBoolean(Object, Key, microsoft);
+    else
+        AtJsonAddNull(Object, Key);
 }
 
 VERIFY_RESULT AtVerifyFileName(

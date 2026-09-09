@@ -87,7 +87,7 @@ VOID AtpAddModuleDetails(
 
     AtJsonAddStringZ(Row, "verify_result", AtVerifyResultString(VerifyResult));
     AtJsonAddString(Row, "verify_signer", Signer);
-    PhAddJsonObjectBoolean(Row, "is_microsoft_signed", AtIsMicrosoftSigned(FileName));
+    AtJsonAddMicrosoftSigned(Row, "is_microsoft_signed", FileName);
 
     win32FileName = PhGetFileName(FileName);
 
