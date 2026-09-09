@@ -11,19 +11,19 @@
 
 #include "agenttools.h"
 
-static PPH_OBJECT_TYPE AtConnectionType = NULL;
-static LIST_ENTRY AtConnectionList;
-static PH_QUEUED_LOCK AtConnectionListLock = PH_QUEUED_LOCK_INIT;
-static ULONG AtNextConnectionId = 1;
+static PPH_OBJECT_TYPE AtpConnectionType = NULL;
+static LIST_ENTRY AtpConnectionList;
+static PH_QUEUED_LOCK AtpConnectionListLock = PH_QUEUED_LOCK_INIT;
+static ULONG AtpNextConnectionId = 1;
 
-static PH_QUEUED_LOCK AtServerLock = PH_QUEUED_LOCK_INIT;
-static AT_SERVER_STATE AtServerState = AtServerStopped;
-static NTSTATUS AtServerStatus = STATUS_SUCCESS;
-static BOOLEAN AtServerElevated = FALSE;
-static LONG AtServerStopping = 0;
-static HANDLE AtListenerThreadHandle = NULL;
-static PPH_STRING AtPipeName = NULL;
-static PSECURITY_DESCRIPTOR AtPipeSecurityDescriptor = NULL;
+static PH_QUEUED_LOCK AtpServerLock = PH_QUEUED_LOCK_INIT;
+static AT_SERVER_STATE AtpServerState = AtServerStopped;
+static NTSTATUS AtpServerStatus = STATUS_SUCCESS;
+static BOOLEAN AtpServerElevated = FALSE;
+static LONG AtpServerStopping = 0;
+static HANDLE AtpListenerThreadHandle = NULL;
+static PPH_STRING AtpPipeName = NULL;
+static PSECURITY_DESCRIPTOR AtpPipeSecurityDescriptor = NULL;
 
 // S-1-15-2-1 ALL APPLICATION PACKAGES
 static struct
@@ -40,8 +40,8 @@ static struct
     { SECURITY_APP_PACKAGE_BASE_RID, SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE }
 };
 
-static SID AtMediumLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_MEDIUM_RID } };
-static SID AtLowLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_LOW_RID } };
+static SID AtpMediumLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_MEDIUM_RID } };
+static SID AtpLowLabelSid = { SID_REVISION, 1, SECURITY_MANDATORY_LABEL_AUTHORITY, { SECURITY_MANDATORY_LOW_RID } };
 
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI AtpConnectionDeleteProcedure(
@@ -105,7 +105,7 @@ NTSTATUS AtpCreatePipeSecurityDescriptor(
         accessSid = logonSidGroups->Groups[0].Sid;
     }
 
-    labelSid = AllowSandboxedClients ? &AtLowLabelSid : &AtMediumLabelSid;
+    labelSid = AllowSandboxedClients ? &AtpLowLabelSid : &AtpMediumLabelSid;
 
     daclLength = sizeof(ACL) + sizeof(ACCESS_ALLOWED_ACE) + RtlLengthSid(accessSid);
 
@@ -198,9 +198,9 @@ NTSTATUS AtpCreatePipeInstance(
 {
     return PhCreateNamedPipeEx(
         PipeHandle,
-        &AtPipeName->sr,
+        &AtpPipeName->sr,
         NULL,
-        AtPipeSecurityDescriptor,
+        AtpPipeSecurityDescriptor,
         FirstInstance ? FILE_CREATE : FILE_OPEN_IF,
         FILE_PIPE_BYTE_STREAM_TYPE,
         FILE_PIPE_UNLIMITED_INSTANCES
@@ -369,16 +369,16 @@ BOOLEAN AtpRegisterConnection(
 {
     BOOLEAN registered = FALSE;
 
-    PhAcquireQueuedLockExclusive(&AtConnectionListLock);
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
 
-    if (!ReadAcquire(&AtServerStopping))
+    if (!ReadAcquire(&AtpServerStopping))
     {
-        InsertTailList(&AtConnectionList, &Connection->ListEntry);
+        InsertTailList(&AtpConnectionList, &Connection->ListEntry);
         Connection->Registered = TRUE;
         registered = TRUE;
     }
 
-    PhReleaseQueuedLockExclusive(&AtConnectionListLock);
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
 
     return registered;
 }
@@ -387,7 +387,7 @@ VOID AtpUnregisterConnection(
     _In_ PAT_CONNECTION Connection
     )
 {
-    PhAcquireQueuedLockExclusive(&AtConnectionListLock);
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
 
     if (Connection->Registered)
     {
@@ -395,7 +395,7 @@ VOID AtpUnregisterConnection(
         Connection->Registered = FALSE;
     }
 
-    PhReleaseQueuedLockExclusive(&AtConnectionListLock);
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
 }
 
 SIMCP_HELLO_STATUS AtpValidateBrokerImage(
@@ -765,10 +765,10 @@ PAT_CONNECTION AtpCreateConnection(
 {
     PAT_CONNECTION connection;
 
-    connection = PhCreateObject(sizeof(AT_CONNECTION), AtConnectionType);
+    connection = PhCreateObject(sizeof(AT_CONNECTION), AtpConnectionType);
     memset(connection, 0, sizeof(AT_CONNECTION));
     connection->PipeHandle = PipeHandle;
-    connection->ConnectionId = (ULONG)InterlockedIncrement((PLONG)&AtNextConnectionId) - 1;
+    connection->ConnectionId = (ULONG)InterlockedIncrement((PLONG)&AtpNextConnectionId) - 1;
     PhInitializeQueuedLock(&connection->Lock);
     PhInitializeEvent(&connection->StartedEvent);
     InitializeListHead(&connection->DeferredRequests);
@@ -782,16 +782,16 @@ VOID AtpListenerFailed(
     _In_ NTSTATUS Status
     )
 {
-    PhAcquireQueuedLockExclusive(&AtServerLock);
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
 
     // A stop in progress already published Stopped; this thread is about to be joined.
-    if (!ReadAcquire(&AtServerStopping))
+    if (!ReadAcquire(&AtpServerStopping))
     {
-        AtServerState = AtServerFailed;
-        AtServerStatus = Status;
+        AtpServerState = AtServerFailed;
+        AtpServerStatus = Status;
     }
 
-    PhReleaseQueuedLockExclusive(&AtServerLock);
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
 }
 
 _Function_class_(USER_THREAD_START_ROUTINE)
@@ -808,7 +808,7 @@ NTSTATUS NTAPI AtpListenerThread(
 
         status = PhListenNamedPipe(pipeHandle);
 
-        if (ReadAcquire(&AtServerStopping))
+        if (ReadAcquire(&AtpServerStopping))
         {
             NtClose(pipeHandle);
             break;
@@ -882,34 +882,34 @@ NTSTATUS AtServerStart(
     HANDLE pipeHandle;
     BOOLEAN elevated;
 
-    PhAcquireQueuedLockExclusive(&AtServerLock);
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
 
-    if (AtServerState == AtServerRunning)
+    if (AtpServerState == AtServerRunning)
     {
-        PhReleaseQueuedLockExclusive(&AtServerLock);
+        PhReleaseQueuedLockExclusive(&AtpServerLock);
         return STATUS_SUCCESS;
     }
 
-    if (!AtConnectionType)
+    if (!AtpConnectionType)
     {
-        AtConnectionType = PhCreateObjectType(L"AgentToolsConnection", 0, AtpConnectionDeleteProcedure);
-        InitializeListHead(&AtConnectionList);
+        AtpConnectionType = PhCreateObjectType(L"AgentToolsConnection", 0, AtpConnectionDeleteProcedure);
+        InitializeListHead(&AtpConnectionList);
     }
 
     elevated = !!PhGetOwnTokenAttributes().Elevated;
 
-    PhClearReference(&AtPipeName);
-    AtPipeName = AtpFormatPipeName(elevated);
+    PhClearReference(&AtpPipeName);
+    AtpPipeName = AtpFormatPipeName(elevated);
 
-    if (AtPipeSecurityDescriptor)
+    if (AtpPipeSecurityDescriptor)
     {
-        PhFree(AtPipeSecurityDescriptor);
-        AtPipeSecurityDescriptor = NULL;
+        PhFree(AtpPipeSecurityDescriptor);
+        AtpPipeSecurityDescriptor = NULL;
     }
 
     status = AtpCreatePipeSecurityDescriptor(
         !!PhGetIntegerSetting(SETTING_NAME_ALLOW_SANDBOXED_CLIENTS),
-        &AtPipeSecurityDescriptor
+        &AtpPipeSecurityDescriptor
         );
 
     if (!NT_SUCCESS(status))
@@ -922,9 +922,9 @@ NTSTATUS AtServerStart(
     if (!NT_SUCCESS(status))
         goto CleanupExit;
 
-    WriteRelease(&AtServerStopping, 0);
+    WriteRelease(&AtpServerStopping, 0);
 
-    status = PhCreateThreadEx(&AtListenerThreadHandle, AtpListenerThread, pipeHandle);
+    status = PhCreateThreadEx(&AtpListenerThreadHandle, AtpListenerThread, pipeHandle);
 
     if (!NT_SUCCESS(status))
     {
@@ -933,17 +933,17 @@ NTSTATUS AtServerStart(
     }
 
 CleanupExit:
-    AtServerStatus = status;
-    AtServerElevated = elevated;
+    AtpServerStatus = status;
+    AtpServerElevated = elevated;
 
     if (NT_SUCCESS(status))
-        AtServerState = AtServerRunning;
+        AtpServerState = AtServerRunning;
     else if (status == STATUS_OBJECT_NAME_COLLISION)
-        AtServerState = AtServerFailedPipeExists;
+        AtpServerState = AtServerFailedPipeExists;
     else
-        AtServerState = AtServerFailed;
+        AtpServerState = AtServerFailed;
 
-    PhReleaseQueuedLockExclusive(&AtServerLock);
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
 
     return status;
 }
@@ -978,22 +978,22 @@ VOID AtServerStop(
     HANDLE listenerThreadHandle;
     ULONG i;
 
-    PhAcquireQueuedLockExclusive(&AtServerLock);
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
 
-    if (AtServerState == AtServerStopped)
+    if (AtpServerState == AtServerStopped)
     {
-        PhReleaseQueuedLockExclusive(&AtServerLock);
+        PhReleaseQueuedLockExclusive(&AtpServerLock);
         return;
     }
 
-    WriteRelease(&AtServerStopping, 1);
+    WriteRelease(&AtpServerStopping, 1);
 
-    listenerThreadHandle = AtListenerThreadHandle;
-    AtListenerThreadHandle = NULL;
-    AtServerState = AtServerStopped;
-    AtServerStatus = STATUS_SUCCESS;
+    listenerThreadHandle = AtpListenerThreadHandle;
+    AtpListenerThreadHandle = NULL;
+    AtpServerState = AtServerStopped;
+    AtpServerStatus = STATUS_SUCCESS;
 
-    PhReleaseQueuedLockExclusive(&AtServerLock);
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
 
     // Join the listener outside the lock: its failure path takes the lock to publish the failure.
     if (listenerThreadHandle)
@@ -1026,12 +1026,12 @@ VOID AtServerStop(
     PhDereferenceObject(connections);
 
     // The next start rebuilds both from the settings in force then.
-    PhClearReference(&AtPipeName);
+    PhClearReference(&AtpPipeName);
 
-    if (AtPipeSecurityDescriptor)
+    if (AtpPipeSecurityDescriptor)
     {
-        PhFree(AtPipeSecurityDescriptor);
-        AtPipeSecurityDescriptor = NULL;
+        PhFree(AtpPipeSecurityDescriptor);
+        AtpPipeSecurityDescriptor = NULL;
     }
 }
 
@@ -1042,11 +1042,11 @@ AT_SERVER_STATE AtServerGetState(
 {
     AT_SERVER_STATE state;
 
-    PhAcquireQueuedLockExclusive(&AtServerLock);
-    state = AtServerState;
-    if (Status) *Status = AtServerStatus;
-    if (Elevated) *Elevated = AtServerElevated;
-    PhReleaseQueuedLockExclusive(&AtServerLock);
+    PhAcquireQueuedLockExclusive(&AtpServerLock);
+    state = AtpServerState;
+    if (Status) *Status = AtpServerStatus;
+    if (Elevated) *Elevated = AtpServerElevated;
+    PhReleaseQueuedLockExclusive(&AtpServerLock);
 
     return state;
 }
@@ -1060,12 +1060,12 @@ PPH_LIST AtServerSnapshotConnections(
 
     list = PhCreateList(4);
 
-    if (!AtConnectionType)
+    if (!AtpConnectionType)
         return list;
 
-    PhAcquireQueuedLockExclusive(&AtConnectionListLock);
+    PhAcquireQueuedLockExclusive(&AtpConnectionListLock);
 
-    for (entry = AtConnectionList.Flink; entry != &AtConnectionList; entry = entry->Flink)
+    for (entry = AtpConnectionList.Flink; entry != &AtpConnectionList; entry = entry->Flink)
     {
         PAT_CONNECTION connection = CONTAINING_RECORD(entry, AT_CONNECTION, ListEntry);
 
@@ -1073,7 +1073,7 @@ PPH_LIST AtServerSnapshotConnections(
         PhAddItemList(list, connection);
     }
 
-    PhReleaseQueuedLockExclusive(&AtConnectionListLock);
+    PhReleaseQueuedLockExclusive(&AtpConnectionListLock);
 
     return list;
 }

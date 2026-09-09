@@ -28,7 +28,7 @@ typedef enum _AT_EVENT_KIND
     AtEventKindMaximum
 } AT_EVENT_KIND;
 
-static CONST PCSTR AtEventKindNames[AtEventKindMaximum] =
+static CONST PCSTR AtpEventKindNames[AtEventKindMaximum] =
 {
     "process_create",
     "process_exit",
@@ -76,26 +76,26 @@ typedef struct _AT_PROCESS_EXIT
     PPH_STRING ParentName;
 } AT_PROCESS_EXIT, *PAT_PROCESS_EXIT;
 
-static AT_PROCESS_EXIT AtExitRing[AT_EXIT_RING_SIZE];
-static ULONG AtExitNext = 0;
-static ULONG AtExitCount = 0;
+static AT_PROCESS_EXIT AtpExitRing[AT_EXIT_RING_SIZE];
+static ULONG AtpExitNext = 0;
+static ULONG AtpExitCount = 0;
 
-static PH_QUEUED_LOCK AtEventLock = PH_QUEUED_LOCK_INIT;
-static AT_EVENT AtEventRing[AT_EVENT_RING_SIZE];
-static ULONG64 AtEventNextCursor = 1;
-static ULONG64 AtEventOldestCursor = 1;
+static PH_QUEUED_LOCK AtpEventLock = PH_QUEUED_LOCK_INIT;
+static AT_EVENT AtpEventRing[AT_EVENT_RING_SIZE];
+static ULONG64 AtpEventNextCursor = 1;
+static ULONG64 AtpEventOldestCursor = 1;
 
-static PH_CALLBACK_REGISTRATION AtEventProcessAddedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventProcessRemovedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventServiceAddedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventServiceModifiedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventServiceRemovedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventDeviceRegistration;
-static PH_CALLBACK_REGISTRATION AtEventProcessUpdatedRegistration;
-static PH_CALLBACK_REGISTRATION AtEventServiceUpdatedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventProcessAddedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventProcessRemovedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventServiceAddedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventServiceModifiedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventServiceRemovedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventDeviceRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventProcessUpdatedRegistration;
+static PH_CALLBACK_REGISTRATION AtpEventServiceUpdatedRegistration;
 
-static LONG AtEventProcessProviderRan = 0;
-static LONG AtEventServiceProviderRan = 0;
+static LONG AtpEventProcessProviderRan = 0;
+static LONG AtpEventServiceProviderRan = 0;
 
 VOID AtpClearEvent(
     _Inout_ PAT_EVENT Event
@@ -106,24 +106,24 @@ VOID AtpClearEvent(
     memset(Event, 0, sizeof(AT_EVENT));
 }
 
-_Requires_lock_held_(AtEventLock)
+_Requires_lock_held_(AtpEventLock)
 PAT_EVENT AtpPushEvent(
     _In_ AT_EVENT_KIND Kind
     )
 {
     PAT_EVENT event;
 
-    event = &AtEventRing[AtEventNextCursor % AT_EVENT_RING_SIZE];
+    event = &AtpEventRing[AtpEventNextCursor % AT_EVENT_RING_SIZE];
 
     if (event->Cursor != 0)
     {
         // Overwriting something a slow reader may not have seen: moving the oldest cursor is what
         // later tells that reader it missed events.
         AtpClearEvent(event);
-        AtEventOldestCursor = AtEventNextCursor - AT_EVENT_RING_SIZE + 1;
+        AtpEventOldestCursor = AtpEventNextCursor - AT_EVENT_RING_SIZE + 1;
     }
 
-    event->Cursor = AtEventNextCursor++;
+    event->Cursor = AtpEventNextCursor++;
     event->Kind = Kind;
     PhQuerySystemTime(&event->Time);
 
@@ -138,8 +138,8 @@ VOID AtpRecordProcessExit(
 {
     PAT_PROCESS_EXIT exit;
 
-    exit = &AtExitRing[AtExitNext];
-    AtExitNext = (AtExitNext + 1) % AT_EXIT_RING_SIZE;
+    exit = &AtpExitRing[AtpExitNext];
+    AtpExitNext = (AtpExitNext + 1) % AT_EXIT_RING_SIZE;
 
     if (exit->Used)
     {
@@ -151,7 +151,7 @@ VOID AtpRecordProcessExit(
     }
     else
     {
-        AtExitCount++;
+        AtpExitCount++;
     }
 
     memset(exit, 0, sizeof(AT_PROCESS_EXIT));
@@ -190,10 +190,10 @@ VOID NTAPI AtpEventProcessAddedCallback(
     PPH_PROCESS_ITEM processItem = Parameter;
     PAT_EVENT event;
 
-    if (!processItem || !ReadAcquire(&AtEventProcessProviderRan))
+    if (!processItem || !ReadAcquire(&AtpEventProcessProviderRan))
         return;
 
-    PhAcquireQueuedLockExclusive(&AtEventLock);
+    PhAcquireQueuedLockExclusive(&AtpEventLock);
 
     event = AtpPushEvent(AtEventProcessCreate);
     event->ProcessId = processItem->ProcessId;
@@ -213,7 +213,7 @@ VOID NTAPI AtpEventProcessAddedCallback(
         }
     }
 
-    PhReleaseQueuedLockExclusive(&AtEventLock);
+    PhReleaseQueuedLockExclusive(&AtpEventLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -238,7 +238,7 @@ VOID NTAPI AtpEventProcessRemovedCallback(
             haveExitStatus = TRUE;
     }
 
-    PhAcquireQueuedLockExclusive(&AtEventLock);
+    PhAcquireQueuedLockExclusive(&AtpEventLock);
 
     event = AtpPushEvent(AtEventProcessExit);
     event->ProcessId = processItem->ProcessId;
@@ -254,7 +254,7 @@ VOID NTAPI AtpEventProcessRemovedCallback(
 
     AtpRecordProcessExit(processItem, haveExitStatus, haveExitStatus ? basicInfo.ExitStatus : 0);
 
-    PhReleaseQueuedLockExclusive(&AtEventLock);
+    PhReleaseQueuedLockExclusive(&AtpEventLock);
 }
 
 VOID AtpPushServiceEvent(
@@ -264,7 +264,7 @@ VOID AtpPushServiceEvent(
 {
     PAT_EVENT event;
 
-    PhAcquireQueuedLockExclusive(&AtEventLock);
+    PhAcquireQueuedLockExclusive(&AtpEventLock);
 
     event = AtpPushEvent(Kind);
     PhSetReference(&event->Name, ServiceItem->Name);
@@ -273,7 +273,7 @@ VOID AtpPushServiceEvent(
     if (ServiceItem->ProcessId)
         event->ProcessId = ServiceItem->ProcessId;
 
-    PhReleaseQueuedLockExclusive(&AtEventLock);
+    PhReleaseQueuedLockExclusive(&AtpEventLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -282,7 +282,7 @@ VOID NTAPI AtpEventServiceAddedCallback(
     _In_opt_ PVOID Context
     )
 {
-    if (Parameter && ReadAcquire(&AtEventServiceProviderRan))
+    if (Parameter && ReadAcquire(&AtpEventServiceProviderRan))
         AtpPushServiceEvent(AtEventServiceCreate, Parameter);
 }
 
@@ -292,7 +292,7 @@ VOID NTAPI AtpEventProcessUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    WriteRelease(&AtEventProcessProviderRan, TRUE);
+    WriteRelease(&AtpEventProcessProviderRan, TRUE);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -301,7 +301,7 @@ VOID NTAPI AtpEventServiceUpdatedCallback(
     _In_opt_ PVOID Context
     )
 {
-    WriteRelease(&AtEventServiceProviderRan, TRUE);
+    WriteRelease(&AtpEventServiceProviderRan, TRUE);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -385,12 +385,12 @@ VOID NTAPI AtpEventDeviceCallback(
         return; // enumeration, which is not an arrival
     }
 
-    PhAcquireQueuedLockExclusive(&AtEventLock);
+    PhAcquireQueuedLockExclusive(&AtpEventLock);
 
     event = AtpPushEvent(kind);
     PhMoveReference(&event->Name, name);
 
-    PhReleaseQueuedLockExclusive(&AtEventLock);
+    PhReleaseQueuedLockExclusive(&AtpEventLock);
 }
 
 VOID AtEventsInitialize(
@@ -401,49 +401,49 @@ VOID AtEventsInitialize(
         PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent),
         AtpEventProcessAddedCallback,
         NULL,
-        &AtEventProcessAddedRegistration
+        &AtpEventProcessAddedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
         AtpEventProcessRemovedCallback,
         NULL,
-        &AtEventProcessRemovedRegistration
+        &AtpEventProcessRemovedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent),
         AtpEventServiceAddedCallback,
         NULL,
-        &AtEventServiceAddedRegistration
+        &AtpEventServiceAddedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
         AtpEventServiceModifiedCallback,
         NULL,
-        &AtEventServiceModifiedRegistration
+        &AtpEventServiceModifiedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent),
         AtpEventServiceRemovedCallback,
         NULL,
-        &AtEventServiceRemovedRegistration
+        &AtpEventServiceRemovedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent),
         AtpEventDeviceCallback,
         NULL,
-        &AtEventDeviceRegistration
+        &AtpEventDeviceRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         AtpEventProcessUpdatedCallback,
         NULL,
-        &AtEventProcessUpdatedRegistration
+        &AtpEventProcessUpdatedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent),
         AtpEventServiceUpdatedCallback,
         NULL,
-        &AtEventServiceUpdatedRegistration
+        &AtpEventServiceUpdatedRegistration
         );
 }
 
@@ -453,34 +453,34 @@ VOID AtEventsUninitialize(
 {
     ULONG i;
 
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent), &AtEventProcessAddedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent), &AtEventProcessRemovedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent), &AtEventServiceAddedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &AtEventServiceModifiedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent), &AtEventServiceRemovedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), &AtEventDeviceRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &AtEventProcessUpdatedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), &AtEventServiceUpdatedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent), &AtpEventProcessAddedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent), &AtpEventProcessRemovedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent), &AtpEventServiceAddedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &AtpEventServiceModifiedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent), &AtpEventServiceRemovedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackDeviceNotificationEvent), &AtpEventDeviceRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &AtpEventProcessUpdatedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderUpdatedEvent), &AtpEventServiceUpdatedRegistration);
 
-    PhAcquireQueuedLockExclusive(&AtEventLock);
+    PhAcquireQueuedLockExclusive(&AtpEventLock);
 
     for (i = 0; i < AT_EVENT_RING_SIZE; i++)
-        AtpClearEvent(&AtEventRing[i]);
+        AtpClearEvent(&AtpEventRing[i]);
 
     for (i = 0; i < AT_EXIT_RING_SIZE; i++)
     {
-        PhClearReference(&AtExitRing[i].Name);
-        PhClearReference(&AtExitRing[i].FileName);
-        PhClearReference(&AtExitRing[i].CommandLine);
-        PhClearReference(&AtExitRing[i].UserName);
-        PhClearReference(&AtExitRing[i].ParentName);
-        memset(&AtExitRing[i], 0, sizeof(AT_PROCESS_EXIT));
+        PhClearReference(&AtpExitRing[i].Name);
+        PhClearReference(&AtpExitRing[i].FileName);
+        PhClearReference(&AtpExitRing[i].CommandLine);
+        PhClearReference(&AtpExitRing[i].UserName);
+        PhClearReference(&AtpExitRing[i].ParentName);
+        memset(&AtpExitRing[i], 0, sizeof(AT_PROCESS_EXIT));
     }
 
-    AtExitNext = 0;
-    AtExitCount = 0;
+    AtpExitNext = 0;
+    AtpExitCount = 0;
 
-    PhReleaseQueuedLockExclusive(&AtEventLock);
+    PhReleaseQueuedLockExclusive(&AtpEventLock);
 }
 
 BOOLEAN AtpEventMatchesKinds(
@@ -549,14 +549,14 @@ VOID AtpListRecentEvents(
     structured = PhCreateJsonObject();
     array = PhCreateJsonArray();
 
-    PhAcquireQueuedLockShared(&AtEventLock);
+    PhAcquireQueuedLockShared(&AtpEventLock);
 
     // What was asked for but is no longer held. A client that has never read starts at the oldest
     // kept event and is not told it missed what happened before the plugin loaded.
-    if (sinceCursor != 0 && sinceCursor + 1 < AtEventOldestCursor)
-        dropped = AtEventOldestCursor - sinceCursor - 1;
+    if (sinceCursor != 0 && sinceCursor + 1 < AtpEventOldestCursor)
+        dropped = AtpEventOldestCursor - sinceCursor - 1;
 
-    cursor = max(sinceCursor + 1, AtEventOldestCursor);
+    cursor = max(sinceCursor + 1, AtpEventOldestCursor);
 
     // Where the client has effectively got to, which is not always where it asked from: once the
     // ring has moved past its cursor, everything before the oldest event still held is gone. A
@@ -565,16 +565,16 @@ VOID AtpListRecentEvents(
     // cursor and told about the same drop again on its next poll.
     nextCursor = cursor - 1;
 
-    for (; cursor < AtEventNextCursor; cursor++)
+    for (; cursor < AtpEventNextCursor; cursor++)
     {
-        PAT_EVENT event = &AtEventRing[cursor % AT_EVENT_RING_SIZE];
+        PAT_EVENT event = &AtpEventRing[cursor % AT_EVENT_RING_SIZE];
         PCSTR kind;
         PVOID row;
 
         if (event->Cursor != cursor)
             continue; // the slot moved on under a reader walking slowly
 
-        kind = AtEventKindNames[event->Kind];
+        kind = AtpEventKindNames[event->Kind];
 
         // A filtered-out event still advances the cursor: it has been seen and dealt with.
         if (!AtpEventMatchesKinds(kinds, kind) ||
@@ -624,10 +624,10 @@ VOID AtpListRecentEvents(
         emitted++;
     }
 
-    if (cursor < AtEventNextCursor)
+    if (cursor < AtpEventNextCursor)
         hasMore = TRUE;
 
-    PhReleaseQueuedLockShared(&AtEventLock);
+    PhReleaseQueuedLockShared(&AtpEventLock);
 
     PhAddJsonObjectValue(structured, "events", array);
     PhAddJsonObjectUInt64(structured, "count", emitted);
@@ -659,16 +659,16 @@ VOID AtpListRecentProcessExits(
 
     AtInitializeRows(&rows, Call->Arguments);
 
-    PhAcquireQueuedLockShared(&AtEventLock);
+    PhAcquireQueuedLockShared(&AtpEventLock);
 
     // Newest first: what just died is what is being asked about.
-    for (i = 0; i < AtExitCount; i++)
+    for (i = 0; i < AtpExitCount; i++)
     {
         PAT_PROCESS_EXIT exit;
         PVOID row;
 
-        index = (AtExitNext + AT_EXIT_RING_SIZE - 1 - i) % AT_EXIT_RING_SIZE;
-        exit = &AtExitRing[index];
+        index = (AtpExitNext + AT_EXIT_RING_SIZE - 1 - i) % AT_EXIT_RING_SIZE;
+        exit = &AtpExitRing[index];
 
         if (!exit->Used)
             continue;
@@ -727,7 +727,7 @@ VOID AtpListRecentProcessExits(
         AtAddRow(&rows, row);
     }
 
-    PhReleaseQueuedLockShared(&AtEventLock);
+    PhReleaseQueuedLockShared(&AtpEventLock);
 
     structured = PhCreateJsonObject();
     AtAddRows(structured, "processes", &rows);

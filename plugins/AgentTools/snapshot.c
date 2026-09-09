@@ -24,34 +24,34 @@ typedef struct _AT_CHANGE
     ULONG RemovedId;
 } AT_CHANGE, *PAT_CHANGE;
 
-static PH_QUEUED_LOCK AtSnapshotLock = PH_QUEUED_LOCK_INIT;
-static LONG AtSnapshotId = 0;
-static LONG AtUpdateInterval = 1000;
-static ULONG AtSnapshotTrackingSinceId = 0;
-static ULONG AtSnapshotOldestForgottenId = 0;
-static PPH_LIST AtProcessChanges = NULL;
-static PPH_LIST AtServiceChanges = NULL;
+static PH_QUEUED_LOCK AtpSnapshotLock = PH_QUEUED_LOCK_INIT;
+static LONG AtpSnapshotId = 0;
+static LONG AtpUpdateInterval = 1000;
+static ULONG AtpSnapshotTrackingSinceId = 0;
+static ULONG AtpSnapshotOldestForgottenId = 0;
+static PPH_LIST AtpProcessChanges = NULL;
+static PPH_LIST AtpServiceChanges = NULL;
 
-static PH_CALLBACK_REGISTRATION AtProcessAddedRegistration;
-static PH_CALLBACK_REGISTRATION AtProcessModifiedRegistration;
-static PH_CALLBACK_REGISTRATION AtProcessRemovedRegistration;
-static PH_CALLBACK_REGISTRATION AtProcessUpdatedRegistration;
-static PH_CALLBACK_REGISTRATION AtServiceAddedRegistration;
-static PH_CALLBACK_REGISTRATION AtServiceModifiedRegistration;
-static PH_CALLBACK_REGISTRATION AtServiceRemovedRegistration;
+static PH_CALLBACK_REGISTRATION AtpProcessAddedRegistration;
+static PH_CALLBACK_REGISTRATION AtpProcessModifiedRegistration;
+static PH_CALLBACK_REGISTRATION AtpProcessRemovedRegistration;
+static PH_CALLBACK_REGISTRATION AtpProcessUpdatedRegistration;
+static PH_CALLBACK_REGISTRATION AtpServiceAddedRegistration;
+static PH_CALLBACK_REGISTRATION AtpServiceModifiedRegistration;
+static PH_CALLBACK_REGISTRATION AtpServiceRemovedRegistration;
 
 ULONG AtGetSnapshotId(
     VOID
     )
 {
-    return (ULONG)ReadAcquire(&AtSnapshotId);
+    return (ULONG)ReadAcquire(&AtpSnapshotId);
 }
 
 ULONG AtGetUpdateInterval(
     VOID
     )
 {
-    return (ULONG)ReadAcquire(&AtUpdateInterval);
+    return (ULONG)ReadAcquire(&AtpUpdateInterval);
 }
 
 ULONG AtpChangeId(
@@ -67,9 +67,9 @@ PAT_CHANGE AtpFindProcessChange(
 {
     ULONG i;
 
-    for (i = 0; i < AtProcessChanges->Count; i++)
+    for (i = 0; i < AtpProcessChanges->Count; i++)
     {
-        PAT_CHANGE change = AtProcessChanges->Items[i];
+        PAT_CHANGE change = AtpProcessChanges->Items[i];
 
         if (change->SequenceNumber == SequenceNumber)
             return change;
@@ -84,9 +84,9 @@ PAT_CHANGE AtpFindServiceChange(
 {
     ULONG i;
 
-    for (i = 0; i < AtServiceChanges->Count; i++)
+    for (i = 0; i < AtpServiceChanges->Count; i++)
     {
-        PAT_CHANGE change = AtServiceChanges->Items[i];
+        PAT_CHANGE change = AtpServiceChanges->Items[i];
 
         if (PhEqualString(change->Name, Name, TRUE))
             return change;
@@ -140,8 +140,8 @@ VOID AtpTrimRemoved(
         if (!oldest)
             break;
 
-        if (oldest->RemovedId > AtSnapshotOldestForgottenId)
-            AtSnapshotOldestForgottenId = oldest->RemovedId;
+        if (oldest->RemovedId > AtpSnapshotOldestForgottenId)
+            AtpSnapshotOldestForgottenId = oldest->RemovedId;
 
         PhRemoveItemList(List, oldestIndex);
         AtpFreeChange(oldest);
@@ -161,7 +161,7 @@ VOID NTAPI AtpProcessAddedCallback(
     if (!processItem)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     // A recycled sequence number cannot happen, but a re-add of one we still hold as removed can:
     // reuse the entry so the process is not both added and removed.
@@ -169,7 +169,7 @@ VOID NTAPI AtpProcessAddedCallback(
     {
         change = PhAllocateZero(sizeof(AT_CHANGE));
         change->SequenceNumber = processItem->ProcessSequenceNumber;
-        PhAddItemList(AtProcessChanges, change);
+        PhAddItemList(AtpProcessChanges, change);
     }
 
     change->ProcessId = processItem->ProcessId;
@@ -178,7 +178,7 @@ VOID NTAPI AtpProcessAddedCallback(
     change->ModifiedId = 0;
     change->RemovedId = 0;
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -193,12 +193,12 @@ VOID NTAPI AtpProcessModifiedCallback(
     if (!processItem)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     if (change = AtpFindProcessChange(processItem->ProcessSequenceNumber))
         change->ModifiedId = AtpChangeId();
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -213,7 +213,7 @@ VOID NTAPI AtpProcessRemovedCallback(
     if (!processItem)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     if (!(change = AtpFindProcessChange(processItem->ProcessSequenceNumber)))
     {
@@ -222,13 +222,13 @@ VOID NTAPI AtpProcessRemovedCallback(
         change->SequenceNumber = processItem->ProcessSequenceNumber;
         change->ProcessId = processItem->ProcessId;
         PhSetReference(&change->Name, processItem->ProcessName);
-        PhAddItemList(AtProcessChanges, change);
+        PhAddItemList(AtpProcessChanges, change);
     }
 
     change->RemovedId = AtpChangeId();
-    AtpTrimRemoved(AtProcessChanges);
+    AtpTrimRemoved(AtpProcessChanges);
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -242,12 +242,12 @@ VOID NTAPI AtpProcessUpdatedCallback(
     if (!event)
         return;
 
-    WriteRelease(&AtSnapshotId, (LONG)event->RunCount);
+    WriteRelease(&AtpSnapshotId, (LONG)event->RunCount);
 
     // The interval the history buffers are sampled at; a sample index is that many milliseconds
     // further into the past.
     if (event->UpdateInterval != 0)
-        WriteRelease(&AtUpdateInterval, (LONG)event->UpdateInterval);
+        WriteRelease(&AtpUpdateInterval, (LONG)event->UpdateInterval);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -262,20 +262,20 @@ VOID NTAPI AtpServiceAddedCallback(
     if (!serviceItem || !serviceItem->Name)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     if (!(change = AtpFindServiceChange(serviceItem->Name)))
     {
         change = PhAllocateZero(sizeof(AT_CHANGE));
         PhSetReference(&change->Name, serviceItem->Name);
-        PhAddItemList(AtServiceChanges, change);
+        PhAddItemList(AtpServiceChanges, change);
     }
 
     change->AddedId = AtpChangeId();
     change->ModifiedId = 0;
     change->RemovedId = 0;
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -290,12 +290,12 @@ VOID NTAPI AtpServiceModifiedCallback(
     if (!data || !data->ServiceItem || !data->ServiceItem->Name)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     if (change = AtpFindServiceChange(data->ServiceItem->Name))
         change->ModifiedId = AtpChangeId();
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
@@ -310,70 +310,70 @@ VOID NTAPI AtpServiceRemovedCallback(
     if (!serviceItem || !serviceItem->Name)
         return;
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
     if (!(change = AtpFindServiceChange(serviceItem->Name)))
     {
         change = PhAllocateZero(sizeof(AT_CHANGE));
         PhSetReference(&change->Name, serviceItem->Name);
-        PhAddItemList(AtServiceChanges, change);
+        PhAddItemList(AtpServiceChanges, change);
     }
 
     change->RemovedId = AtpChangeId();
-    AtpTrimRemoved(AtServiceChanges);
+    AtpTrimRemoved(AtpServiceChanges);
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 VOID AtSnapshotInitialize(
     VOID
     )
 {
-    AtProcessChanges = PhCreateList(512);
-    AtServiceChanges = PhCreateList(512);
-    AtSnapshotTrackingSinceId = AtGetSnapshotId();
+    AtpProcessChanges = PhCreateList(512);
+    AtpServiceChanges = PhCreateList(512);
+    AtpSnapshotTrackingSinceId = AtGetSnapshotId();
 
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent),
         AtpProcessAddedCallback,
         NULL,
-        &AtProcessAddedRegistration
+        &AtpProcessAddedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent),
         AtpProcessModifiedCallback,
         NULL,
-        &AtProcessModifiedRegistration
+        &AtpProcessModifiedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent),
         AtpProcessRemovedCallback,
         NULL,
-        &AtProcessRemovedRegistration
+        &AtpProcessRemovedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent),
         AtpProcessUpdatedCallback,
         NULL,
-        &AtProcessUpdatedRegistration
+        &AtpProcessUpdatedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent),
         AtpServiceAddedCallback,
         NULL,
-        &AtServiceAddedRegistration
+        &AtpServiceAddedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent),
         AtpServiceModifiedCallback,
         NULL,
-        &AtServiceModifiedRegistration
+        &AtpServiceModifiedRegistration
         );
     PhRegisterCallback(
         PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent),
         AtpServiceRemovedCallback,
         NULL,
-        &AtServiceRemovedRegistration
+        &AtpServiceRemovedRegistration
         );
 }
 
@@ -383,26 +383,26 @@ VOID AtSnapshotUninitialize(
 {
     ULONG i;
 
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent), &AtProcessAddedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent), &AtProcessModifiedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent), &AtProcessRemovedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &AtProcessUpdatedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent), &AtServiceAddedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &AtServiceModifiedRegistration);
-    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent), &AtServiceRemovedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderAddedEvent), &AtpProcessAddedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderModifiedEvent), &AtpProcessModifiedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderRemovedEvent), &AtpProcessRemovedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackProcessProviderUpdatedEvent), &AtpProcessUpdatedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderAddedEvent), &AtpServiceAddedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &AtpServiceModifiedRegistration);
+    PhUnregisterCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderRemovedEvent), &AtpServiceRemovedRegistration);
 
-    PhAcquireQueuedLockExclusive(&AtSnapshotLock);
+    PhAcquireQueuedLockExclusive(&AtpSnapshotLock);
 
-    for (i = 0; i < AtProcessChanges->Count; i++)
-        AtpFreeChange(AtProcessChanges->Items[i]);
+    for (i = 0; i < AtpProcessChanges->Count; i++)
+        AtpFreeChange(AtpProcessChanges->Items[i]);
 
-    for (i = 0; i < AtServiceChanges->Count; i++)
-        AtpFreeChange(AtServiceChanges->Items[i]);
+    for (i = 0; i < AtpServiceChanges->Count; i++)
+        AtpFreeChange(AtpServiceChanges->Items[i]);
 
-    PhClearReference(&AtProcessChanges);
-    PhClearReference(&AtServiceChanges);
+    PhClearReference(&AtpProcessChanges);
+    PhClearReference(&AtpServiceChanges);
 
-    PhReleaseQueuedLockExclusive(&AtSnapshotLock);
+    PhReleaseQueuedLockExclusive(&AtpSnapshotLock);
 }
 
 VOID AtpAddProcessChangeRow(
@@ -450,11 +450,11 @@ VOID AtpAddChanges(
     changed = PhCreateJsonArray();
     removed = PhCreateJsonArray();
 
-    PhAcquireQueuedLockShared(&AtSnapshotLock);
+    PhAcquireQueuedLockShared(&AtpSnapshotLock);
 
     // Nothing before tracking started can be described, and neither can a removal old enough to
     // have been forgotten; either way the caller has to re-list rather than trust the delta.
-    complete = SinceId >= AtSnapshotTrackingSinceId && SinceId >= AtSnapshotOldestForgottenId;
+    complete = SinceId >= AtpSnapshotTrackingSinceId && SinceId >= AtpSnapshotOldestForgottenId;
 
     for (i = 0; i < List->Count; i++)
     {
@@ -487,7 +487,7 @@ VOID AtpAddChanges(
         }
     }
 
-    PhReleaseQueuedLockShared(&AtSnapshotLock);
+    PhReleaseQueuedLockShared(&AtpSnapshotLock);
 
     PhAddJsonObjectUInt64(changes, "since_snapshot_id", SinceId);
     PhAddJsonObjectBoolean(changes, "complete", complete);
@@ -503,7 +503,7 @@ VOID AtAddProcessChanges(
     _In_ ULONG SinceId
     )
 {
-    AtpAddChanges(Object, AtProcessChanges, SinceId, TRUE);
+    AtpAddChanges(Object, AtpProcessChanges, SinceId, TRUE);
 }
 
 VOID AtAddServiceChanges(
@@ -511,5 +511,5 @@ VOID AtAddServiceChanges(
     _In_ ULONG SinceId
     )
 {
-    AtpAddChanges(Object, AtServiceChanges, SinceId, FALSE);
+    AtpAddChanges(Object, AtpServiceChanges, SinceId, FALSE);
 }

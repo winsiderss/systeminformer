@@ -43,20 +43,20 @@ typedef struct _AT_CONSENT_REQUEST
     BOOLEAN Failed;
 } AT_CONSENT_REQUEST, *PAT_CONSENT_REQUEST;
 
-static PH_WORK_QUEUE AtConsentWorkQueue;
+static PH_WORK_QUEUE AtpConsentWorkQueue;
 
 VOID AtConsentInitialize(
     VOID
     )
 {
-    PhInitializeWorkQueue(&AtConsentWorkQueue, 0, 1, 1000);
+    PhInitializeWorkQueue(&AtpConsentWorkQueue, 0, 1, 1000);
 }
 
 VOID AtConsentUninitialize(
     VOID
     )
 {
-    PhDeleteWorkQueue(&AtConsentWorkQueue);
+    PhDeleteWorkQueue(&AtpConsentWorkQueue);
 }
 
 VOID AtpCreateSessionPolicyControls(
@@ -840,7 +840,7 @@ VOID AtpSubmitConsentRequest(
     )
 {
     Request->SubmitTick = NtGetTickCount64();
-    PhQueueItemWorkQueueEx(&AtConsentWorkQueue, AtpConsentDialogWorker, Request, AtpConsentDialogDeleteItem, NULL);
+    PhQueueItemWorkQueueEx(&AtpConsentWorkQueue, AtpConsentDialogWorker, Request, AtpConsentDialogDeleteItem, NULL);
 }
 
 AT_CONSENT_RESULT AtpWaitForConsentRequest(

@@ -320,13 +320,13 @@ NTSTATUS AtResolveHandleTarget(
     NTSTATUS status;
     ULONG64 handleValue;
     PPH_STRING expectedType = NULL;
-
-    memset(Target, 0, sizeof(AT_TARGET));
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = NULL;
     ULONG_PTR i;
     PPH_STRING typeName = NULL;
     PPH_STRING bestName = NULL;
+
+    memset(Target, 0, sizeof(AT_TARGET));
 
     if (!AtGetArgumentPointer(Arguments, "handle", &handleValue) || handleValue == 0)
     {

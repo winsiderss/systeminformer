@@ -423,7 +423,7 @@ typedef struct _AT_RANK_METRIC
     PCSTR Field;
 } AT_RANK_METRIC, *PAT_RANK_METRIC;
 
-static CONST AT_RANK_METRIC AtRankMetrics[] =
+static CONST AT_RANK_METRIC AtpRankMetrics[] =
 {
     { L"cpu", "cpu_usage_average" },
     { L"io", "io_bytes_total" },
@@ -440,12 +440,12 @@ PCSTR AtpRankField(
     ULONG i;
 
     if (!RankBy)
-        return AtRankMetrics[0].Field;
+        return AtpRankMetrics[0].Field;
 
-    for (i = 0; i < RTL_NUMBER_OF(AtRankMetrics); i++)
+    for (i = 0; i < RTL_NUMBER_OF(AtpRankMetrics); i++)
     {
-        if (PhEqualStringZ(RankBy->Buffer, AtRankMetrics[i].Name, TRUE))
-            return AtRankMetrics[i].Field;
+        if (PhEqualStringZ(RankBy->Buffer, AtpRankMetrics[i].Name, TRUE))
+            return AtpRankMetrics[i].Field;
     }
 
     return NULL;
