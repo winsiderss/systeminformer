@@ -737,9 +737,13 @@ BOOLEAN NetworkToolsQueryWhois(
     PPH_STRING whoisServerName = NULL;
     PPH_STRING whoisReferralServerName = NULL;
     USHORT whoisReferralServerPort = IPPORT_WHOIS;
+    BOOLEAN answered = FALSE;
 
     if (WSAStartup(WINSOCK_VERSION, &winsockStartup) != ERROR_SUCCESS)
+    {
+        *Response = PhCreateString(L"Windows sockets could not be started.\n");
         return FALSE;
+    }
 
     PhInitializeStringBuilder(&stringBuilder, 0x100);
 
@@ -809,6 +813,7 @@ BOOLEAN NetworkToolsQueryWhois(
             {
                 PhAppendFormatStringBuilder(&stringBuilder, L"\n%s\n", PhGetString(whoisReferralResponse));
                 PhAppendFormatStringBuilder(&stringBuilder, L"\nOriginal request to %s:\n%s\n", PhGetString(whoisServerName), PhGetString(whoisResponse));
+                answered = TRUE;
                 goto CleanupExit;
             }
         }
@@ -820,6 +825,7 @@ BOOLEAN NetworkToolsQueryWhois(
     }
 
     PhAppendFormatStringBuilder(&stringBuilder, L"\n%s", PhGetString(whoisResponse));
+    answered = TRUE;
 
 CleanupExit:
 
@@ -836,11 +842,18 @@ CleanupExit:
 
     *Response = PhFinalStringBuilderString(&stringBuilder);
 
-    return TRUE;
+    return answered;
 }
 
+/**
+ * Looks up an address registration.
+ *
+ * 
+eturn TRUE when a whois server actually answered. Response is set either way: on FALSE it
+ * carries the diagnostic text saying how far the lookup got, which is what the Whois window shows,
+ * so there is no _Success_ here - the parameter is always written.
+ */
 // NETWORKTOOLS_INTERFACE
-_Success_(return)
 BOOLEAN NTAPI NetworkToolsWhoisQuery(
     _In_ PCWSTR Address,
     _In_ BOOLEAN Ipv6Support,
@@ -1089,7 +1102,14 @@ INT_PTR CALLBACK WhoisDlgProc(
     case NTM_RECEIVEDWHOIS:
         {
             PPH_STRING whoisString = PH_AUTO((PPH_STRING)lParam);
-            PPH_STRING trimString = PH_AUTO(TrimString2(whoisString));
+            PPH_STRING trimString;
+
+            // The query posts whatever it produced, and it produces nothing at all when sockets
+            // could not be started; the pre-refactor code returned before ever posting.
+            if (!whoisString)
+                break;
+
+            trimString = PH_AUTO(TrimString2(whoisString));
 
             RichEditSetText(context->RichEditHandle, trimString->Buffer);
         }

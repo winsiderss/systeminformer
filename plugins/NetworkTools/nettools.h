@@ -164,7 +164,6 @@ BOOLEAN NetworkToolsQueryWhois(
     _Out_ PPH_STRING* Response
     );
 
-_Success_(return)
 BOOLEAN NTAPI NetworkToolsWhoisQuery(
     _In_ PCWSTR Address,
     _In_ BOOLEAN Ipv6Support,
