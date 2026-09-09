@@ -5101,9 +5101,7 @@ CONST AT_TOOL AtTools[] =
         "\"rva\":{\"type\":[\"string\",\"null\"],\"description\":\"Where it lands once the image is loaded; null when it is not in a section\"}"
         "},\"required\":[\"string\",\"length\",\"file_offset\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
-        "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"The search stopped at 20000 matches and the file holds more\"},"
-        "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when a values or subkeys enumeration did not finish, so this listing is partial\"},"
-        AT_SNAPSHOT_SCHEMA
+        "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"The search stopped at 20000 matches and the file holds more\"}"
         "},\"required\":[\"path\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\"]},"
         AT_READ_ANNOTATIONS "}"
     },
