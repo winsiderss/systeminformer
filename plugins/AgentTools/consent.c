@@ -292,6 +292,9 @@ HICON AtpCreateRequestIcon(
     )
 {
     PPH_STRING launcher = NULL;
+    HANDLE clientProcessId = NULL;
+    ULONG clientCount = 0;
+    ULONG i;
     LONG dpi;
     LONG largeSize;
     LONG smallSize;
@@ -311,12 +314,36 @@ HICON AtpCreateRequestIcon(
     ICONINFO iconInfo;
     HICON result = NULL;
 
-    // The broker's image, not the launcher's: the icon is the most prominent claim the dialog
-    // makes about who is asking, and the launcher is the half nothing verified.
+    // The verified client rather than the self-reported launcher. The broker holds its own stdin,
+    // so it is skipped; anything but one other holder gets the stock shield.
     PhAcquireQueuedLockExclusive(&Connection->Lock);
-    if (Connection->BrokerImageName)
-        launcher = PhReferenceObject(Connection->BrokerImageName);
+
+    if (Connection->StdioOrigin == AtStdioResolved && Connection->StdioClientIds)
+    {
+        for (i = 0; i < Connection->StdioClientIds->Count; i++)
+        {
+            HANDLE processId = Connection->StdioClientIds->Items[i];
+
+            if (HandleToUlong(processId) == Connection->BrokerProcessId)
+                continue;
+
+            clientProcessId = processId;
+            clientCount++;
+        }
+    }
+
     PhReleaseQueuedLockExclusive(&Connection->Lock);
+
+    if (clientCount == 1)
+    {
+        PPH_PROCESS_ITEM processItem;
+
+        if (processItem = PhReferenceProcessItem(clientProcessId))
+        {
+            PhSetReference(&launcher, processItem->FileName);
+            PhDereferenceObject(processItem);
+        }
+    }
 
     if (!launcher)
         return NULL;
@@ -1115,8 +1142,7 @@ PPH_STRING AtpFormatConnectionRequester(
 
     PhAcquireQueuedLockExclusive(&Connection->Lock);
 
-    // The client's own name when it has sent initialize; the launcher as reported, with whatever
-    // its signature check answered.
+    // The client's own name when it has sent initialize; the launcher as reported.
     if (Connection->ClientName)
     {
         PhAppendStringBuilder2(&builder, L"Requested by ");

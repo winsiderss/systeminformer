@@ -586,9 +586,13 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"limit\":{\"type\":\"integer\"}," \
     "\"truncated\":{\"type\":\"boolean\",\"description\":\"More rows follow this page\"}"
 
+// destructiveHint means the call costs something that cannot be got back; idempotentHint means a
+// second identical call changes nothing more. AtVerifySchema checks both against the tier.
 #define AT_READ_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
 #define AT_WRITE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
+#define AT_WRITE_COUNTED_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":false}"
 #define AT_DESTRUCTIVE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false}"
+#define AT_DESTRUCTIVE_IDEMPOTENT_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":true,\"openWorldHint\":false}"
 
 // Only the tools that declare AT_DELTA_INPUT_PROPERTY accept since_snapshot_id; the rest set
 // additionalProperties false and refuse it, so only those tools tell the caller to keep the id.
@@ -645,8 +649,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
     "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"}," \
     "\"create_time\":{\"type\":\"string\",\"description\":\"Optional; the create_time of that thread row. Tids are machine-global and reused, so when it is given the call is refused if it no longer matches the live thread\"}"
 
-// Lines need private symbols, which a name does not, so nearly every frame of a Microsoft binary
-// answers null here even when the lookup is asked for.
+// Lines need private symbols, which a name does not, so most Microsoft frames answer null.
 #define AT_STACK_LINE_INPUT_PROPERTY \
     "\"include_lines\":{\"type\":\"boolean\",\"description\":\"Look up the source file and line of each frame. Only frames whose module has private symbols on the symbol path have one\"}"
 
@@ -2385,7 +2388,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Suspends every thread of a process. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_WRITE_COUNTED_ANNOTATIONS "}"
     },
     {
         "resume_process", L"Resume process", AtTierWrite, AtActionResumeProcess,
@@ -2592,7 +2595,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Suspends one thread of a process. The thread must belong to pid. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_WRITE_COUNTED_ANNOTATIONS "}"
     },
     {
         "resume_thread", L"Resume thread", AtTierWrite, AtActionResumeThread,
@@ -2623,7 +2626,7 @@ CONST AT_TOOL AtTools[] =
         "\"cancelled\":{\"type\":\"boolean\",\"description\":\"True when an I/O was actually cancelled; false when the thread had none waiting\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"action\",\"cancelled\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
     {
         "terminate_thread", L"Terminate thread", AtTierWrite, AtActionTerminateThread,
@@ -2787,7 +2790,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":{\"type\":[\"string\",\"null\"],\"description\":\"What the service says about itself now, read back after the change\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"name\",\"action\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_DESTRUCTIVE_IDEMPOTENT_ANNOTATIONS "}"
     },
     // processes
     {
@@ -2828,7 +2831,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_DESTRUCTIVE_ANNOTATIONS "}"
     },
     {
         "set_window_state", L"Set window state", AtTierWrite, AtActionSetWindowState,
@@ -5481,6 +5484,17 @@ CONST ULONG AtPromptCount = RTL_NUMBER_OF(AtPrompts);
  * tools nobody touched, so the rows check themselves against the enum they are indexed by. Each
  * tool must also name an action the table describes.
  */
+BOOLEAN AtpJsonHasBoolean(
+    _In_ PVOID Object,
+    _In_ PCSTR Key
+    )
+{
+    PVOID value;
+
+    return !!(value = PhGetJsonObject(Object, Key)) &&
+        PhGetJsonObjectType(value) == PH_JSON_OBJECT_TYPE_BOOLEAN;
+}
+
 VOID AtVerifySchema(
     VOID
     )
@@ -5526,9 +5540,40 @@ VOID AtVerifySchema(
         // client waits: a definition that does not parse otherwise drops the tool out of
         // tools/list in release, and in debug leaves the call unanswered until it times out.
         if (NT_SUCCESS(PhCreateJsonParser(&definition, AtTools[i].Definition)))
+        {
+            PVOID annotations;
+
+            annotations = PhGetJsonObject(definition, "annotations");
+
+            NT_ASSERT(annotations && PhGetJsonObjectType(annotations) == PH_JSON_OBJECT_TYPE_OBJECT);
+
+            if (annotations)
+            {
+                BOOLEAN readOnly;
+
+                // An absent hint is not a false one: destructiveHint defaults to true.
+                NT_ASSERT(AtpJsonHasBoolean(annotations, "readOnlyHint"));
+                NT_ASSERT(AtpJsonHasBoolean(annotations, "destructiveHint"));
+                NT_ASSERT(AtpJsonHasBoolean(annotations, "idempotentHint"));
+                NT_ASSERT(AtpJsonHasBoolean(annotations, "openWorldHint"));
+
+                readOnly = PhGetJsonObjectBool(annotations, "readOnlyHint");
+
+                NT_ASSERT(readOnly == (AtTools[i].Tier == AtTierRead || AtTools[i].Tier == AtTierSensitiveRead));
+
+                if (readOnly)
+                    NT_ASSERT(!PhGetJsonObjectBool(annotations, "destructiveHint"));
+
+                if (AtTools[i].Tier == AtTierNetworkEgress)
+                    NT_ASSERT(PhGetJsonObjectBool(annotations, "openWorldHint"));
+            }
+
             PhFreeJsonObject(definition);
+        }
         else
+        {
             NT_ASSERT(FALSE); // AtTools[i].Definition does not parse
+        }
 
         NT_ASSERT(AtTools[i].AccessSetting && AtTools[i].ConfirmSetting);
     }
