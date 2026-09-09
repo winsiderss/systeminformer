@@ -136,10 +136,11 @@ typedef enum _AT_ACTION
     AtActionStopService,
     AtActionRestartService,
     AtActionSetServiceConfig,
-    // network
+    // disks
     AtActionGetDiskPerformance,
     AtActionGetDiskIdentity,
     AtActionGetDiskHealth,
+    // network
     AtActionListNetworkAdapters,
     AtActionLookupIpCountry,
     AtActionPingHost,

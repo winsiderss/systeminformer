@@ -268,7 +268,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionSetServiceConfig, AtTierWrite, AtConsentClassNone, AtTargetService, SERVICE_CHANGE_CONFIG | SERVICE_QUERY_CONFIG, SETTING_NAME_TOOL_CONFIRM(L"set_service_config"),
         L"change the configuration of the following service", L"Change the configuration of", L"set_service_config"
     },
-    // network
+    // disks
     {
         AtActionGetDiskPerformance, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_disk_performance"),
         L"read disk performance counters", L"Allow reading disk performance", L"get_disk_performance"
@@ -281,6 +281,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         AtActionGetDiskHealth, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_disk_health"),
         L"read the health data of the disks", L"Read the health data of the disks", L"get_disk_health"
     },
+    // network
     {
         AtActionListNetworkAdapters, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),
         L"list the network adapters", L"Allow listing network adapters", L"list_network_adapters"
@@ -2789,7 +2790,6 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"name\",\"action\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
-    // network
     {
         "close_window", L"Close a window", AtTierWrite, AtActionCloseWindow,
         SETTING_NAME_TOOL_ACCESS(L"close_window"), SETTING_NAME_TOOL_CONFIRM(L"close_window"),
@@ -3056,6 +3056,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"handle\",\"pid\",\"tid\",\"style\",\"styles\"]},"
         AT_READ_ANNOTATIONS "}"
     },
+    // disks
     {
         "get_disk_performance", L"Get disk performance", AtTierRead, AtActionGetDiskPerformance,
         SETTING_NAME_TOOL_ACCESS(L"get_disk_performance"), SETTING_NAME_TOOL_CONFIRM(L"get_disk_performance"),
@@ -3181,6 +3182,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
+    // network
     {
         "list_network_adapters", L"List network adapters", AtTierRead, AtActionListNetworkAdapters,
         SETTING_NAME_TOOL_ACCESS(L"list_network_adapters"), SETTING_NAME_TOOL_CONFIRM(L"list_network_adapters"),
