@@ -308,6 +308,18 @@ typedef struct _AT_DEFERRED_REQUEST
     UCHAR Payload[ANYSIZE_ARRAY];
 } AT_DEFERRED_REQUEST, *PAT_DEFERRED_REQUEST;
 
+typedef enum _AT_STDIO_ORIGIN
+{
+    // The broker's parameters could not be read, or the handle could not be duplicated. Nothing is
+    // claimed: this is not the same as finding nobody.
+    AtStdioUnverified,
+    // The broker was started from a console, so its standard handles name \Device\ConDrv and
+    // belong to the console host rather than to a client.
+    AtStdioConsole,
+    // At least one process holds the other end of the broker's stdin.
+    AtStdioResolved
+} AT_STDIO_ORIGIN;
+
 typedef struct _AT_CONNECTION
 {
     LIST_ENTRY ListEntry;
@@ -333,6 +345,12 @@ typedef struct _AT_CONNECTION
 
     ULONG LauncherProcessId;
     PPH_STRING LauncherImageName;
+
+    // Derived from the broker's standard handles rather than from anything it reports: simcp is an
+    // MCP stdio server, so whoever created those pipes is driving the session, and reparenting the
+    // broker does not move them.
+    AT_STDIO_ORIGIN StdioOrigin;
+    PPH_LIST StdioClientIds;
     BOOLEAN LauncherVerifyChecked;
     VERIFY_RESULT LauncherVerifyResult;
     PPH_STRING LauncherSignerName;

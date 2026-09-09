@@ -55,6 +55,7 @@ VOID NTAPI AtpConnectionDeleteProcedure(
 
     PhClearReference(&connection->UserName);
     PhClearReference(&connection->LauncherImageName);
+    PhClearReference(&connection->StdioClientIds);
     PhClearReference(&connection->LauncherSignerName);
     PhClearReference(&connection->ClientName);
     PhClearReference(&connection->ClientVersion);
@@ -438,6 +439,115 @@ CleanupExit:
     return result;
 }
 
+/**
+ * Derives the client from the broker's standard handles.
+ *
+ * The identity a client reports about its own launcher is not evidence: PROC_THREAD_ATTRIBUTE_PARENT_PROCESS
+ * lets any same-user process choose what the broker's parent appears to be. Its standard handles cannot be
+ * chosen that way - simcp is an MCP stdio server, so the pipes were made by whatever is actually driving the
+ * session, and reparenting moves the parent without moving the pipe.
+ *
+ * Every holder is recorded, not the first: a handle can be duplicated into a decoy, but the process driving
+ * the session cannot remove itself. The broker is itself a holder, so a plain client is two - a reader
+ * looking for an anomaly wants a third, not a second.
+ */
+VOID AtpResolveStdioClient(
+    _Inout_ PAT_CONNECTION Connection
+    )
+{
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PFILE_PROCESS_IDS_USING_FILE_INFORMATION processIds;
+    DEVICE_TYPE deviceType;
+    HANDLE processHandle;
+    HANDLE localHandle = NULL;
+    PVOID parameters;
+    HANDLE standardInput;
+    ULONG i;
+
+    Connection->StdioOrigin = AtStdioUnverified;
+
+    if (!Connection->BrokerProcessId)
+        return;
+
+    if (!NT_SUCCESS(PhOpenProcess(
+        &processHandle,
+        PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_VM_READ | PROCESS_DUP_HANDLE,
+        UlongToHandle(Connection->BrokerProcessId)
+        )))
+    {
+        return;
+    }
+
+    if (!NT_SUCCESS(PhGetProcessBasicInformation(processHandle, &basicInfo)) || !basicInfo.PebBaseAddress)
+        goto CleanupExit;
+
+    if (!NT_SUCCESS(PhReadVirtualMemory(
+        processHandle,
+        PTR_ADD_OFFSET(basicInfo.PebBaseAddress, FIELD_OFFSET(PEB, ProcessParameters)),
+        &parameters,
+        sizeof(PVOID),
+        NULL
+        )) || !parameters)
+    {
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhReadVirtualMemory(
+        processHandle,
+        PTR_ADD_OFFSET(parameters, FIELD_OFFSET(RTL_USER_PROCESS_PARAMETERS, StandardInput)),
+        &standardInput,
+        sizeof(HANDLE),
+        NULL
+        )) || !standardInput)
+    {
+        goto CleanupExit;
+    }
+
+    // The handle value is read out of the broker's own parameters rather than taken from anything it sent.
+    if (!NT_SUCCESS(NtDuplicateObject(
+        processHandle,
+        standardInput,
+        NtCurrentProcess(),
+        &localHandle,
+        0,
+        0,
+        DUPLICATE_SAME_ACCESS
+        )))
+    {
+        goto CleanupExit;
+    }
+
+    // A console is not a client. The device type answers this without asking the object for its name,
+    // which on a pipe is the query that can block.
+    if (NT_SUCCESS(PhGetDeviceType(NtCurrentProcess(), localHandle, &deviceType)) &&
+        deviceType != FILE_DEVICE_NAMED_PIPE)
+    {
+        Connection->StdioOrigin = AtStdioConsole;
+        goto CleanupExit;
+    }
+
+    if (!NT_SUCCESS(PhGetProcessIdsUsingFile(localHandle, &processIds)))
+        goto CleanupExit;
+
+    if (processIds->NumberOfProcessIdsInList != 0)
+    {
+        Connection->StdioClientIds = PhCreateList(processIds->NumberOfProcessIdsInList);
+
+        for (i = 0; i < processIds->NumberOfProcessIdsInList; i++)
+            PhAddItemList(Connection->StdioClientIds, processIds->ProcessIdList[i]);
+
+        Connection->StdioOrigin = AtStdioResolved;
+    }
+
+    PhFree(processIds);
+
+CleanupExit:
+    if (localHandle)
+        NtClose(localHandle);
+
+    NtClose(processHandle);
+}
+
 VOID AtpResolveLauncher(
     _In_ PAT_CONNECTION Connection,
     _In_ PSIMCP_HELLO Hello
@@ -577,6 +687,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     // Display-only context.
 
     AtpResolveLauncher(Connection, Hello);
+    AtpResolveStdioClient(Connection);
 
 CleanupExit:
     if (processHandle)
