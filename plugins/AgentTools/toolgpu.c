@@ -87,12 +87,14 @@ VOID AtpCloseAdapterHandle(
 _Success_(return)
 BOOLEAN AtpEnumerateGraphicsAdapters(
     _Outptr_result_maybenull_ D3DKMT_ADAPTERINFO** Adapters,
-    _Out_ PULONG Count
+    _Out_ PULONG Count,
+    _Out_ PNTSTATUS Status
     )
 {
     static PFND3DKMT_ENUMADAPTERS3 enumAdapters3 = NULL;
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     D3DKMT_ADAPTERINFO* adapters;
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -112,12 +114,12 @@ BOOLEAN AtpEnumerateGraphicsAdapters(
         enumAdapters.Filter.IncludeComputeOnly = 1;
         enumAdapters.Filter.IncludeDisplayOnly = 1;
 
-        if (NT_SUCCESS(enumAdapters3(&enumAdapters)) && enumAdapters.NumAdapters)
+        if (NT_SUCCESS(status = enumAdapters3(&enumAdapters)) && enumAdapters.NumAdapters)
         {
             adapters = PhAllocateZero(sizeof(D3DKMT_ADAPTERINFO) * enumAdapters.NumAdapters);
             enumAdapters.pAdapters = adapters;
 
-            if (NT_SUCCESS(enumAdapters3(&enumAdapters)))
+            if (NT_SUCCESS(status = enumAdapters3(&enumAdapters)))
             {
                 *Adapters = adapters;
                 *Count = enumAdapters.NumAdapters;
@@ -133,12 +135,12 @@ BOOLEAN AtpEnumerateGraphicsAdapters(
 
         memset(&enumAdapters, 0, sizeof(D3DKMT_ENUMADAPTERS2));
 
-        if (NT_SUCCESS(D3DKMTEnumAdapters2(&enumAdapters)) && enumAdapters.NumAdapters)
+        if (NT_SUCCESS(status = D3DKMTEnumAdapters2(&enumAdapters)) && enumAdapters.NumAdapters)
         {
             adapters = PhAllocateZero(sizeof(D3DKMT_ADAPTERINFO) * enumAdapters.NumAdapters);
             enumAdapters.pAdapters = adapters;
 
-            if (NT_SUCCESS(D3DKMTEnumAdapters2(&enumAdapters)))
+            if (NT_SUCCESS(status = D3DKMTEnumAdapters2(&enumAdapters)))
             {
                 *Adapters = adapters;
                 *Count = enumAdapters.NumAdapters;
@@ -149,6 +151,9 @@ BOOLEAN AtpEnumerateGraphicsAdapters(
         }
     }
 
+    // The graphics kernel's own status, so a refusal reaches the caller as one rather than as a
+    // flat failure.
+    *Status = status;
     return FALSE;
 }
 
@@ -331,6 +336,7 @@ VOID AtpGetGpuUsage(
     PEXTENDEDTOOLS_INTERFACE counters;
     D3DKMT_ADAPTERINFO* adapters;
     ULONG adapterCount;
+    NTSTATUS status;
     AT_ROWS rows;
     PVOID structured;
     PVOID collector;
@@ -353,9 +359,9 @@ VOID AtpGetGpuUsage(
         return;
     }
 
-    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount))
+    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount, &status))
     {
-        AtSetToolStatusError(Result, STATUS_UNSUCCESSFUL, L"Enumerating the graphics adapters");
+        AtSetToolStatusError(Result, status, L"Enumerating the graphics adapters");
         return;
     }
 
@@ -628,13 +634,14 @@ VOID AtpListGpuAdapters(
 {
     D3DKMT_ADAPTERINFO* adapters;
     ULONG adapterCount;
+    NTSTATUS status;
     AT_ROWS rows;
     PVOID structured;
     ULONG i;
 
-    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount))
+    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount, &status))
     {
-        AtSetToolStatusError(Result, STATUS_UNSUCCESSFUL, L"Enumerating the graphics adapters");
+        AtSetToolStatusError(Result, status, L"Enumerating the graphics adapters");
         return;
     }
 
@@ -679,10 +686,11 @@ VOID AtpAddProcessAdapterEngines(
 {
     D3DKMT_ADAPTERINFO* adapters;
     ULONG adapterCount;
+    NTSTATUS status;
     PVOID array;
     ULONG i;
 
-    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount))
+    if (!AtpEnumerateGraphicsAdapters(&adapters, &adapterCount, &status))
     {
         AtJsonAddNull(Object, "adapters");
         return;

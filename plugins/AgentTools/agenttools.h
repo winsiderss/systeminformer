@@ -655,6 +655,10 @@ VOID AtSetToolError(
     ...
     );
 
+NTSTATUS AtHResultToStatus(
+    _In_ HRESULT Result
+    );
+
 VOID AtSetToolStatusError(
     _Inout_ PAT_TOOL_RESULT Result,
     _In_ NTSTATUS Status,

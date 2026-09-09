@@ -1019,6 +1019,7 @@ VOID AtpGetMemoryDetails(
     SYSTEM_PERFORMANCE_INFORMATION perfInfo;
     SYSTEM_FILECACHE_INFORMATION cacheInfo;
     PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
+    NTSTATUS status;
     ULONG pageSize;
     PVOID structured;
     PVOID entry;
@@ -1027,9 +1028,9 @@ VOID AtpGetMemoryDetails(
 
     memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
 
-    if (!NT_SUCCESS(NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
+    if (!NT_SUCCESS(status = NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The system memory information could not be read.");
+        AtSetToolStatusError(Result, status, L"Reading the system memory information");
         return;
     }
 
@@ -1608,14 +1609,15 @@ VOID AtpGetCpuInfo(
     SYSTEM_BASIC_INFORMATION basicInfo;
     PH_LOGICAL_PROCESSOR_INFORMATION logicalInfo;
     PPH_STRING brand;
+    NTSTATUS status;
     PVOID structured;
     PVOID entry;
 
     memset(&basicInfo, 0, sizeof(SYSTEM_BASIC_INFORMATION));
 
-    if (!NT_SUCCESS(NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
+    if (!NT_SUCCESS(status = NtQuerySystemInformation(SystemBasicInformation, &basicInfo, sizeof(SYSTEM_BASIC_INFORMATION), NULL)))
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The processor information could not be read.");
+        AtSetToolStatusError(Result, status, L"Reading the processor information");
         return;
     }
 

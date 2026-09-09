@@ -731,9 +731,11 @@ VOID AtpGetHandleDetails(
     // never granted by a protected process.
     if (!query.UseDriver)
     {
-        if (NT_SUCCESS(PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE, Target->ProcessItem->ProcessId)))
+        NTSTATUS dupStatus;
+
+        if (NT_SUCCESS(dupStatus = PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE, Target->ProcessItem->ProcessId)))
         {
-            NtDuplicateObject(
+            dupStatus = NtDuplicateObject(
                 dupProcessHandle,
                 Target->HandleValue,
                 NtCurrentProcess(),
@@ -746,10 +748,12 @@ VOID AtpGetHandleDetails(
 
         if (!query.LocalHandle)
         {
+            // The status that actually refused the duplicate, so a denial still reads as one and
+            // still earns the elevation hint; the message explains what it means here.
             AtSetToolError(
                 Result,
-                "failed",
-                STATUS_NOT_SUPPORTED,
+                dupStatus == STATUS_ACCESS_DENIED ? "access_denied" : "failed",
+                dupStatus,
                 L"Handle 0x%llx in pid %lu could not be duplicated and the System Informer driver is not available to read it in place (access level: %s).",
                 (ULONG64)(ULONG_PTR)Target->HandleValue,
                 HandleToUlong(Target->ProcessItem->ProcessId),

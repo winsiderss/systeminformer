@@ -358,6 +358,7 @@ VOID AtpListServices(
     BOOLEAN verifySignatures;
     ULONG i;
     ULONG uncachedCount = 0;
+    NTSTATUS status;
 
     memset(&filter, 0, sizeof(AT_SERVICE_FILTER));
     verifySignatures = AtJsonGetObjectBoolean(Call->Arguments, "verify_signatures");
@@ -400,9 +401,9 @@ VOID AtpListServices(
 
     // The service control manager is the authoritative name list; the provider cache is the value
     // (signature, flags), so each SCM service is enriched from the cached item when present.
-    if (!NT_SUCCESS(PhEnumServices(&services, &numberOfServiceItems)))
+    if (!NT_SUCCESS(status = PhEnumServices(&services, &numberOfServiceItems)))
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The service control manager could not be enumerated.");
+        AtSetToolStatusError(Result, status, L"Enumerating the service control manager");
         PhClearReference(&filter.NameContains);
         return;
     }

@@ -35,16 +35,6 @@ typedef struct _AT_TASK_CONTEXT
     ULONG TruncatedCount;
 } AT_TASK_CONTEXT, *PAT_TASK_CONTEXT;
 
-NTSTATUS AtpTaskStatus(
-    _In_ HRESULT Result
-    )
-{
-    if (HRESULT_FACILITY(Result) == FACILITY_WIN32)
-        return PhDosErrorToNtStatus(HRESULT_CODE(Result));
-
-    return STATUS_UNSUCCESSFUL;
-}
-
 PPH_STRING AtpTaskStringFromBstr(
     _In_opt_ BSTR String
     )
@@ -904,7 +894,7 @@ VOID AtpListScheduledTasks(
 
     if (HR_FAILED(result))
     {
-        AtSetToolError(Result, "failed", AtpTaskStatus(result),
+        AtSetToolError(Result, "failed", AtHResultToStatus(result),
             L"The task scheduler could not be reached (0x%08x).", result);
         goto CleanupExit;
     }
@@ -913,7 +903,7 @@ VOID AtpListScheduledTasks(
 
     if (HR_FAILED(result))
     {
-        AtSetToolError(Result, "failed", AtpTaskStatus(result),
+        AtSetToolError(Result, "failed", AtHResultToStatus(result),
             L"Connecting to the task scheduler service failed (0x%08x).", result);
         goto CleanupExit;
     }
@@ -927,7 +917,7 @@ VOID AtpListScheduledTasks(
 
     if (HR_FAILED(result))
     {
-        AtSetToolError(Result, "not_found", AtpTaskStatus(result),
+        AtSetToolError(Result, "not_found", AtHResultToStatus(result),
             L"No task folder named %s could be opened (0x%08x).",
             folderName ? PhGetString(folderName) : rootFolder.Buffer, result);
         PhClearReference(&folderName);

@@ -266,6 +266,7 @@ VOID AtpListNetworkAdapters(
     BOOLEAN includeAllInterfaces;
     ULONG bufferLength = 0;
     ULONG flags;
+    ULONG error;
     AT_ROWS rows;
     PVOID structured;
 
@@ -287,18 +288,20 @@ VOID AtpListNetworkAdapters(
     if (includeAllInterfaces)
         flags |= GAA_FLAG_INCLUDE_ALL_INTERFACES;
 
-    if (AtpGetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength) != ERROR_BUFFER_OVERFLOW)
+    // Asking with no buffer is expected to overflow; anything else, including success, is a
+    // failure to size the answer.
+    if ((error = AtpGetAdaptersAddresses(AF_UNSPEC, flags, NULL, NULL, &bufferLength)) != ERROR_BUFFER_OVERFLOW)
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"Enumerating the network adapters failed.");
+        AtSetToolStatusError(Result, PhDosErrorToNtStatus(error), L"Sizing the network adapter list");
         PhClearReference(&nameContains);
         return;
     }
 
     buffer = PhAllocateZero(bufferLength);
 
-    if (AtpGetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength) != ERROR_SUCCESS)
+    if ((error = AtpGetAdaptersAddresses(AF_UNSPEC, flags, NULL, buffer, &bufferLength)) != ERROR_SUCCESS)
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"Enumerating the network adapters failed.");
+        AtSetToolStatusError(Result, PhDosErrorToNtStatus(error), L"Enumerating the network adapters");
         PhFree(buffer);
         PhClearReference(&nameContains);
         return;

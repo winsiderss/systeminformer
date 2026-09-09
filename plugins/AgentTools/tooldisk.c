@@ -74,9 +74,10 @@ PCSTR AtpStorageBusTypeString(
 }
 
 PPH_LIST AtpEnumerateDiskPaths(
-    VOID
+    _Out_ PNTSTATUS Status
     )
 {
+    HRESULT result;
     PPH_LIST paths;
     ULONG objectCount = 0;
     const DEV_OBJECT* objects = NULL;
@@ -86,7 +87,7 @@ PPH_LIST AtpEnumerateDiskPaths(
     };
     ULONG i;
 
-    if (HR_FAILED(PhDevGetObjects(
+    result = PhDevGetObjects(
         DevObjectTypeDeviceInterface,
         DevQueryFlagNone,
         0,
@@ -95,8 +96,11 @@ PPH_LIST AtpEnumerateDiskPaths(
         filter,
         &objectCount,
         &objects
-        )))
+        );
+
+    if (HR_FAILED(result))
     {
+        *Status = AtHResultToStatus(result);
         return NULL;
     }
 
@@ -553,13 +557,14 @@ VOID AtpEnumerateDisks(
     PVOID structured;
     ULONG64 diskNumber;
     BOOLEAN haveDiskNumber;
+    NTSTATUS status;
     ULONG i;
 
     haveDiskNumber = AtGetArgumentUInt64(Call->Arguments, "disk_number", &diskNumber);
 
-    if (!(paths = AtpEnumerateDiskPaths()))
+    if (!(paths = AtpEnumerateDiskPaths(&status)))
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"Enumerating the disk devices failed.");
+        AtSetToolStatusError(Result, status, L"Enumerating the disk devices");
         return;
     }
 

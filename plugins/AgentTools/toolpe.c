@@ -1049,6 +1049,7 @@ VOID AtpSearchProcessMemory(
     ULONG limit = AT_SEARCH_DEFAULT_RESULTS;
     PH_MEMORY_ITEM_LIST list;
     PLIST_ENTRY entry;
+    NTSTATUS status;
     PVOID buffer;
     ULONG bufferSize = 1024 * 1024;
     ULONG64 bytesScanned = 0;
@@ -1063,9 +1064,9 @@ VOID AtpSearchProcessMemory(
     if (AtGetArgumentUInt64(Call->Arguments, "max_results", &maxResults) && maxResults > 0)
         limit = (ULONG)min(maxResults, AT_SEARCH_MAX_RESULTS);
 
-    if (!NT_SUCCESS(PhQueryMemoryItemList(Target->ProcessItem->ProcessId, PH_QUERY_MEMORY_IGNORE_FREE, &list)))
+    if (!NT_SUCCESS(status = PhQueryMemoryItemList(Target->ProcessItem->ProcessId, PH_QUERY_MEMORY_IGNORE_FREE, &list)))
     {
-        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The process memory could not be enumerated.");
+        AtSetToolStatusError(Result, status, L"Enumerating the process memory");
         return;
     }
 

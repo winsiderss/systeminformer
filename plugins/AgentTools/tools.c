@@ -29,6 +29,20 @@ VOID AtSetToolError(
     va_end(argptr);
 }
 
+/**
+ * Converts an HRESULT to the NTSTATUS the tool result reports, so that a Win32-backed failure keeps
+ * the code AtSetToolStatusError and AtAddErrorHints read.
+ */
+NTSTATUS AtHResultToStatus(
+    _In_ HRESULT Result
+    )
+{
+    if (HRESULT_FACILITY(Result) == FACILITY_WIN32)
+        return PhDosErrorToNtStatus(HRESULT_CODE(Result));
+
+    return STATUS_UNSUCCESSFUL;
+}
+
 VOID AtSetToolStatusError(
     _Inout_ PAT_TOOL_RESULT Result,
     _In_ NTSTATUS Status,
