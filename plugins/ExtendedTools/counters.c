@@ -2030,7 +2030,10 @@ BOOLEAN EtLookupProcessGpuStatistics(
         return FALSE;
 
     memset(Statistics, 0, sizeof(EXTENDEDTOOLS_PROCESS_GPU));
-    Statistics->GpuEnabled = EtGpuEnabled;
+
+    // Constant by the time we get here: the guard above returned already if it were not set, and
+    // reading the global again made it look as though this could still come back false.
+    Statistics->GpuEnabled = TRUE;
     Statistics->PerformanceCountersEnabled = EtGpuD3DEnabled;
     Statistics->Utilization = EtLookupProcessGpuUtilization(ProcessId);
 

@@ -199,7 +199,6 @@ DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
     _In_opt_ PVOID Context
     )
 {
-    DOTNETTOOLS_ASSEMBLY_STATUS status = DotNetToolsAssembliesOk;
     PCLR_PROCESS_SUPPORT support;
     PPH_LIST appDomainList;
     BOOLEAN isDotNet = FALSE;
@@ -226,13 +225,26 @@ DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
     // detection is only used to explain a failure.
     if (!(support = CreateClrProcessSupport(ProcessId)))
     {
-        if (!NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, PH_CLR_USE_SECTION_CHECK, &isDotNet, NULL)) || !isDotNet)
-        {
-            if (!NT_SUCCESS(PhGetProcessIsDotNetEx(ProcessId, NULL, 0, &isDotNet, NULL)) || !isDotNet)
-                return DotNetToolsAssembliesNotDotNet;
-        }
+        NTSTATUS sectionStatus;
+        NTSTATUS handleStatus;
 
-        return DotNetToolsAssembliesFailed;
+        sectionStatus = PhGetProcessIsDotNetEx(ProcessId, NULL, PH_CLR_USE_SECTION_CHECK, &isDotNet, NULL);
+
+        if (NT_SUCCESS(sectionStatus) && isDotNet)
+            return DotNetToolsAssembliesFailed;
+
+        handleStatus = PhGetProcessIsDotNetEx(ProcessId, NULL, 0, &isDotNet, NULL);
+
+        if (NT_SUCCESS(handleStatus) && isDotNet)
+            return DotNetToolsAssembliesFailed;
+
+        // Only a check that ran can say a process is not .NET. When neither could be made - both
+        // want access this caller may not have - that is a failure to tell, and reporting it as a
+        // finding told the user the process is not .NET when nobody had looked.
+        if (!NT_SUCCESS(sectionStatus) && !NT_SUCCESS(handleStatus))
+            return DotNetToolsAssembliesFailed;
+
+        return DotNetToolsAssembliesNotDotNet;
     }
 
     if (!(appDomainList = DnGetClrAppDomainAssemblyList(support)))
@@ -283,7 +295,7 @@ CleanupExit:
     DnDestroyProcessDotNetAppDomainList(appDomainList);
     FreeClrProcessSupport(support);
 
-    return status;
+    return DotNetToolsAssembliesOk;
 }
 
 DOTNETTOOLS_INTERFACE PluginInterface =
