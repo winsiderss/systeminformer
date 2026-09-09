@@ -837,7 +837,7 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_CALLBACK_TIMER | TDF_SIZE_TO_CONTENT;
         config.pszWindowTitle = L"System Informer";
 
-        // The requester's icon badged with a shield; the stock shield when there is none.
+        // The broker's icon badged with a shield; the stock shield when it cannot be read.
         if (request->MainIcon)
         {
             config.dwFlags |= TDF_USE_HICON_MAIN;
@@ -1115,7 +1115,8 @@ PPH_STRING AtpFormatConnectionRequester(
 
     PhAcquireQueuedLockExclusive(&Connection->Lock);
 
-    // The client's own name when it has sent initialize already; the verified launcher always.
+    // The client's own name when it has sent initialize; the launcher as reported, with whatever
+    // its signature check answered.
     if (Connection->ClientName)
     {
         PhAppendStringBuilder2(&builder, L"Requested by ");
@@ -1320,7 +1321,8 @@ AT_CONSENT_RESULT AtConsentGate(
         return AtConsentAllowed;
 
     // A grant already held by this connection, chosen in the dialog (or, for reads, through the
-    // client's prompt). Revoke grants, or Disconnect, clears it from the options page.
+    // client's prompt). Revoke grants clears it from the options page; Disconnect clears only the
+    // per-action half.
     policy = AtpGetSessionPolicy(connection, Action);
 
     if (policy == AtSessionAllow)

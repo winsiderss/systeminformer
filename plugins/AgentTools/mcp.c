@@ -390,7 +390,8 @@ VOID AtpSendRequest(
  * text around them reads rather than adding anything of their own: the bidirectional overrides and
  * embeddings, which can make a tool name display in reverse; the zero-width joiners and the
  * zero-width no-break space, which hide a join; and the separators Windows controls treat as a
- * line break, which would let a client push its own line into a consent prompt.
+ * line break, which would let a client push its own line into a consent prompt. The two
+ * noncharacters are rejected as well, no client having any business sending them.
  */
 BOOLEAN AtpIsUnsafeClientChar(
     _In_ WCHAR Character
@@ -510,9 +511,8 @@ BOOLEAN AtpHasFormElicitation(
 /**
  * Reads the request's _meta block.
  *
- * 
-eturn TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read
- * whatever the answer, because the caller uses it to shape the refusal as well as the reply.
+ * \return TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read;
+ * on FALSE the refusal has already been sent.
  */
 BOOLEAN AtpParseRequestMeta(
     _In_ PAT_CONNECTION Connection,
@@ -924,8 +924,8 @@ VOID AtpHandleToolsCall(
     {
         BOOLEAN gate;
 
-        // Reads are granted per connection and carry no target through the gate (the tool resolves
-        // its own); everything else names one object, resolved and held open across the consent.
+        // Reads resolve their own target and pass none through the gate; every other tier resolves
+        // first, and passes one only when the action names an object.
         if (tool->Tier == AtTierRead)
             gate = TRUE;
         else
@@ -1729,7 +1729,7 @@ AT_CONSENT_RESULT AtpElicitModern(
             return AtpInterpretElicitResult(AtJsonGetObjectMember(Call->InputResponses, "consent", PH_JSON_OBJECT_TYPE_OBJECT));
         }
 
-        // Expired or mismatched: ask again below rather than failing (spec: re-request).
+        // Expired, mismatched, or answered without a response: ask again rather than failing.
     }
 
     pending = AtpAllocatePendingConsent(connection);
@@ -1737,8 +1737,7 @@ AT_CONSENT_RESULT AtpElicitModern(
     pending->Used = TRUE;
     pending->Action = Action->Action;
     memcpy(pending->Identity, identity, sizeof(identity));
-    // One call: PhGenerateRandomNumber64 already returns a full 64 bits, and shifting one of them
-    // left by one only threw the top bit away.
+    // A full 64 bits in one call.
     pending->Nonce = PhGenerateRandomNumber64();
     pending->Expiry.QuadPart = now.QuadPart + (LONGLONG)AT_PENDING_CONSENT_TIMEOUT_MS * PH_TIMEOUT_MS;
 

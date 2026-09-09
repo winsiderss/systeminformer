@@ -430,9 +430,8 @@ VOID AtpGetProcessUnloadedModules(
         PhAddJsonObjectUInt64(row, "size", event->SizeOfImage);
         AtJsonAddHex(row, "checksum", event->CheckSum);
 
-        // A reproducible build puts a content hash in this field instead of a time, and a hash read
-        // as seconds since 1970 lands in the future, so a date is reported only when the value can
-        // be one.
+        // A reproducible build puts a content hash here instead of a time; a value in the future
+        // is certainly one, so only those are dropped.
         AtJsonAddHex(row, "time_date_stamp", event->TimeDateStamp);
         PhSecondsSince1970ToTime(event->TimeDateStamp, &time);
         PhQuerySystemTime(&now);

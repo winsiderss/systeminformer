@@ -314,8 +314,7 @@ PPH_STRING AtpQueryObjectString(
 
     buffer = PhAllocate(bufferSize);
 
-    // Bounded retry rather than one attempt: the driver sizes some of these from state that can
-    // change between the two calls, so a single grow can be short again through no fault of ours.
+    // A grow can come up short again; AT_QUERY_MAXIMUM_ATTEMPTS bounds the retry.
     for (attempt = 0; attempt < AT_QUERY_MAXIMUM_ATTEMPTS; attempt++)
     {
         status = KphQueryInformationObject(Query->ProcessHandle, Query->Handle,
@@ -447,8 +446,21 @@ VOID AtpAddFileHandleDetails(
     else
     {
         AtJsonAddNull(details, "delete_pending");
+        AtJsonAddNull(details, "read_access");
+        AtJsonAddNull(details, "write_access");
+        AtJsonAddNull(details, "delete_access");
+        AtJsonAddNull(details, "shared_read");
+        AtJsonAddNull(details, "shared_write");
+        AtJsonAddNull(details, "shared_delete");
+        AtJsonAddNull(details, "has_active_transaction");
+        AtJsonAddNull(details, "is_ignoring_sharing");
+        AtJsonAddNull(details, "user_writable_references");
+        AtJsonAddNull(details, "waiters");
+        AtJsonAddNull(details, "busy");
         AtJsonAddNull(details, "device_type");
+        AtJsonAddNull(details, "device_type_value");
         AtJsonAddNull(details, "volume_label");
+        AtJsonAddNull(details, "volume_serial_number");
     }
 
     // A field the route could not reach is null rather than missing, which is what the tool's own

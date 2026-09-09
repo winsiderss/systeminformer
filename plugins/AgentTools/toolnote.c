@@ -175,7 +175,8 @@ VOID AtpSetProcessComment(
         matchCommandLine
         ))
     {
-        // The only way this fails after the checks above is clearing a comment that was not there.
+        // A failure here is a missing entry or a database that could not be saved; the two are not
+        // told apart.
         AtSetToolError(
             Result,
             "not_found",

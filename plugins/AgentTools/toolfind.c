@@ -168,8 +168,8 @@ VOID AtpFindHandles(
         {
             HANDLE opened = NULL;
 
-            // Duplicating the handle is what names most objects; without that access the entry
-            // can still be reported by type and address, so a failure to open is not fatal.
+            // Duplicating the handle is what names most objects; an entry whose process cannot be
+            // opened at all is dropped below.
             if (!NT_SUCCESS(PhOpenProcess(&opened, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, entry->UniqueProcessId)))
                 PhOpenProcess(&opened, PROCESS_QUERY_INFORMATION, entry->UniqueProcessId);
 
@@ -521,8 +521,8 @@ BOOLEAN NTAPI AtpFileMappedCallback(
     if (!Module->FileName)
         return TRUE;
 
-    // The two sides spell paths differently, so the file name is compared first and only a match
-    // pays for converting both to Win32 form.
+    // The base names are compared first; only a match pays for converting the module path to
+    // Win32 form.
     {
         PPH_STRING baseName = PhGetBaseName(Module->FileName);
         BOOLEAN sameName;
@@ -1190,8 +1190,8 @@ VOID AtpAddSectionDetails(
     haveImage = FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
         NT_SUCCESS(NtQuerySection(Handle, SectionImageInformation, &imageInfo, sizeof(imageInfo), NULL));
 
-    // The backing file name needs the driver, so a named section reports one only through
-    // get_handle_details.
+    // Naming the backing file needs SECTION_MAP_READ to map a view; this scan opens sections with
+    // SECTION_QUERY alone, so only get_handle_details reports one.
     AtAddSectionInfo(Structured, &basicInfo, haveImage ? &imageInfo : NULL, NULL);
 }
 
@@ -1549,8 +1549,8 @@ VOID AtpGetObjectInfo(
 
             PhClearReference(&queriedTypeName);
 
-            // Measured against a mutex held by one known process: the handle this call opened is
-            // not in the count, so this is what everything else is holding.
+            // Without the driver the handle this call opened is subtracted; with it the count is
+            // raw and includes this one.
             PhAddJsonObjectUInt64(structured, "handle_count", basicInfo.HandleCount);
             PhAddJsonObjectUInt64(structured, "pointer_count", basicInfo.PointerCount);
             PhAddJsonObjectUInt64(structured, "paged_pool_charge", basicInfo.PagedPoolCharge);

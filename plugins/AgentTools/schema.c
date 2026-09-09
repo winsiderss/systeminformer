@@ -633,7 +633,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_PROCESS_INPUT_SCHEMA \
     "{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES "},\"required\":[\"pid\"],\"additionalProperties\":false}"
 
-// pid and process_sequence_number required: writes.
+// pid and process_sequence_number both declared; only a write tier enforces the sequence number.
 #define AT_TARGET_INPUT_PROPERTIES \
     "\"pid\":{\"type\":\"integer\",\"description\":\"Process id\"}," \
     "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"process_sequence_number from list_processes or get_process; the call is refused if it no longer matches the live process\"}"
@@ -643,10 +643,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 
 #define AT_THREAD_IDENTITY_INPUT_PROPERTIES \
     "\"tid\":{\"type\":\"integer\",\"description\":\"Thread id from get_process_threads; must belong to pid\"}," \
-    "\"create_time\":{\"type\":\"string\",\"description\":\"Optional; the create_time of that thread row. Tids are reused inside a process, so when it is given the call is refused if it no longer matches the live thread\"}"
+    "\"create_time\":{\"type\":\"string\",\"description\":\"Optional; the create_time of that thread row. Tids are machine-global and reused, so when it is given the call is refused if it no longer matches the live thread\"}"
 
-// Source lines come out of the same private symbols a symbol name does, so nearly every frame of a
-// Microsoft binary answers null here even when the lookup is asked for.
+// Lines need private symbols, which a name does not, so nearly every frame of a Microsoft binary
+// answers null here even when the lookup is asked for.
 #define AT_STACK_LINE_INPUT_PROPERTY \
     "\"include_lines\":{\"type\":\"boolean\",\"description\":\"Look up the source file and line of each frame. Only frames whose module has private symbols on the symbol path have one\"}"
 
@@ -1501,9 +1501,8 @@ CONST AT_TOOL AtTools[] =
         "executable holds its own image and usually without any handle at all. handle_users is null rather than "
         "empty when the filesystem does not answer that query, because nobody having it open and nobody being "
         "able to ask are different findings. The mapped half only covers processes whose module list can be "
-        "read, so without elevation it undercounts: on this machine ntdll.dll reports 307 processes holding a "
-        "handle and 125 with it mapped. Takes a Win32 or native path; the file is opened for attributes only "
-        "and shared every way, so asking does not itself put the file in use. \","
+        "read, so without elevation it undercounts. Takes a Win32 or native path; the file is opened "
+        "for attributes only and shared every way, so asking does not itself put the file in use. \","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"path\":{\"type\":\"string\",\"description\":\"The file to ask about\"},"
         "\"skip_mapped\":{\"type\":\"boolean\",\"description\":\"Skip the mapped half, which walks every process's modules\"}"
@@ -1755,17 +1754,17 @@ CONST AT_TOOL AtTools[] =
         "\"object_name\":{\"type\":[\"string\",\"null\"],\"description\":\"Null when the object could not be named; get_process_handles_detailed names it\"},"
         "\"source\":{\"type\":\"string\",\"enum\":[\"driver\",\"duplicated_handle\"]},"
         "\"attributes\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"},\"description\":\"Driver only: permanent_object, kernel_object, exclusive_object, ...\"},"
-        "\"file\":{\"type\":\"object\",\"description\":\"File handles only\",\"properties\":{"
+        "\"file\":{\"type\":\"object\",\"description\":\"File handles only. Every field the driver reads is null without it\",\"properties\":{"
         "\"delete_pending\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Driver only\"},"
-        "\"read_access\":{\"type\":\"boolean\"},\"write_access\":{\"type\":\"boolean\"},\"delete_access\":{\"type\":\"boolean\"},"
-        "\"shared_read\":{\"type\":\"boolean\"},\"shared_write\":{\"type\":\"boolean\"},\"shared_delete\":{\"type\":\"boolean\"},"
-        "\"has_active_transaction\":{\"type\":\"boolean\"},\"is_ignoring_sharing\":{\"type\":\"boolean\"},"
-        "\"user_writable_references\":{\"type\":\"integer\"},"
-        "\"waiters\":{\"type\":\"integer\"},\"busy\":{\"type\":\"integer\"},"
+        "\"read_access\":{\"type\":[\"boolean\",\"null\"]},\"write_access\":{\"type\":[\"boolean\",\"null\"]},\"delete_access\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"shared_read\":{\"type\":[\"boolean\",\"null\"]},\"shared_write\":{\"type\":[\"boolean\",\"null\"]},\"shared_delete\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"has_active_transaction\":{\"type\":[\"boolean\",\"null\"]},\"is_ignoring_sharing\":{\"type\":[\"boolean\",\"null\"]},"
+        "\"user_writable_references\":{\"type\":[\"integer\",\"null\"]},"
+        "\"waiters\":{\"type\":[\"integer\",\"null\"]},\"busy\":{\"type\":[\"integer\",\"null\"]},"
         "\"device_type\":{\"type\":[\"string\",\"null\"],\"description\":\"disk, named_pipe, network, console, ...; null when the number has no name here\"},"
-        "\"device_type_value\":{\"type\":\"string\"},"
+        "\"device_type_value\":{\"type\":[\"string\",\"null\"]},"
         "\"volume_label\":{\"type\":[\"string\",\"null\"]},"
-        "\"volume_serial_number\":{\"type\":\"string\"},"
+        "\"volume_serial_number\":{\"type\":[\"string\",\"null\"]},"
         "\"size\":{\"type\":[\"integer\",\"null\"]},\"allocation_size\":{\"type\":[\"integer\",\"null\"]},"
         "\"directory\":{\"type\":[\"boolean\",\"null\"]},\"link_count\":{\"type\":[\"integer\",\"null\"]},"
         "\"mode\":{\"type\":[\"string\",\"null\"]},"
@@ -2790,6 +2789,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"name\",\"action\"]},"
         AT_WRITE_ANNOTATIONS "}"
     },
+    // processes
     {
         "close_window", L"Close a window", AtTierWrite, AtActionCloseWindow,
         SETTING_NAME_TOOL_ACCESS(L"close_window"), SETTING_NAME_TOOL_CONFIRM(L"close_window"),
@@ -5480,11 +5480,6 @@ CONST ULONG AtPromptCount = RTL_NUMBER_OF(AtPrompts);
  * kind and desired access. That reads as unrelated access-denied and invalid-handle errors from
  * tools nobody touched, so the rows check themselves against the enum they are indexed by. Each
  * tool must also name an action the table describes.
- */
-/**
- * Checks at load time what nothing else does. Every one of these holds today and none of them was
- * enforced, so a change that broke one showed up as a tool quietly missing from tools/list, or as
- * a client call refused for a reason nothing in this file explains.
  */
 VOID AtVerifySchema(
     VOID

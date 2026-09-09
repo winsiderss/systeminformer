@@ -59,8 +59,7 @@ FORCEINLINE HANDLE AtpStartupRoot(
 /**
  * Records a startup location that exists but could not be read.
  *
- * 
-emarks A location that is simply not present is not a gap in the answer, so only a failure
+ * \remarks A location that is simply not present is not a gap in the answer, so only a failure
  * other than "not found" is counted.
  */
 FORCEINLINE VOID AtpStartupUnreadable(
@@ -262,8 +261,8 @@ VOID AtpAddStartupEntry(
 
     resolved = AtpResolveStartupImage(Image ? Image : Command, Context->ImageKind, &imagePath, &imageExists);
 
-    // Only a file that is there is verified: verifying a path that does not exist answers "No
-    // signature", which reads as an unsigned file rather than as a missing one.
+    // Only a file that is there is verified; a missing one answers unknown, which is already how
+    // the field reads.
     if (Context->Verify && imageExists)
         verifyResult = AtVerifyFileName(imagePath, &signer);
 
@@ -333,7 +332,7 @@ PPH_STRING AtpGetRegistryStringData(
     if (Information->Type != REG_SZ && Information->Type != REG_EXPAND_SZ)
         return NULL;
 
-    // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
+    // DataLength is not guaranteed to be a whole number of WCHARs; drop a dangling odd byte.
     dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
 
     if (dataLength >= sizeof(WCHAR) &&
@@ -1045,8 +1044,8 @@ VOID AtpAddClsidEntry(
 
     module = AtpResolveClsidModule(Clsid, &friendlyName);
 
-    // A class that names no server has no file to look at, and the class identifier is not one:
-    // resolving it as a module name would report a system32 path that was never there.
+    // A class that names no server has no file to look at, and the class identifier is not a
+    // module name.
     imageKind = Context->ImageKind;
 
     if (!module)

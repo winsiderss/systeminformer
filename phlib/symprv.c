@@ -1048,7 +1048,7 @@ VOID PhpSymbolInfoAnsiToUnicode(
  * \param[out,opt] FileName A pointer to a variable that receives the module file name.
  * \param[out,opt] SymbolName A pointer to a variable that receives the symbol name.
  * \param[out,opt] Displacement A pointer to a variable that receives the displacement from the
- * symbol, which is zero when the address did not resolve to one.
+ * symbol. Only meaningful when the resolve level is a symbol.
  * \return A string representing the symbol, or NULL on failure.
  */
 _Success_(return != NULL)

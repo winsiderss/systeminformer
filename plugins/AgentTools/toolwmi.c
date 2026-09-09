@@ -370,8 +370,7 @@ IWbemClassObject* AtpWmiNext(
 /**
  * Whether the status that ended an enumeration was a failure rather than its end.
  *
- * 
-emarks WBEM_S_FALSE is the end of the enumeration and WBEM_S_TIMEDOUT is reported separately,
+ * \remarks WBEM_S_FALSE is the end of the enumeration and WBEM_S_TIMEDOUT is reported separately,
  * so neither makes the read a failure.
  */
 FORCEINLINE BOOLEAN AtpWmiEnumerationFailed(
@@ -431,7 +430,7 @@ HRESULT AtpWmiEnumerateConsumers(
     IWbemClassObject* object;
 
     // Every consumer is a subclass of __EventConsumer, so one query over the base class finds the
-    // ones this build has never heard of as well as the four that matter.
+    // ones this build has never heard of as well as the three whose properties are read below.
     status = AtpWmiExecQuery(Services, L"SELECT * FROM __EventConsumer", &enumerator);
 
     if (HR_FAILED(status))

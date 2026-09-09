@@ -9222,8 +9222,8 @@ PPH_STRING PhCreateCacheFile(
     WCHAR randomAlphaString[32] = L"";
     SIZE_T i;
 
-    // FileName is treated as a trusted leaf name and appended directly to the cache directory.
-    // Reject path separators and traversal so a caller cannot escape the cache directory.
+    // FileName becomes a leaf name under the cache directory: reject separators, traversal,
+    // streams and control characters so a caller cannot escape it.
 
     if (PhIsNullOrEmptyString(FileName))
         return NULL;

@@ -122,17 +122,17 @@ VOID AtpAddCountry(
     if (Interface && !AtpIsPrivateAddress(Address) &&
         Interface->LookupCountryCode(*Address, &geoNameId, &countryName))
     {
-        // A lookup can succeed with only one of the two: an address the database knows but has
-        // no country name for comes back with an identifier of zero, which is not an identifier.
+        // The lookup answers TRUE even for an address it does not know, with a zero identifier and
+        // no name; the two always come together.
         AtJsonAddString(Object, "country", countryName);
 
+        // Not an ISO code: the database returns a GeoNames identifier, and calling it a country
+        // code would have a reader expecting two letters.
         if (geoNameId)
             PhAddJsonObjectUInt64(Object, "country_geoname_id", geoNameId);
         else
             AtJsonAddNull(Object, "country_geoname_id");
 
-        // Not an ISO code: the database returns a GeoNames identifier, and calling it a country
-        // code would have a reader expecting two letters.
         PhClearReference(&countryName);
     }
     else

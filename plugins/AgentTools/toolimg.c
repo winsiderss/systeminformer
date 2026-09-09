@@ -1453,8 +1453,7 @@ BOOLEAN NTAPI AtpStringSearchCallback(
         name[IMAGE_SIZEOF_SHORT_NAME] = ANSI_NULL;
         PhAddJsonObject(row, "section", name);
 
-        // The address the string will have once the image is loaded, which is what every other tool
-        // reports an address as.
+        // The string's RVA: where it lands relative to the image base once loaded.
         AtJsonAddHex(row, "rva", section->VirtualAddress + (offset - section->PointerToRawData));
     }
     else

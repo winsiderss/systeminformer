@@ -604,7 +604,8 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (Hello->BrokerVersion != SIMCP_VERSION)
         return SimcpHelloRejectedVersion;
 
-    // Capture the token, then revert. Every decision below is made from the captured token.
+    // Capture the token, then revert. The caller checks below are made from the captured token;
+    // the broker checks come from the pipe's client process.
 
     status = PhImpersonateClientOfNamedPipe(Connection->PipeHandle);
 
@@ -1212,7 +1213,8 @@ VOID AtServerDisconnect(
         {
             AtConnectionClose(connection, SimcpCloseUserDisconnected, 0);
 
-            // Disconnecting also voids every grant held by this session.
+            // Disconnecting voids the per-action session grants; class grants are cleared only by
+            // Revoke grants.
             PhAcquireQueuedLockExclusive(&connection->Lock);
             memset(connection->SessionPolicy, 0, sizeof(connection->SessionPolicy));
             PhReleaseQueuedLockExclusive(&connection->Lock);

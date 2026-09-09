@@ -559,8 +559,7 @@ VOID AtpGetObjectSecurity(
     AtJsonAddStringZ(structured, "kind", AtpSecurityKindString(kind));
     AtJsonAddString(structured, "path", path);
 
-    // A thread was addressed by tid, and reporting it under pid made the answer name a process
-    // that was never asked about.
+    // pid is reported only for a process; a thread is addressed by tid.
     if (kind == AtSecurityKindProcess)
         PhAddJsonObjectUInt64(structured, "pid", processId);
     else
@@ -646,9 +645,7 @@ VOID AtpGetObjectSecurity(
     }
 
     // Built from the descriptor already in hand rather than by asking the object a second time.
-    // For a service this handle is an SC_HANDLE - a user-mode pointer, not a kernel handle - so
-    // NtQuerySecurityObject was being handed something that is not a handle at all, and sddl came
-    // back null for every service query.
+    // For a service this handle is an SC_HANDLE - a user-mode pointer, not a kernel handle.
     if (!sddl && securityDescriptor)
     {
         PWSTR sddlString;

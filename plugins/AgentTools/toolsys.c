@@ -877,7 +877,7 @@ BOOLEAN NTAPI AtpEnvironmentValueCallback(
 
     if (Information->Type == REG_SZ || Information->Type == REG_EXPAND_SZ)
     {
-        // Registry string data is not guaranteed to be WCHAR-aligned; drop a dangling odd byte.
+        // DataLength is not guaranteed to be a whole number of WCHARs; drop a dangling odd byte.
         SIZE_T dataLength = Information->DataLength & ~(sizeof(WCHAR) - 1);
 
         if (dataLength >= sizeof(WCHAR) &&
@@ -1661,8 +1661,8 @@ VOID AtpGetCpuInfo(
     AtpAddCpuCaches(structured);
     AtpAddCpuProcessors(structured, Call);
 
-    // Counters since boot, not rates: a rate needs two samples and this call takes one. Sample
-    // twice and subtract, or use get_system_history, which is fed by the provider that does.
+    // The provider's own per-interval usage fractions, not counters since boot: the same figures
+    // get_system_history records.
     entry = PhCreateJsonObject();
     PhAddJsonObjectDouble(entry, "cpu_usage", (DOUBLE)PhCpuKernelUsage + (DOUBLE)PhCpuUserUsage);
     PhAddJsonObjectDouble(entry, "cpu_kernel_usage", (DOUBLE)PhCpuKernelUsage);
@@ -1770,8 +1770,8 @@ VOID AtpListPoolTags(
         pagedTotal += tag->PagedUsed;
         nonPagedTotal += tag->NonPagedUsed;
 
-        // The index maps a tag to its row so the big pool list can be folded in by tag; the value
-        // is the row number plus one, because a hashtable cannot hold a null value.
+        // The index maps a tag to its row so the big pool list can be folded in by tag; the stored
+        // value is the row number plus one, and the read below subtracts it.
         PhAddItemSimpleHashtable(index, (PVOID)(ULONG_PTR)tag->TagUlong, (PVOID)(ULONG_PTR)(i + 1));
     }
 

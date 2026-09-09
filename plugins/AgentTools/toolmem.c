@@ -108,7 +108,8 @@ VOID AtpGetProcessHandles(
         return;
     }
 
-    // Detailed reads use the resolved handle; plain reads open just enough to name types.
+    // Detailed reads use the resolved handle, or their own PROCESS_DUP_HANDLE one without the
+    // driver; plain reads open just enough to name types.
     if (detailed)
     {
         processHandle = target->ProcessHandle;
@@ -164,8 +165,6 @@ VOID AtpGetProcessHandles(
         }
 
         // The type comes from the handle's own type index and needs no handle to the process.
-        // Asking only when the process could be opened left every row of a protected process with a
-        // null type.
         if (!typeName)
             PhGetObjectTypeName(processHandle, entry->HandleValue, entry->ObjectTypeIndex, &typeName);
 

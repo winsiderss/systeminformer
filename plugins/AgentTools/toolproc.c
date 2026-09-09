@@ -285,7 +285,8 @@ VOID AtpAddProcessStatistics(
             PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
     }
 
-    // Only the working set breakdown needs the process.
+    // The quota counters come from the process item; the working set breakdown and every block
+    // after it are null without a process handle.
     entry = PhCreateJsonObject();
     PhAddJsonObjectUInt64(entry, "paged_pool_bytes", ProcessItem->VmCounters.QuotaPagedPoolUsage);
     PhAddJsonObjectUInt64(entry, "peak_paged_pool_bytes", ProcessItem->VmCounters.QuotaPeakPagedPoolUsage);
@@ -1085,7 +1086,8 @@ VOID AtpControlProcess(
 
             if (!freezeHandle)
             {
-                // Frozen by something else; this cannot undo it.
+                // No freeze handle of ours: either it was never frozen here or something else
+                // froze it, and neither can be undone from here.
                 status = STATUS_SUCCESS;
                 break;
             }
@@ -1905,7 +1907,8 @@ VOID AtpGetProcessKsiState(
     if (!NT_SUCCESS(status))
         return;
 
-    // KphCreateUserMessage asserts when there is no connection.
+    // The query needs medium; below that KphCreateUserMessage may also assert with no connection
+    // at all.
     if (KsiLevel() < KphLevelMed)
     {
         AtSetToolError(

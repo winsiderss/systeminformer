@@ -1043,8 +1043,8 @@ VOID AtpControlService(
                 {
                     SERVICE_DESCRIPTION descriptionInfo;
 
-                    // An empty string clears the description rather than being refused: a service
-                    // with nothing to say about itself is a state the caller can want.
+                    // An empty description is not a value: the argument reader returns null for it,
+                    // so it is ignored, and a call carrying nothing else is refused.
                     descriptionInfo.lpDescription = description->Buffer;
                     configStatus = PhChangeServiceConfig2(serviceHandle, SERVICE_CONFIG_DESCRIPTION, &descriptionInfo);
                     PhDereferenceObject(description);
@@ -1077,7 +1077,7 @@ VOID AtpControlService(
         BOOLEAN delayedAutoStart;
 
         // The description is one of the three things this can set and the steps are applied in
-        // order, so a caller that set it needs to see whether it took - which it could not, before.
+        // order, so a caller that set it needs to see whether it took.
         if (description = PhGetServiceDescription(serviceHandle))
         {
             AtJsonAddString(structured, "description", description);

@@ -282,8 +282,8 @@ VOID AtpGetFileInfo(
         AtJsonAddNull(structured, "hard_links");
 
     // PhGetFileMotw opens <name>:Zone.Identifier with PhCreateFile, which takes a native path; a
-    // Win32 path fails to open and every file comes back with no Mark of the Web. It also hands
-    // back values with the line's carriage return still on the end.
+    // Win32 path fails to open and every file comes back with no Mark of the Web. A stream with
+    // bare line feeds leaves a terminator on the value, so it is trimmed.
     if (nativePath = PhDosPathNameToNtPathName(&path->sr))
     {
         if (NT_SUCCESS(PhGetFileMotw(&nativePath->sr, &zoneId, &referrerUrl, &hostUrl)))

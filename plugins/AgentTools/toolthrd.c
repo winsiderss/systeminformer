@@ -464,7 +464,8 @@ PVOID AtpCreateThreadsResult(
             AtJsonAddNull(row, "start_address_resolve_level");
         }
 
-        // Independent of symbols: null here means the thread started outside every loaded module.
+        // Independent of symbols. Null when include_details was not asked for, when the module list
+        // could not be read, and when the address is in no module.
         AtJsonAddWin32FileName(row, "start_address_module", AtpFindThreadModule(moduleList, startAddress));
 
         createTime.QuadPart = thread->ThreadInfo.CreateTime.QuadPart;
@@ -493,8 +494,8 @@ PVOID AtpCreateThreadsResult(
     if (moduleList)
         AtpDestroyThreadModuleList(moduleList);
 
-    // start_address_module is null both for a thread that started outside every module and for a
-    // module list that could not be read, so the two are told apart here.
+    // start_address_module is null for a thread outside every module and for a list that could not
+    // be read; this tells those apart when include_details was asked for.
     PhAddJsonObjectBoolean(structured, "modules_complete", modulesComplete);
 
     if (Summary)

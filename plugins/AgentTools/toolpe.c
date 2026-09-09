@@ -765,8 +765,6 @@ VOID AtpGetImageInfo(
         return;
     }
 
-    // Open the Win32 path read-only and let the mapper work on the handle; passing a Win32 path
-    // straight to PhLoadMappedImageEx would be treated as an NT path.
     {
         PPH_STRING invalid;
 
@@ -790,6 +788,8 @@ VOID AtpGetImageInfo(
         }
     }
 
+    // Open the Win32 path read-only and let the mapper work on the handle; passing a Win32 path
+    // straight to PhLoadMappedImageEx would be treated as an NT path.
     status = PhCreateFileWin32(
         &fileHandle,
         PhGetString(path),
