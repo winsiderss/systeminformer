@@ -4558,11 +4558,8 @@ CONST AT_TOOL AtTools[] =
         "state_level is which of the driver's own thresholds the state meets, which is what the driver itself uses "
         "to decide what it will do for the process. Needs the driver at medium access or better; without it there "
         "is nothing to fall back to and the call is refused rather than answered from somewhere else.\","
-        "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"pid\":{\"type\":\"integer\"},"
-        "\"process_sequence_number\":{\"type\":\"integer\"},"
-        "\"name\":{\"type\":\"string\"}"
-        "},\"additionalProperties\":false},"
+        "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES
+        "},\"required\":[\"pid\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
         "\"ksi_level\":{\"type\":[\"string\",\"null\"]},"
