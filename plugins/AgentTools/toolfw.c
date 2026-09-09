@@ -250,10 +250,20 @@ VOID AtpAddFirewallEvent(
         return;
     }
 
-    // The application is a device path in a counted, non-terminated buffer.
+    // The application is a device path in a counted buffer whose size may or may not include the
+    // terminator, and is not guaranteed to be a whole number of characters.
     if (FlagOn(header->flags, FWPM_NET_EVENT_FLAG_APP_ID_SET) && header->appId.data && header->appId.size)
     {
-        applicationPath = PhCreateStringEx((PWCHAR)header->appId.data, header->appId.size - sizeof(UNICODE_NULL));
+        SIZE_T dataLength = header->appId.size & ~(sizeof(WCHAR) - 1);
+
+        if (dataLength >= sizeof(WCHAR) &&
+            *(PWCHAR)PTR_ADD_OFFSET(header->appId.data, dataLength - sizeof(WCHAR)) == UNICODE_NULL)
+        {
+            dataLength -= sizeof(WCHAR);
+        }
+
+        if (dataLength)
+            applicationPath = PhCreateStringEx((PWCHAR)header->appId.data, dataLength);
     }
 
     if (PathContains && !AtContainsString(applicationPath, PathContains))
