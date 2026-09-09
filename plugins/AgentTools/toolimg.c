@@ -40,6 +40,48 @@ typedef struct _AT_IMAGE_SECTION_NAME
     ULONG Flag;
 } AT_IMAGE_SECTION_NAME;
 
+/**
+ * Converts a null terminated string inside a mapped image to a PH_STRING.
+ *
+ * \param MappedImage The image the string must lie within.
+ * \param String The string. The image content chooses this address, so it is treated as untrusted.
+ *
+ * \return The string, or NULL if it starts outside the view, is not terminated inside the view, or
+ * could not be read.
+ */
+PPH_STRING AtpCreateImageString(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_opt_ PSTR String
+    )
+{
+    PSTR end;
+    PSTR current;
+
+    if (!String)
+        return NULL;
+
+    end = PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize);
+    current = String;
+
+    if ((ULONG_PTR)String < (ULONG_PTR)MappedImage->ViewBase || (ULONG_PTR)String >= (ULONG_PTR)end)
+        return NULL;
+
+    __try
+    {
+        while (current < end && *current)
+            current++;
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return NULL;
+    }
+
+    if (current == end)
+        return NULL;
+
+    return PhZeroExtendToUtf16Ex(String, current - String);
+}
+
 ULONG AtpParseImageSections(
     _In_opt_ PVOID Sections,
     _Out_ PPH_STRING* Invalid
@@ -274,7 +316,7 @@ VOID AtpAddImportDllRows(
 
         if (importDll.Name)
         {
-            PPH_STRING name = PhZeroExtendToUtf16((PSTR)importDll.Name);
+            PPH_STRING name = AtpCreateImageString(importDll.MappedImage, (PSTR)importDll.Name);
 
             AtJsonAddString(row, "name", name);
             PhClearReference(&name);
@@ -301,7 +343,7 @@ VOID AtpAddImportDllRows(
             // the loader will bind on, which is the harder one to attribute.
             if (entry.Name)
             {
-                PPH_STRING name = PhZeroExtendToUtf16((PSTR)entry.Name);
+                PPH_STRING name = AtpCreateImageString(importDll.MappedImage, (PSTR)entry.Name);
 
                 AtJsonAddString(function, "name", name);
                 PhAddJsonObjectUInt64(function, "hint", entry.NameHint);
@@ -371,7 +413,7 @@ VOID AtpAddImageExports(
 
             if (entry.Name)
             {
-                PPH_STRING name = PhZeroExtendToUtf16((PSTR)entry.Name);
+                PPH_STRING name = AtpCreateImageString(exports.MappedImage, (PSTR)entry.Name);
 
                 AtJsonAddString(row, "name", name);
                 PhClearReference(&name);
@@ -392,7 +434,7 @@ VOID AtpAddImageExports(
                 // name can be exported by a DLL that does not implement it.
                 if (function.ForwardedName)
                 {
-                    PPH_STRING forwarded = PhZeroExtendToUtf16((PSTR)function.ForwardedName);
+                    PPH_STRING forwarded = AtpCreateImageString(exports.MappedImage, (PSTR)function.ForwardedName);
 
                     AtJsonAddString(row, "forwarded_to", forwarded);
                     PhClearReference(&forwarded);
@@ -639,12 +681,24 @@ VOID AtpAddImageDebug(
         codeViewLength >= sizeof(CODEVIEW_INFO_PDB70))
     {
         PCODEVIEW_INFO_PDB70 pdb = codeView;
+        BOOLEAN readable = FALSE;
 
-        if (pdb->Signature == CODEVIEW_SIGNATURE_RSDS)
+        // The record is at an image chosen offset that the query does not probe.
+        __try
+        {
+            PhMappedImageProbe(MappedImage, codeView, sizeof(CODEVIEW_INFO_PDB70));
+            readable = TRUE;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+
+        if (readable && pdb->Signature == CODEVIEW_SIGNATURE_RSDS)
         {
             PVOID pdbEntry = PhCreateJsonObject();
             PPH_STRING guid = PhFormatGuid(&pdb->PdbGuid);
-            PPH_STRING name = PhZeroExtendToUtf16(pdb->ImageName);
+            PPH_STRING name = AtpCreateImageString(MappedImage, pdb->ImageName);
 
             AtJsonAddString(pdbEntry, "guid", guid);
             PhAddJsonObjectUInt64(pdbEntry, "age", pdb->PdbAge);
@@ -1049,11 +1103,10 @@ PPH_HASHTABLE AtpImphashOrdinalTable(
 
             if (NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &entry)) && entry.Name)
             {
-                PhAddItemSimpleHashtable(
-                    Ordinals->Tables[Index],
-                    UlongToPtr(entry.Ordinal),
-                    PhZeroExtendToUtf16((PSTR)entry.Name)
-                    );
+                PPH_STRING name = AtpCreateImageString(&mappedImage, (PSTR)entry.Name);
+
+                if (name)
+                    PhAddItemSimpleHashtable(Ordinals->Tables[Index], UlongToPtr(entry.Ordinal), name);
             }
         }
     }
@@ -1155,7 +1208,8 @@ PPH_STRING AtGetImageImphash(
             if (!NT_SUCCESS(PhGetMappedImageImportEntry(&importDll, j, &entry)))
                 continue;
 
-            dllString = PhZeroExtendToUtf16((PSTR)importDll.Name);
+            if (!(dllString = AtpCreateImageString(MappedImage, (PSTR)importDll.Name)))
+                continue;
 
             // Only these three extensions come off. A name ending in anything else keeps it, which
             // is the rule everyone implements and nobody writes down.
@@ -1172,13 +1226,12 @@ PPH_STRING AtGetImageImphash(
                 dllName = PhReferenceObject(dllString);
 
             if (entry.Name)
-            {
-                functionName = PhZeroExtendToUtf16((PSTR)entry.Name);
-            }
-            else if (!(functionName = AtpImphashOrdinalName(&ordinals, dllString, entry.Ordinal)))
-            {
+                functionName = AtpCreateImageString(MappedImage, (PSTR)entry.Name);
+            else
+                functionName = AtpImphashOrdinalName(&ordinals, dllString, entry.Ordinal);
+
+            if (!functionName)
                 functionName = PhFormatString(L"ord%u", entry.Ordinal);
-            }
 
             importName = PhConcatStringRef3(&dllName->sr, &separator, &functionName->sr);
             PhLowerStringRef(&importName->sr);
