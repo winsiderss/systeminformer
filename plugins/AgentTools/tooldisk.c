@@ -229,7 +229,13 @@ VOID AtpAddDescriptorString(
         return;
     }
 
-    string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(Descriptor, Offset));
+    // The descriptor holds raw INQUIRY bytes, which are not guaranteed to be UTF-8.
+    if (!(string = PhConvertUtf8ToUtf16(PTR_ADD_OFFSET(Descriptor, Offset))))
+    {
+        AtJsonAddNull(Object, Key);
+        return;
+    }
+
     trimmed = PhTrimStringZ(&string->sr, 0, L" \t\r\n");
 
     AtJsonAddString(Object, Key, trimmed->Length ? trimmed : NULL);
