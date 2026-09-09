@@ -583,8 +583,15 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 #define AT_WRITE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
 #define AT_DESTRUCTIVE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false}"
 
+// Only the tools that declare AT_DELTA_INPUT_PROPERTY accept since_snapshot_id; the rest set
+// additionalProperties false and refuse it, so only those tools tell the caller to keep the id.
 #define AT_SNAPSHOT_SCHEMA \
-    "\"snapshot_id\":{\"type\":\"integer\",\"description\":\"Provider run this answer came from; keep it and pass it as since_snapshot_id to ask what changed\"}," \
+    "\"snapshot_id\":{\"type\":\"integer\",\"description\":\"Provider run this answer came from\"}," \
+    "\"snapshot_time\":{\"type\":[\"string\",\"null\"],\"description\":\"ISO 8601 UTC time of the provider snapshot\"}," \
+    "\"updates_paused\":{\"type\":\"boolean\"}"
+
+#define AT_DELTA_SNAPSHOT_SCHEMA \
+    "\"snapshot_id\":{\"type\":\"integer\",\"description\":\"Provider run this answer came from; keep it and pass it back as since_snapshot_id to ask what changed since\"}," \
     "\"snapshot_time\":{\"type\":[\"string\",\"null\"],\"description\":\"ISO 8601 UTC time of the provider snapshot\"}," \
     "\"updates_paused\":{\"type\":\"boolean\"}"
 
@@ -748,7 +755,7 @@ CONST AT_TOOL AtTools[] =
         "\"processes\":{\"type\":\"array\",\"items\":" AT_PROCESS_ROW_SCHEMA "},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_DELTA_OUTPUT_SCHEMA(AT_PROCESS_CHANGE_ROW_SCHEMA) ","
-        AT_SNAPSHOT_SCHEMA
+        AT_DELTA_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
         AT_READ_ANNOTATIONS "}"
     },
@@ -2635,7 +2642,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_DELTA_OUTPUT_SCHEMA(AT_SERVICE_CHANGE_ROW_SCHEMA) ","
         "\"uncached_count\":{\"type\":\"integer\",\"description\":\"Rows built from the service control manager alone because the cache had not seen them yet\"},"
-        AT_SNAPSHOT_SCHEMA
+        AT_DELTA_SNAPSHOT_SCHEMA
         "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\",\"uncached_count\"]},"
         AT_READ_ANNOTATIONS "}"
     },
