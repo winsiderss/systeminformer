@@ -554,6 +554,16 @@ VOID AtpGetFileHashes(
     {
         if (requests[i].Wanted && !NT_SUCCESS(status = PhSymCryptHashInit(requests[i].Algorithm, &requests[i].Context)))
         {
+            ULONG j;
+
+            // The contexts started before this one are live and hold their own state, so they are
+            // destroyed on the way out rather than left to the stack frame going away.
+            for (j = 0; j < i; j++)
+            {
+                if (requests[j].Wanted)
+                    PhSymCryptDestroyHash(&requests[j].Context, requests[j].Size);
+            }
+
             AtSetToolStatusError(Result, status, L"Starting the hash");
             NtClose(fileHandle);
             PhDereferenceObject(path);
