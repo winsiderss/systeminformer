@@ -1370,10 +1370,10 @@ VOID AtpGetProcessToken(
     PhAddJsonObjectBoolean(structured, "virtualization_allowed", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationAllowed));
     PhAddJsonObjectBoolean(structured, "virtualization_enabled", !!AtpQueryTokenUlong(tokenHandle, TokenVirtualizationEnabled));
 
-    groupArray = PhCreateJsonArray();
-
     if (NT_SUCCESS(PhGetTokenGroups(tokenHandle, &groups)))
     {
+        groupArray = PhCreateJsonArray();
+
         for (i = 0; i < groups->GroupCount; i++)
         {
             PVOID row = PhCreateJsonObject();
@@ -1384,14 +1384,18 @@ VOID AtpGetProcessToken(
         }
 
         PhFree(groups);
+        PhAddJsonObjectValue(structured, "groups", groupArray);
     }
-
-    PhAddJsonObjectValue(structured, "groups", groupArray);
-
-    privilegeArray = PhCreateJsonArray();
+    else
+    {
+        // Holding no groups and not being able to read them are opposite answers.
+        AtJsonAddNull(structured, "groups");
+    }
 
     if (NT_SUCCESS(PhGetTokenPrivileges(tokenHandle, &privileges)))
     {
+        privilegeArray = PhCreateJsonArray();
+
         for (i = 0; i < privileges->PrivilegeCount; i++)
         {
             PVOID row = PhCreateJsonObject();
@@ -1414,9 +1418,13 @@ VOID AtpGetProcessToken(
         }
 
         PhFree(privileges);
+        PhAddJsonObjectValue(structured, "privileges", privilegeArray);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "privileges");
     }
 
-    PhAddJsonObjectValue(structured, "privileges", privilegeArray);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
