@@ -996,6 +996,7 @@ VOID AtpControlProcess(
     BOOLEAN freezeHeldHere = FALSE;
     ULONG64 workingSetBefore = 0;
     BOOLEAN hasWorkingSetBefore = FALSE;
+    HANDLE workingSetHandle = NULL;
     ULONG previousPagePriority = 0;
     ULONG64 pagePriority = 0;
     BOOLEAN hasPreviousPagePriority = FALSE;
@@ -1093,8 +1094,15 @@ VOID AtpControlProcess(
         break;
     case AtActionEmptyProcessWorkingSet:
         {
-            if (hasWorkingSetBefore = NT_SUCCESS(PhGetProcessWsCounters(Target->ProcessHandle, &wsCounters)))
-                workingSetBefore = (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE;
+            // The counters come from NtQueryVirtualMemory, which wants PROCESS_QUERY_INFORMATION
+            // while the operation itself needs only PROCESS_SET_QUOTA. Asking for both at
+            // resolution refused the whole call wherever the query right was not grantable, so the
+            // figures are read through a handle of their own and are simply absent without it.
+            if (NT_SUCCESS(PhOpenProcess(&workingSetHandle, PROCESS_QUERY_INFORMATION, Target->ProcessItem->ProcessId)))
+            {
+                if (hasWorkingSetBefore = NT_SUCCESS(PhGetProcessWsCounters(workingSetHandle, &wsCounters)))
+                    workingSetBefore = (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE;
+            }
 
             status = PhSetProcessEmptyWorkingSet(Target->ProcessHandle);
         }
@@ -1170,7 +1178,7 @@ VOID AtpControlProcess(
             AtJsonAddNull(structured, "working_set_bytes_before");
 
         // Read straight after the call; the process is already faulting pages back.
-        if (NT_SUCCESS(PhGetProcessWsCounters(Target->ProcessHandle, &wsCounters)))
+        if (workingSetHandle && NT_SUCCESS(PhGetProcessWsCounters(workingSetHandle, &wsCounters)))
             PhAddJsonObjectUInt64(structured, "working_set_bytes_after", (ULONG64)wsCounters.NumberOfPages * PAGE_SIZE);
         else
             AtJsonAddNull(structured, "working_set_bytes_after");
@@ -1209,6 +1217,9 @@ VOID AtpControlProcess(
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
+
+    if (workingSetHandle)
+        NtClose(workingSetHandle);
 }
 
 VOID AtpAddSidStrings(

@@ -443,8 +443,11 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"set the memory priority of the following process", L"Set the memory priority of", L"set_process_page_priority"
     },
     {
+        // Only what the operation needs. The before and after counters want more, and the handler
+        // opens its own handle for them, so a process that grants the quota right but not the
+        // query right is emptied and simply reports no figures.
         AtActionEmptyProcessWorkingSet, AtTierWrite, AtConsentClassNone, AtTargetProcess,
-        PROCESS_SET_QUOTA | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"empty_process_working_set"),
+        PROCESS_SET_QUOTA, SETTING_NAME_TOOL_CONFIRM(L"empty_process_working_set"),
         L"empty the working set of the following process", L"Empty the working set of", L"empty_process_working_set"
     },
     {
