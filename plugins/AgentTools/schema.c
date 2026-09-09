@@ -2909,6 +2909,7 @@ CONST AT_TOOL AtTools[] =
         "\"mvid\":{\"type\":[\"string\",\"null\"],\"description\":\"Module version id; identifies the exact build\"}"
         "},\"required\":[\"app_domain_type\",\"is_dynamic\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"app_domains_unreadable\":{\"type\":\"integer\",\"description\":\"Application domains whose assembly list could not be read. Above zero this list is partial, and an assembly reported as not loaded may simply live in one of these\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"assemblies\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"

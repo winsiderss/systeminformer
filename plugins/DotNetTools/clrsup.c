@@ -724,7 +724,13 @@ PDN_PROCESS_APPDOMAIN_ENTRY DnGetDotNetAppDomainDataFromAddress(
         return entry;
     }
 
-    if (appdomainAddressData.AssemblyCount)
+    // A domain that was read and holds no assemblies gets an empty list, so a null AssemblyList means
+    // the domain could not be read rather than that it holds nothing.
+    if (appdomainAddressData.AssemblyCount == 0)
+    {
+        entry->AssemblyList = PhCreateList(1);
+    }
+    else
     {
         appdomainAssemblyList = PhAllocateZero(sizeof(CLRDATA_ADDRESS) * appdomainAddressData.AssemblyCount);
 

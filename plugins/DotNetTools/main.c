@@ -196,14 +196,19 @@ VOID NTAPI ThreadItemDeleteCallback(
 DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
     _In_ HANDLE ProcessId,
     _In_ PDOTNETTOOLS_ASSEMBLY_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _Out_opt_ PULONG UnreadableAppDomains
     )
 {
     PCLR_PROCESS_SUPPORT support;
     PPH_LIST appDomainList;
     BOOLEAN isDotNet = FALSE;
+    ULONG unreadableAppDomains = 0;
     ULONG i;
     ULONG j;
+
+    if (UnreadableAppDomains)
+        *UnreadableAppDomains = 0;
 
 #ifdef _WIN64
     {
@@ -257,8 +262,13 @@ DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
     {
         PDN_PROCESS_APPDOMAIN_ENTRY appDomain = appDomainList->Items[i];
 
+        // The domain was enumerated but its assemblies could not be read, so what follows is not
+        // the whole list. Only the caller can decide what a partial answer is worth.
         if (!appDomain->AssemblyList)
+        {
+            unreadableAppDomains++;
             continue;
+        }
 
         for (j = 0; j < appDomain->AssemblyList->Count; j++)
         {
@@ -294,6 +304,9 @@ DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
 CleanupExit:
     DnDestroyProcessDotNetAppDomainList(appDomainList);
     FreeClrProcessSupport(support);
+
+    if (UnreadableAppDomains)
+        *UnreadableAppDomains = unreadableAppDomains;
 
     return DotNetToolsAssembliesOk;
 }

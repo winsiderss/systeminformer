@@ -13,7 +13,7 @@
 #define _DOTNETTOOLSINTF_H
 
 #define DOTNETTOOLS_PLUGIN_NAME L"DotNetTools"
-#define DOTNETTOOLS_INTERFACE_VERSION 1
+#define DOTNETTOOLS_INTERFACE_VERSION 2
 
 typedef enum _DOTNETTOOLS_ASSEMBLY_STATUS
 {
@@ -54,10 +54,13 @@ BOOLEAN NTAPI DOTNETTOOLS_ASSEMBLY_CALLBACK(
     );
 typedef DOTNETTOOLS_ASSEMBLY_CALLBACK* PDOTNETTOOLS_ASSEMBLY_CALLBACK;
 
+// UnreadableAppDomains receives the number of application domains whose assembly list could not be
+// read. Above zero the enumeration is partial, which a status of DotNetToolsAssembliesOk does not say.
 typedef DOTNETTOOLS_ASSEMBLY_STATUS (NTAPI* PDOTNETTOOLS_ENUM_ASSEMBLIES)(
     _In_ HANDLE ProcessId,
     _In_ PDOTNETTOOLS_ASSEMBLY_CALLBACK Callback,
-    _In_opt_ PVOID Context
+    _In_opt_ PVOID Context,
+    _Out_opt_ PULONG UnreadableAppDomains
     );
 
 typedef struct _DOTNETTOOLS_INTERFACE

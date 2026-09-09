@@ -123,6 +123,7 @@ VOID AtpGetDotNetAssemblies(
     AT_ASSEMBLY_CONTEXT context;
     AT_TARGET target;
     DOTNETTOOLS_ASSEMBLY_STATUS status;
+    ULONG unreadableAppDomains = 0;
     PVOID structured;
 
     if (!(pluginInterface = AtGetDotNetToolsInterface()))
@@ -148,7 +149,8 @@ VOID AtpGetDotNetAssemblies(
     status = pluginInterface->EnumProcessAssemblies(
         target.ProcessItem->ProcessId,
         AtpAssemblyCallback,
-        &context
+        &context,
+        &unreadableAppDomains
         );
 
     // An empty list from a process that is running a CLR and one from a process that is not are
@@ -187,6 +189,7 @@ VOID AtpGetDotNetAssemblies(
     structured = PhCreateJsonObject();
     AtFillProcessIdentity(structured, target.ProcessItem);
     AtAddRows(structured, "assemblies", &context.Rows);
+    PhAddJsonObjectUInt64(structured, "app_domains_unreadable", unreadableAppDomains);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
