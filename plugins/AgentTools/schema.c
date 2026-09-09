@@ -3867,9 +3867,10 @@ CONST AT_TOOL AtTools[] =
         "only load when LoadAppInit_DLLs is set. Null when the kind has no such switch, which is not the same as "
         "disabled\"}"
         "},\"required\":[\"location\",\"scope\",\"kind\"]}},"
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Autostart locations that exist but could not be read, usually for want of elevation. Above zero, this listing is incomplete and absence proves nothing\"},"
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
-        "},\"required\":[\"entries\",\"count\",\"total_count\",\"truncated\"]},"
+        "},\"required\":[\"entries\",\"unreadable_count\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
     },
     {

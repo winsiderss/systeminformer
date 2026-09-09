@@ -25,6 +25,7 @@ typedef struct _AT_STARTUP_CONTEXT
     PPH_STRING NameContains;
     PPH_STRING KindFilter;
     BOOLEAN Verify;
+    ULONG UnreadableCount;
 
     PPH_STRING Location;
     PCWSTR Scope;
@@ -53,6 +54,22 @@ FORCEINLINE HANDLE AtpStartupRoot(
     )
 {
     return Machine ? PH_KEY_LOCAL_MACHINE : PH_KEY_CURRENT_USER;
+}
+
+/**
+ * Records a startup location that exists but could not be read.
+ *
+ * 
+emarks A location that is simply not present is not a gap in the answer, so only a failure
+ * other than "not found" is counted.
+ */
+FORCEINLINE VOID AtpStartupUnreadable(
+    _Inout_ PAT_STARTUP_CONTEXT Context,
+    _In_ NTSTATUS Status
+    )
+{
+    if (Status != STATUS_OBJECT_NAME_NOT_FOUND && Status != STATUS_OBJECT_PATH_NOT_FOUND)
+        Context->UnreadableCount++;
 }
 
 FORCEINLINE PCWSTR AtpStartupScope(
@@ -361,16 +378,21 @@ VOID AtpEnumerateValueKey(
     _In_ PPH_ENUM_KEY_CALLBACK Callback
     )
 {
+    NTSTATUS status;
     HANDLE keyHandle;
     PH_STRINGREF subKey;
 
     PhInitializeStringRef(&subKey, SubKey);
 
-    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, AtpStartupRoot(Machine), &subKey, 0)))
+    status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, AtpStartupRoot(Machine), &subKey, 0);
+
+    if (NT_SUCCESS(status))
     {
-        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, Callback, Context);
+        status = PhEnumerateValueKey(keyHandle, KeyValueFullInformation, Callback, Context);
         NtClose(keyHandle);
     }
+
+    AtpStartupUnreadable(Context, status);
 }
 
 VOID AtpReadRunKeys(
@@ -469,6 +491,7 @@ VOID AtpReadStartupFolder(
     _In_ BOOLEAN Machine
     )
 {
+    NTSTATUS status;
     static CONST PH_STRINGREF startupSuffix = PH_STRINGREF_INIT(L"\\Microsoft\\Windows\\Start Menu\\Programs\\Startup");
     PPH_STRING folderPath;
     HANDLE directoryHandle;
@@ -481,7 +504,7 @@ VOID AtpReadStartupFolder(
 
     PhMoveReference(&Context->Location, folderPath);
 
-    if (NT_SUCCESS(PhCreateFileWin32(
+    if (NT_SUCCESS(status = PhCreateFileWin32(
         &directoryHandle,
         PhGetString(Context->Location),
         FILE_LIST_DIRECTORY | SYNCHRONIZE,
@@ -491,9 +514,11 @@ VOID AtpReadStartupFolder(
         FILE_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
         )))
     {
-        PhEnumDirectoryFile(directoryHandle, NULL, AtpStartupFolderCallback, Context);
+        status = PhEnumDirectoryFile(directoryHandle, NULL, AtpStartupFolderCallback, Context);
         NtClose(directoryHandle);
     }
+
+    AtpStartupUnreadable(Context, status);
 }
 
 VOID AtpReadWinlogonValues(
@@ -501,6 +526,7 @@ VOID AtpReadWinlogonValues(
     _In_ BOOLEAN Machine
     )
 {
+    NTSTATUS status;
     static CONST PH_STRINGREF winlogonKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon");
     static CONST PH_STRINGREF commaSeparator = PH_STRINGREF_INIT(L",");
     static CONST AT_STARTUP_VALUE winlogonValues[] =
@@ -530,8 +556,11 @@ VOID AtpReadWinlogonValues(
         return;
     }
 
-    if (!NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, AtpStartupRoot(Machine), &winlogonKey, 0)))
+    if (!NT_SUCCESS(status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, AtpStartupRoot(Machine), &winlogonKey, 0)))
+    {
+        AtpStartupUnreadable(Context, status);
         return;
+    }
 
     for (i = 0; i < RTL_NUMBER_OF(winlogonValues); i++)
     {
@@ -569,6 +598,7 @@ BOOLEAN NTAPI AtpStartupSubKeyCallback(
     _In_opt_ PVOID Context
     )
 {
+    NTSTATUS status;
     static CONST PH_STRINGREF separator = PH_STRINGREF_INIT(L"\\");
     PAT_STARTUP_CONTEXT context = Context;
     PKEY_BASIC_INFORMATION information = Information;
@@ -584,8 +614,11 @@ BOOLEAN NTAPI AtpStartupSubKeyCallback(
     nameRef.Buffer = information->Name;
     nameRef.Length = information->NameLength;
 
-    if (!NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, RootDirectory, &nameRef, 0)))
+    if (!NT_SUCCESS(status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, RootDirectory, &nameRef, 0)))
+    {
+        AtpStartupUnreadable(context, status);
         return TRUE;
+    }
 
     value = PhQueryRegistryStringZ(keyHandle, context->SubKeyValueName);
     NtClose(keyHandle);
@@ -620,6 +653,7 @@ VOID AtpReadSubKeyValues(
     _In_ AT_STARTUP_IMAGE ImageKind
     )
 {
+    NTSTATUS status;
     HANDLE keyHandle;
     PH_STRINGREF subKey;
 
@@ -630,11 +664,15 @@ VOID AtpReadSubKeyValues(
 
     PhInitializeStringRef(&subKey, SubKey);
 
-    if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, AtpStartupRoot(Machine), &subKey, 0)))
+    status = PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, AtpStartupRoot(Machine), &subKey, 0);
+
+    if (NT_SUCCESS(status))
     {
-        PhEnumerateKey(keyHandle, KeyBasicInformation, AtpStartupSubKeyCallback, Context);
+        status = PhEnumerateKey(keyHandle, KeyBasicInformation, AtpStartupSubKeyCallback, Context);
         NtClose(keyHandle);
     }
+
+    AtpStartupUnreadable(Context, status);
 }
 
 VOID AtpReadWinlogonNotify(
@@ -720,6 +758,7 @@ VOID AtpReadAppInitDlls(
     _In_ BOOLEAN Wow64
     )
 {
+    NTSTATUS status;
     static CONST PH_STRINGREF windowsKey = PH_STRINGREF_INIT(L"Software\\Microsoft\\Windows NT\\CurrentVersion\\Windows");
     static CONST PH_STRINGREF windowsKeyWow64 = PH_STRINGREF_INIT(L"Software\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows");
     static CONST PH_STRINGREF separators = PH_STRINGREF_INIT(L" ,;");
@@ -742,7 +781,7 @@ VOID AtpReadAppInitDlls(
         return;
     }
 
-    if (!NT_SUCCESS(PhOpenKey(
+    if (!NT_SUCCESS(status = PhOpenKey(
         &keyHandle,
         KEY_QUERY_VALUE,
         PH_KEY_LOCAL_MACHINE,
@@ -750,6 +789,7 @@ VOID AtpReadAppInitDlls(
         0
         )))
     {
+        AtpStartupUnreadable(Context, status);
         return;
     }
 
@@ -820,6 +860,7 @@ VOID AtpReadLsaPackages(
     _In_ PAT_STARTUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
     static CONST AT_STARTUP_KEY lsaKeys[] =
     {
         { TRUE, L"System\\CurrentControlSet\\Control\\Lsa",
@@ -853,8 +894,11 @@ VOID AtpReadLsaPackages(
 
         PhInitializeStringRef(&subKey, lsaKeys[i].SubKey);
 
-        if (!NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &subKey, 0)))
+        if (!NT_SUCCESS(status = PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &subKey, 0)))
+        {
+            AtpStartupUnreadable(Context, status);
             continue;
+        }
 
         for (j = 0; j < RTL_NUMBER_OF(lsaValues); j++)
             AtpAddMultiStringEntries(Context, keyHandle, lsaValues[j]);
@@ -1137,6 +1181,7 @@ VOID AtpReadBrowserHelperObjects(
     _In_ PAT_STARTUP_CONTEXT Context
     )
 {
+    NTSTATUS status;
     static CONST AT_STARTUP_KEY bhoKeys[] =
     {
         { TRUE, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Browser Helper Objects",
@@ -1165,9 +1210,11 @@ VOID AtpReadBrowserHelperObjects(
 
         PhInitializeStringRef(&subKey, bhoKeys[i].SubKey);
 
-        if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, AtpStartupRoot(bhoKeys[i].Machine), &subKey, 0)))
+        status = PhOpenKey(&keyHandle, KEY_ENUMERATE_SUB_KEYS, AtpStartupRoot(bhoKeys[i].Machine), &subKey, 0);
+
+        if (NT_SUCCESS(status))
         {
-            PhEnumerateKey(keyHandle, KeyBasicInformation, AtpShellHookSubKeyCallback, Context);
+            status = PhEnumerateKey(keyHandle, KeyBasicInformation, AtpShellHookSubKeyCallback, Context);
             NtClose(keyHandle);
         }
     }
@@ -1210,6 +1257,7 @@ VOID AtListStartupEntries(
     AtpReadActiveSetup(&context);
 
     AtAddRows(structured, "entries", &entries);
+    PhAddJsonObjectUInt64(structured, "unreadable_count", context.UnreadableCount);
     AtAddSnapshot(structured);
 
     Result->StructuredContent = structured;
