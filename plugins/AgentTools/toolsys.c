@@ -785,6 +785,8 @@ BOOLEAN NTAPI AtpTpmSmbiosCallback(
     return TRUE;
 }
 
+#define AT_TBS_E_TPM_NOT_FOUND ((ULONG)0x8028400FL)
+
 VOID AtpGetTpmInfo(
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -793,7 +795,7 @@ VOID AtpGetTpmInfo(
     static AT_TBSI_GET_DEVICE_INFO Tbsi_GetDeviceInfo_I = NULL;
     PVOID structured;
     AT_TPM_DEVICE_INFO deviceInfo;
-    BOOLEAN present = FALSE;
+    ULONG status;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -810,15 +812,40 @@ VOID AtpGetTpmInfo(
     // TBS reports the TPM the OS is using; SMBIOS describes what the firmware advertises.
     memset(&deviceInfo, 0, sizeof(deviceInfo));
 
-    if (Tbsi_GetDeviceInfo_I && Tbsi_GetDeviceInfo_I(sizeof(deviceInfo), &deviceInfo) == 0)
+    PhAddJsonObjectBoolean(structured, "tbs_available", !!Tbsi_GetDeviceInfo_I);
+
+    if (!Tbsi_GetDeviceInfo_I)
     {
-        present = TRUE;
+        // Nothing was asked, so nothing is known: a machine without TPM Base Services is not a
+        // machine without a TPM.
+        AtJsonAddNull(structured, "present");
+        AtJsonAddNull(structured, "version");
+        AtJsonAddNull(structured, "interface_type");
+        AtJsonAddNull(structured, "implementation_revision");
+        AtJsonAddNull(structured, "error_code");
+    }
+    else if ((status = Tbsi_GetDeviceInfo_I(sizeof(deviceInfo), &deviceInfo)) == 0)
+    {
+        PhAddJsonObjectBoolean(structured, "present", TRUE);
         AtJsonAddStringZ(structured, "version", AtpTpmVersionString(deviceInfo.TpmVersion));
         AtJsonAddStringZ(structured, "interface_type", AtpTpmInterfaceTypeString(deviceInfo.TpmInterfaceType));
         PhAddJsonObjectUInt64(structured, "implementation_revision", deviceInfo.TpmImpRevision);
+        AtJsonAddNull(structured, "error_code");
     }
+    else
+    {
+        // Only this one answer means there is no TPM; every other failure means the question went
+        // unanswered.
+        if (status == AT_TBS_E_TPM_NOT_FOUND)
+            PhAddJsonObjectBoolean(structured, "present", FALSE);
+        else
+            AtJsonAddNull(structured, "present");
 
-    PhAddJsonObjectBoolean(structured, "present", present);
+        AtJsonAddNull(structured, "version");
+        AtJsonAddNull(structured, "interface_type");
+        AtJsonAddNull(structured, "implementation_revision");
+        AtJsonAddHex(structured, "error_code", status);
+    }
 
     PhEnumSMBIOS(AtpTpmSmbiosCallback, structured);
 
