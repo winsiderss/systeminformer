@@ -103,7 +103,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read environment variables of processes", L"Read the environment of", L"get_process_environment"
     },
     {
-        AtActionGetProcessHandlesDetailed, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetProcess, PROCESS_QUERY_INFORMATION | PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles_detailed"),
+        AtActionGetProcessHandlesDetailed, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetProcess, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_process_handles_detailed"),
         L"read the object names behind process handles", L"Read the handle names of", L"get_process_handles_detailed"
     },
     {
@@ -337,7 +337,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the hardware resources of a device", L"Allow reading device resources", L"get_device_resources"
     },
     {
-        AtActionSetDeviceEnabled, AtTierWrite, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"set_device_enabled"),
+        AtActionSetDeviceEnabled, AtTierWrite, AtConsentClassNone, AtTargetDevice, 0, SETTING_NAME_TOOL_CONFIRM(L"set_device_enabled"),
         L"enable or disable the following device", L"Change the state of", L"set_device_enabled"
     },
     {
@@ -4546,15 +4546,14 @@ CONST AT_TOOL AtTools[] =
         "time to prove it. A process that started or exited while the scan was running is in one view and not the "
         "other, which is the usual reason type and in_process_list disagree; run the scan twice and compare "
         "before believing it. Methods see different things: brute_force opens every process id in turn and finds "
-        "anything openable, csr_handles reads the handles the Windows subsystem holds (which misses native "
-        "processes, and needs elevation), process_handles walks every process handle on the machine, and "
+        "anything openable, process_handles walks every process handle on the machine, and "
         "registry, etw_guid and ntdll each read a table a process is registered in for another reason. Rows the "
         "process list also reports are left out unless include_normal is set - and that decision is made on "
         "in_process_list, not on the scan's own type, because a protected process the scan cannot read is unknown "
         "to it and right there in the list. enumerated_count and normal_count say how many there were either way. "
         AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
-        "\"method\":{\"type\":\"string\",\"enum\":[\"brute_force\",\"csr_handles\",\"process_handles\",\"registry\",\"etw_guid\",\"ntdll\"],"
+        "\"method\":{\"type\":\"string\",\"enum\":[\"brute_force\",\"process_handles\",\"registry\",\"etw_guid\",\"ntdll\"],"
         "\"description\":\"How to look; default brute_force, which is the only one that works without elevation\"},"
         "\"include_normal\":{\"type\":\"boolean\",\"description\":\"Also return the processes the process list reports, which is most of them\"},"
         AT_PAGE_INPUT_PROPERTIES

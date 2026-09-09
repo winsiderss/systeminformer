@@ -421,6 +421,75 @@ NTSTATUS AtResolveHandleTarget(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Resolves the device a write names, so the user is asked about a device by its name rather than
+ * about an instance id - or, before this existed, about nothing at all.
+ *
+ * \param Arguments The tool call arguments.
+ * \param Target The target to fill in.
+ * \param Result Receives the error when the device cannot be resolved.
+ * \return NTSTATUS Successful or errant status.
+ *
+ * \remarks No handle is held: the configuration manager is asked for the node by instance id when
+ * the write runs, and the instance id is what identifies it.
+ */
+NTSTATUS AtpResolveDeviceTarget(
+    _In_opt_ PVOID Arguments,
+    _Out_ PAT_TARGET Target,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    PPH_STRING instanceId;
+    PPH_DEVICE_TREE tree;
+    PPH_DEVICE_ITEM item;
+    PPH_DEVICE_PROPERTY property;
+
+    memset(Target, 0, sizeof(AT_TARGET));
+
+    if (!(instanceId = AtGetArgumentString(Arguments, "instance_id")))
+    {
+        AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+            L"instance_id is required; list_devices reports the instance id of every device.");
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    if (!(tree = PhReferenceDeviceTree()))
+    {
+        AtSetToolError(Result, "failed", STATUS_UNSUCCESSFUL, L"The device tree is not available.");
+        PhDereferenceObject(instanceId);
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    if (!(item = PhLookupDeviceItem(tree, &instanceId->sr)))
+    {
+        AtSetToolError(Result, "not_found", STATUS_NOT_FOUND,
+            L"No device has that instance id; list_devices reports the ones there are.");
+        PhDereferenceObject(tree);
+        PhDereferenceObject(instanceId);
+        return STATUS_NOT_FOUND;
+    }
+
+    Target->Kind = AtTargetDevice;
+    Target->DeviceInstanceId = instanceId;
+
+    // The name is what the user is shown, so a device with no name still has to read as something:
+    // the instance id stands in rather than the prompt naming nothing.
+    if ((property = PhGetDeviceProperty(item, PhDevicePropertyName)) && property->Valid && property->AsString)
+        Target->DeviceName = PhReferenceObject(property->AsString);
+    else
+        Target->DeviceName = PhReferenceObject(instanceId);
+
+    if ((property = PhGetDeviceProperty(item, PhDevicePropertyClass)) && property->Valid && property->AsString)
+        Target->DeviceClass = PhReferenceObject(property->AsString);
+
+    // The instance id identifies the device; it is what the write is applied to.
+    Target->Identity[0] = PhHashStringRefEx(&instanceId->sr, TRUE, PH_STRING_HASH_X65599);
+
+    PhDereferenceObject(tree);
+
+    return STATUS_SUCCESS;
+}
+
 NTSTATUS AtpResolveConnectionTarget(
     _In_opt_ PVOID Arguments,
     _Out_ PAT_TARGET Target,
@@ -582,8 +651,9 @@ NTSTATUS AtpResolveTargetParameter(
                 return STATUS_INVALID_PARAMETER;
             }
 
-            text = PhFormatString(L"%s %s", AtJsonGetObjectBoolean(Arguments, "enabled") ? L"enable" : L"DISABLE",
-                value->Buffer);
+            // Just the direction: the headline names the device and the description carries its
+            // instance id, so repeating the id here would push the one word that matters off the end.
+            text = PhCreateString(AtJsonGetObjectBoolean(Arguments, "enabled") ? L"enabled" : L"DISABLED");
             PhClearReference(&value);
         }
         break;
@@ -714,6 +784,9 @@ NTSTATUS AtResolveTarget(
     case AtTargetConnection:
         status = AtpResolveConnectionTarget(Arguments, Target, Result);
         break;
+    case AtTargetDevice:
+        status = AtpResolveDeviceTarget(Arguments, Target, Result);
+        break;
     default:
         status = STATUS_NOT_IMPLEMENTED;
         break;
@@ -753,6 +826,9 @@ VOID AtDeleteTarget(
     PhClearReference(&Target->HandleTypeName);
     PhClearReference(&Target->HandleObjectName);
     PhClearReference(&Target->ConnectionText);
+    PhClearReference(&Target->DeviceInstanceId);
+    PhClearReference(&Target->DeviceName);
+    PhClearReference(&Target->DeviceClass);
     PhClearReference(&Target->Parameter);
 
     if (Target->NetworkItem)
@@ -814,6 +890,9 @@ PPH_STRING AtFormatTargetHeadline(
         break;
     case AtTargetConnection:
         result = PhFormatString(L"connection %s of %s", PhGetString(Target->ConnectionText), PhGetString(process));
+        break;
+    case AtTargetDevice:
+        result = PhFormatString(L"device %s", PhGetString(Target->DeviceName));
         break;
     default:
         result = PhCreateString(L"(no target)");
@@ -888,6 +967,14 @@ PPH_STRING AtFormatTargetDescription(
         {
             PhAppendFormatStringBuilder(&builder, L"\nState: %s", PhGetTcpStateName(Target->NetworkItem->State)->Buffer);
             AtpAppendProcessDescription(&builder, Target->ProcessItem);
+        }
+        break;
+    case AtTargetDevice:
+        {
+            if (Target->DeviceClass)
+                PhAppendFormatStringBuilder(&builder, L"\nClass: %s", PhGetString(Target->DeviceClass));
+
+            PhAppendFormatStringBuilder(&builder, L"\nInstance: %s", PhGetString(Target->DeviceInstanceId));
         }
         break;
     default:

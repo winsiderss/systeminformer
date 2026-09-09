@@ -222,6 +222,7 @@ typedef enum _AT_TARGET_KIND
     AtTargetService,
     AtTargetHandle,
     AtTargetConnection,
+    AtTargetDevice,
 } AT_TARGET_KIND;
 
 typedef struct _AT_ACTION_INFO
@@ -267,6 +268,10 @@ typedef struct _AT_TARGET
 
     PPH_NETWORK_ITEM NetworkItem;
     PPH_STRING ConnectionText;
+
+    PPH_STRING DeviceInstanceId;
+    PPH_STRING DeviceName;
+    PPH_STRING DeviceClass;
 
     PPH_STRING Parameter;
     ULONG64 Identity[4];

@@ -434,6 +434,7 @@ VOID AtpGetDeviceResources(
  */
 VOID AtpSetDeviceEnabled(
     _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
@@ -445,9 +446,9 @@ VOID AtpSetDeviceEnabled(
     ULONG problem = 0;
     BOOLEAN enable;
 
-    // Both validated when the target was resolved, so the user approved this device and this
-    // direction.
-    instanceId = AtGetArgumentString(Call->Arguments, "instance_id");
+    // The device comes from the resolved target rather than from the arguments again: the user was
+    // asked about that device, and re-reading the argument here would act on whatever it says now.
+    instanceId = PhReferenceObject(Target->DeviceInstanceId);
     enable = AtJsonGetObjectBoolean(Call->Arguments, "enabled");
 
     // PHANTOM finds a node that is not started, which is exactly the state a disabled device is
@@ -469,10 +470,19 @@ VOID AtpSetDeviceEnabled(
 
     if (result != CR_SUCCESS)
     {
-        AtSetToolStatusError(
+        // Most of what the configuration manager refuses with has no Win32 equivalent, so mapping
+        // it alone reports the fallback - "the handle is in an invalid state" - for a device that
+        // is simply not disableable or whose removal was vetoed. The CONFIGRET is named as well,
+        // because it is the only part that says which.
+        AtSetToolError(
             Result,
+            "failed",
             PhDosErrorToNtStatus(CM_MapCrToWin32Err(result, ERROR_INVALID_HANDLE_STATE)),
-            enable ? L"Enabling the device" : L"Disabling the device"
+            L"%s failed (CONFIGRET %lu). A device that is not disableable on its own, or whose "
+            L"removal something vetoed, is refused here; list_devices shows what the node is and "
+            L"whether it has a parent worth asking about instead.",
+            enable ? L"Enabling the device" : L"Disabling the device",
+            (ULONG)result
             );
         PhClearReference(&instanceId);
         return;
@@ -522,7 +532,7 @@ VOID AtDeviceInvokeTool(
         AtpGetDeviceResources(Call, Result);
         break;
     case AtActionSetDeviceEnabled:
-        AtpSetDeviceEnabled(Call, Result);
+        AtpSetDeviceEnabled(Call, Target, Result);
         break;
     default:
         AtSetToolError(Result, "failed", STATUS_NOT_IMPLEMENTED, L"This tool is not implemented.");
