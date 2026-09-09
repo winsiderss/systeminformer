@@ -211,7 +211,9 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"write a memory dump of the following process", L"Write a memory dump of", L"create_process_minidump"
     },
     {
-        AtActionCloseHandle, AtTierWrite, AtConsentClassNone, AtTargetHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"close_handle"),
+        // PROCESS_DUP_HANDLE is all the duplicate-with-close needs, and target.c already ORs in
+        // PROCESS_QUERY_LIMITED_INFORMATION for the resolution itself.
+        AtActionCloseHandle, AtTierWrite, AtConsentClassNone, AtTargetHandle, PROCESS_DUP_HANDLE, SETTING_NAME_TOOL_CONFIRM(L"close_handle"),
         L"close the following handle", L"Close", L"close_handle"
     },
     // threads
