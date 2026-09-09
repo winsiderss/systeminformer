@@ -70,6 +70,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>cfgmgr32.lib;winsta.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>cfgmgr32.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

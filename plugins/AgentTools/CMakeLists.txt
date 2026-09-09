@@ -78,3 +78,8 @@ target_link_libraries(AgentTools PRIVATE
     winsta
     cfgmgr32
 )
+
+target_link_options(AgentTools PRIVATE
+    /DELAYLOAD:cfgmgr32.dll
+    /DELAYLOAD:winsta.dll
+)
