@@ -1194,7 +1194,7 @@ VOID AtpGetImageStrings(
     );
 
 PPH_STRING AtGetImageImphash(
-    _In_ PVOID MappedImage
+    _In_ PPH_MAPPED_IMAGE MappedImage
     );
 
 VOID AtAddImageSections(
