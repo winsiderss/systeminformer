@@ -152,8 +152,9 @@ BOOLEAN AtpEnumerateGraphicsAdapters(
     return FALSE;
 }
 
-ULONG AtpQueryAdapterNodeCount(
-    _In_ LUID AdapterLuid
+BOOLEAN AtpQueryAdapterNodeCount(
+    _In_ LUID AdapterLuid,
+    _Out_ PULONG NodeCount
     )
 {
     D3DKMT_QUERYSTATISTICS queryStatistics;
@@ -162,10 +163,15 @@ ULONG AtpQueryAdapterNodeCount(
     queryStatistics.Type = D3DKMT_QUERYSTATISTICS_ADAPTER;
     queryStatistics.AdapterLuid = AdapterLuid;
 
-    if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
-        return queryStatistics.QueryResult.AdapterInformation.NodeCount;
+    *NodeCount = 0;
 
-    return 0;
+    if (NT_SUCCESS(D3DKMTQueryStatistics(&queryStatistics)))
+    {
+        *NodeCount = queryStatistics.QueryResult.AdapterInformation.NodeCount;
+        return TRUE;
+    }
+
+    return FALSE;
 }
 
 VOID AtpAddEngineType(
@@ -205,7 +211,14 @@ VOID AtpAddAdapterEngines(
     ULONG nodeCount;
     ULONG i;
 
-    nodeCount = AtpQueryAdapterNodeCount(AdapterLuid);
+    // A node count that could not be read is not an adapter with no engines, which is what an
+    // empty array would say; the same query reports null for its other fields at AtpAddAdapterStatistics.
+    if (!AtpQueryAdapterNodeCount(AdapterLuid, &nodeCount))
+    {
+        AtJsonAddNull(Row, "engines");
+        return;
+    }
+
     engines = PhCreateJsonArray();
 
     for (i = 0; i < nodeCount; i++)
@@ -588,7 +601,12 @@ VOID AtpAddAdapterEngineList(
     ULONG nodeCount;
     ULONG i;
 
-    nodeCount = AtpQueryAdapterNodeCount(AdapterLuid);
+    if (!AtpQueryAdapterNodeCount(AdapterLuid, &nodeCount))
+    {
+        AtJsonAddNull(Row, "engines");
+        return;
+    }
+
     engines = PhCreateJsonArray();
 
     for (i = 0; i < nodeCount; i++)
@@ -683,7 +701,14 @@ VOID AtpAddProcessAdapterEngines(
         AtJsonAddHex(entry, "luid", ((ULONG64)(ULONG)adapters[i].AdapterLuid.HighPart << 32) | adapters[i].AdapterLuid.LowPart);
         AtpAddAdapterDescription(entry, adapters[i].hAdapter);
 
-        nodeCount = AtpQueryAdapterNodeCount(adapters[i].AdapterLuid);
+        if (!AtpQueryAdapterNodeCount(adapters[i].AdapterLuid, &nodeCount))
+        {
+            AtJsonAddNull(entry, "engines");
+            PhAddJsonArrayObject(array, entry);
+            AtpCloseAdapterHandle(adapters[i].hAdapter);
+            continue;
+        }
+
         engines = PhCreateJsonArray();
 
         for (j = 0; j < nodeCount; j++)
