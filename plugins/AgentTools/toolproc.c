@@ -277,11 +277,12 @@ VOID AtpAddProcessStatistics(
 
     if (PH_IS_REAL_PROCESS_ID(ProcessItem->ProcessId))
     {
-        PhOpenProcess(
-            &processHandle,
-            PROCESS_QUERY_INFORMATION | PROCESS_QUERY_LIMITED_INFORMATION,
-            ProcessItem->ProcessId
-            );
+        // Asking for both rights at once fails outright where only the limited one is grantable,
+        // and every field below that needs a handle then comes back null - including the page and
+        // I/O priorities, which the limited right alone can answer. Full first, limited as the
+        // fallback, the way AtpQueryThreadStartAddress does it.
+        if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_INFORMATION, ProcessItem->ProcessId)))
+            PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, ProcessItem->ProcessId);
     }
 
     // Only the working set breakdown needs the process.
