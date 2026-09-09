@@ -60,18 +60,16 @@ typedef struct _AT_WMI_CONTEXT
     PPH_STRING Namespace;
 } AT_WMI_CONTEXT, *PAT_WMI_CONTEXT;
 
-NTSTATUS AtpWmiStatus(
+PCSTR AtpWmiErrorCode(
     _In_ HRESULT Result
     )
 {
     if (Result == WBEM_E_ACCESS_DENIED)
-        return STATUS_ACCESS_DENIED;
+        return "access_denied";
     if (Result == WBEM_E_INVALID_NAMESPACE || Result == WBEM_E_INVALID_CLASS)
-        return STATUS_OBJECT_NAME_NOT_FOUND;
-    if (HRESULT_FACILITY(Result) == FACILITY_WIN32)
-        return PhDosErrorToNtStatus(HRESULT_CODE(Result));
+        return "not_found";
 
-    return STATUS_UNSUCCESSFUL;
+    return "failed";
 }
 
 PPH_STRING AtpWmiVariantString(
@@ -348,17 +346,18 @@ HRESULT AtpWmiExecQuery(
 
 IWbemClassObject* AtpWmiNext(
     _In_ IEnumWbemClassObject* Enumerator,
-    _Out_ PBOOLEAN TimedOut
+    _Inout_ PBOOLEAN TimedOut,
+    _Out_ HRESULT* Status
     )
 {
     HRESULT status;
     IWbemClassObject* object = NULL;
     ULONG count = 0;
 
-    *TimedOut = FALSE;
-
     status = IEnumWbemClassObject_Next(Enumerator, AT_WMI_TIMEOUT, 1, &object, &count);
+    *Status = status;
 
+    // Accumulated, not assigned: one namespace is read in three passes over the same flag.
     if (status == WBEM_S_TIMEDOUT)
         *TimedOut = TRUE;
 
@@ -368,13 +367,28 @@ IWbemClassObject* AtpWmiNext(
     return object;
 }
 
+/**
+ * Whether the status that ended an enumeration was a failure rather than its end.
+ *
+ * 
+emarks WBEM_S_FALSE is the end of the enumeration and WBEM_S_TIMEDOUT is reported separately,
+ * so neither makes the read a failure.
+ */
+FORCEINLINE BOOLEAN AtpWmiEnumerationFailed(
+    _In_ HRESULT Status
+    )
+{
+    return Status != WBEM_S_FALSE && Status != WBEM_S_TIMEDOUT && HR_FAILED(Status);
+}
+
 HRESULT AtpWmiEnumerateFilters(
     _In_ IWbemServices* Services,
     _Inout_ PPH_LIST List,
-    _Out_ PBOOLEAN TimedOut
+    _Inout_ PBOOLEAN TimedOut
     )
 {
     HRESULT status;
+    HRESULT nextStatus = WBEM_S_FALSE;
     IEnumWbemClassObject* enumerator;
     IWbemClassObject* object;
 
@@ -383,7 +397,7 @@ HRESULT AtpWmiEnumerateFilters(
     if (HR_FAILED(status))
         return status;
 
-    while (List->Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut)))
+    while (List->Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut, &nextStatus)))
     {
         PAT_WMI_FILTER filter;
 
@@ -402,16 +416,17 @@ HRESULT AtpWmiEnumerateFilters(
 
     IEnumWbemClassObject_Release(enumerator);
 
-    return S_OK;
+    return AtpWmiEnumerationFailed(nextStatus) ? nextStatus : S_OK;
 }
 
 HRESULT AtpWmiEnumerateConsumers(
     _In_ IWbemServices* Services,
     _Inout_ PPH_LIST List,
-    _Out_ PBOOLEAN TimedOut
+    _Inout_ PBOOLEAN TimedOut
     )
 {
     HRESULT status;
+    HRESULT nextStatus = WBEM_S_FALSE;
     IEnumWbemClassObject* enumerator;
     IWbemClassObject* object;
 
@@ -422,7 +437,7 @@ HRESULT AtpWmiEnumerateConsumers(
     if (HR_FAILED(status))
         return status;
 
-    while (List->Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut)))
+    while (List->Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut, &nextStatus)))
     {
         PAT_WMI_CONSUMER consumer;
 
@@ -463,7 +478,7 @@ HRESULT AtpWmiEnumerateConsumers(
 
     IEnumWbemClassObject_Release(enumerator);
 
-    return S_OK;
+    return AtpWmiEnumerationFailed(nextStatus) ? nextStatus : S_OK;
 }
 
 BOOLEAN AtpWmiReferenceMatches(
@@ -629,10 +644,11 @@ HRESULT AtpWmiEnumerateBindings(
     _In_ PPH_LIST Filters,
     _In_ PPH_LIST Consumers,
     _Out_ PULONG Count,
-    _Out_ PBOOLEAN TimedOut
+    _Inout_ PBOOLEAN TimedOut
     )
 {
     HRESULT status;
+    HRESULT nextStatus = WBEM_S_FALSE;
     IEnumWbemClassObject* enumerator;
     IWbemClassObject* object;
 
@@ -643,7 +659,7 @@ HRESULT AtpWmiEnumerateBindings(
     if (HR_FAILED(status))
         return status;
 
-    while (*Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut)))
+    while (*Count < AT_WMI_MAXIMUM_OBJECTS && (object = AtpWmiNext(enumerator, TimedOut, &nextStatus)))
     {
         PAT_WMI_FILTER filter = NULL;
         PAT_WMI_CONSUMER consumer = NULL;
@@ -702,7 +718,7 @@ HRESULT AtpWmiEnumerateBindings(
 
     IEnumWbemClassObject_Release(enumerator);
 
-    return S_OK;
+    return AtpWmiEnumerationFailed(nextStatus) ? nextStatus : S_OK;
 }
 
 VOID AtpWmiReadNamespace(
@@ -733,8 +749,7 @@ VOID AtpWmiReadNamespace(
         AtJsonAddNull(entry, "consumer_count");
         AtJsonAddNull(entry, "binding_count");
         PhAddJsonObjectBoolean(entry, "timed_out", FALSE);
-        PhAddJsonObject(entry, "error", status == WBEM_E_ACCESS_DENIED ? "access_denied" :
-            (status == WBEM_E_INVALID_NAMESPACE ? "not_found" : "failed"));
+        PhAddJsonObject(entry, "error", AtpWmiErrorCode(status));
         AtJsonAddHex(entry, "error_code", (ULONG)status);
         PhAddJsonArrayObject(Namespaces, entry);
         return;
@@ -778,7 +793,7 @@ CleanupExit:
         AtJsonAddNull(entry, "consumer_count");
         AtJsonAddNull(entry, "binding_count");
         PhAddJsonObjectBoolean(entry, "timed_out", timedOut);
-        PhAddJsonObject(entry, "error", status == WBEM_E_ACCESS_DENIED ? "access_denied" : "failed");
+        PhAddJsonObject(entry, "error", AtpWmiErrorCode(status));
         AtJsonAddHex(entry, "error_code", (ULONG)status);
     }
     else
