@@ -460,6 +460,12 @@ BOOLEAN AtpHasFormElicitation(
     return !!PhGetJsonObject(elicitation, "form");
 }
 
+/**
+ * Reads the request's _meta block.
+ *
+ * eturn TRUE when the request may proceed. Meta is zeroed and filled in as far as it was read
+ * whatever the answer, because the caller uses it to shape the refusal as well as the reply.
+ */
 BOOLEAN AtpParseRequestMeta(
     _In_ PAT_CONNECTION Connection,
     _In_ PPH_BYTES IdJson,

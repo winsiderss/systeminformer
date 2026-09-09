@@ -1091,6 +1091,7 @@ VOID AtpAddSymbolLine(
     }
 }
 
+_Success_(return != NULL)
 PPH_SYMBOL_PROVIDER AtpCreateFileSymbolProvider(
     _In_ PPH_STRING FileName,
     _Out_ PVOID *ImageBase,

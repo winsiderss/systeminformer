@@ -33,6 +33,7 @@ typedef struct _AT_WINDOW_LIST_CONTEXT
     ULONG ZOrder;
 } AT_WINDOW_LIST_CONTEXT, *PAT_WINDOW_LIST_CONTEXT;
 
+_Success_(return)
 BOOLEAN AtpIsWindowCloaked(
     _In_ HWND WindowHandle,
     _Out_ PBOOLEAN Cloaked
