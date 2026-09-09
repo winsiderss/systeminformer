@@ -127,7 +127,7 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"inspect a kernel object", L"Allow inspecting kernel objects", L"get_object_info"
     },
     {
-        AtActionGetAlpcPortInfo, AtTierRead, AtConsentClassNone, AtTargetHandle, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_alpc_port_info"),
+        AtActionGetAlpcPortInfo, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetHandle, PROCESS_QUERY_LIMITED_INFORMATION, SETTING_NAME_TOOL_CONFIRM(L"get_alpc_port_info"),
         L"inspect an ALPC port", L"Allow inspecting ALPC ports of", L"get_alpc_port_info"
     },
     {
@@ -1617,7 +1617,7 @@ CONST AT_TOOL AtTools[] =
         AT_READ_ANNOTATIONS "}"
     },
     {
-        "get_alpc_port_info", L"Get ALPC port info", AtTierRead, AtActionGetAlpcPortInfo,
+        "get_alpc_port_info", L"Get ALPC port info", AtTierSensitiveRead, AtActionGetAlpcPortInfo,
         SETTING_NAME_TOOL_ACCESS(L"get_alpc_port_info"), SETTING_NAME_TOOL_CONFIRM(L"get_alpc_port_info"),
         "{\"name\":\"get_alpc_port_info\",\"title\":\"Get ALPC port info\","
         "\"description\":\"Says who is on the other end of an ALPC port. ALPC is the transport nearly every RPC "
@@ -1627,7 +1627,7 @@ CONST AT_TOOL AtTools[] =
         "server and client ports of the connection it belongs to, each with the process that owns it. The port a "
         "client holds names the server process; the ports a server holds name its clients. Needs the System "
         "Informer driver at medium access; without it the call is refused rather than answered partially. "
-        AT_UNTRUSTED_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\"},"
         "\"handle\":{\"type\":[\"string\",\"integer\"],\"description\":\"Handle value from get_process_handles, decimal or 0x hex\"},"

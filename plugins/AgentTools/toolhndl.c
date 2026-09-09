@@ -127,33 +127,27 @@ VOID AtpAddAlpcPeer(
 
 VOID AtpGetAlpcPortInfo(
     _In_ PAT_TOOL_CALL Call,
+    _In_ PAT_TARGET Target,
     _Inout_ PAT_TOOL_RESULT Result
     )
 {
     NTSTATUS status;
-    AT_TARGET target;
     KPH_ALPC_BASIC_INFORMATION basicInfo;
     KPH_ALPC_COMMUNICATION_INFORMATION communicationInfo;
     PKPH_ALPC_COMMUNICATION_NAMES_INFORMATION names = NULL;
     PVOID structured;
 
-    // A plain read is handed no target: mcp.c resolves one only for the tiers that hold it open
-    // across a confirmation. The sequence number stays optional, as it is on every other read.
-    if (!NT_SUCCESS(AtResolveHandleTarget(Call->Arguments, FALSE, PROCESS_QUERY_LIMITED_INFORMATION, &target, Result)))
-        return;
-
-    if (!target.HandleTypeName || !PhEqualString2(target.HandleTypeName, L"ALPC Port", TRUE))
+    if (!Target->HandleTypeName || !PhEqualString2(Target->HandleTypeName, L"ALPC Port", TRUE))
     {
         AtSetToolError(
             Result,
             "identity_mismatch",
             STATUS_OBJECT_TYPE_MISMATCH,
             L"Handle 0x%llx in pid %lu is a %s handle, not an ALPC Port.",
-            (ULONG64)(ULONG_PTR)target.HandleValue,
-            HandleToUlong(target.ProcessItem->ProcessId),
-            PhGetStringOrDefault(target.HandleTypeName, L"(unknown type)")
+            (ULONG64)(ULONG_PTR)Target->HandleValue,
+            HandleToUlong(Target->ProcessItem->ProcessId),
+            PhGetStringOrDefault(Target->HandleTypeName, L"(unknown type)")
             );
-        AtDeleteTarget(&target);
         return;
     }
 
@@ -169,13 +163,12 @@ VOID AtpGetAlpcPortInfo(
             AtKphLevelString(KsiLevel())
             );
         AtSetToolHint(Result, AT_HINT_NEEDS_DRIVER);
-        AtDeleteTarget(&target);
         return;
     }
 
     status = KphAlpcQueryInformation(
-        target.ProcessHandle,
-        target.HandleValue,
+        Target->ProcessHandle,
+        Target->HandleValue,
         KphAlpcBasicInformation,
         &basicInfo,
         sizeof(basicInfo),
@@ -185,15 +178,14 @@ VOID AtpGetAlpcPortInfo(
     if (!NT_SUCCESS(status))
     {
         AtSetToolStatusError(Result, status, L"Querying the ALPC port");
-        AtDeleteTarget(&target);
         return;
     }
 
     memset(&communicationInfo, 0, sizeof(communicationInfo));
 
     if (!NT_SUCCESS(KphAlpcQueryInformation(
-        target.ProcessHandle,
-        target.HandleValue,
+        Target->ProcessHandle,
+        Target->HandleValue,
         KphAlpcCommunicationInformation,
         &communicationInfo,
         sizeof(communicationInfo),
@@ -205,8 +197,8 @@ VOID AtpGetAlpcPortInfo(
     }
 
     if (!NT_SUCCESS(KphAlpcQueryCommunicationsNamesInfo(
-        target.ProcessHandle,
-        target.HandleValue,
+        Target->ProcessHandle,
+        Target->HandleValue,
         &names
         )))
     {
@@ -214,10 +206,10 @@ VOID AtpGetAlpcPortInfo(
     }
 
     structured = PhCreateJsonObject();
-    PhAddJsonObjectUInt64(structured, "pid", HandleToUlong(target.ProcessItem->ProcessId));
-    AtJsonAddString(structured, "process_name", target.ProcessItem->ProcessName);
-    AtJsonAddPointer(structured, "handle", target.HandleValue);
-    AtJsonAddString(structured, "object_name", target.HandleObjectName);
+    PhAddJsonObjectUInt64(structured, "pid", HandleToUlong(Target->ProcessItem->ProcessId));
+    AtJsonAddString(structured, "process_name", Target->ProcessItem->ProcessName);
+    AtJsonAddPointer(structured, "handle", Target->HandleValue);
+    AtJsonAddString(structured, "object_name", Target->HandleObjectName);
 
     PhAddJsonObjectValue(structured, "port", AtpCreateAlpcPortObject(&basicInfo, NULL));
 
@@ -234,7 +226,6 @@ VOID AtpGetAlpcPortInfo(
     if (names)
         PhFree(names);
 
-    AtDeleteTarget(&target);
 }
 
 typedef struct _AT_HANDLE_QUERY
@@ -1434,7 +1425,7 @@ VOID AtHandleInvokeTool(
     switch (Tool->Action)
     {
     case AtActionGetAlpcPortInfo:
-        AtpGetAlpcPortInfo(Call, Result);
+        AtpGetAlpcPortInfo(Call, Target, Result);
         break;
     case AtActionGetHandleDetails:
         AtpGetHandleDetails(Call, Target, Result);
