@@ -420,7 +420,7 @@ HRESULT CALLBACK AtpConsentDialogCallback(
     {
     case TDN_CREATED:
         {
-            request->DialogHandle = WindowHandle;
+            WritePointerRelease(&request->DialogHandle, WindowHandle);
             PhSetApplicationWindowIcon(WindowHandle);
 
             // The agent must not be able to read its own consent prompt through a screenshot or a
@@ -448,6 +448,11 @@ HRESULT CALLBACK AtpConsentDialogCallback(
             if (ReadAcquire(&request->Abandoned))
                 SendMessage(WindowHandle, TDM_CLICK_BUTTON, IDNO, 0);
         }
+        break;
+    case TDN_DESTROYED:
+        // Cleared here rather than after the dialog call returns, so nothing can post to a handle
+        // the system is free to recycle.
+        WritePointerRelease(&request->DialogHandle, NULL);
         break;
     case TDN_BUTTON_CLICKED:
         {
@@ -795,7 +800,7 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
 
     request->ComboHandle = NULL;
 
-    request->DialogHandle = NULL;
+    WritePointerRelease(&request->DialogHandle, NULL);
 
     if (request->ConnectionRequest)
         AtpCompleteConnectionRequest(request);
@@ -847,6 +852,7 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
 {
     AT_CONSENT_RESULT result = AtConsentTimeout;
     LARGE_INTEGER timeout;
+    HWND dialogHandle;
 
     *Policy = AtSessionAsk;
 
@@ -871,8 +877,8 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
             if (AbandonOnCancel || AtConnectionIsClosing(Connection))
             {
                 WriteRelease(&Request->Abandoned, 1);
-                if (Request->DialogHandle)
-                    PostMessage(Request->DialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
+                if (dialogHandle = ReadPointerAcquire(&Request->DialogHandle))
+                    PostMessage(dialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
             }
 
             result = AtConsentCancelled;
@@ -887,8 +893,8 @@ AT_CONSENT_RESULT AtpWaitForConsentRequest(
         {
             Request->TimedOut = TRUE;
             WriteRelease(&Request->Abandoned, 1);
-            if (Request->DialogHandle)
-                PostMessage(Request->DialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
+            if (dialogHandle = ReadPointerAcquire(&Request->DialogHandle))
+                PostMessage(dialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
             result = AtConsentTimeout;
             break;
         }
@@ -1123,13 +1129,14 @@ VOID AtConsentReleaseConnection(
     )
 {
     PAT_CONSENT_REQUEST request = Connection->ApprovalRequest;
+    HWND dialogHandle;
 
     if (!request)
         return;
 
     WriteRelease(&request->Abandoned, 1);
-    if (request->DialogHandle)
-        PostMessage(request->DialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
+    if (dialogHandle = ReadPointerAcquire(&request->DialogHandle))
+        PostMessage(dialogHandle, TDM_CLICK_BUTTON, IDNO, 0);
 
     Connection->ApprovalRequest = NULL;
     AtpDereferenceConsentRequest(request);
