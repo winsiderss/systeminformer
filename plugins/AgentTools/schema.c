@@ -1608,7 +1608,7 @@ CONST AT_TOOL AtTools[] =
         "\"count\":{\"type\":\"integer\"},\"maximum_count\":{\"type\":\"integer\"}}},"
         "\"timer\":{\"type\":\"object\",\"description\":\"Timers only\",\"properties\":{"
         "\"signaled\":{\"type\":\"boolean\"},"
-        "\"remaining\":{\"type\":[\"object\",\"null\"],\"description\":\"Time left before it fires; null once it has\"}}},"
+        "\"remaining\":{\"type\":[\"number\",\"null\"],\"description\":\"Seconds left before it fires; null once it has\"}}},"
         "\"section\":{\"type\":\"object\",\"description\":\"Sections only\",\"properties\":{"
         "\"size\":{\"type\":\"integer\"},"
         "\"base_address\":{\"type\":[\"string\",\"null\"],\"description\":\"Only set for a based section\"},"

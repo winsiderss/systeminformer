@@ -1433,10 +1433,11 @@ VOID AtpAddObjectDetails(
 
                 PhAddJsonObjectBoolean(details, "signaled", !!basicInfo.TimerState);
 
-                // Remaining time counts down as a negative interval and means nothing once the timer
-                // has signalled.
-                if (!basicInfo.TimerState && basicInfo.RemainingTime.QuadPart < 0)
-                    AtJsonAddDuration(details, "remaining", (ULONG64)-basicInfo.RemainingTime.QuadPart);
+                // What is left is a positive interval, not the negative one a relative time is set
+                // with: a timer set an hour out answers 36000000000 here. It means nothing once the
+                // timer has signalled.
+                if (!basicInfo.TimerState && basicInfo.RemainingTime.QuadPart > 0)
+                    AtJsonAddDuration(details, "remaining", (ULONG64)basicInfo.RemainingTime.QuadPart);
                 else
                     AtJsonAddNull(details, "remaining");
 
