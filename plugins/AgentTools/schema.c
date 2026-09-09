@@ -4800,7 +4800,8 @@ CONST AT_TOOL AtTools[] =
         AT_UNTRUSTED_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"path\":{\"type\":\"string\",\"description\":\"Absolute Win32 path of the file to verify\"},"
-        "\"include_chain\":{\"type\":\"boolean\",\"description\":\"Return each signature's signing certificate in signatures[]; default false\"}"
+        "\"include_chain\":{\"type\":\"boolean\",\"description\":\"Return each signature's signing certificate in signatures[]; default false\"},"
+        AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"path\"],\"additionalProperties\":false},"
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"path\":{\"type\":\"string\"},"
