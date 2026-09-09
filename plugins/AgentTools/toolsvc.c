@@ -636,22 +636,16 @@ VOID AtpAddServiceKeyModifiedTime(
     static PH_STRINGREF servicesKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Services\\");
     HANDLE keyHandle;
     PPH_STRING keyName;
-    KEY_BASIC_INFORMATION basicInfo;
-    ULONG returnLength;
+    LARGE_INTEGER lastWriteTime;
 
     keyName = PhConcatStringRef2(&servicesKeyName, &ServiceName->sr);
 
     if (NT_SUCCESS(PhOpenKey(&keyHandle, KEY_QUERY_VALUE, PH_KEY_LOCAL_MACHINE, &keyName->sr, 0)))
     {
-        if (NT_SUCCESS(NtQueryKey(keyHandle, KeyBasicInformation, &basicInfo, sizeof(basicInfo), &returnLength)) ||
-            returnLength >= RTL_SIZEOF_THROUGH_FIELD(KEY_BASIC_INFORMATION, LastWriteTime))
-        {
-            AtJsonAddTime(Object, "key_modified_time", &basicInfo.LastWriteTime);
-        }
+        if (NT_SUCCESS(PhQueryKeyLastWriteTime(keyHandle, &lastWriteTime)))
+            AtJsonAddTime(Object, "key_modified_time", &lastWriteTime);
         else
-        {
             AtJsonAddNull(Object, "key_modified_time");
-        }
 
         NtClose(keyHandle);
     }
