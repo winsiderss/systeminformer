@@ -12,6 +12,8 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
+#define AT_WINDOW_MAX_DEPTH 32
+
 typedef enum _AT_WINDOW_SCOPE
 {
     AtWindowScopeTopLevel,
@@ -209,18 +211,23 @@ VOID AtpAddWindowRow(
 
 VOID AtpEnumerateChildWindows(
     _In_ PAT_WINDOW_LIST_CONTEXT Context,
-    _In_opt_ HWND ParentHandle
+    _In_opt_ HWND ParentHandle,
+    _In_ ULONG Depth
     )
 {
     HWND child = NULL;
     ULONG i = 0;
 
     // FindWindowEx rather than GetWindow(GW_CHILD): the message-only parent has no child chain to
-    // walk. The iteration cap is against a list that changes while it is walked.
+    // walk. The iteration cap is against a list that changes while it is walked, and the depth cap
+    // is against a chain any process can nest arbitrarily deep.
+    if (Depth >= AT_WINDOW_MAX_DEPTH)
+        return;
+
     while (i < 0x4000 && (child = FindWindowEx(ParentHandle, child, NULL, NULL)))
     {
         AtpAddWindowRow(Context, child, Context->ZOrder++);
-        AtpEnumerateChildWindows(Context, child);
+        AtpEnumerateChildWindows(Context, child, Depth + 1);
         i++;
     }
 }
@@ -239,7 +246,7 @@ BOOLEAN NTAPI AtpListWindowsCallback(
     AtpAddWindowRow(context, WindowHandle, context->ZOrder++);
 
     if (context->Scope == AtWindowScopeAll)
-        AtpEnumerateChildWindows(context, WindowHandle);
+        AtpEnumerateChildWindows(context, WindowHandle, 0);
 
     return TRUE;
 }
@@ -293,7 +300,7 @@ VOID AtpListWindows(
     {
         // Message-only windows are children of a dedicated parent and are never reached by the
         // desktop enumeration.
-        AtpEnumerateChildWindows(&context, HWND_MESSAGE);
+        AtpEnumerateChildWindows(&context, HWND_MESSAGE, 0);
     }
     else
     {
