@@ -94,6 +94,7 @@ ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
     return OnlineChecksLookupFound;
 }
 
+_Success_(NT_SUCCESS(return))
 NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_VIRUSTOTAL_REPORT Report
@@ -124,6 +125,7 @@ NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     return STATUS_SUCCESS;
 }
 
+_Success_(NT_SUCCESS(return))
 NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_HYBRIDANALYSIS_REPORT Report

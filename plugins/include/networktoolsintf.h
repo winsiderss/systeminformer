@@ -16,6 +16,7 @@
 #define NETWORKTOOLS_PLUGIN_NAME L"NetworkTools"
 #define NETWORKTOOLS_INTERFACE_VERSION 3
 
+_Success_(return)
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_COUNTRYCODE)(
     _In_ PH_IP_ADDRESS RemoteAddress,
     _Out_ ULONG* CountryCode,
@@ -26,6 +27,7 @@ typedef LONG (NTAPI* PNETWORKTOOLS_GET_COUNTRYICON)(
     _In_ ULONG CountryCode
     );
 
+_Success_(return)
 typedef BOOLEAN (NTAPI* PNETWORKTOOLS_GET_SERVICENAME)(
     _In_ ULONG Port,
     _In_ ULONG ProtocolType, // IPPROTO_TCP / IPPROTO_UDP
