@@ -405,6 +405,29 @@ VOID AtAudit(
 }
 
 /**
+ * Plays one sound file and waits for it, on a thread with nothing else to do.
+ *
+ * \param Parameter The file to play; a reference this takes over.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI AtpPlayConsentSoundThread(
+    _In_ PVOID Parameter
+    )
+{
+    PPH_STRING fileName = Parameter;
+
+    // Synchronous: this thread exists to wait for it. If the file will not play, say so the only
+    // way left - the prompt still has to be heard.
+    if (!PlaySound(PhGetString(fileName), NULL, SND_FILENAME | SND_SYNC))
+        MessageBeep(MB_ICONWARNING);
+
+    PhDereferenceObject(fileName);
+
+    return STATUS_SUCCESS;
+}
+
+/**
  * Announces a consent prompt, with the sound an elevation prompt uses.
  *
  * \remarks A task dialog plays a system sound for a stock icon, but TDF_USE_HICON_MAIN suppresses
@@ -450,11 +473,17 @@ VOID AtpPlayConsentSound(
         PhEndInitOnce(&initOnce);
     }
 
+    // Played on a thread of its own, synchronously, which is how consent.exe does it: it queues a
+    // work item and waits there for the sound to finish. SND_ASYNC on the dialog thread does not
+    // work here - the request is accepted and reported as success, but the caller goes straight on
+    // to build the dialog and enter its modal loop, and the sound never arrives. Blocking a work
+    // item for the length of a wave file costs nothing and removes the timing from the question.
+    //
     // No SND_NODEFAULT: a file that will not play has to report that, so the fallback can run.
-    if (soundFileName && PlaySound(PhGetString(soundFileName), NULL, SND_FILENAME | SND_ASYNC))
-        return;
-
-    MessageBeep(MB_ICONWARNING);
+    if (soundFileName)
+        PhQueueUserWorkItem(AtpPlayConsentSoundThread, PhReferenceObject(soundFileName));
+    else
+        MessageBeep(MB_ICONWARNING);
 }
 
 HRESULT CALLBACK AtpConsentDialogCallback(
