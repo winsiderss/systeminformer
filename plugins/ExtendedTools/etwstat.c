@@ -145,6 +145,7 @@ VOID EtEtwStatisticsUninitialization(
     EtEtwMonitorUninitialization();
 }
 
+// EXTENDEDTOOLS_INTERFACE
 BOOLEAN EtLookupProcessIoStatistics(
     _In_ HANDLE ProcessId,
     _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics

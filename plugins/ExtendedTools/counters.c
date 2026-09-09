@@ -2014,6 +2014,7 @@ FLOAT EtLookupProcessGpuUtilization(
     return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
+// EXTENDEDTOOLS_INTERFACE
 BOOLEAN EtLookupProcessGpuStatistics(
     _In_ HANDLE ProcessId,
     _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics
