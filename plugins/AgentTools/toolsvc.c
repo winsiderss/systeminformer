@@ -967,7 +967,20 @@ VOID AtpControlService(
     if (Tool->Action == AtActionSetServiceConfig)
     {
         LPQUERY_SERVICE_CONFIG config;
+        PPH_STRING description;
         BOOLEAN delayedAutoStart;
+
+        // The description is one of the three things this can set and the steps are applied in
+        // order, so a caller that set it needs to see whether it took - which it could not, before.
+        if (description = PhGetServiceDescription(serviceHandle))
+        {
+            AtJsonAddString(structured, "description", description);
+            PhDereferenceObject(description);
+        }
+        else
+        {
+            AtJsonAddNull(structured, "description");
+        }
 
         if (NT_SUCCESS(PhGetServiceConfig(serviceHandle, &config)))
         {

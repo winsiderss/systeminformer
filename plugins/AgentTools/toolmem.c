@@ -74,6 +74,7 @@ VOID AtpGetProcessHandles(
     PAT_TARGET target;
     PSYSTEM_HANDLE_INFORMATION_EX handles;
     HANDLE processHandle = NULL;
+    HANDLE dupProcessHandle = NULL;
     PPH_STRING typeFilter;
     PPH_STRING nameFilter;
     BOOLEAN detailed = Tool->Action == AtActionGetProcessHandlesDetailed;
@@ -111,9 +112,24 @@ VOID AtpGetProcessHandles(
 
     // Detailed reads use the resolved handle; plain reads open just enough to name types.
     if (detailed)
+    {
         processHandle = target->ProcessHandle;
+
+        // Resolution asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so that a protected
+        // process resolves at all - it will never grant PROCESS_DUP_HANDLE. With the driver the
+        // objects are read in place and that is enough. Without it the names come from duplicating
+        // each handle, which needs more, so a second handle is opened just for that; a process that
+        // refuses it still lists its handles, without names.
+        if (KsiLevel() < KphLevelMed)
+        {
+            if (NT_SUCCESS(PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION, target->ProcessItem->ProcessId)))
+                processHandle = dupProcessHandle;
+        }
+    }
     else
+    {
         PhOpenProcess(&processHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION, target->ProcessItem->ProcessId);
+    }
 
     typeFilter = AtGetArgumentString(Call->Arguments, "type_name");
     nameFilter = AtGetArgumentString(Call->Arguments, "name_contains");
@@ -239,8 +255,11 @@ Next:
         PhClearReference(&bestName);
     }
 
+    // The detailed form's own handle belongs to the target; only what was opened here is closed.
     if (!detailed && processHandle)
         NtClose(processHandle);
+    if (dupProcessHandle)
+        NtClose(dupProcessHandle);
 
     PhFree(handles);
     PhClearReference(&typeFilter);
