@@ -441,12 +441,21 @@ VOID AtpAddFileHandleDetails(
         AtJsonAddNull(details, "volume_label");
     }
 
+    // A field the route could not reach is null rather than missing, which is what the tool's own
+    // schema promises; an absent key reads as a field this build does not have.
     if (NT_SUCCESS(AtpQueryFileInfo(Query, FileStandardInformation, &standardInfo, sizeof(standardInfo))))
     {
         PhAddJsonObjectUInt64(details, "size", standardInfo.EndOfFile.QuadPart);
         PhAddJsonObjectUInt64(details, "allocation_size", standardInfo.AllocationSize.QuadPart);
         PhAddJsonObjectBoolean(details, "directory", !!standardInfo.Directory);
         PhAddJsonObjectUInt64(details, "link_count", standardInfo.NumberOfLinks);
+    }
+    else
+    {
+        AtJsonAddNull(details, "size");
+        AtJsonAddNull(details, "allocation_size");
+        AtJsonAddNull(details, "directory");
+        AtJsonAddNull(details, "link_count");
     }
 
     if (NT_SUCCESS(AtpQueryFileInfo(Query, FileModeInformation, &modeInfo, sizeof(modeInfo))))
@@ -455,9 +464,16 @@ VOID AtpAddFileHandleDetails(
         AtJsonAddFlagStrings(details, "mode_flags", modeInfo.Mode,
             modeFlags, (CONST PWSTR*)modeNames, RTL_NUMBER_OF(modeFlags));
     }
+    else
+    {
+        AtJsonAddNull(details, "mode");
+        AtJsonAddNull(details, "mode_flags");
+    }
 
     if (NT_SUCCESS(AtpQueryFileInfo(Query, FilePositionInformation, &positionInfo, sizeof(positionInfo))))
         PhAddJsonObjectUInt64(details, "position", positionInfo.CurrentByteOffset.QuadPart);
+    else
+        AtJsonAddNull(details, "position");
 
     // Which driver owns the device this file lives on: the answer to "what is actually servicing
     // this handle", which a file name does not give you when a filter or a redirector is involved.
@@ -524,7 +540,10 @@ VOID AtpAddSectionHandleDetails(
     BOOLEAN haveImage;
 
     if (!NT_SUCCESS(AtpQuerySectionInfo(Query, SectionBasicInformation, &basicInfo, sizeof(basicInfo))))
+    {
+        AtJsonAddNull(Structured, "section");
         return;
+    }
 
     haveImage = FlagOn(basicInfo.AllocationAttributes, SEC_IMAGE) &&
         NT_SUCCESS(AtpQuerySectionInfo(Query, SectionImageInformation, &imageInfo, sizeof(imageInfo)));
@@ -560,11 +579,14 @@ VOID AtpAddProcessHandleDetails(
     }
     else
     {
-        return;
+        status = STATUS_INVALID_HANDLE;
     }
 
     if (!NT_SUCCESS(status))
+    {
+        AtJsonAddNull(Structured, "process");
         return;
+    }
 
     details = PhCreateJsonObject();
 
@@ -626,11 +648,14 @@ VOID AtpAddThreadHandleDetails(
     }
     else
     {
-        return;
+        status = STATUS_INVALID_HANDLE;
     }
 
     if (!NT_SUCCESS(status))
+    {
+        AtJsonAddNull(Structured, "thread");
         return;
+    }
 
     details = PhCreateJsonObject();
     PhAddJsonObjectUInt64(details, "tid", HandleToUlong(basicInfo.ClientId.UniqueThread));
@@ -655,6 +680,10 @@ VOID AtpAddThreadHandleDetails(
         {
             AtJsonAddTime(details, "create_time", &times.CreateTime);
         }
+        else
+        {
+            AtJsonAddNull(details, "create_time");
+        }
     }
     else
     {
@@ -669,6 +698,8 @@ VOID AtpAddThreadHandleDetails(
 
         if (NT_SUCCESS(PhGetThreadTimes(Query->LocalHandle, &times)))
             AtJsonAddTime(details, "create_time", &times.CreateTime);
+        else
+            AtJsonAddNull(details, "create_time");
     }
 
     AtJsonAddString(details, "name", name);
@@ -688,11 +719,15 @@ VOID AtpAddEtwRegistrationDetails(
 
     // No user-mode call reports the provider behind an ETW registration handle.
     if (!Query->UseDriver)
+    {
+        AtJsonAddNull(Structured, "etw_registration");
         return;
+    }
 
     if (!NT_SUCCESS(KphQueryInformationObject(Query->ProcessHandle, Query->Handle,
         KphObjectEtwRegBasicInformation, &basicInfo, sizeof(basicInfo), NULL)))
     {
+        AtJsonAddNull(Structured, "etw_registration");
         return;
     }
 
