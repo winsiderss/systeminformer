@@ -642,8 +642,28 @@ VOID AtpGetObjectSecurity(
         AtJsonAddNull(structured, "dacl_auto_inherited");
     }
 
-    if (!sddl && handle)
-        PhGetObjectSecurityDescriptorAsString(handle, &sddl);
+    // Built from the descriptor already in hand rather than by asking the object a second time.
+    // For a service this handle is an SC_HANDLE - a user-mode pointer, not a kernel handle - so
+    // NtQuerySecurityObject was being handed something that is not a handle at all, and sddl came
+    // back null for every service query.
+    if (!sddl && securityDescriptor)
+    {
+        PWSTR sddlString;
+        ULONG sddlLength;
+
+        if (ConvertSecurityDescriptorToStringSecurityDescriptorW(
+            securityDescriptor,
+            SDDL_REVISION,
+            OWNER_SECURITY_INFORMATION | GROUP_SECURITY_INFORMATION | DACL_SECURITY_INFORMATION |
+            (labelQueried ? LABEL_SECURITY_INFORMATION : 0),
+            &sddlString,
+            &sddlLength
+            ))
+        {
+            sddl = PhCreateString(sddlString);
+            LocalFree(sddlString);
+        }
+    }
 
     AtJsonAddString(structured, "sddl", sddl);
     AtAddSnapshot(structured);
