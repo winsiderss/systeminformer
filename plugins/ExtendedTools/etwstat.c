@@ -145,17 +145,6 @@ VOID EtEtwStatisticsUninitialization(
     EtEtwMonitorUninitialization();
 }
 
-/**
- * Copies out the disk and network I/O accumulated for a process.
- *
- * \param ProcessId The process to report on.
- * \param Statistics The copied statistics. Not written unless the process is known.
- * eturn TRUE if the process was found, FALSE otherwise.
- *
- * emarks EXTENDEDTOOLS_INTERFACE. The caller is told which collectors were running because a
- * counter that is zero because nothing is watching reads exactly like one that is zero because
- * nothing happened.
- */
 BOOLEAN EtLookupProcessIoStatistics(
     _In_ HANDLE ProcessId,
     _Out_ PEXTENDEDTOOLS_PROCESS_IO Statistics

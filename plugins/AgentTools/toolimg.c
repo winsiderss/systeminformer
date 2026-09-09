@@ -15,9 +15,6 @@
 #include <phcrypt.h>
 #include <strsrch.h>
 
-// The parts of a PE that get_image_info returns only when asked for; the default answer stays the
-// summary.
-
 #define AT_IMAGE_SECTION_HEADERS      0x0001
 #define AT_IMAGE_SECTION_DIRECTORIES  0x0002
 #define AT_IMAGE_SECTION_IMPORTS      0x0004
@@ -34,10 +31,7 @@
 #define AT_IMAGE_SECTION_ENTROPY      0x2000
 #define AT_IMAGE_SECTION_ALL          0x3fff
 
-// A manifest is XML and an image can carry a big one; more than this is a file to look at with
-// something else.
 #define AT_IMAGE_MANIFEST_MAX_SIZE (256 * 1024)
-// Enough for any real import table; ntdll exports about 2400 functions.
 #define AT_IMAGE_MAX_FUNCTIONS 4096
 
 typedef struct _AT_IMAGE_SECTION_NAME
@@ -734,8 +728,6 @@ VOID AtpAddImageCertificates(
     PhAddJsonObjectValue(Structured, "certificates", array);
 }
 
-// The linker's own record of what built the file: tool ids and build numbers, obfuscated with a
-// checksum key, undocumented and written by every compiler.
 VOID AtpAddImageRichHeader(
     _In_ PVOID Structured,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -781,8 +773,6 @@ VOID AtpAddImageRichHeader(
         PhFree(prodId.ProdIdEntries);
 }
 
-// TLS callbacks run before the entry point does, on every thread. That makes them the quietest place
-// in a PE to put code, so what is in the list matters more than that there is a list.
 VOID AtpAddImageTls(
     _In_ PVOID Structured,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -873,8 +863,6 @@ PCWSTR AtpResourceTypeString(
     return NULL;
 }
 
-// A resource type or name is either a small integer or a pointer into the image to a counted string.
-// The pointer comes from the file, so it is checked against the view before it is followed.
 VOID AtpAddResourceIdentifier(
     _In_ PVOID Row,
     _In_ PCSTR Key,
@@ -990,8 +978,6 @@ VOID AtpAddImageClr(
     PhAddJsonObjectValue(Structured, "clr", entry);
 }
 
-// High entropy means compressed or encrypted, which is what a packer leaves behind - and also what a
-// legitimately compressed resource section looks like, so it is a question rather than an answer.
 VOID AtpAddImageEntropy(
     _In_ PVOID Structured,
     _In_ PPH_MAPPED_IMAGE MappedImage
@@ -1015,12 +1001,6 @@ VOID AtpAddImageEntropy(
     PhAddJsonObjectValue(Structured, "entropy", entry);
 }
 
-// The import hash: a hash of the imported function list, not of the file. The rules are conventions
-// rather than a specification, and getting one wrong produces a hash that matches nothing - lower
-// case, a .dll, .sys or .ocx extension stripped and any other kept, "dll.function" joined by
-// commas, ordinals written "dll.ordN" except for the three DLLs whose ordinals everyone resolves to
-// names, and delay loaded imports left out.
-
 typedef struct _AT_IMPHASH_ORDINALS
 {
     PPH_HASHTABLE Tables[3];
@@ -1041,8 +1021,6 @@ CONST PH_STRINGREF AtImphashOrdinalPaths[3] =
     PH_STRINGREF_INIT(L"\\SystemRoot\\System32\\wsock32.dll"),
 };
 
-// Built from the DLL on this machine rather than from a table baked into the source, and only when
-// an ordinal import from one of the three actually turns up.
 PPH_HASHTABLE AtpImphashOrdinalTable(
     _Inout_ PAT_IMPHASH_ORDINALS Ordinals,
     _In_ ULONG Index
@@ -1238,14 +1216,9 @@ PPH_STRING AtGetImageImphash(
     return result;
 }
 
-// The printable strings in a file, which is the oldest triage tool there is and still the fastest
-// way to see what a binary talks to. The on-disk twin of search_process_memory.
-
 #define AT_STRINGS_DEFAULT_LENGTH 6
 #define AT_STRINGS_MINIMUM_LENGTH 4
 #define AT_STRINGS_MAXIMUM_LENGTH 256
-// Without a filter a few megabytes of binary yields tens of thousands of strings, and every one of
-// them would be built into JSON before paging could throw it away.
 #define AT_STRINGS_MAXIMUM_RESULTS 20000
 
 typedef struct _AT_STRINGS_CONTEXT
@@ -1260,9 +1233,6 @@ typedef struct _AT_STRINGS_CONTEXT
     ULONG Count;
 } AT_STRINGS_CONTEXT, *PAT_STRINGS_CONTEXT;
 
-// The image is mapped as a data file, so an address in the view is a file offset and a section is
-// found by its raw data range. Matching against VirtualAddress attributes strings to a different
-// section.
 PIMAGE_SECTION_HEADER AtpSectionFromFileOffset(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ ULONG_PTR Offset

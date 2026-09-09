@@ -14,10 +14,6 @@
 #include <aclapi.h>
 #include <sddl.h>
 
-// Who is allowed to do what to something. An SDDL string is the whole answer in one unreadable
-// field, so the descriptor is taken apart: owner, group, integrity label, and one row per access
-// control entry with the access mask decoded into the rights that object type has.
-
 typedef enum _AT_SECURITY_KIND
 {
     AtSecurityKindFile,
@@ -51,10 +47,6 @@ PCWSTR AtpSecurityKindString(
     return NULL;
 }
 
-/**
- * The phlib access-entry type name for a kind, which is what turns a mask into rights. Getting this
- * wrong does not fail: it decodes the mask against the wrong object's rights and reads plausibly.
- */
 PCWSTR AtpSecurityAccessType(
     _In_ AT_SECURITY_KIND Kind
     )
@@ -123,11 +115,6 @@ PCWSTR AtpAceTypeString(
     return NULL;
 }
 
-/**
- * Where the trustee is in an entry. The layout depends on the type: the object entry types put a
- * flags field and up to two GUIDs before the SID, and an entry type this build does not know the
- * shape of is reported without a trustee rather than with whatever is at that offset.
- */
 PSID AtpAceSid(
     _In_ PACE_HEADER Ace
     )

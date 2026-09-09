@@ -63,9 +63,7 @@ typedef enum _AT_TIER
     AtTierRead,
     AtTierSensitiveRead,
     AtTierWrite,
-    // Sends something off this machine: an address, a file hash. The data is small, but where it
-    // goes is not the user's machine, so it is asked about by default and never granted implicitly.
-    AtTierNetworkEgress
+    AtTierNetworkEgress,
 } AT_TIER;
 
 typedef enum _AT_ACTION
@@ -198,9 +196,6 @@ typedef enum _AT_ACTION
     AtActionMaximum,
 } AT_ACTION;
 
-// A session grant covers a class of data rather than one tool, so a scan reading the same thing
-// across every process asks once. A class groups tools that expose the same data about the same
-// objects; AtConsentClassNone keys the grant by the action itself.
 typedef enum _AT_CONSENT_CLASS
 {
     AtConsentClassNone,
@@ -237,7 +232,6 @@ typedef CONST AT_ACTION_INFO *PCAT_ACTION_INFO;
 
 extern CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum];
 
-// Checks that AtActionInfo is in the order it is indexed in; see the definition.
 VOID AtVerifySchema(
     VOID
     );
@@ -529,7 +523,6 @@ ULONG AtGetSnapshotId(
     VOID
     );
 
-// The provider's update interval in milliseconds, from the last provider run.
 ULONG AtGetUpdateInterval(
     VOID
     );
@@ -545,9 +538,6 @@ VOID AtAddServiceChanges(
     );
 
 // tools.c
-
-// Hints carried on a tool error: what would have to change for the call to work. Only the hints
-// that hold are sent; an absent hint means the change would not help.
 
 #define AT_HINT_NEEDS_ELEVATION 0x00000001ul
 #define AT_HINT_NEEDS_DRIVER 0x00000002ul
@@ -579,8 +569,6 @@ typedef CONST AT_TOOL *PCAT_TOOL;
 extern CONST AT_TOOL AtTools[];
 extern CONST ULONG AtToolCount;
 
-// A resource is a saved call: a uri, the tool that answers it, and the arguments. Reading one goes
-// through the same enable check, consent gate and invocation as calling that tool.
 typedef struct _AT_RESOURCE
 {
     PCSTR Uri;
@@ -598,8 +586,6 @@ PCAT_RESOURCE AtFindResource(
     _In_ PPH_STRING Uri
     );
 
-// A prompt is text: it runs nothing and needs no gate. Argument is the one placeholder its text
-// carries, written {name}, and Fallback stands in when the caller does not give it.
 typedef struct _AT_PROMPT
 {
     PCSTR Name;
@@ -687,9 +673,6 @@ VOID AtDeleteToolResult(
 
 // Shared helpers for tool implementations (tools.c)
 
-// Paging and sorting for the list tools. Rows are collected in enumeration order, optionally
-// sorted by one of their own fields, then the [offset, offset + limit) window is emitted.
-
 #define AT_ROWS_DEFAULT_LIMIT 200
 #define AT_ROWS_MAXIMUM_LIMIT 10000
 
@@ -702,9 +685,6 @@ typedef struct _AT_ROWS
     ULONG Offset;
     ULONG TotalCount;
 } AT_ROWS, *PAT_ROWS;
-
-// pids[] batching on the per-process reads. A pid that cannot be answered becomes an error entry
-// rather than failing the whole call.
 
 #define AT_MAX_BATCH_PIDS 64
 
@@ -732,8 +712,6 @@ PPH_SYMBOL_PROVIDER AtCreateSymbolProvider(
     _In_ HANDLE ProcessId
     );
 
-// Finds one module of a process: by an address inside it, by name, or the process's own image when
-// neither is given. Returns FALSE when there is no such module.
 _Success_(return)
 BOOLEAN AtFindProcessModule(
     _In_ HANDLE ProcessId,
@@ -791,8 +769,6 @@ VOID AtAddSnapshot(
     _In_ PVOID Object
     );
 
-// The ExtendedTools plugin interface, or NULL when that plugin is absent or too old. It publishes
-// the GPU and per-process I/O counters that System Informer itself does not collect.
 PEXTENDEDTOOLS_INTERFACE AtGetExtendedToolsInterface(
     VOID
     );
@@ -1134,7 +1110,6 @@ VOID AtEgressInvokeTool(
     _Inout_ PAT_TOOL_RESULT Result
     );
 
-// The NetworkTools plugin interface, or NULL when that plugin is absent or too old (toolnet.c).
 PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
     VOID
     );
@@ -1330,13 +1305,10 @@ PPH_STRING AtFormatCallerDescription(
     _In_ PAT_CONNECTION Connection
     );
 
-// What a session grant for this action covers, in the user's words; NULL when the grant is the
-// action itself.
 PCWSTR AtConsentClassDescription(
     _In_ AT_CONSENT_CLASS Class
     );
 
-// Drops every session grant this connection holds, without disconnecting it.
 VOID AtConsentRevokeGrants(
     _In_ ULONG ConnectionId
     );

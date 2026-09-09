@@ -58,9 +58,6 @@ BOOLEAN AtParseProtocolType(
     return TRUE;
 }
 
-// NetworkTools knows two things about an endpoint that nothing else here does: the country an
-// address is registered to, and what a well-known port is usually for. Both are local lookups.
-
 PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
     VOID
     )
@@ -86,8 +83,6 @@ PNETWORKTOOLS_INTERFACE AtGetNetworkToolsInterface(
     return pluginInterface;
 }
 
-// An address the database will never answer for. The lookup refuses these itself, so without this
-// a private address and an address the database does not cover look identical from outside.
 BOOLEAN AtpIsPrivateAddress(
     _In_ PPH_IP_ADDRESS Address
     )

@@ -46,17 +46,6 @@ PH_QUEUED_LOCK ScanExtensionsListLock = PH_QUEUED_LOCK_INIT;
 
 // ONLINECHECKS_INTERFACE
 
-/**
- * Reads a cached VirusTotal verdict for a file hash.
- *
- * \param Sha256 The file's SHA-256, as hexadecimal text.
- * \param Result The cached verdict, written only when one was found.
- * \return Whether a verdict was found, none was cached, or there was nowhere to look.
- *
- * \remarks ONLINECHECKS_INTERFACE. Reads the local database and nothing else: no request is made
- * and no scan is queued. The database is opened only when scanning is enabled, which is why a
- * caller is told that separately rather than being handed an empty answer.
- */
 ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedVirusTotal(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_VIRUSTOTAL_RESULT Result
@@ -81,15 +70,6 @@ ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedVirusTotal(
     return OnlineChecksLookupFound;
 }
 
-/**
- * Reads a cached Hybrid Analysis verdict for a file hash.
- *
- * \param Sha256 The file's SHA-256, as hexadecimal text.
- * \param Result The cached verdict, written only when one was found.
- * \return Whether a verdict was found, none was cached, or there was nowhere to look.
- *
- * \remarks ONLINECHECKS_INTERFACE. As above: local database only.
- */
 ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_HYBRIDANALYSIS_RESULT Result
@@ -114,16 +94,6 @@ ONLINECHECKS_LOOKUP_RESULT NTAPI OnlineChecksQueryCachedHybridAnalysis(
     return OnlineChecksLookupFound;
 }
 
-/**
- * Asks VirusTotal about a file hash, over the network.
- *
- * \param Sha256 The file's SHA-256, as hexadecimal text.
- * \param Report The report, written only on success.
- * \return Successful or errant status.
- *
- * \remarks ONLINECHECKS_INTERFACE. Sends a request. Only the hash goes out, never the file, and it
- * goes to System Informer's proxy unless a personal access token is configured.
- */
 NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_VIRUSTOTAL_REPORT Report
@@ -154,15 +124,6 @@ NTSTATUS NTAPI OnlineChecksLookupVirusTotal(
     return STATUS_SUCCESS;
 }
 
-/**
- * Asks Hybrid Analysis about a file hash, over the network.
- *
- * \param Sha256 The file's SHA-256, as hexadecimal text.
- * \param Report The report, written only on success.
- * \return Successful or errant status.
- *
- * \remarks ONLINECHECKS_INTERFACE. Sends a request, on the same terms as the VirusTotal one.
- */
 NTSTATUS NTAPI OnlineChecksLookupHybridAnalysis(
     _In_ PPH_STRING Sha256,
     _Out_ PONLINECHECKS_HYBRIDANALYSIS_REPORT Report

@@ -1065,8 +1065,6 @@ PPH_STRING PhGetSymbolFromAddress(
     ULONG nameLength;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
-    // The address and module resolution paths never reach the query that fills this in, and both
-    // still hand it to the caller on the way out.
     ULONG64 displacement = 0;
     PPH_STRING modFileName = NULL;
     PPH_STRING modBaseName = NULL;
@@ -3247,8 +3245,6 @@ PPH_STRING PhGetSymbolFromInlineContext(
     ULONG nameLength;
     PPH_STRING symbol = NULL;
     PH_SYMBOL_RESOLVE_LEVEL resolveLevel;
-    // The address and module resolution paths never reach the query that fills this in, and both
-    // still hand it to the caller on the way out.
     ULONG64 displacement = 0;
     PPH_STRING modFileName = NULL;
     PPH_STRING modBaseName = NULL;

@@ -76,8 +76,6 @@ PEXTENDEDTOOLS_INTERFACE AtGetExtendedToolsInterface(
     return pluginInterface;
 }
 
-// A per-second rate from a delta and the interval it covers. Null when the interval is unknown,
-// because a rate divided by a guess is worse than no rate.
 VOID AtAddRate(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -338,8 +336,6 @@ BOOLEAN AtIsToolEnabled(
     return PhGetIntegerSetting(Tool->AccessSetting) == AT_ACCESS_ALLOWED;
 }
 
-// A resource whose tool is turned off is not listed: the resource is that tool's answer under
-// another name, and offering it would be offering a way around the setting.
 VOID AtEnumResources(
     _In_ PVOID ResourcesArray
     )
@@ -462,8 +458,6 @@ PCWSTR AtStringEncodingString(
     return NULL;
 }
 
-// The string search finds all three encodings at once and reports which one each result was; the
-// argument narrows what is kept rather than what is looked for.
 _Success_(return)
 BOOLEAN AtGetArgumentEncoding(
     _In_opt_ PVOID Arguments,
@@ -534,8 +528,6 @@ PVOID AtCreateBatchResult(
     return structured;
 }
 
-// Paging and sorting for the list tools.
-
 typedef enum _AT_SORT_RANK
 {
     AtSortRankNull,
@@ -578,7 +570,6 @@ VOID AtInitializeRows(
     Rows->Descending = AtJsonGetObjectBoolean(Arguments, "descending");
 }
 
-// Row is optional: a counts-only mode counts the match without building a row for it.
 VOID AtAddRow(
     _Inout_ PAT_ROWS Rows,
     _In_opt_ PVOID Row
@@ -944,8 +935,6 @@ VOID AtJsonAddDuration(
     PhAddJsonObjectDouble(Object, Key, (DOUBLE)Duration100ns / (DOUBLE)PH_TICKS_PER_SEC);
 }
 
-// Parses the ISO 8601 form this server emits, so a time it returned can be handed straight back.
-// Deliberately strict: a half-understood time silently filters the wrong rows.
 _Success_(return)
 BOOLEAN AtParseTime(
     _In_opt_ PPH_STRING String,
@@ -1012,11 +1001,6 @@ BOOLEAN AtParseTime(
     return !!PhSystemTimeToLargeInteger(Time, &systemTime);
 }
 
-/**
- * Splits a registry path into the root it names and the rest. A hive prefix picks a predefined
- * root and the remainder is relative to it; a native \Registry path opens on its own, with no
- * root and NativeRoot left null.
- */
 VOID AtParseRegistryPath(
     _In_ PPH_STRING Path,
     _Out_ PHANDLE Root,
@@ -1156,10 +1140,6 @@ PCWSTR AtIoPriorityString(
     return NULL;
 }
 
-/**
- * The memory priority levels, which are the numbers every tool here reports a page priority as.
- * Five is the default a process starts with; below it the pages are the first to be trimmed.
- */
 PCWSTR AtPagePriorityString(
     _In_ ULONG PagePriority
     )
@@ -1344,11 +1324,6 @@ VOID AtJsonAddFlagStrings(
     PhAddJsonObjectValue(Object, Key, array);
 }
 
-// A section, rendered the same way whether the information came from the object itself or from the
-// driver on behalf of another process. Whether the file's signature chains to a Microsoft root is a
-// different question from the signer name reading as Microsoft. Both convert to a Win32 path first:
-// telling PhVerifyFileIsChainedToMicrosoft that a Win32 path is native, or handing PhVerifyFile a
-// native one, makes every file look unsigned.
 BOOLEAN AtIsMicrosoftSigned(
     _In_opt_ PPH_STRING FileName
     )

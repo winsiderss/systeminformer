@@ -46,8 +46,6 @@ PCWSTR AtpFirmwareTypeString(
     return L"unknown";
 }
 
-// What this System Informer instance can actually answer, so an agent stops calling tools that will
-// only return null. Another plugin's setting is only read when that plugin is loaded to register it.
 VOID AtpAddCapabilities(
     _In_ PVOID Object,
     _In_ KPH_LEVEL KphLevel,
@@ -930,9 +928,6 @@ VOID AtpGetSystemEnvironment(
     Result->StructuredContent = structured;
 }
 
-// "Available" is not "free": most of a healthy machine's memory sits on the standby list holding
-// what has already been read once, and giving it away costs only the time to drop it.
-
 VOID AtpAddMemoryList(
     _In_ PVOID Structured,
     _In_ ULONG PageSize
@@ -1102,11 +1097,6 @@ VOID AtpGetMemoryDetails(
 
     Result->StructuredContent = structured;
 }
-
-// What the machine's own defences are set to: whether images have to be signed, whether the
-// hypervisor enforces it, whether a kernel debugger is attached. Read this first when deciding how
-// much to trust anything else here - a machine with test signing on and a debugger attached can be
-// lying about all of it.
 
 PCWSTR AtpVirtualStatusString(
     _In_ PH_VIRTUAL_STATUS Status
@@ -1370,10 +1360,6 @@ VOID AtpGetSecurityPosture(
     Result->StructuredContent = structured;
 }
 
-// What the processors are and how they are arranged. A core count on its own explains very little:
-// which logical processors share a core, which share a cache, which NUMA node they are on, and -
-// on a hybrid part - which are the performance cores and which the efficiency ones, are what say
-// whether a thread pinned somewhere is pinned somewhere useful.
 
 PPH_STRING AtpGetCpuBrandString(
     VOID
@@ -1660,9 +1646,6 @@ VOID AtpGetCpuInfo(
     Result->StructuredContent = structured;
 }
 
-// Kernel pool by tag. A leak in kernel memory has no process to blame it on: the only thing that
-// identifies the owner is the four-character tag the allocation was made with, and the way to find
-// one is to look at which tag is holding memory now and to look again later.
 typedef struct _AT_POOL_TAG_ENTRY
 {
     ULONG TagUlong;
@@ -1676,13 +1659,8 @@ typedef struct _AT_POOL_TAG_ENTRY
     ULONG64 BigBytes;
 } AT_POOL_TAG_ENTRY, *PAT_POOL_TAG_ENTRY;
 
-// The high bit of the tag marks a protected allocation rather than being part of the name.
 #define AT_POOL_TAG_PROTECTED 0x80000000
 
-/**
- * The tag as four characters. A tag is four bytes and nothing stops a driver putting anything in
- * them, so a byte that is not printable is shown as a dot rather than as whatever it decodes to.
- */
 PPH_STRING AtpFormatPoolTag(
     _In_ ULONG TagUlong
     )

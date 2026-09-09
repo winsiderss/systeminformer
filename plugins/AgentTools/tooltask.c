@@ -12,25 +12,11 @@
 #include "agenttools.h"
 #include <taskschd.h>
 
-// The other half of what runs without anybody starting it. The Run keys and the startup folder are
-// one list; the task scheduler is the other, and it is the larger of the two - a task can wait for
-// a boot, a logon, an idle period, or an event in the log, run as SYSTEM without a session, and
-// live in a folder nested well away from anything a user looks at. What matters for triage is what
-// the task runs, who it runs as, and whether it has run lately, which is what a row here is.
-//
-// Everything comes from the scheduler's own COM service rather than from the files under
-// System32\Tasks: the service is the thing that decides what runs, and it answers for the task as
-// registered, including the last result and the next run it has worked out.
-
 DEFINE_GUID(CLSID_TaskScheduler, 0x0f87369f, 0xa4e5, 0x4cfc, 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd);
 DEFINE_GUID(IID_ITaskService, 0x2FABA4C7, 0x4DA9, 0x4013, 0x96, 0x97, 0x20, 0xCC, 0x3F, 0xD4, 0x0F, 0x85);
 DEFINE_GUID(IID_IExecAction, 0x4C3D624D, 0xFD6B, 0x49A3, 0xB9, 0xB7, 0x09, 0xCB, 0x3C, 0xD3, 0xF0, 0x47);
-// From the uuid attribute on IComHandlerAction in taskschd.h; the interface has no registry entry
-// to read it back from.
 DEFINE_GUID(IID_IComHandlerAction, 0x6D2FD252, 0x75C5, 0x4F66, 0x90, 0xBA, 0x2A, 0x7D, 0x8C, 0xC3, 0x03, 0x9F);
 
-// Folders nest, and nothing stops a folder from being created inside itself by way of a name the
-// service is willing to hand back twice. The real tree is three or four deep.
 #define AT_TASK_MAX_DEPTH 16
 
 typedef struct _AT_TASK_CONTEXT
@@ -48,9 +34,6 @@ typedef struct _AT_TASK_CONTEXT
     ULONG UnreadableCount;
 } AT_TASK_CONTEXT, *PAT_TASK_CONTEXT;
 
-/**
- * Converts an HRESULT to the nearest status this server reports.
- */
 NTSTATUS AtpTaskStatus(
     _In_ HRESULT Result
     )
@@ -61,9 +44,6 @@ NTSTATUS AtpTaskStatus(
     return STATUS_UNSUCCESSFUL;
 }
 
-/**
- * Wraps a BSTR the scheduler returned, or NULL for an absent or empty one.
- */
 PPH_STRING AtpTaskStringFromBstr(
     _In_opt_ BSTR String
     )
@@ -74,12 +54,6 @@ PPH_STRING AtpTaskStringFromBstr(
     return PhCreateStringEx(String, SysStringLen(String) * sizeof(WCHAR));
 }
 
-/**
- * Adds a BSTR the scheduler returned and frees it, writing null for an absent or empty one.
- *
- * The string is taken by pointer so a call site can read it in the same expression that fetches it:
- * the order the arguments are evaluated in is not fixed, and only the address is stable.
- */
 VOID AtpTaskAddBstr(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -98,16 +72,6 @@ VOID AtpTaskAddBstr(
     SysFreeString(*String);
     *String = NULL;
 }
-
-// The scheduler reports times as an OLE DATE: a count of days since 30 December 1899, in local
-// time. A task that has never run or has no run left carries an SCHED_S_ status rather than a
-// failure, and the date that comes back alongside it is not a time at all - "never run" is 30
-// November 1899 - so only an exact S_OK with a date at or after the epoch is a real answer.
-//
-// The conversion to UTC is TzSpecificLocalTimeToSystemTime rather than the usual
-// PhLocalTimeToSystemTime, because that one applies the bias in force right now: next_run_time is
-// routinely months away, and a local time on the other side of a daylight saving change converts
-// an hour off if the rules for its own date are not the ones used.
 
 VOID AtpTaskAddDate(
     _In_ PVOID Object,
@@ -304,9 +268,6 @@ VOID AtpTaskAddVariantBoolean(
         AtJsonAddNull(Object, Key);
 }
 
-/**
- * Adds a BSTR the scheduler returned, frees it, and reports whether it mentions the filter string.
- */
 VOID AtpTaskAddMatchedBstr(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -331,16 +292,6 @@ VOID AtpTaskAddMatchedBstr(
     *String = NULL;
 }
 
-/**
- * Reads one action. The base interface says only what kind it is; the image an exec action runs and
- * the class an in-process handler loads each live on their own interface.
- *
- * \param Action The action to read.
- * \param Contains The action_contains filter, or NULL.
- * \param Matched Set when this action mentions the filter string.
- *
- * \return The row, which the caller owns.
- */
 PVOID AtpTaskCreateActionRow(
     _In_ IAction* Action,
     _In_opt_ PPH_STRING Contains,
@@ -396,9 +347,6 @@ PVOID AtpTaskCreateActionRow(
     return row;
 }
 
-/**
- * Reads the actions, and reports whether any of them mentions the filter string.
- */
 PVOID AtpTaskCreateActions(
     _In_ IActionCollection* Actions,
     _In_opt_ PPH_STRING ActionContains,
@@ -585,12 +533,6 @@ VOID AtpTaskAddPrincipal(
     IPrincipal_Release(principal);
 }
 
-/**
- * Fills in everything that comes from the task's definition, and says whether the definition could
- * be read at all: a task can be enumerated by a caller who is not allowed to read what it runs.
- *
- * \return TRUE if the row survives the filters that need the definition.
- */
 BOOLEAN AtpTaskAddDefinition(
     _In_ PAT_TASK_CONTEXT Context,
     _In_ PVOID Row,

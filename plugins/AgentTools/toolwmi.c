@@ -12,21 +12,12 @@
 #include "agenttools.h"
 #include <wbemidl.h>
 
-// Persistence that is not a file. A permanent WMI event subscription is three objects in the
-// repository - an __EventFilter, an __EventConsumer and a __FilterToConsumerBinding - and when the
-// query matches, the WMI service runs the consumer. A binding is the unit that matters: a filter or
-// a consumer alone does nothing.
-
 DEFINE_GUID(CLSID_WbemLocator, 0x4590f811, 0x1d3a, 0x11d0, 0x89, 0x1f, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IWbemLocator, 0xdc12a687, 0x737f, 0x11cf, 0x88, 0x4d, 0x00, 0xaa, 0x00, 0x4b, 0x2e, 0x24);
 DEFINE_GUID(IID_IClientSecurity, 0x0000013D, 0x0000, 0x0000, 0xC0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
 
-// The repository is answered by a service, and a service can be busy. Every wait here is finite so
-// a wedged WMI stops this tool rather than the connection it is answering on.
 #define AT_WMI_TIMEOUT 15000
-// A namespace with more subscriptions than this is not a subscription list any more.
 #define AT_WMI_MAXIMUM_OBJECTS 4096
-// Script text is the payload of an ActiveScriptEventConsumer and is written by whoever made it.
 #define AT_WMI_MAXIMUM_SCRIPT 4096
 
 typedef struct _AT_WMI_FILTER
@@ -69,9 +60,6 @@ typedef struct _AT_WMI_CONTEXT
     PPH_STRING Namespace;
 } AT_WMI_CONTEXT, *PAT_WMI_CONTEXT;
 
-/**
- * Converts an HRESULT to the nearest status this server reports.
- */
 NTSTATUS AtpWmiStatus(
     _In_ HRESULT Result
     )
@@ -145,10 +133,6 @@ BOOLEAN AtpWmiGetBoolean(
     return found;
 }
 
-/**
- * A CreatorSID is held as an array of bytes, not as a string. Whoever registered the subscription
- * is worth having, and lookup_account turns the SID into a name.
- */
 PPH_STRING AtpWmiGetSid(
     _In_ IWbemClassObject* Object,
     _In_ PCWSTR Name
@@ -362,10 +346,6 @@ HRESULT AtpWmiExecQuery(
     return status;
 }
 
-/**
- * The next object of an enumeration, or NULL when there are no more. A timeout is not an end: the
- * caller is told so it can say the list is short rather than say the namespace is empty.
- */
 IWbemClassObject* AtpWmiNext(
     _In_ IEnumWbemClassObject* Enumerator,
     _Out_ PBOOLEAN TimedOut
@@ -486,11 +466,6 @@ HRESULT AtpWmiEnumerateConsumers(
     return S_OK;
 }
 
-/**
- * Whether a binding's reference names this object. The reference is written either as a relative
- * path or as a full one, so both are compared, and a full reference is compared again from the
- * colon that separates the namespace from the object.
- */
 BOOLEAN AtpWmiReferenceMatches(
     _In_opt_ PPH_STRING Reference,
     _In_opt_ PPH_STRING RelativePath,
@@ -730,11 +705,6 @@ HRESULT AtpWmiEnumerateBindings(
     return S_OK;
 }
 
-/**
- * One namespace: its filters, its consumers, and the bindings that tie them together. The entry
- * added to Namespaces says whether the namespace could be read at all, because an empty list from a
- * namespace nobody may enumerate reads as "there is no persistence here".
- */
 VOID AtpWmiReadNamespace(
     _In_ PAT_WMI_CONTEXT Context,
     _In_ PPH_STRING Namespace,

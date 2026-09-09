@@ -11,10 +11,6 @@
 
 #include "agenttools.h"
 
-// What the file system knows about a file. The two things not on any properties dialog: the
-// alternate data streams, and the Mark of the Web that records that a file was downloaded and from
-// where.
-
 VOID AtpTrimTrailingNewline(
     _Inout_opt_ PPH_STRING String
     )
@@ -365,8 +361,6 @@ PCWSTR AtpScanLookupString(
     return NULL;
 }
 
-// The verdict OnlineChecks already has on disk, and nothing else. No request is made: this answers
-// whether anyone has already told us about this file.
 VOID AtpGetFileScanResultCached(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -479,11 +473,6 @@ VOID AtpGetFileScanResultCached(
     PhClearReference(&path);
 }
 
-// Only the hash goes out, never the file, but a hash is enough to tell someone that this machine
-// holds this exact file - which is why these sit in the egress tier.
-
-// A SHA-256 is 64 hexadecimal characters and nothing else. Checked here rather than sent, because a
-// malformed hash is a request that leaves the machine and comes back with nothing.
 BOOLEAN AtpIsSha256(
     _In_opt_ PPH_STRING Hash
     )
@@ -733,10 +722,6 @@ VOID AtpLookupFileHashHybridAnalysis(
     PhDereferenceObject(sha256);
 }
 
-// A registry key: what is under it and what the values say. Nothing else in the server can read the
-// registry, and persistence lives there - a Run entry, a service's ImagePath, a shell extension.
-
-// Binary values can be large and are rarely interesting past the first part of them.
 #define AT_REGISTRY_MAX_DATA 4096
 #define AT_REGISTRY_MAX_SUBKEYS 4096
 
@@ -783,8 +768,6 @@ PCWSTR AtpRegistryTypeString(
     return NULL;
 }
 
-// Registry string data carries whatever the writer put there: it is not guaranteed to be terminated,
-// and not guaranteed to be an even number of bytes either.
 PPH_STRING AtpRegistryString(
     _In_reads_bytes_(DataLength) PVOID Data,
     _In_ ULONG DataLength
@@ -1065,8 +1048,6 @@ VOID AtpReadRegistryKey(
     PhDereferenceObject(path);
 }
 
-// Filesystem context: what is next to a file, and when. A listing is capped and never recursive -
-// the tool answers "what is in this directory", and a caller that wants a tree asks for each one.
 typedef struct _AT_DIRECTORY_CONTEXT
 {
     PAT_ROWS Rows;

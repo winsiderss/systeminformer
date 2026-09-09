@@ -12,10 +12,6 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
-// Windows across the whole desktop, rather than get_process_windows' one process. Enumeration
-// follows WindowExplorer: PhEnumWindowsEx rather than EnumWindows, which does not return the
-// windows of packaged applications, and message-only windows are a separate tree.
-
 typedef enum _AT_WINDOW_SCOPE
 {
     AtWindowScopeTopLevel,
@@ -35,8 +31,6 @@ typedef struct _AT_WINDOW_LIST_CONTEXT
     ULONG ZOrder;
 } AT_WINDOW_LIST_CONTEXT, *PAT_WINDOW_LIST_CONTEXT;
 
-// A window can be WS_VISIBLE and still not be on screen: the shell cloaks the windows of suspended
-// packaged applications and of other virtual desktops.
 BOOLEAN AtpIsWindowCloaked(
     _In_ HWND WindowHandle,
     _Out_ PBOOLEAN Cloaked
@@ -458,8 +452,6 @@ VOID AtpGetWindowInfo(
     Result->StructuredContent = structured;
 }
 
-// How long to give a window to act on a close before reporting whether it is still there. A
-// window that is still open after this is the normal case for anything that asks before closing.
 #define AT_WINDOW_CLOSE_WAIT_MS 500
 
 BOOLEAN AtParseWindowState(
@@ -492,11 +484,6 @@ BOOLEAN AtParseWindowState(
     return TRUE;
 }
 
-/**
- * A window is named by its handle, and a handle is only a handle: the process that owns it is
- * checked against the process the caller said it was, so a window handle that has been reused by
- * another process since it was listed is refused rather than acted on.
- */
 VOID AtpControlWindow(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,

@@ -12,9 +12,6 @@
 #include "agenttools.h"
 #include <cfgmgr32.h>
 
-// The device tree the application already builds, the same nodes Device Manager shows. Every
-// property is read through PhGetDeviceProperty, which fills it on first use.
-
 VOID AtpAddDeviceProperty(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -37,8 +34,6 @@ VOID AtpAddDeviceProperty(
     AtJsonAddString(Object, Key, property->AsString);
 }
 
-// A date property carries a real timestamp under its formatted string; the string is whatever the
-// user's locale renders, which is not what a caller wants to compare.
 VOID AtpAddDevicePropertyTime(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -245,8 +240,6 @@ typedef struct _AT_DEVICE_RESOURCES
     ULONG Count;
 } AT_DEVICE_RESOURCES, *PAT_DEVICE_RESOURCES;
 
-// Each resource kind carries its own descriptor, so ranges are reported as numbers rather than
-// rendered into a string.
 _Function_class_(PH_DEVICE_ENUM_RESOURCES_CALLBACK)
 BOOLEAN NTAPI AtpDeviceResourceCallback(
     _In_ ULONG LogicalConfig,
@@ -422,10 +415,6 @@ VOID AtpGetDeviceResources(
     PhDereferenceObject(instanceId);
 }
 
-/**
- * Turning a device off, and back on. The whole of it is two configuration manager calls; the care
- * is in what is said about them.
- */
 VOID AtpSetDeviceEnabled(
     _In_ PAT_TOOL_CALL Call,
     _In_ PAT_TARGET Target,

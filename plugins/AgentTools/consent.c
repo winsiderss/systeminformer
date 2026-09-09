@@ -917,9 +917,6 @@ AT_CONSENT_RESULT AtpAskUser(
     else
         request->Content = PhReferenceObject(requester);
 
-    // What allowing for the session covers is the drop-down's own business: it is labelled and its
-    // entries say it, so spelling it out again here only lengthened the prompt.
-
     PhDereferenceObject(requester);
 
     AtpSubmitConsentRequest(request);
@@ -1071,8 +1068,6 @@ PCWSTR AtConsentClassDescription(
     return NULL;
 }
 
-// A grant is held against the action's class when it has one, so a tool that reads exactly the same
-// data does not ask again, and against the action itself when it does not.
 AT_SESSION_POLICY AtpGetSessionPolicy(
     _In_ PAT_CONNECTION Connection,
     _In_ PCAT_ACTION_INFO Action

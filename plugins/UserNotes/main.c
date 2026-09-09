@@ -2854,17 +2854,6 @@ VOID ServiceItemDeleteCallback(
 
 // USERNOTES_INTERFACE
 
-/**
- * Copies out what the user has saved against a process.
- *
- * \param ProcessItem The process to look up.
- * \param Notes The copied entry. Not written when the process has no entry.
- * \return TRUE when an entry was found.
- *
- * \remarks USERNOTES_INTERFACE. The copy is taken under the database lock and the comment is
- * referenced, so a caller never holds a pointer into an entry another thread may rewrite. The
- * database is also the on-disk XML, which must not be read directly: it lags the copy in memory.
- */
 BOOLEAN NTAPI UserNotesGetProcessNotes(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _Out_ PUSERNOTES_PROCESS_NOTES Notes
@@ -2902,18 +2891,6 @@ BOOLEAN NTAPI UserNotesGetProcessNotes(
     return found;
 }
 
-/**
- * Sets or clears the comment saved against a process.
- *
- * \param ProcessItem The process to annotate.
- * \param Comment The comment, or NULL or empty to remove it.
- * \param MatchCommandLine Save against the whole command line rather than the file name.
- * \return TRUE if the database was changed and written.
- *
- * \remarks USERNOTES_INTERFACE. Mirrors what the properties page does on OK: create or update the
- * entry, drop it when the comment is emptied and nothing else is saved in it, then write the
- * database and refresh the column.
- */
 BOOLEAN NTAPI UserNotesSetProcessComment(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_opt_ PCPH_STRINGREF Comment,

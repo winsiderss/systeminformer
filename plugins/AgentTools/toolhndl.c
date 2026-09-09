@@ -11,9 +11,6 @@
 
 #include "agenttools.h"
 
-// What one handle refers to when the handle list can only give a name. An ALPC port handle says
-// nothing about who is on the other end; only the driver can ask.
-
 PCWSTR AtpAlpcPortTypeString(
     _In_ ULONG State
     )
@@ -31,8 +28,6 @@ PCWSTR AtpAlpcPortTypeString(
     return L"unconnected";
 }
 
-// One of the three ports in a communication triple, or the port the handle itself refers to. The
-// owner is the answer people come here for: it is the process on the other end.
 PVOID AtpCreateAlpcPortObject(
     _In_ PKPH_ALPC_BASIC_INFORMATION Basic,
     _In_opt_ PUNICODE_STRING Name
@@ -242,16 +237,11 @@ VOID AtpGetAlpcPortInfo(
     AtDeleteTarget(&target);
 }
 
-// The object behind a handle, without duplicating it. The driver reads a file object's state, a
-// section's backing file or an ETW registration's GUID on behalf of another process, which is the
-// only route into a protected process; without it the handle is duplicated and source says which
-// route was taken.
-
 typedef struct _AT_HANDLE_QUERY
 {
-    HANDLE ProcessHandle;   // the process that owns the handle
-    HANDLE Handle;          // the handle value inside that process
-    HANDLE LocalHandle;     // the same object duplicated into this process, or NULL
+    HANDLE ProcessHandle;
+    HANDLE Handle;
+    HANDLE LocalHandle;
     BOOLEAN UseDriver;
 } AT_HANDLE_QUERY, *PAT_HANDLE_QUERY;
 
@@ -287,8 +277,6 @@ NTSTATUS AtpQuerySectionInfo(
     return STATUS_NOT_SUPPORTED;
 }
 
-// Named pipes, \Device\ConDrv\CurrentIn and \Device\VolMgrControl deadlock a file query outright, so
-// both routes go through the timeout wrappers rather than the plain calls.
 NTSTATUS AtpQueryFileInfo(
     _In_ PAT_HANDLE_QUERY Query,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
@@ -314,7 +302,6 @@ NTSTATUS AtpQueryFileInfo(
     return STATUS_NOT_SUPPORTED;
 }
 
-// A UNICODE_STRING class, whose length nothing tells you in advance.
 PPH_STRING AtpQueryObjectString(
     _In_ PAT_HANDLE_QUERY Query,
     _In_ KPH_OBJECT_INFORMATION_CLASS ObjectInformationClass
@@ -846,10 +833,6 @@ VOID AtpGetHandleDetails(
         NtClose(dupProcessHandle);
 }
 
-// The named pipe namespace. Listing is free; asking a pipe about itself is not - there is no query
-// that does not open it, and opening one connects as a client, taking an instance and completing
-// the server's connect. So connect defaults to false.
-
 typedef struct _AT_PIPE_ENTRY
 {
     PPH_STRING Name;
@@ -914,8 +897,6 @@ PCWSTR AtpPipeConfigurationString(
     return NULL;
 }
 
-// Opening the pipe by name is a client connection, so always with anonymous impersonation: a pipe
-// server can impersonate whoever connects to it.
 VOID AtpAddPipeDetails(
     _In_ PVOID Row,
     _In_ HANDLE RootDirectory,
@@ -1089,10 +1070,6 @@ VOID AtpListNamedPipes(
     PhClearReference(&context.NameContains);
 }
 
-// A section's mappings live on the control area the kernel keeps per file, not on the section
-// handle, so a section created here from a file reports every process mapping that file. Only the
-// driver can read it.
-
 VOID AtpAddMappingEntries(
     _In_ PAT_ROWS Rows,
     _In_ PKPH_SECTION_MAPPINGS_INFORMATION Mappings,
@@ -1165,8 +1142,6 @@ VOID AtpAddSectionMappings(
     PhFree(mappings);
 }
 
-// The image and the data section of a file are different control areas with different mapping lists:
-// a DLL loaded by the loader is in the image one, the same file read by a scanner is in the data one.
 VOID AtpAddFileSectionMappings(
     _In_ PAT_ROWS Rows,
     _In_ PPH_STRING FileName,
@@ -1356,10 +1331,6 @@ VOID AtpGetSectionMappings(
     AtDeleteTarget(&target);
     PhClearReference(&path);
 }
-
-// Every handle referring to the same object. find_handles matches on the object's name, which is a
-// different question: an unnamed object cannot be found by name at all. The kernel only reveals a
-// handle's object address to a caller allowed to see kernel addresses, so this needs elevation.
 
 VOID AtpFindObjectHandles(
     _In_ PAT_TOOL_CALL Call,

@@ -20,9 +20,6 @@
 #define AT_WAIT_CHAIN_DEFAULT_THREADS 64
 #define AT_WAIT_CHAIN_MAXIMUM_THREADS 512
 
-// Who is waiting on whom. A stack shows the wait but not the owner; the Wait Chain Traversal API
-// walks the ownership edges across processes and says when the chain closes into a cycle.
-
 PCWSTR AtpWaitChainObjectTypeString(
     _In_ ULONG ObjectType
     )
@@ -89,7 +86,6 @@ PCWSTR AtpWaitChainObjectStatusString(
     return NULL;
 }
 
-// The name is a fixed-size buffer the API fills, and nothing promises it is terminated.
 PPH_STRING AtpWaitChainObjectName(
     _In_ PWAITCHAIN_NODE_INFO Node
     )
@@ -349,12 +345,6 @@ VOID AtpGetThreadWaitChain(
 
     Result->StructuredContent = structured;
 }
-
-// What one thread is blocked on, from the system call it is sitting in. ThreadLastSystemCall
-// carries the first argument of that call, which for a wait or a file read is the handle, so the
-// object is named by duplicating it out of the target. This is the passive path of the
-// application's own analysis (anawait.c); the other walks the stack to recover the remaining
-// arguments, which only works for a 32-bit target.
 
 VOID AtpAddWaitHandleInfo(
     _In_ PVOID Waiting,

@@ -426,8 +426,6 @@ PCWSTR AtpServiceActionString(
     return NULL;
 }
 
-// What starts this service without anyone asking. A service with no start type of its own can still
-// be brought up by a device arriving or a port opening, which is why the triggers are worth reading.
 VOID AtpAddServiceTriggers(
     _In_ PVOID Object,
     _In_ SC_HANDLE ServiceHandle
@@ -474,8 +472,6 @@ VOID AtpAddServiceTriggers(
     PhFree(triggerInfo);
 }
 
-// What the service control manager does when the service dies, which is how something restarts
-// itself no matter how often it is stopped.
 VOID AtpAddServiceRecovery(
     _In_ PVOID Object,
     _In_ SC_HANDLE ServiceHandle
@@ -632,8 +628,6 @@ VOID AtpAddServiceDependents(
     PhFree(dependents);
 }
 
-// The last time anything changed under the service's registry key, which is when its configuration
-// was last touched whether or not the service control manager was used.
 VOID AtpAddServiceKeyModifiedTime(
     _In_ PVOID Object,
     _In_ PPH_STRING ServiceName

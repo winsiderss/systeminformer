@@ -12,12 +12,6 @@
 #include "agenttools.h"
 #include <mapldr.h>
 
-// GPU utilization comes from ExtendedTools, keyed by adapter LUID; the adapters are enumerated here
-// with D3DKMT. The interface answers 0 for an adapter it has no counters for, so those figures are
-// null unless the collector is running.
-
-// Mirrors EtGpuMonitorInitialization: the counters that back the interface are only collected when
-// the GPU monitor is on and its performance-counter mode is enabled.
 BOOLEAN AtpGpuCountersEnabled(
     VOID
     )
@@ -90,8 +84,6 @@ VOID AtpCloseAdapterHandle(
     D3DKMTCloseAdapter(&closeAdapter);
 }
 
-// EnumAdapters3 includes compute-only and display-only adapters and exists from Windows 10 20H1, so
-// EnumAdapters2 is the fallback. Both hand back handles the caller closes.
 _Success_(return)
 BOOLEAN AtpEnumerateGraphicsAdapters(
     _Outptr_result_maybenull_ D3DKMT_ADAPTERINFO** Adapters,
@@ -176,8 +168,6 @@ ULONG AtpQueryAdapterNodeCount(
     return 0;
 }
 
-// What an engine is for, asked of the adapter itself. The ordinal alone says nothing: engine 1 is
-// video decode on one card and a copy engine on the next.
 VOID AtpAddEngineType(
     _In_ PVOID Engine,
     _In_ D3DKMT_HANDLE AdapterHandle,
@@ -204,8 +194,6 @@ VOID AtpAddEngineType(
     }
 }
 
-// One entry per engine the adapter reports, named by what it does, so "the GPU is busy" can be
-// told apart from "something is decoding video".
 VOID AtpAddAdapterEngines(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle,
@@ -240,8 +228,6 @@ VOID AtpAddAdapterEngines(
     PhAddJsonObjectValue(Row, "engines", engines);
 }
 
-// A machine reports more adapters than it has cards - software renderers, compute-only and
-// paravirtualized devices - and only these flags tell them apart.
 VOID AtpAddAdapterType(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle
@@ -438,8 +424,6 @@ VOID AtpGetGpuUsage(
     AtDeleteRows(&rows);
 }
 
-// The inventory queries: what each adapter is, rather than what it is doing.
-
 VOID AtpAddAdapterIdentity(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle
@@ -509,8 +493,6 @@ VOID AtpAddAdapterDeviceIds(
     }
 }
 
-// The enumeration value is the WDDM version times a thousand, so it is formatted from the number
-// rather than matched against a table that would need editing for every future release.
 VOID AtpAddAdapterDriverModel(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle
@@ -564,8 +546,6 @@ VOID AtpAddAdapterStatistics(
     }
 }
 
-// Power is a share of what the adapter is allowed to draw, not watts, and temperature arrives in
-// tenths of a degree. Both are whatever the driver chooses to report, and many report nothing.
 VOID AtpAddAdapterSensors(
     _In_ PVOID Row,
     _In_ D3DKMT_HANDLE AdapterHandle
@@ -673,8 +653,6 @@ VOID AtpListGpuAdapters(
     AtDeleteRows(&rows);
 }
 
-// Per-process graphics work. The engine breakdown is opt-in because a machine with three adapters
-// reports sixty-odd engines and nearly all of them are idle for any one process.
 VOID AtpAddProcessAdapterEngines(
     _In_ PVOID Object,
     _In_ PEXTENDEDTOOLS_INTERFACE Interface,

@@ -11,9 +11,6 @@
 
 #include "agenttools.h"
 
-// Who is holding a thing, across every process. The scan opens every process it can and names every
-// handle, so it refuses to run with no filter and stops on a time budget.
-
 #define AT_FIND_DEFAULT_SECONDS 20
 #define AT_FIND_MAXIMUM_SECONDS 60
 
@@ -236,9 +233,6 @@ VOID AtpFindHandles(
     PhClearReference(&context.TypeName);
 }
 
-// Which processes have this module mapped, with the signature. A verification is looked up once per
-// file and remembered for the rest of the scan.
-
 typedef struct _AT_FIND_MODULES_CONTEXT
 {
     AT_ROWS Rows;
@@ -278,8 +272,6 @@ static ULONG NTAPI AtpVerifyCacheHash(
     return PhHashStringRefEx(&((PAT_VERIFY_ENTRY)Entry)->FileName->sr, TRUE, PH_STRING_HASH_X65599);
 }
 
-// One verification per distinct file for the life of the scan. Without this a machine-wide search
-// verifies ntdll.dll once for every process on the machine.
 BOOLEAN AtpVerifyModuleCached(
     _In_ PAT_FIND_MODULES_CONTEXT Context,
     _In_ PPH_STRING NativeFileName,
@@ -486,9 +478,6 @@ VOID AtpFindModules(
     AtDeleteRows(&context.Rows);
     PhClearReference(&context.NameContains);
 }
-
-// Who is using one named file. A process can hold a handle to it and a process can have it mapped,
-// and neither implies the other.
 
 typedef struct _AT_FILE_MAPPED_CONTEXT
 {
@@ -723,9 +712,6 @@ FinishExit:
     PhDereferenceObject(path);
 }
 
-// The kernel object namespace. Listed one level at a time by default: \GLOBAL?? alone has thousands
-// of entries.
-
 #define AT_OBJECT_MAX_DEPTH 8
 
 typedef struct _AT_OBJECT_DIRECTORY_CONTEXT
@@ -915,10 +901,6 @@ VOID AtpListObjectDirectory(
     PhDereferenceObject(path);
 }
 
-// One named object, given its path. Device, file, ALPC port and filter port objects are described
-// but never opened: opening a device object is a real I/O open with whatever side effects its
-// driver decides.
-
 typedef enum _AT_OBJECT_KIND
 {
     AtObjectKindOther,
@@ -1085,8 +1067,6 @@ NTSTATUS NTAPI AtpObjectLookupCallback(
     return STATUS_NO_MORE_ENTRIES;
 }
 
-// The type decides which open and query calls apply, so it is known first: from the caller, or by
-// asking the parent directory.
 PPH_STRING AtpLookupObjectTypeName(
     _In_ PPH_STRING Path,
     _Out_ PNTSTATUS DirectoryStatus
@@ -1235,8 +1215,6 @@ VOID AtpAddJobDetails(
     PhFree(processIdList);
 }
 
-// From wdm.h and ntddk.h: the DRIVER_OBJECT flags, which are kernel-only headers a plugin does not
-// include. builtin means the object belongs to the HAL or the PnP manager rather than to a file.
 #define AT_DRVO_UNLOAD_INVOKED 0x00000001
 #define AT_DRVO_LEGACY_DRIVER 0x00000002
 #define AT_DRVO_BUILTIN_DRIVER 0x00000004
@@ -1343,9 +1321,6 @@ VOID AtpAddDriverDetails(
     PhAddJsonObjectValue(Structured, "driver", AtpCreateDriverDetails(Handle));
 }
 
-/**
- * A driver a device names, or null where there is none to name.
- */
 VOID AtpAddDeviceDriver(
     _In_ PVOID Structured,
     _In_ PCSTR Key,
@@ -1579,11 +1554,6 @@ VOID AtpGetObjectInfo(
     PhDereferenceObject(path);
 }
 
-/**
- * A driver object, or the driver that owns a device object. The device direction is the one nothing
- * else answers: a device names the driver at the top of its stack and, underneath any filters, the
- * driver of the device the stack is built on.
- */
 VOID AtpGetDriverObject(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result

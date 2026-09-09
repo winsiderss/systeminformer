@@ -29,8 +29,6 @@ PCWSTR AtpVerifyResultText(
     return text ? text : L"Unknown";
 }
 
-// crypt32 is resolved at the point of use, the way phlib does it (verify.c): nothing in the tree
-// links it, and a certificate detail is not worth an import table entry on every load.
 typedef DWORD (WINAPI* AT_CERT_GET_NAME_STRING_W)(
     _In_ PCCERT_CONTEXT CertContext,
     _In_ DWORD Type,
@@ -107,7 +105,6 @@ PPH_STRING AtpGetCertificateThumbprint(
     return PhBufferToHexString(hash, hashLength);
 }
 
-// A serial number is stored least significant byte first and is always written the other way round.
 PPH_STRING AtpGetCertificateSerialNumber(
     _In_ PCERT_CONTEXT Certificate
     )
@@ -133,8 +130,6 @@ PPH_STRING AtpGetCertificateSerialNumber(
     return string;
 }
 
-// One entry per signature on the file, not per certificate in a chain: a file can carry a SHA-1 and
-// a SHA-256 signature, and PhVerifyFileEx returns the signing certificate of each.
 VOID AtpAddCertificate(
     _In_ PAT_ROWS Rows,
     _In_ PCERT_CONTEXT Certificate,
@@ -174,8 +169,6 @@ VOID AtpAddCertificate(
     AtAddRow(Rows, row);
 }
 
-// Whether the file carries its own signature, which is the difference between a binary that is
-// signed and one that is merely vouched for by a catalog the OS shipped.
 BOOLEAN AtpHasEmbeddedSignature(
     _In_ HANDLE FileHandle,
     _Out_ PBOOLEAN IsImage
@@ -308,10 +301,6 @@ VOID AtpVerifyFileSignature(
     PhDereferenceObject(path);
 }
 
-// A plain file hash changes when anything in the file changes, signature included. The Authenticode
-// hash skips the certificate and the fields signing rewrites, so it is the same before and after
-// signing - which is what makes it the right thing to compare a suspect binary against a known one.
-
 #define AT_HASH_CHUNK_SIZE (1024 * 1024)
 #define AT_HASH_MAXIMUM_SIZE (2ULL * 1024 * 1024 * 1024)
 
@@ -325,7 +314,6 @@ typedef struct _AT_HASH_REQUEST
     PH_SYMCRYPT_HASH_CONTEXT Context;
 } AT_HASH_REQUEST, *PAT_HASH_REQUEST;
 
-// The SHA-256 of a file, which is the key everything else is looked up by.
 PPH_STRING AtHashFileSha256(
     _In_ PPH_STRING FileName
     )

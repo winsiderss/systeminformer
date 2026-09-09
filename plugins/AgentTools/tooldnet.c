@@ -13,11 +13,6 @@
 
 #include <dotnettoolsintf.h>
 
-// The assemblies a .NET process has loaded, which get_process_modules cannot see: an assembly is
-// not a mapped image, and one loaded from memory or emitted at run time has no file behind it at
-// all. Read through DotNetTools, which walks the target's runtime with the debugging data access
-// layer.
-
 typedef struct _AT_ASSEMBLY_CONTEXT
 {
     AT_ROWS Rows;

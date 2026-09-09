@@ -11,17 +11,10 @@
 
 #include "agenttools.h"
 
-// Snapshot identity and change tracking. Every read carries the snapshot id of the provider run it
-// came from, so a client can ask what changed since instead of diffing two listings. The id is the
-// process provider's run count, and service changes are stamped with the id current when the
-// service provider saw them. Live entries are bounded by the machine and removed ones by
-// AT_SNAPSHOT_REMOVED_LIMIT, so a linear scan is cheaper than maintaining a hash table.
-
 #define AT_SNAPSHOT_REMOVED_LIMIT 256
 
 typedef struct _AT_CHANGE
 {
-    // Processes are identified by their boot-unique sequence number, services by name.
     ULONG64 SequenceNumber;
     HANDLE ProcessId;
     PPH_STRING Name;
@@ -61,9 +54,6 @@ ULONG AtGetUpdateInterval(
     return (ULONG)ReadAcquire(&AtUpdateInterval);
 }
 
-// A provider raises its item events during a run and publishes the run count only at the end, so a
-// change seen now belongs to the run about to be published: stamping it with the last published id
-// would hide it from a client holding that id.
 ULONG AtpChangeId(
     VOID
     )
@@ -71,7 +61,6 @@ ULONG AtpChangeId(
     return AtGetSnapshotId() + 1;
 }
 
-// Lock held.
 PAT_CHANGE AtpFindProcessChange(
     _In_ ULONG64 SequenceNumber
     )
@@ -89,7 +78,6 @@ PAT_CHANGE AtpFindProcessChange(
     return NULL;
 }
 
-// Lock held.
 PAT_CHANGE AtpFindServiceChange(
     _In_ PPH_STRING Name
     )
@@ -115,8 +103,6 @@ VOID AtpFreeChange(
     PhFree(Change);
 }
 
-// Lock held. Keeps the newest removals only; what falls off tells a later caller that an answer
-// covering that id can no longer be complete.
 VOID AtpTrimRemoved(
     _Inout_ PPH_LIST List
     )

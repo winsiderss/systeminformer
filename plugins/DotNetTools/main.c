@@ -193,19 +193,6 @@ VOID NTAPI ThreadItemDeleteCallback(
 
 // DOTNETTOOLS_INTERFACE
 
-/**
- * Enumerates the assemblies loaded into a process.
- *
- * \param ProcessId The process to inspect.
- * \param Callback Called for each assembly; return FALSE to stop.
- * \param Context Passed to the callback.
- * \return What happened, so a caller can tell "no assemblies" from "could not ask".
- *
- * \remarks DOTNETTOOLS_INTERFACE. A 32-bit target is refused rather than served. The assembly page
- * reaches one by connecting to phsvc, and that prompts for elevation when phsvc is not already
- * running - which is a reasonable thing to do to a user who just opened a window, and not a
- * reasonable thing for an enumeration to do behind whatever called it.
- */
 DOTNETTOOLS_ASSEMBLY_STATUS NTAPI DotNetToolsEnumProcessAssemblies(
     _In_ HANDLE ProcessId,
     _In_ PDOTNETTOOLS_ASSEMBLY_CALLBACK Callback,

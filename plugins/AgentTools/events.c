@@ -11,13 +11,6 @@
 
 #include "agenttools.h"
 
-// A bounded ring of what happened: processes starting and exiting, services changing state, devices
-// arriving and going away. Built from the provider callbacks rather than the application's log,
-// which hands a plugin only an opaque pointer and a formatter that renders prose. Nothing before
-// the plugin loaded can be answered and the ring is bounded, so this is a recent feed and not an
-// audit log. Reads are by cursor because the ring moves under the reader: a client is told how many
-// events it missed rather than handed a shorter list that looks complete.
-
 #define AT_EVENT_RING_SIZE 512
 
 typedef enum _AT_EVENT_KIND
@@ -63,9 +56,6 @@ typedef struct _AT_EVENT
     PPH_STRING Detail;
 } AT_EVENT, *PAT_EVENT;
 
-// A process that has exited is gone from every list, so what it was has to be kept at the moment it
-// went: the command line and image path are the point.
-
 #define AT_EXIT_RING_SIZE 256
 
 typedef struct _AT_PROCESS_EXIT
@@ -104,13 +94,9 @@ static PH_CALLBACK_REGISTRATION AtEventDeviceRegistration;
 static PH_CALLBACK_REGISTRATION AtEventProcessUpdatedRegistration;
 static PH_CALLBACK_REGISTRATION AtEventServiceUpdatedRegistration;
 
-// A provider raises an added event for everything that exists on its first run - several hundred
-// here - which would fill the ring before anything real happened. Additions only count once the
-// provider has completed a run.
 static LONG AtEventProcessProviderRan = 0;
 static LONG AtEventServiceProviderRan = 0;
 
-// Lock held.
 VOID AtpClearEvent(
     _Inout_ PAT_EVENT Event
     )
@@ -120,8 +106,6 @@ VOID AtpClearEvent(
     memset(Event, 0, sizeof(AT_EVENT));
 }
 
-// Takes the next slot, evicting the oldest when the ring is full. The returned entry is blank and
-// stamped; the caller fills the rest under the same lock.
 _Requires_lock_held_(AtEventLock)
 PAT_EVENT AtpPushEvent(
     _In_ AT_EVENT_KIND Kind
@@ -146,7 +130,6 @@ PAT_EVENT AtpPushEvent(
     return event;
 }
 
-// Lock held.
 VOID AtpRecordProcessExit(
     _In_ PPH_PROCESS_ITEM ProcessItem,
     _In_ BOOLEAN HaveExitStatus,

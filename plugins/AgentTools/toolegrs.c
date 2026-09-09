@@ -14,11 +14,6 @@
 
 #include <networktoolsintf.h>
 
-// The two tools that reach off the machine, and the only ones here that do, which is why they sit
-// in their own consent tier. ping_host is implemented here rather than borrowed from NetworkTools,
-// whose ping runs on a dialog's own thread; whois_lookup goes through the plugin, which knows the
-// referral chain.
-
 // The reply buffer has to hold the reply, the payload, an ICMP error message, an IO_STATUS_BLOCK
 // and any options, which is what the helper documents and what NetworkTools uses.
 #define AT_ICMP_BUFFER_SIZE(EchoReplyLength, BufferLength)     (ULONG)(((EchoReplyLength) + (BufferLength)) + 8 + sizeof(IO_STATUS_BLOCK) + MAX_OPT_SIZE)
@@ -57,8 +52,6 @@ BOOLEAN AtpInitializeIcmp(
     return !!AtpIcmpCreateFile && !!AtpIcmpSendEcho2Ex;
 }
 
-// IP_STATUS is not an NTSTATUS and its values are not errors in the usual sense: a reply that timed
-// out and one that came back from an unreachable router are both answers about the path.
 PCSTR AtpIpStatusString(
     _In_ ULONG Status
     )

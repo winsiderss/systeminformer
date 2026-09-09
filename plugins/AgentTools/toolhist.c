@@ -11,9 +11,6 @@
 
 #include "agenttools.h"
 
-// History over the provider's circular buffers. Index 0 is the most recent sample;
-// PhGetStatisticsTime refuses an index older than the buffer holds, which bounds the walk.
-
 #define AT_HISTORY_DEFAULT_WINDOW_SECONDS 60
 
 typedef struct _AT_HISTORY_STATS
@@ -39,8 +36,6 @@ VOID AtpAccumulate(
     Stats->Count++;
 }
 
-// The samples are per-tick, so the average of a rate series is a rate and the total of a byte
-// series is the bytes moved in the window.
 VOID AtpAddStats(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -199,8 +194,6 @@ VOID AtpGetProcessHistory(
     AtDeleteTarget(&target);
 }
 
-// The per-CPU series are summarised per processor: the full set is thousands of samples on a large
-// machine.
 VOID AtpGetSystemHistory(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -421,8 +414,6 @@ VOID AtpGetSystemHistory(
 
     Result->StructuredContent = structured;
 }
-
-// Top-N over a window from the same history, so no sampling pause is needed.
 
 #define AT_RANK_DEFAULT_LIMIT 10
 

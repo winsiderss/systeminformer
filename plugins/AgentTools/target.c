@@ -125,8 +125,6 @@ NTSTATUS AtResolveProcessTarget(
     return STATUS_SUCCESS;
 }
 
-// The ISO 8601 form of a thread's creation time, the same text get_process_threads returns in a
-// thread row. Tid reuse inside a process is what process_sequence_number solves for pids.
 PPH_STRING AtFormatThreadCreateTime(
     _In_ HANDLE ThreadHandle
     )
@@ -421,18 +419,6 @@ NTSTATUS AtResolveHandleTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Resolves the device a write names, so the user is asked about a device by its name rather than
- * about an instance id - or, before this existed, about nothing at all.
- *
- * \param Arguments The tool call arguments.
- * \param Target The target to fill in.
- * \param Result Receives the error when the device cannot be resolved.
- * \return NTSTATUS Successful or errant status.
- *
- * \remarks No handle is held: the configuration manager is asked for the node by instance id when
- * the write runs, and the instance id is what identifies it.
- */
 NTSTATUS AtpResolveDeviceTarget(
     _In_opt_ PVOID Arguments,
     _Out_ PAT_TARGET Target,
@@ -534,11 +520,6 @@ NTSTATUS AtpResolveConnectionTarget(
     return STATUS_SUCCESS;
 }
 
-/**
- * Validates the arguments of a write and builds the text the user is asked to approve. The text
- * comes back to the caller rather than being written into the target: every target resolver clears
- * the target as it starts, so anything left there beforehand is lost.
- */
 NTSTATUS AtpResolveTargetParameter(
     _In_ PCAT_TOOL Tool,
     _In_opt_ PVOID Arguments,

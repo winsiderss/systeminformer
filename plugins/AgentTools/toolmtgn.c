@@ -11,12 +11,6 @@
 
 #include "agenttools.h"
 
-// The exploit mitigations a process is running with, asked of the process rather than read from a
-// cache: System Informer only maintains its CFG and CET flags while the matching column is on
-// screen. A policy that could not be queried is null, never false. Every flag is read through its
-// named bitfield rather than a hand-written mask - an early draft numbered them by hand and
-// reported Control Flow Guard from the wrong bit, which no build error would have caught.
-
 _Success_(return)
 BOOLEAN AtpQueryMitigationPolicy(
     _In_ HANDLE ProcessHandle,

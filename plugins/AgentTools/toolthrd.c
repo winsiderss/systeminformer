@@ -111,14 +111,6 @@ PPH_SYMBOL_PROVIDER AtCreateSymbolProvider(
     return symbolProvider;
 }
 
-// One process worth of threads, out of a snapshot the caller already took so a batch enumerates
-// once. Returns NULL when the process is not in that snapshot; in summary mode the threads are
-// counted but no rows are built.
-// The modules of a process by address range. A thread whose start address falls in none of them did
-// not start in anything that was loaded as a module, which is the shape injected code has; deriving
-// that from the module list rather than from symbols means it works with no symbol server, no PDBs
-// and no symbol path at all.
-
 typedef struct _AT_THREAD_MODULE
 {
     ULONG_PTR Base;
@@ -214,9 +206,6 @@ PCWSTR AtpResolveLevelString(
     return NULL;
 }
 
-// The system-wide thread enumeration reports a start address of zero to a caller that is not
-// elevated: the field is withheld rather than absent, which is why System Informer's own thread
-// provider asks each thread for it (thrdprv.c:905). Same here, when the thread can be opened.
 PVOID AtpQueryThreadStartAddress(
     _In_ HANDLE ThreadId
     )
@@ -247,9 +236,6 @@ PVOID AtpQueryThreadStartAddress(
     return startAddress;
 }
 
-// The per-thread detail that needs the thread itself opened. Everything here is null when it could
-// not be read, and the whole block is only gathered when the caller asks, because a process with a
-// few hundred threads would otherwise cost a few hundred opens and several queries each.
 VOID AtpAddThreadDetails(
     _In_ PVOID Row,
     _In_ HANDLE ProcessId,
@@ -615,11 +601,6 @@ typedef struct _AT_STACK_CONTEXT
 } AT_STACK_CONTEXT, *PAT_STACK_CONTEXT;
 
 _Function_class_(PH_WALK_THREAD_STACK_CALLBACK)
-// A managed frame has no native symbol worth reading: dbghelp resolves it to whatever jitted code
-// sits at that address. DotNetTools can name it through the thread stack control callback, so this
-// fires the same sequence: initialize, announce the default walk, resolve each frame, tear down.
-// Not done for a 32-bit process on a 64-bit build, because DotNetTools reaches a WOW64 target's CLR
-// through phsvc and starting phsvc prompts for elevation.
 VOID AtpBeginManagedSymbols(
     _Inout_ PAT_STACK_CONTEXT Context,
     _In_ HANDLE ProcessId,
@@ -840,9 +821,6 @@ VOID AtpGetThreadStack(
 
     Result->StructuredContent = structured;
 }
-
-// Every thread of one process under a single symbol provider: creating one loads the process's
-// modules and their symbol files, so asking thread by thread pays that again on every call.
 
 #define AT_STACKS_DEFAULT_THREADS 8
 #define AT_STACKS_MAXIMUM_THREADS 64
@@ -1083,10 +1061,6 @@ VOID AtpGetProcessStacks(
     PhFree(processes);
 }
 
-// Turns an address back into a name, or a name into an address. A running process resolves against
-// the modules it has loaded; a file on disk resolves against itself at the base it asks for, so the
-// answers are that file's own addresses.
-
 VOID AtpAddSymbolLine(
     _In_ PVOID Structured,
     _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
@@ -1111,8 +1085,6 @@ VOID AtpAddSymbolLine(
     }
 }
 
-// The file loaded at the base it was linked for, which is what peview does, so an address here is
-// the address the file itself talks about and the rva is the offset every PE tool reports.
 PPH_SYMBOL_PROVIDER AtpCreateFileSymbolProvider(
     _In_ PPH_STRING FileName,
     _Out_ PVOID *ImageBase,

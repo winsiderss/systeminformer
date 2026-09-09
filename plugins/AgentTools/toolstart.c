@@ -11,9 +11,6 @@
 
 #include "agenttools.h"
 
-// How the text an entry carries has to be read to find the file it runs: a Run value is a command
-// line with arguments, an AppInit or LSA entry is a bare module name, a Startup folder entry is
-// already a path.
 typedef enum _AT_STARTUP_IMAGE
 {
     AtStartupImageNone,
@@ -29,8 +26,6 @@ typedef struct _AT_STARTUP_CONTEXT
     PPH_STRING KindFilter;
     BOOLEAN Verify;
 
-    // The source being read. A reader names it before it enumerates; the subkey callbacks narrow
-    // the location to one subkey for the entry they add.
     PPH_STRING Location;
     PCWSTR Scope;
     PCWSTR Kind;
@@ -67,11 +62,6 @@ FORCEINLINE PCWSTR AtpStartupScope(
     return Machine ? L"machine" : L"user";
 }
 
-/**
- * Names the source the following entries come from.
- *
- * \return FALSE when the caller filtered this kind out, so a reader can skip opening the key.
- */
 BOOLEAN AtpSetStartupSource(
     _Inout_ PAT_STARTUP_CONTEXT Context,
     _In_ PCWSTR Location,
@@ -93,11 +83,6 @@ BOOLEAN AtpSetStartupSource(
     return TRUE;
 }
 
-/**
- * Where a module name is looked for when the entry does not carry a path. AppInit DLLs, LSA
- * packages, KnownDLLs and print monitors are loaded out of the system directory, and a name that is
- * not there is not resolved somewhere else on a guess.
- */
 PPH_STRING AtpResolveModuleName(
     _In_ PPH_STRING Name,
     _Out_ PBOOLEAN Exists
@@ -145,11 +130,6 @@ PPH_STRING AtpResolveModuleName(
     return fileName;
 }
 
-/**
- * The file an entry runs, worked out from the text the entry carries. A full path is only reported
- * when the file was found; otherwise the name as written comes back with Exists FALSE, because
- * "points at something that is not there" is an answer worth having.
- */
 BOOLEAN AtpResolveStartupImage(
     _In_opt_ PPH_STRING Image,
     _In_ AT_STARTUP_IMAGE Kind,
@@ -297,10 +277,6 @@ VOID AtpAddStartupEntry(
     PhClearReference(&imagePath);
 }
 
-/**
- * One entry per element of a list held in a single value. Winlogon separates with commas and
- * AppInit_DLLs with commas or spaces; an empty element is a trailing separator, not an entry.
- */
 VOID AtpAddSeparatedEntries(
     _In_ PAT_STARTUP_CONTEXT Context,
     _In_opt_ PPH_STRING Name,
@@ -586,11 +562,6 @@ VOID AtpReadWinlogonValues(
     NtClose(keyHandle);
 }
 
-/**
- * One value read out of every subkey of a key: the Notify DllName, the IFEO Debugger, the print
- * monitor Driver, the Active Setup StubPath. The subkey name is the entry name and the location
- * names the subkey it came from.
- */
 _Function_class_(PH_ENUM_KEY_CALLBACK)
 BOOLEAN NTAPI AtpStartupSubKeyCallback(
     _In_ HANDLE RootDirectory,
@@ -802,9 +773,6 @@ VOID AtpReadAppInitDlls(
     NtClose(keyHandle);
 }
 
-/**
- * One entry per string of a REG_MULTI_SZ value; the LSA package lists are held that way.
- */
 VOID AtpAddMultiStringEntries(
     _In_ PAT_STARTUP_CONTEXT Context,
     _In_ HANDLE KeyHandle,
@@ -952,10 +920,6 @@ VOID AtpReadKnownDlls(
         );
 }
 
-/**
- * The module a shell hook or browser helper object registers, which is one indirection away: the
- * hook names a class and the class names the file.
- */
 PPH_STRING AtpResolveClsidModule(
     _In_ PPH_STRING Clsid,
     _Out_opt_ PPH_STRING* FriendlyName

@@ -710,9 +710,6 @@ BOOLEAN WhoisQueryServer(
     return FALSE;
 }
 
-/**
- * Reports progress to the whois window, when there is one.
- */
 static VOID NTAPI WhoisWindowProgress(
     _In_ PCWSTR Message,
     _In_opt_ PVOID Context
@@ -724,19 +721,6 @@ static VOID NTAPI WhoisWindowProgress(
         SendMessage(windowHandle, NTM_RECEIVEDWHOIS, 0, (LPARAM)PhCreateString((PWSTR)Message));
 }
 
-/**
- * Queries the registration record for an address, following the referral chain.
- *
- * \param Address The address to ask about.
- * \param Ipv6Support Reach whois servers over IPv6 when they have an AAAA record.
- * \param Progress Called as each server is contacted, or NULL.
- * \param Context Passed to \a Progress.
- * \param Response The assembled text of the responses.
- * \return TRUE if a server answered.
- *
- * \remarks Split out of the window's worker thread so it can also run with no window at all; the
- * progress callback is what the window used to do inline.
- */
 _Success_(return)
 BOOLEAN NetworkToolsQueryWhois(
     _In_ PCWSTR Address,

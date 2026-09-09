@@ -13,10 +13,6 @@
 
 #include <usernotesintf.h>
 
-// What the user has saved against a process in UserNotes: the comment, and the priority, affinity
-// and colour the plugin reapplies whenever that program runs again. The database is keyed on the
-// file name or on the whole command line, never on the pid.
-
 PUSERNOTES_INTERFACE AtGetUserNotesInterface(
     VOID
     )

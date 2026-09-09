@@ -31,8 +31,6 @@ VOID AtpAddHandleRow(
     PhAddJsonObjectBoolean(Row, "protect_from_close", !!FlagOn(Handle->HandleAttributes, OBJ_PROTECT_CLOSE));
 }
 
-// The access mask spelled out against the type's own rights, so an agent does not have to know that
-// 0x1f0fff means "everything" for a process and something else for a key.
 VOID AtpAddGrantedAccessSymbolic(
     _In_ PVOID Row,
     _In_ ACCESS_MASK GrantedAccess,
@@ -115,9 +113,6 @@ VOID AtpGetProcessHandles(
     {
         processHandle = target->ProcessHandle;
 
-        // Resolution asks for no more than PROCESS_QUERY_LIMITED_INFORMATION so a protected process
-        // resolves at all. With the driver the objects are read in place; without it the names come
-        // from duplicating each handle, so a second handle is opened just for that.
         if (KsiLevel() < KphLevelMed)
         {
             if (NT_SUCCESS(PhOpenProcess(&dupProcessHandle, PROCESS_DUP_HANDLE | PROCESS_QUERY_LIMITED_INFORMATION, target->ProcessItem->ProcessId)))
@@ -454,8 +449,6 @@ PCWSTR AtpMemoryRegionTypeString(
     return NULL;
 }
 
-// How the kernel judged the image backing this region. Unsigned executable memory in a process that
-// should only be running signed code is the point of asking.
 PCWSTR AtpSigningLevelString(
     _In_ SE_SIGNING_LEVEL SigningLevel
     )
@@ -516,7 +509,6 @@ VOID AtpAddRegionFlags(
     PhAddJsonObjectValue(Row, "flags", array);
 }
 
-// What the region is for, in typed fields rather than only in the sentence "use" carries.
 VOID AtpAddRegionDetail(
     _In_ PVOID Row,
     _In_ PPH_MEMORY_ITEM Item,
@@ -825,9 +817,6 @@ VOID AtpCreateProcessMinidump(
 
     Result->StructuredContent = structured;
 }
-
-// The strings a process is holding now, as opposed to the ones in its file. Reading them is reading
-// process memory, so this is the same consent as read_process_memory.
 
 #define AT_MEMORY_STRINGS_DEFAULT_LENGTH 8
 #define AT_MEMORY_STRINGS_MINIMUM_LENGTH 4

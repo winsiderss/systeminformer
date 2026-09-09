@@ -11,11 +11,6 @@
 
 #include "agenttools.h"
 
-// Disk and network I/O for one process, from the counters ExtendedTools accumulates: the per-run
-// delta that makes a rate, the operation counts, and the busiest run seen. Which figures exist
-// depends on the collector - no network operation counts without the kernel trace session, and no
-// network bytes before Windows 11 24H2 - so anything not collected is null rather than zero.
-
 VOID AtpAddIoValue(
     _In_ PVOID Object,
     _In_ PCSTR Key,

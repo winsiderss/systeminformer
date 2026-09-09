@@ -13,10 +13,6 @@
 #include <mapldr.h>
 #include <iphlpapi.h>
 
-// The network interfaces this machine has. HardwareDevices only samples the adapters a user picked
-// in its options, so this asks the IP helper directly and reports every interface. iphlpapi is
-// resolved at run time, so the plugin gains no link dependency.
-
 static PVOID AtpIphlpapiBaseAddress = NULL;
 static typeof(&GetAdaptersAddresses) AtpGetAdaptersAddresses = NULL;
 static typeof(&GetIfEntry2) AtpGetIfEntry2 = NULL;

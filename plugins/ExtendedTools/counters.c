@@ -2014,17 +2014,6 @@ FLOAT EtLookupProcessGpuUtilization(
     return EtpLookupProcessGpuUtilization(EtpGpuAdapterList, ProcessId);
 }
 
-/**
- * Copies out the graphics work and video memory attributed to a process.
- *
- * \param ProcessId The process to report on.
- * \param Statistics The copied statistics. Not written unless GPU monitoring is running.
- * eturn TRUE if GPU monitoring is running, FALSE otherwise.
- *
- * emarks EXTENDEDTOOLS_INTERFACE. A process that is not using the GPU reads as zero, which is
- * also what every process reads as when the performance counters are not being collected; the
- * caller is told which case it is looking at rather than left to guess.
- */
 BOOLEAN EtLookupProcessGpuStatistics(
     _In_ HANDLE ProcessId,
     _Out_ PEXTENDEDTOOLS_PROCESS_GPU Statistics

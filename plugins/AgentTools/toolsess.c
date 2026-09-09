@@ -33,9 +33,6 @@
 #define LOGON_NO_ELEVATION          0x40000
 #define LOGON_MANAGED_SERVICE       0x80000
 
-// Who is logged on, and how. The logon session is where a process's user came from: typed at the
-// keyboard, arrived over the network, started as a service, or came in over RDP.
-
 static NTSTATUS (NTAPI* AtpLsaFreeReturnBuffer)(
     _In_ PVOID Buffer
     ) = NULL;
@@ -335,10 +332,6 @@ NextSession:
     PhClearReference(&logonTypeFilter);
 }
 
-// The terminal services sessions. Session 0 holds the services and no desktop; every interactive
-// user gets one of their own. A disconnected session is somebody whose programs are still running
-// with nobody looking at the screen.
-
 PCWSTR AtpWinStationStateString(
     _In_ WINSTATIONSTATECLASS State
     )
@@ -484,9 +477,6 @@ VOID AtpListTerminalSessions(
     AtDeleteRows(&rows);
     PhClearReference(&stateFilter);
 }
-
-// A SID and a name are two spellings of the same thing, and nearly every other tool here hands back
-// one of them. This turns either into the other and says what kind of thing it names.
 
 PCWSTR AtpSidNameUseString(
     _In_ SID_NAME_USE Use

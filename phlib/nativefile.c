@@ -3069,10 +3069,6 @@ NTSTATUS PhpQueryFileVariableSize(
 
     if (NT_SUCCESS(status))
     {
-        // The query can succeed with nothing to return: a directory has no streams, and a file can
-        // report no links. The buffer is left untouched in that case, and every caller walks what it
-        // gets back as a linked list, so handing it over would have them walking whatever the
-        // allocator last left in that memory.
         if (ioStatusBlock.Information == 0)
         {
             PhFree(buffer);

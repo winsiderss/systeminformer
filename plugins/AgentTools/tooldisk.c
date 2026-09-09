@@ -12,10 +12,6 @@
 #include "agenttools.h"
 #include <nvme.h>
 
-// The physical disks, asked directly rather than through HardwareDevices, which only samples the
-// drives a user picked. All three tools key their rows on disk_number, and everything opens the
-// device with FILE_READ_ATTRIBUTES only.
-
 // SMART attributes arrive as a 512-byte vendor block: a two-byte header then up to thirty
 // twelve-byte records. The fields are read at their byte offsets because a struct of these types is
 // fourteen bytes once aligned.
@@ -77,7 +73,6 @@ PCSTR AtpStorageBusTypeString(
     return "unknown";
 }
 
-// The disk device interfaces, which is every physical disk the system has, virtual ones included.
 PPH_LIST AtpEnumerateDiskPaths(
     VOID
     )
@@ -218,7 +213,6 @@ PSTORAGE_DEVICE_DESCRIPTOR AtpQueryDiskDescriptor(
     return descriptor;
 }
 
-// The descriptor's strings are ANSI and are padded with spaces by most firmware.
 VOID AtpAddDescriptorString(
     _In_ PVOID Object,
     _In_ PCSTR Key,
@@ -320,8 +314,6 @@ VOID AtpAddDiskIdentity(
     }
 }
 
-// The counters are cumulative since the driver loaded, so what matters is the difference between
-// two calls; the times are in 100ns units.
 BOOLEAN AtpAddDiskPerformance(
     _In_ PVOID Row,
     _In_ HANDLE DeviceHandle
@@ -431,7 +423,6 @@ VOID AtpAddSmartAttributes(
     PhAddJsonObjectValue(Row, "smart_attributes", attributes);
 }
 
-// A 128-bit NVMe counter. Nothing a controller reports comes close to overflowing the low half.
 ULONG64 AtpNvmeCounter(
     _In_reads_(16) const UCHAR* Value
     )

@@ -14,18 +14,10 @@
 
 #include <fwpmu.h>
 
-// The direction values the platform actually reports in a net event are the ETW DirectionMap
-// values, not the FWP_DIRECTION enumeration; ExtendedTools carries the same definitions.
 #define AT_FWP_DIRECTION_MAP_INBOUND 0x3900
 #define AT_FWP_DIRECTION_MAP_OUTBOUND 0x3901
 #define AT_FWP_DIRECTION_MAP_FORWARD 0x3902
 #define AT_FWP_DIRECTION_MAP_BIDIRECTIONAL 0x3903
-
-// The connections Windows Filtering Platform has recorded. This reads what the platform already
-// collects rather than subscribing: FWPM_ENGINE_COLLECT_NET_EVENTS is machine-wide and
-// ExtendedTools owns it too. Every field of a net event is gated by a flag in its header; one whose
-// flag is clear holds whatever was in the buffer, so each is reported only when its flag says it
-// was set.
 
 static PVOID AtpFwpuclntBaseAddress = NULL;
 static ULONG (WINAPI *AtpFwpmEngineOpen)(PCWSTR, ULONG, PSEC_WINNT_AUTH_IDENTITY_W, const FWPM_SESSION0*, HANDLE*) = NULL;
@@ -129,8 +121,6 @@ PCSTR AtpFirewallDirectionString(
     return "unknown";
 }
 
-// The type-specific part of an event. Only the classify and capability kinds carry a direction, a
-// filter and a layer; the IPsec kinds are about a negotiation rather than a packet.
 BOOLEAN AtpFirewallEventDetail(
     _In_ const FWPM_NET_EVENT* Event,
     _Out_ PULONG Direction,

@@ -5249,8 +5249,6 @@ CONST AT_TOOL AtTools[] =
 
 CONST ULONG AtToolCount = RTL_NUMBER_OF(AtTools);
 
-// Each names the tool that answers it and the arguments it is answered with, so nothing here reads
-// anything the tool could not, and a tool turned off turns its resources off with it.
 CONST AT_RESOURCE AtResources[] =
 {
     {
@@ -5285,8 +5283,6 @@ CONST ULONG AtResourceCount = RTL_NUMBER_OF(AtResources);
 // One line of prompt text per C string, joined with real newlines.
 #define AT_NL "\n"
 
-// A prompt is text: it runs nothing and reads nothing. Each says which tools answer a question and
-// in what order, and carries the traps that are easy to fall into.
 CONST AT_PROMPT AtPrompts[] =
 {
     {

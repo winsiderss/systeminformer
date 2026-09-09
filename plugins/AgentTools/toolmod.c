@@ -73,8 +73,6 @@ PCWSTR AtpLoadReasonString(
     return NULL;
 }
 
-// What the file on disk says and who signed it. Verification is not cached here, so it is only done
-// when the caller asked for the detail or is filtering on it.
 VOID AtpAddModuleDetails(
     _In_ PVOID Row,
     _In_ PPH_STRING FileName,
@@ -215,8 +213,6 @@ BOOLEAN NTAPI AtpModuleCallback(
     return TRUE;
 }
 
-// One process worth of modules. Returns NULL, with Status set, when nothing could be enumerated;
-// in summary mode the rows are counted but never built.
 PVOID AtpCreateModulesResult(
     _In_ PAT_TOOL_CALL Call,
     _In_ PPH_PROCESS_ITEM ProcessItem,
@@ -337,10 +333,6 @@ VOID AtpGetProcessModules(
 
     AtDeleteTarget(&target);
 }
-
-// ntdll keeps a small ring of unloaded modules, which outlives the module itself: a dll that was
-// injected, did its work and unloaded leaves an entry here and nothing in the module list. The ring
-// wraps.
 
 VOID AtpGetProcessUnloadedModules(
     _In_ PAT_TOOL_CALL Call,
@@ -538,9 +530,6 @@ BOOLEAN AtFindProcessModule(
     return TRUE;
 }
 
-// How much of an image in memory still matches the file it was loaded from. A packer, a hollowed
-// process and inline hooks all leave the mapped copy disagreeing with the file.
-
 PH_IMAGE_COHERENCY_SCAN_TYPE AtpCoherencyScanType(
     _In_opt_ PPH_STRING Name
     )
@@ -701,9 +690,6 @@ VOID AtpGetProcessImageCoherency(
 
     PhClearReference(&scanTypeName);
 }
-
-// Windows maps an image copy-on-write, so a page that has been written to - an inline hook, a
-// patched jump table - stops being backed by the file and says so in its working set attributes.
 
 typedef struct _AT_PAGE_MODIFICATION_CONTEXT
 {

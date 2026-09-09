@@ -598,11 +598,6 @@ VOID AtpHandlePromptsList(
     AtpSendResult(Connection, IdJson, result, Modern);
 }
 
-/**
- * The prompt text with its one placeholder filled in. The value is the caller's, so it goes in as
- * the text it is and nothing is interpreted: a prompt is a message for the model to read, and the
- * model is told in the text itself that names and paths are evidence rather than instructions.
- */
 PPH_BYTES AtpFormatPrompt(
     _In_ PCAT_PROMPT Prompt,
     _In_opt_ PVOID Arguments
@@ -905,11 +900,6 @@ VOID AtpHandleToolsCall(
     PhReleaseQueuedLockExclusive(&Connection->Lock);
 }
 
-/**
- * Reading a resource is calling its tool. The uri picks the tool and the arguments; everything
- * after that - the enable check, the consent gate, the invocation, the audit - is the same path a
- * tools/call takes, so a resource cannot reach anything a tool cannot.
- */
 VOID AtpHandleResourcesRead(
     _In_ PAT_CONNECTION Connection,
     _In_ PPH_BYTES IdJson,

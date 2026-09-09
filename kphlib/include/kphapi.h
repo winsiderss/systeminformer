@@ -135,10 +135,6 @@ typedef struct _KPH_PROCESS_BASIC_INFORMATION
 
     SIZE_T NumberOfImageLoads;
 
-    //
-    // Copied verbatim from the process context, so the layout must match KPH_PROCESS_CONTEXT.
-    // Verified, securely created and protected are derived state and are in ProcessState above.
-    //
     union
     {
         ULONG Flags;

@@ -112,7 +112,6 @@ PVOID AtpCreateProcessRow(
     return row;
 }
 
-// Rates use the provider's actual interval, which is not the configured one while throttling.
 PCWSTR AtpKnownProcessTypeString(
     _In_ PH_KNOWN_PROCESS_TYPE Type
     )
@@ -156,8 +155,6 @@ PCWSTR AtpKnownProcessTypeString(
     return NULL;
 }
 
-// What a host process is really running: svchost's group, rundll32's entry point, dllhost's COM
-// object.
 VOID AtpAddKnownCommandLine(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -204,7 +201,6 @@ VOID AtpAddKnownCommandLine(
     PhAddJsonObjectValue(Object, "known_command_line", entry);
 }
 
-// The parent as it was at this process's start; the pid alone may since have been reused.
 VOID AtpAddParent(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -263,7 +259,6 @@ VOID AtpAddParent(
     PhDereferenceObject(parent);
 }
 
-// Needs the process opened, so only on request. Anything unreadable is null rather than zero.
 VOID AtpAddProcessStatistics(
     _In_ PVOID Object,
     _In_ PPH_PROCESS_ITEM ProcessItem
@@ -1529,9 +1524,6 @@ VOID AtpGetProcessWindows(
     AtDeleteTarget(&target);
 }
 
-// The job a process belongs to. Whether it is in one is answerable by anyone; opening the job needs
-// the driver.
-
 VOID AtpAddJobLimits(
     _In_ PVOID Object,
     _In_ HANDLE JobHandle
@@ -1820,11 +1812,6 @@ VOID AtpGetProcessJob(
     AtDeleteTarget(&target);
 }
 
-/**
- * Which of the driver's own state thresholds a process meets. The driver decides what it will do
- * for a process by comparing its state against these, so the name of the highest one it satisfies
- * says more than the flag list does.
- */
 PCWSTR AtpProcessStateLevelString(
     _In_ KPH_PROCESS_STATE State
     )
@@ -1843,10 +1830,6 @@ PCWSTR AtpProcessStateLevelString(
     return L"none";
 }
 
-/**
- * What the driver knows about a process, which is not what user mode can ask for: whether it was
- * created before anything could tamper with it, what it has loaded since, and who created it.
- */
 VOID AtpGetProcessKsiState(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
@@ -2073,9 +2056,6 @@ BOOLEAN NTAPI AtpZombieProcessCallback(
     return TRUE;
 }
 
-/**
- * Cross-view detection: everything a scan can find, against everything the process list reports.
- */
 VOID AtpListHiddenProcesses(
     _In_ PAT_TOOL_CALL Call,
     _Inout_ PAT_TOOL_RESULT Result
