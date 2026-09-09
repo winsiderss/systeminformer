@@ -571,8 +571,11 @@ VOID AtpListRecentEvents(
         PCSTR kind;
         PVOID row;
 
+        // Belt and braces: the ring is written under the lock exclusively and read under it
+        // shared, so a slot cannot be overwritten while this walk holds it. The check costs a
+        // comparison and would catch a future writer that forgot the lock.
         if (event->Cursor != cursor)
-            continue; // the slot moved on under a reader walking slowly
+            continue;
 
         kind = AtpEventKindNames[event->Kind];
 

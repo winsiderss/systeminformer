@@ -1947,8 +1947,9 @@ VOID AtpGetProcessKsiState(
         stateFlags, stateNames, RTL_NUMBER_OF(stateFlags));
     AtJsonAddStringZ(structured, "state_level", AtpProcessStateLevelString(basicInfo.ProcessState));
 
-    // These describe the driver's trust relationship with a client it protects, not the process,
-    // and state_names carries them. Not a Windows protected process.
+    // Whether the driver was there to see this process created and exited - it sees neither for a
+    // process that predates it - and two facts about the image itself. Only create_notification is
+    // also in state_names; the other three are not, and none of them is a trust relationship.
     PhAddJsonObjectBoolean(structured, "create_notification", !!basicInfo.CreateNotification);
     PhAddJsonObjectBoolean(structured, "exit_notification", !!basicInfo.ExitNotification);
     PhAddJsonObjectBoolean(structured, "is_wow64", !!basicInfo.IsWow64);

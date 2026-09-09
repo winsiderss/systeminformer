@@ -289,8 +289,9 @@ VOID AtpGetThreadWaitChain(
         HANDLE threadHandle;
         CLIENT_ID clientId;
 
-        // A tid is only meaningful inside the process it was given with, and tids are reused, so
-        // the thread is opened by client id rather than passed to an API taking a bare tid.
+        // Thread ids are machine-global rather than scoped to a process, but they are reused, so
+        // the thread is opened by client id: that is what makes sure the tid still belongs to the
+        // process the caller named and not to whatever took the number next.
         clientId.UniqueProcess = Target->ProcessItem->ProcessId;
         clientId.UniqueThread = UlongToHandle((ULONG)threadId);
 
