@@ -342,6 +342,7 @@ typedef struct _AT_CONNECTION
     MANDATORY_LEVEL_RID IntegrityRid;
     BOOLEAN IsAppContainer;
     ULONG BrokerProcessId;
+    PPH_STRING BrokerImageName;
 
     ULONG LauncherProcessId;
     PPH_STRING LauncherImageName;

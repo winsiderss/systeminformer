@@ -55,6 +55,7 @@ VOID NTAPI AtpConnectionDeleteProcedure(
 
     PhClearReference(&connection->UserName);
     PhClearReference(&connection->LauncherImageName);
+    PhClearReference(&connection->BrokerImageName);
     PhClearReference(&connection->StdioClientIds);
     PhClearReference(&connection->LauncherSignerName);
     PhClearReference(&connection->ClientName);
@@ -400,7 +401,8 @@ VOID AtpUnregisterConnection(
 }
 
 SIMCP_HELLO_STATUS AtpValidateBrokerImage(
-    _In_ HANDLE ProcessHandle
+    _In_ HANDLE ProcessHandle,
+    _Out_opt_ PPH_STRING *ImageName
     )
 {
     static CONST PH_STRINGREF brokerFileName = PH_STRINGREF_INIT(SIMCP_BROKER_FILE_NAME);
@@ -430,6 +432,10 @@ SIMCP_HELLO_STATUS AtpValidateBrokerImage(
     }
 
     result = SimcpHelloAccepted;
+
+    // The one image in the exchange that was checked rather than claimed.
+    if (ImageName)
+        *ImageName = PhReferenceObject(remoteFileName);
 
 CleanupExit:
     PhClearReference(&expectedFileName);
@@ -676,7 +682,7 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, clientProcessId)))
         goto CleanupExit;
 
-    result = AtpValidateBrokerImage(processHandle);
+    result = AtpValidateBrokerImage(processHandle, &Connection->BrokerImageName);
 
     if (result != SimcpHelloAccepted)
         goto CleanupExit;

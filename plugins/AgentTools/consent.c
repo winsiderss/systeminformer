@@ -162,12 +162,67 @@ VOID AtpEnsureLauncherVerified(
     PhClearReference(&signer);
 }
 
+/**
+ * Names the processes holding the broker's standard handles. The broker is one of them, so an
+ * ordinary session lists two; a third is a process that took a copy of the pipe.
+ */
+VOID AtpAppendStdioClients(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Connection->StdioClientIds->Count; i++)
+    {
+        HANDLE processId = Connection->StdioClientIds->Items[i];
+        PPH_PROCESS_ITEM processItem;
+
+        if (i != 0)
+            PhAppendStringBuilder2(Builder, L", ");
+
+        if (processItem = PhReferenceProcessItem(processId))
+        {
+            PhAppendFormatStringBuilder(Builder, L"%s (%lu)",
+                PhGetStringOrDefault(processItem->ProcessName, L"unknown"), HandleToUlong(processId));
+            PhDereferenceObject(processItem);
+        }
+        else
+        {
+            PhAppendFormatStringBuilder(Builder, L"pid %lu", HandleToUlong(processId));
+        }
+    }
+}
+
+/**
+ * Answers whether the launcher the client named holds none of the broker's standard handles, which
+ * is what a forged parent looks like. Only answered when the handles were actually resolved.
+ */
+BOOLEAN AtpLauncherContradictsStdio(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    ULONG i;
+
+    if (Connection->StdioOrigin != AtStdioResolved || !Connection->LauncherProcessId)
+        return FALSE;
+
+    for (i = 0; i < Connection->StdioClientIds->Count; i++)
+    {
+        if (HandleToUlong(Connection->StdioClientIds->Items[i]) == Connection->LauncherProcessId)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 PPH_STRING AtpFormatRequester(
     _In_ PAT_CONNECTION Connection
     )
 {
     PH_STRING_BUILDER builder;
     PPH_STRING launcher = NULL;
+    PPH_STRING broker = NULL;
 
     AtpEnsureLauncherVerified(Connection);
 
@@ -192,18 +247,38 @@ PPH_STRING AtpFormatRequester(
         PhAppendStringBuilder2(&builder, L"an unidentified client");
     }
 
+    // Whoever holds the broker's standard handles is driving the session, and that is the one
+    // identity here that was established rather than claimed.
+    switch (Connection->StdioOrigin)
+    {
+    case AtStdioResolved:
+        PhAppendStringBuilder2(&builder, L"\nClient: ");
+        AtpAppendStdioClients(&builder, Connection);
+        break;
+    case AtStdioConsole:
+        PhAppendStringBuilder2(&builder, L"\nClient: a console");
+        break;
+    default:
+        PhAppendStringBuilder2(&builder, L"\nClient: not verified");
+        break;
+    }
+
+    if (Connection->BrokerImageName)
+        broker = PhGetBaseName(Connection->BrokerImageName);
+
+    PhAppendFormatStringBuilder(&builder, L"\nBroker: %s (verified)", PhGetStringOrDefault(broker, L"unknown"));
+    PhClearReference(&broker);
+
+    // Nothing checks the launcher: it is the client's own account of who started the broker, and a
+    // verdict beside it lends that account an authority it does not have.
     if (Connection->LauncherImageName)
         launcher = PhGetBaseName(Connection->LauncherImageName);
 
-    PhAppendFormatStringBuilder(&builder, L" via %s", PhGetStringOrDefault(launcher, L"an unknown process"));
+    PhAppendFormatStringBuilder(&builder, L"\nLauncher: %s (self-reported)", PhGetStringOrDefault(launcher, L"unknown"));
     PhClearReference(&launcher);
 
-    if (Connection->LauncherVerifyChecked && Connection->LauncherVerifyResult == VrTrusted)
-        PhAppendFormatStringBuilder(&builder, L"\nSigner: %s (trusted)", PhGetStringOrDefault(Connection->LauncherSignerName, L"unknown"));
-    else if (!Connection->LauncherVerifyChecked || Connection->LauncherVerifyResult == VrUnknown)
-        PhAppendStringBuilder2(&builder, L"\nSigner: not verified");
-    else
-        PhAppendStringBuilder2(&builder, L"\nSigner: not trusted");
+    if (AtpLauncherContradictsStdio(Connection))
+        PhAppendStringBuilder2(&builder, L", holds none of the broker's handles");
 
     PhAppendFormatStringBuilder(&builder, L"\nUser: %s", PhGetStringOrDefault(Connection->UserName, L"unknown"));
 
@@ -236,9 +311,11 @@ HICON AtpCreateRequestIcon(
     ICONINFO iconInfo;
     HICON result = NULL;
 
+    // The broker's image, not the launcher's: the icon is the most prominent claim the dialog
+    // makes about who is asking, and the launcher is the half nothing verified.
     PhAcquireQueuedLockExclusive(&Connection->Lock);
-    if (Connection->LauncherImageName)
-        launcher = PhReferenceObject(Connection->LauncherImageName);
+    if (Connection->BrokerImageName)
+        launcher = PhReferenceObject(Connection->BrokerImageName);
     PhReleaseQueuedLockExclusive(&Connection->Lock);
 
     if (!launcher)
