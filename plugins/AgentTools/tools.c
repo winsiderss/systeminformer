@@ -1491,6 +1491,136 @@ VOID AtFillProcessIdentity(
     AtJsonAddString(Object, "name", ProcessItem->ProcessName);
 }
 
+/**
+ * Answers whether a tool's own schema declares a sort key, reading the enum out of the definition
+ * so the accepted list cannot drift from the one the client was given.
+ */
+BOOLEAN AtpToolDeclaresSortKey(
+    _In_ PCAT_TOOL Tool,
+    _In_ PPH_STRING Key
+    )
+{
+    static CONST CHAR enumPrefix[] = "\"sort_by\":{\"type\":\"string\",\"enum\":[";
+    PPH_BYTES key;
+    PSTR position;
+    PSTR end;
+    BOOLEAN found = FALSE;
+
+    if (!(position = strstr(Tool->Definition, enumPrefix)))
+        return FALSE;
+
+    position += sizeof(enumPrefix) - 1;
+
+    if (!(end = strchr(position, ']')))
+        return FALSE;
+
+    key = PhConvertUtf16ToUtf8Ex(Key->Buffer, Key->Length);
+
+    while (position < end)
+    {
+        PSTR tokenEnd;
+
+        if (*position++ != '"')
+            continue;
+
+        if (!(tokenEnd = strchr(position, '"')) || tokenEnd > end)
+            break;
+
+        if ((SIZE_T)(tokenEnd - position) == key->Length &&
+            memcmp(position, key->Buffer, key->Length) == 0)
+        {
+            found = TRUE;
+            break;
+        }
+
+        position = tokenEnd + 1;
+    }
+
+    PhDereferenceObject(key);
+
+    return found;
+}
+
+/**
+ * Rejects paging arguments a tool cannot honour. Without this a limit of the wrong JSON type falls
+ * back to the default and the answer echoes that default as though it had been asked for, and an
+ * unrecognised sort key ranks every row null, so the sort silently does nothing.
+ *
+ * eturn TRUE when the arguments can be honoured.
+ */
+BOOLEAN AtpValidatePagingArguments(
+    _In_ PCAT_TOOL Tool,
+    _In_ PAT_TOOL_CALL Call,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    static CONST PSTR numeric[] = { "limit", "offset" };
+    PPH_STRING sortBy;
+    PVOID member;
+    ULONG i;
+
+    if (!Call->Arguments)
+        return TRUE;
+
+    for (i = 0; i < RTL_NUMBER_OF(numeric); i++)
+    {
+        if (!(member = PhGetJsonObject(Call->Arguments, numeric[i])))
+            continue;
+
+        if (PhGetJsonObjectType(member) != PH_JSON_OBJECT_TYPE_INT)
+        {
+            AtSetToolError(
+                Result,
+                "invalid_arguments",
+                STATUS_INVALID_PARAMETER,
+                L"%hs must be a number, not a string or any other type.",
+                numeric[i]
+                );
+            return FALSE;
+        }
+    }
+
+    if (member = PhGetJsonObject(Call->Arguments, "descending"))
+    {
+        if (PhGetJsonObjectType(member) != PH_JSON_OBJECT_TYPE_BOOLEAN)
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                L"descending must be true or false.");
+            return FALSE;
+        }
+    }
+
+    if (member = PhGetJsonObject(Call->Arguments, "sort_by"))
+    {
+        if (PhGetJsonObjectType(member) != PH_JSON_OBJECT_TYPE_STRING)
+        {
+            AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER,
+                L"sort_by must be a string.");
+            return FALSE;
+        }
+
+        sortBy = PhGetJsonValueAsString(Call->Arguments, "sort_by");
+
+        if (!AtpToolDeclaresSortKey(Tool, sortBy))
+        {
+            AtSetToolError(
+                Result,
+                "invalid_arguments",
+                STATUS_INVALID_PARAMETER,
+                L"%hs does not sort by \"%s\"; the values it accepts are in its own sort_by schema.",
+                Tool->Name,
+                PhGetString(sortBy)
+                );
+            PhClearReference(&sortBy);
+            return FALSE;
+        }
+
+        PhClearReference(&sortBy);
+    }
+
+    return TRUE;
+}
+
 VOID AtInvokeTool(
     _In_ PCAT_TOOL Tool,
     _In_ PAT_TOOL_CALL Call,
@@ -1499,6 +1629,9 @@ VOID AtInvokeTool(
     )
 {
     PCAT_ACTION_INFO action = &AtActionInfo[Tool->Action];
+
+    if (!AtpValidatePagingArguments(Tool, Call, Result))
+        return;
 
     switch (Tool->Action)
     {
