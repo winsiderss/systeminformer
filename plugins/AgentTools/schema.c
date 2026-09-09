@@ -3043,6 +3043,7 @@ CONST AT_TOOL AtTools[] =
         "\"queue_depth\":{\"type\":\"integer\",\"description\":\"Requests outstanding right now\"}"
         "},\"required\":[\"disk_number\",\"bytes_read\",\"bytes_written\",\"queue_depth\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -3076,6 +3077,7 @@ CONST AT_TOOL AtTools[] =
         "\"cylinders\":{\"type\":[\"integer\",\"null\"]}"
         "},\"required\":[\"disk_number\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"
@@ -3130,6 +3132,7 @@ CONST AT_TOOL AtTools[] =
         "}}"
         "},\"required\":[\"disk_number\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES ","
+        "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
         AT_READ_ANNOTATIONS "}"

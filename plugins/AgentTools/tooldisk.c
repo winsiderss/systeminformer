@@ -547,6 +547,7 @@ VOID AtpEnumerateDisks(
     _In_ AT_DISK_TOOL Tool
     )
 {
+    ULONG unreadable;
     PPH_LIST paths;
     AT_ROWS rows;
     PVOID structured;
@@ -564,6 +565,7 @@ VOID AtpEnumerateDisks(
 
     structured = PhCreateJsonObject();
     AtInitializeRows(&rows, Call->Arguments);
+    unreadable = 0;
 
     for (i = 0; i < paths->Count; i++)
     {
@@ -572,8 +574,13 @@ VOID AtpEnumerateDisks(
         PVOID row;
         ULONG number;
 
+        // A disk that cannot be opened is counted, not dropped: with disk_number given, an empty
+        // answer would otherwise read as "there is no such disk".
         if (!NT_SUCCESS(AtpOpenDisk(&deviceHandle, path)))
+        {
+            unreadable++;
             continue;
+        }
 
         number = AtpQueryDiskNumber(deviceHandle);
 
@@ -619,6 +626,7 @@ VOID AtpEnumerateDisks(
         NtClose(deviceHandle);
     }
 
+    PhAddJsonObjectUInt64(structured, "unreadable_count", unreadable);
     AtAddRows(structured, "disks", &rows);
     AtAddSnapshot(structured);
 
