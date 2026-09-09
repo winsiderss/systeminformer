@@ -588,11 +588,16 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
 
 // destructiveHint means the call costs something that cannot be got back; idempotentHint means a
 // second identical call changes nothing more. AtVerifySchema checks both against the tier.
-#define AT_READ_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
-#define AT_WRITE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false}"
-#define AT_WRITE_COUNTED_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":false}"
-#define AT_DESTRUCTIVE_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false}"
-#define AT_DESTRUCTIVE_IDEMPOTENT_ANNOTATIONS "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":true,\"openWorldHint\":false}"
+#define AT_READ_HINTS "\"readOnlyHint\":true,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false"
+#define AT_WRITE_HINTS "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":false"
+#define AT_WRITE_COUNTED_HINTS "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":false"
+#define AT_DESTRUCTIVE_HINTS "\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":false,\"openWorldHint\":false"
+#define AT_DESTRUCTIVE_IDEMPOTENT_HINTS "\"readOnlyHint\":false,\"destructiveHint\":true,\"idempotentHint\":true,\"openWorldHint\":false"
+#define AT_EGRESS_HINTS "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true"
+#define AT_EGRESS_COUNTED_HINTS "\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":true"
+
+// title is repeated here because a client on 2025-03-26 reads it only from the annotations.
+#define AT_ANNOTATIONS(Title, Hints) "\"annotations\":{\"title\":\"" Title "\"," Hints "}"
 
 // Only the tools that declare AT_DELTA_INPUT_PROPERTY accept since_snapshot_id; the rest set
 // additionalProperties false and refuse it, so only those tools tell the caller to keep the id.
@@ -767,7 +772,7 @@ CONST AT_TOOL AtTools[] =
         AT_DELTA_OUTPUT_SCHEMA(AT_PROCESS_CHANGE_ROW_SCHEMA) ","
         AT_DELTA_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List processes", AT_READ_HINTS) "}"
     },
     {
         "get_process", L"Get process details", AtTierRead, AtActionGetProcess,
@@ -923,7 +928,7 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"updates_paused\"],"
         "\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"access_denied\"]},{\"required\":[\"results\",\"result_count\"]}]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process details", AT_READ_HINTS) "}"
     },
     {
         "get_process_history", L"Get process history", AtTierRead, AtActionGetProcessHistory,
@@ -965,7 +970,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"update_interval_ms\",\"sample_count\",\"cpu_usage\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process history", AT_READ_HINTS) "}"
     },
     {
         "rank_processes", L"Rank processes by recent activity", AtTierRead, AtActionRankProcesses,
@@ -1005,7 +1010,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\",\"ranked_by\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Rank processes by recent activity", AT_READ_HINTS) "}"
     },
     {
         "list_recent_events", L"List recent events", AtTierRead, AtActionListRecentEvents,
@@ -1044,7 +1049,7 @@ CONST AT_TOOL AtTools[] =
         "\"has_more\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"events\",\"count\",\"next_cursor\",\"dropped\",\"has_more\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List recent events", AT_READ_HINTS) "}"
     },
     {
         "list_recent_process_exits", L"List recent process exits", AtTierRead, AtActionListRecentProcessExits,
@@ -1081,7 +1086,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List recent process exits", AT_READ_HINTS) "}"
     },
     {
         "get_process_mitigations", L"Get process mitigations", AtTierRead, AtActionGetProcessMitigations,
@@ -1115,7 +1120,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"mitigations\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process mitigations", AT_READ_HINTS) "}"
     },
     {
         "get_process_modules", L"List process modules", AtTierRead, AtActionGetProcessModules,
@@ -1162,7 +1167,7 @@ CONST AT_TOOL AtTools[] =
         "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the module walk did not finish; a wow64 process is read in two passes and either can fail, so the list may be partial\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process modules", AT_READ_HINTS) "}"
     },
     {
         "get_process_threads", L"List process threads", AtTierRead, AtActionGetProcessThreads,
@@ -1213,7 +1218,7 @@ CONST AT_TOOL AtTools[] =
         "\"modules_complete\":{\"type\":\"boolean\",\"description\":\"False when the module list could not be read, in which case a null start_address_module means unknown rather than outside every module\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"anyOf\":[{\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},{\"required\":[\"results\",\"result_count\"]}]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process threads", AT_READ_HINTS) "}"
     },
     {
         "get_process_handles", L"List process handles", AtTierRead, AtActionGetProcessHandles,
@@ -1235,7 +1240,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"counts_by_type\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process handles", AT_READ_HINTS) "}"
     },
     {
         "get_process_memory_regions", L"List process memory regions", AtTierRead, AtActionGetProcessMemoryRegions,
@@ -1287,7 +1292,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"regions\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process memory regions", AT_READ_HINTS) "}"
     },
     {
         "get_process_token", L"Get process token", AtTierRead, AtActionGetProcessToken,
@@ -1324,7 +1329,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"enabled\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"groups\",\"privileges\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process token", AT_READ_HINTS) "}"
     },
     {
         "get_process_windows", L"List process windows", AtTierRead, AtActionGetProcessWindows,
@@ -1353,7 +1358,7 @@ CONST AT_TOOL AtTools[] =
         "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the window enumeration did not finish, so a window missing from this list may still exist\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"windows\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process windows", AT_READ_HINTS) "}"
     },
     {
         "get_process_environment", L"Read process environment variables", AtTierSensitiveRead, AtActionReadProcessEnvironment,
@@ -1372,7 +1377,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"variables\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process environment variables", AT_READ_HINTS) "}"
     },
     {
         "get_process_handles_detailed", L"Read process handle names", AtTierSensitiveRead, AtActionGetProcessHandlesDetailed,
@@ -1403,7 +1408,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List process handles with object names", AT_READ_HINTS) "}"
     },
     {
         "find_handles", L"Find handles", AtTierSensitiveRead, AtActionFindHandles,
@@ -1443,7 +1448,7 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; the machine was not fully searched\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handles\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"named\",\"timed_out\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Find handles", AT_READ_HINTS) "}"
     },
     {
         "find_modules", L"Find modules", AtTierRead, AtActionFindModules,
@@ -1491,7 +1496,7 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The scan stopped early; not every process was walked\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"modules\",\"count\",\"total_count\",\"truncated\",\"scanned\",\"timed_out\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Find modules", AT_READ_HINTS) "}"
     },
     {
         "get_file_users", L"Find who is using a file", AtTierRead, AtActionGetFileUsers,
@@ -1529,7 +1534,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"pid\"]}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"handle_users_supported\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Find who is using a file", AT_READ_HINTS) "}"
     },
     {
         "list_object_directory", L"List the object namespace", AtTierRead, AtActionListObjectDirectory,
@@ -1565,7 +1570,7 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"The walk stopped early and the listing is partial\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"objects\",\"count\",\"total_count\",\"truncated\",\"timed_out\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List the object namespace", AT_READ_HINTS) "}"
     },
     {
         "get_object_info", L"Get object info", AtTierRead, AtActionGetObjectInfo,
@@ -1645,7 +1650,7 @@ CONST AT_TOOL AtTools[] =
         "\"flag_names\":{\"type\":[\"array\",\"null\"],\"items\":{\"type\":\"string\"}}}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"type\",\"opened\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get object info", AT_READ_HINTS) "}"
     },
     {
         "get_alpc_port_info", L"Get ALPC port info", AtTierSensitiveRead, AtActionGetAlpcPortInfo,
@@ -1726,7 +1731,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"handle\",\"port\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get ALPC port info", AT_READ_HINTS) "}"
     },
     {
         "get_handle_details", L"Get handle details", AtTierSensitiveRead, AtActionGetHandleDetails,
@@ -1799,7 +1804,7 @@ CONST AT_TOOL AtTools[] =
         "\"provider_guid\":{\"type\":\"string\"},\"session_id\":{\"type\":\"integer\"}}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"handle\",\"source\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get handle details", AT_READ_HINTS) "}"
     },
     {
         "list_named_pipes", L"List named pipes", AtTierRead, AtActionListNamedPipes,
@@ -1843,7 +1848,7 @@ CONST AT_TOOL AtTools[] =
         "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the pipe directory walk did not finish, so a pipe missing from this list may still exist\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pipes\",\"count\",\"total_count\",\"truncated\",\"connected\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List named pipes", AT_READ_HINTS) "}"
     },
     {
         "get_section_mappings", L"Get section mappings", AtTierRead, AtActionGetSectionMappings,
@@ -1885,7 +1890,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"mappings\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get section mappings", AT_READ_HINTS) "}"
     },
     {
         "find_object_handles", L"Find handles to an object", AtTierSensitiveRead, AtActionFindObjectHandles,
@@ -1923,7 +1928,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"object_address\",\"handles\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Find handles to an object", AT_READ_HINTS) "}"
     },
     {
         "get_thread_stack", L"Read thread stack", AtTierSensitiveRead, AtActionGetThreadStack,
@@ -1961,7 +1966,7 @@ CONST AT_TOOL AtTools[] =
         "\"managed_symbols\":{\"type\":\"boolean\",\"description\":\"Whether managed frames were resolved at all; false for a 32-bit target on 64-bit Windows or when the process could not be opened\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"frames\",\"count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get thread stack", AT_READ_HINTS) "}"
     },
     {
         "get_process_stacks", L"Read process thread stacks", AtTierSensitiveRead, AtActionGetProcessStacks,
@@ -2017,7 +2022,7 @@ CONST AT_TOOL AtTools[] =
         "\"truncated\":{\"type\":\"boolean\",\"description\":\"More threads than max_threads; the rest were not walked\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process thread stacks", AT_READ_HINTS) "}"
     },
     {
         "get_thread_wait_chain", L"Read thread wait chains", AtTierSensitiveRead, AtActionGetThreadWaitChain,
@@ -2064,7 +2069,7 @@ CONST AT_TOOL AtTools[] =
         "\"threads_complete\":{\"type\":\"boolean\",\"description\":\"Every thread was walked. False when the enumeration stopped partway, which is not the same as truncated and means a deadlock could have been missed\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"threads\",\"count\",\"total_count\",\"truncated\",\"deadlocked_count\",\"threads_complete\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get thread wait chain", AT_READ_HINTS) "}"
     },
     {
         "analyze_thread_wait", L"Analyze thread wait", AtTierSensitiveRead, AtActionAnalyzeThreadWait,
@@ -2109,7 +2114,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"system_call_number\",\"kind\",\"waiting_on\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Analyze thread wait", AT_READ_HINTS) "}"
     },
     {
         "resolve_symbol", L"Resolve symbol", AtTierSensitiveRead, AtActionResolveSymbol,
@@ -2154,7 +2159,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"mode\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Resolve symbol", AT_READ_HINTS) "}"
     },
     {
         "search_process_strings", L"Search process strings", AtTierSensitiveRead, AtActionSearchProcessStrings,
@@ -2198,7 +2203,7 @@ CONST AT_TOOL AtTools[] =
         "\"timed_out\":{\"type\":\"boolean\",\"description\":\"max_seconds was hit, so the scan did not finish\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\",\"timed_out\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Search process strings", AT_READ_HINTS) "}"
     },
     {
         "get_process_unloaded_modules", L"Get unloaded modules", AtTierRead, AtActionGetProcessUnloadedModules,
@@ -2232,7 +2237,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_wow64\":{\"type\":\"boolean\",\"description\":\"Always false here: a 32-bit process on 64-bit Windows is refused rather than answered from the wrong ring\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"modules\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get unloaded modules", AT_READ_HINTS) "}"
     },
     {
         "get_process_image_coherency", L"Get image coherency", AtTierSensitiveRead, AtActionGetProcessImageCoherency,
@@ -2274,7 +2279,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"scan_type\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get image coherency", AT_READ_HINTS) "}"
     },
     {
         "get_image_page_modifications", L"Get modified image pages", AtTierSensitiveRead, AtActionGetImagePageModifications,
@@ -2309,7 +2314,7 @@ CONST AT_TOOL AtTools[] =
         "\"modified_count\":{\"type\":\"integer\",\"description\":\"How many of them are no longer the file's\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"pages\",\"count\",\"total_count\",\"truncated\",\"page_count\",\"modified_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get modified image pages", AT_READ_HINTS) "}"
     },
     {
         "get_process_job", L"Get process job", AtTierRead, AtActionGetProcessJob,
@@ -2370,7 +2375,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"is_in_job\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process job", AT_READ_HINTS) "}"
     },
     {
         "terminate_process", L"Terminate process", AtTierWrite, AtActionTerminateProcess,
@@ -2379,7 +2384,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Terminates a process. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_ACTION_OUTPUT_SCHEMA ","
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Terminate process", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "suspend_process", L"Suspend process", AtTierWrite, AtActionSuspendProcess,
@@ -2388,7 +2393,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Suspends every thread of a process. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_COUNTED_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Suspend process", AT_WRITE_COUNTED_HINTS) "}"
     },
     {
         "resume_process", L"Resume process", AtTierWrite, AtActionResumeProcess,
@@ -2397,7 +2402,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Resumes a suspended process. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Resume process", AT_WRITE_HINTS) "}"
     },
     {
         "set_process_priority", L"Set process priority", AtTierWrite, AtActionSetProcessPriority,
@@ -2413,7 +2418,7 @@ CONST AT_TOOL AtTools[] =
         "\"priority_class\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"priority_class\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Set process priority class", AT_WRITE_HINTS) "}"
     },
     {
         "freeze_process", L"Freeze a process", AtTierWrite, AtActionFreezeProcess,
@@ -2436,7 +2441,7 @@ CONST AT_TOOL AtTools[] =
         "\"frozen_by_this_instance\":{\"type\":\"boolean\",\"description\":\"Whether this System Informer holds the freeze, which is what thaw_process needs\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"changed\",\"frozen_by_this_instance\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Freeze a process", AT_WRITE_HINTS) "}"
     },
     {
         "thaw_process", L"Thaw a process", AtTierWrite, AtActionThawProcess,
@@ -2455,7 +2460,7 @@ CONST AT_TOOL AtTools[] =
         "\"frozen_by_this_instance\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"changed\",\"frozen_by_this_instance\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Thaw a process", AT_WRITE_HINTS) "}"
     },
     {
         "empty_process_working_set", L"Empty a process working set", AtTierWrite, AtActionEmptyProcessWorkingSet,
@@ -2477,7 +2482,7 @@ CONST AT_TOOL AtTools[] =
         "\"working_set_bytes_after\":{\"type\":[\"integer\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Empty a process working set", AT_WRITE_HINTS) "}"
     },
     {
         "set_process_page_priority", L"Set process page priority", AtTierWrite, AtActionSetProcessPagePriority,
@@ -2501,7 +2506,7 @@ CONST AT_TOOL AtTools[] =
         "\"previous_page_priority_name\":{\"type\":[\"string\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"page_priority\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Set process page priority", AT_WRITE_HINTS) "}"
     },
     {
         "set_process_affinity", L"Set process affinity", AtTierWrite, AtActionSetProcessAffinity,
@@ -2527,7 +2532,7 @@ CONST AT_TOOL AtTools[] =
         "\"previous_affinity_mask\":{\"type\":[\"string\",\"null\"],\"description\":\"What it was before this call; null when it could not be read\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"affinity_mask\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Set which processors a process may run on", AT_WRITE_HINTS) "}"
     },
     {
         "set_process_io_priority", L"Set process I/O priority", AtTierWrite, AtActionSetProcessIoPriority,
@@ -2543,7 +2548,7 @@ CONST AT_TOOL AtTools[] =
         "\"io_priority\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"io_priority\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Set process I/O priority", AT_WRITE_HINTS) "}"
     },
     {
         "create_process_minidump", L"Write process memory dump", AtTierWrite, AtActionCreateProcessMinidump,
@@ -2564,7 +2569,7 @@ CONST AT_TOOL AtTools[] =
         "\"size\":{\"type\":\"integer\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"path\",\"size\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Write process memory dump", AT_WRITE_HINTS) "}"
     },
     {
         "close_handle", L"Close handle", AtTierWrite, AtActionCloseHandle,
@@ -2585,7 +2590,7 @@ CONST AT_TOOL AtTools[] =
         "\"object_name\":{\"type\":[\"string\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"handle\"]},"
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Close handle in process", AT_DESTRUCTIVE_HINTS) "}"
     },
     // threads
     {
@@ -2595,7 +2600,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Suspends one thread of a process. The thread must belong to pid. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_COUNTED_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Suspend thread", AT_WRITE_COUNTED_HINTS) "}"
     },
     {
         "resume_thread", L"Resume thread", AtTierWrite, AtActionResumeThread,
@@ -2604,7 +2609,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Resumes one suspended thread of a process. The thread must belong to pid. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Resume thread", AT_WRITE_HINTS) "}"
     },
     {
         "cancel_thread_io", L"Cancel thread I/O", AtTierWrite, AtActionCancelThreadIo,
@@ -2626,7 +2631,7 @@ CONST AT_TOOL AtTools[] =
         "\"cancelled\":{\"type\":\"boolean\",\"description\":\"True when an I/O was actually cancelled; false when the thread had none waiting\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"tid\",\"action\",\"cancelled\"]},"
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Cancel a thread's synchronous I/O", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "terminate_thread", L"Terminate thread", AtTierWrite, AtActionTerminateThread,
@@ -2636,7 +2641,7 @@ CONST AT_TOOL AtTools[] =
         "belong to pid. " AT_WRITE_NOTE "\","
         "\"inputSchema\":" AT_THREAD_TARGET_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_THREAD_ACTION_OUTPUT_SCHEMA ","
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Terminate thread", AT_DESTRUCTIVE_HINTS) "}"
     },
     // services
     {
@@ -2665,7 +2670,7 @@ CONST AT_TOOL AtTools[] =
         "\"uncached_count\":{\"type\":\"integer\",\"description\":\"Rows built from the service control manager alone because the cache had not seen them yet\"},"
         AT_DELTA_SNAPSHOT_SCHEMA
         "},\"required\":[\"services\",\"count\",\"total_count\",\"truncated\",\"updates_paused\",\"uncached_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List services", AT_READ_HINTS) "}"
     },
     {
         "get_service", L"Get service details", AtTierRead, AtActionGetService,
@@ -2709,7 +2714,7 @@ CONST AT_TOOL AtTools[] =
         "\"access_denied\":{\"type\":\"boolean\",\"description\":\"The service manager refused the query, so the null fields are ones this caller may not read. A service that has gone away since the listing fails too, and is not this\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"name\",\"is_driver\",\"dependencies\",\"controls_accepted\",\"access_denied\",\"details_available\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get service details", AT_READ_HINTS) "}"
     },
     {
         "start_service", L"Start service", AtTierWrite, AtActionStartService,
@@ -2718,7 +2723,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":\"Starts a service or driver. " AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Start service", AT_WRITE_HINTS) "}"
     },
     {
         "pause_service", L"Pause service", AtTierWrite, AtActionPauseService,
@@ -2732,7 +2737,7 @@ CONST AT_TOOL AtTools[] =
         AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Pause service", AT_WRITE_HINTS) "}"
     },
     {
         "continue_service", L"Continue service", AtTierWrite, AtActionContinueService,
@@ -2742,7 +2747,7 @@ CONST AT_TOOL AtTools[] =
         "continued, and only from paused - the state field says where it ended up. " AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Continue service", AT_WRITE_HINTS) "}"
     },
     {
         "stop_service", L"Stop service", AtTierWrite, AtActionStopService,
@@ -2752,7 +2757,7 @@ CONST AT_TOOL AtTools[] =
         AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Stop service", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "restart_service", L"Restart service", AtTierWrite, AtActionRestartService,
@@ -2762,7 +2767,7 @@ CONST AT_TOOL AtTools[] =
         AT_SERVICE_WRITE_NOTE "\","
         "\"inputSchema\":" AT_SERVICE_INPUT_SCHEMA ","
         "\"outputSchema\":" AT_SERVICE_ACTION_OUTPUT_SCHEMA ","
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Restart service", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "set_service_config", L"Change service configuration", AtTierWrite, AtActionSetServiceConfig,
@@ -2790,7 +2795,7 @@ CONST AT_TOOL AtTools[] =
         "\"description\":{\"type\":[\"string\",\"null\"],\"description\":\"What the service says about itself now, read back after the change\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"name\",\"action\"]},"
-        AT_DESTRUCTIVE_IDEMPOTENT_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Change service start type", AT_DESTRUCTIVE_IDEMPOTENT_HINTS) "}"
     },
     // processes
     {
@@ -2831,7 +2836,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Ask a window to close", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "set_window_state", L"Set window state", AtTierWrite, AtActionSetWindowState,
@@ -2871,7 +2876,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_cloaked\":{\"type\":[\"boolean\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"action\",\"still_exists\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Show, hide or resize a window", AT_WRITE_HINTS) "}"
     },
     {
         "get_dotnet_assemblies", L"Get .NET assemblies", AtTierRead, AtActionGetDotNetAssemblies,
@@ -2915,7 +2920,7 @@ CONST AT_TOOL AtTools[] =
         "\"app_domains_unreadable\":{\"type\":\"integer\",\"description\":\"Application domains whose assembly list could not be read. Above zero this list is partial, and an assembly reported as not loaded may simply live in one of these\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"assemblies\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get .NET assemblies", AT_READ_HINTS) "}"
     },
     {
         "get_process_notes", L"Get saved process notes", AtTierRead, AtActionGetProcessNotes,
@@ -2944,7 +2949,7 @@ CONST AT_TOOL AtTools[] =
         "\"efficiency\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"has_entry\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get saved process notes", AT_READ_HINTS) "}"
     },
     {
         "set_process_comment", L"Save a process comment", AtTierWrite, AtActionSetProcessComment,
@@ -2968,7 +2973,7 @@ CONST AT_TOOL AtTools[] =
         "\"cleared\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"matched\",\"cleared\"]},"
-        AT_WRITE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Save a process comment", AT_WRITE_HINTS) "}"
     },
     {
         "list_windows", L"List windows", AtTierRead, AtActionListWindows,
@@ -3014,7 +3019,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"windows\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List windows", AT_READ_HINTS) "}"
     },
     {
         "get_window_info", L"Get window information", AtTierRead, AtActionGetWindowInfo,
@@ -3058,7 +3063,7 @@ CONST AT_TOOL AtTools[] =
         "\"control_id\":{\"type\":\"integer\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"handle\",\"pid\",\"tid\",\"style\",\"styles\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get window information", AT_READ_HINTS) "}"
     },
     // disks
     {
@@ -3095,7 +3100,7 @@ CONST AT_TOOL AtTools[] =
         "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get disk performance", AT_READ_HINTS) "}"
     },
     {
         "get_disk_identity", L"Get disk identity", AtTierRead, AtActionGetDiskIdentity,
@@ -3129,7 +3134,7 @@ CONST AT_TOOL AtTools[] =
         "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get disk identity", AT_READ_HINTS) "}"
     },
     {
         "get_disk_health", L"Get disk health", AtTierSensitiveRead, AtActionGetDiskHealth,
@@ -3184,7 +3189,7 @@ CONST AT_TOOL AtTools[] =
         "\"unreadable_count\":{\"type\":\"integer\",\"description\":\"Disks that could not be opened. Above zero, an empty answer or a missing disk_number may mean the disk was unreadable rather than absent\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"disks\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get disk health", AT_READ_HINTS) "}"
     },
     // network
     {
@@ -3239,7 +3244,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List network adapters", AT_READ_HINTS) "}"
     },
     {
         "ping_host", L"Ping a host", AtTierNetworkEgress, AtActionPingHost,
@@ -3275,7 +3280,7 @@ CONST AT_TOOL AtTools[] =
         "\"average_round_trip_ms\":{\"type\":[\"number\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"address\",\"sent\",\"received\",\"lost\",\"replies\"]},"
-        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":false,\"openWorldHint\":true}}"
+        AT_ANNOTATIONS("Ping a host", AT_EGRESS_COUNTED_HINTS) "}"
     },
     {
         "whois_lookup", L"Look up an address registration", AtTierNetworkEgress, AtActionWhoisLookup,
@@ -3296,7 +3301,7 @@ CONST AT_TOOL AtTools[] =
         "\"response\":{\"type\":[\"string\",\"null\"],\"description\":\"The registries' replies, including which server referred the query onward\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"address\",\"response\"]},"
-        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
+        AT_ANNOTATIONS("Look up an address registration", AT_EGRESS_HINTS) "}"
     },
     {
         "lookup_ip_country", L"Look up an address country", AtTierRead, AtActionLookupIpCountry,
@@ -3319,7 +3324,7 @@ CONST AT_TOOL AtTools[] =
         "\"country_geoname_id\":{\"type\":[\"integer\",\"null\"],\"description\":\"GeoNames identifier, not an ISO country code\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"address\",\"family\",\"is_private\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Look up an address country", AT_READ_HINTS) "}"
     },
     {
         "list_firewall_events", L"List firewall events", AtTierSensitiveRead, AtActionListFirewallEvents,
@@ -3361,7 +3366,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"collection_enabled\",\"enumeration_complete\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"events\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List firewall events", AT_READ_HINTS) "}"
     },
     {
         "list_network_connections", L"List network connections", AtTierRead, AtActionListNetworkConnections,
@@ -3385,7 +3390,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"connections\",\"count\",\"total_count\",\"truncated\",\"updates_paused\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List network connections", AT_READ_HINTS) "}"
     },
     {
         "close_network_connection", L"Close network connection", AtTierWrite, AtActionCloseNetworkConnection,
@@ -3406,7 +3411,7 @@ CONST AT_TOOL AtTools[] =
         "\"connection\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"action\",\"connection\"]},"
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Close TCP connection", AT_DESTRUCTIVE_HINTS) "}"
     },
     // system
     {
@@ -3457,7 +3462,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"elevated\",\"etw\",\"gpu\",\"dotnet\",\"online_checks\",\"process_monitor\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"os_build\",\"uptime_seconds\",\"processor_count\",\"ksi_connected\",\"capabilities\",\"updates_paused\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get system information", AT_READ_HINTS) "}"
     },
     {
         "get_system_history", L"Get system history", AtTierRead, AtActionGetSystemHistory,
@@ -3509,7 +3514,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"update_interval_ms\",\"sample_count\",\"processor_count\",\"cpu_usage\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get system history", AT_READ_HINTS) "}"
     },
     {
         "list_devices", L"List devices", AtTierRead, AtActionListDevices,
@@ -3558,7 +3563,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"devices\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List devices", AT_READ_HINTS) "}"
     },
     {
         "get_device_resources", L"Get device resources", AtTierRead, AtActionGetDeviceResources,
@@ -3594,7 +3599,7 @@ CONST AT_TOOL AtTools[] =
         "\"enumeration_complete\":{\"type\":\"boolean\",\"description\":\"False when the resource walk did not finish, so an empty list does not mean the device was given nothing\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"instance_id\",\"resources\",\"count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get device resources", AT_READ_HINTS) "}"
     },
     {
         "set_device_enabled", L"Enable or disable a device", AtTierWrite, AtActionSetDeviceEnabled,
@@ -3622,7 +3627,7 @@ CONST AT_TOOL AtTools[] =
         "\"is_disabled\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Read from the device node after the change, not assumed from it\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"instance_id\",\"action\",\"enabled\"]},"
-        AT_DESTRUCTIVE_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Enable or disable a device", AT_DESTRUCTIVE_HINTS) "}"
     },
     {
         "list_gpu_adapters", L"List graphics adapters", AtTierRead, AtActionListGpuAdapters,
@@ -3675,7 +3680,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List graphics adapters", AT_READ_HINTS) "}"
     },
     {
         "get_process_gpu_stats", L"Get process GPU usage", AtTierRead, AtActionGetProcessGpuStats,
@@ -3718,7 +3723,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"gpu_monitor_enabled\",\"performance_counters_enabled\",\"usage_available\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"collector\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process GPU usage", AT_READ_HINTS) "}"
     },
     {
         "get_process_io_rates", L"Get process I/O rates", AtTierRead, AtActionGetProcessIoRates,
@@ -3770,7 +3775,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"etw_enabled\",\"disk_counters_enabled\",\"have_sample\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"disk\",\"network\",\"collector\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get process I/O rates", AT_READ_HINTS) "}"
     },
     {
         "get_gpu_usage", L"Get GPU usage", AtTierRead, AtActionGetGpuUsage,
@@ -3816,7 +3821,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"gpu_monitor_enabled\",\"performance_counters_enabled\",\"usage_available\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"adapters\",\"count\",\"total_count\",\"truncated\",\"collector\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get GPU usage", AT_READ_HINTS) "}"
     },
     {
         "list_kernel_drivers", L"List kernel drivers", AtTierRead, AtActionListKernelDrivers,
@@ -3848,7 +3853,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"drivers\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List loaded kernel modules", AT_READ_HINTS) "}"
     },
     {
         "get_ksi_status", L"Get kernel driver status", AtTierRead, AtActionGetKsiStatus,
@@ -3867,7 +3872,7 @@ CONST AT_TOOL AtTools[] =
         "\"from_kernel_microseconds\":{\"type\":\"integer\"}}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"connected\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get kernel driver status", AT_READ_HINTS) "}"
     },
     {
         "get_pagefile_info", L"Get pagefile information", AtTierRead, AtActionGetPagefileInfo,
@@ -3885,7 +3890,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pagefiles\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get pagefile information", AT_READ_HINTS) "}"
     },
     {
         "list_startup_entries", L"List autostart entries", AtTierRead, AtActionListStartupEntries,
@@ -3935,7 +3940,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"entries\",\"unreadable_count\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List autostart entries", AT_READ_HINTS) "}"
     },
     {
         "get_smbios_info", L"Get SMBIOS information", AtTierRead, AtActionGetSmbiosInfo,
@@ -3960,7 +3965,7 @@ CONST AT_TOOL AtTools[] =
         "\"baseboard_version\":{\"type\":\"string\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get SMBIOS information", AT_READ_HINTS) "}"
     },
     {
         "get_uefi_variables", L"Get UEFI variables", AtTierRead, AtActionGetUefiVariables,
@@ -3984,7 +3989,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"variables\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get UEFI firmware variables", AT_READ_HINTS) "}"
     },
     {
         "get_tpm_info", L"Get TPM information", AtTierRead, AtActionGetTpmInfo,
@@ -4012,7 +4017,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"present\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get TPM information", AT_READ_HINTS) "}"
     },
     {
         "get_memory_details", L"Get memory details", AtTierRead, AtActionGetMemoryDetails,
@@ -4088,7 +4093,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"page_size\",\"physical_total_bytes\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get memory details", AT_READ_HINTS) "}"
     },
     {
         "get_security_posture", L"Get security posture", AtTierRead, AtActionGetSecurityPosture,
@@ -4169,7 +4174,7 @@ CONST AT_TOOL AtTools[] =
         "\"system_informer_elevated\":{\"type\":\"boolean\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"virtualization\",\"ksi_level\",\"system_informer_elevated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get security posture", AT_READ_HINTS) "}"
     },
     {
         "get_cpu_info", L"Get processor information", AtTierRead, AtActionGetCpuInfo,
@@ -4234,7 +4239,7 @@ CONST AT_TOOL AtTools[] =
         "\"virtualization\":{\"type\":[\"string\",\"null\"]},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"architecture\",\"logical_processor_count\",\"page_size\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get processor information", AT_READ_HINTS) "}"
     },
     {
         "list_logon_sessions", L"List logon sessions", AtTierSensitiveRead, AtActionListLogonSessions,
@@ -4287,7 +4292,7 @@ CONST AT_TOOL AtTools[] =
         "\"elevated\":{\"type\":\"boolean\",\"description\":\"Whether System Informer is elevated, which is what decides the above\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"enumerated_count\",\"unreadable_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List logon sessions", AT_READ_HINTS) "}"
     },
     {
         "list_terminal_sessions", L"List terminal sessions", AtTierRead, AtActionListTerminalSessions,
@@ -4325,7 +4330,7 @@ CONST AT_TOOL AtTools[] =
         "\"current_session_id\":{\"type\":\"integer\",\"description\":\"The session System Informer itself is in\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sessions\",\"count\",\"total_count\",\"truncated\",\"current_session_id\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List terminal sessions", AT_READ_HINTS) "}"
     },
     {
         "lookup_account", L"Look up an account", AtTierRead, AtActionLookupAccount,
@@ -4359,7 +4364,7 @@ CONST AT_TOOL AtTools[] =
         "\"domain_joined\":{\"type\":\"boolean\",\"description\":\"Whether this machine is in a domain, which is what decides if a domain account can be resolved at all\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"sid\",\"resolved\",\"is_capability\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Look up an account", AT_READ_HINTS) "}"
     },
     {
         "list_pool_tags", L"List kernel pool usage by tag", AtTierRead, AtActionListPoolTags,
@@ -4407,7 +4412,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"tags\",\"tag_count\",\"big_pool_read\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List kernel pool usage by tag", AT_READ_HINTS) "}"
     },
     {
         "get_object_security", L"Get object security", AtTierRead, AtActionGetObjectSecurity,
@@ -4474,7 +4479,7 @@ CONST AT_TOOL AtTools[] =
         "\"sddl\":{\"type\":[\"string\",\"null\"],\"description\":\"The whole descriptor as a string, for a caller that wants to compare or store it\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"kind\",\"owner\",\"group\",\"dacl_present\",\"integrity_readable\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get object security", AT_READ_HINTS) "}"
     },
     {
         "list_directory", L"List a directory", AtTierRead, AtActionListDirectory,
@@ -4513,7 +4518,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"entries\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List a directory", AT_READ_HINTS) "}"
     },
     {
         "get_driver_object", L"Get a driver or device object", AtTierRead, AtActionGetDriverObject,
@@ -4561,7 +4566,7 @@ CONST AT_TOOL AtTools[] =
         "\"has_device_stack\":{\"type\":[\"boolean\",\"null\"],\"description\":\"Something is attached beneath this device, judged by the bottom of the chain belonging to a different driver - the base of a device with nothing attached is the device itself. Null when either end could not be read to compare, and for a driver path\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"path\",\"kind\",\"driver_readable\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get a driver or device object", AT_READ_HINTS) "}"
     },
     {
         "get_process_ksi_state", L"Get the driver's view of a process", AtTierRead, AtActionGetProcessKsiState,
@@ -4610,7 +4615,7 @@ CONST AT_TOOL AtTools[] =
         "}},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"state\",\"state_names\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get the driver's view of a process", AT_READ_HINTS) "}"
     },
     {
         "list_hidden_processes", L"Scan for hidden processes", AtTierSensitiveRead, AtActionListHiddenProcesses,
@@ -4653,7 +4658,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"processes\",\"method\",\"enumerated_count\",\"distinct_count\",\"normal_count\",\"scan_limit_reached\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Scan for hidden processes", AT_READ_HINTS) "}"
     },
     {
         "list_wmi_subscriptions", L"List WMI event subscriptions", AtTierRead, AtActionListWmiSubscriptions,
@@ -4726,7 +4731,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"subscriptions\",\"namespaces\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List WMI event subscriptions", AT_READ_HINTS) "}"
     },
     {
         "list_scheduled_tasks", L"List scheduled tasks", AtTierRead, AtActionListScheduledTasks,
@@ -4806,7 +4811,7 @@ CONST AT_TOOL AtTools[] =
         "\"unwalked_folder_count\":{\"type\":\"integer\",\"description\":\"Folders whose children were left unwalked at the nesting cap\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"tasks\",\"count\",\"total_count\",\"truncated\",\"folder_count\",\"enumerated_count\",\"unreadable_count\",\"unwalked_folder_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("List scheduled tasks", AT_READ_HINTS) "}"
     },
     {
         "get_system_environment", L"Get system environment variables", AtTierSensitiveRead, AtActionGetSystemEnvironment,
@@ -4825,7 +4830,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"variables\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get system environment variables", AT_READ_HINTS) "}"
     },
     // files and memory
     {
@@ -4870,7 +4875,7 @@ CONST AT_TOOL AtTools[] =
         "},\"required\":[\"is_primary\"]}},"
         AT_PAGE_OUTPUT_PROPERTIES
         "},\"required\":[\"path\",\"verification_ran\",\"verify_result\",\"is_trusted\",\"is_microsoft_signed\",\"has_embedded_signature\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Verify a file's Authenticode signature", AT_READ_HINTS) "}"
     },
     {
         "get_file_hashes", L"Hash a file", AtTierRead, AtActionGetFileHashes,
@@ -4908,7 +4913,7 @@ CONST AT_TOOL AtTools[] =
         "implementation does; delay loaded imports are excluded, as every implementation does\"},"
         "\"is_pe_image\":{\"type\":\"boolean\"}"
         "},\"required\":[\"path\",\"size\",\"is_pe_image\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Hash a file", AT_READ_HINTS) "}"
     },
     {
         "lookup_file_hash_virustotal", L"Ask VirusTotal about a hash", AtTierNetworkEgress, AtActionLookupFileHashVirusTotal,
@@ -4936,7 +4941,7 @@ CONST AT_TOOL AtTools[] =
         "\"malicious\":{\"type\":[\"integer\",\"null\"],\"description\":\"Engines that flagged the file; null unless http_status is 200\"},"
         "\"undetected\":{\"type\":[\"integer\",\"null\"]}"
         "},\"required\":[\"sha256\",\"from_cache\",\"http_status\"]},"
-        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
+        AT_ANNOTATIONS("Ask VirusTotal about a hash", AT_EGRESS_HINTS) "}"
     },
     {
         "lookup_file_hash_hybrid_analysis", L"Ask Hybrid Analysis about a hash", AtTierNetworkEgress, AtActionLookupFileHashHybridAnalysis,
@@ -4961,7 +4966,7 @@ CONST AT_TOOL AtTools[] =
         "\"verdict\":{\"type\":[\"string\",\"null\"],\"description\":\"Null for a cached answer\"},"
         "\"family\":{\"type\":[\"string\",\"null\"],\"description\":\"The malware family name, when one was assigned\"}"
         "},\"required\":[\"sha256\",\"from_cache\",\"http_status\"]},"
-        "\"annotations\":{\"readOnlyHint\":false,\"destructiveHint\":false,\"idempotentHint\":true,\"openWorldHint\":true}}"
+        AT_ANNOTATIONS("Ask Hybrid Analysis about a hash", AT_EGRESS_HINTS) "}"
     },
     {
         "read_registry_key", L"Read a registry key", AtTierRead, AtActionReadRegistryKey,
@@ -5008,7 +5013,7 @@ CONST AT_TOOL AtTools[] =
         "\"last_write_time\":{\"type\":\"string\"}"
         "},\"required\":[\"name\"]}}"
         "},\"required\":[\"path\",\"values\",\"subkeys\",\"count\",\"total_count\",\"truncated\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Read a registry key", AT_READ_HINTS) "}"
     },
     {
         "get_file_scan_result_cached", L"Get cached scan verdict", AtTierRead, AtActionGetFileScanResultCached,
@@ -5055,7 +5060,7 @@ CONST AT_TOOL AtTools[] =
         "\"family\":{\"type\":[\"string\",\"null\"],\"description\":\"The malware family name, when one was assigned\"}"
         "},\"required\":[\"lookup\"]}"
         "},\"required\":[\"sha256\",\"virustotal\",\"hybrid_analysis\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get cached scan verdict", AT_READ_HINTS) "}"
     },
     {
         "get_file_info", L"Get file info", AtTierRead, AtActionGetFileInfo,
@@ -5110,7 +5115,7 @@ CONST AT_TOOL AtTools[] =
         "\"host_url\":{\"type\":[\"string\",\"null\"],\"description\":\"The URL the file itself came from\"}"
         "}}"
         "},\"required\":[\"path\",\"is_directory\",\"size\",\"attributes\",\"hard_link_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Get file info", AT_READ_HINTS) "}"
     },
     {
         "get_image_strings", L"Read strings from a file", AtTierRead, AtActionGetImageStrings,
@@ -5146,7 +5151,7 @@ CONST AT_TOOL AtTools[] =
         AT_PAGE_OUTPUT_PROPERTIES ","
         "\"limit_reached\":{\"type\":\"boolean\",\"description\":\"The search stopped at 20000 matches and the file holds more\"}"
         "},\"required\":[\"path\",\"strings\",\"count\",\"total_count\",\"truncated\",\"limit_reached\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Read strings from a file", AT_READ_HINTS) "}"
     },
     {
         "get_image_info", L"Inspect executable image", AtTierRead, AtActionGetImageInfo,
@@ -5289,7 +5294,7 @@ CONST AT_TOOL AtTools[] =
         "\"verify_result\":{\"type\":[\"string\",\"null\"]},"
         "\"verify_signer\":{\"type\":[\"string\",\"null\"]}"
         "},\"required\":[\"path\",\"is_64bit\",\"sections\",\"section_count\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Inspect a PE image", AT_READ_HINTS) "}"
     },
     {
         "read_process_memory", L"Read process memory", AtTierSensitiveRead, AtActionReadProcessMemory,
@@ -5313,7 +5318,7 @@ CONST AT_TOOL AtTools[] =
         "\"exports_complete\":{\"type\":\"boolean\",\"description\":\"False when the export directory could not be parsed; an empty exports list then says nothing about the image\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"address\",\"size\",\"hex\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Read process memory", AT_READ_HINTS) "}"
     },
     {
         "search_process_memory", L"Search process memory", AtTierSensitiveRead, AtActionSearchProcessMemory,
@@ -5338,7 +5343,7 @@ CONST AT_TOOL AtTools[] =
         "\"unreadable_bytes\":{\"type\":\"integer\",\"description\":\"Committed bytes the read was refused on. Above zero, no matches is not the same as no matches present\"},"
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"pid\",\"process_sequence_number\",\"matches\",\"count\",\"unreadable_bytes\"]},"
-        AT_READ_ANNOTATIONS "}"
+        AT_ANNOTATIONS("Search process memory", AT_READ_HINTS) "}"
     },
 };
 
@@ -5566,6 +5571,17 @@ VOID AtVerifySchema(
 
                 if (AtTools[i].Tier == AtTierNetworkEgress)
                     NT_ASSERT(PhGetJsonObjectBool(annotations, "openWorldHint"));
+
+                {
+                    PPH_STRING toolTitle = PhGetJsonValueAsString(definition, "title");
+                    PPH_STRING hintTitle = PhGetJsonValueAsString(annotations, "title");
+
+                    // A client reads one or the other depending on its protocol revision.
+                    NT_ASSERT(toolTitle && hintTitle && PhEqualString(toolTitle, hintTitle, FALSE));
+
+                    PhClearReference(&hintTitle);
+                    PhClearReference(&toolTitle);
+                }
             }
 
             PhFreeJsonObject(definition);
