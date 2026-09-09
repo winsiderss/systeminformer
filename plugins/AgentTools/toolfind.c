@@ -1695,7 +1695,9 @@ VOID AtpGetDriverObject(
     }
     else
     {
-        status = PhOpenDriver(&driverHandle, 0, NULL, &path->sr);
+        // READ_CONTROL, as the device branch asks for: an open with no access at all is refused by
+        // the object manager, so a zero mask here means no driver name ever resolves.
+        status = PhOpenDriver(&driverHandle, READ_CONTROL, NULL, &path->sr);
     }
 
     if (!NT_SUCCESS(status))
