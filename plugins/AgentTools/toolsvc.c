@@ -828,19 +828,21 @@ NTSTATUS AtpWaitForServiceStop(
 {
     ULONG64 startTick = NtGetTickCount64();
     SERVICE_STATUS_PROCESS status;
+    NTSTATUS queryStatus;
 
-    while (NT_SUCCESS(PhQueryServiceStatus(ServiceHandle, &status)))
+    while (NT_SUCCESS(queryStatus = PhQueryServiceStatus(ServiceHandle, &status)))
     {
         if (status.dwCurrentState == SERVICE_STOPPED)
             return STATUS_SUCCESS;
 
+        // STATUS_TIMEOUT is a success code; the caller must be able to test this one.
         if (NtGetTickCount64() - startTick > AT_SERVICE_STOP_WAIT_MS)
-            return STATUS_TIMEOUT;
+            return STATUS_IO_TIMEOUT;
 
         PhDelayExecution(AT_SERVICE_STOP_POLL_MS);
     }
 
-    return STATUS_SUCCESS; // could not query; assume the caller's stop succeeded
+    return queryStatus;
 }
 
 VOID AtpControlService(
