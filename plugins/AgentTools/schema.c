@@ -5453,11 +5453,17 @@ CONST ULONG AtPromptCount = RTL_NUMBER_OF(AtPrompts);
  * tools nobody touched, so the rows check themselves against the enum they are indexed by. Each
  * tool must also name an action the table describes.
  */
+/**
+ * Checks at load time what nothing else does. Every one of these holds today and none of them was
+ * enforced, so a change that broke one showed up as a tool quietly missing from tools/list, or as
+ * a client call refused for a reason nothing in this file explains.
+ */
 VOID AtVerifySchema(
     VOID
     )
 {
     ULONG i;
+    ULONG j;
 
     for (i = 0; i < AtActionMaximum; i++)
     {
@@ -5466,7 +5472,51 @@ VOID AtVerifySchema(
 
     for (i = 0; i < AtToolCount; i++)
     {
+        PCAT_ACTION_INFO action;
+        PVOID definition;
+
         NT_ASSERT(AtTools[i].Action < AtActionMaximum);
-        NT_ASSERT(AtActionInfo[AtTools[i].Action].Action == AtTools[i].Action);
+
+        action = &AtActionInfo[AtTools[i].Action];
+
+        NT_ASSERT(action->Action == AtTools[i].Action);
+
+        // The tier is stored twice and read from both: the dispatcher gates on the action's, and
+        // the settings and the advertised annotations come from the tool's.
+        NT_ASSERT(action->Tier == AtTools[i].Tier);
+
+        // A read never resolves a target - mcp.c skips AtResolveTarget for the tier - so a target
+        // kind or an access mask on a read row is dead weight that reads as a promise.
+        if (action->Tier == AtTierRead)
+        {
+            NT_ASSERT(action->TargetKind == AtTargetNone);
+            NT_ASSERT(action->TargetAccess == 0);
+        }
+
+        // Tool names are how a client addresses a tool, so two of them is not a warning.
+        for (j = 0; j < i; j++)
+        {
+            NT_ASSERT(!PhEqualBytesZ(AtTools[i].Name, AtTools[j].Name, FALSE));
+        }
+
+        // Checked here, once, for every tool rather than lazily for the enabled ones while a
+        // client waits: a definition that does not parse otherwise drops the tool out of
+        // tools/list in release, and in debug leaves the call unanswered until it times out.
+        if (NT_SUCCESS(PhCreateJsonParser(&definition, AtTools[i].Definition)))
+            PhFreeJsonObject(definition);
+        else
+            NT_ASSERT(FALSE); // AtTools[i].Definition does not parse
+
+        NT_ASSERT(AtTools[i].AccessSetting && AtTools[i].ConfirmSetting);
+    }
+
+    for (i = 0; i < AtResourceCount; i++)
+    {
+        PVOID definition;
+
+        if (NT_SUCCESS(PhCreateJsonParser(&definition, AtResources[i].Definition)))
+            PhFreeJsonObject(definition);
+        else
+            NT_ASSERT(FALSE); // AtResources[i].Definition does not parse
     }
 }
