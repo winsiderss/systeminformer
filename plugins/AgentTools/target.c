@@ -900,23 +900,48 @@ PPH_STRING AtFormatTargetHeadline(
     return result;
 }
 
+// Neutralises the value as it is appended, so the description keeps the line breaks it writes
+// itself and none that came with the value.
+VOID AtpAppendDisplayValue(
+    _Inout_ PPH_STRING_BUILDER Builder,
+    _In_ PCWSTR Prefix,
+    _In_ PCWSTR Value
+    )
+{
+    PPH_STRING text;
+
+    PhAppendStringBuilder2(Builder, Prefix);
+
+    text = PhCreateString(Value);
+    AtSanitizeDisplayString(text);
+    PhAppendStringBuilder(Builder, &text->sr);
+    PhDereferenceObject(text);
+}
+
 VOID AtpAppendProcessDescription(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
     PhAppendFormatStringBuilder(Builder, L"\nSequence: %I64u", ProcessItem->ProcessSequenceNumber);
-    PhAppendFormatStringBuilder(Builder, L"\nImage: %s", PhGetStringOrDefault(ProcessItem->FileName, L"(unknown)"));
+    AtpAppendDisplayValue(Builder, L"\nImage: ", PhGetStringOrDefault(ProcessItem->FileName, L"(unknown)"));
 
     if (ProcessItem->VerifyResult == VrTrusted)
-        PhAppendFormatStringBuilder(Builder, L"\nSigner: Trusted (%s)", PhGetStringOrDefault(ProcessItem->VerifySignerName, L"unknown"));
+    {
+        AtpAppendDisplayValue(Builder, L"\nSigner: Trusted (", PhGetStringOrDefault(ProcessItem->VerifySignerName, L"unknown"));
+        PhAppendStringBuilder2(Builder, L")");
+    }
     else if (ProcessItem->VerifyResult == VrUnknown)
+    {
         PhAppendStringBuilder2(Builder, L"\nSigner: not verified");
+    }
     else
+    {
         PhAppendStringBuilder2(Builder, L"\nSigner: not trusted");
+    }
 
     if (ProcessItem->UserName)
-        PhAppendFormatStringBuilder(Builder, L"\nUser: %s", PhGetString(ProcessItem->UserName));
+        AtpAppendDisplayValue(Builder, L"\nUser: ", PhGetString(ProcessItem->UserName));
 }
 
 PPH_STRING AtFormatTargetDescription(
@@ -925,7 +950,6 @@ PPH_STRING AtFormatTargetDescription(
 {
     PH_STRING_BUILDER builder;
     PPH_STRING headline;
-    PPH_STRING result;
 
     PhInitializeStringBuilder(&builder, 256);
 
@@ -941,14 +965,21 @@ PPH_STRING AtFormatTargetDescription(
 
             PhAppendFormatStringBuilder(&builder, L"\nState: %s", PhGetServiceStateString(serviceItem->State)->Buffer);
             PhAppendFormatStringBuilder(&builder, L"\nStart type: %s", PhGetServiceStartTypeString(serviceItem->StartType)->Buffer);
-            PhAppendFormatStringBuilder(&builder, L"\nImage: %s", PhGetStringOrDefault(serviceItem->FileName, L"(unknown)"));
+            AtpAppendDisplayValue(&builder, L"\nImage: ", PhGetStringOrDefault(serviceItem->FileName, L"(unknown)"));
 
             if (serviceItem->VerifyResult == VrTrusted)
-                PhAppendFormatStringBuilder(&builder, L"\nSigner: Trusted (%s)", PhGetStringOrDefault(serviceItem->VerifySignerName, L"unknown"));
+            {
+                AtpAppendDisplayValue(&builder, L"\nSigner: Trusted (", PhGetStringOrDefault(serviceItem->VerifySignerName, L"unknown"));
+                PhAppendStringBuilder2(&builder, L")");
+            }
             else if (serviceItem->VerifyResult == VrUnknown)
+            {
                 PhAppendStringBuilder2(&builder, L"\nSigner: not verified");
+            }
             else
+            {
                 PhAppendStringBuilder2(&builder, L"\nSigner: not trusted");
+            }
 
             if (serviceItem->ProcessId)
                 PhAppendFormatStringBuilder(&builder, L"\nPID: %lu", HandleToUlong(serviceItem->ProcessId));
@@ -956,7 +987,7 @@ PPH_STRING AtFormatTargetDescription(
         break;
     case AtTargetHandle:
         {
-            PhAppendFormatStringBuilder(&builder, L"\nObject: %s", PhGetStringOrDefault(Target->HandleObjectName, L"(unnamed)"));
+            AtpAppendDisplayValue(&builder, L"\nObject: ", PhGetStringOrDefault(Target->HandleObjectName, L"(unnamed)"));
             AtpAppendProcessDescription(&builder, Target->ProcessItem);
         }
         break;
@@ -969,9 +1000,9 @@ PPH_STRING AtFormatTargetDescription(
     case AtTargetDevice:
         {
             if (Target->DeviceClass)
-                PhAppendFormatStringBuilder(&builder, L"\nClass: %s", PhGetString(Target->DeviceClass));
+                AtpAppendDisplayValue(&builder, L"\nClass: ", PhGetString(Target->DeviceClass));
 
-            PhAppendFormatStringBuilder(&builder, L"\nInstance: %s", PhGetString(Target->DeviceInstanceId));
+            AtpAppendDisplayValue(&builder, L"\nInstance: ", PhGetString(Target->DeviceInstanceId));
         }
         break;
     default:
@@ -982,10 +1013,9 @@ PPH_STRING AtFormatTargetDescription(
         break;
     }
 
-    result = PhFinalStringBuilderString(&builder);
-    AtSanitizeDisplayString(result);
-
-    return result;
+    // The headline and every value appended above were neutralised on the way in, so the line
+    // breaks left here are only the ones this function wrote.
+    return PhFinalStringBuilderString(&builder);
 }
 
 PPH_STRING AtFormatTargetAudit(
