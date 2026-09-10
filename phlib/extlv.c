@@ -795,6 +795,28 @@ LRESULT CALLBACK PhpExtendedListViewWndProc(
             context->WindowDpi = listviewDpi;
         }
         break;
+    case WM_MOUSEWHEEL:
+        {
+            if (LOWORD(wParam) & MK_SHIFT)
+            {
+                SHORT wheelDelta = GET_WHEEL_DELTA_WPARAM(wParam);
+                ULONG wheelScrollChars;
+
+                if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
+                    wheelScrollChars = 3;
+
+                LONG charsToScroll = (LONG)wheelScrollChars * -wheelDelta / WHEEL_DELTA;
+                LONG count = charsToScroll < 0 ? -charsToScroll : charsToScroll;
+
+                for (LONG i = 0; i < count; i++)
+                {
+                    SendMessage(WindowHandle, WM_HSCROLL, charsToScroll > 0 ? SB_LINERIGHT : SB_LINELEFT, 0);
+                }
+
+                return 0;
+            }
+        }
+        break;
     }
 
     return CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
