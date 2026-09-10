@@ -15,6 +15,7 @@
 // SMART attributes arrive as a 512-byte vendor block: a two-byte header then up to thirty
 // twelve-byte records. The fields are read at their byte offsets because a struct of these types is
 // fourteen bytes once aligned.
+#define AT_DISK_DESCRIPTOR_MAXIMUM (64 * 1024)
 #define AT_SMART_HEADER_SIZE 2
 #define AT_SMART_ATTRIBUTE_SIZE 12
 #define AT_SMART_ATTRIBUTE_COUNT 30
@@ -175,6 +176,7 @@ PSTORAGE_DEVICE_DESCRIPTOR AtpQueryDiskDescriptor(
     STORAGE_PROPERTY_QUERY query;
     STORAGE_DESCRIPTOR_HEADER header;
     PSTORAGE_DEVICE_DESCRIPTOR descriptor;
+    ULONG returnedLength;
 
     memset(&query, 0, sizeof(STORAGE_PROPERTY_QUERY));
     query.QueryType = PropertyStandardQuery;
@@ -195,7 +197,8 @@ PSTORAGE_DEVICE_DESCRIPTOR AtpQueryDiskDescriptor(
         return NULL;
     }
 
-    if (header.Size < sizeof(STORAGE_DEVICE_DESCRIPTOR))
+    // The device names its own descriptor size, and it is about to become an allocation.
+    if (header.Size < sizeof(STORAGE_DEVICE_DESCRIPTOR) || header.Size > AT_DISK_DESCRIPTOR_MAXIMUM)
         return NULL;
 
     descriptor = PhAllocateZero(header.Size);
@@ -207,8 +210,16 @@ PSTORAGE_DEVICE_DESCRIPTOR AtpQueryDiskDescriptor(
         sizeof(query),
         descriptor,
         header.Size,
-        NULL
-        )))
+        &returnedLength
+        )) || returnedLength < sizeof(STORAGE_DEVICE_DESCRIPTOR))
+    {
+        PhFree(descriptor);
+        return NULL;
+    }
+
+    // Every string offset is measured against the size the device wrote into the buffer, so that
+    // size has to lie inside what the call actually returned.
+    if (descriptor->Size > returnedLength)
     {
         PhFree(descriptor);
         return NULL;
