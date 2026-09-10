@@ -86,10 +86,12 @@ NTSTATUS PhInitializeMappedImage(
 
     __try
     {
+        // Through Magic, not up to it: the checks below read Magic before SizeOfOptionalHeader has
+        // said whether an optional header is there at all.
         PhMappedImageProbe(
             MappedImage,
             ntHeaders,
-            UFIELD_OFFSET(IMAGE_NT_HEADERS, OptionalHeader)
+            RTL_SIZEOF_THROUGH_FIELD(IMAGE_NT_HEADERS, OptionalHeader.Magic)
             );
         PhMappedImageProbe(
             MappedImage,
