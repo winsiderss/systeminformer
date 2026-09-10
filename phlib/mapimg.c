@@ -2546,6 +2546,32 @@ NTSTATUS PhGetMappedImageExports(
 }
 
 /**
+ * Answers whether a string in the mapped view terminates before the view ends.
+ *
+ * \param MappedImage A pointer to the mapped image.
+ * \param String A pointer inside the mapped view.
+ * \return TRUE when the string terminates inside the view.
+ */
+BOOLEAN PhpMappedImageStringTerminates(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PCSTR String
+    )
+{
+    PCSTR end;
+    PCSTR i;
+
+    end = PTR_ADD_OFFSET(MappedImage->ViewBase, MappedImage->ViewSize);
+
+    for (i = String; i < end; i++)
+    {
+        if (*i == ANSI_NULL)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
  * Retrieves information about a specific export entry by index.
  *
  * \param Exports A pointer to the export information structure.
@@ -2596,7 +2622,9 @@ NTSTATUS PhGetMappedImageExportEntry(
         if (!NT_SUCCESS(status))
             return status;
 
-        // TODO: Probe the name.
+        // Every caller reads this as a string, so it has to end inside the view.
+        if (!PhpMappedImageStringTerminates(Exports->MappedImage, name))
+            return STATUS_INVALID_IMAGE_FORMAT;
 
         Entry->Name = name;
         Entry->Hint = nameIndex;
@@ -2624,6 +2652,7 @@ ULONG PhLookupMappedImageExportName(
     _In_ PCSTR Name
     )
 {
+    SIZE_T length;
     LONG low;
     LONG high;
     LONG i;
@@ -2631,6 +2660,7 @@ ULONG PhLookupMappedImageExportName(
     if (Exports->ExportDirectory->NumberOfNames == 0)
         return ULONG_MAX;
 
+    length = strlen(Name) + sizeof(ANSI_NULL);
     low = 0;
     high = Exports->ExportDirectory->NumberOfNames - 1;
 
@@ -2658,6 +2688,11 @@ ULONG PhLookupMappedImageExportName(
             );
 
         comparison = strncmp(Name, name, remaining);
+
+        // A name the view cuts short is not the name that was asked for, however far the two agree;
+        // what is mapped is a prefix of it, and a prefix sorts before it.
+        if (comparison == 0 && remaining < length)
+            comparison = 1;
 
         if (comparison == 0)
             return i;
