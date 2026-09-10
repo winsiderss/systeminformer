@@ -36,8 +36,6 @@ NTSTATUS PhInitializeMappedImage(
     ULONG_PTR dosHeaderOffset;
     ULONG_PTR ntHeadersOffset;
     ULONG directoryOffset;
-    ULONG directoryLength;
-    ULONG numberOfRvaAndSizes;
 
     memset(MappedImage, 0, sizeof(PH_MAPPED_IMAGE));
     MappedImage->ViewBase = ViewBase;
@@ -125,22 +123,11 @@ NTSTATUS PhInitializeMappedImage(
     else
         directoryOffset = UFIELD_OFFSET(IMAGE_OPTIONAL_HEADER64, DataDirectory);
 
+    // The header has to reach NumberOfRvaAndSizes. What that count claims is not judged here:
+    // Windows runs an image claiming more directories than the header carries, so the count is
+    // held to the header where a directory is read rather than refusing the image outright.
+
     if (ntHeaders->FileHeader.SizeOfOptionalHeader < directoryOffset)
-        return STATUS_INVALID_IMAGE_FORMAT;
-
-    // Only now is NumberOfRvaAndSizes itself inside the header. The directories it claims must fit
-    // as well, so that an index checked against it is checked against something real.
-
-    if (ntHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        numberOfRvaAndSizes = ((PIMAGE_OPTIONAL_HEADER32)&ntHeaders->OptionalHeader)->NumberOfRvaAndSizes;
-    else
-        numberOfRvaAndSizes = ((PIMAGE_OPTIONAL_HEADER64)&ntHeaders->OptionalHeader)->NumberOfRvaAndSizes;
-
-    if (!NT_SUCCESS(RtlULongMult(numberOfRvaAndSizes, sizeof(IMAGE_DATA_DIRECTORY), &directoryLength)))
-        return STATUS_INVALID_IMAGE_FORMAT;
-    if (!NT_SUCCESS(RtlULongAdd(directoryLength, directoryOffset, &directoryLength)))
-        return STATUS_INVALID_IMAGE_FORMAT;
-    if (ntHeaders->FileHeader.SizeOfOptionalHeader < directoryLength)
         return STATUS_INVALID_IMAGE_FORMAT;
 
     // Get a pointer to the first section.
@@ -1212,6 +1199,30 @@ NTSTATUS PhGetMappedImageSectionName(
 }
 
 /**
+ * Answers whether a data directory of the given index lies inside the optional header.
+ *
+ * NumberOfRvaAndSizes may claim more directories than SizeOfOptionalHeader carries, and Windows
+ * runs such an image, so the header is what bounds the read.
+ */
+BOOLEAN PhpMappedImageDataDirectoryInHeader(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ ULONG DirectoryOffset,
+    _In_ ULONG Index
+    )
+{
+    ULONG end;
+
+    if (!NT_SUCCESS(RtlULongAdd(Index, 1, &end)))
+        return FALSE;
+    if (!NT_SUCCESS(RtlULongMult(end, sizeof(IMAGE_DATA_DIRECTORY), &end)))
+        return FALSE;
+    if (!NT_SUCCESS(RtlULongAdd(end, DirectoryOffset, &end)))
+        return FALSE;
+
+    return end <= MappedImage->NtHeaders->FileHeader.SizeOfOptionalHeader;
+}
+
+/**
  * Retrieves a data directory from the PE optional header.
  *
  * \param MappedImage A pointer to the mapped image.
@@ -1234,6 +1245,9 @@ NTSTATUS PhGetMappedImageDataDirectory(
 
         optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&MappedImage->NtHeaders32->OptionalHeader;
 
+        if (!PhpMappedImageDataDirectoryInHeader(MappedImage, UFIELD_OFFSET(IMAGE_OPTIONAL_HEADER32, DataDirectory), Index))
+            return STATUS_INVALID_PARAMETER_2;
+
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
 
@@ -1251,6 +1265,9 @@ NTSTATUS PhGetMappedImageDataDirectory(
         PIMAGE_DATA_DIRECTORY dataDirectory;
 
         optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader;
+
+        if (!PhpMappedImageDataDirectoryInHeader(MappedImage, UFIELD_OFFSET(IMAGE_OPTIONAL_HEADER64, DataDirectory), Index))
+            return STATUS_INVALID_PARAMETER_2;
 
         if (Index >= optionalHeader->NumberOfRvaAndSizes)
             return STATUS_INVALID_PARAMETER_2;
