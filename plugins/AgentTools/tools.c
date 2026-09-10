@@ -893,6 +893,74 @@ PPH_STRING AtGetArgumentString(
     return PhGetJsonValueAsString(Arguments, Key);
 }
 
+/**
+ * Answers whether a character may not appear in text the user is shown.
+ *
+ * The C0 range and delete are the obvious ones. The rest are the characters that change how the
+ * text around them reads rather than adding anything of their own: the bidirectional overrides and
+ * embeddings, which can make a name display in reverse; the zero-width joiners and the zero-width
+ * no-break space, which hide a join; and the separators Windows controls treat as a line break,
+ * which would let text from elsewhere push its own line into a consent prompt.
+ */
+BOOLEAN AtIsUnsafeDisplayChar(
+    _In_ WCHAR Character
+    )
+{
+    if (Character < L' ' || Character == 0x7f)
+        return TRUE;
+
+    switch (Character)
+    {
+    case 0x0085:            // NEL
+    case 0x00ad:            // soft hyphen
+    case 0x061c:            // arabic letter mark
+    case 0x180e:            // mongolian vowel separator
+    case 0x200b:            // zero width space
+    case 0x200c:            // zero width non-joiner
+    case 0x200d:            // zero width joiner
+    case 0x200e:            // left-to-right mark
+    case 0x200f:            // right-to-left mark
+    case 0x2028:            // line separator
+    case 0x2029:            // paragraph separator
+    case 0x202a:            // left-to-right embedding
+    case 0x202b:            // right-to-left embedding
+    case 0x202c:            // pop directional formatting
+    case 0x202d:            // left-to-right override
+    case 0x202e:            // right-to-left override
+    case 0x2066:            // left-to-right isolate
+    case 0x2067:            // right-to-left isolate
+    case 0x2068:            // first strong isolate
+    case 0x2069:            // pop directional isolate
+    case 0xfeff:            // zero width no-break space
+    case 0xfffe:            // not a character
+    case 0xffff:
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Neutralises in place, so the string must be unshared. Nothing is truncated and nothing is
+// re-worded: the user is shown the whole value, only unable to be lied to by its characters.
+VOID AtSanitizeDisplayString(
+    _In_opt_ PPH_STRING String
+    )
+{
+    SIZE_T count;
+    SIZE_T i;
+
+    if (!String)
+        return;
+
+    count = String->Length / sizeof(WCHAR);
+
+    for (i = 0; i < count; i++)
+    {
+        if (AtIsUnsafeDisplayChar(String->Buffer[i]))
+            String->Buffer[i] = L' ';
+    }
+}
+
 VOID AtJsonAddStringZ(
     _In_ PVOID Object,
     _In_ PCSTR Key,

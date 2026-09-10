@@ -568,6 +568,10 @@ VOID AtpResolveLauncher(
         times.CreateTime.QuadPart == Hello->LauncherStartTime.QuadPart)
     {
         PhGetProcessImageFileNameWin32(processHandle, &Connection->LauncherImageName);
+
+        // A file name may legally carry the overrides that make it display as another name, and
+        // the launcher is whatever the caller chose to start the broker from.
+        AtSanitizeDisplayString(Connection->LauncherImageName);
     }
 
     NtClose(processHandle);
@@ -677,6 +681,9 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
 
     Connection->BrokerProcessId = Hello->BrokerProcessId;
     Connection->UserName = PhGetSidFullName(clientUser.User.Sid, TRUE, NULL);
+
+    AtSanitizeDisplayString(Connection->BrokerImageName);
+    AtSanitizeDisplayString(Connection->UserName);
 
     // Display-only context.
 

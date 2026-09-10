@@ -845,6 +845,14 @@ PPH_STRING AtGetArgumentString(
     _In_ PCSTR Key
     );
 
+BOOLEAN AtIsUnsafeDisplayChar(
+    _In_ WCHAR Character
+    );
+
+VOID AtSanitizeDisplayString(
+    _In_opt_ PPH_STRING String
+    );
+
 VOID AtJsonAddStringZ(
     _In_ PVOID Object,
     _In_ PCSTR Key,

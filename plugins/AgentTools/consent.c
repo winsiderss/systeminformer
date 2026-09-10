@@ -154,6 +154,7 @@ VOID AtpEnsureLauncherVerified(
     {
         Connection->LauncherVerifyChecked = TRUE;
         Connection->LauncherVerifyResult = result;
+        AtSanitizeDisplayString(signer);
         PhMoveReference(&Connection->LauncherSignerName, signer);
         signer = NULL;
     }
@@ -179,8 +180,16 @@ VOID AtpAppendStdioClients(
 
         if (processItem = PhReferenceProcessItem(processId))
         {
-            PhAppendFormatStringBuilder(Builder, L"%s (%lu)",
+            PPH_STRING name;
+
+            // Built and neutralised on its own: the process item's name is shared, so it must not
+            // be edited where it lies.
+            name = PhFormatString(L"%s (%lu)",
                 PhGetStringOrDefault(processItem->ProcessName, L"unknown"), HandleToUlong(processId));
+            AtSanitizeDisplayString(name);
+            PhAppendStringBuilder(Builder, &name->sr);
+
+            PhDereferenceObject(name);
             PhDereferenceObject(processItem);
         }
         else
