@@ -3854,17 +3854,6 @@ static NTSTATUS PhpProbeMappedImageResourceDataEntry(
 }
 
 /**
- * Searches a resource directory for a given name or ID using binary search.
- *
- * \param MappedImage The MappedImage parameter.
- * \param ResourceDirectory The root resource directory.
- * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
- * \param SearchDirectory The directory to search in.
- * \param Name The Name parameter (ID or string).
- * \param Entry A pointer to a variable that receives the directory entry.
- * \return NTSTATUS Successful or errant status.
- */
-/**
  * Resolves the bytes a resource data entry points at.
  *
  * \param MappedImage The mapped image.
@@ -3910,6 +3899,17 @@ static NTSTATUS PhpGetMappedImageResourceData(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Searches a resource directory for a given name or ID using binary search.
+ *
+ * \param MappedImage The MappedImage parameter.
+ * \param ResourceDirectory The root resource directory.
+ * \param DirectorySize The size of the resource data directory (IMAGE_DIRECTORY_ENTRY_RESOURCE).
+ * \param SearchDirectory The directory to search in.
+ * \param Name The Name parameter (ID or string).
+ * \param Entry A pointer to a variable that receives the directory entry.
+ * \return NTSTATUS Successful or errant status.
+ */
 static NTSTATUS PhpSearchMappedImageResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
