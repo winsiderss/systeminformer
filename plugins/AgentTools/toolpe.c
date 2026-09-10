@@ -112,12 +112,17 @@ PPH_STRING AtpGetCertificateSerialNumber(
     static CONST WCHAR digits[] = L"0123456789ABCDEF";
     PCRYPT_INTEGER_BLOB serial = &((PCCERT_CONTEXT)Certificate)->pCertInfo->SerialNumber;
     PPH_STRING string;
-    ULONG i;
+    SIZE_T length;
+    SIZE_T i;
 
     if (serial->cbData == 0)
         return NULL;
 
-    string = PhCreateStringEx(NULL, serial->cbData * 2 * sizeof(WCHAR));
+    // Two hex digits a byte, over a length the certificate chose.
+    if (!NT_SUCCESS(RtlSizeTMult(serial->cbData, 2 * sizeof(WCHAR), &length)))
+        return NULL;
+
+    string = PhCreateStringEx(NULL, length);
 
     for (i = 0; i < serial->cbData; i++)
     {
