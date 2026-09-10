@@ -477,6 +477,11 @@ VOID AtpGetObjectSecurity(
         goto CleanupExit;
     }
 
+    // A file kind opens the name the caller chose, so it is held to the rule every other tool
+    // that opens a caller-named file is held to.
+    if (kind == AtSecurityKindFile && !AtCheckDriveAbsolutePath(path, Result))
+        goto CleanupExit;
+
     if (kind == AtSecurityKindDescriptor)
     {
         PVOID localSecurityDescriptor;

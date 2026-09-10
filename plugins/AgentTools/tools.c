@@ -905,7 +905,7 @@ BOOLEAN AtCheckDriveAbsolutePath(
         Result,
         "invalid_arguments",
         STATUS_INVALID_PARAMETER,
-        L"path must be an absolute path on a local drive, such as C:\\Windows\\System32\\ntdll.dll."
+        L"path must be an absolute path beginning with a drive letter, such as C:\\Windows\\System32\\ntdll.dll."
         );
 
     return FALSE;
