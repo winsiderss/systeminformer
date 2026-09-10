@@ -232,6 +232,12 @@ VOID AtpVerifyFileSignature(
         return;
     }
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        return;
+    }
+
     includeChain = AtJsonGetObjectBoolean(Call->Arguments, "include_chain");
 
     status = PhCreateFileWin32(
@@ -439,6 +445,12 @@ VOID AtpGetFileHashes(
     if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        PhClearReference(&path);
+        return;
+    }
+
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
         PhClearReference(&path);
         return;
     }
@@ -755,6 +767,12 @@ VOID AtpGetImageInfo(
     if (!(path = AtGetArgumentString(Call->Arguments, "path")) || path->Length == 0)
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        PhClearReference(&path);
+        return;
+    }
+
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
         PhClearReference(&path);
         return;
     }

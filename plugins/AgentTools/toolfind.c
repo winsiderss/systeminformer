@@ -631,6 +631,12 @@ VOID AtpGetFileUsers(
         return;
     }
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        return;
+    }
+
     // Opened for attributes only and shared every way, so asking does not itself put the file in
     // use.
     status = PhCreateFileWin32(

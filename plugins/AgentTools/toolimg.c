@@ -1478,6 +1478,12 @@ VOID AtpGetImageStrings(
         return;
     }
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        return;
+    }
+
     memset(&context, 0, sizeof(AT_STRINGS_CONTEXT));
     context.Contains = AtGetArgumentString(Call->Arguments, "contains");
 

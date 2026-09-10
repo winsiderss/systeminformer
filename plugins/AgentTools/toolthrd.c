@@ -1185,6 +1185,13 @@ VOID AtpResolveSymbol(
     haveRva = AtGetArgumentUInt64(Call->Arguments, "rva", &rva);
     isFile = !!path;
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        PhClearReference(&name);
+        return;
+    }
+
     if (!isFile && !AtJsonGetObjectMember(Call->Arguments, "pid", PH_JSON_OBJECT_TYPE_INT))
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"Either pid or path is required.");

@@ -845,6 +845,11 @@ PPH_STRING AtGetArgumentString(
     _In_ PCSTR Key
     );
 
+BOOLEAN AtCheckDriveAbsolutePath(
+    _In_opt_ PPH_STRING Path,
+    _Inout_ PAT_TOOL_RESULT Result
+    );
+
 BOOLEAN AtIsUnsafeDisplayChar(
     _In_ WCHAR Character
     );

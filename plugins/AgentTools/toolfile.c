@@ -205,6 +205,12 @@ VOID AtpGetFileInfo(
         return;
     }
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        return;
+    }
+
     // FILE_READ_ATTRIBUTES alone, so a file another process holds exclusively still answers, and a
     // directory opens the same way a file does.
     status = PhCreateFileWin32(
@@ -391,6 +397,13 @@ VOID AtpGetFileScanResultCached(
     sha256 = AtGetArgumentString(Call->Arguments, "sha256");
     path = AtGetArgumentString(Call->Arguments, "path");
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&sha256);
+        PhClearReference(&path);
+        return;
+    }
+
     if (!sha256 && path)
         sha256 = AtHashFileSha256(path);
 
@@ -503,6 +516,13 @@ PPH_STRING AtpResolveLookupHash(
 
     sha256 = AtGetArgumentString(Call->Arguments, "sha256");
     path = AtGetArgumentString(Call->Arguments, "path");
+
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&sha256);
+        PhClearReference(&path);
+        return NULL;
+    }
 
     if (!sha256 && path)
         sha256 = AtHashFileSha256(path);
@@ -1133,6 +1153,12 @@ VOID AtpListDirectory(
     if (!(path = AtGetArgumentString(Call->Arguments, "path")))
     {
         AtSetToolError(Result, "invalid_arguments", STATUS_INVALID_PARAMETER, L"path is required.");
+        return;
+    }
+
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
         return;
     }
 

@@ -1259,6 +1259,12 @@ VOID AtpGetSectionMappings(
     path = AtGetArgumentString(Call->Arguments, "path");
     haveAddress = AtGetArgumentPointer(Call->Arguments, "address", &address);
 
+    if (!AtCheckDriveAbsolutePath(path, Result))
+    {
+        PhClearReference(&path);
+        return;
+    }
+
     // Everything here is the driver reading the control area; there is no user-mode equivalent.
     if (KsiLevel() < KphLevelMed)
     {

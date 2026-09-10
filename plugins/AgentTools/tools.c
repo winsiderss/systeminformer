@@ -894,6 +894,31 @@ PPH_STRING AtGetArgumentString(
 }
 
 /**
+ * Requires a file name from the caller to name a local drive.
+ *
+ * A UNC or device path would have System Informer open it, elevated, from wherever the caller
+ * chose, and parse whatever came back. A path that was not supplied is left alone: whether one was
+ * required is the tool's own question, asked before this.
+ */
+BOOLEAN AtCheckDriveAbsolutePath(
+    _In_opt_ PPH_STRING Path,
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    if (!Path || PhDetermineDosPathNameType(&Path->sr) == RtlPathTypeDriveAbsolute)
+        return TRUE;
+
+    AtSetToolError(
+        Result,
+        "invalid_arguments",
+        STATUS_INVALID_PARAMETER,
+        L"path must be an absolute path on a local drive, such as C:\\Windows\\System32\\ntdll.dll."
+        );
+
+    return FALSE;
+}
+
+/**
  * Answers whether a character may not appear in text the user is shown.
  *
  * The C0 range and delete are the obvious ones. The rest are the characters that change how the
