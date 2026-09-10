@@ -35,6 +35,9 @@ NTSTATUS PhInitializeMappedImage(
     PIMAGE_NT_HEADERS ntHeaders;
     ULONG_PTR dosHeaderOffset;
     ULONG_PTR ntHeadersOffset;
+    ULONG directoryOffset;
+    ULONG directoryLength;
+    ULONG numberOfRvaAndSizes;
 
     memset(MappedImage, 0, sizeof(PH_MAPPED_IMAGE));
     MappedImage->ViewBase = ViewBase;
@@ -110,6 +113,32 @@ NTSTATUS PhInitializeMappedImage(
         ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR32_MAGIC &&
         ntHeaders->OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC
         )
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // The magic says which optional header this is, but only SizeOfOptionalHeader says how much of
+    // one the file actually carries, and everything below reads the fields the magic implies.
+
+    if (ntHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        directoryOffset = UFIELD_OFFSET(IMAGE_OPTIONAL_HEADER32, DataDirectory);
+    else
+        directoryOffset = UFIELD_OFFSET(IMAGE_OPTIONAL_HEADER64, DataDirectory);
+
+    if (ntHeaders->FileHeader.SizeOfOptionalHeader < directoryOffset)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    // Only now is NumberOfRvaAndSizes itself inside the header. The directories it claims must fit
+    // as well, so that an index checked against it is checked against something real.
+
+    if (ntHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        numberOfRvaAndSizes = ((PIMAGE_OPTIONAL_HEADER32)&ntHeaders->OptionalHeader)->NumberOfRvaAndSizes;
+    else
+        numberOfRvaAndSizes = ((PIMAGE_OPTIONAL_HEADER64)&ntHeaders->OptionalHeader)->NumberOfRvaAndSizes;
+
+    if (!NT_SUCCESS(RtlULongMult(numberOfRvaAndSizes, sizeof(IMAGE_DATA_DIRECTORY), &directoryLength)))
+        return STATUS_INVALID_IMAGE_FORMAT;
+    if (!NT_SUCCESS(RtlULongAdd(directoryLength, directoryOffset, &directoryLength)))
+        return STATUS_INVALID_IMAGE_FORMAT;
+    if (ntHeaders->FileHeader.SizeOfOptionalHeader < directoryLength)
         return STATUS_INVALID_IMAGE_FORMAT;
 
     // Get a pointer to the first section.
