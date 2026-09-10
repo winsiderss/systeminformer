@@ -900,8 +900,6 @@ PPH_STRING AtFormatTargetHeadline(
     return result;
 }
 
-// Neutralises the value as it is appended, so the description keeps the line breaks it writes
-// itself and none that came with the value.
 VOID AtpAppendDisplayValue(
     _Inout_ PPH_STRING_BUILDER Builder,
     _In_ PCWSTR Prefix,
@@ -1013,8 +1011,6 @@ PPH_STRING AtFormatTargetDescription(
         break;
     }
 
-    // The headline and every value appended above were neutralised on the way in, so the line
-    // breaks left here are only the ones this function wrote.
     return PhFinalStringBuilderString(&builder);
 }
 
