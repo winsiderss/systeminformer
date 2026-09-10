@@ -553,13 +553,13 @@ VOID AtpAddImageManifest(
     )
 {
     PVOID entry;
-    PVOID buffer;
-    ULONG length;
+    PVOID buffer = NULL;
+    ULONG length = 0;
 
     entry = PhCreateJsonObject();
 
     if (NT_SUCCESS(PhGetMappedImageResource(MappedImage, MAKEINTRESOURCE(1), RT_MANIFEST, 0, &length, &buffer)) &&
-        length != 0)
+        buffer && length != 0)
     {
         PPH_STRING xml;
 
