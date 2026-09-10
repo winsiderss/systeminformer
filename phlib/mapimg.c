@@ -2618,6 +2618,7 @@ ULONG PhLookupMappedImageExportName(
     do
     {
         PCSTR name;
+        SIZE_T remaining;
         INT comparison;
 
         i = (low + high) / 2;
@@ -2630,9 +2631,14 @@ ULONG PhLookupMappedImageExportName(
             return ULONG_MAX;
         }
 
-        // TODO: Probe the name.
+        // The name lives in the image and need not terminate inside the view, so the comparison is
+        // bounded by what is mapped rather than by a terminator that may not be there.
+        remaining = (SIZE_T)PTR_SUB_OFFSET(
+            PTR_ADD_OFFSET(Exports->MappedImage->ViewBase, Exports->MappedImage->ViewSize),
+            name
+            );
 
-        comparison = strcmp(Name, name);
+        comparison = strncmp(Name, name, remaining);
 
         if (comparison == 0)
             return i;
