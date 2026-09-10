@@ -3804,6 +3804,52 @@ static NTSTATUS PhpProbeMappedImageResourceDataEntry(
  * \param Entry A pointer to a variable that receives the directory entry.
  * \return NTSTATUS Successful or errant status.
  */
+/**
+ * Resolves the bytes a resource data entry points at.
+ *
+ * \param MappedImage The mapped image.
+ * \param DataEntry The resource data entry.
+ * \param ResourceLength A variable which receives the length of the resource.
+ * \param ResourceBuffer A variable which receives a pointer to the resource.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Both the offset and the size come from the image, so the span they describe is checked
+ * against the view before either is handed back. Neither output is written unless both hold.
+ */
+static NTSTATUS PhpGetMappedImageResourceData(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PIMAGE_RESOURCE_DATA_ENTRY DataEntry,
+    _Out_opt_ ULONG* ResourceLength,
+    _Out_opt_ PVOID* ResourceBuffer
+    )
+{
+    NTSTATUS status;
+    PVOID buffer;
+    ULONG_PTR offset;
+    ULONG_PTR end;
+
+    status = PhMappedImageRvaToVa(MappedImage, DataEntry->OffsetToData, &buffer);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    offset = (ULONG_PTR)PTR_SUB_OFFSET(buffer, MappedImage->ViewBase);
+
+    status = RtlULongPtrAdd(offset, DataEntry->Size, &end);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (end > MappedImage->ViewSize)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    if (ResourceLength)
+        *ResourceLength = DataEntry->Size;
+    if (ResourceBuffer)
+        *ResourceBuffer = buffer;
+
+    return STATUS_SUCCESS;
+}
+
 static NTSTATUS PhpSearchMappedImageResourceDirectory(
     _In_ PPH_MAPPED_IMAGE MappedImage,
     _In_ PIMAGE_RESOURCE_DIRECTORY ResourceDirectory,
@@ -4367,17 +4413,12 @@ NTSTATUS PhGetMappedImageResource(
                     continue;
                 }
 
-                if (ResourceLength)
-                {
-                    *ResourceLength = resourceData->Size;
-                }
-
-                if (ResourceBuffer)
-                {
-                    PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, ResourceBuffer);
-                }
-
-                return STATUS_SUCCESS;
+                return PhpGetMappedImageResourceData(
+                    MappedImage,
+                    resourceData,
+                    ResourceLength,
+                    ResourceBuffer
+                    );
             }
         }
     }
@@ -4558,18 +4599,15 @@ NTSTATUS PhGetMappedImageResourceBinarySearch(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (ResourceLength)
-        {
-            *ResourceLength = resourceData->Size;
-        }
-
-        if (ResourceBuffer)
-        {
-            PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, ResourceBuffer);
-        }
+        status = PhpGetMappedImageResourceData(
+            MappedImage,
+            resourceData,
+            ResourceLength,
+            ResourceBuffer
+            );
     }
 
-    return STATUS_SUCCESS;
+    return status;
 }
 
 /**
@@ -4594,7 +4632,6 @@ NTSTATUS PhGetMappedImageResourceIndex(
 {
     ULONG resourceIndex;
     ULONG resourceCount;
-    PVOID resourceBuffer;
     PIMAGE_RESOURCE_DIRECTORY nameDirectory;
     PIMAGE_RESOURCE_DIRECTORY languageDirectory;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY resourceType;
@@ -4658,13 +4695,8 @@ NTSTATUS PhGetMappedImageResourceIndex(
     if (!resourceData)
         return STATUS_RESOURCE_DATA_NOT_FOUND;
 
-    if (!NT_SUCCESS(PhMappedImageRvaToVa(MappedImage, resourceData->OffsetToData, &resourceBuffer)))
+    if (!NT_SUCCESS(PhpGetMappedImageResourceData(MappedImage, resourceData, ResourceLength, ResourceBuffer)))
         return STATUS_RESOURCE_DATA_NOT_FOUND;
-
-    if (ResourceLength)
-        *ResourceLength = resourceData->Size;
-    if (ResourceBuffer)
-        *ResourceBuffer = resourceBuffer;
 
     // if (LDR_IS_IMAGEMAPPING(ImageBaseAddress))
     // PhLoaderEntryImageRvaToVa(ImageBaseAddress, resourceData->OffsetToData, resourceBuffer);
