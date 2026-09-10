@@ -567,8 +567,15 @@ VOID AtpResolveLauncher(
     if (NT_SUCCESS(NtQueryInformationProcess(processHandle, ProcessTimes, &times, sizeof(times), NULL)) &&
         times.CreateTime.QuadPart == Hello->LauncherStartTime.QuadPart)
     {
-        PhGetProcessImageFileNameWin32(processHandle, &Connection->LauncherImageName);
-        AtSanitizeDisplayString(Connection->LauncherImageName);
+        PPH_STRING fileName;
+
+        // Neutralised while it is still private: the options page takes a reference to this the
+        // moment the connection is visible, and a shared string is not ours to edit.
+        if (NT_SUCCESS(PhGetProcessImageFileNameWin32(processHandle, &fileName)))
+        {
+            AtSanitizeDisplayString(fileName);
+            Connection->LauncherImageName = fileName;
+        }
     }
 
     NtClose(processHandle);
@@ -583,6 +590,8 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     SIMCP_HELLO_STATUS result = SimcpHelloRejectedInternal;
     HANDLE tokenHandle = NULL;
     HANDLE processHandle = NULL;
+    PPH_STRING brokerImageName = NULL;
+    PPH_STRING userName;
     HANDLE clientProcessId;
     PH_TOKEN_USER clientUser;
     PH_TOKEN_USER ownUser;
@@ -671,16 +680,20 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     if (!NT_SUCCESS(PhOpenProcess(&processHandle, PROCESS_QUERY_LIMITED_INFORMATION, clientProcessId)))
         goto CleanupExit;
 
-    result = AtpValidateBrokerImage(processHandle, &Connection->BrokerImageName);
+    result = AtpValidateBrokerImage(processHandle, &brokerImageName);
 
     if (result != SimcpHelloAccepted)
         goto CleanupExit;
 
-    Connection->BrokerProcessId = Hello->BrokerProcessId;
-    Connection->UserName = PhGetSidFullName(clientUser.User.Sid, TRUE, NULL);
+    // Both are neutralised before they are published: the options page takes a reference as soon
+    // as the connection is visible, and a shared string is not ours to edit.
+    AtSanitizeDisplayString(brokerImageName);
+    userName = PhGetSidFullName(clientUser.User.Sid, TRUE, NULL);
+    AtSanitizeDisplayString(userName);
 
-    AtSanitizeDisplayString(Connection->BrokerImageName);
-    AtSanitizeDisplayString(Connection->UserName);
+    Connection->BrokerProcessId = Hello->BrokerProcessId;
+    Connection->BrokerImageName = brokerImageName;
+    Connection->UserName = userName;
 
     // Display-only context.
 
