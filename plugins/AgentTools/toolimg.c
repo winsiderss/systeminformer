@@ -414,6 +414,7 @@ VOID AtpAddImageExports(
         {
             PH_MAPPED_IMAGE_EXPORT_ENTRY entry;
             PH_MAPPED_IMAGE_EXPORT_FUNCTION function;
+            PPH_STRING name = NULL;
             PVOID row;
 
             if (!NT_SUCCESS(PhGetMappedImageExportEntry(&exports, i, &entry)))
@@ -422,21 +423,16 @@ VOID AtpAddImageExports(
             row = PhCreateJsonObject();
 
             if (entry.Name)
-            {
-                PPH_STRING name = AtpCreateImageString(exports.MappedImage, (PSTR)entry.Name);
+                name = AtpCreateImageString(exports.MappedImage, (PSTR)entry.Name);
 
-                AtJsonAddString(row, "name", name);
-                PhClearReference(&name);
-            }
-            else
-            {
-                AtJsonAddNull(row, "name");
-            }
+            AtJsonAddString(row, "name", name);
 
             PhAddJsonObjectUInt64(row, "ordinal", entry.Ordinal);
             PhAddJsonObjectUInt64(row, "hint", entry.Hint);
 
-            if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, entry.Name, entry.Ordinal, &function)))
+            // Only a name that terminates inside the view may be handed back for the lookup to
+            // compare; without one the ordinal is what identifies the export.
+            if (NT_SUCCESS(PhGetMappedImageExportFunction(&exports, name ? (PSTR)entry.Name : NULL, entry.Ordinal, &function)))
             {
                 AtJsonAddPointer(row, "address", function.Function);
 
@@ -460,6 +456,7 @@ VOID AtpAddImageExports(
                 AtJsonAddNull(row, "forwarded_to");
             }
 
+            PhClearReference(&name);
             AtAddRow(&rows, row);
         }
     }
