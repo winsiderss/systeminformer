@@ -764,11 +764,13 @@ VOID AtpAddImageCertificates(
     array = PhCreateJsonArray();
 
     // The security directory is the one that does not hold an RVA: its VirtualAddress is a file
-    // offset, because the certificate is not mapped when the image is loaded.
-    if (MappedImage->Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-        directory = &((PIMAGE_OPTIONAL_HEADER64)&MappedImage->NtHeaders->OptionalHeader)->DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
-    else
-        directory = &MappedImage->NtHeaders32->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_SECURITY];
+    // offset, because the certificate is not mapped when the image is loaded. Reached through the
+    // accessor so the index is checked against the directories the image actually declares.
+    if (!NT_SUCCESS(PhGetMappedImageDataDirectory(MappedImage, IMAGE_DIRECTORY_ENTRY_SECURITY, &directory)))
+    {
+        PhAddJsonObjectValue(Structured, "certificates", array);
+        return;
+    }
 
     offset = directory->VirtualAddress;
     end = (ULONG64)directory->VirtualAddress + directory->Size;
