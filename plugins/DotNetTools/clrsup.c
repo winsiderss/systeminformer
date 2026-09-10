@@ -1145,7 +1145,7 @@ static BOOLEAN NTAPI DnGetClrRuntimeCallback(
         entry->FileName = PhReferenceObject(Module->FileName);
         entry->DllBase = Module->BaseAddress;
 
-        if (PhInitializeImageVersionInfoEx(&versionInfo, &entry->FileName->sr, FALSE))
+        if (NT_SUCCESS(PhInitializeImageVersionInfoEx(&versionInfo, &entry->FileName->sr, FALSE)))
         {
             entry->RuntimeVersion = PhReferenceObject(versionInfo.FileVersion);
             PhDeleteImageVersionInfo(&versionInfo);
@@ -1466,13 +1466,13 @@ PVOID DnLoadMscordaccore(
         {
             PCLR_DEBUG_RESOURCE debugVersionInfo;
 
-            if (PhLoadResource(
+            if (NT_SUCCESS(PhLoadResource(
                 imageBaseAddress,
                 L"CLRDEBUGINFO",
                 RT_RCDATA,
                 NULL,
                 &debugVersionInfo
-                ))
+                )))
             {
                 if (
                     debugVersionInfo->Version == 0 &&
@@ -1643,13 +1643,13 @@ TryAppLocal:
 
         if (NT_SUCCESS(PhLoadLibraryAsImageResource(&dataTargetFileName->sr, FALSE, &imageBaseAddress)))
         {
-            if (PhLoadResource(
+            if (NT_SUCCESS(PhLoadResource(
                 imageBaseAddress,
                 L"MINIDUMP_EMBEDDED_AUXILIARY_PROVIDER",
                 RT_RCDATA,
                 &mscordacResourceLength,
                 &mscordacResourceBuffer
-                ))
+                )))
             {
                 NTSTATUS status;
                 HANDLE fileHandle;
