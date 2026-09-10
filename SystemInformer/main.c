@@ -1237,8 +1237,8 @@ CleanupExit:
 /**
  * Initializes the execution policy for System Informer.
  *
- * This function checks if the Shift key is held down during startup. If so, it attempts
- * to launch Task Manager (`taskmgr.exe`) instead of System Informer.
+ * This function checks if the Shift key is held down, and the Control key is not, during
+ * startup. If so, it attempts to launch Task Manager (`taskmgr.exe`) instead of System Informer.
  * This provides a quick way for users to access Task Manager if needed, for example,
  * if System Informer is set as the default Task Manager replacement and the user
  * wants to access the original Task Manager without changing settings.
@@ -1252,7 +1252,10 @@ NTSTATUS PhInitializeExecutionPolicy(
     // handles, events or messages etc... The bitmask is also independent of any message loop or window.
     // We can call it extremely early but only the high bit (0x8000) of the key state is valid without a message loop.
 
-    if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
+    // Ctrl+Shift+Esc starts Task Manager, which starts us when we're the replacement, with Shift
+    // still held. Require Control to be up so that shortcut isn't mistaken for a deliberate Shift start.
+
+    if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) && !(GetAsyncKeyState(VK_CONTROL) & 0x8000))
     {
         PPH_STRING fileName;
 
