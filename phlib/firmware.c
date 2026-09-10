@@ -1030,7 +1030,6 @@ NTSTATUS PhGetSMBIOSString(
     if (!string->Buffer)
         return STATUS_INVALID_PARAMETER;
 
-    // The conversion may return null, and success here promises the caller a string.
     if (!(*String = PhConvertUtf8ToUtf16Ex(string->Buffer, string->Length)))
         return STATUS_UNSUCCESSFUL;
 

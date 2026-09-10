@@ -182,10 +182,11 @@ VOID AtpAppendStdioClients(
         {
             PPH_STRING name;
 
-            // Built and neutralised on its own: the process item's name is shared, so it must not
-            // be edited where it lies.
-            name = PhFormatString(L"%s (%lu)",
-                PhGetStringOrDefault(processItem->ProcessName, L"unknown"), HandleToUlong(processId));
+            name = PhFormatString(
+                L"%s (%lu)",
+                PhGetStringOrDefault(processItem->ProcessName, L"unknown"),
+                HandleToUlong(processId)
+                );
             AtSanitizeDisplayString(name);
             PhAppendStringBuilder(Builder, &name->sr);
 

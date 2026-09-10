@@ -217,8 +217,6 @@ PSTORAGE_DEVICE_DESCRIPTOR AtpQueryDiskDescriptor(
         return NULL;
     }
 
-    // Every string offset is measured against the size the device wrote into the buffer, so that
-    // size has to lie inside what the call actually returned.
     if (descriptor->Size > returnedLength)
     {
         PhFree(descriptor);

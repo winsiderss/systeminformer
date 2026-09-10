@@ -893,13 +893,6 @@ PPH_STRING AtGetArgumentString(
     return PhGetJsonValueAsString(Arguments, Key);
 }
 
-/**
- * Requires a file name from the caller to name a local drive.
- *
- * A UNC or device path would have System Informer open it, elevated, from wherever the caller
- * chose, and parse whatever came back. A path that was not supplied is left alone: whether one was
- * required is the tool's own question, asked before this.
- */
 BOOLEAN AtCheckDriveAbsolutePath(
     _In_opt_ PPH_STRING Path,
     _Inout_ PAT_TOOL_RESULT Result
@@ -918,15 +911,6 @@ BOOLEAN AtCheckDriveAbsolutePath(
     return FALSE;
 }
 
-/**
- * Answers whether a character may not appear in text the user is shown.
- *
- * The C0 range and delete are the obvious ones. The rest are the characters that change how the
- * text around them reads rather than adding anything of their own: the bidirectional overrides and
- * embeddings, which can make a name display in reverse; the zero-width joiners and the zero-width
- * no-break space, which hide a join; and the separators Windows controls treat as a line break,
- * which would let text from elsewhere push its own line into a consent prompt.
- */
 BOOLEAN AtIsUnsafeDisplayChar(
     _In_ WCHAR Character
     )
@@ -965,8 +949,6 @@ BOOLEAN AtIsUnsafeDisplayChar(
     return FALSE;
 }
 
-// Neutralises in place, so the string must be unshared. Nothing is truncated and nothing is
-// re-worded: the user is shown the whole value, only unable to be lied to by its characters.
 VOID AtSanitizeDisplayString(
     _In_opt_ PPH_STRING String
     )

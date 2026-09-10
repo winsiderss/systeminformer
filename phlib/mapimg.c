@@ -5586,7 +5586,6 @@ NTSTATUS PhGetMappedImageDebug(
     Debug->MappedImage = MappedImage;
     Debug->DataDirectory = dataDirectory;
     Debug->DebugDirectory = debugDirectory;
-    // The walk stops at the first entry that is not there, so what was filled is what may be read.
     Debug->NumberOfEntries = (ULONG)PhFinalArrayCount(&debugEntryArray);
     Debug->DebugEntries = PhFinalArrayItems(&debugEntryArray);
 

@@ -568,9 +568,6 @@ VOID AtpResolveLauncher(
         times.CreateTime.QuadPart == Hello->LauncherStartTime.QuadPart)
     {
         PhGetProcessImageFileNameWin32(processHandle, &Connection->LauncherImageName);
-
-        // A file name may legally carry the overrides that make it display as another name, and
-        // the launcher is whatever the caller chose to start the broker from.
         AtSanitizeDisplayString(Connection->LauncherImageName);
     }
 

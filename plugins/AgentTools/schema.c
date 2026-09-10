@@ -1103,7 +1103,7 @@ CONST AT_TOOL AtTools[] =
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
         "\"mitigations\":{\"type\":\"object\",\"description\":\"One member per policy; each is an object of flags, or null when that policy could not be read\",\"properties\":{"
-        
+
         "\"aslr\":{\"type\":[\"object\",\"null\"],\"properties\":{\"bottom_up_randomization\":{\"type\":\"boolean\"},\"disallow_stripped_images\":{\"type\":\"boolean\"},\"force_relocate_images\":{\"type\":\"boolean\"},\"high_entropy\":{\"type\":\"boolean\"}}},"
         "\"dynamic_code\":{\"type\":[\"object\",\"null\"],\"properties\":{\"allow_remote_downgrade\":{\"type\":\"boolean\"},\"allow_thread_opt_out\":{\"type\":\"boolean\"},\"audit_prohibit_dynamic_code\":{\"type\":\"boolean\"},\"prohibit_dynamic_code\":{\"type\":\"boolean\"}},\"description\":\"prohibit_dynamic_code stops the process generating or modifying executable code\"},"
         "\"strict_handle_check\":{\"type\":[\"object\",\"null\"],\"properties\":{\"handle_exceptions_permanently_enabled\":{\"type\":\"boolean\"},\"raise_exception_on_invalid_handle_reference\":{\"type\":\"boolean\"}}},"

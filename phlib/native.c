@@ -865,8 +865,6 @@ NTSTATUS PhGetProcessUnloadedDlls(
         goto CleanupExit;
     }
 
-    // The stride is the target's own ntdll data, and every caller reads a whole element at it, so
-    // anything shorter than one element cannot be walked at all.
     if (capturedElementSize < sizeof(RTL_UNLOAD_EVENT_TRACE))
     {
         status = STATUS_INVALID_BUFFER_SIZE;

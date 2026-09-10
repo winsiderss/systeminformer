@@ -729,7 +729,6 @@ NTSTATUS AtpResolveTargetParameter(
         return STATUS_SUCCESS;
     }
 
-    // The value is the caller's, and it is shown to the user and written to the audit log.
     AtSanitizeDisplayString(text);
 
     *Parameter = text;
@@ -896,7 +895,6 @@ PPH_STRING AtFormatTargetHeadline(
 
     PhClearReference(&process);
 
-    // Process, service and device names are chosen by whoever created them, not by us.
     AtSanitizeDisplayString(result);
 
     return result;
@@ -984,7 +982,6 @@ PPH_STRING AtFormatTargetDescription(
         break;
     }
 
-    // Image paths, signer names, object names and user names all come from elsewhere.
     result = PhFinalStringBuilderString(&builder);
     AtSanitizeDisplayString(result);
 
@@ -1023,8 +1020,6 @@ PPH_STRING AtFormatTargetAudit(
     }
 
     PhDereferenceObject(headline);
-
-    // The headline arrives clean; the image path appended to it does not.
     AtSanitizeDisplayString(result);
 
     return result;
