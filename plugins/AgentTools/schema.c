@@ -63,8 +63,8 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list the memory regions of processes", L"Allow listing process memory regions", L"get_process_memory_regions"
     },
     {
-        AtActionGetProcessToken, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_token"),
-        L"read the tokens of processes", L"Allow reading process tokens", L"get_process_token"
+        AtActionGetProcessToken, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_token"),
+        L"read the tokens of processes", L"Read the tokens of processes", L"get_process_token"
     },
     {
         AtActionGetProcessWindows, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_windows"),
@@ -87,8 +87,8 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"show, hide or resize the following window", L"Change a window of", L"set_window_state"
     },
     {
-        AtActionGetDotNetAssemblies, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
-        L"read the managed assemblies of processes", L"Allow reading managed assemblies", L"get_dotnet_assemblies"
+        AtActionGetDotNetAssemblies, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
+        L"read the managed assemblies of processes", L"Read the managed assemblies of processes", L"get_dotnet_assemblies"
     },
     {
         AtActionGetProcessNotes, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_notes"),
@@ -139,8 +139,8 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"list named pipes", L"Allow listing named pipes", L"list_named_pipes"
     },
     {
-        AtActionGetSectionMappings, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_section_mappings"),
-        L"list which processes map a section", L"Allow listing section mappings", L"get_section_mappings"
+        AtActionGetSectionMappings, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_section_mappings"),
+        L"list which processes map a section", L"List which processes map a section", L"get_section_mappings"
     },
     {
         AtActionFindObjectHandles, AtTierSensitiveRead, AtConsentClassHandleNames, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"find_object_handles"),
@@ -183,8 +183,8 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"find the modified pages of an image in", L"Find the modified image pages in", L"get_image_page_modifications"
     },
     {
-        AtActionGetProcessJob, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_job"),
-        L"read job objects", L"Allow reading job objects", L"get_process_job"
+        AtActionGetProcessJob, AtTierSensitiveRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_process_job"),
+        L"read job objects", L"Read job objects", L"get_process_job"
     },
     {
         AtActionTerminateProcess, AtTierWrite, AtConsentClassNone, AtTargetProcess, PROCESS_TERMINATE, SETTING_NAME_TOOL_CONFIRM(L"terminate_process"),
@@ -1295,12 +1295,12 @@ CONST AT_TOOL AtTools[] =
         AT_ANNOTATIONS("List process memory regions", AT_READ_HINTS) "}"
     },
     {
-        "get_process_token", L"Get process token", AtTierRead, AtActionGetProcessToken,
+        "get_process_token", L"Get process token", AtTierSensitiveRead, AtActionGetProcessToken,
         SETTING_NAME_TOOL_ACCESS(L"get_process_token"), SETTING_NAME_TOOL_CONFIRM(L"get_process_token"),
         "{\"name\":\"get_process_token\",\"title\":\"Get process token\","
         "\"description\":\"Returns the primary token of a process: user, groups with attributes, privileges with state, integrity, "
         "elevation, session, AppContainer and package identity, restrictions. "
-        AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_SNAPSHOT_NOTE "\","
         "\"inputSchema\":" AT_PROCESS_INPUT_SCHEMA ","
         "\"outputSchema\":{\"type\":\"object\",\"properties\":{"
         AT_PROCESS_IDENTITY_SCHEMA ","
@@ -1851,7 +1851,7 @@ CONST AT_TOOL AtTools[] =
         AT_ANNOTATIONS("List named pipes", AT_READ_HINTS) "}"
     },
     {
-        "get_section_mappings", L"Get section mappings", AtTierRead, AtActionGetSectionMappings,
+        "get_section_mappings", L"Get section mappings", AtTierSensitiveRead, AtActionGetSectionMappings,
         SETTING_NAME_TOOL_ACCESS(L"get_section_mappings"), SETTING_NAME_TOOL_CONFIRM(L"get_section_mappings"),
         "{\"name\":\"get_section_mappings\",\"title\":\"Get section mappings\","
         "\"description\":\"Says which processes have a file or a section mapped into memory, and where. Give it a "
@@ -1863,7 +1863,7 @@ CONST AT_TOOL AtTools[] =
         "loader uses for a DLL, and data, which is what a reader or scanner gets; both are reported and the section "
         "field says which. Needs the System Informer driver at medium access, which is the only thing that can read "
         "a control area. "
-        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"path\":{\"type\":\"string\",\"description\":\"Absolute Win32 path of a file, on a local drive; reports every process mapping it\"},"
         "\"pid\":{\"type\":\"integer\",\"description\":\"With address or handle\"},"
@@ -2317,7 +2317,7 @@ CONST AT_TOOL AtTools[] =
         AT_ANNOTATIONS("Get modified image pages", AT_READ_HINTS) "}"
     },
     {
-        "get_process_job", L"Get process job", AtTierRead, AtActionGetProcessJob,
+        "get_process_job", L"Get process job", AtTierSensitiveRead, AtActionGetProcessJob,
         SETTING_NAME_TOOL_ACCESS(L"get_process_job"), SETTING_NAME_TOOL_CONFIRM(L"get_process_job"),
         "{\"name\":\"get_process_job\",\"title\":\"Get process job\","
         "\"description\":\"The job a process belongs to. A job is how Windows puts a fence around a group of "
@@ -2327,7 +2327,7 @@ CONST AT_TOOL AtTools[] =
         "anyone; opening the job to read it has no user-mode route at all and needs the System Informer "
         "driver, so without it the answer stops at is_in_job and says why. Each limit is null unless its flag "
         "is set in flags: a maximum of zero processes and no maximum are not the same fence. "
-        AT_UNTRUSTED_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{" AT_PROCESS_INPUT_PROPERTIES ","
         AT_PAGE_INPUT_PROPERTIES
         "},\"required\":[\"pid\"],\"additionalProperties\":false},"
@@ -2879,7 +2879,7 @@ CONST AT_TOOL AtTools[] =
         AT_ANNOTATIONS("Show, hide or resize a window", AT_WRITE_HINTS) "}"
     },
     {
-        "get_dotnet_assemblies", L"Get .NET assemblies", AtTierRead, AtActionGetDotNetAssemblies,
+        "get_dotnet_assemblies", L"Get .NET assemblies", AtTierSensitiveRead, AtActionGetDotNetAssemblies,
         SETTING_NAME_TOOL_ACCESS(L"get_dotnet_assemblies"), SETTING_NAME_TOOL_CONFIRM(L"get_dotnet_assemblies"),
         "{\"name\":\"get_dotnet_assemblies\",\"title\":\"Get .NET assemblies\","
         "\"description\":\"The managed assemblies a .NET process has loaded, by application domain, read from its "
@@ -2890,7 +2890,7 @@ CONST AT_TOOL AtTools[] =
         "identifies the exact build of an assembly. A process with no CLR is not_found rather than an empty list, "
         "and a 32-bit process is refused because reading its runtime needs a helper that prompts for elevation. "
         "Assembly names come from the process being inspected. "
-        AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
+        AT_SENSITIVE_NOTE AT_UNTRUSTED_NOTE AT_PAGE_NOTE "\","
         "\"inputSchema\":{\"type\":\"object\",\"properties\":{"
         "\"pid\":{\"type\":\"integer\"},"
         "\"process_sequence_number\":{\"type\":\"integer\",\"description\":\"Optional; fails the call if the pid has been reused\"},"
