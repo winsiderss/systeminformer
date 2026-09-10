@@ -1321,17 +1321,27 @@ AT_CONSENT_RESULT AtConsentGate(
 
     confirm = PhGetIntegerSetting(Action->ConfirmSetting);
 
-    // Authorization not required: chosen per tool by the user in Options. Writes and sensitive
-    // reads are still audited by the caller.
+    // Authorization not required: chosen per tool by the user in Options. The call itself is audited
+    // by the caller either way; what is recorded here is that nobody was asked.
     if (confirm == AT_CONFIRM_NONE)
+    {
+        if (Action->Tier != AtTierRead)
+            AtAudit(connection, Action, Target, L"allowed without confirmation");
+
         return AtConsentAllowed;
+    }
 
     // A grant already held by this connection, chosen in the dialog (or, for reads, through the
     // client's prompt). Revoke grants, or Disconnect, clears it from the options page.
     policy = AtpGetSessionPolicy(connection, Action);
 
     if (policy == AtSessionAllow)
+    {
+        if (Action->Tier != AtTierRead)
+            AtAudit(connection, Action, Target, L"allowed by a grant held for this connection");
+
         return AtConsentAllowed;
+    }
 
     if (confirm == AT_CONFIRM_ALWAYS && policy != AtSessionDelegate)
     {
