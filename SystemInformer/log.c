@@ -510,6 +510,8 @@ PPH_STRING PhFormatLogEntry(
     }
 }
 
+// Entries below PH_LOG_ENTRY_MESSAGE must stay dense and ordered by type: PhIndexStringRefSiKeyValuePairs
+// indexes the array directly when the type is less than the element count, and only searches beyond it.
 static CONST PH_KEY_VALUE_PAIR PhpLogEntryTypePairs[] =
 {
     SIP(SREF(L"Unknown"), 0),
@@ -522,8 +524,10 @@ static CONST PH_KEY_VALUE_PAIR PhpLogEntryTypePairs[] =
     SIP(SREF(L"Service continued"), PH_LOG_ENTRY_SERVICE_CONTINUE),
     SIP(SREF(L"Service paused"), PH_LOG_ENTRY_SERVICE_PAUSE),
     SIP(SREF(L"Service modified"), PH_LOG_ENTRY_SERVICE_MODIFIED),
+    SIP(SREF(L"Unknown"), PH_LOG_ENTRY_SERVICE_LAST), // padding, no entry uses this type
     SIP(SREF(L"Device removed"), PH_LOG_ENTRY_DEVICE_REMOVED),
-    SIP(SREF(L"Device arrived"), PH_LOG_ENTRY_DEVICE_ARRIVED)
+    SIP(SREF(L"Device arrived"), PH_LOG_ENTRY_DEVICE_ARRIVED),
+    SIP(SREF(L"Message"), PH_LOG_ENTRY_MESSAGE)
 };
 
 PCPH_STRINGREF PhFormatLogType(
@@ -542,5 +546,6 @@ PCPH_STRINGREF PhFormatLogType(
         return string;
     }
 
-    return NULL;
+    // Callers format the result without checking, so never return NULL.
+    return (PCPH_STRINGREF)PhpLogEntryTypePairs[0].Key;
 }
