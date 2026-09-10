@@ -1027,11 +1027,27 @@ VOID AtpAddImageClr(
     };
     PIMAGE_COR20_HEADER cor20;
     PVOID entry;
+    BOOLEAN readable = FALSE;
 
     // The COM descriptor directory is what makes a PE a managed assembly; a native binary has none.
     cor20 = PhGetMappedImageDirectoryEntry(MappedImage, IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR);
 
-    if (!cor20)
+    if (cor20)
+    {
+        // The directory is bounded only to the last byte of the view, so the header it points at
+        // need not be there in full.
+        __try
+        {
+            PhMappedImageProbe(MappedImage, cor20, sizeof(IMAGE_COR20_HEADER));
+            readable = TRUE;
+        }
+        __except (EXCEPTION_EXECUTE_HANDLER)
+        {
+            NOTHING;
+        }
+    }
+
+    if (!readable)
     {
         AtJsonAddNull(Structured, "clr");
         return;

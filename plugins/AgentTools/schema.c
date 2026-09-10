@@ -5272,7 +5272,7 @@ CONST AT_TOOL AtTools[] =
         "\"language\":{\"type\":\"integer\"},"
         "\"offset\":{\"type\":\"string\"},\"size\":{\"type\":\"integer\"},\"code_page\":{\"type\":\"integer\"}}}},"
         "\"clr\":{\"type\":[\"object\",\"null\"],\"description\":\"sections clr. Null when the image is not a managed "
-        "assembly\",\"properties\":{"
+        "assembly, or when its COM descriptor points outside the file\",\"properties\":{"
         "\"runtime_version_major\":{\"type\":\"integer\"},\"runtime_version_minor\":{\"type\":\"integer\"},"
         "\"flags\":{\"type\":\"string\"},"
         "\"flag_names\":{\"type\":\"array\",\"items\":{\"type\":\"string\"},\"description\":\"il_only, strong_name_signed, 32bit_required, ...\"},"
