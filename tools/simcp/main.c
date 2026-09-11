@@ -43,6 +43,7 @@ typedef struct _SIMCP_LINK
     HANDLE ReadEvent;           // supervisor only
     HANDLE ConnectedEvent;
     HANDLE AbortEvent;
+    BOOLEAN EverConnected;      // a first connect that has not happened yet is not an outage
 } SIMCP_LINK, *PSIMCP_LINK;
 
 static SIMCP_LINK SimcpLink = { 0 };
@@ -420,7 +421,24 @@ VOID SimcpLinkConnected(
     VOID
     )
 {
+    PhAcquireQueuedLockExclusive(&SimcpLink.Lock);
+    SimcpLink.EverConnected = TRUE;
+    PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
+
     NtSetEvent(SimcpLink.ConnectedEvent, NULL);
+}
+
+BOOLEAN SimcpLinkEverConnected(
+    VOID
+    )
+{
+    BOOLEAN everConnected;
+
+    PhAcquireQueuedLockShared(&SimcpLink.Lock);
+    everConnected = SimcpLink.EverConnected;
+    PhReleaseQueuedLockShared(&SimcpLink.Lock);
+
+    return everConnected;
 }
 
 VOID SimcpLinkAbort(
@@ -541,9 +559,14 @@ NTSTATUS SimcpLinkSend(
     SIMCP_HEADER header;
     HANDLE handle;
 
-    // A line that arrives during an outage waits only as long as a fast restart takes.
-    if (WaitForConnected && !SimcpLinkWaitConnected(SIMCP_RECONNECT_GRACE_MS))
+    // During an outage a line waits only as long as a fast restart takes. Before the first
+    // connect there is no session to protect and no call in flight, so it waits for System
+    // Informer to turn up rather than being refused on a deadline it cannot know about.
+    if (WaitForConnected &&
+        !SimcpLinkWaitConnected(SimcpLinkEverConnected() ? SIMCP_RECONNECT_GRACE_MS : INFINITE))
+    {
         return STATUS_PIPE_DISCONNECTED;
+    }
 
     memset(&header, 0, sizeof(SIMCP_HEADER));
     header.Magic = SIMCP_MAGIC;
@@ -1419,7 +1442,6 @@ NTSTATUS NTAPI SimcpSupervisorThread(
     )
 {
     ULONG backoff = 0;
-    BOOLEAN everConnected = FALSE;
     PCSTR message = "the connection ended";
     PCSTR reported = NULL;
 
@@ -1435,15 +1457,13 @@ NTSTATUS NTAPI SimcpSupervisorThread(
 
         if (result == SimcpEstablishRetry)
         {
-            // The first connect still reports why it failed rather than hanging: a broker that
-            // waits forever for a System Informer that was never started is worse than one that
-            // says so. Reconnecting is for a link that once worked.
-            if (!everConnected || SimcpNoReconnect)
+            if (SimcpNoReconnect)
                 break;
 
-            // Say why once per distinct reason, so a session that never reattaches -- because
-            // something else is holding the pipe name, say -- is not silent about it. The
-            // messages are literals, so comparing pointers is enough to spot a new one.
+            // Say why once per distinct reason, so a broker that is waiting -- for System
+            // Informer to be started, or because something else is holding the pipe name -- is
+            // not silent about it. The messages are literals, so comparing pointers is enough
+            // to spot a new one.
             if (message != reported)
             {
                 SimcpLog(message);
@@ -1455,7 +1475,6 @@ NTSTATUS NTAPI SimcpSupervisorThread(
             continue;
         }
 
-        everConnected = TRUE;
         backoff = 0;
         reported = NULL;
 
