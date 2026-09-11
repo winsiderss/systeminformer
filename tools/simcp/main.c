@@ -1421,6 +1421,7 @@ NTSTATUS NTAPI SimcpSupervisorThread(
     ULONG backoff = 0;
     BOOLEAN everConnected = FALSE;
     PCSTR message = "the connection ended";
+    PCSTR reported = NULL;
 
     while (TRUE)
     {
@@ -1440,6 +1441,15 @@ NTSTATUS NTAPI SimcpSupervisorThread(
             if (!everConnected || SimcpNoReconnect)
                 break;
 
+            // Say why once per distinct reason, so a session that never reattaches -- because
+            // something else is holding the pipe name, say -- is not silent about it. The
+            // messages are literals, so comparing pointers is enough to spot a new one.
+            if (message != reported)
+            {
+                SimcpLog(message);
+                reported = message;
+            }
+
             backoff = SimcpNextBackoff(backoff);
             PhDelayExecution(backoff);
             continue;
@@ -1447,6 +1457,7 @@ NTSTATUS NTAPI SimcpSupervisorThread(
 
         everConnected = TRUE;
         backoff = 0;
+        reported = NULL;
 
         if (SimcpPump(pipeHandle, SimcpLinkGeneration(), &message))
         {
