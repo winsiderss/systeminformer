@@ -28,6 +28,8 @@ typedef struct _SIMCP_ENVELOPE
     PPH_BYTES Id;       // raw id JSON text, so a number and a string are both carried verbatim
     PPH_STRING Method;
     PPH_BYTES CancelId; // params.requestId of a notifications/cancelled, else NULL
+    PPH_STRING ProtocolVersion; // result.protocolVersion of an initialize reply, else NULL
+    BOOLEAN ModernMeta;         // the request carries the modern protocol version in params._meta
 } SIMCP_ENVELOPE, *PSIMCP_ENVELOPE;
 
 VOID SimcpParseEnvelope(
@@ -38,6 +40,12 @@ VOID SimcpParseEnvelope(
 
 VOID SimcpDeleteEnvelope(
     _Inout_ PSIMCP_ENVELOPE Envelope
+    );
+
+PPH_BYTES SimcpRewriteEnvelopeId(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ PCSTR IdString
     );
 
 #endif

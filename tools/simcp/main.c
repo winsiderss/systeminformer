@@ -45,6 +45,20 @@ typedef struct _SIMCP_LINK
 
 static SIMCP_LINK SimcpLink = { 0 };
 
+// What a new backend has to be told to reach the state the host already believes it is in. The
+// modern path needs none of it: every request carries its own version, client info and
+// capabilities, so there is nothing to replay.
+typedef struct _SIMCP_SESSION
+{
+    PH_QUEUED_LOCK Lock;
+    PPH_BYTES InitializeLine;   // the host's initialize request, verbatim
+    PPH_STRING ProtocolVersion; // negotiated once; a new backend may not change it
+    BOOLEAN InitializedSeen;
+    BOOLEAN Modern;
+} SIMCP_SESSION, *PSIMCP_SESSION;
+
+static SIMCP_SESSION SimcpSession = { 0 };
+
 VOID SimcpWriteAll(
     _In_ HANDLE FileHandle,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -316,6 +330,19 @@ VOID SimcpLinkPublish(
     SimcpLink.Handle = PipeHandle;
     SimcpLink.Generation++;
     PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
+}
+
+ULONG SimcpLinkGeneration(
+    VOID
+    )
+{
+    ULONG generation;
+
+    PhAcquireQueuedLockShared(&SimcpLink.Lock);
+    generation = SimcpLink.Generation;
+    PhReleaseQueuedLockShared(&SimcpLink.Lock);
+
+    return generation;
 }
 
 VOID SimcpLinkConnected(
@@ -689,6 +716,221 @@ VOID SimcpFillHello(
     }
 }
 
+/**
+ * Notes what the host told the server, so a later backend can be told the same.
+ *
+ * \param Envelope The parsed envelope of the line.
+ * \param Buffer The line, without its terminator.
+ * \param Length The length of the line in bytes.
+ */
+VOID SimcpSessionObserveOutgoing(
+    _In_ PSIMCP_ENVELOPE Envelope,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    PhAcquireQueuedLockExclusive(&SimcpSession.Lock);
+
+    if (Envelope->ModernMeta)
+        SimcpSession.Modern = TRUE;
+
+    if (Envelope->Kind == SimcpEnvelopeRequest &&
+        PhEqualString2(Envelope->Method, L"initialize", FALSE))
+    {
+        PhMoveReference(&SimcpSession.InitializeLine, PhCreateBytesEx(Buffer, Length));
+    }
+    else if (Envelope->Kind == SimcpEnvelopeNotification &&
+        PhEqualString2(Envelope->Method, L"notifications/initialized", FALSE))
+    {
+        SimcpSession.InitializedSeen = TRUE;
+    }
+
+    PhReleaseQueuedLockExclusive(&SimcpSession.Lock);
+}
+
+// The first handshake reply fixes the version for the session.
+VOID SimcpSessionObserveIncoming(
+    _In_ PSIMCP_ENVELOPE Envelope
+    )
+{
+    if (!Envelope->ProtocolVersion)
+        return;
+
+    PhAcquireQueuedLockExclusive(&SimcpSession.Lock);
+
+    if (!SimcpSession.ProtocolVersion)
+        PhSetReference(&SimcpSession.ProtocolVersion, Envelope->ProtocolVersion);
+
+    PhReleaseQueuedLockExclusive(&SimcpSession.Lock);
+}
+
+/**
+ * Walks a new backend through the handshake the host already performed.
+ *
+ * Legacy replays initialize under an id of the broker's own, so the reply can be consumed here
+ * rather than reaching the host as a second answer to the host's own id. Modern replays nothing:
+ * every request re-establishes the session by itself. A session that has not shown its hand yet
+ * has nothing to replay either.
+ *
+ * \param PipeHandle The generation's pipe.
+ * \param Generation The generation being established.
+ * \param Message Receives why the replay failed, when it did.
+ * \return TRUE when the backend is ready for the host.
+ */
+BOOLEAN SimcpReplaySession(
+    _In_ HANDLE PipeHandle,
+    _In_ ULONG Generation,
+    _Out_ PCSTR *Message,
+    _Out_ PBOOLEAN Terminal
+    )
+{
+    static CONST CHAR initialized[] = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/initialized\"}";
+    BOOLEAN modern;
+    BOOLEAN initializedSeen;
+    PPH_BYTES line = NULL;
+    PPH_BYTES replay;
+    PPH_STRING expected = NULL;
+    PH_FORMAT format[3];
+    PPH_STRING idString;
+    PPH_BYTES idBytes;
+
+    *Message = NULL;
+    *Terminal = FALSE;
+
+    PhAcquireQueuedLockShared(&SimcpSession.Lock);
+    modern = SimcpSession.Modern;
+    initializedSeen = SimcpSession.InitializedSeen;
+    if (SimcpSession.InitializeLine)
+        line = PhReferenceObject(SimcpSession.InitializeLine);
+    if (SimcpSession.ProtocolVersion)
+        PhSetReference(&expected, SimcpSession.ProtocolVersion);
+    PhReleaseQueuedLockShared(&SimcpSession.Lock);
+
+    if (modern || !line)
+    {
+        if (line)
+            PhDereferenceObject(line);
+        if (expected)
+            PhDereferenceObject(expected);
+
+        return TRUE;
+    }
+
+    PhInitFormatS(&format[0], L"si-");
+    PhInitFormatU(&format[1], Generation);
+    PhInitFormatS(&format[2], L"-init");
+    idString = PhFormat(format, RTL_NUMBER_OF(format), 16);
+    idBytes = PhConvertUtf16ToUtf8Ex(idString->Buffer, idString->Length);
+    PhDereferenceObject(idString);
+
+    replay = SimcpRewriteEnvelopeId(line->Buffer, (ULONG)line->Length, idBytes->Buffer);
+    PhDereferenceObject(line);
+
+    if (!replay)
+    {
+        PhDereferenceObject(idBytes);
+        if (expected)
+            PhDereferenceObject(expected);
+
+        *Message = "the cached handshake could not be replayed";
+        return FALSE;
+    }
+
+    if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, replay->Buffer, (ULONG)replay->Length, FALSE, NULL)))
+    {
+        PhDereferenceObject(replay);
+        PhDereferenceObject(idBytes);
+        if (expected)
+            PhDereferenceObject(expected);
+
+        *Message = "System Informer closed the connection during the handshake";
+        return FALSE;
+    }
+
+    PhDereferenceObject(replay);
+
+    // Read until our own reply comes back. Anything else the backend volunteers first is relayed,
+    // because it belongs to the host.
+    while (TRUE)
+    {
+        NTSTATUS status;
+        SIMCP_HEADER header;
+        PVOID payload;
+        SIMCP_ENVELOPE envelope;
+        BOOLEAN mine;
+
+        status = SimcpReadEnvelope(PipeHandle, SimcpLink.ReadEvent, &header, &payload);
+
+        if (!NT_SUCCESS(status))
+        {
+            PhDereferenceObject(idBytes);
+            if (expected)
+                PhDereferenceObject(expected);
+
+            *Message = "System Informer closed the connection during the handshake";
+            return FALSE;
+        }
+
+        if (header.Type != SimcpMcp || !payload)
+        {
+            if (payload)
+                PhFree(payload);
+
+            continue;
+        }
+
+        SimcpParseEnvelope(payload, header.PayloadLength, &envelope);
+
+        mine = envelope.Kind == SimcpEnvelopeResponse && envelope.Id &&
+            envelope.Id->Length == idBytes->Length + 2 &&
+            memcmp(PTR_ADD_OFFSET(envelope.Id->Buffer, 1), idBytes->Buffer, idBytes->Length) == 0;
+
+        if (!mine)
+        {
+            SimcpWriteLine(payload, header.PayloadLength);
+            SimcpDeleteEnvelope(&envelope);
+            PhFree(payload);
+            continue;
+        }
+
+        // The host already has an answer to its own initialize; this one is ours and stops here.
+        if (expected && envelope.ProtocolVersion &&
+            !PhEqualString(expected, envelope.ProtocolVersion, FALSE))
+        {
+            SimcpDeleteEnvelope(&envelope);
+            PhFree(payload);
+            PhDereferenceObject(idBytes);
+            PhDereferenceObject(expected);
+
+            // The host is in a session this backend cannot honour; asking again will not help.
+            *Terminal = TRUE;
+            // The host is in a session this backend cannot honour; asking again will not help.
+            *Terminal = TRUE;
+            *Message = "System Informer changed protocol version; reconnect the agent";
+            return FALSE;
+        }
+
+        SimcpDeleteEnvelope(&envelope);
+        PhFree(payload);
+        break;
+    }
+
+    PhDereferenceObject(idBytes);
+    if (expected)
+        PhDereferenceObject(expected);
+
+    if (initializedSeen)
+    {
+        if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, (PVOID)initialized, sizeof(initialized) - 1, FALSE, NULL)))
+        {
+            *Message = "System Informer closed the connection during the handshake";
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
 typedef enum _SIMCP_ESTABLISH_RESULT
 {
     SimcpEstablishConnected,
@@ -714,6 +956,7 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
     SIMCP_HEADER header;
     PVOID payload;
     SIMCP_HELLO_ACK helloAck;
+    BOOLEAN replayTerminal;
 
     *PipeHandle = NULL;
     *Message = NULL;
@@ -794,6 +1037,12 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
         return SimcpEstablishTerminal;
     }
 
+    if (!SimcpReplaySession(pipeHandle, SimcpLinkGeneration(), Message, &replayTerminal))
+    {
+        SimcpLinkTeardown();
+        return replayTerminal ? SimcpEstablishTerminal : SimcpEstablishRetry;
+    }
+
     SimcpLog("connected to System Informer");
 
     *PipeHandle = pipeHandle;
@@ -847,7 +1096,10 @@ BOOLEAN SimcpPump(
                 if (envelope.Kind == SimcpEnvelopeUnparsed)
                     SimcpLog("could not read the envelope of a line from System Informer");
                 else if (envelope.Kind == SimcpEnvelopeResponse)
+                {
                     SimcpRemovePending(&SimcpPending, envelope.Id);
+                    SimcpSessionObserveIncoming(&envelope);
+                }
 
                 SimcpDeleteEnvelope(&envelope);
 
@@ -1029,6 +1281,8 @@ VOID SimcpRelayStandardInput(
                     SimcpFail("System Informer closed the connection");
                 }
 
+                SimcpSessionObserveOutgoing(&envelope, PTR_ADD_OFFSET(buffer, lineStart), lineLength);
+
                 // Tracked only once the line is on the wire, so an unsent request is never owed
                 // a response by the pipe thread.
                 if (envelope.Kind == SimcpEnvelopeRequest)
@@ -1104,6 +1358,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
     SimcpApplyMitigations();
     SimcpInitializePending(&SimcpPending);
+    PhInitializeQueuedLock(&SimcpSession.Lock);
 
     SimcpStdInput = PhGetStdHandle(STD_INPUT_HANDLE);
     SimcpStdOutput = PhGetStdHandle(STD_OUTPUT_HANDLE);
