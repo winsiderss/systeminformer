@@ -174,6 +174,14 @@ PhAddJsonObjectValue(
 PHLIBAPI
 VOID
 NTAPI
+PhRemoveJsonObject(
+    _In_ PVOID Object,
+    _In_ PCSTR Key
+    );
+
+PHLIBAPI
+VOID
+NTAPI
 PhAddJsonObject(
     _In_ PVOID Object,
     _In_ PCSTR Key,

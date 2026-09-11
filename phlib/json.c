@@ -331,6 +331,14 @@ VOID PhAddJsonObjectValue(
     json_object_object_add_ex(Object, Key, Value, JSON_C_OBJECT_ADD_KEY_IS_NEW | JSON_C_OBJECT_ADD_CONSTANT_KEY);
 }
 
+VOID PhRemoveJsonObject(
+    _In_ PVOID Object,
+    _In_ PCSTR Key
+    )
+{
+    json_object_object_del(Object, Key);
+}
+
 VOID PhAddJsonObject(
     _In_ PVOID Object,
     _In_ PCSTR Key,
