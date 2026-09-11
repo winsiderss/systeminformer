@@ -225,11 +225,24 @@ PVOID AtpCreateCapabilities(
     )
 {
     PVOID capabilities;
+    PVOID tools;
+    PVOID resources;
+    PVOID prompts;
 
     capabilities = PhCreateJsonObject();
-    PhAddJsonObjectValue(capabilities, "tools", PhCreateJsonObject());
-    PhAddJsonObjectValue(capabilities, "resources", PhCreateJsonObject());
-    PhAddJsonObjectValue(capabilities, "prompts", PhCreateJsonObject());
+
+    // listChanged says the notification may arrive, not that this server is the one that sends it.
+    tools = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(tools, "listChanged", TRUE);
+    PhAddJsonObjectValue(capabilities, "tools", tools);
+
+    resources = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(resources, "listChanged", TRUE);
+    PhAddJsonObjectValue(capabilities, "resources", resources);
+
+    prompts = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(prompts, "listChanged", TRUE);
+    PhAddJsonObjectValue(capabilities, "prompts", prompts);
 
     return capabilities;
 }
