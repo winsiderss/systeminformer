@@ -155,6 +155,22 @@ PCSTR SimcpCloseReasonToString(
     }
 }
 
+// Terminal reasons only; anything unrecognised is reconnect-eligible so a newer server can add reasons.
+BOOLEAN SimcpCloseReasonIsTerminal(
+    _In_ PSIMCP_CLOSE Close
+    )
+{
+    switch (Close->Reason)
+    {
+    case SimcpCloseUserDisconnected:
+    case SimcpCloseProtocolViolation:
+    case SimcpCloseRejected:
+        return TRUE;
+    default:
+        return FALSE;
+    }
+}
+
 NTSTATUS SimcpPipeIo(
     _In_ HANDLE PipeHandle,
     _In_ HANDLE EventHandle,
