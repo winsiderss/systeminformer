@@ -19,6 +19,8 @@
 #define SIMCP_JSONRPC_ERROR_TRANSPORT 1000
 #define SIMCP_CONNECT_ATTEMPTS 3
 #define SIMCP_CONNECT_WAIT_MS 2000
+#define SIMCP_RECONNECT_BACKOFF_FIRST_MS 250
+#define SIMCP_RECONNECT_BACKOFF_MAX_MS 5000
 
 static HANDLE SimcpStdInput = NULL;
 static HANDLE SimcpStdOutput = NULL;
@@ -687,13 +689,22 @@ VOID SimcpFillHello(
     }
 }
 
+typedef enum _SIMCP_ESTABLISH_RESULT
+{
+    SimcpEstablishConnected,
+    SimcpEstablishRetry,        // transient: back off and try again
+    SimcpEstablishTerminal,     // the session cannot continue
+} SIMCP_ESTABLISH_RESULT;
+
 /**
- * Connects, handshakes and publishes a generation. Fails the process on anything terminal.
+ * Connects, handshakes and publishes a generation.
  *
  * \param PipeHandle Receives the handle of the new generation.
+ * \param Message Receives why the attempt failed, when it did.
  */
-VOID SimcpEstablish(
-    _Out_ PHANDLE PipeHandle
+SIMCP_ESTABLISH_RESULT SimcpEstablish(
+    _Out_ PHANDLE PipeHandle,
+    _Out_ PCSTR *Message
     )
 {
     NTSTATUS status;
@@ -705,19 +716,24 @@ VOID SimcpEstablish(
     SIMCP_HELLO_ACK helloAck;
 
     *PipeHandle = NULL;
+    *Message = NULL;
 
     status = SimcpConnectPipe(&pipeHandle, &failureMessage);
 
     if (!NT_SUCCESS(status))
     {
+        // Nothing here is terminal: System Informer may not have started yet, and a squatter
+        // holding the name must not be able to end the session by failing validation.
         if (failureMessage)
-            SimcpFail(failureMessage);
+            *Message = failureMessage;
         else if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_OBJECT_PATH_NOT_FOUND)
-            SimcpFail("System Informer is not running in this session or the agent tools server is not enabled");
+            *Message = "System Informer is not running in this session or the agent tools server is not enabled";
         else if (status == STATUS_ACCESS_DENIED)
-            SimcpFail("access to the System Informer agent pipe was denied");
+            *Message = "access to the System Informer agent pipe was denied";
         else
-            SimcpFail("unable to connect to the System Informer agent pipe");
+            *Message = "unable to connect to the System Informer agent pipe";
+
+        return SimcpEstablishRetry;
     }
 
     // Published before the handshake so the frames below have a generation to belong to; the
@@ -727,10 +743,18 @@ VOID SimcpEstablish(
     SimcpFillHello(&hello);
 
     if (!NT_SUCCESS(SimcpLinkSend(SimcpHello, &hello, sizeof(SIMCP_HELLO), FALSE, NULL)))
-        SimcpFail("System Informer closed the connection during the handshake");
+    {
+        SimcpLinkTeardown();
+        *Message = "System Informer closed the connection during the handshake";
+        return SimcpEstablishRetry;
+    }
 
     if (!NT_SUCCESS(SimcpReadEnvelope(pipeHandle, SimcpLink.ReadEvent, &header, &payload)))
-        SimcpFail("System Informer closed the connection during the handshake");
+    {
+        SimcpLinkTeardown();
+        *Message = "System Informer closed the connection during the handshake";
+        return SimcpEstablishRetry;
+    }
 
     if (header.Type == SimcpClose)
     {
@@ -741,54 +765,75 @@ VOID SimcpEstablish(
         if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
             memcpy(&close, payload, sizeof(SIMCP_CLOSE));
 
-        SimcpFail(SimcpCloseReasonToString(&close));
+        if (payload)
+            PhFree(payload);
+
+        SimcpLinkTeardown();
+        *Message = SimcpCloseReasonToString(&close);
+        return SimcpCloseReasonIsTerminal(&close) ? SimcpEstablishTerminal : SimcpEstablishRetry;
     }
 
     if (header.Type != SimcpHelloAck || !payload || header.PayloadLength < sizeof(SIMCP_HELLO_ACK))
-        SimcpFail("unexpected handshake reply from System Informer");
+    {
+        if (payload)
+            PhFree(payload);
+
+        SimcpLinkTeardown();
+        *Message = "unexpected handshake reply from System Informer";
+        return SimcpEstablishTerminal;
+    }
 
     memcpy(&helloAck, payload, sizeof(SIMCP_HELLO_ACK));
     PhFree(payload);
 
+    // A rejected handshake is a decision, not an outage: retrying would only ask again.
     if (helloAck.Status != SimcpHelloAccepted)
-        SimcpFail(SimcpHelloStatusToString(helloAck.Status));
+    {
+        SimcpLinkTeardown();
+        *Message = SimcpHelloStatusToString(helloAck.Status);
+        return SimcpEstablishTerminal;
+    }
 
     SimcpLog("connected to System Informer");
 
     *PipeHandle = pipeHandle;
     SimcpLinkConnected();
+
+    return SimcpEstablishConnected;
 }
 
 /**
- * Owns the pipe: connect, handshake, pump, tear down. Reconnect arrives in a later change, so a
- * loss still ends the session; the loop shape is what that change fills in.
+ * Relays until the generation ends.
+ *
+ * \param PipeHandle The generation's pipe.
+ * \param Message Receives why the generation ended.
+ * \return TRUE when the session cannot continue, FALSE when it may reconnect.
  */
-_Function_class_(USER_THREAD_START_ROUTINE)
-NTSTATUS NTAPI SimcpSupervisorThread(
-    _In_ PVOID Parameter
+BOOLEAN SimcpPump(
+    _In_ HANDLE PipeHandle,
+    _Out_ PCSTR *Message
     )
 {
-    HANDLE pipeHandle;
-    PCSTR failure;
-
-    SimcpEstablish(&pipeHandle);
-
     while (TRUE)
     {
         NTSTATUS status;
         SIMCP_HEADER header;
         PVOID payload;
+        BOOLEAN terminal;
 
-        status = SimcpReadEnvelope(pipeHandle, SimcpLink.ReadEvent, &header, &payload);
+        status = SimcpReadEnvelope(PipeHandle, SimcpLink.ReadEvent, &header, &payload);
 
         if (!NT_SUCCESS(status))
         {
+            // A broken pipe is System Informer going away; a malformed frame is not.
             if (status == STATUS_INVALID_NETWORK_RESPONSE)
-                failure = "malformed message from System Informer";
-            else
-                failure = "System Informer closed the connection";
+            {
+                *Message = "malformed message from System Informer";
+                return TRUE;
+            }
 
-            break;
+            *Message = "System Informer closed the connection";
+            return FALSE;
         }
 
         if (header.Type == SimcpMcp)
@@ -808,10 +853,9 @@ NTSTATUS NTAPI SimcpSupervisorThread(
 
                 // Relayed byte for byte; nothing here rewrites a line yet.
                 SimcpWriteLine(payload, header.PayloadLength);
-            }
 
-            if (payload)
                 PhFree(payload);
+            }
 
             continue;
         }
@@ -825,22 +869,93 @@ NTSTATUS NTAPI SimcpSupervisorThread(
             if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
                 memcpy(&close, payload, sizeof(SIMCP_CLOSE));
 
-            failure = SimcpCloseReasonToString(&close);
+            *Message = SimcpCloseReasonToString(&close);
+            terminal = SimcpCloseReasonIsTerminal(&close);
         }
         else
         {
-            failure = "unexpected message from System Informer";
+            *Message = "unexpected message from System Informer";
+            terminal = TRUE;
         }
 
         if (payload)
             PhFree(payload);
 
-        break;
+        return terminal;
+    }
+}
+
+ULONG SimcpNextBackoff(
+    _In_ ULONG Current
+    )
+{
+    ULONG next;
+
+    if (Current == 0)
+        return SIMCP_RECONNECT_BACKOFF_FIRST_MS;
+
+    if (!NT_SUCCESS(RtlULongMult(Current, 2, &next)) || next > SIMCP_RECONNECT_BACKOFF_MAX_MS)
+        return SIMCP_RECONNECT_BACKOFF_MAX_MS;
+
+    return next;
+}
+
+/**
+ * Owns the pipe: connect, handshake, pump, tear down, and go round again.
+ *
+ * Only a decision ends the session: the user disconnecting, a rejected handshake, a broken
+ * protocol. An outage does not.
+ */
+_Function_class_(USER_THREAD_START_ROUTINE)
+NTSTATUS NTAPI SimcpSupervisorThread(
+    _In_ PVOID Parameter
+    )
+{
+    ULONG backoff = 0;
+    BOOLEAN everConnected = FALSE;
+    PCSTR message = "the connection ended";
+
+    while (TRUE)
+    {
+        HANDLE pipeHandle;
+        SIMCP_ESTABLISH_RESULT result;
+
+        result = SimcpEstablish(&pipeHandle, &message);
+
+        if (result == SimcpEstablishTerminal)
+            break;
+
+        if (result == SimcpEstablishRetry)
+        {
+            // The first connect still reports why it failed rather than hanging: a broker that
+            // waits forever for a System Informer that was never started is worse than one that
+            // says so. Reconnecting is for a link that once worked.
+            if (!everConnected)
+                break;
+
+            backoff = SimcpNextBackoff(backoff);
+            PhDelayExecution(backoff);
+            continue;
+        }
+
+        everConnected = TRUE;
+        backoff = 0;
+
+        if (SimcpPump(pipeHandle, &message))
+        {
+            SimcpLinkTeardown();
+            break;
+        }
+
+        SimcpLinkTeardown();
+        SimcpLog("System Informer went away; waiting for it to come back");
+
+        backoff = SimcpNextBackoff(backoff);
+        PhDelayExecution(backoff);
     }
 
-    SimcpLinkTeardown();
     SimcpLinkAbort();
-    SimcpFail(failure);
+    SimcpFail(message);
 }
 
 VOID SimcpRelayStandardInput(
