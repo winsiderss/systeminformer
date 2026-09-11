@@ -178,6 +178,9 @@ PPH_BYTES SimcpRewriteEnvelopeId(
 
     if (PhGetJsonObjectType(message) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
+        // Removed first: PhAddJsonObject appends, so setting a key the line already has
+        // would put two "id" members on the wire.
+        PhRemoveJsonObject(message, "id");
         PhAddJsonObject(message, "id", IdString);
         rewritten = PhGetJsonArrayString(message, FALSE);
     }
@@ -218,6 +221,7 @@ PPH_BYTES SimcpRewriteEnvelopeIdInteger(
 
     if (PhGetJsonObjectType(message) == PH_JSON_OBJECT_TYPE_OBJECT)
     {
+        PhRemoveJsonObject(message, "id");
         PhAddJsonObjectInt64(message, "id", Id);
         rewritten = PhGetJsonArrayString(message, FALSE);
     }
