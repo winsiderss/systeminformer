@@ -13,6 +13,7 @@
 #include <phconsole.h>
 #include <verify.h>
 #include <simcp.h>
+#include "envelope.h"
 
 #define SIMCP_JSONRPC_ERROR_TRANSPORT 1000
 #define SIMCP_CONNECT_ATTEMPTS 3
@@ -558,7 +559,19 @@ NTSTATUS NTAPI SimcpPipeReaderThread(
         case SimcpMcp:
             {
                 if (payload)
+                {
+                    SIMCP_ENVELOPE envelope;
+
+                    SimcpParseEnvelope(payload, header.PayloadLength, &envelope);
+
+                    if (envelope.Kind == SimcpEnvelopeUnparsed)
+                        SimcpLog("could not read the envelope of a line from System Informer");
+
+                    SimcpDeleteEnvelope(&envelope);
+
+                    // Relayed byte for byte; nothing here rewrites a line yet.
                     SimcpWriteLine(payload, header.PayloadLength);
+                }
             }
             break;
         case SimcpClose:
@@ -629,9 +642,19 @@ VOID SimcpRelayStandardInput(
 
             if (lineLength)
             {
+                SIMCP_ENVELOPE envelope;
+
                 if (lineLength > SIMCP_MAX_PAYLOAD_LENGTH)
                     SimcpFail("request line exceeds the maximum message size");
 
+                SimcpParseEnvelope(PTR_ADD_OFFSET(buffer, lineStart), lineLength, &envelope);
+
+                if (envelope.Kind == SimcpEnvelopeUnparsed)
+                    SimcpLog("could not read the envelope of a line from the host");
+
+                SimcpDeleteEnvelope(&envelope);
+
+                // Relayed byte for byte; nothing here rewrites a line yet.
                 if (!NT_SUCCESS(SimcpWriteEnvelope(
                     SimcpPipeHandle,
                     SimcpPipeWriteEvent,

@@ -202,9 +202,11 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="envelope.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="envelope.h" />
     <ClInclude Include="include\simcp.h" />
   </ItemGroup>
   <ItemGroup>
