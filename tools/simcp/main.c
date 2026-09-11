@@ -22,6 +22,7 @@
 #define SIMCP_RECONNECT_BACKOFF_FIRST_MS 250
 #define SIMCP_RECONNECT_BACKOFF_MAX_MS 5000
 #define SIMCP_RECONNECT_GRACE_MS 5000
+#define SIMCP_OPTION_NO_RECONNECT 1
 
 static HANDLE SimcpStdInput = NULL;
 static HANDLE SimcpStdOutput = NULL;
@@ -59,6 +60,7 @@ typedef struct _SIMCP_SESSION
 } SIMCP_SESSION, *PSIMCP_SESSION;
 
 static SIMCP_SESSION SimcpSession = { 0 };
+static BOOLEAN SimcpNoReconnect = FALSE;
 
 VOID SimcpWriteAll(
     _In_ HANDLE FileHandle,
@@ -1435,7 +1437,7 @@ NTSTATUS NTAPI SimcpSupervisorThread(
             // The first connect still reports why it failed rather than hanging: a broker that
             // waits forever for a System Informer that was never started is worse than one that
             // says so. Reconnecting is for a link that once worked.
-            if (!everConnected)
+            if (!everConnected || SimcpNoReconnect)
                 break;
 
             backoff = SimcpNextBackoff(backoff);
@@ -1453,6 +1455,10 @@ NTSTATUS NTAPI SimcpSupervisorThread(
         }
 
         SimcpLinkTeardown();
+
+        if (SimcpNoReconnect)
+            break;
+
         SimcpLog("System Informer went away; waiting for it to come back");
 
         backoff = SimcpNextBackoff(backoff);
@@ -1677,6 +1683,55 @@ VOID SimcpApplyMitigations(
     NtSetInformationProcess(NtCurrentProcess(), ProcessMitigationPolicy, &policyInfo, sizeof(PROCESS_MITIGATION_POLICY_INFORMATION));
 }
 
+_Function_class_(PH_COMMAND_LINE_CALLBACK)
+BOOLEAN NTAPI SimcpCommandLineCallback(
+    _In_opt_ PCPH_COMMAND_LINE_OPTION Option,
+    _In_opt_ PPH_STRING Value,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Option && Option->Id == SIMCP_OPTION_NO_RECONNECT)
+    {
+        SimcpNoReconnect = TRUE;
+        SimcpLog("reconnect disabled by --no-reconnect");
+    }
+    return TRUE;
+}
+
+/**
+ * Reads the command line.
+ *
+ * argc/argv are not populated in this build, so the command line comes from the PEB as it does
+ * everywhere else in the tree. An unrecognised argument is ignored and not reported:
+ * PhParseCommandLine either skips it silently or abandons the whole parse, and abandoning it
+ * would let a stray argument quietly disable -no-reconnect.
+ */
+VOID SimcpParseArguments(
+    VOID
+    )
+{
+    // PhParseCommandLine matches a single leading dash, so the second row is what makes the
+    // double-dash spelling an MCP host config would normally use work too.
+    static CONST PH_COMMAND_LINE_OPTION options[] =
+    {
+        { SIMCP_OPTION_NO_RECONNECT, L"no-reconnect", NoArgumentType },
+        { SIMCP_OPTION_NO_RECONNECT, L"-no-reconnect", NoArgumentType },
+    };
+    PH_STRINGREF commandLine;
+
+    if (!NT_SUCCESS(PhGetProcessCommandLineStringRef(&commandLine)))
+        return;
+
+    PhParseCommandLine(
+        &commandLine,
+        options,
+        RTL_NUMBER_OF(options),
+        PH_COMMAND_LINE_IGNORE_UNKNOWN_OPTIONS | PH_COMMAND_LINE_IGNORE_FIRST_PART,
+        SimcpCommandLineCallback,
+        NULL
+        );
+}
+
 int __cdecl wmain(int argc, wchar_t *argv[])
 {
     NTSTATUS status;
@@ -1696,6 +1751,9 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
     if (!SimcpStdInput || !SimcpStdOutput)
         return 1;
+
+    // After the standard handles, so anything it reports can actually be seen.
+    SimcpParseArguments();
 
     if (!NT_SUCCESS(SimcpLinkInitialize()))
         SimcpFail("unable to allocate I/O resources");
