@@ -76,6 +76,7 @@ typedef enum _SIMCP_CLOSE_REASON
     SimcpCloseServerShutdown = 3,
     SimcpCloseProtocolViolation = 4,
     SimcpCloseRejected = 5,
+    SimcpCloseTransportError = 6,
 } SIMCP_CLOSE_REASON;
 
 typedef struct _SIMCP_CLOSE

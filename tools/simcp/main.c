@@ -148,6 +148,8 @@ PCSTR SimcpCloseReasonToString(
         return "System Informer is shutting down";
     case SimcpCloseProtocolViolation:
         return "protocol violation";
+    case SimcpCloseTransportError:
+        return "System Informer could not write to this connection";
     case SimcpCloseRejected:
         return SimcpHelloStatusToString(Close->Detail);
     default:
