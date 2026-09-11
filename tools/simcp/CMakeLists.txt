@@ -6,6 +6,7 @@
 
 set(HEADERS
     "envelope.h"
+    "pending.h"
     "include/simcp.h"
 )
 source_group("Header Files" FILES ${HEADERS})
@@ -19,6 +20,7 @@ source_group("Resource Files" FILES ${RESOURCES})
 set(SOURCES
     "envelope.c"
     "main.c"
+    "pending.c"
 )
 source_group("Source Files" FILES ${SOURCES})
 

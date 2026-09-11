@@ -27,6 +27,7 @@ typedef struct _SIMCP_ENVELOPE
     SIMCP_ENVELOPE_KIND Kind;
     PPH_BYTES Id;       // raw id JSON text, so a number and a string are both carried verbatim
     PPH_STRING Method;
+    PPH_BYTES CancelId; // params.requestId of a notifications/cancelled, else NULL
 } SIMCP_ENVELOPE, *PSIMCP_ENVELOPE;
 
 VOID SimcpParseEnvelope(

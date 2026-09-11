@@ -14,6 +14,7 @@
 #include <verify.h>
 #include <simcp.h>
 #include "envelope.h"
+#include "pending.h"
 
 #define SIMCP_JSONRPC_ERROR_TRANSPORT 1000
 #define SIMCP_CONNECT_ATTEMPTS 3
@@ -26,6 +27,7 @@ static HANDLE SimcpPipeHandle = NULL;
 static HANDLE SimcpPipeReadEvent = NULL;
 static HANDLE SimcpPipeWriteEvent = NULL;
 static PH_QUEUED_LOCK SimcpStdOutputLock = PH_QUEUED_LOCK_INIT;
+static SIMCP_PENDING SimcpPending = { 0 };
 
 VOID SimcpWriteAll(
     _In_ HANDLE FileHandle,
@@ -566,6 +568,8 @@ NTSTATUS NTAPI SimcpPipeReaderThread(
 
                     if (envelope.Kind == SimcpEnvelopeUnparsed)
                         SimcpLog("could not read the envelope of a line from System Informer");
+                    else if (envelope.Kind == SimcpEnvelopeResponse)
+                        SimcpRemovePending(&SimcpPending, envelope.Id);
 
                     SimcpDeleteEnvelope(&envelope);
 
@@ -652,9 +656,8 @@ VOID SimcpRelayStandardInput(
                 if (envelope.Kind == SimcpEnvelopeUnparsed)
                     SimcpLog("could not read the envelope of a line from the host");
 
-                SimcpDeleteEnvelope(&envelope);
-
-                // Relayed byte for byte; nothing here rewrites a line yet.
+                // Relayed byte for byte; nothing here rewrites a line yet. A cancellation is
+                // relayed like any other line: System Informer needs it to stop the call.
                 if (!NT_SUCCESS(SimcpWriteEnvelope(
                     SimcpPipeHandle,
                     SimcpPipeWriteEvent,
@@ -663,8 +666,23 @@ VOID SimcpRelayStandardInput(
                     lineLength
                     )))
                 {
+                    SimcpDeleteEnvelope(&envelope);
                     SimcpFail("System Informer closed the connection");
                 }
+
+                // Tracked only once the line is on the wire, so an unsent request is never owed
+                // a response by the pipe thread.
+                if (envelope.Kind == SimcpEnvelopeRequest)
+                {
+                    if (!SimcpAddPending(&SimcpPending, envelope.Id))
+                        SimcpLog("could not track another outstanding request");
+                }
+                else if (envelope.CancelId)
+                {
+                    SimcpRemovePending(&SimcpPending, envelope.CancelId);
+                }
+
+                SimcpDeleteEnvelope(&envelope);
             }
 
             lineStart = i + 1;
@@ -731,6 +749,7 @@ int __cdecl wmain(int argc, wchar_t *argv[])
         return 1;
 
     SimcpApplyMitigations();
+    SimcpInitializePending(&SimcpPending);
 
     SimcpStdInput = PhGetStdHandle(STD_INPUT_HANDLE);
     SimcpStdOutput = PhGetStdHandle(STD_OUTPUT_HANDLE);

@@ -74,6 +74,27 @@ VOID SimcpParseEnvelope(
     else if (Envelope->Id)
         Envelope->Kind = SimcpEnvelopeResponse;
 
+    // The request a cancellation names is protocol metadata, not tool payload.
+    if (Envelope->Kind == SimcpEnvelopeNotification &&
+        PhEqualString2(Envelope->Method, L"notifications/cancelled", FALSE))
+    {
+        PVOID params;
+
+        if (params = PhGetJsonObject(message, "params"))
+        {
+            if (PhGetJsonObjectType(params) == PH_JSON_OBJECT_TYPE_OBJECT)
+            {
+                PVOID requestId;
+
+                if (requestId = PhGetJsonObject(params, "requestId"))
+                {
+                    if (PhGetJsonObjectType(requestId) != PH_JSON_OBJECT_TYPE_NULL)
+                        Envelope->CancelId = PhGetJsonArrayString(requestId, FALSE);
+                }
+            }
+        }
+    }
+
     PhFreeJsonObject(message);
 }
 
@@ -81,6 +102,8 @@ VOID SimcpDeleteEnvelope(
     _Inout_ PSIMCP_ENVELOPE Envelope
     )
 {
+    if (Envelope->CancelId)
+        PhDereferenceObject(Envelope->CancelId);
     if (Envelope->Id)
         PhDereferenceObject(Envelope->Id);
     if (Envelope->Method)

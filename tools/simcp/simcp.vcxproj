@@ -204,9 +204,11 @@
   <ItemGroup>
     <ClCompile Include="envelope.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="pending.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="envelope.h" />
+    <ClInclude Include="pending.h" />
     <ClInclude Include="include\simcp.h" />
   </ItemGroup>
   <ItemGroup>
