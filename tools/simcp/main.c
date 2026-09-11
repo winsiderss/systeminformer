@@ -185,6 +185,21 @@ VOID SimcpEmitPong(
     PhDereferenceObject(line);
 }
 
+// A later generation may be a different System Informer with a different tool set. Telling the
+// host to re-list is idempotent, and cheaper than any test for whether it actually changed.
+VOID SimcpEmitListChanged(
+    VOID
+    )
+{
+    static CONST CHAR tools[] = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/tools/list_changed\"}";
+    static CONST CHAR resources[] = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/resources/list_changed\"}";
+    static CONST CHAR prompts[] = "{\"jsonrpc\":\"2.0\",\"method\":\"notifications/prompts/list_changed\"}";
+
+    SimcpWriteLine((PVOID)tools, sizeof(tools) - 1);
+    SimcpWriteLine((PVOID)resources, sizeof(resources) - 1);
+    SimcpWriteLine((PVOID)prompts, sizeof(prompts) - 1);
+}
+
 DECLSPEC_NORETURN
 VOID SimcpFail(
     _In_ PCSTR Message
@@ -1131,6 +1146,9 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
 
     *PipeHandle = pipeHandle;
     SimcpLinkConnected();
+
+    if (SimcpLinkGeneration() > 1)
+        SimcpEmitListChanged();
 
     return SimcpEstablishConnected;
 }
