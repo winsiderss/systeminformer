@@ -247,7 +247,7 @@ NTSTATUS AtpSendLine(
     // will reach the client; the handshake treats the same failure the same way. Closing here
     // stops the rest of this exchange being written into a pipe that cannot carry it.
     if (!NT_SUCCESS(status))
-        AtConnectionClose(Connection, SimcpCloseUserDisconnected, (ULONG)status);
+        AtConnectionClose(Connection, SimcpCloseTransportError, (ULONG)status);
 
     return status;
 }
