@@ -40,6 +40,7 @@ typedef struct _SIMCP_LINK
     HANDLE ReadEvent;
     HANDLE ConnectedEvent;
     HANDLE AbortEvent;
+    HANDLE LauncherHandle;
     BOOLEAN EverConnected;
 } SIMCP_LINK, *PSIMCP_LINK;
 
@@ -373,6 +374,24 @@ NTSTATUS SimcpLinkInitialize(
     if (NT_SUCCESS(status))
         status = NtCreateEvent(&SimcpLink.AbortEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
 
+    if (NT_SUCCESS(status))
+    {
+        PROCESS_BASIC_INFORMATION basicInfo;
+
+        // Opened once, so the handle cannot later name a different process that reused the id.
+        if (NT_SUCCESS(PhGetProcessBasicInformation(NtCurrentProcess(), &basicInfo)))
+        {
+            if (!NT_SUCCESS(PhOpenProcess(
+                &SimcpLink.LauncherHandle,
+                SYNCHRONIZE,
+                (HANDLE)basicInfo.InheritedFromUniqueProcessId
+                )))
+            {
+                SimcpLink.LauncherHandle = NULL;
+            }
+        }
+    }
+
     return status;
 }
 
@@ -476,15 +495,25 @@ BOOLEAN SimcpLinkWaitConnected(
     _In_ ULONG TimeoutMs
     )
 {
-    HANDLE handles[2];
+    HANDLE handles[3];
+    ULONG count;
     LARGE_INTEGER timeout;
     NTSTATUS status;
 
     handles[0] = SimcpLink.ConnectedEvent;
     handles[1] = SimcpLink.AbortEvent;
+    count = 2;
+
+    // Nothing sets AbortEvent while the supervisor is still retrying, so a wait with no deadline
+    // would otherwise never end: the thread parked here is the same one that reads stdin, so it
+    // cannot notice the host going away. Waking on the launcher returns it to that read, which
+    // then sees end of file and unwinds. Only the unbounded wait needs this -- a bounded one
+    // already returns on its own, and a launcher that dies mid-session must not end a live link.
+    if (TimeoutMs == INFINITE && SimcpLink.LauncherHandle)
+        handles[count++] = SimcpLink.LauncherHandle;
 
     status = NtWaitForMultipleObjects(
-        2,
+        count,
         handles,
         WaitAny,
         FALSE,
