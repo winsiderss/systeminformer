@@ -23,11 +23,25 @@
 static HANDLE SimcpStdInput = NULL;
 static HANDLE SimcpStdOutput = NULL;
 static HANDLE SimcpStdError = NULL;
-static HANDLE SimcpPipeHandle = NULL;
-static HANDLE SimcpPipeReadEvent = NULL;
-static HANDLE SimcpPipeWriteEvent = NULL;
 static PH_QUEUED_LOCK SimcpStdOutputLock = PH_QUEUED_LOCK_INIT;
 static SIMCP_PENDING SimcpPending = { 0 };
+
+// One generation of the pipe. The supervisor thread is the only reader and the only thing that
+// replaces Handle, so a read can never race the close. Writers are serialised by SendLock, which
+// teardown takes before clearing Handle, so a write can never be left holding a closed handle.
+typedef struct _SIMCP_LINK
+{
+    PH_QUEUED_LOCK Lock;        // guards Handle and Generation
+    HANDLE Handle;              // NULL when the link is down
+    ULONG Generation;
+    PH_QUEUED_LOCK SendLock;    // one whole envelope at a time; sole owner of WriteEvent
+    HANDLE WriteEvent;
+    HANDLE ReadEvent;           // supervisor only
+    HANDLE ConnectedEvent;
+    HANDLE AbortEvent;
+} SIMCP_LINK, *PSIMCP_LINK;
+
+static SIMCP_LINK SimcpLink = { 0 };
 
 VOID SimcpWriteAll(
     _In_ HANDLE FileHandle,
@@ -269,16 +283,137 @@ NTSTATUS SimcpWriteAllPipe(
     return STATUS_SUCCESS;
 }
 
-NTSTATUS SimcpWriteEnvelope(
-    _In_ HANDLE PipeHandle,
-    _In_ HANDLE EventHandle,
+NTSTATUS SimcpLinkInitialize(
+    VOID
+    )
+{
+    NTSTATUS status;
+
+    PhInitializeQueuedLock(&SimcpLink.Lock);
+    PhInitializeQueuedLock(&SimcpLink.SendLock);
+
+    status = SimcpCreateIoEvent(&SimcpLink.ReadEvent);
+
+    if (NT_SUCCESS(status))
+        status = SimcpCreateIoEvent(&SimcpLink.WriteEvent);
+    if (NT_SUCCESS(status))
+        status = NtCreateEvent(&SimcpLink.ConnectedEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+    if (NT_SUCCESS(status))
+        status = NtCreateEvent(&SimcpLink.AbortEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE);
+
+    return status;
+}
+
+// A connect attempt becomes a generation here; the number is never reused, so a frame from an
+// attempt that died mid-handshake can never be mistaken for a live one.
+VOID SimcpLinkPublish(
+    _In_ HANDLE PipeHandle
+    )
+{
+    PhAcquireQueuedLockExclusive(&SimcpLink.Lock);
+    SimcpLink.Handle = PipeHandle;
+    SimcpLink.Generation++;
+    PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
+}
+
+VOID SimcpLinkConnected(
+    VOID
+    )
+{
+    NtSetEvent(SimcpLink.ConnectedEvent, NULL);
+}
+
+VOID SimcpLinkAbort(
+    VOID
+    )
+{
+    NtSetEvent(SimcpLink.AbortEvent, NULL);
+}
+
+/**
+ * Closes the current generation.
+ *
+ * Cancels a write parked in the pipe before taking SendLock, so teardown cannot wait on a peer
+ * that has stopped reading. Handle is cleared under the lock and closed only once no writer can
+ * still reach it.
+ */
+VOID SimcpLinkTeardown(
+    VOID
+    )
+{
+    HANDLE handle;
+    IO_STATUS_BLOCK isb;
+
+    PhAcquireQueuedLockShared(&SimcpLink.Lock);
+    handle = SimcpLink.Handle;
+    PhReleaseQueuedLockShared(&SimcpLink.Lock);
+
+    if (!handle)
+        return;
+
+    NtResetEvent(SimcpLink.ConnectedEvent, NULL);
+    NtCancelIoFileEx(handle, NULL, &isb);
+
+    PhAcquireQueuedLockExclusive(&SimcpLink.SendLock);
+    PhAcquireQueuedLockExclusive(&SimcpLink.Lock);
+    SimcpLink.Handle = NULL;
+    PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
+    PhReleaseQueuedLockExclusive(&SimcpLink.SendLock);
+
+    NtClose(handle);
+
+    // A generation's outstanding requests die with it.
+    SimcpClearPending(&SimcpPending);
+}
+
+/**
+ * Waits until the link can carry a frame.
+ *
+ * 
+eturn TRUE when connected, FALSE when the broker is shutting down.
+ */
+BOOLEAN SimcpLinkWaitConnected(
+    VOID
+    )
+{
+    HANDLE handles[2];
+    NTSTATUS status;
+
+    handles[0] = SimcpLink.ConnectedEvent;
+    handles[1] = SimcpLink.AbortEvent;
+
+    status = NtWaitForMultipleObjects(2, handles, WaitAny, FALSE, NULL);
+
+    return status == STATUS_WAIT_0;
+}
+
+/**
+ * Writes one envelope.
+ *
+ * Header and payload go out under a single lock, so a short write can never be split across two
+ * generations and leave System Informer reading a header-less tail.
+ *
+ * \param Type The message type.
+ * \param Payload The payload, or NULL.
+ * \param PayloadLength The payload length in bytes.
+ * \param WaitForConnected TRUE to block until a generation is usable; the handshake passes FALSE
+ * because it is what makes the generation usable.
+ * \param Generation Receives the generation the frame was written to.
+ */
+NTSTATUS SimcpLinkSend(
     _In_ USHORT Type,
     _In_reads_bytes_opt_(PayloadLength) PVOID Payload,
-    _In_ ULONG PayloadLength
+    _In_ ULONG PayloadLength,
+    _In_ BOOLEAN WaitForConnected,
+    _Out_opt_ PULONG Generation
     )
 {
     NTSTATUS status;
     SIMCP_HEADER header;
+    HANDLE handle;
+
+    if (WaitForConnected && !SimcpLinkWaitConnected())
+        return STATUS_PIPE_DISCONNECTED;
 
     memset(&header, 0, sizeof(SIMCP_HEADER));
     header.Magic = SIMCP_MAGIC;
@@ -286,12 +421,29 @@ NTSTATUS SimcpWriteEnvelope(
     header.Type = Type;
     header.PayloadLength = PayloadLength;
 
-    status = SimcpWriteAllPipe(PipeHandle, EventHandle, &header, sizeof(SIMCP_HEADER));
+    PhAcquireQueuedLockExclusive(&SimcpLink.SendLock);
 
-    if (NT_SUCCESS(status) && Payload && PayloadLength)
+    PhAcquireQueuedLockShared(&SimcpLink.Lock);
+    handle = SimcpLink.Handle;
+
+    if (Generation)
+        *Generation = SimcpLink.Generation;
+
+    PhReleaseQueuedLockShared(&SimcpLink.Lock);
+
+    if (handle)
     {
-        status = SimcpWriteAllPipe(PipeHandle, EventHandle, Payload, PayloadLength);
+        status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, &header, sizeof(SIMCP_HEADER));
+
+        if (NT_SUCCESS(status) && Payload && PayloadLength)
+            status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, Payload, PayloadLength);
     }
+    else
+    {
+        status = STATUS_PIPE_DISCONNECTED;
+    }
+
+    PhReleaseQueuedLockExclusive(&SimcpLink.SendLock);
 
     return status;
 }
@@ -535,68 +687,160 @@ VOID SimcpFillHello(
     }
 }
 
+/**
+ * Connects, handshakes and publishes a generation. Fails the process on anything terminal.
+ *
+ * \param PipeHandle Receives the handle of the new generation.
+ */
+VOID SimcpEstablish(
+    _Out_ PHANDLE PipeHandle
+    )
+{
+    NTSTATUS status;
+    HANDLE pipeHandle = NULL;
+    PCSTR failureMessage;
+    SIMCP_HELLO hello;
+    SIMCP_HEADER header;
+    PVOID payload;
+    SIMCP_HELLO_ACK helloAck;
+
+    *PipeHandle = NULL;
+
+    status = SimcpConnectPipe(&pipeHandle, &failureMessage);
+
+    if (!NT_SUCCESS(status))
+    {
+        if (failureMessage)
+            SimcpFail(failureMessage);
+        else if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_OBJECT_PATH_NOT_FOUND)
+            SimcpFail("System Informer is not running in this session or the agent tools server is not enabled");
+        else if (status == STATUS_ACCESS_DENIED)
+            SimcpFail("access to the System Informer agent pipe was denied");
+        else
+            SimcpFail("unable to connect to the System Informer agent pipe");
+    }
+
+    // Published before the handshake so the frames below have a generation to belong to; the
+    // stdin relay still cannot use it until Connected is set.
+    SimcpLinkPublish(pipeHandle);
+
+    SimcpFillHello(&hello);
+
+    if (!NT_SUCCESS(SimcpLinkSend(SimcpHello, &hello, sizeof(SIMCP_HELLO), FALSE, NULL)))
+        SimcpFail("System Informer closed the connection during the handshake");
+
+    if (!NT_SUCCESS(SimcpReadEnvelope(pipeHandle, SimcpLink.ReadEvent, &header, &payload)))
+        SimcpFail("System Informer closed the connection during the handshake");
+
+    if (header.Type == SimcpClose)
+    {
+        SIMCP_CLOSE close;
+
+        memset(&close, 0, sizeof(SIMCP_CLOSE));
+
+        if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
+            memcpy(&close, payload, sizeof(SIMCP_CLOSE));
+
+        SimcpFail(SimcpCloseReasonToString(&close));
+    }
+
+    if (header.Type != SimcpHelloAck || !payload || header.PayloadLength < sizeof(SIMCP_HELLO_ACK))
+        SimcpFail("unexpected handshake reply from System Informer");
+
+    memcpy(&helloAck, payload, sizeof(SIMCP_HELLO_ACK));
+    PhFree(payload);
+
+    if (helloAck.Status != SimcpHelloAccepted)
+        SimcpFail(SimcpHelloStatusToString(helloAck.Status));
+
+    SimcpLog("connected to System Informer");
+
+    *PipeHandle = pipeHandle;
+    SimcpLinkConnected();
+}
+
+/**
+ * Owns the pipe: connect, handshake, pump, tear down. Reconnect arrives in a later change, so a
+ * loss still ends the session; the loop shape is what that change fills in.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
-NTSTATUS NTAPI SimcpPipeReaderThread(
+NTSTATUS NTAPI SimcpSupervisorThread(
     _In_ PVOID Parameter
     )
 {
+    HANDLE pipeHandle;
+    PCSTR failure;
+
+    SimcpEstablish(&pipeHandle);
+
     while (TRUE)
     {
         NTSTATUS status;
         SIMCP_HEADER header;
         PVOID payload;
 
-        status = SimcpReadEnvelope(SimcpPipeHandle, SimcpPipeReadEvent, &header, &payload);
+        status = SimcpReadEnvelope(pipeHandle, SimcpLink.ReadEvent, &header, &payload);
 
         if (!NT_SUCCESS(status))
         {
             if (status == STATUS_INVALID_NETWORK_RESPONSE)
-                SimcpFail("malformed message from System Informer");
+                failure = "malformed message from System Informer";
             else
-                SimcpFail("System Informer closed the connection");
+                failure = "System Informer closed the connection";
+
+            break;
         }
 
-        switch (header.Type)
+        if (header.Type == SimcpMcp)
         {
-        case SimcpMcp:
+            if (payload)
             {
-                if (payload)
-                {
-                    SIMCP_ENVELOPE envelope;
+                SIMCP_ENVELOPE envelope;
 
-                    SimcpParseEnvelope(payload, header.PayloadLength, &envelope);
+                SimcpParseEnvelope(payload, header.PayloadLength, &envelope);
 
-                    if (envelope.Kind == SimcpEnvelopeUnparsed)
-                        SimcpLog("could not read the envelope of a line from System Informer");
-                    else if (envelope.Kind == SimcpEnvelopeResponse)
-                        SimcpRemovePending(&SimcpPending, envelope.Id);
+                if (envelope.Kind == SimcpEnvelopeUnparsed)
+                    SimcpLog("could not read the envelope of a line from System Informer");
+                else if (envelope.Kind == SimcpEnvelopeResponse)
+                    SimcpRemovePending(&SimcpPending, envelope.Id);
 
-                    SimcpDeleteEnvelope(&envelope);
+                SimcpDeleteEnvelope(&envelope);
 
-                    // Relayed byte for byte; nothing here rewrites a line yet.
-                    SimcpWriteLine(payload, header.PayloadLength);
-                }
+                // Relayed byte for byte; nothing here rewrites a line yet.
+                SimcpWriteLine(payload, header.PayloadLength);
             }
-            break;
-        case SimcpClose:
-            {
-                SIMCP_CLOSE close;
 
-                memset(&close, 0, sizeof(SIMCP_CLOSE));
+            if (payload)
+                PhFree(payload);
 
-                if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
-                    memcpy(&close, payload, sizeof(SIMCP_CLOSE));
+            continue;
+        }
 
-                SimcpFail(SimcpCloseReasonToString(&close));
-            }
-            break;
-        default:
-            SimcpFail("unexpected message from System Informer");
+        if (header.Type == SimcpClose)
+        {
+            SIMCP_CLOSE close;
+
+            memset(&close, 0, sizeof(SIMCP_CLOSE));
+
+            if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
+                memcpy(&close, payload, sizeof(SIMCP_CLOSE));
+
+            failure = SimcpCloseReasonToString(&close);
+        }
+        else
+        {
+            failure = "unexpected message from System Informer";
         }
 
         if (payload)
             PhFree(payload);
+
+        break;
     }
+
+    SimcpLinkTeardown();
+    SimcpLinkAbort();
+    SimcpFail(failure);
 }
 
 VOID SimcpRelayStandardInput(
@@ -658,12 +902,12 @@ VOID SimcpRelayStandardInput(
 
                 // Relayed byte for byte; nothing here rewrites a line yet. A cancellation is
                 // relayed like any other line: System Informer needs it to stop the call.
-                if (!NT_SUCCESS(SimcpWriteEnvelope(
-                    SimcpPipeHandle,
-                    SimcpPipeWriteEvent,
+                if (!NT_SUCCESS(SimcpLinkSend(
                     SimcpMcp,
                     PTR_ADD_OFFSET(buffer, lineStart),
-                    lineLength
+                    lineLength,
+                    TRUE,
+                    NULL
                     )))
                 {
                     SimcpDeleteEnvelope(&envelope);
@@ -737,11 +981,6 @@ VOID SimcpApplyMitigations(
 int __cdecl wmain(int argc, wchar_t *argv[])
 {
     NTSTATUS status;
-    SIMCP_HELLO hello;
-    SIMCP_HEADER header;
-    PVOID payload;
-    SIMCP_HELLO_ACK helloAck;
-    PCSTR failureMessage;
 
     status = PhInitializePhLib(L"simcp");
 
@@ -758,60 +997,12 @@ int __cdecl wmain(int argc, wchar_t *argv[])
     if (!SimcpStdInput || !SimcpStdOutput)
         return 1;
 
-    if (!NT_SUCCESS(SimcpCreateIoEvent(&SimcpPipeReadEvent)) ||
-        !NT_SUCCESS(SimcpCreateIoEvent(&SimcpPipeWriteEvent)))
-    {
+    if (!NT_SUCCESS(SimcpLinkInitialize()))
         SimcpFail("unable to allocate I/O resources");
-    }
 
-    status = SimcpConnectPipe(&SimcpPipeHandle, &failureMessage);
-
-    if (!NT_SUCCESS(status))
-    {
-        if (failureMessage)
-            SimcpFail(failureMessage);
-        else if (status == STATUS_OBJECT_NAME_NOT_FOUND || status == STATUS_OBJECT_PATH_NOT_FOUND)
-            SimcpFail("System Informer is not running in this session or the agent tools server is not enabled");
-        else if (status == STATUS_ACCESS_DENIED)
-            SimcpFail("access to the System Informer agent pipe was denied");
-        else
-            SimcpFail("unable to connect to the System Informer agent pipe");
-    }
-
-    SimcpFillHello(&hello);
-
-    if (!NT_SUCCESS(SimcpWriteEnvelope(SimcpPipeHandle, SimcpPipeWriteEvent, SimcpHello, &hello, sizeof(SIMCP_HELLO))))
-        SimcpFail("System Informer closed the connection during the handshake");
-
-    if (!NT_SUCCESS(SimcpReadEnvelope(SimcpPipeHandle, SimcpPipeReadEvent, &header, &payload)))
-        SimcpFail("System Informer closed the connection during the handshake");
-
-    if (header.Type == SimcpClose)
-    {
-        SIMCP_CLOSE close;
-
-        memset(&close, 0, sizeof(SIMCP_CLOSE));
-
-        if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
-            memcpy(&close, payload, sizeof(SIMCP_CLOSE));
-
-        SimcpFail(SimcpCloseReasonToString(&close));
-    }
-
-    if (header.Type != SimcpHelloAck || !payload || header.PayloadLength < sizeof(SIMCP_HELLO_ACK))
-        SimcpFail("unexpected handshake reply from System Informer");
-
-    memcpy(&helloAck, payload, sizeof(SIMCP_HELLO_ACK));
-    PhFree(payload);
-
-    if (helloAck.Status != SimcpHelloAccepted)
-        SimcpFail(SimcpHelloStatusToString(helloAck.Status));
-
-    SimcpLog("connected to System Informer");
-
-    // One thread per direction. Neither thread interprets payloads; the pipe reader owns
-    // standard output (bar the error line) and this thread owns the pipe write side.
-    status = PhCreateThread2(SimcpPipeReaderThread, NULL);
+    // The supervisor owns the pipe and standard output; this thread owns standard input and
+    // writes through SimcpLinkSend, which serialises against the supervisor's own frames.
+    status = PhCreateThread2(SimcpSupervisorThread, NULL);
 
     if (!NT_SUCCESS(status))
         SimcpFail("unable to start the relay thread");
@@ -820,7 +1011,6 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
     // The host closed our input: the session is over. Give replies already in flight a moment to
     // reach the host, then exit; closing the pipe is what the server observes as a disconnect.
-    // The broker never reconnects.
     PhDelayExecution(500);
     RtlExitUserProcess(STATUS_SUCCESS);
 }
