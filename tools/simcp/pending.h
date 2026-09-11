@@ -18,7 +18,7 @@
 typedef struct _SIMCP_PENDING
 {
     PPH_HASHTABLE Table;
-    PH_QUEUED_LOCK Lock;    // the stdin thread adds, the pipe thread removes
+    PH_QUEUED_LOCK Lock;
 } SIMCP_PENDING, *PSIMCP_PENDING;
 
 VOID SimcpInitializePending(

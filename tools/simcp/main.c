@@ -30,32 +30,26 @@ static HANDLE SimcpStdError = NULL;
 static PH_QUEUED_LOCK SimcpStdOutputLock = PH_QUEUED_LOCK_INIT;
 static SIMCP_PENDING SimcpPending = { 0 };
 
-// One generation of the pipe. The supervisor thread is the only reader and the only thing that
-// replaces Handle, so a read can never race the close. Writers are serialised by SendLock, which
-// teardown takes before clearing Handle, so a write can never be left holding a closed handle.
 typedef struct _SIMCP_LINK
 {
-    PH_QUEUED_LOCK Lock;        // guards Handle and Generation
-    HANDLE Handle;              // NULL when the link is down
+    PH_QUEUED_LOCK Lock;
+    HANDLE Handle;
     ULONG Generation;
-    PH_QUEUED_LOCK SendLock;    // one whole envelope at a time; sole owner of WriteEvent
+    PH_QUEUED_LOCK SendLock;
     HANDLE WriteEvent;
-    HANDLE ReadEvent;           // supervisor only
+    HANDLE ReadEvent;
     HANDLE ConnectedEvent;
     HANDLE AbortEvent;
-    BOOLEAN EverConnected;      // a first connect that has not happened yet is not an outage
+    BOOLEAN EverConnected;
 } SIMCP_LINK, *PSIMCP_LINK;
 
 static SIMCP_LINK SimcpLink = { 0 };
 
-// What a new backend has to be told to reach the state the host already believes it is in. The
-// modern path needs none of it: every request carries its own version, client info and
-// capabilities, so there is nothing to replay.
 typedef struct _SIMCP_SESSION
 {
     PH_QUEUED_LOCK Lock;
-    PPH_BYTES InitializeLine;   // the host's initialize request, verbatim
-    PPH_STRING ProtocolVersion; // negotiated once; a new backend may not change it
+    PPH_BYTES InitializeLine;
+    PPH_STRING ProtocolVersion;
     BOOLEAN InitializedSeen;
     BOOLEAN Modern;
 } SIMCP_SESSION, *PSIMCP_SESSION;
@@ -135,12 +129,6 @@ VOID SimcpEmitError(
     PhDereferenceObject(line);
 }
 
-/**
- * Answers one request with a transport error.
- *
- * \param IdJson The request id, as raw JSON text.
- * \param Message What to tell the host.
- */
 VOID SimcpEmitTransportError(
     _In_ PPH_BYTES IdJson,
     _In_ PCSTR Message
@@ -167,7 +155,6 @@ VOID SimcpEmitTransportError(
     PhDereferenceObject(line);
 }
 
-// The broker is alive even when the backend is not, which is exactly what a ping asks.
 VOID SimcpEmitPong(
     _In_ PPH_BYTES IdJson
     )
@@ -188,8 +175,6 @@ VOID SimcpEmitPong(
     PhDereferenceObject(line);
 }
 
-// A later generation may be a different System Informer with a different tool set. Telling the
-// host to re-list is idempotent, and cheaper than any test for whether it actually changed.
 VOID SimcpEmitListChanged(
     VOID
     )
@@ -262,7 +247,6 @@ PCSTR SimcpCloseReasonToString(
     }
 }
 
-// Terminal reasons only; anything unrecognised is reconnect-eligible so a newer server can add reasons.
 BOOLEAN SimcpCloseReasonIsTerminal(
     _In_ PSIMCP_CLOSE Close
     )
@@ -392,8 +376,6 @@ NTSTATUS SimcpLinkInitialize(
     return status;
 }
 
-// A connect attempt becomes a generation here; the number is never reused, so a frame from an
-// attempt that died mid-handshake can never be mistaken for a live one.
 VOID SimcpLinkPublish(
     _In_ HANDLE PipeHandle
     )
@@ -448,13 +430,6 @@ VOID SimcpLinkAbort(
     NtSetEvent(SimcpLink.AbortEvent, NULL);
 }
 
-/**
- * Closes the current generation.
- *
- * Cancels a write parked in the pipe before taking SendLock, so teardown cannot wait on a peer
- * that has stopped reading. Handle is cleared under the lock and closed only once no writer can
- * still reach it.
- */
 VOID SimcpLinkTeardown(
     VOID
     )
@@ -497,12 +472,6 @@ VOID SimcpLinkTeardown(
     PhDereferenceObject(pending);
 }
 
-/**
- * Waits until the link can carry a frame.
- *
- * 
-eturn TRUE when connected, FALSE when the broker is shutting down.
- */
 BOOLEAN SimcpLinkWaitConnected(
     _In_ ULONG TimeoutMs
     )
@@ -534,19 +503,6 @@ BOOLEAN SimcpLinkAborted(
     return NtWaitForSingleObject(SimcpLink.AbortEvent, FALSE, &timeout) == STATUS_WAIT_0;
 }
 
-/**
- * Writes one envelope.
- *
- * Header and payload go out under a single lock, so a short write can never be split across two
- * generations and leave System Informer reading a header-less tail.
- *
- * \param Type The message type.
- * \param Payload The payload, or NULL.
- * \param PayloadLength The payload length in bytes.
- * \param WaitForConnected TRUE to block until a generation is usable; the handshake passes FALSE
- * because it is what makes the generation usable.
- * \param Generation Receives the generation the frame was written to.
- */
 NTSTATUS SimcpLinkSend(
     _In_ USHORT Type,
     _In_reads_bytes_opt_(PayloadLength) PVOID Payload,
@@ -840,13 +796,6 @@ VOID SimcpFillHello(
     }
 }
 
-/**
- * Notes what the host told the server, so a later backend can be told the same.
- *
- * \param Envelope The parsed envelope of the line.
- * \param Buffer The line, without its terminator.
- * \param Length The length of the line in bytes.
- */
 VOID SimcpSessionObserveOutgoing(
     _In_ PSIMCP_ENVELOPE Envelope,
     _In_reads_bytes_(Length) PVOID Buffer,
@@ -872,7 +821,6 @@ VOID SimcpSessionObserveOutgoing(
     PhReleaseQueuedLockExclusive(&SimcpSession.Lock);
 }
 
-// The first handshake reply fixes the version for the session.
 VOID SimcpSessionObserveIncoming(
     _In_ PSIMCP_ENVELOPE Envelope
     )
@@ -888,19 +836,6 @@ VOID SimcpSessionObserveIncoming(
     PhReleaseQueuedLockExclusive(&SimcpSession.Lock);
 }
 
-/**
- * Walks a new backend through the handshake the host already performed.
- *
- * Legacy replays initialize under an id of the broker's own, so the reply can be consumed here
- * rather than reaching the host as a second answer to the host's own id. Modern replays nothing:
- * every request re-establishes the session by itself. A session that has not shown its hand yet
- * has nothing to replay either.
- *
- * \param PipeHandle The generation's pipe.
- * \param Generation The generation being established.
- * \param Message Receives why the replay failed, when it did.
- * \return TRUE when the backend is ready for the host.
- */
 BOOLEAN SimcpReplaySession(
     _In_ HANDLE PipeHandle,
     _In_ ULONG Generation,
@@ -1058,16 +993,10 @@ BOOLEAN SimcpReplaySession(
 typedef enum _SIMCP_ESTABLISH_RESULT
 {
     SimcpEstablishConnected,
-    SimcpEstablishRetry,        // transient: back off and try again
-    SimcpEstablishTerminal,     // the session cannot continue
+    SimcpEstablishRetry,
+    SimcpEstablishTerminal,
 } SIMCP_ESTABLISH_RESULT;
 
-/**
- * Connects, handshakes and publishes a generation.
- *
- * \param PipeHandle Receives the handle of the new generation.
- * \param Message Receives why the attempt failed, when it did.
- */
 SIMCP_ESTABLISH_RESULT SimcpEstablish(
     _Out_ PHANDLE PipeHandle,
     _Out_ PCSTR *Message
@@ -1178,7 +1107,6 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
     return SimcpEstablishConnected;
 }
 
-// An id System Informer minted, as raw JSON text: digits only, no quotes, no sign.
 BOOLEAN SimcpIdIsPlainInteger(
     _In_ PPH_BYTES IdJson,
     _Out_ PULONG64 Value
@@ -1206,17 +1134,6 @@ BOOLEAN SimcpIdIsPlainInteger(
     return TRUE;
 }
 
-/**
- * Reads an id the broker minted.
- *
- * The text is the broker's own format, so an exact match is the whole check: anything else is a
- * host id and is passed through untouched.
- *
- * \param IdJson The id, as raw JSON text, quotes included.
- * \param Generation Receives the generation the id was minted for.
- * \param Original Receives the id System Informer used.
- * \return TRUE when the id is one of ours and both parts parsed.
- */
 BOOLEAN SimcpParseTaggedId(
     _In_ PPH_BYTES IdJson,
     _Out_ PULONG Generation,
@@ -1276,17 +1193,6 @@ BOOLEAN SimcpParseTaggedId(
     return TRUE;
 }
 
-/**
- * Writes a line to the host, tagging a request System Informer made with its generation.
- *
- * NextServerRequestId restarts with every connection, so without the tag an answer the user gives
- * to a prompt from the connection before this one would match a live request by number alone.
- *
- * \param Envelope The parsed envelope of the line.
- * \param Generation The generation the line came from.
- * \param Buffer The line, without its terminator.
- * \param Length The length of the line in bytes.
- */
 VOID SimcpWriteTaggedLine(
     _In_ PSIMCP_ENVELOPE Envelope,
     _In_ ULONG Generation,
@@ -1329,14 +1235,6 @@ VOID SimcpWriteTaggedLine(
     PhDereferenceObject(tagged);
 }
 
-/**
- * Relays until the generation ends.
- *
- * \param PipeHandle The generation's pipe.
- * \param Generation The generation being pumped.
- * \param Message Receives why the generation ended.
- * \return TRUE when the session cannot continue, FALSE when it may reconnect.
- */
 BOOLEAN SimcpPump(
     _In_ HANDLE PipeHandle,
     _In_ ULONG Generation,
@@ -1430,12 +1328,6 @@ ULONG SimcpNextBackoff(
     return next;
 }
 
-/**
- * Owns the pipe: connect, handshake, pump, tear down, and go round again.
- *
- * Only a decision ends the session: the user disconnecting, a rejected handshake, a broken
- * protocol. An outage does not.
- */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI SimcpSupervisorThread(
     _In_ PVOID Parameter
@@ -1499,17 +1391,6 @@ NTSTATUS NTAPI SimcpSupervisorThread(
     SimcpFail(message);
 }
 
-/**
- * Sends one line from the host to System Informer.
- *
- * A line that arrives while the backend is away waits out the grace window. If it is still away
- * after that, a request is answered here rather than left hanging -- the call did not happen, and
- * saying so is the honest report. The request never entered the outstanding set, because entries
- * are added only on a successful send, so it cannot also be answered by the supervisor.
- *
- * \param Buffer The line, without its terminator.
- * \param Length The length of the line in bytes.
- */
 VOID SimcpRelayLine(
     _In_reads_bytes_(Length) PVOID Buffer,
     _In_ ULONG Length
@@ -1728,14 +1609,6 @@ BOOLEAN NTAPI SimcpCommandLineCallback(
     return TRUE;
 }
 
-/**
- * Reads the command line.
- *
- * argc/argv are not populated in this build, so the command line comes from the PEB as it does
- * everywhere else in the tree. An unrecognised argument is ignored and not reported:
- * PhParseCommandLine either skips it silently or abandons the whole parse, and abandoning it
- * would let a stray argument quietly disable -no-reconnect.
- */
 VOID SimcpParseArguments(
     VOID
     )

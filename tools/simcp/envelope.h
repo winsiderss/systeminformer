@@ -14,9 +14,8 @@
 
 typedef enum _SIMCP_ENVELOPE_KIND
 {
-    SimcpEnvelopeUnparsed = 0,  // not JSON at all
-    SimcpEnvelopeOther,         // valid JSON the broker does not track: a batch array, or an
-                                // id-less, method-less object such as an error with a null id
+    SimcpEnvelopeUnparsed = 0,
+    SimcpEnvelopeOther,
     SimcpEnvelopeRequest,
     SimcpEnvelopeNotification,
     SimcpEnvelopeResponse,
@@ -25,11 +24,11 @@ typedef enum _SIMCP_ENVELOPE_KIND
 typedef struct _SIMCP_ENVELOPE
 {
     SIMCP_ENVELOPE_KIND Kind;
-    PPH_BYTES Id;       // raw id JSON text, so a number and a string are both carried verbatim
+    PPH_BYTES Id;
     PPH_STRING Method;
-    PPH_BYTES CancelId; // params.requestId of a notifications/cancelled, else NULL
-    PPH_STRING ProtocolVersion; // result.protocolVersion of an initialize reply, else NULL
-    BOOLEAN ModernMeta;         // the request carries the modern protocol version in params._meta
+    PPH_BYTES CancelId;
+    PPH_STRING ProtocolVersion;
+    BOOLEAN ModernMeta;
 } SIMCP_ENVELOPE, *PSIMCP_ENVELOPE;
 
 VOID SimcpParseEnvelope(

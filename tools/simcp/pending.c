@@ -76,13 +76,6 @@ VOID SimcpDeletePending(
     Pending->Table = NULL;
 }
 
-/**
- * Records a client request id as outstanding.
- *
- * \param Pending The set.
- * \param Id The raw id JSON text. Referenced on success.
- * \return TRUE when the id is now tracked, FALSE when the set is full or already holds it.
- */
 _Success_(return)
 BOOLEAN SimcpAddPending(
     _Inout_ PSIMCP_PENDING Pending,
@@ -135,10 +128,6 @@ BOOLEAN SimcpRemovePending(
     return removed;
 }
 
-/**
- * Drops every entry. A generation's requests are answered and forgotten together, so an id whose
- * response was relayed without being parsed cannot leak a slot past the end of that generation.
- */
 VOID SimcpClearPending(
     _Inout_ PSIMCP_PENDING Pending
     )
@@ -151,14 +140,6 @@ VOID SimcpClearPending(
     PhReleaseQueuedLockExclusive(&Pending->Lock);
 }
 
-/**
- * Removes every entry and hands the ids back.
- *
- * The caller owes each of them exactly one response; taking and clearing under one lock is what
- * makes it impossible to answer an id twice or forget one.
- *
- * \return The ids, each still referenced. The caller dereferences them with the list.
- */
 PPH_LIST SimcpTakePending(
     _Inout_ PSIMCP_PENDING Pending
     )
