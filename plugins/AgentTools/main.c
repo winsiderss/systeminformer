@@ -31,10 +31,18 @@ VOID NTAPI ShowOptionsCallback(
     _In_ PVOID Context
     );
 
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI ProcessesUpdatedCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    );
+
 PPH_PLUGIN PluginInstance;
 PH_CALLBACK_REGISTRATION PluginLoadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginUnloadCallbackRegistration;
 PH_CALLBACK_REGISTRATION PluginShowOptionsCallbackRegistration;
+PH_CALLBACK_REGISTRATION PluginProcessesUpdatedCallbackRegistration;
+static BOOLEAN StartServerOnFirstUpdate = FALSE;
 
 LOGICAL DllMain(
     _In_ HINSTANCE Instance,
@@ -84,6 +92,12 @@ LOGICAL DllMain(
                 NULL,
                 &PluginShowOptionsCallbackRegistration
                 );
+            PhRegisterCallback(
+                PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+                ProcessesUpdatedCallback,
+                NULL,
+                &PluginProcessesUpdatedCallbackRegistration
+                );
 
             PhAddSettings(settings, RTL_NUMBER_OF(settings));
             AtRegisterToolSettings();
@@ -108,7 +122,16 @@ VOID NTAPI LoadCallback(
     // Off by default: nothing listens until the user enables it in options.
     if (PhGetIntegerSetting(SETTING_NAME_ENABLED))
     {
-        AtServerStart();
+        ULONG numberOfProcessItems;
+
+        // Tools read the process provider's data directly, so a client that connects before its
+        // first update is answered from an empty system. Wait for that update before listening.
+        PhEnumProcessItems(NULL, &numberOfProcessItems);
+
+        if (numberOfProcessItems)
+            AtServerStart();
+        else
+            StartServerOnFirstUpdate = TRUE;
     }
 }
 
@@ -118,10 +141,33 @@ VOID NTAPI UnloadCallback(
     _In_ PVOID Context
     )
 {
+    PhUnregisterCallback(
+        PhGetGeneralCallback(GeneralCallbackProcessesUpdated),
+        &PluginProcessesUpdatedCallbackRegistration
+        );
+
     AtServerStop(SimcpCloseServerShutdown);
     AtEventsUninitialize();
     AtSnapshotUninitialize();
     AtConsentUninitialize();
+}
+
+_Function_class_(PH_CALLBACK_FUNCTION)
+VOID NTAPI ProcessesUpdatedCallback(
+    _In_ PVOID Parameter,
+    _In_ PVOID Context
+    )
+{
+    if (!StartServerOnFirstUpdate)
+        return;
+
+    // PhUnregisterCallback waits for this function to return, so the registration is released at
+    // unload rather than here.
+    StartServerOnFirstUpdate = FALSE;
+
+    // The user may have turned it off again while the first update was pending.
+    if (PhGetIntegerSetting(SETTING_NAME_ENABLED))
+        AtServerStart();
 }
 
 _Function_class_(PH_CALLBACK_FUNCTION)
