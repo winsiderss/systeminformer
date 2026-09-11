@@ -22,6 +22,10 @@
 #define SIMCP_RECONNECT_BACKOFF_FIRST_MS 250
 #define SIMCP_RECONNECT_BACKOFF_MAX_MS 5000
 #define SIMCP_RECONNECT_GRACE_MS 5000
+// Generation 0 is never published, so it reads as "whichever generation is live".
+#define SIMCP_ANY_GENERATION 0
+// How many times a send waits out a generation change before giving up on the host's behalf.
+#define SIMCP_SEND_ATTEMPT_LIMIT 3
 #define SIMCP_OPTION_NO_RECONNECT 1
 
 static HANDLE SimcpStdInput = NULL;
@@ -41,6 +45,7 @@ typedef struct _SIMCP_LINK
     HANDLE ConnectedEvent;
     HANDLE AbortEvent;
     HANDLE LauncherHandle;
+    BOOLEAN Connected;
     BOOLEAN EverConnected;
 } SIMCP_LINK, *PSIMCP_LINK;
 
@@ -422,7 +427,9 @@ VOID SimcpLinkConnected(
     VOID
     )
 {
+    // Set before the event, so anything that sees the event set also sees the flag.
     PhAcquireQueuedLockExclusive(&SimcpLink.Lock);
+    SimcpLink.Connected = TRUE;
     SimcpLink.EverConnected = TRUE;
     PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
 
@@ -471,6 +478,7 @@ VOID SimcpLinkTeardown(
     PhAcquireQueuedLockExclusive(&SimcpLink.SendLock);
     PhAcquireQueuedLockExclusive(&SimcpLink.Lock);
     SimcpLink.Handle = NULL;
+    SimcpLink.Connected = FALSE;
     PhReleaseQueuedLockExclusive(&SimcpLink.Lock);
     PhReleaseQueuedLockExclusive(&SimcpLink.SendLock);
 
@@ -537,21 +545,17 @@ NTSTATUS SimcpLinkSend(
     _In_reads_bytes_opt_(PayloadLength) PVOID Payload,
     _In_ ULONG PayloadLength,
     _In_ BOOLEAN WaitForConnected,
-    _Out_opt_ PULONG Generation
+    _In_ ULONG ExpectedGeneration,
+    _In_opt_ PPH_BYTES TrackId
     )
 {
     NTSTATUS status;
     SIMCP_HEADER header;
     HANDLE handle;
-
-    // During an outage a line waits only as long as a fast restart takes. Before the first
-    // connect there is no session to protect and no call in flight, so it waits for System
-    // Informer to turn up rather than being refused on a deadline it cannot know about.
-    if (WaitForConnected &&
-        !SimcpLinkWaitConnected(SimcpLinkEverConnected() ? SIMCP_RECONNECT_GRACE_MS : INFINITE))
-    {
-        return STATUS_PIPE_DISCONNECTED;
-    }
+    ULONG generation;
+    BOOLEAN connected;
+    BOOLEAN tracked = FALSE;
+    ULONG attempts = 0;
 
     memset(&header, 0, sizeof(SIMCP_HEADER));
     header.Magic = SIMCP_MAGIC;
@@ -559,26 +563,69 @@ NTSTATUS SimcpLinkSend(
     header.Type = Type;
     header.PayloadLength = PayloadLength;
 
-    PhAcquireQueuedLockExclusive(&SimcpLink.SendLock);
-
-    PhAcquireQueuedLockShared(&SimcpLink.Lock);
-    handle = SimcpLink.Handle;
-
-    if (Generation)
-        *Generation = SimcpLink.Generation;
-
-    PhReleaseQueuedLockShared(&SimcpLink.Lock);
-
-    if (handle)
+    for (;;)
     {
-        status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, &header, sizeof(SIMCP_HEADER));
+        PhAcquireQueuedLockExclusive(&SimcpLink.SendLock);
 
-        if (NT_SUCCESS(status) && Payload && PayloadLength)
-            status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, Payload, PayloadLength);
+        PhAcquireQueuedLockShared(&SimcpLink.Lock);
+        handle = SimcpLink.Handle;
+        generation = SimcpLink.Generation;
+        connected = SimcpLink.Connected;
+        PhReleaseQueuedLockShared(&SimcpLink.Lock);
+
+        // The handshake itself passes FALSE: it is what makes a generation usable, so it writes to
+        // one that is published but not yet connected. Everything else is the host's traffic and
+        // may only go out once the handshake is done -- a frame that beats the Hello is a protocol
+        // violation to System Informer, and that is terminal. Checked here rather than before the
+        // lock, because a generation can be torn down and replaced between the two.
+        if (!WaitForConnected || (handle && connected))
+            break;
+
+        PhReleaseQueuedLockExclusive(&SimcpLink.SendLock);
+
+        if (++attempts > SIMCP_SEND_ATTEMPT_LIMIT)
+            return STATUS_PIPE_DISCONNECTED;
+
+        // During an outage a line waits only as long as a fast restart takes. Before the first
+        // connect there is no session to protect and no call in flight, so it waits for System
+        // Informer to turn up rather than being refused on a deadline it cannot know about.
+        if (!SimcpLinkWaitConnected(SimcpLinkEverConnected() ? SIMCP_RECONNECT_GRACE_MS : INFINITE))
+            return STATUS_PIPE_DISCONNECTED;
+    }
+
+    // The generation is settled here rather than by the caller. A caller that checked before
+    // calling may have waited above, and teardown does not renumber -- so its generation can have
+    // died and been replaced while it waited, and the frame would land on the wrong one.
+    if (!handle)
+    {
+        status = STATUS_PIPE_DISCONNECTED;
+    }
+    else if (ExpectedGeneration != SIMCP_ANY_GENERATION && ExpectedGeneration != generation)
+    {
+        status = STATUS_PIPE_DISCONNECTED;
     }
     else
     {
-        status = STATUS_PIPE_DISCONNECTED;
+        // Tracked before the write and under the same lock teardown takes, so the set can never
+        // disagree with the wire: no id is left untracked, and none is tracked for a frame that
+        // was never sent. A full set refuses the send rather than passing it on unanswerable.
+        if (TrackId)
+            tracked = SimcpAddPending(&SimcpPending, TrackId);
+
+        if (TrackId && !tracked)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+        }
+        else
+        {
+            status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, &header, sizeof(SIMCP_HEADER));
+
+            if (NT_SUCCESS(status) && Payload && PayloadLength)
+                status = SimcpWriteAllPipe(handle, SimcpLink.WriteEvent, Payload, PayloadLength);
+
+            if (!NT_SUCCESS(status) && tracked)
+                SimcpRemovePending(&SimcpPending, TrackId);
+        }
     }
 
     PhReleaseQueuedLockExclusive(&SimcpLink.SendLock);
@@ -924,7 +971,7 @@ BOOLEAN SimcpReplaySession(
         return FALSE;
     }
 
-    if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, replay->Buffer, (ULONG)replay->Length, FALSE, NULL)))
+    if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, replay->Buffer, (ULONG)replay->Length, FALSE, SIMCP_ANY_GENERATION, NULL)))
     {
         PhDereferenceObject(replay);
         PhDereferenceObject(idBytes);
@@ -956,6 +1003,29 @@ BOOLEAN SimcpReplaySession(
                 PhDereferenceObject(expected);
 
             *Message = "System Informer closed the connection during the handshake";
+            return FALSE;
+        }
+
+        // A Close here carries a reason, and discarding it would downgrade a decision -- a
+        // denied prompt, a Disconnect -- into an outage the supervisor retries.
+        if (header.Type == SimcpClose)
+        {
+            SIMCP_CLOSE close;
+
+            memset(&close, 0, sizeof(SIMCP_CLOSE));
+
+            if (payload && header.PayloadLength >= sizeof(SIMCP_CLOSE))
+                memcpy(&close, payload, sizeof(SIMCP_CLOSE));
+
+            if (payload)
+                PhFree(payload);
+
+            PhDereferenceObject(idBytes);
+            if (expected)
+                PhDereferenceObject(expected);
+
+            *Message = SimcpCloseReasonToString(&close);
+            *Terminal = SimcpCloseReasonIsTerminal(&close);
             return FALSE;
         }
 
@@ -992,8 +1062,6 @@ BOOLEAN SimcpReplaySession(
 
             // The host is in a session this backend cannot honour; asking again will not help.
             *Terminal = TRUE;
-            // The host is in a session this backend cannot honour; asking again will not help.
-            *Terminal = TRUE;
             *Message = "System Informer changed protocol version; reconnect the agent";
             return FALSE;
         }
@@ -1009,7 +1077,7 @@ BOOLEAN SimcpReplaySession(
 
     if (initializedSeen)
     {
-        if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, (PVOID)initialized, sizeof(initialized) - 1, FALSE, NULL)))
+        if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, (PVOID)initialized, sizeof(initialized) - 1, FALSE, SIMCP_ANY_GENERATION, NULL)))
         {
             *Message = "System Informer closed the connection during the handshake";
             return FALSE;
@@ -1067,7 +1135,7 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
 
     SimcpFillHello(&hello);
 
-    if (!NT_SUCCESS(SimcpLinkSend(SimcpHello, &hello, sizeof(SIMCP_HELLO), FALSE, NULL)))
+    if (!NT_SUCCESS(SimcpLinkSend(SimcpHello, &hello, sizeof(SIMCP_HELLO), FALSE, SIMCP_ANY_GENERATION, NULL)))
     {
         SimcpLinkTeardown();
         *Message = "System Informer closed the connection during the handshake";
@@ -1425,6 +1493,7 @@ VOID SimcpRelayLine(
     _In_ ULONG Length
     )
 {
+    NTSTATUS status;
     SIMCP_ENVELOPE envelope;
 
     SimcpParseEnvelope(Buffer, Length, &envelope);
@@ -1472,7 +1541,7 @@ VOID SimcpRelayLine(
                 return;
             }
 
-            if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, restored->Buffer, (ULONG)restored->Length, TRUE, NULL)))
+            if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, restored->Buffer, (ULONG)restored->Length, TRUE, generation, NULL)))
             {
                 if (SimcpLinkAborted())
                 {
@@ -1490,7 +1559,16 @@ VOID SimcpRelayLine(
 
     // Relayed byte for byte otherwise. A cancellation is relayed like any other line: System
     // Informer needs it to stop the call.
-    if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, Buffer, Length, TRUE, NULL)))
+    status = SimcpLinkSend(
+        SimcpMcp,
+        Buffer,
+        Length,
+        TRUE,
+        SIMCP_ANY_GENERATION,
+        envelope.Kind == SimcpEnvelopeRequest ? envelope.Id : NULL
+        );
+
+    if (!NT_SUCCESS(status))
     {
         if (SimcpLinkAborted())
         {
@@ -1499,24 +1577,20 @@ VOID SimcpRelayLine(
         }
 
         if (envelope.Kind == SimcpEnvelopeRequest)
-            SimcpEmitTransportError(envelope.Id, "System Informer is not available");
+        {
+            if (status == STATUS_INSUFFICIENT_RESOURCES)
+                SimcpEmitTransportError(envelope.Id, "too many outstanding requests, or this id is already in flight");
+            else
+                SimcpEmitTransportError(envelope.Id, "System Informer is not available");
+        }
 
         // A notification is owed nothing, so it is dropped -- after the session state above.
         SimcpDeleteEnvelope(&envelope);
         return;
     }
 
-    // Tracked only once the line is on the wire, so an unsent request is never owed a response by
-    // the pipe thread.
-    if (envelope.Kind == SimcpEnvelopeRequest)
-    {
-        if (!SimcpAddPending(&SimcpPending, envelope.Id))
-            SimcpLog("could not track another outstanding request");
-    }
-    else if (envelope.CancelId)
-    {
+    if (envelope.CancelId)
         SimcpRemovePending(&SimcpPending, envelope.CancelId);
-    }
 
     SimcpDeleteEnvelope(&envelope);
 }
