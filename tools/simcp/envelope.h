@@ -48,4 +48,10 @@ PPH_BYTES SimcpRewriteEnvelopeId(
     _In_ PCSTR IdString
     );
 
+PPH_BYTES SimcpRewriteEnvelopeIdInteger(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ LONG64 Id
+    );
+
 #endif

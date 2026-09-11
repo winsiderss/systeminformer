@@ -1135,15 +1135,168 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
     return SimcpEstablishConnected;
 }
 
+// An id System Informer minted, as raw JSON text: digits only, no quotes, no sign.
+BOOLEAN SimcpIdIsPlainInteger(
+    _In_ PPH_BYTES IdJson,
+    _Out_ PULONG64 Value
+    )
+{
+    ULONG64 value = 0;
+    SIZE_T i;
+
+    *Value = 0;
+
+    if (IdJson->Length == 0 || IdJson->Length > 20)
+        return FALSE;
+
+    for (i = 0; i < IdJson->Length; i++)
+    {
+        CHAR c = IdJson->Buffer[i];
+
+        if (c < '0' || c > '9')
+            return FALSE;
+
+        value = value * 10 + (ULONG64)(c - '0');
+    }
+
+    *Value = value;
+    return TRUE;
+}
+
+/**
+ * Reads an id the broker minted.
+ *
+ * The text is the broker's own format, so an exact match is the whole check: anything else is a
+ * host id and is passed through untouched.
+ *
+ * \param IdJson The id, as raw JSON text, quotes included.
+ * \param Generation Receives the generation the id was minted for.
+ * \param Original Receives the id System Informer used.
+ * \return TRUE when the id is one of ours and both parts parsed.
+ */
+BOOLEAN SimcpParseTaggedId(
+    _In_ PPH_BYTES IdJson,
+    _Out_ PULONG Generation,
+    _Out_ PULONG64 Original
+    )
+{
+    static CONST CHAR prefix[] = "\"si-";
+    ULONG64 generation = 0;
+    ULONG64 original = 0;
+    SIZE_T i;
+    SIZE_T digits;
+
+    *Generation = 0;
+    *Original = 0;
+
+    if (IdJson->Length < sizeof(prefix) ||
+        memcmp(IdJson->Buffer, prefix, sizeof(prefix) - 1) != 0 ||
+        IdJson->Buffer[IdJson->Length - 1] != '"')
+    {
+        return FALSE;
+    }
+
+    i = sizeof(prefix) - 1;
+
+    for (digits = 0; i < IdJson->Length - 1 && IdJson->Buffer[i] != '-'; i++, digits++)
+    {
+        CHAR c = IdJson->Buffer[i];
+
+        if (c < '0' || c > '9' || digits > 10)
+            return FALSE;
+
+        generation = generation * 10 + (ULONG64)(c - '0');
+    }
+
+    if (!digits || i >= IdJson->Length - 1 || IdJson->Buffer[i] != '-')
+        return FALSE;
+
+    i++;
+
+    for (digits = 0; i < IdJson->Length - 1; i++, digits++)
+    {
+        CHAR c = IdJson->Buffer[i];
+
+        // "si-<gen>-init" is the handshake replay's own id; it is ours but has no number to
+        // restore, so it is dropped rather than forwarded.
+        if (c < '0' || c > '9' || digits > 19)
+            return FALSE;
+
+        original = original * 10 + (ULONG64)(c - '0');
+    }
+
+    if (!digits)
+        return FALSE;
+
+    *Generation = (ULONG)generation;
+    *Original = original;
+    return TRUE;
+}
+
+/**
+ * Writes a line to the host, tagging a request System Informer made with its generation.
+ *
+ * NextServerRequestId restarts with every connection, so without the tag an answer the user gives
+ * to a prompt from the connection before this one would match a live request by number alone.
+ *
+ * \param Envelope The parsed envelope of the line.
+ * \param Generation The generation the line came from.
+ * \param Buffer The line, without its terminator.
+ * \param Length The length of the line in bytes.
+ */
+VOID SimcpWriteTaggedLine(
+    _In_ PSIMCP_ENVELOPE Envelope,
+    _In_ ULONG Generation,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    ULONG64 original;
+    PH_FORMAT format[4];
+    PPH_STRING idString;
+    PPH_BYTES idBytes;
+    PPH_BYTES tagged;
+
+    // Only a numeric id can be restored exactly, so only a numeric id is tagged.
+    if (Envelope->Kind != SimcpEnvelopeRequest || !Envelope->Id ||
+        !SimcpIdIsPlainInteger(Envelope->Id, &original))
+    {
+        SimcpWriteLine(Buffer, Length);
+        return;
+    }
+
+    PhInitFormatS(&format[0], L"si-");
+    PhInitFormatU(&format[1], Generation);
+    PhInitFormatS(&format[2], L"-");
+    PhInitFormatI64U(&format[3], original);
+    idString = PhFormat(format, RTL_NUMBER_OF(format), 24);
+    idBytes = PhConvertUtf16ToUtf8Ex(idString->Buffer, idString->Length);
+    PhDereferenceObject(idString);
+
+    tagged = SimcpRewriteEnvelopeId(Buffer, Length, idBytes->Buffer);
+    PhDereferenceObject(idBytes);
+
+    if (!tagged)
+    {
+        SimcpWriteLine(Buffer, Length);
+        return;
+    }
+
+    SimcpWriteLine(tagged->Buffer, (ULONG)tagged->Length);
+    PhDereferenceObject(tagged);
+}
+
 /**
  * Relays until the generation ends.
  *
  * \param PipeHandle The generation's pipe.
+ * \param Generation The generation being pumped.
  * \param Message Receives why the generation ended.
  * \return TRUE when the session cannot continue, FALSE when it may reconnect.
  */
 BOOLEAN SimcpPump(
     _In_ HANDLE PipeHandle,
+    _In_ ULONG Generation,
     _Out_ PCSTR *Message
     )
 {
@@ -1185,11 +1338,9 @@ BOOLEAN SimcpPump(
                     SimcpSessionObserveIncoming(&envelope);
                 }
 
+                SimcpWriteTaggedLine(&envelope, Generation, payload, header.PayloadLength);
+
                 SimcpDeleteEnvelope(&envelope);
-
-                // Relayed byte for byte; nothing here rewrites a line yet.
-                SimcpWriteLine(payload, header.PayloadLength);
-
                 PhFree(payload);
             }
 
@@ -1277,7 +1428,7 @@ NTSTATUS NTAPI SimcpSupervisorThread(
         everConnected = TRUE;
         backoff = 0;
 
-        if (SimcpPump(pipeHandle, &message))
+        if (SimcpPump(pipeHandle, SimcpLinkGeneration(), &message))
         {
             SimcpLinkTeardown();
             break;
@@ -1330,8 +1481,51 @@ VOID SimcpRelayLine(
         return;
     }
 
-    // Relayed byte for byte; nothing here rewrites a line yet. A cancellation is relayed like any
-    // other line: System Informer needs it to stop the call.
+    // A reply to a request System Informer made comes back with the tag the broker put on it.
+    if (envelope.Kind == SimcpEnvelopeResponse && envelope.Id)
+    {
+        ULONG generation;
+        ULONG64 original;
+
+        if (SimcpParseTaggedId(envelope.Id, &generation, &original))
+        {
+            PPH_BYTES restored;
+
+            if (generation != SimcpLinkGeneration())
+            {
+                // The request this answers died with its generation; delivering it now would
+                // hand a stale answer to whatever System Informer is asking today.
+                SimcpLog("dropped an answer to a request from an earlier connection");
+                SimcpDeleteEnvelope(&envelope);
+                return;
+            }
+
+            restored = SimcpRewriteEnvelopeIdInteger(Buffer, Length, (LONG64)original);
+
+            if (!restored)
+            {
+                SimcpDeleteEnvelope(&envelope);
+                return;
+            }
+
+            if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, restored->Buffer, (ULONG)restored->Length, TRUE, NULL)))
+            {
+                if (SimcpLinkAborted())
+                {
+                    PhDereferenceObject(restored);
+                    SimcpDeleteEnvelope(&envelope);
+                    SimcpFail("System Informer closed the connection");
+                }
+            }
+
+            PhDereferenceObject(restored);
+            SimcpDeleteEnvelope(&envelope);
+            return;
+        }
+    }
+
+    // Relayed byte for byte otherwise. A cancellation is relayed like any other line: System
+    // Informer needs it to stop the call.
     if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, Buffer, Length, TRUE, NULL)))
     {
         if (SimcpLinkAborted())

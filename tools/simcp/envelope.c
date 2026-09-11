@@ -186,3 +186,43 @@ PPH_BYTES SimcpRewriteEnvelopeId(
 
     return rewritten;
 }
+
+/**
+ * Rebuilds a line with a numeric id.
+ *
+ * System Informer matches a reply to its own request with a strict integer type test, so an id it
+ * minted has to come back as a number and not as the string the broker sent out.
+ *
+ * \param Buffer The line, without its terminator.
+ * \param Length The length of the line in bytes.
+ * \param Id The replacement id.
+ * \return The rewritten line, or NULL when the line is not an object.
+ */
+PPH_BYTES SimcpRewriteEnvelopeIdInteger(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length,
+    _In_ LONG64 Id
+    )
+{
+    NTSTATUS status;
+    PPH_BYTES bytes;
+    PPH_BYTES rewritten = NULL;
+    PVOID message = NULL;
+
+    bytes = PhCreateBytesEx(Buffer, Length);
+    status = PhCreateJsonParserEx(&message, bytes, FALSE);
+    PhDereferenceObject(bytes);
+
+    if (!NT_SUCCESS(status) || !message)
+        return NULL;
+
+    if (PhGetJsonObjectType(message) == PH_JSON_OBJECT_TYPE_OBJECT)
+    {
+        PhAddJsonObjectInt64(message, "id", Id);
+        rewritten = PhGetJsonArrayString(message, FALSE);
+    }
+
+    PhFreeJsonObject(message);
+
+    return rewritten;
+}
