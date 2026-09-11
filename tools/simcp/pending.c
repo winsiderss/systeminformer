@@ -151,6 +151,38 @@ VOID SimcpClearPending(
     PhReleaseQueuedLockExclusive(&Pending->Lock);
 }
 
+/**
+ * Removes every entry and hands the ids back.
+ *
+ * The caller owes each of them exactly one response; taking and clearing under one lock is what
+ * makes it impossible to answer an id twice or forget one.
+ *
+ * \return The ids, each still referenced. The caller dereferences them with the list.
+ */
+PPH_LIST SimcpTakePending(
+    _Inout_ PSIMCP_PENDING Pending
+    )
+{
+    PPH_LIST list;
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PSIMCP_PENDING_ENTRY entry;
+
+    PhAcquireQueuedLockExclusive(&Pending->Lock);
+
+    list = PhCreateList(Pending->Table->Count ? Pending->Table->Count : 1);
+
+    PhBeginEnumHashtable(Pending->Table, &enumContext);
+
+    while (entry = PhNextEnumHashtable(&enumContext))
+        PhAddItemList(list, entry->Id);
+
+    PhClearHashtable(Pending->Table);
+
+    PhReleaseQueuedLockExclusive(&Pending->Lock);
+
+    return list;
+}
+
 ULONG SimcpPendingCount(
     _In_ PSIMCP_PENDING Pending
     )

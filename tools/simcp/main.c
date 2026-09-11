@@ -21,6 +21,7 @@
 #define SIMCP_CONNECT_WAIT_MS 2000
 #define SIMCP_RECONNECT_BACKOFF_FIRST_MS 250
 #define SIMCP_RECONNECT_BACKOFF_MAX_MS 5000
+#define SIMCP_RECONNECT_GRACE_MS 5000
 
 static HANDLE SimcpStdInput = NULL;
 static HANDLE SimcpStdOutput = NULL;
@@ -127,6 +128,59 @@ VOID SimcpEmitError(
 
     SimcpWriteLine(line->Buffer, (ULONG)line->Length);
     SimcpLog(Message);
+
+    PhDereferenceObject(line);
+}
+
+/**
+ * Answers one request with a transport error.
+ *
+ * \param IdJson The request id, as raw JSON text.
+ * \param Message What to tell the host.
+ */
+VOID SimcpEmitTransportError(
+    _In_ PPH_BYTES IdJson,
+    _In_ PCSTR Message
+    )
+{
+    static CONST CHAR head[] = "{\"jsonrpc\":\"2.0\",\"id\":";
+    static CONST CHAR middle[] = ",\"error\":{\"code\":1000,\"message\":\"System Informer: ";
+    static CONST CHAR tail[] = "\"}}";
+    PH_BYTES_BUILDER builder;
+    PPH_BYTES line;
+
+    static_assert(SIMCP_JSONRPC_ERROR_TRANSPORT == 1000, "error code literal must match");
+
+    PhInitializeBytesBuilder(&builder, 256);
+    PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, IdJson->Buffer, IdJson->Length, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)middle, sizeof(middle) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)Message, strlen(Message), 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
+    line = PhFinalBytesBuilderBytes(&builder);
+
+    SimcpWriteLine(line->Buffer, (ULONG)line->Length);
+
+    PhDereferenceObject(line);
+}
+
+// The broker is alive even when the backend is not, which is exactly what a ping asks.
+VOID SimcpEmitPong(
+    _In_ PPH_BYTES IdJson
+    )
+{
+    static CONST CHAR head[] = "{\"jsonrpc\":\"2.0\",\"id\":";
+    static CONST CHAR tail[] = ",\"result\":{}}";
+    PH_BYTES_BUILDER builder;
+    PPH_BYTES line;
+
+    PhInitializeBytesBuilder(&builder, 64);
+    PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, IdJson->Buffer, IdJson->Length, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
+    line = PhFinalBytesBuilderBytes(&builder);
+
+    SimcpWriteLine(line->Buffer, (ULONG)line->Length);
 
     PhDereferenceObject(line);
 }
@@ -372,6 +426,8 @@ VOID SimcpLinkTeardown(
 {
     HANDLE handle;
     IO_STATUS_BLOCK isb;
+    PPH_LIST pending;
+    ULONG i;
 
     PhAcquireQueuedLockShared(&SimcpLink.Lock);
     handle = SimcpLink.Handle;
@@ -391,8 +447,19 @@ VOID SimcpLinkTeardown(
 
     NtClose(handle);
 
-    // A generation's outstanding requests die with it.
-    SimcpClearPending(&SimcpPending);
+    // Every request that was on the wire is owed exactly one answer, and this is the moment the
+    // broker knows it will never arrive. They are never replayed: a tool call is at-most-once.
+    pending = SimcpTakePending(&SimcpPending);
+
+    for (i = 0; i < pending->Count; i++)
+    {
+        PPH_BYTES id = pending->Items[i];
+
+        SimcpEmitTransportError(id, "the connection was lost before this call finished");
+        PhDereferenceObject(id);
+    }
+
+    PhDereferenceObject(pending);
 }
 
 /**
@@ -402,18 +469,34 @@ VOID SimcpLinkTeardown(
 eturn TRUE when connected, FALSE when the broker is shutting down.
  */
 BOOLEAN SimcpLinkWaitConnected(
-    VOID
+    _In_ ULONG TimeoutMs
     )
 {
     HANDLE handles[2];
+    LARGE_INTEGER timeout;
     NTSTATUS status;
 
     handles[0] = SimcpLink.ConnectedEvent;
     handles[1] = SimcpLink.AbortEvent;
 
-    status = NtWaitForMultipleObjects(2, handles, WaitAny, FALSE, NULL);
+    status = NtWaitForMultipleObjects(
+        2,
+        handles,
+        WaitAny,
+        FALSE,
+        TimeoutMs == INFINITE ? NULL : PhTimeoutFromMilliseconds(&timeout, TimeoutMs)
+        );
 
     return status == STATUS_WAIT_0;
+}
+
+BOOLEAN SimcpLinkAborted(
+    VOID
+    )
+{
+    LARGE_INTEGER timeout = { 0 };
+
+    return NtWaitForSingleObject(SimcpLink.AbortEvent, FALSE, &timeout) == STATUS_WAIT_0;
 }
 
 /**
@@ -441,7 +524,8 @@ NTSTATUS SimcpLinkSend(
     SIMCP_HEADER header;
     HANDLE handle;
 
-    if (WaitForConnected && !SimcpLinkWaitConnected())
+    // A line that arrives during an outage waits only as long as a fast restart takes.
+    if (WaitForConnected && !SimcpLinkWaitConnected(SIMCP_RECONNECT_GRACE_MS))
         return STATUS_PIPE_DISCONNECTED;
 
     memset(&header, 0, sizeof(SIMCP_HEADER));
@@ -1210,6 +1294,75 @@ NTSTATUS NTAPI SimcpSupervisorThread(
     SimcpFail(message);
 }
 
+/**
+ * Sends one line from the host to System Informer.
+ *
+ * A line that arrives while the backend is away waits out the grace window. If it is still away
+ * after that, a request is answered here rather than left hanging -- the call did not happen, and
+ * saying so is the honest report. The request never entered the outstanding set, because entries
+ * are added only on a successful send, so it cannot also be answered by the supervisor.
+ *
+ * \param Buffer The line, without its terminator.
+ * \param Length The length of the line in bytes.
+ */
+VOID SimcpRelayLine(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ ULONG Length
+    )
+{
+    SIMCP_ENVELOPE envelope;
+
+    SimcpParseEnvelope(Buffer, Length, &envelope);
+
+    if (envelope.Kind == SimcpEnvelopeUnparsed)
+        SimcpLog("could not read the envelope of a line from the host");
+
+    SimcpSessionObserveOutgoing(&envelope, Buffer, Length);
+
+    // A liveness probe is about the broker, and holding it for the grace window would answer the
+    // wrong question.
+    if (envelope.Kind == SimcpEnvelopeRequest &&
+        PhEqualString2(envelope.Method, L"ping", FALSE) &&
+        !SimcpLinkWaitConnected(0))
+    {
+        SimcpEmitPong(envelope.Id);
+        SimcpDeleteEnvelope(&envelope);
+        return;
+    }
+
+    // Relayed byte for byte; nothing here rewrites a line yet. A cancellation is relayed like any
+    // other line: System Informer needs it to stop the call.
+    if (!NT_SUCCESS(SimcpLinkSend(SimcpMcp, Buffer, Length, TRUE, NULL)))
+    {
+        if (SimcpLinkAborted())
+        {
+            SimcpDeleteEnvelope(&envelope);
+            SimcpFail("System Informer closed the connection");
+        }
+
+        if (envelope.Kind == SimcpEnvelopeRequest)
+            SimcpEmitTransportError(envelope.Id, "System Informer is not available");
+
+        // A notification is owed nothing, so it is dropped -- after the session state above.
+        SimcpDeleteEnvelope(&envelope);
+        return;
+    }
+
+    // Tracked only once the line is on the wire, so an unsent request is never owed a response by
+    // the pipe thread.
+    if (envelope.Kind == SimcpEnvelopeRequest)
+    {
+        if (!SimcpAddPending(&SimcpPending, envelope.Id))
+            SimcpLog("could not track another outstanding request");
+    }
+    else if (envelope.CancelId)
+    {
+        SimcpRemovePending(&SimcpPending, envelope.CancelId);
+    }
+
+    SimcpDeleteEnvelope(&envelope);
+}
+
 VOID SimcpRelayStandardInput(
     VOID
     )
@@ -1257,45 +1410,10 @@ VOID SimcpRelayStandardInput(
 
             if (lineLength)
             {
-                SIMCP_ENVELOPE envelope;
-
                 if (lineLength > SIMCP_MAX_PAYLOAD_LENGTH)
                     SimcpFail("request line exceeds the maximum message size");
 
-                SimcpParseEnvelope(PTR_ADD_OFFSET(buffer, lineStart), lineLength, &envelope);
-
-                if (envelope.Kind == SimcpEnvelopeUnparsed)
-                    SimcpLog("could not read the envelope of a line from the host");
-
-                // Relayed byte for byte; nothing here rewrites a line yet. A cancellation is
-                // relayed like any other line: System Informer needs it to stop the call.
-                if (!NT_SUCCESS(SimcpLinkSend(
-                    SimcpMcp,
-                    PTR_ADD_OFFSET(buffer, lineStart),
-                    lineLength,
-                    TRUE,
-                    NULL
-                    )))
-                {
-                    SimcpDeleteEnvelope(&envelope);
-                    SimcpFail("System Informer closed the connection");
-                }
-
-                SimcpSessionObserveOutgoing(&envelope, PTR_ADD_OFFSET(buffer, lineStart), lineLength);
-
-                // Tracked only once the line is on the wire, so an unsent request is never owed
-                // a response by the pipe thread.
-                if (envelope.Kind == SimcpEnvelopeRequest)
-                {
-                    if (!SimcpAddPending(&SimcpPending, envelope.Id))
-                        SimcpLog("could not track another outstanding request");
-                }
-                else if (envelope.CancelId)
-                {
-                    SimcpRemovePending(&SimcpPending, envelope.CancelId);
-                }
-
-                SimcpDeleteEnvelope(&envelope);
+                SimcpRelayLine(PTR_ADD_OFFSET(buffer, lineStart), lineLength);
             }
 
             lineStart = i + 1;

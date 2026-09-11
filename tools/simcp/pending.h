@@ -44,6 +44,10 @@ VOID SimcpClearPending(
     _Inout_ PSIMCP_PENDING Pending
     );
 
+PPH_LIST SimcpTakePending(
+    _Inout_ PSIMCP_PENDING Pending
+    );
+
 ULONG SimcpPendingCount(
     _In_ PSIMCP_PENDING Pending
     );
