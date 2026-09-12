@@ -80,6 +80,7 @@
 #define CLIENT_PRODUCT_ID_LENGTH 32
 #define MAX_COUNTER_EXTENSIONS 2
 #define WINSTATIONNAME_LENGTH 32
+#define WINSTATIONCOMMENT_LENGTH 60
 
 #define TERMSRV_TOTAL_SESSIONS 1
 #define TERMSRV_DISC_SESSIONS 2
@@ -130,6 +131,17 @@ typedef struct _SESSIONIDW
     WINSTATIONSTATECLASS State;
 } SESSIONIDW, *PSESSIONIDW;
 
+typedef struct _SESSIONIDA
+{
+    union
+    {
+        ULONG SessionId;
+        ULONG LogonId;
+    };
+    CHAR WinStationName[WINSTATIONNAME_LENGTH + 1];
+    WINSTATIONSTATECLASS State;
+} SESSIONIDA, *PSESSIONIDA;
+
 /**
  * The WINSTATIONINFOCLASS enumeration indicates the class of data for which to either query or set on the server.
  *
@@ -140,12 +152,12 @@ typedef struct _SESSIONIDW
 typedef enum _WINSTATIONINFOCLASS
 {
     WinStationCreateData,                   // q: WINSTATIONCREATE
-    WinStationConfiguration,                // qs: WINSTACONFIGWIRE + USERCONFIG
-    WinStationPdParams,                     // qs: PDPARAMSWIRE + PDPARAMS
+    WinStationConfiguration,                // q: WINSTATIONCONFIG; legacy RPC qs: WINSTACONFIGWIRE + USERCONFIG
+    WinStationPdParams,                     // q: PDPARAMS; legacy RPC qs: PDPARAMSWIRE + PDPARAMS
     WinStationWd,                           // q: WDCONFIG
     WinStationPd,                           // q: PDCONFIG2 + PDPARAMS
     WinStationPrinter,                      // qs: Not supported.
-    WinStationClient,                       // q: VARDATA_WIRE + WINSTATIONCLIENT
+    WinStationClient,                       // q: WINSTATIONCLIENT; legacy RPC: VARDATA_WIRE + WINSTATIONCLIENT
     WinStationModules,                      // q: UCHAR[]
     WinStationInformation,                  // q: WINSTATIONINFORMATION
     WinStationTrace,                        // s: TS_TRACE
@@ -179,7 +191,7 @@ typedef enum _WINSTATIONINFOCLASS
     WinStationReconnectedFromId,            // q: ULONG
     WinStationEffectsPolicy,                // q: ULONG
     WinStationType,                         // q: ULONG
-    WinStationInformationEx,                // q: VARDATA_WIRE + WINSTATIONINFORMATIONEX // 40
+    WinStationInformationEx,                // q: WINSTATIONINFORMATIONEX; legacy RPC adds VARDATA_WIRE // 40
     WinStationValidationInfo,               // q: UCHAR[]
     WinStationActivityId,                   // q: GUID
     MaxWinStationInfoClass
@@ -289,6 +301,14 @@ typedef struct _USERCONFIG
     WCHAR WFHomeDir[DIRECTORY_LENGTH + 1];
     WCHAR WFHomeDirDrive[4];
 } USERCONFIG, *PUSERCONFIG;
+
+// Native WinStationConfiguration buffer; no VARDATA_WIRE prefix.
+typedef struct _WINSTATIONCONFIG
+{
+    WCHAR Comment[WINSTATIONCOMMENT_LENGTH + 1];
+    USERCONFIG User;
+    CHAR OEMId[4];
+} WINSTATIONCONFIG, *PWINSTATIONCONFIG;
 
 typedef enum _SDCLASS
 {
@@ -471,6 +491,7 @@ typedef struct _WINSTATIONCLIENT
     ULONG fPasswordIsScPin : 1;
     ULONG fNoAudioPlayback : 1;
     ULONG fUsingSavedCreds : 1;
+    ULONG fRestrictedLogon : 1;
     WCHAR ClientName[CLIENTNAME_LENGTH + 1];
     WCHAR Domain[DOMAIN_LENGTH + 1];
     WCHAR UserName[USERNAME_LENGTH + 1];
@@ -943,9 +964,9 @@ typedef struct _TS_COUNTER
 #define WNOTIFY_ALL_SESSIONS 0x1
 // end_rev
 
-// In the functions below, memory returned can be freed using LocalFree. NULL can be specified for
-// server handles to indicate the local server. -1 can be specified for session IDs to indicate the
-// current session ID.
+// Close WinStationOpenServer* binding objects with WinStationCloseServer, not CloseHandle.
+// NULL selects the local server. Session ID -1 selects the current session where supported.
+// Use each API's matching free function for nested allocations.
 
 // rev
 /**
@@ -958,7 +979,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationFreeMemory(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 // rev
@@ -1004,7 +1025,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationCloseServer(
-    _In_ HANDLE ServerHandle
+    _In_opt_ HANDLE ServerHandle
     );
 
 // rev
@@ -1012,7 +1033,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationServerPing(
-    _In_opt_ HANDLE ServerHandle
+    _In_opt_ HANDLE LicensingHandle // ServerLicensingOpenW context; NULL selects local
     );
 
 // rev
@@ -1022,7 +1043,7 @@ NTAPI
 WinStationGetTermSrvCountersValue(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Count,
-    _Inout_ PTS_COUNTER Counters // set counter IDs before calling
+    _Inout_updates_(Count) PTS_COUNTER Counters // set counter IDs before calling
     );
 
 // rev
@@ -1055,17 +1076,16 @@ WinStationWaitSystemEvent(
 
 // rev
 /**
- * The WinStationRegisterConsoleNotification routine shuts down (and optionally restarts) the specified Remote Desktop Session Host (RD Session Host) server.
+ * The WinStationRegisterConsoleNotification routine registers a window for session change notifications.
  *
  * \param ServerHandle Handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER .
  * \param WindowHandle Handle of the window to receive session change notifications.
- * \param Flags Specifies whether to receive notifications for all sessions (WNOTIFY_ALL_SESSIONS) or only for the console session.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
- * \remarks To shut down or restart the system, the calling process must have the SE_SHUTDOWN_NAME privilege enabled.
+ * \param Flags Specifies all sessions (WNOTIFY_ALL_SESSIONS) or the current session (WNOTIFY_THIS_SESSION).
+ * \return BOOL Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsregistersessionnotificationex
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -1075,7 +1095,7 @@ WinStationRegisterConsoleNotification(
 
 // rev
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationUnRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -1088,7 +1108,7 @@ BOOLEAN
 NTAPI
 WinStationEnumerateW(
     _In_opt_ HANDLE ServerHandle,
-    _Out_ PSESSIONIDW *SessionIds,
+    _Outptr_result_buffer_(*Count) PSESSIONIDW* SessionIds, // WinStationFreeMemory
     _Out_ PULONG Count
     );
 
@@ -1099,11 +1119,11 @@ WinStationEnumerateW(
  * \param SessionId A Remote Desktop Services session identifier.
  * To indicate the session in which the calling application is running (or the current session) specify WINSTATION_CURRENT_SESSION.
  * Only specify WINSTATION_CURRENT_SESSION when obtaining session information on the local server.
- * If WINSTATION_CURRENT_SESSION is specified when querying session information on a remote server, the returned session information will be inconsistent. Do not use the returned data.
- * \param WinStationInformationClass A value from the TOKEN_INFORMATION_CLASS enumerated type identifying the type of information to be retrieved.
- * \param WinStationInformation Pointer to a caller-allocated buffer that receives the requested information about the token.
- * \param WinStationInformationLength Length, in bytes, of the caller-allocated TokenInformation buffer.
- * \param ReturnLength Pointer to a caller-allocated variable that receives the actual length, in bytes, of the information returned in the TokenInformation buffer.
+ * WINSTATION_CURRENT_SESSION is rejected for a remote server.
+ * \param WinStationInformationClass A WINSTATIONINFOCLASS value identifying the requested session information.
+ * \param WinStationInformation Pointer to the output buffer for session information.
+ * \param WinStationInformationLength Length, in bytes, of the caller-allocated WinStationInformation buffer.
+ * \param ReturnLength Receives the class-dependent output or required byte count; it may exceed the buffer capacity.
  * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
  * \sa https://learn.microsoft.com/en-us/previous-versions/aa383827(v=vs.85)
  */
@@ -1120,6 +1140,9 @@ WinStationQueryInformationW(
     );
 
 // rev
+// In x64 10.0.26100.6899 / x86 10.0.26100.8972, only local/current WinStationNtSecurity reaches RPC.
+// All paths return FALSE in these versions.
+// Other classes, including WinStationConfiguration, fail with ERROR_INVALID_FUNCTION.
 NTSYSAPI
 BOOLEAN
 NTAPI
@@ -1137,8 +1160,9 @@ BOOLEAN
 NTAPI
 WinStationQueryCurrentSessionInformation(
     _In_ WINSTATIONINFOCLASS WinStationInformationClass,
-    _In_reads_bytes_(WinStationInformationLength) PVOID WinStationInformation,
-    _In_ ULONG WinStationInformationLength
+    _Out_writes_bytes_(WinStationInformationLength) PVOID WinStationInformation,
+    _In_ ULONG WinStationInformationLength,
+    _Out_ PULONG ReturnLength
     );
 
 NTSYSAPI
@@ -1280,8 +1304,8 @@ WinStationGetProcessSid(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG ProcessId,
     _In_ FILETIME ProcessStartTime,
-    _Out_ PVOID ProcessUserSid,
-    _Inout_ PULONG dwSidSize
+    _Out_writes_bytes_(*SidSize) PSID ProcessUserSid,
+    _Inout_ PULONG SidSize
     );
 
 //
@@ -1319,7 +1343,7 @@ NTAPI
 WinStationVirtualOpen(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ PCSTR Name
+    _In_reads_(8) PCSTR Name // Reads 8 bytes; the local copy is terminated at byte 7
     );
 
 // rev
@@ -1344,11 +1368,31 @@ WinStationIsCurrentSessionRemoteable(
 EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_GET_MONITOR_CONFIG = { 0x865D5285, 0xF70A, 0x4ECF, { 0x8B, 0x28, 0x51, 0x2F, 0xE0, 0xAA, 0x2D, 0x53 } };
 EXTERN_C DECLSPEC_SELECTANY CONST GUID PROPERTY_TYPE_CORRELATIONID_GUID = { 0x9A363F8E, 0x1902, 0x40DA, { 0xA2, 0xCC, 0x56, 0x4F, 0x09, 0x40, 0xAD, 0xE3 } };
 
-typedef struct _TS_PROPERTY_INFORMATION
+// rev (RPC property value discriminant and union)
+#define TS_PROPERTY_TYPE_ULONG 1
+#define TS_PROPERTY_TYPE_STRING 2
+#define TS_PROPERTY_TYPE_BINARY 3
+#define TS_PROPERTY_TYPE_GUID 4
+
+typedef struct _TS_PROPERTY_VALUE
 {
-    ULONG Length;
-    PVOID Buffer;
-} TS_PROPERTY_INFORMATION, *PTS_PROPERTY_INFORMATION;
+    USHORT Type; // TS_PROPERTY_TYPE_*
+    union
+    {
+        ULONG Ulong;
+        struct
+        {
+            ULONG Length;
+            PWSTR Buffer;
+        } String;
+        struct
+        {
+            ULONG Length;
+            PBYTE Buffer;
+        } Binary;
+        GUID Guid;
+    } Value;
+} TS_PROPERTY_VALUE, *PTS_PROPERTY_VALUE;
 
 // rev
 NTSYSAPI
@@ -1357,7 +1401,7 @@ NTAPI
 WinStationGetConnectionProperty(
     _In_ ULONG SessionId,
     _In_ PCGUID PropertyType,
-    _Out_ PTS_PROPERTY_INFORMATION PropertyBuffer
+    _Outptr_ PTS_PROPERTY_VALUE* PropertyValue // WinStationFreePropertyValue
     );
 
 // rev
@@ -1365,7 +1409,7 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationFreePropertyValue(
-    _In_ PVOID PropertyBuffer
+    _In_ PTS_PROPERTY_VALUE PropertyValue
     );
 
 // rev
@@ -1383,8 +1427,8 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationSetAutologonPassword(
-    _In_ PCSTR KeyName,
-    _In_ PCSTR Password
+    _In_ PCWSTR KeyName,
+    _In_ PCWSTR Password
     );
 
 // private
@@ -1470,18 +1514,9 @@ NTAPI
 WinStationGetAllUserSessions(
     _In_opt_ HANDLE ServerHandle,
     _In_ PSID Sid,
-    _Out_ PVOID* Processes, // LocalFree
-    _Out_ PULONG NumberOfProcesses
+    _Outptr_result_buffer_(*Count) PTS_USER_SESSION* Sessions, // WinStationFreeMemory
+    _Out_ PULONG Count
     );
-
-// rev
-typedef struct _TS_SESSION_VIRTUAL_ADDRESS
-{
-  USHORT AddressFamily;
-  USHORT AddressLength;
-  BYTE Address[20];
-} TS_SESSION_VIRTUAL_ADDRESS, *PTS_SESSION_VIRTUAL_ADDRESS;
-typedef USHORT ADDRESS_FAMILY;
 
 // rev
 NTSYSAPI
@@ -1490,8 +1525,8 @@ NTAPI
 WinStationQuerySessionVirtualIP(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ ADDRESS_FAMILY Family,
-    _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
+    _In_ USHORT Family, // AF_INET or AF_INET6
+    _Out_ PWINSTATIONREMOTEADDRESS SessionVirtualIP
     );
 
 // rev
@@ -1501,8 +1536,8 @@ NTAPI
 WinStationGetDeviceId(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
-    _In_ SIZE_T BufferLength
+    _Out_writes_bytes_(BufferLength * 2) PVOID Buffer,
+    _In_ ULONG BufferLength // Capacity in 2-byte units; payload is protocol-specific
     );
 
 // rev
@@ -1520,25 +1555,25 @@ WinStationGetLoggedOnCount(
  * can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
  * In the remote session, this content will be encoded, sent to the client, then decoded and displayed.
  *
- * \param[out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
+ * \param[in,out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
  * If a new hint is being created, this value must contain zero.
  * This function will return a unique rendering hint identifier which is used for subsequent calls, such as clearing the hint.
  * \param[in] WindowHandle The handle of window linked to lifetime of the rendering hint. This window is used in situations where a hint target is removed without the hint being explicitly cleared.
  * \param[in] RenderHintType Specifies the type of hint represented by this call.
  * \param[in] HintDataLength The size in bytes, of the HintData buffer.
  * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the renderHintType parameter.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise.
+ * \return HRESULT status; S_OK also indicates that the hint was ignored for a local console session.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtshintapi/nf-wtshintapi-wtssetrenderhint
  */
 NTSYSAPI
-BOOLEAN
+HRESULT
 NTAPI
 WinStationSetRenderHint(
-    _In_opt_ PULONG64 RenderHintID,
+    _Inout_ PULONG64 RenderHintID,
     _In_ HWND WindowHandle,
     _In_ ULONG RenderHintType,
     _In_ ULONG HintDataLength,
-    _In_ PBYTE HintData
+    _In_reads_bytes_opt_(HintDataLength) PBYTE HintData
     );
 
 // rev
@@ -1546,14 +1581,413 @@ WinStationSetRenderHint(
  * The WinStationActiveSessionExists routine returns active sessions on the system without enumerating through the list of sessions.
  * It also does not obtain any extra information from Local Session Manager.
  *
- * \return BOOLEAN Nonzero if an active session exists.
+ * \param ActiveSessionExists Receives whether an active session exists.
+ * \return BOOLEAN Nonzero on success; the session state is returned through ActiveSessionExists.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsactivesessionexists
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationActiveSessionExists(
+    _Out_ PBOOL ActiveSessionExists
+    );
+
+// rev (x64/x86 winsta.dll and Windows SDK WinSta.lib)
+// Link with WinSta.lib. BOOLEAN results use AL; notification BOOL results use EAX.
+// ULONG functions below return Win32 error codes; HRESULT functions return HRESULTs.
+
+// ANSI server and session operations
+
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationOpenServerA(
+    _In_opt_ PCSTR ServerName
+    );
+
+NTSYSAPI
+HANDLE
+NTAPI
+WinStationOpenServerExA(
+    _In_opt_ PCSTR ServerName
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnumerateA(
+    _In_opt_ HANDLE ServerHandle,
+    _Outptr_result_buffer_(*Count) PSESSIONIDA* SessionIds, // WinStationFreeMemory
+    _Out_ PULONG Count
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationSendMessageA(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG SessionId,
+    _In_ PCSTR Title,
+    _In_ ULONG TitleLength,
+    _In_ PCSTR Message,
+    _In_ ULONG MessageLength,
+    _In_ ULONG Style,
+    _In_ ULONG Timeout,
+    _Out_ PULONG Response,
+    _In_ BOOLEAN DoNotWait
+    );
+
+// Current session
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionCapabilities(
+    _In_ ULONG Level, // Must be 1
+    _Out_ PULONG Capabilities
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionConnectionProperty(
+    _In_ PCGUID PropertyType,
+    _Outptr_ PTS_PROPERTY_VALUE* PropertyValue // WinStationFreePropertyValue
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetCurrentSessionTerminalName(
+    _Out_writes_(WINSTATIONNAME_LENGTH) PWSTR TerminalName
+    );
+
+typedef enum _SESSION_FILTER
+{
+    SF_SERVICES_SESSION_POPUP = 0 // Logged-on sessions; MS-TSTS RpcGetSessionIds.
+} SESSION_FILTER;
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetSessionIds(
+    _In_ SESSION_FILTER Filter,
+    _Out_writes_to_(*Count, *Count) PULONG SessionIds,
+    _Inout_ PULONG Count
+    );
+
+// Child sessions
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationEnableChildSessions(
+    _In_ BOOLEAN Enable
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationIsChildSessionsEnabled(
+    _Out_ PBOOLEAN Enabled
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetChildSessionId(
+    _Out_ PULONG SessionId
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetParentSessionId(
+    _In_ ULONG SessionId,
+    _Out_ PULONG ParentSessionId
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationCreateChildSessionTransport(
+    _Out_writes_(TransportNameLength) PWSTR TransportName,
+    _In_range_(1, 256) ULONG TransportNameLength
+    );
+
+// Window notifications: Ex variants additionally select the notification event mask.
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterSessionNotificationEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterConsoleNotificationEx(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterConsoleNotificationEx2(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationUnRegisterSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationFreeSessionNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationFreeConsoleNotification(
+    _In_opt_ HANDLE ServerHandle,
+    _In_ HWND WindowHandle
+    );
+
+// Event notifications return an opaque registration, not a kernel handle.
+// Release it with WinStationUnRegisterNotificationEvent, not CloseHandle.
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterNotificationEvent(
+    _In_ HANDLE EventHandle,
+    _In_ ULONG SessionId,
+    _In_ ULONG EventMask, // Event-registration mask; not WEVENT_*
+    _Outptr_ PVOID* Registration
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationRegisterCurrentSessionNotificationEvent(
+    _In_ HANDLE EventHandle,
+    _In_ ULONG EventMask, // Event-registration mask; not WEVENT_*
+    _Outptr_ PVOID* Registration
+    );
+
+NTSYSAPI
+BOOL
+NTAPI
+WinStationUnRegisterNotificationEvent(
+    _In_ PVOID Registration
+    );
+
+// Session state and shutdown
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationConnectAndLockDesktop(
+    _Reserved_ HANDLE ServerHandle, // Must be NULL
+    _In_ ULONG SessionId
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationShadowAccessCheck(
+    _In_ ULONG SessionId,
+    _Out_ PBOOLEAN Allowed
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationShadowStop2(
     VOID
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationConsumeCacheSession(
+    VOID
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationIsBoundToCacheTerminal(
+    _Out_ PBOOLEAN IsBound
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationIsSessionPermitted(
+    VOID
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationSystemShutdownStarted(
+    _In_ ULONG Unknown0
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationSystemShutdownWait(
+    _In_ ULONG Timeout,
+    _Out_opt_ PULONG Unknown0
+    );
+
+// Initial application and logon UI
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetInitialApplication(
+    _In_ ULONG SessionId,
+    _Outptr_ PWSTR* Unknown0, // WinStationFreeMemory
+    _Outptr_ PWSTR* Unknown1, // WinStationFreeMemory
+    _Out_ PCHAR Unknown2,
+    _Out_ PCHAR Unknown3
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationRedirectErrorMessage(
+    _In_ ULONG Unknown0,
+    _In_ ULONG Unknown1
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationRedirectLogonBeginPainting(
+    VOID
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationRedirectLogonStatus(
+    _In_ PCWSTR Status,
+    _Out_ PULONG Unknown0
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationRedirectLogonMessage(
+    _In_ PCWSTR Unknown0,
+    _In_ PCWSTR Unknown1,
+    _In_ ULONG Unknown2,
+    _Out_ PULONG Unknown3
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationRedirectLogonError(
+    _In_ ULONG Unknown0,
+    _In_ ULONG Unknown1,
+    _In_ PCWSTR Unknown2,
+    _In_ PCWSTR Unknown3,
+    _In_ ULONG Unknown4,
+    _Out_ PULONG Unknown5
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationReportLoggedOnCompleted(
+    VOID
+    );
+
+// Allocated certificate and credential data; release with the matching function.
+
+typedef struct _TS_USER_CERTIFICATES
+{
+    ULONG Count;
+    ULONG Length;
+    PBYTE Buffer;
+} TS_USER_CERTIFICATES, *PTS_USER_CERTIFICATES;
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationGetUserCertificates(
+    _Outptr_ PTS_USER_CERTIFICATES* Certificates
+    );
+
+NTSYSAPI
+BOOLEAN
+NTAPI
+WinStationFreeUserCertificates(
+    _In_opt_ PTS_USER_CERTIFICATES Certificates
+    );
+
+typedef struct _TS_USER_CREDENTIALS
+{
+    ULONG Unknown0;
+    ULONG Unknown1;
+    ULONG Length;
+    PVOID Buffer;
+} TS_USER_CREDENTIALS, *PTS_USER_CREDENTIALS;
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationGetUserCredentials(
+    _Outptr_ PTS_USER_CREDENTIALS* Credentials
+    );
+
+NTSYSAPI
+ULONG
+NTAPI
+WinStationFreeUserCredentials(
+    _In_ PTS_USER_CREDENTIALS Credentials
+    );
+
+NTSYSAPI
+HRESULT
+NTAPI
+WinStationGetUserProfile(
+    _In_ HANDLE Unknown0,
+    _Outptr_ PWSTR* Unknown1, // WinStationFreeMemory
+    _Outptr_ PWSTR* Unknown2, // WinStationFreeMemory
+    _Outptr_ PWSTR* Unknown3  // WinStationFreeMemory
     );
 
 #endif
