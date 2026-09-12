@@ -25,6 +25,7 @@
 #define IDD_HNDLGENERAL                 128
 #define IDD_INFORMATION                 129
 #define IDD_FINDOBJECTS                 130
+#define IDD_MODEXPORTS                  295
 #define IDD_ATTACHPROCESS               290
 #define IDD_OBJTOKEN                    131
 #define ID_PLUGIN_MENU_ITEM             131
@@ -582,6 +583,8 @@
 #define IDC_FILTEROPTIONS               1389
 #define IDC_FILTERTYPE                  1390
 #define IDC_TREELIST                    1391
+#define IDC_MODEXPORTS_FILTER           1540
+#define IDC_MODEXPORTS_TREELIST         1541
 #define IDC_SECTIONTREE                 1393
 #define IDC_INFO                        1396
 #define IDC_DEFSTATE                    1398
@@ -916,6 +919,7 @@
 #define ID_PAGEPRIORITY_VERYLOW         10243
 #define ID_VIEW_SHOWCPUBELOW001         10246
 #define ID_MODULE_OPENFILELOCATION      10247
+#define ID_MODULE_SEARCH_EXPORTS        10328
 #define ID_PROCESS_OPENFILELOCATION     10248
 #define ID_MISCELLANEOUS_REDUCEWORKINGSET 10249
 #define IDC_BACK                        10255
