@@ -34,6 +34,7 @@
 
 #include <phfwddef.h>
 #include <appsup.h>
+#include <localization.h>
 #include <searchbox.h>
 
 EXTERN_C_START
