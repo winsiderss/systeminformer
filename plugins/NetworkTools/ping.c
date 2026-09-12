@@ -369,6 +369,7 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_INITDIALOG:
         {
             PPH_LAYOUT_ITEM panelItem;
+            RECT graphMargin;
 
             PhSetApplicationWindowIcon(hwndDlg);
 
@@ -416,7 +417,10 @@ INT_PTR CALLBACK NetworkPingWndProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_ANON_ADDR), NULL, PH_ANCHOR_BOTTOM | PH_ANCHOR_LEFT);
             panelItem = PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), NULL, PH_ANCHOR_ALL);
             PhCopyControlRectangle(hwndDlg, GetDlgItem(hwndDlg, IDC_PING_LAYOUT), context->PingGraphHandle);
-            PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, &panelItem->Margin);
+            // The layout item margin is stored at the default DPI, scale it back for PhAddLayoutItemEx. (jxy-s)
+            graphMargin = panelItem->Margin;
+            PhGetMarginDpiValue(&graphMargin, context->WindowDpi, TRUE);
+            PhAddLayoutItemEx(&context->LayoutManager, context->PingGraphHandle, NULL, PH_ANCHOR_ALL, &graphMargin);
             PhLayoutManagerLayout(&context->LayoutManager);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_PING_WINDOW_POSITION))
@@ -671,6 +675,9 @@ INT_PTR CALLBACK NetworkPingWndProc(
     case WM_DPICHANGED:
         {
             context->WindowDpi = PhGetWindowDpi(hwndDlg);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, context->WindowDpi);
+            PhLayoutManagerLayout(&context->LayoutManager);
         }
         break;
     case WM_CTLCOLORBTN:
