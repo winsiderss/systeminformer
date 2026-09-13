@@ -455,6 +455,52 @@ VOID NTAPI PhMwpServicesUpdatedHandler(
     SystemInformer_Invoke(PhMwpOnServicesUpdated, PhGetRunIdProvider(&PhMwpServiceProviderRegistration));
 }
 
+static VOID PhpFormatServiceNotificationText(
+    _In_ PPH_SERVICE_ITEM ServiceItem,
+    _In_ PCWSTR ActionText,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _In_ SIZE_T BufferLength
+    )
+{
+    PH_FORMAT format[16];
+    ULONG count = 0;
+    PPH_STRING version = NULL;
+    PH_IMAGE_VERSION_INFO versionInfo = { 0 };
+
+    if (PhCsEnableVersionSupport && !PhIsNullOrEmptyString(ServiceItem->FileName))
+    {
+        if (NT_SUCCESS(PhInitializeImageVersionInfoCached(&versionInfo, ServiceItem->FileName, FALSE, !!PhCsEnableVersionSupport)))
+        {
+            if (!PhIsNullOrEmptyString(versionInfo.FileVersion))
+                version = versionInfo.FileVersion;
+        }
+    }
+
+    PhInitFormatS(&format[count++], L"The service ");
+    PhInitFormatSR(&format[count++], ServiceItem->Name->sr);
+    PhInitFormatS(&format[count++], L" (");
+    PhInitFormatSR(&format[count++], ServiceItem->DisplayName->sr);
+    PhInitFormatC(&format[count++], L')');
+
+    if (!PhIsNullOrEmptyString(version))
+    {
+        PhInitFormatS(&format[count++], L" (v");
+        PhInitFormatSR(&format[count++], version->sr);
+        PhInitFormatC(&format[count++], L')');
+    }
+
+    PhInitFormatS(&format[count++], ActionText);
+
+    if (!PhFormatToBuffer(format, count, Buffer, BufferLength, NULL))
+    {
+        PPH_STRING str = PhFormat(format, count, 0);
+        wcsncpy_s(Buffer, BufferLength / sizeof(WCHAR), str->Buffer, _TRUNCATE);
+        PhDereferenceObject(str);
+    }
+
+    PhDeleteImageVersionInfo(&versionInfo);
+}
+
 VOID PhMwpOnServiceAdded(
     _In_ _Assume_refs_(1) PPH_SERVICE_ITEM ServiceItem,
     _In_ ULONG RunId
@@ -467,35 +513,20 @@ VOID PhMwpOnServiceAdded(
 
     if (RunId != 1)
     {
-        PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName);
+        PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_CREATE, ServiceItem->Name, ServiceItem->DisplayName, ServiceItem->FileName);
 
         if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_CREATE))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_CREATE, ServiceItem))
             {
-                PH_FORMAT format[5];
                 WCHAR formatBuffer[260];
 
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_SERVICE_CREATE;
                 PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, ServiceItem->Name);
 
-                // The service %s (%s) has been created.
-                PhInitFormatS(&format[0], L"The service ");
-                PhInitFormatSR(&format[1], ServiceItem->Name->sr);
-                PhInitFormatS(&format[2], L" (");
-                PhInitFormatSR(&format[3], ServiceItem->DisplayName->sr);
-                PhInitFormatS(&format[4], L") was created");
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-                {
-                    PhShowIconNotification(L"Service Created", formatBuffer);
-                }
-                else
-                {
-                    PhShowIconNotification(L"Service Created",
-                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
-                }
+                PhpFormatServiceNotificationText(ServiceItem, L" was created", formatBuffer, sizeof(formatBuffer));
+                PhShowIconNotification(L"Service Created", formatBuffer);
             }
         }
     }
@@ -538,7 +569,7 @@ VOID PhMwpOnServiceModified(
     }
 
     if (logEntryType != 0)
-        PhLogServiceEntry(logEntryType, ServiceModifiedData->ServiceItem->Name, ServiceModifiedData->ServiceItem->DisplayName);
+        PhLogServiceEntry(logEntryType, ServiceModifiedData->ServiceItem->Name, ServiceModifiedData->ServiceItem->DisplayName, ServiceModifiedData->ServiceItem->FileName);
 
     if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_START | PH_NOTIFY_SERVICE_STOP | PH_NOTIFY_SERVICE_MODIFIED))
     {
@@ -550,87 +581,42 @@ VOID PhMwpOnServiceModified(
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_START, serviceItem))
             {
-                PH_FORMAT format[5];
                 WCHAR formatBuffer[260];
 
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_SERVICE_START;
                 PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, serviceItem->Name);
 
-                // The service %s (%s) has been started.
-                PhInitFormatS(&format[0], L"The service ");
-                PhInitFormatSR(&format[1], serviceItem->Name->sr);
-                PhInitFormatS(&format[2], L" (");
-                PhInitFormatSR(&format[3], serviceItem->DisplayName->sr);
-                PhInitFormatS(&format[4], L") was started");
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-                {
-                    PhShowIconNotification(L"Service Started", formatBuffer);
-                }
-                else
-                {
-                    PhShowIconNotification(L"Service Started",
-                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
-                }
+                PhpFormatServiceNotificationText(serviceItem, L" was started", formatBuffer, sizeof(formatBuffer));
+                PhShowIconNotification(L"Service Started", formatBuffer);
             }
         }
         else if (serviceChange == ServiceStopped && FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_STOP))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_STOP, serviceItem))
             {
-                PH_FORMAT format[5];
                 WCHAR formatBuffer[260];
 
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_SERVICE_STOP;
                 PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, serviceItem->Name);
 
-                // The service %s (%s) has been stopped.
-                PhInitFormatS(&format[0], L"The service ");
-                PhInitFormatSR(&format[1], serviceItem->Name->sr);
-                PhInitFormatS(&format[2], L" (");
-                PhInitFormatSR(&format[3], serviceItem->DisplayName->sr);
-                PhInitFormatS(&format[4], L") was stopped");
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-                {
-                    PhShowIconNotification(L"Service Stopped", formatBuffer);
-                }
-                else
-                {
-                    PhShowIconNotification(L"Service Stopped",
-                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
-                }
+                PhpFormatServiceNotificationText(serviceItem, L" was stopped", formatBuffer, sizeof(formatBuffer));
+                PhShowIconNotification(L"Service Stopped", formatBuffer);
             }
         }
         else if (serviceChange == ServiceModified && FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_MODIFIED))
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_MODIFIED, serviceItem))
             {
-                PH_FORMAT format[5];
                 WCHAR formatBuffer[260];
 
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_SERVICE_MODIFIED;
                 PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, serviceItem->Name);
 
-                // The service %s (%s) has been modified.
-                PhInitFormatS(&format[0], L"The service ");
-                PhInitFormatSR(&format[1], serviceItem->Name->sr);
-                PhInitFormatS(&format[2], L" (");
-                PhInitFormatSR(&format[3], serviceItem->DisplayName->sr);
-                PhInitFormatS(&format[4], L") was modified");
-
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-                {
-                    PhShowIconNotification(L"Service Modified", formatBuffer);
-                }
-                else
-                {
-                    PhShowIconNotification(L"Service Modified",
-                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
-                }
+                PhpFormatServiceNotificationText(serviceItem, L" was modified", formatBuffer, sizeof(formatBuffer));
+                PhShowIconNotification(L"Service Modified", formatBuffer);
             }
         }
     }
@@ -642,35 +628,20 @@ VOID PhMwpOnServiceRemoved(
     _In_ PPH_SERVICE_ITEM ServiceItem
     )
 {
-    PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName);
+    PhLogServiceEntry(PH_LOG_ENTRY_SERVICE_DELETE, ServiceItem->Name, ServiceItem->DisplayName, ServiceItem->FileName);
 
     if (FlagOn(PhMwpNotifyIconNotifyMask, PH_NOTIFY_SERVICE_DELETE))
     {
         if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_SERVICE_DELETE, ServiceItem))
         {
-            PH_FORMAT format[5];
             WCHAR formatBuffer[260];
 
             PhMwpClearLastNotificationDetails();
             PhMwpLastNotificationType = PH_NOTIFY_SERVICE_DELETE;
             PhSwapReference(&PhMwpLastNotificationDetails.ServiceName, ServiceItem->Name);
 
-            // The service %s (%s) has been deleted.
-            PhInitFormatS(&format[0], L"The service ");
-            PhInitFormatSR(&format[1], ServiceItem->Name->sr);
-            PhInitFormatS(&format[2], L" (");
-            PhInitFormatSR(&format[3], ServiceItem->DisplayName->sr);
-            PhInitFormatS(&format[4], L") was deleted");
-
-            if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
-            {
-                PhShowIconNotification(L"Service Deleted", formatBuffer);
-            }
-            else
-            {
-                PhShowIconNotification(L"Service Deleted",
-                    PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
-            }
+            PhpFormatServiceNotificationText(ServiceItem, L" was deleted", formatBuffer, sizeof(formatBuffer));
+            PhShowIconNotification(L"Service Deleted", formatBuffer);
         }
     }
 

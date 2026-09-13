@@ -1129,32 +1129,43 @@ VOID PhMwpOnProcessAdded(
         {
             if (!PhPluginsEnabled || !PhMwpPluginNotifyEvent(PH_NOTIFY_PROCESS_CREATE, ProcessItem))
             {
-                PH_FORMAT format[9];
+                PH_FORMAT format[20];
+                ULONG count = 0;
                 WCHAR formatBuffer[260];
+                PPH_STRING processString = !PhIsNullOrEmptyString(ProcessItem->CommandLine) ? ProcessItem->CommandLine : ProcessItem->ProcessName;
 
                 PhMwpClearLastNotificationDetails();
                 PhMwpLastNotificationType = PH_NOTIFY_PROCESS_CREATE;
                 PhMwpLastNotificationDetails.ProcessId = ProcessItem->ProcessId;
 
-                // The process %s (%lu) was created by %s (%lu)
-                PhInitFormatS(&format[0], L"The process ");
-                PhInitFormatSR(&format[1], ProcessItem->ProcessName->sr);
-                PhInitFormatS(&format[2], L" (");
-                PhInitFormatU(&format[3], HandleToUlong(ProcessItem->ProcessId));
-                PhInitFormatS(&format[4], L") was created by ");
-                PhInitFormatS(&format[5], PhGetStringOrDefault(parentName, L"Unknown process")); // todo: SR type (dmex)
-                PhInitFormatS(&format[6], L" (");
-                PhInitFormatU(&format[7], HandleToUlong(ProcessItem->ParentProcessId));
-                PhInitFormatC(&format[8], L')');
+                // The process %s (%lu) (v%s) was created by %s (%lu)
+                PhInitFormatS(&format[count++], L"The process ");
+                PhInitFormatSR(&format[count++], processString->sr);
+                PhInitFormatS(&format[count++], L" (");
+                PhInitFormatU(&format[count++], HandleToUlong(ProcessItem->ProcessId));
+                PhInitFormatC(&format[count++], L')');
 
-                if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), formatBuffer, sizeof(formatBuffer), NULL))
+                if (PhCsEnableVersionSupport && !PhIsNullOrEmptyString(ProcessItem->VersionInfo.FileVersion))
+                {
+                    PhInitFormatS(&format[count++], L" (v");
+                    PhInitFormatSR(&format[count++], ProcessItem->VersionInfo.FileVersion->sr);
+                    PhInitFormatC(&format[count++], L')');
+                }
+
+                PhInitFormatS(&format[count++], L" was created by ");
+                PhInitFormatS(&format[count++], PhGetStringOrDefault(parentName, L"Unknown process"));
+                PhInitFormatS(&format[count++], L" (");
+                PhInitFormatU(&format[count++], HandleToUlong(ProcessItem->ParentProcessId));
+                PhInitFormatC(&format[count++], L')');
+
+                if (PhFormatToBuffer(format, count, formatBuffer, sizeof(formatBuffer), NULL))
                 {
                     PhShowIconNotification(L"Process Created", formatBuffer);
                 }
                 else
                 {
                     PhShowIconNotification(L"Process Created",
-                        PH_AUTO_T(PH_STRING, PhFormat(format, RTL_NUMBER_OF(format), 0))->Buffer);
+                        PH_AUTO_T(PH_STRING, PhFormat(format, count, 0))->Buffer);
                 }
             }
         }

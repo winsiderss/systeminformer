@@ -67,6 +67,7 @@ VOID PhpFreeLogEntry(
     {
         PhDereferenceObject(Entry->Service.Name);
         PhDereferenceObject(Entry->Service.DisplayName);
+        if (Entry->Service.FileName) PhDereferenceObject(Entry->Service.FileName);
     }
     else if (Entry->Type == PH_LOG_ENTRY_MESSAGE)
     {
@@ -115,7 +116,8 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
 PPH_LOG_ENTRY PhpCreateServiceLogEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
-    _In_ PPH_STRING DisplayName
+    _In_ PPH_STRING DisplayName,
+    _In_opt_ PPH_STRING FileName
     )
 {
     PPH_LOG_ENTRY entry;
@@ -125,6 +127,12 @@ PPH_LOG_ENTRY PhpCreateServiceLogEntry(
     entry->Service.Name = Name;
     PhReferenceObject(DisplayName);
     entry->Service.DisplayName = DisplayName;
+
+    if (!PhIsNullOrEmptyString(FileName))
+    {
+        PhReferenceObject(FileName);
+        entry->Service.FileName = FileName;
+    }
 
     return entry;
 }
@@ -206,10 +214,11 @@ VOID PhLogProcessEntry(
 VOID PhLogServiceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
-    _In_ PPH_STRING DisplayName
+    _In_ PPH_STRING DisplayName,
+    _In_opt_ PPH_STRING FileName
     )
 {
-    PhpLogEntry(PhpCreateServiceLogEntry(Type, Name, DisplayName));
+    PhpLogEntry(PhpCreateServiceLogEntry(Type, Name, DisplayName, FileName));
 }
 
 VOID PhLogDeviceEntry(
@@ -282,6 +291,41 @@ static PPH_STRING PhpFormatLogEntryExtra(
     return PhCreateStringEx((PVOID)Entry->Buffer, Entry->BufferLength);
 }
 
+static PPH_STRING PhpFormatServiceLogEntry(
+    _In_ PPH_LOG_ENTRY Entry
+    )
+{
+    PH_FORMAT format[16];
+    ULONG count = 0;
+    PPH_STRING version = NULL;
+    PH_IMAGE_VERSION_INFO versionInfo = { 0 };
+
+    if (PhCsEnableVersionSupport && !PhIsNullOrEmptyString(Entry->Service.FileName))
+    {
+        if (NT_SUCCESS(PhInitializeImageVersionInfoCached(&versionInfo, Entry->Service.FileName, FALSE, !!PhCsEnableVersionSupport)))
+        {
+            if (!PhIsNullOrEmptyString(versionInfo.FileVersion))
+                version = versionInfo.FileVersion;
+        }
+    }
+
+    PhInitFormatSR(&format[count++], Entry->Service.Name->sr);
+    PhInitFormatS(&format[count++], L" (");
+    PhInitFormatSR(&format[count++], Entry->Service.DisplayName->sr);
+    PhInitFormatC(&format[count++], L')');
+
+    if (!PhIsNullOrEmptyString(version))
+    {
+        PhInitFormatS(&format[count++], L" (v");
+        PhInitFormatSR(&format[count++], version->sr);
+        PhInitFormatC(&format[count++], L')');
+    }
+
+    PPH_STRING result = PhpFormatLogEntryToBuffer(format, count);
+    PhDeleteImageVersionInfo(&versionInfo);
+    return result;
+}
+
 PPH_STRING PhFormatLogEntry(
     _In_ PPH_LOG_ENTRY Entry
     )
@@ -290,176 +334,103 @@ PPH_STRING PhFormatLogEntry(
     {
     case PH_LOG_ENTRY_PROCESS_CREATE:
         {
-            PH_FORMAT format[8];
+            PH_FORMAT format[20];
+            ULONG count = 0;
+            PPH_STRING processString = Entry->Process.Name;
+            PPH_STRING version = NULL;
+            PH_IMAGE_VERSION_INFO versionInfo = { 0 };
 
-            // Process created: %s (%lu) started by %s (%lu)
-            //PhInitFormatS(&format[0], L"Process created: ");
-            PhInitFormatSR(&format[0], Entry->Process.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatU(&format[2], HandleToUlong(Entry->Process.ProcessId));
-            PhInitFormatS(&format[3], L") started by ");
+            if (Entry->Process.Record)
+            {
+                if (!PhIsNullOrEmptyString(Entry->Process.Record->CommandLine))
+                    processString = Entry->Process.Record->CommandLine;
+
+                if (!PhIsNullOrEmptyString(Entry->Process.Record->FileVersion))
+                    version = Entry->Process.Record->FileVersion;
+                else if (PhCsEnableVersionSupport && !PhIsNullOrEmptyString(Entry->Process.Record->FileName))
+                {
+                    if (NT_SUCCESS(PhInitializeImageVersionInfoCached(&versionInfo, Entry->Process.Record->FileName, TRUE, !!PhCsEnableVersionSupport)))
+                    {
+                        if (!PhIsNullOrEmptyString(versionInfo.FileVersion))
+                            version = versionInfo.FileVersion;
+                    }
+                }
+            }
+
+            PhInitFormatSR(&format[count++], processString->sr);
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatU(&format[count++], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatC(&format[count++], L')');
+
+            if (!PhIsNullOrEmptyString(version))
+            {
+                PhInitFormatS(&format[count++], L" (v");
+                PhInitFormatSR(&format[count++], version->sr);
+                PhInitFormatC(&format[count++], L')');
+            }
+
+            PhInitFormatS(&format[count++], L" started by ");
             if (Entry->Process.ParentName)
-                PhInitFormatSR(&format[4], Entry->Process.ParentName->sr);
+                PhInitFormatSR(&format[count++], Entry->Process.ParentName->sr);
             else
-                PhInitFormatS(&format[4], L"Unknown process");
-            PhInitFormatS(&format[5], L" (");
-            PhInitFormatU(&format[6], HandleToUlong(Entry->Process.ParentProcessId));
-            PhInitFormatC(&format[7], L')');
+                PhInitFormatS(&format[count++], L"Unknown process");
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatU(&format[count++], HandleToUlong(Entry->Process.ParentProcessId));
+            PhInitFormatC(&format[count++], L')');
 
-            //return PhFormatString(
-            //    L"Process created: %s (%lu) started by %s (%lu)",
-            //    Entry->Process.Name->Buffer,
-            //    HandleToUlong(Entry->Process.ProcessId),
-            //    PhGetStringOrDefault(Entry->Process.ParentName, L"Unknown process"),
-            //    HandleToUlong(Entry->Process.ParentProcessId)
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+            PPH_STRING result = PhpFormatLogEntryToBuffer(format, count);
+            PhDeleteImageVersionInfo(&versionInfo);
+            return result;
         }
     case PH_LOG_ENTRY_PROCESS_DELETE:
         {
-            PH_FORMAT format[5];
+            PH_FORMAT format[16];
+            ULONG count = 0;
+            PPH_STRING version = NULL;
+            PH_IMAGE_VERSION_INFO versionInfo = { 0 };
 
-            // Process terminated: %s (%lu); exit status 0x%x
-            //PhInitFormatS(&format[0], L"Process terminated: ");
-            PhInitFormatSR(&format[0], Entry->Process.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatU(&format[2], HandleToUlong(Entry->Process.ProcessId));
-            PhInitFormatS(&format[3], L"); exit status ");
-            PhInitFormatX(&format[4], Entry->Process.ExitStatus);
+            if (Entry->Process.Record)
+            {
+                if (!PhIsNullOrEmptyString(Entry->Process.Record->FileVersion))
+                    version = Entry->Process.Record->FileVersion;
+                else if (PhCsEnableVersionSupport && !PhIsNullOrEmptyString(Entry->Process.Record->FileName))
+                {
+                    if (NT_SUCCESS(PhInitializeImageVersionInfoCached(&versionInfo, Entry->Process.Record->FileName, TRUE, !!PhCsEnableVersionSupport)))
+                    {
+                        if (!PhIsNullOrEmptyString(versionInfo.FileVersion))
+                            version = versionInfo.FileVersion;
+                    }
+                }
+            }
 
-            //return PhFormatString(
-            //    L"Process terminated: %s (%lu); exit status 0x%x",
-            //    Entry->Process.Name->Buffer,
-            //    HandleToUlong(Entry->Process.ProcessId),
-            //    Entry->Process.ExitStatus
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+            PhInitFormatSR(&format[count++], Entry->Process.Name->sr);
+            PhInitFormatS(&format[count++], L" (");
+            PhInitFormatU(&format[count++], HandleToUlong(Entry->Process.ProcessId));
+            PhInitFormatC(&format[count++], L')');
+
+            if (!PhIsNullOrEmptyString(version))
+            {
+                PhInitFormatS(&format[count++], L" (v");
+                PhInitFormatSR(&format[count++], version->sr);
+                PhInitFormatC(&format[count++], L')');
+            }
+
+            PhInitFormatS(&format[count++], L"; exit status ");
+            PhInitFormatX(&format[count++], Entry->Process.ExitStatus);
+
+            PPH_STRING result = PhpFormatLogEntryToBuffer(format, count);
+            PhDeleteImageVersionInfo(&versionInfo);
+            return result;
         }
     case PH_LOG_ENTRY_SERVICE_CREATE:
-        {
-            PH_FORMAT format[4];
-
-            // Service created: %s (%s)
-            //PhInitFormatS(&format[0], L"Service created: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service created: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_DELETE:
-        {
-            PH_FORMAT format[4];
-
-            // Service deleted: %s (%s)
-            //PhInitFormatS(&format[0], L"Service deleted: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service deleted: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_START:
-        {
-            PH_FORMAT format[4];
-
-            // Service started: %s (%s)
-            //PhInitFormatS(&format[0], L"Service started: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service started: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_STOP:
-        {
-            PH_FORMAT format[4];
-
-            // Service stopped: %s (%s)
-            //PhInitFormatS(&format[0], L"Service stopped: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service stopped: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_CONTINUE:
-        {
-            PH_FORMAT format[4];
-
-            // Service continued: %s (%s)
-            //PhInitFormatS(&format[0], L"Service continued: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service continued: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_PAUSE:
-        {
-            PH_FORMAT format[4];
-
-            // Service paused: %s (%s)
-            //PhInitFormatS(&format[0], L"Service paused: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service paused: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
-        }
     case PH_LOG_ENTRY_SERVICE_MODIFIED:
         {
-            PH_FORMAT format[4];
-
-            // Service modified: %s (%s)
-            //PhInitFormatS(&format[0], L"Service modified: ");
-            PhInitFormatSR(&format[0], Entry->Service.Name->sr);
-            PhInitFormatS(&format[1], L" (");
-            PhInitFormatSR(&format[2], Entry->Service.DisplayName->sr);
-            PhInitFormatC(&format[3], L')');
-
-            //return PhFormatString(
-            //    L"Service modified: %s (%s)",
-            //    Entry->Service.Name->Buffer,
-            //    Entry->Service.DisplayName->Buffer
-            //    );
-            return PhpFormatLogEntryToBuffer(format, RTL_NUMBER_OF(format));
+            return PhpFormatServiceLogEntry(Entry);
         }
     case PH_LOG_ENTRY_DEVICE_REMOVED:
         {

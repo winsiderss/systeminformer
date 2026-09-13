@@ -1274,6 +1274,8 @@ VOID PhpFillProcessItemStage1(
     processItem->IsPowerThrottling = Data->PowerThrottling;
 
     PhSwapReference(&processItem->Record->CommandLine, processItem->CommandLine);
+    if (!processItem->Record->FileVersion && processItem->VersionInfo.FileVersion)
+        PhSetReference(&processItem->Record->FileVersion, processItem->VersionInfo.FileVersion);
 
     // Note: We might have referenced the cached username so don't overwrite the previous data. (dmex)
     if (!processItem->UserName)
@@ -3696,6 +3698,7 @@ PPH_PROCESS_RECORD PhpCreateProcessRecord(
     PhSetReference(&processRecord->ProcessName, ProcessItem->ProcessName);
     PhSetReference(&processRecord->FileName, ProcessItem->FileName);
     PhSetReference(&processRecord->CommandLine, ProcessItem->CommandLine);
+    PhSetReference(&processRecord->FileVersion, ProcessItem->VersionInfo.FileVersion);
     //PhSetReference(&processRecord->UserName, ProcessItem->UserName);
 
     return processRecord;
@@ -3857,6 +3860,7 @@ VOID PhDereferenceProcessRecord(
         PhDereferenceObject(ProcessRecord->ProcessName);
         if (ProcessRecord->FileName) PhDereferenceObject(ProcessRecord->FileName);
         if (ProcessRecord->CommandLine) PhDereferenceObject(ProcessRecord->CommandLine);
+        if (ProcessRecord->FileVersion) PhDereferenceObject(ProcessRecord->FileVersion);
         /*if (ProcessRecord->UserName) PhDereferenceObject(ProcessRecord->UserName);*/
         PhFree(ProcessRecord);
     }
