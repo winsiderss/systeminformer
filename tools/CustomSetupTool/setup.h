@@ -218,6 +218,13 @@ BOOLEAN SetupHasTaskMgrDebuggerIfeo(
 NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
     _In_ PPH_SETUP_CONTEXT Context
     );
+BOOLEAN SetupHasAutoRunEntry(
+    _Out_ PBOOLEAN Hidden
+    );
+NTSTATUS SetupCreateAutoRunEntry(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN Hidden
+    );
 
 NTSTATUS SetupCreateLocalDumpsKey(
     VOID

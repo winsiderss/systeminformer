@@ -27,6 +27,9 @@ NTSTATUS CALLBACK SetupProgressThread(
     BOOLEAN updateDesktopShortcut = TRUE;
     BOOLEAN desktopShortcutExists = FALSE;
     BOOLEAN removeStartMenuFolder = FALSE;
+    BOOLEAN autoRunEntry;
+    BOOLEAN autoRunHidden;
+    BOOLEAN taskMgrDebugger;
     PPH_STRING previousInstallPath;
     PPH_STRING currentInstallPath;
     PPH_STRING desktopShortcutPath;
@@ -116,6 +119,13 @@ NTSTATUS CALLBACK SetupProgressThread(
     //    PhDeleteDirectory(Context->SetupInstallPath);
 
     // Perform Windows Options cleanup (registry)
+    //
+    // The cleanup removes the startup entry and the Task Manager replacement, capture them
+    // first and restore them below or the installation silently turns both off.
+
+    autoRunEntry = SetupHasAutoRunEntry(&autoRunHidden);
+    taskMgrDebugger = SetupHasTaskMgrDebuggerIfeo();
+
     SetupSetProgressText(context, L"Removing previous Windows integration...", NULL);
     SetupDeleteWindowsOptions(Context);
 
@@ -156,6 +166,16 @@ NTSTATUS CALLBACK SetupProgressThread(
 
     SetupSetProgressText(context, L"Creating Windows integration...", NULL);
     SetupCreateWindowsOptions(Context);
+
+    if (autoRunEntry)
+    {
+        SetupCreateAutoRunEntry(Context, autoRunHidden);
+    }
+
+    if (taskMgrDebugger)
+    {
+        SetupCreateTaskMgrDebuggerIfeo(Context);
+    }
 
     //
     // Create shortcuts.

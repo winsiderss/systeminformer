@@ -988,9 +988,10 @@ static VOID ReadCurrentUserRun(
             {
                 if (applicationFileName = PhGetApplicationFileNameWin32())
                 {
-                    PhMoveReference(&applicationFileName, PhGetBaseName(applicationFileName));
+                    // The full path is compared since an entry that starts another copy of the
+                    // application is not this application's startup entry.
 
-                    if (fullFileName && PhEndsWithString(fullFileName, applicationFileName, TRUE))
+                    if (fullFileName && PhEqualString(fullFileName, applicationFileName, TRUE))
                     {
                         CurrentUserRunPresent = TRUE;
                     }
@@ -1016,6 +1017,11 @@ static VOID WriteCurrentUserRun(
     )
 {
     HANDLE keyHandle;
+
+    // The entry is re-read here since the state cached when the dialog opened doesn't reflect
+    // the entry being changed or removed while the dialog was open.
+
+    ReadCurrentUserRun();
 
     if (CurrentUserRunPresent == Present)
         return;
@@ -1058,6 +1064,8 @@ static VOID WriteCurrentUserRun(
         {
             PhDeleteValueKey(keyHandle, &valueName);
         }
+
+        CurrentUserRunPresent = Present;
 
         NtClose(keyHandle);
     }

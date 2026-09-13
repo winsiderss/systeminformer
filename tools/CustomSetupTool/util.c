@@ -767,12 +767,15 @@ BOOLEAN SetupHasTaskMgrDebuggerIfeo(
         0
         )))
     {
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
         PPH_STRING debuggerValue;
 
         debuggerValue = PhQueryRegistryStringZ(keyHandle, L"Debugger");
 
+        // A debugger belonging to another application is not ours to report or re-create.
+
         if (!PhIsNullOrEmptyString(debuggerValue))
-            hasDebugger = TRUE;
+            hasDebugger = PhFindStringInStringRef(&debuggerValue->sr, &fileName, TRUE) != SIZE_MAX;
 
         PhClearReference(&debuggerValue);
         NtClose(keyHandle);
@@ -827,6 +830,146 @@ NTSTATUS SetupCreateTaskMgrDebuggerIfeo(
         status = PhSetValueKeyZ(
             keyHandle,
             L"Debugger",
+            REG_SZ,
+            value->Buffer,
+            (ULONG)value->Length + sizeof(UNICODE_NULL)
+            );
+
+        PhDereferenceObject(value);
+        PhDereferenceObject(clientPathString);
+        NtClose(keyHandle);
+    }
+
+    return status;
+}
+
+typedef struct _SETUP_AUTORUN_QUERY_CONTEXT
+{
+    BOOLEAN Found;
+    BOOLEAN Hidden;
+} SETUP_AUTORUN_QUERY_CONTEXT, *PSETUP_AUTORUN_QUERY_CONTEXT;
+
+/**
+ * Callback for enumerating auto-run keys.
+ *
+ * \param RootDirectory The root directory handle.
+ * \param Information The key value full information.
+ * \param Context The query context.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
+_Function_class_(PH_ENUM_KEY_CALLBACK)
+BOOLEAN NTAPI SetupQueryAutoRunKeyCallback(
+    _In_ HANDLE RootDirectory,
+    _In_ PKEY_VALUE_FULL_INFORMATION Information,
+    _In_opt_ PVOID Context
+    )
+{
+    if (Context && Information->Type == REG_SZ)
+    {
+        static CONST PH_STRINGREF fileName = PH_STRINGREF_INIT(L"\\SystemInformer.exe");
+        static CONST PH_STRINGREF hidden = PH_STRINGREF_INIT(L"-hide");
+        PSETUP_AUTORUN_QUERY_CONTEXT context = Context;
+        PH_STRINGREF value;
+
+        value.Length = Information->DataLength;
+        value.Buffer = PTR_ADD_OFFSET(Information, Information->DataOffset);
+
+        if (PhFindStringInStringRef(&value, &fileName, TRUE) != SIZE_MAX)
+        {
+            context->Found = TRUE;
+            context->Hidden = PhFindStringInStringRef(&value, &hidden, TRUE) != SIZE_MAX;
+
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+/**
+ * Checks if the startup entry that starts System Informer when the user logs on exists.
+ *
+ * \param Hidden Set to TRUE when the entry starts the application hidden.
+ * \return TRUE if a startup entry exists, otherwise FALSE.
+ */
+BOOLEAN SetupHasAutoRunEntry(
+    _Out_ PBOOLEAN Hidden
+    )
+{
+    SETUP_AUTORUN_QUERY_CONTEXT context = { 0 };
+    HANDLE keyHandle;
+
+    if (NT_SUCCESS(PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        0
+        )))
+    {
+        PhEnumerateValueKey(keyHandle, KeyValueFullInformation, SetupQueryAutoRunKeyCallback, &context);
+        NtClose(keyHandle);
+    }
+
+    *Hidden = context.Hidden;
+
+    return context.Found;
+}
+
+/**
+ * Creates the startup entry that starts System Informer when the user logs on.
+ *
+ * \param Context The setup context.
+ * \param Hidden TRUE to start the application hidden.
+ * \return Successful or errant status.
+ */
+NTSTATUS SetupCreateAutoRunEntry(
+    _In_ PPH_SETUP_CONTEXT Context,
+    _In_ BOOLEAN Hidden
+    )
+{
+    NTSTATUS status;
+    HANDLE keyHandle;
+
+    status = PhCreateKey(
+        &keyHandle,
+        KEY_WRITE,
+        PH_KEY_CURRENT_USER,
+        &CurrentUserRunKeyName,
+        OBJ_OPENIF,
+        0,
+        NULL
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        static CONST PH_STRINGREF valueName = PH_STRINGREF_INIT(L"System Informer");
+        PPH_STRING clientPathString;
+        PPH_STRING value;
+
+        clientPathString = SetupCreateFullPath(Context->SetupInstallPath, L"\\SystemInformer.exe");
+        if (!clientPathString)
+        {
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        value = PhQuoteCommandLine(&clientPathString->sr, TRUE);
+        if (!value)
+        {
+            PhDereferenceObject(clientPathString);
+            NtClose(keyHandle);
+            return STATUS_NO_MEMORY;
+        }
+
+        if (Hidden)
+        {
+            PhMoveReference(&value, PhConcatStringRefZ(&value->sr, L" -hide"));
+        }
+
+        status = PhSetValueKey(
+            keyHandle,
+            &valueName,
             REG_SZ,
             value->Buffer,
             (ULONG)value->Length + sizeof(UNICODE_NULL)
