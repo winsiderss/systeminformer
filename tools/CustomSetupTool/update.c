@@ -128,6 +128,14 @@ NTSTATUS CALLBACK SetupUpdateBuild(
     SetupSetProgressText(context, L"Updating Windows integration...", NULL);
     SetupCreateWindowsOptions(Context);
 
+    //
+    // Repair the startup entry.
+    //
+    // An entry written for a previous installation directory starts an executable that is no
+    // longer the installed one.
+
+    SetupRepairAutoRunEntry(Context);
+
     SetupSetProgressText(context, L"Update complete.", NULL);
     SetupSetProgressValue(context, 100);
     context->SetupProgressActive = FALSE;
