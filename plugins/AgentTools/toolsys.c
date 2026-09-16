@@ -335,6 +335,40 @@ VOID AtpListKernelDrivers(
     Result->StructuredContent = structured;
 }
 
+VOID AtpSystemInformerStatus(
+    _Inout_ PAT_TOOL_RESULT Result
+    )
+{
+    KPH_LEVEL level;
+    PPH_STRING version;
+    PVOID structured;
+
+    level = KsiLevel();
+
+    structured = PhCreateJsonObject();
+    PhAddJsonObjectBoolean(structured, "running", TRUE);
+    PhAddJsonObject(structured, "message", "System Informer is running.");
+
+    if (version = PhGetBuildVersion())
+    {
+        AtJsonAddString(structured, "version", version);
+        PhDereferenceObject(version);
+    }
+    else
+    {
+        AtJsonAddNull(structured, "version");
+    }
+
+    PhAddJsonObjectUInt64(structured, "pid", HandleToUlong(NtCurrentProcessId()));
+    PhAddJsonObjectBoolean(structured, "elevated", !!PhGetOwnTokenAttributes().Elevated);
+    PhAddJsonObjectBoolean(structured, "ksi_connected", level != KphLevelNone);
+    AtJsonAddStringZ(structured, "ksi_level", AtKphLevelString(level));
+
+    AtAddSnapshot(structured);
+
+    Result->StructuredContent = structured;
+}
+
 VOID AtpGetKsiStatus(
     _Inout_ PAT_TOOL_RESULT Result
     )
@@ -1894,6 +1928,9 @@ VOID AtSystemInvokeTool(
         break;
     case AtActionGetKsiStatus:
         AtpGetKsiStatus(Result);
+        break;
+    case AtActionSystemInformerStatus:
+        AtpSystemInformerStatus(Result);
         break;
     case AtActionGetPagefileInfo:
         AtpGetPagefileInfo(Call, Result);

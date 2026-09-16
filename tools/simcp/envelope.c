@@ -92,6 +92,9 @@ VOID SimcpParseEnvelope(
                     if (PhGetJsonObjectType(meta) == PH_JSON_OBJECT_TYPE_OBJECT)
                         Envelope->ModernMeta = !!PhGetJsonObject(meta, SIMCP_META_PROTOCOL_VERSION);
                 }
+
+                Envelope->RequestedProtocolVersion = PhGetJsonValueAsString(params, "protocolVersion");
+                Envelope->ToolName = PhGetJsonValueAsString(params, "name");
             }
         }
     }
@@ -138,6 +141,10 @@ VOID SimcpDeleteEnvelope(
 {
     if (Envelope->ProtocolVersion)
         PhDereferenceObject(Envelope->ProtocolVersion);
+    if (Envelope->RequestedProtocolVersion)
+        PhDereferenceObject(Envelope->RequestedProtocolVersion);
+    if (Envelope->ToolName)
+        PhDereferenceObject(Envelope->ToolName);
     if (Envelope->CancelId)
         PhDereferenceObject(Envelope->CancelId);
     if (Envelope->Id)

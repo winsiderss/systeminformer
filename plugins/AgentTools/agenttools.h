@@ -160,6 +160,7 @@ typedef enum _AT_ACTION
     AtActionGetProcessIoRates,
     AtActionListKernelDrivers,
     AtActionGetKsiStatus,
+    AtActionSystemInformerStatus,
     AtActionGetPagefileInfo,
     AtActionListStartupEntries,
     AtActionGetSmbiosInfo,
@@ -1375,6 +1376,10 @@ PPH_STRING AtFormatCallerDescription(
 
 PCWSTR AtConsentClassDescription(
     _In_ AT_CONSENT_CLASS Class
+    );
+
+BOOLEAN AtpLauncherContradictsStdio(
+    _In_ PAT_CONNECTION Connection
     );
 
 VOID AtConsentRevokeGrants(

@@ -214,7 +214,7 @@ VOID AtpAppendStdioClients(
     }
 }
 
-BOOLEAN AtpLauncherContradictsStdio(
+BOOLEAN AtpLauncherMatchesStdio(
     _In_ PAT_CONNECTION Connection
     )
 {
@@ -226,10 +226,20 @@ BOOLEAN AtpLauncherContradictsStdio(
     for (i = 0; i < Connection->StdioClientIds->Count; i++)
     {
         if (HandleToUlong(Connection->StdioClientIds->Items[i]) == Connection->LauncherProcessId)
-            return FALSE;
+            return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
+}
+
+BOOLEAN AtpLauncherContradictsStdio(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    return
+        Connection->StdioOrigin == AtStdioResolved &&
+        !!Connection->LauncherProcessId &&
+        !AtpLauncherMatchesStdio(Connection);
 }
 
 PPH_STRING AtpFormatRequester(
@@ -285,16 +295,13 @@ PPH_STRING AtpFormatRequester(
     PhAppendFormatStringBuilder(&builder, L"\nBroker: %s (verified)", PhGetStringOrDefault(broker, L"unknown"));
     PhClearReference(&broker);
 
-    // Nothing checks the launcher: it is the client's own account of who started the broker, and a
-    // verdict beside it lends that account an authority it does not have.
+    // The claim survived the handshake, which refuses one the handles disprove, but holding them is
+    // not the same as having created the broker: the verdict below is still about the image alone.
     if (Connection->LauncherImageName)
         launcher = PhGetBaseName(Connection->LauncherImageName);
 
     PhAppendFormatStringBuilder(&builder, L"\nLauncher: %s (self-reported)", PhGetStringOrDefault(launcher, L"unknown"));
     PhClearReference(&launcher);
-
-    if (AtpLauncherContradictsStdio(Connection))
-        PhAppendStringBuilder2(&builder, L", holds none of the broker's handles");
 
     PhAppendFormatStringBuilder(&builder, L"\nUser: %s", PhGetStringOrDefault(Connection->UserName, L"unknown"));
 
@@ -1207,9 +1214,10 @@ PPH_STRING AtpFormatConnectionRequester(
 
     PhAppendFormatStringBuilder(
         &builder,
-        L"Process: %s (PID %lu)",
+        L"Process: %s (PID %lu)%s",
         PhGetStringOrDefault(launcher, L"unknown"),
-        Connection->LauncherProcessId
+        Connection->LauncherProcessId,
+        AtpLauncherMatchesStdio(Connection) ? L"" : L" (UNVERIFIED)"
         );
     PhClearReference(&launcher);
 

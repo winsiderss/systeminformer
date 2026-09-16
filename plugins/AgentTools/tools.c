@@ -1853,6 +1853,7 @@ VOID AtInvokeTool(
     case AtActionListPoolTags:
     case AtActionListKernelDrivers:
     case AtActionGetKsiStatus:
+    case AtActionSystemInformerStatus:
     case AtActionGetPagefileInfo:
     case AtActionListStartupEntries:
     case AtActionGetSmbiosInfo:

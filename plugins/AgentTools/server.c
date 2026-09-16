@@ -695,10 +695,15 @@ SIMCP_HELLO_STATUS AtpAuthenticateClient(
     Connection->BrokerImageName = brokerImageName;
     Connection->UserName = userName;
 
-    // Display-only context.
-
     AtpResolveLauncher(Connection, Hello);
     AtpResolveStdioClient(Connection);
+
+    if (AtpLauncherContradictsStdio(Connection))
+    {
+        result = SimcpHelloRejectedLauncher;
+        AtAudit(Connection, &AtActionInfo[AtActionConnect], NULL,
+            L"refused (the named launcher does not hold the broker's standard handles)");
+    }
 
 CleanupExit:
     if (processHandle)
