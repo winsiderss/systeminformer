@@ -117,6 +117,7 @@ INT WINAPI wWinMain(
     PhInitializeCommonControls();
 
     PhInitializeAppSystem();
+    PhInitializeLocalization();
     PhEmInitialization();
 
     if (PhStartupParameters.ShowOptions)
