@@ -860,7 +860,7 @@ NTSTATUS PhSetProcessItemPriority(
 // Note: Workaround for UserNotes plugin dialog overrides (dmex)
 NTSTATUS PhSetProcessItemPriorityBoost(
     _In_ PPH_PROCESS_ITEM ProcessItem,
-    _In_ BOOLEAN PriorityBoost
+    _In_ BOOLEAN DisablePriorityBoost
     )
 {
     NTSTATUS status;
@@ -874,7 +874,7 @@ NTSTATUS PhSetProcessItemPriorityBoost(
 
     if (NT_SUCCESS(status))
     {
-        status = PhSetProcessPriorityBoost(processHandle, PriorityBoost);
+        status = PhSetProcessPriorityBoost(processHandle, DisablePriorityBoost);
         NtClose(processHandle);
     }
 

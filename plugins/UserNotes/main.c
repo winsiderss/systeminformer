@@ -2686,9 +2686,9 @@ VOID ProcessesUpdatedCallback(
 
                 if (processItem->QueryHandle && NT_SUCCESS(PhGetProcessPriorityBoost(processItem->QueryHandle, &priorityBoostDisabled)))
                 {
-                    if (priorityBoostDisabled != object->Boost)
+                    if (priorityBoostDisabled)
                     {
-                        if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, object->Boost)))
+                        if (!NT_SUCCESS(PhSetProcessItemPriorityBoost(processItem, FALSE)))
                         {
                             extension->SkipBoostPriority = TRUE;
                         }
