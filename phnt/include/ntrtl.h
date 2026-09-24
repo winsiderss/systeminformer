@@ -15798,10 +15798,12 @@ RtlQueryFeatureConfiguration(
 
 // private
 /**
- * The RtlQueryFeatureUsageNotificationSubscriptions routine retrieves the current feature usage notification subscriptions.
+ * The RtlSetFeatureConfigurations routine applies a set of feature configuration updates.
  *
- * \param Subscriptions A buffer that receives the array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries.
- * \param SubscriptionCount A pointer to the number of entries the buffer can hold; updated with the number of entries available or written.
+ * \param PreviousChangeStamp An optional pointer to the expected previous change stamp; the update is applied only if it matches.
+ * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to update.
+ * \param ConfigurationUpdates A pointer to an array of RTL_FEATURE_CONFIGURATION_UPDATE entries to apply.
+ * \param ConfigurationUpdateCount The number of entries in the ConfigurationUpdates array.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -15816,9 +15818,8 @@ RtlSetFeatureConfigurations(
 
 // private
 /**
- * The RtlQueryAllInternalRuntimeFeatureConfigurations routine retrieves all internal runtime feature configurations related to the specified feature.
+ * The RtlQueryAllFeatureConfigurations routine retrieves all feature configurations from the specified configuration store.
  *
- * \param FeatureId The identifier of the feature whose runtime configurations are queried.
  * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to query.
  * \param ChangeStamp An optional pointer to a variable that receives the change stamp of the returned configurations.
  * \param Configurations A buffer that receives the array of RTL_FEATURE_CONFIGURATION entries.
@@ -15857,8 +15858,9 @@ RtlQueryAllInternalFeatureConfigurations(
 
 // private
 /**
- * The RtlQueryAllFeatureConfigurations routine retrieves all feature configurations from the specified configuration store.
+ * The RtlQueryAllInternalRuntimeFeatureConfigurations routine retrieves all internal runtime feature configurations related to the specified feature.
  *
+ * \param FeatureId The identifier of the feature whose runtime configurations are queried.
  * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to query.
  * \param ChangeStamp An optional pointer to a variable that receives the change stamp of the returned configurations.
  * \param Configurations A buffer that receives the array of RTL_FEATURE_CONFIGURATION entries.
@@ -15891,12 +15893,10 @@ RtlQueryFeatureConfigurationChangeStamp(
 
 // private
 /**
- * The RtlSetFeatureConfigurations routine applies a set of feature configuration updates.
+ * The RtlQueryFeatureUsageNotificationSubscriptions routine retrieves the current feature usage notification subscriptions.
  *
- * \param PreviousChangeStamp An optional pointer to the expected previous change stamp; the update is applied only if it matches.
- * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to update.
- * \param ConfigurationUpdates A pointer to an array of RTL_FEATURE_CONFIGURATION_UPDATE entries to apply.
- * \param ConfigurationUpdateCount The number of entries in the ConfigurationUpdates array.
+ * \param Subscriptions A buffer that receives the array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries.
+ * \param SubscriptionCount A pointer to the number of entries the buffer can hold; updated with the number of entries available or written.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -15907,16 +15907,16 @@ RtlQueryFeatureUsageNotificationSubscriptions(
     _Inout_ PSIZE_T SubscriptionCount
     );
 
-// private
 /**
- * The RtlQueryFeatureConfiguration routine retrieves the configuration of a staged feature.
+ * The RtlRegisterFeatureConfigurationChangeNotification routine registers a callback invoked when the feature configuration state changes.
  *
- * \param FeatureId The identifier of the feature to query.
- * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to query.
- * \param ChangeStamp A pointer to a variable that receives the change stamp of the returned configuration.
- * \param FeatureConfiguration A pointer to an RTL_FEATURE_CONFIGURATION structure that receives the feature configuration.
+ * \param Callback The callback invoked on feature configuration changes.
+ * \param Context An optional context value passed to the callback.
+ * \param ObservedChangeStamp An optional change stamp last observed by the caller.
+ * \param RegistrationHandle Receives the registration handle.
  * \return NTSTATUS Successful or errant status.
  */
+// private
 NTSYSAPI
 NTSTATUS
 NTAPI
