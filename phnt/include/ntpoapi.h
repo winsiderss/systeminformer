@@ -80,7 +80,7 @@
 #define PlatformInformation 66                          // out: BOOLEAN // platform AoAc support
 #define PdcInvocation 67                                // in: PDC_INVOCATION, out: PDC_INVOCATION_CALLBACKS (optional) // op 0 register, op 1 invoke
 #define MonitorInvocation 68                            // in: MONITOR_INVOCATION_INPUT
-#define FirmwareTableInformationRegistered 69           // in: NULL, out: NULL // PopInitPlatformSettings
+#define FirmwareTableInformationRegistered 69           // in: NULL, out: NULL // PopInitPlatformSettings: reads the ACPI FADT ('ACPI'/'FACP') to (re)initialize the platform role (Preferred_PM_Profile) and Modern Standby/AoAc capability (Low-Power S0 Idle); applies role/AoAc overrides
 #define SetShutdownSelectedTime 70                      // in: NULL, out: NULL
 #define SuspendResumeInvocation 71                      // in: not supported
 #define PlmPowerRequestCreate 72                        // in: COUNTED_REASON_CONTEXT, out: HANDLE
@@ -102,13 +102,13 @@
 #define ThermalStandby 88                               // in: NULL // shutdown with thermal standby as reason
 #define SystemHiberFileType 89                          // in: ULONG // 0 = reduced, nonzero = full
 #define PhysicalPowerButtonPress 90                     // in: BOOLEAN
-#define QueryPotentialDripsConstraint 91                // in: QUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT, out: BOOLEAN // (kernel-mode only, AoAc only)
+#define QueryPotentialDripsConstraint 91                // in: DEVICE_OBJECT (InputBufferLength == sizeof(DEVICE_OBJECT) == 0x150), out: BOOLEAN (1 byte) // PopFxIsDevicePotentialDripsConstraint // (kernel-mode only, AoAc only)
 #define EnergyTrackerCreate 92                          // in: POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
 #define EnergyTrackerQuery 93                           // in: POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT, out: POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
-#define UpdateBlackBoxRecorder 94                       // in: POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
+#define UpdateBlackBoxRecorder 94                       // in: POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT (InputBufferLength must be 0x20), out: NULL // PopBlackBoxUpdate: writes into the power black-box recorder entry selected by Index (0..24); Flags bit0 selects append-at-Offset vs replace snapshot (up to 4096 bytes); protected entries require a WinTcb caller
 #define SessionAllowExternalDmaDevices 95               // in: POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
 #define SendSuspendResumeNotification 96                // in: BOOLEAN // since WIN11
-#define BlackBoxRecorderDirectAccessBuffer 97           // in: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, out: POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT // since WIN11
+#define BlackBoxRecorderDirectAccessBuffer 97           // in: POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT (>= 0x20), out: POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT (>= 0x10) // PopBlackBoxDirectAccess // since WIN11
 #define SystemPowerSourceState 98                       // out: SYSTEM_POWER_SOURCE_STATE // since 25H2
 #define PowerInformationLevelMaximum 99
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -181,6 +181,11 @@ typedef struct _SYSTEM_POWER_POLICY_ACDC // SYSTEM_POWER_POLICY
 //      - on success it calls PopUpdateSmartUserPresencePredictions(...)
 //
 
+/**
+ * The SYSTEM_POWER_CAPABILITIES_POLICY structure describes the power capabilities of the system.
+ * This is the internal name for the SYSTEM_POWER_CAPABILITIES structure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-system_power_capabilities
+ */
 typedef struct _SYSTEM_POWER_CAPABILITIES_POLICY // SYSTEM_POWER_CAPABILITIES
 {
     // Misc supported system features
@@ -224,6 +229,11 @@ typedef struct _SYSTEM_POWER_CAPABILITIES_POLICY // SYSTEM_POWER_CAPABILITIES
     SYSTEM_POWER_STATE DefaultLowLatencyWake;
 } SYSTEM_POWER_CAPABILITIES_POLICY, *PSYSTEM_POWER_CAPABILITIES_POLICY;
 
+/**
+ * The SYSTEM_POWER_BATTERY_STATE structure describes the current state of the system battery.
+ * This is the internal name for the SYSTEM_BATTERY_STATE structure.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-system_battery_state
+ */
 typedef struct _SYSTEM_POWER_BATTERY_STATE // SYSTEM_BATTERY_STATE
 {
     BOOLEAN AcOnLine;
@@ -241,6 +251,10 @@ typedef struct _SYSTEM_POWER_BATTERY_STATE // SYSTEM_BATTERY_STATE
 } SYSTEM_POWER_BATTERY_STATE, *PSYSTEM_POWER_BATTERY_STATE;
 
 // Administrator power policy overrides
+/**
+ * The SYSTEM_POWER_ADMINISTRATOR_POLICY structure describes administrator-defined overrides applied on top of the active system power policy.
+ * This is the internal name for the ADMINISTRATOR_POWER_POLICY structure.
+ */
 typedef struct _SYSTEM_POWER_ADMINISTRATOR_POLICY // ADMINISTRATOR_POWER_POLICY
 {
     // meaning of power action "sleep"
@@ -286,6 +300,9 @@ typedef struct _PROCESSOR_POWER_INFORMATION
 #define POWER_USER_MODE_LEGACY_EVENT_SEND_ASYNC 0x100
 
 // rev
+/**
+ * The SYSTEM_NOTIFY_USER_MODE_LEGACY_POWER_EVENT structure describes a legacy user-mode power event delivered to registered listeners.
+ */
 typedef struct _SYSTEM_NOTIFY_USER_MODE_LEGACY_POWER_EVENT
 {
     ULONG EventType;
@@ -297,12 +314,18 @@ typedef struct _SYSTEM_NOTIFY_USER_MODE_LEGACY_POWER_EVENT
 } SYSTEM_NOTIFY_USER_MODE_LEGACY_POWER_EVENT, *PSYSTEM_NOTIFY_USER_MODE_LEGACY_POWER_EVENT;
 
 // rev
+/**
+ * The PROCESSOR_GROUP_SELECTOR structure describes processor group selector.
+ */
 typedef struct _PROCESSOR_GROUP_SELECTOR
 {
     USHORT Group; // +0x00 Processor group index to clear.
 } PROCESSOR_GROUP_SELECTOR, *PPROCESSOR_GROUP_SELECTOR;
 
 // rev
+/**
+ * The PROCESSOR_GROUP_PARK_MASK structure describes processor group park mask.
+ */
 typedef struct _PROCESSOR_GROUP_PARK_MASK
 {
     ULONGLONG ForceMask; // +0x00 Forced parked logical-processor mask for Group.
@@ -313,6 +336,9 @@ typedef struct _PROCESSOR_GROUP_PARK_MASK
 } PROCESSOR_GROUP_PARK_MASK, *PPROCESSOR_GROUP_PARK_MASK;
 
 // rev
+/**
+ * The PROCESSOR_GROUP_PARK_MASK_EX structure describes processor group park mask ex.
+ */
 typedef struct _PROCESSOR_GROUP_PARK_MASK_EX
 {
     ULONGLONG ForceMask; // +0x00 Forced parked logical-processor mask for Group.
@@ -324,6 +350,9 @@ typedef struct _PROCESSOR_GROUP_PARK_MASK_EX
 } PROCESSOR_GROUP_PARK_MASK_EX, *PPROCESSOR_GROUP_PARK_MASK_EX;
 
 // rev
+/**
+ * The PROCESSOR_SET_IDLE_STATE structure describes processor set idle state.
+ */
 typedef struct _PROCESSOR_SET_IDLE_STATE
 {
     ULONG StateIndex;
@@ -331,6 +360,9 @@ typedef struct _PROCESSOR_SET_IDLE_STATE
 } PROCESSOR_SET_IDLE_STATE, *PPROCESSOR_SET_IDLE_STATE;
 
 // rev
+/**
+ * The LOGICAL_PROCESSOR_IDLING_INPUT structure contains the input parameters for the logical processor idling operation.
+ */
 typedef struct _LOGICAL_PROCESSOR_IDLING_INPUT
 {
     ULONG LpiCap;
@@ -338,12 +370,18 @@ typedef struct _LOGICAL_PROCESSOR_IDLING_INPUT
 } LOGICAL_PROCESSOR_IDLING_INPUT, *PLOGICAL_PROCESSOR_IDLING_INPUT;
 
 // rev
+/**
+ * The LOGICAL_PROCESSOR_IDLING_OUTPUT structure contains the output data returned by the logical processor idling operation.
+ */
 typedef struct _LOGICAL_PROCESSOR_IDLING_OUTPUT
 {
     ULONG EffectiveLpiCap;
 } LOGICAL_PROCESSOR_IDLING_OUTPUT, *PLOGICAL_PROCESSOR_IDLING_OUTPUT;
 
 // rev
+/**
+ * The POWER_SETTING_NOTIFICATION_NAME_INPUT structure contains the input parameters for the setting notification name operation.
+ */
 typedef struct _POWER_SETTING_NOTIFICATION_NAME_INPUT
 {
     GUID SettingGuid;
@@ -353,12 +391,18 @@ typedef struct _POWER_SETTING_NOTIFICATION_NAME_INPUT
 //typedef WNF_STATE_NAME *PPOWER_SETTING_NOTIFICATION_NAME_OUTPUT;
 
 // rev
+/**
+ * The GET_POWER_SETTING_VALUE_INPUT structure contains the input parameters for the get power setting value operation.
+ */
 typedef struct _GET_POWER_SETTING_VALUE_INPUT
 {
     GUID SettingGuid;
 } GET_POWER_SETTING_VALUE_INPUT, *PGET_POWER_SETTING_VALUE_INPUT;
 
 // rev
+/**
+ * The GET_POWER_SETTING_VALUE_ENTRY structure describes get power setting value entry.
+ */
 typedef struct _GET_POWER_SETTING_VALUE_ENTRY
 {
     ULONG ChangeStamp;
@@ -367,6 +411,9 @@ typedef struct _GET_POWER_SETTING_VALUE_ENTRY
 } GET_POWER_SETTING_VALUE_ENTRY, *PGET_POWER_SETTING_VALUE_ENTRY;
 
 // rev
+/**
+ * The GET_POWER_SETTING_VALUE_OUTPUT structure contains the output data returned by the get power setting value operation.
+ */
 typedef struct _GET_POWER_SETTING_VALUE_OUTPUT
 {
     ULONG TotalLength;
@@ -374,6 +421,9 @@ typedef struct _GET_POWER_SETTING_VALUE_OUTPUT
 } GET_POWER_SETTING_VALUE_OUTPUT, *PGET_POWER_SETTING_VALUE_OUTPUT;
 
 // rev
+/**
+ * The MONITOR_INVOCATION_INPUT structure contains the input parameters for the monitor invocation operation.
+ */
 typedef struct _MONITOR_INVOCATION_INPUT
 {
     BOOLEAN Invoke;
@@ -381,10 +431,19 @@ typedef struct _MONITOR_INVOCATION_INPUT
     ULONG SessionId;
 } MONITOR_INVOCATION_INPUT, *PMONITOR_INVOCATION_INPUT;
 
-//typedef DEVICE_OBJECT QUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT;
-//typedef DEVICE_OBJECT *PQUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT;
+// rev
+/**
+ * The QUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT structure is the input for the QueryPotentialDripsConstraint (91) information level;
+ * it is a full DEVICE_OBJECT (InputBufferLength must equal sizeof(DEVICE_OBJECT), 0x150). The level returns a BOOLEAN indicating
+ * whether the device is a potential DRIPS (deepest AoAc idle) constraint.
+ * \remarks Kernel-mode only; requires an AoAc (Modern Standby) platform. Reversed from PopFxIsDevicePotentialDripsConstraint.
+ */
+typedef struct _DEVICE_OBJECT QUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT, *PQUERY_POTENTIAL_DRIPS_CONSTRAINT_INPUT;
 
 // rev
+/**
+ * The PDC_INVOCATION structure describes pdc invocation.
+ */
 typedef struct _PDC_INVOCATION
 {
     ULONG Operation;
@@ -393,11 +452,17 @@ typedef struct _PDC_INVOCATION
 } PDC_INVOCATION, *PPDC_INVOCATION;
 
 // rev
+/**
+ * The PDC_INVOCATION_CALLBACKS structure describes pdc invocation callbacks.
+ */
 typedef struct _PDC_INVOCATION_CALLBACKS
 {
     PVOID Callbacks[21];
 } PDC_INVOCATION_CALLBACKS, *PPDC_INVOCATION_CALLBACKS;
 
+/**
+ * The POWER_CS_DEVICE_NOTIFICATION structure describes power cs device notification.
+ */
 typedef struct _POWER_CS_DEVICE_NOTIFICATION
 {
     ULONGLONG DeviceId;
@@ -478,12 +543,18 @@ typedef struct _SYSTEM_POWER_INFORMATION
     UCHAR CoolingMode;
 } SYSTEM_POWER_INFORMATION, *PSYSTEM_POWER_INFORMATION;
 
+/**
+ * The SYSTEM_HIBERFILE_INFORMATION structure describes system hiberfile information.
+ */
 typedef struct _SYSTEM_HIBERFILE_INFORMATION
 {
     ULONG NumberOfMcbPairs;
     LARGE_INTEGER Mcb[1];
 } SYSTEM_HIBERFILE_INFORMATION, *PSYSTEM_HIBERFILE_INFORMATION;
 
+/**
+ * The SYSTEM_SERVICE_POWER_MESSAGE structure describes system service power message.
+ */
 typedef struct _SYSTEM_SERVICE_POWER_MESSAGE
 {
     ULONG MessageId;
@@ -557,12 +628,18 @@ typedef struct _SYSTEM_SERVICE_POWER_MESSAGE
                                  PO_REASON_STATE_S4 | \
                                  PO_REASON_STATE_S4FIRM)
 
+/**
+ * The SYSTEM_POWER_LOGGING_ENTRY structure describes a system power logging entry.
+ */
 typedef struct _SYSTEM_POWER_LOGGING_ENTRY
 {
     ULONG Reason;
     ULONG States;
 } SYSTEM_POWER_LOGGING_ENTRY, *PSYSTEM_POWER_LOGGING_ENTRY;
 
+/**
+ * The SET_POWER_SETTING_VALUE_INPUT structure contains the input parameters used to set a power setting value.
+ */
 typedef struct _SET_POWER_SETTING_VALUE_INPUT
 {
     ULONG Version;
@@ -579,16 +656,25 @@ typedef SET_POWER_SETTING_VALUE_INPUT SYSTEM_POWER_SETTING_VALUE, *PSYSTEM_POWER
 //     GUID Guid;
 // } NOTIFY_USER_POWER_SETTING, *PNOTIFY_USER_POWER_SETTING;
 
+/**
+ * The SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE structure describes system power trace application power message.
+ */
 typedef struct _SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE
 {
     HANDLE ProcessId;
 } SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE, *PSYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE;
 
+/**
+ * The SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE_END structure describes system power trace application power message end.
+ */
 typedef struct _SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE_END
 {
     ULONG ProcessId;
 } SYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE_END, *PSYSTEM_POWER_TRACE_APPLICATION_POWER_MESSAGE_END;
 
+/**
+ * The POWER_STATE_DISABLED_TYPE enumeration defines the sleep states that can be individually disabled.
+ */
 typedef enum _POWER_STATE_DISABLED_TYPE
 {
     PoDisabledStateSleeping1 = 0,
@@ -603,6 +689,9 @@ typedef enum _POWER_STATE_DISABLED_TYPE
 
 #define POWER_STATE_DISABLED_TYPE_MAX  8
 
+/**
+ * The SYSTEM_POWER_STATE_DISABLE_REASON structure describes which sleep states are disabled and the reason they are unavailable.
+ */
 _Struct_size_bytes_(sizeof(SYSTEM_POWER_STATE_DISABLE_REASON) + PowerReasonLength)
 typedef struct _SYSTEM_POWER_STATE_DISABLE_REASON
 {
@@ -616,6 +705,10 @@ typedef struct _SYSTEM_POWER_STATE_DISABLE_REASON
 #define POWER_REQUEST_CONTEXT_NOT_SPECIFIED DIAGNOSTIC_REASON_NOT_SPECIFIED
 
 // wdm
+/**
+ * The COUNTED_REASON_CONTEXT structure describes the reason a power request was created, either as a localized resource reference or a simple string.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_counted_reason_context
+ */
 typedef struct _COUNTED_REASON_CONTEXT
 {
     ULONG Version;
@@ -633,6 +726,10 @@ typedef struct _COUNTED_REASON_CONTEXT
     };
 } COUNTED_REASON_CONTEXT, *PCOUNTED_REASON_CONTEXT;
 
+/**
+ * The POWER_REQUEST_TYPE_INTERNAL enumeration defines the internal power request types used by the power manager.
+ * This is the internal name for the POWER_REQUEST_TYPE enumeration.
+ */
 typedef enum _POWER_REQUEST_TYPE_INTERNAL // POWER_REQUEST_TYPE
 {
     PowerRequestDisplayRequiredInternal,
@@ -647,6 +744,9 @@ typedef enum _POWER_REQUEST_TYPE_INTERNAL // POWER_REQUEST_TYPE
     PowerRequestFullScreenVideoRequired  // Windows 8 only
 } POWER_REQUEST_TYPE_INTERNAL;
 
+/**
+ * The POWER_REQUEST_ACTION structure describes a set or clear operation performed on a power availability request.
+ */
 typedef struct _POWER_REQUEST_ACTION
 {
     HANDLE PowerRequestHandle;
@@ -655,12 +755,20 @@ typedef struct _POWER_REQUEST_ACTION
     HANDLE ProcessHandle; // Windows 8+ and only for requests created via PlmPowerRequestCreate
 } POWER_REQUEST_ACTION, *PPOWER_REQUEST_ACTION;
 
+/**
+ * The POWER_STATE union specifies a system power state or a device power state.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_power_state
+ */
 typedef union _POWER_STATE
 {
     SYSTEM_POWER_STATE SystemState;
     DEVICE_POWER_STATE DeviceState;
 } POWER_STATE, *PPOWER_STATE;
 
+/**
+ * The POWER_STATE_TYPE enumeration indicates whether a POWER_STATE value refers to a system power state or a device power state.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ne-wdm-_power_state_type
+ */
 typedef enum _POWER_STATE_TYPE
 {
     SystemPowerState = 0,
@@ -668,6 +776,10 @@ typedef enum _POWER_STATE_TYPE
 } POWER_STATE_TYPE, *PPOWER_STATE_TYPE;
 
 // wdm
+/**
+ * The SYSTEM_POWER_STATE_CONTEXT structure encodes the current, effective, and target system power states of a power transition.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/ns-wdm-_system_power_state_context
+ */
 typedef struct _SYSTEM_POWER_STATE_CONTEXT
 {
     union
@@ -688,6 +800,9 @@ typedef struct _SYSTEM_POWER_STATE_CONTEXT
     };
 } SYSTEM_POWER_STATE_CONTEXT, *PSYSTEM_POWER_STATE_CONTEXT;
 
+/**
+ * The REQUESTER_TYPE enumeration identifies the kind of caller that created a power request.
+ */
 typedef enum _REQUESTER_TYPE
 {
     KernelRequester = 0,
@@ -695,6 +810,9 @@ typedef enum _REQUESTER_TYPE
     UserSharedServiceRequester = 2
 } REQUESTER_TYPE;
 
+/**
+ * The DUMMYSTRUCTNAME structure describes counted reason context relative.
+ */
 typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
 {
     ULONG Flags;
@@ -711,6 +829,9 @@ typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
     } DUMMYUNIONNAME;
 } COUNTED_REASON_CONTEXT_RELATIVE, *PCOUNTED_REASON_CONTEXT_RELATIVE;
 
+/**
+ * The DUMMYSTRUCTNAME structure describes the diagnostic reason context associated with a power request.
+ */
 typedef struct _DIAGNOSTIC_BUFFER
 {
     SIZE_T Size;
@@ -727,11 +848,14 @@ typedef struct _DIAGNOSTIC_BUFFER
         {
             SIZE_T DeviceDescriptionOffset; // PWSTR
             SIZE_T DevicePathOffset; // PWSTR
-        } DUMMYSTRUCTNAME;
+        } DUMMYSTRUCTNAME2;
     } DUMMYUNIONNAME;
     SIZE_T ReasonOffset; // PCOUNTED_REASON_CONTEXT_RELATIVE
 } DIAGNOSTIC_BUFFER, *PDIAGNOSTIC_BUFFER;
 
+/**
+ * The WAKE_TIMER_INFO structure describes a pending wake timer entry returned by the WakeTimerList information level.
+ */
 typedef struct _WAKE_TIMER_INFO
 {
     SIZE_T OffsetToNext;
@@ -741,6 +865,9 @@ typedef struct _WAKE_TIMER_INFO
 } WAKE_TIMER_INFO, *PWAKE_TIMER_INFO;
 
 // rev
+/**
+ * The PROCESSOR_PERF_CAP_HV structure describes processor perf cap hv.
+ */
 typedef struct _PROCESSOR_PERF_CAP_HV
 {
     ULONG Version;
@@ -751,6 +878,9 @@ typedef struct _PROCESSOR_PERF_CAP_HV
 } PROCESSOR_PERF_CAP_HV, *PPROCESSOR_PERF_CAP_HV;
 
 // rev
+/**
+ * The PROCESSOR_IDLE_TIMES structure describes processor idle times.
+ */
 typedef struct PROCESSOR_IDLE_TIMES
 {
     ULONG64 StartTime;
@@ -773,6 +903,9 @@ typedef PROCESSOR_IDLE_HANDLER *PPROCESSOR_IDLE_HANDLER;
 #define IDLE_STATE_FLAGS_IO         0x04        // describes C2 and C3 only
 #define IDLE_STATE_FLAGS_MWAIT      0x08        // describes C1, C2, C3, C4, ...
 
+/**
+ * The PROCESSOR_IDLE_STATE structure describes processor idle state.
+ */
 typedef struct _PROCESSOR_IDLE_STATE
 {
     UCHAR StateType;
@@ -783,6 +916,9 @@ typedef struct _PROCESSOR_IDLE_STATE
     PPROCESSOR_IDLE_HANDLER Handler;
 } PROCESSOR_IDLE_STATE, *PPROCESSOR_IDLE_STATE;
 
+/**
+ * The PROCESSOR_IDLE_STATES structure describes processor idle states.
+ */
 typedef struct _PROCESSOR_IDLE_STATES
 {
     ULONG Size;
@@ -792,10 +928,11 @@ typedef struct _PROCESSOR_IDLE_STATES
     KAFFINITY TargetProcessors;
     PROCESSOR_IDLE_STATE State[ANYSIZE_ARRAY];
 } PROCESSOR_IDLE_STATES, *PPROCESSOR_IDLE_STATES;
+
 //
 //#define PROCESSOR_IDLESTATE_POLICY_COUNT 0x3
 //
-//typedef struct
+//typedef struct _PROCESSOR_IDLESTATE_INFO
 //{
 //    ULONG TimeCheck;
 //    UCHAR DemotePercent;
@@ -822,6 +959,9 @@ typedef struct _PROCESSOR_IDLE_STATES
 //} PROCESSOR_IDLESTATE_POLICY, *PPROCESSOR_IDLESTATE_POLICY;
 
 // rev
+/**
+ * The PROCESSOR_LOAD structure describes processor load.
+ */
 typedef struct _PROCESSOR_LOAD
 {
     PROCESSOR_NUMBER ProcessorNumber;
@@ -831,6 +971,9 @@ typedef struct _PROCESSOR_LOAD
 } PROCESSOR_LOAD, *PPROCESSOR_LOAD;
 
 // rev
+/**
+ * The POWER_SHUTDOWN_NOTIFICATION structure describes power shutdown notification.
+ */
 typedef struct _POWER_SHUTDOWN_NOTIFICATION
 {
     PVOID CallbackRoutine;
@@ -838,12 +981,18 @@ typedef struct _POWER_SHUTDOWN_NOTIFICATION
 } POWER_SHUTDOWN_NOTIFICATION, *PPOWER_SHUTDOWN_NOTIFICATION;
 
 // rev
+/**
+ * The POWER_MONITOR_CAPABILITIES structure describes power monitor capabilities.
+ */
 typedef struct _POWER_MONITOR_CAPABILITIES
 {
     ULONG State; // BOOLEAN brightness-capable state
 } POWER_MONITOR_CAPABILITIES, *PPOWER_MONITOR_CAPABILITIES;
 
 // rev
+/**
+ * The POWER_SESSION_POWER_INIT structure describes power session power init.
+ */
 typedef struct _POWER_SESSION_POWER_INIT
 {
     PBOOLEAN NoMoreInput;
@@ -873,6 +1022,9 @@ typedef struct _POWER_SESSION_POWER_INIT
 } POWER_SESSION_POWER_INIT, *PPOWER_SESSION_POWER_INIT;
 
 // rev
+/**
+ * The POWER_SESSION_DISPLAY_STATE structure describes power session display state.
+ */
 typedef struct _POWER_SESSION_DISPLAY_STATE
 {
     ULONG SessionId;
@@ -880,6 +1032,9 @@ typedef struct _POWER_SESSION_DISPLAY_STATE
 } POWER_SESSION_DISPLAY_STATE, *PPOWER_SESSION_DISPLAY_STATE;
 
 // rev
+/**
+ * The PROCESSOR_CAP structure describes processor cap.
+ */
 typedef struct _PROCESSOR_CAP
 {
     ULONG Version;
@@ -889,18 +1044,27 @@ typedef struct _PROCESSOR_CAP
     ULONG LimitReasons;
 } PROCESSOR_CAP, *PPROCESSOR_CAP;
 
+/**
+ * The PO_WAKE_SOURCE_INFO structure describes po wake source info.
+ */
 typedef struct _PO_WAKE_SOURCE_INFO
 {
     ULONG Count;
     ULONG Offsets[ANYSIZE_ARRAY]; // POWER_WAKE_SOURCE_HEADER, POWER_WAKE_SOURCE_INTERNAL, POWER_WAKE_SOURCE_TIMER, POWER_WAKE_SOURCE_FIXED
 } PO_WAKE_SOURCE_INFO, *PPO_WAKE_SOURCE_INFO;
 
+/**
+ * The PO_WAKE_SOURCE_HISTORY structure describes po wake source history.
+ */
 typedef struct _PO_WAKE_SOURCE_HISTORY
 {
     ULONG Count;
     ULONG Offsets[ANYSIZE_ARRAY]; // POWER_WAKE_SOURCE_HEADER, POWER_WAKE_SOURCE_INTERNAL, POWER_WAKE_SOURCE_TIMER, POWER_WAKE_SOURCE_FIXED
 } PO_WAKE_SOURCE_HISTORY, *PPO_WAKE_SOURCE_HISTORY;
 
+/**
+ * The PO_WAKE_SOURCE_TYPE enumeration defines po wake source type values.
+ */
 typedef enum _PO_WAKE_SOURCE_TYPE
 {
     DeviceWakeSourceType = 0,
@@ -910,12 +1074,18 @@ typedef enum _PO_WAKE_SOURCE_TYPE
     InternalWakeSourceType = 4
 } PO_WAKE_SOURCE_TYPE, *PPO_WAKE_SOURCE_TYPE;
 
+/**
+ * The PO_INTERNAL_WAKE_SOURCE_TYPE enumeration defines po internal wake source type values.
+ */
 typedef enum _PO_INTERNAL_WAKE_SOURCE_TYPE
 {
     InternalWakeSourceDozeToHibernate = 0,
     InternalWakeSourcePredictedUserPresence = 1
 } PO_INTERNAL_WAKE_SOURCE_TYPE;
 
+/**
+ * The PO_FIXED_WAKE_SOURCE_TYPE enumeration defines po fixed wake source type values.
+ */
 typedef enum _PO_FIXED_WAKE_SOURCE_TYPE
 {
     FixedWakeSourcePowerButton = 0,
@@ -924,30 +1094,45 @@ typedef enum _PO_FIXED_WAKE_SOURCE_TYPE
     FixedWakeSourceDozeToHibernate = 3
 } PO_FIXED_WAKE_SOURCE_TYPE, *PPO_FIXED_WAKE_SOURCE_TYPE;
 
+/**
+ * The PO_WAKE_SOURCE_HEADER structure describes po wake source header.
+ */
 typedef struct _PO_WAKE_SOURCE_HEADER
 {
     PO_WAKE_SOURCE_TYPE Type;
     ULONG Size;
 } PO_WAKE_SOURCE_HEADER, *PPO_WAKE_SOURCE_HEADER;
 
+/**
+ * The PO_WAKE_SOURCE_DEVICE structure describes po wake source device.
+ */
 typedef struct _PO_WAKE_SOURCE_DEVICE
 {
     PO_WAKE_SOURCE_HEADER Header;
     WCHAR InstancePath[ANYSIZE_ARRAY];
 } PO_WAKE_SOURCE_DEVICE, *PPO_WAKE_SOURCE_DEVICE;
 
+/**
+ * The PO_WAKE_SOURCE_FIXED structure describes po wake source fixed.
+ */
 typedef struct _PO_WAKE_SOURCE_FIXED
 {
     PO_WAKE_SOURCE_HEADER Header;
     PO_FIXED_WAKE_SOURCE_TYPE FixedWakeSourceType;
 } PO_WAKE_SOURCE_FIXED, *PPO_WAKE_SOURCE_FIXED;
 
+/**
+ * The PO_WAKE_SOURCE_INTERNAL structure describes po wake source internal.
+ */
 typedef struct _PO_WAKE_SOURCE_INTERNAL
 {
     PO_WAKE_SOURCE_HEADER Header;
     PO_INTERNAL_WAKE_SOURCE_TYPE InternalWakeSourceType;
 } PO_WAKE_SOURCE_INTERNAL, *PPO_WAKE_SOURCE_INTERNAL;
 
+/**
+ * The PO_WAKE_SOURCE_TIMER structure describes po wake source timer.
+ */
 typedef struct _PO_WAKE_SOURCE_TIMER
 {
     PO_WAKE_SOURCE_HEADER Header;
@@ -960,6 +1145,9 @@ typedef struct _PO_WAKE_SOURCE_TIMER
 #define POWER_REQUEST_SUPPORTED_TYPES_V3 5 // Windows 8.1 and Windows 10 TH1-TH2
 #define POWER_REQUEST_SUPPORTED_TYPES_V4 6 // Windows 10 RS1+
 
+/**
+ * The V1 structure describes power request.
+ */
 typedef struct _POWER_REQUEST
 {
     union
@@ -997,12 +1185,18 @@ typedef struct _POWER_REQUEST
     };
 } POWER_REQUEST, *PPOWER_REQUEST;
 
+/**
+ * The POWER_REQUEST_LIST structure describes power request list.
+ */
 typedef struct _POWER_REQUEST_LIST
 {
     ULONG_PTR Count;
     ULONG_PTR PowerRequestOffsets[ANYSIZE_ARRAY]; // PPOWER_REQUEST
 } POWER_REQUEST_LIST, *PPOWER_REQUEST_LIST;
 
+/**
+ * The POWER_STATE_HANDLER_TYPE enumeration defines power state handler type values.
+ */
 typedef enum _POWER_STATE_HANDLER_TYPE
 {
     PowerStateSleeping1 = 0,
@@ -1031,6 +1225,9 @@ NTSTATUS NTAPI ENTER_STATE_HANDLER(
     );
 typedef ENTER_STATE_HANDLER* PENTER_STATE_HANDLER;
 
+/**
+ * The POWER_STATE_HANDLER structure describes power state handler.
+ */
 typedef struct _POWER_STATE_HANDLER
 {
     POWER_STATE_HANDLER_TYPE Type;
@@ -1048,12 +1245,18 @@ NTSTATUS NTAPI ENTER_STATE_NOTIFY_HANDLER(
     );
 typedef ENTER_STATE_NOTIFY_HANDLER* PENTER_STATE_NOTIFY_HANDLER;
 
+/**
+ * The POWER_STATE_NOTIFY_HANDLER structure describes power state notify handler.
+ */
 typedef struct _POWER_STATE_NOTIFY_HANDLER
 {
     PENTER_STATE_NOTIFY_HANDLER Handler;
     PVOID Context;
 } POWER_STATE_NOTIFY_HANDLER, *PPOWER_STATE_NOTIFY_HANDLER;
 
+/**
+ * The POWER_REQUEST_ACTION_INTERNAL structure describes power request action internal.
+ */
 typedef struct _POWER_REQUEST_ACTION_INTERNAL
 {
     PVOID PowerRequestPointer;
@@ -1061,6 +1264,9 @@ typedef struct _POWER_REQUEST_ACTION_INTERNAL
     BOOLEAN SetAction;
 } POWER_REQUEST_ACTION_INTERNAL, *PPOWER_REQUEST_ACTION_INTERNAL;
 
+/**
+ * The POWER_INFORMATION_LEVEL_INTERNAL enumeration defines power information level internal values.
+ */
 typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
 {
     PowerInternalAcpiInterfaceRegister,                         // in: POWER_INTERNAL_ACPI_INTERFACE_REGISTER_INPUT, out: POWER_INTERNAL_ACPI_INTERFACE_REGISTER_OUTPUT
@@ -1068,7 +1274,7 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalReapplyBrightnessSettings,                     // in: void
     PowerInternalUserAbsencePrediction,                         // out: POWER_USER_ABSENCE_PREDICTION
     PowerInternalUserAbsencePredictionCapability,               // out: POWER_USER_ABSENCE_PREDICTION_CAPABILITY
-    PowerInternalPoProcessorLatencyHint,                        // out: POWER_PROCESSOR_LATENCY_HINT
+    PowerInternalPoProcessorLatencyHint,                        // in: POWER_PROCESSOR_LATENCY_HINT (InputBufferLength >= 0x0C), out: NULL // PopPowerInformationInternal (inline): PoLatencySensitivityHint(Type); user-mode callers only (kernel-mode returns STATUS_NOT_SUPPORTED)
     PowerInternalStandbyNetworkRequest,                         // out: POWER_STANDBY_NETWORK_REQUEST (requires PopNetBIServiceSid)
     PowerInternalDirtyTransitionInformation,                    // out: BOOLEAN
     PowerInternalSetBackgroundTaskState,                        // out: POWER_SET_BACKGROUND_TASK_STATE
@@ -1089,11 +1295,11 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalExternalMonitorConnected,                      // in: POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
     PowerInternalHighPrecisionBrightnessSettings,               // in: POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
     PowerInternalWinrtScreenToggle,                             // in: POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
-    PowerInternalPpmQosDisable,                                 // in: POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
+    PowerInternalPpmQosDisable,                                 // in: POWER_INTERNAL_PPM_QOS_DISABLE_INPUT (InputBufferLength >= 0x0C), out: NULL // PopPowerInformationInternal (inline): ref-counts PpmPerfQosDisableRefcount (enable increments; STATUS_INTEGER_OVERFLOW at UINT_MAX; disable decrements, STATUS_NOT_SUPPORTED if already 0); calls PpmPerfUpdateDomainPolicy on the 0<->1 edge
     PowerInternalTransitionCheckpoint,                          // in: POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
     PowerInternalInputControllerState,                          // in: POWER_INTERNAL_INPUT_CONTROLLER_STATE
     PowerInternalFirmwareResetReason,                           // in: POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, out: POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
-    PowerInternalPpmSchedulerQosSupport,                        // out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT // 30
+    PowerInternalPpmSchedulerQosSupport,                        // in: header only (InputBufferLength >= 8), out: POWER_INTERNAL_PROCESSOR_QOS_SUPPORT (3 bytes) // PopPowerInformationInternal (inline): returns PpmPerfQosSupportedAndConfigured, PpmPerfSchedulerDirectedPerfStatesSupported, PpmPerfQosGroupPolicyDisable // 30
     PowerInternalBootStatGet,                                   // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT, out: (optional) POWER_INTERNAL_BOOTSTAT_GET_OUTPUT[EntryCount] or ULONG[EntryCount]
     PowerInternalBootStatSet,                                   // in: POWER_INTERNAL_BOOTSTAT_GET_INPUT
     PowerInternalCallHasNotReturnedWatchdog,                    // in: not implemented
@@ -1132,32 +1338,32 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInternalSoftParkVelocityEnabled,                       // in: not implemented
     PowerInternalQueryIntelPepCapabilities,                     // in: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, out: POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
     PowerInternalGetSystemIdleLoopEnablement,                   // in: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, out: POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT // since WIN11
-    PowerInternalGetVmPerfControlSupport,                       // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
-    PowerInternalGetVmPerfControlConfig,                        // in: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_OUTPUT // 70
-    PowerInternalSleepDetailedDiagUpdate,                       // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
-    PowerInternalProcessorClassFrequencyBandsStats,             // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT[] * NumberOfProcessors
-    PowerInternalHostGlobalUserPresenceStateUpdate,             // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
-    PowerInternalCpuNodeIdleIntervalStats,                      // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_PACKAGE
-    PowerInternalClassIdleIntervalStats,                        // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT
-    PowerInternalCpuNodeConcurrencyStats,                       // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_OUTPUT
-    PowerInternalClassConcurrencyStats,                         // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT, out: POWER_INTERNAL_CLASS_CONCURRENCY_STATS_OUTPUT
-    PowerInternalQueryProcMeasurementCapabilities,              // in: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, out: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT // (in optional)
-    PowerInternalQueryProcMeasurementValues,                    // in: POWER_INTERNAL_QUERY_MEASUREMENT_VALUES, out: POWER_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT
+    PowerInternalGetVmPerfControlSupport,                       // in: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT, out: POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT (0x14 bytes; only 1 byte if OutputBufferLength < 0x14) // PpmPerfGetVmPerfControlSupport
+    PowerInternalGetVmPerfControlConfig,                        // in: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT (InputBufferLength >= 0x0C; Version <= 2, Version 2 requires >= 0x20), out: POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_OUTPUT (8 bytes) // PpmPerfGetVmPerfConfig, or PpmPerfGetVmCppcConfig when Version == 2 // 70
+    PowerInternalSleepDetailedDiagUpdate,                       // in: POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT (InputBufferLength == 0x0C), out: NULL // PopPowerInformationInternal (inline): toggles PopSleepReliabilityDetailedDiagEnabled under PopSleepReliabilityDiagLock, traces PopDiagTraceSleepReliabilityDiagConfigUpdate on change
+    PowerInternalProcessorClassFrequencyBandsStats,             // in: POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, out: POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT (fixed 0x900 bytes: Bank[2] x Metric[3] x Band[48]) // PpmPerfGetFrequencyBandStats: accumulates per-processor band counters into two efficiency-class banks
+    PowerInternalHostGlobalUserPresenceStateUpdate,             // in: POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT (InputBufferLength >= 0x0C), out: NULL // PopUserPresenceHostStateChange(UserPresent)
+    PowerInternalCpuNodeIdleIntervalStats,                      // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT (InputBufferLength == 0x0C; Node selects the CPU node), out: POWER_INTERNAL_IDLE_INTERVAL_PACKAGE (0x128 bytes) // PpmIdleGetPackageIdleIntervalStats
+    PowerInternalClassIdleIntervalStats,                        // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT (InputBufferLength == 0x0C), out: POWER_INTERNAL_IDLE_INTERVAL_STATS_OUTPUT (0x250 bytes) // PpmIdleGetPackageIdleIntervalStats
+    PowerInternalCpuNodeConcurrencyStats,                       // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT (InputBufferLength == 0x0C), out: POWER_INTERNAL_CPU_NODE_CONCURRENCY_STATS_OUTPUT (variable length, kernel-allocated) // PpmIdleGetConcurrencyStats
+    PowerInternalClassConcurrencyStats,                         // in: POWER_INTERNAL_IDLE_INTERVAL_STATS_INPUT (InputBufferLength == 0x0C), out: POWER_INTERNAL_CLASS_CONCURRENCY_STATS_OUTPUT (variable length, kernel-allocated) // PpmIdleGetConcurrencyStats
+    PowerInternalQueryProcMeasurementCapabilities,              // in: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES (optional), out: POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT (4 bytes) // PopPowerInformationInternal (inline): returns the first PpmPerfDomainHead domain's measurement-capability bitmask
+    PowerInternalQueryProcMeasurementValues,                    // in: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES (InputBufferLength == 0x0C), out: PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT (8 + 0x18 * EntryCount bytes; OutputBufferLength == 4 returns EntryCount only) // PpmPerfQueryProcMeasurementValues
     PowerInternalPrepareForSystemInitiatedReboot,               // in: POWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT // 80
     PowerInternalGetAdaptiveSessionState,                       // in: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, out: POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
     PowerInternalSetConsoleLockedState,                         // in: POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
     PowerInternalOverrideSystemInitiatedRebootState,            // in: POWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT
-    PowerInternalFanImpactStats,                                // in: POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, out: POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
-    PowerInternalFanRpmBuckets,                                 // in: POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, out: POWER_INTERNAL_FAN_RPM_OUTPUT
-    PowerInternalPowerBootAppDiagInfo,                          // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
+    PowerInternalFanImpactStats,                                // in: POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, out: POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT // PopFanReadFanNoiseInfo
+    PowerInternalFanRpmBuckets,                                 // in: POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, out: POWER_INTERNAL_FAN_RPM_OUTPUT // PopFanReadFanNoiseInfo
+    PowerInternalPowerBootAppDiagInfo,                          // out: POWER_INTERNAL_BOOTAPP_DIAGNOSTIC // PopPowerInformationInternal
     PowerInternalUnregisterShutdownNotification,                // in: POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT // since 22H1
     PowerInternalManageTransitionStateRecord,                   // in: POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT
     PowerInternalGetAcpiTimeAndAlarmCapabilities,               // in: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, out: POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT // since 22H2
     PowerInternalSuspendResumeRequest,                          // in: POWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT // 90
     PowerInternalEnergyEstimationInfo,                          // out: POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT // since 23H2
     PowerInternalProvSocIdentifierOperation,                    // in: POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT, out: POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT // since 24H2
-    PowerInternalGetVmPerfPrioritySupport,                      // in: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
-    PowerInternalGetVmPerfPriorityConfig,                       // in: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
+    PowerInternalGetVmPerfPrioritySupport,                      // in: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT // PpmPerfGetVmPerfPrioritySupport
+    PowerInternalGetVmPerfPriorityConfig,                       // in: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, out: POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT // PpmPerfGetVmPerfPriorityConfig
     PowerInternalNotifyWin32kPowerRequestQueued,                // in: POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT
     PowerInternalNotifyWin32kPowerRequestCompleted,             // in: POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT
     PowerInternalPdcAgentSessionQuery,                          // in: POWER_INTERNAL_PDC_AGENT_SESSION_QUERY_INPUT, out: BOOLEAN // (feature-gated)
@@ -1165,6 +1371,9 @@ typedef enum _POWER_INFORMATION_LEVEL_INTERNAL
     PowerInformationInternalMaximum
 } POWER_INFORMATION_LEVEL_INTERNAL;
 
+/**
+ * The POWER_S0_DISCONNECTED_REASON enumeration defines power s0 disconnected reason values.
+ */
 typedef enum _POWER_S0_DISCONNECTED_REASON
 {
     PoS0DisconnectedReasonNone,
@@ -1176,6 +1385,9 @@ typedef enum _POWER_S0_DISCONNECTED_REASON
     PoS0DisconnectedReasonMaximum
 } POWER_S0_DISCONNECTED_REASON;
 
+/**
+ * The CsDeviceCompliance structure describes power s0 low power idle info.
+ */
 typedef struct _POWER_S0_LOW_POWER_IDLE_INFO
 {
     POWER_S0_DISCONNECTED_REASON DisconnectedReason;
@@ -1197,6 +1409,9 @@ typedef struct _POWER_S0_LOW_POWER_IDLE_INFO
     } Policy;
 } POWER_S0_LOW_POWER_IDLE_INFO, *PPOWER_S0_LOW_POWER_IDLE_INFO;
 
+/**
+ * The POWER_INFORMATION_INTERNAL_HEADER structure describes power information internal header.
+ */
 typedef struct _POWER_INFORMATION_INTERNAL_HEADER
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1204,6 +1419,9 @@ typedef struct _POWER_INFORMATION_INTERNAL_HEADER
 } POWER_INFORMATION_INTERNAL_HEADER, *PPOWER_INFORMATION_INTERNAL_HEADER;
 
 // rev
+/**
+ * The POWER_INTERNAL_ACPI_INTERFACE_REGISTER_INPUT structure contains the input parameters for the acpi interface register operation.
+ */
 typedef struct _POWER_INTERNAL_ACPI_INTERFACE_REGISTER_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1213,24 +1431,37 @@ typedef struct _POWER_INTERNAL_ACPI_INTERFACE_REGISTER_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_ACPI_INTERFACE_REGISTER_INPUT) == 0x20);
 
 // rev
+/**
+ * The POWER_INTERNAL_ACPI_INTERFACE_REGISTER_OUTPUT structure contains the output data returned by the acpi interface register operation.
+ */
 typedef struct _POWER_INTERNAL_ACPI_INTERFACE_REGISTER_OUTPUT
 {
     ULONG_PTR RegistrationHandle;
     ULONG_PTR Reserved;
 } POWER_INTERNAL_ACPI_INTERFACE_REGISTER_OUTPUT, *PPOWER_INTERNAL_ACPI_INTERFACE_REGISTER_OUTPUT;
 
+/**
+ * The POWER_USER_ABSENCE_PREDICTION structure describes power user absence prediction.
+ */
 typedef struct _POWER_USER_ABSENCE_PREDICTION
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
     LARGE_INTEGER ReturnTime;
 } POWER_USER_ABSENCE_PREDICTION, *PPOWER_USER_ABSENCE_PREDICTION;
 
+/**
+ * The POWER_USER_ABSENCE_PREDICTION_CAPABILITY structure describes power user absence prediction capability.
+ */
 typedef struct _POWER_USER_ABSENCE_PREDICTION_CAPABILITY
 {
     BOOLEAN AbsencePredictionCapability;
 } POWER_USER_ABSENCE_PREDICTION_CAPABILITY, *PPOWER_USER_ABSENCE_PREDICTION_CAPABILITY;
 
 // rev
+/**
+ * The POWER_PROCESSOR_LATENCY_HINT structure is the input for PowerInternalPoProcessorLatencyHint;
+ * its Type field is forwarded to PoLatencySensitivityHint to set the processor latency-sensitivity hint.
+ */
 typedef struct _POWER_PROCESSOR_LATENCY_HINT
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
@@ -1238,6 +1469,9 @@ typedef struct _POWER_PROCESSOR_LATENCY_HINT
 } POWER_PROCESSOR_LATENCY_HINT, *PPOWER_PROCESSOR_LATENCY_HINT;
 
 // rev
+/**
+ * The POWER_STANDBY_NETWORK_REQUEST structure describes power standby network request.
+ */
 typedef struct _POWER_STANDBY_NETWORK_REQUEST
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
@@ -1245,6 +1479,9 @@ typedef struct _POWER_STANDBY_NETWORK_REQUEST
 } POWER_STANDBY_NETWORK_REQUEST, *PPOWER_STANDBY_NETWORK_REQUEST;
 
 // rev
+/**
+ * The POWER_SET_BACKGROUND_TASK_STATE structure describes power set background task state.
+ */
 typedef struct _POWER_SET_BACKGROUND_TASK_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER PowerInformationInternalHeader;
@@ -1252,6 +1489,9 @@ typedef struct _POWER_SET_BACKGROUND_TASK_STATE
 } POWER_SET_BACKGROUND_TASK_STATE, *PPOWER_SET_BACKGROUND_TASK_STATE;
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO structure describes power internal boot session standby activation info.
+ */
 typedef struct _POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO
 {
     ULONG StandbyTotalTime;
@@ -1261,6 +1501,9 @@ typedef struct _POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO
 } POWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO, *PPOWER_INTERNAL_BOOT_SESSION_STANDBY_ACTIVATION_INFO;
 
 // rev
+/**
+ * The POWER_SESSION_POWER_STATE structure describes power session power state.
+ */
 typedef struct _POWER_SESSION_POWER_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1271,6 +1514,9 @@ typedef struct _POWER_SESSION_POWER_STATE
 } POWER_SESSION_POWER_STATE, *PPOWER_SESSION_POWER_STATE;
 
 // rev
+/**
+ * The POWER_INTERNAL_SET_WATCHDOG structure describes power internal set watchdog.
+ */
 typedef struct _POWER_INTERNAL_SET_WATCHDOG
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1283,6 +1529,9 @@ typedef struct _POWER_INTERNAL_SET_WATCHDOG
 //C_ASSERT(sizeof(POWER_INTERNAL_SET_WATCHDOG) == 0x60);
 
 // rev
+/**
+ * The POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT structure contains the input parameters for the terminal core window operation.
+ */
 typedef struct _POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1293,6 +1542,9 @@ typedef struct _POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT
 } POWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT, *PPOWER_INTERNAL_TERMINAL_CORE_WINDOW_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT structure contains the input parameters for the ttm open terminal operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1300,12 +1552,18 @@ typedef struct _POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT
 } POWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT, *PPOWER_INTERNAL_TTM_OPEN_TERMINAL_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT structure contains the output data returned by the ttm terminal handle operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT
 {
     HANDLE TerminalHandle;
 } POWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT, *PPOWER_INTERNAL_TTM_TERMINAL_HANDLE_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT structure contains the input parameters for the ttm create terminal operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1315,6 +1573,9 @@ typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT
 } POWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT, *PPOWER_INTERNAL_TTM_CREATE_TERMINAL_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT structure contains the output data returned by the ttm create terminal operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT
 {
     HANDLE TerminalHandle;
@@ -1323,6 +1584,9 @@ typedef struct _POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT
 } POWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT, *PPOWER_INTERNAL_TTM_CREATE_TERMINAL_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT structure contains the input parameters for the ttm evacuate devices operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1330,6 +1594,9 @@ typedef struct _POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT
 } POWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT, *PPOWER_INTERNAL_TTM_EVACUATE_DEVICES_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT structure contains the input parameters for the ttm create event queue operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1337,12 +1604,18 @@ typedef struct _POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT
 } POWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT, *PPOWER_INTERNAL_TTM_CREATE_EVENT_QUEUE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT structure contains the output data returned by the ttm event queue handle operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT
 {
     HANDLE EventQueueHandle;
 } POWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT, *PPOWER_INTERNAL_TTM_EVENT_QUEUE_HANDLE_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT structure contains the input parameters for the ttm get terminal event operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1357,6 +1630,9 @@ typedef struct _POWER_INTERNAL_TTM_GET_TERMINAL_EVENT_INPUT
 #define POWER_INTERNAL_TTM_TERMINAL_EVENT_TYPE_DISPLAY_REQUIRED_POWER_REQUEST_UPDATED 6
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_TERMINAL_EVENT structure describes power internal ttm terminal event.
+ */
 typedef struct _POWER_INTERNAL_TTM_TERMINAL_EVENT
 {
     ULONG EventType;
@@ -1365,6 +1641,9 @@ typedef struct _POWER_INTERNAL_TTM_TERMINAL_EVENT
 } POWER_INTERNAL_TTM_TERMINAL_EVENT, *PPOWER_INTERNAL_TTM_TERMINAL_EVENT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT structure contains the input parameters for the ttm set default device assignment operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1374,6 +1653,9 @@ typedef struct _POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT
 } POWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT, *PPOWER_INTERNAL_TTM_SET_DEFAULT_DEVICE_ASSIGNMENT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT structure contains the input parameters for the ttm assign device operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1383,6 +1665,9 @@ typedef struct _POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT
 } POWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT, *PPOWER_INTERNAL_TTM_ASSIGN_DEVICE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT structure contains the input parameters for the ttm set display state operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1393,6 +1678,9 @@ typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT
 } POWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT, *PPOWER_INTERNAL_TTM_SET_DISPLAY_STATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT structure contains the input parameters for the ttm set display timeouts operation.
+ */
 typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1402,6 +1690,9 @@ typedef struct _POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT
 } POWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT, *PPOWER_INTERNAL_TTM_SET_DISPLAY_TIMEOUTS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT structure contains the input parameters for the physical power button at boot operation.
+ */
 typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1409,12 +1700,18 @@ typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT
 } POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT, *PPOWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT structure contains the output data returned by the physical power button at boot operation.
+ */
 typedef struct _POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT
 {
     UCHAR Buffer[64];
 } POWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT, *PPOWER_INTERNAL_PHYSICAL_POWER_BUTTON_AT_BOOT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT structure contains the input parameters for the external monitor connected operation.
+ */
 typedef struct _POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1423,6 +1720,9 @@ typedef struct _POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT
 } POWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT, *PPOWER_INTERNAL_EXTERNAL_MONITOR_CONNECTED_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT structure contains the input parameters for the high precision brightness settings operation.
+ */
 typedef struct _POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1434,6 +1734,9 @@ typedef struct _POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT
 } POWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT, *PPOWER_INTERNAL_HIGH_PRECISION_BRIGHTNESS_SETTINGS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT structure contains the input parameters for the winrt screen toggle operation.
+ */
 typedef struct _POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1442,6 +1745,9 @@ typedef struct _POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT
 } POWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT, *PPOWER_INTERNAL_WINRT_SCREEN_TOGGLE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PPM_QOS_DISABLE_INPUT structure contains the input parameters for the ppm qos disable operation.
+ */
 typedef struct _POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1450,6 +1756,9 @@ typedef struct _POWER_INTERNAL_PPM_QOS_DISABLE_INPUT
 } POWER_INTERNAL_PPM_QOS_DISABLE_INPUT, *PPOWER_INTERNAL_PPM_QOS_DISABLE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT structure contains the input parameters for the transition checkpoint operation.
+ */
 typedef struct _POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1459,6 +1768,9 @@ typedef struct _POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT
 } POWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT, *PPOWER_INTERNAL_TRANSITION_CHECKPOINT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_INPUT_CONTROLLER_STATE structure describes power internal input controller state.
+ */
 typedef struct _POWER_INTERNAL_INPUT_CONTROLLER_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1466,6 +1778,9 @@ typedef struct _POWER_INTERNAL_INPUT_CONTROLLER_STATE
 } POWER_INTERNAL_INPUT_CONTROLLER_STATE, *PPOWER_INTERNAL_INPUT_CONTROLLER_STATE;
 
 // rev
+/**
+ * The POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT structure contains the input parameters for the firmware reset reason operation.
+ */
 typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1473,6 +1788,9 @@ typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT
 } POWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT, *PPOWER_INTERNAL_FIRMWARE_RESET_REASON_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT structure contains the output data returned by the firmware reset reason operation.
+ */
 typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
 {
     ULONG ResetReasonCode;
@@ -1482,6 +1800,9 @@ typedef struct _POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT
 } POWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT, *PPOWER_INTERNAL_FIRMWARE_RESET_REASON_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_QOS_SUPPORT structure describes power internal processor qos support.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_QOS_SUPPORT
 {
     BOOLEAN QosSupportedAndConfigured;
@@ -1492,6 +1813,9 @@ typedef struct _POWER_INTERNAL_PROCESSOR_QOS_SUPPORT
 typedef struct _RTL_BSD_ITEM RTL_BSD_ITEM, *PRTL_BSD_ITEM;
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOTSTAT_GET_INPUT structure contains the input parameters for the bootstat get operation.
+ */
 typedef struct _POWER_INTERNAL_BOOTSTAT_GET_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1502,6 +1826,9 @@ typedef struct _POWER_INTERNAL_BOOTSTAT_GET_INPUT
 } POWER_INTERNAL_BOOTSTAT_GET_INPUT, *PPOWER_INTERNAL_BOOTSTAT_GET_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOTSTAT_GET_OUTPUT structure contains the output data returned by the bootstat get operation.
+ */
 typedef struct _POWER_INTERNAL_BOOTSTAT_GET_OUTPUT
 {
     // If present, it receives the actual sizes of the data copied into each DataBuffer.
@@ -1509,6 +1836,9 @@ typedef struct _POWER_INTERNAL_BOOTSTAT_GET_OUTPUT
 } POWER_INTERNAL_BOOTSTAT_GET_OUTPUT, *PPOWER_INTERNAL_BOOTSTAT_GET_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT structure contains the input parameters for the bootstat check integrity operation.
+ */
 typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1521,12 +1851,18 @@ typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_INPUT) == sizeof(POWER_INTERNAL_BOOTSTAT_GET_INPUT));
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT structure contains the output data returned by the bootstat check integrity operation.
+ */
 typedef struct _POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT
 {
     BOOLEAN IntegrityOk;
 } POWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT, *PPOWER_INTERNAL_BOOTSTAT_CHECK_INTEGRITY_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_HOST_ENERGY_SAVER_STATE structure describes power internal host energy saver state.
+ */
 typedef struct _POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1534,6 +1870,9 @@ typedef struct _POWER_INTERNAL_HOST_ENERGY_SAVER_STATE
 } POWER_INTERNAL_HOST_ENERGY_SAVER_STATE, *PPOWER_INTERNAL_HOST_ENERGY_SAVER_STATE;
 
 // rev
+/**
+ * The POWER_INTERNAL_IS_POFX_DEVICE_INPUT structure contains the input parameters for the is pofx device operation.
+ */
 typedef struct _POWER_INTERNAL_IS_POFX_DEVICE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1541,12 +1880,18 @@ typedef struct _POWER_INTERNAL_IS_POFX_DEVICE_INPUT
 } POWER_INTERNAL_IS_POFX_DEVICE_INPUT, *PPOWER_INTERNAL_IS_POFX_DEVICE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_POWER_TRANSITION_EXTENSION_AT_BOOT_OUTPUT structure contains the output data returned by the power transition extension at boot operation.
+ */
 typedef struct _POWER_INTERNAL_POWER_TRANSITION_EXTENSION_AT_BOOT_OUTPUT
 {
     UCHAR Data[32];
 } POWER_INTERNAL_POWER_TRANSITION_EXTENSION_AT_BOOT_OUTPUT, *PPOWER_INTERNAL_POWER_TRANSITION_EXTENSION_AT_BOOT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT structure contains the input parameters for the notify user shutdown status operation.
+ */
 typedef struct _POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1555,6 +1900,9 @@ typedef struct _POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT
 } POWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT, *PPOWER_INTERNAL_NOTIFY_USER_SHUTDOWN_STATUS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT structure contains the input parameters for the autochk cauased reboot operation.
+ */
 typedef struct _POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1562,6 +1910,9 @@ typedef struct _POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT
 } POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT, *PPOWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT structure contains the input parameters for the read hiberfile page operation.
+ */
 typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1570,12 +1921,18 @@ typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT
 } POWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT, *PPOWER_INTERNAL_READ_HIBERFILE_PAGE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT structure contains the output data returned by the read hiberfile page operation.
+ */
 typedef struct _POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT
 {
     UCHAR PageData[PAGE_SIZE];
 } POWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT, *PPOWER_INTERNAL_READ_HIBERFILE_PAGE_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT structure contains the input parameters for the query intel pep capabilities operation.
+ */
 typedef struct _POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1583,18 +1940,27 @@ typedef struct _POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT
 } POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT, *PPOWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT structure contains the output data returned by the query intel pep capabilities operation.
+ */
 typedef struct _POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT
 {
     ULONG Capabilities[4];
 } POWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_QUERY_INTEL_PEP_CAPABILITIES_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT structure contains the output data returned by the autochk cauased reboot operation.
+ */
 typedef struct _POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT
 {
     BOOLEAN CausedReboot;
 } POWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT, *PPOWER_INTERNAL_AUTOCHK_CAUASED_REBOOT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_TIME_BROKER_EXPIRATION_REASON_INPUT structure contains the input parameters for the time broker expiration reason operation.
+ */
 typedef struct _POWER_INTERNAL_TIME_BROKER_EXPIRATION_REASON_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1605,6 +1971,9 @@ typedef struct _POWER_INTERNAL_TIME_BROKER_EXPIRATION_REASON_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_TIME_BROKER_EXPIRATION_REASON_INPUT) == 0x90);
 
 // rev
+/**
+ * The POWER_INTERNAL_POWER_REQUEST_TERMINAL_CORE_WINDOW_INPUT structure contains the input parameters for the power request terminal core window operation.
+ */
 typedef struct _POWER_INTERNAL_POWER_REQUEST_TERMINAL_CORE_WINDOW_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1615,6 +1984,9 @@ typedef struct _POWER_INTERNAL_POWER_REQUEST_TERMINAL_CORE_WINDOW_INPUT
 } POWER_INTERNAL_POWER_REQUEST_TERMINAL_CORE_WINDOW_INPUT, *PPOWER_INTERNAL_POWER_REQUEST_TERMINAL_CORE_WINDOW_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT structure contains the input parameters for the wake on voice state operation.
+ */
 typedef struct _POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1623,6 +1995,9 @@ typedef struct _POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT
 } POWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT, *PPOWER_INTERNAL_WAKE_ON_VOICE_STATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT structure contains the input parameters for the deep sleep block operation.
+ */
 typedef struct _POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1631,6 +2006,9 @@ typedef struct _POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT
 } POWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT, *PPOWER_INTERNAL_DEEP_SLEEP_BLOCK_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT structure contains the input parameters for the processor branded frequency operation.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1643,6 +2021,9 @@ typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_INPUT) == 0x0C);
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT structure contains the output data returned by the processor branded frequency operation.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
 {
     ULONG Version; // POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_VERSION
@@ -1652,6 +2033,9 @@ typedef struct _POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT
 C_ASSERT(sizeof(POWER_INTERNAL_PROCESSOR_BRANDED_FREQUENCY_OUTPUT) == 0x08);
 
 // rev
+/**
+ * The POWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT structure contains the input parameters for the set wake alarm override operation.
+ */
 typedef struct _POWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1660,6 +2044,9 @@ typedef struct _POWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT
 } POWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT, *PPOWER_INTERNAL_SET_WAKE_ALARM_OVERRIDE_INPUT;
 
 // rev
+/**
+ * The PROCESSOR_IDLE_VETO structure describes processor idle veto.
+ */
 typedef struct _PROCESSOR_IDLE_VETO
 {
     ULONG Version;
@@ -1670,6 +2057,9 @@ typedef struct _PROCESSOR_IDLE_VETO
 } PROCESSOR_IDLE_VETO, *PPROCESSOR_IDLE_VETO;
 
 // rev
+/**
+ * The PLATFORM_IDLE_VETO structure describes platform idle veto.
+ */
 typedef struct _PLATFORM_IDLE_VETO
 {
     ULONG Version;
@@ -1679,6 +2069,9 @@ typedef struct _PLATFORM_IDLE_VETO
 } PLATFORM_IDLE_VETO, *PPLATFORM_IDLE_VETO;
 
 // rev
+/**
+ * The POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT structure contains the input parameters for the system idle loop enablement operation.
+ */
 typedef struct _POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1686,12 +2079,18 @@ typedef struct _POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT
 } POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT, *PPOWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT structure contains the output data returned by the system idle loop enablement operation.
+ */
 typedef struct _POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT
 {
     ULONG IdleLoopEnabled;
 } POWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT, *PPOWER_INTERNAL_SYSTEM_IDLE_LOOP_ENABLEMENT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT structure contains the input parameters for the vm perf control support operation.
+ */
 typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1707,6 +2106,9 @@ typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_INPUT
 #define PPM_VMPCS_SUPPORTS_TIME_WINDOW     0x00000010 // Supports time-window based control
 
 // rev
+/**
+ * The POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT structure contains the output data returned by the vm perf control support operation.
+ */
 typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
 {
     // If OutputBuffer only 1 byte, just this flag returned for "VM perf-control supported".
@@ -1723,6 +2125,9 @@ typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT
 } POWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_SUPPORT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT structure contains the input parameters for the sleep detailed diag update operation.
+ */
 typedef struct _POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1731,6 +2136,9 @@ typedef struct _POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT
 } POWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT, *PPOWER_INTERNAL_SLEEP_DETAILED_DIAG_UPDATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT structure contains the input parameters for the processor class band stats operation.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1738,6 +2146,9 @@ typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT
 } POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT structure contains the input parameters for the host global user presence state update operation.
+ */
 typedef struct _POWER_INTERNAL_HOST_GLOBAL_USER_PRESENCE_STATE_UPDATE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1832,6 +2243,9 @@ typedef struct _PPM_WMI_PERFSTATES_DATA
 } PPM_WMI_PERFSTATES_DATA, *PPPM_WMI_PERFSTATES_DATA;
 
 // rev
+/**
+ * The POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK structure describes power internal ppm perf frequency band stats bank.
+ */
 typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK
 {
     // Metric[0][0..47], Metric[1][0..47], Metric[2][0..47]
@@ -1839,24 +2253,36 @@ typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK
 } POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK, PPOWER_INTERNAL_PM_PERF_FREQUENCY_BAND_STATS_BANK;
 
 // rev
+/**
+ * The POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT structure describes power internal ppm perf frequency band stats out.
+ */
 typedef struct _POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT
 {
     POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_BANK Bank[PPM_PERF_BANKS_COUNT];
 } POWER_INTERNAL_PPM_PERF_FREQUENCY_BAND_STATS_OUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS structure describes power internal processor class band stats.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS
 {
     ULONGLONG Counter[PPM_PERF_METRICS_COUNT];
 } POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS;
 
 // rev
+/**
+ * The POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT structure contains the output data returned by the processor class band stats operation.
+ */
 typedef struct _POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT
 {
     POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS Band[PPM_PERF_BANDS_COUNT];
 } POWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT, *PPOWER_INTERNAL_PROCESSOR_CLASS_BAND_STATS_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT structure contains the input parameters for the get adaptive session state operation.
+ */
 typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1866,6 +2292,9 @@ typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT
 } POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT, *PPOWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT structure contains the output data returned by the get adaptive session state operation.
+ */
 typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
 {
     ULONG DisplayTimeout;
@@ -1875,6 +2304,9 @@ typedef struct _POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT
 } POWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT, *PPOWER_INTERNAL_GET_ADAPTIVE_SESSION_STATE_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT structure contains the input parameters for the set console locked state operation.
+ */
 typedef struct _POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1883,6 +2315,9 @@ typedef struct _POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT
 } POWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT, *PPOWER_INTERNAL_SET_CONSOLE_LOCKED_STATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_FAN_IMPACT_STATS_INPUT structure contains the input parameters for the fan impact stats operation.
+ */
 typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1890,6 +2325,12 @@ typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_INPUT
 } POWER_INTERNAL_FAN_IMPACT_STATS_INPUT, *PPOWER_INTERNAL_FAN_IMPACT_STATS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT structure contains the output data returned by the PowerInternalFanImpactStats operation.
+ * \remarks Reversed from PopFanReadFanNoiseInfo (selector 84). BucketCountPlusTwo is the enabled fan's bucket count plus two; Buckets holds that
+ * many ULONGLONG impact samples copied (after PopFanUpdateStatistics) from the fan device state. The level requires exactly one enabled fan,
+ * otherwise STATUS_UNSUCCESSFUL (0xC0000001) is returned; the fixed output length is 160 bytes.
+ */
 typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
 {
     ULONG BucketCountPlusTwo;
@@ -1897,6 +2338,9 @@ typedef struct _POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT
 } POWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT, *PPOWER_INTERNAL_FAN_IMPACT_STATS_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT structure contains the input parameters for the fan rpm buckets operation.
+ */
 typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1904,6 +2348,12 @@ typedef struct _POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT
 } POWER_INTERNAL_FAN_RPM_BUCKETS_INPUT, *PPOWER_INTERNAL_FAN_RPM_BUCKETS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_FAN_RPM_OUTPUT structure contains the output data returned by the PowerInternalFanRpmBuckets operation.
+ * \remarks Reversed from PopFanReadFanNoiseInfo (selector 85). NumberOfFanRpmBuckets is the enabled fan's bucket count; BucketMaxRpm and
+ * NoiseZoneMaxRpm are copied from the fan device state. The level requires exactly one enabled fan, otherwise STATUS_UNSUCCESSFUL (0xC0000001)
+ * is returned; the fixed output length is 88 bytes (see the C_ASSERT below).
+ */
 typedef struct _POWER_INTERNAL_FAN_RPM_OUTPUT
 {
     ULONG NumberOfFanRpmBuckets;
@@ -1914,13 +2364,22 @@ typedef struct _POWER_INTERNAL_FAN_RPM_OUTPUT
 C_ASSERT(sizeof(POWER_INTERNAL_FAN_RPM_OUTPUT) == 0x58);
 
 // rev
+/**
+ * The POWER_INTERNAL_BOOTAPP_DIAGNOSTIC structure contains the last boot application (bootmgr/winload) diagnostic captured from the persisted shutdown/BCD marker.
+ * \remarks Reversed from PopPowerInformationInternal level 86. The fields are copied from the kernel globals ExBootAppErrorDiagCode and
+ * ExBootAppFailureStatus (populated by PopCheckShutdownMarker; also emitted to ETW by BapdWriteEtwEvents). The level requires an output buffer
+ * of at least 8 bytes, otherwise STATUS_BUFFER_TOO_SMALL (0xC0000023) is returned.
+ */
 typedef struct _POWER_INTERNAL_BOOTAPP_DIAGNOSTIC
 {
-    ULONG BootAppErrorDiagCode; // bcdedit last status
-    ULONG BootAppFailureStatus; // bcdedit last status
+    ULONG BootAppErrorDiagCode; // ExBootAppErrorDiagCode (bcdedit last boot error diagnostic code)
+    ULONG BootAppFailureStatus; // ExBootAppFailureStatus (bcdedit last boot failure NTSTATUS)
 } POWER_INTERNAL_BOOTAPP_DIAGNOSTIC, *PPOWER_INTERNAL_BOOTAPP_DIAGNOSTIC;
 
 // rev
+/**
+ * The POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT structure contains the input parameters for the get acpi time and alarm capabilities operation.
+ */
 typedef struct _POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1929,12 +2388,18 @@ typedef struct _POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT
 } POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT, *PPOWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT structure contains the output data returned by the get acpi time and alarm capabilities operation.
+ */
 typedef struct  _POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT
 {
     UCHAR Capabilities[20];
 } POWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_GET_ACPI_TIME_AND_ALARM_CAPABILITIES_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT structure contains the input parameters for the soc identifier operation operation.
+ */
 typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1945,6 +2410,9 @@ typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT
 } POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT, *PPOWER_INTERNAL_SOC_IDENTIFIER_OPERATION_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT structure contains the output data returned by the soc identifier operation operation.
+ */
 typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT
 {
     // Action 0 returns a USHORT maximum-length value.
@@ -1953,6 +2421,9 @@ typedef struct _POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT
 } POWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT, *PPOWER_INTERNAL_SOC_IDENTIFIER_OPERATION_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT structure contains the input parameters for the vmperf priority support operation.
+ */
 typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1960,6 +2431,11 @@ typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT
 } POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT structure contains the output data returned by the PowerInternalGetVmPerfPrioritySupport operation.
+ * \remarks Reversed from PpmPerfGetVmPerfPrioritySupport. Values reflect the current PRCB perf domain's VmThrottlePriorityCount and are only
+ * populated when PpmPerfVmPerfSelectionSupported is set; VmThrottleSupportedAndConfigured is TRUE when VmThrottlePriorityCount != 0.
+ */
 typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
 {
     BOOLEAN VmThrottleSupportedAndConfigured;
@@ -1967,6 +2443,10 @@ typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT
 } POWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_SUPPORT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT structure contains the input parameters for the PowerInternalGetVmPerfPriorityConfig operation.
+ * \remarks Reversed from PpmPerfGetVmPerfPriorityConfig. Priority is the selector forwarded to the perf domain's PerfPriorityHandler callback.
+ */
 typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT
 {
     POWER_INFORMATION_LEVEL_INTERNAL InternalType;
@@ -1975,12 +2455,20 @@ typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT
 } POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_CONFIG_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT structure contains the output data returned by the PowerInternalGetVmPerfPriorityConfig operation.
+ * \remarks Reversed from PpmPerfGetVmPerfPriorityConfig. The 8-byte Data field is populated by the perf domain's PerfPriorityHandler callback;
+ * the level returns 0xC000003B when PpmPerfVmPerfSelectionSupported is clear or no handler is registered.
+ */
 typedef struct _POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT
 {
     ULONGLONG Data;
 } POWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT, *PPOWER_INTERNAL_VMPERF_PRIORITY_CONFIG_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT structure contains the input parameters for the directed fx add test device operation.
+ */
 typedef struct _POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1990,6 +2478,9 @@ typedef struct _POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT
 } POWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT, *PPOWER_INTERNAL_DIRECTED_FX_ADD_TEST_DEVICE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT structure contains the input parameters for the directed fx remove test device operation.
+ */
 typedef struct _POWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -1998,6 +2489,9 @@ typedef struct _POWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT
 } POWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT, *PPOWER_INTERNAL_DIRECTED_FX_REMOVE_TEST_DEVICE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT structure contains the input parameters for the directed fx set mode operation.
+ */
 typedef struct _POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2005,6 +2499,9 @@ typedef struct _POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT
 } POWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT, *PPOWER_INTERNAL_DIRECTED_FX_SET_MODE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT structure contains the output data returned by the directed drips query capabilities operation.
+ */
 typedef struct _POWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT
 {
     BOOLEAN SupportsDirectedFxTestDevice;
@@ -2012,6 +2509,9 @@ typedef struct _POWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT
 } POWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_DIRECTED_DRIPS_QUERY_CAPABILITIES_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_REGISTER_POWER_PLANE_INPUT structure contains the input parameters for the register power plane operation.
+ */
 typedef struct _POWER_INTERNAL_REGISTER_POWER_PLANE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2021,6 +2521,9 @@ typedef struct _POWER_INTERNAL_REGISTER_POWER_PLANE_INPUT
 } POWER_INTERNAL_REGISTER_POWER_PLANE_INPUT, *PPOWER_INTERNAL_REGISTER_POWER_PLANE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT structure contains the input parameters for the directed drips device flags operation.
+ */
 typedef struct _POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2030,6 +2533,9 @@ typedef struct _POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT
 } POWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT, *PPOWER_INTERNAL_DIRECTED_DRIPS_DEVICE_FLAGS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_RETRIEVE_HIBERFILE_RESUME_CONTEXT_OUTPUT structure contains the output data returned by the retrieve hiberfile resume context operation.
+ */
 typedef struct _POWER_INTERNAL_RETRIEVE_HIBERFILE_RESUME_CONTEXT_OUTPUT
 {
     ULONG Version;
@@ -2039,12 +2545,18 @@ typedef struct _POWER_INTERNAL_RETRIEVE_HIBERFILE_RESUME_CONTEXT_OUTPUT
 } POWER_INTERNAL_RETRIEVE_HIBERFILE_RESUME_CONTEXT_OUTPUT, *PPOWER_INTERNAL_RETRIEVE_HIBERFILE_RESUME_CONTEXT_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_QUERY_SLEEPSTUDY_HELPER_ROUTINE_BLOCK_OUTPUT structure contains the output data returned by the query sleepstudy helper routine block operation.
+ */
 typedef struct _POWER_INTERNAL_QUERY_SLEEPSTUDY_HELPER_ROUTINE_BLOCK_OUTPUT
 {
     PVOID HelperRoutineBlock;
 } POWER_INTERNAL_QUERY_SLEEPSTUDY_HELPER_ROUTINE_BLOCK_OUTPUT, *PPOWER_INTERNAL_QUERY_SLEEPSTUDY_HELPER_ROUTINE_BLOCK_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT structure contains the input parameters for the clear constraints operation.
+ */
 typedef struct _POWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2052,6 +2564,9 @@ typedef struct _POWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT
 } POWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT, *PPOWER_INTERNAL_CLEAR_CONSTRAINTS_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT structure contains the input parameters for the vm perf control config operation.
+ */
 typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2065,6 +2580,9 @@ typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT
 } POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT, *PPOWER_INTERNAL_VM_PERF_CONTROL_CONFIG_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_OUTPUT structure contains the output data returned by the vm perf control config operation.
+ */
 typedef struct _POWER_INTERNAL_VM_PERF_CONTROL_CONFIG_OUTPUT
 {
     ULONG Value0;
@@ -2099,18 +2617,27 @@ typedef POWER_INTERNAL_CONCURRENCY_STATS_OUTPUT POWER_INTERNAL_CLASS_CONCURRENCY
 typedef POWER_INTERNAL_CONCURRENCY_STATS_OUTPUT *PPOWER_INTERNAL_CLASS_CONCURRENCY_STATS_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES structure describes power internal query measurement capabilities.
+ */
 typedef struct _POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
 } POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES, *PPOWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES;
 
 // rev
+/**
+ * The POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT structure contains the output data returned by the query measurement capabilities operation.
+ */
 typedef struct _POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT
 {
     ULONG Capabilities;
 } POWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT, *PPOWER_INTERNAL_QUERY_MEASUREMENT_CAPABILITIES_OUTPUT;
 
 // rev
+/**
+ * The PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES structure describes processor internal query measurement values.
+ */
 typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2118,12 +2645,18 @@ typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES
 } PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES, *PPROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES;
 
 // rev
+/**
+ * The PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUE_ENTRY structure describes processor internal query measurement value entry.
+ */
 typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUE_ENTRY
 {
     ULONGLONG Value[3];
 } PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUE_ENTRY, *PPROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUE_ENTRY;
 
 // rev
+/**
+ * The PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT structure contains the output data returned by the query measurement values operation.
+ */
 typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT
 {
     ULONG EntryCount;
@@ -2132,12 +2665,18 @@ typedef struct _PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT
 } PROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT, *PPROCESSOR_INTERNAL_QUERY_MEASUREMENT_VALUES_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT structure contains the input parameters for the prepare for system initiated reboot operation.
+ */
 typedef struct _POWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
 } POWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT, *PPOWER_INTERNAL_PREPARE_FOR_SYSTEM_INITIATED_REBOOT_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT structure contains the input parameters for the override system initiated reboot state operation.
+ */
 typedef struct _POWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2146,6 +2685,9 @@ typedef struct _POWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT
 } POWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT, *PPOWER_INTERNAL_OVERRIDE_SYSTEM_INITIATED_REBOOT_STATE_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT structure contains the input parameters for the unregister shutdown notification operation.
+ */
 typedef struct _POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2154,6 +2696,9 @@ typedef struct _POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT
 } POWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT, *PPOWER_INTERNAL_UNREGISTER_SHUTDOWN_NOTIFICATION_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT structure contains the input parameters for the manage transition state record operation.
+ */
 typedef struct _POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2167,6 +2712,9 @@ typedef struct _POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT
 } POWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT, *PPOWER_INTERNAL_MANAGE_TRANSITION_STATE_RECORD_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT structure contains the input parameters for the suspend resume request operation.
+ */
 typedef struct _POWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2174,12 +2722,18 @@ typedef struct _POWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT
 } POWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT, *PPOWER_INTERNAL_SUSPEND_RESUME_REQUEST_INPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_ENERGY_ESTIMATION_ENTRY structure describes power internal energy estimation entry.
+ */
 typedef struct _POWER_INTERNAL_ENERGY_ESTIMATION_ENTRY
 {
     ULONG Data[4];
 } POWER_INTERNAL_ENERGY_ESTIMATION_ENTRY, *PPOWER_INTERNAL_ENERGY_ESTIMATION_ENTRY;
 
 // rev
+/**
+ * The POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT structure contains the output data returned by the energy estimation info operation.
+ */
 typedef struct _POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT
 {
     ULONG EntryCount;
@@ -2187,6 +2741,9 @@ typedef struct _POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT
 } POWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT, *PPOWER_INTERNAL_ENERGY_ESTIMATION_INFO_OUTPUT;
 
 // rev
+/**
+ * The POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT structure contains the input parameters for the notify win32k power request operation.
+ */
 typedef struct _POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2196,6 +2753,9 @@ typedef struct _POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_NOTIFY_WIN32K_POWER_REQUEST_INPUT) == 0x0C);
 
 // rev
+/**
+ * The POWER_INTERNAL_PDC_AGENT_SESSION_QUERY_INPUT structure contains the input parameters for the pdc agent session query operation.
+ */
 typedef struct _POWER_INTERNAL_PDC_AGENT_SESSION_QUERY_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2205,6 +2765,9 @@ typedef struct _POWER_INTERNAL_PDC_AGENT_SESSION_QUERY_INPUT
 C_ASSERT(sizeof(POWER_INTERNAL_PDC_AGENT_SESSION_QUERY_INPUT) == 0x0C);
 
 // rev
+/**
+ * The POWER_INTERNAL_SESSION_CONNECTION_INFO_V2 structure describes power internal session connection info v2.
+ */
 typedef struct _POWER_INTERNAL_SESSION_CONNECTION_INFO_V2
 {
     BOOLEAN Connected;
@@ -2213,6 +2776,9 @@ typedef struct _POWER_INTERNAL_SESSION_CONNECTION_INFO_V2
 } POWER_INTERNAL_SESSION_CONNECTION_INFO_V2, *PPOWER_INTERNAL_SESSION_CONNECTION_INFO_V2;
 
 // rev
+/**
+ * The POWER_INTERNAL_ADAPTIVE_SESSION_STATE_REQUEST structure describes power internal adaptive session state request.
+ */
 typedef struct _POWER_INTERNAL_ADAPTIVE_SESSION_STATE_REQUEST
 {
     ULONGLONG Field0;
@@ -2223,6 +2789,9 @@ typedef struct _POWER_INTERNAL_ADAPTIVE_SESSION_STATE_REQUEST
 } POWER_INTERNAL_ADAPTIVE_SESSION_STATE_REQUEST, *PPOWER_INTERNAL_ADAPTIVE_SESSION_STATE_REQUEST;
 
 // rev
+/**
+ * The POWER_INTERNAL_SESSION_CONNECTION_CHANGE_V2_INPUT structure contains the input parameters for the session connection change v2 operation.
+ */
 typedef struct _POWER_INTERNAL_SESSION_CONNECTION_CHANGE_V2_INPUT
 {
     POWER_INFORMATION_INTERNAL_HEADER Header;
@@ -2234,14 +2803,18 @@ C_ASSERT(sizeof(POWER_INTERNAL_SESSION_CONNECTION_CHANGE_V2_INPUT) == 0x30);
 
 // rev
 // POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT Flags values
-#define POWER_INFORMATION_ENERGY_TRACKER_PROCESS_MIN                   0x00000001ul
-#define POWER_INFORMATION_ENERGY_TRACKER_PROCESS_MAX                    0x00040000ul
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_NONE              0x00000000ul
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_PID          0x00000001ul
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_UNKNOWN      0x10000000ul
-#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_MASK         0xF0000000ul
+#define POWER_INFORMATION_ENERGY_TRACKER_PROCESS_MIN                    ULONG_C(0x00000001)
+#define POWER_INFORMATION_ENERGY_TRACKER_PROCESS_MAX                    ULONG_C(0x00040000)
+
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_NONE              ULONG_C(0x00000000)
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_PID          ULONG_C(0x00000001)
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_UNKNOWN      ULONG_C(0x10000000)
+#define POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_MASK         ULONG_C(0xF0000000)
 
 // rev
+/**
+ * The POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT structure contains the input parameters for the energy tracker create operation.
+ */
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT
 {
     ULONG MaxTrackedProcesses; // POWER_INFORMATION_ENERGY_TRACKER_PROCESS_MAX
@@ -2250,12 +2823,18 @@ typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT
 } POWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_CREATE_INPUT;
 
 // rev
+/**
+ * The POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT structure contains the output data returned by the energy tracker create operation.
+ */
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT
 {
     HANDLE QueryHandle;
 } POWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_CREATE_OUTPUT;
 
 // rev
+/**
+ * The POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT structure contains the input parameters for the energy tracker query operation.
+ */
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT
 {
     HANDLE QueryHandle;
@@ -2264,6 +2843,9 @@ typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_INPUT
 #define POWER_INFORMATION_ENERGY_TRACKER_SIGNATURE 0x00200013
 
 // rev
+/**
+ * The POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT structure contains the output data returned by the energy tracker query operation.
+ */
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
 {
     ULONG Signature;
@@ -2285,10 +2867,12 @@ typedef struct _POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT
     USHORT Reserved;
     ULONG CurrentSystemTimeLow;
     ULONG CurrentSystemTimeHigh;
-    // UCHAR Data[1];
 } POWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT, *PPOWER_INFORMATION_ENERGY_TRACKER_QUERY_OUTPUT;
 
 // rev
+/**
+ * The POWER_INFORMATION_ENERGY_TRACKER_ENTRY structure describes power information energy tracker entry.
+ */
 typedef struct _POWER_INFORMATION_ENERGY_TRACKER_ENTRY
 {
     ULONGLONG ProcessKey;       // requires POWER_INFORMATION_ENERGY_TRACKER_CREATE_FLAGS_MODE_PID
@@ -2343,6 +2927,9 @@ DEFINE_GUID(PoBlackBoxIdCsrGuid, 0x470BC061, 0x42C1, 0xADD0, 0x0C, 0xB1, 0x8E, 0
 DEFINE_GUID(PoBlackBoxIdSmGuid, 0x42D2AC4A, 0xD368, 0xF58F, 0x25, 0xA7, 0x6A, 0xC2, 0xDB, 0x76, 0x97, 0x8F);
 
 // rev
+/**
+ * The POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY structure describes power information bbr direct access request category.
+ */
 typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
 {
     ULONG Index;
@@ -2380,16 +2967,23 @@ typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
 //};
 
 // rev
+/**
+ * The POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT structure contains the input parameters for the UpdateBlackBoxRecorder (94) information level,
+ * used to write a payload into the power black-box recorder entry selected by Index.
+ * \remarks InputBufferLength must be sizeof(POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT) (0x20). Layout reversed from PopBlackBoxUpdate.
+ */
 typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
 {
-    ULONG Version;
-    ULONG Flags;
-    ULONG_PTR Reserved0; // must be zero
-    ULONG_PTR Reserved1; // must be zero
-    ULONG_PTR Reserved2; // must be zero
+    PVOID Buffer;   // Source data copied into the recorder entry.
+    SIZE_T Length;  // Length, in bytes, of the data at Buffer.
+    SIZE_T Offset;  // Destination offset within the entry (used when Flags & 1).
+    ULONG Index;    // Recorder entry/category index (valid range 0..24).
+    ULONG Flags;    // Bit 0: 1 = write Length bytes at Offset, 0 = replace snapshot (up to 4096 bytes).
 } POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT;
 
 // rev
+// note: In current builds PopBlackBoxDirectAccess does not evaluate these Category/Modifiers
+// flags; the level-97 handler only reads the plain Index field (see REQUEST_INPUT remarks below).
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MAX_CATEGORY 24
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_SHIFT 0
 #define POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY_MASK_RAW  0x0000FFFF
@@ -2402,24 +2996,26 @@ typedef struct _POWER_INFORMATION_BBR_UPDATE_REQUEST_INPUT
     ((ULONG)(modifiers) & POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_MODIFIERS_MASK)))
 
 // rev
+/**
+ * The POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT structure contains the input parameters for the BlackBoxRecorderDirectAccessBuffer (97) information level,
+ * used to obtain a direct-access mapping (kernel address + size) to the power black-box recorder entry selected by Index.
+ * \remarks InputBufferLength must be at least sizeof(POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT) (0x20). Layout reversed from PopBlackBoxDirectAccess.
+ * In this build the handler requires Reserved0..Reserved3 to be zero and only honors Index; the Version/Flags/Category/Modifiers/Offset/Length
+ * form and the POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_* macros above are not evaluated by the level-97 handler.
+ */
 typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT
 {
-    ULONG Version;
-    union
-    {
-        ULONG Flags;
-        struct
-        {
-            ULONG Category : 5; // Index from POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_CATEGORY
-            ULONG Reserved : 11;
-            ULONG Modifiers : 16;
-        };
-    };
-    ULONG_PTR Offset;
-    ULONG_PTR Length;
+    ULONGLONG Reserved0;    // Must be 0.
+    ULONGLONG Reserved1;    // Must be 0 (Offset is not honored in this build).
+    ULONGLONG Reserved2;    // Must be 0 (Length is not honored in this build).
+    ULONG Index;            // Recorder category index (valid range 0..24); selects PopBlackBoxEntries[Index].
+    ULONG Reserved3;        // Must be 0.
 } POWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT, *PPOWER_INFORMATION_BBR_DIRECT_ACCESS_REQUEST_INPUT;
 
 // rev
+/**
+ * The POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT structure contains the output data returned by the bbr direct access response operation.
+ */
 typedef struct _POWER_INFORMATION_BBR_DIRECT_ACCESS_RESPONSE_OUTPUT
 {
     PVOID UserMappingBase;
