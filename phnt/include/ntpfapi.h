@@ -591,8 +591,8 @@ typedef struct _PF_ROBUSTNESS_CONTROL
         {
             USHORT Version; // PF_ROBUSTNESS_CONTROL_VERSION
             USHORT Command; // PF_ROBUSTNESS_CONTROL_COMMAND
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONG DeprioProcessCount;
     ULONG ExemptProcessCount;
     ULONG DeprioFileCount;
