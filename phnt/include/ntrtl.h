@@ -16203,9 +16203,10 @@ RtlUnsubscribeWnfNotificationWithCompletionCallback(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 /**
- * The RtlWow64SuspendProcess routine suspends all threads in the specified process.
+ * The RtlQueryPropertyStore routine retrieves the value associated with a key in the process property store.
  *
- * \param ProcessHandle A handle to the process to suspend.
+ * \param Key The key whose value is retrieved.
+ * \param Context A pointer to a variable that receives the value associated with the key.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -16218,11 +16219,10 @@ RtlQueryPropertyStore(
 
 // rev
 /**
- * The RtlWow64ChangeThreadState routine applies a thread state change to a target thread through a thread state change handle.
+ * The RtlRemovePropertyStore routine removes a key and its value from the process property store.
  *
- * \param ThreadStateChangeHandle A handle to the thread state change object.
- * \param ThreadHandle A handle to the thread whose state is changed.
- * \param StateChangeType The THREAD_STATE_CHANGE_TYPE that specifies the state change to apply.
+ * \param Key The key to remove.
+ * \param Context A pointer to a variable that receives the value that was associated with the key.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -16275,10 +16275,11 @@ RtlWow64ChangeProcessState(
 
 // rev
 /**
- * The RtlRemovePropertyStore routine removes a key and its value from the process property store.
+ * The RtlWow64ChangeThreadState routine applies a thread state change to a target thread through a thread state change handle.
  *
- * \param Key The key to remove.
- * \param Context A pointer to a variable that receives the value that was associated with the key.
+ * \param ThreadStateChangeHandle A handle to the thread state change object.
+ * \param ThreadHandle A handle to the thread whose state is changed.
+ * \param StateChangeType The THREAD_STATE_CHANGE_TYPE that specifies the state change to apply.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -16294,10 +16295,9 @@ RtlWow64ChangeThreadState(
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
 /**
- * The RtlQueryPropertyStore routine retrieves the value associated with a key in the process property store.
+ * The RtlWow64SuspendProcess routine suspends all threads in the specified process.
  *
- * \param Key The key whose value is retrieved.
- * \param Context A pointer to a variable that receives the value associated with the key.
+ * \param ProcessHandle A handle to the process to suspend.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
