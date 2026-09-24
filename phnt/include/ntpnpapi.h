@@ -150,6 +150,15 @@ typedef enum _DEVICE_USAGE_NOTIFICATION_TYPE
 } DEVICE_USAGE_NOTIFICATION_TYPE, *PDEVICE_USAGE_NOTIFICATION_TYPE;
 
 #if (PHNT_VERSION < PHNT_WINDOWS_8)
+/**
+ * The NtGetPlugPlayEvent routine retrieves a Plug and Play event notification from the system event queue.
+ *
+ * \param EventHandle A handle to the synchronization event signaled when a PnP event is queued.
+ * \param Context An optional context pointer passed to the routine.
+ * \param EventBlock A pointer to a buffer that receives the PnP event block.
+ * \param EventBufferSize The size, in bytes, of the buffer pointed to by EventBlock.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -162,6 +171,14 @@ NtGetPlugPlayEvent(
     );
 #endif // (PHNT_VERSION < PHNT_WINDOWS_8)
 
+/**
+ * The NtPlugPlayControl routine performs a Plug and Play control operation.
+ *
+ * \param PnPControlClass The control class specifying the operation to perform.
+ * \param PnPControlData A pointer to the control data buffer whose layout depends on PnPControlClass.
+ * \param PnPControlDataLength The size, in bytes, of the control data buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -172,6 +189,11 @@ NtPlugPlayControl(
     _In_ ULONG PnPControlDataLength
     );
 
+/**
+ * The NtSerializeBoot routine serializes the boot sequence with respect to Plug and Play device enumeration.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -180,6 +202,11 @@ NtSerializeBoot(
     VOID
     );
 
+/**
+ * The NtEnableLastKnownGood routine enables the Last Known Good (LKG) configuration boot option.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -188,6 +215,11 @@ NtEnableLastKnownGood(
     VOID
     );
 
+/**
+ * The NtDisableLastKnownGood routine disables the Last Known Good (LKG) configuration boot option.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -196,6 +228,14 @@ NtDisableLastKnownGood(
     VOID
     );
 
+/**
+ * The NtReplacePartitionUnit routine replaces a hardware partition unit with a spare partition unit.
+ *
+ * \param TargetInstancePath A pointer to the path of the target partition unit to be replaced.
+ * \param SpareInstancePath A pointer to the path of the spare partition unit to use as replacement.
+ * \param Flags Flags controlling the replacement operation.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
