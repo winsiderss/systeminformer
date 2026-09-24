@@ -16102,6 +16102,9 @@ RtlGetReturnAddressHijackTarget(
     );
 #endif
 
+/**
+ * Flags for RtlCopyFileChunk.
+ */
 #define COPY_FILE_CHUNK_DUPLICATE_EXTENTS 0x00000001L // 24H2
 #define VALID_COPY_FILE_CHUNK_FLAGS (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)
 
@@ -16109,13 +16112,27 @@ RtlGetReturnAddressHijackTarget(
 // WNF
 //
 
+/**
+ * The RtlAllocateWnfSerializationGroup routine allocates a WNF serialization group used to order state change notifications.
+ *
+ * \return ULONG The identifier of the allocated WNF serialization group.
+ */
 NTSYSAPI
 ULONG
 NTAPI
 RtlAllocateWnfSerializationGroup(
-    void
+    VOID
     );
 
+/**
+ * The RtlQueryWnfMetaNotification routine queries meta-notification information for a WNF state name.
+ *
+ * \param Result A pointer to a variable that receives the query result.
+ * \param NameInfoClass The WNF_STATE_NAME_INFORMATION class that selects the information to query.
+ * \param StateName The WNF state name to query.
+ * \param ExplicitScope An optional pointer to the explicit scope SID for the query.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16126,18 +16143,35 @@ RtlQueryWnfMetaNotification(
     _In_opt_ PCSID ExplicitScope
     );
 
+/**
+ * The RtlQueryWnfStateDataWithExplicitScope routine retrieves the state data for a WNF state name within an explicit scope, decoding it with a caller-supplied type decoder.
+ *
+ * \param ChangeStamp A pointer to a variable that receives the change stamp of the returned data.
+ * \param StateName The WNF state name to query.
+ * \param ExplicitScope An optional pointer to the explicit scope for the query.
+ * \param TypeDecoder A pointer to a callback that decodes the raw state data into the caller's buffer.
+ * \param CallbackContext A caller-defined value passed to the type decoder callback.
+ * \param TypeId An optional pointer to the type identifier that describes the data format.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlQueryWnfStateDataWithExplicitScope(
-    _Out_ PULONG ChangeStamp,
-    _In_ ULONGLONG StateName,
+    _Out_ PWNF_CHANGE_STAMP ChangeStamp,
+    _In_ WNF_STATE_NAME StateName,
     _In_opt_ const VOID *ExplicitScope,
-    _In_ NTSTATUS (NTAPI *TypeDecoder)(_In_ ULONGLONG, _In_ ULONGLONG, _In_ ULONGLONG, _In_ ULONGLONG, _In_reads_bytes_(BufferLength) UCHAR *, _In_ ULONG BufferLength),
-    _In_ ULONGLONG CallbackContext,
-    _In_opt_ const VOID *TypeId
+    _In_ PWNF_USER_CALLBACK TypeDecoder,
+    _In_opt_ PVOID CallbackContext,
+    _In_opt_ PCWNF_TYPE_ID TypeId
     );
 
+/**
+ * The RtlUnsubscribeWnfNotificationWaitForCompletion routine removes a WNF notification subscription and waits for any in-progress callbacks to complete.
+ *
+ * \param SubscriptionHandle A handle to the WNF notification subscription to remove.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16145,6 +16179,14 @@ RtlUnsubscribeWnfNotificationWaitForCompletion(
     _In_ HANDLE SubscriptionHandle
     );
 
+/**
+ * The RtlUnsubscribeWnfNotificationWithCompletionCallback routine cancels a WNF subscription and invokes a completion callback once cancellation finishes.
+ *
+ * \param SubscriptionHandle The subscription handle to cancel.
+ * \param CompletionCallback An optional callback invoked when cancellation completes.
+ * \param CompletionContext An optional context value passed to the completion callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16160,6 +16202,12 @@ RtlUnsubscribeWnfNotificationWithCompletionCallback(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
+/**
+ * The RtlWow64SuspendProcess routine suspends all threads in the specified process.
+ *
+ * \param ProcessHandle A handle to the process to suspend.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16169,6 +16217,14 @@ RtlQueryPropertyStore(
     );
 
 // rev
+/**
+ * The RtlWow64ChangeThreadState routine applies a thread state change to a target thread through a thread state change handle.
+ *
+ * \param ThreadStateChangeHandle A handle to the thread state change object.
+ * \param ThreadHandle A handle to the thread whose state is changed.
+ * \param StateChangeType The THREAD_STATE_CHANGE_TYPE that specifies the state change to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16178,6 +16234,15 @@ RtlRemovePropertyStore(
     );
 
 // rev
+/**
+ * The RtlCompareExchangePropertyStore routine atomically compares and exchanges the value associated with a key in the process property store.
+ *
+ * \param Key The key whose value is exchanged.
+ * \param Comperand A pointer to the value that the current value is compared against.
+ * \param Exchange An optional pointer to the value to store if the comparison succeeds.
+ * \param Context A pointer to a variable that receives the previous value associated with the key.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16191,6 +16256,14 @@ RtlCompareExchangePropertyStore(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
+/**
+ * The RtlWow64ChangeProcessState routine applies a process state change to a target process through a process state change handle.
+ *
+ * \param ProcessStateChangeHandle A handle to the process state change object.
+ * \param ProcessHandle A handle to the process whose state is changed.
+ * \param StateChangeType The PROCESS_STATE_CHANGE_TYPE that specifies the state change to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16201,6 +16274,13 @@ RtlWow64ChangeProcessState(
     );
 
 // rev
+/**
+ * The RtlRemovePropertyStore routine removes a key and its value from the process property store.
+ *
+ * \param Key The key to remove.
+ * \param Context A pointer to a variable that receives the value that was associated with the key.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16213,6 +16293,13 @@ RtlWow64ChangeThreadState(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
 // rev
+/**
+ * The RtlQueryPropertyStore routine retrieves the value associated with a key in the process property store.
+ *
+ * \param Key The key whose value is retrieved.
+ * \param Context A pointer to a variable that receives the value associated with the key.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16222,9 +16309,10 @@ RtlWow64SuspendProcess(
 
 // rev
 /**
- * The RtlSetPortableOperatingSystem routine sets whether the operating system is marked as a portable (Windows To Go) installation.
+ * The RtlWow64SuspendThread routine suspends the specified thread.
  *
- * \param IsPortable Set to `TRUE` to mark the operating system as portable, or `FALSE` otherwise.
+ * \param ThreadHandle A handle to the thread to suspend.
+ * \param SuspendCount An optional pointer to a variable that receives the thread's previous suspend count.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -16238,6 +16326,11 @@ RtlWow64SuspendThread(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
+/**
+ * The RtlGetCurrentThreadPrimaryGroup routine returns the processor group number that is primary for the current thread.
+ *
+ * \return USHORT The primary processor group number of the current thread.
+ */
 NTSYSAPI
 USHORT
 NTAPI
@@ -16248,6 +16341,15 @@ RtlGetCurrentThreadPrimaryGroup(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
 // rev
+/**
+ * The RtlQueryProcessAvailableCpus routine retrieves the set of processors available to the specified process.
+ *
+ * \param ProcessHandle A handle to the process to query.
+ * \param Affinity A pointer to a KAFFINITY_EX structure that receives the available processor affinity.
+ * \param ObservedSequenceNumber The sequence number previously observed by the caller.
+ * \param SequenceNumber An optional pointer to a variable that receives the current sequence number.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16260,9 +16362,11 @@ RtlQueryProcessAvailableCpus(
 
 // rev
 /**
- * The RtlRestoreBootStatusDefaults routine restores the boot status data file to its default values.
+ * The RtlQueryProcessAvailableCpusCount routine retrieves the number of processors available to the specified process.
  *
- * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \param ProcessHandle A handle to the process to query.
+ * \param AvailableCpusCount A pointer to a variable that receives the number of available processors.
+ * \param SequenceNumber An optional pointer to a variable that receives the current sequence number.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
