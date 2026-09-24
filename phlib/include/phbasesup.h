@@ -2980,14 +2980,14 @@ NTAPI
 PhConvertUtf16ToAsciiEx(
     _In_ PCWCH Buffer,
     _In_ SIZE_T Length,
-    _In_opt_ CHAR Replacement
+    _In_ CHAR Replacement
     );
 
 FORCEINLINE
 PPH_BYTES
 PhConvertUtf16ToAscii(
     _In_ PCWSTR Buffer,
-    _In_opt_ CHAR Replacement
+    _In_ CHAR Replacement
     )
 {
     return PhConvertUtf16ToAsciiEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR), Replacement);
@@ -4851,6 +4851,50 @@ ULONG
 NTAPI
 PhCountBitsUlong64(
     _In_ ULONG64 Value
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhAreBitsSet(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG Length
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhClearBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToClear
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToSet
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhNumberOfSetBits(
+    _In_ PRTL_BITMAP BitMapHeader
+    );
+
+_Success_(return != ULONG_MAX)
+PHLIBAPI
+ULONG
+NTAPI
+PhFindClearBitsAndSet(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
 //
