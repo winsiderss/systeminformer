@@ -15870,6 +15870,13 @@ RtlRegisterFeatureConfigurationChangeNotification(
     );
 
 // private
+/**
+ * The RtlUnsubscribeFromFeatureUsageNotifications routine removes feature usage notification subscriptions previously created by RtlSubscribeForFeatureUsageNotification.
+ *
+ * \param SubscriptionDetails A pointer to an array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries describing the subscriptions to remove.
+ * \param SubscriptionCount The number of entries in the SubscriptionDetails array.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15878,6 +15885,13 @@ RtlUnregisterFeatureConfigurationChangeNotification(
     );
 
 // private
+/**
+ * The RtlSubscribeForFeatureUsageNotification routine subscribes for notifications about usage of the specified features.
+ *
+ * \param SubscriptionDetails A pointer to an array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries describing the subscriptions.
+ * \param SubscriptionCount The number of entries in the SubscriptionDetails array.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15887,6 +15901,12 @@ RtlSubscribeForFeatureUsageNotification(
     );
 
 // private
+/**
+ * The RtlUnregisterFeatureConfigurationChangeNotification routine removes a feature configuration change notification registration.
+ *
+ * \param RegistrationHandle The registration handle returned when the change notification was registered.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15898,6 +15918,15 @@ RtlUnsubscribeFromFeatureUsageNotifications(
 
 // private
 #if (PHNT_VERSION >= PHNT_WINDOWS_11)
+/**
+ * The RtlOverwriteFeatureConfigurationBuffer routine replaces the current feature configuration buffer.
+ *
+ * \param PreviousChangeStamp An optional change stamp that must match the current one for the update to occur.
+ * \param ConfigurationType The type of feature configuration to overwrite.
+ * \param ConfigurationBuffer An optional buffer containing the new feature configuration.
+ * \param ConfigurationBufferSize The size, in bytes, of ConfigurationBuffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15910,21 +15939,28 @@ RtlOverwriteFeatureConfigurationBuffer(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_11
 
 // rev
+/**
+ * The RtlNotifyFeatureToggleUsage routine reports usage of a feature toggle to the feature configuration subsystem.
+ *
+ * \param FeatureId The identifier of the feature toggle.
+ * \param Configuration The feature configuration.
+ * \param UsageKind The kind of feature usage being reported.
+ * \return ULONG Status or result code.
+ */
 NTSYSAPI
-NTSTATUS
+ULONG
 NTAPI
 RtlNotifyFeatureToggleUsage(
-    _In_ PRTL_FEATURE_USAGE_REPORT FeatureUsageReport,
-    _In_ RTL_FEATURE_ID FeatureId,
-    _In_ ULONG Flags
+    _In_ ULONG FeatureId,
+    _In_ ULONGLONG Configuration,
+    _In_ ULONG UsageKind
     );
 
 // rev
 /**
- * The RtlSetProxiedProcessId routine sets the proxied process identifier for the current process.
+ * The RtlGetFeatureTogglesChangeToken routine returns a token that changes whenever the feature toggle state changes.
  *
- * \param ProxiedProcessId The proxied process identifier to set.
- * \return ULONG The previous proxied process identifier.
+ * \return ULONG The current feature toggles change token.
  */
 NTSYSAPI
 ULONG
@@ -15943,11 +15979,17 @@ RtlGetFeatureTogglesChangeToken(
 //
 // Run once initializer
 //
+/**
+ * Static initializer for a run-once synchronization object.
+ */
 #define RTL_RUN_ONCE_INIT {0}
 
 //
 // Run once flags
 //
+/**
+ * Flags for the run-once initialization routines.
+ */
 #define RTL_RUN_ONCE_CHECK_ONLY     0x00000001UL
 #define RTL_RUN_ONCE_ASYNC          0x00000002UL
 #define RTL_RUN_ONCE_INIT_FAILED    0x00000004UL
@@ -15955,14 +15997,26 @@ RtlGetFeatureTogglesChangeToken(
 // The context stored in the run once structure must
 // leave the following number of low order bits unused.
 //
+/**
+ * Number of low-order context bits reserved by the run-once routines.
+ */
 #define RTL_RUN_ONCE_CTX_RESERVED_BITS 2
 
+/**
+ * Represents a one-time initialization (run-once) synchronization object.
+ */
 typedef union _RTL_RUN_ONCE
 {
     PVOID Ptr;
 } RTL_RUN_ONCE, *PRTL_RUN_ONCE;
 #endif // _RTL_RUN_ONCE_DEF
 
+/**
+ * The RtlRunOnceInitialize routine initializes a one-time initialization (RTL_RUN_ONCE) structure.
+ *
+ * \param RunOnce A pointer to the RTL_RUN_ONCE structure to initialize.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ntddk/nf-ntddk-rtlrunonceinitialize
+ */
 NTSYSAPI
 VOID
 NTAPI
@@ -15976,8 +16030,20 @@ LOGICAL NTAPI RTL_RUN_ONCE_INIT_FN(
     _Inout_opt_ PVOID Parameter,
     _Inout_opt_ PVOID *Context
     );
+/**
+ * Pointer to an RTL_RUN_ONCE_INIT_FN callback.
+ */
 typedef RTL_RUN_ONCE_INIT_FN *PRTL_RUN_ONCE_INIT_FN;
 
+/**
+ * The RtlRunOnceExecuteOnce routine executes a one-time initialization routine, ensuring it runs exactly once across threads.
+ *
+ * \param RunOnce The run-once structure that tracks initialization state.
+ * \param InitFn The initialization routine to execute.
+ * \param Parameter An optional parameter passed to the initialization routine.
+ * \param Context An optional pointer that receives the context produced by initialization.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Maybe_raises_SEH_exception_
 NTSYSAPI
 NTSTATUS
@@ -15989,6 +16055,14 @@ RtlRunOnceExecuteOnce(
     _Outptr_opt_result_maybenull_ PVOID *Context
     );
 
+/**
+ * The RtlRunOnceBeginInitialize routine begins a one-time initialization, optionally in asynchronous mode.
+ *
+ * \param RunOnce The run-once structure that tracks initialization state.
+ * \param Flags Flags controlling the initialization (for example, RTL_RUN_ONCE_CHECK_ONLY).
+ * \param Context An optional pointer that receives the context associated with the completed initialization.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Must_inspect_result_
 NTSYSAPI
 NTSTATUS
@@ -15999,6 +16073,14 @@ RtlRunOnceBeginInitialize(
     _Outptr_opt_result_maybenull_ PVOID *Context
     );
 
+/**
+ * The RtlRunOnceComplete routine completes a one-time initialization begun with RtlRunOnceBeginInitialize.
+ *
+ * \param RunOnce The run-once structure that tracks initialization state.
+ * \param Flags Flags controlling completion (for example, RTL_RUN_ONCE_INIT_FAILED).
+ * \param Context An optional context value to associate with the completed initialization.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
