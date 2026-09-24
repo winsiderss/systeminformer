@@ -4616,11 +4616,11 @@ PssNtWalkSnapshot(
 
 // rev
 /**
- * The PssNtValidateDescriptor routine validates a process snapshot descriptor.
+ * The PssNtFreeWalkMarker routine frees a walk marker created for walking a process snapshot.
  *
- * \param SnapshotHandle A handle to the process snapshot.
- * \param ExceptionAddress An optional return address where an exception occurred.
+ * \param WalkMarkerHandle A pointer to the walk marker handle to free.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalkmarkerfree
  */
 NTSYSAPI
 NTSTATUS
@@ -4631,11 +4631,11 @@ PssNtFreeWalkMarker(
 
 // rev
 /**
- * The PssNtFreeWalkMarker routine frees a walk marker created for walking a process snapshot.
+ * The PssNtValidateDescriptor routine validates a process snapshot descriptor.
  *
- * \param WalkMarkerHandle A pointer to the walk marker handle to free.
+ * \param SnapshotHandle A handle to the process snapshot.
+ * \param ExceptionAddress An optional return address where an exception occurred.
  * \return NTSTATUS Successful or errant status.
- * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalkmarkerfree
  */
 NTSYSAPI
 NTSTATUS
