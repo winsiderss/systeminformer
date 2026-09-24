@@ -166,7 +166,6 @@ typedef struct _KEY_CACHED_INFORMATION
  */
 #define REG_KEY_RECURSE_FLAG 0x0008
 
-// private
 /**
  * The KEY_FLAGS_INFORMATION structure contains various flags about a registry key or subkey.
  */
@@ -198,7 +197,6 @@ typedef struct _KEY_VIRTUALIZATION_INFORMATION
     ULONG Reserved : 27;
 } KEY_VIRTUALIZATION_INFORMATION, *PKEY_VIRTUALIZATION_INFORMATION;
 
-// private
 /**
  * The KEY_TRUST_INFORMATION structure contains information about the trust status of a key.
  *
@@ -213,7 +211,6 @@ typedef struct _KEY_TRUST_INFORMATION
     ULONG Reserved : 31;
 } KEY_TRUST_INFORMATION, *PKEY_TRUST_INFORMATION;
 
-// private
 /**
  * The KEY_LAYER_INFORMATION structure contains information about a key layer.
  *
@@ -340,6 +337,16 @@ typedef struct _KEY_CONTROL_FLAGS_INFORMATION
     ULONG ControlFlags;
 } KEY_CONTROL_FLAGS_INFORMATION, *PKEY_CONTROL_FLAGS_INFORMATION;
 
+/**
+ * The KEY_SET_VIRTUALIZATION_INFORMATION structure is used to set virtualization
+ * related flags on a registry key.
+ *
+ * The fields include:
+ * - VirtualTarget: When set, marks the key as a virtualization target.
+ * - VirtualStore: When set, marks the key as part of the virtual store path.
+ * - VirtualSource: True if the key has been virtualized at least once.
+ * - Reserved: Reserved bits for future use.
+ */
 typedef struct _KEY_SET_VIRTUALIZATION_INFORMATION
 {
     ULONG VirtualTarget : 1;
@@ -428,7 +435,6 @@ typedef DECLSPEC_ALIGN(8) struct _KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
     _Field_size_bytes_(DataLength) UCHAR Data[1];
 } KEY_VALUE_PARTIAL_INFORMATION_ALIGN64, *PKEY_VALUE_PARTIAL_INFORMATION_ALIGN64;
 
-// private
 /**
  * The KEY_VALUE_LAYER_INFORMATION structure defines the flags for a value entry of a registry key.
  */
@@ -438,7 +444,13 @@ typedef struct _KEY_VALUE_LAYER_INFORMATION
     ULONG Reserved : 31;
 } KEY_VALUE_LAYER_INFORMATION, *PKEY_VALUE_LAYER_INFORMATION;
 
-// private
+/**
+ * The CM_EXTENDED_PARAMETER_TYPE enumeration specifies the kind of extended
+ * parameter contained in a CM_EXTENDED_PARAMETER structure.
+ *
+ * Values indicate how the union in CM_EXTENDED_PARAMETER should be interpreted
+ * (for example, as a handle, pointer, size, access mask, etc.).
+ */
 typedef enum _CM_EXTENDED_PARAMETER_TYPE
 {
     CmExtendedParameterInvalidType,
@@ -450,7 +462,12 @@ typedef enum _CM_EXTENDED_PARAMETER_TYPE
 
 #define CM_EXTENDED_PARAMETER_TYPE_BITS 8
 
-// private
+/**
+ * The CM_EXTENDED_PARAMETER structure represents an extended parameter passed to registry APIs.
+ *
+ * It contains a type field and a union for the parameter value which may be a pointer, handle,
+ * size or other scalar value.
+ */
 typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
 {
     struct
@@ -470,6 +487,15 @@ typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
     };
 } CM_EXTENDED_PARAMETER, *PCM_EXTENDED_PARAMETER;
 
+/**
+ * The KEY_VALUE_ENTRY structure describes a single value entry for registry queries.
+ *
+ * The fields include:
+ * - ValueName: The name of the value.
+ * - DataLength: The length, in bytes, of the value data.
+ * - DataOffset: The offset, in the returned buffer, to the value data.
+ * - Type: The registry value type (REG_*) for the value data.
+ */
 typedef struct _KEY_VALUE_ENTRY
 {
     PUNICODE_STRING ValueName;
@@ -478,6 +504,14 @@ typedef struct _KEY_VALUE_ENTRY
     ULONG Type;
 } KEY_VALUE_ENTRY, *PKEY_VALUE_ENTRY;
 
+/**
+ * The REG_ACTION enumeration describes the type of change reported by
+ * registry change notifications.
+ *
+ * - KeyAdded: A key was created.
+ * - KeyRemoved: A key was deleted.
+ * - KeyModified: A key was modified.
+ */
 typedef enum _REG_ACTION
 {
     KeyAdded,
@@ -485,6 +519,16 @@ typedef enum _REG_ACTION
     KeyModified
 } REG_ACTION;
 
+/**
+ * The REG_NOTIFY_INFORMATION structure is returned by registry change
+ * notifications and describes a single change event.
+ *
+ * Fields:
+ * - NextEntryOffset: Offset, in bytes, to the next REG_NOTIFY_INFORMATION entry in the buffer (0 for last).
+ * - Action: The type of change (REG_ACTION).
+ * - KeyLength: Length, in bytes, of the Key name string.
+ * - Key: Wide-character buffer containing the name of the key affected (not necessarily null-terminated).
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _REG_NOTIFY_INFORMATION
 {
@@ -526,7 +570,7 @@ typedef struct _REG_NOTIFY_INFORMATION
 #define REG_OPENED_EXISTING_KEY     (0x00000002L)   // Existing Key opened
 
 //
-// hive format to be used by Reg(Nt)SaveKeyEx
+// Hive format to be used by Reg(Nt)SaveKeyEx
 //
 #define REG_STANDARD_FORMAT     1
 #define REG_LATEST_FORMAT       2
@@ -559,6 +603,42 @@ typedef struct _REG_NOTIFY_INFORMATION
 #define REG_FORCE_UNLOAD            1
 #define REG_UNLOAD_LEGAL_FLAGS      (REG_FORCE_UNLOAD)
 
+//
+// Notify filter values
+//
+#define REG_NOTIFY_CHANGE_NAME          (0x00000001L) // Create or delete (child)
+#define REG_NOTIFY_CHANGE_ATTRIBUTES    (0x00000002L)
+#define REG_NOTIFY_CHANGE_LAST_SET      (0x00000004L) // time stamp
+#define REG_NOTIFY_CHANGE_SECURITY      (0x00000008L)
+#define REG_NOTIFY_THREAD_AGNOSTIC      (0x10000000L) // Not associated with a calling thread, can only be used
+                                                      // for async user event based notification
+#ifndef REG_LEGAL_CHANGE_FILTER
+#define REG_LEGAL_CHANGE_FILTER \
+    (REG_NOTIFY_CHANGE_NAME |\
+     REG_NOTIFY_CHANGE_ATTRIBUTES |\
+     REG_NOTIFY_CHANGE_LAST_SET |\
+     REG_NOTIFY_CHANGE_SECURITY |\
+     REG_NOTIFY_THREAD_AGNOSTIC)
+#endif
+
+//
+// Predefined Value Types.
+//
+#define REG_NONE                        ( 0ul ) // No value type
+#define REG_SZ                          ( 1ul ) // Unicode nul terminated string
+#define REG_EXPAND_SZ                   ( 2ul ) // Unicode nul terminated string (with environment variable references)
+#define REG_BINARY                      ( 3ul ) // Free form binary
+#define REG_DWORD                       ( 4ul ) // 32-bit number
+#define REG_DWORD_LITTLE_ENDIAN         ( 4ul ) // 32-bit number (same as REG_DWORD)
+#define REG_DWORD_BIG_ENDIAN            ( 5ul ) // 32-bit number
+#define REG_LINK                        ( 6ul ) // Symbolic Link (unicode)
+#define REG_MULTI_SZ                    ( 7ul ) // Multiple Unicode strings
+#define REG_RESOURCE_LIST               ( 8ul ) // Resource list in the resource map
+#define REG_FULL_RESOURCE_DESCRIPTOR    ( 9ul ) // Resource list in the hardware description
+#define REG_RESOURCE_REQUIREMENTS_LIST  ( 10ul )
+#define REG_QWORD                       ( 11ul ) // 64-bit number
+#define REG_QWORD_LITTLE_ENDIAN         ( 11ul ) // 64-bit number (same as REG_QWORD)
+
 /**
  * Creates a new registry key routine or opens an existing one.
  *
@@ -570,6 +650,7 @@ typedef struct _REG_NOTIFY_INFORMATION
  * \param[in] CreateOptions The options to use when creating the key.
  * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -597,6 +678,7 @@ NtCreateKey(
  * \param[in] TransactionHandle A handle to the transaction.
  * \param[out, optional] Disposition A pointer to a variable that receives the disposition value.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwcreatekeytransacted
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -640,6 +722,7 @@ NtOpenKey(
  * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \param[in] TransactionHandle A handle to the transaction.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeytransacted
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -660,6 +743,7 @@ NtOpenKeyTransacted(
  * \param[in] ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object attributes.
  * \param[in] OpenOptions The options to use when opening the key.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeyex
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -681,6 +765,7 @@ NtOpenKeyEx(
  * \param[in] OpenOptions The options to use when opening the key.
  * \param[in] TransactionHandle A handle to the transaction.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwopenkeytransactedex
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -699,6 +784,7 @@ NtOpenKeyTransactedEx(
  *
  * \param[in] KeyHandle A handle to the key to be deleted.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwdeletekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -714,6 +800,7 @@ NtDeleteKey(
  * \param[in] KeyHandle A handle to the key to be renamed.
  * \param[in] NewName A pointer to a UNICODE_STRING structure that specifies the new name of the key.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwrenamekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -730,6 +817,7 @@ NtRenameKey(
  * \param[in] KeyHandle A handle to the key that contains the value to be deleted.
  * \param[in] ValueName A pointer to a UNICODE_STRING structure that specifies the name of the value to be deleted.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwdeletevaluekey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -749,6 +837,7 @@ NtDeleteValueKey(
  * \param[in] Length The size of the buffer.
  * \param[out] ResultLength A pointer to a variable that receives the size of the data returned.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwquerykey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -907,6 +996,7 @@ NtEnumerateValueKey(
  *
  * \param[in] KeyHandle A handle to the key to be flushed.
  * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/wdm/nf-wdm-zwflushkey
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -1009,7 +1099,7 @@ NtLoadKeyEx(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
-// rev by tyranid
+// rev
 /**
  * Loads a registry key from a file with extended parameters.
  *
@@ -1258,12 +1348,24 @@ NtQueryOpenSubKeys(
     _Out_ PULONG HandleCount
     );
 
+/**
+ * The KEY_PID_ARRAY structure associates a process id with a registry key name.
+ * It is used when reporting open subkeys and the process that holds them.
+ */
 typedef struct _KEY_PID_ARRAY
 {
     HANDLE ProcessId;
     UNICODE_STRING KeyName;
 } KEY_PID_ARRAY, *PKEY_PID_ARRAY;
 
+/**
+ * The KEY_OPEN_SUBKEYS_INFORMATION structure contains an array of KEY_PID_ARRAY entries
+ * describing subkeys that are currently open.
+ *
+ * The fields include:
+ * - Count: Number of entries in KeyArray.
+ * - KeyArray: Array of KEY_PID_ARRAY items.
+ */
 typedef struct _KEY_OPEN_SUBKEYS_INFORMATION
 {
     ULONG Count;
@@ -1294,7 +1396,6 @@ NtQueryOpenSubKeysEx(
 //
 // Boot condition flags (NtInitializeRegistry)
 //
-
 #define REG_INIT_BOOT_SM 0x0000
 #define REG_INIT_BOOT_SETUP 0x0001
 #define REG_INIT_BOOT_ACCEPTED_BASE 0x0002
@@ -1331,8 +1432,8 @@ NtLockRegistryKey(
 /**
  * Locks the product activation keys.
  *
- * \param pPrivateVer Optional pointer to a private version variable.
- * \param pSafeMode Optional pointer to a safe mode variable.
+ * \param PrivateVersion Optional pointer to a private version variable.
+ * \param SafeMode Optional pointer to a safe mode variable.
  * \return NTSTATUS Successful or errant status.
  */
 _Kernel_entry_
@@ -1340,8 +1441,8 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 NtLockProductActivationKeys(
-    _Inout_opt_ ULONG *pPrivateVer,
-    _Out_opt_ ULONG *pSafeMode
+    _Inout_opt_ PULONG PrivateVersion,
+    _Out_opt_ PULONG SafeMode
     );
 
 /**
@@ -1467,7 +1568,10 @@ NtRollbackRegistryTransaction(
 #define IOCTL_VR_LOAD_DIFFERENCING_HIVE_FOR_HOST    CTL_CODE(FILE_DEVICE_UNKNOWN, 8, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: VR_LOAD_DIFFERENCING_HIVE_FOR_HOST
 #define IOCTL_VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST  CTL_CODE(FILE_DEVICE_UNKNOWN, 9, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST
 
-// private
+/**
+ * VR_INITIALIZE_JOB_FOR_VREG is used with the VReg driver to associate a job object
+ * with the virtualization driver instance.
+ */
 typedef struct _VR_INITIALIZE_JOB_FOR_VREG
 {
     HANDLE Job;
@@ -1478,7 +1582,14 @@ typedef struct _VR_INITIALIZE_JOB_FOR_VREG
 #define VR_FLAG_WRITE_THROUGH_HIVE 0x00000002 // since REDSTONE2
 #define VR_FLAG_LOCAL_MACHINE_TRUST_CLASS 0x00000004 // since 21H1
 
-// rev + private
+// rev
+/**
+ * VR_LOAD_DIFFERENCING_HIVE describes parameters for loading a differencing hive
+ * for the virtualization driver.
+ *
+ * The structure contains job handle, path length fields, flags and an inline
+ * buffer with wide-character strings for the paths.
+ */
 typedef struct _VR_LOAD_DIFFERENCING_HIVE
 {
     HANDLE Job;
@@ -1496,7 +1607,11 @@ typedef struct _VR_LOAD_DIFFERENCING_HIVE
     // WCHAR NextLayerKeyPath[1];
 } VR_LOAD_DIFFERENCING_HIVE, *PVR_LOAD_DIFFERENCING_HIVE;
 
-// rev + private
+// rev
+/**
+ * VR_CREATE_NAMESPACE_NODE contains parameters for creating a namespace node
+ * that maps a container path to a host path for virtualized registry access.
+ */
 typedef struct _VR_CREATE_NAMESPACE_NODE
 {
     HANDLE Job;
@@ -1510,7 +1625,10 @@ typedef struct _VR_CREATE_NAMESPACE_NODE
     // WCHAR HostPath[1];
 } VR_CREATE_NAMESPACE_NODE, *PVR_CREATE_NAMESPACE_NODE;
 
-// private
+/**
+ * VR_MODIFY_FLAGS specifies flags to add or remove for a given job in the
+ * virtualization driver.
+ */
 typedef struct _VR_MODIFY_FLAGS
 {
     HANDLE Job;
@@ -1518,7 +1636,10 @@ typedef struct _VR_MODIFY_FLAGS
     ULONG RemoveFlags;
 } VR_MODIFY_FLAGS, *PVR_MODIFY_FLAGS;
 
-// private
+/**
+ * NAMESPACE_NODE_DATA describes a single namespace node entry containing access
+ * mask, path lengths, flags and inline strings for paths.
+ */
 typedef struct _NAMESPACE_NODE_DATA
 {
     ACCESS_MASK AccessMask;
@@ -1531,7 +1652,11 @@ typedef struct _NAMESPACE_NODE_DATA
     // WCHAR HostPath[1];
 } NAMESPACE_NODE_DATA, *PNAMESPACE_NODE_DATA;
 
-// private
+/**
+ * VR_CREATE_MULTIPLE_NAMESPACE_NODES is used to create multiple namespace nodes
+ * in a single operation. It contains the job handle, number of keys and an
+ * inline array of NAMESPACE_NODE_DATA items.
+ */
 typedef struct _VR_CREATE_MULTIPLE_NAMESPACE_NODES
 {
     HANDLE Job;
@@ -1539,7 +1664,10 @@ typedef struct _VR_CREATE_MULTIPLE_NAMESPACE_NODES
     NAMESPACE_NODE_DATA Keys[1];
 } VR_CREATE_MULTIPLE_NAMESPACE_NODES, *PVR_CREATE_MULTIPLE_NAMESPACE_NODES;
 
-// private
+/**
+ * VR_UNLOAD_DYNAMICALLY_LOADED_HIVES requests unloading of dynamically loaded
+ * differencing hives for a job.
+ */
 typedef struct _VR_UNLOAD_DYNAMICALLY_LOADED_HIVES
 {
     HANDLE Job;
@@ -1551,6 +1679,10 @@ typedef struct _VR_UNLOAD_DYNAMICALLY_LOADED_HIVES
 #define VR_KEY_CONTROL_SET 2      // \Registry\Machine\System\ControlSet001 // since REDSTONE2
 
 // rev
+/**
+ * VR_GET_VIRTUAL_ROOT is used to request a virtual root key for a given job
+ * and index (VR_KEY_*).
+ */
 typedef struct _VR_GET_VIRTUAL_ROOT
 {
     HANDLE Job;
@@ -1558,12 +1690,21 @@ typedef struct _VR_GET_VIRTUAL_ROOT
 } VR_GET_VIRTUAL_ROOT, *PVR_GET_VIRTUAL_ROOT;
 
 // rev
+/**
+ * VR_GET_VIRTUAL_ROOT_RESULT contains the resulting key handle returned by
+ * a VR_GET_VIRTUAL_ROOT request.
+ */
 typedef struct _VR_GET_VIRTUAL_ROOT_RESULT
 {
     HANDLE Key;
 } VR_GET_VIRTUAL_ROOT_RESULT, *PVR_GET_VIRTUAL_ROOT_RESULT;
 
 // rev
+/**
+ * VR_LOAD_DIFFERENCING_HIVE_FOR_HOST describes parameters to load a differencing
+ * hive on behalf of a host. It contains flags, path lengths and inline string
+ * buffers for the key and hive paths.
+ */
 typedef struct _VR_LOAD_DIFFERENCING_HIVE_FOR_HOST
 {
     ULONG LoadFlags; // NtLoadKeyEx flags
@@ -1580,6 +1721,11 @@ typedef struct _VR_LOAD_DIFFERENCING_HIVE_FOR_HOST
 } VR_LOAD_DIFFERENCING_HIVE_FOR_HOST, *PVR_LOAD_DIFFERENCING_HIVE_FOR_HOST;
 
 // rev
+/**
+ * VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST is used to request unloading of a
+ * differencing hive for the host. It contains the target key path length and
+ * path buffer.
+ */
 typedef struct _VR_UNLOAD_DIFFERENCING_HIVE_FOR_HOST
 {
     ULONG Reserved;
