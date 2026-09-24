@@ -92,6 +92,16 @@ D3DKMTEnumProcesses(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
+/**
+ * The NtDirectGraphicsCall routine invokes a direct graphics kernel call.
+ *
+ * \param InputBufferLength The length, in bytes, of the input buffer.
+ * \param InputBuffer An optional pointer to the input buffer.
+ * \param OutputBufferLength The length, in bytes, of the output buffer.
+ * \param OutputBuffer An optional pointer to the output buffer that receives call results.
+ * \param ReturnLength An optional pointer to a variable that receives the size, in bytes, of the returned data.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
