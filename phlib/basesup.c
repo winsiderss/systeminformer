@@ -517,7 +517,7 @@ NTSTATUS PhQueueUserWorkItem(
 
     TpInitializeCallbackEnviron(&environment);
     TpSetCallbackLongFunction(&environment);
-    TpSetCallbackPriority(&environment, TP_CALLBACK_PRIORITY_NORMAL);
+    TpSetCallbackPriority(&environment, TP_CALLBACK_PRIORITY_HIGH);
 
     status = TpSimpleTryPost(PhpBaseThreadQueueStart, context, &environment);
 
@@ -632,24 +632,52 @@ DOUBLE PhReadTimeStampFrequency(
 /**
  * Reads the time stamp counter.
  *
- * This function reads the time stamp counter using the `__rdtscp` instruction,
- * which is a serializing variant of the `rdtsc` instruction. It also includes
- * a memory fence to ensure proper ordering of memory operations.
+ * On x86/x64 this uses the `__rdtscp` instruction, which waits for all prior
+ * instructions to complete, followed by a speculation fence so later instructions
+ * cannot begin before the counter is read. Processors without RDTSCP use rdtsc
+ * preceded by the fence the kernel selects for the QPC bypass (lfence otherwise).
+ * Other architectures use ReadTimeStampCounter bracketed by memory barriers.
  * \return The current value of the time stamp counter.
  */
 ULONG64 PhReadTimeStampCounter(
     VOID
     )
 {
-#if defined(PHNT_RDTSCP)
-    unsigned int processorIndex;
-    ULONG64 value = __rdtscp(&processorIndex);
+    ULONG64 value;
+
+#if (defined(_M_X64) || defined(_M_IX86)) && !defined(_M_ARM64EC)
+    if (USER_SHARED_DATA->ProcessorFeatures[PF_RDTSCP_INSTRUCTION_AVAILABLE])
+    {
+        unsigned int processorIndex;
+
+        value = __rdtscp(&processorIndex);
+    }
+    else
+    {
+        UCHAR qpcBypassEnabled = ReadUCharNoFence((volatile UCHAR *)&USER_SHARED_DATA->QpcBypassEnabled);
+
+        // Order rdtsc after prior instructions using the same fence the kernel selects
+        // for the QPC bypass (mfence on processors where lfence is not dispatch-serializing).
+        // The flags are clear when the bypass is disabled, so default to lfence.
+        if (FlagOn(qpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_LFENCE))
+            _mm_lfence();
+        else if (FlagOn(qpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_MFENCE))
+            _mm_mfence();
+        else
+            _mm_lfence();
+
+        value = __rdtsc();
+    }
+
+    // Prevent later instructions from executing before the counter is read.
     SpeculationFence();
+
     return value;
 #else
     MemoryBarrier();
-    ULONG64 value = ReadTimeStampCounter();
+    value = ReadTimeStampCounter();
     MemoryBarrier();
+
     return value;
 #endif
 }
@@ -708,16 +736,26 @@ VOID PhQueryInterruptTime(
 {
 #if defined(PHNT_NATIVE_TIME)
 
+    LARGE_INTEGER interruptTime;
+
+    // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+    // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+    // before High1Time, and a torn value could pass the check because a stale High1Time would
+    // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+    // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering. (dmex)
+
     while (TRUE)
     {
-        InterruptTime->HighPart = USER_SHARED_DATA->InterruptTime.High1Time;
-        InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
+        interruptTime.HighPart = ReadAcquire(&USER_SHARED_DATA->InterruptTime.High1Time);
+        interruptTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->InterruptTime.LowPart);
 
-        if (InterruptTime->HighPart == USER_SHARED_DATA->InterruptTime.High2Time)
+        if (interruptTime.HighPart == ReadNoFence(&USER_SHARED_DATA->InterruptTime.High2Time))
             break;
 
         YieldProcessor();
     }
+
+    InterruptTime->QuadPart = interruptTime.QuadPart;
 
 #elif defined(PHNT_SYSTEM_TIME)
 
@@ -729,12 +767,369 @@ VOID PhQueryInterruptTime(
 
 #else
 
+    LARGE_INTEGER interruptTime;
+
     do
     {
-        InterruptTime->HighPart = USER_SHARED_DATA->InterruptTime.High1Time;
-        InterruptTime->LowPart = USER_SHARED_DATA->InterruptTime.LowPart;
-    } while (InterruptTime->HighPart != USER_SHARED_DATA->InterruptTime.High2Time);
+        interruptTime.HighPart = ReadAcquire(&USER_SHARED_DATA->InterruptTime.High1Time);
+        interruptTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->InterruptTime.LowPart);
+    } while (interruptTime.HighPart != ReadNoFence(&USER_SHARED_DATA->InterruptTime.High2Time));
 
+    InterruptTime->QuadPart = interruptTime.QuadPart;
+
+#endif
+}
+
+/**
+ * Gets the current unbiased interrupt-time count, which excludes time the system
+ * spent in suspend or connected-standby states.
+ *
+ * \remarks Waits on Windows 8 and above (NtDelayExecution, NtWaitForSingleObject and
+ * the Win32 equivalents) do not count suspended time. Deadlines that govern such
+ * waits must be computed in this domain, otherwise they expire spuriously the
+ * moment the machine resumes (including adjustments by users or the Windows time service).
+ * \sa PhQueryWaitTime
+ */
+VOID PhQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
+    )
+{
+#if defined(PHNT_SYSTEM_TIME)
+
+    ULONGLONG unbiasedInterruptTime;
+
+    QueryUnbiasedInterruptTime(&unbiasedInterruptTime);
+
+    UnbiasedInterruptTime->QuadPart = unbiasedInterruptTime;
+
+#else
+
+    LARGE_INTEGER interruptTime;
+    ULONGLONG interruptTimeBias;
+
+    // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+    // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+    // before High1Time, and a torn value could pass the check because a stale High1Time would
+    // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+    // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering. (dmex)
+
+    while (TRUE)
+    {
+        interruptTime.HighPart = ReadAcquire(&USER_SHARED_DATA->InterruptTime.High1Time);
+        interruptTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->InterruptTime.LowPart);
+        interruptTimeBias = ReadULong64Acquire(&USER_SHARED_DATA->InterruptTimeBias);
+
+        if (interruptTime.HighPart == ReadNoFence(&USER_SHARED_DATA->InterruptTime.High2Time))
+            break;
+
+        YieldProcessor();
+    }
+
+    UnbiasedInterruptTime->QuadPart = interruptTime.QuadPart - (LONG64)interruptTimeBias;
+#endif
+}
+
+#if (defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_ARM64)
+#define PH_ARM64_QPC_COUNTER_MIDPOINT_BIT 0x100000000ULL
+
+/**
+ * Gets the current performance counter using the user-mode QPC bypass.
+ */
+ULONGLONG PhQueryPerformanceCounterPrecise(
+    _In_ UCHAR QpcBypassEnabled,
+    _In_ ULONGLONG QpcBias
+    )
+{
+    if (!FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_ENABLED))
+    {
+        LARGE_INTEGER performanceCounter;
+
+        NtQueryPerformanceCounter(&performanceCounter, NULL);
+        return performanceCounter.QuadPart;
+    }
+
+    if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_HV_PAGE))
+    {
+        ULONGLONG currentQpc;
+        PSYSTEM_HYPERVISOR_USER_SHARED_DATA hypervisorData;
+        ULONG hypervisorTimeUpdateLock;
+        ULONGLONG timeStampCounter;
+
+        if (!NT_SUCCESS(PhGetSystemHypervisorSharedPageInformation(&hypervisorData)))
+        {
+            LARGE_INTEGER performanceCounter = { 0 };
+
+            NtQueryPerformanceCounter(&performanceCounter, NULL);
+
+            return performanceCounter.QuadPart;
+        }
+
+        while (TRUE)
+        {
+            hypervisorTimeUpdateLock = hypervisorData->TimeUpdateLock;
+
+            if (hypervisorTimeUpdateLock == 0)
+            {
+                LARGE_INTEGER performanceCounter;
+
+                NtQueryPerformanceCounter(&performanceCounter, NULL);
+                return performanceCounter.QuadPart;
+            }
+
+#if defined(_M_ARM64)
+            _InstructionSynchronizationBarrier();
+            timeStampCounter = _ReadStatusReg(ARM64_CNTVCT_EL0);
+
+            if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_A73_ERRATA))
+            {
+                ULONGLONG secondTimeStampCounter;
+
+                _InstructionSynchronizationBarrier();
+                secondTimeStampCounter = _ReadStatusReg(ARM64_CNTVCT_EL0);
+
+                if (!FlagOn(timeStampCounter ^ secondTimeStampCounter, PH_ARM64_QPC_COUNTER_MIDPOINT_BIT))
+                {
+                    timeStampCounter = secondTimeStampCounter;
+                }
+            }
+#else
+            if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP))
+            {
+                unsigned int processorIndex;
+
+                timeStampCounter = __rdtscp(&processorIndex);
+            }
+            else
+            {
+                if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_LFENCE))
+                    _mm_lfence();
+                else if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_MFENCE))
+                    _mm_mfence();
+
+                timeStampCounter = __rdtsc();
+            }
+#endif
+
+#if defined(_M_ARM64)
+            currentQpc = QpcBias + *(volatile ULONGLONG*)&hypervisorData->QpcBias +
+                UnsignedMultiplyHigh(timeStampCounter, *(volatile ULONGLONG*)&hypervisorData->QpcMultiplier) * (
+                    *(volatile ULONGLONG*)&hypervisorData->QpcMultiplierFactor + 1);
+#else
+            currentQpc = QpcBias + *(volatile ULONGLONG*)&hypervisorData->QpcBias +
+                UnsignedMultiplyHigh(timeStampCounter, *(volatile ULONGLONG*)&hypervisorData->QpcMultiplier);
+#endif
+
+            if (hypervisorData->TimeUpdateLock == hypervisorTimeUpdateLock)
+                return currentQpc;
+        }
+    }
+    else
+    {
+        ULONGLONG timeStampCounter;
+
+#if defined(_M_ARM64)
+        _InstructionSynchronizationBarrier();
+        timeStampCounter = _ReadStatusReg(ARM64_CNTVCT_EL0);
+
+        if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_A73_ERRATA))
+        {
+            ULONGLONG secondTimeStampCounter;
+
+            _InstructionSynchronizationBarrier();
+            secondTimeStampCounter = _ReadStatusReg(ARM64_CNTVCT_EL0);
+
+            if (!FlagOn(timeStampCounter ^ secondTimeStampCounter, PH_ARM64_QPC_COUNTER_MIDPOINT_BIT))
+            {
+                timeStampCounter = secondTimeStampCounter;
+            }
+        }
+#else
+        if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_RDTSCP))
+        {
+            unsigned int processorIndex;
+
+            timeStampCounter = __rdtscp(&processorIndex);
+        }
+        else
+        {
+            if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_LFENCE))
+                _mm_lfence();
+            else if (FlagOn(QpcBypassEnabled, SHARED_GLOBAL_FLAGS_QPC_BYPASS_USE_MFENCE))
+                _mm_mfence();
+
+            timeStampCounter = __rdtsc();
+        }
+#endif
+
+        return QpcBias + timeStampCounter;
+    }
+}
+#endif
+
+/**
+ * Retrieves the current value of the performance counter.
+ *
+ * \param PerformanceCounter A variable which receives the current
+ * performance-counter value, in counts.
+ * \return TRUE.
+ */
+static LOGICAL PhpQueryPerformanceCounter(
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    )
+{
+#if (defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_ARM64)
+    PKUSER_SHARED_DATA sharedData;
+    ULONGLONG qpcBias;
+    UCHAR qpcBypassEnabled;
+
+    sharedData = USER_SHARED_DATA;
+    qpcBypassEnabled = sharedData->QpcBypassEnabled;
+    qpcBias = 0;
+
+    if (qpcBypassEnabled & SHARED_GLOBAL_FLAGS_QPC_BYPASS_ENABLED)
+    {
+        qpcBias = *(volatile ULONGLONG*)&sharedData->QpcBias;
+    }
+
+    PerformanceCounter->QuadPart = PhQueryPerformanceCounterPrecise(
+        qpcBypassEnabled,
+        qpcBias
+        );
+
+    return TRUE;
+#else
+    return RtlQueryPerformanceCounter(PerformanceCounter);
+#endif
+}
+
+/**
+ * Gets the current system time with the highest available precision.
+ */
+static ULONGLONG PhpGetSystemTimePrecise(
+    VOID
+    )
+{
+#if (defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_ARM64)
+    PKUSER_SHARED_DATA sharedData;
+    ULONGLONG timeUpdateLock;
+    ULONGLONG baselineQpc;
+    ULONGLONG qpcSystemTimeIncrement;
+    ULONGLONG systemTime;
+    ULONGLONG currentQpc;
+    ULONGLONG qpcDelta;
+    UCHAR qpcBypassEnabled;
+    UCHAR qpcSystemTimeIncrementShift;
+
+    sharedData = USER_SHARED_DATA;
+
+    while (TRUE)
+    {
+        timeUpdateLock = ReadULong64Acquire(&sharedData->TimeUpdateLock);
+
+        while (timeUpdateLock & 1)
+        {
+            YieldProcessor();
+            timeUpdateLock = ReadULong64Acquire(&sharedData->TimeUpdateLock);
+        }
+
+        // TimeUpdateLock is a sequence lock. Acquire loads keep the snapshot reads
+        // ahead of the TimeUpdateLock re-check on ARM64 (/volatile:iso) and compile
+        // to plain loads on x64.
+        qpcBypassEnabled = ReadUCharAcquire((volatile UCHAR *)&sharedData->QpcBypassEnabled);
+        baselineQpc = ReadULong64Acquire(&sharedData->BaselineSystemTimeQpc);
+        qpcSystemTimeIncrement = ReadULong64Acquire(&sharedData->QpcSystemTimeIncrement);
+        qpcSystemTimeIncrementShift = ReadUCharAcquire(&sharedData->QpcSystemTimeIncrementShift);
+        systemTime = ReadULong64Acquire((volatile ULONGLONG *)&sharedData->SystemTime);
+        currentQpc = PhQueryPerformanceCounterPrecise(
+            qpcBypassEnabled,
+            ReadULong64Acquire(&sharedData->QpcBias)
+            );
+
+        if (ReadULong64NoFence(&sharedData->TimeUpdateLock) == timeUpdateLock)
+            break;
+
+        YieldProcessor();
+    }
+
+    if (currentQpc <= baselineQpc)
+        return systemTime;
+
+    qpcDelta = currentQpc - baselineQpc - 1;
+
+    if (qpcSystemTimeIncrementShift)
+        qpcDelta <<= qpcSystemTimeIncrementShift;
+
+    return systemTime + UnsignedMultiplyHigh(qpcDelta, qpcSystemTimeIncrement);
+#else
+    return RtlGetSystemTimePrecise();
+#endif
+}
+
+/**
+ * Gets the current interrupt time with the highest available precision.
+ *
+ * \param PerformanceCounter A variable which receives the performance counter
+ * value correlated with the returned interrupt time.
+ */
+static ULONGLONG PhpGetInterruptTimePrecise(
+    _Out_ PLARGE_INTEGER PerformanceCounter
+    )
+{
+#if (defined(_M_X64) && !defined(_M_ARM64EC)) || defined(_M_ARM64)
+    PKUSER_SHARED_DATA sharedData;
+    ULONGLONG timeUpdateLock;
+    ULONGLONG baselineQpc;
+    ULONGLONG interruptTime;
+    ULONGLONG currentQpc;
+    ULONGLONG qpcDelta;
+    UCHAR qpcBypassEnabled;
+    UCHAR qpcInterruptTimeIncrementShift;
+    ULONGLONG qpcInterruptTimeIncrement;
+
+    sharedData = USER_SHARED_DATA;
+
+    while (TRUE)
+    {
+        timeUpdateLock = ReadULong64Acquire(&sharedData->TimeUpdateLock);
+
+        while (timeUpdateLock & 1)
+        {
+            YieldProcessor();
+            timeUpdateLock = ReadULong64Acquire(&sharedData->TimeUpdateLock);
+        }
+
+        // TimeUpdateLock is a sequence lock. Acquire loads keep the snapshot reads
+        // ahead of the TimeUpdateLock re-check on ARM64 (/volatile:iso) and compile
+        // to plain loads on x64.
+        qpcBypassEnabled = ReadUCharAcquire((volatile UCHAR *)&sharedData->QpcBypassEnabled);
+        baselineQpc = ReadULong64Acquire(&sharedData->BaselineInterruptTimeQpc);
+        qpcInterruptTimeIncrement = ReadULong64Acquire(&sharedData->QpcInterruptTimeIncrement);
+        qpcInterruptTimeIncrementShift = ReadUCharAcquire(&sharedData->QpcInterruptTimeIncrementShift);
+        interruptTime = ReadULong64Acquire((volatile ULONGLONG *)&sharedData->InterruptTime);
+        currentQpc = PhQueryPerformanceCounterPrecise(
+            qpcBypassEnabled,
+            ReadULong64Acquire(&sharedData->QpcBias)
+            );
+
+        if (ReadULong64NoFence(&sharedData->TimeUpdateLock) == timeUpdateLock)
+            break;
+
+        YieldProcessor();
+    }
+
+    PerformanceCounter->QuadPart = currentQpc;
+
+    if (currentQpc <= baselineQpc)
+        return interruptTime;
+
+    qpcDelta = currentQpc - baselineQpc - 1;
+
+    if (qpcInterruptTimeIncrementShift)
+        qpcDelta <<= qpcInterruptTimeIncrementShift;
+
+    return interruptTime + UnsignedMultiplyHigh(qpcDelta, qpcInterruptTimeIncrement);
+#else
+    return RtlGetInterruptTimePrecise(PerformanceCounter);
 #endif
 }
 
@@ -749,16 +1144,26 @@ VOID PhQuerySystemTime(
 {
 #if defined(PHNT_NATIVE_TIME)
 
+    LARGE_INTEGER systemTime;
+
+    // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+    // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+    // before High1Time, and a torn value could pass the check because a stale High1Time would
+    // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+    // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering.
+
     while (TRUE)
     {
-        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
-        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
+        systemTime.HighPart = ReadAcquire(&USER_SHARED_DATA->SystemTime.High1Time);
+        systemTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->SystemTime.LowPart);
 
-        if (SystemTime->HighPart == USER_SHARED_DATA->SystemTime.High2Time)
+        if (systemTime.HighPart == ReadNoFence(&USER_SHARED_DATA->SystemTime.High2Time))
             break;
 
         YieldProcessor();
     }
+
+    SystemTime->QuadPart = systemTime.QuadPart;
 
 #elif defined(PHNT_SYSTRM_TIME)
 
@@ -773,11 +1178,21 @@ VOID PhQuerySystemTime(
 
 #else
 
+    LARGE_INTEGER systemTime;
+
+    // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+    // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+    // before High1Time, and a torn value could pass the check because a stale High1Time would
+    // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+    // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering.
+
     do
     {
-        SystemTime->HighPart = USER_SHARED_DATA->SystemTime.High1Time;
-        SystemTime->LowPart = USER_SHARED_DATA->SystemTime.LowPart;
-    } while (SystemTime->HighPart != USER_SHARED_DATA->SystemTime.High2Time);
+        systemTime.HighPart = ReadAcquire(&USER_SHARED_DATA->SystemTime.High1Time);
+        systemTime.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->SystemTime.LowPart);
+    } while (systemTime.HighPart != ReadNoFence(&USER_SHARED_DATA->SystemTime.High2Time));
+
+    SystemTime->QuadPart = systemTime.QuadPart;
 
 #endif
 }
@@ -793,16 +1208,26 @@ NTSTATUS PhQueryTimeZoneBias(
 {
 #if defined(PHNT_NATIVE_TIME)
 
+    LARGE_INTEGER timeZoneBias;
+
+    // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+    // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+    // before High1Time, and a torn value could pass the check because a stale High1Time would
+    // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+    // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering. (dmex)
+
     while (TRUE)
     {
-        TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
-        TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
+        timeZoneBias.HighPart = ReadAcquire(&USER_SHARED_DATA->TimeZoneBias.High1Time);
+        timeZoneBias.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->TimeZoneBias.LowPart);
 
-        if (TimeZoneBias->HighPart == USER_SHARED_DATA->TimeZoneBias.High2Time)
+        if (timeZoneBias.HighPart == ReadNoFence(&USER_SHARED_DATA->TimeZoneBias.High2Time))
             break;
 
         YieldProcessor();
     }
+
+    TimeZoneBias->QuadPart = timeZoneBias.QuadPart;
 
     return STATUS_SUCCESS;
 #elif defined(PHNT_SYSTEM_TIME)
@@ -824,11 +1249,15 @@ NTSTATUS PhQueryTimeZoneBias(
     return status;
 #else
 
+    LARGE_INTEGER timeZoneBias;
+
     do
     {
-        TimeZoneBias->HighPart = USER_SHARED_DATA->TimeZoneBias.High1Time;
-        TimeZoneBias->LowPart = USER_SHARED_DATA->TimeZoneBias.LowPart;
-    } while (TimeZoneBias->HighPart != USER_SHARED_DATA->TimeZoneBias.High2Time);
+        timeZoneBias.HighPart = ReadAcquire(&USER_SHARED_DATA->TimeZoneBias.High1Time);
+        timeZoneBias.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->TimeZoneBias.LowPart);
+    } while (timeZoneBias.HighPart != ReadNoFence(&USER_SHARED_DATA->TimeZoneBias.High2Time));
+
+    TimeZoneBias->QuadPart = timeZoneBias.QuadPart;
 
     return STATUS_SUCCESS;
 #endif
@@ -3165,6 +3594,7 @@ BOOLEAN PhCalculateEntropy(
     ULONG64 bufferOffset = 0;
     ULONG64 bufferSumValue = 0;
     ULONG64 counts[UCHAR_MAX + 1];
+    ULONG64 partialCounts[3][UCHAR_MAX + 1];
 
     // Guard against division by zero: an empty buffer has no distribution, so
     // entropy/mean/variance are all zero. Without this the entropy and mean
@@ -3183,11 +3613,50 @@ BOOLEAN PhCalculateEntropy(
 
     memset(counts, 0, sizeof(counts));
 
+    // Independent histograms avoid serial updates to the same counter for
+    // repeated bytes. Small buffers keep the single-histogram path.
+    if (BufferLength >= 1024)
+    {
+        ULONG i = 0;
+
+        memset(partialCounts, 0, sizeof(partialCounts));
+
+        while (BufferLength - bufferOffset >= 4)
+        {
+            counts[Buffer[bufferOffset]]++;
+            partialCounts[0][Buffer[bufferOffset + 1]]++;
+            partialCounts[1][Buffer[bufferOffset + 2]]++;
+            partialCounts[2][Buffer[bufferOffset + 3]]++;
+            bufferOffset += 4;
+        }
+
+#ifndef _ARM64_
+        if (PhHasAVX)
+        {
+            for (; i < RTL_NUMBER_OF(counts); i += 4)
+            {
+                __m256i sum = _mm256_add_epi64(
+                    _mm256_loadu_si256((__m256i const*)&counts[i]),
+                    _mm256_loadu_si256((__m256i const*)&partialCounts[0][i])
+                    );
+
+                sum = _mm256_add_epi64(sum, _mm256_loadu_si256((__m256i const*)&partialCounts[1][i]));
+                sum = _mm256_add_epi64(sum, _mm256_loadu_si256((__m256i const*)&partialCounts[2][i]));
+                _mm256_storeu_si256((__m256i*)&counts[i], sum);
+            }
+
+            PhZeroUpper();
+        }
+#endif
+
+        for (; i < RTL_NUMBER_OF(counts); i++)
+            counts[i] += partialCounts[0][i] + partialCounts[1][i] + partialCounts[2][i];
+    }
+
     while (bufferOffset < BufferLength)
     {
         BYTE value = *(PBYTE)PTR_ADD_OFFSET(Buffer, bufferOffset++);
 
-        bufferSumValue += value;
         counts[value]++;
     }
 
@@ -3199,6 +3668,10 @@ BOOLEAN PhCalculateEntropy(
         if (value > 0.f)
             bufferEntropy -= value * log2f(value);
     }
+
+    // Derive the sum from the 256 bins instead of adding every input byte.
+    for (ULONG i = 0; i < RTL_NUMBER_OF(counts); i++)
+        bufferSumValue += counts[i] * i;
 
     bufferMeanValue = (FLOAT)bufferSumValue / (FLOAT)BufferLength;
 
@@ -3389,6 +3862,32 @@ VOID PhFillMemoryUlong(
 {
     if (Count == 0)
         return;
+
+#if defined(_WIN64) && !defined(_ARM64_)
+    // 512-bit stores are only worth the frequency licence on large buffers, so
+    // anything smaller falls through to the AVX2 tier below.
+    if (PhHasAVX512 && Count >= 64 && IS_ALIGNED(Memory, 64))
+    {
+        SIZE_T count = Count & ~(SIZE_T)0xf;
+
+        if (count != 0)
+        {
+            PULONG end;
+            __m512i pattern;
+
+            end = Memory + count;
+            pattern = _mm512_set1_epi32((int)Value);
+
+            while (Memory != end)
+            {
+                _mm512_store_si512((void*)Memory, pattern);
+                Memory += 16;
+            }
+
+            Count &= 0xf;
+        }
+    }
+#endif
 
 #ifndef _ARM64_
     if (PhHasAVX && IS_ALIGNED(Memory, 32))
@@ -3951,6 +4450,33 @@ VOID PhConvertCopyMemoryUlong(
     if (Count == 0)
         return;
 
+#if defined(_WIN64) && !defined(_ARM64_)
+    // Gated on a large count so that short buffers avoid the 512-bit frequency
+    // licence and fall through to the AVX2 tier below.
+    if (PhHasAVX512 && Count >= 64 && IS_ALIGNED(From, 64) && IS_ALIGNED(To, 64))
+    {
+        SIZE_T count = Count & ~(SIZE_T)0xf;
+
+        if (count != 0)
+        {
+            PFLOAT end;
+
+            end = From + count;
+
+            while (From != end)
+            {
+                // Truncate toward zero to match scalar (C cast) semantics.
+                _mm512_store_si512((void*)To, _mm512_cvttps_epi32(_mm512_load_ps(From)));
+
+                From += 16;
+                To += 16;
+            }
+
+            Count &= 0xf;
+        }
+    }
+#endif
+
 #ifndef _ARM64_
     if (PhHasAVX && IS_ALIGNED(From, 32) && IS_ALIGNED(To, 32))
     {
@@ -4290,6 +4816,33 @@ VOID PhConvertCopyMemorySingles(
     if (Count == 0)
         return;
 
+#if defined(_WIN64) && !defined(_ARM64_)
+    // AVX-512 converts unsigned lanes natively (_mm512_cvtepu32_ps), where the
+    // AVX2 tier below has to emulate it. Gated on a large count so that short
+    // buffers avoid the 512-bit frequency licence.
+    if (PhHasAVX512 && Count >= 64 && IS_ALIGNED(From, 64) && IS_ALIGNED(To, 64))
+    {
+        SIZE_T count = Count & ~(SIZE_T)0xf;
+
+        if (count != 0)
+        {
+            PULONG end;
+
+            end = From + count;
+
+            while (From != end)
+            {
+                _mm512_store_ps(To, _mm512_cvtepu32_ps(_mm512_load_si512((void const*)From)));
+
+                From += 16;
+                To += 16;
+            }
+
+            Count &= 0xf;
+        }
+    }
+#endif
+
 #ifndef _ARM64_
     if (PhHasAVX && IS_ALIGNED(From, 32) && IS_ALIGNED(To, 32))
     {
@@ -4561,6 +5114,135 @@ ULONG PhCountBitsUlong64(
         // return count;
     }
 #endif
+}
+
+BOOLEAN PhAreBitsSet(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG Length
+    )
+{
+    ULONG index;
+
+    if (!Length || StartingIndex >= BitMapHeader->SizeOfBitMap ||
+        Length > BitMapHeader->SizeOfBitMap - StartingIndex)
+    {
+        return FALSE;
+    }
+
+    for (index = StartingIndex; index < StartingIndex + Length; index++)
+    {
+        if (!FlagOn(BitMapHeader->Buffer[index >> 5], 1UL << (index & 31)))
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+VOID PhClearBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToClear
+    )
+{
+    ULONG index;
+
+    for (index = StartingIndex; index < StartingIndex + NumberToClear; index++)
+        BitMapHeader->Buffer[index >> 5] &= ~(1UL << (index & 31));
+}
+
+VOID PhSetBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToSet
+    )
+{
+    ULONG index;
+
+    for (index = StartingIndex; index < StartingIndex + NumberToSet; index++)
+        BitMapHeader->Buffer[index >> 5] |= 1UL << (index & 31);
+}
+
+ULONG PhNumberOfSetBits(
+    _In_ PRTL_BITMAP BitMapHeader
+    )
+{
+    ULONG index;
+    ULONG count = 0;
+    ULONG fullWords = BitMapHeader->SizeOfBitMap >> 5;
+    ULONG trailingBits = BitMapHeader->SizeOfBitMap & 31;
+
+    for (index = 0; index < fullWords; index++)
+        count += PhCountBits(BitMapHeader->Buffer[index]);
+
+    if (trailingBits)
+        count += PhCountBits(BitMapHeader->Buffer[fullWords] & ((1UL << trailingBits) - 1));
+
+    return count;
+}
+
+ULONG PhFindClearBitsAndSet(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
+    )
+{
+    ULONG pass;
+    ULONG start;
+    ULONG limit;
+
+    if (NumberToFind > BitMapHeader->SizeOfBitMap)
+        return ULONG_MAX;
+
+    if (HintIndex >= BitMapHeader->SizeOfBitMap ||
+        NumberToFind > BitMapHeader->SizeOfBitMap - HintIndex)
+    {
+        HintIndex = 0;
+    }
+
+    if (!NumberToFind)
+        return HintIndex & ~7UL;
+
+    for (pass = 0; pass != 2; pass++)
+    {
+        start = pass == 0 ? HintIndex : 0;
+        if (pass == 0)
+        {
+            limit = BitMapHeader->SizeOfBitMap;
+        }
+        else if (NumberToFind - 1 > BitMapHeader->SizeOfBitMap - HintIndex)
+        {
+            limit = BitMapHeader->SizeOfBitMap;
+        }
+        else
+        {
+            limit = HintIndex + NumberToFind - 1;
+        }
+
+        while (start <= limit && NumberToFind <= limit - start)
+        {
+            ULONG index;
+
+            for (index = 0; index < NumberToFind; index++)
+            {
+                if (FlagOn(BitMapHeader->Buffer[(start + index) >> 5], 1UL << ((start + index) & 31)))
+                    break;
+            }
+
+            if (index == NumberToFind)
+            {
+                PhSetBits(BitMapHeader, start, NumberToFind);
+                return start;
+            }
+
+            start += index + 1;
+        }
+
+        if (!HintIndex)
+            break;
+    }
+
+    return ULONG_MAX;
 }
 
 #pragma region Thread Local Storage (TLS)

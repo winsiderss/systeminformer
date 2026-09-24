@@ -10972,10 +10972,15 @@ NtGetTickCount64(
 
     while (TRUE)
     {
-        tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
-        tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
+        // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+        // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+        // before High1Time, and a torn value could pass the check because a stale High1Time would
+        // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+        // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering.
+        tickCount.HighPart = (ULONG)ReadAcquire(&USER_SHARED_DATA->TickCount.High1Time);
+        tickCount.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->TickCount.LowPart);
 
-        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
+        if (tickCount.HighPart == (ULONG)ReadNoFence(&USER_SHARED_DATA->TickCount.High2Time))
             break;
 
         YieldProcessor();
@@ -11014,10 +11019,15 @@ NtGetTickCount(
 
     while (TRUE)
     {
-        tickCount.HighPart = (ULONG)USER_SHARED_DATA->TickCount.High1Time;
-        tickCount.LowPart = USER_SHARED_DATA->TickCount.LowPart;
+        // ARM64 builds default to /volatile:iso, where volatile loads have no ordering guarantee
+        // and the CPU can reorder them. Without acquire semantics it could read High2Time or LowPart
+        // before High1Time, and a torn value could pass the check because a stale High1Time would
+        // still match High2Time. The window is rare, but it exists. The kernel writes High2Time,
+        // LowPart, then High1Time, so read High1Time, LowPart, then High2Time with acquire ordering.
+        tickCount.HighPart = (ULONG)ReadAcquire(&USER_SHARED_DATA->TickCount.High1Time);
+        tickCount.LowPart = (ULONG)ReadAcquire((volatile LONG*)&USER_SHARED_DATA->TickCount.LowPart);
 
-        if (tickCount.HighPart == (ULONG)USER_SHARED_DATA->TickCount.High2Time)
+        if (tickCount.HighPart == (ULONG)ReadNoFence(&USER_SHARED_DATA->TickCount.High2Time))
             break;
 
         YieldProcessor();
