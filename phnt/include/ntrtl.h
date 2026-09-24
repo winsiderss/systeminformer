@@ -14976,6 +14976,9 @@ typedef struct _PS_PKG_CLAIM
 } PS_PKG_CLAIM, *PPS_PKG_CLAIM;
 
 // private // WIN://BGKD
+/**
+ * Identifies the background activation type of a packaged application.
+ */
 typedef enum _PSM_ACTIVATE_BACKGROUND_TYPE
 {
   PsmActNotBackground = 0,
@@ -14986,6 +14989,19 @@ typedef enum _PSM_ACTIVATE_BACKGROUND_TYPE
 } PSM_ACTIVATE_BACKGROUND_TYPE;
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * The RtlQueryPackageClaims routine retrieves the package claims associated with a token, including the package full name, application identifier, and attributes.
+ *
+ * \param TokenHandle A handle to the token to query.
+ * \param PackageFullName An optional buffer that receives the package full name.
+ * \param PackageSize An optional pointer to the size, in bytes, of the PackageFullName buffer; updated with the required or written size.
+ * \param AppId An optional buffer that receives the application identifier.
+ * \param AppIdSize An optional pointer to the size, in bytes, of the AppId buffer; updated with the required or written size.
+ * \param DynamicId An optional pointer to a variable that receives the dynamic package identifier.
+ * \param PkgClaim An optional pointer to a PS_PKG_CLAIM structure that receives the package claim.
+ * \param AttributesPresent An optional pointer to a variable that receives the mask of attributes present.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15002,6 +15018,17 @@ RtlQueryPackageClaims(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
+/**
+ * The RtlQueryPackageIdentity routine retrieves the package identity associated with a token, including the package full name and application identifier.
+ *
+ * \param TokenHandle A handle to the token to query.
+ * \param PackageFullName A buffer that receives the package full name.
+ * \param PackageSize A pointer to the size, in bytes, of the PackageFullName buffer; updated with the required or written size.
+ * \param AppId An optional buffer that receives the application identifier.
+ * \param AppIdSize An optional pointer to the size, in bytes, of the AppId buffer; updated with the required or written size.
+ * \param Packaged An optional pointer to a variable that receives whether the token belongs to a packaged application.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15016,6 +15043,18 @@ RtlQueryPackageIdentity(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8_1)
+/**
+ * The RtlQueryPackageIdentityEx routine retrieves the package identity associated with a token, with additional dynamic identifier and flag outputs.
+ *
+ * \param TokenHandle A handle to the token to query.
+ * \param PackageFullName A buffer that receives the package full name.
+ * \param PackageSize A pointer to the size, in bytes, of the PackageFullName buffer; updated with the required or written size.
+ * \param AppId An optional buffer that receives the application identifier.
+ * \param AppIdSize An optional pointer to the size, in bytes, of the AppId buffer; updated with the required or written size.
+ * \param DynamicId An optional pointer to a variable that receives the dynamic package identifier.
+ * \param Flags An optional pointer to a variable that receives package identity flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
