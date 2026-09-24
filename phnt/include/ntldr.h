@@ -1116,10 +1116,12 @@ LdrAddLoadAsDataTable(
 
 // private
 /**
- * The LdrGetFileNameFromLoadAsDataTable routine retrieves the file name of a DLL loaded as a data table.
+ * The LdrRemoveLoadAsDataTable routine removes a loaded DLL from the loader data table.
  *
  * \param DllHandle A handle to the DLL module.
- * \param FileName A pointer to a variable that receives a pointer to the file name.
+ * \param BaseModule A pointer to a variable that receives the base address of the module.
+ * \param FileSize An optional pointer to a variable that receives the file size.
+ * \param Flags Flags to modify the behavior of the function.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1134,12 +1136,10 @@ LdrRemoveLoadAsDataTable(
 
 // private
 /**
- * The LdrRemoveLoadAsDataTable routine removes a loaded DLL from the loader data table.
+ * The LdrGetFileNameFromLoadAsDataTable routine retrieves the file name of a DLL loaded as a data table.
  *
  * \param DllHandle A handle to the DLL module.
- * \param BaseModule A pointer to a variable that receives the base address of the module.
- * \param FileSize An optional pointer to a variable that receives the file size.
- * \param Flags Flags to modify the behavior of the function.
+ * \param FileName A pointer to a variable that receives a pointer to the file name.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1688,10 +1688,9 @@ LdrLoadAlternateResourceModuleEx(
 
 // rev
 /**
- * The LdrUnloadAlternateResourceModuleEx routine unloads an alternate resource module with extended options.
+ * The LdrUnloadAlternateResourceModule routine unloads an alternate resource module.
  *
  * \param DllHandle A handle to the DLL module.
- * \param Flags Flags to modify the behavior of the function.
  * \return BOOLEAN TRUE if the module was successfully unloaded, FALSE otherwise.
  */
 NTSYSAPI
@@ -1703,9 +1702,10 @@ LdrUnloadAlternateResourceModule(
 
 // rev
 /**
- * The LdrUnloadAlternateResourceModule routine unloads an alternate resource module.
+ * The LdrUnloadAlternateResourceModuleEx routine unloads an alternate resource module with extended options.
  *
  * \param DllHandle A handle to the DLL module.
+ * \param Flags Flags to modify the behavior of the function.
  * \return BOOLEAN TRUE if the module was successfully unloaded, FALSE otherwise.
  */
 NTSYSAPI
@@ -1853,15 +1853,14 @@ LdrQueryImageFileKeyOption(
     );
 
 /**
- * The LdrQueryImageFileExecutionOptionsEx routine queries image file execution options with extended information.
+ * The LdrQueryImageFileExecutionOptions routine queries image file execution options.
  *
  * \param SubKey A pointer to a UNICODE_STRING structure containing the subkey.
  * \param ValueName The name of the value to query.
- * \param Type The type of the value.
+ * \param ValueSize The size of the value.
  * \param Buffer A pointer to a buffer to receive the value.
  * \param BufferSize The size of the buffer.
  * \param ReturnedLength An optional pointer to a variable that receives the length of the returned value.
- * \param Wow64 TRUE if the key is for WOW64, FALSE otherwise.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -1877,14 +1876,15 @@ LdrQueryImageFileExecutionOptions(
     );
 
 /**
- * The LdrQueryImageFileExecutionOptions routine queries image file execution options.
+ * The LdrQueryImageFileExecutionOptionsEx routine queries image file execution options with extended information.
  *
  * \param SubKey A pointer to a UNICODE_STRING structure containing the subkey.
  * \param ValueName The name of the value to query.
- * \param ValueSize The size of the value.
+ * \param Type The type of the value.
  * \param Buffer A pointer to a buffer to receive the value.
  * \param BufferSize The size of the buffer.
  * \param ReturnedLength An optional pointer to a variable that receives the length of the returned value.
+ * \param Wow64 TRUE if the key is for WOW64, FALSE otherwise.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
