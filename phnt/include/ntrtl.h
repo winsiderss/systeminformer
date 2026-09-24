@@ -15297,9 +15297,9 @@ RtlCheckBootStatusIntegrity(
 
 // rev
 /**
- * The RtlSetPortableOperatingSystem routine sets whether the operating system is marked as a portable (Windows To Go) installation.
+ * The RtlRestoreBootStatusDefaults routine restores the boot status data file to its default values.
  *
- * \param IsPortable Set to `TRUE` to mark the operating system as portable, or `FALSE` otherwise.
+ * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -15380,9 +15380,9 @@ RtlCheckPortableOperatingSystem(
 
 // rev
 /**
- * The RtlRestoreBootStatusDefaults routine restores the boot status data file to its default values.
+ * The RtlSetPortableOperatingSystem routine sets whether the operating system is marked as a portable (Windows To Go) installation.
  *
- * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \param IsPortable Set to `TRUE` to mark the operating system as portable, or `FALSE` otherwise.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
