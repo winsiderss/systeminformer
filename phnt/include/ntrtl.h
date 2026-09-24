@@ -15234,6 +15234,17 @@ RtlUnlockBootStatusData(
     _In_ HANDLE FileHandle
     );
 
+/**
+ * The RtlGetSetBootStatusData routine reads or writes an item of boot status data (BSD) using an open BSD file handle.
+ *
+ * \param FileHandle A handle to the boot status data file.
+ * \param Read TRUE to read the item; FALSE to write it.
+ * \param DataClass The boot status item to read or write.
+ * \param Buffer A buffer that receives or supplies the item data.
+ * \param BufferSize The size, in bytes, of Buffer.
+ * \param ReturnLength An optional pointer that receives the number of bytes transferred.
+ * \return NTSTATUS Successful or errant status.
+ */
 // ros
 NTSYSAPI
 NTSTATUS
@@ -15249,6 +15260,13 @@ RtlGetSetBootStatusData(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS1)
 // rev
+/**
+ * The RtlCheckBootStatusIntegrity routine verifies the integrity of the boot status data file.
+ *
+ * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \param Verified A pointer to a variable that receives whether the boot status data integrity was verified.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15268,6 +15286,11 @@ RtlRestoreBootStatusDefaults(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_RS3)
 // rev
+/**
+ * The RtlRestoreSystemBootStatusDefaults routine restores the system boot status data to its default values.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15275,6 +15298,14 @@ RtlRestoreSystemBootStatusDefaults(
     VOID
     );
 
+/**
+ * The RtlGetSystemBootStatus routine retrieves an item of boot status data (BSD).
+ *
+ * \param BootStatusInformationClass The boot status item to retrieve.
+ * \param DataBuffer A buffer that receives the item data.
+ * \param DataLength The size, in bytes, of the buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 // rev
 NTSYSAPI
 NTSTATUS
@@ -15282,10 +15313,18 @@ NTAPI
 RtlGetSystemBootStatus(
     _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
     _Out_ PVOID DataBuffer,
-    _In_ ULONG DataLength
-    //_Out_opt_ PULONG ReturnLength
+    _In_ ULONG DataLength,
+    _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * The RtlSetSystemBootStatus routine sets an item of boot status data (BSD).
+ *
+ * \param BootStatusInformationClass The boot status item to set.
+ * \param DataBuffer A buffer containing the item data to set.
+ * \param DataLength The size, in bytes, of the buffer.
+ * \return NTSTATUS Successful or errant status.
+ */
 // rev
 NTSYSAPI
 NTSTATUS
@@ -15293,13 +15332,19 @@ NTAPI
 RtlSetSystemBootStatus(
     _In_ RTL_BSD_ITEM_TYPE BootStatusInformationClass,
     _In_ PVOID DataBuffer,
-    _In_ ULONG DataLength
-    //_Out_opt_ PULONG ReturnLength
+    _In_ ULONG DataLength,
+    _Out_opt_ PULONG ReturnLength
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10_RS3
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_8)
 // rev
+/**
+ * The RtlCheckPortableOperatingSystem routine determines whether the operating system is running as a portable (Windows To Go) installation.
+ *
+ * \param IsPortable A pointer to a variable that receives whether the operating system is portable.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15324,6 +15369,13 @@ RtlSetProxiedProcessId(
     );
 #endif // PHNT_VERSION >= PHNT_WINDOWS_8
 
+/**
+ * The RtlFindClosestEncodableLength routine finds the closest length that can be encoded for the specified source length.
+ *
+ * \param SourceLength The source length to encode.
+ * \param TargetLength A pointer to a variable that receives the closest encodable length.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15341,9 +15393,18 @@ NTSTATUS NTAPI RTL_SECURE_MEMORY_CACHE_CALLBACK(
     _In_ PVOID Address,
     _In_ SIZE_T Length
     );
+/**
+ * Pointer to an RTL_SECURE_MEMORY_CACHE_CALLBACK callback.
+ */
 typedef RTL_SECURE_MEMORY_CACHE_CALLBACK *PRTL_SECURE_MEMORY_CACHE_CALLBACK;
 
 // ros
+/**
+ * The RtlRegisterSecureMemoryCacheCallback routine registers a callback that is invoked when a secured memory range is freed or its protections are changed.
+ *
+ * \param Callback A pointer to the secure memory cache callback routine to register.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15351,13 +15412,26 @@ RtlRegisterSecureMemoryCacheCallback(
     _In_ PRTL_SECURE_MEMORY_CACHE_CALLBACK Callback
     );
 
+/**
+ * The RtlDeregisterSecureMemoryCacheCallback routine removes a secure memory cache callback previously registered by RtlRegisterSecureMemoryCacheCallback.
+ *
+ * \param Callback A pointer to the secure memory cache callback routine to deregister.
+ * \return BOOLEAN TRUE if the callback was deregistered, FALSE otherwise.
+ */
 NTSYSAPI
-NTSTATUS
+BOOLEAN
 NTAPI
 RtlDeregisterSecureMemoryCacheCallback(
     _In_ PRTL_SECURE_MEMORY_CACHE_CALLBACK Callback
     );
 
+/**
+ * The RtlFlushSecureMemoryCache routine flushes a region from the secure memory cache.
+ *
+ * \param MemoryCache The base address of the secure memory region to flush.
+ * \param MemoryLength An optional length, in bytes, of the region to flush.
+ * \return TRUE if the cache was flushed; otherwise, FALSE.
+ */
 // ros
 NTSYSAPI
 BOOLEAN
@@ -15846,6 +15920,12 @@ RtlNotifyFeatureToggleUsage(
     );
 
 // rev
+/**
+ * The RtlSetProxiedProcessId routine sets the proxied process identifier for the current process.
+ *
+ * \param ProxiedProcessId The proxied process identifier to set.
+ * \return ULONG The previous proxied process identifier.
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -16141,6 +16221,12 @@ RtlWow64SuspendProcess(
     );
 
 // rev
+/**
+ * The RtlSetPortableOperatingSystem routine sets whether the operating system is marked as a portable (Windows To Go) installation.
+ *
+ * \param IsPortable Set to `TRUE` to mark the operating system as portable, or `FALSE` otherwise.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16173,6 +16259,12 @@ RtlQueryProcessAvailableCpus(
     );
 
 // rev
+/**
+ * The RtlRestoreBootStatusDefaults routine restores the boot status data file to its default values.
+ *
+ * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
