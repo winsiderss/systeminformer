@@ -4451,22 +4451,22 @@ VOID PhConvertCopyMemoryUlong(
         return;
 
 #if defined(_WIN64) && !defined(_ARM64_)
-    // Gated on a large count so that short buffers avoid the 512-bit frequency
-    // licence and fall through to the AVX2 tier below.
+    // AVX-512 converts unsigned lanes natively (_mm512_cvtepu32_ps), where the
+    // AVX2 tier below has to emulate it. Gated on a large count so that short
+    // buffers avoid the 512-bit frequency licence.
     if (PhHasAVX512 && Count >= 64 && IS_ALIGNED(From, 64) && IS_ALIGNED(To, 64))
     {
         SIZE_T count = Count & ~(SIZE_T)0xf;
 
         if (count != 0)
         {
-            PFLOAT end;
+            PULONG end;
 
             end = From + count;
 
             while (From != end)
             {
-                // Truncate toward zero to match scalar (C cast) semantics.
-                _mm512_store_si512((void*)To, _mm512_cvttps_epi32(_mm512_load_ps(From)));
+                _mm512_store_ps(To, _mm512_cvtepu32_ps(_mm512_load_si512((void const*)From)));
 
                 From += 16;
                 To += 16;
@@ -4817,22 +4817,22 @@ VOID PhConvertCopyMemorySingles(
         return;
 
 #if defined(_WIN64) && !defined(_ARM64_)
-    // AVX-512 converts unsigned lanes natively (_mm512_cvtepu32_ps), where the
-    // AVX2 tier below has to emulate it. Gated on a large count so that short
-    // buffers avoid the 512-bit frequency licence.
+    // Gated on a large count so that short buffers avoid the 512-bit frequency
+    // licence and fall through to the AVX2 tier below.
     if (PhHasAVX512 && Count >= 64 && IS_ALIGNED(From, 64) && IS_ALIGNED(To, 64))
     {
         SIZE_T count = Count & ~(SIZE_T)0xf;
 
         if (count != 0)
         {
-            PULONG end;
+            PFLOAT end;
 
             end = From + count;
 
             while (From != end)
             {
-                _mm512_store_ps(To, _mm512_cvtepu32_ps(_mm512_load_si512((void const*)From)));
+                // Truncate toward zero to match scalar (C cast) semantics.
+                _mm512_store_si512((void*)To, _mm512_cvttps_epi32(_mm512_load_ps(From)));
 
                 From += 16;
                 To += 16;
