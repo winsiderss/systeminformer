@@ -96,6 +96,153 @@
 #ifndef BCRYPT_CHAIN_MODE_CCM
 #define BCRYPT_CHAIN_MODE_CCM L"ChainingModeCCM"
 #endif
+#ifndef BCRYPT_MLDSA_ALGORITHM
+#define BCRYPT_MLDSA_ALGORITHM L"ML-DSA"
+#endif
+
+// ------------------------------------------------------------------------
+// Crypto provider selection and capability discovery
+// ------------------------------------------------------------------------
+
+#define PH_CRYPTO_PROVIDER_MAGIC 'rCyP'
+
+typedef struct _PH_CRYPTO_PROVIDER
+{
+    ULONG Magic;
+    PH_CRYPTO_PROVIDER_INFO Information;
+} PH_CRYPTO_PROVIDER, *PPH_CRYPTO_PROVIDER;
+
+static NTSTATUS PhpQueryCryptoProvider(
+    _In_ PH_CRYPTO_PROVIDER_ID ProviderId,
+    _Out_ PPH_CRYPTO_PROVIDER_INFO Information
+    )
+{
+    PH_CRYPTO_PROVIDER_INFO information;
+
+    RtlZeroMemory(&information, sizeof(information));
+    information.Size = sizeof(information);
+    information.Available = TRUE;
+
+    if (ProviderId == PhCryptoProviderDefault)
+        ProviderId = PhCryptoProviderBCrypt;
+
+    switch (ProviderId)
+    {
+    case PhCryptoProviderBCrypt:
+        {
+            BCRYPT_ALG_HANDLE mlDsaHandle = NULL;
+
+            information.ProviderId = PhCryptoProviderBCrypt;
+            information.Name = L"Windows BCrypt";
+            information.Capabilities =
+                PH_CRYPTO_CAPABILITY_HASH |
+                PH_CRYPTO_CAPABILITY_HMAC_KDF |
+                PH_CRYPTO_CAPABILITY_SYMMETRIC |
+                PH_CRYPTO_CAPABILITY_RSA |
+                PH_CRYPTO_CAPABILITY_ECDSA |
+                PH_CRYPTO_CAPABILITY_RANDOM;
+
+            if (NT_SUCCESS(BCryptOpenAlgorithmProvider(
+                &mlDsaHandle,
+                BCRYPT_MLDSA_ALGORITHM,
+                NULL,
+                0
+                )))
+            {
+                information.Capabilities |= PH_CRYPTO_CAPABILITY_MLDSA;
+                BCryptCloseAlgorithmProvider(mlDsaHandle, 0);
+            }
+        }
+        break;
+    case PhCryptoProviderSymCrypt:
+        {
+            information.ProviderId = PhCryptoProviderSymCrypt;
+            information.Name = L"SymCrypt";
+            information.Capabilities =
+                PH_CRYPTO_CAPABILITY_HASH |
+                PH_CRYPTO_CAPABILITY_HMAC_KDF |
+                PH_CRYPTO_CAPABILITY_SYMMETRIC |
+                PH_CRYPTO_CAPABILITY_RSA |
+                PH_CRYPTO_CAPABILITY_ECDSA |
+                PH_CRYPTO_CAPABILITY_MLDSA |
+                PH_CRYPTO_CAPABILITY_RANDOM;
+        }
+        break;
+    default:
+        return STATUS_NOT_SUPPORTED;
+    }
+
+    *Information = information;
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhQueryCryptoProvider(
+    _In_ PH_CRYPTO_PROVIDER_ID ProviderId,
+    _Out_ PPH_CRYPTO_PROVIDER_INFO Information
+    )
+{
+    if (!Information)
+        return STATUS_INVALID_PARAMETER;
+
+    return PhpQueryCryptoProvider(ProviderId, Information);
+}
+
+NTSTATUS NTAPI PhOpenCryptoProvider(
+    _In_ PH_CRYPTO_PROVIDER_ID ProviderId,
+    _In_ PH_CRYPTO_CAPABILITIES RequiredCapabilities,
+    _Out_ PPH_CRYPTO_PROVIDER_HANDLE ProviderHandle
+    )
+{
+    NTSTATUS status;
+    PH_CRYPTO_PROVIDER_INFO information;
+    PPH_CRYPTO_PROVIDER provider;
+
+    if (!ProviderHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    status = PhpQueryCryptoProvider(ProviderId, &information);
+    
+    if (!NT_SUCCESS(status))
+        return status;
+    if (!information.Available)
+        return STATUS_NOT_SUPPORTED;
+    if ((information.Capabilities & RequiredCapabilities) != RequiredCapabilities)
+        return STATUS_NOT_SUPPORTED;
+
+    provider = PhAllocateZero(sizeof(PH_CRYPTO_PROVIDER));
+    provider->Magic = PH_CRYPTO_PROVIDER_MAGIC;
+    provider->Information = information;
+    *ProviderHandle = provider;
+
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS NTAPI PhGetCryptoProviderInformation(
+    _In_ PH_CRYPTO_PROVIDER_HANDLE ProviderHandle,
+    _Out_ PPH_CRYPTO_PROVIDER_INFO Information
+    )
+{
+    PPH_CRYPTO_PROVIDER provider = (PPH_CRYPTO_PROVIDER)ProviderHandle;
+
+    if (!provider || !Information || provider->Magic != PH_CRYPTO_PROVIDER_MAGIC)
+        return STATUS_INVALID_PARAMETER;
+
+    *Information = provider->Information;
+    return STATUS_SUCCESS;
+}
+
+VOID NTAPI PhCloseCryptoProvider(
+    _In_opt_ PH_CRYPTO_PROVIDER_HANDLE ProviderHandle
+    )
+{
+    PPH_CRYPTO_PROVIDER provider = (PPH_CRYPTO_PROVIDER)ProviderHandle;
+
+    if (!provider || provider->Magic != PH_CRYPTO_PROVIDER_MAGIC)
+        return;
+
+    provider->Magic = 0;
+    PhFree(provider);
+}
 
 // ------------------------------------------------------------------------
 // One-time SymCrypt library initialization
@@ -258,6 +405,12 @@ NTSTATUS NTAPI PhSymCryptRdrandGetBytes(
 #endif
 }
 
+/**
+ * Reports whether the CPU's RDSEED instruction is usable on this host.
+ *
+ * \return STATUS_SUCCESS if RDSEED is available and trusted by SymCrypt;
+ * otherwise an NTSTATUS describing the failure mode.
+ */
 NTSTATUS NTAPI PhSymCryptRdseedStatus(
     VOID
     )
@@ -269,6 +422,13 @@ NTSTATUS NTAPI PhSymCryptRdseedStatus(
 #endif
 }
 
+/**
+ * Pulls random bytes directly from the CPU's RDSEED.
+ *
+ * \param[out] Buffer Destination buffer to fill with RDSEED output.
+ * \param[in] Length Number of bytes to produce.
+ * \return STATUS_SUCCESS on success; an NTSTATUS error otherwise.
+ */
 NTSTATUS NTAPI PhSymCryptRdseedGetBytes(
     _Out_writes_bytes_(Length) PVOID Buffer,
     _In_ SIZE_T Length
@@ -287,6 +447,14 @@ NTSTATUS NTAPI PhSymCryptRdseedGetBytes(
 #endif
 }
 
+/**
+ * Fills a buffer with cryptographically random bytes.
+ *
+ * \param[out] Buffer Destination buffer to fill with random data.
+ * \param[in] Length Number of random bytes to produce.
+ * \param[in] Flags Optional flags.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGenRandom(
     _Out_writes_bytes_(Length) PVOID Buffer,
     _In_ SIZE_T Length,
@@ -401,6 +569,13 @@ VOID NTAPI PhSymCryptSha1(
     SymCryptSha1((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+/**
+ * One-shot SHA-224 hash.
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result 28-byte digest output.
+ */
 VOID NTAPI PhSymCryptSha224(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -458,6 +633,13 @@ VOID NTAPI PhSymCryptSha512(
     SymCryptSha512((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+/**
+ * One-shot SHA-512/224 hash.
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result 28-byte digest output.
+ */
 VOID NTAPI PhSymCryptSha512_224(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -467,6 +649,13 @@ VOID NTAPI PhSymCryptSha512_224(
     SymCryptSha512_224((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+/**
+ * One-shot SHA-512/256 hash.
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result 32-byte digest output.
+ */
 VOID NTAPI PhSymCryptSha512_256(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -476,6 +665,13 @@ VOID NTAPI PhSymCryptSha512_256(
     SymCryptSha512_256((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+/**
+ * One-shot SHA3-224 (Keccak family, FIPS 202).
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result 28-byte digest output.
+ */
 VOID NTAPI PhSymCryptSha3_224(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -533,6 +729,14 @@ VOID NTAPI PhSymCryptSha3_512(
     SymCryptSha3_512((PCBYTE)Buffer, Length, (PBYTE)Result);
 }
 
+/**
+ * One-shot SHAKE128 extendable-output function.
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ */
 VOID NTAPI PhSymCryptShake128(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -543,6 +747,14 @@ VOID NTAPI PhSymCryptShake128(
     SymCryptShake128((PCBYTE)Buffer, Length, (PBYTE)Result, ResultLength);
 }
 
+/**
+ * One-shot SHAKE256 extendable-output function.
+ *
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ */
 VOID NTAPI PhSymCryptShake256(
     _In_reads_bytes_(Length) PCVOID Buffer,
     _In_ SIZE_T Length,
@@ -553,6 +765,18 @@ VOID NTAPI PhSymCryptShake256(
     SymCryptShake256((PCBYTE)Buffer, Length, (PBYTE)Result, ResultLength);
 }
 
+/**
+ * One-shot cSHAKE128 customizable extendable-output function.
+ *
+ * \param[in] FunctionName Optional function name string.
+ * \param[in] FunctionNameLength Length of the function name.
+ * \param[in] Customization Optional customization string.
+ * \param[in] CustomizationLength Length of the customization string.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ */
 VOID NTAPI PhSymCryptCShake128(
     _In_reads_bytes_opt_(FunctionNameLength) PCVOID FunctionName,
     _In_ SIZE_T FunctionNameLength,
@@ -576,6 +800,18 @@ VOID NTAPI PhSymCryptCShake128(
         );
 }
 
+/**
+ * One-shot cSHAKE256 customizable extendable-output function.
+ *
+ * \param[in] FunctionName Optional function name string.
+ * \param[in] FunctionNameLength Length of the function name.
+ * \param[in] Customization Optional customization string.
+ * \param[in] CustomizationLength Length of the customization string.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ */
 VOID NTAPI PhSymCryptCShake256(
     _In_reads_bytes_opt_(FunctionNameLength) PCVOID FunctionName,
     _In_ SIZE_T FunctionNameLength,
@@ -769,6 +1005,13 @@ NTSTATUS NTAPI PhSymCryptHashFinal(
 
     if (!Context || !Context->Algorithm)
         return STATUS_INVALID_PARAMETER;
+
+    //
+    // Refuse to silently truncate the digest.
+    //
+
+    if (ResultLength < Context->ResultSize)
+        return STATUS_BUFFER_TOO_SMALL;
 
     hashAlgorithm = (PCSYMCRYPT_HASH)Context->Algorithm;
     SymCryptHashResult(hashAlgorithm, Context->State, (PBYTE)Result, ResultLength);
@@ -977,7 +1220,7 @@ NTSTATUS NTAPI PhSymCryptHashAlgorithmIdToAlgorithm(
         *Context = NULL;                                                        \
         compatContext = PhAllocateSafe(sizeof(PH_SYMCRYPT_COMPAT_HASH_CONTEXT));\
         if (!compatContext)                                                     \
-            return STATUS_NO_MEMORY;                                            \
+            return STATUS_INSUFFICIENT_RESOURCES;                               \
         status = PhSymCryptHashInit(AlgorithmId, &compatContext->Context);      \
         if (!NT_SUCCESS(status))                                                \
         {                                                                       \
@@ -1112,6 +1355,15 @@ static NTSTATUS PhpSymCryptWriteProperty(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets a property from the cryptographic provider.
+ *
+ * \param[in] Property Property identifier.
+ * \param[out] Buffer Output buffer.
+ * \param[in] Length Output buffer size.
+ * \param[out] ReturnLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGetProperty(
     _In_ PCWSTR AlgorithmId,
     _In_ PCWSTR Property,
@@ -1174,6 +1426,14 @@ NTSTATUS NTAPI PhSymCryptGetProperty(
 // HMAC (single-shot)
 // ------------------------------------------------------------------------
 
+/**
+ * Resolves a MAC algorithm identifier to a SymCrypt MAC algorithm.
+ *
+ * \param[in] Algorithm Wrapper MAC selector constant.
+ * \param[out] MacAlgorithm Receives SymCrypt MAC descriptor pointer.
+ * \param[out] MacResultSize Receives MAC size in bytes.
+ * \return TRUE if the selector is supported; FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhpSymCryptResolveMacAlgorithm(
     _In_ PCWSTR AlgorithmId,
@@ -1247,6 +1507,17 @@ BOOLEAN PhpSymCryptResolveMacAlgorithm(
     return FALSE;
 }
 
+/**
+ * Computes a one-shot HMAC.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptHmac(
     _In_ PCWSTR AlgorithmId,
     _In_reads_bytes_(KeyLength) PCVOID Key,
@@ -1369,6 +1640,16 @@ PH_SYMCRYPT_DEFINE_HMAC(
     SymCryptHmacSha512,
     PH_SYMCRYPT_HMAC_SHA512_RESULT_SIZE)
 
+/**
+ * Computes a one-shot AES-CMAC.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCmac(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -1388,6 +1669,18 @@ NTSTATUS NTAPI PhSymCryptAesCmac(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Computes a one-shot AES-GMAC.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesGmac(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -1414,6 +1707,19 @@ NTSTATUS NTAPI PhSymCryptAesGmac(
         );
 }
 
+/**
+ * Computes a one-shot KMAC128.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Customization Optional customization string.
+ * \param[in] CustomizationLength Length of the customization string.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptKmac128(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -1436,6 +1742,19 @@ NTSTATUS NTAPI PhSymCryptKmac128(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Computes a one-shot KMAC256.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Customization Optional customization string.
+ * \param[in] CustomizationLength Length of the customization string.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptKmac256(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -1498,6 +1817,19 @@ NTSTATUS NTAPI PhSymCryptPbkdf2HmacSha256(
         ));
 }
 
+/**
+ * Derives a key using PBKDF2.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Password Password bytes.
+ * \param[in] PasswordLength Password size.
+ * \param[in] Salt Salt bytes.
+ * \param[in] SaltLength Salt size.
+ * \param[in] IterationCount Number of iterations.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptPbkdf2(
     _In_ PCWSTR MacAlgorithmId,
     _In_reads_bytes_(PasswordLength) PCVOID Password,
@@ -1644,6 +1976,20 @@ NTSTATUS NTAPI PhSymCryptHkdfSha512(
         ));
 }
 
+/**
+ * Derives a key using HKDF.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Salt Salt bytes.
+ * \param[in] SaltLength Salt size.
+ * \param[in] Info Info bytes.
+ * \param[in] InfoLength Info size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptHkdf(
     _In_ PCWSTR MacAlgorithmId,
     _In_reads_bytes_(IkmLength) PCVOID Ikm,
@@ -1678,6 +2024,20 @@ NTSTATUS NTAPI PhSymCryptHkdf(
         ));
 }
 
+/**
+ * Derives a key using SP800-108.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Label Label bytes.
+ * \param[in] LabelLength Label size.
+ * \param[in] Context Context bytes.
+ * \param[in] ContextLength Context size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptSp800_108(
     _In_ PCWSTR MacAlgorithmId,
     _In_reads_bytes_(KeyLength) PCVOID Key,
@@ -1712,6 +2072,19 @@ NTSTATUS NTAPI PhSymCryptSp800_108(
         ));
 }
 
+/**
+ * Derives a key using TLS 1.1 PRF.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Label Label bytes.
+ * \param[in] LabelLength Label size.
+ * \param[in] Seed Seed bytes.
+ * \param[in] SeedLength Seed size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptTlsPrf1_1(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -1735,6 +2108,20 @@ NTSTATUS NTAPI PhSymCryptTlsPrf1_1(
         ));
 }
 
+/**
+ * Derives a key using TLS 1.2 PRF.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Label Label bytes.
+ * \param[in] LabelLength Label size.
+ * \param[in] Seed Seed bytes.
+ * \param[in] SeedLength Seed size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptTlsPrf1_2(
     _In_ PCWSTR MacAlgorithmId,
     _In_reads_bytes_(KeyLength) PCVOID Key,
@@ -1766,6 +2153,21 @@ NTSTATUS NTAPI PhSymCryptTlsPrf1_2(
         ));
 }
 
+/**
+ * Derives a key using SSH KDF.
+ *
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Hash Hash bytes.
+ * \param[in] HashLength Hash size.
+ * \param[in] Letter Key character.
+ * \param[in] SessionId Session ID bytes.
+ * \param[in] SessionIdLength Session ID size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptSshKdf(
     _In_ PH_SYMCRYPT_HASH_ALGORITHM HashAlgorithm,
     _In_reads_bytes_(KeyLength) PCVOID Key,
@@ -1799,6 +2201,19 @@ NTSTATUS NTAPI PhSymCryptSshKdf(
         ));
 }
 
+/**
+ * Derives a key using SRTP KDF.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Salt Salt bytes.
+ * \param[in] SaltLength Salt size.
+ * \param[in] Label Label character.
+ * \param[in] Index Index value.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptSrtpKdf(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2024,6 +2439,22 @@ NTSTATUS NTAPI PhSymCryptAesGcmDecrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Encrypts data using AES-CCM.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \param[in] AuthData Associated data.
+ * \param[in] AuthDataLength Associated data size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \param[out] Tag Authentication tag.
+ * \param[in] TagLength Tag size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCcmEncrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2075,6 +2506,22 @@ NTSTATUS NTAPI PhSymCryptAesCcmEncrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Decrypts data using AES-CCM.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \param[in] AuthData Associated data.
+ * \param[in] AuthDataLength Associated data size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \param[in] Tag Authentication tag.
+ * \param[in] TagLength Tag size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCcmDecrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2135,6 +2582,16 @@ typedef struct _PH_SYMCRYPT_GCM_STATE
     SYMCRYPT_GCM_STATE State;
 } PH_SYMCRYPT_GCM_STATE, *PPH_SYMCRYPT_GCM_STATE;
 
+/**
+ * Initializes a GCM context.
+ *
+ * \param[out] Context GCM context.
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmInit(
     _Out_ PPH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _In_reads_bytes_(KeyLength) PCVOID Key,
@@ -2146,7 +2603,7 @@ NTSTATUS NTAPI PhSymCryptGcmInit(
     PPH_SYMCRYPT_GCM_STATE state;
     SYMCRYPT_ERROR error;
 
-    if (!StateHandle)
+    if (!StateHandle || !Key || !KeyLength || !Nonce || !NonceLength)
         return STATUS_INVALID_PARAMETER;
 
     *StateHandle = NULL;
@@ -2184,6 +2641,14 @@ static PPH_SYMCRYPT_GCM_STATE PhpSymCryptGetGcmState(
     return state;
 }
 
+/**
+ * Processes associated data for GCM.
+ *
+ * \param[in,out] Context GCM context.
+ * \param[in] AuthData Associated data.
+ * \param[in] AuthDataLength Associated data size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmAuthPart(
     _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _In_reads_bytes_opt_(AuthDataLength) PCVOID AuthData,
@@ -2199,6 +2664,15 @@ NTSTATUS NTAPI PhSymCryptGcmAuthPart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Encrypts a portion of data using GCM.
+ *
+ * \param[in,out] Context GCM context.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmEncryptPart(
     _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _In_reads_bytes_(DataLength) PCVOID Plaintext,
@@ -2215,6 +2689,15 @@ NTSTATUS NTAPI PhSymCryptGcmEncryptPart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Decrypts a portion of data using GCM.
+ *
+ * \param[in,out] Context GCM context.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmDecryptPart(
     _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _In_reads_bytes_(DataLength) PCVOID Ciphertext,
@@ -2231,6 +2714,14 @@ NTSTATUS NTAPI PhSymCryptGcmDecryptPart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Finalizes GCM encryption.
+ *
+ * \param[in,out] Context GCM context.
+ * \param[out] Tag Authentication tag.
+ * \param[in] TagLength Tag size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmEncryptFinal(
     _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _Out_writes_bytes_(TagLength) PVOID Tag,
@@ -2246,6 +2737,14 @@ NTSTATUS NTAPI PhSymCryptGcmEncryptFinal(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Finalizes GCM decryption.
+ *
+ * \param[in,out] Context GCM context.
+ * \param[in] Tag Authentication tag.
+ * \param[in] TagLength Tag size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGcmDecryptFinal(
     _In_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle,
     _In_reads_bytes_(TagLength) PCVOID Tag,
@@ -2260,6 +2759,11 @@ NTSTATUS NTAPI PhSymCryptGcmDecryptFinal(
     return PhSymCryptErrorToStatus(SymCryptGcmDecryptFinal(&state->State, (PCBYTE)Tag, TagLength));
 }
 
+/**
+ * Destroys an authentication state.
+ *
+ * \param[in,out] Context Context to destroy.
+ */
 VOID NTAPI PhSymCryptDestroyAuthState(
     _In_opt_ PH_SYMCRYPT_AUTH_STATE_HANDLE StateHandle
     )
@@ -2701,6 +3205,7 @@ NTSTATUS NTAPI PhSymCryptAesCbcDecryptPkcs7(
 {
     PBYTE buffer;
     BYTE padLen;
+    SIZE_T padLenSize;
     BYTE invalid;
     NTSTATUS status;
 
@@ -2738,18 +3243,25 @@ NTSTATUS NTAPI PhSymCryptAesCbcDecryptPkcs7(
 
     //
     // Constant-time padding validation (avoid PKCS#7 padding oracle):
-    //   1) check 1 <= padLen <= 16 via subtraction-into-sign-bit;
-    //   2) check the trailing padLen bytes all equal padLen.
+    //   1) check 1 <= padLen <= 16 by folding both bounds into a sign bit.
+    //      The arithmetic is done in UINT so the shift is a logical shift of
+    //      an unsigned value; shifting a negative signed int right would be
+    //      implementation-defined.
+    //   2) check the trailing padLen bytes all equal padLen. The span mask is
+    //      built by negating the comparison result rather than by a ternary,
+    //      so no branch depends on the (secret) pad length.
     //
 
-    invalid = (BYTE)(((padLen - 1) | (PH_AES_BLOCK_SIZE - padLen)) >> 7);
+    padLenSize = (SIZE_T)padLen;
+
+    invalid = (BYTE)((((UINT)padLen - 1) | ((UINT)PH_AES_BLOCK_SIZE - (UINT)padLen)) >> (sizeof(UINT) * 8 - 1));
 
     for (SIZE_T i = 0; i < PH_AES_BLOCK_SIZE; i++)
     {
-        BYTE expected = (BYTE)padLen;
+        BYTE expected = padLen;
         BYTE actual = buffer[CiphertextLength - 1 - i];
         // mask = 0xFF only for indexes that fall inside the claimed pad span.
-        BYTE mask = (BYTE)((((SIZE_T)i < (SIZE_T)padLen) ? 0xFF : 0x00));
+        BYTE mask = (BYTE)((SIZE_T)0 - (SIZE_T)(i < padLenSize));
         invalid |= (BYTE)((actual ^ expected) & mask);
     }
 
@@ -2773,6 +3285,16 @@ NTSTATUS NTAPI PhSymCryptAesCbcDecryptPkcs7(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Encrypts data using AES-ECB.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesEcbEncrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2800,6 +3322,16 @@ NTSTATUS NTAPI PhSymCryptAesEcbEncrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Decrypts data using AES-ECB.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesEcbDecrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2829,6 +3361,17 @@ NTSTATUS NTAPI PhSymCryptAesEcbDecrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Encrypts or decrypts data using AES-CTR.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCtr(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2871,8 +3414,10 @@ static NTSTATUS PhpSymCryptAesCfb(
     BYTE chainingValue[PH_AES_BLOCK_SIZE];
     SYMCRYPT_ERROR error;
 
-    if (ShiftLength == 0)
-        ShiftLength = PH_AES_BLOCK_SIZE;
+    //
+    // CFB1 and CFB128 are the only supported shift widths; a zero shift is a
+    // caller bug rather than a request for the default.
+    //
 
     if (ShiftLength != 1 && ShiftLength != PH_AES_BLOCK_SIZE)
         return STATUS_INVALID_PARAMETER;
@@ -2913,6 +3458,18 @@ static NTSTATUS PhpSymCryptAesCfb(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Encrypts data using AES-CFB.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \param[in] ShiftSize Shift size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCfbEncrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2926,6 +3483,18 @@ NTSTATUS NTAPI PhSymCryptAesCfbEncrypt(
     return PhpSymCryptAesCfb(TRUE, Key, KeyLength, Iv, ShiftLength, Plaintext, Ciphertext, DataLength);
 }
 
+/**
+ * Decrypts data using AES-CFB.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \param[in] ShiftSize Shift size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptAesCfbDecrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2939,6 +3508,17 @@ NTSTATUS NTAPI PhSymCryptAesCfbDecrypt(
     return PhpSymCryptAesCfb(FALSE, Key, KeyLength, Iv, ShiftLength, Ciphertext, Plaintext, DataLength);
 }
 
+/**
+ * Encrypts data using AES-XTS.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptXtsAesEncrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -2970,6 +3550,17 @@ NTSTATUS NTAPI PhSymCryptXtsAesEncrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Decrypts data using AES-XTS.
+ *
+ * \param[in] Key Key bytes.
+ * \param[in] KeyLength Key size.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptXtsAesDecrypt(
     _In_reads_bytes_(KeyLength) PCVOID Key,
     _In_ SIZE_T KeyLength,
@@ -3513,6 +4104,14 @@ NTSTATUS NTAPI PhSymCryptEcDsaVerifyP384(
         );
 }
 
+/**
+ * Imports an RSA private key.
+ *
+ * \param[in] KeyBlob Key blob.
+ * \param[in] KeyBlobLength Key blob size.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS PhSymCryptRsaImportPrivateKey(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3520,6 +4119,14 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
     _Out_ PSIZE_T ModulusLength
     );
 
+/**
+ * Imports an RSA public key.
+ *
+ * \param[in] KeyBlob Key blob.
+ * \param[in] KeyBlobLength Key blob size.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS PhpSymCryptRsaImportPublicKeyBlob(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3651,6 +4258,12 @@ static NTSTATUS PhpSymCryptRsaPublicEncrypt(
         break;
     case 2:
         {
+            if (!HashAlgorithm)
+            {
+                error = SYMCRYPT_INVALID_ARGUMENT;
+                break;
+            }
+
             hashAlgorithm = PhSymCryptHashAlgorithmToHash(*HashAlgorithm);
 
             if (!hashAlgorithm)
@@ -3752,6 +4365,16 @@ static NTSTATUS PhpSymCryptRsaPrivateDecrypt(
     return PhSymCryptErrorToStatus(error);
 }
 
+/**
+ * Encrypts data using raw RSA.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaRawEncrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3765,6 +4388,16 @@ NTSTATUS NTAPI PhSymCryptRsaRawEncrypt(
     return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, NULL, NULL, 0, 0);
 }
 
+/**
+ * Decrypts data using raw RSA.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaRawDecrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3778,6 +4411,17 @@ NTSTATUS NTAPI PhSymCryptRsaRawDecrypt(
     return PhpSymCryptRsaPrivateDecrypt(KeyBlob, KeyBlobLength, Ciphertext, CiphertextLength, Plaintext, PlaintextCapacity, PlaintextLength, NULL, NULL, 0, 0);
 }
 
+/**
+ * Encrypts data using RSA-PKCS1.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \param[out] ReturnLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaPkcs1Encrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3791,6 +4435,17 @@ NTSTATUS NTAPI PhSymCryptRsaPkcs1Encrypt(
     return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, NULL, NULL, 0, 1);
 }
 
+/**
+ * Decrypts data using RSA-PKCS1.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \param[out] ReturnLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaPkcs1Decrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3804,6 +4459,20 @@ NTSTATUS NTAPI PhSymCryptRsaPkcs1Decrypt(
     return PhpSymCryptRsaPrivateDecrypt(KeyBlob, KeyBlobLength, Ciphertext, CiphertextLength, Plaintext, PlaintextCapacity, PlaintextLength, NULL, NULL, 0, 1);
 }
 
+/**
+ * Encrypts data using RSA-OAEP.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Label Label bytes.
+ * \param[in] LabelLength Label size.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \param[out] ReturnLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaOaepEncrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -3820,6 +4489,20 @@ NTSTATUS NTAPI PhSymCryptRsaOaepEncrypt(
     return PhpSymCryptRsaPublicEncrypt(KeyBlob, KeyBlobLength, Plaintext, PlaintextLength, Ciphertext, CiphertextCapacity, CiphertextLength, &HashAlgorithm, Label, LabelLength, 2);
 }
 
+/**
+ * Decrypts data using RSA-OAEP.
+ *
+ * \param[in] KeyHandle RSA key handle.
+ * \param[in] Algorithm Hash algorithm to use.
+ * \param[in] Label Label bytes.
+ * \param[in] LabelLength Label size.
+ * \param[in] Buffer Message bytes.
+ * \param[in] Length Message size.
+ * \param[out] Result Output buffer.
+ * \param[in] ResultLength Output size.
+ * \param[out] ReturnLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptRsaOaepDecrypt(
     _In_reads_bytes_(KeyBlobLength) PCVOID KeyBlob,
     _In_ SIZE_T KeyBlobLength,
@@ -4404,7 +5087,7 @@ NTSTATUS PhSymCryptRsaImportPrivateKey(
 
     {
         SIZE_T bitLength;
-        UINT bitLength32;
+        UINT32 bitLength32;
 
         if (!NT_SUCCESS(RtlSIZETMult(header->cbModulus, 8, &bitLength)) ||
             !NT_SUCCESS(RtlSIZETToUInt(bitLength, &bitLength32)))
@@ -5116,8 +5799,14 @@ VOID NTAPI PhSymCryptCleanupParallelHash(
             stateSize = sizeof(SYMCRYPT_SHA512_STATE);
             break;
         }
+        //
+        // The same product succeeded at allocation time, so this cannot overflow
+        // here. Fall back to a zero-length (no-op) wipe rather than a size that
+        // does not describe the states allocation.
+        //
+
         if (!NT_SUCCESS(RtlSIZETMult(stateSize, ParallelHashContext->NumberOfHashes, &stateTotalSize)))
-            stateTotalSize = ParallelHashContext->cbScratchBuffer;
+            stateTotalSize = 0;
 
         SymCryptWipe(
             ParallelHashContext->pHashStates,
@@ -5228,6 +5917,13 @@ static PPH_SYMCRYPT_SYMMETRIC_KEY PhpSymCryptGetSymmetricKey(
     return key;
 }
 
+/**
+ * Generates a symmetric key.
+ *
+ * \param[in] SymmetricKey Handle to symmetric key.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGenerateSymmetricKey(
     _In_ PCWSTR Algorithm,
     _Out_ PPH_SYMCRYPT_KEY_HANDLE KeyHandle,
@@ -5259,6 +5955,14 @@ NTSTATUS NTAPI PhSymCryptGenerateSymmetricKey(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Sets a property on the cryptographic provider.
+ *
+ * \param[in] Property Property identifier.
+ * \param[in] Buffer Input buffer.
+ * \param[in] Length Input buffer size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptSetProperty(
     _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
     _In_ PCWSTR Property,
@@ -5369,6 +6073,17 @@ static NTSTATUS PhpSymCryptAesCryptByKey(
     return status;
 }
 
+/**
+ * Encrypts data using a symmetric key.
+ *
+ * \param[in] KeyHandle Symmetric key handle.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptEncrypt(
     _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
     _In_reads_bytes_opt_(InputLength) PCVOID Input,
@@ -5385,6 +6100,17 @@ NTSTATUS NTAPI PhSymCryptEncrypt(
     return PhpSymCryptAesCryptByKey(TRUE, PhpSymCryptGetSymmetricKey(KeyHandle), Input, InputLength, PaddingInfo, Iv, IvLength, Output, OutputLength, ResultLength, Flags);
 }
 
+/**
+ * Decrypts data using a symmetric key.
+ *
+ * \param[in] KeyHandle Symmetric key handle.
+ * \param[in] Nonce Nonce bytes.
+ * \param[in] NonceLength Nonce size.
+ * \param[in] Buffer Message bytes.
+ * \param[out] Result Output buffer.
+ * \param[in] Length Message size.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptDecrypt(
     _In_ PH_SYMCRYPT_KEY_HANDLE KeyHandle,
     _In_reads_bytes_opt_(InputLength) PCVOID Input,
@@ -5568,6 +6294,15 @@ NTSTATUS NTAPI PhSymCryptExportKey(
 
     if (key->Algorithm == PhSymCryptKeyAlgorithmRsa)
     {
+        //
+        // Balanced primes are assumed: both primes are reported as half the
+        // modulus length. This holds for every key generated or imported by
+        // this codebase. A key whose primes differ in length would be exported
+        // incorrectly by SymCryptRsakeyGetValue below; supporting those would
+        // require querying the individual prime sizes and reworking the blob
+        // layout and BCRYPT_RSAKEY_BLOB cbPrime1/cbPrime2 fields.
+        //
+
         SIZE_T modulusLength = key->BitLength / 8;
         SIZE_T primeLength = modulusLength / 2;
         SIZE_T publicExpLength = sizeof(ULONG64);
@@ -6292,6 +7027,14 @@ NTSTATUS NTAPI PhSymCryptDestroyKey(
 // Asymmetric key generation
 // ------------------------------------------------------------------------
 
+/**
+ * Generates RSA key blobs.
+ *
+ * \param[in] KeyBits Number of key bits.
+ * \param[out] PrivateKeyBlob Receives the private key blob.
+ * \param[out] PublicKeyBlob Receives the public key blob.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
     _In_ ULONG Bits,
     _Out_writes_bytes_to_opt_(PrivateKeyBlobCapacity, *PrivateKeyBlobLength) PVOID PrivateKeyBlob,
@@ -6317,6 +7060,10 @@ NTSTATUS NTAPI PhSymCryptGenerateRsaKeyBlobs(
         return STATUS_INVALID_PARAMETER;
 
     modulusLength = Bits / 8;
+    //
+    // The key is generated here with two balanced primes, so each is exactly
+    // half the modulus length.
+    //
     primeLength = modulusLength / 2;
     publicExpLength = sizeof(ULONG64);
 
@@ -6554,6 +7301,13 @@ static PPH_SYMCRYPT_MLKEM_KEY PhpSymCryptGetMlKemKey(
     return key;
 }
 
+/**
+ * Generates an ML-KEM key pair.
+ *
+ * \param[in] ParameterSet ML-KEM parameter set.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlKemGenerateKey(
     _In_ PH_SYMCRYPT_MLKEM_PARAMETER_SET ParameterSet,
     _Out_ PPH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
@@ -6594,6 +7348,16 @@ NTSTATUS NTAPI PhSymCryptMlKemGenerateKey(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Imports an ML-KEM key.
+ *
+ * \param[in] ParameterSet ML-KEM parameter set.
+ * \param[in] Format Key format.
+ * \param[in] KeyBlob Key blob.
+ * \param[in] KeyBlobLength Key blob size.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlKemImportKey(
     _In_ PH_SYMCRYPT_MLKEM_PARAMETER_SET ParameterSet,
     _In_ PH_SYMCRYPT_MLKEM_KEY_FORMAT Format,
@@ -6638,6 +7402,16 @@ NTSTATUS NTAPI PhSymCryptMlKemImportKey(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Exports an ML-KEM key.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] Format Key format.
+ * \param[out] KeyBlob Output buffer for the key blob.
+ * \param[in] KeyBlobCapacity Size of the output buffer.
+ * \param[out] KeyBlobLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlKemExportKey(
     _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
     _In_ PH_SYMCRYPT_MLKEM_KEY_FORMAT Format,
@@ -6672,6 +7446,16 @@ NTSTATUS NTAPI PhSymCryptMlKemExportKey(
     return PhSymCryptErrorToStatus(SymCryptMlKemkeyGetValue(key->Key, (PBYTE)KeyBlob, KeyBlobCapacity, format, 0));
 }
 
+/**
+ * Encapsulates a secret using ML-KEM.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[out] Secret Output buffer for the shared secret.
+ * \param[in] SecretLength Size of the secret.
+ * \param[out] Ciphertext Output buffer for the ciphertext.
+ * \param[in] CiphertextCapacity Size of the ciphertext buffer.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlKemEncapsulate(
     _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
     _Out_writes_bytes_(SecretLength) PVOID Secret,
@@ -6700,6 +7484,16 @@ NTSTATUS NTAPI PhSymCryptMlKemEncapsulate(
     return PhSymCryptErrorToStatus(SymCryptMlKemEncapsulate(key->Key, (PBYTE)Secret, SecretLength, (PBYTE)Ciphertext, CiphertextCapacity));
 }
 
+/**
+ * Decapsulates a secret using ML-KEM.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] Ciphertext Ciphertext bytes.
+ * \param[in] CiphertextLength Size of the ciphertext.
+ * \param[out] Secret Output buffer for the shared secret.
+ * \param[in] SecretLength Size of the secret.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlKemDecapsulate(
     _In_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle,
     _In_reads_bytes_(CiphertextLength) PCVOID Ciphertext,
@@ -6716,6 +7510,11 @@ NTSTATUS NTAPI PhSymCryptMlKemDecapsulate(
     return PhSymCryptErrorToStatus(SymCryptMlKemDecapsulate(key->Key, (PCBYTE)Ciphertext, CiphertextLength, (PBYTE)Secret, SecretLength));
 }
 
+/**
+ * Destroys an ML-KEM key.
+ *
+ * \param[in] KeyHandle Key handle.
+ */
 VOID NTAPI PhSymCryptMlKemDestroyKey(
     _In_opt_ PH_SYMCRYPT_MLKEM_KEY_HANDLE KeyHandle
     )
@@ -6786,6 +7585,13 @@ static PPH_SYMCRYPT_MLDSA_KEY PhpSymCryptGetMlDsaKey(
     return key;
 }
 
+/**
+ * Generates an ML-DSA key pair.
+ *
+ * \param[in] ParameterSet ML-DSA parameter set.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlDsaGenerateKey(
     _In_ PH_SYMCRYPT_MLDSA_PARAMETER_SET ParameterSet,
     _Out_ PPH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
@@ -6826,6 +7632,16 @@ NTSTATUS NTAPI PhSymCryptMlDsaGenerateKey(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Imports an ML-DSA key.
+ *
+ * \param[in] ParameterSet ML-DSA parameter set.
+ * \param[in] Format Key format.
+ * \param[in] KeyBlob Key blob.
+ * \param[in] KeyBlobLength Key blob size.
+ * \param[out] KeyHandle Receives the key handle.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlDsaImportKey(
     _In_ PH_SYMCRYPT_MLDSA_PARAMETER_SET ParameterSet,
     _In_ PH_SYMCRYPT_MLDSA_KEY_FORMAT Format,
@@ -6870,6 +7686,16 @@ NTSTATUS NTAPI PhSymCryptMlDsaImportKey(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Exports an ML-DSA key.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] Format Key format.
+ * \param[out] KeyBlob Output buffer for the key blob.
+ * \param[in] KeyBlobCapacity Size of the output buffer.
+ * \param[out] KeyBlobLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlDsaExportKey(
     _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
     _In_ PH_SYMCRYPT_MLDSA_KEY_FORMAT Format,
@@ -6904,6 +7730,19 @@ NTSTATUS NTAPI PhSymCryptMlDsaExportKey(
     return PhSymCryptErrorToStatus(SymCryptMlDsakeyGetValue(key->Key, (PBYTE)KeyBlob, KeyBlobCapacity, format, 0));
 }
 
+/**
+ * Signs a message using ML-DSA.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] Message Message bytes.
+ * \param[in] MessageLength Message size.
+ * \param[in] Context Optional context string.
+ * \param[in] ContextLength Size of the context string.
+ * \param[out] Signature Output buffer for the signature.
+ * \param[in] SignatureCapacity Size of the signature buffer.
+ * \param[out] SignatureLength Number of bytes written.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlDsaSign(
     _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
     _In_reads_bytes_(MessageLength) PCVOID Message,
@@ -6946,6 +7785,18 @@ NTSTATUS NTAPI PhSymCryptMlDsaSign(
         ));
 }
 
+/**
+ * Verifies a signature using ML-DSA.
+ *
+ * \param[in] KeyHandle Key handle.
+ * \param[in] Message Message bytes.
+ * \param[in] MessageLength Message size.
+ * \param[in] Context Optional context string.
+ * \param[in] ContextLength Size of the context string.
+ * \param[in] Signature Signature bytes.
+ * \param[in] SignatureLength Size of the signature.
+ * \return STATUS_SUCCESS on success.
+ */
 NTSTATUS NTAPI PhSymCryptMlDsaVerify(
     _In_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle,
     _In_reads_bytes_(MessageLength) PCVOID Message,
@@ -6976,6 +7827,11 @@ NTSTATUS NTAPI PhSymCryptMlDsaVerify(
         ));
 }
 
+/**
+ * Destroys an ML-DSA key.
+ *
+ * \param[in] KeyHandle Key handle.
+ */
 VOID NTAPI PhSymCryptMlDsaDestroyKey(
     _In_opt_ PH_SYMCRYPT_MLDSA_KEY_HANDLE KeyHandle
     )
