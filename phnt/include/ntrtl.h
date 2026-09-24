@@ -15211,14 +15211,27 @@ typedef struct _RTL_BSD_ITEM
 } RTL_BSD_ITEM, *PRTL_BSD_ITEM;
 
 // ros
+/**
+ * The RtlCreateBootStatusDataFile routine creates the boot status data file used to track boot progress and recovery state.
+ *
+ * \param BootStatusFileName An optional path to the boot status data file.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlCreateBootStatusDataFile(
-    VOID
+    _In_opt_ PCWSTR BootStatusFileName
     );
 
 // ros
+/**
+ * The RtlLockBootStatusData routine opens and locks the boot status data file for access.
+ *
+ * \param FileHandle A pointer to a variable that receives a handle to the locked boot status data file. The caller releases it with RtlUnlockBootStatusData.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Acquires_lock_(*FileHandle)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15227,6 +15240,13 @@ RtlLockBootStatusData(
     );
 
 // ros
+/**
+ * The RtlUnlockBootStatusData routine unlocks and closes the boot status data file previously locked by RtlLockBootStatusData.
+ *
+ * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \return NTSTATUS Successful or errant status.
+ */
+_Releases_lock_(FileHandle)
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15276,6 +15296,12 @@ RtlCheckBootStatusIntegrity(
     );
 
 // rev
+/**
+ * The RtlSetPortableOperatingSystem routine sets whether the operating system is marked as a portable (Windows To Go) installation.
+ *
+ * \param IsPortable Set to `TRUE` to mark the operating system as portable, or `FALSE` otherwise.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15353,6 +15379,12 @@ RtlCheckPortableOperatingSystem(
     );
 
 // rev
+/**
+ * The RtlRestoreBootStatusDefaults routine restores the boot status data file to its default values.
+ *
+ * \param FileHandle A handle to the boot status data file returned by RtlLockBootStatusData.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15361,6 +15393,12 @@ RtlSetPortableOperatingSystem(
     );
 
 // rev
+/**
+ * The RtlSetProxiedProcessId routine sets the proxied process identifier for the current process.
+ *
+ * \param ProxiedProcessId The proxied process identifier to set.
+ * \return ULONG The previous proxied process identifier.
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -15778,6 +15816,12 @@ typedef struct _SYSTEM_FEATURE_CONFIGURATION_UPDATE
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 
 // private
+/**
+ * The RtlNotifyFeatureUsage routine reports usage of a staged feature to the feature configuration subsystem.
+ *
+ * \param FeatureUsageReport A pointer to an RTL_FEATURE_USAGE_REPORT structure that describes the feature usage.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -15786,6 +15830,15 @@ RtlNotifyFeatureUsage(
     );
 
 // private
+/**
+ * The RtlQueryFeatureConfiguration routine retrieves the configuration of a staged feature.
+ *
+ * \param FeatureId The identifier of the feature to query.
+ * \param ConfigurationType The RTL_FEATURE_CONFIGURATION_TYPE that selects the configuration store to query.
+ * \param ChangeStamp A pointer to a variable that receives the change stamp of the returned configuration.
+ * \param FeatureConfiguration A pointer to an RTL_FEATURE_CONFIGURATION structure that receives the feature configuration.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
