@@ -16014,8 +16014,18 @@ RtlRunOnceComplete(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 
+/**
+ * Constant used to derive a WNF state name key.
+ */
 #define WNF_STATE_KEY 0x41C64E6DA3BC0074
 
+/**
+ * The RtlEqualWnfChangeStamps routine determines whether two WNF change stamps are equal.
+ *
+ * \param ChangeStamp1 The first WNF change stamp to compare.
+ * \param ChangeStamp2 The second WNF change stamp to compare.
+ * \return Returns `TRUE` if the change stamps are equal, otherwise `FALSE`.
+ */
 _Must_inspect_result_
 NTSYSAPI
 BOOLEAN
@@ -16035,8 +16045,21 @@ NTSTATUS NTAPI WNF_USER_CALLBACK(
     _In_reads_bytes_opt_(Length) const VOID* Buffer,
     _In_ ULONG Length
     );
+/**
+ * Pointer to a WNF_USER_CALLBACK callback.
+ */
 typedef WNF_USER_CALLBACK *PWNF_USER_CALLBACK;
 
+/**
+ * The RtlQueryWnfStateData routine retrieves the current data for a WNF state name via a user callback.
+ *
+ * \param ChangeStamp Receives the change stamp of the current state data.
+ * \param StateName The WNF state name to query.
+ * \param Callback The callback invoked with the current state data.
+ * \param CallbackContext An optional context value passed to the callback.
+ * \param TypeId An optional type identifier describing the state data.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16048,6 +16071,16 @@ RtlQueryWnfStateData(
     _In_opt_ PWNF_TYPE_ID TypeId
     );
 
+/**
+ * The RtlPublishWnfStateData routine publishes new state data for a WNF state name.
+ *
+ * \param StateName The WNF state name to publish to.
+ * \param TypeId An optional pointer to the type identifier that describes the data format.
+ * \param Buffer An optional pointer to the buffer that contains the state data to publish.
+ * \param Length The size, in bytes, of the data in Buffer.
+ * \param ExplicitScope An optional pointer to the explicit scope in which to publish the data.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16059,10 +16092,29 @@ RtlPublishWnfStateData(
     _In_opt_ const VOID* ExplicitScope
     );
 
+/**
+ * Pointer to an opaque WNF_USER_SUBSCRIPTION structure.
+ */
 typedef struct WNF_USER_SUBSCRIPTION *PWNF_USER_SUBSCRIPTION;
 
+/**
+ * Flag controlling WNF serialization group creation.
+ */
 #define WNF_CREATE_SERIALIZATION_GROUP_FLAG 0x00000001L
 
+/**
+ * The RtlSubscribeWnfStateChangeNotification routine subscribes to change notifications for a WNF state name.
+ *
+ * \param SubscriptionHandle Receives the subscription handle.
+ * \param StateName The WNF state name to subscribe to.
+ * \param ChangeStamp The change stamp from which to begin receiving notifications.
+ * \param Callback The callback invoked when the state changes.
+ * \param CallbackContext An optional context value passed to the callback.
+ * \param TypeId An optional type identifier describing the state data.
+ * \param SerializationGroup An optional serialization group for ordering callbacks.
+ * \param Flags Flags controlling the subscription.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16077,6 +16129,12 @@ RtlSubscribeWnfStateChangeNotification(
     _In_ ULONG Flags
     );
 
+/**
+ * The RtlUnsubscribeWnfStateChangeNotification routine removes a WNF state change notification subscription.
+ *
+ * \param SubscriptionHandle A pointer to the user subscription to remove.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16084,6 +16142,12 @@ RtlUnsubscribeWnfStateChangeNotification(
     _In_ PWNF_USER_SUBSCRIPTION SubscriptionHandle
     );
 
+/**
+ * The RtlWnfDllUnloadCallback routine cancels any WNF subscriptions owned by a module as it is unloaded.
+ *
+ * \param DllBase The base address of the module being unloaded.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -16094,6 +16158,11 @@ RtlWnfDllUnloadCallback(
 #endif // PHNT_VERSION >= PHNT_WINDOWS_10
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
+/**
+ * The RtlGetReturnAddressHijackTarget routine returns the target address used for return address hijacking protection.
+ *
+ * \return ULONG_PTR The return address hijack target, or zero if none is configured.
+ */
 NTSYSAPI
 ULONG_PTR
 NTAPI
