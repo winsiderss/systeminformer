@@ -114,9 +114,19 @@
   <ItemDefinitionGroup Condition="'$(KsiNoWpp)'!='true'">
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(IntDir)tmh\</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TMH_FILE=%(FileName)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
+  <!-- Well-known item metadata (%(Filename), %(Extension)) is not expanded inside
+       ItemDefinitionGroup, so TMH_FILE must be applied per-item from a target. -->
+  <Target Name="KsiWppTmhFile"
+          BeforeTargets="ClCompile"
+          Condition="'$(KsiNoWpp)'!='true'">
+    <ItemGroup>
+      <ClCompile>
+        <PreprocessorDefinitions>TMH_FILE=%(Filename)%(Extension).tmh;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      </ClCompile>
+    </ItemGroup>
+  </Target>
   <ItemDefinitionGroup Condition="'$(KsiNoWpp)'=='true'">
     <ClCompile>
       <PreprocessorDefinitions>KSI_NO_WPP;%(PreprocessorDefinitions)</PreprocessorDefinitions>

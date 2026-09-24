@@ -40,8 +40,12 @@ if not exist "%TargetPath%" (
 call :CheckCustomBuildTool
 if errorlevel 1 exit /b %errorlevel%
 
+REM Use the directory attribute; "file.exe\." normalizes to "file.exe" so "if exist path\." matches files too.
+set "TargetAttr="
+for %%A in ("%TargetPath%") do set "TargetAttr=%%~aA"
+
 echo:
-if exist "%TargetPath%\." (
+if /i "%TargetAttr:~0,1%"=="d" (
     call :SignDirectory "%TargetPath%"
 ) else (
     call :SignFile "%TargetPath%"
