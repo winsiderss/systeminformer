@@ -15871,10 +15871,9 @@ RtlRegisterFeatureConfigurationChangeNotification(
 
 // private
 /**
- * The RtlUnsubscribeFromFeatureUsageNotifications routine removes feature usage notification subscriptions previously created by RtlSubscribeForFeatureUsageNotification.
+ * The RtlUnregisterFeatureConfigurationChangeNotification routine removes a feature configuration change notification registration.
  *
- * \param SubscriptionDetails A pointer to an array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries describing the subscriptions to remove.
- * \param SubscriptionCount The number of entries in the SubscriptionDetails array.
+ * \param RegistrationHandle The registration handle returned when the change notification was registered.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -15902,9 +15901,10 @@ RtlSubscribeForFeatureUsageNotification(
 
 // private
 /**
- * The RtlUnregisterFeatureConfigurationChangeNotification routine removes a feature configuration change notification registration.
+ * The RtlUnsubscribeFromFeatureUsageNotifications routine removes feature usage notification subscriptions previously created by RtlSubscribeForFeatureUsageNotification.
  *
- * \param RegistrationHandle The registration handle returned when the change notification was registered.
+ * \param SubscriptionDetails A pointer to an array of RTL_FEATURE_USAGE_SUBSCRIPTION_DETAILS entries describing the subscriptions to remove.
+ * \param SubscriptionCount The number of entries in the SubscriptionDetails array.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
