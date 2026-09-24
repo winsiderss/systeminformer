@@ -15,12 +15,12 @@
 #include <kphuser.h>
 #include <lsasup.h>
 #include <mapldr.h>
+#include <phintrin.h>
 
 #define PH_DEVICE_PREFIX_LENGTH 64
 #define PH_DEVICE_MUP_PREFIX_MAX_COUNT 16
 
 static PH_INITONCE PhDevicePrefixesInitOnce = PH_INITONCE_INIT;
-
 static UNICODE_STRING PhDevicePrefixes[26];
 static PH_QUEUED_LOCK PhDevicePrefixesLock = PH_QUEUED_LOCK_INIT;
 
@@ -448,7 +448,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     // Make the buffer self-relative
 
-    status = RtlAbsoluteToSelfRelativeSD(
+    status = PhAbsoluteToSelfRelativeSD(
         &mergedSecurityDescriptor,
         NULL,
         &requiredLength
@@ -462,7 +462,7 @@ NTSTATUS PhMergeSecurityDescriptors(
 
     relativeSecurityDescriptor = PhAllocate(requiredLength);
 
-    status = RtlAbsoluteToSelfRelativeSD(
+    status = PhAbsoluteToSelfRelativeSD(
         &mergedSecurityDescriptor,
         relativeSecurityDescriptor,
         &requiredLength
@@ -6008,6 +6008,407 @@ NTSTATUS PhGetSystemProcessorPerformanceDistributionEx(
 }
 
 /**
+ * Retrieves extended per-processor performance information for every active processor.
+ *
+ * \param Buffer A variable which receives an array of SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX
+ * structures, one per active processor, in processor group order. The caller frees the buffer using
+ * PhFree(). The AvailableTime member is the low priority (background) thread time required to
+ * compute the "% Priority Time" counter.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks Requires Windows 8.1 or later.
+ */
+NTSTATUS PhGetSystemProcessorPerformanceInformationEx(
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX *Buffer
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX buffer;
+    ULONG bufferSize;
+
+    bufferSize = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX) * PhSystemProcessorInformation.NumberOfProcessors;
+    buffer = PhAllocateZero(bufferSize);
+
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        status = NtQuerySystemInformation(
+            SystemProcessorPerformanceInformationEx,
+            buffer,
+            bufferSize,
+            NULL
+            );
+    }
+    else
+    {
+        USHORT processorCount = 0;
+
+        status = STATUS_SUCCESS;
+
+        for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+        {
+            USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+            status = NtQuerySystemInformationEx(
+                SystemProcessorPerformanceInformationEx,
+                &processorGroup,
+                sizeof(USHORT),
+                PTR_ADD_OFFSET(buffer, sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX) * processorCount),
+                sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX) * activeProcessorCount,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+                break;
+
+            processorCount += activeProcessorCount;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+        *Buffer = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * Retrieves per-processor idle state information for every active processor.
+ *
+ * \param Buffer A variable which receives an array of SYSTEM_PROCESSOR_IDLE_INFORMATION structures,
+ * one per active processor, in processor group order. The caller frees the buffer using PhFree().
+ * The sum of the C1, C2 and C3 transition counts is the "Idle Break Events" counter, and IdleTime
+ * here is the precise idle accumulator rather than the clock tick quantized value reported by
+ * SystemProcessorPerformanceInformation.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetSystemProcessorIdleInformation(
+    _Out_ PSYSTEM_PROCESSOR_IDLE_INFORMATION *Buffer
+    )
+{
+    NTSTATUS status;
+    PSYSTEM_PROCESSOR_IDLE_INFORMATION buffer;
+    ULONG bufferSize;
+
+    bufferSize = sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors;
+    buffer = PhAllocateZero(bufferSize);
+
+    if (PhSystemProcessorInformation.SingleProcessorGroup)
+    {
+        status = NtQuerySystemInformation(
+            SystemProcessorIdleInformation,
+            buffer,
+            bufferSize,
+            NULL
+            );
+    }
+    else
+    {
+        USHORT processorCount = 0;
+
+        status = STATUS_SUCCESS;
+
+        for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+        {
+            USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+            status = NtQuerySystemInformationEx(
+                SystemProcessorIdleInformation,
+                &processorGroup,
+                sizeof(USHORT),
+                PTR_ADD_OFFSET(buffer, sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * processorCount),
+                sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * activeProcessorCount,
+                NULL
+                );
+
+            if (!NT_SUCCESS(status))
+                break;
+
+            processorCount += activeProcessorCount;
+        }
+    }
+
+    if (NT_SUCCESS(status))
+        *Buffer = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * Retrieves per-processor cycle statistics for every active processor.
+ *
+ * \param Buffer A variable which receives an array of SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION
+ * structures, one per active processor, in processor group order. The caller frees the buffer using PhFree().
+ * \return NTSTATUS Successful or errant status.
+ * \remarks This information class is only serviced by NtQuerySystemInformationEx, so the single
+ * processor group path uses the extended form as well. The cycle counts are heterogeneous scheduler
+ * telemetry and cannot be used to compute processor utility or performance.
+ */
+NTSTATUS PhGetSystemProcessorCycleStatsInformation(
+    _Out_ PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION *Buffer
+    )
+{
+    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION buffer;
+    ULONG bufferSize;
+    USHORT processorCount = 0;
+
+    bufferSize = sizeof(SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors;
+    buffer = PhAllocateZero(bufferSize);
+
+    for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
+    {
+        USHORT activeProcessorCount = PhGetActiveProcessorCount(processorGroup);
+
+        status = NtQuerySystemInformationEx(
+            SystemProcessorCycleStatsInformation,
+            &processorGroup,
+            sizeof(USHORT),
+            PTR_ADD_OFFSET(buffer, sizeof(SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION) * processorCount),
+            sizeof(SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION) * activeProcessorCount,
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            break;
+
+        processorCount += activeProcessorCount;
+    }
+
+    if (NT_SUCCESS(status))
+        *Buffer = buffer;
+    else
+        PhFree(buffer);
+
+    return status;
+}
+
+/**
+ * Computes the performance state distribution delta for a single processor.
+ *
+ * \param Current The performance distribution from the current sample.
+ * \param Previous The performance distribution from the previous sample.
+ * \param ProcessorIndex The index of the processor within the distribution.
+ * \param Delta A variable which receives the computed delta.
+ * \return TRUE if the delta was computed, otherwise FALSE. The distribution cannot be interpreted
+ * when the state count changed between samples, which happens when the processor power policy is
+ * reconfigured.
+ * \remarks PercentPerformance is the average performance of the processor while it was executing
+ * instructions, as a percentage of its nominal performance. It may exceed 100 and must not be
+ * clamped.
+ */
+_Success_(return)
+BOOLEAN PhCalculateProcessorPerformanceDistributionDelta(
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Current,
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Previous,
+    _In_ ULONG ProcessorIndex,
+    _Out_ PPH_PROCESSOR_PERFORMANCE_DELTA Delta
+    )
+{
+    ULONG stateCount;
+    ULONGLONG totalHits = 0;
+    ULONGLONG weightedHits = 0;
+    ULONGLONG unhaltedHits = 0;
+    BOOLEAN unhaltedValid = FALSE;
+
+    if (ProcessorIndex >= Current->ProcessorCount || ProcessorIndex >= Previous->ProcessorCount)
+        return FALSE;
+
+    if (WindowsVersion >= WINDOWS_8_1)
+    {
+        PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION current;
+        PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION previous;
+
+        current = PTR_ADD_OFFSET(Current, Current->Offsets[ProcessorIndex]);
+        previous = PTR_ADD_OFFSET(Previous, Previous->Offsets[ProcessorIndex]);
+
+        if (current->StateCount != previous->StateCount)
+            return FALSE;
+
+        stateCount = current->StateCount;
+
+        for (ULONG i = 0; i < stateCount; i++)
+        {
+            PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountCurrent = &current->States[i];
+            PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT hitcountPrevious = &previous->States[i];
+            ULONGLONG hits = hitcountCurrent->Hits - hitcountPrevious->Hits;
+
+            totalHits += hits;
+            weightedHits += hits * hitcountCurrent->PercentFrequency;
+
+            if (hitcountCurrent->PercentFrequency == 0)
+            {
+                unhaltedHits = hits;
+                unhaltedValid = TRUE;
+            }
+        }
+    }
+    else
+    {
+        PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 current;
+        PSYSTEM_PROCESSOR_PERFORMANCE_STATE_DISTRIBUTION_WIN8 previous;
+
+        current = PTR_ADD_OFFSET(Current, Current->Offsets[ProcessorIndex]);
+        previous = PTR_ADD_OFFSET(Previous, Previous->Offsets[ProcessorIndex]);
+
+        if (current->StateCount != previous->StateCount)
+            return FALSE;
+
+        stateCount = current->StateCount;
+
+        for (ULONG i = 0; i < stateCount; i++)
+        {
+            PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountCurrent = &current->States[i];
+            PSYSTEM_PROCESSOR_PERFORMANCE_HITCOUNT_WIN8 hitcountPrevious = &previous->States[i];
+            ULONGLONG hits = hitcountCurrent->Hits - hitcountPrevious->Hits;
+
+            totalHits += hits;
+            weightedHits += hits * hitcountCurrent->PercentFrequency;
+
+            if (hitcountCurrent->PercentFrequency == 0)
+            {
+                unhaltedHits = hits;
+                unhaltedValid = TRUE;
+            }
+        }
+    }
+
+    RtlZeroMemory(Delta, sizeof(PH_PROCESSOR_PERFORMANCE_DELTA));
+    Delta->StateCount = stateCount;
+    Delta->TotalHitCount = totalHits;
+    Delta->UnhaltedHitCount = unhaltedHits;
+    Delta->UnhaltedHitCountValid = unhaltedValid;
+    Delta->PercentPerformance = totalHits ? (FLOAT)((DOUBLE)weightedHits / (DOUBLE)totalHits) : 0.0f;
+
+    return TRUE;
+}
+
+/**
+ * Computes the "Processor Information" statistics for a single processor from two samples.
+ *
+ * \param Current The current sample.
+ * \param Previous The previous sample.
+ * \param ElapsedTime The wall clock time between the two samples, in 100-nanosecond intervals.
+ * \param PerformanceDelta The performance state distribution delta for the same interval, or NULL
+ * when the distribution is unavailable. Without it the utility, performance and frequency members
+ * are zeroed.
+ * \param NominalFrequency The nominal frequency of the processor in MHz, or 0 when unknown.
+ * \param Statistics A variable which receives the computed statistics.
+ * \return TRUE if the statistics were computed, otherwise FALSE.
+ * \remarks ProcessorUtility, PrivilegedUtility and ProcessorPerformance may exceed 100 on processors
+ * capable of running above their nominal frequency, and must not be clamped. PrivilegedUtility is an
+ * approximation: the kernel maintains a separate privileged accumulator that no information class
+ * exposes, so the total utility is apportioned using the kernel to user time ratio instead.
+ */
+_Success_(return)
+BOOLEAN PhCalculateProcessorStatistics(
+    _In_ PPH_PROCESSOR_STATISTICS_SAMPLE Current,
+    _In_ PPH_PROCESSOR_STATISTICS_SAMPLE Previous,
+    _In_ ULONG64 ElapsedTime,
+    _In_opt_ PPH_PROCESSOR_PERFORMANCE_DELTA PerformanceDelta,
+    _In_ ULONG NominalFrequency,
+    _Out_ PPH_PROCESSOR_STATISTICS Statistics
+    )
+{
+    PH_PROCESSOR_STATISTICS statistics;
+    DOUBLE elapsed;
+    ULONG64 idleTime;
+    ULONG64 kernelTime;
+    ULONG64 userTime;
+    ULONG64 interruptTime;
+    ULONG64 availableTime;
+    ULONG64 idleBreakEvents;
+    DOUBLE busyFraction;
+
+    if (ElapsedTime == 0)
+        return FALSE;
+
+    elapsed = (DOUBLE)ElapsedTime;
+
+    idleTime = Current->IdleTime - Previous->IdleTime;
+    kernelTime = Current->KernelTime - Previous->KernelTime;
+    userTime = Current->UserTime - Previous->UserTime;
+    interruptTime = Current->InterruptTime - Previous->InterruptTime;
+    availableTime = Current->AvailableTime - Previous->AvailableTime;
+    idleBreakEvents = Current->IdleBreakEvents - Previous->IdleBreakEvents;
+
+    // KernelTime includes IdleTime.
+
+    if (kernelTime >= idleTime)
+        kernelTime -= idleTime;
+    else
+        kernelTime = 0;
+
+    memset(&statistics, 0, sizeof(PH_PROCESSOR_STATISTICS));
+
+    busyFraction = 1.0 - ((DOUBLE)idleTime / elapsed);
+
+    if (busyFraction < 0.0)
+        busyFraction = 0.0;
+    if (busyFraction > 1.0)
+        busyFraction = 1.0;
+
+    statistics.ProcessorTime = (FLOAT)(busyFraction * 100.0);
+    statistics.PrivilegedTime = (FLOAT)((DOUBLE)kernelTime / elapsed * 100.0);
+    statistics.UserTime = (FLOAT)((DOUBLE)userTime / elapsed * 100.0);
+    statistics.InterruptTime = (FLOAT)((DOUBLE)interruptTime / elapsed * 100.0);
+    statistics.PriorityTime = (FLOAT)((1.0 - ((DOUBLE)(idleTime + availableTime) / elapsed)) * 100.0);
+    statistics.IdleBreakEventsPerSecond = (FLOAT)((DOUBLE)idleBreakEvents / (elapsed / PH_TICKS_PER_SEC));
+
+    if (statistics.PriorityTime < 0.0f)
+        statistics.PriorityTime = 0.0f;
+
+    if (PerformanceDelta)
+    {
+        DOUBLE unhaltedFraction;
+        DOUBLE privilegedFraction;
+
+        statistics.ProcessorPerformance = PerformanceDelta->PercentPerformance;
+        statistics.ActualFrequency = (FLOAT)((DOUBLE)NominalFrequency * PerformanceDelta->PercentPerformance / 100.0);
+
+        if (PerformanceDelta->UnhaltedHitCountValid && PerformanceDelta->TotalHitCount != 0)
+        {
+            // The hit counts accumulate unhalted reference time, which is the divisor the kernel
+            // uses for "% Processor Performance". Scaling the performance by that time against
+            // elapsed time recovers "% Processor Utility". Utility accounting is finer grained than
+            // the clock tick, so this is deliberately not the idle time busy fraction.
+
+            unhaltedFraction =
+                (DOUBLE)(PerformanceDelta->TotalHitCount * SYSTEM_PROCESSOR_HITCOUNT_UNIT_NUMERATOR) /
+                (DOUBLE)SYSTEM_PROCESSOR_HITCOUNT_UNIT_DENOMINATOR / elapsed;
+
+            if (unhaltedFraction < 0.0)
+                unhaltedFraction = 0.0;
+            if (unhaltedFraction > 1.0)
+                unhaltedFraction = 1.0;
+
+            statistics.UtilityFromDistribution = TRUE;
+        }
+        else
+        {
+            // Legacy performance state tables report occurrence counts rather than unhalted time
+            // accumulators. Fall back to the clock tick busy fraction, which underestimates utility.
+
+            unhaltedFraction = busyFraction;
+            statistics.UtilityFromDistribution = FALSE;
+        }
+
+        statistics.ProcessorUtility = (FLOAT)(PerformanceDelta->PercentPerformance * unhaltedFraction);
+
+        if (kernelTime + userTime != 0)
+            privilegedFraction = (DOUBLE)kernelTime / (DOUBLE)(kernelTime + userTime);
+        else
+            privilegedFraction = 0.0;
+
+        statistics.PrivilegedUtility = (FLOAT)(statistics.ProcessorUtility * privilegedFraction);
+    }
+
+    *Statistics = statistics;
+    return TRUE;
+}
+
+/**
  * Retrieves information about the logical processors in the system.
  *
  * \param RelationshipType The relationship type to filter the logical processor information (e.g., processor core, NUMA node).
@@ -6258,14 +6659,33 @@ VOID PhGetCurrentProcessorNumber(
     _Out_ PPROCESSOR_NUMBER ProcessorNumber
     )
 {
-    //if (PhIsProcessorFeaturePresent(PF_RDPID_INSTRUCTION_AVAILABLE))
-//    _rdpid_u32();
-//if (PhIsProcessorFeaturePresent(PF_RDTSCP_INSTRUCTION_AVAILABLE))
-//    __rdtscp();
+#if defined(_M_ARM64)
+    ULONG64 processorId;
 
-    memset(ProcessorNumber, 0, sizeof(PROCESSOR_NUMBER));
+    processorId = _ReadStatusReg(ARM64_TPIDRRO_EL0);
 
-    RtlGetCurrentProcessorNumberEx(ProcessorNumber);
+    ProcessorNumber->Group = (USHORT)((processorId >> 8) & 0xff);
+    ProcessorNumber->Number = (UCHAR)processorId;
+    ProcessorNumber->Reserved = 0;
+#else
+    if (USER_SHARED_DATA->ProcessorFeatures[PF_RDPID_INSTRUCTION_AVAILABLE])
+    {
+        ULONG processorId = _rdpid_u32();
+
+        // Windows stores the KPCR processor number in IA32_TSC_AUX using the same
+        // layout consumed by the rdtscp-based RtlGetCurrentProcessorNumberEx: the
+        // low 6 bits are the group-relative number (64 processors per group) and
+        // the remaining bits are the processor group. (dmex)
+
+        ProcessorNumber->Group = (USHORT)(processorId >> 6);
+        ProcessorNumber->Number = (UCHAR)(processorId & 0x3F);
+        ProcessorNumber->Reserved = 0;
+    }
+    else
+    {
+        RtlGetCurrentProcessorNumberEx(ProcessorNumber);
+    }
+#endif
 }
 
 // based on GetActiveProcessorCount (dmex)
@@ -6279,31 +6699,17 @@ USHORT PhGetActiveProcessorCount(
     _In_ USHORT ProcessorGroup
     )
 {
-    if (PhSystemProcessorInformation.ActiveProcessorCount)
+    if (ProcessorGroup == ALL_PROCESSOR_GROUPS || !PhSystemProcessorInformation.ActiveProcessorCount)
     {
-        USHORT numberOfProcessors = 0;
-
-        if (ProcessorGroup == ALL_PROCESSOR_GROUPS)
-        {
-            for (USHORT i = 0; i < PhSystemProcessorInformation.NumberOfProcessorGroups; i++)
-            {
-                numberOfProcessors += PhSystemProcessorInformation.ActiveProcessorCount[i];
-            }
-        }
-        else
-        {
-            if (ProcessorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups)
-            {
-                numberOfProcessors = PhSystemProcessorInformation.ActiveProcessorCount[ProcessorGroup];
-            }
-        }
-
-        return numberOfProcessors;
+        return (USHORT)PhSystemProcessorInformation.NumberOfProcessors;
     }
-    else
+
+    if (ProcessorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups)
     {
-        return PhSystemProcessorInformation.NumberOfProcessors;
+        return PhSystemProcessorInformation.ActiveProcessorCount[ProcessorGroup];
     }
+
+    return 0;
 }
 
 /**
@@ -6689,61 +7095,62 @@ NTSTATUS PhSetVirtualMemoryPagePriority(
 }
 
 // rev from SetProcessValidCallTargets (dmex)
-//NTSTATUS PhSetProcessValidCallTarget(
-//    _In_ HANDLE ProcessHandle,
-//    _In_ PVOID VirtualAddress
-//    )
-//{
-//    NTSTATUS status;
-//    MEMORY_BASIC_INFORMATION basicInfo;
-//    MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
-//    CFG_CALL_TARGET_INFO cfgCallTargetInfo;
-//    CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
-//    ULONG numberOfEntriesProcessed = 0;
-//
-//    if (!NtSetInformationVirtualMemory_Import())
-//        return STATUS_PROCEDURE_NOT_FOUND;
-//
-//    status = NtQueryVirtualMemory(
-//        ProcessHandle,
-//        VirtualAddress,
-//        MemoryBasicInformation,
-//        &basicInfo,
-//        sizeof(MEMORY_BASIC_INFORMATION),
-//        NULL
-//        );
-//
-//    if (!NT_SUCCESS(status))
-//        return status;
-//
-//    memset(&cfgCallTargetInfo, 0, sizeof(CFG_CALL_TARGET_INFO));
-//    cfgCallTargetInfo.Offset = (ULONG_PTR)VirtualAddress - (ULONG_PTR)basicInfo.AllocationBase;
-//    cfgCallTargetInfo.Flags = CFG_CALL_TARGET_VALID;
-//
-//    memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
-//    cfgCallTargetRangeInfo.VirtualAddress = basicInfo.AllocationBase;
-//    cfgCallTargetRangeInfo.NumberOfBytes = basicInfo.RegionSize;
-//
-//    memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
-//    cfgCallTargetListInfo.NumberOfEntries = 1;
-//    cfgCallTargetListInfo.Reserved = 0;
-//    cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
-//    cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
-//
-//    status = PhpSetInformationVirtualMemory(
-//        ProcessHandle,
-//        VmCfgCallTargetInformation,
-//        1,
-//        &cfgCallTargetRangeInfo,
-//        &cfgCallTargetListInfo,
-//        sizeof(CFG_CALL_TARGET_LIST_INFORMATION)
-//        );
-//
-//    if (status == STATUS_INVALID_PAGE_PROTECTION)
-//        status = STATUS_SUCCESS;
-//
-//    return status;
-//}
+__declspec(deprecated("deprecated by PhGuardGrantSuppressedCallAccess"))
+NTSTATUS PhSetProcessValidCallTarget(
+    _In_ HANDLE ProcessHandle,
+    _In_ PVOID VirtualAddress
+    )
+{
+    NTSTATUS status;
+    MEMORY_BASIC_INFORMATION basicInfo;
+    MEMORY_RANGE_ENTRY cfgCallTargetRangeInfo;
+    CFG_CALL_TARGET_INFO cfgCallTargetInfo;
+    CFG_CALL_TARGET_LIST_INFORMATION cfgCallTargetListInfo;
+    ULONG numberOfEntriesProcessed = 0;
+
+    if (!NtSetInformationVirtualMemory_Import())
+        return STATUS_PROCEDURE_NOT_FOUND;
+
+    status = NtQueryVirtualMemory(
+        ProcessHandle,
+        VirtualAddress,
+        MemoryBasicInformation,
+        &basicInfo,
+        sizeof(MEMORY_BASIC_INFORMATION),
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    memset(&cfgCallTargetInfo, 0, sizeof(CFG_CALL_TARGET_INFO));
+    cfgCallTargetInfo.Offset = (ULONG_PTR)VirtualAddress - (ULONG_PTR)basicInfo.AllocationBase;
+    cfgCallTargetInfo.Flags = CFG_CALL_TARGET_VALID;
+
+    memset(&cfgCallTargetRangeInfo, 0, sizeof(MEMORY_RANGE_ENTRY));
+    cfgCallTargetRangeInfo.VirtualAddress = basicInfo.AllocationBase;
+    cfgCallTargetRangeInfo.NumberOfBytes = basicInfo.RegionSize;
+
+    memset(&cfgCallTargetListInfo, 0, sizeof(CFG_CALL_TARGET_LIST_INFORMATION));
+    cfgCallTargetListInfo.NumberOfEntries = 1;
+    cfgCallTargetListInfo.Reserved = 0;
+    cfgCallTargetListInfo.NumberOfEntriesProcessed = &numberOfEntriesProcessed;
+    cfgCallTargetListInfo.CallTargetInfo = &cfgCallTargetInfo;
+
+    status = PhpSetInformationVirtualMemory(
+        ProcessHandle,
+        VmCfgCallTargetInformation,
+        1,
+        &cfgCallTargetRangeInfo,
+        &cfgCallTargetListInfo,
+        sizeof(CFG_CALL_TARGET_LIST_INFORMATION)
+        );
+
+    if (status == STATUS_INVALID_PAGE_PROTECTION)
+        status = STATUS_SUCCESS;
+
+    return status;
+}
 
 // rev from RtlGuardGrantSuppressedCallAccess (dmex)
 /**
@@ -6794,6 +7201,161 @@ NTSTATUS PhGuardGrantSuppressedCallAccess(
         status = STATUS_SUCCESS;
 
     return status;
+}
+
+static INT __cdecl PhGuardFunctionTargetCompare(
+    _In_ PVOID Context,
+    _In_ const void* Key,
+    _In_ const void* Datum
+    )
+{
+    ULONG key;
+    ULONG datum;
+
+    key = *(PULONG)Key;
+    datum = *(PULONG)Datum;
+
+    if (key < datum)
+        return -1;
+    if (key > datum)
+        return 1;
+
+    return 0;
+}
+
+/**
+ * Retrieves the Control Flow Guard (CFG) target RVA flag for a specified address.
+ *
+ * \param Address The target address to query.
+ * \param Flag A pointer to a variable that receives the CFG flag for the target address.
+ * \return BOOLEAN TRUE if successful; otherwise, FALSE.
+ */
+BOOLEAN PhGuardGetTargetRvaFlag(
+    _In_ PVOID Address,
+    _Out_ PUCHAR Flag
+    )
+{
+    NTSTATUS status;
+    MEMORY_IMAGE_INFORMATION imageInformation;
+    PIMAGE_LOAD_CONFIG_DIRECTORY loadConfig;
+    ULONG guardFlags;
+    ULONG_PTR functionCount;
+    PVOID functionTable;
+    ULONG tableStride;
+    ULONG targetRva;
+    PUCHAR tableEntry;
+    ULONG size;
+
+    status = PhGetProcessMappedImageInformation(
+        NtCurrentProcess(),
+        Address,
+        &imageInformation
+        );
+
+    if (!NT_SUCCESS(status))
+        return FALSE;
+
+    if (!imageInformation.ImageBase)
+        return FALSE;
+    if (imageInformation.ImageNotExecutable || imageInformation.ImagePartialMap)
+        return FALSE;
+
+    if ((ULONG_PTR)Address < (ULONG_PTR)imageInformation.ImageBase)
+        return FALSE;
+
+    loadConfig = PhImageDirectoryEntryToData(
+        imageInformation.ImageBase,
+        TRUE,
+        IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG,
+        &size
+        );
+
+    if (!loadConfig)
+        return FALSE;
+
+    if (loadConfig->Size < RTL_SIZEOF_THROUGH_FIELD(IMAGE_LOAD_CONFIG_DIRECTORY, GuardFlags))
+        return FALSE;
+
+    guardFlags = loadConfig->GuardFlags;
+    functionCount = loadConfig->GuardCFFunctionCount;
+
+    if (!FlagOn(guardFlags, IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT))
+        return FALSE;
+
+    functionTable = (PVOID)loadConfig->GuardCFFunctionTable;
+
+    if (!functionTable)
+        return FALSE;
+
+    tableStride = ((guardFlags & IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK) >> IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT) + sizeof(ULONG);
+
+    if (tableStride <= sizeof(ULONG))
+        return FALSE;
+
+    targetRva = (ULONG)((ULONG_PTR)Address - (ULONG_PTR)imageInformation.ImageBase);
+
+    tableEntry = bsearch_s(
+        &targetRva,
+        functionTable,
+        functionCount,
+        tableStride,
+        PhGuardFunctionTargetCompare,
+        NULL
+        );
+
+    if (!tableEntry)
+        return FALSE;
+
+    *Flag = tableEntry[sizeof(ULONG)];
+
+    return TRUE;
+}
+
+/**
+ * Determines whether a specified address is marked as suppressed by Control Flow Guard (CFG).
+ *
+ * \param Address The target address to query.
+ * \return BOOLEAN TRUE if the address is marked as suppressed; otherwise, FALSE.
+ */
+BOOLEAN PhGuardIsSuppressedAddress(
+    _In_ PVOID Address
+    )
+{
+    UCHAR flag = 0;
+
+    if (PhGuardGetTargetRvaFlag(Address, &flag))
+    {
+        return !!(flag & IMAGE_GUARD_FLAG_FID_SUPPRESSED);
+    }
+
+    return FALSE;
+}
+
+// rev from RtlGuardIsValidStackPointer (dmex)
+/**
+ * Determines whether a specified stack pointer is valid for the current thread.
+ *
+ * \param StackPointer The stack pointer to validate.
+ * \return BOOLEAN TRUE if the stack pointer is valid; otherwise, FALSE.
+ */
+BOOLEAN PhGuardIsValidStackPointer(
+    _In_ ULONG64 StackPointer
+    )
+{
+    PTEB teb;
+    ULONG64 stackBase;
+    ULONG64 stackLimit;
+
+    teb = NtCurrentTeb();
+    stackBase = (ULONG64)(ULONG_PTR)teb->NtTib.StackBase;
+    stackLimit = (ULONG64)(ULONG_PTR)teb->NtTib.StackLimit;
+
+    if (StackPointer >= stackLimit && StackPointer <= stackBase)
+        return TRUE;
+
+    return stackLimit != (ULONG64)(ULONG_PTR)teb->DeallocationStack &&
+        StackPointer >= stackLimit - PAGE_SIZE &&
+        StackPointer <= stackBase;
 }
 
 // rev from RtlDisableXfgOnTarget (dmex)
@@ -6851,6 +7413,48 @@ NTSTATUS PhDisableXfgOnTarget(
 
     if (status == STATUS_INVALID_PAGE_PROTECTION)
         status = STATUS_SUCCESS;
+
+    return status;
+}
+
+/**
+ * Retrieves the user-mode address of the hypervisor shared data page.
+ *
+ * \param[out] HypervisorSharedUserVa A pointer to a variable that receives the address of the
+ * hypervisor shared data page.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetSystemHypervisorSharedPageInformation(
+    _Out_ PSYSTEM_HYPERVISOR_USER_SHARED_DATA* HypervisorSharedUserVa
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static NTSTATUS status = STATUS_UNSUCCESSFUL;
+    static PSYSTEM_HYPERVISOR_USER_SHARED_DATA hypervisorSharedUserVa = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION hypervisorSharedPageInfo;
+
+        status = NtQuerySystemInformation(
+            SystemHypervisorSharedPageInformation,
+            &hypervisorSharedPageInfo,
+            sizeof(SYSTEM_HYPERVISOR_SHARED_PAGE_INFORMATION),
+            NULL
+            );
+
+        if (NT_SUCCESS(status))
+        {
+            hypervisorSharedUserVa = hypervisorSharedPageInfo.HypervisorSharedUserVa;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        *HypervisorSharedUserVa = hypervisorSharedUserVa;
+    }
 
     return status;
 }

@@ -1224,16 +1224,9 @@ BOOLEAN PhDoesFileExistWin32(
 
     status = PhQueryAttributesFileWin32(FileName, &basicInfo);
 
-    if (
-        NT_SUCCESS(status) ||
+    return NT_SUCCESS(status) ||
         status == STATUS_SHARING_VIOLATION ||
-        status == STATUS_ACCESS_DENIED
-        )
-    {
-        return TRUE;
-    }
-
-    return FALSE;
+        status == STATUS_ACCESS_DENIED;
 }
 
 /**
@@ -2986,12 +2979,12 @@ NTSTATUS PhSetFileExtendedAttributes(
     info->Flags = 0;
     info->EaNameLength = eaNameLength;
     info->EaValueLength = eaValueLength;
-    memcpy(info->EaName, Name->Buffer, nameLength);
+    RtlCopyMemory(info->EaName, Name->Buffer, nameLength);
     info->EaName[eaNameLength] = ANSI_NULL;
 
     if (Value)
     {
-        memcpy(
+        RtlCopyMemory(
             PTR_ADD_OFFSET(info->EaName, eaNameLength + sizeof(ANSI_NULL)),
             Value->Buffer,
             valueLength

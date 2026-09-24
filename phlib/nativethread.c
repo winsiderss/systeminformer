@@ -603,6 +603,71 @@ NTSTATUS PhGetThreadArm32Context(
 #endif
 
 /**
+ * Retrieves the XState feature mask for a thread.
+ *
+ * \param[in] ThreadHandle A handle to the thread whose XState features are to be retrieved.
+ * \param[out] FeatureMask A pointer to a variable that receives the XState feature mask.
+ * \return Successful or errant status.
+ * \remarks The handle must have THREAD_GET_CONTEXT access.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/debug/working-with-xstate-context
+ */
+NTSTATUS PhGetThreadXStateFeatures(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG64 FeatureMask
+    )
+{
+    NTSTATUS status;
+    ULONG contextFlags;
+    ULONG contextLength;
+    PCONTEXT_EX contextEx;
+    PCONTEXT context;
+
+    contextFlags = CONTEXT_ALL | CONTEXT_XSTATE | CONTEXT_EXCEPTION_REQUEST;
+
+    status = RtlGetExtendedContextLength(
+        contextFlags,
+        &contextLength
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    context = PhAllocate(contextLength);
+    contextEx = NULL;
+
+    status = RtlInitializeExtendedContext(
+        context,
+        contextFlags,
+        &contextEx
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    // Request all enabled extended features before querying the thread context.
+
+    RtlSetExtendedFeaturesMask(
+        contextEx,
+        RtlGetEnabledExtendedFeatures(MAXULONG64)
+        );
+
+    status = NtGetContextThread(
+        ThreadHandle,
+        context
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    *FeatureMask = RtlGetExtendedFeaturesMask(contextEx);
+
+CleanupExit:
+    PhFree(context);
+
+    return status;
+}
+
+/**
  * Retrieves the break on termination state for a thread.
  *
  * \param[in] ThreadHandle A handle to the thread.
@@ -3506,6 +3571,13 @@ NTSTATUS PhTerminateProcessAlternative(
         goto CleanupExit;
 
     status = PhWaitForSingleObject(threadHandle, Timeout);
+
+    // A finite wait can return an informational success code (e.g. STATUS_TIMEOUT)
+    // when the remote thread has not finished, meaning the process was not confirmed
+    // terminated. Normalize these so callers using NT_SUCCESS() don't treat an
+    // unfinished termination as success. (dmex)
+    if (status != STATUS_SUCCESS && NT_SUCCESS(status))
+        status = STATUS_UNSUCCESSFUL;
 
 CleanupExit:
 

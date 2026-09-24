@@ -337,6 +337,14 @@ PhGetThreadWow64Context(
     _Out_ PWOW64_CONTEXT Context
     );
 
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetThreadXStateFeatures(
+    _In_ HANDLE ThreadHandle,
+    _Out_ PULONG64 FeatureMask
+    );
+
 #if defined(_ARM64_)
 PHLIBAPI
 NTSTATUS
@@ -506,6 +514,13 @@ NTAPI
 PhTerminateProcess(
     _In_ HANDLE ProcessHandle,
     _In_ NTSTATUS ExitStatus
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhTerminateProcessCloseHandles(
+    _In_ HANDLE ProcessHandle
     );
 
 PHLIBAPI
@@ -1733,12 +1748,112 @@ PhValidAcl(
     _In_opt_ PACL Acl
     )
 {
+    PUCHAR current;
+    PUCHAR end;
+    ULONG i;
+
     if (!Acl || Acl->AclRevision < MIN_ACL_REVISION || Acl->AclRevision > MAX_ACL_REVISION)
         return FALSE;
     if (Acl->AclSize < sizeof(ACL))
         return FALSE;
 
-    return RtlValidAcl(Acl);
+    current = (PUCHAR)(Acl + 1);
+    end = (PUCHAR)Acl + Acl->AclSize;
+
+    for (i = 0; i < Acl->AceCount; i++)
+    {
+        PACE_HEADER ace;
+
+        if ((SIZE_T)(end - current) < sizeof(ACE_HEADER))
+            return FALSE;
+
+        ace = (PACE_HEADER)current;
+
+        if (ace->AceSize < sizeof(ACE_HEADER) ||
+            !IS_ALIGNED(ace->AceSize, sizeof(ULONG)) ||
+            ace->AceSize > (SIZE_T)(end - current))
+        {
+            return FALSE;
+        }
+
+        switch (ace->AceType)
+        {
+        case ACCESS_ALLOWED_ACE_TYPE:
+        case ACCESS_DENIED_ACE_TYPE:
+        case SYSTEM_AUDIT_ACE_TYPE:
+        case SYSTEM_ALARM_ACE_TYPE:
+        case ACCESS_ALLOWED_CALLBACK_ACE_TYPE:
+        case ACCESS_DENIED_CALLBACK_ACE_TYPE:
+        case SYSTEM_AUDIT_CALLBACK_ACE_TYPE:
+        case SYSTEM_ALARM_CALLBACK_ACE_TYPE:
+        case SYSTEM_MANDATORY_LABEL_ACE_TYPE:
+        case SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE:
+        case SYSTEM_SCOPED_POLICY_ID_ACE_TYPE:
+        case SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE:
+        case SYSTEM_ACCESS_FILTER_ACE_TYPE:
+            {
+                ULONG sidOffset = FIELD_OFFSET(ACCESS_ALLOWED_ACE, SidStart);
+                PSID sid;
+
+                if (ace->AceSize < sidOffset + FIELD_OFFSET(SID, SubAuthority))
+                    return FALSE;
+
+                sid = (PSID)(current + sidOffset);
+
+                if (((PISID)sid)->Revision != SID_REVISION ||
+                    ((PISID)sid)->SubAuthorityCount > SID_MAX_SUB_AUTHORITIES ||
+                    FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * ((PISID)sid)->SubAuthorityCount > ace->AceSize - sidOffset)
+                {
+                    return FALSE;
+                }
+            }
+            break;
+        case ACCESS_ALLOWED_OBJECT_ACE_TYPE:
+        case ACCESS_DENIED_OBJECT_ACE_TYPE:
+        case SYSTEM_AUDIT_OBJECT_ACE_TYPE:
+        case SYSTEM_ALARM_OBJECT_ACE_TYPE:
+        case ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE:
+        case ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE:
+        case SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE:
+        case SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE:
+            {
+                PACCESS_ALLOWED_OBJECT_ACE objectAce = (PACCESS_ALLOWED_OBJECT_ACE)ace;
+                ULONG sidOffset = FIELD_OFFSET(ACCESS_ALLOWED_OBJECT_ACE, ObjectType);
+                PSID sid;
+
+                if (Acl->AclRevision < ACL_REVISION_DS ||
+                    ace->AceSize < FIELD_OFFSET(ACCESS_ALLOWED_OBJECT_ACE, ObjectType) ||
+                    FlagOn(objectAce->Flags, ~(ACE_OBJECT_TYPE_PRESENT | ACE_INHERITED_OBJECT_TYPE_PRESENT)))
+                {
+                    return FALSE;
+                }
+
+                if (FlagOn(objectAce->Flags, ACE_OBJECT_TYPE_PRESENT))
+                    sidOffset += sizeof(GUID);
+                if (FlagOn(objectAce->Flags, ACE_INHERITED_OBJECT_TYPE_PRESENT))
+                    sidOffset += sizeof(GUID);
+
+                if (ace->AceSize < sidOffset + FIELD_OFFSET(SID, SubAuthority))
+                    return FALSE;
+
+                sid = (PSID)(current + sidOffset);
+
+                if (((PISID)sid)->Revision != SID_REVISION ||
+                    ((PISID)sid)->SubAuthorityCount > SID_MAX_SUB_AUTHORITIES ||
+                    FIELD_OFFSET(SID, SubAuthority) + sizeof(ULONG) * ((PISID)sid)->SubAuthorityCount > ace->AceSize - sidOffset)
+                {
+                    return FALSE;
+                }
+            }
+            break;
+        default:
+            return FALSE;
+        }
+
+        current += ace->AceSize;
+    }
+
+    return TRUE;
 }
 
 // rev from RtlInitializeSid (dmex)
@@ -1886,6 +2001,45 @@ PhValidSid(
 
     return FALSE;
 #endif
+}
+
+#ifndef SECURITY_ANTI_TAMPER_AUTHORITY
+#define SECURITY_ANTI_TAMPER_AUTHORITY { 0, 0, 0, 0, 0, 20 }
+#endif
+
+// rev from RtlIsValidAntiTamperSid (dmex)
+/**
+ * Validates if the specified SID is a well-formed Anti-Tamper SID.
+ *
+ * \param Sid A pointer to the SID to validate.
+ * \return TRUE if the SID is a valid Anti-Tamper SID, FALSE otherwise.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhIsValidAntiTamperSid(
+    _In_ PCSID Sid
+    )
+{
+    PISID isid = (PISID)Sid;
+    SID_IDENTIFIER_AUTHORITY antiTamperAuthority = SECURITY_ANTI_TAMPER_AUTHORITY;
+
+    if (isid->SubAuthorityCount < 3 || isid->SubAuthorityCount > 8)
+        return FALSE;
+
+    if (RtlCompareMemory(
+        &isid->IdentifierAuthority,
+        &antiTamperAuthority,
+        sizeof(SID_IDENTIFIER_AUTHORITY)
+        ) != sizeof(SID_IDENTIFIER_AUTHORITY))
+    {
+        return FALSE;
+    }
+
+    if (isid->SubAuthority[0] < 1 || isid->SubAuthority[0] > 5)
+        return FALSE;
+
+    return TRUE;
 }
 
 // rev from RtlSubAuthoritySid (dmex)
@@ -2246,6 +2400,285 @@ PhValidSecurityDescriptor(
     return TRUE;
 #endif
 }
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhMakeSelfRelativeSD(
+    _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferLength
+    )
+{
+    PISECURITY_DESCRIPTOR AbsoluteSd;
+    PISECURITY_DESCRIPTOR_RELATIVE RelativeSd;
+    SECURITY_DESCRIPTOR_CONTROL Control;
+    PUCHAR Current;
+    ULONG RequiredLength;
+
+    PSID Owner;
+    PSID Group;
+    PACL Sacl;
+    PACL Dacl;
+
+    ULONG OwnerLength;
+    ULONG GroupLength;
+    ULONG SaclLength;
+    ULONG DaclLength;
+
+    AbsoluteSd = (PISECURITY_DESCRIPTOR)AbsoluteSecurityDescriptor;
+    RelativeSd = (PISECURITY_DESCRIPTOR_RELATIVE)SelfRelativeSecurityDescriptor;
+
+    Control = AbsoluteSd->Control;
+
+    //
+    // Owner
+    //
+
+    if (Control & SE_SELF_RELATIVE)
+    {
+        if (AbsoluteSd->Owner != 0)
+            Owner = (PSID)PTR_ADD_OFFSET(AbsoluteSd, AbsoluteSd->Owner);
+        else
+            Owner = NULL;
+    }
+    else
+    {
+        Owner = AbsoluteSd->Owner;
+    }
+
+    if (Owner)
+        OwnerLength = ALIGN_UP_BY(RtlLengthSid(Owner), sizeof(ULONG));
+    else
+        OwnerLength = 0;
+
+    //
+    // SACL
+    //
+
+    if (Control & SE_SACL_PRESENT)
+    {
+        if (Control & SE_SELF_RELATIVE)
+        {
+            if (AbsoluteSd->Sacl != 0)
+                Sacl = (PACL)PTR_ADD_OFFSET(AbsoluteSd, AbsoluteSd->Sacl);
+            else
+                Sacl = NULL;
+        }
+        else
+        {
+            Sacl = AbsoluteSd->Sacl;
+        }
+
+        if (Sacl)
+            SaclLength = ALIGN_UP_BY(Sacl->AclSize, sizeof(ULONG));
+        else
+            SaclLength = 0;
+    }
+    else
+    {
+        Sacl = NULL;
+        SaclLength = 0;
+    }
+
+    //
+    // Group
+    //
+
+    if (Control & SE_SELF_RELATIVE)
+    {
+        if (AbsoluteSd->Group != 0)
+            Group = (PSID)PTR_ADD_OFFSET(AbsoluteSd, AbsoluteSd->Group);
+        else
+            Group = NULL;
+    }
+    else
+    {
+        Group = AbsoluteSd->Group;
+    }
+
+    if (Group)
+        GroupLength = ALIGN_UP_BY(RtlLengthSid(Group), sizeof(ULONG));
+    else
+        GroupLength = 0;
+
+    //
+    // DACL
+    //
+
+    if (Control & SE_DACL_PRESENT)
+    {
+        if (Control & SE_SELF_RELATIVE)
+        {
+            if (AbsoluteSd->Dacl != 0)
+                Dacl = (PACL)PTR_ADD_OFFSET(AbsoluteSd, AbsoluteSd->Dacl);
+            else
+                Dacl = NULL;
+        }
+        else
+        {
+            Dacl = AbsoluteSd->Dacl;
+        }
+
+        if (Dacl)
+            DaclLength = ALIGN_UP_BY(Dacl->AclSize, sizeof(ULONG));
+        else
+            DaclLength = 0;
+    }
+    else
+    {
+        Dacl = NULL;
+        DaclLength = 0;
+    }
+
+    RequiredLength =
+        sizeof(SECURITY_DESCRIPTOR_RELATIVE) +
+        DaclLength +
+        SaclLength +
+        OwnerLength +
+        GroupLength;
+
+    if (RequiredLength > *BufferLength)
+    {
+        *BufferLength = RequiredLength;
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (!SelfRelativeSecurityDescriptor)
+        return STATUS_INVALID_PARAMETER;
+
+    RtlZeroMemory(RelativeSd, RequiredLength);
+
+    RelativeSd->Revision = AbsoluteSd->Revision;
+    RelativeSd->Sbz1 = AbsoluteSd->Sbz1;
+    RelativeSd->Control = Control | SE_SELF_RELATIVE;
+
+    Current = (PUCHAR)(RelativeSd + 1);
+
+    //
+    // The native implementation copies in this order:
+    //
+    //   DACL
+    //   SACL
+    //   Owner
+    //   Group
+    //
+    // This order is not required by the self-relative format, but it is what
+    // this implementation emits.
+    //
+
+    if (DaclLength)
+    {
+        RtlMoveMemory(Current, Dacl, DaclLength);
+        RelativeSd->Dacl = FIELD_OFFSET(SECURITY_DESCRIPTOR_RELATIVE, Dacl) + sizeof(ULONG); // actually 20
+        RelativeSd->Dacl = (ULONG_PTR)PtrToUlong(PTR_SUB_OFFSET(Current, RelativeSd));
+        Current += DaclLength;
+    }
+
+    if (SaclLength)
+    {
+        RtlMoveMemory(Current, Sacl, SaclLength);
+        RelativeSd->Sacl = (ULONG)PtrToUlong(PTR_SUB_OFFSET(Current, RelativeSd));
+        Current += SaclLength;
+    }
+
+    if (OwnerLength)
+    {
+        RtlMoveMemory(Current, Owner, OwnerLength);
+        RelativeSd->Owner = (ULONG)PtrToUlong(PTR_SUB_OFFSET(Current, RelativeSd));
+        Current += OwnerLength;
+    }
+
+    if (GroupLength)
+    {
+        RtlMoveMemory(Current, Group, GroupLength);
+        RelativeSd->Group = (ULONG)PtrToUlong(PTR_SUB_OFFSET(Current, RelativeSd));
+    }
+
+    return STATUS_SUCCESS;
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhAbsoluteToSelfRelativeSD(
+    _In_ PSECURITY_DESCRIPTOR AbsoluteSecurityDescriptor,
+    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferLength
+    )
+{
+    return PhMakeSelfRelativeSD(
+        AbsoluteSecurityDescriptor,
+        SelfRelativeSecurityDescriptor,
+        BufferLength
+        );
+}
+
+FORCEINLINE
+NTSTATUS
+NTAPI
+PhSelfRelativeToAbsoluteSD2(
+    _Inout_ PSECURITY_DESCRIPTOR SelfRelativeSecurityDescriptor,
+    _Inout_ PULONG BufferSize
+    )
+{
+    PISECURITY_DESCRIPTOR_RELATIVE relativeSd;
+    PISECURITY_DESCRIPTOR absoluteSd;
+    ULONG ownerOffset;
+    ULONG groupOffset;
+    ULONG saclOffset;
+    ULONG daclOffset;
+    ULONG relativeLength;
+    ULONG requiredLength;
+    ULONG adjustment;
+
+    relativeSd = (PISECURITY_DESCRIPTOR_RELATIVE)SelfRelativeSecurityDescriptor;
+
+    if (!FlagOn(relativeSd->Control, SE_SELF_RELATIVE))
+        return STATUS_BAD_DESCRIPTOR_FORMAT;
+
+    relativeLength = PhLengthSecurityDescriptor(SelfRelativeSecurityDescriptor);
+    adjustment = sizeof(SECURITY_DESCRIPTOR) - sizeof(SECURITY_DESCRIPTOR_RELATIVE);
+    requiredLength = relativeLength + adjustment;
+
+    if (*BufferSize < requiredLength)
+    {
+        *BufferSize = requiredLength;
+        return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    ownerOffset = relativeSd->Owner;
+    groupOffset = relativeSd->Group;
+    saclOffset = relativeSd->Sacl;
+    daclOffset = relativeSd->Dacl;
+
+    if (adjustment)
+    {
+        RtlMoveMemory(
+            (PUCHAR)SelfRelativeSecurityDescriptor + sizeof(SECURITY_DESCRIPTOR),
+            (PUCHAR)SelfRelativeSecurityDescriptor + sizeof(SECURITY_DESCRIPTOR_RELATIVE),
+            relativeLength - sizeof(SECURITY_DESCRIPTOR_RELATIVE)
+            );
+    }
+
+    absoluteSd = (PISECURITY_DESCRIPTOR)SelfRelativeSecurityDescriptor;
+    absoluteSd->Control &= ~SE_SELF_RELATIVE;
+    absoluteSd->Owner = ownerOffset ? (PSID)PTR_ADD_OFFSET(absoluteSd, ownerOffset + adjustment) : NULL;
+    absoluteSd->Group = groupOffset ? (PSID)PTR_ADD_OFFSET(absoluteSd, groupOffset + adjustment) : NULL;
+    absoluteSd->Sacl = saclOffset ? (PACL)PTR_ADD_OFFSET(absoluteSd, saclOffset + adjustment) : NULL;
+    absoluteSd->Dacl = daclOffset ? (PACL)PTR_ADD_OFFSET(absoluteSd, daclOffset + adjustment) : NULL;
+
+    return STATUS_SUCCESS;
+}
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhConvertSidToUnicodeString(
+    _Inout_ PUNICODE_STRING UnicodeString,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AllocateDestinationString
+    );
 
 FORCEINLINE
 BOOLEAN
@@ -3843,6 +4276,7 @@ PhGetTokenIntegrityLevel(
 
 typedef union _PH_INTEGRITY_LEVEL
 {
+    USHORT Level;
     struct
     {
         //
@@ -3856,8 +4290,6 @@ typedef union _PH_INTEGRITY_LEVEL
 
         USHORT Mandatory : 4; // MANDATORY_LEVEL
     };
-
-    USHORT Level;
 } PH_INTEGRITY_LEVEL, *PPH_INTEGRITY_LEVEL;
 
 PHLIBAPI
@@ -6897,6 +7329,114 @@ PhGetSystemProcessorPerformanceDistributionEx(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetSystemProcessorPerformanceInformationEx(
+    _Out_ PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX* Buffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemProcessorIdleInformation(
+    _Out_ PSYSTEM_PROCESSOR_IDLE_INFORMATION* Buffer
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemProcessorCycleStatsInformation(
+    _Out_ PSYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION* Buffer
+    );
+
+/**
+ * The performance state distribution delta for a single processor over one sampling interval.
+ */
+typedef struct _PH_PROCESSOR_PERFORMANCE_DELTA
+{
+    // The number of performance states reported by the processor.
+    ULONG StateCount;
+    // The sum of the hit count deltas across every performance state. This is the unhalted reference
+    // time of the processor, in SYSTEM_PROCESSOR_HITCOUNT_UNIT_NUMERATOR /
+    // SYSTEM_PROCESSOR_HITCOUNT_UNIT_DENOMINATOR of a 100-nanosecond interval.
+    ULONGLONG TotalHitCount;
+    // The hit count delta of the PercentFrequency == 0 state.
+    ULONGLONG UnhaltedHitCount;
+    // FALSE when the distribution has no PercentFrequency == 0 state. Such a table is a legacy
+    // performance state table reporting occurrence counts rather than time accumulators, so
+    // TotalHitCount is not a duration and processor utility cannot be derived from it.
+    BOOLEAN UnhaltedHitCountValid;
+    // The average performance of the processor while executing instructions, as a percentage of its
+    // nominal performance. May exceed 100.
+    FLOAT PercentPerformance;
+} PH_PROCESSOR_PERFORMANCE_DELTA, *PPH_PROCESSOR_PERFORMANCE_DELTA;
+
+/**
+ * A raw per-processor sample used to compute the "Processor Information" statistics.
+ */
+typedef struct _PH_PROCESSOR_STATISTICS_SAMPLE
+{
+    // SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX.IdleTime
+    ULONG64 IdleTime;
+    // SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX.KernelTime, which includes IdleTime.
+    ULONG64 KernelTime;
+    // SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX.UserTime
+    ULONG64 UserTime;
+    // SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX.InterruptTime
+    ULONG64 InterruptTime;
+    // SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX.AvailableTime, the low priority thread time.
+    ULONG64 AvailableTime;
+    // The sum of the C1, C2 and C3 transition counts from SYSTEM_PROCESSOR_IDLE_INFORMATION.
+    ULONG64 IdleBreakEvents;
+} PH_PROCESSOR_STATISTICS_SAMPLE, *PPH_PROCESSOR_STATISTICS_SAMPLE;
+
+/**
+ * The computed "Processor Information" statistics for a single processor.
+ */
+typedef struct _PH_PROCESSOR_STATISTICS
+{
+    FLOAT ProcessorTime;
+    FLOAT PrivilegedTime;
+    FLOAT UserTime;
+    FLOAT InterruptTime;
+    FLOAT PriorityTime;
+    // May exceed 100 on processors capable of running above their nominal frequency.
+    FLOAT ProcessorPerformance;
+    FLOAT ProcessorUtility;
+    // An approximation, see PhCalculateProcessorStatistics().
+    FLOAT PrivilegedUtility;
+    // In MHz.
+    FLOAT ActualFrequency;
+    FLOAT IdleBreakEventsPerSecond;
+    // FALSE when utility fell back to the clock tick busy fraction, which underestimates it.
+    BOOLEAN UtilityFromDistribution;
+} PH_PROCESSOR_STATISTICS, *PPH_PROCESSOR_STATISTICS;
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateProcessorPerformanceDistributionDelta(
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Current,
+    _In_ PSYSTEM_PROCESSOR_PERFORMANCE_DISTRIBUTION Previous,
+    _In_ ULONG ProcessorIndex,
+    _Out_ PPH_PROCESSOR_PERFORMANCE_DELTA Delta
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhCalculateProcessorStatistics(
+    _In_ PPH_PROCESSOR_STATISTICS_SAMPLE Current,
+    _In_ PPH_PROCESSOR_STATISTICS_SAMPLE Previous,
+    _In_ ULONG64 ElapsedTime,
+    _In_opt_ PPH_PROCESSOR_PERFORMANCE_DELTA PerformanceDelta,
+    _In_ ULONG NominalFrequency,
+    _Out_ PPH_PROCESSOR_STATISTICS Statistics
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetSystemLogicalProcessorInformation(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP RelationshipType,
     _Out_ PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
@@ -7011,11 +7551,40 @@ PhGuardGrantSuppressedCallAccess(
     );
 
 PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetTargetRvaFlag(
+    _In_ PVOID Address,
+    _Out_ PUCHAR Flag
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGuardIsSuppressedAddress(
+    _In_ PVOID Address
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGuardIsValidStackPointer(
+    _In_ ULONG64 StackPointer
+    );
+
+PHLIBAPI
 NTSTATUS
 NTAPI
 PhGetProcessorNominalFrequency(
     _In_ PPH_PROCESSOR_NUMBER ProcessorNumber,
     _Out_ PULONG NominalFrequency
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetSystemHypervisorSharedPageInformation(
+    _Out_ PSYSTEM_HYPERVISOR_USER_SHARED_DATA* HypervisorSharedUserVa
     );
 
 typedef struct _PH_SYSTEM_STORE_COMPRESSION_INFORMATION
@@ -7499,6 +8068,14 @@ PhAssociateWaitCompletionPacket(
     _In_ NTSTATUS IoStatus,
     _In_ ULONG_PTR IoStatusInformation,
     _Out_opt_ PBOOLEAN AlreadySignaled
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCancelWaitCompletionPacket(
+    _In_ HANDLE WaitCompletionPacketHandle,
+    _In_ BOOLEAN RemoveSignaledPacket
     );
 
 PHLIBAPI

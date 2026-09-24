@@ -11,6 +11,7 @@
 
 #include <ph.h>
 #include <apiimport.h>
+#include <guisup.h>
 #include <ntuser.h>
 #include <phconsole.h>
 
@@ -166,99 +167,63 @@ NTSTATUS PhConsoleSetForeground(
 }
 
 /**
- * Notify the console subsystem that a console application created a new window.
- *
- * \param[in] ProcessID Handle representing the process that created the new window.
- * \return NTSTATUS Successful or errant status.
+ * Retrieves the current console window handle. 
+ * \return HWND Handle to the console window or the root owner when a pseudo console is detected.
  */
-NTSTATUS PhConsoleNotifyWindow(
-    _In_ HANDLE ProcessID
+HWND PhGetConsoleWindow(
+    VOID
     )
 {
-    NTSTATUS status;
-    CONSOLE_PROCESS_INFO consoleProcessInfo;
+    HWND windowHandle;
 
-    if (!ConsoleControl_Import())
-        return STATUS_NOT_SUPPORTED;
+    // GetConsoleWindow returns the actual console window for classic console hosts.
 
-    consoleProcessInfo.Flags = CPI_NEWPROCESSWINDOW;
-    consoleProcessInfo.ProcessID = HandleToUlong(ProcessID);
+    if ((windowHandle = GetConsoleWindow()))
+    {
+        if (WindowsVersion >= WINDOWS_10)
+        {
+            HWND terminalHandle;
+            WCHAR classWindowName[64];
+            WCHAR classTerminalName[64];
 
-    status = ConsoleControl_Import()(
-        ConsoleNotifyConsoleApplication,
-        &consoleProcessInfo,
-        sizeof(CONSOLE_PROCESS_INFO)
-        );
+            // ConPTY applications expose a hidden PseudoConsoleWindow rather than their
+            // visible top-level window. Resolve that proxy only when Windows Terminal owns it.
 
-    return status;
-}
+            if (NT_SUCCESS(PhGetClassName(
+                windowHandle,
+                classWindowName,
+                RTL_NUMBER_OF(classWindowName),
+                NULL
+                )))
+            {
+                if (PhEqualStringZ(classWindowName, L"PseudoConsoleWindow", FALSE))
+                {
+                    // Follow the ownership chain from the hidden proxy to its top-level host window.
+                    // https://github.com/microsoft/terminal/blob/20588130d8ef2ba40eb56bdae88e04cce7fc5b5d/src/interactivity/base/InteractivityFactory.cpp#L289-L293
 
-/**
- * Updates the psuedo owner of the console window.
- *
- * \param[in] ProcessID Handle representing the process whose console window owner is being set.
- * \param[in] ThreadId Handle representing the thread associated with the window owner.
- * \param[in] WindowHandle Window handle (HWND) to associate with the console process/thread.
- * \return NTSTATUS Successful or errant status.
- */
-NTSTATUS PhConsoleSetWindow(
-    _In_ HANDLE ProcessID,
-    _In_ HANDLE ThreadId,
-    _In_ HWND WindowHandle
-    )
-{
-    NTSTATUS status;
-    CONSOLE_WINDOW_OWNER consoleInfo;
+                    if ((terminalHandle = GetAncestor(windowHandle, GA_ROOTOWNER)))
+                    {
+                        if (NT_SUCCESS(PhGetClassName(
+                            terminalHandle,
+                            classTerminalName,
+                            RTL_NUMBER_OF(classTerminalName),
+                            NULL
+                            )))
+                        {
+                            // Windows Terminal uses this class for the visible window that
+                            // hosts the pseudo console represented by PseudoConsoleWindow.
 
-    if (!ConsoleControl_Import())
-        return STATUS_NOT_SUPPORTED;
+                            if (PhEqualStringZ(classTerminalName, L"CASCADIA_HOSTING_WINDOW_CLASS", FALSE))
+                            {
+                                return terminalHandle;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-    consoleInfo.OwnerProcessId = HandleToUlong(ProcessID);
-    consoleInfo.OwnerThreadId = HandleToUlong(ThreadId);
-    consoleInfo.WindowHandle = WindowHandle;
-
-    status = ConsoleControl_Import()(
-        ConsoleSetWindowOwner,
-        &consoleInfo,
-        sizeof(CONSOLE_WINDOW_OWNER)
-        );
-
-    return status;
-}
-
-/**
- * \brief Request the console subsystem to end a console task (send console event).
- *
- * Builds a `CONSOLEENDTASK` structure and invokes the `ConsoleEndTask` `ConsoleControl` operation.
- * The `ConsoleEventCode` is set to `CTRL_C_EVENT` and `ConsoleFlags` is zeroed.
- *
- * \param[in] ProcessId Handle of the process whose console task should be ended.
- * \param[in] WindowHandle Window handle (HWND) associated with the console to be signaled.
- * \return NTSTATUS Successful or errant status.
- * \remarks The semantics of ending a console task are determined by the console subsystem; callers
- * should ensure they understand the impact of sending `CTRL_C_EVENT` to the target console.
- */
-NTSTATUS PhConsoleEndTask(
-    _In_ HANDLE ProcessId,
-    _In_ HWND WindowHandle
-    )
-{
-    NTSTATUS status;
-    CONSOLE_END_TASK consoleInfo;
-
-    if (!ConsoleControl_Import())
-        return STATUS_NOT_SUPPORTED;
-
-    consoleInfo.ProcessId = ProcessId;
-    consoleInfo.WindowHandle = WindowHandle;
-    consoleInfo.ConsoleEventCode = CTRL_C_EVENT;
-    consoleInfo.ConsoleFlags = 0;
-
-    status = ConsoleControl_Import()(
-        ConsoleEndTask,
-        &consoleInfo,
-        sizeof(CONSOLE_END_TASK)
-        );
-
-    return status;
+    // Preserve GetConsoleWindow semantics when no supported pseudo console is detected.
+    return windowHandle;
 }

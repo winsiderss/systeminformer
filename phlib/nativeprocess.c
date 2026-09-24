@@ -11,6 +11,7 @@
  */
 
 #include <ph.h>
+#include <hndlinfo.h>
 #include <kphuser.h>
 
 /**
@@ -180,6 +181,105 @@ NTSTATUS PhTerminateProcess(
         );
 
     return status;
+}
+
+/**
+ * Attempts to tear down a process by closing its handles.
+ *
+ * \param ProcessHandle A handle to another process. The handle must have PROCESS_DUP_HANDLE and
+ * PROCESS_QUERY_LIMITED_INFORMATION access.
+ * \return The status of querying the process and enumerating its handles. Individual handle failures
+ * are ignored; success does not indicate that all handles were closed or that the process exited.
+ * \remarks This function runs synchronously and does not call NtTerminateProcess. File handles are
+ * closed only when they refer to non-remote disk or pipe devices. Callers should run this function on
+ * a worker thread because file queries and handle closure can block. Handle values may be reused
+ * between enumeration and closure, so this operation is best-effort.
+ */
+NTSTATUS PhTerminateProcessCloseHandles(
+    _In_ HANDLE ProcessHandle
+    )
+{
+    NTSTATUS status;
+    PROCESS_BASIC_INFORMATION basicInfo;
+    PSYSTEM_HANDLE_INFORMATION_EX handles;
+    ULONG fileTypeIndex;
+
+    status = PhGetProcessBasicInformation(ProcessHandle, &basicInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (basicInfo.UniqueProcessId == NtCurrentProcessId())
+        return STATUS_INVALID_PARAMETER;
+
+    fileTypeIndex = PhGetObjectTypeNumberZ(L"File");
+
+    // Do not close file handles without being able to identify and filter them.
+    if (fileTypeIndex == ULONG_MAX)
+        return STATUS_UNSUCCESSFUL;
+
+    status = PhEnumHandlesEx(&handles);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    for (ULONG_PTR i = 0; i < handles->NumberOfHandles; i++)
+    {
+        PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX entry = &handles->Handles[i];
+        HANDLE duplicateHandle;
+
+        if (entry->UniqueProcessId != basicInfo.UniqueProcessId)
+            continue;
+
+        if (entry->ObjectTypeIndex == fileTypeIndex)
+        {
+            BOOLEAN isRemote;
+            BOOLEAN closeHandle = FALSE;
+
+            if (!NT_SUCCESS(NtDuplicateObject(
+                ProcessHandle,
+                entry->HandleValue,
+                NtCurrentProcess(),
+                &duplicateHandle,
+                0,
+                0,
+                0
+                )))
+            {
+                continue;
+            }
+
+            if (NT_SUCCESS(PhGetFileIsRemoteDevice(duplicateHandle, &isRemote)) && !isRemote)
+            {
+                ULONG fileType;
+
+                fileType = GetFileType(duplicateHandle);
+                closeHandle = fileType == FILE_TYPE_DISK || fileType == FILE_TYPE_PIPE;
+            }
+
+            NtClose(duplicateHandle);
+
+            if (!closeHandle)
+                continue;
+        }
+
+        if (NT_SUCCESS(NtDuplicateObject(
+            ProcessHandle,
+            entry->HandleValue,
+            NtCurrentProcess(),
+            &duplicateHandle,
+            0,
+            0,
+            DUPLICATE_CLOSE_SOURCE
+            )))
+        {
+            NtClose(duplicateHandle);
+        }
+    }
+
+    PhFree(handles);
+
+    return STATUS_SUCCESS;
 }
 
 /**

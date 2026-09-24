@@ -15,6 +15,14 @@
 #include <kphuser.h>
 #include <lsasup.h>
 
+#ifndef PH_NATIVE_ADJUST_PRIVILEGE
+#define PH_NATIVE_ADJUST_PRIVILEGE 1
+#endif
+
+#ifndef PH_NATIVE_TOKEN_NAMED_OBJECT_PATH
+#define PH_NATIVE_TOKEN_NAMED_OBJECT_PATH 1
+#endif
+
 /**
  * Queries information about the token of the current process.
  */
@@ -1129,6 +1137,8 @@ NTSTATUS PhDoesTokenSecurityAttributeExist(
     UNICODE_STRING attributeName;
     ULONG returnLength;
 
+    *SecurityAttributeExists = FALSE;
+
     if (!PhStringRefToUnicodeString(AttributeName, &attributeName))
         return STATUS_NAME_TOO_LONG;
 
@@ -1462,20 +1472,17 @@ PPH_STRING PhGetTokenPackageApplicationUserModelId(
 
         if (attribute && attribute->ValueType == TOKEN_SECURITY_ATTRIBUTE_TYPE_STRING && attribute->ValueCount >= 3)
         {
-            PPH_STRING relativeIdName;
-            PPH_STRING packageFamilyName;
+            PH_STRINGREF relativeIdName;
+            PH_STRINGREF packageFamilyName;
 
-            relativeIdName = PhCreateStringFromUnicodeString(&attribute->Values.String[1]);
-            packageFamilyName = PhCreateStringFromUnicodeString(&attribute->Values.String[2]);
+            PhUnicodeStringToStringRef(&attribute->Values.String[1], &relativeIdName);
+            PhUnicodeStringToStringRef(&attribute->Values.String[2], &packageFamilyName);
 
             applicationUserModelId = PhConcatStringRef3(
-                &packageFamilyName->sr,
+                &packageFamilyName,
                 &separator,
-                &relativeIdName->sr
+                &relativeIdName
                 );
-
-            PhDereferenceObject(packageFamilyName);
-            PhDereferenceObject(relativeIdName);
         }
 
         PhFree(info);
@@ -1544,16 +1551,20 @@ NTSTATUS PhGetTokenNamedObjectPath(
     NTSTATUS status;
     UNICODE_STRING objectPath;
 
+    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
+
+#if defined(PH_NATIVE_TOKEN_NAMED_OBJECT_PATH)
     if (!RtlGetTokenNamedObjectPath_Import())
         return STATUS_NOT_SUPPORTED;
-
-    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
 
     status = RtlGetTokenNamedObjectPath_Import()(
         TokenHandle,
         Sid,
         &objectPath
         );
+#else
+    status = RtlGetTokenNamedObjectPath(TokenHandle, Sid, &objectPath);
+#endif
 
     if (NT_SUCCESS(status))
     {
@@ -1583,10 +1594,11 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
     NTSTATUS status;
     UNICODE_STRING objectPath;
 
+    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
+
+#if defined(PH_NATIVE_TOKEN_NAMED_OBJECT_PATH)
     if (!RtlGetAppContainerNamedObjectPath_Import())
         return STATUS_UNSUCCESSFUL;
-
-    RtlInitEmptyUnicodeString(&objectPath, NULL, 0);
 
     status = RtlGetAppContainerNamedObjectPath_Import()(
         TokenHandle,
@@ -1594,6 +1606,14 @@ NTSTATUS PhGetAppContainerNamedObjectPath(
         RelativePath,
         &objectPath
         );
+#else
+    status = RtlGetAppContainerNamedObjectPath(
+        TokenHandle,
+        AppContainerSid,
+        RelativePath,
+        &objectPath
+        );
+#endif
 
     if (NT_SUCCESS(status))
     {
@@ -2186,59 +2206,67 @@ NTSTATUS PhGetTokenIntegrityLevelEx(
     MANDATORY_LEVEL_RID integrityLevelRID;
     BOOLEAN tokenIsAppContainer;
 
-    integrityLevel.Level = 0;
+    status = PhGetTokenIntegrityLevelRID(TokenHandle, &integrityLevelRID, NULL);
 
-    if (!NT_SUCCESS(status = PhGetTokenIntegrityLevelRID(TokenHandle, &integrityLevelRID, NULL)))
+    if (!NT_SUCCESS(status))
         return status;
 
-    if (IntegrityLevel)
-    {
-        switch (integrityLevelRID)
-        {
-        case SECURITY_MANDATORY_UNTRUSTED_RID:
-            integrityLevel.Mandatory = MandatoryLevelUntrusted;
-            break;
-        case SECURITY_MANDATORY_LOW_RID:
-            integrityLevel.Mandatory = MandatoryLevelLow;
-            break;
-        case SECURITY_MANDATORY_MEDIUM_RID:
-            integrityLevel.Mandatory = MandatoryLevelMedium;
-            break;
-        case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
-            integrityLevel.Mandatory = MandatoryLevelMedium;
-            integrityLevel.Plus = TRUE;
-            break;
-        case SECURITY_MANDATORY_HIGH_RID:
-            integrityLevel.Mandatory = MandatoryLevelHigh;
-            break;
-        case SECURITY_MANDATORY_SYSTEM_RID:
-            integrityLevel.Mandatory = MandatoryLevelSystem;
-            break;
-        case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
-            integrityLevel.Mandatory = MandatoryLevelSecureProcess;
-            break;
-        default:
-            return STATUS_UNSUCCESSFUL;
-        }
-    }
+    integrityLevel.AppContainer = FALSE;
+    integrityLevel.Mandatory = -1;
+    integrityLevel.Plus = FALSE;
 
     if (NT_SUCCESS(PhGetTokenIsAppContainer(TokenHandle, &tokenIsAppContainer)) && tokenIsAppContainer)
+    {
         integrityLevel.AppContainer = TRUE;
+    }
+
+    // Note: The local union must be populated even if IntegrityLevel is NULL, otherwise
+    // integrityLevel.Level evaluates to 0 and string resolution fails. (dmex)
+
+    switch (integrityLevelRID)
+    {
+    case SECURITY_MANDATORY_UNTRUSTED_RID:
+        integrityLevel.Mandatory = MandatoryLevelUntrusted;
+        break;
+    case SECURITY_MANDATORY_LOW_RID:
+        integrityLevel.Mandatory = MandatoryLevelLow;
+        break;
+    case SECURITY_MANDATORY_MEDIUM_RID:
+        integrityLevel.Mandatory = MandatoryLevelMedium;
+        break;
+    case SECURITY_MANDATORY_MEDIUM_PLUS_RID:
+        integrityLevel.Mandatory = MandatoryLevelMedium;
+        integrityLevel.Plus = TRUE;
+        break;
+    case SECURITY_MANDATORY_HIGH_RID:
+        integrityLevel.Mandatory = MandatoryLevelHigh;
+        break;
+    case SECURITY_MANDATORY_SYSTEM_RID:
+        integrityLevel.Mandatory = MandatoryLevelSystem;
+        break;
+    case SECURITY_MANDATORY_PROTECTED_PROCESS_RID:
+        integrityLevel.Mandatory = MandatoryLevelSecureProcess;
+        break;
+    default:
+        return STATUS_UNSUCCESSFUL;
+    }
+
 
     if (IntegrityLevel)
+    {
         IntegrityLevel->Level = integrityLevel.Level;
 
-    if (!IntegrityString)
-        return STATUS_SUCCESS;
-
-    *IntegrityString = &integrityLevelDefaultString;
-
-    for (ULONG i = 0; i < RTL_NUMBER_OF(integrityLevelStringTable); i++)
+    if (IntegrityString)
     {
-        if (integrityLevelStringTable[i].IntegrityLevel.Level == integrityLevel.Level)
+        *IntegrityString = &integrityLevelDefaultString;
+
+        for (ULONG i = 0; i < RTL_NUMBER_OF(integrityLevelStringTable); i++)
         {
-            *IntegrityString = &integrityLevelStringTable[i].String;
-            break;
+            if (integrityLevelStringTable[i].IntegrityLevel.Level == integrityLevel.Level)
+            {
+                *IntegrityString = &integrityLevelStringTable[i].String;
+                break;
+            }
         }
     }
 
@@ -2368,5 +2396,176 @@ NTSTATUS PhGetTokenProcessTrustLevelRID(
 
     PhFree(trustLevel);
 
+    return status;
+}
+
+/**
+ * Creates a restricted token.
+ *
+ * \param ExistingTokenHandle A handle to a primary or impersonation token. The token can also be a restricted token. The handle must have TOKEN_DUPLICATE access.
+ * \param Flags Specifies additional privilege options.
+ * \param DisableSidCount The number of entries in the SidsToDisable array.
+ * \param SidsToDisable An array of SID_AND_ATTRIBUTES structures that specify the deny-only SIDs in the restricted token. This parameter is optional and can be NULL.
+ * \param DeletePrivilegeCount The number of entries in the PrivilegesToDelete array.
+ * \param PrivilegesToDelete An array of LUID_AND_ATTRIBUTES structures that specify the privileges to delete in the restricted token. This parameter is optional and can be NULL.
+ * \param RestrictedSidCount The number of entries in the SidsToRestrict array.
+ * \param SidsToRestrict An array of SID_AND_ATTRIBUTES structures that specify a list of restricting SIDs for the new token. This parameter is optional and can be NULL.
+ * \param NewTokenHandle A variable which receives a handle to the new restricted token.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhCreateRestrictedToken(
+    _In_ HANDLE ExistingTokenHandle,
+    _In_ ULONG Flags,
+    _In_ ULONG DisableSidCount,
+    _In_reads_opt_(DisableSidCount) PSID_AND_ATTRIBUTES SidsToDisable,
+    _In_ ULONG DeletePrivilegeCount,
+    _In_reads_opt_(DeletePrivilegeCount) PLUID_AND_ATTRIBUTES PrivilegesToDelete,
+    _In_ ULONG RestrictedSidCount,
+    _In_reads_opt_(RestrictedSidCount) PSID_AND_ATTRIBUTES SidsToRestrict,
+    _Out_ PHANDLE NewTokenHandle
+    )
+{
+    PTOKEN_GROUPS disabledSids = NULL;
+    PTOKEN_PRIVILEGES deletedPrivileges = NULL;
+    PTOKEN_GROUPS restrictedSids = NULL;
+    NTSTATUS status;
+    SIZE_T size;
+
+    // Convert the caller's SID_AND_ATTRIBUTES array into the
+    // TOKEN_GROUPS structure expected by NtFilterToken.
+
+    if (DisableSidCount != 0)
+    {
+        if (SidsToDisable == NULL)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto FailureWithoutCleanup;
+        }
+
+        size = sizeof(TOKEN_GROUPS) + ((SIZE_T)DisableSidCount - 1) * sizeof(SID_AND_ATTRIBUTES);
+
+        if (size > MAXULONG)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            goto FailureWithoutCleanup;
+        }
+
+        disabledSids = PhAllocateZero(size);
+
+        if (disabledSids == NULL)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto FailureWithoutCleanup;
+        }
+
+        disabledSids->GroupCount = DisableSidCount;
+
+        RtlCopyMemory(
+            disabledSids->Groups,
+            SidsToDisable,
+            DisableSidCount * sizeof(SID_AND_ATTRIBUTES)
+            );
+    }
+
+    //
+    // Convert the LUID_AND_ATTRIBUTES array into TOKEN_PRIVILEGES.
+    //
+
+    if (DeletePrivilegeCount != 0)
+    {
+        if (PrivilegesToDelete == NULL)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto Cleanup;
+        }
+
+        size = sizeof(TOKEN_PRIVILEGES) + ((SIZE_T)DeletePrivilegeCount - 1) * sizeof(LUID_AND_ATTRIBUTES);
+
+        if (size > MAXULONG)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            goto Cleanup;
+        }
+
+        deletedPrivileges = PhAllocateZero(size);
+
+        if (deletedPrivileges == NULL)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Cleanup;
+        }
+
+        deletedPrivileges->PrivilegeCount = DeletePrivilegeCount;
+
+        RtlCopyMemory(
+            deletedPrivileges->Privileges,
+            PrivilegesToDelete,
+            DeletePrivilegeCount * sizeof(LUID_AND_ATTRIBUTES)
+            );
+    }
+
+    //
+    // Convert the restricted SID array into TOKEN_GROUPS.
+    //
+
+    if (RestrictedSidCount != 0)
+    {
+        if (SidsToRestrict == NULL)
+        {
+            status = STATUS_INVALID_PARAMETER;
+            goto Cleanup;
+        }
+
+        size = sizeof(TOKEN_GROUPS) + ((SIZE_T)RestrictedSidCount - 1) * sizeof(SID_AND_ATTRIBUTES);
+
+        if (size > MAXULONG)
+        {
+            status = STATUS_INTEGER_OVERFLOW;
+            goto Cleanup;
+        }
+
+        restrictedSids = PhAllocateZero(size);
+
+        if (restrictedSids == NULL)
+        {
+            status = STATUS_INSUFFICIENT_RESOURCES;
+            goto Cleanup;
+        }
+
+        restrictedSids->GroupCount = RestrictedSidCount;
+
+        RtlCopyMemory(
+            restrictedSids->Groups,
+            SidsToRestrict,
+            RestrictedSidCount * sizeof(SID_AND_ATTRIBUTES)
+            );
+    }
+
+    status = NtFilterToken(
+        ExistingTokenHandle,
+        Flags,
+        disabledSids,
+        deletedPrivileges,
+        restrictedSids,
+        NewTokenHandle
+        );
+
+Cleanup:
+    if (disabledSids)
+    {
+        PhFree(disabledSids);
+    }
+
+    if (deletedPrivileges)
+    {
+        PhFree(deletedPrivileges);
+    }
+
+    if (restrictedSids)
+    {
+        PhFree(restrictedSids);
+    }
+
+FailureWithoutCleanup:
     return status;
 }
