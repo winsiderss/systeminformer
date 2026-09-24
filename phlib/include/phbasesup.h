@@ -1300,9 +1300,11 @@ typedef struct _PH_RELATIVE_BYTESREF
     /** A user-defined offset. */
     ULONG Offset;
 } PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
+typedef const PH_RELATIVE_BYTESREF* PCPH_RELATIVE_BYTESREF, *PCPH_RELATIVE_STRINGREF;
 
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), RTL_CONST_CAST(PWCH)(String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), RTL_CONST_CAST(PCH)(String) }
+#define PH_RELATIVE_STRINGREF_INIT(String) { (ULONG)(sizeof(String) - sizeof(UNICODE_NULL)), (ULONG)((ULONG_PTR)(String) - (ULONG_PTR)NtCurrentImageBase()) }
 
 /**
  * Initializes a string reference from a null-terminated Unicode string.
@@ -1425,6 +1427,23 @@ PhInitializeBufferBytesRef(
     memset(String, 0, sizeof(PH_BYTESREF));
     String->Length = Length;
     String->Buffer = Buffer;
+}
+
+/**
+ * Initializes a string reference from an image-relative string reference.
+ *
+ * \param String A pointer to the string reference to initialize.
+ * \param RelativeString An image-relative string reference initialized with PH_RELATIVE_STRINGREF_INIT.
+ */
+FORCEINLINE
+VOID
+PhInitializeStringRefFromRelative(
+    _Out_ PPH_STRINGREF String,
+    _In_ PCPH_RELATIVE_STRINGREF RelativeString
+    )
+{
+    String->Length = RelativeString->Length;
+    String->Buffer = (PWCH)PTR_ADD_OFFSET(NtCurrentImageBase(), RelativeString->Offset);
 }
 
 /**
