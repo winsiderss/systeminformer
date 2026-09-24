@@ -19,6 +19,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntd3dkmt.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntdbg.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntexapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntfve.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntgdi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntimage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntintsafe.h" />
