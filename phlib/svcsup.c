@@ -190,7 +190,8 @@ NTSTATUS PhEnumServices(
 
     scManagerHandle = PhGetServiceManagerHandle();
     bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     if (EnumServicesStatusEx(
         scManagerHandle,
@@ -216,7 +217,8 @@ NTSTATUS PhEnumServices(
     {
         PhFree(buffer);
         bufferSize += returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         if (EnumServicesStatusEx(
             scManagerHandle,
@@ -274,7 +276,8 @@ NTSTATUS PhEnumDependentServices(
     ULONG servicesReturned;
 
     bufferSize = 0x800;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     if (EnumDependentServices(
         ServiceHandle,
@@ -296,7 +299,8 @@ NTSTATUS PhEnumDependentServices(
     {
         PhFree(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         if (EnumDependentServices(
             ServiceHandle,
@@ -723,8 +727,8 @@ NTSTATUS PhGetServiceObjectSecurity(
 
     if (status == STATUS_BUFFER_TOO_SMALL && bufferSize)
     {
-        buffer = PhAllocate(bufferSize);
-        memset(buffer, 0, bufferSize);
+        buffer = PhAllocateZeroSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         if (QueryServiceObjectSecurity(ServiceHandle, SecurityInformation, buffer, bufferSize, &bufferSize))
             status = STATUS_SUCCESS;
@@ -833,7 +837,8 @@ NTSTATUS PhQueryServiceVariableSize(
     ULONG bufferSize;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = PhQueryServiceConfig2(
         ServiceHandle,
@@ -846,7 +851,8 @@ NTSTATUS PhQueryServiceVariableSize(
     if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = PhQueryServiceConfig2(
             ServiceHandle,
@@ -994,7 +1000,8 @@ NTSTATUS PhGetServiceConfig(
     ULONG bufferSize;
 
     bufferSize = 0x200;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = PhQueryServiceConfig(
         ServiceHandle,
@@ -1006,7 +1013,8 @@ NTSTATUS PhGetServiceConfig(
     if (!NT_SUCCESS(status))
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = PhQueryServiceConfig(
             ServiceHandle,
@@ -1181,9 +1189,8 @@ NTSTATUS PhGetServiceTriggerInfo(
         // The fixed-size struct was sufficient (e.g., no triggers or no variable list).
         if (ServiceTriggerInfo)
         {
-            buffer = PhAllocate(sizeof(SERVICE_TRIGGER_INFO));
-            if (!buffer)
-                return STATUS_NO_MEMORY;
+            buffer = PhAllocateSafe(sizeof(SERVICE_TRIGGER_INFO));
+            if (!buffer) return STATUS_NO_MEMORY;
 
             memcpy(buffer, &triggerInfo, sizeof(SERVICE_TRIGGER_INFO));
             *ServiceTriggerInfo = buffer;
@@ -1201,9 +1208,8 @@ NTSTATUS PhGetServiceTriggerInfo(
         if (!ServiceTriggerInfo)
             return STATUS_SUCCESS;
 
-        buffer = PhAllocate(bufferSize);
-        if (!buffer)
-            return STATUS_NO_MEMORY;
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = PhQueryServiceConfig2(
             ServiceHandle,
@@ -2075,6 +2081,100 @@ PPH_STRING PhGetServiceGroupName(
     return groupName;
 }
 
+/**
+ * Queries the load order index of a service's group.
+ *
+ * \param ServiceName Name of the service.
+ * \param GroupOrderIndex Receives the zero-based index of the service's group within the
+ * ServiceGroupOrder list.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhGetServiceGroupOrderIndex(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PULONG GroupOrderIndex
+    )
+{
+    static CONST PH_STRINGREF serviceGroupOrderKeyName = PH_STRINGREF_INIT(L"System\\CurrentControlSet\\Control\\ServiceGroupOrder");
+    NTSTATUS status;
+    HANDLE keyHandle;
+    PPH_STRING groupName;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    groupName = PhGetServiceGroupName(ServiceName);
+
+    if (PhIsNullOrEmptyString(groupName))
+    {
+        PhClearReference(&groupName);
+        return STATUS_NOT_FOUND;
+    }
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_READ,
+        PH_KEY_LOCAL_MACHINE,
+        &serviceGroupOrderKeyName,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(groupName);
+        return status;
+    }
+
+    status = PhQueryValueKeyZ(
+        keyHandle,
+        L"List",
+        KeyValuePartialInformation,
+        &buffer
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        status = STATUS_NOT_FOUND;
+
+        if (buffer->Type == REG_MULTI_SZ &&
+            !(buffer->DataLength & 1) && // validate the string length
+            buffer->DataLength >= sizeof(UNICODE_NULL))
+        {
+            PH_STRINGREF remaining;
+            PH_STRINGREF entry;
+            ULONG index = 0;
+
+            remaining.Buffer = (PWCHAR)buffer->Data;
+            remaining.Length = buffer->DataLength - sizeof(UNICODE_NULL);
+
+            while (remaining.Length != 0)
+            {
+                if (!PhSplitStringRefAtChar(&remaining, UNICODE_NULL, &entry, &remaining))
+                {
+                    entry = remaining;
+                    PhInitializeEmptyStringRef(&remaining);
+                }
+
+                if (entry.Length == 0) // the final entry of the double null terminated block
+                    break;
+
+                if (PhEqualStringRef(&entry, &groupName->sr, TRUE))
+                {
+                    *GroupOrderIndex = index;
+                    status = STATUS_SUCCESS;
+                    break;
+                }
+
+                index++;
+            }
+        }
+
+        PhFree(buffer);
+    }
+
+    NtClose(keyHandle);
+    PhDereferenceObject(groupName);
+
+    return status;
+}
+
 PPH_STRING PhGetEarlyStartServices(
     VOID
     )
@@ -2200,7 +2300,7 @@ NTSTATUS PhWaitForServiceStatus(
 {
     NTSTATUS status;
     SERVICE_STATUS_PROCESS serviceStatus;
-    ULONG64 startTick;
+    ULONG64 deadline = 0;
     ULONG64 lastProgressTick;
     ULONG serviceCheck;
 
@@ -2210,8 +2310,11 @@ NTSTATUS PhWaitForServiceStatus(
     if (serviceStatus.dwCurrentState == WaitForState)
         return STATUS_SUCCESS;
 
-    startTick = NtGetTickCount64();
-    lastProgressTick = startTick;
+    lastProgressTick = PhQueryWaitTime();
+
+    if (Timeout)
+        deadline = lastProgressTick + UInt32x32To64(Timeout, PH_TIMEOUT_MS);
+
     serviceCheck = serviceStatus.dwCheckPoint;
 
     while (
@@ -2249,19 +2352,19 @@ NTSTATUS PhWaitForServiceStatus(
             return STATUS_SUCCESS;
         }
 
-        nowTick = NtGetTickCount64();
+        nowTick = PhQueryWaitTime();
 
         if (serviceStatus.dwCheckPoint > serviceCheck)
         {
             serviceCheck = serviceStatus.dwCheckPoint;
             lastProgressTick = nowTick;
         }
-        else if ((nowTick - lastProgressTick) > serviceStatus.dwWaitHint)
+        else if ((nowTick - lastProgressTick) > UInt32x32To64(serviceStatus.dwWaitHint, PH_TIMEOUT_MS))
         {
             // Service doesn't report progress.
         }
 
-        if (Timeout && (nowTick - startTick) > Timeout)
+        if (Timeout && nowTick >= deadline)
         {
             return STATUS_TIMEOUT; // STATUS_IO_TIMEOUT
         }
