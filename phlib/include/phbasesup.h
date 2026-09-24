@@ -162,6 +162,76 @@ PhQueryInterruptTime(
 PHLIBAPI
 VOID
 NTAPI
+PhQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
+    );
+
+/**
+* Reads the tick count used for deadlines governing a wait.
+*
+* \return The elapsed time, in 100-nanosecond units, in the same time
+* domain as the wait that it bounds. Scale millisecond bounds into this
+* domain with UInt32x32To64(Milliseconds, PH_TIMEOUT_MS).
+*
+* \remarks There are three distinct time domains, and they are not
+* interchangeable:
+*
+* - Biased time (NtGetTickCount64): boot-relative time that includes
+* time spent suspended. This is suitable for user-interface throttling.
+* - Unbiased time (QueryUnbiasedInterruptTime): time that the system
+* has spent in the working state.
+* - Wall-clock uptime (PhGetSystemUptime).
+*
+* This returns the native 100-nanosecond tick domain rather than
+* milliseconds. The underlying counters already report ticks, so a
+* millisecond-returning wrapper would have to divide by PH_TICKS_PER_MS on
+* every read, discarding the sub-millisecond remainder and leaving each
+* converted read up to one millisecond away from the true value. Returning
+* ticks avoids that conversion altogether: callers compare at the full
+* resolution the counter provides, and rounding occurs only where
+* milliseconds are actually required, in the argument handed to a wait
+* routine.
+*
+* Windows 7 and earlier (Biased Domain): Wait APIs (like NtWaitForSingleObject with relative timeouts) 
+* evaluate deadlines against the standard interrupt time, which continues to tick while the system is suspended or sleeping.
+* Thus, PhQueryInterruptTime() (which tracks the biased domain) provides the correct baseline to prevent premature expiration upon resume.
+*
+* Windows 8 and later (Unbiased Domain): To support Connected Standby (Modern Standby), the kernel was updated and relative wait evaluations 
+* are paused during sleep states. Wait timeouts now operate strictly in the unbiased domain. If a thread waits for 10 seconds and the machine 
+* sleeps for 8, the thread still has 2 seconds remaining upon wake.
+* Thus, PhQueryUnbiasedInterruptTime() (which tracks the unbiased domain) provides the correct baseline to prevent premature expiration upon resume.
+*
+* Define PHNT_TICKWAIT to use NtGetTickCount64() on Windows 7 and earlier. It tracks the same biased
+* domain but only advances once per clock tick (~15.6 ms by default).
+*/
+FORCEINLINE
+ULONG64
+NTAPI
+PhQueryWaitTime(
+    VOID
+    )
+{
+    LARGE_INTEGER interruptTime;
+
+    if (WindowsVersion < WINDOWS_8)
+    {
+#if defined(PHNT_TICKWAIT)
+        return NtGetTickCount64() * PH_TICKS_PER_MS;
+#else
+        PhQueryInterruptTime(&interruptTime);
+#endif
+    }
+    else
+    {
+        PhQueryUnbiasedInterruptTime(&interruptTime);
+    }
+
+    return (ULONG64)interruptTime.QuadPart;
+}
+
+PHLIBAPI
+VOID
+NTAPI
 PhQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
