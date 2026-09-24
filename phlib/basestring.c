@@ -28,6 +28,10 @@
 #define PH_NATIVE_STRING_IN_STRING 1
 #endif
 
+#ifndef PH_NATIVE_NAME_WILDCARDS
+#define PH_NATIVE_NAME_WILDCARDS 1
+#endif
+
 /**
  * Determines the length of the specified string, in characters.
  *
@@ -38,6 +42,54 @@ SIZE_T PhCountStringZ(
     )
 {
 #ifndef _ARM64_
+#ifdef _WIN64
+    if (PhHasAVX512)
+    {
+        PWSTR p;
+        ULONG unaligned;
+        __m512i b;
+        __m512i z;
+        ULONG mask;
+        ULONG index;
+
+        // The scan is length-agnostic, so the usual "only go 512-bit on large
+        // buffers" gate cannot be applied here. Loads stay 64-byte aligned so
+        // the scan never reads across a page boundary.
+        p = (PWSTR)((ULONG_PTR)String & ~(ULONG_PTR)0x3f);
+        unaligned = (ULONG)((ULONG_PTR)String & 0x3f);
+        z = _mm512_setzero_si512();
+
+        if (unaligned != 0)
+        {
+            b = _mm512_loadu_si512((void const*)p);
+
+            // One mask bit per 16-bit lane, so the leading characters that
+            // precede String are discarded in lanes rather than in bytes.
+            mask = (ULONG)_mm512_cmpeq_epi16_mask(b, z) >> (unaligned / sizeof(WCHAR));
+
+            if (_BitScanForward(&index, mask))
+            {
+                return index;
+            }
+
+            p += 64 / sizeof(WCHAR);
+        }
+
+        while (TRUE)
+        {
+            b = _mm512_load_si512((void const*)p);
+            mask = (ULONG)_mm512_cmpeq_epi16_mask(b, z);
+
+            if (_BitScanForward(&index, mask))
+            {
+                return (SIZE_T)(p - String) + index;
+            }
+
+            p += 64 / sizeof(WCHAR);
+        }
+    }
+    else
+#endif
     if (PhHasAVX)
     {
         PWSTR p;
@@ -812,7 +864,65 @@ LONG PhCompareStringRef(
 #ifndef _ARM64_
         if (PhHasAVX)
         {
-            SIZE_T length = commonLength / 32;
+            SIZE_T remaining = commonLength;
+            SIZE_T length;
+
+#ifdef _WIN64
+            // On a mismatch the scalar tail resumes from s1/s2, so the 512-bit
+            // tier only has to leave those pointers correct; the untouched
+            // bytes fall through to the AVX2 tier below.
+            if (PhHasAVX512 && remaining >= 256)
+            {
+                SIZE_T length64 = remaining / 64;
+
+                remaining &= 63;
+
+                if (IgnoreCase)
+                {
+                    do
+                    {
+                        __m512i b1 = _mm512_loadu_si512((void const*)s1);
+                        __m512i b2 = _mm512_loadu_si512((void const*)s2);
+
+                        // SIMD uppercase conversion
+                        __m512i ub1 = PhUppercaseLatin1INT512by16(b1);
+                        __m512i ub2 = PhUppercaseLatin1INT512by16(b2);
+
+                        if (_mm512_cmpeq_epi16_mask(ub1, ub2) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            goto CompareCharacters;
+                        }
+
+                        s1 += 64 / sizeof(WCHAR);
+                        s2 += 64 / sizeof(WCHAR);
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+                else
+                {
+                    do
+                    {
+                        __m512i b1 = _mm512_loadu_si512((void const*)s1);
+                        __m512i b2 = _mm512_loadu_si512((void const*)s2);
+
+                        if (_mm512_cmpeq_epi16_mask(b1, b2) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            goto CompareCharacters;
+                        }
+
+                        s1 += 64 / sizeof(WCHAR);
+                        s2 += 64 / sizeof(WCHAR);
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+            }
+#endif
+
+            length = remaining / 32;
 
             if (length != 0)
             {
@@ -995,9 +1105,42 @@ BOOLEAN PhEqualStringRef(
 #ifndef _ARM64_
         if (PhHasAVX)
         {
+            SIZE_T remaining = l1;
+
             if (IgnoreCase)
             {
-                length = l1 / 32;
+#ifdef _WIN64
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    SIZE_T length64 = remaining / 64;
+
+                    remaining &= 63;
+
+                    do
+                    {
+                        __m512i b1 = _mm512_loadu_si512((void const*)s1);
+                        __m512i b2 = _mm512_loadu_si512((void const*)s2);
+
+                        // SIMD uppercase conversion
+                        b1 = PhUppercaseLatin1INT512by16(b1);
+                        b2 = PhUppercaseLatin1INT512by16(b2);
+
+                        if (_mm512_cmpeq_epi16_mask(b1, b2) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            l1 = (String1->Length / sizeof(WCHAR)) - (s1 - String1->Buffer);
+                            goto CompareCharacters;
+                        }
+
+                        s1 += 64 / sizeof(WCHAR);
+                        s2 += 64 / sizeof(WCHAR);
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length = remaining / 32;
 
                 if (length != 0)
                 {
@@ -1026,11 +1169,37 @@ BOOLEAN PhEqualStringRef(
                     _mm256_zeroupper();
                 }
 
-                l1 = (l1 & 31) / sizeof(WCHAR);
+                l1 = (remaining & 31) / sizeof(WCHAR);
             }
             else
             {
-                length = l1 / 32;
+#ifdef _WIN64
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    SIZE_T length64 = remaining / 64;
+
+                    remaining &= 63;
+
+                    do
+                    {
+                        __m512i b1 = _mm512_loadu_si512((void const*)s1);
+                        __m512i b2 = _mm512_loadu_si512((void const*)s2);
+
+                        if (_mm512_cmpeq_epi16_mask(b1, b2) != 0xffffffff)
+                        {
+                            _mm256_zeroupper();
+                            return FALSE;
+                        }
+
+                        s1 += 64 / sizeof(WCHAR);
+                        s2 += 64 / sizeof(WCHAR);
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length = remaining / 32;
 
                 if (length != 0)
                 {
@@ -1053,7 +1222,7 @@ BOOLEAN PhEqualStringRef(
                     _mm256_zeroupper();
                 }
 
-                l1 = (l1 & 31) / sizeof(WCHAR);
+                l1 = (remaining & 31) / sizeof(WCHAR);
             }
         }
         else
@@ -1213,10 +1382,45 @@ ULONG_PTR PhFindCharInStringRef(
 #ifndef _ARM64_
             if (PhHasAVX)
             {
+                SIZE_T remaining = String->Length;
                 SIZE_T length32;
 
-                length32 = String->Length / 32;
-                length &= 15;
+#ifdef _WIN64
+                // 512-bit blocks only pay off on long strings; anything shorter
+                // (and the tail of anything longer) falls through to AVX2.
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    __m512i pattern;
+                    __m512i block;
+                    ULONG mask;
+                    ULONG index;
+                    SIZE_T length64 = remaining / 64;
+                    WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                    remaining &= 63;
+                    pattern = _mm512_set1_epi16(upC);
+
+                    do
+                    {
+                        block = _mm512_loadu_si512((void const*)buffer);
+                        block = PhUppercaseLatin1INT512by16(block);
+                        mask = (ULONG)_mm512_cmpeq_epi16_mask(block, pattern);
+
+                        if (_BitScanForward(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index;
+                        }
+
+                        buffer += 32;
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length32 = remaining / 32;
+                length = (remaining & 31) / sizeof(WCHAR);
 
                 if (length32 != 0)
                 {
@@ -1300,10 +1504,46 @@ ULONG_PTR PhFindCharInStringRef(
 #ifndef _ARM64_
             if (PhHasAVX)
             {
+                SIZE_T remaining = String->Length;
                 SIZE_T length32;
 
-                length32 = String->Length / 32;
-                length &= 15;
+#ifdef _WIN64
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    __m512i patUp;
+                    __m512i patLow;
+                    __m512i block;
+                    ULONG mask;
+                    ULONG index;
+                    SIZE_T length64 = remaining / 64;
+
+                    remaining &= 63;
+                    patUp = _mm512_set1_epi16(upC);
+                    patLow = _mm512_set1_epi16(lowC);
+
+                    do
+                    {
+                        block = _mm512_loadu_si512((void const*)buffer);
+                        mask = (ULONG)_kor_mask32(
+                            _mm512_cmpeq_epi16_mask(block, patUp),
+                            _mm512_cmpeq_epi16_mask(block, patLow)
+                            );
+
+                        if (_BitScanForward(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index;
+                        }
+
+                        buffer += 32;
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length32 = remaining / 32;
+                length = (remaining & 31) / sizeof(WCHAR);
 
                 if (length32 != 0)
                 {
@@ -1396,10 +1636,41 @@ ULONG_PTR PhFindCharInStringRef(
 #ifndef _ARM64_
         if (PhHasAVX)
         {
+            SIZE_T remaining = String->Length;
             SIZE_T length32;
 
-            length32 = String->Length / 32;
-            length &= 15;
+#ifdef _WIN64
+            if (PhHasAVX512 && remaining >= 256)
+            {
+                __m512i pattern;
+                __m512i block;
+                ULONG mask;
+                ULONG index;
+                SIZE_T length64 = remaining / 64;
+
+                remaining &= 63;
+                pattern = _mm512_set1_epi16(Character);
+
+                do
+                {
+                    block = _mm512_loadu_si512((void const*)buffer);
+                    mask = (ULONG)_mm512_cmpeq_epi16_mask(block, pattern);
+
+                    if (_BitScanForward(&index, mask))
+                    {
+                        _mm256_zeroupper();
+                        return (buffer - String->Buffer) + index;
+                    }
+
+                    buffer += 32;
+                } while (--length64 != 0);
+
+                _mm256_zeroupper();
+            }
+#endif
+
+            length32 = remaining / 32;
+            length = (remaining & 31) / sizeof(WCHAR);
 
             if (length32 != 0)
             {
@@ -1505,10 +1776,45 @@ ULONG_PTR PhFindLastCharInStringRef(
 #ifndef _ARM64_
             if (PhHasAVX)
             {
+                SIZE_T remaining = String->Length;
                 SIZE_T length32;
 
-                length32 = String->Length / 32;
-                length &= 15;
+#ifdef _WIN64
+                // Blocks are consumed from the end backwards, so the 512-bit
+                // tier takes the trailing blocks and leaves the leading bytes
+                // to the AVX2 tier and then the scalar head.
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    __m512i pattern;
+                    __m512i block;
+                    ULONG mask;
+                    ULONG index;
+                    SIZE_T length64 = remaining / 64;
+                    WCHAR upC = PhUpcaseUnicodeChar(Character);
+
+                    remaining &= 63;
+                    pattern = _mm512_set1_epi16(upC);
+
+                    do
+                    {
+                        buffer -= 32;
+                        block = _mm512_loadu_si512((void const*)buffer);
+                        block = PhUppercaseLatin1INT512by16(block);
+                        mask = (ULONG)_mm512_cmpeq_epi16_mask(block, pattern);
+
+                        if (_BitScanReverse(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index;
+                        }
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length32 = remaining / 32;
+                length = (remaining & 31) / sizeof(WCHAR);
 
                 if (length32 != 0)
                 {
@@ -1593,10 +1899,45 @@ ULONG_PTR PhFindLastCharInStringRef(
 #ifndef _ARM64_
             if (PhHasAVX)
             {
+                SIZE_T remaining = String->Length;
                 SIZE_T length32;
 
-                length32 = String->Length / 32;
-                length &= 15;
+#ifdef _WIN64
+                if (PhHasAVX512 && remaining >= 256)
+                {
+                    __m512i patUp;
+                    __m512i patLow;
+                    __m512i block;
+                    ULONG mask;
+                    ULONG index;
+                    SIZE_T length64 = remaining / 64;
+
+                    remaining &= 63;
+                    patUp = _mm512_set1_epi16(upC);
+                    patLow = _mm512_set1_epi16(lowC);
+
+                    do
+                    {
+                        buffer -= 32;
+                        block = _mm512_loadu_si512((void const*)buffer);
+                        mask = (ULONG)_kor_mask32(
+                            _mm512_cmpeq_epi16_mask(block, patUp),
+                            _mm512_cmpeq_epi16_mask(block, patLow)
+                            );
+
+                        if (_BitScanReverse(&index, mask))
+                        {
+                            _mm256_zeroupper();
+                            return (buffer - String->Buffer) + index;
+                        }
+                    } while (--length64 != 0);
+
+                    _mm256_zeroupper();
+                }
+#endif
+
+                length32 = remaining / 32;
+                length = (remaining & 31) / sizeof(WCHAR);
 
                 if (length32 != 0)
                 {
@@ -1689,10 +2030,40 @@ ULONG_PTR PhFindLastCharInStringRef(
 #ifndef _ARM64_
         if (PhHasAVX)
         {
+            SIZE_T remaining = String->Length;
             SIZE_T length32;
 
-            length32 = String->Length / 32;
-            length &= 15;
+#ifdef _WIN64
+            if (PhHasAVX512 && remaining >= 256)
+            {
+                __m512i pattern;
+                __m512i block;
+                ULONG mask;
+                ULONG index;
+                SIZE_T length64 = remaining / 64;
+
+                remaining &= 63;
+                pattern = _mm512_set1_epi16(Character);
+
+                do
+                {
+                    buffer -= 32;
+                    block = _mm512_loadu_si512((void const*)buffer);
+                    mask = (ULONG)_mm512_cmpeq_epi16_mask(block, pattern);
+
+                    if (_BitScanReverse(&index, mask))
+                    {
+                        _mm256_zeroupper();
+                        return (buffer - String->Buffer) + index;
+                    }
+                } while (--length64 != 0);
+
+                _mm256_zeroupper();
+            }
+#endif
+
+            length32 = remaining / 32;
+            length = (remaining & 31) / sizeof(WCHAR);
 
             if (length32 != 0)
             {
@@ -3447,13 +3818,13 @@ PPH_STRING PhZeroExtendToUtf16Ex(
  *
  * \param Buffer Pointer to the UTF-16 string buffer to convert.
  * \param Length Length of the UTF-16 string, in characters.
- * \param Replacement Optional character to use when a UTF-16 character cannot be represented in ASCII.
+ * \param Replacement Character to use when a UTF-16 character cannot be represented in ASCII. Specify ANSI_NULL to omit non-ASCII characters.
  * \return Pointer to a PPH_BYTES structure containing the converted ASCII bytes.
  */
 PPH_BYTES PhConvertUtf16ToAsciiEx(
     _In_ PCWCH Buffer,
     _In_ SIZE_T Length,
-    _In_opt_ CHAR Replacement
+    _In_ CHAR Replacement
     )
 {
     PPH_BYTES bytes;
@@ -4820,6 +5191,57 @@ ULONG PhHashStringRef(
     return hash;
 }
 
+#ifndef _ARM64_
+/**
+ * Folds sixteen characters into an X65599 hash in closed form.
+ *
+ * X65599 is hash = hash * 65599 + c, so over a fixed-size block it expands to
+ * hash * 65599^16 + sum(c[j] * 65599^(15-j)), all modulo 2^32. The per-character
+ * weights are constants, so the block reduces to a widen, a multiply and a
+ * horizontal sum, replacing sixteen serially dependent multiplies. The result is
+ * bit-identical to the scalar loop.
+ *
+ * \param[in] Hash The incoming hash value.
+ * \param[in] Chunk Sixteen 16-bit characters in memory order.
+ * \return The hash value after folding all sixteen characters.
+ */
+FORCEINLINE
+ULONG
+PhpHashX65599Block16(
+    _In_ ULONG Hash,
+    _In_ __m256i Chunk
+    )
+{
+    __m256i low;
+    __m256i high;
+    __m256i sum;
+    __m128i fold;
+
+    // Weights are 65599^15 .. 65599^0 (mod 2^32), aligned to characters 0 .. 15.
+    low = _mm256_mullo_epi32(
+        _mm256_cvtepu16_epi32(_mm256_castsi256_si128(Chunk)),
+        _mm256_setr_epi32(
+            0x8da473bf, 0x50c7ac81, 0x7280233f, 0xcc881d01,
+            0x0d1b92bf, 0x6698cd81, 0xb156c23f, 0xd319be01
+            ));
+    high = _mm256_mullo_epi32(
+        _mm256_cvtepu16_epi32(_mm256_extracti128_si256(Chunk, 1)),
+        _mm256_setr_epi32(
+            0xa311b1bf, 0xd62aee81, 0x162c613f, 0x43ec5f01,
+            0x2e86d0bf, 0x007e0f81, 0x0001003f, 0x00000001
+            ));
+
+    sum = _mm256_add_epi32(low, high);
+
+    fold = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
+    fold = _mm_add_epi32(fold, _mm_shuffle_epi32(fold, _MM_SHUFFLE(1, 0, 3, 2)));
+    fold = _mm_add_epi32(fold, _mm_shuffle_epi32(fold, _MM_SHUFFLE(2, 3, 0, 1)));
+
+    // 65599^16 (mod 2^32).
+    return Hash * 0x4f377c01ul + (ULONG)_mm_cvtsi128_si32(fold);
+}
+#endif
+
 /**
  * Computes a hash value for the specified string reference using the given hash algorithm.
  *
@@ -4858,7 +5280,6 @@ ULONG PhHashStringRefEx(
                 {
                     // AVX hash path for case-insensitive
                     SIZE_T count = (end - p) / 16;
-                    WCHAR uppercased[16];
 
                     for (SIZE_T i = 0; i < count; i++)
                     {
@@ -4866,13 +5287,7 @@ ULONG PhHashStringRefEx(
 
                         chunk = _mm256_loadu_si256((__m256i const*)p);
                         chunk = PhUppercaseLatin1INT256by16(chunk);
-                        _mm256_storeu_si256((__m256i*)uppercased, chunk);
-
-                        // Hash 16 uppercased characters
-                        for (ULONG j = 0; j < 16; j++)
-                        {
-                            hash = ((65599 * (hash)) + (ULONG)uppercased[j]);
-                        }
+                        hash = PhpHashX65599Block16(hash, chunk);
 
                         p += 16;
                     }
@@ -4910,20 +5325,13 @@ ULONG PhHashStringRefEx(
                 {
                     // AVX hash path for case-sensitive
                     SIZE_T count = (end - p) / 16;
-                    WCHAR buffer[16];
 
                     for (SIZE_T i = 0; i < count; i++)
                     {
                         __m256i chunk;
 
                         chunk = _mm256_loadu_si256((__m256i const*)p);
-                        _mm256_storeu_si256((__m256i*)buffer, chunk);
-
-                        // Hash 16 characters
-                        for (ULONG j = 0; j < 16; j++)
-                        {
-                            hash = ((65599 * (hash)) + (ULONG)buffer[j]);
-                        }
+                        hash = PhpHashX65599Block16(hash, chunk);
 
                         p += 16;
                     }
@@ -4965,23 +5373,7 @@ BOOLEAN PhHexStringToBuffer(
     _Out_writes_bytes_(String->Length / sizeof(WCHAR) / 2) PUCHAR Buffer
     )
 {
-    SIZE_T i;
-    SIZE_T length;
-
-    // The string must have an even length.
-    if ((String->Length / sizeof(WCHAR)) & 1)
-        return FALSE;
-
-    length = String->Length / sizeof(WCHAR) / 2;
-
-    for (i = 0; i < length; i++)
-    {
-        Buffer[i] =
-            (UCHAR)(PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR)]] << 4) +
-            (UCHAR)PhCharToInteger[(UCHAR)String->Buffer[i * sizeof(WCHAR) + 1]];
-    }
-
-    return TRUE;
+    return PhHexStringToBufferEx(String, String->Length / sizeof(WCHAR) / 2, Buffer);
 }
 
 /**
@@ -5009,7 +5401,88 @@ BOOLEAN PhHexStringToBufferEx(
     if (length > BufferLength)
         return FALSE;
 
-    for (i = 0; i < length; i++)
+    i = 0;
+
+#ifndef _ARM64_
+    if (PhHasAVX && length >= 16)
+    {
+        // AVX2: decode 32 source WCHARs -> 16 bytes per iteration. Same low-byte
+        // take / hex classification / maddubs nibble combine as the SSSE3 tier,
+        // widened to 256 bits. AVX2 pack/maddubs operate per 128-bit lane, so a
+        // permute4x64 (0xD8) restores source order after each cross-lane pack.
+        PCWCH src = String->Buffer;
+        __m256i lowByteMask = _mm256_set1_epi16(0x00ff);
+        __m256i weights = _mm256_set1_epi16(0x0110); // [hi*16 + lo*1] per byte pair
+
+        while (i + 16 <= length)
+        {
+            __m256i w0 = _mm256_and_si256(_mm256_loadu_si256((__m256i const*)&src[i * 2]), lowByteMask);
+            __m256i w1 = _mm256_and_si256(_mm256_loadu_si256((__m256i const*)&src[i * 2 + 16]), lowByteMask);
+            __m256i chars = _mm256_permute4x64_epi64(_mm256_packus_epi16(w0, w1), 0xD8); // 32 ASCII chars in source order
+            __m256i lower = _mm256_or_si256(chars, _mm256_set1_epi8(0x20));
+            __m256i isDigit = _mm256_and_si256(_mm256_cmpgt_epi8(chars, _mm256_set1_epi8(0x2f)), _mm256_cmpgt_epi8(_mm256_set1_epi8(0x3a), chars));
+            __m256i isAlpha = _mm256_and_si256(_mm256_cmpgt_epi8(lower, _mm256_set1_epi8(0x60)), _mm256_cmpgt_epi8(_mm256_set1_epi8(0x67), lower));
+            __m256i dv;
+            __m256i av;
+            __m256i nib;
+            __m256i bytes16;
+
+            if ((ULONG)_mm256_movemask_epi8(_mm256_or_si256(isDigit, isAlpha)) != 0xffffffff)
+                break;
+
+            dv = _mm256_sub_epi8(chars, _mm256_set1_epi8(0x30));  // '0'-'9' -> 0-9
+            av = _mm256_sub_epi8(lower, _mm256_set1_epi8(0x57));  // 'a'-'f' -> 10-15
+            nib = _mm256_or_si256(_mm256_and_si256(isDigit, dv), _mm256_and_si256(isAlpha, av));
+            bytes16 = _mm256_maddubs_epi16(nib, weights);         // lane0: bytes 0..7, lane1: bytes 8..15
+            // Pack 16 u16 byte values -> 16 bytes, restore lane order, store low 128.
+            _mm_storeu_si128((__m128i*)&((PBYTE)Buffer)[i],
+                _mm256_castsi256_si128(_mm256_permute4x64_epi64(_mm256_packus_epi16(bytes16, bytes16), 0xD8)));
+            i += 16;
+        }
+
+        _mm256_zeroupper();
+    }
+
+    if (PhHasSSSE3 && (length - i) >= 8)
+    {
+        // SSSE3: decode 16 source WCHARs -> 8 bytes per iteration. The low byte of
+        // each WCHAR is taken (matching the scalar (BYTE) cast), classified as a
+        // hex digit, converted to a nibble, and adjacent nibbles are combined via
+        // maddubs. Any chunk containing a non-hex character falls through to the
+        // scalar table path so output stays byte-identical for all inputs.
+        PCWCH src = String->Buffer;
+        __m128i lowByteMask = _mm_set1_epi16(0x00ff);
+        __m128i weights = _mm_set1_epi16(0x0110); // [hi*16 + lo*1] per byte pair
+        __m128i zero = _mm_setzero_si128();
+
+        while (i + 8 <= length)
+        {
+            __m128i w0 = _mm_and_si128(_mm_loadu_si128((__m128i const*)&src[i * 2]), lowByteMask);
+            __m128i w1 = _mm_and_si128(_mm_loadu_si128((__m128i const*)&src[i * 2 + 8]), lowByteMask);
+            __m128i chars = _mm_packus_epi16(w0, w1); // 16 ASCII chars
+            __m128i lower = _mm_or_si128(chars, _mm_set1_epi8(0x20));
+            __m128i isDigit = _mm_and_si128(_mm_cmpgt_epi8(chars, _mm_set1_epi8(0x2f)), _mm_cmpgt_epi8(_mm_set1_epi8(0x3a), chars));
+            __m128i isAlpha = _mm_and_si128(_mm_cmpgt_epi8(lower, _mm_set1_epi8(0x60)), _mm_cmpgt_epi8(_mm_set1_epi8(0x67), lower));
+            __m128i valid = _mm_or_si128(isDigit, isAlpha);
+            __m128i dv;
+            __m128i av;
+            __m128i nib;
+            __m128i bytes16;
+
+            if ((USHORT)_mm_movemask_epi8(valid) != 0xffff)
+                break;
+
+            dv = _mm_sub_epi8(chars, _mm_set1_epi8(0x30));         // '0'-'9' -> 0-9
+            av = _mm_sub_epi8(lower, _mm_set1_epi8(0x57));         // 'a'-'f' -> 10-15
+            nib = _mm_or_si128(_mm_and_si128(isDigit, dv), _mm_and_si128(isAlpha, av));
+            bytes16 = _mm_maddubs_epi16(nib, weights);
+            _mm_storel_epi64((__m128i*)&((PBYTE)Buffer)[i], _mm_packus_epi16(bytes16, zero));
+            i += 8;
+        }
+    }
+#endif
+
+    for (; i < length; i++)
     {
         ((PBYTE)Buffer)[i] =
             (BYTE)(PhCharToInteger[(BYTE)String->Buffer[i * sizeof(WCHAR)]] << 4) +
@@ -5051,21 +5524,19 @@ PPH_STRING PhBufferToHexStringEx(
     )
 {
     PPH_STRING string;
-    PCCH table;
-    SIZE_T i;
-
-    if (UpperCase)
-        table = PhIntegerToCharUpper;
-    else
-        table = PhIntegerToChar;
 
     string = PhCreateStringEx(NULL, Length * sizeof(WCHAR) * 2);
 
-    for (i = 0; i < Length; i++)
-    {
-        string->Buffer[i * sizeof(WCHAR)] = table[Buffer[i] >> 4];
-        string->Buffer[i * sizeof(WCHAR) + 1] = table[Buffer[i] & 0xf];
-    }
+    // Delegate to the buffer variant so the SIMD fast path is shared. The string
+    // allocation includes the implicit null terminator slot the buffer variant writes.
+    PhBufferToHexStringBuffer(
+        Buffer,
+        Length,
+        UpperCase,
+        string->Buffer,
+        string->Length,
+        NULL
+        );
 
     return string;
 }
@@ -5106,7 +5577,81 @@ BOOLEAN PhBufferToHexStringBuffer(
     else
         table = PhIntegerToChar;
 
-    for (i = 0; i < InputLength; i++)
+    i = 0;
+
+#ifndef _ARM64_
+    if (PhHasAVX && InputLength >= 32)
+    {
+        // AVX2: convert 32 input bytes -> 64 hex WCHARs per iteration. Same nibble
+        // -> pshufb table lookup as the SSSE3 tier, but with the 16-byte hex table
+        // broadcast to both 128-bit lanes (nibble indices are 0..15 so the per-lane
+        // pshufb is correct). The interleave/zero-extend is done per 128-bit lane;
+        // lane0 of v covers input bytes [0..15] and lane1 covers [16..31], so the
+        // four 16-ASCII sub-blocks map to contiguous output ranges 0,16,32,48.
+        __m256i hexTable = _mm256_broadcastsi128_si256(_mm_loadu_si128((__m128i const*)table));
+        __m256i lowMask = _mm256_set1_epi8(0x0f);
+        __m128i zero = _mm_setzero_si128();
+
+        for (; i + 32 <= InputLength; i += 32)
+        {
+            __m256i v = _mm256_loadu_si256((__m256i const*)&InputBuffer[i]);
+            __m256i hi = _mm256_and_si256(_mm256_srli_epi16(v, 4), lowMask);
+            __m256i lo = _mm256_and_si256(v, lowMask);
+            __m256i hiChars = _mm256_shuffle_epi8(hexTable, hi);
+            __m256i loChars = _mm256_shuffle_epi8(hexTable, lo);
+            __m256i lanes0 = _mm256_unpacklo_epi8(hiChars, loChars); // lane0: chars bytes 0..7 ; lane1: bytes 16..23
+            __m256i lanes1 = _mm256_unpackhi_epi8(hiChars, loChars); // lane0: chars bytes 8..15; lane1: bytes 24..31
+            __m128i c0 = _mm256_castsi256_si128(lanes0);      // ASCII chars for input bytes 0..7
+            __m128i c1 = _mm256_castsi256_si128(lanes1);      // input bytes 8..15
+            __m128i c2 = _mm256_extracti128_si256(lanes0, 1); // input bytes 16..23
+            __m128i c3 = _mm256_extracti128_si256(lanes1, 1); // input bytes 24..31
+            PWSTR out = &OutputBuffer[i * 2];
+
+            _mm_storeu_si128((__m128i*)&out[0], _mm_unpacklo_epi8(c0, zero));
+            _mm_storeu_si128((__m128i*)&out[8], _mm_unpackhi_epi8(c0, zero));
+            _mm_storeu_si128((__m128i*)&out[16], _mm_unpacklo_epi8(c1, zero));
+            _mm_storeu_si128((__m128i*)&out[24], _mm_unpackhi_epi8(c1, zero));
+            _mm_storeu_si128((__m128i*)&out[32], _mm_unpacklo_epi8(c2, zero));
+            _mm_storeu_si128((__m128i*)&out[40], _mm_unpackhi_epi8(c2, zero));
+            _mm_storeu_si128((__m128i*)&out[48], _mm_unpacklo_epi8(c3, zero));
+            _mm_storeu_si128((__m128i*)&out[56], _mm_unpackhi_epi8(c3, zero));
+        }
+
+        _mm256_zeroupper();
+    }
+#endif
+
+    if (PhHasShuffleBytes && (InputLength - i) >= 16)
+    {
+        // 128-bit byte-shuffle tier: split each byte into high/low nibbles, map
+        // to ASCII through a 16-entry hex table via pshufb/tbl, interleave into
+        // 32 ASCII bytes, then zero-extend to WCHARs. Built on PH_INT128 wrappers
+        // so it runs on x86 (SSSE3) and ARM64 (NEON vqtbl). Handles the sub-32-byte
+        // AVX2 remainder on x86 and is the primary vector tier on ARM64. The first
+        // 16 entries of PhIntegerToChar[Upper] are "0-9a-f"/"0-9A-F".
+        PH_INT128 hexTable = PhLoadINT128U((PLONG)table);
+        PH_INT128 lowMask = PhSetINT128by16(0x0f0f); // 0x0f per byte
+        PH_INT128 zero = PhSetZeroINT128();
+
+        for (; i + 16 <= InputLength; i += 16)
+        {
+            PH_INT128 v = PhLoadINT128U((PLONG)&InputBuffer[i]);
+            PH_INT128 hi = PhAndINT128(PhShiftRight4INT128by16(v), lowMask);
+            PH_INT128 lo = PhAndINT128(v, lowMask);
+            PH_INT128 hiChars = PhShuffleINT128by8(hexTable, hi);
+            PH_INT128 loChars = PhShuffleINT128by8(hexTable, lo);
+            PH_INT128 bytes0 = PhUnpackLowINT128by8(hiChars, loChars);  // chars for bytes 0..7
+            PH_INT128 bytes1 = PhUnpackHighINT128by8(hiChars, loChars); // chars for bytes 8..15
+            PWSTR out = &OutputBuffer[i * 2];
+
+            PhStoreINT128U((PLONG)&out[0], PhUnpackLowINT128by8(bytes0, zero));
+            PhStoreINT128U((PLONG)&out[8], PhUnpackHighINT128by8(bytes0, zero));
+            PhStoreINT128U((PLONG)&out[16], PhUnpackLowINT128by8(bytes1, zero));
+            PhStoreINT128U((PLONG)&out[24], PhUnpackHighINT128by8(bytes1, zero));
+        }
+    }
+
+    for (; i < InputLength; i++)
     {
         OutputBuffer[i * sizeof(WCHAR)] = table[InputBuffer[i] >> 4];
         OutputBuffer[i * sizeof(WCHAR) + 1] = table[InputBuffer[i] & 0xf];
@@ -5140,8 +5685,158 @@ BOOLEAN PhpStringToInteger64(
 
     length = String->Length / sizeof(WCHAR);
     result = 0;
+    i = 0;
 
-    for (i = 0; i < length; i++)
+#ifndef _ARM64_
+    // SWAR fast path for base-10 / base-16 over 16-char chunks. Each chunk is
+    // decoded only when all 16 characters are valid digits; the moment a chunk
+    // contains a non-digit (or a non-Latin1 char) we fall through to the scalar
+    // loop from the chunk start, preserving the scalar "skip invalid digit but
+    // keep accumulating" semantics exactly. Folding is result = result * Base^16
+    // + chunkValue, which is associative modulo 2^64 (Base^16 for base-16 is
+    // 0 mod 2^64), so the wrapping behaviour matches the scalar accumulation.
+    // Aligned loads gated on IS_ALIGNED(., 32) (matching PhFillMemoryUlong);
+    // 16-char advancement keeps the pointer aligned for the SSSE3 and scalar
+    // tiers that consume the remainder.
+    if (PhHasAVX && (Base == 10 || Base == 16) && (length - i) >= 16 &&
+        IS_ALIGNED(&String->Buffer[i], 32))
+    {
+        ULONG64 chunkScale = (Base == 10) ? 10000000000000000ULL : 0ULL;
+
+        while (i + 16 <= length)
+        {
+            __m256i v = _mm256_load_si256((__m256i const*)&String->Buffer[i]);
+            __m256i masked = _mm256_and_si256(v, _mm256_set1_epi16(0x00ff));
+            __m128i chars;
+            ULONG64 chunkValue;
+
+            // Reject any character with a non-zero high byte (not Latin1).
+            if ((ULONG)_mm256_movemask_epi8(_mm256_cmpeq_epi16(masked, v)) != 0xffffffff)
+                break;
+
+            // Narrow 16 WCHARs (low bytes) to 16 bytes in source order.
+            chars = _mm_packus_epi16(_mm256_castsi256_si128(masked), _mm256_extracti128_si256(masked, 1));
+
+            if (Base == 10)
+            {
+                __m128i d = _mm_sub_epi8(chars, _mm_set1_epi8(0x30));
+                __m128i t1;
+                __m128i t2;
+                __m128i t3;
+                __m128i t4;
+
+                // Validate every byte is a decimal digit (unsigned d <= 9).
+                if ((USHORT)_mm_movemask_epi8(_mm_cmpeq_epi8(_mm_min_epu8(d, _mm_set1_epi8(9)), d)) != 0xffff)
+                    break;
+
+                // Lemire 16-digit SWAR: pairs->2-digit->4-digit->8-digit halves.
+                t1 = _mm_maddubs_epi16(d, _mm_setr_epi8(10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1));
+                t2 = _mm_madd_epi16(t1, _mm_setr_epi16(100, 1, 100, 1, 100, 1, 100, 1));
+                t3 = _mm_packus_epi32(t2, t2);
+                t4 = _mm_madd_epi16(t3, _mm_setr_epi16(10000, 1, 10000, 1, 10000, 1, 10000, 1));
+                chunkValue = (ULONG64)(ULONG)_mm_extract_epi32(t4, 0) * 100000000ULL + (ULONG)_mm_extract_epi32(t4, 1);
+            }
+            else
+            {
+                __m128i lower = _mm_or_si128(chars, _mm_set1_epi8(0x20));
+                __m128i digv = _mm_sub_epi8(chars, _mm_set1_epi8(0x30));
+                __m128i alphav = _mm_sub_epi8(lower, _mm_set1_epi8(0x57)); // 'a'->10
+                __m128i isDigit = _mm_cmpeq_epi8(_mm_min_epu8(digv, _mm_set1_epi8(9)), digv);
+                __m128i alphaOff = _mm_sub_epi8(lower, _mm_set1_epi8(0x61));
+                __m128i isAlpha = _mm_cmpeq_epi8(_mm_min_epu8(alphaOff, _mm_set1_epi8(5)), alphaOff);
+                __m128i nib;
+                __m128i t1;
+                __m128i t2;
+
+                // Valid hex digit = decimal digit OR 'a'..'f' (case-insensitive).
+                if ((USHORT)_mm_movemask_epi8(_mm_or_si128(isDigit, isAlpha)) != 0xffff)
+                    break;
+
+                nib = _mm_or_si128(_mm_and_si128(isDigit, digv), _mm_and_si128(isAlpha, alphav));
+                t1 = _mm_maddubs_epi16(nib, _mm_setr_epi8(16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1));
+                t2 = _mm_madd_epi16(t1, _mm_setr_epi16(256, 1, 256, 1, 256, 1, 256, 1));
+                chunkValue =
+                    ((ULONG64)(ULONG)_mm_extract_epi32(t2, 0) << 48) |
+                    ((ULONG64)(ULONG)_mm_extract_epi32(t2, 1) << 32) |
+                    ((ULONG64)(ULONG)_mm_extract_epi32(t2, 2) << 16) |
+                    (ULONG64)(ULONG)_mm_extract_epi32(t2, 3);
+            }
+
+            result = result * chunkScale + chunkValue;
+            i += 16;
+        }
+
+        _mm256_zeroupper();
+    }
+
+    // SSSE3: same SWAR decode at 128-bit width over 8-char chunks, aligned loads
+    // gated on IS_ALIGNED(., 16). Handles the sub-16-char AVX2 remainder and
+    // hosts without AVX2. The fold scale is Base^8 (16^8 = 2^32; 10^8).
+    if (PhHasSSSE3 && (Base == 10 || Base == 16) && (length - i) >= 8 &&
+        IS_ALIGNED(&String->Buffer[i], 16))
+    {
+        ULONG64 chunkScale = (Base == 10) ? 100000000ULL : 0x100000000ULL;
+
+        while (i + 8 <= length)
+        {
+            __m128i v = _mm_load_si128((__m128i const*)&String->Buffer[i]);
+            __m128i masked = _mm_and_si128(v, _mm_set1_epi16(0x00ff));
+            __m128i chars;
+            ULONG64 chunkValue;
+
+            // Reject any character with a non-zero high byte (not Latin1).
+            if ((USHORT)_mm_movemask_epi8(_mm_cmpeq_epi16(masked, v)) != 0xffff)
+                break;
+
+            // Narrow 8 WCHARs (low bytes) to bytes 0..7 (8..15 duplicate them).
+            chars = _mm_packus_epi16(masked, masked);
+
+            if (Base == 10)
+            {
+                __m128i d = _mm_sub_epi8(chars, _mm_set1_epi8(0x30));
+                __m128i t1;
+                __m128i t2;
+
+                // Validate every byte is a decimal digit (unsigned d <= 9).
+                if ((USHORT)_mm_movemask_epi8(_mm_cmpeq_epi8(_mm_min_epu8(d, _mm_set1_epi8(9)), d)) != 0xffff)
+                    break;
+
+                // Lemire 8-digit SWAR: pairs -> 2-digit -> 4-digit halves.
+                t1 = _mm_maddubs_epi16(d, _mm_setr_epi8(10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1));
+                t2 = _mm_madd_epi16(t1, _mm_setr_epi16(100, 1, 100, 1, 100, 1, 100, 1));
+                chunkValue = (ULONG64)(ULONG)_mm_extract_epi32(t2, 0) * 10000ULL + (ULONG)_mm_extract_epi32(t2, 1);
+            }
+            else
+            {
+                __m128i lower = _mm_or_si128(chars, _mm_set1_epi8(0x20));
+                __m128i digv = _mm_sub_epi8(chars, _mm_set1_epi8(0x30));
+                __m128i alphav = _mm_sub_epi8(lower, _mm_set1_epi8(0x57)); // 'a'->10
+                __m128i isDigit = _mm_cmpeq_epi8(_mm_min_epu8(digv, _mm_set1_epi8(9)), digv);
+                __m128i alphaOff = _mm_sub_epi8(lower, _mm_set1_epi8(0x61));
+                __m128i isAlpha = _mm_cmpeq_epi8(_mm_min_epu8(alphaOff, _mm_set1_epi8(5)), alphaOff);
+                __m128i nib;
+                __m128i t1;
+                __m128i t2;
+
+                // Valid hex digit = decimal digit OR 'a'..'f' (case-insensitive).
+                if ((USHORT)_mm_movemask_epi8(_mm_or_si128(isDigit, isAlpha)) != 0xffff)
+                    break;
+
+                nib = _mm_or_si128(_mm_and_si128(isDigit, digv), _mm_and_si128(isAlpha, alphav));
+                t1 = _mm_maddubs_epi16(nib, _mm_setr_epi8(16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1, 16, 1));
+                t2 = _mm_madd_epi16(t1, _mm_setr_epi16(256, 1, 256, 1, 256, 1, 256, 1));
+                chunkValue =
+                    ((ULONG64)(ULONG)_mm_extract_epi32(t2, 0) << 16) |
+                    (ULONG64)(ULONG)_mm_extract_epi32(t2, 1);
+            }
+
+            result = result * chunkScale + chunkValue;
+            i += 8;
+        }
+    }
+#endif
+
+    for (; i < length; i++)
     {
         ULONG value;
 
@@ -5505,6 +6200,7 @@ BOOLEAN PhDoesNameContainWildCards(
     _In_ PCPH_STRINGREF Expression
     )
 {
+#if defined(PH_NATIVE_NAME_WILDCARDS)
     for (SIZE_T i = 0; i < Expression->Length / sizeof(WCHAR); i++)
     {
         WCHAR c = Expression->Buffer[i];
@@ -5521,6 +6217,14 @@ BOOLEAN PhDoesNameContainWildCards(
     }
 
     return FALSE;
+#else
+    UNICODE_STRING expression;
+
+    if (!PhStringRefToUnicodeString(Expression, &expression))
+        return FALSE;
+
+    return RtlDoesNameContainWildCards(&expression);
+#endif
 }
 
 // replacement RtlIsNameInExpression (dmex)
@@ -5544,6 +6248,7 @@ BOOLEAN PhIsNameInExpression(
     _In_ BOOLEAN IgnoreCase
     )
 {
+#if defined(PH_NATIVE_NAME_WILDCARDS)
     SIZE_T exprLen = Expression->Length / sizeof(WCHAR);
     SIZE_T nameLen = Name->Length / sizeof(WCHAR);
     SIZE_T e = 0; // expression index
@@ -5558,11 +6263,60 @@ BOOLEAN PhIsNameInExpression(
         {
             WCHAR exprChar = Expression->Buffer[e];
             WCHAR nameChar = Name->Buffer[n];
-            WCHAR exprCharUpper = IgnoreCase ? PhUpcaseUnicodeChar(exprChar) : exprChar;
-            WCHAR nameCharUpper = IgnoreCase ? PhUpcaseUnicodeChar(nameChar) : nameChar;
 
+            // Literal-run fast path: a maximal run of non-wildcard expression
+            // characters is compared against the name in a single
+            // PhEqualStringRef call (SIMD-accelerated) instead of one character
+            // at a time. On a full match both indices advance past the run; on
+            // a mismatch (or insufficient name characters) control falls through
+            // to the shared backtracking logic below, identical to the
+            // per-character path it replaces.
+            if (exprChar != L'*' &&
+                exprChar != L'?' &&
+                exprChar != ANSI_DOS_STAR_W &&
+                exprChar != ANSI_DOS_QM_W &&
+                exprChar != ANSI_DOS_DOT_W)
+            {
+                SIZE_T runLength = 0;
+
+                while (e + runLength < exprLen)
+                {
+                    WCHAR c = Expression->Buffer[e + runLength];
+
+                    if (c == L'*' ||
+                        c == L'?' ||
+                        c == ANSI_DOS_STAR_W ||
+                        c == ANSI_DOS_QM_W ||
+                        c == ANSI_DOS_DOT_W)
+                    {
+                        break;
+                    }
+
+                    runLength++;
+                }
+
+                if (n + runLength <= nameLen)
+                {
+                    PH_STRINGREF exprRun;
+                    PH_STRINGREF nameRun;
+
+                    exprRun.Length = runLength * sizeof(WCHAR);
+                    exprRun.Buffer = (PWCH)&Expression->Buffer[e];
+                    nameRun.Length = runLength * sizeof(WCHAR);
+                    nameRun.Buffer = (PWCH)&Name->Buffer[n];
+
+                    if (PhEqualStringRef(&exprRun, &nameRun, IgnoreCase))
+                    {
+                        e += runLength;
+                        n += runLength;
+                        continue;
+                    }
+                }
+
+                // Literal run did not match; fall through to backtracking.
+            }
             // * - matches zero or more of any character
-            if (exprChar == L'*')
+            else if (exprChar == L'*')
             {
                 starE = e++;
                 starN = n;
@@ -5612,13 +6366,6 @@ BOOLEAN PhIsNameInExpression(
                 n++;
                 continue;
             }
-            // Exact character match
-            else if (exprCharUpper == nameCharUpper)
-            {
-                e++;
-                n++;
-                continue;
-            }
         }
 
         // Mismatch - backtrack if we saw a * or <
@@ -5660,6 +6407,18 @@ BOOLEAN PhIsNameInExpression(
     }
 
     return e == exprLen;
+#else
+    UNICODE_STRING expression;
+    UNICODE_STRING name;
+
+    if (!PhStringRefToUnicodeString(Expression, &expression) ||
+        !PhStringRefToUnicodeString(Name, &name))
+    {
+        return FALSE;
+    }
+
+    return RtlIsNameInExpression(&expression, &name, IgnoreCase, NULL);
+#endif
 }
 
 /**
@@ -5737,6 +6496,41 @@ SIZE_T PhFindFirstOfCharsW(
     // The vectorized paths OR one equality compare per needle. They are gated on
     // a small needle count (callers pass <= 4 typically); larger sets fall back
     // to the scalar scan.
+#ifdef _WIN64
+    // Runs ahead of (not instead of) the AVX2 tier: the running index carries
+    // over, so whatever the 512-bit loop leaves is picked up below.
+    if (PhHasAVX512 && Count <= 8 && Length >= 128)
+    {
+        __m512i needles[8];
+        ULONG c;
+
+        for (c = 0; c < Count; c++)
+            needles[c] = _mm512_set1_epi16((SHORT)Chars[c]);
+
+        while (i + 32 <= Length)
+        {
+            __m512i v = _mm512_loadu_si512((void const*)&Buffer[i]);
+            __mmask32 match = _mm512_cmpeq_epi16_mask(v, needles[0]);
+
+            for (c = 1; c < Count; c++)
+                match = _kor_mask32(match, _mm512_cmpeq_epi16_mask(v, needles[c]));
+
+            if (match != 0)
+            {
+                ULONG index;
+
+                _BitScanForward(&index, (ULONG)match);
+                _mm256_zeroupper();
+                return i + index;
+            }
+
+            i += 32;
+        }
+
+        _mm256_zeroupper();
+    }
+#endif
+
     if (PhHasAVX && Count <= 8)
     {
         __m256i needles[8];
