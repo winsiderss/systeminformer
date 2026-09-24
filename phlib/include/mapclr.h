@@ -17,8 +17,6 @@
 #ifndef _PH_MAPCLR_H
 #define _PH_MAPCLR_H
 
-#include <mapimg.h>
-
 EXTERN_C_START
 
 /**
@@ -451,6 +449,52 @@ typedef enum _PH_CLR_CUSTOMDEBUGINFORMATION_REC
     PH_CLR_CUSTOMDEBUGINFORMATION_REC_COL_VALUE
 } PH_CLR_CUSTOMDEBUGINFORMATION_REC;
 
+#define PH_CLR_STORAGE_MAGIC 0x424A5342 // "BSJB"
+
+// HeapSizes flag indicating an extra 4-byte field follows the row-count array.
+#define PH_CLR_HEAPSIZE_EXTRADATA 0x40
+
+typedef struct _PH_CLR_STORAGESIGNATURE
+{
+    ULONG Signature;
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    ULONG ExtraData;
+    ULONG VersionLength;
+    // CHAR VersionString[VersionLength];
+} PH_CLR_STORAGESIGNATURE, *PPH_CLR_STORAGESIGNATURE;
+
+typedef struct _PH_CLR_STORAGEHEADER
+{
+    UCHAR Flags;
+    UCHAR Reserved;
+    USHORT Streams;
+} PH_CLR_STORAGEHEADER, *PPH_CLR_STORAGEHEADER;
+
+typedef struct _PH_CLR_STORAGESTREAM
+{
+    ULONG Offset;
+    ULONG Size;
+    CHAR Name[1]; // null-terminated, padded to a 4-byte boundary
+} PH_CLR_STORAGESTREAM, *PPH_CLR_STORAGESTREAM;
+
+typedef struct _PH_CLR_TABLESHEADER
+{
+    ULONG Reserved;
+    UCHAR Major;
+    UCHAR Minor;
+    UCHAR HeapSizes;
+    UCHAR Rid;
+    ULONG64 ValidMask;
+    ULONG64 SortedMask;
+    // ULONG RowCounts[popcount(ValidMask)];
+} PH_CLR_TABLESHEADER, *PPH_CLR_TABLESHEADER;
+
+C_ASSERT(sizeof(PH_CLR_STORAGESIGNATURE) == 16);
+C_ASSERT(sizeof(PH_CLR_STORAGEHEADER) == 4);
+C_ASSERT(UFIELD_OFFSET(PH_CLR_STORAGESTREAM, Name) == 8);
+C_ASSERT(sizeof(PH_CLR_TABLESHEADER) == 24);
+
 // #~ stream header HeapSizes bitfield (ECMA-335 II.24.2.6)
 #define PH_CLR_HEAPSIZE_STRING  0x01 // #Strings indexes are 4 bytes
 #define PH_CLR_HEAPSIZE_GUID    0x02 // #GUID indexes are 4 bytes
@@ -476,6 +520,78 @@ typedef struct _PH_MAPPED_CLR_COLUMN
 } PH_MAPPED_CLR_COLUMN, *PPH_MAPPED_CLR_COLUMN;
 
 #define PH_CLR_MAX_COLUMNS 9
+
+// Coded-index sets (ECMA-335 II.24.2.6 + Portable PDB).
+typedef enum _PH_CLR_CODED_INDEX
+{
+    CIX_TYPEDEFORREF,
+    CIX_HASCONSTANT,
+    CIX_HASCUSTOMATTRIBUTE,
+    CIX_HASFIELDMARSHALL,
+    CIX_HASDECLSECURITY,
+    CIX_MEMBERREFPARENT,
+    CIX_HASSEMANTICS,
+    CIX_METHODDEFORREF,
+    CIX_MEMBERFORWARDED,
+    CIX_IMPLEMENTATION,
+    CIX_CUSTOMATTRIBUTETYPE,
+    CIX_RESOLUTIONSCOPE,
+    CIX_TYPEORMETHODDEF,
+    CIX_HASCUSTOMDEBUGINFORMATION,
+    CIX_MAXIMUM
+} PH_CLR_CODED_INDEX;
+
+#define CIX_RESERVED 0xFF
+#define CIX_MAX_TABLES 28
+
+typedef struct _PH_CLR_CODED_INDEX_INFO
+{
+    UCHAR Bits;
+    UCHAR Count;
+    UCHAR Tables[CIX_MAX_TABLES];
+} PH_CLR_CODED_INDEX_INFO, *PPH_CLR_CODED_INDEX_INFO;
+
+// Schema authoring column codes (see PhClrTableSchema).
+#define CC_I1   0x00
+#define CC_I2   0x01
+#define CC_I4   0x02
+#define CC_STR  0x03 // #Strings index
+#define CC_GUID 0x04 // #GUID index
+#define CC_BLOB 0x05 // #Blob index
+#define CC_TBL  0x40 // | table index (simple index into one table)
+#define CC_COD  0x80 // | coded-index set id
+#define CC_END  0xFF
+
+#define PH_CLR_SCHEMA_TABLE(x) (CC_TBL | PH_CLR_TABLE_##x)
+#define PH_CLR_SCHEMA_CODED(x) (CC_COD | CIX_##x)
+
+// P/Invoke mapping flags (CorHdr.h).
+#define PM_NO_MANGLE                    0x0001
+#define PM_CHARSET_ANSI                 0x0002
+#define PM_CHARSET_UNICODE              0x0004
+#define PM_CHARSET_AUTO                 0x0006
+#define PM_SUPPRESS_GC_TRANSITION       0x0008
+#define PM_SUPPORTS_LAST_ERROR          0x0040
+#define PM_CALLCONV_WINAPI              0x0100
+#define PM_CALLCONV_CDECL               0x0200
+#define PM_CALLCONV_STDCALL             0x0300
+#define PM_CALLCONV_THISCALL            0x0400
+#define PM_CALLCONV_FASTCALL            0x0500
+#define PM_BEST_FIT_ENABLED              0x0010
+#define PM_BEST_FIT_DISABLED             0x0020
+#define PM_BEST_FIT_MASK                 0x0030
+#define PM_THROW_ON_UNMAPPABLE_CHAR_ENABLED  0x1000
+#define PM_THROW_ON_UNMAPPABLE_CHAR_DISABLED 0x2000
+#define PM_THROW_ON_UNMAPPABLE_CHAR_MASK     0x3000
+
+#define PM_CHARSET_MASK                 0x0006
+#define PM_CALLCONV_MASK                0x0700
+
+typedef struct _PH_CLR_TABLE_SCHEMA
+{
+    PCSTR Name;
+    UCHAR Columns[PH_CLR_MAX_COLUMNS];
+} PH_CLR_TABLE_SCHEMA, *PPH_CLR_TABLE_SCHEMA;
 
 typedef struct _PH_MAPPED_CLR_TABLE
 {
@@ -514,6 +630,10 @@ typedef struct _PH_MAPPED_CLR_METADATA
     ULONG64 SortedMask;
     BOOLEAN Uncompressed;           // "#-" stream
 
+    // Standalone Portable PDB backing view and external type-system row counts.
+    // A successfully initialized context must not be copied or moved.
+    PH_MAPPED_IMAGE PortablePdbView;
+    ULONG ExternalRowCounts[PH_CLR_TABLE_MAXIMUM];
     PH_MAPPED_CLR_TABLE Tables[PH_CLR_TABLE_MAXIMUM];
 } PH_MAPPED_CLR_METADATA, *PPH_MAPPED_CLR_METADATA;
 
@@ -543,7 +663,8 @@ static FORCEINLINE ULONG PhClrSimpleIndexSize(
     _In_ ULONG TableIndex
     )
 {
-    if (TableIndex < PH_CLR_TABLE_MAXIMUM && ClrMetadata->Tables[TableIndex].RowCount > 0xFFFF)
+    if (TableIndex < PH_CLR_TABLE_MAXIMUM && (ClrMetadata->Tables[TableIndex].RowCount > 0xFFFF ||
+        ClrMetadata->ExternalRowCounts[TableIndex] > 0xFFFF))
         return 4;
 
     return 2;
@@ -726,6 +847,7 @@ PhGetMappedClrStringHeapSize(
  * \param ClrMetadata The CLR metadata structure.
  * \param Index The offset of the string in the heap.
  * \param String Receives a pointer to the null-terminated UTF-8 string.
+ * \param Length Optionally receives the UTF-8 string length in bytes, excluding the null terminator.
  * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code.
  */
 PHLIBAPI
@@ -734,7 +856,8 @@ NTAPI
 PhGetMappedClrString(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ ULONG Index,
-    _Out_ PCSTR *String
+    _Out_ PCSTR *String,
+    _Out_opt_ PULONG Length
     );
 
 /**
@@ -811,6 +934,45 @@ PhGetMappedClrTableRowRid(
     _In_ ULONG Row,
     _In_ ULONG Column,
     _Out_ PULONG Rid
+    );
+
+/**
+ * Retrieves the schema name of a CLR metadata table.
+ *
+ * \param TableIndex The index of the table.
+ * \return The ECMA-335 table name, or NULL when the index is reserved or unknown.
+ */
+PHLIBAPI
+PCSTR
+NTAPI
+PhGetMappedClrTableName(
+    _In_ ULONG TableIndex
+    );
+
+/**
+ * Decodes a table index or coded index column into the table and row it references.
+ *
+ * \param ClrMetadata The CLR metadata structure.
+ * \param TableIndex The index of the table.
+ * \param Column The 0-based column index.
+ * \param Rid The 1-based RID of the row.
+ * \param TargetTable Receives the referenced table index.
+ * \param TargetRid Receives the referenced 1-based RID (zero when the reference is nil).
+ * \param Token Receives the metadata token of the reference.
+ * \return STATUS_SUCCESS on success, or an appropriate NTSTATUS error code. Columns which are
+ * not table or coded indexes return STATUS_INVALID_PARAMETER.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrColumnToken(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG TableIndex,
+    _In_ ULONG Column,
+    _In_ ULONG Rid,
+    _Out_opt_ PULONG TargetTable,
+    _Out_opt_ PULONG TargetRid,
+    _Out_opt_ PULONG Token
     );
 
 /**
@@ -895,6 +1057,257 @@ PhEnumMappedClrTables(
     _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
     _In_ PPH_CLR_ENUM_TABLES_CALLBACK Callback,
     _In_opt_ PVOID Context
+    );
+
+
+/**
+ * Returns an owned UTF-16 string from a #Strings byte offset.
+ * Outputs are unchanged on failure. Dereference owned strings after use.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrStringEx(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Index,
+    _Out_ PPH_STRING *String
+    );
+
+/**
+ * Returns an owned string from a string column, with failure status.
+ * Outputs are unchanged on failure. Dereference owned strings after use.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrTableStringEx(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG TableIndex,
+    _In_ ULONG Row,
+    _In_ ULONG Column,
+    _Out_ PPH_STRING* String
+    );
+
+/**
+ * Returns borrowed blob data valid only while the image remains mapped.
+ * Outputs are unchanged on failure. Length is in bytes.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrTableBlob(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG TableIndex,
+    _In_ ULONG Row,
+    _In_ ULONG Column,
+    _Out_ PVOID *Data,
+    _Out_ PULONG Length
+    );
+
+/**
+ * Copies the GUID referenced by a GUID column.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrTableGuid(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG TableIndex,
+    _In_ ULONG Row,
+    _In_ ULONG Column,
+    _Out_ PGUID Guid
+    );
+
+/**
+ * Returns an owned #US string from a byte offset, not a token; preserves embedded nulls and excludes the trailing flag.
+ * Outputs are unchanged on failure. Dereference owned strings after use.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrUserString(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Index,
+    _Out_ PPH_STRING *String
+    );
+
+
+/** Names are owned references; blobs are borrowed for the mapped-image lifetime.
+ * Release a successful result with PhDeleteMappedClrAssemblyProps.
+ * Assembly results have no HashValue; AssemblyRef results have no HashAlgorithm.
+ */
+typedef struct _PH_MAPPED_CLR_ASSEMBLY_PROPS
+{
+    PPH_STRING Name;
+    PPH_STRING Culture;
+    ULONG MajorVersion;
+    ULONG MinorVersion;
+    ULONG BuildNumber;
+    ULONG RevisionNumber;
+    ULONG Flags;
+    ULONG HashAlgorithm;
+    PVOID PublicKeyOrToken;
+    ULONG PublicKeyOrTokenLength;
+    PVOID HashValue;
+    ULONG HashValueLength;
+} PH_MAPPED_CLR_ASSEMBLY_PROPS, *PPH_MAPPED_CLR_ASSEMBLY_PROPS;
+
+/** Takes a CustomAttribute token; returned blob is borrowed, lengths are bytes.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrCustomAttributeProps(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Token,
+    _Out_opt_ PULONG ParentToken,
+    _Out_opt_ PULONG ConstructorToken,
+    _Out_opt_ PVOID *Data,
+    _Out_opt_ PULONG Length
+    );
+
+/** Takes a non-nil parent token and case-sensitive Namespace.Type name (nested types use +).
+ * Returns the first matching borrowed blob; TypeSpec constructors return STATUS_NOT_SUPPORTED.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrCustomAttributeByName(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG ParentToken,
+    _In_ PCWSTR Name,
+    _Out_ PVOID *Data,
+    _Out_ PULONG Length
+    );
+
+/** Takes a FieldDef or MethodDef token. ImportName is owned; caller must dereference it.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrPinvokeMap(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Token,
+    _Out_ PULONG MappingFlags,
+    _Out_ PPH_STRING *ImportName,
+    _Out_ PULONG ModuleToken
+    );
+
+/** Releases owned names and zeroes a successful assembly result. */
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteMappedClrAssemblyProps(
+    _Inout_ PPH_MAPPED_CLR_ASSEMBLY_PROPS Properties
+    );
+
+/** Takes an Assembly token and returns properties; release with PhDeleteMappedClrAssemblyProps.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrAssemblyProps(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Token,
+    _Out_ PPH_MAPPED_CLR_ASSEMBLY_PROPS Properties
+    );
+
+/** Takes an AssemblyRef token and returns properties; release with PhDeleteMappedClrAssemblyProps.
+ * Outputs are unchanged on failure.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetMappedClrAssemblyRefProps(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG Token,
+    _Out_ PPH_MAPPED_CLR_ASSEMBLY_PROPS Properties
+    );
+
+
+#define PH_CLR_HIDDEN_LINE 0x00feefee
+#define PH_PORTABLE_PDB_ID_SIZE 20
+
+typedef struct _PH_PORTABLE_PDB_INFO
+{
+    UCHAR Id[PH_PORTABLE_PDB_ID_SIZE];
+    ULONG EntryPoint;
+    ULONG64 ReferencedTables;
+    ULONG RowCounts[PH_CLR_TABLE_MAXIMUM];
+} PH_PORTABLE_PDB_INFO, *PPH_PORTABLE_PDB_INFO;
+
+typedef struct _PH_CLR_DOCUMENT
+{
+    PPH_STRING Name; // owned reference
+    GUID Language;
+    GUID HashAlgorithm;
+    PVOID Hash; // borrowed until the PDB buffer is released
+    ULONG HashLength;
+} PH_CLR_DOCUMENT, *PPH_CLR_DOCUMENT;
+
+typedef struct _PH_CLR_SEQUENCE_POINT
+{
+    ULONG IlOffset;
+    ULONG Document; // Document RID
+    ULONG StartLine;
+    ULONG StartColumn;
+    ULONG EndLine;
+    ULONG EndColumn;
+    BOOLEAN Hidden;
+} PH_CLR_SEQUENCE_POINT, *PPH_CLR_SEQUENCE_POINT;
+
+typedef struct _PH_CLR_SOURCE_LOCATION
+{
+    PH_CLR_SEQUENCE_POINT Point;
+    PPH_STRING FileName; // owned; NULL for a hidden point
+} PH_CLR_SOURCE_LOCATION, *PPH_CLR_SOURCE_LOCATION;
+
+typedef BOOLEAN (NTAPI *PPH_CLR_SEQUENCE_POINT_CALLBACK)(
+    _In_ PPH_CLR_SEQUENCE_POINT Point,
+    _In_opt_ PVOID Context
+    );
+
+/** Borrows a standalone Portable PDB buffer. Context and buffer must remain at stable addresses.
+ * Failure leaves ClrMetadata unchanged. No mapping is created or owned by this API.
+ */
+PHLIBAPI NTSTATUS NTAPI PhInitializeMappedPortablePdb(
+    _Out_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    );
+PHLIBAPI NTSTATUS NTAPI PhGetMappedPortablePdbInfo(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _Out_ PPH_PORTABLE_PDB_INFO Info
+    );
+/** Outputs commit on success. Dereference Document->Name; Hash remains borrowed. */
+PHLIBAPI NTSTATUS NTAPI PhGetMappedClrDocument(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG DocumentRid,
+    _Out_ PPH_CLR_DOCUMENT Document
+    );
+/** MethodToken is a MethodDef token. Callback FALSE stops successfully; points are temporary.
+ * No sequence points returns STATUS_NOT_FOUND. Later malformed records may fail after callbacks.
+ */
+PHLIBAPI NTSTATUS NTAPI PhEnumMappedClrSequencePoints(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG MethodToken,
+    _In_ PPH_CLR_SEQUENCE_POINT_CALLBACK Callback,
+    _In_opt_ PVOID Context
+    );
+/** Resolves the nearest sequence point at or before IlOffset, including hidden points.
+ * No preceding point returns STATUS_NOT_FOUND. Hidden success has FileName == NULL.
+ * Dereference FileName after use. Outputs are unchanged on failure.
+ */
+PHLIBAPI NTSTATUS NTAPI PhGetMappedClrSourceLocation(
+    _In_ PPH_MAPPED_CLR_METADATA ClrMetadata,
+    _In_ ULONG MethodToken,
+    _In_ ULONG IlOffset,
+    _Out_ PPH_CLR_SOURCE_LOCATION Location
     );
 
 EXTERN_C_END
