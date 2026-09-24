@@ -20,11 +20,13 @@ set "BUILD_CONFIGURATION=Debug;Release"
 set "BUILD_PLATFORMS=x64;ARM64"
 set "BUILD_TARGET=Build"
 set "PREFAST_ANALYSIS="
+set "MSBUILD_EXTRA_ARGS="
 
 REM Parse environment and command-line options before running the build.
 call :DetectCi
 call :ConfigureTerminalLogger
 call :ParseArgs %*
+call :ConfigureMsBuildOptions
 if errorlevel 1 (
     set "ExitCode=%errorlevel%"
     goto end
@@ -79,7 +81,7 @@ REM   %~1 - Semicolon-separated platform list (e.g. "x64" or "x64;ARM64").
 REM   %~2 - BuildAll target such as Clean, Build, or Rebuild.
 REM -----------------------------------------------------------------------------
 :RunDriverBuild
-msbuild /m /graph KSystemInformer\KSystemInformer.sln -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS%
+msbuild -mt -p:UseClStructuredOutput=false -restore -t:All -p:BuildAllTarget=%~2 -p:TargetConfigurations="%BUILD_CONFIGURATION%" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:ContinuousIntegrationBuild=%IsCI% -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG% -consoleLoggerParameters:Summary;Verbosity=minimal %PREFAST_ANALYSIS% %MSBUILD_EXTRA_ARGS% /m /graph KSystemInformer\KSystemInformer.sln
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -96,6 +98,9 @@ if /i "%~1"=="build" set "BUILD_TARGET=Build" & shift & goto parseArgs
 if /i "%~1"=="rebuild" set "BUILD_TARGET=Rebuild" & shift & goto parseArgs
 if /i "%~1"=="clean" set "BUILD_TARGET=Clean" & shift & goto parseArgs
 if /i "%~1"=="prefast" set "BUILD_CONFIGURATION=Debug" & set "PREFAST_ANALYSIS=-p:RunCodeAnalysis=true -p:CodeAnalysisTreatWarningsAsErrors=true" & shift & goto parseArgs
+if /i "%~1"=="low" set "SI_MSBUILD_LOW_PRIORITY=true" & shift & goto parseArgs
+if /i "%~1"=="lowpriority" set "SI_MSBUILD_LOW_PRIORITY=true" & shift & goto parseArgs
+if /i "%~1"=="binlog" set "SI_MSBUILD_BINLOG=artifacts\msbuild-zdriver.binlog" & shift & goto parseArgs
 if /i "%~1"=="nopause" set "SuppressPause=true" & shift & goto parseArgs
 shift
 goto parseArgs
@@ -185,6 +190,11 @@ REM ----------------------------------------------------------------------------
 if /i "%IsCI%"=="true" set "TLG=off"
 exit /b 0
 
+:ConfigureMsBuildOptions
+if /i "%SI_MSBUILD_LOW_PRIORITY%"=="true" if /i "%IsCI%"=="false" set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% -lowPriority"
+if defined SI_MSBUILD_BINLOG set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% /bl:%SI_MSBUILD_BINLOG%"
+exit /b 0
+
 REM -----------------------------------------------------------------------------
 REM Function: PauseIfInteractive
 REM Description: Pauses only when stdin is attached to an interactive console.
@@ -194,3 +204,4 @@ set "STDIN_REDIRECTED=False"
 for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
 if /i not "%STDIN_REDIRECTED%"=="True" pause
 exit /b 0
+

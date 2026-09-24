@@ -29,12 +29,10 @@ REM Function: Main
 REM Description: Builds third-party dependencies first, then build tools.
 REM -----------------------------------------------------------------------------
 :Main
-call "%~dp0build_thirdparty.cmd" INIT
-if errorlevel 1 exit /b %errorlevel%
-
 call "%~dp0build_tools.cmd" INIT
 if errorlevel 1 exit /b %errorlevel%
-
+call "%~dp0build_thirdparty.cmd" INIT
+if errorlevel 1 exit /b %errorlevel%
 exit /b 0
 
 REM -----------------------------------------------------------------------------

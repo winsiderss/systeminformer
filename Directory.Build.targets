@@ -7,8 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <TargetPlatformItem Include="$(TargetPlatforms)" />
-    <TargetConfigurationItem Include="$(TargetConfigurations)" />
+    <TargetPlatformItem Include="$(BuildTargetPlatforms)" Condition="'$(BuildTargetPlatforms)' != ''" />
+    <TargetPlatformItem Include="$(TargetPlatforms)" Condition="'$(BuildTargetPlatforms)' == ''" />
+    <TargetConfigurationItem Include="$(BuildTargetConfigurations)" Condition="'$(BuildTargetConfigurations)' != ''" />
+    <TargetConfigurationItem Include="$(TargetConfigurations)" Condition="'$(BuildTargetConfigurations)' == ''" />
   </ItemGroup>
 
   <Target Name="All">

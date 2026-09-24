@@ -70,7 +70,7 @@ REM ----------------------------------------------------------------------------
 :RunMsBuild
 echo:
 echo Building %~3
-msbuild /m /graph %~1 -t:All -p:TargetConfigurations="Debug" -p:TargetPlatforms="%~2" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%TLV%
+msbuild -mt -p:UseClStructuredOutput=false -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~2" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%TLV% /m /graph %~1
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------

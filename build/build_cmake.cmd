@@ -24,10 +24,12 @@ set "BUILD_DIR_NAME="
 set "SOURCE_DIR=%CD%"
 set "CMAKE_GEN_OPTS="
 set "CMAKE_BUILD_OPTS="
+set "MSBUILD_EXTRA_ARGS="
 
 REM Run the main script flow and capture the final exit code.
 call :DetectCi
 call :ConfigureBuildLogger
+call :ConfigureMsBuildOptions
 call :Main
 if errorlevel 1 set "ExitCode=%errorlevel%"
 
@@ -155,8 +157,31 @@ if /i "%TOOLCHAIN%"=="clang-msvc-arm64" (
     set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-msvc-arm64.cmake"
     exit /b 0
 )
+REM clang-lld-* are DEBUG-only. lld-link cannot emit XFG or EHCONT, so Release
+REM builds must use a clang-msvc-* or msvc-* toolchain. See cmake\toolchain\clang-lld.cmake.
+if /i "%TOOLCHAIN%"=="clang-lld-x86" (
+    set "PLATFORM=Win32"
+    set "VCVARS_ARCH=amd64_x86"
+    set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-32"
+    set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-x86.cmake"
+    exit /b 0
+)
+if /i "%TOOLCHAIN%"=="clang-lld-amd64" (
+    set "PLATFORM=x64"
+    set "VCVARS_ARCH=amd64"
+    set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-64"
+    set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-amd64.cmake"
+    exit /b 0
+)
+if /i "%TOOLCHAIN%"=="clang-lld-arm64" (
+    set "PLATFORM=ARM64"
+    set "VCVARS_ARCH=amd64_arm64"
+    set "BUILD_DIR=%CD%\%BUILD_DIR_NAME%-clang-lld-arm64"
+    set "TOOLCHAIN_FILE=%CD%\cmake\toolchain\clang-lld-arm64.cmake"
+    exit /b 0
+)
 echo Error: Unsupported toolchain: %TOOLCHAIN%
-echo Supported toolchains: msvc-x86, msvc-amd64, msvc-arm64, clang-msvc-x86, clang-msvc-amd64, clang-msvc-arm64
+echo Supported toolchains: msvc-x86, msvc-amd64, msvc-arm64, clang-msvc-x86, clang-msvc-amd64, clang-msvc-arm64, clang-lld-x86, clang-lld-amd64, clang-lld-arm64
 exit /b 1
 
 REM -----------------------------------------------------------------------------
@@ -167,7 +192,7 @@ REM ----------------------------------------------------------------------------
 set "CMAKE_GEN_OPTS="
 set "CMAKE_BUILD_OPTS="
 if /i "%GENERATOR%"=="Ninja" set "CMAKE_GEN_OPTS=-DCMAKE_BUILD_TYPE=%CONFIG%"
-if not "%GENERATOR:Visual Studio=%"=="%GENERATOR%" set "CMAKE_BUILD_OPTS=-- /m /graph -t:All -p:TargetPlatforms=""%PLATFORM%"" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%BuildTerminalLogger%"
+if not "%GENERATOR:Visual Studio=%"=="%GENERATOR%" set "CMAKE_BUILD_OPTS=-- -mt -p:UseClStructuredOutput=false /m /graph -restore -t:All -p:TargetPlatforms=""%PLATFORM%"" -p:RestoreUseStaticGraphEvaluation=true -p:ContinueOnError=False -p:ContinuousIntegrationBuild=%IsCI% -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%BuildTerminalLogger% %MSBUILD_EXTRA_ARGS%"
 exit /b 0
 
 REM -----------------------------------------------------------------------------
@@ -268,6 +293,11 @@ REM Description: Disables the Visual Studio terminal logger when running under C
 REM -----------------------------------------------------------------------------
 :ConfigureBuildLogger
 if /i "%IsCI%"=="true" set "BuildTerminalLogger=off"
+exit /b 0
+
+:ConfigureMsBuildOptions
+if /i "%SI_MSBUILD_LOW_PRIORITY%"=="true" if /i "%IsCI%"=="false" set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% -lowPriority"
+if defined SI_MSBUILD_BINLOG set "MSBUILD_EXTRA_ARGS=%MSBUILD_EXTRA_ARGS% /bl:%SI_MSBUILD_BINLOG%"
 exit /b 0
 
 REM -----------------------------------------------------------------------------

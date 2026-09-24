@@ -75,7 +75,7 @@ REM ----------------------------------------------------------------------------
 :RunThirdPartyBuild
 echo:
 echo Building thirdparty.sln [%~2]
-msbuild /m /graph tools\thirdparty\thirdparty.sln -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%VerboseLevel% -terminalLogger:%TLG%
+msbuild -mt -p:UseClStructuredOutput=false -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%VerboseLevel% -terminalLogger:%TLG% /m /graph tools\thirdparty\thirdparty.sln
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -169,3 +169,4 @@ set "STDIN_REDIRECTED=False"
 for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
 if /i not "%STDIN_REDIRECTED%"=="True" pause
 exit /b 0
+
