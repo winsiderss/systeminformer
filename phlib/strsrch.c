@@ -13,6 +13,7 @@
 
 #include <ph.h>
 #include <strsrch.h>
+#include <phintrin.h>
 
 typedef struct _PH_STRING_SEARCH_CONEXT
 {
@@ -100,6 +101,54 @@ FORCEINLINE BOOLEAN PhpIsUtf8ContinuationByte(
     )
 {
     return (Byte & 0xc0) == 0x80;
+}
+
+// Consume only complete printable ASCII blocks. TAB, LF and CR match the
+// printable tables; non-ASCII bytes and transitions stay in the scalar parser.
+static ULONG PhpPrintableAsciiBlock(
+    _In_reads_bytes_(Length) PBYTE Buffer,
+    _In_ SIZE_T Length
+    )
+{
+#ifndef _ARM64_
+    if (PhHasAVX && Length >= 32)
+    {
+        __m256i bytes = _mm256_loadu_si256((__m256i const*)Buffer);
+        __m256i printable = _mm256_and_si256(
+            _mm256_cmpgt_epi8(bytes, _mm256_set1_epi8(0x1f)),
+            _mm256_cmpgt_epi8(_mm256_set1_epi8(0x7f), bytes)
+            );
+
+        printable = _mm256_or_si256(printable, _mm256_cmpeq_epi8(bytes, _mm256_set1_epi8('\t')));
+        printable = _mm256_or_si256(printable, _mm256_cmpeq_epi8(bytes, _mm256_set1_epi8('\n')));
+        printable = _mm256_or_si256(printable, _mm256_cmpeq_epi8(bytes, _mm256_set1_epi8('\r')));
+
+        ULONG mask = (ULONG)_mm256_movemask_epi8(printable);
+
+        PhZeroUpper();
+
+        if (mask == 0xffffffff)
+            return 32;
+    }
+#endif
+
+    if (PhHasIntrinsics && Length >= 16)
+    {
+        PH_INT128 bytes = PhLoadINT128U((PLONG)Buffer);
+        PH_INT128 printable = PhAndINT128(
+            PhCompareGtINT128by8(bytes, PhSetINT128by8(0x1f)),
+            PhCompareGtINT128by8(PhSetINT128by8(0x7f), bytes)
+            );
+
+        printable = PhOrINT128(printable, PhCompareEqINT128by8(bytes, PhSetINT128by8('\t')));
+        printable = PhOrINT128(printable, PhCompareEqINT128by8(bytes, PhSetINT128by8('\n')));
+        printable = PhOrINT128(printable, PhCompareEqINT128by8(bytes, PhSetINT128by8('\r')));
+
+        if ((USHORT)PhMoveMaskINT128by8(printable) == 0xffff)
+            return 16;
+    }
+
+    return 0;
 }
 
 static BOOLEAN PhpDecodeUtf8CodePoint(
@@ -208,6 +257,18 @@ BOOLEAN PhpSearchUtf8Strings(
             ULONG codePoint;
             ULONG bytes;
 
+            if (Length - i >= 16 && characters <= ULONG_MAX - 32 &&
+                (bytes = PhpPrintableAsciiBlock(&Buffer[i], Length - i)) != 0)
+            {
+                if (characters < RTL_NUMBER_OF(Context->Buffer))
+                    convertBytes = runBytes + min(bytes, RTL_NUMBER_OF(Context->Buffer) - characters);
+
+                i += bytes;
+                runBytes += bytes;
+                characters += bytes;
+                continue;
+            }
+
             if (!PhpDecodeUtf8CodePoint(&Buffer[i], Length - i, &codePoint, &bytes))
                 break;
 
@@ -279,6 +340,31 @@ BOOLEAN PhpSearchStrings(
     for (SIZE_T i = 0; i < Length; i++)
     {
         BOOLEAN checkUTF8High = FALSE;
+
+        // Once the ASCII pattern is established, a printable block cannot
+        // change state. Keep the final three bytes for the scalar transition.
+        if (pattern == PhCharPatternASCII &&
+            charType1 == PhCharTypePrintable && charType2 == PhCharTypePrintable &&
+            Length - i >= 16)
+        {
+            ULONG count = PhpPrintableAsciiBlock(&Buffer[i], Length - i);
+
+            if (count)
+            {
+                ULONG copyCount = min(count, RTL_NUMBER_OF(Context->Buffer) - length);
+
+                PhZeroExtendToUtf16Buffer((PSTR)&Buffer[i], copyCount, &Context->Buffer[length]);
+                length += copyCount;
+                byte1 = Buffer[i + count - 1];
+                byte2 = Buffer[i + count - 2];
+                byte3 = Buffer[i + count - 3];
+                charType1 = PhCharTypePrintable;
+                charType2 = PhCharTypePrintable;
+                charType3 = PhCharTypePrintable;
+                i += count - 1;
+                continue;
+            }
+        }
 
         byte = Buffer[i];
 
