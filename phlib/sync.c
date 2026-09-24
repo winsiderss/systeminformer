@@ -1387,15 +1387,15 @@ CleanupExit:
  * drained the queue between wait wake and dequeue, the routine retries the wait
  * until timeout/termination.
  *
- * \\param[in] IoCompletionHandle A handle to an I/O completion object opened with SYNCHRONIZE.
- * \\param[in] TerminationHandle A handle to a waitable object used to terminate the loop.
- * \\param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or STATUS_ALERTED.
- * \\param[in] Timeout Optional timeout. Relative values are converted to an absolute deadline.
- * \\param[out] KeyContext Optional pointer that receives the dequeued completion key.
- * \\param[out] ApcContext Optional pointer that receives the dequeued APC context.
- * \\param[out] IoStatusBlock Optional pointer that receives the dequeued I/O status block.
- * \\param[out] Terminated Optional pointer that receives TRUE if TerminationHandle satisfied the wait.
- * \\return STATUS_SUCCESS if a completion packet was dequeued, STATUS_CANCELLED if
+ * \param[in] IoCompletionHandle A handle to an I/O completion object opened with SYNCHRONIZE.
+ * \param[in] TerminationHandle A handle to a waitable object used to terminate the loop.
+ * \param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or STATUS_ALERTED.
+ * \param[in] Timeout Optional timeout. Relative values are converted to an absolute deadline.
+ * \param[out] KeyContext Optional pointer that receives the dequeued completion key.
+ * \param[out] ApcContext Optional pointer that receives the dequeued APC context.
+ * \param[out] IoStatusBlock Optional pointer that receives the dequeued I/O status block.
+ * \param[out] Terminated Optional pointer that receives TRUE if TerminationHandle satisfied the wait.
+ * \return STATUS_SUCCESS if a completion packet was dequeued, STATUS_CANCELLED if
  *         TerminationHandle was signaled, or a propagated wait/dequeue status.
  */
 NTSTATUS PhWaitForIoCompletionAndTermination(
