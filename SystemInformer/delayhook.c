@@ -63,9 +63,19 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
         {
             //CREATESTRUCT* createStruct = (CREATESTRUCT*)lParam;
 
+            if (WindowsVersion >= WINDOWS_11)
+            {
+                // CS_DROPSHADOW is no longer honored for the menu class on Windows 11
+                // and DWM non-client rendering doesn't apply to these windows, so
+                // composite the shadow ourselves. The shadow is positioned and shown
+                // from WM_WINDOWPOSCHANGED once the menu has been sized. (dmex)
+                PhCreateWindowShadow(WindowHandle);
+            }
+
             if (PhDefaultEnableStreamerMode)
             {
                 SetWindowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
+                PhSetWindowShadowDisplayAffinity(WindowHandle, WDA_EXCLUDEFROMCAPTURE);
             }
 
             if (PhEnableThemeSupport)
@@ -76,6 +86,11 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
                     PhSetWindowAcrylicCompositionColor(WindowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
                 }
             }
+        }
+        break;
+    case WM_DESTROY:
+        {
+            PhDestroyWindowShadow(WindowHandle);
         }
         break;
     case WM_NCDESTROY:
@@ -94,6 +109,15 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
             }
         }
         break;
+    case WM_WINDOWPOSCHANGED:
+        {
+            LRESULT result = CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
+
+            // Track the menu after the default procedure has sized and placed it. (dmex)
+            PhUpdateWindowShadow(WindowHandle, PhWindowShadowSideAll);
+
+            return result;
+        }
     }
 
     return CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
@@ -238,7 +262,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
     {
         ULONG style = PhGetWindowStyle(WindowHandle);
 
-        if ((style & SS_ICON) == SS_ICON)
+        if ((style & SS_TYPEMASK) == SS_ICON)
         {
             PhSetWindowContext(WindowHandle, SCHAR_MAX, UlongToPtr(TRUE));
         }
@@ -293,6 +317,9 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                     PH_BUFFERED_PAINT bufferedPaint;
                     BOOLEAN buffered;
                     HDC bufferDc;
+
+                    if (!hdc)
+                        return 0;
 
                     GetClientRect(WindowHandle, &clientRect);
                     buffered = PhBeginBufferedPaint(hdc, &clientRect, &bufferedPaint, &bufferDc);
@@ -452,8 +479,8 @@ VOID ThemeWindowStatusBarDrawPart(
 
     if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETRECT, (WPARAM)Index, (WPARAM)&blockRect))
         return;
-    if (!RectVisible(bufferDc, &blockRect))
-        return;
+    //if (!RectVisible(bufferDc, &blockRect))
+    //    return;
     if (CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXTLENGTH, (WPARAM)Index, 0) >= RTL_NUMBER_OF(text))
         return;
     if (!CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, SB_GETTEXT, (WPARAM)Index, (LPARAM)text))
@@ -499,7 +526,7 @@ VOID ThemeWindowRenderStatusBar(
     )
 {
     SetBkMode(bufferDc, TRANSPARENT);
-    SelectFont(bufferDc, GetWindowFont(WindowHandle));
+    //SelectFont(bufferDc, GetWindowFont(WindowHandle));
 
     FillRect(bufferDc, clientRect, PhThemeWindowBackgroundBrush);
 
@@ -701,6 +728,12 @@ LRESULT CALLBACK PhEditWindowHookProcedure(
                 break;
 
             updateRegion = (HRGN)wParam;
+
+            if (updateRegion != HRGN_FULL && updateRegion != NULL)
+            {
+                if (!RectInRegion(updateRegion, &windowRect))
+                    return FALSE;   // frame area isn't dirty at all — skip GetDCEx entirely
+            }
 
             if (updateRegion == HRGN_FULL)
                 updateRegion = NULL;
@@ -909,6 +942,32 @@ VOID ThemeWindowRenderHeaderControl(
     }
 }
 
+/**
+ * Invalidates only header items whose hover state changed.
+ */
+static VOID PhpHeaderInvalidateHoverChange(
+    _In_ HWND WindowHandle,
+    _In_ POINT OldPoint,
+    _In_ POINT NewPoint
+    )
+{
+    INT count = (INT)CallWindowProc(PhDefaultHeaderWindowProcedure,
+        WindowHandle, HDM_GETITEMCOUNT, 0, 0);
+
+    // Use the same rectangles as the painter, including divider pixels; native
+    // hit-test flags do not exactly match its point-in-rectangle hover rule.
+    for (INT i = 0; i < count; i++)
+    {
+        RECT rect;
+        if (!CallWindowProc(PhDefaultHeaderWindowProcedure,
+            WindowHandle, HDM_GETITEMRECT, (WPARAM)i, (LPARAM)&rect))
+            continue;
+
+        if (!!PhPtInRect(&rect, &OldPoint) != !!PhPtInRect(&rect, &NewPoint))
+            InvalidateRect(WindowHandle, &rect, FALSE);
+    }
+}
+
 LRESULT CALLBACK PhHeaderWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -1007,17 +1066,18 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                     context->MouseActive = TRUE;
                 }
 
+                POINT oldPoint = context->CursorPos;
                 context->CursorPos.x = GET_X_LPARAM(lParam);
                 context->CursorPos.y = GET_Y_LPARAM(lParam);
 
-                InvalidateRect(WindowHandle, NULL, FALSE);
+                PhpHeaderInvalidateHoverChange(WindowHandle, oldPoint, context->CursorPos);
             }
             break;
         case WM_CONTEXTMENU:
             {
                 LRESULT result = CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
-                InvalidateRect(WindowHandle, NULL, TRUE);
+                InvalidateRect(WindowHandle, NULL, FALSE);
 
                 return result;
             }
@@ -1026,11 +1086,12 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
             {
                 LRESULT result = CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 
+                POINT oldPoint = context->CursorPos;
                 context->MouseActive = FALSE;
                 context->CursorPos.x = LONG_MIN;
                 context->CursorPos.y = LONG_MIN;
 
-                InvalidateRect(WindowHandle, NULL, TRUE);
+                PhpHeaderInvalidateHoverChange(WindowHandle, oldPoint, context->CursorPos);
 
                 return result;
             }
@@ -1117,7 +1178,12 @@ VOID PhRegisterMenuSuperClass(
 
     PhDefaultMenuWindowProcedure = wcex.lpfnWndProc;
     wcex.lpfnWndProc = PhMenuWindowHookProcedure;
-    wcex.style = wcex.style | CS_GLOBALCLASS;
+    wcex.style |= CS_GLOBALCLASS;
+
+    // Windows 11 ignores CS_DROPSHADOW for this class and uses the layered
+    // shadow window created from WM_CREATE instead. (dmex)
+    if (WindowsVersion < WINDOWS_11)
+        wcex.style |= CS_DROPSHADOW;
 
     UnregisterClass(L"#32768", NULL);
     if (RegisterClassEx(&wcex) == INVALID_ATOM)
@@ -1434,7 +1500,7 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     return DefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
 }
 
-HWND PhCreateWindowExHook(
+HWND WINAPI PhCreateWindowExHook(
     _In_ ULONG ExStyle,
     _In_opt_ PCWSTR ClassName,
     _In_opt_ PCWSTR WindowName,
@@ -1464,19 +1530,27 @@ HWND PhCreateWindowExHook(
         Param
         );
 
-    if (Parent == NULL)
+    // Preserve the creation error and never pass a failed HWND to helpers.
+    if (!windowHandle)
+        return NULL;
+
+    // An owned popup is top-level too. A message-only window is not visual.
+    if (!(Style & WS_CHILD) && Parent != HWND_MESSAGE)
     {
         if (PhDefaultEnableStreamerMode)
         {
             SetWindowDisplayAffinity(windowHandle, WDA_EXCLUDEFROMCAPTURE);
         }
 
-        if (PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
+        // Preserve the prior acrylic policy for unowned top-level windows;
+        // owned menus/tooltips/popups must not acquire a generic backdrop.
+        if (!Parent && !(ExStyle & (WS_EX_LAYERED | WS_EX_NOREDIRECTIONBITMAP)) &&
+            PhEnableThemeSupport && PhDefaultEnableThemeAcrylicWindowSupport)
         {
             PhSetWindowAcrylicCompositionColor(windowHandle, MakeABGRFromCOLORREF(0, RGB(10, 10, 10)));
         }
     }
-    else if (PhEnableThemeSupport)
+    else if ((Style & WS_CHILD) && PhEnableThemeSupport)
     {
         // Early subclassing of the SysLink control to eliminate blinking during page switches.
         if (!IS_INTRESOURCE(ClassName) && PhEqualStringZ(ClassName, WC_LINK, TRUE))
@@ -2048,6 +2122,8 @@ VOID PhInitializeSuperclassControls(
     if (PhEnableThemeAcrylicSupport)
         PhEnableThemeAcrylicSupport = PhIsThemeTransparencyEnabled();
 
+    PhRegisterMenuSuperClass();
+
     if (PhEnableThemeSupport || PhDefaultEnableStreamerMode)
     {
         if (WindowsVersion >= WINDOWS_11)
@@ -2058,7 +2134,6 @@ VOID PhInitializeSuperclassControls(
         PhDefaultEnableThemeAnimation = !!PhGetIntegerSetting(SETTING_ENABLE_THEME_ANIMATION);
 
         PhRegisterDialogSuperClass();
-        PhRegisterMenuSuperClass();
         PhRegisterRebarSuperClass();
         PhRegisterComboBoxSuperClass();
         PhRegisterStaticSuperClass();

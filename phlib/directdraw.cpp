@@ -12,6 +12,11 @@
 #include <ph.h>
 #include <guisup.h>
 #include <settings.h>
+#include <mapldr.h>
+
+#include <algorithm>
+
+#include <math.h>
 
 #define GDIPVER 0x0110
 #include <unknwn.h>
@@ -165,7 +170,6 @@ HICON PhConvertBitmapToIcon(
     )
 {
     DIBSECTION dib;
-    HDC screenDc;
     HDC srcDc;
     HDC dstDc;
     HBITMAP colorBitmap;
@@ -182,10 +186,6 @@ HICON PhConvertBitmapToIcon(
     if (GetObject(OriginalBitmap, sizeof(DIBSECTION), &dib) != sizeof(DIBSECTION))
         return NULL;
 
-    screenDc = GetDC(NULL);
-    if (!screenDc)
-        return NULL;
-
     // Create a 32bpp ARGB DIB section for the output color bitmap
     RtlZeroMemory(&bitmapInfo, sizeof(BITMAPINFO));
     bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
@@ -195,12 +195,10 @@ HICON PhConvertBitmapToIcon(
     bitmapInfo.bmiHeader.biBitCount = 32;
     bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    colorBitmap = CreateDIBSection(screenDc, &bitmapInfo, DIB_RGB_COLORS, &colorBits, NULL, 0);
+    // hdc is ignored when using DIB_RGB_COLORS, NULL is safe.
+    colorBitmap = CreateDIBSection(NULL, &bitmapInfo, DIB_RGB_COLORS, &colorBits, NULL, 0);
     if (!colorBitmap)
-    {
-        ReleaseDC(NULL, screenDc);
         return NULL;
-    }
 
     // Fill the color bitmap with the background color (as premultiplied ARGB)
     {
@@ -221,8 +219,8 @@ HICON PhConvertBitmapToIcon(
     }
 
     // AlphaBlend the source bitmap onto the background
-    srcDc = CreateCompatibleDC(screenDc);
-    dstDc = CreateCompatibleDC(screenDc);
+    srcDc = CreateCompatibleDC(NULL);
+    dstDc = CreateCompatibleDC(NULL);
     oldSrcBitmap = SelectBitmap(srcDc, OriginalBitmap);
     oldDstBitmap = SelectBitmap(dstDc, colorBitmap);
 
@@ -232,17 +230,17 @@ HICON PhConvertBitmapToIcon(
         blendFunc.BlendOp = AC_SRC_OVER;
         blendFunc.BlendFlags = 0;
         blendFunc.SourceConstantAlpha = 255;
-        blendFunc.AlphaFormat = AC_SRC_ALPHA; // source has per-pixel alpha
+        blendFunc.AlphaFormat = AC_SRC_ALPHA;
 
         GdiAlphaBlend(
             dstDc,
             0, 0,
             Width,
-            Height,                         // dest rect
+            Height,
             srcDc,
-            0, 0,                           // source origin
-            dib.dsBmih.biWidth,             // source width
-            dib.dsBmih.biHeight,            // source height (abs(dib.dsBmih.biHeight) for safety)
+            0, 0,
+            dib.dsBmih.biWidth,
+            dib.dsBmih.biHeight,
             blendFunc
             );
     }
@@ -257,13 +255,12 @@ HICON PhConvertBitmapToIcon(
     if (!maskBitmap)
     {
         DeleteBitmap(colorBitmap);
-        ReleaseDC(NULL, screenDc);
         return NULL;
     }
 
     // Zero the mask (0 = opaque everywhere)
     {
-        HDC maskDc = CreateCompatibleDC(screenDc);
+        HDC maskDc = CreateCompatibleDC(NULL);
         HBITMAP oldMask = SelectBitmap(maskDc, maskBitmap);
         RECT r = { 0, 0, Width, Height };
 
@@ -271,8 +268,6 @@ HICON PhConvertBitmapToIcon(
         SelectBitmap(maskDc, oldMask);
         DeleteDC(maskDc);
     }
-
-    ReleaseDC(NULL, screenDc);
 
     // Create the icon from color + mask
     RtlZeroMemory(&iconInfo, sizeof(ICONINFO));
@@ -291,9 +286,9 @@ HICON PhConvertBitmapToIcon(
     return icon;
 }
 
-
 #ifdef PHNT_TRANSPARENT_BITMAP
 #include <uxtheme.h>
+#include <algorithm>
 #pragma comment(lib, "uxtheme.lib")
 
 VOID PhUpdateTransparentBackgroundWindow(
@@ -356,7 +351,7 @@ VOID PhUpdateTransparentBackgroundWindow(
         }
 
         bufferHdc = CreateCompatibleDC(hdc);
-        bitmapHandle = CreateCompatibleBitmap(hdc, ClientRect->right, ClientRect->bottom);
+        bitmapHandle = PhCreateDIBSection(hdc, PHBF_TOPDOWNDIB, ClientRect->right, ClientRect->bottom, nullptr);
         oldBitmapHandle = SelectBitmap(bufferHdc, bitmapHandle);
 
         if (initialized)
@@ -506,7 +501,8 @@ HWND PhCreateBackgroundWindow(
 
         if (GetMenuBarInfo(ParentWindowHandle, OBJID_MENU, 0, &menuInfo))
         {
-            windowRect.bottom += menuInfo.rcBar.bottom;
+            // rcBar is in screen coordinates; only its height extends the client area.
+            windowRect.bottom += menuInfo.rcBar.bottom - menuInfo.rcBar.top;
         }
     }
 
@@ -566,50 +562,256 @@ typedef struct _PH_WINDOW_SNAPSHOT_CONTEXT
     BOOLEAN IsActive;
 } PH_WINDOW_SNAPSHOT_CONTEXT, *PPH_WINDOW_SNAPSHOT_CONTEXT;
 
-static BOOLEAN PhIntersectRect(
-    _Out_ PRECT Result,
-    _In_ PRECT Rect1,
-    _In_ PRECT Rect2
+typedef struct _PH_WINDOW_FROM_POINT_CONTEXT
+{
+    HWND SnapshotWindow;
+    HWND WindowHandle;
+    POINT Point;
+} PH_WINDOW_FROM_POINT_CONTEXT, *PPH_WINDOW_FROM_POINT_CONTEXT;
+
+VOID PhDestroyWindowSnapshotSelection(
+    _Inout_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
+    );
+
+BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
+    _Inout_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
+    );
+
+LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+#ifndef DWMWA_CLOAKED
+#define DWMWA_CLOAKED 14
+#endif
+
+BOOLEAN PhpIsWindowCloaked(
+    _In_ HWND WindowHandle
     )
 {
-    Result->left = Rect1->left > Rect2->left ? Rect1->left : Rect2->left;
-    Result->top = Rect1->top > Rect2->top ? Rect1->top : Rect2->top;
-    Result->right = Rect1->right < Rect2->right ? Rect1->right : Rect2->right;
-    Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static HRESULT (WINAPI* DwmGetWindowAttribute_I)(
+        _In_ HWND WindowHandle,
+        _In_ ULONG AttributeId,
+        _Out_writes_bytes_(AttributeLength) PVOID Attribute,
+        _In_ ULONG AttributeLength
+        ) = nullptr;
+    BOOL windowCloaked = FALSE;
 
-    return Result->right > Result->left && Result->bottom > Result->top;
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (baseAddress = PhLoadLibrary(L"dwmapi.dll"))
+        {
+            DwmGetWindowAttribute_I = reinterpret_cast<decltype(DwmGetWindowAttribute_I)>(
+                PhGetDllBaseProcedureAddress(baseAddress, "DwmGetWindowAttribute", 0));
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (DwmGetWindowAttribute_I)
+    {
+        DwmGetWindowAttribute_I(WindowHandle, DWMWA_CLOAKED, &windowCloaked, sizeof(BOOL));
+    }
+
+    return !!windowCloaked;
 }
 
-/**
- * Locates the window beneath the snapshot window at the specified screen point.
- *
- * The snapshot window covers the whole virtual screen, so it is made transparent to hit-testing
- * for the duration of the query. This lets WindowFromPoint resolve the underlying window while
- * honouring cloaking, window regions, layered transparency and disabled/hidden state the same
- * way the system does for ordinary mouse input.
- *
- * \param SnapshotWindow The snapshot window.
- * \param Point The point, in screen coordinates.
- * \return The window beneath the snapshot window, or NULL if there is none.
- */
-static HWND PhWindowFromPointBelowSnapshot(
+BOOL CALLBACK PhWindowFromPointEnumProc(
+    _In_ HWND WindowHandle,
+    _In_ LPARAM lParam
+    )
+{
+    PPH_WINDOW_FROM_POINT_CONTEXT context;
+    RECT windowRect;
+
+    context = (PPH_WINDOW_FROM_POINT_CONTEXT)lParam;
+
+    if (WindowHandle == context->SnapshotWindow)
+        return TRUE;
+
+    if (!IsWindowVisible(WindowHandle))
+        return TRUE;
+
+    if (PhpIsWindowCloaked(WindowHandle))
+        return TRUE;
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return TRUE;
+
+    if (!PtInRect(&windowRect, context->Point))
+        return TRUE;
+
+    context->WindowHandle = WindowHandle;
+
+    return FALSE;
+}
+
+HWND PhWindowFromPointBelowSnapshot(
     _In_ HWND SnapshotWindow,
     _In_ POINT Point
     )
 {
+    PH_WINDOW_FROM_POINT_CONTEXT context;
     HWND windowHandle;
 
-    PhSetWindowExStyle(SnapshotWindow, WS_EX_TRANSPARENT, WS_EX_TRANSPARENT);
-    windowHandle = WindowFromPoint(Point);
-    PhSetWindowExStyle(SnapshotWindow, WS_EX_TRANSPARENT, 0);
+    context.SnapshotWindow = SnapshotWindow;
+    context.WindowHandle = nullptr;
+    context.Point = Point;
 
-    if (windowHandle == SnapshotWindow)
-        return nullptr;
+    EnumWindows(PhWindowFromPointEnumProc, (LPARAM)&context);
+
+    windowHandle = context.WindowHandle;
+
+    while (windowHandle)
+    {
+        POINT clientPoint;
+        HWND childWindowHandle;
+
+        clientPoint = Point;
+        ScreenToClient(windowHandle, &clientPoint);
+
+        childWindowHandle = ChildWindowFromPointEx(
+            windowHandle,
+            clientPoint,
+            CWP_SKIPINVISIBLE | CWP_SKIPDISABLED
+            );
+
+        if (!childWindowHandle || childWindowHandle == windowHandle)
+            break;
+
+        windowHandle = childWindowHandle;
+    }
 
     return windowHandle;
 }
 
-static VOID PhDestroyWindowSnapshotSelection(
+BOOLEAN PhCreateWindowSnapshotSelection(
+    _Out_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
+)
+{
+    RECT screenRect;
+    HDC screenDC;
+
+    screenRect.left = PhGetSystemMetrics(SM_XVIRTUALSCREEN, 0);
+    screenRect.top = PhGetSystemMetrics(SM_YVIRTUALSCREEN, 0);
+    screenRect.right = screenRect.left + PhGetSystemMetrics(SM_CXVIRTUALSCREEN, 0);
+    screenRect.bottom = screenRect.top + PhGetSystemMetrics(SM_CYVIRTUALSCREEN, 0);
+
+    memset(Context, 0, sizeof(PH_WINDOW_SNAPSHOT_CONTEXT));
+    Context->ScreenRect = screenRect;
+
+    Context->MemoryDC = CreateCompatibleDC(nullptr);
+    if (!Context->MemoryDC)
+        return FALSE;
+
+    Context->ScreenBitmap = PhCreateDIBSection(
+        nullptr,
+        PHBF_TOPDOWNDIB,
+        screenRect.right - screenRect.left,
+        screenRect.bottom - screenRect.top,
+        nullptr
+        );
+
+    if (!Context->ScreenBitmap)
+    {
+        PhDestroyWindowSnapshotSelection(Context);
+        return FALSE;
+    }
+
+    Context->OldScreenBitmap = SelectBitmap(Context->MemoryDC, Context->ScreenBitmap);
+
+    screenDC = PhGetDC(nullptr);
+    if (!screenDC)
+    {
+        PhDestroyWindowSnapshotSelection(Context);
+        return FALSE;
+    }
+
+    BitBlt(
+        Context->MemoryDC,
+        0,
+        0,
+        screenRect.right - screenRect.left,
+        screenRect.bottom - screenRect.top,
+        screenDC,
+        screenRect.left,
+        screenRect.top,
+        SRCCOPY
+        );
+
+    ReleaseDC(nullptr, screenDC);
+
+    if (!PhCreateBlurredWindowSnapshotBitmap(Context))
+    {
+        PhDestroyWindowSnapshotSelection(Context);
+        return FALSE;
+    }
+
+    {
+        static RTL_ATOM windowAtom = RTL_ATOM_INVALID_ATOM;
+
+        if (windowAtom == RTL_ATOM_INVALID_ATOM)
+        {
+            WNDCLASSEX wcex;
+
+            memset(&wcex, 0, sizeof(WNDCLASSEX));
+            wcex.cbSize = sizeof(WNDCLASSEX);
+            wcex.style = CS_HREDRAW | CS_VREDRAW;
+            wcex.lpfnWndProc = PhWindowSnapshotSelectionWndProc;
+            wcex.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
+            wcex.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
+            wcex.lpszClassName = L"PhWindowSnapshotSelectionWindow";
+            windowAtom = RegisterClassEx(&wcex);
+        }
+
+        Context->SnapshotWindow = CreateWindowEx(
+            WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
+            MAKEINTATOM(windowAtom),
+            nullptr,
+            WS_POPUP | WS_VISIBLE,
+            screenRect.left,
+            screenRect.top,
+            screenRect.right - screenRect.left,
+            screenRect.bottom - screenRect.top,
+            nullptr,
+            nullptr,
+            nullptr,
+            Context
+            );
+    }
+
+    if (!Context->SnapshotWindow)
+    {
+        PhDestroyWindowSnapshotSelection(Context);
+        return FALSE;
+    }
+
+    Context->IsActive = TRUE;
+
+    ShowWindow(Context->SnapshotWindow, SW_SHOWNA);
+    SetWindowPos(
+        Context->SnapshotWindow,
+        HWND_TOPMOST,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
+        );
+    UpdateWindow(Context->SnapshotWindow);
+    SetForegroundWindow(Context->SnapshotWindow);
+    SetFocus(Context->SnapshotWindow);
+
+    return TRUE;
+}
+
+VOID PhDestroyWindowSnapshotSelection(
     _Inout_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
     )
 {
@@ -658,9 +860,8 @@ static VOID PhDestroyWindowSnapshotSelection(
     Context->IsActive = FALSE;
 }
 
-static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
-    _Inout_ PPH_WINDOW_SNAPSHOT_CONTEXT Context,
-    _In_ HDC ScreenDC
+BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
+    _Inout_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
     )
 {
     LONG screenWidth;
@@ -678,11 +879,11 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
     if (screenWidth <= 0 || screenHeight <= 0)
         return FALSE;
 
-    Context->BlurredDC = CreateCompatibleDC(ScreenDC);
+    Context->BlurredDC = CreateCompatibleDC(nullptr);
     if (!Context->BlurredDC)
         return FALSE;
 
-    Context->BlurredBitmap = CreateCompatibleBitmap(ScreenDC, screenWidth, screenHeight);
+    Context->BlurredBitmap = PhCreateDIBSection(nullptr, PHBF_TOPDOWNDIB, screenWidth, screenHeight, nullptr);
     if (!Context->BlurredBitmap)
     {
         DeleteDC(Context->BlurredDC);
@@ -701,7 +902,7 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
     if (smallHeight < 1)
         smallHeight = 1;
 
-    smallDC = CreateCompatibleDC(ScreenDC);
+    smallDC = CreateCompatibleDC(nullptr);
     if (!smallDC)
     {
         SelectBitmap(Context->BlurredDC, Context->OldBlurredBitmap);
@@ -712,7 +913,7 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
         return FALSE;
     }
 
-    smallBitmap = CreateCompatibleBitmap(ScreenDC, smallWidth, smallHeight);
+    smallBitmap = PhCreateDIBSection(nullptr, PHBF_TOPDOWNDIB, smallWidth, smallHeight, nullptr);
     if (!smallBitmap)
     {
         DeleteDC(smallDC);
@@ -773,7 +974,7 @@ static BOOLEAN PhCreateBlurredWindowSnapshotBitmap(
     return TRUE;
 }
 
-static LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
+LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
@@ -912,7 +1113,7 @@ static LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
             {
                 if (
                     context->TargetWindow != windowUnderCursor ||
-                    !EqualRect(&context->HighlightRect, &clippedRect)
+                    !PhEqualRect(&context->HighlightRect, &clippedRect)
                     )
                 {
                     context->TargetWindow = windowUnderCursor;
@@ -960,125 +1161,6 @@ static LRESULT CALLBACK PhWindowSnapshotSelectionWndProc(
     }
 
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
-}
-
-static BOOLEAN PhCreateWindowSnapshotSelection(
-    _Out_ PPH_WINDOW_SNAPSHOT_CONTEXT Context
-    )
-{
-    RECT screenRect;
-    HDC screenDC;
-    WNDCLASSEX wcex = { sizeof(WNDCLASSEX) };
-
-    memset(Context, 0, sizeof(PH_WINDOW_SNAPSHOT_CONTEXT));
-
-    screenRect.left = PhGetSystemMetrics(SM_XVIRTUALSCREEN, 0);
-    screenRect.top = PhGetSystemMetrics(SM_YVIRTUALSCREEN, 0);
-    screenRect.right = screenRect.left + PhGetSystemMetrics(SM_CXVIRTUALSCREEN, 0);
-    screenRect.bottom = screenRect.top + PhGetSystemMetrics(SM_CYVIRTUALSCREEN, 0);
-    Context->ScreenRect = screenRect;
-
-    screenDC = GetDC(nullptr);
-    if (!screenDC)
-        return FALSE;
-
-    Context->MemoryDC = CreateCompatibleDC(screenDC);
-    if (!Context->MemoryDC)
-    {
-        ReleaseDC(nullptr, screenDC);
-        return FALSE;
-    }
-
-    Context->ScreenBitmap = CreateCompatibleBitmap(
-        screenDC,
-        screenRect.right - screenRect.left,
-        screenRect.bottom - screenRect.top
-        );
-
-    if (!Context->ScreenBitmap)
-    {
-        PhDestroyWindowSnapshotSelection(Context);
-        ReleaseDC(nullptr, screenDC);
-        return FALSE;
-    }
-
-    Context->OldScreenBitmap = SelectBitmap(Context->MemoryDC, Context->ScreenBitmap);
-
-    BitBlt(
-        Context->MemoryDC,
-        0,
-        0,
-        screenRect.right - screenRect.left,
-        screenRect.bottom - screenRect.top,
-        screenDC,
-        screenRect.left,
-        screenRect.top,
-        SRCCOPY
-        );
-
-    if (!PhCreateBlurredWindowSnapshotBitmap(Context, screenDC))
-    {
-        ReleaseDC(nullptr, screenDC);
-        PhDestroyWindowSnapshotSelection(Context);
-        return FALSE;
-    }
-
-    ReleaseDC(nullptr, screenDC);
-
-    wcex.style = CS_HREDRAW | CS_VREDRAW;
-    wcex.lpfnWndProc = PhWindowSnapshotSelectionWndProc;
-    wcex.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
-    wcex.hbrBackground = static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
-    wcex.lpszClassName = L"PhWindowSnapshotSelectionWindow";
-
-    if (!RegisterClassEx(&wcex) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
-    {
-        PhDestroyWindowSnapshotSelection(Context);
-        return FALSE;
-    }
-
-    Context->SnapshotWindow = CreateWindowEx(
-        WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW,
-        L"PhWindowSnapshotSelectionWindow",
-        nullptr,
-        WS_POPUP | WS_VISIBLE,
-        screenRect.left,
-        screenRect.top,
-        screenRect.right - screenRect.left,
-        screenRect.bottom - screenRect.top,
-        nullptr,
-        nullptr,
-        nullptr,
-        Context
-        );
-
-    if (!Context->SnapshotWindow)
-    {
-        PhDestroyWindowSnapshotSelection(Context);
-        return FALSE;
-    }
-
-    // The window is layered so it can be made transparent to hit-testing while resolving the
-    // window beneath it (see PhWindowFromPointBelowSnapshot). Keep it fully opaque.
-    SetLayeredWindowAttributes(Context->SnapshotWindow, 0, 255, LWA_ALPHA);
-
-    Context->IsActive = TRUE;
-
-    ShowWindow(Context->SnapshotWindow, SW_SHOWNA);
-    SetWindowPos(
-        Context->SnapshotWindow,
-        HWND_TOPMOST,
-        0,
-        0,
-        0,
-        0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
-        );
-    UpdateWindow(Context->SnapshotWindow);
-    SetForegroundWindow(Context->SnapshotWindow);
-    SetFocus(Context->SnapshotWindow);
-
-    return TRUE;
 }
 
 HWND PhSelectWindowFromScreenSnapshot(
@@ -1195,6 +1277,8 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
         WNDCLASSEX wcex = { 0 };
 
         memset(&wcex, 0, sizeof(WNDCLASSEX));
+        wcex.cbSize = sizeof(WNDCLASSEX);
+        wcex.hInstance = static_cast<HINSTANCE>(NtCurrentImageBase());
         wcex.lpfnWndProc = PhWindowTargetingOverlayWndProc;
         wcex.lpszClassName = PH_WINDOW_TARGETING_OVERLAY_CLASS;
         wcex.hCursor = PhLoadCursor(nullptr, IDC_CROSS);
@@ -1203,6 +1287,9 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
 
         PhEndInitOnce(&initOnce);
     }
+
+    if (windowAtom == RTL_ATOM_INVALID_ATOM)
+        return FALSE;
 
     if (!Context->OverlayWindowHandle)
     {
@@ -1217,7 +1304,7 @@ BOOLEAN PhEnsureWindowTargetingOverlayWindow(
             0,
             nullptr,
             nullptr,
-            nullptr,
+            static_cast<HINSTANCE>(NtCurrentImageBase()),
             Context
             );
 
@@ -1486,6 +1573,9 @@ PH_WINDOW_TARGETING_RESULT PhProcessWindowTargetingMessage(
 
             windowHandle = WindowFromPoint(cursorPos);
 
+            if (windowHandle && PhpIsWindowCloaked(windowHandle))
+                windowHandle = nullptr;
+
             if (windowHandle && Context->Callback && !Context->Callback(windowHandle, Context->CallbackContext))
                 windowHandle = nullptr;
 
@@ -1608,6 +1698,9 @@ HWND PhSelectWindowFromScreenTargeting(
 
             windowHandle = WindowFromPoint(cursorPos);
 
+            if (windowHandle && PhpIsWindowCloaked(windowHandle))
+                windowHandle = nullptr;
+
             if (context.TargetWindowHandle != windowHandle)
             {
                 if (!OverlayHighlight && context.TargetWindowHandle)
@@ -1638,6 +1731,10 @@ HWND PhSelectWindowFromScreenTargeting(
                 PhHideWindowTargetingOverlayForHitTest(&context);
 
             context.TargetWindowHandle = WindowFromPoint(cursorPos);
+
+            if (context.TargetWindowHandle && PhpIsWindowCloaked(context.TargetWindowHandle))
+                context.TargetWindowHandle = nullptr;
+
             context.Completed = TRUE;
             break;
         }
@@ -1781,3 +1878,736 @@ HWND PhSelectWindowFromScreenTargeting(
 //        );
 //    PhDirectWriteRenderTarget->EndDraw();
 //}
+
+//
+// Layered drop-shadow for popup windows.
+//
+// Windows 11 no longer honors CS_DROPSHADOW for the system menu class (#32768)
+// and DWM non-client rendering doesn't apply to those windows either, so the
+// shadow is composited ourselves: a click-through layered window is placed
+// directly beneath the owner popup in the z-order and painted with a
+// pre-multiplied ARGB rounded-rectangle falloff. (dmex)
+//
+
+#define PH_WINDOW_SHADOW_CLASSNAME L"PhWindowShadow"
+#define PH_WINDOW_SHADOW_MARGIN 16      // Width of the shadow margin at 96 DPI.
+#define PH_WINDOW_SHADOW_RADIUS 8       // Corner radius of the owner popup at 96 DPI.
+#define PH_WINDOW_SHADOW_OPACITY 0.30f  // Peak shadow alpha (0.0 to 1.0).
+#define PH_WINDOW_SHADOW_PROPERTY ((ULONG)'shdw')
+#define PH_WINDOW_SHADOW_CONTEXT_PROPERTY ((ULONG)'shdc')
+#define PH_WINDOW_SHADOW_MAX_OCCLUDERS 8
+
+typedef struct _PH_WINDOW_SHADOW_CONTEXT
+{
+    LONG ContentWidth;
+    LONG ContentHeight;
+    LONG Margin;
+    LONG Radius;
+    PH_WINDOW_SHADOW_SIDE Sides;
+    LONG MarginLeft;
+    LONG MarginTop;
+    LONG MarginRight;
+    LONG MarginBottom;
+    LONG WindowDpi;
+    RECT ExcludeRect[PH_WINDOW_SHADOW_MAX_OCCLUDERS]; // Buffer coordinates of the occluders, empty for none.
+    LONG ExcludeRadius[PH_WINDOW_SHADOW_MAX_OCCLUDERS]; // Corner radius of the occluders.
+    COLORREF BackgroundColor;
+    HDC BufferDc;
+    HBITMAP BufferBitmap;
+    HBITMAP OldBitmap;
+    PVOID Bits;
+} PH_WINDOW_SHADOW_CONTEXT, *PPH_WINDOW_SHADOW_CONTEXT;
+
+VOID PhDeleteWindowShadowBuffer(
+    _Inout_ PPH_WINDOW_SHADOW_CONTEXT Context
+    )
+{
+    if (Context->BufferDc && Context->OldBitmap)
+    {
+        SelectBitmap(Context->BufferDc, Context->OldBitmap);
+        Context->OldBitmap = NULL;
+    }
+
+    if (Context->BufferBitmap)
+    {
+        DeleteBitmap(Context->BufferBitmap);
+        Context->BufferBitmap = NULL;
+    }
+
+    if (Context->BufferDc)
+    {
+        DeleteDC(Context->BufferDc);
+        Context->BufferDc = NULL;
+    }
+
+    Context->Bits = NULL;
+}
+
+BOOLEAN PhCreateWindowShadowBuffer(
+    _Inout_ PPH_WINDOW_SHADOW_CONTEXT Context,
+    _In_ LONG TotalWidth,
+    _In_ LONG TotalHeight
+    )
+{
+    PhDeleteWindowShadowBuffer(Context);
+
+    Context->BufferDc = CreateCompatibleDC(NULL);
+
+    if (!Context->BufferDc)
+        return FALSE;
+
+    Context->BufferBitmap = PhCreateDIBSection(
+        Context->BufferDc,
+        PHBF_TOPDOWNDIB,
+        TotalWidth,
+        TotalHeight,
+        &Context->Bits
+        );
+
+    if (!Context->BufferBitmap || !Context->Bits)
+    {
+        PhDeleteWindowShadowBuffer(Context);
+        return FALSE;
+    }
+
+    Context->OldBitmap = SelectBitmap(Context->BufferDc, Context->BufferBitmap);
+
+    return TRUE;
+}
+
+/**
+ * Renders a soft-falloff shadow with rounded corners into the pre-multiplied
+ * 32-bit ARGB buffer. The interior of the buffer is filled with the popup
+ * background color so the owner window's rounded corners don't expose the
+ * window beneath. Only the sides selected in the context are extended with a
+ * shadow margin; the corner falloff is limited to those sides so a suppressed
+ * edge stays flush with the owner popup. Shadow pixels inside the exclusion
+ * rectangle (the part of the buffer overlapping the owner window) are left
+ * transparent so the shadow isn't cast onto the owner.
+ */
+BOOLEAN PhIsPointInWindowShadowExclusion(
+    _In_ PPH_WINDOW_SHADOW_CONTEXT Context,
+    _In_ LONG x,
+    _In_ LONG y
+    )
+{
+    for (ULONG i = 0; i < RTL_NUMBER_OF(Context->ExcludeRect); i++)
+    {
+        PRECT rect = &Context->ExcludeRect[i];
+        FLOAT radius = (FLOAT)Context->ExcludeRadius[i];
+        FLOAT deltaX = 0.0f;
+        FLOAT deltaY = 0.0f;
+
+        if (!(x >= rect->left && x < rect->right && y >= rect->top && y < rect->bottom))
+            continue;
+
+        // Windows 11 rounds the occluder corners, so the shadow stays visible
+        // in the transparent corner area outside the rounded rectangle.
+
+        if (radius <= 0.0f)
+            return TRUE;
+
+        if (x < rect->left + radius)
+            deltaX = (rect->left + radius) - (x + 0.5f);
+        else if (x >= rect->right - radius)
+            deltaX = (x + 0.5f) - (rect->right - radius);
+
+        if (y < rect->top + radius)
+            deltaY = (rect->top + radius) - (y + 0.5f);
+        else if (y >= rect->bottom - radius)
+            deltaY = (y + 0.5f) - (rect->bottom - radius);
+
+        if ((deltaX * deltaX) + (deltaY * deltaY) <= radius * radius)
+            return TRUE;
+    }
+
+    return FALSE;
+}
+
+VOID PhRenderWindowShadow(
+    _In_ PPH_WINDOW_SHADOW_CONTEXT Context
+    )
+{
+    PULONG pixels = (PULONG)Context->Bits;
+    LONG totalWidth = Context->ContentWidth + Context->MarginLeft + Context->MarginRight;
+    LONG totalHeight = Context->ContentHeight + Context->MarginTop + Context->MarginBottom;
+    LONG innerLeft = Context->MarginLeft;
+    LONG innerTop = Context->MarginTop;
+    LONG innerRight = Context->MarginLeft + Context->ContentWidth;
+    LONG innerBottom = Context->MarginTop + Context->ContentHeight;
+    FLOAT shadowRadius = (FLOAT)Context->Margin;
+    FLOAT radius;
+    ULONG background;
+    LONG maximumRadius;
+
+    // Clamp the corner radius for popups smaller than the radius itself.
+
+    maximumRadius = std::min(Context->ContentWidth, Context->ContentHeight) / 2;
+    radius = (FLOAT)std::min(Context->Radius, maximumRadius);
+
+    // The interior is fully opaque so the color needs no pre-multiplication.
+
+    background = 0xff000000 |
+        ((ULONG)GetRValue(Context->BackgroundColor) << 16) |
+        ((ULONG)GetGValue(Context->BackgroundColor) << 8) |
+        ((ULONG)GetBValue(Context->BackgroundColor));
+
+    for (LONG y = 0; y < totalHeight; y++)
+    {
+        for (LONG x = 0; x < totalWidth; x++)
+        {
+            LONG index = y * totalWidth + x;
+            FLOAT pixelX = (FLOAT)x + 0.5f;
+            FLOAT pixelY = (FLOAT)y + 0.5f;
+            FLOAT deltaX = 0.0f;
+            FLOAT deltaY = 0.0f;
+            FLOAT distance;
+
+            // Distance from the pixel center to the inner content box, so all
+            // four edges are symmetric (sampling the pixel corner painted a 1px
+            // background line past the right and bottom edges). Edges without a
+            // shadow are left square so the buffer stays opaque to the edge.
+
+            if (pixelX < innerLeft + radius)
+            {
+                if (Context->Sides & PhWindowShadowSideLeft)
+                    deltaX = (innerLeft + radius) - pixelX;
+            }
+            else if (pixelX > innerRight - radius)
+            {
+                if (Context->Sides & PhWindowShadowSideRight)
+                    deltaX = pixelX - (innerRight - radius);
+            }
+
+            if (pixelY < innerTop + radius)
+            {
+                if (Context->Sides & PhWindowShadowSideTop)
+                    deltaY = (innerTop + radius) - pixelY;
+            }
+            else if (pixelY > innerBottom - radius)
+            {
+                if (Context->Sides & PhWindowShadowSideBottom)
+                    deltaY = pixelY - (innerBottom - radius);
+            }
+
+            distance = sqrtf((deltaX * deltaX) + (deltaY * deltaY));
+
+            if (distance <= radius)
+            {
+                // Inside the inner rounded content box.
+
+                pixels[index] = background;
+            }
+            else if (PhIsPointInWindowShadowExclusion(Context, x, y))
+            {
+                // Overlaps an occluder (the menu bar or a parent menu).
+
+                pixels[index] = 0;
+            }
+            else
+            {
+                FLOAT shadowDistance = distance - radius;
+
+                if (shadowDistance < shadowRadius)
+                {
+                    // Quadratic falloff for a soft shadow edge. The shadow is
+                    // black so the pre-multiplied color channels stay zero.
+
+                    FLOAT factor = 1.0f - (shadowDistance / shadowRadius);
+                    BYTE alpha = (BYTE)(factor * factor * PH_WINDOW_SHADOW_OPACITY * 255.0f);
+
+                    pixels[index] = (ULONG)alpha << 24;
+                }
+                else
+                {
+                    pixels[index] = 0; // Completely transparent.
+                }
+            }
+        }
+    }
+}
+
+LRESULT CALLBACK PhWindowShadowWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    )
+{
+    if (WindowMessage == WM_NCDESTROY)
+    {
+        PPH_WINDOW_SHADOW_CONTEXT context;
+
+        if (context = static_cast<PPH_WINDOW_SHADOW_CONTEXT>(PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_CONTEXT_PROPERTY)))
+        {
+            PhDeleteWindowShadowBuffer(context);
+            PhFree(context);
+
+            PhRemoveWindowContext(WindowHandle, PH_WINDOW_SHADOW_CONTEXT_PROPERTY);
+        }
+
+        return 0;
+    }
+
+    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+}
+
+/**
+ * Registers the shadow window class.
+ */
+RTL_ATOM PhWindowShadowInitialization(
+    VOID
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static RTL_ATOM registered = RTL_ATOM_INVALID_ATOM;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        WNDCLASSEX wcex;
+
+        memset(&wcex, 0, sizeof(WNDCLASSEX));
+        wcex.cbSize = sizeof(WNDCLASSEX);
+        wcex.style = CS_GLOBALCLASS;
+        wcex.lpfnWndProc = PhWindowShadowWndProc;
+        wcex.hInstance = static_cast<HINSTANCE>(NtCurrentImageBase());
+        wcex.lpszClassName = PH_WINDOW_SHADOW_CLASSNAME;
+
+        registered = RegisterClassEx(&wcex);
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    return registered;
+}
+
+/**
+ * Attaches a layered drop-shadow window to a popup window. The shadow is not
+ * shown until PhUpdateWindowShadow is called, since the owner popup typically
+ * isn't sized or positioned yet when the shadow is created.
+ *
+ * \param WindowHandle The popup window to attach the shadow to.
+ * \return TRUE if a shadow was attached, otherwise FALSE.
+ */
+BOOLEAN PhCreateWindowShadow(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND parentHandle;
+    HWND shadowHandle;
+    RTL_ATOM windowAtom;
+    PPH_WINDOW_SHADOW_CONTEXT context;
+
+    if (PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY))
+        return TRUE;
+
+    windowAtom = PhWindowShadowInitialization();
+    if (windowAtom == RTL_ATOM_INVALID_ATOM)
+        return FALSE;
+
+    parentHandle = GetWindow(WindowHandle, GW_OWNER); // Never the popup itself. (dmex)
+    if (!parentHandle)
+        return FALSE;
+
+    // WS_EX_TRANSPARENT passes mouse clicks through to whatever is underneath.
+    // WS_EX_NOACTIVATE stops the window taking focus.
+    // WS_EX_TOOLWINDOW keeps it out of the shell's window lists (Alt+Tab, task switchers).
+    // WS_EX_NOREDIRECTIONBITMAP skips the DWM redirection surface, which the window
+    // never paints into since UpdateLayeredWindow supplies the content. DWM still keeps
+    // its own copy of the bits passed to UpdateLayeredWindow for composition, so this
+    // doesn't remove the context buffer (retained only to avoid re-rendering on moves).
+    // Combined with WS_EX_LAYERED this is undocumented behavior. (dmex)
+
+    shadowHandle = CreateWindowEx(
+        WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_NOREDIRECTIONBITMAP,
+        MAKEINTATOM(windowAtom),
+        NULL,
+        WS_POPUP,
+        0,
+        0,
+        0,
+        0,
+        parentHandle,
+        NULL,
+        static_cast<HINSTANCE>(NtCurrentImageBase()),
+        NULL
+        );
+
+    if (!shadowHandle)
+        return FALSE;
+
+    context = static_cast<PPH_WINDOW_SHADOW_CONTEXT>(PhAllocateZero(sizeof(PH_WINDOW_SHADOW_CONTEXT)));
+    PhSetWindowContext(shadowHandle, PH_WINDOW_SHADOW_CONTEXT_PROPERTY, context);
+    PhSetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY, shadowHandle);
+
+    return TRUE;
+}
+
+typedef struct _PH_WINDOW_SHADOW_OCCLUDERS
+{
+    HWND WindowHandle;
+    ULONG Count;
+    LONG MenuRadius;
+    RECT Rect[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
+    LONG Radius[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
+} PH_WINDOW_SHADOW_OCCLUDERS, *PPH_WINDOW_SHADOW_OCCLUDERS;
+
+VOID PhAddWindowShadowOccluder(
+    _Inout_ PPH_WINDOW_SHADOW_OCCLUDERS Occluders,
+    _In_ PRECT Rect,
+    _In_ LONG Radius
+    )
+{
+    if (Occluders->Count < RTL_NUMBER_OF(Occluders->Rect) && !IsRectEmpty(Rect))
+    {
+        Occluders->Rect[Occluders->Count] = *Rect;
+        Occluders->Radius[Occluders->Count] = Radius;
+        Occluders->Count++;
+    }
+}
+
+BOOL CALLBACK PhEnumWindowShadowMenuOccluders(
+    _In_ HWND WindowHandle,
+    _In_ LPARAM Context
+    )
+{
+    PPH_WINDOW_SHADOW_OCCLUDERS occluders = reinterpret_cast<PPH_WINDOW_SHADOW_OCCLUDERS>(Context);
+    WCHAR className[16];
+    RECT windowRect;
+
+    if (WindowHandle == occluders->WindowHandle || !IsWindowVisible(WindowHandle))
+        return TRUE;
+
+    // Other open menu popups on the thread (the parent menus of a submenu).
+
+    if (NT_SUCCESS(PhGetClassName(WindowHandle, className, RTL_NUMBER_OF(className), NULL)) &&
+        PhEqualStringZ(className, L"#32768", FALSE) &&
+        PhGetWindowRect(WindowHandle, &windowRect))
+    {
+        PhAddWindowShadowOccluder(occluders, &windowRect, occluders->MenuRadius);
+    }
+
+    return TRUE;
+}
+
+/**
+ * Adds a toolbar menu bar (e.g. the ToolStatus menu bar) that opened the menu,
+ * including the rebar (coolbar) band hosting it, as occluders.
+ */
+VOID PhAddWindowShadowToolbarOccluder(
+    _Inout_ PPH_WINDOW_SHADOW_OCCLUDERS Occluders,
+    _In_ HWND ToolbarHandle
+    )
+{
+    WCHAR className[32];
+    RECT toolbarRect;
+    HWND rebarHandle;
+
+    if (!NT_SUCCESS(PhGetClassName(ToolbarHandle, className, RTL_NUMBER_OF(className), NULL)))
+        return;
+    if (!PhEqualStringZ(className, TOOLBARCLASSNAME, TRUE))
+        return;
+
+    if (PhGetWindowRect(ToolbarHandle, &toolbarRect))
+    {
+        PhAddWindowShadowOccluder(Occluders, &toolbarRect, 0);
+    }
+
+    if (
+        (rebarHandle = GetParent(ToolbarHandle)) &&
+        NT_SUCCESS(PhGetClassName(rebarHandle, className, RTL_NUMBER_OF(className), NULL)) &&
+        PhEqualStringZ(className, REBARCLASSNAME, TRUE)
+        )
+    {
+        ULONG bandCount = (ULONG)SendMessage(rebarHandle, RB_GETBANDCOUNT, 0, 0);
+
+        for (ULONG i = 0; i < bandCount; i++)
+        {
+            REBARBANDINFO bandInfo;
+            RECT bandRect;
+
+            memset(&bandInfo, 0, sizeof(REBARBANDINFO));
+            bandInfo.cbSize = sizeof(REBARBANDINFO);
+            bandInfo.fMask = RBBIM_CHILD;
+
+            if (!SendMessage(rebarHandle, RB_GETBANDINFO, i, reinterpret_cast<LPARAM>(&bandInfo)))
+                continue;
+            if (bandInfo.hwndChild != ToolbarHandle)
+                continue;
+
+            if (SendMessage(rebarHandle, RB_GETRECT, i, reinterpret_cast<LPARAM>(&bandRect)))
+            {
+                MapWindowRect(rebarHandle, HWND_DESKTOP, &bandRect);
+                PhAddWindowShadowOccluder(Occluders, &bandRect, 0);
+            }
+
+            break;
+        }
+    }
+}
+
+/**
+ * Collects the surfaces the shadow shouldn't be cast onto. The #32768 popups
+ * aren't owned by the window or menu that opened them, so the menu owner comes
+ * from the thread's menu mode state rather than GW_OWNER. (dmex)
+ */
+VOID PhQueryWindowShadowOccluders(
+    _In_ HWND WindowHandle,
+    _In_ LONG MenuRadius,
+    _Out_ PPH_WINDOW_SHADOW_OCCLUDERS Occluders
+    )
+{
+    ULONG threadId;
+    GUITHREADINFO threadInfo;
+    HWND ownerHandle;
+
+    memset(Occluders, 0, sizeof(PH_WINDOW_SHADOW_OCCLUDERS));
+    Occluders->WindowHandle = WindowHandle;
+    Occluders->MenuRadius = MenuRadius;
+
+    threadId = GetWindowThreadProcessId(WindowHandle, NULL);
+
+    memset(&threadInfo, 0, sizeof(GUITHREADINFO));
+    threadInfo.cbSize = sizeof(GUITHREADINFO);
+
+    if (GetGUIThreadInfo(threadId, &threadInfo) && threadInfo.hwndMenuOwner)
+        ownerHandle = threadInfo.hwndMenuOwner;
+    else
+        ownerHandle = GetWindow(WindowHandle, GW_OWNER);
+
+    if (ownerHandle && IsWindowVisible(ownerHandle))
+    {
+        MENUBARINFO menuBarInfo;
+
+        // The menu bar the drop-down was opened from.
+
+        memset(&menuBarInfo, 0, sizeof(MENUBARINFO));
+        menuBarInfo.cbSize = sizeof(MENUBARINFO);
+
+        if (GetMenuBarInfo(ownerHandle, OBJID_MENU, 0, &menuBarInfo))
+        {
+            PhAddWindowShadowOccluder(Occluders, &menuBarInfo.rcBar, 0);
+        }
+
+        // The toolbar menu bar (coolbar) the drop-down was opened from.
+
+        PhAddWindowShadowToolbarOccluder(Occluders, ownerHandle);
+    }
+
+    EnumThreadWindows(threadId, PhEnumWindowShadowMenuOccluders, reinterpret_cast<LPARAM>(Occluders));
+}
+
+/**
+ * Positions the drop-shadow window beneath its owner popup, re-rendering the
+ * shadow when the size, DPI or theme color changed since the last update.
+ *
+ * \param WindowHandle The popup window the shadow was attached to.
+ * \param Sides The sides of the popup to draw the shadow on. Sides that aren't
+ * included stay flush with the owner popup and are drawn with square corners.
+ */
+VOID PhUpdateWindowShadow(
+    _In_ HWND WindowHandle,
+    _In_ PH_WINDOW_SHADOW_SIDE Sides
+    )
+{
+    HWND shadowHandle;
+    PPH_WINDOW_SHADOW_CONTEXT context;
+    RECT windowRect;
+    COLORREF backgroundColor;
+    LONG contentWidth;
+    LONG contentHeight;
+    LONG windowDpi;
+    LONG marginLeft;
+    LONG marginTop;
+    LONG marginRight;
+    LONG marginBottom;
+    LONG margin;
+    PH_WINDOW_SHADOW_OCCLUDERS occluders;
+    RECT excludeRect[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
+    LONG excludeRadius[PH_WINDOW_SHADOW_MAX_OCCLUDERS];
+    RECT shadowRect;
+
+    if (!(shadowHandle = static_cast<HWND>(PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY))))
+        return;
+    if (!(context = static_cast<PPH_WINDOW_SHADOW_CONTEXT>(PhGetWindowContext(shadowHandle, PH_WINDOW_SHADOW_CONTEXT_PROPERTY))))
+        return;
+
+    if (!IsWindowVisible(WindowHandle))
+    {
+        ShowWindow(shadowHandle, SW_HIDE);
+        return;
+    }
+
+    if (!PhGetWindowRect(WindowHandle, &windowRect))
+        return;
+
+    contentWidth = windowRect.right - windowRect.left;
+    contentHeight = windowRect.bottom - windowRect.top;
+
+    if (contentWidth <= 0 || contentHeight <= 0)
+    {
+        ShowWindow(shadowHandle, SW_HIDE);
+        return;
+    }
+
+    windowDpi = PhGetWindowDpi(WindowHandle);
+    backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_MENU);
+    margin = PhScaleToDisplay(PH_WINDOW_SHADOW_MARGIN, windowDpi);
+
+    PhQueryWindowShadowOccluders(
+        WindowHandle,
+        WindowsVersion >= WINDOWS_11 ? PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi) : 0,
+        &occluders
+        );
+
+    marginLeft = (Sides & PhWindowShadowSideLeft) ? margin : 0;
+    marginTop = (Sides & PhWindowShadowSideTop) ? margin : 0;
+    marginRight = (Sides & PhWindowShadowSideRight) ? margin : 0;
+    marginBottom = (Sides & PhWindowShadowSideBottom) ? margin : 0;
+
+    // Draw every requested side, but clear the shadow pixels that intersect an
+    // occluder (the menu bar or a parent menu) so it's never cast onto them.
+
+    shadowRect.left = windowRect.left - marginLeft;
+    shadowRect.top = windowRect.top - marginTop;
+    shadowRect.right = windowRect.right + marginRight;
+    shadowRect.bottom = windowRect.bottom + marginBottom;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(excludeRect); i++)
+    {
+        RECT intersect;
+
+        // Keep the whole occluder rect (not just the intersection) so its
+        // rounded corners are tested against the real corner positions.
+
+        if (i < occluders.Count && PhIntersectRect(&intersect, &shadowRect, &occluders.Rect[i]))
+        {
+            excludeRect[i] = occluders.Rect[i];
+            excludeRadius[i] = occluders.Radius[i];
+            PhOffsetRect(&excludeRect[i], -shadowRect.left, -shadowRect.top);
+        }
+        else
+        {
+            SetRectEmpty(&excludeRect[i]);
+            excludeRadius[i] = 0;
+        }
+    }
+
+    if (
+        context->ContentWidth != contentWidth ||
+        context->ContentHeight != contentHeight ||
+        context->WindowDpi != windowDpi ||
+        context->BackgroundColor != backgroundColor ||
+        context->Sides != Sides ||
+        memcmp(context->ExcludeRect, excludeRect, sizeof(excludeRect)) != 0 ||
+        memcmp(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius)) != 0
+        )
+    {
+        context->ContentWidth = contentWidth;
+        context->ContentHeight = contentHeight;
+        context->WindowDpi = windowDpi;
+        context->BackgroundColor = backgroundColor;
+        context->Sides = Sides;
+        memcpy(context->ExcludeRect, excludeRect, sizeof(excludeRect));
+        memcpy(context->ExcludeRadius, excludeRadius, sizeof(excludeRadius));
+        context->Margin = margin;
+        context->Radius = PhScaleToDisplay(PH_WINDOW_SHADOW_RADIUS, windowDpi);
+        context->MarginLeft = marginLeft;
+        context->MarginTop = marginTop;
+        context->MarginRight = marginRight;
+        context->MarginBottom = marginBottom;
+
+        if (!PhCreateWindowShadowBuffer(
+            context,
+            contentWidth + context->MarginLeft + context->MarginRight,
+            contentHeight + context->MarginTop + context->MarginBottom
+            ))
+        {
+            ShowWindow(shadowHandle, SW_HIDE);
+            return;
+        }
+
+        PhRenderWindowShadow(context);
+    }
+
+    {
+        POINT sourcePoint = { 0, 0 };
+        POINT destinationPoint;
+        SIZE windowSize;
+        BLENDFUNCTION blendFunction;
+
+        destinationPoint.x = windowRect.left - context->MarginLeft;
+        destinationPoint.y = windowRect.top - context->MarginTop;
+        windowSize.cx = contentWidth + context->MarginLeft + context->MarginRight;
+        windowSize.cy = contentHeight + context->MarginTop + context->MarginBottom;
+
+        memset(&blendFunction, 0, sizeof(BLENDFUNCTION));
+        blendFunction.BlendOp = AC_SRC_OVER;
+        blendFunction.SourceConstantAlpha = 255;
+        blendFunction.AlphaFormat = AC_SRC_ALPHA; // Requires pre-multiplied alpha.
+
+        UpdateLayeredWindow(
+            shadowHandle,
+            NULL,
+            &destinationPoint,
+            &windowSize,
+            context->BufferDc,
+            &sourcePoint,
+            0,
+            &blendFunction,
+            ULW_ALPHA
+            );
+
+        // Insert the shadow directly beneath the owner popup so it inherits
+        // the topmost band of the popup without activating. (dmex)
+
+        SetWindowPos(
+            shadowHandle,
+            WindowHandle,
+            destinationPoint.x,
+            destinationPoint.y,
+            windowSize.cx,
+            windowSize.cy,
+            SWP_NOACTIVATE | SWP_NOREDRAW  | SWP_SHOWWINDOW
+            );
+    }
+}
+
+/**
+ * Destroys the drop-shadow window attached to a popup window.
+ *
+ * \param WindowHandle The popup window the shadow was attached to.
+ */
+VOID PhDestroyWindowShadow(
+    _In_ HWND WindowHandle
+    )
+{
+    HWND shadowHandle;
+
+    if (shadowHandle = static_cast<HWND>(PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY)))
+    {
+        PhRemoveWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY);
+        DestroyWindow(shadowHandle);
+    }
+}
+
+/**
+ * Sets the display affinity of the drop-shadow window attached to a popup
+ * window, so the shadow is excluded from capture along with its owner.
+ *
+ * \param WindowHandle The popup window the shadow was attached to.
+ * \param Affinity The WDA_* display affinity value.
+ */
+VOID PhSetWindowShadowDisplayAffinity(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Affinity
+    )
+{
+    HWND shadowHandle;
+
+    if (shadowHandle = static_cast<HWND>(PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY)))
+    {
+        SetWindowDisplayAffinity(shadowHandle, Affinity);
+    }
+}
+
