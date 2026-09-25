@@ -2196,6 +2196,7 @@ BOOLEAN PhCreateWindowShadow(
     HWND parentHandle;
     HWND shadowHandle;
     RTL_ATOM windowAtom;
+    ULONG exStyle;
     PPH_WINDOW_SHADOW_CONTEXT context;
 
     if (PhGetWindowContext(WindowHandle, PH_WINDOW_SHADOW_PROPERTY))
@@ -2205,9 +2206,15 @@ BOOLEAN PhCreateWindowShadow(
     if (windowAtom == RTL_ATOM_INVALID_ATOM)
         return FALSE;
 
-    parentHandle = GetWindow(WindowHandle, GW_OWNER); // Never the popup itself. (dmex)
-    if (!parentHandle)
-        return FALSE;
+    // Menu popups (#32768) are unowned, so the owner is optional. Never the popup itself. (dmex)
+    parentHandle = GetWindow(WindowHandle, GW_OWNER);
+
+    exStyle = WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_NOREDIRECTIONBITMAP;
+
+    // The shadow is z-ordered directly below the popup, which requires matching
+    // the topmost band when the popup is topmost (menus always are). (dmex)
+    if (PhGetWindowStyleEx(WindowHandle) & WS_EX_TOPMOST)
+        exStyle |= WS_EX_TOPMOST;
 
     // WS_EX_TRANSPARENT passes mouse clicks through to whatever is underneath.
     // WS_EX_NOACTIVATE stops the window taking focus.
@@ -2219,7 +2226,7 @@ BOOLEAN PhCreateWindowShadow(
     // Combined with WS_EX_LAYERED this is undocumented behavior. (dmex)
 
     shadowHandle = CreateWindowEx(
-        WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOOLWINDOW | WS_EX_NOREDIRECTIONBITMAP,
+        exStyle,
         MAKEINTATOM(windowAtom),
         NULL,
         WS_POPUP,

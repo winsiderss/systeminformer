@@ -605,6 +605,54 @@ PhSetRectEmpty(
     return TRUE;
 }
 
+/**
+ * Returns a cached scratch region, creating it on first use.
+ *
+ * \param Region A pointer to the cached region handle. The handle is owned by the caller and
+ * must be released with PhDeleteScratchRegion.
+ *
+ * \return The scratch region, or NULL if the region could not be created. The contents of the
+ * region are undefined; callers are expected to overwrite them (SetRectRgn, GetUpdateRgn,
+ * GetClipRgn) before use.
+ *
+ * \remarks GDI functions that accept a region (including WM_NCPAINT handlers reached via
+ * DefWindowProc or CallWindowProc) do not take ownership of it, so a single scratch region can
+ * be reused instead of allocating a new one on every paint.
+ */
+FORCEINLINE
+HRGN
+NTAPI
+PhGetScratchRegion(
+    _Inout_ HRGN* Region
+    )
+{
+    if (!*Region)
+    {
+        *Region = CreateRectRgn(0, 0, 0, 0);
+    }
+
+    return *Region;
+}
+
+/**
+ * Deletes a cached scratch region.
+ *
+ * \param Region A pointer to the cached region handle. Set to NULL on return.
+ */
+FORCEINLINE
+VOID
+NTAPI
+PhDeleteScratchRegion(
+    _Inout_ HRGN* Region
+    )
+{
+    if (*Region)
+    {
+        DeleteRgn(*Region);
+        *Region = NULL;
+    }
+}
+
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -679,6 +727,27 @@ PhOffsetRect(
     Rect->right += dx;
     Rect->bottom += dy;
     return TRUE;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhIntersectRect(
+    _Out_ PRECT Result,
+    _In_ PRECT Rect1,
+    _In_ PRECT Rect2
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!IntersectRect(Result, Rect1, Rect2);
+#else
+    Result->left = Rect1->left > Rect2->left ? Rect1->left : Rect2->left;
+    Result->top = Rect1->top > Rect2->top ? Rect1->top : Rect2->top;
+    Result->right = Rect1->right < Rect2->right ? Rect1->right : Rect2->right;
+    Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
+
+    return Result->right > Result->left && Result->bottom > Result->top;
 #endif
 }
 
@@ -1138,6 +1207,27 @@ FORCEINLINE VOID PhSetWindowExStyle(
     style = (ULONG)GetWindowLongPtr(Handle, GWL_EXSTYLE);
     style = (style & ~Mask) | (Value & Mask);
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
+}
+
+/**
+ * Forces the window frame to be recalculated and repainted.
+ *
+ * \param WindowHandle A handle to the window.
+ *
+ * \remarks Changing a non-client style (WS_BORDER, WS_CAPTION, WS_EX_CLIENTEDGE and others) does not
+ * invalidate the cached non-client metrics. Call this after PhSetWindowStyle/PhSetWindowExStyle so the
+ * window recalculates its frame instead of waiting for an unrelated size or theme change.
+ */
+FORCEINLINE VOID PhSetWindowFrameChanged(
+    _In_ HWND WindowHandle
+    )
+{
+    SetWindowPos(
+        WindowHandle,
+        NULL,
+        0, 0, 0, 0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+        );
 }
 
 FORCEINLINE WNDPROC PhGetWindowProcedure(
@@ -2036,6 +2126,17 @@ PhRedrawWindow(
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
 }
 
+FORCEINLINE
+BOOL
+NTAPI
+PhRedrawWindowEx(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags
+    )
+{
+    return RedrawWindow(WindowHandle, NULL, NULL, Flags);
+}
+
 typedef _Function_class_(PH_DESKTOP_ENUM_CALLBACK)
 BOOLEAN NTAPI PH_DESKTOP_ENUM_CALLBACK(
     _In_ PCWSTR DesktopName,
@@ -2336,6 +2437,17 @@ COLORREF NTAPI PH_EXTLV_GET_ITEM_COLOR(
     );
 typedef PH_EXTLV_GET_ITEM_COLOR* PPH_EXTLV_GET_ITEM_COLOR;
 
+typedef _Function_class_(PH_EXTLV_DRAW_SUBITEM)
+BOOLEAN NTAPI PH_EXTLV_DRAW_SUBITEM(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ HDC DeviceContext,
+    _In_ PRECT Rect,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    );
+typedef PH_EXTLV_DRAW_SUBITEM* PPH_EXTLV_DRAW_SUBITEM;
+
 typedef _Function_class_(PH_EXTLV_GET_ITEM_FONT)
 HFONT NTAPI PH_EXTLV_GET_ITEM_FONT(
     _In_ LONG Index,
@@ -2396,6 +2508,7 @@ PhSetHeaderSortIcon(
 #define ELVM_SETCURSOR (WM_APP + 1114)
 #define ELVM_RESERVED4 (WM_APP + 1118)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
+#define ELVM_SETSUBITEMDRAWFUNCTION (WM_APP + 1120)
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_RESERVED1 (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
@@ -2424,6 +2537,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
+#define ExtendedListView_SetSubItemDrawFunction(hWnd, SubItemDrawFunction) \
+    SendMessage((hWnd), ELVM_SETSUBITEMDRAWFUNCTION, 0, (LPARAM)(SubItemDrawFunction))
 #define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
     SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
@@ -3310,7 +3425,7 @@ DEFINE_GUID(IID_IWICBitmapSource, 0x00000120, 0xa8f2, 0x4877, 0xba, 0x0a, 0xfd, 
 DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
 
 HBITMAP PhCreateDIBSection(
-    _In_ HDC Hdc,
+    _In_opt_ HDC Hdc,
     _In_ PH_BUFFERFORMAT Format,
     _In_ LONG Width,
     _In_ LONG Height,
@@ -3636,6 +3751,18 @@ PhQueryWindowRealProcess(
 }
 
 FORCEINLINE
+ULONG
+PhQueryWindowRealThread(
+    _In_ HWND WindowHandle
+    )
+{
+    return (ULONG)PhUserQueryWindow(
+        WindowHandle,
+        WindowThread
+        );
+}
+
+FORCEINLINE
 BOOLEAN
 PhWindowIsHung(
     _In_ HWND WindowHandle
@@ -3784,6 +3911,66 @@ PhQueryWindowsUseDarkMode(
     VOID
     );
 
+// TRUE when the current theme requests the Mica backdrop and the system will
+// actually composite it; callers may extend the frame into the client area and
+// leave client pixels transparent.
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhWindowThemeSupportsMicaClient(
+    VOID
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhSetWindowFrameMargins(
+    _In_ HWND WindowHandle,
+    _In_ const PH_WINDOW_MARGINS* Margins
+    );
+
+// Layered drop-shadow for popup windows (CS_DROPSHADOW is no longer honored
+// for the system menu class on Windows 11).
+
+typedef enum _PH_WINDOW_SHADOW_SIDE
+{
+    PhWindowShadowSideNone = 0x0000,
+    PhWindowShadowSideLeft = 0x0001,
+    PhWindowShadowSideTop = 0x0002,
+    PhWindowShadowSideRight = 0x0004,
+    PhWindowShadowSideBottom = 0x0008,
+    PhWindowShadowSideAll = PhWindowShadowSideLeft | PhWindowShadowSideTop |
+        PhWindowShadowSideRight | PhWindowShadowSideBottom
+} PH_WINDOW_SHADOW_SIDE;
+
+DEFINE_ENUM_FLAG_OPERATORS(PH_WINDOW_SHADOW_SIDE);
+
+PHLIBAPI
+BOOLEAN
+PhCreateWindowShadow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+PhUpdateWindowShadow(
+    _In_ HWND WindowHandle,
+    _In_ PH_WINDOW_SHADOW_SIDE Sides
+    );
+
+PHLIBAPI
+VOID
+PhDestroyWindowShadow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+PhSetWindowShadowDisplayAffinity(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Affinity
+    );
+
 PHLIBAPI
 VOID
 NTAPI
@@ -3807,6 +3994,24 @@ PhInitializeThemeWindowFrame(
     );
 
 PHLIBAPI
+HRESULT
+PhGetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _Out_writes_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    );
+
+PHLIBAPI
+HRESULT
+PhSetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _In_reads_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhInitializeThemeWindowGroupBox(
@@ -3818,6 +4023,13 @@ VOID
 NTAPI
 PhInitializeThemeWindowGroupBoxEx(
     _In_ HWND GroupBoxHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowProgressBar(
+    _In_ HWND ProgressBarHandle
     );
 
 PHLIBAPI
