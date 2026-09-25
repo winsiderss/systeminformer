@@ -343,6 +343,15 @@ PhFree(
     _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     );
 
+_Must_inspect_result_
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAllocateHeap(
+    _In_ SIZE_T Size,
+    _Outptr_result_bytebuffer_(Size) PVOID* Buffer
+    );
+
 _May_raise_
 _Ret_maybenull_
 _When_(Size == 0, _Post_null_)
@@ -372,6 +381,22 @@ NTAPI
 PhReAllocateSafe(
     _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
+    );
+
+_Must_inspect_result_
+_Ret_maybenull_
+_When_(return != NULL, _Post_writable_byte_size_(Size))
+_Success_(return != NULL)
+PHLIBAPI
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
+DECLSPEC_RESTRICT
+PVOID
+NTAPI
+PhReAllocateExSafe(
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -527,12 +552,7 @@ PhAllocateZero(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    buffer = PhAllocate(Size);
-    memset(buffer, 0, Size);
-
-    return buffer;
+    return PhAllocateExSafe(Size, HEAP_GENERATE_EXCEPTIONS | HEAP_ZERO_MEMORY);
 }
 
 FORCEINLINE
@@ -541,15 +561,7 @@ PhAllocateZeroSafe(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    if (buffer = PhAllocateSafe(Size))
-    {
-        memset(buffer, 0, Size);
-        return buffer;
-    }
-
-    return NULL;
+    return PhAllocateExSafe(Size, HEAP_ZERO_MEMORY);
 }
 
 FORCEINLINE
@@ -559,19 +571,10 @@ PhReAllocateZeroSafe(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    if (buffer = PhReAllocateSafe(Memory, Size))
-    {
-        memset(buffer, 0, Size);
-        return buffer;
-    }
-
-    return NULL;
+    return PhReAllocateExSafe(Memory, Size, HEAP_ZERO_MEMORY);
 }
 
 #define PhAllocateStack(Size) _malloca(Size)
-
 #define PhFreeStack(Memory) _freea(Memory)
 
 //

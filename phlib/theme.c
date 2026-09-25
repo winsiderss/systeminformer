@@ -256,7 +256,7 @@ BOOL (WINAPI *IsDarkModeAllowedForApp_I)(
 {\
     RECT rect;\
     GetClientRect((WindowHandle), &rect);\
-    assert(EqualRect(&rect, &(RcPaint)));\
+    assert(PhEqualRect(&rect, &(RcPaint)));\
 }
 #else
 #define DEBUG_BEGINPAINT_RECT(RcPaint)

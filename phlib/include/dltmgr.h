@@ -49,6 +49,14 @@ typedef struct _PH_UINTPTR_DELTA
     ((DltMgr)->Delta = (NewValue) - (DltMgr)->Value, \
     (DltMgr)->Value = (NewValue), (DltMgr)->Delta)
 
+// Same as PhUpdateDelta but yields a zero delta when the counter goes backwards. Use this for
+// monotonic hardware counters, which restart when the device is reset, reconnected or remounted:
+// the unsigned subtraction in PhUpdateDelta would otherwise produce a near 2^64 delta.
+// Note: NewValue is evaluated more than once. (dmex)
+#define PhUpdateDeltaClamped(DltMgr, NewValue) \
+    ((DltMgr)->Delta = ((NewValue) >= (DltMgr)->Value ? (NewValue) - (DltMgr)->Value : 0), \
+    (DltMgr)->Value = (NewValue), (DltMgr)->Delta)
+
 #define PH_SINGLE_DELTA_INIT { 0.0F, 0.0F }
 #define PH_DOUBLE_DELTA_INIT { 0.0, 0.0 }
 #define PH_UINT32_DELTA_INIT { 0UL, 0UL }
