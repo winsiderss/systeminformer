@@ -35,6 +35,7 @@
 #include <json.h>
 #include <filestream.h>
 
+// Entries point to settings allocated for the process lifetime so cached pointers survive growth.
 PPH_HASHTABLE PhSettingsHashtable;
 PH_QUEUED_LOCK PhSettingsLock = PH_QUEUED_LOCK_INIT;
 PPH_LIST PhIgnoredSettings;
@@ -88,8 +89,8 @@ BOOLEAN NTAPI PhSettingsHashtableEqualFunction(
     _In_ PVOID Entry2
     )
 {
-    PPH_SETTING setting1 = (PPH_SETTING)Entry1;
-    PPH_SETTING setting2 = (PPH_SETTING)Entry2;
+    PPH_SETTING setting1 = *(PPH_SETTING *)Entry1;
+    PPH_SETTING setting2 = *(PPH_SETTING *)Entry2;
 
     return PhEqualStringRef(&setting1->Name, &setting2->Name, TRUE);
 }
@@ -99,7 +100,7 @@ ULONG NTAPI PhSettingsHashtableHashFunction(
     _In_ PVOID Entry
     )
 {
-    PPH_SETTING setting = (PPH_SETTING)Entry;
+    PPH_SETTING setting = *(PPH_SETTING *)Entry;
 
     return PhHashStringRefEx(&setting->Name, TRUE, PH_STRING_HASH_XXH32);
 }
@@ -109,7 +110,7 @@ VOID PhSettingsInitialization(
     )
 {
     PhSettingsHashtable = PhCreateHashtable(
-        sizeof(PH_SETTING),
+        sizeof(PPH_SETTING),
         PhSettingsHashtableEqualFunction,
         PhSettingsHashtableHashFunction,
         512
@@ -307,20 +308,32 @@ static VOID PhpFreeSettingValue(
     }
 }
 
-static PVOID PhpLookupSetting(
+static PPH_SETTING PhpLookupSetting(
     _In_ PCPH_STRINGREF Name
     )
 {
     PH_SETTING lookupSetting;
-    PPH_SETTING setting;
+    PPH_SETTING lookupSettingPtr = &lookupSetting;
+    PPH_SETTING *setting;
 
     lookupSetting.Name = *Name;
-    setting = (PPH_SETTING)PhFindEntryHashtable(
+    setting = PhFindEntryHashtable(
         PhSettingsHashtable,
-        &lookupSetting
+        &lookupSettingPtr
         );
 
-    return setting;
+    return setting ? *setting : NULL;
+}
+
+static PPH_SETTING PhpNextEnumSetting(
+    _Inout_ PPH_HASHTABLE_ENUM_CONTEXT EnumContext
+    )
+{
+    PPH_SETTING *setting;
+
+    setting = PhNextEnumHashtable(EnumContext);
+
+    return setting ? *setting : NULL;
 }
 
 VOID PhEnumSettings(
@@ -335,7 +348,7 @@ VOID PhEnumSettings(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         if (!Callback(setting, Context))
             break;
@@ -798,7 +811,7 @@ NTSTATUS PhSaveSettingsBin(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         PPH_STRING settingValue = PhSettingToString(setting->Type, setting);
         totalSize += sizeof(PH_SETTINGS_BIN_SETTING) + setting->Name.Length + settingValue->Length;
@@ -826,7 +839,7 @@ NTSTATUS PhSaveSettingsBin(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         PPH_STRING settingValue = PhSettingToString(setting->Type, setting);
         PH_SETTINGS_BIN_SETTING entry;
@@ -1007,7 +1020,7 @@ static VOID PhpSaveSettingsToKey(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         switch (setting->Type)
         {
@@ -1494,7 +1507,7 @@ NTSTATUS PhSaveSettingsJson(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         switch (setting->Type)
         {
@@ -1872,7 +1885,7 @@ NTSTATUS PhLoadSettingsXml(
 //
 //        PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 //
-//        while (setting = PhNextEnumHashtable(&enumContext))
+//        while (setting = PhpNextEnumSetting(&enumContext))
 //        {
 //            PPH_STRING settingValue;
 //
@@ -1921,7 +1934,7 @@ NTSTATUS PhLoadSettingsXml(
 //    //
 //    //    PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 //    //
-//    //    while (setting = PhNextEnumHashtable(&enumContext))
+//    //    while (setting = PhpNextEnumSetting(&enumContext))
 //    //    {
 //    //        PPH_STRING settingValue;
 //    //
@@ -2077,7 +2090,7 @@ NTSTATUS PhSaveSettingsXml(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         PPH_STRING settingValue;
 
@@ -2560,7 +2573,7 @@ VOID PhResetSettings(
 
     PhBeginEnumHashtable(PhSettingsHashtable, &enumContext);
 
-    while (setting = PhNextEnumHashtable(&enumContext))
+    while (setting = PhpNextEnumSetting(&enumContext))
     {
         PhpFreeSettingValue(setting->Type, setting);
         PhSettingFromString(setting->Type, &setting->DefaultValue, NULL, setting);
@@ -2648,17 +2661,20 @@ VOID PhAddSetting(
     _In_ PCPH_STRINGREF DefaultValue
     )
 {
-    PH_SETTING setting;
+    PPH_SETTING setting;
 
-    memset(&setting, 0, sizeof(PH_SETTING));
-    setting.Type = Type;
-    setting.Name = *Name;
-    setting.DefaultValue = *DefaultValue;
-    memset(&setting.u, 0, sizeof(setting.u));
+    setting = PhAllocateZero(sizeof(PH_SETTING));
+    setting->Type = Type;
+    setting->Name = *Name;
+    setting->DefaultValue = *DefaultValue;
 
-    PhSettingFromString(Type, &setting.DefaultValue, NULL, &setting);
+    PhSettingFromString(Type, &setting->DefaultValue, NULL, setting);
 
-    PhAddEntryHashtable(PhSettingsHashtable, &setting);
+    if (!PhAddEntryHashtable(PhSettingsHashtable, &setting))
+    {
+        PhpFreeSettingValue(Type, setting);
+        PhFree(setting);
+    }
 }
 
 VOID PhAddSettings(
