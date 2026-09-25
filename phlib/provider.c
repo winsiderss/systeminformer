@@ -192,6 +192,22 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
             if (PhAcquireRundownProtection(&registration->RundownProtect))
             {
+                LARGE_INTEGER performanceCounter;
+
+                // Measure the time actually spanned by this run. The nominal interval is not
+                // usable as a divisor for rates because providers can be boosted (run out of
+                // band), can overrun the interval, or can be paused. (dmex)
+
+                if (PhQueryPerformanceCounter(&performanceCounter))
+                {
+                    if (registration->LastRunTime.QuadPart != 0)
+                        WriteULong64NoFence(&registration->ElapsedTicks, (ULONG64)(performanceCounter.QuadPart - registration->LastRunTime.QuadPart));
+                    else
+                        WriteULong64NoFence(&registration->ElapsedTicks, 0);
+
+                    registration->LastRunTime = performanceCounter;
+                }
+
                 providerFunction(object);
 
                 PhReleaseRundownProtection(&registration->RundownProtect);
@@ -450,6 +466,8 @@ VOID PhRegisterProvider(
     Registration->Enabled = FALSE;
     Registration->Unregistering = FALSE;
     Registration->Boosting = FALSE;
+    Registration->LastRunTime.QuadPart = 0;
+    Registration->ElapsedTicks = 0;
 
     if (Object)
         PhReferenceObject(Object);
@@ -565,6 +583,59 @@ ULONG PhGetRunIdProvider(
     )
 {
     return Registration->RunId;
+}
+
+/**
+ * Gets the time actually spanned by the last provider run, in milliseconds.
+ *
+ * \param Registration A pointer to the registration object for a provider.
+ * \return The elapsed time in milliseconds, or 0 when the provider has only run once
+ * (or the performance counter is unavailable).
+ */
+ULONG PhGetProviderElapsedMilliseconds(
+    _In_ PPH_PROVIDER_REGISTRATION Registration
+    )
+{
+    PH_PROVIDER_ELAPSED elapsed;
+
+    if (!PhGetProviderElapsed(Registration, &elapsed))
+        return 0;
+
+    return (ULONG)(elapsed.Ticks * 1000 / elapsed.Frequency);
+}
+
+/**
+ * Gets the time actually spanned by the last provider run, in performance counter ticks.
+ *
+ * \param Registration A pointer to the registration object for a provider.
+ * \param Elapsed A variable which receives the elapsed ticks and the performance counter
+ * frequency. Rates are computed as Delta * Elapsed->Frequency / Elapsed->Ticks.
+ * \return TRUE if the elapsed time is available, FALSE when the provider has only run once
+ * (or the performance counter is unavailable).
+ */
+_Success_(return)
+BOOLEAN PhGetProviderElapsed(
+    _In_ PPH_PROVIDER_REGISTRATION Registration,
+    _Out_ PPH_PROVIDER_ELAPSED Elapsed
+    )
+{
+    LARGE_INTEGER performanceFrequency;
+    ULONG64 elapsedTicks;
+
+    elapsedTicks = ReadULong64NoFence(&Registration->ElapsedTicks);
+
+    if (elapsedTicks == 0)
+        return FALSE;
+
+    if (!PhQueryPerformanceFrequency(&performanceFrequency))
+        return FALSE;
+
+    if (performanceFrequency.QuadPart == 0)
+        return FALSE;
+
+    Elapsed->Ticks = elapsedTicks;
+    Elapsed->Frequency = (ULONG64)performanceFrequency.QuadPart;
+    return TRUE;
 }
 
 /**

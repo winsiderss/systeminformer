@@ -56,7 +56,15 @@ typedef struct _PH_PROVIDER_REGISTRATION
         };
     };
     PH_RUNDOWN_PROTECT RundownProtect;
+    LARGE_INTEGER LastRunTime;
+    ULONG64 ElapsedTicks;
 } PH_PROVIDER_REGISTRATION, *PPH_PROVIDER_REGISTRATION;
+
+typedef struct _PH_PROVIDER_ELAPSED
+{
+    ULONG64 Ticks; // performance counter ticks spanned by the last run
+    ULONG64 Frequency; // performance counter ticks per second
+} PH_PROVIDER_ELAPSED, *PPH_PROVIDER_ELAPSED;
 
 typedef struct _PH_PROVIDER_THREAD
 {
@@ -147,6 +155,22 @@ ULONG
 NTAPI
 PhGetRunIdProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhGetProviderElapsedMilliseconds(
+    _In_ PPH_PROVIDER_REGISTRATION Registration
+    );
+
+_Success_(return)
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhGetProviderElapsed(
+    _In_ PPH_PROVIDER_REGISTRATION Registration,
+    _Out_ PPH_PROVIDER_ELAPSED Elapsed
     );
 
 PHLIBAPI
