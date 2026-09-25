@@ -1562,19 +1562,28 @@ BOOLEAN PhShowConfirmMessage(
     _In_ BOOLEAN Warning
     )
 {
+    PPH_STRING verbString;
     PPH_STRING verb;
     PPH_STRING verbCaps;
     PPH_STRING action;
+    PPH_STRING mainInstruction;
+    PPH_STRING content = NULL;
+    BOOLEAN result;
 
     // Make sure the verb is all lowercase.
-    verb = PhaLowerString(PhaCreateString(Verb));
+    verbString = PhCreateString(Verb);
+    verb = PhLowerString(verbString);
 
     // "terminate" -> "Terminate"
-    verbCaps = PhaDuplicateString(verb);
+    verbCaps = PhDuplicateString(verb);
     if (verbCaps->Length > 0) verbCaps->Buffer[0] = PhUpcaseUnicodeChar(verbCaps->Buffer[0]);
 
     // "terminate", "the process" -> "terminate the process"
-    action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
+    action = PhConcatStrings(3, verb->Buffer, L" ", Object);
+    mainInstruction = PhConcatStrings(3, L"Do you want to ", action->Buffer, L"?");
+
+    if (Message)
+        content = PhConcatStrings2(Message, L" Are you sure you want to continue?");
 
     {
         ULONG button;
@@ -1588,8 +1597,8 @@ BOOLEAN PhShowConfirmMessage(
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
-        config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
-        if (Message) config.pszContent = PhaConcatStrings2(Message, L" Are you sure you want to continue?")->Buffer;
+        config.pszMainInstruction = mainInstruction->Buffer;
+        if (content) config.pszContent = content->Buffer;
 
         buttons[0].nButtonID = IDYES;
         buttons[0].pszButtonText = verbCaps->Buffer;
@@ -1601,6 +1610,8 @@ BOOLEAN PhShowConfirmMessage(
         config.nDefaultButton = IDYES;
         config.cxWidth = 200;
 
+        result = FALSE;
+
         if (PhShowTaskDialog(
             &config,
             &button,
@@ -1608,21 +1619,30 @@ BOOLEAN PhShowConfirmMessage(
             NULL
             ))
         {
-            return button == IDYES;
+            result = button == IDYES;
         }
-
-        if (PhShowMessage(
+        else if (PhShowMessage(
             WindowHandle,
             MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
             L"Are you sure you want to %s?",
             action->Buffer
             ) == IDYES)
         {
-            return TRUE;
+            result = TRUE;
         }
 
         return FALSE;
     }
+
+    if (content)
+        PhDereferenceObject(content);
+    PhDereferenceObject(mainInstruction);
+    PhDereferenceObject(action);
+    PhDereferenceObject(verbCaps);
+    PhDereferenceObject(verb);
+    PhDereferenceObject(verbString);
+
+    return result;
 }
 
 /**
@@ -6868,17 +6888,24 @@ VOID PhShellExploreFile(
     {
         LPITEMIDLIST item;
 
-        if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, NULL)))
+        status = SHParseDisplayName_I(
+            FileName,
+            NULL,
+            &item,
+            0,
+            NULL
+            );
+
+        if (HR_SUCCESS(status))
         {
-            SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
+            status = SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
             CoTaskMemFree(item);
         }
-        else
-        {
-            PhShowError2(WindowHandle, L"The location could not be found.", L"%s", FileName);
-        }
+
+        if (HR_SUCCESS(status))
+            return;
     }
-    else
+
     {
         PPH_STRING selectFileName;
 
@@ -8048,6 +8075,131 @@ CleanupExit:
     return status;
 }
 
+#ifndef _ARM64_
+/**
+ * PCLMULQDQ carry-less folding for reflected CRC-32 (polynomial 0xedb88320).
+ *
+ * Folds \a Length bytes (which must be a non-zero multiple of 16, with at least
+ * 64 bytes) into the running, bit-reflected CRC accumulator and returns the
+ * updated accumulator in the same (pre-inversion) domain as the scalar table
+ * loop. Constants and reduction are the bit-reflected-domain values from Intel's
+ * "Fast CRC Computation Using PCLMULQDQ" (matching zlib's crc32_simd.c).
+ */
+ULONG PhpCrc32Folding(
+    _In_reads_(Length) PUCHAR Buffer,
+    _In_ SIZE_T Length,
+    _In_ ULONG Crc
+    )
+{
+    static const DECLSPEC_ALIGN(16) ULONG64 k1k2[] = { 0x0154442bd4, 0x01c6e41596 };
+    static const DECLSPEC_ALIGN(16) ULONG64 k3k4[] = { 0x01751997d0, 0x00ccaa009e };
+    static const DECLSPEC_ALIGN(16) ULONG64 k5k0[] = { 0x0163cd6124, 0x0000000000 };
+    static const DECLSPEC_ALIGN(16) ULONG64 poly[] = { 0x01db710641, 0x01f7011641 };
+    __m128i x0, x1, x2, x3, x4, x5, x6, x7, x8, y5, y6, y7, y8;
+
+    // There's at least one block of 64.
+    x1 = _mm_loadu_si128((__m128i const*)(Buffer + 0x00));
+    x2 = _mm_loadu_si128((__m128i const*)(Buffer + 0x10));
+    x3 = _mm_loadu_si128((__m128i const*)(Buffer + 0x20));
+    x4 = _mm_loadu_si128((__m128i const*)(Buffer + 0x30));
+
+    x1 = _mm_xor_si128(x1, _mm_cvtsi32_si128((int)Crc));
+
+    x0 = _mm_load_si128((__m128i const*)k1k2);
+
+    Buffer += 64;
+    Length -= 64;
+
+    // Parallel fold blocks of 64, if any.
+    while (Length >= 64)
+    {
+        x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+        x6 = _mm_clmulepi64_si128(x2, x0, 0x00);
+        x7 = _mm_clmulepi64_si128(x3, x0, 0x00);
+        x8 = _mm_clmulepi64_si128(x4, x0, 0x00);
+
+        x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+        x2 = _mm_clmulepi64_si128(x2, x0, 0x11);
+        x3 = _mm_clmulepi64_si128(x3, x0, 0x11);
+        x4 = _mm_clmulepi64_si128(x4, x0, 0x11);
+
+        y5 = _mm_loadu_si128((__m128i const*)(Buffer + 0x00));
+        y6 = _mm_loadu_si128((__m128i const*)(Buffer + 0x10));
+        y7 = _mm_loadu_si128((__m128i const*)(Buffer + 0x20));
+        y8 = _mm_loadu_si128((__m128i const*)(Buffer + 0x30));
+
+        x1 = _mm_xor_si128(x1, x5);
+        x2 = _mm_xor_si128(x2, x6);
+        x3 = _mm_xor_si128(x3, x7);
+        x4 = _mm_xor_si128(x4, x8);
+
+        x1 = _mm_xor_si128(x1, y5);
+        x2 = _mm_xor_si128(x2, y6);
+        x3 = _mm_xor_si128(x3, y7);
+        x4 = _mm_xor_si128(x4, y8);
+
+        Buffer += 64;
+        Length -= 64;
+    }
+
+    // Fold into 128-bits.
+    x0 = _mm_load_si128((__m128i const*)k3k4);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x2);
+    x1 = _mm_xor_si128(x1, x5);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x3);
+    x1 = _mm_xor_si128(x1, x5);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x4);
+    x1 = _mm_xor_si128(x1, x5);
+
+    // Single fold blocks of 16, if any.
+    while (Length >= 16)
+    {
+        x2 = _mm_loadu_si128((__m128i const*)Buffer);
+
+        x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+        x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+        x1 = _mm_xor_si128(x1, x2);
+        x1 = _mm_xor_si128(x1, x5);
+
+        Buffer += 16;
+        Length -= 16;
+    }
+
+    // Fold 128-bits to 64-bits.
+    x2 = _mm_clmulepi64_si128(x1, x0, 0x10);
+    x3 = _mm_setr_epi32(~0, 0, ~0, 0);
+    x1 = _mm_srli_si128(x1, 8);
+    x1 = _mm_xor_si128(x1, x2);
+
+    x0 = _mm_loadl_epi64((__m128i const*)k5k0);
+
+    x2 = _mm_srli_si128(x1, 4);
+    x1 = _mm_and_si128(x1, x3);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_xor_si128(x1, x2);
+
+    // Barret reduce to 32-bits.
+    x0 = _mm_load_si128((__m128i const*)poly);
+
+    x2 = _mm_and_si128(x1, x3);
+    x2 = _mm_clmulepi64_si128(x2, x0, 0x10);
+    x2 = _mm_and_si128(x2, x3);
+    x2 = _mm_clmulepi64_si128(x2, x0, 0x00);
+    x1 = _mm_xor_si128(x1, x2);
+
+    return (ULONG)_mm_extract_epi32(x1, 1);
+}
+#endif
+
 /**
  * \brief CRC-32 (Ethernet, ZIP - polynomial 0xedb88320 - TEST=0xEEEA93B8)
  *
@@ -8062,12 +8214,55 @@ ULONG PhCrc32(
     _In_ SIZE_T Length
     )
 {
+#if defined(PH_NATIVE_CRC32)
     Crc ^= 0xffffffff;
+
+#ifndef _ARM64_
+    // PCLMULQDQ folds the largest 16-byte-aligned span (>= 64 bytes); the
+    // sub-16 remainder falls through to the scalar table loop. The folding
+    // operates in the same bit-reflected pre-inversion domain as the table.
+    if (PhHasPCLMUL && Length >= 64)
+    {
+        SIZE_T blockLength = Length & ~(SIZE_T)15;
+
+        Crc = PhpCrc32Folding(Buffer, blockLength, Crc);
+
+        Buffer += blockLength;
+        Length -= blockLength;
+    }
+#endif
+
+    // Slice-by-8 consumes the 8-byte blocks the folding path left behind (and
+    // the whole buffer when it is too short to fold). The 32-bit loads are
+    // little-endian, which holds for every architecture Windows targets.
+    while (Length >= 8)
+    {
+        ULONG high;
+
+        Crc ^= *(PULONG UNALIGNED)Buffer;
+        high = *(PULONG UNALIGNED)(Buffer + 4);
+
+        Crc =
+            PhCrc32Slice8Table[7][Crc & 0xff] ^
+            PhCrc32Slice8Table[6][(Crc >> 8) & 0xff] ^
+            PhCrc32Slice8Table[5][(Crc >> 16) & 0xff] ^
+            PhCrc32Slice8Table[4][(Crc >> 24) & 0xff] ^
+            PhCrc32Slice8Table[3][high & 0xff] ^
+            PhCrc32Slice8Table[2][(high >> 8) & 0xff] ^
+            PhCrc32Slice8Table[1][(high >> 16) & 0xff] ^
+            PhCrc32Slice8Table[0][(high >> 24) & 0xff];
+
+        Buffer += 8;
+        Length -= 8;
+    }
 
     while (Length--)
         Crc = (Crc >> 8) ^ PhCrc32Table[(Crc ^ *Buffer++) & 0xff];
 
     return Crc ^ 0xffffffff;
+#else
+    return RtlCrc32(Buffer, Length, Crc);
+#endif
 }
 
 /**
@@ -8093,7 +8288,28 @@ ULONG PhCrc32C(
     SIZE_T u32_blocks = u64_remaining / sizeof(ULONG);
     SIZE_T u32_remaining = u64_remaining % sizeof(ULONG);
     SIZE_T u16_blocks = u32_remaining / sizeof(USHORT);
-    SIZE_T u8_blocks = u32_remaining % sizeof(UCHAR);
+    // The trailing byte remains after the 16-bit blocks, so the remainder is
+    // taken modulo sizeof(USHORT). Taking it modulo sizeof(UCHAR) is always
+    // zero, which silently dropped the last byte of any odd-length buffer.
+    SIZE_T u8_blocks = u32_remaining % sizeof(USHORT);
+
+#if !defined(_M_ARM64)
+    // The _mm_crc32_* intrinsics are SSE4.2; ISA_ENABLED_SSE42 is the bit that
+    // gates them. Without SSE4.2 they would fault with an illegal instruction,
+    // so fall back to the software table. On ARM64 the __crc32* intrinsics are
+    // mandatory from ARMv8.1 and need no guard.
+    if (!PhHasPopulationCount)
+    {
+        PUCHAR buffer = (PUCHAR)Buffer;
+
+        Crc ^= 0xffffffff;
+
+        while (Length--)
+            Crc = (Crc >> 8) ^ PhCrc32CTable[(Crc ^ *buffer++) & 0xff];
+
+        return Crc ^ 0xffffffff;
+    }
+#endif
 
     Crc ^= 0xffffffff;
 
@@ -11055,7 +11271,7 @@ NTSTATUS PhCreateProcessReflection(
 
     if (NT_SUCCESS(status))
     {
-        *ReflectionInformation = reflectionInfo;
+        RtlCopyMemory(ReflectionInformation, &reflectionInfo, sizeof(PROCESS_REFLECTION_INFORMATION));
     }
 
     return status;
@@ -11096,7 +11312,7 @@ NTSTATUS PhCreateProcessSnapshot(
     _In_ HANDLE ProcessHandle
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     HANDLE snapshotHandle = NULL;
 
     if (!PssNtCaptureSnapshot_Import())
@@ -12169,26 +12385,26 @@ static BOOLEAN CALLBACK PhQueryEndSessionCallback(
         ULONG_PTR result = 0;
 
         // Ask the window whether it consents to session termination.
-        if (PhSendMessageTimeout(
+        if (NT_SUCCESS(PhSendMessageTimeout(
             WindowHandle,
             WM_QUERYENDSESSION,
             0,
             ENDSESSION_CLOSEAPP,
             5000,
             &result
-            ))
+            )))
         {
             // If the window agrees, notify it that the session is ending.
             if (result)
             {
-                if (PhSendMessageTimeout(
+                if (NT_SUCCESS(PhSendMessageTimeout(
                     WindowHandle,
                     WM_ENDSESSION,
                     TRUE,
                     ENDSESSION_LOGOFF,
                     5000,
                     &result
-                    ))
+                    )))
                 {
                     context->Result = result;
                     context->Valid = TRUE;
