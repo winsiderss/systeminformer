@@ -55,7 +55,9 @@
 #include <phintrnl.h>
 #include <phintrin.h>
 #include <phnative.h>
+#include <phnativeinl.h>
 #include <circbuf.h>
+#include <mapldr.h>
 #include <thirdparty.h>
 #include <ntintsafe.h>
 
@@ -1483,10 +1485,34 @@ PVOID PhAllocateExSafe(
 {
     assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
 #if defined(PH_DEBUG_HEAP)
-    return malloc(Size);
+    return FlagOn(Flags, HEAP_ZERO_MEMORY) ? calloc(1, Size) : malloc(Size);
 #else
     return RtlAllocateHeap(PhHeapHandle, Flags, Size);
 #endif
+}
+
+/**
+ * Allocates a zero-initialized block of memory.
+ *
+ * \param Size The number of bytes to allocate.
+ * \param Buffer A variable which receives a pointer to the allocated block of memory.
+ * \return STATUS_SUCCESS, or STATUS_NO_MEMORY if the block could not be allocated.
+ */
+_Use_decl_annotations_
+NTSTATUS PhAllocateHeap(
+    _In_ SIZE_T Size,
+    _Outptr_result_bytebuffer_(Size) PVOID* Buffer
+    )
+{
+    PVOID buffer;
+
+    if (buffer = PhAllocateExSafe(Size, HEAP_ZERO_MEMORY))
+    {
+        *Buffer = buffer;
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_NO_MEMORY;
 }
 
 /**
@@ -1570,6 +1596,61 @@ PVOID PhReAllocateSafe(
     }
 
     return RtlAllocateHeap(PhHeapHandle, 0, Size);
+#endif
+}
+
+/**
+ * Re-allocates a block of memory.
+ *
+ * \param Memory A pointer to a block of memory.
+ * \param Size The new size of the memory block, in bytes.
+ * \param Flags Flags controlling the allocation. If HEAP_ZERO_MEMORY is specified, any
+ * additional memory beyond the size of the original block is zeroed.
+ * \return A pointer to the new block of memory, or NULL if the block could not be allocated. The
+ * existing contents of the memory block are copied to the new block.
+ */
+_Use_decl_annotations_
+PVOID PhReAllocateExSafe(
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags
+    )
+{
+    assert(Size > 0 && Size < PH_LARGE_BUFFER_SIZE);
+#if defined(PH_DEBUG_HEAP)
+    if (FlagOn(Flags, HEAP_ZERO_MEMORY))
+    {
+        SIZE_T oldSize;
+        PVOID buffer;
+
+        if (!Memory)
+            return calloc(1, Size);
+
+        oldSize = _msize(Memory);
+
+        if (buffer = realloc(Memory, Size))
+        {
+            if (Size > oldSize)
+                memset(PTR_ADD_OFFSET(buffer, oldSize), 0, Size - oldSize);
+        }
+
+        return buffer;
+    }
+
+    return realloc(Memory, Size);
+#else
+    if (Size == 0)
+    {
+        if (Memory)
+            PhFree(Memory);
+        return NULL;
+    }
+    if (Memory)
+    {
+        return RtlReAllocateHeap(PhHeapHandle, Flags, Memory, Size);
+    }
+
+    return RtlAllocateHeap(PhHeapHandle, Flags, Size);
 #endif
 }
 
