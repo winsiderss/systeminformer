@@ -24,9 +24,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
     <!-- Debug|x64 Builds -->
@@ -42,9 +39,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
     <!-- Debug|ARM64 Builds -->
@@ -60,9 +54,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
     <!-- Release|Win32 Builds -->
@@ -78,9 +69,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
     <!-- Release|x64 Builds -->
@@ -96,9 +84,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
     <!-- Release|ARM64 Builds -->
@@ -114,9 +99,6 @@
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
         </ResourceCompile>
-        <PostBuildEvent>
-            <Command>"$(SystemInformerRoot)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-        </PostBuildEvent>
     </ItemDefinitionGroup>
 
 </Project>
