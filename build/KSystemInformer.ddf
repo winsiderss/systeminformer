@@ -23,13 +23,9 @@
 .Set DestinationDir=x64
 KSystemInformer.inf
 Release64\systeminformer.sys
-Release64\systeminformer.pdb
 Release64\ksi.dll
-Release64\ksi.pdb
 
 .Set DestinationDir=arm64
 KSystemInformer.inf
 ReleaseARM64\systeminformer.sys
-ReleaseARM64\systeminformer.pdb
 ReleaseARM64\ksi.dll
-ReleaseARM64\ksi.pdb

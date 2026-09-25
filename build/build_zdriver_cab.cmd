@@ -44,7 +44,7 @@ if errorlevel 1 (
 call :EnsureDirectory "%CabWorkDir%"
 if errorlevel 1 exit /b %errorlevel%
 
-call :RunRobocopy "%~dp0..\KSystemInformer\bin" "%CabWorkDir%" "*.sys" "*.dll" "*.pdb" /mir
+call :RunRobocopy "%~dp0..\KSystemInformer\bin" "%CabWorkDir%" "*.sys" "*.dll" /mir
 if errorlevel 1 (
     echo [-] Failed to copy build artifacts to CAB directory.
     exit /b !errorlevel!
