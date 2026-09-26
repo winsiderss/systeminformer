@@ -132,6 +132,7 @@ set(SOURCES
     "memsrcht.c"
     "miniinfo.c"
     "modlist.c"
+    "modexports.c"
     "modprv.c"
     "mtgndlg.c"
     "mwpgdev.c"

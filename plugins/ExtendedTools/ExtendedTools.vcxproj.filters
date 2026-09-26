@@ -162,6 +162,12 @@
     <ClCompile Include="wbcl.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="proctrace.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="startup.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="npudetails.c">
       <Filter>Source Files\Neural</Filter>
     </ClCompile>
