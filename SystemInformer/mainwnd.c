@@ -3846,31 +3846,31 @@ PPH_EMENU PhpCreateMainMenu(
             PPH_EMENU_ITEM menuItem;
             menu->Flags |= PH_EMENU_MAINMENU;
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, L"&System", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_SYSTEM, PhGetLocalizedString(IDS_PH_MAIN_MENU_SYSTEM, L"&System"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateSystemMenu(menuItem, TRUE), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, L"&View", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_VIEW, PhGetLocalizedString(IDS_PH_MAIN_MENU_VIEW, L"&View"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateViewMenu(menuItem), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, L"&Tools", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_TOOLS, PhGetLocalizedString(IDS_PH_MAIN_MENU_TOOLS, L"&Tools"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateToolsMenu(menuItem), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, L"&Users", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_USERS, PhGetLocalizedString(IDS_PH_MAIN_MENU_USERS, L"&Users"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
             //PhInsertEMenuItem(menu, PhpCreateUsersMenu(menuItem, TRUE), ULONG_MAX);
 
-            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, L"&Help", NULL, NULL);
+            menuItem = PhCreateEMenuItem(PH_EMENU_MAINMENU, PH_MENU_ITEM_LOCATION_HELP, PhGetLocalizedString(IDS_PH_MAIN_MENU_HELP, L"&Help"), NULL, NULL);
             // Insert an empty menuitem so we're able to delay load the submenu. (dmex)
             PhInsertEMenuItem(menuItem, PhCreateEMenuItemEmpty(), ULONG_MAX);
             PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
