@@ -849,14 +849,17 @@ VOID PhpUpdateThreadNodePriorityBoost(
     _In_ PPH_THREAD_NODE ThreadNode
     )
 {
-    BOOLEAN priorityBoost = FALSE;
+    BOOLEAN priorityBoostDisabled;
+
+    ThreadNode->PriorityBoost = FALSE;
 
     if (ThreadNode->ThreadItem->ThreadHandle)
     {
-        PhGetThreadPriorityBoost(ThreadNode->ThreadItem->ThreadHandle, &priorityBoost);
+        if (NT_SUCCESS(PhGetThreadPriorityBoost(ThreadNode->ThreadItem->ThreadHandle, &priorityBoostDisabled)))
+        {
+            ThreadNode->PriorityBoost = !priorityBoostDisabled;
+        }
     }
-
-    ThreadNode->PriorityBoost = priorityBoost;
 }
 
 VOID PhpUpdateThreadNodeStackUsage(
