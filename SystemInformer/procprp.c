@@ -580,7 +580,11 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
 
                 PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_DEBUG, L"De&bug", NULL, NULL), ULONG_MAX);
                 PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
-                PhInsertEMenuItem(menu, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL), ULONG_MAX);
+                menuItem = PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Affinity", NULL, NULL);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PROCESS_AFFINITY, L"&Custom...", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(menuItem, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhAddAffinityPresetsToEMenu(menuItem, 0, TRUE);
+                PhInsertEMenuItem(menu, menuItem, ULONG_MAX);
 
                 menuItem = PhCreateEMenuItem(0, ID_PROCESS_PRIORITYCLASS, L"&Priority", NULL, NULL);
                 PhInsertEMenuItem(menuItem, PhCreateEMenuItem(0, ID_PRIORITY_REALTIME, L"&Real time", NULL, NULL), ULONG_MAX);
@@ -678,6 +682,31 @@ LRESULT CALLBACK PhpOptionsButtonWndProc(
                         break;
                     case ID_PROCESS_AFFINITY:
                         PhShowProcessAffinityDialog(WindowHandle, processItem, NULL);
+                        break;
+                    case ID_AFFINITY_ALL:
+                    case ID_AFFINITY_PCORES:
+                    case ID_AFFINITY_ECORES:
+                    case ID_AFFINITY_EVEN:
+                    case ID_AFFINITY_ODD:
+                    case ID_AFFINITY_FIRSTHALF:
+                    case ID_AFFINITY_SECONDHALF:
+                    case ID_AFFINITY_CUSTOM_1:
+                    case ID_AFFINITY_CUSTOM_2:
+                    case ID_AFFINITY_CUSTOM_3:
+                    case ID_AFFINITY_CUSTOM_4:
+                    case ID_AFFINITY_SAVE_PRESET_1:
+                    case ID_AFFINITY_SAVE_PRESET_2:
+                    case ID_AFFINITY_SAVE_PRESET_3:
+                    case ID_AFFINITY_SAVE_PRESET_4:
+                    case ID_AFFINITY_CLEAR_PRESET_1:
+                    case ID_AFFINITY_CLEAR_PRESET_2:
+                    case ID_AFFINITY_CLEAR_PRESET_3:
+                    case ID_AFFINITY_CLEAR_PRESET_4:
+                    case ID_AFFINITY_CLEAR_ALL_PRESETS:
+                    case ID_AFFINITY_CCD_FIRST: case ID_AFFINITY_CCD_FIRST + 1: case ID_AFFINITY_CCD_FIRST + 2: case ID_AFFINITY_CCD_FIRST + 3:
+                    case ID_AFFINITY_CCD_FIRST + 4: case ID_AFFINITY_CCD_FIRST + 5: case ID_AFFINITY_CCD_FIRST + 6: case ID_AFFINITY_CCD_FIRST + 7:
+                    case ID_AFFINITY_NUMA_FIRST: case ID_AFFINITY_NUMA_FIRST + 1: case ID_AFFINITY_NUMA_FIRST + 2: case ID_AFFINITY_NUMA_FIRST + 3:
+                        PhUiSetAffinityPresetProcesses(WindowHandle, &processItem, 1, selectedItem->Id);
                         break;
                     case ID_PRIORITY_REALTIME:
                     case ID_PRIORITY_HIGH:
