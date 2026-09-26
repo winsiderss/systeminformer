@@ -3947,8 +3947,10 @@ RtlSuffixUnicodeString(
  *
  * \param String A pointer to the UNICODE_STRING whose padding is cleared.
  */
+#ifdef _PREFAST_
 #pragma prefast(push)
 #pragma prefast(disable : 6101, "Out parameter is not written fully or at all.")
+#endif
 FORCEINLINE
 VOID
 NTAPI_INLINE
@@ -3968,7 +3970,9 @@ RtlSanitizeUnicodeStringPadding(
     UNREFERENCED_PARAMETER(String);
 #endif
 }
+#ifdef _PREFAST_
 #pragma prefast(pop)
+#endif
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
 /**
