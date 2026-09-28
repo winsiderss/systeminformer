@@ -2311,7 +2311,7 @@ PhSetWindowAlwaysOnTop(
 
 _Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSendMessageTimeout(
     _In_ HWND WindowHandle,
