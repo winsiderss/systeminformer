@@ -802,6 +802,8 @@ NTSTATUS KSIAPI KphpInitializeClient(
     client->Process = Parameter;
     KphReferenceObject(client->Process);
 
+    KphInitializeRWLock(&client->DriverUnloadProtectionLock);
+
     return STATUS_SUCCESS;
 }
 
@@ -823,7 +825,7 @@ VOID KSIAPI KphpDeleteClient(
 
     client = Object;
 
-    if (client->DriverUnloadProtectionRef.Count)
+    if (client->DriverUnloadProtectionCount)
     {
         //
         // The client is being destroyed while it has acquired driver unload
@@ -840,6 +842,8 @@ VOID KSIAPI KphpDeleteClient(
                           status);
         }
     }
+
+    KphDeleteRWLock(&client->DriverUnloadProtectionLock);
 
     KphDereferenceObject(client->Process);
 

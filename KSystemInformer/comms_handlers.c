@@ -1237,6 +1237,8 @@ NTSTATUS KSIAPI KphpCommsAcquireDriverUnloadProtection(
     )
 {
     PKPHM_ACQUIRE_DRIVER_UNLOAD_PROTECTION msg;
+    LONG previousCount;
+    LONG count;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
@@ -1244,27 +1246,45 @@ NTSTATUS KSIAPI KphpCommsAcquireDriverUnloadProtection(
 
     msg = &Message->User.AcquireDriverUnloadProtection;
 
-    msg->Status = KphAcquireReference(&Client->DriverUnloadProtectionRef,
-                                      &msg->ClientPreviousCount);
-    if (NT_SUCCESS(msg->Status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "Client %wZ (%lu) "
-                      "acquired driver unload protection (%ld)",
-                      &Client->Process->ImageName,
-                      HandleToULong(Client->Process->ProcessId),
-                      msg->ClientPreviousCount + 1);
+    KphAcquireRWLockExclusive(&Client->DriverUnloadProtectionLock);
 
-        if (msg->ClientPreviousCount == 0)
+    previousCount = Client->DriverUnloadProtectionCount;
+
+    if (previousCount == LONG_MAX)
+    {
+        msg->Status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+
+    count = previousCount + 1;
+
+    if (previousCount == 0)
+    {
+        msg->Status = KphAcquireDriverUnloadProtection(&msg->PreviousCount);
+        if (!NT_SUCCESS(msg->Status))
         {
-            msg->Status = KphAcquireDriverUnloadProtection(&msg->PreviousCount);
-        }
-        else
-        {
-            msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+            goto Exit;
         }
     }
+    else
+    {
+        msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+    }
+
+    Client->DriverUnloadProtectionCount = count;
+    msg->ClientPreviousCount = previousCount;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "Client %wZ (%lu) "
+                  "acquired driver unload protection (%ld)",
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId),
+                  count);
+
+Exit:
+
+    KphReleaseRWLock(&Client->DriverUnloadProtectionLock);
 
     return STATUS_SUCCESS;
 }
@@ -1278,6 +1298,8 @@ NTSTATUS KSIAPI KphpCommsReleaseDriverUnloadProtection(
     )
 {
     PKPHM_RELEASE_DRIVER_UNLOAD_PROTECTION msg;
+    LONG previousCount;
+    LONG count;
 
     KPH_PAGED_CODE_PASSIVE();
     NT_ASSERT(ExGetPreviousMode() == UserMode);
@@ -1285,27 +1307,45 @@ NTSTATUS KSIAPI KphpCommsReleaseDriverUnloadProtection(
 
     msg = &Message->User.ReleaseDriverUnloadProtection;
 
-    msg->Status = KphReleaseReference(&Client->DriverUnloadProtectionRef,
-                                      &msg->ClientPreviousCount);
-    if (NT_SUCCESS(msg->Status))
-    {
-        KphTracePrint(TRACE_LEVEL_VERBOSE,
-                      PROTECTION,
-                      "Client %wZ (%lu) "
-                      "released driver unload protection (%ld)",
-                      &Client->Process->ImageName,
-                      HandleToULong(Client->Process->ProcessId),
-                      msg->ClientPreviousCount - 1);
+    KphAcquireRWLockExclusive(&Client->DriverUnloadProtectionLock);
 
-        if (msg->ClientPreviousCount == 1)
+    previousCount = Client->DriverUnloadProtectionCount;
+
+    if (previousCount == 0)
+    {
+        msg->Status = STATUS_INTEGER_OVERFLOW;
+        goto Exit;
+    }
+
+    count = previousCount - 1;
+
+    if (count == 0)
+    {
+        msg->Status = KphReleaseDriverUnloadProtection(&msg->PreviousCount);
+        if (!NT_SUCCESS(msg->Status))
         {
-            msg->Status = KphReleaseDriverUnloadProtection(&msg->PreviousCount);
-        }
-        else
-        {
-            msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+            goto Exit;
         }
     }
+    else
+    {
+        msg->PreviousCount = KphGetDriverUnloadProtectionCount();
+    }
+
+    Client->DriverUnloadProtectionCount = count;
+    msg->ClientPreviousCount = previousCount;
+
+    KphTracePrint(TRACE_LEVEL_VERBOSE,
+                  PROTECTION,
+                  "Client %wZ (%lu) "
+                  "released driver unload protection (%ld)",
+                  &Client->Process->ImageName,
+                  HandleToULong(Client->Process->ProcessId),
+                  count);
+
+Exit:
+
+    KphReleaseRWLock(&Client->DriverUnloadProtectionLock);
 
     return STATUS_SUCCESS;
 }
