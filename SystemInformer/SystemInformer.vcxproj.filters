@@ -180,6 +180,9 @@
     <ClCompile Include="modlist.c">
       <Filter>System Informer</Filter>
     </ClCompile>
+    <ClCompile Include="modexports.c">
+      <Filter>System Informer</Filter>
+    </ClCompile>
     <ClCompile Include="phsvc\svcmain.c">
       <Filter>phsvc</Filter>
     </ClCompile>

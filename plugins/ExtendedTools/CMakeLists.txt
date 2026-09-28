@@ -75,6 +75,8 @@ set(SOURCES
     "treeext.c"
     "unldll.c"
     "utils.c"
+    "proctrace.c"
+    "startup.c"
     "waitchain.c"
     "wbcl.c"
     "wswatch.c"
