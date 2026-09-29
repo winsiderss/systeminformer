@@ -105,9 +105,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>
@@ -125,9 +122,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>
@@ -145,9 +139,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>
@@ -165,9 +156,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>
@@ -185,9 +173,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>
@@ -205,9 +190,6 @@
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
-    <PostBuildEvent>
-      <Command>"$(SolutionDir)build\build_zsign.cmd" "$(OutDir)$(TargetName)$(TargetExt)"</Command>
-    </PostBuildEvent>
     <Manifest>
       <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
     </Manifest>

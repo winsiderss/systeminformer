@@ -63,6 +63,8 @@ typedef struct _PV_PE_HASH_RESULTS
     PPH_STRING ImpMsftHashString;
     PPH_STRING SsdeepHashString;
     PPH_STRING TlshHashString;
+    PPH_STRING LsHashShortString;
+    PPH_STRING LsHashLongString;
 
     PPH_LIST PageHashList;
 } PV_PE_HASH_RESULTS, *PPV_PE_HASH_RESULTS;
@@ -106,12 +108,231 @@ typedef enum _PV_HASHLIST_INDEX
     PV_HASHLIST_INDEX_IMPFUZZY,
     PV_HASHLIST_INDEX_SSDEEP,
     PV_HASHLIST_INDEX_TLSH,
+    PV_HASHLIST_INDEX_LSHASHS,
+    PV_HASHLIST_INDEX_LSHASH,
     PV_HASHLIST_INDEX_AUTHENTIHASH_SHA1,
     PV_HASHLIST_INDEX_AUTHENTIHASH_SHA256,
     PV_HASHLIST_INDEX_WDACPAGEHASH_SHA1,
     PV_HASHLIST_INDEX_WDACPAGEHASH_SHA256,
     PV_HASHLIST_INDEX_MAXIMUM
 } PV_HASHLIST_INDEX;
+
+// LsHash - the locality-sensitive digest Microsoft Defender reports as the
+// Lshash (64 byte, "long") and LsHashs (32 byte, "short") static file attributes.
+//
+// A Nilsimsa-style bucketed digest over 256 accumulators. The substitution table is
+// the standard CRC-32 table, with byte lanes 0/1/2 of each entry used as three
+// independent S-boxes. Each accepted byte bumps five accumulators over a 5-byte
+// sliding window; a byte equal to all four of its predecessors is skipped, so runs
+// of identical bytes contribute nothing.
+//
+// The accumulators are quantized by rank over their non-zero range: the short form
+// emits one bit per bucket above the median, the long form a two-bit tercile code
+// (with code zero reserved for empty buckets). Both pack LSB-first.
+//
+// Recovered from mpengine.dll and validated against reference digests; see
+// tools/peview/lshash_research/ for the reference implementation and test harness.
+
+#define PV_LSHASH_BUCKETS 256
+#define PV_LSHASH_SHORT_LENGTH 32
+#define PV_LSHASH_LONG_LENGTH 64
+
+// mpengine clamps the fuzzy hashers to this many bytes before streaming: the
+// 0x10000000 default is a power of two and gets decremented before use. 
+#define PV_LSHASH_MAXIMUM_LENGTH 0x0FFFFFFF
+
+typedef struct _PV_LSHASH_CONTEXT
+{
+    ULONG64 Accumulators[PV_LSHASH_BUCKETS];
+    UCHAR Window[4]; // Window[0] is the oldest of the four preceding bytes.
+} PV_LSHASH_CONTEXT, *PPV_LSHASH_CONTEXT;
+
+VOID PvpLsHashInitialize(
+    _Out_ PPV_LSHASH_CONTEXT Context
+    )
+{
+    memset(Context, 0, sizeof(PV_LSHASH_CONTEXT));
+}
+
+VOID PvpLsHashUpdate(
+    _Inout_ PPV_LSHASH_CONTEXT Context,
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length
+    )
+{
+    CONST ULONG* table = PhCrc32Table;
+    PUCHAR bytes = Buffer;
+    UCHAR b3 = Context->Window[0];
+    UCHAR b2 = Context->Window[1];
+    UCHAR b1 = Context->Window[2];
+    UCHAR b0 = Context->Window[3];
+
+    for (SIZE_T i = 0; i < Length; i++)
+    {
+        UCHAR value = bytes[i];
+        UCHAR oldest;
+
+        if (value == b0 && value == b1 && value == b2 && value == b3)
+            continue;
+
+        oldest = b3;
+        b3 = b2;
+        b2 = b1;
+        b1 = b0;
+        b0 = value;
+
+#define PV_LSHASH_LANE0(x) ((UCHAR)(table[(x)]))
+#define PV_LSHASH_LANE1(x) ((UCHAR)(table[(x)] >> 8))
+#define PV_LSHASH_LANE2(x) ((UCHAR)(table[(x)] >> 16))
+
+        Context->Accumulators[PV_LSHASH_LANE0(value) ^ PV_LSHASH_LANE2(oldest) ^ PV_LSHASH_LANE1(b2)]++;
+        Context->Accumulators[PV_LSHASH_LANE0(oldest) ^ PV_LSHASH_LANE2(b3) ^ PV_LSHASH_LANE1(b1)]++;
+        Context->Accumulators[PV_LSHASH_LANE0(b3) ^ PV_LSHASH_LANE2(b2) ^ PV_LSHASH_LANE1(value)]++;
+        Context->Accumulators[PV_LSHASH_LANE0(b2) ^ PV_LSHASH_LANE2(b1) ^ PV_LSHASH_LANE1(oldest)]++;
+        Context->Accumulators[PV_LSHASH_LANE0(b1) ^ PV_LSHASH_LANE2(value) ^ PV_LSHASH_LANE1(b3)]++;
+
+#undef PV_LSHASH_LANE0
+#undef PV_LSHASH_LANE1
+#undef PV_LSHASH_LANE2
+    }
+
+    Context->Window[0] = b3;
+    Context->Window[1] = b2;
+    Context->Window[2] = b1;
+    Context->Window[3] = b0;
+}
+
+static int __cdecl PvpLsHashCompareAccumulator(
+    _In_ const void* Left,
+    _In_ const void* Right
+    )
+{
+    ULONG64 left = *(CONST ULONG64*)Left;
+    ULONG64 right = *(CONST ULONG64*)Right;
+
+    if (left != right)
+        return left < right ? -1 : 1;
+
+    return 0;
+}
+
+/**
+ * Sorts the accumulators and returns the index of the first non-zero entry.
+ *
+ * \param Context The hash context.
+ * \param Sorted Receives the accumulators in ascending order.
+ * \return The index of the first non-zero accumulator, or PV_LSHASH_BUCKETS when all are zero.
+ */
+ULONG PvpLsHashSortAccumulators(
+    _In_ PPV_LSHASH_CONTEXT Context,
+    _Out_writes_(PV_LSHASH_BUCKETS) PULONG64 Sorted
+    )
+{
+    ULONG index = 0;
+
+    memcpy(Sorted, Context->Accumulators, sizeof(Context->Accumulators));
+    qsort(Sorted, PV_LSHASH_BUCKETS, sizeof(ULONG64), PvpLsHashCompareAccumulator);
+
+    while (index < PV_LSHASH_BUCKETS && Sorted[index] == 0)
+        index++;
+
+    return index;
+}
+
+VOID PvpLsHashFinalShort(
+    _In_ PPV_LSHASH_CONTEXT Context,
+    _Out_writes_bytes_(PV_LSHASH_SHORT_LENGTH) PUCHAR Hash
+    )
+{
+    ULONG64 sorted[PV_LSHASH_BUCKETS];
+    ULONG64 threshold = 0;
+    ULONG index;
+
+    memset(Hash, 0, PV_LSHASH_SHORT_LENGTH);
+    index = PvpLsHashSortAccumulators(Context, sorted);
+
+    if (index < PV_LSHASH_BUCKETS)
+        threshold = sorted[index + (PV_LSHASH_BUCKETS - 1 - index) / 2];
+
+    for (ULONG i = 0; i < PV_LSHASH_BUCKETS; i++)
+    {
+        if (Context->Accumulators[i] > threshold)
+            Hash[i >> 3] |= (UCHAR)(1 << (i & 7));
+    }
+}
+
+VOID PvpLsHashFinalLong(
+    _In_ PPV_LSHASH_CONTEXT Context,
+    _Out_writes_bytes_(PV_LSHASH_LONG_LENGTH) PUCHAR Hash
+    )
+{
+    ULONG64 sorted[PV_LSHASH_BUCKETS];
+    ULONG64 lower = 0;
+    ULONG64 upper = 0;
+    ULONG index;
+
+    memset(Hash, 0, PV_LSHASH_LONG_LENGTH);
+    index = PvpLsHashSortAccumulators(Context, sorted);
+
+    if (index < PV_LSHASH_BUCKETS)
+    {
+        ULONG span = PV_LSHASH_BUCKETS - 1 - index;
+
+        lower = sorted[index + span / 3];
+        upper = sorted[index + 2 * span / 3];
+    }
+
+    for (ULONG i = 0; i < PV_LSHASH_BUCKETS; i++)
+    {
+        ULONG64 value = Context->Accumulators[i];
+        UCHAR code;
+
+        if (value > upper)
+            code = 3;
+        else if (value > lower)
+            code = 2;
+        else if (value != 0)
+            code = 1;
+        else
+            continue;
+
+        Hash[i >> 2] |= (UCHAR)(code << (2 * (i & 3)));
+    }
+}
+
+/**
+ * Computes the short and long LsHash digests of a buffer.
+ *
+ * \param Buffer The buffer to hash.
+ * \param Length The length of the buffer, in bytes. Lengths above
+ * PV_LSHASH_MAXIMUM_LENGTH are truncated, matching the engine.
+ * \param ShortHashString A variable which receives the 32-byte digest as a hexadecimal string.
+ * \param LongHashString A variable which receives the 64-byte digest as a hexadecimal string.
+ */
+VOID PvGetLsHashBufferHash(
+    _In_reads_bytes_(Length) PVOID Buffer,
+    _In_ SIZE_T Length,
+    _Out_ PPH_STRING* ShortHashString,
+    _Out_ PPH_STRING* LongHashString
+    )
+{
+    PPV_LSHASH_CONTEXT context;
+    UCHAR shortHash[PV_LSHASH_SHORT_LENGTH];
+    UCHAR longHash[PV_LSHASH_LONG_LENGTH];
+
+    if (Length > PV_LSHASH_MAXIMUM_LENGTH)
+        Length = PV_LSHASH_MAXIMUM_LENGTH;
+
+    context = PhAllocate(sizeof(PV_LSHASH_CONTEXT));
+    PvpLsHashInitialize(context);
+    PvpLsHashUpdate(context, Buffer, Length);
+    PvpLsHashFinalShort(context, shortHash);
+    PvpLsHashFinalLong(context, longHash);
+    PhFree(context);
+
+    *ShortHashString = PhBufferToHexString(shortHash, sizeof(shortHash));
+    *LongHashString = PhBufferToHexString(longHash, sizeof(longHash));
+}
 
 PPV_HASH_CONTEXT PvCreateHashHandle(
     _In_ PCWSTR AlgorithmId
@@ -419,7 +640,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
         SPC_INDIRECT_DATA_CONTENT_STRUCT,
         cryptInnerContentBuffer,
         cryptInnerContentLength,
-        CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+        CRYPT_DECODE_NOCOPY_FLAG,
         NULL,
         &spcIndirectDataContentBuffer,
         &spcIndirectDataContentLength
@@ -436,7 +657,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
         SPC_PE_IMAGE_DATA_STRUCT,
         spcIndirectDataContentBuffer->Data.Value.pbData,
         spcIndirectDataContentBuffer->Data.Value.cbData,
-        CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+        CRYPT_DECODE_NOCOPY_FLAG,
         NULL,
         &spcPeImageDataBuffer,
         &spcPeImageDataLength
@@ -460,7 +681,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
             PKCS_ATTRIBUTES,
             spcPeImageDataBuffer->pFile->Moniker.SerializedData.pbData,
             spcPeImageDataBuffer->pFile->Moniker.SerializedData.cbData,
-            CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+            CRYPT_DECODE_NOCOPY_FLAG,
             NULL,
             &spcSerializedObjectAttributesBuffer,
             &spcSerializedObjectAttributesLength
@@ -479,7 +700,7 @@ PPH_LIST PvEnumSpcAuthenticodePageHashes(
                     X509_OCTET_STRING,
                     spcSerializedObjectBuffer.rgValue->pbData,
                     spcSerializedObjectBuffer.rgValue->cbData,
-                    CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                    CRYPT_DECODE_NOCOPY_FLAG,
                     NULL,
                     &spcImagePageHashesBuffer,
                     &spcImagePageHashesLength
@@ -1229,6 +1450,8 @@ NTSTATUS PvPeFileHashThread(
     PPH_STRING imphashFuzzyString = NULL;
     PPH_STRING impMsftHashString = NULL;
     PPH_STRING ssdeepHashString = NULL;
+    PPH_STRING lsHashShortString = NULL;
+    PPH_STRING lsHashLongString = NULL;
     char* tlshHashString = NULL;
     char* ssdeepHashStringUtf8 = NULL;
 
@@ -1291,6 +1514,8 @@ NTSTATUS PvPeFileHashThread(
         PvGetTlshBufferHash(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &tlshHashString);
     }
 
+    PvGetLsHashBufferHash(PvMappedImage.ViewBase, PvMappedImage.ViewSize, &lsHashShortString, &lsHashLongString);
+
     // Authentihash (Authenticode)
 
     if (!authentihashSha1String)
@@ -1341,6 +1566,8 @@ NTSTATUS PvPeFileHashThread(
         results->ImpMsftHashString = impMsftHashString;
         results->SsdeepHashString = PhConvertUtf8ToUtf16(ssdeepHashStringUtf8);
         results->TlshHashString = PhConvertUtf8ToUtf16(tlshHashString);
+        results->LsHashShortString = lsHashShortString;
+        results->LsHashLongString = lsHashLongString;
         results->PageHashList = pagehashesList;
         free(ssdeepHashStringUtf8);
         free(tlshHashString);
@@ -1548,6 +1775,8 @@ INT_PTR CALLBACK PvpPeHashesDlgProc(
 
             PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_SSDEEP, &count, FALSE, NULL, L"SSDEEP", results->SsdeepHashString);
             PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_TLSH, &count, FALSE, NULL, L"TLSH", results->TlshHashString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_LSHASHS, &count, FALSE, NULL, L"LSHASHS", results->LsHashShortString);
+            PvPeHashesAddListViewItem(context->ListViewHandle, PV_HASHLIST_CATEGORY_FUZZYHASH, PV_HASHLIST_INDEX_LSHASH, &count, FALSE, NULL, L"LSHASH", results->LsHashLongString);
 
             // Authentihash (Authenticode)
 
