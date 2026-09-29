@@ -2593,7 +2593,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     ULONG attempts = 0;
 
     bufferSize = 0x8000;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQueryVirtualMemory(
         ProcessHandle,
@@ -2608,7 +2609,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     {
         bufferSize = UFIELD_OFFSET(MEMORY_WORKING_SET_INFORMATION, WorkingSetInfo[buffer->NumberOfEntries]);
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -2626,7 +2628,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
     {
         // Fall back to using the previous code that we've used since Windows 7 (dmex)
         bufferSize = 0x8000;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         while ((status = NtQueryVirtualMemory(
             ProcessHandle,
@@ -2644,7 +2647,8 @@ NTSTATUS PhGetProcessWorkingSetInformation(
             if (bufferSize > PH_LARGE_BUFFER_SIZE)
                 return STATUS_INSUFFICIENT_RESOURCES;
 
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
     }
 
@@ -3955,7 +3959,8 @@ NTSTATUS PhGetProcessTelemetryIdInformation(
     ULONG attempts;
 
     telemetryLength = sizeof(PROCESS_TELEMETRY_ID_INFORMATION) + SECURITY_MAX_SID_SIZE + (DOS_MAX_PATH_LENGTH * sizeof(WCHAR)) + (DOS_MAX_PATH_LENGTH * sizeof(WCHAR));
-    telemetryBuffer = PhAllocateZero(telemetryLength);
+    telemetryBuffer = PhAllocateZeroSafe(telemetryLength);
+    if (!telemetryBuffer) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -3969,7 +3974,8 @@ NTSTATUS PhGetProcessTelemetryIdInformation(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         telemetryLength = returnLength;
-        telemetryBuffer = PhReAllocate(telemetryBuffer, telemetryLength);
+        telemetryBuffer = PhReAllocateZeroSafe(telemetryBuffer, telemetryLength);
+        if (!telemetryBuffer) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
