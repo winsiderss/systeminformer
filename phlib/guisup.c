@@ -226,7 +226,7 @@ HFONT PhCreateFontHandle(
         FALSE,
         FALSE,
         FALSE,
-        ANSI_CHARSET,
+        DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
         PhFontQuality,
@@ -266,7 +266,7 @@ HFONT PhCreateCommonFont(
         FALSE,
         FALSE,
         FALSE,
-        ANSI_CHARSET,
+        DEFAULT_CHARSET,
         OUT_DEFAULT_PRECIS,
         CLIP_DEFAULT_PRECIS,
         PhFontQuality,
@@ -458,7 +458,7 @@ static HFONT PhpCreateFontFromSetting(
     LOGFONT font;
     HFONT fontHandle;
 
-    fontHexString = PhaGetStringSetting(SettingName);
+    fontHexString = PhGetStringSetting(SettingName);
 
     if (
         fontHexString->Length / sizeof(WCHAR) / 2 == sizeof(LOGFONT) &&
@@ -468,8 +468,13 @@ static HFONT PhpCreateFontFromSetting(
         font.lfQuality = (UCHAR)PhFontQuality;
 
         if (fontHandle = CreateFontIndirect(&font))
+        {
+            PhDereferenceObject(fontHexString);
             return fontHandle;
+        }
     }
+
+    PhDereferenceObject(fontHexString);
 
     if (Fallback)
         return Fallback(WindowDpi);
@@ -2972,10 +2977,14 @@ VOID PhDeleteLayoutManager(
 {
     ULONG i;
 
+    if (!Manager->List)
+        return;
+
     for (i = 0; i < Manager->List->Count; i++)
         PhFree(Manager->List->Items[i]);
 
     PhDereferenceObject(Manager->List);
+    memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
 }
 
 /**
@@ -3015,8 +3024,7 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
 
     if (layoutItem->ParentItem != layoutItem->LayoutParentItem)
     {
-        // Fix the margin because the item has a dummy parent. They share the same layout parent
-        // item.
+        // Fix the margin because the item has a dummy parent. They share the same layout parent item.
         layoutItem->Margin.top -= layoutItem->ParentItem->Rect.top;
         layoutItem->Margin.left -= layoutItem->ParentItem->Rect.left;
         layoutItem->Margin.right = layoutItem->ParentItem->Margin.right;
@@ -3033,7 +3041,9 @@ PPH_LAYOUT_ITEM PhAddLayoutItem(
  * \param Handle Window handle to manage.
  * \param ParentItem Optional parent layout item; if NULL the root item is used.
  * \param Anchor Anchor flags controlling layout behaviour.
- * \param Margin Pointer to a RECT that specifies the margin for the item.
+ * \param Margin Pointer to a RECT that specifies the margin in pixels at
+ * Manager->WindowDpi. Use PhAddLayoutItemExLogical for a margin copied from
+ * an existing PH_LAYOUT_ITEM.
  * \return Pointer to the newly created PPH_LAYOUT_ITEM.
  */
 PPH_LAYOUT_ITEM PhAddLayoutItemEx(

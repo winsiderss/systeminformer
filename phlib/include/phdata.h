@@ -99,6 +99,8 @@ extern CONST BOOLEAN PhIsUTF16PrintableHighByte[256];
 //
 
 extern CONST ULONG PhCrc32Table[256];
+extern CONST ULONG PhCrc32CTable[256];
+extern CONST ULONG PhCrc32Slice8Table[8][256];
 
 //
 // Enums

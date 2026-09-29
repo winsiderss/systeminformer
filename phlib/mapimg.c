@@ -2473,7 +2473,8 @@ NTSTATUS PhGetMappedImageExportsEx(
     status = PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfFunctions,
-        &Exports->AddressTable);
+        &Exports->AddressTable
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2481,11 +2482,13 @@ NTSTATUS PhGetMappedImageExportsEx(
     PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfNames,
-        &Exports->NamePointerTable);
+        &Exports->NamePointerTable
+        );
     PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfNameOrdinals,
-        &Exports->OrdinalTable);
+        &Exports->OrdinalTable
+        );
 
     // Note: NamePointerTable and OrdinalTable are null for binaries
     // such as mfc140u.dll yet contain valid exports (dmex)
@@ -2675,7 +2678,8 @@ ULONG PhLookupMappedImageExportName(
         if (!NT_SUCCESS(PhMappedImageRvaToVa(
             Exports->MappedImage,
             Exports->NamePointerTable[i],
-            &name)))
+            &name
+            )))
         {
             return ULONG_MAX;
         }
@@ -2751,19 +2755,24 @@ NTSTATUS PhGetMappedImageExportFunction(
         (rva < Exports->DataDirectory->VirtualAddress + Exports->DataDirectory->Size)
         )
     {
+        NTSTATUS status;
+        PVOID forwardedName;
+
         // This is a forwarder RVA.
 
-        if (!NT_SUCCESS(PhMappedImageRvaToVa(
+        status = PhMappedImageRvaToVa(
             Exports->MappedImage,
             rva,
-            &Function->ForwardedName)))
-        {
-            return STATUS_INVALID_PARAMETER;
-        }
+            &forwardedName
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         // TODO: Probe the name.
 
         Function->Function = UlongToPtr(rva);
+        Function->ForwardedName = forwardedName;
     }
     else
     {
@@ -2858,7 +2867,8 @@ NTSTATUS PhGetMappedImageImports(
     status = PhMappedImageRvaToVa(
         MappedImage,
         dataDirectory->VirtualAddress,
-        &descriptor);
+        &descriptor
+        );
 
     if (!NT_SUCCESS(status))
         return status;

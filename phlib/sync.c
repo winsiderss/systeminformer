@@ -73,7 +73,7 @@ FORCEINLINE VOID PhpDereferenceEvent(
         if (EventHandle)
         {
             NtClose(EventHandle);
-            Event->EventHandle = NULL;
+            WritePointerRelease(&Event->EventHandle, NULL);
         }
     }
 }

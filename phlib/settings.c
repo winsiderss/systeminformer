@@ -2904,6 +2904,10 @@ BOOLEAN PhLoadWindowPlacementFromSetting(
         windowRectangle.Size = size;
         PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
 
+        // Don't suppress the repaint for the final placement: when the window is already visible the
+        // client area would otherwise keep painting stale content until the next resize. (dmex)
+        ClearFlag(flags, SWP_NOREDRAW);
+
         SetWindowPos(WindowHandle, NULL, windowRectangle.Left, windowRectangle.Top, windowRectangle.Width, windowRectangle.Height, flags);
     }
 

@@ -698,7 +698,7 @@ PhWaitForEvent(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-    if (Event->Set)
+    if (ReadULongPtrAcquire(&Event->Value) & PH_EVENT_SET)
         return TRUE;
 
     return PhfWaitForEvent(Event, Timeout);
@@ -739,7 +739,7 @@ PhTestEvent(
     _In_ PPH_EVENT Event
     )
 {
-    return (BOOLEAN)Event->Set;
+    return !!(ReadULongPtrAcquire(&Event->Value) & PH_EVENT_SET);
 }
 
 //
@@ -987,7 +987,7 @@ PhBeginInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )
 {
-    if (InitOnce->Event.Set)
+    if (PhTestEvent(&InitOnce->Event))
         return FALSE;
     else
         return PhfBeginInitOnce(InitOnce);
@@ -999,7 +999,7 @@ PhTestInitOnce(
     _In_ PPH_INITONCE InitOnce
     )
 {
-    return (BOOLEAN)InitOnce->Event.Set;
+    return PhTestEvent(&InitOnce->Event);
 }
 
 //

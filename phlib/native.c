@@ -28,6 +28,102 @@ static PPH_STRING PhDeviceMupPrefixes[PH_DEVICE_MUP_PREFIX_MAX_COUNT] = { 0 };
 static ULONG PhDeviceMupPrefixesCount = 0;
 static PH_QUEUED_LOCK PhDeviceMupPrefixesLock = PH_QUEUED_LOCK_INIT;
 
+static PWSTR PhpAppendSidInteger(
+    _Out_ PWSTR Destination,
+    _In_ ULONG64 Value,
+    _In_ ULONG Base,
+    _In_ ULONG MinimumDigits
+    )
+{
+    static const WCHAR digits[] = L"0123456789abcdef";
+    WCHAR buffer[16];
+    ULONG count = 0;
+
+    do
+    {
+        buffer[count++] = digits[Value % Base];
+        Value /= Base;
+    } while (Value || count < MinimumDigits);
+
+    while (count)
+        *Destination++ = buffer[--count];
+
+    return Destination;
+}
+
+NTSTATUS PhConvertSidToStringRef(
+    _Inout_ PPH_STRINGREF StringRef,
+    _In_ PSID Sid,
+    _In_ BOOLEAN AllocateDestinationString
+    )
+{
+    PISID sid;
+    SID_IDENTIFIER_AUTHORITY identifierAuthority;
+    WCHAR string[SECURITY_MAX_SID_STRING_CHARACTERS];
+    PWSTR current;
+    PWSTR buffer;
+    ULONG64 authority;
+    ULONG index;
+    USHORT length;
+
+    if (!PhValidSid(Sid))
+        return STATUS_INVALID_SID;
+
+    sid = (PISID)Sid;
+    identifierAuthority = sid->IdentifierAuthority;
+    current = string;
+    *current++ = L'S';
+    *current++ = L'-';
+    current = PhpAppendSidInteger(current, sid->Revision, 10, 1);
+    *current++ = L'-';
+
+    authority =
+        ((ULONG64)identifierAuthority.Value[0] << 40) |
+        ((ULONG64)identifierAuthority.Value[1] << 32) |
+        ((ULONG64)identifierAuthority.Value[2] << 24) |
+        ((ULONG64)identifierAuthority.Value[3] << 16) |
+        ((ULONG64)identifierAuthority.Value[4] << 8) |
+        identifierAuthority.Value[5];
+
+    if (identifierAuthority.Value[0] || identifierAuthority.Value[1])
+    {
+        *current++ = L'0';
+        *current++ = L'x';
+        current = PhpAppendSidInteger(current, authority, 16, 12);
+    }
+    else
+    {
+        current = PhpAppendSidInteger(current, authority, 10, 1);
+    }
+
+    for (index = 0; index < sid->SubAuthorityCount; index++)
+    {
+        *current++ = L'-';
+        current = PhpAppendSidInteger(current, sid->SubAuthority[index], 10, 1);
+    }
+
+    length = (USHORT)((PUCHAR)current - (PUCHAR)string);
+
+    if (AllocateDestinationString)
+    {
+        buffer = PhAllocate(length + sizeof(UNICODE_NULL));
+    }
+    else
+    {
+        if (StringRef->Length < length + sizeof(UNICODE_NULL))
+            return STATUS_BUFFER_OVERFLOW;
+
+        buffer = StringRef->Buffer;
+    }
+
+    RtlCopyMemory(buffer, string, length);
+    buffer[length / sizeof(WCHAR)] = UNICODE_NULL;
+    StringRef->Buffer = buffer;
+    StringRef->Length = length;
+
+    return STATUS_SUCCESS;
+}
+
 /**
  * Retrieves a copy of an object's security descriptor.
  *
@@ -8051,57 +8147,66 @@ NTSTATUS PhEnumVirtualMemoryBulk(
     }
 
     // BulkQuery... TRUE:
-    // * Faster.
-    // * More accurate snapshots.
-    // * Copies the entire VA space into local memory.
-    // * Wastes large amounts of heap memory due to buffer doubling.
-    // * Unsuitable for low-memory situations and fails with insufficient system resources.
-    // * ...
+    // * Executes the callback once with every entry.
+    // * Copies the entire VA space into local memory (heap).
+    // * Fails with insufficient system resources when the VA space is too large.
     //
     // BulkQuery... FALSE:
-    // * Slightly slower.
-    // * Slightly less accurate snapshots.
-    // * Does not copy the VA space.
-    // * Does not waste heap memory.
-    // * Suitable for low-memory situations and doesn't fail with insufficient system resources.
-    // * ...
+    // * Executes the callback for each batch of entries.
+    // * Does not copy the VA space (stack buffer only).
+    // * Suitable for low-memory situations.
+    //
+    // Both modes continue from NextValidAddress and walk the VA space once;
+    // neither is an atomic snapshot of the VA space.
 
     if (BulkQuery)
     {
         SIZE_T bufferLength;
         PNTPSS_MEMORY_BULK_INFORMATION buffer;
         PMEMORY_BASIC_INFORMATION information;
+        PH_ARRAY entries;
 
-        bufferLength = sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[20]);
+        bufferLength = sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[256]);
         buffer = PhAllocate(bufferLength);
         buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
 
-        // Allocate a large buffer and copy all entries.
+        PhInitializeArray(&entries, sizeof(MEMORY_BASIC_INFORMATION), 256);
 
-        while ((status = NtPssCaptureVaSpaceBulk_Import()(
-            ProcessHandle,
-            BaseAddress,
-            buffer,
-            bufferLength,
-            NULL
-            )) == STATUS_MORE_ENTRIES)
+        while (TRUE)
         {
-            PhFree(buffer);
-            bufferLength *= 2;
+            // Get a batch of entries, continuing from the previous batch.
 
-            if (bufferLength > PH_LARGE_BUFFER_SIZE)
-                return STATUS_INSUFFICIENT_RESOURCES;
+            status = NtPssCaptureVaSpaceBulk_Import()(
+                ProcessHandle,
+                buffer->NextValidAddress,
+                buffer,
+                bufferLength,
+                NULL
+                );
 
-            buffer = PhAllocate(bufferLength);
-            buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
-        }
+            if (!NT_SUCCESS(status))
+                break;
 
-        if (NT_SUCCESS(status))
-        {
             // Skip the enumeration header.
 
             information = PTR_ADD_OFFSET(buffer, RTL_SIZEOF_THROUGH_FIELD(NTPSS_MEMORY_BULK_INFORMATION, NextValidAddress));
 
+            // Copy the entries.
+
+            if ((entries.Count + buffer->NumberOfEntries) * sizeof(MEMORY_BASIC_INFORMATION) > PH_LARGE_BUFFER_SIZE)
+            {
+                status = STATUS_INSUFFICIENT_RESOURCES;
+                break;
+            }
+
+            PhAddItemsArray(&entries, information, buffer->NumberOfEntries);
+
+            if (status != STATUS_MORE_ENTRIES)
+                break;
+        }
+
+        if (NT_SUCCESS(status))
+        {
             // Execute the callback.
 
             Callback(ProcessHandle, information, buffer->NumberOfEntries, Context);

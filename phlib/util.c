@@ -12,18 +12,17 @@
 
 #include <ph.h>
 #include <commdlg.h>
-#include <cfgmgr32.h>
 #include <d3dkmthk.h>
 #include <ntintsafe.h>
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
 #include <shlobj.h>
-#include <winsta.h>
 
 #include <apiimport.h>
 #include <appresolver.h>
-#include <devpkey.h>
+#include <base64.h>
+#include <phcrypt.h>
 #include <guisup.h>
 #include <mapimg.h>
 #include <mapldr.h>
@@ -35,6 +34,10 @@
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
 #include <winstring.h>
+#endif
+
+#ifndef PH_NATIVE_CRC32
+#define PH_NATIVE_CRC32 1
 #endif
 
 DECLSPEC_SELECTANY CONST WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
@@ -1630,8 +1633,6 @@ BOOLEAN PhShowConfirmMessage(
         {
             result = TRUE;
         }
-
-        return FALSE;
     }
 
     if (content)
@@ -2089,6 +2090,190 @@ BOOLEAN PhGenerateRandomSeed(
 //#endif
 
     return PhQueryPerformanceCounter(Seed);
+}
+
+/**
+ * Initializes a correlation vector context with a fresh base vector.
+ *
+ * The base vector is 16 bytes of cryptographic entropy encoded as base64 with the
+ * trailing '=' padding removed, per the Microsoft Correlation Vector protocol.
+ *
+ * \param[out] Context The context to initialize. Release with PhDeleteCorrelationVector.
+ * \return STATUS_SUCCESS on success; an appropriate NTSTATUS on failure (Context is
+ * zeroed in all cases, so PhDeleteCorrelationVector is always safe to call).
+ */
+NTSTATUS PhInitializeCorrelationVector(
+    _Out_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    NTSTATUS status;
+    GUID guid;
+
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT));
+
+    if (!RtlInitializeCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    status = PhSymCryptGenRandom(&guid, sizeof(GUID), 0);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return RtlInitializeCorrelationVector_Import()(
+        &Context->Vector,
+        RTL_CORRELATION_VECTOR_VERSION_2,
+        &guid
+        );
+#else
+    NTSTATUS status;
+    UCHAR randomBuffer[16];
+    CHAR base64Buffer[32]; // 16 bytes -> 24 base64 chars (+ NUL)
+    SIZE_T base64Length;
+
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT));
+
+    status = PhSymCryptGenRandom(randomBuffer, sizeof(randomBuffer), 0);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!PhBase64Encode(
+        randomBuffer,
+        sizeof(randomBuffer),
+        base64Buffer,
+        sizeof(base64Buffer),
+        &base64Length
+        ))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    // Strip the trailing '=' padding the CV protocol disallows.
+    while (base64Length > 0 && base64Buffer[base64Length - 1] == '=')
+        base64Length--;
+
+    if (base64Length == 0)
+        return STATUS_UNSUCCESSFUL;
+
+    Context->BaseVector = PhZeroExtendToUtf16Ex(base64Buffer, base64Length);
+    Context->CurrentIndex = 0;
+
+    return STATUS_SUCCESS;
+#endif
+}
+
+/**
+ * Releases the resources held by a correlation vector context.
+ *
+ * \param[in,out] Context The context to delete. Safe to call on a zeroed context.
+ */
+VOID PhDeleteCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT)); // nothing heap-allocated
+#else
+    PhClearReference(&Context->BaseVector);
+#endif
+}
+
+/**
+ * Produces the next extension of the correlation vector.
+ *
+ * The counter is incremented atomically, so the function may be called concurrently
+ * from multiple threads sharing one context.
+ *
+ * \param[in,out] Context An initialized correlation vector context.
+ * \return A new string of the form "<base vector>.<index>", or NULL if the context
+ * was not initialized. The caller must dereference the returned string.
+ */
+PPH_STRING PhIncrementCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlIncrementCorrelationVector_Import())
+        return NULL;
+
+    if (!NT_SUCCESS(RtlIncrementCorrelationVector_Import()(&Context->Vector)))
+        return NULL;
+
+    return PhZeroExtendToUtf16(Context->Vector.Vector);
+#else
+    LONG newIndex;
+
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return NULL;
+
+    newIndex = _InterlockedIncrement(&Context->CurrentIndex);
+
+    return PhFormatString(
+        L"%s.%lu",
+        Context->BaseVector->Buffer,
+        (ULONG)newIndex
+        );
+#endif
+}
+
+/**
+ * Extends the correlation vector by appending a new (zeroed) extension level,
+ * marking the start of a nested operation.
+ *
+ * \param[in,out] Context An initialized correlation vector context.
+ * \return STATUS_SUCCESS on success; an appropriate NTSTATUS on failure.
+ */
+NTSTATUS PhExtendCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlExtendCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    return RtlExtendCorrelationVector_Import()(&Context->Vector);
+#else
+    PPH_STRING baseVector;
+
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return STATUS_INVALID_PARAMETER;
+
+    // Fold the current extension into the base and start a fresh level at 0.
+    baseVector = PhFormatString(
+        L"%s.%lu",
+        Context->BaseVector->Buffer,
+        (ULONG)Context->CurrentIndex
+        );
+
+    PhMoveReference(&Context->BaseVector, baseVector);
+    Context->CurrentIndex = 0;
+
+    return STATUS_SUCCESS;
+#endif
+}
+
+/**
+ * Validates the format of the correlation vector.
+ *
+ * \param[in] Context An initialized correlation vector context.
+ * \return STATUS_SUCCESS if the vector is well-formed; an appropriate NTSTATUS otherwise.
+ */
+NTSTATUS PhValidateCorrelationVector(
+    _In_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlValidateCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    return RtlValidateCorrelationVector_Import()(&Context->Vector);
+#else
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return STATUS_INVALID_PARAMETER;
+
+    return STATUS_SUCCESS;
+#endif
 }
 
 /**
@@ -3143,6 +3328,11 @@ PPH_STRING PhFormatGuid(
     )
 {
     PPH_STRING string;
+
+#ifndef PH_NATIVE_GUID
+    string = PhCreateStringEx(NULL, RTL_GUID_STRING_SIZE * sizeof(WCHAR));
+    PhFormatGuidToBuffer(Guid, string->Buffer, (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR), NULL);
+#else
     UNICODE_STRING unicodeString;
 
     if (!NT_SUCCESS(RtlStringFromGUID(Guid, &unicodeString)))
@@ -3150,6 +3340,7 @@ PPH_STRING PhFormatGuid(
 
     string = PhCreateStringFromUnicodeString(&unicodeString);
     RtlFreeUnicodeString(&unicodeString);
+#endif
 
     return string;
 }
@@ -3169,34 +3360,75 @@ NTSTATUS PhFormatGuidToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    NTSTATUS status;
+#ifndef PH_NATIVE_GUID
+    static const WCHAR hexDigits[] = L"0123456789ABCDEF";
+    const UCHAR *bytes = (const UCHAR *)Guid;
+    WCHAR guidString[RTL_GUID_STRING_SIZE + 1];
+    ULONG sourceIndex;
+    ULONG destinationIndex = 0;
+    ULONG groupIndex;
+    const UCHAR byteOrder[] = { 3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+    if (ReturnLength)
+        *ReturnLength = sizeof(guidString);
+
+    if (!Guid || !Buffer || BufferLength < sizeof(guidString))
+        return STATUS_BUFFER_TOO_SMALL;
+
+    guidString[destinationIndex++] = L'{';
+
+    for (sourceIndex = 0; sourceIndex < RTL_NUMBER_OF(byteOrder); sourceIndex++)
+    {
+        groupIndex = sourceIndex;
+        if (groupIndex == 4 || groupIndex == 6 || groupIndex == 8 || groupIndex == 10)
+            guidString[destinationIndex++] = L'-';
+
+        guidString[destinationIndex++] = hexDigits[bytes[byteOrder[sourceIndex]] >> 4];
+        guidString[destinationIndex++] = hexDigits[bytes[byteOrder[sourceIndex]] & 0xf];
+    }
+
+    guidString[destinationIndex++] = L'}';
+    guidString[destinationIndex] = UNICODE_NULL;
+    memcpy(Buffer, guidString, sizeof(guidString));
+    return STATUS_SUCCESS;
+#else
     UNICODE_STRING unicodeString;
+    NTSTATUS status;
+
+    if (!Guid)
+        return STATUS_BUFFER_TOO_SMALL;
 
     if (WindowsVersion < WINDOWS_10)
     {
         PPH_STRING guid = PhFormatGuid(Guid);
 
-        if (BufferLength < guid->Length)
+        if (!guid)
+            return STATUS_UNSUCCESSFUL;
+
+        if (ReturnLength)
+            *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+
+        if (!Buffer || BufferLength < guid->Length + sizeof(UNICODE_NULL))
         {
-            if (ReturnLength)
-                *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
             PhDereferenceObject(guid);
             return STATUS_BUFFER_TOO_SMALL;
         }
 
-        memcpy(Buffer, guid->Buffer, BufferLength);
-
-        if (ReturnLength)
-            *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+        memcpy(Buffer, guid->Buffer, guid->Length + sizeof(UNICODE_NULL));
         PhDereferenceObject(guid);
         return STATUS_SUCCESS;
     }
+
+    if (ReturnLength)
+        *ReturnLength = (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR);
+
+    if (!Buffer || BufferLength < (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR))
+        return STATUS_BUFFER_TOO_SMALL;
 
     if (!RtlStringFromGUIDEx_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
     RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
-
     status = RtlStringFromGUIDEx_Import()(
         Guid,
         &unicodeString,
@@ -3212,6 +3444,7 @@ NTSTATUS PhFormatGuidToBuffer(
     }
 
     return status;
+#endif
 }
 
 /**
@@ -3226,12 +3459,57 @@ NTSTATUS PhStringToGuid(
     _Out_ PGUID Guid
     )
 {
+#ifndef PH_NATIVE_GUID
+    GUID guid;
+    UCHAR *bytes = (UCHAR *)&guid;
+    ULONG sourceIndex;
+    ULONG destinationIndex = 0;
+    ULONG value;
+    ULONG high;
+    ULONG low;
+    const UCHAR byteOrder[] = { 3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+    if (!GuidString || !Guid || GuidString->Length != RTL_GUID_STRING_SIZE * sizeof(WCHAR))
+        return STATUS_INVALID_PARAMETER;
+    if (GuidString->Buffer[0] != L'{' || GuidString->Buffer[37] != L'}' ||
+        GuidString->Buffer[9] != L'-' || GuidString->Buffer[14] != L'-' ||
+        GuidString->Buffer[19] != L'-' || GuidString->Buffer[24] != L'-')
+        return STATUS_INVALID_PARAMETER;
+
+    for (sourceIndex = 1; sourceIndex < 37;)
+    {
+        if (GuidString->Buffer[sourceIndex] == L'-')
+        {
+            sourceIndex++;
+            continue;
+        }
+
+        value = GuidString->Buffer[sourceIndex++];
+        if (value >= L'0' && value <= L'9') high = value - L'0';
+        else if ((value | 0x20) >= L'a' && (value | 0x20) <= L'f') high = (value | 0x20) - L'a' + 10;
+        else return STATUS_INVALID_PARAMETER;
+
+        value = GuidString->Buffer[sourceIndex++];
+        if (value >= L'0' && value <= L'9') low = value - L'0';
+        else if ((value | 0x20) >= L'a' && (value | 0x20) <= L'f') low = (value | 0x20) - L'a' + 10;
+        else return STATUS_INVALID_PARAMETER;
+
+        bytes[byteOrder[destinationIndex++]] = (UCHAR)((high << 4) | low);
+    }
+
+    if (destinationIndex != RTL_NUMBER_OF(byteOrder))
+        return STATUS_INVALID_PARAMETER;
+
+    *Guid = guid;
+    return STATUS_SUCCESS;
+#else
     UNICODE_STRING unicodeString;
 
     if (!PhStringRefToUnicodeString(GuidString, &unicodeString))
         return STATUS_BUFFER_OVERFLOW;
 
     return RtlGUIDFromString(&unicodeString, Guid);
+#endif
 }
 
 /**
@@ -3311,28 +3589,28 @@ NTSTATUS PhGetFileVersionInfoEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    //if (LdrResFindResource_Import())
-    //{
-    //    PVOID resourceBuffer = NULL;
-    //    SIZE_T resourceLength = 0;
-    //
-    //    if (NT_SUCCESS(LdrResFindResource_Import()(
-    //        imageBaseAddress,
-    //        VS_FILE_INFO,
-    //        MAKEINTRESOURCE(VS_VERSION_INFO),
-    //        MAKEINTRESOURCE(MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)),
-    //        &resourceBuffer,
-    //        &resourceLength,
-    //        NULL,
-    //        NULL,
-    //        0
-    //        )))
-    //    {
-    //        *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
-    //        PhFreeLibraryAsImageResource(imageBaseAddress);
-    //        return STATUS_SUCCESS;
-    //    }
-    //}
+    if (LdrResFindResource_Import())
+    {
+        PVOID resourceBuffer = NULL;
+        SIZE_T resourceLength = 0;
+    
+        if (NT_SUCCESS(LdrResFindResource_Import()(
+            imageBaseAddress,
+            VS_FILE_INFO,
+            MAKEINTRESOURCE(VS_VERSION_INFO),
+            MAKEINTRESOURCE(MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)),
+            &resourceBuffer,
+            &resourceLength,
+            NULL,
+            NULL,
+            LDR_RES_SEARCH_LOAD_IMAGE
+            )))
+        {
+            *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
+            PhFreeLibraryAsImageResource(imageBaseAddress);
+            return STATUS_SUCCESS;
+        }
+    }
 
     // MUI version information
     if (PRIMARYLANGID(LANGIDFROMLCID(PhGetCurrentThreadLCID())) != LANG_ENGLISH)
@@ -4497,11 +4775,12 @@ PPH_STRING PhGetSystemDirectory(
     PhGetSystemRoot(&systemRootString);
     systemDirectory = PhConcatStringRef2(&systemRootString, &system32String);
 
-    PhReferenceObject(systemDirectory);
+    PhReferenceObject(systemDirectory); // Reference held by the cache.
 
-    if (previousSystemDirectory = InterlockedExchangePointer(&cachedSystemDirectory, systemDirectory))
+    if (previousSystemDirectory = InterlockedCompareExchangePointer(&cachedSystemDirectory, systemDirectory, NULL))
     {
-        PhDereferenceObject(previousSystemDirectory);
+        PhDereferenceObjectEx(systemDirectory, 2, FALSE); // Discard the unused cache and caller references.
+        systemDirectory = PhReferenceObject(previousSystemDirectory);
     }
 
     return systemDirectory;
@@ -4541,29 +4820,27 @@ VOID PhGetSystemRoot(
     _Out_ PPH_STRINGREF SystemRoot
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PH_STRINGREF systemRoot;
-    PH_STRINGREF localSystemRoot;
-    SIZE_T count;
 
-    if (systemRoot.Buffer)
+    if (PhBeginInitOnce(&initOnce))
     {
-        *SystemRoot = systemRoot;
-        return;
+        PH_STRINGREF localSystemRoot;
+        SIZE_T count;
+
+        localSystemRoot.Buffer = RtlGetNtSystemRoot();
+        count = PhCountStringZ(localSystemRoot.Buffer);
+        localSystemRoot.Length = count * sizeof(WCHAR);
+
+        // Make sure the system root string doesn't have a trailing backslash.
+        if (localSystemRoot.Buffer[count - 1] == OBJ_NAME_PATH_SEPARATOR)
+            localSystemRoot.Length -= sizeof(WCHAR);
+
+        systemRoot = localSystemRoot;
+        PhEndInitOnce(&initOnce);
     }
 
-    localSystemRoot.Buffer = RtlGetNtSystemRoot();
-    count = PhCountStringZ(localSystemRoot.Buffer);
-    localSystemRoot.Length = count * sizeof(WCHAR);
-
-    // Make sure the system root string doesn't have a trailing backslash.
-    if (localSystemRoot.Buffer[count - 1] == OBJ_NAME_PATH_SEPARATOR)
-        localSystemRoot.Length -= sizeof(WCHAR);
-
-    *SystemRoot = localSystemRoot;
-
-    systemRoot.Length = localSystemRoot.Length;
-    MemoryBarrier();
-    systemRoot.Buffer = localSystemRoot.Buffer;
+    *SystemRoot = systemRoot;
 }
 
 /**
@@ -4577,16 +4854,34 @@ VOID PhGetNtSystemRoot(
     )
 {
     static PPH_STRING systemRootNative;
+    PPH_STRING string;
 
-    if (PhIsNullOrEmptyString(systemRootNative))
+    string = ReadPointerAcquire(&systemRootNative);
+
+    if (!string)
     {
         PH_STRINGREF localSystemRoot;
+        PPH_STRING newString;
 
         PhGetSystemRoot(&localSystemRoot);
-        systemRootNative = PhDosPathNameToNtPathName(&localSystemRoot);
+        newString = PhDosPathNameToNtPathName(&localSystemRoot);
+
+        if (!newString)
+        {
+            NtSystemRoot->Buffer = NULL;
+            NtSystemRoot->Length = 0;
+            return;
+        }
+
+        string = InterlockedCompareExchangePointer(&systemRootNative, newString, NULL);
+
+        if (string)
+            PhDereferenceObject(newString);
+        else
+            string = newString;
     }
 
-    *NtSystemRoot = systemRootNative->sr;
+    *NtSystemRoot = string->sr;
 }
 
 /**
@@ -5534,6 +5829,76 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     _In_ ULONG WakeMask
     )
 {
+#ifndef PHNT_WINDOWS7_WAIT
+    NTSTATUS status;
+    ULONG64 deadline = 0;
+    ULONG currentTimeout;
+
+    // Fix the deadline once instead of tracking a start point and subtracting the elapsed time on
+    // every pass. Subtracting produced a value that had already underflowed whenever the elapsed
+    // time exceeded the timeout, which the loop then had to detect by reinterpreting the unsigned
+    // result as signed and testing for a negative value. An absolute deadline expresses the same
+    // condition as an ordinary unsigned comparison, with no reliance on wraparound. (dmex)
+
+    if (Timeout != INFINITE)
+    {
+        deadline = PhQueryWaitTime() + UInt32x32To64(Timeout, PH_TIMEOUT_MS);
+    }
+
+    currentTimeout = Timeout;
+
+    while (TRUE)
+    {
+        status = MsgWaitForMultipleObjects(
+            NumberOfHandles,
+            Handles,
+            FALSE,
+            currentTimeout,
+            WakeMask
+            );
+
+        if (
+            status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles) ||
+            status >= STATUS_ABANDONED_WAIT_0  && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
+            )
+        {
+            return status;
+        }
+        else if (status == (STATUS_WAIT_0 + NumberOfHandles))
+        {
+            MSG msg;
+
+            // Pump messages
+
+            while (PeekMessage(&msg, WindowHandle, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            return status;
+        }
+
+        // Recompute the timeout value. This is the only point that requires milliseconds, so it is
+        // the only point that rounds; the remaining time is otherwise carried at full resolution.
+        // The final partial millisecond truncates to zero, costing one extra non-blocking pass
+        // before the deadline comparison reports the timeout. (dmex)
+
+        if (Timeout != INFINITE)
+        {
+            ULONG64 currentTickCount;
+
+            currentTickCount = PhQueryWaitTime();
+
+            if (currentTickCount >= deadline)
+                return STATUS_TIMEOUT;
+
+            currentTimeout = (ULONG)((deadline - currentTickCount) / PH_TICKS_PER_MS);
+        }
+    }
+#else
     NTSTATUS status;
     ULONG64 startTickCount;
     ULONG64 currentTickCount;
@@ -5554,7 +5919,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
         if (
             status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles) ||
-            status >= STATUS_ABANDONED_WAIT_0  && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
+            status >= STATUS_ABANDONED_WAIT_0 && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
             )
         {
             return status;
@@ -5587,6 +5952,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
                 return STATUS_TIMEOUT;
         }
     }
+#endif
 }
 
 /**
@@ -5607,6 +5973,10 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * associated with the parent process.
  * \li \c PH_CREATE_PROCESS_NEW_CONSOLE The process will have its own console, instead of inheriting
  * the console of the parent process.
+ * \li \c PH_CREATE_PROCESS_DETACHED_PROCESS The process will run without a console. Mutually
+ * exclusive with PH_CREATE_PROCESS_NEW_CONSOLE and PH_CREATE_PROCESS_NO_WINDOW.
+ * \li \c PH_CREATE_PROCESS_NO_WINDOW The process is a console application running without a console
+ * window. Mutually exclusive with PH_CREATE_PROCESS_NEW_CONSOLE and PH_CREATE_PROCESS_DETACHED_PROCESS.
  * \param ParentProcessHandle The process from which the new process will inherit attributes.
  * Specify NULL for the current process.
  * \param ClientId A variable which receives the identifier of the initial thread.
@@ -5729,6 +6099,184 @@ NTSTATUS PhCreateProcess(
 }
 
 /**
+ * Creates cmd.exe via the NtCreateUserProcess system call and instructs it to launch a target
+ * program. cmd.exe is the process actually created; it spawns the target detached via
+ * "cmd.exe /c start "" "<FileName>" <CommandLine>" and then exits.
+ *
+ * \param FileName The Win32 file name of the target program that cmd.exe should launch.
+ * \param CommandLine The command line arguments passed to the target program.
+ * \param CurrentDirectory The current directory string to pass to cmd.exe.
+ * \param Flags See PhCreateProcess(). Only PH_CREATE_PROCESS_SUSPENDED is honored (applied to the
+ * initial thread of cmd.exe).
+ * \param ClientId A variable which receives the client id of the created cmd.exe process.
+ * \param ProcessHandle A variable which receives a handle to the cmd.exe process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread of cmd.exe.
+ */
+NTSTATUS PhCreateUserProcess(
+    _In_ PCWSTR FileName,
+    _In_opt_ PCPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
+    _In_ ULONG Flags,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    PPH_STRING cmdFileName;
+    PPH_STRING quotedFileName;
+    PPH_STRING commandLineString = NULL;
+    PH_STRINGREF fileNameSr;
+    PH_STRING_BUILDER stringBuilder;
+    PRTL_USER_PROCESS_PARAMETERS parameters = NULL;
+    UNICODE_STRING fileNameDosPath;
+    UNICODE_STRING fileNameNtPath;
+    UNICODE_STRING commandLine;
+    UNICODE_STRING currentDirectory;
+    PS_CREATE_INFO createInfo;
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[2])] = { 0 };
+    PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
+    CLIENT_ID clientId = { 0 };
+    HANDLE processHandle = NULL;
+    HANDLE threadHandle = NULL;
+
+    // Locate cmd.exe in the system directory.
+
+    cmdFileName = PhGetSystemDirectoryWin32Z(L"\\cmd.exe");
+
+    if (PhIsNullOrEmptyString(cmdFileName))
+    {
+        if (cmdFileName)
+            PhDereferenceObject(cmdFileName);
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    }
+
+    // Resolve the NT path of cmd.exe for the PsAttributeImageName attribute.
+
+    status = PhDosLongPathNameToNtPathNameWithStatus(
+        cmdFileName->Buffer,
+        &fileNameNtPath,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(cmdFileName);
+        return status;
+    }
+
+    // Build the command line: "<cmd.exe>" /c start "" "<FileName>" <CommandLine>
+    // The empty "" after start is the window-title placeholder so a quoted target
+    // path is not consumed as the window title.
+
+    PhInitializeStringRefLongHint(&fileNameSr, (PWSTR)FileName);
+    quotedFileName = PhQuoteCommandLine(&fileNameSr, TRUE);
+
+    PhInitializeStringBuilder(&stringBuilder, 128);
+    PhAppendCharStringBuilder(&stringBuilder, L'"');
+    PhAppendStringBuilder(&stringBuilder, &cmdFileName->sr);
+    PhAppendStringBuilder2(&stringBuilder, L"\" /C start /I \"\" ");
+    PhAppendStringBuilder(&stringBuilder, &quotedFileName->sr);
+
+    if (CommandLine && CommandLine->Length != 0)
+    {
+        PhAppendCharStringBuilder(&stringBuilder, L' ');
+        PhAppendStringBuilder(&stringBuilder, CommandLine);
+    }
+
+    commandLineString = PhFinalStringBuilderString(&stringBuilder);
+
+    if (!PhStringRefToUnicodeString(&cmdFileName->sr, &fileNameDosPath) ||
+        !PhStringRefToUnicodeString(&commandLineString->sr, &commandLine))
+    {
+        status = STATUS_NAME_TOO_LONG;
+        goto CleanupExit;
+    }
+
+    if (CurrentDirectory)
+    {
+        if (!PhStringRefToUnicodeString(CurrentDirectory, &currentDirectory))
+        {
+            status = STATUS_NAME_TOO_LONG;
+            goto CleanupExit;
+        }
+    }
+
+    status = RtlCreateProcessParameters(
+        &parameters,
+        &fileNameDosPath,
+        NULL,
+        CurrentDirectory ? &currentDirectory : NULL,
+        &commandLine,
+        NULL,
+        &fileNameDosPath,
+        &NtCurrentPeb()->ProcessParameters->DesktopInfo,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    attributeList->TotalLength = sizeof(buffer);
+    attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_IMAGE_NAME;
+    attributeList->Attributes[0].Size = fileNameNtPath.Length;
+    attributeList->Attributes[0].ValuePtr = fileNameNtPath.Buffer;
+    attributeList->Attributes[0].ReturnLength = NULL;
+    attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_CLIENT_ID;
+    attributeList->Attributes[1].Size = sizeof(CLIENT_ID);
+    attributeList->Attributes[1].ValuePtr = &clientId;
+    attributeList->Attributes[1].ReturnLength = NULL;
+
+    memset(&createInfo, 0, sizeof(PS_CREATE_INFO));
+    createInfo.Size = sizeof(PS_CREATE_INFO);
+    createInfo.State = PsCreateInitialState;
+
+    status = NtCreateUserProcess(
+        &processHandle,
+        &threadHandle,
+        PROCESS_ALL_ACCESS,
+        THREAD_ALL_ACCESS,
+        NULL,
+        NULL,
+        0,
+        (Flags & PH_CREATE_PROCESS_SUSPENDED) ? THREAD_CREATE_FLAGS_CREATE_SUSPENDED : THREAD_CREATE_FLAGS_NONE,
+        parameters,
+        &createInfo,
+        attributeList
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ClientId)
+            *ClientId = clientId;
+
+        if (ProcessHandle)
+            *ProcessHandle = processHandle;
+        else
+            NtClose(processHandle);
+
+        if (ThreadHandle)
+            *ThreadHandle = threadHandle;
+        else
+            NtClose(threadHandle);
+    }
+
+CleanupExit:
+    if (parameters)
+        RtlDestroyProcessParameters(parameters);
+    if (commandLineString)
+        PhDereferenceObject(commandLineString);
+    if (quotedFileName)
+        PhDereferenceObject(quotedFileName);
+    PhDereferenceObject(cmdFileName);
+    RtlFreeUnicodeString(&fileNameNtPath);
+
+    return status;
+}
+
+/**
  * Creates a Win32 process and an initial thread.
  *
  * \param FileName The Win32 file name of the image.
@@ -5777,15 +6325,12 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
     { PH_CREATE_PROCESS_EXTENDED_STARTUPINFO, EXTENDED_STARTUPINFO_PRESENT },
     { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
     { PH_CREATE_PROCESS_DEFAULT_ERROR_MODE, CREATE_DEFAULT_ERROR_MODE },
+    { PH_CREATE_PROCESS_DETACHED_PROCESS, DETACHED_PROCESS },
+    { PH_CREATE_PROCESS_NO_WINDOW, CREATE_NO_WINDOW },
 };
 
 /**
  * Converts PROCESS_INFORMATION outputs into native result fields.
- *
- * \param ProcessInfo The process information returned by Win32 process creation.
- * \param ClientId Receives the process and thread identifiers.
- * \param ProcessHandle Receives the process handle.
- * \param ThreadHandle Receives the initial thread handle.
  */
 FORCEINLINE VOID PhpConvertProcessInformation(
     _In_ PPROCESS_INFORMATION ProcessInfo,
@@ -6008,14 +6553,14 @@ NTSTATUS PhCreateProcessWin32Ex(
  *
  * \param Information Parameters specifying how to create the process.
  * \param Flags See PhCreateProcess(). Additional flags may be used:
- * \li \c PH_CREATE_PROCESS_USE_PROCESS_TOKEN Use the token of the process specified by
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN Use the token of the process specified by
  * \a ProcessIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_SESSION_TOKEN Use the token of the session specified by
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN Use the token of the session specified by
  * \a SessionIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the process; this causes
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN Use the linked token to create the process; this causes
  * the process to be elevated or unelevated depending on the specified options.
- * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
- * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
+ * \li \c PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID \a SessionId is specified in \a Information.
+ * \li \c PH_CREATE_PROCESS_AS_USER_WITH_PROFILE Load the user profile, if supported.
  * \param StartupInfo A STARTUPINFO structure containing additional parameters for the process.
  * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
@@ -6036,7 +6581,7 @@ NTSTATUS PhCreateProcessAsUser(
     PVOID defaultEnvironment = NULL;
     STARTUPINFOEX startupInfo;
 
-    if ((Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN))
+    if ((Flags & PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN))
         return STATUS_INVALID_PARAMETER_2;
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -6052,19 +6597,19 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile.
     // This isn't compatible with some options.
-    if (Flags & PH_CREATE_PROCESS_WITH_PROFILE)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_WITH_PROFILE)
     {
         BOOLEAN useWithLogon;
 
         useWithLogon = TRUE;
 
-        if (Flags & (PH_CREATE_PROCESS_USE_PROCESS_TOKEN | PH_CREATE_PROCESS_USE_SESSION_TOKEN))
+        if (Flags & (PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN | PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN))
             useWithLogon = FALSE;
 
-        if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN)
             useWithLogon = FALSE;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
         {
             ULONG sessionId = ULONG_MAX;
 
@@ -6074,7 +6619,7 @@ NTSTATUS PhCreateProcessAsUser(
                 useWithLogon = FALSE;
         }
 
-        if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
         {
             useWithLogon = FALSE;
         }
@@ -6181,7 +6726,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Get the token handle. Various methods are supported.
 
-    if (Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN)
     {
         HANDLE processHandle;
 
@@ -6202,10 +6747,10 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
             needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
     }
-    else if (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN)
+    else if (Flags & PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN)
     {
         status = PhWinStationQueryUserToken(
             Information->SessionIdWithToken,
@@ -6215,7 +6760,7 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID || Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID || Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
         {
             needsDuplicate = TRUE; // not sure if this is necessary
         }
@@ -6255,7 +6800,7 @@ NTSTATUS PhCreateProcessAsUser(
             return PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN)
     {
         HANDLE linkedTokenHandle;
         TOKEN_TYPE tokenType;
@@ -6311,7 +6856,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the session ID if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
     {
         if (!NT_SUCCESS(status = PhSetTokenSessionId(
             tokenHandle,
@@ -6325,7 +6870,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the UIAccess flag if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_UIACCESS)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_UIACCESS)
     {
         if (!NT_SUCCESS(status = PhSetTokenUIAccess(
             tokenHandle,
@@ -6339,7 +6884,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the Logon ID if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
     {
         if (!NT_SUCCESS(status = PhSetTokenGroups(
             tokenHandle,
@@ -6886,6 +7431,7 @@ VOID PhShellExploreFile(
 
     if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
     {
+        HRESULT status;
         LPITEMIDLIST item;
 
         status = SHParseDisplayName_I(
@@ -11227,7 +11773,7 @@ NTSTATUS PhCreateProcessClone(
         PROCESS_ALL_ACCESS,
         &objectAttributes,
         processHandle,
-        PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED,
+        PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED | PROCESS_CREATE_FLAGS_CLONE_MINIMAL,
         NULL,
         NULL,
         NULL,

@@ -1249,7 +1249,9 @@ NTSTATUS PhpQueryProcessVariableSize(
         return status;
     }
 
-    buffer = PhAllocate(returnLength);
+    buffer = PhAllocateSafe(returnLength);
+    if (!buffer) return STATUS_NO_MEMORY;
+
     status = NtQueryInformationProcess(
         ProcessHandle,
         ProcessInformationClass,
@@ -2042,7 +2044,8 @@ NTSTATUS PhGetProcessWindowTitle(
     ULONG returnLength = 0;
 
     bufferLength = UFIELD_OFFSET(PROCESS_WINDOW_INFORMATION, WindowTitle[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
-    windowInfo = PhAllocate(bufferLength);
+    windowInfo = PhAllocateSafe(bufferLength);
+    if (!windowInfo) return STATUS_NO_MEMORY;
 
     status = NtQueryInformationProcess(
         ProcessHandle,
@@ -2056,7 +2059,8 @@ NTSTATUS PhGetProcessWindowTitle(
     {
         PhFree(windowInfo);
         bufferLength = returnLength;
-        windowInfo = PhAllocate(bufferLength);
+        windowInfo = PhAllocateSafe(bufferLength);
+        if (!windowInfo) return STATUS_NO_MEMORY;
 
         status = NtQueryInformationProcess(
             ProcessHandle,
@@ -2288,7 +2292,9 @@ NTSTATUS PhGetProcessEnvironment(
         )))
         return status;
 
+    //
     // Check environment address is valid for the region. (dmex)
+    //
 
     status = RtlULongPtrSub(
         (ULONG_PTR)environmentRemote,
@@ -2302,7 +2308,7 @@ NTSTATUS PhGetProcessEnvironment(
     if ((ULONG_PTR)environmenOffset > (ULONG_PTR)basicInfo.RegionSize)
         return STATUS_FAIL_CHECK;
 
-    status = RtlSizeTSub(
+    status = RtlSIZETSub(
         (SIZE_T)basicInfo.RegionSize,
         (SIZE_T)environmenOffset,
         &environmentLength
@@ -2312,11 +2318,11 @@ NTSTATUS PhGetProcessEnvironment(
         return status;
 
     environment = PhAllocatePage(environmentLength, NULL);
+    if (!environment) return STATUS_NO_MEMORY;
 
-    if (!environment)
-        return STATUS_NO_MEMORY;
-
+    //
     // Read in the entire region of memory.
+    //
 
     if (!NT_SUCCESS(status = PhReadVirtualMemory(
         ProcessHandle,

@@ -2674,8 +2674,8 @@ PhSelfRelativeToAbsoluteSD2(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhConvertSidToUnicodeString(
-    _Inout_ PUNICODE_STRING UnicodeString,
+PhConvertSidToStringRef(
+    _Inout_ PPH_STRINGREF StringRef,
     _In_ PSID Sid,
     _In_ BOOLEAN AllocateDestinationString
     );
@@ -6527,6 +6527,7 @@ PhOpenNamedPipeProtectedPrefix(
     _In_ PH_NAMED_PIPE_PREFIX_TYPE PrefixType,
     _In_ ACCESS_MASK DesiredAccess
     );
+
 PHLIBAPI
 NTSTATUS
 NTAPI

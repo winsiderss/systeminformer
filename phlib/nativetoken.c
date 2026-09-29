@@ -1783,6 +1783,7 @@ NTSTATUS PhAdjustPrivilege(
     _In_ BOOLEAN Enable
     )
 {
+#if defined(PH_NATIVE_ADJUST_PRIVILEGE)
     NTSTATUS status;
     HANDLE tokenHandle;
     TOKEN_PRIVILEGES privileges;
@@ -1845,6 +1846,30 @@ NTSTATUS PhAdjustPrivilege(
         return STATUS_PRIVILEGE_NOT_HELD;
 
     return status;
+#else
+    NTSTATUS status;
+    BOOLEAN wasEnabled;
+
+    if (!Privilege)
+    {
+        LUID privilegeLuid;
+        PH_STRINGREF privilegeName;
+
+        if (!PrivilegeName)
+            return STATUS_INVALID_PARAMETER_1;
+
+        PhInitializeStringRefLongHint(&privilegeName, PrivilegeName);
+
+        status = PhLookupPrivilegeValue(&privilegeName, &privilegeLuid);
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        Privilege = privilegeLuid.LowPart;
+    }
+
+    return RtlAdjustPrivilege((ULONG)Privilege, Enable, FALSE, &wasEnabled);
+#endif
 }
 
 /**
@@ -2251,10 +2276,12 @@ NTSTATUS PhGetTokenIntegrityLevelEx(
         return STATUS_UNSUCCESSFUL;
     }
 
+    // Note: integrityLevel.Level and others now safe to access.
 
     if (IntegrityLevel)
     {
         IntegrityLevel->Level = integrityLevel.Level;
+    }
 
     if (IntegrityString)
     {

@@ -18,7 +18,6 @@
 #include <lsasup.h>
 
 #include <devquery.h>
-#include <devpkey.h>
 #include <phafd.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
@@ -301,7 +300,7 @@ NTSTATUS PhGetObjectTypeName(
     // If the cache contains the object type name, use it. Otherwise, query the type name. (dmex)
 
     if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
-        typeName = PhObjectTypeNames[ObjectTypeNumber];
+        typeName = ReadPointerAcquire(&PhObjectTypeNames[ObjectTypeNumber]);
 
     if (typeName)
     {
@@ -385,7 +384,7 @@ NTSTATUS PhGetObjectTypeName(
                 );
 
             // Add a reference if we stored the type name successfully.
-            if (PhIsNullOrEmptyString(oldTypeName))
+            if (!oldTypeName)
             {
                 PhReferenceObject(typeName);
             }
@@ -510,7 +509,7 @@ PPH_STRING PhGetObjectTypeNameEx(
     // If the cache contains the object type name, use it. (dmex)
 
     if (ObjectTypeNumber != ULONG_MAX && ObjectTypeNumber < MAX_OBJECT_TYPE_NUMBER)
-        typeName = PhObjectTypeNames[ObjectTypeNumber];
+        typeName = ReadPointerAcquire(&PhObjectTypeNames[ObjectTypeNumber]);
 
     if (typeName)
         PhReferenceObject(typeName);
@@ -1368,7 +1367,7 @@ NTSTATUS PhpGetBestObjectName(
         break;
     case PhHandleObjectTypeJob:
         {
-            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
+            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = ReadPointerAcquire((PVOID const volatile*)&PhHandleGetClientIdName);
             HANDLE dupHandle;
             PJOBOBJECT_BASIC_PROCESS_ID_LIST processIdList;
 
@@ -1433,7 +1432,7 @@ NTSTATUS PhpGetBestObjectName(
         break;
     case PhHandleObjectTypeProcess:
         {
-            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
+            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = ReadPointerAcquire((PVOID const volatile*)&PhHandleGetClientIdName);
             CLIENT_ID clientId;
 
             clientId.UniqueThread = NULL;
@@ -1604,7 +1603,7 @@ NTSTATUS PhpGetBestObjectName(
         break;
     case PhHandleObjectTypeThread:
         {
-            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = PhHandleGetClientIdName;
+            PPH_GET_CLIENT_ID_NAME handleGetClientIdName = ReadPointerAcquire((PVOID const volatile*)&PhHandleGetClientIdName);
             CLIENT_ID clientId;
 
             if (KsiLevel() >= KphLevelMed)

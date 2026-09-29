@@ -18,7 +18,7 @@
 
 EXTERN_C_START
 
-// guisup
+// Run File Dialog
 
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
@@ -46,12 +46,67 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 #define RF_CANCEL 0x0001
 #define RF_RETRY 0x0002
 
-typedef HANDLE HTHEME;
+//
+// GetDCEx flags
+//
 
-#define DCX_USESTYLE 0x00010000
-#define DCX_NODELETERGN 0x00040000
+#if !defined(DCX_WINDOW)
+#define DCX_WINDOW              LONG_C(0x00000001)      // Use the window rectangle instead of the client rectangle
+#endif
+#if !defined(DCX_CACHE)
+#define DCX_CACHE               LONG_C(0x00000002)      // Return a DC from the cache; overrides CS_OWNDC/CS_CLASSDC
+#endif
+#if !defined(DCX_NORESETATTRS)
+#define DCX_NORESETATTRS        LONG_C(0x00000004)      // Do not restore default attributes when the DC is released
+#endif
+#if !defined(DCX_CLIPCHILDREN)
+#define DCX_CLIPCHILDREN        LONG_C(0x00000008)      // Exclude the visible regions of all child windows
+#endif
+#if !defined(DCX_CLIPSIBLINGS)
+#define DCX_CLIPSIBLINGS        LONG_C(0x00000010)      // Exclude the visible regions of all sibling windows above
+#endif
+#if !defined(DCX_PARENTCLIP)
+#define DCX_PARENTCLIP          LONG_C(0x00000020)      // Use the parent's visible region; ignore WS_CLIPCHILDREN/WS_PARENTDC
+#endif
+#if !defined(DCX_EXCLUDERGN)
+#define DCX_EXCLUDERGN          LONG_C(0x00000040)      // Exclude hrgnClip from the DC's visible region
+#endif
+#if !defined(DCX_INTERSECTRGN)
+#define DCX_INTERSECTRGN        LONG_C(0x00000080)      // Intersect hrgnClip with the DC's visible region
+#endif
+#if !defined(DCX_EXCLUDEUPDATE)
+#define DCX_EXCLUDEUPDATE       LONG_C(0x00000100)      // Exclude the window's update region (undocumented)
+#endif
+#if !defined(DCX_INTERSECTUPDATE)
+#define DCX_INTERSECTUPDATE     LONG_C(0x00000200)      // Intersect with the window's update region (undocumented)
+#endif
+#if !defined(DCX_LOCKWINDOWUPDATE)
+#define DCX_LOCKWINDOWUPDATE    LONG_C(0x00000400)      // Draw even while LockWindowUpdate is in effect (tracking)
+#endif
+
+// Internal DCE-cache state bits (set/cleared by win32k, not by usermode callers)
+#define DCX_DCEEMPTY            LONG_C(0x00000800)      // Cache DCE slot has no HDC allocated yet (free entry) (undocumented)
+#define DCX_DCEBUSY             LONG_C(0x00001000)      // DCE is handed out; set by GetDCEx, cleared by ReleaseDC (undocumented)
+#define DCX_DCEDIRTY            LONG_C(0x00002000)      // Cached visible region is stale; recomputed then cleared on reuse (undocumented)
+#define DCX_REDIRECTED          LONG_C(0x00004000)      // DC is bound to a (DWM) redirection surface (undocumented)
+#define DCX_INVALID             LONG_C(0x00008000)      // DCE is invalid and must not be reused (undocumented)
+
+// Caller-supplied input flags (continued)
+#define DCX_USESTYLE            LONG_C(0x00010000)      // Take CLIPCHILDREN/CLIPSIBLINGS from the window style (undocumented)
+#define DCX_NODELETERGN         LONG_C(0x00040000)      // Don't delete hrgnClip on GetDCEx/ReleaseCacheDC (undocumented)
+#define DCX_NOCLIPCHILDREN      LONG_C(0x00080000)      // Build the visible region without clipping child windows (undocumented)
+#define DCX_NORECOMPUTE         LONG_C(0x00100000)      // Use the cached visible region; do not recompute (undocumented)
+#if !defined(DCX_VALIDATE)
+#define DCX_VALIDATE            LONG_C(0x00200000)      // Validate the visible region against the update region
+#endif
+#define DCX_DISPLAYDC           LONG_C(0x00800000)      // Full-window display DC (UserGetMonitorDC/UserGetDesktopDC) (undocumented)
+#define DCX_DESKTOPDC           LONG_C(0x80000000)      // Desktop-window DC (UserGetDesktopDC only) (undocumented)
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
+
+//
+// UI Support
+//
 
 extern LONG PhFontQuality;
 
@@ -128,6 +183,8 @@ PhGetStockObject(
 
 #define PhGetStockBrush(i) ((HBRUSH)PhGetStockObject(i))
 #define PhGetStockPen(i) ((HPEN)PhGetStockObject(i))
+
+typedef HANDLE HTHEME;
 
 PHLIBAPI
 HTHEME
@@ -315,6 +372,7 @@ PhIsThemeBackgroundPartiallyTransparent(
     _In_ LONG StateId
     );
 
+// Painter for control borders (edits, etc.)
 PHLIBAPI
 VOID
 NTAPI
@@ -334,9 +392,7 @@ PhDrawThemeParentBackground(
     _In_opt_ const PRECT Rect
     );
 
-// Buffered paint (UxTheme-free, FLS-cached double buffering). The
-// implementation lives in guisup.c.
-
+// Buffered paint (UxTheme-compatible, FLS-cached double buffering).
 typedef enum _PH_BUFFERFORMAT
 {
     PHBF_COMPATIBLEBITMAP,   // Compatible bitmap
@@ -365,11 +421,13 @@ typedef struct _PH_BUFFERED_PAINT
     BOOLEAN OwnsBitmap;     // TRUE -> bitmap is transient, delete on End
 } PH_BUFFERED_PAINT, *PPH_BUFFERED_PAINT;
 
-typedef BOOLEAN (CALLBACK* PPH_BUFFERED_PAINT_PROC)(
+typedef _Function_class_(PH_BUFFERED_PAINT_PROC)
+BOOLEAN NTAPI PH_BUFFERED_PAINT_PROC(
     _In_ HDC BufferHdc,
     _In_ PRECT PaintRect,
     _In_opt_ PVOID Context
     );
+typedef PH_BUFFERED_PAINT_PROC* PPH_BUFFERED_PAINT_PROC;
 
 PHLIBAPI
 BOOLEAN
@@ -713,26 +771,6 @@ PhInflateRect(
 FORCEINLINE
 BOOLEAN
 NTAPI
-PhOffsetRect(
-    _In_ PRECT Rect,
-    _In_ LONG dx,
-    _In_ LONG dy
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!OffsetRect(Rect, dx, dy);
-#else
-    Rect->left += dx;
-    Rect->top += dy;
-    Rect->right += dx;
-    Rect->bottom += dy;
-    return TRUE;
-#endif
-}
-
-FORCEINLINE
-BOOLEAN
-NTAPI
 PhIntersectRect(
     _Out_ PRECT Result,
     _In_ PRECT Rect1,
@@ -748,6 +786,26 @@ PhIntersectRect(
     Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
 
     return Result->right > Result->left && Result->bottom > Result->top;
+#endif
+}
+
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhOffsetRect(
+    _In_ PRECT Rect,
+    _In_ LONG dx,
+    _In_ LONG dy
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!OffsetRect(Rect, dx, dy);
+#else
+    Rect->left += dx;
+    Rect->top += dy;
+    Rect->right += dx;
+    Rect->bottom += dy;
+    return TRUE;
 #endif
 }
 

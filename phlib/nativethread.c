@@ -1323,6 +1323,7 @@ NTSTATUS PhSetThreadPagePriority(
     NTSTATUS status;
     PAGE_PRIORITY_INFORMATION pagePriorityInfo;
 
+    memset(&pagePriorityInfo, 0, sizeof(PAGE_PRIORITY_INFORMATION));
     pagePriorityInfo.PagePriority = PagePriority;
 
     status = NtSetInformationThread(
@@ -1545,6 +1546,7 @@ NTSTATUS PhCreateImpersonationToken(
     if (!NT_SUCCESS(status))
         return status;
 
+    memset(&securityService, 0, sizeof(SECURITY_QUALITY_OF_SERVICE));
     securityService.Length = sizeof(SECURITY_QUALITY_OF_SERVICE);
     securityService.ImpersonationLevel = SecurityImpersonation;
     securityService.ContextTrackingMode = SECURITY_DYNAMIC_TRACKING;
