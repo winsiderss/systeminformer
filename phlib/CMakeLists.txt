@@ -12,6 +12,7 @@ set(HEADERS
     "include/apiimport.h"
     "include/appresolver.h"
     "include/appresolverp.h"
+    "include/base64.h"
     "include/bcd.h"
     "include/circbuf.h"
     "include/circbuf_h.h"

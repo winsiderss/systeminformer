@@ -30,8 +30,8 @@ namespace CustomBuildTool
         private static bool Arm64BuildToolsSkipPrinted;
         public static string BuildOutputFolder = string.Empty;
         public static string BuildWorkingFolder = string.Empty;
-        public static string BuildCommitBranch = "orphan";
-        public static string BuildCommitHash = new('0', 40);
+        public static string BuildCommitBranch = string.Empty;
+        public static string BuildCommitHash = string.Empty;
         public static string BuildShortVersion = "0.0.0";
         public static string BuildLongVersion = "0.0.0.0";
         public static string BuildSourceLink = string.Empty;
@@ -169,6 +169,11 @@ namespace CustomBuildTool
                 }
             }
 
+            if (string.IsNullOrWhiteSpace(Build.BuildCommitHash))
+                Build.BuildCommitHash = new('0', 40);
+            if (string.IsNullOrWhiteSpace(Build.BuildCommitBranch))
+                Build.BuildCommitBranch = "orphan";
+
             if (!string.IsNullOrWhiteSpace(Build.BuildCommitHash) && !string.IsNullOrWhiteSpace(Build.BuildVersionMajor))
             {
                 Build.BuildShortVersion = $"{Build.BuildVersionMajor}.{Build.BuildVersionMinor}.{Build.BuildVersionBuild()}";
@@ -194,7 +199,7 @@ namespace CustomBuildTool
                     string kernelPrimary = kernelVersion;
                     string kernelDetail = null;
 
-                    if (!string.IsNullOrEmpty(kernelVersion))
+                    if (!string.IsNullOrWhiteSpace(kernelVersion))
                     {
                         int parenIndex = kernelVersion.IndexOf(" (", StringComparison.Ordinal);
 
@@ -1056,14 +1061,16 @@ namespace CustomBuildTool
 
                 if (sourceCreationTime != targetCreationTime || sourceWriteTime != targetWriteTime)
                 {
-                    string resourceContent = Utils.ReadAllText(Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]));
-                    string targetContent = resourceContent.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase);
-
-                    if (!resourceContent.Equals(targetContent, StringComparison.OrdinalIgnoreCase))
+                    string sourcePath = Path.Join([Build.BuildWorkingFolder, "\\SystemInformer\\resource.h"]);
+                    if (File.ReadLines(sourcePath).Any(line => line.Contains("#define ID", StringComparison.OrdinalIgnoreCase)))
                     {
                         if ((targetAttributes & FileAttributes.ReadOnly) != 0)
                             File.SetAttributes(phappresourcePath, FileAttributes.Normal);
-                        Utils.WriteAllText(phappresourcePath, targetContent);
+                        Utils.WriteTextIfChanged(phappresourcePath, writer =>
+                        {
+                            foreach (string line in Utils.ReadLinesWithEndings(sourcePath))
+                                writer.Write(line.Replace("#define ID", "#define PHAPP_ID", StringComparison.OrdinalIgnoreCase));
+                        });
                     }
 
                     Win32.SetFileBasicInfo(phappresourcePath, sourceCreationTime, sourceWriteTime, true);
@@ -1149,10 +1156,14 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                string base64Text = Convert.ToBase64String(File.ReadAllBytes(zipFilePath));
-                Utils.WriteAllText(base64FilePath, base64Text);
+                using (var input = File.OpenRead(zipFilePath))
+                using (var output = File.Create(base64FilePath))
+                using (var base64 = new CryptoStream(output, new ToBase64Transform(), CryptoStreamMode.Write))
+                {
+                    input.CopyTo(base64);
+                }
 
-                Program.PrintColorMessage(base64Text.Length.ToPrettySize(), ConsoleColor.Green);
+                Program.PrintColorMessage(new FileInfo(base64FilePath).Length.ToPrettySize(), ConsoleColor.Green);
 
                 return true;
             }
@@ -1213,13 +1224,17 @@ namespace CustomBuildTool
             string buildDirectory = GetBuildBaseDirectory(Flags);
             string toolchainSuffix = GetToolchainSuffix(Flags);
 
-            var buildZipFilesMap = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase)
-            {
-                [Path.Join([buildDirectory, $"{buildConfiguration}32"])] = $"systeminformer-build{toolchainSuffix}-win32-bin.zip",
-                [Path.Join([buildDirectory, $"{buildConfiguration}64"])] = $"systeminformer-build{toolchainSuffix}-win64-bin.zip",
-                [Path.Join([buildDirectory, $"{buildConfiguration}ARM64"])] = $"systeminformer-build{toolchainSuffix}-arm64-bin.zip",
-                [buildDirectory] = $"systeminformer-build{toolchainSuffix}-bin.zip",
-            };
+            var buildZipFilesMap = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase);
+
+            if (Flags.HasFlag(BuildFlags.Build32bit))
+                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}32"), $"systeminformer-build{toolchainSuffix}-win32-bin.zip");
+            if (Flags.HasFlag(BuildFlags.Build64bit))
+                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}64"), $"systeminformer-build{toolchainSuffix}-win64-bin.zip");
+            if (Flags.HasFlag(BuildFlags.BuildArm64bit))
+                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}ARM64"), $"systeminformer-build{toolchainSuffix}-arm64-bin.zip");
+            buildZipFilesMap.Add(buildDirectory, $"systeminformer-build{toolchainSuffix}-bin.zip");
+
+            Utils.CreateOutputDirectory();
 
             Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
             Program.PrintColorMessage("Generating zip files... ", ConsoleColor.Cyan);
@@ -1241,7 +1256,7 @@ namespace CustomBuildTool
 
                     Program.PrintColorMessage($"Building {zipEntry.Value}... ", ConsoleColor.Cyan);
 
-                    Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags);
+                    Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags, string.Equals(zipEntry.Key, buildDirectory, StringComparison.OrdinalIgnoreCase));
                 }
 
                 // Total stats
@@ -1254,6 +1269,37 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("...", ConsoleColor.Gray, false);
                     Program.PrintColorMessage($" {Win32.GetFileSize(zipFilePath).ToPrettySize()}", ConsoleColor.Yellow);
                 }
+            }
+            catch (Exception exception)
+            {
+                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Builds the security catalog file for the build directory.
+        /// </summary>
+        /// <param name="Flags">Build flags indicating which configurations to process.</param>
+        /// <returns>True if the catalog file is built successfully; otherwise, false.</returns>
+        public static bool BuildCatalogFile(BuildFlags Flags)
+        {
+            string buildDirectory = GetBuildBaseDirectory(Flags);
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false);
+            Program.PrintColorMessage("Building build.cat...", ConsoleColor.Cyan);
+
+            try
+            {
+                Utils.CreateOutputDirectory();
+
+                string buildCatalogPath = Path.Join([BuildOutputFolder, "build.cat"]);
+
+                Win32.DeleteFile(buildCatalogPath, Flags);
+
+                Zip.CreateBuildCatalog(buildDirectory, buildCatalogPath);
             }
             catch (Exception exception)
             {
@@ -1491,7 +1537,8 @@ namespace CustomBuildTool
 
             try
             {
-                StringBuilder checksumsStringBuilder = new StringBuilder();
+                Utils.CreateOutputDirectory();
+                using var checksumWriter = new StreamWriter($"{BuildOutputFolder}\\systeminformer-build-checksums.txt", false, Utils.UTF8NoBOM);
 
                 foreach (var fileName in buildUploadFiles)
                 {
@@ -1501,25 +1548,86 @@ namespace CustomBuildTool
                         FileInfo fileInformation = new FileInfo(filePath);
                         string fileHashValue = BuildVerify.HashFile(filePath);
 
-                        checksumsStringBuilder.AppendLine(fileInformation.Name);
-                        checksumsStringBuilder.AppendLine($"SHA256: {fileHashValue}{Environment.NewLine}");
+                        checksumWriter.WriteLine(fileInformation.Name);
+                        checksumWriter.WriteLine($"SHA256: {fileHashValue}{Environment.NewLine}");
                     }
                 }
 
-                Utils.CreateOutputDirectory();
-
-                Win32.DeleteFile(
-                    $"{BuildOutputFolder}\\systeminformer-build-checksums.txt"
-                    );
-
-                Utils.WriteAllText(
-                    $"{BuildOutputFolder}\\systeminformer-build-checksums.txt",
-                    checksumsStringBuilder.ToString()
-                    );
             }
             catch (Exception exception)
             {
                 Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Returns the directory that receives the SARIF logs emitted by /analyze, creating it if required.
+        /// </summary>
+        /// <returns>The full path of the code analysis log directory.</returns>
+        private static string BuildAnalyzeLogDirectory()
+        {
+            string directory = Path.GetFullPath(Path.Join([Build.BuildOutputFolder, "logs\\analyze"]));
+
+            Win32.CreateDirectory(directory);
+
+            return directory;
+        }
+
+        /// <summary>
+        /// Builds the compiler options appended to ExternalAdditionalOptions when code analysis is enabled.
+        /// The trailing separator makes the compiler treat the log path as a directory and emit one
+        /// SARIF file per translation unit. Forward slashes are used so the trailing separator does not
+        /// escape the closing quote.
+        /// </summary>
+        /// <returns>The /analyze compiler options.</returns>
+        private static string BuildAnalyzeCompilerOptions()
+        {
+            string directory = BuildAnalyzeLogDirectory().Replace('\\', '/');
+
+            return $"/analyze /analyze:log:format:sarif /analyze:log \"{directory}/\"";
+        }
+
+        /// <summary>
+        /// Collects any SARIF logs left in the intermediate directories into the code analysis
+        /// log directory (build\output\logs\analyze) so they can be published by the pipeline.
+        /// </summary>
+        /// <param name="Flags">Build flags controlling output verbosity.</param>
+        /// <returns>true if the logs were collected; otherwise, false.</returns>
+        public static bool BuildCollectAnalyzeLogs(BuildFlags Flags)
+        {
+            if (!Flags.HasFlag(BuildFlags.BuildAnalyze))
+                return true;
+
+            Program.PrintColorMessage(BuildTimeSpan(), ConsoleColor.DarkGray, false, Flags);
+            Program.PrintColorMessage("Collecting code analysis logs...", ConsoleColor.Cyan, true, Flags);
+
+            try
+            {
+                string outputDirectory = BuildAnalyzeLogDirectory();
+
+                foreach (string sourceFile in Directory.EnumerateFiles(Build.BuildWorkingFolder, "*.sarif", new EnumerationOptions
+                {
+                    RecurseSubdirectories = true,
+                    IgnoreInaccessible = true,
+                    AttributesToSkip = FileAttributes.ReparsePoint
+                }))
+                {
+                    if (sourceFile.StartsWith(outputDirectory, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    // Include the parent directory (the intermediate flavor folder) to keep the names unique.
+                    string parentName = Path.GetFileName(Path.GetDirectoryName(sourceFile));
+                    string destinationFile = Path.Join([outputDirectory, $"{parentName}.{Path.GetFileName(sourceFile)}"]);
+
+                    Win32.CopyIfNewer(sourceFile, destinationFile, Flags);
+                }
+            }
+            catch (Exception exception)
+            {
+                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
 
@@ -1564,11 +1672,14 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink)) linkerOptionsList.Add($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
             if (Build.BuildToolsDebug) linkerOptionsList.Add("/VERBOSE");
 
+            if (Flags.HasFlag(BuildFlags.BuildAnalyze))
+                compilerOptionsList.Add(BuildAnalyzeCompilerOptions());
+
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m -mt -p:UseClStructuredOutput=false /t:Rebuild /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append($"/p:Platform={Platform} /p:Configuration={(Flags.HasFlag(BuildFlags.BuildDebug) ? "Debug" : "Release")} ");
 
             if (preprocessorOptionsBuilder.Length > 0)
@@ -1691,11 +1802,14 @@ namespace CustomBuildTool
             if (!string.IsNullOrWhiteSpace(Build.BuildSourceLink))
                 linkerOptionsList.Add($"/SOURCELINK:\"{Build.BuildSourceLink}\"");
 
+            if (Flags.HasFlag(BuildFlags.BuildAnalyze))
+                compilerOptionsList.Add(BuildAnalyzeCompilerOptions());
+
             preprocessorOptionsBuilder.AppendJoin(";", preprocessorOptionsList);
             compilerOptionsBuilder.AppendJoin(" ", compilerOptionsList);
             linkerOptionsBuilder.AppendJoin(" ", linkerOptionsList);
 
-            commandLineBuilder.Append($"/m /graph /t:All /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
+            commandLineBuilder.Append($"/m -mt -p:UseClStructuredOutput=false /graph /t:All /nologo /nodereuse:false /verbosity:{(Build.BuildToolsDebug ? "diagnostic" : "minimal")} ");
             commandLineBuilder.Append("/p:RestoreUseStaticGraphEvaluation=true ");
             commandLineBuilder.Append("/p:CopyRetryCount=10 /p:CopyRetryDelayMilliseconds=200 ");
 
@@ -2181,6 +2295,8 @@ namespace CustomBuildTool
                     "--parallel",
                     "--",
                     "/m",
+                    "-mt",
+                    "-p:UseClStructuredOutput=false",
                     $"/p:Platform={Utils.CMakeGetPlatform(Toolchain)}",
                     "/p:BuildInParallel=true",
                     "/p:UseMultiToolTask=true",
@@ -2231,24 +2347,18 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.Build32bit))
             {
-                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
-
-                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x86", StringComparison.OrdinalIgnoreCase);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion, StringComparison.OrdinalIgnoreCase);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA", StringComparison.OrdinalIgnoreCase);
-
-                Utils.WriteAllText("tools\\msix\\MsixManifest32.xml", msixManifestString);
+                Utils.ReplaceTextFile("tools\\msix\\PackageTemplate.msix.xml", "tools\\msix\\MsixManifest32.xml",
+                    ("SI_MSIX_ARCH", "x86"),
+                    ("SI_MSIX_VERSION", Build.BuildLongVersion),
+                    ("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA"));
             }
 
             if (Flags.HasFlag(BuildFlags.Build64bit))
             {
-                string msixManifestString = Utils.ReadAllText("tools\\msix\\PackageTemplate.msix.xml");
-
-                msixManifestString = msixManifestString.Replace("SI_MSIX_ARCH", "x64", StringComparison.OrdinalIgnoreCase);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_VERSION", Build.BuildLongVersion, StringComparison.OrdinalIgnoreCase);
-                msixManifestString = msixManifestString.Replace("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA", StringComparison.OrdinalIgnoreCase);
-
-                Utils.WriteAllText("tools\\msix\\MsixManifest64.xml", msixManifestString);
+                Utils.ReplaceTextFile("tools\\msix\\PackageTemplate.msix.xml", "tools\\msix\\MsixManifest64.xml",
+                    ("SI_MSIX_ARCH", "x64"),
+                    ("SI_MSIX_VERSION", Build.BuildLongVersion),
+                    ("SI_MSIX_PUBLISHER", "CN=Winsider Seminars &amp; Solutions Inc., O=Winsider Seminars &amp; Solutions Inc., L=Montr&#233;al, S=Quebec, C=CA"));
             }
         }
 
@@ -2265,12 +2375,12 @@ namespace CustomBuildTool
 
             if (Flags.HasFlag(BuildFlags.Build32bit) && Directory.Exists(release32Path))
             {
-                StringBuilder packageMap32 = new StringBuilder(0x100);
-                packageMap32.AppendLine("[Files]");
-                packageMap32.AppendLine("\"tools/msix/MsixManifest32.xml\" \"AppxManifest.xml\"");
-                packageMap32.AppendLine("\"tools/msix/Square44x44Logo.png\" \"Assets/Square44x44Logo.png\"");
-                packageMap32.AppendLine("\"tools/msix/Square50x50Logo.png\" \"Assets/Square50x50Logo.png\"");
-                packageMap32.AppendLine("\"tools/msix/Square150x150Logo.png\" \"Assets/Square150x150Logo.png\"");
+                using var packageMap32 = new StreamWriter("tools/msix/MsixPackage32.map", false, Utils.UTF8NoBOM);
+                packageMap32.WriteLine("[Files]");
+                packageMap32.WriteLine("\"tools/msix/MsixManifest32.xml\" \"AppxManifest.xml\"");
+                packageMap32.WriteLine("\"tools/msix/Square44x44Logo.png\" \"Assets/Square44x44Logo.png\"");
+                packageMap32.WriteLine("\"tools/msix/Square50x50Logo.png\" \"Assets/Square50x50Logo.png\"");
+                packageMap32.WriteLine("\"tools/msix/Square150x150Logo.png\" \"Assets/Square150x150Logo.png\"");
 
                 foreach (string filePath in Directory.EnumerateFiles(release32Path, "*", SearchOption.AllDirectories))
                 {
@@ -2288,22 +2398,21 @@ namespace CustomBuildTool
 
                     string relPath = filePath[(release32Path.Length + 1)..].Replace('\\', '/');
                     string srcPath = filePath.Replace('\\', '/');
-                    packageMap32.AppendLine($"\"{srcPath}\" \"{relPath}\"");
+                    packageMap32.WriteLine($"\"{srcPath}\" \"{relPath}\"");
                 }
 
-                Utils.WriteAllText("tools/msix/MsixPackage32.map", packageMap32.ToString());
             }
 
             // Create the package mapping file.
 
             if (Flags.HasFlag(BuildFlags.Build64bit) && Directory.Exists(release64Path))
             {
-                StringBuilder packageMap64 = new StringBuilder(0x100);
-                packageMap64.AppendLine("[Files]");
-                packageMap64.AppendLine("\"tools/msix/MsixManifest64.xml\" \"AppxManifest.xml\"");
-                packageMap64.AppendLine("\"tools/msix/Square44x44Logo.png\" \"Assets/Square44x44Logo.png\"");
-                packageMap64.AppendLine("\"tools/msix/Square50x50Logo.png\" \"Assets/Square50x50Logo.png\"");
-                packageMap64.AppendLine("\"tools/msix/Square150x150Logo.png\" \"Assets/Square150x150Logo.png\"");
+                using var packageMap64 = new StreamWriter("tools/msix/MsixPackage64.map", false, Utils.UTF8NoBOM);
+                packageMap64.WriteLine("[Files]");
+                packageMap64.WriteLine("\"tools/msix/MsixManifest64.xml\" \"AppxManifest.xml\"");
+                packageMap64.WriteLine("\"tools/msix/Square44x44Logo.png\" \"Assets/Square44x44Logo.png\"");
+                packageMap64.WriteLine("\"tools/msix/Square50x50Logo.png\" \"Assets/Square50x50Logo.png\"");
+                packageMap64.WriteLine("\"tools/msix/Square150x150Logo.png\" \"Assets/Square150x150Logo.png\"");
 
                 foreach (string filePath in Directory.EnumerateFiles(release64Path, "*", SearchOption.AllDirectories))
                 {
@@ -2322,10 +2431,9 @@ namespace CustomBuildTool
 
                     string relPath = filePath[(release64Path.Length + 1)..].Replace('\\', '/');
                     string srcPath = filePath.Replace('\\', '/');
-                    packageMap64.AppendLine($"\"{srcPath}\" \"{relPath}\"");
+                    packageMap64.WriteLine($"\"{srcPath}\" \"{relPath}\"");
                 }
 
-                Utils.WriteAllText("tools/msix/MsixPackage64.map", packageMap64.ToString());
             }
         }
 
@@ -2424,11 +2532,10 @@ namespace CustomBuildTool
                 Program.PrintColorMessage("Building systeminformer-build-package.msixbundle...", ConsoleColor.Cyan, false);
 
                 {
-                    StringBuilder bundleMap = new StringBuilder(0x100);
-                    bundleMap.AppendLine("[Files]");
-                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
-                    bundleMap.AppendLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
-                    Utils.WriteAllText($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", bundleMap.ToString());
+                    using var bundleMap = new StreamWriter($"{BuildWorkingFolder}\\tools\\msix\\bundle.map", false, Utils.UTF8NoBOM);
+                    bundleMap.WriteLine("[Files]");
+                    bundleMap.WriteLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x32.msix\" \"systeminformer-build-package-x32.msix\"");
+                    bundleMap.WriteLine($"\"{BuildOutputFolder}\\systeminformer-build-package-x64.msix\" \"systeminformer-build-package-x64.msix\"");
                 }
 
                 string result = Utils.ExecuteMsixCommand(
@@ -2452,11 +2559,8 @@ namespace CustomBuildTool
 
             if (File.Exists("tools\\msix\\PackageTemplate.appinstaller"))
             {
-                string msixAppInstallerString = Utils.ReadAllText("tools\\msix\\PackageTemplate.appinstaller");
-
-                msixAppInstallerString = msixAppInstallerString.Replace("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\"", StringComparison.OrdinalIgnoreCase);
-
-                Utils.WriteAllText("build\\output\\SystemInformer.appinstaller", msixAppInstallerString);
+                Utils.ReplaceTextFile("tools\\msix\\PackageTemplate.appinstaller", "build\\output\\SystemInformer.appinstaller",
+                    ("Version=\"3.0.0.0\"", $"Version=\"{Build.BuildLongVersion}\""));
             }
 
             return true;
@@ -2483,7 +2587,10 @@ namespace CustomBuildTool
                         }
                     };
 
-                    Utils.WriteAllText(Build.BuildSourceLink, JsonSerializer.Serialize(sourceLink, GithubResponseContext.Default.SourceLink));
+                    using (var stream = File.Create(Build.BuildSourceLink))
+                    {
+                        JsonSerializer.Serialize(stream, sourceLink, GithubResponseContext.Default.SourceLink);
+                    }
                 }
             }
             else
@@ -2645,83 +2752,49 @@ namespace CustomBuildTool
         /// starting from 1001.</param>
         public static void ExportDefinitions(bool ReleaseBuild)
         {
-            List<int> ordinals = [];
-            StringBuilder output = new StringBuilder();
-            StringBuilder output_header = new StringBuilder();
+            string defPath = Path.Join("SystemInformer", "SystemInformer.def");
+            string headerPath = Path.Join("SystemInformer", "SystemInformer.def.h");
+            string backupPath = Path.Join("SystemInformer", "SystemInformer.def.bak");
+            string temporaryHeader = headerPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
-            var content = Utils.ReadAllText(Path.Join("SystemInformer", "SystemInformer.def"));
-
-            int total = 0;
-            foreach (var _ in content.AsSpan().EnumerateLines())
-                total++;
-
-            //if (ReleaseBuild)
-            //{
-            //    while (ordinals.Count < total)
-            //    {
-            //        var value = Random.Shared.Next(1000, 1000 + total);
-            //
-            //        if (!ordinals.Contains(value))
-            //        {
-            //            ordinals.Add(value);
-            //        }
-            //    }
-            //}
-            //else
+            int ordinalIndex = 0;
+            try
             {
-                while (ordinals.Count < total)
+                bool changed = Utils.WriteTextIfChanged(defPath, fileWriter =>
                 {
-                    ordinals.Add(1000 + ordinals.Count + 1);
-                }
-            }
+                    using var headerFileWriter = new StreamWriter(temporaryHeader, false, Utils.UTF8NoBOM);
+                    var output = new Utils.TrimmingTextWriter(fileWriter);
+                    var outputHeader = new Utils.TrimmingTextWriter(headerFileWriter);
+                    outputHeader.WriteLine(ExportHeader);
 
-            output_header.AppendLine(ExportHeader);
-
-            foreach (var line in content.AsSpan().EnumerateLines())
-            {
-                var span = line;
-
-                if (span.IsWhiteSpace())
-                {
-                    output.Append(span);
-                    output.AppendLine();
-                }
-                else
-                {
-                    if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase))
+                    foreach (string line in File.ReadLines(defPath))
                     {
-                        var ordinal = ordinals[0]; ordinals.RemoveAt(0);
-                        var name_end = span[4..].IndexOf(' ');
-                        if (name_end == -1)
-                            name_end = span[4..].Length;
-                        var name = span.Slice(4, name_end).ToString();
-
-                        if (span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase) != -1)
-                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME DATA");
+                        ReadOnlySpan<char> span = line.AsSpan();
+                        if (span.StartsWith("    ", StringComparison.OrdinalIgnoreCase) && !span.IsWhiteSpace())
+                        {
+                            int ordinal = 1001 + ordinalIndex++;
+                            int nameEnd = span[4..].IndexOf(' ');
+                            if (nameEnd < 0)
+                                nameEnd = span[4..].Length;
+                            string name = span.Slice(4, nameEnd).ToString();
+                            output.WriteLine(span.IndexOf(" DATA", StringComparison.OrdinalIgnoreCase) >= 0
+                                ? $"    {name,-55} @{ordinal,-5} NONAME DATA"
+                                : $"    {name,-55} @{ordinal,-5} NONAME");
+                            outputHeader.WriteLine($"#define EXPORT_{name.ToUpper(),-55} {ordinal}");
+                        }
                         else
-                            output.AppendLine($"    {name,-55} @{ordinal,-5} NONAME");
+                            output.WriteLine(line);
+                    }
+                    outputHeader.WriteLine(ExportFooter);
+                }, () => File.Copy(defPath, backupPath, true));
 
-                        output_header.AppendLine($"#define EXPORT_{name.ToUpper(),-55} {ordinal}");
-                    }
-                    else
-                    {
-                        output.Append(span);
-                        output.AppendLine();
-                    }
-                }
+                if (changed)
+                    File.Move(temporaryHeader, headerPath, true);
             }
-
-            output_header.AppendLine(ExportFooter);
-
-            string export_content = output.ToString().TrimEnd();
-            string export_header = output_header.ToString().TrimEnd();
-
-            // Only write to the file if it has changed.
-            if (!string.Equals(content, export_content, StringComparison.OrdinalIgnoreCase))
+            finally
             {
-                Utils.WriteAllText(Path.Join("SystemInformer", "SystemInformer.def"), export_content);
-                Utils.WriteAllText(Path.Join("SystemInformer", "SystemInformer.def.h"), export_header);
-                Utils.WriteAllText(Path.Join("SystemInformer", "SystemInformer.def.bak"), content);
+                if (File.Exists(temporaryHeader))
+                    File.Delete(temporaryHeader);
             }
         }
 

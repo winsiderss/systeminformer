@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -17,6 +17,11 @@ namespace CustomBuildTool
     /// </summary>
     internal static class AzureClient
     {
+        /// <summary>
+        /// The Azure Key Vault REST API version used for all vault requests.
+        /// </summary>
+        internal const string ApiVersion = "2025-07-01";
+
         /// <summary>
         /// Provides a thread-safe cache for storing Azure client certificates indexed by their identifier.
         /// </summary>
@@ -49,11 +54,10 @@ namespace CustomBuildTool
         {
             try
             {
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get,
-                    $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version=2025-07-01");
+                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version={ApiVersion}");
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
 
-                using var responseMessage = await HttpClient.SendAsync(requestMessage, CancellationToken);
+                using var responseMessage = await BuildHttpClient.SendWithRetry(HttpClient, requestMessage, CancellationToken);
                 if (!responseMessage.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage($"Failed to fetch certificate from Key Vault: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
@@ -64,7 +68,7 @@ namespace CustomBuildTool
                 var keyVaultCertificateResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.KeyVaultCertificateResponse, CancellationToken);
                 var keyVaultCertificate = new KeyVaultCertificate();
 
-                if (!string.IsNullOrEmpty(keyVaultCertificateResponse?.CertificateString))
+                if (!string.IsNullOrWhiteSpace(keyVaultCertificateResponse?.CertificateString))
                 {
                     keyVaultCertificate.CertificateBuffer = Convert.FromBase64String(keyVaultCertificateResponse.CertificateString);
                 }
@@ -109,114 +113,114 @@ namespace CustomBuildTool
         {
             string tenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID");
             string clientId = Environment.GetEnvironmentVariable("AZURE_CLIENT_ID");
-            Win32.GetEnvironmentVariableSecure("AZURE_CLIENT_SECRET", out SecureBuffer clientSecret);
             string clientCertPath = Environment.GetEnvironmentVariable("AZURE_CLIENT_CERTIFICATE_PATH");
             string vaultName = Environment.GetEnvironmentVariable("KEYVAULT_NAME");
             string certName = Environment.GetEnvironmentVariable("CERT_NAME");
-
             string cacheKey = MakeCacheKey(vaultName, certName, tenantId, clientId);
 
             if (AzureClientCertificateCache.TryGetValue(cacheKey, out var cachedCertificate) && cachedCertificate != null)
             {
-                clientSecret?.Dispose();
                 Program.PrintColorMessage($"Loaded certificate from cache: {cachedCertificate.Subject} | Thumbprint: {cachedCertificate.Thumbprint} | HasPrivateKey: {cachedCertificate.HasPrivateKey}", ConsoleColor.Green);
                 return true;
             }
 
+            bool hasClientSecret = Win32.GetEnvironmentVariableSecure("AZURE_CLIENT_SECRET", out SecureBuffer clientSecret);
+
+            if (!hasClientSecret && string.IsNullOrWhiteSpace(clientCertPath))
+            {
+                Program.PrintColorMessage("Neither AZURE_CLIENT_SECRET nor AZURE_CLIENT_CERTIFICATE_PATH is set.", ConsoleColor.Red);
+                return false;
+            }
+            
             using (clientSecret)
             {
                 using var httpClient = BuildHttpClient.CreateHttpClient();
+                ReadOnlySpan<char> clientSecretSpan = hasClientSecret ? clientSecret.Span : ReadOnlySpan<char>.Empty;
 
                 var accessToken = GetAccessTokenWithRetry(
                     httpClient,
                     tenantId,
                     clientId,
-                    clientSecret != null ? clientSecret.Span : ReadOnlySpan<char>.Empty,
+                    clientSecretSpan,
                     clientCertPath,
-                    MaxRetries: 5,
-                    InitialDelayMs: 500,
-                    CancellationToken: CancellationToken
+                    CancellationToken
                     );
 
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                Program.PrintColorMessage("Failed to acquire access token.", ConsoleColor.Red);
-                return false;
-            }
-
-            using HttpRequestMessage requestMessage = new HttpRequestMessage(
-                HttpMethod.Get,
-                $"https://{vaultName}.vault.azure.net/secrets/{certName}?api-version=2025-07-01"
-                );
-            requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            using HttpResponseMessage responseMessage = await httpClient.SendAsync(requestMessage, CancellationToken);
-
-            if (!responseMessage.IsSuccessStatusCode)
-            {
-                Program.PrintColorMessage($"Key Vault error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
-                return false;
-            }
-
-            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-            var secretResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.SecretResponse, CancellationToken);
-
-            if (string.IsNullOrWhiteSpace(secretResponse.Value))
-            {
-                Console.WriteLine("Secret response is null or missing 'value'.");
-                return false;
-            }
-
-            var secretValue = secretResponse.Value;
-
-            if (string.IsNullOrWhiteSpace(secretValue))
-            {
-                Console.WriteLine("Secret response missing 'value'.");
-                return false;
-            }
-
-            X509Certificate2 inMemoryCertificate;
-
-            if (secretValue.TrimStart().StartsWith("-----BEGIN", StringComparison.OrdinalIgnoreCase))
-            {
-                try
+                if (string.IsNullOrWhiteSpace(accessToken))
                 {
-                    inMemoryCertificate = CreateCertificateFromPem(secretValue);
-                }
-                catch (Exception exception)
-                {
-                    Program.PrintColorMessage($"Failed to parse PEM secret: {exception.Message}", ConsoleColor.Red);
+                    Program.PrintColorMessage("Failed to acquire access token.", ConsoleColor.Red);
                     return false;
                 }
-            }
-            else
-            {
-                try
-                {
-                    byte[] certificateBytes = Convert.FromBase64String(secretValue);
 
-                    inMemoryCertificate = X509CertificateLoader.LoadCertificate(certificateBytes);
-                }
-                catch (Exception exception)
+                using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"https://{vaultName}.vault.azure.net/secrets/{certName}?api-version={ApiVersion}");
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+                using HttpResponseMessage responseMessage = await BuildHttpClient.SendWithRetry(httpClient, requestMessage, CancellationToken);
+
+                if (!responseMessage.IsSuccessStatusCode)
                 {
-                    Program.PrintColorMessage($"Failed to parse PFX secret: {exception.Message}", ConsoleColor.Red);
+                    Program.PrintColorMessage($"Key Vault error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
                     return false;
                 }
+
+                var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+                var secretResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.SecretResponse, CancellationToken);
+
+                if (string.IsNullOrWhiteSpace(secretResponse.Value))
+                {
+                    Console.WriteLine("Secret response is null or missing 'value'.");
+                    return false;
+                }
+
+                var secretValue = secretResponse.Value;
+
+                if (string.IsNullOrWhiteSpace(secretValue))
+                {
+                    Console.WriteLine("Secret response missing 'value'.");
+                    return false;
+                }
+
+                X509Certificate2 inMemoryCertificate;
+
+                if (secretValue.TrimStart().StartsWith("-----BEGIN", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
+                    {
+                        inMemoryCertificate = CreateCertificateFromPem(secretValue);
+                    }
+                    catch (Exception exception)
+                    {
+                        Program.PrintColorMessage($"Failed to parse PEM secret: {exception.Message}", ConsoleColor.Red);
+                        return false;
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        byte[] certificateBytes = Convert.FromBase64String(secretValue);
+
+                        inMemoryCertificate = X509CertificateLoader.LoadCertificate(certificateBytes);
+                    }
+                    catch (Exception exception)
+                    {
+                        Program.PrintColorMessage($"Failed to parse PFX secret: {exception.Message}", ConsoleColor.Red);
+                        return false;
+                    }
+                }
+
+                if (inMemoryCertificate == null)
+                {
+                    Program.PrintColorMessage("Certificate could not be created in memory.", ConsoleColor.Red);
+                    return false;
+                }
+
+                AzureClientCertificateCache[cacheKey] = inMemoryCertificate;
+
+                Program.PrintColorMessage($"Loaded certificate in-memory: {inMemoryCertificate.Subject} | Thumbprint: {inMemoryCertificate.Thumbprint} | HasPrivateKey: {inMemoryCertificate.HasPrivateKey}", ConsoleColor.Green);
+
+                return true;
             }
-
-            if (inMemoryCertificate == null)
-            {
-                Program.PrintColorMessage("Certificate could not be created in memory.", ConsoleColor.Red);
-                return false;
-            }
-
-            AzureClientCertificateCache[cacheKey] = inMemoryCertificate;
-
-            Program.PrintColorMessage($"Loaded certificate in-memory: {inMemoryCertificate.Subject} | Thumbprint: {inMemoryCertificate.Thumbprint} | HasPrivateKey: {inMemoryCertificate.HasPrivateKey}", ConsoleColor.Green);
-
-            return true;
         }
-    }
 
         /// <summary>
         /// Signs files using Azure Key Vault certificates with Authenticode signatures.
@@ -272,12 +276,10 @@ namespace CustomBuildTool
                     ClientGuid,
                     ClientSecret,
                     null,  // No certificate path in this context
-                    MaxRetries: 5,
-                    InitialDelayMs: 500,
                     CancellationToken: CancellationToken
                     );
 
-                if (string.IsNullOrEmpty(vaultAccessToken))
+                if (string.IsNullOrWhiteSpace(vaultAccessToken))
                 {
                     Program.PrintColorMessage("Failed to acquire access token for Key Vault.", ConsoleColor.Red);
                     return false;
@@ -422,8 +424,6 @@ namespace CustomBuildTool
         /// <param name="ClientId">The Azure client (application) ID.</param>
         /// <param name="ClientSecret">The client secret for secret-based authentication (optional).</param>
         /// <param name="ClientCertificatePath">Path to the certificate file for certificate-based authentication (optional).</param>
-        /// <param name="MaxRetries">Maximum number of retry attempts (default: 5).</param>
-        /// <param name="InitialDelayMs">Initial delay in milliseconds before retrying (default: 500ms).</param>
         /// <param name="CancellationToken">Cancellation token to cancel the operation.</param>
         /// <returns>The access token string, or empty string if authentication fails.</returns>
         /// <remarks>
@@ -436,8 +436,6 @@ namespace CustomBuildTool
             string ClientId,
             ReadOnlySpan<char> ClientSecret,
             string ClientCertificatePath,
-            int MaxRetries = 5,
-            int InitialDelayMs = 500,
             CancellationToken CancellationToken = default)
         {
             // Determine authentication method
@@ -462,8 +460,6 @@ namespace CustomBuildTool
                     TenantId,
                     ClientId,
                     ClientCertificatePath,
-                    MaxRetries,
-                    InitialDelayMs,
                     CancellationToken
                     ).GetAwaiter().GetResult();
             }
@@ -474,8 +470,6 @@ namespace CustomBuildTool
                     TenantId,
                     ClientId,
                     ClientSecret,
-                    MaxRetries,
-                    InitialDelayMs,
                     CancellationToken
                     );
             }
@@ -488,8 +482,6 @@ namespace CustomBuildTool
         /// <param name="TenantId">The Azure tenant ID.</param>
         /// <param name="ClientId">The Azure client (application) ID.</param>
         /// <param name="ClientSecret">The client secret for authentication.</param>
-        /// <param name="MaxRetries">Maximum number of retry attempts (default: 5).</param>
-        /// <param name="InitialDelayMs">Initial delay in milliseconds before retrying (default: 500ms).</param>
         /// <param name="CancellationToken">Cancellation token to cancel the operation.</param>
         /// <returns>The access token string, or empty string if authentication fails.</returns>
         /// <remarks>
@@ -502,15 +494,17 @@ namespace CustomBuildTool
             string TenantId,
             string ClientId,
             ReadOnlySpan<char> ClientSecret,
-            int MaxRetries = 5,
-            int InitialDelayMs = 500,
             CancellationToken CancellationToken = default)
         {
             byte[] bodyBytes = null;
             try
             {
                 // Build body directly as bytes to minimize secret exposure in string form
-                int maxLen = Encoding.UTF8.GetMaxByteCount(ClientId.Length + ClientSecret.Length + 128);
+                int maxLen = checked(
+                    Utils.GetFormUrlEncodedMaxByteCount(ClientId.Length) +
+                    Utils.GetFormUrlEncodedMaxByteCount(ClientSecret.Length) +
+                    128
+                    );
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
                 try
                 {
@@ -520,13 +514,13 @@ namespace CustomBuildTool
                     ReadOnlySpan<byte> clientIdPrefix = "client_id="u8;
                     clientIdPrefix.CopyTo(span[written..]);
                     written += clientIdPrefix.Length;
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientId), span[written..]);
+                    written += Utils.WriteFormUrlEncoded(ClientId, span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
                     scopePrefix.CopyTo(span[written..]);
                     written += scopePrefix.Length;
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(new string(ClientSecret)), span[written..]);
+                    written += Utils.WriteFormUrlEncoded(ClientSecret, span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
@@ -540,78 +534,17 @@ namespace CustomBuildTool
                     ArrayPool<byte>.Shared.Return(buffer, clearArray: true);
                 }
 
-                int currentAttempt = 0;
-                int delayMs = InitialDelayMs;
+                using var tokenBody = new ByteArrayContent(bodyBytes);
+                tokenBody.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+                
+                using var request = new HttpRequestMessage(HttpMethod.Post, $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token");
+                request.Content = tokenBody;
 
-                while (true)
-                {
-                    currentAttempt++;
+                using var responseMessage = BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken).GetAwaiter().GetResult();
+                using var jsonResponseStream = responseMessage.Content.ReadAsStreamAsync(CancellationToken).GetAwaiter().GetResult();
+                var tokenResponse = JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken).GetAwaiter().GetResult();
 
-                    try
-                    {
-                        using var tokenBody = new ByteArrayContent(bodyBytes);
-                        tokenBody.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
-
-                        using HttpResponseMessage responseMessage = HttpClient.PostAsync(
-                            $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
-                            tokenBody,
-                            CancellationToken
-                            ).GetAwaiter().GetResult();
-
-                        if (responseMessage.IsSuccessStatusCode)
-                        {
-                            var jsonResponseStream = responseMessage.Content.ReadAsStreamAsync(CancellationToken).GetAwaiter().GetResult();
-                            var tokenResponse = JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken).GetAwaiter().GetResult();
-
-                            if (tokenResponse.AccessToken == null)
-                            {
-                                Program.PrintColorMessage("Token response is null or missing 'access_token'.", ConsoleColor.Red);
-                                return string.Empty;
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-                                return tokenResponse.AccessToken;
-
-                            Program.PrintColorMessage("Token response missing 'access_token'.", ConsoleColor.Red);
-                            return string.Empty;
-                        }
-
-                        if (ShouldRetry(responseMessage.StatusCode))
-                        {
-                            if (currentAttempt > MaxRetries)
-                            {
-                                Program.PrintColorMessage($"Token fetch failed after {MaxRetries} retries. Last status: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
-                                return string.Empty;
-                            }
-
-                            var retryAfterDelay = GetRetryAfterMs(responseMessage);
-                            delayMs = retryAfterDelay ?? ApplyJitter(delayMs);
-                            Task.Delay(delayMs, CancellationToken).GetAwaiter().GetResult();
-                            delayMs = Math.Min(delayMs * 2, 15000);
-                        }
-                        else
-                        {
-                            var errorBodyText = responseMessage.Content.ReadAsStringAsync(CancellationToken).GetAwaiter().GetResult();
-                            Program.PrintColorMessage($"Non-retryable token error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
-                            Program.PrintColorMessage(errorBodyText, ConsoleColor.DarkGray);
-                            return string.Empty;
-                        }
-                    }
-                    catch (HttpRequestException httpRequestException) when (currentAttempt <= MaxRetries)
-                    {
-                        int waitDelay = ApplyJitter(delayMs);
-                        Program.PrintColorMessage($"Network error on token fetch (attempt {currentAttempt}/{MaxRetries}): {httpRequestException.Message}. Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        Task.Delay(waitDelay, CancellationToken).GetAwaiter().GetResult();
-                        delayMs = Math.Min(delayMs * 2, 15000);
-                    }
-                    catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && currentAttempt <= MaxRetries)
-                    {
-                        int waitDelay = ApplyJitter(delayMs);
-                        Program.PrintColorMessage($"Timeout on token fetch (attempt {currentAttempt}/{MaxRetries}). Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        Task.Delay(waitDelay, CancellationToken).GetAwaiter().GetResult();
-                        delayMs = Math.Min(delayMs * 2, 15000);
-                    }
-                }
+                return tokenResponse.AccessToken ?? string.Empty;
             }
             finally
             {
@@ -629,8 +562,6 @@ namespace CustomBuildTool
         /// <param name="TenantId">The Azure tenant ID.</param>
         /// <param name="ClientId">The Azure client (application) ID.</param>
         /// <param name="ClientCertificatePath">Path to the certificate file (.pem, .pfx, or .p12).</param>
-        /// <param name="MaxRetries">Maximum number of retry attempts (default: 5).</param>
-        /// <param name="InitialDelayMs">Initial delay in milliseconds before retrying (default: 500ms).</param>
         /// <param name="CancellationToken">Cancellation token to cancel the operation.</param>
         /// <returns>The access token string, or empty string if authentication fails.</returns>
         /// <remarks>
@@ -645,8 +576,6 @@ namespace CustomBuildTool
             string TenantId,
             string ClientId,
             string ClientCertificatePath,
-            int MaxRetries = 5,
-            int InitialDelayMs = 500,
             CancellationToken CancellationToken = default)
         {
             X509Certificate2 clientCertificate = null;
@@ -676,17 +605,16 @@ namespace CustomBuildTool
                     {
                         // For PFX, you may need a password. Check environment variable.
                         Win32.GetEnvironmentVariableSecure("AZURE_CLIENT_CERTIFICATE_PASSWORD", out SecureBuffer certPassword);
-                        byte[] certBytes = await File.ReadAllBytesAsync(ClientCertificatePath, CancellationToken);
 
                         using (certPassword)
                         {
                             if (certPassword != null)
                             {
-                                clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, certPassword.Span);
+                                clientCertificate = X509CertificateLoader.LoadPkcs12FromFile(ClientCertificatePath, certPassword.Span);
                             }
                             else
                             {
-                                clientCertificate = X509CertificateLoader.LoadPkcs12(certBytes, (string)null);
+                                clientCertificate = X509CertificateLoader.LoadPkcs12FromFile(ClientCertificatePath, (string)null);
                             }
                         }
                     }
@@ -713,94 +641,31 @@ namespace CustomBuildTool
                 // Create JWT assertion
                 string jwtAssertion = CreateClientAssertion(TenantId, ClientId, clientCertificate);
 
-                if (string.IsNullOrEmpty(jwtAssertion))
+                if (string.IsNullOrWhiteSpace(jwtAssertion))
                 {
                     Program.PrintColorMessage("Failed to create JWT assertion.", ConsoleColor.Red);
                     return string.Empty;
                 }
 
-                // Request token using client_assertion
-                int currentAttempt = 0;
-                int delayMs = InitialDelayMs;
-
-                while (true)
+                // Request token using client_assertion.
+                var tokenRequestData = new Dictionary<string, string>
                 {
-                    currentAttempt++;
+                    { "client_id", ClientId },
+                    { "client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" },
+                    { "client_assertion", jwtAssertion },
+                    { "scope", "https://vault.azure.net/.default" },
+                    { "grant_type", "client_credentials" }
+                };
 
-                    try
-                    {
-                        var tokenRequestData = new Dictionary<string, string>
-                        {
-                            { "client_id", ClientId },
-                            { "client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" },
-                            { "client_assertion", jwtAssertion },
-                            { "scope", "https://vault.azure.net/.default" },
-                            { "grant_type", "client_credentials" }
-                        };
-
-                        using var tokenBody = new FormUrlEncodedContent(tokenRequestData);
-                        using HttpResponseMessage responseMessage = await HttpClient.PostAsync(
-                            $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token",
-                            tokenBody,
-                            CancellationToken
-                            );
-
-                        if (responseMessage.IsSuccessStatusCode)
-                        {
-                            var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
-                            var tokenResponse = await JsonSerializer.DeserializeAsync(jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken);
-
-                            if (tokenResponse.AccessToken == null)
-                            {
-                                Program.PrintColorMessage("Token response is null or missing 'access_token'.", ConsoleColor.Red);
-                                return string.Empty;
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(tokenResponse.AccessToken))
-                            {
-                                return tokenResponse.AccessToken;
-                            }
-
-                            Program.PrintColorMessage("Token response missing 'access_token'.", ConsoleColor.Red);
-                            return string.Empty;
-                        }
-
-                        if (ShouldRetry(responseMessage.StatusCode))
-                        {
-                            if (currentAttempt > MaxRetries)
-                            {
-                                Program.PrintColorMessage($"Token fetch failed after {MaxRetries} retries. Last status: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
-                                return string.Empty;
-                            }
-
-                            var retryAfterDelay = GetRetryAfterMs(responseMessage);
-                            delayMs = retryAfterDelay ?? ApplyJitter(delayMs);
-                            await Task.Delay(delayMs, CancellationToken);
-                            delayMs = Math.Min(delayMs * 2, 15000);
-                        }
-                        else
-                        {
-                            var errorBodyText = await responseMessage.Content.ReadAsStringAsync(CancellationToken);
-                            Program.PrintColorMessage($"Non-retryable token error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
-                            Program.PrintColorMessage(errorBodyText, ConsoleColor.DarkGray);
-                            return string.Empty;
-                        }
-                    }
-                    catch (HttpRequestException httpRequestException) when (currentAttempt <= MaxRetries)
-                    {
-                        int waitDelay = ApplyJitter(delayMs);
-                        Program.PrintColorMessage($"Network error on token fetch (attempt {currentAttempt}/{MaxRetries}): {httpRequestException.Message}. Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        await Task.Delay(waitDelay, CancellationToken);
-                        delayMs = Math.Min(delayMs * 2, 15000);
-                    }
-                    catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && currentAttempt <= MaxRetries)
-                    {
-                        int waitDelay = ApplyJitter(delayMs);
-                        Program.PrintColorMessage($"Timeout on token fetch (attempt {currentAttempt}/{MaxRetries}). Retrying in {waitDelay} ms...", ConsoleColor.Yellow);
-                        await Task.Delay(waitDelay, CancellationToken);
-                        delayMs = Math.Min(delayMs * 2, 15000);
-                    }
-                }
+                using var tokenBody = new FormUrlEncodedContent(tokenRequestData);
+                using var request = new HttpRequestMessage(HttpMethod.Post,
+                    $"https://login.microsoftonline.com/{TenantId}/oauth2/v2.0/token");
+                request.Content = tokenBody;
+                using var responseMessage = await BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken);
+                await using var jsonResponseStream = await responseMessage.Content.ReadAsStreamAsync(CancellationToken);
+                var tokenResponse = await JsonSerializer.DeserializeAsync(
+                    jsonResponseStream, AzureJsonContext.Default.TokenResponse, CancellationToken);
+                return tokenResponse.AccessToken ?? string.Empty;
             }
             finally
             {
@@ -905,59 +770,6 @@ namespace CustomBuildTool
         }
 
         /// <summary>
-        /// Determines if an HTTP status code indicates a retryable error.
-        /// </summary>
-        /// <param name="StatusCode">The HTTP status code to check.</param>
-        /// <returns>True if the request should be retried, false otherwise.</returns>
-        /// <remarks>
-        /// Retryable errors include:
-        /// - 429 (Too Many Requests)
-        /// - 5xx (Server errors: 500-599)
-        /// </remarks>
-        private static bool ShouldRetry(HttpStatusCode StatusCode) => StatusCode == (HttpStatusCode)429 || ((int)StatusCode >= 500 && (int)StatusCode <= 599);
-
-        /// <summary>
-        /// Applies random jitter to a delay value to prevent thundering herd issues.
-        /// </summary>
-        /// <param name="BaseMs">The base delay in milliseconds.</param>
-        /// <returns>The base delay adjusted by a random factor between 0.8 and 1.2.</returns>
-        /// <remarks>
-        /// Jitter helps distribute retry attempts when multiple clients fail simultaneously.
-        /// The random factor is between 80% and 120% of the base value.
-        /// </remarks>
-        private static int ApplyJitter(int BaseMs)
-        {
-            double factor = 0.8 + Random.Shared.NextDouble() * 0.4;
-            return (int)Math.Round(BaseMs * factor);
-        }
-
-        /// <summary>
-        /// Extracts the retry delay from an HTTP response's Retry-After header.
-        /// </summary>
-        /// <param name="ResponseMessage">The HTTP response message to examine.</param>
-        /// <returns>The retry delay in milliseconds, or null if no Retry-After header is present.</returns>
-        /// <remarks>
-        /// Supports both delta-seconds and HTTP-date formats of the Retry-After header.
-        /// If the retry time is in the past, returns 0 to retry immediately.
-        /// </remarks>
-        private static int? GetRetryAfterMs(HttpResponseMessage ResponseMessage)
-        {
-            if (ResponseMessage.Headers.RetryAfter is null)
-                return null;
-
-            if (ResponseMessage.Headers.RetryAfter.Delta.HasValue)
-                return (int)ResponseMessage.Headers.RetryAfter.Delta.Value.TotalMilliseconds;
-
-            if (ResponseMessage.Headers.RetryAfter.Date.HasValue)
-            {
-                TimeSpan timeSpan = ResponseMessage.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow;
-                return timeSpan.TotalMilliseconds > 0 ? (int)timeSpan.TotalMilliseconds : 0;
-            }
-
-            return null;
-        }
-
-        /// <summary>
         /// Creates an X509Certificate2 from PEM-encoded certificate and private key data.
         /// </summary>
         /// <param name="PemContent">The PEM-encoded content containing a certificate and optionally a private key.</param>
@@ -1029,7 +841,7 @@ namespace CustomBuildTool
         /// </remarks>
         private static string ExtractPemBlock(string TextContent, string Label)
         {
-            if (string.IsNullOrEmpty(TextContent))
+            if (string.IsNullOrWhiteSpace(TextContent))
                 return null;
 
             ReadOnlySpan<char> text = TextContent.AsSpan();

@@ -62,7 +62,7 @@ namespace CustomBuildTool
         /// Uploads a list of build artifacts to GitHub as release assets and returns the release information.
         /// </summary>
         /// <returns>True if the server configuration is updated successfully; otherwise, false.</returns>
-        public static async Task<bool> BuildUpdateServerConfig()
+        public static async Task<bool> BuildUpdateServerConfig(BuildFlags Flags)
         {
             if (!Build.BuildCanary)
                 return true;
@@ -79,6 +79,31 @@ namespace CustomBuildTool
                 ["systeminformer-build-pdb.zip"] = false,
                 //["systeminformer-build-release-setup.exe"] = true,
             };
+
+            bool toolchainClang = !string.IsNullOrEmpty(Build.GetToolchainSuffix(Flags));
+
+            // Include the clang toolchain artifacts as extra assets when they exist.
+            if (toolchainClang)
+            {
+                var Build_Toolchain_Files = new Dictionary<string, bool>(8, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["systeminformer-build-clang-win32-bin.zip"] = true,
+                    ["systeminformer-build-clang-win64-bin.zip"] = true,
+                    ["systeminformer-build-clang-arm64-bin.zip"] = true,
+                    ["systeminformer-build-clang-bin.zip"] = true,
+                    ["systeminformer-build-clang-pdb.zip"] = false,
+                    ["systeminformer-build-clang-release-setup.exe"] = true,
+                    ["systeminformer-build-clang-canary-setup.exe"] = true,
+                };
+
+                foreach (var file in Build_Toolchain_Files)
+                {
+                    if (File.Exists(Path.Join([Build.BuildOutputFolder, file.Key])))
+                    {
+                        Build_Upload_Files.TryAdd(file.Key, file.Value);
+                    }
+                }
+            }
 
             List<DeployFile> deployFiles = new List<DeployFile>();
 
@@ -101,8 +126,11 @@ namespace CustomBuildTool
 
             foreach (var file in Build_Upload_Files)
             {
+                // The canary setup is signed with the canary key; everything else uses the release key.
+                string channel = file.Key.EndsWith("-canary-setup.exe", StringComparison.OrdinalIgnoreCase) ? "canary" : "release";
+
                 deployFiles.Add(CreateBuildDeployFile(
-                    "release",
+                    channel,
                     file.Key,
                     Path.Join([Build.BuildOutputFolder, file.Key]),
                     file.Value

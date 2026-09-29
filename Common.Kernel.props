@@ -101,11 +101,15 @@
           Outputs="@(ClInclude->'$(IntDir)tmh\%(Filename).tmh');@(ClCompile->'$(IntDir)tmh\%(Filename).tmh')">
       <MakeDir Directories="$(IntDir)tmh" Condition="!Exists('$(IntDir)tmh')" />
       <PropertyGroup>
+          <KsiWppBinRoot>$(WindowsSDKVersionedBinRoot)</KsiWppBinRoot>
+          <KsiWppBinRoot Condition="'$(KsiWppBinRoot)'=='' And '$(WindowsSdkDir)'!=''">$([MSBuild]::EnsureTrailingSlash('$(WindowsSdkDir)'))bin\$(TargetPlatformVersion)</KsiWppBinRoot>
+          <KsiWppBinRoot Condition="'$(KsiWppBinRoot)'=='' And '$(WindowsSdkBinPath)'!=''">$([MSBuild]::EnsureTrailingSlash('$(WindowsSdkBinPath)'))$(TargetPlatformVersion)</KsiWppBinRoot>
+          <KsiWppBinRoot>$(KsiWppBinRoot.TrimEnd('\'))</KsiWppBinRoot>
           <TraceWppCmd>tracewpp.exe</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -km</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -ext:.c.cpp.h.hpp</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -preserveext:.c.cpp.h.hpp</TraceWppCmd>
-          <TraceWppCmd>$(TraceWppCmd) -I"$(WindowsSDKVersionedBinRoot)\WppConfig\Rev1"</TraceWppCmd>
+          <TraceWppCmd>$(TraceWppCmd) -I"$(KsiWppBinRoot)\WppConfig\Rev1"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -odir:"$(IntDir)tmh"</TraceWppCmd>
           <TraceWppCmd>$(TraceWppCmd) -scan:"$(SystemInformerRoot)KSystemInformer\include\trace.h"</TraceWppCmd>
       </PropertyGroup>

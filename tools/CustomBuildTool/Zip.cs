@@ -20,11 +20,14 @@ namespace CustomBuildTool
     /// - SDK archives
     /// - PDB symbol archives
     /// </remarks>
-    public static class Zip
+    public static unsafe partial class Zip
     {
         private static readonly FrozenSet<string> SkipPathPrefixes = new[]
         {
             "bin\\Debug",
+            "Debug32\\",
+            "Debug64\\",
+            "DebugARM64\\",
             "obj\\",
             "tests\\"
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
@@ -71,7 +74,7 @@ namespace CustomBuildTool
                 return Array.Empty<string>();
 
             int length = string.IsNullOrWhiteSpace(SourceFolder) ? 0 : SourceFolder.Length;
-            if (length > 0 && SourceFolder != null && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+            if (length > 0 && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
             var result = new string[Names.Length];
@@ -100,10 +103,27 @@ namespace CustomBuildTool
                 SourceFolder = Path.GetDirectoryName(SourceFolder);
 
             int length = string.IsNullOrWhiteSpace(SourceFolder) ? 0 : SourceFolder.Length;
-            if (length > 0 && SourceFolder != null && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
+            if (length > 0 && SourceFolder[length - 1] != Path.DirectorySeparatorChar && SourceFolder[length - 1] != Path.AltDirectorySeparatorChar)
                 length++;
 
             return length <= Name.Length ? Name.AsSpan(length).ToString() : string.Empty;
+        }
+
+        private static bool IsSelectedPlatform(string EntryName, BuildFlags Flags)
+        {
+            string directory = EntryName.Split(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)[0];
+
+            foreach (string configuration in new[] { "Debug", "Release" })
+            {
+                if (directory.Equals(configuration + "32", StringComparison.OrdinalIgnoreCase))
+                    return Flags.HasFlag(BuildFlags.Build32bit);
+                if (directory.Equals(configuration + "64", StringComparison.OrdinalIgnoreCase))
+                    return Flags.HasFlag(BuildFlags.Build64bit);
+                if (directory.Equals(configuration + "ARM64", StringComparison.OrdinalIgnoreCase))
+                    return Flags.HasFlag(BuildFlags.BuildArm64bit);
+            }
+
+            return true;
         }
 
         private static void WriteEntry(
@@ -149,8 +169,9 @@ namespace CustomBuildTool
         /// - Transforms Release configuration paths to architecture names (e.g., Release64 to amd64)
         /// - Uses optimal compression level
         /// </remarks>
-        public static void CreateCompressedFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None)
+        public static void CreateCompressedFolder(string SourceDirectoryName, string DestinationArchiveFileName, BuildFlags Flags = BuildFlags.None, bool FilterPlatforms = false)
         {
+            string destinationArchivePath = Path.GetFullPath(DestinationArchiveFileName);
             var progressReporter = new CompressionProgressReporter();
             var pathReplacements = new[] // Path replacements for archive entry names
             {
@@ -164,8 +185,14 @@ namespace CustomBuildTool
             {
                 foreach (string file in Directory.EnumerateFiles(SourceDirectoryName, "*", SearchOption.AllDirectories))
                 {
+                    if (string.Equals(Path.GetFullPath(file), destinationArchivePath, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     bool shouldSkip = false;
                     string name = GetEntryName(file, SourceDirectoryName, false);
+
+                    if (FilterPlatforms && !IsSelectedPlatform(name, Flags))
+                        continue;
 
                     foreach (var prefix in SkipPathPrefixes)
                     {

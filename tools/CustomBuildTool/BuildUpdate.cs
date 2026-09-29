@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -39,7 +39,7 @@ namespace CustomBuildTool
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, ServiceIndexUri);
-                using var httpResponse = await httpClient.SendAsync(request, CancellationToken);
+                using var httpResponse = await BuildHttpClient.SendWithRetry(httpClient, request, CancellationToken);
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
@@ -139,7 +139,7 @@ namespace CustomBuildTool
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, registrationIndexUri);
-                using var httpResponse = await HttpClient.SendAsync(request, CancellationToken);
+                using var httpResponse = await BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken);
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
@@ -174,7 +174,7 @@ namespace CustomBuildTool
                 try
                 {
                     using var request = new HttpRequestMessage(HttpMethod.Get, page.Id);
-                    using var httpResponse = await HttpClient.SendAsync(request, CancellationToken);
+                    using var httpResponse = await BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken);
 
                     if (httpResponse.IsSuccessStatusCode)
                     {
@@ -210,7 +210,7 @@ namespace CustomBuildTool
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, searchUri);
-                using var httpResponse = await HttpClient.SendAsync(request, CancellationToken);
+                using var httpResponse = await BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken);
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
@@ -254,7 +254,7 @@ namespace CustomBuildTool
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, versionsUri);
-                using var httpResponse = await HttpClient.SendAsync(request, CancellationToken);
+                using var httpResponse = await BuildHttpClient.SendWithRetry(HttpClient, request, CancellationToken);
 
                 if (httpResponse.IsSuccessStatusCode)
                 {
@@ -362,7 +362,7 @@ namespace CustomBuildTool
             public int Patch { get; init; }
             public int[] ExtraNumbers { get; init; }
             public string Prerelease { get; init; }
-            public bool IsPrerelease => !string.IsNullOrEmpty(Prerelease);
+            public bool IsPrerelease => !string.IsNullOrWhiteSpace(Prerelease);
 
             /// <summary>
             /// Attempts to parse a semantic version string into a NugetSemVer object.

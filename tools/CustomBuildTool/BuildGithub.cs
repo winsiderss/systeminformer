@@ -22,7 +22,7 @@ namespace CustomBuildTool
         /// <remarks>Using a static instance of HttpClient helps prevent socket exhaustion and improves
         /// performance when making multiple requests. This client is intended for internal use when interacting with
         /// GitHub services.</remarks>
-        private static readonly HttpClient GithubHttpClient;
+        internal static readonly HttpClient GithubHttpClient;
 
         /// <summary>
         /// The GitHub API token used for authentication.
@@ -237,7 +237,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
+                    requestMessage.Content = JsonContent.Create(buildUpdateRequest, GithubResponseContext.Default.GithubReleasesRequest);
 
                     var httpResult = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
@@ -392,7 +392,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
+                    requestMessage.Content = JsonContent.Create(buildUpdateRequest, GithubResponseContext.Default.GithubReleasesRequest);
 
                     var response = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 

@@ -52,3 +52,15 @@ PSID
 TOKEN_INFORMATION_CLASS
 TOKEN_ACCESS_MASK
 PROCESS_ACCESS_RIGHTS
+VirtualAlloc
+VirtualFree
+VirtualLock
+VirtualUnlock
+CryptCATOpen
+CryptCATClose
+CryptCATPersistStore
+CryptCATPutMemberInfo
+CryptSIPRetrieveSubjectGuidForCatalogFile
+CryptSIPCreateIndirectData
+SIP_SUBJECTINFO
+SIP_INDIRECT_DATA

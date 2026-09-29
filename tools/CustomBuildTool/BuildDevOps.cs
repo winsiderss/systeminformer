@@ -128,15 +128,31 @@ namespace CustomBuildTool
                 yield break;
             }
 
-            var pageContent = await response.Content.ReadAsStringAsync(CancellationToken);
-            var match = AzureServiceTagsRegex().Match(pageContent);
-            if (!match.Success)
+            await using var pageStream = await response.Content.ReadAsStreamAsync(CancellationToken);
+            using var pageReader = new StreamReader(pageStream);
+            char[] pageBuffer = new char[8192];
+            string window = string.Empty;
+            string downloadUrl = null;
+            int pageCount;
+            while ((pageCount = await pageReader.ReadAsync(pageBuffer.AsMemory(), CancellationToken)) != 0)
+            {
+                window += new string(pageBuffer, 0, pageCount);
+                var match = AzureServiceTagsRegex().Match(window);
+                if (match.Success)
+                {
+                    downloadUrl = match.Value;
+                    break;
+                }
+                if (window.Length > 16384)
+                    window = window[^16384..];
+            }
+            if (string.IsNullOrWhiteSpace(downloadUrl))
             {
                 Program.PrintColorMessage("[DownloadAzureServiceTags] download url not found", ConsoleColor.Red);
                 yield break;
             }
 
-            using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, match.Value);
+            using var jsonRequest = new HttpRequestMessage(HttpMethod.Get, downloadUrl);
             jsonRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             using var jsonResponse = await BuildHttpClient.SendMessageResponse(DevOpsHttpClient, jsonRequest, CancellationToken);

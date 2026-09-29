@@ -274,8 +274,7 @@ namespace CustomBuildTool
             "Microsoft.VisualStudio.Component.VC.ATLMFC",
             "Microsoft.VisualStudio.Component.VC.Redist.14.Latest",
             "Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre",
-            "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre",
-            "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64EC.Spectre",
+            "Microsoft.VisualStudio.Component.VC.Runtimes.ARM64.Spectre", // ARM64EC
             "Microsoft.VisualStudio.Component.NuGet",
             "Microsoft.VisualStudio.Component.Git"
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
@@ -286,7 +285,7 @@ namespace CustomBuildTool
         private static readonly FrozenSet<string> RecommendedComponents = new[]
         {
             "Microsoft.VisualStudio.Component.VC.CMake.Project",
-            "Microsoft.VisualStudio.Component.VC.14.45.17.12.CLI.Support"
+            "Microsoft.VisualStudio.Component.VC.CLI.Support"
         }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
@@ -351,8 +350,8 @@ namespace CustomBuildTool
         /// <summary>
         /// Installs required Visual Studio build dependencies and components for the current environment.
         /// </summary>
-        /// <remarks>The method downloads the Visual Studio Community installer if it is not already
-        /// present, then installs required workloads and components. A restart may be required to complete
+        /// <remarks>The method downloads the Visual Studio 2026 installer (Enterprise when running under CI,
+        /// otherwise Community) if it is not already present, then installs required workloads and components. A restart may be required to complete
         /// installation. The method returns <see langword="false"/> if the installer download or installation
         /// fails.</remarks>
         /// <param name="Minimal">Specifies whether to install only the minimal set of required components. If <see langword="true"/>,
@@ -361,28 +360,35 @@ namespace CustomBuildTool
         /// installation completes successfully; otherwise, <see langword="false"/>.</returns>
         public static async Task<bool> InstallBuildDependencies(bool Minimal = false)
         {
-            string installerPath = Path.Combine(Path.GetTempPath(), "vs_community.exe");
+            bool integration =
+                (Win32.GetEnvironmentVariable("CI", out string ci) && ci.Trim().Equals("true", StringComparison.OrdinalIgnoreCase)) ||
+                Win32.HasEnvironmentVariable("TF_BUILD") ||
+                Win32.HasEnvironmentVariable("GITHUB_ACTIONS");
+            string edition = integration ? "enterprise" : "community";
+            string installerUrl = $"https://aka.ms/vs/18/Stable/vs_{edition}.exe";
+            string installerPath = Path.Combine(Path.GetTempPath(), $"vs_{edition}_{Path.GetRandomFileName()}.exe");
 
             try
             {
-                if (!File.Exists(installerPath))
+                Program.PrintColorMessage($"Downloading Visual Studio 2026 {(integration ? "Enterprise" : "Community")} installer...", ConsoleColor.Cyan);
+
+                using (var client = BuildHttpClient.CreateHttpClient())
+                using (var request = new HttpRequestMessage(HttpMethod.Get, installerUrl))
+                using (var response = await BuildHttpClient.SendMessageResponse(client, request))
                 {
-                    Program.PrintColorMessage("Downloading Visual Studio 2022 Community installer...", ConsoleColor.Cyan);
-
-                    using var client = BuildHttpClient.CreateHttpClient();
-                    using var request = new HttpRequestMessage(HttpMethod.Get, "https://aka.ms/vs/17/release/vs_community.exe");
-                    using var response = await BuildHttpClient.SendMessageResponse(client, request);
-
-                    if (response.IsSuccessStatusCode)
+                    if (response == null || !response.IsSuccessStatusCode)
                     {
-                        await using var fs = new FileStream(installerPath, FileMode.Create);
-                        await response.Content.CopyToAsync(fs);
+                        Program.PrintColorMessage("Failed to download Visual Studio installer.", ConsoleColor.Red);
+                        return false;
                     }
+
+                    await using var fs = new FileStream(installerPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                    await response.Content.CopyToAsync(fs);
                 }
 
-                if (!File.Exists(installerPath))
+                if (!File.Exists(installerPath) || !VerifyInstallerSignature(installerPath))
                 {
-                    Program.PrintColorMessage("Failed to download Visual Studio installer.", ConsoleColor.Red);
+                    Program.PrintColorMessage("Visual Studio installer signature validation failed.", ConsoleColor.Red);
                     return false;
                 }
             }
@@ -422,10 +428,20 @@ namespace CustomBuildTool
 
             args.Add("--add");
             args.Add("Microsoft.NetCore.Component.Runtime.10.0");
+            args.Add("--add");
+            args.Add("Microsoft.NetCore.Component.SDK");
 
             Program.PrintColorMessage($"Installing Visual Studio components... {string.Join(' ', args)}", ConsoleColor.Cyan);
 
-            int exitCode = Win32.CreateProcess(installerPath, args, out _, false, false);
+            int exitCode;
+            try
+            {
+                exitCode = Win32.CreateProcess(installerPath, args, out _, false, false);
+            }
+            finally
+            {
+                try { File.Delete(installerPath); } catch { }
+            }
 
             if (exitCode == 0 || exitCode == 3010)
             {
@@ -444,6 +460,32 @@ namespace CustomBuildTool
                 {
                     Program.PrintColorMessage($"Visual Studio installation failed with exit code: {exitCode}", ConsoleColor.Red);
                 }
+                return false;
+            }
+        }
+
+        private static bool VerifyInstallerSignature(string FileName)
+        {
+            try
+            {
+                using var certificate = X509CertificateLoader.LoadCertificateFromFile(FileName);
+                using var chain = new X509Chain();
+                chain.ChainPolicy.RevocationMode = X509RevocationMode.Online;
+                chain.ChainPolicy.VerificationFlags = X509VerificationFlags.NoFlag;
+
+                if (!chain.Build(certificate))
+                    return false;
+
+                if (!string.Equals(certificate.GetNameInfo(X509NameType.SimpleName, false), "Microsoft Corporation", StringComparison.OrdinalIgnoreCase))
+                    return false;
+
+                return certificate.Extensions.OfType<X509EnhancedKeyUsageExtension>()
+                    .SelectMany(extension => extension.EnhancedKeyUsages.Cast<Oid>())
+                    .Any(oid => oid.Value == "1.3.6.1.5.5.7.3.3");
+            }
+            catch (Exception ex)
+            {
+                Program.PrintColorMessage($"Failed to validate installer signature: {ex.Message}", ConsoleColor.Red);
                 return false;
             }
         }
@@ -558,7 +600,7 @@ namespace CustomBuildTool
                 return false;
             }
 
-            if (string.IsNullOrEmpty(InstallPath))
+            if (string.IsNullOrWhiteSpace(InstallPath))
                 return false;
 
             string msvcRoot = System.IO.Path.Combine(InstallPath, @"VC\Tools\MSVC");
@@ -772,13 +814,13 @@ namespace CustomBuildTool
                     // Walk up from VSINSTALLDIR until version.txt is found.
                     string dir = this.Path;
 
-                    while (!string.IsNullOrEmpty(dir))
+                    while (!string.IsNullOrWhiteSpace(dir))
                     {
-                        string versionFilePath = System.IO.Path.Combine(dir, "version.txt");
+                        string versionFilePath = System.IO.Path.Join([dir, "version.txt"]);
 
                         if (File.Exists(versionFilePath))
                         {
-                            string versionText = File.ReadAllText(versionFilePath).Trim();
+                            string versionText = Utils.ReadFirstLine(versionFilePath);
 
                             if (!string.IsNullOrWhiteSpace(versionText))
                             {
@@ -791,13 +833,13 @@ namespace CustomBuildTool
                         }
 
                         string parent = System.IO.Path.GetDirectoryName(dir);
-                        if (string.IsNullOrEmpty(parent) || parent.Equals(dir, StringComparison.OrdinalIgnoreCase))
+                        if (string.IsNullOrWhiteSpace(parent) || parent.Equals(dir, StringComparison.OrdinalIgnoreCase))
                             break;
                         dir = parent;
                     }
                 }
 
-                string devenvPath = System.IO.Path.Combine(this.Path, "Common7\\IDE\\devenv.exe");
+                string devenvPath = System.IO.Path.Join([this.Path, "Common7\\IDE\\devenv.exe"]);
 
                 if (File.Exists(devenvPath))
                 {
@@ -805,7 +847,7 @@ namespace CustomBuildTool
                     return versionInfo.ProductVersion ?? string.Empty;
                 }
 
-                string msbuildPath = System.IO.Path.Combine(this.Path, "MSBuild\\Current\\Bin\\amd64\\MSBuild.exe");
+                string msbuildPath = System.IO.Path.Join([this.Path, "MSBuild\\Current\\Bin\\amd64\\MSBuild.exe"]);
 
                 if (File.Exists(msbuildPath))
                 {

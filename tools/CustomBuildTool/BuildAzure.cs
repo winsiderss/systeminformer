@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2022 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -106,7 +106,7 @@ namespace CustomBuildTool
                     ENTRA_CERIFICATE_VAULT,
                     ENTRA_TENANT_GUID,
                     ENTRA_CLIENT_GUID,
-                    entraClientSecret.Buffer
+                    entraClientSecret.Span
                     );
             }
         }
@@ -135,15 +135,8 @@ namespace CustomBuildTool
             ReadOnlySpan<char> ClientSecret
             )
         {
-            // Try a few times in case of transient Azure connectivity (dmex)
-
-            for (int i = 0; i < 3; i++)
-            {
-                if (KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
-                    return true;
-
-                Program.PrintColorMessage("Retrying....", ConsoleColor.Yellow);
-            }
+            if (KeyVaultDigestSignFiles(Path, TimeStampServer, AzureCertName, AzureVaultName, TenantGuid, ClientGuid, ClientSecret))
+                return true;
 
             Program.PrintColorMessage("KeyVaultDigestSignFiles Failed.", ConsoleColor.Red);
             return false;
@@ -210,6 +203,7 @@ namespace CustomBuildTool
                         if (!enumerable.Any())
                         {
                             Program.PrintColorMessage("No files found.", ConsoleColor.Red);
+                            return false;
                         }
                         else
                         {
@@ -220,7 +214,10 @@ namespace CustomBuildTool
                                 if (result == HRESULT.S_OK)
                                     Program.PrintColorMessage($"Signed: {file}", ConsoleColor.Green);
                                 else
+                                {
                                     Program.PrintColorMessage($"Failed: ({result}) {file}", ConsoleColor.Red);
+                                    return false;
+                                }
                             }
                         }
                     }
@@ -297,7 +294,11 @@ namespace CustomBuildTool
             try
             {
                 // Build body directly as bytes to minimize secret exposure in string form
-                int maxLen = Encoding.UTF8.GetMaxByteCount(ClientId.Length + ClientSecret.Length + 128);
+                int maxLen = checked(
+                    Utils.GetFormUrlEncodedMaxByteCount(ClientId.Length) +
+                    Utils.GetFormUrlEncodedMaxByteCount(ClientSecret.Length) +
+                    128
+                    );
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(maxLen);
                 try
                 {
@@ -307,16 +308,13 @@ namespace CustomBuildTool
                     ReadOnlySpan<byte> clientIdPrefix = "client_id="u8;
                     clientIdPrefix.CopyTo(span[written..]);
                     written += clientIdPrefix.Length;
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(ClientId), span[written..]);
+                    written += Utils.WriteFormUrlEncoded(ClientId, span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> scopePrefix = "scope=https%3A%2F%2Fvault.azure.net%2F.default&client_secret="u8;
                     scopePrefix.CopyTo(span[written..]);
                     written += scopePrefix.Length;
-                    
-                    // We still use Uri.EscapeDataString which creates a string, but it's temporary.
-                    // Better would be a span-based escaper.
-                    written += Encoding.UTF8.GetBytes(Uri.EscapeDataString(new string(ClientSecret)), span[written..]);
+                    written += Utils.WriteFormUrlEncoded(ClientSecret, span[written..]);
                     span[written++] = (byte)'&';
 
                     ReadOnlySpan<byte> grantPrefix = "grant_type=client_credentials"u8;
@@ -370,7 +368,7 @@ namespace CustomBuildTool
             Uri keyId = null;
 
             // Get certificate with public key (no private key)
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/certificates/{Name}?api-version=2025-07-01");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/certificates/{Name}?api-version={AzureClient.ApiVersion}");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 
@@ -430,7 +428,7 @@ namespace CustomBuildTool
         public static async Task<X509Certificate2> DownloadCertificateSecret(string BaseUrl, string Name, string Token)
         {
             // Get certificate with private key
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/secrets/{Name}?api-version=2025-07-01");
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{BaseUrl}/secrets/{Name}?api-version={AzureClient.ApiVersion}");
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Token);
 

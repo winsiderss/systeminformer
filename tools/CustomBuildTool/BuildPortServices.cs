@@ -39,12 +39,12 @@ namespace CustomBuildTool
         {
             try
             {
-                string csv = DownloadCsv();
-
-                if (string.IsNullOrEmpty(csv))
+                if (!DownloadCsv())
                     return false;
 
-                List<PortEntry> entries = ParseEntries(csv);
+                List<PortEntry> entries;
+                using (var reader = new StreamReader(CsvFile, Utils.UTF8NoBOM, true))
+                    entries = ParseEntries(reader);
 
                 if (entries.Count == 0)
                 {
@@ -52,9 +52,7 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                string block = BuildTableBlock(entries);
-
-                if (!RewritePortsFile(block))
+                if (!RewritePortsFile(entries))
                     return false;
 
                 Program.PrintColorMessage($"Generated {entries.Count} port-service entries into {PortsFile}.", ConsoleColor.Green);
@@ -70,7 +68,7 @@ namespace CustomBuildTool
         /// <summary>
         /// Downloads the IANA CSV and vendors a copy under tools/thirdparty/iana.
         /// </summary>
-        private static string DownloadCsv()
+        private static bool DownloadCsv()
         {
             Program.PrintColorMessage("Downloading IANA service-names CSV...", ConsoleColor.Cyan);
 
@@ -81,24 +79,24 @@ namespace CustomBuildTool
             if (response == null || !response.IsSuccessStatusCode)
             {
                 Program.PrintColorMessage("Failed to download the IANA service-names CSV.", ConsoleColor.Red);
-                return null;
+                return false;
             }
 
-            string content = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
             string directory = Path.GetDirectoryName(CsvFile);
 
-            if (!string.IsNullOrEmpty(directory))
+            if (!string.IsNullOrWhiteSpace(directory))
                 Directory.CreateDirectory(directory);
 
-            Utils.WriteAllText(CsvFile, content);
-
-            return content;
+            using var source = response.Content.ReadAsStream();
+            using var destination = File.Create(CsvFile);
+            source.CopyTo(destination);
+            return destination.Length != 0;
         }
 
         /// <summary>
         /// Parses the CSV into deduplicated (port, protocol) entries sorted by port then protocol.
         /// </summary>
-        private static List<PortEntry> ParseEntries(string Csv)
+        private static List<PortEntry> ParseEntries(TextReader Csv)
         {
             var seen = new HashSet<int>();
             var entries = new List<PortEntry>();
@@ -106,7 +104,8 @@ namespace CustomBuildTool
             // Naive line splitting is safe here: only the first three columns (Service Name,
             // Port Number, Transport Protocol) are used, and none of them contain newlines.
             // Continuation lines from quoted description fields simply fail the filters below.
-            foreach (string line in Csv.Split('\n'))
+            string line;
+            while ((line = Csv.ReadLine()) != null)
             {
                 List<string> fields = SplitCsvLine(line);
 
@@ -126,7 +125,7 @@ namespace CustomBuildTool
 
                 if (protocol == 0)
                     continue;
-                if (string.IsNullOrEmpty(name))
+                if (string.IsNullOrWhiteSpace(name))
                     continue;
                 if (!int.TryParse(portText, NumberStyles.None, CultureInfo.InvariantCulture, out int port))
                     continue;
@@ -232,11 +231,11 @@ namespace CustomBuildTool
         /// <summary>
         /// Builds the table initializer rows (four entries per line) for the marked region.
         /// </summary>
-        private static string BuildTableBlock(List<PortEntry> Entries)
+        private static void WriteTableBlock(TextWriter Writer, List<PortEntry> Entries)
         {
-            var lines = new List<string>();
             var line = new StringBuilder("    ");
             int column = 0;
+            bool firstLine = true;
 
             foreach (PortEntry e in Entries)
             {
@@ -245,7 +244,10 @@ namespace CustomBuildTool
 
                 if (++column == 4)
                 {
-                    lines.Add(line.ToString().TrimEnd());
+                    if (!firstLine)
+                        Writer.Write("\r\n");
+                    Writer.Write(line.ToString().TrimEnd());
+                    firstLine = false;
                     line.Clear();
                     line.Append("    ");
                     column = 0;
@@ -253,44 +255,62 @@ namespace CustomBuildTool
             }
 
             if (column > 0)
-                lines.Add(line.ToString().TrimEnd());
-
-            return string.Join("\r\n", lines);
+            {
+                if (!firstLine)
+                    Writer.Write("\r\n");
+                Writer.Write(line.ToString().TrimEnd());
+            }
         }
 
         /// <summary>
         /// Replaces the text between the generated markers in ports.c with the new table block.
         /// </summary>
-        private static bool RewritePortsFile(string Block)
+        private static bool RewritePortsFile(List<PortEntry> Entries)
         {
-            string text = Utils.ReadAllText(PortsFile);
-
-            if (string.IsNullOrEmpty(text))
+            bool foundBegin = false;
+            bool foundEnd = false;
+            foreach (string line in File.ReadLines(PortsFile))
             {
-                Program.PrintColorMessage($"Unable to read {PortsFile}.", ConsoleColor.Red);
-                return false;
+                if (!foundBegin && line.Contains(EndMarker, StringComparison.Ordinal))
+                    break;
+                if (!foundBegin && line.Contains(BeginMarker, StringComparison.Ordinal))
+                    foundBegin = true;
+                else if (foundBegin && line.Contains(EndMarker, StringComparison.Ordinal))
+                {
+                    foundEnd = true;
+                    break;
+                }
             }
 
-            int begin = text.IndexOf(BeginMarker, StringComparison.Ordinal);
-            int end = text.IndexOf(EndMarker, StringComparison.Ordinal);
-
-            if (begin < 0 || end < 0 || end < begin)
+            if (!foundEnd)
             {
                 Program.PrintColorMessage($"Could not find the // <generated> markers in {PortsFile}.", ConsoleColor.Red);
                 return false;
             }
 
-            int blockStart = text.IndexOf('\n', begin) + 1;     // first char after the begin-marker line
-            int endLineStart = text.LastIndexOf('\n', end) + 1;  // start of the end-marker line (keeps its indent)
-
-            string newText = string.Concat(
-                text.AsSpan(0, blockStart),
-                Block,
-                "\r\n",
-                text.AsSpan(endLineStart)
-                );
-
-            Utils.WriteAllText(PortsFile, newText);
+            Utils.WriteTextIfChanged(PortsFile, writer =>
+            {
+                bool inBlock = false;
+                bool completed = false;
+                foreach (string line in Utils.ReadLinesWithEndings(PortsFile))
+                {
+                    if (!completed && !inBlock && line.Contains(BeginMarker, StringComparison.Ordinal))
+                    {
+                        writer.Write(line);
+                        WriteTableBlock(writer, Entries);
+                        writer.Write("\r\n");
+                        inBlock = true;
+                    }
+                    else if (inBlock && line.Contains(EndMarker, StringComparison.Ordinal))
+                    {
+                        writer.Write(line);
+                        inBlock = false;
+                        completed = true;
+                    }
+                    else if (!inBlock)
+                        writer.Write(line);
+                }
+            }, Comparison: StringComparison.Ordinal);
 
             return true;
         }

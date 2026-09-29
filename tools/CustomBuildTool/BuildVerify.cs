@@ -585,7 +585,7 @@ namespace CustomBuildTool
                 string saltFile = GetPath($"{KeyNameOrSalt}.salt");
                 if (File.Exists(saltFile))
                 {
-                    return File.ReadAllText(saltFile).Trim();
+                    return Utils.ReadFirstLine(saltFile);
                 }
             }
 
@@ -610,7 +610,7 @@ namespace CustomBuildTool
                 string iterationsFile = GetPath($"{KeyNameOrIterations}.iterations");
                 if (File.Exists(iterationsFile))
                 {
-                    return int.Parse(File.ReadAllText(iterationsFile).Trim());
+                    return int.Parse(Utils.ReadFirstLine(iterationsFile));
                 }
             }
 
