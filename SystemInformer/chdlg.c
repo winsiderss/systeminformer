@@ -742,14 +742,21 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             LONG dpi = PhGetWindowDpi(WindowHandle);
             HDC hdc = (HDC)wParam;
             RECT clientRect;
+            RECT clipRect;
 
             if (!PhGetClientRect(WindowHandle, &clientRect))
                 break;
 
             SetBkMode(hdc, TRANSPARENT);
 
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+            {
+                SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
+                return TRUE;
+            }
+
             clientRect.bottom -= PhScaleToDisplay(50, dpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
+            PhFillRectClipped(hdc, &clientRect, &clipRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_WINDOW));
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhScaleToDisplay(50, dpi);
@@ -757,17 +764,17 @@ INT_PTR CALLBACK PhChooseNewPageDlgProc(
             if (PhEnableThemeSupport)
             {
                 SetDCBrushColor(hdc, RGB(50, 50, 50));
-                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+                PhFillRectClipped(hdc, &clientRect, &clipRect, PhGetStockBrush(DC_BRUSH));
                 clientRect.bottom = clientRect.top + 1;
                 SetDCBrushColor(hdc, PhThemeWindowForegroundColor);
-                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+                PhFillRectClipped(hdc, &clientRect, &clipRect, PhGetStockBrush(DC_BRUSH));
                 PhOffsetRect(&clientRect, 0, 1);
                 SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                FillRect(hdc, &clientRect, PhGetStockBrush(DC_BRUSH));
+                PhFillRectClipped(hdc, &clientRect, &clipRect, PhGetStockBrush(DC_BRUSH));
             }
             else
             {
-                FillRect(hdc, &clientRect, GetSysColorBrush(COLOR_3DFACE));
+                PhFillRectClipped(hdc, &clientRect, &clipRect, GetSysColorBrush(COLOR_3DFACE));
             }
 
             SetWindowLongPtr(WindowHandle, DWLP_MSGRESULT, TRUE);
