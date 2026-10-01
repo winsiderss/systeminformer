@@ -49,7 +49,7 @@ VOID PhInitializeProviderThread(
     ProviderThread->ThreadHandle = NULL;
     ProviderThread->TimerHandle = NULL;
     ProviderThread->Interval = Interval;
-    ProviderThread->State = ProviderThreadStopped;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopped);
 
     PhInitializeQueuedLock(&ProviderThread->Lock);
     InitializeListHead(&ProviderThread->ListHead);
@@ -111,7 +111,7 @@ NTSTATUS NTAPI PhpProviderThreadStart(
 
     PhInitializeAutoPool(&autoPool);
 
-    while (providerThread->State != ProviderThreadStopping)
+    while (ReadULongAcquire((PULONG)&providerThread->State) != ProviderThreadStopping)
     {
         // Keep removing and executing providers from the list until there are no more. Each removed
         // provider will be placed on the temporary list. After this is done, all providers on the
@@ -263,7 +263,7 @@ NTSTATUS PhStartProviderThread(
 {
     NTSTATUS status;
 
-    if (ProviderThread->State != ProviderThreadStopped)
+    if (ReadULongAcquire((PULONG)&ProviderThread->State) != ProviderThreadStopped)
         return STATUS_PENDING;
 
     //
@@ -343,7 +343,7 @@ NTSTATUS PhStartProviderThread(
         return status;
     }
 
-    ProviderThread->State = ProviderThreadRunning;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadRunning);
     return STATUS_SUCCESS;
 }
 
@@ -356,7 +356,7 @@ VOID PhStopProviderThread(
     _Inout_ PPH_PROVIDER_THREAD ProviderThread
     )
 {
-    if (ProviderThread->State != ProviderThreadRunning)
+    if (ReadULongAcquire((PULONG)&ProviderThread->State) != ProviderThreadRunning)
         return;
 
 #ifdef DEBUG
@@ -375,7 +375,7 @@ VOID PhStopProviderThread(
 #endif
 
     // Signal to the thread that we are shutting down, and wait for it to exit.
-    ProviderThread->State = ProviderThreadStopping;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopping);
     NtAlertThread(ProviderThread->ThreadHandle); // wake it up
     NtWaitForSingleObject(ProviderThread->ThreadHandle, FALSE, NULL);
 
@@ -386,7 +386,7 @@ VOID PhStopProviderThread(
     NtClose(ProviderThread->TimerHandle);
     ProviderThread->TimerHandle = NULL;
 
-    ProviderThread->State = ProviderThreadStopped;
+    WriteULongRelease((PULONG)&ProviderThread->State, ProviderThreadStopped);
 }
 
 /**
@@ -548,7 +548,7 @@ BOOLEAN PhBoostProvider(
     PhAcquireQueuedLockExclusive(&providerThread->Lock);
 
     // Abort if the provider is already being boosted, unregistering, or the provider thread is stopping/stopped.
-    if (Registration->Unregistering || Registration->Boosting || providerThread->State != ProviderThreadRunning)
+    if (Registration->Unregistering || Registration->Boosting || ReadULongAcquire((PULONG)&providerThread->State) != ProviderThreadRunning)
     {
         PhReleaseQueuedLockExclusive(&providerThread->Lock);
         return FALSE;
@@ -582,7 +582,7 @@ ULONG PhGetRunIdProvider(
     _In_ PPH_PROVIDER_REGISTRATION Registration
     )
 {
-    return Registration->RunId;
+    return ReadULongNoFence(&Registration->RunId);
 }
 
 /**
