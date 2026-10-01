@@ -2211,21 +2211,20 @@ NTSTATUS PhGetTokenIntegrityLevelEx(
     static CONST PH_INTEGRITY_LEVEL_STRING_ENTRY integrityLevelStringTable[] =
     {
         { PH_STRINGREF_INIT(L"Untrusted"), { .Mandatory = MandatoryLevelUntrusted } },
-        { PH_STRINGREF_INIT(L"Low"), {.Mandatory = MandatoryLevelLow }},
+        { PH_STRINGREF_INIT(L"Low"), { .Mandatory = MandatoryLevelLow }},
         { PH_STRINGREF_INIT(L"Medium"), { .Mandatory = MandatoryLevelMedium } },
         { PH_STRINGREF_INIT(L"Medium+"), { .Mandatory = MandatoryLevelMedium, .Plus = TRUE } },
         { PH_STRINGREF_INIT(L"High"), { .Mandatory = MandatoryLevelHigh, } },
         { PH_STRINGREF_INIT(L"System"), { .Mandatory = MandatoryLevelSystem, } },
         { PH_STRINGREF_INIT(L"Secure"), { .Mandatory = MandatoryLevelSecureProcess, } },
         { PH_STRINGREF_INIT(L"Untrusted (AppContainer)"), { .Mandatory = MandatoryLevelUntrusted, .AppContainer = TRUE, } },
-        { PH_STRINGREF_INIT(L"Low (AppContainer)"), {.Mandatory = MandatoryLevelLow, .AppContainer = TRUE, } },
+        { PH_STRINGREF_INIT(L"Low (AppContainer)"), { .Mandatory = MandatoryLevelLow, .AppContainer = TRUE, } },
         { PH_STRINGREF_INIT(L"Medium (AppContainer)"), { .Mandatory = MandatoryLevelMedium, .AppContainer = TRUE, } },
         { PH_STRINGREF_INIT(L"Medium+ (AppContainer)"), { .Mandatory = MandatoryLevelMedium, .AppContainer = TRUE, .Plus = TRUE, } },
         { PH_STRINGREF_INIT(L"High (AppContainer)"), { .Mandatory = MandatoryLevelHigh, .AppContainer = TRUE, } },
         { PH_STRINGREF_INIT(L"System (AppContainer)"), { .Mandatory = MandatoryLevelSystem, .AppContainer = TRUE, } },
         { PH_STRINGREF_INIT(L"Secure (AppContainer)"), { .Mandatory = MandatoryLevelSecureProcess, .AppContainer = TRUE, } },
     };
-
     NTSTATUS status;
     PH_INTEGRITY_LEVEL integrityLevel;
     MANDATORY_LEVEL_RID integrityLevelRID;
