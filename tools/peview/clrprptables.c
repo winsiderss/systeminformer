@@ -995,22 +995,7 @@ BOOLEAN NTAPI PvClrEnumTableCallback(
 
     PhPrintUInt32(value, TableIndex);
 
-    // If this is the initial pass (Name is NULL), add a blank row with TableIndex as lParam
-    if (!Name)
-    {
-        lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
-        PhSetListViewItemParam(context->ListViewHandle, lvItemIndex, UlongToPtr(TableIndex));
-        return TRUE;
-    }
-
-    // This is the data-population pass; find the existing row by TableIndex
-    lvItemIndex = PhFindListViewItemByParam(context->ListViewHandle, -1, UlongToPtr(TableIndex));
-
-    if (lvItemIndex == -1)
-    {
-        lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, NULL);
-        PhSetListViewItemParam(context->ListViewHandle, lvItemIndex, UlongToPtr(TableIndex));
-    }
+    lvItemIndex = PhAddListViewItem(context->ListViewHandle, MAXINT, value, UlongToPtr(TableIndex));
 
     PhPrintUInt32(countValue, RowCount);
 
@@ -1154,20 +1139,6 @@ INT_PTR CALLBACK PvPeClrTablesDlgProc(
                 {
                     context->ClrMetadataInitialized = TRUE;
 
-                    // Iterate through all possible table indices
-                    for (ULONG tableIndex = 0; tableIndex < PH_CLR_TABLE_MAXIMUM; tableIndex++)
-                    {
-                        PvClrEnumTableCallback(
-                            tableIndex,
-                            0,
-                            0,
-                            NULL,
-                            NULL,
-                            context
-                            );
-                    }
-
-                    // Now populate data for existing tables
                     PhEnumMappedClrTables(
                         &context->ClrMetadata,
                         PvClrEnumTableCallback,
@@ -1215,7 +1186,7 @@ INT_PTR CALLBACK PvPeClrTablesDlgProc(
                     LPNMITEMACTIVATE itemActivate = (LPNMITEMACTIVATE)lParam;
                     PVOID tableIndex;
 
-                    if (itemActivate->iItem != -1 && PhGetListViewItemParam(
+                    if (itemActivate->iItem != INT_ERROR && PhGetListViewItemParam(
                         context->ListViewHandle,
                         itemActivate->iItem,
                         &tableIndex
