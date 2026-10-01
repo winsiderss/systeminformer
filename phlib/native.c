@@ -8169,6 +8169,7 @@ NTSTATUS PhEnumVirtualMemoryBulk(
         bufferLength = sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[256]);
         buffer = PhAllocate(bufferLength);
         buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
+        buffer->NextValidAddress = BaseAddress;
 
         PhInitializeArray(&entries, sizeof(MEMORY_BASIC_INFORMATION), 256);
 
@@ -8209,9 +8210,10 @@ NTSTATUS PhEnumVirtualMemoryBulk(
         {
             // Execute the callback.
 
-            Callback(ProcessHandle, information, buffer->NumberOfEntries, Context);
+            Callback(ProcessHandle, entries.Items, entries.Count, Context);
         }
 
+        PhDeleteArray(&entries);
         PhFree(buffer);
     }
     else
