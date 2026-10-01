@@ -556,7 +556,7 @@ VOID PhSipCreateCpuGraphs(
     CpuGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_CHILD | WS_BORDER,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -579,7 +579,7 @@ VOID PhSipCreateCpuGraphs(
         CpusGraphHandle[i] = PhCreateWindow(
             PH_GRAPH_CLASSNAME,
             NULL,
-            WS_CHILD | WS_BORDER,
+            WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
             0,
             0,
             0,

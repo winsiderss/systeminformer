@@ -404,7 +404,7 @@ VOID PhSipCreateIoGraph(
     IoReadGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -423,7 +423,7 @@ VOID PhSipCreateIoGraph(
     IoWriteGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -442,7 +442,7 @@ VOID PhSipCreateIoGraph(
     IoOtherGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,

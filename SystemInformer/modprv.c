@@ -107,6 +107,12 @@ PH_INITONCE PhpModuleQueryWorkQueueInitOnce = PH_INITONCE_INIT;
 PH_WORK_QUEUE PhpModuleQueryWorkQueue;
 PVOID PhLdrEnclaveList = NULL;
 
+/**
+ * Creates a module provider.
+ *
+ * \param ProcessId The ID of the process.
+ * \return The created module provider.
+ */
 PPH_MODULE_PROVIDER PhCreateModuleProvider(
     _In_ HANDLE ProcessId
     )
@@ -247,6 +253,12 @@ PPH_MODULE_PROVIDER PhCreateModuleProvider(
     return moduleProvider;
 }
 
+/**
+ * Module provider delete procedure.
+ *
+ * \param Object The module provider object.
+ * \param Flags The flags.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleProviderDeleteProcedure(
     _In_ PVOID Object,
@@ -291,6 +303,11 @@ VOID PhpModuleProviderDeleteProcedure(
     if (moduleProvider->ProcessHandle) NtClose(moduleProvider->ProcessHandle);
 }
 
+/**
+ * Creates a module item.
+ *
+ * \return The created module item.
+ */
 PPH_MODULE_ITEM PhCreateModuleItem(
     VOID
     )
@@ -315,6 +332,12 @@ PPH_MODULE_ITEM PhCreateModuleItem(
     return moduleItem;
 }
 
+/**
+ * Module item delete procedure.
+ *
+ * \param Object The module item object.
+ * \param Flags The flags.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID PhpModuleItemDeleteProcedure(
     _In_ PVOID Object,
@@ -331,6 +354,13 @@ VOID PhpModuleItemDeleteProcedure(
     PhDeleteImageVersionInfo(&moduleItem->VersionInfo);
 }
 
+/**
+ * Module hashtable equal function.
+ *
+ * \param Entry1 The first entry.
+ * \param Entry2 The second entry.
+ * \return TRUE if the entries are equal, FALSE otherwise.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -353,6 +383,12 @@ BOOLEAN NTAPI PhpModuleHashtableEqualFunction(
     }
 }
 
+/**
+ * Module hashtable hash function.
+ *
+ * \param Entry The entry.
+ * \return The hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleHashtableHashFunction(
     _In_ PVOID Entry
@@ -365,6 +401,13 @@ ULONG NTAPI PhpModuleHashtableHashFunction(
     return baseAddressHash ^ (enclaveBaseAddressHash << 1);
 }
 
+/**
+ * Module key hashtable equal function.
+ *
+ * \param Entry1 The first entry.
+ * \param Entry2 The second entry.
+ * \return TRUE if the entries are equal, FALSE otherwise.
+ */
 _Function_class_(PH_HASHTABLE_EQUAL_FUNCTION)
 BOOLEAN NTAPI PhpModuleKeyHashtableEqualFunction(
     _In_ PVOID Entry1,
@@ -386,6 +429,12 @@ BOOLEAN NTAPI PhpModuleKeyHashtableEqualFunction(
     return entry1->FileName == entry2->FileName;
 }
 
+/**
+ * Module key hashtable hash function.
+ *
+ * \param Entry The entry.
+ * \return The hash value.
+ */
 _Function_class_(PH_HASHTABLE_HASH_FUNCTION)
 ULONG NTAPI PhpModuleKeyHashtableHashFunction(
     _In_ PVOID Entry
@@ -399,6 +448,15 @@ ULONG NTAPI PhpModuleKeyHashtableHashFunction(
     return baseAddressHash ^ (enclaveBaseAddressHash << 1) ^ fileNameHash;
 }
 
+/**
+ * References a module item.
+ *
+ * \param ModuleProvider The module provider.
+ * \param BaseAddress The base address of the module.
+ * \param EnclaveBaseAddress The enclave base address of the module.
+ * \param FileName The file name of the module.
+ * \return The referenced module item, or NULL if it was not found.
+ */
 PPH_MODULE_ITEM PhReferenceModuleItemEx(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress,
@@ -437,6 +495,13 @@ PPH_MODULE_ITEM PhReferenceModuleItemEx(
     return moduleItem;
 }
 
+/**
+ * References a module item.
+ *
+ * \param ModuleProvider The module provider.
+ * \param BaseAddress The base address of the module.
+ * \return The referenced module item, or NULL if it was not found.
+ */
 PPH_MODULE_ITEM PhReferenceModuleItem(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PVOID BaseAddress
@@ -450,6 +515,11 @@ PPH_MODULE_ITEM PhReferenceModuleItem(
         );
 }
 
+/**
+ * Dereferences all module items in the module provider.
+ *
+ * \param ModuleProvider The module provider.
+ */
 VOID PhDereferenceAllModuleItems(
     _In_ PPH_MODULE_PROVIDER ModuleProvider
     )
@@ -467,6 +537,12 @@ VOID PhDereferenceAllModuleItems(
     PhReleaseFastLockExclusive(&ModuleProvider->ModuleHashtableLock);
 }
 
+/**
+ * Removes a module item from the module provider.
+ *
+ * \param ModuleProvider The module provider.
+ * \param ModuleItem The module item to remove.
+ */
 VOID PhpRemoveModuleItem(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PPH_MODULE_ITEM ModuleItem
@@ -476,6 +552,17 @@ VOID PhpRemoveModuleItem(
     PhDereferenceObject(ModuleItem);
 }
 
+/**
+ * Module item read virtual memory callback.
+ *
+ * \param ProcessHandle The process handle.
+ * \param BaseAddress The base address.
+ * \param Buffer The buffer.
+ * \param BufferSize The buffer size.
+ * \param NumberOfBytesRead The number of bytes read.
+ * \param Context The module item.
+ * \return Successful or errant status.
+ */
 _Function_class_(PH_READ_VIRTUAL_MEMORY_CALLBACK)
 static NTSTATUS PhModuleItemReadVirtualMemoryCallback(
     _In_ HANDLE ProcessHandle,
@@ -494,6 +581,12 @@ static NTSTATUS PhModuleItemReadVirtualMemoryCallback(
     return PhReadVirtualMemory(ProcessHandle, BaseAddress, Buffer, BufferSize, NumberOfBytesRead);
 }
 
+/**
+ * Module query worker thread routine.
+ *
+ * \param Parameter The worker thread parameter.
+ * \return Successful or errant status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpModuleQueryWorker(
     _In_ PVOID Parameter
@@ -768,6 +861,11 @@ NTSTATUS PhpModuleQueryWorker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Gets the module query work queue.
+ *
+ * \return The module query work queue.
+ */
 PPH_WORK_QUEUE PhpGetModuleQueryWorkQueue(
     VOID
     )
@@ -786,6 +884,13 @@ PPH_WORK_QUEUE PhpGetModuleQueryWorkQueue(
     return &PhpModuleQueryWorkQueue;
 }
 
+/**
+ * Queues a module query.
+ *
+ * \param ModuleProvider The module provider.
+ * \param ModuleItem The module item.
+ * \param Flags The query flags.
+ */
 VOID PhpQueueModuleQuery(
     _In_ PPH_MODULE_PROVIDER ModuleProvider,
     _In_ PPH_MODULE_ITEM ModuleItem,
@@ -795,7 +900,7 @@ VOID PhpQueueModuleQuery(
     PPH_MODULE_QUERY_DATA data;
     PH_WORK_QUEUE_ENVIRONMENT environment;
 
-    if (ModuleItem->QueryPending)
+    if (ReadAcquire(&ModuleItem->QueryPending))
         return;
 
     data = PhAllocate(sizeof(PH_MODULE_QUERY_DATA));
@@ -807,7 +912,7 @@ VOID PhpQueueModuleQuery(
 
     PhReferenceObject(ModuleProvider);
     PhReferenceObject(ModuleItem);
-    ModuleItem->QueryPending = TRUE;
+    InterlockedExchange(&ModuleItem->QueryPending, TRUE);
 
     PhInitializeWorkQueueEnvironment(&environment);
     environment.BasePriority = THREAD_PRIORITY_BELOW_NORMAL;
@@ -817,6 +922,13 @@ VOID PhpQueueModuleQuery(
     PhQueueItemWorkQueueEx(PhpGetModuleQueryWorkQueue(), PhpModuleQueryWorker, data, NULL, &environment);
 }
 
+/**
+ * Enum modules callback.
+ *
+ * \param Module The module information.
+ * \param Context The callback context.
+ * \return TRUE to continue enumeration, FALSE otherwise.
+ */
 _Function_class_(PH_ENUM_GENERIC_MODULES_CALLBACK)
 static BOOLEAN NTAPI PhpEnumModulesCallback(
     _In_ PPH_MODULE_INFO Module,
@@ -835,6 +947,11 @@ static BOOLEAN NTAPI PhpEnumModulesCallback(
     return TRUE;
 }
 
+/**
+ * Updates the module provider.
+ *
+ * \param Object The module provider object.
+ */
 _Function_class_(PH_PROVIDER_FUNCTION)
 VOID PhModuleProviderUpdate(
     _In_ PVOID Object
@@ -994,10 +1111,12 @@ VOID PhModuleProviderUpdate(
                 }
             }
 
-            data->ModuleItem->QueryPending = FALSE;
+            InterlockedExchange(&data->ModuleItem->QueryPending, FALSE);
 
             if (modified)
-                data->ModuleItem->JustProcessed = TRUE;
+            {
+                InterlockedExchange(&data->ModuleItem->JustProcessed, TRUE);
+            }
 
             PhDereferenceObject(data->ModuleItem);
             PhFree(data);
@@ -1112,10 +1231,9 @@ VOID PhModuleProviderUpdate(
         {
             BOOLEAN modified = FALSE;
 
-            if (moduleItem->JustProcessed)
+            if (InterlockedExchangeAcquire(&moduleItem->JustProcessed, FALSE))
                 modified = TRUE;
 
-            moduleItem->JustProcessed = FALSE;
 
             if (moduleItem->LoadCount != module->LoadCount)
             {
@@ -1163,6 +1281,12 @@ static CONST PH_KEY_VALUE_PAIR PhModuleTypePairs[] =
     SIP(SREF(L"Enclave module"), PH_MODULE_TYPE_ENCLAVE_MODULE),
 };
 
+/**
+ * Gets the module type name.
+ *
+ * \param ModuleType The module type.
+ * \return The module type name.
+ */
 PCPH_STRINGREF PhGetModuleTypeName(
     _In_ ULONG ModuleType
     )
@@ -1197,6 +1321,12 @@ static CONST PH_KEY_VALUE_PAIR PhModuleLoadReasonTypePairs[] =
     SIP(SREF(L"Unknown"), LoadReasonUnknown),
 };
 
+/**
+ * Gets the module load reason type name.
+ *
+ * \param LoadReason The module load reason.
+ * \return The module load reason type name.
+ */
 PCPH_STRINGREF PhGetModuleLoadReasonTypeName(
     _In_ USHORT LoadReason
     )
@@ -1224,6 +1354,12 @@ static CONST PH_KEY_VALUE_PAIR PhModuleEnclaveTypePairs[] =
     SIP(SREF(L"VBS"), ENCLAVE_TYPE_VBS)
 };
 
+/**
+ * Gets the module enclave type name.
+ *
+ * \param EnclaveType The module enclave type.
+ * \return The module enclave type name.
+ */
 PCPH_STRINGREF PhGetModuleEnclaveTypeName(
     _In_ ULONG EnclaveType
     )
@@ -1243,6 +1379,15 @@ PCPH_STRINGREF PhGetModuleEnclaveTypeName(
     return NULL;
 }
 
+/**
+ * Adds an enclave module to the list.
+ *
+ * \param ProcessHandle The process handle.
+ * \param Enclave The enclave information.
+ * \param Entry The data table entry.
+ * \param LoadOrderIndex The load order index.
+ * \param Modules The list of modules.
+ */
 static VOID PhModuleAddEnclaveModule(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
@@ -1290,6 +1435,16 @@ typedef struct _PHP_ENUM_ENCLAVE_MODULES_CONTEXT
     USHORT LoadOrderIndex;
 } PHP_ENUM_ENCLAVE_MODULES_CONTEXT, *PPHP_ENUM_ENCLAVE_MODULES_CONTEXT;
 
+/**
+ * Enclave module enumeration callback.
+ *
+ * \param ProcessHandle The process handle.
+ * \param Enclave The enclave information.
+ * \param EntryAddress The entry address.
+ * \param Entry The data table entry.
+ * \param Context The callback context.
+ * \return TRUE to continue enumeration, FALSE otherwise.
+ */
 static BOOLEAN NTAPI PhModuleEnumEnclaveModulesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PLDR_SOFTWARE_ENCLAVE Enclave,
@@ -1313,6 +1468,15 @@ static BOOLEAN NTAPI PhModuleEnumEnclaveModulesCallback(
     return TRUE;
 }
 
+/**
+ * Enclaves enumeration callback.
+ *
+ * \param ProcessHandle The process handle.
+ * \param EnclaveAddress The enclave address.
+ * \param Enclave The enclave information.
+ * \param Context The callback context.
+ * \return TRUE to continue enumeration, FALSE otherwise.
+ */
 static BOOLEAN NTAPI PhModuleEnumEnclavesCallback(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID EnclaveAddress,
@@ -1336,6 +1500,13 @@ static BOOLEAN NTAPI PhModuleEnumEnclavesCallback(
     return TRUE;
 }
 
+/**
+ * Enumerates enclave modules in a process.
+ *
+ * \param ProcessHandle The process handle.
+ * \param Context The callback context.
+ * \return Successful or errant status.
+ */
 NTSTATUS PhEnumGenericEnclaveModules(
     _In_ HANDLE ProcessHandle,
     _In_ PVOID Context
@@ -1361,6 +1532,12 @@ NTSTATUS PhEnumGenericEnclaveModules(
     return status;
 }
 
+/**
+ * Initializes the enclave list.
+ *
+ * \param ThreadParameter The thread parameter.
+ * \return Successful or errant status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhModuleEnclaveListInitialize(
     _In_ PVOID ThreadParameter

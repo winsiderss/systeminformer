@@ -45,6 +45,15 @@ static PPH_TN_FILTER_ENTRY CurrentUserFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY SignedFilterEntry = NULL;
 static PPH_TN_FILTER_ENTRY MicrosoftSignedFilterEntry = NULL;
 
+/**
+ * Processes tab page callback function.
+ *
+ * \param Page The tab page.
+ * \param Message The tab page message.
+ * \param Parameter1 The first message parameter.
+ * \param Parameter2 The second message parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpProcessesPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
@@ -219,6 +228,11 @@ BOOLEAN PhMwpProcessesPageCallback(
     return FALSE;
 }
 
+/**
+ * Shows the properties dialog for a process.
+ *
+ * \param ProcessItem The process item.
+ */
 VOID PhMwpShowProcessProperties(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -237,6 +251,9 @@ VOID PhMwpShowProcessProperties(
     }
 }
 
+/**
+ * Toggles the current user process filter for the process tree list.
+ */
 VOID PhMwpToggleCurrentUserProcessTreeFilter(
     VOID
     )
@@ -260,6 +277,13 @@ VOID PhMwpToggleCurrentUserProcessTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_OTHER_USER_PROCESSES, !!CurrentUserFilterEntry);
 }
 
+/**
+ * Current user process tree list filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -277,6 +301,11 @@ BOOLEAN PhMwpCurrentUserProcessTreeFilter(
     return TRUE;
 }
 
+/**
+ * Toggles the signed process filter for the process tree list.
+ *
+ * \param WindowHandle The handle to the parent window.
+ */
 VOID PhMwpToggleSignedProcessTreeFilter(
     _In_ HWND WindowHandle
     )
@@ -311,6 +340,9 @@ VOID PhMwpToggleSignedProcessTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_SIGNED_PROCESSES, !!SignedFilterEntry);
 }
 
+/**
+ * Toggles the Microsoft process filter for the process tree list.
+ */
 VOID PhMwpToggleMicrosoftProcessTreeFilter(
     VOID
     )
@@ -334,6 +366,13 @@ VOID PhMwpToggleMicrosoftProcessTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_MICROSOFT_PROCESSES, !!MicrosoftSignedFilterEntry);
 }
 
+/**
+ * Signed process tree list filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpSignedProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -348,6 +387,13 @@ BOOLEAN PhMwpSignedProcessTreeFilter(
     return TRUE;
 }
 
+/**
+ * Microsoft process tree list filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -380,6 +426,15 @@ BOOLEAN PhMwpMicrosoftProcessTreeFilter(
     return TRUE;
 }
 
+/**
+ * Executes a priority class command on the specified processes.
+ *
+ * \param WindowHandle The handle to the parent window.
+ * \param Id The command ID.
+ * \param Processes An array of process items.
+ * \param NumberOfProcesses The number of items in the array.
+ * \return TRUE if the command was executed successfully, FALSE otherwise.
+ */
 BOOLEAN PhMwpExecuteProcessPriorityClassCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,
@@ -418,6 +473,15 @@ BOOLEAN PhMwpExecuteProcessPriorityClassCommand(
     return TRUE;
 }
 
+/**
+ * Executes an I/O priority command on the specified processes.
+ *
+ * \param WindowHandle The handle to the parent window.
+ * \param Id The command ID.
+ * \param Processes An array of process items.
+ * \param NumberOfProcesses The number of items in the array.
+ * \return TRUE if the command was executed successfully, FALSE otherwise.
+ */
 BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
     _In_ HWND WindowHandle,
     _In_ ULONG Id,
@@ -450,6 +514,15 @@ BOOLEAN PhMwpExecuteProcessIoPriorityCommand(
     return TRUE;
 }
 
+/**
+ * Checks priority items in the process menu based on the specified process.
+ *
+ * \param Menu The process menu.
+ * \param ProcessId The process ID.
+ * \param SetPriority Whether to check the priority class.
+ * \param SetIoPriority Whether to check the I/O priority.
+ * \param SetPagePriority Whether to check the page priority.
+ */
 VOID PhMwpSetProcessMenuPriorityChecks(
     _In_ PPH_EMENU Menu,
     _In_opt_ HANDLE ProcessId,
@@ -598,6 +671,13 @@ VOID PhMwpSetProcessMenuPriorityChecks(
     }
 }
 
+/**
+ * Initializes the process context menu.
+ *
+ * \param Menu The menu to initialize.
+ * \param Processes An array of process items.
+ * \param NumberOfProcesses The number of items in the array.
+ */
 VOID PhMwpInitializeProcessMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_PROCESS_ITEM *Processes,
@@ -834,7 +914,7 @@ VOID PhMwpInitializeProcessMenu(
         PhMwpSetProcessMenuPriorityChecks(Menu, Processes[0]->ProcessId, TRUE, TRUE, TRUE);
     }
 
-    item = PhFindEMenuItem(Menu, 0, 0, ID_PROCESS_WINDOW);
+    item = PhFindEMenuItem(Menu, 0, NULL, ID_PROCESS_WINDOW);
 
     if (item)
     {
@@ -843,6 +923,12 @@ VOID PhMwpInitializeProcessMenu(
         {
             // Get a handle to the process' top-level window (if any).
             PhMwpSelectedProcessWindowHandle = PhGetProcessMainWindow(Processes[0]->ProcessId, Processes[0]->QueryHandle);
+
+            if (!PhMwpSelectedProcessWindowHandle && NT_SUCCESS(PhAttachConsole(Processes[0]->ProcessId)))
+            {
+                PhMwpSelectedProcessWindowHandle = PhGetConsoleWindow();
+                PhFreeConsole();
+            }
 
             if (!PhMwpSelectedProcessWindowHandle)
                 item->Flags |= PH_EMENU_DISABLED;
@@ -868,6 +954,12 @@ VOID PhMwpInitializeProcessMenu(
     }
 }
 
+/**
+ * Creates the process context menu.
+ *
+ * \param SystemProcess Whether the menu is being created for the system process.
+ * \return The created menu.
+ */
 PPH_EMENU PhpCreateProcessMenu(
     _In_ BOOLEAN SystemProcess
     )
@@ -986,6 +1078,12 @@ PPH_EMENU PhpCreateProcessMenu(
     return menu;
 }
 
+/**
+ * Shows the process context menu.
+ *
+ * \param WindowHandle The handle to the parent window.
+ * \param ContextMenu The context menu information.
+ */
 VOID PhShowProcessContextMenu(
     _In_ HWND WindowHandle,
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
@@ -1047,6 +1145,12 @@ VOID PhShowProcessContextMenu(
     }
 }
 
+/**
+ * Process added event handler.
+ *
+ * \param Parameter The process item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessAddedHandler(
     _In_ PVOID Parameter,
@@ -1061,6 +1165,12 @@ VOID NTAPI PhMwpProcessAddedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+/**
+ * Process modified event handler.
+ *
+ * \param Parameter The process item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessModifiedHandler(
     _In_ PVOID Parameter,
@@ -1072,6 +1182,12 @@ VOID NTAPI PhMwpProcessModifiedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+/**
+ * Process removed event handler.
+ *
+ * \param Parameter The process item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessRemovedHandler(
     _In_ PVOID Parameter,
@@ -1085,6 +1201,12 @@ VOID NTAPI PhMwpProcessRemovedHandler(
     PhPushProviderEventQueue(&PhMwpProcessEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+/**
+ * Processes updated event handler.
+ *
+ * \param Parameter The updated items parameter.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpProcessesUpdatedHandler(
     _In_ PVOID Parameter,
@@ -1094,6 +1216,12 @@ VOID NTAPI PhMwpProcessesUpdatedHandler(
     SystemInformer_Invoke(PhMwpOnProcessesUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+/**
+ * Processes a process added event.
+ *
+ * \param ProcessItem The process item.
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnProcessAdded(
     _In_ _Assume_refs_(1) PPH_PROCESS_ITEM ProcessItem,
     _In_ ULONG RunId
@@ -1178,16 +1306,33 @@ VOID PhMwpOnProcessAdded(
     PhDereferenceObject(ProcessItem);
 }
 
+/**
+ * Processes a process modified event.
+ *
+ * \param ProcessItem The process item.
+ */
 VOID PhMwpOnProcessModified(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
 {
-    PhUpdateProcessNode(PhFindProcessNode(ProcessItem->ProcessId));
+    PPH_PROCESS_NODE processNode = PhFindProcessNode(ProcessItem->ProcessId);
 
-    if (SignedFilterEntry || MicrosoftSignedFilterEntry) // HACK: Invalidate filters when modified (dmex)
-        PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+    assert(processNode);
+
+    if (processNode)
+    {
+        PhUpdateProcessNode(processNode);
+
+        if (SignedFilterEntry || MicrosoftSignedFilterEntry)
+            PhApplyTreeNewFilters(PhGetFilterSupportProcessTreeList());
+    }
 }
 
+/**
+ * Processes a process removed event.
+ *
+ * \param ProcessItem The process item.
+ */
 VOID PhMwpOnProcessRemoved(
     _In_ PPH_PROCESS_ITEM ProcessItem
     )
@@ -1252,6 +1397,11 @@ VOID PhMwpOnProcessRemoved(
     }
 }
 
+/**
+ * Flushes the process event queue and updates the process tree list.
+ *
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnProcessesUpdated(
     _In_ ULONG RunId
     )

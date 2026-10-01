@@ -33,6 +33,15 @@ static BOOLEAN PhDefaultEnableStreamerMode = FALSE;
 static BOOLEAN PhDefaultEnableThemeAcrylicWindowSupport = FALSE;
 static BOOLEAN PhDefaultEnableThemeAnimation = FALSE;
 
+/**
+ * Window hook procedure for superclassed menu windows (#32768).
+ *
+ * \param WindowHandle A handle to the menu window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhMenuWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -123,6 +132,15 @@ LRESULT CALLBACK PhMenuWindowHookProcedure(
     return CallWindowProc(PhDefaultMenuWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed dialog windows (#32770).
+ *
+ * \param WindowHandle A handle to the dialog window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhDialogWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -157,6 +175,15 @@ LRESULT CALLBACK PhDialogWindowHookProcedure(
     return CallWindowProc(PhDefaultDialogWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed rebar controls (ReBarWindow32).
+ *
+ * \param WindowHandle A handle to the rebar control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhRebarWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -221,6 +248,15 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     return CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed combo box controls (ComboBox).
+ *
+ * \param WindowHandle A handle to the combo box window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhComboBoxWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -251,6 +287,15 @@ LRESULT CALLBACK PhComboBoxWindowHookProcedure(
     return result;
 }
 
+/**
+ * Window hook procedure for superclassed static controls (Static).
+ *
+ * \param WindowHandle A handle to the static control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhStaticWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -438,6 +483,15 @@ typedef struct _PHP_THEME_WINDOW_STATUSBAR_CONTEXT
     POINT CursorPos;
 } PHP_THEME_WINDOW_STATUSBAR_CONTEXT, *PPHP_THEME_WINDOW_STATUSBAR_CONTEXT;
 
+/**
+ * Finds the status bar part index matching an update rectangle.
+ *
+ * \param WindowHandle A handle to the status bar window.
+ * \param WindowProcedure The status bar window procedure.
+ * \param UpdateRect A pointer to the update rectangle.
+ * \param Count The number of status bar parts.
+ * \return LONG The matching part index, or INT_ERROR if not found.
+ */
 LONG ThemeWindowStatusBarUpdateRectToIndex(
     _In_ HWND WindowHandle,
     _In_ WNDPROC WindowProcedure,
@@ -466,6 +520,15 @@ LONG ThemeWindowStatusBarUpdateRectToIndex(
     return INT_ERROR;
 }
 
+/**
+ * Renders a single status bar part with theme support.
+ *
+ * \param Context A pointer to the status bar theme context.
+ * \param WindowHandle A handle to the status bar window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ * \param Index The index of the status bar part to draw.
+ */
 VOID ThemeWindowStatusBarDrawPart(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -518,6 +581,14 @@ VOID ThemeWindowStatusBarDrawPart(
     blockRect.left -= 2, blockRect.bottom += 1;
 }
 
+/**
+ * Renders all status bar parts and background with theme support.
+ *
+ * \param Context A pointer to the status bar theme context.
+ * \param WindowHandle A handle to the status bar window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ */
 VOID ThemeWindowRenderStatusBar(
     _In_ PPHP_THEME_WINDOW_STATUSBAR_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -580,6 +651,15 @@ VOID ThemeWindowRenderStatusBar(
     //}
 }
 
+/**
+ * Window hook procedure for superclassed status bar controls (msctls_statusbar32).
+ *
+ * \param WindowHandle A handle to the status bar control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -702,6 +782,15 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
     return CallWindowProc(PhDefaultStatusbarWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Window hook procedure for superclassed edit controls (Edit).
+ *
+ * \param WindowHandle A handle to the edit control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhEditWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -777,6 +866,14 @@ typedef struct _PHP_THEME_WINDOW_HEADER_CONTEXT
     POINT CursorPos;
 } PHP_THEME_WINDOW_HEADER_CONTEXT, *PPHP_THEME_WINDOW_HEADER_CONTEXT;
 
+/**
+ * Renders a themed header control including columns, dividers, and sort indicators.
+ *
+ * \param Context A pointer to the header theme context.
+ * \param WindowHandle A handle to the header control window.
+ * \param bufferDc The device context used for drawing.
+ * \param clientRect A pointer to the client area rectangle.
+ */
 VOID ThemeWindowRenderHeaderControl(
     _In_ PPHP_THEME_WINDOW_HEADER_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -968,6 +1065,15 @@ static VOID PhpHeaderInvalidateHoverChange(
     }
 }
 
+/**
+ * Window hook procedure for superclassed header controls (SysHeader32).
+ *
+ * \param WindowHandle A handle to the header control window.
+ * \param WindowMessage The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK PhHeaderWindowHookProcedure(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -1147,6 +1253,9 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
     return CallWindowProc(PhDefaultHeaderWindowProcedure, WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Superclasses the standard Windows dialog class (#32770).
+ */
 VOID PhRegisterDialogSuperClass(
     VOID
     )
@@ -1167,6 +1276,9 @@ VOID PhRegisterDialogSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard Windows menu class (#32768).
+ */
 VOID PhRegisterMenuSuperClass(
     VOID
     )
@@ -1192,6 +1304,9 @@ VOID PhRegisterMenuSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard rebar control class (ReBarWindow32).
+ */
 VOID PhRegisterRebarSuperClass(
     VOID
     )
@@ -1212,6 +1327,9 @@ VOID PhRegisterRebarSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard combo box control class (ComboBox).
+ */
 VOID PhRegisterComboBoxSuperClass(
     VOID
     )
@@ -1232,6 +1350,9 @@ VOID PhRegisterComboBoxSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard static control class (Static).
+ */
 VOID PhRegisterStaticSuperClass(
     VOID
     )
@@ -1252,6 +1373,9 @@ VOID PhRegisterStaticSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard status bar control class (msctls_statusbar32).
+ */
 VOID PhRegisterStatusBarSuperClass(
     VOID
     )
@@ -1272,6 +1396,9 @@ VOID PhRegisterStatusBarSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard edit control class (Edit).
+ */
 VOID PhRegisterEditSuperClass(
     VOID
     )
@@ -1292,6 +1419,9 @@ VOID PhRegisterEditSuperClass(
     }
 }
 
+/**
+ * Superclasses the standard header control class (SysHeader32).
+ */
 VOID PhRegisterHeaderSuperClass(
     VOID
     )
@@ -1374,6 +1504,17 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_opt_ PVOID Context
     );
 
+/**
+ * Detour hook for DrawThemeBackground to provide custom theme rendering.
+ *
+ * \param Theme Theme data handle.
+ * \param Hdc Device context used for drawing.
+ * \param PartId The theme part to draw.
+ * \param StateId The state of the theme part.
+ * \param Rect A pointer to the destination drawing rectangle.
+ * \param ClipRect A pointer to the clipping rectangle.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhDrawThemeBackgroundHook(
     _In_ HTHEME Theme,
     _In_ HDC Hdc,
@@ -1413,6 +1554,17 @@ HRESULT PhDrawThemeBackgroundHook(
     return DefaultDrawThemeBackground(Theme, Hdc, PartId, StateId, Rect, ClipRect);
 }
 
+/**
+ * Detour hook for DrawThemeBackgroundEx to provide custom theme rendering.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part to draw.
+ * \param iStateId The state of the theme part.
+ * \param pRect A pointer to the destination drawing rectangle.
+ * \param pOptions A pointer to drawing options.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeBackgroundExHook(
     _In_ HTHEME         hTheme,
     _In_ HDC            hdc,
@@ -1500,6 +1652,23 @@ HRESULT WINAPI PhDrawThemeBackgroundExHook(
     return DefaultDrawThemeBackgroundEx(hTheme, hdc, iPartId, iStateId, pRect, pOptions);
 }
 
+/**
+ * Detour hook for CreateWindowExW to apply streamer mode, acrylic backdrop, and theme settings.
+ *
+ * \param ExStyle The extended window style.
+ * \param ClassName The window class name.
+ * \param WindowName The window title text.
+ * \param Style The window style flags.
+ * \param X The initial horizontal position.
+ * \param Y The initial vertical position.
+ * \param Width The initial window width.
+ * \param Height The initial window height.
+ * \param Parent A handle to the parent or owner window.
+ * \param Menu A handle to a menu, or child-window identifier.
+ * \param Instance A handle to the module instance.
+ * \param Param Pointer to window creation data.
+ * \return HWND Handle to the created window, or NULL if creation failed.
+ */
 HWND WINAPI PhCreateWindowExHook(
     _In_ ULONG ExStyle,
     _In_opt_ PCWSTR ClassName,
@@ -1567,6 +1736,15 @@ HWND WINAPI PhCreateWindowExHook(
     return windowHandle;
 }
 
+/**
+ * Detour hook for SystemParametersInfoW to disable animations when theme animation is disabled.
+ *
+ * \param uiAction The system parameter action to query or set.
+ * \param uiParam Parameter dependent on the action.
+ * \param pvParam Parameter dependent on the action.
+ * \param fWinIni User profile update flags.
+ * \return BOOL TRUE if successful, FALSE otherwise.
+ */
 BOOL WINAPI PhSystemParametersInfoHook(
     _In_ UINT uiAction,
     _In_ UINT uiParam,
@@ -1667,6 +1845,20 @@ BOOL WINAPI PhSystemParametersInfoHook(
 //#define RGB_FROM_COLOREF(cref) \
 //    ((((cref) & 0x000000FF) << 16) | (((cref) & 0x0000FF00)) | (((cref) & 0x00FF0000) >> 16))
 
+/**
+ * Detour hook for DrawThemeText to provide custom text coloring for theme controls.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param pszText The string to draw.
+ * \param cchText The character count in the string.
+ * \param dwTextFlags Text formatting flags.
+ * \param dwTextFlags2 Additional text formatting flags.
+ * \param pRect A pointer to the text layout rectangle.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeTextHook(
     _In_ HTHEME  hTheme,
     _In_ HDC     hdc,
@@ -1693,6 +1885,20 @@ HRESULT WINAPI PhDrawThemeTextHook(
     return DefaultDrawThemeText(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, dwTextFlags2, pRect);
 }
 
+/**
+ * Detour hook for DrawThemeTextEx to provide custom text coloring for themed buttons and command links.
+ *
+ * \param hTheme Theme data handle.
+ * \param hdc Device context used for drawing.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param pszText The string to draw.
+ * \param cchText The character count in the string.
+ * \param dwTextFlags Text formatting flags.
+ * \param pRect A pointer to the text layout rectangle.
+ * \param pOptions A pointer to text drawing options.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT WINAPI PhDrawThemeTextExHook(
     _In_      HTHEME        hTheme,
     _In_      HDC           hdc,
@@ -1724,6 +1930,16 @@ HRESULT WINAPI PhDrawThemeTextExHook(
     return DefaultDrawThemeTextEx(hTheme, hdc, iPartId, iStateId, pszText, cchText, dwTextFlags, pRect, pOptions);
 }
 
+/**
+ * Detour import hook for DrawTextW in Comctl32.dll to adjust hyperlink text colors in dark mode.
+ *
+ * \param hdc Device context used for drawing.
+ * \param lpchText The string to draw.
+ * \param cchText The character count in the string.
+ * \param lprc A pointer to the text layout rectangle.
+ * \param format Text formatting flags.
+ * \return int The height of the text drawn.
+ */
 int PhDetoursComCtl32DrawTextW(
     _In_      HDC     hdc,
     _Inout_   LPCWSTR lpchText,
@@ -1772,6 +1988,16 @@ int PhDetoursComCtl32DrawTextW(
     return DefaultComCtl32DrawTextW(hdc, lpchText, cchText, lprc, format);
 }
 
+/**
+ * Detour hook for GetThemeColor to override theme colors for task dialog elements in dark mode.
+ *
+ * \param hTheme Theme data handle.
+ * \param iPartId The theme part.
+ * \param iStateId The state of the theme part.
+ * \param iPropId The property identifier.
+ * \param pColor Receives the color value.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhGetThemeColorHook(
     _In_  HTHEME   hTheme,
     _In_  int      iPartId,
@@ -1804,6 +2030,13 @@ HRESULT PhGetThemeColorHook(
     return retVal;
 }
 
+/**
+ * Detour hook for OpenNcThemeData to apply dark scrollbar themes.
+ *
+ * \param hwnd A handle to the window.
+ * \param pszClassList The theme class list.
+ * \return HTHEME Theme data handle.
+ */
 HTHEME PhOpenNcThemeDataHook(
     _In_ HWND    hwnd,
     _In_ LPCWSTR pszClassList
@@ -1818,6 +2051,13 @@ HTHEME PhOpenNcThemeDataHook(
     return DefaultOpenNcThemeData(hwnd, pszClassList);
 }
 
+/**
+ * Window enumeration callback to initialize theme subclasses and controls for task dialogs.
+ *
+ * \param WindowHandle A handle to the window being processed.
+ * \param CallbackData Optional task dialog callback wrapper structure.
+ * \return BOOLEAN TRUE to continue window enumeration.
+ */
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
 BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     _In_ HWND WindowHandle,
@@ -1882,6 +2122,15 @@ BOOLEAN CALLBACK PhInitializeTaskDialogTheme(
     return TRUE;
 }
 
+/**
+ * Subclass window procedure for task dialogs and child controls.
+ *
+ * \param hwnd A handle to the window.
+ * \param uMsg The window message.
+ * \param wParam Additional message-dependent information.
+ * \param lParam Additional message-dependent information.
+ * \return LRESULT The result of the message processing.
+ */
 LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     _In_ HWND hwnd,
     _In_ UINT uMsg,
@@ -1914,9 +2163,11 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
                 // Avoid erasing the background for links, as they will blink white on the extender and during page switches.
                 if (!PhEqualStringZ(windowClassName, WC_LINK, FALSE))
                 {
-                    GetClipBox(hdc, &rect);
-                    SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
-                    FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+                    if (GetClipBox(hdc, &rect) > NULLREGION)
+                    {
+                        SetDCBrushColor(hdc, PhThemeWindowBackground2Color);
+                        FillRect(hdc, &rect, PhGetStockBrush(DC_BRUSH));
+                    }
                 }
             }
         }
@@ -1971,6 +2222,16 @@ LRESULT CALLBACK ThemeTaskDialogMasterSubclass(
     return result;
 }
 
+/**
+ * Task dialog callback hook used to apply theme initialization on page construction.
+ *
+ * \param hwndDlg A handle to the task dialog window.
+ * \param uMsg The notification message.
+ * \param wParam Notification parameter.
+ * \param lParam Notification parameter.
+ * \param dwRefData User reference data pointer.
+ * \return HRESULT Callback result.
+ */
 HRESULT CALLBACK ThemeTaskDialogCallbackHook(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1995,6 +2256,15 @@ HRESULT CALLBACK ThemeTaskDialogCallbackHook(
 }
 
 // https://github.com/SFTRS/DarkTaskDialog
+/**
+ * Detour hook for TaskDialogIndirect to enable theme support and custom styling.
+ *
+ * \param pTaskConfig A pointer to the task dialog configuration structure.
+ * \param pnButton Optional receives the selected button ID.
+ * \param pnRadioButton Optional receives the selected radio button ID.
+ * \param pfVerificationFlagChecked Optional receives the verification checkbox state.
+ * \return HRESULT Successful or errant status.
+ */
 HRESULT PhTaskDialogIndirectHook(
     _In_      const TASKDIALOGCONFIG* pTaskConfig,
     _Out_opt_ int* pnButton,
@@ -2012,6 +2282,9 @@ HRESULT PhTaskDialogIndirectHook(
     return DefaultTaskDialogIndirect(&myConfig, pnButton, pnRadioButton, pfVerificationFlagChecked);
 }
 
+/**
+ * Installs Microsoft Detours API hooks for theming, transparency, and window creation.
+ */
 VOID PhRegisterDetoursHooks(
     VOID
     )
@@ -2088,6 +2361,11 @@ CleanupExit:
     }
 }
 
+/**
+ * Checks if system-wide transparency effects are enabled in Windows Personalization settings.
+ *
+ * \return BOOLEAN TRUE if transparency effects are enabled, FALSE otherwise.
+ */
 BOOLEAN PhIsThemeTransparencyEnabled(
     VOID
     )
@@ -2111,6 +2389,9 @@ BOOLEAN PhIsThemeTransparencyEnabled(
     return themesEnableTransparency;
 }
 
+/**
+ * Initializes superclassed control window classes and registers detour hooks.
+ */
 VOID PhInitializeSuperclassControls(
     VOID
     )

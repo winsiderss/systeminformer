@@ -34,6 +34,15 @@ static BOOLEAN NetworkFirstTime = TRUE;
 static BOOLEAN NetworkTreeListLoaded = FALSE;
 static PPH_TN_FILTER_ENTRY NetworkFilterEntry = NULL;
 
+/**
+ * Network tab page callback function.
+ *
+ * \param Page The tab page.
+ * \param Message The tab page message.
+ * \param Parameter1 The first message parameter.
+ * \param Parameter2 The second message parameter.
+ * \return TRUE if the message was handled, FALSE otherwise.
+ */
 _Function_class_(PH_MAIN_TAB_PAGE_CALLBACK)
 BOOLEAN PhMwpNetworkPageCallback(
     _In_ PPH_MAIN_TAB_PAGE Page,
@@ -160,6 +169,9 @@ BOOLEAN PhMwpNetworkPageCallback(
     return FALSE;
 }
 
+/**
+ * Initializes the network tree list if it has not been loaded.
+ */
 VOID PhMwpNeedNetworkTreeList(
     VOID
     )
@@ -172,6 +184,9 @@ VOID PhMwpNeedNetworkTreeList(
     }
 }
 
+/**
+ * Toggles the waiting connection filter for the network tree list.
+ */
 VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
     VOID
     )
@@ -191,6 +206,13 @@ VOID PhMwpToggleNetworkWaitingConnectionTreeFilter(
     PhSetIntegerSetting(SETTING_HIDE_WAITING_CONNECTIONS, !!NetworkFilterEntry);
 }
 
+/**
+ * Network tree list node filter function.
+ *
+ * \param Node The tree node.
+ * \param Context The context (unused).
+ * \return TRUE if the node should be visible, FALSE otherwise.
+ */
 _Function_class_(PH_TN_FILTER_FUNCTION)
 BOOLEAN PhMwpNetworkTreeFilter(
     _In_ PPH_TREENEW_NODE Node,
@@ -207,6 +229,13 @@ BOOLEAN PhMwpNetworkTreeFilter(
     return TRUE;
 }
 
+/**
+ * Initializes the network context menu.
+ *
+ * \param Menu The menu to initialize.
+ * \param NetworkItems An array of network items.
+ * \param NumberOfNetworkItems The number of items in the array.
+ */
 VOID PhMwpInitializeNetworkMenu(
     _In_ PPH_EMENU Menu,
     _In_ PPH_NETWORK_ITEM *NetworkItems,
@@ -261,6 +290,11 @@ VOID PhMwpInitializeNetworkMenu(
     //}
 }
 
+/**
+ * Shows the network context menu.
+ *
+ * \param ContextMenu The context menu information.
+ */
 VOID PhShowNetworkContextMenu(
     _In_ PPH_TREENEW_CONTEXT_MENU ContextMenu
     )
@@ -324,6 +358,12 @@ VOID PhShowNetworkContextMenu(
     PhFree(networkItems);
 }
 
+/**
+ * Network item added event handler.
+ *
+ * \param Parameter The network item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemAddedHandler(
     _In_ PVOID Parameter,
@@ -336,6 +376,12 @@ VOID NTAPI PhMwpNetworkItemAddedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderAddedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+/**
+ * Network item modified event handler.
+ *
+ * \param Parameter The network item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemModifiedHandler(
     _In_ PVOID Parameter,
@@ -347,6 +393,12 @@ VOID NTAPI PhMwpNetworkItemModifiedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderModifiedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+/**
+ * Network item removed event handler.
+ *
+ * \param Parameter The network item.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemRemovedHandler(
     _In_ PVOID Parameter,
@@ -358,6 +410,12 @@ VOID NTAPI PhMwpNetworkItemRemovedHandler(
     PhPushProviderEventQueue(&PhMwpNetworkEventQueue, ProviderRemovedEvent, Parameter, PhGetRunIdProvider(&PhMwpNetworkProviderRegistration));
 }
 
+/**
+ * Network items updated event handler.
+ *
+ * \param Parameter The updated items parameter.
+ * \param Context The callback context.
+ */
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     _In_ PVOID Parameter,
@@ -367,6 +425,11 @@ VOID NTAPI PhMwpNetworkItemsUpdatedHandler(
     SystemInformer_Invoke(PhMwpOnNetworkItemsUpdated, PhGetRunIdProvider(&PhMwpProcessProviderRegistration));
 }
 
+/**
+ * Flushes the network event queue and updates the network tree list.
+ *
+ * \param RunId The provider run ID.
+ */
 VOID PhMwpOnNetworkItemsUpdated(
     _In_ ULONG RunId
     )

@@ -9,7 +9,6 @@
  *
  */
 
-#ifdef _M_IX86
 #include <phapp.h>
 #include <phplug.h>
 #include <phsettings.h>
@@ -18,6 +17,8 @@
 #include <settings.h>
 #include <emenu.h>
 #include <mapldr.h>
+
+#if defined(_M_IX86)
 
 #include <vdmdbg.h>
 
@@ -452,4 +453,4 @@ INT_PTR CALLBACK PhpProcessVdmHostProcessDlgProc(
     return FALSE;
 }
 
-#endif
+#endif // #if defined(_M_IX86)

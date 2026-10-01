@@ -636,7 +636,7 @@ VOID PhSipCreateMemoryGraphs(
     CommitGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,

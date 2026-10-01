@@ -984,6 +984,8 @@ UpdateStart:
             }
             else
             {
+                BOOLEAN justProcessed = !!InterlockedExchangeAcquire(&serviceItem->JustProcessed, FALSE);
+
                 if (
                     serviceItem->Type != serviceEntry->ServiceStatusProcess.dwServiceType ||
                     serviceItem->State != serviceEntry->ServiceStatusProcess.dwCurrentState ||
@@ -992,7 +994,7 @@ UpdateStart:
                     serviceItem->ServiceSpecificExitCode != serviceEntry->ServiceStatusProcess.dwServiceSpecificExitCode ||
                     serviceItem->ProcessId != UlongToHandle(serviceEntry->ServiceStatusProcess.dwProcessId) ||
                     serviceItem->NeedsConfigUpdate ||
-                    serviceItem->JustProcessed
+                    justProcessed
                     )
                 {
                     PH_SERVICE_MODIFIED_DATA serviceModifiedData;
@@ -1088,7 +1090,6 @@ UpdateStart:
                         serviceItem->NeedsConfigUpdate = FALSE;
                     }
 
-                    InterlockedExchange(&serviceItem->JustProcessed, FALSE);
 
                     // Raise the service modified event.
                     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackServiceProviderModifiedEvent), &serviceModifiedData);

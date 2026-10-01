@@ -22,6 +22,12 @@ typedef struct _PH_LIVE_DUMP_CONFIG
     HANDLE EventHandle;
 } PH_LIVE_DUMP_CONFIG, *PPH_LIVE_DUMP_CONFIG;
 
+/**
+ * Captures a live kernel dump using NtSystemDebugControl.
+ *
+ * \param Context A pointer to the live dump configuration structure.
+ * \return NTSTATUS STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCreateLiveKernelDump(
     _In_ PPH_LIVE_DUMP_CONFIG Context
@@ -90,6 +96,16 @@ NTSTATUS PhpCreateLiveKernelDump(
     return status;
 }
 
+/**
+ * Task dialog callback procedure for navigating the live dump completion page.
+ *
+ * \param hwndDlg A handle to the task dialog window.
+ * \param uMsg The task dialog notification message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \param dwRefData Application-defined reference data.
+ * \return HRESULT S_OK.
+ */
 HRESULT CALLBACK PhpLiveDumpPageCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -101,6 +117,16 @@ HRESULT CALLBACK PhpLiveDumpPageCallbackProc(
     return S_OK;
 }
 
+/**
+ * Task dialog callback procedure for displaying progress and handling cancellation during dump creation.
+ *
+ * \param hwndDlg A handle to the task dialog window.
+ * \param uMsg The task dialog notification message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \param dwRefData Application-defined reference data.
+ * \return HRESULT S_OK or S_FALSE.
+ */
 HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -235,6 +261,12 @@ HRESULT CALLBACK PhpLiveDumpProgressDialogCallbackProc(
     return S_OK;
 }
 
+/**
+ * Thread routine that creates the destination dump file and displays the progress task dialog.
+ *
+ * \param ThreadParameter A pointer to the live dump configuration structure.
+ * \return NTSTATUS STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpLiveDumpTaskDialogThread(
     _In_ PVOID ThreadParameter
@@ -284,6 +316,12 @@ NTSTATUS PhpLiveDumpTaskDialogThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Displays a save file dialog prompting the user to select the destination file name for the kernel dump.
+ *
+ * \param WindowHandle A handle to the owner window.
+ * \return PPH_STRING A string containing the selected file path, or NULL if cancelled.
+ */
 PPH_STRING PhpLiveDumpFileDialogFileName(
     _In_ HWND WindowHandle
     )
@@ -329,6 +367,12 @@ PPH_STRING PhpLiveDumpFileDialogFileName(
     return fileName;
 }
 
+/**
+ * Prompts for a file name and initiates live kernel dump creation with the specified options.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param Options A pointer to the live dump options structure.
+ */
 VOID PhUiCreateLiveDump(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_LIVE_DUMP_OPTIONS Options
@@ -352,6 +396,15 @@ VOID PhUiCreateLiveDump(
     }
 }
 
+/**
+ * Dialog procedure for the Live Kernel Dump options dialog.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpLiveDumpDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -422,6 +475,11 @@ INT_PTR CALLBACK PhpLiveDumpDlgProc(
     return FALSE;
 }
 
+/**
+ * Displays the Live Kernel Dump options dialog window.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ */
 VOID PhShowLiveDumpDialog(
     _In_ HWND ParentWindowHandle
     )

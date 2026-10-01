@@ -192,6 +192,14 @@ INT_PTR CALLBACK PhpHandleAuditingDlgProc(
     _In_ LPARAM lParam
     );
 
+/**
+ * Duplicates a handle from the target process into the current process.
+ *
+ * \param Handle Receives the duplicated handle.
+ * \param DesiredAccess The access mask requested for the duplicated handle.
+ * \param Context A pointer to the HANDLE_PROPERTIES_CONTEXT structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpDuplicateHandleFromProcess(
     _Out_ PHANDLE Handle,
@@ -244,6 +252,14 @@ static NTSTATUS PhpDuplicateHandleFromProcess(
     return status;
 }
 
+/**
+ * Closes a duplicated object handle.
+ *
+ * \param Handle The handle to close.
+ * \param Release Optional release flag.
+ * \param Context Optional context pointer.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpDuplicateHandleCloseProcess(
     _In_opt_ HANDLE Handle,
@@ -263,6 +279,12 @@ typedef struct _HANDLE_PROPERTIES_THREAD_CONTEXT
     PPH_HANDLE_ITEM HandleItem;
 } HANDLE_PROPERTIES_THREAD_CONTEXT, *PHANDLE_PROPERTIES_THREAD_CONTEXT;
 
+/**
+ * Determines if the handle item type uses verbose best object names.
+ *
+ * \param HandleItem A pointer to the handle item.
+ * \return TRUE if the handle type uses verbose formatting, FALSE otherwise.
+ */
 BOOLEAN PhpIsVerboseBestObjectName(
     _In_ PPH_HANDLE_ITEM HandleItem
     )
@@ -285,6 +307,12 @@ BOOLEAN PhpIsVerboseBestObjectName(
     return FALSE;
 }
 
+/**
+ * Deletes a handle properties context object.
+ *
+ * \param Object A pointer to the HANDLE_PROPERTIES_CONTEXT object.
+ * \param Flags Reserved.
+ */
 _Function_class_(PH_TYPE_DELETE_PROCEDURE)
 static VOID PhHandlePropertiesContextDeleteProcedure(
     _In_ PVOID Object,
@@ -296,6 +324,11 @@ static VOID PhHandlePropertiesContextDeleteProcedure(
     PhDereferenceObject(context->HandleItem);
 }
 
+/**
+ * Creates a new handle properties context object.
+ *
+ * \return A pointer to the allocated HANDLE_PROPERTIES_CONTEXT structure.
+ */
 PHANDLE_PROPERTIES_CONTEXT PhCreateHandlePropertiesContext(
     VOID
     )
@@ -316,6 +349,12 @@ PHANDLE_PROPERTIES_CONTEXT PhCreateHandlePropertiesContext(
     return context;
 }
 
+/**
+ * Thread routine for displaying the handle properties sheet dialog.
+ *
+ * \param Parameter A pointer to the HANDLE_PROPERTIES_THREAD_CONTEXT structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpShowHandlePropertiesThread(
     _In_ PVOID Parameter
@@ -495,6 +534,13 @@ NTSTATUS PhpShowHandlePropertiesThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Displays the properties dialog for a specified handle.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param ProcessId The identifier of the process owning the handle.
+ * \param HandleItem A pointer to the handle item structure.
+ */
 VOID PhShowHandleProperties(
     _In_ HWND ParentWindowHandle,
     _In_ HANDLE ProcessId,
@@ -512,6 +558,14 @@ VOID PhShowHandleProperties(
     PhCreateThread2(PhpShowHandlePropertiesThread, context);
 }
 
+/**
+ * Adds an item to a handle properties list view group.
+ *
+ * \param ListViewClass A pointer to the list view context.
+ * \param GroupId The identifier of the group.
+ * \param Index The index identifier for the item.
+ * \param Text The item label text.
+ */
 VOID PhAddHandleListViewItem(
     _In_ PPH_LISTVIEW_CONTEXT ListViewClass,
     _In_ LONG GroupId,
@@ -522,6 +576,14 @@ VOID PhAddHandleListViewItem(
     PhListView_AddGroupItem(ListViewClass, GroupId, Index, Text, UlongToPtr(Index));
 }
 
+/**
+ * Sets the sub-item text for an item in the handle properties list view.
+ *
+ * \param Context A pointer to the handle properties context.
+ * \param Index The item index identifier.
+ * \param SubItemIndex The sub-item column index.
+ * \param Text The text to set.
+ */
 VOID PhSetHandleListViewItem(
     _In_ PHANDLE_PROPERTIES_CONTEXT Context,
     _In_ LONG Index,
@@ -537,6 +599,11 @@ VOID PhSetHandleListViewItem(
     }
 }
 
+/**
+ * Initializes and configures the list view groups and items for general handle properties.
+ *
+ * \param Context A pointer to the handle properties context.
+ */
 VOID PhpUpdateHandleGeneralListViewGroups(
     _In_ PHANDLE_PROPERTIES_CONTEXT Context
     )
@@ -644,6 +711,11 @@ VOID PhpUpdateHandleGeneralListViewGroups(
     }
 }
 
+/**
+ * Populates and updates the general handle properties values.
+ *
+ * \param Context A pointer to the handle properties context.
+ */
 VOID PhpUpdateHandleGeneral(
     _In_ PHANDLE_PROPERTIES_CONTEXT Context
     )
@@ -2110,6 +2182,15 @@ VOID PhpUpdateHandleGeneral(
     }
 }
 
+/**
+ * Dialog procedure for the General handle properties tab page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam The message parameter.
+ * \param lParam The message parameter.
+ * \return INT_PTR Dialog procedure result.
+ */
 INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2289,6 +2370,14 @@ INT_PTR CALLBACK PhpHandleGeneralDlgProc(
     return FALSE;
 }
 
+/**
+ * Adds an NTSTATUS error message entry to the permissions list view.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param ListViewHandle A handle to the list view control.
+ * \param status The NTSTATUS error code.
+ * \param Index The list view row index.
+ */
 VOID PhAddStatusPermissionsTrustee(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HWND ListViewHandle,
@@ -2317,6 +2406,15 @@ VOID PhAddStatusPermissionsTrustee(
     }
 }
 
+/**
+ * Adds a trustee security identifier and access mask entry to the permissions list view.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param ListViewHandle A handle to the list view control.
+ * \param TrusteeSid A pointer to the trustee SID.
+ * \param TrusteeMask The access mask granted to the trustee.
+ * \param Index The list view row index, or 0 to append a new item.
+ */
 VOID PhAddHandlePermissionsTrustee(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HWND ListViewHandle,
@@ -2406,6 +2504,12 @@ VOID PhAddHandlePermissionsTrustee(
     }
 }
 
+/**
+ * Queries and updates the owner security information for the handle permissions page.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param QueryHandle A handle to the object to query.
+ */
 VOID PhUpdateHandlePermissionsOwnerSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HANDLE QueryHandle
@@ -2501,6 +2605,12 @@ VOID PhUpdateHandlePermissionsOwnerSecurity(
     }
 }
 
+/**
+ * Queries and updates the primary group security information for the handle permissions page.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param QueryHandle A handle to the object to query.
+ */
 VOID PhUpdateHandlePermissionsGroupSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HANDLE QueryHandle
@@ -2596,6 +2706,12 @@ VOID PhUpdateHandlePermissionsGroupSecurity(
     }
 }
 
+/**
+ * Queries and updates the System Access Control List (SACL) security information.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param QueryHandle A handle to the object to query.
+ */
 VOID PhUpdateHandlePermissionsSaclSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HANDLE QueryHandle
@@ -2662,6 +2778,12 @@ VOID PhUpdateHandlePermissionsSaclSecurity(
     }
 }
 
+/**
+ * Queries and updates the mandatory integrity label security information.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param QueryHandle A handle to the object to query.
+ */
 VOID PhUpdateHandlePermissionsLabelSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HANDLE QueryHandle
@@ -2728,6 +2850,12 @@ VOID PhUpdateHandlePermissionsLabelSecurity(
     }
 }
 
+/**
+ * Queries and updates the Discretionary Access Control List (DACL) security information.
+ *
+ * \param Context A pointer to the handle permissions context.
+ * \param QueryHandle A handle to the object to query.
+ */
 VOID PhUpdateHandlePermissionsDaclSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context,
     _In_ HANDLE QueryHandle
@@ -2809,6 +2937,11 @@ VOID PhUpdateHandlePermissionsDaclSecurity(
 }
 
 
+/**
+ * Initializes controls and populates security permissions information for the handle.
+ *
+ * \param Context A pointer to the handle permissions context.
+ */
 VOID PhUpdateHandlePermissionSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context
     )
@@ -2896,6 +3029,11 @@ VOID PhUpdateHandlePermissionSecurity(
     }
 }
 
+/**
+ * Initializes controls and populates auditing security information for the handle.
+ *
+ * \param Context A pointer to the handle permissions context.
+ */
 VOID PhUpdateHandleAuditingSecurity(
     _In_ PHANDLE_PERMISSIONS_CONTEXT Context
     )
@@ -2982,6 +3120,15 @@ VOID PhUpdateHandleAuditingSecurity(
     }
 }
 
+/**
+ * Dialog procedure for the Permissions handle properties tab page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam The message parameter.
+ * \param lParam The message parameter.
+ * \return INT_PTR Dialog procedure result.
+ */
 INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3165,6 +3312,15 @@ INT_PTR CALLBACK PhpHandlePermissionsDlgProc(
     return FALSE;
 }
 
+/**
+ * Dialog procedure for the Auditing handle properties tab page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam The message parameter.
+ * \param lParam The message parameter.
+ * \return INT_PTR Dialog procedure result.
+ */
 INT_PTR CALLBACK PhpHandleAuditingDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

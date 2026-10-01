@@ -25,6 +25,7 @@
 
 #define PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT 0xF
 #define PH_SERVICE_PROP_CONTEXT 0xE
+#define PH_SERVICE_PROP_PLACED_CONTEXT 0xD
 
 typedef struct _SERVICE_PROPERTIES_CONTEXT
 {
@@ -203,11 +204,33 @@ LRESULT CALLBACK PhpPropSheetSrvWndProc(
 
     switch (uMsg)
     {
+    case WM_DESTROY:
+        {
+            // Save here while the sheet window is still valid (the page is destroyed later).
+            PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwnd);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            // The common controls sheet can reposition itself after PSCB_INITIALIZED, so apply the
+            // saved position again right before the first show (still invisible, no flash).
+            if (wParam && !lParam && !PhGetWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT))
+            {
+                PhSetWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT, hwnd);
+
+                if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                    PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwnd);
+                else
+                    PhCenterWindow(hwnd, PhMainWndHandle);
+            }
+        }
+        break;
     case WM_NCDESTROY:
         {
             PhSetWindowProcedure(hwnd, oldWndProc);
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT);
             PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_CONTEXT);
+            PhRemoveWindowContext(hwnd, PH_SERVICE_PROP_PLACED_CONTEXT);
 
             if (context)
             {
@@ -314,6 +337,12 @@ INT CALLBACK PhpPropSheetSrvProc(
         {
             PhSetWindowContext(hwndDlg, PH_SERVICE_PROP_OLD_WNDPROC_CONTEXT, PhGetWindowProcedure(hwndDlg));
             PhSetWindowProcedure(hwndDlg, PhpPropSheetSrvWndProc);
+
+            // Position the sheet before it is first shown to avoid flashing at the default location.
+            if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
+                PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, hwndDlg);
+            else
+                PhCenterWindow(hwndDlg, PhMainWndHandle);
         }
         break;
     }
@@ -606,7 +635,7 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
         break;
     case WM_DESTROY:
         {
-            PhSaveWindowPlacementToSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
+            // The position is saved by the property sheet window procedure (WM_DESTROY).
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
         }
         break;
@@ -622,11 +651,6 @@ INT_PTR CALLBACK PhpServiceGeneralDlgProc(
                 PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 PhAddLayoutItem(&context->LayoutManager, GetDlgItem(parentHandle, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
                 context->LayoutInitialized = TRUE;
-
-                if (PhValidWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION))
-                    PhLoadWindowPlacementFromSetting(SETTING_SERVICE_WINDOW_POSITION, NULL, GetParent(hwndDlg));
-                else
-                    PhCenterWindow(GetParent(hwndDlg), PhMainWndHandle);
             }
         }
         break;
