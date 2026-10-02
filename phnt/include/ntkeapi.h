@@ -191,7 +191,9 @@ NtSetDebugFilterState(
 /**
  * The NtYieldExecution routine yields execution of the current thread to another thread.
  *
- * \return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status. STATUS_NO_YIELD_PERFORMED if no other thread was ready to run.
+ * \remarks Only threads that are ready to run on the current processor are considered.
+ * Note that kernelbase!SwitchToThread does not call this routine; it calls RtlDelayExecution with a zero interval.
  */
 _Kernel_entry_
 NTSYSCALLAPI
