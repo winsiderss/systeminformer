@@ -1,20 +1,20 @@
 <Solution>
-  <Configurations>
-    <Platform Name="ARM64" />
-    <Platform Name="Win32" />
-    <Platform Name="x64" />
-  </Configurations>
-  <Project Path="kphlib/kphlib_um.vcxproj" Id="f1757430-8eee-49df-a5f1-0999a53bb4a0" />
-  <Project Path="phlib/phlib.vcxproj" Id="477d0215-f252-41a1-874b-f27e3ea1ed17">
-    <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
-  </Project>
-  <Project Path="phnt/phnt.vcxitems" Id="3bdf0453-a79d-4bd0-b80b-d90c8ed0d180" />
-  <Project Path="SystemInformer/SystemInformer.vcxproj" Id="0271dd27-6707-4290-8dfe-285702b7115d">
-    <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
-    <BuildDependency Project="phlib/phlib.vcxproj" />
-  </Project>
-  <Project Path="tools/peview/peview.vcxproj" Id="72c124a2-3c80-41c6-aba1-c4948b713204" />
-  <Project Path="tools/simcp/simcp.vcxproj" Id="9e3f2d1a-6b4c-4f8e-a2d7-5c1b8e0f3a64">
-    <BuildDependency Project="phlib/phlib.vcxproj" />
-  </Project>
+    <Configurations>
+        <Platform Name="ARM64" />
+        <Platform Name="Win32" />
+        <Platform Name="x64" />
+    </Configurations>
+    <Project Path="kphlib/kphlib_um.vcxproj" Id="f1757430-8eee-49df-a5f1-0999a53bb4a0" />
+    <Project Path="phlib/phlib.vcxproj" Id="477d0215-f252-41a1-874b-f27e3ea1ed17">
+        <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
+    </Project>
+    <Project Path="phnt/phnt.vcxitems" Id="3bdf0453-a79d-4bd0-b80b-d90c8ed0d180" />
+    <Project Path="SystemInformer/SystemInformer.vcxproj" Id="0271dd27-6707-4290-8dfe-285702b7115d">
+        <BuildDependency Project="kphlib/kphlib_um.vcxproj" />
+        <BuildDependency Project="phlib/phlib.vcxproj" />
+    </Project>
+    <Project Path="tools/peview/peview.vcxproj" Id="72c124a2-3c80-41c6-aba1-c4948b713204" />
+    <Project Path="tools/simcp/simcp.vcxproj" Id="9e3f2d1a-6b4c-4f8e-a2d7-5c1b8e0f3a64">
+        <BuildDependency Project="phlib/phlib.vcxproj" />
+    </Project>
 </Solution>

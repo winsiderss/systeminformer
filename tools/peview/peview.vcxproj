@@ -1,302 +1,348 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|x64">
-      <Configuration>Debug</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|ARM64">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|x64">
-      <Configuration>Release</Configuration>
-      <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM64">
-      <Configuration>Release</Configuration>
-      <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-  </ItemGroup>
-  <PropertyGroup Label="Globals">
-    <VCProjectVersion>17.0</VCProjectVersion>
-    <ProjectGuid>{72C124A2-3C80-41C6-ABA1-C4948B713204}</ProjectGuid>
-    <RootNamespace>peview</RootNamespace>
-    <Keyword>Win32Proj</Keyword>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
-  </PropertyGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(SolutionDir)phnt\phnt.vcxitems" />
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  </ImportGroup>
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
-  </PropertyGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-    </ClCompile>
-    <Link>
-      <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-    </Link>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
-    <Manifest>
-      <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
-    </Manifest>
-  </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="cfgprp.c" />
-    <ClCompile Include="chcol.c" />
-    <ClCompile Include="delayhook.c" />
-    <ClCompile Include="disimp.c" />
-    <ClCompile Include="mappings.c" />
-    <ClCompile Include="pechpeprp.c" />
-    <ClCompile Include="clrtableimports.cpp" />
-    <ClCompile Include="clrprp.c" />
-    <ClCompile Include="clrtableimportprp.c" />
-    <ClCompile Include="clrprptables.c" />
-    <ClCompile Include="colmgr.c" />
-    <ClCompile Include="attributes.c" />
-    <ClCompile Include="debugprp.c" />
-    <ClCompile Include="ehcontprp.c" />
-    <ClCompile Include="exlfdynamic.c" />
-    <ClCompile Include="exlfexports.c" />
-    <ClCompile Include="exlfimports.c" />
-    <ClCompile Include="exlfprp.c" />
-    <ClCompile Include="hashprp.c" />
-    <ClCompile Include="layout.c" />
-    <ClCompile Include="pedynrelocprp.c" />
-    <ClCompile Include="peheaderprp.c" />
-    <ClCompile Include="pemuiprp.c" />
-    <ClCompile Include="peprpwnd.c" />
-    <ClCompile Include="options.c" />
-    <ClCompile Include="peexceptprp.c" />
-    <ClCompile Include="perelocprp.c" />
-    <ClCompile Include="pesectionprp.c" />
-    <ClCompile Include="pepogoprp.c" />
-    <ClCompile Include="appmanifest.c" />
-    <ClCompile Include="richprp.c" />
-    <ClCompile Include="secprp.c" />
-    <ClCompile Include="ldprp.c" />
-    <ClCompile Include="expprp.c" />
-    <ClCompile Include="impprp.c" />
-    <ClCompile Include="libprp.c" />
-    <ClCompile Include="links.c" />
-    <ClCompile Include="main.c" />
-    <ClCompile Include="misc.c" />
-    <ClCompile Include="pdb.c" />
-    <ClCompile Include="pdbprp.c" />
-    <ClCompile Include="pedirprp.c" />
-    <ClCompile Include="peprp.c" />
-    <ClCompile Include="previewprp.c" />
-    <ClCompile Include="processes.c" />
-    <ClCompile Include="propstore.c" />
-    <ClCompile Include="prpsh.c" />
-    <ClCompile Include="resprp.c" />
-    <ClCompile Include="resviewer.c" />
-    <ClCompile Include="searchbox.c" />
-    <ClCompile Include="settings.c" />
-    <ClCompile Include="streams.c" />
-    <ClCompile Include="strings.c" />
-    <ClCompile Include="tlsprp.c" />
-    <ClCompile Include="versioninfoprp.c" />
-    <ClCompile Include="volatileprp.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="colmgr.h" />
-    <ClInclude Include="include\peview.h" />
-    <ClInclude Include="include\prpsh.h" />
-    <ClInclude Include="resource.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc" />
-    <ResourceCompile Include="peview.rc" />
-    <ResourceCompile Include="version.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="$(SystemInformerRoot)phlib\phlib.vcxproj">
-      <Project>{477d0215-f252-41a1-874b-f27e3ea1ed17}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="peview.manifest" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="resources\active_search.bmp" />
-    <Image Include="resources\active_search.png" />
-    <Image Include="resources\application.ico" />
-    <Image Include="resources\case_sensitive_modern_dark.png" />
-    <Image Include="resources\case_sensitive_modern_light.png" />
-    <Image Include="resources\inactive_search.bmp" />
-    <Image Include="resources\inactive_search.png" />
-    <Image Include="resources\regex_modern_dark.png" />
-    <Image Include="resources\regex_modern_light.png" />
-    <Image Include="resources\search_modern_dark.png" />
-    <Image Include="resources\search_modern_light.png" />
-    <Image Include="resources\search_stop_modern_dark.png" />
-    <Image Include="resources\search_stop_modern_light.png" />
-    <Image Include="resources\SystemInformer.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="resources\case_sensitive_modern_dark.svg" />
-    <None Include="resources\case_sensitive_modern_light.svg" />
-    <None Include="resources\regex_modern_dark.svg" />
-    <None Include="resources\regex_modern_light.svg" />
-    <None Include="resources\search_modern_dark.svg" />
-    <None Include="resources\search_modern_light.svg" />
-    <None Include="resources\search_stop_modern_dark.svg" />
-    <None Include="resources\search_stop_modern_light.svg" />
-  </ItemGroup>
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+    <ItemGroup Label="ProjectConfigurations">
+        <ProjectConfiguration Include="Debug|Win32">
+            <Configuration>Debug</Configuration>
+            <Platform>Win32</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Debug|x64">
+            <Configuration>Debug</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Debug|ARM64">
+            <Configuration>Debug</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|Win32">
+            <Configuration>Release</Configuration>
+            <Platform>Win32</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|x64">
+            <Configuration>Release</Configuration>
+            <Platform>x64</Platform>
+        </ProjectConfiguration>
+        <ProjectConfiguration Include="Release|ARM64">
+            <Configuration>Release</Configuration>
+            <Platform>ARM64</Platform>
+        </ProjectConfiguration>
+    </ItemGroup>
+    <PropertyGroup Label="Globals">
+        <VCProjectVersion>17.0</VCProjectVersion>
+        <ProjectGuid>{72C124A2-3C80-41C6-ABA1-C4948B713204}</ProjectGuid>
+        <RootNamespace>peview</RootNamespace>
+        <Keyword>Win32Proj</Keyword>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+        <ConfigurationType>Application</ConfigurationType>
+        <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+    </PropertyGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+    <Import Project="$(SolutionDir)phnt\phnt.vcxitems" />
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="PropertySheets">
+        <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    </ImportGroup>
+    <PropertyGroup Label="UserMacros" />
+    <PropertyGroup>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+        <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(SolutionDir)bin\$(Configuration)$(PlatformArchitecture)\</OutDir>
+        <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">$(ProjectDir)obj\$(Configuration)$(PlatformArchitecture)\</IntDir>
+    </PropertyGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN32;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+        <ClCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(ProjectDir);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+            <PreprocessorDefinitions>_PHLIB_;_WINDOWS;WIN64;NDEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+        </ClCompile>
+        <Link>
+            <AdditionalDependencies>aclui.lib;bcrypt.lib;cryptui.lib;crypt32.lib;gdiplus.lib;propsys.lib;phlib.lib;thirdparty.lib;ntdll.lib;samlib.lib;userenv.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <DelayLoadDLLs>aclui.dll;advapi32.dll;comctl32.dll;comdlg32.dll;cryptui.dll;crypt32.dll;gdi32.dll;ole32.dll;oleaut32.dll;propsys.dll;shell32.dll;user32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+        </Link>
+        <ResourceCompile>
+            <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+        </ResourceCompile>
+        <Manifest>
+            <AdditionalManifestFiles>peview.manifest</AdditionalManifestFiles>
+        </Manifest>
+    </ItemDefinitionGroup>
+    <ItemGroup>
+        <ClCompile Include="cfgprp.c" />
+        <ClCompile Include="chcol.c" />
+        <ClCompile Include="delayhook.c" />
+        <ClCompile Include="disimp.c" />
+        <ClCompile Include="mappings.c" />
+        <ClCompile Include="pechpeprp.c" />
+        <ClCompile Include="clrtableimports.cpp" />
+        <ClCompile Include="clrprp.c" />
+        <ClCompile Include="clrtableimportprp.c" />
+        <ClCompile Include="clrprptables.c" />
+        <ClCompile Include="colmgr.c" />
+        <ClCompile Include="attributes.c" />
+        <ClCompile Include="debugprp.c" />
+        <ClCompile Include="runtimedebugprp.c" />
+        <ClCompile Include="ehcontprp.c" />
+        <ClCompile Include="exlfdynamic.c" />
+        <ClCompile Include="exlfexports.c" />
+        <ClCompile Include="exlfimports.c" />
+        <ClCompile Include="exlfprp.c" />
+        <ClCompile Include="hashprp.c" />
+        <ClCompile Include="peanomprp.c" />
+        <ClCompile Include="layout.c" />
+        <ClCompile Include="pedynrelocprp.c" />
+        <ClCompile Include="peheaderprp.c" />
+        <ClCompile Include="pemuiprp.c" />
+        <ClCompile Include="peprpwnd.c" />
+        <ClCompile Include="options.c" />
+        <ClCompile Include="peexceptprp.c" />
+        <ClCompile Include="perelocprp.c" />
+        <ClCompile Include="peprpicon.cpp" />
+        <ClCompile Include="webview\pvwebshell.cpp" />
+        <ClCompile Include="webview\pvwebjson.cpp" />
+        <ClCompile Include="webview\attributes_web.c" />
+        <ClCompile Include="webview\cfgprp_web.c" />
+        <ClCompile Include="webview\ehcontprp_web.c" />
+        <ClCompile Include="webview\expprp_web.c" />
+        <ClCompile Include="webview\impprp_web.c" />
+        <ClCompile Include="webview\links_web.c" />
+        <ClCompile Include="webview\pedirprp_web.c" />
+        <ClCompile Include="webview\peheaderprp_web.c" />
+        <ClCompile Include="webview\pepogoprp_web.c" />
+        <ClCompile Include="webview\perelocprp_web.c" />
+        <ClCompile Include="webview\pesectionprp_web.c" />
+        <ClCompile Include="webview\processes_web.c" />
+        <ClCompile Include="webview\resources_web.c" />
+        <ClCompile Include="webview\streams_web.c" />
+        <ClCompile Include="webview\tlsprp_web.c" />
+        <ClCompile Include="model\pvmodel.c" />
+        <ClCompile Include="model\pvmodeltree.c" />
+        <ClCompile Include="model\pvmodellist.c" />
+        <ClCompile Include="model\pvmodelreport.c" />
+        <ClCompile Include="pesectionprp.c" />
+        <ClCompile Include="pepogoprp.c" />
+        <ClCompile Include="appmanifest.c" />
+        <ClCompile Include="richprp.c" />
+        <ClCompile Include="secprp.c" />
+        <ClCompile Include="ldprp.c" />
+        <ClCompile Include="expprp.c" />
+        <ClCompile Include="impprp.c" />
+        <ClCompile Include="libprp.c" />
+        <ClCompile Include="links.c" />
+        <ClCompile Include="main.c" />
+        <ClCompile Include="misc.c" />
+        <ClCompile Include="pdb.c" />
+        <ClCompile Include="pdbprp.c" />
+        <ClCompile Include="pedirprp.c" />
+        <ClCompile Include="peprp.c" />
+        <ClCompile Include="previewprp.c" />
+        <ClCompile Include="processes.c" />
+        <ClCompile Include="propstore.c" />
+        <ClCompile Include="prpsh.c" />
+        <ClCompile Include="pvtheme.c" />
+        <ClCompile Include="resprp.c" />
+        <ClCompile Include="resviewer.c" />
+        <ClCompile Include="searchbox.c" />
+        <ClCompile Include="settings.c" />
+        <ClCompile Include="streams.c" />
+        <ClCompile Include="strings.c" />
+        <ClCompile Include="tlsprp.c" />
+        <ClCompile Include="versioninfoprp.c" />
+        <ClCompile Include="volatileprp.c" />
+    </ItemGroup>
+    <ItemGroup>
+        <ClInclude Include="colmgr.h" />
+        <ClInclude Include="include\peview.h" />
+        <ClInclude Include="include\prpsh.h" />
+        <ClInclude Include="include\pvtheme.h" />
+        <ClInclude Include="include\pvwebshell.h" />
+        <ClInclude Include="include\pvmodel.h" />
+        <ClInclude Include="include\pvmodelview.h" />
+        <ClInclude Include="include\pvresources.h" />
+        <ClInclude Include="webview\generated\pvwebui.h" />
+        <ClInclude Include="webview\pvwebicons.h" />
+        <ClInclude Include="webview\pvwebjson.h" />
+        <ClInclude Include="webview\pvwebshellhtml.h" />
+        <ClInclude Include="resource.h" />
+    </ItemGroup>
+    <ItemGroup>
+        <ResourceCompile Include="$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture)\sistatus.rc" />
+        <ResourceCompile Include="peview.rc" />
+        <ResourceCompile Include="version.rc" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="$(SystemInformerRoot)phlib\phlib.vcxproj">
+            <Project>{477d0215-f252-41a1-874b-f27e3ea1ed17}</Project>
+            <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+        </ProjectReference>
+    </ItemGroup>
+    <ItemGroup>
+        <Manifest Include="peview.manifest" />
+    </ItemGroup>
+    <ItemGroup>
+        <Image Include="resources\active_search.bmp" />
+        <Image Include="resources\active_search.png" />
+        <Image Include="resources\application.ico" />
+        <Image Include="resources\case_sensitive_modern_dark.png" />
+        <Image Include="resources\case_sensitive_modern_light.png" />
+        <Image Include="resources\inactive_search.bmp" />
+        <Image Include="resources\inactive_search.png" />
+        <Image Include="resources\regex_modern_dark.png" />
+        <Image Include="resources\regex_modern_light.png" />
+        <Image Include="resources\search_modern_dark.png" />
+        <Image Include="resources\search_modern_light.png" />
+        <Image Include="resources\search_stop_modern_dark.png" />
+        <Image Include="resources\search_stop_modern_light.png" />
+        <Image Include="resources\SystemInformer.ico" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="resources\case_sensitive_modern_dark.svg" />
+        <None Include="resources\case_sensitive_modern_light.svg" />
+        <None Include="resources\regex_modern_dark.svg" />
+        <None Include="resources\regex_modern_light.svg" />
+        <None Include="resources\search_modern_dark.svg" />
+        <None Include="resources\search_modern_light.svg" />
+        <None Include="resources\search_stop_modern_dark.svg" />
+        <None Include="resources\search_stop_modern_light.svg" />
+        <None Include="webui\dist\index.html" />
+        <None Include="webui\index.html" />
+        <None Include="webui\package-lock.json" />
+        <None Include="webui\package.json" />
+        <None Include="webui\src\bridge.test.ts" />
+        <None Include="webui\src\bridge.ts" />
+        <None Include="webui\src\main.tsx" />
+        <None Include="webui\src\protocol.ts" />
+        <None Include="webui\src\ui\App.tsx" />
+        <None Include="webui\src\ui\styles.css" />
+        <None Include="webui\tsconfig.json" />
+        <None Include="webui\vite.config.ts" />
+    </ItemGroup>
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>

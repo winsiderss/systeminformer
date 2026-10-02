@@ -77,6 +77,7 @@
             <CETCompat Condition="'$(Platform)'!='ARM64'">true</CETCompat>
             <LinkTimeCodeGeneration Condition="'$(Configuration)'=='Release'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
             <RandomizedBaseAddress>true</RandomizedBaseAddress>
+            <SetChecksum Condition="'$(Configuration)'=='Release'">true</SetChecksum>
             <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
         </Link>
         <Lib>
@@ -85,7 +86,9 @@
             <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
         </Lib>
         <ResourceCompile>
-            <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+            <Culture>0x0009</Culture>
+            <AdditionalOptions>/8 %(AdditionalOptions)</AdditionalOptions>
+            <PreprocessorDefinitions>%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ResourceCompile>
     </ItemDefinitionGroup>
   <!-- WPP Trace

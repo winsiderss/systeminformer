@@ -18,8 +18,8 @@
             <PreprocessorDefinitions>WIN32;DEBUG;_DEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
+            <AdditionalDependencies>SystemInformer.lib;winhttp.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -33,8 +33,8 @@
             <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>SystemInformer.lib;winhttp.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -48,8 +48,8 @@
             <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>SystemInformer.lib;winhttp.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -63,8 +63,8 @@
             <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories> 
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>SystemInformer.lib;winhttp.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -78,8 +78,8 @@
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>SystemInformer.lib;winhttp.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -93,8 +93,8 @@
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;UNICODE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
         </ClCompile>
         <Link>
-            <AdditionalLibraryDirectories>$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+            <AdditionalLibraryDirectories>$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)sdk\lib\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)tools\thirdparty\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+            <AdditionalDependencies>SystemInformer.lib;thirdparty.lib;ntdll.lib;gdiplus.lib;%(AdditionalDependencies)</AdditionalDependencies>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SolutionDir)include;$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)sdk\include\$(Configuration)$(PlatformArchitecture);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

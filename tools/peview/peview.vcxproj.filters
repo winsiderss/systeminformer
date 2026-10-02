@@ -22,6 +22,12 @@
     <Filter Include="Source Files\Pages\Linux">
       <UniqueIdentifier>{3213da7e-9e01-48a4-8895-c4dd1499b2fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\Model">
+      <UniqueIdentifier>{5f6cbb8e-1d0e-4a4f-9d09-3c2f0b1a7d41}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\WebView">
+      <UniqueIdentifier>{5b0f9a41-6c2e-4c9d-9a37-2f6d8b41c7e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.c">
@@ -31,6 +37,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="prpsh.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="pvtheme.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="settings.c">
@@ -62,6 +71,72 @@
     </ClCompile>
     <ClCompile Include="peprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="peprpicon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\pvwebshell.cpp">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\pvwebjson.cpp">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\attributes_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\cfgprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\ehcontprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\expprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\impprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\links_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\pedirprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\peheaderprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\pepogoprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\perelocprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\pesectionprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\processes_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\resources_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\streams_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="webview\tlsprp_web.c">
+      <Filter>Source Files\WebView</Filter>
+    </ClCompile>
+    <ClCompile Include="model\pvmodel.c">
+      <Filter>Source Files\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\pvmodeltree.c">
+      <Filter>Source Files\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\pvmodellist.c">
+      <Filter>Source Files\Model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\pvmodelreport.c">
+      <Filter>Source Files\Model</Filter>
     </ClCompile>
     <ClCompile Include="resprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
@@ -105,6 +180,9 @@
     <ClCompile Include="debugprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
+    <ClCompile Include="runtimedebugprp.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="pedirprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
@@ -133,6 +211,9 @@
       <Filter>Source Files\Pages</Filter>
     </ClCompile>
     <ClCompile Include="hashprp.c">
+      <Filter>Source Files\Pages\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="peanomprp.c">
       <Filter>Source Files\Pages\Windows</Filter>
     </ClCompile>
     <ClCompile Include="chcol.c">
@@ -203,7 +284,34 @@
     <ClInclude Include="include\prpsh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\pvtheme.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pvwebshell.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pvmodel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pvmodelview.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\pvresources.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="webview\pvwebicons.h">
+      <Filter>Source Files\WebView</Filter>
+    </ClInclude>
+    <ClInclude Include="webview\pvwebjson.h">
+      <Filter>Source Files\WebView</Filter>
+    </ClInclude>
+    <ClInclude Include="webview\pvwebshellhtml.h">
+      <Filter>Source Files\WebView</Filter>
+    </ClInclude>
     <ClInclude Include="colmgr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="webview\generated\pvwebui.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -292,5 +400,17 @@
     <None Include="resources\search_stop_modern_light.svg">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="webui\src\ui\App.tsx" />
+    <None Include="webui\index.html" />
+    <None Include="webui\dist\index.html" />
+    <None Include="webui\vite.config.ts" />
+    <None Include="webui\tsconfig.json" />
+    <None Include="webui\package.json" />
+    <None Include="webui\package-lock.json" />
+    <None Include="webui\src\bridge.test.ts" />
+    <None Include="webui\src\bridge.ts" />
+    <None Include="webui\src\main.tsx" />
+    <None Include="webui\src\protocol.ts" />
+    <None Include="webui\src\ui\styles.css" />
   </ItemGroup>
 </Project>

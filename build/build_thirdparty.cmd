@@ -75,7 +75,7 @@ REM ----------------------------------------------------------------------------
 :RunThirdPartyBuild
 echo:
 echo Building thirdparty.sln [%~2]
-msbuild -mt -p:UseClStructuredOutput=false -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%VerboseLevel% -terminalLogger:%TLG% /m /graph tools\thirdparty\thirdparty.sln
+msbuild -p:UseClStructuredOutput=false -t:All -p:TargetConfigurations="Debug;Release" -p:TargetPlatforms="%~1" -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=200 -verbosity:%VerboseLevel% -terminalLogger:%TLG% /m /graph tools\thirdparty\thirdparty.sln
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
