@@ -121,7 +121,7 @@ static BOOLEAN PhpChoiceDialogDrawComboBoxItem(
     }
 
     bufferDc = CreateCompatibleDC(DrawInfo->hDC);
-    bufferBitmap = CreateCompatibleBitmap(DrawInfo->hDC, bufferRect.right, bufferRect.bottom);
+    bufferBitmap = PhCreateDIBSection(DrawInfo->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SelectFont(bufferDc, GetWindowFont(DrawInfo->hwndItem));

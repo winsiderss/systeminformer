@@ -17,6 +17,7 @@
 #include <vssym32.h>
 #include <emenu.h>
 #include <thirdparty.h>
+#include <uxtheme.h>
 
 typedef struct _PH_SEARCHCONTROL_BUTTON
 {
@@ -36,10 +37,9 @@ typedef struct _PH_SEARCHCONTROL_BUTTON
     ULONG Index;
     ULONG ImageIndex;
     ULONG ActiveImageIndex;
-    HWND TooltipHandle;
 } PH_SEARCHCONTROL_BUTTON, *PPH_SEARCHCONTROL_BUTTON;
 
-#define PH_SC_BUTTON_COUNT 3
+#define PH_SC_BUTTON_COUNT 4
 
 typedef struct _PH_SEARCHCONTROL_CONTEXT
 {
@@ -62,16 +62,19 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
 
     PCWSTR RegexSetting;
     PCWSTR CaseSetting;
+    PCWSTR FuzzySetting;
 
     PVOID ImageBaseAddress;
     PCWSTR SearchButtonResource;
     PCWSTR SearchButtonActiveResource;
     PCWSTR RegexButtonResource;
     PCWSTR CaseButtonResource;
+    PCWSTR FuzzyButtonResource;
 
     PH_SEARCHCONTROL_BUTTON SearchButton;
     PH_SEARCHCONTROL_BUTTON RegexButton;
     PH_SEARCHCONTROL_BUTTON CaseButton;
+    PH_SEARCHCONTROL_BUTTON FuzzyButton;
 
     LONG ButtonWidth;
     LONG BorderSize;
@@ -81,6 +84,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     HFONT WindowFont;
     HIMAGELIST ImageListHandle;
     PPH_STRING CueBannerText;
+    HWND TooltipHandle;
 
     HBRUSH WindowBrush;
     HBRUSH DcBrush;
@@ -105,7 +109,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PVOID CallbackContext;
 
     PH_STRINGREF SearchboxText;
-    WCHAR SearchboxTextBuffer[0x100];
+    PPH_STRING SearchboxTextString;
 
     ULONG64 SearchPointer;
     LONG SearchboxRegexError;
@@ -114,7 +118,14 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     pcre2_match_data* SearchboxRegexMatchData;
 } PH_SEARCHCONTROL_CONTEXT, *PPH_SEARCHCONTROL_CONTEXT;
 
-static COLORREF PhpSearchControlSelectColor(
+/**
+ * Selects the appropriate color based on whether theme support is enabled.
+ *
+ * \param ThemeColor The color to use when a theme is active.
+ * \param ClassicColor The color to use when no theme is active.
+ * \return The selected color.
+ */
+COLORREF PhSearchControlSelectColor(
     _In_ COLORREF ThemeColor,
     _In_ COLORREF ClassicColor
     )
@@ -122,7 +133,12 @@ static COLORREF PhpSearchControlSelectColor(
     return PhEnableThemeSupport ? ThemeColor : ClassicColor;
 }
 
-VOID PhpSearchControlInitializeColors(
+/**
+ * Initializes the colors used by the search control.
+ *
+ * \param Context The search control context.
+ */
+VOID PhSearchControlInitializeColors(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
     )
 {
@@ -145,21 +161,27 @@ VOID PhpSearchControlInitializeColors(
     Context->WindowBrush = GetSysColorBrush(COLOR_WINDOW);
 
     Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
-    Context->WindowBorderInnerColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
-    Context->WindowBackgroundColor = PhpSearchControlSelectColor(PhThemeWindowBackgroundColor, GetSysColor(COLOR_WINDOW));
-    Context->FrameDefaultColor = PhpSearchControlSelectColor(PhThemeWindowBackground2Color, GetSysColor(COLOR_WINDOWFRAME));
-    Context->ButtonPushedColor = PhpSearchControlSelectColor(ButtonPushedThemeColor, ButtonPushedClassicColor);
-    Context->ButtonHotActiveColor = PhpSearchControlSelectColor(ButtonHotActiveThemeColor, ButtonHotActiveClassicColor);
-    Context->ButtonHotColor = PhpSearchControlSelectColor(ButtonHotThemeColor, ButtonHotClassicColor);
-    Context->ButtonErrorColor = PhpSearchControlSelectColor(ButtonErrorThemeColor, ButtonErrorClassicColor);
-    Context->ButtonActiveColor = PhpSearchControlSelectColor(ButtonActiveThemeColor, ButtonActiveClassicColor);
-    Context->ButtonDefaultColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
-    Context->FrameHotColor = PhpSearchControlSelectColor(PhThemeWindowHighlight2Color, FrameHotClassicColor);
-    Context->CueBannerTextColor = PhpSearchControlSelectColor(CueBannerTextThemeColor, GetSysColor(COLOR_GRAYTEXT));
-    Context->CueBannerBackgroundColor = PhpSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
+    Context->WindowBorderInnerColor = PhSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
+    Context->WindowBackgroundColor = PhSearchControlSelectColor(PhThemeWindowBackgroundColor, GetSysColor(COLOR_WINDOW));
+    Context->FrameDefaultColor = PhSearchControlSelectColor(PhThemeWindowBackground2Color, GetSysColor(COLOR_WINDOWFRAME));
+    Context->ButtonPushedColor = PhSearchControlSelectColor(ButtonPushedThemeColor, ButtonPushedClassicColor);
+    Context->ButtonHotActiveColor = PhSearchControlSelectColor(ButtonHotActiveThemeColor, ButtonHotActiveClassicColor);
+    Context->ButtonHotColor = PhSearchControlSelectColor(ButtonHotThemeColor, ButtonHotClassicColor);
+    Context->ButtonErrorColor = PhSearchControlSelectColor(ButtonErrorThemeColor, ButtonErrorClassicColor);
+    Context->ButtonActiveColor = PhSearchControlSelectColor(ButtonActiveThemeColor, ButtonActiveClassicColor);
+    Context->ButtonDefaultColor = PhSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
+    Context->FrameHotColor = PhSearchControlSelectColor(PhThemeWindowHighlight2Color, FrameHotClassicColor);
+    Context->CueBannerTextColor = PhSearchControlSelectColor(CueBannerTextThemeColor, GetSysColor(COLOR_GRAYTEXT));
+    Context->CueBannerBackgroundColor = PhSearchControlSelectColor(WindowBorderInnerThemeColor, GetSysColor(COLOR_WINDOW));
 }
 
-VOID PhpSearchControlInitializeFont(
+/**
+ * Initializes the font used by the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ */
+VOID PhSearchControlInitializeFont(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
@@ -173,7 +195,13 @@ VOID PhpSearchControlInitializeFont(
     Context->WindowFont = PhCreateCommonFont(10, FW_MEDIUM, WindowHandle, Context->WindowDpi);
 }
 
-VOID PhpSearchControlInitializeTheme(
+/**
+ * Initializes the theme parameters for the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ */
+VOID PhSearchControlInitializeTheme(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
@@ -183,12 +211,13 @@ VOID PhpSearchControlInitializeTheme(
     borderSize = PhGetSystemMetrics(SM_CXBORDER, Context->WindowDpi);
 
     Context->CaseButton.Index = 0;
-    Context->RegexButton.Index = 1;
-    Context->SearchButton.Index = 2;
+    Context->FuzzyButton.Index = 1;
+    Context->RegexButton.Index = 2;
+    Context->SearchButton.Index = 3;
 
     Context->ButtonWidth = PhScaleToDisplay(20, Context->WindowDpi);
     Context->BorderSize = borderSize;
-    PhpSearchControlInitializeColors(Context);
+    PhSearchControlInitializeColors(Context);
 
     if (PhIsThemeActive())
     {
@@ -206,7 +235,13 @@ VOID PhpSearchControlInitializeTheme(
     }
 }
 
-VOID PhpSearchControlInitializeImages(
+/**
+ * Initializes the images used for the buttons in the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ */
+VOID PhSearchControlInitializeImages(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
@@ -234,7 +269,7 @@ VOID PhpSearchControlInitializeImages(
             );
     }
 
-    PhImageListSetImageCount(Context->ImageListHandle, 4);
+    PhImageListSetImageCount(Context->ImageListHandle, 5);
 
     // Search Button
     Context->SearchButton.ImageIndex = ULONG_MAX;
@@ -279,9 +314,31 @@ VOID PhpSearchControlInitializeImages(
         PhImageListReplace(Context->ImageListHandle, 3, bitmap, NULL);
         DeleteBitmap(bitmap);
     }
+
+    Context->FuzzyButton.ImageIndex = ULONG_MAX;
+    Context->FuzzyButton.ActiveImageIndex = ULONG_MAX;
+
+    if (Context->FuzzyButtonResource)
+    {
+        bitmap = PhLoadImageFormatFromResource(Context->ImageBaseAddress, Context->FuzzyButtonResource, L"PNG", PH_IMAGE_FORMAT_TYPE_PNG, Context->ImageWidth, Context->ImageHeight);
+        if (bitmap)
+        {
+            Context->FuzzyButton.ImageIndex = 4;
+            PhImageListReplace(Context->ImageListHandle, 4, bitmap, NULL);
+            DeleteBitmap(bitmap);
+        }
+    }
 }
 
-VOID PhpSearchControlButtonRect(
+/**
+ * Calculates the bounding rectangle for a search control button.
+ *
+ * \param Context The search control context.
+ * \param Button The button to calculate the rectangle for.
+ * \param WindowRect The bounding rectangle of the search window.
+ * \param ButtonRect A variable which receives the calculated button rectangle.
+ */
+VOID PhSearchControlButtonRect(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ PPH_SEARCHCONTROL_BUTTON Button,
     _In_ PRECT WindowRect,
@@ -300,9 +357,16 @@ VOID PhpSearchControlButtonRect(
     ButtonRect->right -= ((Context->ButtonWidth + Context->BorderSize - 1) * (PH_SC_BUTTON_COUNT - 1 - Button->Index));
 }
 
-VOID PhpSearchControlCreateTooltip(
+/**
+ * Creates or updates a tooltip for the search control.
+ *
+ * \param Context The search control context.
+ * \param ParentWindow A handle to the parent window of the tooltip.
+ * \param TooltipRect The bounding rectangle of the tooltip.
+ * \param TooltipText The text to display in the tooltip.
+ */
+VOID PhSearchControlCreateTooltip(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
-    _In_ PPH_SEARCHCONTROL_BUTTON Button,
     _In_ HWND ParentWindow,
     _In_ PRECT TooltipRect,
     _In_ PWSTR TooltipText
@@ -310,68 +374,94 @@ VOID PhpSearchControlCreateTooltip(
 {
     TOOLINFO toolInfo;
 
-    if (Button->TooltipHandle)
-        return;
-
-    Button->TooltipHandle = PhCreateWindowEx(
-        TOOLTIPS_CLASS,
-        NULL,
-        WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_NOANIMATE | TTS_NOFADE,
-        WS_EX_TOPMOST | WS_EX_TRANSPARENT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        ParentWindow,
-        NULL,
-        NULL,
-        NULL
-        );
-
-    SetWindowPos(
-        Button->TooltipHandle,
-        HWND_TOPMOST,
-        0, 0, 0, 0,
-        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
-        );
-
     MapWindowRect(HWND_DESKTOP, ParentWindow, TooltipRect);
     PhInflateRect(TooltipRect, -1, -1);
 
-    memset(&toolInfo, 0, sizeof(TOOLINFO));
-    toolInfo.cbSize = sizeof(TOOLINFO);
-    toolInfo.uFlags = TTF_TRANSPARENT | TTF_SUBCLASS;
-    toolInfo.hwnd = ParentWindow;
-    toolInfo.lpszText = TooltipText;
-    toolInfo.rect = *TooltipRect;
-    SendMessage(Button->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
-    SendMessage(Button->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
-    SendMessage(Button->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
-    SendMessage(Button->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
-    SendMessage(Button->TooltipHandle, TTM_POPUP, 0, 0);
+    if (!Context->TooltipHandle)
+    {
+        Context->TooltipHandle = PhCreateWindowEx(
+            TOOLTIPS_CLASS,
+            NULL,
+            WS_POPUP | TTS_ALWAYSTIP | TTS_NOPREFIX | TTS_NOANIMATE | TTS_NOFADE,
+            WS_EX_TOPMOST | WS_EX_TRANSPARENT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            CW_USEDEFAULT,
+            ParentWindow,
+            NULL,
+            NULL,
+            NULL
+            );
+
+        SetWindowPos(
+            Context->TooltipHandle,
+            HWND_TOPMOST,
+            0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
+            );
+
+        memset(&toolInfo, 0, sizeof(TOOLINFO));
+        toolInfo.cbSize = sizeof(TOOLINFO);
+        toolInfo.uFlags = TTF_TRANSPARENT | TTF_SUBCLASS;
+        toolInfo.hwnd = ParentWindow;
+        toolInfo.uId = 1;
+        toolInfo.lpszText = TooltipText;
+        toolInfo.rect = *TooltipRect;
+        SendMessage(Context->TooltipHandle, TTM_ADDTOOL, 0, (LPARAM)&toolInfo);
+        SendMessage(Context->TooltipHandle, TTM_SETDELAYTIME, TTDT_INITIAL, 0);
+        SendMessage(Context->TooltipHandle, TTM_SETDELAYTIME, TTDT_AUTOPOP, MAXSHORT);
+        SendMessage(Context->TooltipHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT);
+    }
+    //else
+    //{
+    //    toolInfo.cbSize = sizeof(TOOLINFO);
+    //    toolInfo.hwnd = ParentWindow;
+    //    toolInfo.uId = 1;
+    //    toolInfo.lpszText = TooltipText;
+    //    toolInfo.rect = *TooltipRect;
+    //    SendMessage(Context->TooltipHandle, TTM_UPDATETIPTEXT, 0, (LPARAM)&toolInfo);
+    //    SendMessage(Context->TooltipHandle, TTM_NEWTOOLRECT, 0, (LPARAM)&toolInfo);
+    //}
+
+    //SendMessage(Context->TooltipHandle, TTM_UPDATE, 0, 0);
+    SendMessage(Context->TooltipHandle, TTM_POPUP, 0, 0);
 }
 
-VOID PhpSearchControlThemeChanged(
+/**
+ * Handles theme change events for the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ */
+VOID PhSearchControlThemeChanged(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
 {
-    PhpSearchControlInitializeColors(Context);
-    PhpSearchControlInitializeFont(Context, WindowHandle);
-    PhpSearchControlInitializeTheme(Context, WindowHandle);
-    PhpSearchControlInitializeImages(Context, WindowHandle);
+    PhSearchControlInitializeColors(Context);
+    PhSearchControlInitializeFont(Context, WindowHandle);
+    PhSearchControlInitializeTheme(Context, WindowHandle);
+    PhSearchControlInitializeImages(Context, WindowHandle);
 
     // Reset the client area margins.
     CallWindowProc(Context->DefaultWindowProc, WindowHandle, EM_SETMARGINS, EC_LEFTMARGIN, MAKELPARAM(0, 0));
 
     // Refresh the non-client area.
-    SetWindowPos(WindowHandle, NULL, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    PhSetWindowFrameChanged(WindowHandle);
 
     // Force the edit control to update its non-client area.
-    RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+    //RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
 }
 
-static COLORREF PhpSearchControlFrameColor(
+/**
+ * Determines the frame color for the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \return The frame color.
+ */
+COLORREF PhSearchControlFrameColor(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle
     )
@@ -385,7 +475,14 @@ static COLORREF PhpSearchControlFrameColor(
     return Context->FrameDefaultColor;
 }
 
-static COLORREF PhpSearchControlButtonColor(
+/**
+ * Determines the color for a search control button based on its state.
+ *
+ * \param Context The search control context.
+ * \param Button The button to determine the color for.
+ * \return The button color.
+ */
+COLORREF PhSearchControlButtonColor(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ PPH_SEARCHCONTROL_BUTTON Button
     )
@@ -410,21 +507,41 @@ static COLORREF PhpSearchControlButtonColor(
     return Context->ButtonDefaultColor;
 }
 
-static COLORREF PhpSearchControlCueBannerTextColor(
+/**
+ * Gets the text color for the cue banner.
+ *
+ * \param Context The search control context.
+ * \return The cue banner text color.
+ */
+COLORREF PhSearchControlCueBannerTextColor(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
     )
 {
     return Context->CueBannerTextColor;
 }
 
-static COLORREF PhpSearchControlCueBannerBackgroundColor(
+/**
+ * Gets the background color for the cue banner.
+ *
+ * \param Context The search control context.
+ * \return The cue banner background color.
+ */
+COLORREF PhSearchControlCueBannerBackgroundColor(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
     )
 {
     return Context->CueBannerBackgroundColor;
 }
 
-static VOID PhpSearchControlPaintButton(
+/**
+ * Paints a search control button.
+ *
+ * \param Context The search control context.
+ * \param Button The button to paint.
+ * \param Hdc A handle to the device context.
+ * \param WindowRect The bounding rectangle of the search window.
+ */
+VOID PhSearchControlPaintButton(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ PPH_SEARCHCONTROL_BUTTON Button,
     _In_ HDC Hdc,
@@ -434,9 +551,9 @@ static VOID PhpSearchControlPaintButton(
     RECT buttonRect;
     ULONG imageIndex;
 
-    PhpSearchControlButtonRect(Context, Button, WindowRect, &buttonRect);
+    PhSearchControlButtonRect(Context, Button, WindowRect, &buttonRect);
 
-    SetDCBrushColor(Hdc, PhpSearchControlButtonColor(Context, Button));
+    SetDCBrushColor(Hdc, PhSearchControlButtonColor(Context, Button));
     FillRect(Hdc, &buttonRect, Context->DcBrush);
 
     if (Button->Active && Button->ActiveImageIndex != ULONG_MAX)
@@ -445,7 +562,22 @@ static VOID PhpSearchControlPaintButton(
         imageIndex = Button->ImageIndex;
 
     if (imageIndex == ULONG_MAX)
+    {
+        if (Button == &Context->FuzzyButton)
+        {
+            HFONT oldFont;
+            COLORREF textColor = PhEnableThemeSupport ? RGB(222, 222, 222) : GetSysColor(COLOR_BTNTEXT);
+
+            oldFont = SelectFont(Hdc, Context->WindowFont);
+            SetBkMode(Hdc, TRANSPARENT);
+            SetTextColor(Hdc, textColor);
+            PhOffsetRect(&buttonRect, 0, -PhScaleToDisplay(1, Context->WindowDpi));
+            DrawText(Hdc, L"Fz", -1, &buttonRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOCLIP);
+            SelectFont(Hdc, oldFont);
+        }
+
         return;
+    }
 
     PhImageListDrawIcon(
         Context->ImageListHandle,
@@ -458,18 +590,34 @@ static VOID PhpSearchControlPaintButton(
         );
 }
 
-static VOID PhpSearchControlPaintButtons(
+/**
+ * Paints all buttons in the search control.
+ *
+ * \param Context The search control context.
+ * \param Hdc A handle to the device context.
+ * \param WindowRect The bounding rectangle of the search window.
+ */
+VOID PhSearchControlPaintButtons(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT WindowRect
     )
 {
-    PhpSearchControlPaintButton(Context, &Context->SearchButton, Hdc, WindowRect);
-    PhpSearchControlPaintButton(Context, &Context->RegexButton, Hdc, WindowRect);
-    PhpSearchControlPaintButton(Context, &Context->CaseButton, Hdc, WindowRect);
+    PhSearchControlPaintButton(Context, &Context->SearchButton, Hdc, WindowRect);
+    PhSearchControlPaintButton(Context, &Context->RegexButton, Hdc, WindowRect);
+    PhSearchControlPaintButton(Context, &Context->CaseButton, Hdc, WindowRect);
+    PhSearchControlPaintButton(Context, &Context->FuzzyButton, Hdc, WindowRect);
 }
 
-static VOID PhpSearchControlPaintFrame(
+/**
+ * Paints the frame of the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \param Hdc A handle to the device context.
+ * \param WindowRect The bounding rectangle of the search window.
+ */
+VOID PhSearchControlPaintFrame(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
@@ -478,7 +626,7 @@ static VOID PhpSearchControlPaintFrame(
 {
     RECT frameRect = *WindowRect;
 
-    SetDCBrushColor(Hdc, PhpSearchControlFrameColor(Context, WindowHandle));
+    SetDCBrushColor(Hdc, PhSearchControlFrameColor(Context, WindowHandle));
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 
     SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
@@ -486,12 +634,45 @@ static VOID PhpSearchControlPaintFrame(
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 }
 
-static VOID PhpSearchControlExcludeClient(
+/**
+ * Excludes the client area of the search window from the clipping region.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \param Hdc A handle to the device context.
+ * \param WindowRect The bounding rectangle of the search window.
+ */
+VOID PhSearchControlExcludeClient(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
+    _In_ HWND WindowHandle,
     _In_ HDC Hdc,
     _In_ PRECT WindowRect
     )
 {
+    WINDOWINFO windowInfo;
+
+    memset(&windowInfo, 0, sizeof(WINDOWINFO));
+    windowInfo.cbSize = sizeof(WINDOWINFO);
+
+    if (GetWindowInfo(WindowHandle, &windowInfo))
+    {
+        PhOffsetRect(
+            &windowInfo.rcClient,
+            -windowInfo.rcWindow.left,
+            -windowInfo.rcWindow.top
+            );
+
+        ExcludeClipRect(
+            Hdc,
+            windowInfo.rcClient.left,
+            windowInfo.rcClient.top,
+            windowInfo.rcClient.right,
+            windowInfo.rcClient.bottom
+            );
+
+        return;
+    }
+
     ExcludeClipRect(
         Hdc,
         WindowRect->left + (Context->BorderSize + 1),
@@ -501,6 +682,12 @@ static VOID PhpSearchControlExcludeClient(
         );
 }
 
+/**
+ * Updates the regular expression for the search control.
+ *
+ * \param WindowHandle A handle to the search window.
+ * \param Context The search control context.
+ */
 VOID PhpSearchUpdateRegex(
     _In_ HWND WindowHandle,
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
@@ -552,6 +739,16 @@ VOID PhpSearchUpdateRegex(
         );
 }
 
+/**
+ * Retrieves the search control text into a buffer.
+ *
+ * \param WindowHandle A handle to the search window.
+ * \param Context The search control context.
+ * \param Buffer The buffer that receives the text.
+ * \param BufferLength The size of the buffer, in bytes.
+ * \param ReturnLength A variable which receives the number of bytes written to the buffer.
+ * \return TRUE if successful, otherwise FALSE.
+ */
 BOOLEAN PhGetSearchTextToBuffer(
     _In_ HWND WindowHandle,
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
@@ -576,38 +773,20 @@ BOOLEAN PhGetSearchTextToBuffer(
         return TRUE;
     }
 
-    memset(Buffer, UNICODE_NULL, sizeof(UNICODE_NULL));
+    Buffer[0] = UNICODE_NULL;
     *ReturnLength = 0;
     return TRUE;
 }
 
-static BOOLEAN PhpSearchSyncOptions(
-    _In_ PPH_SEARCHCONTROL_CONTEXT Context
-    )
-{
-    BOOLEAN changed = FALSE;
-    BOOLEAN regexActive;
-    BOOLEAN caseActive;
-
-    regexActive = !!PhGetIntegerSetting(Context->RegexSetting);
-    caseActive = !!PhGetIntegerSetting(Context->CaseSetting);
-
-    if (Context->RegexButton.Active != regexActive)
-    {
-        Context->RegexButton.Active = regexActive;
-        changed = TRUE;
-    }
-
-    if (Context->CaseButton.Active != caseActive)
-    {
-        Context->CaseButton.Active = caseActive;
-        changed = TRUE;
-    }
-
-    return changed;
-}
-
-BOOLEAN PhpSearchUpdateText(
+/**
+ * Updates the text for the search control.
+ *
+ * \param WindowHandle A handle to the search window.
+ * \param Context The search control context.
+ * \param Force TRUE to force an update even if the text has not changed.
+ * \return TRUE if the text was updated, otherwise FALSE.
+ */
+BOOLEAN PhSearchUpdateText(
     _In_ HWND WindowHandle,
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ BOOLEAN Force
@@ -615,45 +794,35 @@ BOOLEAN PhpSearchUpdateText(
 {
     ULONG_PTR matchHandle;
     PH_STRINGREF newSearchboxText;
-    SIZE_T searchboxTextBufferLength;
-    BOOLEAN forceUpdate = Force;
-    WCHAR searchboxTextBuffer[0x100];
-
-    if (PhpSearchSyncOptions(Context))
-        forceUpdate = TRUE;
+    PPH_STRING searchboxTextString;
 
     //if (PhGetWindowTextLength(WindowHandle) == 0)
     //{
     //    return FALSE;
     //}
 
-    if (!PhGetSearchTextToBuffer(
-        WindowHandle,
-        Context,
-        searchboxTextBuffer,
-        RTL_NUMBER_OF(searchboxTextBuffer),
-        &searchboxTextBufferLength
-        ))
-    {
+    searchboxTextString = PhGetWindowText(WindowHandle);
+    if (!searchboxTextString)
         return FALSE;
-    }
 
-    newSearchboxText.Buffer = searchboxTextBuffer;
-    newSearchboxText.Length = searchboxTextBufferLength * sizeof(WCHAR);
+    newSearchboxText.Buffer = searchboxTextString->Buffer;
+    newSearchboxText.Length = searchboxTextString->Length;
 
     Context->SearchButton.Active = (newSearchboxText.Length > 0);
 
-    if (!forceUpdate && PhEqualStringRef(&newSearchboxText, &Context->SearchboxText, FALSE))
+    if (!Force && PhEqualStringRef(&newSearchboxText, &Context->SearchboxText, FALSE))
+    {
+        PhDereferenceObject(searchboxTextString);
         return FALSE;
+    }
 
-    if (memcpy_s(Context->SearchboxTextBuffer, sizeof(Context->SearchboxTextBuffer), newSearchboxText.Buffer, newSearchboxText.Length))
-        return FALSE;
-    Context->SearchboxText.Buffer = Context->SearchboxTextBuffer;
-    Context->SearchboxText.Length = searchboxTextBufferLength * sizeof(WCHAR);
+    PhMoveReference(&Context->SearchboxTextString, searchboxTextString);
+    Context->SearchboxText.Buffer = searchboxTextString->Buffer;
+    Context->SearchboxText.Length = searchboxTextString->Length;
 
     Context->UseSearchPointer = PhStringToUInt64(&newSearchboxText, 0, &Context->SearchPointer);
 
-    PhpSearchUpdateRegex(WindowHandle, Context);
+    //PhSearchUpdateRegex(WindowHandle, Context);
 
     if (!Context->Callback)
         return TRUE;
@@ -665,7 +834,12 @@ BOOLEAN PhpSearchUpdateText(
     return TRUE;
 }
 
-VOID PhpSearchRestoreFocus(
+/**
+ * Restores focus to the previous window.
+ *
+ * \param Context The search control context.
+ */
+VOID PhSearchRestoreFocus(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
     )
 {
@@ -676,7 +850,16 @@ VOID PhpSearchRestoreFocus(
     }
 }
 
-VOID PhpSearchControlPaintNonClient(
+/**
+ * Paints the non-client area of the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \param Hdc A handle to the device context.
+ * \param WindowRect The bounding rectangle of the search window.
+ * \param BufferRect The bounding rectangle of the buffer.
+ */
+VOID PhSearchControlPaintNonClient(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ HDC Hdc,
@@ -684,16 +867,24 @@ VOID PhpSearchControlPaintNonClient(
     _In_ PRECT BufferRect
     )
 {
-    PhpSearchControlExcludeClient(Context, Hdc, WindowRect);
+    PhSearchControlExcludeClient(Context, WindowHandle, Hdc, WindowRect);
 
     SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
     FillRect(Hdc, BufferRect, Context->DcBrush);
 
-    PhpSearchControlPaintFrame(Context, WindowHandle, Hdc, WindowRect);
-    PhpSearchControlPaintButtons(Context, Hdc, WindowRect);
+    PhSearchControlPaintFrame(Context, WindowHandle, Hdc, WindowRect);
+    PhSearchControlPaintButtons(Context, Hdc, WindowRect);
 }
 
-BOOLEAN PhpSearchControlHandleNonClientPaint(
+/**
+ * Handles painting the non-client area of the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \param WParam The WPARAM value from the window message.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
+BOOLEAN PhSearchControlHandleNonClientPaint(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ WPARAM WParam
@@ -707,7 +898,8 @@ BOOLEAN PhpSearchControlHandleNonClientPaint(
     HDC bufferDc;
     HRGN updateRegion;
     ULONG flags;
-    PH_BUFFERED_PAINT bufferedPaint;
+    HPAINTBUFFER bufferedPaint;
+    BP_PAINTPARAMS bufferParams;
 
     if (!PhGetWindowRect(WindowHandle, &windowRect))
         return FALSE;
@@ -719,6 +911,13 @@ BOOLEAN PhpSearchControlHandleNonClientPaint(
         return FALSE;
 
     updateRegion = (HRGN)WParam;
+
+    if (updateRegion != HRGN_FULL && updateRegion != RGN_ERROR)
+    {
+        if (!RectInRegion(updateRegion, &windowRect))
+            return FALSE;   // frame area isn't dirty at all — skip GetDCEx entirely
+    }
+
     if (updateRegion == HRGN_FULL)
         updateRegion = NULL;
 
@@ -736,16 +935,26 @@ BOOLEAN PhpSearchControlHandleNonClientPaint(
         bufferRect.right = width;
         bufferRect.bottom = height;
 
-        PhpSearchControlExcludeClient(Context, hdc, &windowRect);
+        PhSearchControlExcludeClient(Context, WindowHandle, hdc, &windowRect);
 
-        if (PhBeginBufferedPaint(hdc, &bufferRect, &bufferedPaint, &bufferDc))
+        memset(&bufferParams, 0, sizeof(BP_PAINTPARAMS));
+        bufferParams.cbSize = sizeof(BP_PAINTPARAMS);
+        bufferParams.dwFlags = BPPF_NONCLIENT;
+
+        if (bufferedPaint = BeginBufferedPaint(
+            hdc,
+            &bufferRect,
+            BPBF_COMPATIBLEBITMAP,
+            &bufferParams,
+            &bufferDc
+            ))
         {
-            PhpSearchControlPaintNonClient(Context, WindowHandle, bufferDc, &windowRect, &bufferRect);
-            PhEndBufferedPaint(&bufferedPaint, TRUE);
+            PhSearchControlPaintNonClient(Context, WindowHandle, bufferDc, &windowRect, &bufferRect);
+            EndBufferedPaint(bufferedPaint, TRUE);
         }
         else
         {
-            PhpSearchControlPaintNonClient(Context, WindowHandle, hdc, &windowRect, &bufferRect);
+            PhSearchControlPaintNonClient(Context, WindowHandle, hdc, &windowRect, &bufferRect);
         }
 
         ReleaseDC(WindowHandle, hdc);
@@ -755,7 +964,15 @@ BOOLEAN PhpSearchControlHandleNonClientPaint(
     return FALSE;
 }
 
-VOID PhpSearchControlPaintCueBanner(
+/**
+ * Paints the cue banner text for the search control.
+ *
+ * \param Context The search control context.
+ * \param Hdc A handle to the device context.
+ * \param ClientRect The client rectangle of the search window.
+ * \param Erase TRUE to erase the background before painting.
+ */
+VOID PhSearchControlPaintCueBanner(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HDC Hdc,
     _In_ PRECT ClientRect,
@@ -769,8 +986,8 @@ VOID PhpSearchControlPaintCueBanner(
         FillRect(Hdc, ClientRect, Context->WindowBrush);
 
     SetBkMode(Hdc, TRANSPARENT);
-    SetTextColor(Hdc, PhpSearchControlCueBannerTextColor(Context));
-    SetDCBrushColor(Hdc, PhpSearchControlCueBannerBackgroundColor(Context));
+    SetTextColor(Hdc, PhSearchControlCueBannerTextColor(Context));
+    SetDCBrushColor(Hdc, PhSearchControlCueBannerBackgroundColor(Context));
     FillRect(Hdc, ClientRect, Context->DcBrush);
 
     oldFont = SelectFont(Hdc, Context->WindowFont);
@@ -789,7 +1006,15 @@ VOID PhpSearchControlPaintCueBanner(
     SelectFont(Hdc, oldFont);
 }
 
-BOOLEAN PhpSearchControlHandleClientPaint(
+/**
+ * Handles painting the client area of the search control.
+ *
+ * \param Context The search control context.
+ * \param WindowHandle A handle to the search window.
+ * \param OldWndProc The original window procedure.
+ * \return TRUE if the message was handled, otherwise FALSE.
+ */
+BOOLEAN PhSearchControlHandleClientPaint(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context,
     _In_ HWND WindowHandle,
     _In_ WNDPROC OldWndProc
@@ -821,14 +1046,21 @@ BOOLEAN PhpSearchControlHandleClientPaint(
 
     if (hdc = BeginPaint(WindowHandle, &ps))
     {
-        if (PhBeginBufferedPaint(hdc, &ps.rcPaint, &bufferedPaint, &bufferDc))
+        if (PhBeginBufferedPaint(
+            hdc,
+            &clientRect,
+            PHBF_COMPATIBLEBITMAP,
+            NULL,
+            &bufferedPaint,
+            &bufferDc
+            ))
         {
-            PhpSearchControlPaintCueBanner(Context, bufferDc, &clientRect, !!ps.fErase);
+            PhSearchControlPaintCueBanner(Context, bufferDc, &clientRect, !!ps.fErase);
             PhEndBufferedPaint(&bufferedPaint, TRUE);
         }
         else
         {
-            PhpSearchControlPaintCueBanner(Context, hdc, &clientRect, !!ps.fErase);
+            PhSearchControlPaintCueBanner(Context, hdc, &clientRect, !!ps.fErase);
         }
 
         EndPaint(WindowHandle, &ps);
@@ -838,7 +1070,16 @@ BOOLEAN PhpSearchControlHandleClientPaint(
     return FALSE;
 }
 
-LRESULT CALLBACK PhpSearchWndSubclassProc(
+/**
+ * The subclass window procedure for the search control.
+ *
+ * \param WindowHandle A handle to the search window.
+ * \param WindowMessage The window message.
+ * \param wParam The WPARAM value from the window message.
+ * \param lParam The LPARAM value from the window message.
+ * \return The result of the message processing.
+ */
+LRESULT CALLBACK PhSearchWndSubclassProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
@@ -878,6 +1119,9 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 context->CueBannerText = NULL;
             }
 
+            if (context->SearchboxTextString)
+                PhDereferenceObject(context->SearchboxTextString);
+
             if (context->SearchboxRegexCode)
             {
                 pcre2_code_free(context->SearchboxRegexCode);
@@ -888,22 +1132,10 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 pcre2_match_data_free(context->SearchboxRegexMatchData);
             }
 
-            if (context->CaseButton.TooltipHandle)
+            if (context->TooltipHandle)
             {
-                DestroyWindow(context->CaseButton.TooltipHandle);
-                context->CaseButton.TooltipHandle = NULL;
-            }
-
-            if (context->RegexButton.TooltipHandle)
-            {
-                DestroyWindow(context->RegexButton.TooltipHandle);
-                context->RegexButton.TooltipHandle = NULL;
-            }
-
-            if (context->SearchButton.TooltipHandle)
-            {
-                DestroyWindow(context->SearchButton.TooltipHandle);
-                context->SearchButton.TooltipHandle = NULL;
+                DestroyWindow(context->TooltipHandle);
+                context->TooltipHandle = NULL;
             }
 
             PhFree(context);
@@ -918,13 +1150,24 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             // Let Windows handle the non-client defaults.
             CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
-            // Deflate the client area to accommodate the custom button.
-            ncCalcSize->rgrc[0].right -= (context->ButtonWidth * PH_SC_BUTTON_COUNT);
+            // Deflate the client area to accommodate the custom buttons, plus the same
+            // border inset reserved on the other three sides below - otherwise the text
+            // area butts directly against the button row with no frame between them,
+            // while the other sides show a proper 2px border. (dmex)
+            ncCalcSize->rgrc[0].right -= (context->ButtonWidth * PH_SC_BUTTON_COUNT) + (context->BorderSize + 1);
+
+            // Note: Also reserve the border drawn by PhSearchControlPaintFrame (a 2px-deep
+            // frame: the outer edge plus an inset edge). Without this, the client edit control's
+            // own rect still overlaps those pixels, so its redraws can leave stale fragments of
+            // the border behind whenever the non-client area isn't repainted alongside it. (dmex)
+            ncCalcSize->rgrc[0].left += (context->BorderSize + 1);
+            ncCalcSize->rgrc[0].top += (context->BorderSize + 1);
+            ncCalcSize->rgrc[0].bottom -= (context->BorderSize + 1);
         }
         return 0;
     case WM_NCPAINT:
         {
-            if (PhpSearchControlHandleNonClientPaint(context, WindowHandle, wParam))
+            if (PhSearchControlHandleNonClientPaint(context, WindowHandle, wParam))
                 return 0;
         }
         break;
@@ -945,21 +1188,29 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 break;
 
             // Get the position of the inserted buttons.
-            PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
 
-            PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
 
-            PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            if (PhPtInRect(&buttonRect, &windowPoint))
+                return HTBORDER;
+
+            PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
                 return HTBORDER;
         }
         break;
     case WM_NCLBUTTONDOWN:
+    case WM_NCLBUTTONDBLCLK:
         {
+            // Note: The edit class has CS_DBLCLKS, so a second click shortly after the first
+            // arrives as WM_NCLBUTTONDBLCLK instead of WM_NCLBUTTONDOWN. Treat it as a normal
+            // press, otherwise the click is dropped. (dmex)
             UINT codeHitTest = (UINT)wParam;
             POINT windowPoint;
             RECT windowRect;
@@ -975,14 +1226,17 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
-            PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
             context->SearchButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
             context->RegexButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
             context->CaseButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
+
+            PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
+            context->FuzzyButton.Pushed = PhPtInRect(&buttonRect, &windowPoint);
 
             SetCapture(WindowHandle);
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
@@ -1002,28 +1256,46 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
-            PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 SetFocus(WindowHandle);
                 PhSetWindowText(WindowHandle, L"");
-                PhpSearchUpdateText(WindowHandle, context, FALSE);
+                PhSearchUpdateText(WindowHandle, context, FALSE);
             }
 
-            PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 context->RegexButton.Active = !context->RegexButton.Active;
                 PhSetIntegerSetting(context->RegexSetting, context->RegexButton.Active);
-                PhpSearchUpdateText(WindowHandle, context, TRUE);
+                if (context->RegexButton.Active)
+                {
+                    context->FuzzyButton.Active = FALSE;
+                    PhSetIntegerSetting(context->FuzzySetting, FALSE);
+                }
+                PhSearchUpdateText(WindowHandle, context, TRUE);
             }
 
-            PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
             if (PhPtInRect(&buttonRect, &windowPoint))
             {
                 context->CaseButton.Active = !context->CaseButton.Active;
                 PhSetIntegerSetting(context->CaseSetting, context->CaseButton.Active);
-                PhpSearchUpdateText(WindowHandle, context, TRUE);
+                PhSearchUpdateText(WindowHandle, context, FALSE);
+            }
+
+            PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
+            if (PhPtInRect(&buttonRect, &windowPoint))
+            {
+                context->FuzzyButton.Active = !context->FuzzyButton.Active;
+                PhSetIntegerSetting(context->FuzzySetting, context->FuzzyButton.Active);
+                if (context->FuzzyButton.Active)
+                {
+                    context->RegexButton.Active = FALSE;
+                    PhSetIntegerSetting(context->RegexSetting, FALSE);
+                }
+                PhSearchUpdateText(WindowHandle, context, TRUE);
             }
 
             if (GetCapture() == WindowHandle)
@@ -1031,8 +1303,21 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 context->SearchButton.Pushed = FALSE;
                 context->RegexButton.Pushed = FALSE;
                 context->CaseButton.Pushed = FALSE;
+                context->FuzzyButton.Pushed = FALSE;
                 ReleaseCapture();
             }
+
+            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+        }
+        break;
+    case WM_CAPTURECHANGED:
+        {
+            // Capture can be lost without a button-up (menus, modal dialogs);
+            // clear the pushed state so the buttons don't stay painted down.
+            context->SearchButton.Pushed = FALSE;
+            context->RegexButton.Pushed = FALSE;
+            context->CaseButton.Pushed = FALSE;
+            context->FuzzyButton.Pushed = FALSE;
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
@@ -1085,7 +1370,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     case 1:
                         {
                             CallWindowProc(oldWndProc, WindowHandle, EM_UNDO, 0, 0);
-                            PhpSearchUpdateText(WindowHandle, context, FALSE);
+                            PhSearchUpdateText(WindowHandle, context, FALSE);
                         }
                         break;
                     case 2:
@@ -1096,7 +1381,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
                             PhSetClipboardString(WindowHandle, &selectedText->sr);
                             PhSetWindowText(WindowHandle, newText->Buffer);
-                            PhpSearchUpdateText(WindowHandle, context, FALSE);
+                            PhSearchUpdateText(WindowHandle, context, FALSE);
                         }
                         break;
                     case 3:
@@ -1112,7 +1397,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                             PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef3(&startText->sr, &clipText->sr, &endText->sr));
                             PhSetWindowText(WindowHandle, newText->Buffer);
-                            PhpSearchUpdateText(WindowHandle, context, FALSE);
+                            PhSearchUpdateText(WindowHandle, context, FALSE);
                         }
                         break;
                     case 5:
@@ -1121,7 +1406,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                             PPH_STRING endText = PH_AUTO(PhSubstring(text, selEnd, text->Length / sizeof(WCHAR)));
                             PPH_STRING newText = PH_AUTO(PhConcatStringRef2(&startText->sr, &endText->sr));
                             PhSetWindowText(WindowHandle, newText->Buffer);
-                            PhpSearchUpdateText(WindowHandle, context, FALSE);
+                            PhSearchUpdateText(WindowHandle, context, FALSE);
                         }
                         break;
                     case 6:
@@ -1146,7 +1431,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         {
             LRESULT result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
 
-            PhpSearchUpdateText(WindowHandle, context, FALSE);
+            PhSearchUpdateText(WindowHandle, context, FALSE);
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
 
@@ -1158,9 +1443,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             context->WindowFocus = TRUE;
             context->PreviousFocusWindowHandle = (HWND)wParam;
 
-            PhpSearchUpdateText(WindowHandle, context, FALSE);
-
-            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            //RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            InvalidateRect(WindowHandle, NULL, FALSE);
         }
         break;
     case WM_KILLFOCUS:
@@ -1174,14 +1458,14 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         {
-            PhpSearchControlThemeChanged(context, WindowHandle);
+            PhSearchControlThemeChanged(context, WindowHandle);
         }
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
             context->WindowDpi = PhGetWindowDpi(context->ParentWindowHandle);
 
-            PhpSearchControlThemeChanged(context, WindowHandle);
+            PhSearchControlThemeChanged(context, WindowHandle);
         }
         break;
     case WM_MOUSEMOVE:
@@ -1190,38 +1474,62 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
             POINT windowPoint;
             RECT windowRect;
             RECT buttonRect;
+            BOOLEAN wasHot;
+            BOOLEAN oldHot;
+            BOOLEAN oldSearchHot;
+            BOOLEAN oldRegexHot;
+            BOOLEAN oldCaseHot;
+            BOOLEAN oldFuzzyHot;
 
-            // Get the screen coordinates of the mouse.
             if (!PhGetMessagePos(&windowPoint))
                 break;
-            // Get the screen coordinates of the window.
             if (!PhGetWindowRect(WindowHandle, &windowRect))
                 break;
 
+            oldHot = !!context->Hot;
+            oldSearchHot = !!context->SearchButton.Hot;
+            oldRegexHot = !!context->RegexButton.Hot;
+            oldCaseHot = !!context->CaseButton.Hot;
+            oldFuzzyHot = !!context->FuzzyButton.Hot;
+
             context->Hot = PhPtInRect(&windowRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            wasHot = !!context->RegexButton.Hot;
             context->RegexButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
-            if (context->RegexButton.Hot)
+            // Note: Only (re)pop the tooltip on the hot-state transition. Calling TTM_POPUP on
+            // every WM_MOUSEMOVE while already hot causes the tooltip to flicker. (dmex)
+            if (context->RegexButton.Hot && !wasHot)
             {
-                PhpSearchControlCreateTooltip(context, &context->RegexButton, WindowHandle, &buttonRect, L"Regular Expression");
+                PhSearchControlCreateTooltip(context, WindowHandle, &buttonRect, L"Regular Expression");
             }
 
-            PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            wasHot = !!context->CaseButton.Hot;
             context->CaseButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
-            if (context->CaseButton.Hot)
+            if (context->CaseButton.Hot && !wasHot)
             {
-                PhpSearchControlCreateTooltip(context, &context->CaseButton, WindowHandle, &buttonRect, L"Match Case");
+                PhSearchControlCreateTooltip(context, WindowHandle, &buttonRect, L"Match Case");
             }
 
-            PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
+            wasHot = !!context->FuzzyButton.Hot;
+            context->FuzzyButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
+
+            if (context->FuzzyButton.Hot && !wasHot)
+            {
+                PhSearchControlCreateTooltip(context, WindowHandle, &buttonRect, L"Fuzzy Match");
+            }
+
+            PhSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            wasHot = !!context->SearchButton.Hot;
             context->SearchButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
-            if (context->SearchButton.Hot)
+            if (context->SearchButton.Hot && !wasHot)
             {
-                PhpSearchControlCreateTooltip(context, &context->SearchButton, WindowHandle, &buttonRect, L"Clear Search");
+                PhSearchControlCreateTooltip(context, WindowHandle, &buttonRect, L"Clear Search");
             }
 
             // Check that the mouse is within the inserted button.
@@ -1238,7 +1546,17 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 TrackMouseEvent(&trackMouseEvent);
             }
 
-            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            // Note: The buttons are painted in the non-client area, so the frame must be
+            // invalidated for the hot state to become visible. Only redraw on the hot-state
+            // transition since WM_MOUSEMOVE is generated for every mouse movement. (dmex)
+            if (oldHot != !!context->Hot ||
+                oldSearchHot != !!context->SearchButton.Hot ||
+                oldRegexHot != !!context->RegexButton.Hot ||
+                oldCaseHot != !!context->CaseButton.Hot ||
+                oldFuzzyHot != !!context->FuzzyButton.Hot)
+            {
+                RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            }
         }
         break;
     case WM_MOUSELEAVE:
@@ -1257,21 +1575,27 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             context->Hot = PhPtInRect(&windowRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->SearchButton, &windowRect, &buttonRect);
             context->SearchButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->RegexButton, &windowRect, &buttonRect);
             context->RegexButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
 
-            PhpSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
+            PhSearchControlButtonRect(context, &context->CaseButton, &windowRect, &buttonRect);
             context->CaseButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
+
+            PhSearchControlButtonRect(context, &context->FuzzyButton, &windowRect, &buttonRect);
+            context->FuzzyButton.Hot = PhPtInRect(&buttonRect, &windowPoint);
+
+            if (context->TooltipHandle)
+                SendMessage(context->TooltipHandle, TTM_POP, 0, 0);
 
             RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
         }
         break;
     case WM_PAINT:
         {
-            if (PhpSearchControlHandleClientPaint(context, WindowHandle, oldWndProc))
+            if (PhSearchControlHandleClientPaint(context, WindowHandle, oldWndProc))
                 return 0;
         }
         break;
@@ -1290,10 +1614,16 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                 if (textLength > 0 && textStart == textEnd)
                 {
                     ULONG textBufferLength;
-                    WCHAR textBuffer[0x100];
+                    PWSTR textBuffer;
 
-                    if (!NT_SUCCESS(PhGetWindowTextToBuffer(WindowHandle, 0, textBuffer, RTL_NUMBER_OF(textBuffer), &textBufferLength)))
+                    if ((ULONG64)textLength >= ((ULONG64)ULONG_MAX / sizeof(WCHAR)))
+                        break;
+
+                    textBuffer = PhAllocate((textLength + 1) * sizeof(WCHAR));
+
+                    if (!NT_SUCCESS(PhGetWindowTextToBuffer(WindowHandle, 0, textBuffer, (ULONG)textLength + 1, &textBufferLength)))
                     {
+                        PhFree(textBuffer);
                         break;
                     }
 
@@ -1303,6 +1633,7 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                         {
                             CallWindowProc(oldWndProc, WindowHandle, EM_SETSEL, textStart, textEnd);
                             CallWindowProc(oldWndProc, WindowHandle, EM_REPLACESEL, TRUE, (LPARAM)L"");
+                            PhFree(textBuffer);
                             return 1;
                         }
                     }
@@ -1310,23 +1641,26 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
                     if (textStart == 0)
                     {
                         PhSetWindowText(WindowHandle, L"");
-                        PhpSearchUpdateText(WindowHandle, context, FALSE);
+                        PhSearchUpdateText(WindowHandle, context, FALSE);
+                        PhFree(textBuffer);
                         return 1;
                     }
+
+                    PhFree(textBuffer);
                 }
             }
             // Clear search and restore focus for esc key
             else if (wParam == VK_ESCAPE)
             {
                 PhSetWindowText(WindowHandle, L"");
-                PhpSearchUpdateText(WindowHandle, context, FALSE);
-                PhpSearchRestoreFocus(context);
+                PhSearchUpdateText(WindowHandle, context, FALSE);
+                PhSearchRestoreFocus(context);
                 return 1;
             }
             // Up/down arrows will just restore previous focus without clearing search
             else if (wParam == VK_DOWN || wParam == VK_UP)
             {
-                PhpSearchRestoreFocus(context);
+                PhSearchRestoreFocus(context);
                 return 1;
             }
         }
@@ -1340,9 +1674,13 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
         break;
     case WM_GETDLGCODE:
         {
-            // Intercept esc key (otherwise it would get sent to parent window)
-            if (wParam == VK_ESCAPE && ((MSG*)lParam)->message == WM_KEYDOWN)
-                return DLGC_WANTMESSAGE;
+            // Intercept esc key only when there is text to clear or focus to restore,
+            // otherwise let the dialog manager translate it to IDCANCEL. (dmex)
+            if (wParam == VK_ESCAPE && lParam && ((MSG*)lParam)->message == WM_KEYDOWN)
+            {
+                if (GetWindowTextLength(WindowHandle) != 0 || context->PreviousFocusWindowHandle)
+                    return DLGC_WANTMESSAGE;
+            }
         }
         break;
     case EM_SETCUEBANNER:
@@ -1351,7 +1689,8 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 
             PhMoveReference(&context->CueBannerText, PhCreateString(text));
 
-            RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            //RedrawWindow(WindowHandle, NULL, NULL, RDW_FRAME | RDW_INVALIDATE);
+            InvalidateRect(WindowHandle, NULL, FALSE);
         }
         return TRUE;
     }
@@ -1361,6 +1700,24 @@ LRESULT CALLBACK PhpSearchWndSubclassProc(
 //    return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
+/**
+ * Creates an extended search control.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param SearchWindowHandle A handle to the search edit control.
+ * \param BannerText An optional string for the cue banner text.
+ * \param ImageBaseAddress The base address of the image containing the button resources.
+ * \param SearchButtonResource The resource name for the search button image.
+ * \param SearchButtonActiveResource The resource name for the active search button image.
+ * \param RegexButtonResource The resource name for the regular expression button image.
+ * \param CaseButtonResource The resource name for the case-sensitive button image.
+ * \param FuzzyButtonResource An optional resource name for the fuzzy search button image.
+ * \param RegexSetting The setting name for the regular expression state.
+ * \param CaseSetting The setting name for the case-sensitive state.
+ * \param FuzzySetting The setting name for the fuzzy search state.
+ * \param Callback A callback function that is invoked when the search text changes.
+ * \param Context An optional user-defined value passed to the callback function.
+ */
 VOID PhCreateSearchControlEx(
     _In_ HWND ParentWindowHandle,
     _In_ HWND SearchWindowHandle,
@@ -1370,8 +1727,10 @@ VOID PhCreateSearchControlEx(
     _In_ PCWSTR SearchButtonActiveResource,
     _In_ PCWSTR RegexButtonResource,
     _In_ PCWSTR CaseButtonResource,
+    _In_opt_ PCWSTR FuzzyButtonResource,
     _In_ PCWSTR RegexSetting,
     _In_ PCWSTR CaseSetting,
+    _In_ PCWSTR FuzzySetting,
     _In_ PPH_SEARCHCONTROL_CALLBACK Callback,
     _In_opt_ PVOID Context
     )
@@ -1385,23 +1744,29 @@ VOID PhCreateSearchControlEx(
 
     context->RegexSetting = RegexSetting;
     context->CaseSetting = CaseSetting;
+    context->FuzzySetting = FuzzySetting;
 
     context->ImageBaseAddress = ImageBaseAddress;
     context->SearchButtonResource = SearchButtonResource;
     context->SearchButtonActiveResource = SearchButtonActiveResource;
     context->RegexButtonResource = RegexButtonResource;
     context->CaseButtonResource = CaseButtonResource;
+    context->FuzzyButtonResource = FuzzyButtonResource;
 
     context->Callback = Callback;
     context->CallbackContext = Context;
 
     context->RegexButton.Active = !!PhGetIntegerSetting(context->RegexSetting);
     context->CaseButton.Active = !!PhGetIntegerSetting(context->CaseSetting);
+    context->FuzzyButton.Active = !!PhGetIntegerSetting(context->FuzzySetting);
+
+    if (context->FuzzyButton.Active)
+        context->RegexButton.Active = FALSE;
 
     // Subclass the Edit control window procedure.
     context->DefaultWindowProc = PhGetWindowProcedure(SearchWindowHandle);
     PhSetWindowContext(SearchWindowHandle, SHRT_MAX, context);
-    PhSetWindowProcedure(SearchWindowHandle, PhpSearchWndSubclassProc);
+    PhSetWindowProcedure(SearchWindowHandle, PhSearchWndSubclassProc);
 
     // The control draws a 2px non-client border, so it needs the client edge to reserve that
     // non-client space. The generic edit theming path skips this control (it already owns the
@@ -1410,9 +1775,15 @@ VOID PhCreateSearchControlEx(
     PhSetWindowExStyle(SearchWindowHandle, WS_EX_CLIENTEDGE, WS_EX_CLIENTEDGE);
 
     // Initialize the theme parameters.
-    PhpSearchControlThemeChanged(context, SearchWindowHandle);
+    PhSearchControlThemeChanged(context, SearchWindowHandle);
+
 }
 
+/**
+ * Clears the search text and restores focus to the search control.
+ *
+ * \param SearchWindowHandle A handle to the search window.
+ */
 VOID PhSearchControlClear(
     _In_ HWND SearchWindowHandle
     )
@@ -1421,6 +1792,13 @@ VOID PhSearchControlClear(
     PhSetWindowText(SearchWindowHandle, L"");
 }
 
+/**
+ * Checks if a text string matches the current search criteria.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Text The text to match against the search criteria.
+ * \return TRUE if the text matches the search criteria, otherwise FALSE.
+ */
 BOOLEAN PhSearchControlMatch(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCPH_STRINGREF Text
@@ -1433,7 +1811,11 @@ BOOLEAN PhSearchControlMatch(
     if (!context)
         return FALSE;
 
-    if (context->RegexButton.Active)
+    if (context->FuzzyButton.Active)
+    {
+        return PhStringFuzzyMatch(&context->SearchboxText, Text, !context->CaseButton.Active);
+    }
+    else if (context->RegexButton.Active)
     {
         if (pcre2_match(
             context->SearchboxRegexCode,
@@ -1462,6 +1844,103 @@ BOOLEAN PhSearchControlMatch(
     return FALSE;
 }
 
+/**
+ * Checks if a text string matches the current search criteria and retrieves the match ranges.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Text The text to match against the search criteria.
+ * \param Ranges A buffer that receives the match ranges.
+ * \param MaximumRanges The maximum number of ranges that the buffer can hold.
+ * \param RangeCount A variable which receives the number of match ranges.
+ * \return TRUE if the text matches the search criteria, otherwise FALSE.
+ */
+BOOLEAN PhSearchControlMatchEx(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PCPH_STRINGREF Text,
+    _Out_writes_to_opt_(MaximumRanges, *RangeCount) PPH_SEARCHCONTROL_MATCH_RANGE Ranges,
+    _In_ ULONG MaximumRanges,
+    _Out_opt_ PULONG RangeCount
+    )
+{
+    PPH_SEARCHCONTROL_CONTEXT context;
+    ULONG rangeCount = 0;
+    BOOLEAN result = FALSE;
+
+    context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
+
+    if (RangeCount)
+        *RangeCount = 0;
+
+    if (!context || context->SearchboxText.Length == 0)
+        return FALSE;
+
+    if (context->FuzzyButton.Active)
+    {
+        // Fuzzy matches have no contiguous span; report the match without ranges.
+        result = PhStringFuzzyMatch(&context->SearchboxText, Text, !context->CaseButton.Active);
+    }
+    else if (context->RegexButton.Active)
+    {
+        if (pcre2_match(
+            context->SearchboxRegexCode,
+            Text->Buffer,
+            Text->Length / sizeof(WCHAR),
+            0,
+            0,
+            context->SearchboxRegexMatchData,
+            NULL
+            ) >= 0)
+        {
+            PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(context->SearchboxRegexMatchData);
+
+            result = TRUE;
+
+            if (Ranges && MaximumRanges != 0 && ovector[1] > ovector[0])
+            {
+                Ranges[0].Start = (ULONG)ovector[0];
+                Ranges[0].Length = (ULONG)(ovector[1] - ovector[0]);
+                rangeCount = 1;
+            }
+        }
+    }
+    else
+    {
+        BOOLEAN ignoreCase = !context->CaseButton.Active;
+        ULONG searchLength = (ULONG)(context->SearchboxText.Length / sizeof(WCHAR));
+        PH_STRINGREF remaining = *Text;
+        ULONG offset = 0;
+        SIZE_T index;
+
+        while ((index = PhFindStringInStringRef(&remaining, &context->SearchboxText, ignoreCase)) != MAXULONG_PTR)
+        {
+            result = TRUE;
+
+            if (!Ranges || rangeCount >= MaximumRanges)
+                break;
+
+            Ranges[rangeCount].Start = offset + (ULONG)index;
+            Ranges[rangeCount].Length = searchLength;
+            rangeCount++;
+
+            offset += (ULONG)index + searchLength;
+            remaining.Buffer += index + searchLength;
+            remaining.Length -= (index + searchLength) * sizeof(WCHAR);
+        }
+    }
+
+    if (RangeCount)
+        *RangeCount = rangeCount;
+
+    return result;
+}
+
+/**
+ * Checks if a null-terminated text string matches the current search criteria.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Text The null-terminated text to match against the search criteria.
+ * \return TRUE if the text matches the search criteria, otherwise FALSE.
+ */
 BOOLEAN PhSearchControlMatchZ(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCWSTR Text
@@ -1474,6 +1953,13 @@ BOOLEAN PhSearchControlMatchZ(
     return PhSearchControlMatch(MatchHandle, &text);
 }
 
+/**
+ * Checks if a long null-terminated text string matches the current search criteria.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Text The long null-terminated text to match against the search criteria.
+ * \return TRUE if the text matches the search criteria, otherwise FALSE.
+ */
 BOOLEAN PhSearchControlMatchLongHintZ(
     _In_ ULONG_PTR MatchHandle,
     _In_ PCWSTR Text
@@ -1486,6 +1972,13 @@ BOOLEAN PhSearchControlMatchLongHintZ(
     return PhSearchControlMatch(MatchHandle, &text);
 }
 
+/**
+ * Checks if a pointer matches the current search criteria.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Pointer The pointer to match against the search criteria.
+ * \return TRUE if the pointer matches the search criteria, otherwise FALSE.
+ */
 BOOLEAN PhSearchControlMatchPointer(
     _In_ ULONG_PTR MatchHandle,
     _In_ PVOID Pointer
@@ -1501,6 +1994,14 @@ BOOLEAN PhSearchControlMatchPointer(
     return ((ULONG64)Pointer == context->SearchPointer);
 }
 
+/**
+ * Checks if any pointer in a given range matches the current search criteria.
+ *
+ * \param MatchHandle A handle used for matching, provided by the search callback.
+ * \param Pointer The start of the pointer range.
+ * \param Size The size of the pointer range, in bytes.
+ * \return TRUE if a pointer in the range matches the search criteria, otherwise FALSE.
+ */
 BOOLEAN PhSearchControlMatchPointerRange(
     _In_ ULONG_PTR MatchHandle,
     _In_ PVOID Pointer,

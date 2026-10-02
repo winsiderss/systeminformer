@@ -7164,6 +7164,7 @@ NTSTATUS PhOpenWindowProcess(
         return STATUS_SUCCESS;
     }
 
+    *ProcessHandle = NULL;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -7276,12 +7277,11 @@ NTSTATUS NTAPI PhGetRawInputData(
     _Inout_ PULONG Size
     )
 {
-    if (GetRawInputData(RawInputHandle, Command, Buffer, Size, sizeof(RAWINPUTHEADER)) != UINT_ERROR) // UINT_ERROR
+    if (GetRawInputData(RawInputHandle, Command, Buffer, Size, sizeof(RAWINPUTHEADER)) != UINT_ERROR)
     {
         return STATUS_SUCCESS;
     }
 
-    *ProcessHandle = NULL;
     return PhGetLastWin32ErrorAsNtStatus();
 }
 
@@ -7419,7 +7419,7 @@ typedef struct _PH_BP_CACHE
  *
  * \param Parameter The PH_BP_CACHE slot being released on thread exit.
  */
-static VOID NTAPI PhpFreeBufferedPaintCache(
+VOID NTAPI PhFreeBufferedPaintCache(
     _In_ PVOID Parameter
     )
 {
@@ -7446,7 +7446,7 @@ static VOID NTAPI PhpFreeBufferedPaintCache(
  * first use. Returns NULL when the FLS index has not been initialized.
  */
 _Must_inspect_result_
-static PPH_BP_CACHE PhpGetBufferedPaintCache(
+PPH_BP_CACHE PhGetBufferedPaintCache(
     VOID
     )
 {
@@ -7471,33 +7471,18 @@ static PPH_BP_CACHE PhpGetBufferedPaintCache(
 }
 
 /**
- * Ensures the cache slot owns a memory DC compatible with ReferenceHdc.
- */
-static BOOLEAN PhpEnsureBufferedPaintDC(
-    _In_ PPH_BP_CACHE Cache,
-    _In_ HDC ReferenceHdc
-    )
-{
-    if (!Cache->Hdc)
-        Cache->Hdc = CreateCompatibleDC(ReferenceHdc);
-
-    return Cache->Hdc != NULL;
-}
-
-/**
  * Ensures the cache slot owns a top-down 32-bpp DIB section at least
  * Width x Height pixels, reusing the existing bitmap when large enough.
  */
-static BOOLEAN PhpEnsureBufferedPaintBitmap(
+BOOLEAN PhEnsureBufferedPaintBitmap(
     _In_ PPH_BP_CACHE Cache,
     _In_ HDC ReferenceHdc,
     _In_ LONG Width,
     _In_ LONG Height
     )
 {
-    BITMAPINFO bitmapInfo;
-    HBITMAP bitmap;
     PVOID bits;
+    HBITMAP bitmap;
     LONG allocWidth = __max(Width, PH_BP_MIN_DIM);
     LONG allocHeight = __max(Height, PH_BP_MIN_DIM);
 
@@ -7515,39 +7500,35 @@ static BOOLEAN PhpEnsureBufferedPaintBitmap(
         Cache->Bits = NULL;
     }
 
-    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biWidth = allocWidth;
-    bitmapInfo.bmiHeader.biHeight = -allocHeight; // top-down
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biBitCount = 32;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    if (bitmap = PhCreateDIBSection(
+        ReferenceHdc,
+        PHBF_TOPDOWNDIB,
+        allocWidth,
+        allocHeight,
+        &bits
+        ))
+    {
+        Cache->AllocWidth = allocWidth;
+        Cache->AllocHeight = allocHeight;
+        Cache->Bitmap = bitmap;
+        Cache->Bits = bits;
+        return TRUE;
+    }
 
-    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &bits, NULL, 0);
-
-    if (!bitmap)
-        return FALSE;
-
-    Cache->AllocWidth = allocWidth;
-    Cache->AllocHeight = allocHeight;
-    Cache->Bitmap = bitmap;
-    Cache->Bits = bits;
-
-    return TRUE;
+    return FALSE;
 }
 
 /**
  * Allocates a fresh DC and DIB for an oversized or fallback paint. Returns a
  * heap-allocated cache slot owned by the caller's PH_BUFFERED_PAINT.
  */
-static PPH_BP_CACHE PhpAllocateTransientBufferedPaint(
+PPH_BP_CACHE PhAllocateTransientBufferedPaint(
     _In_ HDC ReferenceHdc,
     _In_ LONG Width,
     _In_ LONG Height
     )
 {
     PPH_BP_CACHE cache;
-    BITMAPINFO bitmapInfo;
     HBITMAP bitmap;
 
     cache = PhAllocateZero(sizeof(PH_BP_CACHE));
@@ -7560,18 +7541,13 @@ static PPH_BP_CACHE PhpAllocateTransientBufferedPaint(
     if (!cache->Hdc)
         goto CleanupExit;
 
-    memset(&bitmapInfo, 0, sizeof(BITMAPINFO));
-    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmapInfo.bmiHeader.biWidth = Width;
-    bitmapInfo.bmiHeader.biHeight = -Height;
-    bitmapInfo.bmiHeader.biPlanes = 1;
-    bitmapInfo.bmiHeader.biBitCount = 32;
-    bitmapInfo.bmiHeader.biCompression = BI_RGB;
-
-    bitmap = CreateDIBSection(ReferenceHdc, &bitmapInfo, DIB_RGB_COLORS, &cache->Bits, NULL, 0);
-
-    if (!bitmap)
-        bitmap = CreateCompatibleBitmap(ReferenceHdc, Width, Height); // Bits stays NULL
+    bitmap = PhCreateDIBSection(
+        ReferenceHdc,
+        PHBF_TOPDOWNDIB,
+        Width,
+        Height,
+        &cache->Bits
+        );
 
     if (!bitmap)
         goto CleanupExit;
@@ -7589,7 +7565,8 @@ CleanupExit:
 }
 
 /**
- * Allocates the process-wide FLS index used by the buffered paint cache.
+ * Initializes UxTheme buffered painting and allocates the process-wide FLS
+ * index used by the custom buffered paint cache.
  *
  * \return TRUE on success. Safe to call multiple times.
  */
@@ -7597,17 +7574,20 @@ BOOLEAN PhBufferedPaintInit(
     VOID
     )
 {
-    if (PhBufferedPaintFlsIndex == FLS_OUT_OF_INDEXES)
+    if (PhBeginInitOnce(&PhpBufferedPaintInitOnce))
     {
-        PhBufferedPaintFlsIndex = FlsAlloc(PhpFreeBufferedPaintCache);
+        PhpBufferedPaintUxThemeInitialized = HR_SUCCESS(BufferedPaintInit());
+        PhBufferedPaintFlsIndex = FlsAlloc(PhFreeBufferedPaintCache);
+        PhEndInitOnce(&PhpBufferedPaintInitOnce);
     }
 
     return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
 }
 
 /**
- * Frees the FLS index and all per-thread cache slots still alive. Call from
- * DLL_PROCESS_DETACH or application shutdown.
+ * Frees the FLS index and all per-thread cache slots still alive, then
+ * uninitializes UxTheme buffered painting. Call from DLL_PROCESS_DETACH or
+ * application shutdown.
  */
 VOID PhBufferedPaintUnInit(
     VOID
@@ -7617,6 +7597,12 @@ VOID PhBufferedPaintUnInit(
     {
         FlsFree(PhBufferedPaintFlsIndex);
         PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
+    }
+
+    if (PhpBufferedPaintUxThemeInitialized)
+    {
+        BufferedPaintUnInit();
+        PhpBufferedPaintUxThemeInitialized = FALSE;
     }
 }
 
@@ -7739,26 +7725,33 @@ VOID PhEndBufferedPaint(
             );
     }
 
-    // Deselect before any DeleteObject calls.
     if (BufferedPaint->OldBitmap)
     {
         SelectBitmap(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
+        BufferedPaint->OldBitmap = NULL;
     }
 
     if (BufferedPaint->OwnsDc || BufferedPaint->OwnsBitmap)
     {
         if (BufferedPaint->OwnsBitmap && BufferedPaint->Cache->Bitmap)
+        {
             DeleteBitmap(BufferedPaint->Cache->Bitmap);
+            BufferedPaint->Cache->Bitmap = NULL;
+        }
+
         if (BufferedPaint->OwnsDc && BufferedPaint->Cache->Hdc)
+        {
             DeleteDC(BufferedPaint->Cache->Hdc);
+            BufferedPaint->Cache->Hdc = NULL;
+        }
+
         PhFree(BufferedPaint->Cache);
+        BufferedPaint->Cache = NULL;
     }
     else if (BufferedPaint->Cache)
     {
         BufferedPaint->Cache->InUse = FALSE;
     }
-
-    memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
 }
 
 /**

@@ -140,6 +140,7 @@ LRESULT PhScrollNewOnUserMessage(
 
             return Context->Position;
         }
+        break;
     case SBM_GETSCROLLINFO:
         {
             LPSCROLLINFO si = (LPSCROLLINFO)lParam;
@@ -149,6 +150,7 @@ LRESULT PhScrollNewOnUserMessage(
             if (si->fMask & SIF_TRACKPOS)   si->nTrackPos = Context->TrackPosition;
             return TRUE;
         }
+        break;
     case SBM_SETPOS:
         {
             LONG oldPos = Context->Position;
@@ -160,6 +162,7 @@ LRESULT PhScrollNewOnUserMessage(
 
             return oldPos;
         }
+        break;
     case SBM_GETPOS:
         return Context->Position;
     case SBM_SETRANGE:
@@ -294,7 +297,7 @@ LRESULT CALLBACK PhScrollNewWndProc(
 
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
-        return 0;
+        break;
     case WM_MOUSEMOVE:
         {
             TRACKMOUSEEVENT tme = { sizeof(TRACKMOUSEEVENT), TME_LEAVE, WindowHandle, 0 };

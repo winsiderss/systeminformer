@@ -55,6 +55,23 @@ PhSearchControlMatch(
     _In_ PCPH_STRINGREF Text
     );
 
+typedef struct _PH_SEARCHCONTROL_MATCH_RANGE
+{
+    ULONG Start; // WCHAR offset into the matched text
+    ULONG Length; // in WCHARs
+} PH_SEARCHCONTROL_MATCH_RANGE, *PPH_SEARCHCONTROL_MATCH_RANGE;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhSearchControlMatchEx(
+    _In_ ULONG_PTR MatchHandle,
+    _In_ PCPH_STRINGREF Text,
+    _Out_writes_to_opt_(MaximumRanges, *RangeCount) PPH_SEARCHCONTROL_MATCH_RANGE Ranges,
+    _In_ ULONG MaximumRanges,
+    _Out_opt_ PULONG RangeCount
+    );
+
 PHLIBAPI
 BOOLEAN
 NTAPI

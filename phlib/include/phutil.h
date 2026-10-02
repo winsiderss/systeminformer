@@ -1311,6 +1311,17 @@ PhFlushImageVersionInfoCache(
 PHLIBAPI
 NTSTATUS
 NTAPI
+PhGetFullPathName(
+    _In_ PCWSTR FileName,
+    _In_ SIZE_T BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PULONG BytesRequired
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
 PhGetFullPath(
     _In_ PCWSTR FileName,
     _Out_ PPH_STRING *FullPath,
@@ -1753,13 +1764,12 @@ PhCreateProcess(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhCreateProcessWin32(
-    _In_opt_ PCWSTR FileName,
-    _In_opt_ PCWSTR CommandLine,
-    _In_opt_ PVOID Environment,
-    _In_opt_ PCWSTR CurrentDirectory,
+PhCreateUserProcess(
+    _In_ PCWSTR FileName,
+    _In_opt_ PCPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
     _In_ ULONG Flags,
-    _In_opt_ HANDLE TokenHandle,
+    _Out_opt_ PCLIENT_ID ClientId,
     _Out_opt_ PHANDLE ProcessHandle,
     _Out_opt_ PHANDLE ThreadHandle
     );
@@ -1767,12 +1777,13 @@ PhCreateProcessWin32(
 PHLIBAPI
 NTSTATUS
 NTAPI
-PhCreateUserProcess(
-    _In_ PCWSTR FileName,
-    _In_opt_ PCPH_STRINGREF CommandLine,
-    _In_opt_ PCPH_STRINGREF CurrentDirectory,
+PhCreateProcessWin32(
+    _In_opt_ PCWSTR FileName,
+    _In_opt_ PCWSTR CommandLine,
+    _In_opt_ PVOID Environment,
+    _In_opt_ PCWSTR CurrentDirectory,
     _In_ ULONG Flags,
-    _Out_opt_ PCLIENT_ID ClientId,
+    _In_opt_ HANDLE TokenHandle,
     _Out_opt_ PHANDLE ProcessHandle,
     _Out_opt_ PHANDLE ThreadHandle
     );

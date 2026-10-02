@@ -277,6 +277,56 @@ PPH_SERVICE_ITEM PhReferenceServiceItem(
     return serviceItem;
 }
 
+/**
+ * Enumerates the service items.
+ *
+ * \param[out] ServiceItems A variable which receives an array of pointers to service items. You must
+ * free the buffer with PhFree() when you no longer need it.
+ * \param[out] NumberOfServiceItems A variable which receives the number of service items.
+ */
+VOID PhEnumServiceItems(
+    _Out_opt_ PPH_SERVICE_ITEM **ServiceItems,
+    _Out_ PULONG NumberOfServiceItems
+    )
+{
+    PH_HASHTABLE_ENUM_CONTEXT enumContext;
+    PPH_SERVICE_ITEM *serviceItems;
+    PPH_SERVICE_ITEM *serviceItem;
+    ULONG numberOfServiceItems;
+    ULONG count = 0;
+
+    PhAcquireQueuedLockShared(&PhServiceHashtableLock);
+
+    numberOfServiceItems = PhServiceHashtable->Count;
+
+    if (!ServiceItems || numberOfServiceItems == 0)
+    {
+        PhReleaseQueuedLockShared(&PhServiceHashtableLock);
+
+        if (ServiceItems) *ServiceItems = NULL;
+        *NumberOfServiceItems = numberOfServiceItems;
+        return;
+    }
+
+    serviceItems = PhAllocate(sizeof(PPH_SERVICE_ITEM) * numberOfServiceItems);
+
+    PhBeginEnumHashtable(PhServiceHashtable, &enumContext);
+
+    while (serviceItem = PhNextEnumHashtable(&enumContext))
+    {
+        if (count >= numberOfServiceItems)
+            break;
+
+        PhReferenceObject(*serviceItem);
+        serviceItems[count++] = *serviceItem;
+    }
+
+    PhReleaseQueuedLockShared(&PhServiceHashtableLock);
+
+    *ServiceItems = serviceItems;
+    *NumberOfServiceItems = count;
+}
+
 VOID PhpResetServiceNonPollGate(
     VOID
     )

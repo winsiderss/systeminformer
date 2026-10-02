@@ -3614,7 +3614,7 @@ PhClearList(
     _Inout_ PPH_LIST List
     );
 
-_Success_(return != -1)
+_Success_(return != ULONG_MAX)
 PHLIBAPI
 ULONG
 NTAPI

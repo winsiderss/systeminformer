@@ -888,6 +888,9 @@ PPH_STRING PhHttpQueryOptionString(
     return stringBuffer;
 }
 
+// Upper bound for HTTP downloads and in-memory responses to avoid unbounded transfer sizes.
+#define PH_HTTP_MAX_DOWNLOAD_LENGTH (2ULL * 1024 * 1024 * 1024)
+
 NTSTATUS PhHttpReadDataToBuffer(
     _In_ PVOID RequestHandle,
     _In_opt_ ULONG TotalLength,
@@ -896,14 +899,18 @@ NTSTATUS PhHttpReadDataToBuffer(
     )
 {
     PSTR data;
-    ULONG allocatedLength;
-    ULONG dataLength;
+    SIZE_T allocatedLength;
+    SIZE_T dataLength;
     ULONG returnLength;
     BYTE buffer[PAGE_SIZE];
 
+    // Reject a declared length we would refuse to buffer anyway. (SEC-12)
+    if (TotalLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        return STATUS_BUFFER_OVERFLOW;
+
     if (TotalLength != 0)
     {
-        allocatedLength = TotalLength + 1;
+        allocatedLength = (SIZE_T)TotalLength + 1;
         data = (PSTR)PhAllocate(allocatedLength);
     }
     else
@@ -916,22 +923,36 @@ NTSTATUS PhHttpReadDataToBuffer(
 
     while (WinHttpReadData(RequestHandle, buffer, PAGE_SIZE, &returnLength))
     {
+        SIZE_T requiredLength;
+
         if (returnLength == 0)
             break;
 
-        if (allocatedLength < dataLength + returnLength)
+        // Checked growth against a hard ceiling instead of unbounded doubling. (SEC-12)
+        requiredLength = dataLength + returnLength;
+
+        if (requiredLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        {
+            PhFree(data);
+            return STATUS_BUFFER_OVERFLOW;
+        }
+
+        if (allocatedLength < requiredLength)
         {
             do
             {
                 allocatedLength *= 2;
-            } while (allocatedLength < dataLength + returnLength);
+            } while (allocatedLength < requiredLength);
+
+            if (allocatedLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+                allocatedLength = PH_HTTP_MAX_DOWNLOAD_LENGTH;
 
             data = PhReAllocate(data, allocatedLength);
         }
 
         memcpy(data + dataLength, buffer, returnLength);
 
-        dataLength += returnLength;
+        dataLength = requiredLength;
     }
 
     if (allocatedLength < dataLength + 1)
@@ -950,7 +971,7 @@ NTSTATUS PhHttpReadDataToBuffer(
             PhFree(data);
 
         if (BufferLength)
-            *BufferLength = dataLength;
+            *BufferLength = (ULONG)dataLength; // bounded by PH_HTTP_MAX_DOWNLOAD_LENGTH (SEC-12)
 
         return STATUS_SUCCESS;
     }
@@ -1023,6 +1044,9 @@ NTSTATUS PhHttpDownloadToFile(
         &numberOfBytesTotal
         );
 
+    if (numberOfBytesTotal > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        return STATUS_FILE_TOO_LARGE;
+
     fileName = PhGetTemporaryDirectoryRandomAlphaFileName();
 
     if (PhIsNullOrEmptyString(fileName))
@@ -1064,6 +1088,12 @@ NTSTATUS PhHttpDownloadToFile(
             break;
         if (numberOfBytesRead == 0)
             break;
+
+        if (numberOfBytesReadTotal + numberOfBytesRead > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            break;
+        }
 
         status = NtWriteFile(
             fileHandle,
@@ -1226,6 +1256,12 @@ NTSTATUS PhHttpDownloadUrl(
     PhHttpQueryHeaderUlong(httpContext, PH_HTTP_QUERY_STATUS_CODE, &statusCode);
     PhHttpQueryHeaderUlong64(httpContext, PH_HTTP_QUERY_CONTENT_LENGTH, &numberOfBytesTotal);
 
+    if (numberOfBytesTotal > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+    {
+        status = STATUS_FILE_TOO_LARGE;
+        goto CleanupExit;
+    }
+
     callbackContext.StatusCode = statusCode;
     callbackContext.TotalLength = numberOfBytesTotal;
 
@@ -1245,6 +1281,12 @@ NTSTATUS PhHttpDownloadUrl(
             goto CleanupExit;
         if (numberOfBytesRead == 0)
             break;
+
+        if (numberOfBytesReadTotal + numberOfBytesRead > PH_HTTP_MAX_DOWNLOAD_LENGTH)
+        {
+            status = STATUS_FILE_TOO_LARGE;
+            goto CleanupExit;
+        }
 
         numberOfBytesReadTotal += numberOfBytesRead;
 

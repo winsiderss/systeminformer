@@ -184,6 +184,12 @@ static struct
     { PhHandleObjectTypeTmTx, SREF(L"TmTx") },
 };
 
+/**
+ * Sets the callback function used to resolve client ID names.
+ *
+ * \param GetClientIdName The new client ID resolution callback function.
+ * \return PPH_GET_CLIENT_ID_NAME The previous callback function.
+ */
 PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
     _In_ PPH_GET_CLIENT_ID_NAME GetClientIdName
     )
@@ -194,6 +200,14 @@ PPH_GET_CLIENT_ID_NAME PhSetHandleClientIdFunction(
         );
 }
 
+/**
+ * Queries basic information for an object handle in a target process.
+ *
+ * \param ProcessHandle An optional handle to the process owning the object handle.
+ * \param Handle The object handle to query.
+ * \param BasicInformation Receives the object basic information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetObjectBasicInformation(
     _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -256,6 +270,15 @@ NTSTATUS PhGetObjectBasicInformation(
     return status;
 }
 
+/**
+ * Queries the type name for an object handle.
+ *
+ * \param ProcessHandle An optional handle to the process owning the object handle.
+ * \param Handle The object handle to query.
+ * \param ObjectTypeNumber The object type number, or UCHAR_MAX if unknown.
+ * \param TypeName Receives a string containing the object type name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetObjectTypeName(
     _In_opt_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -400,6 +423,9 @@ NTSTATUS PhGetObjectTypeName(
     return status;
 }
 
+/**
+ * Ensures the internal object type name mapping table is initialized.
+ */
 VOID PhEnsureHandleObjectTypeTable(
     VOID
     )
@@ -448,6 +474,12 @@ VOID PhEnsureHandleObjectTypeTable(
     }
 }
 
+/**
+ * Translates an object type index into an enumerated handle object type.
+ *
+ * \param TypeIndex The system object type index.
+ * \return PH_HANDLE_OBJECT_TYPE The corresponding handle object type enumeration value.
+ */
 PH_HANDLE_OBJECT_TYPE PhGetHandleObjectType(
     _In_ ULONG TypeIndex
     )
@@ -462,6 +494,13 @@ PH_HANDLE_OBJECT_TYPE PhGetHandleObjectType(
     return PhHandleObjectTypeUnknown;
 }
 
+/**
+ * Checks if an object type index matches the specified handle object type.
+ *
+ * \param TypeIndex The system object type index.
+ * \param Type The handle object type to compare against.
+ * \return BOOLEAN TRUE if the type index matches the handle object type, FALSE otherwise.
+ */
 BOOLEAN PhIsObjectTypeIndex(
     _In_ ULONG TypeIndex,
     _In_ PH_HANDLE_OBJECT_TYPE Type
@@ -470,6 +509,12 @@ BOOLEAN PhIsObjectTypeIndex(
     return PhGetHandleObjectType(TypeIndex) == Type;
 }
 
+/**
+ * Retrieves the cached type name for an object type index.
+ *
+ * \param ObjectTypeNumber The object type index.
+ * \return PPH_STRING A string containing the object type name, or NULL if not found.
+ */
 PPH_STRING PhGetObjectTypeNameEx(
     _In_ ULONG ObjectTypeNumber
     )
@@ -517,6 +562,15 @@ PPH_STRING PhGetObjectTypeNameEx(
     return typeName;
 }
 
+/**
+ * Queries the name of an object handle, optionally with a timeout.
+ *
+ * \param ProcessHandle A handle to the process owning the object handle.
+ * \param Handle The object handle to query.
+ * \param WithTimeout TRUE to enforce a query timeout, FALSE to query synchronously.
+ * \param ObjectName Receives a string containing the object name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -599,6 +653,13 @@ NTSTATUS PhGetObjectName(
     return status;
 }
 
+/**
+ * Queries the name of an object handle in the current process.
+ *
+ * \param Handle The object handle to query.
+ * \param ObjectName Receives a string containing the object name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhQueryObjectName(
     _In_ HANDLE Handle,
     _Out_ PPH_STRING *ObjectName
@@ -610,6 +671,13 @@ NTSTATUS PhQueryObjectName(
     return PhGetObjectName(NtCurrentProcess(), Handle, FALSE, ObjectName);
 }
 
+/**
+ * Queries basic information for an object handle in the current process.
+ *
+ * \param Handle The object handle to query.
+ * \param BasicInformation Receives the object basic information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhQueryObjectBasicInformation(
     _In_ HANDLE Handle,
     _Out_ POBJECT_BASIC_INFORMATION BasicInformation
@@ -621,6 +689,12 @@ NTSTATUS PhQueryObjectBasicInformation(
     return PhGetObjectBasicInformation(NtCurrentProcess(), Handle, BasicInformation);
 }
 
+/**
+ * Closes a handle used during query operations.
+ *
+ * \param Handle The handle to close.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhQueryCloseHandle(
     _In_ _Post_ptr_invalid_ HANDLE Handle
     )
@@ -651,6 +725,13 @@ NTSTATUS PhQueryCloseHandle(
     return status;
 }
 
+/**
+ * Compares two object handles to determine if they refer to the same underlying kernel object.
+ *
+ * \param FirstObjectHandle A handle to the first object.
+ * \param SecondObjectHandle A handle to the second object.
+ * \return NTSTATUS STATUS_SUCCESS if the objects are identical, STATUS_NOT_SAME_OBJECT if different, or an error status.
+ */
 NTSTATUS PhCompareObjects(
     _In_ HANDLE FirstObjectHandle,
     _In_ HANDLE SecondObjectHandle
@@ -673,6 +754,14 @@ NTSTATUS PhCompareObjects(
     return status;
 }
 
+/**
+ * Queries the name and GUID of an ETW registration object handle.
+ *
+ * \param ProcessHandle A handle to the process owning the ETW handle.
+ * \param Handle The ETW registration object handle.
+ * \param ObjectName Receives a string containing the formatted ETW object name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetEtwObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -712,6 +801,11 @@ typedef struct _PH_ETW_TRACEGUID_ENTRY
     PGUID Guid;
 } PH_ETW_TRACEGUID_ENTRY, *PPH_ETW_TRACEGUID_ENTRY;
 
+/**
+ * Populates an array cache with system ETW trace registration GUIDs.
+ *
+ * \param EtwTraceGuidArrayList A pointer to the array structure to receive trace GUID items.
+ */
 VOID PhInitializeEtwTraceGuidCache(
     _Inout_ PPH_ARRAY EtwTraceGuidArrayList
     )
@@ -775,6 +869,12 @@ VOID PhInitializeEtwTraceGuidCache(
     PhDereferenceObject(guidListString);
 }
 
+/**
+ * Looks up the friendly provider name for an ETW trace GUID.
+ *
+ * \param Guid A pointer to the ETW GUID.
+ * \return PPH_STRING A string containing the provider name, or NULL if not found.
+ */
 PPH_STRING PhGetEtwTraceGuidName(
     _In_ PGUID Guid
     )
@@ -806,6 +906,12 @@ PPH_STRING PhGetEtwTraceGuidName(
     return NULL;
 }
 
+/**
+ * Looks up the publisher name for an ETW event provider GUID from the registry.
+ *
+ * \param Guid A pointer to the provider GUID.
+ * \return PPH_STRING A string containing the publisher name, or NULL if not found.
+ */
 PPH_STRING PhGetEtwPublisherName(
     _In_ PGUID Guid
     )
@@ -860,6 +966,12 @@ PPH_STRING PhGetEtwPublisherName(
     }
 }
 
+/**
+ * Resolves the Plug-and-Play (PnP) friendly device name for a device object path.
+ *
+ * \param ObjectName A pointer to the device object path string.
+ * \return PPH_STRING A string containing the friendly device description, or NULL if not found.
+ */
 PPH_STRING PhGetPnPDeviceName(
     _In_ PPH_STRING ObjectName
     )
@@ -970,6 +1082,12 @@ PPH_STRING PhGetPnPDeviceName(
     return objectPnPDeviceName;
 }
 
+/**
+ * Formats a native registry object name into a standard Win32 registry path.
+ *
+ * \param Name A pointer to the native registry key name string.
+ * \return PPH_STRING A string containing the formatted registry path.
+ */
 PPH_STRING PhFormatNativeKeyName(
     _In_ PPH_STRING Name
     )
@@ -1055,6 +1173,13 @@ PPH_STRING PhFormatNativeKeyName(
     return newName;
 }
 
+/**
+ * Queries the mapped file name backing a section object.
+ *
+ * \param SectionHandle A handle to the section object.
+ * \param FileName Receives a string containing the file name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetSectionFileName(
     _In_ HANDLE SectionHandle,
     _Out_ PPH_STRING *FileName
@@ -1088,6 +1213,12 @@ NTSTATUS PhGetSectionFileName(
     return status;
 }
 
+/**
+ * Standard callback that formats a client ID into a process/thread name string.
+ *
+ * \param ClientId A pointer to the client ID structure.
+ * \return PPH_STRING A string containing the formatted client name.
+ */
 _Callback_ PPH_STRING PhStdGetClientIdName(
     _In_ PCLIENT_ID ClientId
     )
@@ -1095,6 +1226,13 @@ _Callback_ PPH_STRING PhStdGetClientIdName(
     return PhStdGetClientIdNameEx(ClientId, NULL);
 }
 
+/**
+ * Formats a client ID into a name string with an optional pre-resolved process name.
+ *
+ * \param ClientId A pointer to the client ID structure.
+ * \param ProcessName An optional string containing the process name.
+ * \return PPH_STRING A string containing the formatted client name.
+ */
 PPH_STRING PhStdGetClientIdNameEx(
     _In_ PCLIENT_ID ClientId,
     _In_opt_ PPH_STRING ProcessName
@@ -1242,6 +1380,18 @@ PPH_STRING PhStdGetClientIdNameEx(
     return result;
 }
 
+/**
+ * Formats an object name into a descriptive, user-friendly display name based on its type.
+ *
+ * \param ProcessHandle A handle to the process owning the object.
+ * \param Handle The object handle.
+ * \param ObjectTypeNumber The object type number.
+ * \param ObjectName The raw object name string.
+ * \param TypeName The object type name string.
+ * \param BestObjectName Receives the formatted display name string.
+ * \param ResolvedObjectName Receives an optional resolved canonical name string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpGetBestObjectName(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -2274,6 +2424,12 @@ CleanupExit:
     return status;
 }
 
+/**
+ * Enumerates all registered kernel object types in the system.
+ *
+ * \param ObjectTypes Receives an allocated buffer containing the object types information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumObjectTypes(
     _Out_ POBJECT_TYPES_INFORMATION *ObjectTypes
     )
@@ -2315,6 +2471,13 @@ NTSTATUS PhEnumObjectTypes(
     return status;
 }
 
+/**
+ * Retrieves the generic access rights mapping for a specific object type.
+ *
+ * \param TypeName The name of the object type.
+ * \param GenericMapping Receives the generic access rights mapping structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhGetObjectTypeMask(
     _In_ PPH_STRINGREF TypeName,
     _Out_ PGENERIC_MAPPING GenericMapping
@@ -2350,6 +2513,12 @@ NTSTATUS PhGetObjectTypeMask(
     return status;
 }
 
+/**
+ * Retrieves the system object type index corresponding to an object type name.
+ *
+ * \param TypeName The name of the object type.
+ * \return ULONG The object type index, or UCHAR_MAX if not found.
+ */
 ULONG PhGetObjectTypeNumber(
     _In_ PPH_STRINGREF TypeName
     )
@@ -2392,6 +2561,12 @@ ULONG PhGetObjectTypeNumber(
     return objectIndex;
 }
 
+/**
+ * Retrieves the object type name associated with an object type index.
+ *
+ * \param TypeIndex The system object type index.
+ * \return PPH_STRING A string containing the object type name, or NULL if not found.
+ */
 PPH_STRING PhGetObjectTypeIndexName(
     _In_ ULONG TypeIndex
     )
@@ -2438,6 +2613,12 @@ PPH_STRING PhGetObjectTypeIndexName(
     return objectTypeName;
 }
 
+/**
+ * Acquires an idle worker thread context for executing timeout-protected calls.
+ *
+ * \param Timeout An optional timeout interval for acquiring a worker thread.
+ * \return PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT A pointer to the acquired thread context, or NULL on timeout/failure.
+ */
 PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
     _In_opt_ PLARGE_INTEGER Timeout
     )
@@ -2510,6 +2691,11 @@ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT PhpAcquireCallWithTimeoutThread(
     return CONTAINING_RECORD(listEntry, PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT, ListEntry);
 }
 
+/**
+ * Releases a timeout worker thread context back to the idle pool.
+ *
+ * \param ThreadContext A pointer to the thread context to release.
+ */
 VOID PhpReleaseCallWithTimeoutThread(
     _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext
     )
@@ -2518,6 +2704,15 @@ VOID PhpReleaseCallWithTimeoutThread(
     PhSetWakeEvent(&PhpCallWithTimeoutThreadReleaseEvent, NULL);
 }
 
+/**
+ * Dispatches a routine to a worker thread and waits for completion with a timeout.
+ *
+ * \param ThreadContext A pointer to the worker thread context.
+ * \param Routine The routine to execute on the worker thread.
+ * \param Context An optional parameter passed to the routine.
+ * \param Timeout The maximum duration to wait for routine execution.
+ * \return NTSTATUS STATUS_SUCCESS if the routine completed, STATUS_TIMEOUT if timed out, or an error status.
+ */
 NTSTATUS PhpCallWithTimeout(
     _Inout_ PPHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT ThreadContext,
     _In_ PUSER_THREAD_START_ROUTINE Routine,
@@ -2598,6 +2793,12 @@ NTSTATUS PhpCallWithTimeout(
     return status;
 }
 
+/**
+ * Worker thread entry point for executing timeout-protected function calls.
+ *
+ * \param Parameter A pointer to the PHP_CALL_WITH_TIMEOUT_THREAD_CONTEXT structure.
+ * \return NTSTATUS Thread exit status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCallWithTimeoutThreadStart(
     _In_ PVOID Parameter
@@ -2621,6 +2822,15 @@ NTSTATUS PhpCallWithTimeoutThreadStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Executes a callback routine on a separate worker thread with a timeout limit.
+ *
+ * \param Routine The routine to execute.
+ * \param Context An optional parameter passed to the routine.
+ * \param AcquireTimeout An optional timeout for acquiring a worker thread.
+ * \param CallTimeout The maximum duration to wait for routine execution.
+ * \return NTSTATUS Successful, timeout, or errant status.
+ */
 NTSTATUS PhCallWithTimeout(
     _In_ PUSER_THREAD_START_ROUTINE Routine,
     _In_opt_ PVOID Context,
@@ -2644,6 +2854,12 @@ NTSTATUS PhCallWithTimeout(
     return status;
 }
 
+/**
+ * Worker routine that performs various kernel object query calls.
+ *
+ * \param Parameter A pointer to the PHP_QUERY_OBJECT_COMMON_CONTEXT structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpCommonQueryObjectRoutine(
     _In_ PVOID Parameter
@@ -2751,6 +2967,12 @@ NTSTATUS PhpCommonQueryObjectRoutine(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Executes a common kernel object query routine protected by a timeout.
+ *
+ * \param Context A pointer to the query object context.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpCommonQueryObjectWithTimeout(
     _In_ PPHP_QUERY_OBJECT_COMMON_CONTEXT Context
     )
@@ -2769,6 +2991,16 @@ NTSTATUS PhpCommonQueryObjectWithTimeout(
     return status;
 }
 
+/**
+ * Calls NtQueryObject protected by a timeout to prevent deadlocks.
+ *
+ * \param Handle The object handle to query.
+ * \param ObjectInformationClass The class of information to query.
+ * \param ObjectInformation Buffer to receive the queried information.
+ * \param ObjectInformationLength Size of the output buffer in bytes.
+ * \param ReturnLength Optional receives the required buffer size.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallNtQueryObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ OBJECT_INFORMATION_CLASS ObjectInformationClass,
@@ -2791,6 +3023,16 @@ NTSTATUS PhCallNtQueryObjectWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Calls NtQuerySecurityObject protected by a timeout.
+ *
+ * \param Handle The object handle to query.
+ * \param SecurityInformation Security information flags to query.
+ * \param SecurityDescriptor Buffer to receive the security descriptor.
+ * \param Length Size of the security descriptor buffer in bytes.
+ * \param LengthNeeded Receives the required buffer length.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallNtQuerySecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -2813,6 +3055,14 @@ NTSTATUS PhCallNtQuerySecurityObjectWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Calls NtSetSecurityObject protected by a timeout.
+ *
+ * \param Handle The object handle to modify.
+ * \param SecurityInformation Security information flags to set.
+ * \param SecurityDescriptor Pointer to the new security descriptor.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
     _In_ HANDLE Handle,
     _In_ SECURITY_INFORMATION SecurityInformation,
@@ -2831,6 +3081,16 @@ NTSTATUS PhCallNtSetSecurityObjectWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Calls NtQueryInformationFile protected by a timeout to prevent hanging on named pipes or blocked files.
+ *
+ * \param Handle The file or device handle to query.
+ * \param FileInformationClass The class of file information to query.
+ * \param FileInformation Buffer to receive the queried file information.
+ * \param FileInformationLength Size of the output buffer in bytes.
+ * \param ReturnLength Optional receives the required buffer size.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     _In_ HANDLE Handle,
     _In_ FILE_INFORMATION_CLASS FileInformationClass,
@@ -2853,6 +3113,17 @@ NTSTATUS PhCallNtQueryFileInformationWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Calls driver file query information protected by a timeout.
+ *
+ * \param ProcessHandle A handle to the process owning the file handle.
+ * \param Handle The file handle to query.
+ * \param FileInformationClass The class of file information to query.
+ * \param FileInformation Buffer to receive the file information.
+ * \param FileInformationLength Size of the output buffer in bytes.
+ * \param ReturnLength Optional receives the required buffer size.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallKphQueryFileInformationWithTimeout(
     _In_ HANDLE ProcessHandle,
     _In_ HANDLE Handle,
@@ -2877,6 +3148,13 @@ NTSTATUS PhCallKphQueryFileInformationWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Queries socket local and remote address information with a timeout.
+ *
+ * \param Handle The socket endpoint handle.
+ * \param AddressInfo Receives the socket address information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallPhAfdQuerySocketAddressInfoWithTimeout(
     _In_ HANDLE Handle,
     _Out_ PPH_AFD_SOCKET_ADDRESS_INFORMATION AddressInfo
@@ -2893,6 +3171,14 @@ NTSTATUS PhCallPhAfdQuerySocketAddressInfoWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Queries AFD socket simple information with a timeout.
+ *
+ * \param Handle The socket endpoint handle.
+ * \param InformationType The AFD information type to query.
+ * \param Information Receives the queried AFD information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallPhAfdQuerySimpleInfoWithTimeout(
     _In_ HANDLE Handle,
     _In_ ULONG InformationType,
@@ -2911,6 +3197,15 @@ NTSTATUS PhCallPhAfdQuerySimpleInfoWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Queries an AFD socket option value with a timeout.
+ *
+ * \param Handle The socket endpoint handle.
+ * \param Level The socket option level.
+ * \param OptionName The socket option identifier.
+ * \param OptionValue Receives the option value.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallPhAfdQueryOptionWithTimeout(
     _In_ HANDLE Handle,
     _In_ ULONG Level,
@@ -2931,6 +3226,14 @@ NTSTATUS PhCallPhAfdQueryOptionWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Queries TCP connection information from an AFD socket handle with a timeout.
+ *
+ * \param Handle The socket endpoint handle.
+ * \param TcpInfo Receives the TCP connection information.
+ * \param TcpInfoVersion Receives the TCP information structure version.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallPhAfdQueryTcpInfoWithTimeout(
     _In_ HANDLE Handle,
     _Out_ PTCP_INFO_v2 TcpInfo,
@@ -2949,6 +3252,14 @@ NTSTATUS PhCallPhAfdQueryTcpInfoWithTimeout(
     return PhpCommonQueryObjectWithTimeout(context);
 }
 
+/**
+ * Queries the underlying TDI device handle for an AFD socket with a timeout.
+ *
+ * \param Handle The socket endpoint handle.
+ * \param QueryMode The TDI query mode.
+ * \param TdiHandle Receives the queried TDI device handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhCallPhAfdQueryTdiHandleWithTimeout(
     _In_ HANDLE Handle,
     _In_ ULONG QueryMode,

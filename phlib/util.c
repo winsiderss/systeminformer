@@ -133,35 +133,40 @@ VOID PhAdjustRectangleToWorkingArea(
  *
  * \param WindowHandle The window to center.
  * \param ParentWindowHandle If specified, the window will be positioned at the center of this
- * window. Otherwise, the window will be positioned at the center of the monitor.
+ * window. Otherwise, or if the parent is hidden or minimized, the window will be positioned at the
+ * center of the monitor's work area.
  */
 VOID PhCenterWindow(
     _In_ HWND WindowHandle,
     _In_opt_ HWND ParentWindowHandle
     )
 {
-    if (ParentWindowHandle)
+    RECT rect;
+    PH_RECTANGLE rectangle = { 0 };
+
+    if (!PhGetWindowRect(WindowHandle, &rect))
+        return;
+
+    PhRectToRectangle(&rectangle, &rect);
+
+    if (ParentWindowHandle && IsWindowVisible(ParentWindowHandle) && !IsMinimized(ParentWindowHandle))
     {
-        RECT rect, parentRect;
-        PH_RECTANGLE rectangle = { 0 };
+        RECT parentRect;
         PH_RECTANGLE parentRectangle = { 0 };
 
-        if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
-            return;
-        if (!PhGetWindowRect(WindowHandle, &rect))
-            return;
-        if (!PhGetWindowRect(ParentWindowHandle, &parentRect))
-            return;
+        if (PhGetWindowRect(ParentWindowHandle, &parentRect))
+        {
+            PhRectToRectangle(&parentRectangle, &parentRect);
+            PhCenterRectangle(&rectangle, &parentRectangle);
+            PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
 
-        PhRectToRectangle(&rectangle, &rect);
-        PhRectToRectangle(&parentRectangle, &parentRect);
-        PhCenterRectangle(&rectangle, &parentRectangle);
-        PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
-
-        MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
-            rectangle.Width, rectangle.Height, FALSE);
+            MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+                rectangle.Width, rectangle.Height, FALSE);
+            return;
+        }
     }
-    else
+
+    // No usable parent (none, hidden or minimized): center on the monitor work area.
     {
         MONITORINFO monitorInfo;
 
@@ -173,14 +178,8 @@ VOID PhCenterWindow(
             &monitorInfo
             ))
         {
-            RECT rect;
-            PH_RECTANGLE rectangle = { 0 };;
-            PH_RECTANGLE bounds = { 0 };;
+            PH_RECTANGLE bounds = { 0 };
 
-            if (!PhGetWindowRect(WindowHandle, &rect))
-                return;
-
-            PhRectToRectangle(&rectangle, &rect);
             PhRectToRectangle(&bounds, &monitorInfo.rcWork);
             PhCenterRectangle(&rectangle, &bounds);
 
@@ -7741,6 +7740,95 @@ ULONG64 PhQueryRegistryUlong64(
     }
 
     return ulong64;
+}
+
+/**
+ * Queries a Winlogon setting as a boolean.
+ *
+ * \param Type The setting to query.
+ * \param Value A variable which receives TRUE if the setting is non-zero, otherwise FALSE.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhQueryWinlogonSetting(
+    _In_ PH_WINLOGON_SETTING_TYPE Type,
+    _Out_ PBOOLEAN Value
+    )
+{
+    static CONST PH_STRINGREF winlogonKeyName = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon");
+    static CONST PH_STRINGREF shellCriticalName = PH_STRINGREF_INIT(L"ShellCritical");
+    static CONST PH_STRINGREF siHostCriticalName = PH_STRINGREF_INIT(L"SiHostCritical");
+    static CONST PH_STRINGREF autoRestartShellName = PH_STRINGREF_INIT(L"AutoRestartShell");
+    static CONST PH_STRINGREF winStationsDisabledName = PH_STRINGREF_INIT(L"WinStationsDisabled");
+    NTSTATUS status;
+    PCPH_STRINGREF valueName;
+    HANDLE keyHandle;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    switch (Type)
+    {
+    case PhWinlogonShellCritical:
+        valueName = &shellCriticalName;
+        break;
+    case PhWinlogonSiHostCritical:
+        valueName = &siHostCriticalName;
+        break;
+    case PhWinlogonAutoRestartShell:
+        valueName = &autoRestartShellName;
+        break;
+    case PhWinlogonWinStationsDisabled:
+        valueName = &winStationsDisabledName;
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &winlogonKeyName,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhQueryValueKey(keyHandle, valueName, KeyValuePartialInformation, &buffer);
+
+    if (NT_SUCCESS(status))
+    {
+        if (buffer->Type == REG_DWORD && buffer->DataLength == sizeof(ULONG))
+        {
+            *Value = *(PULONG)buffer->Data != 0;
+        }
+        else if (buffer->Type == REG_SZ || buffer->Type == REG_EXPAND_SZ)
+        {
+            PH_STRINGREF string;
+            ULONG64 integer;
+
+            string.Buffer = (PWCHAR)buffer->Data;
+            string.Length = buffer->DataLength;
+
+            // Remove the null terminator(s).
+            while (string.Length >= sizeof(WCHAR) && string.Buffer[string.Length / sizeof(WCHAR) - 1] == UNICODE_NULL)
+                string.Length -= sizeof(WCHAR);
+
+            if (PhStringToUInt64(&string, 10, &integer))
+                *Value = integer != 0;
+            else
+                status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
+        else
+        {
+            status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
+
+        PhFree(buffer);
+    }
+
+    NtClose(keyHandle);
+
+    return status;
 }
 
 /**

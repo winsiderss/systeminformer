@@ -1097,10 +1097,12 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     case WM_ERASEBKGND:
         {
             HDC hdc = (HDC)wParam;
-            RECT clientRect;
+            RECT clipRect;
 
-            GetClientRect(WindowHandle, &clientRect);
-            FillRect(hdc, &clientRect, PhPropSheetNewGetBackgroundBrush());
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhPropSheetNewGetBackgroundBrush());
 
             return TRUE;
         }

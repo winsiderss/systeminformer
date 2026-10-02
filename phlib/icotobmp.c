@@ -276,7 +276,7 @@ HBITMAP PhIconToBitmap(
 
         screenHdc = GetDC(NULL);
         hdc = CreateCompatibleDC(screenHdc);
-        bitmap = CreateCompatibleBitmap(screenHdc, Width, Height);
+        bitmap = PhCreateDIBSection(screenHdc, PHBF_TOPDOWNDIB, Width, Height, NULL);
         ReleaseDC(NULL, screenHdc);
 
         oldBitmap = SelectObject(hdc, bitmap);

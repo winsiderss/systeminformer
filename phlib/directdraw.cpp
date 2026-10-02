@@ -450,8 +450,8 @@ LRESULT CALLBACK PhTransparentBackgroundWindowCallback(
             HDC hdc = reinterpret_cast<HDC>(wParam);
             RECT clientRect;
 
-            if (GetClipBox(hdc, &clientRect) == ERROR)
-                break;
+            if (GetClipBox(hdc, &clientRect) <= NULLREGION)
+                return TRUE;
 
             FillRect(hdc, &clientRect, PhGetStockBrush(BLACK_BRUSH));
         }
