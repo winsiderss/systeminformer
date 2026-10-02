@@ -26,13 +26,16 @@ typedef struct _RTL_BITMAP* PRTL_BITMAP;
 /**
  * The NtDelayExecution routine suspends the current thread until the specified condition is met.
  *
- * \param Alertable The function returns when either the time-out period has elapsed or when the APC function is called.
+ * \param Alertable If TRUE, the wait is alertable and can be terminated by an alert or by the delivery of a user-mode APC.
  * \param DelayInterval A pointer to the time interval for which execution is to be suspended, in units of 100 nanoseconds.
  * - A negative value specifies an interval relative to the current time.
  * - A positive value specifies an absolute time, measured in 100-nanosecond intervals since January 1, 1601 (UTC).
  * - A value of zero causes the thread to relinquish the remainder of its time slice to any other thread that is ready to run.
- * - If there are no other threads ready to run, the function returns immediately, and the thread continues execution.
- * \return NTSTATUS Successful or errant status. The return value is STATUS_USER_APC when Alertable is TRUE, and the function returned due to one or more I/O completion callback functions.
+ * - If there are no other threads ready to run, the function returns STATUS_NO_YIELD_PERFORMED immediately, and the thread continues execution.
+ * \return NTSTATUS Successful or errant status.
+ * - STATUS_SUCCESS when the interval elapses.
+ * - STATUS_USER_APC or STATUS_ALERTED when Alertable is TRUE and the wait was interrupted.
+ * - STATUS_NO_YIELD_PERFORMED when DelayInterval is zero and no other thread was ready to run.
  * \remarks Note that a ready thread is not guaranteed to run immediately. Consequently, the thread will not run until some arbitrary time after the sleep interval elapses,
  * based upon the system "tick" frequency and the load factor from other processes.
  * \see https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-sleepex
@@ -1441,7 +1444,7 @@ typedef union _TIMER2_ATTRIBUTES
         ULONG HighResolution : 1; // bit 2 == TIMER2_ATTRIBUTE_HIGH_RESOLUTION
         ULONG NoWake : 1;         // bit 3 == TIMER2_ATTRIBUTE_NO_WAKE
         ULONG Reserved1 : 27;     // bits [4..30] (reserved)
-        TIMER_TYPE NotificationType : 1; // bit 31 == TIMER2_ATTRIBUTE_NOTIFICATION
+        ULONG NotificationType : 1; // TIMER_TYPE, bit 31 == TIMER2_ATTRIBUTE_NOTIFICATION
     } DUMMYSTRUCTNAME;
 } TIMER2_ATTRIBUTES;
 
