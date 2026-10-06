@@ -274,6 +274,54 @@ PhCreateStringFromWindowsRuntimeString(
     _In_ HSTRING String
     );
 
+typedef VOID (NTAPI *PPH_ASYNC_OPERATION_CALLBACK)(
+    _In_ PVOID Operation,
+    _In_ HRESULT Result,
+    _In_opt_ PVOID Context
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhQueueAsyncOperation(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _In_ PPH_ASYNC_OPERATION_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhWaitForAsyncOperation(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ HANDLE CancelEvent,
+    _Out_ PVOID Result
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhWaitForAsyncOperationWithProgress(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _In_ PVOID ProgressHandler,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ HANDLE CancelEvent,
+    _Out_ PVOID Result
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhShowWindowsRuntimeOpenFileDialog(
+    _In_ HWND WindowHandle,
+    _Out_ PPH_STRING* FileName
+    );
+
 PHLIBAPI
 HRESULT
 NTAPI

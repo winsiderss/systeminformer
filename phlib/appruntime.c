@@ -12,6 +12,8 @@
 #include <ph.h>
 #include <mapldr.h>
 #include <appresolver.h>
+#include <appxclient.h>
+#include <windows.storage.pickers.h>
 
 #if defined(PH_NATIVE_WINDOWS_RUNTIME_STRING)
 #pragma comment(lib, "runtimeobject.lib")
@@ -303,6 +305,7 @@ PPH_STRING PhCryptographicBufferToHexString(
 }
 
 #pragma endregion
+
 
 #pragma region Data Reader
 
@@ -1376,6 +1379,19 @@ typedef struct _PH_ASYNC_COMPLETED_HANDLER
     HANDLE EventHandle;
     AsyncStatus Status;
     IID InterfaceId;
+
+    // Callback mode (PhQueueAsyncOperation). When Callback is set the handler
+    // has no event; Invoke posts the callback to the thread pool instead. (dmex)
+    PPH_ASYNC_OPERATION_CALLBACK Callback;
+    PVOID Context;
+    IUnknown* Operation;
+    LONG Invoked;
+    LONG TimedOut;
+
+    // Optional timeout (callback mode). Whoever exchanges Timer to NULL owns
+    // the timer teardown, its TimerOperation reference and its handler reference.
+    PTP_TIMER Timer;
+    IUnknown* TimerOperation;
 } PH_ASYNC_COMPLETED_HANDLER, *PPH_ASYNC_COMPLETED_HANDLER;
 
 //
@@ -1454,6 +1470,11 @@ typedef struct _PH_IASYNC_OPERATION_WITH_PROGRESS
     const PH_IASYNC_OPERATION_WITH_PROGRESS_VTBL *lpVtbl;
 } PH_IASYNC_OPERATION_WITH_PROGRESS, *PPH_IASYNC_OPERATION_WITH_PROGRESS;
 
+VOID NTAPI STDMETHODCALLTYPE PhAsyncCompletedHandlerWorkCallback(
+    _Inout_opt_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context
+    );
+
 HRESULT STDMETHODCALLTYPE PhAsyncCompletedHandlerQueryInterface(
     _In_ PPH_ASYNC_COMPLETED_HANDLER This,
     _In_ REFIID Riid,
@@ -1491,6 +1512,14 @@ ULONG STDMETHODCALLTYPE PhAsyncCompletedHandlerRelease(
 
     if (count == 0)
     {
+        // The handler owns the event. The operation may still hold a reference
+        // and invoke the handler after the waiter abandoned it (timeout/cancel),
+        // so the event must live as long as the handler. (dmex)
+        if (This->EventHandle)
+            NtClose(This->EventHandle);
+        if (This->Operation)
+            IUnknown_Release(This->Operation);
+
         PhFree(This);
     }
 
@@ -1505,7 +1534,25 @@ HRESULT STDMETHODCALLTYPE PhAsyncCompletedHandlerInvoke(
 {
     This->Status = Status;
 
-    NtSetEvent(This->EventHandle, NULL);
+    if (This->Callback)
+    {
+        // Completion is delivered once. Invoke can run synchronously inside
+        // put_Completed when the operation already finished, so always post to
+        // the thread pool rather than calling back on the registering thread. (dmex)
+        if (InterlockedExchange(&This->Invoked, TRUE))
+            return S_OK;
+
+        This->lpVtbl->AddRef(This);
+
+        if (!NT_SUCCESS(TpSimpleTryPost(PhAsyncCompletedHandlerWorkCallback, This, NULL)))
+        {
+            PhAsyncCompletedHandlerWorkCallback(NULL, This);
+        }
+    }
+    else
+    {
+        NtSetEvent(This->EventHandle, NULL);
+    }
 
     return S_OK;
 }
@@ -1518,21 +1565,34 @@ static const PH_ASYNC_COMPLETED_HANDLER_VTBL PhAsyncCompletedHandlerVtbl =
     PhAsyncCompletedHandlerInvoke
 };
 
-PPH_ASYNC_COMPLETED_HANDLER PhCreateAsyncCompletedHandler(
-    _In_ HANDLE EventHandle,
-    _In_ REFIID HandlerId
+NTSTATUS PhCreateAsyncCompletedHandler(
+    _In_ REFIID HandlerId,
+    _Out_ PPH_ASYNC_COMPLETED_HANDLER* Handler
     )
 {
+    NTSTATUS status;
+    HANDLE eventHandle;
     PPH_ASYNC_COMPLETED_HANDLER handler;
+
+    status = PhCreateEvent(
+        &eventHandle,
+        EVENT_ALL_ACCESS,
+        NotificationEvent,
+        FALSE
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
 
     handler = PhAllocateZero(sizeof(PH_ASYNC_COMPLETED_HANDLER));
     handler->lpVtbl = &PhAsyncCompletedHandlerVtbl;
     handler->RefCount = 1;
-    handler->EventHandle = EventHandle;
+    handler->EventHandle = eventHandle;
     handler->Status = Started;
     handler->InterfaceId = *HandlerId;
 
-    return handler;
+    *Handler = handler;
+    return STATUS_SUCCESS;
 }
 
 // Translates the recorded AsyncStatus into an HRESULT, querying the operation's
@@ -1562,40 +1622,281 @@ HRESULT PhAsyncOperationStatusToResult(
     return result;
 }
 
+// Stops and releases the timeout timer if the caller wins ownership of it.
+// Safe when the completion runs inline inside the timer callback: the timer
+// callback claims the timer first, so this returns without waiting on itself.
+static VOID PhAsyncCompletedHandlerStopTimer(
+    _In_ PPH_ASYNC_COMPLETED_HANDLER Handler
+    )
+{
+    PTP_TIMER timer;
+
+    timer = InterlockedExchangePointer((volatile PVOID*)&Handler->Timer, NULL);
+
+    if (!timer)
+        return; // No timer, or the timer callback owns the teardown.
+
+    TpSetTimer(timer, NULL, 0, 0);
+    TpWaitForTimer(timer, TRUE);
+    TpReleaseTimer(timer);
+
+    IUnknown_Release(Handler->TimerOperation);
+    Handler->TimerOperation = NULL;
+    Handler->lpVtbl->Release(Handler);
+}
+
+static VOID NTAPI PhAsyncCompletedHandlerTimerCallback(
+    _Inout_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context,
+    _Inout_ PTP_TIMER Timer
+    )
+{
+    PPH_ASYNC_COMPLETED_HANDLER handler = Context;
+    IAsyncInfo* asyncInfo;
+
+    // Claim the timer. If completion already claimed it, it is waiting for
+    // this callback to return and owns the teardown.
+    if (!InterlockedExchangePointer((volatile PVOID*)&handler->Timer, NULL))
+        return;
+
+    // Timed out: mark the result before cancelling so the completion callback
+    // reports ERROR_TIMEOUT rather than ERROR_CANCELLED.
+    InterlockedExchange(&handler->TimedOut, TRUE);
+
+    if (HR_SUCCESS(IUnknown_QueryInterface(handler->TimerOperation, &IID_IAsyncInfo, &asyncInfo)))
+    {
+        IAsyncInfo_Cancel(asyncInfo); // Invoke runs with Canceled (possibly synchronously).
+        IAsyncInfo_Release(asyncInfo);
+    }
+
+    TpReleaseTimer(Timer);
+    IUnknown_Release(handler->TimerOperation);
+    handler->TimerOperation = NULL;
+    handler->lpVtbl->Release(handler);
+}
+
+static VOID NTAPI PhAsyncCompletedHandlerWorkCallback(
+    _Inout_opt_ PTP_CALLBACK_INSTANCE Instance,
+    _Inout_opt_ PVOID Context
+    )
+{
+    PPH_ASYNC_COMPLETED_HANDLER handler = Context;
+    IUnknown* operation;
+    HRESULT result;
+
+    PhAsyncCompletedHandlerStopTimer(handler);
+
+    if (handler->Status == Completed)
+        result = S_OK;
+    else if (handler->Status == Canceled && ReadAcquire(&handler->TimedOut))
+        result = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+    else
+        result = PhAsyncOperationStatusToResult(handler->Operation, handler->Status);
+
+    handler->Callback(handler->Operation, result, handler->Context);
+
+    // Break the operation <-> handler reference cycle now that completion
+    // has been delivered.
+    operation = handler->Operation;
+    handler->Operation = NULL;
+    IUnknown_Release(operation);
+
+    handler->lpVtbl->Release(handler);
+}
+
+/**
+ * Registers a callback that runs on a thread pool thread when a Windows Runtime
+ * IAsyncOperation completes, fails, or is cancelled. The calling thread does not block.
+ *
+ * \param Operation The IAsyncOperation<TResult> interface pointer. A reference
+ * is held until the callback returns.
+ * \param HandlerId The IID of IAsyncOperationCompletedHandler<TResult>.
+ * \param Callback The callback to invoke. It receives S_OK when the operation
+ * completed (call GetResults on the operation to retrieve the result),
+ * HRESULT_FROM_WIN32(ERROR_CANCELLED) when cancelled, or the operation's error code.
+ * The callback is never invoked on the calling thread and runs at most once.
+ * \param Context An optional context passed to the callback. The caller must
+ * keep it valid until the callback runs.
+ * \param Timeout An optional timeout (NT relative/absolute format). When it
+ * elapses the operation is cancelled and the callback receives
+ * HRESULT_FROM_WIN32(ERROR_TIMEOUT). NULL waits indefinitely.
+ * \return HRESULT Successful or errant status. On failure the callback is not invoked.
+ * \remarks Use IAsyncInfo::Cancel on the operation to cancel; the callback still
+ * runs with HRESULT_FROM_WIN32(ERROR_CANCELLED).
+ */
+HRESULT PhQueueAsyncOperation(
+    _In_ PVOID Operation,
+    _In_ REFIID HandlerId,
+    _In_ PPH_ASYNC_OPERATION_CALLBACK Callback,
+    _In_opt_ PVOID Context,
+    _In_opt_ PLARGE_INTEGER Timeout
+    )
+{
+    HRESULT result;
+    NTSTATUS status;
+    PPH_IASYNC_OPERATION operation = Operation;
+    PTP_TIMER timer;
+    PPH_ASYNC_COMPLETED_HANDLER handler;
+
+    handler = PhAllocateZero(sizeof(PH_ASYNC_COMPLETED_HANDLER));
+    handler->lpVtbl = &PhAsyncCompletedHandlerVtbl;
+    handler->RefCount = 1;
+    handler->Status = Started;
+    handler->InterfaceId = *HandlerId;
+    handler->Callback = Callback;
+    handler->Context = Context;
+    handler->Operation = (IUnknown*)Operation;
+    IUnknown_AddRef(handler->Operation);
+
+    if (Timeout)
+    {
+        // The timer must be armed before put_Completed: once registered, the
+        // completion may tear the timer down at any moment. (dmex)
+        status = TpAllocTimer(&timer, PhAsyncCompletedHandlerTimerCallback, handler, NULL);
+
+        if (!NT_SUCCESS(status))
+        {
+            handler->lpVtbl->Release(handler);
+            return HRESULT_FROM_NT(status);
+        }
+
+        handler->TimerOperation = (IUnknown*)Operation;
+        IUnknown_AddRef(handler->TimerOperation);
+        handler->lpVtbl->AddRef(handler); // Owned by the timer.
+        handler->Timer = timer;
+
+        TpSetTimer(timer, Timeout, 0, 0);
+    }
+
+    result = operation->lpVtbl->put_Completed(operation, handler);
+
+    if (HR_FAILED(result))
+    {
+        // put_Completed failed so Invoke never runs; mark delivered so a
+        // stray late Invoke cannot post, and drop our references.
+        InterlockedExchange(&handler->Invoked, TRUE);
+        PhAsyncCompletedHandlerStopTimer(handler);
+    }
+
+    handler->lpVtbl->Release(handler);
+
+    return result;
+}
+
+/**
+ * Waits for the completed handler to fire, the optional cancel event to be
+ * signaled, or the optional timeout to elapse.
+ *
+ * \param Operation The async operation (used to cancel through IAsyncInfo).
+ * \param Handler The completed handler whose event is waited on (index 0).
+ * \param Timeout An optional timeout (NT relative/absolute format). NULL waits indefinitely.
+ * \param CancelEvent An optional event that cancels the wait when signaled (index 1).
+ * \return HRESULT
+ * - S_OK: the completion event was signaled; the caller checks Handler->Status
+ *   and calls GetResults.
+ * - HRESULT_FROM_WIN32(ERROR_CANCELLED): the cancel event was signaled.
+ * - HRESULT_FROM_WIN32(ERROR_TIMEOUT): the timeout elapsed.
+ * - HRESULT_FROM_NT(status): PhWaitForManyObjects failed.
+ * - HRESULT_FROM_NT(STATUS_UNSUCCESSFUL): any other success code (e.g.
+ *   STATUS_ALERTED, STATUS_USER_APC).
+ * \remarks On cancel or timeout the operation is cancelled through
+ * IAsyncInfo::Cancel and the wait is abandoned; the handler keeps its own
+ * event alive in case the operation invokes it later.
+ *
+ * The outcome is decoded from SignaledIndex rather than STATUS_WAIT_n return
+ * values. PhWaitForManyObjects only returns STATUS_WAIT_n when it delegates to
+ * NtWaitForMultipleObjects (MAXIMUM_WAIT_OBJECTS or fewer); above that it uses
+ * wait completion packets and returns STATUS_SUCCESS, reporting the signaled
+ * object only through SignaledIndex. (dmex)
+ */
+HRESULT PhWaitForAsyncCompletedHandler(
+    _In_ PVOID Operation,
+    _In_ PPH_ASYNC_COMPLETED_HANDLER Handler,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ HANDLE CancelEvent
+    )
+{
+    NTSTATUS status;
+    HANDLE handles[2];
+    ULONG count = 0;
+    ULONG signaledIndex;
+    IAsyncInfo* asyncInfo;
+
+    handles[count++] = Handler->EventHandle;
+
+    if (CancelEvent)
+        handles[count++] = CancelEvent;
+
+    status = PhWaitForManyObjects(
+        count,
+        handles,
+        FALSE,
+        FALSE,
+        Timeout,
+        &signaledIndex
+        );
+
+    if (status == STATUS_TIMEOUT)
+        signaledIndex = ULONG_MAX;
+    else if (!NT_SUCCESS(status))
+        return HRESULT_FROM_NT(status);
+
+    if (signaledIndex == 0)
+        return S_OK;
+
+    if (signaledIndex == 1 || status == STATUS_TIMEOUT)
+    {
+        if (HR_SUCCESS(IUnknown_QueryInterface(((IUnknown*)Operation), &IID_IAsyncInfo, &asyncInfo)))
+        {
+            IAsyncInfo_Cancel(asyncInfo);
+            IAsyncInfo_Release(asyncInfo);
+        }
+
+        if (status == STATUS_TIMEOUT)
+            return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+        else
+            return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+    }
+
+    if (NT_SUCCESS(status)) // STATUS_ALERTED, STATUS_USER_APC, etc.
+        status = STATUS_UNSUCCESSFUL;
+
+    return HRESULT_FROM_NT(status);
+}
+
 /**
  * Blocks the calling thread until a Windows Runtime IAsyncOperation
- * completes, fails, or is cancelled, then retrieves its result.
+ * completes, fails, is cancelled, or the optional timeout elapses, then
+ * retrieves its result.
  *
  * \param Operation The IAsyncOperation<TResult> interface pointer.
  * \param HandlerId The IID of IAsyncOperationCompletedHandler<TResult> (used to
  * answer QueryInterface on the registered completion handler).
+ * \param Timeout An optional timeout (NT relative/absolute format). NULL waits indefinitely.
+ * \param CancelEvent An optional event that cancels the operation when signaled.
  * \param Result Receives the operation result on success (passed through to
  * GetResults; the caller supplies a pointer of the appropriate TResult shape).
- * \return HRESULT Successful or errant status.
+ * \return HRESULT Successful or errant status. HRESULT_FROM_WIN32(ERROR_TIMEOUT)
+ * when the timeout elapses, HRESULT_FROM_WIN32(ERROR_CANCELLED) when the
+ * operation or the wait was cancelled.
  */
-HRESULT PhWaitForAsyncOperation(
+HRESULT NTAPI PhWaitForAsyncOperation(
     _In_ PVOID Operation,
     _In_ REFIID HandlerId,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ HANDLE CancelEvent,
     _Out_ PVOID Result
     )
 {
     HRESULT result;
     NTSTATUS status;
-    HANDLE eventHandle = NULL;
     PPH_IASYNC_OPERATION operation = Operation;
     PPH_ASYNC_COMPLETED_HANDLER handler;
 
-    status = PhCreateEvent(
-        &eventHandle,
-        EVENT_ALL_ACCESS,
-        NotificationEvent,
-        FALSE
-        );
+    status = PhCreateAsyncCompletedHandler(HandlerId, &handler);
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_NT(status);
-
-    handler = PhCreateAsyncCompletedHandler(eventHandle, HandlerId);
 
     // WinRT invokes the handler immediately if the operation already completed,
     // so there is no lost-wakeup race between put_Completed and the wait. (dmex)
@@ -1603,31 +1904,26 @@ HRESULT PhWaitForAsyncOperation(
 
     if (HR_SUCCESS(result))
     {
-        status = PhWaitForSingleObject(eventHandle, INFINITE);
+        result = PhWaitForAsyncCompletedHandler(Operation, handler, Timeout, CancelEvent);
 
-        if (NT_SUCCESS(status))
+        if (HR_SUCCESS(result))
         {
             if (handler->Status == Completed)
                 result = operation->lpVtbl->GetResults(operation, Result);
             else
                 result = PhAsyncOperationStatusToResult(Operation, handler->Status);
         }
-        else
-        {
-            result = HRESULT_FROM_NT(status);
-        }
     }
 
     handler->lpVtbl->Release(handler);
-    NtClose(eventHandle);
 
     return result;
 }
 
 /**
  * \brief Blocks the calling thread until a Windows Runtime
- * IAsyncOperationWithProgress completes, fails, or is cancelled, then retrieves
- * its result.
+ * IAsyncOperationWithProgress completes, fails, is cancelled, or the optional
+ * timeout elapses, then retrieves its result.
  *
  * \param Operation The IAsyncOperationWithProgress<TResult, TProgress> pointer.
  * \param HandlerId The IID of
@@ -1635,33 +1931,29 @@ HRESULT PhWaitForAsyncOperation(
  * \param ProgressHandler The
  * AsyncOperationProgressHandler<TResult, TProgress> delegate to receive progress
  * updates.
+ * \param Timeout An optional timeout (NT relative/absolute format). NULL waits indefinitely.
+ * \param CancelEvent An optional event that cancels the operation when signaled.
  * \param Result Receives the operation result on success.
  * \return HRESULT Successful or errant status.
  */
-HRESULT PhWaitForAsyncOperationWithProgress(
+HRESULT NTAPI PhWaitForAsyncOperationWithProgress(
     _In_ PVOID Operation,
     _In_ REFIID HandlerId,
     _In_ PVOID ProgressHandler,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_opt_ HANDLE CancelEvent,
     _Out_ PVOID Result
     )
 {
     HRESULT result;
     NTSTATUS status;
-    HANDLE eventHandle = NULL;
     PPH_IASYNC_OPERATION_WITH_PROGRESS operation = Operation;
     PPH_ASYNC_COMPLETED_HANDLER handler;
 
-    status = PhCreateEvent(
-        &eventHandle,
-        EVENT_ALL_ACCESS,
-        NotificationEvent,
-        FALSE
-        );
+    status = PhCreateAsyncCompletedHandler(HandlerId, &handler);
 
     if (!NT_SUCCESS(status))
         return HRESULT_FROM_NT(status);
-
-    handler = PhCreateAsyncCompletedHandler(eventHandle, HandlerId);
 
     result = operation->lpVtbl->put_Progress(operation, ProgressHandler);
 
@@ -1674,25 +1966,120 @@ HRESULT PhWaitForAsyncOperationWithProgress(
 
     if (HR_SUCCESS(result))
     {
-        status = PhWaitForSingleObject(eventHandle, INFINITE);
+        result = PhWaitForAsyncCompletedHandler(Operation, handler, Timeout, CancelEvent);
 
-        if (NT_SUCCESS(status))
+        if (HR_SUCCESS(result))
         {
             if (handler->Status == Completed)
                 result = operation->lpVtbl->GetResults(operation, Result);
             else
                 result = PhAsyncOperationStatusToResult(Operation, handler->Status);
         }
-        else
-        {
-            result = HRESULT_FROM_NT(status);
-        }
     }
 
     handler->lpVtbl->Release(handler);
-    NtClose(eventHandle);
 
     return result;
+}
+
+#pragma endregion
+
+#pragma region Pickers
+
+/**
+ * Opens the Windows Runtime single-file picker for a desktop window.
+ *
+ * The caller must use a thread on which blocking for a WinRT async operation
+ * is valid. The returned string is referenced and must be dereferenced.
+ * Cancellation returns HRESULT_FROM_WIN32(ERROR_CANCELLED).
+ */
+HRESULT PhShowWindowsRuntimeOpenFileDialog(
+    _In_ HWND WindowHandle,
+    _Out_ PPH_STRING* FileName
+    )
+{
+    static const IID initializeWithWindowId = { 0x3e68d4bd, 0x7135, 0x4d10, { 0x80, 0x18, 0x9f, 0xb6, 0xd9, 0xf3, 0x3f, 0xa1 } };
+    HRESULT status;
+    HSTRING_REFERENCE filterName;
+    HSTRING filePath = NULL;
+    IInitializeWithWindow* windowInitializer = NULL;
+    __x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker* picker = NULL;
+    __FIVector_1_HSTRING* filters = NULL;
+    __FIAsyncOperation_1_Windows__CStorage__CStorageFile* operation = NULL;
+    __x_ABI_CWindows_CStorage_CIStorageFile* file = NULL;
+    __x_ABI_CWindows_CStorage_CIStorageItem* item = NULL;
+    PPH_STRING result = NULL;
+
+    status = PhActivateInstance(
+        L"twinui.appcore.dll",
+        RuntimeClass_Windows_Storage_Pickers_FileOpenPicker,
+        &IID___x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker,
+        &picker
+        );
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = IUnknown_QueryInterface((IUnknown*)picker, &initializeWithWindowId, &windowInitializer);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = IInitializeWithWindow_Initialize(windowInitializer, WindowHandle);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = __x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker_get_FileTypeFilter(picker, &filters);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = PhCreateWindowsRuntimeStringReference(L"*", &filterName);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = __FIVector_1_HSTRING_Append(filters, HSTRING_FROM_STRING(filterName));
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = __x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker_PickSingleFileAsync(picker, &operation);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = PhWaitForAsyncOperation(operation, &IID___FIAsyncOperationCompletedHandler_1_Windows__CStorage__CStorageFile, NULL, NULL, &file);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    if (!file)
+    {
+        status = HRESULT_FROM_WIN32(ERROR_CANCELLED);
+        goto Cleanup;
+    }
+
+    status = IUnknown_QueryInterface((IUnknown*)file, &IID___x_ABI_CWindows_CStorage_CIStorageItem, &item);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    status = __x_ABI_CWindows_CStorage_CIStorageItem_get_Path(item, &filePath);
+    if (HR_FAILED(status))
+        goto Cleanup;
+
+    result = PhCreateStringFromWindowsRuntimeString(filePath);
+    *FileName = result;
+
+Cleanup:
+    if (filePath)
+        PhDeleteWindowsRuntimeString(filePath);
+    if (item)
+        __x_ABI_CWindows_CStorage_CIStorageItem_Release(item);
+    if (file)
+        __x_ABI_CWindows_CStorage_CIStorageFile_Release(file);
+    if (operation)
+        __FIAsyncOperation_1_Windows__CStorage__CStorageFile_Release(operation);
+    if (filters)
+        __FIVector_1_HSTRING_Release(filters);
+    if (windowInitializer)
+        IInitializeWithWindow_Release(windowInitializer);
+    if (picker)
+        __x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker_Release(picker);
+    return status;
 }
 
 #pragma endregion
