@@ -187,8 +187,8 @@
         <ClCompile>
             <AdditionalOptions>/utf-8 %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;DEBUG;_DEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;_DBG_MEMCPY_INLINE_;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+            <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
             <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
-            <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
             <Optimization>Disabled</Optimization>
             <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
             <CallingConvention>StdCall</CallingConvention>
@@ -287,8 +287,8 @@
         <ClCompile>
             <AdditionalOptions>/utf-8 /d1nodatetime /d1import_no_registry /d1trimfile:"$(MSBuildThisFileDirectory)\" %(AdditionalOptions) $(ExternalAdditionalOptions)</AdditionalOptions>
             <PreprocessorDefinitions>WIN64;NDEBUG;_WINDOWS;_USRDLL;ENABLE_RESTRICTED;CONST_VTABLE;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
+            <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
             <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-            <EnableEnhancedInstructionSet>$(ExternalSimdOptions)</EnableEnhancedInstructionSet>
             <Optimization>MaxSpeed</Optimization>
             <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
             <CallingConvention>StdCall</CallingConvention>
