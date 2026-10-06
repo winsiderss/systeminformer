@@ -17,18 +17,16 @@ EXTERN_C_START
 
 #define PH_SCROLLNEW_CLASSNAME L"PhScrollNew"
 
-// Visual skin. Values must stay in sync with PH_TABNEW_SKIN (tabnew.h) so the
+// Visual theme. Values must stay in sync with PH_TABNEW_THEME (tabnew.h) so the
 // Options combo index maps directly to both.
-typedef enum _PH_SCROLLNEW_SKIN
+typedef enum _PH_SCROLLNEW_THEME
 {
-    PhScrollNewSkinWin7 = 0,     // classic uxtheme scrollbar (aero look)
-    PhScrollNewSkinWin10 = 1,    // flat custom-painted scrollbar
-    PhScrollNewSkinUxTheme = 2   // native/dark themed scrollbar (default)
-} PH_SCROLLNEW_SKIN;
-
-// Selected scrollbar skin (a PH_SCROLLNEW_SKIN value). Set by the application
-// from the ScrollBarSkin setting; read by the PhScrollNew draw path.
-extern ULONG PhScrollBarSkin;
+    PhScrollNewThemeWin7 = 0,     // classic uxtheme scrollbar (aero look)
+    PhScrollNewThemeWin10 = 1,    // flat custom-painted scrollbar
+    PhScrollNewThemeUxTheme = 2,  // native/dark themed scrollbar (default)
+    PhScrollNewThemeWin11 = 3,    // Windows 11 classic-sized scrollbar
+    PhScrollNewThemeWin11Overlay = 4 // Windows 11 compact overlay scrollbar
+} PH_SCROLLNEW_THEME;
 
 typedef enum _PH_SCROLLNEW_PART
 {
@@ -45,6 +43,7 @@ typedef struct _PH_SCROLLNEW_STATE
     // Configuration
 
     BOOLEAN Horizontal;
+    PH_SCROLLNEW_THEME Theme;
     LONG Minimum;
     LONG Maximum;
     LONG Page;
@@ -62,6 +61,7 @@ typedef struct _PH_SCROLLNEW_STATE
     // WM_MOUSEMOVE (set TRUE + TrackMouseEvent) and WM_MOUSELEAVE (cleared).
 
     BOOLEAN MouseInClient;
+    BOOLEAN ResizePending;
     POINT DragStartPoint;
     LONG DragStartPosition;
 
@@ -72,7 +72,7 @@ typedef struct _PH_SCROLLNEW_STATE
     RECT ThumbRect;
     RECT GutterRect;
 
-    HANDLE ThemeHandle;
+    HTHEME ThemeHandle;
 
     // During thumb drag: visual drag position (ahead of committed Position).
     // Equals Position when not dragging.
@@ -84,52 +84,14 @@ typedef struct _PH_SCROLLNEW_STATE
     // mouse-message gate during that synchronous re-entry.
     
     BOOLEAN PointerReentrant;
+
+    // TRUE while a touch/pen contact is down. Real mouse messages are ignored
+    // during this time because the system synthesizes WM_MOUSEMOVE at the
+    // (stale) cursor position whenever the content under it scrolls, which
+    // would otherwise reset the thumb drag back to its start location.
+
+    BOOLEAN PointerActive;
 } PH_SCROLLNEW_STATE, *PPH_SCROLLNEW_STATE;
-
-static VOID PhScrollNewWndProcNotify(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SCROLLNEW_STATE State,
-    _In_ UINT ScrollCode,
-    _In_ LONG NewPosition
-    );
-
-static VOID PhScrollNewPaintNow(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SCROLLNEW_STATE State
-    );
-
-static HTHEME PhScrollNewOpenThemeData(
-    _In_ HWND WindowHandle
-    );
-
-static VOID PhScrollNewCancelRepeat(
-    _In_ HWND WindowHandle
-    );
-
-static VOID PhScrollNewRepeatPress(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SCROLLNEW_STATE State
-    );
-
-static UINT PhScrollNewPartToScrollCode(
-    _In_ PPH_SCROLLNEW_STATE State,
-    _In_ PH_SCROLLNEW_PART Part
-    );
-
-static LRESULT PhScrollNewOnUserMessage(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SCROLLNEW_STATE Context,
-    _In_ UINT Message,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
-
-static LRESULT CALLBACK PhScrollNewWndProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
-    );
 
 /**
  * Registers the PhScrollNew window class.
@@ -144,7 +106,7 @@ RTL_ATOM PhScrollNewWindowInitialization(
 
 VOID PhScrollNewInitialize(
     _Out_ PPH_SCROLLNEW_STATE State,
-    _In_ BOOLEAN Horizontal
+    _In_ LPCREATESTRUCT CreateStruct
     );
 
 VOID PhScrollNewUpdate(
@@ -167,8 +129,7 @@ PH_SCROLLNEW_PART PhScrollNewHitTest(
 
 VOID PhScrollNewDraw(
     _In_ PPH_SCROLLNEW_STATE State,
-    _In_ HDC hdc,
-    _In_opt_ HANDLE Theme
+    _In_ HDC hdc
     );
 
 BOOLEAN PhScrollNewHandleMessage(

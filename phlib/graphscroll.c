@@ -26,6 +26,8 @@
 
 #define PH_SCROLLNEW_TIMER_ID         1
 #define PH_SCROLLNEW_TIMER_DELAY      100
+#define PH_SCROLLNEW_RESIZE_TIMER_ID  2
+#define PH_SCROLLNEW_RESIZE_DELAY     50
 #define PH_SCROLLNEW_DARK_CLASSNAME   L"Explorer::Scrollbar"
 
 // Touch/pen mouse-message synthesis signature (see GetMessageExtraInfo).
@@ -53,7 +55,60 @@
 #define PH_SCROLLNEW_DARK_COLOR_ARROW_NORMAL    RGB(155, 155, 155)
 #define PH_SCROLLNEW_DARK_COLOR_ARROW_HOT       RGB(255, 255, 255)
 
-ULONG PhScrollBarSkin = PhScrollNewSkinWin10;
+#define PH_SCROLLNEW_MAX_POS(Context) ((Context)->Maximum - (((Context)->Page > 0) ? ((Context)->Page - 1) : 0))
+
+// Windows 11 scrollbar palette. The track is intentionally transparent-looking
+// and the thumb is drawn as a rounded pill, matching Explorer's compact style.
+#define PH_SCROLLNEW_WIN11_TRACK_LIGHT          RGB(250, 250, 250)
+#define PH_SCROLLNEW_WIN11_THUMB_LIGHT          RGB(190, 190, 190)
+#define PH_SCROLLNEW_WIN11_THUMB_HOT_LIGHT      RGB(128, 128, 128)
+#define PH_SCROLLNEW_WIN11_THUMB_PRESS_LIGHT    RGB(96, 96, 96)
+#define PH_SCROLLNEW_WIN11_TRACK_DARK           RGB(32, 32, 32)
+#define PH_SCROLLNEW_WIN11_THUMB_DARK           RGB(100, 100, 100)
+#define PH_SCROLLNEW_WIN11_THUMB_HOT_DARK       RGB(150, 150, 150)
+#define PH_SCROLLNEW_WIN11_THUMB_PRESS_DARK     RGB(180, 180, 180)
+
+static VOID PhpScrollNewOnPaint(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context
+    );
+
+static HTHEME PhpScrollNewOpenThemeData(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context
+    );
+static LRESULT PhpScrollNewOnUserMessage(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ UINT Message,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+static LRESULT CALLBACK PhpScrollNewWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+static VOID PhpScrollNewPaintNow(
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ HDC hdc
+    );
+static VOID PhpScrollNewCancelRepeat(_In_ HWND WindowHandle);
+static VOID PhpScrollNewRepeatPress(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context
+    );
+static VOID PhpScrollNewWndProcNotify(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ UINT ScrollCode,
+    _In_ LONG NewPosition
+    );
+static UINT PhpScrollNewPartToScrollCode(
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ PH_SCROLLNEW_PART Part
+    );
 
 /**
  * Registers the PhScrollNew window class.
@@ -66,8 +121,8 @@ RTL_ATOM PhScrollNewWindowInitialization(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
-    wcex.style = CS_GLOBALCLASS;// | CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS | CS_PARENTDC;
-    wcex.lpfnWndProc = PhScrollNewWndProc;
+    wcex.style = CS_GLOBALCLASS | CS_PARENTDC;// | CS_VREDRAW | CS_HREDRAW | CS_DBLCLKS;
+    wcex.lpfnWndProc = PhpScrollNewWndProc;
     wcex.cbWndExtra = sizeof(PVOID);
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
@@ -76,16 +131,19 @@ RTL_ATOM PhScrollNewWindowInitialization(
     return RegisterClassEx(&wcex);
 }
 
-HTHEME PhScrollNewOpenThemeData(
-    _In_ HWND WindowHandle
+static HTHEME PhpScrollNewOpenThemeData(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context
     )
 {
-    // Win10 skin uses the flat custom-painted path (no theme handle).
-    if (PhScrollBarSkin == PhScrollNewSkinWin10)
+    // Win10 theme uses the flat custom-painted path (no theme handle).
+    if (Context->Theme == PhScrollNewThemeWin10 ||
+        Context->Theme == PhScrollNewThemeWin11 ||
+        Context->Theme == PhScrollNewThemeWin11Overlay)
         return NULL;
 
-    // Win7 skin forces the classic uxtheme scrollbar regardless of theme mode.
-    if (PhScrollBarSkin == PhScrollNewSkinWin7)
+    // Win7 theme forces the classic uxtheme scrollbar regardless of theme mode.
+    if (Context->Theme == PhScrollNewThemeWin7)
         return PhOpenThemeData(WindowHandle, VSCLASS_SCROLLBAR, 0);
 
     if (PhEnableThemeSupport)
@@ -105,10 +163,13 @@ BOOLEAN PhScrollNewIsMouseFromTouch(
     if (Context && Context->PointerReentrant)
         return FALSE;
 
+    if (Context && Context->PointerActive)
+        return TRUE;
+
     return (((ULONG_PTR)GetMessageExtraInfo()) & PH_SCROLLNEW_MI_WP_MASK) == PH_SCROLLNEW_MI_WP_SIGNATURE;
 }
 
-LRESULT PhScrollNewOnUserMessage(
+static LRESULT PhpScrollNewOnUserMessage(
     _In_ HWND WindowHandle,
     _In_ PPH_SCROLLNEW_STATE Context,
     _In_ UINT Message,
@@ -202,8 +263,14 @@ LRESULT PhScrollNewOnUserMessage(
  * drop-in replacement for WC_SCROLLBAR child windows. Notifies the parent via
  * WM_VSCROLL or WM_HSCROLL, with 32-bit thumb positions exposed through
  * SBM_GETSCROLLINFO/SIF_TRACKPOS.
+ *
+ * \param WindowHandle Handle to the window receiving the message.
+ * \param WindowMessage The message identifier.
+ * \param wParam Additional message-specific information (depends on the message).
+ * \param lParam Additional message-specific information (depends on the message).
+ * \return The result of the message processing (depends on the message).
  */
-LRESULT CALLBACK PhScrollNewWndProc(
+static LRESULT CALLBACK PhpScrollNewWndProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
     _In_ WPARAM wParam,
@@ -212,11 +279,18 @@ LRESULT CALLBACK PhScrollNewWndProc(
 {
     PPH_SCROLLNEW_STATE context = (PPH_SCROLLNEW_STATE)PhGetWindowContextEx(WindowHandle);
 
-    if ((WindowMessage >= SBM_SETPOS && WindowMessage <= SBM_GETRANGE) ||
-        WindowMessage == SBM_SETSCROLLINFO || WindowMessage == SBM_GETSCROLLINFO)
+    // PhLogWindowMessage(L"ScrollNew", WindowHandle, WindowMessage, wParam, lParam);
+
+    switch (WindowMessage)
     {
-        if (context)
-            return PhScrollNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
+    case SBM_SETPOS:
+    case SBM_GETPOS:
+    case SBM_SETRANGE:
+    case SBM_SETRANGEREDRAW:
+    case SBM_GETRANGE:
+    case SBM_SETSCROLLINFO:
+    case SBM_GETSCROLLINFO:
+        return PhpScrollNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
     }
 
     switch (WindowMessage)
@@ -224,24 +298,25 @@ LRESULT CALLBACK PhScrollNewWndProc(
     case WM_NCCREATE:
         {
             CREATESTRUCT* cs = (CREATESTRUCT*)lParam;
-            BOOLEAN horizontal = !(cs->style & SBS_VERT); // SBS_HORZ == 0, so test for absence of SBS_VERT
 
             context = PhAllocateZero(sizeof(PH_SCROLLNEW_STATE));
-            PhScrollNewInitialize(context, horizontal);
+            PhScrollNewInitialize(context, cs);
+
             PhSetWindowContextEx(WindowHandle, context);
         }
-        return TRUE;
+        break;
     case WM_CREATE:
         {
-            context->ThemeHandle = PhScrollNewOpenThemeData(WindowHandle);
+            context->ThemeHandle = PhpScrollNewOpenThemeData(WindowHandle, context);
         }
-        return 0;
+        break;
     case WM_NCDESTROY:
         {
+            KillTimer(WindowHandle, PH_SCROLLNEW_RESIZE_TIMER_ID);
             PhRemoveWindowContextEx(WindowHandle);
 
             if (context->ThemeHandle)
-                PhCloseThemeData((HTHEME)context->ThemeHandle);
+                PhCloseThemeData(context->ThemeHandle);
 
             PhFree(context);
         }
@@ -253,37 +328,22 @@ LRESULT CALLBACK PhScrollNewWndProc(
             PhGetClientRect(WindowHandle, &clientRect);
 
             PhScrollNewLayout(context, &clientRect);
+            context->ResizePending = TRUE;
+            PhSetTimer(WindowHandle, PH_SCROLLNEW_RESIZE_TIMER_ID, PH_SCROLLNEW_RESIZE_DELAY, NULL);
+
+            // Force a full repaint after re-laying out the buttons/thumb/track. WM_ERASEBKGND
+            // unconditionally claims the background is already erased, and the implicit repaint
+            // from the parent's MoveWindow call only covers the size delta - not necessarily the
+            // union of the old and new button rects - so without this, stale button glyphs from
+            // the previous layout are left behind as the window is resized. (dmex)
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
-        return 0;
+        break;
     case WM_ERASEBKGND:
         return TRUE;
     case WM_PAINT:
         {
-            HDC hdc;
-            HDC bufferDc;
-            PAINTSTRUCT paintStruct;
-            PH_BUFFERED_PAINT bufferedPaint;
-
-            if (hdc = BeginPaint(WindowHandle, &paintStruct))
-            {
-                // Only invoke the draw machinery when there is a non-empty update rectangle.
-                if (paintStruct.rcPaint.right  > paintStruct.rcPaint.left &&
-                    paintStruct.rcPaint.bottom > paintStruct.rcPaint.top)
-                {
-                    if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &bufferedPaint, &bufferDc))
-                    {
-                        PhScrollNewDraw(context, bufferDc, context->ThemeHandle);
-                        PhEndBufferedPaint(&bufferedPaint, TRUE);
-                    }
-                    else
-                    {
-                        PhScrollNewDraw(context, hdc, context->ThemeHandle);
-                    }
-                }
-
-                EndPaint(WindowHandle, &paintStruct);
-            }
+            PhpScrollNewOnPaint(WindowHandle, context);
         }
         return 0;
     case WM_THEMECHANGED:
@@ -293,7 +353,7 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 PhCloseThemeData((HTHEME)context->ThemeHandle);
             }
 
-            context->ThemeHandle = PhScrollNewOpenThemeData(WindowHandle);
+            context->ThemeHandle = PhpScrollNewOpenThemeData(WindowHandle, context);
 
             InvalidateRect(WindowHandle, NULL, FALSE);
         }
@@ -318,6 +378,7 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 if (!context->MouseInClient)
                 {
                     context->MouseInClient = TRUE;
+                    PhScrollNewLayout(context, &context->Rect);
                     InvalidateRect(WindowHandle, NULL, FALSE);
                 }
 
@@ -325,10 +386,16 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 {
                     if (isDragging)
                     {
-                        PhScrollNewPaintNow(WindowHandle, context);
+                        HDC hdc;
+
+                        if (hdc = PhGetDC(WindowHandle))
+                        {
+                            PhpScrollNewPaintNow(context, hdc);
+                            ReleaseDC(WindowHandle, hdc);
+                        }
                     }
 
-                    PhScrollNewWndProcNotify(WindowHandle, context, isDragging ? SB_THUMBTRACK : SB_THUMBPOSITION, newPos);
+                    PhpScrollNewWndProcNotify(WindowHandle, context, isDragging ? SB_THUMBTRACK : SB_THUMBPOSITION, newPos);
                 }
             }
         }
@@ -344,16 +411,16 @@ LRESULT CALLBACK PhScrollNewWndProc(
 
                 if (PhScrollNewHandleMessage(context, WindowHandle, WM_LBUTTONDOWN, wParam, lParam, &newPos))
                 {
-                    PhScrollNewWndProcNotify(
+                    PhpScrollNewWndProcNotify(
                         WindowHandle,
                         context,
-                        PhScrollNewPartToScrollCode(context, context->PressedPart),
+                        PhpScrollNewPartToScrollCode(context, context->PressedPart),
                         newPos
                         );
 
                     if (context->PressedPart != PhScrollNewPartThumb)
                     {
-                        SetTimer(WindowHandle, PH_SCROLLNEW_TIMER_ID, PH_SCROLLNEW_TIMER_DELAY, NULL);
+                        PhSetTimer(WindowHandle, PH_SCROLLNEW_TIMER_ID, PH_SCROLLNEW_TIMER_DELAY, NULL);
                     }
                 }
             }
@@ -372,16 +439,16 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 LONG newPos = 0;
 
                 PhScrollNewHandleMessage(context, WindowHandle, WM_LBUTTONUP, wParam, lParam, &newPos);
-                PhScrollNewCancelRepeat(WindowHandle);
+                PhpScrollNewCancelRepeat(WindowHandle);
 
                 if (wasDragging)
                 {
-                    PhScrollNewWndProcNotify(WindowHandle, context, SB_THUMBPOSITION, finalPos);
+                    PhpScrollNewWndProcNotify(WindowHandle, context, SB_THUMBPOSITION, finalPos);
                 }
 
                 if (interactionActive)
                 {
-                    PhScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
+                    PhpScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
                 }
             }
         }
@@ -392,12 +459,12 @@ LRESULT CALLBACK PhScrollNewWndProc(
             {
                 BOOLEAN interactionActive = context->PressedPart != PhScrollNewPartNone;
 
-                PhScrollNewCancelRepeat(WindowHandle);
+                PhpScrollNewCancelRepeat(WindowHandle);
                 context->PressedPart = PhScrollNewPartNone;
 
                 if (interactionActive)
                 {
-                    PhScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
+                    PhpScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
                 }
             }
         }
@@ -413,6 +480,7 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 if (context->MouseInClient)
                 {
                     context->MouseInClient = FALSE;
+                    PhScrollNewLayout(context, &context->Rect);
                     InvalidateRect(WindowHandle, NULL, FALSE);
                 }
 
@@ -429,9 +497,16 @@ LRESULT CALLBACK PhScrollNewWndProc(
         return 0;
     case WM_TIMER:
         {
-            if (context && wParam == PH_SCROLLNEW_TIMER_ID && context->PressedPart != PhScrollNewPartNone)
+            if ((ULONG)wParam == PH_SCROLLNEW_RESIZE_TIMER_ID)
             {
-                PhScrollNewRepeatPress(WindowHandle, context);
+                KillTimer(WindowHandle, PH_SCROLLNEW_RESIZE_TIMER_ID);
+                context->ResizePending = FALSE;
+                InvalidateRect(WindowHandle, NULL, FALSE);
+                UpdateWindow(WindowHandle);
+            }
+            else if ((ULONG)wParam == PH_SCROLLNEW_TIMER_ID && context->PressedPart != PhScrollNewPartNone)
+            {
+                PhpScrollNewRepeatPress(WindowHandle, context);
             }
         }
         return 0;
@@ -454,6 +529,9 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 ScreenToClient(WindowHandle, &pt);
 
                 if (WindowMessage == WM_POINTERDOWN)
+                    context->PointerActive = TRUE;
+
+                if (WindowMessage == WM_POINTERDOWN)
                     mappedMsg = WM_LBUTTONDOWN;
                 else if (WindowMessage == WM_POINTERUP)
                     mappedMsg = WM_LBUTTONUP;
@@ -464,13 +542,16 @@ LRESULT CALLBACK PhScrollNewWndProc(
                 // were pressed in until lifted, so no explicit capture call is
                 // needed for thumb-drag past the scrollbar's client area.
                 context->PointerReentrant = TRUE;
-                result = PhScrollNewWndProc(
+                result = PhpScrollNewWndProc(
                     WindowHandle,
                     mappedMsg,
                     MK_LBUTTON,
                     MAKELPARAM((WORD)pt.x, (WORD)pt.y)
                     );
                 context->PointerReentrant = FALSE;
+
+                if (WindowMessage == WM_POINTERUP)
+                    context->PointerActive = FALSE;
 
                 return result;
             }
@@ -482,13 +563,14 @@ LRESULT CALLBACK PhScrollNewWndProc(
             {
                 BOOLEAN interactionActive = context->PressedPart != PhScrollNewPartNone;
 
-                PhScrollNewCancelRepeat(WindowHandle);
+                PhpScrollNewCancelRepeat(WindowHandle);
                 context->PressedPart = PhScrollNewPartNone;
+                context->PointerActive = FALSE;
                 InvalidateRect(WindowHandle, NULL, FALSE);
 
                 if (interactionActive)
                 {
-                    PhScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
+                    PhpScrollNewWndProcNotify(WindowHandle, context, SB_ENDSCROLL, 0);
                 }
             }
         }
@@ -498,23 +580,29 @@ LRESULT CALLBACK PhScrollNewWndProc(
             if (context)
             {
                 BOOLEAN isHorz = context->Horizontal;
+                BOOLEAN hasThumb = context->ThumbRect.right > context->ThumbRect.left &&
+                                   context->ThumbRect.bottom > context->ThumbRect.top;
                 POINT screenPt = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
                 POINT clientPt = screenPt;
                 LONG scrollHerePos;
                 PPH_EMENU menu;
                 PPH_EMENU_ITEM selectedItem;
 
+                if (!hasThumb)
+                    return 0;
+
                 ScreenToClient(WindowHandle, &clientPt);
 
                 // Calculate "Scroll Here" position from click point within the gutter.
                 {
+                    LONG maxPos = PH_SCROLLNEW_MAX_POS(context);
+                    LONG scrollRange = maxPos - context->Minimum;
                     LONG gutterLen = isHorz
                         ? (context->GutterRect.right  - context->GutterRect.left)
                         : (context->GutterRect.bottom - context->GutterRect.top);
                     LONG clickOff = isHorz
                         ? (clientPt.x - context->GutterRect.left)
                         : (clientPt.y - context->GutterRect.top);
-                    LONG scrollRange = context->Maximum - context->Minimum - context->Page + 1;
 
                     if (gutterLen > 0 && scrollRange > 0)
                         scrollHerePos = context->Minimum + (LONG)((__int64)clickOff * scrollRange / gutterLen);
@@ -522,7 +610,7 @@ LRESULT CALLBACK PhScrollNewWndProc(
                         scrollHerePos = context->Position;
 
                     if (scrollHerePos < context->Minimum) scrollHerePos = context->Minimum;
-                    if (scrollHerePos > context->Maximum - context->Page + 1) scrollHerePos = context->Maximum - context->Page + 1;
+                    if (scrollHerePos > maxPos) scrollHerePos = maxPos;
                 }
 
                 menu = PhCreateEMenu();
@@ -551,25 +639,25 @@ LRESULT CALLBACK PhScrollNewWndProc(
                     switch (selectedItem->Id)
                     {
                     case PH_SCROLLNEW_IDM_SCROLL_HERE:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_THUMBTRACK, scrollHerePos);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_THUMBTRACK, scrollHerePos);
                         break;
                     case PH_SCROLLNEW_IDM_TOP:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_TOP, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_TOP, 0);
                         break;
                     case PH_SCROLLNEW_IDM_BOTTOM:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_BOTTOM, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_BOTTOM, 0);
                         break;
                     case PH_SCROLLNEW_IDM_PAGE_UP:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_PAGEUP, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_PAGEUP, 0);
                         break;
                     case PH_SCROLLNEW_IDM_PAGE_DOWN:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_PAGEDOWN, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_PAGEDOWN, 0);
                         break;
                     case PH_SCROLLNEW_IDM_SCROLL_UP:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_LINEUP, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_LINEUP, 0);
                         break;
                     case PH_SCROLLNEW_IDM_SCROLL_DOWN:
-                        PhScrollNewWndProcNotify(WindowHandle, context, SB_LINEDOWN, 0);
+                        PhpScrollNewWndProcNotify(WindowHandle, context, SB_LINEDOWN, 0);
                         break;
                     }
                 }
@@ -583,45 +671,36 @@ LRESULT CALLBACK PhScrollNewWndProc(
     return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
 }
 
-VOID PhScrollNewPaintNow(
-    _In_ HWND WindowHandle,
-    _In_ PPH_SCROLLNEW_STATE Context
+static VOID PhpScrollNewPaintNow(
+    _In_ PPH_SCROLLNEW_STATE Context,
+    _In_ HDC hdc
     )
 {
-    HDC hdc;
-    HDC bufferDc;
     PH_BUFFERED_PAINT bufferedPaint;
+    HDC bufferDc;
 
     if (PhRectEmpty(&Context->Rect))
         return;
 
-    hdc = GetDC(WindowHandle);
-
-    if (!hdc)
-        return;
-
-    if (PhBeginBufferedPaint(hdc, &Context->Rect, &bufferedPaint, &bufferDc))
+    if (PhBeginBufferedPaint(hdc, &Context->Rect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
     {
-        PhScrollNewDraw(Context, bufferDc, Context->ThemeHandle);
+        PhScrollNewDraw(Context, bufferDc);
         PhEndBufferedPaint(&bufferedPaint, TRUE);
     }
     else
     {
-        PhScrollNewDraw(Context, hdc, Context->ThemeHandle);
+        PhScrollNewDraw(Context, hdc);
     }
-
-    ReleaseDC(WindowHandle, hdc);
-    ValidateRect(WindowHandle, &Context->Rect);
 }
 
-VOID PhScrollNewCancelRepeat(
+static VOID PhpScrollNewCancelRepeat(
     _In_ HWND WindowHandle
     )
 {
     KillTimer(WindowHandle, PH_SCROLLNEW_TIMER_ID);
 }
 
-VOID PhScrollNewRepeatPress(
+static VOID PhpScrollNewRepeatPress(
     _In_ HWND WindowHandle,
     _In_ PPH_SCROLLNEW_STATE Context
     )
@@ -643,7 +722,7 @@ VOID PhScrollNewRepeatPress(
 
             if (hit != Context->PressedPart)
             {
-                PhScrollNewCancelRepeat(WindowHandle);
+                PhpScrollNewCancelRepeat(WindowHandle);
                 return;
             }
         }
@@ -652,30 +731,30 @@ VOID PhScrollNewRepeatPress(
     switch (Context->PressedPart)
     {
     case PhScrollNewPartUpButton:
-        scrollCode = PhScrollNewPartToScrollCode(Context, Context->PressedPart);
+        scrollCode = PhpScrollNewPartToScrollCode(Context, Context->PressedPart);
         newPos = Context->Position - 1;
         break;
     case PhScrollNewPartDownButton:
-        scrollCode = PhScrollNewPartToScrollCode(Context, Context->PressedPart);
+        scrollCode = PhpScrollNewPartToScrollCode(Context, Context->PressedPart);
         newPos = Context->Position + 1;
         break;
     case PhScrollNewPartPageUp:
-        scrollCode = PhScrollNewPartToScrollCode(Context, Context->PressedPart);
+        scrollCode = PhpScrollNewPartToScrollCode(Context, Context->PressedPart);
         newPos = Context->Position - Context->Page;
         break;
     case PhScrollNewPartPageDown:
-        scrollCode = PhScrollNewPartToScrollCode(Context, Context->PressedPart);
+        scrollCode = PhpScrollNewPartToScrollCode(Context, Context->PressedPart);
         newPos = Context->Position + Context->Page;
         break;
     default:
         return;
     }
 
-    PhScrollNewWndProcNotify(WindowHandle, Context, scrollCode, newPos);
+    PhpScrollNewWndProcNotify(WindowHandle, Context, scrollCode, newPos);
 }
 
 // Internal helper: notify parent window of a position change.
-VOID PhScrollNewWndProcNotify(
+static VOID PhpScrollNewWndProcNotify(
     _In_ HWND WindowHandle,
     _In_ PPH_SCROLLNEW_STATE Context,
     _In_ UINT ScrollCode,
@@ -696,7 +775,7 @@ VOID PhScrollNewWndProcNotify(
         SendMessage(parent, WM_VSCROLL, MAKEWPARAM(ScrollCode, (WORD)NewPosition), (LPARAM)WindowHandle);
 }
 
-UINT PhScrollNewPartToScrollCode(
+static UINT PhpScrollNewPartToScrollCode(
     _In_ PPH_SCROLLNEW_STATE Context,
     _In_ PH_SCROLLNEW_PART Part
     )
@@ -718,11 +797,12 @@ UINT PhScrollNewPartToScrollCode(
 
 VOID PhScrollNewInitialize(
     _Out_ PPH_SCROLLNEW_STATE Context,
-    _In_ BOOLEAN Horizontal
+    _In_ LPCREATESTRUCT CreateStruct
     )
 {
     memset(Context, 0, sizeof(PH_SCROLLNEW_STATE));
-    Context->Horizontal = Horizontal;
+    Context->Horizontal = !(CreateStruct->style & SBS_VERT);
+    Context->Theme = PhScrollNewThemeWin10;
     Context->HotPart = PhScrollNewPartNone;
     Context->PressedPart = PhScrollNewPartNone;
 }
@@ -735,15 +815,19 @@ VOID PhScrollNewUpdate(
     _In_ LONG Position
     )
 {
+    LONG maxPos;
+
     Context->Minimum = Minimum;
     Context->Maximum = Maximum;
     Context->Page = Page;
     Context->Position = Position;
 
+    maxPos = PH_SCROLLNEW_MAX_POS(Context);
+
     if (Context->Position < Context->Minimum)
         Context->Position = Context->Minimum;
-    if (Context->Position > Context->Maximum - Context->Page + 1)
-        Context->Position = Context->Maximum - Context->Page + 1;
+    if (Context->Position > maxPos)
+        Context->Position = maxPos;
     if (Context->Position < Context->Minimum)
         Context->Position = Context->Minimum;
 
@@ -765,24 +849,48 @@ VOID PhScrollNewLayout(
     LONG gutterLength;
     LONG thumbLength;
 
+    RECT layoutRect = *Rect;
     Context->Rect = *Rect;
     width = Rect->right - Rect->left;
     height = Rect->bottom - Rect->top;
 
+    if (Context->Theme == PhScrollNewThemeWin11 ||
+        Context->Theme == PhScrollNewThemeWin11Overlay)
+    {
+        LONG thickness = Context->Theme == PhScrollNewThemeWin11Overlay &&
+            !Context->MouseInClient && Context->PressedPart == PhScrollNewPartNone ? 4 : 12;
+
+        if (Context->Horizontal)
+        {
+            LONG inset = __max(0, (height - thickness) / 2);
+            layoutRect.top += inset;
+            layoutRect.bottom = layoutRect.top + __min(thickness, height);
+        }
+        else
+        {
+            LONG inset = __max(0, (width - thickness) / 2);
+            layoutRect.left += inset;
+            layoutRect.right = layoutRect.left + __min(thickness, width);
+        }
+    }
+
+    width = layoutRect.right - layoutRect.left;
+    height = layoutRect.bottom - layoutRect.top;
+
     if (Context->Horizontal)
     {
         buttonSize = height;
-        Context->UpButtonRect = (RECT){ Rect->left, Rect->top, Rect->left + buttonSize, Rect->bottom };
-        Context->DownButtonRect = (RECT){ Rect->right - buttonSize, Rect->top, Rect->right, Rect->bottom };
-        Context->GutterRect = (RECT){ Context->UpButtonRect.right, Rect->top, Context->DownButtonRect.left, Rect->bottom };
+        Context->UpButtonRect = (RECT){ layoutRect.left, layoutRect.top, layoutRect.left + buttonSize, layoutRect.bottom };
+        Context->DownButtonRect = (RECT){ layoutRect.right - buttonSize, layoutRect.top, layoutRect.right, layoutRect.bottom };
+        Context->GutterRect = (RECT){ Context->UpButtonRect.right, layoutRect.top, Context->DownButtonRect.left, layoutRect.bottom };
         gutterLength = Context->GutterRect.right - Context->GutterRect.left;
     }
     else
     {
         buttonSize = width;
-        Context->UpButtonRect = (RECT){ Rect->left, Rect->top, Rect->right, Rect->top + buttonSize };
-        Context->DownButtonRect = (RECT){ Rect->left, Rect->bottom - buttonSize, Rect->right, Rect->bottom };
-        Context->GutterRect = (RECT){ Rect->left, Context->UpButtonRect.bottom, Rect->right, Context->DownButtonRect.top };
+        Context->UpButtonRect = (RECT){ layoutRect.left, layoutRect.top, layoutRect.right, layoutRect.top + buttonSize };
+        Context->DownButtonRect = (RECT){ layoutRect.left, layoutRect.bottom - buttonSize, layoutRect.right, layoutRect.bottom };
+        Context->GutterRect = (RECT){ layoutRect.left, Context->UpButtonRect.bottom, layoutRect.right, Context->DownButtonRect.top };
         gutterLength = Context->GutterRect.bottom - Context->GutterRect.top;
     }
 
@@ -798,25 +906,27 @@ VOID PhScrollNewLayout(
         LONG scrollRange = range - Context->Page;
         LONG thumbScrollArea = gutterLength - thumbLength;
         LONG displayPos = (Context->PressedPart == PhScrollNewPartThumb) ? Context->TrackPosition : Context->Position;
-        LONG thumbOffset = (scrollRange > 0) ? PhMultiplyDivideSigned(displayPos, thumbScrollArea, scrollRange) : 0;
+        LONG normalizedPosition = displayPos - Context->Minimum;
+        normalizedPosition = __max(0, __min(normalizedPosition, scrollRange));
+        LONG thumbOffset = (scrollRange > 0) ? PhMultiplyDivideSigned(normalizedPosition, thumbScrollArea, scrollRange) : 0;
 
         if (Context->Horizontal)
         {
             Context->ThumbRect = (RECT)
             {
                 Context->GutterRect.left + thumbOffset,
-                Rect->top,
+                layoutRect.top,
                 Context->GutterRect.left + thumbOffset + thumbLength,
-                Rect->bottom
+                layoutRect.bottom
             };
         }
         else
         {
             Context->ThumbRect = (RECT)
             {
-                Rect->left,
+                layoutRect.left,
                 Context->GutterRect.top + thumbOffset,
-                Rect->right,
+                layoutRect.right,
                 Context->GutterRect.top + thumbOffset + thumbLength
             };
         }
@@ -832,6 +942,12 @@ PH_SCROLLNEW_PART PhScrollNewHitTest(
     _In_ POINT Point
     )
 {
+    BOOLEAN hasThumb = Context->ThumbRect.right > Context->ThumbRect.left &&
+                       Context->ThumbRect.bottom > Context->ThumbRect.top;
+
+    if (!hasThumb)
+        return PhScrollNewPartNone;
+
     if (PhPtInRect(&Context->ThumbRect, &Point))
         return PhScrollNewPartThumb;
 
@@ -979,16 +1095,44 @@ VOID PhScrollNewDrawArrow(
 
 VOID PhScrollNewDraw(
     _In_ PPH_SCROLLNEW_STATE Context,
-    _In_ HDC hdc,
-    _In_opt_ HANDLE Theme
+    _In_ HDC hdc
     )
 {
-    HTHEME themeHandle = (HTHEME)Theme;
     BOOLEAN vertical = !Context->Horizontal;
     BOOLEAN hasThumb = Context->ThumbRect.right > Context->ThumbRect.left &&
                        Context->ThumbRect.bottom > Context->ThumbRect.top;
 
-    if (themeHandle)
+    if (Context->Theme == PhScrollNewThemeWin11 ||
+        Context->Theme == PhScrollNewThemeWin11Overlay)
+    {
+        HBRUSH brush = PhGetStockBrush(DC_BRUSH);
+        COLORREF track = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_TRACK_DARK : PH_SCROLLNEW_WIN11_TRACK_LIGHT;
+        COLORREF thumb = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_THUMB_DARK : PH_SCROLLNEW_WIN11_THUMB_LIGHT;
+
+        if (Context->PressedPart == PhScrollNewPartThumb)
+            thumb = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_THUMB_PRESS_DARK : PH_SCROLLNEW_WIN11_THUMB_PRESS_LIGHT;
+        else if (Context->HotPart == PhScrollNewPartThumb)
+            thumb = PhEnableThemeSupport ? PH_SCROLLNEW_WIN11_THUMB_HOT_DARK : PH_SCROLLNEW_WIN11_THUMB_HOT_LIGHT;
+
+        SetDCBrushColor(hdc, track);
+        FillRect(hdc, &Context->Rect, brush);
+
+        if (hasThumb)
+        {
+            RECT thumbRect = Context->ThumbRect;
+            LONG radius = __min(thumbRect.right - thumbRect.left, thumbRect.bottom - thumbRect.top) / 2;
+            HGDIOBJ oldBrush = SelectBrush(hdc, brush);
+            HGDIOBJ oldPen = SelectPen(hdc, PhGetStockPen(NULL_PEN));
+            SetDCBrushColor(hdc, thumb);
+            RoundRect(hdc, thumbRect.left, thumbRect.top, thumbRect.right, thumbRect.bottom, radius * 2, radius * 2);
+            SelectPen(hdc, oldPen);
+            SelectBrush(hdc, oldBrush);
+        }
+
+        return;
+    }
+
+    if (Context->ThemeHandle)
     {
         LONG upBtnState;
         LONG downBtnState;
@@ -1023,13 +1167,13 @@ VOID PhScrollNewDraw(
                 downBtnState = (Context->PressedPart == PhScrollNewPartDownButton) ? ABS_RIGHTPRESSED : ABS_RIGHTHOT;
             }
 
-            themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, SBP_ARROWBTN, upBtnState, &Context->UpButtonRect, NULL);
-            themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, SBP_ARROWBTN, downBtnState, &Context->DownButtonRect, NULL);
+            themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, SBP_ARROWBTN, upBtnState, &Context->UpButtonRect, NULL);
+            themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, SBP_ARROWBTN, downBtnState, &Context->DownButtonRect, NULL);
         }
         else
         {
-            themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, trackLeadPart, SCRBS_NORMAL, &Context->UpButtonRect, NULL);
-            themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, trackTrailPart, SCRBS_NORMAL, &Context->DownButtonRect, NULL);
+            themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, trackLeadPart, SCRBS_NORMAL, &Context->UpButtonRect, NULL);
+            themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, trackTrailPart, SCRBS_NORMAL, &Context->DownButtonRect, NULL);
         }
 
         if (hasThumb)
@@ -1051,7 +1195,7 @@ VOID PhScrollNewDraw(
             if (!PhRectEmpty(&leadRect))
             {
                 trackState = (Context->HotPart == PhScrollNewPartPageUp) ? SCRBS_HOT : SCRBS_NORMAL;
-                themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, trackLeadPart, trackState, &leadRect, NULL);
+                themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, trackLeadPart, trackState, &leadRect, NULL);
             }
 
             //
@@ -1066,7 +1210,7 @@ VOID PhScrollNewDraw(
             if (!PhRectEmpty(&trailRect))
             {
                 trackState = (Context->HotPart == PhScrollNewPartPageDown) ? SCRBS_HOT : SCRBS_NORMAL;
-                themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, trackTrailPart, trackState, &trailRect, NULL);
+                themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, trackTrailPart, trackState, &trailRect, NULL);
             }
 
             //
@@ -1075,14 +1219,14 @@ VOID PhScrollNewDraw(
 
             thumbState = (Context->PressedPart == PhScrollNewPartThumb) ? SCRBS_PRESSED :
                          (Context->HotPart     == PhScrollNewPartThumb) ? SCRBS_HOT     : SCRBS_NORMAL;
-            themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, thumbPart, thumbState, &Context->ThumbRect, NULL);
+            themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, thumbPart, thumbState, &Context->ThumbRect, NULL);
         }
         else
         {
             // No thumb — fill the full gutter as a disabled track.
             if (!PhRectEmpty(&Context->GutterRect))
             {
-                themeDrawSucceeded &= PhDrawThemeBackground(themeHandle, hdc, trackLeadPart, SCRBS_DISABLED, &Context->GutterRect, NULL);
+                themeDrawSucceeded &= PhDrawThemeBackground(Context->ThemeHandle, hdc, trackLeadPart, SCRBS_DISABLED, &Context->GutterRect, NULL);
             }
         }
 
@@ -1144,6 +1288,30 @@ VOID PhScrollNewDraw(
     }
 }
 
+/**
+ * Handles the WM_PAINT message for the PhScrollNew control.
+ *
+ * \param WindowHandle Handle to the window.
+ * \param Context Pointer to the PPH_SCROLLNEW_STATE structure.
+ */
+static VOID PhpScrollNewOnPaint(
+    _In_ HWND WindowHandle,
+    _In_ PPH_SCROLLNEW_STATE Context
+    )
+{
+    PAINTSTRUCT paintStruct;
+    HDC hdc = BeginPaint(WindowHandle, &paintStruct);
+
+    if (hdc)
+    {
+        // Paint the current geometry even while the resize timer is pending.
+        // BeginPaint validates the update region, so skipping drawing would
+        // leave stale pixels; every successful BeginPaint also needs EndPaint.
+        PhpScrollNewPaintNow(Context, hdc);
+        EndPaint(WindowHandle, &paintStruct);
+    }
+}
+
 BOOLEAN PhScrollNewHandleMessage(
     _Inout_ PPH_SCROLLNEW_STATE Context,
     _In_ HWND WindowHandle,
@@ -1193,11 +1361,12 @@ BOOLEAN PhScrollNewHandleMessage(
 
                 if (thumbScrollArea > 0)
                 {
+                    LONG maxPos = PH_SCROLLNEW_MAX_POS(Context);
                     LONG deltaPos = PhMultiplyDivideSigned(deltaPixels, scrollRange, thumbScrollArea);
                     LONG pos = Context->DragStartPosition + deltaPos;
 
                     if (pos < Context->Minimum) pos = Context->Minimum;
-                    if (pos > Context->Maximum - Context->Page + 1) pos = Context->Maximum - Context->Page + 1;
+                    if (pos > maxPos) pos = maxPos;
 
                     if (Context->TrackPosition != pos)
                     {
@@ -1268,8 +1437,10 @@ BOOLEAN PhScrollNewHandleMessage(
 
     if (changed)
     {
+        LONG maxPos = PH_SCROLLNEW_MAX_POS(Context);
+
         if (*NewPosition < Context->Minimum) *NewPosition = Context->Minimum;
-        if (*NewPosition > Context->Maximum - Context->Page + 1) *NewPosition = Context->Maximum - Context->Page + 1;
+        if (*NewPosition > maxPos) *NewPosition = maxPos;
         if (*NewPosition < Context->Minimum) *NewPosition = Context->Minimum;
 
         // Update visual track position. During thumb drag this is the ahead-of-commit
@@ -1289,18 +1460,27 @@ LRESULT PhScrollNewSendMessage(
     _Pre_maybenull_ _Post_valid_ LPARAM lParam
     )
 {
-    if ((WindowMessage >= SBM_SETPOS && WindowMessage <= SBM_GETRANGE) ||
-        WindowMessage == SBM_SETSCROLLINFO || WindowMessage == SBM_GETSCROLLINFO)
+    switch (WindowMessage)
     {
-        PPH_SCROLLNEW_STATE context;
-
-        if ((context = (PPH_SCROLLNEW_STATE)PhGetWindowContextEx(WindowHandle)))
+    case SBM_SETPOS:
+    case SBM_GETPOS:
+    case SBM_SETRANGE:
+    case SBM_SETRANGEREDRAW:
+    case SBM_GETRANGE:
+    case SBM_SETSCROLLINFO:
+    case SBM_GETSCROLLINFO:
         {
+            PPH_SCROLLNEW_STATE context;
+
+            if ((context = (PPH_SCROLLNEW_STATE)PhGetWindowContextEx(WindowHandle)))
+            {
 #if defined(DEBUG)
-            assert(GetWindowThreadProcessId(WindowHandle, NULL) == HandleToUlong(NtCurrentThreadId()));
+                assert(GetWindowThreadProcessId(WindowHandle, NULL) == HandleToUlong(NtCurrentThreadId()));
 #endif
-            return PhScrollNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
+                return PhpScrollNewOnUserMessage(WindowHandle, context, WindowMessage, wParam, lParam);
+            }
         }
+        break;
     }
 
 #if defined(DEBUG)
