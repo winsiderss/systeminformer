@@ -69,6 +69,8 @@ static PPH_HASHTABLE WindowCallbackHashTable = NULL;
 static PH_QUEUED_LOCK WindowCallbackListLock = PH_QUEUED_LOCK_INIT;
 static ULONG WindowCallbackFlsIndex = FLS_OUT_OF_INDEXES;
 static ULONG_PTR WindowCallbackCookie = 0;
+static PH_INITONCE PhpBufferedPaintInitOnce = PH_INITONCE_INIT;
+static BOOLEAN PhpBufferedPaintUxThemeInitialized = FALSE;
 static ULONG PhBufferedPaintFlsIndex = FLS_OUT_OF_INDEXES;
 
 static typeof(&OpenThemeDataForDpi) OpenThemeDataForDpi_I = NULL;
@@ -232,7 +234,110 @@ HFONT PhCreateFontHandle(
         PhFontQuality,
         PitchAndFamily,
         Name
-        );
+    );
+}
+
+static PH_INITONCE PhpFontCacheInitOnce = PH_INITONCE_INIT;
+static PPH_OBJECT_TYPE PhpFontType = NULL;
+static PPH_LIST PhpFontCache = NULL;
+static PH_QUEUED_LOCK PhpFontCacheLock = PH_QUEUED_LOCK_INIT;
+
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
+static VOID NTAPI PhpFontDeleteProcedure(
+    _In_ PVOID Object,
+    _In_ ULONG Flags
+    )
+{
+    PPH_FONT font = (PPH_FONT)Object;
+    ULONG i;
+
+    UNREFERENCED_PARAMETER(Flags);
+
+    PhAcquireQueuedLockExclusive(&PhpFontCacheLock);
+
+    for (i = 0; i < PhpFontCache->Count; i++)
+    {
+        if (PhpFontCache->Items[i] == font)
+        {
+            PhRemoveItemList(PhpFontCache, i);
+            break;
+        }
+    }
+
+    PhReleaseQueuedLockExclusive(&PhpFontCacheLock);
+
+    if (font->Handle)
+        DeleteFont(font->Handle);
+}
+
+static VOID PhpInitializeFontCache(
+    VOID
+    )
+{
+    if (PhBeginInitOnce(&PhpFontCacheInitOnce))
+    {
+        PhpFontType = PhCreateObjectType(L"Font", 0, PhpFontDeleteProcedure);
+        PhpFontCache = PhCreateList(16);
+        PhEndInitOnce(&PhpFontCacheInitOnce);
+    }
+}
+
+PPH_FONT PhCreateFontObjectFromLogFont(
+    _In_ PLOGFONT LogFont,
+    _In_ LONG Dpi
+    )
+{
+    PPH_FONT font;
+    HFONT handle;
+    ULONG i;
+
+    PhpInitializeFontCache();
+
+    handle = CreateFontIndirect(LogFont);
+    if (!handle)
+        return NULL;
+
+    PhAcquireQueuedLockExclusive(&PhpFontCacheLock);
+
+    for (i = 0; i < PhpFontCache->Count; i++)
+    {
+        font = (PPH_FONT)PhpFontCache->Items[i];
+
+        if (font->Dpi == Dpi && memcmp(&font->LogFont, LogFont, sizeof(LOGFONT)) == 0)
+        {
+            PhReferenceObject(font);
+            PhReleaseQueuedLockExclusive(&PhpFontCacheLock);
+            DeleteFont(handle);
+            return font;
+        }
+    }
+
+    font = PhCreateObjectZero(sizeof(PH_FONT), PhpFontType);
+    font->Handle = handle;
+    font->LogFont = *LogFont;
+    font->Dpi = Dpi;
+    PhAddItemList(PhpFontCache, font);
+
+    PhReleaseQueuedLockExclusive(&PhpFontCacheLock);
+    return font;
+}
+
+VOID PhSwapOwnedFont(
+    _Inout_ PPH_FONT *Font,
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PPH_FONT NewFont,
+    _In_ BOOLEAN Redraw
+    )
+{
+    PPH_FONT oldFont = *Font;
+
+    *Font = NewFont;
+
+    if (WindowHandle)
+        SetWindowFont(WindowHandle, PhGetFontHandle(NewFont), Redraw);
+
+    if (oldFont)
+        PhDereferenceObject(oldFont);
 }
 
 /**
@@ -400,14 +505,16 @@ HFONT PhInitializeFont(
 {
     HFONT fontHandle;
 
-    if (fontHandle = PhCreateFont(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
+    if (fontHandle = PhCreateFontHandle(L"Microsoft Sans Serif", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
         return fontHandle;
-    if (fontHandle = PhCreateFont(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
+    if (fontHandle = PhCreateFontHandle(L"Tahoma", 8, FW_NORMAL, DEFAULT_PITCH, WindowDpi))
         return fontHandle;
     if (fontHandle = PhCreateMessageFont(WindowDpi))
         return fontHandle;
 
-    return GetStockFont(DEFAULT_GUI_FONT);
+    // Owned font factories must never return a stock handle. Callers that
+    // need a stock fallback must request it explicitly through the raw API.
+    return NULL;
 }
 
 HFONT PhInitializeMonospaceFont(
@@ -416,11 +523,11 @@ HFONT PhInitializeMonospaceFont(
 {
     HFONT fontHandle;
 
-    if (fontHandle = PhCreateFont(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+    if (fontHandle = PhCreateFontHandle(L"Lucida Console", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
         return fontHandle;
-    if (fontHandle = PhCreateFont(L"Courier New", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+    if (fontHandle = PhCreateFontHandle(L"Courier New", 9, FW_DONTCARE, FF_MODERN, WindowDpi))
         return fontHandle;
-    if (fontHandle = PhCreateFont(NULL, 9, FW_DONTCARE, FF_MODERN, WindowDpi))
+    if (fontHandle = PhCreateFontHandle(NULL, 9, FW_DONTCARE, FF_MODERN, WindowDpi))
         return fontHandle;
 
     //{
@@ -445,7 +552,9 @@ HFONT PhInitializeMonospaceFont(
         return CreateFontIndirect(&logFont);
     }
 
-    return fontHandle;
+    // Do not return SYSTEM_FIXED_FONT here because it is a shared stock object
+    // and must not be deleted by the caller.
+    return NULL;
 }
 
 static HFONT PhpCreateFontFromSetting(
@@ -501,6 +610,59 @@ HFONT PhCreateMonospaceFont(
     )
 {
     return PhpCreateFontFromSetting(L"FontMonospace", WindowDpi, PhInitializeMonospaceFont);
+}
+
+static PPH_FONT PhpCreateFontObjectFromHandle(_In_ HFONT Handle, _In_ LONG Dpi)
+{
+    LOGFONT logFont;
+    PPH_FONT font;
+
+    if (!Handle || GetObject(Handle, sizeof(LOGFONT), &logFont) != sizeof(LOGFONT))
+        return NULL;
+
+    font = PhCreateFontObjectFromLogFont(&logFont, Dpi);
+    DeleteFont(Handle);
+    return font;
+}
+
+PPH_FONT PhCreateCommonFontObject(_In_ LONG Size, _In_ LONG Weight, _In_opt_ HWND WindowHandle, _In_ LONG WindowDpi)
+{
+    PPH_FONT font = PhpCreateFontObjectFromHandle(PhCreateCommonFont(Size, Weight, NULL, WindowDpi), WindowDpi);
+
+    if (WindowHandle)
+        SetWindowFont(WindowHandle, PhGetFontHandle(font), TRUE);
+
+    return font;
+}
+
+PPH_FONT PhCreateApplicationFontObject(_In_ LONG WindowDpi)
+{
+    return PhpCreateFontObjectFromHandle(PhCreateApplicationFont(WindowDpi), WindowDpi);
+}
+
+PPH_FONT PhCreateTreeWindowFontObject(_In_ LONG WindowDpi)
+{
+    return PhpCreateFontObjectFromHandle(PhCreateTreeWindowFont(WindowDpi), WindowDpi);
+}
+
+PPH_FONT PhCreateMonospaceFontObject(_In_ LONG WindowDpi)
+{
+    return PhpCreateFontObjectFromHandle(PhCreateMonospaceFont(WindowDpi), WindowDpi);
+}
+
+PPH_FONT PhDuplicateFontObject(_In_ HFONT Font, _In_ LONG Dpi)
+{
+    return PhpCreateFontObjectFromHandle(PhDuplicateFont(Font), Dpi);
+}
+
+PPH_FONT PhDuplicateFontWithNewWeightObject(_In_ HFONT Font, _In_ LONG NewWeight, _In_ LONG Dpi)
+{
+    return PhpCreateFontObjectFromHandle(PhDuplicateFontWithNewWeight(Font, NewWeight), Dpi);
+}
+
+PPH_FONT PhDuplicateFontWithNewHeightObject(_In_ HFONT Font, _In_ LONG NewHeight, _In_ LONG Dpi)
+{
+    return PhpCreateFontObjectFromHandle(PhDuplicateFontWithNewHeight(Font, NewHeight, Dpi), Dpi);
 }
 
 /**
@@ -2904,6 +3066,10 @@ BOOLEAN PhModalPropertySheet(
     return TRUE;
 }
 
+#if PH_LAYOUT_MANAGER_V2
+#define PHP_LAYOUT_MANAGER_IN_PROGRESS 0x1
+#define PHP_LAYOUT_MANAGER_LAYOUT_PENDING 0x2
+
 /**
  * Initializes a the root layout item instance for the specified window.
  *
@@ -2916,55 +3082,35 @@ BOOLEAN PhInitializeLayoutManager(
     _In_ HWND RootWindowHandle
     )
 {
-    return PhInitializeLayoutManagerEx(Manager, RootWindowHandle, 0);
-}
+    PH_LAYOUT_MANAGER manager;
 
-/**
- * Initializes the root layout item with optional behavior flags.
- *
- * \param Manager Pointer to the PH_LAYOUT_MANAGER to initialize.
- * \param RootWindowHandle Handle of the root window for layout operations.
- * \param Flags Bitwise combination of PH_LAYOUT_INIT_* flags.
- * \return TRUE on success, FALSE on failure.
- */
-BOOLEAN PhInitializeLayoutManagerEx(
-    _Out_ PPH_LAYOUT_MANAGER Manager,
-    _In_ HWND RootWindowHandle,
-    _In_ ULONG Flags
-    )
-{
-    memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
+    memset(&manager, 0, sizeof(PH_LAYOUT_MANAGER));
 
-    Manager->List = PhCreateList(4);
-    if (!Manager->List)
+    manager.List = PhCreateList(4);
+    manager.WindowDpi = PhGetWindowDpi(RootWindowHandle);
+
+    manager.RootItem.Handle = RootWindowHandle;
+    manager.RootItem.ParentItem = NULL;
+    manager.RootItem.LayoutParentItem = NULL;
+    manager.RootItem.LayoutNumber = 0;
+    manager.RootItem.NumberOfChildren = 0;
+    manager.RootItem.DeferHandle = NULL;
+
+    if (!PhGetClientRect(RootWindowHandle, &manager.RootItem.Rect))
+    {
+        PhDereferenceObject(manager.List);
         return FALSE;
-
-    Manager->WindowDpi = PhGetWindowDpi(RootWindowHandle);
-
-    Manager->RootItem.Handle = RootWindowHandle;
-    Manager->RootItem.ParentItem = NULL;
-    Manager->RootItem.LayoutParentItem = NULL;
-    Manager->RootItem.LayoutNumber = 0;
-    Manager->RootItem.NumberOfChildren = 0;
-    Manager->RootItem.DeferHandle = NULL;
-
-    if (Flags & PH_LAYOUT_INIT_CLIP_CHILDREN)
-    {
-        ULONG style = PhGetWindowStyle(RootWindowHandle);
-
-        if (style && !(style & WS_CLIPCHILDREN))
-        {
-            PhSetWindowStyle(RootWindowHandle, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-        }
     }
 
-    if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
-    {
-        PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
-        return TRUE;
-    }
+    PhGetSizeDpiValue(&manager.RootItem.Rect, manager.WindowDpi, FALSE);
 
-    return FALSE;
+    // The root window style is declared by the dialog template or CreateWindowEx
+    // and determines the invalidation strategy used by PhLayoutManagerLayout. (dmex)
+    manager.ClipChildren = BooleanFlagOn(PhGetWindowStyle(RootWindowHandle), WS_CLIPCHILDREN);
+
+    *Manager = manager;
+
+    return TRUE;
 }
 
 /**
@@ -3056,6 +3202,798 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
 {
     PPH_LAYOUT_ITEM item;
 
+    if (!Manager->List)
+        return NULL;
+
+    if (ParentItem)
+    {
+        BOOLEAN parentFound;
+        ULONG i;
+
+        parentFound = ParentItem == &Manager->RootItem;
+
+        for (i = 0; !parentFound && i < Manager->List->Count; i++)
+        {
+            parentFound = Manager->List->Items[i] == ParentItem;
+        }
+
+        if (!parentFound)
+            return NULL;
+    }
+    else
+    {
+        ParentItem = &Manager->RootItem;
+    }
+
+    item = PhAllocateZero(sizeof(PH_LAYOUT_ITEM));
+    item->Handle = Handle;
+    item->ParentItem = ParentItem;
+    item->LayoutParentItem = ParentItem;
+    item->LayoutNumber = Manager->LayoutNumber;
+    item->NumberOfChildren = 0;
+    item->DeferHandle = NULL;
+    item->Anchor = Anchor;
+    item->Margin = *Margin;
+    PhGetMarginDpiValue(&item->Margin, Manager->WindowDpi, FALSE);
+
+    while (FlagOn(item->LayoutParentItem->Anchor, PH_LAYOUT_DUMMY_MASK) && item->LayoutParentItem->LayoutParentItem)
+    {
+        item->LayoutParentItem = item->LayoutParentItem->LayoutParentItem;
+    }
+
+    if (!PhGetWindowRect(Handle, &item->Rect))
+    {
+        // Window is in an unexpected state (e.g. already destroyed).
+        // Caller cannot do anything sensible with an item that has no rect.
+        PhFree(item);
+        return NULL;
+    }
+
+    item->LayoutParentItem->NumberOfChildren++;
+
+    MapWindowRect(HWND_DESKTOP, item->LayoutParentItem->Handle, &item->Rect);
+
+    if (FlagOn(item->Anchor, PH_LAYOUT_TAB_CONTROL))
+    {
+        // We want to convert the tab control rectangle to the tab page display rectangle.
+        TabCtrl_AdjustRect(Handle, FALSE, &item->Rect);
+    }
+
+    PhGetSizeDpiValue(&item->Rect, Manager->WindowDpi, FALSE);
+
+    PhAddItemList(Manager->List, item);
+
+    if (FlagOn(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_IN_PROGRESS))
+    {
+        SetFlag(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_LAYOUT_PENDING);
+    }
+
+    return item;
+}
+
+/**
+ * Adds the two layout items required to manage a tab control.
+ *
+ * This adds:
+ *  - The tab control itself with PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE
+ *    so the window is resized synchronously and subsequent TabCtrl_AdjustRect
+ *    calls return the updated content rect.
+ *  - A dummy item (PH_LAYOUT_TAB_CONTROL) whose Rect tracks the tab page
+ *    client area. Use this as the ParentItem when adding child controls
+ *    that live on tab pages.
+ *
+ * Order is critical: the IMMEDIATE_RESIZE item must precede the dummy so
+ * that SetWindowPos on the tab control happens before the dummy's
+ * TabCtrl_AdjustRect query during PhLayoutManagerLayout.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param TabControlHandle Handle of the SysTabControl32 window.
+ * \param TabControlItem Optionally receives the layout item for the tab control window.
+ * \param TabPageItem Receives the dummy parent item for tab page children.
+ * \return TRUE on success, FALSE on failure.
+ */
+BOOLEAN PhAddTabControlLayoutItem(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND TabControlHandle,
+    _Out_opt_ PPH_LAYOUT_ITEM *TabControlItem,
+    _Out_ PPH_LAYOUT_ITEM *TabPageItem
+    )
+{
+    PPH_LAYOUT_ITEM tabControlItem;
+    PPH_LAYOUT_ITEM tabPageItem;
+
+    tabControlItem = PhAddLayoutItem(
+        Manager,
+        TabControlHandle,
+        NULL,
+        PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE
+        );
+
+    if (!tabControlItem)
+        return FALSE;
+
+    tabPageItem = PhAddLayoutItem(
+        Manager,
+        TabControlHandle,
+        NULL,
+        PH_LAYOUT_TAB_CONTROL
+        );
+
+    if (!tabPageItem)
+    {
+        assert(Manager->List->Items[Manager->List->Count - 1] == tabControlItem);
+
+        Manager->RootItem.NumberOfChildren--;
+        PhRemoveItemList(Manager->List, Manager->List->Count - 1);
+        PhFree(tabControlItem);
+
+        return FALSE;
+    }
+
+    if (TabControlItem)
+        *TabControlItem = tabControlItem;
+    *TabPageItem = tabPageItem;
+
+    return TRUE;
+}
+
+typedef struct _PHP_LAYOUT_BATCH
+{
+    PPH_LAYOUT_ITEM ParentItem;
+    HDWP DeferHandle;
+    BOOLEAN Failed;
+} PHP_LAYOUT_BATCH, *PPHP_LAYOUT_BATCH;
+
+/**
+ * Performs layout calculations for a single layout item and its parents.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Item Pointer to the layout item to layout.
+ */
+BOOLEAN PhpLayoutItemLayout(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _Inout_ PPH_LAYOUT_ITEM Item
+    )
+{
+    RECT margin;
+    RECT rect;
+    LONG diff;
+    BOOLEAN hasDummyParent;
+
+    // The root item's LayoutNumber is reserved for layout-manager state.
+    if (!Item->ParentItem)
+        return TRUE;
+
+    if (Item->LayoutNumber == Manager->LayoutNumber)
+        return TRUE;
+
+    if (!PhpLayoutItemLayout(Manager, Item->ParentItem))
+        return FALSE;
+
+    if (Item->ParentItem != Item->LayoutParentItem)
+    {
+        if (!PhpLayoutItemLayout(Manager, Item->LayoutParentItem))
+            return FALSE;
+
+        hasDummyParent = TRUE;
+    }
+    else
+    {
+        hasDummyParent = FALSE;
+    }
+
+    if (!PhGetWindowRect(Item->Handle, &Item->Rect))
+        return FALSE;
+
+    MapWindowRect(HWND_DESKTOP, Item->LayoutParentItem->Handle, &Item->Rect);
+
+    if (FlagOn(Item->Anchor, PH_LAYOUT_TAB_CONTROL))
+    {
+        // We want to convert the tab control rectangle to the tab page display rectangle.
+        TabCtrl_AdjustRect(Item->Handle, FALSE, &Item->Rect);
+    }
+
+    PhGetSizeDpiValue(&Item->Rect, Manager->WindowDpi, FALSE);
+
+    if (Item->Rect.right < Item->Rect.left)
+        Item->Rect.right = Item->Rect.left;
+    if (Item->Rect.bottom < Item->Rect.top)
+        Item->Rect.bottom = Item->Rect.top;
+
+    if (!FlagOn(Item->Anchor, PH_LAYOUT_DUMMY_MASK))
+    {
+        margin = Item->Margin;
+        rect = Item->Rect;
+
+        // Convert right/bottom into margins to make the calculations
+        // easier.
+        PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
+
+        if (!FlagOn(Item->Anchor, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT))
+        {
+            // Neither side anchored: keep the item horizontally centered
+            // within the parent's new width while preserving the item's
+            // current width.
+            LONG layoutParentWidth;
+            LONG parentLeft;
+            LONG parentWidth;
+            LONG itemWidth;
+            LONG newLeft;
+
+            layoutParentWidth = Item->LayoutParentItem->Rect.right - Item->LayoutParentItem->Rect.left;
+
+            if (hasDummyParent)
+            {
+                parentLeft = Item->ParentItem->Rect.left;
+                parentWidth = Item->ParentItem->Rect.right - Item->ParentItem->Rect.left;
+            }
+            else
+            {
+                parentLeft = 0;
+                parentWidth = layoutParentWidth;
+            }
+
+            if (parentWidth < 0)
+                parentWidth = 0;
+
+            itemWidth = layoutParentWidth - rect.left - rect.right;
+
+            if (itemWidth < 0)
+                itemWidth = 0;
+
+            newLeft = parentLeft + (parentWidth - itemWidth) / 2;
+
+            rect.left = newLeft;
+            rect.right = layoutParentWidth - (newLeft + itemWidth);
+        }
+        else if (FlagOn(Item->Anchor, PH_ANCHOR_RIGHT))
+        {
+            if (FlagOn(Item->Anchor, PH_ANCHOR_LEFT))
+            {
+                rect.left = (hasDummyParent ? Item->ParentItem->Rect.left : 0) + margin.left;
+                rect.right = margin.right;
+            }
+            else
+            {
+                diff = margin.right - rect.right;
+
+                rect.left -= diff;
+                rect.right += diff;
+            }
+        }
+
+        if (!FlagOn(Item->Anchor, PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM))
+        {
+            // Neither side anchored: keep the item vertically centered
+            // within the parent's new height while preserving the item's
+            // current height.
+            LONG layoutParentHeight;
+            LONG parentTop;
+            LONG parentHeight;
+            LONG itemHeight;
+            LONG newTop;
+
+            layoutParentHeight = Item->LayoutParentItem->Rect.bottom - Item->LayoutParentItem->Rect.top;
+
+            if (hasDummyParent)
+            {
+                parentTop = Item->ParentItem->Rect.top;
+                parentHeight = Item->ParentItem->Rect.bottom - Item->ParentItem->Rect.top;
+            }
+            else
+            {
+                parentTop = 0;
+                parentHeight = layoutParentHeight;
+            }
+
+            if (parentHeight < 0)
+                parentHeight = 0;
+
+            itemHeight = layoutParentHeight - rect.top - rect.bottom;
+
+            if (itemHeight < 0)
+                itemHeight = 0;
+
+            newTop = parentTop + (parentHeight - itemHeight) / 2;
+
+            rect.top = newTop;
+            rect.bottom = layoutParentHeight - (newTop + itemHeight);
+        }
+        else if (FlagOn(Item->Anchor, PH_ANCHOR_BOTTOM))
+        {
+            if (FlagOn(Item->Anchor, PH_ANCHOR_TOP))
+            {
+                // tab control hack
+                rect.top = (hasDummyParent ? Item->ParentItem->Rect.top : 0) + margin.top;
+                rect.bottom = margin.bottom;
+            }
+            else
+            {
+                diff = margin.bottom - rect.bottom;
+
+                rect.top -= diff;
+                rect.bottom += diff;
+            }
+        }
+
+        // Convert the right/bottom back into co-ordinates.
+        PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
+
+        if (rect.right < rect.left)
+            rect.right = rect.left;
+        if (rect.bottom < rect.top)
+            rect.bottom = rect.top;
+
+        Item->Rect = rect;
+
+        if (FlagOn(Item->Anchor, PH_LAYOUT_IMMEDIATE_RESIZE))
+        {
+            // This is needed for tab controls, so that TabCtrl_AdjustRect will give us an
+            // up-to-date result. SWP_NOREDRAW suppresses the tab-frame repaint that would
+            // otherwise flash before the deferred children settle into their new positions.
+            // A single RedrawWindow is issued in PhLayoutManagerLayout after the batch flushes.
+            PhGetSizeDpiValue(&rect, Manager->WindowDpi, TRUE);
+
+            if (!SetWindowPos(
+                Item->Handle,
+                HWND_DESKTOP,
+                rect.left,
+                rect.top,
+                rect.right - rect.left,
+                rect.bottom - rect.top,
+                SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW
+                ))
+            {
+                return FALSE;
+            }
+        }
+    }
+
+    Item->LayoutNumber = Manager->LayoutNumber;
+
+    return TRUE;
+}
+
+PPHP_LAYOUT_BATCH PhpFindLayoutBatch(
+    _In_reads_(NumberOfBatches) PPHP_LAYOUT_BATCH Batches,
+    _In_ ULONG NumberOfBatches,
+    _In_ PPH_LAYOUT_ITEM ParentItem
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < NumberOfBatches; i++)
+    {
+        if (Batches[i].ParentItem == ParentItem)
+            return &Batches[i];
+    }
+
+    return NULL;
+}
+
+/**
+ * Returns the SetWindowPos flags used for ordinary layout items.
+ *
+ * Without WS_CLIPCHILDREN the root paints over its children while they move,
+ * so redraw is suppressed here and PhLayoutManagerLayout repaints the root once
+ * after every batch has settled.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \return The SWP_* flags for DeferWindowPos and SetWindowPos.
+ */
+FORCEINLINE
+ULONG PhpLayoutManagerWindowPosFlags(
+    _In_ PPH_LAYOUT_MANAGER Manager
+    )
+{
+    if (Manager->ClipChildren)
+        return SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER;
+
+    return SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOREDRAW | SWP_NOCOPYBITS;
+}
+
+VOID PhpLayoutManagerApplyBatchFallback(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Count
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Count; i++)
+    {
+        PPH_LAYOUT_ITEM item = Manager->List->Items[i];
+        RECT rect;
+
+        if (item->LayoutNumber != Manager->LayoutNumber || item->LayoutParentItem != ParentItem ||
+            FlagOn(item->Anchor, PH_LAYOUT_DUMMY_MASK | PH_LAYOUT_IMMEDIATE_RESIZE))
+        {
+            continue;
+        }
+
+        rect = item->Rect;
+        PhGetSizeDpiValue(&rect, Manager->WindowDpi, TRUE);
+
+        SetWindowPos(
+            item->Handle,
+            HWND_DESKTOP,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            PhpLayoutManagerWindowPosFlags(Manager)
+            );
+    }
+}
+
+VOID PhpLayoutManagerApply(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ ULONG Count
+    )
+{
+    PPHP_LAYOUT_BATCH batches;
+    ULONG numberOfBatches;
+    ULONG i;
+
+    batches = PhAllocateStack(sizeof(PHP_LAYOUT_BATCH) * (Count + 1));
+    RtlZeroMemory(batches, sizeof(PHP_LAYOUT_BATCH) * (Count + 1));
+
+    batches[0].ParentItem = &Manager->RootItem;
+    numberOfBatches = 1;
+
+    for (i = 0; i < Count; i++)
+    {
+        PPH_LAYOUT_ITEM item = Manager->List->Items[i];
+
+        if (item->NumberOfChildren > 0)
+        {
+            batches[numberOfBatches++].ParentItem = item;
+        }
+    }
+
+    for (i = 0; i < Count; i++)
+    {
+        PPH_LAYOUT_ITEM item = Manager->List->Items[i];
+        PPHP_LAYOUT_BATCH batch;
+        HDWP deferHandle;
+        RECT rect;
+
+        if (item->LayoutNumber != Manager->LayoutNumber ||
+            FlagOn(item->Anchor, PH_LAYOUT_DUMMY_MASK | PH_LAYOUT_IMMEDIATE_RESIZE))
+        {
+            continue;
+        }
+
+        batch = PhpFindLayoutBatch(
+            batches,
+            numberOfBatches,
+            item->LayoutParentItem
+            );
+
+        if (!batch || batch->Failed)
+            continue;
+
+        if (!batch->DeferHandle)
+        {
+            batch->DeferHandle = BeginDeferWindowPos(batch->ParentItem->NumberOfChildren);
+
+            if (!batch->DeferHandle)
+            {
+                batch->Failed = TRUE;
+                continue;
+            }
+        }
+
+        rect = item->Rect;
+        PhGetSizeDpiValue(&rect, Manager->WindowDpi, TRUE);
+
+        deferHandle = DeferWindowPos(
+            batch->DeferHandle,
+            item->Handle,
+            NULL,
+            rect.left,
+            rect.top,
+            rect.right - rect.left,
+            rect.bottom - rect.top,
+            PhpLayoutManagerWindowPosFlags(Manager)
+            );
+
+        if (deferHandle)
+        {
+            batch->DeferHandle = deferHandle;
+        }
+        else
+        {
+            // A failed DeferWindowPos invalidates the entire existing batch.
+            batch->DeferHandle = NULL;
+            batch->Failed = TRUE;
+        }
+    }
+
+    // Batches are stored root-first and then in item insertion order, so actual
+    // parent windows settle before batches that position their descendants.
+
+    for (i = 0; i < numberOfBatches; i++)
+    {
+        PPHP_LAYOUT_BATCH batch = &batches[i];
+        BOOLEAN useFallback = batch->Failed;
+
+        if (batch->DeferHandle)
+        {
+            HDWP deferHandle = batch->DeferHandle;
+
+            // Detach the consumed handle before EndDeferWindowPos sends messages.
+            batch->DeferHandle = NULL;
+
+            if (!EndDeferWindowPos(deferHandle))
+                useFallback = TRUE;
+        }
+
+        if (useFallback)
+        {
+            PhpLayoutManagerApplyBatchFallback(
+                Manager,
+                batch->ParentItem,
+                Count
+                );
+        }
+    }
+
+    PhFreeStack(batches);
+}
+
+/**
+ * Performs a layout pass for all items managed by the layout manager.
+ *
+ * \param Manager Pointer to the layout manager.
+ */
+VOID PhLayoutManagerLayout(
+    _Inout_ PPH_LAYOUT_MANAGER Manager
+    )
+{
+    BOOLEAN layoutPending;
+
+    if (!Manager->List)
+        return;
+
+    if (FlagOn(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_IN_PROGRESS))
+    {
+        SetFlag(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_LAYOUT_PENDING);
+        return;
+    }
+
+    do
+    {
+        ULONG count;
+        ULONG i;
+
+        Manager->RootItem.LayoutNumber = PHP_LAYOUT_MANAGER_IN_PROGRESS;
+        Manager->LayoutNumber++;
+
+        if (Manager->LayoutNumber == 0)
+        {
+            // Avoid a generation collision after ULONG wraparound.
+            Manager->LayoutNumber = 1;
+
+            for (i = 0; i < Manager->List->Count; i++)
+            {
+                ((PPH_LAYOUT_ITEM)Manager->List->Items[i])->LayoutNumber = 0;
+            }
+        }
+
+        count = Manager->List->Count;
+
+        if (PhGetClientRect(Manager->RootItem.Handle, &Manager->RootItem.Rect))
+        {
+            PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
+
+            for (i = 0; i < count; i++)
+            {
+                PhpLayoutItemLayout(
+                    Manager,
+                    Manager->List->Items[i]
+                    );
+            }
+
+            // A synchronous window message may have invalidated the pass while an
+            // immediate measurement barrier was applied. Recalculate before
+            // committing any ordinary item positions.
+            if (!FlagOn(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_LAYOUT_PENDING))
+            {
+                PhpLayoutManagerApply(Manager, count);
+
+                // Items were moved with SWP_NOREDRAW; repaint the root and its
+                // children once now that every batch has reached its final geometry.
+                if (!Manager->ClipChildren)
+                {
+                    RedrawWindow(
+                        Manager->RootItem.Handle,
+                        NULL,
+                        NULL,
+                        RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN
+                        );
+                }
+
+                // Paint only after every deferred batch has reached its final geometry.
+                for (i = 0; i < count; i++)
+                {
+                    PPH_LAYOUT_ITEM item = Manager->List->Items[i];
+
+                    if (item->LayoutNumber != Manager->LayoutNumber)
+                    {
+                        continue;
+                    }
+
+                    // The root RedrawWindow already covers forced invalidation.
+                    if (Manager->ClipChildren && FlagOn(item->Anchor, PH_LAYOUT_FORCE_INVALIDATE))
+                    {
+                        InvalidateRect(item->Handle, NULL, FALSE);
+                    }
+
+                    if (FlagOn(item->Anchor, PH_LAYOUT_IMMEDIATE_RESIZE))
+                    {
+                        RedrawWindow(
+                            item->Handle,
+                            NULL,
+                            NULL,
+                            RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_UPDATENOW
+                            );
+                    }
+                }
+            }
+        }
+
+        layoutPending = BooleanFlagOn(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_LAYOUT_PENDING);
+        Manager->RootItem.LayoutNumber = 0;
+    } while (layoutPending);
+}
+
+/**
+ * Updates the layout manager's DPI value.
+ *
+ * If WindowDpi is non-zero it is used directly; otherwise the DPI for the
+ * manager's root window is queried.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param WindowDpi New DPI value or 0 to query the root window DPI.
+ */
+VOID PhLayoutManagerUpdate(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ LONG WindowDpi
+    )
+{
+    if (WindowDpi)
+        Manager->WindowDpi = WindowDpi;
+    else
+        Manager->WindowDpi = PhGetWindowDpi(Manager->RootItem.Handle);
+
+    if (FlagOn(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_IN_PROGRESS))
+    {
+        SetFlag(Manager->RootItem.LayoutNumber, PHP_LAYOUT_MANAGER_LAYOUT_PENDING);
+    }
+}
+
+#else
+/**
+ * Initializes a the root layout item instance for the specified window.
+ *
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to initialize.
+ * \param RootWindowHandle Handle of the root window for layout operations.
+ * \return TRUE on success, FALSE on failure.
+ */
+BOOLEAN PhInitializeLayoutManager(
+    _Out_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND RootWindowHandle
+    )
+{
+    memset(Manager, 0, sizeof(PH_LAYOUT_MANAGER));
+
+    Manager->List = PhCreateList(4);
+    if (!Manager->List)
+        return FALSE;
+
+    Manager->WindowDpi = PhGetWindowDpi(RootWindowHandle);
+
+    Manager->RootItem.Handle = RootWindowHandle;
+    Manager->RootItem.ParentItem = NULL;
+    Manager->RootItem.LayoutParentItem = NULL;
+    Manager->RootItem.LayoutNumber = 0;
+    Manager->RootItem.NumberOfChildren = 0;
+    Manager->RootItem.DeferHandle = NULL;
+
+    if (PhGetClientRect(RootWindowHandle, &Manager->RootItem.Rect))
+    {
+        PhGetSizeDpiValue(&Manager->RootItem.Rect, Manager->WindowDpi, FALSE);
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+/**
+ * Destroys a layout manager created by PhInitializeLayoutManager.
+ * \param Manager Pointer to the PH_LAYOUT_MANAGER to delete.
+ */
+VOID PhDeleteLayoutManager(
+    _Inout_ PPH_LAYOUT_MANAGER Manager
+    )
+{
+    ULONG i;
+
+    for (i = 0; i < Manager->List->Count; i++)
+        PhFree(Manager->List->Items[i]);
+
+    PhDereferenceObject(Manager->List);
+}
+
+/**
+ * Adds a layout item for a window using default margin (zero).
+ *
+ * Convenience wrapper around PhAddLayoutItemEx which passes a zero margin.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Handle Window handle to manage.
+ * \param ParentItem Optional parent layout item; if NULL the root item is used.
+ * \param Anchor Anchor flags controlling layout behaviour.
+ * \return Pointer to the newly created PPH_LAYOUT_ITEM, or NULL on failure (e.g. the window rect could not be queried).
+ */
+PPH_LAYOUT_ITEM PhAddLayoutItem(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor
+    )
+{
+    PPH_LAYOUT_ITEM layoutItem;
+    RECT dummy = { 0 };
+
+    layoutItem = PhAddLayoutItemEx(
+        Manager,
+        Handle,
+        ParentItem,
+        Anchor,
+        &dummy
+        );
+
+    if (!layoutItem)
+        return NULL;
+
+    layoutItem->Margin = layoutItem->Rect;
+    PhConvertRect(&layoutItem->Margin, &layoutItem->ParentItem->Rect);
+
+    if (layoutItem->ParentItem != layoutItem->LayoutParentItem)
+    {
+        // Fix the margin because the item has a dummy parent. They share the same layout parent
+        // item.
+        layoutItem->Margin.top -= layoutItem->ParentItem->Rect.top;
+        layoutItem->Margin.left -= layoutItem->ParentItem->Rect.left;
+        layoutItem->Margin.right = layoutItem->ParentItem->Margin.right;
+        layoutItem->Margin.bottom = layoutItem->ParentItem->Margin.bottom;
+    }
+
+    return layoutItem;
+}
+
+/**
+ * Adds a layout item with explicit margin values.
+ *
+ * \param Manager Pointer to the layout manager.
+ * \param Handle Window handle to manage.
+ * \param ParentItem Optional parent layout item; if NULL the root item is used.
+ * \param Anchor Anchor flags controlling layout behaviour.
+ * \param Margin Pointer to a RECT that specifies the margin for the item.
+ * \return Pointer to the newly created PPH_LAYOUT_ITEM.
+ */
+PPH_LAYOUT_ITEM PhAddLayoutItemEx(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_ PRECT Margin
+    )
+{
+    PPH_LAYOUT_ITEM item;
+
     if (!ParentItem)
         ParentItem = &Manager->RootItem;
 
@@ -3119,8 +4057,9 @@ PPH_LAYOUT_ITEM PhAddLayoutItemEx(
  * \param TabControlHandle Handle of the SysTabControl32 window.
  * \param TabControlItem Optionally receives the layout item for the tab control window.
  * \param TabPageItem Receives the dummy parent item for tab page children.
+ * \return TRUE on success, FALSE on failure.
  */
-VOID PhAddTabControlLayoutItem(
+BOOLEAN PhAddTabControlLayoutItem(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND TabControlHandle,
     _Out_opt_ PPH_LAYOUT_ITEM *TabControlItem,
@@ -3133,9 +4072,14 @@ VOID PhAddTabControlLayoutItem(
     tabControlItem = PhAddLayoutItem(Manager, TabControlHandle, NULL, PH_ANCHOR_ALL | PH_LAYOUT_IMMEDIATE_RESIZE);
     tabPageItem = PhAddLayoutItem(Manager, TabControlHandle, NULL, PH_LAYOUT_TAB_CONTROL);
 
+    if (!tabControlItem || !tabPageItem)
+        return FALSE;
+
     if (TabControlItem)
         *TabControlItem = tabControlItem;
     *TabPageItem = tabPageItem;
+
+    return TRUE;
 }
 
 /**
@@ -3180,7 +4124,7 @@ VOID PhpLayoutItemLayout(
 
     MapWindowRect(HWND_DESKTOP, Item->LayoutParentItem->Handle, &Item->Rect);
 
-    if (Item->Anchor & PH_LAYOUT_TAB_CONTROL)
+    if (FlagOn(Item->Anchor, PH_LAYOUT_TAB_CONTROL))
     {
         // We want to convert the tab control rectangle to the tab page display rectangle.
         TabCtrl_AdjustRect(Item->Handle, FALSE, &Item->Rect);
@@ -3188,7 +4132,7 @@ VOID PhpLayoutItemLayout(
 
     PhGetSizeDpiValue(&Item->Rect, Manager->WindowDpi, FALSE);
 
-    if (!(Item->Anchor & PH_LAYOUT_DUMMY_MASK))
+    if (!FlagOn(Item->Anchor, PH_LAYOUT_DUMMY_MASK))
     {
         margin = Item->Margin;
         rect = Item->Rect;
@@ -3197,7 +4141,7 @@ VOID PhpLayoutItemLayout(
         // easier.
         PhConvertRect(&rect, &Item->LayoutParentItem->Rect);
 
-        if (!(Item->Anchor & (PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT)))
+        if (!FlagOn(Item->Anchor, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT))
         {
             // Neither side anchored: keep the item horizontally centered
             // within the parent's new width while preserving the item's
@@ -3215,9 +4159,9 @@ VOID PhpLayoutItemLayout(
             rect.left = newLeft;
             rect.right = parentWidth - (newLeft + itemWidth);
         }
-        else if (Item->Anchor & PH_ANCHOR_RIGHT)
+        else if (FlagOn(Item->Anchor, PH_ANCHOR_RIGHT))
         {
-            if (Item->Anchor & PH_ANCHOR_LEFT)
+            if (FlagOn(Item->Anchor, PH_ANCHOR_LEFT))
             {
                 rect.left = (hasDummyParent ? Item->ParentItem->Rect.left : 0) + margin.left;
                 rect.right = margin.right;
@@ -3231,7 +4175,7 @@ VOID PhpLayoutItemLayout(
             }
         }
 
-        if (!(Item->Anchor & (PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM)))
+        if (!FlagOn(Item->Anchor, PH_ANCHOR_TOP | PH_ANCHOR_BOTTOM))
         {
             // Neither side anchored: keep the item vertically centered
             // within the parent's new height while preserving the item's
@@ -3249,9 +4193,9 @@ VOID PhpLayoutItemLayout(
             rect.top = newTop;
             rect.bottom = parentHeight - (newTop + itemHeight);
         }
-        else if (Item->Anchor & PH_ANCHOR_BOTTOM)
+        else if (FlagOn(Item->Anchor, PH_ANCHOR_BOTTOM))
         {
-            if (Item->Anchor & PH_ANCHOR_TOP)
+            if (FlagOn(Item->Anchor, PH_ANCHOR_TOP))
             {
                 // tab control hack
                 rect.top = (hasDummyParent ? Item->ParentItem->Rect.top : 0) + margin.top;
@@ -3271,7 +4215,7 @@ VOID PhpLayoutItemLayout(
         Item->Rect = rect;
         PhGetSizeDpiValue(&rect, Manager->WindowDpi, TRUE);
 
-        if (!(Item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE))
+        if (!FlagOn(Item->Anchor, PH_LAYOUT_IMMEDIATE_RESIZE))
         {
             Item->LayoutParentItem->DeferHandle = DeferWindowPos(
                 Item->LayoutParentItem->DeferHandle, Item->Handle,
@@ -3334,11 +4278,11 @@ VOID PhLayoutManagerLayout(
             item->DeferHandle = NULL;
         }
 
-        if (item->Anchor & PH_LAYOUT_FORCE_INVALIDATE)
+        if (FlagOn(item->Anchor, PH_LAYOUT_FORCE_INVALIDATE))
         {
             InvalidateRect(item->Handle, NULL, FALSE);
         }
-        else if (item->Anchor & PH_LAYOUT_IMMEDIATE_RESIZE)
+        else if (FlagOn(item->Anchor, PH_LAYOUT_IMMEDIATE_RESIZE))
         {
             // Children have settled into their new positions inside the deferred batch.
             // Repaint the tab frame in one shot to avoid the flash that SWP_NOREDRAW suppressed.
@@ -3372,6 +4316,7 @@ VOID PhLayoutManagerUpdate(
     else
         Manager->WindowDpi = PhGetWindowDpi(Manager->RootItem.Handle);
 }
+#endif
 
 /**
  * Window property context hashtable equality function.
@@ -4256,8 +5201,9 @@ NTSTATUS PhBuildHwndList(
     if (!NtUserBuildHwndList_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    buffer = PhAllocate(bufferSize);
-
+    buffer = PhAllocateZeroSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
+        
     while (TRUE)
     {
         status = NtUserBuildHwndList_Import()(
@@ -4275,7 +5221,8 @@ NTSTATUS PhBuildHwndList(
         {
             PhFree(buffer);
             bufferSize = returnLength;
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateZeroSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -7312,78 +8259,6 @@ PRAWINPUT NTAPI PhGetRawInput(
     return rawInput;
 }
 
-/**
- * Creates a reference-counted font from the supplied parameters and window DPI.
- *
- * Returns an HFONT pointing to the Body field of a private PH_FONT_OBJECT header.
- * The font starts with a reference count of one and must be released with PhDereferenceFont.
- * Use PhReferenceFont to take additional references. The wrapped GDI handle may be NULL if
- * the underlying CreateFont call failed; callers should still dereference to release memory.
- *
- * \param Name Optional typeface name (e.g. L"Segoe UI"). NULL selects the system default.
- * \param Size Point size.
- * \param Weight Font weight (e.g. FW_NORMAL, FW_BOLD).
- * \param PitchAndFamily Pitch and family value passed to CreateFont.
- * \param WindowDpi Window DPI used to scale the font.
- */
-HFONT PhCreateFont(
-    _In_opt_ PCWSTR Name,
-    _In_ LONG Size,
-    _In_ LONG Weight,
-    _In_ LONG PitchAndFamily,
-    _In_ LONG WindowDpi
-    )
-{
-    PPH_FONT_OBJECT fontObject;
-    HFONT font;
-
-    fontObject = PhAllocate(sizeof(PH_FONT_OBJECT));
-    fontObject->RefCount = 1;
-
-    font = PhFontObjectHeaderToObject(fontObject);
-    *(HFONT*)font = PhCreateFontHandle(Name, Size, Weight, PitchAndFamily, WindowDpi);
-
-    return font;
-}
-
-/**
- * Adds a reference to a font previously created with PhCreateFont.
- */
-VOID PhReferenceFont(
-    _In_ HFONT Font
-    )
-{
-    PPH_FONT_OBJECT fontObject;
-
-    fontObject = PhFontObjectToObjectHeader(Font);
-
-    _InterlockedIncrement(&fontObject->RefCount);
-}
-
-/**
- * Releases a reference to a font previously created with PhCreateFont. When the last
- * reference is released the underlying GDI handle is destroyed and the wrapper is freed.
- */
-VOID PhDereferenceFont(
-    _In_ _Post_invalid_ HFONT Font
-    )
-{
-    PPH_FONT_OBJECT fontObject;
-    HFONT fontHandle;
-
-    fontObject = PhFontObjectToObjectHeader(Font);
-
-    if (_InterlockedDecrement(&fontObject->RefCount) == 0)
-    {
-        fontHandle = *(HFONT*)Font;
-
-        if (fontHandle)
-            DeleteFont(fontHandle);
-
-        PhFree(fontObject);
-    }
-}
-
 // Buffered paint
 //
 // Implements a UxTheme-free buffered paint API using per-thread FLS caching for
@@ -7621,13 +8496,14 @@ _Must_inspect_result_
 BOOLEAN PhBeginBufferedPaint(
     _In_ HDC TargetHdc,
     _In_ const RECT* TargetRect,
+    _In_ PH_BUFFERFORMAT Format,
+    _In_opt_ const PH_PAINTPARAMS* PaintParams,
     _Out_ PPH_BUFFERED_PAINT BufferedPaint,
     _Out_ HDC* PaintHdc
     )
 {
     LONG width;
     LONG height;
-    BOOLEAN oversized;
     PPH_BP_CACHE cache;
 
     memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
@@ -7639,8 +8515,7 @@ BOOLEAN PhBeginBufferedPaint(
     if (width <= 0 || height <= 0)
         return FALSE;
 
-    oversized = ((LONGLONG)width * height > (LONGLONG)PH_BP_MAX_CACHE_AREA);
-    cache = oversized ? NULL : PhpGetBufferedPaintCache();
+    cache = PhGetBufferedPaintCache();
 
 #if defined(_DEBUG) || defined(DBG)
     if (cache)
@@ -7651,51 +8526,66 @@ BOOLEAN PhBeginBufferedPaint(
 
     if (cache)
     {
-        if (
-            PhpEnsureBufferedPaintDC(cache, TargetHdc) &&
-            PhpEnsureBufferedPaintBitmap(cache, TargetHdc, width, height)
-            )
-        {
-            BufferedPaint->Cache = cache;
-            BufferedPaint->TargetHdc = TargetHdc;
-            BufferedPaint->TargetRect = *TargetRect;
-            BufferedPaint->PaintWidth = width;
-            BufferedPaint->PaintHeight = height;
-            BufferedPaint->OwnsDc = FALSE;
-            BufferedPaint->OwnsBitmap = FALSE;
-            BufferedPaint->Valid = TRUE;
-            BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
-            SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+        cache->Hdc = CreateCompatibleDC(TargetHdc);
+        cache->Bitmap = PhCreateDIBSection(
+            TargetHdc,
+            PHBF_TOPDOWNDIB,
+            width,
+            height,
+            &cache->Bits
+            );
 
-            cache->InUse = TRUE;
-            *PaintHdc = cache->Hdc;
-            return TRUE;
-        }
-
-        // GDI failure - fall through to the transient path.
-    }
-
-    // Oversized or GDI failure: allocate fresh objects for this call only.
-    {
-        const PPH_BP_CACHE transient = PhpAllocateTransientBufferedPaint(TargetHdc, width, height);
-
-        if (!transient)
-            return FALSE;
-
-        BufferedPaint->Cache = transient;
+        BufferedPaint->Cache = cache;
         BufferedPaint->TargetHdc = TargetHdc;
         BufferedPaint->TargetRect = *TargetRect;
         BufferedPaint->PaintWidth = width;
         BufferedPaint->PaintHeight = height;
-        BufferedPaint->OwnsDc = TRUE;
-        BufferedPaint->OwnsBitmap = TRUE;
+        BufferedPaint->OwnsDc = FALSE;
+        BufferedPaint->OwnsBitmap = FALSE;
         BufferedPaint->Valid = TRUE;
-        BufferedPaint->OldBitmap = SelectBitmap(transient->Hdc, transient->Bitmap);
-        SetWindowOrgEx(transient->Hdc, TargetRect->left, TargetRect->top, NULL);
+        BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
 
-        *PaintHdc = transient->Hdc;
+        // Shift the logical origin so GDI and GDI+ map our original RECT coordinates 
+        // down to (0,0) on the memory bitmap automatically.
+        SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+
+        // Note: Copy the existing screen pixels into our buffer first.
+        // This ensures translucent overlays (like button hovers) don't draw over blackness.
+        BitBlt(
+            cache->Hdc,
+            TargetRect->left,
+            TargetRect->top,
+            width,
+            height,
+            TargetHdc,
+            TargetRect->left,
+            TargetRect->top,
+            SRCCOPY
+            );
+
+        // Note: The bitmap is a per-thread cache shared by every unrelated control that
+        // calls PhBeginBufferedPaint, and it is never reset between acquisitions. If the
+        // caller's paint routine doesn't cover its whole TargetRect (a clipped sub-region,
+        // a gap between fills, an early-out), the uncovered pixels are whatever a
+        // completely different control last painted there - visible as unrelated stale
+        // content (e.g. solid black blocks) bleeding through. Clear the whole DIB surface
+        // every time so callers always start from a deterministic blank canvas. Bits is a
+        // flat buffer (AllocWidth x AllocHeight, 32bpp) we own directly, so a straight
+        // memset is simpler and cheaper than a PatBlt and sidesteps any confusion between
+        // logical and device coordinates from the SetWindowOrgEx above. (dmex)
+        if (cache->Bits)
+        {
+            memset(cache->Bits, RGB(255, 0, 0), (SIZE_T)cache->AllocWidth * cache->AllocHeight * sizeof(ULONG));
+        }
+
+        cache->InUse = TRUE;
+        *PaintHdc = cache->Hdc;
         return TRUE;
     }
+
+    // GDI failure - fall through to the transient path.
+
+    return FALSE;
 }
 
 /**
@@ -7976,42 +8866,6 @@ BOOLEAN PhGetBufferedPaintTargetRect(
 
     *Rect = BufferedPaint->TargetRect;
     return TRUE;
-}
-
-/**
- * Convenience wrapper that buffers a WM_PAINT into an off-screen surface and
- * invokes PaintProc with the buffer DC, falling back to direct painting when a
- * buffer cannot be acquired.
- *
- * \param WindowHandle The window being painted.
- * \param PaintStruct The PAINTSTRUCT from BeginPaint.
- * \param PaintProc The callback that performs the actual drawing.
- * \param Context Caller context passed through to PaintProc.
- */
-VOID PhPaintBuffered(
-    _In_ HWND WindowHandle,
-    _In_ const PAINTSTRUCT* PaintStruct,
-    _In_ PPH_BUFFERED_PAINT_PROC PaintProc,
-    _In_opt_ PVOID Context
-    )
-{
-    PH_BUFFERED_PAINT bufferedPaint;
-    HDC paintHdc;
-
-    assert(WindowHandle);
-    assert(PaintStruct);
-    assert(PaintProc);
-
-    if (PhBeginBufferedPaint(PaintStruct->hdc, &PaintStruct->rcPaint, &bufferedPaint, &paintHdc))
-    {
-        BOOLEAN result = PaintProc(paintHdc, (PRECT)&PaintStruct->rcPaint, Context);
-
-        PhEndBufferedPaint(&bufferedPaint, result);
-    }
-    else
-    {
-        PaintProc(PaintStruct->hdc, (PRECT)&PaintStruct->rcPaint, Context);
-    }
 }
 
 COLORREF NTAPI PhHeatMapColor(
