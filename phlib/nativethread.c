@@ -2785,7 +2785,7 @@ NTSTATUS PhGetThreadIsFiber(
  *
  * \remarks The operating system will not switch execution to another processor, even if that processor is idle or is running a thread of lower priority.
  * \return If calling the SwitchToThread function caused the operating system to switch execution to another thread, the return value is nonzero.
- * \rthere are no other threads ready to execute, the operating system does not switch execution to another thread, and the return value is zero.
+ * If there are no other threads ready to execute, the operating system does not switch execution to another thread, and the return value is zero.
  */
 BOOLEAN PhSwitchToThread(
     VOID
@@ -3509,7 +3509,7 @@ CleanupExit:
  * \param[in] ProcessHandle A handle to the process to be terminated.
  * \param[in] ExitStatus The exit status code to be used when terminating the process.
  * \param[in] Timeout Optional. The timeout, in milliseconds, to wait for the termination thread to complete.
- * If NULL, the function will wait indefinitely.
+ * If zero, the function will wait indefinitely.
  * \return NTSTATUS Successful or errant status.
  * \remarks This function attempts to terminate the specified process by creating a remote thread
  * that calls RtlExitUserProcess. On Windows 8 and later, it creates an execution required power request

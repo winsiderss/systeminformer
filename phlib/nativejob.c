@@ -243,7 +243,7 @@ NTSTATUS PhCreateConfiguredJobObject(
 {
     NTSTATUS status;
     HANDLE jobHandle;
-    JOBOBJECT_BASIC_LIMIT_INFORMATION basicLimits;
+    JOBOBJECT_EXTENDED_LIMIT_INFORMATION extendedLimits;
     JOBOBJECT_BASIC_UI_RESTRICTIONS uiRestrictions;
     JOBOBJECT_END_OF_JOB_TIME_INFORMATION endOfJobInfo;
 
@@ -252,14 +252,14 @@ NTSTATUS PhCreateConfiguredJobObject(
     if (!NT_SUCCESS(status))
         return status;
 
-    memset(&basicLimits, 0, sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION));
-    basicLimits.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+    memset(&extendedLimits, 0, sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION));
+    extendedLimits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
 
     status = NtSetInformationJobObject(
         jobHandle,
-        JobObjectBasicLimitInformation,
-        &basicLimits,
-        sizeof(JOBOBJECT_BASIC_LIMIT_INFORMATION)
+        JobObjectExtendedLimitInformation,
+        &extendedLimits,
+        sizeof(JOBOBJECT_EXTENDED_LIMIT_INFORMATION)
         );
 
     if (!NT_SUCCESS(status))

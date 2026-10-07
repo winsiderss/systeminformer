@@ -12,7 +12,6 @@
 #include <ph.h>
 #include <mapldr.h>
 #include <appresolver.h>
-#include <appxclient.h>
 #include <windows.storage.pickers.h>
 
 #if defined(PH_NATIVE_WINDOWS_RUNTIME_STRING)
@@ -910,6 +909,8 @@ DEFINE_GUID(IID_IPackage8, 0x2c584f7b, 0xce2a, 0x4be6, 0xa0, 0x93, 0x77, 0xcf, 0
 DEFINE_GUID(IID_IAppListEntry2, 0xd0a618ad, 0xbf35, 0x42ac, 0xac, 0x06, 0x86, 0xee, 0xeb, 0x41, 0xd0, 0x4b);
 // cf7f59b3-6a09-4de8-a6c0-5792d56880d1
 DEFINE_GUID(IID_IAppInfo, 0xcf7f59b3, 0x6a09, 0x4de8, 0xa6, 0xc0, 0x57, 0x92, 0xd5, 0x68, 0x80, 0xd1);
+// 2ca8278a-12c5-4c5f-8977-94547793c241
+DEFINE_GUID(IID_IFileOpenPicker, 0x2ca8278a, 0x12c5, 0x4c5f, 0x89, 0x77, 0x94, 0x54, 0x77, 0x93, 0xc2, 0x41);
 // 4207a996-ca2f-42f7-bde8-8b10457a7f30
 DEFINE_GUID(IID_IStorageItem, 0x4207a996, 0xca2f, 0x42f7, 0xbd, 0xe8, 0x8b, 0x10, 0x45, 0x7a, 0x7f, 0x30);
 
@@ -2013,7 +2014,7 @@ HRESULT PhShowWindowsRuntimeOpenFileDialog(
     status = PhActivateInstance(
         L"twinui.appcore.dll",
         RuntimeClass_Windows_Storage_Pickers_FileOpenPicker,
-        &IID___x_ABI_CWindows_CStorage_CPickers_CIFileOpenPicker,
+        &IID_IFileOpenPicker,
         &picker
         );
     if (HR_FAILED(status))
@@ -2053,7 +2054,7 @@ HRESULT PhShowWindowsRuntimeOpenFileDialog(
         goto Cleanup;
     }
 
-    status = IUnknown_QueryInterface((IUnknown*)file, &IID___x_ABI_CWindows_CStorage_CIStorageItem, &item);
+    status = IUnknown_QueryInterface((IUnknown*)file, &IID_IStorageItem, &item);
     if (HR_FAILED(status))
         goto Cleanup;
 

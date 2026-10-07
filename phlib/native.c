@@ -106,7 +106,9 @@ NTSTATUS PhConvertSidToStringRef(
 
     if (AllocateDestinationString)
     {
-        buffer = PhAllocate(length + sizeof(UNICODE_NULL));
+        buffer = PhAllocateSafe(length + sizeof(UNICODE_NULL));
+        if (!buffer)
+            return STATUS_NO_MEMORY;
     }
     else
     {
@@ -143,7 +145,8 @@ NTSTATUS PhGetObjectSecurity(
     PVOID buffer;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
     // This is required (especially for File objects) because some drivers don't seem to handle
     // QuerySecurity properly. (wj32)
     memset(buffer, 0, bufferSize);
@@ -159,7 +162,8 @@ NTSTATUS PhGetObjectSecurity(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
         memset(buffer, 0, bufferSize);
 
         status = NtQuerySecurityObject(
@@ -269,7 +273,9 @@ NTSTATUS PhMergeSystemAcls(
         if (LowerSacl->AclSize > USHORT_MAX)
             return STATUS_INVALID_PARAMETER;
 
-        mergedSacl = (PACL)PhAllocate(LowerSacl->AclSize);
+        mergedSacl = (PACL)PhAllocateSafe(LowerSacl->AclSize);
+        if (!mergedSacl)
+            return STATUS_NO_MEMORY;
         RtlCopyMemory(mergedSacl, LowerSacl, LowerSacl->AclSize);
         *MergedSacl = mergedSacl;
         return STATUS_SUCCESS;
@@ -328,7 +334,9 @@ NTSTATUS PhMergeSystemAcls(
     if (requiredSize > USHORT_MAX)
         return STATUS_INVALID_PARAMETER;
 
-    mergedSacl = (PACL)PhAllocate(requiredSize);
+    mergedSacl = (PACL)PhAllocateSafe(requiredSize);
+    if (!mergedSacl)
+        return STATUS_NO_MEMORY;
     mergedAce = (PACE_HEADER)PTR_ADD_OFFSET(mergedSacl, sizeof(ACL));
 
     status = PhCreateAcl(mergedSacl, requiredSize, ACL_REVISION);
@@ -556,7 +564,12 @@ NTSTATUS PhMergeSecurityDescriptors(
         goto CleanupExit;
     }
 
-    relativeSecurityDescriptor = PhAllocate(requiredLength);
+    relativeSecurityDescriptor = PhAllocateSafe(requiredLength);
+    if (!relativeSecurityDescriptor)
+    {
+        status = STATUS_NO_MEMORY;
+        goto CleanupExit;
+    }
 
     status = PhAbsoluteToSelfRelativeSD(
         &mergedSecurityDescriptor,
@@ -718,7 +731,9 @@ NTSTATUS PhQueryEnvironmentVariable(
     {
         variableValue.Length = 0x100 * sizeof(WCHAR);
         variableValue.MaximumLength = variableValue.Length + sizeof(UNICODE_NULL);
-        variableValue.Buffer = PhAllocate(variableValue.MaximumLength);
+        variableValue.Buffer = PhAllocateSafe(variableValue.MaximumLength);
+        if (!variableValue.Buffer)
+            return STATUS_NO_MEMORY;
     }
     else
     {
@@ -739,7 +754,9 @@ NTSTATUS PhQueryEnvironmentVariable(
             variableValue.MaximumLength = variableValue.Length + sizeof(UNICODE_NULL);
 
         PhFree(variableValue.Buffer);
-        variableValue.Buffer = PhAllocate(variableValue.MaximumLength);
+        variableValue.Buffer = PhAllocateSafe(variableValue.MaximumLength);
+        if (!variableValue.Buffer)
+            return STATUS_NO_MEMORY;
 
         status = RtlQueryEnvironmentVariable_U(
             Environment,
@@ -1083,7 +1100,9 @@ NTSTATUS PhTraceControlVariableSize(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         bufferLength = returnLength;
-        buffer = PhAllocate(bufferLength);
+        buffer = PhAllocateSafe(bufferLength);
+        if (!buffer)
+            return STATUS_NO_MEMORY;
 
         status = NtTraceControl(
             TraceInformationClass,
@@ -1342,7 +1361,9 @@ NTSTATUS PhpQueryDriverVariableSize(
     if (status == STATUS_BUFFER_TOO_SMALL)
     {
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer)
+            return STATUS_NO_MEMORY;
 
         status = KphQueryInformationDriver(
             DriverHandle,
@@ -1977,7 +1998,8 @@ NTSTATUS PhEnumProcessesForSession(
     ULONG bufferSize;
 
     bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     sessionProcessInfo.SessionId = SessionId;
 
@@ -1996,7 +2018,8 @@ NTSTATUS PhEnumProcessesForSession(
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -2090,7 +2113,8 @@ NTSTATUS PhEnumHandles(
     ULONG bufferSize;
 
     bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while ((status = NtQuerySystemInformation(
         SystemHandleInformation,
@@ -2106,7 +2130,8 @@ NTSTATUS PhEnumHandles(
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
     }
 
     if (!NT_SUCCESS(status))
@@ -2142,7 +2167,8 @@ NTSTATUS PhEnumHandlesEx(
     ULONG attempts = 0;
 
     bufferSize = initialBufferSize;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformation(
         SystemExtendedHandleInformation,
@@ -2155,7 +2181,8 @@ NTSTATUS PhEnumHandlesEx(
     {
         PhFree(buffer);
         bufferSize = returnLength;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformation(
             SystemExtendedHandleInformation,
@@ -2171,7 +2198,8 @@ NTSTATUS PhEnumHandlesEx(
     {
         // Fall back to using the previous code that we've used since Windows XP (dmex)
         bufferSize = initialBufferSize;
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         while ((status = NtQuerySystemInformation(
             SystemExtendedHandleInformation,
@@ -2187,7 +2215,8 @@ NTSTATUS PhEnumHandlesEx(
             if (bufferSize > PH_LARGE_BUFFER_SIZE)
                 return STATUS_INSUFFICIENT_RESOURCES;
 
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
     }
 
@@ -2315,7 +2344,12 @@ NTSTATUS PhEnumHandlesGeneric(
 
         if (NT_SUCCESS(status = KsiEnumerateProcessHandles(ProcessHandle, &handles)))
         {
-            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->HandleCount]));
+            convertedHandles = PhAllocateSafe(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->HandleCount]));
+            if (!convertedHandles)
+            {
+                PhFree(handles);
+                return STATUS_NO_MEMORY;
+            }
             convertedHandles->NumberOfHandles = handles->HandleCount;
 
             for (i = 0; i < handles->HandleCount; i++)
@@ -2345,7 +2379,12 @@ NTSTATUS PhEnumHandlesGeneric(
 
         if (NT_SUCCESS(status = PhEnumProcessHandles(ProcessHandle, &handles)))
         {
-            convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->NumberOfHandles]));
+            convertedHandles = PhAllocateSafe(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[handles->NumberOfHandles]));
+            if (!convertedHandles)
+            {
+                PhFreePage(handles);
+                return STATUS_NO_MEMORY;
+            }
             convertedHandles->NumberOfHandles = handles->NumberOfHandles;
 
             for (i = 0; i < handles->NumberOfHandles; i++)
@@ -2391,7 +2430,12 @@ NTSTATUS PhEnumHandlesGeneric(
 
             if (numberOfHandles)
             {
-                convertedHandles = PhAllocate(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
+                convertedHandles = PhAllocateSafe(UFIELD_OFFSET(SYSTEM_HANDLE_INFORMATION_EX, Handles[numberOfHandles]));
+                if (!convertedHandles)
+                {
+                    PhFree(handles);
+                    return STATUS_NO_MEMORY;
+                }
                 convertedHandles->NumberOfHandles = numberOfHandles;
 
                 if (lastIndex == firstIndex + numberOfHandles - 1) // consecutive
@@ -2450,7 +2494,8 @@ NTSTATUS PhEnumPagefiles(
     PVOID buffer;
     ULONG bufferSize = 0x200;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while ((status = NtQuerySystemInformation(
         SystemPageFileInformation,
@@ -2466,7 +2511,8 @@ NTSTATUS PhEnumPagefiles(
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
     }
 
     if (!NT_SUCCESS(status))
@@ -2495,7 +2541,8 @@ NTSTATUS PhEnumPagefilesEx(
     PVOID buffer;
     ULONG bufferSize = 0x200;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while ((status = NtQuerySystemInformation(
         SystemPageFileInformationEx,
@@ -2511,7 +2558,8 @@ NTSTATUS PhEnumPagefilesEx(
         if (bufferSize > PH_LARGE_BUFFER_SIZE)
             return STATUS_INSUFFICIENT_RESOURCES;
 
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
     }
 
     if (!NT_SUCCESS(status))
@@ -2541,7 +2589,8 @@ NTSTATUS PhEnumPoolTagInformation(
     ULONG attempts;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformation(
         SystemPoolTagInformation,
@@ -2554,7 +2603,8 @@ NTSTATUS PhEnumPoolTagInformation(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformation(
             SystemPoolTagInformation,
@@ -2589,7 +2639,8 @@ NTSTATUS PhEnumBigPoolInformation(
     ULONG attempts;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformation(
         SystemBigPoolInformation,
@@ -2601,7 +2652,9 @@ NTSTATUS PhEnumBigPoolInformation(
 
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
-        buffer = PhReAllocate(buffer, bufferSize);
+        PhFree(buffer);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformation(
             SystemBigPoolInformation,
@@ -3227,7 +3280,9 @@ VOID PhpInitializeDevicePrefixes(
     PWCHAR buffer;
 
     // Allocate one buffer for all 26 prefixes to reduce overhead.
-    buffer = PhAllocate(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR) * 26);
+    buffer = PhAllocateSafe(PH_DEVICE_PREFIX_LENGTH * sizeof(WCHAR) * 26);
+    if (!buffer)
+        return;
 
     for (i = 0; i < 26; i++)
     {
@@ -3428,7 +3483,8 @@ NTSTATUS PhGetVolumeMountPoints(
     ULONG attempts = 16;
 
     outputBufferLength = 0x800;
-    outputBuffer = PhAllocate(outputBufferLength);
+    outputBuffer = PhAllocateSafe(outputBufferLength);
+    if (!outputBuffer) return STATUS_NO_MEMORY;
 
     do
     {
@@ -3456,7 +3512,8 @@ NTSTATUS PhGetVolumeMountPoints(
             if (outputBufferLength > PH_LARGE_BUFFER_SIZE)
                 return STATUS_INSUFFICIENT_RESOURCES;
 
-            outputBuffer = PhAllocate(outputBufferLength);
+            outputBuffer = PhAllocateSafe(outputBufferLength);
+            if (!outputBuffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -3508,7 +3565,12 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
     RtlCopyMemory(inputBuffer->DeviceName, VolumeName->Buffer, VolumeName->Length);
 
     outputBufferLength = UFIELD_OFFSET(MOUNTMGR_VOLUME_PATHS, MultiSz[DOS_MAX_PATH_LENGTH]) + sizeof(UNICODE_NULL);
-    outputBuffer = PhAllocate(outputBufferLength);
+    outputBuffer = PhAllocateSafe(outputBufferLength);
+    if (!outputBuffer)
+    {
+        PhFreeStack(inputBuffer);
+        return STATUS_NO_MEMORY;
+    }
 
     do
     {
@@ -3532,7 +3594,12 @@ NTSTATUS PhGetVolumePathNamesForVolumeName(
         {
             outputBufferLength = (outputBuffer->MultiSzLength * sizeof(WCHAR)) + sizeof(UNICODE_NULL);
             PhFree(outputBuffer);
-            outputBuffer = PhAllocate(outputBufferLength);
+            outputBuffer = PhAllocateSafe(outputBufferLength);
+            if (!outputBuffer)
+            {
+                PhFreeStack(inputBuffer);
+                return STATUS_NO_MEMORY;
+            }
         }
         else
         {
@@ -4437,7 +4504,9 @@ PPH_STRING PhGetLongPathName(
         goto CleanupExit;
 
     directoryInfoLength = PAGE_SIZE;
-    directoryInfoBuffer = PhAllocate(directoryInfoLength);
+    directoryInfoBuffer = PhAllocateSafe(directoryInfoLength);
+    if (!directoryInfoBuffer)
+        goto CleanupExit;
 
     status = NtQueryDirectoryFile(
         fileHandle,
@@ -4662,7 +4731,7 @@ NTSTATUS PhQueryProcessHeapInformation(
         return status;
     }
 
-    heapDebugInfo = PhAllocateZero(heapDebugInfoLength);
+    heapDebugInfo = PhAllocateZeroSafe(heapDebugInfoLength);
 
     if (!heapDebugInfo)
     {
@@ -4979,7 +5048,9 @@ NTSTATUS PhGetFirmwareEnvironmentVariable(
     if (status != STATUS_BUFFER_TOO_SMALL)
         return STATUS_UNSUCCESSFUL;
 
-    valueBuffer = PhAllocate(valueLength);
+    valueBuffer = PhAllocateSafe(valueLength);
+    if (!valueBuffer)
+        return STATUS_NO_MEMORY;
     memset(valueBuffer, 0, valueLength);
 
     status = NtQuerySystemEnvironmentValueEx(
@@ -5072,7 +5143,8 @@ NTSTATUS PhEnumFirmwareEnvironmentValues(
     ULONG bufferLength;
 
     bufferLength = PAGE_SIZE;
-    buffer = PhAllocate(bufferLength);
+    buffer = PhAllocateSafe(bufferLength);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -5085,7 +5157,8 @@ NTSTATUS PhEnumFirmwareEnvironmentValues(
         if (status == STATUS_BUFFER_TOO_SMALL || status == STATUS_INFO_LENGTH_MISMATCH)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferLength);
+            buffer = PhAllocateSafe(bufferLength);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -6016,7 +6089,8 @@ NTSTATUS PhGetSystemProcessorPerformanceDistribution(
     ULONG attempts;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformation(
         SystemProcessorPerformanceDistribution,
@@ -6029,7 +6103,8 @@ NTSTATUS PhGetSystemProcessorPerformanceDistribution(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformation(
             SystemProcessorPerformanceDistribution,
@@ -6067,7 +6142,8 @@ NTSTATUS PhGetSystemProcessorPerformanceDistributionEx(
     ULONG attempts;
 
     bufferSize = 0x100;
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformationEx(
         SystemProcessorPerformanceDistribution,
@@ -6082,7 +6158,8 @@ NTSTATUS PhGetSystemProcessorPerformanceDistributionEx(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformationEx(
             SystemProcessorPerformanceDistribution,
@@ -6122,7 +6199,8 @@ NTSTATUS PhGetSystemProcessorPerformanceInformationEx(
     ULONG bufferSize;
 
     bufferSize = sizeof(SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION_EX) * PhSystemProcessorInformation.NumberOfProcessors;
-    buffer = PhAllocateZero(bufferSize);
+    buffer = PhAllocateZeroSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     if (PhSystemProcessorInformation.SingleProcessorGroup)
     {
@@ -6186,7 +6264,8 @@ NTSTATUS PhGetSystemProcessorIdleInformation(
     ULONG bufferSize;
 
     bufferSize = sizeof(SYSTEM_PROCESSOR_IDLE_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors;
-    buffer = PhAllocateZero(bufferSize);
+    buffer = PhAllocateZeroSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     if (PhSystemProcessorInformation.SingleProcessorGroup)
     {
@@ -6251,7 +6330,8 @@ NTSTATUS PhGetSystemProcessorCycleStatsInformation(
     USHORT processorCount = 0;
 
     bufferSize = sizeof(SYSTEM_PROCESSOR_CYCLE_STATS_INFORMATION) * PhSystemProcessorInformation.NumberOfProcessors;
-    buffer = PhAllocateZero(bufferSize);
+    buffer = PhAllocateZeroSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     for (USHORT processorGroup = 0; processorGroup < PhSystemProcessorInformation.NumberOfProcessorGroups; processorGroup++)
     {
@@ -6548,7 +6628,8 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     }
 
     bufferSize = initialBufferSize[classIndex];
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     status = NtQuerySystemInformationEx(
         SystemLogicalProcessorAndGroupInformation,
@@ -6563,7 +6644,8 @@ NTSTATUS PhGetSystemLogicalProcessorInformation(
     while (status == STATUS_INFO_LENGTH_MISMATCH && attempts < 8)
     {
         PhFree(buffer);
-        buffer = PhAllocate(bufferSize);
+        buffer = PhAllocateSafe(bufferSize);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = NtQuerySystemInformationEx(
             SystemLogicalProcessorAndGroupInformation,
@@ -8167,7 +8249,9 @@ NTSTATUS PhEnumVirtualMemoryBulk(
         PH_ARRAY entries;
 
         bufferLength = sizeof(NTPSS_MEMORY_BULK_INFORMATION) + sizeof(MEMORY_BASIC_INFORMATION[256]);
-        buffer = PhAllocate(bufferLength);
+        buffer = PhAllocateSafe(bufferLength);
+        if (!buffer)
+            return STATUS_NO_MEMORY;
         buffer->QueryFlags = MEMORY_BULK_INFORMATION_FLAG_BASIC;
         buffer->NextValidAddress = BaseAddress;
 
@@ -8343,7 +8427,7 @@ NTSTATUS PhEnumVirtualMemoryAttributes(
 
     if (!info)
     {
-        status = STATUS_UNSUCCESSFUL;
+        status = STATUS_NO_MEMORY;
         goto CleanupExit;
     }
 
@@ -8521,7 +8605,12 @@ BOOLEAN PhIsAppExecutionAliasTarget(
     }
 
     reparseLength = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
-    reparseBuffer = PhAllocateZero(reparseLength);
+    reparseBuffer = PhAllocateZeroSafe(reparseLength);
+    if (!reparseBuffer)
+    {
+        NtClose(fileHandle);
+        return FALSE;
+    }
 
     if (NT_SUCCESS(NtFsControlFile(
         fileHandle,

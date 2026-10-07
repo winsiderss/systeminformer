@@ -97,7 +97,7 @@ static int __cdecl PhpCompareImageCoherencyRva(
 * \param[in,out] Context - Image coherency context. MappedImageReloc should be
 * populated before this is called. Sets MappedImageSkipIndexReady on return.
 */
-static VOID PhpInitializeImageCoherencySkipIndex(
+static NTSTATUS PhpInitializeImageCoherencySkipIndex(
     _Inout_ PPH_IMAGE_COHERENCY_CONTEXT Context
     )
 {
@@ -106,16 +106,19 @@ static VOID PhpInitializeImageCoherencySkipIndex(
 
     if (Context->MappedImageReloc && Context->MappedImageReloc->Count)
     {
-        Context->MappedImageRelocRvas = PhAllocate(
+        Context->MappedImageRelocRvas = PhAllocateSafe(
             (SIZE_T)Context->MappedImageReloc->Count * sizeof(ULONG)
             );
+        if (!Context->MappedImageRelocRvas) return STATUS_NO_MEMORY;
 
         while (PhEnumHashtable(Context->MappedImageReloc, &entry, &enumerationKey))
         {
             // The callback accepts a ULONG RVA. Keys above that range cannot
             // match it, and must not be truncated into a different skip start.
             if ((ULONG_PTR)entry->Key <= ULONG_MAX)
+            {
                 Context->MappedImageRelocRvas[Context->MappedImageRelocRvaCount++] = PtrToUlong(entry->Key);
+            }
         }
 
         qsort(Context->MappedImageRelocRvas, Context->MappedImageRelocRvaCount,
@@ -123,6 +126,7 @@ static VOID PhpInitializeImageCoherencySkipIndex(
     }
 
     Context->MappedImageSkipIndexReady = TRUE;
+    return STATUS_SUCCESS;
 }
 
 /**

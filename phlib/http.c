@@ -2408,13 +2408,14 @@ static NTSTATUS PhCreateDnsMessageBuffer(
 {
     BOOLEAN status;
     ULONG dnsBufferLength;
-    PDNS_MESSAGE_BUFFER dnsBuffer;
+    PDNS_MESSAGE_BUFFER buffer;
 
     dnsBufferLength = PAGE_SIZE;
-    dnsBuffer = PhAllocate(dnsBufferLength);
+    buffer = PhAllocateSafe(dnsBufferLength);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     if (!(status = !!DnsWriteQuestionToBuffer_W_I(
-        dnsBuffer,
+        buffer,
         &dnsBufferLength,
         Message,
         MessageType,
@@ -2422,8 +2423,9 @@ static NTSTATUS PhCreateDnsMessageBuffer(
         TRUE
         )))
     {
-        PhFree(dnsBuffer);
-        dnsBuffer = PhAllocate(dnsBufferLength);
+        PhFree(buffer);
+        buffer = PhAllocateSafe(dnsBufferLength);
+        if (!buffer) return STATUS_NO_MEMORY;
 
         status = !!DnsWriteQuestionToBuffer_W_I(
             dnsBuffer,
@@ -2438,9 +2440,9 @@ static NTSTATUS PhCreateDnsMessageBuffer(
     if (status)
     {
         if (Buffer)
-            *Buffer = dnsBuffer;
+            *Buffer = buffer;
         else
-            PhFree(dnsBuffer);
+            PhFree(buffer);
 
         if (BufferLength)
             *BufferLength = dnsBufferLength;
@@ -2449,8 +2451,8 @@ static NTSTATUS PhCreateDnsMessageBuffer(
     }
     else
     {
-        if (dnsBuffer)
-            PhFree(dnsBuffer);
+        if (buffer)
+            PhFree(buffer);
 
         return STATUS_UNSUCCESSFUL;
     }

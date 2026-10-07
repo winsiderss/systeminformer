@@ -138,12 +138,27 @@ LRESULT CALLBACK PhpHexEditWndProc(
         break;
     case WM_PAINT:
         {
+            RECT clientRect;
             PAINTSTRUCT paintStruct;
             HDC hdc;
 
+            GetClientRect(hwnd, &clientRect);
+
             if (hdc = BeginPaint(hwnd, &paintStruct))
             {
-                PhpHexEditOnPaint(hwnd, context, &paintStruct, hdc);
+                PH_BUFFERED_PAINT bufferedPaint;
+                HDC bufferDc;
+
+                if (PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc))
+                {
+                    PhpHexEditOnPaint(hwnd, context, &clientRect, bufferDc);
+                    PhEndBufferedPaint(&bufferedPaint, TRUE);
+                }
+                else
+                {
+                    PhpHexEditOnPaint(hwnd, context, &clientRect, hdc);
+                }
+
                 EndPaint(hwnd, &paintStruct);
             }
         }
@@ -377,6 +392,13 @@ LRESULT CALLBACK PhpHexEditWndProc(
             if (context->HasCapture && PhpHexEditHasSelected(context))
                 ReleaseCapture();
 
+            context->HasCapture = FALSE;
+        }
+        break;
+    case WM_CAPTURECHANGED:
+        {
+            // Capture can be lost without a button-up (menus, modal dialogs);
+            // clear the drag state so mouse moves don't extend the selection.
             context->HasCapture = FALSE;
         }
         break;
@@ -1051,14 +1073,10 @@ VOID PhpHexEditUpdateMetrics(
 VOID PhpHexEditOnPaint(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
-    _In_ PAINTSTRUCT *PaintStruct,
+    _In_ RECT* clientRect,
     _In_ HDC hdc
     )
 {
-    RECT clientRect;
-    PH_BUFFERED_PAINT bufferedPaint;
-    HDC bufferDc;
-    BOOLEAN buffered;
     LONG height;
     LONG x;
     LONG y;
@@ -1066,17 +1084,10 @@ VOID PhpHexEditOnPaint(
     ULONG requiredBufferLength;
     PWCHAR buffer;
 
-    GetClientRect(hwnd, &clientRect);
-
-    buffered = PhBeginBufferedPaint(hdc, &PaintStruct->rcPaint, &bufferedPaint, &bufferDc);
-
-    if (!buffered)
-        bufferDc = hdc;
-
-    SetDCBrushColor(bufferDc, GetSysColor(COLOR_WINDOW));
-    FillRect(bufferDc, &clientRect, PhGetStockBrush(DC_BRUSH));
-    SelectFont(bufferDc, Context->Font);
-    SetBoundsRect(bufferDc, &clientRect, DCB_DISABLE);
+    SetDCBrushColor(hdc, GetSysColor(COLOR_WINDOW));
+    FillRect(hdc, clientRect, PhGetStockBrush(DC_BRUSH));
+    SelectFont(hdc, Context->Font);
+    SetBoundsRect(hdc, clientRect, DCB_DISABLE);
 
     requiredBufferLength = (max(8, Context->BytesPerRow * 3) + 1) * sizeof(WCHAR);
 
@@ -1097,12 +1108,12 @@ VOID PhpHexEditOnPaint(
         // Get character dimensions.
         if (Context->Update)
         {
-            PhpHexEditUpdateMetrics(hwnd, Context, TRUE, bufferDc);
+            PhpHexEditUpdateMetrics(hwnd, Context, TRUE, hdc);
             Context->Update = FALSE;
             PhpHexEditUpdateScrollbars(hwnd, Context);
         }
 
-        height = (clientRect.bottom + Context->LineHeight - 1) / Context->LineHeight * Context->LineHeight; // round up to height
+        height = (clientRect->bottom + Context->LineHeight - 1) / Context->LineHeight * Context->LineHeight; // round up to height
 
         if (Context->ShowAddress)
         {
@@ -1116,7 +1127,7 @@ VOID PhpHexEditOnPaint(
 
             w = Context->AddressIsWide ? 8 : 4;
 
-            rect = clientRect;
+            rect = *clientRect;
             rect.left = Context->AddressOffset;
             rect.top = 0;
 
@@ -1124,7 +1135,7 @@ VOID PhpHexEditOnPaint(
             {
                 format.u.Int32 = i;
                 PhFormatToBuffer(&format, 1, buffer, requiredBufferLength, NULL);
-                DrawText(bufferDc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
+                DrawText(hdc, buffer, w, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                 rect.top += Context->LineHeight;
             }
         }
@@ -1136,7 +1147,7 @@ VOID PhpHexEditOnPaint(
 
             x = Context->HexOffset;
             y = 0;
-            rect = clientRect;
+            rect = *clientRect;
             rect.left = x;
             rect.top = 0;
 
@@ -1172,27 +1183,27 @@ VOID PhpHexEditOnPaint(
 
                 for (i = Context->TopIndex; i < selStart && y < height; i++)
                 {
-                    PhpPrintHex(bufferDc, Context, buffer, Context->Data[i], &x, &y, &n);
+                    PhpPrintHex(hdc, Context, buffer, Context->Data[i], &x, &y, &n);
                 }
 
                 // Bytes in the selection
 
-                SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                SetBkColor(bufferDc, highlightColor);
+                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                SetBkColor(hdc, highlightColor);
 
                 for (; i < selEnd && i < Context->Length && y < height; i++)
                 {
-                    PhpPrintHex(bufferDc, Context, buffer, Context->Data[i], &x, &y, &n);
+                    PhpPrintHex(hdc, Context, buffer, Context->Data[i], &x, &y, &n);
                 }
 
                 // Bytes after the selection
 
-                SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
-                SetBkColor(bufferDc, GetSysColor(COLOR_WINDOW));
+                SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 
                 for (; i < Context->Length && y < height; i++)
                 {
-                    PhpPrintHex(bufferDc, Context, buffer, Context->Data[i], &x, &y, &n);
+                    PhpPrintHex(hdc, Context, buffer, Context->Data[i], &x, &y, &n);
                 }
             }
             else
@@ -1219,7 +1230,7 @@ VOID PhpHexEditOnPaint(
                         n++;
                     }
 
-                    DrawText(bufferDc, buffer, Context->BytesPerRow * 3, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
+                    DrawText(hdc, buffer, Context->BytesPerRow * 3, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                     rect.top += Context->LineHeight;
                 }
             }
@@ -1232,7 +1243,7 @@ VOID PhpHexEditOnPaint(
 
             x = Context->AsciiOffset;
             y = 0;
-            rect = clientRect;
+            rect = *clientRect;
             rect.left = x;
             rect.top = 0;
 
@@ -1268,27 +1279,27 @@ VOID PhpHexEditOnPaint(
 
                 for (i = Context->TopIndex; i < selStart && y < height; i++)
                 {
-                    PhpPrintAscii(bufferDc, Context, Context->Data[i], &x, &y, &n);
+                    PhpPrintAscii(hdc, Context, Context->Data[i], &x, &y, &n);
                 }
 
                 // Bytes in the selection
 
-                SetTextColor(bufferDc, GetSysColor(COLOR_HIGHLIGHTTEXT));
-                SetBkColor(bufferDc, highlightColor);
+                SetTextColor(hdc, GetSysColor(COLOR_HIGHLIGHTTEXT));
+                SetBkColor(hdc, highlightColor);
 
                 for (; i < selEnd && i < Context->Length && y < height; i++)
                 {
-                    PhpPrintAscii(bufferDc, Context, Context->Data[i], &x, &y, &n);
+                    PhpPrintAscii(hdc, Context, Context->Data[i], &x, &y, &n);
                 }
 
                 // Bytes after the selection
 
-                SetTextColor(bufferDc, GetSysColor(COLOR_WINDOWTEXT));
-                SetBkColor(bufferDc, GetSysColor(COLOR_WINDOW));
+                SetTextColor(hdc, GetSysColor(COLOR_WINDOWTEXT));
+                SetBkColor(hdc, GetSysColor(COLOR_WINDOW));
 
                 for (; i < Context->Length && y < height; i++)
                 {
-                    PhpPrintAscii(bufferDc, Context, Context->Data[i], &x, &y, &n);
+                    PhpPrintAscii(hdc, Context, Context->Data[i], &x, &y, &n);
                 }
             }
             else
@@ -1305,15 +1316,12 @@ VOID PhpHexEditOnPaint(
                         i++;
                     }
 
-                    DrawText(bufferDc, buffer, n, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
+                    DrawText(hdc, buffer, n, &rect, DT_LEFT | DT_TOP | DT_SINGLELINE | DT_NOPREFIX | DT_NOCLIP);
                     rect.top += Context->LineHeight;
                 }
             }
         }
     }
-
-    if (buffered)
-        PhEndBufferedPaint(&bufferedPaint, TRUE);
 }
 
 VOID PhpHexEditUpdateScrollbars(
