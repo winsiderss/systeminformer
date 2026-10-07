@@ -135,8 +135,9 @@ FORCEINLINE VOID PhpEnsureEventCreated(
     _Inout_ PHANDLE Handle
     )
 {
-    HANDLE semaphoreHandle;
+    HANDLE semaphoreHandle = NULL;
     OBJECT_ATTRIBUTES objectAttributes;
+    NTSTATUS status;
 
     if (ReadPointerAcquire(Handle))
         return;
@@ -149,7 +150,7 @@ FORCEINLINE VOID PhpEnsureEventCreated(
         NULL
         );
 
-    NtCreateSemaphore(
+    status = NtCreateSemaphore(
         &semaphoreHandle,
         SEMAPHORE_ALL_ACCESS,
         &objectAttributes,
@@ -157,7 +158,8 @@ FORCEINLINE VOID PhpEnsureEventCreated(
         MAXLONG
         );
 
-    assert(semaphoreHandle);
+    if (!NT_SUCCESS(status))
+        PhRaiseStatus(status);
 
     if (_InterlockedCompareExchangePointer(
         Handle,
@@ -206,6 +208,9 @@ VOID FASTCALL PhfAcquireFastLockExclusive(
         }
         else if (i >= spinCount)
         {
+            if (((value >> PH_LOCK_EXCLUSIVE_WAITERS_SHIFT) & PH_LOCK_EXCLUSIVE_WAITERS_MASK) == PH_LOCK_EXCLUSIVE_WAITERS_MASK)
+                PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
             PhpEnsureEventCreated(&FastLock->ExclusiveWakeEvent);
 
             if (_InterlockedCompareExchange(
@@ -275,6 +280,9 @@ VOID FASTCALL PhfAcquireFastLockShared(
             !(value & PH_LOCK_EXCLUSIVE_MASK)
             )
         {
+            if (((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK) == PH_LOCK_SHARED_OWNERS_MASK)
+                PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
             if (_InterlockedCompareExchange(
                 &FastLock->Value,
                 value + PH_LOCK_SHARED_OWNERS_INC,
@@ -284,6 +292,9 @@ VOID FASTCALL PhfAcquireFastLockShared(
         }
         else if (i >= spinCount)
         {
+            if (((value >> PH_LOCK_SHARED_WAITERS_SHIFT) & PH_LOCK_SHARED_WAITERS_MASK) == PH_LOCK_SHARED_WAITERS_MASK)
+                PhRaiseStatus(STATUS_INTEGER_OVERFLOW);
+
             PhpEnsureEventCreated(&FastLock->SharedWakeEvent);
 
             if (_InterlockedCompareExchange(
@@ -444,6 +455,9 @@ BOOLEAN FASTCALL PhfTryAcquireFastLockShared(
     }
     else if ((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK)
     {
+        if (((value >> PH_LOCK_SHARED_OWNERS_SHIFT) & PH_LOCK_SHARED_OWNERS_MASK) == PH_LOCK_SHARED_OWNERS_MASK)
+            return FALSE;
+
         return _InterlockedCompareExchange(
             &FastLock->Value,
             value + PH_LOCK_SHARED_OWNERS_INC,
