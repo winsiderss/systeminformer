@@ -18,6 +18,10 @@
 #include <lsasup.h>
 
 #include <phafd.h>
+// devpkey.h has no include guard; some SDKs already include it via netioapi.h -> ntddndis.h
+#ifndef DEVPKEY_H_INCLUDED
+#include <devpkey.h>
+#endif
 #include <devquery.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
