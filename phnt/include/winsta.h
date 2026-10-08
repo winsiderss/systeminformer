@@ -1880,7 +1880,7 @@ WinStationGetConnectionProperty(
  * Frees a connection-property value and any allocation owned by its active variant.
  *
  * \param[in] PropertyValue An object returned by a connection-property query. NULL is invalid.
- * \return The native byte BOOLEAN result.
+ * \return Nonzero if the operation succeeds; otherwise, zero. Read only the native BOOLEAN byte result.
  * \remarks The string and binary variants own nested allocations; freeing only the outer object can leak them.
  */
 NTSYSAPI
@@ -2093,6 +2093,7 @@ WinStationQuerySessionVirtualIP(
  * \param BufferLength The buffer capacity in two-byte units; the RPC byte capacity is twice this value.
  * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
  * GetLastError.
+ * \remarks The CHAR element interpretation follows upstream; capacity scaling alone does not establish text encoding.
  */
 NTSYSAPI
 BOOLEAN
@@ -2100,7 +2101,7 @@ NTAPI
 WinStationGetDeviceId(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _Out_writes_bytes_(BufferLength * 2) PVOID Buffer,
+    _Out_writes_bytes_(BufferLength * 2) PCHAR Buffer,
     _In_ ULONG BufferLength
     );
 
@@ -2328,18 +2329,19 @@ ServerLicensingGetAvailablePolicyIds(
     );
 
 /**
- * Retrieves a DWORD from a server-licensing context.
+ * Retrieves policy data from a server-licensing context.
  *
  * \param[in] LicensingHandle A server-licensing RPC context, or NULL for the local context.
- * \param[out] Unknown0 Receives the DWORD returned by the licensing service. Its meaning remains unverified.
+ * \param[out] PolicyId Receives the policy identifier returned by the licensing service.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The policy-identifier interpretation follows upstream; the review establishes the DWORD output contract.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 ServerLicensingGetPolicy(
     _In_opt_ HSERVERLICENSING LicensingHandle,
-    _Out_ PULONG Unknown0
+    _Out_ PULONG PolicyId
     );
 
 /**
@@ -2437,14 +2439,15 @@ ServerLicensingSetAadInfo(
     );
 
 /**
- * Sends a policy identifier to a server-licensing context and receives a DWORD result.
+ * Sends a policy identifier to a server-licensing context and receives a policy value.
  *
  * \param[in] LicensingHandle A server-licensing RPC context, or NULL for the local context.
  * \param[in] PolicyId The policy identifier sent to the licensing service.
- * \param[out] Unknown0 Receives the operation-specific DWORD. Its meaning remains unverified.
+ * \param[out] PolicyValue Receives the policy value returned by the licensing service.
  * \return A translated Win32 status after RPC. ERROR_SUCCESS normally indicates RPC success.
- * \remarks If NULL LicensingHandle cannot create a local binding, this routine returns zero and sets
- * the last-error code to RPC_S_INVALID_BINDING; no policy RPC is sent and Unknown0 is not written.
+ * \remarks If NULL LicensingHandle cannot create a local binding, this routine returns zero and sets the last-error
+ * code to RPC_S_INVALID_BINDING; no policy RPC is sent and PolicyValue is not written. The output's policy-value
+ * interpretation follows upstream.
  */
 NTSYSAPI
 ULONG
@@ -2452,7 +2455,7 @@ NTAPI
 ServerLicensingSetPolicy(
     _In_opt_ HSERVERLICENSING LicensingHandle,
     _In_ ULONG PolicyId,
-    _Out_ PULONG Unknown0
+    _Out_ PULONG PolicyValue
     );
 
 /**
@@ -2588,16 +2591,18 @@ WinStationAutoReconnect(
  * \param[in] ServerHandle A server binding object, or NULL for the local server.
  * \param[in] Unknown0 A DWORD selector: zero restricts the operation to SessionId; nonzero omits that filter.
  * \param[in] SessionId The session identifier used by the zero-selector path.
- * \param[in] Unknown1 The next DWORD input; its meaning remains unverified.
- * \param[in] Unknown2 The next DWORD input; its meaning remains unverified.
+ * \param[in] WParam The first DWORD message parameter.
+ * \param[in] LParam The second DWORD message parameter.
  * \param[in,out] Recipients An optional DWORD input/output slot.
  * \param[in] Message The message identifier.
  * \param[in] wParam The pointer-sized unsigned message value.
- * \param[in] lParam The pointer-sized signed message value.
+ * \param[in] lParam The pointer-sized signed message value. Message-dependent pointer payloads, including wide strings
+ * and length-prefixed data, are copied from this value into the RPC request.
  * \param[in,out] Response A required LONG slot that is read and updated by the worker.
  * \return The normalized one-byte Boolean result.
  * \remarks Some message paths permit a NULL Response, while others dereference it without a null check. Provide the
- * slot for the general contract.
+ * slot for the general contract. The WParam and LParam DWORD interpretations follow upstream and remain independently
+ * unverified.
  */
 NTSYSAPI
 BOOLEAN
@@ -2606,8 +2611,8 @@ WinStationBroadcastSystemMessage(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG Unknown0,
     _In_ ULONG SessionId,
-    _In_ ULONG Unknown1,
-    _In_ ULONG Unknown2,
+    _In_ ULONG WParam,
+    _In_ ULONG LParam,
     _Inout_opt_ PULONG Recipients,
     _In_ ULONG Message,
     _In_ WPARAM wParam,
@@ -2753,11 +2758,13 @@ WinStationCreateAgentSessionTransport(
     );
 
 /**
- * Creates a child-session transport and returns its transport name.
+ * Creates a child-session transport and returns its named-pipe path.
  *
  * \param[out] TransportName A caller-allocated WCHAR buffer.
  * \param[in] TransportNameLength Buffer capacity in WCHAR elements, from 1 through 256.
  * \return An HRESULT indicating success or failure.
+ * \remarks The named-pipe interpretation follows upstream; the review establishes the returned string and buffer
+ * contract.
  */
 NTSYSAPI
 HRESULT
@@ -2922,7 +2929,7 @@ WinStationFreeSessionNotification(
  * Frees a certificate-data object and its nested data buffer.
  *
  * \param[in] Certificates An object returned by WinStationGetUserCertificates, or NULL.
- * \return The native byte BOOLEAN result.
+ * \return TRUE, including when Certificates is NULL. Read only the native BOOLEAN byte result.
  */
 NTSYSAPI
 BOOLEAN
@@ -3010,19 +3017,23 @@ WinStationGetChildSessionId(
     );
 
 /**
- * Queries a four-byte current-session capability value.
+ * Queries a capability of the current session.
  *
- * \param[in] Level The requested level. The analyzed implementations accept only level 1.
- * \param[out] Capabilities Receives the DWORD output. The client clears it before checking the level or service.
- * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks The client does not establish the meaning of every returned bit or validate the inherited capability label.
+ * \param[in] CapabilityClass The capability to query. The analyzed implementations accept only
+ * WinStationCurrentSessionCapabilityRemoteDesktop.
+ * \param[out] CapabilityValue Receives TRUE if the current session has the requested capability; otherwise, FALSE. The
+ * client clears it before checking the level or service.
+ * \return Nonzero if the operation succeeds; otherwise, zero. An unsupported capability class fails with
+ * ERROR_INVALID_PARAMETER.
+ * \remarks The capability interpretation follows upstream; the review establishes the accepted level and four-byte
+ * output.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetCurrentSessionCapabilities(
-    _In_ ULONG Level,
-    _Out_ PULONG Capabilities
+    _In_ WINSTATION_CURRENT_SESSION_CAPABILITY_CLASS CapabilityClass,
+    _Out_ PBOOL CapabilityValue
     );
 
 /**
@@ -3059,23 +3070,24 @@ WinStationGetCurrentSessionTerminalName(
  * The WinStationGetInitialApplication routine retrieves initial application data for a session.
  *
  * \param[in] SessionId The session identifier. Specify LOGONID_CURRENT for the caller's session.
- * \param[out] Unknown0 Receives the first WinStation-allocated wide string.
- * \param[out] Unknown1 Receives the second WinStation-allocated wide string.
- * \param[out] Unknown2 Receives the first one-byte output.
- * \param[out] Unknown3 Receives the second one-byte output.
+ * \param[out] CommandLine Receives a WinStation-allocated null-terminated command line, which may be NULL.
+ * \param[out] WorkingDirectory Receives a WinStation-allocated null-terminated working directory, which may be NULL.
+ * \param[out] ApplicationAllowed Receives a one-byte indication of whether the initial application is permitted by
+ * policy.
+ * \param[out] Maximize Receives a one-byte indication of whether the application should be maximized.
  * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks Free Unknown0 and Unknown1 with WinStationFreeMemory. The individual meanings of these outputs remain
- * unverified.
+ * \remarks Free CommandLine and WorkingDirectory with WinStationFreeMemory. The output purposes follow upstream; the
+ * review establishes the string and one-byte output contracts.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetInitialApplication(
     _In_ ULONG SessionId,
-    _Outptr_result_maybenull_z_ PWSTR *Unknown0,
-    _Outptr_result_maybenull_z_ PWSTR *Unknown1,
-    _Out_ PCHAR Unknown2,
-    _Out_ PCHAR Unknown3
+    _Outptr_result_maybenull_z_ PWSTR *CommandLine,
+    _Outptr_result_maybenull_z_ PWSTR *WorkingDirectory,
+    _Out_ PCHAR ApplicationAllowed,
+    _Out_ PCHAR Maximize
     );
 
 /**
@@ -3126,10 +3138,11 @@ WinStationGetLanAdapterNameW(
  * \param[in] SessionId The session identifier.
  * \param[out] NotificationId Receives the notification identifier.
  * \param[out] SubscriberName A required buffer with space for 257 WCHAR elements.
- * \param[out] IsCritical Receives the four-byte output.
- * \param[out] NotificationTickCount Receives the eight-byte output.
+ * \param[out] IsCritical Receives TRUE if the subscriber is marked as critical; otherwise, FALSE.
+ * \param[out] NotificationTickCount Receives the GetTickCount64 value recorded for the notification.
  * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks The RPC marshals a fixed WCHAR array. Its descriptor alone does not guarantee a terminating null character.
+ * \remarks The critical-subscriber and clock interpretations follow upstream. The RPC marshals a fixed WCHAR array; its
+ * descriptor alone does not guarantee a terminating null character.
  */
 NTSYSAPI
 BOOLEAN
@@ -3177,20 +3190,21 @@ WinStationGetParentSessionId(
 /**
  * Retrieves allocated redirection-authentication data through RPC.
  *
- * \param[out] Unknown0 Receives a GUID whose independent meaning remains unverified.
+ * \param[out] RedirectionGuid Receives the redirection operation identifier.
  * \param[out] CertificateLength Receives the certificate byte length.
  * \param[out] Certificate Receives an allocated byte buffer, which may be NULL.
  * \param[out] SymmetricAlgorithm Receives an allocated wide string, which may be NULL.
  * \param[out] SymmetricKeyLength Receives the symmetric-key byte length.
  * \param[out] SymmetricKey Receives an allocated byte buffer, which may be NULL.
  * \return An HRESULT value. Use SUCCEEDED or FAILED to test the result.
- * \remarks All six output slots are required. Free the returned allocations with WinStationFreeMemory.
+ * \remarks All six output slots are required. Free the returned allocations with WinStationFreeMemory. The GUID's
+ * purpose follows upstream; its output direction is independently established.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationGetRedirectAuthInfo(
-    _Out_ GUID *Unknown0,
+    _Out_ GUID *RedirectionGuid,
     _Out_ PULONG CertificateLength,
     _Outptr_result_bytebuffer_maybenull_(*CertificateLength) PBYTE *Certificate,
     _Outptr_result_maybenull_z_ PWSTR *SymmetricAlgorithm,
@@ -3281,21 +3295,22 @@ WinStationGetUserCredentials(
 /**
  * The WinStationGetUserProfile routine retrieves allocated user-profile data.
  *
- * \param[in] Unknown0 A pointer-sized handle. Its subtype and required access rights remain unverified.
- * \param[out] Unknown1 Receives the first WinStation-allocated wide string.
- * \param[out] Unknown2 Receives the second WinStation-allocated wide string.
- * \param[out] Unknown3 Receives the third WinStation-allocated wide string.
+ * \param[in] SessionId The session identifier passed in the native handle-sized slot.
+ * \param[out] UserName Receives the WinStation-allocated null-terminated user name, which may be NULL.
+ * \param[out] Domain Receives the WinStation-allocated null-terminated domain name, which may be NULL.
+ * \param[out] ProfilePath Receives the WinStation-allocated null-terminated profile path, which may be NULL.
  * \return An HRESULT indicating success or failure.
- * \remarks Free the returned strings with WinStationFreeMemory.
+ * \remarks Free the returned strings with WinStationFreeMemory. The parameter purposes follow upstream; the first
+ * input's exact subtype and access requirements remain unverified.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationGetUserProfile(
-    _In_ HANDLE Unknown0,
-    _Outptr_result_maybenull_z_ PWSTR *Unknown1,
-    _Outptr_result_maybenull_z_ PWSTR *Unknown2,
-    _Outptr_result_maybenull_z_ PWSTR *Unknown3
+    _In_ HANDLE SessionId,
+    _Outptr_result_maybenull_z_ PWSTR *UserName,
+    _Outptr_result_maybenull_z_ PWSTR *Domain,
+    _Outptr_result_maybenull_z_ PWSTR *ProfilePath
     );
 
 /**
@@ -3392,22 +3407,23 @@ WinStationNameFromLogonIdA(
 /**
  * Performs the session-negotiation RPC operation.
  *
- * \param[in,out] Unknown0 A required RPC-context slot; its exact context subtype and lifetime remain unverified.
- * \param[in] Unknown1 A pointer-sized unsigned scalar whose meaning remains unverified.
- * \param[out] NegotiationFlags Receives the first DWORD output. Its independent meaning remains unverified.
+ * \param[in,out] ServerHandle A required RPC-context slot associated with the server; its exact context subtype and
+ * lifetime remain unverified.
+ * \param[in] SessionId The session identifier passed in a pointer-sized unsigned slot.
+ * \param[out] NegotiationFlags Receives the negotiation flags returned by the service.
  * \param[out] ValueCount Receives the number of DWORD elements in Values.
  * \param[out] Values Receives an allocated DWORD array. A zero-count result may be NULL.
- * \param[out] Result Receives the final DWORD output. Its independent meaning remains unverified.
+ * \param[out] Result Receives the negotiation result returned by the service.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
- * \remarks Free Values with LocalFree. Unknown0 is an input/output context pointer rather than a server-binding handle
- * value.
+ * \remarks Free Values with LocalFree. ServerHandle is an input/output context pointer rather than a server-binding
+ * handle value. The parameter purposes follow upstream; the review establishes their native shapes and RPC directions.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationNegotiateSession(
-    _Inout_ PHANDLE Unknown0,
-    _In_ ULONG_PTR Unknown1,
+    _Inout_ PHANDLE ServerHandle,
+    _In_ ULONG_PTR SessionId,
     _Out_ PULONG NegotiationFlags,
     _Out_ PULONG ValueCount,
     _Outptr_result_buffer_maybenull_(*ValueCount) PULONG *Values,
@@ -3642,16 +3658,17 @@ WinStationRcmShadow2(
 /**
  * Performs the redirected-error message operation.
  *
- * \param[in] Unknown0 The first DWORD input. Its meaning remains unverified.
- * \param[in] Unknown1 The second DWORD input. Its meaning remains unverified.
+ * \param[in] ErrorCode The error code.
+ * \param[in] MessageId The message identifier.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The parameter purposes follow upstream; the reviewed client forwards these DWORD inputs to RPC.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationRedirectErrorMessage(
-    _In_ ULONG Unknown0,
-    _In_ ULONG Unknown1
+    _In_ ULONG ErrorCode,
+    _In_ ULONG MessageId
     );
 
 /**
@@ -3669,61 +3686,64 @@ WinStationRedirectLogonBeginPainting(
 /**
  * Performs the redirected-logon error operation.
  *
- * \param[in] Unknown0 The first DWORD input. Its meaning remains unverified.
- * \param[in] Unknown1 The second DWORD input. Its meaning remains unverified.
- * \param[in] Unknown2 The first required null-terminated wide string.
- * \param[in] Unknown3 The second required null-terminated wide string.
- * \param[in] Unknown4 The third DWORD input. Its meaning remains unverified.
- * \param[out] Unknown5 Receives the operation-specific DWORD. Its meaning remains unverified.
+ * \param[in] ErrorCode The error code.
+ * \param[in] SubErrorCode The subordinate error code.
+ * \param[in] Message The required null-terminated error message.
+ * \param[in] Caption The required null-terminated message caption.
+ * \param[in] Type The message type.
+ * \param[out] Response Receives the response.
  * \return An HRESULT indicating success or failure.
- * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream; the required slots and RPC directions are independently established.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationRedirectLogonError(
-    _In_ ULONG Unknown0,
-    _In_ ULONG Unknown1,
-    _In_ PCWSTR Unknown2,
-    _In_ PCWSTR Unknown3,
-    _In_ ULONG Unknown4,
-    _Out_ PULONG Unknown5
+    _In_ ULONG ErrorCode,
+    _In_ ULONG SubErrorCode,
+    _In_ PCWSTR Message,
+    _In_ PCWSTR Caption,
+    _In_ ULONG Type,
+    _Out_ PULONG Response
     );
 
 /**
  * Performs the redirected-logon message operation.
  *
- * \param[in] Unknown0 The first required null-terminated wide string.
- * \param[in] Unknown1 The second required null-terminated wide string.
- * \param[in] Unknown2 A DWORD input whose meaning remains unverified.
- * \param[out] Unknown3 Receives the operation-specific DWORD. Its meaning remains unverified.
+ * \param[in] Message The required null-terminated message.
+ * \param[in] Caption The required null-terminated message caption.
+ * \param[in] Type The message type.
+ * \param[out] Response Receives the response.
  * \return An HRESULT indicating success or failure.
- * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream; the required slots and RPC directions are independently established.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationRedirectLogonMessage(
-    _In_ PCWSTR Unknown0,
-    _In_ PCWSTR Unknown1,
-    _In_ ULONG Unknown2,
-    _Out_ PULONG Unknown3
+    _In_ PCWSTR Message,
+    _In_ PCWSTR Caption,
+    _In_ ULONG Type,
+    _Out_ PULONG Response
     );
 
 /**
  * Performs the redirected-logon status operation.
  *
- * \param[in] Status A required null-terminated wide string.
- * \param[out] Unknown0 Receives the operation-specific DWORD. Its meaning remains unverified.
+ * \param[in] StatusMessage The required null-terminated status message.
+ * \param[out] Status Receives the status.
  * \return An HRESULT indicating success or failure.
- * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationRedirectLogonStatus(
-    _In_ PCWSTR Status,
-    _Out_ PULONG Unknown0
+    _In_ PCWSTR StatusMessage,
+    _Out_ PULONG Status
     );
 
 /**
@@ -3977,10 +3997,12 @@ WinStationReportLoggedOnCompleted(
  * Reports a logon user-interface result through an RPC context.
  *
  * \param[in] Unknown0 An opaque RPC context. Its exact context subtype is not independently established.
- * \param[in] UIResult The user-interface result sent to the RPC service.
- * \param[in] SelectedSessionId The third DWORD input forwarded to the RPC service. Its independent meaning remains
- * unverified.
+ * \param[in] UIResult The dialog result, one of the WINSTATION_UIRESULT_* values.
+ * \param[in] SelectedSessionId The selected session identifier for a reconnect/session-bump dialog when UIResult is
+ * WINSTATION_UIRESULT_PROCEED; 0xFFFFFFFF requests creation of a new session. Ignored otherwise.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The UI-result and selected-session interpretations follow upstream; the context input and Win32 status are
+ * independently established.
  */
 NTSYSAPI
 ULONG
@@ -4032,13 +4054,15 @@ WinStationSendMessageA(
  * \param[in] ServerHandle Retained for the native ABI; ignored by the analyzed implementations.
  * \param[in] SessionId The session identifier.
  * \param[in] WindowHandle The DWORD window identifier forwarded to RPC.
- * \param[in] Unknown0 A pointer-sized unsigned scalar whose meaning remains unverified.
+ * \param[in] Reserved A pointer-sized unsigned operation-specific value.
  * \param[in] Message The message identifier.
  * \param[in] wParam The pointer-sized unsigned message value.
- * \param[in] lParam The pointer-sized signed message value.
- * \param[out] Unknown1 Receives the required DWORD output. Its meaning remains unverified.
+ * \param[in] lParam The pointer-sized signed message value. Message-dependent pointer payloads are copied from this
+ * value into the RPC request.
+ * \param[out] Timeout Receives the required DWORD output.
  * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks The client constructs a local RPC binding. The final parameter is an output pointer rather than a timeout.
+ * \remarks The client constructs a local RPC binding. Reserved and Timeout retain their upstream names; their
+ * independent meanings remain unverified. The final parameter is an output pointer rather than an input scalar.
  */
 NTSYSAPI
 BOOLEAN
@@ -4047,11 +4071,11 @@ WinStationSendWindowMessage(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ULONG WindowHandle,
-    _In_ ULONG_PTR Unknown0,
+    _In_ ULONG_PTR Reserved,
     _In_ ULONG Message,
     _In_ WPARAM wParam,
     _In_ LPARAM lParam,
-    _Out_ PULONG Unknown1
+    _Out_ PULONG Timeout
     );
 
 /**
@@ -4082,9 +4106,10 @@ WinStationSetInformationA(
  *
  * \param[in] NotificationId The notification identifier.
  * \param[in] SubscriberName A required array of 257 readable WCHAR elements.
- * \param[in] IsCritical The four-byte input forwarded to RPC.
+ * \param[in] IsCritical TRUE if the subscriber is marked as critical; otherwise, FALSE.
  * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks A shorter null-terminated string alone does not provide the fixed array required by the native RPC client.
+ * \remarks The critical-subscriber interpretation follows upstream. A shorter null-terminated string alone does not
+ * provide the fixed array required by the native RPC client.
  */
 NTSYSAPI
 BOOLEAN
@@ -4127,14 +4152,15 @@ WinStationShadowStop2(
 /**
  * Notifies Terminal Services that a system-shutdown operation has started.
  *
- * \param[in] Unknown0 A DWORD input whose meaning remains unverified.
+ * \param[in] ShutdownFlags The shutdown flags forwarded to RPC.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The flags interpretation follows upstream; the reviewed client does not independently establish each bit.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationSystemShutdownStarted(
-    _In_ ULONG Unknown0
+    _In_ ULONG ShutdownFlags
     );
 
 // rev
@@ -4142,15 +4168,16 @@ WinStationSystemShutdownStarted(
  * Waits for a Terminal Services system-shutdown operation.
  *
  * \param[in] Timeout The timeout in milliseconds.
- * \param[out] Unknown0 An optional DWORD output whose meaning remains unverified.
+ * \param[out] Result An optional slot that receives the shutdown result.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The Result interpretation follows upstream; the review establishes its optional DWORD output contract.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationSystemShutdownWait(
     _In_ ULONG Timeout,
-    _Out_opt_ PULONG Unknown0
+    _Out_opt_ PULONG Result
     );
 
 // rev
