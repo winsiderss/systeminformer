@@ -1149,8 +1149,8 @@ VOID EtpUninitializeNetworkDialog(
     PhDeleteGraphState(&NetworkSendGraphState);
 
     // Note: Required for SysInfoViewChanging (dmex)
-    DiskReadGraphHandle = NULL;
-    DiskWriteGraphHandle = NULL;
+    NetworkReceiveGraphHandle = NULL;
+    NetworkSendGraphHandle = NULL;
 }
 
 /**
@@ -1226,9 +1226,9 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             NetworkGraphMarginScaled = NetworkGraphMargin;
             PhGetMarginDpiValue(&NetworkGraphMarginScaled, NetworkSection->Parameters->WindowDpi, TRUE);
 
-            if (DiskSection->Parameters->LargeFont)
+            if (NetworkSection->Parameters->LargeFont)
             {
-                SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), DiskSection->Parameters->LargeFont, FALSE);
+                SetWindowFont(GetDlgItem(WindowHandle, IDC_TITLE), NetworkSection->Parameters->LargeFont, FALSE);
             }
 
             NetworkReceiveGraphState.Valid = FALSE;
@@ -1237,7 +1237,7 @@ INT_PTR CALLBACK EtpNetworkDialogProc(
             NetworkSendGraphState.Valid = FALSE;
             NetworkSendGraphState.TooltipIndex = ULONG_MAX;
 
-            PhLayoutManagerUpdate(&DiskLayoutManager, DiskSection->Parameters->WindowDpi);
+            PhLayoutManagerUpdate(&NetworkLayoutManager, NetworkSection->Parameters->WindowDpi);
             PhLayoutManagerLayout(&NetworkLayoutManager);
             EtpLayoutNetworkGraphs(WindowHandle);
         }
