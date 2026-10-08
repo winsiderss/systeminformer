@@ -12,6 +12,7 @@
 
 #include <ph.h>
 #include <searchbox.h>
+#include <searchmatch.h>
 #include <guisup.h>
 #include <settings.h>
 #include <vssym32.h>
@@ -51,8 +52,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
             ULONG Hot : 1;
             ULONG HotTrack : 1;
             ULONG WindowFocus : 1;
-            ULONG UseSearchPointer : 1;
-            ULONG Spare : 28;
+            ULONG Spare : 29;
         };
     };
 
@@ -108,14 +108,7 @@ typedef struct _PH_SEARCHCONTROL_CONTEXT
     PPH_SEARCHCONTROL_CALLBACK Callback;
     PVOID CallbackContext;
 
-    PH_STRINGREF SearchboxText;
-    PPH_STRING SearchboxTextString;
-
-    ULONG64 SearchPointer;
-    LONG SearchboxRegexError;
-    PCRE2_SIZE SearchboxRegexErrorOffset;
-    pcre2_code* SearchboxRegexCode;
-    pcre2_match_data* SearchboxRegexMatchData;
+    PH_SEARCH_MATCH_STATE Match;
 } PH_SEARCHCONTROL_CONTEXT, *PPH_SEARCHCONTROL_CONTEXT;
 
 /**
@@ -683,6 +676,20 @@ VOID PhSearchControlExcludeClient(
 }
 
 /**
+ * Copies the button toggle states into the shared match state.
+ *
+ * \param Context The search control context.
+ */
+VOID PhpSearchSyncMatchFlags(
+    _In_ PPH_SEARCHCONTROL_CONTEXT Context
+    )
+{
+    Context->Match.CaseActive = !!Context->CaseButton.Active;
+    Context->Match.RegexActive = !!Context->RegexButton.Active;
+    Context->Match.FuzzyActive = !!Context->FuzzyButton.Active;
+}
+
+/**
  * Updates the regular expression for the search control.
  *
  * \param WindowHandle A handle to the search window.
@@ -693,50 +700,9 @@ VOID PhpSearchUpdateRegex(
     _In_ PPH_SEARCHCONTROL_CONTEXT Context
     )
 {
-    ULONG flags;
-
-    Context->RegexButton.Error = FALSE;
-    Context->SearchboxRegexError = 0;
-    Context->SearchboxRegexErrorOffset = 0;
-
-    if (Context->SearchboxRegexCode)
-    {
-        pcre2_code_free(Context->SearchboxRegexCode);
-        Context->SearchboxRegexCode = NULL;
-    }
-
-    if (Context->SearchboxRegexMatchData)
-    {
-        pcre2_match_data_free(Context->SearchboxRegexMatchData);
-        Context->SearchboxRegexMatchData = NULL;
-    }
-
-    if (!Context->RegexButton.Active || Context->SearchboxText.Length == 0)
-        return;
-
-    if (Context->CaseButton.Active)
-        flags = PCRE2_DOTALL;
-    else
-        flags = PCRE2_CASELESS | PCRE2_DOTALL;
-
-    Context->SearchboxRegexCode = pcre2_compile(
-        Context->SearchboxText.Buffer,
-        Context->SearchboxText.Length / sizeof(WCHAR),
-        flags,
-        &Context->SearchboxRegexError,
-        &Context->SearchboxRegexErrorOffset,
-        NULL
-        );
-    if (!Context->SearchboxRegexCode)
-    {
-        Context->RegexButton.Error = TRUE;
-        return;
-    }
-
-    Context->SearchboxRegexMatchData = pcre2_match_data_create_from_pattern(
-        Context->SearchboxRegexCode,
-        NULL
-        );
+    PhpSearchSyncMatchFlags(Context);
+    PhSearchMatchUpdateRegex(&Context->Match);
+    Context->RegexButton.Error = !!Context->Match.RegexError;
 }
 
 /**
@@ -810,24 +776,22 @@ BOOLEAN PhSearchUpdateText(
 
     Context->SearchButton.Active = (newSearchboxText.Length > 0);
 
-    if (!Force && PhEqualStringRef(&newSearchboxText, &Context->SearchboxText, FALSE))
+    PhpSearchSyncMatchFlags(Context);
+
+    if (!PhSearchMatchSetText(&Context->Match, searchboxTextString, Force))
     {
         PhDereferenceObject(searchboxTextString);
         return FALSE;
     }
 
-    PhMoveReference(&Context->SearchboxTextString, searchboxTextString);
-    Context->SearchboxText.Buffer = searchboxTextString->Buffer;
-    Context->SearchboxText.Length = searchboxTextString->Length;
-
-    Context->UseSearchPointer = PhStringToUInt64(&newSearchboxText, 0, &Context->SearchPointer);
+    PhDereferenceObject(searchboxTextString);
 
     //PhSearchUpdateRegex(WindowHandle, Context);
 
     if (!Context->Callback)
         return TRUE;
 
-    matchHandle = (Context->SearchboxText.Length == 0 || (Context->RegexButton.Active && !Context->SearchboxRegexCode)) ? 0 : (ULONG_PTR)Context;
+    matchHandle = PhSearchMatchGetHandle(&Context->Match);
 
     Context->Callback(matchHandle, Context->CallbackContext);
 
@@ -1119,18 +1083,7 @@ LRESULT CALLBACK PhSearchWndSubclassProc(
                 context->CueBannerText = NULL;
             }
 
-            if (context->SearchboxTextString)
-                PhDereferenceObject(context->SearchboxTextString);
-
-            if (context->SearchboxRegexCode)
-            {
-                pcre2_code_free(context->SearchboxRegexCode);
-            }
-
-            if (context->SearchboxRegexMatchData)
-            {
-                pcre2_match_data_free(context->SearchboxRegexMatchData);
-            }
+            PhSearchMatchDelete(&context->Match);
 
             if (context->TooltipHandle)
             {
@@ -1804,44 +1757,7 @@ BOOLEAN PhSearchControlMatch(
     _In_ PCPH_STRINGREF Text
     )
 {
-    PPH_SEARCHCONTROL_CONTEXT context;
-
-    context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
-
-    if (!context)
-        return FALSE;
-
-    if (context->FuzzyButton.Active)
-    {
-        return PhStringFuzzyMatch(&context->SearchboxText, Text, !context->CaseButton.Active);
-    }
-    else if (context->RegexButton.Active)
-    {
-        if (pcre2_match(
-            context->SearchboxRegexCode,
-            Text->Buffer,
-            Text->Length / sizeof(WCHAR),
-            0,
-            0,
-            context->SearchboxRegexMatchData,
-            NULL
-            ) >= 0)
-        {
-            return TRUE;
-        }
-    }
-    else if (context->CaseButton.Active)
-    {
-        if (PhFindStringInStringRef(Text, &context->SearchboxText, FALSE) != MAXULONG_PTR)
-            return TRUE;
-    }
-    else
-    {
-        if (PhFindStringInStringRef(Text, &context->SearchboxText, TRUE) != MAXULONG_PTR)
-            return TRUE;
-    }
-
-    return FALSE;
+    return PhSearchMatchString(MatchHandle, Text);
 }
 
 /**
@@ -1862,76 +1778,7 @@ BOOLEAN PhSearchControlMatchEx(
     _Out_opt_ PULONG RangeCount
     )
 {
-    PPH_SEARCHCONTROL_CONTEXT context;
-    ULONG rangeCount = 0;
-    BOOLEAN result = FALSE;
-
-    context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
-
-    if (RangeCount)
-        *RangeCount = 0;
-
-    if (!context || context->SearchboxText.Length == 0)
-        return FALSE;
-
-    if (context->FuzzyButton.Active)
-    {
-        // Fuzzy matches have no contiguous span; report the match without ranges.
-        result = PhStringFuzzyMatch(&context->SearchboxText, Text, !context->CaseButton.Active);
-    }
-    else if (context->RegexButton.Active)
-    {
-        if (pcre2_match(
-            context->SearchboxRegexCode,
-            Text->Buffer,
-            Text->Length / sizeof(WCHAR),
-            0,
-            0,
-            context->SearchboxRegexMatchData,
-            NULL
-            ) >= 0)
-        {
-            PCRE2_SIZE* ovector = pcre2_get_ovector_pointer(context->SearchboxRegexMatchData);
-
-            result = TRUE;
-
-            if (Ranges && MaximumRanges != 0 && ovector[1] > ovector[0])
-            {
-                Ranges[0].Start = (ULONG)ovector[0];
-                Ranges[0].Length = (ULONG)(ovector[1] - ovector[0]);
-                rangeCount = 1;
-            }
-        }
-    }
-    else
-    {
-        BOOLEAN ignoreCase = !context->CaseButton.Active;
-        ULONG searchLength = (ULONG)(context->SearchboxText.Length / sizeof(WCHAR));
-        PH_STRINGREF remaining = *Text;
-        ULONG offset = 0;
-        SIZE_T index;
-
-        while ((index = PhFindStringInStringRef(&remaining, &context->SearchboxText, ignoreCase)) != MAXULONG_PTR)
-        {
-            result = TRUE;
-
-            if (!Ranges || rangeCount >= MaximumRanges)
-                break;
-
-            Ranges[rangeCount].Start = offset + (ULONG)index;
-            Ranges[rangeCount].Length = searchLength;
-            rangeCount++;
-
-            offset += (ULONG)index + searchLength;
-            remaining.Buffer += index + searchLength;
-            remaining.Length -= (index + searchLength) * sizeof(WCHAR);
-        }
-    }
-
-    if (RangeCount)
-        *RangeCount = rangeCount;
-
-    return result;
+    return PhSearchMatchStringEx(MatchHandle, Text, Ranges, MaximumRanges, RangeCount);
 }
 
 /**
@@ -1984,14 +1831,7 @@ BOOLEAN PhSearchControlMatchPointer(
     _In_ PVOID Pointer
     )
 {
-    PPH_SEARCHCONTROL_CONTEXT context;
-
-    context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
-
-    if (!Pointer || !context || !context->UseSearchPointer)
-        return FALSE;
-
-    return ((ULONG64)Pointer == context->SearchPointer);
+    return PhSearchMatchPointer(MatchHandle, Pointer);
 }
 
 /**
@@ -2008,17 +1848,5 @@ BOOLEAN PhSearchControlMatchPointerRange(
     _In_ SIZE_T Size
     )
 {
-    PPH_SEARCHCONTROL_CONTEXT context;
-    PVOID pointerEnd;
-
-    context = (PPH_SEARCHCONTROL_CONTEXT)MatchHandle;
-
-    if (!context || !context->UseSearchPointer)
-        return FALSE;
-
-    pointerEnd = PTR_ADD_OFFSET(Pointer, Size);
-
-    return ((context->SearchPointer >= (ULONG64)Pointer) &&
-            (context->SearchPointer < (ULONG64)pointerEnd));
+    return PhSearchMatchPointerRange(MatchHandle, Pointer, Size);
 }
-

@@ -220,6 +220,7 @@
     <ClCompile Include="queuedlock.c" />
     <ClCompile Include="ref.c" />
     <ClCompile Include="searchbox.c" />
+    <ClCompile Include="searchmatch.c" />
     <ClCompile Include="secdata.c" />
     <ClCompile Include="secedit.c" />
     <ClCompile Include="secwmi.c" />
@@ -250,6 +251,7 @@
     <ClInclude Include="include\phconsole.h" />
     <ClInclude Include="include\phfirmware.h" />
     <ClInclude Include="include\searchbox.h" />
+    <ClInclude Include="include\searchmatch.h" />
     <ClInclude Include="include\cpysave.h" />
     <ClInclude Include="include\exlf.h" />
     <ClInclude Include="include\exprodid.h" />
