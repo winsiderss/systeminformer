@@ -4471,6 +4471,11 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 //
 // Filter manager
 //
+// rev: User-mode control interface checked against FltMgr.sys
+// and the native/WOW64 FltLib connection builders. These are device IOCTLs
+// (NtDeviceIoControlFile), not file-system controls (NtFsControlFile).
+// The private buffers below are not kernel FLT_FILTER/FLT_INSTANCE objects.
+// Use the default structure packing.
 
 #define FLT_PORT_CONNECT 0x0001
 #define FLT_PORT_ALL_ACCESS (FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL)
@@ -4484,6 +4489,14 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 // private
 /**
  * The FLT_CONNECT_CONTEXT structure contains the connection context passed when connecting to a filter communication port.
+ *
+ * Supply this as the value of the FLTPORT EA when opening FLT_MSG_DEVICE_NAME.
+ * Both pointers are caller-sized addresses: PortName64 points to a UNICODE_STRING64,
+ * but is not itself a 64-bit pointer in a 32-bit process. The WOW64 path reads
+ * PortName64; the native x64 path reads PortName. Keep both descriptors and their
+ * string buffers valid until NtCreateFile completes. Context is copied inline
+ * and delivered to the minifilter's connection callback. Its offset is 24 bytes
+ * on x64 and 16 bytes on x86; sizeof(FLT_CONNECT_CONTEXT) includes tail padding.
  */
 typedef struct _FLT_CONNECT_CONTEXT
 {
@@ -4496,11 +4509,25 @@ typedef struct _FLT_CONNECT_CONTEXT
 
 // rev
 #define FLT_PORT_EA_NAME "FLTPORT"
+// Exclusive upper bound used by FilterConnectCommunicationPort.
+// Maximum accepted context: 0xFFE7 bytes on x64, 0xFFEF bytes on x86.
+#ifdef _WIN64
 #define FLT_PORT_CONTEXT_MAX 0xFFE8
+#else
+#define FLT_PORT_CONTEXT_MAX 0xFFF0
+#endif
 
 // combined FILE_FULL_EA_INFORMATION and FLT_CONNECT_CONTEXT
 /**
  * The FLT_PORT_FULL_EA structure is the full extended attribute buffer used to open a filter communication port.
+ *
+ * EaValue starts at byte 16 on both x86 and x64. EaValueLength excludes the
+ * EA header and name and equals FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext.
+ * Pass FLT_PORT_FULL_EA_SIZE + EaValueLength as NtCreateFile's EaLength.
+ * Open with FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE and FILE_OPEN_IF;
+ * use FILE_SYNCHRONOUS_IO_NONALERT only for a synchronous connection handle.
+ * The server port's security descriptor controls access. Close the returned
+ * file handle with NtClose to release the connection.
  */
 typedef struct _FLT_PORT_FULL_EA
 {
@@ -4512,26 +4539,54 @@ typedef struct _FLT_PORT_FULL_EA
     FLT_CONNECT_CONTEXT EaValue;
 } FLT_PORT_FULL_EA, *PFLT_PORT_FULL_EA;
 
+// Use exact EA sizing by default. Define PHNT_FLT_PORT_USE_LEGACY_EA_SIZE before
+// including this header to use the same allocation sizing as FltLib instead.
+#if !defined(PHNT_FLT_PORT_USE_LEGACY_EA_SIZE) && !defined(PHNT_FLT_PORT_USE_EXACT_EA_SIZE)
+#define PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+#endif
+
+#ifndef PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+// Original FltLib-compatible sizing: 19-byte allocation overhead, including
+// three trailing slack bytes. The actual EaValue offset remains 16 bytes.
 #define FLT_PORT_FULL_EA_SIZE \
     (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
 #define FLT_PORT_FULL_EA_VALUE_SIZE \
     RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding)
+#else
+// Exact wire prefixes, excluding the tail padding.
+#define FLT_PORT_FULL_EA_SIZE \
+    FIELD_OFFSET(FLT_PORT_FULL_EA, EaValue)
+#define FLT_PORT_FULL_EA_VALUE_SIZE \
+    FIELD_OFFSET(FLT_CONNECT_CONTEXT, Context)
+#endif
 
 // begin_rev
 
-// IOCTLs for unlinked FltMgr handles
+// Management IOCTLs for FltMgr handles. LINK_HANDLE requires an unlinked handle;
+// load/unload and attach/detach do not consume the handle's linked-object state.
+// Load/unload additionally check SeLoadDriverPrivilege.
 #define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK // specializes the handle
-#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH
+#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH; optional out: NUL-terminated WCHAR instance name
 #define FLT_CTL_DETACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_INSTANCE_PARAMETERS
 
 // IOCTLs for port-specific FltMgrMsg handles (opened using the extended attribute)
 #define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in, out: filter-specific
-#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: filter-specific
-#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: filter-specific
+#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: FILTER_MESSAGE_HEADER followed by filter-specific payload
+#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: FILTER_REPLY_HEADER followed by filter-specific payload
+// Include fltUser.h for the fltUserStructures.h message types. Each header is 16 bytes;
+// MessageId is at offset 8. GET_MESSAGE can pend: keep the output buffer and
+// IO_STATUS_BLOCK alive until completion. REPLY_MESSAGE uses the received MessageId;
+// SEND_MESSAGE passes the filter-specific buffers directly, without either header.
 
 // IOCTLs for linked FltMgr handles; depend on previously used FLT_LINK_TYPE
+//
+// Input is a 4-byte information-class selector, not a structure containing a pointer.
+// FIND_FIRST resets the per-handle index; successful enumeration advances it.
+// A failed query does not advance the index. Close the handle with NtClose.
+// Buffer-too-small results are mapped to STATUS_FLT_BUFFER_TOO_SMALL; use
+// IO_STATUS_BLOCK.Information for the size returned by the information routine.
 //
 // Find first/next:
 //   FILTER                - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
@@ -4552,6 +4607,12 @@ typedef struct _FLT_PORT_FULL_EA
 // private
 /**
  * The FLT_LOAD_PARAMETERS structure contains the parameters used to load a minifilter driver.
+ *
+ * Input to FLT_CTL_LOAD and FLT_CTL_UNLOAD. FilterName is a counted UTF-16
+ * service name, not a driver image path; FilterNameSize is in bytes, excluding
+ * any terminator, and must not exceed 0x1FE. The input must contain at least
+ * 4 bytes and cover FIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName) + FilterNameSize.
+ * Both operations require SeLoadDriverPrivilege.
  */
 typedef struct _FLT_LOAD_PARAMETERS
 {
@@ -4562,6 +4623,9 @@ typedef struct _FLT_LOAD_PARAMETERS
 // private
 /**
  * The FLT_LINK_TYPE enumeration specifies the type of a filter manager link operation.
+ *
+ * Selects the object or enumeration scope associated with an existing FltMgr
+ * file handle. FILTER_INSTANCE supports GET_INFORMATION, not FIND_FIRST/NEXT.
  */
 typedef enum _FLT_LINK_TYPE
 {
@@ -4575,6 +4639,12 @@ typedef enum _FLT_LINK_TYPE
 // private
 /**
  * The FLT_LINK structure contains the parameters describing a filter manager link operation.
+ *
+ * Input to FLT_CTL_LINK_HANDLE; this header is 8 bytes on x86 and x64.
+ * For FILTER, FILTER_INSTANCE and FILTER_VOLUME, place the corresponding
+ * parameter block immediately after this header and set ParametersOffset to 8.
+ * String offsets are relative to that parameter block, not to FLT_LINK.
+ * The two manager scopes need no parameter block. A handle cannot be linked twice.
  */
 typedef struct _FLT_LINK
 {
@@ -4585,6 +4655,10 @@ typedef struct _FLT_LINK
 // rev
 /**
  * The FLT_FILTER_PARAMETERS structure contains the parameters describing a registered minifilter.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER. The counted UTF-16
+ * name selects the filter to query or whose instances to enumerate.
+ * FilterNameSize is in bytes, excluding a terminator, and is at most 0x1FE.
  */
 typedef struct _FLT_FILTER_PARAMETERS
 {
@@ -4595,6 +4669,12 @@ typedef struct _FLT_FILTER_PARAMETERS
 // private
 /**
  * The FLT_INSTANCE_PARAMETERS structure contains the parameters describing a minifilter instance.
+ *
+ * The 12-byte parameter block for FLT_LINK.Type == FILTER_INSTANCE, also used
+ * directly as input to FLT_CTL_DETACH. All sizes and offsets are byte counts;
+ * strings are counted UTF-16 without required terminators. Filter and instance
+ * names are limited to 0x1FE bytes each; the volume name to 0x800 bytes.
+ * InstanceNameSize == 0 passes no instance name to the underlying operation.
  */
 typedef struct _FLT_INSTANCE_PARAMETERS
 {
@@ -4609,6 +4689,10 @@ typedef struct _FLT_INSTANCE_PARAMETERS
 // rev
 /**
  * The FLT_VOLUME_PARAMETERS structure contains the parameters describing a volume known to the filter manager.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER_VOLUME, used to
+ * enumerate instances on the named volume. VolumeNameSize is a nonzero byte
+ * count, at most 0x800, for a counted UTF-16 name without a required terminator.
  */
 typedef struct _FLT_VOLUME_PARAMETERS
 {
@@ -4619,6 +4703,9 @@ typedef struct _FLT_VOLUME_PARAMETERS
 // private
 /**
  * The ATTACH_TYPE enumeration specifies the type of a minifilter instance attachment.
+ *
+ * AltitudeBased uses the supplied altitude (FilterAttachAtAltitude);
+ * InstanceNameBased uses the configured instance altitude (FilterAttach).
  */
 typedef enum _ATTACH_TYPE
 {
@@ -4629,6 +4716,14 @@ typedef enum _ATTACH_TYPE
 // private
 /**
  * The FLT_ATTACH structure contains the parameters used to attach a minifilter instance to a volume.
+ *
+ * Input to FLT_CTL_ATTACH; the fixed header is 20 bytes on x86 and x64.
+ * All sizes and offsets are byte counts relative to this structure. Strings
+ * are counted UTF-16; filter/instance names are limited to 0x1FE bytes each,
+ * volume names to 0x800 bytes, and altitude strings to 0xFFFE bytes.
+ * InstanceNameSize == 0 omits the instance name. Altitude is used only for
+ * AltitudeBased. An optional output buffer receives the resulting instance
+ * name with a NUL terminator; IoStatus.Information includes that terminator.
  */
 typedef struct _FLT_ATTACH
 {
@@ -4648,33 +4743,98 @@ typedef struct _FLT_ATTACH
 //
 
 // rev // FSCTLs for \Device\Mup
+// Audited against mup.sys (x64). Send with NtFsControlFile.
+// Query buffers contain counted UTF-16 strings and relative byte offsets, not pointers.
+// The three cache/provider queries accept no input. With at least 4 output bytes,
+// STATUS_BUFFER_OVERFLOW returns the required allocation size in the first ULONG
+// and IoStatus.Information == 4; discard other output and retry with a larger buffer.
+// The hardening-table query uses a different, linked-record output contract below.
+//
+// rev: descriptive names for the additional branches in MupFsControl.
+// Registration is kernel-only; user-mode requests return STATUS_ACCESS_DENIED.
+// Its native x64 input contains UNICODE_STRING at 0, a provider device-object
+// pointer at 16, and a registration-descriptor pointer at 24. These are kernel
+// pointers, not a user-mode serialized request. Prefer FsRtlRegisterUncProviderEx2.
+#define FSCTL_MUP_REGISTER_UNC_PROVIDER             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 1, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT (kernel mode only)
+// Flush a cached prefix using a counted WCHAR input, without a terminating NUL.
+// Input length must be even and less than 0xFFFF bytes. A single L'*' (2 bytes)
+// flushes the whole cache for the handle's silo; no output. Requires write access.
+// This changes routing-cache state; it is not a diagnostic query.
+#define FSCTL_MUP_FLUSH_UNC_CACHE                   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 10, METHOD_BUFFERED, FILE_WRITE_ACCESS)
 #define FSCTL_MUP_GET_UNC_CACHE_INFO                CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 11, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_CACHE_INFORMATION
 #define FSCTL_MUP_GET_UNC_PROVIDER_LIST             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 12, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST       CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 13, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 14, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY[]
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH  CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 15, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN; out: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 
+// Forward declarations allow the kernel-only request layout to be described
+// without importing WDK device-object or registration definitions into user mode.
+struct _DEVICE_OBJECT;
+struct _FSRTL_UNC_PROVIDER_REGISTRATION;
+
+// rev
+/**
+ * Input to FSCTL_MUP_REGISTER_UNC_PROVIDER for registering a UNC redirector.
+ *
+ * This is a native, pointer-bearing kernel request, not an offset-based user-mode
+ * buffer. MupFsControl rejects user-mode callers with STATUS_ACCESS_DENIED.
+ * RedirDevName names the redirector device, DeviceObject identifies its device
+ * object, and Registration points to the versioned registration descriptor
+ * declared as FSRTL_UNC_PROVIDER_REGISTRATION in the WDK ntifs.h header.
+ * The descriptor is separate from this request; its Size and Version describe
+ * the descriptor, not this wrapper. Keep the name buffer and descriptor valid
+ * for the duration of the request. Prefer FsRtlRegisterUncProviderEx2 in drivers.
+ *
+ * Verified against mup.sys x64: RedirDevName at 0, DeviceObject at
+ * 16, Registration at 24; the wrapper is 32 bytes with default packing.
+ * The declaration uses native pointer widths; an x86 compiler produces 16 bytes,
+ * but an x86 kernel implementation was not audited. There is no WOW64 user-mode
+ * registration contract. Type and member names are descriptive reconstructions.
+ */
+typedef struct _MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT
+{
+    UNICODE_STRING RedirDevName;
+    struct _DEVICE_OBJECT *DeviceObject;
+    const struct _FSRTL_UNC_PROVIDER_REGISTRATION *Registration;
+} MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT, *PMUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT;
+
 // private
 /**
  * The MUP_FSCTL_UNC_CACHE_ENTRY structure describes a single entry in the MUP UNC provider cache.
+ *
+ * Identifies the provider selected for a cached UNC prefix, useful for diagnosing
+ * routing and expiration. Strings begins at byte 36. All three name offsets are
+ * relative to Strings, NOT to this structure; names are not NUL-terminated.
+ * Advance by TotalLength (rounded to 4 bytes), not sizeof this structure.
+ * Flags occupies the previously implicit padding at byte 26; the audited writer
+ * emits 0 or 1. Its internal-state meaning is not established here.
  */
 typedef struct _MUP_FSCTL_UNC_CACHE_ENTRY
 {
     ULONG TotalLength;
-    ULONG UncNameOffset; // to WCHAR[] from this struct
+    ULONG UncNameOffset; // byte offset from Strings
     USHORT UncNameLength; // in bytes
-    ULONG ProviderNameOffset; // to WCHAR[] from this struct
+    ULONG ProviderNameOffset; // byte offset from Strings
     USHORT ProviderNameLength; // in bytes
-    ULONG SurrogateNameOffset; // to WCHAR[] from this struct
+    ULONG SurrogateNameOffset; // byte offset from Strings
     USHORT SurrogateNameLength; // in bytes
+    USHORT Flags; // rev: 0 or 1 in the audited build; formerly implicit padding
     ULONG ProviderPriority;
-    ULONG EntryTtl;
+    ULONG EntryTtl; // remaining lifetime in seconds
     WCHAR Strings[ANYSIZE_ARRAY];
 } MUP_FSCTL_UNC_CACHE_ENTRY, *PMUP_FSCTL_UNC_CACHE_ENTRY;
 
 // private
 /**
  * The MUP_FSCTL_UNC_CACHE_INFORMATION structure contains information about the MUP UNC provider cache.
+ *
+ * Output of FSCTL_MUP_GET_UNC_CACHE_INFO. The fixed prefix is 16 bytes and
+ * EntryTimeout is in seconds. Walk TotalEntries variable-length records using
+ * each entry's TotalLength, not C array indexing. An empty result has
+ * TotalEntries == 0 but still includes a 40-byte zeroed placeholder entry
+ * (TotalLength == 40), making its returned size 56 bytes. Do not enumerate
+ * that placeholder. On STATUS_BUFFER_OVERFLOW the first ULONG instead holds
+ * the required total buffer size; it is not MaxCacheSize in that case.
  */
 typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 {
@@ -4688,6 +4848,12 @@ typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 // private
 /**
  * The MUP_FSCTL_UNC_PROVIDER_ENTRY structure describes a single MUP UNC provider entry.
+ *
+ * One registered redirector in FSCTL_MUP_GET_UNC_PROVIDER_LIST. ProviderName
+ * starts at byte 22 and is counted UTF-16 without a required terminator.
+ * TotalLength includes the name and rounds the record to 4-byte alignment.
+ * ReferenceCount and ProviderState are snapshots of internal provider state,
+ * not handles or references owned by the caller.
  */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
 {
@@ -4703,6 +4869,13 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
 // private
 /**
  * The MUP_FSCTL_UNC_PROVIDER_INFORMATION structure contains information about the registered MUP UNC providers.
+ *
+ * Output of FSCTL_MUP_GET_UNC_PROVIDER_LIST, for inspecting registered UNC
+ * redirectors and their routing priorities. The fixed prefix is 4 bytes.
+ * Walk TotalEntries records by TotalLength. When TotalEntries == 0, a 24-byte
+ * placeholder follows the count (28 output bytes total); do not enumerate it.
+ * On STATUS_BUFFER_OVERFLOW the first ULONG is the required buffer size
+ * rather than an entry count, and IoStatus.Information is 4.
  */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 {
@@ -4713,6 +4886,11 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 // private
 /**
  * The MUP_FSCTL_SURROGATE_PROVIDER_ENTRY structure describes a single MUP surrogate provider entry.
+ *
+ * One surrogate in FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST. SurrogateName
+ * starts at byte 22 and is counted UTF-16. TotalLength rounds each record to
+ * 4-byte alignment. SurrogatePriority is written as zero in the audited build;
+ * its presence does not establish a usable priority value.
  */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
 {
@@ -4728,6 +4906,12 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
 // private
 /**
  * The MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION structure contains information about the registered MUP surrogate providers.
+ *
+ * Output of FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST, for inspecting registered
+ * surrogate providers. The fixed prefix is 4 bytes. Walk TotalEntries records
+ * by TotalLength. An empty list includes a 24-byte placeholder after the count
+ * (28 output bytes total). On STATUS_BUFFER_OVERFLOW the first ULONG instead
+ * contains the required buffer size, with IoStatus.Information == 4.
  */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 {
@@ -4738,6 +4922,17 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 // private
 /**
  * The MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY structure describes a single entry in the MUP UNC hardening prefix table.
+ *
+ * Output records for FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION. There is no
+ * leading count. The fixed record is 24 bytes, followed by the counted UTF-16
+ * prefix at PrefixNameOffset relative to this record. Records begin at offsets
+ * aligned to 16 bytes within the output buffer. NextOffset == 0 ends the list.
+ * The capability bits are 0x1 mutual authentication, 0x2 integrity, 0x4 privacy.
+ * OpenCount reports the prefix's open count; this query does not acquire opens.
+ * STATUS_BUFFER_OVERFLOW can return a partial linked list; grow the buffer and
+ * restart to obtain the complete table. STATUS_BUFFER_TOO_SMALL is returned
+ * when no entry fits; do not apply the cache/provider first-ULONG size convention.
+ * An empty table succeeds with IoStatus.Information == 0.
  */
 typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
 {
@@ -4760,6 +4955,14 @@ typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
 // private
 /**
  * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN structure is the input used to query the MUP UNC hardening configuration.
+ *
+ * Input to FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH, for resolving
+ * hardening requirements for one UNC path. Set Size to sizeof this structure
+ * (12 bytes with default packing), append the counted UTF-16 path, and set
+ * UncPathOffset accordingly. The path must be WCHAR-aligned, start with two
+ * backslashes, and be longer than 4 bytes; its offset plus length must fit the
+ * input buffer. Size must be at least 10 bytes and no greater than the input
+ * length. Supply at least 8 output bytes. No remote file is opened by this query.
  */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 {
@@ -4771,6 +4974,11 @@ typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 // private
 /**
  * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT structure is the output containing the MUP UNC hardening configuration.
+ *
+ * Successful output of FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH:
+ * Size == 8 and IoStatus.Information == 8. RequiredHardeningCapabilities uses
+ * 0x1 for mutual authentication, 0x2 for integrity, and 0x4 for privacy.
+ * These are required protections, not the negotiated capabilities of a connection.
  */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 {
