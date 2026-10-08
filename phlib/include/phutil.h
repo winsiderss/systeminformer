@@ -2042,6 +2042,22 @@ PhQueryRegistryUlong64Z(
     return PhQueryRegistryUlong64(KeyHandle, &valueName);
 }
 
+typedef enum _PH_WINLOGON_SETTING_TYPE
+{
+    PhWinlogonShellCritical,
+    PhWinlogonSiHostCritical,
+    PhWinlogonAutoRestartShell,
+    PhWinlogonWinStationsDisabled
+} PH_WINLOGON_SETTING_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryWinlogonSetting(
+    _In_ PH_WINLOGON_SETTING_TYPE Type,
+    _Out_ PBOOLEAN Value
+    );
+
 typedef struct _PH_FLAG_MAPPING
 {
     ULONG Flag1;

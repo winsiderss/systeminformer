@@ -30937,6 +30937,4 @@ vSetPldc(
     VOID
     );
 
-#include <ntusermissing.h>
-
 #endif // _NTUSER_H
