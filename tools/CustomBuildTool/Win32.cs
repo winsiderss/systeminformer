@@ -803,7 +803,7 @@ namespace CustomBuildTool
                     Environment.SetEnvironmentVariable("PATH", filteredPath, EnvironmentVariableTarget.Process);
                 }
 
-                //Program.PrintColorMessage($"[PATH] filtered: {pathEntries.Length} entries -> {allowedPaths.Count} entries", ConsoleColor.DarkGray);
+                //Program.PrintColorMessage($"[PATH] filtered: {filteredPath.Length} entries -> {allowedPaths.Count} entries", ConsoleColor.DarkGray, );
             }
         }
 

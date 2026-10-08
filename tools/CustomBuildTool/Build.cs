@@ -54,7 +54,7 @@ namespace CustomBuildTool
 
             if (!Utils.SetCurrentDirectoryParent("SystemInformer.sln"))
             {
-                Console.WriteLine($"{VT.RED}Unable to find project solution.{VT.RESET}");
+                Program.PrintErrorMessage("Unable to find project solution.");
                 return false;
             }
 
@@ -63,7 +63,7 @@ namespace CustomBuildTool
 
             if (!await Build.InitializeBuildArguments())
             {
-                Console.WriteLine($"{VT.RED}Unable to initialize build arguments.{VT.RESET}");
+                Program.PrintErrorMessage("Unable to initialize build arguments.");
                 return false;
             }
 
@@ -269,8 +269,49 @@ namespace CustomBuildTool
                     Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
                 }
 
+                if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
+                {
+                    Program.PrintColorMessage(" [", ConsoleColor.DarkGray, false);
+                    Program.PrintColorMessage(Build.GetSimdArchString(), ConsoleColor.Magenta, false);
+                    Program.PrintColorMessage("]", ConsoleColor.DarkGray, false);
+                }
+
                 Program.PrintColorMessage(Environment.NewLine, ConsoleColor.DarkGray);
             }
+        }
+
+        /// <summary>
+        /// Selects the best enhanced instruction set supported by the current machine.
+        /// An explicit BUILD_SIMD environment variable takes precedence.
+        /// </summary>
+        public static void SetupNativeSimdExtensions()
+        {
+            if (!string.IsNullOrWhiteSpace(Build.BuildSimdExtensions))
+                return;
+
+            if (System.Runtime.Intrinsics.X86.Avx512F.IsSupported)
+                Build.BuildSimdExtensions = "AdvancedVectorExtensions512";
+            else if (System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+                Build.BuildSimdExtensions = "AdvancedVectorExtensions2";
+            else if (System.Runtime.Intrinsics.X86.Avx.IsSupported)
+                Build.BuildSimdExtensions = "AdvancedVectorExtensions";
+        }
+
+        /// <summary>
+        /// Gets the compiler /arch switch for the selected enhanced instruction set.
+        /// </summary>
+        public static string GetSimdArchString()
+        {
+            return Build.BuildSimdExtensions switch
+            {
+                "AdvancedVectorExtensions512" => "/arch:AVX512",
+                "AdvancedVectorExtensions2" => "/arch:AVX2",
+                "AdvancedVectorExtensions" => "/arch:AVX",
+                "StreamingSIMDExtensions2" => "/arch:SSE2",
+                "StreamingSIMDExtensions" => "/arch:SSE",
+                "NoExtensions" => "/arch:IA32",
+                _ => Build.BuildSimdExtensions
+            };
         }
 
         public static bool TryNormalizeBuildFlags(ref BuildFlags Flags, bool FailIfNoTargetPlatforms = false)
@@ -288,7 +329,7 @@ namespace CustomBuildTool
                 !Flags.HasFlag(BuildFlags.Build64bit) &&
                 !Flags.HasFlag(BuildFlags.BuildArm64bit))
             {
-                Program.PrintColorMessage("[ERROR] No build platforms are available for the requested command.", ConsoleColor.Red, true, Flags);
+                Program.PrintErrorMessage("No build platforms are available for the requested command.", true, Flags);
                 return false;
             }
 
@@ -721,7 +762,7 @@ namespace CustomBuildTool
             {
                 if (Flags.HasFlag(configuration) && Flags.HasFlag(architecture))
                 {
-                    string exePath = Path.Join(baseDirectory, folder, "SystemInformer.exe");
+                    string exePath = Path.Join([baseDirectory, folder, "SystemInformer.exe"]);
 
                     if (!File.Exists(exePath))
                     {
@@ -752,7 +793,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -775,7 +816,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -800,7 +841,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
         }
@@ -845,7 +886,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] (CopyKernelDriver) {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception, "CopyKernelDriver");
                 return false;
             }
 
@@ -1126,7 +1167,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1152,7 +1193,7 @@ namespace CustomBuildTool
 
                 if (!File.Exists(zipFilePath))
                 {
-                    Program.PrintColorMessage($"[ERROR] Missing setup payload source: {zipFilePath}", ConsoleColor.Red);
+                    Program.PrintErrorMessage($"Missing setup payload source: {zipFilePath}");
                     return false;
                 }
 
@@ -1169,7 +1210,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
         }
@@ -1206,7 +1247,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1227,11 +1268,11 @@ namespace CustomBuildTool
             var buildZipFilesMap = new Dictionary<string, string>(4, StringComparer.OrdinalIgnoreCase);
 
             if (Flags.HasFlag(BuildFlags.Build32bit))
-                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}32"), $"systeminformer-build{toolchainSuffix}-win32-bin.zip");
+                buildZipFilesMap.Add(Path.Join([buildDirectory, $"{buildConfiguration}32"]), $"systeminformer-build{toolchainSuffix}-win32-bin.zip");
             if (Flags.HasFlag(BuildFlags.Build64bit))
-                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}64"), $"systeminformer-build{toolchainSuffix}-win64-bin.zip");
+                buildZipFilesMap.Add(Path.Join([buildDirectory, $"{buildConfiguration}64"]), $"systeminformer-build{toolchainSuffix}-win64-bin.zip");
             if (Flags.HasFlag(BuildFlags.BuildArm64bit))
-                buildZipFilesMap.Add(Path.Join(buildDirectory, $"{buildConfiguration}ARM64"), $"systeminformer-build{toolchainSuffix}-arm64-bin.zip");
+                buildZipFilesMap.Add(Path.Join([buildDirectory, $"{buildConfiguration}ARM64"]), $"systeminformer-build{toolchainSuffix}-arm64-bin.zip");
             buildZipFilesMap.Add(buildDirectory, $"systeminformer-build{toolchainSuffix}-bin.zip");
 
             Utils.CreateOutputDirectory();
@@ -1272,7 +1313,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1303,7 +1344,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1369,7 +1410,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1388,7 +1429,7 @@ namespace CustomBuildTool
 
             if (!Utils.SymStoreExists())
             {
-                Program.PrintColorMessage("[ERROR] SymStore.exe not found.", ConsoleColor.Red);
+                Program.PrintErrorMessage("SymStore.exe not found.");
                 if (Win32.HasEnvironmentVariable("GITHUB_ACTIONS"))
                     return true;
                 return false;
@@ -1469,7 +1510,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1556,7 +1597,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 
@@ -1627,7 +1668,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                Program.PrintErrorMessage(exception, null, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
 
@@ -1730,7 +1771,7 @@ namespace CustomBuildTool
 
                 if (exitCodeValue != 0)
                 {
-                    Program.PrintColorMessage($"[ERROR] ({exitCodeValue}) {errorOutputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    Program.PrintErrorMessage($"({exitCodeValue}) {errorOutputString}", true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -1854,7 +1895,7 @@ namespace CustomBuildTool
 
             if (string.IsNullOrWhiteSpace(messageCompiler))
             {
-                Program.PrintColorMessage("[ERROR] mc.exe (Windows SDK Message Compiler) was not found.", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                Program.PrintErrorMessage("mc.exe (Windows SDK Message Compiler) was not found.", true, Flags | BuildFlags.BuildVerbose);
                 return false;
             }
 
@@ -1894,7 +1935,7 @@ namespace CustomBuildTool
 
                 if (exitcode != 0)
                 {
-                    Program.PrintColorMessage($"[ERROR] mc.exe ({exitcode}) {outputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    Program.PrintErrorMessage($"mc.exe ({exitcode}) {outputString}", true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -1926,7 +1967,7 @@ namespace CustomBuildTool
 
                 if (exitCodeValue != 0)
                 {
-                    Program.PrintColorMessage($"[ERROR] ({exitCodeValue}) {errorOutputString}", ConsoleColor.Red, true, Flags | BuildFlags.BuildVerbose);
+                    Program.PrintErrorMessage($"({exitCodeValue}) {errorOutputString}", true, Flags | BuildFlags.BuildVerbose);
                     return false;
                 }
             }
@@ -2159,7 +2200,7 @@ namespace CustomBuildTool
             int errorCode = Win32.CreateProcess("cmd.exe", ["/c", commandLine], out _, false, false);
             if (errorCode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] build_cmake.cmd {Action} failed ({errorCode})", ConsoleColor.Red, true, Flags);
+                Program.PrintErrorMessage($"build_cmake.cmd {Action} failed ({errorCode})", true, Flags);
                 return false;
             }
 
@@ -2266,7 +2307,7 @@ namespace CustomBuildTool
             int errorCode = Utils.ExecuteCMakeCommand(generateArgs);
             if (errorCode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] CMake generate failed ({errorCode})", ConsoleColor.Red, true, verboseFlags);
+                Program.PrintErrorMessage($"CMake generate failed ({errorCode})", true, verboseFlags);
                 return false;
             }
 
@@ -2320,7 +2361,7 @@ namespace CustomBuildTool
             errorCode = Utils.ExecuteCMakeCommand(buildArgs);
             if (errorCode != 0)
             {
-                Program.PrintColorMessage($"[ERROR] CMake build failed ({errorCode})", ConsoleColor.Red, true, verboseFlags);
+                Program.PrintErrorMessage($"CMake build failed ({errorCode})", true, verboseFlags);
                 return false;
             }
 
@@ -2752,9 +2793,9 @@ namespace CustomBuildTool
         /// starting from 1001.</param>
         public static void ExportDefinitions(bool ReleaseBuild)
         {
-            string defPath = Path.Join("SystemInformer", "SystemInformer.def");
-            string headerPath = Path.Join("SystemInformer", "SystemInformer.def.h");
-            string backupPath = Path.Join("SystemInformer", "SystemInformer.def.bak");
+            string defPath = Path.Join(["SystemInformer", "SystemInformer.def"]);
+            string headerPath = Path.Join(["SystemInformer", "SystemInformer.def.h"]);
+            string backupPath = Path.Join(["SystemInformer", "SystemInformer.def.bak"]);
             string temporaryHeader = headerPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
 
             int ordinalIndex = 0;
@@ -2805,8 +2846,8 @@ namespace CustomBuildTool
         {
             try
             {
-                string bakPath = Path.Join("SystemInformer", "SystemInformer.def.bak");
-                string defPath = Path.Join("SystemInformer", "SystemInformer.def");
+                string bakPath = Path.Join(["SystemInformer", "SystemInformer.def.bak"]);
+                string defPath = Path.Join(["SystemInformer", "SystemInformer.def"]);
                 if (File.Exists(bakPath))
                 {
                     File.Move(bakPath, defPath, true);

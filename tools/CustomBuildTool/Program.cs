@@ -61,6 +61,13 @@ namespace CustomBuildTool
             };
             rootCommand.Add(argsFileOption);
 
+            var nativeOption = new Option<bool>("-native", ["--native"])
+            {
+                Description = "Enables the best enhanced instruction set (/arch) supported by this machine.",
+                Recursive = true
+            };
+            rootCommand.Add(nativeOption);
+
             // Subcommands
             rootCommand.Add(CreateWriteToolsIdCommand());
             rootCommand.Add(CreateCleanupCommand());
@@ -69,6 +76,9 @@ namespace CustomBuildTool
             rootCommand.Add(CreateCheckMsvcCommand());
             rootCommand.Add(CreateInstallMsvcCommand());
             rootCommand.Add(CreateDynDataCommand());
+            rootCommand.Add(CreateBuildDeltaCommand());
+            rootCommand.Add(CreateBuildPatchCommand());
+            rootCommand.Add(CreateRotateSetupCommand());
             rootCommand.Add(CreatePhAppPubGenCommand());
             rootCommand.Add(CreatePhntHeadersGenCommand());
             rootCommand.Add(CreateKphSignCommand());
@@ -80,14 +90,14 @@ namespace CustomBuildTool
             rootCommand.Add(CreateReflowRevertCommand());
             rootCommand.Add(CreateVtScanCommand());
             rootCommand.Add(CreateDevEnvBuildCommand());
-            rootCommand.Add(CreateBinCommand(verboseOption, analyzeOption));
+            rootCommand.Add(CreateBinCommand(verboseOption, analyzeOption, nativeOption));
             rootCommand.Add(CreatePipelineBuildCommand(verboseOption, analyzeOption));
             rootCommand.Add(CreatePipelinePackageCommand(verboseOption));
             rootCommand.Add(CreatePipelineDeployCommand(verboseOption));
             rootCommand.Add(CreateMsixBuildCommand(verboseOption));
             rootCommand.Add(CreateSdkCommand(verboseOption));
-            rootCommand.Add(CreateDebugCommand(verboseOption, analyzeOption));
-            rootCommand.Add(CreateReleaseCommand(verboseOption, analyzeOption));
+            rootCommand.Add(CreateDebugCommand(verboseOption, analyzeOption, nativeOption));
+            rootCommand.Add(CreateReleaseCommand(verboseOption, analyzeOption, nativeOption));
             rootCommand.Add(CreateCMakeBuildCommand(verboseOption));
             rootCommand.Add(CreateCMakeBinCommand(verboseOption));
             rootCommand.Add(CreateCMakeReleaseCommand(verboseOption));
@@ -117,6 +127,9 @@ namespace CustomBuildTool
                     { "-build-devenv", "Builds using devenv configuration." },
                     { "-build-msix", "Builds MSIX store package." },
                     { "-build-zip", "Builds the binary package." },
+                    { "-build-delta", "Creates an MSDelta delta from the latest release setup to the build output setup." },
+                    { "-build-patch", "Creates a PatchAPI patch from the latest release setup to the build output setup." },
+                    { "-rotate-setup", "Rotates setup.zip bytes into setup.rag and generates setuprag.c." },
 
                     { "-check_msvc", "Check required build dependencies are installed." },
                     { "-check-thirdparty", "Checks thirdparty library versions against latest GitHub releases." },
@@ -163,7 +176,8 @@ namespace CustomBuildTool
                     { "-sbom-driver", "Generates the WHCP SPDX 3.0 SBOM and VEX for the driver package." },
                 };
 
-                PrintColorMessage("Error: Missing required arguments. Use -h or --help for valid commands.\r\n", ConsoleColor.Red);
+                PrintErrorMessage("Missing required arguments. Use -h or --help for valid commands.");
+                Console.WriteLine();
             });
 
             rootCommand.Add(new VersionOption());
@@ -178,7 +192,7 @@ namespace CustomBuildTool
                 {
                     if (++index == Args.Length || string.IsNullOrWhiteSpace(Args[index]))
                     {
-                        PrintColorMessage("Error: -argsfile requires a file path.", ConsoleColor.Red);
+                        PrintErrorMessage("-argsfile requires a file path.");
                         return Task.FromResult(1);
                     }
 
@@ -327,6 +341,82 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Creates a command that rotates setup.zip into setup.rag and generates setuprag.c.
+        /// </summary>
+        /// <returns>A command configured to rotate the setup package.</returns>
+        private static Command CreateRotateSetupCommand()
+        {
+            var cmd = new Command("-rotate-setup", "Rotates setup.zip bytes into setup.rag and generates setuprag.c.");
+            cmd.SetAction(_ =>
+            {
+                try
+                {
+                    var rotation = BuildRotate.RotateSetupFile("setup.zip", "setup.rag");
+                    BuildRotate.GenerateRotationSource("setuprag.c", rotation.Count, rotation.Left);
+                    Program.PrintColorMessage($"Created setup.rag and setuprag.c (rotate {(rotation.Left ? "left" : "right")} {rotation.Count} bits).", ConsoleColor.Green);
+                }
+                catch (Exception exception)
+                {
+                    Program.PrintErrorMessage(exception);
+                    Environment.Exit(1);
+                }
+            });
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a command that downloads the latest setup and creates an MSDelta delta to the build output setup.
+        /// </summary>
+        /// <returns>A command configured to create and verify the setup delta.</returns>
+        private static Command CreateBuildDeltaCommand()
+        {
+            var cmd = new Command("-build-delta", "Creates an MSDelta delta from the latest release setup to the build output setup.");
+            cmd.Aliases.Add("-delta-build");
+            var channelOpt = new Option<string>("-channel")
+            {
+                Description = "Build channel (release or canary)",
+                DefaultValueFactory = _ => "release"
+            };
+            channelOpt.AcceptOnlyFromAmong("release", "canary");
+            cmd.Add(channelOpt);
+            cmd.SetAction(async ParseResult =>
+            {
+                string channel = ParseResult.GetValue(channelOpt);
+                BuildToolsId.CheckForOutOfDateTools();
+
+                if (!await BuildDelta.CreateDelta(channel))
+                    Environment.Exit(1);
+            });
+            return cmd;
+        }
+
+        /// <summary>
+        /// Creates a command that downloads the latest setup and creates a PatchAPI patch to the build output setup.
+        /// </summary>
+        /// <returns>A command configured to create and verify the setup patch.</returns>
+        private static Command CreateBuildPatchCommand()
+        {
+            var cmd = new Command("-build-patch", "Creates a PatchAPI patch from the latest release setup to the build output setup.");
+            cmd.Aliases.Add("-patch-build");
+            var channelOpt = new Option<string>("-channel")
+            {
+                Description = "Build channel (release or canary)",
+                DefaultValueFactory = _ => "release"
+            };
+            channelOpt.AcceptOnlyFromAmong("release", "canary");
+            cmd.Add(channelOpt);
+            cmd.SetAction(async ParseResult =>
+            {
+                string channel = ParseResult.GetValue(channelOpt);
+                BuildToolsId.CheckForOutOfDateTools();
+
+                //if (!await BuildDelta.CreatePatch(channel))
+                    Environment.Exit(1);
+            });
+            return cmd;
+        }
+
+        /// <summary>
         /// Creates a command that regenerates the NetworkTools port-service table from the IANA registry.
         /// </summary>
         /// <returns>A command configured to generate the port-service table.</returns>
@@ -440,7 +530,7 @@ namespace CustomBuildTool
                 }
                 catch (Exception exception)
                 {
-                    Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                    Program.PrintErrorMessage(exception);
                     Environment.Exit(1);
                 }
             });
@@ -593,8 +683,9 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="VerboseOption">Specifies whether to enable verbose output during the build process.</param>
         /// <param name="AnalyzeOption">Specifies whether to enable code analysis during the build process.</param>
+        /// <param name="NativeOption">Specifies whether to enable the best instruction set supported by this machine.</param>
         /// <returns>A Command object configured to build the binary package.</returns>
-        private static Command CreateBinCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption)
+        private static Command CreateBinCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption, Option<bool> NativeOption)
         {
             var cmd = new Command("-bin", "Builds the binary package.");
             cmd.Aliases.Add("-build-zip");
@@ -604,6 +695,7 @@ namespace CustomBuildTool
                 bool analyze = ParseResult.GetValue(AnalyzeOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None) | (analyze ? BuildFlags.BuildAnalyze : BuildFlags.None);
+                if (ParseResult.GetValue(NativeOption)) Build.SetupNativeSimdExtensions();
                 Build.SetupBuildEnvironment(true);
                 if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
@@ -820,8 +912,9 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <param name="AnalyzeOption">Specifies whether to enable code analysis during the build process.</param>
+        /// <param name="NativeOption">Specifies whether to enable the best instruction set supported by this machine.</param>
         /// <returns>A command configured to build the debug configuration.</returns>
-        private static Command CreateDebugCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption)
+        private static Command CreateDebugCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption, Option<bool> NativeOption)
         {
             var cmd = new Command("-debug", "Builds the debug configuration.");
             cmd.Aliases.Add("-build-debug");
@@ -831,6 +924,7 @@ namespace CustomBuildTool
                 bool analyze = ParseResult.GetValue(AnalyzeOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Debug | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None) | (analyze ? BuildFlags.BuildAnalyze : BuildFlags.None);
+                if (ParseResult.GetValue(NativeOption)) Build.SetupNativeSimdExtensions();
                 Build.SetupBuildEnvironment(true);
                 if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
@@ -849,8 +943,9 @@ namespace CustomBuildTool
         /// </summary>
         /// <param name="VerboseOption">Specifies whether to enable verbose output.</param>
         /// <param name="AnalyzeOption">Specifies whether to enable code analysis during the build process.</param>
+        /// <param name="NativeOption">Specifies whether to enable the best instruction set supported by this machine.</param>
         /// <returns>A command configured to build the release configuration.</returns>
-        private static Command CreateReleaseCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption)
+        private static Command CreateReleaseCommand(Option<bool> VerboseOption, Option<bool> AnalyzeOption, Option<bool> NativeOption)
         {
             var cmd = new Command("-release", "Builds the release configuration.");
             cmd.Aliases.Add("-build-release");
@@ -860,6 +955,7 @@ namespace CustomBuildTool
                 bool analyze = ParseResult.GetValue(AnalyzeOption);
                 BuildToolsId.CheckForOutOfDateTools();
                 BuildFlags flags = BuildFlags.Release | (verbose ? BuildFlags.BuildVerbose : BuildFlags.None) | (analyze ? BuildFlags.BuildAnalyze : BuildFlags.None);
+                if (ParseResult.GetValue(NativeOption)) Build.SetupNativeSimdExtensions();
                 Build.SetupBuildEnvironment(true);
                 if (!Build.TryNormalizeBuildFlags(ref flags, true)) Environment.Exit(1);
 
@@ -912,7 +1008,7 @@ namespace CustomBuildTool
                     configuration = BuildFlags.Debug;
                 else
                 {
-                    Program.PrintColorMessage($"[ERROR] Unsupported configuration: {configArg}. Expected Debug or Release.", ConsoleColor.Red);
+                    Program.PrintErrorMessage($"Unsupported configuration: {configArg}. Expected Debug or Release.");
                     Environment.Exit(1);
                     return;
                 }
@@ -1150,6 +1246,93 @@ namespace CustomBuildTool
                 else Console.Write(Message);
                 Console.ResetColor();
             }
+        }
+
+        /// <summary>
+        /// Prints an error message using the MSBuild canonical error format
+        /// ("origin : error CODE: message") so that MSBuild Exec tasks surface
+        /// the message as a build error instead of a low-importance log message.
+        /// </summary>
+        /// <param name="Message">The error message to print.</param>
+        /// <param name="Newline">Whether to append a newline.</param>
+        /// <param name="Flags">Build flags for verbosity control.</param>
+        public static void PrintErrorMessage(string Message, bool Newline = true, BuildFlags Flags = BuildFlags.BuildVerbose)
+        {
+            if ((Flags & BuildFlags.BuildVerbose) == 0) return;
+
+            // MSBuild only parses the first line as the error, so multi-line messages
+            // (e.g. captured tool output) use the first non-empty line as the summary
+            // and the remaining lines are printed afterwards as plain log output.
+            string summary = Message ?? string.Empty;
+            string details = null;
+            int newline = summary.IndexOfAny(['\r', '\n']);
+
+            if (newline >= 0)
+            {
+                var lines = summary.Split(["\r\n", "\n", "\r"], StringSplitOptions.None);
+                int first = Array.FindIndex(lines, line => !string.IsNullOrWhiteSpace(line));
+
+                if (first >= 0)
+                {
+                    summary = lines[first].Trim();
+                    details = string.Join(Environment.NewLine, lines, first + 1, lines.Length - first - 1).TrimEnd();
+                }
+                else
+                {
+                    summary = string.Empty;
+                }
+
+                if (string.IsNullOrEmpty(details))
+                    details = null;
+                else
+                    Newline = true;
+            }
+
+            string text = $"CustomBuildTool : error CBT0001: {summary}";
+
+            // MSBuild only matches the canonical format at the start of the line,
+            // so avoid color escape sequences when the output is captured.
+            if (Console.IsOutputRedirected)
+            {
+                if (Newline) Console.WriteLine(text);
+                else Console.Write(text);
+            }
+            else
+            {
+                PrintColorMessage(text, ConsoleColor.Red, Newline, Flags);
+            }
+
+            if (details != null)
+                Console.WriteLine(details);
+        }
+
+        /// <summary>
+        /// Prints an exception as a single MSBuild canonical error line (type, message and
+        /// innermost cause), followed by the full exception details as plain log output.
+        /// </summary>
+        /// <param name="Exception">The exception to print.</param>
+        /// <param name="Context">Optional context shown in parentheses before the message.</param>
+        /// <param name="Flags">Build flags for verbosity control.</param>
+        public static void PrintErrorMessage(Exception Exception, string Context = null, BuildFlags Flags = BuildFlags.BuildVerbose)
+        {
+            if ((Flags & BuildFlags.BuildVerbose) == 0) return;
+
+            var baseException = Exception.GetBaseException();
+            var text = new StringBuilder();
+
+            if (!string.IsNullOrEmpty(Context))
+                text.Append('(').Append(Context).Append(") ");
+
+            text.Append(Exception.GetType().Name).Append(": ").Append(Exception.Message);
+
+            if (baseException != Exception)
+                text.Append(" ---> ").Append(baseException.GetType().Name).Append(": ").Append(baseException.Message);
+
+            // Only the first line of output is parsed as the error, so keep it on one line.
+            text.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ');
+
+            PrintErrorMessage(text.ToString(), true, Flags);
+            Console.WriteLine(Exception.ToString());
         }
 
         /// <summary>

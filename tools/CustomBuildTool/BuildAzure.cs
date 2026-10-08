@@ -192,7 +192,7 @@ namespace CustomBuildTool
                     return false;
                 }
 
-                using var azureCertificateRsa = RSAFactory.Create(accessToken, keyId, azureCertificatePublic);
+                using (var azureCertificateRsa = RSAFactory.Create(accessToken, keyId, azureCertificatePublic))
                 using (var authenticodeKeyVaultSigner = new AuthenticodeKeyVaultSigner(azureCertificateRsa, azureCertificatePublic, HashAlgorithmName.SHA256, certificateTimeStampServer))
                 {
                     if (Directory.Exists(Path))
@@ -227,19 +227,19 @@ namespace CustomBuildTool
 
                         if (result == HRESULT.COR_E_BADIMAGEFORMAT)
                         {
-                            Program.PrintColorMessage($"[ERROR] The AppxManifest.xml publisher CN does not match the certificate: ({result}) {Path}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"The AppxManifest.xml publisher CN does not match the certificate: ({result}) {Path}");
                             return false;
                         }
 
                         if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
                         {
-                            Program.PrintColorMessage($"[ERROR] File content not supported: ({result}) {Path}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"File content not supported: ({result}) {Path}");
                             return false;
                         }
 
                         if (result != HRESULT.S_OK)
                         {
-                            Program.PrintColorMessage($"[ERROR] ({result}) {Path}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"({result}) {Path}");
                             return false;
                         }
 
@@ -253,7 +253,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Program.PrintErrorMessage(ex);
                 return false;
             }
 

@@ -150,7 +150,6 @@ namespace CustomBuildTool
             "phconsole.h",
             "phcrypt.h",
             "phdata.h",
-            "phfeatures.h",
             "phfirmware.h",
             "phnative.h",
             "phnativeinl.h",

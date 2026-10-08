@@ -54,7 +54,7 @@ namespace CustomBuildTool
         {
             try
             {
-                HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version={ApiVersion}");
+                using HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Get, $"https://{VaultName}.vault.azure.net/certificates/{CertName}?api-version={ApiVersion}");
                 requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
 
                 using var responseMessage = await BuildHttpClient.SendWithRetry(HttpClient, requestMessage, CancellationToken);
@@ -158,7 +158,7 @@ namespace CustomBuildTool
 
                 if (!responseMessage.IsSuccessStatusCode)
                 {
-                    Program.PrintColorMessage($"Key Vault error: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}", ConsoleColor.Red);
+                    Program.PrintErrorMessage($"Key Vault request failed: {(int)responseMessage.StatusCode} {responseMessage.ReasonPhrase}");
                     return false;
                 }
 
@@ -367,7 +367,7 @@ namespace CustomBuildTool
                                 }
                                 catch (Exception exception)
                                 {
-                                    Program.PrintColorMessage($"[ERROR] Signing '{fileName}': {exception.Message}", ConsoleColor.Red);
+                                    Program.PrintErrorMessage($"Signing '{fileName}': {exception.Message}");
                                 }
                             }
 
@@ -383,17 +383,17 @@ namespace CustomBuildTool
 
                         if (result == HRESULT.COR_E_BADIMAGEFORMAT)
                         {
-                            Program.PrintColorMessage($"[ERROR] The AppxManifest.xml publisher CN does not match the certificate: ({result}) {TargetPath}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"The AppxManifest.xml publisher CN does not match the certificate: ({result}) {TargetPath}");
                             return false;
                         }
                         else if (result == HRESULT.TRUST_E_SUBJECT_FORM_UNKNOWN)
                         {
-                            Program.PrintColorMessage($"[ERROR] File content not supported: ({result}) {TargetPath}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"File content not supported: ({result}) {TargetPath}");
                             return false;
                         }
                         else if (result != HRESULT.S_OK)
                         {
-                            Program.PrintColorMessage($"[ERROR] ({result}) {TargetPath}", ConsoleColor.Red);
+                            Program.PrintErrorMessage($"({result}) {TargetPath}");
                             return false;
                         }
 
@@ -408,7 +408,7 @@ namespace CustomBuildTool
             }
             catch (Exception exception)
             {
-                Program.PrintColorMessage($"[ERROR] {exception}", ConsoleColor.Red);
+                Program.PrintErrorMessage(exception);
                 return false;
             }
 

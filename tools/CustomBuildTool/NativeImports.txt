@@ -26,3 +26,10 @@ OpenProcess
 OpenProcessToken
 SetTokenInformation
 CloseHandle
+CreateDeltaB
+ApplyDeltaB
+GetDeltaInfoB
+DeltaFree
+CreatePatchFileW
+ApplyPatchToFileW
+TestApplyPatchToFileByBuffers

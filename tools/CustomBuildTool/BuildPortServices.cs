@@ -19,8 +19,8 @@ namespace CustomBuildTool
     public static class BuildPortServices
     {
         private const string CsvUrl = "https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv";
-        private static readonly string CsvFile = Path.Combine("tools", "thirdparty", "iana", "service-names-port-numbers.csv");
-        private static readonly string PortsFile = Path.Combine("plugins", "NetworkTools", "ports.c");
+        private static readonly string CsvFile = Path.Join(["tools", "thirdparty", "iana", "service-names-port-numbers.csv"]);
+        private static readonly string PortsFile = Path.Join(["plugins", "NetworkTools", "ports.c"]);
         private const string BeginMarker = "// <generated>";
         private const string EndMarker = "// </generated>";
 
@@ -74,7 +74,7 @@ namespace CustomBuildTool
 
             using var httpClient = BuildHttpClient.CreateHttpClient();
             using var request = new HttpRequestMessage(HttpMethod.Get, CsvUrl);
-            using var response = BuildHttpClient.SendMessageResponse(httpClient, request).GetAwaiter().GetResult();
+            using var response = BuildHttpClient.SendRequestMessage(httpClient, request).GetAwaiter().GetResult();
 
             if (response == null || !response.IsSuccessStatusCode)
             {

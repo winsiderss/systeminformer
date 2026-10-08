@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "CustomBuildTool": {
+      "commandName": "Project",
+      "commandLineArgs": "-build-debug"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "commandLineArgs": "-build-debug"
+    }
+  }
+}

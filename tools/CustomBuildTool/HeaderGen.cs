@@ -488,14 +488,14 @@ namespace CustomBuildTool
                             var sdk_include_path = Utils.GetWindowsSdkIncludePath();
                             if (string.IsNullOrWhiteSpace(sdk_include_path))
                             {
-                                Console.WriteLine("[ERROR] Could not find Windows SDK include paths.");
+                                Program.PrintErrorMessage("Could not find Windows SDK include paths.");
                                 continue;
                             }
 
                             var found = Directory.EnumerateFiles(sdk_include_path, file, SearchOption.AllDirectories).FirstOrDefault();
                             if (string.IsNullOrWhiteSpace(found))
                             {
-                                Console.WriteLine($"[ERROR] Could not find {file} in phnt or Windows SDK include paths.");
+                                Program.PrintErrorMessage($"Could not find {file} in phnt or Windows SDK include paths.");
                                 continue;
                             }
 

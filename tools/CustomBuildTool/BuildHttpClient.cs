@@ -35,8 +35,8 @@ namespace CustomBuildTool
             var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = DecompressionMethods.All,
-                AllowAutoRedirect = true,
-                UseCookies = true,
+                EnableMultipleHttp2Connections = true,
+                EnableMultipleHttp3Connections = true,      
                 SslOptions = new SslClientAuthenticationOptions
                 {
                     EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
@@ -44,7 +44,7 @@ namespace CustomBuildTool
             };
 
             var client = new HttpClient(handler, disposeHandler: true)
-            {
+            {   
                 Timeout = TimeSpan.FromSeconds(100),
                 DefaultRequestVersion = HttpVersion.Version30,
                 DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower
@@ -57,7 +57,11 @@ namespace CustomBuildTool
         /// <summary>
         /// Sends an HTTP request and returns the response. Caller is responsible for disposing of the response.
         /// </summary>
-        public static async ValueTask<HttpResponseMessage> SendMessageResponse(HttpClient HttpClient, HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
+        public static async ValueTask<HttpResponseMessage> SendRequestMessage(
+            HttpClient HttpClient, 
+            HttpRequestMessage HttpMessage, 
+            CancellationToken CancellationToken = default
+            )
         {
             return await SendWithRetry(HttpClient, HttpMessage, CancellationToken);
         }

@@ -153,13 +153,13 @@ namespace CustomBuildTool
         {
             if (string.IsNullOrWhiteSpace(KeyName))
             {
-                Program.PrintColorMessage("[ERROR] CreateSigFile: KeyName is empty.", ConsoleColor.Red);
+                Program.PrintErrorMessage("CreateSigFile: KeyName is empty.");
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(FileName))
             {
-                Program.PrintColorMessage("[ERROR] CreateSigFile: FileName is empty.", ConsoleColor.Red);
+                Program.PrintErrorMessage("CreateSigFile: FileName is empty.");
                 return false;
             }
 
@@ -167,7 +167,7 @@ namespace CustomBuildTool
             {
                 if (!File.Exists(FileName))
                 {
-                    Program.PrintColorMessage($"[ERROR] File missing: {FileName}", ConsoleColor.Red);
+                    Program.PrintErrorMessage($"File missing: {FileName}");
                     return false;
                 }
 
@@ -561,11 +561,11 @@ namespace CustomBuildTool
         {
             if (Win32.GetEnvironmentVariable("BUILD_DRM", out string value))
             {
-                return Path.Join(value, FileName);
+                return Path.Join([value, FileName]);
             }
 
             // N.B. Local developers are instructed to put keys in this path.
-            return Path.Join(Build.BuildWorkingFolder, "tools", "CustomSignTool", "Resources", FileName);
+            return Path.Join([Build.BuildWorkingFolder, "tools", "CustomSignTool", "Resources", FileName]);
         }
 
         /// <summary>

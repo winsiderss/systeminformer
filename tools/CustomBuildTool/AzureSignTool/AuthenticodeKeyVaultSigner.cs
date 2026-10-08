@@ -475,7 +475,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Program.PrintColorMessage($"[ERROR] {ex}", ConsoleColor.Red);
+                Program.PrintErrorMessage(ex);
                 return HRESULT.E_FAIL;
             }
             finally

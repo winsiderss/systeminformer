@@ -62,7 +62,7 @@ namespace CustomBuildTool
                 ("System Informer", "source", root)
             };
 
-            var thirdParty = Path.Combine(Directory.GetParent(root)?.Parent?.FullName ?? root, "tools", "thirdparty");
+            var thirdParty = Path.Join([Directory.GetParent(root)?.Parent?.FullName ?? root, "tools", "thirdparty"]);
 
             if (Directory.Exists(thirdParty))
             {
@@ -132,9 +132,9 @@ namespace CustomBuildTool
                 });
             }
 
-            using (var stream = File.Create(Path.Join(root, "SystemInformer.cdx.json")))
+            using (var stream = File.Create(Path.Join([root, "SystemInformer.cdx.json"])))
                 JsonSerializer.Serialize(stream, bom, BuildSbomIndentedJsonContext.Default.CycloneDxBom);
-            using (var stream = File.Create(Path.Join(root, "SystemInformer.spdx.json")))
+            using (var stream = File.Create(Path.Join([root, "SystemInformer.spdx.json"])))
                 JsonSerializer.Serialize(stream, spdx, BuildSbomIndentedJsonContext.Default.SpdxDocument);
             return true;
         }

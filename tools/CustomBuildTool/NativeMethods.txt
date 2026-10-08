@@ -64,3 +64,10 @@ CryptSIPRetrieveSubjectGuidForCatalogFile
 CryptSIPCreateIndirectData
 SIP_SUBJECTINFO
 SIP_INDIRECT_DATA
+CreateDeltaB
+ApplyDeltaB
+GetDeltaInfoB
+DeltaFree
+CreatePatchFileW
+ApplyPatchToFileW
+TestApplyPatchToFileByBuffers
