@@ -6828,6 +6828,20 @@ BOOLEAN PhIsProcessorFeaturePresentEx(
 }
 #endif
 
+#if !defined(_M_ARM64)
+// clang requires the rdpid target feature for the intrinsic; callers must
+// check PF_RDPID_INSTRUCTION_AVAILABLE before calling. (dmex)
+#if defined(__clang__)
+__attribute__((target("rdpid")))
+#endif
+static ULONG PhpReadProcessorId(
+    VOID
+    )
+{
+    return _rdpid_u32();
+}
+#endif
+
 /**
  * Retrieves the processor number information for the current processor.
  *
@@ -6848,7 +6862,7 @@ VOID PhGetCurrentProcessorNumber(
 #else
     if (USER_SHARED_DATA->ProcessorFeatures[PF_RDPID_INSTRUCTION_AVAILABLE])
     {
-        ULONG processorId = _rdpid_u32();
+        ULONG processorId = PhpReadProcessorId();
 
         // Windows stores the KPCR processor number in IA32_TSC_AUX using the same
         // layout consumed by the rdtscp-based RtlGetCurrentProcessorNumberEx: the
