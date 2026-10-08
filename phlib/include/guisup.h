@@ -114,6 +114,21 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 
 extern LONG PhFontQuality;
 
+typedef enum _PH_OWN_WINDOW_ATOM
+{
+    PhOwnWindowAtomTreeNew,
+    PhOwnWindowAtomScrollNew,
+    PhOwnWindowAtomToolTipsNew,
+    PhOwnWindowAtomGraph,
+    PhOwnWindowAtomGraphBar,
+    PhOwnWindowAtomPropSheetNew,
+    PhOwnWindowAtomHeaderNew,
+    PhOwnWindowAtomHexEdit,
+    PhOwnWindowAtomColorBox,
+    PhOwnWindowAtomTabNew,
+    PhOwnWindowAtomMaximum
+} PH_OWN_WINDOW_ATOM;
+
 PHLIBAPI
 VOID
 NTAPI
@@ -204,6 +219,33 @@ VOID
 NTAPI
 PhCloseThemeData(
     _In_ HTHEME ThemeHandle
+    );
+
+typedef struct _PH_THEME_FILE PH_THEME_FILE, * PPH_THEME_FILE;
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhLoadThemeFile(
+    _In_ PCWSTR ThemeFileName,
+    _Out_ PPH_THEME_FILE *ThemeFile
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhUnloadThemeFile(
+    _In_opt_ PPH_THEME_FILE ThemeFile
+    );
+
+PHLIBAPI
+HTHEME
+NTAPI
+PhOpenThemeDataFromFile(
+    _In_ PPH_THEME_FILE ThemeFile,
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR ClassList,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -778,12 +820,12 @@ PhEqualRect(
 }
 
 /**
- * Tests whether a point lies within a rectangle.
+ * Expands or contracts a rectangle on both axes.
  *
- * \param Rect The rectangle to test.
- * \param Point The point to test.
- * \return TRUE if the point is inside; otherwise FALSE.
- * \remarks The left and top edges are included; the right and bottom edges are excluded.
+ * \param Rect The rectangle to modify.
+ * \param dx The amount subtracted from the left and added to the right.
+ * \param dy The amount subtracted from the top and added to the bottom.
+ * \return TRUE on success; otherwise FALSE.
  */
 FORCEINLINE
 BOOLEAN
@@ -802,6 +844,36 @@ PhInflateRect(
     Rect->right += dx;
     Rect->bottom += dy;
     return TRUE;
+#endif
+}
+
+/**
+ * Calculates the intersection of two rectangles.
+ *
+ * \param Result Receives the intersection coordinates.
+ * \param Rect1 The first rectangle.
+ * \param Rect2 The second rectangle.
+ * \return TRUE if the intersection has positive width and height; otherwise FALSE.
+ * \remarks Result may be modified even when FALSE is returned. The native and local implementations can produce different coordinates for an empty intersection.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhIntersectRect(
+    _Out_ PRECT Result,
+    _In_ PRECT Rect1,
+    _In_ PRECT Rect2
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!IntersectRect(Result, Rect1, Rect2);
+#else
+    Result->left = Rect1->left > Rect2->left ? Rect1->left : Rect2->left;
+    Result->top = Rect1->top > Rect2->top ? Rect1->top : Rect2->top;
+    Result->right = Rect1->right < Rect2->right ? Rect1->right : Rect2->right;
+    Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
+
+    return Result->right > Result->left && Result->bottom > Result->top;
 #endif
 }
 
@@ -842,35 +914,6 @@ PhFillRectClipped(
 FORCEINLINE
 BOOLEAN
 NTAPI
-PhIntersectRect(
-    _Out_ PRECT Result,
-    _In_ PRECT Rect1,
-    _In_ PRECT Rect2
-    )
-{
-#if defined(PHNT_NATIVE_RECT)
-    return !!IntersectRect(Result, Rect1, Rect2);
-#else
-    Result->left = Rect1->left > Rect2->left ? Rect1->left : Rect2->left;
-    Result->top = Rect1->top > Rect2->top ? Rect1->top : Rect2->top;
-    Result->right = Rect1->right < Rect2->right ? Rect1->right : Rect2->right;
-    Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
-
-    return Result->right > Result->left && Result->bottom > Result->top;
-#endif
-}
-
-/**
- * Expands or contracts a rectangle on both axes.
- *
- * \param Rect The rectangle to modify.
- * \param dx The amount subtracted from the left and added to the right.
- * \param dy The amount subtracted from the top and added to the bottom.
- * \return TRUE on success; otherwise FALSE.
- */
-FORCEINLINE
-BOOLEAN
-NTAPI
 PhOffsetRect(
     _In_ PRECT Rect,
     _In_ LONG dx,
@@ -889,13 +932,12 @@ PhOffsetRect(
 }
 
 /**
- * Calculates the intersection of two rectangles.
+ * Tests whether a point lies within a rectangle.
  *
- * \param Result Receives the intersection coordinates.
- * \param Rect1 The first rectangle.
- * \param Rect2 The second rectangle.
- * \return TRUE if the intersection has positive width and height; otherwise FALSE.
- * \remarks Result may be modified even when FALSE is returned. The native and local implementations can produce different coordinates for an empty intersection.
+ * \param Rect The rectangle to test.
+ * \param Point The point to test.
+ * \return TRUE if the point is inside; otherwise FALSE.
+ * \remarks The left and top edges are included; the right and bottom edges are excluded.
  */
 FORCEINLINE
 BOOLEAN
@@ -944,11 +986,12 @@ PhGetWindowRect(
 }
 
 /**
- * Converts the last retrieved message's cursor position from screen to client coordinates.
+ * Retrieves a client rectangle with nonzero right and bottom coordinates.
  *
- * \param WindowHandle The window defining the client coordinate system.
- * \param ClientPoint Receives the converted position on success.
- * \return TRUE if conversion succeeds; otherwise FALSE.
+ * \param WindowHandle The window.
+ * \param ClientRect Receives the rectangle in client coordinates.
+ * \return TRUE if retrieval succeeds and both right and bottom are nonzero; otherwise FALSE.
+ * \remarks ClientRect may be modified on failure, including when a zero dimension is rejected.
  */
 _Success_(return)
 FORCEINLINE
@@ -989,12 +1032,10 @@ PhGetCursorPos(
 }
 
 /**
- * Applies a client-to-screen conversion to the last retrieved message's cursor position.
+ * Retrieves the cursor position recorded for the last message retrieved by the calling thread.
  *
- * \param WindowHandle The window defining the client coordinate system.
- * \param ClientPoint Receives the converted position on success.
- * \return TRUE if conversion succeeds; otherwise FALSE.
- * \remarks GetMessagePos already supplies screen coordinates; this helper nevertheless treats those coordinates as client coordinates before converting them.
+ * \param MessagePoint Receives the position in screen coordinates.
+ * \return TRUE.
  */
 _Success_(return)
 FORCEINLINE
@@ -1015,12 +1056,11 @@ PhGetMessagePos(
 }
 
 /**
- * Retrieves a client rectangle with nonzero right and bottom coordinates.
+ * Converts the last retrieved message's cursor position from screen to client coordinates.
  *
- * \param WindowHandle The window.
- * \param ClientRect Receives the rectangle in client coordinates.
- * \return TRUE if retrieval succeeds and both right and bottom are nonzero; otherwise FALSE.
- * \remarks ClientRect may be modified on failure, including when a zero dimension is rejected.
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param ClientPoint Receives the converted position on success.
+ * \return TRUE if conversion succeeds; otherwise FALSE.
  */
 _Success_(return)
 FORCEINLINE
@@ -1048,10 +1088,12 @@ PhGetClientPos(
 }
 
 /**
- * Retrieves the cursor position recorded for the last message retrieved by the calling thread.
+ * Applies a client-to-screen conversion to the last retrieved message's cursor position.
  *
- * \param MessagePoint Receives the position in screen coordinates.
- * \return TRUE.
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param ClientPoint Receives the converted position on success.
+ * \return TRUE if conversion succeeds; otherwise FALSE.
+ * \remarks GetMessagePos already supplies screen coordinates; this helper nevertheless treats those coordinates as client coordinates before converting them.
  */
 _Success_(return)
 FORCEINLINE
@@ -1079,12 +1121,11 @@ PhGetScreenPos(
 }
 
 /**
- * Maps a rectangle from client to screen coordinates.
+ * Converts a point from client to screen coordinates.
  *
- * \param WindowHandle The source window.
- * \param Rect The rectangle to map in place.
- * \return TRUE if MapWindowRect returns a nonzero displacement; otherwise FALSE.
- * \remarks A zero displacement is reported as FALSE even when mapping succeeds without moving the rectangle.
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param Point The point to convert in place.
+ * \return TRUE on success; otherwise FALSE.
  */
 FORCEINLINE
 BOOLEAN
@@ -1120,11 +1161,12 @@ PhScreenToClient(
 }
 
 /**
- * Converts a point from client to screen coordinates.
+ * Maps a rectangle from client to screen coordinates.
  *
- * \param WindowHandle The window defining the client coordinate system.
- * \param Point The point to convert in place.
- * \return TRUE on success; otherwise FALSE.
+ * \param WindowHandle The source window.
+ * \param Rect The rectangle to map in place.
+ * \return TRUE if MapWindowRect returns a nonzero displacement; otherwise FALSE.
+ * \remarks A zero displacement is reported as FALSE even when mapping succeeds without moving the rectangle.
  */
 FORCEINLINE
 BOOLEAN
@@ -1263,6 +1305,13 @@ PHLIBAPI
 LONG
 NTAPI
 PhGetWindowDpi(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+LONG
+NTAPI
+PhGetWindowNcDpi(
     _In_ HWND WindowHandle
     );
 
