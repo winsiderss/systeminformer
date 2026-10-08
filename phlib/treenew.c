@@ -15,13 +15,12 @@
  * around the list view control, this control was written from scratch.
  *
  * Current issues not included in any comments:
- * * Adding, removing or changing columns does not cause invalidation.
  * * It is not possible to change a column to make it fixed. The current fixed column must be
  *   removed and the new fixed column must then be added.
  * * When there are no visible normal columns, the space usually occupied by the normal column
  *   headers is filled with a solid background color. We should catch this and paint the usual
  *   themed background there instead.
- * * It is not possible to update any TN_STYLE_* flags after the control is created.
+ * * Runtime style updates support TN_STYLE_RUNTIME_MASK; other flags remain creation-only.
  *
  * Possible additions:
  * * More flexible mouse input callbacks to allow custom controls inside columns.
@@ -36,7 +35,317 @@
 #include <guisup.h>
 #include <treenew.h>
 #include <treenewp.h>
+#include <uxtheme.h>
 #include <vssym32.h>
+
+#pragma comment(lib, "uxtheme.lib")
+
+static BOOLEAN PhTnpGetCellPartsWithDc(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_opt_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags,
+    _Out_ PPH_TREENEW_CELL_PARTS Parts,
+    _In_opt_ HDC MeasureDc
+    );
+
+/**
+ * Saves deferred paint damage with a bounded region-operation budget.
+ * Region failure or excessive fragmentation falls back to a full repaint.
+ */
+VOID PhpTnpAccumulateDamage(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ HRGN Region
+    )
+{
+    if (Context->PendingFullInvalidate)
+        return;
+
+    if (!Region || ++Context->DeferredDamageCount > 64)
+        goto FullDamage;
+
+    if (!Context->SuspendUpdateRegion)
+        Context->SuspendUpdateRegion = CreateRectRgn(0, 0, 0, 0);
+
+    if (!Context->SuspendUpdateRegion || CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, Region, RGN_OR) == RGN_ERROR)
+        goto FullDamage;
+
+    return;
+
+FullDamage:
+    Context->PendingFullInvalidate = TRUE;
+    if (Context->SuspendUpdateRegion)
+    {
+        DeleteRgn(Context->SuspendUpdateRegion);
+        Context->SuspendUpdateRegion = NULL;
+    }
+}
+
+VOID PhpTnpInvalidateRect(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_opt_ PRECT Rect
+    )
+{
+    RECT clientRect;
+    RECT invalidRect;
+
+    clientRect = Context->ClientRect;
+
+    if (PhRectEmpty(&clientRect))
+    {
+        if (!GetClientRect(Context->Handle, &clientRect))
+            return;
+    }
+
+    if (Rect)
+    {
+        if (!PhIntersectRect(&invalidRect, Rect, &clientRect))
+            return;
+    }
+    else
+    {
+        invalidRect = clientRect;
+    }
+
+    if (Context->EnableRedraw <= 0)
+    {
+        HRGN updateRegion;
+
+        updateRegion = PhGetScratchRegion(&Context->UpdateScratchRegion);
+
+        if (updateRegion && !SetRectRgn(updateRegion, invalidRect.left, invalidRect.top, invalidRect.right, invalidRect.bottom))
+            updateRegion = NULL;
+
+        PhpTnpAccumulateDamage(Context, updateRegion);
+        return;
+    }
+
+    InvalidateRect(Context->Handle, &invalidRect, FALSE);
+}
+
+BOOLEAN PhpTnpGetContentRect(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _Out_ PRECT Rect
+    )
+{
+    RECT contentRect;
+
+    contentRect = Context->ClientRect;
+    contentRect.top = Context->HeaderHeight;
+
+    if (Context->VScrollVisible)
+        contentRect.right -= Context->VScrollWidth;
+
+    if (Context->HScrollVisible)
+        contentRect.bottom -= Context->HScrollHeight;
+
+    if (PhRectEmpty(&contentRect))
+        return FALSE;
+
+    *Rect = contentRect;
+    return TRUE;
+}
+
+VOID PhpTnpInvalidateContent(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    RECT rect;
+
+    if (PhpTnpGetContentRect(Context, &rect))
+        PhpTnpInvalidateRect(Context, &rect);
+}
+
+BOOLEAN PhpTnpInvalidateRows(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Start,
+    _In_ ULONG End
+    )
+{
+    RECT contentRect;
+    RECT rowRect;
+
+    if (!PhTnpGetRowRects(Context, Start, End, TRUE, &rowRect))
+        return FALSE;
+
+    if (PhpTnpGetContentRect(Context, &contentRect) && PhIntersectRect(&rowRect, &rowRect, &contentRect))
+    {
+        PhpTnpInvalidateRect(Context, &rowRect);
+    }
+
+    return TRUE;
+}
+
+VOID PhpTnpInvalidateSelectedRows(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    ULONG i;
+    ULONG start;
+#ifndef PH_TREENEW_OPTIMIZE_SPARSE_SELECTION
+    ULONG end;
+#endif
+
+    if (Context->SuspendUpdateStructure)
+    {
+        PhpTnpInvalidateContent(Context);
+        return;
+    }
+
+#if defined(PH_TREENEW_OPTIMIZE_SPARSE_SELECTION)
+
+    // Invalidate only contiguous ranges of selected rows.
+    // This reduces unnecessary redraws when selections are sparse (e.g., rows 10, 50, 100).
+    // Each contiguous range is invalidated separately as we encounter transitions from
+    // selected to unselected rows. (dmex)
+
+    start = ULONG_MAX;
+
+    for (i = 0; i < Context->FlatList->Count; i++)
+    {
+        PPH_TREENEW_NODE node = Context->FlatList->Items[i];
+
+        if (node->Selected)
+        {
+            if (start == ULONG_MAX)
+                start = i;
+        }
+        else if (start != ULONG_MAX)
+        {
+            // End of a contiguous selection range - invalidate it now.
+
+            PhpTnpInvalidateRows(Context, start, i - 1);
+            start = ULONG_MAX;
+        }
+    }
+
+    // Handle case where selection extends to the last row.
+
+    if (start != ULONG_MAX)
+    {
+        PhpTnpInvalidateRows(Context, start, i - 1);
+    }
+
+#else
+
+    // Find first and last selected rows, then invalidate the entire range between them.
+    // This is simpler but may invalidate many unselected rows when selections are sparse
+    // (e.g., selecting rows 10 and 1000 invalidates all 990 rows in between).
+
+    start = ULONG_MAX;
+    end = 0;
+
+    for (i = 0; i < Context->FlatList->Count; i++)
+    {
+        PPH_TREENEW_NODE node = Context->FlatList->Items[i];
+
+        if (node->Selected)
+        {
+            if (start == ULONG_MAX)
+                start = i;
+
+            end = i;
+        }
+    }
+
+    if (start != ULONG_MAX)
+    {
+        PhpTnpInvalidateRows(Context, start, end);
+    }
+#endif
+}
+
+/**
+ * Adds the area occupied by a child control to a redraw rectangle.
+ *
+ * The child rectangles used by the layout code are in MoveWindow form (left, top, width, height),
+ * so they have to be converted before they can be unioned. (dmex)
+ *
+ * \param RedrawRect The rectangle to extend. May be empty.
+ * \param ChildRect The child rectangle in MoveWindow form.
+ */
+VOID PhpTnpUnionChildRect(
+    _Inout_ PRECT RedrawRect,
+    _In_ const RECT* ChildRect
+    )
+{
+    RECT rect;
+
+    rect.left = ChildRect->left;
+    rect.top = ChildRect->top;
+    rect.right = ChildRect->left + ChildRect->right;
+    rect.bottom = ChildRect->top + ChildRect->bottom;
+
+    UnionRect(RedrawRect, RedrawRect, &rect);
+}
+
+/**
+ * Blends a solid source color over a solid destination color using a constant alpha.
+ *
+ * The row backgrounds are solid on both sides of the blend, so the result is a solid color and can
+ * be computed directly instead of going through GdiAlphaBlend for every row. (dmex)
+ *
+ * \param BackColor The destination color.
+ * \param OverColor The source color drawn over the destination.
+ * \param Alpha The constant source alpha (0-255).
+ * \return The blended color.
+ */
+FORCEINLINE COLORREF PhpTnpBlendColor(
+    _In_ COLORREF BackColor,
+    _In_ COLORREF OverColor,
+    _In_ ULONG Alpha
+    )
+{
+    ULONG inverseAlpha = 255 - Alpha;
+
+    return RGB(
+        (GetRValue(OverColor) * Alpha + GetRValue(BackColor) * inverseAlpha) / 255,
+        (GetGValue(OverColor) * Alpha + GetGValue(BackColor) * inverseAlpha) / 255,
+        (GetBValue(OverColor) * Alpha + GetBValue(BackColor) * inverseAlpha) / 255
+        );
+}
+
+/**
+ * Invalidates the header item belonging to a single column.
+ *
+ * Hot tracking only changes the appearance of the column the mouse entered or left, so there is no
+ * reason to repaint every column in the header. (dmex)
+ *
+ * \param Context Pointer to the treenew context structure.
+ * \param HeaderHandle The header control containing the column.
+ * \param ColumnId The column identifier, or ULONG_MAX for none.
+ */
+VOID PhpTnpInvalidateHeaderColumn(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ HWND HeaderHandle,
+    _In_ ULONG ColumnId
+    )
+{
+    LONG index;
+    RECT rect;
+
+    if (ColumnId == ULONG_MAX)
+        return;
+
+    if (HeaderHandle == Context->FixedHeaderHandle)
+    {
+        index = 0;
+    }
+    else
+    {
+        PPH_TREENEW_COLUMN column;
+
+        if (!(column = PhTnpLookupColumnById(Context, ColumnId)))
+            return;
+
+        index = column->s.ViewIndex;
+    }
+
+    if (Header_GetItemRect(HeaderHandle, index, &rect))
+        InvalidateRect(HeaderHandle, &rect, FALSE);
+    else
+        InvalidateRect(HeaderHandle, NULL, FALSE);
+}
 
 /**
  * Initializes the treenew window class.
@@ -57,6 +366,7 @@ RTL_ATOM PhTreeNewInitialization(
     wcex.hInstance = NtCurrentImageBase();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
     wcex.lpszClassName = PH_TREENEW_CLASSNAME;
+    //wcex.hbrBackground = PhThemeWindowBackgroundBrush;
 
     return RegisterClassEx(&wcex);
 }
@@ -122,7 +432,17 @@ LRESULT CALLBACK PhTnpWndProc(
         return 0;
     case WM_SIZE:
         {
-            PhTnpOnSize(WindowHandle, context);
+            PhTnpOnSize(WindowHandle, context, (ULONG)wParam);
+        }
+        break;
+    case WM_SHOWWINDOW:
+        {
+            // Release the back buffer while the control is hidden. Hidden tabs and property pages
+            // would otherwise each keep a full client-sized bitmap alive. (dmex)
+            if (!wParam && context->BufferedContext)
+            {
+                PhTnpDestroyBufferedContext(context);
+            }
         }
         break;
     case WM_ERASEBKGND:
@@ -188,7 +508,9 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_SETFOCUS:
         {
             context->HasFocus = TRUE;
-            InvalidateRect(context->Handle, NULL, FALSE);
+
+            // Only selected rows change appearance with the focus state. (dmex)
+            PhpTnpInvalidateSelectedRows(context);
         }
         return 0;
     case WM_KILLFOCUS:
@@ -201,7 +523,8 @@ LRESULT CALLBACK PhTnpWndProc(
             // Immediately hide tooltip on focus loss.
             PhTnpPopTooltip(context);
 
-            InvalidateRect(context->Handle, NULL, FALSE);
+            // Only selected rows change appearance with the focus state. (dmex)
+            PhpTnpInvalidateSelectedRows(context);
         }
         return 0;
     case WM_SETCURSOR:
@@ -287,12 +610,6 @@ LRESULT CALLBACK PhTnpWndProc(
     case WM_MOUSEHWHEEL:
         {
             PhTnpOnMouseHWheel(WindowHandle, context, (SHORT)HIWORD(wParam), LOWORD(wParam), GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-        }
-        break;
-    case WM_GESTURE:
-        {
-            if (PhTnpOnGesture(WindowHandle, context, (HGESTUREINFO)lParam))
-                return 0;
         }
         break;
     case WM_CONTEXTMENU:
@@ -411,6 +728,9 @@ PPH_TREENEW_CONTEXT PhTnpCreateTreeNewContext(
     context->TooltipId = ULONG_MAX;
     context->TooltipColumnId = ULONG_MAX;
     context->EnableRedraw = 1;
+    // The scroll bars start with the class defaults, so the first update must always be applied.
+    context->VScrollLastMax = -1;
+    context->HScrollLastMax = -1;
     context->DefaultBackColor = GetSysColor(COLOR_WINDOW); // RGB(0xff, 0xff, 0xff)
     context->DefaultForeColor = GetSysColor(COLOR_WINDOWTEXT); // RGB(0x00, 0x00, 0x00)
 
@@ -453,11 +773,18 @@ VOID PhTnpDestroyTreeNewContext(
     if (Context->TooltipText)
         PhDereferenceObject(Context->TooltipText);
 
+    if (Context->TooltipsHandle)
+        DestroyWindow(Context->TooltipsHandle);
+
     if (Context->BufferedContext)
         PhTnpDestroyBufferedContext(Context);
 
     if (Context->SuspendUpdateRegion)
         DeleteRgn(Context->SuspendUpdateRegion);
+
+    PhDeleteScratchRegion(&Context->UpdateScratchRegion);
+    PhDeleteScratchRegion(&Context->ClipScratchRegion);
+    PhDeleteScratchRegion(&Context->PaintScratchRegion);
 
     if (Context->HeaderThemeHandle)
         PhCloseThemeData(Context->HeaderThemeHandle);
@@ -491,6 +818,15 @@ BOOLEAN PhTnpOnCreate(
     Context->InstanceHandle = CreateStruct->hInstance;
     Context->Style = CreateStruct->style;
     Context->ExtendedStyle = CreateStruct->dwExStyle;
+
+    // Prevent the TreeNew parent from erasing/painting over its child headers
+    // and scrollbars during invalidation and resize.
+    SetWindowLongPtr(
+        WindowHandle,
+        GWL_STYLE,
+        GetWindowLongPtr(WindowHandle, GWL_STYLE) | WS_CLIPCHILDREN
+        );
+
     createParamaters = CreateStruct->lpCreateParams;
 
     if (Context->Style & TN_STYLE_DOUBLE_BUFFERED)
@@ -535,7 +871,10 @@ BOOLEAN PhTnpOnCreate(
     }
 
     if (Context->Style & TN_STYLE_CUSTOM_HEADERDRAW)
+    {
         Context->HeaderCustomDraw = TRUE;
+        Context->HeaderInvalidatePending = TRUE;
+    }
 
     if (!(Context->FixedHeaderHandle = PhCreateWindow(
         WC_HEADER,
@@ -574,10 +913,23 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
+    // The normal header slides underneath the fixed header when the view is scrolled horizontally,
+    // so it has to sit below the fixed header in the z-order for WS_CLIPSIBLINGS to clip the
+    // overlapping part instead of painting over it. (dmex)
+    SetWindowPos(
+        Context->HeaderHandle,
+        Context->FixedHeaderHandle,
+        0,
+        0,
+        0,
+        0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOREDRAW
+        );
+
     if (!(Context->VScrollHandle = PhCreateWindow(
-        PH_SCROLLNEW_CLASSNAME,
+        PH_TREENEW_SCROLLBAR_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_VERT,
+        WS_CHILD | SBS_VERT,
         0,
         0,
         0,
@@ -592,9 +944,9 @@ BOOLEAN PhTnpOnCreate(
     }
 
     if (!(Context->HScrollHandle = PhCreateWindow(
-        PH_SCROLLNEW_CLASSNAME,
+        PH_TREENEW_SCROLLBAR_CLASSNAME,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE | SBS_HORZ,
+        WS_CHILD | SBS_HORZ,
         0,
         0,
         0,
@@ -611,7 +963,7 @@ BOOLEAN PhTnpOnCreate(
     if (!(Context->FillerBoxHandle = PhCreateWindow(
         WC_STATIC,
         NULL,
-        WS_CHILD | WS_CLIPSIBLINGS | WS_VISIBLE,
+        WS_CHILD | WS_CLIPSIBLINGS,
         0,
         0,
         0,
@@ -625,21 +977,6 @@ BOOLEAN PhTnpOnCreate(
         return FALSE;
     }
 
-    // The scrollbars are custom controls (PhScrollNew) rather than WC_SCROLLBAR, so the system
-    // no longer translates touch panning into WM_VSCROLL for us. Opt in to pan gestures and
-    // handle them directly (WM_GESTURE), otherwise the touch contact is promoted to mouse
-    // messages and drag-selects rows instead of scrolling. This matches the legacy behavior:
-    // single-finger vertical pans scroll, single-finger horizontal drags remain mouse input.
-    {
-        GESTURECONFIG gestureConfig;
-
-        gestureConfig.dwID = GID_PAN;
-        gestureConfig.dwWant = GC_PAN | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY | GC_PAN_WITH_GUTTER | GC_PAN_WITH_INERTIA;
-        gestureConfig.dwBlock = GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY;
-
-        SetGestureConfig(WindowHandle, 0, 1, &gestureConfig, sizeof(GESTURECONFIG));
-    }
-
 #if defined(DEBUG)
     CLIENT_ID clientId;
     assert(NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)));
@@ -648,6 +985,7 @@ BOOLEAN PhTnpOnCreate(
 
     PhTnpUpdateSystemMetrics(Context);
     PhTnpSetFont(Context, NULL, FALSE); // use default font
+    PhTnpInitializeHeaders(Context);
     PhTnpInitializeTooltips(Context);
 
     return TRUE;
@@ -658,14 +996,26 @@ BOOLEAN PhTnpOnCreate(
  *
  * \param WindowHandle Handle to the window being resized.
  * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
+ * \param Request The resize request type (SIZE_MINIMIZED, SIZE_RESTORED, etc).
  */
 VOID PhTnpOnSize(
     _In_ HWND WindowHandle,
-    _In_ PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     )
 {
     if (!PhGetClientRect(WindowHandle, &Context->ClientRect))
         return;
+
+    // There is nothing to lay out against an empty client area, and the scroll bar page size would
+    // be computed from a negative height. A real size always follows. (dmex)
+    if (Request == SIZE_MINIMIZED || PhRectEmpty(&Context->ClientRect))
+    {
+        if (Context->BufferedContext)
+            PhTnpDestroyBufferedContext(Context);
+
+        return;
+    }
 
     if (Context->BufferedContext && (
         Context->BufferedContextRect.right < Context->ClientRect.right ||
@@ -708,6 +1058,9 @@ VOID PhTnpOnSetFont(
     PhTnpSetFont(Context, Font, !!Redraw);
     PhTnpInvalidateLayoutCache(Context);
     PhTnpLayout(Context);
+
+    // The row height follows the font, so every row moved. (dmex)
+    PhpTnpInvalidateContent(Context);
 }
 
 /**
@@ -727,6 +1080,10 @@ VOID PhTnpOnStyleChanged(
 {
     if (Type == GWL_EXSTYLE)
         Context->ExtendedStyle = StyleStruct->styleNew;
+
+    // Note: GWL_STYLE is deliberately not tracked. The TN_STYLE_* flags live in the low word of the
+    // window style and are latched at creation; callers that rewrite the style don't necessarily
+    // carry them, so copying styleNew here would silently drop control behavior. (dmex)
 }
 
 /**
@@ -836,69 +1193,86 @@ VOID PhTnpOnPaint(
 {
     RECT updateRect;
     HDC hdc;
+    HRGN paintRegion;
     PAINTSTRUCT paintStruct;
+    BOOLEAN deferPaint;
 
-    if (GetUpdateRect(WindowHandle, &updateRect, FALSE) && (updateRect.left | updateRect.right | updateRect.top | updateRect.bottom))
+    // Painting is unsafe while the node structure is suspended: every node pointer in the flat list
+    // is invalid until the next restructure. (dmex)
+    deferPaint = Context->EnableRedraw <= 0 || Context->SuspendUpdateStructure;
+
+    if (!deferPaint && Context->PendingFullInvalidate)
     {
-        if (Context->EnableRedraw <= 0)
+        Context->PendingFullInvalidate = FALSE;
+        InvalidateRect(WindowHandle, NULL, FALSE);
+    }
+
+    // The update region has to be captured before BeginPaint validates the window. It is used
+    // either to accumulate the deferred damage, or to clip the buffered context so the paint code
+    // can skip rows lying between disjoint dirty bands. (dmex)
+
+    paintRegion = PhGetScratchRegion(&Context->PaintScratchRegion);
+
+    if (paintRegion && GetUpdateRgn(WindowHandle, paintRegion, FALSE) == RGN_ERROR)
+        paintRegion = NULL;
+
+    if (deferPaint)
+        PhpTnpAccumulateDamage(Context, paintRegion);
+
+    // BeginPaint/EndPaint must run even when there is nothing to draw, otherwise the update region
+    // is never validated and the window is sent WM_PAINT again. (dmex)
+
+    if (!(hdc = BeginPaint(WindowHandle, &paintStruct)))
+        return;
+
+    updateRect = paintStruct.rcPaint;
+
+    if (!deferPaint && !PhRectEmpty(&updateRect))
+    {
+        // The retained bitmap covers the client area. Clip rendering and the
+        // final blit to the dirty region; hidden controls release this bitmap.
+
+        if (Context->DoubleBuffered)
         {
-            HRGN updateRegion;
-
-            updateRegion = CreateRectRgn(0, 0, 0, 0);
-            GetUpdateRgn(WindowHandle, updateRegion, FALSE);
-
-            if (!Context->SuspendUpdateRegion)
+            if (!Context->BufferedContext)
             {
-                Context->SuspendUpdateRegion = updateRegion;
+                PhTnpCreateBufferedContext(Context, hdc);
             }
-            else
-            {
-                CombineRgn(Context->SuspendUpdateRegion, Context->SuspendUpdateRegion, updateRegion, RGN_OR);
-                DeleteRgn(updateRegion);
-            }
-
-            // Pretend we painted something; this ensures the update region is validated properly.
-            if (BeginPaint(WindowHandle, &paintStruct))
-                EndPaint(WindowHandle, &paintStruct);
-
-            return;
         }
 
-        if (hdc = BeginPaint(WindowHandle, &paintStruct))
+        if (Context->BufferedContext)
         {
-            updateRect = paintStruct.rcPaint;
+            // The memory DC has no clip of its own, so give it the window's update region. Pixels
+            // outside the region stay stale in the buffer but are discarded by the window DC's own
+            // clip when the block below blits them back. (dmex)
+            if (paintRegion)
+                SelectClipRgn(Context->BufferedContext, paintRegion);
 
-            if (Context->DoubleBuffered)
-            {
-                if (!Context->BufferedContext)
-                {
-                    PhTnpCreateBufferedContext(Context, hdc);
-                }
-            }
+            PhTnpPaint(WindowHandle, Context, Context->BufferedContext, &updateRect);
 
-            if (Context->BufferedContext)
-            {
-                PhTnpPaint(WindowHandle, Context, Context->BufferedContext, &updateRect);
-                BitBlt(
-                    hdc,
-                    updateRect.left,
-                    updateRect.top,
-                    updateRect.right - updateRect.left,
-                    updateRect.bottom - updateRect.top,
-                    Context->BufferedContext,
-                    updateRect.left,
-                    updateRect.top,
-                    SRCCOPY
-                    );
-            }
-            else
-            {
-                PhTnpPaint(WindowHandle, Context, hdc, &updateRect);
-            }
+            if (paintRegion)
+                SelectClipRgn(Context->BufferedContext, NULL);
 
-            EndPaint(WindowHandle, &paintStruct);
+            BitBlt(
+                hdc,
+                updateRect.left,
+                updateRect.top,
+                updateRect.right - updateRect.left,
+                updateRect.bottom - updateRect.top,
+                Context->BufferedContext,
+                updateRect.left,
+                updateRect.top,
+                SRCCOPY
+                );
+        }
+        else
+        {
+            // The window DC returned by BeginPaint is already clipped to the update region.
+            PhTnpPaint(WindowHandle, Context, hdc, &updateRect);
         }
     }
+
+    EndPaint(WindowHandle, &paintStruct);
 }
 
 /**
@@ -916,6 +1290,9 @@ VOID PhTnpOnPrintClient(
     _In_ ULONG Flags
     )
 {
+    if (!(Flags & PRF_CLIENT))
+        return;
+
     PhTnpPaint(WindowHandle, Context, hdc, &Context->ClientRect);
 }
 
@@ -935,8 +1312,9 @@ BOOLEAN PhTnpOnNcPaint(
 {
     PhTnpInitializeThemeData(Context);
 
-    // Themed border
-    if ((Context->ExtendedStyle & WS_EX_CLIENTEDGE) && Context->ThemeData)
+    // Themed border. The visual style border follows the system light/dark setting, so when the
+    // control carries our own theme it has to be drawn from the palette instead. (dmex)
+    if ((Context->ExtendedStyle & WS_EX_CLIENTEDGE) && (Context->ThemeSupport || Context->ThemeData))
     {
         HDC hdc;
         ULONG flags;
@@ -1033,7 +1411,7 @@ VOID PhTnpOnTimer(
                 PhKillTimer(WindowHandle, TNP_TIMER_ANIMATE_DIVIDER);
             }
 
-            InvalidateRect(WindowHandle, &dividerRect, FALSE);
+            PhpTnpInvalidateRect(Context, &dividerRect);
         }
         else if (Context->AnimateDividerFadingOut)
         {
@@ -1048,7 +1426,7 @@ VOID PhTnpOnTimer(
                 Context->DividerHot -= TNP_ANIMATE_DIVIDER_DECREMENT;
             }
 
-            InvalidateRect(WindowHandle, &dividerRect, FALSE);
+            PhpTnpInvalidateRect(Context, &dividerRect);
         }
     }
 }
@@ -1128,7 +1506,7 @@ VOID PhTnpOnMouseLeave(
         // Update the old hot node because it may have a different non-hot background and plus minus part.
         if (PhTnpGetRowRects(Context, Context->HotNodeIndex, Context->HotNodeIndex, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
 
@@ -1268,7 +1646,7 @@ VOID PhTnpOnXxxButtonXxx(
                     {
                         PhTnpReorderBegin(Context, saveIndex);
                         PhTnpReorderUpdateCaretRect(Context);
-                        InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+                        PhpTnpInvalidateRect(Context, &Context->ReorderInsertRect);
                         return; // swallow normal selection behavior
                     }
                 }
@@ -1455,7 +1833,7 @@ VOID PhTnpOnXxxButtonXxx(
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
-                    InvalidateRect(WindowHandle, &rect, FALSE);
+                    PhpTnpInvalidateRect(Context, &rect);
                 }
             }
 
@@ -1679,108 +2057,6 @@ VOID PhTnpOnMouseHWheel(
 }
 
 /**
- * Handles the WM_GESTURE message for the treenew control.
- *
- * \param WindowHandle Handle to the window.
- * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
- * \param GestureInfoHandle Handle to the gesture information.
- *
- * \return TRUE if the gesture was handled, FALSE if it should be passed to DefWindowProc.
- */
-BOOLEAN PhTnpOnGesture(
-    _In_ HWND WindowHandle,
-    _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HGESTUREINFO GestureInfoHandle
-    )
-{
-    GESTUREINFO gestureInfo;
-    LONG deltaX;
-    LONG deltaY;
-    SCROLLINFO scrollInfo;
-    LONG oldPosition;
-
-    memset(&gestureInfo, 0, sizeof(GESTUREINFO));
-    gestureInfo.cbSize = sizeof(GESTUREINFO);
-
-    if (!GetGestureInfo(GestureInfoHandle, &gestureInfo))
-        return FALSE;
-
-    // GID_BEGIN and GID_END must be passed to DefWindowProc.
-    if (gestureInfo.dwID != GID_PAN)
-        return FALSE;
-
-    if (FlagOn(gestureInfo.dwFlags, GF_BEGIN))
-    {
-        Context->GesturePanLast.x = gestureInfo.ptsLocation.x;
-        Context->GesturePanLast.y = gestureInfo.ptsLocation.y;
-        Context->GesturePanRemainder = 0;
-
-        CloseGestureInfoHandle(GestureInfoHandle);
-        return TRUE;
-    }
-
-    // The content follows the finger, so the scroll delta is the inverse of the pan delta.
-    deltaX = Context->GesturePanLast.x - gestureInfo.ptsLocation.x;
-    deltaY = Context->GesturePanLast.y - gestureInfo.ptsLocation.y;
-    Context->GesturePanLast.x = gestureInfo.ptsLocation.x;
-    Context->GesturePanLast.y = gestureInfo.ptsLocation.y;
-
-    if (Context->VScrollVisible && Context->RowHeight > 0)
-    {
-        LONG rows;
-
-        // Vertical scrolling is in rows, accumulate the pixel delta until it covers whole rows.
-        Context->GesturePanRemainder += deltaY;
-        rows = Context->GesturePanRemainder / Context->RowHeight;
-        Context->GesturePanRemainder -= rows * Context->RowHeight;
-
-        if (rows != 0)
-        {
-            scrollInfo.cbSize = sizeof(SCROLLINFO);
-            scrollInfo.fMask = SIF_ALL;
-            GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-            oldPosition = scrollInfo.nPos;
-
-            scrollInfo.nPos += rows;
-
-            scrollInfo.fMask = SIF_POS;
-            SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
-            GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
-
-            if (scrollInfo.nPos != oldPosition)
-            {
-                Context->VScrollPosition = scrollInfo.nPos;
-                PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
-            }
-        }
-    }
-
-    if (Context->HScrollVisible && deltaX != 0)
-    {
-        // Horizontal scrolling is in pixels.
-        scrollInfo.cbSize = sizeof(SCROLLINFO);
-        scrollInfo.fMask = SIF_ALL;
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
-
-        scrollInfo.nPos += deltaX;
-
-        scrollInfo.fMask = SIF_POS;
-        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-
-        if (scrollInfo.nPos != oldPosition)
-        {
-            Context->HScrollPosition = scrollInfo.nPos;
-            PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
-        }
-    }
-
-    CloseGestureInfoHandle(GestureInfoHandle);
-    return TRUE;
-}
-
-/**
  * Handles the WM_CONTEXTMENU message for the treenew control.
  *
  * \param WindowHandle Handle to the window.
@@ -1941,7 +2217,7 @@ VOID PhTnpOnVScroll(
     if (scrollInfo.nPos != oldPosition)
     {
         Context->VScrollPosition = scrollInfo.nPos;
-        PhTnpProcessScroll(Context, scrollInfo.nPos - oldPosition, 0);
+        PhTnpProcessScroll(Context, (LONG)scrollInfo.nPos - oldPosition, 0);
     }
 }
 
@@ -1961,12 +2237,11 @@ VOID PhTnpOnHScroll(
     )
 {
     SCROLLINFO scrollInfo;
-    LONG oldPosition;
+    LONG deltaX;
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
     scrollInfo.fMask = SIF_ALL;
     GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-    oldPosition = scrollInfo.nPos;
 
     switch (Request)
     {
@@ -1999,15 +2274,10 @@ VOID PhTnpOnHScroll(
         break;
     }
 
-    scrollInfo.fMask = SIF_POS;
-    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    deltaX = PhTnpApplyHScrollPosition(Context, scrollInfo.nPos);
 
-    if (scrollInfo.nPos != oldPosition)
-    {
-        Context->HScrollPosition = scrollInfo.nPos;
-        PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
-    }
+    if (deltaX != 0)
+        PhTnpProcessScroll(Context, 0, deltaX);
 }
 
 /**
@@ -2033,6 +2303,9 @@ BOOLEAN PhTnpOnNotify(
     case HDN_ITEMCHANGED:
         {
             NMHEADER *nmHeader = (NMHEADER *)Header;
+
+            if (!nmHeader->pitem)
+                break;
 
             if (Header->code == HDN_ITEMCHANGING && Header->hwndFrom == Context->FixedHeaderHandle)
             {
@@ -2060,9 +2333,9 @@ BOOLEAN PhTnpOnNotify(
             {
                 if (nmHeader->pitem->mask & HDI_WIDTH)
                 {
-                    // A column has been resized. Update our stored information.
-                    PhTnpUpdateColumnHeaders(Context);
-                    PhTnpUpdateColumnMaps(Context);
+                    // A column is being resized. Note that this arrives for every mouse movement
+                    // while the divider is dragged (HDS_FULLDRAG), so the whole header must not be
+                    // enumerated here - only the column that actually changed is touched. (dmex)
 
                     if (Header->code == HDN_ITEMCHANGING)
                     {
@@ -2070,7 +2343,7 @@ BOOLEAN PhTnpOnNotify(
 
                         item.mask = HDI_WIDTH | HDI_LPARAM;
 
-                        if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item))
+                        if (Header_GetItem(Header->hwndFrom, nmHeader->iItem, &item) && item.lParam)
                         {
                             Context->ResizingColumn = (PPH_TREENEW_COLUMN)item.lParam;
                             Context->OldColumnWidth = item.cxy;
@@ -2091,6 +2364,9 @@ BOOLEAN PhTnpOnNotify(
 
                             if (delta != 0)
                             {
+                                // The scroll below depends on the new width, so apply it first.
+                                PhTnpUpdateColumnWidth(Context, Context->ResizingColumn, nmHeader->pitem->cxy);
+
                                 PhTnpProcessResizeColumn(Context, Context->ResizingColumn, delta);
                                 Context->Callback(Context->Handle, TreeNewColumnResized, Context->ResizingColumn, NULL, Context->CallbackContext);
                             }
@@ -2099,12 +2375,15 @@ BOOLEAN PhTnpOnNotify(
 
                             // Redraw the entire window if we are displaying empty text.
                             if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
-                                InvalidateRect(Context->Handle, NULL, FALSE);
+                                PhpTnpInvalidateRect(Context, NULL);
                         }
                         else
                         {
-                            // An error occurred during HDN_ITEMCHANGED, so redraw the entire window.
-                            InvalidateRect(Context->Handle, NULL, FALSE);
+                            // We don't know which column changed, so resynchronize everything and
+                            // redraw the entire window.
+                            PhTnpUpdateColumnHeaders(Context);
+                            PhTnpUpdateColumnMaps(Context);
+                            PhpTnpInvalidateRect(Context, NULL);
                         }
                     }
                 }
@@ -2141,8 +2420,9 @@ BOOLEAN PhTnpOnNotify(
                 // Note: The fixed column cannot be re-ordered.
                 PhTnpUpdateColumnHeaders(Context);
                 PhTnpUpdateColumnMaps(Context);
+                Context->HeaderInvalidatePending = TRUE;
                 Context->Callback(Context->Handle, TreeNewColumnReordered, NULL, NULL, Context->CallbackContext);
-                InvalidateRect(Context->Handle, NULL, FALSE);
+                PhpTnpInvalidateContent(Context);
             }
 
             // We need to invalidate the header but hwndFrom doesn't match HeaderHandle,
@@ -2301,6 +2581,66 @@ LRESULT PhTnpOnUserMessage(
 {
     switch (Message)
     {
+    case TNM_GETSELECTEDNODES:
+        {
+            PPH_TREENEW_SELECTED_NODES snapshot = (PPH_TREENEW_SELECTED_NODES)LParam;
+            ULONG i;
+
+            if (!snapshot) return FALSE;
+            snapshot->Count = 0;
+
+            if (Context->SuspendUpdateStructure || (snapshot->Capacity && !snapshot->Nodes))
+                return FALSE;
+
+            for (i = 0; i < Context->FlatList->Count; i++)
+            {
+                PPH_TREENEW_NODE node = Context->FlatList->Items[i];
+                
+                if (!node->Selected) 
+                    continue;
+                
+                if (snapshot->Count < snapshot->Capacity)
+                    snapshot->Nodes[snapshot->Count] = node;
+                    
+                snapshot->Count++;
+            }
+            return snapshot->Count <= snapshot->Capacity;
+        }
+    case TNM_SETSTYLEFLAGS:
+        {
+            ULONG mask = (ULONG)WParam;
+            ULONG style;
+            
+            if (mask & ~TN_STYLE_RUNTIME_MASK) 
+                return FALSE;
+            if (Context->Tracking || Context->DragSelectionActive || Context->ReorderDragActive)
+                return FALSE;
+            
+            style = (Context->Style & ~mask) | ((ULONG)LParam & mask);
+            if (style == Context->Style) 
+                return TRUE;
+            
+            Context->Style = style;
+            Context->DoubleBuffered = !!(style & TN_STYLE_DOUBLE_BUFFERED);
+            Context->AnimateDivider = Context->DoubleBuffered && !!(style & TN_STYLE_ANIMATE_DIVIDER);
+            
+            if (!Context->DoubleBuffered && Context->BufferedContext)
+                PhTnpDestroyBufferedContext(Context);
+            
+            if (!Context->AnimateDivider)
+            {
+                Context->AnimateDividerFadingIn = FALSE;
+                Context->AnimateDividerFadingOut = FALSE;
+                Context->DividerHot = 0;
+                KillTimer(Context->Handle, TNP_TIMER_ANIMATE_DIVIDER);
+            }
+
+            PhTnpUpdateTextMetrics(Context);
+            PhTnpInvalidateLayoutCache(Context);
+            PhTnpLayout(Context);
+            PhpTnpInvalidateContent(Context);
+        }
+        return TRUE;
     case TNM_SETCALLBACK:
         {
             Context->Callback = (PPH_TREENEW_CALLBACK)LParam;
@@ -2320,7 +2660,7 @@ LRESULT PhTnpOnUserMessage(
                 // Coalesce repeated structure requests while redraw is suspended.
                 Context->SuspendUpdateStructure = TRUE;
                 Context->SuspendUpdateLayout = TRUE;
-                InvalidateRect(Context->Handle, NULL, FALSE);
+                PhpTnpInvalidateContent(Context);
                 return TRUE;
             }
 
@@ -2334,7 +2674,7 @@ LRESULT PhTnpOnUserMessage(
             // owns the invalidation decision for structural changes. Without the anchor
             // path, it cannot guarantee a full repaint when content shifts, so we must
             // explicitly invalidate here.
-            InvalidateRect(Context->Handle, NULL, FALSE);
+            PhpTnpInvalidateContent(Context);
 #endif
         }
         return TRUE;
@@ -2467,7 +2807,13 @@ LRESULT PhTnpOnUserMessage(
         Context->TriState = !!WParam;
         return TRUE;
     case TNM_ENSUREVISIBLE:
-        return PhTnpEnsureVisibleNode(Context, ((PPH_TREENEW_NODE)LParam)->Index);
+        {
+            if (Context->SuspendUpdateStructure)
+                return FALSE;
+
+            return PhTnpEnsureVisibleNode(Context, ((PPH_TREENEW_NODE)LParam)->Index);
+        }
+        break;
     case TNM_SCROLL:
         PhTnpScroll(Context, (LONG)WParam, (LONG)LParam);
         return TRUE;
@@ -2479,6 +2825,9 @@ LRESULT PhTnpOnUserMessage(
     case TNM_GETFLATNODE:
         {
             ULONG index = (ULONG)WParam;
+
+            if (Context->SuspendUpdateStructure)
+                return (LRESULT)NULL;
 
             if (index >= Context->FlatList->Count)
                 return (LRESULT)NULL;
@@ -2523,23 +2872,29 @@ LRESULT PhTnpOnUserMessage(
             PPH_TREENEW_NODE node = (PPH_TREENEW_NODE)LParam;
             RECT rect;
 
+            if (Context->SuspendUpdateStructure)
+                return FALSE;
+
             if (!node->Visible)
                 return FALSE;
 
             if (!PhTnpGetRowRects(Context, node->Index, node->Index, TRUE, &rect))
                 return FALSE;
 
-            InvalidateRect(WindowHandle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
         return TRUE;
     case TNM_INVALIDATENODES:
         {
             RECT rect;
 
+            if (Context->SuspendUpdateStructure)
+                return FALSE;
+
             if (!PhTnpGetRowRects(Context, (ULONG)WParam, (ULONG)LParam, TRUE, &rect))
                 return FALSE;
 
-            InvalidateRect(WindowHandle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
         return TRUE;
     case TNM_GETFIXEDHEADER:
@@ -2565,7 +2920,7 @@ LRESULT PhTnpOnUserMessage(
 
             if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
             {
-                InvalidateRect(WindowHandle, &rect, FALSE);
+                PhpTnpInvalidateRect(Context, &rect);
             }
         }
         return TRUE;
@@ -2657,6 +3012,9 @@ LRESULT PhTnpOnUserMessage(
             ULONG flags = (ULONG)WParam;
 
             Context->EmptyText = *text;
+
+            if (Context->FlatList->Count == 0)
+                PhpTnpInvalidateContent(Context);
         }
         return TRUE;
     case TNM_SETROWHEIGHT:
@@ -2666,24 +3024,49 @@ LRESULT PhTnpOnUserMessage(
             if (rowHeight != 0)
             {
                 Context->CustomRowHeight = TRUE;
-                Context->RowHeight = rowHeight;
+                Context->RowHeight = max(rowHeight, 1);
             }
             else
             {
                 Context->CustomRowHeight = FALSE;
                 PhTnpUpdateTextMetrics(Context);
             }
+
+            // Every row moved, and the scroll bar page size is derived from the row height. (dmex)
+            PhTnpLayout(Context);
+            PhpTnpInvalidateContent(Context);
         }
         return TRUE;
     case TNM_ISFLATNODEVALID:
         return !Context->SuspendUpdateStructure;
     case TNM_THEMESUPPORT:
-        Context->ThemeSupport = !!WParam;
+        {
+            if (Context->ThemeSupport == (ULONG)!!WParam)
+                return TRUE; // nothing to change
+
+            Context->ThemeSupport = !!WParam;
+
+            // The rows, the header and the border are all drawn differently now. (dmex)
+
+            if (Context->HeaderThemeHandle)
+            {
+                PhCloseThemeData(Context->HeaderThemeHandle);
+                Context->HeaderThemeHandle = NULL;
+            }
+
+            Context->HeaderInvalidatePending = TRUE;
+
+            InvalidateRect(Context->FixedHeaderHandle, NULL, FALSE);
+            InvalidateRect(Context->HeaderHandle, NULL, FALSE);
+            PhpTnpInvalidateRect(Context, NULL);
+        }
         return TRUE;
     case TNM_SETIMAGELIST:
         {
             Context->ImageListSupport = !!WParam;
             Context->ImageListHandle = (HIMAGELIST)WParam;
+
+            PhpTnpInvalidateContent(Context);
         }
         return TRUE;
     case TNM_SETCOLUMNTEXTCACHE:
@@ -2696,7 +3079,13 @@ LRESULT PhTnpOnUserMessage(
         }
         return TRUE;
     case TNM_ENSUREVISIBLEINDEX:
-        return PhTnpEnsureVisibleNode(Context, (ULONG)LParam);
+        {
+            if (Context->SuspendUpdateStructure)
+                return FALSE;
+
+            return PhTnpEnsureVisibleNode(Context, (ULONG)LParam);
+        }
+        break;
     case TNM_GETVISIBLECOLUMN:
         {
             ULONG index = (ULONG)WParam;
@@ -2967,8 +3356,8 @@ VOID PhTnpUpdateTextMetrics(
 
             if (Context->Style & TN_STYLE_ICONS)
             {
-                if (Context->RowHeight < Context->SmallIconWidth)
-                    Context->RowHeight = Context->SmallIconWidth;
+                if (Context->RowHeight < Context->SmallIconHeight)
+                    Context->RowHeight = Context->SmallIconHeight;
             }
             else
             {
@@ -3072,6 +3461,8 @@ VOID PhTnpInvalidateLayoutCache(
     Context->VScrollLastVisible = 0;
     Context->HScrollLastVisible = 0;
     Context->FillerBoxLastVisible = 0;
+    Context->VScrollLastMax = -1;
+    Context->HScrollLastMax = -1;
 }
 
 /**
@@ -3084,6 +3475,8 @@ VOID PhTnpLayout(
     )
 {
     RECT clientRect;
+    RECT redrawRect;
+    BOOLEAN layoutRedraw = FALSE;
 
     if (Context->EnableRedraw <= 0)
     {
@@ -3092,6 +3485,7 @@ VOID PhTnpLayout(
     }
 
     clientRect = Context->ClientRect;
+    PhSetRectEmpty(&redrawRect);
 
     PhTnpUpdateScrollBars(Context);
 
@@ -3107,16 +3501,33 @@ VOID PhTnpLayout(
 
         if (!Context->VScrollLastVisible || !PhEqualRect(&rect, &Context->VScrollLastRect))
         {
+            //SetWindowPos(
+            //    Context->VScrollHandle,
+            //    NULL,
+            //    rect.left,
+            //    rect.top,
+            //    rect.right,
+            //    rect.bottom,
+            //    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER //| SWP_NOREDRAW
+            //    );
+
+            // The child is moved without repainting, so both the area it vacates and the area it
+            // occupies have to be redrawn. (dmex)
+            if (Context->VScrollLastVisible)
+                PhpTnpUnionChildRect(&redrawRect, &Context->VScrollLastRect);
+            PhpTnpUnionChildRect(&redrawRect, &rect);
+
             MoveWindow(
                 Context->VScrollHandle,
                 rect.left,
                 rect.top,
                 rect.right,
                 rect.bottom,
-                TRUE
+                FALSE
                 );
             Context->VScrollLastRect = rect;
             Context->VScrollLastVisible = TRUE;
+            layoutRedraw = TRUE;
         }
     }
     else
@@ -3136,16 +3547,31 @@ VOID PhTnpLayout(
 
         if (!Context->HScrollLastVisible || !PhEqualRect(&rect, &Context->HScrollLastRect))
         {
+            //SetWindowPos(
+            //    Context->HScrollHandle,
+            //    NULL,
+            //    rect.left,
+            //    rect.top,
+            //    rect.right,
+            //    rect.bottom,
+            //    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER ///| SWP_NOREDRAW
+            //    );
+
+            if (Context->HScrollLastVisible)
+                PhpTnpUnionChildRect(&redrawRect, &Context->HScrollLastRect);
+            PhpTnpUnionChildRect(&redrawRect, &rect);
+
             MoveWindow(
                 Context->HScrollHandle,
                 rect.left,
                 rect.top,
                 rect.right,
                 rect.bottom,
-                TRUE
+                FALSE
                 );
             Context->HScrollLastRect = rect;
             Context->HScrollLastVisible = TRUE;
+            layoutRedraw = TRUE;
         }
     }
     else
@@ -3165,16 +3591,31 @@ VOID PhTnpLayout(
 
         if (!Context->FillerBoxLastVisible || !PhEqualRect(&rect, &Context->FillerBoxLastRect))
         {
+            //SetWindowPos(
+            //    Context->FillerBoxHandle,
+            //    NULL,
+            //    rect.left,
+            //    rect.top,
+            //    rect.right,
+            //    rect.bottom,
+            //    SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER //| SWP_NOREDRAW
+            //    );
+
+            if (Context->FillerBoxLastVisible)
+                PhpTnpUnionChildRect(&redrawRect, &Context->FillerBoxLastRect);
+            PhpTnpUnionChildRect(&redrawRect, &rect);
+
             MoveWindow(
                 Context->FillerBoxHandle,
                 rect.left,
                 rect.top,
                 rect.right,
                 rect.bottom,
-                TRUE
+                FALSE
                 );
             Context->FillerBoxLastRect = rect;
             Context->FillerBoxLastVisible = TRUE;
+            layoutRedraw = TRUE;
         }
     }
     else
@@ -3184,9 +3625,20 @@ VOID PhTnpLayout(
 
     PhTnpLayoutHeader(Context);
 
+    if (layoutRedraw && !PhRectEmpty(&redrawRect))
+    {
+        // Only the strips the scroll bars vacated or now occupy are dirty. (dmex)
+        RedrawWindow(
+            Context->Handle,
+            &redrawRect,
+            NULL,
+            RDW_INVALIDATE | RDW_ALLCHILDREN | RDW_NOERASE
+            );
+    }
+
     // Redraw the entire window if we are displaying empty text.
     if (Context->FlatList->Count == 0 && Context->EmptyText.Length != 0)
-        InvalidateRect(Context->Handle, NULL, FALSE);
+        PhpTnpInvalidateRect(Context, NULL);
 }
 
 /**
@@ -3252,8 +3704,19 @@ VOID PhTnpLayoutHeader(
 
         if (!PhEqualRect(&outRect, &Context->FixedHeaderLastOutRect))
         {
-            SetWindowPos(Context->FixedHeaderHandle, NULL, outRect.left, outRect.top, outRect.right, outRect.bottom, windowPos.flags | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            SetWindowPos(
+                Context->FixedHeaderHandle,
+                NULL,
+                outRect.left,
+                outRect.top,
+                outRect.right,
+                outRect.bottom,
+                windowPos.flags | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOREDRAW
+                );
             Context->FixedHeaderLastOutRect = outRect;
+
+            // SWP_NOREDRAW suppresses the repaint of the moved window, so repaint it here. (dmex)
+            InvalidateRect(Context->FixedHeaderHandle, NULL, FALSE);
         }
         Context->HeaderHeight = outRect.bottom;
 
@@ -3270,8 +3733,30 @@ VOID PhTnpLayoutHeader(
 
         if (!PhEqualRect(&outRect, &Context->NormalHeaderLastOutRect))
         {
-            SetWindowPos(Context->HeaderHandle, NULL, outRect.left, outRect.top, outRect.right, outRect.bottom, windowPos.flags | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+            SetWindowPos(
+                Context->HeaderHandle,
+                NULL,
+                outRect.left,
+                outRect.top,
+                outRect.right,
+                outRect.bottom,
+                windowPos.flags | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOREDRAW
+                );
             Context->NormalHeaderLastOutRect = outRect;
+
+            // The normal header moves horizontally when the view is scrolled. SWP_NOREDRAW leaves
+            // the old pixels in place, so invalidate the new position. Only the part right of the
+            // fixed header is visible; invalidating the whole window leaves artifacts over the
+            // fixed header on systems where the sibling clipping is not honored. (dmex)
+            {
+                RECT invalidateRect;
+
+                invalidateRect.left = Context->HScrollPosition;
+                invalidateRect.top = 0;
+                invalidateRect.right = outRect.right;
+                invalidateRect.bottom = outRect.bottom;
+                InvalidateRect(Context->HeaderHandle, &invalidateRect, FALSE);
+            }
         }
     }
     else
@@ -3520,9 +4005,23 @@ VOID PhTnpSetRedraw(
     )
 {
     if (Redraw)
-        Context->EnableRedraw++;
+    {
+        // Clamp instead of trusting every caller to balance its calls: if the counter climbs above
+        // one the suspended region, structure and layout would never be applied again. (dmex)
+        if (Context->EnableRedraw < 1)
+            Context->EnableRedraw++;
+        else
+            return; // already enabled: do not replay deferred work
+    }
     else
+    {
+        if (Context->EnableRedraw == MINLONG)
+        {
+            assert(FALSE); // unbalanced redraw suspension would underflow
+            return;
+        }
         Context->EnableRedraw--;
+    }
 
     if (Context->EnableRedraw == 1)
     {
@@ -3549,6 +4048,13 @@ VOID PhTnpSetRedraw(
         Context->SuspendUpdateStructure = FALSE;
         Context->SuspendUpdateLayout = FALSE;
         Context->SuspendUpdateMoveMouse = FALSE;
+
+        if (Context->PendingFullInvalidate)
+        {
+            Context->PendingFullInvalidate = FALSE;
+            InvalidateRect(Context->Handle, NULL, FALSE);
+        }
+        Context->DeferredDamageCount = 0;
 
         if (Context->SuspendUpdateRegion)
         {
@@ -3622,6 +4128,11 @@ BOOLEAN PhTnpAddColumn(
 {
     PPH_TREENEW_COLUMN realColumn;
 
+    // Reject ULONG_MAX, otherwise Id + 1 wraps to zero below and the column
+    // array is indexed without being expanded.
+    if (Column->Id == ULONG_MAX || Column->Width < 0)
+        return FALSE;
+
     // Check if a column with the same ID already exists.
     if (Column->Id < Context->AllocatedColumns && Context->Columns[Column->Id])
         return FALSE;
@@ -3677,6 +4188,24 @@ BOOLEAN PhTnpAddColumn(
 
         realColumn->s.ViewIndex = PhTnpInsertColumnHeader(Context, realColumn);
 
+        if (realColumn->s.ViewIndex == INT_ERROR)
+        {
+            // The header control rejected the column. Roll back the addition.
+            if (Context->FixedColumn == realColumn)
+            {
+                Context->FixedColumn = NULL;
+                Context->FixedColumnVisible = FALSE;
+                Context->FixedDividerVisible = FALSE;
+                Context->FixedWidth = 0;
+                Context->NormalLeft = 0;
+            }
+
+            Context->Columns[Column->Id] = NULL;
+            Context->NumberOfColumns--;
+            PhFree(realColumn);
+            return FALSE;
+        }
+
         if (updateHeaders)
             PhTnpUpdateColumnHeaders(Context);
     }
@@ -3689,6 +4218,10 @@ BOOLEAN PhTnpAddColumn(
 
     if (realColumn->Visible)
         PhTnpLayout(Context);
+
+    // Column mutation is self-invalidating; callers need not issue a second
+    // repaint. The shared helper coalesces this while redraw is suspended.
+    PhpTnpInvalidateContent(Context);
 
     return TRUE;
 }
@@ -3729,6 +4262,10 @@ BOOLEAN PhTnpRemoveColumn(
         PhTnpLayout(Context);
 
     Context->NumberOfColumns--;
+
+    // Column mutation is self-invalidating; callers need not issue a second
+    // repaint. The shared helper coalesces this while redraw is suspended.
+    PhpTnpInvalidateContent(Context);
 
     return TRUE;
 }
@@ -3896,6 +4433,10 @@ BOOLEAN PhTnpChangeColumn(
         PhTnpUpdateColumnMaps(Context);
         PhTnpLayout(Context);
     }
+
+    // Column mutation is self-invalidating; callers need not issue a second
+    // repaint. The shared helper coalesces this while redraw is suspended.
+    PhpTnpInvalidateContent(Context);
 
     return TRUE;
 }
@@ -4217,13 +4758,73 @@ VOID PhTnpUpdateColumnHeaders(
         {
             if (Header_GetItem(Context->HeaderHandle, i, &item))
             {
-                column = (PPH_TREENEW_COLUMN)item.lParam;
+                if (!(column = (PPH_TREENEW_COLUMN)item.lParam))
+                    continue; // the item doesn't belong to us
+
                 column->s.ViewIndex = i;
                 column->Width = item.cxy;
                 column->DisplayIndex = item.iOrder;
             }
         }
     }
+
+    if (Context->HeaderCustomDraw)
+        Context->HeaderInvalidatePending = TRUE;
+}
+
+/**
+ * Updates the stored width of a single column and the view offsets that depend on it.
+ *
+ * This is the incremental form of PhTnpUpdateColumnHeaders + PhTnpUpdateColumnMaps for the common
+ * case of a column resize: only the widths to the right of the column move, so the header does not
+ * have to be enumerated and the display map does not have to be rebuilt. (dmex)
+ *
+ * \param Context Pointer to the treenew context structure.
+ * \param Column Pointer to the column that changed.
+ * \param Width The new width of the header item.
+ */
+VOID PhTnpUpdateColumnWidth(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG Width
+    )
+{
+    ULONG i;
+    LONG x;
+
+    if (Column->Fixed)
+    {
+        // The fixed header item is one pixel wider than the column itself.
+        Column->Width = Width - 1;
+    }
+    else if (
+        Column->DisplayIndex < Context->NumberOfColumnsByDisplay &&
+        Context->ColumnsByDisplay[Column->DisplayIndex] == Column
+        )
+    {
+        Column->Width = Width;
+
+        // Columns to the left keep their offsets; recompute from this one rightwards.
+
+        x = Column->s.ViewX;
+
+        for (i = Column->DisplayIndex; i < Context->NumberOfColumnsByDisplay; i++)
+        {
+            Context->ColumnsByDisplay[i]->s.ViewX = x;
+            x += Context->ColumnsByDisplay[i]->Width;
+        }
+
+        Context->TotalViewX = x;
+    }
+    else
+    {
+        // The display map doesn't agree with the column; fall back to a full rebuild.
+        Column->Width = Width;
+        PhTnpUpdateColumnMaps(Context);
+    }
+
+    if (Context->HeaderCustomDraw)
+        Context->HeaderInvalidatePending = TRUE;
 }
 
 /**
@@ -4266,7 +4867,9 @@ VOID PhTnpUpdateColumnHeadersDpiChanged(
         {
             if (Header_GetItem(Context->HeaderHandle, i, &item))
             {
-                column = (PPH_TREENEW_COLUMN)item.lParam;
+                if (!(column = (PPH_TREENEW_COLUMN)item.lParam))
+                    continue; // the item doesn't belong to us
+
                 column->Width = PhMultiplyDivideSigned(item.cxy, NewWindowDpi, OldWindowDpi);
 
                 PhTnpChangeColumn(Context, TN_COLUMN_WIDTH, column->Id, column);
@@ -4288,8 +4891,10 @@ VOID PhTnpProcessResizeColumn(
     _In_ LONG Delta
     )
 {
+    RECT contentRect;
     RECT rect;
     LONG columnLeft;
+    LONG oldColumnWidth;
 
     if (Column->Fixed)
     {
@@ -4326,23 +4931,18 @@ VOID PhTnpProcessResizeColumn(
         SW_INVALIDATE
         );
 
-    UpdateWindow(Context->Handle); // required
-
-    if (Context->HScrollVisible)
-    {
-        // We excluded the bottom region - invalidate it now.
-        rect.top = rect.bottom;
-        rect.bottom = Context->ClientRect.bottom;
-        InvalidateRect(Context->Handle, &rect, FALSE);
-    }
-
     PhTnpLayout(Context);
 
     // Redraw the whole column because the content may depend on the width (e.g. text ellipsis).
+    oldColumnWidth = Column->Width - Delta;
     rect.left = columnLeft;
-    rect.top = Context->HeaderHeight;
-    rect.right = columnLeft + Column->Width;
-    RedrawWindow(Context->Handle, &rect, NULL, RDW_INVALIDATE | RDW_UPDATENOW); // must be RedrawWindow
+    rect.right = columnLeft + max(Column->Width, oldColumnWidth);
+
+    if (PhpTnpGetContentRect(Context, &contentRect) &&
+        PhIntersectRect(&rect, &rect, &contentRect))
+    {
+        PhpTnpInvalidateRect(Context, &rect);
+    }
 }
 
 /**
@@ -4512,17 +5112,34 @@ VOID PhTnpAutoSizeColumnHeader(
         LONG maximumWidth;
         PH_TREENEW_CELL_PARTS parts;
         LONG width;
+        HDC measureDc;
+        ULONG first = 0;
+        ULONG count;
+        ULONG samples;
 
         if (Context->FlatList->Count == 0)
             return;
         if (Column->CustomDraw)
             return;
 
+        if (!(measureDc = GetDC(Context->Handle)))
+            return;
+
+        count = Context->FlatList->Count;
+        if (Flags & TN_AUTOSIZE_VISIBLE_ROWS)
+        {
+            RECT contentRect;
+            first = min((ULONG)max(Context->VScrollPosition, 0), count);
+            count = PhpTnpGetContentRect(Context, &contentRect) ?
+                min(count - first, (ULONG)((contentRect.bottom - contentRect.top + Context->RowHeight - 1) / Context->RowHeight)) : 0;
+        }
+        samples = Flags & TN_AUTOSIZE_SAMPLED_ROWS ? min(count, 256u) : count;
         maximumWidth = 0;
 
-        for (i = 0; i < Context->FlatList->Count; i++)
+        for (i = 0; i < samples; i++)
         {
-            if (PhTnpGetCellParts(Context, i, Column, TN_MEASURE_TEXT, &parts) &&
+            ULONG index = first + (ULONG)((ULONG64)i * count / samples);
+            if (PhTnpGetCellPartsWithDc(Context, index, Column, TN_MEASURE_TEXT, &parts, measureDc) &&
                 (parts.Flags & TN_PART_CELL) && (parts.Flags & TN_PART_CONTENT) && (parts.Flags & TN_PART_TEXT))
             {
                 width = parts.TextRect.right - parts.TextRect.left; // text width
@@ -4532,6 +5149,8 @@ VOID PhTnpAutoSizeColumnHeader(
                     maximumWidth = width;
             }
         }
+
+        ReleaseDC(Context->Handle, measureDc);
 
         newWidth = maximumWidth + Context->CellMarginRight; // right padding
 
@@ -4618,6 +5237,9 @@ BOOLEAN PhTnpGetNodeChildren(
 {
     PH_TREENEW_GET_CHILDREN getChildren;
 
+    *Children = NULL;
+    *NumberOfChildren = 0;
+
     getChildren.Flags = 0;
     getChildren.Node = Node;
     getChildren.Children = NULL;
@@ -4631,6 +5253,8 @@ BOOLEAN PhTnpGetNodeChildren(
         Context->CallbackContext
         ))
     {
+        if (getChildren.NumberOfChildren && !getChildren.Children)
+            return FALSE;
         *Children = getChildren.Children;
         *NumberOfChildren = getChildren.NumberOfChildren;
 
@@ -4722,12 +5346,6 @@ BOOLEAN PhTnpGetCellText(
     return FALSE;
 }
 
-typedef struct _PHP_TREENEW_INSERT_FRAME
-{
-    PPH_TREENEW_NODE Node;
-    ULONG Level;
-} PHP_TREENEW_INSERT_FRAME, *PPHP_TREENEW_INSERT_FRAME;
-
 /**
  * Restructures the flat list of visible nodes based on the tree hierarchy.
  *
@@ -4737,7 +5355,6 @@ VOID PhTnpRestructureNodes(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    PH_ARRAY stack;
     PPH_TREENEW_NODE *children;
     ULONG numberOfChildren;
     ULONG i;
@@ -4761,14 +5378,10 @@ VOID PhTnpRestructureNodes(
     Context->FlatListStructureChanged = TRUE;
 #endif
 
-    PhInitializeArray(&stack, sizeof(PHP_TREENEW_INSERT_FRAME), 16);
-
     for (i = 0; i < numberOfChildren; i++)
     {
-        PhTnpInsertNodeChildren(Context, &stack, children[i], 0);
+        PhTnpInsertNodeChildren(Context, children[i], 0);
     }
-
-    PhDeleteArray(&stack);
 
     if (!Context->FocusNodeFound)
         Context->FocusNode = NULL; // focused node is no longer present
@@ -4778,85 +5391,171 @@ VOID PhTnpRestructureNodes(
 
     if (Context->MarkNodeIndex >= Context->FlatList->Count)
         Context->MarkNodeIndex = ULONG_MAX;
+
 }
 
 /**
- * Inserts a node and its expanded descendants into the flat list in pre-order.
- *
- * The tree is walked with an explicit stack rather than recursion because the depth of the tree is
- * controlled by the caller's data (e.g. a chain of processes each started by the previous one) and
- * recursing once per level overflows the thread stack on very deep trees.
+ * Inserts child nodes into the flat list recursively.
  *
  * \param Context Pointer to the treenew context structure.
- * \param Stack An initialized, empty array of PHP_TREENEW_INSERT_FRAME used as the traversal stack.
- * It is empty again on return and can be reused for the next call.
- * \param Node Pointer to the node to insert.
- * \param Level The nesting level of the node.
+ * \param Node Pointer to the parent node.
+ * \param Level The nesting level of the children.
  */
 VOID PhTnpInsertNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
-    _Inout_ PPH_ARRAY Stack,
     _In_ PPH_TREENEW_NODE Node,
     _In_ ULONG Level
     )
 {
-    PHP_TREENEW_INSERT_FRAME frame;
-    PPH_TREENEW_NODE node;
-    PPH_TREENEW_NODE *children;
-    ULONG numberOfChildren;
-    ULONG i;
-    ULONG nextLevel;
-
-    frame.Node = Node;
-    frame.Level = Level;
-    PhAddItemArray(Stack, &frame);
-
-    while (Stack->Count != 0)
+    typedef struct _TN_WALK_FRAME
     {
-        frame = *(PPHP_TREENEW_INSERT_FRAME)PhItemArray(Stack, Stack->Count - 1);
-        PhRemoveItemsArray(Stack, Stack->Count - 1, 1);
-        node = frame.Node;
+        PPH_TREENEW_NODE Node;
+        PPH_TREENEW_NODE *Children;
+        ULONG Count;
+        ULONG Next;
+        ULONG Level;
+        ULONG ChildLevel;
+        BOOLEAN Entered;
+    } TN_WALK_FRAME;
+    TN_WALK_FRAME *stack;
+    ULONG depth = 1;
+    ULONG capacity = 32;
 
-        if (node->Visible)
+    if (!Node || !(stack = PhAllocateSafe(capacity * sizeof(TN_WALK_FRAME))))
+    {
+        Context->PendingFullInvalidate = TRUE;
+        return;
+    }
+    memset(&stack[0], 0, sizeof(TN_WALK_FRAME));
+    stack[0].Node = Node;
+    stack[0].Level = Level;
+
+    while (depth)
+    {
+        TN_WALK_FRAME *frame = &stack[depth - 1];
+
+        if (!frame->Entered)
         {
-            node->Level = frame.Level;
+            ULONG i;
+            BOOLEAN cycle = FALSE;
 
-            node->Index = Context->FlatList->Count;
-            PhAddItemList(Context->FlatList, node);
-
-            if (Context->FocusNode == node)
-                Context->FocusNodeFound = TRUE;
-
-            nextLevel = frame.Level + 1;
-        }
-        else
-        {
-            nextLevel = 0; // children of this node should be level 0
-        }
-
-        if (!(node->s.IsLeaf = PhTnpIsNodeLeaf(Context, node)))
-        {
-            Context->CanAnyExpand = TRUE;
-
-            if (node->Expanded)
+            for (i = 0; i + 1 < depth; i++)
             {
-                if (PhTnpGetNodeChildren(Context, node, &children, &numberOfChildren))
-                {
-                    // Push the children in reverse so that the first child is popped (and its
-                    // subtree inserted) before its siblings, preserving the pre-order traversal.
-                    for (i = numberOfChildren; i != 0; i--)
-                    {
-                        frame.Node = children[i - 1];
-                        frame.Level = nextLevel;
-                        PhAddItemArray(Stack, &frame);
-                    }
+                if (stack[i].Node == frame->Node) 
+                { 
+                    cycle = TRUE; 
+                    break; 
+                }
+            }
 
-                    if (numberOfChildren == 0)
-                        node->s.IsLeaf = TRUE;
+            if (cycle) 
+            { 
+                assert(FALSE); 
+                depth--; 
+                continue; 
+            }
+
+            frame->Entered = TRUE;
+
+            if (frame->Node->Visible)
+            {
+                frame->Node->Level = frame->Level;
+                frame->Node->Index = Context->FlatList->Count;
+                PhAddItemList(Context->FlatList, frame->Node);
+                if (Context->FocusNode == frame->Node)
+                    Context->FocusNodeFound = TRUE;
+                frame->ChildLevel = frame->Level + 1;
+            }
+
+            frame->Node->s.IsLeaf = PhTnpIsNodeLeaf(Context, frame->Node);
+
+            if (!frame->Node->s.IsLeaf)
+            {
+                Context->CanAnyExpand = TRUE;
+
+                if (frame->Node->Expanded)
+                {
+                    PPH_TREENEW_NODE *children;
+                    ULONG count;
+                    SIZE_T bytes;
+
+                    if (PhTnpGetNodeChildren(Context, frame->Node, &children, &count))
+                    {
+                        if (!count)
+                            frame->Node->s.IsLeaf = TRUE;
+                        else if (NT_SUCCESS(RtlSizeTMult(count, sizeof(PPH_TREENEW_NODE), &bytes)) &&
+                            (frame->Children = PhAllocateSafe(bytes)))
+                        {
+                            memcpy(frame->Children, children, bytes);
+                            frame->Count = count;
+                        }
+                        else
+                        {
+                            Context->PendingFullInvalidate = TRUE;
+                            break;
+                        }
+                    }
                 }
             }
         }
+        if (frame->Next < frame->Count)
+        {
+            PPH_TREENEW_NODE child = frame->Children[frame->Next++];
+            ULONG childLevel = frame->ChildLevel;
+
+            if (!child) 
+            { 
+                assert(FALSE); 
+                continue; 
+            }
+
+            if (depth >= 4096) 
+            { 
+                assert(FALSE); 
+                continue; 
+            }
+
+            if (depth == capacity)
+            {
+                TN_WALK_FRAME *newStack;
+                ULONG newCapacity = capacity * 2;
+
+                newStack = PhAllocateSafe(newCapacity * sizeof(TN_WALK_FRAME));
+
+                if (!newStack) 
+                {
+                    Context->PendingFullInvalidate = TRUE; 
+                    break; 
+                }
+
+                memcpy(newStack, stack, capacity * sizeof(TN_WALK_FRAME));
+                PhFree(stack);
+
+                stack = newStack;
+                capacity = newCapacity;
+            }
+
+            memset(&stack[depth], 0, sizeof(TN_WALK_FRAME));
+            stack[depth].Node = child;
+            stack[depth++].Level = childLevel;
+        }
+        else
+        {
+            if (frame->Children) PhFree(frame->Children);
+            depth--;
+        }
     }
+    while (depth)
+    {
+        if (stack[depth - 1].Children) 
+        {
+            PhFree(stack[depth - 1].Children);
+        }
+
+        depth--;
+    }
+    
+    PhFree(stack);
 }
 
 /**
@@ -4917,14 +5616,19 @@ VOID PhTnpSetExpandedNode(
             Node->Expanded = Expanded;
             PhTnpRestructureNodes(Context);
             PhTnpLayout(Context);
-            InvalidateRect(Context->Handle, NULL, FALSE);
+
+            if (Node->Visible)
+                PhpTnpInvalidateRows(Context, Node->Index, Context->FlatList->Count - 1);
+
             UpdateWindow(Context->Handle);
 #else
             Node->Expanded = Expanded;
             PhTnpRestructureNodes(Context);
             // We need to update the window before the scrollbars get updated in order for the
             // scroll processing to work properly.
-            InvalidateRect(Context->Handle, NULL, FALSE);
+            if (Node->Visible)
+                PhpTnpInvalidateRows(Context, Node->Index, Context->FlatList->Count - 1);
+
             UpdateWindow(Context->Handle);
             PhTnpLayout(Context);
 #endif
@@ -4942,12 +5646,13 @@ VOID PhTnpSetExpandedNode(
  * \param Parts Pointer to receive the cell parts information.
  * \return TRUE if successful, FALSE otherwise.
  */
-BOOLEAN PhTnpGetCellParts(
+static BOOLEAN PhTnpGetCellPartsWithDc(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ ULONG Index,
     _In_opt_ PPH_TREENEW_COLUMN Column,
     _In_ ULONG Flags,
-    _Out_ PPH_TREENEW_CELL_PARTS Parts
+    _Out_ PPH_TREENEW_CELL_PARTS Parts,
+    _In_opt_ HDC MeasureDc
     )
 {
     PPH_TREENEW_NODE node;
@@ -5036,12 +5741,14 @@ BOOLEAN PhTnpGetCellParts(
     if (Flags & TN_MEASURE_TEXT)
     {
         HDC hdc;
+        HFONT oldFont;
         PH_STRINGREF text;
         HFONT font;
         SIZE textSize;
 
-        if (hdc = GetDC(Context->Handle))
+        if (hdc = MeasureDc ? MeasureDc : GetDC(Context->Handle))
         {
+            oldFont = GetCurrentObject(hdc, OBJ_FONT);
             PhTnpPrepareRowForDraw(Context, hdc, node);
 
             if (PhTnpGetCellText(Context, node, Column->Id, &text))
@@ -5063,7 +5770,7 @@ BOOLEAN PhTnpGetCellParts(
 
                     if (Column->TextFlags & DT_CENTER)
                     {
-                        Parts->TextRect.left = Parts->ContentRect.left / 2 + (Parts->ContentRect.right - textSize.cx) / 2;
+                        Parts->TextRect.left = (Parts->ContentRect.left + Parts->ContentRect.right - textSize.cx) / 2;
                         Parts->TextRect.right = Parts->TextRect.left + textSize.cx;
                     }
                     else if (Column->TextFlags & DT_RIGHT)
@@ -5077,11 +5784,23 @@ BOOLEAN PhTnpGetCellParts(
                 }
             }
 
-            ReleaseDC(Context->Handle, hdc);
+            if (oldFont) SelectFont(hdc, oldFont);
+            if (!MeasureDc) ReleaseDC(Context->Handle, hdc);
         }
     }
 
     return TRUE;
+}
+
+BOOLEAN PhTnpGetCellParts(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Index,
+    _In_opt_ PPH_TREENEW_COLUMN Column,
+    _In_ ULONG Flags,
+    _Out_ PPH_TREENEW_CELL_PARTS Parts
+    )
+{
+    return PhTnpGetCellPartsWithDc(Context, Index, Column, Flags, Parts, NULL);
 }
 
 _Success_(return)
@@ -5286,7 +6005,14 @@ VOID PhTnpSelectRange(
     ULONG changedEnd;
 
     if (Context->FlatList->Count == 0)
+    {
+        if (ChangedStart)
+            *ChangedStart = 0;
+        if (ChangedEnd)
+            *ChangedEnd = 0;
+
         return;
+    }
 
     maximum = Context->FlatList->Count - 1;
 
@@ -5401,7 +6127,7 @@ VOID PhTnpSetHotNode(
             {
                 // Update the old hot node because it may have a different non-hot background and
                 // plus minus part.
-                InvalidateRect(Context->Handle, &rowRect, FALSE);
+                PhpTnpInvalidateRect(Context, &rowRect);
             }
         }
 
@@ -5423,7 +6149,7 @@ VOID PhTnpSetHotNode(
 
         if (needsInvalidate && Context->ThemeData && PhTnpGetRowRects(Context, newHotNodeIndex, newHotNodeIndex, TRUE, &rowRect))
         {
-            InvalidateRect(Context->Handle, &rowRect, FALSE);
+            PhpTnpInvalidateRect(Context, &rowRect);
         }
     }
 }
@@ -5463,7 +6189,7 @@ VOID PhTnpProcessSelectNode(
 
             if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
             {
-                InvalidateRect(Context->Handle, &rect, FALSE);
+                PhpTnpInvalidateRect(Context, &rect);
             }
         }
     }
@@ -5489,7 +6215,7 @@ VOID PhTnpProcessSelectNode(
 
         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
     else if (ControlKey)
@@ -5502,7 +6228,7 @@ VOID PhTnpProcessSelectNode(
 
         if (PhTnpGetRowRects(Context, Node->Index, Node->Index, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
     else
@@ -5514,7 +6240,7 @@ VOID PhTnpProcessSelectNode(
 
         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
 }
@@ -5753,7 +6479,7 @@ VOID PhTnpProcessMouseHWheel(
     FLOAT pixelsToScroll;
     LONG wholePixelsToScroll;
     SCROLLINFO scrollInfo;
-    LONG oldPosition;
+    LONG deltaX;
 
     if (!PhGetSystemParametersInfo(SPI_GETWHEELSCROLLCHARS, 0, &wheelScrollChars, 0))
     {
@@ -5769,21 +6495,13 @@ VOID PhTnpProcessMouseHWheel(
     Context->HScrollRemainder = pixelsToScroll - wholePixelsToScroll;
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
-    scrollInfo.fMask = SIF_ALL;
-    GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-    oldPosition = scrollInfo.nPos;
-
-    scrollInfo.nPos += wholePixelsToScroll;
-
     scrollInfo.fMask = SIF_POS;
-    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
     GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
 
-    if (scrollInfo.nPos != oldPosition)
-    {
-        Context->HScrollPosition = scrollInfo.nPos;
-        PhTnpProcessScroll(Context, 0, scrollInfo.nPos - oldPosition);
-    }
+    deltaX = PhTnpApplyHScrollPosition(Context, scrollInfo.nPos + wholePixelsToScroll);
+
+    if (deltaX != 0)
+        PhTnpProcessScroll(Context, 0, deltaX);
 }
 
 /**
@@ -5956,7 +6674,7 @@ BOOLEAN PhTnpProcessFocusKey(
 
         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
     else if (!controlKey)
@@ -5966,7 +6684,7 @@ BOOLEAN PhTnpProcessFocusKey(
 
         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
         {
-            InvalidateRect(Context->Handle, &rect, FALSE);
+            PhpTnpInvalidateRect(Context, &rect);
         }
     }
 
@@ -6021,7 +6739,7 @@ BOOLEAN PhTnpProcessNodeKey(
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
-                    InvalidateRect(Context->Handle, &rect, FALSE);
+                    PhpTnpInvalidateRect(Context, &rect);
                 }
             }
             else if (shiftKey)
@@ -6030,6 +6748,12 @@ BOOLEAN PhTnpProcessNodeKey(
                 ULONG end;
 
                 // Shift key: select a range from the selection mark node to the focused node.
+
+                if (Context->MarkNodeIndex == ULONG_MAX)
+                {
+                    Context->MarkNodeIndex = Context->FocusNode->Index;
+                    return TRUE;
+                }
 
                 if (Context->FocusNode->Index > Context->MarkNodeIndex)
                 {
@@ -6046,7 +6770,7 @@ BOOLEAN PhTnpProcessNodeKey(
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
-                    InvalidateRect(Context->Handle, &rect, FALSE);
+                    PhpTnpInvalidateRect(Context, &rect);
                 }
             }
         }
@@ -6082,7 +6806,7 @@ BOOLEAN PhTnpProcessNodeKey(
 
                         if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                         {
-                            InvalidateRect(Context->Handle, &rect, FALSE);
+                            PhpTnpInvalidateRect(Context, &rect);
                         }
 
                         PhTnpPopTooltip(Context);
@@ -6120,7 +6844,7 @@ BOOLEAN PhTnpProcessNodeKey(
 
                             if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                             {
-                                InvalidateRect(Context->Handle, &rect, FALSE);
+                                PhpTnpInvalidateRect(Context, &rect);
                             }
 
                             PhTnpPopTooltip(Context);
@@ -6207,27 +6931,31 @@ VOID PhTnpProcessSearchKey(
         return;
     }
 
-    if (Context->SearchStringCount > PH_TREENEW_SEARCH_MAXIMUM_LENGTH)
+    if (Context->SearchStringCount >= PH_TREENEW_SEARCH_MAXIMUM_LENGTH)
     {
         // The search string has become too long. Fail the search.
         if (!Context->SearchFailed)
-        {
             MessageBeep(MB_OK);
 
-            Context->SearchFailed = TRUE;
-            return;
-        }
+        Context->SearchFailed = TRUE;
+        return;
     }
     else if (Context->SearchStringCount == Context->AllocatedSearchString)
     {
-        Context->AllocatedSearchString *= 2;
-        Context->SearchString = PhReAllocateSafe(Context->SearchString, Context->AllocatedSearchString * sizeof(WCHAR));
+        ULONG allocatedSearchString;
+        PWSTR searchString;
 
-        if (!Context->SearchString)
+        allocatedSearchString = Context->AllocatedSearchString * 2;
+        searchString = PhReAllocateSafe(Context->SearchString, allocatedSearchString * sizeof(WCHAR));
+
+        if (!searchString)
         {
             Context->SearchFailed = TRUE;
             return;
         }
+
+        Context->AllocatedSearchString = allocatedSearchString;
+        Context->SearchString = searchString;
     }
 
     Context->SearchString[Context->SearchStringCount++] = (WCHAR)Character;
@@ -6302,7 +7030,7 @@ VOID PhTnpProcessSearchKey(
 
     if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
     {
-        InvalidateRect(Context->Handle, &rect, FALSE);
+        PhpTnpInvalidateRect(Context, &rect);
     }
 
     PhTnpPopTooltip(Context);
@@ -6417,7 +7145,9 @@ VOID PhTnpUpdateScrollBars(
 #endif
 
     clientRect = Context->ClientRect;
-    width = clientRect.right - Context->FixedWidth;
+    // The normal columns start at NormalLeft, not FixedWidth; using the latter left the scroll
+    // range one pixel wider than the area actually painted. (dmex)
+    width = clientRect.right - Context->NormalLeft;
     height = clientRect.bottom - Context->HeaderHeight;
 
     contentWidth = Context->TotalViewX;
@@ -6434,6 +7164,14 @@ VOID PhTnpUpdateScrollBars(
         height -= Context->HScrollHeight;
     }
 
+    // The client area can be smaller than the header while the control is being sized. Page sizes
+    // are unsigned, so a negative value would wrap into a huge range. (dmex)
+
+    if (width < 0)
+        width = 0;
+    if (height < 0)
+        height = 0;
+
     // Vertical scroll bar
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
@@ -6445,7 +7183,16 @@ VOID PhTnpUpdateScrollBars(
     scrollInfo.nMin = 0;
     scrollInfo.nMax = Context->FlatList->Count != 0 ? Context->FlatList->Count - 1 : 0;
     scrollInfo.nPage = height / Context->RowHeight;
-    SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+    // This runs on every layout, which includes every structure update. Skip the cross-window
+    // update when the range and page are unchanged. (dmex)
+    if (Context->VScrollLastMax != scrollInfo.nMax || Context->VScrollLastPage != scrollInfo.nPage)
+    {
+        Context->VScrollLastMax = scrollInfo.nMax;
+        Context->VScrollLastPage = scrollInfo.nPage;
+
+        SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    }
 
 #if defined(TREENEW_VSCROLL_ANCHOR)
     if (PhTnpGetAnchoredVScrollPosition(Context, scrollInfo.nPage, &anchoredPosition))
@@ -6490,7 +7237,14 @@ VOID PhTnpUpdateScrollBars(
     scrollInfo.nMin = 0;
     scrollInfo.nMax = contentWidth != 0 ? contentWidth - 1 : 0;
     scrollInfo.nPage = width;
-    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+    if (Context->HScrollLastMax != scrollInfo.nMax || Context->HScrollLastPage != scrollInfo.nPage)
+    {
+        Context->HScrollLastMax = scrollInfo.nMax;
+        Context->HScrollLastPage = scrollInfo.nPage;
+
+        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+    }
 
     scrollInfo.fMask = SIF_POS;
     GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
@@ -6522,7 +7276,7 @@ VOID PhTnpUpdateScrollBars(
         rect.top = Context->HeaderHeight;
         rect.right = Context->FixedWidth + 1;
         rect.bottom = Context->ClientRect.bottom;
-        InvalidateRect(Context->Handle, &rect, FALSE);
+        PhpTnpInvalidateRect(Context, &rect);
     }
 
 #if defined(TREENEW_VSCROLL_ANCHOR)
@@ -6544,7 +7298,7 @@ VOID PhTnpUpdateScrollBars(
         }
         else
         {
-            InvalidateRect(Context->Handle, NULL, FALSE);
+            PhpTnpInvalidateRect(Context, NULL);
         }
 
         Context->FlatListStructureChanged = FALSE;
@@ -6594,7 +7348,7 @@ VOID PhTnpScroll(
     _In_ LONG DeltaX
     )
 {
-    SCROLLINFO scrollInfo;
+    SCROLLINFO scrollInfo = { 0 };
     LONG oldPosition;
     LONG deltaRows;
     LONG deltaX;
@@ -6607,7 +7361,8 @@ VOID PhTnpScroll(
 
     if (DeltaRows != 0 && Context->VScrollVisible)
     {
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        if (!GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo))
+            return;
         oldPosition = scrollInfo.nPos;
 
         if (DeltaRows == MINLONG)
@@ -6618,15 +7373,16 @@ VOID PhTnpScroll(
             scrollInfo.nPos += DeltaRows;
 
         SetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+        if (!GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo))
+            return;
         Context->VScrollPosition = scrollInfo.nPos;
         deltaRows = scrollInfo.nPos - oldPosition;
     }
 
     if (DeltaX != 0 && Context->HScrollVisible)
     {
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        oldPosition = scrollInfo.nPos;
+        if (!GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo))
+            return;
 
         if (DeltaX == MINLONG)
             scrollInfo.nPos = 0;
@@ -6635,14 +7391,47 @@ VOID PhTnpScroll(
         else
             scrollInfo.nPos += DeltaX;
 
-        SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
-        Context->HScrollPosition = scrollInfo.nPos;
-        deltaX = scrollInfo.nPos - oldPosition;
+        deltaX = PhTnpApplyHScrollPosition(Context, scrollInfo.nPos);
     }
 
     if (deltaRows != 0 || deltaX != 0)
         PhTnpProcessScroll(Context, deltaRows, deltaX);
+}
+
+/**
+ * Moves the horizontal scroll bar to an absolute position.
+ *
+ * The scroll bar clamps the requested position to its range, so the caller has to be told what was
+ * actually applied. This is the tail shared by the scroll bar, mouse wheel and programmatic scroll
+ * paths. (dmex)
+ *
+ * \param Context Pointer to the tree view context.
+ * \param Position The requested scroll position.
+ * \return The number of pixels actually scrolled; zero if the position did not change.
+ */
+LONG PhTnpApplyHScrollPosition(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Position
+    )
+{
+    SCROLLINFO scrollInfo = { 0 };
+    LONG oldPosition;
+
+    scrollInfo.cbSize = sizeof(SCROLLINFO);
+    scrollInfo.fMask = SIF_POS;
+    if (!GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo))
+        return 0;
+    oldPosition = scrollInfo.nPos;
+
+    scrollInfo.nPos = Position;
+    SetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo, TRUE);
+
+    if (!GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo))
+
+        return 0;
+    Context->HScrollPosition = scrollInfo.nPos;
+
+    return scrollInfo.nPos - oldPosition;
 }
 
 /**
@@ -6746,15 +7535,21 @@ BOOLEAN PhTnpCanScroll(
     _In_ BOOLEAN Positive
     )
 {
-    SCROLLINFO scrollInfo;
+    SCROLLINFO scrollInfo = { 0 };
 
     scrollInfo.cbSize = sizeof(SCROLLINFO);
     scrollInfo.fMask = SIF_RANGE | SIF_PAGE | SIF_POS;
 
     if (!Horizontal)
-        GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo);
+    {
+        if (!GetScrollInfo(Context->VScrollHandle, SB_CTL, &scrollInfo))
+            return FALSE;
+    }
     else
-        GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo);
+    {
+        if (!GetScrollInfo(Context->HScrollHandle, SB_CTL, &scrollInfo))
+            return FALSE;
+    }
 
     if (Positive)
     {
@@ -6806,11 +7601,12 @@ VOID PhTnpPaint(
     LONG normalUpdateRightIndex;
     LONG normalTotalX;
     RECT cellRect;
-#if defined(PH_TREENEW_SAVEDC_CLIP)
-    INT savedDcState;
-#else
+    LONG selectionBarLeft;
+    LONG selectionBarWidth;
+    BOOLEAN selectionBarVisible;
+    COLORREF selectionBarColor;
     HRGN oldClipRegion;
-#endif
+    BOOLEAN hasOldClipRegion;
 
     PhTnpInitializeThemeData(Context);
 
@@ -6835,6 +7631,27 @@ VOID PhTnpPaint(
     rowRect.top = Context->HeaderHeight + firstRowToUpdate * Context->RowHeight;
     rowRect.right = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
     rowRect.bottom = rowRect.top + Context->RowHeight;
+
+    // Calculate the accent bar drawn along the left edge of selected rows. This must be done here
+    // because the themed background below moves rowRect.left when there's no fixed column. (dmex)
+
+    selectionBarLeft = Context->FixedColumnVisible ? 0 : Context->NormalLeft - hScrollPosition;
+
+    if (selectionBarLeft < 0)
+        selectionBarLeft = 0;
+
+    selectionBarWidth = PhScaleToDisplay(PH_TREENEW_SELECTION_BAR_WIDTH, Context->WindowDpi);
+    selectionBarVisible = selectionBarLeft < PaintRect->right && selectionBarLeft + selectionBarWidth > PaintRect->left;
+
+    // The bar is a theme accent rather than a row color, so the palette accent wins over the
+    // custom row colors. PhThemeWindowHighlightColor is a grey and doesn't show up here. (dmex)
+
+    if (Context->ThemeSupport)
+        selectionBarColor = PhThemeWindowFocusBorderColor;
+    else if (Context->CustomColors)
+        selectionBarColor = Context->CustomFocusColor;
+    else
+        selectionBarColor = GetSysColor(COLOR_HOTLIGHT);
 
     // Change the indices to absolute row indices.
 
@@ -6889,13 +7706,20 @@ VOID PhTnpPaint(
     SelectFont(hdc, Context->Font);
     SetBkMode(hdc, TRANSPARENT);
 
-#if defined(PH_TREENEW_SAVEDC_CLIP)
-    savedDcState = SaveDC(hdc);
-#endif
-
     for (i = firstRowToUpdate; i <= lastRowToUpdate; i++)
     {
         node = Context->FlatList->Items[i];
+
+        // PaintRect is only the bounding box of the update region. When rows are invalidated in
+        // disjoint bands (sparse selection changes) most of the rows in between are still clean, so
+        // skip the ones the device context would clip away anyway. (dmex)
+
+        if (!RectVisible(hdc, &rowRect))
+        {
+            rowRect.top += Context->RowHeight;
+            rowRect.bottom += Context->RowHeight;
+            continue;
+        }
 
         // Prepare the row for drawing.
 
@@ -6904,65 +7728,29 @@ VOID PhTnpPaint(
         if (Context->ThemeSupport)
         {
             SetTextColor(hdc, PhThemeWindowTextColor);
-            SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
 
-            if (PhTnpSelectionCreateBufferedContext(Context))
+            // The custom row color is blended over the window background at a constant alpha. Both
+            // sides of that blend are solid, so the result is a solid color and there is no reason
+            // to run GdiAlphaBlend for every row. (dmex)
+
+            if (node->s.DrawBackColor != Context->DefaultBackColor)
             {
-                if (Context->SelectionScratchBitmap)
-                {
-                    HBITMAP oldBitmap;
-                    RECT tempRect;
-                    BLENDFUNCTION blendFunction;
+                SetDCBrushColor(hdc, PhpTnpBlendColor(
+                    PhThemeWindowBackgroundColor,
+                    node->s.DrawBackColor,
+                    TNP_THEME_ROW_BLEND_ALPHA
+                    ));
+                FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
+            }
+            else
+            {
+                FillRect(hdc, &rowRect, PhThemeWindowBackgroundBrush);
+            }
 
-                    // Fill in the selection rectangle.
-                    oldBitmap = SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchBitmap);
-                    tempRect.left = 0;
-                    tempRect.top = 0;
-                    tempRect.right = 1;
-                    tempRect.bottom = 1;
-
-                    SetTextColor(Context->SelectionScratchDc, node->s.DrawForeColor);
-
-                    if (node->s.DrawBackColor != 16777215)
-                    {
-                        SetDCBrushColor(Context->SelectionScratchDc, node->s.DrawBackColor);
-                        FillRect(Context->SelectionScratchDc, &tempRect, PhGetStockBrush(DC_BRUSH));
-                    }
-                    else
-                    {
-                        SetDCBrushColor(Context->SelectionScratchDc, PhThemeWindowBackgroundColor);
-                        FillRect(Context->SelectionScratchDc, &tempRect, PhGetStockBrush(DC_BRUSH));
-                    }
-
-                    blendFunction.BlendOp = AC_SRC_OVER;
-                    blendFunction.BlendFlags = 0;
-                    blendFunction.SourceConstantAlpha = 96;
-                    blendFunction.AlphaFormat = 0;
-
-                    GdiAlphaBlend(
-                        hdc,
-                        rowRect.left,
-                        rowRect.top,
-                        rowRect.right - rowRect.left,
-                        rowRect.bottom - rowRect.top,
-                        Context->SelectionScratchDc,
-                        0,
-                        0,
-                        1,
-                        1,
-                        blendFunction
-                        );
-
-                    // Draw the outline of the selection rectangle (Dart Vanya)
-                    if (Context->HasFocus && node->Selected)
-                    {
-                        //SetDCBrushColor(hdc, RGB(0xF0, 0xF0, 0xF0));
-                        FrameRect(hdc, &rowRect, GetSysColorBrush(COLOR_WINDOW));
-                    }
-
-                    SelectBitmap(Context->SelectionScratchDc, oldBitmap);
-                }
+            // Draw the outline of the selection rectangle (Dart Vanya)
+            if (Context->HasFocus && node->Selected)
+            {
+                FrameRect(hdc, &rowRect, PhThemeWindowBackgroundBrush);
             }
         }
         else
@@ -6996,6 +7784,7 @@ VOID PhTnpPaint(
                     else
                     {
                         SetTextColor(hdc, GetSysColor(COLOR_BTNTEXT));
+                        SetDCBrushColor(hdc, GetSysColor(COLOR_BTNFACE));
                         FillRect(hdc, &rowRect, GetSysColorBrush(COLOR_BTNFACE));
                     }
                 }
@@ -7070,18 +7859,10 @@ VOID PhTnpPaint(
             cellRect.left = normalUpdateLeftX;
             cellRect.right = cellRect.left;
 
-#if defined(PH_TREENEW_SAVEDC_CLIP)
-            // Save the pre-loop clip state once so each row can restore it.
-            // The per-row restore/re-save pair keeps the clip region valid.
-#else
-            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
-
-            if (GetClipRgn(hdc, oldClipRegion) != 1)
-            {
-                DeleteRgn(oldClipRegion);
-                oldClipRegion = NULL;
-            }
-#endif
+            // GetClipRgn overwrites the region contents, so reuse a cached one instead of
+            // allocating a new region for every row. (dmex)
+            oldClipRegion = PhGetScratchRegion(&Context->ClipScratchRegion);
+            hasOldClipRegion = oldClipRegion && GetClipRgn(hdc, oldClipRegion) == 1;
 
             IntersectClipRect(hdc, Context->NormalLeft, cellRect.top, viewRect.right, cellRect.bottom);
 
@@ -7094,33 +7875,29 @@ VOID PhTnpPaint(
                 PhTnpDrawCell(Context, hdc, &cellRect, node, column, i, j);
             }
 
-#if defined(PH_TREENEW_SAVEDC_CLIP)
-            // Restore the pre-loop clip state and immediately re-save it so
-            // savedDcState remains valid for the next iteration. Without this inner
-            // RestoreDC+SaveDC, every row after the first would paint into an empty clip
-            // region and produce no output. The inner pair is what snaps the clip back
-            // to the pre-loop state before each row re-narrows it. (dmex)
-            RestoreDC(hdc, savedDcState);
-            SaveDC(hdc);
-#else
-            SelectClipRgn(hdc, oldClipRegion);
+            // The cached region stays alive for the next row; only the clip selection is restored.
+            SelectClipRgn(hdc, hasOldClipRegion ? oldClipRegion : NULL);
+        }
 
-            if (oldClipRegion)
-            {
-                DeleteRgn(oldClipRegion);
-            }
-#endif
+        // Paint the accent bar for selected rows. This is done last so the cells above don't
+        // paint over it. (dmex)
+
+        if (selectionBarVisible && node->Selected)
+        {
+            RECT selectionBarRect;
+
+            selectionBarRect.left = selectionBarLeft;
+            selectionBarRect.top = rowRect.top;
+            selectionBarRect.right = selectionBarLeft + selectionBarWidth;
+            selectionBarRect.bottom = rowRect.bottom;
+
+            SetDCBrushColor(hdc, selectionBarColor);
+            FillRect(hdc, &selectionBarRect, PhGetStockBrush(DC_BRUSH));
         }
 
         rowRect.top += Context->RowHeight;
         rowRect.bottom += Context->RowHeight;
     }
-
-#ifdef PH_TREENEW_SAVEDC_CLIP
-    // Final restore: brings the DC back to the state captured before the loop,
-    // covering rows where the condition was false and no inner Restore was issued. (dmex)
-    RestoreDC(hdc, savedDcState);
-#endif
 
     if (lastRowToUpdate == Context->FlatList->Count - 1) // works even if there are no items
     {
@@ -7130,8 +7907,7 @@ VOID PhTnpPaint(
         if (Context->ThemeSupport)
         {
             SetTextColor(hdc, PhThemeWindowTextColor);
-            SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rowRect, PhThemeWindowBackgroundBrush);
         }
         else
         {
@@ -7150,8 +7926,7 @@ VOID PhTnpPaint(
         if (Context->ThemeSupport)
         {
             SetTextColor(hdc, PhThemeWindowTextColor);
-            SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
-            FillRect(hdc, &rowRect, PhGetStockBrush(DC_BRUSH));
+            FillRect(hdc, &rowRect, PhThemeWindowBackgroundBrush);
         }
         else
         {
@@ -7163,7 +7938,7 @@ VOID PhTnpPaint(
     {
         RECT textRect;
 
-        textRect.left = 20;
+        textRect.left = PhScaleToDisplay(20, Context->WindowDpi);
         textRect.top = Context->HeaderHeight + PhScaleToDisplay(10, Context->WindowDpi);
         textRect.right = viewRect.right - PhScaleToDisplay(20, Context->WindowDpi);
         textRect.bottom = viewRect.bottom - Context->HeaderTextPadding;
@@ -7200,19 +7975,9 @@ VOID PhTnpPaint(
         }
     }
 
-    if (Context->HeaderCustomDraw)
+    if (Context->HeaderCustomDraw && Context->HeaderInvalidatePending)
     {
-        //if (Context->FixedColumnVisible && Context->FixedHeaderHandle)
-        //{
-        //    InvalidateRect(Context->FixedHeaderHandle, NULL, FALSE);
-        //}
-
-        // TODO:
-        // 1) PhTickProcessNodes excludes the header when invalidating the treelist.
-        // 2) This invalidates the whole header even when nothing changes.
-        // We can add a callback similar to TreeNewGetHeaderText that returns TRUE
-        // for headers that have custom text and need invalidating? (dmex)
-
+        Context->HeaderInvalidatePending = FALSE;
         if (Context->HeaderHandle && !Context->Tracking) // GetCapture() != Context->HeaderHandle)
         {
             InvalidateRect(Context->HeaderHandle, NULL, FALSE);
@@ -7396,7 +8161,7 @@ VOID PhTnpDrawCell(
     if (Column == Context->FirstColumn)
     {
         BOOLEAN needsClip = FALSE;
-        HRGN oldClipRegion = NULL;
+        INT savedDcState = 0;
 
         textRect.left += Node->Level * width;
 
@@ -7405,13 +8170,9 @@ VOID PhTnpDrawCell(
 
         if (needsClip)
         {
-            oldClipRegion = CreateRectRgn(0, 0, 0, 0);
-
-            if (GetClipRgn(hdc, oldClipRegion) != 1)
-            {
-                DeleteRgn(oldClipRegion);
-                oldClipRegion = NULL;
-            }
+            // Snapshot the clip state with SaveDC instead of allocating a scratch
+            // region per cell. This nests correctly inside the row loop. (dmex)
+            savedDcState = SaveDC(hdc);
 
             // Clip contents to the column.
             IntersectClipRect(hdc, CellRect->left, textRect.top, CellRect->right, textRect.bottom);
@@ -7470,7 +8231,7 @@ VOID PhTnpDrawCell(
                     glyphRect.top = textRect.top + (height - glyphHeight) / 2;
                     glyphRect.bottom = glyphRect.top + glyphHeight;
 
-                    PhTnpDrawPlusMinusGlyph(hdc, &glyphRect, !Node->Expanded);
+                    PhTnpDrawPlusMinusGlyph(Context, hdc, &glyphRect, !Node->Expanded);
                 }
             }
 
@@ -7479,6 +8240,8 @@ VOID PhTnpDrawCell(
 
         // Draw the icon.
 
+        // Note: in image list mode the icon column is reserved for every row, including rows
+        // without an icon (they draw image zero), so the text stays aligned. (dmex)
         if (Context->ImageListSupport)
         {
             //LONG right = textRect.right;
@@ -7521,10 +8284,10 @@ VOID PhTnpDrawCell(
 
         if (needsClip)
         {
-            SelectClipRgn(hdc, oldClipRegion);
-
-            if (oldClipRegion)
-                DeleteRgn(oldClipRegion);
+            if (savedDcState)
+                RestoreDC(hdc, savedDcState);
+            else
+                SelectClipRgn(hdc, NULL);
         }
 
         if (textRect.left > textRect.right)
@@ -7534,7 +8297,7 @@ VOID PhTnpDrawCell(
     if (Column->CustomDraw)
     {
         BOOLEAN result;
-        PH_TREENEW_CUSTOM_DRAW customDraw;
+        PH_TREENEW_CUSTOM_DRAW customDraw = { 0 };
         INT savedDc;
 
         customDraw.Node = Node;
@@ -7551,11 +8314,15 @@ VOID PhTnpDrawCell(
             customDraw.TextRect.left = customDraw.TextRect.right;
 
         savedDc = SaveDC(hdc);
-        result = Context->Callback(Context->Handle, TreeNewCustomDraw, &customDraw, NULL, Context->CallbackContext);
-        RestoreDC(hdc, savedDc);
-
-        if (result)
-            return;
+        if (savedDc)
+        {
+            result = Context->Callback(Context->Handle, TreeNewCustomDraw, &customDraw, NULL, Context->CallbackContext);
+            RestoreDC(hdc, savedDc);
+            if (result)
+                return;
+        }
+        // If DC state cannot be isolated, use the normal text fallback instead
+        // of exposing the remaining cells to a callback's modified DC state.
     }
 
     if (PhTnpGetCellText(Context, Node, Column->Id, &text))
@@ -7596,6 +8363,11 @@ VOID PhTnpDrawDivider(
     )
 {
     POINT points[2];
+    HPEN oldPen;
+    COLORREF dividerColor;
+
+    // The palette colors only apply when the control carries our theme. (dmex)
+    dividerColor = Context->ThemeSupport ? PhThemeWindowHighlight2Color : GetSysColor(COLOR_3DSHADOW);
 
     if (Context->AnimateDivider)
     {
@@ -7604,46 +8376,52 @@ VOID PhTnpDrawDivider(
 
         if (Context->DividerHot < 100)
         {
-            BLENDFUNCTION blendFunction;
+            // We need to draw and alpha blend the divider. The scratch bitmap is a single pixel
+            // of the divider color, stretched over the divider rectangle by the blend. (dmex)
 
-            // We need to draw and alpha blend the divider.
-            // We can use the extra column allocated in the buffered context to initially draw the
-            // divider.
+            if (PhTnpSelectionCreateBufferedContext(Context))
+            {
+                HBITMAP oldBitmap;
+                RECT tempRect;
+                BLENDFUNCTION blendFunction;
 
-            points[0].x = Context->ClientRect.right;
-            points[0].y = Context->HeaderHeight;
-            points[1].x = Context->ClientRect.right;
-            points[1].y = Context->ClientRect.bottom;
-            SetDCPenColor(Context->BufferedContext, RGB(0x77, 0x77, 0x77));
-            SelectPen(Context->BufferedContext, PhGetStockPen(DC_PEN));
-            Polyline(Context->BufferedContext, points, 2);
+                oldBitmap = SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchBitmap);
+                tempRect.left = 0;
+                tempRect.top = 0;
+                tempRect.right = 1;
+                tempRect.bottom = 1;
+                SetDCBrushColor(Context->SelectionScratchDc, dividerColor);
+                FillRect(Context->SelectionScratchDc, &tempRect, PhGetStockBrush(DC_BRUSH));
 
-            blendFunction.BlendOp = AC_SRC_OVER;
-            blendFunction.BlendFlags = 0;
-            blendFunction.AlphaFormat = 0;
+                blendFunction.BlendOp = AC_SRC_OVER;
+                blendFunction.BlendFlags = 0;
+                blendFunction.AlphaFormat = 0;
 
-            // If the horizontal scroll bar is visible, we need to display a line even if the
-            // divider is not hot. In this case we increase the base alpha value.
-            if (!Context->HScrollVisible)
-                blendFunction.SourceConstantAlpha = (UCHAR)(Context->DividerHot * 255 / 100);
-            else
-                blendFunction.SourceConstantAlpha = 55 + (UCHAR)(Context->DividerHot * 2);
+                // If the horizontal scroll bar is visible, we need to display a line even if the
+                // divider is not hot. In this case we increase the base alpha value.
+                if (!Context->HScrollVisible)
+                    blendFunction.SourceConstantAlpha = (UCHAR)(Context->DividerHot * 255 / 100);
+                else
+                    blendFunction.SourceConstantAlpha = 55 + (UCHAR)(Context->DividerHot * 2);
 
-            GdiAlphaBlend(
-                hdc,
-                Context->FixedWidth,
-                Context->HeaderHeight,
-                1,
-                Context->ClientRect.bottom - Context->HeaderHeight,
-                Context->BufferedContext,
-                Context->ClientRect.right,
-                Context->HeaderHeight,
-                1,
-                Context->ClientRect.bottom - Context->HeaderHeight,
-                blendFunction
-                );
+                GdiAlphaBlend(
+                    hdc,
+                    Context->FixedWidth,
+                    Context->HeaderHeight,
+                    1,
+                    Context->ClientRect.bottom - Context->HeaderHeight,
+                    Context->SelectionScratchDc,
+                    0,
+                    0,
+                    1,
+                    1,
+                    blendFunction
+                    );
 
-            return;
+                SelectBitmap(Context->SelectionScratchDc, oldBitmap);
+
+                return;
+            }
         }
     }
 
@@ -7651,9 +8429,12 @@ VOID PhTnpDrawDivider(
     points[0].y = Context->HeaderHeight;
     points[1].x = Context->FixedWidth;
     points[1].y = Context->ClientRect.bottom;
-    SetDCPenColor(hdc, RGB(0x77, 0x77, 0x77));
-    SelectPen(hdc, PhGetStockPen(DC_PEN));
+    SetDCPenColor(hdc, dividerColor);
+    oldPen = SelectPen(hdc, PhGetStockPen(DC_PEN));
     Polyline(hdc, points, 2);
+
+    if (oldPen)
+        SelectPen(hdc, oldPen);
 }
 
 /**
@@ -7664,6 +8445,7 @@ VOID PhTnpDrawDivider(
  * \param Plus TRUE to draw a plus sign, FALSE to draw a minus sign.
  */
 VOID PhTnpDrawPlusMinusGlyph(
+    _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC hdc,
     _In_ PRECT Rect,
     _In_ BOOLEAN Plus
@@ -7673,13 +8455,30 @@ VOID PhTnpDrawPlusMinusGlyph(
     ULONG width;
     ULONG height;
     POINT points[2];
+    COLORREF borderColor;
+    COLORREF backColor;
+    COLORREF textColor;
+
+    // The palette colors only apply when the control carries our theme. (dmex)
+    if (Context->ThemeSupport)
+    {
+        borderColor = PhThemeWindowBorderColor;
+        backColor = PhThemeWindowBackgroundColor;
+        textColor = PhThemeWindowTextColor;
+    }
+    else
+    {
+        borderColor = GetSysColor(COLOR_3DSHADOW);
+        backColor = GetSysColor(COLOR_WINDOW);
+        textColor = GetSysColor(COLOR_WINDOWTEXT);
+    }
 
     savedDc = SaveDC(hdc);
 
     SelectPen(hdc, PhGetStockPen(DC_PEN));
-    SetDCPenColor(hdc, RGB(0x55, 0x55, 0x55));
+    SetDCPenColor(hdc, borderColor);
     SelectBrush(hdc, PhGetStockBrush(DC_BRUSH));
-    SetDCBrushColor(hdc, RGB(0xff, 0xff, 0xff));
+    SetDCBrushColor(hdc, backColor);
 
     width = Rect->right - Rect->left;
     height = Rect->bottom - Rect->top;
@@ -7687,7 +8486,7 @@ VOID PhTnpDrawPlusMinusGlyph(
     // Draw the rectangle.
     Rectangle(hdc, Rect->left, Rect->top, Rect->right + 1, Rect->bottom + 1);
 
-    SetDCPenColor(hdc, RGB(0x00, 0x00, 0x00));
+    SetDCPenColor(hdc, textColor);
 
     // Draw the horizontal line.
     points[0].x = Rect->left + 2;
@@ -7817,6 +8616,18 @@ VOID PhTnpDrawThemedBorder(
     // Make sure we don't paint in the client area.
     ExcludeClipRect(hdc, clientRect.left, clientRect.top, clientRect.right, clientRect.bottom);
 
+    if (Context->ThemeSupport)
+    {
+        // The visual style border is drawn from the system palette and stays light while the
+        // control is dark, so use the theme border color instead. (dmex)
+        SetDCBrushColor(hdc, PhThemeWindowBorderColor);
+        FillRect(hdc, &windowRect, PhGetStockBrush(DC_BRUSH));
+        return;
+    }
+
+    if (!Context->ThemeData)
+        return;
+
     // Draw the themed border.
     PhDrawThemeBackground(Context->ThemeData, hdc, 0, 0, &windowRect, NULL);
 
@@ -7842,6 +8653,37 @@ VOID PhTnpDrawThemedBorder(
         windowRect.bottom -= Context->SystemEdgeY - borderY;
         FillRect(hdc, &windowRect, (HBRUSH)(COLOR_WINDOW + 1));
     }
+}
+
+/**
+ * Hooks the header control window procedures.
+ *
+ * The hook owns the custom header painting, hot tracking and the mouse messages forwarded to the
+ * tooltip control, so it must be installed even when there are no tooltips. (dmex)
+ *
+ * \param Context Pointer to the treenew context structure.
+ */
+VOID PhTnpInitializeHeaders(
+    _In_ PPH_TREENEW_CONTEXT Context
+    )
+{
+    // TnHeaderCustomPaint also runs for themed trees without TN_STYLE_CUSTOM_HEADERDRAW,
+    // so the hot column must always start out as "none": zero is a valid column id and
+    // would leave the first column stuck in the hot state.
+    Context->HeaderHotColumn = ULONG_MAX;
+
+    if (Context->HeaderCustomDraw)
+    {
+        Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, Context->WindowDpi);
+    }
+
+    Context->HeaderWindowProc = PhGetWindowProcedure(Context->HeaderHandle);
+    PhSetWindowContext(Context->HeaderHandle, MAXCHAR, Context);
+    PhSetWindowProcedure(Context->HeaderHandle, PhTnpHeaderHookWndProc);
+
+    Context->FixedHeaderWindowProc = PhGetWindowProcedure(Context->FixedHeaderHandle);
+    PhSetWindowContext(Context->FixedHeaderHandle, MAXCHAR, Context);
+    PhSetWindowProcedure(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc);
 }
 
 /**
@@ -7905,21 +8747,6 @@ VOID PhTnpInitializeTooltips(
         0, 0, 0, 0,
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE
         );
-
-    if (Context->HeaderCustomDraw)
-    {
-        Context->HeaderHotColumn = ULONG_MAX;
-        Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, Context->WindowDpi);
-    }
-
-    // Hook the header control window procedures so we can forward mouse messages to the tooltip control.
-    Context->HeaderWindowProc = PhGetWindowProcedure(Context->HeaderHandle);
-    PhSetWindowContext(Context->HeaderHandle, MAXCHAR, Context);
-    PhSetWindowProcedure(Context->HeaderHandle, PhTnpHeaderHookWndProc);
-
-    Context->FixedHeaderWindowProc = PhGetWindowProcedure(Context->FixedHeaderHandle);
-    PhSetWindowContext(Context->FixedHeaderHandle, MAXCHAR, Context);
-    PhSetWindowProcedure(Context->FixedHeaderHandle, PhTnpHeaderHookWndProc);
 
     SendMessage(Context->TooltipsHandle, TTM_SETMAXTIPWIDTH, 0, MAXSHORT); // no limit
     SetWindowFont(Context->TooltipsHandle, Context->Font, FALSE);
@@ -8320,11 +9147,22 @@ BOOLEAN TnHeaderCustomPaint(
 {
     PPH_TREENEW_COLUMN column;
 
-    if (!Context->HeaderCustomDraw)
+    // The native header paints itself with the light common-control class even when
+    // the window is dark, so every themed tree is drawn here. HeaderCustomDraw only
+    // adds the per-column totals text (TN_STYLE_CUSTOM_HEADERDRAW).
+    if (!Context->HeaderCustomDraw && !Context->ThemeSupport)
         return FALSE;
 
     if (!(column = (PPH_TREENEW_COLUMN)CustomDraw->lItemlParam))
         return FALSE;
+
+    // The header is rendered in one pass over every item, so cull the columns that fall outside the
+    // update region instead of formatting text that is clipped away. (dmex)
+    if (!RectVisible(CustomDraw->hdc, &CustomDraw->rc))
+        return TRUE;
+
+    if (!Context->HeaderThemeHandle)
+        Context->HeaderThemeHandle = PhOpenThemeData(Context->HeaderHandle, VSCLASS_HEADER, Context->WindowDpi);
 
     SetBkMode(CustomDraw->hdc, TRANSPARENT);
 
@@ -8332,22 +9170,28 @@ BOOLEAN TnHeaderCustomPaint(
     {
         if (Context->ThemeSupport)
         {
-            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackground2Color); // PhThemeWindowHighlightColor
+            HBRUSH oldBrush;
+
+            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowHighlight2Color);
             FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
-            if (Context->HeaderDragging && Context->HeaderHotColumn != ULONG_MAX && Context->HeaderHotColumn == column->Id)
+            // PatBlt uses the brush selected into the device context, unlike FillRect. (dmex)
+            oldBrush = SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
+
+            if (Context->HeaderDragging)
             {
                 SetDCBrushColor(CustomDraw->hdc, RGB(0, 0, 229));
-                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 2, CustomDraw->rc.top, 2, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
             }
             else
             {
-                SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
+                SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBorderColor);
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
                 //PatBlt(CustomDraw->hdc, CustomDraw->rc.left, CustomDraw->rc.bottom - 1, CustomDraw->rc.right - CustomDraw->rc.left, 1, PATCOPY);
             }
+
+            if (oldBrush)
+                SelectBrush(CustomDraw->hdc, oldBrush);
         }
         else
         {
@@ -8379,22 +9223,27 @@ BOOLEAN TnHeaderCustomPaint(
     {
         if (Context->ThemeSupport)
         {
+            HBRUSH oldBrush;
+
             SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackgroundColor);
             FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
-            if (Context->HeaderDragging && Context->HeaderHotColumn != ULONG_MAX && Context->HeaderHotColumn == column->Id)
+            oldBrush = SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
+
+            if (Context->HeaderDragging && Context->HeaderHotColumn == column->Id)
             {
                 SetDCBrushColor(CustomDraw->hdc, RGB(0, 0, 229));
-                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 2, CustomDraw->rc.top, 2, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
             }
             else
             {
-                SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
-                SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
+                SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBorderColor);
                 PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
                 //PatBlt(Hdc, CustomDraw->rc.left, CustomDraw->rc.bottom - 1, CustomDraw->rc.right - CustomDraw->rc.left, 1, PATCOPY);
             }
+
+            if (oldBrush)
+                SelectBrush(CustomDraw->hdc, oldBrush);
         }
         else if (Context->HeaderThemeHandle)
         {
@@ -8452,7 +9301,7 @@ BOOLEAN TnHeaderCustomPaint(
         textRect.bottom -= Context->HeaderTextPadding;
         textRect.top += Context->HeaderTextMargin;
 
-        SetTextColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x8f, 0x8f, 0x8f) : RGB(97, 116, 139)); // RGB(178, 178, 178)
+        SetTextColor(CustomDraw->hdc, Context->ThemeSupport ? PhThemeWindowDisabledTextColor : RGB(97, 116, 139)); // RGB(178, 178, 178)
 
         oldFont = SelectFont(CustomDraw->hdc, Context->Font);
         if (FlagOn(fmt, HDF_RIGHT))
@@ -8468,9 +9317,9 @@ BOOLEAN TnHeaderCustomPaint(
         }
         SelectFont(CustomDraw->hdc, oldFont);
 
-        if (PhTnpGetColumnHeaderText(Context, column, &headerString))
+        if (Context->HeaderCustomDraw && PhTnpGetColumnHeaderText(Context, column, &headerString))
         {
-            SetTextColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0xff, 0xff, 0xff) : RGB(0, 0, 0));
+            SetTextColor(CustomDraw->hdc, Context->ThemeSupport ? PhThemeWindowTextColor : RGB(0, 0, 0));
             oldFont = SelectFont(CustomDraw->hdc, Context->HeaderBoldFontHandle);
             DrawText(
                 CustomDraw->hdc,
@@ -8482,7 +9331,7 @@ BOOLEAN TnHeaderCustomPaint(
         }
 
         //DrawEdge(CustomDraw->hdc, &CustomDraw->rc, EDGE_SUNKEN, BF_SOFT | BF_RIGHT);
-        SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? RGB(0x5f, 0x5f, 0x5f) : RGB(229, 229, 229));
+        SetDCBrushColor(CustomDraw->hdc, Context->ThemeSupport ? PhThemeWindowBorderColor : RGB(229, 229, 229));
         HBRUSH oldBrush = SelectBrush(CustomDraw->hdc, PhGetStockBrush(DC_BRUSH));
         PatBlt(CustomDraw->hdc, CustomDraw->rc.right - 1, CustomDraw->rc.top, 1, CustomDraw->rc.bottom - CustomDraw->rc.top, PATCOPY);
         SelectBrush(CustomDraw->hdc, oldBrush);
@@ -8539,10 +9388,12 @@ VOID PhTnpHeaderCreateBufferedContext(
         return;
 
     Context->HeaderBufferedContextRect = *BufferRect;
-    Context->HeaderBufferedBitmap = CreateCompatibleBitmap(
+    Context->HeaderBufferedBitmap = PhCreateDIBSection(
         Hdc,
+        PHBF_TOPDOWNDIB,
         Context->HeaderBufferedContextRect.right,
-        Context->HeaderBufferedContextRect.bottom
+        Context->HeaderBufferedContextRect.bottom,
+        NULL
         );
 
     Context->HeaderBufferedOldBitmap = SelectBitmap(Context->HeaderBufferedDc, Context->HeaderBufferedBitmap);
@@ -8620,11 +9471,8 @@ VOID PhTnpSelectionDestroyBufferedContext(
     _In_ PPH_TREENEW_CONTEXT Context
     )
 {
-    if (Context->SelectionScratchOldBitmap)
-    {
-        SelectBitmap(Context->SelectionScratchDc, Context->SelectionScratchOldBitmap);
-        Context->SelectionScratchOldBitmap = NULL;
-    }
+    // Note: the scratch bitmap is selected and restored by the callers that use it, so there is no
+    // old bitmap to put back here. (dmex)
 
     if (Context->SelectionScratchBitmap)
     {
@@ -8672,6 +9520,82 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
     switch (WindowMessage)
     {
+    case WM_PAINT:
+        {
+            PAINTSTRUCT paintStruct;
+            RECT clientRect;
+            HDC hdc;
+
+            // BeginPaint must run before anything else can bail out: without it the update region
+            // is never validated and the window is sent WM_PAINT again, forever. (dmex)
+
+            if (!(hdc = BeginPaint(WindowHandle, &paintStruct)))
+                return 0;
+
+            if (!PhGetClientRect(WindowHandle, &clientRect) ||
+                clientRect.right <= 0 || clientRect.bottom <= 0)
+            {
+                EndPaint(WindowHandle, &paintStruct);
+                return 0;
+            }
+
+            if (!context->HeaderBufferedDc ||
+                context->HeaderBufferedContextRect.right != clientRect.right ||
+                context->HeaderBufferedContextRect.bottom != clientRect.bottom)
+            {
+                PhTnpHeaderDestroyBufferedContext(context);
+                PhTnpHeaderCreateBufferedContext(context, hdc, &clientRect);
+            }
+
+            if (context->HeaderBufferedDc)
+            {
+                INT savedDcState;
+
+                // The header renders every item in one pass. Clipping the buffer to the dirty
+                // rectangle lets the custom draw handler cull the columns outside it. (dmex)
+                savedDcState = SaveDC(context->HeaderBufferedDc);
+
+                IntersectClipRect(
+                    context->HeaderBufferedDc,
+                    paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.top,
+                    paintStruct.rcPaint.right,
+                    paintStruct.rcPaint.bottom
+                    );
+
+                CallWindowProc(
+                    oldWndProc,
+                    WindowHandle,
+                    WM_PRINTCLIENT,
+                    (WPARAM)context->HeaderBufferedDc,
+                    PRF_CLIENT
+                    );
+
+                if (savedDcState)
+                    RestoreDC(context->HeaderBufferedDc, savedDcState);
+                else
+                    SelectClipRgn(context->HeaderBufferedDc, NULL);
+
+                BitBlt(
+                    hdc,
+                    paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.top,
+                    paintStruct.rcPaint.right - paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.bottom - paintStruct.rcPaint.top,
+                    context->HeaderBufferedDc,
+                    paintStruct.rcPaint.left,
+                    paintStruct.rcPaint.top,
+                    SRCCOPY
+                    );
+            }
+            else
+            {
+                CallWindowProc(oldWndProc, WindowHandle, WM_PRINTCLIENT,  (WPARAM)hdc, PRF_CLIENT);
+            }
+
+            EndPaint(WindowHandle, &paintStruct);
+            return 0;
+        }
     case WM_DESTROY:
         {
             PhSetWindowProcedure(WindowHandle, oldWndProc);
@@ -8775,7 +9699,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             HFONT fontHandle = (HFONT)wParam;
             LOGFONT logFont;
 
-            if (!context->HeaderCustomDraw)
+            if (!context->HeaderCustomDraw && !context->ThemeSupport)
                 break;
 
             if (context->HeaderBoldFontHandle)
@@ -8807,7 +9731,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 SendMessage(context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
             }
 
-            if (!context->HeaderCustomDraw)
+            if (!context->HeaderCustomDraw && !context->ThemeSupport)
                 break;
             //if (GetCapture() == WindowHandle)
             //    break;
@@ -8826,11 +9750,12 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
                 if (context->HeaderHotColumn != hitcolumn)
                 {
+                    // Only the two columns involved change appearance. Repainting the whole header
+                    // on every mouse movement redraws every column. (dmex)
+                    PhpTnpInvalidateHeaderColumn(context, WindowHandle, context->HeaderHotColumn);
                     context->HeaderHotColumn = hitcolumn;
-                    //redraw = TRUE;
+                    PhpTnpInvalidateHeaderColumn(context, WindowHandle, hitcolumn);
                 }
-
-                redraw = TRUE;
             }
 
             if (!context->HeaderMouseActive)
@@ -8950,14 +9875,15 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
 
             result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);
             context->HeaderMouseActive = FALSE;
-            context->HeaderHotColumn = ULONG_MAX;
 
             //if (GetCapture() != WindowHandle)
             //{
             //    InvalidateRect(WindowHandle, NULL, FALSE);
             //}
 
-            InvalidateRect(WindowHandle, NULL, FALSE);
+            // Only the column losing the hot state needs repainting. (dmex)
+            PhpTnpInvalidateHeaderColumn(context, WindowHandle, context->HeaderHotColumn);
+            context->HeaderHotColumn = ULONG_MAX;
 
             return result;
         }
@@ -8971,6 +9897,7 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
             }
 
             context->HeaderThemeHandle = PhOpenThemeData(WindowHandle, VSCLASS_HEADER, context->WindowDpi);
+            context->HeaderInvalidatePending = TRUE;
         }
         break;
     }
@@ -9018,6 +9945,13 @@ BOOLEAN PhTnpDetectDrag(
         // have to use PeekMessage and WaitMessage in order to process WM_CAPTURECHANGED messages.
         if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
         {
+            if (msg.hwnd != Context->Handle)
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+                continue;
+            }
+
             switch (msg.message)
             {
             case WM_LBUTTONDOWN:
@@ -9215,7 +10149,7 @@ VOID PhTnpDragSelect(
                 // Ensure that the new cursor position is within the content area.
 
                 viewLeft = Context->FixedColumnVisible ? 0 : -Context->HScrollPosition;
-                viewTop = Context->HeaderHeight - Context->VScrollPosition;
+                viewTop = Context->HeaderHeight - Context->VScrollPosition * Context->RowHeight;
                 viewRight = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
                 viewBottom = Context->HeaderHeight + ((LONG)Context->FlatList->Count - Context->VScrollPosition) * Context->RowHeight;
 
@@ -9294,7 +10228,7 @@ VOID PhTnpDragSelect(
 
                 if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
                 {
-                    InvalidateRect(Context->Handle, &rect, FALSE);
+                    PhpTnpInvalidateRect(Context, &rect);
                 }
 
                 ReleaseCapture();
@@ -9360,6 +10294,9 @@ VOID PhTnpProcessDragSelect(
     if (lastRow >= (LONG)Context->FlatList->Count)
         lastRow = Context->FlatList->Count - 1;
 
+    if (lastRow < firstRow)
+        return;
+
     rowRect.left = 0;
     rowRect.top = Context->HeaderHeight + (firstRow - Context->VScrollPosition) * Context->RowHeight;
     rowRect.right = Context->NormalLeft + Context->TotalViewX - Context->HScrollPosition;
@@ -9417,71 +10354,7 @@ VOID PhTnpProcessDragSelect(
 
     if (PhTnpGetRowRects(Context, changedStart, changedEnd, TRUE, &rect))
     {
-        InvalidateRect(Context->Handle, &rect, FALSE);
-    }
-}
-
-/**
- * Creates a buffered device context and bitmap for double-buffered drawing.
- *
- * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
- * \param Hdc Handle to the device context to be buffered.
- */
-VOID PhTnpCreateBufferedContext(
-    _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HDC Hdc
-    )
-{
-    Context->BufferedContext = CreateCompatibleDC(Hdc);
-
-    if (!Context->BufferedContext)
-        return;
-
-    Context->BufferedContextRect = Context->ClientRect;
-    Context->BufferedBitmap = CreateCompatibleBitmap(
-        Hdc,
-        Context->BufferedContextRect.right + 1, // leave one extra pixel for divider animation
-        Context->BufferedContextRect.bottom
-        );
-
-    if (!Context->BufferedBitmap)
-    {
-        DeleteDC(Context->BufferedContext);
-        Context->BufferedContext = NULL;
-        return;
-    }
-
-    Context->BufferedOldBitmap = SelectBitmap(Context->BufferedContext, Context->BufferedBitmap);
-}
-
-/**
- * Destroys the buffered device context and bitmap, cleaning up resources.
- *
- * \param Context Pointer to the PPH_TREENEW_CONTEXT structure.
- */
-VOID PhTnpDestroyBufferedContext(
-    _In_ PPH_TREENEW_CONTEXT Context
-    )
-{
-    // The original bitmap must be selected back into the context, otherwise the bitmap can't be
-    // deleted.
-
-    if (Context->BufferedOldBitmap)
-    {
-        SelectBitmap(Context->BufferedContext, Context->BufferedOldBitmap);
-        Context->BufferedOldBitmap = NULL;
-    }
-
-    if (Context->BufferedBitmap)
-    {
-        DeleteBitmap(Context->BufferedBitmap);
-        Context->BufferedBitmap = NULL;
-    }
-
-    if (Context->BufferedContext)
-    {
-        DeleteDC(Context->BufferedContext);
-        Context->BufferedContext = NULL;
+        PhpTnpInvalidateRect(Context, &rect);
     }
 }
 
@@ -9501,13 +10374,12 @@ LRESULT PhTnSendMessage(
     _Pre_maybenull_ _Post_valid_ LPARAM lParam
     )
 {
+    if (!WindowHandle)
+        return 0;
+
     if (WindowMessage >= TNM_FIRST && WindowMessage <= TNM_LAST)
     {
-#if defined(DEBUG)
         PPH_TREENEW_CONTEXT context;
-#else
-        PVOID context;
-#endif
         if (context = PhGetWindowContextEx(WindowHandle))
         {
 #if defined(DEBUG)
@@ -9547,7 +10419,8 @@ VOID PhTnpDrawInsertionCaret(
         return;
 
     old = SelectPen(Hdc, PhGetStockPen(DC_PEN));
-    prev = SetDCPenColor(Hdc, RGB(0, 120, 215)); // Windows accent blue-ish
+    // The accent color in themes that resolve it; the system highlight otherwise. (dmex)
+    prev = SetDCPenColor(Hdc, Context->ThemeSupport ? PhThemeWindowFocusBorderColor : GetSysColor(COLOR_HOTLIGHT));
 
     POINT pts[2];
     pts[0].x = r.left;
@@ -9572,7 +10445,7 @@ VOID PhTnpReorderInvalidateCaret(
     if (Context->ReorderInsertRect.right > Context->ReorderInsertRect.left &&
         Context->ReorderInsertRect.bottom > Context->ReorderInsertRect.top)
     {
-        InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+        PhpTnpInvalidateRect(Context, &Context->ReorderInsertRect);
     }
 }
 
@@ -9650,6 +10523,7 @@ VOID PhTnpReorderCancel(
         Context->Callback(Context->Handle, TreeNewReorderCancel, &reorderEvent, NULL, Context->CallbackContext);
     }
 
+    // Nothing changed except the caret, which was just invalidated. (dmex)
     PhTnpReorderInvalidateCaret(Context);
 
     memset(&Context->ReorderInsertRect, 0, sizeof(Context->ReorderInsertRect));
@@ -9657,8 +10531,6 @@ VOID PhTnpReorderCancel(
     Context->ReorderDragActive = FALSE;
 
     ReleaseCapture();
-
-    InvalidateRect(Context->Handle, NULL, FALSE);
 }
 
 /**
@@ -9689,6 +10561,7 @@ VOID PhTnpReorderCommit(
     reorderEvent.DropAfter = Context->ReorderDropAfter;
     reorderEvent.Allow = TRUE;
 
+    // The parent callback must reorder its data and trigger TNM_NODESSTRUCTURED.
     Context->Callback(Context->Handle, TreeNewReorderCommit, &reorderEvent, NULL, Context->CallbackContext);
 
     PhTnpReorderInvalidateCaret(Context);
@@ -9699,7 +10572,7 @@ VOID PhTnpReorderCommit(
     ReleaseCapture();
 
     // Parent should reorder underlying data and then trigger TNM_NODESSTRUCTURED
-    InvalidateRect(Context->Handle, NULL, FALSE);
+    PhpTnpInvalidateRect(Context, NULL);
 }
 
 /**
@@ -9760,7 +10633,7 @@ VOID PhTnpReorderUpdate(
             Context->ReorderTargetIndex = idx;
             Context->ReorderDropAfter   = dropAfter;
             PhTnpReorderUpdateCaretRect(Context);
-            InvalidateRect(Context->Handle, &Context->ReorderInsertRect, FALSE);
+            PhpTnpInvalidateRect(Context, &Context->ReorderInsertRect);
         }
     }
 }
