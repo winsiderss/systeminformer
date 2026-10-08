@@ -113,15 +113,15 @@ typedef enum _TOKEN_INFORMATION_CLASS
     TokenIsSandboxed,                     // q: ULONG // since 19H1
     TokenIsAppSilo,                       // q: ULONG // since WIN11 22H2 // previously TokenOriginatingProcessTrustLevel // q: TOKEN_PROCESS_TRUST_LEVEL
     TokenLoggingInformation,              // q: TOKEN_LOGGING_INFORMATION // since 24H2
-    TokenLearningMode,                    // q: // since 25H2
-    TokenIsSystemManagedAdmin,
-    TokenIsInstaller,
-    TokenHasTamperProtection,
-    TokenAppIdentitySid,
-    TokenAppInstanceSid,
-    TokenAppSuiteSid,
-    TokenEntitlements,
-    TokenAgentId,
+    TokenLearningMode,                    // q: ULONG // since 25H2
+    TokenIsSystemManagedAdmin,            // q: ULONG
+    TokenIsInstaller,                     // q: ULONG
+    TokenHasTamperProtection,             // q: ULONG
+    TokenAppIdentitySid,                  // q: TOKEN_APPCONTAINER_INFORMATION
+    TokenAppInstanceSid,                  // q: TOKEN_APPCONTAINER_INFORMATION
+    TokenAppSuiteSid,                     // q: TOKEN_APPCONTAINER_INFORMATION
+    TokenEntitlements,                    // q: not implemented (NTDDI 26200)
+    TokenAgentId,                         // q: WCHAR[] (AgentId provenance claim, null-terminated)
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
 
