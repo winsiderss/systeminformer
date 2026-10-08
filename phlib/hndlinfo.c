@@ -17,6 +17,7 @@
 #include <kphuser.h>
 #include <lsasup.h>
 
+#include <devpkey.h>
 #include <devquery.h>
 #include <phafd.h>
 
