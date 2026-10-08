@@ -4520,16 +4520,6 @@ PhQueryWindowsUseDarkMode(
     VOID
     );
 
-// TRUE when the current theme requests the Mica backdrop and the system will
-// actually composite it; callers may extend the frame into the client area and
-// leave client pixels transparent.
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhWindowThemeSupportsMicaClient(
-    VOID
-    );
-
 PHLIBAPI
 HRESULT
 NTAPI
