@@ -13908,14 +13908,14 @@ NtUserInjectTouchInput(
  * \return BOOL TRUE on success, FALSE on failure.
  * \remarks Native entry point for USER32!InjectTouchpadAction.
  */
-_Kernel_entry_
-NTSYSCALLAPI
-BOOL
-NTAPI
-NtUserInjectTouchpadAction(
-    HSYNTHETICPOINTERDEVICE HDevice,
-    TOUCHPAD_ACTION Action
-    );
+//_Kernel_entry_
+//NTSYSCALLAPI
+//BOOL
+//NTAPI
+//NtUserInjectTouchpadAction(
+//    _In_ HSYNTHETICPOINTERDEVICE HDevice,
+//    _In_ TOUCHPAD_ACTION Action
+//    );
 
 // rev
 /**
