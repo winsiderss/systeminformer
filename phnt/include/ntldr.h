@@ -1220,14 +1220,15 @@ LdrFindResource_U(
 typedef enum _LDR_RESOURCE_QUERY_FLAGS
 {
     LDR_RES_SEARCH_PATH_ALT_TYPE             = 0x00000001u,  // Enables 4-key path mode (requires Count==4)
-    LDR_RES_SEARCH_PATH_ALLOW_SHORT          = 0x00000002u,  // Permit PathCount < 3 (else PathCount must be 3 or 4)
-    LDR_RES_SEARCH_SKIP_MUI                  = 0x00000004u,  // Skip language fallback chain; only match the exact requested language
-    LDR_RES_SEARCH_SKIP_CONFIG               = 0x00000008u,  // Bypass type-based MUI detection fast-path; always evaluate via LdrResGetRCConfig
-    LDR_RES_SEARCH_MUI_CONFIG_CHECKED        = 0x00000010u,  // MUI configuration already checked (internal)
-    LDR_RES_SEARCH_MUI_RECURSIVE             = 0x00000020u,  // Recursive MUI alternate-module search in progress (internal)
+    LDR_RES_SEARCH_PATH_ALLOW_SHORT          = 0x00000002u,  // Permit PathCount < 3 (else PathCount must be 3 or 4); the result is the IMAGE_RESOURCE_DIRECTORY reached by the path instead of a data entry (forced by LdrResFindResourceDirectory, rejected by LdrResFindResource)
+    LDR_RES_SEARCH_SKIP_MUI                  = 0x00000004u,  // Skip language fallback chain (parent/thread/UI/system/ultimate languages); only match the exact requested language. LdrFindResourceEx_U fails with STATUS_RESOURCE_LANG_NOT_FOUND on miss
+    LDR_RES_SEARCH_SKIP_CONFIG               = 0x00000008u,  // Bypass the RT_VERSION/RT_MANIFEST/"MUI" neutral-language fast-path; always evaluate the MUI RC config via LdrResGetRCConfig. Win8+ rejects it together with LDR_RES_SEARCH_MUI_CONFIG_CHECKED (STATUS_INVALID_PARAMETER_4)
+    LDR_RES_SEARCH_MUI_CONFIG_CHECKED        = 0x00000010u,  // MUI configuration already resolved; skips LdrResGetRCConfig and the MUI alternate-module (.mui) search, so only the given module is searched (set internally by the fast-path and on .mun retry)
+    LDR_RES_SEARCH_MUI_RECURSIVE             = 0x00000020u,  // Internal; searching inside a MUI alternate module (or fallback list exhausted): accept the first language entry of the directory. With MUI_CONFIG_CHECKED, the fallback language list is not built
     LDR_RES_SEARCH_MUI_STRINGS               = 0x00000040u,  // Enables 4-key path mode for MUI message strings; calls LdrpFindMessageInAlternateModule (requires Count==4)
-    LDR_RES_SEARCH_FORCE_MUI                 = 0x00000080u,  // Reserved; behavior not confirmed by code analysis
-    LDR_RES_INTERNAL_ALT_RETRY               = 0x01000000u,  // Internal-only; set by loader on alternate resource retry; switches from .mui to .mun extension (callers must not set)
+    LDR_RES_SEARCH_FORCE_MUI                 = 0x00000080u,  // Reserved; forwarded by LdrpResSearchResourceMappedFile to LdrResFallbackLangList/LdrLoadAlternateResourceModuleEx but no consumer observed
+    LDR_RES_INTERNAL_ALT_RETRY               = 0x01000000u,  // Internal-only; set by loader on alternate resource retry after STATUS_RESOURCE_TYPE_NOT_FOUND (except RT_VERSION/RT_MANIFEST); switches from .mui to .mun extension (callers must not set)
+    LDR_RES_INTERNAL_NO_ALT_RETRY            = 0x02000000u,  // Internal-only; LdrpSearchResourceSection_U skips the .mun alternate-module retry (loader passes 0x02000030 for its own MUI/RC-config lookups). Rejected by LdrResSearchResource
 
     // Group masks (base flags)
     LDR_RES_SEARCH_PATH_MASK                 = (LDR_RES_SEARCH_PATH_ALT_TYPE | LDR_RES_SEARCH_PATH_ALLOW_SHORT | LDR_RES_SEARCH_MUI_STRINGS), // 0x00000043
@@ -1239,26 +1240,26 @@ typedef enum _LDR_RESOURCE_QUERY_FLAGS
     // Search load modes (mutually exclusive; Win8+ only)
     LDR_RES_SEARCH_LOAD_IMAGE                = 0x00000100u,  // DllHandle is a normal loaded image or LDR_IS_IMAGEMAPPING (default; added automatically if no mode specified)
     LDR_RES_SEARCH_LOAD_DATAFILE             = 0x00000200u,  // DllHandle is a memory-mapped datafile; bit 0 (LDR_IS_DATAFILE) is set on the address internally
-    LDR_RES_SEARCH_LOAD_MAPPED               = 0x00000400u,  // DllHandle is a file path (PCWSTR) to be raw-mapped; validated via LdrpResValidateFilePath under STRICT
-    LDR_RES_SEARCH_LOAD_VIEW                 = 0x00000800u,  // DllHandle is an NT file handle (HANDLE) to be mapped; used directly with LDR_RES_SEARCH_MUI_DEPENDENCY
+    LDR_RES_SEARCH_LOAD_MAPPED               = 0x00000400u,  // DllHandle is a DOS file path (PCWSTR) opened and mapped read-only as a datafile; validated via LdrpResValidateFilePath under STRICT. Rejected by LdrResFindResource/LdrResFindResourceDirectory
+    LDR_RES_SEARCH_LOAD_VIEW                 = 0x00000800u,  // DllHandle is an NT file handle (HANDLE) mapped read-only by LdrpResMapFile (handle is not closed); with LDR_RES_SEARCH_MUI_DEPENDENCY the file is read via the handle without mapping. Rejected by LdrResFindResource/LdrResFindResourceDirectory
 
-    // Mapping behavior flags (valid with LDR_RES_SEARCH_LOAD_MAPPED or LDR_RES_SEARCH_LOAD_VIEW)
-    LDR_RES_SEARCH_STRICT                    = 0x00001000u,  // Strict PE header validation; fail if mapping size cannot be determined
-    LDR_RES_SEARCH_LENIENT                   = 0x00002000u,  // Suppress automatic STRICT; allow search to continue if mapping size fails
+    // Validation behavior flags (apply to all load modes; STRICT is implied unless LENIENT is set)
+    LDR_RES_SEARCH_STRICT                    = 0x00001000u,  // Default (added unless LENIENT). Bounds-checked PE header/resource directory parsing, validates DllHandle, fails if the mapping size or fallback language list cannot be determined
+    LDR_RES_SEARCH_LENIENT                   = 0x00002000u,  // Suppress automatic STRICT; continue if mapping size fails; LdrResGetRCConfig also skips MUI RC config structure validation. Mutually exclusive with STRICT
     LDR_RES_SEARCH_ALT_FALLBACK              = 0x00004000u,  // Reserved; behavior not confirmed by code analysis (fallback is unconditional)
 
     // Optimization/Dependency flags
-    LDR_RES_SEARCH_MUI_DEPENDENCY            = 0x00008000u,  // Only valid with LDR_RES_SEARCH_LOAD_VIEW and LDR_RES_SEARCH_MUI_CONFIG_CHECKED
+    LDR_RES_SEARCH_MUI_DEPENDENCY            = 0x00008000u,  // Read the resource directly from the file handle (LdrpResSearchResourceHandle) without mapping; requires LDR_RES_SEARCH_LOAD_VIEW and LDR_RES_SEARCH_MUI_CONFIG_CHECKED
 
     // Size override flags
-    LDR_RES_SEARCH_USE_INPUT_SIZE_MAPPED     = 0x00020000u,  // Use *ResourceLength as mapping size; requires LDR_RES_SEARCH_LOAD_MAPPED
-    LDR_RES_SEARCH_USE_INPUT_SIZE            = 0x00080000u,  // Use *ResourceLength as mapping size; requires IMAGE or DATAFILE mode
+    LDR_RES_SEARCH_USE_INPUT_SIZE_MAPPED     = 0x00020000u,  // *ResourceLength (in, non-zero) is the maximum allowed file size; fails with STATUS_INVALID_VIEW_SIZE if the file is larger. Requires LDR_RES_SEARCH_LOAD_MAPPED
+    LDR_RES_SEARCH_USE_INPUT_SIZE            = 0x00080000u,  // Trust *ResourceLength (in, non-zero) as the mapping size instead of querying it; requires IMAGE or DATAFILE mode
 
     // Group masks (Win8+ extended flags)
     LDR_RES_SEARCH_LOAD_MODE_MASK            = (LDR_RES_SEARCH_LOAD_IMAGE | LDR_RES_SEARCH_LOAD_DATAFILE | LDR_RES_SEARCH_LOAD_MAPPED | LDR_RES_SEARCH_LOAD_VIEW), // 0x00000F00
     LDR_RES_SEARCH_BEHAVIOR_MASK             = (LDR_RES_SEARCH_STRICT | LDR_RES_SEARCH_LENIENT), // 0x00003000
     LDR_RES_SEARCH_SIZE_OVERRIDE_MASK        = (LDR_RES_SEARCH_USE_INPUT_SIZE_MAPPED | LDR_RES_SEARCH_USE_INPUT_SIZE), // 0x000A0000
-    LDR_RES_SEARCH_PUBLIC_MASK               = 0x000FFFFFu
+    LDR_RES_SEARCH_PUBLIC_MASK               = 0x000FFFFFu   // LdrResSearchResource rejects bits outside this mask (STATUS_INVALID_PARAMETER_4); LdrFindResourceEx_U does not
 } LDR_RESOURCE_QUERY_FLAGS;
 
 /**
@@ -1362,37 +1363,58 @@ LdrResFindResourceDirectory(
     );
 
 // rev
+// LDR_FALLBACK_LANG_LIST_ENTRY Source values (verified 10.0.26100)
+#define LDR_FALLBACK_LANG_SOURCE_REQUESTED          1   // The LangId passed by the caller
+#define LDR_FALLBACK_LANG_SOURCE_PARENT             2   // Parent language (LdrpGetParentLangId); LangId 0 entries of this source are skipped by the search
+#define LDR_FALLBACK_LANG_SOURCE_PREFERRED_UI       3   // Thread/process preferred UI language list (TEB->MergedPrefLanguages)
+#define LDR_FALLBACK_LANG_SOURCE_ULTIMATE_FALLBACK  4   // Module ultimate fallback language (RtlpResUltimateFallbackInfo)
+#define LDR_FALLBACK_LANG_SOURCE_ULTIMATE_FALLBACK_ALT 10 // Ultimate fallback with attribute bit 0 set; LdrpResSearchResourceMappedFile skips these (STATUS_INVALID_PARAMETER)
+
+// rev
+/**
+ * One candidate language in the MUI fallback order. The resource search walks Entries[] in order and
+ * loads the matching .mui (alternate) module for each LangId until the resource is found.
+ * Size 8 bytes (LangId at +0, Source at +4).
+ */
 typedef struct _LDR_FALLBACK_LANG_LIST_ENTRY
 {
     LANGID LangId;
-    USHORT Source; // LDR_RES_SEARCH_RESULT_SOURCE_*
+    ULONG Source; // LDR_FALLBACK_LANG_SOURCE_*
 } LDR_FALLBACK_LANG_LIST_ENTRY, *PLDR_FALLBACK_LANG_LIST_ENTRY;
 
 // rev
+/**
+ * Ordered, de-duplicated language fallback list built by LdrResFallbackLangList (verified 10.0.26100, size 0x208).
+ */
 typedef struct _LDR_FALLBACK_LANG_LIST
 {
-    USHORT Count;
-    LDR_FALLBACK_LANG_LIST_ENTRY Entries[64];
-    ULONG Flags;
+    USHORT Count;                                   // +0x000 Number of valid Entries (max 64; building stops when full)
+    LDR_FALLBACK_LANG_LIST_ENTRY Entries[64];       // +0x004
+    BOOLEAN NoNeutralFallback;                      // +0x204 Set when a specific (non-neutral) language was requested or LDR_RES_SEARCH_SKIP_MUI was used;
+                                                    //        when FALSE and every entry misses, the directory search accepts any language (LDR_RES_SEARCH_MUI_RECURSIVE)
 } LDR_FALLBACK_LANG_LIST, *PLDR_FALLBACK_LANG_LIST;
 
 // rev
 /**
- * The LdrResFallbackLangList routine gets the fallback language list for a given language ID.
+ * The LdrResFallbackLangList routine builds the ordered list of languages the MUI resource loader tries for a module:
+ * the requested language, its parent, the preferred UI languages, the module's ultimate fallback language,
+ * then (with LDR_RES_SEARCH_RESULT_NO_RC_CONFIG) the thread locale, the user and system default locales and en-US (0x409).
+ * Used by LdrpResSearchResourceMappedFile before probing alternate (.mui) modules; not exported.
  *
- * \param Unused1 Unused parameter.
- * \param Unused2 Unused parameter.
- * \param LangId The target language ID.
- * \param Flags Flags for the operation.
- * \param FallbackList A pointer to a LDR_FALLBACK_LANG_LIST structure to receive the fallback language list.
- * \return NTSTATUS Successful or errant status.
+ * \param DllHandle The module whose MUI RC config supplies the ultimate fallback language (may be NULL to skip that step).
+ * \param MappingSize The size of the DllHandle mapping, forwarded to RtlpResUltimateFallbackInfo.
+ * \param LangId The requested language ID (0 = neutral; no parent step).
+ * \param Flags LDR_RES_SEARCH_SKIP_MUI (0x4) stops after the requested language; LDR_RES_SEARCH_RESULT_NO_RC_CONFIG (0x80000)
+ * adds the thread/default locales; LDR_LOAD_ALT_RESOURCE_LIC_FILTER (0x100000) drops LIC-restricted languages.
+ * \param FallbackList Receives the fallback list.
+ * \return NTSTATUS Successful or errant status (STATUS_INVALID_PARAMETER if FallbackList is NULL).
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrResFallbackLangList(
-    _In_opt_ ULONG Unused1,
-    _In_opt_ ULONG Unused2,
+    _In_opt_ PVOID DllHandle,
+    _In_opt_ SIZE_T MappingSize,
     _In_ LANGID LangId,
     _In_ ULONG Flags,
     _Out_ PLDR_FALLBACK_LANG_LIST FallbackList
@@ -1481,13 +1503,12 @@ typedef struct _MUI_RC_CONFIG
     ULONG Section1Size;
     ULONG Section2Offset;     // e.g. Module name
     ULONG Section2Size;
-    ULONG MainTypesOffset;    // Types expected in primary module (Section 3)
+    ULONG MainTypesOffset;    // Named types in the primary module: multi-string, size in bytes (Section 3)
     ULONG MainTypesSize;
-    ULONG Section4Offset;
     ULONG Section4Size;
-    ULONG MuiTypesOffset;     // Types expected in MUI module (Section 5)
+    ULONG MuiTypesOffset;     // Named types in the MUI module: multi-string, size in bytes (Section 5)
     ULONG MuiTypesSize;
-    ULONG Section6Offset;
+    ULONG Section6Offset;     // Integer (MAKEINTRESOURCE) types in the MUI module: ULONG array, size in bytes
     ULONG Section6Size;
     ULONG Section7Offset;
     ULONG Section7Size;
@@ -1496,31 +1517,41 @@ typedef struct _MUI_RC_CONFIG
     // Variable length data follows...
 } MUI_RC_CONFIG, *PMUI_RC_CONFIG;
 
-// Internal status flags for resource searching (returned by LdrIsResItemExist)
-#define LDR_RES_SEARCH_RESULT_FOUND_MUI          0x00020000u
-#define LDR_RES_SEARCH_RESULT_FOUND_MAIN         0x00040000u
-#define LDR_RES_SEARCH_RESULT_FORCE_MUI          0x00100000u
-#define LDR_RES_SEARCH_RESULT_MUI_ONLY           0x00200000u
+// Internal status flags for resource searching (returned by LdrIsResItemExist/LdrRscIsTypeExist and OR-ed into the
+// search flags). They describe where the MUI RC config says a resource type lives (verified 10.0.26100).
+#define LDR_RES_SEARCH_RESULT_NOT_IN_MUI         0x00020000u // Type is not listed in the config MUI type lists (Section5/Section6): skip .mui modules
+#define LDR_RES_SEARCH_RESULT_NOT_IN_MAIN        0x00040000u // Type is not listed in the config main type lists (MainTypes/Section4): skip the main module
+#define LDR_RES_SEARCH_RESULT_NO_RC_CONFIG       0x00080000u // Module has no valid MUI RC config: search the main module only
+#define LDR_RES_SEARCH_RESULT_FORCE_MUI          0x00100000u // Config ValidationField & MUI_RC_CONFIG_VALIDATION_MUI; consumed as LDR_LOAD_ALT_RESOURCE_LIC_FILTER
+#define LDR_RES_SEARCH_RESULT_MUI_ONLY           0x00200000u // Config Flags2 & MUI_RC_CONFIG_FLAGS2_FORCE_MUI; no consumer observed
+// NOT_IN_MUI|NOT_IN_MAIN (0x60000) is also returned when the type lookup fails: STATUS_RESOURCE_TYPE_NOT_FOUND.
+// Deprecated misnomers (the bits mean the type was NOT found in that list):
+#define LDR_RES_SEARCH_RESULT_FOUND_MUI          LDR_RES_SEARCH_RESULT_NOT_IN_MUI
+#define LDR_RES_SEARCH_RESULT_FOUND_MAIN         LDR_RES_SEARCH_RESULT_NOT_IN_MAIN
 
 /**
- * The LdrResGetRCConfig function retrieves the MUI configuration (resource type 3) for a DLL.
+ * The LdrResGetRCConfig function locates the MUI RC configuration resource (type L"MUI", name 1, neutral language)
+ * of a module and returns a pointer to it inside the mapping. The loader uses it to decide whether a resource type is
+ * served by the main module or by its .mui satellite and to find the ultimate fallback language.
  *
- * \param DllHandle A handle to the DLL.
- * \param Length The length of the configuration buffer.
- * \param Config A buffer to receive the configuration.
- * \param Flags Flags for the operation.
- * \param AlternateResource Indicates if an alternate resource should be loaded.
- * \return NTSTATUS Successful or errant status.
+ * \param DllHandle A handle (image, or datafile with LDR_IS_DATAFILE) of the module.
+ * \param MappingSize The mapping size of DllHandle; 0 = query it via LdrpResGetMappingSize (unless LDR_RES_SEARCH_LENIENT).
+ * \param Config Optional; receives a pointer to the MUI_RC_CONFIG inside the mapping (not a copy; no buffer is written).
+ * \param Flags LDR_RES_SEARCH_* flags; LDR_RES_SEARCH_LENIENT skips the MUI_RC_CONFIG structure validation.
+ * \param UseCache TRUE to consult and update the loader's per-module MUI cache (LdrpGetFromMUIMemCache);
+ * a cached negative entry returns STATUS_RESOURCE_TYPE_NOT_FOUND without searching.
+ * \return NTSTATUS Successful or errant status (STATUS_RESOURCE_TYPE_NOT_FOUND if no config;
+ * STATUS_INVALID_IMAGE_FORMAT / STATUS_MUI_INVALID_RC_CONFIG for a malformed config).
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrResGetRCConfig(
     _In_ PVOID DllHandle,
-    _In_opt_ SIZE_T Length,
-    _Out_writes_bytes_opt_(Length) PMUI_RC_CONFIG* Config,
+    _In_opt_ SIZE_T MappingSize,
+    _Out_opt_ PMUI_RC_CONFIG* Config,
     _In_ ULONG Flags,
-    _In_ BOOLEAN AlternateResource // LdrLoadAlternateResourceModule
+    _In_ BOOLEAN UseCache
     );
 
 /**
@@ -1702,18 +1733,19 @@ LdrUnloadAlternateResourceModule(
 
 // rev
 /**
- * The LdrUnloadAlternateResourceModuleEx routine unloads an alternate resource module with extended options.
+ * The LdrUnloadAlternateResourceModuleEx routine unmaps the alternate resource (.mui/.mun) modules cached for a module,
+ * optionally only the one for a single language (e.g. LdrResRelease when a culture is released).
  *
- * \param DllHandle A handle to the DLL module.
- * \param Flags Flags to modify the behavior of the function.
- * \return BOOLEAN TRUE if the module was successfully unloaded, FALSE otherwise.
+ * \param DllHandle A handle to the DLL module whose alternate resource modules are released.
+ * \param LangId Only the low 16 bits are used: the LANGID of the alternate module to unload; 0 unloads all languages.
+ * \return BOOLEAN TRUE if the cache was updated (or empty), FALSE if DllHandle is NULL or the cache could not be shrunk.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 LdrUnloadAlternateResourceModuleEx(
     _In_ PVOID DllHandle,
-    _In_ ULONG Flags
+    _In_ ULONG LangId
     );
 
 #endif // (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -1798,8 +1830,8 @@ typedef LDR_LOADED_MODULE_ENUMERATION_CALLBACK_FUNCTION* PLDR_LOADED_MODULE_ENUM
 /**
  * The LdrEnumerateLoadedModules routine enumerates the modules loaded in the current process.
  *
- * \param ReservedFlag Reserved flag.
- * \param EnumProc A pointer to a callback function to be called for each module.
+ * \param Flags Reserved; must be 0 (tested as a 32-bit value; nonzero fails with STATUS_INVALID_PARAMETER).
+ * \param EnumProc A pointer to a callback function to be called for each loaded module while the loader lock is held; set *StopEnumeration to stop.
  * \param Context An optional context to pass to the callback function.
  * \return NTSTATUS Successful or errant status.
  */
@@ -1807,7 +1839,7 @@ NTSYSAPI
 NTSTATUS
 NTAPI
 LdrEnumerateLoadedModules(
-    _In_ BOOLEAN ReservedFlag,
+    _Reserved_ ULONG Flags,
     _In_ PLDR_LOADED_MODULE_ENUMERATION_CALLBACK_FUNCTION EnumProc,
     _In_opt_ PVOID Context
     );
@@ -1816,7 +1848,7 @@ LdrEnumerateLoadedModules(
  * The LdrOpenImageFileOptionsKey routine opens the image file options key.
  *
  * \param SubKey A pointer to a UNICODE_STRING structure containing the subkey.
- * \param Wow64 TRUE if the key is for WOW64, FALSE otherwise.
+ * \param Wow64 Ignored on 10.0.26100 (the export aliases RtlOpenImageFileOptionsKey, which always opens the native view).
  * \param NewKeyHandle A pointer to a variable that receives the new key handle.
  * \return NTSTATUS Successful or errant status.
  */
@@ -1857,11 +1889,11 @@ LdrQueryImageFileKeyOption(
  *
  * \param SubKey A pointer to a UNICODE_STRING structure containing the subkey.
  * \param ValueName The name of the value to query.
- * \param ValueSize The size of the value.
+ * \param Type The expected registry type (REG_SZ, REG_DWORD, REG_QWORD, REG_BINARY, ...); 0 returns the raw value of any type.
  * \param Buffer A pointer to a buffer to receive the value.
  * \param BufferSize The size of the buffer.
  * \param ReturnedLength An optional pointer to a variable that receives the length of the returned value.
- * \return NTSTATUS Successful or errant status.
+ * \return NTSTATUS Successful or errant status (STATUS_OBJECT_NAME_NOT_FOUND in secure/IUM processes).
  */
 NTSYSAPI
 NTSTATUS
@@ -1869,7 +1901,7 @@ NTAPI
 LdrQueryImageFileExecutionOptions(
     _In_ PCUNICODE_STRING SubKey,
     _In_ PCWSTR ValueName,
-    _In_ ULONG ValueSize,
+    _In_ ULONG Type,
     _Out_ PVOID Buffer,
     _In_ ULONG BufferSize,
     _Out_opt_ PULONG ReturnedLength
@@ -1884,7 +1916,7 @@ LdrQueryImageFileExecutionOptions(
  * \param Buffer A pointer to a buffer to receive the value.
  * \param BufferSize The size of the buffer.
  * \param ReturnedLength An optional pointer to a variable that receives the length of the returned value.
- * \param Wow64 TRUE if the key is for WOW64, FALSE otherwise.
+ * \param Wow64 Ignored on 10.0.26100: the export aliases RtlQueryImageFileExecutionOptions, which takes only the first six parameters.
  * \return NTSTATUS Successful or errant status.
  */
 NTSYSAPI
@@ -2308,7 +2340,10 @@ LdrFlushAlternateResourceModules(
 
 // rev
 /**
- * The LdrDllRedirectionCallback routine is a callback used by the loader to allow a process to redirect DLL loading requests.
+ * The LDR_DLL_REDIRECTION_CALLBACK routine is a callback used by the loader to allow a process to redirect DLL loading requests.
+ * It is not an ntdll export (no LdrDllRedirectionCallback export exists on 10.0.26100), so it is declared as a callback type.
+ * The registration export, LdrSetAppCompatDllRedirectionCallback, is a `return 0` stub on 10.0.26100; the parameter list
+ * below could not be verified against a live call site.
  *
  * \param Flags Bitwise flags indicating the context of the redirection request.
  * \param DllName The name of the DLL being requested.
@@ -2318,10 +2353,8 @@ LdrFlushAlternateResourceModules(
  * \param EffectiveDllPath Receives a pointer to the redirected DLL path.
  * \return NTSTATUS Successful or errant status.
  */
-NTSYSAPI
-NTSTATUS
-NTAPI
-LdrDllRedirectionCallback(
+typedef _Function_class_(LDR_DLL_REDIRECTION_CALLBACK)
+NTSTATUS NTAPI LDR_DLL_REDIRECTION_CALLBACK(
     _In_ ULONG Flags,
     _In_ PCWSTR DllName,
     _In_opt_ PCWSTR DllPath,
@@ -2329,6 +2362,7 @@ LdrDllRedirectionCallback(
     _In_ PVOID CallbackData,
     _Out_ PCWSTR *EffectiveDllPath
     );
+typedef LDR_DLL_REDIRECTION_CALLBACK* PLDR_DLL_REDIRECTION_CALLBACK;
 
 // rev
 /**
