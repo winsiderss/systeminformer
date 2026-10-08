@@ -13,10 +13,33 @@
 #ifndef _PH_TREENEWP_H
 #define _PH_TREENEWP_H
 
- // Replace per-row CreateRectRgn/GetClipRgn/DeleteRgn with a single SaveDC/RestoreDC
- // pair bracketing the row loop in PhTnpPaint. Eliminates O(N) kernel region
- // allocations per WM_PAINT (one per visible row) at no behavioural cost.
-#define PH_TREENEW_SAVEDC_CLIP
+// Optimize invalidation of selected rows by invalidating only contiguous ranges of
+// selected rows instead of the entire span from first to last selected row. This
+// significantly reduces unnecessary redraws when selections are sparse (e.g., rows
+// 10, 50, 100, 500, 1000 selected would invalidate only 5 rows instead of 990 rows).
+#define PH_TREENEW_OPTIMIZE_SPARSE_SELECTION
+
+// Width (in 96 DPI units) of the accent bar drawn along the left edge of selected rows.
+#define PH_TREENEW_SELECTION_BAR_WIDTH 5
+
+// Alpha (0-255) used to blend a node's custom background color over the themed window background.
+#define TNP_THEME_ROW_BLEND_ALPHA 96
+
+// Build the tree list scrollbars from the native Windows scrollbar class instead of the
+// custom-drawn PhScrollNew class. PhScrollNew is a documented drop-in replacement for
+// WC_SCROLLBAR: both answer the same SBM_* messages (which is all the control uses, via
+// Get/SetScrollInfo with SB_CTL), both notify the parent through WM_VSCROLL/WM_HSCROLL with the
+// control handle in lParam, both are sized from SM_CXVSCROLL/SM_CYHSCROLL, and phlib's theme
+// support already handles either class. So only the registered class name differs.
+//
+// Comment this out to go back to the custom scrollbars.
+//#define PH_TREENEW_NATIVE_SCROLLBARS
+
+#if defined(PH_TREENEW_NATIVE_SCROLLBARS)
+#define PH_TREENEW_SCROLLBAR_CLASSNAME WC_SCROLLBAR
+#else
+#define PH_TREENEW_SCROLLBAR_CLASSNAME PH_SCROLLNEW_CLASSNAME
+#endif
 
 // Important notes about pointers:
 //
@@ -68,6 +91,7 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG SearchSingleCharMode : 1; // LV style single-character search
             ULONG TooltipUnfolding : 1; // whether the current tooltip is unfolding
             ULONG DoubleBuffered : 1;
+            ULONG BufferedPaintInitialized : 1; // owns a UxTheme buffered paint reference on this thread
             ULONG SuspendUpdateStructure : 1;
             ULONG SuspendUpdateLayout : 1;
             ULONG SuspendUpdateMoveMouse : 1;
@@ -163,9 +187,6 @@ typedef struct _PH_TREENEW_CONTEXT
     FLOAT VScrollRemainder;
     FLOAT HScrollRemainder;
 
-    POINT GesturePanLast; // last pan location (screen coordinates)
-    LONG GesturePanRemainder; // vertical pan pixels not yet converted to rows
-
     LONG SearchMessageTime;
     PWSTR SearchString;
     ULONG SearchStringCount;
@@ -216,6 +237,17 @@ typedef struct _PH_TREENEW_CONTEXT
 
     LONG EnableRedraw;
     HRGN SuspendUpdateRegion;
+    BOOLEAN PendingFullInvalidate;
+    ULONG DeferredDamageCount;
+    HRGN UpdateScratchRegion; // scratch region reused while redraw is suspended (dmex)
+    HRGN ClipScratchRegion;   // scratch region reused by the row drawing loop (dmex)
+    HRGN PaintScratchRegion;  // scratch region holding the update region of the current paint (dmex)
+
+    // Last values pushed to the scroll bars; used to skip redundant updates. (dmex)
+    LONG VScrollLastMax;
+    LONG HScrollLastMax;
+    ULONG VScrollLastPage;
+    ULONG HScrollLastPage;
 
     PH_STRINGREF EmptyText;
 
@@ -231,7 +263,8 @@ typedef struct _PH_TREENEW_CONTEXT
             ULONG HeaderCustomDraw : 1;
             ULONG HeaderMouseActive : 1;
             ULONG HeaderDragging : 1;
-            ULONG HeaderUnused : 12;
+            ULONG HeaderInvalidatePending : 1;
+            ULONG HeaderUnused : 11;
 
             ULONG FillerBoxVisible : 1;
             ULONG ReorderDragActive : 1;
@@ -263,7 +296,6 @@ typedef struct _PH_TREENEW_CONTEXT
 
     HDC SelectionScratchDc;
     HBITMAP SelectionScratchBitmap;
-    HBITMAP SelectionScratchOldBitmap;
 
     // Drag-reorder support
     ULONG   ReorderSourceIndex;   // source row index in FlatList
@@ -311,7 +343,8 @@ BOOLEAN PhTnpOnCreate(
 
 VOID PhTnpOnSize(
     _In_ HWND WindowHandle,
-    _In_ PPH_TREENEW_CONTEXT Context
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ ULONG Request
     );
 
 VOID PhTnpOnSetFont(
@@ -439,12 +472,6 @@ VOID PhTnpOnMouseHWheel(
     _In_ ULONG VirtualKeys,
     _In_ LONG CursorX,
     _In_ LONG CursorY
-    );
-
-BOOLEAN PhTnpOnGesture(
-    _In_ HWND WindowHandle,
-    _In_ PPH_TREENEW_CONTEXT Context,
-    _In_ HGESTUREINFO GestureInfoHandle
     );
 
 VOID PhTnpOnContextMenu(
@@ -656,6 +683,12 @@ VOID PhTnpUpdateColumnHeaders(
     _In_ PPH_TREENEW_CONTEXT Context
     );
 
+VOID PhTnpUpdateColumnWidth(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ PPH_TREENEW_COLUMN Column,
+    _In_ LONG Width
+    );
+
 VOID PhTnpUpdateColumnHeadersDpiChanged(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG OldWindowDpi,
@@ -714,7 +747,6 @@ VOID PhTnpRestructureNodes(
 
 VOID PhTnpInsertNodeChildren(
     _In_ PPH_TREENEW_CONTEXT Context,
-    _Inout_ PPH_ARRAY Stack,
     _In_ PPH_TREENEW_NODE Node,
     _In_ ULONG Level
     );
@@ -829,6 +861,11 @@ VOID PhTnpScroll(
     _In_ LONG DeltaX
     );
 
+LONG PhTnpApplyHScrollPosition(
+    _In_ PPH_TREENEW_CONTEXT Context,
+    _In_ LONG Position
+    );
+
 VOID PhTnpProcessScroll(
     _In_ PPH_TREENEW_CONTEXT Context,
     _In_ LONG DeltaRows,
@@ -872,6 +909,7 @@ VOID PhTnpDrawDivider(
     );
 
 VOID PhTnpDrawPlusMinusGlyph(
+    _In_ PPH_TREENEW_CONTEXT Context,
     _In_ HDC hdc,
     _In_ PRECT Rect,
     _In_ BOOLEAN Plus
@@ -897,6 +935,10 @@ VOID PhTnpSelectionDestroyBufferedContext(
     );
 
 // Tooltips
+
+VOID PhTnpInitializeHeaders(
+    _In_ PPH_TREENEW_CONTEXT Context
+    );
 
 VOID PhTnpInitializeTooltips(
     _In_ PPH_TREENEW_CONTEXT Context
