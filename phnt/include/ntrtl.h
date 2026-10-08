@@ -8171,8 +8171,9 @@ RtlQueryInformationActiveActivationContext(
 /**
  * The LdrHotPatchNotify routine notifies the loader that a hot-patch image has been applied so that dependent loader state can be updated.
  *
- * \param ImageBase The base address of the image receiving the hot patch.
- * \return NTSTATUS Successful or errant status.
+ * \param ImageBase The base address of the image receiving the hot patch. For a 32-bit image in a WOW64 process
+ * (or the WOW64 main image) the call is forwarded to the 32-bit ntdll on a new thread.
+ * \return NTSTATUS Successful or errant status (STATUS_NOT_SUPPORTED when hot patching is disabled).
  */
 // rev
 NTSYSAPI
@@ -8185,9 +8186,10 @@ LdrHotPatchNotify(
 /**
  * The LdrInitShimEngineDynamic routine dynamically initializes the application-compatibility shim engine for the specified image.
  *
- * \param ImageBase The base address of the shim engine image.
- * \param ShimData Opaque shim data describing the shims to apply.
- * \return BOOL TRUE if successful, FALSE otherwise.
+ * \param ImageBase The base address of the shim engine image (must already be loaded; it is pinned and becomes the process shim engine if none is set).
+ * \param ShimData Required. Dereferenced without a NULL check: the pointer at offset 8 is passed to LdrpLoadShimEngine as a
+ * NUL-terminated wide string (layout consistent with a UNICODE_STRING whose Buffer holds the shim data path).
+ * \return BOOL TRUE if the shim engine was loaded, FALSE otherwise (the result is a zero-extended BOOLEAN).
  */
 // rev
 NTSYSAPI
@@ -8195,34 +8197,41 @@ BOOL
 NTAPI
 LdrInitShimEngineDynamic(
     _In_ PVOID ImageBase,
-    _In_opt_ PVOID ShimData
+    _In_ PVOID ShimData
     );
 
 /**
- * The LdrRscIsTypeExist routine determines whether a resource of the specified type exists within a resource enumeration context.
+ * The LdrRscIsTypeExist routine checks a resource type against the type lists of a module's MUI RC configuration,
+ * which tells the MUI loader whether to look for the type in the main module, the .mui module, or both.
+ * Called by LdrIsResItemExist and LdrpSearchResourceSection_U.
  *
- * \param RscContext A pointer to the resource enumeration context.
- * \param Type The resource type name to test for.
- * \param Reserved Reserved; must be NULL.
- * \param Flags On input specifies matching flags; on output receives result flags.
- * \return NTSTATUS Successful or errant status.
+ * \param RcConfig The MUI_RC_CONFIG of the module (e.g. from LdrResGetRCConfig).
+ * \param Type The resource type: a name (compared case-insensitively with the MainTypes/MuiTypes multi-strings) or
+ * MAKEINTRESOURCE(ID) (compared with the Section4/Section6 integer arrays).
+ * \param Flags Ignored (callers pass their LDR_RES_SEARCH_* flags).
+ * \param ResultFlags Receives, OR-ed into its current value, LDR_RES_SEARCH_RESULT_NOT_IN_MAIN (0x40000) if the type is
+ * not listed for the main module and LDR_RES_SEARCH_RESULT_NOT_IN_MUI (0x20000) if not listed for the MUI module.
+ * The caller must initialize it.
+ * \return NTSTATUS STATUS_SUCCESS, or STATUS_INVALID_PARAMETER if RcConfig or ResultFlags is NULL.
  */
 // rev
 NTSYSAPI
 NTSTATUS
 NTAPI
 LdrRscIsTypeExist(
-    _Inout_ PULONG RscContext,
-    _In_z_ PCWSTR Type,
-    _Reserved_ PVOID Reserved,
-    _Inout_ PULONG Flags
+    _In_ PMUI_RC_CONFIG RcConfig,
+    _In_ PCWSTR Type,
+    _In_ ULONG Flags,
+    _Inout_ PULONG ResultFlags
     );
 
 /**
  * The LdrSetAppCompatDllRedirectionCallback routine registers a callback used to redirect application-compatibility DLL loads.
  *
- * \param Callback The redirection callback routine to register.
+ * \param Callback The redirection callback routine to register (see LDR_DLL_REDIRECTION_CALLBACK).
  * \return NTSTATUS Successful or errant status.
+ * \remarks On 10.0.26100 the export is a shared stub that ignores its arguments and returns STATUS_SUCCESS without
+ * registering anything; the parameter list cannot be verified from this build.
  */
 NTSYSAPI
 NTSTATUS
@@ -8235,8 +8244,9 @@ LdrSetAppCompatDllRedirectionCallback(
 /**
  * The LdrSetMUICacheType routine sets the MUI (Multilingual User Interface) resource cache type for the current process.
  *
- * \param MuiCacheType The MUI cache type to set.
- * \return NTSTATUS Successful or errant status.
+ * \param MuiCacheType The MUI cache type to set: bits 0-2 only, and bits 1 and 2 must not both be set.
+ * \return NTSTATUS STATUS_INVALID_PARAMETER for an invalid value, STATUS_UNSUCCESSFUL if a type was already set
+ * (it can be set only once per process), otherwise STATUS_SUCCESS.
  */
 NTSYSAPI
 NTSTATUS
@@ -15886,6 +15896,7 @@ RtlFirstFreeAce(
     _Out_ PVOID *FirstFree
     );
 
+// private
 /**
  * The RtlFindAceByType routine finds the first ACE of the specified type in an access control list (ACL).
  *
@@ -15894,7 +15905,6 @@ RtlFirstFreeAce(
  * \param Index An optional pointer that receives the index of the matching ACE.
  * \return A pointer to the matching ACE, or NULL if none was found.
  */
-// private
 NTSYSAPI
 PVOID
 NTAPI
@@ -17405,8 +17415,8 @@ RtlUserThreadStart(
 /**
  * The LdrInitializeThunk routine is the loader initialization routine invoked when a new thread begins execution.
  *
- * \param ContextRecord The initial thread context to resume after loader initialization.
- * \param Parameter The system startup argument for the thread.
+ * \param ContextRecord The initial thread context to resume (via NtContinue) after loader initialization; the routine does not return.
+ * \param Parameter The system startup argument for the thread (not read on x64).
  */
 NTSYSAPI
 VOID
@@ -17435,16 +17445,87 @@ LdrProcessInitializationComplete(
 /**
  * The RtlDelayExecution routine suspends the current thread for the specified interval.
  *
- * \param Alertable If `TRUE`, the delay can be interrupted by the delivery of an alert to the thread.
- * \param DelayInterval An optional pointer to the interval to wait, in 100-nanosecond units.
- * \return NTSTATUS Successful or errant status.
+ * \param Alertable If `TRUE`, the wait is alertable and may return early with STATUS_ALERTED or STATUS_USER_APC.
+ * \param DelayInterval A pointer to the interval to wait, in 100-nanosecond units.
+ * - A negative value specifies an interval relative to the current time.
+ * - A positive value specifies an absolute time.
+ * - A value of zero yields the remainder of the time slice to another ready thread.
+ * \return NTSTATUS Successful or errant status. STATUS_NO_YIELD_PERFORMED if DelayInterval is zero and no other thread was ready to run.
+ * \remarks When DelayInterval is zero and SMT delayed sleep is configured (Session Manager SmtDelayBaseYield/SmtFactorYield),
+ * repeated failed yields within SmtDelaySleepLoopWindowSize (after SmtDelaySpinCountThreshold calls) execute an increasing
+ * pause back-off, bounded by SmtDelayMaxYield, before the system call. State is tracked in TEB->SpinCallCount and
+ * TEB->LastSleepCounter; SpinCallCount is reset whenever the status is not STATUS_NO_YIELD_PERFORMED.
+ *
+ * At process start, LdrpInitializeSmtDelayedSleep reads five values from
+ * HKLM\\System\\CurrentControlSet\\Control\\Session Manager:
+ * - SmtDelaySleepLoopWindowSize: Only zero-length delays called within this many QPC ticks of the previous one count as a spin loop.
+ * - SmtDelaySpinCountThreshold: How many back-to-back failed yields before throttling starts.
+ * - SmtDelayBaseYield: Starting length of the pause.
+ * - SmtFactorYield: How much longer the pause gets with each further failed yield.
+ * - SmtDelayMaxYield: Upper limit on the pause.
+ *
+ * If both SmtDelayBaseYield and SmtFactorYield are 0 (absent), the feature is off and the function behaves like
+ * plain NtDelayExecution. The pause length is converted to a number of pause instructions using
+ * KUSER_SHARED_DATA->CyclesPerYield.
+ *
+ * \remarks Timing impact of the SMT yield backoff introduced on Windows 11 (derived from the RtlDelayExecution disassembly).
+ *
+ * Not affected:
+ * - Any non-zero delay (Sleep(n) with n > 0). The first test is *DelayInterval == 0;
+ * any other value goes straight to NtDelayExecution, so timing a Sleep(n) against QPC/RDTSC is unchanged.
+ * - Direct NtDelayExecution or NtYieldExecution calls. They go straight to the kernel and never reach the backoff.
+ * - Systems where SmtDelayBaseYield and SmtFactorYield are both zero/absent (plain pass-through).
+ *
+ * Affected (when the feature is enabled and only for zero-interval calls (Sleep(0), SwitchToThread, and wrappers that pass a zero interval):
+ * - Code that times Sleep(0)/SwitchToThread in a tight loop. After SmtDelaySpinCountThreshold consecutive failed
+ * yields inside the window, each call gets a growing run of pause instructions, up to SmtDelayMaxYield. Per-call
+ * latency rises and then levels off. Since the backoff only builds while yields keep failing, it mostly shows
+ * on an idle core with nothing else ready to run.
+ *
+ - Anti-debug, sandbox or VM checks that measure Sleep(0)/SwitchToThread timing may see inflated or uneven
+ * numbers and misread them as a debugger or emulator. On SMT hardware the pause bursts also change how much the
+ * sibling core runs, which can skew cross-core contention measurements.
+ *
+ * - Benchmarks that use Sleep(0) as a cheap yield inside the measured loop pick up extra latency on an idle core.
+ *
+ * - Spin-then-yield locks (.NET SpinWait/Thread.Yield, game-engine spin locks, lock-free retry loops). When the
+ * holder runs on another core the yield keeps failing, so the backoff builds; on release the waiter may be
+ * partway through a pause run of up to SmtDelayMaxYield, adding acquire latency that older Windows did not have.
+ *
+ * - Polling loops (audio, input, network) that poll with Sleep(0) get extra, machine-dependent jitter. The delay
+ * depends on TEB state (SpinCallCount, LastSleepCounter) left by earlier calls on the same thread.
+ *
+ * - Virtual machines: hypervisor pause-loop exiting (PLE) treats long pause bursts as a spinning vCPU and may
+ * deschedule it, so a short yield could become a latency spike far longer than the intended pause. Whether this
+ * happens depends on the PLE window/gap settings and CyclesPerYield.
+ *
+ * - CPU accounting and profiling: the pause loop runs in user mode, so it counts as user CPU time and thread
+ * cycle time attributed to ntdll!RtlDelayExecution, where older Windows showed mostly system-call/kernel time.
+ * Per-thread context-switch and system-call counts drop, so heuristics that use "many NtDelayExecution calls"
+ * as a busy-yield signal see different numbers. Thread CPU/cycle figures for processes stuck in yield loops
+ * will look higher on Windows 11 than on Windows 10 for the same behavior.
+ *
+ * - Priority starvation is unchanged: a zero-length delay still only yields to threads ready on the current
+ * processor, so a starved lower-priority lock holder is not helped, and each loop iteration now takes longer.
+ *
+ * - Inconsistent behavior: the settings are read once per process at ntdll initialization, so behavior differs
+ * across machines and only a process restart picks up a registry change. NtDelayExecution bypasses the backoff
+ * while Sleep/SwitchToThread do not, so two seemingly equivalent code paths can also time differently.
+ *
+ * Benefit: on SMT hardware, a thread repeatedly failing to yield used to issue a stream of system calls that took
+ * execution resources from its sibling core. The pause runs give those resources back and likely use less power
+ * than looping through the kernel.
+ *
+ * For a zero-length yield with no throttling (e.g. in a timing tool), call NtDelayExecution or
+ * NtYieldExecution directly instead of calling Sleep or RtlDelayExecution.
+ * \see NtDelayExecution
  */
 NTSYSAPI
 NTSTATUS
 NTAPI
 RtlDelayExecution(
     _In_ BOOLEAN Alertable,
-    _In_opt_ PLARGE_INTEGER DelayInterval
+    _In_ PLARGE_INTEGER DelayInterval
     );
 
 //
@@ -17471,9 +17552,6 @@ VOID NTAPI RTL_TIMER_CALLBACK(
     _In_ PVOID Parameter,
     _In_ BOOLEAN TimerOrWaitFired
     );
-/**
- * Pointer to an RTL_TIMER_CALLBACK callback.
- */
 typedef RTL_TIMER_CALLBACK *PRTL_TIMER_CALLBACK;
 
 /**
@@ -20473,6 +20551,7 @@ RtlGetFrame(
 #define RTL_WALK_VALID_FLAGS 0x00000006
 #define RTL_STACK_WALKING_MODE_FRAMES_TO_SKIP_SHIFT 0x00000008
 
+// private
 /**
  * The RtlWalkFrameChain routine captures the current call stack as an array of return addresses.
  *
@@ -20481,7 +20560,6 @@ RtlGetFrame(
  * \param Flags Flags controlling the walk, including the number of leading frames to skip.
  * \return The number of frames captured.
  */
-// private
 NTSYSAPI
 ULONG
 NTAPI
@@ -20704,13 +20782,13 @@ RtlUnlockCurrentThread(
     VOID
     );
 
+// private
 /**
  * The RtlLockModuleSection routine locks the image section containing the specified address into the working set.
  *
  * \param Address An address within the module section to lock.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 _Acquires_lock_(Address)
 NTSYSAPI
 NTSTATUS
@@ -20719,13 +20797,13 @@ RtlLockModuleSection(
     _In_ PVOID Address
     );
 
+// private
 /**
  * The RtlUnlockModuleSection routine unlocks the image section containing the specified address.
  *
  * \param Address An address within the module section to unlock.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 _Releases_lock_(Address)
 NTSYSAPI
 NTSTATUS
@@ -23292,6 +23370,7 @@ RtlQueryFeatureUsageNotificationSubscriptions(
     _Inout_ PSIZE_T SubscriptionCount
     );
 
+// private
 /**
  * The RtlRegisterFeatureConfigurationChangeNotification routine registers a callback invoked when the feature configuration state changes.
  *
@@ -23301,7 +23380,6 @@ RtlQueryFeatureUsageNotificationSubscriptions(
  * \param RegistrationHandle Receives the registration handle.
  * \return NTSTATUS Successful or errant status.
  */
-// private
 NTSYSAPI
 NTSTATUS
 NTAPI
