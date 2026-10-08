@@ -2354,6 +2354,30 @@ VOID PhAddWindowShadowToolbarOccluder(
 }
 
 /**
+ * Adds a push button (e.g. an Options button) that opened the menu as an occluder.
+ */
+VOID PhAddWindowShadowButtonOccluder(
+    _Inout_ PPH_WINDOW_SHADOW_OCCLUDERS Occluders,
+    _In_ HWND ButtonHandle
+    )
+{
+    WCHAR className[32];
+    RECT buttonRect;
+
+    if (!IsWindowVisible(ButtonHandle))
+        return;
+    if (!NT_SUCCESS(PhGetClassName(ButtonHandle, className, RTL_NUMBER_OF(className), NULL)))
+        return;
+    if (!PhEqualStringZ(className, WC_BUTTON, TRUE))
+        return;
+
+    if (PhGetWindowRect(ButtonHandle, &buttonRect))
+    {
+        PhAddWindowShadowOccluder(Occluders, &buttonRect, 0);
+    }
+}
+
+/**
  * Collects the surfaces the shadow shouldn't be cast onto. The #32768 popups
  * aren't owned by the window or menu that opened them, so the menu owner comes
  * from the thread's menu mode state rather than GW_OWNER. (dmex)
@@ -2399,6 +2423,14 @@ VOID PhQueryWindowShadowOccluders(
         // The toolbar menu bar (coolbar) the drop-down was opened from.
 
         PhAddWindowShadowToolbarOccluder(Occluders, ownerHandle);
+    }
+
+    // The button the drop-down was opened from. TrackPopupMenu is owned by the
+    // dialog rather than the button, so use the button that has focus after the click.
+
+    if (threadInfo.hwndFocus && threadInfo.hwndFocus != ownerHandle)
+    {
+        PhAddWindowShadowButtonOccluder(Occluders, threadInfo.hwndFocus);
     }
 
     EnumThreadWindows(threadId, PhEnumWindowShadowMenuOccluders, reinterpret_cast<LPARAM>(Occluders));
