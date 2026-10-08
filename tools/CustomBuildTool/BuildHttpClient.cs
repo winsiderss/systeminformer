@@ -22,7 +22,7 @@ namespace CustomBuildTool
     public static class BuildHttpClient
     {
         /// <summary>
-        /// Creates a new HttpClient instance with its own isolated HttpClientHandler.
+        /// Creates a new HttpClient instance with its own isolated SocketsHttpHandler.
         /// Caller is responsible for disposing of the returned HttpClient.
         /// </summary>
         /// <remarks>
@@ -32,17 +32,19 @@ namespace CustomBuildTool
         /// </remarks>
         public static HttpClient CreateHttpClient()
         {
-            var handler = new HttpClientHandler
+            var handler = new SocketsHttpHandler
             {
                 AutomaticDecompression = DecompressionMethods.All,
-                SslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
-                UseCookies = true, // Enabled for cookie support per instance
-                UseDefaultCredentials = false,
-                AllowAutoRedirect = true
+                EnableMultipleHttp2Connections = true,
+                EnableMultipleHttp3Connections = true,      
+                SslOptions = new SslClientAuthenticationOptions
+                {
+                    EnabledSslProtocols = SslProtocols.Tls12 | SslProtocols.Tls13,
+                }
             };
 
             var client = new HttpClient(handler, disposeHandler: true)
-            {
+            {   
                 Timeout = TimeSpan.FromSeconds(100),
                 DefaultRequestVersion = HttpVersion.Version30,
                 DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrLower
@@ -55,21 +57,123 @@ namespace CustomBuildTool
         /// <summary>
         /// Sends an HTTP request and returns the response. Caller is responsible for disposing of the response.
         /// </summary>
-        public static async ValueTask<HttpResponseMessage> SendMessageResponse(HttpClient HttpClient, HttpRequestMessage HttpMessage, CancellationToken CancellationToken = default)
+        public static async ValueTask<HttpResponseMessage> SendRequestMessage(
+            HttpClient HttpClient, 
+            HttpRequestMessage HttpMessage, 
+            CancellationToken CancellationToken = default
+            )
         {
-            HttpResponseMessage response;
+            return await SendWithRetry(HttpClient, HttpMessage, CancellationToken);
+        }
+
+        internal static async Task<HttpResponseMessage> SendWithRetry(
+            HttpClient HttpClient,
+            HttpRequestMessage HttpMessage,
+            CancellationToken CancellationToken = default,
+            HttpCompletionOption CompletionOption = HttpCompletionOption.ResponseContentRead,
+            Func<TimeSpan, CancellationToken, Task> Delay = null)
+        {
+            var uri = HttpMessage.RequestUri;
+            if (uri != null && !uri.IsAbsoluteUri && HttpClient.BaseAddress != null)
+                uri = new Uri(HttpClient.BaseAddress, uri);
+
+            bool retry = uri?.Scheme == Uri.UriSchemeHttps;
+            int attempts = retry ? 5 : 1;
+            Delay ??= Task.Delay;
+
+            // Capture the body before the first send. Stream-backed content cannot be sent twice.
+            byte[] body = null;
+            string bodyFile = null;
+            if (retry && HttpMessage.Content != null)
+            {
+                const int memoryLimit = 1024 * 1024;
+                if ((HttpMessage.Content.Headers.ContentLength is long length && length > memoryLimit) ||
+                    HttpMessage.Content is StreamContent or ProgressableStreamContent)
+                {
+                    bodyFile = Path.GetTempFileName();
+                    try
+                    {
+                        await using var file = new FileStream(bodyFile, FileMode.Create, FileAccess.Write, FileShare.None);
+                        await HttpMessage.Content.CopyToAsync(file, CancellationToken);
+                    }
+                    catch
+                    {
+                        File.Delete(bodyFile);
+                        throw;
+                    }
+                }
+                else
+                {
+                    body = await HttpMessage.Content.ReadAsByteArrayAsync(CancellationToken);
+                }
+            }
 
             try
             {
-                response = await HttpClient.SendAsync(HttpMessage, CancellationToken);
+                for (int attempt = 1; attempt <= attempts; attempt++)
+                {
+                    CancellationToken.ThrowIfCancellationRequested();
+                    using var request = retry ? CopyRequest(HttpMessage, body, bodyFile) : null;
+                    var current = request ?? HttpMessage;
+
+                    try
+                    {
+                        var response = await HttpClient.SendAsync(current, CompletionOption, CancellationToken);
+                        if (response.IsSuccessStatusCode)
+                            return response;
+
+                        var status = response.StatusCode;
+                        var reason = response.ReasonPhrase;
+                        response.Dispose();
+                        if (attempt == attempts)
+                            throw new HttpRequestException($"HTTP {(int)status} {reason}", null, status);
+
+                        Program.PrintColorMessage($"[HTTP] Attempt {attempt}/{attempts} failed: {(int)status} {reason}. Retrying in 30 seconds.", ConsoleColor.Yellow);
+                    }
+                    catch (HttpRequestException ex) when (ex.StatusCode == null && attempt < attempts)
+                    {
+                        Program.PrintColorMessage($"[HTTP] Attempt {attempt}/{attempts} failed: {ex.Message}. Retrying in 30 seconds.", ConsoleColor.Yellow);
+                    }
+                    catch (TaskCanceledException) when (!CancellationToken.IsCancellationRequested && attempt < attempts)
+                    {
+                        Program.PrintColorMessage($"[HTTP] Attempt {attempt}/{attempts} timed out. Retrying in 30 seconds.", ConsoleColor.Yellow);
+                    }
+
+                    await Delay(TimeSpan.FromSeconds(30), CancellationToken);
+                }
             }
-            catch (Exception ex)
+            finally
             {
-                Program.PrintColorMessage($"[Exception] SendMessageResponse: {ex.GetType().Name}: {ex.Message}", ConsoleColor.Red);
-                return null;
+                if (bodyFile != null)
+                    File.Delete(bodyFile);
             }
 
-            return response;
+            throw new InvalidOperationException("HTTP retry loop ended without a result.");
+        }
+
+        private static HttpRequestMessage CopyRequest(HttpRequestMessage Original, byte[] Body, string BodyFile)
+        {
+            var request = new HttpRequestMessage(Original.Method, Original.RequestUri)
+            {
+                Version = Original.Version,
+                VersionPolicy = Original.VersionPolicy
+            };
+
+            foreach (var header in Original.Headers)
+                request.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            foreach (var option in Original.Options)
+                request.Options.Set(new HttpRequestOptionsKey<object>(option.Key), option.Value);
+
+            if (Original.Content != null)
+            {
+                request.Content = BodyFile != null
+                    ? new StreamContent(new FileStream(BodyFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    : new ByteArrayContent(Body);
+                foreach (var header in Original.Content.Headers)
+                    request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+
+            return request;
         }
 
         /// <summary>
@@ -89,13 +193,7 @@ namespace CustomBuildTool
         {
             try
             {
-                using var httpResponse = await HttpClient.SendAsync(HttpMessage, CancellationToken);
-                if (!httpResponse.IsSuccessStatusCode)
-                {
-                    Program.PrintColorMessage($"[HTTP Error] {(int)httpResponse.StatusCode} {httpResponse.ReasonPhrase}", ConsoleColor.Yellow);
-                    return default;
-                }
-
+                using var httpResponse = await SendWithRetry(HttpClient, HttpMessage, CancellationToken);
                 await using var stream = await httpResponse.Content.ReadAsStreamAsync(CancellationToken);
                 var result = await JsonSerializer.DeserializeAsync(stream, JsonTypeInfo, CancellationToken);
                 if (result == null)
@@ -106,7 +204,7 @@ namespace CustomBuildTool
 
                 return result;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 Program.PrintColorMessage($"[Exception] SendMessage: {ex.GetType().Name}: {ex.Message}", ConsoleColor.Red);
                 return default;

@@ -356,6 +356,10 @@ CONST AT_ACTION_INFO AtActionInfo[AtActionMaximum] =
         L"read the kernel driver status", L"Allow reading the kernel driver status", L"get_ksi_status"
     },
     {
+        AtActionSystemInformerStatus, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"system_informer_status"),
+        L"read whether System Informer is running", L"Allow reading whether System Informer is running", L"system_informer_status"
+    },
+    {
         AtActionGetPagefileInfo, AtTierRead, AtConsentClassNone, AtTargetNone, 0, SETTING_NAME_TOOL_CONFIRM(L"get_pagefile_info"),
         L"read pagefile information", L"Allow reading pagefile information", L"get_pagefile_info"
     },
@@ -3873,6 +3877,11 @@ CONST AT_TOOL AtTools[] =
         AT_SNAPSHOT_SCHEMA
         "},\"required\":[\"connected\"]},"
         AT_ANNOTATIONS("Get kernel driver status", AT_READ_HINTS) "}"
+    },
+    {
+        "system_informer_status", L"System Informer status", AtTierRead, AtActionSystemInformerStatus,
+        SETTING_NAME_TOOL_ACCESS(L"system_informer_status"), SETTING_NAME_TOOL_CONFIRM(L"system_informer_status"),
+        SIMCP_STATUS_TOOL_DEFINITION
     },
     {
         "get_pagefile_info", L"Get pagefile information", AtTierRead, AtActionGetPagefileInfo,

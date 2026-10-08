@@ -240,6 +240,22 @@ VOID PhpAnalyzeWaitPassive(
             PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for file I/O:\r\n");
             PhAppendStringBuilder(&stringBuilder, &string->sr);
         }
+        else if (
+            PhEqualString2(lastSystemCallName, L"NtUserDrainThreadCoreMessagingCompletions", TRUE) ||
+            PhEqualString2(lastSystemCallName, L"NtUserDrainThreadCoreMessagingCompletions2", TRUE)
+            )
+        {
+            PhAppendStringBuilder2(&stringBuilder, L"Thread is processing Win32k CoreMessaging queue completions.");
+        }
+        else if (
+            PhEqualString2(lastSystemCallName, L"NtRemoveIoCompletion", TRUE) ||
+            PhEqualString2(lastSystemCallName, L"NtRemoveIoCompletionEx", TRUE)
+            )
+        {
+            string = PhpaGetHandleString(processHandle, lastSystemCall.FirstArgument);
+            PhAppendFormatStringBuilder(&stringBuilder, L"Thread is waiting for an I/O completion port:\r\n");
+            PhAppendStringBuilder(&stringBuilder, &string->sr);
+        }
         else
         {
             string = PhpaGetSendMessageReceiver(ThreadId);
@@ -450,6 +466,13 @@ BOOLEAN NTAPI PhpWalkThreadStackAnalyzeCallback(
         PhAppendStringBuilder(
             &context->StringBuilder,
             &PhpaGetHandleString(context->ProcessHandle, handle)->sr
+            );
+    }
+    else if (NT_FUNC_MATCH("DrainThreadCoreMessagingCompletions") || NT_FUNC_MATCH("DrainThreadCoreMessagingCompletions2"))
+    {
+        PhAppendStringBuilder2(
+            &context->StringBuilder,
+            L"Thread is processing Win32k CoreMessaging queue completions.\r\n"
             );
     }
     else if (NT_FUNC_MATCH("RemoveIoCompletion") || NT_FUNC_MATCH("RemoveIoCompletionEx"))

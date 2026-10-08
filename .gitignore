@@ -160,6 +160,7 @@ tools/thirdparty/vcpkg_installed/*
 
 bin-cmake/
 build-*/
+**/node_modules/
 
 !KSystemInformer/bin-signed/*/ksi.dll
 !KSystemInformer/bin-signed/*/ksi.pdb

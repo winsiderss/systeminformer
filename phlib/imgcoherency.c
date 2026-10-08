@@ -37,6 +37,9 @@ typedef struct _PH_IMAGE_COHERENCY_CONTEXT
     ULONG MappedImageBaseRva;                 /**< On-disk optional header image base RVA. */
     ULONG MappedImageIatRva;                  /**< On-disk import address table RVA */
     ULONG MappedImageIatSize;                 /**< On-disk import address table size */
+    PULONG MappedImageRelocRvas;              /**< Sorted relocation starts for vector spans */
+    ULONG MappedImageRelocRvaCount;
+    BOOLEAN MappedImageSkipIndexReady;
 
     NTSTATUS RemoteMappedImageStatus;         /**< Status of initializing RemoteMappedImage */
     PH_REMOTE_MAPPED_IMAGE RemoteMappedImage; /**< Remote image mapping */
@@ -59,6 +62,120 @@ ULONG CALLBACK PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK(
     _In_opt_ PVOID Context
     );
 typedef PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK *PPH_IMGCOHERENCY_SKIP_BYTE_CALLBACK;
+
+_Function_class_(PH_IMGCOHERENCY_SKIP_BYTE_CALLBACK)
+ULONG CALLBACK PhpImgCoherencySkip(
+    _In_ ULONG Rva,
+    _In_ PVOID Context
+    );
+
+/**
+* qsort comparison callback for the sorted relocation start RVA array.
+*
+* \param[in] Left - Pointer to the first ULONG RVA.
+* \param[in] Right - Pointer to the second ULONG RVA.
+* \return Negative, zero or positive as Left is less than, equal to or greater than Right.
+*/
+static int __cdecl PhpCompareImageCoherencyRva(
+    _In_ const void* Left,
+    _In_ const void* Right
+    )
+{
+    return uintcmp(*(PULONG)Left, *(PULONG)Right);
+}
+
+/**
+* Builds the sorted relocation start index used to find the spans between
+* skip callback hits, allowing those spans to be compared with vector
+* instructions instead of invoking the skip callback for every byte.
+*
+* The index is best-effort: if there are no relocations it stays empty and
+* only the ImageBase and IAT RVAs bound a span. Relocation keys that do not
+* fit in a ULONG are excluded because PhpImgCoherencySkip takes a ULONG RVA
+* and can never match them.
+*
+* \param[in,out] Context - Image coherency context. MappedImageReloc should be
+* populated before this is called. Sets MappedImageSkipIndexReady on return.
+*/
+static NTSTATUS PhpInitializeImageCoherencySkipIndex(
+    _Inout_ PPH_IMAGE_COHERENCY_CONTEXT Context
+    )
+{
+    PPH_KEY_VALUE_PAIR entry;
+    ULONG enumerationKey = 0;
+
+    if (Context->MappedImageReloc && Context->MappedImageReloc->Count)
+    {
+        Context->MappedImageRelocRvas = PhAllocateSafe(
+            (SIZE_T)Context->MappedImageReloc->Count * sizeof(ULONG)
+            );
+        if (!Context->MappedImageRelocRvas) return STATUS_NO_MEMORY;
+
+        while (PhEnumHashtable(Context->MappedImageReloc, &entry, &enumerationKey))
+        {
+            // The callback accepts a ULONG RVA. Keys above that range cannot
+            // match it, and must not be truncated into a different skip start.
+            if ((ULONG_PTR)entry->Key <= ULONG_MAX)
+            {
+                Context->MappedImageRelocRvas[Context->MappedImageRelocRvaCount++] = PtrToUlong(entry->Key);
+            }
+        }
+
+        qsort(Context->MappedImageRelocRvas, Context->MappedImageRelocRvaCount,
+            sizeof(ULONG), PhpCompareImageCoherencyRva);
+    }
+
+    Context->MappedImageSkipIndexReady = TRUE;
+    return STATUS_SUCCESS;
+}
+
+/**
+* Determines how many bytes, starting at Rva, are guaranteed not to be a skip
+* callback hit and can therefore be compared without consulting the callback.
+*
+* The span is bounded by the nearest of: the next relocation start (binary
+* search of the sorted index), the ImageBase field RVA, the IAT start RVA, and
+* the point where the ULONG callback RVA would wrap. Only starts are indexed;
+* merging overlapping ranges would change PhpImgCoherencySkip's skip semantics.
+*
+* \param[in] Context - Image coherency context with the skip index built.
+* \param[in] Rva - RVA of the first byte in the span. The caller must have
+* already established that PhpImgCoherencySkip returns 0 for this RVA.
+* \param[in] Length - Maximum span length (bytes remaining in the buffer).
+* \return Number of bytes, at most Length and at least 1, safe to compare.
+*/
+static ULONG PhpImageCoherencyCompareSpan(
+    _In_ PPH_IMAGE_COHERENCY_CONTEXT Context,
+    _In_ ULONG Rva,
+    _In_ ULONG Length
+    )
+{
+    ULONG low = 0;
+    ULONG high = Context->MappedImageRelocRvaCount;
+
+    while (low < high)
+    {
+        ULONG middle = low + (high - low) / 2;
+
+        if (Context->MappedImageRelocRvas[middle] <= Rva)
+            low = middle + 1;
+        else
+            high = middle;
+    }
+
+    if (low < Context->MappedImageRelocRvaCount)
+        Length = min(Length, Context->MappedImageRelocRvas[low] - Rva);
+    if (Context->MappedImageBaseRva > Rva)
+        Length = min(Length, Context->MappedImageBaseRva - Rva);
+    if (Context->MappedImageIatRva > Rva)
+        Length = min(Length, Context->MappedImageIatRva - Rva);
+
+    // Re-evaluate the index if the ULONG callback RVA wraps around.
+    if (Rva)
+        Length = min(Length, ULONG_MAX - Rva + 1);
+
+    return Length;
+}
 
 /**
 * Retrieves the size of the section to scan given the scan type.
@@ -150,6 +267,9 @@ VOID PhpFreeImageCoherencyContext(
 
         if (Context->MappedImageReloc)
             PhDereferenceObject(Context->MappedImageReloc);
+
+        if (Context->MappedImageRelocRvas)
+            PhFree(Context->MappedImageRelocRvas);
 
         PhFree(Context);
     }
@@ -473,9 +593,16 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
         context->RemoteMappedImageStatus = RemoteImageBaseStatus;
     }
 
+    PhpInitializeImageCoherencySkipIndex(context);
+
     return context;
 }
 
+#ifndef PH_IMGCOHERENCY_LEGACY_INSPECT
+#define PH_IMGCOHERENCY_VECTOR_INSPECT
+#endif
+
+#ifdef PH_IMGCOHERENCY_VECTOR_INSPECT
 /**
 * Inspects two buffers and adds them to the coherency calculation.
 *
@@ -488,7 +615,216 @@ PPH_IMAGE_COHERENCY_CONTEXT PhpCreateImageCoherencyContext(
 * \param[in] SkipCallback - Optional, if provided the skip callback is invoked
 * for each inspected byte, the callback may return any number of bytes to skip.
 * \param[in] SkipCallbackContext - Optional, callback context passed to the skip callback.
+* \return STATUS_SUCCESS, or the exception code if reading either buffer faulted.
+*
+* \remarks Three comparison paths are used:
+* - A custom skip callback is invoked for every byte (scalar).
+* - PhpImgCoherencySkip with its own context uses the skip index: the callback
+*   is invoked once at the start of each span and the span is then compared with
+*   vector instructions (AVX-512, AVX2 or SSE, falling back to scalar).
+* - No callback compares the whole range with vector instructions.
+* If a vector block faults, it is retried a byte at a time so the faulting byte
+* counts towards the total but not the coherent bytes, as in the scalar path.
 */
+NTSTATUS PhpAnalyzeImageCoherencyInspect(
+    _In_opt_ PBYTE LeftBuffer,
+    _In_ ULONG LeftCount,
+    _In_opt_ PBYTE RightBuffer,
+    _In_ ULONG RightCount,
+    _Inout_ PPH_IMAGE_COHERENCY_CONTEXT Context,
+    _In_opt_ ULONG Rva,
+    _In_opt_ PPH_IMGCOHERENCY_SKIP_BYTE_CALLBACK SkipCallback,
+    _In_opt_ PVOID SkipCallbackContext
+    )
+{
+    NTSTATUS status = STATUS_SUCCESS;
+
+    //
+    // For the minimum bytes between the buffers increment the coherent bytes
+    // for each match.
+    //
+    if (LeftBuffer && RightBuffer)
+    {
+        ULONG length = min(LeftCount, RightCount);
+        ULONG i = 0;
+
+        BOOLEAN indexedSkip = SkipCallback == PhpImgCoherencySkip &&
+            SkipCallbackContext == Context && Context->MappedImageSkipIndexReady;
+
+        if (SkipCallback && !indexedSkip)
+        {
+            //
+            // The skip callback is defined per-byte and its RVA argument must be
+            // presented for every byte in the range, so this path stays scalar.
+            //
+            while (i < length)
+            {
+                ULONG skip = SkipCallback(Rva + i, SkipCallbackContext);
+
+                if (skip != 0)
+                {
+                    ULONG remaining = length - i;
+                    ULONG effectiveSkip = (skip > remaining) ? remaining : skip;
+
+                    Context->CoherentBytes += effectiveSkip;
+                    Context->SkippedBytes += effectiveSkip;
+                    Context->TotalBytes += effectiveSkip;
+                    i += effectiveSkip;
+                    continue;
+                }
+
+                Context->TotalBytes++;
+
+                __try
+                {
+                    if (LeftBuffer[i] == RightBuffer[i])
+                    {
+                        Context->CoherentBytes++;
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    status = GetExceptionCode();
+                    break;
+                }
+
+                i++;
+            }
+        }
+        else
+        {
+            //
+            // Without a skip callback the range is a straight byte comparison,
+            // which reduces to a vector compare plus a population count of the
+            // resulting mask. SEH is per-block rather than per-byte; a block
+            // that faults is retried a byte at a time so the accounting stays
+            // identical to the scalar path (the faulting byte counts towards
+            // the total but not towards the coherent bytes).
+            //
+            SIZE_T coherentBytes = 0;
+            BOOLEAN scalarOnly = FALSE;
+            ULONG spanRemaining = 0;
+
+            while (i < length)
+            {
+                ULONG remaining = length - i;
+                ULONG matched = 0;
+                ULONG width;
+
+                if (indexedSkip)
+                {
+                    if (!spanRemaining)
+                    {
+                        ULONG skip = PhpImgCoherencySkip(Rva + i, Context);
+
+                        if (skip)
+                        {
+                            ULONG effectiveSkip = min(skip, remaining);
+
+                            coherentBytes += effectiveSkip;
+                            Context->SkippedBytes += effectiveSkip;
+                            Context->TotalBytes += effectiveSkip;
+                            i += effectiveSkip;
+                            continue;
+                        }
+
+                        spanRemaining = PhpImageCoherencyCompareSpan(Context, Rva + i, remaining);
+                    }
+
+                    remaining = min(remaining, spanRemaining);
+                }
+
+                if (scalarOnly)
+                    width = 1;
+#if defined(_WIN64) && !defined(_ARM64_)
+                else if (PhHasAVX512 && remaining >= 256)
+                    width = 64;
+#endif
+                else if (PhHasAVX && remaining >= 32)
+                    width = 32;
+                else if (PhHasIntrinsics && remaining >= 16)
+                    width = 16;
+                else
+                    width = 1;
+
+                __try
+                {
+                    switch (width)
+                    {
+#if defined(_WIN64) && !defined(_ARM64_)
+                    case 64:
+                        matched = (ULONG)PhPopulationCount64(_mm512_cmpeq_epi8_mask(
+                            _mm512_loadu_si512((void const*)(LeftBuffer + i)),
+                            _mm512_loadu_si512((void const*)(RightBuffer + i))
+                            ));
+                        break;
+#endif
+                    case 32:
+                        matched = PhPopulationCount32(PhMoveMaskINT256by8(PhCompareEqINT256by8(
+                            PhLoadINT256U(LeftBuffer + i),
+                            PhLoadINT256U(RightBuffer + i)
+                            )));
+                        break;
+                    case 16:
+                        matched = PhPopulationCount32(PhMoveMaskINT128by8(PhCompareEqINT128by8(
+                            PhLoadINT128U((PLONG)(LeftBuffer + i)),
+                            PhLoadINT128U((PLONG)(RightBuffer + i))
+                            )));
+                        break;
+                    default:
+                        matched = (LeftBuffer[i] == RightBuffer[i]) ? 1 : 0;
+                        break;
+                    }
+                }
+                __except (EXCEPTION_EXECUTE_HANDLER)
+                {
+                    if (width != 1)
+                    {
+                        //
+                        // Retry this block a byte at a time to locate the exact
+                        // faulting byte, and stay scalar for the remainder.
+                        //
+                        scalarOnly = TRUE;
+                        continue;
+                    }
+
+                    status = GetExceptionCode();
+                    Context->TotalBytes++;
+                    break;
+                }
+
+                coherentBytes += matched;
+                Context->TotalBytes += width;
+                i += width;
+
+                if (indexedSkip)
+                    spanRemaining -= width;
+            }
+
+            Context->CoherentBytes += coherentBytes;
+
+            if (PhHasAVX)
+                PhZeroUpper();
+        }
+    }
+
+    //
+    // Buffers of mismatched sizes are incoherent over mismatched range.
+    // Include any diff in the total bytes.
+    //
+    if (LeftCount > RightCount)
+    {
+        Context->TotalBytes += ((SIZE_T)LeftCount - (SIZE_T)RightCount);
+    }
+    else if (LeftCount < RightCount)
+    {
+        Context->TotalBytes += ((SIZE_T)RightCount - (SIZE_T)LeftCount);
+    }
+
+    return status;
+}
+#else
+// Original scalar implementation (disabled by default).
 NTSTATUS PhpAnalyzeImageCoherencyInspect(
     _In_opt_ PBYTE LeftBuffer,
     _In_ ULONG LeftCount,
@@ -564,6 +900,7 @@ NTSTATUS PhpAnalyzeImageCoherencyInspect(
 
     return status;
 }
+#endif
 
 /**
 * Analyzes the image coherency as if it were a native application.

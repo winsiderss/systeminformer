@@ -89,8 +89,10 @@ PhArm64ReadRandomNumber64(
 #define PhHasIntrinsics TRUE
 #define PhHasPopulationCount TRUE
 #define PhHasAVX FALSE
+#define PhHasAVX512 FALSE
 #define PhHasSSSE3 FALSE
 #define PhHasPCLMUL FALSE
+#define PhHasVPCLMUL FALSE
 // Byte-shuffle (PhShuffleINT128by8) is baseline on AArch64 NEON (vqtbl1q_u8).
 #define PhHasShuffleBytes TRUE
 #else
@@ -206,6 +208,53 @@ PhpHasPCLMULOnce(
 }
 
 #define PhHasPCLMUL (PhpHasPCLMULOnce())
+
+/**
+ * @def PhHasVPCLMUL
+ *
+ * Reports whether the vector (512-bit) form of carry-less multiplication
+ * (VPCLMULQDQ, CPUID.(EAX=7,ECX=0):ECX.VPCLMULQDQ[bit 10]) is available.
+ * Required by the AVX-512 wide-folding implementation of PhCrc32.
+ *
+ * \remarks Detected lazily via __cpuidex on first use; the result is cached
+ * in a translation-unit-local static. VPCLMULQDQ is reported independently of
+ * the AVX-512 feature bits, so PhHasAVX512 is also required: the 512-bit
+ * _mm512_clmulepi64_epi128 form needs AVX512F in addition to VPCLMULQDQ.
+ */
+FORCEINLINE
+BOOLEAN
+PhpHasVPCLMULOnce(
+    VOID
+    )
+{
+    // 0 = unknown, 1 = present, 2 = absent.
+    static ULONG state = 0;
+    ULONG current = ReadULongAcquire(&state);
+
+    if (current == 0)
+    {
+        int regs[4] = { 0, 0, 0, 0 };
+        ULONG detected;
+        LONG previous;
+        __cpuid(regs, 0);
+        if ((ULONG)regs[0] >= 7)
+        {
+            __cpuidex(regs, 7, 0);
+            detected = (regs[2] & (1 << 10)) ? 1 : 2;
+        }
+        else
+        {
+            detected = 2;
+        }
+        previous = InterlockedCompareExchange((volatile LONG*)&state, (LONG)detected, 0);
+        current = (previous == 0) ? detected : (ULONG)previous;
+    }
+
+    return current == 1;
+}
+
+#define PhHasVPCLMUL (PhHasAVX512 && PhpHasVPCLMULOnce())
+
 #endif
 
 /**
@@ -551,6 +600,97 @@ PhMoveMaskINT128by8(
 }
 
 /**
+ * Compares two 128-bit integers element-wise for equality using 8-bit elements.
+ *
+ * \param[in] Left The left operand as a 128-bit integer.
+ * \param[in] Right The right operand as a 128-bit integer.
+ * \return A PH_INT128 where each 8-bit lane is 0xFF if the corresponding bytes
+ * in Left and Right are equal, otherwise 0x00.
+ */
+FORCEINLINE
+PH_INT128
+PhCompareEqINT128by8(
+    _In_ PH_INT128 Left,
+    _In_ PH_INT128 Right
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_u8(vceqq_u8(
+        vreinterpretq_u8_s64(Left),
+        vreinterpretq_u8_s64(Right)
+        ));
+#else
+    return _mm_cmpeq_epi8(Left, Right);
+#endif
+}
+
+/**
+ * Loads a 256-bit integer value from the specified unaligned source address.
+ *
+ * \param[in] Source A pointer to the memory location to load from.
+ * \return A PH_INT256 value loaded from the specified memory address.
+ */
+FORCEINLINE
+PH_INT256
+PhLoadINT256U(
+    _In_reads_bytes_(32) PVOID Source
+    )
+{
+#ifdef _ARM64_
+    PH_INT256 result;
+    result.Low = vld1q_s64((int64_t const*)Source);
+    result.High = vld1q_s64((int64_t const*)Source + 2);
+    return result;
+#else
+    return _mm256_loadu_si256((__m256i const*)Source);
+#endif
+}
+
+/**
+ * Compares two 256-bit integers element-wise for equality using 8-bit elements.
+ *
+ * \param[in] Left The left operand as a 256-bit integer.
+ * \param[in] Right The right operand as a 256-bit integer.
+ * \return A PH_INT256 where each 8-bit lane is 0xFF if the corresponding bytes
+ * in Left and Right are equal, otherwise 0x00.
+ */
+FORCEINLINE
+PH_INT256
+PhCompareEqINT256by8(
+    _In_ PH_INT256 Left,
+    _In_ PH_INT256 Right
+    )
+{
+#ifdef _ARM64_
+    PH_INT256 result;
+    result.Low = PhCompareEqINT128by8(Left.Low, Right.Low);
+    result.High = PhCompareEqINT128by8(Left.High, Right.High);
+    return result;
+#else
+    return _mm256_cmpeq_epi8(Left, Right);
+#endif
+}
+
+/**
+ * Creates a movemask from the top bit of each 8-bit lane in a 256-bit vector.
+ *
+ * \param[in] Value Input vector.
+ * \return A 32-bit mask where bit i corresponds to the top bit of byte i.
+ */
+FORCEINLINE
+ULONG
+PhMoveMaskINT256by8(
+    _In_ PH_INT256 Value
+    )
+{
+#ifdef _ARM64_
+    return PhMoveMaskINT128by8(Value.Low) | (PhMoveMaskINT128by8(Value.High) << 16);
+#else
+    return (ULONG)_mm256_movemask_epi8(Value);
+#endif
+}
+
+/**
  * Broadcasts a single float into all lanes of a 128-bit float vector.
  *
  * \param[in] Value Float value to broadcast.
@@ -566,6 +706,162 @@ PhSetFLOAT128bySingle(
     return vdupq_n_f32(Value);
 #else
     return _mm_set1_ps(Value);
+#endif
+}
+
+/**
+ * Broadcasts a signed byte into every byte lane.
+ */
+FORCEINLINE
+PH_INT128
+PhSetINT128by8(
+    _In_ CHAR Value
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_s8(vdupq_n_s8(Value));
+#else
+    return _mm_set1_epi8(Value);
+#endif
+}
+
+/**
+ * Sets byte lanes in increasing order (Byte0 is the lowest lane).
+ */
+FORCEINLINE
+PH_INT128
+PhSetReverseINT128by8(
+    _In_ CHAR Byte0,
+    _In_ CHAR Byte1,
+    _In_ CHAR Byte2,
+    _In_ CHAR Byte3,
+    _In_ CHAR Byte4,
+    _In_ CHAR Byte5,
+    _In_ CHAR Byte6,
+    _In_ CHAR Byte7,
+    _In_ CHAR Byte8,
+    _In_ CHAR Byte9,
+    _In_ CHAR Byte10,
+    _In_ CHAR Byte11,
+    _In_ CHAR Byte12,
+    _In_ CHAR Byte13,
+    _In_ CHAR Byte14,
+    _In_ CHAR Byte15
+    )
+{
+#ifdef _ARM64_
+    const CHAR bytes[16] = { Byte0, Byte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7, Byte8, Byte9, Byte10, Byte11, Byte12, Byte13, Byte14, Byte15 };
+
+    return vreinterpretq_s64_s8(vld1q_s8(bytes));
+#else
+    return _mm_setr_epi8(Byte0, Byte1, Byte2, Byte3, Byte4, Byte5, Byte6, Byte7, Byte8, Byte9, Byte10, Byte11, Byte12, Byte13, Byte14, Byte15);
+#endif
+}
+
+/**
+ * Returns the high 16 bits of each unsigned 16-bit lane product.
+ */
+FORCEINLINE
+PH_INT128
+PhMultiplyHighUINT128by16(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    uint16x8_t a = vreinterpretq_u16_s64(A);
+    uint16x8_t b = vreinterpretq_u16_s64(B);
+    uint32x4_t low = vmull_u16(vget_low_u16(a), vget_low_u16(b));
+    uint32x4_t high = vmull_u16(vget_high_u16(a), vget_high_u16(b));
+
+    return vreinterpretq_s64_u16(vcombine_u16(vshrn_n_u32(low, 16), vshrn_n_u32(high, 16)));
+#else
+    return _mm_mulhi_epu16(A, B);
+#endif
+}
+
+/**
+ * Returns the low 16 bits of each 16-bit lane product.
+ */
+FORCEINLINE
+PH_INT128
+PhMultiplyLowINT128by16(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_s16(vmulq_s16(vreinterpretq_s16_s64(A), vreinterpretq_s16_s64(B)));
+#else
+    return _mm_mullo_epi16(A, B);
+#endif
+}
+
+/**
+ * Compares signed byte lanes, returning 0xFF for A > B and zero otherwise.
+ */
+FORCEINLINE
+PH_INT128
+PhCompareGtINT128by8(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_u8(vcgtq_s8(vreinterpretq_s8_s64(A), vreinterpretq_s8_s64(B)));
+#else
+    return _mm_cmpgt_epi8(A, B);
+#endif
+}
+
+/**
+ * Subtracts unsigned byte lanes, saturating each result at zero.
+ */
+FORCEINLINE
+PH_INT128
+PhSubSaturateUINT128by8(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_u8(vqsubq_u8(vreinterpretq_u8_s64(A), vreinterpretq_u8_s64(B)));
+#else
+    return _mm_subs_epu8(A, B);
+#endif
+}
+
+/**
+ * Subtracts byte lanes with wrapping arithmetic.
+ */
+FORCEINLINE
+PH_INT128
+PhSubINT128by8(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_s8(vsubq_s8(vreinterpretq_s8_s64(A), vreinterpretq_s8_s64(B)));
+#else
+    return _mm_sub_epi8(A, B);
+#endif
+}
+
+/**
+ * Adds byte lanes with wrapping arithmetic.
+ */
+FORCEINLINE
+PH_INT128
+PhAddINT128by8(
+    _In_ PH_INT128 A,
+    _In_ PH_INT128 B
+    )
+{
+#ifdef _ARM64_
+    return vreinterpretq_s64_s8(vaddq_s8(vreinterpretq_s8_s64(A), vreinterpretq_s8_s64(B)));
+#else
+    return _mm_add_epi8(A, B);
 #endif
 }
 
@@ -1275,6 +1571,45 @@ PhUppercaseLatin1INT256by16(
     __m256i final_mask = _mm256_or_si256(mask1, mask2);
     return _mm256_sub_epi16(Input, _mm256_and_si256(final_mask, _mm256_set1_epi16(0x0020)));
 }
+
+#ifdef _WIN64
+/**
+ * Convert Latin-1 lowercase letters to upper-case (AVX-512).
+ *
+ * \param[in] Input 512-bit vector containing UTF-16 characters in 16-bit lanes.
+ * \return Vector with letters converted to upper-case; other values unchanged.
+ *
+ * \remarks Uses mask registers and an unsigned range test rather than the pair
+ * of signed comparisons the AVX2 form needs, so the result is identical while
+ * the operation count is lower.
+ */
+FORCEINLINE
+__m512i
+PhUppercaseLatin1INT512by16(
+    _In_ __m512i Input
+    )
+{
+    // convert a-z (0x61-0x7A) and a-thorn (0xE0-0xFE) excluding division (0xF7)
+    __mmask32 isAsciiLower;
+    __mmask32 isLatinLower;
+    __mmask32 isDivision;
+    __mmask32 convert;
+
+    isAsciiLower = _mm512_cmple_epu16_mask(
+        _mm512_sub_epi16(Input, _mm512_set1_epi16(0x0061)),
+        _mm512_set1_epi16(0x0019)
+        );
+    isLatinLower = _mm512_cmple_epu16_mask(
+        _mm512_sub_epi16(Input, _mm512_set1_epi16(0x00E0)),
+        _mm512_set1_epi16(0x001E)
+        );
+    isDivision = _mm512_cmpeq_epi16_mask(Input, _mm512_set1_epi16(0x00F7));
+
+    convert = _kor_mask32(isAsciiLower, _kandn_mask32(isDivision, isLatinLower));
+
+    return _mm512_mask_sub_epi16(Input, convert, Input, _mm512_set1_epi16(0x0020));
+}
+#endif
 #endif
 
 FORCEINLINE

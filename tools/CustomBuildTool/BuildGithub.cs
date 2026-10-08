@@ -22,7 +22,7 @@ namespace CustomBuildTool
         /// <remarks>Using a static instance of HttpClient helps prevent socket exhaustion and improves
         /// performance when making multiple requests. This client is intended for internal use when interacting with
         /// GitHub services.</remarks>
-        private static readonly HttpClient GithubHttpClient;
+        internal static readonly HttpClient GithubHttpClient;
 
         /// <summary>
         /// The GitHub API token used for authentication.
@@ -80,7 +80,7 @@ namespace CustomBuildTool
                     var content = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubActionRun);
                     if (content == null)
                     {
-                        Console.WriteLine($"{VT.RED}[ERROR] Failed to deserialize the response.{VT.RESET}");
+                        Program.PrintErrorMessage("Failed to deserialize the response.");
                         ArgumentNullException.ThrowIfNull((GithubActionRun)null);
                     }
 
@@ -96,7 +96,7 @@ namespace CustomBuildTool
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"{VT.RED}[ERROR] {ex}{VT.RESET}");
+                Program.PrintErrorMessage(ex);
                 queueTime = DateTime.UtcNow.Subtract(TimeSpan.FromMilliseconds(Environment.TickCount64));
                 return (false, queueTime);
             }
@@ -113,7 +113,7 @@ namespace CustomBuildTool
                 requestMessage.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
                 requestMessage.Headers.TryAddWithoutValidation("X-GitHub-Api-Version", "2022-11-28");
 
-                using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage, CancellationToken);
+                using var response = await BuildHttpClient.SendRequestMessage(GithubHttpClient, requestMessage, CancellationToken);
                 if (response == null || !response.IsSuccessStatusCode)
                 {
                     Program.PrintColorMessage("[DownloadGithubIpRanges] response failed", ConsoleColor.Red);
@@ -237,7 +237,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
+                    requestMessage.Content = JsonContent.Create(buildUpdateRequest, GithubResponseContext.Default.GithubReleasesRequest);
 
                     var httpResult = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 
@@ -289,7 +289,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    responseMessage = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    responseMessage = await BuildHttpClient.SendRequestMessage(GithubHttpClient, requestMessage);
 
                     if (!responseMessage.IsSuccessStatusCode)
                     {
@@ -328,7 +328,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    using var response = await BuildHttpClient.SendRequestMessage(GithubHttpClient, requestMessage);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -344,7 +344,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    using var response = await BuildHttpClient.SendMessageResponse(GithubHttpClient, requestMessage);
+                    using var response = await BuildHttpClient.SendRequestMessage(GithubHttpClient, requestMessage);
 
                     if (!response.IsSuccessStatusCode)
                     {
@@ -392,7 +392,7 @@ namespace CustomBuildTool
                     requestMessage.Headers.Authorization = new AuthenticationHeaderValue("Token", BaseToken);
                     requestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
-                    requestMessage.Content = new ByteArrayContent(buildUpdateRequest.SerializeToBytes());
+                    requestMessage.Content = JsonContent.Create(buildUpdateRequest, GithubResponseContext.Default.GithubReleasesRequest);
 
                     var response = await BuildHttpClient.SendMessage(GithubHttpClient, requestMessage, GithubResponseContext.Default.GithubReleasesResponse);
 

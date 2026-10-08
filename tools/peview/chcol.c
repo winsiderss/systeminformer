@@ -42,6 +42,13 @@ INT_PTR CALLBACK PvColumnsDlgProc(
     _In_ LPARAM lParam
     );
 
+/**
+ * Shows the column chooser dialog for a control.
+ *
+ * \param ParentWindowHandle Parent window for the dialog.
+ * \param ControlHandle The handle to the control.
+ * \param Type The type of the control.
+ */
 VOID PvShowChooseColumnsDialog(
     _In_ HWND ParentWindowHandle,
     _In_ HWND ControlHandle,
@@ -70,6 +77,14 @@ VOID PvShowChooseColumnsDialog(
     PhDereferenceObject(context.Columns);
 }
 
+/**
+ * Compares the display index of two columns for sorting.
+ *
+ * \param Context Optional callback context.
+ * \param elem1 First column pointer.
+ * \param elem2 Second column pointer.
+ * \return Comparison result.
+ */
 static int __cdecl PvColumnsCompareDisplayIndexTn(
     _In_ const void* Context,
     _In_ const void* elem1,
@@ -82,6 +97,14 @@ static int __cdecl PvColumnsCompareDisplayIndexTn(
     return uintcmp(column1->DisplayIndex, column2->DisplayIndex);
 }
 
+/**
+ * Compares the names of two inactive columns alphabetically.
+ *
+ * \param Context Optional callback context.
+ * \param elem1 First string pointer.
+ * \param elem2 Second string pointer.
+ * \return Comparison result.
+ */
 static int __cdecl PvInactiveColumnsCompareNameTn(
     _In_ const void* Context,
     _In_ const void* elem1,
@@ -94,6 +117,13 @@ static int __cdecl PvInactiveColumnsCompareNameTn(
     return PhCompareStringZ(column1, column2, FALSE);
 }
 
+/**
+ * Finds the index of a string in a list.
+ *
+ * \param List The list to search.
+ * \param String The string to find.
+ * \return The index of the string, or ULONG_MAX if not found.
+ */
 _Success_(return != ULONG_MAX)
 static ULONG IndexOfStringInList(
     _In_ PPH_LIST List,
@@ -109,6 +139,12 @@ static ULONG IndexOfStringInList(
     return ULONG_MAX;
 }
 
+/**
+ * Gets the current message font for a window.
+ *
+ * \param hwnd The window handle.
+ * \return The handle to the font, or NULL on failure.
+ */
 static HFONT PvColumnsGetCurrentFont(
     _In_ HWND hwnd
     )
@@ -127,6 +163,13 @@ static HFONT PvColumnsGetCurrentFont(
     return font;
 }
 
+/**
+ * Matches words from a search string against a target string.
+ *
+ * \param SearchboxText The search string.
+ * \param Text The target string.
+ * \return TRUE if a match is found, FALSE otherwise.
+ */
 BOOLEAN PvColumnsWordMatchStringRef(
     _In_ PPH_STRING SearchboxText,
     _In_ PPH_STRINGREF Text
@@ -151,6 +194,14 @@ BOOLEAN PvColumnsWordMatchStringRef(
     return FALSE;
 }
 
+/**
+ * Resets a list box and populates it with items, optionally sorting and filtering them.
+ *
+ * \param ListBoxHandle The handle to the list box control.
+ * \param SearchMatchHandle The search control match handle for filtering.
+ * \param Array The list containing the items to display.
+ * \param CompareFunction Optional comparison function for sorting.
+ */
 VOID PvColumnsResetListBox(
     _In_ HWND ListBoxHandle,
     _In_ ULONG_PTR SearchMatchHandle,
@@ -193,6 +244,12 @@ VOID PvColumnsResetListBox(
     SendMessage(ListBoxHandle, WM_SETREDRAW, TRUE, 0);
 }
 
+/**
+ * Sets the height of the list boxes based on the current DPI.
+ *
+ * \param context The columns dialog context.
+ * \param hwndDlg The dialog window handle.
+ */
 VOID PvSetListHeight(
     _In_ PCOLUMNS_DIALOG_CONTEXT context,
     _In_ HWND hwndDlg
@@ -206,6 +263,12 @@ VOID PvSetListHeight(
     ListBox_SetItemHeight(context->ActiveWindowHandle, 0, PhScaleToDisplay(16, dpiValue));
 }
 
+/**
+ * Callback for the inactive columns search control.
+ *
+ * \param MatchHandle The search control match handle.
+ * \param Context The columns dialog context.
+ */
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpInactiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -224,6 +287,12 @@ VOID NTAPI PvpInactiveColumnsSearchControlCallback(
         );
 }
 
+/**
+ * Callback for the active columns search control.
+ *
+ * \param MatchHandle The search control match handle.
+ * \param Context The columns dialog context.
+ */
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI PvpActiveColumnsSearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -242,6 +311,15 @@ VOID NTAPI PvpActiveColumnsSearchControlCallback(
         );
 }
 
+/**
+ * The dialog procedure for the column chooser dialog.
+ *
+ * \param hwndDlg The handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Additional message-specific information.
+ * \param lParam Additional message-specific information.
+ * \return INT_PTR Dialog return value.
+ */
 INT_PTR CALLBACK PvColumnsDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -715,7 +793,7 @@ INT_PTR CALLBACK PvColumnsDlgProc(
                     break;
 
                 bufferDc = CreateCompatibleDC(drawInfo->hDC);
-                bufferBitmap = CreateCompatibleBitmap(drawInfo->hDC, bufferRect.right, bufferRect.bottom);
+                bufferBitmap = PhCreateDIBSection(drawInfo->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
 
                 oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
                 SelectFont(bufferDc, context->ControlFont);

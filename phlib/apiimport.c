@@ -164,6 +164,7 @@ PH_DEFINE_IMPORT(L"ntdll.dll", NtCompareObjects);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtCreateTimer2);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtMapViewOfSectionEx);
 PH_DEFINE_IMPORT(L"ntdll.dll", NtSetTimer2);
+PH_DEFINE_IMPORT(L"ntdll.dll", NtAlpcConnectPortEx);
 
 PH_DEFINE_IMPORT_NATIVE(L"ntdll.dll", NtSetInformationVirtualMemory);
 PH_DEFINE_IMPORT(L"ntdll.dll", LdrSystemDllInitBlock);
@@ -178,7 +179,12 @@ PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetTokenNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerNamedObjectPath);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerSidType);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlGetAppContainerParent);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlLoadString);
 PH_DEFINE_IMPORT(L"ntdll.dll", RtlStringFromGUIDEx);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlInitializeCorrelationVector);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlIncrementCorrelationVector);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlExtendCorrelationVector);
+PH_DEFINE_IMPORT(L"ntdll.dll", RtlValidateCorrelationVector);
 
 
 PH_DEFINE_IMPORT(L"ntdll.dll", PssNtCaptureSnapshot);

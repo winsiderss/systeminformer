@@ -18,6 +18,9 @@
 
 PH_CIRCULAR_BUFFER_PVOID PhLogBuffer;
 
+/**
+ * Initializes the circular log buffer.
+ */
 VOID PhLogInitialization(
     VOID
     )
@@ -30,6 +33,14 @@ VOID PhLogInitialization(
     memset(PhLogBuffer.Data, 0, sizeof(PVOID) * PhLogBuffer.Size);
 }
 
+/**
+ * Allocates and initializes a base log entry structure.
+ *
+ * \param Type The log entry type.
+ * \param Buffer Optional payload data to copy into the log entry buffer.
+ * \param BufferLength The size of the payload buffer in bytes.
+ * \return PPH_LOG_ENTRY A pointer to the newly allocated log entry.
+ */
 PPH_LOG_ENTRY PhpCreateLogEntry(
     _In_ UCHAR Type,
     _In_reads_bytes_opt_(BufferLength) PVOID Buffer,
@@ -53,6 +64,11 @@ PPH_LOG_ENTRY PhpCreateLogEntry(
     return entry;
 }
 
+/**
+ * Releases referenced objects in a log entry and frees its memory.
+ *
+ * \param Entry A pointer to the log entry to free.
+ */
 VOID PhpFreeLogEntry(
     _In_ _Post_invalid_ PPH_LOG_ENTRY Entry
     )
@@ -76,6 +92,18 @@ VOID PhpFreeLogEntry(
     PhFree(Entry);
 }
 
+/**
+ * Creates a process log entry.
+ *
+ * \param Type The process log entry type.
+ * \param ProcessId The process ID.
+ * \param Name The process image file name.
+ * \param ParentProcessId Optional parent process ID.
+ * \param ParentName Optional parent process image file name.
+ * \param Status Optional exit status code.
+ * \param Record Optional process record object.
+ * \return PPH_LOG_ENTRY A pointer to the created log entry.
+ */
 PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     _In_ UCHAR Type,
     _In_ HANDLE ProcessId,
@@ -112,6 +140,14 @@ PPH_LOG_ENTRY PhpCreateProcessLogEntry(
     return entry;
 }
 
+/**
+ * Creates a service log entry.
+ *
+ * \param Type The service log entry type.
+ * \param Name The service name.
+ * \param DisplayName The service display name.
+ * \return PPH_LOG_ENTRY A pointer to the created log entry.
+ */
 PPH_LOG_ENTRY PhpCreateServiceLogEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
@@ -129,6 +165,14 @@ PPH_LOG_ENTRY PhpCreateServiceLogEntry(
     return entry;
 }
 
+/**
+ * Creates a device log entry.
+ *
+ * \param Type The device log entry type.
+ * \param Classification The device classification string.
+ * \param Name The device name string.
+ * \return PPH_LOG_ENTRY A pointer to the created log entry.
+ */
 PPH_LOG_ENTRY PhpCreateDeviceLogEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Classification,
@@ -146,6 +190,13 @@ PPH_LOG_ENTRY PhpCreateDeviceLogEntry(
     return entry;
 }
 
+/**
+ * Creates a generic message log entry.
+ *
+ * \param Type The message log entry type.
+ * \param Message The message text.
+ * \return PPH_LOG_ENTRY A pointer to the created log entry.
+ */
 PPH_LOG_ENTRY PhpCreateMessageLogEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Message
@@ -160,6 +211,11 @@ PPH_LOG_ENTRY PhpCreateMessageLogEntry(
     return entry;
 }
 
+/**
+ * Adds a log entry to the circular buffer and fires the logged event callback.
+ *
+ * \param Entry A pointer to the log entry to add.
+ */
 VOID PhpLogEntry(
     _In_ PPH_LOG_ENTRY Entry
     )
@@ -174,6 +230,9 @@ VOID PhpLogEntry(
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackLoggedEvent), Entry);
 }
 
+/**
+ * Clears and frees all entries currently stored in the circular log buffer.
+ */
 VOID PhClearLogEntries(
     VOID
     )
@@ -190,6 +249,17 @@ VOID PhClearLogEntries(
     memset(PhLogBuffer.Data, 0, sizeof(PVOID) * PhLogBuffer.Size);
 }
 
+/**
+ * Logs a process creation or termination event.
+ *
+ * \param Type The process log entry type.
+ * \param ProcessId The process ID.
+ * \param Name The process image file name.
+ * \param ParentProcessId Optional parent process ID.
+ * \param ParentName Optional parent process image file name.
+ * \param Status Optional process exit status code.
+ * \param Record Optional process record object.
+ */
 VOID PhLogProcessEntry(
     _In_ UCHAR Type,
     _In_ HANDLE ProcessId,
@@ -203,6 +273,13 @@ VOID PhLogProcessEntry(
     PhpLogEntry(PhpCreateProcessLogEntry(Type, ProcessId, Name, ParentProcessId, ParentName, Status, Record));
 }
 
+/**
+ * Logs a service event.
+ *
+ * \param Type The service log entry type.
+ * \param Name The service name.
+ * \param DisplayName The service display name.
+ */
 VOID PhLogServiceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Name,
@@ -212,6 +289,13 @@ VOID PhLogServiceEntry(
     PhpLogEntry(PhpCreateServiceLogEntry(Type, Name, DisplayName));
 }
 
+/**
+ * Logs a device arrival or removal event.
+ *
+ * \param Type The device log entry type.
+ * \param Classification The device classification string.
+ * \param Name The device name string.
+ */
 VOID PhLogDeviceEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Classification,
@@ -221,6 +305,12 @@ VOID PhLogDeviceEntry(
     PhpLogEntry(PhpCreateDeviceLogEntry(Type, Classification, Name));
 }
 
+/**
+ * Logs a message string event.
+ *
+ * \param Type The log entry type.
+ * \param Message The message text.
+ */
 VOID PhLogMessageEntry(
     _In_ UCHAR Type,
     _In_ PPH_STRING Message
@@ -229,6 +319,14 @@ VOID PhLogMessageEntry(
     PhLogMessageEntryEx(Type, Message, NULL, 0);
 }
 
+/**
+ * Logs an extended message event with an optional payload buffer.
+ *
+ * \param Type The log entry type.
+ * \param Message The message text.
+ * \param Buffer Optional payload data buffer.
+ * \param BufferLength The size of the payload buffer in bytes.
+ */
 VOID PhLogMessageEntryEx(
     _In_ UCHAR Type,
     _In_ PPH_STRING Message,
@@ -245,6 +343,13 @@ VOID PhLogMessageEntryEx(
     PhpLogEntry(entry);
 }
 
+/**
+ * Formats an array of format specifiers into a string buffer.
+ *
+ * \param Format An array of format descriptors.
+ * \param Count The number of elements in the format array.
+ * \return PPH_STRING The formatted string.
+ */
 PPH_STRING PhpFormatLogEntryToBuffer(
     _In_ PPH_FORMAT Format,
     _In_ ULONG Count
@@ -272,6 +377,12 @@ PPH_STRING PhpFormatLogEntryToBuffer(
     return PhFormat(Format, Count, 0x80);
 }
 
+/**
+ * Formats the extra payload buffer of a log entry as a string.
+ *
+ * \param Entry A pointer to the log entry.
+ * \return PPH_STRING A string representing the extra payload, or an empty string reference if none.
+ */
 static PPH_STRING PhpFormatLogEntryExtra(
     _In_ PPH_LOG_ENTRY Entry
     )
@@ -282,6 +393,12 @@ static PPH_STRING PhpFormatLogEntryExtra(
     return PhCreateStringEx((PVOID)Entry->Buffer, Entry->BufferLength);
 }
 
+/**
+ * Formats a log entry into a human-readable display string.
+ *
+ * \param Entry A pointer to the log entry to format.
+ * \return PPH_STRING A formatted string describing the log event.
+ */
 PPH_STRING PhFormatLogEntry(
     _In_ PPH_LOG_ENTRY Entry
     )
@@ -530,6 +647,12 @@ static CONST PH_KEY_VALUE_PAIR PhpLogEntryTypePairs[] =
     SIP(SREF(L"Message"), PH_LOG_ENTRY_MESSAGE)
 };
 
+/**
+ * Retrieves a string reference representing the type name of a log entry.
+ *
+ * \param Entry A pointer to the log entry.
+ * \return PCPH_STRINGREF A string reference describing the entry type.
+ */
 PCPH_STRINGREF PhFormatLogType(
     _In_ PPH_LOG_ENTRY Entry
     )

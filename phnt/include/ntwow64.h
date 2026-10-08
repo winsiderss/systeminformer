@@ -27,13 +27,11 @@ typedef enum _WOW64_SHARED_INFORMATION
     SharedNtdll32KiUserExceptionDispatcher,
     SharedNtdll32KiUserApcDispatcher,
     SharedNtdll32KiUserCallbackDispatcher,
-    SharedNtdll32ExpInterlockedPopEntrySListFault,
-    SharedNtdll32ExpInterlockedPopEntrySListResume,
-    SharedNtdll32ExpInterlockedPopEntrySListEnd,
     SharedNtdll32RtlUserThreadStart,
     SharedNtdll32pQueryProcessDebugInformationRemote,
     SharedNtdll32BaseAddress,
     SharedNtdll32LdrSystemDllInitBlock,
+    SharedNtdll32RtlpFreezeTimeBias,
     Wow64SharedPageEntriesCount
 } WOW64_SHARED_INFORMATION;
 
@@ -660,6 +658,12 @@ static_assert(sizeof(TEB32) == 0x1000, "sizeof(TEB32) is incorrect");
 // Conversion
 //
 
+/**
+ * The UStr32ToUStr routine converts a 32-bit UNICODE_STRING32 structure to a native UNICODE_STRING structure.
+ *
+ * \param Destination A pointer to the target UNICODE_STRING structure.
+ * \param Source A pointer to the source UNICODE_STRING32 structure.
+ */
 FORCEINLINE VOID UStr32ToUStr(
     _Out_ PUNICODE_STRING Destination,
     _In_ PCUNICODE_STRING32 Source
@@ -670,6 +674,12 @@ FORCEINLINE VOID UStr32ToUStr(
     Destination->Buffer = (PWCH)UlongToPtr(Source->Buffer);
 }
 
+/**
+ * The UStrToUStr32 routine converts a native UNICODE_STRING structure to a 32-bit UNICODE_STRING32 structure.
+ *
+ * \param Destination A pointer to the target UNICODE_STRING32 structure.
+ * \param Source A pointer to the source UNICODE_STRING structure.
+ */
 FORCEINLINE VOID UStrToUStr32(
     _Out_ PUNICODE_STRING32 Destination,
     _In_ PCUNICODE_STRING Source
@@ -755,6 +765,11 @@ typedef struct _PEB32_WITH_WOW64INFO
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
 #ifdef _M_X64
 
+/**
+ * The Wow64CurrentGuestTeb routine retrieves a pointer to the 32-bit TEB (guest TEB) for a thread executing under WOW64.
+ *
+ * \return A pointer to the 32-bit TEB32 structure, or NULL if the thread is not running under or over WOW64.
+ */
 FORCEINLINE
 TEB32*
 POINTER_UNSIGNED
@@ -805,6 +820,11 @@ Wow64CurrentGuestTeb(
     return Teb32;
 }
 
+/**
+ * The Wow64CurrentNativeTeb routine retrieves a pointer to the native (host) TEB for the current thread.
+ *
+ * \return A pointer to the native TEB structure.
+ */
 FORCEINLINE
 VOID*
 POINTER_UNSIGNED

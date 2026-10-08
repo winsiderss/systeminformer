@@ -1980,10 +1980,7 @@ NTSTATUS PhGetRemoteMappedImageDebugEntryByType(
             dataBuffer = PhAllocatePageZero(dataLength);
 
             if (!dataBuffer)
-            {
-                status = STATUS_INSUFFICIENT_RESOURCES;
-                break;
-            }
+                return STATUS_NO_MEMORY;
 
             if (RemoteMappedImage->ReadVirtualMemoryCallback)
             {
@@ -2473,7 +2470,8 @@ NTSTATUS PhGetMappedImageExportsEx(
     status = PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfFunctions,
-        &Exports->AddressTable);
+        &Exports->AddressTable
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -2481,11 +2479,13 @@ NTSTATUS PhGetMappedImageExportsEx(
     PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfNames,
-        &Exports->NamePointerTable);
+        &Exports->NamePointerTable
+        );
     PhMappedImageRvaToVa(
         MappedImage,
         exportDirectory->AddressOfNameOrdinals,
-        &Exports->OrdinalTable);
+        &Exports->OrdinalTable
+        );
 
     // Note: NamePointerTable and OrdinalTable are null for binaries
     // such as mfc140u.dll yet contain valid exports (dmex)
@@ -2675,7 +2675,8 @@ ULONG PhLookupMappedImageExportName(
         if (!NT_SUCCESS(PhMappedImageRvaToVa(
             Exports->MappedImage,
             Exports->NamePointerTable[i],
-            &name)))
+            &name
+            )))
         {
             return ULONG_MAX;
         }
@@ -2751,19 +2752,24 @@ NTSTATUS PhGetMappedImageExportFunction(
         (rva < Exports->DataDirectory->VirtualAddress + Exports->DataDirectory->Size)
         )
     {
+        NTSTATUS status;
+        PVOID forwardedName;
+
         // This is a forwarder RVA.
 
-        if (!NT_SUCCESS(PhMappedImageRvaToVa(
+        status = PhMappedImageRvaToVa(
             Exports->MappedImage,
             rva,
-            &Function->ForwardedName)))
-        {
-            return STATUS_INVALID_PARAMETER;
-        }
+            &forwardedName
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
 
         // TODO: Probe the name.
 
         Function->Function = UlongToPtr(rva);
+        Function->ForwardedName = forwardedName;
     }
     else
     {
@@ -2858,7 +2864,8 @@ NTSTATUS PhGetMappedImageImports(
     status = PhMappedImageRvaToVa(
         MappedImage,
         dataDirectory->VirtualAddress,
-        &descriptor);
+        &descriptor
+        );
 
     if (!NT_SUCCESS(status))
         return status;
@@ -5181,7 +5188,7 @@ NTSTATUS PhGetMappedImageProdIdHeader(
                 return GetExceptionCode();
             }
 
-            richHeaderContentBuffer = PhAllocateZero(richHeaderContentLength);
+            richHeaderContentBuffer = PhAllocateZeroSafe(richHeaderContentLength);
 
             if (!richHeaderContentBuffer)
             {
@@ -8602,7 +8609,8 @@ NTSTATUS PhGetMappedImageSecurity(
     if (count == 0)
         return STATUS_NOT_FOUND;
 
-    entries = PhAllocate(count * sizeof(PH_IMAGE_SECURITY_ENTRY));
+    entries = PhAllocateSafe(count * sizeof(PH_IMAGE_SECURITY_ENTRY));
+    if (!entries) return STATUS_NO_MEMORY;
 
     // Second pass: fill the entry array.
 
@@ -8986,7 +8994,9 @@ NTSTATUS PhGetMappedImageWdacHash(
                 PVOID paddingBuffer;
 
                 paddingLength = PAGE_SIZE - offset;
-                paddingBuffer = PhAllocateZero(paddingLength);
+                paddingBuffer = PhAllocateZeroSafe(paddingLength);
+                if (!paddingBuffer)
+                    return STATUS_NO_MEMORY;
 
                 status = PhUpdateHash(&hashContext, paddingBuffer, paddingLength);
                 PhFree(paddingBuffer);

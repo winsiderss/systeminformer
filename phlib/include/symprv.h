@@ -16,7 +16,7 @@
 EXTERN_C_START
 
 extern PPH_OBJECT_TYPE PhSymbolProviderType;
-extern PH_CALLBACK PhSymbolEventCallback;
+PHLIBAPI extern PH_CALLBACK PhSymbolEventCallback;
 
 #define PH_MAX_SYMBOL_NAME_LEN MAX_SYM_NAME
 
@@ -295,6 +295,7 @@ PhWriteMiniDumpProcess(
 
 #define PH_THREAD_STACK_FRAME_KERNEL           0x0001
 #define PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT 0x0002
+#define PH_THREAD_STACK_FRAME_CONTEXT_PRESENT  0x0004
 
 /** Contains information about a thread stack frame. */
 typedef struct _PH_THREAD_STACK_FRAME
@@ -308,11 +309,20 @@ typedef struct _PH_THREAD_STACK_FRAME
     USHORT Machine;
     USHORT Flags;
     ULONG InlineFrameContext;
+    // Unwound register context for this frame (CONTEXT, WOW64_CONTEXT, ARM_NT_CONTEXT or
+    // ARM64EC_NT_CONTEXT depending on Machine). Only valid for the duration of the callback.
+    PVOID ContextRecord;
 } PH_THREAD_STACK_FRAME, *PPH_THREAD_STACK_FRAME;
 
 #define PH_WALK_USER_STACK 0x1
 #define PH_WALK_USER_WOW64_STACK 0x2
 #define PH_WALK_KERNEL_STACK 0x10
+// When set, PhWalkThreadStack will avoid registering/loading symbols via the
+// supplied symbol provider. The returned PH_THREAD_STACK_FRAME records contain
+// the raw frame information only; the caller is responsible for resolving
+// symbol names, file names and line numbers in a later pass (typically on a
+// background thread) to avoid blocking on PDB downloads. (dmex)
+#define PH_WALK_NO_SYMBOL_LOOKUP 0x100
 
 /**
  * A callback function passed to PhWalkThreadStack() and called for each stack frame.

@@ -87,6 +87,9 @@ static PPH_LIST ProcessesList = NULL;
 static ULONG NumberOfZombieProcesses;
 static ULONG NumberOfTerminatedProcesses;
 
+/**
+ * Displays the hidden and zombie processes detection window.
+ */
 VOID PhShowZombieProcessesDialog(
     VOID
     )
@@ -108,6 +111,11 @@ VOID PhShowZombieProcessesDialog(
         SetForegroundWindow(PhZombieProcessesWindowHandle);
 }
 
+/**
+ * Frees the zombie process entry list and updates the status description.
+ *
+ * \param UpdateList An optional pointer to the list of PH_ZOMBIE_PROCESS_ENTRY items to clean up.
+ */
 VOID PhZombieProcessesCleanupList(
     _In_opt_ PPH_LIST UpdateList
     )
@@ -133,6 +141,12 @@ VOID PhZombieProcessesCleanupList(
     }
 }
 
+/**
+ * Background thread routine that executes the selected zombie process scan.
+ *
+ * \param Context User-defined context pointer.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
  NTSTATUS PhZombieProcessesThread(
     _In_ PVOID Context
@@ -161,6 +175,15 @@ _Function_class_(USER_THREAD_START_ROUTINE)
     return STATUS_SUCCESS;
 }
 
+/**
+ * Dialog procedure for the hidden and zombie processes window.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam The message parameter.
+ * \param lParam The message parameter.
+ * \return INT_PTR Dialog procedure result.
+ */
 INT_PTR CALLBACK PhpZombieProcessesDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -621,6 +644,14 @@ INT_PTR CALLBACK PhpZombieProcessesDlgProc(
     return FALSE;
 }
 
+/**
+ * Determines the background color for a zombie process list item based on its status.
+ *
+ * \param Index The index of the item.
+ * \param Param A pointer to the PH_ZOMBIE_PROCESS_ENTRY structure.
+ * \param Context User-defined context pointer.
+ * \return COLORREF The RGB color value for the item.
+ */
 COLORREF NTAPI PhpZombieProcessesColorFunction(
     _In_ INT Index,
     _In_ PVOID Param,
@@ -641,6 +672,12 @@ COLORREF NTAPI PhpZombieProcessesColorFunction(
     return PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
 }
 
+/**
+ * Initializes a zombie process entry structure with default values.
+ *
+ * \param Entry Receives the initialized zombie process entry.
+ * \param ProcessId The identifier of the process.
+ */
 VOID PhpInitializeZombieProcessEntry(
     _Out_ PPH_ZOMBIE_PROCESS_ENTRY Entry,
     _In_ HANDLE ProcessId
@@ -653,6 +690,12 @@ VOID PhpInitializeZombieProcessEntry(
     Entry->HasHandleCount = FALSE;
 }
 
+/**
+ * Queries and sets the handle count for a zombie process entry.
+ *
+ * \param Entry A pointer to the zombie process entry to update.
+ * \param ProcessHandle A handle to the target process.
+ */
 VOID PhpSetZombieProcessHandleCount(
     _Inout_ PPH_ZOMBIE_PROCESS_ENTRY Entry,
     _In_ HANDLE ProcessHandle
@@ -667,6 +710,13 @@ VOID PhpSetZombieProcessHandleCount(
     }
 }
 
+/**
+ * Callback routine invoked during zombie process scanning to add discovered entries.
+ *
+ * \param Process A pointer to the detected zombie process entry.
+ * \param Context An optional pointer to the destination PH_LIST of process entries.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 BOOLEAN NTAPI PhpZombieProcessesCallback(
     _In_ PPH_ZOMBIE_PROCESS_ENTRY Process,
     _In_opt_ PVOID Context
@@ -705,6 +755,11 @@ BOOLEAN NTAPI PhpZombieProcessesCallback(
     return TRUE;
 }
 
+/**
+ * Populates the list view control with newly scanned zombie process items.
+ *
+ * \param UpdateList A pointer to the list of PH_ZOMBIE_PROCESS_ENTRY items.
+ */
 VOID PhZombieProcessesUpdateListView(
     _In_ PPH_LIST UpdateList
     )
@@ -740,6 +795,14 @@ VOID PhZombieProcessesUpdateListView(
     }
 }
 
+/**
+ * Creates or retrieves a process item for a detected zombie process.
+ *
+ * \param WindowHandle A handle to the window for user notifications.
+ * \param Entry A pointer to the zombie process entry.
+ * \param ProcessItem Receives a pointer to the created process item object.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Success_(NT_SUCCESS(return))
 NTSTATUS PhpCreateProcessItemForZombieProcess(
     _In_ HWND WindowHandle,
@@ -799,6 +862,13 @@ NTSTATUS PhpCreateProcessItemForZombieProcess(
 #define PH_ZOMBIE_LIMIT_PID_MAX 0xffff0000
 #define PH_ZOMBIE_SCAN_HEADROOM 0x10000
 
+/**
+ * Detects zombie processes by brute-force opening all potential process IDs.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumZombieProcessesBruteForce(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -925,6 +995,13 @@ typedef struct _CSR_HANDLES_CONTEXT
     PPH_LIST Pids;
 } CSR_HANDLES_CONTEXT, *PCSR_HANDLES_CONTEXT;
 
+/**
+ * Callback routine invoked for each handle in CSRSS to inspect associated process state.
+ *
+ * \param Handle A pointer to the CSR handle info.
+ * \param Context An optional pointer to the CSR_HANDLES_CONTEXT structure.
+ * \return TRUE to continue enumeration, FALSE to stop.
+ */
 static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
     _In_ PPH_CSR_HANDLE_INFO Handle,
     _In_opt_ PVOID Context
@@ -987,6 +1064,13 @@ static BOOLEAN NTAPI PhpCsrProcessHandlesCallback(
     return cont;
 }
 
+/**
+ * Detects zombie processes by scanning handle tables of CSR processes.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumZombieProcessesCsrHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1029,6 +1113,13 @@ typedef struct _PH_ENUM_NEXT_PROCESS_CONTEXT
     PVOID Context;
 } PH_ENUM_NEXT_PROCESS_CONTEXT, *PPH_ENUM_NEXT_PROCESS_CONTEXT;
 
+/**
+ * Callback routine for scanning processes via NtGetNextProcess.
+ *
+ * \param ProcessHandle A handle to the opened process.
+ * \param Context User-defined context pointer.
+ * \return NTSTATUS Successful or errant status.
+ */
 _Function_class_(PH_ENUM_NEXT_PROCESS)
 NTSTATUS NTAPI PhpEnumNextProcessHandles(
     _In_ HANDLE ProcessHandle,
@@ -1090,6 +1181,13 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+/**
+ * Detects zombie processes using the NtGetNextProcess kernel enumeration.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumZombieProcessHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1111,6 +1209,13 @@ NTSTATUS PhpEnumZombieProcessHandles(
     return status;
 }
 
+/**
+ * Detects zombie processes by inspecting open registry subkey process handles.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumZombieSubKeyHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1254,6 +1359,13 @@ NTSTATUS PhpEnumZombieSubKeyHandles(
     (PETW_TRACE_PROVIDER_INSTANCE_INFO)PTR_ADD_OFFSET((TraceGuid), \
     ((PETW_TRACE_PROVIDER_INSTANCE_INFO)(TraceGuid))->NextOffset) : NULL)
 
+/**
+ * Detects zombie processes by enumerating ETW trace registration GUIDs.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumEtwGuidHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1389,6 +1501,13 @@ NTSTATUS PhpEnumEtwGuidHandles(
     return status;
 }
 
+/**
+ * Detects zombie processes by querying processes with open handles to system binary files.
+ *
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpEnumNtdllHandles(
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1524,6 +1643,14 @@ NTSTATUS PhpEnumNtdllHandles(
     return status;
 }
 
+/**
+ * Enumerates zombie and hidden processes using the specified detection method.
+ *
+ * \param Method The detection method to use.
+ * \param Callback The callback routine invoked for each discovered process.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumZombieProcesses(
     _In_ PH_ZOMBIE_PROCESS_METHOD Method,
     _In_ PPH_ENUM_ZOMBIE_PROCESSES_CALLBACK Callback,
@@ -1549,6 +1676,13 @@ NTSTATUS PhEnumZombieProcesses(
     return STATUS_FAIL_CHECK;
 }
 
+/**
+ * Opens handles to all running Client/Server Runtime Subsystem (CSRSS) processes.
+ *
+ * \param ProcessHandles Receives an allocated array of process handles.
+ * \param NumberOfProcessHandles Receives the count of opened handles.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpOpenCsrProcesses(
     _Out_ PHANDLE *ProcessHandles,
     _Out_ PULONG NumberOfProcessHandles
@@ -1610,6 +1744,12 @@ NTSTATUS PhpOpenCsrProcesses(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Queries the target process identifier for a process or thread handle in CSRSS.
+ *
+ * \param Handle A pointer to the CSR handle information structure to update.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhpGetCsrHandleProcessId(
     _Inout_ PPH_CSR_HANDLE_INFO Handle
     )
@@ -1661,6 +1801,13 @@ NTSTATUS PhpGetCsrHandleProcessId(
     return status;
 }
 
+/**
+ * Enumerates all process and thread handles opened by CSRSS processes.
+ *
+ * \param Callback The callback routine invoked for each CSR handle.
+ * \param Context User-defined context passed to the callback.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhEnumCsrProcessHandles(
     _In_ PPH_ENUM_CSR_PROCESS_HANDLES_CALLBACK Callback,
     _In_opt_ PVOID Context
@@ -1731,6 +1878,14 @@ NTSTATUS PhEnumCsrProcessHandles(
     return status;
 }
 
+/**
+ * Opens a process by duplicating or acquiring a handle from CSRSS.
+ *
+ * \param ProcessHandle Receives the duplicated or opened process handle.
+ * \param DesiredAccess The access mask requested for the process.
+ * \param Handle A pointer to the CSR handle info.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessByCsrHandle(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1785,6 +1940,13 @@ typedef struct _OPEN_PROCESS_BY_CSR_CONTEXT
     HANDLE ProcessId;
 } OPEN_PROCESS_BY_CSR_CONTEXT, *POPEN_PROCESS_BY_CSR_CONTEXT;
 
+/**
+ * Callback routine used to locate and open a specific target process from CSR handles.
+ *
+ * \param Handle A pointer to the CSR handle info.
+ * \param Context A pointer to the OPEN_PROCESS_BY_CSR_CONTEXT structure.
+ * \return TRUE to continue searching, FALSE once the target process is found and opened.
+ */
 static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
     _In_ PPH_CSR_HANDLE_INFO Handle,
     _In_opt_ PVOID Context
@@ -1806,6 +1968,14 @@ static BOOLEAN NTAPI PhpOpenProcessByCsrHandlesCallback(
     return TRUE;
 }
 
+/**
+ * Opens a process with the specified process ID using handles found in CSRSS.
+ *
+ * \param ProcessHandle Receives the opened process handle.
+ * \param DesiredAccess The access mask requested for the process.
+ * \param ProcessId The identifier of the process to open.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSTATUS PhOpenProcessByCsrHandles(
     _Out_ PHANDLE ProcessHandle,
     _In_ ACCESS_MASK DesiredAccess,

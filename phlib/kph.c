@@ -1071,7 +1071,8 @@ NTSTATUS KsiEnumerateProcessHandles(
     PVOID buffer;
     ULONG bufferSize = 2048;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1085,7 +1086,8 @@ NTSTATUS KsiEnumerateProcessHandles(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -1236,7 +1238,8 @@ NTSTATUS KphQueryObjectSectionMappingsInfo(
 
     *Info = NULL;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1252,7 +1255,8 @@ NTSTATUS KphQueryObjectSectionMappingsInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -1707,7 +1711,8 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
     PVOID buffer;
     ULONG bufferSize = MAX_PATH;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -1720,7 +1725,8 @@ NTSTATUS KphAlpcQueryCommunicationsNamesInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {
@@ -2071,7 +2077,8 @@ NTSTATUS KphQuerySectionMappingsInfo(
 
     *Info = NULL;
 
-    buffer = PhAllocate(bufferSize);
+    buffer = PhAllocateSafe(bufferSize);
+    if (!buffer) return STATUS_NO_MEMORY;
 
     while (TRUE)
     {
@@ -2083,7 +2090,8 @@ NTSTATUS KphQuerySectionMappingsInfo(
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            buffer = PhAllocate(bufferSize);
+            buffer = PhAllocateSafe(bufferSize);
+            if (!buffer) return STATUS_NO_MEMORY;
         }
         else
         {

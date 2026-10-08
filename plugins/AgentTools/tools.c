@@ -817,6 +817,7 @@ VOID AtAddSnapshot(
     PhAddJsonObjectBoolean(Object, "updates_paused", !SystemInformer_GetUpdateAutomatically());
 }
 
+_Success_(return)
 BOOLEAN AtGetArgumentUInt64(
     _In_opt_ PVOID Arguments,
     _In_ PCSTR Key,
@@ -835,6 +836,7 @@ BOOLEAN AtGetArgumentUInt64(
     return TRUE;
 }
 
+_Success_(return)
 BOOLEAN AtGetArgumentPointer(
     _In_opt_ PVOID Arguments,
     _In_ PCSTR Key,
@@ -1303,6 +1305,7 @@ PCWSTR AtPriorityClassString(
     return NULL;
 }
 
+_Success_(return)
 BOOLEAN AtParsePriorityClass(
     _In_opt_ PPH_STRING String,
     _Out_ PULONG PriorityClass
@@ -1334,6 +1337,7 @@ BOOLEAN AtParsePriorityClass(
     return FALSE;
 }
 
+_Success_(return)
 BOOLEAN AtParseIoPriority(
     _In_opt_ PPH_STRING String,
     _Out_ IO_PRIORITY_HINT* IoPriority
@@ -1853,6 +1857,7 @@ VOID AtInvokeTool(
     case AtActionListPoolTags:
     case AtActionListKernelDrivers:
     case AtActionGetKsiStatus:
+    case AtActionSystemInformerStatus:
     case AtActionGetPagefileInfo:
     case AtActionListStartupEntries:
     case AtActionGetSmbiosInfo:

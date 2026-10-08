@@ -73,7 +73,7 @@ FORCEINLINE VOID PhpDereferenceEvent(
         if (EventHandle)
         {
             NtClose(EventHandle);
-            Event->EventHandle = NULL;
+            WritePointerRelease(&Event->EventHandle, NULL);
         }
     }
 }
@@ -747,7 +747,7 @@ NTSTATUS PhCancelWaitCompletionPacket(
 // state across the wait boundary. The kernel guarantee cannot be reproduced from user
 // mode through WCPs because each WCP consumes its target's signal at fire time.
 // One-shot objects (processes, threads, manual-reset events) are fully supported.
-static NTSTATUS PhpReassociateWaitCompletionPacket(
+NTSTATUS PhReassociateWaitCompletionPacket(
     _Inout_ PHANDLE WaitPacketSlot,
     _In_ HANDLE IoCompletionHandle,
     _In_ HANDLE TargetHandle,
@@ -1059,7 +1059,7 @@ NTSTATUS PhWaitForManyObjects(
 
                     if (signaledCount < ObjectCount)
                     {
-                        status = PhpReassociateWaitCompletionPacket(
+                        status = PhReassociateWaitCompletionPacket(
                             &waitPacketHandles[objectIndex],
                             ioCompletionHandle,
                             Handles[objectIndex],
@@ -1139,7 +1139,7 @@ NTSTATUS PhWaitForManyObjects(
 
             if (signaledCount < ObjectCount)
             {
-                status = PhpReassociateWaitCompletionPacket(
+                status = PhReassociateWaitCompletionPacket(
                     &waitPacketHandles[objectIndex],
                     ioCompletionHandle,
                     Handles[objectIndex],
@@ -1387,15 +1387,15 @@ CleanupExit:
  * drained the queue between wait wake and dequeue, the routine retries the wait
  * until timeout/termination.
  *
- * \\param[in] IoCompletionHandle A handle to an I/O completion object opened with SYNCHRONIZE.
- * \\param[in] TerminationHandle A handle to a waitable object used to terminate the loop.
- * \\param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or STATUS_ALERTED.
- * \\param[in] Timeout Optional timeout. Relative values are converted to an absolute deadline.
- * \\param[out] KeyContext Optional pointer that receives the dequeued completion key.
- * \\param[out] ApcContext Optional pointer that receives the dequeued APC context.
- * \\param[out] IoStatusBlock Optional pointer that receives the dequeued I/O status block.
- * \\param[out] Terminated Optional pointer that receives TRUE if TerminationHandle satisfied the wait.
- * \\return STATUS_SUCCESS if a completion packet was dequeued, STATUS_CANCELLED if
+ * \param[in] IoCompletionHandle A handle to an I/O completion object opened with SYNCHRONIZE.
+ * \param[in] TerminationHandle A handle to a waitable object used to terminate the loop.
+ * \param[in] Alertable If TRUE, the wait is alertable and may return STATUS_USER_APC or STATUS_ALERTED.
+ * \param[in] Timeout Optional timeout. Relative values are converted to an absolute deadline.
+ * \param[out] KeyContext Optional pointer that receives the dequeued completion key.
+ * \param[out] ApcContext Optional pointer that receives the dequeued APC context.
+ * \param[out] IoStatusBlock Optional pointer that receives the dequeued I/O status block.
+ * \param[out] Terminated Optional pointer that receives TRUE if TerminationHandle satisfied the wait.
+ * \return STATUS_SUCCESS if a completion packet was dequeued, STATUS_CANCELLED if
  *         TerminationHandle was signaled, or a propagated wait/dequeue status.
  */
 NTSTATUS PhWaitForIoCompletionAndTermination(
@@ -1504,3 +1504,130 @@ NTSTATUS PhWaitForIoCompletionAndTermination(
         return status;
     }
 }
+
+/**
+ * Waits until an address no longer contains a specified value.
+ *
+ * \note WaitOnAddress/RtlWaitOnAddress is guaranteed to return when the address is signaled,
+ * but it is also allowed to return for other reasons. For this reason, this function compares
+ * the new value with the original undesired value to confirm that the value has actually changed.
+ * For example, the following circumstances can wake the wait thread early:
+ * - Low memory conditions.
+ * - A previous wake on the same address was abandoned.
+ * - Executing code on a checked build of the operating system.
+ * \remarks Use this function instead of WaitOnAddress/RtlWaitOnAddress when
+ * the caller must confirm that the value differs from the original undesired
+ * value. STATUS_SUCCESS means that change was observed; the function can also
+ * return STATUS_TIMEOUT or an error.
+ */
+ NTSTATUS PhWaitOnAddress(
+     _In_reads_bytes_(AddressSize) volatile VOID* Address,
+     _In_reads_bytes_(AddressSize) PVOID CompareAddress,
+     _In_ SIZE_T AddressSize,
+     _In_opt_ PLARGE_INTEGER Timeout
+    )
+ {
+     NTSTATUS status;
+     ULONG64 compareValue = 0;
+     ULONG64 observedValue;
+     ULONG64 startTime = 0;
+     ULONG64 duration = 0;
+     ULONG64 elapsed;
+     ULONG64 remaining;
+     LARGE_INTEGER waitTimeout;
+     PLARGE_INTEGER effectiveTimeout;
+     BOOLEAN relativeTimeout = FALSE;
+     BOOLEAN timedOut = FALSE;
+
+     if (!Address || !CompareAddress || (AddressSize != 1 && AddressSize != 2 && AddressSize != 4 && AddressSize != 8) || ((ULONG_PTR)Address & (AddressSize - 1)))
+         return STATUS_INVALID_PARAMETER;
+
+     //
+     // Freeze the undesired value before waiting so every retry uses the same comparison.
+     //
+
+     RtlCopyMemory(&compareValue, CompareAddress, AddressSize);
+
+     //
+     // A relative NT timeout applies to each wait call; track one deadline for all retries.
+     //
+
+     if (Timeout && Timeout->QuadPart < 0)
+     {
+         relativeTimeout = TRUE;
+         duration = (ULONG64)(-(Timeout->QuadPart + 1)) + 1;
+         startTime = PhQueryWaitTime();
+     }
+
+     while (TRUE)
+     {
+         //
+         // Read the complete value with acquire ordering before checking the predicate.
+         //
+
+         switch (AddressSize)
+         {
+         case 1:
+             observedValue = ReadUCharAcquire((volatile UCHAR*)Address);
+             break;
+         case 2:
+             observedValue = ReadUShortAcquire((volatile USHORT*)Address);
+             break;
+         case 4:
+             observedValue = ReadULongAcquire((volatile ULONG*)Address);
+             break;
+         default:
+             observedValue = ReadULong64Acquire((volatile ULONG64*)Address);
+             break;
+         }
+
+         //
+         // A wake, including a timeout or a spurious wake, does not prove the value changed.
+         //
+
+         if (observedValue != compareValue)
+             return STATUS_SUCCESS;
+
+         //
+         // After an absolute timeout, the predicate has had its final check.
+         //
+
+         if (timedOut)
+             return STATUS_TIMEOUT;
+
+         effectiveTimeout = Timeout;
+         if (relativeTimeout)
+         {
+             //
+             // Recompute the remaining interval instead of restarting the original timeout.
+             //
+
+             elapsed = PhQueryWaitTime() - startTime;
+
+             if (elapsed >= duration)
+                 return STATUS_TIMEOUT;
+
+             remaining = duration - elapsed;
+             waitTimeout.QuadPart = remaining == (1ULL << 63) ? LLONG_MIN : -(LONGLONG)remaining;
+             effectiveTimeout = &waitTimeout;
+         }
+
+         status = RtlWaitOnAddress(
+             Address,
+             &compareValue,
+             AddressSize,
+             effectiveTimeout
+            );
+
+         //
+         // An absolute timeout needs one final value check; relative time is checked above.
+         //
+
+         if (status == STATUS_TIMEOUT)
+             timedOut = !relativeTimeout;
+         else if (!NT_SUCCESS(status))
+             return status;
+     }
+
+     return STATUS_INVALID_PARAMETER;
+ }

@@ -740,7 +740,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
     MI_Application application;
     MI_Session session;
     MI_Operation operation = MI_OPERATION_NULL;
-    MI_Instance* instance = NULL;
+    const MI_Instance* instance = NULL;
     const MI_Instance* completionDetails = NULL;
     const MI_Char* errorMessage = NULL;
     MI_Boolean moreResults = MI_FALSE;
@@ -848,7 +848,7 @@ NTSTATUS PhGetWmiNamespaceSecurityDescriptor(
             NULL
             ) == MI_RESULT_OK && type == MI_UINT8A && value.uint8a.data && value.uint8a.size)
         {
-            if (PhValidSecurityDescriptor(value.uint8a.data))
+            if (RtlValidRelativeSecurityDescriptor(value.uint8a.data, value.uint8a.size, 0))
             {
                 securityDescriptor = PhAllocateCopy(
                     value.uint8a.data,
@@ -1436,12 +1436,13 @@ HRESULT PhRestartDefenderOfflineScan(
     MI_Application application;
     MI_Session session;
     MI_Operation operation = MI_OPERATION_NULL;
-    MI_Instance* instance = NULL;
+    const MI_Instance* instance = NULL;
     const MI_Instance* completionDetails = NULL;
     const MI_Char* errorMessage = NULL;
     MI_Boolean moreResults = MI_FALSE;
     MI_Result operationResult = MI_RESULT_OK;
     MI_Value value;
+    MI_Type type = 0;
 
     HRESULT status = S_OK;
     NTSTATUS subStatus;
@@ -1510,12 +1511,6 @@ HRESULT PhRestartDefenderOfflineScan(
         &operation
         );
 
-    if (miResult != MI_RESULT_OK)
-    {
-        status = E_FAIL;
-        goto Cleanup;
-    }
-
     //
     // Pull results
     //
@@ -1553,10 +1548,10 @@ HRESULT PhRestartDefenderOfflineScan(
             instance,
             L"ReturnValue",
             &value,
-            NULL,
+            &type,
             NULL,
             NULL
-            ) == MI_RESULT_OK)
+            ) == MI_RESULT_OK && type == MI_UINT32)
         {
             if (value.uint32 != ERROR_SUCCESS)
             {
@@ -1577,7 +1572,6 @@ HRESULT PhRestartDefenderOfflineScan(
         status = HRESULT_FROM_WIN32(PhNtStatusToDosError(subStatus));
     }
 
-Cleanup:
     MI_Operation_Close(&operation);
     MI_Session_Close(&session, NULL, NULL);
     MI_Application_Close(&application);
@@ -1755,7 +1749,7 @@ NTSTATUS PhWbemProcessExecutableRundown(
     MI_Application application;
     MI_Session session;
     MI_Operation operation = MI_OPERATION_NULL;
-    MI_Instance* instance = NULL;
+    const MI_Instance* instance = NULL;
     const MI_Instance* completionDetails = NULL;
     const MI_Char* errorMessage = NULL;
     MI_Boolean moreResults = MI_FALSE;
@@ -1866,7 +1860,17 @@ NTSTATUS PhWbemProcessExecutableRundown(
                 type == MI_REFERENCE &&
                 value.reference)
             {
-                processId = (HANDLE)PhGetMiClassObjectUlongPtr(value.reference, L"ProcessId");
+                PPH_STRING handleString;
+                ULONG64 handleValue;
+
+                // References only carry key properties. The Win32_Process key is Handle (string), not ProcessId.
+                if (handleString = PhGetMiClassObjectString(value.reference, L"Handle"))
+                {
+                    if (PhStringToUInt64(&handleString->sr, 10, &handleValue))
+                        processId = (HANDLE)(ULONG_PTR)handleValue;
+
+                    PhDereferenceObject(handleString);
+                }
             }
 
             if (baseAddress)
@@ -1884,6 +1888,24 @@ NTSTATUS PhWbemProcessExecutableRundown(
 
     if (operationResult != MI_RESULT_OK && NT_SUCCESS(status))
         status = PhMiResultToNtStatus(operationResult);
+
+    // Cancel and consume any remaining results; MI_Operation_Close blocks until the final result is read.
+    if (moreResults && miResult == MI_RESULT_OK)
+    {
+        MI_Operation_Cancel(&operation, MI_REASON_NONE);
+
+        while (moreResults && MI_Operation_GetInstance(
+            &operation,
+            &instance,
+            &moreResults,
+            &operationResult,
+            &errorMessage,
+            &completionDetails
+            ) == MI_RESULT_OK)
+        {
+            NOTHING;
+        }
+    }
 
     MI_Operation_Close(&operation);
     MI_Session_Close(&session, NULL, NULL);

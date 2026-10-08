@@ -139,6 +139,8 @@ PCWSTR KsiGetWindowsVersionString(
         return L"Windows 11 24H2";
     case WINDOWS_11_25H2:
         return L"Windows 11 25H2";
+    case WINDOWS_11_26H2:
+        return L"Windows 11 26H2";
     case WINDOWS_11_26H1:
         return L"Windows 11 26H1";
     case WINDOWS_11_27H2:
@@ -984,7 +986,8 @@ NTSTATUS PhRestartSelf(
         NULL,
         NULL,
         &startupInfo,
-        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO,
+        PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_EXTENDED_STARTUPINFO |
+        PH_CREATE_PROCESS_DETACHED_PROCESS,
         NULL,
         NULL,
         NULL,

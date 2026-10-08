@@ -98,9 +98,10 @@ REM   %~1 - Semicolon-separated platform list (e.g. "x86;x64;ARM64").
 REM   %~2 - Friendly label shown in output.
 REM -----------------------------------------------------------------------------
 :RunMsBuildPublish
+set "TargetPlatforms=%~1"
 echo:
 echo Building CustomBuildTool.sln [%~2]
-msbuild /m /graph -restore tools\CustomBuildTool\CustomBuildTool.sln -t:All -p:BuildAllTarget=Publish -p:TargetConfigurations="Release" -p:TargetPlatforms="%~1" -p:ContinuousIntegrationBuild=%TIB% -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG%
+dotnet msbuild -mt -p:UseClStructuredOutput=false -restore /m /graph tools\CustomBuildTool\CustomBuildTool.csproj -t:All -p:BuildAllTarget=Publish -p:Configuration=Release -p:Platform=x86 -p:BuildTargetConfigurations=Release -p:ContinuousIntegrationBuild=%TIB% -p:RestoreUseStaticGraphEvaluation=true -p:CopyRetryCount=10 -p:CopyRetryDelayMilliseconds=500 -terminalLogger:%TLG%
 exit /b %errorlevel%
 
 REM -----------------------------------------------------------------------------
@@ -203,3 +204,4 @@ set "STDIN_REDIRECTED=False"
 for /f %%i in ('powershell -NoProfile -Command "[Console]::IsInputRedirected"') do set "STDIN_REDIRECTED=%%i"
 if /i not "%STDIN_REDIRECTED%"=="True" pause
 exit /b 0
+

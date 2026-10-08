@@ -9,8 +9,6 @@
  *
  */
 
-using System.Text.RegularExpressions;
-
 namespace CustomBuildTool
 {
     /// <summary>
@@ -96,67 +94,73 @@ namespace CustomBuildTool
         /// </summary>
         private static bool UpdateFile(string RepoRoot, string File)
         {
-            string content = Utils.ReadAllText(File);
-
-            if (string.IsNullOrEmpty(content))
-                return false;
-
-            int authorsIndex = content.IndexOf("Authors:", StringComparison.Ordinal);
-
-            if (authorsIndex < 0)
-                return false;
-
-            // Bound the rewrite to the leading comment block (Authors: .. closing */).
-            int blockEnd = content.IndexOf("*/", authorsIndex, StringComparison.Ordinal);
-
-            if (blockEnd < 0)
+            bool hasAuthors = false;
+            bool hasEnd = false;
+            foreach (string line in System.IO.File.ReadLines(File))
+            {
+                if (!hasAuthors && line.Contains("Authors:", StringComparison.Ordinal))
+                    hasAuthors = true;
+                if (hasAuthors && line.Contains("*/", StringComparison.Ordinal))
+                {
+                    hasEnd = true;
+                    break;
+                }
+            }
+            if (!hasEnd)
                 return false;
 
             List<CommitAuthor> commits = null; // lazily populated only when an author line is found
 
-            string region = content.Substring(authorsIndex, blockEnd - authorsIndex);
-
-            string updatedRegion = AuthorLineRegex().Replace(region, match =>
+            bool changed = false;
+            Utils.WriteTextIfChanged(File, writer =>
             {
-                // The "Authors:" label line itself has no trailing year, so it never matches.
-                string name = match.Groups["name"].Value.Trim();
-                int start = int.Parse(match.Groups["start"].Value);
-                int? existingEnd = match.Groups["end"].Success ? int.Parse(match.Groups["end"].Value) : null;
-
-                commits ??= GetFileCommitAuthors(RepoRoot, File);
-
-                int lastYear = 0;
-                foreach (var commit in commits)
+                bool inAuthors = false;
+                bool completed = false;
+                foreach (string fullLine in Utils.ReadLinesWithEndings(File))
                 {
-                    if (commit.Name.Contains(name, StringComparison.OrdinalIgnoreCase) ||
-                        commit.Email.Contains(name, StringComparison.OrdinalIgnoreCase))
+                    int endingLength = fullLine.EndsWith("\r\n", StringComparison.Ordinal) ? 2 :
+                        fullLine.EndsWith('\n') ? 1 : 0;
+                    string line = fullLine[..(fullLine.Length - endingLength)];
+                    if (!completed && !inAuthors && line.Contains("Authors:", StringComparison.Ordinal))
+                        inAuthors = true;
+                    string result = line;
+                    if (inAuthors && !line.Contains("*/", StringComparison.Ordinal))
                     {
-                        if (commit.Year > lastYear)
-                            lastYear = commit.Year;
+                        result = AuthorLineRegex().Replace(line, match =>
+                        {
+                            string name = match.Groups["name"].Value.Trim();
+                            int start = int.Parse(match.Groups["start"].Value);
+                            int? existingEnd = match.Groups["end"].Success ? int.Parse(match.Groups["end"].Value) : null;
+                            commits ??= GetFileCommitAuthors(RepoRoot, File);
+                            int lastYear = 0;
+                            foreach (var commit in commits)
+                            {
+                                if ((commit.Name.Contains(name, StringComparison.OrdinalIgnoreCase) ||
+                                    commit.Email.Contains(name, StringComparison.OrdinalIgnoreCase)) && commit.Year > lastYear)
+                                    lastYear = commit.Year;
+                            }
+                            if (lastYear == 0)
+                                return match.Value;
+                            int newEnd = Math.Max(existingEnd ?? start, lastYear);
+                            string yearText = newEnd > start ? $"{start}-{newEnd}" : $"{start}";
+                            return $"{match.Groups["prefix"].Value}{match.Groups["name"].Value}{match.Groups["sep"].Value}{yearText}";
+                        });
+                        if (result != line)
+                            changed = true;
+                    }
+                    writer.Write(result);
+                    if (endingLength != 0)
+                        writer.Write(fullLine.AsSpan(fullLine.Length - endingLength));
+                    if (inAuthors && line.Contains("*/", StringComparison.Ordinal))
+                    {
+                        inAuthors = false;
+                        completed = true;
                     }
                 }
-
-                if (lastYear == 0)
-                    return match.Value; // no matching commits for this author; leave unchanged
-
-                int newEnd = Math.Max(existingEnd ?? start, lastYear);
-
-                if (newEnd < start)
-                    newEnd = start;
-
-                string yearText = newEnd > start ? $"{start}-{newEnd}" : $"{start}";
-
-                return $"{match.Groups["prefix"].Value}{match.Groups["name"].Value}{match.Groups["sep"].Value}{yearText}";
-            });
-
-            if (updatedRegion == region)
-                return false;
-
-            content = string.Concat(content.AsSpan(0, authorsIndex), updatedRegion, content.AsSpan(blockEnd));
-            Utils.WriteAllText(File, content);
-
-            Program.PrintColorMessage($"  updated {Path.GetRelativePath(RepoRoot, File)}", ConsoleColor.Cyan);
-            return true;
+            }, ShouldReplace: () => changed, Comparison: StringComparison.Ordinal);
+            if (changed)
+                Program.PrintColorMessage($"  updated {Path.GetRelativePath(RepoRoot, File)}", ConsoleColor.Cyan);
+            return changed;
         }
 
         /// <summary>

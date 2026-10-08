@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Label="Globals">
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
     <HasSharedItems>true</HasSharedItems>
@@ -19,6 +19,7 @@
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntd3dkmt.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntdbg.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntexapi.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ntfve.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntgdi.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntimage.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)include\ntintsafe.h" />

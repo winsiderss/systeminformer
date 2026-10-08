@@ -163,11 +163,12 @@ typedef struct _INITIAL_TEB
     PVOID StackAllocationBase;  // Pointer to the base address where the stack was allocated.
 } INITIAL_TEB, *PINITIAL_TEB;
 
+#if (PHNT_MODE != PHNT_MODE_KERNEL)
+
 //
 // NtQueryInformationProcess/NtSetInformationProcess types
 //
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _PROCESSINFOCLASS
 {
     ProcessBasicInformation,                        // q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
@@ -290,13 +291,11 @@ typedef enum _PROCESSINFOCLASS
     ProcessAvailableCpus,                           // qs: Obsolete // PROCESS_AVAILABLE_CPUS_INFORMATION
     MaxProcessInfoClass
 } PROCESSINFOCLASS;
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
 
 //
 // NtQueryInformationThread/NtSetInformationThread types
 //
 
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 typedef enum _THREADINFOCLASS
 {
     ThreadBasicInformation,                         // q: THREAD_BASIC_INFORMATION
@@ -361,9 +360,6 @@ typedef enum _THREADINFOCLASS
     ThreadIndexInformation,                         // q: THREAD_INDEX_INFORMATION
     MaxThreadInfoClass
 } THREADINFOCLASS;
-#endif // (PHNT_MODE != PHNT_MODE_KERNEL)
-
-#if (PHNT_MODE != PHNT_MODE_KERNEL)
 
 // Use with both ProcessPagePriority and ThreadPagePriority
 typedef struct _PAGE_PRIORITY_INFORMATION
@@ -530,6 +526,9 @@ typedef struct _POOLED_USAGE_AND_LIMITS
     SIZE_T PagefileLimit;            // The limit on pagefile usage.
 } POOLED_USAGE_AND_LIMITS, *PPOOLED_USAGE_AND_LIMITS;
 
+/**
+ * Flags used to manage exception ports for a process.
+ */
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_BITS 0x00000003
 #define PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS ((ULONG_PTR)((1UL << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1))
 
@@ -576,6 +575,9 @@ typedef struct _PROCESS_ACCESS_TOKEN
 
 #ifndef _LDT_ENTRY_DEFINED
 #define _LDT_ENTRY_DEFINED
+/**
+ * The PROCESS_EXCEPTION_PORT structure is used to manage exception ports for a process.
+ */
 typedef struct _LDT_ENTRY
 {
     USHORT LimitLow;
@@ -4387,6 +4389,11 @@ NtCreateJobSet(
     );
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10)
+/**
+ * The NtRevertContainerImpersonation routine reverts container impersonation on the current thread.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS
@@ -4585,6 +4592,17 @@ typedef struct _PSSNT_WALK_MARKER_INFO
 } PSSNT_WALK_MARKER_INFO, *PPSSNT_WALK_MARKER_INFO;
 
 // rev
+/**
+ * The PssNtWalkSnapshot routine walks a process snapshot, retrieving information about threads, modules, or memory allocations.
+ *
+ * \param SnapshotHandle A handle to the process snapshot.
+ * \param InformationClass The information class identifying the type of data to walk (PSS_WALK_INFORMATION_CLASS).
+ * \param WalkMarkerHandle A handle to the walk marker tracking position within the snapshot.
+ * \param Buffer A pointer to the buffer receiving the snapshot record.
+ * \param BufferLength The size, in bytes, of the buffer pointed to by Buffer.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalksnapshot
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4597,6 +4615,13 @@ PssNtWalkSnapshot(
     );
 
 // rev
+/**
+ * The PssNtFreeWalkMarker routine frees a walk marker created for walking a process snapshot.
+ *
+ * \param WalkMarkerHandle A pointer to the walk marker handle to free.
+ * \return NTSTATUS Successful or errant status.
+ * \sa https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psswalkmarkerfree
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -4605,6 +4630,13 @@ PssNtFreeWalkMarker(
     );
 
 // rev
+/**
+ * The PssNtValidateDescriptor routine validates a process snapshot descriptor.
+ *
+ * \param SnapshotHandle A handle to the process snapshot.
+ * \param ExceptionAddress An optional return address where an exception occurred.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI

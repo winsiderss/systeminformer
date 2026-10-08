@@ -23,6 +23,7 @@
 #include <mapimg.h>
 #include <mapldr.h>
 #include <thirdparty.h>
+#include <json.h>
 
 #if defined(_ARM64_)
 #define PH_THREAD_STACK_NATIVE_MACHINE IMAGE_FILE_MACHINE_ARM64
@@ -314,6 +315,7 @@ static VOID PhpSymbolProviderEventCallback(
         }
         break;
     case CBA_DEFERRED_SYMBOL_LOAD_COMPLETE:
+    case CBA_DEFERRED_SYMBOL_LOAD_FAILURE:
         {
             PhClearReference(&PhSymbolProviderEventMessageText);
             PhpSymbolProviderInvokeCallback(PH_SYMBOL_EVENT_TYPE_LOAD_END, NULL, 0);
@@ -2392,16 +2394,18 @@ HRESULT PhWriteMiniDumpProcess(
  * \param StackFrame A pointer to the STACKFRAME64 structure to convert.
  * \param Machine Machine to set in the resulting structure.
  * \param Flags Flags to set in the resulting structure.
+ * \param ContextRecord The unwound register context for the frame (optional).
  * \param ThreadStackFrame A pointer to the resulting PH_THREAD_STACK_FRAME structure.
  */
 VOID PhConvertStackFrame(
     _In_ CONST STACKFRAME_EX *StackFrame,
     _In_ USHORT Machine,
     _In_ USHORT Flags,
+    _In_opt_ PVOID ContextRecord,
     _Out_ PPH_THREAD_STACK_FRAME ThreadStackFrame
     )
 {
-    memset(ThreadStackFrame, 0, sizeof(ThreadStackFrame->Params));
+    memset(ThreadStackFrame, 0, sizeof(PH_THREAD_STACK_FRAME));
     ThreadStackFrame->PcAddress = (PVOID)StackFrame->AddrPC.Offset;
     ThreadStackFrame->ReturnAddress = (PVOID)StackFrame->AddrReturn.Offset;
     ThreadStackFrame->FrameAddress = (PVOID)StackFrame->AddrFrame.Offset;
@@ -2418,6 +2422,12 @@ VOID PhConvertStackFrame(
         ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_FPO_DATA_PRESENT;
 
     ThreadStackFrame->InlineFrameContext = StackFrame->InlineFrameContext;
+
+    if (ContextRecord)
+    {
+        ThreadStackFrame->ContextRecord = ContextRecord;
+        ThreadStackFrame->Flags |= PH_THREAD_STACK_FRAME_CONTEXT_PRESENT;
+    }
 }
 
 /**
@@ -2458,6 +2468,13 @@ NTSTATUS PhWalkThreadStack(
     BOOLEAN isSystemThread = FALSE;
     THREAD_BASIC_INFORMATION basicInfo;
     HANDLE stateChangeHandle = NULL;
+    PPH_SYMBOL_PROVIDER symbolProvider;
+
+    // When the caller asked for raw frames only, drop the symbol provider so
+    // PhStackWalk does not register it (which would trigger SymInitialize and
+    // on-demand PDB downloads). Out-of-process pdata unwind via
+    // PhFunctionTableAccess64/PhGetModuleBase64 continues to work. (dmex)
+    symbolProvider = (Flags & PH_WALK_NO_SYMBOL_LOOKUP) ? NULL : SymbolProvider;
 
     // Open a handle to the process if we weren't given one.
     if (!ProcessHandle)
@@ -2644,7 +2661,7 @@ NTSTATUS PhWalkThreadStack(
                 ThreadHandle,
                 &stackFrame,
                 contextRecord,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2686,7 +2703,7 @@ CheckFinalARM64VirtualFrame:
                 {
                     // Convert the stack frame and execute the callback.
 
-                    PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                    PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, NULL, &threadStackFrame);
 
                     if (!Callback(&threadStackFrame, Context))
                         goto ResumeExit;
@@ -2712,7 +2729,7 @@ CheckFinalARM64VirtualFrame:
             //   known to be affected, other arches on ARM64 need tested too. Seems to be a bug in
             //   dbghelp.dll because dbgeng.dll (e.g. windbg.exe) seems to be broken here too.
 
-            frameMachine = PhpGetMachineForAddress(SymbolProvider, ProcessHandle, (PVOID)stackFrame.AddrPC.Offset);
+            frameMachine = PhpGetMachineForAddress(symbolProvider, ProcessHandle, (PVOID)stackFrame.AddrPC.Offset);
 
             if (machine != frameMachine)
             {
@@ -2738,7 +2755,7 @@ CheckFinalARM64VirtualFrame:
 
                 // Convert the stack frame and execute the callback.
 
-                PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, &threadStackFrame);
+                PhConvertStackFrame(&virtualFrame, (USHORT)virtualMachine, 0, NULL, &threadStackFrame);
 
                 if (!Callback(&threadStackFrame, Context))
                     goto ResumeExit;
@@ -2759,7 +2776,7 @@ CheckFinalARM64VirtualFrame:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, (USHORT)machine, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, (USHORT)machine, 0, contextRecord, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2787,8 +2804,7 @@ SkipUserStack:
         WOW64_CONTEXT context;
 
         memset(&context, 0, sizeof(WOW64_CONTEXT));
-        context.ContextFlags = WOW64_CONTEXT_ALL;
-        context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
+        context.ContextFlags = WOW64_CONTEXT_ALL | CONTEXT_EXCEPTION_REQUEST;
 
         if (!NT_SUCCESS(status = PhGetThreadWow64Context(ThreadHandle, &context)))
             goto SkipI386Stack;
@@ -2810,7 +2826,7 @@ SkipUserStack:
                 ThreadHandle,
                 &stackFrame,
                 &context,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2832,7 +2848,7 @@ SkipUserStack:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_I386, 0, &context, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -2870,8 +2886,17 @@ SkipI386Stack:
         context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
 
         // ThreadWow64Context ARM_NT_CONTEXT
-        if (!NT_SUCCESS(status = PhGetThreadArm32Context(ThreadHandle, &context)))
-            goto SkipARMStack;
+        // Don't overwrite the native walk status; only report this failure when it was the only walk requested.
+        {
+            NTSTATUS arm32Status = PhGetThreadArm32Context(ThreadHandle, &context);
+
+            if (!NT_SUCCESS(arm32Status))
+            {
+                if (!(Flags & PH_WALK_USER_STACK))
+                    status = arm32Status;
+                goto SkipARMStack;
+            }
+        }
 
         memset(&stackFrame, 0, sizeof(STACKFRAME_EX));
         stackFrame.StackFrameSize = sizeof(STACKFRAME_EX);
@@ -2890,7 +2915,7 @@ SkipI386Stack:
                 ThreadHandle,
                 &stackFrame,
                 &context,
-                SymbolProvider,
+                symbolProvider,
                 NULL,
                 NULL,
                 NULL,
@@ -2906,7 +2931,7 @@ SkipI386Stack:
 
             // Convert the stack frame and execute the callback.
 
-            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &threadStackFrame);
+            PhConvertStackFrame(&stackFrame, IMAGE_FILE_MACHINE_ARMNT, 0, &context, &threadStackFrame);
 
             if (!Callback(&threadStackFrame, Context))
                 goto ResumeExit;
@@ -4031,6 +4056,403 @@ BOOLEAN PhGetDiaSymbolInformation(
     return TRUE;
 }
 
+static CONST GUID PhpIID_IDiaSymbol10 = { 0x9034a70b, 0xb0b7, 0x4605, { 0x8a, 0x97, 0x33, 0x77, 0x2f, 0x3a, 0x7b, 0x8c } };
+
+/**
+ * Gets the Source Link JSON document embedded in a module's PDB.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param BaseOfDll The base address of the module.
+ * \param SourceLink A pointer to a variable that receives the UTF-8 Source Link document.
+ * \return TRUE on success, FALSE otherwise.
+ */
+_Success_(return)
+BOOLEAN PhGetSymbolProviderSourceLink(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID BaseOfDll,
+    _Out_ PPH_BYTES* SourceLink
+    )
+{
+    BOOLEAN result = FALSE;
+    IDiaSession* datasession;
+    IDiaSymbol* globalScope;
+    IDiaSymbol10* symbol10;
+    DWORD length = 0;
+
+    if (!PhGetSymbolProviderDiaSession(SymbolProvider, BaseOfDll, &datasession))
+        return FALSE;
+
+    if (IDiaSession_get_globalScope(datasession, &globalScope) == S_OK)
+    {
+        if (IDiaSymbol_QueryInterface(globalScope, &PhpIID_IDiaSymbol10, (PVOID*)&symbol10) == S_OK)
+        {
+            if (
+                IDiaSymbol10_get_sourceLink(symbol10, 0, &length, NULL) == S_OK &&
+                length != 0 && length <= 0x1000000
+                )
+            {
+                PPH_BYTES buffer = PhCreateBytesEx(NULL, length);
+
+                if (IDiaSymbol10_get_sourceLink(symbol10, length, &length, (BYTE*)buffer->Buffer) == S_OK &&
+                    length <= buffer->Length)
+                {
+                    while (length != 0 && buffer->Buffer[length - 1] == ANSI_NULL)
+                        length--;
+
+                    if (length != 0)
+                    {
+                        buffer->Length = length;
+                        buffer->Buffer[length] = ANSI_NULL;
+                        *SourceLink = buffer;
+                        buffer = NULL;
+                        result = TRUE;
+                    }
+                }
+
+                if (buffer)
+                    PhDereferenceObject(buffer);
+            }
+
+            IDiaSymbol10_Release(symbol10);
+        }
+
+        IDiaSymbol_Release(globalScope);
+    }
+
+    IDiaSession_Release(datasession);
+
+    return result;
+}
+
+typedef struct _PHP_SOURCELINK_MATCH_CONTEXT
+{
+    PH_STRINGREF LocalPath;
+    BOOLEAN Found;
+    BOOLEAN Exact;
+    SIZE_T MatchLength;
+    PPH_STRING Url;
+} PHP_SOURCELINK_MATCH_CONTEXT, *PPHP_SOURCELINK_MATCH_CONTEXT;
+
+static VOID PhpAppendSourceLinkPath(
+    _Inout_ PPH_STRING_BUILDER StringBuilder,
+    _In_ PCPH_STRINGREF Path
+    )
+{
+    for (SIZE_T i = 0; i < Path->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Path->Buffer[i];
+
+        if (c == L'\\')
+            PhAppendCharStringBuilder(StringBuilder, L'/');
+        else if (c == L' ')
+            PhAppendStringBuilder2(StringBuilder, L"%20");
+        else if (c == L'#')
+            PhAppendStringBuilder2(StringBuilder, L"%23");
+        else
+            PhAppendCharStringBuilder(StringBuilder, c);
+    }
+}
+
+static BOOLEAN NTAPI PhpSourceLinkDocumentCallback(
+    _In_ PVOID Object,
+    _In_ PCSTR Key,
+    _In_ PVOID Value,
+    _In_opt_ PVOID Context
+    )
+{
+    PPHP_SOURCELINK_MATCH_CONTEXT context = Context;
+    PPH_STRING key;
+    PPH_STRING value;
+
+    if (!context || context->Exact)
+        return FALSE;
+    if (PhGetJsonObjectType(Value) != PH_JSON_OBJECT_TYPE_STRING)
+        return TRUE;
+    if (!(key = PhConvertUtf8ToUtf16(Key)))
+        return TRUE;
+    if (!(value = PhGetJsonObjectString(Value)))
+    {
+        PhDereferenceObject(key);
+        return TRUE;
+    }
+
+    if (key->Length != 0 && key->Buffer[key->Length / sizeof(WCHAR) - 1] == L'*')
+    {
+        PH_STRINGREF prefix;
+
+        prefix.Buffer = key->Buffer;
+        prefix.Length = key->Length - sizeof(WCHAR);
+
+        if (
+            PhStartsWithStringRef(&context->LocalPath, &prefix, TRUE) &&
+            (!context->Found || prefix.Length > context->MatchLength)
+            )
+        {
+            PH_STRINGREF valueBefore;
+            PH_STRINGREF valueAfter;
+            PH_STRINGREF remainder;
+
+            remainder.Buffer = PTR_ADD_OFFSET(context->LocalPath.Buffer, prefix.Length);
+            remainder.Length = context->LocalPath.Length - prefix.Length;
+
+            if (PhSplitStringRefAtChar(&value->sr, L'*', &valueBefore, &valueAfter))
+            {
+                PH_STRING_BUILDER stringBuilder;
+
+                PhInitializeStringBuilder(&stringBuilder, 0x100);
+                PhAppendStringBuilder(&stringBuilder, &valueBefore);
+                PhpAppendSourceLinkPath(&stringBuilder, &remainder);
+                PhAppendStringBuilder(&stringBuilder, &valueAfter);
+
+                PhMoveReference(&context->Url, PhFinalStringBuilderString(&stringBuilder));
+                context->Found = TRUE;
+                context->MatchLength = prefix.Length;
+            }
+        }
+    }
+    else if (PhEqualStringRef(&key->sr, &context->LocalPath, TRUE))
+    {
+        PhSetReference(&context->Url, value);
+        context->Found = TRUE;
+        context->Exact = TRUE;
+    }
+
+    PhDereferenceObject(value);
+    PhDereferenceObject(key);
+    return !context->Exact;
+}
+
+static BOOLEAN PhpGetSourceLinkQueryParameter(
+    _In_ PCPH_STRINGREF Query,
+    _In_ PCWSTR Name,
+    _Out_ PPH_STRINGREF Value
+    )
+{
+    PH_STRINGREF remaining = *Query;
+    PH_STRINGREF part;
+    PH_STRINGREF name;
+    PH_STRINGREF value;
+
+    while (remaining.Length != 0)
+    {
+        PhSplitStringRefAtChar(&remaining, L'&', &part, &remaining);
+
+        if (PhSplitStringRefAtChar(&part, L'=', &name, &value) && PhEqualStringRef2(&name, Name, TRUE))
+        {
+            *Value = value;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+static PPH_STRING PhpGetBrowsableSourceLinkUrl(
+    _In_ PPH_STRING Url,
+    _In_ ULONG LineNumber
+    )
+{
+    static CONST PH_STRINGREF githubRawPrefix = PH_STRINGREF_INIT(L"https://raw.githubusercontent.com/");
+    static CONST PH_STRINGREF azureApiSeparator = PH_STRINGREF_INIT(L"/_apis/git/repositories/");
+    PH_STRINGREF remaining;
+    PH_STRINGREF before;
+    PH_STRINGREF after;
+
+    if (PhStartsWithStringRef(&Url->sr, &githubRawPrefix, TRUE))
+    {
+        PH_STRINGREF owner;
+        PH_STRINGREF repo;
+        PH_STRINGREF commit;
+        PH_STRINGREF path;
+
+        // https://raw.githubusercontent.com/{owner}/{repo}/{commit}/{path}
+        remaining.Buffer = PTR_ADD_OFFSET(Url->Buffer, githubRawPrefix.Length);
+        remaining.Length = Url->Length - githubRawPrefix.Length;
+
+        if (
+            PhSplitStringRefAtChar(&remaining, L'/', &owner, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'/', &repo, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'/', &commit, &path) &&
+            owner.Length && repo.Length && commit.Length && path.Length
+            )
+        {
+            if (LineNumber)
+            {
+                return PhFormatString(
+                    L"https://github.com/%.*s/%.*s/blob/%.*s/%.*s#L%lu",
+                    (ULONG)(owner.Length / sizeof(WCHAR)), owner.Buffer,
+                    (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                    (ULONG)(commit.Length / sizeof(WCHAR)), commit.Buffer,
+                    (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                    LineNumber
+                    );
+            }
+
+            return PhFormatString(
+                L"https://github.com/%.*s/%.*s/blob/%.*s/%.*s",
+                (ULONG)(owner.Length / sizeof(WCHAR)), owner.Buffer,
+                (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                (ULONG)(commit.Length / sizeof(WCHAR)), commit.Buffer,
+                (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer
+                );
+        }
+    }
+    else if (PhSplitStringRefAtString(&Url->sr, &azureApiSeparator, TRUE, &before, &after))
+    {
+        PH_STRINGREF repo;
+        PH_STRINGREF query;
+        PH_STRINGREF path;
+        PH_STRINGREF version;
+
+        // {org}/{project}/_apis/git/repositories/{repo}/items?path={path}&versionType=commit&version={commit}
+        if (
+            PhSplitStringRefAtChar(&after, L'/', &repo, &remaining) &&
+            PhSplitStringRefAtChar(&remaining, L'?', &remaining, &query) &&
+            PhpGetSourceLinkQueryParameter(&query, L"path", &path) &&
+            PhpGetSourceLinkQueryParameter(&query, L"version", &version) &&
+            repo.Length && path.Length && version.Length
+            )
+        {
+            if (LineNumber)
+            {
+                return PhFormatString(
+                    L"%.*s/_git/%.*s?path=%.*s&version=GC%.*s&line=%lu&lineEnd=%lu&lineStartColumn=1&lineEndColumn=1",
+                    (ULONG)(before.Length / sizeof(WCHAR)), before.Buffer,
+                    (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                    (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                    (ULONG)(version.Length / sizeof(WCHAR)), version.Buffer,
+                    LineNumber,
+                    LineNumber
+                    );
+            }
+
+            return PhFormatString(
+                L"%.*s/_git/%.*s?path=%.*s&version=GC%.*s",
+                (ULONG)(before.Length / sizeof(WCHAR)), before.Buffer,
+                (ULONG)(repo.Length / sizeof(WCHAR)), repo.Buffer,
+                (ULONG)(path.Length / sizeof(WCHAR)), path.Buffer,
+                (ULONG)(version.Length / sizeof(WCHAR)), version.Buffer
+                );
+        }
+    }
+
+    return PhReferenceObject(Url);
+}
+
+static BOOLEAN PhpIsSafeSourceLinkUrl(
+    _In_ PPH_STRING Url
+    )
+{
+    static CONST PH_STRINGREF httpsPrefix = PH_STRINGREF_INIT(L"https://");
+
+    // Source Link documents come from untrusted PDBs; only allow plain https URLs
+    if (!PhStartsWithStringRef(&Url->sr, &httpsPrefix, TRUE))
+        return FALSE;
+    if (Url->Length <= httpsPrefix.Length)
+        return FALSE;
+
+    for (SIZE_T i = 0; i < Url->Length / sizeof(WCHAR); i++)
+    {
+        WCHAR c = Url->Buffer[i];
+
+        if (c <= L' ' || c == L'"' || c == L'<' || c == L'>' || c == L'\\' || c == L'^' || c == L'`' || c == L'|' || c == 0x7f)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
+/**
+ * Resolves a local source file path to a browsable URL using a Source Link document.
+ *
+ * \param SourceLink The UTF-8 Source Link JSON document.
+ * \param LocalPath The local source file path recorded in the PDB.
+ * \param LineNumber The line number, or zero to omit the line anchor.
+ * \param Url A pointer to a variable that receives the URL.
+ * \return TRUE on success, FALSE otherwise.
+ */
+_Success_(return)
+BOOLEAN PhResolveSourceLinkUrl(
+    _In_ PPH_BYTES SourceLink,
+    _In_ PCPH_STRINGREF LocalPath,
+    _In_ ULONG LineNumber,
+    _Out_ PPH_STRING* Url
+    )
+{
+    PHP_SOURCELINK_MATCH_CONTEXT context;
+    PVOID rootObject;
+    PVOID documentsObject;
+    PPH_STRING url;
+
+    if (!NT_SUCCESS(PhCreateJsonParserEx(&rootObject, SourceLink, FALSE)))
+        return FALSE;
+
+    memset(&context, 0, sizeof(PHP_SOURCELINK_MATCH_CONTEXT));
+    context.LocalPath = *LocalPath;
+
+    if (documentsObject = PhGetJsonObject(rootObject, "documents"))
+    {
+        PhEnumJsonArrayObject(documentsObject, PhpSourceLinkDocumentCallback, &context);
+    }
+
+    PhFreeJsonObject(rootObject);
+
+    if (!context.Url)
+        return FALSE;
+
+    url = PhpGetBrowsableSourceLinkUrl(context.Url, LineNumber);
+    PhDereferenceObject(context.Url);
+
+    if (!PhpIsSafeSourceLinkUrl(url))
+    {
+        PhDereferenceObject(url);
+        return FALSE;
+    }
+
+    *Url = url;
+    return TRUE;
+}
+
+/**
+ * Gets a browsable Source Link URL for the source line at an address.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param Address The address.
+ * \param Url A pointer to a variable that receives the URL.
+ * \return TRUE on success, FALSE otherwise.
+ * \remarks The Source Link document is not cached; callers resolving many frames should cache
+ * the result of PhGetSymbolProviderSourceLink per module.
+ */
+_Success_(return)
+BOOLEAN PhGetSourceLinkUrlFromAddress(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ PVOID Address,
+    _Out_ PPH_STRING* Url
+    )
+{
+    BOOLEAN result = FALSE;
+    PVOID baseAddress;
+    PPH_STRING fileName;
+    PH_SYMBOL_LINE_INFORMATION lineInfo;
+    PPH_BYTES sourceLink;
+
+    if (!(baseAddress = PhGetModuleFromAddress(SymbolProvider, Address, NULL)))
+        return FALSE;
+
+    if (!PhGetLineFromAddress(SymbolProvider, Address, &fileName, NULL, &lineInfo))
+        return FALSE;
+
+    if (PhGetSymbolProviderSourceLink(SymbolProvider, baseAddress, &sourceLink))
+    {
+        result = PhResolveSourceLinkUrl(sourceLink, &fileName->sr, lineInfo.LineNumber, Url);
+        PhDereferenceObject(sourceLink);
+    }
+
+    PhDereferenceObject(fileName);
+
+    return result;
+}
+
 /**
  * Unregisters a symbol provider.
  *
@@ -4041,4 +4463,621 @@ VOID PhUnregisterSymbolProvider(
     )
 {
     PhpUnregisterSymbolProvider(SymbolProvider);
+}
+
+#include "../tools/thirdparty/zydis/Zydis.h"
+
+/**
+ * Gets the instruction length at a memory address.
+ *
+ * \param Address The instruction address.
+ * \param MaxLength The maximum number of bytes available for decoding.
+ * \return The decoded instruction length, or 0 on failure.
+ */
+SIZE_T NTAPI PhGetInstructionLength(
+    _In_ PVOID Address,
+    _In_ SIZE_T MaxLength
+    )
+{
+    ZydisDecoder decoder;
+    ZydisDecodedInstruction instruction;
+
+#if defined(_M_X64)
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+#elif defined(_M_IX86)
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LEGACY_32, ZYDIS_STACK_WIDTH_32);
+#elif defined(_M_ARM64)
+    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64); // ZYDIS_MACHINE_MODE_ARM64
+#else
+    return 0;
+#endif
+
+    if (ZYAN_SUCCESS(ZydisDecoderDecodeInstruction(&decoder, NULL, Address, MaxLength, &instruction)))
+    {
+        return (SIZE_T)instruction.length;
+    }
+
+    return 0;
+}
+
+/**
+ * Scans a thread stack for probable native return addresses.
+ *
+ * \param ThreadHandle The thread handle.
+ * \param ProcessHandle The process handle.
+ * \param SymbolProvider The symbol provider used to resolve symbols.
+ * \param Flags Scan behavior flags.
+ * \return A list of native stack hits.
+ */
+_Success_(return != NULL)
+PHLIBAPI
+PPH_LIST
+NTAPI
+PhScanNativeThreadStack(
+    _In_ HANDLE ThreadHandle,
+    _In_ HANDLE ProcessHandle,
+    _In_opt_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ ULONG Flags
+    )
+{
+    NTSTATUS status;
+    PPH_LIST nativeHits;
+    CONTEXT context;
+    PVOID stackPointer;
+    MEMORY_BASIC_INFORMATION memoryInfo;
+    PVOID stackBase;
+    PVOID stackBuffer = NULL;
+    SIZE_T stackSize;
+    SIZE_T bytesRead;
+    ULONG increment;
+    BOOLEAN suspended = FALSE;
+    BOOLEAN deepfreeze = FALSE;
+    HANDLE stateChangeHandle = NULL;
+    PVOID lastRegionBase = NULL;
+    SIZE_T lastRegionSize = 0;
+    ULONG lastRegionProtect = 0;
+
+    // Freeze and suspend the thread to ensure the stack remains stable during scanning.
+    if (WindowsVersion >= WINDOWS_11)
+    {
+        if (NT_SUCCESS(PhFreezeThread(&stateChangeHandle, ThreadHandle)))
+        {
+            deepfreeze = TRUE;
+        }
+    }
+
+    if (NT_SUCCESS(NtSuspendThread(ThreadHandle, NULL)))
+    {
+        suspended = TRUE;
+    }
+
+    nativeHits = PhCreateList(10);
+
+    // Capture the thread's execution context.
+    memset(&context, 0, sizeof(CONTEXT));
+    context.ContextFlags = CONTEXT_ALL;
+    context.ContextFlags |= CONTEXT_EXCEPTION_REQUEST;
+
+    if (!NT_SUCCESS(status = PhGetContextThread(ThreadHandle, &context)))
+        goto CleanupExit;
+
+    // Extract the stack pointer based on the architecture.
+#if defined(_ARM64_)
+    stackPointer = (PVOID)context.Sp;
+#elif defined(_AMD64_)
+    stackPointer = (PVOID)context.Rsp;
+#else
+    stackPointer = (PVOID)context.Esp;
+#endif
+
+    // Query the stack's memory region to determine its bounds.
+    if (Flags & PH_STACK_SCAN_USE_TEB_BOUNDS)
+    {
+        THREAD_BASIC_INFORMATION basicInfo;
+        NT_TIB ntTib;
+
+        if (NT_SUCCESS(PhGetThreadBasicInformation(ThreadHandle, &basicInfo)) && basicInfo.TebBaseAddress)
+        {
+            if (NT_SUCCESS(PhReadVirtualMemory(ProcessHandle, basicInfo.TebBaseAddress, &ntTib, sizeof(NT_TIB), &bytesRead)) &&
+                bytesRead == sizeof(NT_TIB))
+            {
+                stackBase = ntTib.StackBase;
+
+                if ((ULONG_PTR)stackPointer < (ULONG_PTR)ntTib.StackLimit ||
+                    (ULONG_PTR)stackPointer >= (ULONG_PTR)ntTib.StackBase)
+                {
+                    // stackPointer is outside of the TEB reported stack range.
+                    // Fallback to memory info if needed or just exit.
+                    goto CleanupExit;
+                }
+            }
+            else
+            {
+                goto CleanupExit;
+            }
+        }
+        else
+        {
+            goto CleanupExit;
+        }
+    }
+    else
+    {
+        if (!NT_SUCCESS(NtQueryVirtualMemory(
+            ProcessHandle,
+            stackPointer,
+            MemoryBasicInformation,
+            &memoryInfo,
+            sizeof(MEMORY_BASIC_INFORMATION),
+            NULL
+            )))
+        {
+            goto CleanupExit;
+        }
+
+        stackBase = PTR_ADD_OFFSET(memoryInfo.BaseAddress, memoryInfo.RegionSize);
+    }
+
+    stackSize = (ULONG_PTR)stackBase - (ULONG_PTR)stackPointer;
+
+    // Sanity check for stack size.
+    if (stackSize == 0 || stackSize > 0x1000000) // 16MB limit
+        goto CleanupExit;
+
+    // Read the entire stack into a local buffer for faster scanning.
+    stackBuffer = PhAllocate(stackSize);
+    if (!NT_SUCCESS(NtReadVirtualMemory(
+        ProcessHandle,
+        stackPointer,
+        stackBuffer,
+        stackSize,
+        &bytesRead
+        )) || bytesRead < sizeof(PVOID))
+    {
+        goto CleanupExit;
+    }
+
+    // Determine the scanning increment (byte-by-byte or pointer-aligned).
+    increment = (Flags & PH_STACK_SCAN_EXHAUSTIVE) ? 1 : sizeof(PVOID);
+
+    // Scan through the stack buffer for potential return addresses.
+    for (SIZE_T i = 0; i <= bytesRead - sizeof(PVOID); i += increment)
+    {
+        PVOID potentialReturnAddress = *(PVOID*)PTR_ADD_OFFSET(stackBuffer, i);
+
+        if (!potentialReturnAddress)
+            continue;
+
+#if defined(_ARM64_)
+        if ((ULONG_PTR)potentialReturnAddress & 3)
+            continue;
+#endif
+
+        // Use a region cache to avoid redundant NtQueryVirtualMemory calls.
+        if ((ULONG_PTR)potentialReturnAddress < (ULONG_PTR)lastRegionBase ||
+            (ULONG_PTR)potentialReturnAddress >= (ULONG_PTR)lastRegionBase + lastRegionSize)
+        {
+            MEMORY_BASIC_INFORMATION targetMemoryInfo;
+
+            if (NT_SUCCESS(NtQueryVirtualMemory(
+                ProcessHandle,
+                potentialReturnAddress,
+                MemoryBasicInformation,
+                &targetMemoryInfo,
+                sizeof(MEMORY_BASIC_INFORMATION),
+                NULL
+                )))
+            {
+                lastRegionBase = targetMemoryInfo.BaseAddress;
+                lastRegionSize = targetMemoryInfo.RegionSize;
+                lastRegionProtect = targetMemoryInfo.Protect;
+            }
+            else
+            {
+                lastRegionBase = (PVOID)((ULONG_PTR)potentialReturnAddress & ~(PAGE_SIZE - 1));
+                lastRegionSize = PAGE_SIZE;
+                lastRegionProtect = 0;
+            }
+        }
+
+        // Check if the address points to executable memory.
+        if ((lastRegionProtect & (PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY)) &&
+            !(lastRegionProtect & (PAGE_NOACCESS | PAGE_GUARD)))
+        {
+            PH_NATIVE_STACK_HIT_TYPE hitType = PhNativeStackHitReturnAddress;
+            PH_NATIVE_STACK_CONFIDENCE hitConfidence = PhNativeStackConfidenceLow;
+            UCHAR hitInstructionBytes[16] = { 0 };
+            UCHAR hitInstructionLength = 0;
+            PVOID hitTargetAddress = NULL;
+            PVOID hitControlAddress = NULL;
+            PPH_STRING hitDisassembly = NULL;
+
+            if (Flags & PH_STACK_SCAN_INSTRUCTIONS)
+            {
+                UCHAR codeBuffer[16];
+                SIZE_T codeBytesRead;
+
+                if (NT_SUCCESS(NtReadVirtualMemory(
+                    ProcessHandle,
+                    potentialReturnAddress,
+                    codeBuffer,
+                    16,
+                    &codeBytesRead
+                )) && codeBytesRead > 0)
+                {
+                    ZydisDecoder decoder;
+                    ZydisDecodedInstruction instruction;
+                    ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+
+#if defined(_M_X64)
+                    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+#elif defined(_M_IX86)
+                    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LEGACY_32, ZYDIS_STACK_WIDTH_32);
+#elif defined(_M_ARM64)
+                    ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64); // ZYDIS_MACHINE_MODE_ARM64
+#endif
+
+                    if (ZYAN_SUCCESS(ZydisDecoderDecodeInstruction(&decoder, NULL, codeBuffer, codeBytesRead, &instruction)))
+                    {
+                        if (instruction.meta.category == ZYDIS_CATEGORY_CALL ||
+                            instruction.meta.category == ZYDIS_CATEGORY_SYSCALL)
+                        {
+                            hitType = PhNativeStackHitCall;
+                            hitConfidence = PhNativeStackConfidenceHigh;
+                        }
+                        else if (instruction.meta.category == ZYDIS_CATEGORY_RET ||
+                                 instruction.meta.category == ZYDIS_CATEGORY_SYSRET ||
+                                 instruction.meta.category == ZYDIS_CATEGORY_INTERRUPT)
+                        {
+                            hitType = PhNativeStackHitRet;
+                            hitConfidence = PhNativeStackConfidenceHigh;
+                        }
+
+                        if (hitType != PhNativeStackHitReturnAddress)
+                        {
+                            ZydisFormatter formatter;
+                            char buffer[256];
+
+                            hitInstructionLength = (UCHAR)instruction.length;
+                            memcpy(hitInstructionBytes, codeBuffer, hitInstructionLength);
+
+                            if (hitType == PhNativeStackHitCall)
+                            {
+                                ZyanU64 targetAddress;
+                                ZydisDecoderDecodeOperands(&decoder, NULL, &instruction, operands, instruction.operand_count);
+                                if (ZYAN_SUCCESS(ZydisCalcAbsoluteAddress(&instruction, &operands[0], (ZyanU64)potentialReturnAddress, &targetAddress)))
+                                {
+                                    hitTargetAddress = (PVOID)targetAddress;
+                                }
+                            }
+
+                            ZydisFormatterInit(&formatter, ZYDIS_FORMATTER_STYLE_INTEL);
+                            ZydisDecoderDecodeOperands(&decoder, NULL, &instruction, operands, instruction.operand_count);
+                            if (ZYAN_SUCCESS(ZydisFormatterFormatInstruction(&formatter, &instruction, operands, instruction.operand_count, buffer, sizeof(buffer), (ZyanU64)potentialReturnAddress, ZYAN_NULL)))
+                            {
+                                hitDisassembly = PhConvertUtf8ToUtf16(buffer);
+                            }
+
+                            hitControlAddress = potentialReturnAddress;
+                        }
+                    }
+                }
+            }
+
+            // Perform call site validation if requested.
+            if (hitType == PhNativeStackHitReturnAddress && (Flags & PH_STACK_SCAN_VALIDATE_CALLSITE))
+            {
+                UCHAR codeBuffer[16];
+                SIZE_T codeBytesRead;
+
+                // Look back from the return address to find a CALL instruction.
+                if (NT_SUCCESS(NtReadVirtualMemory(
+                    ProcessHandle,
+                    PTR_ADD_OFFSET(potentialReturnAddress, -16),
+                    codeBuffer,
+                    16,
+                    &codeBytesRead
+                    )) && codeBytesRead == 16)
+                {
+                    BOOLEAN valid = FALSE;
+                    PVOID controlAddress = NULL;
+
+#if defined(_ARM64_)
+                    ULONG instr = *(PULONG)&codeBuffer[12];
+                    // BL
+                    if ((instr & 0xFC000000) == 0x94000000)
+                    {
+                        valid = TRUE;
+                        hitInstructionLength = 4;
+                        memcpy(hitInstructionBytes, &codeBuffer[12], 4);
+                        controlAddress = PTR_ADD_OFFSET(potentialReturnAddress, -4);
+                        hitTargetAddress = (PVOID)((ULONG_PTR)potentialReturnAddress + ((LONG)((instr & 0x03FFFFFF) << 2) << 6 >> 6));
+                    }
+                    // BLR
+                    else if ((instr & 0xFFFFFC1F) == 0xD63F0000)
+                    {
+                        valid = TRUE;
+                        hitInstructionLength = 4;
+                        memcpy(hitInstructionBytes, &codeBuffer[12], 4);
+                        controlAddress = PTR_ADD_OFFSET(potentialReturnAddress, -4);
+                    }
+#else
+                    // Check for common x86/x64 call patterns.
+                    // E8 <disp32>
+                    if (codeBuffer[11] == 0xE8)
+                    {
+                        valid = TRUE;
+                        hitInstructionLength = 5;
+                        memcpy(hitInstructionBytes, &codeBuffer[11], 5);
+                        controlAddress = PTR_ADD_OFFSET(potentialReturnAddress, -5);
+                        hitTargetAddress = (PVOID)((ULONG_PTR)potentialReturnAddress + *(PLONG)&codeBuffer[12]);
+                    }
+                    else
+                    {
+                        // Check for indirect CALLs (FF /2).
+                        // We search backwards from the return address.
+                        for (INT j = 14; j >= 9; j--)
+                        {
+                            if (codeBuffer[j] == 0xFF && (codeBuffer[j + 1] & 0x38) == 0x10)
+                            {
+                                SIZE_T instructionLength = PhGetInstructionLength(&codeBuffer[j], 16 - j);
+
+                                if (instructionLength == 16 - j)
+                                {
+                                    valid = TRUE;
+                                    hitInstructionLength = (UCHAR)instructionLength;
+                                    memcpy(hitInstructionBytes, &codeBuffer[j], hitInstructionLength);
+                                    controlAddress = PTR_ADD_OFFSET(potentialReturnAddress, -(LONG_PTR)instructionLength);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+#endif
+
+                    if (valid)
+                    {
+                        hitType = PhNativeStackHitCall;
+                        hitConfidence = PhNativeStackConfidenceHigh;
+
+                        // Generate disassembly for the validated call site.
+                        ZydisDecoder decoder;
+                        ZydisDecodedInstruction instruction;
+                        ZydisDecodedOperand operands[ZYDIS_MAX_OPERAND_COUNT];
+
+#if defined(_M_X64)
+                        ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64);
+#elif defined(_M_IX86)
+                        ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LEGACY_32, ZYDIS_STACK_WIDTH_32);
+#elif defined(_M_ARM64)
+                        ZydisDecoderInit(&decoder, ZYDIS_MACHINE_MODE_LONG_64, ZYDIS_STACK_WIDTH_64); // ZYDIS_MACHINE_MODE_ARM64
+#endif
+                        if (ZYAN_SUCCESS(ZydisDecoderDecodeInstruction(&decoder, NULL, hitInstructionBytes, hitInstructionLength, &instruction)))
+                        {
+                            ZydisFormatter formatter;
+                            char buffer[256];
+
+                            if (hitTargetAddress == NULL)
+                            {
+                                ZydisDecoderDecodeOperands(&decoder, NULL, &instruction, operands, instruction.operand_count);
+                                ZyanU64 targetAddress;
+                                if (ZYAN_SUCCESS(ZydisCalcAbsoluteAddress(&instruction, &operands[0], (ZyanU64)controlAddress, &targetAddress)))
+                                {
+                                    hitTargetAddress = (PVOID)targetAddress;
+                                }
+                            }
+
+                            ZydisFormatterInit(&formatter, ZYDIS_FORMATTER_STYLE_INTEL);
+                            ZydisDecoderDecodeOperands(&decoder, NULL, &instruction, operands, instruction.operand_count);
+                            if (ZYAN_SUCCESS(ZydisFormatterFormatInstruction(&formatter, &instruction, operands, instruction.operand_count, buffer, sizeof(buffer), (ZyanU64)controlAddress, ZYAN_NULL)))
+                            {
+                                hitDisassembly = PhConvertUtf8ToUtf16(buffer);
+                            }
+                        }
+
+                        hitControlAddress = controlAddress;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
+                else
+                {
+                    continue;
+                }
+            }
+
+            // If we didn't perform validation but points to executable memory, mark as medium confidence.
+            if (hitConfidence == PhNativeStackConfidenceLow && hitType == PhNativeStackHitReturnAddress)
+            {
+                hitConfidence = PhNativeStackConfidenceMedium;
+            }
+
+            // Create a hit entry and resolve the symbol if possible.
+            PPH_NATIVE_STACK_HIT hit;
+
+            hit = PhAllocateZero(sizeof(PH_NATIVE_STACK_HIT));
+            hit->Type = hitType;
+            hit->Confidence = hitConfidence;
+            hit->ControlAddress = hitControlAddress ? hitControlAddress : potentialReturnAddress;
+            hit->TargetAddress = hitTargetAddress;
+            hit->FrameAddress = PTR_ADD_OFFSET(stackPointer, i);
+            hit->ReturnAddress = potentialReturnAddress;
+            hit->StackAddress = PTR_ADD_OFFSET(hit->FrameAddress, sizeof(PVOID));
+            hit->InstructionLength = hitInstructionLength;
+            hit->Disassembly = hitDisassembly;
+            memcpy(hit->InstructionBytes, hitInstructionBytes, 16);
+
+            hit->MemoryProtect = lastRegionProtect;
+            // The memory region info was queried earlier and stored in targetMemoryInfo,
+            // but that was in a local scope. We should re-query or store it.
+            // For efficiency, we can query it once per loop or if the cache misses.
+            {
+                MEMORY_BASIC_INFORMATION basicInfo;
+
+                if (NT_SUCCESS(PhGetProcessMemoryBasicInformation(ProcessHandle, potentialReturnAddress, &basicInfo)))
+                {
+                    hit->MemoryType = basicInfo.Type;
+                    hit->ModuleBase = PhGetModuleFromAddress(SymbolProvider, potentialReturnAddress, &hit->ModuleName);
+                }
+            }
+
+            if (i + sizeof(PVOID) * 1 <= bytesRead - sizeof(PVOID))
+                hit->Parameters[0] = *(PVOID*)PTR_ADD_OFFSET(stackBuffer, i + sizeof(PVOID) * 1);
+            if (i + sizeof(PVOID) * 2 <= bytesRead - sizeof(PVOID))
+                hit->Parameters[1] = *(PVOID*)PTR_ADD_OFFSET(stackBuffer, i + sizeof(PVOID) * 2);
+            if (i + sizeof(PVOID) * 3 <= bytesRead - sizeof(PVOID))
+                hit->Parameters[2] = *(PVOID*)PTR_ADD_OFFSET(stackBuffer, i + sizeof(PVOID) * 3);
+            if (i + sizeof(PVOID) * 4 <= bytesRead - sizeof(PVOID))
+                hit->Parameters[3] = *(PVOID*)PTR_ADD_OFFSET(stackBuffer, i + sizeof(PVOID) * 4);
+
+            if (SymbolProvider)
+            {
+                hit->Symbol = PhGetSymbolFromAddress(
+                    SymbolProvider,
+                    potentialReturnAddress,
+                    NULL,
+                    NULL,
+                    NULL,
+                    NULL
+                    );
+            }
+
+            PhAddItemList(nativeHits, hit);
+        }
+    }
+
+CleanupExit:
+    // Cleanup resources and resume the thread.
+    if (stackBuffer)
+        PhFree(stackBuffer);
+
+    if (suspended)
+    {
+        NtResumeThread(ThreadHandle, NULL);
+    }
+
+    if (deepfreeze && stateChangeHandle)
+    {
+        PhThawThread(stateChangeHandle, ThreadHandle);
+        NtClose(stateChangeHandle);
+    }
+
+    return nativeHits;
+}
+
+
+
+/**
+ * Queues debugger work by writing required symbol addresses.
+ *
+ * \param SymbolProvider The symbol provider.
+ * \param ProcessHandle The process handle.
+ * \param ProcessAddress The process address argument.
+ * \param PageInAddress The page-in address argument.
+ * \param KillProcess TRUE to queue process kill work, FALSE to queue attach/page-in work.
+ * \return NTSTATUS code indicating success or failure.
+ */
+NTSTATUS PhQueueExpDebuggerWork(
+    _In_ PPH_SYMBOL_PROVIDER SymbolProvider,
+    _In_ HANDLE ProcessHandle,
+    _In_ ULONG64 ProcessAddress,
+    _In_ ULONG64 PageInAddress,
+    _In_ BOOLEAN KillProcess
+    )
+{
+    PH_SYMBOL_INFORMATION processKill;
+    PH_SYMBOL_INFORMATION processAttach;
+    PH_SYMBOL_INFORMATION pageIn;
+    PH_SYMBOL_INFORMATION debuggerWork;
+    ULONG workStatus;
+    NTSTATUS status;
+
+    if (!SymbolProvider || !ProcessHandle)
+        return STATUS_INVALID_PARAMETER;
+
+    memset(&processKill, 0, sizeof(PH_SYMBOL_INFORMATION));
+    memset(&processAttach, 0, sizeof(PH_SYMBOL_INFORMATION));
+    memset(&pageIn, 0, sizeof(PH_SYMBOL_INFORMATION));
+    memset(&debuggerWork, 0, sizeof(PH_SYMBOL_INFORMATION));
+
+    if (!PhGetSymbolFromName(SymbolProvider, L"nt!ExpDebuggerWork", &debuggerWork) ||
+        !PhGetSymbolFromName(SymbolProvider, L"nt!ExpDebuggerPageIn", &pageIn) ||
+        !PhGetSymbolFromName(SymbolProvider, L"nt!ExpDebuggerProcessAttach", &processAttach) ||
+        !PhGetSymbolFromName(SymbolProvider, L"nt!ExpDebuggerProcessKill", &processKill)
+        )
+    {
+        return STATUS_PROCEDURE_NOT_FOUND;
+    }
+
+    if ((!KillProcess || processKill.Address) && processAttach.Address && pageIn.Address && debuggerWork.Address)
+    {
+        workStatus = 0;
+        status = PhReadVirtualMemory(
+            ProcessHandle,
+            debuggerWork.Address,
+            &workStatus,
+            sizeof(ULONG),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        if (workStatus > 1)
+            return STATUS_DEVICE_BUSY;
+
+        if (KillProcess)
+        {
+            status = PhWriteVirtualMemory(
+                ProcessHandle,
+                processKill.Address,
+                &ProcessAddress,
+                sizeof(ProcessAddress),
+                NULL
+                );
+        }
+        else
+        {
+            status = PhWriteVirtualMemory(
+                ProcessHandle,
+                processAttach.Address,
+                &ProcessAddress,
+                sizeof(ProcessAddress),
+                NULL
+                );
+
+            if (NT_SUCCESS(status))
+            {
+                status = PhWriteVirtualMemory(
+                    ProcessHandle,
+                    pageIn.Address,
+                    &PageInAddress,
+                    sizeof(PageInAddress),
+                    NULL
+                    );
+            }
+        }
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        workStatus = 1;
+
+        status = PhWriteVirtualMemory(
+            ProcessHandle,
+            debuggerWork.Address,
+            &workStatus,
+            sizeof(workStatus),
+            NULL
+            );
+
+        if (!NT_SUCCESS(status))
+            return status;
+
+        return STATUS_SUCCESS;
+    }
+
+    return STATUS_PROCEDURE_NOT_FOUND;
 }

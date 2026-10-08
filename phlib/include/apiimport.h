@@ -45,6 +45,7 @@ PH_DECLARE_IMPORT(NtCompareObjects);
 PH_DECLARE_IMPORT(NtCreateTimer2);
 PH_DECLARE_IMPORT(NtMapViewOfSectionEx);
 PH_DECLARE_IMPORT(NtSetTimer2);
+PH_DECLARE_IMPORT(NtAlpcConnectPortEx);
 
 PH_DECLARE_IMPORT(NtSetInformationVirtualMemory);
 PH_DECLARE_IMPORT(LdrSystemDllInitBlock);
@@ -59,7 +60,12 @@ PH_DECLARE_IMPORT(RtlGetTokenNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerNamedObjectPath);
 PH_DECLARE_IMPORT(RtlGetAppContainerSidType);
 PH_DECLARE_IMPORT(RtlGetAppContainerParent);
+PH_DECLARE_IMPORT(RtlLoadString);
 PH_DECLARE_IMPORT(RtlStringFromGUIDEx);
+PH_DECLARE_IMPORT(RtlInitializeCorrelationVector);
+PH_DECLARE_IMPORT(RtlIncrementCorrelationVector);
+PH_DECLARE_IMPORT(RtlExtendCorrelationVector);
+PH_DECLARE_IMPORT(RtlValidateCorrelationVector);
 
 
 PH_DECLARE_IMPORT(PssNtCaptureSnapshot);

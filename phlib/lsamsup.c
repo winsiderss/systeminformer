@@ -88,11 +88,11 @@ NTSTATUS PhGetSamServerHandle(
     )
 {
     static SAM_HANDLE cachedSamServerHandle = NULL;
-    static NTSTATUS cachedStatus = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     SAM_HANDLE samServerHandle;
 
     // Fast Path: No locking for the common case.
-    samServerHandle = *(volatile SAM_HANDLE*)&cachedSamServerHandle;
+    samServerHandle = ReadPointerAcquire(&cachedSamServerHandle);
     if (samServerHandle && samServerHandle != (SAM_HANDLE)-1)
     {
         *SamHandle = samServerHandle;
@@ -135,7 +135,6 @@ NTSTATUS PhGetSamServerHandle(
 
         // We hold the lock. Open the handle.
         SAM_HANDLE newSamServerHandle;
-        NTSTATUS status;
 
         status = PhOpenSamHandle(
             &newSamServerHandle,
@@ -148,14 +147,12 @@ NTSTATUS PhGetSamServerHandle(
             // Publish the new handle (releases waiting threads)
             InterlockedExchangePointer(&cachedSamServerHandle, newSamServerHandle);
             samServerHandle = newSamServerHandle;
-            cachedStatus = STATUS_SUCCESS;
         }
         else
         {
             // Failed (e.g., Access Denied). Reset to NULL so we can try again later.
             InterlockedExchangePointer(&cachedSamServerHandle, NULL);
             samServerHandle = NULL;
-            cachedStatus = status;
         }
         break;
     }
@@ -166,7 +163,7 @@ NTSTATUS PhGetSamServerHandle(
         return STATUS_SUCCESS;
     }
 
-    return cachedStatus;
+    return status;
 }
 
 /**
@@ -187,7 +184,7 @@ NTSTATUS PhGetSamDomainHandle(
     SAM_HANDLE samDomainHandle;
 
     // Fast Path: No locking for the common case.
-    samDomainHandle = *(volatile SAM_HANDLE*)&cachedSamDomainHandle;
+    samDomainHandle = ReadPointerAcquire(&cachedSamDomainHandle);
     if (samDomainHandle && samDomainHandle != (SAM_HANDLE)-1)
     {
         *DomainHandle = samDomainHandle;

@@ -22,9 +22,10 @@
 #define SIMCP_RECONNECT_BACKOFF_FIRST_MS 250
 #define SIMCP_RECONNECT_BACKOFF_MAX_MS 5000
 #define SIMCP_RECONNECT_GRACE_MS 5000
-// Generation 0 is never published, so it reads as "whichever generation is live".
+#define SIMCP_COLD_CONNECT_MS 2000
+#define SIMCP_RELAY_PARK_ATTEMPTS 5
+#define SIMCP_RELAY_PARK_WAIT_MS 20
 #define SIMCP_ANY_GENERATION 0
-// How many times a send waits out a generation change before giving up on the host's behalf.
 #define SIMCP_SEND_ATTEMPT_LIMIT 3
 #define SIMCP_OPTION_NO_RECONNECT 1
 
@@ -62,6 +63,10 @@ typedef struct _SIMCP_SESSION
 
 static SIMCP_SESSION SimcpSession = { 0 };
 static BOOLEAN SimcpNoReconnect = FALSE;
+static HANDLE SimcpRelayThreadHandle = NULL;
+static HANDLE SimcpRelayResumeEvent = NULL;
+static HANDLE SimcpRelayParkedEvent = NULL;
+static HANDLE SimcpFirstAttemptEvent = NULL;
 
 VOID SimcpWriteAll(
     _In_ HANDLE FileHandle,
@@ -76,7 +81,15 @@ VOID SimcpWriteAll(
         ULONG written = 0;
 
         if (!WriteFile(FileHandle, PTR_ADD_OFFSET(Buffer, offset), Length - offset, &written, NULL))
-            return;
+        {
+            offset += written;
+
+            if (GetLastError() != ERROR_OPERATION_ABORTED)
+                return;
+
+            continue;
+        }
+
         if (written == 0)
             return;
 
@@ -181,6 +194,30 @@ VOID SimcpEmitPong(
     PhDereferenceObject(line);
 }
 
+VOID SimcpEmitResult(
+    _In_ PPH_BYTES IdJson,
+    _In_ PCSTR ResultJson
+    )
+{
+    static CONST CHAR head[] = "{\"jsonrpc\":\"2.0\",\"id\":";
+    static CONST CHAR middle[] = ",\"result\":";
+    static CONST CHAR tail[] = "}";
+    PH_BYTES_BUILDER builder;
+    PPH_BYTES line;
+
+    PhInitializeBytesBuilder(&builder, 512);
+    PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, IdJson->Buffer, IdJson->Length, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)middle, sizeof(middle) - 1, 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)ResultJson, strlen(ResultJson), 0, NULL);
+    PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
+    line = PhFinalBytesBuilderBytes(&builder);
+
+    SimcpWriteLine(line->Buffer, (ULONG)line->Length);
+
+    PhDereferenceObject(line);
+}
+
 VOID SimcpEmitListChanged(
     VOID
     )
@@ -192,6 +229,143 @@ VOID SimcpEmitListChanged(
     SimcpWriteLine((PVOID)tools, sizeof(tools) - 1);
     SimcpWriteLine((PVOID)resources, sizeof(resources) - 1);
     SimcpWriteLine((PVOID)prompts, sizeof(prompts) - 1);
+}
+
+#define SIMCP_COLD_CAPABILITIES \
+    "\"capabilities\":{\"tools\":{\"listChanged\":true},\"resources\":{\"listChanged\":true}," \
+    "\"prompts\":{\"listChanged\":true}}"
+#define SIMCP_COLD_INSTRUCTIONS \
+    "\"instructions\":\"" SIMCP_SERVER_INSTRUCTIONS "\""
+static PCSTR SimcpLegacyProtocolVersions[] =
+{
+    SIMCP_LEGACY_PROTOCOL_VERSIONS
+};
+static PH_QUEUED_LOCK SimcpColdLock = PH_QUEUED_LOCK_INIT;
+static BOOLEAN SimcpColdPublished = FALSE;
+
+PCSTR SimcpColdNegotiateVersion(
+    _In_opt_ PPH_STRING Requested
+    )
+{
+    PCSTR negotiated = SimcpLegacyProtocolVersions[0];
+    PPH_BYTES utf8;
+    ULONG i;
+
+    // The spec requires the client's own version back whenever it is one we support; the newest we
+    // have is only for a client that named none of them.
+    if (!Requested)
+        return negotiated;
+
+    utf8 = PhConvertUtf16ToUtf8Ex(Requested->Buffer, Requested->Length);
+
+    if (!utf8)
+        return negotiated;
+
+    for (i = 0; i < RTL_NUMBER_OF(SimcpLegacyProtocolVersions); i++)
+    {
+        if (strcmp(utf8->Buffer, SimcpLegacyProtocolVersions[i]) == 0)
+        {
+            negotiated = SimcpLegacyProtocolVersions[i];
+            break;
+        }
+    }
+
+    PhDereferenceObject(utf8);
+
+    return negotiated;
+}
+
+BOOLEAN SimcpAnswerCold(
+    _In_ PSIMCP_ENVELOPE Envelope
+    )
+{
+    static CONST CHAR toolsList[] = "{\"tools\":[" SIMCP_STATUS_TOOL_DEFINITION "]}";
+    static CONST CHAR emptyResources[] = "{\"resources\":[]}";
+    static CONST CHAR emptyTemplates[] = "{\"resourceTemplates\":[]}";
+    static CONST CHAR emptyPrompts[] = "{\"prompts\":[]}";
+    static CONST CHAR discover[] =
+        "{\"supportedVersions\":[\"" SIMCP_MODERN_PROTOCOL_VERSION "\"],"
+        SIMCP_COLD_CAPABILITIES "," SIMCP_COLD_INSTRUCTIONS "}";
+    static CONST CHAR statusResult[] =
+        "{\"content\":[{\"type\":\"text\",\"text\":\"" SIMCP_STATUS_NOT_RUNNING_MESSAGE "\"}],"
+        "\"structuredContent\":{\"running\":false,\"message\":\"" SIMCP_STATUS_NOT_RUNNING_MESSAGE "\"},"
+        "\"isError\":false}";
+
+    if (Envelope->Kind != SimcpEnvelopeRequest || !Envelope->Id || !Envelope->Method)
+        return FALSE;
+
+    if (PhEqualString2(Envelope->Method, L"initialize", FALSE))
+    {
+        PH_BYTES_BUILDER builder;
+        PPH_BYTES result;
+        PCSTR negotiated = SimcpColdNegotiateVersion(Envelope->RequestedProtocolVersion);
+        static CONST CHAR head[] = "{\"protocolVersion\":\"";
+        static CONST CHAR tail[] = "\"," SIMCP_COLD_CAPABILITIES ","
+            "\"serverInfo\":{\"name\":\"SystemInformer\",\"title\":\"System Informer\",\"version\":\"0.0.0.0\"},"
+            SIMCP_COLD_INSTRUCTIONS "}";
+
+        PhInitializeBytesBuilder(&builder, 1024);
+        PhAppendBytesBuilderEx(&builder, (PVOID)head, sizeof(head) - 1, 0, NULL);
+        PhAppendBytesBuilderEx(&builder, (PVOID)negotiated, strlen(negotiated), 0, NULL);
+        PhAppendBytesBuilderEx(&builder, (PVOID)tail, sizeof(tail) - 1, 0, NULL);
+        result = PhFinalBytesBuilderBytes(&builder);
+
+        PhAcquireQueuedLockExclusive(&SimcpSession.Lock);
+        PhMoveReference(&SimcpSession.ProtocolVersion, PhZeroExtendToUtf16((PSTR)negotiated));
+        PhReleaseQueuedLockExclusive(&SimcpSession.Lock);
+
+        SimcpEmitResult(Envelope->Id, result->Buffer);
+        PhDereferenceObject(result);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"server/discover", FALSE))
+    {
+        SimcpEmitResult(Envelope->Id, discover);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"tools/list", FALSE))
+    {
+        SimcpEmitResult(Envelope->Id, toolsList);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"resources/list", FALSE))
+    {
+        SimcpEmitResult(Envelope->Id, emptyResources);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"resources/templates/list", FALSE))
+    {
+        SimcpEmitResult(Envelope->Id, emptyTemplates);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"prompts/list", FALSE))
+    {
+        SimcpEmitResult(Envelope->Id, emptyPrompts);
+        return TRUE;
+    }
+
+    if (PhEqualString2(Envelope->Method, L"tools/call", FALSE))
+    {
+        if (Envelope->ToolName &&
+            PhEqualString2(Envelope->ToolName, SIMCP_WIDEN(SIMCP_STATUS_TOOL_NAME), FALSE))
+        {
+            SimcpEmitResult(Envelope->Id, statusResult);
+        }
+        else
+        {
+            SimcpEmitTransportError(Envelope->Id, SIMCP_STATUS_NOT_RUNNING_DETAIL);
+        }
+
+        return TRUE;
+    }
+
+    SimcpEmitTransportError(Envelope->Id, SIMCP_STATUS_NOT_RUNNING_DETAIL);
+    return TRUE;
 }
 
 DECLSPEC_NORETURN
@@ -225,6 +399,8 @@ PCSTR SimcpHelloStatusToString(
         return "the handshake process id did not match the pipe client";
     case SimcpHelloRejectedByUser:
         return "the user did not allow this agent to connect to System Informer";
+    case SimcpHelloRejectedLauncher:
+        return "the process this broker named as its launcher does not hold its standard handles";
     default:
         return "the connection was rejected";
     }
@@ -586,10 +762,10 @@ NTSTATUS SimcpLinkSend(
         if (++attempts > SIMCP_SEND_ATTEMPT_LIMIT)
             return STATUS_PIPE_DISCONNECTED;
 
-        // During an outage a line waits only as long as a fast restart takes. Before the first
-        // connect there is no session to protect and no call in flight, so it waits for System
-        // Informer to turn up rather than being refused on a deadline it cannot know about.
-        if (!SimcpLinkWaitConnected(SimcpLinkEverConnected() ? SIMCP_RECONNECT_GRACE_MS : INFINITE))
+        // One rule for both: a line waits as long as a fast restart takes. Before the first connect
+        // the caller answers the host itself rather than parking here, because the host is holding
+        // its own handshake deadline open behind this wait.
+        if (!SimcpLinkWaitConnected(SIMCP_RECONNECT_GRACE_MS))
             return STATUS_PIPE_DISCONNECTED;
     }
 
@@ -1107,6 +1283,7 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
     PVOID payload;
     SIMCP_HELLO_ACK helloAck;
     BOOLEAN replayTerminal;
+    BOOLEAN coldAnswered;
 
     *PipeHandle = NULL;
     *Message = NULL;
@@ -1198,7 +1375,12 @@ SIMCP_ESTABLISH_RESULT SimcpEstablish(
     *PipeHandle = pipeHandle;
     SimcpLinkConnected();
 
-    if (SimcpLinkGeneration() > 1)
+    PhAcquireQueuedLockExclusive(&SimcpColdLock);
+    coldAnswered = SimcpColdPublished;
+    SimcpColdPublished = FALSE;
+    PhReleaseQueuedLockExclusive(&SimcpColdLock);
+
+    if (SimcpLinkGeneration() > 1 || coldAnswered)
         SimcpEmitListChanged();
 
     return SimcpEstablishConnected;
@@ -1425,6 +1607,89 @@ ULONG SimcpNextBackoff(
     return next;
 }
 
+VOID SimcpWaitFirstAttempt(
+    VOID
+    )
+{
+    LARGE_INTEGER timeout;
+
+    if (SimcpFirstAttemptEvent)
+        NtWaitForSingleObject(SimcpFirstAttemptEvent, FALSE, PhTimeoutFromMilliseconds(&timeout, SIMCP_COLD_CONNECT_MS));
+}
+
+BOOLEAN SimcpColdPublishedState(
+    VOID
+    )
+{
+    BOOLEAN published;
+
+    PhAcquireQueuedLockShared(&SimcpColdLock);
+    published = SimcpColdPublished;
+    PhReleaseQueuedLockShared(&SimcpColdLock);
+
+    return published;
+}
+
+VOID SimcpPublishColdList(
+    VOID
+    )
+{
+    BOOLEAN announce = FALSE;
+
+    PhAcquireQueuedLockExclusive(&SimcpColdLock);
+
+    if (!SimcpColdPublished)
+    {
+        SimcpColdPublished = TRUE;
+        announce = TRUE;
+    }
+
+    PhReleaseQueuedLockExclusive(&SimcpColdLock);
+
+    if (announce)
+        SimcpEmitListChanged();
+}
+
+VOID SimcpRelayPause(
+    VOID
+    )
+{
+    IO_STATUS_BLOCK isb;
+    LARGE_INTEGER timeout;
+    ULONG i;
+
+    if (!SimcpRelayResumeEvent)
+        return;
+
+    NtResetEvent(SimcpRelayResumeEvent, NULL);
+
+    for (i = 0; i < SIMCP_RELAY_PARK_ATTEMPTS; i++)
+    {
+        if (SimcpRelayThreadHandle)
+            NtCancelSynchronousIoFile(SimcpRelayThreadHandle, NULL, &isb);
+
+        if (!SimcpRelayParkedEvent)
+            break;
+
+        if (NtWaitForSingleObject(
+            SimcpRelayParkedEvent,
+            FALSE,
+            PhTimeoutFromMilliseconds(&timeout, SIMCP_RELAY_PARK_WAIT_MS)
+            ) == STATUS_WAIT_0)
+        {
+            break;
+        }
+    }
+}
+
+VOID SimcpRelayResume(
+    VOID
+    )
+{
+    if (SimcpRelayResumeEvent)
+        NtSetEvent(SimcpRelayResumeEvent, NULL);
+}
+
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI SimcpSupervisorThread(
     _In_ PVOID Parameter
@@ -1439,7 +1704,12 @@ NTSTATUS NTAPI SimcpSupervisorThread(
         HANDLE pipeHandle;
         SIMCP_ESTABLISH_RESULT result;
 
+        SimcpRelayPause();
         result = SimcpEstablish(&pipeHandle, &message);
+        SimcpRelayResume();
+
+        if (SimcpFirstAttemptEvent)
+            NtSetEvent(SimcpFirstAttemptEvent, NULL);
 
         if (result == SimcpEstablishTerminal)
             break;
@@ -1448,6 +1718,11 @@ NTSTATUS NTAPI SimcpSupervisorThread(
         {
             if (SimcpNoReconnect)
                 break;
+
+            // The first attempt after an outage failing is what separates "gone" from "restarting":
+            // a fast restart is answered by the attempt itself and never reaches here.
+            if (SimcpLinkEverConnected())
+                SimcpPublishColdList();
 
             // Say why once per distinct reason, so a broker that is waiting -- for System
             // Informer to be started, or because something else is holding the pipe name -- is
@@ -1512,6 +1787,37 @@ VOID SimcpRelayLine(
         SimcpEmitPong(envelope.Id);
         SimcpDeleteEnvelope(&envelope);
         return;
+    }
+
+    if (!SimcpColdPublishedState() && !SimcpLinkEverConnected())
+        SimcpWaitFirstAttempt();
+
+    if (!SimcpLinkWaitConnected(
+        SimcpColdPublishedState() ? 0 :
+        SimcpLinkEverConnected() ? SIMCP_RECONNECT_GRACE_MS : 0))
+    {
+        PhAcquireQueuedLockExclusive(&SimcpColdLock);
+
+        if (!SimcpLinkWaitConnected(0))
+        {
+            BOOLEAN announce = FALSE;
+
+            if (SimcpAnswerCold(&envelope))
+            {
+                announce = !SimcpColdPublished && SimcpLinkEverConnected();
+                SimcpColdPublished = TRUE;
+            }
+
+            PhReleaseQueuedLockExclusive(&SimcpColdLock);
+
+            if (announce)
+                SimcpEmitListChanged();
+
+            SimcpDeleteEnvelope(&envelope);
+            return;
+        }
+
+        PhReleaseQueuedLockExclusive(&SimcpColdLock);
     }
 
     // A reply to a request System Informer made comes back with the tag the broker put on it.
@@ -1612,6 +1918,18 @@ VOID SimcpRelayStandardInput(
         ULONG lineStart;
         ULONG i;
 
+        if (SimcpRelayResumeEvent)
+        {
+            LARGE_INTEGER zero = { 0 };
+
+            while (NtWaitForSingleObject(SimcpRelayResumeEvent, FALSE, &zero) != STATUS_WAIT_0)
+            {
+                NtSetEvent(SimcpRelayParkedEvent, NULL);
+                NtWaitForSingleObject(SimcpRelayResumeEvent, FALSE, NULL);
+                NtResetEvent(SimcpRelayParkedEvent, NULL);
+            }
+        }
+
         if (dataLength == bufferLength)
         {
             if (bufferLength >= SIMCP_MAX_PAYLOAD_LENGTH)
@@ -1622,9 +1940,16 @@ VOID SimcpRelayStandardInput(
         }
 
         if (!ReadFile(SimcpStdInput, PTR_ADD_OFFSET(buffer, dataLength), bufferLength - dataLength, &bytesRead, NULL))
+        {
+            // Cancelled by SimcpRelayPause, not ended by the host: whatever was copied is kept and
+            // the loop waits for the window to close before reading again.
+            if (GetLastError() != ERROR_OPERATION_ABORTED)
+                break;
+        }
+        else if (bytesRead == 0)
+        {
             break;
-        if (bytesRead == 0)
-            break;
+        }
 
         lineStart = 0;
 
@@ -1763,6 +2088,29 @@ int __cdecl wmain(int argc, wchar_t *argv[])
 
     if (!NT_SUCCESS(SimcpLinkInitialize()))
         SimcpFail("unable to allocate I/O resources");
+
+    // Signalled: the reader runs until an attempt is actually in flight.
+    if (!NT_SUCCESS(NtCreateEvent(&SimcpRelayResumeEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, TRUE)))
+        SimcpFail("unable to allocate I/O resources");
+
+    if (!NT_SUCCESS(NtCreateEvent(&SimcpFirstAttemptEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
+        SimcpFail("unable to allocate I/O resources");
+
+    if (!NT_SUCCESS(NtCreateEvent(&SimcpRelayParkedEvent, EVENT_ALL_ACCESS, NULL, NotificationEvent, FALSE)))
+        SimcpFail("unable to allocate I/O resources");
+
+    if (!NT_SUCCESS(NtDuplicateObject(
+        NtCurrentProcess(),
+        NtCurrentThread(),
+        NtCurrentProcess(),
+        &SimcpRelayThreadHandle,
+        0,
+        0,
+        DUPLICATE_SAME_ACCESS
+        )))
+    {
+        SimcpFail("unable to allocate I/O resources");
+    }
 
     // The supervisor owns the pipe and standard output; this thread owns standard input and
     // writes through SimcpLinkSend, which serialises against the supervisor's own frames.

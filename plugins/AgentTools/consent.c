@@ -33,17 +33,31 @@ typedef struct _AT_CONSENT_REQUEST
     PPH_STRING FooterUpdate;
     BOOLEAN OfferPolicies;
     BOOLEAN OfferDelegate;
+    BOOLEAN OfferHoldAnswer;
     PCWSTR AcceptText;
     PCWSTR DeclineText;
     HWND ComboHandle;
 
     BOOLEAN Allowed;
     AT_SESSION_POLICY Policy;
+    BOOLEAN HoldRequested;
+    BOOLEAN AnsweredByHold;
     BOOLEAN TimedOut;
     BOOLEAN Failed;
 } AT_CONSENT_REQUEST, *PAT_CONSENT_REQUEST;
 
 static PH_WORK_QUEUE AtpConsentWorkQueue;
+
+typedef enum _AT_CONNECT_ANSWER
+{
+    AtConnectAnswerAsk,
+    AtConnectAnswerAllow,
+    AtConnectAnswerDeny,
+} AT_CONNECT_ANSWER;
+
+C_ASSERT(sizeof(AT_CONNECT_ANSWER) == sizeof(LONG));
+
+static LONG AtpConnectAnswer = AtConnectAnswerAsk;
 
 VOID AtConsentInitialize(
     VOID
@@ -200,7 +214,7 @@ VOID AtpAppendStdioClients(
     }
 }
 
-BOOLEAN AtpLauncherContradictsStdio(
+BOOLEAN AtpLauncherMatchesStdio(
     _In_ PAT_CONNECTION Connection
     )
 {
@@ -212,10 +226,20 @@ BOOLEAN AtpLauncherContradictsStdio(
     for (i = 0; i < Connection->StdioClientIds->Count; i++)
     {
         if (HandleToUlong(Connection->StdioClientIds->Items[i]) == Connection->LauncherProcessId)
-            return FALSE;
+            return TRUE;
     }
 
-    return TRUE;
+    return FALSE;
+}
+
+BOOLEAN AtpLauncherContradictsStdio(
+    _In_ PAT_CONNECTION Connection
+    )
+{
+    return
+        Connection->StdioOrigin == AtStdioResolved &&
+        !!Connection->LauncherProcessId &&
+        !AtpLauncherMatchesStdio(Connection);
 }
 
 PPH_STRING AtpFormatRequester(
@@ -271,16 +295,13 @@ PPH_STRING AtpFormatRequester(
     PhAppendFormatStringBuilder(&builder, L"\nBroker: %s (verified)", PhGetStringOrDefault(broker, L"unknown"));
     PhClearReference(&broker);
 
-    // Nothing checks the launcher: it is the client's own account of who started the broker, and a
-    // verdict beside it lends that account an authority it does not have.
+    // The claim survived the handshake, which refuses one the handles disprove, but holding them is
+    // not the same as having created the broker: the verdict below is still about the image alone.
     if (Connection->LauncherImageName)
         launcher = PhGetBaseName(Connection->LauncherImageName);
 
     PhAppendFormatStringBuilder(&builder, L"\nLauncher: %s (self-reported)", PhGetStringOrDefault(launcher, L"unknown"));
     PhClearReference(&launcher);
-
-    if (AtpLauncherContradictsStdio(Connection))
-        PhAppendStringBuilder2(&builder, L", holds none of the broker's handles");
 
     PhAppendFormatStringBuilder(&builder, L"\nUser: %s", PhGetStringOrDefault(Connection->UserName, L"unknown"));
 
@@ -805,10 +826,23 @@ VOID AtpCompleteConnectionRequest(
     if (ReadAcquire(&Request->Abandoned) && !Request->TimedOut)
         return;
 
+    // TimedOut is published by the waiter before the Abandoned store the check above acquires, so
+    // it is only reliable here; the worker may have computed HoldRequested against a stale FALSE.
+    if (Request->HoldRequested && !Request->TimedOut)
+        WriteRelease(&AtpConnectAnswer, Request->Allowed ? AtConnectAnswerAllow : AtConnectAnswerDeny);
+
     if (Request->Allowed)
     {
         WriteRelease((PLONG)&connection->Approval, AtApprovalAllowed);
-        AtAudit(connection, &AtActionInfo[AtActionConnect], NULL, L"allowed by the user");
+
+        if (Request->AnsweredByHold)
+            reason = L"allowed by the answer held for this session";
+        else if (Request->HoldRequested)
+            reason = L"allowed by the user, and held for every connection this session";
+        else
+            reason = L"allowed by the user";
+
+        AtAudit(connection, &AtActionInfo[AtActionConnect], NULL, reason);
         return;
     }
 
@@ -818,6 +852,10 @@ VOID AtpCompleteConnectionRequest(
         reason = L"denied (the confirmation could not be shown)";
     else if (Request->TimedOut)
         reason = L"denied (no answer in time)";
+    else if (Request->AnsweredByHold)
+        reason = L"denied by the answer held for this session";
+    else if (Request->HoldRequested)
+        reason = L"denied by the user, and held for every connection this session";
     else
         reason = L"denied by the user";
 
@@ -844,8 +882,24 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
     TASKDIALOGCONFIG config;
     TASKDIALOG_BUTTON buttons[2];
     ULONG button = IDNO;
+    BOOLEAN holdAnswer = FALSE;
+    LONG held = AtConnectAnswerAsk;
 
-    if (!ReadAcquire(&request->Abandoned))
+    // Only the connection prompt offers the checkbox: nothing else publishes the answer, and the
+    // controls AtpCreateSessionPolicyControls hand-places would sit on top of it.
+    NT_ASSERT(!request->OfferHoldAnswer || (request->ConnectionRequest && !request->OfferPolicies));
+
+    if (request->OfferHoldAnswer)
+        held = ReadAcquire(&AtpConnectAnswer);
+
+    // Prompts are shown one at a time, so a burst of connections queues up behind the first. An
+    // answer the user chose to hold while this one waited answers it too, instead of asking again.
+    if (held != AtConnectAnswerAsk)
+    {
+        request->AnsweredByHold = TRUE;
+        button = held == AtConnectAnswerAllow ? IDYES : IDNO;
+    }
+    else if (!ReadAcquire(&request->Abandoned))
     {
         // Built now rather than at the handshake: by the time the dialog comes up the client has
         // usually sent initialize, so it can be named.
@@ -877,6 +931,8 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
         config.lpCallbackData = (LONG_PTR)request;
         config.cxWidth = 250;
 
+        if (request->OfferHoldAnswer)
+            config.pszVerificationText = L"Use this answer for all connections until restart";
 
         buttons[0].nButtonID = IDYES;
         buttons[0].pszButtonText = request->AcceptText ? request->AcceptText : L"Approve";
@@ -887,7 +943,7 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
         config.nDefaultButton = IDNO;
 
         // A dialog that could not be shown is not a decision, and must not be reported as one.
-        if (!PhShowTaskDialog(&config, &button, NULL, NULL))
+        if (!PhShowTaskDialog(&config, &button, NULL, &holdAnswer))
         {
             request->Failed = TRUE;
             button = IDNO;
@@ -896,7 +952,13 @@ NTSTATUS NTAPI AtpConsentDialogWorker(
 
     // A late answer is not a decision: the waiter already denied.
     if (!ReadAcquire(&request->Abandoned))
+    {
         request->Allowed = button == IDYES;
+
+        // TDF_ALLOW_DIALOG_CANCELLATION returns IDCANCEL for Escape and the close button, and the
+        // countdown dismisses with IDNO. Neither is an answer, so neither carries forward.
+        request->HoldRequested = holdAnswer && !request->TimedOut && (button == IDYES || button == IDNO);
+    }
 
     request->ComboHandle = NULL;
 
@@ -1152,9 +1214,10 @@ PPH_STRING AtpFormatConnectionRequester(
 
     PhAppendFormatStringBuilder(
         &builder,
-        L"Process: %s (PID %lu)",
+        L"Process: %s (PID %lu)%s",
         PhGetStringOrDefault(launcher, L"unknown"),
-        Connection->LauncherProcessId
+        Connection->LauncherProcessId,
+        AtpLauncherMatchesStdio(Connection) ? L"" : L" (UNVERIFIED)"
         );
     PhClearReference(&launcher);
 
@@ -1185,8 +1248,23 @@ VOID AtConsentRequestConnection(
         return;
     }
 
+    // An earlier prompt whose checkbox was ticked answers this one.
+    switch (ReadAcquire(&AtpConnectAnswer))
+    {
+    case AtConnectAnswerAllow:
+        WriteRelease((PLONG)&Connection->Approval, AtApprovalAllowed);
+        AtAudit(Connection, action, NULL, L"allowed by the answer held for this session");
+        return;
+    case AtConnectAnswerDeny:
+        WriteRelease((PLONG)&Connection->Approval, AtApprovalDenied);
+        AtAudit(Connection, action, NULL, L"denied by the answer held for this session");
+        AtConnectionClose(Connection, SimcpCloseRejected, SimcpHelloRejectedByUser);
+        return;
+    }
+
     request = AtpCreateConsentRequest(action, Connection);
     request->ConnectionRequest = TRUE;
+    request->OfferHoldAnswer = TRUE;
     request->Connection = PhReferenceObject(Connection);
     request->Instruction = PhFormatString(L"%s?", action->Headline);
     // Content is built when the dialog comes up, so the client's name can be included.

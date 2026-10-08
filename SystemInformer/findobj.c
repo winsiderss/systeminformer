@@ -905,10 +905,11 @@ static NTSTATUS NTAPI SearchHandleFunction(
         &bestObjectName
         )))
     {
-        if (((context->SearchAll || MatchSearchString(context, &objectName->sr) || MatchSearchString(context, &bestObjectName->sr)) &&
-            MatchTypeString(context, &typeName->sr)) ||
+        if (
             PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->Object) ||
-            PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->HandleValue))
+            PhSearchControlMatchPointer(context->SearchMatchHandle, handleContext->HandleInfo->HandleValue) ||
+            ((context->SearchAll || MatchSearchString(context, &objectName->sr) || MatchSearchString(context, &bestObjectName->sr)) &&
+            MatchTypeString(context, &typeName->sr)))
         {
             PPHP_OBJECT_SEARCH_RESULT searchResult;
 
@@ -957,11 +958,11 @@ static BOOLEAN NTAPI EnumModulesCallback(
 
     filenameWin32 = PhGetFileName(Module->FileName);
 
-    if ((
+    if (
         context->SearchAll ||
+        PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress) ||
         MatchSearchString(context, &filenameWin32->sr) ||
-        MatchSearchString(context, &Module->FileName->sr)) ||
-        PhSearchControlMatchPointer(context->SearchMatchHandle, Module->BaseAddress))
+        MatchSearchString(context, &Module->FileName->sr))
     {
         PPHP_OBJECT_SEARCH_RESULT searchResult;
         PCWSTR typeName;

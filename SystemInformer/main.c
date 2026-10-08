@@ -84,6 +84,7 @@ INT WINAPI wWinMain(
     }
 
     PhGuiSupportInitialization();
+    PhConsoleSetForeground(NtCurrentProcess(), TRUE);
 
     PhInitializeAppSettings();
     PhInitializeCallbacks();
@@ -97,8 +98,7 @@ INT WINAPI wWinMain(
 
     PhInitializeCallbacks();
 
-    if (PhEnableKsiSupport &&
-        !PhStartupParameters.ShowOptions)
+    if (PhEnableKsiSupport && !PhStartupParameters.ShowOptions)
     {
         PhInitializeKsi();
     }
@@ -440,12 +440,11 @@ static BOOLEAN CALLBACK PhPreviousInstanceWindowEnumProc(
                     WindowHandle
                     );
 
-                SendMessageTimeout(
+                PhSendMessageTimeout(
                     WindowHandle,
                     WM_PH_ACTIVATE,
                     PhStartupParameters.SelectPid,
                     0,
-                    SMTO_ABORTIFHUNG | SMTO_BLOCK,
                     5000,
                     &result
                     );
@@ -663,7 +662,7 @@ VOID PhActivatePreviousInstance(
 
     PhTraceFuncEnter("Activate previous instance");
 
-    status = PhEnumDirectoryObjects(PhGetNamespaceHandle(), PhpPreviousInstancesCallback, NULL);
+    status = PhEnumDirectoryObjects(PhGetNamespaceHandle2(), PhpPreviousInstancesCallback, NULL);
 
     //if (applicationFileName = PhGetApplicationFileName())
     //{
@@ -821,7 +820,7 @@ VOID PhpCreateUnhandledExceptionCrashDump(
     WCHAR alphastring[16] = L"";
 
     PhGenerateRandomAlphaString(alphastring, RTL_NUMBER_OF(alphastring));
-    directory = PhExpandEnvironmentStringsZ(L"\\??\\%USERPROFILE%\\Desktop\\");
+    directory = PhExpandEnvironmentStringsZ(L"\\??\\%PROGRAMDATA%\\SystemInformer\\CrashDumps\\");
     fileName = PhConcatStrings(5, PhGetString(directory), L"SystemInformer", L"_DumpFile_", alphastring, L".dmp");
     PhCreateDirectoryFullPath(&fileName->sr);
 
@@ -904,7 +903,7 @@ static LPTOP_LEVEL_EXCEPTION_FILTER PhpPreviousUnhandledExceptionFilter = NULL;
  *
  * This function is called when an unhandled exception occurs. It presents the user
  * with options to create a crash dump, restart, ignore, or exit. It also generates
- * a crash dump file on the desktop if requested.
+ * a crash dump file in ProgramData if requested.
  * \param ExceptionInfo Pointer to the exception information.
  * \return An exception disposition value.
  */
@@ -999,7 +998,7 @@ LONG CALLBACK PhpUnhandledExceptionCallback(
                 NULL,
                 MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
                 L"System Informer has crashed :(\r\n\r\n%s",
-                L"Do you want to create a minidump on the Desktop?"
+                L"Do you want to create a minidump in ProgramData\\SystemInformer\\CrashDumps?"
                 ) == IDYES)
             {
                 PhpCreateUnhandledExceptionCrashDump(ExceptionInfo, PhTriageDumpTypeMinimal);
@@ -1128,7 +1127,7 @@ NTSTATUS PhInitializeNamespacePolicy(
     status = PhCreateMutant(
         &mutantHandle,
         MUTANT_QUERY_STATE,
-        PhGetNamespaceHandle(),
+        PhGetNamespaceHandle2(),
         &objectName,
         TRUE
         );

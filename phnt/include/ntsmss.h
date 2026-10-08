@@ -189,6 +189,15 @@ typedef struct _SBAPIMSG
 
 // functions
 
+/**
+ * The RtlConnectToSm routine connects to the Session Manager (SMSS) API port.
+ *
+ * \param ApiPortName An optional pointer to the name of the Session Manager API port.
+ * \param ApiPortHandle An optional handle to an existing communication port.
+ * \param ProcessImageType The image type of the connecting process.
+ * \param SmssConnection A pointer to a HANDLE variable that receives the connection handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -199,6 +208,13 @@ RtlConnectToSm(
     _Out_ PHANDLE SmssConnection
     );
 
+/**
+ * The RtlSendMsgToSm routine sends an LPC message to the Session Manager (SMSS).
+ *
+ * \param ApiPortHandle A handle to the Session Manager communication port.
+ * \param MessageData A pointer to the LPC port message structure to send.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI

@@ -12,18 +12,17 @@
 
 #include <ph.h>
 #include <commdlg.h>
-#include <cfgmgr32.h>
 #include <d3dkmthk.h>
 #include <ntintsafe.h>
 #include <processsnapshot.h>
 #include <sddl.h>
 #include <shellapi.h>
 #include <shlobj.h>
-#include <winsta.h>
 
 #include <apiimport.h>
 #include <appresolver.h>
-#include <devpkey.h>
+#include <base64.h>
+#include <phcrypt.h>
 #include <guisup.h>
 #include <mapimg.h>
 #include <mapldr.h>
@@ -35,6 +34,10 @@
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
 #include <winstring.h>
+#endif
+
+#ifndef PH_NATIVE_CRC32
+#define PH_NATIVE_CRC32 1
 #endif
 
 DECLSPEC_SELECTANY CONST WCHAR *PhSizeUnitNames[7] = { L"B", L"kB", L"MB", L"GB", L"TB", L"PB", L"EB" };
@@ -130,35 +133,40 @@ VOID PhAdjustRectangleToWorkingArea(
  *
  * \param WindowHandle The window to center.
  * \param ParentWindowHandle If specified, the window will be positioned at the center of this
- * window. Otherwise, the window will be positioned at the center of the monitor.
+ * window. Otherwise, or if the parent is hidden or minimized, the window will be positioned at the
+ * center of the monitor's work area.
  */
 VOID PhCenterWindow(
     _In_ HWND WindowHandle,
     _In_opt_ HWND ParentWindowHandle
     )
 {
-    if (ParentWindowHandle)
+    RECT rect;
+    PH_RECTANGLE rectangle = { 0 };
+
+    if (!PhGetWindowRect(WindowHandle, &rect))
+        return;
+
+    PhRectToRectangle(&rectangle, &rect);
+
+    if (ParentWindowHandle && IsWindowVisible(ParentWindowHandle) && !IsMinimized(ParentWindowHandle))
     {
-        RECT rect, parentRect;
-        PH_RECTANGLE rectangle = { 0 };
+        RECT parentRect;
         PH_RECTANGLE parentRectangle = { 0 };
 
-        if (!IsWindowVisible(ParentWindowHandle) || IsMinimized(ParentWindowHandle))
-            return;
-        if (!PhGetWindowRect(WindowHandle, &rect))
-            return;
-        if (!PhGetWindowRect(ParentWindowHandle, &parentRect))
-            return;
+        if (PhGetWindowRect(ParentWindowHandle, &parentRect))
+        {
+            PhRectToRectangle(&parentRectangle, &parentRect);
+            PhCenterRectangle(&rectangle, &parentRectangle);
+            PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
 
-        PhRectToRectangle(&rectangle, &rect);
-        PhRectToRectangle(&parentRectangle, &parentRect);
-        PhCenterRectangle(&rectangle, &parentRectangle);
-        PhAdjustRectangleToWorkingArea(WindowHandle, &rectangle);
-
-        MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
-            rectangle.Width, rectangle.Height, FALSE);
+            MoveWindow(WindowHandle, rectangle.Left, rectangle.Top,
+                rectangle.Width, rectangle.Height, FALSE);
+            return;
+        }
     }
-    else
+
+    // No usable parent (none, hidden or minimized): center on the monitor work area.
     {
         MONITORINFO monitorInfo;
 
@@ -170,14 +178,8 @@ VOID PhCenterWindow(
             &monitorInfo
             ))
         {
-            RECT rect;
-            PH_RECTANGLE rectangle = { 0 };;
-            PH_RECTANGLE bounds = { 0 };;
+            PH_RECTANGLE bounds = { 0 };
 
-            if (!PhGetWindowRect(WindowHandle, &rect))
-                return;
-
-            PhRectToRectangle(&rectangle, &rect);
             PhRectToRectangle(&bounds, &monitorInfo.rcWork);
             PhCenterRectangle(&rectangle, &bounds);
 
@@ -1562,19 +1564,28 @@ BOOLEAN PhShowConfirmMessage(
     _In_ BOOLEAN Warning
     )
 {
+    PPH_STRING verbString;
     PPH_STRING verb;
     PPH_STRING verbCaps;
     PPH_STRING action;
+    PPH_STRING mainInstruction;
+    PPH_STRING content = NULL;
+    BOOLEAN result;
 
     // Make sure the verb is all lowercase.
-    verb = PhaLowerString(PhaCreateString(Verb));
+    verbString = PhCreateString(Verb);
+    verb = PhLowerString(verbString);
 
     // "terminate" -> "Terminate"
-    verbCaps = PhaDuplicateString(verb);
+    verbCaps = PhDuplicateString(verb);
     if (verbCaps->Length > 0) verbCaps->Buffer[0] = PhUpcaseUnicodeChar(verbCaps->Buffer[0]);
 
     // "terminate", "the process" -> "terminate the process"
-    action = PhaConcatStrings(3, verb->Buffer, L" ", Object);
+    action = PhConcatStrings(3, verb->Buffer, L" ", Object);
+    mainInstruction = PhConcatStrings(3, L"Do you want to ", action->Buffer, L"?");
+
+    if (Message)
+        content = PhConcatStrings2(Message, L" Are you sure you want to continue?");
 
     {
         ULONG button;
@@ -1588,8 +1599,8 @@ BOOLEAN PhShowConfirmMessage(
         config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | ((WindowHandle && IsWindowVisible(WindowHandle) && !IsMinimized(WindowHandle)) ? TDF_POSITION_RELATIVE_TO_WINDOW : 0);
         config.pszWindowTitle = PhApplicationName;
         config.pszMainIcon = Warning ? TD_WARNING_ICON : TD_INFORMATION_ICON;
-        config.pszMainInstruction = PhaConcatStrings(3, L"Do you want to ", action->Buffer, L"?")->Buffer;
-        if (Message) config.pszContent = PhaConcatStrings2(Message, L" Are you sure you want to continue?")->Buffer;
+        config.pszMainInstruction = mainInstruction->Buffer;
+        if (content) config.pszContent = content->Buffer;
 
         buttons[0].nButtonID = IDYES;
         buttons[0].pszButtonText = verbCaps->Buffer;
@@ -1601,6 +1612,8 @@ BOOLEAN PhShowConfirmMessage(
         config.nDefaultButton = IDYES;
         config.cxWidth = 200;
 
+        result = FALSE;
+
         if (PhShowTaskDialog(
             &config,
             &button,
@@ -1608,21 +1621,28 @@ BOOLEAN PhShowConfirmMessage(
             NULL
             ))
         {
-            return button == IDYES;
+            result = button == IDYES;
         }
-
-        if (PhShowMessage(
+        else if (PhShowMessage(
             WindowHandle,
             MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
             L"Are you sure you want to %s?",
             action->Buffer
             ) == IDYES)
         {
-            return TRUE;
+            result = TRUE;
         }
-
-        return FALSE;
     }
+
+    if (content)
+        PhDereferenceObject(content);
+    PhDereferenceObject(mainInstruction);
+    PhDereferenceObject(action);
+    PhDereferenceObject(verbCaps);
+    PhDereferenceObject(verb);
+    PhDereferenceObject(verbString);
+
+    return result;
 }
 
 /**
@@ -2069,6 +2089,190 @@ BOOLEAN PhGenerateRandomSeed(
 //#endif
 
     return PhQueryPerformanceCounter(Seed);
+}
+
+/**
+ * Initializes a correlation vector context with a fresh base vector.
+ *
+ * The base vector is 16 bytes of cryptographic entropy encoded as base64 with the
+ * trailing '=' padding removed, per the Microsoft Correlation Vector protocol.
+ *
+ * \param[out] Context The context to initialize. Release with PhDeleteCorrelationVector.
+ * \return STATUS_SUCCESS on success; an appropriate NTSTATUS on failure (Context is
+ * zeroed in all cases, so PhDeleteCorrelationVector is always safe to call).
+ */
+NTSTATUS PhInitializeCorrelationVector(
+    _Out_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    NTSTATUS status;
+    GUID guid;
+
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT));
+
+    if (!RtlInitializeCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    status = PhSymCryptGenRandom(&guid, sizeof(GUID), 0);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    return RtlInitializeCorrelationVector_Import()(
+        &Context->Vector,
+        RTL_CORRELATION_VECTOR_VERSION_2,
+        &guid
+        );
+#else
+    NTSTATUS status;
+    UCHAR randomBuffer[16];
+    CHAR base64Buffer[32]; // 16 bytes -> 24 base64 chars (+ NUL)
+    SIZE_T base64Length;
+
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT));
+
+    status = PhSymCryptGenRandom(randomBuffer, sizeof(randomBuffer), 0);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (!PhBase64Encode(
+        randomBuffer,
+        sizeof(randomBuffer),
+        base64Buffer,
+        sizeof(base64Buffer),
+        &base64Length
+        ))
+    {
+        return STATUS_UNSUCCESSFUL;
+    }
+
+    // Strip the trailing '=' padding the CV protocol disallows.
+    while (base64Length > 0 && base64Buffer[base64Length - 1] == '=')
+        base64Length--;
+
+    if (base64Length == 0)
+        return STATUS_UNSUCCESSFUL;
+
+    Context->BaseVector = PhZeroExtendToUtf16Ex(base64Buffer, base64Length);
+    Context->CurrentIndex = 0;
+
+    return STATUS_SUCCESS;
+#endif
+}
+
+/**
+ * Releases the resources held by a correlation vector context.
+ *
+ * \param[in,out] Context The context to delete. Safe to call on a zeroed context.
+ */
+VOID PhDeleteCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    memset(Context, 0, sizeof(PH_CORRELATION_VECTOR_CONTEXT)); // nothing heap-allocated
+#else
+    PhClearReference(&Context->BaseVector);
+#endif
+}
+
+/**
+ * Produces the next extension of the correlation vector.
+ *
+ * The counter is incremented atomically, so the function may be called concurrently
+ * from multiple threads sharing one context.
+ *
+ * \param[in,out] Context An initialized correlation vector context.
+ * \return A new string of the form "<base vector>.<index>", or NULL if the context
+ * was not initialized. The caller must dereference the returned string.
+ */
+PPH_STRING PhIncrementCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlIncrementCorrelationVector_Import())
+        return NULL;
+
+    if (!NT_SUCCESS(RtlIncrementCorrelationVector_Import()(&Context->Vector)))
+        return NULL;
+
+    return PhZeroExtendToUtf16(Context->Vector.Vector);
+#else
+    LONG newIndex;
+
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return NULL;
+
+    newIndex = _InterlockedIncrement(&Context->CurrentIndex);
+
+    return PhFormatString(
+        L"%s.%lu",
+        Context->BaseVector->Buffer,
+        (ULONG)newIndex
+        );
+#endif
+}
+
+/**
+ * Extends the correlation vector by appending a new (zeroed) extension level,
+ * marking the start of a nested operation.
+ *
+ * \param[in,out] Context An initialized correlation vector context.
+ * \return STATUS_SUCCESS on success; an appropriate NTSTATUS on failure.
+ */
+NTSTATUS PhExtendCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlExtendCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    return RtlExtendCorrelationVector_Import()(&Context->Vector);
+#else
+    PPH_STRING baseVector;
+
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return STATUS_INVALID_PARAMETER;
+
+    // Fold the current extension into the base and start a fresh level at 0.
+    baseVector = PhFormatString(
+        L"%s.%lu",
+        Context->BaseVector->Buffer,
+        (ULONG)Context->CurrentIndex
+        );
+
+    PhMoveReference(&Context->BaseVector, baseVector);
+    Context->CurrentIndex = 0;
+
+    return STATUS_SUCCESS;
+#endif
+}
+
+/**
+ * Validates the format of the correlation vector.
+ *
+ * \param[in] Context An initialized correlation vector context.
+ * \return STATUS_SUCCESS if the vector is well-formed; an appropriate NTSTATUS otherwise.
+ */
+NTSTATUS PhValidateCorrelationVector(
+    _In_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    )
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    if (!RtlValidateCorrelationVector_Import())
+        return STATUS_NOT_SUPPORTED;
+
+    return RtlValidateCorrelationVector_Import()(&Context->Vector);
+#else
+    if (PhIsNullOrEmptyString(Context->BaseVector))
+        return STATUS_INVALID_PARAMETER;
+
+    return STATUS_SUCCESS;
+#endif
 }
 
 /**
@@ -3123,6 +3327,11 @@ PPH_STRING PhFormatGuid(
     )
 {
     PPH_STRING string;
+
+#ifndef PH_NATIVE_GUID
+    string = PhCreateStringEx(NULL, RTL_GUID_STRING_SIZE * sizeof(WCHAR));
+    PhFormatGuidToBuffer(Guid, string->Buffer, (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR), NULL);
+#else
     UNICODE_STRING unicodeString;
 
     if (!NT_SUCCESS(RtlStringFromGUID(Guid, &unicodeString)))
@@ -3130,6 +3339,7 @@ PPH_STRING PhFormatGuid(
 
     string = PhCreateStringFromUnicodeString(&unicodeString);
     RtlFreeUnicodeString(&unicodeString);
+#endif
 
     return string;
 }
@@ -3149,34 +3359,75 @@ NTSTATUS PhFormatGuidToBuffer(
     _Out_opt_ PSIZE_T ReturnLength
     )
 {
-    NTSTATUS status;
+#ifndef PH_NATIVE_GUID
+    static const WCHAR hexDigits[] = L"0123456789ABCDEF";
+    const UCHAR *bytes = (const UCHAR *)Guid;
+    WCHAR guidString[RTL_GUID_STRING_SIZE + 1];
+    ULONG sourceIndex;
+    ULONG destinationIndex = 0;
+    ULONG groupIndex;
+    const UCHAR byteOrder[] = { 3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+    if (ReturnLength)
+        *ReturnLength = sizeof(guidString);
+
+    if (!Guid || !Buffer || BufferLength < sizeof(guidString))
+        return STATUS_BUFFER_TOO_SMALL;
+
+    guidString[destinationIndex++] = L'{';
+
+    for (sourceIndex = 0; sourceIndex < RTL_NUMBER_OF(byteOrder); sourceIndex++)
+    {
+        groupIndex = sourceIndex;
+        if (groupIndex == 4 || groupIndex == 6 || groupIndex == 8 || groupIndex == 10)
+            guidString[destinationIndex++] = L'-';
+
+        guidString[destinationIndex++] = hexDigits[bytes[byteOrder[sourceIndex]] >> 4];
+        guidString[destinationIndex++] = hexDigits[bytes[byteOrder[sourceIndex]] & 0xf];
+    }
+
+    guidString[destinationIndex++] = L'}';
+    guidString[destinationIndex] = UNICODE_NULL;
+    memcpy(Buffer, guidString, sizeof(guidString));
+    return STATUS_SUCCESS;
+#else
     UNICODE_STRING unicodeString;
+    NTSTATUS status;
+
+    if (!Guid)
+        return STATUS_BUFFER_TOO_SMALL;
 
     if (WindowsVersion < WINDOWS_10)
     {
         PPH_STRING guid = PhFormatGuid(Guid);
 
-        if (BufferLength < guid->Length)
+        if (!guid)
+            return STATUS_UNSUCCESSFUL;
+
+        if (ReturnLength)
+            *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+
+        if (!Buffer || BufferLength < guid->Length + sizeof(UNICODE_NULL))
         {
-            if (ReturnLength)
-                *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
             PhDereferenceObject(guid);
             return STATUS_BUFFER_TOO_SMALL;
         }
 
-        memcpy(Buffer, guid->Buffer, BufferLength);
-
-        if (ReturnLength)
-            *ReturnLength = guid->Length + sizeof(UNICODE_NULL);
+        memcpy(Buffer, guid->Buffer, guid->Length + sizeof(UNICODE_NULL));
         PhDereferenceObject(guid);
         return STATUS_SUCCESS;
     }
+
+    if (ReturnLength)
+        *ReturnLength = (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR);
+
+    if (!Buffer || BufferLength < (RTL_GUID_STRING_SIZE + 1) * sizeof(WCHAR))
+        return STATUS_BUFFER_TOO_SMALL;
 
     if (!RtlStringFromGUIDEx_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
     RtlInitEmptyUnicodeString(&unicodeString, Buffer, BufferLength);
-
     status = RtlStringFromGUIDEx_Import()(
         Guid,
         &unicodeString,
@@ -3192,6 +3443,7 @@ NTSTATUS PhFormatGuidToBuffer(
     }
 
     return status;
+#endif
 }
 
 /**
@@ -3206,12 +3458,57 @@ NTSTATUS PhStringToGuid(
     _Out_ PGUID Guid
     )
 {
+#ifndef PH_NATIVE_GUID
+    GUID guid;
+    UCHAR *bytes = (UCHAR *)&guid;
+    ULONG sourceIndex;
+    ULONG destinationIndex = 0;
+    ULONG value;
+    ULONG high;
+    ULONG low;
+    const UCHAR byteOrder[] = { 3, 2, 1, 0, 5, 4, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+    if (!GuidString || !Guid || GuidString->Length != RTL_GUID_STRING_SIZE * sizeof(WCHAR))
+        return STATUS_INVALID_PARAMETER;
+    if (GuidString->Buffer[0] != L'{' || GuidString->Buffer[37] != L'}' ||
+        GuidString->Buffer[9] != L'-' || GuidString->Buffer[14] != L'-' ||
+        GuidString->Buffer[19] != L'-' || GuidString->Buffer[24] != L'-')
+        return STATUS_INVALID_PARAMETER;
+
+    for (sourceIndex = 1; sourceIndex < 37;)
+    {
+        if (GuidString->Buffer[sourceIndex] == L'-')
+        {
+            sourceIndex++;
+            continue;
+        }
+
+        value = GuidString->Buffer[sourceIndex++];
+        if (value >= L'0' && value <= L'9') high = value - L'0';
+        else if ((value | 0x20) >= L'a' && (value | 0x20) <= L'f') high = (value | 0x20) - L'a' + 10;
+        else return STATUS_INVALID_PARAMETER;
+
+        value = GuidString->Buffer[sourceIndex++];
+        if (value >= L'0' && value <= L'9') low = value - L'0';
+        else if ((value | 0x20) >= L'a' && (value | 0x20) <= L'f') low = (value | 0x20) - L'a' + 10;
+        else return STATUS_INVALID_PARAMETER;
+
+        bytes[byteOrder[destinationIndex++]] = (UCHAR)((high << 4) | low);
+    }
+
+    if (destinationIndex != RTL_NUMBER_OF(byteOrder))
+        return STATUS_INVALID_PARAMETER;
+
+    *Guid = guid;
+    return STATUS_SUCCESS;
+#else
     UNICODE_STRING unicodeString;
 
     if (!PhStringRefToUnicodeString(GuidString, &unicodeString))
         return STATUS_BUFFER_OVERFLOW;
 
     return RtlGUIDFromString(&unicodeString, Guid);
+#endif
 }
 
 /**
@@ -3291,28 +3588,28 @@ NTSTATUS PhGetFileVersionInfoEx(
     if (!NT_SUCCESS(status))
         return status;
 
-    //if (LdrResFindResource_Import())
-    //{
-    //    PVOID resourceBuffer = NULL;
-    //    SIZE_T resourceLength = 0;
-    //
-    //    if (NT_SUCCESS(LdrResFindResource_Import()(
-    //        imageBaseAddress,
-    //        VS_FILE_INFO,
-    //        MAKEINTRESOURCE(VS_VERSION_INFO),
-    //        MAKEINTRESOURCE(MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)),
-    //        &resourceBuffer,
-    //        &resourceLength,
-    //        NULL,
-    //        NULL,
-    //        0
-    //        )))
-    //    {
-    //        *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
-    //        PhFreeLibraryAsImageResource(imageBaseAddress);
-    //        return STATUS_SUCCESS;
-    //    }
-    //}
+    if (LdrResFindResource_Import())
+    {
+        PVOID resourceBuffer = NULL;
+        SIZE_T resourceLength = 0;
+    
+        if (NT_SUCCESS(LdrResFindResource_Import()(
+            imageBaseAddress,
+            VS_FILE_INFO,
+            MAKEINTRESOURCE(VS_VERSION_INFO),
+            MAKEINTRESOURCE(MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL)),
+            &resourceBuffer,
+            &resourceLength,
+            NULL,
+            NULL,
+            LDR_RES_SEARCH_LOAD_IMAGE
+            )))
+        {
+            *VersionInfo = PhAllocateCopy(resourceBuffer, resourceLength);
+            PhFreeLibraryAsImageResource(imageBaseAddress);
+            return STATUS_SUCCESS;
+        }
+    }
 
     // MUI version information
     if (PRIMARYLANGID(LANGIDFROMLCID(PhGetCurrentThreadLCID())) != LANG_ENGLISH)
@@ -4477,11 +4774,12 @@ PPH_STRING PhGetSystemDirectory(
     PhGetSystemRoot(&systemRootString);
     systemDirectory = PhConcatStringRef2(&systemRootString, &system32String);
 
-    PhReferenceObject(systemDirectory);
+    PhReferenceObject(systemDirectory); // Reference held by the cache.
 
-    if (previousSystemDirectory = InterlockedExchangePointer(&cachedSystemDirectory, systemDirectory))
+    if (previousSystemDirectory = InterlockedCompareExchangePointer(&cachedSystemDirectory, systemDirectory, NULL))
     {
-        PhDereferenceObject(previousSystemDirectory);
+        PhDereferenceObjectEx(systemDirectory, 2, FALSE); // Discard the unused cache and caller references.
+        systemDirectory = PhReferenceObject(previousSystemDirectory);
     }
 
     return systemDirectory;
@@ -4521,29 +4819,27 @@ VOID PhGetSystemRoot(
     _Out_ PPH_STRINGREF SystemRoot
     )
 {
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PH_STRINGREF systemRoot;
-    PH_STRINGREF localSystemRoot;
-    SIZE_T count;
 
-    if (systemRoot.Buffer)
+    if (PhBeginInitOnce(&initOnce))
     {
-        *SystemRoot = systemRoot;
-        return;
+        PH_STRINGREF localSystemRoot;
+        SIZE_T count;
+
+        localSystemRoot.Buffer = RtlGetNtSystemRoot();
+        count = PhCountStringZ(localSystemRoot.Buffer);
+        localSystemRoot.Length = count * sizeof(WCHAR);
+
+        // Make sure the system root string doesn't have a trailing backslash.
+        if (localSystemRoot.Buffer[count - 1] == OBJ_NAME_PATH_SEPARATOR)
+            localSystemRoot.Length -= sizeof(WCHAR);
+
+        systemRoot = localSystemRoot;
+        PhEndInitOnce(&initOnce);
     }
 
-    localSystemRoot.Buffer = RtlGetNtSystemRoot();
-    count = PhCountStringZ(localSystemRoot.Buffer);
-    localSystemRoot.Length = count * sizeof(WCHAR);
-
-    // Make sure the system root string doesn't have a trailing backslash.
-    if (localSystemRoot.Buffer[count - 1] == OBJ_NAME_PATH_SEPARATOR)
-        localSystemRoot.Length -= sizeof(WCHAR);
-
-    *SystemRoot = localSystemRoot;
-
-    systemRoot.Length = localSystemRoot.Length;
-    MemoryBarrier();
-    systemRoot.Buffer = localSystemRoot.Buffer;
+    *SystemRoot = systemRoot;
 }
 
 /**
@@ -4557,16 +4853,34 @@ VOID PhGetNtSystemRoot(
     )
 {
     static PPH_STRING systemRootNative;
+    PPH_STRING string;
 
-    if (PhIsNullOrEmptyString(systemRootNative))
+    string = ReadPointerAcquire(&systemRootNative);
+
+    if (!string)
     {
         PH_STRINGREF localSystemRoot;
+        PPH_STRING newString;
 
         PhGetSystemRoot(&localSystemRoot);
-        systemRootNative = PhDosPathNameToNtPathName(&localSystemRoot);
+        newString = PhDosPathNameToNtPathName(&localSystemRoot);
+
+        if (!newString)
+        {
+            NtSystemRoot->Buffer = NULL;
+            NtSystemRoot->Length = 0;
+            return;
+        }
+
+        string = InterlockedCompareExchangePointer(&systemRootNative, newString, NULL);
+
+        if (string)
+            PhDereferenceObject(newString);
+        else
+            string = newString;
     }
 
-    *NtSystemRoot = systemRootNative->sr;
+    *NtSystemRoot = string->sr;
 }
 
 /**
@@ -5514,6 +5828,76 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
     _In_ ULONG WakeMask
     )
 {
+#ifndef PHNT_WINDOWS7_WAIT
+    NTSTATUS status;
+    ULONG64 deadline = 0;
+    ULONG currentTimeout;
+
+    // Fix the deadline once instead of tracking a start point and subtracting the elapsed time on
+    // every pass. Subtracting produced a value that had already underflowed whenever the elapsed
+    // time exceeded the timeout, which the loop then had to detect by reinterpreting the unsigned
+    // result as signed and testing for a negative value. An absolute deadline expresses the same
+    // condition as an ordinary unsigned comparison, with no reliance on wraparound. (dmex)
+
+    if (Timeout != INFINITE)
+    {
+        deadline = PhQueryWaitTime() + UInt32x32To64(Timeout, PH_TIMEOUT_MS);
+    }
+
+    currentTimeout = Timeout;
+
+    while (TRUE)
+    {
+        status = MsgWaitForMultipleObjects(
+            NumberOfHandles,
+            Handles,
+            FALSE,
+            currentTimeout,
+            WakeMask
+            );
+
+        if (
+            status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles) ||
+            status >= STATUS_ABANDONED_WAIT_0  && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
+            )
+        {
+            return status;
+        }
+        else if (status == (STATUS_WAIT_0 + NumberOfHandles))
+        {
+            MSG msg;
+
+            // Pump messages
+
+            while (PeekMessage(&msg, WindowHandle, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&msg);
+                DispatchMessage(&msg);
+            }
+        }
+        else
+        {
+            return status;
+        }
+
+        // Recompute the timeout value. This is the only point that requires milliseconds, so it is
+        // the only point that rounds; the remaining time is otherwise carried at full resolution.
+        // The final partial millisecond truncates to zero, costing one extra non-blocking pass
+        // before the deadline comparison reports the timeout. (dmex)
+
+        if (Timeout != INFINITE)
+        {
+            ULONG64 currentTickCount;
+
+            currentTickCount = PhQueryWaitTime();
+
+            if (currentTickCount >= deadline)
+                return STATUS_TIMEOUT;
+
+            currentTimeout = (ULONG)((deadline - currentTickCount) / PH_TICKS_PER_MS);
+        }
+    }
+#else
     NTSTATUS status;
     ULONG64 startTickCount;
     ULONG64 currentTickCount;
@@ -5534,7 +5918,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
 
         if (
             status >= STATUS_WAIT_0 && status < (NTSTATUS)(STATUS_WAIT_0 + NumberOfHandles) ||
-            status >= STATUS_ABANDONED_WAIT_0  && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
+            status >= STATUS_ABANDONED_WAIT_0 && status < (NTSTATUS)(STATUS_ABANDONED_WAIT_0 + NumberOfHandles)
             )
         {
             return status;
@@ -5567,6 +5951,7 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
                 return STATUS_TIMEOUT;
         }
     }
+#endif
 }
 
 /**
@@ -5587,6 +5972,10 @@ NTSTATUS PhWaitForMultipleObjectsAndPump(
  * associated with the parent process.
  * \li \c PH_CREATE_PROCESS_NEW_CONSOLE The process will have its own console, instead of inheriting
  * the console of the parent process.
+ * \li \c PH_CREATE_PROCESS_DETACHED_PROCESS The process will run without a console. Mutually
+ * exclusive with PH_CREATE_PROCESS_NEW_CONSOLE and PH_CREATE_PROCESS_NO_WINDOW.
+ * \li \c PH_CREATE_PROCESS_NO_WINDOW The process is a console application running without a console
+ * window. Mutually exclusive with PH_CREATE_PROCESS_NEW_CONSOLE and PH_CREATE_PROCESS_DETACHED_PROCESS.
  * \param ParentProcessHandle The process from which the new process will inherit attributes.
  * Specify NULL for the current process.
  * \param ClientId A variable which receives the identifier of the initial thread.
@@ -5709,6 +6098,184 @@ NTSTATUS PhCreateProcess(
 }
 
 /**
+ * Creates cmd.exe via the NtCreateUserProcess system call and instructs it to launch a target
+ * program. cmd.exe is the process actually created; it spawns the target detached via
+ * "cmd.exe /c start "" "<FileName>" <CommandLine>" and then exits.
+ *
+ * \param FileName The Win32 file name of the target program that cmd.exe should launch.
+ * \param CommandLine The command line arguments passed to the target program.
+ * \param CurrentDirectory The current directory string to pass to cmd.exe.
+ * \param Flags See PhCreateProcess(). Only PH_CREATE_PROCESS_SUSPENDED is honored (applied to the
+ * initial thread of cmd.exe).
+ * \param ClientId A variable which receives the client id of the created cmd.exe process.
+ * \param ProcessHandle A variable which receives a handle to the cmd.exe process.
+ * \param ThreadHandle A variable which receives a handle to the initial thread of cmd.exe.
+ */
+NTSTATUS PhCreateUserProcess(
+    _In_ PCWSTR FileName,
+    _In_opt_ PCPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
+    _In_ ULONG Flags,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
+    )
+{
+    NTSTATUS status;
+    PPH_STRING cmdFileName;
+    PPH_STRING quotedFileName;
+    PPH_STRING commandLineString = NULL;
+    PH_STRINGREF fileNameSr;
+    PH_STRING_BUILDER stringBuilder;
+    PRTL_USER_PROCESS_PARAMETERS parameters = NULL;
+    UNICODE_STRING fileNameDosPath;
+    UNICODE_STRING fileNameNtPath;
+    UNICODE_STRING commandLine;
+    UNICODE_STRING currentDirectory;
+    PS_CREATE_INFO createInfo;
+    UCHAR buffer[FIELD_OFFSET(PS_ATTRIBUTE_LIST, Attributes) + sizeof(PS_ATTRIBUTE[2])] = { 0 };
+    PPS_ATTRIBUTE_LIST attributeList = (PPS_ATTRIBUTE_LIST)buffer;
+    CLIENT_ID clientId = { 0 };
+    HANDLE processHandle = NULL;
+    HANDLE threadHandle = NULL;
+
+    // Locate cmd.exe in the system directory.
+
+    cmdFileName = PhGetSystemDirectoryWin32Z(L"\\cmd.exe");
+
+    if (PhIsNullOrEmptyString(cmdFileName))
+    {
+        if (cmdFileName)
+            PhDereferenceObject(cmdFileName);
+        return STATUS_OBJECT_NAME_NOT_FOUND;
+    }
+
+    // Resolve the NT path of cmd.exe for the PsAttributeImageName attribute.
+
+    status = PhDosLongPathNameToNtPathNameWithStatus(
+        cmdFileName->Buffer,
+        &fileNameNtPath,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+    {
+        PhDereferenceObject(cmdFileName);
+        return status;
+    }
+
+    // Build the command line: "<cmd.exe>" /c start "" "<FileName>" <CommandLine>
+    // The empty "" after start is the window-title placeholder so a quoted target
+    // path is not consumed as the window title.
+
+    PhInitializeStringRefLongHint(&fileNameSr, (PWSTR)FileName);
+    quotedFileName = PhQuoteCommandLine(&fileNameSr, TRUE);
+
+    PhInitializeStringBuilder(&stringBuilder, 128);
+    PhAppendCharStringBuilder(&stringBuilder, L'"');
+    PhAppendStringBuilder(&stringBuilder, &cmdFileName->sr);
+    PhAppendStringBuilder2(&stringBuilder, L"\" /C start /I \"\" ");
+    PhAppendStringBuilder(&stringBuilder, &quotedFileName->sr);
+
+    if (CommandLine && CommandLine->Length != 0)
+    {
+        PhAppendCharStringBuilder(&stringBuilder, L' ');
+        PhAppendStringBuilder(&stringBuilder, CommandLine);
+    }
+
+    commandLineString = PhFinalStringBuilderString(&stringBuilder);
+
+    if (!PhStringRefToUnicodeString(&cmdFileName->sr, &fileNameDosPath) ||
+        !PhStringRefToUnicodeString(&commandLineString->sr, &commandLine))
+    {
+        status = STATUS_NAME_TOO_LONG;
+        goto CleanupExit;
+    }
+
+    if (CurrentDirectory)
+    {
+        if (!PhStringRefToUnicodeString(CurrentDirectory, &currentDirectory))
+        {
+            status = STATUS_NAME_TOO_LONG;
+            goto CleanupExit;
+        }
+    }
+
+    status = RtlCreateProcessParameters(
+        &parameters,
+        &fileNameDosPath,
+        NULL,
+        CurrentDirectory ? &currentDirectory : NULL,
+        &commandLine,
+        NULL,
+        &fileNameDosPath,
+        &NtCurrentPeb()->ProcessParameters->DesktopInfo,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        goto CleanupExit;
+
+    attributeList->TotalLength = sizeof(buffer);
+    attributeList->Attributes[0].Attribute = PS_ATTRIBUTE_IMAGE_NAME;
+    attributeList->Attributes[0].Size = fileNameNtPath.Length;
+    attributeList->Attributes[0].ValuePtr = fileNameNtPath.Buffer;
+    attributeList->Attributes[0].ReturnLength = NULL;
+    attributeList->Attributes[1].Attribute = PS_ATTRIBUTE_CLIENT_ID;
+    attributeList->Attributes[1].Size = sizeof(CLIENT_ID);
+    attributeList->Attributes[1].ValuePtr = &clientId;
+    attributeList->Attributes[1].ReturnLength = NULL;
+
+    memset(&createInfo, 0, sizeof(PS_CREATE_INFO));
+    createInfo.Size = sizeof(PS_CREATE_INFO);
+    createInfo.State = PsCreateInitialState;
+
+    status = NtCreateUserProcess(
+        &processHandle,
+        &threadHandle,
+        PROCESS_ALL_ACCESS,
+        THREAD_ALL_ACCESS,
+        NULL,
+        NULL,
+        0,
+        (Flags & PH_CREATE_PROCESS_SUSPENDED) ? THREAD_CREATE_FLAGS_CREATE_SUSPENDED : THREAD_CREATE_FLAGS_NONE,
+        parameters,
+        &createInfo,
+        attributeList
+        );
+
+    if (NT_SUCCESS(status))
+    {
+        if (ClientId)
+            *ClientId = clientId;
+
+        if (ProcessHandle)
+            *ProcessHandle = processHandle;
+        else
+            NtClose(processHandle);
+
+        if (ThreadHandle)
+            *ThreadHandle = threadHandle;
+        else
+            NtClose(threadHandle);
+    }
+
+CleanupExit:
+    if (parameters)
+        RtlDestroyProcessParameters(parameters);
+    if (commandLineString)
+        PhDereferenceObject(commandLineString);
+    if (quotedFileName)
+        PhDereferenceObject(quotedFileName);
+    PhDereferenceObject(cmdFileName);
+    RtlFreeUnicodeString(&fileNameNtPath);
+
+    return status;
+}
+
+/**
  * Creates a Win32 process and an initial thread.
  *
  * \param FileName The Win32 file name of the image.
@@ -5757,15 +6324,12 @@ static const PH_FLAG_MAPPING PhpCreateProcessMappings[] =
     { PH_CREATE_PROCESS_EXTENDED_STARTUPINFO, EXTENDED_STARTUPINFO_PRESENT },
     { PH_CREATE_PROCESS_BREAKAWAY_FROM_JOB, CREATE_BREAKAWAY_FROM_JOB },
     { PH_CREATE_PROCESS_DEFAULT_ERROR_MODE, CREATE_DEFAULT_ERROR_MODE },
+    { PH_CREATE_PROCESS_DETACHED_PROCESS, DETACHED_PROCESS },
+    { PH_CREATE_PROCESS_NO_WINDOW, CREATE_NO_WINDOW },
 };
 
 /**
  * Converts PROCESS_INFORMATION outputs into native result fields.
- *
- * \param ProcessInfo The process information returned by Win32 process creation.
- * \param ClientId Receives the process and thread identifiers.
- * \param ProcessHandle Receives the process handle.
- * \param ThreadHandle Receives the initial thread handle.
  */
 FORCEINLINE VOID PhpConvertProcessInformation(
     _In_ PPROCESS_INFORMATION ProcessInfo,
@@ -5988,14 +6552,14 @@ NTSTATUS PhCreateProcessWin32Ex(
  *
  * \param Information Parameters specifying how to create the process.
  * \param Flags See PhCreateProcess(). Additional flags may be used:
- * \li \c PH_CREATE_PROCESS_USE_PROCESS_TOKEN Use the token of the process specified by
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN Use the token of the process specified by
  * \a ProcessIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_SESSION_TOKEN Use the token of the session specified by
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN Use the token of the session specified by
  * \a SessionIdWithToken in \a Information.
- * \li \c PH_CREATE_PROCESS_USE_LINKED_TOKEN Use the linked token to create the process; this causes
+ * \li \c PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN Use the linked token to create the process; this causes
  * the process to be elevated or unelevated depending on the specified options.
- * \li \c PH_CREATE_PROCESS_SET_SESSION_ID \a SessionId is specified in \a Information.
- * \li \c PH_CREATE_PROCESS_WITH_PROFILE Load the user profile, if supported.
+ * \li \c PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID \a SessionId is specified in \a Information.
+ * \li \c PH_CREATE_PROCESS_AS_USER_WITH_PROFILE Load the user profile, if supported.
  * \param StartupInfo A STARTUPINFO structure containing additional parameters for the process.
  * \param ClientId A variable which receives the identifier of the initial thread.
  * \param ProcessHandle A variable which receives a handle to the process.
@@ -6016,7 +6580,7 @@ NTSTATUS PhCreateProcessAsUser(
     PVOID defaultEnvironment = NULL;
     STARTUPINFOEX startupInfo;
 
-    if ((Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN))
+    if ((Flags & PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN) && (Flags & PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN))
         return STATUS_INVALID_PARAMETER_2;
     if (!Information->ApplicationName && !Information->CommandLine)
         return STATUS_INVALID_PARAMETER_MIX;
@@ -6032,19 +6596,19 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Try to use CreateProcessWithLogonW if we need to load the user profile.
     // This isn't compatible with some options.
-    if (Flags & PH_CREATE_PROCESS_WITH_PROFILE)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_WITH_PROFILE)
     {
         BOOLEAN useWithLogon;
 
         useWithLogon = TRUE;
 
-        if (Flags & (PH_CREATE_PROCESS_USE_PROCESS_TOKEN | PH_CREATE_PROCESS_USE_SESSION_TOKEN))
+        if (Flags & (PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN | PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN))
             useWithLogon = FALSE;
 
-        if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN)
             useWithLogon = FALSE;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
         {
             ULONG sessionId = ULONG_MAX;
 
@@ -6054,7 +6618,7 @@ NTSTATUS PhCreateProcessAsUser(
                 useWithLogon = FALSE;
         }
 
-        if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
         {
             useWithLogon = FALSE;
         }
@@ -6161,7 +6725,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Get the token handle. Various methods are supported.
 
-    if (Flags & PH_CREATE_PROCESS_USE_PROCESS_TOKEN)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN)
     {
         HANDLE processHandle;
 
@@ -6182,10 +6746,10 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
             needsDuplicate = TRUE; // can't set the session ID of a token in use by a process
     }
-    else if (Flags & PH_CREATE_PROCESS_USE_SESSION_TOKEN)
+    else if (Flags & PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN)
     {
         status = PhWinStationQueryUserToken(
             Information->SessionIdWithToken,
@@ -6195,7 +6759,7 @@ NTSTATUS PhCreateProcessAsUser(
         if (!NT_SUCCESS(status))
             return status;
 
-        if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID || Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+        if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID || Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
         {
             needsDuplicate = TRUE; // not sure if this is necessary
         }
@@ -6235,7 +6799,7 @@ NTSTATUS PhCreateProcessAsUser(
             return PhGetLastWin32ErrorAsNtStatus();
     }
 
-    if (Flags & PH_CREATE_PROCESS_USE_LINKED_TOKEN)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN)
     {
         HANDLE linkedTokenHandle;
         TOKEN_TYPE tokenType;
@@ -6291,7 +6855,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the session ID if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_SESSION_ID)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID)
     {
         if (!NT_SUCCESS(status = PhSetTokenSessionId(
             tokenHandle,
@@ -6305,7 +6869,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the UIAccess flag if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_UIACCESS)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_UIACCESS)
     {
         if (!NT_SUCCESS(status = PhSetTokenUIAccess(
             tokenHandle,
@@ -6319,7 +6883,7 @@ NTSTATUS PhCreateProcessAsUser(
 
     // Set the Logon ID if needed.
 
-    if (Flags & PH_CREATE_PROCESS_SET_LOGON_ID)
+    if (Flags & PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID)
     {
         if (!NT_SUCCESS(status = PhSetTokenGroups(
             tokenHandle,
@@ -6866,19 +7430,27 @@ VOID PhShellExploreFile(
 
     if (SHOpenFolderAndSelectItems_I && SHParseDisplayName_I)
     {
+        HRESULT status;
         LPITEMIDLIST item;
 
-        if (SUCCEEDED(SHParseDisplayName_I(FileName, NULL, &item, 0, NULL)))
+        status = SHParseDisplayName_I(
+            FileName,
+            NULL,
+            &item,
+            0,
+            NULL
+            );
+
+        if (HR_SUCCESS(status))
         {
-            SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
+            status = SHOpenFolderAndSelectItems_I(item, 0, NULL, 0);
             CoTaskMemFree(item);
         }
-        else
-        {
-            PhShowError2(WindowHandle, L"The location could not be found.", L"%s", FileName);
-        }
+
+        if (HR_SUCCESS(status))
+            return;
     }
-    else
+
     {
         PPH_STRING selectFileName;
 
@@ -7168,6 +7740,95 @@ ULONG64 PhQueryRegistryUlong64(
     }
 
     return ulong64;
+}
+
+/**
+ * Queries a Winlogon setting as a boolean.
+ *
+ * \param Type The setting to query.
+ * \param Value A variable which receives TRUE if the setting is non-zero, otherwise FALSE.
+ * \return Successful or errant status.
+ */
+NTSTATUS PhQueryWinlogonSetting(
+    _In_ PH_WINLOGON_SETTING_TYPE Type,
+    _Out_ PBOOLEAN Value
+    )
+{
+    static CONST PH_STRINGREF winlogonKeyName = PH_STRINGREF_INIT(L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon");
+    static CONST PH_STRINGREF shellCriticalName = PH_STRINGREF_INIT(L"ShellCritical");
+    static CONST PH_STRINGREF siHostCriticalName = PH_STRINGREF_INIT(L"SiHostCritical");
+    static CONST PH_STRINGREF autoRestartShellName = PH_STRINGREF_INIT(L"AutoRestartShell");
+    static CONST PH_STRINGREF winStationsDisabledName = PH_STRINGREF_INIT(L"WinStationsDisabled");
+    NTSTATUS status;
+    PCPH_STRINGREF valueName;
+    HANDLE keyHandle;
+    PKEY_VALUE_PARTIAL_INFORMATION buffer;
+
+    switch (Type)
+    {
+    case PhWinlogonShellCritical:
+        valueName = &shellCriticalName;
+        break;
+    case PhWinlogonSiHostCritical:
+        valueName = &siHostCriticalName;
+        break;
+    case PhWinlogonAutoRestartShell:
+        valueName = &autoRestartShellName;
+        break;
+    case PhWinlogonWinStationsDisabled:
+        valueName = &winStationsDisabledName;
+        break;
+    default:
+        return STATUS_INVALID_PARAMETER;
+    }
+
+    status = PhOpenKey(
+        &keyHandle,
+        KEY_QUERY_VALUE,
+        PH_KEY_LOCAL_MACHINE,
+        &winlogonKeyName,
+        0
+        );
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    status = PhQueryValueKey(keyHandle, valueName, KeyValuePartialInformation, &buffer);
+
+    if (NT_SUCCESS(status))
+    {
+        if (buffer->Type == REG_DWORD && buffer->DataLength == sizeof(ULONG))
+        {
+            *Value = *(PULONG)buffer->Data != 0;
+        }
+        else if (buffer->Type == REG_SZ || buffer->Type == REG_EXPAND_SZ)
+        {
+            PH_STRINGREF string;
+            ULONG64 integer;
+
+            string.Buffer = (PWCHAR)buffer->Data;
+            string.Length = buffer->DataLength;
+
+            // Remove the null terminator(s).
+            while (string.Length >= sizeof(WCHAR) && string.Buffer[string.Length / sizeof(WCHAR) - 1] == UNICODE_NULL)
+                string.Length -= sizeof(WCHAR);
+
+            if (PhStringToUInt64(&string, 10, &integer))
+                *Value = integer != 0;
+            else
+                status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
+        else
+        {
+            status = STATUS_OBJECT_TYPE_MISMATCH;
+        }
+
+        PhFree(buffer);
+    }
+
+    NtClose(keyHandle);
+
+    return status;
 }
 
 /**
@@ -8048,6 +8709,131 @@ CleanupExit:
     return status;
 }
 
+#ifndef _ARM64_
+/**
+ * PCLMULQDQ carry-less folding for reflected CRC-32 (polynomial 0xedb88320).
+ *
+ * Folds \a Length bytes (which must be a non-zero multiple of 16, with at least
+ * 64 bytes) into the running, bit-reflected CRC accumulator and returns the
+ * updated accumulator in the same (pre-inversion) domain as the scalar table
+ * loop. Constants and reduction are the bit-reflected-domain values from Intel's
+ * "Fast CRC Computation Using PCLMULQDQ" (matching zlib's crc32_simd.c).
+ */
+ULONG PhpCrc32Folding(
+    _In_reads_(Length) PUCHAR Buffer,
+    _In_ SIZE_T Length,
+    _In_ ULONG Crc
+    )
+{
+    static const DECLSPEC_ALIGN(16) ULONG64 k1k2[] = { 0x0154442bd4, 0x01c6e41596 };
+    static const DECLSPEC_ALIGN(16) ULONG64 k3k4[] = { 0x01751997d0, 0x00ccaa009e };
+    static const DECLSPEC_ALIGN(16) ULONG64 k5k0[] = { 0x0163cd6124, 0x0000000000 };
+    static const DECLSPEC_ALIGN(16) ULONG64 poly[] = { 0x01db710641, 0x01f7011641 };
+    __m128i x0, x1, x2, x3, x4, x5, x6, x7, x8, y5, y6, y7, y8;
+
+    // There's at least one block of 64.
+    x1 = _mm_loadu_si128((__m128i const*)(Buffer + 0x00));
+    x2 = _mm_loadu_si128((__m128i const*)(Buffer + 0x10));
+    x3 = _mm_loadu_si128((__m128i const*)(Buffer + 0x20));
+    x4 = _mm_loadu_si128((__m128i const*)(Buffer + 0x30));
+
+    x1 = _mm_xor_si128(x1, _mm_cvtsi32_si128((int)Crc));
+
+    x0 = _mm_load_si128((__m128i const*)k1k2);
+
+    Buffer += 64;
+    Length -= 64;
+
+    // Parallel fold blocks of 64, if any.
+    while (Length >= 64)
+    {
+        x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+        x6 = _mm_clmulepi64_si128(x2, x0, 0x00);
+        x7 = _mm_clmulepi64_si128(x3, x0, 0x00);
+        x8 = _mm_clmulepi64_si128(x4, x0, 0x00);
+
+        x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+        x2 = _mm_clmulepi64_si128(x2, x0, 0x11);
+        x3 = _mm_clmulepi64_si128(x3, x0, 0x11);
+        x4 = _mm_clmulepi64_si128(x4, x0, 0x11);
+
+        y5 = _mm_loadu_si128((__m128i const*)(Buffer + 0x00));
+        y6 = _mm_loadu_si128((__m128i const*)(Buffer + 0x10));
+        y7 = _mm_loadu_si128((__m128i const*)(Buffer + 0x20));
+        y8 = _mm_loadu_si128((__m128i const*)(Buffer + 0x30));
+
+        x1 = _mm_xor_si128(x1, x5);
+        x2 = _mm_xor_si128(x2, x6);
+        x3 = _mm_xor_si128(x3, x7);
+        x4 = _mm_xor_si128(x4, x8);
+
+        x1 = _mm_xor_si128(x1, y5);
+        x2 = _mm_xor_si128(x2, y6);
+        x3 = _mm_xor_si128(x3, y7);
+        x4 = _mm_xor_si128(x4, y8);
+
+        Buffer += 64;
+        Length -= 64;
+    }
+
+    // Fold into 128-bits.
+    x0 = _mm_load_si128((__m128i const*)k3k4);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x2);
+    x1 = _mm_xor_si128(x1, x5);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x3);
+    x1 = _mm_xor_si128(x1, x5);
+
+    x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+    x1 = _mm_xor_si128(x1, x4);
+    x1 = _mm_xor_si128(x1, x5);
+
+    // Single fold blocks of 16, if any.
+    while (Length >= 16)
+    {
+        x2 = _mm_loadu_si128((__m128i const*)Buffer);
+
+        x5 = _mm_clmulepi64_si128(x1, x0, 0x00);
+        x1 = _mm_clmulepi64_si128(x1, x0, 0x11);
+        x1 = _mm_xor_si128(x1, x2);
+        x1 = _mm_xor_si128(x1, x5);
+
+        Buffer += 16;
+        Length -= 16;
+    }
+
+    // Fold 128-bits to 64-bits.
+    x2 = _mm_clmulepi64_si128(x1, x0, 0x10);
+    x3 = _mm_setr_epi32(~0, 0, ~0, 0);
+    x1 = _mm_srli_si128(x1, 8);
+    x1 = _mm_xor_si128(x1, x2);
+
+    x0 = _mm_loadl_epi64((__m128i const*)k5k0);
+
+    x2 = _mm_srli_si128(x1, 4);
+    x1 = _mm_and_si128(x1, x3);
+    x1 = _mm_clmulepi64_si128(x1, x0, 0x00);
+    x1 = _mm_xor_si128(x1, x2);
+
+    // Barret reduce to 32-bits.
+    x0 = _mm_load_si128((__m128i const*)poly);
+
+    x2 = _mm_and_si128(x1, x3);
+    x2 = _mm_clmulepi64_si128(x2, x0, 0x10);
+    x2 = _mm_and_si128(x2, x3);
+    x2 = _mm_clmulepi64_si128(x2, x0, 0x00);
+    x1 = _mm_xor_si128(x1, x2);
+
+    return (ULONG)_mm_extract_epi32(x1, 1);
+}
+#endif
+
 /**
  * \brief CRC-32 (Ethernet, ZIP - polynomial 0xedb88320 - TEST=0xEEEA93B8)
  *
@@ -8062,12 +8848,55 @@ ULONG PhCrc32(
     _In_ SIZE_T Length
     )
 {
+#if defined(PH_NATIVE_CRC32)
     Crc ^= 0xffffffff;
+
+#ifndef _ARM64_
+    // PCLMULQDQ folds the largest 16-byte-aligned span (>= 64 bytes); the
+    // sub-16 remainder falls through to the scalar table loop. The folding
+    // operates in the same bit-reflected pre-inversion domain as the table.
+    if (PhHasPCLMUL && Length >= 64)
+    {
+        SIZE_T blockLength = Length & ~(SIZE_T)15;
+
+        Crc = PhpCrc32Folding(Buffer, blockLength, Crc);
+
+        Buffer += blockLength;
+        Length -= blockLength;
+    }
+#endif
+
+    // Slice-by-8 consumes the 8-byte blocks the folding path left behind (and
+    // the whole buffer when it is too short to fold). The 32-bit loads are
+    // little-endian, which holds for every architecture Windows targets.
+    while (Length >= 8)
+    {
+        ULONG high;
+
+        Crc ^= *(PULONG UNALIGNED)Buffer;
+        high = *(PULONG UNALIGNED)(Buffer + 4);
+
+        Crc =
+            PhCrc32Slice8Table[7][Crc & 0xff] ^
+            PhCrc32Slice8Table[6][(Crc >> 8) & 0xff] ^
+            PhCrc32Slice8Table[5][(Crc >> 16) & 0xff] ^
+            PhCrc32Slice8Table[4][(Crc >> 24) & 0xff] ^
+            PhCrc32Slice8Table[3][high & 0xff] ^
+            PhCrc32Slice8Table[2][(high >> 8) & 0xff] ^
+            PhCrc32Slice8Table[1][(high >> 16) & 0xff] ^
+            PhCrc32Slice8Table[0][(high >> 24) & 0xff];
+
+        Buffer += 8;
+        Length -= 8;
+    }
 
     while (Length--)
         Crc = (Crc >> 8) ^ PhCrc32Table[(Crc ^ *Buffer++) & 0xff];
 
     return Crc ^ 0xffffffff;
+#else
+    return RtlCrc32(Buffer, Length, Crc);
+#endif
 }
 
 /**
@@ -8093,7 +8922,28 @@ ULONG PhCrc32C(
     SIZE_T u32_blocks = u64_remaining / sizeof(ULONG);
     SIZE_T u32_remaining = u64_remaining % sizeof(ULONG);
     SIZE_T u16_blocks = u32_remaining / sizeof(USHORT);
-    SIZE_T u8_blocks = u32_remaining % sizeof(UCHAR);
+    // The trailing byte remains after the 16-bit blocks, so the remainder is
+    // taken modulo sizeof(USHORT). Taking it modulo sizeof(UCHAR) is always
+    // zero, which silently dropped the last byte of any odd-length buffer.
+    SIZE_T u8_blocks = u32_remaining % sizeof(USHORT);
+
+#if !defined(_M_ARM64)
+    // The _mm_crc32_* intrinsics are SSE4.2; ISA_ENABLED_SSE42 is the bit that
+    // gates them. Without SSE4.2 they would fault with an illegal instruction,
+    // so fall back to the software table. On ARM64 the __crc32* intrinsics are
+    // mandatory from ARMv8.1 and need no guard.
+    if (!PhHasPopulationCount)
+    {
+        PUCHAR buffer = (PUCHAR)Buffer;
+
+        Crc ^= 0xffffffff;
+
+        while (Length--)
+            Crc = (Crc >> 8) ^ PhCrc32CTable[(Crc ^ *buffer++) & 0xff];
+
+        return Crc ^ 0xffffffff;
+    }
+#endif
 
     Crc ^= 0xffffffff;
 
@@ -10373,13 +11223,75 @@ CleanupExit:
  *
  * RtlDelayExecution:
  * - Wraps NtDelayExecution/ZwDelayExecution and adds additional logic before and after the system call.
- * - Spin-Wait Optimization: If the delay interval is zero (i.e., a "yield" or very short sleep), and certain internal
- * configuration variables are set, it may perform a short spin-wait (using _mm_pause()) before calling the system call.
- * This is to avoid excessive context switches and improve performance for very short waits.
- * - Performance Counter Tracking: Uses RtlQueryPerformanceCounter to track the time since the last sleep and adjust spin-waiting accordingly.
- * - TEB State Tracking: Updates fields in the thread environment block (TEB), such as SpinCallCount and LastSleepCounter, to manage spin-wait heuristics.
- * - Adaptive Backoff: The amount of spin-waiting can increase if the thread is calling delay execution in rapid succession, up to a configured maximum.
- * - Resets Spin Count on Real Wait: if the delay was not interrupted (STATUS_ALERTED), resets the spin count.
+ * - SMT Yield Backoff: The _mm_pause() spin-wait before the system call is not a general optimization to avoid
+ * context switches. It only happens when the delay interval is zero (a yield), after N back-to-back failed yields
+ * (STATUS_NO_YIELD_PERFORMED) inside a time window, and only when the Session Manager Smt* registry values are set:
+ * SmtDelayBaseYield/SmtFactorYield (the feature is off when both are zero/absent), SmtDelaySpinCountThreshold (N),
+ * SmtDelaySleepLoopWindowSize (the QPC window since the previous call) and SmtDelayMaxYield.
+ * Its purpose is to stop a hyper-threaded (SMT) sibling core being starved by a thread that keeps retrying Sleep(0)
+ * or SwitchToThread. It does not replace the context switch: the system call is always made afterwards.
+ * - Adaptive Backoff: The pause count grows by SmtFactorYield per additional call, starting at SmtDelayBaseYield and
+ * bounded by SmtDelayMaxYield, scaled by KUSER_SHARED_DATA->CyclesPerYield.
+ * - TEB State Tracking: Uses TEB->SpinCallCount and TEB->LastSleepCounter (RtlQueryPerformanceCounter) for the heuristics.
+ * - Spin Count Reset: TEB->SpinCallCount is reset whenever the status is not STATUS_NO_YIELD_PERFORMED.
+ *
+ * At process start, LdrpInitializeSmtDelayedSleep reads five values from
+ * HKLM\\System\\CurrentControlSet\\Control\\Session Manager:
+ * - SmtDelaySleepLoopWindowSize: Only zero-length delays called within this many QPC ticks of the previous one count as a spin loop.
+ * - SmtDelaySpinCountThreshold: How many back-to-back failed yields before throttling starts.
+ * - SmtDelayBaseYield: Starting length of the pause.
+ * - SmtFactorYield: How much longer the pause gets with each further failed yield.
+ * - SmtDelayMaxYield: Upper limit on the pause.
+ *
+ * If both SmtDelayBaseYield and SmtFactorYield are 0 (absent), the feature is off and the function behaves like
+ * plain NtDelayExecution. The pause length is converted to a number of pause instructions using
+ * KUSER_SHARED_DATA->CyclesPerYield.
+ *
+ * \remarks Timing impact of the SMT yield backoff (derived from the RtlDelayExecution disassembly, not measured).
+ *
+ * Not affected:
+ * - Any non-zero delay (Sleep(n), RtlDelayExecution(n) with n > 0). The first test is *DelayInterval == 0;
+ * any other value goes straight to NtDelayExecution, so timing a Sleep(n) against QPC/RDTSC is unchanged.
+ * - Direct NtDelayExecution or NtYieldExecution calls. They go straight to the kernel and never reach the backoff.
+ * - Systems where SmtDelayBaseYield and SmtFactorYield are both zero/absent (plain pass-through).
+ *
+ * Affected, only when the feature is enabled and only for zero-interval calls (Sleep(0), SwitchToThread,
+ * PhSwitchToThread, PhDelayExecution(0)):
+ * - Code that times Sleep(0)/SwitchToThread in a tight loop. After SmtDelaySpinCountThreshold consecutive failed
+ * yields inside the window, each call gets a growing run of pause instructions, up to SmtDelayMaxYield. Per-call
+ * latency rises and then levels off. Since the backoff only builds while yields keep failing, it mostly shows
+ * on an idle core with nothing else ready to run.
+ * - Anti-debug, sandbox or VM checks that measure Sleep(0)/SwitchToThread timing may see inflated or uneven
+ * numbers and misread them as a debugger or emulator. On SMT hardware the pause bursts also change how much the
+ * sibling core runs, which can skew cross-core contention measurements.
+ * - Benchmarks that use Sleep(0) as a cheap yield inside the measured loop pick up extra time on an idle core.
+ * - Spin-then-yield locks (.NET SpinWait/Thread.Yield, game-engine spin locks, lock-free retry loops). When the
+ * holder runs on another core the yield keeps failing, so the backoff builds; on release the waiter may be
+ * partway through a pause run of up to SmtDelayMaxYield, adding acquire latency that older Windows did not have.
+ * - Polling loops (audio, input, network) that poll with Sleep(0) get extra, machine-dependent jitter. The delay
+ * depends on TEB state (SpinCallCount, LastSleepCounter) left by earlier calls on the same thread.
+ * - Virtual machines: hypervisor pause-loop exiting (PLE) treats long pause bursts as a spinning vCPU and may
+ * deschedule it, so a short yield could become a latency spike far longer than the intended pause. Whether this
+ * happens depends on the PLE window/gap settings and CyclesPerYield (unverified).
+ * - CPU accounting and profiling: the pause loop runs in user mode, so it counts as user CPU time and thread
+ * cycle time attributed to ntdll!RtlDelayExecution, where older Windows showed mostly system-call/kernel time.
+ * Per-thread context-switch and system-call counts drop, so heuristics that use "many NtDelayExecution calls"
+ * as a busy-yield signal see different numbers. Thread CPU/cycle figures for processes stuck in yield loops
+ * will look higher on Windows 11 than on Windows 10 for the same behavior.
+ * - Priority starvation is unchanged: a zero-length delay still only yields to threads ready on the current
+ * processor, so a starved lower-priority lock holder is not helped, and each loop iteration now takes longer.
+ * - Inconsistent behavior: the settings are read once per process at ntdll initialization, so behavior differs
+ * across machines and only a process restart picks up a registry change. NtDelayExecution bypasses the backoff
+ * while Sleep/SwitchToThread do not, so two seemingly equivalent code paths can time differently.
+ *
+ * Benefit: on SMT hardware, a thread repeatedly failing to yield used to issue a stream of system calls that took
+ * execution resources from its sibling core. The pause runs give those resources back and likely use less power
+ * than looping through the kernel.
+ *
+ * Within System Informer: clockdrift_test and the dbgcon lock benchmarks spin with YieldProcessor(), not Sleep(0),
+ * so they are unaffected. SwitchToThread can be throttled, but nothing measures its timing.
+ * For a zero-length yield with no throttling (e.g. in a timing tool), call NtDelayExecution or NtYieldExecution
+ * directly instead of RtlDelayExecution.
  */
 NTSTATUS PhDelayExecutionEx(
     _In_ BOOLEAN Alertable,
@@ -10401,11 +11313,9 @@ NTSTATUS PhDelayExecutionEx(
  * the thread is suspended indefinitely. Otherwise, the delay is converted to a negative relative interval
  * in 100-nanosecond units and passed to PhDelayExecutionEx.
  *
- * \note
- * On Windows 11 and later, PhDelayExecutionEx uses RtlDelayExecution, which provides improved behavior
- * for short waits and better compatibility with future Windows updates.
  * \param Milliseconds The number of milliseconds to delay. Use INFINITE to wait indefinitely.
  * \return An NTSTATUS code indicating success or failure of the delay operation.
+ * \note PhDelayExecution(0) behaves like SwitchToThread on Windows 11 and later (see PhDelayExecutionEx).
  */
 NTSTATUS PhDelayExecution(
     _In_ ULONG Milliseconds
@@ -11011,7 +11921,7 @@ NTSTATUS PhCreateProcessClone(
         PROCESS_ALL_ACCESS,
         &objectAttributes,
         processHandle,
-        PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED,
+        PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT | PROCESS_CREATE_FLAGS_INHERIT_HANDLES | PROCESS_CREATE_FLAGS_CREATE_SUSPENDED | PROCESS_CREATE_FLAGS_CLONE_MINIMAL,
         NULL,
         NULL,
         NULL,
@@ -11055,7 +11965,7 @@ NTSTATUS PhCreateProcessReflection(
 
     if (NT_SUCCESS(status))
     {
-        *ReflectionInformation = reflectionInfo;
+        RtlCopyMemory(ReflectionInformation, &reflectionInfo, sizeof(PROCESS_REFLECTION_INFORMATION));
     }
 
     return status;
@@ -11096,7 +12006,7 @@ NTSTATUS PhCreateProcessSnapshot(
     _In_ HANDLE ProcessHandle
     )
 {
-    NTSTATUS status = STATUS_UNSUCCESSFUL;
+    NTSTATUS status;
     HANDLE snapshotHandle = NULL;
 
     if (!PssNtCaptureSnapshot_Import())
@@ -12169,26 +13079,26 @@ static BOOLEAN CALLBACK PhQueryEndSessionCallback(
         ULONG_PTR result = 0;
 
         // Ask the window whether it consents to session termination.
-        if (PhSendMessageTimeout(
+        if (NT_SUCCESS(PhSendMessageTimeout(
             WindowHandle,
             WM_QUERYENDSESSION,
             0,
             ENDSESSION_CLOSEAPP,
             5000,
             &result
-            ))
+            )))
         {
             // If the window agrees, notify it that the session is ending.
             if (result)
             {
-                if (PhSendMessageTimeout(
+                if (NT_SUCCESS(PhSendMessageTimeout(
                     WindowHandle,
                     WM_ENDSESSION,
                     TRUE,
                     ENDSESSION_LOGOFF,
                     5000,
                     &result
-                    ))
+                    )))
                 {
                     context->Result = result;
                     context->Valid = TRUE;

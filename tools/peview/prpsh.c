@@ -157,16 +157,20 @@ static HWND PvpCreateOptionsButton(
     if (!OptionsButton)
     {
         HWND optionsWindow;
+        HWND cancelButtonHandle;
         RECT clientRect;
         RECT rect;
 
         optionsWindow = hwndDlg;
-        OldOptionsWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+        cancelButtonHandle = GetDlgItem(optionsWindow, IDCANCEL);
+        if (!cancelButtonHandle)
+            return NULL;
+        if (!PhGetClientRect(optionsWindow, &clientRect))
+            return NULL;
+        if (!PhGetWindowRect(cancelButtonHandle, &rect))
+            return NULL;
 
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(GetDlgItem(optionsWindow, IDCANCEL), &rect);
+        // Create the Options button.
         MapWindowRect(NULL, optionsWindow, &rect);
         OptionsButton = CreateWindowEx(
             WS_EX_NOPARENTNOTIFY,
@@ -182,7 +186,13 @@ static HWND PvpCreateOptionsButton(
             PhInstanceHandle,
             NULL
             );
-        SetWindowFont(OptionsButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+        if (!OptionsButton)
+            return NULL;
+
+        // Hook only after creation succeeds so failed attempts remain retryable.
+        OldOptionsWndProc = PhGetWindowProcedure(optionsWindow);
+        PhSetWindowProcedure(optionsWindow, PvpButtonWndProc);
+        SetWindowFont(OptionsButton, GetWindowFont(cancelButtonHandle), TRUE);
     }
 
     return OptionsButton;
@@ -195,16 +205,13 @@ static HWND PvpCreateSecurityButton(
     if (!SecurityButton)
     {
         HWND optionsWindow;
-        RECT clientRect;
         RECT rect;
 
         optionsWindow = hwndDlg;
-        OldSecurityWndProc = (WNDPROC)GetWindowLongPtr(optionsWindow, GWLP_WNDPROC);
-        SetWindowLongPtr(optionsWindow, GWLP_WNDPROC, (LONG_PTR)PvpButtonWndProc);
+        if (!OptionsButton || !PhGetWindowRect(OptionsButton, &rect))
+            return NULL;
 
-        // Create the Reset button.
-        GetClientRect(optionsWindow, &clientRect);
-        GetWindowRect(OptionsButton, &rect);
+        // The Options button already installed the shared command hook.
         MapWindowPoints(NULL, optionsWindow, (POINT*)&rect, 2);
 
         SecurityButton = CreateWindowEx(
@@ -221,7 +228,8 @@ static HWND PvpCreateSecurityButton(
             PhInstanceHandle,
             NULL
             );
-        SetWindowFont(SecurityButton, GetWindowFont(GetDlgItem(optionsWindow, IDCANCEL)), TRUE);
+        if (SecurityButton)
+            SetWindowFont(SecurityButton, GetWindowFont(OptionsButton), TRUE);
     }
 
     return SecurityButton;

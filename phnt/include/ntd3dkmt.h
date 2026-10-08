@@ -47,7 +47,7 @@ typedef struct _D3DKMT_GET_PROCESS_LIST
     LUID AdapterLuid;          // [in] The locally unique identifier (LUID) for the graphics adapter.
     ULONG DesiredAccess;       // [in] The access rights to request for the process handles. This must be `PROCESS_QUERY_INFORMATION` (0x400).
     ULONG ProcessHandleCount;  // [in, out] On input, specifies the number of handles the `ProcessHandle` member can hold. On output, receives the number of handles returned.
-    PHANDLE ProcessHandle;     // [out] The first element of an array that receives the process handles.
+    PHANDLE ProcessHandle;     // [out] The first element of an array that receives the process handles; NULL queries capacity.
 } D3DKMT_GET_PROCESS_LIST, *PD3DKMT_GET_PROCESS_LIST;
 
 // rev
@@ -56,6 +56,13 @@ typedef struct _D3DKMT_GET_PROCESS_LIST
  *
  * \param[in,out] GetProcessList A pointer to a \ref D3DKMT_GET_PROCESS_LIST structure that contains the processes using the graphics adapter.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Set ProcessHandle to NULL and ProcessHandleCount to zero to query
+ * the required capacity. STATUS_BUFFER_TOO_SMALL updates ProcessHandleCount
+ * without returning a partial handle array.
+ * On success, ProcessHandleCount counts only successfully opened handles;
+ * processes whose handles cannot be opened are skipped. The caller must close
+ * every returned handle. The process list can change between calls, so a retry
+ * can require a larger array.
  */
 NTSYSAPI
 NTSTATUS
@@ -71,7 +78,7 @@ D3DKMTGetProcessList(
 typedef struct _D3DKMT_ENUM_PROCESS_LIST
 {
     LUID AdapterLuid;          // [in] The locally unique identifier (LUID) for the graphics adapter.
-    PULONG ProcessIdBuffer;    // [out] A pointer to a buffer that receives the list of process identifiers (PIDs).
+    PULONG ProcessIdBuffer;    // [out] A pointer to a buffer that receives the list of process identifiers (PIDs).; NULL queries count.
     SIZE_T ProcessIdCount;     // [in, out] On input, specifies the number of elements the `ProcessIdBuffer` can hold. On output, receives the number of process IDs returned.
 } D3DKMT_ENUM_PROCESS_LIST, *PD3DKMT_ENUM_PROCESS_LIST;
 
@@ -82,6 +89,13 @@ typedef struct _D3DKMT_ENUM_PROCESS_LIST
  *
  * \param[in,out] EnumProcessList A pointer to a \ref D3DKMT_ENUM_PROCESS_LIST structure that contains the processes using the graphics adapter.
  * \return NTSTATUS Successful or errant status.
+ * \remarks Set ProcessIdBuffer to NULL and ProcessIdCount to zero to query
+ * the required count. A NULL or undersized buffer returns
+ * STATUS_BUFFER_TOO_SMALL and updates ProcessIdCount; no partial PID array
+ * is returned. A NULL buffer returns STATUS_BUFFER_TOO_SMALL even when the
+ * required count is zero.
+ * Input counts greater than 0x3FFFFFFF return STATUS_INVALID_PARAMETER.
+ * Process IDs are ULONG values, not handles, and must not be closed.
  */
 NTSYSAPI
 NTSTATUS
@@ -92,6 +106,17 @@ D3DKMTEnumProcesses(
 
 #if (PHNT_VERSION >= PHNT_WINDOWS_10_20H1)
 // rev
+/**
+ * The NtDirectGraphicsCall routine invokes a direct graphics kernel call.
+ *
+ * \param InputBufferLength The length, in bytes, of the input buffer.
+ * \param InputBuffer An optional pointer to the input buffer.
+ * \param OutputBufferLength The length, in bytes, of the output buffer.
+ * \param OutputBuffer An optional pointer to the output buffer that receives call results.
+ * \param ReturnLength An optional pointer to a variable that receives the size, in bytes, of the returned data.
+ * \return NTSTATUS Successful or errant status.
+ * \remarks On x64 Windows build 10.0.26100.9549, this service returns STATUS_NOT_IMPLEMENTED
+ */
 _Kernel_entry_
 NTSYSCALLAPI
 NTSTATUS

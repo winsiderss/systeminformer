@@ -39,6 +39,8 @@ PhTabNewInitialization(
 
 // Runtime flags
 #define PHTNF_THIN_TABS   0x00000001  // use native common-control tab metrics
+                                      // (TNS_TOP only; the parent must extend the window frame
+                                      // over the strip, see PhSetWindowFrameMargins)
 
 // Visual skin
 typedef enum _PH_TABNEW_SKIN
@@ -92,7 +94,7 @@ typedef struct _PH_TABNEW_CONTEXT PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
 #define PHTNM_SETITEMTEXT        (PHTNM_FIRST + 8)   // wParam=index, lParam=PWSTR
 #define PHTNM_GETITEMPARAM       (PHTNM_FIRST + 9)   // wParam=index, returns LPARAM
 #define PHTNM_SETITEMPARAM       (PHTNM_FIRST + 10)  // wParam=index, lParam=LPARAM
-#define PHTNM_GETPAGERECT        (PHTNM_FIRST + 11)  // lParam=PRECT (in parent client coords)
+#define PHTNM_GETPAGERECT        (PHTNM_FIRST + 11)  // lParam=PRECT (in cached logical coordinates)
 #define PHTNM_SETSKIN            (PHTNM_FIRST + 12)  // wParam=PH_TABNEW_SKIN
 #define PHTNM_GETSKIN            (PHTNM_FIRST + 13)
 #define PHTNM_SETSIDE            (PHTNM_FIRST + 14)  // wParam=TNS_TOP/BOTTOM/LEFT/RIGHT
@@ -116,7 +118,8 @@ typedef struct _PH_TABNEW_CONTEXT PH_TABNEW_CONTEXT, *PPH_TABNEW_CONTEXT;
 #define PHTNM_GETCURRENTPAGE     (PHTNM_FIRST + 32)
 #define PHTNM_SETFLAGS           (PHTNM_FIRST + 33)  // wParam=PHTNF_*, returns old flags
 #define PHTNM_SELECTPAGE         (PHTNM_FIRST + 34)  // wParam=PPH_TABNEW_PAGE
-#define PHTNM_LAST               PHTNM_SELECTPAGE
+#define PHTNM_GETFLAGS           (PHTNM_FIRST + 35)  // returns PHTNF_*
+#define PHTNM_LAST               PHTNM_GETFLAGS
 
 // Page helper types (used by the message parameter structures below)
 
@@ -235,6 +238,8 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((PPH_TABNEW_PAGE)PhTabNewSendMessage((hwnd), PHTNM_GETCURRENTPAGE, 0, 0))
 #define PhTabNew_SetFlags(hwnd, flags) \
     ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_SETFLAGS, (WPARAM)(flags), 0))
+#define PhTabNew_GetFlags(hwnd) \
+    ((ULONG)PhTabNewSendMessage((hwnd), PHTNM_GETFLAGS, 0, 0))
 #define PhTabNew_SelectPage(hwnd, page) \
     ((VOID)PhTabNewSendMessage((hwnd), PHTNM_SELECTPAGE, (WPARAM)(page), 0))
 
@@ -298,6 +303,8 @@ EXTERN_C LRESULT PhTabNewSendMessage(
     ((PPH_TABNEW_PAGE)SendMessage((hwnd), PHTNM_GETCURRENTPAGE, 0, 0))
 #define PhTabNew_SetFlags(hwnd, flags) \
     ((ULONG)SendMessage((hwnd), PHTNM_SETFLAGS, (WPARAM)(flags), 0))
+#define PhTabNew_GetFlags(hwnd) \
+    ((ULONG)SendMessage((hwnd), PHTNM_GETFLAGS, 0, 0))
 #define PhTabNew_SelectPage(hwnd, page) \
     ((VOID)SendMessage((hwnd), PHTNM_SELECTPAGE, (WPARAM)(page), 0))
 
@@ -438,7 +445,7 @@ typedef struct _NMTABNEWREORDER
 typedef struct _NMTABNEWLAYOUT
 {
     NMHDR Header;
-    RECT PageRect;       // in parent client coords
+    RECT PageRect;       // cached logical coordinates; parent coords for legacy fallback
 } NMTABNEWLAYOUT, *PNMTABNEWLAYOUT;
 
 typedef struct _NMTABNEWDRAWPANEL

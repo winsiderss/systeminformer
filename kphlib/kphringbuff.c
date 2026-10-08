@@ -43,6 +43,8 @@ BOOLEAN KphProcessRingBuffer(
     BOOLEAN more;
     ULONG consumerPos;
     ULONG producerPos;
+    PKPH_RING_HEADER headerPointer;
+    KPH_RING_HEADER header;
 
     more = TRUE;
 
@@ -53,8 +55,6 @@ BOOLEAN KphProcessRingBuffer(
 
     for (BOOLEAN done = FALSE; !done; NOTHING)
     {
-        PKPH_RING_HEADER headerPointer;
-        KPH_RING_HEADER header;
         PVOID buffer;
 
         producerPos = ReadULongAcquire(&Ring->Producer->Position);
@@ -104,11 +104,25 @@ BOOLEAN KphProcessRingBuffer(
 
 Exit:
 
-    WriteULongRelease(&Ring->Consumer->Processing, FALSE);
+    InterlockedExchange((LONG*)&Ring->Consumer->Processing, FALSE);
 
-    if (!more && (producerPos != ReadULongAcquire(&Ring->Producer->Position)))
+    if (!more)
     {
-        more = TRUE;
+        if (producerPos != ReadULongAcquire(&Ring->Producer->Position))
+        {
+            more = TRUE;
+        }
+        else if (consumerPos != producerPos)
+        {
+            headerPointer = Add2Ptr(Ring->Producer->Buffer, consumerPos);
+
+            header.Value = ReadULong64Acquire(&headerPointer->Value);
+
+            if (!header.Busy)
+            {
+                more = TRUE;
+            }
+        }
     }
 
     return more;

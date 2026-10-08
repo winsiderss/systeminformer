@@ -42,31 +42,14 @@ NTSTATUS PvpConnectKph(
 
     // TODO: get the current configured port name from the main binary, settings aren't shared.
     //if (PhIsNullOrEmptyString(portName = PhGetStringSetting(L"KsiPortName")))
-        PhMoveReference(&portName, PhCreateString(KPH_PORT_NAME));
-
+    portName = PhCreateString(KPH_PORT_NAME);
     status = KphCommsStart(&portName->sr, NULL, 0);
-
     PhDereferenceObject(portName);
 
     return status;
 }
 
-VOID PvpInitializeFileBasicInfo(
-    _In_ HANDLE FileHandle
-    )
-{
-    FILE_BASIC_INFORMATION basicInfo;
-
-    ZeroMemory(&basicInfo, sizeof(FILE_BASIC_INFORMATION));
-    basicInfo.CreationTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.LastWriteTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    basicInfo.ChangeTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-
-    PhSetFileBasicInformation(FileHandle, &basicInfo);
-}
-
-NTSTATUS PvpInitializeMutant(
+NTSTATUS PvInitializeMutant(
     VOID
     )
 {
@@ -124,7 +107,7 @@ INT WINAPI wWinMain(
     if (!PvInitializeExceptionPolicy())
         return 1;
 
-    PvpInitializeMutant();
+    PvInitializeMutant();
 
 #ifndef DEBUG
     if (PhIsExecutingInWow64())
@@ -261,12 +244,25 @@ INT WINAPI wWinMain(
         status = PhCreateFileWin32(
             &fileHandle,
             PhGetString(PvFileName),
-            FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+            FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
             );
+
+        if (!NT_SUCCESS(status))
+        {
+            status = PhCreateFileWin32(
+                &fileHandle,
+                PhGetString(PvFileName),
+                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                );
+        }
 
         if (status == STATUS_IO_REPARSE_TAG_NOT_HANDLED)
         {
@@ -280,16 +276,31 @@ INT WINAPI wWinMain(
             status = PhCreateFileWin32(
                 &fileHandle,
                 PhGetString(PvFileName),
-                FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
                 FILE_ATTRIBUTE_NORMAL,
                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                 FILE_OPEN,
-                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+                FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
                 );
+
+            if (!NT_SUCCESS(status))
+            {
+                status = PhCreateFileWin32(
+                    &fileHandle,
+                    PhGetString(PvFileName),
+                    FILE_READ_ATTRIBUTES | FILE_READ_DATA | SYNCHRONIZE,
+                    FILE_ATTRIBUTE_NORMAL,
+                    FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                    FILE_OPEN,
+                    FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
+                    );
+            }
         }
 
         if (NT_SUCCESS(status))
         {
+            PvDisableFileTimestampUpdates(fileHandle);
+
             status = PhLoadMappedImageEx(
                 NULL,
                 fileHandle,
@@ -304,7 +315,10 @@ INT WINAPI wWinMain(
                 case IMAGE_DOS_SIGNATURE:
                     {
                         if (PhGetIntegerSetting(L"EnableLegacyPropertiesDialog"))
+                        {
+                            PvStartPageFinishLoading();
                             PvPeProperties();
+                        }
                         else
                             PvShowPePropertiesWindow();
                     }

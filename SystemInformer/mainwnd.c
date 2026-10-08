@@ -134,36 +134,6 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
-    // Initialize window metrics.
-    PhMwpInitializeMetrics(PhMainWndHandle, PhGetWindowDpi(PhMainWndHandle));
-
-    // Initialize window controls.
-    PhMwpInitializeControls(PhMainWndHandle);
-
-    // Initialize window fonts.
-    PhMwpOnSettingChange(PhMainWndHandle, 0, NULL);
-
-    // Initialize window settings.
-    PhMwpLoadSettings(PhMainWndHandle);
-
-    // Initialize window theme.
-    PhInitializeWindowTheme(PhMainWndHandle, PhEnableThemeSupport);
-
-    // Initialize window menu.
-    PhMwpInitializeMainMenu(PhMainWndHandle);
-
-    // Initialize providers.
-    PhMwpInitializeProviders();
-
-    // Perform window layout.
-    PhMwpSelectionChangedTabControl(INT_ERROR);
-
-    // Perform main window showing.
-    PhMwpShowWindow(ShowCommand);
-
-    // Queue delayed init functions.
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, PhMainWndHandle);
-
     return TRUE;
 }
 
@@ -185,6 +155,48 @@ LRESULT CALLBACK PhMwpWndProc(
 {
     switch (WindowMessage)
     {
+    case WM_CREATE:
+        {
+            PhMainWndHandle = WindowHandle;
+
+            // Initialize window metrics.
+            PhMwpInitializeMetrics(WindowHandle, PhGetWindowDpi(WindowHandle));
+
+            // Initialize window controls.
+            PhMwpInitializeControls(WindowHandle);
+
+            // Initialize window fonts.
+            PhMwpOnSettingChange(WindowHandle, 0, NULL);
+
+            // Initialize window settings.
+            PhMwpLoadSettings(WindowHandle);
+
+            // Initialize window theme.
+            PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
+
+            // Initialize the Mica backdrop state for the client area.
+            PhMwpUpdateMicaState();
+
+            // Initialize window menu.
+            PhMwpInitializeMainMenu(WindowHandle);
+
+            // Initialize the caption button.
+            PhMwpInitializeCaptionButton(WindowHandle);
+            PhMwpSetCaptionButtonChecked(AlwaysOnTop);
+
+            // Initialize providers.
+            PhMwpInitializeProviders();
+
+            // Perform window layout.
+            PhMwpSelectionChangedTabControl(INT_ERROR);
+
+            // Perform main window showing.
+            PhMwpShowWindow(SW_SHOWDEFAULT);
+
+            // Queue delayed init functions.
+            PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, WindowHandle);
+        }
+        break;
     case WM_DESTROY:
         {
             PhMwpOnDestroy(WindowHandle);
@@ -569,6 +581,11 @@ VOID PhMwpInitializeControls(
     _In_ HWND WindowHandle
     )
 {
+    RECT rect;
+    LONG x;
+    LONG y;
+    LONG width;
+    LONG height;
     ULONG thinRows;
     ULONG treelistBorder;
     ULONG treelistCustomColors;
@@ -594,14 +611,43 @@ VOID PhMwpInitializeControls(
         treelistCreateParams.RowHeight = PhGetIntegerSetting(SETTING_TREE_LIST_CUSTOM_ROW_SIZE);
     }
 
+    // Create the controls with their initial client geometry. Some controls
+    // perform sizing-dependent initialization during WM_CREATE, so leaving
+    // them at 0x0 until the first layout pass can produce an invalid first
+    // paint/layout.
+
+    if (PhGetClientRect(WindowHandle, &rect))
+    {
+        if (!LayoutPaddingValid)
+        {
+            PhMwpUpdateLayoutPadding();
+            LayoutPaddingValid = TRUE;
+        }
+
+        PhMwpApplyLayoutPadding(&rect, &LayoutPadding);
+        x = rect.left;
+        y = rect.top;
+        width = rect.right - rect.left;
+        height = rect.bottom - rect.top;
+    }
+    else
+    {
+        x = 0;
+        y = 0;
+        width = 3;
+        height = 3;
+    }
+
+    // Create controls for the main window
+
     TabControlHandle = PhCreateWindow(
         MAKEINTATOM(PhTabNewWindowAtom),
         NULL,
-        WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP | TNS_TOP | TNS_MULTILINE | TNS_REORDER | TNS_FIXEDWIDTH,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE | TNS_TOP | TNS_MULTILINE | TNS_FIXEDWIDTH | TNS_REORDER,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -613,10 +659,10 @@ VOID PhMwpInitializeControls(
         NULL,
         WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | TN_STYLE_ANIMATE_DIVIDER |
         thinRows | treelistBorder | treelistCustomColors | treelistCustomHeaderDraw | treelistCustomDragReorder,
-        0,
-        0,
-        0,
-        0,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -626,11 +672,11 @@ VOID PhMwpInitializeControls(
     PhMwpServiceTreeNewHandle = PhCreateWindow(
         MAKEINTATOM(PhTreeWindowAtom),
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -640,11 +686,11 @@ VOID PhMwpInitializeControls(
     PhMwpNetworkTreeNewHandle = PhCreateWindow(
         MAKEINTATOM(PhTreeWindowAtom),
         NULL,
-        WS_CHILD | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
-        0,
-        0,
-        0,
-        0,
+        WS_CHILD | WS_CLIPSIBLINGS | TN_STYLE_ICONS | TN_STYLE_DOUBLE_BUFFERED | thinRows | treelistBorder | treelistCustomColors,
+        x,
+        y,
+        width,
+        height,
         WindowHandle,
         NULL,
         NULL,
@@ -3562,7 +3608,7 @@ BOOLEAN PhMwpIsWindowOverlapped(
             continue;
 
         if (!(PhGetWindowStyleEx(windowHandle) & WS_EX_TOPMOST) &&
-            IntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
+            PhIntersectRect(&rectIntersection, &rectThisWindow, &rectOtherWindow))
         {
             return TRUE;
         }
@@ -4513,8 +4559,17 @@ VOID PhMwpInitializeSectionMenuItems(
         PhRemoveEMenuItem(Menu, NULL, StartIndex);
 }
 
-_Function_class_(PH_TABNEW_LAYOUT_CALLBACK)
-BOOLEAN NTAPI PhpMwpTabLayoutCallback(
+/**
+ * Supplies the persistent identifier for a tab item during layout save/restore.
+ *
+ * \param WindowHandle Handle to the tab control.
+ * \param ItemParam The application-defined value associated with the item.
+ * \param Identifier Receives the identifier of the item.
+ * \param Context Unused.
+ * \return TRUE if an identifier was returned, otherwise FALSE.
+ */
+_Success_(return)
+BOOLEAN NTAPI PhMwpTabLayoutCallback(
     _In_ HWND WindowHandle,
     _In_ LPARAM ItemParam,
     _Out_ PPH_STRINGREF Identifier,
@@ -4799,7 +4854,7 @@ PPH_MAIN_TAB_PAGE PhMwpCreatePage(
 
     name = PhCreateString2(&page->Name);
     item.Text = name->Buffer;
-    item.ImageIndex = LONG_ERROR;
+    item.ImageIndex = INT_ERROR;
     item.Param = (LPARAM)page;
 
     page->Index = PhTabNew_InsertItem(TabControlHandle, MAXINT, &item);
@@ -5197,7 +5252,7 @@ VOID PhMwpAddIconProcesses(
 
         if (icon = PhGetImageListIcon(processItem->SmallIconIndex, FALSE))
         {
-            iconBitmap = PhIconToBitmap(icon, PhGetSystemMetrics(SM_CXSMICON, PhProcessImageListWindowDpi), PhGetSystemMetrics(SM_CYSMICON, PhProcessImageListWindowDpi));
+            iconBitmap = PhIconToBitmap(icon, PhScaleToDisplay(16, taskbarDpi), PhScaleToDisplay(16, taskbarDpi));
             DestroyIcon(icon);
         }
 

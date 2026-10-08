@@ -96,16 +96,19 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             performanceContext->CpuGraphHandle = GetDlgItem(hwndDlg, IDC_CPU);
             PhSetWindowStyle(performanceContext->CpuGraphHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowFrameChanged(performanceContext->CpuGraphHandle);
             Graph_SetTooltip(performanceContext->CpuGraphHandle, TRUE);
             PhBringWindowToTop(performanceContext->CpuGraphHandle);
 
             performanceContext->PrivateGraphHandle = GetDlgItem(hwndDlg, IDC_PRIVATEBYTES);
             PhSetWindowStyle(performanceContext->PrivateGraphHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowFrameChanged(performanceContext->PrivateGraphHandle);
             Graph_SetTooltip(performanceContext->PrivateGraphHandle, TRUE);
             PhBringWindowToTop(performanceContext->PrivateGraphHandle);
 
             performanceContext->IoGraphHandle = GetDlgItem(hwndDlg, IDC_IO);
             PhSetWindowStyle(performanceContext->IoGraphHandle, WS_BORDER, WS_BORDER);
+            PhSetWindowFrameChanged(performanceContext->IoGraphHandle);
             Graph_SetTooltip(performanceContext->IoGraphHandle, TRUE);
             PhBringWindowToTop(performanceContext->IoGraphHandle);
 
@@ -523,8 +526,7 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
 
             deferHandle = BeginDeferWindowPos(6);
 
-            deferHandle = DeferWindowPos(deferHandle, performanceContext->CpuGroupBox, NULL, margin.left, margin.top,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(deferHandle, performanceContext->CpuGroupBox, NULL, margin.left, margin.top, width, height, SWP_NOACTIVATE | SWP_NOZORDER);
             deferHandle = DeferWindowPos(
                 deferHandle,
                 performanceContext->CpuGraphHandle,
@@ -536,8 +538,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 SWP_NOACTIVATE | SWP_NOZORDER
                 );
 
-            deferHandle = DeferWindowPos(deferHandle, performanceContext->PrivateBytesGroupBox, NULL, margin.left, margin.top + height + between,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                performanceContext->PrivateBytesGroupBox,
+                NULL,
+                margin.left,
+                margin.top + height + between,
+                width,
+                height,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
             deferHandle = DeferWindowPos(
                 deferHandle,
                 performanceContext->PrivateGraphHandle,
@@ -549,8 +559,16 @@ INT_PTR CALLBACK PhpProcessPerformanceDlgProc(
                 SWP_NOACTIVATE | SWP_NOZORDER
                 );
 
-            deferHandle = DeferWindowPos(deferHandle, performanceContext->IoGroupBox, NULL, margin.left, margin.top + (height + between) * 2,
-                width, height, SWP_NOACTIVATE | SWP_NOZORDER);
+            deferHandle = DeferWindowPos(
+                deferHandle,
+                performanceContext->IoGroupBox,
+                NULL,
+                margin.left,
+                margin.top + (height + between) * 2,
+                width,
+                height,
+                SWP_NOACTIVATE | SWP_NOZORDER
+                );
             deferHandle = DeferWindowPos(
                 deferHandle,
                 performanceContext->IoGraphHandle,

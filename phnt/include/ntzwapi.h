@@ -995,7 +995,9 @@ NTAPI
 ZwCreateCpuPartition(
     _Out_ PHANDLE CpuPartitionHandle,
     _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_reads_opt_(ExtendedParameterCount) PVOID ExtendedParameters,
+    _In_ ULONG ExtendedParameterCount
     );
 
 _Kernel_entry_
@@ -2349,8 +2351,7 @@ NTAPI
 ZwInitializeNlsFiles(
     _Out_ PVOID *BaseAddress,
     _Out_ PLCID DefaultLocaleId,
-    _Out_ PLARGE_INTEGER DefaultCasingTableSize,
-    _Out_opt_ PULONG CurrentNLSVersion
+    _Out_opt_ PLARGE_INTEGER DefaultCasingTableSize
     );
 
 _Kernel_entry_
@@ -4569,8 +4570,9 @@ NTSYSCALLAPI
 NTSTATUS
 NTAPI
 ZwSetEventEx(
-    _In_ HANDLE ThreadId,
-    _In_opt_ PRTL_SRWLOCK Lock
+    _In_ HANDLE EventHandle,
+    _Out_opt_ PLONG PreviousState,
+    _In_opt_ PVOID LockAddress
     );
 
 _Kernel_entry_

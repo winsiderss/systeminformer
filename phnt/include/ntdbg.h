@@ -603,42 +603,4 @@ DbgUiConvertStateChangeStructureEx(
     _Out_ LPDEBUG_EVENT DebugEvent
     );
 
-typedef struct _EVENT_FILTER_DESCRIPTOR *PEVENT_FILTER_DESCRIPTOR;
-
-/**
- * A callback function that receives event enabled notifications.
- */
-typedef _Function_class_(ENABLECALLBACK)
-VOID NTAPI ENABLECALLBACK(
-    _In_ LPCGUID SourceId,
-    _In_ ULONG IsEnabled,
-    _In_ UCHAR Level,
-    _In_ ULONGLONG MatchAnyKeyword,
-    _In_ ULONGLONG MatchAllKeyword,
-    _In_opt_ PEVENT_FILTER_DESCRIPTOR FilterData,
-    _Inout_opt_ PVOID CallbackContext
-    );
-typedef ENABLECALLBACK* PENABLECALLBACK;
-
-typedef ULONGLONG REGHANDLE, *PREGHANDLE;
-
-/**
- * Registers an ETW event provider.
- *
- * \param ProviderId A pointer to the provider ID.
- * \param EnableCallback Optional. A pointer to the enable callback function.
- * \param CallbackContext Optional. A pointer to the callback context.
- * \param RegHandle A pointer to a variable that receives the registration handle.
- * \return NTSTATUS Successful or errant status.
- */
-NTSYSAPI
-NTSTATUS
-NTAPI
-EtwEventRegister(
-    _In_ LPCGUID ProviderId,
-    _In_opt_ PENABLECALLBACK EnableCallback,
-    _In_opt_ PVOID CallbackContext,
-    _Out_ PREGHANDLE RegHandle
-    );
-
 #endif // _NTDBG_H

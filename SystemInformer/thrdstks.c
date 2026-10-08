@@ -63,6 +63,7 @@ typedef struct _PH_THREAD_STACKS_PROCESS_NODE
     PPH_STRING FileName;
     PH_STRINGREF Architecture;
     PPH_LIST Threads;
+    BOOLEAN IsWow64Process;
 } PH_THREAD_STACKS_PROCESS_NODE, *PPH_THREAD_STACKS_PROCESS_NODE;
 
 typedef struct _PH_THREAD_STACKS_THREAD_NODE
@@ -124,7 +125,7 @@ typedef struct _PH_THREAD_STACKS_NODE
 
 typedef struct _PH_THREAD_STACKS_WORKER_CONTEXT
 {
-    volatile LONG Stop;
+    LONG Stop;
     PVOID Context;
     ULONG TotalThreads;
     ULONG WalkedThreads;
@@ -331,7 +332,7 @@ VOID PhpThreadStacksMessage(
     PPH_STRING message;
     va_list args;
 
-    if (Context->Stop)
+    if (ReadAcquire(&Context->Stop))
         return;
 
     va_start(args, Format);
@@ -352,7 +353,7 @@ VOID PhpThreadStacksPublish(
 {
     PPH_THREAD_STACKS_CONTEXT context = Context->Context;
 
-    if (Context->Stop)
+    if (ReadAcquire(&Context->Stop))
         return;
 
     if (Node)
@@ -431,6 +432,11 @@ VOID PhpThreadStacksCreateProcessNode(
     node->Process.SymbolProvider = PhCreateSymbolProvider(node->Process.ProcessId);
 
     PhLoadSymbolProviderOptions(node->Process.SymbolProvider);
+
+#if defined(_WIN64)
+    if (node->Process.SymbolProvider->ProcessHandle)
+        PhGetProcessIsWow64(node->Process.SymbolProvider->ProcessHandle, &node->Process.IsWow64Process);
+#endif
 
     if (node->Process.ProcessId != SYSTEM_IDLE_PROCESS_ID)
         node->Process.ProcessName = PhCreateStringFromUnicodeString(&ProcessInfo->ImageName);
@@ -598,6 +604,8 @@ PPH_STRING PhpThreadStacksInitFrameNode(
     }
 
     FrameNode->StackFrame = *StackFrame;
+    FrameNode->StackFrame.ContextRecord = NULL; // Only valid during the walk callback.
+    ClearFlag(FrameNode->StackFrame.Flags, PH_THREAD_STACK_FRAME_CONTEXT_PRESENT);
 
     if (symbol &&
         (FrameNode->StackFrame.Machine == IMAGE_FILE_MACHINE_I386) &&
@@ -740,7 +748,7 @@ BOOLEAN NTAPI PhpThreadStacksWalkCallback(
 {
     PPH_THREAD_STACKS_WALK_CONTEXT context = Context;
 
-    if (context->Context->Stop)
+    if (ReadAcquire(&context->Context->Stop))
         return FALSE;
 
     PhpThreadStacksCreateFrameNode(context->Context, context->ThreadNode, StackFrame);
@@ -770,7 +778,7 @@ VOID PhpThreadStacksThreadPhase2(
         ThreadNode->Process->SymbolProvider->ProcessHandle,
         &clientId,
         ThreadNode->Process->SymbolProvider,
-        PH_WALK_USER_WOW64_STACK | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK,
+        (ThreadNode->Process->IsWow64Process ? PH_WALK_USER_WOW64_STACK : 0) | PH_WALK_USER_STACK | PH_WALK_KERNEL_STACK,
         PhpThreadStacksWalkCallback,
         &context
         );
@@ -821,7 +829,7 @@ VOID PhpThreadStacksProcessPhase2(
 
         PhpThreadStacksPublish(Context, TRUE, NULL);
 
-        if (Context->Stop)
+        if (ReadAcquire(&Context->Stop))
             break;
     }
 }
@@ -849,7 +857,7 @@ VOID PhpThreadStacksWorkerPhase2(
         // Clean up the symbol provider as soon as possible.
         PhClearReference(&node->Process.SymbolProvider);
 
-        if (Context->Stop)
+        if (ReadAcquire(&Context->Stop))
             break;
     }
 }
@@ -1657,7 +1665,6 @@ INT_PTR CALLBACK PhpThreadStacksDlgProc(
                 context->SearchWindowHandle,
                 L"Search Thread Stacks",
                 SETTING_SEARCH_THREAD_STACKS_REGEX,
-                SETTING_SEARCH_THREAD_STACKS_CASE_SENSITIVE,
                 PhpThreadStacksSearchControlCallback,
                 context
                 );

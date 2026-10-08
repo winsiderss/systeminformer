@@ -20,6 +20,13 @@ PhAttachConsole(
     );
 
 PHLIBAPI
+HWND
+NTAPI
+PhGetConsoleWindow(
+    VOID
+    );
+
+PHLIBAPI
 HANDLE
 NTAPI
 PhGetStdHandle(

@@ -4,7 +4,16 @@
 # This file is part of System Informer.
 #
 
-set(SI_CUSTOM_BUILD_TOOL "${SI_ROOT}/tools/CustomBuildTool/bin/Release/$ENV{PROCESSOR_ARCHITECTURE}/CustomBuildTool.exe")
+#
+# Select the host-architecture build of CustomBuildTool. Do not use
+# $ENV{PROCESSOR_ARCHITECTURE} here: it reports the architecture of the running
+# process, so a 32-bit cmake.exe (the one Visual Studio ships under
+# Program Files (x86)) resolves to "x86" on an AMD64 host and picks the wrong
+# build. CMAKE_HOST_SYSTEM_PROCESSOR always reports the real host.
+#
+string(TOLOWER "${CMAKE_HOST_SYSTEM_PROCESSOR}" _si_host_arch)
+set(SI_CUSTOM_BUILD_TOOL "${SI_ROOT}/tools/CustomBuildTool/bin/Release/${_si_host_arch}/CustomBuildTool.exe")
+unset(_si_host_arch)
 
 if (NOT EXISTS "${SI_CUSTOM_BUILD_TOOL}")
     message(FATAL_ERROR "CustomBuildTool.exe not found. Run build\\build_tools.cmd first.")

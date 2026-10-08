@@ -5,26 +5,30 @@ on:
   schedule:
     - cron: '0 0 * * 0'
 
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze_driver:
     name: analyze-driver
     runs-on: windows-latest
+    timeout-minutes: 120
     permissions:
       security-events: write
       actions: read
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
         with:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        uses: actions/cache@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
         with:
           path: |
             packages
@@ -41,65 +45,70 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
+        id: init
         uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
         with:
-          languages: ${{ matrix.language }}
+          languages: cpp
 
       - name: Build Driver
         shell: cmd
         run: build\build_zdriver.cmd
 
       - name: Finalize CodeQL Database
+        shell: pwsh
         run: |
-          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
-          & $codeqlPath database finalize "${{ runner.temp }}\codeql_databases\cpp"
+          & "${{ steps.init.outputs.codeql-path }}" database finalize "${{ runner.temp }}\codeql_databases\cpp"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Download Windows Driver Query Packs
         shell: pwsh
         run: |
-          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
-          & $codeqlPath pack download microsoft/windows-drivers
-          & $codeqlPath pack download microsoft/cpp-queries
+          & "${{ steps.init.outputs.codeql-path }}" pack download microsoft/windows-drivers microsoft/cpp-queries
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Windows Driver Analysis
         shell: pwsh
         run: |
-          $codeqlPath = (Get-ChildItem -Path "$env:RUNNER_TOOL_CACHE\CodeQL" -Recurse -Filter "codeql.exe" | Select-Object -First 1).FullName
           $sarifOut = Join-Path "${{ runner.temp }}" "driver-analysis.sarif"
-          & $codeqlPath database analyze "${{ runner.temp }}\codeql_databases\cpp" microsoft/windows-drivers --format=sarifv2.1.0 --output=$sarifOut
+          & "${{ steps.init.outputs.codeql-path }}" database analyze "${{ runner.temp }}\codeql_databases\cpp" `
+            microsoft/windows-drivers `
+            microsoft/cpp-queries `
+            codeql/cpp-queries:codeql-suites/cpp-security-and-quality.qls `
+            --sarif-category=/driver `
+            --format=sarifv2.1.0 `
+            --output=$sarifOut
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
+        uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0 # 1.1
         with:
           input: ${{ runner.temp }}\driver-analysis.sarif
           output: ${{ runner.temp }}\driver-filtered.sarif
-          patterns: packages/**
+          patterns: |
+            -packages/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
         with:
           sarif_file: ${{ runner.temp }}\driver-filtered.sarif
+          category: /driver
 
   analyze_library:
     name: analyze-software
     runs-on: windows-latest
+    timeout-minutes: 120
     permissions:
       actions: read
       contents: read
       security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        language: ['cpp']
     steps:
       - name: Checkout repository
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
         with:
           fetch-depth: 0
 
       - name: Nuget Cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # 5.1.0
         with:
           path: |
             packages
@@ -116,97 +125,119 @@ jobs:
         run: build\build_init.cmd
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
         with:
-          languages: ${{ matrix.language }}
-
-      - name: Build Driver
-        shell: cmd
-        run: build\build_zdriver.cmd
+          languages: cpp
+          queries: security-and-quality
+          packs: microsoft/cpp-queries
 
       - name: Build Release
         shell: cmd
         run: build\build_release.cmd
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
         with:
-          category: '/language:${{ matrix.language }}'
+          category: /language:cpp
           output: sarif-results
           upload: never
-  
+
       - name: Filter CodeQL Results
-        uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
+        uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0 # 1.1
         with:
           input: sarif-results/cpp.sarif
           output: sarif-results/filtered.sarif
           patterns: |
-            packages/**/*
-            tools/CustomBuildTool/generated/**/*
-            tools/CustomBuildTool/obj/**/*
+            -packages/**
+            -tools/CustomBuildTool/generated/**
+            -tools/CustomBuildTool/obj/**
 
       - name: Upload CodeQL Results
-        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
         with:
           sarif_file: sarif-results/filtered.sarif
+          category: /language:cpp
 
   analyze_csharp:
-     name: analyze-tools
-     runs-on: windows-latest
-     permissions:
-       actions: read
-       contents: read
-       security-events: write
-     strategy:
-       fail-fast: false
-       matrix:
-         language: ['csharp']
-     steps:
-       - name: Checkout repository
-         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # 6.0.3
-         with:
-           fetch-depth: 0
+    name: analyze-tools
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+        with:
+          fetch-depth: 0
 
-       - name: Nuget Cache
-         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # 5.0.5
-         with:
-           path: |
-             packages
-             ~\.nuget\packages
-           key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config', '**/*.csproj', '**/Directory.Packages.props', '**/packages.lock.json', '**/NuGet.Config', '**/global.json') }}
-           restore-keys: nuget-${{ runner.os }}-
+      - name: Nuget Cache
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # 5.1.0
+        with:
+          path: |
+            packages
+            ~\.nuget\packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/packages.config', '**/*.csproj', '**/Directory.Packages.props', '**/packages.lock.json', '**/NuGet.Config', '**/global.json') }}
+          restore-keys: nuget-${{ runner.os }}-
 
-       - name: Nuget Restore
-         shell: cmd
-         run: nuget restore .\packages.config -PackagesDirectory .\packages\
+      - name: Nuget Restore
+        shell: cmd
+        run: nuget restore .\packages.config -PackagesDirectory .\packages\
 
-       - name: Initialize CodeQL
-         uses: github/codeql-action/init@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
-         with:
-           languages: ${{ matrix.language }}
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        with:
+          languages: csharp
+          queries: security-and-quality
 
-       - name: Build Tools
-         shell: cmd
-         run: build\build_init.cmd
+      - name: Build Tools
+        shell: cmd
+        run: build\build_init.cmd
 
-       - name: Perform CodeQL analysis
-         uses: github/codeql-action/analyze@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
-         with:
-           category: '/language:${{ matrix.language }}'
-           output: sarif-results
-           upload: never
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        with:
+          category: /language:csharp
+          output: sarif-results
+          upload: never
 
-       - name: Filter CodeQL Results
-         uses: advanced-security/filter-sarif@f3b8118a9349d88f7b1c0c488476411145b6270d # 1.0.1
-         with:
-           input: sarif-results/csharp.sarif
-           output: sarif-results/filtered.sarif
-           patterns: |
-             packages/**/*
-             tools/CustomBuildTool/generated/**/*
-             tools/CustomBuildTool/obj/**/*
+      - name: Filter CodeQL Results
+        uses: advanced-security/filter-sarif@2da736ff05ef065cb2894ac6892e47b5eac2c3c0 # 1.1
+        with:
+          input: sarif-results/csharp.sarif
+          output: sarif-results/filtered.sarif
+          patterns: |
+            -packages/**
+            -tools/CustomBuildTool/generated/**
+            -tools/CustomBuildTool/obj/**
 
-       - name: Upload CodeQL Results
-         uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # 4.36.2
-         with:
-           sarif_file: sarif-results/filtered.sarif
+      - name: Upload CodeQL Results
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        with:
+          sarif_file: sarif-results/filtered.sarif
+          category: /language:csharp
+
+  analyze_actions:
+    name: analyze-workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # 7.0.1
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        with:
+          languages: actions
+          build-mode: none
+          queries: security-and-quality
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # 4.38.2
+        with:
+          category: /language:actions

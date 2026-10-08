@@ -456,25 +456,19 @@ POBJECT_BOUNDARY_DESCRIPTOR PhCreateBoundaryDescriptor(
     _In_ ULONG Flags
     )
 {
+    if (Flags & ~BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID)
+        return NULL;
+
+    if (!Name || Name->Length == 0 || (Name->Length & 1))
+        return NULL;
+
+#if !defined(PH_NATIVE_BOUNDARY_DESCRIPTOR)
     PVOID buffer;
     ULONG rawSize;
     ULONG totalSize;
     ULONG nameLength;;
     POBJECT_BOUNDARY_DESCRIPTOR descriptor;
     POBJECT_BOUNDARY_ENTRY entry;
-
-    //
-    // Validate Flags. Only bit 0 (AddAppContainerSid) is allowed.
-    //
-    if (Flags & ~BOUNDARY_DESCRIPTOR_ADD_APPCONTAINER_SID)
-        return NULL;
-
-    //
-    // Validate Name.
-    // Must be present, non-empty, and have an even length (valid UTF-16).
-    //
-    if (!Name || Name->Length == 0 || (Name->Length & 1))
-        return NULL;
 
     if (!NT_SUCCESS(RtlSizeTToULong(Name->Length, &nameLength)))
         return NULL;
@@ -521,6 +515,14 @@ POBJECT_BOUNDARY_DESCRIPTOR PhCreateBoundaryDescriptor(
         );
 
     return buffer;
+#else
+    UNICODE_STRING name;
+
+    if (!PhStringRefToUnicodeString(Name, &name))
+        return NULL;
+
+    return RtlCreateBoundaryDescriptor(&name, Flags);
+#endif
 }
 
 /**
@@ -534,7 +536,11 @@ VOID PhDeleteBoundaryDescriptor(
 {
     if (BoundaryDescriptor)
     {
+#if !defined(PH_NATIVE_BOUNDARY_DESCRIPTOR)
         PhFree(BoundaryDescriptor);
+#else
+        RtlDeleteBoundaryDescriptor(BoundaryDescriptor);
+#endif
     }
 }
 
@@ -876,7 +882,11 @@ NTSTATUS PhAddSIDToBoundaryDescriptor(
     _In_ PCSID RequiredSid
     )
 {
+#if !defined(PH_NATIVE_BOUNDARY_DESCRIPTOR)
     return PhAddSidToBoundaryDescriptorWorker(BoundaryDescriptor, RequiredSid, FALSE);
+#else
+    return RtlAddSIDToBoundaryDescriptor(BoundaryDescriptor, RequiredSid);
+#endif
 }
 
 /**
@@ -891,5 +901,9 @@ NTSTATUS PhAddIntegrityLabelToBoundaryDescriptor(
     _In_ PCSID IntegrityLabel
     )
 {
+#if !defined(PH_NATIVE_BOUNDARY_DESCRIPTOR)
     return PhAddSidToBoundaryDescriptorWorker(BoundaryDescriptor, IntegrityLabel, TRUE);
+#else
+    return RtlAddIntegrityLabelToBoundaryDescriptor(BoundaryDescriptor, IntegrityLabel);
+#endif
 }

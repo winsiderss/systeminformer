@@ -75,43 +75,43 @@ namespace CustomBuildTool
         /// <remarks>Use this method to obtain the JWS algorithm identifier required for JWT signing when
         /// using Azure Key Vault signature algorithms. Only specific combinations of signature and hash algorithms are
         /// supported.</remarks>
-        /// <param name="signatureAlgorithm">The signature algorithm to convert. Supported values are RSAPkcs15 and ECDsa.</param>
-        /// <param name="hashAlgorithmName">The hash algorithm used with the signature algorithm. Supported values are SHA256, SHA384, and SHA512.</param>
+        /// <param name="SignatureAlgorithm">The signature algorithm to convert. Supported values are RSAPkcs15 and ECDsa.</param>
+        /// <param name="HashAlgorithmName">The hash algorithm used with the signature algorithm. Supported values are SHA256, SHA384, and SHA512.</param>
         /// <returns>A string containing the JWS algorithm identifier that matches the specified signature and hash algorithm.</returns>
         /// <exception cref="NotSupportedException">Thrown if the combination of signature algorithm and hash algorithm is not supported.</exception>
-        public static string SignatureAlgorithmToJwsAlgId(KeyVaultSignatureAlgorithm signatureAlgorithm, HashAlgorithmName hashAlgorithmName)
+        public static string SignatureAlgorithmToJwsAlgId(KeyVaultSignatureAlgorithm SignatureAlgorithm, HashAlgorithmName HashAlgorithmName)
         {
-            switch (signatureAlgorithm)
+            switch (SignatureAlgorithm)
             {
                 case KeyVaultSignatureAlgorithm.RSAPkcs15:
-                    if (hashAlgorithmName == HashAlgorithmName.SHA256)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA256)
                     {
                         return "RS256";
                     }
 
-                    if (hashAlgorithmName == HashAlgorithmName.SHA384)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA384)
                     {
                         return "RS384";
                     }
 
-                    if (hashAlgorithmName == HashAlgorithmName.SHA512)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA512)
                     {
                         return "RS512";
                     }
 
                     break;
                 case KeyVaultSignatureAlgorithm.ECDsa:
-                    if (hashAlgorithmName == HashAlgorithmName.SHA256)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA256)
                     {
                         return "ES256";
                     }
 
-                    if (hashAlgorithmName == HashAlgorithmName.SHA384)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA384)
                     {
                         return "ES384";
                     }
 
-                    if (hashAlgorithmName == HashAlgorithmName.SHA512)
+                    if (HashAlgorithmName == HashAlgorithmName.SHA512)
                     {
                         return "ES512";
                     }

@@ -143,10 +143,11 @@ __RtlpUnsignedMultiply128(
 
 #if defined(_M_ARM64) || defined(_M_ARM64EC) || defined(_M_HYBRID_X86_ARM64)
 
-ULONG64
+// Note: Must match the unannotated compiler declaration in intrin.h (C28301). (dmex)
+unsigned __int64
 __umulh(
-    _In_ ULONG64 Multiplicand,
-    _In_ ULONG64 Multiplier
+    unsigned __int64,
+    unsigned __int64
     );
 
 #pragma intrinsic(__umulh)

@@ -162,6 +162,76 @@ PhQueryInterruptTime(
 PHLIBAPI
 VOID
 NTAPI
+PhQueryUnbiasedInterruptTime(
+    _Out_ PLARGE_INTEGER UnbiasedInterruptTime
+    );
+
+/**
+* Reads the tick count used for deadlines governing a wait.
+*
+* \return The elapsed time, in 100-nanosecond units, in the same time
+* domain as the wait that it bounds. Scale millisecond bounds into this
+* domain with UInt32x32To64(Milliseconds, PH_TIMEOUT_MS).
+*
+* \remarks There are three distinct time domains, and they are not
+* interchangeable:
+*
+* - Biased time (NtGetTickCount64): boot-relative time that includes
+* time spent suspended. This is suitable for user-interface throttling.
+* - Unbiased time (QueryUnbiasedInterruptTime): time that the system
+* has spent in the working state.
+* - Wall-clock uptime (PhGetSystemUptime).
+*
+* This returns the native 100-nanosecond tick domain rather than
+* milliseconds. The underlying counters already report ticks, so a
+* millisecond-returning wrapper would have to divide by PH_TICKS_PER_MS on
+* every read, discarding the sub-millisecond remainder and leaving each
+* converted read up to one millisecond away from the true value. Returning
+* ticks avoids that conversion altogether: callers compare at the full
+* resolution the counter provides, and rounding occurs only where
+* milliseconds are actually required, in the argument handed to a wait
+* routine.
+*
+* Windows 7 and earlier (Biased Domain): Wait APIs (like NtWaitForSingleObject with relative timeouts) 
+* evaluate deadlines against the standard interrupt time, which continues to tick while the system is suspended or sleeping.
+* Thus, PhQueryInterruptTime() (which tracks the biased domain) provides the correct baseline to prevent premature expiration upon resume.
+*
+* Windows 8 and later (Unbiased Domain): To support Connected Standby (Modern Standby), the kernel was updated and relative wait evaluations 
+* are paused during sleep states. Wait timeouts now operate strictly in the unbiased domain. If a thread waits for 10 seconds and the machine 
+* sleeps for 8, the thread still has 2 seconds remaining upon wake.
+* Thus, PhQueryUnbiasedInterruptTime() (which tracks the unbiased domain) provides the correct baseline to prevent premature expiration upon resume.
+*
+* Define PHNT_TICKWAIT to use NtGetTickCount64() on Windows 7 and earlier. It tracks the same biased
+* domain but only advances once per clock tick (~15.6 ms by default).
+*/
+FORCEINLINE
+ULONG64
+NTAPI
+PhQueryWaitTime(
+    VOID
+    )
+{
+    LARGE_INTEGER interruptTime;
+
+    if (WindowsVersion < WINDOWS_8)
+    {
+#if defined(PHNT_TICKWAIT)
+        return NtGetTickCount64() * PH_TICKS_PER_MS;
+#else
+        PhQueryInterruptTime(&interruptTime);
+#endif
+    }
+    else
+    {
+        PhQueryUnbiasedInterruptTime(&interruptTime);
+    }
+
+    return (ULONG64)interruptTime.QuadPart;
+}
+
+PHLIBAPI
+VOID
+NTAPI
 PhQuerySystemTime(
     _Out_ PLARGE_INTEGER SystemTime
     );
@@ -273,6 +343,15 @@ PhFree(
     _In_opt_ _Frees_ptr_opt_ _Post_invalid_ PVOID Memory
     );
 
+_Must_inspect_result_
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhAllocateHeap(
+    _In_ SIZE_T Size,
+    _Outptr_result_bytebuffer_(Size) PVOID* Buffer
+    );
+
 _May_raise_
 _Ret_maybenull_
 _When_(Size == 0, _Post_null_)
@@ -302,6 +381,22 @@ NTAPI
 PhReAllocateSafe(
     _In_opt_ _Frees_ptr_opt_ PVOID Memory,
     _In_ SIZE_T Size
+    );
+
+_Must_inspect_result_
+_Ret_maybenull_
+_When_(return != NULL, _Post_writable_byte_size_(Size))
+_Success_(return != NULL)
+PHLIBAPI
+DECLSPEC_ALLOCATOR
+DECLSPEC_NOALIAS
+DECLSPEC_RESTRICT
+PVOID
+NTAPI
+PhReAllocateExSafe(
+    _In_opt_ _Frees_ptr_opt_ PVOID Memory,
+    _In_ SIZE_T Size,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -457,12 +552,7 @@ PhAllocateZero(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    buffer = PhAllocate(Size);
-    memset(buffer, 0, Size);
-
-    return buffer;
+    return PhAllocateExSafe(Size, HEAP_GENERATE_EXCEPTIONS | HEAP_ZERO_MEMORY);
 }
 
 FORCEINLINE
@@ -471,15 +561,7 @@ PhAllocateZeroSafe(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    if (buffer = PhAllocateSafe(Size))
-    {
-        memset(buffer, 0, Size);
-        return buffer;
-    }
-
-    return NULL;
+    return PhAllocateExSafe(Size, HEAP_ZERO_MEMORY);
 }
 
 FORCEINLINE
@@ -489,19 +571,10 @@ PhReAllocateZeroSafe(
     _In_ SIZE_T Size
     )
 {
-    PVOID buffer;
-
-    if (buffer = PhReAllocateSafe(Memory, Size))
-    {
-        memset(buffer, 0, Size);
-        return buffer;
-    }
-
-    return NULL;
+    return PhReAllocateExSafe(Memory, Size, HEAP_ZERO_MEMORY);
 }
 
 #define PhAllocateStack(Size) _malloca(Size)
-
 #define PhFreeStack(Memory) _freea(Memory)
 
 //
@@ -610,6 +683,29 @@ PhfSetEvent(
     _Inout_ PPH_EVENT Event
     );
 
+/**
+ * Waits until an address no longer contains a specified value.
+ *
+ * \param Address Address of an aligned 1, 2, 4, or 8 byte value.
+ * \param CompareAddress Address of the undesired value, which is copied before waiting.
+ * \param AddressSize Size of the value in bytes.
+ * \param Timeout An optional NT relative or absolute timeout.
+ * \return STATUS_SUCCESS when the value differs, STATUS_TIMEOUT when the deadline
+ * expires while the value still matches, or an error from RtlWaitOnAddress.
+ * \remarks Spurious wakes are retried, and relative timeouts cover the entire
+ * wait rather than restarting after each wake. The caller must signal a change
+ * with RtlWakeAddressSingle or RtlWakeAddressAll.
+ */
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhWaitOnAddress(
+    _In_reads_bytes_(AddressSize) volatile VOID *Address,
+    _In_reads_bytes_(AddressSize) PVOID CompareAddress,
+    _In_ SIZE_T AddressSize,
+    _In_opt_ PLARGE_INTEGER Timeout
+    );
+
 PHLIBAPI
 BOOLEAN
 FASTCALL
@@ -625,7 +721,7 @@ PhWaitForEvent(
     _In_opt_ PLARGE_INTEGER Timeout
     )
 {
-    if (Event->Set)
+    if (ReadULongPtrAcquire(&Event->Value) & PH_EVENT_SET)
         return TRUE;
 
     return PhfWaitForEvent(Event, Timeout);
@@ -666,7 +762,7 @@ PhTestEvent(
     _In_ PPH_EVENT Event
     )
 {
-    return (BOOLEAN)Event->Set;
+    return !!(ReadULongPtrAcquire(&Event->Value) & PH_EVENT_SET);
 }
 
 //
@@ -914,7 +1010,7 @@ PhBeginInitOnce(
     _Inout_ PPH_INITONCE InitOnce
     )
 {
-    if (InitOnce->Event.Set)
+    if (PhTestEvent(&InitOnce->Event))
         return FALSE;
     else
         return PhfBeginInitOnce(InitOnce);
@@ -926,7 +1022,7 @@ PhTestInitOnce(
     _In_ PPH_INITONCE InitOnce
     )
 {
-    return (BOOLEAN)InitOnce->Event.Set;
+    return PhTestEvent(&InitOnce->Event);
 }
 
 //
@@ -1230,9 +1326,11 @@ typedef struct _PH_RELATIVE_BYTESREF
     /** A user-defined offset. */
     ULONG Offset;
 } PH_RELATIVE_BYTESREF, *PPH_RELATIVE_BYTESREF, PH_RELATIVE_STRINGREF, *PPH_RELATIVE_STRINGREF;
+typedef const PH_RELATIVE_BYTESREF* PCPH_RELATIVE_BYTESREF, *PCPH_RELATIVE_STRINGREF;
 
 #define PH_STRINGREF_INIT(String) { sizeof(String) - sizeof(UNICODE_NULL), RTL_CONST_CAST(PWCH)(String) }
 #define PH_BYTESREF_INIT(String) { sizeof(String) - sizeof(ANSI_NULL), RTL_CONST_CAST(PCH)(String) }
+#define PH_RELATIVE_STRINGREF_INIT(String) { (ULONG)(sizeof(String) - sizeof(UNICODE_NULL)), (ULONG)((ULONG_PTR)(String) - (ULONG_PTR)NtCurrentImageBase()) }
 
 /**
  * Initializes a string reference from a null-terminated Unicode string.
@@ -1355,6 +1453,23 @@ PhInitializeBufferBytesRef(
     memset(String, 0, sizeof(PH_BYTESREF));
     String->Length = Length;
     String->Buffer = Buffer;
+}
+
+/**
+ * Initializes a string reference from an image-relative string reference.
+ *
+ * \param String A pointer to the string reference to initialize.
+ * \param RelativeString An image-relative string reference initialized with PH_RELATIVE_STRINGREF_INIT.
+ */
+FORCEINLINE
+VOID
+PhInitializeStringRefFromRelative(
+    _Out_ PPH_STRINGREF String,
+    _In_ PCPH_RELATIVE_STRINGREF RelativeString
+    )
+{
+    String->Length = RelativeString->Length;
+    String->Buffer = (PWCH)PTR_ADD_OFFSET(NtCurrentImageBase(), RelativeString->Offset);
 }
 
 /**
@@ -2891,14 +3006,14 @@ NTAPI
 PhConvertUtf16ToAsciiEx(
     _In_ PCWCH Buffer,
     _In_ SIZE_T Length,
-    _In_opt_ CHAR Replacement
+    _In_ CHAR Replacement
     );
 
 FORCEINLINE
 PPH_BYTES
 PhConvertUtf16ToAscii(
     _In_ PCWSTR Buffer,
-    _In_opt_ CHAR Replacement
+    _In_ CHAR Replacement
     )
 {
     return PhConvertUtf16ToAsciiEx(Buffer, PhCountStringZ(Buffer) * sizeof(WCHAR), Replacement);
@@ -3522,7 +3637,7 @@ PhClearList(
     _Inout_ PPH_LIST List
     );
 
-_Success_(return != -1)
+_Success_(return != ULONG_MAX)
 PHLIBAPI
 ULONG
 NTAPI
@@ -4762,6 +4877,50 @@ ULONG
 NTAPI
 PhCountBitsUlong64(
     _In_ ULONG64 Value
+    );
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhAreBitsSet(
+    _In_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG Length
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhClearBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToClear
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhSetBits(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG StartingIndex,
+    _In_ ULONG NumberToSet
+    );
+
+PHLIBAPI
+ULONG
+NTAPI
+PhNumberOfSetBits(
+    _In_ PRTL_BITMAP BitMapHeader
+    );
+
+_Success_(return != ULONG_MAX)
+PHLIBAPI
+ULONG
+NTAPI
+PhFindClearBitsAndSet(
+    _Inout_ PRTL_BITMAP BitMapHeader,
+    _In_ ULONG NumberToFind,
+    _In_ ULONG HintIndex
     );
 
 //

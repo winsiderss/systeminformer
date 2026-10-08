@@ -107,7 +107,7 @@ namespace CustomBuildTool
             try
             {
                 using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest"))
-                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
+                using (var response = await BuildHttpClient.SendRequestMessage(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -120,7 +120,7 @@ namespace CustomBuildTool
                 }
 
                 using (var request = new HttpRequestMessage(HttpMethod.Get, $"https://api.github.com/repos/{Owner}/{Repo}/tags?per_page=1"))
-                using (var response = await BuildHttpClient.SendMessageResponse(HttpClient, request))
+                using (var response = await BuildHttpClient.SendRequestMessage(HttpClient, request))
                 {
                     if (response?.IsSuccessStatusCode == true)
                     {
@@ -157,15 +157,35 @@ namespace CustomBuildTool
             if (string.IsNullOrWhiteSpace(Lib.VersionPattern))
                 return null;
 
-            string headerPath = Path.Combine(ThirdPartyDirectory, Lib.HeaderFile);
+            string headerPath = Path.Join([ThirdPartyDirectory, Lib.HeaderFile]);
             if (!File.Exists(headerPath))
                 return null;
 
-            string content = Utils.ReadAllText(headerPath);
-            if (string.IsNullOrWhiteSpace(content))
-                return null;
-
-            var match = Regex.Match(content, Lib.VersionPattern, RegexOptions.Multiline);
+            Match match = Match.Empty;
+            Match minorMatch = Match.Empty;
+            Match patchMatch = Match.Empty;
+            foreach (string line in File.ReadLines(headerPath))
+            {
+                if (!match.Success)
+                    match = Regex.Match(line, Lib.VersionPattern);
+                if (Lib.Name is "pcre2" or "tlsh" or "xxhash")
+                {
+                    if (!minorMatch.Success)
+                        minorMatch = Lib.Name switch
+                        {
+                            "pcre2" => PcreVersionRegex().Match(line),
+                            "tlsh" => TlshVersionMinorRegex().Match(line),
+                            _ => XxHashVersionMinorRegex().Match(line)
+                        };
+                    if (!patchMatch.Success)
+                        patchMatch = Lib.Name switch
+                        {
+                            "tlsh" => TlshVersionPatchRegex().Match(line),
+                            "xxhash" => XxHashVersionReleaseRegex().Match(line),
+                            _ => Match.Empty
+                        };
+                }
+            }
             if (!match.Success || match.Groups.Count < 2)
                 return null;
 
@@ -234,7 +254,6 @@ namespace CustomBuildTool
             // pcre2 only captures major; read minor from next line
             if (Lib.Name.Equals("pcre2", StringComparison.OrdinalIgnoreCase))
             {
-                var minorMatch = PcreVersionRegex().Match(content);
                 if (minorMatch.Success)
                     return $"{value}.{minorMatch.Groups[1].Value}";
             }
@@ -242,8 +261,6 @@ namespace CustomBuildTool
             // tlsh encodes as separate MAJOR/MINOR/PATCH defines
             if (Lib.Name.Equals("tlsh", StringComparison.OrdinalIgnoreCase))
             {
-                var minorMatch = TlshVersionMinorRegex().Match(content);
-                var patchMatch = TlshVersionPatchRegex().Match(content);
                 if (minorMatch.Success && patchMatch.Success)
                     return $"{value}.{minorMatch.Groups[1].Value}.{patchMatch.Groups[1].Value}";
             }
@@ -251,10 +268,8 @@ namespace CustomBuildTool
             // xxhash encodes as separate MAJOR/MINOR/RELEASE defines
             if (Lib.Name.Equals("xxhash", StringComparison.OrdinalIgnoreCase))
             {
-                var minorMatch = XxHashVersionMinorRegex().Match(content);
-                var releaseMatch = XxHashVersionReleaseRegex().Match(content);
-                if (minorMatch.Success && releaseMatch.Success)
-                    return $"{value}.{minorMatch.Groups[1].Value}.{releaseMatch.Groups[1].Value}";
+                if (minorMatch.Success && patchMatch.Success)
+                    return $"{value}.{minorMatch.Groups[1].Value}.{patchMatch.Groups[1].Value}";
             }
 
             return value;

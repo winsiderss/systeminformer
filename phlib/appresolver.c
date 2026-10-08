@@ -778,12 +778,11 @@ PPH_STRING PhGetPackageAppDataPath(
 
                     if (PhEqualStringRef(&valueAttributeName, &attributeName, FALSE))
                     {
-                        PPH_STRING attributeValue;
+                        PH_STRINGREF attributeValue;
 
-                        attributeValue = PhCreateStringFromUnicodeString(&attribute->Values.String[2]);
-                        packageAppDataPath = PhConcatStringRef2(&localAppDataPath->sr, &attributeValue->sr);
+                        PhUnicodeStringToStringRef(&attribute->Values.String[2], &attributeValue);
+                        packageAppDataPath = PhConcatStringRef2(&localAppDataPath->sr, &attributeValue);
 
-                        PhDereferenceObject(attributeValue);
                         break;
                     }
                 }

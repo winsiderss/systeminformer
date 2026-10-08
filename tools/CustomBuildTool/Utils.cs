@@ -29,6 +29,14 @@ namespace CustomBuildTool
         private static string VsWhereFilePath;
 
         /// <summary>
+        /// Generates a random integer from 1 through 7, inclusive.
+        /// </summary>
+        public static int GetRandomNumberOneToSeven()
+        {
+            return RandomNumberGenerator.GetInt32(1, 8);
+        }
+
+        /// <summary>
         /// Splits a string into key-value pairs.
         /// </summary>
         public static Dictionary<string, string> ParseArgs(string[] args)
@@ -105,7 +113,7 @@ namespace CustomBuildTool
                 return;
             }
 
-            var args = File.ReadAllLines(FileName);
+            var args = File.ReadLines(FileName);
             var key = string.Empty;
 
             foreach (string s in args)
@@ -996,6 +1004,11 @@ namespace CustomBuildTool
                 );
         }
 
+        /// <summary>
+        /// Encloses the specified argument in double quotes for use on a cmd.exe command line.
+        /// </summary>
+        /// <param name="Argument">The argument to quote.</param>
+        /// <returns>The quoted argument.</returns>
         private static string QuoteCmdArgument(string Argument)
         {
             return $"\"{Argument}\"";
@@ -1073,6 +1086,57 @@ namespace CustomBuildTool
                 return null;
 
             return symStorePath;
+        }
+
+        /// <summary>
+        /// Retrieves the full file path to the COSE signing tool (CoseSignTool.exe) from the Windows SDK/WDK
+        /// installation, if available.
+        /// </summary>
+        /// <remarks>CoseSignTool.exe ships under the versioned Tools directory of the Windows Kit
+        /// (<c>{KitsRoot10}\Tools\{version}\x64\CoseSignTool.exe</c>). The method honors the ESDK environment
+        /// variables when set, otherwise it selects the highest installed Tools version that contains the tool.
+        /// Returns null if the tool is not found.</remarks>
+        /// <returns>The full path to CoseSignTool.exe if found; otherwise, null.</returns>
+        public static string GetCoseSignToolPath()
+        {
+            // Required for the ESDK
+            if (
+                Win32.GetEnvironmentVariable("WindowsSdkDir", out string windowsSdkDir) &&
+                Win32.GetEnvironmentVariable("WindowsSDKVersion", out string windowsSdkVersion)
+                )
+            {
+                string path = Path.Join([windowsSdkDir, "Tools", windowsSdkVersion.TrimEnd('\\'), "x64", "CoseSignTool.exe"]);
+                if (File.Exists(path))
+                    return path;
+            }
+
+            string kitsRoot = Win32.GetKeyValue(true, "Software\\Microsoft\\Windows Kits\\Installed Roots", "KitsRoot10", "%ProgramFiles(x86)%\\Windows Kits\\10\\");
+            if (string.IsNullOrWhiteSpace(kitsRoot))
+                return null;
+
+            string toolsPath = Utils.ExpandFullPath(Path.Join([kitsRoot, "Tools"]));
+            if (string.IsNullOrWhiteSpace(toolsPath) || !Directory.Exists(toolsPath))
+                return null;
+
+            List<KeyValuePair<Version, string>> versionList = new List<KeyValuePair<Version, string>>();
+
+            foreach (string directory in Directory.EnumerateDirectories(toolsPath))
+            {
+                if (Version.TryParse(Path.GetFileName(directory), out var version))
+                {
+                    string candidate = Path.Join([directory, "x64", "CoseSignTool.exe"]);
+
+                    if (File.Exists(candidate))
+                        versionList.Add(new KeyValuePair<Version, string>(version, candidate));
+                }
+            }
+
+            if (versionList.Count == 0)
+                return null;
+
+            versionList.Sort((first, second) => first.Key.CompareTo(second.Key));
+
+            return versionList[^1].Value;
         }
 
         /// <summary>
@@ -1272,6 +1336,24 @@ namespace CustomBuildTool
         }
 
         /// <summary>
+        /// Reads the first non-empty line of a file, trimmed, without reading the rest of the file.
+        /// </summary>
+        /// <param name="FileName">The path to the file to read.</param>
+        /// <returns>The trimmed first non-empty line, or an empty string if the file has none.</returns>
+        public static string ReadFirstLine(string FileName)
+        {
+            foreach (string line in File.ReadLines(FileName))
+            {
+                string value = line.Trim();
+
+                if (value.Length != 0)
+                    return value;
+            }
+
+            return string.Empty;
+        }
+
+        /// <summary>
         /// Creates a new file, writes the specified string to the file using UTF-8 encoding without a BOM, and then
         /// closes the file. Overwrites the file if it already exists.
         /// </summary>
@@ -1291,6 +1373,169 @@ namespace CustomBuildTool
             using (StreamWriter sw = new StreamWriter(FileName, Utils.UTF8NoBOM, options))
             {
                 sw.Write(Content);
+            }
+        }
+
+        /// <summary>
+        /// Writes generated text to a temporary file and replaces the destination file only when the content differs.
+        /// </summary>
+        /// <remarks>The destination file is left untouched when the generated content matches the existing content.
+        /// The temporary file is always deleted before the method returns.</remarks>
+        /// <param name="FileName">The path of the destination file.</param>
+        /// <param name="Write">A callback that writes the generated content to the supplied <see cref="TextWriter"/>.</param>
+        /// <param name="BeforeReplace">An optional callback invoked immediately before the destination file is replaced.</param>
+        /// <param name="ShouldReplace">An optional predicate evaluated after generation; returning false skips the replacement.</param>
+        /// <param name="Comparison">The comparison used to determine whether the content has changed.</param>
+        /// <returns>True if the destination file was created or replaced; otherwise, false.</returns>
+        public static bool WriteTextIfChanged(string FileName, Action<TextWriter> Write, Action BeforeReplace = null, Func<bool> ShouldReplace = null, StringComparison Comparison = StringComparison.OrdinalIgnoreCase)
+        {
+            string temporaryFile = FileName + "." + Guid.NewGuid().ToString("N") + ".tmp";
+
+            try
+            {
+                using (var writer = new StreamWriter(temporaryFile, false, UTF8NoBOM))
+                    Write(writer);
+
+                if (ShouldReplace != null && !ShouldReplace())
+                    return false;
+
+                if (File.Exists(FileName))
+                {
+                    using var previous = new StreamReader(FileName, UTF8NoBOM, true);
+                    using var generated = new StreamReader(temporaryFile, UTF8NoBOM, true);
+                    char[] left = new char[4096];
+                    char[] right = new char[4096];
+
+                    while (true)
+                    {
+                        int leftCount = previous.ReadBlock(left);
+                        int rightCount = generated.ReadBlock(right);
+                        if (leftCount != rightCount)
+                            break;
+                        if (leftCount == 0)
+                            return false;
+                        if (!left.AsSpan(0, leftCount).Equals(right.AsSpan(0, rightCount), Comparison))
+                            break;
+                    }
+                }
+
+                BeforeReplace?.Invoke();
+                File.Move(temporaryFile, FileName, true);
+                return true;
+            }
+            finally
+            {
+                if (File.Exists(temporaryFile))
+                    File.Delete(temporaryFile);
+            }
+        }
+
+        /// <summary>
+        /// Copies a text file to a destination, applying case-insensitive find and replace operations to each line.
+        /// </summary>
+        /// <remarks>Line endings are preserved and the destination is only rewritten when its content changes.</remarks>
+        /// <param name="SourceFile">The path of the source file.</param>
+        /// <param name="DestinationFile">The path of the destination file.</param>
+        /// <param name="Replacements">The find and replace pairs to apply to each line.</param>
+        public static void ReplaceTextFile(string SourceFile, string DestinationFile, params (string Find, string Replace)[] Replacements)
+        {
+            WriteTextIfChanged(DestinationFile, writer =>
+            {
+                foreach (string sourceLine in ReadLinesWithEndings(SourceFile))
+                {
+                    string line = sourceLine;
+                    foreach (var replacement in Replacements)
+                        line = line.Replace(replacement.Find, replacement.Replace, StringComparison.OrdinalIgnoreCase);
+                    writer.Write(line);
+                }
+            }, Comparison: StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Enumerates the lines of a text file, preserving the original line ending characters.
+        /// </summary>
+        /// <param name="FileName">The path of the file to read.</param>
+        /// <returns>An enumerable sequence of lines, each including its trailing line ending if present.</returns>
+        public static IEnumerable<string> ReadLinesWithEndings(string FileName)
+        {
+            using var reader = new StreamReader(FileName, UTF8NoBOM, true);
+            var line = new StringBuilder();
+            int value;
+            while ((value = reader.Read()) != -1)
+            {
+                line.Append((char)value);
+                if (value == '\n')
+                {
+                    yield return line.ToString();
+                    line.Clear();
+                }
+            }
+            if (line.Length != 0)
+                yield return line.ToString();
+        }
+
+        /// <summary>
+        /// A <see cref="TextWriter"/> wrapper that suppresses trailing whitespace by buffering it until non-whitespace content is written.
+        /// </summary>
+        /// <param name="output">The underlying writer that receives the trimmed output.</param>
+        public sealed class TrimmingTextWriter(TextWriter output) : TextWriter
+        {
+            private readonly StringBuilder pending = new();
+
+            public override Encoding Encoding => output.Encoding;
+            public bool HasContent { get; private set; }
+
+            /// <summary>
+            /// Writes a character, deferring whitespace until non-whitespace content follows.
+            /// </summary>
+            /// <param name="value">The character to write.</param>
+            public override void Write(char value)
+            {
+                if (char.IsWhiteSpace(value))
+                    this.pending.Append(value);
+                else
+                {
+                    if (this.pending.Length != 0)
+                    {
+                        output.Write(this.pending.ToString());
+                        this.pending.Clear();
+                    }
+                    output.Write(value);
+                    HasContent = true;
+                }
+            }
+
+            /// <summary>
+            /// Writes a string, deferring trailing whitespace until non-whitespace content follows.
+            /// </summary>
+            /// <param name="value">The string to write.</param>
+            public override void Write(string value)
+            {
+                Write(value.AsSpan());
+            }
+
+            /// <summary>
+            /// Writes a span of characters, deferring trailing whitespace until non-whitespace content follows.
+            /// </summary>
+            /// <param name="value">The characters to write.</param>
+            public override void Write(ReadOnlySpan<char> value)
+            {
+                int lastContent = value.Length - 1;
+                while (lastContent >= 0 && char.IsWhiteSpace(value[lastContent]))
+                    lastContent--;
+
+                if (lastContent >= 0)
+                {
+                    if (this.pending.Length != 0)
+                    {
+                        output.Write(this.pending.ToString());
+                        this.pending.Clear();
+                    }
+                    output.Write(value[..(lastContent + 1)]);
+                    HasContent = true;
+                }
+                if (lastContent + 1 < value.Length)
+                    this.pending.Append(value[(lastContent + 1)..]);
             }
         }
 
@@ -1649,11 +1894,10 @@ namespace CustomBuildTool
             return this.BuildId;
         }
 
-        public string SerializeToJson()
-        {
-            return JsonSerializer.Serialize(this, BuildUpdateRequestContext.Default.BuildUpdateRequest);
-        }
-
+        /// <summary>
+        /// Serializes the update request to a UTF-8 encoded JSON byte array.
+        /// </summary>
+        /// <returns>A byte array containing the JSON representation of the request.</returns>
         public byte[] SerializeToBytes()
         {
             return JsonSerializer.SerializeToUtf8Bytes(this, BuildUpdateRequestContext.Default.BuildUpdateRequest);
@@ -1693,16 +1937,6 @@ namespace CustomBuildTool
         {
             return this.ReleaseTag;
         }
-
-        public string SerializeToJson()
-        {
-            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
-        }
-
-        public byte[] SerializeToBytes()
-        {
-            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
-        }
     }
 
     /// <summary>
@@ -1728,16 +1962,6 @@ namespace CustomBuildTool
         public override string ToString()
         {
             return this.ReleaseId.ToString();
-        }
-
-        public string SerializeToJson()
-        {
-            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
-        }
-
-        public byte[] SerializeToBytes()
-        {
-            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
         }
     }
 
@@ -1778,18 +2002,11 @@ namespace CustomBuildTool
         {
             return this.ReleaseId.ToString();
         }
-
-        public string SerializeToJson()
-        {
-            return JsonSerializer.Serialize(this, GithubResponseContext.Default.GithubReleasesRequest);
-        }
-
-        public byte[] SerializeToBytes()
-        {
-            return JsonSerializer.SerializeToUtf8Bytes(this, GithubResponseContext.Default.GithubReleasesRequest);
-        }
     }
 
+    /// <summary>
+    /// Represents a GitHub release asset as returned by the GitHub API.
+    /// </summary>
     public class GithubAssetsResponse
     {
         [JsonPropertyName("id")]
@@ -1856,6 +2073,9 @@ namespace CustomBuildTool
         }
     }
 
+    /// <summary>
+    /// Represents the author or committer information of a GitHub commit.
+    /// </summary>
     public class GithubUser
     {
         [JsonPropertyName("name")]
@@ -1919,6 +2139,9 @@ namespace CustomBuildTool
         public string Type { get; init; }
     }
 
+    /// <summary>
+    /// Represents the commit details of a GitHub commit.
+    /// </summary>
     public class GithubCommit
     {
         [JsonPropertyName("author")]
@@ -1988,6 +2211,9 @@ namespace CustomBuildTool
     //    public string html_url { get; init; }
     //}
 
+    /// <summary>
+    /// Represents a GitHub commit as returned by the GitHub API.
+    /// </summary>
     public class GithubCommitResponse
     {
         [JsonPropertyName("sha")]
@@ -2024,6 +2250,9 @@ namespace CustomBuildTool
         //public List<GithubFile> files { get; init; }
     }
 
+    /// <summary>
+    /// Represents the line change statistics of a GitHub commit.
+    /// </summary>
     public class GithubCommitStats
     {
         [JsonPropertyName("total")]
@@ -2036,6 +2265,9 @@ namespace CustomBuildTool
         public ulong Deletions { get; init; }
     }
 
+    /// <summary>
+    /// Represents the tree referenced by a GitHub commit.
+    /// </summary>
     public class GithubCommitTree
     {
         [JsonPropertyName("sha")]
@@ -2045,6 +2277,9 @@ namespace CustomBuildTool
         public string Url { get; init; }
     }
 
+    /// <summary>
+    /// Represents the signature verification details of a GitHub commit.
+    /// </summary>
     public class GithubCommitVerification
     {
         [JsonPropertyName("verified")]
@@ -2060,6 +2295,9 @@ namespace CustomBuildTool
         public string Payload { get; init; }
     }
 
+    /// <summary>
+    /// Represents the head commit of a GitHub Actions workflow run.
+    /// </summary>
     public class GithubHeadCommit
     {
         [JsonPropertyName("id")]
@@ -2081,6 +2319,9 @@ namespace CustomBuildTool
         public GithubUser Committer { get; set; }
     }
 
+    /// <summary>
+    /// Represents the head repository of a GitHub Actions workflow run.
+    /// </summary>
     public class GithubHeadRepository
     {
         [JsonPropertyName("id")]
@@ -2222,6 +2463,9 @@ namespace CustomBuildTool
         public string DeploymentsUrl { get; set; }
     }
 
+    /// <summary>
+    /// Represents a workflow referenced by a GitHub Actions workflow run.
+    /// </summary>
     public class GithubReferencedWorkflow
     {
         [JsonPropertyName("path")]
@@ -2234,6 +2478,9 @@ namespace CustomBuildTool
         //public string @ref { get; set; }
     }
 
+    /// <summary>
+    /// Represents a GitHub repository as returned by the GitHub API.
+    /// </summary>
     public class GithubRepository
     {
         [JsonPropertyName("id")]
@@ -2381,6 +2628,9 @@ namespace CustomBuildTool
         public string HooksUrl { get; set; }
     }
 
+    /// <summary>
+    /// Represents a GitHub Actions workflow run as returned by the GitHub API.
+    /// </summary>
     public class GithubActionRun
     {
         [JsonPropertyName("id")]
@@ -2489,6 +2739,9 @@ namespace CustomBuildTool
         public GithubHeadRepository HeadRepository { get; set; }
     }
 
+    /// <summary>
+    /// Represents the file details returned by a SourceForge upload.
+    /// </summary>
     public class SourceForgeResponseData
     {
         [JsonPropertyName("file_type")]
@@ -2561,24 +2814,36 @@ namespace CustomBuildTool
         public string vscan_when { get; init; }
     }
 
+    /// <summary>
+    /// Represents the response from a SourceForge upload request.
+    /// </summary>
     public class SourceForgeUploadResponse
     {
         [JsonPropertyName("result")]
         public SourceForgeResponseData Result { get; init; }
     }
 
+    /// <summary>
+    /// Represents the response from a VirusTotal large file upload URL request.
+    /// </summary>
     public class VirusTotalLargeUploadResponse
     {
         [JsonPropertyName("data")]
         public string data { get; init; }
     }
 
+    /// <summary>
+    /// Represents the links associated with a VirusTotal analysis.
+    /// </summary>
     public class VirusTotalAnalysisLinksResponse
     {
         [JsonPropertyName("self")]
         public string self { get; init; }
     }
 
+    /// <summary>
+    /// Represents the data object of a VirusTotal analysis response.
+    /// </summary>
     public class VirusTotalAnalysisDataResponse
     {
         [JsonPropertyName("type")]
@@ -2591,18 +2856,27 @@ namespace CustomBuildTool
         public VirusTotalAnalysisLinksResponse links { get; init; }
     }
 
+    /// <summary>
+    /// Represents the response from a VirusTotal file analysis request.
+    /// </summary>
     public class VirusTotalAnalysisResponse
     {
         [JsonPropertyName("data")]
         public VirusTotalAnalysisDataResponse data { get; init; }
     }
 
+    /// <summary>
+    /// Represents a SourceLink document mapping local source paths to remote URLs.
+    /// </summary>
     public class SourceLink
     {
         [JsonPropertyName("documents")]
         public Dictionary<string, string> Documents { get; init; }
     }
 
+    /// <summary>
+    /// Represents the response from a NuGet flat container package versions query.
+    /// </summary>
     public class NugetFlatContainerResponse
     {
         [JsonPropertyName("versions")]
@@ -2653,16 +2927,34 @@ namespace CustomBuildTool
         private const long OneGb = OneMb * 1024;
         private const long OneTb = OneGb * 1024;
 
+        /// <summary>
+        /// Formats a byte count as a human-readable size string.
+        /// </summary>
+        /// <param name="value">The byte count.</param>
+        /// <param name="decimalPlaces">The number of decimal places to round to.</param>
+        /// <returns>The formatted size string.</returns>
         public static string ToPrettySize(this int value, int decimalPlaces = 0)
         {
             return ((ulong)value).ToPrettySize(decimalPlaces);
         }
 
+        /// <summary>
+        /// Formats a byte count as a human-readable size string.
+        /// </summary>
+        /// <param name="value">The byte count.</param>
+        /// <param name="decimalPlaces">The number of decimal places to round to.</param>
+        /// <returns>The formatted size string.</returns>
         public static string ToPrettySize(this long value, int decimalPlaces = 0)
         {
             return ((ulong)value).ToPrettySize(decimalPlaces);
         }
 
+        /// <summary>
+        /// Formats a byte count as a human-readable size string.
+        /// </summary>
+        /// <param name="value">The byte count.</param>
+        /// <param name="decimalPlaces">The number of decimal places to round to.</param>
+        /// <returns>The formatted size string.</returns>
         public static string ToPrettySize(this ulong value, int decimalPlaces = 0)
         {
             double asTb = Math.Round((double)value / OneTb, decimalPlaces);
@@ -2691,12 +2983,16 @@ namespace CustomBuildTool
         BuildApi = 64,
         BuildMsix = 128,
         BuildCMake = 256,
+        BuildAnalyze = 512,
 
         Debug = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildApi | BuildVerbose,
         Release = Build32bit | Build64bit | BuildArm64bit | BuildRelease | BuildApi | BuildVerbose,
         All = Build32bit | Build64bit | BuildArm64bit | BuildDebug | BuildRelease | BuildApi | BuildVerbose,
     }
 
+    /// <summary>
+    /// Specifies the compiler toolchain and target architecture used for a build.
+    /// </summary>
     public enum BuildToolchain
     {
         None,
@@ -2708,6 +3004,9 @@ namespace CustomBuildTool
         ClangMsvcArm64 = 6
     }
 
+    /// <summary>
+    /// Specifies the CMake generator used for a build.
+    /// </summary>
     public enum BuildGenerator
     {
         Ninja,
@@ -2724,6 +3023,12 @@ namespace CustomBuildTool
         private readonly StringBuilder _builder;
         public readonly bool Enabled;
 
+        /// <summary>
+        /// Initializes a new instance of the handler that always formats the message.
+        /// </summary>
+        /// <param name="literalLength">The number of literal characters in the interpolated string.</param>
+        /// <param name="formattedCount">The number of formatted holes in the interpolated string.</param>
+        /// <param name="enabled">Receives true, indicating the message is formatted.</param>
         public LogInterpolatedStringHandler(int literalLength, int formattedCount, out bool enabled)
         {
             this.Enabled = true;
@@ -2731,6 +3036,13 @@ namespace CustomBuildTool
             this._builder = new StringBuilder(literalLength);
         }
 
+        /// <summary>
+        /// Initializes a new instance of the handler that formats the message only when verbose output is enabled.
+        /// </summary>
+        /// <param name="literalLength">The number of literal characters in the interpolated string.</param>
+        /// <param name="formattedCount">The number of formatted holes in the interpolated string.</param>
+        /// <param name="Flags">The build flags used to determine whether verbose output is enabled.</param>
+        /// <param name="enabled">Receives true if the message is formatted; otherwise, false.</param>
         public LogInterpolatedStringHandler(int literalLength, int formattedCount, BuildFlags Flags, out bool enabled)
         {
             this.Enabled = (Flags & BuildFlags.BuildVerbose) != 0;
@@ -2738,133 +3050,364 @@ namespace CustomBuildTool
             this._builder = enabled ? new StringBuilder(literalLength) : null;
         }
 
+        /// <summary>
+        /// Appends a literal string to the message.
+        /// </summary>
+        /// <param name="s">The literal string.</param>
         public void AppendLiteral(string s)
         {
             _builder?.Append(s.AsSpan());
         }
 
+        /// <summary>
+        /// Appends a formatted value to the message.
+        /// </summary>
+        /// <typeparam name="T">The type of the value.</typeparam>
+        /// <param name="t">The value to append.</param>
         public void AppendFormatted<T>(T t)
         {
             _builder?.Append(t?.ToString());
         }
 
+        /// <summary>
+        /// Appends a formatted value to the message using the specified format string.
+        /// </summary>
+        /// <typeparam name="T">The type of the value.</typeparam>
+        /// <param name="t">The value to append.</param>
+        /// <param name="format">The format string.</param>
         public void AppendFormatted<T>(T t, string format) where T : IFormattable
         {
             _builder?.Append(t?.ToString(format, null));
         }
 
+        /// <summary>
+        /// Gets the formatted message text.
+        /// </summary>
+        /// <returns>The formatted message, or an empty string if formatting was disabled.</returns>
         internal string GetFormattedText()
         {
             return _builder?.ToString() ?? string.Empty;
         }
     }
 
+    /// <summary>
+    /// Provides ANSI virtual terminal escape sequences for console text colors.
+    /// </summary>
     public static class VT
     {
+        /// <summary>
+        /// Returns the escape sequence, or an empty string when output is redirected
+        /// outside of CI (e.g. MSBuild Exec) so captured logs stay free of escape codes.
+        /// Evaluated per access because <see cref="Build.BuildIntegration"/> is set after startup.
+        /// </summary>
+        private static string C(string Sequence)
+        {
+            return Console.IsOutputRedirected && !Build.BuildIntegration ? string.Empty : Sequence;
+        }
+
         // Reset
-        public const string RESET       = "\x1b[0m";
+        public static string RESET       => C("\x1b[0m");
 
         // Standard foreground colors
-        public const string BLACK       = "\x1b[30m";
-        public const string RED         = "\x1b[31m";
-        public const string GREEN       = "\x1b[32m";
-        public const string YELLOW      = "\x1b[33m";
-        public const string BLUE        = "\x1b[34m";
-        public const string MAGENTA     = "\x1b[35m";
-        public const string CYAN        = "\x1b[36m";
-        public const string WHITE       = "\x1b[37m";
-        public const string GRAY        = "\x1b[90m";
+        public static string BLACK       => C("\x1b[30m");
+        public static string RED         => C("\x1b[31m");
+        public static string GREEN       => C("\x1b[32m");
+        public static string YELLOW      => C("\x1b[33m");
+        public static string BLUE        => C("\x1b[34m");
+        public static string MAGENTA     => C("\x1b[35m");
+        public static string CYAN        => C("\x1b[36m");
+        public static string WHITE       => C("\x1b[37m");
+        public static string GRAY        => C("\x1b[90m");
 
         // Bright foreground colors
-        public const string BRIGHT_RED      = "\x1b[91m";
-        public const string BRIGHT_GREEN    = "\x1b[92m";
-        public const string BRIGHT_YELLOW   = "\x1b[93m";
-        public const string BRIGHT_BLUE     = "\x1b[94m";
-        public const string BRIGHT_MAGENTA  = "\x1b[95m";
-        public const string BRIGHT_CYAN     = "\x1b[96m";
-        public const string BRIGHT_WHITE    = "\x1b[97m";
+        public static string BRIGHT_RED      => C("\x1b[91m");
+        public static string BRIGHT_GREEN    => C("\x1b[92m");
+        public static string BRIGHT_YELLOW   => C("\x1b[93m");
+        public static string BRIGHT_BLUE     => C("\x1b[94m");
+        public static string BRIGHT_MAGENTA  => C("\x1b[95m");
+        public static string BRIGHT_CYAN     => C("\x1b[96m");
+        public static string BRIGHT_WHITE    => C("\x1b[97m");
 
         // Background colors
-        public const string BG_BLACK    = "\x1b[40m";
-        public const string BG_RED      = "\x1b[41m";
-        public const string BG_GREEN    = "\x1b[42m";
-        public const string BG_YELLOW   = "\x1b[43m";
-        public const string BG_BLUE     = "\x1b[44m";
-        public const string BG_MAGENTA  = "\x1b[45m";
-        public const string BG_CYAN     = "\x1b[46m";
-        public const string BG_WHITE    = "\x1b[47m";
+        public static string BG_BLACK    => C("\x1b[40m");
+        public static string BG_RED      => C("\x1b[41m");
+        public static string BG_GREEN    => C("\x1b[42m");
+        public static string BG_YELLOW   => C("\x1b[43m");
+        public static string BG_BLUE     => C("\x1b[44m");
+        public static string BG_MAGENTA  => C("\x1b[45m");
+        public static string BG_CYAN     => C("\x1b[46m");
+        public static string BG_WHITE    => C("\x1b[47m");
 
         // Bright background colors
-        public const string BG_BRIGHT_BLACK     = "\x1b[100m";
-        public const string BG_BRIGHT_RED       = "\x1b[101m";
-        public const string BG_BRIGHT_GREEN     = "\x1b[102m";
-        public const string BG_BRIGHT_YELLOW    = "\x1b[103m";
-        public const string BG_BRIGHT_BLUE      = "\x1b[104m";
-        public const string BG_BRIGHT_MAGENTA   = "\x1b[105m";
-        public const string BG_BRIGHT_CYAN      = "\x1b[106m";
-        public const string BG_BRIGHT_WHITE     = "\x1b[107m";
+        public static string BG_BRIGHT_BLACK     => C("\x1b[100m");
+        public static string BG_BRIGHT_RED       => C("\x1b[101m");
+        public static string BG_BRIGHT_GREEN     => C("\x1b[102m");
+        public static string BG_BRIGHT_YELLOW    => C("\x1b[103m");
+        public static string BG_BRIGHT_BLUE      => C("\x1b[104m");
+        public static string BG_BRIGHT_MAGENTA   => C("\x1b[105m");
+        public static string BG_BRIGHT_CYAN      => C("\x1b[106m");
+        public static string BG_BRIGHT_WHITE     => C("\x1b[107m");
 
         // 256-color foreground
-        public static string FROM256(int n) => $"\x1b[38;5;{n}m";
+        public static string FROM256(int n) => C($"\x1b[38;5;{n}m");
 
         // 256-color background
-        public static string BGFROM256(int n) => $"\x1b[48;5;{n}m";
+        public static string BGFROM256(int n) => C($"\x1b[48;5;{n}m");
 
         // True-color (RGB)
-        public static string RGB(int r, int g, int b) => $"\x1b[38;2;{r};{g};{b}m";
-        public static string BGRGB(int r, int g, int b) => $"\x1b[48;2;{r};{g};{b}m";
+        public static string RGB(int r, int g, int b) => C($"\x1b[38;2;{r};{g};{b}m");
+        public static string BGRGB(int r, int g, int b) => C($"\x1b[48;2;{r};{g};{b}m");
 
         // Extended palette colors (256-color ANSI)
-        public const string ORANGE = "\u001b[38;5;208m";
-        public const string PURPLE = "\u001b[38;5;141m";
-        public const string TEAL = "\u001b[38;5;44m";
-        public const string PINK = "\u001b[38;5;213m";
-        public const string LIME = "\u001b[38;5;118m";
+        public static string ORANGE => C("\u001b[38;5;208m");
+        public static string PURPLE => C("\u001b[38;5;141m");
+        public static string TEAL => C("\u001b[38;5;44m");
+        public static string PINK => C("\u001b[38;5;213m");
+        public static string LIME => C("\u001b[38;5;118m");
     }
 
     /// <summary>
-    /// Represents a buffer of characters that can be securely zeroed out after use.
+    /// Represents an unmanaged, non-paged buffer of characters that is securely zeroed out after use.
     /// </summary>
-    public sealed class SecureBuffer : IDisposable
+    public sealed unsafe class SecureBuffer : IDisposable
     {
-        public char[] Buffer { get; }
-        public int Length { get; }
-        public ReadOnlySpan<char> Span => Buffer.AsSpan(0, Length);
+        private IntPtr _buffer;
+        private nuint _regionSize;
+        private readonly int _length;
 
-        public SecureBuffer(int length)
+        // NTSTATUS Constants
+        private const int STATUS_SUCCESS = 0;
+
+        // Memory Constants
+        private const uint MEM_COMMIT = 0x00001000;
+        private const uint MEM_RESERVE = 0x00002000;
+        private const uint MEM_RELEASE = 0x00008000;
+        private const uint PAGE_READWRITE = 0x04;
+        private const uint LOCK_VM_IN_WSL = 1;
+
+        public int Length => this._length;
+
+        public ReadOnlySpan<char> Span
         {
-            Buffer = new char[length];
-            Length = length;
+            get
+            {
+                ObjectDisposedException.ThrowIf(this._buffer == IntPtr.Zero, this);
+                return new ReadOnlySpan<char>((void*)this._buffer, this._length);
+            }
         }
 
+        internal Span<char> WritableSpan
+        {
+            get
+            {
+                ObjectDisposedException.ThrowIf(this._buffer == IntPtr.Zero, this);
+                return new Span<char>((void*)this._buffer, this._length);
+            }
+        }
+
+        /// <summary>
+        /// Allocates a new secure buffer and attempts to lock it into the working set.
+        /// </summary>
+        /// <param name="length">The number of characters the buffer holds.</param>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="length"/> is negative.</exception>
+        /// <exception cref="Win32Exception">Thrown when the memory allocation fails.</exception>
+        public SecureBuffer(int length)
+        {
+            if (length < 0)
+                throw new ArgumentOutOfRangeException(nameof(length));
+
+            this._length = length;
+            if (length == 0)
+                return;
+
+            nuint size = (nuint)(length * sizeof(char));
+            void* baseAddress = PInvoke.VirtualAlloc(
+                null,
+                size,
+                VIRTUAL_ALLOCATION_TYPE.MEM_COMMIT | VIRTUAL_ALLOCATION_TYPE.MEM_RESERVE,
+                PAGE_PROTECTION_FLAGS.PAGE_READWRITE
+                );
+
+            if (baseAddress == null)
+            {
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            }
+
+            this._buffer = (IntPtr)baseAddress;
+            this._regionSize = size;
+
+            // Attempt to lock memory in the working set to prevent it from being written to the pagefile.
+            // We do not throw on failure, as the process might lack the necessary quotas or privileges, 
+            // making this a best-effort security enhancement.
+            PInvoke.VirtualLock(baseAddress, size); // LOCK_VM_IN_WSL
+        }
+
+        /// <summary>
+        /// Zeroes, unlocks, and releases the buffer memory.
+        /// </summary>
         public void Dispose()
         {
-            CryptographicOperations.ZeroMemory(MemoryMarshal.AsBytes(Buffer.AsSpan()));
+            IntPtr buffer = Interlocked.Exchange(ref this._buffer, IntPtr.Zero);
+
+            if (buffer != IntPtr.Zero)
+            {
+                // CryptographicOperations.ZeroMemory is preserved here instead of P/Invoking RtlSecureZeroMemory
+                // because it uses the exact same JIT/AOT intrinsic protections without the P/Invoke boundary overhead.
+                CryptographicOperations.ZeroMemory(new Span<byte>((void*)buffer, (int)this._regionSize));
+
+                PInvoke.VirtualUnlock((void*)buffer, this._regionSize); // LOCK_VM_IN_WSL
+                PInvoke.VirtualFree((void*)buffer, this._regionSize, VIRTUAL_FREE_TYPE.MEM_RELEASE);
+            }
         }
     }
 
     public static partial class Utils
     {
+        /// <summary>
+        /// Reads the contents of a text file into a <see cref="SecureBuffer"/>, detecting the encoding from the byte order mark.
+        /// </summary>
+        /// <remarks>The intermediate byte array is zeroed before the method returns. Files without a byte order mark are decoded as UTF-8.</remarks>
+        /// <param name="FileName">The path of the file to read.</param>
+        /// <returns>A secure buffer containing the file text, or null if the file does not exist.</returns>
         public static SecureBuffer ReadAllTextSecure(string FileName)
         {
             if (!File.Exists(FileName))
                 return null;
 
-            using (var fs = new FileStream(FileName, FileMode.Open, FileAccess.Read))
-            using (var sr = new StreamReader(fs, Utils.UTF8NoBOM))
+            byte[] fileBytes = File.ReadAllBytes(FileName);
+
+            try
             {
-                int length = (int)fs.Length;
-                var buffer = new SecureBuffer(length);
-                int read = sr.Read(buffer.Buffer, 0, length);
-                if (read < length)
+                Encoding encoding = Utils.UTF8NoBOM;
+                int preambleLength = 0;
+                ReadOnlySpan<byte> bytes = fileBytes;
+                ReadOnlySpan<byte> start1 = [0x00, 0x00, 0xFE, 0xFF];
+                ReadOnlySpan<byte> start2 = [0xFF, 0xFE, 0x00, 0x00];
+                ReadOnlySpan<byte> start3 = [0xEF, 0xBB, 0xBF];
+                ReadOnlySpan<byte> start4 = [0xFE, 0xFF];
+                ReadOnlySpan<byte> start5 = [0xFF, 0xFE];
+
+                if (bytes.StartsWith(start1))
                 {
-                    var newBuffer = new SecureBuffer(read);
-                    buffer.Span.Slice(0, read).CopyTo(newBuffer.Buffer);
-                    buffer.Dispose();
-                    return newBuffer;
+                    encoding = new UTF32Encoding(bigEndian: true, byteOrderMark: true, throwOnInvalidCharacters: true);
+                    preambleLength = 4;
                 }
-                return buffer;
+                else if (bytes.StartsWith(start2))
+                {
+                    encoding = new UTF32Encoding(bigEndian: false, byteOrderMark: true, throwOnInvalidCharacters: true);
+                    preambleLength = 4;
+                }
+                else if (bytes.StartsWith(start3))
+                {
+                    preambleLength = 3;
+                }
+                else if (bytes.StartsWith(start4))
+                {
+                    encoding = new UnicodeEncoding(bigEndian: true, byteOrderMark: true, throwOnInvalidBytes: true);
+                    preambleLength = 2;
+                }
+                else if (bytes.StartsWith(start5))
+                {
+                    encoding = new UnicodeEncoding(bigEndian: false, byteOrderMark: true, throwOnInvalidBytes: true);
+                    preambleLength = 2;
+                }
+
+                bytes = bytes[preambleLength..];
+                var secureBuffer = new SecureBuffer(encoding.GetCharCount(bytes));
+
+                try
+                {
+                    encoding.GetChars(bytes, secureBuffer.WritableSpan);
+                    return secureBuffer;
+                }
+                catch
+                {
+                    secureBuffer.Dispose();
+                    throw;
+                }
             }
+            finally
+            {
+                CryptographicOperations.ZeroMemory(fileBytes);
+            }
+        }
+
+        /// <summary>
+        /// Calculates the maximum number of bytes required to form URL encode the specified number of characters.
+        /// </summary>
+        /// <param name="CharacterCount">The number of characters to encode.</param>
+        /// <returns>The maximum number of encoded bytes.</returns>
+        public static int GetFormUrlEncodedMaxByteCount(int CharacterCount)
+        {
+            return checked(Utils.UTF8NoBOM.GetMaxByteCount(CharacterCount) * 3);
+        }
+
+        /// <summary>
+        /// Form URL encodes the specified characters as UTF-8 into the destination buffer.
+        /// </summary>
+        /// <param name="Value">The characters to encode.</param>
+        /// <param name="Destination">The buffer that receives the encoded bytes.</param>
+        /// <returns>The number of bytes written to <paramref name="Destination"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="Destination"/> is too small.</exception>
+        public static int WriteFormUrlEncoded(ReadOnlySpan<char> Value, Span<byte> Destination)
+        {
+            int byteCount = Utils.UTF8NoBOM.GetByteCount(Value);
+            byte[] utf8Buffer = ArrayPool<byte>.Shared.Rent(byteCount);
+
+            try
+            {
+                int bytesWritten = Utils.UTF8NoBOM.GetBytes(Value, utf8Buffer);
+                ReadOnlySpan<byte> utf8Value = utf8Buffer.AsSpan(0, bytesWritten);
+                int encodedLength = 0;
+
+                foreach (byte value in utf8Value)
+                {
+                    encodedLength = checked(encodedLength + (IsFormUrlUnreserved(value) ? 1 : 3));
+                }
+
+                if (Destination.Length < encodedLength)
+                    throw new ArgumentException("The destination is too small.", nameof(Destination));
+
+                ReadOnlySpan<byte> hexDigits = "0123456789ABCDEF"u8;
+                int destinationIndex = 0;
+
+                foreach (byte value in utf8Value)
+                {
+                    if (IsFormUrlUnreserved(value))
+                    {
+                        Destination[destinationIndex++] = value;
+                    }
+                    else
+                    {
+                        Destination[destinationIndex++] = (byte)'%';
+                        Destination[destinationIndex++] = hexDigits[value >> 4];
+                        Destination[destinationIndex++] = hexDigits[value & 0xf];
+                    }
+                }
+
+                return destinationIndex;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(utf8Buffer, clearArray: true);
+            }
+        }
+
+        /// <summary>
+        /// Determines whether the specified byte is an unreserved character that does not require percent encoding.
+        /// </summary>
+        /// <param name="Value">The byte to test.</param>
+        /// <returns>True if the byte is unreserved; otherwise, false.</returns>
+        private static bool IsFormUrlUnreserved(byte Value)
+        {
+            return
+                Value >= (byte)'A' && Value <= (byte)'Z' ||
+                Value >= (byte)'a' && Value <= (byte)'z' ||
+                Value >= (byte)'0' && Value <= (byte)'9' ||
+                Value == (byte)'-' ||
+                Value == (byte)'_' ||
+                Value == (byte)'.' ||
+                Value == (byte)'~';
         }
     }
 }

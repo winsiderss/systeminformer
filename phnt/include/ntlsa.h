@@ -164,6 +164,14 @@ typedef enum _LSA_LOOKUP_DOMAIN_INFO_CLASS
 
 typedef PVOID LSA_LOOKUP_HANDLE, *PLSA_LOOKUP_HANDLE;
 
+/**
+ * The LsaLookupOpenLocalPolicy routine opens a context handle to the local security lookup policy.
+ *
+ * \param ObjectAttributes Pointer to structure specifying lookup policy attributes.
+ * \param AccessMask Access mask specifying desired access rights.
+ * \param PolicyHandle Receives the opened lookup policy handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -173,6 +181,12 @@ LsaLookupOpenLocalPolicy(
     _Inout_ PLSA_LOOKUP_HANDLE PolicyHandle
     );
 
+/**
+ * The LsaLookupClose routine closes an open LSA lookup policy handle.
+ *
+ * \param ObjectHandle The LSA lookup handle to close.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -180,6 +194,16 @@ LsaLookupClose(
     _In_ LSA_LOOKUP_HANDLE ObjectHandle
     );
 
+/**
+ * The LsaLookupTranslateSids routine translates an array of security identifiers (SIDs) to account names.
+ *
+ * \param PolicyHandle Handle to an LSA lookup policy.
+ * \param Count The number of SIDs in the Sids array.
+ * \param Sids Array of pointers to SIDs to translate.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Names Receives an array of translated names.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -191,6 +215,17 @@ LsaLookupTranslateSids(
     _Out_ PLSA_TRANSLATED_NAME *Names
     );
 
+/**
+ * The LsaLookupTranslateNames routine translates an array of account names to security identifiers (SIDs).
+ *
+ * \param PolicyHandle Handle to an LSA lookup policy.
+ * \param Flags Flags controlling lookup translation.
+ * \param Count The number of names in the Names array.
+ * \param Names Array of account names to translate.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Sids Receives an array of translated SIDs.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -203,6 +238,14 @@ LsaLookupTranslateNames(
     _Out_ PLSA_TRANSLATED_SID2 *Sids
     );
 
+/**
+ * The LsaLookupGetDomainInfo routine retrieves domain information from an LSA lookup policy.
+ *
+ * \param PolicyHandle Handle to an LSA lookup policy.
+ * \param DomainInfoClass Class of domain information to retrieve.
+ * \param DomainInfo Receives a pointer to the requested domain information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -212,6 +255,12 @@ LsaLookupGetDomainInfo(
     _Out_ PVOID *DomainInfo
     );
 
+/**
+ * The LsaLookupFreeMemory routine frees memory allocated by LSA lookup routines.
+ *
+ * \param Buffer Pointer to the buffer to free.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1086,6 +1135,14 @@ typedef enum _POLICY_AUDIT_EVENT_TYPE
 //                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaRegisterLogonProcess routine establishes a connection to the LSA server and verifies the caller is a logon process.
+ *
+ * \param LogonProcessName Pointer to an LSA_STRING identifying the logon process.
+ * \param LsaHandle Receives an LSA logon handle.
+ * \param SecurityMode Receives the operational security mode of the system.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1095,6 +1152,25 @@ LsaRegisterLogonProcess(
     _Out_ PLSA_OPERATIONAL_MODE SecurityMode
     );
 
+/**
+ * The LsaLogonUser routine authenticates a user's security credentials and generates an access token.
+ *
+ * \param LsaHandle The LSA handle returned by LsaRegisterLogonProcess or LsaConnectUntrusted.
+ * \param OriginName Name identifying the source of the logon attempt.
+ * \param LogonType Type of logon requested (interactive, network, service, etc.).
+ * \param AuthenticationPackage Identifier of the authentication package used to authenticate the user.
+ * \param AuthenticationInformation Buffer containing authentication credentials.
+ * \param AuthenticationInformationLength Size of the authentication credentials buffer in bytes.
+ * \param LocalGroups Optional token groups to add to the generated token.
+ * \param SourceContext Token source information identifying the logon process.
+ * \param ProfileBuffer Receives a pointer to logon profile buffer returned by the authentication package.
+ * \param ProfileBufferLength Receives the length of ProfileBuffer in bytes.
+ * \param LogonId Receives the unique logon session identifier.
+ * \param Token Receives the generated access token handle.
+ * \param Quotas Receives the quota limits applied to the user.
+ * \param SubStatus Receives additional status code information upon logon failure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1115,6 +1191,14 @@ LsaLogonUser(
     _Out_ PNTSTATUS SubStatus
     );
 
+/**
+ * The LsaLookupAuthenticationPackage routine retrieves the package identifier of an authentication package.
+ *
+ * \param LsaHandle Handle from LsaRegisterLogonProcess or LsaConnectUntrusted.
+ * \param PackageName Name of the authentication package to query.
+ * \param AuthenticationPackage Receives the authentication package identifier.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1124,6 +1208,12 @@ LsaLookupAuthenticationPackage(
     _Out_ PULONG AuthenticationPackage
     );
 
+/**
+ * The LsaFreeReturnBuffer routine frees memory allocated by LSA authentication functions.
+ *
+ * \param Buffer Pointer to the buffer to free.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1131,6 +1221,18 @@ LsaFreeReturnBuffer(
     _In_ PVOID Buffer
     );
 
+/**
+ * The LsaCallAuthenticationPackage routine sends a message to a specific authentication package.
+ *
+ * \param LsaHandle Handle from LsaRegisterLogonProcess or LsaConnectUntrusted.
+ * \param AuthenticationPackage Identifier of the authentication package to call.
+ * \param ProtocolSubmitBuffer Protocol-specific request buffer.
+ * \param SubmitBufferLength Length of request buffer in bytes.
+ * \param ProtocolReturnBuffer Receives pointer to protocol response buffer.
+ * \param ReturnBufferLength Receives length of response buffer in bytes.
+ * \param ProtocolStatus Receives protocol completion status code.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1144,6 +1246,12 @@ LsaCallAuthenticationPackage(
     _Out_opt_ PNTSTATUS ProtocolStatus
     );
 
+/**
+ * The LsaDeregisterLogonProcess routine closes a logon connection to the LSA server.
+ *
+ * \param LsaHandle Handle from LsaRegisterLogonProcess.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1151,6 +1259,12 @@ LsaDeregisterLogonProcess(
     _In_ HANDLE LsaHandle
     );
 
+/**
+ * The LsaConnectUntrusted routine establishes an untrusted connection to the LSA server.
+ *
+ * \param LsaHandle Receives an LSA logon handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1158,6 +1272,13 @@ LsaConnectUntrusted(
     _Out_ PHANDLE LsaHandle
     );
 
+/**
+ * The LsaInsertProtectedProcessAddress routine registers a protected memory range for an LSA process.
+ *
+ * \param BufferAddress Starting virtual address of the buffer.
+ * \param BufferSize Size of the buffer in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -1166,6 +1287,13 @@ LsaInsertProtectedProcessAddress(
     __in ULONG BufferSize
     );
 
+/**
+ * The LsaRemoveProtectedProcessAddress routine deregisters a protected memory range for an LSA process.
+ *
+ * \param BufferAddress Starting virtual address of the buffer.
+ * \param BufferSize Size of the buffer in bytes.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2578,6 +2706,12 @@ typedef struct _LSA_ENUMERATION_INFORMATION
 //                                                                        //
 ////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaFreeMemory routine frees memory allocated by LSA policy API functions.
+ *
+ * \param Buffer Optional pointer to the buffer to free.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2585,6 +2719,12 @@ LsaFreeMemory(
     _In_opt_ PVOID Buffer
     );
 
+/**
+ * The LsaClose routine closes an open LSA policy, account, or trusted domain handle.
+ *
+ * \param ObjectHandle The LSA object handle to close.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2592,6 +2732,12 @@ LsaClose(
     _In_ LSA_HANDLE ObjectHandle
     );
 
+/**
+ * The LsaDelete routine deletes an open LSA object from the policy database.
+ *
+ * \param ObjectHandle The handle to the LSA object to delete.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2599,6 +2745,14 @@ LsaDelete(
     _In_ LSA_HANDLE ObjectHandle
     );
 
+/**
+ * The LsaQuerySecurityObject routine retrieves the security descriptor of an LSA object.
+ *
+ * \param ObjectHandle The handle to the LSA object to query.
+ * \param SecurityInformation The security descriptor information to retrieve.
+ * \param SecurityDescriptor Receives a pointer to the allocated security descriptor.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2608,6 +2762,14 @@ LsaQuerySecurityObject(
     _Out_ PSECURITY_DESCRIPTOR* SecurityDescriptor
     );
 
+/**
+ * The LsaSetSecurityObject routine sets the security descriptor of an LSA object.
+ *
+ * \param ObjectHandle The handle to the LSA object.
+ * \param SecurityInformation The security descriptor components being set.
+ * \param SecurityDescriptor The security descriptor to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2617,6 +2779,16 @@ LsaSetSecurityObject(
     _In_ PSECURITY_DESCRIPTOR SecurityDescriptor
     );
 
+/**
+ * The LsaChangePassword routine changes the password for a specified domain account.
+ *
+ * \param ServerName Optional name of the remote server.
+ * \param DomainName Name of the domain containing the account.
+ * \param AccountName Name of the account.
+ * \param OldPassword Current password.
+ * \param NewPassword New password.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2674,6 +2846,13 @@ typedef struct _SECURITY_LOGON_SESSION_DATA
     LARGE_INTEGER PasswordMustChange;
 } SECURITY_LOGON_SESSION_DATA, *PSECURITY_LOGON_SESSION_DATA;
 
+/**
+ * The LsaEnumerateLogonSessions routine enumerates existing logon session identifiers (LUIDs).
+ *
+ * \param LogonSessionCount Receives the number of returned logon sessions.
+ * \param LogonSessionList Receives an array of logon session LUIDs.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2682,6 +2861,13 @@ LsaEnumerateLogonSessions(
     _Out_ PLUID* LogonSessionList
     );
 
+/**
+ * The LsaGetLogonSessionData routine retrieves session information for a specific logon session.
+ *
+ * \param LogonId Pointer to the logon session LUID.
+ * \param ppLogonSessionData Receives a pointer to the session information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2696,6 +2882,15 @@ LsaGetLogonSessionData(
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaOpenPolicy routine opens a handle to the Policy object on a local or remote system.
+ *
+ * \param SystemName Optional name of the target system.
+ * \param ObjectAttributes Object attributes for the policy connection.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param PolicyHandle Receives the opened Policy handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2706,6 +2901,15 @@ LsaOpenPolicy(
     _Out_ PLSA_HANDLE PolicyHandle
     );
 
+/**
+ * The LsaOpenPolicySce routine opens a handle to the Policy object for security configuration engine use.
+ *
+ * \param SystemName Optional name of the target system.
+ * \param ObjectAttributes Object attributes for the policy connection.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param PolicyHandle Receives the opened Policy handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2802,6 +3006,14 @@ typedef struct _CENTRAL_ACCESS_POLICY
 
 typedef const CENTRAL_ACCESS_POLICY* PCCENTRAL_ACCESS_POLICY;
 
+/**
+ * The LsaSetCAPs routine applies Central Access Policies (CAPs) specified by distinguished names.
+ *
+ * \param CAPDNs Array of distinguished names of CAPs to apply.
+ * \param CAPDNCount The number of elements in CAPDNs.
+ * \param Flags Flags controlling CAP application.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2811,6 +3023,14 @@ LsaSetCAPs(
     _In_ ULONG Flags
     );
 
+/**
+ * The LsaGetAppliedCAPIDs routine retrieves the identifiers of applied Central Access Policies (CAPs).
+ *
+ * \param SystemName Optional target system name.
+ * \param CAPIDs Receives a pointer to an array of CAP ID SIDs.
+ * \param CAPIDCount Receives the number of CAP IDs returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2820,6 +3040,15 @@ LsaGetAppliedCAPIDs(
     _Out_ PULONG CAPIDCount
     );
 
+/**
+ * The LsaQueryCAPs routine queries Central Access Policy definitions for specified CAP IDs.
+ *
+ * \param CAPIDs Array of CAP ID SIDs to query.
+ * \param CAPIDCount The number of CAP IDs in the array.
+ * \param CAPs Receives a pointer to an array of CENTRAL_ACCESS_POLICY structures.
+ * \param CAPCount Receives the count of returned policies.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2830,6 +3059,14 @@ LsaQueryCAPs(
     _Out_ PULONG CAPCount
     );
 
+/**
+ * The LsaQueryInformationPolicy routine queries information from the Policy object.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param InformationClass The class of policy information to retrieve.
+ * \param Buffer Receives a pointer to the allocated policy information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2839,6 +3076,14 @@ LsaQueryInformationPolicy(
     _Out_ PVOID* Buffer
     );
 
+/**
+ * The LsaSetInformationPolicy routine sets information on the Policy object.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param InformationClass The class of policy information to set.
+ * \param Buffer Pointer to the policy information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2848,6 +3093,14 @@ LsaSetInformationPolicy(
     _In_ PVOID Buffer
     );
 
+/**
+ * The LsaQueryDomainInformationPolicy routine queries domain policy information from the Policy object.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param InformationClass The class of domain information to query.
+ * \param Buffer Receives a pointer to the domain policy information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2857,6 +3110,14 @@ LsaQueryDomainInformationPolicy(
     _Out_ PVOID* Buffer
     );
 
+/**
+ * The LsaSetDomainInformationPolicy routine sets domain policy information on the Policy object.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param InformationClass The class of domain information to set.
+ * \param Buffer Optional pointer to the domain policy information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2866,6 +3127,13 @@ LsaSetDomainInformationPolicy(
     _In_opt_ PVOID Buffer
     );
 
+/**
+ * The LsaRegisterPolicyChangeNotification routine registers an event to receive notifications when policy information changes.
+ *
+ * \param InformationClass The class of policy information to monitor.
+ * \param NotificationEventHandle Handle to an event signaled upon policy change.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2874,6 +3142,13 @@ LsaRegisterPolicyChangeNotification(
     _In_ HANDLE  NotificationEventHandle
     );
 
+/**
+ * The LsaUnregisterPolicyChangeNotification routine unregisters an event previously registered for policy change notifications.
+ *
+ * \param InformationClass The class of policy information monitored.
+ * \param NotificationEventHandle Handle to the event previously registered.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2882,6 +3157,12 @@ LsaUnregisterPolicyChangeNotification(
     _In_ HANDLE  NotificationEventHandle
     );
 
+/**
+ * The LsaClearAuditLog routine clears the security audit log.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2889,6 +3170,15 @@ LsaClearAuditLog(
     _In_ LSA_HANDLE PolicyHandle
     );
 
+/**
+ * The LsaCreateAccount routine creates an Account object in the LSA database for a specified SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param AccountSid Pointer to the SID of the account to create.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param AccountHandle Receives the opened Account handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2899,6 +3189,16 @@ LsaCreateAccount(
     _Out_ PLSA_HANDLE AccountHandle
     );
 
+/**
+ * The LsaEnumerateAccounts routine enumerates the accounts in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param EnumerationContext Pointer to enumeration handle tracking progress across calls.
+ * \param Buffer Receives an allocated array of LSA_ENUMERATION_INFORMATION structures.
+ * \param PreferedMaximumLength Preferred maximum size of returned data in bytes.
+ * \param CountReturned Receives the count of accounts returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2910,6 +3210,15 @@ LsaEnumerateAccounts(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The LsaCreateTrustedDomain routine creates a TrustedDomain object in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainInformation Pointer to structure identifying the domain to trust.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param TrustedDomainHandle Receives the opened TrustedDomain handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2920,6 +3229,16 @@ LsaCreateTrustedDomain(
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
+/**
+ * The LsaEnumerateTrustedDomains routine enumerates the trusted domains in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param EnumerationContext Pointer to enumeration handle tracking progress across calls.
+ * \param Buffer Receives an allocated array of LSA_TRUST_INFORMATION structures.
+ * \param PreferedMaximumLength Preferred maximum size of returned data in bytes.
+ * \param CountReturned Receives the count of trusted domains returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2931,6 +3250,16 @@ LsaEnumerateTrustedDomains(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The LsaEnumeratePrivileges routine enumerates privileges defined on the system.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param EnumerationContext Pointer to enumeration handle tracking progress across calls.
+ * \param Buffer Receives an allocated array of POLICY_PRIVILEGE_DEFINITION structures.
+ * \param PreferedMaximumLength Preferred maximum size of returned data in bytes.
+ * \param CountReturned Receives the count of privileges returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2942,6 +3271,16 @@ LsaEnumeratePrivileges(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The LsaLookupNames routine translates an array of user, group, or local group names to SIDs.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Count The number of names to translate.
+ * \param Names Array of account names.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Sids Receives an array of translated SIDs.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2953,6 +3292,17 @@ LsaLookupNames(
     _Out_ PLSA_TRANSLATED_SID* Sids
     );
 
+/**
+ * The LsaLookupNames2 routine translates an array of names to SIDs with extended options.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Flags Reserved; must be zero.
+ * \param Count The number of names to translate.
+ * \param Names Array of account names.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Sids Receives an array of translated SIDs.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2965,6 +3315,16 @@ LsaLookupNames2(
     _Out_ PLSA_TRANSLATED_SID2* Sids
     );
 
+/**
+ * The LsaLookupSids routine translates an array of security identifiers (SIDs) to account names.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Count The number of SIDs to translate.
+ * \param Sids Array of pointers to SIDs.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Names Receives an array of translated names.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2976,6 +3336,17 @@ LsaLookupSids(
     _Out_ PLSA_TRANSLATED_NAME* Names
     );
 
+/**
+ * The LsaLookupSids2 routine translates an array of SIDs to names with lookup options.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param LookupOptions Lookup options controlling search scope.
+ * \param Count The number of SIDs to translate.
+ * \param Sids Array of pointers to SIDs.
+ * \param ReferencedDomains Receives a pointer to referenced domain list.
+ * \param Names Receives an array of translated names.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -2988,6 +3359,15 @@ LsaLookupSids2(
     _Out_ PLSA_TRANSLATED_NAME* Names
     );
 
+/**
+ * The LsaCreateSecret routine creates a Secret object in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param SecretName Name of the secret to create.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param SecretHandle Receives the opened Secret handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3001,6 +3381,12 @@ LsaCreateSecret(
 //
 // Note: This is not implemented for arm64-EC lsasrv.dll
 //
+/**
+ * The LsaIsCredentialGuardRunning routine determines whether Credential Guard is currently running.
+ *
+ * \param IsCredentialGuardRunning Receives TRUE if Credential Guard is running; otherwise, FALSE.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3014,6 +3400,15 @@ LsaIsCredentialGuardRunning(
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaOpenAccount routine opens an existing Account object in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param AccountSid Pointer to the SID of the account to open.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param AccountHandle Receives the opened Account handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3024,6 +3419,13 @@ LsaOpenAccount(
     _Out_ PLSA_HANDLE AccountHandle
     );
 
+/**
+ * The LsaEnumeratePrivilegesOfAccount routine enumerates privileges assigned to an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param Privileges Receives a pointer to an allocated PRIVILEGE_SET structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3032,6 +3434,13 @@ LsaEnumeratePrivilegesOfAccount(
     _Out_ PPRIVILEGE_SET* Privileges
     );
 
+/**
+ * The LsaAddPrivilegesToAccount routine adds privileges to an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param Privileges Pointer to a PRIVILEGE_SET structure specifying privileges to add.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3040,6 +3449,14 @@ LsaAddPrivilegesToAccount(
     _In_ PPRIVILEGE_SET Privileges
     );
 
+/**
+ * The LsaRemovePrivilegesFromAccount routine removes privileges from an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param AllPrivileges If TRUE, removes all privileges; otherwise, removes specified privileges.
+ * \param Privileges Optional pointer to PRIVILEGE_SET specifying privileges to remove.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3049,6 +3466,13 @@ LsaRemovePrivilegesFromAccount(
     _In_opt_ PPRIVILEGE_SET Privileges
     );
 
+/**
+ * The LsaGetQuotasForAccount routine retrieves quota limits configured for an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param QuotaLimits Receives the quota limits applied to the account.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3057,6 +3481,13 @@ LsaGetQuotasForAccount(
     _Out_ PQUOTA_LIMITS QuotaLimits
     );
 
+/**
+ * The LsaSetQuotasForAccount routine sets quota limits on an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param QuotaLimits Pointer to the quota limits to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3065,6 +3496,13 @@ LsaSetQuotasForAccount(
     _In_ PQUOTA_LIMITS QuotaLimits
     );
 
+/**
+ * The LsaGetSystemAccessAccount routine retrieves the system access flags assigned to an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param SystemAccess Receives the system access flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3073,6 +3511,13 @@ LsaGetSystemAccessAccount(
     _Out_ PULONG SystemAccess
     );
 
+/**
+ * The LsaSetSystemAccessAccount routine sets system access flags on an Account object.
+ *
+ * \param AccountHandle Handle to an open Account object.
+ * \param SystemAccess System access flags to set.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3095,6 +3540,12 @@ typedef struct _LSA_LOCAL_ACCESSRIGHT_ASSIGNMENTS
     PLSA_LOCAL_ACCESSRIGHT_ASSIGNMENT pLocalAccessRightAssignments;
 } LSA_LOCAL_ACCESSRIGHT_ASSIGNMENTS, *PLSA_LOCAL_ACCESSRIGHT_ASSIGNMENTS;
 
+/**
+ * The LsaSetLocalSystemAccess routine sets local system access right assignments.
+ *
+ * \param pLocalAccessRightAssignments Pointer to local access right assignments structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3102,6 +3553,13 @@ LsaSetLocalSystemAccess(
     _In_ PLSA_LOCAL_ACCESSRIGHT_ASSIGNMENTS pLocalAccessRightAssignments
     );
 
+/**
+ * The LsaQueryLocalSystemAccess routine queries local system access rights for an account SID.
+ *
+ * \param AccountSid Pointer to the account SID to query.
+ * \param SystemAccessLocal Receives the local system access flags.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3110,6 +3568,12 @@ LsaQueryLocalSystemAccess(
     _Out_ PULONG SystemAccessLocal
     );
 
+/**
+ * The LsaQueryLocalSystemAccessAll routine queries all local system access right assignments.
+ *
+ * \param ppLocalAccessRightAssignments Receives a pointer to all local access right assignments.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3117,6 +3581,11 @@ LsaQueryLocalSystemAccessAll(
     _Outptr_result_nullonfailure_ PLSA_LOCAL_ACCESSRIGHT_ASSIGNMENTS* ppLocalAccessRightAssignments
     );
 
+/**
+ * The LsaPurgeLocalSystemAccessTable routine purges the local system access table.
+ *
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3130,6 +3599,15 @@ LsaPurgeLocalSystemAccessTable(
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaOpenTrustedDomain routine opens an existing TrustedDomain object identified by SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainSid Pointer to the SID of the trusted domain.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param TrustedDomainHandle Receives the opened TrustedDomain handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3140,6 +3618,14 @@ LsaOpenTrustedDomain(
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
+/**
+ * The LsaQueryInfoTrustedDomain routine queries information from an open TrustedDomain object.
+ *
+ * \param TrustedDomainHandle Handle to an open TrustedDomain object.
+ * \param InformationClass Class of trusted domain information to query.
+ * \param Buffer Receives a pointer to the allocated information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3149,6 +3635,14 @@ LsaQueryInfoTrustedDomain(
     _Out_ PVOID* Buffer
     );
 
+/**
+ * The LsaSetInformationTrustedDomain routine sets information on an open TrustedDomain object.
+ *
+ * \param TrustedDomainHandle Handle to an open TrustedDomain object.
+ * \param InformationClass Class of trusted domain information to set.
+ * \param Buffer Pointer to the information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3164,6 +3658,15 @@ LsaSetInformationTrustedDomain(
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaOpenSecret routine opens an existing Secret object in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param SecretName Name of the secret to open.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param SecretHandle Receives the opened Secret handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3174,6 +3677,14 @@ LsaOpenSecret(
     _Out_ PLSA_HANDLE SecretHandle
     );
 
+/**
+ * The LsaSetSecret routine sets the current and previous values of a Secret object.
+ *
+ * \param SecretHandle Handle to an open Secret object.
+ * \param CurrentValue Optional pointer to the new secret value.
+ * \param OldValue Optional pointer to the old secret value.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3183,6 +3694,16 @@ LsaSetSecret(
     _In_opt_ PLSA_UNICODE_STRING OldValue
     );
 
+/**
+ * The LsaQuerySecret routine retrieves the current and previous values of a Secret object.
+ *
+ * \param SecretHandle Handle to an open Secret object.
+ * \param CurrentValue Receives a pointer to the current secret value.
+ * \param CurrentValueSetTime Receives the time the current value was set.
+ * \param OldValue Receives a pointer to the old secret value.
+ * \param OldValueSetTime Receives the time the old value was set.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3200,6 +3721,14 @@ LsaQuerySecret(
 //                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaLookupPrivilegeValue routine retrieves the locally unique identifier (LUID) for a specified privilege name.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Name Name of the privilege.
+ * \param Value Receives the LUID of the privilege.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3209,6 +3738,14 @@ LsaLookupPrivilegeValue(
     _Out_ PLUID Value
     );
 
+/**
+ * The LsaLookupPrivilegeName routine retrieves the name corresponding to a privilege LUID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Value Pointer to the privilege LUID.
+ * \param Name Receives a pointer to the privilege name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3218,6 +3755,15 @@ LsaLookupPrivilegeName(
     _Out_ PLSA_UNICODE_STRING* Name
     );
 
+/**
+ * The LsaLookupPrivilegeDisplayName routine retrieves the localized display name for a privilege.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Name Name of the privilege.
+ * \param DisplayName Receives a pointer to the localized display name string.
+ * \param LanguageReturned Receives the language identifier of the display name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3234,6 +3780,13 @@ LsaLookupPrivilegeDisplayName(
 //                                                                     //
 /////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaGetUserName routine retrieves the account name and domain of the current user.
+ *
+ * \param UserName Receives the user account name.
+ * \param DomainName Optional pointer receiving the domain name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3242,6 +3795,14 @@ LsaGetUserName(
     _Outptr_opt_ PLSA_UNICODE_STRING* DomainName
     );
 
+/**
+ * The LsaGetRemoteUserName routine retrieves the account name and domain of the user on a remote system.
+ *
+ * \param SystemName Optional name of the remote system.
+ * \param UserName Receives the user account name.
+ * \param DomainName Optional pointer receiving the domain name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3272,6 +3833,15 @@ LsaGetRemoteUserName(
 // This new API returns all the accounts with a certain privilege
 //
 
+/**
+ * The LsaEnumerateAccountsWithUserRight routine enumerates all accounts that hold a specified user right or privilege.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param UserRight Optional pointer to the name of the user right or privilege.
+ * \param Buffer Receives an allocated array of LSA_ENUMERATION_INFORMATION structures.
+ * \param CountReturned Receives the count of accounts returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3287,6 +3857,15 @@ LsaEnumerateAccountsWithUserRight(
 // to open the account first and passing in an account handle
 //
 
+/**
+ * The LsaEnumerateAccountRights routine enumerates the user rights and privileges assigned to a specified account SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param AccountSid Pointer to the account SID.
+ * \param UserRights Receives an allocated array of user right strings.
+ * \param CountOfRights Receives the count of user rights returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3297,6 +3876,15 @@ LsaEnumerateAccountRights(
     _Out_ PULONG CountOfRights
     );
 
+/**
+ * The LsaAddAccountRights routine adds user rights or privileges to a specified account SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param AccountSid Pointer to the account SID.
+ * \param UserRights Array of user right strings to add.
+ * \param CountOfRights Number of user rights in the array.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3307,6 +3895,16 @@ LsaAddAccountRights(
     _In_ ULONG CountOfRights
     );
 
+/**
+ * The LsaRemoveAccountRights routine removes user rights or privileges from a specified account SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param AccountSid Pointer to the account SID.
+ * \param AllRights If TRUE, removes all assigned rights; otherwise, removes specified rights.
+ * \param UserRights Optional array of user right strings to remove.
+ * \param CountOfRights Number of user rights in the array.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3324,6 +3922,15 @@ LsaRemoveAccountRights(
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * The LsaOpenTrustedDomainByName routine opens an existing TrustedDomain object identified by name.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param TrustedDomainHandle Receives the opened TrustedDomain handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3334,6 +3941,15 @@ LsaOpenTrustedDomainByName(
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
+/**
+ * The LsaQueryTrustedDomainInfo routine queries information about a trusted domain by SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainSid Pointer to the SID of the trusted domain.
+ * \param InformationClass Class of information to query.
+ * \param Buffer Receives a pointer to the allocated information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3344,6 +3960,15 @@ LsaQueryTrustedDomainInfo(
     _Out_ PVOID* Buffer
     );
 
+/**
+ * The LsaSetTrustedDomainInformation routine sets information on a trusted domain by SID.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainSid Pointer to the SID of the trusted domain.
+ * \param InformationClass Class of information to set.
+ * \param Buffer Pointer to the information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3354,6 +3979,13 @@ LsaSetTrustedDomainInformation(
     _In_ PVOID Buffer
     );
 
+/**
+ * The LsaDeleteTrustedDomain routine removes a trusted domain from the LSA policy database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainSid Pointer to the SID of the trusted domain to remove.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3362,6 +3994,15 @@ LsaDeleteTrustedDomain(
     _In_ PSID TrustedDomainSid
     );
 
+/**
+ * The LsaQueryTrustedDomainInfoByName routine queries information about a trusted domain by name.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param InformationClass Class of information to query.
+ * \param Buffer Receives a pointer to the allocated information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3372,6 +4013,15 @@ LsaQueryTrustedDomainInfoByName(
     _Out_ PVOID* Buffer
     );
 
+/**
+ * The LsaSetTrustedDomainInfoByName routine sets information on a trusted domain by name.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param InformationClass Class of information to set.
+ * \param Buffer Pointer to the information structure to apply.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3382,6 +4032,16 @@ LsaSetTrustedDomainInfoByName(
     _In_ PVOID Buffer
     );
 
+/**
+ * The LsaEnumerateTrustedDomainsEx routine enumerates trusted domains with extended information.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param EnumerationContext Pointer to enumeration handle tracking progress across calls.
+ * \param Buffer Receives an allocated array of TRUSTED_DOMAIN_INFORMATION_EX structures.
+ * \param PreferedMaximumLength Preferred maximum size of returned data in bytes.
+ * \param CountReturned Receives the count of trusted domains returned.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3393,6 +4053,16 @@ LsaEnumerateTrustedDomainsEx(
     _Out_ PULONG CountReturned
     );
 
+/**
+ * The LsaCreateTrustedDomainEx routine creates a TrustedDomain object with extended information.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainInformation Pointer to extended trusted domain information.
+ * \param AuthenticationInformation Pointer to authentication credentials for the trust.
+ * \param DesiredAccess Access mask specifying desired access rights.
+ * \param TrustedDomainHandle Receives the opened TrustedDomain handle.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3404,6 +4074,14 @@ LsaCreateTrustedDomainEx(
     _Out_ PLSA_HANDLE TrustedDomainHandle
     );
 
+/**
+ * The LsaQueryForestTrustInformation routine queries forest trust information for a trusted domain.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param ForestTrustInfo Receives a pointer to the forest trust information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3413,6 +4091,16 @@ LsaQueryForestTrustInformation(
     _Out_ PLSA_FOREST_TRUST_INFORMATION* ForestTrustInfo
     );
 
+/**
+ * The LsaSetForestTrustInformation routine sets forest trust information for a trusted domain.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param ForestTrustInfo Forest trust information to set.
+ * \param CheckOnly If TRUE, validates changes without applying them.
+ * \param CollisionInfo Receives collision information if conflicts occur.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3424,6 +4112,15 @@ LsaSetForestTrustInformation(
     _Out_ PLSA_FOREST_TRUST_COLLISION_INFORMATION* CollisionInfo
     );
 
+/**
+ * The LsaForestTrustFindMatch routine finds a matching forest trust collision or record.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param Type Type of match to perform.
+ * \param Name Name to match.
+ * \param Match Receives the matching forest trust record name.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3439,6 +4136,14 @@ LsaForestTrustFindMatch(
 // the SSI_SECRET_NAME secret)
 //
 
+/**
+ * The LsaStorePrivateData routine stores private data under a specified key name in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param KeyName Name of the key under which to store private data.
+ * \param PrivateData Optional pointer to the private data string to store.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3448,6 +4153,14 @@ LsaStorePrivateData(
     _In_opt_ PLSA_UNICODE_STRING PrivateData
     );
 
+/**
+ * The LsaRetrievePrivateData routine retrieves private data stored under a key name in the LSA database.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param KeyName Name of the key under which private data is stored.
+ * \param PrivateData Receives a pointer to the retrieved private data string.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3457,6 +4170,12 @@ LsaRetrievePrivateData(
     _Out_ PLSA_UNICODE_STRING* PrivateData
     );
 
+/**
+ * The LsaNtStatusToWinError routine converts an NTSTATUS status code to a Win32 error code.
+ *
+ * \param Status The NTSTATUS code to convert.
+ * \return The corresponding Win32 error code.
+ */
 NTSYSAPI
 ULONG
 NTAPI
@@ -3464,6 +4183,15 @@ LsaNtStatusToWinError(
     _In_ NTSTATUS Status
     );
 
+/**
+ * The LsaQueryForestTrustInformation2 routine queries forest trust information up to a specified record type.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param HighestRecordType Highest forest trust record type to query.
+ * \param ForestTrustInfo Receives a pointer to the forest trust information structure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3474,6 +4202,17 @@ LsaQueryForestTrustInformation2(
     _Out_ PLSA_FOREST_TRUST_INFORMATION2* ForestTrustInfo
     );
 
+/**
+ * The LsaSetForestTrustInformation2 routine sets forest trust information up to a specified record type.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param TrustedDomainName Name of the trusted domain.
+ * \param HighestRecordType Highest forest trust record type to set.
+ * \param ForestTrustInfo Forest trust information to set.
+ * \param CheckOnly If TRUE, validates changes without applying them.
+ * \param CollisionInfo Receives collision information if conflicts occur.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3486,6 +4225,15 @@ LsaSetForestTrustInformation2(
     _Out_ PLSA_FOREST_TRUST_COLLISION_INFORMATION* CollisionInfo
     );
 
+/**
+ * The LsaInvokeTrustScanner routine initiates a trust scanner operation for a domain.
+ *
+ * \param PolicyHandle Handle to an open Policy object.
+ * \param DomainName Optional name of the domain to scan.
+ * \param Flags Flags controlling scanner operation.
+ * \param CompletionEvent Optional name of event signaled on completion.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3572,6 +4320,12 @@ typedef struct _NEGOTIATE_CALLER_NAME_RESPONSE_WOW
     ULONG CallerName;
 } NEGOTIATE_CALLER_NAME_RESPONSE_WOW, *PNEGOTIATE_CALLER_NAME_RESPONSE_WOW;
 
+/**
+ * The LsaSetPolicyReplicationHandle routine sets policy replication handle attributes.
+ *
+ * \param PolicyHandle Pointer to the Policy handle to configure.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3604,6 +4358,12 @@ typedef struct _LSA_REGISTRATION_INFO
     PLSA_USER_REGISTRATION_INFO* UserRegistrationInfo;
 } LSA_REGISTRATION_INFO, *PLSA_REGISTRATION_INFO;
 
+/**
+ * The LsaGetDeviceRegistrationInfo routine retrieves device registration user records.
+ *
+ * \param RegistrationInfo Receives a pointer to device registration information.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI
@@ -3632,6 +4392,12 @@ typedef enum _LSA_CREDENTIAL_KEY_SOURCE_TYPE
 // check if current user is protected user
 //
 
+/**
+ * The SeciIsProtectedUser routine determines whether the current caller is a protected user.
+ *
+ * \param ProtectedUser Receives TRUE if the user is protected; otherwise, FALSE.
+ * \return NTSTATUS Successful or errant status.
+ */
 NTSYSAPI
 NTSTATUS
 NTAPI

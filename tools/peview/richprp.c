@@ -15,9 +15,38 @@ typedef struct _PVP_PE_PRODUCTION_ID_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HWND HashListViewHandle;
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
 } PVP_PE_PRODUCTION_ID_CONTEXT, *PPVP_PE_PRODUCTION_ID_CONTEXT;
+
+typedef enum _PVP_PRODID_HASH_INDEX
+{
+    PVP_PRODID_HASH_INDEX_XORKEY,
+    PVP_PRODID_HASH_INDEX_CHECKSUMVALID,
+    PVP_PRODID_HASH_INDEX_DANSSIGNATURE,
+    PVP_PRODID_HASH_INDEX_RICHMD5,
+    PVP_PRODID_HASH_INDEX_RICHRAWMD5,
+    PVP_PRODID_HASH_INDEX_RICHSHA1,
+    PVP_PRODID_HASH_INDEX_RICHRAWSHA1,
+    PVP_PRODID_HASH_INDEX_PRODID,
+    PVP_PRODID_HASH_INDEX_PRODIDCOUNT,
+    PVP_PRODID_HASH_INDEX_PRODIDVERSION,
+    PVP_PRODID_HASH_INDEX_PRODIDVERSIONCOUNT,
+    PVP_PRODID_HASH_INDEX_SORTEDPRODID,
+    PVP_PRODID_HASH_INDEX_SORTEDPRODIDCOUNT,
+    PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSION,
+    PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSIONCOUNT,
+    PVP_PRODID_HASH_INDEX_MAXIMUM
+} PVP_PRODID_HASH_INDEX;
+
+typedef enum _PVP_PRODID_HASH_FLAGS
+{
+    PVP_PRODID_HASH_PRODIDONLY = 0x0,
+    PVP_PRODID_HASH_VERSION = 0x1,  // include ProductBuild
+    PVP_PRODID_HASH_COUNT = 0x2,    // include ProductCount
+    PVP_PRODID_HASH_SORTED = 0x4,   // sort entries ascending by ProductId
+} PVP_PRODID_HASH_FLAGS;
 
 PWSTR PvpGetProductIdName(
     _In_ ULONG ProductId
@@ -329,9 +358,287 @@ PWSTR PvpGetProductIdComponent(
     return PhaFormatString(L"Report error (%lu)", ProductId)->Buffer;
 }
 
+/**
+ * Compares two ProdID entries by their product identifier.
+ */
+static int __cdecl PvpPeProdIdEntryCompare(
+    _In_ const void* Left,
+    _In_ const void* Right
+    )
+{
+    CONST PH_MAPPED_IMAGE_PRODID_ENTRY* left = Left;
+    CONST PH_MAPPED_IMAGE_PRODID_ENTRY* right = Right;
+
+    if (left->ProductId != right->ProductId)
+        return left->ProductId < right->ProductId ? -1 : 1;
+    if (left->ProductBuild != right->ProductBuild)
+        return left->ProductBuild < right->ProductBuild ? -1 : 1;
+    if (left->ProductCount != right->ProductCount)
+        return left->ProductCount < right->ProductCount ? -1 : 1;
+
+    return 0;
+}
+
+/**
+ * Computes the SHA-256 hash of a canonical rendering of the ProdID entry list.
+ *
+ * The canonical form renders each entry as its decimal fields joined by '.' in the
+ * order id[.version][.count], with entries joined by ',' and no trailing separator.
+ * The resulting ASCII text is hashed. Entries with a zero count are skipped, matching
+ * the entries shown in the listview.
+ *
+ * \param ProdIdHeader The parsed ProdID header.
+ * \param Flags Controls which fields are included and whether entries are sorted.
+ * \param HashString A variable which receives the hexadecimal hash string.
+ * \return An NTSTATUS value indicating success or failure.
+ */
+NTSTATUS PvpPeGetProdIdHash(
+    _In_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader,
+    _In_ ULONG Flags,
+    _Out_ PPH_STRING* HashString
+    )
+{
+    NTSTATUS status;
+    PH_HASH_CONTEXT hashContext;
+    PPH_MAPPED_IMAGE_PRODID_ENTRY entries;
+    PH_STRING_BUILDER stringBuilder;
+    PPH_BYTES bytes;
+    SIZE_T count;
+
+    if (ProdIdHeader->NumberOfEntries == 0 || !ProdIdHeader->ProdIdEntries)
+        return STATUS_NOT_FOUND;
+
+    count = ProdIdHeader->NumberOfEntries;
+    entries = PhAllocateCopy(ProdIdHeader->ProdIdEntries, count * sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY));
+
+    if (FlagOn(Flags, PVP_PRODID_HASH_SORTED))
+    {
+        qsort(entries, count, sizeof(PH_MAPPED_IMAGE_PRODID_ENTRY), PvpPeProdIdEntryCompare);
+    }
+
+    PhInitializeStringBuilder(&stringBuilder, 100);
+
+    for (SIZE_T i = 0; i < count; i++)
+    {
+        PH_MAPPED_IMAGE_PRODID_ENTRY entry = entries[i];
+
+        if (!entry.ProductCount)
+            continue;
+
+        if (stringBuilder.String->Length)
+            PhAppendCharStringBuilder(&stringBuilder, L',');
+
+        PhAppendFormatStringBuilder(&stringBuilder, L"%hu", entry.ProductId);
+
+        if (FlagOn(Flags, PVP_PRODID_HASH_VERSION))
+            PhAppendFormatStringBuilder(&stringBuilder, L".%hu", entry.ProductBuild);
+        if (FlagOn(Flags, PVP_PRODID_HASH_COUNT))
+            PhAppendFormatStringBuilder(&stringBuilder, L".%lu", entry.ProductCount);
+    }
+
+    PhFree(entries);
+
+    bytes = PhConvertUtf16ToUtf8Ex(stringBuilder.String->Buffer, stringBuilder.String->Length);
+    PhDeleteStringBuilder(&stringBuilder);
+
+    if (!bytes)
+        return STATUS_UNSUCCESSFUL;
+
+    if (NT_SUCCESS(status = PhInitializeHash(&hashContext, Sha256HashAlgorithm)))
+    {
+        if (NT_SUCCESS(status = PhUpdateHash(&hashContext, bytes->Buffer, (ULONG)bytes->Length)))
+        {
+            status = PhFinalHashString(&hashContext, HashString);
+        }
+    }
+
+    PhDereferenceObject(bytes);
+
+    return status;
+}
+
+/**
+ * Computes a hash over the Rich header, either as stored or after removing the XOR obfuscation.
+ *
+ * \param Algorithm The hash algorithm to use.
+ * \param Deobfuscate TRUE to XOR the header with its key before hashing.
+ * \param HashString A variable which receives the hexadecimal hash string.
+ * \return An NTSTATUS value indicating success or failure.
+ */
+NTSTATUS PvpPeGetRichHeaderHash(
+    _In_ PH_HASH_ALGORITHM Algorithm,
+    _In_ BOOLEAN Deobfuscate,
+    _Out_ PPH_STRING* HashString
+    )
+{
+    NTSTATUS status;
+    PH_HASH_CONTEXT hashContext;
+    ULONG headerStart = 0;
+    ULONG headerEnd = 0;
+    ULONG headerLength = 0;
+    ULONG key = 0;
+    PVOID headerBuffer;
+    PVOID headerAddress;
+
+    status = PhGetMappedImageProdIdExtents(&PvMappedImage, &headerStart, &headerEnd);
+
+    if (!NT_SUCCESS(status))
+        return status;
+
+    if (headerEnd <= headerStart)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    headerAddress = PTR_ADD_OFFSET(PvMappedImage.ViewBase, headerStart);
+
+    __try
+    {
+        PhMappedImageProbe(&PvMappedImage, headerAddress, headerEnd - headerStart);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    // PhGetMappedImageProdIdExtents returns the NT headers offset as the end boundary, which can
+    // include padding after the header. Walk to the "Rich" tag and hash only the DanS tag through
+    // the last ProdID entry, excluding the trailing "Rich" tag and XOR key. This span was verified
+    // against a reference report: it reproduces both the obfuscated and deobfuscated digests. (dmex)
+
+    __try
+    {
+        for (ULONG offset = 0; offset + sizeof(ULONG) * 2 <= headerEnd - headerStart; offset += sizeof(ULONG))
+        {
+            if (*(PULONG)PTR_ADD_OFFSET(headerAddress, offset) == ProdIdTagStart)
+            {
+                headerLength = offset;
+                key = *(PULONG)PTR_ADD_OFFSET(headerAddress, offset + sizeof(ULONG));
+                break;
+            }
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        return GetExceptionCode();
+    }
+
+    if (headerLength == 0)
+        return STATUS_INVALID_IMAGE_FORMAT;
+
+    headerBuffer = PhAllocateStack(headerLength);
+    RtlCopyMemory(headerBuffer, headerAddress, headerLength);
+    
+    if (Deobfuscate)
+    {
+        PULONG bufferEnd = (PULONG)PTR_ADD_OFFSET(headerBuffer, headerLength);
+
+        for (PULONG p = headerBuffer; p < bufferEnd; p++)
+        {
+            *p ^= key;
+        }
+    }
+
+    if (NT_SUCCESS(status = PhInitializeHash(&hashContext, Algorithm)))
+    {
+        if (NT_SUCCESS(status = PhUpdateHash(&hashContext, headerBuffer, headerLength)))
+        {
+            status = PhFinalHashString(&hashContext, HashString);
+        }
+    }
+
+    PhFreeStack(headerBuffer);
+
+    return status;
+}
+
+VOID PvpPeSetProdIdHashItem(
+    _In_ HWND ListViewHandle,
+    _In_ ULONG Index,
+    _In_ PPH_STRING String
+    )
+{
+    if (String)
+    {
+        PhSetListViewSubItem(ListViewHandle, Index, 1, PhGetString(String));
+        PhDereferenceObject(String);
+    }
+}
+
+VOID PvpPeEnumProdHashes(
+    _In_ HWND ListViewHandle,
+    _In_ PPH_MAPPED_IMAGE_PRODID ProdIdHeader
+    )
+{
+    static CONST struct
+    {
+        ULONG Index;
+        ULONG Flags;
+    } prodIdHashes[] =
+    {
+        { PVP_PRODID_HASH_INDEX_PRODID, PVP_PRODID_HASH_PRODIDONLY },
+        { PVP_PRODID_HASH_INDEX_PRODIDCOUNT, PVP_PRODID_HASH_COUNT },
+        { PVP_PRODID_HASH_INDEX_PRODIDVERSION, PVP_PRODID_HASH_VERSION },
+        { PVP_PRODID_HASH_INDEX_PRODIDVERSIONCOUNT, PVP_PRODID_HASH_VERSION | PVP_PRODID_HASH_COUNT },
+        { PVP_PRODID_HASH_INDEX_SORTEDPRODID, PVP_PRODID_HASH_SORTED },
+        { PVP_PRODID_HASH_INDEX_SORTEDPRODIDCOUNT, PVP_PRODID_HASH_SORTED | PVP_PRODID_HASH_COUNT },
+        { PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSION, PVP_PRODID_HASH_SORTED | PVP_PRODID_HASH_VERSION },
+        { PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSIONCOUNT, PVP_PRODID_HASH_SORTED | PVP_PRODID_HASH_VERSION | PVP_PRODID_HASH_COUNT },
+    };
+    PPH_STRING string;
+
+    // The XOR key, shown as stored (hex) and in decimal for comparison with other tools.
+    {
+        ULONG64 key = 0;
+
+        if (ProdIdHeader->Key && PhStringToUInt64(&ProdIdHeader->Key->sr, 16, &key))
+        {
+            PH_FORMAT format[4];
+
+            PhInitFormatSR(&format[0], ProdIdHeader->Key->sr);
+            PhInitFormatS(&format[1], L" (");
+            PhInitFormatI64U(&format[2], key);
+            PhInitFormatC(&format[3], L')');
+
+            string = PhFormat(format, RTL_NUMBER_OF(format), 30);
+        }
+        else
+        {
+            string = PhReferenceObject(ProdIdHeader->Key);
+        }
+
+        PvpPeSetProdIdHashItem(ListViewHandle, PVP_PRODID_HASH_INDEX_XORKEY, string);
+    }
+
+    PhSetListViewSubItem(ListViewHandle, PVP_PRODID_HASH_INDEX_CHECKSUMVALID, 1, ProdIdHeader->Valid ? L"True" : L"False");
+
+    // PhGetMappedImageProdIdHeader only succeeds after matching both the DanS and Rich tags,
+    // so reaching this point means the signature is present. (dmex)
+    PhSetListViewSubItem(ListViewHandle, PVP_PRODID_HASH_INDEX_DANSSIGNATURE, 1, L"True");
+
+    // Compute all four Rich header digests over the same verified span rather than reusing
+    // ProdIdHeader->RawHash, which phlib scopes differently (it includes the trailing tag/key). (dmex)
+
+    if (NT_SUCCESS(PvpPeGetRichHeaderHash(Md5HashAlgorithm, TRUE, &string)))
+        PvpPeSetProdIdHashItem(ListViewHandle, PVP_PRODID_HASH_INDEX_RICHMD5, string);
+    if (NT_SUCCESS(PvpPeGetRichHeaderHash(Md5HashAlgorithm, FALSE, &string)))
+        PvpPeSetProdIdHashItem(ListViewHandle, PVP_PRODID_HASH_INDEX_RICHRAWMD5, string);
+    if (NT_SUCCESS(PvpPeGetRichHeaderHash(Sha1HashAlgorithm, TRUE, &string)))
+        PvpPeSetProdIdHashItem(ListViewHandle, PVP_PRODID_HASH_INDEX_RICHSHA1, string);
+    if (NT_SUCCESS(PvpPeGetRichHeaderHash(Sha1HashAlgorithm, FALSE, &string)))
+        PvpPeSetProdIdHashItem(ListViewHandle, PVP_PRODID_HASH_INDEX_RICHRAWSHA1, string);
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(prodIdHashes); i++)
+    {
+        if (NT_SUCCESS(PvpPeGetProdIdHash(ProdIdHeader, prodIdHashes[i].Flags, &string)))
+        {
+            PvpPeSetProdIdHashItem(ListViewHandle, prodIdHashes[i].Index, string);
+        }
+    }
+}
+
 VOID PvpPeEnumProdEntries(
     _In_ HWND WindowHandle,
-    _In_ HWND ListViewHandle
+    _In_ HWND ListViewHandle,
+    _In_ HWND HashListViewHandle
     )
 {
     PH_MAPPED_IMAGE_PRODID prodids;
@@ -345,12 +652,7 @@ VOID PvpPeEnumProdEntries(
 
     if (NT_SUCCESS(PhGetMappedImageProdIdHeader(&PvMappedImage, &prodids)))
     {
-        PPH_STRING text;
-
-        text = prodids.Valid ? prodids.Key : PhaConcatStrings2(PhGetStringOrEmpty(prodids.Key), L" (incorrect)");
-        PhSetDialogItemText(WindowHandle, IDC_PRODCHECKSUM, PhGetStringOrEmpty(text));
-        PhSetDialogItemText(WindowHandle, IDC_PRODHASH, PhGetStringOrEmpty(prodids.RawHash));
-        PhSetDialogItemText(WindowHandle, IDC_PRODHASH2, PhGetStringOrEmpty(prodids.Hash));
+        PvpPeEnumProdHashes(HashListViewHandle, &prodids);
 
         for (i = 0; i < prodids.NumberOfEntries; i++)
         {
@@ -378,7 +680,13 @@ VOID PvpPeEnumProdEntries(
 
         PhFree(prodids.ProdIdEntries);
         PhClearReference(&prodids.Hash);
+        PhClearReference(&prodids.RawHash);
         PhClearReference(&prodids.Key);
+    }
+    else
+    {
+        PhSetListViewSubItem(HashListViewHandle, PVP_PRODID_HASH_INDEX_CHECKSUMVALID, 1, L"False");
+        PhSetListViewSubItem(HashListViewHandle, PVP_PRODID_HASH_INDEX_DANSSIGNATURE, 1, L"False");
     }
 
     //ExtendedListView_SortItems(ListViewHandle);
@@ -419,6 +727,31 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
         {
             context->WindowHandle = hwndDlg;
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
+            context->HashListViewHandle = GetDlgItem(hwndDlg, IDC_LIST2);
+
+            PhSetListViewStyle(context->HashListViewHandle, TRUE, TRUE);
+            PhSetControlTheme(context->HashListViewHandle, L"explorer");
+            PhAddListViewColumn(context->HashListViewHandle, 0, 0, 0, LVCFMT_LEFT, 200, L"Name");
+            PhAddListViewColumn(context->HashListViewHandle, 1, 1, 1, LVCFMT_LEFT, 320, L"Value");
+            PhSetExtendedListView(context->HashListViewHandle);
+            PhLoadListViewColumnsFromSetting(L"ImageProdIdHashListViewColumns", context->HashListViewHandle);
+            PvConfigTreeBorders(context->HashListViewHandle);
+
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_XORKEY, L"XOR key", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_CHECKSUMVALID, L"Checksum valid", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_DANSSIGNATURE, L"DanS signature present", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_RICHMD5, L"Rich header MD5 (deobfuscated)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_RICHRAWMD5, L"Rich header MD5 (obfuscated)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_RICHSHA1, L"Rich header SHA-1 (deobfuscated)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_RICHRAWSHA1, L"Rich header SHA-1 (obfuscated)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_PRODID, L"ProdID SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_PRODIDCOUNT, L"ProdID count SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_PRODIDVERSION, L"ProdID version SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_PRODIDVERSIONCOUNT, L"ProdID version count SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_SORTEDPRODID, L"Sorted ProdID SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_SORTEDPRODIDCOUNT, L"Sorted ProdID count SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSION, L"Sorted ProdID version SHA-256 (PE Viewer)", NULL);
+            PhAddListViewItem(context->HashListViewHandle, PVP_PRODID_HASH_INDEX_SORTEDPRODIDVERSIONCOUNT, L"Sorted ProdID version count SHA-256 (PE Viewer)", NULL);
 
             PhSetListViewStyle(context->ListViewHandle, TRUE, TRUE);
             PhSetControlTheme(context->ListViewHandle, L"explorer");
@@ -433,13 +766,10 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
 
             PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODID), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODCHECKSUM), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
-            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_PRODHASH2), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->HashListViewHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
-            PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle);
+            PvpPeEnumProdEntries(hwndDlg, context->ListViewHandle, context->HashListViewHandle);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
@@ -447,6 +777,7 @@ INT_PTR CALLBACK PvpPeProdIdDlgProc(
     case WM_DESTROY:
         {
             PhSaveListViewColumnsToSetting(L"ImageProdIdListViewColumns", context->ListViewHandle);
+            PhSaveListViewColumnsToSetting(L"ImageProdIdHashListViewColumns", context->HashListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
             PhRemoveWindowContext(hwndDlg, PH_WINDOW_CONTEXT_DEFAULT);
             PhFree(context);

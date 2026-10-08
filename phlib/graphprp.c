@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright (c) 2026 Winsider Seminars & Solutions, Inc.  All rights reserved.
  *
  * This file is part of System Informer.
@@ -24,7 +24,8 @@
  * Custom resizable PropertySheet replacement built on PhTabNew (dmex)
  *
  *  - Tab control and page dialogs are *siblings* under the host window. The
- *    page rect is computed via PhTabNew_GetPageRect (parent-client coords).
+ *    host supplies the logical area through TCM_ADJUSTRECT and the physical
+ *    TabNew window occupies only the resulting tab strip.
  *  - Page dialogs are created lazily on first activation (unless the page
  *    sets PH_PROPSHEETNEW_PAGE_EAGER).
  *  - Page switching uses a single BeginDeferWindowPos batch with
@@ -46,6 +47,8 @@ typedef struct _PH_PROPSHEETNEW_CONTEXT
     PPH_PROPSHEETNEW_PAGE Pages;   // owned mirror of Sheet.Pages
     ULONG PageCount;
     LONG CurrentIndex;              // -1 until first activation
+
+    RECT PageRect;                 // host client coords; authoritative page area
 
     SIZE MinimumSize96;            // 96-DPI baseline pixels
     SIZE MinimumSize;
@@ -130,6 +133,22 @@ PPH_PROPSHEETNEW_PAGE_LAYOUT_CONTEXT PhpPropSheetNewGetPageLayoutContext(
     _In_ HWND PageWindow
     );
 
+LONG PhPropSheetNewScale(
+    _In_ PPH_PROPSHEETNEW_CONTEXT Context,
+    _In_ LONG Value96
+    );
+
+VOID PhPropSheetNewGetPageRect(
+    _In_ PPH_PROPSHEETNEW_CONTEXT Context,
+    _Out_ PRECT PageRect
+    );
+
+VOID PhPropSheetNewGetChromeRects(
+    _In_ PPH_PROPSHEETNEW_CONTEXT Context,
+    _Out_opt_ PRECT TabArea,
+    _Out_opt_ PRECT ButtonRect
+    );
+
 #define PH_PROPSHEETNEW_PADDING       7   // inner padding (px @ 96 DPI) around content
 #define PH_PROPSHEETNEW_BTN_HEIGHT    23
 #define PH_PROPSHEETNEW_BTN_WIDTH     84
@@ -171,36 +190,29 @@ RTL_ATOM PhPropSheetNewRegisterClass(
 // Helpers
 // ---------------------------------------------------------------------------
 
+// The themed background is shared with every other top-level window that has to
+// present a flash-free first frame (the main window included), so these are thin
+// forwarders onto the phlib helpers. (dmex)
+
 BOOLEAN PhPropSheetNewUseDarkBackground(
     VOID
     )
 {
-    if (!PhEnableThemeSupport)
-        return FALSE;
-
-    return PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+    return PhThemeWindowUseDarkBackground();
 }
 
 HBRUSH PhPropSheetNewGetBackgroundBrush(
     VOID
     )
 {
-    if (PhPropSheetNewUseDarkBackground())
-    {
-        if (!PhThemeWindowBackgroundBrush)
-            PhThemeWindowBackgroundBrush = CreateSolidBrush(PhThemeWindowBackgroundColor);
-
-        return PhThemeWindowBackgroundBrush;
-    }
-
-    return (HBRUSH)(COLOR_BTNFACE + 1);
+    return PhGetThemeWindowBackgroundBrush();
 }
 
 VOID PhPropSheetNewUpdateClassBackground(
     _In_ HWND WindowHandle
     )
 {
-    SetClassLongPtr(WindowHandle, GCLP_HBRBACKGROUND, (LONG_PTR)PhPropSheetNewGetBackgroundBrush());
+    PhUpdateWindowClassBackground(WindowHandle);
 }
 
 LONG PhPropSheetNewScaleDpi(
@@ -324,13 +336,15 @@ VOID PhPropSheetNewCreatePageDialog(
 {
     HWND windowHandle;
     RECT pageRect;
+    BOOLEAN hostVisible;
 
     if (Page->DialogHandle || !Page->DialogProc || !Page->Template)
         return;
 
     windowHandle = PhCreateDialogFromTemplate(
         Context->WindowHandle,
-        DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPSIBLINGS,
+        DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD |
+        ((Page->Flags & PH_PROPSHEETNEW_PAGE_NOCLIP) ? 0 : (WS_CLIPSIBLINGS | WS_CLIPCHILDREN)),
         Page->Instance,
         Page->Template,
         Page->DialogProc,
@@ -368,64 +382,82 @@ VOID PhPropSheetNewCreatePageDialog(
         layoutContext->Template = Page->Template;
     }
 
-    // Size the page to its final page-rect size immediately, off-screen. The
-    // registration below runs the page's WM_SHOWWINDOW handler ->
+    // Place the page at its exact final page-rect position and size up front.
+    // The registration below runs the page's WM_SHOWWINDOW handler ->
     // PhEndPropPageLayout -> PhBringWindowToTop, which carries SWP_SHOWWINDOW and
-    // would otherwise make the page briefly visible (the flash). Positioning it
-    // off-screen keeps that transient invisible; we hide it again and move it
-    // on-screen (still at full size) before PhPropSheetNewSelectPage shows it.
-    if (Context->TabControl && PhTabNew_GetPageRect(Context->TabControl, &pageRect))
-    {
-        SetWindowPos(
-            windowHandle,
-            NULL,
-            -32000, -32000,
-            pageRect.right - pageRect.left,
-            pageRect.bottom - pageRect.top,
-            SWP_NOZORDER | SWP_NOACTIVATE
-            );
+    // would otherwise make the page briefly visible (the flash). When the host is
+    // already on-screen (lazy creation on tab switch), suppress redraw on the host
+    // for that transient so nothing paints. WM_SETREDRAW toggles WS_VISIBLE, so it
+    // must not be used while the host is still hidden (initial creation) or
+    // WM_SETREDRAW TRUE would show the host prematurely; a hidden host cannot
+    // flash anyway. The page is hidden again before PhPropSheetNewSelectPage
+    // shows it.
+    PhPropSheetNewGetPageRect(Context, &pageRect);
+    hostVisible = !!IsWindowVisible(Context->WindowHandle);
 
-        // Register layout items (template-relative margins) and lay the controls
-        // out at the full page size — the page is created at the correct size.
-        SendMessage(windowHandle, WM_SHOWWINDOW, TRUE, 0);
-        PhPropSheetNewPageLayout(windowHandle);
+    SetWindowPos(
+        windowHandle,
+        NULL,
+        pageRect.left,
+        pageRect.top,
+        pageRect.right - pageRect.left,
+        pageRect.bottom - pageRect.top,
+        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
+        );
 
-        // Hide and move on-screen (still full size) while hidden.
-        ShowWindow(windowHandle, SW_HIDE);
+    if (hostVisible)
+        SendMessage(Context->WindowHandle, WM_SETREDRAW, FALSE, 0);
 
-        SetWindowPos(
-            windowHandle,
-            NULL,
-            pageRect.left,
-            pageRect.top,
-            pageRect.right - pageRect.left,
-            pageRect.bottom - pageRect.top,
-            SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
-            );
-    }
-    else
-    {
-        SetWindowPos(windowHandle, NULL, -32000, -32000, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
-        SendMessage(windowHandle, WM_SHOWWINDOW, TRUE, 0);
-        ShowWindow(windowHandle, SW_HIDE);
-    }
+    // Register layout items (template-relative margins) and lay the controls
+    // out at the full page size — the page is created at the correct size.
+    SendMessage(windowHandle, WM_SHOWWINDOW, TRUE, 0);
+    PhPropSheetNewPageLayout(windowHandle);
+
+    ShowWindow(windowHandle, SW_HIDE);
+
+    if (hostVisible)
+        SendMessage(Context->WindowHandle, WM_SETREDRAW, TRUE, 0);
 
     //PhInitializeWindowTheme(windowHandle, PhEnableThemeSupport);
 }
 
+/**
+ * Retrieves the area a page dialog must occupy, in host client coordinates.
+ *
+ * PhPropSheetNewLayout caches the rectangle it derived from the tab control, so
+ * this never depends on the tab having a valid cached layout of its own. Before
+ * the first layout pass (or when the tab control is missing entirely) the area
+ * is derived directly from the host client rect so pages are always sized.
+ */
 VOID PhPropSheetNewGetPageRect(
     _In_ PPH_PROPSHEETNEW_CONTEXT Context,
     _Out_ PRECT PageRect
     )
 {
+    RECT pageRect;
+
+    if (Context->PageRect.right > Context->PageRect.left &&
+        Context->PageRect.bottom > Context->PageRect.top)
+    {
+        *PageRect = Context->PageRect;
+        return;
+    }
+
+    PhPropSheetNewGetChromeRects(Context, &pageRect, NULL);
+
     if (Context->TabControl)
     {
-        PhTabNew_GetPageRect(Context->TabControl, PageRect);
+        RECT adjustedRect = pageRect;
+
+        // Only take the tab's answer when it is usable - an empty result means
+        // the control has not laid out yet and would zero-size the page.
+        TabCtrl_AdjustRect(Context->TabControl, FALSE, &adjustedRect);
+
+        if (adjustedRect.right > adjustedRect.left && adjustedRect.bottom > adjustedRect.top)
+            pageRect = adjustedRect;
     }
-    else
-    {
-        GetClientRect(Context->WindowHandle, PageRect);
-    }
+
+    *PageRect = pageRect;
 }
 
 _Function_class_(PH_WINDOW_ENUM_CALLBACK)
@@ -468,18 +500,65 @@ LONG PhPropSheetNewScale(
     return PhPropSheetNewScaleDpi(Value96, Context->WindowDpi);
 }
 
+/**
+ * Computes the host chrome geometry in client coordinates.
+ *
+ * Shared by WM_CREATE (so the tab control and Close button are created at their
+ * real rectangles rather than 0x0) and by PhPropSheetNewLayout, so both agree on
+ * the same arithmetic.
+ *
+ * \param TabArea Receives the full area available to the tab control - the
+ * client rect deflated by the padding, less the bottom button strip. The strip
+ * itself occupies only part of this once the tab reports its thickness.
+ * \param ButtonRect Receives the Close button rectangle.
+ */
+VOID PhPropSheetNewGetChromeRects(
+    _In_ PPH_PROPSHEETNEW_CONTEXT Context,
+    _Out_opt_ PRECT TabArea,
+    _Out_opt_ PRECT ButtonRect
+    )
+{
+    RECT clientRect;
+    LONG padding;
+    LONG buttonHeight;
+    LONG buttonWidth;
+
+    padding = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_PADDING);
+    buttonHeight = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_BTN_HEIGHT);
+    buttonWidth = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_BTN_WIDTH);
+
+    GetClientRect(Context->WindowHandle, &clientRect);
+
+    if (TabArea)
+    {
+        TabArea->left = clientRect.left + padding;
+        TabArea->top = clientRect.top + padding;
+        TabArea->right = clientRect.right - padding;
+        TabArea->bottom = clientRect.bottom - padding;
+
+        if (FlagOn(Context->Sheet.Flags, PH_PROPSHEETNEW_CLOSE_BUTTON))
+            TabArea->bottom -= buttonHeight + padding;
+    }
+
+    if (ButtonRect)
+    {
+        ButtonRect->left = clientRect.right - padding - buttonWidth;
+        ButtonRect->top = clientRect.bottom - padding - buttonHeight;
+        ButtonRect->right = ButtonRect->left + buttonWidth;
+        ButtonRect->bottom = ButtonRect->top + buttonHeight;
+    }
+}
+
 VOID PhPropSheetNewLayout(
     _In_ PPH_PROPSHEETNEW_CONTEXT Context
     )
 {
-    RECT clientRect;
     RECT tabRect;
+    RECT stripRect;
     RECT pageRect;
+    RECT buttonRect;
     PPH_PROPSHEETNEW_PAGE current;
     HDWP defer;
-    LONG padding;
-    LONG buttonHeight;
-    LONG buttonWidth;
     BOOLEAN hasCloseButton = (Context->Sheet.Flags & PH_PROPSHEETNEW_CLOSE_BUTTON) != 0;
 #ifndef PH_PROPSHEETNEW_REDRAW_FIX
     BOOLEAN tabResized = FALSE;
@@ -491,67 +570,77 @@ VOID PhPropSheetNewLayout(
     if (Context->LayoutInProgress)
         return;
 
-    padding = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_PADDING);
-    buttonHeight = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_BTN_HEIGHT);
-    buttonWidth = PhPropSheetNewScale(Context, PH_PROPSHEETNEW_BTN_WIDTH);
-
-    GetClientRect(Context->WindowHandle, &clientRect);
+    PhPropSheetNewGetChromeRects(Context, &tabRect, &buttonRect);
     current = PhPropSheetNewPageAt(Context, Context->CurrentIndex);
 
-    // Tab area: client rect minus padding on all sides, minus the bottom
-    // button strip if any.
-    tabRect = clientRect;
-    tabRect.left += padding;
-    tabRect.top += padding;
-    tabRect.right -= padding;
-    tabRect.bottom -= padding;
-    if (hasCloseButton)
-        tabRect.bottom -= buttonHeight + padding;
+    pageRect = tabRect;
+    stripRect = tabRect;
 
     Context->LayoutInProgress = TRUE;
 
-    // PhTabNew_GetPageRect returns the tab control's cached page rectangle.
-    // Resize the tab synchronously first so the active page never receives
-    // the previous layout pass' page bounds during live resize/DPI changes.
+    // TCM_ADJUSTRECT records the complete logical area in TabNew and returns
+    // the page rectangle. The physical TabNew window occupies only the strip.
     if (Context->TabControl)
     {
+        ULONG side;
+
+        TabCtrl_AdjustRect(Context->TabControl, FALSE, &pageRect);
+        side = PhTabNew_GetSide(Context->TabControl);
+
+        switch (side)
+        {
+        case TNS_BOTTOM:
+            stripRect.top = pageRect.bottom;
+            break;
+        case TNS_LEFT:
+            stripRect.right = pageRect.left;
+            break;
+        case TNS_RIGHT:
+            stripRect.left = pageRect.right;
+            break;
+        case TNS_TOP:
+        default:
+            stripRect.bottom = pageRect.top;
+            break;
+        }
+
 #ifndef PH_PROPSHEETNEW_REDRAW_FIX
         tabResized = !!
 #endif
         SetWindowPos(
             Context->TabControl,
             NULL,
-            tabRect.left,
-            tabRect.top,
-            tabRect.right - tabRect.left,
-            tabRect.bottom - tabRect.top,
+            stripRect.left,
+            stripRect.top,
+            stripRect.right - stripRect.left,
+            stripRect.bottom - stripRect.top,
             SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOREDRAW
             );
     }
 
-    if (current && current->DialogHandle)
-    {
-        PhPropSheetNewGetPageRect(Context, &pageRect);
-    }
+    // Publish the derived page area so PhPropSheetNewGetPageRect (and therefore
+    // page creation and page switching) never has to re-query the tab control's
+    // own cached layout, which is not valid until the tab has items. Degenerate
+    // rectangles are discarded so a stale-but-valid area is preferred over one
+    // that would collapse the page to nothing. (dmex)
+    if (pageRect.right > pageRect.left && pageRect.bottom > pageRect.top)
+        Context->PageRect = pageRect;
 
     defer = BeginDeferWindowPos(1);
     deferFailed = !defer;
 
     if (hasCloseButton && Context->CloseButton)
     {
-        LONG btnX = clientRect.right - padding - buttonWidth;
-        LONG btnY = clientRect.bottom - padding - buttonHeight;
-
         if (defer)
         {
             HDWP nextDefer = DeferWindowPos(
                 defer,
                 Context->CloseButton,
                 NULL,
-                btnX,
-                btnY,
-                buttonWidth,
-                buttonHeight,
+                buttonRect.left,
+                buttonRect.top,
+                buttonRect.right - buttonRect.left,
+                buttonRect.bottom - buttonRect.top,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
 
@@ -572,16 +661,13 @@ VOID PhPropSheetNewLayout(
     {
         if (hasCloseButton && Context->CloseButton)
         {
-            LONG btnX = clientRect.right - padding - buttonWidth;
-            LONG btnY = clientRect.bottom - padding - buttonHeight;
-
             SetWindowPos(
                 Context->CloseButton,
                 NULL,
-                btnX,
-                btnY,
-                buttonWidth,
-                buttonHeight,
+                buttonRect.left,
+                buttonRect.top,
+                buttonRect.right - buttonRect.left,
+                buttonRect.bottom - buttonRect.top,
                 SWP_NOZORDER | SWP_NOACTIVATE
                 );
         }
@@ -626,8 +712,14 @@ VOID PhPropSheetNewLayout(
     // control). Invalidate the uncovered right/bottom strips so WM_ERASEBKGND
     // repaints them; leaving them stale renders as garbage past the tab's edge.
     {
-        RECT rightStrip = { tabRect.right, clientRect.top, clientRect.right, clientRect.bottom };
-        RECT bottomStrip = { clientRect.left, tabRect.bottom, clientRect.right, clientRect.bottom };
+        RECT clientRect;
+        RECT rightStrip;
+        RECT bottomStrip;
+
+        GetClientRect(Context->WindowHandle, &clientRect);
+
+        PhSetRect(&rightStrip, tabRect.right, clientRect.top, clientRect.right, clientRect.bottom);
+        PhSetRect(&bottomStrip, clientRect.left, tabRect.bottom, clientRect.right, clientRect.bottom);
 
         if (rightStrip.right > rightStrip.left)
             InvalidateRect(Context->WindowHandle, &rightStrip, TRUE);
@@ -707,6 +799,9 @@ BOOLEAN PhPropSheetNewSelectPage(
     {
         PhPropSheetNewCreatePageDialog(Context, current);
     }
+
+    if (current->DialogHandle)
+        ShowWindow(current->DialogHandle, SW_HIDE);
 
     PhPropSheetNewGetPageRect(Context, &pageRect);
 
@@ -788,10 +883,26 @@ BOOLEAN PhPropSheetNewSelectPage(
     // Show the now-positioned new page explicitly so WM_SHOWWINDOW fires.
     if (current->DialogHandle)
     {
-        ShowWindow(current->DialogHandle, SW_SHOW);
+        // Lay the page out and notify activation while it is still hidden so the
+        // first visible frame is final. This mirrors the create-time ordering
+        // (layout while hidden, then show) and avoids a post-show relayout that
+        // would repaint the whole page after it is already on-screen.
         PhPropSheetNewPageLayout(current->DialogHandle);
         PhPropSheetNewSendPageNotify(current, PSN_SETACTIVE);
-        SetFocus(current->DialogHandle);
+
+        // Show only after activation and geometry are ready. WM_SETREDRAW is
+        // not a subtree presentation lock and may itself change WS_VISIBLE.
+        ShowWindow(current->DialogHandle, SW_SHOW);
+        RedrawWindow(
+            current->DialogHandle,
+            NULL,
+            NULL,
+            RDW_INVALIDATE | RDW_ERASE | RDW_FRAME | RDW_ALLCHILDREN |
+                (IsWindowVisible(Context->WindowHandle) ? RDW_UPDATENOW : 0)
+            );
+
+        if (IsWindowVisible(Context->WindowHandle))
+            SetFocus(current->DialogHandle);
     }
 
     return TRUE;
@@ -806,19 +917,49 @@ VOID PhPropSheetNewRestoreState(
     )
 {
     ULONG initialIndex = 0;
+    BOOLEAN placementRestored = FALSE;
+    RECT windowRect;
 
     if (FlagOn(Context->Sheet.Flags, PH_PROPSHEETNEW_SAVE_PLACEMENT) &&
         (Context->Sheet.SettingNamePosition || Context->Sheet.SettingNameSize))
     {
-        PhLoadWindowPlacementFromSetting(
+        placementRestored = PhLoadWindowPlacementFromSetting(
             Context->Sheet.SettingNamePosition,
             Context->Sheet.SettingNameSize,
             Context->WindowHandle
             );
     }
-    else if (Context->Sheet.Flags & PH_PROPSHEETNEW_CENTER)
+
+    // No saved placement (first run or reset settings) leaves the window at
+    // CW_USEDEFAULT, so fall back to centering on the parent. (dmex)
+    if (!placementRestored && FlagOn(Context->Sheet.Flags, PH_PROPSHEETNEW_CENTER))
     {
         PhCenterWindow(Context->WindowHandle, Context->Sheet.ParentWindow);
+    }
+
+    // Keep the window fully inside the nearest monitor work area (monitor
+    // removed, resolution changed, or a parent partially offscreen). (dmex)
+    if (PhGetWindowRect(Context->WindowHandle, &windowRect))
+    {
+        PH_RECTANGLE windowRectangle;
+
+        PhRectToRectangle(&windowRectangle, &windowRect);
+        PhAdjustRectangleToWorkingArea(NULL, &windowRectangle);
+
+        if (windowRectangle.Left != windowRect.left ||
+            windowRectangle.Top != windowRect.top ||
+            windowRectangle.Width != windowRect.right - windowRect.left ||
+            windowRectangle.Height != windowRect.bottom - windowRect.top)
+        {
+            MoveWindow(
+                Context->WindowHandle,
+                windowRectangle.Left,
+                windowRectangle.Top,
+                windowRectangle.Width,
+                windowRectangle.Height,
+                FALSE
+                );
+        }
     }
 
     if (FlagOn(Context->Sheet.Flags, PH_PROPSHEETNEW_SAVE_ACTIVE_PAGE) &&
@@ -924,6 +1065,12 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
 {
     PPH_PROPSHEETNEW_CONTEXT context = (PPH_PROPSHEETNEW_CONTEXT)PhGetWindowContextEx(WindowHandle);
 
+    // Messages dispatched before WM_NCCREATE (and anything arriving after
+    // WM_NCDESTROY has cleared the slot) have no context; every case below
+    // dereferences it unconditionally. (dmex)
+    if (!context && WindowMessage != WM_NCCREATE)
+        return DefWindowProc(WindowHandle, WindowMessage, wParam, lParam);
+
     switch (WindowMessage)
     {
     case WM_NCCREATE:
@@ -940,10 +1087,18 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
         break;
     case WM_CREATE:
         {
+            RECT tabArea;
+            RECT buttonRect;
             ULONG tabStyle;
             ULONG i;
 
             PhPropSheetNewInitializeMinimumSize(context);
+
+            // Create the chrome at its real geometry rather than 0x0. A control
+            // sized 0x0 has an empty client rect, and helpers such as
+            // PhGetClientRect treat that as failure - which previously left the
+            // tab unable to compute its own strip thickness. (dmex)
+            PhPropSheetNewGetChromeRects(context, &tabArea, &buttonRect);
 
             tabStyle = WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP;
             tabStyle |= (context->Sheet.Layout == PhPropSheetNewLayoutLeft) ? TNS_LEFT : TNS_TOP;
@@ -952,7 +1107,10 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
                 PH_TABNEW_CLASSNAME,
                 NULL,
                 tabStyle,
-                0, 0, 0, 0,
+                tabArea.left,
+                tabArea.top,
+                tabArea.right - tabArea.left,
+                tabArea.bottom - tabArea.top,
                 WindowHandle,
                 NULL,
                 NtCurrentImageBase(),
@@ -970,8 +1128,11 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
                 context->CloseButton = PhCreateWindow(
                     WC_BUTTON,
                     L"Close",
-                    WS_CHILD | WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON,
-                    0, 0, 0, 0,
+                    WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_TABSTOP | BS_PUSHBUTTON,
+                    buttonRect.left,
+                    buttonRect.top,
+                    buttonRect.right - buttonRect.left,
+                    buttonRect.bottom - buttonRect.top,
                     WindowHandle,
                     (HMENU)IDCANCEL,
                     NtCurrentImageBase(),
@@ -1097,10 +1258,12 @@ LRESULT CALLBACK PhPropSheetNewWndProc(
     case WM_ERASEBKGND:
         {
             HDC hdc = (HDC)wParam;
-            RECT clientRect;
+            RECT clipRect;
 
-            GetClientRect(WindowHandle, &clientRect);
-            FillRect(hdc, &clientRect, PhPropSheetNewGetBackgroundBrush());
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhPropSheetNewGetBackgroundBrush());
 
             return TRUE;
         }
@@ -1516,6 +1679,8 @@ HWND PhPropSheetNewCreate(
     PPH_PROPSHEETNEW_CONTEXT context;
     HWND hwnd;
     ULONG style;
+    LONG initialX;
+    LONG initialY;
     LONG initialCx;
     LONG initialCy;
     LONG initialDpi;
@@ -1551,13 +1716,80 @@ HWND PhPropSheetNewCreate(
         style |= WS_THICKFRAME | WS_MAXIMIZEBOX | WS_MINIMIZEBOX;
     }
 
+    // Create the host at its final position instead of CW_USEDEFAULT (top-left of the screen)
+    // so it can never be seen at the default location, whatever shows it before RestoreState
+    // runs. RestoreState still refines the placement (minimum size, work area clamping).
+    {
+        PH_RECTANGLE rectangle = { 0 };
+
+        initialX = CW_USEDEFAULT;
+        initialY = CW_USEDEFAULT;
+
+        if (FlagOn(Sheet->Flags, PH_PROPSHEETNEW_SAVE_PLACEMENT) &&
+            Sheet->SettingNamePosition && Sheet->SettingNameSize)
+        {
+            PhLoadWindowPlacementFromRectangle(
+                Sheet->SettingNamePosition,
+                Sheet->SettingNameSize,
+                &rectangle
+                );
+
+            if (rectangle.Width > 0 && rectangle.Height > 0 && (rectangle.Left || rectangle.Top))
+            {
+                initialX = rectangle.Left;
+                initialY = rectangle.Top;
+                initialCx = rectangle.Width;
+                initialCy = rectangle.Height;
+            }
+        }
+
+        if (initialX == CW_USEDEFAULT && FlagOn(Sheet->Flags, PH_PROPSHEETNEW_CENTER))
+        {
+            PH_RECTANGLE bounds = { 0 };
+            RECT parentRect;
+            MONITORINFO monitorInfo = { sizeof(MONITORINFO) };
+
+            rectangle.Width = initialCx;
+            rectangle.Height = initialCy;
+
+            if (Sheet->ParentWindow &&
+                IsWindowVisible(Sheet->ParentWindow) &&
+                !IsMinimized(Sheet->ParentWindow) &&
+                PhGetWindowRect(Sheet->ParentWindow, &parentRect))
+            {
+                PhRectToRectangle(&bounds, &parentRect);
+            }
+            else if (GetMonitorInfo(
+                MonitorFromWindow(Sheet->ParentWindow, MONITOR_DEFAULTTOPRIMARY),
+                &monitorInfo
+                ))
+            {
+                PhRectToRectangle(&bounds, &monitorInfo.rcWork);
+            }
+
+            if (bounds.Width > 0 && bounds.Height > 0)
+            {
+                PhCenterRectangle(&rectangle, &bounds);
+                PhAdjustRectangleToWorkingArea(NULL, &rectangle);
+                initialX = rectangle.Left;
+                initialY = rectangle.Top;
+            }
+        }
+    }
+
     hwnd = PhCreateWindowEx(
         PH_PROPSHEETNEW_CLASSNAME,
         Sheet->Caption,
         style,
-        WS_EX_CONTROLPARENT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
+        // NOTE: WS_EX_CONTROLPARENT must NOT be set on the top-level host. The
+        // modal loop drives it through IsDialogMessage, and the dialog manager
+        // recurses into any WS_EX_CONTROLPARENT window it walks - on the root
+        // window that traversal can loop, leaving the sheet unpainted. Page
+        // dialogs get the style in PhPropSheetNewCreatePageDialog, which is
+        // where it is actually needed for tab navigation. (dmex)
+        0,
+        initialX,
+        initialY,
         initialCx,
         initialCy,
         Sheet->ParentWindow,
@@ -1574,6 +1806,10 @@ HWND PhPropSheetNewCreate(
             *OutContext = NULL;
         return NULL;
     }
+
+    // Refresh the class brush before the first show; the brush captured at
+    // registration is deleted on palette changes made while no sheet exists. (dmex)
+    PhPropSheetNewUpdateClassBackground(hwnd);
 
     if (Sheet->Icon && !(Sheet->Flags & PH_PROPSHEETNEW_NOICON))
     {

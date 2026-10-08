@@ -913,7 +913,7 @@ VOID PhMipCalculateWindowRectangle(
             sourceBottom = sourceWindowRect.bottom;
         }
 
-        gap = MulDiv(4, PhGetWindowDpi(PhMipContainerWindow), USER_DEFAULT_SCREEN_DPI);
+        gap = PhMultiplyDivideSigned(4, PhGetWindowDpi(PhMipContainerWindow), USER_DEFAULT_SCREEN_DPI);
         top = sourceTop - windowRectangle.Height - gap;
 
         if (haveBounds && top < bounds.Top)

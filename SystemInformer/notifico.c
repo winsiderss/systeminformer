@@ -1196,7 +1196,7 @@ HFONT PhNfGetTrayIconFont(
             FALSE,
             FALSE,
             FALSE,
-            ANSI_CHARSET,
+            DEFAULT_CHARSET,
             OUT_DEFAULT_PRECIS,
             CLIP_DEFAULT_PRECIS,
             ANTIALIASED_QUALITY,

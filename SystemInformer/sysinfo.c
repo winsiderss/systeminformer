@@ -637,7 +637,7 @@ VOID PhSipOnInitDialog(
     SeparatorControl = PhCreateWindow(
         WC_STATIC,
         NULL,
-        WS_CHILD | SS_OWNERDRAW,
+        WS_CHILD | WS_CLIPSIBLINGS | SS_OWNERDRAW,
         0,
         0,
         0,
@@ -650,7 +650,7 @@ VOID PhSipOnInitDialog(
     RestoreSummaryControl = PhCreateWindow(
         WC_STATIC,
         NULL,
-        WS_CHILD | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
+        WS_CHILD | WS_CLIPSIBLINGS | WS_TABSTOP | SS_OWNERDRAW | SS_NOTIFY,
         0,
         0,
         0,
@@ -2620,7 +2620,7 @@ VOID PhSipCreateSectionDialog(
         {
             Section->DialogHandle = PhCreateDialogFromTemplate(
                 ContainerControl,
-                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD,
+                DS_SETFONT | DS_FIXEDSYS | DS_CONTROL | WS_CHILD | WS_CLIPCHILDREN,
                 createDialog.Instance,
                 createDialog.Template,
                 createDialog.DialogProc,
@@ -2670,7 +2670,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
             else
             {
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
         }
         break;
@@ -2685,7 +2685,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
             else
             {
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
         }
         break;
@@ -2748,8 +2748,8 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             }
 
             Graph_Draw(section->GraphHandle);
-            InvalidateRect(section->GraphHandle, NULL, TRUE);
-            InvalidateRect(section->PanelHandle, NULL, TRUE);
+            InvalidateRect(section->GraphHandle, NULL, FALSE);
+            InvalidateRect(section->PanelHandle, NULL, FALSE);
         }
         break;
     case WM_MOUSELEAVE:
@@ -2757,7 +2757,7 @@ LRESULT CALLBACK PhSipGraphHookWndProc(
             if (!section->PanelHot)
             {
                 section->GraphHot = FALSE;
-                InvalidateRect(section->PanelHandle, NULL, TRUE);
+                InvalidateRect(section->PanelHandle, NULL, FALSE);
             }
             else
             {
@@ -2838,7 +2838,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             if (!section)
             {
                 RestoreSummaryControlHasFocus = TRUE;
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
         }
         break;
@@ -2847,7 +2847,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             if (!section)
             {
                 RestoreSummaryControlHasFocus = FALSE;
-                InvalidateRect(hwnd, NULL, TRUE);
+                InvalidateRect(hwnd, NULL, FALSE);
             }
         }
         break;
@@ -2895,7 +2895,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
                 if (!(section->GraphHot || section->PanelHot))
                 {
                     section->PanelHot = TRUE;
-                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                    InvalidateRect(section->PanelHandle, NULL, FALSE);
                 }
                 else
                 {
@@ -2905,7 +2905,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             else
             {
                 RestoreSummaryControlHot = TRUE;
-                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+                InvalidateRect(RestoreSummaryControl, NULL, FALSE);
             }
         }
         break;
@@ -2918,7 +2918,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
                 if (!section->GraphHot)
                 {
                     section->PanelHot = FALSE;
-                    InvalidateRect(section->PanelHandle, NULL, TRUE);
+                    InvalidateRect(section->PanelHandle, NULL, FALSE);
                 }
                 else
                 {
@@ -2929,7 +2929,7 @@ LRESULT CALLBACK PhSipPanelHookWndProc(
             {
                 RestoreSummaryControlHasFocus = FALSE;
                 RestoreSummaryControlHot = FALSE;
-                InvalidateRect(RestoreSummaryControl, NULL, TRUE);
+                InvalidateRect(RestoreSummaryControl, NULL, FALSE);
             }
         }
         break;

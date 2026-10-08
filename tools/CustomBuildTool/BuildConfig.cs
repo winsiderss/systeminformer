@@ -87,6 +87,7 @@ namespace CustomBuildTool
         //    "ntpoapi.h",
         //    "ntpsapi.h",
         //    "ntregapi.h",
+        //    "ntnsi.h",
         //    "ntrtl.h",
         //    "ntsam.h",
         //    "ntseapi.h",
@@ -133,6 +134,7 @@ namespace CustomBuildTool
             "graphscroll.h",
             "guisup.h",
             "guisupview.h",
+            "headernew.h",
             "hexedit.h",
             "hndlinfo.h",
             "json.h",
@@ -152,12 +154,14 @@ namespace CustomBuildTool
             "phnative.h",
             "phnativeinl.h",
             "phnet.h",
+            "phregex.h",
             "phsup.h",
             "phutil.h",
             "provider.h",
             "queuedlock.h",
             "ref.h",
             "searchbox.h",
+            "searchnew.h",
             "secedit.h",
             "settings.h",
             "strsrch.h",
@@ -168,6 +172,7 @@ namespace CustomBuildTool
             "trace.h",
             "treenew.h",
             "verify.h",
+            "webview.h",
             "workqueue.h"
         ];
 

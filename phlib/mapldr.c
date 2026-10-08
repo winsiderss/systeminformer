@@ -15,6 +15,129 @@
 #include <mapimg.h>
 #include <mapldr.h>
 
+#ifndef PH_NATIVE_IMAGE_DIRECTORY_ENTRY_TO_DATA
+#define PH_NATIVE_IMAGE_DIRECTORY_ENTRY_TO_DATA 1
+#endif
+
+#ifndef PH_NATIVE_LOAD_STRING
+#define PH_NATIVE_LOAD_STRING 1
+#endif
+
+/**
+ * Retrieves a PE image data-directory entry.
+ *
+ * \param BaseOfImage The base address of the mapped image or file.
+ * \param MappedAsImage Specifies whether the image is mapped as an image.
+ * \param DirectoryEntry The data-directory index.
+ * \param Size A pointer that receives the directory size.
+ * \return A pointer to the directory data, or NULL if unavailable.
+ */
+PVOID PhImageDirectoryEntryToData(
+    _In_ PVOID BaseOfImage,
+    _In_ BOOLEAN MappedAsImage,
+    _In_ USHORT DirectoryEntry,
+    _Out_ PULONG Size
+    )
+{
+#if defined(PH_NATIVE_IMAGE_DIRECTORY_ENTRY_TO_DATA)
+    PIMAGE_DOS_HEADER dosHeader;
+    PIMAGE_NT_HEADERS ntHeaders;
+    PIMAGE_DATA_DIRECTORY dataDirectory;
+    PIMAGE_SECTION_HEADER section;
+    ULONG_PTR rva;
+    ULONG index;
+
+    *Size = 0;
+
+    if (!BaseOfImage)
+        return NULL;
+
+    __try
+    {
+        dosHeader = (PIMAGE_DOS_HEADER)BaseOfImage;
+
+        if (dosHeader->e_magic != IMAGE_DOS_SIGNATURE)
+            return NULL;
+
+        if (dosHeader->e_lfanew < sizeof(IMAGE_DOS_HEADER) ||
+            dosHeader->e_lfanew > RTL_IMAGE_MAX_DOS_HEADER)
+            return NULL;
+
+        ntHeaders = (PIMAGE_NT_HEADERS)PTR_ADD_OFFSET(BaseOfImage, dosHeader->e_lfanew);
+
+        if (ntHeaders->Signature != IMAGE_NT_SIGNATURE)
+            return NULL;
+
+        if (ntHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            PIMAGE_OPTIONAL_HEADER32 optionalHeader = (PIMAGE_OPTIONAL_HEADER32)&ntHeaders->OptionalHeader;
+
+            if (DirectoryEntry >= optionalHeader->NumberOfRvaAndSizes ||
+                FIELD_OFFSET(IMAGE_OPTIONAL_HEADER32, DataDirectory) +
+                (DirectoryEntry + 1) * sizeof(IMAGE_DATA_DIRECTORY) >
+                ntHeaders->FileHeader.SizeOfOptionalHeader)
+                return NULL;
+
+            dataDirectory = &optionalHeader->DataDirectory[DirectoryEntry];
+        }
+        else if (ntHeaders->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        {
+            PIMAGE_OPTIONAL_HEADER64 optionalHeader = (PIMAGE_OPTIONAL_HEADER64)&ntHeaders->OptionalHeader;
+
+            if (DirectoryEntry >= optionalHeader->NumberOfRvaAndSizes ||
+                FIELD_OFFSET(IMAGE_OPTIONAL_HEADER64, DataDirectory) +
+                (DirectoryEntry + 1) * sizeof(IMAGE_DATA_DIRECTORY) >
+                ntHeaders->FileHeader.SizeOfOptionalHeader)
+                return NULL;
+
+            dataDirectory = &optionalHeader->DataDirectory[DirectoryEntry];
+        }
+        else
+        {
+            return NULL;
+        }
+
+        if (!dataDirectory->VirtualAddress || !dataDirectory->Size)
+            return NULL;
+
+        if (MappedAsImage)
+        {
+            *Size = dataDirectory->Size;
+            return PTR_ADD_OFFSET(BaseOfImage, dataDirectory->VirtualAddress);
+        }
+
+        rva = dataDirectory->VirtualAddress;
+        section = IMAGE_FIRST_SECTION(ntHeaders);
+
+        for (index = 0; index < ntHeaders->FileHeader.NumberOfSections; index++)
+        {
+            ULONG sectionSize = max(section->Misc.VirtualSize, section->SizeOfRawData);
+
+            if (rva >= section->VirtualAddress &&
+                rva < (ULONG_PTR)section->VirtualAddress + sectionSize)
+            {
+                ULONG_PTR sectionOffset = rva - section->VirtualAddress;
+
+                if (sectionOffset >= section->SizeOfRawData)
+                    return NULL;
+
+                *Size = dataDirectory->Size;
+                return PTR_ADD_OFFSET(BaseOfImage, section->PointerToRawData + sectionOffset);
+            }
+
+            section++;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+    }
+
+    return NULL;
+#else
+    return RtlImageDirectoryEntryToData(BaseOfImage, MappedAsImage, DirectoryEntry, Size);
+#endif
+}
+
 /**
  * Locates a loader entry in the current process.
  *
@@ -902,6 +1025,7 @@ PPH_STRING PhLoadString(
     _In_ ULONG ResourceId
     )
 {
+#if defined(PH_NATIVE_LOAD_STRING)
     ULONG resourceId = (LOWORD(ResourceId) >> 4) + 1;
     PIMAGE_RESOURCE_DIR_STRING_U stringBuffer;
     PPH_STRING string = NULL;
@@ -943,6 +1067,30 @@ PPH_STRING PhLoadString(
     }
 
     return string;
+#else
+    NTSTATUS status;
+    PCWSTR stringBuffer;
+    USHORT stringLength;
+
+    if (!RtlLoadString_Import())
+        return NULL;
+
+    status = RtlLoadString_Import()(
+        DllBase,
+        ResourceId,
+        NULL,
+        0,
+        &stringBuffer,
+        &stringLength,
+        NULL,
+        NULL
+        );
+
+    if (!NT_SUCCESS(status))
+        return NULL;
+
+    return PhCreateStringEx(stringBuffer, stringLength * sizeof(WCHAR));
+#endif
 }
 
 // rev from SHLoadIndirectString (dmex)

@@ -3986,7 +3986,7 @@ INT_PTR CALLBACK PhpInformerDlgProc(
                 PhCenterWindow(hwndDlg, PhMainWndHandle);
 
             // Set initial focus to the TreeNew, not the search box
-            SetFocus(context->TreeNewHandle);
+            PhSetDialogFocus(hwndDlg, context->TreeNewHandle);
         }
         return FALSE;  // We handled focus ourselves
 

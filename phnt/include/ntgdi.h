@@ -331,7 +331,6 @@ NtGdiArcInternal(
 
 _Kernel_entry_
 NTSYSCALLAPI
-
 LONG
 NTAPI
 NtGdiStretchDIBitsInternal(
@@ -355,7 +354,6 @@ NtGdiStretchDIBitsInternal(
 
 _Kernel_entry_
 NTSYSCALLAPI
-
 ULONG
 NTAPI
 NtGdiGetOutlineTextMetricsInternalW(
@@ -2578,6 +2576,7 @@ NtGdiQueryFonts(
 _Kernel_entry_ 
 NTSYSCALLAPI
 ULONG
+NTAPI
 NtGdiGetCharSet(
     _In_ HDC hdc
     );
@@ -3400,6 +3399,7 @@ NtGdiGetDeviceWidth(
 _Kernel_entry_ 
 NTSYSCALLAPI
 NTSTATUS
+NTAPI
 NtGdiSetUMPDSandboxState(
     _In_ BOOL bEnabled
     );
@@ -3407,6 +3407,7 @@ NtGdiSetUMPDSandboxState(
 _Kernel_entry_ 
 NTSYSCALLAPI
 BOOL
+NTAPI
 NtGdiSetPUMPDOBJ(
     _In_opt_ HUMPD humpd,
     _In_ BOOL bStoreID,
@@ -3417,6 +3418,7 @@ NtGdiSetPUMPDOBJ(
 _Kernel_entry_ 
 NTSYSCALLAPI
 BOOL
+NTAPI
 NtGdiBRUSHOBJ_DeleteRbrush(
     _In_opt_ BRUSHOBJ *pbo,
     _In_opt_ BRUSHOBJ *pboB
@@ -3425,6 +3427,7 @@ NtGdiBRUSHOBJ_DeleteRbrush(
 _Kernel_entry_ 
 NTSYSCALLAPI
 BOOL
+NTAPI
 NtGdiUMPDEngFreeUserMem(
     _In_ KERNEL_PVOID *ppv
     );

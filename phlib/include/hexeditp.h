@@ -93,7 +93,7 @@ VOID PhpHexEditUpdateMetrics(
 VOID PhpHexEditOnPaint(
     _In_ HWND hwnd,
     _In_ PPHP_HEXEDIT_CONTEXT Context,
-    _In_ PAINTSTRUCT *PaintStruct,
+    _In_ RECT* clientRect,
     _In_ HDC hdc
     );
 

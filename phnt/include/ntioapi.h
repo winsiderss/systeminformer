@@ -446,7 +446,7 @@ typedef struct _IO_STATUS_BLOCK
     {
         NTSTATUS Status;
         PVOID Pointer;
-    };
+    } DUMMYUNIONNAME;
     ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
@@ -620,8 +620,8 @@ typedef struct _FILE_INTERNAL_INFORMATION
         {
             ULONGLONG MftRecordIndex : 48; // rev
             ULONGLONG SequenceNumber : 16; // rev
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } FILE_INTERNAL_INFORMATION, *PFILE_INTERNAL_INFORMATION;
 
 /**
@@ -762,17 +762,30 @@ typedef struct _FILE_END_OF_FILE_INFORMATION
     LARGE_INTEGER EndOfFile;
 } FILE_END_OF_FILE_INFORMATION, *PFILE_END_OF_FILE_INFORMATION;
 
+// Signals that this EOF adjustment specifically targets a paging file,
+// invoking distinct allocation paths in the file system to ensure the
+// space is non-paged and contiguous where possible.
 #define FLAGS_END_OF_FILE_INFO_EX_EXTEND_PAGING             0x00000001
+// Prevents the file system from over-allocating. By default, file systems
+// might allocate more space than requested to prevent fragmentation;
+// this flag forces exact allocation to conserve disk space.
 #define FLAGS_END_OF_FILE_INFO_EX_NO_EXTRA_PAGING_EXTEND    0x00000002
+// Prevents the operation from blocking indefinitely. If the disk is highly
+// fragmented and finding contiguous space would take too long,
+// the file system is instructed to fail or truncate the request rather
+// than hanging a critical Mm thread.
 #define FLAGS_END_OF_FILE_INFO_EX_TIME_CONSTRAINED          0x00000004
 #define FLAGS_DELAY_REASONS_LOG_FILE_FULL                   0x00000001
 #define FLAGS_DELAY_REASONS_BITMAP_SCANNED                  0x00000002
 
+/**
+ * The FILE_END_OF_FILE_INFORMATION_EX structure contains extended end-of-file information used to set the logical end of a file.
+ */
 typedef struct _FILE_END_OF_FILE_INFORMATION_EX
 {
-    LARGE_INTEGER EndOfFile;
-    LARGE_INTEGER PagingFileSizeInMM;
-    LARGE_INTEGER PagingFileMaxSize;
+    LARGE_INTEGER EndOfFile;                    // The new desired end-of-file byte offset.
+    LARGE_INTEGER PagingFileSizeInMM;           // The size currently recognized or requested by the Memory Manager.
+    LARGE_INTEGER PagingFileMaxSize;            // The hard limit for the paging file's growth, preventing it from consuming the entire volume.
     ULONG Flags;
 } FILE_END_OF_FILE_INFORMATION_EX, *PFILE_END_OF_FILE_INFORMATION_EX;
 
@@ -785,8 +798,8 @@ typedef struct _FILE_VALID_DATA_LENGTH_INFORMATION
     LARGE_INTEGER ValidDataLength;
 } FILE_VALID_DATA_LENGTH_INFORMATION, *PFILE_VALID_DATA_LENGTH_INFORMATION;
 
-#define FILE_LINK_REPLACE_IF_EXISTS 0x00000001 // since RS5
-#define FILE_LINK_POSIX_SEMANTICS   0x00000002
+#define FILE_LINK_REPLACE_IF_EXISTS                     0x00000001 // since RS5
+#define FILE_LINK_POSIX_SEMANTICS                       0x00000002
 
 #define FILE_LINK_SUPPRESS_STORAGE_RESERVE_INHERITANCE  0x00000008
 #define FILE_LINK_NO_INCREASE_AVAILABLE_SPACE           0x00000010
@@ -803,12 +816,19 @@ typedef struct _FILE_VALID_DATA_LENGTH_INFORMATION
  */
 typedef struct _FILE_LINK_INFORMATION
 {
-    BOOLEAN ReplaceIfExists;
+    union
+    {
+        BOOLEAN ReplaceIfExists;  // FileLinkInformation
+        ULONG Flags;              // FileLinkInformationEx
+    } DUMMYUNIONNAME;
     HANDLE RootDirectory;
     ULONG FileNameLength;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_LINK_INFORMATION, *PFILE_LINK_INFORMATION;
 
+/**
+ * The FILE_LINK_INFORMATION_EX structure contains extended information, including flags, used to create a hard link to an existing file.
+ */
 typedef struct _FILE_LINK_INFORMATION_EX
 {
     ULONG Flags;
@@ -817,6 +837,9 @@ typedef struct _FILE_LINK_INFORMATION_EX
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_LINK_INFORMATION_EX, *PFILE_LINK_INFORMATION_EX;
 
+/**
+ * The FILE_MOVE_CLUSTER_INFORMATION structure contains information used to move a cluster of a file during a defragmentation operation.
+ */
 typedef struct _FILE_MOVE_CLUSTER_INFORMATION
 {
     ULONG ClusterCount;
@@ -979,8 +1002,8 @@ typedef struct _FILE_REPARSE_POINT_INFORMATION
         {
             ULONGLONG MftRecordIndex : 48; // rev
             ULONGLONG SequenceNumber : 16; // rev
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONG Tag;
 } FILE_REPARSE_POINT_INFORMATION, *PFILE_REPARSE_POINT_INFORMATION;
 
@@ -1028,6 +1051,9 @@ typedef struct _FILE_STANDARD_LINK_INFORMATION
     BOOLEAN Directory;
 } FILE_STANDARD_LINK_INFORMATION, *PFILE_STANDARD_LINK_INFORMATION;
 
+/**
+ * The FILE_SFIO_RESERVE_INFORMATION structure contains scheduled-file-I/O (SFIO) bandwidth reservation information for a file.
+ */
 typedef struct _FILE_SFIO_RESERVE_INFORMATION
 {
     ULONG RequestsPerPeriod;
@@ -1038,6 +1064,9 @@ typedef struct _FILE_SFIO_RESERVE_INFORMATION
     ULONG NumOutstandingRequests;
 } FILE_SFIO_RESERVE_INFORMATION, *PFILE_SFIO_RESERVE_INFORMATION;
 
+/**
+ * The FILE_SFIO_VOLUME_INFORMATION structure contains scheduled-file-I/O (SFIO) reservation information for a volume.
+ */
 typedef struct _FILE_SFIO_VOLUME_INFORMATION
 {
     ULONG MaximumRequestsPerPeriod;
@@ -1096,11 +1125,17 @@ typedef struct _FILE_IO_PRIORITY_HINT_INFORMATION_EX
  */
 #define FILE_SKIP_SET_USER_EVENT_ON_FAST_IO 0x4
 
+/**
+ * The FILE_IO_COMPLETION_NOTIFICATION_INFORMATION structure contains the I/O completion notification flags for a file handle.
+ */
 typedef struct _FILE_IO_COMPLETION_NOTIFICATION_INFORMATION
 {
     ULONG Flags;
 } FILE_IO_COMPLETION_NOTIFICATION_INFORMATION, *PFILE_IO_COMPLETION_NOTIFICATION_INFORMATION;
 
+/**
+ * The FILE_PROCESS_IDS_USING_FILE_INFORMATION structure contains the list of process identifiers that currently have the file open.
+ */
 typedef struct _FILE_PROCESS_IDS_USING_FILE_INFORMATION
 {
     ULONG NumberOfProcessIdsInList;
@@ -1116,11 +1151,17 @@ typedef struct _FILE_IS_REMOTE_DEVICE_INFORMATION
     BOOLEAN IsRemote; // A value that indicates whether the file system that contains the file is a remote file system.
 } FILE_IS_REMOTE_DEVICE_INFORMATION, *PFILE_IS_REMOTE_DEVICE_INFORMATION;
 
+/**
+ * The FILE_NUMA_NODE_INFORMATION structure contains the NUMA node associated with a file.
+ */
 typedef struct _FILE_NUMA_NODE_INFORMATION
 {
     USHORT NodeNumber;
 } FILE_NUMA_NODE_INFORMATION, *PFILE_NUMA_NODE_INFORMATION;
 
+/**
+ * The FILE_IOSTATUSBLOCK_RANGE_INFORMATION structure describes a range of I/O status blocks associated with a file.
+ */
 typedef struct _FILE_IOSTATUSBLOCK_RANGE_INFORMATION
 {
     PUCHAR IoStatusBlockRange;
@@ -1128,6 +1169,9 @@ typedef struct _FILE_IOSTATUSBLOCK_RANGE_INFORMATION
 } FILE_IOSTATUSBLOCK_RANGE_INFORMATION, *PFILE_IOSTATUSBLOCK_RANGE_INFORMATION;
 
 // Win32 FILE_REMOTE_PROTOCOL_INFO
+/**
+ * The FILE_REMOTE_PROTOCOL_INFORMATION structure contains information about the protocol used to access a file on a remote server.
+ */
 typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
 {
     // Structure Version
@@ -1176,6 +1220,9 @@ typedef struct _FILE_REMOTE_PROTOCOL_INFORMATION
 
 #define CHECKSUM_ENFORCEMENT_OFF 0x00000001
 
+/**
+ * The FILE_INTEGRITY_STREAM_INFORMATION structure contains the integrity (checksum) settings for a file's data stream.
+ */
 typedef struct _FILE_INTEGRITY_STREAM_INFORMATION
 {
     USHORT ChecksumAlgorithm;
@@ -1184,6 +1231,9 @@ typedef struct _FILE_INTEGRITY_STREAM_INFORMATION
     ULONG Flags;
 } FILE_INTEGRITY_STREAM_INFORMATION, *PFILE_INTEGRITY_STREAM_INFORMATION;
 
+/**
+ * The FILE_VOLUME_NAME_INFORMATION structure contains the name of the volume on which a file resides.
+ */
 typedef struct _FILE_VOLUME_NAME_INFORMATION
 {
     ULONG DeviceNameLength;
@@ -1249,10 +1299,10 @@ typedef struct _FILE_ID_INFORMATION
             {
                 FILE_INTERNAL_INFORMATION FileInternal; // rev
                 LONGLONG FileIdLowPart; // rev
-            };
+            } DUMMYUNIONNAME;
             LONGLONG FileIdHighPart; // rev
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } FILE_ID_INFORMATION, *PFILE_ID_INFORMATION;
 
 /**
@@ -1360,7 +1410,7 @@ typedef struct _FILE_ID_64_EXTD_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_64_EXTD_DIR_INFORMATION, *PFILE_ID_64_EXTD_DIR_INFORMATION;
 
@@ -1393,7 +1443,7 @@ typedef struct _FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
@@ -1428,7 +1478,7 @@ typedef struct _FILE_ID_ALL_EXTD_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     FILE_ID_128 FileId128;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_ALL_EXTD_DIR_INFORMATION, *PFILE_ID_ALL_EXTD_DIR_INFORMATION;
@@ -1462,7 +1512,7 @@ typedef struct _FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     FILE_ID_128 FileId128;
     CCHAR ShortNameLength;
     WCHAR ShortName[12];
@@ -1533,7 +1583,7 @@ typedef struct _FILE_MEMORY_PARTITION_INFORMATION
         {
             UCHAR NoCrossPartitionAccess;
             UCHAR Spare[3];
-        };
+        } DUMMYSTRUCTNAME;
         ULONG AllFlags;
     } Flags;
 } FILE_MEMORY_PARTITION_INFORMATION, *PFILE_MEMORY_PARTITION_INFORMATION;
@@ -1571,6 +1621,9 @@ typedef struct _FILE_STAT_LX_INFORMATION
 } FILE_STAT_LX_INFORMATION, *PFILE_STAT_LX_INFORMATION;
 #endif // NTDDI_WIN11_GE
 
+/**
+ * The FILE_STORAGE_RESERVE_ID_INFORMATION structure contains the storage reserve area identifier assigned to a file.
+ */
 typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION
 {
     STORAGE_RESERVE_ID StorageReserveId;
@@ -1579,12 +1632,18 @@ typedef struct _FILE_STORAGE_RESERVE_ID_INFORMATION
 #define FILE_CS_FLAG_CASE_SENSITIVE_DIR     0x00000001
 
 #if !defined(NTDDI_WIN11_GE) || (NTDDI_VERSION < NTDDI_WIN11_GE)
+/**
+ * The FILE_CASE_SENSITIVE_INFORMATION structure contains the case-sensitivity flags for a directory.
+ */
 typedef struct _FILE_CASE_SENSITIVE_INFORMATION
 {
     ULONG Flags;
 } FILE_CASE_SENSITIVE_INFORMATION, *PFILE_CASE_SENSITIVE_INFORMATION;
 #endif // NTDDI_WIN11_GE
 
+/**
+ * The FILE_KNOWN_FOLDER_TYPE enumeration identifies the type of a known folder.
+ */
 typedef enum _FILE_KNOWN_FOLDER_TYPE
 {
     KnownFolderNone = 0,
@@ -1598,12 +1657,18 @@ typedef enum _FILE_KNOWN_FOLDER_TYPE
     KnownFolderMax
 } FILE_KNOWN_FOLDER_TYPE;
 
+/**
+ * The FILE_KNOWN_FOLDER_INFORMATION structure contains the known-folder classification of a file or directory.
+ */
 typedef struct _FILE_KNOWN_FOLDER_INFORMATION
 {
     FILE_KNOWN_FOLDER_TYPE Type;
 } FILE_KNOWN_FOLDER_INFORMATION, *PFILE_KNOWN_FOLDER_INFORMATION;
 
 // private
+/**
+ * The FILE_STREAM_RESERVATION_INFORMATION structure contains reservation information for a file's data stream.
+ */
 typedef struct _FILE_STREAM_RESERVATION_INFORMATION
 {
     ULONG_PTR TrackedReservation;
@@ -1611,6 +1676,9 @@ typedef struct _FILE_STREAM_RESERVATION_INFORMATION
 } FILE_STREAM_RESERVATION_INFORMATION, *PFILE_STREAM_RESERVATION_INFORMATION;
 
 // private
+/**
+ * The MUP_PROVIDER_INFORMATION structure contains information about a Multiple UNC Provider (MUP) redirector.
+ */
 typedef struct _MUP_PROVIDER_INFORMATION
 {
     ULONG Level;
@@ -1622,6 +1690,9 @@ typedef struct _MUP_PROVIDER_INFORMATION
 // NtQueryDirectoryFile types
 //
 
+/**
+ * The FILE_INFORMATION_DEFINITION structure contains metadata describing a file information class.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_INFORMATION_DEFINITION
 {
@@ -1708,7 +1779,7 @@ typedef struct _FILE_ID_FULL_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_FULL_DIR_INFORMATION, *PFILE_ID_FULL_DIR_INFORMATION;
 
@@ -1773,7 +1844,7 @@ typedef struct _FILE_ID_BOTH_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_ID_BOTH_DIR_INFORMATION, *PFILE_ID_BOTH_DIR_INFORMATION;
 
@@ -1825,7 +1896,7 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
     {
         LARGE_INTEGER FileId;
         FILE_INTERNAL_INFORMATION FileInternal; // rev
-    };
+    } DUMMYUNIONNAME;
     GUID LockingTransactionId;
     ULONG TxInfoFlags;
     _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
@@ -1842,6 +1913,9 @@ typedef struct _FILE_ID_GLOBAL_TX_DIR_INFORMATION
     FIELD_OFFSET(FILE_ID_GLOBAL_TX_DIR_INFORMATION, FileNameLength)     \
 }
 
+/**
+ * The FILE_OBJECTID_INFORMATION structure contains the object identifier and extended data for a file.
+ */
 typedef struct _FILE_OBJECTID_INFORMATION
 {
     union
@@ -1851,8 +1925,8 @@ typedef struct _FILE_OBJECTID_INFORMATION
         {
             ULONGLONG MftRecordIndex : 48; // rev
             ULONGLONG SequenceNumber : 16; // rev
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     UCHAR ObjectId[16]; // GUID
     union
     {
@@ -1861,11 +1935,14 @@ typedef struct _FILE_OBJECTID_INFORMATION
             UCHAR BirthVolumeId[16];
             UCHAR BirthObjectId[16];
             UCHAR DomainId[16];
-        };
+        } DUMMYSTRUCTNAME;
         UCHAR ExtendedInfo[48];
-    };
+    } DUMMYUNIONNAME;
 } FILE_OBJECTID_INFORMATION, *PFILE_OBJECTID_INFORMATION;
 
+/**
+ * The FILE_DIRECTORY_NEXT_INFORMATION structure contains the offset to the next entry in a directory information buffer.
+ */
 typedef struct _FILE_DIRECTORY_NEXT_INFORMATION
 {
     ULONG NextEntryOffset;
@@ -1875,6 +1952,9 @@ typedef struct _FILE_DIRECTORY_NEXT_INFORMATION
 // NtQueryEaFile/NtSetEaFile types
 //
 
+/**
+ * The FILE_FULL_EA_INFORMATION structure describes a full extended attribute (EA) name/value entry for a file.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_FULL_EA_INFORMATION
 {
@@ -2050,9 +2130,9 @@ typedef struct _FILE_FS_OBJECTID_INFORMATION
             UCHAR BirthVolumeId[16];
             UCHAR BirthObjectId[16];
             UCHAR DomainId[16];
-        };
+        } DUMMYSTRUCTNAME;
         UCHAR ExtendedInfo[48];
-    };
+    } DUMMYUNIONNAME;
 } FILE_FS_OBJECTID_INFORMATION, *PFILE_FS_OBJECTID_INFORMATION;
 
 /**
@@ -3135,6 +3215,9 @@ NtNotifyChangeDirectoryFile(
     );
 
 // private
+/**
+ * The DIRECTORY_NOTIFY_INFORMATION_CLASS enumeration specifies the type of information reported by a directory change notification.
+ */
 typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 {
     DirectoryNotifyInformation = 1, // FILE_NOTIFY_INFORMATION
@@ -3144,15 +3227,21 @@ typedef enum _DIRECTORY_NOTIFY_INFORMATION_CLASS
 } DIRECTORY_NOTIFY_INFORMATION_CLASS, *PDIRECTORY_NOTIFY_INFORMATION_CLASS;
 
 #if !defined(NTDDI_WIN10_RS5) || (NTDDI_VERSION < NTDDI_WIN10_RS5)
+/**
+ * The FILE_NOTIFY_INFORMATION structure describes a change to a file or directory reported by a change notification.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_NOTIFY_INFORMATION
 {
    ULONG NextEntryOffset;
    ULONG Action;
    ULONG FileNameLength;
-   WCHAR FileName[1];
+   _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_NOTIFY_INFORMATION, *PFILE_NOTIFY_INFORMATION;
 
+/**
+ * The FILE_NOTIFY_EXTENDED_INFORMATION structure contains extended change-notification information including file attributes and identifiers.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 {
@@ -3169,11 +3258,11 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
     {
         ULONG ReparsePointTag;
         ULONG EaSize;
-    };
+    } DUMMYUNIONNAME;
     FILE_INTERNAL_INFORMATION FileId;
     FILE_INTERNAL_INFORMATION ParentFileId;
     ULONG FileNameLength;
-    WCHAR FileName[1];
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_NOTIFY_EXTENDED_INFORMATION, *PFILE_NOTIFY_EXTENDED_INFORMATION;
 #endif // NTDDI_WIN10_RS5
 
@@ -3184,6 +3273,9 @@ typedef struct _FILE_NOTIFY_EXTENDED_INFORMATION
 #define FILE_NAME_FLAGS_UNSPECIFIED  0x80 // not specified by file system (do not combine with other flags)
 
 #if !defined(NTDDI_WIN10_NI) || (NTDDI_VERSION < NTDDI_WIN10_NI)
+/**
+ * The FILE_NOTIFY_FULL_INFORMATION structure contains full change-notification information including the file identity and reason for the change.
+ */
 _Struct_size_bytes_(NextEntryOffset)
 typedef struct _FILE_NOTIFY_FULL_INFORMATION
 {
@@ -3200,13 +3292,13 @@ typedef struct _FILE_NOTIFY_FULL_INFORMATION
     {
         ULONG ReparsePointTag;
         ULONG EaSize;
-    };
+    } DUMMYUNIONNAME;
     FILE_INTERNAL_INFORMATION FileId;
     FILE_INTERNAL_INFORMATION ParentFileId;
     USHORT FileNameLength;
     BYTE FileNameFlags;
     BYTE Reserved;
-    WCHAR FileName[1];
+    _Field_size_bytes_(FileNameLength) WCHAR FileName[1];
 } FILE_NOTIFY_FULL_INFORMATION, *PFILE_NOTIFY_FULL_INFORMATION;
 #endif // NTDDI_WIN10_NI
 
@@ -3443,6 +3535,9 @@ NtRemoveIoCompletion(
     );
 
 // private
+/**
+ * The FILE_IO_COMPLETION_INFORMATION structure describes an I/O completion entry removed from an I/O completion port.
+ */
 typedef struct _FILE_IO_COMPLETION_INFORMATION
 {
     PVOID KeyContext;
@@ -3721,6 +3816,9 @@ NtSetInformationIoRing(
 // Other types
 //
 
+/**
+ * The INTERFACE_TYPE enumeration identifies the type of bus interface for a device.
+ */
 typedef enum _INTERFACE_TYPE
 {
     InterfaceTypeUndefined = -1,
@@ -3745,6 +3843,9 @@ typedef enum _INTERFACE_TYPE
     MaximumInterfaceType
 } INTERFACE_TYPE, *PINTERFACE_TYPE;
 
+/**
+ * The DMA_WIDTH enumeration specifies the width of a DMA transfer.
+ */
 typedef enum _DMA_WIDTH
 {
     Width8Bits,
@@ -3755,6 +3856,9 @@ typedef enum _DMA_WIDTH
     MaximumDmaWidth
 } DMA_WIDTH, *PDMA_WIDTH;
 
+/**
+ * The DMA_SPEED enumeration specifies the speed of a DMA transfer.
+ */
 typedef enum _DMA_SPEED
 {
     Compatible,
@@ -3765,6 +3869,9 @@ typedef enum _DMA_SPEED
     MaximumDmaSpeed
 } DMA_SPEED, *PDMA_SPEED;
 
+/**
+ * The BUS_DATA_TYPE enumeration identifies the type of bus configuration space.
+ */
 typedef enum _BUS_DATA_TYPE
 {
     ConfigurationSpaceUndefined = -1,
@@ -3830,7 +3937,7 @@ typedef struct _REPARSE_DATA_BUFFER
         {
             UCHAR DataBuffer[1];
         } GenericReparseBuffer;
-    };
+    } DUMMYUNIONNAME;
 } REPARSE_DATA_BUFFER, *PREPARSE_DATA_BUFFER;
 
 #define REPARSE_DATA_BUFFER_HEADER_SIZE UFIELD_OFFSET(REPARSE_DATA_BUFFER, GenericReparseBuffer)
@@ -3884,7 +3991,7 @@ typedef struct _REPARSE_DATA_BUFFER_EX
     {
         REPARSE_DATA_BUFFER ReparseDataBuffer;
         REPARSE_GUID_DATA_BUFFER ReparseGuidDataBuffer;
-    };
+    } DUMMYUNIONNAME;
 } REPARSE_DATA_BUFFER_EX, *PREPARSE_DATA_BUFFER_EX;
 
 //  REPARSE_DATA_BUFFER_EX Flags
@@ -3942,6 +4049,9 @@ typedef struct _REPARSE_DATA_BUFFER_EX
 #define FILE_PIPE_WRITE_SPACE 0x00000001
 
 // Input for FSCTL_PIPE_ASSIGN_EVENT
+/**
+ * The FILE_PIPE_ASSIGN_EVENT_BUFFER structure is the input buffer used to assign an event to a named pipe.
+ */
 typedef struct _FILE_PIPE_ASSIGN_EVENT_BUFFER
 {
     HANDLE EventHandle;
@@ -3949,6 +4059,9 @@ typedef struct _FILE_PIPE_ASSIGN_EVENT_BUFFER
 } FILE_PIPE_ASSIGN_EVENT_BUFFER, *PFILE_PIPE_ASSIGN_EVENT_BUFFER;
 
 // Output for FILE_PIPE_PEEK_BUFFER
+/**
+ * The FILE_PIPE_PEEK_BUFFER structure is the output buffer that receives data peeked from a named pipe.
+ */
 typedef struct _FILE_PIPE_PEEK_BUFFER
 {
     ULONG NamedPipeState;
@@ -3959,6 +4072,9 @@ typedef struct _FILE_PIPE_PEEK_BUFFER
 } FILE_PIPE_PEEK_BUFFER, *PFILE_PIPE_PEEK_BUFFER;
 
 // Output for FSCTL_PIPE_QUERY_EVENT
+/**
+ * The FILE_PIPE_EVENT_BUFFER structure describes a named pipe event.
+ */
 typedef struct _FILE_PIPE_EVENT_BUFFER
 {
     ULONG NamedPipeState;
@@ -3969,6 +4085,9 @@ typedef struct _FILE_PIPE_EVENT_BUFFER
 } FILE_PIPE_EVENT_BUFFER, *PFILE_PIPE_EVENT_BUFFER;
 
 // Input for FSCTL_PIPE_WAIT
+/**
+ * The FILE_PIPE_WAIT_FOR_BUFFER structure is the input buffer used to wait for an instance of a named pipe to become available.
+ */
 typedef struct _FILE_PIPE_WAIT_FOR_BUFFER
 {
     LARGE_INTEGER Timeout;
@@ -3978,6 +4097,9 @@ typedef struct _FILE_PIPE_WAIT_FOR_BUFFER
 } FILE_PIPE_WAIT_FOR_BUFFER, *PFILE_PIPE_WAIT_FOR_BUFFER;
 
 // Input for FSCTL_PIPE_SET_CLIENT_PROCESS, Output for FSCTL_PIPE_QUERY_CLIENT_PROCESS
+/**
+ * The FILE_PIPE_CLIENT_PROCESS_BUFFER structure associates a client process with a named pipe.
+ */
 typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER
 {
 #if !defined(BUILD_WOW6432)
@@ -3991,6 +4113,9 @@ typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER
 
 // Control structure for FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2
 
+/**
+ * The FILE_PIPE_CLIENT_PROCESS_BUFFER_V2 structure associates a client process, with additional context, with a named pipe.
+ */
 typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_V2
 {
      ULONGLONG ClientSession;
@@ -4004,6 +4129,9 @@ typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_V2
 #define FILE_PIPE_COMPUTER_NAME_LENGTH 15
 
 // Input for FSCTL_PIPE_SET_CLIENT_PROCESS, Output for FSCTL_PIPE_QUERY_CLIENT_PROCESS
+/**
+ * The FILE_PIPE_CLIENT_PROCESS_BUFFER_EX structure associates a client process, with extended information, with a named pipe.
+ */
 typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_EX
 {
 #if !defined(BUILD_WOW6432)
@@ -4019,6 +4147,9 @@ typedef struct _FILE_PIPE_CLIENT_PROCESS_BUFFER_EX
 
 // Control structure for FSCTL_PIPE_SILO_ARRIVAL
 
+/**
+ * The FILE_PIPE_SILO_ARRIVAL_INPUT structure describes a server silo arrival notification for a named pipe.
+ */
 typedef struct _FILE_PIPE_SILO_ARRIVAL_INPUT
 {
     HANDLE JobHandle;
@@ -4047,8 +4178,13 @@ typedef struct _FILE_PIPE_SILO_ARRIVAL_INPUT
 #define FILE_PIPE_SYMLINK_VALID_FLAGS \
     (FILE_PIPE_SYMLINK_FLAG_GLOBAL | FILE_PIPE_SYMLINK_FLAG_RELATIVE)
 
+//
 // Control structure for FSCTL_PIPE_CREATE_SYMLINK
+//
 
+/**
+ * The FILE_PIPE_CREATE_SYMLINK_INPUT structure is the input used to create a named pipe symbolic link.
+ */
 typedef struct _FILE_PIPE_CREATE_SYMLINK_INPUT
 {
     USHORT NameOffset;
@@ -4058,15 +4194,22 @@ typedef struct _FILE_PIPE_CREATE_SYMLINK_INPUT
     ULONG Flags;
 } FILE_PIPE_CREATE_SYMLINK_INPUT, *PFILE_PIPE_CREATE_SYMLINK_INPUT;
 
+//
 // Control structure for FSCTL_PIPE_DELETE_SYMLINK
+//
 
+/**
+ * The FILE_PIPE_DELETE_SYMLINK_INPUT structure is the input used to delete a named pipe symbolic link.
+ */
 typedef struct _FILE_PIPE_DELETE_SYMLINK_INPUT
 {
     USHORT NameOffset;
     USHORT NameLength;
 } FILE_PIPE_DELETE_SYMLINK_INPUT, *PFILE_PIPE_DELETE_SYMLINK_INPUT;
 
+//
 // Mailslot FS control definitions
+//
 
 #define MAILSLOT_CLASS_FIRSTCLASS 1
 #define MAILSLOT_CLASS_SECONDCLASS 2
@@ -4074,6 +4217,9 @@ typedef struct _FILE_PIPE_DELETE_SYMLINK_INPUT
 #define FSCTL_MAILSLOT_PEEK             CTL_CODE(FILE_DEVICE_MAILSLOT, 0, METHOD_NEITHER, FILE_READ_DATA)
 
 // Output for FSCTL_MAILSLOT_PEEK
+/**
+ * The FILE_MAILSLOT_PEEK_BUFFER structure is the output buffer that receives data peeked from a mailslot.
+ */
 typedef struct _FILE_MAILSLOT_PEEK_BUFFER
 {
     ULONG ReadDataAvailable;
@@ -4283,6 +4429,9 @@ typedef struct _MOUNTMGR_SILO_ARRIVAL_INPUT
      (s)->Buffer[47] == '}')
 
 // Output structure for IOCTL_MOUNTDEV_QUERY_DEVICE_NAME.
+/**
+ * The MOUNTDEV_NAME structure contains a device name returned by a mount-manager device.
+ */
 typedef struct _MOUNTDEV_NAME
 {
     USHORT NameLength;
@@ -4290,6 +4439,9 @@ typedef struct _MOUNTDEV_NAME
 } MOUNTDEV_NAME, *PMOUNTDEV_NAME;
 
 // Output structure for IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATH and IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATHS.
+/**
+ * The MOUNTMGR_VOLUME_PATHS structure contains the set of volume paths (drive letters and mount points) for a volume.
+ */
 typedef struct _MOUNTMGR_VOLUME_PATHS
 {
     ULONG MultiSzLength;
@@ -4319,6 +4471,11 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 //
 // Filter manager
 //
+// rev: User-mode control interface checked against FltMgr.sys
+// and the native/WOW64 FltLib connection builders. These are device IOCTLs
+// (NtDeviceIoControlFile), not file-system controls (NtFsControlFile).
+// The private buffers below are not kernel FLT_FILTER/FLT_INSTANCE objects.
+// Use the default structure packing.
 
 #define FLT_PORT_CONNECT 0x0001
 #define FLT_PORT_ALL_ACCESS (FLT_PORT_CONNECT | STANDARD_RIGHTS_ALL)
@@ -4330,6 +4487,17 @@ typedef struct _MOUNTMGR_VOLUME_PATHS
 #define FLT_MSG_DEVICE_NAME  L"\\FileSystem\\Filters\\FltMgrMsg"
 
 // private
+/**
+ * The FLT_CONNECT_CONTEXT structure contains the connection context passed when connecting to a filter communication port.
+ *
+ * Supply this as the value of the FLTPORT EA when opening FLT_MSG_DEVICE_NAME.
+ * Both pointers are caller-sized addresses: PortName64 points to a UNICODE_STRING64,
+ * but is not itself a 64-bit pointer in a 32-bit process. The WOW64 path reads
+ * PortName64; the native x64 path reads PortName. Keep both descriptors and their
+ * string buffers valid until NtCreateFile completes. Context is copied inline
+ * and delivered to the minifilter's connection callback. Its offset is 24 bytes
+ * on x64 and 16 bytes on x86; sizeof(FLT_CONNECT_CONTEXT) includes tail padding.
+ */
 typedef struct _FLT_CONNECT_CONTEXT
 {
     PUNICODE_STRING PortName;
@@ -4341,9 +4509,26 @@ typedef struct _FLT_CONNECT_CONTEXT
 
 // rev
 #define FLT_PORT_EA_NAME "FLTPORT"
+// Exclusive upper bound used by FilterConnectCommunicationPort.
+// Maximum accepted context: 0xFFE7 bytes on x64, 0xFFEF bytes on x86.
+#ifdef _WIN64
 #define FLT_PORT_CONTEXT_MAX 0xFFE8
+#else
+#define FLT_PORT_CONTEXT_MAX 0xFFF0
+#endif
 
 // combined FILE_FULL_EA_INFORMATION and FLT_CONNECT_CONTEXT
+/**
+ * The FLT_PORT_FULL_EA structure is the full extended attribute buffer used to open a filter communication port.
+ *
+ * EaValue starts at byte 16 on both x86 and x64. EaValueLength excludes the
+ * EA header and name and equals FLT_PORT_FULL_EA_VALUE_SIZE + SizeOfContext.
+ * Pass FLT_PORT_FULL_EA_SIZE + EaValueLength as NtCreateFile's EaLength.
+ * Open with FILE_READ_DATA | FILE_WRITE_DATA | SYNCHRONIZE and FILE_OPEN_IF;
+ * use FILE_SYNCHRONOUS_IO_NONALERT only for a synchronous connection handle.
+ * The server port's security descriptor controls access. Close the returned
+ * file handle with NtClose to release the connection.
+ */
 typedef struct _FLT_PORT_FULL_EA
 {
     ULONG NextEntryOffset; // 0
@@ -4354,26 +4539,54 @@ typedef struct _FLT_PORT_FULL_EA
     FLT_CONNECT_CONTEXT EaValue;
 } FLT_PORT_FULL_EA, *PFLT_PORT_FULL_EA;
 
+// Use exact EA sizing by default. Define PHNT_FLT_PORT_USE_LEGACY_EA_SIZE before
+// including this header to use the same allocation sizing as FltLib instead.
+#if !defined(PHNT_FLT_PORT_USE_LEGACY_EA_SIZE) && !defined(PHNT_FLT_PORT_USE_EXACT_EA_SIZE)
+#define PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+#endif
+
+#ifndef PHNT_FLT_PORT_USE_EXACT_EA_SIZE
+// Original FltLib-compatible sizing: 19-byte allocation overhead, including
+// three trailing slack bytes. The actual EaValue offset remains 16 bytes.
 #define FLT_PORT_FULL_EA_SIZE \
     (sizeof(FILE_FULL_EA_INFORMATION) + (sizeof(FLT_PORT_EA_NAME) - sizeof(ANSI_NULL)))
 #define FLT_PORT_FULL_EA_VALUE_SIZE \
     RTL_SIZEOF_THROUGH_FIELD(FLT_CONNECT_CONTEXT, Padding)
+#else
+// Exact wire prefixes, excluding the tail padding.
+#define FLT_PORT_FULL_EA_SIZE \
+    FIELD_OFFSET(FLT_PORT_FULL_EA, EaValue)
+#define FLT_PORT_FULL_EA_VALUE_SIZE \
+    FIELD_OFFSET(FLT_CONNECT_CONTEXT, Context)
+#endif
 
 // begin_rev
 
-// IOCTLs for unlinked FltMgr handles
+// Management IOCTLs for FltMgr handles. LINK_HANDLE requires an unlinked handle;
+// load/unload and attach/detach do not consume the handle's linked-object state.
+// Load/unload additionally check SeLoadDriverPrivilege.
 #define FLT_CTL_LOAD                CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 1, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_UNLOAD              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 2, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_LOAD_PARAMETERS // requires SeLoadDriverPrivilege
 #define FLT_CTL_LINK_HANDLE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 3, METHOD_BUFFERED, FILE_READ_ACCESS)  // in: FLT_LINK // specializes the handle
-#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH
+#define FLT_CTL_ATTACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 4, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_ATTACH; optional out: NUL-terminated WCHAR instance name
 #define FLT_CTL_DETACH              CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 5, METHOD_BUFFERED, FILE_WRITE_ACCESS) // in: FLT_INSTANCE_PARAMETERS
 
 // IOCTLs for port-specific FltMgrMsg handles (opened using the extended attribute)
 #define FLT_CTL_SEND_MESSAGE        CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 6, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in, out: filter-specific
-#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: filter-specific
-#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: filter-specific
+#define FLT_CTL_GET_MESSAGE         CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 7, METHOD_NEITHER, FILE_READ_ACCESS)   // out: FILTER_MESSAGE_HEADER followed by filter-specific payload
+#define FLT_CTL_REPLY_MESSAGE       CTL_CODE(FILE_DEVICE_DISK_FILE_SYSTEM, 8, METHOD_NEITHER, FILE_WRITE_ACCESS)  // in: FILTER_REPLY_HEADER followed by filter-specific payload
+// Include fltUser.h for the fltUserStructures.h message types. Each header is 16 bytes;
+// MessageId is at offset 8. GET_MESSAGE can pend: keep the output buffer and
+// IO_STATUS_BLOCK alive until completion. REPLY_MESSAGE uses the received MessageId;
+// SEND_MESSAGE passes the filter-specific buffers directly, without either header.
 
 // IOCTLs for linked FltMgr handles; depend on previously used FLT_LINK_TYPE
+//
+// Input is a 4-byte information-class selector, not a structure containing a pointer.
+// FIND_FIRST resets the per-handle index; successful enumeration advances it.
+// A failed query does not advance the index. Close the handle with NtClose.
+// Buffer-too-small results are mapped to STATUS_FLT_BUFFER_TOO_SMALL; use
+// IO_STATUS_BLOCK.Information for the size returned by the information routine.
 //
 // Find first/next:
 //   FILTER                - enumerates nested instances; in: INSTANCE_INFORMATION_CLASS
@@ -4392,6 +4605,15 @@ typedef struct _FLT_PORT_FULL_EA
 // end_rev
 
 // private
+/**
+ * The FLT_LOAD_PARAMETERS structure contains the parameters used to load a minifilter driver.
+ *
+ * Input to FLT_CTL_LOAD and FLT_CTL_UNLOAD. FilterName is a counted UTF-16
+ * service name, not a driver image path; FilterNameSize is in bytes, excluding
+ * any terminator, and must not exceed 0x1FE. The input must contain at least
+ * 4 bytes and cover FIELD_OFFSET(FLT_LOAD_PARAMETERS, FilterName) + FilterNameSize.
+ * Both operations require SeLoadDriverPrivilege.
+ */
 typedef struct _FLT_LOAD_PARAMETERS
 {
     USHORT FilterNameSize;
@@ -4399,6 +4621,12 @@ typedef struct _FLT_LOAD_PARAMETERS
 } FLT_LOAD_PARAMETERS, *PFLT_LOAD_PARAMETERS;
 
 // private
+/**
+ * The FLT_LINK_TYPE enumeration specifies the type of a filter manager link operation.
+ *
+ * Selects the object or enumeration scope associated with an existing FltMgr
+ * file handle. FILTER_INSTANCE supports GET_INFORMATION, not FIND_FIRST/NEXT.
+ */
 typedef enum _FLT_LINK_TYPE
 {
     FILTER = 0,                // FLT_FILTER_PARAMETERS
@@ -4409,6 +4637,15 @@ typedef enum _FLT_LINK_TYPE
 } FLT_LINK_TYPE, *PFLT_LINK_TYPE;
 
 // private
+/**
+ * The FLT_LINK structure contains the parameters describing a filter manager link operation.
+ *
+ * Input to FLT_CTL_LINK_HANDLE; this header is 8 bytes on x86 and x64.
+ * For FILTER, FILTER_INSTANCE and FILTER_VOLUME, place the corresponding
+ * parameter block immediately after this header and set ParametersOffset to 8.
+ * String offsets are relative to that parameter block, not to FLT_LINK.
+ * The two manager scopes need no parameter block. A handle cannot be linked twice.
+ */
 typedef struct _FLT_LINK
 {
     FLT_LINK_TYPE Type;
@@ -4416,6 +4653,13 @@ typedef struct _FLT_LINK
 } FLT_LINK, *PFLT_LINK;
 
 // rev
+/**
+ * The FLT_FILTER_PARAMETERS structure contains the parameters describing a registered minifilter.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER. The counted UTF-16
+ * name selects the filter to query or whose instances to enumerate.
+ * FilterNameSize is in bytes, excluding a terminator, and is at most 0x1FE.
+ */
 typedef struct _FLT_FILTER_PARAMETERS
 {
     USHORT FilterNameSize;
@@ -4423,6 +4667,15 @@ typedef struct _FLT_FILTER_PARAMETERS
 } FLT_FILTER_PARAMETERS, *PFLT_FILTER_PARAMETERS;
 
 // private
+/**
+ * The FLT_INSTANCE_PARAMETERS structure contains the parameters describing a minifilter instance.
+ *
+ * The 12-byte parameter block for FLT_LINK.Type == FILTER_INSTANCE, also used
+ * directly as input to FLT_CTL_DETACH. All sizes and offsets are byte counts;
+ * strings are counted UTF-16 without required terminators. Filter and instance
+ * names are limited to 0x1FE bytes each; the volume name to 0x800 bytes.
+ * InstanceNameSize == 0 passes no instance name to the underlying operation.
+ */
 typedef struct _FLT_INSTANCE_PARAMETERS
 {
     USHORT FilterNameSize;
@@ -4434,6 +4687,13 @@ typedef struct _FLT_INSTANCE_PARAMETERS
 } FLT_INSTANCE_PARAMETERS, *PFLT_INSTANCE_PARAMETERS;
 
 // rev
+/**
+ * The FLT_VOLUME_PARAMETERS structure contains the parameters describing a volume known to the filter manager.
+ *
+ * The 4-byte parameter block for FLT_LINK.Type == FILTER_VOLUME, used to
+ * enumerate instances on the named volume. VolumeNameSize is a nonzero byte
+ * count, at most 0x800, for a counted UTF-16 name without a required terminator.
+ */
 typedef struct _FLT_VOLUME_PARAMETERS
 {
     USHORT VolumeNameSize;
@@ -4441,6 +4701,12 @@ typedef struct _FLT_VOLUME_PARAMETERS
 } FLT_VOLUME_PARAMETERS, *PFLT_VOLUME_PARAMETERS;
 
 // private
+/**
+ * The ATTACH_TYPE enumeration specifies the type of a minifilter instance attachment.
+ *
+ * AltitudeBased uses the supplied altitude (FilterAttachAtAltitude);
+ * InstanceNameBased uses the configured instance altitude (FilterAttach).
+ */
 typedef enum _ATTACH_TYPE
 {
     AltitudeBased = 0,
@@ -4448,6 +4714,17 @@ typedef enum _ATTACH_TYPE
 } ATTACH_TYPE, *PATTACH_TYPE;
 
 // private
+/**
+ * The FLT_ATTACH structure contains the parameters used to attach a minifilter instance to a volume.
+ *
+ * Input to FLT_CTL_ATTACH; the fixed header is 20 bytes on x86 and x64.
+ * All sizes and offsets are byte counts relative to this structure. Strings
+ * are counted UTF-16; filter/instance names are limited to 0x1FE bytes each,
+ * volume names to 0x800 bytes, and altitude strings to 0xFFFE bytes.
+ * InstanceNameSize == 0 omits the instance name. Altitude is used only for
+ * AltitudeBased. An optional output buffer receives the resulting instance
+ * name with a NUL terminator; IoStatus.Information includes that terminator.
+ */
 typedef struct _FLT_ATTACH
 {
     USHORT FilterNameSize;
@@ -4466,28 +4743,99 @@ typedef struct _FLT_ATTACH
 //
 
 // rev // FSCTLs for \Device\Mup
+// Audited against mup.sys (x64). Send with NtFsControlFile.
+// Query buffers contain counted UTF-16 strings and relative byte offsets, not pointers.
+// The three cache/provider queries accept no input. With at least 4 output bytes,
+// STATUS_BUFFER_OVERFLOW returns the required allocation size in the first ULONG
+// and IoStatus.Information == 4; discard other output and retry with a larger buffer.
+// The hardening-table query uses a different, linked-record output contract below.
+//
+// rev: descriptive names for the additional branches in MupFsControl.
+// Registration is kernel-only; user-mode requests return STATUS_ACCESS_DENIED.
+// Its native x64 input contains UNICODE_STRING at 0, a provider device-object
+// pointer at 16, and a registration-descriptor pointer at 24. These are kernel
+// pointers, not a user-mode serialized request. Prefer FsRtlRegisterUncProviderEx2.
+#define FSCTL_MUP_REGISTER_UNC_PROVIDER             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 1, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT (kernel mode only)
+// Flush a cached prefix using a counted WCHAR input, without a terminating NUL.
+// Input length must be even and less than 0xFFFF bytes. A single L'*' (2 bytes)
+// flushes the whole cache for the handle's silo; no output. Requires write access.
+// This changes routing-cache state; it is not a diagnostic query.
+#define FSCTL_MUP_FLUSH_UNC_CACHE                   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 10, METHOD_BUFFERED, FILE_WRITE_ACCESS)
 #define FSCTL_MUP_GET_UNC_CACHE_INFO                CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 11, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_CACHE_INFORMATION
 #define FSCTL_MUP_GET_UNC_PROVIDER_LIST             CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 12, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST       CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 13, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION   CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 14, METHOD_BUFFERED, FILE_ANY_ACCESS) // out: MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY[]
 #define FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH  CTL_CODE(FILE_DEVICE_MULTI_UNC_PROVIDER, 15, METHOD_BUFFERED, FILE_ANY_ACCESS) // in: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN; out: MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 
+// Forward declarations allow the kernel-only request layout to be described
+// without importing WDK device-object or registration definitions into user mode.
+struct _DEVICE_OBJECT;
+struct _FSRTL_UNC_PROVIDER_REGISTRATION;
+
+// rev
+/**
+ * Input to FSCTL_MUP_REGISTER_UNC_PROVIDER for registering a UNC redirector.
+ *
+ * This is a native, pointer-bearing kernel request, not an offset-based user-mode
+ * buffer. MupFsControl rejects user-mode callers with STATUS_ACCESS_DENIED.
+ * RedirDevName names the redirector device, DeviceObject identifies its device
+ * object, and Registration points to the versioned registration descriptor
+ * declared as FSRTL_UNC_PROVIDER_REGISTRATION in the WDK ntifs.h header.
+ * The descriptor is separate from this request; its Size and Version describe
+ * the descriptor, not this wrapper. Keep the name buffer and descriptor valid
+ * for the duration of the request. Prefer FsRtlRegisterUncProviderEx2 in drivers.
+ *
+ * Verified against mup.sys x64: RedirDevName at 0, DeviceObject at
+ * 16, Registration at 24; the wrapper is 32 bytes with default packing.
+ * The declaration uses native pointer widths; an x86 compiler produces 16 bytes,
+ * but an x86 kernel implementation was not audited. There is no WOW64 user-mode
+ * registration contract. Type and member names are descriptive reconstructions.
+ */
+typedef struct _MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT
+{
+    UNICODE_STRING RedirDevName;
+    struct _DEVICE_OBJECT *DeviceObject;
+    const struct _FSRTL_UNC_PROVIDER_REGISTRATION *Registration;
+} MUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT, *PMUP_FSCTL_REGISTER_UNC_PROVIDER_INPUT;
+
 // private
+/**
+ * The MUP_FSCTL_UNC_CACHE_ENTRY structure describes a single entry in the MUP UNC provider cache.
+ *
+ * Identifies the provider selected for a cached UNC prefix, useful for diagnosing
+ * routing and expiration. Strings begins at byte 36. All three name offsets are
+ * relative to Strings, NOT to this structure; names are not NUL-terminated.
+ * Advance by TotalLength (rounded to 4 bytes), not sizeof this structure.
+ * Flags occupies the previously implicit padding at byte 26; the audited writer
+ * emits 0 or 1. Its internal-state meaning is not established here.
+ */
 typedef struct _MUP_FSCTL_UNC_CACHE_ENTRY
 {
     ULONG TotalLength;
-    ULONG UncNameOffset; // to WCHAR[] from this struct
+    ULONG UncNameOffset; // byte offset from Strings
     USHORT UncNameLength; // in bytes
-    ULONG ProviderNameOffset; // to WCHAR[] from this struct
+    ULONG ProviderNameOffset; // byte offset from Strings
     USHORT ProviderNameLength; // in bytes
-    ULONG SurrogateNameOffset; // to WCHAR[] from this struct
+    ULONG SurrogateNameOffset; // byte offset from Strings
     USHORT SurrogateNameLength; // in bytes
+    USHORT Flags; // rev: 0 or 1 in the audited build; formerly implicit padding
     ULONG ProviderPriority;
-    ULONG EntryTtl;
+    ULONG EntryTtl; // remaining lifetime in seconds
     WCHAR Strings[ANYSIZE_ARRAY];
 } MUP_FSCTL_UNC_CACHE_ENTRY, *PMUP_FSCTL_UNC_CACHE_ENTRY;
 
 // private
+/**
+ * The MUP_FSCTL_UNC_CACHE_INFORMATION structure contains information about the MUP UNC provider cache.
+ *
+ * Output of FSCTL_MUP_GET_UNC_CACHE_INFO. The fixed prefix is 16 bytes and
+ * EntryTimeout is in seconds. Walk TotalEntries variable-length records using
+ * each entry's TotalLength, not C array indexing. An empty result has
+ * TotalEntries == 0 but still includes a 40-byte zeroed placeholder entry
+ * (TotalLength == 40), making its returned size 56 bytes. Do not enumerate
+ * that placeholder. On STATUS_BUFFER_OVERFLOW the first ULONG instead holds
+ * the required total buffer size; it is not MaxCacheSize in that case.
+ */
 typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 {
     ULONG MaxCacheSize;
@@ -4498,6 +4846,15 @@ typedef struct _MUP_FSCTL_UNC_CACHE_INFORMATION
 } MUP_FSCTL_UNC_CACHE_INFORMATION, *PMUP_FSCTL_UNC_CACHE_INFORMATION;
 
 // private
+/**
+ * The MUP_FSCTL_UNC_PROVIDER_ENTRY structure describes a single MUP UNC provider entry.
+ *
+ * One registered redirector in FSCTL_MUP_GET_UNC_PROVIDER_LIST. ProviderName
+ * starts at byte 22 and is counted UTF-16 without a required terminator.
+ * TotalLength includes the name and rounds the record to 4-byte alignment.
+ * ReferenceCount and ProviderState are snapshots of internal provider state,
+ * not handles or references owned by the caller.
+ */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
 {
     ULONG TotalLength;
@@ -4506,10 +4863,20 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_ENTRY
     ULONG ProviderState;
     ULONG ProviderId;
     USHORT ProviderNameLength; // in bytes
-    WCHAR ProviderName[ANYSIZE_ARRAY];
+    _Field_size_bytes_(ProviderNameLength) WCHAR ProviderName[ANYSIZE_ARRAY];
 } MUP_FSCTL_UNC_PROVIDER_ENTRY, *PMUP_FSCTL_UNC_PROVIDER_ENTRY;
 
 // private
+/**
+ * The MUP_FSCTL_UNC_PROVIDER_INFORMATION structure contains information about the registered MUP UNC providers.
+ *
+ * Output of FSCTL_MUP_GET_UNC_PROVIDER_LIST, for inspecting registered UNC
+ * redirectors and their routing priorities. The fixed prefix is 4 bytes.
+ * Walk TotalEntries records by TotalLength. When TotalEntries == 0, a 24-byte
+ * placeholder follows the count (28 output bytes total); do not enumerate it.
+ * On STATUS_BUFFER_OVERFLOW the first ULONG is the required buffer size
+ * rather than an entry count, and IoStatus.Information is 4.
+ */
 typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 {
     ULONG TotalEntries;
@@ -4517,6 +4884,14 @@ typedef struct _MUP_FSCTL_UNC_PROVIDER_INFORMATION
 } MUP_FSCTL_UNC_PROVIDER_INFORMATION, *PMUP_FSCTL_UNC_PROVIDER_INFORMATION;
 
 // private
+/**
+ * The MUP_FSCTL_SURROGATE_PROVIDER_ENTRY structure describes a single MUP surrogate provider entry.
+ *
+ * One surrogate in FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST. SurrogateName
+ * starts at byte 22 and is counted UTF-16. TotalLength rounds each record to
+ * 4-byte alignment. SurrogatePriority is written as zero in the audited build;
+ * its presence does not establish a usable priority value.
+ */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
 {
     ULONG TotalLength;
@@ -4525,10 +4900,19 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_ENTRY
     ULONG SurrogateState;
     ULONG SurrogatePriority;
     USHORT SurrogateNameLength; // in bytes
-    WCHAR SurrogateName[ANYSIZE_ARRAY];
+    _Field_size_bytes_(SurrogateNameLength) WCHAR SurrogateName[ANYSIZE_ARRAY];
 } MUP_FSCTL_SURROGATE_PROVIDER_ENTRY, *PMUP_FSCTL_SURROGATE_PROVIDER_ENTRY;
 
 // private
+/**
+ * The MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION structure contains information about the registered MUP surrogate providers.
+ *
+ * Output of FSCTL_MUP_GET_SURROGATE_PROVIDER_LIST, for inspecting registered
+ * surrogate providers. The fixed prefix is 4 bytes. Walk TotalEntries records
+ * by TotalLength. An empty list includes a 24-byte placeholder after the count
+ * (28 output bytes total). On STATUS_BUFFER_OVERFLOW the first ULONG instead
+ * contains the required buffer size, with IoStatus.Information == 4.
+ */
 typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 {
     ULONG TotalEntries;
@@ -4536,6 +4920,20 @@ typedef struct _MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION
 } MUP_FSCTL_SURROGATE_PROVIDER_INFORMATION, *PMUP_FSCTL_SURROGATE_PROVIDER_INFORMATION;
 
 // private
+/**
+ * The MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY structure describes a single entry in the MUP UNC hardening prefix table.
+ *
+ * Output records for FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION. There is no
+ * leading count. The fixed record is 24 bytes, followed by the counted UTF-16
+ * prefix at PrefixNameOffset relative to this record. Records begin at offsets
+ * aligned to 16 bytes within the output buffer. NextOffset == 0 ends the list.
+ * The capability bits are 0x1 mutual authentication, 0x2 integrity, 0x4 privacy.
+ * OpenCount reports the prefix's open count; this query does not acquire opens.
+ * STATUS_BUFFER_OVERFLOW can return a partial linked list; grow the buffer and
+ * restart to obtain the complete table. STATUS_BUFFER_TOO_SMALL is returned
+ * when no entry fits; do not apply the cache/provider first-ULONG size convention.
+ * An empty table succeeds with IoStatus.Information == 0.
+ */
 typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
 {
     ULONG NextOffset; // from this struct
@@ -4549,12 +4947,23 @@ typedef struct _MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY
             ULONG RequiresMutualAuth : 1;
             ULONG RequiresIntegrity : 1;
             ULONG RequiresPrivacy : 1;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
     ULONGLONG OpenCount;
 } MUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY, *PMUP_FSCTL_UNC_HARDENING_PREFIX_TABLE_ENTRY;
 
 // private
+/**
+ * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN structure is the input used to query the MUP UNC hardening configuration.
+ *
+ * Input to FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH, for resolving
+ * hardening requirements for one UNC path. Set Size to sizeof this structure
+ * (12 bytes with default packing), append the counted UTF-16 path, and set
+ * UncPathOffset accordingly. The path must be WCHAR-aligned, start with two
+ * backslashes, and be longer than 4 bytes; its offset plus length must fit the
+ * input buffer. Size must be at least 10 bytes and no greater than the input
+ * length. Supply at least 8 output bytes. No remote file is opened by this query.
+ */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 {
     ULONG Size;
@@ -4563,6 +4972,14 @@ typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN
 } MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN, *PMUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_IN;
 
 // private
+/**
+ * The MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT structure is the output containing the MUP UNC hardening configuration.
+ *
+ * Successful output of FSCTL_MUP_GET_UNC_HARDENING_CONFIGURATION_FOR_PATH:
+ * Size == 8 and IoStatus.Information == 8. RequiredHardeningCapabilities uses
+ * 0x1 for mutual authentication, 0x2 for integrity, and 0x4 for privacy.
+ * These are required protections, not the negotiated capabilities of a connection.
+ */
 typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 {
     ULONG Size;
@@ -4574,8 +4991,8 @@ typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
             ULONG RequiresMutualAuth : 1;
             ULONG RequiresIntegrity : 1;
             ULONG RequiresPrivacy : 1;
-        };
-    };
+        } DUMMYSTRUCTNAME;
+    } DUMMYUNIONNAME;
 } MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT, *PMUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT;
 
 #if (PHNT_MODE != PHNT_MODE_KERNEL)
@@ -4818,6 +5235,9 @@ typedef struct _MUP_FSCTL_QUERY_UNC_HARDENING_CONFIGURATION_OUT
 #define DO_DAX_VOLUME                   0x10000000
 
 // pub
+/**
+ * The FS_FILTER_SECTION_SYNC_TYPE enumeration specifies the type of section synchronization for a file system filter.
+ */
 typedef enum _FS_FILTER_SECTION_SYNC_TYPE
 {
     SyncTypeOther = 0,
@@ -4825,6 +5245,9 @@ typedef enum _FS_FILTER_SECTION_SYNC_TYPE
 } FS_FILTER_SECTION_SYNC_TYPE, *PFS_FILTER_SECTION_SYNC_TYPE;
 
 //pub
+/**
+ * The CREATE_FILE_TYPE enumeration specifies the type of object to create in an extended create operation.
+ */
 typedef enum _CREATE_FILE_TYPE
 {
     CreateFileTypeNone,
@@ -4833,6 +5256,9 @@ typedef enum _CREATE_FILE_TYPE
 } CREATE_FILE_TYPE;
 
 // pub
+/**
+ * The NAMED_PIPE_CREATE_PARAMETERS structure contains the parameters used to create a named pipe.
+ */
 typedef struct _NAMED_PIPE_CREATE_PARAMETERS
 {
     ULONG NamedPipeType;
@@ -4846,6 +5272,9 @@ typedef struct _NAMED_PIPE_CREATE_PARAMETERS
 } NAMED_PIPE_CREATE_PARAMETERS, *PNAMED_PIPE_CREATE_PARAMETERS;
 
 // pub
+/**
+ * The MAILSLOT_CREATE_PARAMETERS structure contains the parameters used to create a mailslot.
+ */
 typedef struct _MAILSLOT_CREATE_PARAMETERS
 {
     ULONG MailslotQuota;
@@ -4855,6 +5284,9 @@ typedef struct _MAILSLOT_CREATE_PARAMETERS
 } MAILSLOT_CREATE_PARAMETERS, *PMAILSLOT_CREATE_PARAMETERS;
 
 // pub
+/**
+ * The OPLOCK_KEY_ECP_CONTEXT structure is an extra create parameter (ECP) that supplies oplock keys for a create operation.
+ */
 typedef struct _OPLOCK_KEY_ECP_CONTEXT
 {
     GUID OplockKey;
@@ -4862,6 +5294,9 @@ typedef struct _OPLOCK_KEY_ECP_CONTEXT
 } OPLOCK_KEY_ECP_CONTEXT, *POPLOCK_KEY_ECP_CONTEXT;
 
 // pub
+/**
+ * The OPLOCK_KEY_CONTEXT structure contains the oplock key context associated with a file handle.
+ */
 typedef struct _OPLOCK_KEY_CONTEXT
 {
     USHORT Version;        //  OPLOCK_KEY_VERSION_*

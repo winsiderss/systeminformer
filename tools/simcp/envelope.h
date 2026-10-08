@@ -28,6 +28,8 @@ typedef struct _SIMCP_ENVELOPE
     PPH_STRING Method;
     PPH_BYTES CancelId;
     PPH_STRING ProtocolVersion;
+    PPH_STRING RequestedProtocolVersion;
+    PPH_STRING ToolName;
     BOOLEAN ModernMeta;
 } SIMCP_ENVELOPE, *PSIMCP_ENVELOPE;
 

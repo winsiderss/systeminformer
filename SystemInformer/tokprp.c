@@ -51,6 +51,8 @@ typedef enum _PH_PROCESS_TOKEN_INDEX
     PH_PROCESS_TOKEN_INDEX_SID,
     PH_PROCESS_TOKEN_INDEX_TYPE,
     PH_PROCESS_TOKEN_INDEX_USE,
+    PH_PROCESS_TOKEN_INDEX_AUTHORITY,
+    PH_PROCESS_TOKEN_INDEX_RID,
 } PH_PROCESS_TOKEN_INDEX;
 
 typedef struct _PHP_TOKEN_PAGE_LISTVIEW_ITEM
@@ -258,6 +260,12 @@ PPH_STRING PhpGetTokenRegistryPath(
     _In_ HANDLE TokenHandle
     );
 
+/**
+ * Displays the token properties dialog in a separate thread.
+ *
+ * \param Context A pointer to the token page context (PTOKEN_PAGE_CONTEXT).
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS PhpTokenDialogThread(
     _In_ PVOID Context
@@ -284,6 +292,15 @@ NTSTATUS PhpTokenDialogThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Creates and displays a standalone token properties dialog window.
+ *
+ * \param OpenObject Callback to open the target token object.
+ * \param CloseObject Callback to close the token object.
+ * \param ProcessId The process ID associated with the token.
+ * \param Context The token handle or context passed to callbacks.
+ * \param HookProc Optional dialog hook procedure.
+ */
 VOID PhCreateTokenDialog(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ PPH_CLOSE_OBJECT CloseObject,
@@ -322,6 +339,16 @@ VOID PhCreateTokenDialog(
     PhCreateThread2(PhpTokenDialogThread, tokenPageContext);
 }
 
+/**
+ * Displays the token properties dialog window.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param OpenObject Callback to open the target token object.
+ * \param CloseObject Callback to close the token object.
+ * \param ProcessId The process ID associated with the token.
+ * \param Context The token handle or context passed to callbacks.
+ * \param Title Optional dialog title string.
+ */
 VOID PhShowTokenProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PPH_OPEN_OBJECT OpenObject,
@@ -334,6 +361,16 @@ VOID PhShowTokenProperties(
     PhCreateTokenDialog(OpenObject, CloseObject, ProcessId, Context, NULL);
 }
 
+/**
+ * Creates a property sheet page for token properties.
+ *
+ * \param OpenObject Callback to open the target token object.
+ * \param CloseObject Callback to close the token object.
+ * \param ProcessId The process ID associated with the token.
+ * \param Context Optional token handle or context passed to callbacks.
+ * \param HookProc Optional dialog hook procedure.
+ * \return HPROPSHEETPAGE A handle to the created property sheet page.
+ */
 HPROPSHEETPAGE PhCreateTokenPage(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ PPH_CLOSE_OBJECT CloseObject,
@@ -371,6 +408,13 @@ HPROPSHEETPAGE PhCreateTokenPage(
     return propSheetPageHandle;
 }
 
+/**
+ * Delete procedure for the token page context object.
+ *
+ * \param Object A pointer to the token page context object to delete.
+ * \param Flags Unused flags.
+ */
+_Function_class_(PH_TYPE_DELETE_PROCEDURE)
 VOID NTAPI PhpTokenPageContextDeleteProcedure(
     _In_ PVOID Object,
     _In_ ULONG Flags
@@ -379,6 +423,16 @@ VOID NTAPI PhpTokenPageContextDeleteProcedure(
     PhDereferenceObject(Object);
 }
 
+/**
+ * Creates a process property sheet page context for token properties.
+ *
+ * \param OpenObject Callback to open the target token object.
+ * \param CloseObject Callback to close the token object.
+ * \param ProcessId The process ID associated with the token.
+ * \param Context Optional token handle or context passed to callbacks.
+ * \param HookProc Optional dialog hook procedure.
+ * \return PPH_PROCESS_PROPPAGECONTEXT A pointer to the created process property page context structure.
+ */
 PPH_PROCESS_PROPPAGECONTEXT PhCreateTokenProcessPropPageContext(
     _In_ PPH_OPEN_OBJECT OpenObject,
     _In_ PPH_CLOSE_OBJECT CloseObject,
@@ -409,6 +463,14 @@ PPH_PROCESS_PROPPAGECONTEXT PhCreateTokenProcessPropPageContext(
     return propPageContext;
 }
 
+/**
+ * Property sheet page callback for reference counting the token page context.
+ *
+ * \param WindowHandle A handle to the property sheet page window.
+ * \param uMsg The property sheet notification message.
+ * \param ppsp A pointer to the property sheet page structure.
+ * \return UINT 1 to allow the operation.
+ */
 UINT CALLBACK PhpTokenPropPageProc(
     _In_ HWND WindowHandle,
     _In_ UINT uMsg,
@@ -431,6 +493,13 @@ UINT CALLBACK PhpTokenPropPageProc(
     return 1;
 }
 
+/**
+ * Gets a string representation of token group attributes.
+ *
+ * \param Attributes The SID attributes flags.
+ * \param Restricted TRUE if the group is from the restricting SIDs list, FALSE otherwise.
+ * \return PPH_STRING A string describing the attributes.
+ */
 PPH_STRING PhGetGroupAttributesString(
     _In_ ULONG Attributes,
     _In_ BOOLEAN Restricted
@@ -471,6 +540,12 @@ PPH_STRING PhGetGroupAttributesString(
     return string;
 }
 
+/**
+ * Gets the dark theme display color for token group attributes.
+ *
+ * \param Attributes The SID attributes flags.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetGroupAttributesColorDark(
     _In_ ULONG Attributes
     )
@@ -499,6 +574,12 @@ COLORREF PhGetGroupAttributesColorDark(
     }
 }
 
+/**
+ * Gets the dark theme display color for token privilege attributes.
+ *
+ * \param Attributes The privilege attributes flags.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetPrivilegeAttributesColorDark(
     _In_ ULONG Attributes
     )
@@ -526,6 +607,12 @@ COLORREF PhGetPrivilegeAttributesColorDark(
     }
 }
 
+/**
+ * Gets the dark theme display color for a dangerous token flag.
+ *
+ * \param FlagState The state of the flag.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetDangerousFlagColorDark(
     _In_ BOOLEAN FlagState
     )
@@ -538,6 +625,12 @@ COLORREF PhGetDangerousFlagColorDark(
         return PhCsUseColorTokenNormalFlag ? PhCsColorTokenNormalFlag : backgroundColor;
 }
 
+/**
+ * Gets the display color for token group attributes.
+ *
+ * \param Attributes The SID attributes flags.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetGroupAttributesColor(
     _In_ ULONG Attributes
     )
@@ -566,6 +659,12 @@ COLORREF PhGetGroupAttributesColor(
     }
 }
 
+/**
+ * Gets the display color for token privilege attributes.
+ *
+ * \param Attributes The privilege attributes flags.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetPrivilegeAttributesColor(
     _In_ ULONG Attributes
     )
@@ -593,6 +692,121 @@ COLORREF PhGetPrivilegeAttributesColor(
     }
 }
 
+/**
+ * The privileges that ntoskrnl!SepGetTokenElevation considers administrative.
+ *
+ * The kernel tests these against TOKEN.Privileges.Present, not Enabled, so a privilege that is
+ * present but disabled is rerported as elevated by NtQueryInformationToken(TokenElevation).
+ */
+#define PH_TOKEN_ELEVATED_PRIVILEGE_MASK ( \
+    (1ULL << SE_CREATE_TOKEN_PRIVILEGE) | \
+    (1ULL << SE_TCB_PRIVILEGE) | \
+    (1ULL << SE_TAKE_OWNERSHIP_PRIVILEGE) | \
+    (1ULL << SE_LOAD_DRIVER_PRIVILEGE) | \
+    (1ULL << SE_BACKUP_PRIVILEGE) | \
+    (1ULL << SE_RESTORE_PRIVILEGE) | \
+    (1ULL << SE_DEBUG_PRIVILEGE) | \
+    (1ULL << SE_IMPERSONATE_PRIVILEGE) | \
+    (1ULL << SE_RELABEL_PRIVILEGE) | \
+    (1ULL << SE_DELEGATE_SESSION_USER_IMPERSONATE_PRIVILEGE))
+
+C_ASSERT(PH_TOKEN_ELEVATED_PRIVILEGE_MASK == 0x1120160684ULL);
+
+/**
+ * Determines whether a privilege contributes to the token elevation state.
+ *
+ * \param Privilege The privilege to check.
+ * \return TRUE if the privilege is one of those tested by ntoskrnl!SepGetTokenElevation.
+ */
+BOOLEAN PhIsElevatedPrivilege(
+    _In_ PLUID_AND_ATTRIBUTES Privilege
+    )
+{
+    if (Privilege->Luid.HighPart != 0)
+        return FALSE;
+    if (Privilege->Luid.LowPart >= 64)
+        return FALSE;
+
+    return !!((PH_TOKEN_ELEVATED_PRIVILEGE_MASK >> Privilege->Luid.LowPart) & 1);
+}
+
+/**
+ * Determines whether a group contributes to the token elevation state.
+ *
+ * \param Group The group to check.
+ * \return TRUE if the group is one of those tested by ntoskrnl!SepGetTokenElevation.
+ * \remarks ntdll!RtlIsElevatedRid ignores deny-only and integrity groups, excludes the service SID
+ * families, and matches only the trailing subauthority against its own table of administrative RIDs.
+ */
+#ifndef PH_USE_RTL_IS_ELEVATED_RID
+BOOLEAN PhIsElevatedGroup(
+    _In_ PSID_AND_ATTRIBUTES Group
+    )
+{
+    static CONST ULONG ElevatedRids[] =
+    {
+        DOMAIN_GROUP_RID_ADMINS,                                // 0x200
+        DOMAIN_GROUP_RID_CONTROLLERS,                           // 0x204
+        DOMAIN_GROUP_RID_READONLY_CONTROLLERS,                  // 0x209
+        DOMAIN_GROUP_RID_ENTERPRISE_READONLY_DOMAIN_CONTROLLERS,// 0x1F2
+        DOMAIN_GROUP_RID_CERT_ADMINS,                           // 0x205
+        DOMAIN_GROUP_RID_SCHEMA_ADMINS,                         // 0x206
+        DOMAIN_GROUP_RID_ENTERPRISE_ADMINS,                     // 0x207
+        DOMAIN_GROUP_RID_POLICY_ADMINS,                         // 0x208
+        DOMAIN_ALIAS_RID_ADMINS,                                // 0x220
+        DOMAIN_ALIAS_RID_POWER_USERS,                           // 0x223
+        DOMAIN_ALIAS_RID_ACCOUNT_OPS,                           // 0x224
+        DOMAIN_ALIAS_RID_SYSTEM_OPS,                            // 0x225
+        DOMAIN_ALIAS_RID_PRINT_OPS,                             // 0x226
+        DOMAIN_ALIAS_RID_BACKUP_OPS,                            // 0x227
+        DOMAIN_ALIAS_RID_RAS_SERVERS,                           // 0x229
+        DOMAIN_ALIAS_RID_PREW2KCOMPACCESS,                      // 0x22A
+        DOMAIN_ALIAS_RID_NETWORK_CONFIGURATION_OPS,             // 0x22C
+        DOMAIN_ALIAS_RID_CRYPTO_OPERATORS,                      // 0x239
+        SECURITY_LOCAL_ACCOUNT_AND_ADMIN_RID,                   // 0x72
+    };
+    PISID sid;
+    ULONG rid;
+
+    if (!Group)
+        return FALSE;
+    if (Group->Attributes & (SE_GROUP_USE_FOR_DENY_ONLY | SE_GROUP_INTEGRITY))
+        return FALSE;
+
+    sid = (PISID)Group->Sid;
+
+    if (sid->SubAuthorityCount < 1)
+        return FALSE;
+
+    // Exclude the service SID families (S-1-5-80 through S-1-5-111).
+    if (sid->SubAuthority[0] - SECURITY_SERVICE_ID_BASE_RID <= 31)
+        return FALSE;
+
+    rid = sid->SubAuthority[sid->SubAuthorityCount - 1];
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(ElevatedRids); i++)
+    {
+        if (rid == ElevatedRids[i])
+            return TRUE;
+    }
+
+    return FALSE;
+}
+#else
+BOOLEAN PhIsElevatedGroup(
+    _In_ PSID_AND_ATTRIBUTES Group
+    )
+{
+    return !!RtlIsElevatedRid(Group);
+}
+#endif
+
+/**
+ * Gets the display color for a dangerous token flag.
+ *
+ * \param FlagState The state of the flag.
+ * \return COLORREF The display color.
+ */
 COLORREF PhGetDangerousFlagColor(
     _In_ BOOLEAN FlagState
     )
@@ -605,6 +819,28 @@ COLORREF PhGetDangerousFlagColor(
         return PhCsUseColorTokenNormalFlag ? PhCsColorTokenNormalFlag : backgroundColor;
 }
 
+/**
+ * Gets the display color for elevated token items.
+ *
+ * \return COLORREF The display color for elevated token items.
+ */
+COLORREF PhGetTokenElevatedColor(
+    VOID
+    )
+{
+    COLORREF backgroundColor = PhEnableThemeSupport ? PhThemeWindowBackgroundColor : GetSysColor(COLOR_WINDOW);
+
+    return PhCsUseColorTokenElevated ? PhCsColorTokenElevated : backgroundColor;
+}
+
+/**
+ * List view item color callback for token groups and privileges.
+ *
+ * \param Index The index of the item.
+ * \param Param A pointer to the token page listview item.
+ * \param Context Optional callback context.
+ * \return COLORREF The color to use for the item.
+ */
 static COLORREF NTAPI PhpTokenGroupColorFunction(
     _In_ LONG Index,
     _In_ PVOID Param,
@@ -612,6 +848,24 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
     )
 {
     PPHP_TOKEN_PAGE_LISTVIEW_ITEM entry = Param;
+
+    if (PhCsUseColorTokenElevated)
+    {
+        if (entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_PRIVILEGES)
+        {
+            if (PhIsElevatedPrivilege(entry->TokenPrivilege))
+                return PhGetTokenElevatedColor();
+        }
+        else if (
+            entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_GROUPS ||
+            entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_LOGON ||
+            entry->GroupId == PH_PROCESS_TOKEN_CATEGORY_INTEGRITY
+            )
+        {
+            if (PhIsElevatedGroup(entry->TokenGroup))
+                return PhGetTokenElevatedColor();
+        }
+    }
 
     if (PhEnableThemeSupport)
     {
@@ -633,6 +887,12 @@ static COLORREF NTAPI PhpTokenGroupColorFunction(
     }
 }
 
+/**
+ * Gets a string representation of token privilege attributes.
+ *
+ * \param Attributes The privilege attributes flags.
+ * \return PCWSTR A string describing the attributes.
+ */
 PCWSTR PhGetPrivilegeAttributesString(
     _In_ ULONG Attributes
     )
@@ -658,6 +918,14 @@ PCWSTR PhGetPrivilegeAttributesString(
     }
 }
 
+/**
+ * Gets the string representation of a token elevation type.
+ *
+ * \param IsElevated TRUE if the token is elevated, FALSE otherwise.
+ * \param ElevationType The token elevation type value.
+ * \param ElevationTypeString A variable which receives a pointer to the string reference.
+ * \return BOOLEAN TRUE if the elevation type was found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetElevationTypeString(
     _In_ BOOLEAN IsElevated,
@@ -681,6 +949,13 @@ BOOLEAN PhGetElevationTypeString(
     return FALSE;
 }
 
+/**
+ * Gets the string representation of a token impersonation level.
+ *
+ * \param ImpersonationLevel The security impersonation level.
+ * \param ImpersonationLevelString A variable which receives a pointer to the string.
+ * \return BOOLEAN TRUE if the impersonation level was found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetImpersonationLevelString(
     _In_ SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
@@ -700,6 +975,13 @@ BOOLEAN PhGetImpersonationLevelString(
     return FALSE;
 }
 
+/**
+ * Gets the string representation of a token type.
+ *
+ * \param TokenType The token type.
+ * \param TokenTypeString A variable which receives a pointer to the string.
+ * \return BOOLEAN TRUE if the token type was found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetTokenTypeString(
     _In_ TOKEN_TYPE TokenType,
@@ -719,6 +1001,11 @@ BOOLEAN PhGetTokenTypeString(
     return FALSE;
 }
 
+/**
+ * Frees all item parameter contexts stored in the token page list view.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ */
 VOID PhpTokenPageFreeListViewEntries(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
@@ -740,6 +1027,13 @@ VOID PhpTokenPageFreeListViewEntries(
     }
 }
 
+/**
+ * Gets the string representation of a SID name use type.
+ *
+ * \param TokenNameUse The SID name use type.
+ * \param TokenNameUseString A variable which receives a pointer to the string.
+ * \return BOOLEAN TRUE if the type string was found, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhGetTokenSidTypeString(
     _In_ SID_NAME_USE TokenNameUse,
@@ -759,6 +1053,52 @@ BOOLEAN PhGetTokenSidTypeString(
     return FALSE;
 }
 
+/**
+ * Populates the Authority and RID columns for a SID in the token list view.
+ *
+ * \param ListViewHandle A handle to the list view window.
+ * \param ItemIndex The index of the item.
+ * \param Sid An optional pointer to the SID.
+ */
+VOID PhpSetTokenSidColumns(
+    _In_ HWND ListViewHandle,
+    _In_ LONG ItemIndex,
+    _In_opt_ PSID Sid
+    )
+{
+    ULONG64 authority;
+    ULONG rid;
+
+    if (Sid && *PhSubAuthorityCountSid(Sid) != 0)
+    {
+        PSID_IDENTIFIER_AUTHORITY identifierAuthority;
+
+        identifierAuthority = PhIdentifierAuthoritySid(Sid);
+        authority =
+            ((ULONG64)identifierAuthority->Value[0] << 40) |
+            ((ULONG64)identifierAuthority->Value[1] << 32) |
+            ((ULONG64)identifierAuthority->Value[2] << 24) |
+            ((ULONG64)identifierAuthority->Value[3] << 16) |
+            ((ULONG64)identifierAuthority->Value[4] << 8) |
+            (ULONG64)identifierAuthority->Value[5];
+        rid = *PhSubAuthoritySid(Sid, *PhSubAuthorityCountSid(Sid) - 1);
+
+        PhSetListViewSubItem(ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_AUTHORITY, PhaFormatUInt64(authority, FALSE)->Buffer);
+        PhSetListViewSubItem(ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_RID, PhaFormatUInt64(rid, FALSE)->Buffer);
+    }
+    else
+    {
+        PhSetListViewSubItem(ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_AUTHORITY, L"N/A");
+        PhSetListViewSubItem(ListViewHandle, ItemIndex, PH_PROCESS_TOKEN_INDEX_RID, L"N/A");
+    }
+}
+
+/**
+ * Worker thread routine to resolve SID name, account type, and usage asynchronously.
+ *
+ * \param ThreadParameter A pointer to the token group resolve context.
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     _In_ PVOID ThreadParameter
@@ -843,6 +1183,13 @@ static NTSTATUS NTAPI PhpTokenGroupResolveWorker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Populates the token list view with group or restricting SID entries.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param Groups A pointer to the token groups structure.
+ * \param Restricted TRUE if the groups are restricted SIDs, FALSE otherwise.
+ */
 VOID PhpUpdateSidsFromTokenGroups(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ PTOKEN_GROUPS Groups,
@@ -902,6 +1249,8 @@ VOID PhpUpdateSidsFromTokenGroups(
             PhDereferenceObject(stringUserSid);
         }
 
+        PhpSetTokenSidColumns(TokenPageContext->ListViewHandle, ItemIndex, Groups->Groups[i].Sid);
+
         {
             PPHP_TOKEN_GROUP_RESOLVE_CONTEXT tokenGroupResolve;
 
@@ -916,6 +1265,13 @@ VOID PhpUpdateSidsFromTokenGroups(
     }
 }
 
+/**
+ * Queries and updates the token groups and restricted SIDs in the list view.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param TokenHandle A handle to the token.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpUpdateTokenGroups(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HANDLE TokenHandle
@@ -945,6 +1301,14 @@ BOOLEAN PhpUpdateTokenGroups(
     return TRUE;
 }
 
+/**
+ * Callback routine for enumerating system privileges to show removed privileges.
+ *
+ * \param Privileges An array of system privilege definitions.
+ * \param NumberOfPrivileges The number of privileges in the array.
+ * \param Context A pointer to the token page context.
+ * \return NTSTATUS STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
     _In_ PPOLICY_PRIVILEGE_DEFINITION Privileges,
     _In_ ULONG NumberOfPrivileges,
@@ -996,6 +1360,7 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
         PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
         // Privilege value
         PhSetListViewSubItem(tokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Privileges[i].LocalValue.LowPart, FALSE)->Buffer);
+        PhpSetTokenSidColumns(tokenPageContext->ListViewHandle, itemIndex, NULL);
 
         PhClearReference(&privilegeDisplayName);
         PhClearReference(&privilegeName);
@@ -1004,6 +1369,13 @@ NTSTATUS NTAPI PhpEnumeratePrivilegesCallback(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Queries and updates token privileges in the list view.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param TokenHandle A handle to the token.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpUpdateTokenPrivileges(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HANDLE TokenHandle
@@ -1043,6 +1415,7 @@ BOOLEAN PhpUpdateTokenPrivileges(
             PhSetListViewSubItem(TokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, PhGetStringOrEmpty(privilegeDisplayName));
             // Value
             PhSetListViewSubItem(TokenPageContext->ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(privileges->Privileges[i].Luid.LowPart, FALSE)->Buffer);
+            PhpSetTokenSidColumns(TokenPageContext->ListViewHandle, itemIndex, NULL);
 
             PhClearReference(&privilegeDisplayName);
             PhClearReference(&privilegeName);
@@ -1062,6 +1435,15 @@ BOOLEAN PhpUpdateTokenPrivileges(
     return TRUE;
 }
 
+/**
+ * Adds a dangerous token flag item to the token list view.
+ *
+ * \param ListViewHandle A handle to the list view window.
+ * \param Flag The token flag identifier.
+ * \param State The state of the flag.
+ * \param Name The display name of the flag.
+ * \param Description The description of the flag.
+ */
 VOID PhpUpdateTokenDangerousFlagItem(
     _In_ HWND ListViewHandle,
     _In_ PH_PROCESS_TOKEN_FLAG Flag,
@@ -1086,8 +1468,16 @@ VOID PhpUpdateTokenDangerousFlagItem(
     PhSetListViewSubItem(ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_DESCRIPTION, Description);
     // Value
     PhSetListViewSubItem(ListViewHandle, itemIndex, PH_PROCESS_TOKEN_INDEX_SID, PhaFormatUInt64(Flag, FALSE)->Buffer);
+    PhpSetTokenSidColumns(ListViewHandle, itemIndex, NULL);
 }
 
+/**
+ * Checks for dangerous token settings and adds items to the list view.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param TokenHandle A handle to the token.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpUpdateTokenDangerousFlags(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HANDLE TokenHandle
@@ -1145,6 +1535,15 @@ BOOLEAN PhpUpdateTokenDangerousFlags(
     return TRUE;
 }
 
+/**
+ * Retrieves or initializes the token page context for a dialog procedure message.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam The message wParam parameter.
+ * \param lParam The message lParam parameter.
+ * \return PTOKEN_PAGE_CONTEXT A pointer to the token page context.
+ */
 FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1155,6 +1554,12 @@ FORCEINLINE PTOKEN_PAGE_CONTEXT PhpTokenPageHeader(
     return PhpGenericPropertyPageHeader(hwndDlg, uMsg, wParam, lParam, 3);
 }
 
+/**
+ * Worker thread routine to resolve the token user account name asynchronously.
+ *
+ * \param ThreadParameter A pointer to the token user resolve context.
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     _In_ PVOID ThreadParameter
@@ -1183,6 +1588,12 @@ static NTSTATUS NTAPI PhpTokenUserResolveWorker(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Creates or updates the image list for the token groups list view.
+ *
+ * \param WindowHandle A handle to the window for DPI scaling.
+ * \param TokenPageContext A pointer to the token page context.
+ */
 static VOID PhpTokenSetImageList(
     _In_ HWND WindowHandle,
     _Inout_ PTOKEN_PAGE_CONTEXT TokenPageContext
@@ -1213,6 +1624,12 @@ static VOID PhpTokenSetImageList(
     ListView_SetImageList(TokenPageContext->ListViewHandle, TokenPageContext->ListViewImageList, LVSIL_SMALL);
 }
 
+/**
+ * Computes a sorting priority index for privilege attributes.
+ *
+ * \param Attributes The privilege attributes flags.
+ * \return LONG The sorting priority index.
+ */
 LONG PhpGetTokenPrivilegeSortingIndex(
     _In_ ULONG Attributes
     )
@@ -1238,6 +1655,12 @@ LONG PhpGetTokenPrivilegeSortingIndex(
     }
 }
 
+/**
+ * Computes a sorting priority index for group attributes.
+ *
+ * \param Attributes The group attributes flags.
+ * \return LONG The sorting priority index.
+ */
 LONG PhpGetTokenGroupSortingIndex(
     _In_ ULONG Attributes
     )
@@ -1264,6 +1687,14 @@ LONG PhpGetTokenGroupSortingIndex(
     }
 }
 
+/**
+ * Comparison function for sorting the Status column in the token list view.
+ *
+ * \param Item1 A pointer to the first list view item context.
+ * \param Item2 A pointer to the second list view item context.
+ * \param Context Optional callback context.
+ * \return LONG Negative if Item1 < Item2, 0 if equal, positive if Item1 > Item2.
+ */
 LONG NTAPI PhpTokenStatusColumnCompareFunction(
     _In_ PVOID Item1,
     _In_ PVOID Item2,
@@ -1312,6 +1743,15 @@ LONG NTAPI PhpTokenStatusColumnCompareFunction(
     return uintcmp(value1, value2);
 }
 
+/**
+ * Dialog procedure for the main Token property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -1348,6 +1788,8 @@ INT_PTR CALLBACK PhpTokenPageProc(
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 3, 3, 3, LVCFMT_LEFT, 100, L"SID");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 4, 4, 4, LVCFMT_LEFT, 100, L"Type");
             PhAddListViewColumn(tokenPageContext->ListViewHandle, 5, 5, 5, LVCFMT_LEFT, 100, L"Use");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 6, 6, 6, LVCFMT_LEFT, 100, L"Identifier Authority");
+            PhAddListViewColumn(tokenPageContext->ListViewHandle, 7, 7, 7, LVCFMT_LEFT, 100, L"RID");
 
             PhSetExtendedListView(tokenPageContext->ListViewHandle);
             ExtendedListView_SetCompareFunction(tokenPageContext->ListViewHandle, 1, PhpTokenStatusColumnCompareFunction);
@@ -2357,6 +2799,13 @@ INT_PTR CALLBACK PhpTokenPageProc(
     return FALSE;
 }
 
+/**
+ * Displays the advanced token property sheet containing extended token pages.
+ *
+ * \param ParentWindowHandle A handle to the parent window.
+ * \param Context A pointer to the token page context.
+ * \param ShowAppContainerPage TRUE to show the AppContainer page, FALSE otherwise.
+ */
 VOID PhpShowTokenAdvancedProperties(
     _In_ HWND ParentWindowHandle,
     _In_ PTOKEN_PAGE_CONTEXT Context,
@@ -2466,6 +2915,14 @@ VOID PhpShowTokenAdvancedProperties(
     PhModalPropertySheet(&propSheetHeader);
 }
 
+/**
+ * Callback to open the linked token for a token.
+ *
+ * \param Handle Receives the handle to the opened linked token.
+ * \param DesiredAccess Desired access mask for the token.
+ * \param Context The token handle context.
+ * \return NTSTATUS STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 _Function_class_(PH_OPEN_OBJECT)
 static NTSTATUS PhpOpenLinkedToken(
     _Out_ PHANDLE Handle,
@@ -2477,6 +2934,14 @@ static NTSTATUS PhpOpenLinkedToken(
     return STATUS_UNSUCCESSFUL;
 }
 
+/**
+ * Callback to close a linked token handle.
+ *
+ * \param Handle Optional handle to close.
+ * \param Release Unused release flag.
+ * \param Context Unused context.
+ * \return NTSTATUS STATUS_SUCCESS.
+ */
 _Function_class_(PH_CLOSE_OBJECT)
 static NTSTATUS PhpCloseLinkedToken(
     _In_opt_ HANDLE Handle,
@@ -2488,6 +2953,15 @@ static NTSTATUS PhpCloseLinkedToken(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Dialog procedure for the Token General property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenGeneralPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2694,6 +3168,15 @@ typedef struct _PHP_TOKEN_ADVANCED_CONTEXT
     PH_LAYOUT_MANAGER LayoutManager;
 } PHP_TOKEN_ADVANCED_CONTEXT, *PPHP_TOKEN_ADVANCED_CONTEXT;
 
+/**
+ * Dialog procedure for the Token Advanced property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -2979,6 +3462,16 @@ INT_PTR CALLBACK PhpTokenAdvancedPageProc(
     return FALSE;
 }
 
+/**
+ * TreeNew control callback procedure for token attribute trees.
+ *
+ * \param WindowHandle A handle to the TreeNew control window.
+ * \param Message The TreeNew message.
+ * \param Parameter1 Message-specific parameter 1.
+ * \param Parameter2 Message-specific parameter 2.
+ * \param Context A pointer to the attribute tree context.
+ * \return BOOLEAN TRUE if handled, FALSE otherwise.
+ */
 BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -3064,6 +3557,14 @@ BOOLEAN NTAPI PhpAttributeTreeNewCallback(
     return FALSE;
 }
 
+/**
+ * Adds a node to the token attribute tree.
+ *
+ * \param Context A pointer to the attribute tree context.
+ * \param Parent Optional parent node.
+ * \param Text String text for the node.
+ * \return PPH_TOKEN_ATTRIBUTE_NODE A pointer to the newly created tree node.
+ */
 PPH_TOKEN_ATTRIBUTE_NODE PhpAddAttributeNode(
     _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
     _In_opt_ PPH_TOKEN_ATTRIBUTE_NODE Parent,
@@ -3090,6 +3591,11 @@ PPH_TOKEN_ATTRIBUTE_NODE PhpAddAttributeNode(
     return node;
 }
 
+/**
+ * Destroys a token attribute tree node and frees its resources.
+ *
+ * \param Node A pointer to the attribute node to destroy.
+ */
 VOID PhpDestroyAttributeNode(
     _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
     )
@@ -3100,6 +3606,12 @@ VOID PhpDestroyAttributeNode(
     PhFree(Node);
 }
 
+/**
+ * Removes a node from the attribute tree context and destroys it.
+ *
+ * \param Context A pointer to the attribute tree context.
+ * \param Node A pointer to the attribute node to remove.
+ */
 VOID PhpRemoveAttributeNode(
     _In_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
     _In_ PPH_TOKEN_ATTRIBUTE_NODE Node
@@ -3115,6 +3627,14 @@ VOID PhpRemoveAttributeNode(
     PhpDestroyAttributeNode(Node);
 }
 
+/**
+ * Retrieves an array of currently selected nodes in the attribute tree.
+ *
+ * \param Context A pointer to the attribute tree context.
+ * \param Nodes Receives an allocated array of selected node pointers.
+ * \param NumberOfNodes Receives the number of selected nodes.
+ * \return BOOLEAN TRUE if one or more nodes were selected, FALSE otherwise.
+ */
 _Success_(return)
 BOOLEAN PhpGetSelectedAttributeTreeNodes(
     _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
@@ -3147,6 +3667,13 @@ BOOLEAN PhpGetSelectedAttributeTreeNodes(
     return FALSE;
 }
 
+/**
+ * Initializes an attribute tree context and configures the TreeNew control.
+ *
+ * \param Context A pointer to the attribute tree context structure to initialize.
+ * \param WindowHandle A handle to the parent window.
+ * \param TreeNewHandle A handle to the TreeNew control.
+ */
 VOID PhpInitializeAttributeTreeContext(
     _Out_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context,
     _In_ HWND WindowHandle,
@@ -3165,6 +3692,11 @@ VOID PhpInitializeAttributeTreeContext(
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
 }
 
+/**
+ * Deletes an attribute tree context and frees all contained nodes.
+ *
+ * \param Context A pointer to the attribute tree context structure to delete.
+ */
 VOID PhpDeleteAttributeTreeContext(
     _Inout_ PPH_TOKEN_ATTRIBUTE_TREE_CONTEXT Context
     )
@@ -3189,6 +3721,13 @@ VOID PhpDeleteAttributeTreeContext(
 //    return PhGetGroupAttributesColor(sidAndAttributes->Attributes);
 //}
 
+/**
+ * Queries and populates the capabilities tree with token capability SIDs and names.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param tnHandle A handle to the TreeNew control window.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpAddTokenCapabilities(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HWND tnHandle
@@ -3306,6 +3845,15 @@ BOOLEAN PhpAddTokenCapabilities(
     return TRUE;
 }
 
+/**
+ * Dialog procedure for the Token Capabilities property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3415,6 +3963,12 @@ INT_PTR CALLBACK PhpTokenCapabilitiesPageProc(
     return FALSE;
 }
 
+/**
+ * Gets the string representation of a security attribute value type.
+ *
+ * \param Type The security attribute value type.
+ * \return PWSTR A string describing the security attribute type.
+ */
 PWSTR PhGetSecurityAttributeTypeString(
     _In_ USHORT Type
     )
@@ -3444,6 +3998,12 @@ PWSTR PhGetSecurityAttributeTypeString(
     }
 }
 
+/**
+ * Gets a string representation of security attribute flags.
+ *
+ * \param Flags The security attribute flags.
+ * \return PPH_STRING A string describing the attribute flags.
+ */
 PPH_STRING PhGetSecurityAttributeFlagsString(
     _In_ ULONG Flags
     )
@@ -3477,6 +4037,13 @@ PPH_STRING PhGetSecurityAttributeFlagsString(
     return PhFinalStringBuilderString(&sb);
 }
 
+/**
+ * Formats a single value of a claim security attribute as a string.
+ *
+ * \param Attribute A pointer to the claim security attribute structure.
+ * \param ValueIndex The index of the value to format.
+ * \return PPH_STRING A formatted string representing the attribute value.
+ */
 PPH_STRING PhFormatClaimSecurityAttributeValue(
     _In_ PCLAIM_SECURITY_ATTRIBUTE_V1 Attribute,
     _In_ ULONG ValueIndex
@@ -3535,6 +4102,14 @@ PPH_STRING PhFormatClaimSecurityAttributeValue(
     }
 }
 
+/**
+ * Formats a single value of a token security attribute as a string.
+ *
+ * \param Name The name of the security attribute.
+ * \param Attribute A pointer to the token security attribute structure.
+ * \param ValueIndex The index of the value to format.
+ * \return PPH_STRING A formatted string representing the attribute value.
+ */
 PPH_STRING PhFormatTokenSecurityAttributeValue(
     _In_ PPH_STRINGREF Name,
     _In_ PTOKEN_SECURITY_ATTRIBUTE_V1 Attribute,
@@ -3782,6 +4357,15 @@ PPH_STRING PhFormatTokenSecurityAttributeValue(
     }
 }
 
+/**
+ * Queries and populates user or device claim security attributes into the claims tree.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param tnHandle A handle to the TreeNew control window.
+ * \param DeviceClaims TRUE to query device claim attributes, FALSE to query user claim attributes.
+ * \param Parent The parent tree node under which the claims will be added.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpAddTokenClaimAttributes(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HWND tnHandle,
@@ -3838,6 +4422,15 @@ BOOLEAN PhpAddTokenClaimAttributes(
     return TRUE;
 }
 
+/**
+ * Dialog procedure for the Token Claims property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenClaimsPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3958,6 +4551,13 @@ INT_PTR CALLBACK PhpTokenClaimsPageProc(
     return FALSE;
 }
 
+/**
+ * Queries and populates token security attributes into the attributes tree.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ * \param tnHandle A handle to the TreeNew control window.
+ * \return BOOLEAN TRUE on success, FALSE otherwise.
+ */
 BOOLEAN PhpAddTokenAttributes(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext,
     _In_ HWND tnHandle
@@ -4015,6 +4615,15 @@ BOOLEAN PhpAddTokenAttributes(
     return TRUE;
 }
 
+/**
+ * Dialog procedure for the Token Attributes property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenAttributesPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -4119,6 +4728,12 @@ INT_PTR CALLBACK PhpTokenAttributesPageProc(
 }
 
 // rev from GetUserProfileDirectory (dmex)
+/**
+ * Gets the user profile directory folder path associated with a token.
+ *
+ * \param TokenHandle A handle to the token.
+ * \return PPH_STRING A string containing the profile folder path, or NULL on failure.
+ */
 PPH_STRING PhpGetTokenFolderPath(
     _In_ HANDLE TokenHandle
     )
@@ -4201,6 +4816,12 @@ PPH_STRING PhpGetTokenFolderPath(
     return profileFolderPath;
 }
 
+/**
+ * Gets the user registry hive path associated with a token.
+ *
+ * \param TokenHandle A handle to the token.
+ * \return PPH_STRING A string containing the user registry hive path, or NULL on failure.
+ */
 PPH_STRING PhpGetTokenRegistryPath(
     _In_ HANDLE TokenHandle
     )
@@ -4241,6 +4862,13 @@ PPH_STRING PhpGetTokenRegistryPath(
     return profileRegistryPath;
 }
 
+/**
+ * Gets the AppContainer package local app data folder path.
+ *
+ * \param TokenHandle A handle to the token.
+ * \param TokenAppContainerSid Optional AppContainer SID.
+ * \return PPH_STRING A string containing the AppContainer folder path, or NULL if unavailable.
+ */
 PPH_STRING PhpGetTokenAppContainerFolderPath(
     _In_ HANDLE TokenHandle,
     _In_opt_ PSID TokenAppContainerSid
@@ -4350,6 +4978,12 @@ PPH_STRING PhpGetTokenAppContainerFolderPath(
     }
 }
 
+/**
+ * Gets the AppContainer registry hive path.
+ *
+ * \param TokenHandle A handle to the token.
+ * \return PPH_STRING A string containing the AppContainer registry path, or NULL if unavailable.
+ */
 PPH_STRING PhpGetTokenAppContainerRegistryPath(
     _In_ HANDLE TokenHandle
     )
@@ -4375,6 +5009,15 @@ PPH_STRING PhpGetTokenAppContainerRegistryPath(
     return appContainerRegistryPath;
 }
 
+/**
+ * Dialog procedure for the Token AppContainer property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenContainerPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -4879,6 +5522,14 @@ static NTSTATUS (NTAPI* GetAppModelPolicy_I)(
     _Out_ AppModelPolicy_PolicyValue* PolicyValue
     ) = NULL;
 
+/**
+ * Invokes the private GetAppModelPolicy routine with Control Flow Guard (CFG) disabled.
+ *
+ * \param TokenHandle A handle to the token.
+ * \param PolicyType The AppModel policy type to query.
+ * \param PolicyValue Receives the queried policy value.
+ * \return NTSTATUS STATUS_SUCCESS on success, or an NTSTATUS error code on failure.
+ */
 DECLSPEC_GUARDNOCF
 NTSTATUS PhpGetAppModelPolicy(
     _In_ HANDLE TokenHandle,
@@ -4896,6 +5547,14 @@ NTSTATUS PhpGetAppModelPolicy(
     return GetAppModelPolicy_I(TokenHandle, PolicyType, PolicyValue);
 }
 
+/**
+ * Resolves and queries the AppModel policy for a token.
+ *
+ * \param TokenHandle A handle to the token.
+ * \param PolicyType The AppModel policy type to query.
+ * \param PolicyValue Receives the queried policy value.
+ * \return NTSTATUS STATUS_SUCCESS on success, STATUS_PROCEDURE_NOT_FOUND if the symbol cannot be resolved, or an NTSTATUS error code on failure.
+ */
 NTSTATUS PhGetAppModelPolicy(
     _In_ HANDLE TokenHandle,
     _In_ AppModelPolicy_Type PolicyType,
@@ -4957,6 +5616,12 @@ NTSTATUS PhGetAppModelPolicy(
     return status;
 }
 
+/**
+ * Worker thread routine to initialize AppModel policy symbols and notify the UI dialog.
+ *
+ * \param Context A handle to the target dialog window (HWND).
+ * \return STATUS_SUCCESS.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 static NTSTATUS PhGetAppModelPolicySymbolDownloadThread(
     _In_ PVOID Context
@@ -4980,6 +5645,11 @@ static NTSTATUS PhGetAppModelPolicySymbolDownloadThread(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Enumerates all supported AppModel policies for a token and populates the policy tree.
+ *
+ * \param TokenPageContext A pointer to the token page context.
+ */
 VOID PhEnumTokenAppModelPolicy(
     _In_ PTOKEN_PAGE_CONTEXT TokenPageContext
     )
@@ -5938,6 +6608,16 @@ BEGIN_SORT_FUNCTION(Value)
 }
 END_SORT_FUNCTION
 
+/**
+ * TreeNew control callback procedure for the AppModel policy tree.
+ *
+ * \param WindowHandle A handle to the TreeNew control window.
+ * \param Message The TreeNew message.
+ * \param Parameter1 Message-specific parameter 1.
+ * \param Parameter2 Message-specific parameter 2.
+ * \param Context A pointer to the attribute tree context.
+ * \return BOOLEAN TRUE if handled, FALSE otherwise.
+ */
 BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
     _In_ HWND WindowHandle,
     _In_ PH_TREENEW_MESSAGE Message,
@@ -6100,6 +6780,15 @@ BOOLEAN NTAPI PhpAppPolicyTreeNewCallback(
 static CONST PH_STRINGREF PhAppPolicyLoadingText = PH_STRINGREF_INIT(L"Initializing kernelbase symbols...");
 static CONST PH_STRINGREF PhAppPolicyEmptyText = PH_STRINGREF_INIT(L"There are no policies to display.");
 
+/**
+ * Dialog procedure for the Token AppModel Policy property page.
+ *
+ * \param hwndDlg A handle to the dialog window.
+ * \param uMsg The window message.
+ * \param wParam Message-specific parameter.
+ * \param lParam Message-specific parameter.
+ * \return INT_PTR Dialog message response.
+ */
 INT_PTR CALLBACK PhpTokenAppPolicyPageProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,

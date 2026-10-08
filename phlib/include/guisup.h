@@ -18,7 +18,7 @@
 
 EXTERN_C_START
 
-// guisup
+// Run File Dialog
 
 #define RFF_NOBROWSE 0x0001
 #define RFF_NODEFAULT 0x0002
@@ -46,14 +46,88 @@ typedef LPNMRUNFILEDLGW LPNMRUNFILEDLG;
 #define RF_CANCEL 0x0001
 #define RF_RETRY 0x0002
 
-typedef HANDLE HTHEME;
+//
+// GetDCEx flags
+//
 
-#define DCX_USESTYLE 0x00010000
-#define DCX_NODELETERGN 0x00040000
+#if !defined(DCX_WINDOW)
+#define DCX_WINDOW              LONG_C(0x00000001)      // Use the window rectangle instead of the client rectangle
+#endif
+#if !defined(DCX_CACHE)
+#define DCX_CACHE               LONG_C(0x00000002)      // Return a DC from the cache; overrides CS_OWNDC/CS_CLASSDC
+#endif
+#if !defined(DCX_NORESETATTRS)
+#define DCX_NORESETATTRS        LONG_C(0x00000004)      // Do not restore default attributes when the DC is released
+#endif
+#if !defined(DCX_CLIPCHILDREN)
+#define DCX_CLIPCHILDREN        LONG_C(0x00000008)      // Exclude the visible regions of all child windows
+#endif
+#if !defined(DCX_CLIPSIBLINGS)
+#define DCX_CLIPSIBLINGS        LONG_C(0x00000010)      // Exclude the visible regions of all sibling windows above
+#endif
+#if !defined(DCX_PARENTCLIP)
+#define DCX_PARENTCLIP          LONG_C(0x00000020)      // Use the parent's visible region; ignore WS_CLIPCHILDREN/WS_PARENTDC
+#endif
+#if !defined(DCX_EXCLUDERGN)
+#define DCX_EXCLUDERGN          LONG_C(0x00000040)      // Exclude hrgnClip from the DC's visible region
+#endif
+#if !defined(DCX_INTERSECTRGN)
+#define DCX_INTERSECTRGN        LONG_C(0x00000080)      // Intersect hrgnClip with the DC's visible region
+#endif
+#if !defined(DCX_EXCLUDEUPDATE)
+#define DCX_EXCLUDEUPDATE       LONG_C(0x00000100)      // Exclude the window's update region (undocumented)
+#endif
+#if !defined(DCX_INTERSECTUPDATE)
+#define DCX_INTERSECTUPDATE     LONG_C(0x00000200)      // Intersect with the window's update region (undocumented)
+#endif
+#if !defined(DCX_LOCKWINDOWUPDATE)
+#define DCX_LOCKWINDOWUPDATE    LONG_C(0x00000400)      // Draw even while LockWindowUpdate is in effect (tracking)
+#endif
+
+// Internal DCE-cache state bits (set/cleared by win32k, not by usermode callers)
+#define DCX_DCEEMPTY            LONG_C(0x00000800)      // Cache DCE slot has no HDC allocated yet (free entry) (undocumented)
+#define DCX_DCEBUSY             LONG_C(0x00001000)      // DCE is handed out; set by GetDCEx, cleared by ReleaseDC (undocumented)
+#define DCX_DCEDIRTY            LONG_C(0x00002000)      // Cached visible region is stale; recomputed then cleared on reuse (undocumented)
+#define DCX_REDIRECTED          LONG_C(0x00004000)      // DC is bound to a (DWM) redirection surface (undocumented)
+#define DCX_INVALID             LONG_C(0x00008000)      // DCE is invalid and must not be reused (undocumented)
+
+// Caller-supplied input flags (continued)
+#define DCX_USESTYLE            LONG_C(0x00010000)      // Take CLIPCHILDREN/CLIPSIBLINGS from the window style (undocumented)
+#define DCX_NODELETERGN         LONG_C(0x00040000)      // Don't delete hrgnClip on GetDCEx/ReleaseCacheDC (undocumented)
+#define DCX_NOCLIPCHILDREN      LONG_C(0x00080000)      // Build the visible region without clipping child windows (undocumented)
+#define DCX_NORECOMPUTE         LONG_C(0x00100000)      // Use the cached visible region; do not recompute (undocumented)
+#if !defined(DCX_VALIDATE)
+#define DCX_VALIDATE            LONG_C(0x00200000)      // Validate the visible region against the update region
+#endif
+#define DCX_DISPLAYDC           LONG_C(0x00800000)      // Full-window display DC (UserGetMonitorDC/UserGetDesktopDC) (undocumented)
+#define DCX_DESKTOPDC           LONG_C(0x80000000)      // Desktop-window DC (UserGetDesktopDC only) (undocumented)
+
+//
+// Region
+//
 
 #define HRGN_FULL ((HRGN)1) // passed by WM_NCPAINT even though it's completely undocumented (wj32)
 
+//
+// GUI
+//
+
 extern LONG PhFontQuality;
+
+typedef enum _PH_OWN_WINDOW_ATOM
+{
+    PhOwnWindowAtomTreeNew,
+    PhOwnWindowAtomScrollNew,
+    PhOwnWindowAtomToolTipsNew,
+    PhOwnWindowAtomGraph,
+    PhOwnWindowAtomGraphBar,
+    PhOwnWindowAtomPropSheetNew,
+    PhOwnWindowAtomHeaderNew,
+    PhOwnWindowAtomHexEdit,
+    PhOwnWindowAtomColorBox,
+    PhOwnWindowAtomTabNew,
+    PhOwnWindowAtomMaximum
+} PH_OWN_WINDOW_ATOM;
 
 PHLIBAPI
 VOID
@@ -129,6 +203,8 @@ PhGetStockObject(
 #define PhGetStockBrush(i) ((HBRUSH)PhGetStockObject(i))
 #define PhGetStockPen(i) ((HPEN)PhGetStockObject(i))
 
+typedef HANDLE HTHEME;
+
 PHLIBAPI
 HTHEME
 NTAPI
@@ -143,6 +219,33 @@ VOID
 NTAPI
 PhCloseThemeData(
     _In_ HTHEME ThemeHandle
+    );
+
+typedef struct _PH_THEME_FILE PH_THEME_FILE, * PPH_THEME_FILE;
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhLoadThemeFile(
+    _In_ PCWSTR ThemeFileName,
+    _Out_ PPH_THEME_FILE *ThemeFile
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhUnloadThemeFile(
+    _In_opt_ PPH_THEME_FILE ThemeFile
+    );
+
+PHLIBAPI
+HTHEME
+NTAPI
+PhOpenThemeDataFromFile(
+    _In_ PPH_THEME_FILE ThemeFile,
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PCWSTR ClassList,
+    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -315,6 +418,7 @@ PhIsThemeBackgroundPartiallyTransparent(
     _In_ LONG StateId
     );
 
+// Painter for control borders (edits, etc.)
 PHLIBAPI
 VOID
 NTAPI
@@ -334,9 +438,7 @@ PhDrawThemeParentBackground(
     _In_opt_ const PRECT Rect
     );
 
-// Buffered paint (UxTheme-free, FLS-cached double buffering). The
-// implementation lives in guisup.c.
-
+// Buffered paint (UxTheme-compatible, FLS-cached double buffering).
 typedef enum _PH_BUFFERFORMAT
 {
     PHBF_COMPATIBLEBITMAP,   // Compatible bitmap
@@ -344,6 +446,14 @@ typedef enum _PH_BUFFERFORMAT
     PHBF_TOPDOWNDIB,         // Top-down device-independent bitmap
     PHBF_TOPDOWNMONODIB      // Top-down monochrome device-independent bitmap
 } PH_BUFFERFORMAT;
+
+typedef struct _PH_PAINTPARAMS
+{
+    ULONG Size;
+    ULONG Flags;
+    const RECT *ExcludeRect;
+    const BLENDFUNCTION *BlendFunction;
+} PH_PAINTPARAMS, *PPH_PAINTPARAMS;
 
 // Opaque per-thread paint cache; defined privately in guisup.c.
 typedef struct _PH_BP_CACHE PH_BP_CACHE, *PPH_BP_CACHE;
@@ -365,11 +475,13 @@ typedef struct _PH_BUFFERED_PAINT
     BOOLEAN OwnsBitmap;     // TRUE -> bitmap is transient, delete on End
 } PH_BUFFERED_PAINT, *PPH_BUFFERED_PAINT;
 
-typedef BOOLEAN (CALLBACK* PPH_BUFFERED_PAINT_PROC)(
+typedef _Function_class_(PH_BUFFERED_PAINT_PROC)
+BOOLEAN NTAPI PH_BUFFERED_PAINT_PROC(
     _In_ HDC BufferHdc,
-    _In_ PRECT PaintRect,
+    _In_ const RECT* PaintRect,
     _In_opt_ PVOID Context
     );
+typedef PH_BUFFERED_PAINT_PROC* PPH_BUFFERED_PAINT_PROC;
 
 PHLIBAPI
 BOOLEAN
@@ -392,6 +504,8 @@ NTAPI
 PhBeginBufferedPaint(
     _In_ HDC TargetHdc,
     _In_ const RECT* TargetRect,
+    _In_ PH_BUFFERFORMAT Format,
+    _In_opt_ const PH_PAINTPARAMS* PaintParams,
     _Out_ PPH_BUFFERED_PAINT BufferedPaint,
     _Out_ HDC* PaintHdc
     );
@@ -466,16 +580,6 @@ PhGetBufferedPaintTargetRect(
 PHLIBAPI
 VOID
 NTAPI
-PhPaintBuffered(
-    _In_ HWND WindowHandle,
-    _In_ const PAINTSTRUCT* PaintStruct,
-    _In_ PPH_BUFFERED_PAINT_PROC PaintProc,
-    _In_opt_ PVOID Context
-    );
-
-PHLIBAPI
-VOID
-NTAPI
 PhEndBufferedPaint(
     _In_ PPH_BUFFERED_PAINT BufferedPaint,
     _In_ BOOLEAN UpdateTarget
@@ -550,8 +654,6 @@ PhPaintBuffered(
     _In_opt_ PVOID Context
     );
 
-
-
 PHLIBAPI
 VOID
 NTAPI
@@ -574,6 +676,12 @@ PhIsDarkModeAllowedForWindow(
     _In_ HWND WindowHandle
     );
 
+/**
+ * Tests whether a rectangle has nonpositive width or height.
+ *
+ * \param Rect The rectangle to test.
+ * \return TRUE if the rectangle is empty; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -594,6 +702,12 @@ PhRectEmpty(
 #endif
 }
 
+/**
+ * Sets all rectangle coordinates to zero.
+ *
+ * \param Rect The rectangle to clear.
+ * \return TRUE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -605,6 +719,62 @@ PhSetRectEmpty(
     return TRUE;
 }
 
+/**
+ * Returns a cached scratch region, creating it on first use.
+ *
+ * \param Region A pointer to the cached region handle. The handle is owned by the caller and
+ * must be released with PhDeleteScratchRegion.
+ * \return The scratch region, or NULL if the region could not be created. The contents of the
+ * region are undefined; callers are expected to overwrite them (SetRectRgn, GetUpdateRgn,
+ * GetClipRgn) before use.
+ * \remarks GDI functions that accept a region (including WM_NCPAINT handlers reached via
+ * DefWindowProc or CallWindowProc) do not take ownership of it, so a single scratch region can
+ * be reused instead of allocating a new one on every paint.
+ */
+FORCEINLINE
+HRGN
+NTAPI
+PhGetScratchRegion(
+    _Inout_ HRGN* Region
+    )
+{
+    if (!*Region)
+    {
+        *Region = CreateRectRgn(0, 0, 0, 0);
+    }
+
+    return *Region;
+}
+
+/**
+ * Deletes a cached scratch region.
+ *
+ * \param Region A pointer to the cached region handle. Set to NULL on return.
+ */
+FORCEINLINE
+VOID
+NTAPI
+PhDeleteScratchRegion(
+    _Inout_ HRGN* Region
+    )
+{
+    if (*Region)
+    {
+        DeleteRgn(*Region);
+        *Region = NULL;
+    }
+}
+
+/**
+ * Sets the coordinates of a rectangle.
+ *
+ * \param Rect The destination rectangle.
+ * \param x The left coordinate.
+ * \param y The top coordinate.
+ * \param dx The right coordinate, not the width.
+ * \param dy The bottom coordinate, not the height.
+ * \return TRUE on success; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -627,6 +797,13 @@ PhSetRect(
 #endif
 }
 
+/**
+ * Compares all four coordinates of two rectangles.
+ *
+ * \param Rect1 The first rectangle.
+ * \param Rect2 The second rectangle.
+ * \return TRUE if the coordinates are equal; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 PhEqualRect(
@@ -642,6 +819,14 @@ PhEqualRect(
 #endif
 }
 
+/**
+ * Expands or contracts a rectangle on both axes.
+ *
+ * \param Rect The rectangle to modify.
+ * \param dx The amount subtracted from the left and added to the right.
+ * \param dy The amount subtracted from the top and added to the bottom.
+ * \return TRUE on success; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -662,6 +847,70 @@ PhInflateRect(
 #endif
 }
 
+/**
+ * Calculates the intersection of two rectangles.
+ *
+ * \param Result Receives the intersection coordinates.
+ * \param Rect1 The first rectangle.
+ * \param Rect2 The second rectangle.
+ * \return TRUE if the intersection has positive width and height; otherwise FALSE.
+ * \remarks Result may be modified even when FALSE is returned. The native and local implementations can produce different coordinates for an empty intersection.
+ */
+FORCEINLINE
+BOOLEAN
+NTAPI
+PhIntersectRect(
+    _Out_ PRECT Result,
+    _In_ PRECT Rect1,
+    _In_ PRECT Rect2
+    )
+{
+#if defined(PHNT_NATIVE_RECT)
+    return !!IntersectRect(Result, Rect1, Rect2);
+#else
+    Result->left = Rect1->left > Rect2->left ? Rect1->left : Rect2->left;
+    Result->top = Rect1->top > Rect2->top ? Rect1->top : Rect2->top;
+    Result->right = Rect1->right < Rect2->right ? Rect1->right : Rect2->right;
+    Result->bottom = Rect1->bottom < Rect2->bottom ? Rect1->bottom : Rect2->bottom;
+
+    return Result->right > Result->left && Result->bottom > Result->top;
+#endif
+}
+
+/**
+ * Fills the part of a rectangle that lies within a clip rectangle.
+ *
+ * \param Hdc The device context.
+ * \param Rect The rectangle to fill.
+ * \param ClipRect The clip rectangle, typically from GetClipBox.
+ * \param Brush The brush used to fill the rectangle.
+ */
+FORCEINLINE
+VOID
+NTAPI
+PhFillRectClipped(
+    _In_ HDC Hdc,
+    _In_ PRECT Rect,
+    _In_ PRECT ClipRect,
+    _In_ HBRUSH Brush
+    )
+{
+    RECT fillRect;
+
+    if (PhIntersectRect(&fillRect, Rect, ClipRect))
+    {
+        FillRect(Hdc, &fillRect, Brush);
+    }
+}
+
+/**
+ * Translates a rectangle without changing its size.
+ *
+ * \param Rect The rectangle to modify.
+ * \param dx The horizontal displacement.
+ * \param dy The vertical displacement.
+ * \return TRUE on success; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -682,6 +931,14 @@ PhOffsetRect(
 #endif
 }
 
+/**
+ * Tests whether a point lies within a rectangle.
+ *
+ * \param Rect The rectangle to test.
+ * \param Point The point to test.
+ * \return TRUE if the point is inside; otherwise FALSE.
+ * \remarks The left and top edges are included; the right and bottom edges are excluded.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -698,6 +955,14 @@ PhPtInRect(
 #endif
 }
 
+/**
+ * Retrieves a nonempty window rectangle in screen coordinates.
+ *
+ * \param WindowHandle The window.
+ * \param WindowRect Receives the window rectangle.
+ * \return TRUE if retrieval succeeds and the rectangle is nonempty; otherwise FALSE.
+ * \remarks WindowRect may be modified on failure, including when an empty rectangle is rejected.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -720,6 +985,14 @@ PhGetWindowRect(
     return TRUE;
 }
 
+/**
+ * Retrieves a client rectangle with nonzero right and bottom coordinates.
+ *
+ * \param WindowHandle The window.
+ * \param ClientRect Receives the rectangle in client coordinates.
+ * \return TRUE if retrieval succeeds and both right and bottom are nonzero; otherwise FALSE.
+ * \remarks ClientRect may be modified on failure, including when a zero dimension is rejected.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -738,6 +1011,12 @@ PhGetClientRect(
     return TRUE;
 }
 
+/**
+ * Retrieves the current cursor position in screen coordinates.
+ *
+ * \param Point Receives the cursor position.
+ * \return TRUE on success; otherwise FALSE.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -752,6 +1031,12 @@ PhGetCursorPos(
     return FALSE;
 }
 
+/**
+ * Retrieves the cursor position recorded for the last message retrieved by the calling thread.
+ *
+ * \param MessagePoint Receives the position in screen coordinates.
+ * \return TRUE.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -770,6 +1055,13 @@ PhGetMessagePos(
     return TRUE;
 }
 
+/**
+ * Converts the last retrieved message's cursor position from screen to client coordinates.
+ *
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param ClientPoint Receives the converted position on success.
+ * \return TRUE if conversion succeeds; otherwise FALSE.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -795,6 +1087,14 @@ PhGetClientPos(
     return FALSE;
 }
 
+/**
+ * Applies a client-to-screen conversion to the last retrieved message's cursor position.
+ *
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param ClientPoint Receives the converted position on success.
+ * \return TRUE if conversion succeeds; otherwise FALSE.
+ * \remarks GetMessagePos already supplies screen coordinates; this helper nevertheless treats those coordinates as client coordinates before converting them.
+ */
 _Success_(return)
 FORCEINLINE
 BOOLEAN
@@ -820,6 +1120,13 @@ PhGetScreenPos(
     return FALSE;
 }
 
+/**
+ * Converts a point from client to screen coordinates.
+ *
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param Point The point to convert in place.
+ * \return TRUE on success; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -833,6 +1140,13 @@ PhClientToScreen(
     return FALSE;
 }
 
+/**
+ * Converts a point from screen to client coordinates.
+ *
+ * \param WindowHandle The window defining the client coordinate system.
+ * \param Point The point to convert in place.
+ * \return TRUE on success; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -846,6 +1160,14 @@ PhScreenToClient(
     return FALSE;
 }
 
+/**
+ * Maps a rectangle from client to screen coordinates.
+ *
+ * \param WindowHandle The source window.
+ * \param Rect The rectangle to map in place.
+ * \return TRUE if MapWindowRect returns a nonzero displacement; otherwise FALSE.
+ * \remarks A zero displacement is reported as FALSE even when mapping succeeds without moving the rectangle.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -865,6 +1187,14 @@ PhClientToScreenRect(
     return TRUE;
 }
 
+/**
+ * Maps a rectangle from screen to client coordinates.
+ *
+ * \param WindowHandle The destination window.
+ * \param Rect The rectangle to map in place.
+ * \return TRUE if MapWindowRect returns a nonzero displacement; otherwise FALSE.
+ * \remarks A zero displacement is reported as FALSE even when mapping succeeds without moving the rectangle.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -945,6 +1275,12 @@ PhGetMonitorDpi(
     _In_opt_ PRECT WindowRect
     );
 
+/**
+ * Retrieves the monitor DPI for a rectangle.
+ *
+ * \param Rectangle The rectangle identifying the monitor.
+ * \return The DPI returned by PhGetMonitorDpi.
+ */
 FORCEINLINE
 LONG
 PhGetMonitorDpiFromRect(
@@ -975,11 +1311,26 @@ PhGetWindowDpi(
 PHLIBAPI
 LONG
 NTAPI
+PhGetWindowNcDpi(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+LONG
+NTAPI
 PhGetDpiValue(
     _In_opt_ HWND WindowHandle,
     _In_opt_ PRECT WindowRect
     );
 
+/**
+ * Scales a rectangle's position and dimensions between default and display DPI.
+ *
+ * \param Rect The rectangle to modify.
+ * \param Dpi The nonzero display DPI.
+ * \param ScaleToDisplay TRUE to scale to display DPI
+ * \param  FALSE to scale to default DPI.
+ */
 FORCEINLINE
 VOID
 PhGetSizeDpiValue(
@@ -1072,6 +1423,12 @@ PhGetSystemParametersInfo(
     _In_opt_ LONG DpiValue
     );
 
+/**
+ * Retrieves a window class's style flags.
+ *
+ * \param WindowHandle A window of the class.
+ * \return The class style flags, or zero if the underlying query fails.
+ */
 FORCEINLINE
 ULONG
 PhGetClassStyle(
@@ -1081,6 +1438,13 @@ PhGetClassStyle(
     return (ULONG)GetClassLongPtr(WindowHandle, GCL_STYLE);
 }
 
+/**
+ * Replaces selected window class style bits.
+ *
+ * \param Handle A window of the class.
+ * \param Mask The bits to replace.
+ * \param Value The replacement values for the masked bits.
+ */
 FORCEINLINE
 VOID
 PhSetClassStyle(
@@ -1096,6 +1460,12 @@ PhSetClassStyle(
     SetClassLongPtr(Handle, GCL_STYLE, style);
 }
 
+/**
+ * Retrieves a window's style flags.
+ *
+ * \param WindowHandle The window.
+ * \return The style flags, or zero if the underlying query fails.
+ */
 FORCEINLINE
 ULONG
 PhGetWindowStyle(
@@ -1105,6 +1475,12 @@ PhGetWindowStyle(
     return (ULONG)GetWindowLongPtr(WindowHandle, GWL_STYLE);
 }
 
+/**
+ * Retrieves a window's extended style flags.
+ *
+ * \param WindowHandle The window.
+ * \return The extended style flags, or zero if the underlying query fails.
+ */
 FORCEINLINE
 ULONG
 PhGetWindowStyleEx(
@@ -1114,6 +1490,13 @@ PhGetWindowStyleEx(
     return (ULONG)GetWindowLongPtr(WindowHandle, GWL_EXSTYLE);
 }
 
+/**
+ * Replaces selected window style bits.
+ *
+ * \param Handle The window.
+ * \param Mask The bits to replace.
+ * \param Value The replacement values for the masked bits.
+ */
 FORCEINLINE VOID PhSetWindowStyle(
     _In_ HWND Handle,
     _In_ ULONG Mask,
@@ -1127,6 +1510,13 @@ FORCEINLINE VOID PhSetWindowStyle(
     SetWindowLongPtr(Handle, GWL_STYLE, style);
 }
 
+/**
+ * Replaces selected extended window style bits.
+ *
+ * \param Handle The window.
+ * \param Mask The bits to replace.
+ * \param Value The replacement values for the masked bits.
+ */
 FORCEINLINE VOID PhSetWindowExStyle(
     _In_ HWND Handle,
     _In_ ULONG Mask,
@@ -1140,6 +1530,33 @@ FORCEINLINE VOID PhSetWindowExStyle(
     SetWindowLongPtr(Handle, GWL_EXSTYLE, style);
 }
 
+/**
+ * Forces the window frame to be recalculated and repainted.
+ *
+ * \param WindowHandle A handle to the window.
+ *
+ * \remarks Changing a non-client style (WS_BORDER, WS_CAPTION, WS_EX_CLIENTEDGE and others) does not
+ * invalidate the cached non-client metrics. Call this after PhSetWindowStyle/PhSetWindowExStyle so the
+ * window recalculates its frame instead of waiting for an unrelated size or theme change.
+ */
+FORCEINLINE VOID PhSetWindowFrameChanged(
+    _In_ HWND WindowHandle
+    )
+{
+    SetWindowPos(
+        WindowHandle,
+        NULL,
+        0, 0, 0, 0,
+        SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED
+        );
+}
+
+/**
+ * Retrieves a window's current procedure.
+ *
+ * \param WindowHandle The window.
+ * \return The current procedure, or NULL if the underlying query fails.
+ */
 FORCEINLINE WNDPROC PhGetWindowProcedure(
     _In_ HWND WindowHandle
     )
@@ -1147,6 +1564,13 @@ FORCEINLINE WNDPROC PhGetWindowProcedure(
     return (WNDPROC)GetWindowLongPtr(WindowHandle, GWLP_WNDPROC);
 }
 
+/**
+ * Replaces a window's procedure.
+ *
+ * \param WindowHandle The window.
+ * \param SubclassProcedure The replacement procedure.
+ * \return The previous procedure, or NULL if the underlying operation fails.
+ */
 FORCEINLINE WNDPROC PhSetWindowProcedure(
     _In_ HWND WindowHandle,
     _In_ WNDPROC SubclassProcedure
@@ -1155,6 +1579,14 @@ FORCEINLINE WNDPROC PhSetWindowProcedure(
     return (WNDPROC)SetWindowLongPtr(WindowHandle, GWLP_WNDPROC, (LONG_PTR)SubclassProcedure);
 }
 
+/**
+ * Retrieves window class information.
+ *
+ * \param Instance The module that registered the class, or NULL for a system class.
+ * \param ClassName The class name or integer atom.
+ * \param WindowClass Receives the class information.
+ * \return Nonzero on success; zero on failure.
+ */
 FORCEINLINE BOOL PhGetClassInfo(
     _In_opt_ HINSTANCE Instance,
     _In_ PCWSTR ClassName,
@@ -1164,6 +1596,15 @@ FORCEINLINE BOOL PhGetClassInfo(
     return GetClassInfo(Instance, ClassName, WindowClass);
 }
 
+/**
+ * Retrieves extended window class information.
+ *
+ * \param Instance The module that registered the class, or NULL for a system class.
+ * \param ClassName The class name or integer atom.
+ * \param WindowClass Receives the information
+ * \param  initialize cbSize before calling.
+ * \return The underlying GetClassInfoEx result cast to RTL_ATOM; zero indicates failure.
+ */
 FORCEINLINE RTL_ATOM PhGetClassInfoEx(
     _In_opt_ HINSTANCE Instance,
     _In_ PCWSTR ClassName,
@@ -1174,6 +1615,11 @@ FORCEINLINE RTL_ATOM PhGetClassInfoEx(
     return (RTL_ATOM)GetClassInfoEx(Instance, ClassName, WindowClass);
 }
 
+/**
+ * Shows a window and moves it to the top of the Z-order without activating it.
+ *
+ * \param WindowHandle The window.
+ */
 FORCEINLINE VOID PhBringWindowToTop(
     _In_ HWND WindowHandle
     )
@@ -1193,6 +1639,13 @@ FORCEINLINE VOID PhBringWindowToTop(
 
 #define IDC_DIVIDER MAKEINTRESOURCE(106) // comctl32.dll
 
+/**
+ * Loads a shared cursor image.
+ *
+ * \param BaseAddress The resource module, or NULL for a system cursor.
+ * \param CursorName The resource name or integer identifier.
+ * \return The shared cursor handle, or NULL on failure. Do not destroy the shared handle.
+ */
 FORCEINLINE
 HCURSOR
 NTAPI
@@ -1205,6 +1658,11 @@ PhLoadCursor(
     //return LoadCursor((HINSTANCE)BaseAddress, CursorName);
 }
 
+/**
+ * Retrieves the calling thread's current cursor.
+ *
+ * \return The cursor handle, or NULL if no cursor is set. The handle is borrowed.
+ */
 FORCEINLINE
 HCURSOR
 NTAPI
@@ -1215,6 +1673,12 @@ PhGetCursor(
     return GetCursor();
 }
 
+/**
+ * Sets the calling thread's cursor.
+ *
+ * \param CursorHandle The cursor, or NULL to remove it.
+ * \return The previous cursor handle, which is borrowed.
+ */
 FORCEINLINE
 HCURSOR
 NTAPI
@@ -1225,6 +1689,12 @@ PhSetCursor(
     return SetCursor(CursorHandle);
 }
 
+/**
+ * Tests the down-state of a virtual key for the calling thread's message queue.
+ *
+ * \param VirtualKey The virtual-key code.
+ * \return TRUE if the key is down; otherwise FALSE.
+ */
 FORCEINLINE
 BOOLEAN
 NTAPI
@@ -1239,6 +1709,15 @@ PhGetKeyState(
 #define WM_REFLECT 0x2000
 #endif
 
+/**
+ * Reflects a WM_NOTIFY message back to its originating control.
+ *
+ * \param Handle The control receiving the reflected message.
+ * \param Message The original message identifier.
+ * \param wParam The original message's WPARAM.
+ * \param lParam The original message's LPARAM, pointing to NMHDR for WM_NOTIFY.
+ * \return The reflected message result, or zero if the message is not reflected.
+ */
 FORCEINLINE LRESULT PhReflectMessage(
     _In_ HWND Handle,
     _In_ ULONG Message,
@@ -1276,6 +1755,15 @@ FORCEINLINE LRESULT PhReflectMessage(
         } \
     }
 
+/**
+ * Enables common extended list-view styles.
+ *
+ * \param Handle The list-view control.
+ * \param AllowDragDrop TRUE to enable header drag and drop.
+ * \param ShowLabelTips TRUE to enable label tips.
+ *
+ * \remarks Only the selected extended style bits are enabled; other bits are preserved.
+ */
 FORCEINLINE VOID PhSetListViewStyle(
     _In_ HWND Handle,
     _In_ BOOLEAN AllowDragDrop,
@@ -1481,6 +1969,13 @@ PhGetWindowTextToBuffer(
     _Out_opt_ PULONG ReturnLength
     );
 
+/**
+ * Adds an array of strings to a combo box.
+ *
+ * \param WindowHandle The combo-box control.
+ * \param Strings The array of null-terminated strings.
+ * \param NumberOfStrings The number of strings.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1494,6 +1989,15 @@ PhAddComboBoxStrings(
         ComboBox_AddString(WindowHandle, Strings[i]);
 }
 
+/**
+ * Adds an array of string-reference buffers to a combo box.
+ *
+ * \param WindowHandle The combo-box control.
+ * \param Strings The array of references whose buffers must be null-terminated.
+ * \param NumberOfStrings The number of references.
+ *
+ * \remarks The reference lengths are not used.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1506,6 +2010,28 @@ PhAddComboBoxStringRefs(
     for (ULONG i = 0; i < NumberOfStrings; i++)
         ComboBox_AddString(WindowHandle, Strings[i]->Buffer);
 }
+
+PHLIBAPI
+PCWSTR
+NTAPI
+PhGetMessageName(
+    _In_ ULONG Message
+    );
+
+#ifdef DEBUG
+PHLIBAPI
+VOID
+NTAPI
+PhLogWindowMessage(
+    _In_ PCWSTR Tag,
+    _In_ HWND WindowHandle,
+    _In_ ULONG Message,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+#else
+#define PhLogWindowMessage(Tag, WindowHandle, Message, wParam, lParam) ((void)0)
+#endif
 
 PHLIBAPI
 NTSTATUS
@@ -1575,6 +2101,12 @@ PhGetSelectedListViewItemParams(
     _Out_ PULONG NumberOfItems
     );
 
+/**
+ * Queries a list-view control for its IListView interface.
+ *
+ * \param ListViewHandle The list-view control.
+ * \return The interface, or NULL if unavailable. Release a returned interface when finished.
+ */
 FORCEINLINE
 IListView*
 NTAPI
@@ -1793,8 +2325,9 @@ PhModalPropertySheet(
 
 #define PH_LAYOUT_DUMMY_MASK (PH_LAYOUT_TAB_CONTROL) // items that don't have a window handle, or don't actually get their window resized
 
-// Flags for PhInitializeLayoutManagerEx.
-#define PH_LAYOUT_INIT_CLIP_CHILDREN 0x00000001 // set WS_CLIPCHILDREN on the root window to reduce flicker
+#ifndef PH_LAYOUT_MANAGER_V2
+#define PH_LAYOUT_MANAGER_V2 1 // 0 = previous layout manager
+#endif
 
 typedef struct _PH_LAYOUT_ITEM
 {
@@ -1818,6 +2351,9 @@ typedef struct _PH_LAYOUT_MANAGER
     ULONG LayoutNumber;
 
     LONG WindowDpi;
+#if PH_LAYOUT_MANAGER_V2
+    BOOLEAN ClipChildren; // root window has WS_CLIPCHILDREN (queried once at initialization)
+#endif
 } PH_LAYOUT_MANAGER, *PPH_LAYOUT_MANAGER;
 
 PHLIBAPI
@@ -1826,15 +2362,6 @@ NTAPI
 PhInitializeLayoutManager(
     _Out_ PPH_LAYOUT_MANAGER Manager,
     _In_ HWND RootWindowHandle
-    );
-
-PHLIBAPI
-BOOLEAN
-NTAPI
-PhInitializeLayoutManagerEx(
-    _Out_ PPH_LAYOUT_MANAGER Manager,
-    _In_ HWND RootWindowHandle,
-    _In_ ULONG Flags
     );
 
 PHLIBAPI
@@ -1862,11 +2389,46 @@ PhAddLayoutItemEx(
     _In_ HWND Handle,
     _In_opt_ PPH_LAYOUT_ITEM ParentItem,
     _In_ ULONG Anchor,
+    // Margin is expressed in pixels at Manager->WindowDpi.
     _In_ PRECT Margin
     );
 
+/**
+ * Adds a layout item using margins supplied in default-DPI logical units.
+ *
+ * \param Manager The layout manager.
+ * \param Handle The window to manage.
+ * \param ParentItem The optional parent layout item.
+ * \param Anchor The PH_ANCHOR flags.
+ * \param Margin The margins in default-DPI logical units.
+ * \return The layout item returned by PhAddLayoutItemEx.
+ */
+FORCEINLINE
+PPH_LAYOUT_ITEM
+PhAddLayoutItemExLogical(
+    _Inout_ PPH_LAYOUT_MANAGER Manager,
+    _In_ HWND Handle,
+    _In_opt_ PPH_LAYOUT_ITEM ParentItem,
+    _In_ ULONG Anchor,
+    _In_ PRECT Margin
+    )
+{
+    RECT margin = *Margin;
+
+    // PH_LAYOUT_ITEM margins are stored in 96-DPI logical units.
+    PhGetMarginDpiValue(&margin, Manager->WindowDpi, TRUE);
+
+    return PhAddLayoutItemEx(
+        Manager,
+        Handle,
+        ParentItem,
+        Anchor,
+        &margin
+        );
+}
+
 PHLIBAPI
-VOID
+BOOLEAN
 NTAPI
 PhAddTabControlLayoutItem(
     _Inout_ PPH_LAYOUT_MANAGER Manager,
@@ -1975,6 +2537,13 @@ PhRemoveDialogContext(
     _In_ HWND WindowHandle
     );
 
+/**
+ * Enables or disables redraw processing for a window.
+ *
+ * \param WindowHandle The window.
+ * \param Enable TRUE to enable redraw
+ * \param  FALSE to disable it.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -1986,6 +2555,14 @@ PhSetWindowRedraw(
     SendMessage(WindowHandle, WM_SETREDRAW, Enable, 0);
 }
 
+/**
+ * Adds a rectangle to a window's update region.
+ *
+ * \param WindowHandle The window.
+ * \param Rect The client rectangle to invalidate, or NULL for the entire client area.
+ * \param Erase Nonzero to request background erasure.
+ * \return Nonzero on success; zero on failure.
+ */
 FORCEINLINE
 BOOL
 NTAPI
@@ -1998,6 +2575,11 @@ PhInvalidateRect(
     return InvalidateRect(WindowHandle, Rect, Erase);
 }
 
+/**
+ * Processes a window's pending client-area paint request.
+ *
+ * \param WindowHandle The window.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -2008,6 +2590,11 @@ PhUpdateWindow(
     UpdateWindow(WindowHandle);
 }
 
+/**
+ * Invalidates a window's entire client area with background erasure and processes pending painting.
+ *
+ * \param WindowHandle The window.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -2019,6 +2606,13 @@ PhInvalidateUpdateWindow(
     PhUpdateWindow(WindowHandle);
 }
 
+/**
+ * Invalidates a window's client area, frame, and children with background erasure.
+ *
+ * \param WindowHandle The window.
+ *
+ * \remarks Painting is scheduled; these flags do not force an immediate update.
+ */
 FORCEINLINE
 VOID
 NTAPI
@@ -2034,6 +2628,24 @@ PhRedrawWindow(
     // https://learn.microsoft.com/en-us/windows/win32/gdi/wm-setredraw
 
     RedrawWindow(WindowHandle, NULL, NULL, RDW_ERASE | RDW_FRAME | RDW_INVALIDATE | RDW_ALLCHILDREN);
+}
+
+/**
+ * Requests a redraw operation for a window using caller-supplied flags.
+ *
+ * \param WindowHandle The window.
+ * \param Flags The RDW flags passed to RedrawWindow.
+ * \return Nonzero on success; zero on failure.
+ */
+FORCEINLINE
+BOOL
+NTAPI
+PhRedrawWindowEx(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Flags
+    )
+{
+    return RedrawWindow(WindowHandle, NULL, NULL, Flags);
 }
 
 typedef _Function_class_(PH_DESKTOP_ENUM_CALLBACK)
@@ -2210,7 +2822,7 @@ PhSetWindowAlwaysOnTop(
 
 _Success_(return)
 PHLIBAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 PhSendMessageTimeout(
     _In_ HWND WindowHandle,
@@ -2221,6 +2833,12 @@ PhSendMessageTimeout(
     _Out_opt_ PULONG_PTR Result
     );
 
+/**
+ * Queries a window's text length by sending WM_GETTEXTLENGTH.
+ *
+ * \param WindowHandle The window.
+ * \return The reported length in characters, excluding the terminating null.
+ */
 FORCEINLINE ULONG PhGetWindowTextLength(
     _In_ HWND WindowHandle
     )
@@ -2228,6 +2846,14 @@ FORCEINLINE ULONG PhGetWindowTextLength(
     return (ULONG)SendMessage(WindowHandle, WM_GETTEXTLENGTH, 0, 0); // DefWindowProc
 }
 
+/**
+ * Sets dialog focus by synchronously sending WM_NEXTDLGCTL.
+ *
+ * \param WindowHandle The dialog.
+ * \param FocusHandle The control to receive focus.
+ *
+ * \remarks Use an asynchronous WM_NEXTDLGCTL message instead if concurrent message processing can also change focus.
+ */
 FORCEINLINE VOID PhSetDialogFocus(
     _In_ HWND WindowHandle,
     _In_ HWND FocusHandle
@@ -2238,6 +2864,14 @@ FORCEINLINE VOID PhSetDialogFocus(
     SendMessage(WindowHandle, WM_NEXTDLGCTL, (WPARAM)FocusHandle, MAKELPARAM(TRUE, 0));
 }
 
+/**
+ * Adjusts a sizing rectangle to enforce minimum dimensions along the dragged edges.
+ *
+ * \param Rect The proposed window rectangle.
+ * \param Edge The WMSZ edge identifier from WM_SIZING.
+ * \param MinimumWidth The minimum width.
+ * \param MinimumHeight The minimum height.
+ */
 FORCEINLINE VOID PhResizingMinimumSize(
     _Inout_ PRECT Rect,
     _In_ WPARAM Edge,
@@ -2268,6 +2902,15 @@ FORCEINLINE VOID PhResizingMinimumSize(
     }
 }
 
+/**
+ * Moves and resizes a control to match another control's window rectangle.
+ *
+ * \param ParentWindowHandle The destination parent defining client coordinates.
+ * \param FromControlHandle The source control.
+ * \param ToControlHandle The destination control.
+ *
+ * \remarks Does nothing if the source rectangle cannot be retrieved. MoveWindow is called without requesting repaint.
+ */
 FORCEINLINE VOID PhCopyControlRectangle(
     _In_ HWND ParentWindowHandle,
     _In_ HWND FromControlHandle,
@@ -2336,6 +2979,17 @@ COLORREF NTAPI PH_EXTLV_GET_ITEM_COLOR(
     );
 typedef PH_EXTLV_GET_ITEM_COLOR* PPH_EXTLV_GET_ITEM_COLOR;
 
+typedef _Function_class_(PH_EXTLV_DRAW_SUBITEM)
+BOOLEAN NTAPI PH_EXTLV_DRAW_SUBITEM(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ HDC DeviceContext,
+    _In_ PRECT Rect,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    );
+typedef PH_EXTLV_DRAW_SUBITEM* PPH_EXTLV_DRAW_SUBITEM;
+
 typedef _Function_class_(PH_EXTLV_GET_ITEM_FONT)
 HFONT NTAPI PH_EXTLV_GET_ITEM_FONT(
     _In_ LONG Index,
@@ -2396,6 +3050,7 @@ PhSetHeaderSortIcon(
 #define ELVM_SETCURSOR (WM_APP + 1114)
 #define ELVM_RESERVED4 (WM_APP + 1118)
 #define ELVM_SETITEMCOLORFUNCTION (WM_APP + 1111)
+#define ELVM_SETSUBITEMDRAWFUNCTION (WM_APP + 1120)
 #define ELVM_SETITEMFONTFUNCTION (WM_APP + 1117)
 #define ELVM_RESERVED1 (WM_APP + 1112)
 #define ELVM_SETREDRAW (WM_APP + 1116)
@@ -2424,6 +3079,8 @@ PhSetHeaderSortIcon(
     SendMessage((hWnd), ELVM_SETCURSOR, 0, (LPARAM)(Cursor))
 #define ExtendedListView_SetItemColorFunction(hWnd, ItemColorFunction) \
     SendMessage((hWnd), ELVM_SETITEMCOLORFUNCTION, 0, (LPARAM)(ItemColorFunction))
+#define ExtendedListView_SetSubItemDrawFunction(hWnd, SubItemDrawFunction) \
+    SendMessage((hWnd), ELVM_SETSUBITEMDRAWFUNCTION, 0, (LPARAM)(SubItemDrawFunction))
 #define ExtendedListView_SetItemFontFunction(hWnd, ItemFontFunction) \
     SendMessage((hWnd), ELVM_SETITEMFONTFUNCTION, 0, (LPARAM)(ItemFontFunction))
 #define ExtendedListView_SetRedraw(hWnd, Redraw) \
@@ -2817,7 +3474,6 @@ PhListView_HitTestSubItem(
  * Gets the brightness of a color.
  *
  * \param Color The color.
- *
  * \return A value ranging from 0 to 255, indicating the brightness of the color.
  */
 FORCEINLINE
@@ -2850,6 +3506,12 @@ PhHeatMapColor(
     _In_ FLOAT Ratio // 0.0 (cool/green) to 1.0 (hot/red)
     );
 
+/**
+ * Halves each RGB channel of a color.
+ *
+ * \param Color The original color.
+ * \return The color with each RGB channel divided by two; the high byte is preserved.
+ */
 FORCEINLINE
 COLORREF
 PhHalveColorBrightness(
@@ -2869,6 +3531,13 @@ PhHalveColorBrightness(
     return Color;
 }
 
+/**
+ * Increases each RGB channel with saturation at 255.
+ *
+ * \param Color The original color.
+ * \param Increment The amount added to each channel.
+ * \return The brighter RGB color.
+ */
 FORCEINLINE
 COLORREF
 PhMakeColorBrighter(
@@ -3310,7 +3979,7 @@ DEFINE_GUID(IID_IWICBitmapSource, 0x00000120, 0xa8f2, 0x4877, 0xba, 0x0a, 0xfd, 
 DEFINE_GUID(IID_IWICImagingFactory, 0xec5ec8a9, 0xc395, 0x4314, 0x9c, 0x77, 0x54, 0xd7, 0xa9, 0x35, 0xff, 0x70);
 
 HBITMAP PhCreateDIBSection(
-    _In_ HDC Hdc,
+    _In_opt_ HDC Hdc,
     _In_ PH_BUFFERFORMAT Format,
     _In_ LONG Width,
     _In_ LONG Height,
@@ -3445,6 +4114,15 @@ PhSetWindowCompositionAttribute(
     );
 
 // TODO: https://stackoverflow.com/questions/12304848/fast-algorithm-to-invert-an-argb-color-value-to-abgr/42133405#42133405
+/**
+ * Packs four channels into a 0xAARRGGBB value.
+ *
+ * \param a The alpha channel.
+ * \param r The red channel.
+ * \param g The green channel.
+ * \param b The blue channel.
+ * \return The packed ARGB value.
+ */
 FORCEINLINE ULONG MakeARGB(
     _In_ BYTE a,
     _In_ BYTE r,
@@ -3454,6 +4132,15 @@ FORCEINLINE ULONG MakeARGB(
     return (((ULONG)(b) << 0) | ((ULONG)(g) << 8) | ((ULONG)(r) << 16) | ((ULONG)(a) << 24));
 }
 
+/**
+ * Packs four channels into a 0xAABBGGRR value.
+ *
+ * \param a The alpha channel.
+ * \param b The blue channel.
+ * \param g The green channel.
+ * \param r The red channel.
+ * \return The packed ABGR value.
+ */
 FORCEINLINE ULONG MakeABGR(
     _In_ BYTE a,
     _In_ BYTE b,
@@ -3463,11 +4150,25 @@ FORCEINLINE ULONG MakeABGR(
     return (((ULONG)(a) << 24) | ((ULONG)(b) << 16) | ((ULONG)(g) << 8) | ((ULONG)(r) << 0));
 }
 
+/**
+ * Combines an alpha channel and a COLORREF into an ARGB value.
+ *
+ * \param Alpha The alpha channel.
+ * \param rgb The RGB color.
+ * \return The packed 0xAARRGGBB value.
+ */
 FORCEINLINE ULONG MakeARGBFromCOLORREF(_In_ BYTE Alpha, _In_ COLORREF rgb)
 {
     return MakeARGB(Alpha, GetRValue(rgb), GetGValue(rgb), GetBValue(rgb));
 }
 
+/**
+ * Combines an alpha channel and a COLORREF into an ABGR value.
+ *
+ * \param Alpha The alpha channel.
+ * \param rgb The RGB color.
+ * \return The packed 0xAABBGGRR value.
+ */
 FORCEINLINE ULONG MakeABGRFromCOLORREF(_In_ BYTE Alpha, _In_ COLORREF rgb)
 {
     return MakeABGR(Alpha, GetBValue(rgb), GetGValue(rgb), GetRValue(rgb));
@@ -3635,6 +4336,30 @@ PhQueryWindowRealProcess(
         );
 }
 
+/**
+ * Queries a window's thread identifier.
+ *
+ * \param WindowHandle The window.
+ * \return The WindowThread query result converted to ULONG.
+ */
+FORCEINLINE
+ULONG
+PhQueryWindowRealThread(
+    _In_ HWND WindowHandle
+    )
+{
+    return (ULONG)PhUserQueryWindow(
+        WindowHandle,
+        WindowThread
+        );
+}
+
+/**
+ * Queries whether a window is hung.
+ *
+ * \param WindowHandle The window.
+ * \return The WindowIsHung query result converted to BOOLEAN.
+ */
 FORCEINLINE
 BOOLEAN
 PhWindowIsHung(
@@ -3679,7 +4404,8 @@ typedef enum _PH_WINDOW_THEME_ID
     PhWindowThemeDark,
     PhWindowThemeCustom1,
     PhWindowThemeCustom2,
-    PhWindowThemeSystem
+    PhWindowThemeSystem,
+    PhWindowThemeExplorer // Windows 11 File Explorer colors, resolved at runtime
 } PH_WINDOW_THEME_ID;
 
 // User-facing theme mode (Options > Themes combo). Only consulted when
@@ -3689,8 +4415,12 @@ typedef enum _PH_THEME_MODE
     PhThemeModeAutomatic = 0, // follow the Windows app light/dark preference
     PhThemeModeLight = 1,     // force the light palette
     PhThemeModeDark = 2,      // force the dark palette
-    PhThemeModeCustom = 3     // force the custom palette (Custom1)
+    PhThemeModeCustom = 3,    // force the custom palette (Custom1)
+    PhThemeModeExplorer = 4   // Explorer palette (accent colored, follows the system light/dark preference)
 } PH_THEME_MODE;
+
+// Note: these values are persisted in the ThemeMode setting and are used as
+// Options > Themes combo box indices; append new modes, never reorder.
 
 typedef struct _PH_WINDOW_THEME_PALETTE
 {
@@ -3762,6 +4492,12 @@ PhGetWindowThemePalette(
     VOID
     );
 
+// Posted by PhInitializeWindowTheme to run the message-loop-re-entrant part of
+// theme initialization after WM_CREATE/WM_INITDIALOG returns. Reserved within
+// the WM_PH_FIRST..WM_PH_LAST range (SystemInformer/include/mainwnd.h); consumed
+// by the theme subclass procedure and never forwarded to the original wndproc.
+#define WM_PH_THEME_INIT_DEFERRED (WM_APP + 107)
+
 PHLIBAPI
 VOID
 NTAPI
@@ -3782,6 +4518,66 @@ BOOLEAN
 NTAPI
 PhQueryWindowsUseDarkMode(
     VOID
+    );
+
+// TRUE when the current theme requests the Mica backdrop and the system will
+// actually composite it; callers may extend the frame into the client area and
+// leave client pixels transparent.
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhWindowThemeSupportsMicaClient(
+    VOID
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhSetWindowFrameMargins(
+    _In_ HWND WindowHandle,
+    _In_ const PH_WINDOW_MARGINS* Margins
+    );
+
+// Layered drop-shadow for popup windows (CS_DROPSHADOW is no longer honored
+// for the system menu class on Windows 11).
+
+typedef enum _PH_WINDOW_SHADOW_SIDE
+{
+    PhWindowShadowSideNone = 0x0000,
+    PhWindowShadowSideLeft = 0x0001,
+    PhWindowShadowSideTop = 0x0002,
+    PhWindowShadowSideRight = 0x0004,
+    PhWindowShadowSideBottom = 0x0008,
+    PhWindowShadowSideAll = PhWindowShadowSideLeft | PhWindowShadowSideTop |
+        PhWindowShadowSideRight | PhWindowShadowSideBottom
+} PH_WINDOW_SHADOW_SIDE;
+
+DEFINE_ENUM_FLAG_OPERATORS(PH_WINDOW_SHADOW_SIDE);
+
+PHLIBAPI
+BOOLEAN
+PhCreateWindowShadow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+PhUpdateWindowShadow(
+    _In_ HWND WindowHandle,
+    _In_ PH_WINDOW_SHADOW_SIDE Sides
+    );
+
+PHLIBAPI
+VOID
+PhDestroyWindowShadow(
+    _In_ HWND WindowHandle
+    );
+
+PHLIBAPI
+VOID
+PhSetWindowShadowDisplayAffinity(
+    _In_ HWND WindowHandle,
+    _In_ ULONG Affinity
     );
 
 PHLIBAPI
@@ -3807,6 +4603,24 @@ PhInitializeThemeWindowFrame(
     );
 
 PHLIBAPI
+HRESULT
+PhGetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _Out_writes_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    );
+
+PHLIBAPI
+HRESULT
+PhSetWindowThemeAttribute(
+    _In_ HWND WindowHandle,
+    _In_ ULONG AttributeId,
+    _In_reads_bytes_(AttributeLength) PVOID Attribute,
+    _In_ ULONG AttributeLength
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhInitializeThemeWindowGroupBox(
@@ -3818,6 +4632,13 @@ VOID
 NTAPI
 PhInitializeThemeWindowGroupBoxEx(
     _In_ HWND GroupBoxHandle
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhInitializeThemeWindowProgressBar(
+    _In_ HWND ProgressBarHandle
     );
 
 PHLIBAPI
@@ -3843,6 +4664,31 @@ PhGetWindowBorderColor(
     _In_ BOOLEAN IsHandleFiltered,
     _In_ BOOLEAN IsProtectedProcess,
     _In_ BOOLEAN IsIsolatedUserMode
+    );
+
+// Returns TRUE when theme support is enabled and the window palette is dark.
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhThemeWindowUseDarkBackground(
+    VOID
+    );
+
+// Returns the brush that paints a themed top-level window background. Never NULL,
+// so it is safe both as a window class background and as a FillRect brush.
+PHLIBAPI
+HBRUSH
+NTAPI
+PhGetThemeWindowBackgroundBrush(
+    VOID
+    );
+
+// Re-points the window class background brush at the current themed brush.
+PHLIBAPI
+VOID
+NTAPI
+PhUpdateWindowClassBackground(
+    _In_ HWND WindowHandle
     );
 
 PHLIBAPI
@@ -3885,6 +4731,67 @@ PhInitializeWindowThemeMainMenu(
     _In_ HMENU MenuHandle
     );
 
+// Undocumented messages used by the native themed menu bar.
+#define WM_UAHDESTROYWINDOW 0x0090
+#define WM_UAHDRAWMENU 0x0091
+#define WM_UAHDRAWMENUITEM 0x0092
+#define WM_UAHINITMENU 0x0093
+#define WM_UAHMEASUREMENUITEM 0x0094
+#define WM_UAHNCPAINTMENUPOPUP 0x0095
+
+typedef union _UAHMENUITEMMETRICS
+{
+    struct { DWORD cx; DWORD cy; } rgsizeBar[2];
+    struct { DWORD cx; DWORD cy; } rgsizePopup[4];
+} UAHMENUITEMMETRICS, *PUAHMENUITEMMETRICS;
+
+typedef struct _UAHMENUPOPUPMETRICS
+{
+    DWORD rgcx[4];
+    DWORD fUpdateMaxWidths : 2;
+} UAHMENUPOPUPMETRICS, *PUAHMENUPOPUPMETRICS;
+
+#define UAHMENU_FLAG_POPUP 0x00000001
+
+typedef struct _UAHMENU
+{
+    HMENU hmenu;
+    HDC hdc;
+    DWORD dwFlags;
+} UAHMENU, *PUAHMENU;
+
+typedef struct _UAHMENUITEM
+{
+    INT iPosition;
+    UAHMENUITEMMETRICS umim;
+    UAHMENUPOPUPMETRICS umpm;
+} UAHMENUITEM, *PUAHMENUITEM;
+
+typedef struct _UAHDRAWMENUITEM
+{
+    DRAWITEMSTRUCT dis;
+    UAHMENU um;
+    UAHMENUITEM umi;
+} UAHDRAWMENUITEM, *PUAHDRAWMENUITEM;
+
+typedef struct _UAHMEASUREMENUITEM
+{
+    MEASUREITEMSTRUCT mis;
+    UAHMENU um;
+    UAHMENUITEM umi;
+} UAHMEASUREMENUITEM, *PUAHMEASUREMENUITEM;
+
+PHLIBAPI
+BOOLEAN
+NTAPI
+PhThemeWindowUahWndProc(
+    _In_ HWND WindowHandle,
+    _In_ UINT WindowMessage,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _Out_ LRESULT *Result
+    );
+
 PHLIBAPI
 VOID
 NTAPI
@@ -3907,6 +4814,52 @@ PhThemeWindowDrawToolbar(
     );
 
 // Font support
+
+typedef struct _PH_FONT
+{
+    HFONT Handle;
+    LOGFONT LogFont;
+    LONG Dpi;
+} PH_FONT, *PPH_FONT;
+
+PHLIBAPI
+PPH_FONT
+NTAPI
+PhCreateFontObjectFromLogFont(
+    _In_ PLOGFONT LogFont,
+    _In_ LONG Dpi
+    );
+
+PHLIBAPI PPH_FONT PhCreateCommonFontObject(_In_ LONG Size, _In_ LONG Weight, _In_opt_ HWND WindowHandle, _In_ LONG WindowDpi);
+PHLIBAPI PPH_FONT PhCreateApplicationFontObject(_In_ LONG WindowDpi);
+PHLIBAPI PPH_FONT PhCreateTreeWindowFontObject(_In_ LONG WindowDpi);
+PHLIBAPI PPH_FONT PhCreateMonospaceFontObject(_In_ LONG WindowDpi);
+PHLIBAPI PPH_FONT PhDuplicateFontObject(_In_ HFONT Font, _In_ LONG Dpi);
+PHLIBAPI PPH_FONT PhDuplicateFontWithNewWeightObject(_In_ HFONT Font, _In_ LONG NewWeight, _In_ LONG Dpi);
+PHLIBAPI PPH_FONT PhDuplicateFontWithNewHeightObject(_In_ HFONT Font, _In_ LONG NewHeight, _In_ LONG Dpi);
+
+PHLIBAPI
+VOID
+NTAPI
+PhSwapOwnedFont(
+    _Inout_ PPH_FONT *Font,
+    _In_opt_ HWND WindowHandle,
+    _In_opt_ PPH_FONT NewFont,
+    _In_ BOOLEAN Redraw
+    );
+
+/**
+ * Retrieves the underlying handle of a font object.
+ *
+ * \param Font The font object, or NULL.
+ * \return The borrowed font handle, or NULL if Font is NULL.
+ */
+FORCEINLINE HFONT PhGetFontHandle(
+    _In_opt_ PPH_FONT Font
+    )
+{
+    return Font ? Font->Handle : NULL;
+}
 
 PHLIBAPI
 HFONT
@@ -3984,6 +4937,16 @@ PhDuplicateFontUpdateDpiEx(
     _In_ LONG OldDpi
     );
 
+/**
+ * Replaces an owned font handle and deletes the previous font.
+ *
+ * \param FontHandle The owned handle to replace.
+ * \param WindowHandle An optional window to receive the new font.
+ * \param NewFont The replacement handle, or NULL. Ownership passes to FontHandle.
+ * \param Redraw TRUE to request redraw when assigning the window font.
+ *
+ * \remarks NewFont must not equal a non-NULL previous handle, which is deleted. Ensure the previous font is no longer selected into a device context or used elsewhere.
+ */
 FORCEINLINE VOID PhSwapReferenceFont(
     _Inout_ HFONT *FontHandle,
     _In_opt_ HWND WindowHandle,
@@ -4003,56 +4966,67 @@ FORCEINLINE VOID PhSwapReferenceFont(
         DeleteFont(oldFont);
 }
 
-// Reference-counted font.
-//
-// Pattern mirrors PH_OBJECT_HEADER: a private PH_FONT_OBJECT header carries the refcount,
-// and the Body field holds the underlying GDI HFONT. PhCreateFont returns the HFONT (the
-// address of Body); PhReferenceFont / PhDereferenceFont walk back to the header via
-// CONTAINING_RECORD using PhFontObjectToObjectHeader. When the last reference is released
-// the underlying GDI handle is destroyed and the wrapper is freed.
-
-typedef struct _PH_FONT_OBJECT
-{
-    LONG RefCount;
-    HFONT Handle;
-} PH_FONT_OBJECT, *PPH_FONT_OBJECT;
-
-// Mirrors PhObjectHeaderToObject: returns the HFONT (object) from a PPH_FONT_OBJECT header.
-#define PhFontObjectHeaderToObject(Header) ((HFONT)&((PPH_FONT_OBJECT)(Header))->Handle)
-
-// Mirrors PhObjectToObjectHeader: returns the PPH_FONT_OBJECT header from an HFONT.
-#define PhFontObjectToObjectHeader(Font) ((PPH_FONT_OBJECT)CONTAINING_RECORD((Font), PH_FONT_OBJECT, Handle))
-
-PHLIBAPI
-HFONT
-NTAPI
-PhCreateFont(
-    _In_opt_ PCWSTR Name,
-    _In_ LONG Size,
-    _In_ LONG Weight,
-    _In_ LONG PitchAndFamily,
-    _In_ LONG WindowDpi
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhReferenceFont(
-    _In_ HFONT Font
-    );
-
-PHLIBAPI
-VOID
-NTAPI
-PhDereferenceFont(
-    _In_ _Post_invalid_ HFONT Font
-    );
-
 VOID PhWindowThemeMainMenuBorder(
     _In_ HWND WindowHandle
     );
 
+//
+
+#define PH_MAX_DIRTY_RECTS 32  // tuned: small, cache-friendly
+
+typedef struct _PH_DIRTY_RECTS
+{
+    RECT  Rects[PH_MAX_DIRTY_RECTS];
+    ULONG Count;
+    RECT  Bounds;       // always maintained
+} PH_DIRTY_RECTS, * PPH_DIRTY_RECTS;
+
+typedef struct _PH_PAINT_BUFFER
+{
+    HDC Hdc;
+    HBITMAP DibBitmap;
+    HBITMAP OldBitmap;
+    PVOID Bits;
+
+    HRGN DirtyRgn;
+    PH_DIRTY_RECTS Dirty;
+
+    LONG Width;
+    LONG Height;
+    LONG Stride;
+    LONG NestingCount;
+    LONG DpiX;
+    LONG DpiY;
+} PH_PAINT_BUFFER, * PPH_PAINT_BUFFER;
+
+typedef struct _PH_PAINT_BUFFER_POOL
+{
+    PH_PAINT_BUFFER Buffer;
+} PH_PAINT_BUFFER_POOL, * PPH_PAINT_BUFFER_POOL;
+
+VOID PhEndWindowPaintBuffer(
+    _In_ HDC TargetDc,
+    _In_ PPH_PAINT_BUFFER Buffer
+    );
+
+PPH_PAINT_BUFFER PhBeginWindowPaintBuffer(
+    _In_ HDC ReferenceDc,
+    _In_ LONG LogicalWidth,
+    _In_ LONG LogicalHeight
+    );
+
+VOID PhPaintBufferAddDirtyRect(
+    _Inout_ PPH_PAINT_BUFFER Buffer,
+    _In_ const RECT* Rect
+    );
+
 // directdraw.cpp
+
+HBITMAP PhCreateBitmapHandle(
+    _In_ LONG Width,
+    _In_ LONG Height,
+    _Outptr_opt_ _When_(return != NULL, _Notnull_) PVOID* Bits
+    );
 
 HICON PhGdiplusConvertBitmapToIcon(
     _In_ HBITMAP Bitmap,
@@ -4128,6 +5102,43 @@ VOID PhDestroyWindowTargeting(
 HWND PhSelectWindowFromScreenTargeting(
     _In_opt_ HWND OwnerWindowHandle,
     _In_ BOOLEAN OverlayHighlight
+    );
+
+// DispatcherQueue support for modern composition / CoreMessaging
+
+typedef enum _PH_DISPATCHER_QUEUE_THREAD_TYPE
+{
+    PH_DISPATCHER_QUEUE_THREAD_TYPE_DEDICATED = 1, // DQTYPE_THREAD_DEDICATED
+    PH_DISPATCHER_QUEUE_THREAD_TYPE_CURRENT = 2 // DQTYPE_THREAD_CURRENT
+} PH_DISPATCHER_QUEUE_THREAD_TYPE;
+
+typedef enum _PH_DISPATCHER_QUEUE_APARTMENT_TYPE
+{
+    PH_DISPATCHER_QUEUE_APARTMENT_TYPE_NONE = 0,
+    PH_DISPATCHER_QUEUE_APARTMENT_TYPE_ASTA = 1,
+    PH_DISPATCHER_QUEUE_APARTMENT_TYPE_STA = 2
+} PH_DISPATCHER_QUEUE_APARTMENT_TYPE;
+
+typedef struct _PH_DISPATCHER_QUEUE_OPTIONS
+{
+    ULONG Size;
+    ULONG ThreadType;
+    ULONG ApartmentType;
+} PH_DISPATCHER_QUEUE_OPTIONS, *PPH_DISPATCHER_QUEUE_OPTIONS;
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateDispatcherQueueController(
+    _In_ PH_DISPATCHER_QUEUE_OPTIONS Options,
+    _COM_Outptr_ PVOID *Controller
+    );
+
+PHLIBAPI
+HRESULT
+NTAPI
+PhCreateDispatcherQueueForCurrentThread(
+    _COM_Outptr_ PVOID *Controller
     );
 
 EXTERN_C_END

@@ -857,6 +857,58 @@ PhGenerateRandomSeed(
     _Out_ PLARGE_INTEGER Seed
     );
 
+// Correlation vector (MS-CV) tracing
+// Lightweight implementation of the Microsoft Correlation Vector protocol used to
+// thread a request identifier through a sequence of related online operations.
+
+// HTTP header name (including separator) carrying the correlation vector value.
+#define PH_CORRELATION_VECTOR_HEADER_NAME L"MS-CV: "
+
+typedef struct _PH_CORRELATION_VECTOR_CONTEXT
+{
+#if defined(PHNT_CORRELATIONVECTOR_FUTURE)
+    CORRELATION_VECTOR Vector;  // native ntdll-managed vector
+#else
+    PPH_STRING BaseVector;      // base64 entropy without trailing padding
+    LONG CurrentIndex;          // monotonically increasing extension counter
+#endif
+} PH_CORRELATION_VECTOR_CONTEXT, *PPH_CORRELATION_VECTOR_CONTEXT;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhInitializeCorrelationVector(
+    _Out_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    );
+
+PHLIBAPI
+VOID
+NTAPI
+PhDeleteCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    );
+
+PHLIBAPI
+PPH_STRING
+NTAPI
+PhIncrementCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhExtendCorrelationVector(
+    _Inout_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhValidateCorrelationVector(
+    _In_ PPH_CORRELATION_VECTOR_CONTEXT Context
+    );
+
 PHLIBAPI
 PPH_STRING
 NTAPI
@@ -1254,6 +1306,17 @@ VOID
 NTAPI
 PhFlushImageVersionInfoCache(
     VOID
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetFullPathName(
+    _In_ PCWSTR FileName,
+    _In_ SIZE_T BufferLength,
+    _Out_writes_bytes_(BufferLength) PWSTR Buffer,
+    _Out_opt_ PWSTR *FilePart,
+    _Out_opt_ PULONG BytesRequired
     );
 
 PHLIBAPI
@@ -1669,6 +1732,8 @@ typedef struct _PH_CREATE_PROCESS_INFO
     PUNICODE_STRING RuntimeData;
 } PH_CREATE_PROCESS_INFO, *PPH_CREATE_PROCESS_INFO;
 
+// Flags for PhCreateProcess / PhCreateProcessWin32(Ex). Do not mix with the
+// PH_CREATE_PROCESS_AS_USER_* flags below; the two sets are independent.
 #define PH_CREATE_PROCESS_INHERIT_HANDLES 0x1
 #define PH_CREATE_PROCESS_UNICODE_ENVIRONMENT 0x2
 #define PH_CREATE_PROCESS_SUSPENDED 0x4
@@ -1678,7 +1743,8 @@ typedef struct _PH_CREATE_PROCESS_INFO
 #define PH_CREATE_PROCESS_DEBUG_ONLY_THIS_PROCESS 0x40
 #define PH_CREATE_PROCESS_EXTENDED_STARTUPINFO 0x80
 #define PH_CREATE_PROCESS_DEFAULT_ERROR_MODE 0x100
-
+#define PH_CREATE_PROCESS_DETACHED_PROCESS 0x200
+#define PH_CREATE_PROCESS_NO_WINDOW 0x400
 PHLIBAPI
 NTSTATUS
 NTAPI
@@ -1690,6 +1756,19 @@ PhCreateProcess(
     _In_opt_ PPH_CREATE_PROCESS_INFO Information,
     _In_ ULONG Flags,
     _In_opt_ HANDLE ParentProcessHandle,
+    _Out_opt_ PCLIENT_ID ClientId,
+    _Out_opt_ PHANDLE ProcessHandle,
+    _Out_opt_ PHANDLE ThreadHandle
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhCreateUserProcess(
+    _In_ PCWSTR FileName,
+    _In_opt_ PCPH_STRINGREF CommandLine,
+    _In_opt_ PCPH_STRINGREF CurrentDirectory,
+    _In_ ULONG Flags,
     _Out_opt_ PCLIENT_ID ClientId,
     _Out_opt_ PHANDLE ProcessHandle,
     _Out_opt_ PHANDLE ThreadHandle
@@ -1732,8 +1811,8 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
     _In_opt_ PCWSTR CurrentDirectory;
     _In_opt_ PVOID Environment;
     _In_opt_ PCWSTR DesktopName;
-    _In_opt_ ULONG SessionId; // use PH_CREATE_PROCESS_SET_SESSION_ID
-    _In_opt_ ULONG LogonId; // use PH_CREATE_PROCESS_SET_LOGON_ID
+    _In_opt_ ULONG SessionId; // use PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID
+    _In_opt_ ULONG LogonId; // use PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID
     union
     {
         struct
@@ -1744,18 +1823,20 @@ typedef struct _PH_CREATE_PROCESS_AS_USER_INFO
             _In_opt_ ULONG LogonType;
             _In_opt_ ULONG LogonFlags;
         };
-        _In_ HANDLE ProcessIdWithToken; // use PH_CREATE_PROCESS_USE_PROCESS_TOKEN
-        _In_ ULONG SessionIdWithToken; // use PH_CREATE_PROCESS_USE_SESSION_TOKEN
+        _In_ HANDLE ProcessIdWithToken; // use PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN
+        _In_ ULONG SessionIdWithToken; // use PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN
     };
 } PH_CREATE_PROCESS_AS_USER_INFO, *PPH_CREATE_PROCESS_AS_USER_INFO;
 
-#define PH_CREATE_PROCESS_USE_PROCESS_TOKEN 0x1
-#define PH_CREATE_PROCESS_USE_SESSION_TOKEN 0x2
-#define PH_CREATE_PROCESS_USE_LINKED_TOKEN 0x4
-#define PH_CREATE_PROCESS_WITH_PROFILE 0x8
-#define PH_CREATE_PROCESS_SET_SESSION_ID 0x10
-#define PH_CREATE_PROCESS_SET_LOGON_ID 0x20
-#define PH_CREATE_PROCESS_SET_UIACCESS 0x40
+// Flags for PhCreateProcessAsUser. Do not mix with the PH_CREATE_PROCESS_* flags
+// above; the two sets are independent (and deliberately named apart).
+#define PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN 0x1
+#define PH_CREATE_PROCESS_AS_USER_USE_SESSION_TOKEN 0x2
+#define PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN 0x4
+#define PH_CREATE_PROCESS_AS_USER_WITH_PROFILE 0x8
+#define PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID 0x10
+#define PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID 0x20
+#define PH_CREATE_PROCESS_AS_USER_SET_UIACCESS 0x40
 
 PHLIBAPI
 NTSTATUS
@@ -1960,6 +2041,22 @@ PhQueryRegistryUlong64Z(
 
     return PhQueryRegistryUlong64(KeyHandle, &valueName);
 }
+
+typedef enum _PH_WINLOGON_SETTING_TYPE
+{
+    PhWinlogonShellCritical,
+    PhWinlogonSiHostCritical,
+    PhWinlogonAutoRestartShell,
+    PhWinlogonWinStationsDisabled
+} PH_WINLOGON_SETTING_TYPE;
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhQueryWinlogonSetting(
+    _In_ PH_WINLOGON_SETTING_TYPE Type,
+    _Out_ PBOOLEAN Value
+    );
 
 typedef struct _PH_FLAG_MAPPING
 {

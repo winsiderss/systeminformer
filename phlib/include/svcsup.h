@@ -431,6 +431,21 @@ PhGetServicePackageFullName(
     );
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetServiceGroupName(
+    _In_ PPH_STRINGREF ServiceName
+    );
+
+PHLIBAPI
+NTSTATUS
+NTAPI
+PhGetServiceGroupOrderIndex(
+    _In_ PPH_STRINGREF ServiceName,
+    _Out_ PULONG GroupOrderIndex
+    );
+
+PHLIBAPI
 PPH_SVC_HOST_POLICY_INFO
 NTAPI
 PhGetSvchostGroupPolicy(
