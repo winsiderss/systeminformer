@@ -17,9 +17,8 @@
 #include <kphuser.h>
 #include <lsasup.h>
 
-#include <devpkey.h>
-#include <devquery.h>
 #include <phafd.h>
+#include <devquery.h>
 
 #define PH_QUERY_HACK_MAX_THREADS 20
 
