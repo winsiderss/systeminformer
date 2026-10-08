@@ -1505,6 +1505,7 @@ typedef struct _MUI_RC_CONFIG
     ULONG Section2Size;
     ULONG MainTypesOffset;    // Named types in the primary module: multi-string, size in bytes (Section 3)
     ULONG MainTypesSize;
+    ULONG Section4Offset;     // Integer (MAKEINTRESOURCE) types in the primary module: ULONG array, size in bytes
     ULONG Section4Size;
     ULONG MuiTypesOffset;     // Named types in the MUI module: multi-string, size in bytes (Section 5)
     ULONG MuiTypesSize;
