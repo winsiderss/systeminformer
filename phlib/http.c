@@ -2428,7 +2428,7 @@ static NTSTATUS PhCreateDnsMessageBuffer(
         if (!buffer) return STATUS_NO_MEMORY;
 
         status = !!DnsWriteQuestionToBuffer_W_I(
-            dnsBuffer,
+            buffer,
             &dnsBufferLength,
             Message,
             MessageType,
