@@ -1226,8 +1226,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 {
                     PAINTSTRUCT ps;
                     RECT clientRect;
-                    PH_BUFFERED_PAINT paintBuffer;
-                    HDC bufferDc;
                     HDC hdc;
 
                     if (!(hdc = BeginPaint(WindowHandle, &ps)))
