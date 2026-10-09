@@ -1070,6 +1070,7 @@ BOOLEAN PhpInitializePropSheetLayoutStage1(
     if (!Context->LayoutInitialized)
     {
         HWND tabControlHandle;
+        PPH_LAYOUT_ITEM tabPageItem = NULL;
 
         tabControlHandle = PropSheet_GetTabControl(WindowHandle);
         PhAddTabControlLayoutItem(&Context->LayoutManager, tabControlHandle, NULL, &tabPageItem);
