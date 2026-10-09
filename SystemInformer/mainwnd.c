@@ -179,10 +179,6 @@ LRESULT CALLBACK PhMwpWndProc(
             // Initialize window menu.
             PhMwpInitializeMainMenu(WindowHandle);
 
-            // Initialize the caption button.
-            PhMwpInitializeCaptionButton(WindowHandle);
-            PhMwpSetCaptionButtonChecked(AlwaysOnTop);
-
             // Initialize providers.
             PhMwpInitializeProviders();
 
