@@ -67,28 +67,6 @@ static PH_CALLBACK_REGISTRATION ProcessTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION ServiceTreeNewInitializingCallbackRegistration;
 static PH_CALLBACK_REGISTRATION NetworkTreeNewInitializingCallbackRegistration;
 
-static BOOLEAN ToolStatusIsValidTargetWindow(
-    _In_opt_ HWND WindowHandle,
-    _Out_opt_ PCLIENT_ID ClientId
-    )
-{
-    CLIENT_ID clientId;
-
-    if (!WindowHandle || !IsWindow(WindowHandle))
-        return FALSE;
-
-    if (!NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
-        return FALSE;
-
-    if (clientId.UniqueProcess == NtCurrentProcessId())
-        return FALSE;
-
-    if (ClientId)
-        *ClientId = clientId;
-
-    return TRUE;
-}
-
 _Function_class_(PH_CALLBACK_FUNCTION)
 VOID NTAPI ProcessesUpdatedCallback(
     _In_opt_ PVOID Parameter,
@@ -312,6 +290,8 @@ VOID ShowCustomizeMenu(
                 if (!RebarGetBandCount(&bandCount))
                     break;
 
+                SendMessage(RebarHandle, WM_SETREDRAW, FALSE, 0);
+
                 for (bandIndex = 0; bandIndex < bandCount; bandIndex++)
                 {
                     REBARBANDINFO rebarBandInfo =
@@ -351,6 +331,9 @@ VOID ShowCustomizeMenu(
                 PhSetIntegerSetting(SETTING_NAME_TOOLSTATUS_CONFIG, ToolStatusConfig.Flags);
 
                 ToolbarLoadSettings(FALSE);
+
+                SendMessage(RebarHandle, WM_SETREDRAW, TRUE, 0);
+                //InvalidateRect(RebarHandle, NULL, TRUE);
             }
             break;
         case COMMAND_ID_TOOLBAR_CUSTOMIZE:
@@ -434,6 +417,9 @@ VOID NTAPI LayoutPaddingCallback(
         // once the menu bar pushes them onto a second row). The control's own value is the
         // authoritative height the parent should size the rebar window to.
         desiredHeight = (LONG)SendMessage(RebarHandle, RB_GETBARHEIGHT, 0, 0);
+
+       if (desiredHeight > 0)
+            desiredHeight += 1; // Leave room for the bottom row's child border.
 
         // Explicitly resize the rebar window to the computed height so that all rows
         // are visible. Sending WM_SIZE directly to the rebar only re-layouts bands
@@ -614,21 +600,8 @@ VOID UpdateDpiMetrics(
 
     ToolbarLoadSettings(TRUE);
 
-    // Update fonts/sizes for new DPI.
-    if (ToolBarHandle)
-    {
-        LONG toolbarButtonHeight;
-
-        USHORT toolbarButtonSize = HIWORD((ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0));
-        toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-        toolbarButtonHeight = __max(toolbarButtonSize, toolbarButtonHeight);
-
-        if (toolbarButtonHeight < 22)
-            toolbarButtonHeight = 22; // 22/default toolbar button height
-
-        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-        RebarAdjustBandHeightLayout(toolbarButtonHeight);
-    }
+    // Update the command-bar reference geometry for the new DPI.
+    ToolbarUpdateBandSize();
 
     if (RebarHandle)
     {
@@ -668,15 +641,7 @@ VOID UpdateLayoutMetrics(
         SetWindowFont(StatusBarHandle, ToolbarWindowFont, TRUE);
     }
 
-    if (ToolBarHandle)
-    {
-        //ULONG toolbarButtonSize = (ULONG)SendMessage(ToolBarHandle, TB_GETBUTTONSIZE, 0, 0);
-        LONG toolbarButtonHeight = ToolStatusGetWindowFontSize(ToolBarHandle, ToolbarWindowFont);
-        toolbarButtonHeight = __max(22, toolbarButtonHeight); // 22/default toolbar button height
-
-        RebarAdjustBandHeightLayout(toolbarButtonHeight);
-        SendMessage(ToolBarHandle, TB_SETBUTTONSIZE, 0, MAKELPARAM(0, toolbarButtonHeight));
-    }
+    ToolbarUpdateBandSize();
 
     if (StatusBarHandle)
     {
@@ -688,7 +653,13 @@ VOID UpdateLayoutMetrics(
         StatusBarUpdate(TRUE);
     }
 
-    ToolbarLoadSettings(FALSE);
+    // Rebuild the toolbar buttons (same as a DPI change) so the button sizes
+    // and autosize widths are recalculated for the new font.
+    ToolbarLoadSettings(TRUE);
+
+    // Resize the graph bands to the new toolbar row height.
+    ToolbarGraphsInitializeDpi();
+    InvalidateMainWindowLayout();
 }
 
 BOOLEAN NTAPI MessageLoopFilter(
@@ -737,17 +708,34 @@ BOOLEAN NTAPI MessageLoopFilter(
     return FALSE;
 }
 
-static BOOLEAN NTAPI ToolStatusTargetingCallback(
+BOOLEAN ToolStatusIsValidTargetWindow(
+    _In_opt_ HWND WindowHandle,
+    _Out_opt_ PCLIENT_ID ClientId
+    )
+{
+    CLIENT_ID clientId;
+
+    if (!WindowHandle || !NT_SUCCESS(PhGetWindowClientId(WindowHandle, &clientId)))
+        return FALSE;
+
+    if (clientId.UniqueProcess == NtCurrentProcessId())
+        return FALSE;
+
+    if (ClientId)
+        *ClientId = clientId;
+
+    return TRUE;
+}
+
+BOOLEAN NTAPI ToolStatusTargetingCallback(
     _In_ HWND WindowHandle,
     _In_opt_ PVOID Context
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-
     return ToolStatusIsValidTargetWindow(WindowHandle, NULL);
 }
 
-static VOID ToolStatusHandleTargetingResult(
+VOID ToolStatusHandleTargetingResult(
     _In_ HWND WindowHandle,
     _In_opt_ HWND TargetWindow,
     _In_ ULONG TargetMode
@@ -826,6 +814,7 @@ static VOID ToolStatusHandleTargetingResult(
         }
     }
 }
+
 _Function_class_(PH_SEARCHCONTROL_CALLBACK)
 VOID NTAPI SearchControlCallback(
     _In_ ULONG_PTR MatchHandle,
@@ -2082,9 +2071,7 @@ LOGICAL DllMain(
                 { IntegerSettingType, SETTING_NAME_SHOWSYSINFOGRAPH, L"1" },
                 { IntegerSettingType, SETTING_NAME_DELAYED_INITIALIZATION_MAX, L"3" },
                 { StringSettingType, SETTING_NAME_REBAR_CONFIG, L"" },
-#if TOOLSTATUS_ENABLE_MENUBAR
                 { StringSettingType, SETTING_NAME_REBAR_MENUBAR_CONFIG, L"" },
-#endif
                 { StringSettingType, SETTING_NAME_TOOLBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_STATUSBAR_CONFIG, L"" },
                 { StringSettingType, SETTING_NAME_TOOLBAR_GRAPH_CONFIG, L"" },

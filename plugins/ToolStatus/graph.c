@@ -162,6 +162,7 @@ VOID ToolbarGraphsInitializeDpi(
 {
     ULONG newDpi = SystemInformer_GetWindowDpi();
     ULONG newWidth = PhScaleToDisplay(145, newDpi);
+    LONG newHeight = ToolbarGetCommandBarButtonHeight();
 
     for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
     {
@@ -170,7 +171,7 @@ VOID ToolbarGraphsInitializeDpi(
 
         graph->GraphDpi = newDpi;
 
-        // Update the rebar band's minimum width to match the new DPI scale.
+        // Update the rebar band's minimum width and height to match the new DPI scale.
         if (graph->GraphHandle && (bandIndex = RebarBandToIndex(graph->GraphId)) != ULONG_MAX)
         {
             BAND_CHILD_SIZE bandSize;
@@ -178,6 +179,14 @@ VOID ToolbarGraphsInitializeDpi(
             if (RebarGetBandIndexChildSize(bandIndex, &bandSize))
             {
                 bandSize.MinChildWidth = newWidth;
+
+                if (newHeight > 0)
+                {
+                    bandSize.InitialChildHeight = newHeight;
+                    bandSize.MinChildHeight = newHeight;
+                    bandSize.MaximumChildHeight = newHeight;
+                }
+
                 RebarSetBandIndexChildSize(bandIndex, &bandSize);
             }
         }
@@ -287,7 +296,7 @@ VOID ToolbarCreateGraphs(
         ULONG height;
         ULONG width;
 
-        height = (ULONG)RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
+        height = (ULONG)ToolbarGetCommandBarButtonHeight();
         width = PhScaleToDisplay(145, SystemInformer_GetWindowDpi());
 
         for (ULONG i = 0; i < PhpToolbarGraphList->Count; i++)
@@ -406,7 +415,7 @@ VOID ToolbarSetVisibleGraph(
 {
     if (Visible)
     {
-        ULONG height = (ULONG)RebarGetRowHeight(REBAR_BAND_ID_TOOLBAR);
+        ULONG height = (ULONG)ToolbarGetCommandBarButtonHeight();
         ULONG width = PhScaleToDisplay(145, SystemInformer_GetWindowDpi());
 
         SetFlag(Graph->Flags, TOOLSTATUS_GRAPH_ENABLED);
