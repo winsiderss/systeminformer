@@ -17,6 +17,7 @@
 
 #include <netlist.h>
 #include <netprv.h>
+#include <procprv.h>
 #include <settings.h>
 #include <phsettings.h>
 #include <mainwndp.h>
