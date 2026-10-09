@@ -39,14 +39,15 @@ typedef struct _PH_MODULE_ITEM
         BOOLEAN StateFlags;
         struct
         {
-            BOOLEAN JustProcessed : 1;
             BOOLEAN IsFirst : 1;
             BOOLEAN ImageNotAtBase : 1;
             BOOLEAN ImageKnownDll : 1;
-            BOOLEAN QueryPending : 1;
-            BOOLEAN Spare : 3;
+            BOOLEAN Spare : 5;
         };
     };
+
+    LONG JustProcessed;
+    LONG QueryPending;
 
     ULONG VerifyResult;
     PPH_STRING VerifySignerName;
