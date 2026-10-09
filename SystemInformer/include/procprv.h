@@ -62,6 +62,9 @@ extern ULONG PhProcessProviderFlagsMask;
 // interval is not the time the delta covers. Guaranteed non-zero once the provider has run. (dmex)
 extern ULONG PhProcessProviderElapsedMilliseconds;
 
+// Defined in mainwnd.c; procprv.c reads the elapsed time actually spanned by the last provider run. (dmex)
+extern PH_PROVIDER_REGISTRATION PhMwpProcessProviderRegistration;
+
 extern PVOID PhProcessInformation; // only can be used if running on same thread as process provider
 extern ULONG PhProcessInformationSequenceNumber;
 extern SYSTEM_PERFORMANCE_INFORMATION PhPerfInformation;
