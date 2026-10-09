@@ -8044,7 +8044,8 @@ RtlFindActivationContextSectionGuid(
  *
  * \param Flags Reserved. Must be zero.
  * \param ActivationContext A pointer to the activation context to query.
- * \param SettingsNameSpace A pointer to the settings namespace URI.
+ * \param SettingsNameSpace An optional pointer to the settings namespace URI. If NULL,
+ * http://schemas.microsoft.com/SMI/2005/WindowsSettings is used.
  * \param SettingName A pointer to the name of the setting to query.
  * \param Buffer A buffer that receives the setting value.
  * \param BufferLength The size, in bytes, of the buffer.
@@ -8057,7 +8058,7 @@ NTAPI
 RtlQueryActivationContextApplicationSettings(
     _Reserved_ ULONG Flags,
     _In_ PACTIVATION_CONTEXT ActivationContext,
-    _In_ PCWSTR SettingsNameSpace,
+    _In_opt_ PCWSTR SettingsNameSpace,
     _In_ PCWSTR SettingName,
     _Out_writes_bytes_(BufferLength) PWSTR Buffer,
     _In_ SIZE_T BufferLength,
