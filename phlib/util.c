@@ -30,6 +30,10 @@
 #include <phintrin.h>
 #include <wslsup.h>
 #include <thirdparty.h>
+// devpkey.h has no include guard; some SDKs already include it via netioapi.h -> ntddndis.h
+#ifndef DEVPKEY_H_INCLUDED
+#include <devpkey.h>
+#endif
 
 #if defined(PH_BUILD_MSIX)
 #include <roapi.h>
