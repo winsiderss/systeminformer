@@ -525,7 +525,7 @@ NtCreateDirectoryObject(
  * \param DirectoryHandle A pointer to a HANDLE variable that receives the directory object handle.
  * \param DesiredAccess The access mask that specifies the requested access to the directory object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and other attributes.
- * \param ShadowDirectoryHandle An optional handle to a directory object that serves as a shadow directory.
+ * \param ShadowDirectoryHandle A handle to a directory object that serves as a shadow directory.
  * \param Flags Flags controlling the directory creation behavior (DIRECTORY_EX_FLAG_*).
  * \return NTSTATUS Successful or errant status.
  */

@@ -113,7 +113,7 @@ D3DKMTEnumProcesses(
  * \param InputBuffer An optional pointer to the input buffer.
  * \param OutputBufferLength The length, in bytes, of the output buffer.
  * \param OutputBuffer An optional pointer to the output buffer that receives call results.
- * \param ReturnLength An optional pointer to a variable that receives the size, in bytes, of the returned data.
+ * \param ReturnLength A pointer to a variable that receives the size, in bytes, of the returned data.
  * \return NTSTATUS Successful or errant status.
  * \remarks On x64 Windows build 10.0.26100.9549, this service returns STATUS_NOT_IMPLEMENTED
  */
