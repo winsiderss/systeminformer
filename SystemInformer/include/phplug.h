@@ -29,7 +29,7 @@ typedef enum _PH_GENERAL_CALLBACK
     GeneralCallbackProcessPropertiesInitializing = 4, // PPH_PLUGIN_PROCESS_PROPCONTEXT Data [properties thread]
     GeneralCallbackMainMenuInitializing = 5, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackNotifyEvent = 6, // PPH_PLUGIN_NOTIFY_EVENT Data [main thread]
-    GeneralCallbackServicePropertiesInitializing = 7, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
+    GeneralCallbackServicePropertiesInitializing = 7, // PPH_PLUGIN_SERVICE_PROPCONTEXT Data [properties thread]
     GeneralCallbackHandlePropertiesInitializing = 8, // PPH_PLUGIN_OBJECT_PROPERTIES Data [properties thread]
     GeneralCallbackProcessMenuInitializing = 9, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
     GeneralCallbackServiceMenuInitializing = 10, // PPH_PLUGIN_MENU_INFORMATION Data [main thread]
@@ -106,7 +106,9 @@ typedef enum _PH_PLUGIN_CALLBACK
 typedef struct _PH_PROVIDER_UPDATED_EVENT
 {
     ULONG RunCount;
-    ULONG UpdateInterval;
+    ULONG UpdateInterval; // nominal interval (setting), in milliseconds
+    ULONG ElapsedMilliseconds; // time actually spanned by this run, in milliseconds
+    PH_PROVIDER_ELAPSED Elapsed; // time actually spanned by this run, in performance counter ticks (zero on first run)
 } PH_PROVIDER_UPDATED_EVENT, *PPH_PROVIDER_UPDATED_EVENT;
 
 typedef PH_PROVIDER_UPDATED_EVENT PH_PROCESS_PROVIDER_UPDATED_EVENT;
@@ -141,6 +143,12 @@ typedef struct _PH_PLUGIN_PROCESS_PROPCONTEXT
     PPH_PROCESS_PROPCONTEXT PropContext;
     PPH_PROCESS_ITEM ProcessItem;
 } PH_PLUGIN_PROCESS_PROPCONTEXT, *PPH_PLUGIN_PROCESS_PROPCONTEXT;
+
+typedef struct _PH_PLUGIN_SERVICE_PROPCONTEXT
+{
+    PPH_SERVICE_PROPCONTEXT PropContext;
+    PPH_SERVICE_ITEM ServiceItem;
+} PH_PLUGIN_SERVICE_PROPCONTEXT, *PPH_PLUGIN_SERVICE_PROPCONTEXT;
 
 typedef struct _PH_PLUGIN_NOTIFY_EVENT
 {
