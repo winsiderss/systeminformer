@@ -93,7 +93,7 @@ typedef enum _PH_THREAD_TOKEN_STATE
     PH_THREAD_TOKEN_STATE_PRESENT
 } PH_THREAD_TOKEN_STATE;
 
-#define PHTN_NAME 0x1
+#define PHTHN_NAME 0x1
 
 // begin_phapppub
 typedef struct _PH_THREAD_NODE
