@@ -22,6 +22,7 @@
 #include <mainwnd.h>
 #include <mainwndp.h>
 #include <netprv.h>
+#include <phconsole.h>
 #include <phsettings.h>
 #include <phsvc.h>
 #include <procprv.h>
