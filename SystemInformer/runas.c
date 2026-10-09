@@ -111,12 +111,14 @@ INT_PTR CALLBACK PhRunAsPackageWndProc(
     );
 
 NTSTATUS PhRunAsUpdateDesktop(
-    _In_ PSID UserSid
+    _In_ PSID UserSid,
+    _In_opt_ PCWSTR DesktopName
     );
 
 NTSTATUS PhRunAsUpdateWindowStation(
     _In_opt_ PSID UserSid,
-    _In_opt_ PSID LogonSid
+    _In_opt_ PSID LogonSid,
+    _In_opt_ PCWSTR DesktopName
     );
 
 //NTSTATUS PhSetDesktopWinStaAccess(
@@ -869,8 +871,8 @@ BOOLEAN PhRunAsGetLogonSid(
     HANDLE tokenHandle;
     ULONG sessionId;
 
-    // Try WinStationInformation first: derive UserSid from Domain\UserName without
-    // needing token access, which may be restricted on some process types.
+    // Use WinStationInformation as a fallback for process types whose tokens may
+    // not be accessible. When the token is accessible, TokenUser below is authoritative.
     if (NT_SUCCESS(PhGetProcessSessionId(ProcessHandle, &sessionId)))
     {
         WINSTATIONINFORMATION winStationInfo;
@@ -896,8 +898,7 @@ BOOLEAN PhRunAsGetLogonSid(
         }
     }
 
-    // Open the process token to obtain the LogonSid from the token groups,
-    // and as a fallback for UserSid if the WinStation lookup did not succeed.
+    // Open the process token to obtain the authoritative UserSid and the LogonSid.
     if (NT_SUCCESS(PhOpenProcessToken(
         ProcessHandle,
         TOKEN_QUERY,
@@ -907,8 +908,11 @@ BOOLEAN PhRunAsGetLogonSid(
         PTOKEN_GROUPS tokenGroups = NULL;
         PH_TOKEN_USER tokenUser;
 
-        if (!userSid && NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
+        if (NT_SUCCESS(PhGetTokenUser(tokenHandle, &tokenUser)))
         {
+            if (userSid)
+                PhFree(userSid);
+
             userSid = PhAllocateCopy(tokenUser.User.Sid, PhLengthSid(tokenUser.User.Sid));
         }
 
@@ -1102,8 +1106,8 @@ NTSTATUS PhRunAsExecuteParentCommand(
 
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
-            PhRunAsUpdateDesktop(userSid);
-            PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhRunAsUpdateDesktop(userSid, NULL);
+            PhRunAsUpdateWindowStation(userSid, logonSid, NULL);
 
             PhFree(userSid);
             PhFree(logonSid);
@@ -1278,23 +1282,6 @@ VOID PhRunAsExecuteCommmand(
     //        );
     //}
 
-    {
-        PSID userSid;
-
-        if (NT_SUCCESS(PhLookupName(
-            &username->sr,
-            &userSid,
-            NULL,
-            NULL
-            )))
-        {
-            PhRunAsUpdateDesktop(userSid);
-            PhRunAsUpdateWindowStation(userSid, NULL);
-
-            PhFree(userSid);
-        }
-    }
-
     if (!PhFindIntegerSiKeyValuePairs(
         PhpLogonTypePairs,
         sizeof(PhpLogonTypePairs),
@@ -1316,9 +1303,11 @@ VOID PhRunAsExecuteCommmand(
 
     if (
         logonType == LOGON32_LOGON_INTERACTIVE &&
+        !IsServiceAccount(username) &&
         !ProcessId &&
         sessionId == currentSessionId &&
         !useLinkedToken &&
+        !createUIAccess &&
         !noProfile
         )
     {
@@ -1347,7 +1336,7 @@ VOID PhRunAsExecuteCommmand(
         status = PhCreateProcessAsUser(
             &createInfo,
             PH_CREATE_PROCESS_DEFAULT_ERROR_MODE | PH_CREATE_PROCESS_SUSPENDED |
-            PH_CREATE_PROCESS_WITH_PROFILE | PH_CREATE_PROCESS_SET_LOGON_ID,
+            PH_CREATE_PROCESS_AS_USER_WITH_PROFILE | PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID,
             NULL,
             NULL,
             &newProcessHandle,
@@ -1361,8 +1350,8 @@ VOID PhRunAsExecuteCommmand(
 
             if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
             {
-                PhRunAsUpdateDesktop(userSid);
-                PhRunAsUpdateWindowStation(userSid, logonSid);
+                PhRunAsUpdateDesktop(userSid, PhGetString(desktopName));
+                PhRunAsUpdateWindowStation(userSid, logonSid, PhGetString(desktopName));
 
                 PhFree(userSid);
                 PhFree(logonSid);
@@ -1666,15 +1655,16 @@ INT_PTR CALLBACK PhpRunAsDlgProc(
     return FALSE;
 }
 
-NTSTATUS PhRunAsUpdateDesktop(
-    _In_ PSID UserSid
+static NTSTATUS PhpRunAsUpdateDesktop(
+    _In_ PSID UserSid,
+    _In_ PCWSTR DesktopName
     )
 {
     NTSTATUS status;
     HDESK desktopHandle;
 
     if (desktopHandle = OpenDesktop(
-        L"Default",
+        DesktopName,
         0,
         FALSE,
         READ_CONTROL | WRITE_DAC | DESKTOP_READOBJECTS | DESKTOP_WRITEOBJECTS
@@ -1814,16 +1804,17 @@ NTSTATUS PhRunAsUpdateDesktop(
     return status;
 }
 
-NTSTATUS PhRunAsUpdateWindowStation(
+static NTSTATUS PhpRunAsUpdateWindowStation(
     _In_opt_ PSID UserSid,
-    _In_opt_ PSID LogonSid
+    _In_opt_ PSID LogonSid,
+    _In_ PCWSTR WindowStationName
     )
 {
     NTSTATUS status;
     HWINSTA wsHandle;
 
     if (wsHandle = OpenWindowStation(
-        L"WinSta0",
+        WindowStationName,
         FALSE,
         READ_CONTROL | WRITE_DAC
         ))
@@ -1983,6 +1974,160 @@ NTSTATUS PhRunAsUpdateWindowStation(
     {
         status = PhGetLastWin32ErrorAsNtStatus();
     }
+
+    return status;
+}
+
+/**
+ * Splits a run-as desktop name into window station and desktop components.
+ *
+ * \param DesktopName The desktop name, or NULL for the current desktop.
+ * \param WindowStationName Receives the window station name.
+ * \param DesktopNamePart Receives the desktop name.
+ * \return TRUE if both components were obtained, otherwise FALSE.
+ */
+static BOOLEAN PhpGetRunAsDesktopNames(
+    _In_opt_ PCWSTR DesktopName,
+    _Out_ PPH_STRING* WindowStationName,
+    _Out_ PPH_STRING* DesktopNamePart
+    )
+{
+    PPH_STRING desktopInfo = NULL;
+    PH_STRINGREF desktopInfoRef;
+    PH_STRINGREF windowStationName;
+    PH_STRINGREF desktopNamePart;
+
+    *WindowStationName = NULL;
+    *DesktopNamePart = NULL;
+
+    if (DesktopName && DesktopName[0] != UNICODE_NULL)
+    {
+        PhInitializeStringRefLongHint(&desktopInfoRef, DesktopName);
+    }
+    else
+    {
+        if (!(desktopInfo = PhpGetCurrentDesktopInfo()))
+            return FALSE;
+
+        desktopInfoRef = desktopInfo->sr;
+    }
+
+    if (
+        PhSplitStringRefAtChar(&desktopInfoRef, OBJ_NAME_PATH_SEPARATOR, &windowStationName, &desktopNamePart) &&
+        windowStationName.Length != 0 &&
+        desktopNamePart.Length != 0
+        )
+    {
+        *WindowStationName = PhCreateString2(&windowStationName);
+        *DesktopNamePart = PhCreateString2(&desktopNamePart);
+    }
+
+    PhClearReference(&desktopInfo);
+
+    return *WindowStationName && *DesktopNamePart;
+}
+
+/**
+ * Grants a user access to the specified desktop.
+ *
+ * \param UserSid The user SID to grant access.
+ * \param DesktopName The window station and desktop name, or NULL for the current desktop.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhRunAsUpdateDesktop(
+    _In_ PSID UserSid,
+    _In_opt_ PCWSTR DesktopName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING windowStationName = NULL;
+    PPH_STRING desktopNamePart = NULL;
+    HWINSTA originalWindowStationHandle;
+    HWINSTA windowStationHandle = NULL;
+    BOOLEAN windowStationChanged = FALSE;
+
+    if (!PhpGetRunAsDesktopNames(DesktopName, &windowStationName, &desktopNamePart))
+    {
+        status = STATUS_INVALID_PARAMETER;
+        goto CleanupExit;
+    }
+
+    PhAcquireQueuedLockExclusive(&RunAsDesktopLock);
+
+    originalWindowStationHandle = GetProcessWindowStation();
+
+    if (!originalWindowStationHandle)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto RestoreExit;
+    }
+
+    windowStationHandle = OpenWindowStation(
+        windowStationName->Buffer,
+        FALSE,
+        WINSTA_ENUMDESKTOPS | WINSTA_READATTRIBUTES
+        );
+
+    if (!windowStationHandle)
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto RestoreExit;
+    }
+
+    if (!SetProcessWindowStation(windowStationHandle))
+    {
+        status = PhGetLastWin32ErrorAsNtStatus();
+        goto RestoreExit;
+    }
+
+    windowStationChanged = TRUE;
+    status = PhpRunAsUpdateDesktop(UserSid, desktopNamePart->Buffer);
+
+RestoreExit:
+    if (windowStationChanged && !SetProcessWindowStation(originalWindowStationHandle))
+        status = PhGetLastWin32ErrorAsNtStatus();
+
+    if (windowStationHandle)
+        CloseWindowStation(windowStationHandle);
+
+    PhReleaseQueuedLockExclusive(&RunAsDesktopLock);
+
+CleanupExit:
+    PhClearReference(&desktopNamePart);
+    PhClearReference(&windowStationName);
+
+    return status;
+}
+
+/**
+ * Grants user and logon SIDs access to the specified window station.
+ *
+ * \param UserSid The optional user SID.
+ * \param LogonSid The optional logon SID.
+ * \param DesktopName The window station and desktop name, or NULL for the current desktop.
+ * \return NTSTATUS Successful or errant status.
+ */
+NTSTATUS PhRunAsUpdateWindowStation(
+    _In_opt_ PSID UserSid,
+    _In_opt_ PSID LogonSid,
+    _In_opt_ PCWSTR DesktopName
+    )
+{
+    NTSTATUS status;
+    PPH_STRING windowStationName = NULL;
+    PPH_STRING desktopNamePart = NULL;
+
+    if (PhpGetRunAsDesktopNames(DesktopName, &windowStationName, &desktopNamePart))
+    {
+        status = PhpRunAsUpdateWindowStation(UserSid, LogonSid, windowStationName->Buffer);
+    }
+    else
+    {
+        status = STATUS_INVALID_PARAMETER;
+    }
+
+    PhClearReference(&desktopNamePart);
+    PhClearReference(&windowStationName);
 
     return status;
 }
@@ -2544,28 +2689,28 @@ NTSTATUS PhInvokeRunAsService(
     createInfo.SessionId = Parameters->SessionId;
     createInfo.DesktopName = Parameters->DesktopName;
 
-    flags = PH_CREATE_PROCESS_SET_SESSION_ID | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE;
+    flags = PH_CREATE_PROCESS_AS_USER_SET_SESSION_ID | PH_CREATE_PROCESS_DEFAULT_ERROR_MODE;
 
     if (Parameters->ProcessId)
     {
         createInfo.ProcessIdWithToken = UlongToHandle(Parameters->ProcessId);
-        flags |= PH_CREATE_PROCESS_USE_PROCESS_TOKEN;
+        flags |= PH_CREATE_PROCESS_AS_USER_USE_PROCESS_TOKEN;
     }
 
-    //if (Parameters->UserName)
-    //{
-    //    createInfo.LogonId = PhRunAsGetLogonId();
-    //    flags |= PH_CREATE_PROCESS_SET_LOGON_ID;
-    //}
+    if (Parameters->UserName)
+    {
+        createInfo.LogonId = PhRunAsGetLogonId();
+        flags |= PH_CREATE_PROCESS_AS_USER_SET_LOGON_ID;
+    }
 
     if (Parameters->UseLinkedToken)
-        flags |= PH_CREATE_PROCESS_USE_LINKED_TOKEN;
+        flags |= PH_CREATE_PROCESS_AS_USER_USE_LINKED_TOKEN;
     //if (Parameters->CreateSuspendedProcess)
     //    flags |= PH_CREATE_PROCESS_SUSPENDED;
     if (Parameters->CreateUIAccessProcess)
-        flags |= PH_CREATE_PROCESS_SET_UIACCESS;
+        flags |= PH_CREATE_PROCESS_AS_USER_SET_UIACCESS;
     if (!Parameters->NoProfile)
-        flags |= PH_CREATE_PROCESS_WITH_PROFILE;
+        flags |= PH_CREATE_PROCESS_AS_USER_WITH_PROFILE;
 
     status = PhCreateProcessAsUser(
         &createInfo,
@@ -2583,8 +2728,17 @@ NTSTATUS PhInvokeRunAsService(
 
         if (PhRunAsGetLogonSid(newProcessHandle, &userSid, &logonSid))
         {
-            PhRunAsUpdateDesktop(userSid);
-            PhRunAsUpdateWindowStation(userSid, logonSid);
+            PhRunAsUpdateDesktop(
+                userSid,
+                Parameters->DesktopName && Parameters->DesktopName[0] != UNICODE_NULL ?
+                    Parameters->DesktopName : L"WinSta0\\Default"
+                );
+            PhRunAsUpdateWindowStation(
+                userSid,
+                logonSid,
+                Parameters->DesktopName && Parameters->DesktopName[0] != UNICODE_NULL ?
+                    Parameters->DesktopName : L"WinSta0\\Default"
+                );
 
             PhFree(userSid);
             PhFree(logonSid);
@@ -2592,9 +2746,7 @@ NTSTATUS PhInvokeRunAsService(
 
         if (!Parameters->CreateSuspendedProcess)
         {
-            status = PhGetProcessBasicInformation(newProcessHandle, &basicInfo);
-
-            if (NT_SUCCESS(status))
+            if (NT_SUCCESS(PhGetProcessBasicInformation(newProcessHandle, &basicInfo)))
             {
                 AllowSetForegroundWindow(HandleToUlong(basicInfo.UniqueProcessId));
             }
@@ -2621,6 +2773,8 @@ typedef struct _PHP_RUNFILEDLG
     HIMAGELIST ImageListHandle;
     BOOLEAN RunAsInstallerCheckboxDisabled;
     LONG WindowDpi;
+    PH_LAYOUT_MANAGER LayoutManager;
+    RECT MinimumSize; // .right is the minimum window width, .bottom is the pinned window height
 } PHP_RUNFILEDLG, *PPHP_RUNFILEDLG;
 
 BOOLEAN PhRunAsExecuteCommandPrompt(
@@ -3046,6 +3200,42 @@ static VOID PhpRunFileSetImageList(
  * \param lParam Message parameter.
  * \return INT_PTR result.
  */
+/**
+ * Recalculates the minimum width and the pinned height of the run file dialog.
+ *
+ * \param Context The run file dialog context.
+ *
+ * \remarks The dialog is resizable in width only, so the height is pinned to the height of the
+ * dialog template at the current DPI. The values are window extents, for WM_GETMINMAXINFO.
+ */
+static VOID PhpRunFileUpdateMinimumSize(
+    _Inout_ PPHP_RUNFILEDLG Context
+    )
+{
+    RECT rect;
+    RECT windowRect;
+    RECT clientRect;
+
+    rect.left = 0;
+    rect.top = 0;
+    rect.right = 235; // IDD_RUNFILEDLG template width
+    rect.bottom = 105; // IDD_RUNFILEDLG template height
+    MapDialogRect(Context->WindowHandle, &rect);
+
+    // MapDialogRect returns client extents, so add the non-client extents. (dmex)
+
+    if (PhGetWindowRect(Context->WindowHandle, &windowRect) &&
+        PhGetClientRect(Context->WindowHandle, &clientRect))
+    {
+        rect.right += (windowRect.right - windowRect.left) - (clientRect.right - clientRect.left);
+        rect.bottom += (windowRect.bottom - windowRect.top) - (clientRect.bottom - clientRect.top);
+    }
+
+    Context->MinimumSize = rect;
+    Context->MinimumSize.left = 0;
+    Context->MinimumSize.top = 0;
+}
+
 INT_PTR CALLBACK PhpRunFileWndProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
@@ -3105,6 +3295,48 @@ INT_PTR CALLBACK PhpRunFileWndProc(
                 PhpRunFileSetImageList(context);
             }
 
+            PhInitializeLayoutManager(&context->LayoutManager, hwndDlg);
+            // The statics and the custom drawn checkboxes don't repaint themselves when they're
+            // resized, so force the invalidate. (dmex)
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_MESSAGE), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, context->ComboBoxHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+            PhAddLayoutItem(&context->LayoutManager, context->RunAsCheckboxHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, context->RunAsInstallerCheckboxHandle, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT | PH_LAYOUT_FORCE_INVALIDATE);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDCANCEL), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+            PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_BROWSE), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
+
+            PhpRunFileUpdateMinimumSize(context);
+
+            // The dialog is resizable in width only, so restore the width and discard the
+            // persisted height. SetWindowPos ignores the WM_GETMINMAXINFO track sizes, so the
+            // height has to be pinned here. (dmex)
+
+            if (PhLoadWindowPlacementFromSetting(NULL, SETTING_RUN_FILE_DLG_SIZE, hwndDlg))
+            {
+                RECT windowRect;
+
+                if (PhGetWindowRect(hwndDlg, &windowRect))
+                {
+                    LONG width = windowRect.right - windowRect.left;
+
+                    if (width < context->MinimumSize.right)
+                        width = context->MinimumSize.right;
+
+                    SetWindowPos(
+                        hwndDlg,
+                        NULL,
+                        0,
+                        0,
+                        width,
+                        context->MinimumSize.bottom,
+                        SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE
+                        );
+                }
+
+                PhCenterWindow(hwndDlg, GetParent(hwndDlg));
+            }
+
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
         }
         break;
@@ -3113,6 +3345,9 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             PhRemoveDialogContext(hwndDlg);
 
             PhSetIntegerSetting(SETTING_RUN_FILE_DLG_STATE, Button_GetCheck(context->RunAsCheckboxHandle) == BST_CHECKED);
+            PhSaveWindowPlacementToSetting(NULL, SETTING_RUN_FILE_DLG_SIZE, hwndDlg);
+
+            PhDeleteLayoutManager(&context->LayoutManager);
 
             PhImageListDestroy(context->ImageListHandle);
 
@@ -3130,6 +3365,29 @@ INT_PTR CALLBACK PhpRunFileWndProc(
             PhSetStaticWindowIcon(GetDlgItem(hwndDlg, IDC_FILEICON), context->WindowDpi);
 
             PhpRunFileSetImageList(context);
+
+            PhLayoutManagerUpdate(&context->LayoutManager, context->WindowDpi);
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_SIZE:
+        {
+            PhLayoutManagerLayout(&context->LayoutManager);
+        }
+        break;
+    case WM_GETMINMAXINFO:
+        {
+            PMINMAXINFO minMaxInfo = (PMINMAXINFO)lParam;
+
+            // Recalculate here so the constraints stay correct after a DPI change. (dmex)
+            PhpRunFileUpdateMinimumSize(context);
+
+            minMaxInfo->ptMinTrackSize.x = context->MinimumSize.right;
+
+            // Equal minimum and maximum track heights pin the height, making the top, bottom
+            // and corner sizing borders inert. (dmex)
+            minMaxInfo->ptMinTrackSize.y = context->MinimumSize.bottom;
+            minMaxInfo->ptMaxTrackSize.y = context->MinimumSize.bottom;
         }
         break;
     case WM_CTLCOLORSTATIC:
@@ -3223,18 +3481,25 @@ INT_PTR CALLBACK PhpRunFileWndProc(
         {
             HDC hdc = (HDC)wParam;
             RECT clientRect;
+            RECT clipRect;
 
             if (!PhGetClientRect(hwndDlg, &clientRect))
                 break;
 
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+            {
+                SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
+                return TRUE;
+            }
+
             SetBkMode(hdc, TRANSPARENT);
 
             clientRect.bottom -= PhScaleToDisplay(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_WINDOW + 1));
+            PhFillRectClipped(hdc, &clientRect, &clipRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_WINDOW + 1));
 
             clientRect.top = clientRect.bottom;
             clientRect.bottom = clientRect.top + PhScaleToDisplay(60, context->WindowDpi);
-            FillRect(hdc, &clientRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_3DFACE + 1));
+            PhFillRectClipped(hdc, &clientRect, &clipRect, PhEnableThemeSupport ? PhThemeWindowBackgroundBrush : (HBRUSH)(COLOR_3DFACE + 1));
 
             SetWindowLongPtr(hwndDlg, DWLP_MSGRESULT, TRUE);
         }
