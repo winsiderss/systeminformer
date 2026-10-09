@@ -134,6 +134,8 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
+    PhMwpShowWindow(PhMainWndHandle, SW_SHOWDEFAULT);
+
     return TRUE;
 }
 
@@ -174,9 +176,6 @@ LRESULT CALLBACK PhMwpWndProc(
             // Initialize window theme.
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
-            // Initialize the Mica backdrop state for the client area.
-            PhMwpUpdateMicaState();
-
             // Initialize window menu.
             PhMwpInitializeMainMenu(WindowHandle);
 
@@ -189,9 +188,6 @@ LRESULT CALLBACK PhMwpWndProc(
 
             // Perform window layout.
             PhMwpSelectionChangedTabControl(INT_ERROR);
-
-            // Perform main window showing.
-            PhMwpShowWindow(SW_SHOWDEFAULT);
 
             // Queue delayed init functions.
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, WindowHandle);
@@ -319,10 +315,12 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhMainWndProc;
     wcex.hInstance = NtCurrentImageBase();
     className = PhaGetStringSetting(SETTING_MAIN_WINDOW_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(className, SETTING_MAIN_WINDOW_CLASS_NAME);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     if (PhEnableWindowText)
@@ -434,6 +432,7 @@ VOID PhMwpInitializeProviders(
  * \param ShowCommand The show command (e.g., SW_SHOW, SW_HIDE, SW_MAXIMIZE).
  */
 VOID PhMwpShowWindow(
+    _In_ HWND WindowHandle,
     _In_ LONG ShowCommand
     )
 {
