@@ -146,6 +146,7 @@ static CONST PH_KEY_VALUE_PAIR PhpLogonTypePairs[] =
 
 static WCHAR RunAsOldServiceName[32] = L"";
 static PH_QUEUED_LOCK RunAsOldServiceLock = PH_QUEUED_LOCK_INIT;
+static PH_QUEUED_LOCK RunAsDesktopLock = PH_QUEUED_LOCK_INIT;
 static PPH_STRING RunAsServiceName;
 static SERVICE_STATUS_HANDLE RunAsServiceStatusHandle;
 static PHSVC_STOP RunAsServiceStop;
