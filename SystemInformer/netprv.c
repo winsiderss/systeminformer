@@ -1069,6 +1069,7 @@ VOID PhNetworkProviderUpdate(
 {
     static ULONG runCount = 0;
     PH_PROVIDER_UPDATED_EVENT updatedEvent;
+    ULONG elapsedMilliseconds;
     PPH_NETWORK_CONNECTION connections;
     ULONG numberOfConnections;
     ULONG i;
@@ -1413,8 +1414,19 @@ VOID PhNetworkProviderUpdate(
 
     PhFree(connections);
 
+    elapsedMilliseconds = PhGetProviderElapsedMilliseconds(&PhMwpNetworkProviderRegistration);
+
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = PhCsUpdateInterval;
+    if (elapsedMilliseconds == 0)
+        elapsedMilliseconds = 1000;
+
     updatedEvent.RunCount = runCount;
     updatedEvent.UpdateInterval = PhCsUpdateInterval;
+    updatedEvent.ElapsedMilliseconds = elapsedMilliseconds;
+
+    if (!PhGetProviderElapsed(&PhMwpNetworkProviderRegistration, &updatedEvent.Elapsed))
+        memset(&updatedEvent.Elapsed, 0, sizeof(PH_PROVIDER_ELAPSED));
 
     PhInvokeCallback(PhGetGeneralCallback(GeneralCallbackNetworkProviderUpdatedEvent), &updatedEvent);
 

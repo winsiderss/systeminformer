@@ -212,8 +212,8 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
     case WM_PAINT:
         {
             PAINTSTRUCT paintStruct;
-            //PH_BUFFERED_PAINT paintBuffer;
-            //HDC bufferDc;
+            PH_BUFFERED_PAINT paintBuffer;
+            HDC bufferDc;
             HDC hdc;
 
             if (!PhEnableThemeSupport)
@@ -228,13 +228,13 @@ LRESULT CALLBACK PhRebarWindowHookProcedure(
                 return 0;
             }
 
-            //if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
-            //{
-            //    FillRect(bufferDc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
-            //    CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)bufferDc, PRF_CLIENT);
-            //    PhEndBufferedPaint(&paintBuffer, TRUE);
-            //}
-            //else
+            if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, PHBF_TOPDOWNDIB, NULL, &paintBuffer, &bufferDc))
+            {
+                FillRect(bufferDc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
+                CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)bufferDc, PRF_CLIENT);
+                PhEndBufferedPaint(&paintBuffer, TRUE);
+            }
+            else
             {
                 FillRect(hdc, &paintStruct.rcPaint, PhThemeWindowBackgroundBrush);
                 CallWindowProc(PhDefaultRebarWindowProcedure, WindowHandle, WM_PRINTCLIENT, (WPARAM)hdc, PRF_CLIENT);
@@ -367,7 +367,7 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                         return 0;
 
                     GetClientRect(WindowHandle, &clientRect);
-                    buffered = PhBeginBufferedPaint(hdc, &clientRect, &bufferedPaint, &bufferDc);
+                    buffered = PhBeginBufferedPaint(hdc, &clientRect, PHBF_TOPDOWNDIB, NULL, &bufferedPaint, &bufferDc);
 
                     if (!buffered)
                         bufferDc = hdc;
@@ -413,13 +413,21 @@ LRESULT CALLBACK PhStaticWindowHookProcedure(
                             PhEndInitOnce(&initOnce);
                         }
 
-                        SetBkMode(hdc, TRANSPARENT);
-                        SetTextColor(hdc, checkType == check ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
-                        SelectFont(hdc, hCheckFont);
-                        //HFONT hFontOriginal = SelectFont(hdc, hCheckFont);
-                        FillRect(hdc, &clientRect, PhThemeWindowBackgroundBrush);
-                        DrawText(hdc, L"✓", 1, &clientRect, DT_CENTER | DT_VCENTER);
-                        //SelectFont(hdc, hFontOriginal);
+                        HFONT oldFont;
+                        INT oldBkMode;
+                        COLORREF oldTextColor;
+
+                        // Draw into the surface that will be committed. In the
+                        // fallback path bufferDc is hdc, so both paths match.
+                        oldBkMode = SetBkMode(bufferDc, TRANSPARENT);
+                        oldTextColor = SetTextColor(bufferDc, checkType == check ? PhThemeWindowTextColor : RGB(0xB4, 0xB4, 0xB4));
+                        oldFont = hCheckFont ? SelectFont(bufferDc, hCheckFont) : NULL;
+                        FillRect(bufferDc, &clientRect, PhThemeWindowBackgroundBrush);
+                        DrawText(bufferDc, L"V", 1, &clientRect, DT_CENTER | DT_VCENTER);
+                        if (oldFont)
+                            SelectFont(bufferDc, oldFont);
+                        SetTextColor(bufferDc, oldTextColor);
+                        SetBkMode(bufferDc, oldBkMode);
                     }
 
                     if (buffered)
@@ -763,7 +771,7 @@ LRESULT CALLBACK PhStatusBarWindowHookProcedure(
 
                 // Buffer only the invalidated region; ThemeWindowRenderStatusBar still
                 // lays out using the full client rect and is clipped to the rcPaint buffer.
-                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, &paintBuffer, &bufferDc))
+                if (PhBeginBufferedPaint(hdc, &paintStruct.rcPaint, PHBF_TOPDOWNDIB, NULL, &paintBuffer, &bufferDc))
                 {
                     ThemeWindowRenderStatusBar(context, WindowHandle, bufferDc, &clientRect);
                     PhEndBufferedPaint(&paintBuffer, TRUE);
@@ -1218,8 +1226,6 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                 {
                     PAINTSTRUCT ps;
                     RECT clientRect;
-                    PH_BUFFERED_PAINT paintBuffer;
-                    HDC bufferDc;
                     HDC hdc;
 
                     if (!(hdc = BeginPaint(WindowHandle, &ps)))
@@ -1231,17 +1237,7 @@ LRESULT CALLBACK PhHeaderWindowHookProcedure(
                         return 0;
                     }
 
-                    // Buffer only the invalidated region; ThemeWindowRenderHeaderControl
-                    // lays out using the full client rect and is clipped to the rcPaint buffer.
-                    if (PhBeginBufferedPaint(hdc, &ps.rcPaint, &paintBuffer, &bufferDc))
-                    {
-                        ThemeWindowRenderHeaderControl(context, WindowHandle, bufferDc, &clientRect);
-                        PhEndBufferedPaint(&paintBuffer, TRUE);
-                    }
-                    else
-                    {
-                        ThemeWindowRenderHeaderControl(context, WindowHandle, hdc, &clientRect);
-                    }
+                    ThemeWindowRenderHeaderControl(context, WindowHandle, hdc, &clientRect);
 
                     EndPaint(WindowHandle, &ps);
                 }

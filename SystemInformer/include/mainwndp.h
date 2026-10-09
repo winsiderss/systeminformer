@@ -69,6 +69,7 @@ VOID PhMwpInitializeProviders(
     );
 
 VOID PhMwpShowWindow(
+    _In_ HWND WindowHandle,
     _In_ LONG ShowCommand
     );
 

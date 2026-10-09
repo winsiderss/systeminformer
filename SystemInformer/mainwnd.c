@@ -134,6 +134,8 @@ BOOLEAN PhMainWndInitialization(
     if (!PhMainWndHandle)
         return FALSE;
 
+    PhMwpShowWindow(PhMainWndHandle, SW_SHOWDEFAULT);
+
     return TRUE;
 }
 
@@ -174,24 +176,14 @@ LRESULT CALLBACK PhMwpWndProc(
             // Initialize window theme.
             PhInitializeWindowTheme(WindowHandle, PhEnableThemeSupport);
 
-            // Initialize the Mica backdrop state for the client area.
-            PhMwpUpdateMicaState();
-
             // Initialize window menu.
             PhMwpInitializeMainMenu(WindowHandle);
-
-            // Initialize the caption button.
-            PhMwpInitializeCaptionButton(WindowHandle);
-            PhMwpSetCaptionButtonChecked(AlwaysOnTop);
 
             // Initialize providers.
             PhMwpInitializeProviders();
 
             // Perform window layout.
             PhMwpSelectionChangedTabControl(INT_ERROR);
-
-            // Perform main window showing.
-            PhMwpShowWindow(SW_SHOWDEFAULT);
 
             // Queue delayed init functions.
             PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PhMwpLoadStage1Worker, WindowHandle);
@@ -319,10 +311,12 @@ RTL_ATOM PhMwpInitializeWindowClass(
 
     memset(&wcex, 0, sizeof(WNDCLASSEX));
     wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.style = CS_DBLCLKS | CS_GLOBALCLASS;
     wcex.lpfnWndProc = PhMainWndProc;
     wcex.hInstance = NtCurrentImageBase();
     className = PhaGetStringSetting(SETTING_MAIN_WINDOW_CLASS_NAME);
     wcex.lpszClassName = PhGetStringOrDefault(className, SETTING_MAIN_WINDOW_CLASS_NAME);
+    wcex.hbrBackground = PhGetThemeWindowBackgroundBrush();
     wcex.hCursor = PhLoadCursor(NULL, IDC_ARROW);
 
     if (PhEnableWindowText)
@@ -434,6 +428,7 @@ VOID PhMwpInitializeProviders(
  * \param ShowCommand The show command (e.g., SW_SHOW, SW_HIDE, SW_MAXIMIZE).
  */
 VOID PhMwpShowWindow(
+    _In_ HWND WindowHandle,
     _In_ LONG ShowCommand
     )
 {
@@ -4594,12 +4589,11 @@ VOID PhMwpSaveTabLayoutSetting(
     if (!TabControlHandle)
         return;
 
-    layout = PhTabNew_SaveLayout(TabControlHandle, PhpMwpTabLayoutCallback, NULL);
-    if (!layout)
-        return;
-
-    PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
-    PhDereferenceObject(layout);
+    if (layout = PhTabNew_SaveLayout(TabControlHandle, PhMwpTabLayoutCallback, NULL))
+    {
+        PhSetStringSetting2(SETTING_MAIN_WINDOW_TAB_LAYOUT, &layout->sr);
+        PhDereferenceObject(layout);
+    }
 }
 
 VOID PhMwpSyncTabPageIndexes(
@@ -4629,9 +4623,7 @@ VOID PhMwpUpdateTabRestoreState(
     LONG selectedIndex;
     PPH_MAIN_TAB_PAGE page;
 
-    if (!TabControlHandle ||
-        !IsWindowVisible(TabControlHandle) ||
-        !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
+    if (!TabControlHandle || !IsWindowVisible(TabControlHandle) || !PhGetIntegerSetting(SETTING_MAIN_WINDOW_TAB_RESTORE_ENABLED))
         return;
 
     selectedIndex = PhTabNew_GetCurSel(TabControlHandle);
@@ -4656,10 +4648,17 @@ VOID PhMwpRestoreTabLayout(
         return;
 
     layout = PhaGetStringSetting(SETTING_MAIN_WINDOW_TAB_LAYOUT);
-    if (layout->Length == 0)
+
+    if (PhIsNullOrEmptyString(layout))
         return;
 
-    PhTabNew_RestoreLayout(TabControlHandle, &layout->sr, PhpMwpTabLayoutCallback, NULL);
+    if (PhTabNew_RestoreLayout(TabControlHandle, &layout->sr, PhMwpTabLayoutCallback, NULL))
+    {
+        // The strip order changed, so every cached page index is stale.
+        PhMwpSyncTabPageIndexes();
+
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
+    }
 }
 
 /**
@@ -4670,29 +4669,16 @@ VOID PhMwpLayoutTabControl(
     _Inout_ HDWP *DeferHandle
     )
 {
-    RECT clientRect;
     RECT tabRect;
 
-    if (!LayoutPaddingValid)
-    {
-        PhMwpUpdateLayoutPadding();
-        LayoutPaddingValid = TRUE;
-    }
-
-    if (!PhGetClientRect(PhMainWndHandle, &clientRect))
+    if (!TabControlHandle)
         return;
 
-    PhMwpApplyLayoutPadding(&clientRect, &LayoutPadding);
-    tabRect = clientRect;
-    {
-        RECT pageRect;
-        if (PhTabNew_GetPageRect(TabControlHandle, &pageRect))
-        {
-            // PhTabNew_GetPageRect returns parent client coords; remap into
-            // mainwnd client coords (TabControl is a direct child of mainwnd).
-            tabRect = pageRect;
-        }
-    }
+    // The tab control returns the page rectangle already mapped to the parent
+    // (main window) client coordinates.
+
+    if (!PhTabNew_GetPageRect(TabControlHandle, &tabRect))
+        return;
 
     if (CurrentPage && CurrentPage->WindowHandle)
     {
@@ -4701,11 +4687,11 @@ VOID PhMwpLayoutTabControl(
             *DeferHandle,
             CurrentPage->WindowHandle,
             HWND_TOP,
-            clientRect.left,
+            tabRect.left,
             tabRect.top - LayoutBorderSize,
-            clientRect.right - clientRect.left,
-            (tabRect.bottom - tabRect.top) + (clientRect.bottom - tabRect.bottom),
-            SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOOWNERZORDER
+            tabRect.right - tabRect.left,
+            tabRect.bottom - tabRect.top,
+            SWP_NOACTIVATE | SWP_NOZORDER //| SWP_NOOWNERZORDER
             );
     }
 }
@@ -4727,17 +4713,24 @@ VOID PhMwpNotifyTabControl(
         PhMwpSelectionChangedTabControl(OldTabIndex);
         OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
     }
-    else if (Header->code == PHTNN_LAYOUT)
-    {
-        HDWP deferHandle = BeginDeferWindowPos(1);
-        PhMwpLayoutTabControl(&deferHandle);
-        EndDeferWindowPos(deferHandle);
-    }
     else if (Header->code == PHTNN_REORDERED)
     {
         PhMwpSyncTabPageIndexes();
+        OldTabIndex = PhTabNew_GetCurSel(TabControlHandle);
+
+        // Persist immediately so a reorder survives an abnormal termination.
         PhMwpSaveTabLayoutSetting();
-        PhMwpUpdateTabRestoreState();
+    }
+    else if (Header->code == PHTNN_LAYOUT)
+    {
+        HDWP deferHandle;
+
+        // The strip may have gained or lost a row, so the page rectangle changed.
+
+        deferHandle = BeginDeferWindowPos(1);
+        PhMwpLayoutTabControl(&deferHandle);
+        EndDeferWindowPos(deferHandle);
+
     }
 }
 
@@ -4884,6 +4877,16 @@ VOID PhMwpSelectPage(
     _In_ ULONG Index
     )
 {
+    LONG oldIndex;
+
+    oldIndex = PhTabNew_GetCurSel(TabControlHandle);
+
+    if (oldIndex == (LONG)Index)
+        return;
+
+    // Unlike the stock tab control, PHTNM_SETCURSEL sends PHTNN_SELCHANGING and
+    // PHTNN_SELCHANGED, so PhMwpNotifyTabControl performs the page switch. (dmex)
+
     PhTabNew_SetCurSel(TabControlHandle, Index);
 }
 
