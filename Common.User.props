@@ -317,6 +317,11 @@
     </ItemDefinitionGroup>
 
     <!-- ClangCL Builds -->
+    <ItemDefinitionGroup Condition="'$(Configuration)'=='Release' and '$(PlatformToolset)' != 'ClangCL'">
+        <ClCompile>
+            <AdditionalOptions>/experimental:deterministic %(AdditionalOptions)</AdditionalOptions>
+        </ClCompile>
+    </ItemDefinitionGroup>
     <ItemDefinitionGroup Condition="'$(PlatformToolset)' == 'ClangCL'">
         <ClCompile>
             <AdditionalOptions>-Wno-parentheses -Wno-incompatible-pointer-types -Wno-pointer-sign -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-value -Wno-switch -Wno-incompatible-function-pointer-types %(AdditionalOptions)</AdditionalOptions>

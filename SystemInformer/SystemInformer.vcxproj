@@ -27,9 +27,9 @@
         </ProjectConfiguration>
     </ItemGroup>
     <PropertyGroup Label="Globals">
-        <VCProjectVersion>17.0</VCProjectVersion>
-        <ProjectGuid>{0271DD27-6707-4290-8DFE-285702B7115D}</ProjectGuid>
+        <VCProjectVersion>18.0</VCProjectVersion>
         <Keyword>Win32Proj</Keyword>
+        <ProjectGuid>{0271DD27-6707-4290-8DFE-285702B7115D}</ProjectGuid>
         <ProjectName>SystemInformer</ProjectName>
         <RootNamespace>SystemInformer</RootNamespace>
         <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
@@ -66,7 +66,9 @@
         <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
     </PropertyGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-    <Import Project="$(SolutionDir)phnt\phnt.vcxitems" />
+    <ImportGroup Label="Shared">
+        <Import Project="$(SystemInformerRoot)phnt\phnt.vcxitems" Label="Shared" />
+    </ImportGroup>
     <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
         <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     </ImportGroup>
@@ -110,7 +112,6 @@
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -126,14 +127,12 @@
         <ClCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)phlib\include;$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
             <PreprocessorDefinitions>_PHLIB_;_PHAPP_;_WINDOWS;WIN64;_DEBUG;DEBUG;%(PreprocessorDefinitions);$(ExternalPreprocessorOptions)</PreprocessorDefinitions>
-            <DebugInformationFormat>OldStyle</DebugInformationFormat>
         </ClCompile>
         <Link>
             <AdditionalDependencies>setupapi.lib;cfgmgr32.lib;aclui.lib;comctl32.lib;dnsapi.lib;gdiplus.lib;ntdll.lib;phlib.lib;userenv.lib;wbemuuid.lib;windowscodecs.lib;winhttp.lib;winsta.lib;kphlib_um.lib;%(AdditionalDependencies)</AdditionalDependencies>
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose -experimental:deterministic %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -155,7 +154,6 @@
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -177,7 +175,6 @@
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -199,7 +196,6 @@
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -221,7 +217,6 @@
             <AdditionalLibraryDirectories>$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phlib\bin\$(Configuration)$(PlatformArchitecture);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
             <ModuleDefinitionFile>SystemInformer.def</ModuleDefinitionFile>
             <DelayLoadDLLs>setupapi.dll;cfgmgr32.dll;aclui.dll;comdlg32.dll;gdiplus.dll;oleaut32.dll;winhttp.dll;winsta.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
-            <AdditionalOptions>/verbose %(AdditionalOptions)</AdditionalOptions>
         </Link>
         <ResourceCompile>
             <AdditionalIncludeDirectories>$(SystemInformerRoot)kphlib\include;$(SystemInformerRoot)kphlib\bin\$(Configuration)$(PlatformArchitecture);$(SystemInformerRoot)phnt\include;$(SystemInformerRoot)phlib\include;include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -240,21 +235,17 @@
         <ClCompile Include="affinity.c" />
         <ClCompile Include="anawait.c" />
         <ClCompile Include="appsup.c" />
-        <ClCompile Include="capbtn.c" />
         <ClCompile Include="chcol.c" />
         <ClCompile Include="chdlg.c" />
         <ClCompile Include="envdlg.c" />
         <ClCompile Include="chproc.c" />
         <ClCompile Include="colmgr.c" />
-        <ClCompile Include="containerwnd.c" />
         <ClCompile Include="colsetmgr.c" />
         <ClCompile Include="dbgcon.c" />
         <ClCompile Include="delayhook.c" />
         <ClCompile Include="delayload.c" />
         <ClCompile Include="devprv.c" />
-        <ClCompile Include="attachdlg.c" />
         <ClCompile Include="extmgr.c" />
-        <ClCompile Include="featsup.c" />
         <ClCompile Include="findobj.c" />
         <ClCompile Include="gamesenum.cpp" />
         <ClCompile Include="gdihndl.c" />
@@ -271,7 +262,6 @@
         <ClCompile Include="kdump.c" />
         <ClCompile Include="informer.c" />
         <ClCompile Include="informerwnd.c" />
-        <ClCompile Include="memcfg.c" />
         <ClCompile Include="memmod.c" />
         <ClCompile Include="ksisup.c" />
         <ClCompile Include="ksyscall.c" />
@@ -302,18 +292,13 @@
         <ClCompile Include="notifico.c" />
         <ClCompile Include="notiftoast.cpp" />
         <ClCompile Include="ntobjprp.c" />
-        <ClCompile Include="oci.c" />
         <ClCompile Include="options.c" />
         <ClCompile Include="pagfiles.c" />
         <ClCompile Include="phsvc\clapi.c" />
-        <ClCompile Include="phsvc\clnotify.c" />
         <ClCompile Include="phsvc\svcapi.c" />
         <ClCompile Include="phsvc\svcapiport.c" />
         <ClCompile Include="phsvc\svcclient.c" />
         <ClCompile Include="phsvc\svcmain.c" />
-        <ClCompile Include="phsvc\svcnotify.c" />
-        <ClCompile Include="phsvc\svcring.c" />
-        <ClCompile Include="phsvc\svctest.c" />
         <ClCompile Include="plugin.c" />
         <ClCompile Include="plugman.c" />
         <ClCompile Include="procgrp.c" />
@@ -348,12 +333,9 @@
         <ClCompile Include="srvprv.c" />
         <ClCompile Include="sessmsg.c" />
         <ClCompile Include="sysinfo.c" />
-        <ClCompile Include="procsym.c" />
         <ClCompile Include="syssccpu.c" />
-        <ClCompile Include="syssccpuex.c" />
         <ClCompile Include="sysscio.c" />
         <ClCompile Include="sysscmem.c" />
-        <ClCompile Include="thrdctx.c" />
         <ClCompile Include="thrdlist.c" />
         <ClCompile Include="thrdprv.c" />
         <ClCompile Include="thrdstk.c" />
@@ -367,10 +349,10 @@
         <ClInclude Include="include\colmgr.h" />
         <ClInclude Include="include\colsetmgr.h" />
         <ClInclude Include="include\devprv.h" />
-        <ClInclude Include="include\featsup.h" />
         <ClInclude Include="include\extmgr.h" />
         <ClInclude Include="include\extmgri.h" />
         <ClInclude Include="include\heapstruct.h" />
+        <ClInclude Include="include\hidnproc.h" />
         <ClInclude Include="include\hndllist.h" />
         <ClInclude Include="include\hndlmenu.h" />
         <ClInclude Include="include\hndlprv.h" />
@@ -379,6 +361,9 @@
         <ClInclude Include="include\mainwnd.h" />
         <ClInclude Include="include\mainwndp.h" />
         <ClInclude Include="include\memlist.h" />
+        <ClInclude Include="include\memprv.h" />
+        <ClInclude Include="include\memsrch.h" />
+        <ClInclude Include="include\miniinfo.h" />
         <ClInclude Include="include\miniinfop.h" />
         <ClInclude Include="include\modlist.h" />
         <ClInclude Include="include\modprv.h" />
@@ -387,35 +372,28 @@
         <ClInclude Include="include\notifico.h" />
         <ClInclude Include="include\notificop.h" />
         <ClInclude Include="include\notiftoast.h" />
-        <ClInclude Include="include\oci.h" />
+        <ClInclude Include="include\phapp.h" />
+        <ClInclude Include="include\phappres.h" />
         <ClInclude Include="include\phfwddef.h" />
+        <ClInclude Include="include\phplug.h" />
+        <ClInclude Include="include\phsvc.h" />
+        <ClInclude Include="include\phsvcapi.h" />
         <ClInclude Include="include\phsvccl.h" />
+        <ClInclude Include="include\phuisup.h" />
+        <ClInclude Include="include\procgrp.h" />
         <ClInclude Include="include\procmtgn.h" />
         <ClInclude Include="include\procprp.h" />
+        <ClInclude Include="include\procprpp.h" />
         <ClInclude Include="include\procprv.h" />
         <ClInclude Include="include\proctree.h" />
-        <ClInclude Include="include\phsettings.h" />
         <ClInclude Include="include\srvlist.h" />
         <ClInclude Include="include\srvprv.h" />
         <ClInclude Include="include\sysinfo.h" />
+        <ClInclude Include="include\sysinfop.h" />
         <ClInclude Include="include\thrdlist.h" />
         <ClInclude Include="include\thrdprv.h" />
-        <ClInclude Include="include\phuisup.h" />
-        <ClInclude Include="include\miniinfo.h" />
-        <ClInclude Include="include\hidnproc.h" />
-        <ClInclude Include="include\hcs.h" />
-        <ClInclude Include="include\memsrch.h" />
-        <ClInclude Include="include\phapp.h" />
-        <ClInclude Include="include\phsvc.h" />
-        <ClInclude Include="include\phsvcapi.h" />
-        <ClInclude Include="include\phappres.h" />
-        <ClInclude Include="include\procgrp.h" />
-        <ClInclude Include="sdk\phdk.h" />
-        <ClInclude Include="include\phplug.h" />
-        <ClInclude Include="include\procprpp.h" />
-        <ClInclude Include="include\memprv.h" />
         <ClInclude Include="resource.h" />
-        <ClInclude Include="include\sysinfop.h" />
+        <ClInclude Include="sdk\phdk.h" />
     </ItemGroup>
     <ItemGroup>
         <None Include="resources\case_sensitive_modern_dark.svg" />
@@ -467,8 +445,7 @@
         <Text Include="resources\etwguids.txt" />
         <Text Include="resources\pooltag.txt" />
     </ItemGroup>
-    <!-- Project builds must rebuild phlib, not silently link a stale archive.
-       Explicit .lib dependencies above remain the link inputs. -->
+    <!-- Project builds must rebuild phlib, not silently link a stale archive. Explicit .lib dependencies above remain the link inputs. -->
     <ItemGroup>
         <ProjectReference Include="..\phlib\phlib.vcxproj">
             <Project>{477D0215-F252-41A1-874B-F27E3EA1ED17}</Project>
