@@ -12,7 +12,7 @@
 
 #include <peview.h>
 #include <shellapi.h>
-#include <headernew.h>
+#include <treehdr.h>
 
 PPH_STRING PvFileName = NULL;
 

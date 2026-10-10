@@ -305,6 +305,8 @@
     <ClInclude Include="include\graph.h" />
     <ClInclude Include="include\guisupp.h" />
     <ClInclude Include="include\handlep.h" />
+    <ClInclude Include="include\treehdr.h" />
+    <ClInclude Include="include\treehdrp.h" />
     <ClInclude Include="include\hexedit.h" />
     <ClInclude Include="include\hexeditp.h" />
     <ClInclude Include="include\filestreamp.h" />
