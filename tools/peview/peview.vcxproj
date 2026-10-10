@@ -235,6 +235,7 @@
         <ClCompile Include="libprp.c" />
         <ClCompile Include="links.c" />
         <ClCompile Include="main.c" />
+        <ClCompile Include="start.c" />
         <ClCompile Include="misc.c" />
         <ClCompile Include="pdb.c" />
         <ClCompile Include="pdbprp.c" />

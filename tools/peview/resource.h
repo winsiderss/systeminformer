@@ -41,7 +41,9 @@
 #define IDD_PEHASHES                    138
 #define IDD_PEEXCEPTIONS                140
 #define IDD_PERELOCATIONS               142
+#define IDD_PEDYNAMICRELOCATIONS        143
 #define IDD_TABWINDOW                   146
+#define IDD_STARTPAGE                   147
 #define IDD_CHOOSECOLUMNS               166
 #define IDD_PEHEADERS                   167
 #define IDD_PECLRIMPORTS                168
@@ -54,7 +56,7 @@
 #define IDD_GETLOADLIBRARY              175
 #define IDD_PECLRTABLEPREVIEW           176
 #define IDD_PERESOURCEVIEW              177
-#define IDD_PEDYNAMICRELOC             178
+#define IDD_PERUNTIMEDEBUG              178
 #define IDD_CONTAINER                   205
 #define IDB_SEARCH_REGEX_MODERN_DARK    206
 #define IDB_SEARCH_REGEX_MODERN_LIGHT   207
@@ -84,14 +86,11 @@
 #define IDC_NAME                        1019
 #define IDC_COMPANYNAME_LINK            1020
 #define IDC_PREVIEW                     1023
-#define IDC_PRODCHECKSUM                1025
-#define IDC_PRODHASH                    1026
-#define IDC_PRODHASH2                   1027
 #define IDC_OPTIONS                     1031
-#define IDC_PRODID                      1032
 #define IDC_CLRGROUP                    1033
 #define IDC_TREELIST                    1034
 #define IDC_TREESEARCH                  1035
+#define IDC_HASHLIST                    1040
 #define IDC_FILTER                      1050
 #define IDC_FONT                        1079
 #define IDC_GOTO                        1079
@@ -117,14 +116,21 @@
 #define IDC_SETTINGS                    1399
 #define IDC_RESTYPE                     1400
 #define IDC_TEXT                        1401
+#define IDC_START_TITLE                 1500
+#define IDC_START_RECENT                1501
+#define IDC_SECTION_SPLITTER            1502
+#define IDC_START_OPEN_FILE             1503
+#define IDC_START_INTRO                 1504
+#define IDC_START_SEARCH                1505
+#define IDC_START_GETSTARTED            1506
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        179
+#define _APS_NEXT_RESOURCE_VALUE        177
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1038
+#define _APS_NEXT_CONTROL_VALUE         1041
 #define _APS_NEXT_SYMED_VALUE           115
 #endif
 #endif

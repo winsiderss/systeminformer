@@ -245,9 +245,8 @@ VOID PvpInitializeFont(
     if (PhApplicationFont)
         DeleteFont(PhApplicationFont);
 
-    // Prefer the shell message font (Segoe UI) so the native property pages match the
-    // WebView2 shell. PhCreateMessageFont also applies PhFontQuality, which the previous
-    // local font factory ignored. (dmex)
+    // Prefer the shell message font (Segoe UI). PhCreateMessageFont also applies
+    // PhFontQuality, which the previous local font factory ignored. (dmex)
     if (!(PhApplicationFont = PhCreateMessageFont(dpiValue)))
         PhApplicationFont = PhCreateApplicationFont(dpiValue);
 }

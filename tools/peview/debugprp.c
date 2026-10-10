@@ -530,7 +530,15 @@ INT_PTR CALLBACK PvpPeDebugDlgProc(
                 PhFree(debug.DebugEntries);
             }
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            // Must run before PvThemeApplyListView: phlib's initializer resets the
+            // listview colors to its own palette. (dmex)
+            PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
+            PvThemeApplyListView(context->ListViewHandle);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PvThemeApplyListView(context->ListViewHandle);
         }
         break;
     case WM_DESTROY:

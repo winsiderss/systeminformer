@@ -11,6 +11,8 @@
  */
 
 #include <peview.h>
+#include <shellapi.h>
+#include <headernew.h>
 
 PPH_STRING PvFileName = NULL;
 
@@ -131,8 +133,10 @@ INT WINAPI wWinMain(
     PhGuiSupportInitialization();
     PhSettingsInitialization();
     PvInitializeSettings();
+    PvInitializeTheme();
     PvPropInitialization();
     PhScrollNewWindowInitialization();
+    PhHeaderNewInitialization();
     PhTreeNewInitialization();
     PvInitializeSuperclassControls();
     PvpConnectKph();
@@ -151,58 +155,18 @@ INT WINAPI wWinMain(
 
     if (!PvFileName)
     {
-        static PH_FILETYPE_FILTER filters[] =
-        {
-            { L"Supported files (*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb)", L"*.exe;*.dll;*.com;*.ocx;*.sys;*.scr;*.cpl;*.ax;*.acm;*.lib;*.winmd;*.mui;*.mun;*.efi;*.pdb" },
-            { L"All files (*.*)", L"*.*" }
-        };
-        PVOID fileDialog;
-
         if (!SUCCEEDED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE)))
             return 1;
 
-        fileDialog = PhCreateOpenFileDialog();
-        PhSetFileDialogOptions(fileDialog, PH_FILEDIALOG_SHOWHIDDEN | PH_FILEDIALOG_NOPATHVALIDATE);
-        PhSetFileDialogFilter(fileDialog, filters, RTL_NUMBER_OF(filters));
-
-        if (PhShowFileDialog(NULL, fileDialog))
-        {
-            if (PvFileName = PhGetFileDialogFileName(fileDialog))
-            {
-#ifndef DEBUG
-                PPH_STRING applicationFileName;
-
-                if (applicationFileName = PhGetApplicationFileNameWin32())
-                {
-                    PhMoveReference(&PvFileName, PhQuoteCommandLine(&PvFileName->sr, TRUE));
-
-                    AllowSetForegroundWindow(ASFW_ANY);
-
-                    if (NT_SUCCESS(PhShellExecuteEx(
-                        NULL,
-                        PhGetString(applicationFileName),
-                        PvFileName->Buffer,
-                        NULL,
-                        SW_SHOWNORMAL,
-                        PH_SHELL_EXECUTE_DEFAULT,
-                        0,
-                        NULL
-                        )))
-                    {
-                        PhExitApplication(STATUS_SUCCESS);
-                    }
-
-                    PhDereferenceObject(applicationFileName);
-                }
-#endif
-            }
-        }
-
-        PhFreeFileDialog(fileDialog);
+        if (!PvShowStartPage(nCmdShow))
+            return 1;
     }
 
     if (PhIsNullOrEmptyString(PvFileName))
+    {
+        PvStartPageFinishLoading();
         return 1;
+    }
 
     // Note: Resolve the filename when we're passed a native device prefix (dmex)
     PhMoveReference(&PvFileName, PhGetFileName(PvFileName));
@@ -232,10 +196,18 @@ INT WINAPI wWinMain(
             PhMoveReference(&PvFileName, targetFileName);
     }
 
+    PvAddRecentFile(PvFileName);
+
     if (PhEndsWithString2(PvFileName, L".lib", TRUE))
+    {
+        PvStartPageFinishLoading();
         PvLibProperties();
+    }
     else if (PhEndsWithString2(PvFileName, L".pdb", TRUE))
+    {
+        PvStartPageFinishLoading();
         PvPdbProperties();
+    }
     else
     {
         NTSTATUS status;
@@ -324,6 +296,7 @@ INT WINAPI wWinMain(
                     }
                     break;
                 case IMAGE_ELF_SIGNATURE:
+                    PvStartPageFinishLoading();
                     PvExlfProperties();
                     break;
                 default:
@@ -337,6 +310,7 @@ INT WINAPI wWinMain(
 
         if (!NT_SUCCESS(status))
         {
+            PvStartPageFinishLoading();
             if (status == STATUS_IMAGE_SUBSYSTEM_NOT_PRESENT)
                 PhShowError2(NULL, L"Unable to load the file.", L"%s", L"PE Viewer does not support this image type.");
             else
@@ -344,6 +318,7 @@ INT WINAPI wWinMain(
         }
     }
 
+    PvStartPageFinishLoading();
     PvSaveSettings();
 
     return 0;

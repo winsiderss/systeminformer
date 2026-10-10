@@ -35,6 +35,7 @@
 #include <shlobj.h>
 
 #include "colmgr.h"
+#include "pvtheme.h"
 
 #include "..\resource.h"
 
@@ -45,6 +46,28 @@ EXTERN_C PPH_SYMBOL_PROVIDER PvSymbolProvider;
 EXTERN_C HICON PvImageSmallIcon;
 EXTERN_C HICON PvImageLargeIcon;
 EXTERN_C PH_IMAGE_VERSION_INFO PvImageVersionInfo;
+
+HWND PvGetPePropertiesWindowHandle(
+    VOID
+    );
+
+// start
+
+BOOLEAN PvShowStartPage(
+    _In_ LONG ShowCommand
+    );
+
+VOID PvStartPageFinishLoading(
+    VOID
+    );
+
+BOOLEAN PvSelectFile(
+    VOID
+    );
+
+VOID PvAddRecentFile(
+    _In_ PPH_STRING FileName
+    );
 
 FORCEINLINE PCWSTR PvpGetStringOrNa(
     _In_ PPH_STRING String
@@ -787,6 +810,13 @@ INT_PTR CALLBACK PvpPeSecurityDlgProc(
     );
 
 INT_PTR CALLBACK PvpPeDebugDlgProc(
+    _In_ HWND hwndDlg,
+    _In_ UINT uMsg,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam
+    );
+
+INT_PTR CALLBACK PvPeRuntimeDebugDlgProc(
     _In_ HWND hwndDlg,
     _In_ UINT uMsg,
     _In_ WPARAM wParam,

@@ -14,6 +14,7 @@
 #include <workqueue.h>
 #include <verify.h>
 #include <wincrypt.h>
+#include <wintrust.h>
 #include <math.h>
 #include <base64.h>
 
@@ -31,6 +32,19 @@ typedef enum _PVP_IMAGE_GENERAL_CATEGORY
     PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
+
+// Accent per metadata category, indexed by PVP_IMAGE_GENERAL_CATEGORY and
+// terminated for PvThemeSetListViewGroupAccents. Static, because the theme keeps the
+// pointer rather than a copy.
+static CONST PV_THEME_ACCENT PvpImageGeneralCategoryAccents[PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM + 1] =
+{
+    PvThemeAccentInfo,      // PVP_IMAGE_GENERAL_CATEGORY_BASICINFO
+    PvThemeAccentInfo,      // PVP_IMAGE_GENERAL_CATEGORY_FILEINFO
+    PvThemeAccentDebug,     // PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO
+    PvThemeAccentInternal,  // PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO
+    PvThemeAccentTrust,     // PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO
+    PvThemeAccentMax
+};
 
 typedef enum _PVP_IMAGE_GENERAL_INDEX
 {
@@ -75,16 +89,15 @@ typedef struct _PVP_PE_GENERAL_CONTEXT
 {
     HWND WindowHandle;
     HWND ListViewHandle;
+    HICON FileIcon;
+    BOOLEAN FileIconShared;
+    HFONT TitleFont;                // bold title on the hero card, owned here
     PH_LAYOUT_MANAGER LayoutManager;
     PPV_PROPPAGECONTEXT PropSheetContext;
     ULONG ListViewRowCache[PVP_IMAGE_GENERAL_INDEX_MAXIMUM];
 } PVP_PE_GENERAL_CONTEXT, *PPVP_PE_GENERAL_CONTEXT;
 
-typedef struct _IMAGE_DEBUG_REPRO_ENTRY
-{
-    ULONG Length;
-    BYTE Buffer[1];
-} IMAGE_DEBUG_REPRO_ENTRY, *PIMAGE_DEBUG_REPRO_ENTRY;
+// IMAGE_DEBUG_REPRO_ENTRY is defined in mapimg.h. (dmex)
 
 typedef struct _IMAGE_DEBUG_VC_FEATURE_ENTRY
 {
@@ -225,6 +238,26 @@ VOID PvPeProperties(
                 &exportsPageContext
                 );
             PvAddPropPage(propContext, newPage);
+
+            // NativeAOT
+            {
+                PH_MAPPED_IMAGE_EXPORT_FUNCTION runtimeDebugFunction;
+
+                if (NT_SUCCESS(PhGetMappedImageExportFunction(
+                    &exports,
+                    "DotNetRuntimeDebugHeader",
+                    0,
+                    &runtimeDebugFunction
+                    )) && runtimeDebugFunction.Function)
+                {
+                    newPage = PvCreatePropPageContext(
+                        MAKEINTRESOURCE(IDD_PERUNTIMEDEBUG),
+                        PvPeRuntimeDebugDlgProc,
+                        NULL
+                        );
+                    PvAddPropPage(propContext, newPage);
+                }
+            }
         }
 
         if (NT_SUCCESS(PhGetMappedImageExportsEx(&exports, &PvMappedImage, PH_GET_IMAGE_EXPORTS_ARM64X)) && exports.NumberOfEntries != 0)
@@ -606,12 +639,12 @@ VOID PvPeProperties(
 
         // Text preview page
         {
-            newPage = PvCreatePropPageContext(
-                MAKEINTRESOURCE(IDD_PEPREVIEW),
-                PvpPePreviewDlgProc,
-                NULL
-                );
-            PvAddPropPage(propContext, newPage);
+            //newPage = PvCreatePropPageContext(
+            //    MAKEINTRESOURCE(IDD_PEPREVIEW),
+            //    PvpPePreviewDlgProc,
+            //    NULL
+            //    );
+            //PvAddPropPage(propContext, newPage);
         }
 
         // Symbols page
@@ -892,13 +925,207 @@ PPH_STRING PvpGetSectionCharacteristics(
     return PhFinalStringBuilderString(&stringBuilder);
 }
 
+static VOID PvpUpdatePeImageIcon(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    HICON icon = NULL;
+    BOOLEAN iconShared = FALSE;
+    LONG dpiValue;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    if (!NT_SUCCESS(PhExtractIconEx(
+        &PvFileName->sr,
+        FALSE,
+        0,
+        PhGetSystemMetrics(SM_CXICON, dpiValue),
+        PhGetSystemMetrics(SM_CYICON, dpiValue),
+        0,
+        0,
+        &icon,
+        NULL
+        )) || !icon)
+    {
+        PhGetStockApplicationIcon(NULL, &icon, dpiValue);
+        iconShared = TRUE;
+    }
+
+    if (icon)
+    {
+        Static_SetIcon(GetDlgItem(Context->WindowHandle, IDC_FILEICON), icon);
+
+        if (Context->FileIcon && !Context->FileIconShared)
+            DestroyIcon(Context->FileIcon);
+
+        Context->FileIcon = icon;
+        Context->FileIconShared = iconShared;
+    }
+}
+
+// The file name on the hero card is the loudest text on the page, so it gets a
+// larger semibold font while everything else keeps the dialog font. Re-created on a
+// DPI change because the height is scaled.
+static VOID PvpUpdatePeImageTitleFont(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    NONCLIENTMETRICS metrics = { sizeof(NONCLIENTMETRICS) };
+    HWND controlHandle;
+    HFONT fontHandle;
+    LONG dpiValue;
+
+    if (!(controlHandle = GetDlgItem(Context->WindowHandle, IDC_NAME)))
+        return;
+
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+
+    if (!PhGetSystemParametersInfo(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics, dpiValue))
+        return;
+
+    metrics.lfMessageFont.lfHeight = PhScaleToDisplay(-15, dpiValue);
+    metrics.lfMessageFont.lfWeight = FW_SEMIBOLD;
+
+    if (!(fontHandle = CreateFontIndirect(&metrics.lfMessageFont)))
+        return;
+
+    SetWindowFont(controlHandle, fontHandle, TRUE);
+
+    if (Context->TitleFont)
+        DeleteFont(Context->TitleFont);
+
+    Context->TitleFont = fontHandle;
+}
+
+// Paints the hero card behind the file icon, name, company and version. IDC_FILE is
+// kept as the layout anchor only - the frame it used to draw is replaced by this
+// rounded surface, and the version is set in a chip so it reads as a badge. (dmex)
+static VOID NTAPI PvpDrawPeImageHeroCard(
+    _In_ HWND WindowHandle,
+    _In_ HDC Hdc
+    )
+{
+    PPVP_PE_GENERAL_CONTEXT Context;
+    PCPV_THEME_COLORS colors;
+    HWND controlHandle;
+    LONG dpiValue;
+    LONG radius;
+    LONG padding;
+    RECT cardRect;
+    RECT clipRect;
+    RECT visibleRect;
+
+    if (!PvThemeEnabled())
+        return;
+
+    // The shapes are anchored to controls, so they are drawn whole; the clip box only
+    // decides which of them the invalid region touches. (dmex)
+    if (GetClipBox(Hdc, &clipRect) <= NULLREGION)
+        return;
+
+    // Reached from the theme's erase callback rather than the dialog procedure, so the
+    // page context is picked up from the window here. (dmex)
+    if (!(Context = PhGetWindowContext(WindowHandle, PH_WINDOW_CONTEXT_DEFAULT)))
+        return;
+
+    if (!(controlHandle = GetDlgItem(Context->WindowHandle, IDC_FILE)))
+        return;
+
+    colors = PvGetThemeColors();
+    dpiValue = PhGetWindowDpi(Context->WindowHandle);
+    radius = PhScaleToDisplay(PV_CARD_CORNER_RADIUS, dpiValue);
+    padding = PhScaleToDisplay(6, dpiValue);
+
+    if (!PhGetWindowRect(controlHandle, &cardRect))
+        return;
+
+    MapWindowRect(NULL, Context->WindowHandle, &cardRect);
+
+    if (PhIntersectRect(&visibleRect, &cardRect, &clipRect))
+        PvThemeFillRoundRect(Hdc, &cardRect, colors->CardBackground, colors->CardBorder, radius);
+
+    // A tile behind the file icon, one step off the card, so the icon has a seat
+    // rather than floating on the surface.
+    if (controlHandle = GetDlgItem(Context->WindowHandle, IDC_FILEICON))
+    {
+        RECT iconRect;
+
+        if (PhGetWindowRect(controlHandle, &iconRect))
+        {
+            MapWindowRect(NULL, Context->WindowHandle, &iconRect);
+            InflateRect(&iconRect, padding, padding);
+
+            if (PhIntersectRect(&visibleRect, &iconRect, &clipRect))
+            {
+                PvThemeFillRoundRect(
+                    Hdc,
+                    &iconRect,
+                    colors->ChipBackground,
+                    colors->ChipBackground,
+                    radius
+                    );
+            }
+        }
+    }
+
+    // The version chip. Sized to the text rather than the control, which spans the
+    // remaining width of the card.
+    if (controlHandle = GetDlgItem(Context->WindowHandle, IDC_VERSION))
+    {
+        PPH_STRING text;
+        RECT chipRect;
+
+        if (text = PhGetWindowText(controlHandle))
+        {
+            if (text->Length && PhGetWindowRect(controlHandle, &chipRect))
+            {
+                SIZE textSize;
+                HFONT fontHandle;
+                HFONT oldFontHandle = NULL;
+                INT savedDc;
+
+                MapWindowRect(NULL, Context->WindowHandle, &chipRect);
+
+                if (savedDc = SaveDC(Hdc))
+                {
+                    if (fontHandle = GetWindowFont(controlHandle))
+                        oldFontHandle = SelectFont(Hdc, fontHandle);
+
+                    if (GetTextExtentPoint32(Hdc, text->Buffer, (LONG)text->Length / sizeof(WCHAR), &textSize))
+                    {
+                        chipRect.right = chipRect.left + textSize.cx + padding * 2;
+                        chipRect.left -= padding;
+                        InflateRect(&chipRect, 0, PhScaleToDisplay(2, dpiValue));
+
+                        if (PhIntersectRect(&visibleRect, &chipRect, &clipRect))
+                        {
+                            PvThemeFillRoundRect(
+                                Hdc,
+                                &chipRect,
+                                colors->ChipBackground,
+                                colors->ChipBackground,
+                                PhScaleToDisplay(4, dpiValue)
+                                );
+                        }
+                    }
+
+                    if (oldFontHandle)
+                        SelectFont(Hdc, oldFontHandle);
+
+                    RestoreDC(Hdc, savedDc);
+                }
+            }
+
+            PhDereferenceObject(text);
+        }
+    }
+}
+
 VOID PvpSetPeImageVersionInfo(
     _In_ HWND WindowHandle
     )
 {
     PPH_STRING string;
-
-    Static_SetIcon(GetDlgItem(WindowHandle, IDC_FILEICON), PvImageLargeIcon);
 
     //if (PhGetIntegerSetting(L"EnableVersionSupport"))
     //    PhInitializeImageVersionInfo2(&PvImageVersionInfo, PvFileName->Buffer);
@@ -950,56 +1177,6 @@ VOID PvpSetPeImageMachineType(
     }
 
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_NAME, 1, type);
-}
-
-VOID PvpSetPeImageExecutableType(
-    _In_ HWND ListViewHandle
-    )
-{
-    ULONG characteristics;
-    PWSTR type;
-
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        characteristics = PvMappedImage.NtHeaders32->FileHeader.Characteristics;
-    else
-        characteristics = PvMappedImage.NtHeaders->FileHeader.Characteristics;
-
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        type = FlagOn(characteristics, IMAGE_FILE_DLL) ? L"32bit Dll" : L"32bit Exe";
-    else
-        type = FlagOn(characteristics, IMAGE_FILE_DLL) ? L"64bit Dll" : L"64bit Exe";
-
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_EXECUTABLETYPE, 1, type);
-}
-
-/**
- * Determines whether the image entry point is non-zero and resolves into an executable section.
- *
- * \param ListViewHandle A handle to the listview.
- */
-VOID PvpSetPeImageValidEntryPoint(
-    _In_ HWND ListViewHandle
-    )
-{
-    ULONG addressOfEntryPoint;
-    PIMAGE_SECTION_HEADER section;
-    BOOLEAN valid = FALSE;
-
-    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
-    else
-        addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
-
-    if (addressOfEntryPoint)
-    {
-        if (NT_SUCCESS(PhMappedImageRvaToSection(&PvMappedImage, addressOfEntryPoint, &section)))
-        {
-            if (FlagOn(section->Characteristics, IMAGE_SCN_MEM_EXECUTE))
-                valid = TRUE;
-        }
-    }
-
-    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_VALIDENTRYPOINT, 1, valid ? L"True" : L"False");
 }
 
 VOID PvpSetPeImageTimeStamp(
@@ -1502,9 +1679,9 @@ VOID PvpSetPeImageFileProperties(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
         FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
@@ -1702,9 +1879,9 @@ VOID PvUpdatePeFileTimes(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
         FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
@@ -1774,18 +1951,6 @@ VOID PvpSetPeImageDebugRepoHash(
             {
                 string = PhGetStatusMessage(GetExceptionCode(), 0);
             }
-
-            if (PvMappedImage.NtHeaders->FileHeader.TimeDateStamp)
-                timeStamp = PhBufferToHexStringEx((PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, sizeof(ULONG), FALSE);
-            else
-                PhSetReference(&timeStamp, string); // MUI/Resource DLL
-
-            if (!PhEndsWithString(string, timeStamp, TRUE))
-            {
-                PhMoveReference(&string, PhConcatStringRefZ(&string->sr, L" (incorrect)"));
-            }
-
-            PhDereferenceObject(timeStamp);
         }
         else // CLR images
         {
@@ -1805,6 +1970,180 @@ VOID PvpSetPeImageDebugRepoHash(
     {
         PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO, 1, L"N/A");
     }
+}
+
+BOOLEAN NTAPI PvpDrawPeImageDebugRepoHash(
+    _In_ LONG Index,
+    _In_ LONG SubItem,
+    _In_ HDC DeviceContext,
+    _In_ PRECT Rect,
+    _In_ PVOID Param,
+    _In_opt_ PVOID Context
+    )
+{
+    WCHAR buffer[128];
+    RECT textRect;
+    SIZE size;
+    LONG length;
+    LONG hashLength;
+    LONG firstLength;
+    LONG lastLength;
+    LONG middleLength;
+    ULONG i;
+    BOOLEAN selected;
+    BOOLEAN darkMode;
+    COLORREF guidColor;
+    COLORREF timestampColor;
+    LVITEM item;
+
+    if (SubItem != 1 || !Context)
+        return FALSE;
+
+    SetBkMode(DeviceContext, TRANSPARENT);
+
+    darkMode = PhGetColorBrightness(PhThemeWindowBackgroundColor) < 128;
+    guidColor = darkMode ? RGB(0, 180, 255) : RGB(0, 90, 180);
+    timestampColor = darkMode ? RGB(255, 180, 80) : RGB(200, 90, 0);
+
+    memset(&item, 0, sizeof(LVITEM));
+    item.iSubItem = SubItem;
+    item.pszText = buffer;
+    item.cchTextMax = RTL_NUMBER_OF(buffer);
+    length = (LONG)SendMessage((HWND)Context, LVM_GETITEMTEXT, Index, (LPARAM)&item);
+
+    if (Index == PVP_IMAGE_GENERAL_INDEX_DEBUGPDB || Index == PVP_IMAGE_GENERAL_INDEX_TIMESTAMP)
+    {
+        LONG openParenthesis = INT_ERROR;
+        LONG closeParenthesis = INT_ERROR;
+        LONG coloredStart;
+        LONG coloredLength;
+        LONG prefixLength;
+        LONG suffixStart;
+
+        for (i = 0; i < (ULONG)length; i++)
+        {
+            if (buffer[i] == L'(')
+            {
+                openParenthesis = i;
+                break;
+            }
+        }
+
+        if (openParenthesis < 0)
+            return FALSE;
+
+        for (i = (ULONG)openParenthesis + 1; i < (ULONG)length; i++)
+        {
+            if (buffer[i] == L')')
+            {
+                closeParenthesis = i;
+                break;
+            }
+        }
+
+        if (Index == PVP_IMAGE_GENERAL_INDEX_TIMESTAMP && closeParenthesis > 0)
+        {
+            openParenthesis = INT_ERROR;
+
+            for (i = (ULONG)closeParenthesis + 1; i < (ULONG)length; i++)
+            {
+                if (buffer[i] == L'(')
+                {
+                    openParenthesis = i;
+                    break;
+                }
+            }
+
+            if (openParenthesis < 0)
+                return FALSE;
+
+            closeParenthesis = INT_ERROR;
+
+            for (i = (ULONG)openParenthesis + 1; i < (ULONG)length; i++)
+            {
+                if (buffer[i] == L')')
+                {
+                    closeParenthesis = i;
+                    break;
+                }
+            }
+        }
+
+        if (closeParenthesis <= openParenthesis + 1)
+            return FALSE;
+
+        coloredStart = openParenthesis + 1;
+        coloredLength = closeParenthesis - coloredStart;
+        prefixLength = coloredStart;
+        suffixStart = closeParenthesis;
+        selected = !!ListView_GetItemState((HWND)Context, Index, LVIS_SELECTED);
+        RtlCopyMemory(&textRect, Rect, sizeof(RECT));
+        textRect.left += 4;
+
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer, prefixLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer, prefixLength, &size);
+        textRect.left += size.cx;
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : (Index == PVP_IMAGE_GENERAL_INDEX_DEBUGPDB ? guidColor : timestampColor));
+        DrawText(DeviceContext, buffer + coloredStart, coloredLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer + coloredStart, coloredLength, &size);
+        textRect.left += size.cx;
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + suffixStart, length - suffixStart, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+
+        return TRUE;
+    }
+
+    if (Index != PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO)
+        return FALSE;
+
+    hashLength = length;
+
+    for (i = 0; i < (ULONG)length; i++)
+    {
+        if (buffer[i] == L' ')
+        {
+            hashLength = i;
+            break;
+        }
+    }
+
+    if (hashLength < 40)
+        return FALSE;
+
+    firstLength = 32;
+    lastLength = 8;
+    selected = !!ListView_GetItemState((HWND)Context, Index, LVIS_SELECTED);
+    RtlCopyMemory(&textRect, Rect, sizeof(RECT));
+    textRect.left += 4;
+
+    SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : guidColor);
+    DrawText(DeviceContext, buffer, firstLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    GetTextExtentPoint32(DeviceContext, buffer, firstLength, &size);
+    textRect.left += size.cx;
+
+    if (hashLength > firstLength + lastLength)
+    {
+        middleLength = hashLength - firstLength - lastLength;
+
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + firstLength, middleLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+        GetTextExtentPoint32(DeviceContext, buffer + firstLength, middleLength, &size);
+        textRect.left += size.cx;
+    }
+
+    SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : timestampColor);
+    DrawText(DeviceContext, buffer + hashLength - lastLength, lastLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    GetTextExtentPoint32(DeviceContext, buffer + hashLength - lastLength, lastLength, &size);
+    textRect.left += size.cx;
+
+    if (length > hashLength)
+    {
+        SetTextColor(DeviceContext, selected ? PhThemeWindowTextColor : PhThemeWindowTextColor);
+        DrawText(DeviceContext, buffer + hashLength, length - hashLength, &textRect, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX);
+    }
+
+    return TRUE;
 }
 
 VOID PvpSetPeImageDebugPdb(
@@ -2490,10 +2829,11 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             context->ListViewHandle = GetDlgItem(hwndDlg, IDC_LIST);
 
             PhSetListViewStyle(context->ListViewHandle, FALSE, TRUE);
-            PhSetControlTheme(context->ListViewHandle, L"explorer");
             PhAddListViewColumn(context->ListViewHandle, 0, 0, 0, LVCFMT_LEFT, 150, L"Name");
             PhAddListViewColumn(context->ListViewHandle, 1, 1, 1, LVCFMT_LEFT, 300, L"Value");
             PhSetExtendedListView(context->ListViewHandle);
+            ExtendedListView_SetContext(context->ListViewHandle, context->ListViewHandle);
+            ExtendedListView_SetSubItemDrawFunction(context->ListViewHandle, PvpDrawPeImageDebugRepoHash);
             //PhLoadListViewColumnsFromSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             //PhLoadListViewSortColumnsFromSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             PvPeAddImagePropertiesGroups(context);
@@ -2507,13 +2847,37 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(hwndDlg, IDC_VERSION), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
             PhAddLayoutItem(&context->LayoutManager, context->ListViewHandle, NULL, PH_ANCHOR_ALL);
 
+            // The hero card replaces the group box frame, so IDC_FILE is only a layout
+            // anchor from here on. Themed group box drawing would paint a frame on top
+            // of the card. (dmex)
+            if (!PvThemeEnabled())
+            {
+                PhInitializeThemeWindowGroupBoxEx(GetDlgItem(hwndDlg, IDC_FILE));
+            }
+            else
+            {
+                ShowWindow(GetDlgItem(hwndDlg, IDC_FILE), SW_HIDE);
+            }
+
+            // Must run before PvThemeApplyListView: phlib's initializer resets the
+            // listview colors to its own palette. (dmex)
+            PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
+            PvThemeSetListViewGroupAccents(context->ListViewHandle, PvpImageGeneralCategoryAccents);
+            PvThemeSetPageEraseCallback(hwndDlg, PvpDrawPeImageHeroCard);
+            PvThemeApplyListView(context->ListViewHandle);
+
+            PvpUpdatePeImageTitleFont(context);
+
+            PvpUpdatePeImageIcon(context);
+
+            SendMessage(context->ListViewHandle, WM_SETREDRAW, FALSE, 0);
+            ListView_SetItemState(context->ListViewHandle, -1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+            SendMessage(context->ListViewHandle, WM_SETREDRAW, TRUE, 0);
+
             PvpSetPeImageVersionInfo(hwndDlg);
             PvpSetPeImageProperties(context);
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
-
-            if (PhEnableThemeSupport)
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
 
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
@@ -2526,6 +2890,23 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             //PhSaveListViewSortColumnsToSetting(L"ImageGeneralPropertiesListViewSort", context->ListViewHandle);
             //PhSaveListViewColumnsToSetting(L"ImageGeneralPropertiesListViewColumns", context->ListViewHandle);
             PhDeleteLayoutManager(&context->LayoutManager);
+            PvThemeRemoveListViewGroupAccents(context->ListViewHandle);
+            PvThemeRemovePageEraseCallback(hwndDlg);
+
+            if (context->FileIcon)
+            {
+                Static_SetIcon(GetDlgItem(hwndDlg, IDC_FILEICON), NULL);
+
+                if (!context->FileIconShared)
+                    DestroyIcon(context->FileIcon);
+            }
+
+            if (context->TitleFont)
+            {
+                SetWindowFont(GetDlgItem(hwndDlg, IDC_NAME), NULL, FALSE);
+                DeleteFont(context->TitleFont);
+                context->TitleFont = NULL;
+            }
         }
         break;
     case WM_NCDESTROY:
@@ -2536,7 +2917,15 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_DPICHANGED_AFTERPARENT:
         {
+            PvpUpdatePeImageIcon(context);
+            PvpUpdatePeImageTitleFont(context);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PvThemeApplyListView(context->ListViewHandle);
+            InvalidateRect(hwndDlg, NULL, TRUE);
         }
         break;
     case WM_SHOWWINDOW:
@@ -2636,6 +3025,17 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             string = PhFormatEntropy(result->ImageEntropy, 6, result->ImageAvgMean, 4, result->ImageVariance, 4);
             PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTROPY, 1, string->Buffer);
             PhDereferenceObject(string);
+            PhFree(result);
+        }
+        break;
+    case PVM_ENTRYPOINT_DONE:
+        {
+            PPH_STRING string = (PPH_STRING)lParam;
+
+            PhSetListViewSubItem(context->ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, PhGetStringOrEmpty(string));
+
+            if (string)
+                PhDereferenceObject(string);
         }
         break;
     case WM_NOTIFY:
@@ -2684,11 +3084,36 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
     case WM_CTLCOLORDLG:
     case WM_CTLCOLORSTATIC:
     case WM_CTLCOLORLISTBOX:
+    case WM_CTLCOLOREDIT:
         {
-            SetBkMode((HDC)wParam, TRANSPARENT);
-            SetTextColor((HDC)wParam, RGB(0, 0, 0));
-            SetDCBrushColor((HDC)wParam, RGB(255, 255, 255));
-            return (INT_PTR)PhGetStockBrush(DC_BRUSH);
+            PCPV_THEME_COLORS colors = PvGetThemeColors();
+            HWND controlHandle = (HWND)lParam;
+            HBRUSH brush;
+
+            // The hero card controls sit on the card surface, not the window
+            // background, and each carries its own place in the text hierarchy: the
+            // file name is primary, the company line is secondary and the version is
+            // chip text. (dmex)
+            if (PvThemeEnabled() && uMsg != WM_CTLCOLORDLG)
+            {
+                switch (GetDlgCtrlID(controlHandle))
+                {
+                case IDC_COMPANYNAME:
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->SecondaryText, colors->CardBackground);
+                case IDC_VERSION:
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->ChipText, colors->ChipBackground);
+                case IDC_FILEICON:
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->WindowText, colors->ChipBackground);
+                default:
+                    // Every remaining static and edit on this page is part of the hero
+                    // card, including the "Version:" label, so the card surface is the
+                    // right default here rather than the window background. (dmex)
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->WindowText, colors->CardBackground);
+                }
+            }
+
+            if (brush = PvThemeHandleCtlColor((HDC)wParam, uMsg != WM_CTLCOLOREDIT))
+                return (INT_PTR)brush;
         }
         break;
     }

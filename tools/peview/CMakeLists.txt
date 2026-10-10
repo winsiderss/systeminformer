@@ -8,6 +8,8 @@ set(HEADERS
     "colmgr.h"
     "include/peview.h"
     "include/prpsh.h"
+    "include/pvresources.h"
+    "include/pvtheme.h"
     "resource.h"
 )
 source_group("Header Files" FILES ${HEADERS})
@@ -32,9 +34,12 @@ set(SOURCES
     "colmgr.c"
     "delayhook.c"
     "main.c"
+    "start.c"
     "misc.c"
     "options.c"
+    "peprpicon.cpp"
     "prpsh.c"
+    "pvtheme.c"
     "searchbox.c"
     "settings.c"
 )
@@ -66,6 +71,7 @@ set(SOURCES_PAGES_WINDOWS
     "clrtableimportprp.c"
     "clrtableimports.cpp"
     "debugprp.c"
+    "runtimedebugprp.c"
     "disimp.c"
     "ehcontprp.c"
     "expprp.c"
@@ -111,6 +117,9 @@ set(ALL_FILES
 si_add_executable(peview WIN32 ${ALL_FILES})
 
 target_include_directories(peview PRIVATE
+    # peview.vcxproj lists $(ProjectDir) alongside include; headers such as
+    # colmgr.h live in the project root rather than include/.
+    "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
@@ -121,6 +130,7 @@ target_link_libraries(peview PRIVATE
     delayimp
     user32
     gdi32
+    gdiplus
     comdlg32
     advapi32
     cfgmgr32

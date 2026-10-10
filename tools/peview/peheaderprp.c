@@ -867,7 +867,15 @@ INT_PTR CALLBACK PvPeHeadersDlgProc(
 
             PvPeUpdateImageHeaderProperties(context);
 
-            PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+            // phlib's initializer resets the listview colors, so apply the page
+            // palette after initializing the dialog theme.
+            PvThemeInitializePageDialog(hwndDlg, PhEnableThemeSupport);
+            PvThemeApplyListView(context->ListViewHandle);
+        }
+        break;
+    case WM_THEMECHANGED:
+        {
+            PvThemeApplyListView(context->ListViewHandle);
         }
         break;
     case WM_DESTROY:

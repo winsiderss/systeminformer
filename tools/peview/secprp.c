@@ -11,6 +11,7 @@
 
 #include <peview.h>
 #include <cryptuiapi.h>
+#include <wintrust.h>
 #include <base64.h>
 #include "colmgr.h"
 

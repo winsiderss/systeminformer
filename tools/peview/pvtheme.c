@@ -10,7 +10,6 @@
  */
 
 #include <peview.h>
-#include <pvwebshell.h>
 
 // The color tables for the properties window chrome. These are PE Viewer's own
 // colors: the dark table is the reference appearance of the properties window
@@ -570,7 +569,7 @@ VOID PvThemeApplyWindowFrame(
     darkMode = customColors && PvpThemeDark;
 
     // Resolve from PE Viewer's palette, not phlib's theme identity. The generic
-    // frame helper also changes SYSTEMBACKDROP_TYPE, which the WebView owns.
+    // frame helper also changes SYSTEMBACKDROP_TYPE.
     if (WindowsVersion >= WINDOWS_10_RS5)
     {
         PhAllowDarkModeForWindow(WindowHandle, !!darkMode);
@@ -1653,7 +1652,6 @@ VOID PvReapplyTheme(
         }
     }
 
-    PvWebShellThemeChanged();
     InvalidateRect(WindowHandle, NULL, TRUE);
 
     reapplying = FALSE;
