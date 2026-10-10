@@ -247,7 +247,6 @@
         <ClCompile Include="devprv.c" />
         <ClCompile Include="extmgr.c" />
         <ClCompile Include="findobj.c" />
-        <ClCompile Include="gamesenum.cpp" />
         <ClCompile Include="gdihndl.c" />
         <ClCompile Include="heapinfo.c" />
         <ClCompile Include="hidnproc.c" />
