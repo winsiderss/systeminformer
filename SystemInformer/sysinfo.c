@@ -81,6 +81,24 @@ static LONG SummaryGraphSpacing;
 VOID PhSipLayoutSummaryView(VOID);
 VOID PhSipLayoutSectionView(VOID);
 
+static VOID PhSipFillContainerBackground(
+    _In_ HDC hdc,
+    _In_ PRECT rect
+    )
+{
+    switch (PhCsGraphColorMode)
+    {
+    case 0: // New colors
+        SetDCBrushColor(hdc, GetSysColor(COLOR_WINDOW));
+        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        break;
+    case 1: // Old colors
+        SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
+        FillRect(hdc, rect, PhGetStockBrush(DC_BRUSH));
+        break;
+    }
+}
+
 VOID PhSipSaveSectionOrder(
     VOID
     )
@@ -261,8 +279,19 @@ VOID PhShowSystemInformationDialog(
 {
     InitialSectionName = SectionName;
 
+    // The sysinfo thread clears PhSipWindow (WM_NCDESTROY) before its message
+    // loop exits; if the window is gone, reap the old thread before recreating.
+    if (PhSipThread && !ReadPointerAcquire(&PhSipWindow))
+    {
+        NtWaitForSingleObject(PhSipThread, FALSE, NULL);
+        NtClose(PhSipThread);
+        PhSipThread = NULL;
+    }
+
     if (!PhSipThread)
     {
+        PhResetEvent(&InitializedEvent);
+
         if (!NT_SUCCESS(PhCreateThreadEx(&PhSipThread, PhSipSysInfoThreadStart, NULL)))
         {
             PhShowStatus(PhMainWndHandle, L"Unable to create the window.", 0, ERROR_OUTOFMEMORY);
@@ -285,16 +314,19 @@ NTSTATUS PhSipSysInfoThreadStart(
     MSG message;
     HACCEL acceleratorTable;
     BOOLEAN processed;
+    HWND windowHandle;
 
     PhInitializeAutoPool(&autoPool);
 
-    PhSipWindow = PhCreateDialog(
+    windowHandle = PhCreateDialog(
         PhInstanceHandle,
         MAKEINTRESOURCE(IDD_SYSINFO),
         NULL,
         PhSipSysInfoDialogProc,
         NULL
         );
+
+    PhSipWindow = windowHandle;
 
     PhSetEvent(&InitializedEvent);
 
@@ -308,11 +340,11 @@ NTSTATUS PhSipSysInfoThreadStart(
         processed = FALSE;
 
         if (
-            message.hwnd == PhSipWindow ||
-            IsChild(PhSipWindow, message.hwnd)
+            message.hwnd == windowHandle ||
+            IsChild(windowHandle, message.hwnd)
             )
         {
-            if (TranslateAccelerator(PhSipWindow, acceleratorTable, &message))
+            if (TranslateAccelerator(windowHandle, acceleratorTable, &message))
                 processed = TRUE;
         }
 
@@ -332,7 +364,7 @@ NTSTATUS PhSipSysInfoThreadStart(
 
         if (!processed)
         {
-            if (!IsDialogMessage(PhSipWindow, &message))
+            if (!IsDialogMessage(windowHandle, &message))
             {
                 TranslateMessage(&message);
                 DispatchMessage(&message);
@@ -343,11 +375,10 @@ NTSTATUS PhSipSysInfoThreadStart(
     }
 
     PhDeleteAutoPool(&autoPool);
-    PhResetEvent(&InitializedEvent);
-    NtClose(PhSipThread);
 
-    PhSipWindow = NULL;
-    PhSipThread = NULL;
+    // Note: PhSipWindow is cleared during WM_NCDESTROY, and PhSipThread is
+    // reaped by PhShowSystemInformationDialog on the main thread. Clearing
+    // them here would race the main thread's create/reuse path. (dmex)
 
     if (PhSipDialogList)
     {
@@ -764,6 +795,11 @@ VOID PhSipOnNcDestroy(
         PhCloseThemeData(ThemeData);
         ThemeData = NULL;
     }
+
+    // Publish the window teardown last so the main thread's
+    // PhShowSystemInformationDialog reaps this thread and recreates the
+    // window instead of activating a destroyed handle. (dmex)
+    WritePointerRelease(&PhSipWindow, NULL);
 }
 
 BOOLEAN PhSipOnSysCommand(
@@ -1695,7 +1731,7 @@ VOID PhSipDrawRestoreSummaryPanel(
     };
 
     bufferDc = CreateCompatibleDC(DrawItemStruct->hDC);
-    bufferBitmap = CreateCompatibleBitmap(DrawItemStruct->hDC, bufferRect.right, bufferRect.bottom);
+    bufferBitmap = PhCreateDIBSection(DrawItemStruct->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetBkMode(bufferDc, TRANSPARENT);
@@ -1710,6 +1746,7 @@ VOID PhSipDrawRestoreSummaryPanel(
             FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
             break;
         case 1: // Old colors
+        default:
             SetTextColor(bufferDc, PhThemeWindowTextColor);
             SetDCBrushColor(bufferDc, PhThemeWindowBackgroundColor);
             FillRect(bufferDc, &bufferRect, PhGetStockBrush(DC_BRUSH));
@@ -1776,7 +1813,7 @@ VOID PhSipDrawSeparator(
     };
 
     bufferDc = CreateCompatibleDC(DrawItemStruct->hDC);
-    bufferBitmap = CreateCompatibleBitmap(DrawItemStruct->hDC, bufferRect.right, bufferRect.bottom);
+    bufferBitmap = PhCreateDIBSection(DrawItemStruct->hDC, PHBF_TOPDOWNDIB, bufferRect.right, bufferRect.bottom, NULL);
     oldBufferBitmap = SelectBitmap(bufferDc, bufferBitmap);
 
     SetBkMode(bufferDc, TRANSPARENT);
@@ -1848,6 +1885,7 @@ VOID PhSipDrawPanel(
                 FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
             case 1: // Old colors
+            default:
                 SetDCBrushColor(hdc, PhThemeWindowBackgroundColor);
                 FillRect(hdc, Rect, PhGetStockBrush(DC_BRUSH));
                 break;
