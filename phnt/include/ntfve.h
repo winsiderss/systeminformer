@@ -1,10 +1,18 @@
 #ifndef _FVEAPI_H
 #define _FVEAPI_H
 
+#include <bcrypt.h>
+#include <ncrypt.h>
+#include <wincrypt.h>
+
+EXTERN_C_START
+
 /**
  * Pointer to a constant byte.
  */
 typedef const BYTE *PCBYTE;
+
+#define FVE_TPM_INFO_VERSION_1 1
 
 /**
  * Describes a UEFI variable and its value used during predictive TPM sealing.
@@ -74,10 +82,10 @@ typedef struct _FVE_TPM_INFO_
  */
 typedef HRESULT (NTAPI *PFVE_TPM_API_CALLBACK)(
     _In_ PVOID hContext,
-    _In_ UINT32 BufferLength,
-    _In_ PCBYTE Buffer,
-    _Out_ PUINT32 pcbResult,
-    _Out_ PBYTE pabResult
+    _In_ UINT32 cbCmd,
+    _In_reads_bytes_(cbCmd) const BYTE *pabCmd,
+    _Inout_ PUINT32 pcbResult,
+    _Out_writes_bytes_(*pcbResult) PBYTE pabResult
     );
 
 /**
@@ -101,6 +109,7 @@ FveAddPredictiveTpmProtector(
  * \param[in] TpmCallback The TPM API callback routine to register.
  * \param[in] TpmVersion The TPM version implemented by the callback.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Versions 0, 1 and 2 are accepted; version zero queries the platform TPM version.
  */
 NTSYSAPI
 HRESULT
@@ -111,9 +120,24 @@ FveSetupTpmCallback(
     );
 
 /**
+ * Opaque HSTI results used by the NGSCB device-encryption checks.
+ */
+typedef struct _NGSCB_HSTI_RESULTS NGSCB_HSTI_RESULTS, *PNGSCB_HSTI_RESULTS;
+
+/**
+ * Opaque name/value collection returned by the NGSCB device-encryption checks.
+ */
+typedef struct _NGSCB_NAME_VALUE_COLLECTION NGSCB_NAME_VALUE_COLLECTION, *PNGSCB_NAME_VALUE_COLLECTION;
+
+/**
+ * Opaque HSTI parsing status. Its complete layout remains unrecovered.
+ */
+typedef struct _NGSCB_HSTI_PARSING_STATUS NGSCB_HSTI_PARSING_STATUS, *PNGSCB_HSTI_PARSING_STATUS;
+
+/**
  * Forward declaration of the predictions-updated context structure.
  */
-struct _PPF_PREDICTIONS_UPDATED_CONTEXT;
+typedef struct _PPF_PREDICTIONS_UPDATED_CONTEXT PPF_PREDICTIONS_UPDATED_CONTEXT, *PPPF_PREDICTIONS_UPDATED_CONTEXT;
 
 /**
  * Identifies the type of a device that BitLocker can operate on.
@@ -172,6 +196,39 @@ typedef enum _FVE_SCENARIO_TYPE
     FVE_COMMIT_SCENARIO_WINRE_TRUST_REESTABLISH = 15,
     FVE_COMMIT_SCENARIO_WINRE_TRUST_UPDATE = 16
 } FVE_SCENARIO_TYPE, *PFVE_SCENARIO_TYPE;
+
+#define FVE_STATUS_VERSION_1 1
+#define FVE_STATUS_VERSION_2 2
+#define FVE_STATUS_VERSION_3 3
+#define FVE_STATUS_VERSION_4 4
+#define FVE_STATUS_VERSION_5 5
+#define FVE_STATUS_VERSION_6 6
+#define FVE_STATUS_VERSION_7 7
+#define FVE_STATUS_VERSION_8 8
+#define FVE_STATUS_VERSION_9 9
+#define FVE_STATUS_FLAG_INITIALIZED 0x00000001UL
+#define FVE_STATUS_FLAG_FULLY_DECRYPTED 0x00000004UL
+#define FVE_STATUS_FLAG_FULLY_ENCRYPTED 0x00000008UL
+#define FVE_STATUS_FLAG_DECRYPTION_IN_PROGRESS 0x00000010UL
+#define FVE_STATUS_FLAG_ENCRYPTION_IN_PROGRESS 0x00000020UL
+#define FVE_STATUS_FLAG_CONVERSION_PAUSED_MASK 0x000000C0UL
+#define FVE_STATUS_FLAG_NON_TPM_PROTECTOR 0x00000100UL
+#define FVE_STATUS_FLAG_TPM_PROTECTOR 0x00000200UL
+#define FVE_STATUS_FLAG_CLEAR_KEY 0x00000400UL
+#define FVE_STATUS_FLAG_LOCKED 0x00000800UL
+#define FVE_STATUS_FLAG_PROTECTION_ACTIVE 0x00001000UL
+#define FVE_STATUS_FLAG_OS_VOLUME 0x00004000UL
+#define FVE_STATUS_FLAG_EXTERNAL_KEY_PROTECTOR 0x00020000UL
+#define FVE_STATUS_FLAG_RECOVERY_PASSWORD_PROTECTOR 0x00040000UL
+#define FVE_STATUS_FLAG_TPM_PIN_PROTECTOR 0x00080000UL
+#define FVE_STATUS_FLAG_TPM_STARTUP_KEY_PROTECTOR 0x00100000UL
+#define FVE_STATUS_FLAG_PASSPHRASE_PROTECTOR 0x00200000UL
+#define FVE_STATUS_FLAG_REMOVABLE_DATA_VOLUME 0x00400000UL
+#define FVE_STATUS_FLAG_CERTIFICATE_PROTECTOR 0x00800000UL
+#define FVE_STATUS_FLAG_DATA_ONLY_ENCRYPTION 0x01000000UL
+#define FVE_STATUS_FLAG_INITIALIZATION_UNKNOWN100 0x10000000UL
+#define FVE_CONVERSION_FLAG_DATA_ONLY 0x00000001UL
+#define FVE_INITIALIZATION_UNKNOWN100 0x00000100UL
 
 /**
  * Describes the encryption status of a volume (version 1).
@@ -516,6 +573,9 @@ typedef enum _FVE_WIPING_STATE
     FVE_WIPING_STATE_INPROGRESS = 4
 } FVE_WIPING_STATE, *PFVE_WIPING_STATE;
 
+#define FVE_TPM_CAPS_VERSION_1 1
+#define FVE_TPM_CAPS_VERSION_2 2
+
 /**
  * Describes the capabilities of the platform TPM.
  */
@@ -572,6 +632,23 @@ typedef enum _FVE_METHOD_STRENGTH
     FveMethodStrength128 = 1,
     FveMethodStrength256 = 2
 } FVE_METHOD_STRENGTH, *PFVE_METHOD_STRENGTH;
+
+/**
+ * Identifies the combined encryption algorithm and key strength used by the legacy method APIs.
+ */
+typedef enum _FVE_LEGACY_METHOD
+{
+    FveLegacyMethodWcos = -2,
+    FveLegacyMethodUnknown = -1,
+    FveLegacyMethodNone = 0,
+    FveLegacyMethodAes128WithDiffuser,
+    FveLegacyMethodAes256WithDiffuser,
+    FveLegacyMethodAes128,
+    FveLegacyMethodAes256,
+    FveLegacyMethodHardware,
+    FveLegacyMethodXtsAes128,
+    FveLegacyMethodXtsAes256
+} FVE_LEGACY_METHOD, *PFVE_LEGACY_METHOD;
 
 /**
  * The MapFveLegacyMethodToMethod routine maps a legacy FVE method value to the corresponding method and strength.
@@ -764,12 +841,14 @@ typedef struct _FVE_AUTH_INFO_PUBLIC_KEY
  */
 typedef const FVE_AUTH_INFO_PUBLIC_KEY *PCFVE_AUTH_INFO_PUBLIC_KEY;
 
+#define FVE_AUTH_PASSPHRASE_MAX_LENGTH 256
+
 /**
  * Contains a passphrase authentication element.
  */
 typedef struct _FVE_AUTH_PASSPHRASE
 {
-    WCHAR ClearPassPhrase[256 + 1];
+    WCHAR ClearPassPhrase[FVE_AUTH_PASSPHRASE_MAX_LENGTH + 1];
     BYTE HashedPassPhrase[32];
     BYTE Salt[16];
 } FVE_AUTH_PASSPHRASE, *PFVE_AUTH_PASSPHRASE;
@@ -821,6 +900,7 @@ typedef const FVE_AUTH_NETWORK_SERVER_INFO *PCFVE_AUTH_NETWORK_SERVER_INFO;
 // FVE_AUTH_ELEMENT ElementFlags
 /**
  * Flags describing an authentication element (FVE_AUTH_ELEMENT ElementFlags).
+ * Flag interpretation is payload-specific; these names do not establish universal semantics.
  */
 #define FVE_ELEMENT_FLAG_NONE                   0x00000000
 #define FVE_ELEMENT_FLAG_ALLOW_UNENCRYPTED      0x00000001
@@ -835,24 +915,27 @@ typedef const FVE_AUTH_NETWORK_SERVER_INFO *PCFVE_AUTH_NETWORK_SERVER_INFO;
 #define FVE_ELEMENT_FLAG_WINRE_TRUSTED          0x00000200
 
 // FVE_AUTH_ELEMENT ElementType
+#define FVE_AUTH_ELEMENT_VERSION_1 1
+#define FVE_AUTH_ELEMENT_FLAG_UNKNOWN1 0x00000001UL
+
 /**
  * Identifies the type of an authentication element.
  */
 typedef enum _FVE_AUTH_ELEMENT_TYPE
 {
-    FVE_ELEMENT_TYPE_RECOVERY_PASSWORD      = 0x00000001, // FVE_AUTH_RECOVERY_PASSWORD (RecoveryPassword)
-    FVE_ELEMENT_TYPE_PIN                    = 0x00000002, // FVE_AUTH_PIN (Pin)
-    FVE_ELEMENT_TYPE_TPM                    = 0x00000003, // FVE_AUTH_TPM (Tpm)
-    FVE_ELEMENT_TYPE_EXTERNAL_KEY           = 0x00000004, // FVE_AUTH_EXTERNAL_KEY (ExternalKey, .BEK file)
-    FVE_ELEMENT_TYPE_PUBLIC_KEY             = 0x00000005, // FVE_AUTH_PUBLIC_KEY (PublicKey)
-    FVE_ELEMENT_TYPE_PRIVATE_KEY            = 0x00000006, // FVE_AUTH_PRIVATE_KEY (PrivateKey)
-    FVE_ELEMENT_TYPE_PUBLIC_KEY_INFO        = 0x00000007, // FVE_AUTH_INFO_PUBLIC_KEY (PublicKeyInfo / Certificate)
-    FVE_ELEMENT_TYPE_PASSPHRASE             = 0x00000008, // FVE_AUTH_PASSPHRASE (PassPhrase)
-    FVE_ELEMENT_TYPE_TPM_PIN                = 0x00000009, // Composite TPM + PIN element
-    FVE_ELEMENT_TYPE_CLEAR_KEY              = 0x0000000A, // FVE_AUTH_INFO_CLEAR_KEY (ClearKeyInfo, Suspended Protection)
-    FVE_ELEMENT_TYPE_DPAPI_NG               = 0x0000000B, // FVE_AUTH_DPAPI_NG (DpapiNgInfo)
-    FVE_ELEMENT_TYPE_NETWORK_SERVER_INFO    = 0x0000000C, // FVE_AUTH_NETWORK_SERVER_INFO (NetworkServerInfo / Network Unlock)
-    FVE_ELEMENT_TYPE_PREDICTED_TPM_INFO     = 0x0000000D  // FVE_AUTH_PREDICTED_TPM_INFO (PredictedTpmInfo / PCR7 & PCR4)
+    FVE_ELEMENT_TYPE_UNKNOWN = 0,
+    FVE_ELEMENT_TYPE_RECOVERY_PASSWORD = 1, // FVE_AUTH_RECOVERY_PASSWORD
+    FVE_ELEMENT_TYPE_PIN = 2, // FVE_AUTH_PIN
+    FVE_ELEMENT_TYPE_TPM = 3, // FVE_AUTH_TPM
+    FVE_ELEMENT_TYPE_EXTERNAL_KEY = 4, // FVE_AUTH_EXTERNAL_KEY
+    FVE_ELEMENT_TYPE_PUBLIC_KEY = 5, // FVE_AUTH_PUBLIC_KEY (input)
+    FVE_ELEMENT_TYPE_PRIVATE_KEY = 6, // FVE_AUTH_PRIVATE_KEY
+    FVE_ELEMENT_TYPE_PUBLIC_KEY_INFO = 7, // FVE_AUTH_INFO_PUBLIC_KEY (output)
+    FVE_ELEMENT_TYPE_PASSPHRASE = 8, // FVE_AUTH_PASSPHRASE
+    FVE_ELEMENT_TYPE_CLEAR_KEY = 9, // FVE_AUTH_INFO_CLEAR_KEY
+    FVE_ELEMENT_TYPE_DPAPI_NG = 10, // FVE_AUTH_DPAPI_NG
+    FVE_ELEMENT_TYPE_UNKNOWN11 = 11,
+    FVE_ELEMENT_TYPE_PREDICTED_TPM_INFO = 12 // FVE_AUTH_PREDICTED_TPM_INFO
 } FVE_AUTH_ELEMENT_TYPE, *PFVE_AUTH_ELEMENT_TYPE;
 
 /**
@@ -863,7 +946,7 @@ typedef struct _FVE_AUTH_ELEMENT
     ULONG Size;
     ULONG Version;
     ULONG ElementFlags;
-    ULONG ElementType;
+    FVE_AUTH_ELEMENT_TYPE ElementType;
     union
     {
         BYTE Nothing[1];
@@ -886,6 +969,23 @@ typedef struct _FVE_AUTH_ELEMENT
  * Pointer to a constant FVE_AUTH_ELEMENT structure.
  */
 typedef const FVE_AUTH_ELEMENT *PCFVE_AUTH_ELEMENT;
+
+#define FVE_AUTH_INFORMATION_VERSION_1 1
+#define FVE_AUTH_INFORMATION_QUERY_UNKNOWN1 0x00000001UL
+#define FVE_AUTH_INFORMATION_QUERY_UNKNOWN2 0x00000002UL
+#define FVE_AUTH_INFORMATION_QUERY_UNKNOWN4 0x00000004UL
+#define FVE_AUTH_INFORMATION_FLAG_CLEAR_KEY 0x00010000UL
+#define FVE_AUTH_INFORMATION_FLAG_TPM 0x00020000UL
+#define FVE_AUTH_INFORMATION_FLAG_EXTERNAL_KEY 0x00040000UL
+#define FVE_AUTH_INFORMATION_FLAG_RECOVERY_PASSWORD 0x00080000UL
+#define FVE_AUTH_INFORMATION_FLAG_TPM_AND_PIN 0x00120000UL
+#define FVE_AUTH_INFORMATION_FLAG_TPM_AND_STARTUP_KEY 0x00060000UL
+#define FVE_AUTH_INFORMATION_FLAG_TPM_PIN_AND_STARTUP_KEY 0x00160000UL
+#define FVE_AUTH_INFORMATION_FLAG_CERTIFICATE 0x00200000UL
+#define FVE_AUTH_INFORMATION_FLAG_PASSPHRASE 0x00800000UL
+#define FVE_AUTH_INFORMATION_FLAG_TPM_AND_CERTIFICATE 0x00220000UL
+#define FVE_AUTH_INFORMATION_FLAG_DPAPI_NG 0x01000000UL
+#define FVE_AUTH_INFORMATION_PROTECTOR_MASK 0x03FE0000UL
 
 /**
  * Describes the authentication information for a key protector, including its elements.
@@ -958,26 +1058,28 @@ FveIsTpmProtectorType(
  * The FveOpenVolumeW routine opens the specified BitLocker (FVE) volume and returns a handle to it.
  *
  * \param[in] VolumeName The volume name.
- * \param[in] bNeedWriteAccess A value indicating whether write access to the volume is required.
+ * \param[in] NeedWriteAccess A value indicating whether write access to the volume is required.
  * \param[out] FveVolumeHandle Receives a handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Volume GUID paths with a trailing backslash are accepted and canonicalized before opening.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveOpenVolumeW(
     _In_ PCWSTR VolumeName,
-    _In_ BOOL bNeedWriteAccess,
-    _Outptr_ PHANDLE FveVolumeHandle
+    _In_ BOOL NeedWriteAccess,
+    _Out_ PHANDLE FveVolumeHandle
     );
 
 /**
- * The FveOpenVolumeExW routine opens the specified BitLocker (FVE) volume with extended options and returns a handle to it.
+ * The FveOpenVolumeExW routine opens the specified BitLocker (FVE) volume with extended options and returns a handle
+ * to it.
  *
  * \param[in] VolumeName The volume name.
  * \param[in] NameFlags Flags that qualify how the volume name is interpreted.
- * \param[in] bNeedWriteAccess A value indicating whether write access to the volume is required.
- * \param[in] IfcType The FVE interface type to open the volume with.
+ * \param[in] NeedWriteAccess A value indicating whether write access to the volume is required.
+ * \param[in] InterfaceType The FVE interface type to open the volume with.
  * \param[in] HandleFlags Flags that control how the handle is opened.
  * \param[out] FveVolumeHandle Receives a handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -988,19 +1090,20 @@ NTAPI
 FveOpenVolumeExW(
     _In_ PCWSTR VolumeName,
     _In_ ULONG NameFlags,
-    _In_ BOOL bNeedWriteAccess,
-    _In_ FVE_INTERFACE_TYPE IfcType,
+    _In_ BOOL NeedWriteAccess,
+    _In_ FVE_INTERFACE_TYPE InterfaceType,
     _In_ ULONG HandleFlags,
-    _Outptr_ PHANDLE FveVolumeHandle
+    _Out_ PHANDLE FveVolumeHandle
     );
 
 /**
- * The FveOpenVolumeByHandle routine opens a BitLocker (FVE) volume from an existing handle and returns an FVE volume handle.
+ * The FveOpenVolumeByHandle routine opens a BitLocker (FVE) volume from an existing handle and returns an FVE volume
+ * handle.
  *
  * \param[in] Handle A handle to the underlying object.
  * \param[in] HandleType The type of the supplied handle.
- * \param[in] bNeedWriteAccess A value indicating whether write access to the volume is required.
- * \param[in] IfcType The FVE interface type to open the volume with.
+ * \param[in] NeedWriteAccess A value indicating whether write access to the volume is required.
+ * \param[in] InterfaceType The FVE interface type to open the volume with.
  * \param[in] HandleFlags Flags that control how the handle is opened.
  * \param[out] FveVolumeHandle Receives a handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -1011,8 +1114,8 @@ NTAPI
 FveOpenVolumeByHandle(
     _In_ HANDLE Handle,
     _In_ FVE_HANDLE_TYPE HandleType,
-    _In_ BOOL bNeedWriteAccess,
-    _In_ FVE_INTERFACE_TYPE IfcType,
+    _In_ BOOL NeedWriteAccess,
+    _In_ FVE_INTERFACE_TYPE InterfaceType,
     _In_ ULONG HandleFlags,
     _Out_ PHANDLE FveVolumeHandle
     );
@@ -1049,6 +1152,7 @@ FveCloseVolume(
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
+NTSYSAPI
 HRESULT
 NTAPI
 FveApplyGroupPolicy(
@@ -1073,6 +1177,7 @@ FveCommitChanges(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Reloads persisted metadata. This does not undo initialization already written to disk.
  */
 NTSYSAPI
 HRESULT
@@ -1085,30 +1190,32 @@ FveDiscardChanges(
  * The FveGetStatus routine retrieves the current encryption status of the specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] Status Receives the volume status information.
+ * \param[in,out] Status The initialized status structure; receives the volume status.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialize Size and Version for the requested status layout; version 9 uses 128 bytes.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveGetStatus(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PFVE_STATUS_V9 Status
+    _Inout_ PFVE_STATUS_V9 Status
     );
 
 /**
  * The FveGetStatusW routine retrieves the current encryption status of the named volume.
  *
  * \param[in] VolumeName The volume name.
- * \param[out] Status Receives the volume status information.
+ * \param[in,out] Status The initialized status structure; receives the volume status.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialize Size and Version for the requested status layout; version 9 uses 128 bytes.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveGetStatusW(
     _In_ PCWSTR VolumeName,
-    _Out_ PFVE_STATUS_V9 Status
+    _Inout_ PFVE_STATUS_V9 Status
     );
 
 /**
@@ -1161,35 +1268,39 @@ FveClearUserFlags(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] AuthMethodGuids Receives the buffer that receives the authentication method GUIDs.
- * \param[in] MaxNumGuids The maximum number of GUIDs the buffer can hold.
- * \param[out] NumGuids Receives the number of GUIDs returned.
+ * \param[in] MaxAuthMethodGuids The maximum number of GUIDs the buffer can hold.
+ * \param[out] AuthMethodGuidCount Receives the number of GUIDs returned.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks A NULL array with capacity zero queries the required count and returns S_FALSE.
+ * A subsequent call with sufficient capacity returns S_OK.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveGetAuthMethodGuids(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ LPGUID AuthMethodGuids,
-    _In_ UINT MaxNumGuids,
-    _Out_ PUINT NumGuids
+    _Out_writes_to_opt_(MaxAuthMethodGuids, *AuthMethodGuidCount) PGUID AuthMethodGuids,
+    _In_ UINT MaxAuthMethodGuids,
+    _Out_ PUINT AuthMethodGuidCount
     );
 
 /**
  * The FveGetAuthMethodInformation routine retrieves detailed information about an authentication method on the volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] Information Receives the authentication information.
+ * \param[in,out] Information The initialized authentication information buffer; receives the requested information.
  * \param[in] BufferSize The size, in bytes, of the buffer.
  * \param[out] RequiredSize Receives the size, in bytes, required for the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Embedded pointers reference the caller-owned result buffer. Securely zero the buffer before freeing it.
+ * A metadata-only result can have ElementsCount equal to zero. Query bit 1 selects the GUID; bit 2 requests key export.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveGetAuthMethodInformation(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PFVE_AUTH_INFORMATION Information,
+    _Inout_updates_bytes_(BufferSize) PFVE_AUTH_INFORMATION Information,
     _In_ SIZE_T BufferSize,
     _Out_ PSIZE_T RequiredSize
     );
@@ -1236,7 +1347,7 @@ HRESULT
 NTAPI
 FveDeleteAuthMethod(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGuid
+    _In_ PCGUID AuthMethodGuid
     );
 
 /**
@@ -1244,16 +1355,19 @@ FveDeleteAuthMethod(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] Information The authentication information.
- * \param[in] AuthMethodGuid The GUID identifying the authentication method.
- * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \param[out] AuthMethodGuid Receives the added authentication-method GUID on S_OK.
+ * \return S_OK for normal creation, S_FALSE when the clear key already exists, or an HRESULT error.
+ * \remarks 10.0.26100.9278 permits a null GUID output; 10.0.28000.2804 requires a nonnull output.
+ * The existing-clear-key S_FALSE path does not write the GUID.
  */
+_Success_(return == S_OK)
 NTSYSAPI
 HRESULT
 NTAPI
 FveAddAuthMethodInformation(
     _In_ HANDLE FveVolumeHandle,
     _In_ PCFVE_AUTH_INFORMATION Information,
-    _In_ LPGUID AuthMethodGuid
+    _Out_ PGUID AuthMethodGuid
     );
 
 /**
@@ -1269,8 +1383,8 @@ HRESULT
 NTAPI
 FveUpdatePinW(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCWSTR NewPin,
-    _In_ LPCGUID ProtectorGuid
+    _In_ PCWSTR NewPin,
+    _In_ PCGUID ProtectorGuid
     );
 
 /**
@@ -1279,7 +1393,8 @@ FveUpdatePinW(
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] ExistingPin The existing PIN.
  * \param[out] ExistingPinValidates Receives a value indicating whether the existing PIN validates.
- * \param[in] GUIDProtector The GUID identifying the protector.
+ * \param[out] ProtectorGuid Optional output written only when *ExistingPinValidates is TRUE.
+ * An unmatched comparison leaves it unchanged.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1289,7 +1404,7 @@ FveValidateExistingPinW(
     _In_ HANDLE FveVolumeHandle,
     _In_ PCWSTR ExistingPin,
     _Out_ PBOOL ExistingPinValidates,
-    _In_ LPGUID GUIDProtector
+    _Out_opt_ PGUID ProtectorGuid
     );
 
 /**
@@ -1298,7 +1413,8 @@ FveValidateExistingPinW(
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] ExistingPassphrase The existing passphrase.
  * \param[out] ExistingPassphraseValidates Receives a value indicating whether the existing passphrase validates.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
+ * \param[out] ProtectorGuid Optional output written only when *ExistingPassphraseValidates is TRUE.
+ * An unmatched comparison leaves it unchanged.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1308,7 +1424,7 @@ FveValidateExistingPassphraseW(
     _In_ HANDLE FveVolumeHandle,
     _In_ PCWSTR ExistingPassphrase,
     _Out_ PBOOL ExistingPassphraseValidates,
-    _In_ LPGUID ProtectorGuid
+    _Out_opt_ PGUID ProtectorGuid
     );
 
 /**
@@ -1374,7 +1490,7 @@ FveUnlockVolume(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] Information The authentication information.
- * \param[in] ReadOnly A value indicating whether the volume is unlocked for read-only access.
+ * \param[out] ReadOnly Receives whether the volume was unlocked for read-only access.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1383,7 +1499,7 @@ NTAPI
 FveUnlockVolumeWithAccessMode(
     _In_ HANDLE FveVolumeHandle,
     _In_ PCFVE_AUTH_INFORMATION Information,
-    _In_ PBOOL ReadOnly
+    _Out_ PBOOL ReadOnly
     );
 
 /**
@@ -1439,15 +1555,16 @@ HRESULT
 NTAPI
 FveGetIdentity(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ LPGUID IdentityGuid
+    _Out_ PGUID IdentityGuid
     );
 
 /**
- * The FveGetRecoveryPasswordBackupInformation routine retrieves the recovery-password backup information for a protector.
+ * The FveGetRecoveryPasswordBackupInformation routine retrieves the recovery-password backup information for a
+ * protector.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
- * \param[out] BackupInfoTypeMask Receives the mask of recovery-password backup information types.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the key protector.
+ * \param[out] BackupInformation Receives the mask of recovery-password backup information types.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1455,19 +1572,19 @@ HRESULT
 NTAPI
 FveGetRecoveryPasswordBackupInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID ProtectorGuid,
-    _Out_ PUSHORT BackupInfoTypeMask
+    _In_opt_ PCGUID RecoveryPasswordGuid,
+    _Out_ PUSHORT BackupInformation
     );
 
 /**
  * The FveSetRecoveryPasswordBackupInformation routine sets the recovery-password backup information for a protector.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
- * \param[in] BackupInfoType The recovery-password backup information type.
- * \param[in] SetFlags The backup information flags to set.
- * \param[in] ClearFlags The backup information flags to clear.
- * \param[out] DatasetWasUpdated Receives a value indicating whether the dataset was updated.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the key protector.
+ * \param[in] BackupInformationType The recovery-password backup information type.
+ * \param[in] FlagsToSet The backup information flags to set.
+ * \param[in] FlagsToClear The backup information flags to clear.
+ * \param[out] InformationChanged Receives a value indicating whether the dataset was updated.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1475,20 +1592,21 @@ HRESULT
 NTAPI
 FveSetRecoveryPasswordBackupInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID ProtectorGuid,
-    _In_ USHORT BackupInfoType,
-    _In_ USHORT SetFlags,
-    _In_ USHORT ClearFlags,
-    _Out_ PBOOLEAN DatasetWasUpdated
+    _In_ PCGUID RecoveryPasswordGuid,
+    _In_ USHORT BackupInformationType,
+    _In_ USHORT FlagsToSet,
+    _In_ USHORT FlagsToClear,
+    _Out_ PBOOLEAN InformationChanged
     );
 
 /**
- * The FveClearRecoveryPasswordBackupInformation routine clears the recovery-password backup information for a protector.
+ * The FveClearRecoveryPasswordBackupInformation routine clears the recovery-password backup information for a
+ * protector.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
- * \param[in] BackupInfoType The recovery-password backup information type.
- * \param[out] DatasetWasUpdated Receives a value indicating whether the dataset was updated.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the key protector.
+ * \param[in] BackupInformationType The recovery-password backup information type.
+ * \param[out] InformationChanged Receives a value indicating whether the dataset was updated.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1496,20 +1614,21 @@ HRESULT
 NTAPI
 FveClearRecoveryPasswordBackupInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID ProtectorGuid,
-    _In_ USHORT BackupInfoType,
-    _Out_ PBOOLEAN DatasetWasUpdated
+    _In_ PCGUID RecoveryPasswordGuid,
+    _In_ USHORT BackupInformationType,
+    _Out_ PBOOLEAN InformationChanged
     );
 
 /**
- * The FveGetRecoveryPasswordBackupAccountInformation routine retrieves the account information used to back up recovery passwords.
+ * The FveGetRecoveryPasswordBackupAccountInformation routine retrieves the account information used to back up
+ * recovery passwords.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
- * \param[in] BackupInfoType The recovery-password backup information type.
- * \param[in] cchBackupAccount The size, in characters, of the backup account buffer.
- * \param[out] cchBackupAccountRequired Receives the size, in characters, required for the backup account buffer.
- * \param[out] BackupAccounts Receives the buffer that receives the backup account names.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the key protector.
+ * \param[in] BackupInformationType The recovery-password backup information type.
+ * \param[in] AccountNameCch The size, in characters, of the backup account buffer.
+ * \param[out] RequiredCch Receives the size, in characters, required for the backup account buffer.
+ * \param[out] AccountName Receives the buffer that receives the backup account names.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1517,21 +1636,22 @@ HRESULT
 NTAPI
 FveGetRecoveryPasswordBackupAccountInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID ProtectorGuid,
-    _In_ USHORT BackupInfoType,
-    _In_ SIZE_T cchBackupAccount,
-    _Out_ PSIZE_T cchBackupAccountRequired,
-    _Out_ LPWSTR BackupAccounts
+    _In_ PCGUID RecoveryPasswordGuid,
+    _In_ USHORT BackupInformationType,
+    _In_ SIZE_T AccountNameCch,
+    _Out_ PSIZE_T RequiredCch,
+    _Out_writes_opt_(AccountNameCch) PWSTR AccountName
     );
 
 /**
- * The FveSetRecoveryPasswordBackupAccountInformation routine sets the account information used to back up recovery passwords.
+ * The FveSetRecoveryPasswordBackupAccountInformation routine sets the account information used to back up recovery
+ * passwords.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
- * \param[in] BackupInfoType The recovery-password backup information type.
- * \param[in] BackupAccount The backup account name.
- * \param[out] DatasetWasUpdated Receives a value indicating whether the dataset was updated.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the key protector.
+ * \param[in] BackupInformationType The recovery-password backup information type.
+ * \param[in] AccountName The backup account name.
+ * \param[out] InformationChanged Receives a value indicating whether the dataset was updated.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1539,17 +1659,18 @@ HRESULT
 NTAPI
 FveSetRecoveryPasswordBackupAccountInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID ProtectorGuid,
-    _In_ USHORT BackupInfoType,
-    _In_ PCWSTR BackupAccount,
-    _Out_ PBOOLEAN DatasetWasUpdated
+    _In_ PCGUID RecoveryPasswordGuid,
+    _In_ USHORT BackupInformationType,
+    _In_ PCWSTR AccountName,
+    _Out_ PBOOLEAN InformationChanged
     );
 
 /**
- * The FveSelectBestRecoveryPasswordByBackupInformation routine selects the most appropriate recovery password based on backup information.
+ * The FveSelectBestRecoveryPasswordByBackupInformation routine selects the most appropriate recovery password based
+ * on backup information.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] ProtectorGuid The GUID identifying the key protector.
+ * \param[out] RecoveryPasswordGuid Receives the selected recovery-password protector GUID.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1557,15 +1678,16 @@ HRESULT
 NTAPI
 FveSelectBestRecoveryPasswordByBackupInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPGUID ProtectorGuid
+    _Out_ PGUID RecoveryPasswordGuid
     );
 
 /**
- * The FveAuthElementToRecoveryPasswordW routine converts an authentication element to its recovery-password string form.
+ * The FveAuthElementToRecoveryPasswordW routine converts an authentication element to its recovery-password string
+ * form.
  *
  * \param[in] AuthElement The authentication element.
- * \param[out] Passphrase Receives the recovery password (passphrase).
- * \param[in] PassphraseLength The size, in characters, of the passphrase buffer.
+ * \param[out] RecoveryPassword Receives the recovery password (passphrase).
+ * \param[in] RecoveryPasswordCch The size, in characters, of the passphrase buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1573,59 +1695,62 @@ HRESULT
 NTAPI
 FveAuthElementToRecoveryPasswordW(
     _In_ PCFVE_AUTH_ELEMENT AuthElement,
-    _Out_ PWSTR Passphrase,
-    _In_ SIZE_T PassphraseLength
+    _Out_writes_(RecoveryPasswordCch) PWSTR RecoveryPassword,
+    _In_ SIZE_T RecoveryPasswordCch
     );
 
 /**
  * The FveAuthElementFromPinW routine builds an authentication element from a PIN.
  *
  * \param[in] Pin The PIN.
- * \param[out] AuthElement Receives the authentication element.
+ * \param[in,out] AuthElement Receives the authentication element.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialize the authentication element Size and Version before calling.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveAuthElementFromPinW(
     _In_ PCWSTR Pin,
-    _Out_ PFVE_AUTH_ELEMENT AuthElement
+    _Inout_ PFVE_AUTH_ELEMENT AuthElement
     );
 
 /**
  * The FveAuthElementFromPassPhraseW routine builds an authentication element from a passphrase.
  *
  * \param[in] PassPhrase The passphrase.
- * \param[out] AuthElement Receives the authentication element.
+ * \param[in,out] AuthElement Receives the authentication element.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialize the authentication element Size and Version before calling.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveAuthElementFromPassPhraseW(
     _In_ PCWSTR PassPhrase,
-    _Out_ PFVE_AUTH_ELEMENT AuthElement
+    _Inout_ PFVE_AUTH_ELEMENT AuthElement
     );
 
 /**
  * The FveAuthElementFromRecoveryPasswordW routine builds an authentication element from a recovery password.
  *
- * \param[in] Passphrase The recovery password (passphrase).
- * \param[out] AuthElement Receives the authentication element.
+ * \param[in] RecoveryPassword The recovery password (passphrase).
+ * \param[in,out] AuthElement Receives the authentication element.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialize the authentication element Size and Version before calling.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveAuthElementFromRecoveryPasswordW(
-    _In_ PCWSTR Passphrase,
-    _Out_ PFVE_AUTH_ELEMENT AuthElement
+    _In_ PCWSTR RecoveryPassword,
+    _Inout_ PFVE_AUTH_ELEMENT AuthElement
     );
 
 /**
  * The FveIsRecoveryPasswordGroupValidW routine determines whether a recovery-password group is valid.
  *
- * \param[in] PassphraseGroup The recovery password group.
+ * \param[in] RecoveryPasswordGroup The recovery password group.
  * \param[out] IsValid Receives a value indicating whether the value is valid.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -1633,14 +1758,14 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveIsRecoveryPasswordGroupValidW(
-    _In_ PCWSTR PassphraseGroup,
+    _In_ PCWSTR RecoveryPasswordGroup,
     _Out_ PBOOLEAN IsValid
     );
 
 /**
  * The FveIsRecoveryPasswordValidW routine determines whether a recovery password is valid.
  *
- * \param[in] Passphrase The recovery password (passphrase).
+ * \param[in] RecoveryPassword The recovery password (passphrase).
  * \param[out] IsValid Receives a value indicating whether the value is valid.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -1648,7 +1773,7 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveIsRecoveryPasswordValidW(
-    _In_ PCWSTR Passphrase,
+    _In_ PCWSTR RecoveryPassword,
     _Out_ PBOOLEAN IsValid
     );
 
@@ -1671,7 +1796,7 @@ FveIsPassphraseCompatibleW(
  * The FveAuthElementReadExternalKeyW routine reads an external key file into authentication information.
  *
  * \param[in] KeyFullFilePath The full path of the external key file.
- * \param[out] Information Receives the authentication information.
+ * \param[in,out] Information The initialized authentication information buffer; receives the external key information.
  * \param[in] BufferSize The size, in bytes, of the buffer.
  * \param[out] RequiredSize Receives the size, in bytes, required for the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -1681,7 +1806,7 @@ HRESULT
 NTAPI
 FveAuthElementReadExternalKeyW(
     _In_ PCWSTR KeyFullFilePath,
-    _Out_ PFVE_AUTH_INFORMATION Information,
+    _Inout_updates_bytes_(BufferSize) PFVE_AUTH_INFORMATION Information,
     _In_ SIZE_T BufferSize,
     _Out_ PSIZE_T RequiredSize
     );
@@ -1702,9 +1827,10 @@ FveAuthElementWriteExternalKeyW(
     );
 
 /**
- * The FveAuthElementWriteExternalKeyExW routine writes authentication information to an external key file for the specified volume identity.
+ * The FveAuthElementWriteExternalKeyExW routine writes authentication information to an external key file for the
+ * specified volume identity.
  *
- * \param[in] FveIdentity The volume identity GUID.
+ * \param[in] Identifier The volume identity GUID.
  * \param[in] KeyFullFilePath The full path of the external key file.
  * \param[in] Information The authentication information.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -1713,17 +1839,18 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveAuthElementWriteExternalKeyExW(
-    _In_ LPGUID FveIdentity,
+    _In_ PCGUID Identifier,
     _In_ PCWSTR KeyFullFilePath,
     _In_ PCFVE_AUTH_INFORMATION Information
     );
 
 /**
- * The FveAuthElementGetKeyFileNameW routine retrieves the external key file name for the specified authentication information.
+ * The FveAuthElementGetKeyFileNameW routine retrieves the external key file name for the specified authentication
+ * information.
  *
  * \param[in] Information The authentication information.
  * \param[out] KeyFileName Receives the buffer that receives the external key file name.
- * \param[in] BufferLength The size, in characters, of the buffer.
+ * \param[in] KeyFileNameCch The size, in characters, of the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1731,8 +1858,8 @@ HRESULT
 NTAPI
 FveAuthElementGetKeyFileNameW(
     _In_ PCFVE_AUTH_INFORMATION Information,
-    _Out_ PWSTR KeyFileName,
-    _In_ SIZE_T BufferLength
+    _Out_writes_(KeyFileNameCch) PWSTR KeyFileName,
+    _In_ SIZE_T KeyFileNameCch
     );
 
 /**
@@ -1748,7 +1875,7 @@ HRESULT
 NTAPI
 FveInitVolumeEx(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PCWSTR DiscoveryVolumeType,
+    _In_opt_ PCWSTR DiscoveryVolumeType,
     _In_ ULONG InitializationFlags
     );
 
@@ -1758,13 +1885,14 @@ FveInitVolumeEx(
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] DiscoveryVolumeType The discovery volume type.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Initialization can persist metadata and write the boot region; FveDiscardChanges does not undo it.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveInitVolume(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PCWSTR DiscoveryVolumeType
+    _In_opt_ PCWSTR DiscoveryVolumeType
     );
 
 /**
@@ -1782,7 +1910,7 @@ FveInitializeDeviceEncryption(
  * The FveInitializeDeviceEncryption2 routine initializes device encryption on the specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] DEInitializationFlags Flags controlling device encryption initialization.
+ * \param[in] InitializationFlags Flags controlling device encryption initialization.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -1790,8 +1918,10 @@ HRESULT
 NTAPI
 FveInitializeDeviceEncryption2(
     _In_ HANDLE FveVolumeHandle,
-    _In_ ULONG DEInitializationFlags
+    _In_ ULONG InitializationFlags
     );
+
+#define FVE_DE_SUPPORT_VERSION_1 1
 
 /**
  * Describes whether device encryption is supported on the system.
@@ -1813,14 +1943,14 @@ typedef const FVE_DE_SUPPORT *PCFVE_DE_SUPPORT;
 /**
  * The FveQueryDeviceEncryptionSupport routine queries whether the system supports device encryption.
  *
- * \param[out] DeviceEncryptionSupport Receives the device encryption support information.
+ * \param[in,out] DeviceEncryptionSupport The initialized support query structure; receives the result.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveQueryDeviceEncryptionSupport(
-    _Out_ PFVE_DE_SUPPORT DeviceEncryptionSupport
+    _Inout_ PFVE_DE_SUPPORT DeviceEncryptionSupport
     );
 
 /**
@@ -1850,7 +1980,7 @@ NTAPI
 FveKeyManagement(
     _In_ HANDLE FveVolumeHandle,
     _In_ ULONG FlagsIn,
-    _Out_ PULONG FlagsOut
+    _Out_opt_ PULONG FlagsOut
     );
 
 /**
@@ -1910,7 +2040,8 @@ FveConversionEncryptEx(
     );
 
 /**
- * The FveConversionEncryptPendingReboot routine schedules encryption of the specified volume to begin after the next reboot.
+ * The FveConversionEncryptPendingReboot routine schedules encryption of the specified volume to begin after the next
+ * reboot.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -1923,7 +2054,8 @@ FveConversionEncryptPendingReboot(
     );
 
 /**
- * The FveConversionEncryptPendingRebootEx routine schedules encryption of the specified volume to begin after the next reboot with the given conversion flags.
+ * The FveConversionEncryptPendingRebootEx routine schedules encryption of the specified volume to begin after the
+ * next reboot with the given conversion flags.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] ConversionFlags Flags controlling the conversion (encryption/decryption) operation.
@@ -1957,6 +2089,7 @@ FveConversionStop(
  * \param[in] AutoStartOnReinsertion A value indicating whether conversion restarts automatically on reinsertion.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
+NTSYSAPI
 HRESULT
 NTAPI
 FveConversionStopEx(
@@ -2015,15 +2148,18 @@ HRESULT
 NTAPI
 FveGetFveMethod(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PINT FveMethod
+    _Out_ PFVE_LEGACY_METHOD FveMethod
     );
 
+#define FVE_EDRIVE_METHOD_CCH 256
+
 /**
- * The FveGetFveMethodEDrv routine retrieves the encryption method, including the eDrive method, for the specified volume.
+ * The FveGetFveMethodEDrv routine retrieves the encryption method, including the eDrive method, for the specified
+ * volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] FveMethod Receives the FVE encryption method.
- * \param[out] SelfEncryptionDriveEncryptionMethod Receives the buffer that receives the self-encrypting drive encryption method.
+ * \param[out] SelfEncryptionDriveMethod Optional buffer that receives the self-encrypting drive encryption method.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2031,8 +2167,8 @@ HRESULT
 NTAPI
 FveGetFveMethodEDrv(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PINT FveMethod,
-    _Out_ LPWSTR SelfEncryptionDriveEncryptionMethod
+    _Out_ PFVE_LEGACY_METHOD FveMethod,
+    _Out_writes_opt_(FVE_EDRIVE_METHOD_CCH) PWSTR SelfEncryptionDriveMethod
     );
 
 /**
@@ -2040,8 +2176,9 @@ FveGetFveMethodEDrv(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] FveMethod Receives the FVE encryption method.
- * \param[out] eDriveMethod Receives the buffer that receives the eDrive (hardware) encryption method.
- * \param[out] FveMethodFlags Receives flags describing the FVE encryption method.
+ * \param[out] SelfEncryptionDriveMethod Optional buffer that receives the eDrive (hardware) encryption method.
+ * \param[in,out] FveMethodFlags Optional flags value. If supplied, initialize it before the call;
+ * existing bits are preserved.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2049,9 +2186,9 @@ HRESULT
 NTAPI
 FveGetFveMethodEx(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PINT FveMethod,
-    _Out_ LPWSTR eDriveMethod,
-    _Out_ PULONG FveMethodFlags
+    _Out_ PFVE_LEGACY_METHOD FveMethod,
+    _Out_writes_opt_(FVE_EDRIVE_METHOD_CCH) PWSTR SelfEncryptionDriveMethod,
+    _Inout_opt_ PULONG FveMethodFlags
     );
 
 /**
@@ -2066,7 +2203,7 @@ HRESULT
 NTAPI
 FveSetFveMethod(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LONG FveMethod
+    _In_ FVE_LEGACY_METHOD FveMethod
     );
 
 /**
@@ -2074,8 +2211,8 @@ FveSetFveMethod(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] FveMethod The FVE encryption method.
- * \param[in] FveMethodStrength The FVE encryption method strength.
- * \param[in] FveMethodFlags Flags describing the FVE encryption method.
+ * \param[in] Strength The FVE encryption method strength.
+ * \param[in] Flags Flags describing the FVE encryption method.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2084,28 +2221,28 @@ NTAPI
 FveSetFveMethodEx(
     _In_ HANDLE FveVolumeHandle,
     _In_ FVE_METHOD FveMethod,
-    _In_ FVE_METHOD_STRENGTH FveMethodStrength,
-    _In_ ULONG FveMethodFlags
+    _In_ FVE_METHOD_STRENGTH Strength,
+    _In_ ULONG Flags
     );
 
 /**
  * The FveCheckTpmCapability routine checks the capabilities of the platform TPM.
  *
- * \param[out] Capability Receives the TPM capability information.
+ * \param[in,out] Capability The initialized TPM capabilities structure; receives the capabilities.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveCheckTpmCapability(
-    _Out_ PFVE_TPM_CAPS Capability
+    _Inout_ PFVE_TPM_CAPS Capability
     );
 
 /**
  * The FveBindDataVolume routine binds the specified data volume for automatic unlock.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] AuthMethodGUID The GUID identifying the authentication method.
+ * \param[in] AuthMethodGuid The GUID identifying the authentication method.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2113,7 +2250,7 @@ HRESULT
 NTAPI
 FveBindDataVolume(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGUID
+    _In_ PCGUID AuthMethodGuid
     );
 
 /**
@@ -2134,7 +2271,7 @@ FveUnbindDataVolume(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] IsAutoUnlockEnabled Receives a value indicating whether automatic unlock is enabled.
- * \param[out] UnlockGUID Receives the GUID of the automatic unlock protector.
+ * \param[out] UnlockGuid Receives the GUID of the automatic unlock protector.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2143,15 +2280,16 @@ NTAPI
 FveIsBoundDataVolume(
     _In_ HANDLE FveVolumeHandle,
     _Out_ PBOOL IsAutoUnlockEnabled,
-    _Out_ LPGUID UnlockGUID
+    _Out_ PGUID UnlockGuid
     );
 
 /**
- * The FveIsBoundDataVolumeToOSVolume routine determines whether the specified data volume is bound to the operating system volume.
+ * The FveIsBoundDataVolumeToOSVolume routine determines whether the specified data volume is bound to the operating
+ * system volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] IsAutoUnlockEnabled Receives a value indicating whether automatic unlock is enabled.
- * \param[out] UnlockGUID Receives the GUID of the automatic unlock protector.
+ * \param[out] UnlockGuid Receives the GUID of the automatic unlock protector.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2160,14 +2298,15 @@ NTAPI
 FveIsBoundDataVolumeToOSVolume(
     _In_ HANDLE FveVolumeHandle,
     _Out_ PBOOL IsAutoUnlockEnabled,
-    _Out_ LPGUID UnlockGUID
+    _Out_ PGUID UnlockGuid
     );
 
 /**
- * The FveIsAnyDataVolumeBoundToOSVolume routine determines whether any data volume is bound to the operating system volume.
+ * The FveIsAnyDataVolumeBoundToOSVolume routine determines whether any data volume is bound to the operating system
+ * volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] Count Receives the number of bound data volumes.
+ * \param[out] BoundVolumeCount Receives the number of bound data volumes.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2175,11 +2314,12 @@ HRESULT
 NTAPI
 FveIsAnyDataVolumeBoundToOSVolume(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PULONG Count
+    _Out_ PULONG BoundVolumeCount
     );
 
 /**
- * The FveUnbindAllDataVolumeFromOSVolume routine removes the automatic-unlock binding of all data volumes from the operating system volume.
+ * The FveUnbindAllDataVolumeFromOSVolume routine removes the automatic-unlock binding of all data volumes from the
+ * operating system volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -2220,7 +2360,7 @@ HRESULT
 NTAPI
 FveGetDescriptionW(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PWSTR VolumeDescription,
+    _Out_writes_opt_(BufferLength) PWSTR VolumeDescription,
     _In_ SIZE_T BufferLength,
     _Out_ PSIZE_T RequiredSize
     );
@@ -2246,7 +2386,7 @@ FveSetIdentificationFieldW(
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] IdentificationField Receives the identification field.
  * \param[in] BufferLength The size, in characters, of the buffer.
- * \param[out] RequiredSize Receives the size, in bytes, required for the buffer.
+ * \param[out] RequiredSize Receives the required character count, including the terminating null character.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2254,7 +2394,7 @@ HRESULT
 NTAPI
 FveGetIdentificationFieldW(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PWSTR IdentificationField,
+    _Out_writes_opt_(BufferLength) PWSTR IdentificationField,
     _In_ SIZE_T BufferLength,
     _Out_ PSIZE_T RequiredSize
     );
@@ -2337,8 +2477,8 @@ HRESULT
 NTAPI
 FveGetKeyPackage(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID Identifier,
-    _Out_ PUCHAR Buffer,
+    _In_ PCGUID Identifier,
+    _Out_writes_bytes_opt_(BufferSize) PBYTE Buffer,
     _In_ SIZE_T BufferSize,
     _Out_ PSIZE_T DataSize
     );
@@ -2374,7 +2514,8 @@ FveEnableRawAccess(
     );
 
 /**
- * The FveEnableRawAccessEx routine enables or disables raw access to the specified volume, optionally forcing a dismount.
+ * The FveEnableRawAccessEx routine enables or disables raw access to the specified volume, optionally forcing a
+ * dismount.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] Enabled A value indicating whether the feature is enabled.
@@ -2391,10 +2532,11 @@ FveEnableRawAccessEx(
     );
 
 /**
- * The FveBackupRecoveryInformationToAD routine backs up recovery information for the specified protector to Active Directory.
+ * The FveBackupRecoveryInformationToAD routine backs up recovery information for the specified protector to Active
+ * Directory.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] AuthMethodGUID The GUID identifying the authentication method.
+ * \param[in] AuthMethodGuid The GUID identifying the authentication method.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2402,14 +2544,15 @@ HRESULT
 NTAPI
 FveBackupRecoveryInformationToAD(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGUID
+    _In_ PCGUID AuthMethodGuid
     );
 
 /**
- * The FveBackupRecoveryInformationToADEx routine backs up recovery information for the specified protector to Active Directory with the given flags.
+ * The FveBackupRecoveryInformationToADEx routine backs up recovery information for the specified protector to Active
+ * Directory with the given flags.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] AuthMethodGUID The GUID identifying the authentication method.
+ * \param[in] AuthMethodGuid The GUID identifying the authentication method.
  * \param[in] FveBackupFlags Flags controlling the Active Directory backup.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -2418,16 +2561,17 @@ HRESULT
 NTAPI
 FveBackupRecoveryInformationToADEx(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGUID,
+    _In_ PCGUID AuthMethodGuid,
     _In_ ULONG FveBackupFlags
     );
 
 /**
- * The FveBackupRecoveryInformationToAAD routine backs up recovery information for the specified protector to Azure Active Directory.
+ * The FveBackupRecoveryInformationToAAD routine backs up recovery information for the specified protector to Azure
+ * Active Directory.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] AuthMethodGUID The GUID identifying the authentication method.
- * \param[in] FveBackupPolicyFlags Policy flags controlling the Azure AD backup.
+ * \param[in] AuthMethodGuid The GUID identifying the authentication method.
+ * \param[in] Flags Policy flags controlling the Azure AD backup.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2435,15 +2579,16 @@ HRESULT
 NTAPI
 FveBackupRecoveryInformationToAAD(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGUID,
-    _In_ ULONG FveBackupPolicyFlags
+    _In_ PCGUID AuthMethodGuid,
+    _In_ ULONG Flags
     );
 
 /**
- * The FveCheckADRecoveryInfoBackupPolicy routine retrieves the Active Directory recovery-information backup policy for the specified volume.
+ * The FveCheckADRecoveryInfoBackupPolicy routine retrieves the Active Directory recovery-information backup policy
+ * for the specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] ADPolicy Receives the Active Directory recovery-information backup policy.
+ * \param[out] Options Receives the Active Directory recovery-information backup policy.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2451,24 +2596,25 @@ HRESULT
 NTAPI
 FveCheckADRecoveryInfoBackupPolicy(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PADA_GP_OPTIONS ADPolicy
+    _Out_ PADA_GP_OPTIONS Options
     );
 
 /**
- * The FveCheckADRecoveryInfoBackupPolicyEx routine retrieves the Active Directory recovery-information backup policy for each volume class.
+ * The FveCheckADRecoveryInfoBackupPolicyEx routine retrieves the Active Directory recovery-information backup policy
+ * for each volume class.
  *
- * \param[out] ADPolicyOs Receives the Active Directory backup policy for operating system volumes.
- * \param[out] ADPolicyFdv Receives the Active Directory backup policy for fixed data volumes.
- * \param[out] ADPolicyRdv Receives the Active Directory backup policy for removable data volumes.
+ * \param[out] OsVolumeOptions Receives the Active Directory backup policy for operating system volumes.
+ * \param[out] FixedDataVolumeOptions Receives the Active Directory backup policy for fixed data volumes.
+ * \param[out] RemovableDataVolumeOptions Receives the Active Directory backup policy for removable data volumes.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveCheckADRecoveryInfoBackupPolicyEx(
-    _Out_ PADA_GP_OPTIONS ADPolicyOs,
-    _Out_ PADA_GP_OPTIONS ADPolicyFdv,
-    _Out_ PADA_GP_OPTIONS ADPolicyRdv
+    _Out_opt_ PADA_GP_OPTIONS OsVolumeOptions,
+    _Out_opt_ PADA_GP_OPTIONS FixedDataVolumeOptions,
+    _Out_opt_ PADA_GP_OPTIONS RemovableDataVolumeOptions
     );
 
 /**
@@ -2485,13 +2631,14 @@ HRESULT
 NTAPI
 FveGetDataSet(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PUCHAR DataSetBuffer,
+    _Out_writes_bytes_(DataSetBufferSize) PBYTE DataSetBuffer,
     _In_ SIZE_T DataSetBufferSize,
     _Out_ PSIZE_T ActualDataSetBufferSize
     );
 
 /**
- * The FveGetDataSetEx routine retrieves the FVE metadata dataset for the specified volume, optionally ignoring the locked-volume check.
+ * The FveGetDataSetEx routine retrieves the FVE metadata dataset for the specified volume, optionally ignoring the
+ * locked-volume check.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] IgnoreLockVolumeCheck A value indicating whether the locked-volume check is bypassed.
@@ -2506,7 +2653,7 @@ NTAPI
 FveGetDataSetEx(
     _In_ HANDLE FveVolumeHandle,
     _In_ BOOL IgnoreLockVolumeCheck,
-    _Out_ PUCHAR DataSetBuffer,
+    _Out_writes_bytes_(DataSetBufferSize) PBYTE DataSetBuffer,
     _In_ SIZE_T DataSetBufferSize,
     _Out_ PSIZE_T ActualDataSetBufferSize
     );
@@ -2586,8 +2733,8 @@ FveNotifyVolumeAfterFormat(
  * The FveSaveRecoveryPasswordBackupFlag routine saves the recovery-password backup flag for the specified protector.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] pRecoveryPasswordGuid The GUID identifying the recovery password protector.
- * \param[in] pRecoveryPassword The recovery password authentication element.
+ * \param[in] RecoveryPasswordGuid The GUID identifying the recovery password protector.
+ * \param[in] RecoveryPassword The recovery password authentication element.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -2595,21 +2742,22 @@ HRESULT
 NTAPI
 FveSaveRecoveryPasswordBackupFlag(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID pRecoveryPasswordGuid,
-    _In_ PCFVE_AUTH_ELEMENT pRecoveryPassword
+    _In_ PCGUID RecoveryPasswordGuid,
+    _In_ PCFVE_AUTH_ELEMENT RecoveryPassword
     );
 
 /**
- * The FveDraCertPresentInRegistry routine determines whether a data recovery agent certificate is present in the registry.
+ * The FveDraCertPresentInRegistry routine determines whether a data recovery agent certificate is present in the
+ * registry.
  *
- * \param[out] ptCertPresent Receives a value indicating whether a data recovery agent certificate is present.
+ * \param[out] CertPresent Receives a value indicating whether a data recovery agent certificate is present.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveDraCertPresentInRegistry(
-    _Out_ PBOOL ptCertPresent
+    _Out_ PBOOL CertPresent
     );
 
 /**
@@ -2695,7 +2843,7 @@ NTSYSAPI
 HRESULT
 NTAPI
 FvePpfPredictionsUpdated(
-    _In_ struct _PPF_PREDICTIONS_UPDATED_CONTEXT *Context
+    _In_ PPPF_PREDICTIONS_UPDATED_CONTEXT Context
     );
 
 /**
@@ -2708,7 +2856,7 @@ NTSYSAPI
 HRESULT
 NTAPI
 FvePcrMonPredictionsUpdated(
-    _In_ struct _PPF_PREDICTIONS_UPDATED_CONTEXT *Context
+    _In_ PPPF_PREDICTIONS_UPDATED_CONTEXT Context
     );
 
 /**
@@ -2959,22 +3107,26 @@ typedef struct _FVE_PREDICTION_INSTANCE_MAPPING_RESPONSE
 /**
  * The FveQuery routine performs the specified FVE query and returns the result.
  *
- * \param[in] FveQueryType The FVE query type.
+ * \param[in] QueryType The FVE query type.
  * \param[in] InputBuffer The input buffer.
  * \param[in] InputSize The size, in bytes, of the input buffer.
  * \param[out] OutputBuffer Receives the output buffer.
- * \param[out] OutputSize Receives the size, in bytes, of the output buffer.
+ * \param[in,out] OutputSize On input, the output buffer size in bytes; receives the required or returned size.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks NULL output with zero initial capacity supports size-only requests for types 5, 6, 8, 9, 10, 11 and 13.
+ * Type 15 is feature-gated and can return HRESULT_FROM_WIN32(ERROR_INVALID_FUNCTION) without changing the size.
+ * Type 12 does not provide a reliable required-size query; type 14 requires a real output buffer.
+ * A nonnull zero-capacity buffer does not establish a size-only operation.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveQuery(
-    _In_ FVE_QUERY_TYPE FveQueryType,
-    _In_ PBYTE InputBuffer,
+    _In_ FVE_QUERY_TYPE QueryType,
+    _In_reads_bytes_opt_(InputSize) PBYTE InputBuffer,
     _In_ ULONG InputSize,
-    _Out_ PBYTE OutputBuffer,
-    _Out_ PULONG OutputSize
+    _Out_writes_bytes_opt_(*OutputSize) PBYTE OutputBuffer,
+    _Inout_ PULONG OutputSize
     );
 
 /**
@@ -2997,6 +3149,7 @@ typedef enum _FVE_CONTROL_TYPE
 
 /**
  * Describes a request to protect a volume with an external key.
+ * Layout verified on 10.0.26100.9278; 10.0.28000.2804 requires 1112 / 1108 input bytes on x64 / x86.
  */
 typedef struct _FVE_CTL_PROTECT_WITH_EK_REQUEST
 {
@@ -3023,6 +3176,7 @@ typedef struct _FVE_CTL_PROTECT_WITH_EK_REQUEST
 
 /**
  * Describes the response from protecting a volume with an external key.
+ * Layout verified on 10.0.26100.9278; 10.0.28000.2804 reports a required output size of 604 bytes.
  */
 typedef struct _FVE_CTL_PROTECT_WITH_EK_RESPONSE
 {
@@ -3082,22 +3236,26 @@ typedef struct _FVE_CTL_SET_PREDICTION_INSTANCE_MAPPING
 /**
  * The FveControl routine performs the specified FVE control operation.
  *
- * \param[in] FveControlType The FVE control type.
+ * \param[in] ControlType The FVE control type.
  * \param[in] InputBuffer The input buffer.
  * \param[in] InputSize The size, in bytes, of the input buffer.
  * \param[out] OutputBuffer Receives the output buffer.
- * \param[out] OutputSize Receives the size, in bytes, of the output buffer.
+ * \param[in,out] OutputSize On input, the output buffer size in bytes; receives the required or returned size.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
+ * \remarks Type 1 supports a NULL-output, zero-capacity size query before its state-changing implementation.
+ * On 10.0.28000.2804 it requires 1112/1108 input bytes on x64/x86 and reports 604 output bytes.
+ * The existing FVE_CTL_PROTECT_WITH_EK types describe the earlier 10.0.26100.9278 layouts.
+ * A nonnull zero-capacity buffer does not establish a size-only operation.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveControl(
-    _In_ FVE_CONTROL_TYPE FveControlType,
-    _In_ PBYTE InputBuffer,
+    _In_ FVE_CONTROL_TYPE ControlType,
+    _In_reads_bytes_opt_(InputSize) PBYTE InputBuffer,
     _In_ ULONG InputSize,
-    _Out_ PBYTE OutputBuffer,
-    _Out_ PULONG OutputSize
+    _Out_writes_bytes_opt_(*OutputSize) PBYTE OutputBuffer,
+    _Inout_ PULONG OutputSize
     );
 
 /**
@@ -3139,8 +3297,8 @@ HRESULT
 NTAPI
 FveGenerateNbp(
     _In_ HANDLE FveVolumeHandle,
-    _In_ ULONG CertThumbprintSize,
-    _In_ PBYTE CertThumbprint
+    _In_ DWORD CertThumbprintSize,
+    _In_reads_bytes_(CertThumbprintSize) PBYTE CertThumbprint
     );
 
 /**
@@ -3159,21 +3317,23 @@ FveRegenerateNbpSessionKey(
 /**
  * The FveCanStandardUsersChangePin routine determines whether standard users are permitted to change the PIN.
  *
- * \param[out] ptStandardUsersCanChangePin Receives a value indicating whether standard users can change the PIN.
+ * \param[out] CanChangePin Receives a value indicating whether standard users can change the PIN.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveCanStandardUsersChangePin(
-    _Out_ PBOOL ptStandardUsersCanChangePin
+    _Out_ PBOOL CanChangePin
     );
 
 /**
- * The FveCanStandardUsersChangePassphraseByProxy routine determines whether standard users are permitted to change the passphrase by proxy.
+ * The FveCanStandardUsersChangePassphraseByProxy routine determines whether standard users are permitted to change
+ * the passphrase by proxy.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] ptStandardUsersCanChangePassphraseByProxy Receives a value indicating whether standard users can change the passphrase by proxy.
+ * \param[out] CanChangePassphrase Receives a value indicating whether standard users can change the passphrase by
+ * proxy.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3181,7 +3341,7 @@ HRESULT
 NTAPI
 FveCanStandardUsersChangePassphraseByProxy(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PBOOL ptStandardUsersCanChangePassphraseByProxy
+    _Out_ PBOOL CanChangePassphrase
     );
 
 /**
@@ -3219,6 +3379,7 @@ FveDecrementClearKeyCounter(
  * \param[out] ClearKeyCounter Receives the clear-key reference counter.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
+NTSYSAPI
 HRESULT
 NTAPI
 FveGetClearKeyCounter(
@@ -3244,16 +3405,16 @@ FveAddAuthMethodSid(
     _In_ PCWSTR FriendlyName,
     _In_ PSID Sid,
     _In_ USHORT Flags,
-    _Out_ LPGUID AuthMethodGuid
+    _Out_ PGUID AuthMethodGuid
     );
 
 /**
  * The FveGetAuthMethodSid routine retrieves the SID-based authentication methods on the specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[out] Sid Receives the security identifier (SID).
- * \param[out] AuthMethodGuidArray Receives the buffer that receives the authentication method GUIDs.
- * \param[out] AuthMethodCount Receives the number of authentication methods.
+ * \param[in] Sid The SID whose authentication methods are queried.
+ * \param[out] AuthMethodGuids Receives the buffer that receives the authentication method GUIDs.
+ * \param[in,out] AuthMethodCount On input, the GUID array capacity; receives the required or returned count.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3261,9 +3422,9 @@ HRESULT
 NTAPI
 FveGetAuthMethodSid(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PSID Sid,
-    _Out_ LPGUID AuthMethodGuidArray,
-    _Out_ PULONG AuthMethodCount
+    _In_ PSID Sid,
+    _Out_writes_to_opt_(*AuthMethodCount, *AuthMethodCount) PGUID AuthMethodGuids,
+    _Inout_ PULONG AuthMethodCount
     );
 
 /**
@@ -3278,7 +3439,7 @@ HRESULT
 NTAPI
 FveUnlockVolumeAuthMethodSid(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGuid
+    _In_ PCGUID AuthMethodGuid
     );
 
 /**
@@ -3288,7 +3449,7 @@ FveUnlockVolumeAuthMethodSid(
  * \param[in] AuthMethodGuid The GUID identifying the authentication method.
  * \param[out] Flags Receives the operation flags.
  * \param[out] Sid Receives the security identifier (SID).
- * \param[out] SidBufferSize Receives the size, in bytes, of the SID buffer.
+ * \param[in,out] SidBufferSize On input, the SID buffer size in bytes; receives the required or returned size.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3296,11 +3457,13 @@ HRESULT
 NTAPI
 FveGetAuthMethodSidInformation(
     _In_ HANDLE FveVolumeHandle,
-    _In_ LPCGUID AuthMethodGuid,
+    _In_ PCGUID AuthMethodGuid,
     _Out_ PUSHORT Flags,
-    _Out_ PSID Sid,
-    _Out_ PULONG SidBufferSize
+    _Out_writes_bytes_opt_(*SidBufferSize) PSID Sid,
+    _Inout_ PULONG SidBufferSize
     );
+
+#define FVE_FIND_VERSION_1 1
 
 /**
  * Contains information about a volume returned during volume enumeration.
@@ -3311,11 +3474,13 @@ typedef struct _FVE_FIND_DATA_V1
     FVE_DEVICE_TYPE DevType;
 } FVE_FIND_DATA_V1, *PFVE_FIND_DATA_V1;
 
+typedef const FVE_FIND_DATA_V1 *PCFVE_FIND_DATA_V1;
+
 /**
  * The FveFindFirstVolume routine begins enumeration of FVE volumes and returns the first volume.
  *
  * \param[out] FveFindHandle Receives a volume enumeration (find) handle.
- * \param[out] FindData Receives the volume find data.
+ * \param[in,out] FindData Optional initialized find-data structure; receives information about the first volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3323,14 +3488,14 @@ HRESULT
 NTAPI
 FveFindFirstVolume(
     _Out_ PHANDLE FveFindHandle,
-    _Out_ PFVE_FIND_DATA_V1 FindData
+    _Inout_opt_ PFVE_FIND_DATA_V1 FindData
     );
 
 /**
  * The FveFindNextVolume routine continues enumeration of FVE volumes and returns the next volume.
  *
  * \param[in] FveFindHandle A volume enumeration (find) handle.
- * \param[out] FindData Receives the volume find data.
+ * \param[in,out] FindData Optional initialized find-data structure; receives information about the next volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3338,14 +3503,15 @@ HRESULT
 NTAPI
 FveFindNextVolume(
     _In_ HANDLE FveFindHandle,
-    _Out_ PFVE_FIND_DATA_V1 FindData
+    _Inout_opt_ PFVE_FIND_DATA_V1 FindData
     );
 
 /**
  * The FveGetVolumeNameW routine retrieves the name of the volume associated with the specified handle.
  *
  * \param[in] FveHandle A handle to the FVE object.
- * \param[in, out] VolumeNameBufferCchLen On input, specifies the size, in characters, of the volume name buffer; on output, receives the number of characters written or required.
+ * \param[in,out] VolumeNameBufferCchLen On input, specifies the size, in characters, of the volume name buffer; on
+ * output, receives the number of characters written or required.
  * \param[out] VolumeName Receives the volume name.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -3355,11 +3521,12 @@ NTAPI
 FveGetVolumeNameW(
     _In_ HANDLE FveHandle,
     _Inout_ PULONG VolumeNameBufferCchLen,
-    _Out_ LPWSTR VolumeName
+    _Out_writes_opt_(*VolumeNameBufferCchLen) PWSTR VolumeName
     );
 
 /**
- * The FveUpdateBandIdBcd routine updates the band identifier stored in the boot configuration data for the specified volume.
+ * The FveUpdateBandIdBcd routine updates the band identifier stored in the boot configuration data for the specified
+ * volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -3385,22 +3552,22 @@ HRESULT
 NTAPI
 FveLogRecoveryReason(
     _In_ HANDLE FveVolumeHandle,
-    _In_ ULONG RecoveryReason,
-    _In_ PCWSTR ApplicationPath,
-    _In_ ULONG ChangedBcd
+    _In_ DWORD RecoveryReason,
+    _In_opt_ PCWSTR ApplicationPath,
+    _In_ DWORD ChangedBcd
     );
 
 /**
  * The FveIsSchemaExtInstalled routine determines whether the Active Directory schema extension is installed.
  *
- * \param[out] SchemExtInstalled Receives a value indicating whether the schema extension is installed.
+ * \param[out] SchemaExtInstalled Receives a value indicating whether the schema extension is installed.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveIsSchemaExtInstalled(
-    _Out_ PBOOL SchemExtInstalled
+    _Out_ PBOOL SchemaExtInstalled
     );
 
 /**
@@ -3418,14 +3585,14 @@ typedef enum _FVE_SECUREBOOT_BINDING_STATE
 /**
  * The FveGetSecureBootBindingState routine retrieves the Secure Boot binding state.
  *
- * \param[out] SecureBootBindingState Receives the Secure Boot binding state.
+ * \param[out] BindingState Receives the Secure Boot binding state.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 FveGetSecureBootBindingState(
-    _Out_ PFVE_SECUREBOOT_BINDING_STATE SecureBootBindingState
+    _Out_ PFVE_SECUREBOOT_BINDING_STATE BindingState
     );
 
 /**
@@ -3487,7 +3654,7 @@ FveValidateDeviceLockoutState(
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[out] PerUserData Receives the per-user device lockout data.
- * \param[out] PerUserSize Receives the size, in bytes, of the per-user device lockout data.
+ * \param[in,out] PerUserSize On input, the data buffer size in bytes; receives the required or returned size.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3495,8 +3662,8 @@ HRESULT
 NTAPI
 FveGetDeviceLockoutData(
     _In_ HANDLE FveVolumeHandle,
-    _Out_ PBYTE PerUserData,
-    _Out_ PULONG PerUserSize
+    _Out_writes_bytes_opt_(*PerUserSize) PBYTE PerUserData,
+    _Inout_ PULONG PerUserSize
     );
 
 /**
@@ -3512,12 +3679,13 @@ HRESULT
 NTAPI
 FveUpdateDeviceLockoutState(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PBYTE PerUserData,
+    _In_reads_bytes_(PerUserSize) PBYTE PerUserData,
     _In_ ULONG PerUserSize
     );
 
 /**
- * The FveUpdateDeviceLockoutStateEx routine updates the device lockout state of the specified volume with the given flags.
+ * The FveUpdateDeviceLockoutStateEx routine updates the device lockout state of the specified volume with the given
+ * flags.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \param[in] PerUserData The per-user device lockout data.
@@ -3530,7 +3698,7 @@ HRESULT
 NTAPI
 FveUpdateDeviceLockoutStateEx(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PBYTE PerUserData,
+    _In_reads_bytes_(PerUserSize) PBYTE PerUserData,
     _In_ ULONG PerUserSize,
     _In_ ULONG Flags
     );
@@ -3549,7 +3717,8 @@ FveDisableDeviceLockoutState(
     );
 
 /**
- * The FveRecalculateOffsetsAndMoveMetadata routine recalculates metadata offsets and moves the metadata for the specified volume.
+ * The FveRecalculateOffsetsAndMoveMetadata routine recalculates metadata offsets and moves the metadata for the
+ * specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -3562,7 +3731,8 @@ FveRecalculateOffsetsAndMoveMetadata(
     );
 
 /**
- * The FveDeleteDeviceEncryptionOptOutForVolumeW routine deletes the device-encryption opt-out marker for the named volume.
+ * The FveDeleteDeviceEncryptionOptOutForVolumeW routine deletes the device-encryption opt-out marker for the named
+ * volume.
  *
  * \param[in] VolumePath The volume path.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
@@ -3585,14 +3755,14 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveGetExternalKeyBlob(
-    _Out_ PBYTE *Buffer,
-    _Out_ PULONG BufferSize
+    _Outptr_result_bytebuffer_(*BufferSize) PBYTE *Buffer,
+    _Out_ PDWORD BufferSize
     );
 
 /**
  * The FveEscrowEncryptedRecoveryKeyForRetailUnlock routine escrows the encrypted recovery key used for retail unlock.
  *
- * \param[out] Buffer Receives the buffer.
+ * \param[in] Buffer The encrypted recovery-key buffer.
  * \param[in] BufferSize The size, in bytes, of the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -3600,8 +3770,8 @@ NTSYSAPI
 HRESULT
 NTAPI
 FveEscrowEncryptedRecoveryKeyForRetailUnlock(
-    _Out_ PBYTE Buffer,
-    _In_ ULONG BufferSize
+    _In_reads_bytes_(BufferSize) PBYTE Buffer,
+    _In_ DWORD BufferSize
     );
 
 /**
@@ -3656,6 +3826,9 @@ FveCommitChangesEx(
     _In_ FVE_SCENARIO_TYPE FveScenario
     );
 
+#define FVE_EXTERNAL_DATA_ENTRY_VERSION_1 1
+#define FVE_EXTERNAL_DATA_ENTRY_DESCRIPTION_LENGTH 16
+
 /**
  * Describes an external data entry stored on a volume.
  */
@@ -3665,7 +3838,7 @@ typedef struct _FVE_EXTERNAL_DATA_ENTRY_INFO_V1
     USHORT Version;
     GUID EntryTypeId;
     GUID EntryId;
-    WCHAR EntryLabel[16];
+    WCHAR EntryLabel[FVE_EXTERNAL_DATA_ENTRY_DESCRIPTION_LENGTH];
     FILETIME DateTimeCreated;
 } FVE_EXTERNAL_DATA_ENTRY_INFO_V1, *PFVE_EXTERNAL_DATA_ENTRY_INFO_V1;
 
@@ -3695,10 +3868,10 @@ typedef const FVE_EXTERNAL_DATA_ENTRY_SELECT_V1 *PCFVE_EXTERNAL_DATA_ENTRY_SELEC
  * The FveExternalDataCreateEntry routine creates an external data entry on the specified volume.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] CreateEntryFlags Flags controlling creation of the external data entry.
- * \param[in] NewEntryInfo The information describing the new external data entry.
- * \param[in] RawDataSizeBytes The size, in bytes, of the raw entry data.
- * \param[in] RawData The raw entry data.
+ * \param[in] Flags Flags controlling creation of the external data entry.
+ * \param[in,out] EntryInfo The entry information; receives the created entry identifier and timestamp.
+ * \param[in] DataSize The size, in bytes, of the raw entry data.
+ * \param[in] Data The raw entry data.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3706,20 +3879,20 @@ HRESULT
 NTAPI
 FveExternalDataCreateEntry(
     _In_ HANDLE FveVolumeHandle,
-    _In_ ULONG CreateEntryFlags,
-    _In_ PFVE_EXTERNAL_DATA_ENTRY_INFO_V1 NewEntryInfo,
-    _In_ USHORT RawDataSizeBytes,
-    _In_ PUCHAR RawData
+    _In_ ULONG Flags,
+    _Inout_ PFVE_EXTERNAL_DATA_ENTRY_INFO_V1 EntryInfo,
+    _In_ USHORT DataSize,
+    _In_reads_bytes_(DataSize) PBYTE Data
     );
 
 /**
  * The FveExternalDataGetEntryRawData routine retrieves the raw data of an external data entry.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] EntrySelect The external data entry selector.
- * \param[in] BufferSizeBytes The size, in bytes, of the buffer.
- * \param[out] OutSizeBytes Receives the number of bytes written.
- * \param[out] Buffer Receives the buffer.
+ * \param[in] Selection The external data entry selector.
+ * \param[in] DataBufferSize The size, in bytes, of the buffer.
+ * \param[out] DataSize Receives the number of bytes written.
+ * \param[out] Data Receives the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3727,22 +3900,22 @@ HRESULT
 NTAPI
 FveExternalDataGetEntryRawData(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 EntrySelect,
-    _In_ USHORT BufferSizeBytes,
-    _Out_ PUSHORT OutSizeBytes,
-    _Out_ PUCHAR Buffer
+    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 Selection,
+    _In_ USHORT DataBufferSize,
+    _Out_ PUSHORT DataSize,
+    _Out_writes_bytes_opt_(DataBufferSize) PBYTE Data
     );
 
 /**
  * The FveExternalDataGetEntryInfo routine retrieves information about external data entries.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] EntrySelect The external data entry selector.
- * \param[in] EntryInfoStructVersion The version of the entry information structure.
- * \param[in] BufferSizeBytes The size, in bytes, of the buffer.
- * \param[out] OutSizeBytes Receives the number of bytes written.
- * \param[out] OutEntryCount Receives the number of entries returned.
- * \param[out] Buffer Receives the buffer.
+ * \param[in] Selection The external data entry selector.
+ * \param[in] EntryInfoVersion The version of the entry information structure.
+ * \param[in] EntryInfoBufferSize The size, in bytes, of the buffer.
+ * \param[out] RequiredSize Receives the number of bytes written.
+ * \param[out] EntryCount Receives the number of entries returned.
+ * \param[out] EntryInfo Receives the buffer.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
 NTSYSAPI
@@ -3750,19 +3923,19 @@ HRESULT
 NTAPI
 FveExternalDataGetEntryInfo(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 EntrySelect,
-    _In_ USHORT EntryInfoStructVersion,
-    _In_ ULONG BufferSizeBytes,
-    _Out_ PULONG OutSizeBytes,
-    _Out_ PUSHORT OutEntryCount,
-    _Out_ PFVE_EXTERNAL_DATA_ENTRY_INFO_V1 Buffer
+    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 Selection,
+    _In_ USHORT EntryInfoVersion,
+    _In_ ULONG EntryInfoBufferSize,
+    _Out_ PULONG RequiredSize,
+    _Out_ PUSHORT EntryCount,
+    _Out_writes_bytes_opt_(EntryInfoBufferSize) PFVE_EXTERNAL_DATA_ENTRY_INFO_V1 EntryInfo
     );
 
 /**
  * The FveExternalDataDeleteEntries routine deletes external data entries matching the specified selector.
  *
  * \param[in] FveVolumeHandle A handle to the FVE volume.
- * \param[in] EntrySelect The external data entry selector.
+ * \param[in] Selection The external data entry selector.
  * \param[out] DeletedEntryCount Receives the number of entries deleted.
  * \return Returns S_OK if successful, or an appropriate HRESULT error code otherwise.
  */
@@ -3771,8 +3944,159 @@ HRESULT
 NTAPI
 FveExternalDataDeleteEntries(
     _In_ HANDLE FveVolumeHandle,
-    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 EntrySelect,
-    _Out_ PUSHORT DeletedEntryCount
+    _In_ PCFVE_EXTERNAL_DATA_ENTRY_SELECT_V1 Selection,
+    _Out_opt_ PUSHORT DeletedEntryCount
+    );
+
+// rev: export ABIs verified on x64 and WOW64 10.0.26100.9278.
+/**
+ * Retrieves an internal encryption-state result for the specified volume.
+ *
+ * \param[in] FveVolumeHandle A handle to the FVE volume.
+ * \return A 32-bit state value or an HRESULT error. The state-value interpretation is not assigned here.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+InternalFveIsVolumeEncrypted(
+    _In_ HANDLE FveVolumeHandle
+    );
+
+/**
+ * Checks DMA security for device encryption.
+ *
+ * \param[out] IsDmaSecure Receives the DMA-security result.
+ * \param[in,out] HstiResults The opaque HSTI results.
+ * \param[out] Information Optional output for an opaque name/value collection.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckDmaSecurity(
+    _Out_ PBOOLEAN IsDmaSecure,
+    _Inout_ PNGSCB_HSTI_RESULTS HstiResults,
+    _Outptr_opt_result_maybenull_ PNGSCB_NAME_VALUE_COLLECTION *Information
+    );
+
+/**
+ * Checks DMA security and obtains additional device-encryption information.
+ *
+ * \param[out] IsDmaSecure Receives the DMA-security result.
+ * \param[in,out] HstiResults The opaque HSTI results.
+ * \param[out] Information Optional output for an opaque information collection.
+ * \param[out] Capabilities Optional output for an opaque capabilities collection.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckDmaSecurityEx(
+    _Out_ PBOOLEAN IsDmaSecure,
+    _Inout_ PNGSCB_HSTI_RESULTS HstiResults,
+    _Outptr_opt_result_maybenull_ PNGSCB_NAME_VALUE_COLLECTION *Information,
+    _Outptr_opt_result_maybenull_ PNGSCB_NAME_VALUE_COLLECTION *Capabilities
+    );
+
+/**
+ * Checks whether the HSTI prerequisites are verified.
+ *
+ * \param[out] PrerequisitesVerified Receives the prerequisite-verification result.
+ * \param[in] HstiResults The opaque HSTI results.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckHSTIPrerequisitesVerified(
+    _Out_ PBOOLEAN PrerequisitesVerified,
+    _In_ PNGSCB_HSTI_RESULTS HstiResults
+    );
+
+/**
+ * Checks whether the device supports always-on, always-connected operation.
+ *
+ * \param[out] IsAoacDevice Receives the AOAC-device result.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckIsAOACDevice(
+    _Out_ PBOOLEAN IsAoacDevice
+    );
+
+/**
+ * Checks whether HSTI is verified.
+ *
+ * \param[out] IsHstiVerified Receives the HSTI-verification result.
+ * \param[out] HstiResults Optional output for opaque HSTI results.
+ * \param[out] ParsingStatus Optional opaque parsing-status buffer.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckIsHSTIVerified(
+    _Out_ PBOOLEAN IsHstiVerified,
+    _Outptr_opt_result_maybenull_ PNGSCB_HSTI_RESULTS *HstiResults,
+    _Out_opt_ PNGSCB_HSTI_PARSING_STATUS ParsingStatus
+    );
+
+/**
+ * Checks whether device encryption is prevented.
+ *
+ * \param[out] PreventDeviceEncryption Receives the device-encryption restriction result.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckPreventDeviceEncryption(
+    _Out_ PBOOLEAN PreventDeviceEncryption
+    );
+
+/**
+ * Checks whether device encryption is prevented for AAD.
+ *
+ * \param[out] PreventDeviceEncryption Receives the device-encryption restriction result.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbCheckPreventDeviceEncryptionForAad(
+    _Out_ PBOOLEAN PreventDeviceEncryption
+    );
+
+/**
+ * Retrieves the Windows recovery-environment configuration.
+ *
+ * \param[out] WinReAvailable Receives the Windows recovery-environment availability result.
+ * \param[out] Configuration Optional configuration buffer.
+ * \param[in] ConfigurationCch The configuration buffer capacity, in WCHARs.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbGetWinReConfiguration(
+    _Out_ PBOOLEAN WinReAvailable,
+    _Out_writes_opt_(ConfigurationCch) PWSTR Configuration,
+    _In_ ULONG ConfigurationCch
+    );
+
+/**
+ * Checks whether the host operating system resides on a roamable drive.
+ *
+ * \param[out] IsRoamable Receives the roamable-drive result.
+ * \return Returns S_OK if successful, or an HRESULT error.
+ */
+NTSYSAPI
+HRESULT
+NTAPI
+NgscbIsHostOsOnRoamableDrive(
+    _Out_ PBOOL IsRoamable
     );
 
 /**
@@ -3784,5 +4108,7 @@ typedef enum _FVE_TPM_PROTECTOR_VERSION
     FveTpmProtectorVersion2 = 2,
     FveTpmProtectorVersionMax = 3
 } FVE_TPM_PROTECTOR_VERSION, *PFVE_TPM_PROTECTOR_VERSION;
+
+EXTERN_C_END
 
 #endif // _FVEAPI_H
