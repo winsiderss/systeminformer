@@ -1,6 +1,5 @@
 // Microsoft Visual C++ generated resource script.
 //
-
 #include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
@@ -25,18 +24,18 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE
+1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE
+2 TEXTINCLUDE 
 BEGIN
     "#include ""winres.h""\r\n"
     "#include ""include/phappres.h""\0"
 END
 
-3 TEXTINCLUDE
+3 TEXTINCLUDE 
 BEGIN
     "\0"
 END
@@ -1475,7 +1474,6 @@ BEGIN
     LTEXT           "",IDC_IMAGEDESC,45,23,268,8
     LTEXT           "Command:",IDC_STATIC,7,40,40,8
     EDITTEXT        IDC_COMMAND,45,37,268,12,ES_AUTOHSCROLL
-    CONTROL         "Process Isolation",IDC_PROCESSISOLATION,"Button",BS_AUTOCHECKBOX | WS_DISABLED | WS_TABSTOP,45,55,120,10
     LTEXT           "Ready",IDC_STATUS,7,75,306,8
     CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,87,306,10
     DEFPUSHBUTTON   "Run",IDC_PULLRUN,205,109,50,14
@@ -1653,12 +1651,12 @@ BEGIN
 END
 
 IDD_RUNFILEDLG DIALOGEX 0, 0, 235, 105
-STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Run"
 FONT 9, "Segoe UI", 0, 0, 0x1
 BEGIN
     ICON            100,IDC_FILEICON,7,11,20,20
-    LTEXT           "Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.",IDC_STATIC,36,11,182,22
+    LTEXT           "Type the name of a program, folder, document, or Internet resource, and Windows will open it for you.",IDC_MESSAGE,36,11,182,22
     LTEXT           "&Open:",IDC_STATIC,7,39,28,10
     COMBOBOX        IDC_PROGRAMCOMBO,36,37,183,200,CBS_DROPDOWN | CBS_AUTOHSCROLL | CBS_DISABLENOSCROLL | WS_VSCROLL | WS_TABSTOP
     DEFPUSHBUTTON   "OK",IDOK,62,82,50,14

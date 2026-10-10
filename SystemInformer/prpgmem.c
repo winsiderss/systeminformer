@@ -904,6 +904,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_HEAPS,
                         PH_MEMORY_FILTER_MENU_MODIFIED,
                         PH_MEMORY_FILTER_MENU_STRINGS,
+                        PH_MEMORY_FILTER_MENU_CFG_BITMAP,
                         PH_MEMORY_FILTER_MENU_SAVE,
                         PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES
                     } PH_MEMORY_FILTER_MENU_ITEM;
@@ -924,6 +925,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HEAPS, L"Heaps...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_MODIFIED, L"Modified...", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_STRINGS, L"Strings...", NULL, NULL), ULONG_MAX);
+#ifdef _WIN64
+                    PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_CFG_BITMAP, L"CFG bitmap...", NULL, NULL), ULONG_MAX);
+#endif
                     PhInsertEMenuItem(menu, PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_SAVE, L"Save...", NULL, NULL), ULONG_MAX);
 
                     if (memoryContext->ListContext.HideFreeRegions)
@@ -991,7 +995,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
 
                             if (id != ULONG_MAX)
                             {
-                                PhSetOptionsMemoryList(&memoryContext->ListContext, selectedItem->Id);
+                                PhSetOptionsMemoryList(&memoryContext->ListContext, id);
                                 PhSaveSettingsMemoryList(&memoryContext->ListContext);
 
                                 PhApplyTreeNewFilters(&memoryContext->ListContext.AllocationTreeFilterSupport);
@@ -1019,6 +1023,10 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                 PhShowMemoryStringTreeDialog(hwndDlg, processItem);
                             else
                                 PhShowMemoryStringDialog(hwndDlg, processItem);
+                        }
+                        else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_CFG_BITMAP)
+                        {
+                            PhShowProcessCfgBitmapDialog(hwndDlg, processItem);
                         }
                         else if (selectedItem->Id == PH_MEMORY_FILTER_MENU_SAVE)
                         {
