@@ -3482,13 +3482,21 @@ static int mz_stat64(const char *path, struct __stat64 *buffer)
 
     static mz_bool mz_zip_set_file_times(const char *pFilename, MZ_TIME_T access_time, MZ_TIME_T modified_time)
     {
+#ifdef _MSC_VER
+        struct _utimbuf t;
+#else
         struct utimbuf t;
+#endif
 
         memset(&t, 0, sizeof(t));
         t.actime = access_time;
         t.modtime = modified_time;
 
+#ifdef _MSC_VER
+        return !_utime(pFilename, &t);
+#else
         return !utime(pFilename, &t);
+#endif
     }
 #endif /* #ifndef MINIZ_NO_STDIO */
 #endif /* #ifndef MINIZ_NO_TIME */
