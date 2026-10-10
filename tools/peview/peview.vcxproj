@@ -215,7 +215,6 @@
         <ClCompile Include="exlfimports.c" />
         <ClCompile Include="exlfprp.c" />
         <ClCompile Include="hashprp.c" />
-        <ClCompile Include="peanomprp.c" />
         <ClCompile Include="layout.c" />
         <ClCompile Include="pedynrelocprp.c" />
         <ClCompile Include="peheaderprp.c" />
@@ -225,27 +224,6 @@
         <ClCompile Include="peexceptprp.c" />
         <ClCompile Include="perelocprp.c" />
         <ClCompile Include="peprpicon.cpp" />
-        <ClCompile Include="webview\pvwebshell.cpp" />
-        <ClCompile Include="webview\pvwebjson.cpp" />
-        <ClCompile Include="webview\attributes_web.c" />
-        <ClCompile Include="webview\cfgprp_web.c" />
-        <ClCompile Include="webview\ehcontprp_web.c" />
-        <ClCompile Include="webview\expprp_web.c" />
-        <ClCompile Include="webview\impprp_web.c" />
-        <ClCompile Include="webview\links_web.c" />
-        <ClCompile Include="webview\pedirprp_web.c" />
-        <ClCompile Include="webview\peheaderprp_web.c" />
-        <ClCompile Include="webview\pepogoprp_web.c" />
-        <ClCompile Include="webview\perelocprp_web.c" />
-        <ClCompile Include="webview\pesectionprp_web.c" />
-        <ClCompile Include="webview\processes_web.c" />
-        <ClCompile Include="webview\resources_web.c" />
-        <ClCompile Include="webview\streams_web.c" />
-        <ClCompile Include="webview\tlsprp_web.c" />
-        <ClCompile Include="model\pvmodel.c" />
-        <ClCompile Include="model\pvmodeltree.c" />
-        <ClCompile Include="model\pvmodellist.c" />
-        <ClCompile Include="model\pvmodelreport.c" />
         <ClCompile Include="pesectionprp.c" />
         <ClCompile Include="pepogoprp.c" />
         <ClCompile Include="appmanifest.c" />
@@ -282,14 +260,7 @@
         <ClInclude Include="include\peview.h" />
         <ClInclude Include="include\prpsh.h" />
         <ClInclude Include="include\pvtheme.h" />
-        <ClInclude Include="include\pvwebshell.h" />
-        <ClInclude Include="include\pvmodel.h" />
-        <ClInclude Include="include\pvmodelview.h" />
         <ClInclude Include="include\pvresources.h" />
-        <ClInclude Include="webview\generated\pvwebui.h" />
-        <ClInclude Include="webview\pvwebicons.h" />
-        <ClInclude Include="webview\pvwebjson.h" />
-        <ClInclude Include="webview\pvwebshellhtml.h" />
         <ClInclude Include="resource.h" />
     </ItemGroup>
     <ItemGroup>
@@ -331,18 +302,6 @@
         <None Include="resources\search_modern_light.svg" />
         <None Include="resources\search_stop_modern_dark.svg" />
         <None Include="resources\search_stop_modern_light.svg" />
-        <None Include="webui\dist\index.html" />
-        <None Include="webui\index.html" />
-        <None Include="webui\package-lock.json" />
-        <None Include="webui\package.json" />
-        <None Include="webui\src\bridge.test.ts" />
-        <None Include="webui\src\bridge.ts" />
-        <None Include="webui\src\main.tsx" />
-        <None Include="webui\src\protocol.ts" />
-        <None Include="webui\src\ui\App.tsx" />
-        <None Include="webui\src\ui\styles.css" />
-        <None Include="webui\tsconfig.json" />
-        <None Include="webui\vite.config.ts" />
     </ItemGroup>
     <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
 </Project>
