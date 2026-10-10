@@ -13,11 +13,14 @@
 #include <peview.h>
 #include <workqueue.h>
 #include <verify.h>
+#include <wincrypt.h>
 #include <math.h>
+#include <base64.h>
 
 #define PVM_CHECKSUM_DONE (WM_APP + 1)
 #define PVM_VERIFY_DONE (WM_APP + 2)
 #define PVM_ENTROPY_DONE (WM_APP + 3)
+#define PVM_ENTRYPOINT_DONE (WM_APP + 4)
 
 typedef enum _PVP_IMAGE_GENERAL_CATEGORY
 {
@@ -25,6 +28,7 @@ typedef enum _PVP_IMAGE_GENERAL_CATEGORY
     PVP_IMAGE_GENERAL_CATEGORY_FILEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO,
     PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO,
+    PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO,
     PVP_IMAGE_GENERAL_CATEGORY_MAXIMUM
 } PVP_IMAGE_GENERAL_CATEGORY;
 
@@ -58,6 +62,11 @@ typedef enum _PVP_IMAGE_GENERAL_INDEX
     PVP_IMAGE_GENERAL_INDEX_DEBUGIMAGE,
     PVP_IMAGE_GENERAL_INDEX_DEBUGVCFEATURE,
     PVP_IMAGE_GENERAL_INDEX_DEBUGREPRO,
+
+    PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO,
+    PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME,
+    PVP_IMAGE_GENERAL_INDEX_CERTSPKI,
+    PVP_IMAGE_GENERAL_INDEX_CERTSPC,
 
     PVP_IMAGE_GENERAL_INDEX_MAXIMUM
 } PVP_IMAGE_GENERAL_INDEX;
@@ -284,7 +293,7 @@ VOID PvPeProperties(
 
                 newPage = PvCreatePropPageContext(
                     MAKEINTRESOURCE(IDD_PECLRTABLES),
-                    PvpPeClrTablesDlgProc,
+                    PvPeClrTablesDlgProc,
                     NULL
                     );
                 PvAddPropPage(propContext, newPage);
@@ -688,11 +697,11 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
     status = PhCreateFileWin32(
         &fileHandle,
         PhGetString(FileName),
-        FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_DATA | FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_DELETE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         );
 
     if (!NT_SUCCESS(status))
@@ -701,9 +710,8 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
         numberOfSignatures = 0;
         return VrNoSignature;
     }
-    FILE_BASIC_INFORMATION basicInfo = { 0 };
-    basicInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-    PhSetFileBasicInformation(fileHandle, &basicInfo);
+
+    PvDisableFileTimestampUpdates(fileHandle);
 
     memset(&info, 0, sizeof(PH_VERIFY_FILE_INFO));
     info.FileHandle = fileHandle;
@@ -944,6 +952,56 @@ VOID PvpSetPeImageMachineType(
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_NAME, 1, type);
 }
 
+VOID PvpSetPeImageExecutableType(
+    _In_ HWND ListViewHandle
+    )
+{
+    ULONG characteristics;
+    PWSTR type;
+
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        characteristics = PvMappedImage.NtHeaders32->FileHeader.Characteristics;
+    else
+        characteristics = PvMappedImage.NtHeaders->FileHeader.Characteristics;
+
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        type = FlagOn(characteristics, IMAGE_FILE_DLL) ? L"32bit Dll" : L"32bit Exe";
+    else
+        type = FlagOn(characteristics, IMAGE_FILE_DLL) ? L"64bit Dll" : L"64bit Exe";
+
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_EXECUTABLETYPE, 1, type);
+}
+
+/**
+ * Determines whether the image entry point is non-zero and resolves into an executable section.
+ *
+ * \param ListViewHandle A handle to the listview.
+ */
+VOID PvpSetPeImageValidEntryPoint(
+    _In_ HWND ListViewHandle
+    )
+{
+    ULONG addressOfEntryPoint;
+    PIMAGE_SECTION_HEADER section;
+    BOOLEAN valid = FALSE;
+
+    if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        addressOfEntryPoint = PvMappedImage.NtHeaders32->OptionalHeader.AddressOfEntryPoint;
+    else
+        addressOfEntryPoint = PvMappedImage.NtHeaders->OptionalHeader.AddressOfEntryPoint;
+
+    if (addressOfEntryPoint)
+    {
+        if (NT_SUCCESS(PhMappedImageRvaToSection(&PvMappedImage, addressOfEntryPoint, &section)))
+        {
+            if (FlagOn(section->Characteristics, IMAGE_SCN_MEM_EXECUTE))
+                valid = TRUE;
+        }
+    }
+
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_VALIDENTRYPOINT, 1, valid ? L"True" : L"False");
+}
+
 VOID PvpSetPeImageTimeStamp(
     _In_ HWND ListViewHandle
     )
@@ -951,6 +1009,7 @@ VOID PvpSetPeImageTimeStamp(
     LARGE_INTEGER time;
     SYSTEMTIME timeFields;
     PPH_STRING string;
+    PPH_STRING reverseTimeStamp;
 
     PhSecondsSince1970ToTime(PvMappedImage.NtHeaders->FileHeader.TimeDateStamp, &time);
 
@@ -966,11 +1025,20 @@ VOID PvpSetPeImageTimeStamp(
 
         if (PvMappedImage.NtHeaders->FileHeader.TimeDateStamp)
         {
+            reverseTimeStamp = PhBufferToHexStringEx(
+                (PBYTE)&PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                sizeof(ULONG),
+                FALSE
+                );
+
             PhMoveReference(&string, PhFormatString(
-                L"%s (0x%lx) (deterministic)",
+                L"%s (0x%lx) (0x%s) (deterministic)",
                 PhGetStringOrEmpty(string),
-                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp
+                PvMappedImage.NtHeaders->FileHeader.TimeDateStamp,
+                reverseTimeStamp->Buffer
                 ));
+
+            PhDereferenceObject(reverseTimeStamp);
         }
         else
         {
@@ -1180,21 +1248,23 @@ static NTSTATUS PvpEntryPointImageThreadStart(
         break;
     }
 
-    PhSetListViewSubItem(Parameter, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, PhGetStringOrEmpty(string));
+    // The page owns the listview and is the shell's model, so the value goes back to
+    // the dialog thread rather than being written from here. (dmex)
+    PostMessage((HWND)Parameter, PVM_ENTRYPOINT_DONE, 0, (LPARAM)string);
 
-    PhClearReference(&string);
     PhClearReference(&symbolName);
     PhClearReference(&symbol);
     return STATUS_SUCCESS;
 }
 
 VOID PvpSetPeImageEntryPoint(
+    _In_ HWND WindowHandle,
     _In_ HWND ListViewHandle
     )
 {
     PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_ENTRYPOINT, 1, L"Resolving...");
 
-    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, ListViewHandle);
+    PhQueueItemWorkQueue(PhGetGlobalWorkQueue(), PvpEntryPointImageThreadStart, WindowHandle);
 }
 
 VOID PvpSetPeImageCheckSum(
@@ -1432,16 +1502,14 @@ VOID PvpSetPeImageFileProperties(
     if (NT_SUCCESS(PhCreateFileWin32(
         &fileHandle,
         PhGetString(PvFileName),
-        FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+        FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
         FILE_SHARE_READ | FILE_SHARE_WRITE,
         FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
     {
-        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
-        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+        PvDisableFileTimestampUpdates(fileHandle);
 
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
@@ -1636,14 +1704,12 @@ VOID PvUpdatePeFileTimes(
         PhGetString(PvFileName),
         FILE_READ_ATTRIBUTES | SYNCHRONIZE,
         FILE_ATTRIBUTE_NORMAL,
-        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
         FILE_OPEN,
-        FILE_SYNCHRONOUS_IO_NONALERT
+        FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         )))
     {
-        FILE_BASIC_INFORMATION basicTimestampInfo = { 0 };
-        basicTimestampInfo.LastAccessTime.QuadPart = FILE_TIMESTAMP_UPDATE_DISABLE;
-        PhSetFileBasicInformation(fileHandle, &basicTimestampInfo);
+        PvDisableFileTimestampUpdates(fileHandle);
 
         if (NT_SUCCESS(PhGetFileBasicInformation(fileHandle, &basicInfo)))
         {
@@ -1687,7 +1753,6 @@ VOID PvpSetPeImageDebugRepoHash(
     PIMAGE_DEBUG_REPRO_ENTRY debugEntry;
     ULONG debugEntryLength;
     PPH_STRING string = NULL;
-    PPH_STRING timeStamp;
 
     if (NT_SUCCESS(PhGetMappedImageDebugEntryByType(
         &PvMappedImage,
@@ -1845,6 +1910,338 @@ VOID PvpSetPeImageDebugVCFeatures(
     }
 }
 
+BOOLEAN PvpGetSigningTimeFromAttributes(
+    _In_ PCRYPT_ATTRIBUTES Attributes,
+    _Out_ PLARGE_INTEGER SigningTime
+    )
+{
+    for (ULONG i = 0; i < Attributes->cAttr; i++)
+    {
+        PCRYPT_ATTRIBUTE attribute = &Attributes->rgAttr[i];
+        FILETIME fileTime;
+        ULONG fileTimeLength = sizeof(FILETIME);
+
+        if (!PhEqualBytesZ(attribute->pszObjId, szOID_RSA_signingTime, FALSE))
+            continue;
+        if (attribute->cValue == 0)
+            continue;
+
+        if (CryptDecodeObjectEx(
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            szOID_RSA_signingTime,
+            attribute->rgValue[0].pbData,
+            attribute->rgValue[0].cbData,
+            CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+            NULL,
+            &fileTime,
+            &fileTimeLength
+            ))
+        {
+            SigningTime->LowPart = fileTime.dwLowDateTime;
+            SigningTime->HighPart = fileTime.dwHighDateTime;
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN PvpGetSignerSigningTime(
+    _In_ PCMSG_SIGNER_INFO SignerInfo,
+    _Out_ PLARGE_INTEGER SigningTime
+    )
+{
+    for (ULONG i = 0; i < SignerInfo->UnauthAttrs.cAttr; i++)
+    {
+        PCRYPT_ATTRIBUTE attribute = &SignerInfo->UnauthAttrs.rgAttr[i];
+
+        if (attribute->cValue == 0)
+            continue;
+
+        if (PhEqualBytesZ(attribute->pszObjId, szOID_RFC3161_counterSign, FALSE))
+        {
+            PCRYPT_TIMESTAMP_CONTEXT timeStampContext;
+
+            if (CryptVerifyTimeStampSignature(
+                attribute->rgValue[0].pbData,
+                attribute->rgValue[0].cbData,
+                NULL,
+                0,
+                NULL,
+                &timeStampContext,
+                NULL,
+                NULL
+                ))
+            {
+                SigningTime->LowPart = timeStampContext->pTimeStamp->ftTime.dwLowDateTime;
+                SigningTime->HighPart = timeStampContext->pTimeStamp->ftTime.dwHighDateTime;
+                CryptMemFree(timeStampContext);
+                return TRUE;
+            }
+        }
+        else if (PhEqualBytesZ(attribute->pszObjId, szOID_RSA_counterSign, FALSE))
+        {
+            PCMSG_SIGNER_INFO counterSignerInfo;
+            ULONG counterSignerInfoLength = 0;
+
+            if (CryptDecodeObjectEx(
+                X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                PKCS7_SIGNER_INFO,
+                attribute->rgValue[0].pbData,
+                attribute->rgValue[0].cbData,
+                CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                NULL,
+                &counterSignerInfo,
+                &counterSignerInfoLength
+                ))
+            {
+                BOOLEAN found = PvpGetSigningTimeFromAttributes(&counterSignerInfo->AuthAttrs, SigningTime);
+
+                LocalFree(counterSignerInfo);
+
+                if (found)
+                    return TRUE;
+            }
+        }
+    }
+
+    // Fall back to the primary signer's authenticated signing time.
+    return PvpGetSigningTimeFromAttributes(&SignerInfo->AuthAttrs, SigningTime);
+}
+
+PPH_STRING PvpGetCertificateNameString(
+    _In_ PCCERT_CONTEXT CertificateContext,
+    _In_ ULONG Flags
+    )
+{
+    ULONG dataLength;
+
+    if (dataLength = CertGetNameString(CertificateContext, CERT_NAME_SIMPLE_DISPLAY_TYPE, Flags, NULL, NULL, 0))
+    {
+        PPH_STRING data = PhCreateStringEx(NULL, dataLength * sizeof(WCHAR));
+
+        if (CertGetNameString(
+            CertificateContext,
+            CERT_NAME_SIMPLE_DISPLAY_TYPE,
+            Flags,
+            NULL,
+            data->Buffer,
+            (ULONG)data->Length / sizeof(WCHAR)
+            ))
+        {
+            PhTrimToNullTerminatorString(data);
+            return data;
+        }
+
+        PhDereferenceObject(data);
+    }
+
+    return NULL;
+}
+
+VOID PvpSetPeImageCertificateInfo(
+    _In_ HWND ListViewHandle
+    )
+{
+    HCERTSTORE certStore = NULL;
+    HCRYPTMSG cryptMessage = NULL;
+    PCMSG_SIGNER_INFO signerInfo = NULL;
+    PCCERT_CONTEXT certificate = NULL;
+    ULONG signerInfoLength = 0;
+
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, 1, L"N/A");
+    PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPC, 1, L"N/A");
+
+    if (!CryptQueryObject(
+        CERT_QUERY_OBJECT_FILE,
+        PhGetString(PvFileName),
+        CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED,
+        CERT_QUERY_FORMAT_FLAG_BINARY,
+        0,
+        NULL,
+        NULL,
+        NULL,
+        &certStore,
+        &cryptMessage,
+        NULL
+        ))
+    {
+        return;
+    }
+
+    if (
+        CryptMsgGetParam(cryptMessage, CMSG_SIGNER_INFO_PARAM, 0, NULL, &signerInfoLength) &&
+        signerInfoLength > 0
+        )
+    {
+        signerInfo = PhAllocateZero(signerInfoLength);
+
+        if (!CryptMsgGetParam(cryptMessage, CMSG_SIGNER_INFO_PARAM, 0, signerInfo, &signerInfoLength))
+        {
+            PhFree(signerInfo);
+            signerInfo = NULL;
+        }
+    }
+
+    if (signerInfo)
+    {
+        CERT_INFO certInfo;
+        LARGE_INTEGER signingTime;
+
+        memset(&certInfo, 0, sizeof(CERT_INFO));
+        certInfo.Issuer = signerInfo->Issuer;
+        certInfo.SerialNumber = signerInfo->SerialNumber;
+
+        for (ULONG i = 0; i < signerInfo->AuthAttrs.cAttr; i++)
+        {
+            if (PhEqualBytesZ(SPC_SP_OPUS_INFO_OBJID, signerInfo->AuthAttrs.rgAttr[i].pszObjId, TRUE))
+            {
+                PSPC_SP_OPUS_INFO opusInfo;
+                ULONG opusInfoLength = 0;
+
+                if (CryptDecodeObjectEx(
+                    X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+                    SPC_SP_OPUS_INFO_OBJID,
+                    signerInfo->AuthAttrs.rgAttr[i].rgValue[0].pbData,
+                    signerInfo->AuthAttrs.rgAttr[i].rgValue[0].cbData,
+                    CRYPT_DECODE_NOCOPY_FLAG | CRYPT_DECODE_ALLOC_FLAG,
+                    NULL,
+                    &opusInfo,
+                    &opusInfoLength
+                    ))
+                {
+                    PPH_STRING value = NULL;
+                    PPH_STRING publisherUrl = NULL;
+                    PPH_STRING moreInfoUrl = NULL;
+
+                    if (opusInfo->pwszProgramName)
+                        value = PhCreateString(opusInfo->pwszProgramName);
+
+                    if (opusInfo->pPublisherInfo && opusInfo->pPublisherInfo->dwLinkChoice == SPC_URL_LINK_CHOICE)
+                        publisherUrl = PhCreateString(opusInfo->pPublisherInfo->pwszUrl);
+
+                    if (opusInfo->pMoreInfo && opusInfo->pMoreInfo->dwLinkChoice == SPC_URL_LINK_CHOICE)
+                        moreInfoUrl = PhCreateString(opusInfo->pMoreInfo->pwszUrl);
+
+                    if (publisherUrl && PhIsNullOrEmptyString(publisherUrl))
+                        PhClearReference(&publisherUrl);
+                    if (moreInfoUrl && PhIsNullOrEmptyString(moreInfoUrl))
+                        PhClearReference(&moreInfoUrl);
+
+                    if (publisherUrl || moreInfoUrl)
+                    {
+                        PPH_STRING urls;
+
+                        if (publisherUrl && moreInfoUrl)
+                            urls = PhFormatString(L"%s/%s", publisherUrl->Buffer, moreInfoUrl->Buffer);
+                        else if (publisherUrl)
+                            urls = PhReferenceObject(publisherUrl);
+                        else
+                            urls = PhReferenceObject(moreInfoUrl);
+
+                        if (value)
+                            PhMoveReference(&value, PhFormatString(L"%s (%s)", value->Buffer, urls->Buffer));
+                        else
+                            value = urls;
+
+                        if (value != urls)
+                            PhDereferenceObject(urls);
+                    }
+
+                    if (value)
+                    {
+                        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPC, 1, value->Buffer);
+                        PhDereferenceObject(value);
+                    }
+
+                    if (publisherUrl)
+                        PhDereferenceObject(publisherUrl);
+                    if (moreInfoUrl)
+                        PhDereferenceObject(moreInfoUrl);
+
+                    LocalFree(opusInfo);
+                }
+
+                break;
+            }
+        }
+
+        certificate = CertFindCertificateInStore(
+            certStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_FIND_SUBJECT_CERT,
+            &certInfo,
+            NULL
+            );
+
+        if (certificate)
+        {
+            PPH_STRING issuedTo;
+
+            if (issuedTo = PvpGetCertificateNameString(certificate, 0))
+            {
+                PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, 1, issuedTo->Buffer);
+                PhDereferenceObject(issuedTo);
+            }
+
+            {
+                PBYTE derBuffer = NULL;
+                ULONG derLength = 0;
+
+                if (CryptEncodeObjectEx(
+                    X509_ASN_ENCODING,
+                    X509_PUBLIC_KEY_INFO,
+                    &certificate->pCertInfo->SubjectPublicKeyInfo,
+                    CRYPT_ENCODE_ALLOC_FLAG,
+                    NULL,
+                    &derBuffer,
+                    &derLength
+                    ))
+                {
+                    PH_HASH_CONTEXT hashContext;
+                    UCHAR hash[PH_HASH_SHA256_LENGTH];
+                    CHAR base64Buffer[48];
+                    SIZE_T base64Length;
+
+                    if (
+                        NT_SUCCESS(PhInitializeHash(&hashContext, Sha256HashAlgorithm)) &&
+                        NT_SUCCESS(PhUpdateHash(&hashContext, derBuffer, derLength)) &&
+                        NT_SUCCESS(PhFinalHash(&hashContext, hash, sizeof(hash), NULL)) &&
+                        PhBase64Encode(hash, sizeof(hash), base64Buffer, sizeof(base64Buffer), &base64Length)
+                        )
+                    {
+                        PPH_STRING pin = PhZeroExtendToUtf16Ex(base64Buffer, base64Length);
+                        PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, 1, pin->Buffer);
+                        PhDereferenceObject(pin);
+                    }
+
+                    LocalFree(derBuffer);
+                }
+            }
+        }
+
+        if (PvpGetSignerSigningTime(signerInfo, &signingTime))
+        {
+            PPH_STRING timeString = PvGetRelativeTimeString(&signingTime);
+
+            PhSetListViewSubItem(ListViewHandle, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, 1, timeString->Buffer);
+            PhDereferenceObject(timeString);
+        }
+    }
+
+    if (certificate)
+        CertFreeCertificateContext(certificate);
+    if (signerInfo)
+        PhFree(signerInfo);
+    if (cryptMessage)
+        CryptMsgClose(cryptMessage);
+    if (certStore)
+        CertCloseStore(certStore, 0);
+}
+
 VOID PvpSetPeImageProperties(
     _In_ PPVP_PE_GENERAL_CONTEXT Context
     )
@@ -1878,13 +2275,17 @@ VOID PvpSetPeImageProperties(
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEID, L"File identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEOBJECTID, L"File object identifier", NULL);
     PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, PVP_IMAGE_GENERAL_INDEX_FILEUSN, L"File last USN", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTISSUEDTO, L"Issued to", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSIGNINGTIME, L"Signing time", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSPKI, L"SPKI", NULL);
+    PhAddListViewGroupItem(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, PVP_IMAGE_GENERAL_INDEX_CERTSPC, L"SPC", NULL);
 
     PvpSetPeImageMachineType(Context->ListViewHandle);
     PvpSetPeImageTimeStamp(Context->ListViewHandle);
     PvpSetPeImageBaseAddress(Context->ListViewHandle);
     PvpSetPeImageSize(Context->ListViewHandle);
     PvpSetPeImageEntropy(Context->WindowHandle, Context->ListViewHandle);
-    PvpSetPeImageEntryPoint(Context->ListViewHandle);
+    PvpSetPeImageEntryPoint(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageCheckSum(Context->WindowHandle, Context->ListViewHandle);
     PvpSetPeImageSpareHeaderBytes(Context->ListViewHandle);
     PvpSetPeImageSectionSlackBytes(Context->ListViewHandle);
@@ -1896,6 +2297,8 @@ VOID PvpSetPeImageProperties(
     PvpSetPeImageDebugPdb(Context->ListViewHandle);
     PvpSetPeImageDebugVCFeatures(Context->ListViewHandle);
     PvpSetPeImageDebugRepoHash(Context->ListViewHandle);
+    // Certificate information
+    PvpSetPeImageCertificateInfo(Context->ListViewHandle);
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
@@ -1911,10 +2314,12 @@ VOID PvPeAddImagePropertiesGroups(
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_FILEINFO, L"File information");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_DEBUGINFO, L"Debug information");
     PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_EXTRAINFO, L"Internal information");
+    PhAddListViewGroup(Context->ListViewHandle, PVP_IMAGE_GENERAL_CATEGORY_CERTIFICATEINFO, L"Certificate information");
 
     ExtendedListView_SetRedraw(Context->ListViewHandle, TRUE);
 }
 
+_Function_class_(PH_OPEN_OBJECT)
 NTSTATUS PhpOpenFileSecurity(
     _Out_ PHANDLE Handle,
     _In_ ACCESS_MASK DesiredAccess,
@@ -1946,11 +2351,11 @@ NTSTATUS PhpOpenFileSecurity(
         status = PhCreateFileWin32(
             Handle,
             PhGetString(PvFileName),
-            DesiredAccess | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
+            DesiredAccess | FILE_WRITE_ATTRIBUTES | READ_CONTROL | WRITE_DAC | SYNCHRONIZE,
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
             );
 
         if (!NT_SUCCESS(status))
@@ -1965,6 +2370,11 @@ NTSTATUS PhpOpenFileSecurity(
                 FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
                 );
         }
+    }
+
+    if (NT_SUCCESS(status))
+    {
+        PvDisableFileTimestampUpdates(*Handle);
     }
 
     return status;
@@ -2142,9 +2552,17 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         break;
     case WM_SIZE:
         {
+            // This page is the only one that re-autosizes a column on every resize.
+            // The layout move repaints the listview once and the column autosize
+            // repaints it again, so a splitter drag paints it twice per mouse move.
+            // Hold redraw across both so they collapse into a single paint. (dmex)
+            ExtendedListView_SetRedraw(context->ListViewHandle, FALSE);
+
             PhLayoutManagerLayout(&context->LayoutManager);
 
             ExtendedListView_SetColumnWidth(context->ListViewHandle, 1, ELVSCW_AUTOSIZE_REMAININGSPACE);
+
+            ExtendedListView_SetRedraw(context->ListViewHandle, TRUE);
         }
         break;
     case PVM_CHECKSUM_DONE:

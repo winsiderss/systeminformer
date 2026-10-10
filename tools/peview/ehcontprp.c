@@ -52,34 +52,28 @@ VOID PvEnumerateEHContinuationEntries(
 
             if (PvMappedImage.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
             {
-                if (!(symbol = PhGetSymbolFromAddress(
+                symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
                     PTR_ADD_OFFSET(UlongToPtr(PvMappedImage.NtHeaders32->OptionalHeader.ImageBase), UlongToPtr(rva)),
                     &symbolResolveLevel,
                     NULL,
                     &symbolName,
                     &displacement
-                    )))
-                {
-                    continue;
-                }
+                    );
             }
             else
             {
-                if (!(symbol = PhGetSymbolFromAddress(
+                symbol = PhGetSymbolFromAddress(
                     PvSymbolProvider,
                     PTR_ADD_OFFSET(PvMappedImage.NtHeaders->OptionalHeader.ImageBase, rva),
                     &symbolResolveLevel,
                     NULL,
                     &symbolName,
                     &displacement
-                    )))
-                {
-                    continue;
-                }
+                    );
             }
 
-            switch (symbolResolveLevel)
+            switch (symbol ? symbolResolveLevel : PhsrlInvalid)
             {
             case PhsrlFunction:
                 {
@@ -110,7 +104,8 @@ VOID PvEnumerateEHContinuationEntries(
 
             if (symbolName)
                 PhDereferenceObject(symbolName);
-            PhDereferenceObject(symbol);
+            if (symbol)
+                PhDereferenceObject(symbol);
         }
     }
 

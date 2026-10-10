@@ -618,7 +618,7 @@ INT_PTR CALLBACK PvpResourceViewerDlgProc(
                     context->FontHandle = CreateFont(
                         -PhMultiplyDivideSigned(9, PhGetWindowDpi(hwndDlg), 72),
                         0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-                        ANSI_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
+                        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
                         PhFontQuality, FIXED_PITCH | FF_MODERN, L"Consolas"
                         );
 

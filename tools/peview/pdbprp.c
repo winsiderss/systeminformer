@@ -681,6 +681,7 @@ VOID PvInitializeSymbolTree(
     TreeNew_SetRedraw(TreeNewHandle, TRUE);
     TreeNew_SetSort(TreeNewHandle, TREE_COLUMN_ITEM_INDEX, NoSortOrder);
     TreeNew_SetTriState(TreeNewHandle, TRUE);
+    TreeNew_SetRowHeight(TreeNewHandle, PvpGetTreeNewRowHeight(TreeNewHandle));
 
     PhCmInitializeManager(&Context->Cm, TreeNewHandle, TREE_COLUMN_ITEM_MAXIMUM, PvSymbolsTreeNewPostSortFunction);
 
