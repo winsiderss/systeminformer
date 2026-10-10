@@ -12607,7 +12607,7 @@ RtlLargeIntegerToChar(
  * Compatibility macros implementing LARGE_INTEGER comparison and arithmetic.
  */
 #define RtlLargeIntegerGreaterThan(X,Y) ((((X).HighPart == (Y).HighPart) && ((X).LowPart > (Y).LowPart)) || ((X).HighPart > (Y).HighPart))
-#define RtlLargeIntegerGreaterThanOrEqualTo(X,Y) ((((X).HighPart == (Y).HighPart) && ((X).LowPart >= (Y).LowPart)) || ((X).HighPart > (Y).HighPart)))
+#define RtlLargeIntegerGreaterThanOrEqualTo(X,Y) ((((X).HighPart == (Y).HighPart) && ((X).LowPart >= (Y).LowPart)) || ((X).HighPart > (Y).HighPart))
 #define RtlLargeIntegerEqualTo(X,Y) (!(((X).LowPart ^ (Y).LowPart) | ((X).HighPart ^ (Y).HighPart)))
 #define RtlLargeIntegerNotEqualTo(X,Y) ((((X).LowPart ^ (Y).LowPart) | ((X).HighPart ^ (Y).HighPart)))
 #define RtlLargeIntegerLessThan(X,Y) ((((X).HighPart == (Y).HighPart) && ((X).LowPart < (Y).LowPart)) || ((X).HighPart < (Y).HighPart))
