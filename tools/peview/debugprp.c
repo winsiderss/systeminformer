@@ -241,9 +241,6 @@ VOID PvpAddDebugReproItems(
     _In_ ULONG DataLength
     )
 {
-    PH_MAPPED_IMAGE_REPRO repro;
-    PPH_STRING string;
-
     if (DataLength == 0 || !Data)
     {
         PvpAddDebugGroupItem(Context, GroupId, L"Reproducible", L"Yes (timestamp is a hash)");
@@ -266,58 +263,6 @@ VOID PvpAddDebugReproItems(
                 PhDereferenceObject(hashString);
             }
         }
-    }
-
-    if (!NT_SUCCESS(PhGetMappedImageReproHash(&PvMappedImage, &repro)) || !repro.StoredHashValid)
-        return;
-
-    PvpAddDebugGroupItem(
-        Context,
-        GroupId,
-        L"Expected timestamp",
-        PhaFormatString(
-            L"0x%lx (%s)",
-            repro.TimeDateStamp,
-            repro.TimeStampValid ? L"matches" : L"mismatch"
-            )->Buffer
-        );
-
-    if (string = PhFormatGuid(&repro.PdbGuid))
-    {
-        PvpAddDebugGroupItem(
-            Context,
-            GroupId,
-            L"Expected PDB GUID",
-            PhaFormatString(
-                L"%s (%s)",
-                string->Buffer,
-                !repro.PdbSignaturePresent ? L"no CodeView entry" :
-                repro.PdbSignatureValid ? L"matches" : L"mismatch"
-                )->Buffer
-            );
-        PhDereferenceObject(string);
-    }
-
-    // The linker writes the stored hash and the PDB GUID after hashing, so this
-    // recomputation assumes they were zero at the time and is informational only.
-
-    if (repro.HashComputed && (string = PhBufferToHexString(repro.ComputedHash, PH_IMAGE_REPRO_HASH_SIZE)))
-    {
-        PvpAddDebugGroupItem(
-            Context,
-            GroupId,
-            L"Recomputed hash",
-            PhaFormatString(
-                L"%s (best-effort, %s)",
-                string->Buffer,
-                repro.HashValid ? L"matches" : L"mismatch"
-                )->Buffer
-            );
-        PhDereferenceObject(string);
-    }
-    else
-    {
-        PvpAddDebugGroupItem(Context, GroupId, L"Recomputed hash", L"Not available");
     }
 }
 
