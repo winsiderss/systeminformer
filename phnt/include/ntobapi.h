@@ -526,6 +526,7 @@ NtCreateDirectoryObject(
  * \param DesiredAccess The access mask that specifies the requested access to the directory object.
  * \param ObjectAttributes A pointer to an OBJECT_ATTRIBUTES structure that specifies the object name and other attributes.
  * \param ShadowDirectoryHandle An optional handle to a directory object that serves as a shadow directory.
+ * If NULL, no shadow directory is associated.
  * \param Flags Flags controlling the directory creation behavior (DIRECTORY_EX_FLAG_*).
  * \return NTSTATUS Successful or errant status.
  */
@@ -537,7 +538,7 @@ NtCreateDirectoryObjectEx(
     _Out_ PHANDLE DirectoryHandle,
     _In_ ACCESS_MASK DesiredAccess,
     _In_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_ HANDLE ShadowDirectoryHandle,
+    _In_opt_ HANDLE ShadowDirectoryHandle,
     _In_ ULONG Flags
     );
 #endif // (PHNT_VERSION >= PHNT_WINDOWS_8)

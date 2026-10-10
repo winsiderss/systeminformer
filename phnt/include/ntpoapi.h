@@ -811,7 +811,7 @@ typedef enum _REQUESTER_TYPE
 } REQUESTER_TYPE;
 
 /**
- * The DUMMYSTRUCTNAME structure describes counted reason context relative.
+ * The COUNTED_REASON_CONTEXT_RELATIVE structure describes counted reason context relative.
  */
 typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
 {
@@ -830,7 +830,7 @@ typedef struct _COUNTED_REASON_CONTEXT_RELATIVE
 } COUNTED_REASON_CONTEXT_RELATIVE, *PCOUNTED_REASON_CONTEXT_RELATIVE;
 
 /**
- * The DUMMYSTRUCTNAME structure describes the diagnostic reason context associated with a power request.
+ * The DIAGNOSTIC_BUFFER structure describes the diagnostic reason context associated with a power request.
  */
 typedef struct _DIAGNOSTIC_BUFFER
 {
@@ -1146,7 +1146,7 @@ typedef struct _PO_WAKE_SOURCE_TIMER
 #define POWER_REQUEST_SUPPORTED_TYPES_V4 6 // Windows 10 RS1+
 
 /**
- * The V1 structure describes power request.
+ * The POWER_REQUEST structure describes power request.
  */
 typedef struct _POWER_REQUEST
 {
@@ -1386,7 +1386,7 @@ typedef enum _POWER_S0_DISCONNECTED_REASON
 } POWER_S0_DISCONNECTED_REASON;
 
 /**
- * The CsDeviceCompliance structure describes power s0 low power idle info.
+ * The POWER_S0_LOW_POWER_IDLE_INFO structure describes power s0 low power idle info.
  */
 typedef struct _POWER_S0_LOW_POWER_IDLE_INFO
 {
