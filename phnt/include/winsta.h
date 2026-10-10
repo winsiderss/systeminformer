@@ -213,7 +213,7 @@ typedef struct _WINSTATION_PROPERTY_VALUE
  */
 typedef struct _WINSTATION_USER_CERTIFICATE
 {
-    ULONG Type;
+    ULONG Count;
     ULONG DataLength;
     PVOID Data;
 } WINSTATION_USER_CERTIFICATE, *PWINSTATION_USER_CERTIFICATE;
@@ -1234,14 +1234,14 @@ typedef struct _TS_COUNTER
 /**
  * The WinStationFreeMemory routine frees memory allocated by a Remote Desktop Services function.
  *
- * \param Buffer Pointer to the memory to free.
+ * \param Buffer Pointer to the memory to free, or NULL.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsfreememory
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationFreeMemory(
-    _In_ PVOID Buffer
+    _In_opt_ PVOID Buffer
     );
 
 // rev
@@ -1279,29 +1279,31 @@ WinStationOpenServerExW(
 /**
  * The WinStationCloseServer routine closes an open handle to a Remote Desktop Session Host (RD Session Host) server.
  *
- * \param ServerHandle A handle to an RD Session Host server opened by a call to the WinStationOpenServerW function.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \param ServerHandle A handle to an RD Session Host server opened by WinStationOpenServer*. NULL is accepted.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
+ * GetLastError.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtscloseserver
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationCloseServer(
-    _In_ HANDLE ServerHandle
+    _In_opt_ HANDLE ServerHandle
     );
 
 // rev
 /**
  * Tests whether a Remote Desktop Session Host server is reachable and responding.
  *
- * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
- * \return BOOLEAN Nonzero if the server responds successfully, or zero otherwise. To get extended error information, call GetLastError.
+ * \param LicensingHandle A server-licensing context, or NULL for the local licensing context.
+ * \return BOOLEAN Nonzero if the server responds successfully, or zero otherwise. To get extended error information,
+ * call GetLastError.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationServerPing(
-    _In_opt_ HANDLE ServerHandle
+    _In_opt_ HANDLE LicensingHandle
     );
 
 // rev
@@ -1364,12 +1366,14 @@ WinStationWaitSystemEvent(
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the window that receives session-change notifications.
- * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
- * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1)
+ * for all sessions.
+ * \return BOOL Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call
+ * GetLastError.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsregistersessionnotificationex
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -1383,11 +1387,12 @@ WinStationRegisterConsoleNotification(
  *
  * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
  * \param WindowHandle A handle to the window that was registered by WinStationRegisterConsoleNotification.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \return BOOL Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
+ * GetLastError.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtsapi32/nf-wtsapi32-wtsunregistersessionnotificationex
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationUnRegisterConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -1401,14 +1406,15 @@ WinStationUnRegisterConsoleNotification(
  * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
  * \param SessionIds A pointer that receives an allocated array of SESSIONIDW structures.
  * \param Count A pointer to a variable that receives the number of elements in the returned array.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
+ * GetLastError.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationEnumerateW(
     _In_opt_ HANDLE ServerHandle,
-    _Out_ PSESSIONIDW *SessionIds,
+    _Outptr_result_buffer_(*Count) PSESSIONIDW *SessionIds,
     _Out_ PULONG Count
     );
 
@@ -1788,10 +1794,12 @@ _WinStationWaitForConnect(
 /**
  * Opens a virtual channel in a session.
  *
- * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
- * \param SessionId The identifier of the session.
- * \param Name The ANSI name of the virtual channel.
- * \return HANDLE A handle to the virtual channel if the function succeeds, or NULL otherwise. To get extended error information, call GetLastError.
+ * \param[in] ServerHandle A server binding object, or NULL for the local server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] Name A buffer containing at least eight readable bytes. Only its first seven bytes can reach channel
+ * creation.
+ * \return A virtual-channel handle, or NULL on failure.
+ * \remarks The client reads eight bytes and replaces byte seven of its local copy with a null terminator.
  */
 NTSYSAPI
 HANDLE
@@ -1799,7 +1807,7 @@ NTAPI
 WinStationVirtualOpen(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_ PCSTR Name
+    _In_reads_(8) PCSTR Name
     );
 
 // rev
@@ -1854,7 +1862,8 @@ typedef struct _TS_PROPERTY_INFORMATION
  *
  * \param[in] SessionId The identifier of the session.
  * \param[in] PropertyType A pointer to the GUID that identifies the property.
- * \param[out] PropertyValue Receives a service-allocated property value. Free the value with WinStationFreePropertyValue.
+ * \param[out] PropertyValue Receives a service-allocated property value, which may be NULL. Free a nonnull value with
+ * WinStationFreePropertyValue.
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
@@ -1868,10 +1877,11 @@ WinStationGetConnectionProperty(
 
 // rev
 /**
- * The WinStationFreePropertyValue routine frees a property value returned by a connection-property query.
+ * Frees a connection-property value and any allocation owned by its active variant.
  *
- * \param[in] PropertyValue The property value to free.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] PropertyValue An object returned by a connection-property query. NULL is invalid.
+ * \return Nonzero if the operation succeeds; otherwise, zero. Read only the native BOOLEAN byte result.
+ * \remarks The string and binary variants own nested allocations; freeing only the outer object can leak them.
  */
 NTSYSAPI
 BOOLEAN
@@ -1902,16 +1912,17 @@ WinStationIsSessionRemoteable(
 /**
  * Stores an automatic-logon password for a WinStation configuration entry.
  *
- * \param KeyName The ANSI name of the configuration key.
- * \param Password The ANSI password to store.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \param KeyName The wide-character name of the configuration key.
+ * \param Password The wide-character password to store.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
+ * GetLastError.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationSetAutologonPassword(
-    _In_ PCSTR KeyName,
-    _In_ PCSTR Password
+    _In_ PCWSTR KeyName,
+    _In_ PCWSTR Password
     );
 
 /**
@@ -2020,13 +2031,15 @@ typedef struct _TS_USER_SESSION
 
 // rev
 /**
- * The WinStationGetAllUserSessions routine retrieves session records associated with a user security identifier.
+ * Retrieves native session records associated with a user SID.
  *
- * \param[in] ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
- * \param[in] Sid The security identifier of the user whose sessions are requested.
- * \param[out] Sessions Receives a LocalAlloc-allocated array of session records. Free the array with WinStationFreeUserSessionInfo or LocalFree.
+ * \param[in] ServerHandle Retained for the native ABI; ignored by the analyzed implementations.
+ * \param[in] Sid The required user SID.
+ * \param[out] Sessions Receives a flat LocalAlloc-allocated array of native session records.
  * \param[out] Count Receives the number of returned records.
- * \return Nonzero if the function succeeds; otherwise, zero. To get extended error information, call GetLastError.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks Free the flat array with WinStationFreeMemory or LocalFree. The client copy loop does not establish all
+ * field meanings.
  */
 NTSYSAPI
 BOOLEAN
@@ -2053,11 +2066,12 @@ typedef USHORT ADDRESS_FAMILY;
 /**
  * Retrieves the virtual IP address assigned to a session.
  *
- * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
- * \param SessionId The identifier of the session.
- * \param Family The address family of the requested virtual address.
- * \param SessionVirtualIP A pointer to a TS_SESSION_VIRTUAL_ADDRESS structure that receives the address.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \param[in] ServerHandle A server binding object, or NULL for the local server.
+ * \param[in] SessionId The session identifier.
+ * \param[in] Family AF_INET or AF_INET6.
+ * \param[out] SessionVirtualIP Receives the native 32-byte WINSTATIONREMOTEADDRESS record.
+ * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks Read only the active address-family variant; the IPv4 path does not initialize the entire structure.
  */
 NTSYSAPI
 BOOLEAN
@@ -2066,7 +2080,7 @@ WinStationQuerySessionVirtualIP(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ADDRESS_FAMILY Family,
-    _Out_ TS_SESSION_VIRTUAL_ADDRESS* SessionVirtualIP
+    _Out_ PWINSTATIONREMOTEADDRESS SessionVirtualIP
     );
 
 // rev
@@ -2075,9 +2089,11 @@ WinStationQuerySessionVirtualIP(
  *
  * \param ServerHandle A handle to an RD Session Host server, or WINSTATION_CURRENT_SERVER for the local server.
  * \param SessionId The identifier of the session.
- * \param Buffer A pointer that receives the device-identifier string buffer.
- * \param BufferLength The size of the device-identifier buffer, in bytes.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call GetLastError.
+ * \param Buffer A direct buffer that receives the device identifier.
+ * \param BufferLength The buffer capacity in two-byte units; the RPC byte capacity is twice this value.
+ * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise. To get extended error information, call
+ * GetLastError.
+ * \remarks The CHAR element interpretation follows upstream; capacity scaling alone does not establish text encoding.
  */
 NTSYSAPI
 BOOLEAN
@@ -2085,8 +2101,8 @@ NTAPI
 WinStationGetDeviceId(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _Out_ PCHAR* Buffer, // CHAR DeviceId[MAX_PATH + 1];
-    _In_ SIZE_T BufferLength
+    _Out_writes_bytes_(BufferLength * 2) PCHAR Buffer,
+    _In_ ULONG BufferLength
     );
 
 // rev
@@ -2111,25 +2127,28 @@ WinStationGetLoggedOnCount(
  * can be optimized for displaying in a remote session to identify the region of a window that is the actual content.
  * In the remote session, this content will be encoded, sent to the client, then decoded and displayed.
  *
- * \param[out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
+ * \param[in,out] RenderHintID The address of a value that identifies the rendering hint affected by this call.
  * If a new hint is being created, this value must contain zero.
- * This function will return a unique rendering hint identifier which is used for subsequent calls, such as clearing the hint.
- * \param[in] WindowHandle The handle of window linked to lifetime of the rendering hint. This window is used in situations where a hint target is removed without the hint being explicitly cleared.
+ * This function will return a unique rendering hint identifier which is used for subsequent calls, such as clearing the
+ * hint.
+ * \param[in] WindowHandle The handle of window linked to lifetime of the rendering hint. This window is used in
+ * situations where a hint target is removed without the hint being explicitly cleared.
  * \param[in] RenderHintType Specifies the type of hint represented by this call.
  * \param[in] HintDataLength The size in bytes, of the HintData buffer.
- * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the renderHintType parameter.
- * \return BOOLEAN Nonzero if the function succeeds, or zero otherwise.
+ * \param[in] HintData Additional data for the hint. The format of this data is dependent upon the value passed in the
+ * renderHintType parameter.
+ * \return HRESULT status; S_OK also indicates that the hint was ignored for a local console session.
  * \sa https://learn.microsoft.com/en-us/windows/win32/api/wtshintapi/nf-wtshintapi-wtssetrenderhint
  */
 NTSYSAPI
-BOOLEAN
+HRESULT
 NTAPI
 WinStationSetRenderHint(
-    _In_opt_ PULONG64 RenderHintID,
+    _Inout_ PULONG64 RenderHintID,
     _In_ HWND WindowHandle,
     _In_ ULONG RenderHintType,
     _In_ ULONG HintDataLength,
-    _In_ PBYTE HintData
+    _In_reads_bytes_opt_(HintDataLength) PBYTE HintData
     );
 
 // rev
@@ -2259,15 +2278,18 @@ ServerLicensingDeactivateCurrentPolicy(
     );
 
 /**
- * The ServerLicensingFreePolicyInformation routine frees policy information returned by a server-licensing query and clears the caller's pointer.
+ * Releases version-1 server-licensing policy information.
  *
- * \param[in,out] PolicyInformation Supplies the initial policy information and receives the updated value.
+ * \param[in] PolicyInformation A pointer to the policy-information pointer to release.
+ * \remarks Null pointer arguments, null policy pointers, and other Version values are ignored.
+ * Non-null Name and Value allocations and the containing version-1 object are freed with LocalFree.
+ * The caller's pointer is not cleared.
  */
 NTSYSAPI
 VOID
 NTAPI
 ServerLicensingFreePolicyInformation(
-    _Inout_opt_ PLCPOLICYINFOGENERICW *PolicyInformation
+    _In_opt_ PLCPOLICYINFOGENERICW *PolicyInformation
     );
 
 /**
@@ -2307,18 +2329,19 @@ ServerLicensingGetAvailablePolicyIds(
     );
 
 /**
- * The ServerLicensingGetPolicy routine retrieves policy data from a server-licensing context.
+ * Retrieves policy data from a server-licensing context.
  *
- * \param[in] LicensingHandle A handle to the server licensing context.
- * \param[in] PolicyId An optional pointer to the policy GUID. If NULL, the built-in GUID for the information class is used.
+ * \param[in] LicensingHandle A server-licensing RPC context, or NULL for the local context.
+ * \param[out] PolicyId Receives the policy identifier returned by the licensing service.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The policy-identifier interpretation follows upstream; the review establishes the DWORD output contract.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 ServerLicensingGetPolicy(
     _In_opt_ HSERVERLICENSING LicensingHandle,
-    _In_ ULONG PolicyId
+    _Out_ PULONG PolicyId
     );
 
 /**
@@ -2385,15 +2408,19 @@ ServerLicensingOpenA(
     );
 
 /**
- * The ServerLicensingOpenW routine opens a Unicode server-licensing context for the specified server.
+ * Opens a local server-licensing RPC context.
  *
- * \return A server licensing handle if the operation succeeds; otherwise, NULL.
+ * \param Unknown Reserved. This pointer-sized input must be zero.
+ * \return An opaque server-licensing RPC context on success, or NULL on failure.
+ * \remarks The analyzed implementations reject nonzero input with RPC_S_SERVER_UNAVAILABLE and do not read
+ * any pointee data. The original input's semantic type is not established. The returned context belongs
+ * to the licensing RPC interface, rather than the WinStationOpenServer binding-object domain.
  */
 NTSYSAPI
 HSERVERLICENSING
 NTAPI
 ServerLicensingOpenW(
-    VOID
+    _Reserved_ ULONG_PTR Unknown
     );
 
 /**
@@ -2412,20 +2439,23 @@ ServerLicensingSetAadInfo(
     );
 
 /**
- * The ServerLicensingSetPolicy routine sets policy data in a server-licensing context.
+ * Sends a policy identifier to a server-licensing context and receives a policy value.
  *
- * \param[in] LicensingHandle A handle to the server licensing context.
- * \param[in] PolicyId An optional pointer to the policy GUID. If NULL, the built-in GUID for the information class is used.
- * \param[in] PolicyValue The policy value.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] LicensingHandle A server-licensing RPC context, or NULL for the local context.
+ * \param[in] PolicyId The policy identifier sent to the licensing service.
+ * \param[out] PolicyValue Receives the policy value returned by the licensing service.
+ * \return A translated Win32 status after RPC. ERROR_SUCCESS normally indicates RPC success.
+ * \remarks If NULL LicensingHandle cannot create a local binding, this routine returns zero and sets the last-error
+ * code to RPC_S_INVALID_BINDING; no policy RPC is sent and PolicyValue is not written. The output's policy-value
+ * interpretation follows upstream.
  */
 NTSYSAPI
-BOOLEAN
+ULONG
 NTAPI
 ServerLicensingSetPolicy(
     _In_opt_ HSERVERLICENSING LicensingHandle,
     _In_ ULONG PolicyId,
-    _In_ PULONG PolicyValue
+    _Out_ PULONG PolicyValue
     );
 
 /**
@@ -2556,37 +2586,38 @@ WinStationAutoReconnect(
     );
 
 /**
- * The WinStationBroadcastSystemMessage routine broadcasts a system message to selected sessions on a Remote Desktop Session Host server.
+ * Broadcasts a system message through the session client.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
- * \param[in] SessionId The session identifier.
- * \param[in] Message The message.
- * \param[in] WParam The w param.
- * \param[in] LParam The l param.
- * \param[in,out] Recipients Supplies the initial recipients and receives the updated value.
- * \param[in] RecipientCount The recipient count.
- * \param[in] MessageData The message data.
- * \param[in] Reserved A message-dependent input buffer (not actually reserved). It is marshalled by
- * AllocateBSMRpcBuffer according to the Message value: for some messages it is a null-terminated
- * wide string, for others a length-prefixed structure; the buffer is copied into the cross-session
- * RPC request. May be NULL when the message carries no pointer payload.
- * \param[out] Response Receives the response.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] ServerHandle A server binding object, or NULL for the local server.
+ * \param[in] Unknown0 A DWORD selector: zero restricts the operation to SessionId; nonzero omits that filter.
+ * \param[in] SessionId The session identifier used by the zero-selector path.
+ * \param[in] WParam The first DWORD message parameter.
+ * \param[in] LParam The second DWORD message parameter.
+ * \param[in,out] Recipients An optional DWORD input/output slot.
+ * \param[in] Message The message identifier.
+ * \param[in] wParam The pointer-sized unsigned message value.
+ * \param[in] lParam The pointer-sized signed message value. Message-dependent pointer payloads, including wide strings
+ * and length-prefixed data, are copied from this value into the RPC request.
+ * \param[in,out] Response A required LONG slot that is read and updated by the worker.
+ * \return The normalized one-byte Boolean result.
+ * \remarks Some message paths permit a NULL Response, while others dereference it without a null check. Provide the
+ * slot for the general contract. The WParam and LParam DWORD interpretations follow upstream and remain independently
+ * unverified.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationBroadcastSystemMessage(
     _In_opt_ HANDLE ServerHandle,
+    _In_ ULONG Unknown0,
     _In_ ULONG SessionId,
-    _In_ ULONG Message,
     _In_ ULONG WParam,
     _In_ ULONG LParam,
-    _Inout_ PULONG Recipients,
-    _In_ ULONG RecipientCount,
-    _In_opt_ PVOID MessageData,
-    _In_opt_ PVOID Reserved,
-    _Out_opt_ PULONG Response
+    _Inout_opt_ PULONG Recipients,
+    _In_ ULONG Message,
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _Inout_ PLONG Response
     );
 
 /**
@@ -2647,15 +2678,15 @@ WinStationConnectA(
 /**
  * The WinStationConnectAndLockDesktop routine connects to a session and locks its desktop.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
- * \param[in] SessionId The session identifier.
+ * \param ServerHandle Reserved; must be NULL.
+ * \param SessionId An explicit session identifier; WINSTATION_CURRENT_SESSION is not accepted.
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationConnectAndLockDesktop(
-    _In_opt_ HANDLE ServerHandle,
+    _Reserved_ HANDLE ServerHandle,
     _In_ ULONG SessionId
     );
 
@@ -2727,18 +2758,20 @@ WinStationCreateAgentSessionTransport(
     );
 
 /**
- * The WinStationCreateChildSessionTransport routine creates a child-session transport and returns its named-pipe path.
+ * Creates a child-session transport and returns its named-pipe path.
  *
- * \param[out] TransportName A caller-allocated buffer that receives the null-terminated transport name.
- * \param[in] TransportNameLength The capacity of TransportName, in WCHAR elements.
- * \return An HRESULT indicating whether the transport was created.
+ * \param[out] TransportName A caller-allocated WCHAR buffer.
+ * \param[in] TransportNameLength Buffer capacity in WCHAR elements, from 1 through 256.
+ * \return An HRESULT indicating success or failure.
+ * \remarks The named-pipe interpretation follows upstream; the review establishes the returned string and buffer
+ * contract.
  */
 NTSYSAPI
 HRESULT
 NTAPI
 WinStationCreateChildSessionTransport(
     _Out_writes_z_(TransportNameLength) PWSTR TransportName,
-    _In_ ULONG TransportNameLength
+    _In_range_(1, 256) ULONG TransportNameLength
     );
 
 /**
@@ -2772,18 +2805,20 @@ WinStationEnumerateA(
     );
 
 /**
- * The WinStationEnumerateContainerSessions routine enumerates sessions associated with a container.
+ * Enumerates native container-session records through a local RPC binding.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
- * \param[out] Sessions Receives the sessions.
+ * \param[out] Sessions Receives an allocated array of opaque native records. A zero-count result may be NULL.
+ * \param[out] Count Receives the number of records.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks There is no server-handle input. The RPC records have a 20-byte wire stride; their field meanings remain
+ * unverified.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationEnumerateContainerSessions(
-    _In_opt_ HANDLE ServerHandle,
-    _Outptr_result_maybenull_ PVOID *Sessions
+    _Outptr_result_buffer_maybenull_(*Count) PVOID *Sessions,
+    _Out_ PULONG Count
     );
 
 /**
@@ -2868,7 +2903,7 @@ WinStationEnumerate_IndexedW(
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationFreeConsoleNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -2883,7 +2918,7 @@ WinStationFreeConsoleNotification(
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationFreeSessionNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -2891,10 +2926,10 @@ WinStationFreeSessionNotification(
     );
 
 /**
- * The WinStationFreeUserCertificates routine frees a user-certificate object returned by WinStationGetUserCertificates, including its certificate-data buffer.
+ * Frees a certificate-data object and its nested data buffer.
  *
- * \param[in] Certificates The certificates.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] Certificates An object returned by WinStationGetUserCertificates, or NULL.
+ * \return TRUE, including when Certificates is NULL. Read only the native BOOLEAN byte result.
  */
 NTSYSAPI
 BOOLEAN
@@ -2904,16 +2939,17 @@ WinStationFreeUserCertificates(
     );
 
 /**
- * The WinStationFreeUserCredentials routine securely clears and frees a credential object returned by WinStationGetUserCredentials.
+ * The WinStationFreeUserCredentials routine securely clears and frees a credential object returned by
+ * WinStationGetUserCredentials.
  *
  * \param[in] Credentials The credentials.
- * \return An operation-specific status or result value.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationFreeUserCredentials(
-    _In_opt_ PCRED_PROV_CREDENTIAL Credentials
+    _In_ PCRED_PROV_CREDENTIAL Credentials
     );
 
 /**
@@ -2981,11 +3017,16 @@ WinStationGetChildSessionId(
     );
 
 /**
- * The WinStationGetCurrentSessionCapabilities routine queries a capability of the current session.
+ * Queries a capability of the current session.
  *
- * \param[in] CapabilityClass The capability to query. The audited implementation accepts only WinStationCurrentSessionCapabilityRemoteDesktop.
- * \param[out] CapabilityValue Receives TRUE if the current session has the requested capability; otherwise, FALSE.
- * \return Nonzero if the operation succeeds; otherwise, zero. An unsupported capability class fails with ERROR_INVALID_PARAMETER.
+ * \param[in] CapabilityClass The capability to query. The analyzed implementations accept only
+ * WinStationCurrentSessionCapabilityRemoteDesktop.
+ * \param[out] CapabilityValue Receives TRUE if the current session has the requested capability; otherwise, FALSE. The
+ * client clears it before checking the level or service.
+ * \return Nonzero if the operation succeeds; otherwise, zero. An unsupported capability class fails with
+ * ERROR_INVALID_PARAMETER.
+ * \remarks The capability interpretation follows upstream; the review establishes the accepted level and four-byte
+ * output.
  */
 NTSYSAPI
 BOOLEAN
@@ -2996,10 +3037,12 @@ WinStationGetCurrentSessionCapabilities(
     );
 
 /**
- * The WinStationGetCurrentSessionConnectionProperty routine retrieves an allocated connection-property value for the current session.
+ * The WinStationGetCurrentSessionConnectionProperty routine retrieves an allocated connection-property value for the
+ * current session.
  *
  * \param[in] PropertyId A pointer to the GUID that identifies the connection property.
- * \param[out] PropertyValue Receives a service-allocated property value. Free the value with WinStationFreePropertyValue.
+ * \param[out] PropertyValue Receives a service-allocated property value, which may be NULL. Free a nonnull value with
+ * WinStationFreePropertyValue.
  * \return An operation-specific status or result value.
  */
 NTSYSAPI
@@ -3024,25 +3067,27 @@ WinStationGetCurrentSessionTerminalName(
     );
 
 /**
- * The WinStationGetInitialApplication routine retrieves the initial command line and working directory for a session.
+ * The WinStationGetInitialApplication routine retrieves initial application data for a session.
  *
  * \param[in] SessionId The session identifier. Specify LOGONID_CURRENT for the caller's session.
- * \param[out] CommandLine Receives a WinStation-allocated null-terminated command line.
- * \param[out] WorkingDirectory Receives a WinStation-allocated null-terminated working directory.
- * \param[out] ApplicationAllowed Receives whether the initial application is permitted by policy.
- * \param[out] Maximize Receives whether the application should be maximized.
+ * \param[out] CommandLine Receives a WinStation-allocated null-terminated command line, which may be NULL.
+ * \param[out] WorkingDirectory Receives a WinStation-allocated null-terminated working directory, which may be NULL.
+ * \param[out] ApplicationAllowed Receives a one-byte indication of whether the initial application is permitted by
+ * policy.
+ * \param[out] Maximize Receives a one-byte indication of whether the application should be maximized.
  * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks Free CommandLine and WorkingDirectory with WinStationFreeMemory.
+ * \remarks Free CommandLine and WorkingDirectory with WinStationFreeMemory. The output purposes follow upstream; the
+ * review establishes the string and one-byte output contracts.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetInitialApplication(
     _In_ ULONG SessionId,
-    _Outptr_result_z_ PWSTR *CommandLine,
-    _Outptr_result_z_ PWSTR *WorkingDirectory,
-    _Out_ PBOOL ApplicationAllowed,
-    _Out_ PBOOL Maximize
+    _Outptr_result_maybenull_z_ PWSTR *CommandLine,
+    _Outptr_result_maybenull_z_ PWSTR *WorkingDirectory,
+    _Out_ PCHAR ApplicationAllowed,
+    _Out_ PCHAR Maximize
     );
 
 /**
@@ -3088,14 +3133,16 @@ WinStationGetLanAdapterNameW(
     );
 
 /**
- * The WinStationGetLastWinlogonNotification routine retrieves the Winlogon notification currently blocked by a subscriber in a session.
+ * Retrieves the last Winlogon-notification record for a session.
  *
  * \param[in] SessionId The session identifier.
- * \param[out] NotificationId Receives the Winlogon notification identifier.
- * \param[out] SubscriberName Receives the null-terminated notification subscriber name. The caller supplies space for at least 260 WCHAR elements.
+ * \param[out] NotificationId Receives the notification identifier.
+ * \param[out] SubscriberName A required buffer with space for 257 WCHAR elements.
  * \param[out] IsCritical Receives TRUE if the subscriber is marked as critical; otherwise, FALSE.
  * \param[out] NotificationTickCount Receives the GetTickCount64 value recorded for the notification.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The critical-subscriber and clock interpretations follow upstream. The RPC marshals a fixed WCHAR array; its
+ * descriptor alone does not guarantee a terminating null character.
  */
 NTSYSAPI
 BOOLEAN
@@ -3103,7 +3150,7 @@ NTAPI
 WinStationGetLastWinlogonNotification(
     _In_ ULONG SessionId,
     _Out_ PULONG NotificationId,
-    _Out_writes_z_(260) PWSTR SubscriberName,
+    _Out_writes_(257) PWSTR SubscriberName,
     _Out_ PBOOL IsCritical,
     _Out_ PULONGLONG NotificationTickCount
     );
@@ -3141,26 +3188,28 @@ WinStationGetParentSessionId(
     );
 
 /**
- * The WinStationGetRedirectAuthInfo routine retrieves certificate and symmetric-key material used to redirect a logon.
+ * Retrieves allocated redirection-authentication data through RPC.
  *
- * \param[in] RedirectionGuid The redirection operation identifier.
- * \param[out] CertificateLength Receives the certificate size, in bytes.
- * \param[out] Certificate Receives a service-allocated certificate byte buffer. Free the buffer with WinStationFreeMemory.
- * \param[out] SymmetricAlgorithm Receives a service-allocated null-terminated symmetric-algorithm identifier. Free the string with WinStationFreeMemory.
- * \param[out] SymmetricKeyLength Receives the symmetric-key size, in bytes.
- * \param[out] SymmetricKey Receives a service-allocated symmetric-key byte buffer. Free the buffer with WinStationFreeMemory.
- * \return Zero if the operation succeeds; otherwise, an error status.
+ * \param[out] RedirectionGuid Receives the redirection operation identifier.
+ * \param[out] CertificateLength Receives the certificate byte length.
+ * \param[out] Certificate Receives an allocated byte buffer, which may be NULL.
+ * \param[out] SymmetricAlgorithm Receives an allocated wide string, which may be NULL.
+ * \param[out] SymmetricKeyLength Receives the symmetric-key byte length.
+ * \param[out] SymmetricKey Receives an allocated byte buffer, which may be NULL.
+ * \return An HRESULT value. Use SUCCEEDED or FAILED to test the result.
+ * \remarks All six output slots are required. Free the returned allocations with WinStationFreeMemory. The GUID's
+ * purpose follows upstream; its output direction is independently established.
  */
 NTSYSAPI
-ULONG
+HRESULT
 NTAPI
 WinStationGetRedirectAuthInfo(
-    _In_ const GUID *RedirectionGuid,
+    _Out_ GUID *RedirectionGuid,
     _Out_ PULONG CertificateLength,
-    _Outptr_result_bytebuffer_(*CertificateLength) PBYTE *Certificate,
-    _Outptr_result_z_ PWSTR *SymmetricAlgorithm,
+    _Outptr_result_bytebuffer_maybenull_(*CertificateLength) PBYTE *Certificate,
+    _Outptr_result_maybenull_z_ PWSTR *SymmetricAlgorithm,
     _Out_ PULONG SymmetricKeyLength,
-    _Outptr_result_bytebuffer_(*SymmetricKeyLength) PBYTE *SymmetricKey
+    _Outptr_result_bytebuffer_maybenull_(*SymmetricKeyLength) PBYTE *SymmetricKey
     );
 
 /**
@@ -3178,21 +3227,28 @@ WinStationGetRestrictedLogonInfo(
     _Out_ PLUID AuthenticationId
     );
 
+/** Specifies the native session-ID query filter. */
+typedef enum _SESSION_FILTER
+{
+    SF_SERVICES_SESSION_POPUP = 0 // Logged-on sessions; MS-TSTS RpcGetSessionIds.
+} SESSION_FILTER;
+
 /**
- * The WinStationGetSessionIds routine retrieves session identifiers associated with the current session context.
+ * The WinStationGetSessionIds routine retrieves session identifiers matching a session filter.
  *
- * \param[in] State The state.
- * \param[out] SessionIds Receives the session ids.
- * \param[in,out] BufferLength The size of the buffer, in bytes.
+ * \param[in] Filter The session filter; SF_SERVICES_SESSION_POPUP selects logged-on sessions.
+ * \param[out] SessionIds A required array that receives session identifiers.
+ * \param[in,out] Count On input, the array capacity in entries; on output, the returned entry count.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks A partial result can be returned with ERROR_MORE_DATA while the function returns FALSE.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetSessionIds(
-    _In_ ULONG State,
-    _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength) PULONG SessionIds,
-    _Inout_ PULONG BufferLength
+    _In_ SESSION_FILTER Filter,
+    _Out_writes_to_(*Count, *Count) PULONG SessionIds,
+    _Inout_ PULONG Count
     );
 
 /**
@@ -3220,39 +3276,41 @@ NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationGetUserCertificates(
-    _Outptr_result_maybenull_ PWINSTATION_USER_CERTIFICATE *Certificates
+    _Outptr_ PWINSTATION_USER_CERTIFICATE *Certificates
     );
 
 /**
  * The WinStationGetUserCredentials routine retrieves the credential-provider credentials associated with a session.
  *
  * \param[out] Credentials Receives the credentials.
- * \return An operation-specific status or result value.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationGetUserCredentials(
-    _Outptr_result_maybenull_ PCRED_PROV_CREDENTIAL *Credentials
+    _Outptr_ PCRED_PROV_CREDENTIAL *Credentials
     );
 
 /**
- * The WinStationGetUserProfile routine retrieves the user-profile path associated with a session.
+ * The WinStationGetUserProfile routine retrieves allocated user-profile data.
  *
- * \param[in] SessionId The session identifier.
- * \param[out] UserName Receives the user name.
- * \param[out] Domain Receives the domain.
- * \param[out] ProfilePath Receives the profile path.
- * \return An operation-specific status or result value.
+ * \param[in] SessionId The session identifier passed in the native handle-sized slot.
+ * \param[out] UserName Receives the WinStation-allocated null-terminated user name, which may be NULL.
+ * \param[out] Domain Receives the WinStation-allocated null-terminated domain name, which may be NULL.
+ * \param[out] ProfilePath Receives the WinStation-allocated null-terminated profile path, which may be NULL.
+ * \return An HRESULT indicating success or failure.
+ * \remarks Free the returned strings with WinStationFreeMemory. The parameter purposes follow upstream; the first
+ * input's exact subtype and access requirements remain unverified.
  */
 NTSYSAPI
-ULONG
+HRESULT
 NTAPI
 WinStationGetUserProfile(
-    _In_ ULONG SessionId,
-    _Outptr_result_maybenull_ PWSTR *UserName,
-    _Outptr_result_maybenull_ PWSTR *Domain,
-    _Outptr_result_maybenull_ PWSTR *ProfilePath
+    _In_ HANDLE SessionId,
+    _Outptr_result_maybenull_z_ PWSTR *UserName,
+    _Outptr_result_maybenull_z_ PWSTR *Domain,
+    _Outptr_result_maybenull_z_ PWSTR *ProfilePath
     );
 
 /**
@@ -3273,16 +3331,16 @@ WinStationInstallLicense(
     );
 
 /**
- * The WinStationIsBoundToCacheTerminal routine determines whether a session is bound to a cache terminal.
+ * The WinStationIsBoundToCacheTerminal routine queries whether the current session is bound to a cache terminal.
  *
- * \param[in] SessionId The session identifier.
- * \return An operation-specific status or result value.
+ * \param[out] IsBound Receives the one-byte bound state.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationIsBoundToCacheTerminal(
-    _In_ ULONG SessionId
+    _Out_ PBOOLEAN IsBound
     );
 
 /**
@@ -3347,26 +3405,28 @@ WinStationNameFromLogonIdA(
     );
 
 /**
- * The WinStationNegotiateSession routine retrieves session-negotiation values from the Remote Desktop Session Host service.
+ * Performs the session-negotiation RPC operation.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
- * \param[in] SessionId The session identifier.
+ * \param[in,out] ServerHandle A required RPC-context slot associated with the server; its exact context subtype and
+ * lifetime remain unverified.
+ * \param[in] SessionId The session identifier passed in a pointer-sized unsigned slot.
  * \param[out] NegotiationFlags Receives the negotiation flags returned by the service.
- * \param[out] ValueCount Receives the number of ULONG elements in Values.
- * \param[out] Values Receives a LocalAlloc-allocated array of ULONG values.
+ * \param[out] ValueCount Receives the number of DWORD elements in Values.
+ * \param[out] Values Receives an allocated DWORD array. A zero-count result may be NULL.
  * \param[out] Result Receives the negotiation result returned by the service.
  * \return A Win32 error code. ERROR_SUCCESS indicates success.
- * \remarks Free Values with LocalFree.
+ * \remarks Free Values with LocalFree. ServerHandle is an input/output context pointer rather than a server-binding
+ * handle value. The parameter purposes follow upstream; the review establishes their native shapes and RPC directions.
  */
 NTSYSAPI
 ULONG
 NTAPI
 WinStationNegotiateSession(
-    _In_opt_ HANDLE ServerHandle,
-    _In_ ULONG SessionId,
+    _Inout_ PHANDLE ServerHandle,
+    _In_ ULONG_PTR SessionId,
     _Out_ PULONG NegotiationFlags,
     _Out_ PULONG ValueCount,
-    _Outptr_result_buffer_(*ValueCount) PULONG *Values,
+    _Outptr_result_buffer_maybenull_(*ValueCount) PULONG *Values,
     _Out_ PULONG Result
     );
 
@@ -3456,18 +3516,17 @@ WinStationPreCreateGlassReplacementSessionEx(
     );
 
 /**
- * The WinStationQueryAllowConcurrentConnections routine is a deprecated entry point for querying whether concurrent session connections are allowed.
+ * Provides the deprecated concurrent-connection query entry point.
  *
- * \param[out] Allowed Receives the allowed.
- * \return Nonzero if the operation succeeds; otherwise, zero.
- * \remarks The current implementation does not perform the operation; it sets the last-error code to ERROR_INVALID_FUNCTION and returns FALSE.
+ * \return FALSE. The analyzed implementations set ERROR_INVALID_FUNCTION.
+ * \remarks The native export has no parameters and does not write an output buffer.
  */
 DECLSPEC_DEPRECATED
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationQueryAllowConcurrentConnections(
-    _Out_opt_ PBOOLEAN Allowed
+    VOID
     );
 
 /**
@@ -3597,11 +3656,12 @@ WinStationRcmShadow2(
     );
 
 /**
- * The WinStationRedirectErrorMessage routine reports an error message during redirected logon.
+ * Performs the redirected-error message operation.
  *
  * \param[in] ErrorCode The error code.
- * \param[in] MessageId The message id.
- * \return An operation-specific status or result value.
+ * \param[in] MessageId The message identifier.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The parameter purposes follow upstream; the reviewed client forwards these DWORD inputs to RPC.
  */
 NTSYSAPI
 ULONG
@@ -3614,63 +3674,69 @@ WinStationRedirectErrorMessage(
 /**
  * The WinStationRedirectLogonBeginPainting routine notifies redirected logon that the session can begin painting.
  *
- * \return An operation-specific status or result value.
+ * \return An HRESULT indicating success or failure.
  */
 NTSYSAPI
-ULONG
+HRESULT
 NTAPI
 WinStationRedirectLogonBeginPainting(
     VOID
     );
 
 /**
- * The WinStationRedirectLogonError routine reports a redirected-logon error and optionally displays an associated message.
+ * Performs the redirected-logon error operation.
  *
- * \param[in] ErrorCode The primary error code.
- * \param[in] SubErrorCode The secondary error code.
- * \param[in, optional] Message A null-terminated Unicode error message.
- * \param[in, optional] Caption A null-terminated Unicode caption for the message.
- * \param[in] Type Flags controlling how the message is presented.
- * \param[out, optional] Response Receives the response selected for the message.
- * \return An HRESULT-style status value.
+ * \param[in] ErrorCode The error code.
+ * \param[in] SubErrorCode The subordinate error code.
+ * \param[in] Message The required null-terminated error message.
+ * \param[in] Caption The required null-terminated message caption.
+ * \param[in] Type The message type.
+ * \param[out] Response Receives the response.
+ * \return An HRESULT indicating success or failure.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream; the required slots and RPC directions are independently established.
  */
 NTSYSAPI
-ULONG
+HRESULT
 NTAPI
 WinStationRedirectLogonError(
     _In_ ULONG ErrorCode,
     _In_ ULONG SubErrorCode,
-    _In_opt_ PCWSTR Message,
-    _In_opt_ PCWSTR Caption,
+    _In_ PCWSTR Message,
+    _In_ PCWSTR Caption,
     _In_ ULONG Type,
-    _Out_opt_ PULONG Response
+    _Out_ PULONG Response
     );
 
 /**
- * The WinStationRedirectLogonMessage routine displays a message during redirected logon.
+ * Performs the redirected-logon message operation.
  *
- * \param[in, optional] Message A null-terminated Unicode message.
- * \param[in, optional] Caption A null-terminated Unicode caption for the message.
- * \param[in] Type Flags controlling how the message is presented.
- * \param[out, optional] Response Receives the response selected for the message.
- * \return An HRESULT-style status value.
+ * \param[in] Message The required null-terminated message.
+ * \param[in] Caption The required null-terminated message caption.
+ * \param[in] Type The message type.
+ * \param[out] Response Receives the response.
+ * \return An HRESULT indicating success or failure.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream; the required slots and RPC directions are independently established.
  */
 NTSYSAPI
-ULONG
+HRESULT
 NTAPI
 WinStationRedirectLogonMessage(
-    _In_opt_ PCWSTR Message,
-    _In_opt_ PCWSTR Caption,
+    _In_ PCWSTR Message,
+    _In_ PCWSTR Caption,
     _In_ ULONG Type,
-    _Out_opt_ PULONG Response
+    _Out_ PULONG Response
     );
 
 /**
- * The WinStationRedirectLogonStatus routine reports a redirected-logon status message and retrieves the resulting status value.
+ * Performs the redirected-logon status operation.
  *
- * \param[in] StatusMessage A null-terminated Unicode status message.
- * \param[out] Status Receives the resulting 32-bit status value.
- * \return An HRESULT indicating whether the operation succeeded.
+ * \param[in] StatusMessage The required null-terminated status message.
+ * \param[out] Status Receives the status.
+ * \return An HRESULT indicating success or failure.
+ * \remarks An analyzed nonremote-session path can return S_OK without writing the RPC output. The parameter purposes
+ * follow upstream.
  */
 NTSYSAPI
 HRESULT
@@ -3771,79 +3837,86 @@ WinStationSetPoolCount(
     );
 
 /**
- * The WinStationRegisterConsoleNotificationEx routine registers a window to receive selected session-change notifications.
+ * The WinStationRegisterConsoleNotificationEx routine registers a window to receive selected session-change
+ * notifications.
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the window that receives session-change notifications.
- * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
- * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \param[in] Flags WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all
+ * sessions.
+ * \param[in] EventMask A mask selecting the session-change notifications to receive.
  * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterConsoleNotificationEx(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ ULONG NotificationScope,
-    _In_ ULONG NotificationMask
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
     );
 
 /**
- * The WinStationRegisterConsoleNotificationEx2 routine registers a window to receive selected session-change notifications.
+ * The WinStationRegisterConsoleNotificationEx2 routine registers a window to receive selected session-change
+ * notifications.
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the window that receives session-change notifications.
- * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
- * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \param[in] Flags WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all
+ * sessions.
+ * \param[in] EventMask A mask selecting the session-change notifications to receive.
  * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterConsoleNotificationEx2(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ ULONG NotificationScope,
-    _In_ ULONG NotificationMask
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
     );
 
 // rev
 /**
- * The WinStationRegisterCurrentSessionNotificationEvent routine registers an event object for notifications concerning the current session.
+ * The WinStationRegisterCurrentSessionNotificationEvent routine registers a caller-supplied event for session
+ * notifications.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
- * \param[in] EventMask The event mask.
- * \param[in] EventHandle A handle to the notification event.
+ * \param[in] EventHandle A handle to the event object; the function duplicates it.
+ * \param[in] EventMask The event-registration mask, which is translated to an RPC notification mask.
+ * \param[out] Registration Receives an opaque registration object.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks Release Registration with WinStationUnRegisterNotificationEvent; it is not a kernel handle.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterCurrentSessionNotificationEvent(
-    _In_opt_ HANDLE ServerHandle,
+    _In_ HANDLE EventHandle,
     _In_ ULONG EventMask,
-    _In_ HANDLE EventHandle
+    _Outptr_ PVOID *Registration
     );
 
 // rev
 /**
- * The WinStationRegisterNotificationEvent routine registers an event object for notifications concerning a specified session.
+ * The WinStationRegisterNotificationEvent routine registers a caller-supplied event for session notifications.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] EventHandle A handle to the event object; the function duplicates it.
  * \param[in] SessionId The session identifier.
- * \param[in] EventMask The event mask.
- * \param[in] EventHandle A handle to the notification event.
+ * \param[in] EventMask The event-registration mask, which is translated to an RPC notification mask.
+ * \param[out] Registration Receives an opaque registration object.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks Release Registration with WinStationUnRegisterNotificationEvent; it is not a kernel handle.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterNotificationEvent(
-    _In_opt_ HANDLE ServerHandle,
+    _In_ HANDLE EventHandle,
     _In_ ULONG SessionId,
     _In_ ULONG EventMask,
-    _In_ HANDLE EventHandle
+    _Outptr_ PVOID *Registration
     );
 
 /**
@@ -3851,35 +3924,38 @@ WinStationRegisterNotificationEvent(
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the window that receives session-change notifications.
- * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
+ * \param[in] Flags WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all
+ * sessions.
  * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterSessionNotification(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ ULONG NotificationScope
+    _In_ ULONG Flags
     );
 
 /**
- * The WinStationRegisterSessionNotificationEx routine registers a window to receive selected session-change notifications.
+ * The WinStationRegisterSessionNotificationEx routine registers a window to receive selected session-change
+ * notifications.
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the window that receives session-change notifications.
- * \param[in] NotificationScope WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all sessions.
- * \param[in] NotificationMask A mask selecting the session-change notifications to receive.
+ * \param[in] Flags WNOTIFY_THIS_SESSION (0) for the calling process session, or WNOTIFY_ALL_SESSIONS (1) for all
+ * sessions.
+ * \param[in] EventMask A mask selecting the session-change notifications to receive.
  * \return Nonzero if the registration succeeds; otherwise, zero. To get extended error information, call GetLastError.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationRegisterSessionNotificationEx(
     _In_opt_ HANDLE ServerHandle,
     _In_ HWND WindowHandle,
-    _In_ ULONG NotificationScope,
-    _In_ ULONG NotificationMask
+    _In_ ULONG Flags,
+    _In_ ULONG EventMask
     );
 
 /**
@@ -3918,38 +3994,42 @@ WinStationReportLoggedOnCompleted(
 
 // rev
 /**
- * The WinStationReportUIResult routine reports the result of a session logon user-interface dialog.
+ * Reports a logon user-interface result through an RPC context.
  *
- * \param[in] SessionId The session identifier.
+ * \param[in] Unknown0 An opaque RPC context. Its exact context subtype is not independently established.
  * \param[in] UIResult The dialog result, one of the WINSTATION_UIRESULT_* values.
- * \param[in] Reserved The selected session identifier for a reconnect/session-bump dialog when
- * UIResult is WINSTATION_UIRESULT_PROCEED; 0xFFFFFFFF requests creation of a new session. Ignored otherwise.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] SelectedSessionId The selected session identifier for a reconnect/session-bump dialog when UIResult is
+ * WINSTATION_UIRESULT_PROCEED; 0xFFFFFFFF requests creation of a new session. Ignored otherwise.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The UI-result and selected-session interpretations follow upstream; the context input and Win32 status are
+ * independently established.
  */
 NTSYSAPI
-BOOLEAN
+ULONG
 NTAPI
 WinStationReportUIResult(
-    _In_ ULONG SessionId,
-    _In_ ULONG UIResult, // WINSTATION_UIRESULT_*
-    _In_ ULONG Reserved // SelectedSessionId, or 0xFFFFFFFF for a new session
+    _In_ HANDLE Unknown0,
+    _In_ ULONG UIResult,
+    _In_ ULONG SelectedSessionId
     );
 
 // rev
 /**
- * The WinStationSendMessageA routine displays an ANSI message box in a session on a Remote Desktop Session Host server.
+ * Displays an ANSI message box in a session.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] ServerHandle A server binding object, or NULL for the local server.
  * \param[in] SessionId The session identifier.
- * \param[in] Title The title.
- * \param[in] TitleLength The size of the title, in bytes.
- * \param[in] Message The message.
- * \param[in] MessageLength The size of the message, in bytes.
- * \param[in] Style The style.
+ * \param[in] Title A required null-terminated ANSI title.
+ * \param[in] TitleLength The size used for the title conversion allocation, in ANSI byte units.
+ * \param[in] Message A required null-terminated ANSI message.
+ * \param[in] MessageLength The size used for the message conversion allocation, in ANSI byte units.
+ * \param[in] Style The message-box style.
  * \param[in] Timeout The timeout.
  * \param[out] Response Receives the response.
- * \param[in] DoNotWait The do not wait.
+ * \param[in] DoNotWait Specifies whether to return without waiting for a response.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The analyzed ANSI paths scan Title and Message through their terminators independently of the supplied
+ * lengths.
  */
 NTSYSAPI
 BOOLEAN
@@ -3957,9 +4037,9 @@ NTAPI
 WinStationSendMessageA(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
-    _In_reads_bytes_(TitleLength) PSTR Title,
+    _In_z_ PCSTR Title,
     _In_ ULONG TitleLength,
-    _In_reads_bytes_(MessageLength) PSTR Message,
+    _In_z_ PCSTR Message,
     _In_ ULONG MessageLength,
     _In_ ULONG Style,
     _In_ ULONG Timeout,
@@ -3969,17 +4049,20 @@ WinStationSendMessageA(
 
 // rev
 /**
- * The WinStationSendWindowMessage routine sends a window message to a session.
+ * Performs the session window-message RPC operation.
  *
- * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
+ * \param[in] ServerHandle Retained for the native ABI; ignored by the analyzed implementations.
  * \param[in] SessionId The session identifier.
- * \param[in] WindowHandle A handle to the notification window.
- * \param[in] Reserved An operation-specific reserved parameter.
- * \param[in] Message The message.
- * \param[in] wParam The w param.
- * \param[in] lParam The l param.
- * \param[in] Timeout The timeout.
+ * \param[in] WindowHandle The DWORD window identifier forwarded to RPC.
+ * \param[in] Reserved A pointer-sized unsigned operation-specific value.
+ * \param[in] Message The message identifier.
+ * \param[in] wParam The pointer-sized unsigned message value.
+ * \param[in] lParam The pointer-sized signed message value. Message-dependent pointer payloads are copied from this
+ * value into the RPC request.
+ * \param[out] Timeout Receives the required DWORD output.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The client constructs a local RPC binding. Reserved and Timeout retain their upstream names; their
+ * independent meanings remain unverified. The final parameter is an output pointer rather than an input scalar.
  */
 NTSYSAPI
 BOOLEAN
@@ -3988,11 +4071,11 @@ WinStationSendWindowMessage(
     _In_opt_ HANDLE ServerHandle,
     _In_ ULONG SessionId,
     _In_ ULONG WindowHandle,
-    _In_ ULONG Reserved,
+    _In_ ULONG_PTR Reserved,
     _In_ ULONG Message,
-    _In_ ULONG wParam,
-    _In_opt_ PVOID lParam,
-    _In_ ULONG Timeout
+    _In_ WPARAM wParam,
+    _In_ LPARAM lParam,
+    _Out_ PULONG Timeout
     );
 
 /**
@@ -4019,19 +4102,21 @@ WinStationSetInformationA(
     );
 
 /**
- * The WinStationSetLastWinlogonNotification routine records the Winlogon notification currently blocked by a subscriber.
+ * Records a Winlogon-notification record through RPC.
  *
- * \param[in] NotificationId The Winlogon notification identifier.
- * \param[in] SubscriberName The name of the notification subscriber.
+ * \param[in] NotificationId The notification identifier.
+ * \param[in] SubscriberName A required array of 257 readable WCHAR elements.
  * \param[in] IsCritical TRUE if the subscriber is marked as critical; otherwise, FALSE.
  * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \remarks The critical-subscriber interpretation follows upstream. A shorter null-terminated string alone does not
+ * provide the fixed array required by the native RPC client.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 WinStationSetLastWinlogonNotification(
     _In_ ULONG NotificationId,
-    _In_ PCWSTR SubscriberName,
+    _In_reads_(257) const WCHAR *SubscriberName,
     _In_ BOOL IsCritical
     );
 
@@ -4065,13 +4150,14 @@ WinStationShadowStop2(
 
 // rev
 /**
- * The WinStationSystemShutdownStarted routine notifies Terminal Services that system shutdown has started.
+ * Notifies Terminal Services that a system-shutdown operation has started.
  *
- * \param[in] ShutdownFlags The shutdown flags.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] ShutdownFlags The shutdown flags forwarded to RPC.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The flags interpretation follows upstream; the reviewed client does not independently establish each bit.
  */
 NTSYSAPI
-BOOLEAN
+ULONG
 NTAPI
 WinStationSystemShutdownStarted(
     _In_ ULONG ShutdownFlags
@@ -4079,17 +4165,18 @@ WinStationSystemShutdownStarted(
 
 // rev
 /**
- * The WinStationSystemShutdownWait routine waits for a pending Terminal Services system-shutdown operation.
+ * Waits for a Terminal Services system-shutdown operation.
  *
- * \param[in] Milliseconds The milliseconds.
- * \param[out] Result Receives the result.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param[in] Timeout The timeout in milliseconds.
+ * \param[out] Result An optional slot that receives the shutdown result.
+ * \return A Win32 error code. ERROR_SUCCESS indicates success.
+ * \remarks The Result interpretation follows upstream; the review establishes its optional DWORD output contract.
  */
 NTSYSAPI
-BOOLEAN
+ULONG
 NTAPI
 WinStationSystemShutdownWait(
-    _In_ ULONG Milliseconds,
+    _In_ ULONG Timeout,
     _Out_opt_ PULONG Result
     );
 
@@ -4111,26 +4198,27 @@ WinStationTerminateGlassReplacementSession(
 /**
  * The WinStationUnRegisterNotificationEvent routine unregisters a notification event registration.
  *
- * \param[in] NotificationHandle The notification handle.
+ * \param[in] Registration The opaque registration object returned by event registration; it must not be null.
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationUnRegisterNotificationEvent(
-    _In_ HANDLE NotificationHandle
+    _In_ PVOID Registration
     );
 
 // rev
 /**
- * The WinStationUnRegisterSessionNotification routine provides an exported alias for a Terminal Services client operation.
+ * The WinStationUnRegisterSessionNotification routine provides an exported alias for a Terminal Services client
+ * operation.
  *
  * \param[in] ServerHandle A handle to the server. NULL specifies the current server.
  * \param[in] WindowHandle A handle to the notification window.
  * \return Nonzero if the operation succeeds; otherwise, zero.
  */
 NTSYSAPI
-BOOLEAN
+BOOL
 NTAPI
 WinStationUnRegisterSessionNotification(
     _In_opt_ HANDLE ServerHandle,
@@ -4532,10 +4620,10 @@ typedef struct _WINSTATIONCONFIG2W
  * \param[in] ThinwireDataLength The size of the thinwire data, in bytes.
  * \param[in] pClientName The p client name.
  * \param[in] ClientNameLength The capacity associated with pClientName, in WCHAR elements.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \return An NTSTATUS value. Use NT_SUCCESS to test the result.
  */
 NTSYSAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 _WinStationShadowTarget(
     _In_opt_ HANDLE hServer,
@@ -4552,7 +4640,8 @@ _WinStationShadowTarget(
 
 // rev
 /**
- * The _WinStationShadowTarget2 routine configures the target side of a session-shadowing connection using extended shadow data.
+ * The _WinStationShadowTarget2 routine configures the target side of a session-shadowing connection using extended
+ * shadow data.
  *
  * \param[in] hServer The h server.
  * \param[in] SessionId The session identifier.
@@ -4566,10 +4655,10 @@ _WinStationShadowTarget(
  * \param[in] ThinwireDataLength The size of the thinwire data, in bytes.
  * \param[in] pClientName The p client name.
  * \param[in] ClientNameLength The capacity associated with pClientName, in WCHAR elements.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \return An NTSTATUS value. Use NT_SUCCESS to test the result.
  */
 NTSYSAPI
-BOOLEAN
+NTSTATUS
 NTAPI
 _WinStationShadowTarget2(
     _In_opt_ HANDLE hServer,
@@ -4668,17 +4757,18 @@ _WinStationUpdateUserConfig(
 
 // rev
 /**
- * The _WinStationWaitForConnectEx routine waits for a WinStation connection using extended connection parameters.
+ * Performs the Local Session Manager's extended terminal connection RPC operation.
  *
- * \param[in] ConnectionGuid Pointer to the GUID identifying the connection to wait for. The call
- * waits for the Local Session Manager to start and forwards this GUID to lsm!RpcConnectTerminalEx.
- * \return Nonzero if the operation succeeds; otherwise, zero.
+ * \param ConnectionGuid The connection GUID, passed by value to this native export.
+ * \return TRUE if the RPC result is successful, or FALSE otherwise. Read only the BOOLEAN byte result.
+ * \remarks The client waits for Local Session Manager startup and passes the GUID to RpcConnectTerminalEx
+ * as an input GUID pointer. The native export does not write a GUID back to the caller.
  */
 NTSYSAPI
 BOOLEAN
 NTAPI
 _WinStationWaitForConnectEx(
-    _In_ PGUID ConnectionGuid
+    _In_ GUID ConnectionGuid
     );
 
 #endif
