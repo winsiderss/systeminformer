@@ -269,6 +269,7 @@
         <ClCompile Include="main.c" />
         <ClCompile Include="mainwnd.c" />
         <ClCompile Include="mdump.c" />
+        <ClCompile Include="memcfg.c" />
         <ClCompile Include="memedit.c" />
         <ClCompile Include="memlist.c" />
         <ClCompile Include="memlists.c" />
@@ -337,6 +338,7 @@
         <ClCompile Include="sysscmem.c" />
         <ClCompile Include="thrdlist.c" />
         <ClCompile Include="thrdprv.c" />
+        <ClCompile Include="thrdctx.c" />
         <ClCompile Include="thrdstk.c" />
         <ClCompile Include="thrdstks.c" />
         <ClCompile Include="tokprp.c" />
