@@ -124,6 +124,7 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
             ULONG EnableIconsInternal : 1;
 
             ULONG HighlightMessageOnly : 1;
+            ULONG HighlightDefaultIme : 1;
 
             ULONG EnableWindowVisible : 1;
             ULONG WindowVisibleOnly : 1;
@@ -131,11 +132,12 @@ typedef struct _WE_WINDOW_TREE_CONTEXT
             ULONG EnableMessageOnly : 1;
             ULONG WindowMessageOnly : 1;
 
-            ULONG Spare : 26;
+            ULONG Spare : 25;
         };
     };
 
     COLORREF MessageOnlyWindowColor;
+    COLORREF DefaultImeWindowColor;
     COLORREF ColorNew;
     COLORREF ColorRemoved;
 
@@ -188,6 +190,7 @@ PWE_WINDOW_NODE WeFindWindowNode(
 
 VOID WeUpdateWindowNode(
     _In_ PWE_WINDOW_NODE WindowNode,
+    _In_ PWE_WINDOW_ITEM WindowItem,
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     );
 

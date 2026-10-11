@@ -199,6 +199,8 @@ VOID WeInitializeWindowTreeImageList(
     Context->EnableWindowVisible = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_ENUM_NONVISIBLE);
     Context->HighlightMessageOnly = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY);
     Context->MessageOnlyWindowColor = PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_MESSAGEONLY_COLOR);
+    Context->HighlightDefaultIme = !!PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME);
+    Context->DefaultImeWindowColor = PhGetIntegerSetting(SETTING_NAME_WINDOW_HIGHLIGHT_DEFAULTIME_COLOR);
     Context->SelectorType = Selector->Type;
 
     if (Context->EnableIcons)
@@ -637,13 +639,17 @@ PWE_WINDOW_NODE WeFindWindowNode(
  * Updates a window node.
  *
  * \param[in] WindowNode The window node.
+ * \param[in] WindowItem The provider-owned window item.
  * \param[in] Context The window tree context.
  */
 VOID WeUpdateWindowNode(
     _In_ PWE_WINDOW_NODE WindowNode,
+    _In_ PWE_WINDOW_ITEM WindowItem,
     _In_ PWE_WINDOW_TREE_CONTEXT Context
     )
 {
+    PhSwapReference(&WindowNode->WindowItem, WindowItem);
+
     memset(WindowNode->TextCache, 0, sizeof(PH_STRINGREF) * WEWNTLC_MAXIMUM);
 
     PhInvalidateTreeNewNode(&WindowNode->Node, TN_CACHE_COLOR);
@@ -1146,6 +1152,11 @@ BOOLEAN NTAPI WepWindowTreeNewCallback(
             if (node->WindowItem->WindowMessageOnly && context->HighlightMessageOnly)
             {
                 getNodeColor->BackColor = context->MessageOnlyWindowColor;
+            }
+
+            if (node->WindowItem->WindowDefaultIme && context->HighlightDefaultIme)
+            {
+                getNodeColor->BackColor = context->DefaultImeWindowColor;
             }
 
             getNodeColor->Flags = TN_CACHE;

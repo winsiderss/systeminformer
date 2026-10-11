@@ -53,7 +53,7 @@ PPV_PROPCONTEXT HdCreatePropContext(
     memset(&sheet, 0, sizeof(PH_PROPSHEETNEW));
     sheet.Caption = Caption;
     sheet.Layout = PhPropSheetNewLayoutTop;
-    sheet.Skin = PhTabNewSkinUxTheme;
+    //sheet.Skin = PhTabNewSkinUxTheme;
     sheet.Flags = PH_PROPSHEETNEW_RESIZABLE |
         PH_PROPSHEETNEW_CENTER |
         PH_PROPSHEETNEW_CLOSE_BUTTON |
@@ -218,14 +218,13 @@ PPH_LAYOUT_ITEM PvAddPropPageLayoutItem(
 }
 
 /**
- * \brief PvDoPropPageLayout
+ * \PvDoPropPageLayout
  *
  * \param WindowHandle
  */
-
 VOID PvDoPropPageLayout(
     _In_ HWND WindowHandle
     )
 {
-    PhPropSheetNewPageLayout(WindowHandle);
+    //PhPropSheetNPageLayout(WindowHandle);
 }
