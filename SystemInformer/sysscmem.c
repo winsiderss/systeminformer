@@ -628,6 +628,7 @@ VOID PhSipCreateMemoryGraphs(
     )
 {
     PH_GRAPH_CREATEPARAMS graphCreateParams;
+    PH_GRAPHBAR_CREATEPARAMS graphBarCreateParams;
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -647,6 +648,7 @@ VOID PhSipCreateMemoryGraphs(
         &graphCreateParams
         );
     Graph_SetTooltip(CommitGraphHandle, TRUE);
+    PhBringWindowToTop(CommitGraphHandle);
 
     memset(&graphCreateParams, 0, sizeof(PH_GRAPH_CREATEPARAMS));
     graphCreateParams.Size = sizeof(PH_GRAPH_CREATEPARAMS);
@@ -655,7 +657,27 @@ VOID PhSipCreateMemoryGraphs(
     PhysicalGraphHandle = PhCreateWindow(
         PH_GRAPH_CLASSNAME,
         NULL,
-        WS_VISIBLE | WS_CHILD | WS_BORDER,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
+        0,
+        0,
+        0,
+        0,
+        MemoryDialog,
+        NULL,
+        NULL,
+        &graphCreateParams
+        );
+    Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+    PhBringWindowToTop(CommitGraphHandle);
+
+    memset(&graphBarCreateParams, 0, sizeof(PH_GRAPHBAR_CREATEPARAMS));
+    graphBarCreateParams.Size = sizeof(PH_GRAPHBAR_CREATEPARAMS);
+    graphBarCreateParams.Callback = PhSipNotifyMemoryGraphBar;
+
+    MemoryGraphBarHandle = PhCreateWindow(
+        PH_GRAPHBAR_CLASSNAME,
+        NULL,
+        WS_VISIBLE | WS_CHILD | WS_CLIPSIBLINGS | WS_BORDER,
         0,
         0,
         0,
@@ -663,9 +685,9 @@ VOID PhSipCreateMemoryGraphs(
         MemoryDialog,
         NULL,
         PhInstanceHandle,
-        &graphCreateParams
+        &graphBarCreateParams
         );
-    Graph_SetTooltip(PhysicalGraphHandle, TRUE);
+    PhBringWindowToTop(MemoryGraphBarHandle);
 }
 
 VOID PhSipLayoutMemoryGraphs(
@@ -808,6 +830,39 @@ BOOLEAN NTAPI PhSipNotifyCommitGraph(
 
                 CommitGraphState.Valid = TRUE;
             }
+
+            if (PhPerfInformation.CommitLimit != 0)
+            {
+                ULONG commitUsagePages = PhPerfInformation.CommittedPages;
+                ULONG commitLimitPages = PhPerfInformation.CommitLimit;
+                ULONG commitUsagePercent = PhMultiplyDivide(commitUsagePages, 100, commitLimitPages);
+                PH_FORMAT format[6];
+                HDC hdc;
+
+                // <current> / <total> <percent>%
+                PhInitFormatSize(&format[0], UInt32x32To64(commitUsagePages, PAGE_SIZE));
+                PhInitFormatS(&format[1], L" / ");
+                PhInitFormatSize(&format[2], UInt32x32To64(commitLimitPages, PAGE_SIZE));
+                PhInitFormatS(&format[3], L" ");
+                PhInitFormatU(&format[4], commitUsagePercent);
+                PhInitFormatS(&format[5], L"%");
+
+                PhMoveReference(&CommitGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                hdc = Graph_GetBufferedContext(GraphHandle);
+                PhSetGraphText(
+                    hdc,
+                    drawInfo,
+                    &CommitGraphState.Text->sr,
+                    &PhNormalGraphTextMargin,
+                    &PhNormalGraphTextPadding,
+                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                    );
+            }
+            else
+            {
+                drawInfo->Text.Buffer = NULL;
+            }
         }
         break;
     case GCN_GETTOOLTIPTEXT:
@@ -905,6 +960,39 @@ BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
 
                 PhysicalGraphState.Valid = TRUE;
             }
+
+            if (PhSystemBasicInformation.NumberOfPhysicalPages != 0)
+            {
+                ULONG physicalUsagePages = PhSystemBasicInformation.NumberOfPhysicalPages - PhPerfInformation.AvailablePages;
+                ULONG physicalTotalPages = PhSystemBasicInformation.NumberOfPhysicalPages;
+                ULONG physicalUsagePercent = PhMultiplyDivide(physicalUsagePages, 100, physicalTotalPages);
+                PH_FORMAT format[6];
+                HDC hdc;
+
+                // <current> / <total> <percent>%
+                PhInitFormatSize(&format[0], UInt32x32To64(physicalUsagePages, PAGE_SIZE));
+                PhInitFormatS(&format[1], L" / ");
+                PhInitFormatSize(&format[2], UInt32x32To64(physicalTotalPages, PAGE_SIZE));
+                PhInitFormatS(&format[3], L" ");
+                PhInitFormatU(&format[4], physicalUsagePercent);
+                PhInitFormatS(&format[5], L"%");
+
+                PhMoveReference(&PhysicalGraphState.Text, PhFormat(format, RTL_NUMBER_OF(format), 0));
+
+                hdc = Graph_GetBufferedContext(GraphHandle);
+                PhSetGraphText(
+                    hdc,
+                    drawInfo,
+                    &PhysicalGraphState.Text->sr,
+                    &PhNormalGraphTextMargin,
+                    &PhNormalGraphTextPadding,
+                    PH_ALIGN_TOP | PH_ALIGN_LEFT
+                    );
+            }
+            else
+            {
+                drawInfo->Text.Buffer = NULL;
+            }
         }
         break;
     case GCN_GETTOOLTIPTEXT:
@@ -916,13 +1004,13 @@ BOOLEAN NTAPI PhSipNotifyPhysicalGraph(
                 if (PhysicalGraphState.TooltipIndex != getTooltipText->Index)
                 {
                     ULONG usedPages;
-                    FLOAT currentCompressedMemory;
-                    FLOAT totalCompressedMemory;
-                    FLOAT totalSavedMemory;
+                    DOUBLE currentCompressedMemory;
+                    DOUBLE totalCompressedMemory;
+                    DOUBLE totalSavedMemory;
 
                     usedPages = PhGetItemCircularBuffer_ULONG(&PhPhysicalHistory, getTooltipText->Index);
 
-                    if (PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory))
+                    if (NT_SUCCESS(PhSipGetMemoryCompressionLimits(&currentCompressedMemory, &totalCompressedMemory, &totalSavedMemory)))
                     {
                         PH_FORMAT format[13];
 
@@ -1321,29 +1409,33 @@ VOID PhSipGetPoolLimits(
     *NonPaged = nonPaged;
 }
 
-_Success_(return)
-BOOLEAN PhSipGetMemoryCompressionLimits(
-    _Out_ FLOAT *CurrentCompressedMemory,
-    _Out_ FLOAT *TotalCompressedMemory,
-    _Out_ FLOAT *TotalSavedMemory
+NTSTATUS PhSipGetMemoryCompressionLimits(
+    _Out_ PDOUBLE CurrentCompressedMemory,
+    _Out_ PDOUBLE TotalCompressedMemory,
+    _Out_ PDOUBLE TotalSavedMemory
     )
 {
     PH_SYSTEM_STORE_COMPRESSION_INFORMATION compressionInfo;
-    FLOAT current;
-    FLOAT total;
-    FLOAT saved;
+    NTSTATUS status;
+    DOUBLE current;
+    DOUBLE ratio;
+    DOUBLE total;
+    DOUBLE saved;
 
-    if (!NT_SUCCESS(PhGetSystemCompressionStoreInformation(&compressionInfo)))
-        return FALSE;
+    status = PhGetSystemCompressionStoreInformation(&compressionInfo);
+
+    if (!NT_SUCCESS(status))
+        return status;
     if (!(compressionInfo.TotalDataCompressed && compressionInfo.TotalCompressedSize))
-        return FALSE;
+        return STATUS_FAIL_CHECK;
 
-    current = (FLOAT)compressionInfo.WorkingSetSize / (FLOAT)(1024 * 1024);
-    total = current * (FLOAT)compressionInfo.TotalDataCompressed / (FLOAT)compressionInfo.TotalCompressedSize;
+    current = (DOUBLE)compressionInfo.WorkingSetSize;
+    ratio = (DOUBLE)compressionInfo.TotalDataCompressed / (DOUBLE)compressionInfo.TotalCompressedSize;
+    total = current * ratio;
     saved = total - current;
 
-    *CurrentCompressedMemory = current * 1024 * 1024;
-    *TotalCompressedMemory = total * 1024 * 1024;
-    *TotalSavedMemory = saved * 1024 * 1024;
-    return TRUE;
+    *CurrentCompressedMemory = current;
+    *TotalCompressedMemory = total;
+    *TotalSavedMemory = saved;
+    return status;
 }

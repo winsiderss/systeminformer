@@ -546,7 +546,7 @@ VOID PhpUpdateHeapRegions(
         numberOfHeaps = ((PRTL_PROCESS_HEAPS_V1)debugBuffer->Heaps)->NumberOfHeaps;
     }
 
-    if ((SIZE_T)numberOfHeaps > (((SIZE_T)-1) - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
+    if ((SIZE_T)numberOfHeaps > (SIZE_MAX - sizeof(PH_PROCESS_DEBUG_HEAP_INFORMATION)) / sizeof(PH_PROCESS_DEBUG_HEAP_ENTRY))
     {
         RtlDestroyQueryDebugBuffer(debugBuffer);
         return;
