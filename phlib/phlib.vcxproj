@@ -179,6 +179,7 @@
     <ClCompile Include="format_std.cpp" />
     <ClCompile Include="global.c" />
     <ClCompile Include="graph.c" />
+    <ClCompile Include="graphbar.c" />
     <ClCompile Include="graphscroll.c" />
     <ClCompile Include="guisup.c" />
     <ClCompile Include="guisuplistview.cpp" />
@@ -247,6 +248,7 @@
     <ClInclude Include="include\appresolverp.h" />
     <ClInclude Include="include\bcd.h" />
     <ClInclude Include="include\base64.h" />
+    <ClInclude Include="include\graphbar.h" />
     <ClInclude Include="include\graphscroll.h" />
     <ClInclude Include="include\phafd.h" />
     <ClInclude Include="include\phconsole.h" />
