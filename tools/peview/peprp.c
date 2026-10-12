@@ -737,6 +737,23 @@ VERIFY_RESULT PvpVerifyFileWithAdditionalCatalog(
         FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT
         );
 
+    // FILE_WRITE_ATTRIBUTES is only needed to stop the access time being updated, and
+    // standard users don't hold it on protected files (System32 is owned by
+    // TrustedInstaller). Failing the open there reported every inbox binary as
+    // unverified, so fall back to read-only access. (dmex)
+    if (status == STATUS_ACCESS_DENIED)
+    {
+        status = PhCreateFileWin32(
+            &fileHandle,
+            PhGetString(FileName),
+            FILE_READ_DATA | FILE_READ_ATTRIBUTES | SYNCHRONIZE,
+            FILE_ATTRIBUTE_NORMAL,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+            FILE_OPEN,
+            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT
+            );
+    }
+
     if (!NT_SUCCESS(status))
     {
         signatures = NULL;
@@ -966,6 +983,25 @@ static VOID PvpUpdatePeImageIcon(
 // The file name on the hero card is the loudest text on the page, so it gets a
 // larger semibold font while everything else keeps the dialog font. Re-created on a
 // DPI change because the height is scaled.
+// The hero card edits otherwise take a font-dependent left margin, which shifts the
+// larger title right of the company line, the signer link and the version. Runs after
+// every font change since WM_SETFONT recalculates the margins. (dmex)
+static VOID PvpUpdatePeImageTextMargins(
+    _In_ PPVP_PE_GENERAL_CONTEXT Context
+    )
+{
+    static CONST ULONG controlIds[] = { IDC_NAME, IDC_COMPANYNAME, IDC_VERSION };
+    HWND controlHandle;
+
+    for (ULONG i = 0; i < RTL_NUMBER_OF(controlIds); i++)
+    {
+        if (controlHandle = GetDlgItem(Context->WindowHandle, controlIds[i]))
+        {
+            SendMessage(controlHandle, EM_SETMARGINS, EC_LEFTMARGIN | EC_RIGHTMARGIN, MAKELPARAM(0, 0));
+        }
+    }
+}
+
 static VOID PvpUpdatePeImageTitleFont(
     _In_ PPVP_PE_GENERAL_CONTEXT Context
     )
@@ -999,7 +1035,7 @@ static VOID PvpUpdatePeImageTitleFont(
 
 // Paints the hero card behind the file icon, name, company and version. IDC_FILE is
 // kept as the layout anchor only - the frame it used to draw is replaced by this
-// rounded surface, and the version is set in a chip so it reads as a badge. (dmex)
+// rounded surface. (dmex)
 static VOID NTAPI PvpDrawPeImageHeroCard(
     _In_ HWND WindowHandle,
     _In_ HDC Hdc
@@ -1065,58 +1101,6 @@ static VOID NTAPI PvpDrawPeImageHeroCard(
                     radius
                     );
             }
-        }
-    }
-
-    // The version chip. Sized to the text rather than the control, which spans the
-    // remaining width of the card.
-    if (controlHandle = GetDlgItem(Context->WindowHandle, IDC_VERSION))
-    {
-        PPH_STRING text;
-        RECT chipRect;
-
-        if (text = PhGetWindowText(controlHandle))
-        {
-            if (text->Length && PhGetWindowRect(controlHandle, &chipRect))
-            {
-                SIZE textSize;
-                HFONT fontHandle;
-                HFONT oldFontHandle = NULL;
-                INT savedDc;
-
-                MapWindowRect(NULL, Context->WindowHandle, &chipRect);
-
-                if (savedDc = SaveDC(Hdc))
-                {
-                    if (fontHandle = GetWindowFont(controlHandle))
-                        oldFontHandle = SelectFont(Hdc, fontHandle);
-
-                    if (GetTextExtentPoint32(Hdc, text->Buffer, (LONG)text->Length / sizeof(WCHAR), &textSize))
-                    {
-                        chipRect.right = chipRect.left + textSize.cx + padding * 2;
-                        chipRect.left -= padding;
-                        InflateRect(&chipRect, 0, PhScaleToDisplay(2, dpiValue));
-
-                        if (PhIntersectRect(&visibleRect, &chipRect, &clipRect))
-                        {
-                            PvThemeFillRoundRect(
-                                Hdc,
-                                &chipRect,
-                                colors->ChipBackground,
-                                colors->ChipBackground,
-                                PhScaleToDisplay(4, dpiValue)
-                                );
-                        }
-                    }
-
-                    if (oldFontHandle)
-                        SelectFont(Hdc, oldFontHandle);
-
-                    RestoreDC(Hdc, savedDc);
-                }
-            }
-
-            PhDereferenceObject(text);
         }
     }
 }
@@ -2867,6 +2851,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
             PvThemeApplyListView(context->ListViewHandle);
 
             PvpUpdatePeImageTitleFont(context);
+            PvpUpdatePeImageTextMargins(context);
 
             PvpUpdatePeImageIcon(context);
 
@@ -2919,6 +2904,7 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
         {
             PvpUpdatePeImageIcon(context);
             PvpUpdatePeImageTitleFont(context);
+            PvpUpdatePeImageTextMargins(context);
             PvSetListViewImageList(context->WindowHandle, context->ListViewHandle);
         }
         break;
@@ -3099,9 +3085,8 @@ INT_PTR CALLBACK PvPeGeneralDlgProc(
                 switch (GetDlgCtrlID(controlHandle))
                 {
                 case IDC_COMPANYNAME:
-                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->SecondaryText, colors->CardBackground);
                 case IDC_VERSION:
-                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->ChipText, colors->ChipBackground);
+                    return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->SecondaryText, colors->CardBackground);
                 case IDC_FILEICON:
                     return (INT_PTR)PvThemeHandleCtlColorEx((HDC)wParam, colors->WindowText, colors->ChipBackground);
                 default:

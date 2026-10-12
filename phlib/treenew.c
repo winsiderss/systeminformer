@@ -2538,6 +2538,31 @@ BOOLEAN PhTnpOnNotify(
                 case CDDS_PREPAINT:
                     {
                         *Result = CDRF_NOTIFYITEMDRAW;
+                        if (Context->ThemeSupport)
+                            *Result |= CDRF_NOTIFYPOSTPAINT;
+                    }
+                    return TRUE;
+                case CDDS_POSTPAINT:
+                    {
+                        if (Context->ThemeSupport)
+                        {
+                            RECT trailingRect;
+                            RECT itemRect;
+                            INT itemCount = Header_GetItemCount(Header->hwndFrom);
+
+                            if (PhGetClientRect(Header->hwndFrom, &trailingRect))
+                            {
+                                for (INT i = 0; i < itemCount; i++)
+                                {
+                                    if (Header_GetItemRect(Header->hwndFrom, i, &itemRect))
+                                        trailingRect.left = max(trailingRect.left, itemRect.right);
+                                }
+
+                                SetDCBrushColor(customDraw->hdc, PhThemeWindowBackgroundColor);
+                                FillRect(customDraw->hdc, &trailingRect, PhGetStockBrush(DC_BRUSH));
+                            }
+                        }
+                        *Result = CDRF_DODEFAULT;
                     }
                     return TRUE;
                 case CDDS_ITEMPREPAINT:
@@ -9238,7 +9263,8 @@ BOOLEAN TnHeaderCustomPaint(
         {
             HBRUSH oldBrush;
 
-            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowHighlight2Color);
+            // Highlight2Color is too light for the header text color. (dmex)
+            SetDCBrushColor(CustomDraw->hdc, PhThemeWindowBackground2Color);
             FillRect(CustomDraw->hdc, &CustomDraw->rc, PhGetStockBrush(DC_BRUSH));
 
             // PatBlt uses the brush selected into the device context, unlike FillRect. (dmex)
@@ -9936,7 +9962,8 @@ LRESULT CALLBACK PhTnpHeaderHookWndProc(
                 SendMessage(context->TooltipsHandle, TTM_RELAYEVENT, 0, (LPARAM)&message);
             }
 
-            if (!context->HeaderCustomDraw)
+            // Must match WM_MOUSEMOVE, which tracks the hot column for theme support too. (dmex)
+            if (!context->HeaderCustomDraw && !context->ThemeSupport)
                 break;
 
             result = CallWindowProc(oldWndProc, WindowHandle, WindowMessage, wParam, lParam);

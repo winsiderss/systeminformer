@@ -622,11 +622,18 @@ VOID PvThemeApplyListView(
         // The rows of a grouped listview sit on the card painted by
         // PvThemeDrawListViewCards, so the text background is the card surface while
         // the control background stays the window color behind the gutters. Ungrouped
-        // pages have no cards and get the card color across the whole control, which
-        // is what lifts them off the window the same way. (dmex)
-        ListView_SetBkColor(WindowHandle, ListView_IsGroupViewEnabled(WindowHandle) ?
-            PvpThemeColors.ListBackground : PvpThemeColors.CardBackground);
-        ListView_SetTextBkColor(WindowHandle, PvpThemeColors.CardBackground);
+        // pages have no cards and sit flush with the window, so both the control and
+        // the rows use the window background. (dmex)
+        if (ListView_IsGroupViewEnabled(WindowHandle))
+        {
+            ListView_SetBkColor(WindowHandle, PvpThemeColors.ListBackground);
+            ListView_SetTextBkColor(WindowHandle, PvpThemeColors.CardBackground);
+        }
+        else
+        {
+            ListView_SetBkColor(WindowHandle, PvpThemeColors.WindowBackground);
+            ListView_SetTextBkColor(WindowHandle, PvpThemeColors.WindowBackground);
+        }
         ListView_SetTextColor(WindowHandle, PvpThemeColors.ListText);
         ListView_SetOutlineColor(WindowHandle, PvpThemeColors.CardBorder);
 
@@ -1509,6 +1516,27 @@ static LRESULT CALLBACK PvpThemePageWindowProc(
                     eraseCallback(WindowHandle, hdc);
                     return TRUE;
                 }
+            }
+        }
+        break;
+    case WM_CTLCOLORBTN:
+    case WM_CTLCOLORSTATIC:
+    case WM_CTLCOLORLISTBOX:
+    case WM_CTLCOLOREDIT:
+        {
+            DLGPROC dialogProc;
+
+            // phlib's subclass also answers these itself with the window background
+            // brush, so controls on a decorated surface (the hero card) would erase
+            // with the wrong color. Give the page dialog procedure the first say. (dmex)
+            if (PvpThemeEnabled &&
+                PhGetWindowContext(WindowHandle, PV_THEME_ERASE_CONTEXT_TAG) &&
+                (dialogProc = (DLGPROC)GetWindowLongPtr(WindowHandle, DWLP_DLGPROC)))
+            {
+                INT_PTR result = dialogProc(WindowHandle, Message, wParam, lParam);
+
+                if (result)
+                    return result;
             }
         }
         break;
