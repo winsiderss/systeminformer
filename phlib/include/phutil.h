@@ -2983,6 +2983,32 @@ PhTaskbarListSetOverlayIcon(
     _In_opt_ PCWSTR IconDescription
     );
 
+typedef enum _PH_TASKBAR_NOTIFY_EVENT
+{
+    PhTaskbarNotifyCreated,
+    PhTaskbarNotifyProgressValue,
+    PhTaskbarNotifyProgressState,
+    PhTaskbarNotifyDestroyed,
+    PhTaskbarNotifyMaximum
+} PH_TASKBAR_NOTIFY_EVENT;
+
+typedef struct _PH_TASKBAR_NOTIFY
+{
+    PH_TASKBAR_NOTIFY_EVENT Event;
+    HANDLE TaskbarHandle;
+    HWND WindowHandle;
+    ULONGLONG Completed;
+    ULONGLONG Total;
+    ULONG Flags;
+} PH_TASKBAR_NOTIFY, *PPH_TASKBAR_NOTIFY;
+
+//PHLIBAPI
+//PPH_CALLBACK
+//NTAPI
+//PhGetTaskbarListCallback(
+//    VOID
+//    );
+
 /**
  * Adds an offset to a pointer with overflow protection.
  *
