@@ -14,6 +14,7 @@ phnt_srcs = files(
     'include/ntbcd.h',
     'include/ntdbg.h',
     'include/ntexapi.h',
+    'include/ntfve.h',
     'include/ntgdi.h',
     'include/ntimage.h',
     'include/ntintsafe.h',
