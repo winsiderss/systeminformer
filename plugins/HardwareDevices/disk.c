@@ -92,14 +92,14 @@ VOID DiskDevicesUpdate(
                 ULONG writeCount;
                 ULONG64 queryTime;
 
-                PhUpdateDelta(&entry->BytesReadDelta, diskPerformance.BytesRead.QuadPart);
-                PhUpdateDelta(&entry->BytesWrittenDelta, diskPerformance.BytesWritten.QuadPart);
-                PhUpdateDelta(&entry->ReadTimeDelta, diskPerformance.ReadTime.QuadPart);
-                PhUpdateDelta(&entry->WriteTimeDelta, diskPerformance.WriteTime.QuadPart);
-                PhUpdateDelta(&entry->IdleTimeDelta, diskPerformance.IdleTime.QuadPart);
-                PhUpdateDelta(&entry->ReadCountDelta, diskPerformance.ReadCount);
-                PhUpdateDelta(&entry->WriteCountDelta, diskPerformance.WriteCount);
-                PhUpdateDelta(&entry->QueryTimeDelta, diskPerformance.QueryTime.QuadPart);
+                PhUpdateDeltaClamped(&entry->BytesReadDelta, (ULONG64)diskPerformance.BytesRead.QuadPart);
+                PhUpdateDeltaClamped(&entry->BytesWrittenDelta, (ULONG64)diskPerformance.BytesWritten.QuadPart);
+                PhUpdateDeltaClamped(&entry->ReadTimeDelta, (ULONG64)diskPerformance.ReadTime.QuadPart);
+                PhUpdateDeltaClamped(&entry->WriteTimeDelta, (ULONG64)diskPerformance.WriteTime.QuadPart);
+                PhUpdateDeltaClamped(&entry->IdleTimeDelta, (ULONG64)diskPerformance.IdleTime.QuadPart);
+                PhUpdateDeltaClamped(&entry->ReadCountDelta, diskPerformance.ReadCount);
+                PhUpdateDeltaClamped(&entry->WriteCountDelta, diskPerformance.WriteCount);
+                PhUpdateDeltaClamped(&entry->QueryTimeDelta, (ULONG64)diskPerformance.QueryTime.QuadPart);
 
                 readTime = entry->ReadTimeDelta.Delta;
                 writeTime = entry->WriteTimeDelta.Delta;
@@ -119,7 +119,7 @@ VOID DiskDevicesUpdate(
                     entry->ActiveTime = 0.0f;
 
                 if (entry->ActiveTime > 100.f)
-                    entry->ActiveTime = 0.f;
+                    entry->ActiveTime = 100.f;
                 if (entry->ActiveTime < 0.f)
                     entry->ActiveTime = 0.f;
 
@@ -140,6 +140,12 @@ VOID DiskDevicesUpdate(
                 PhInitializeDelta(&entry->WriteCountDelta);
                 PhInitializeDelta(&entry->QueryTimeDelta);
 
+                // Re-arm the first sample, otherwise the counters of the device we reconnect to are
+                // reported as a single tick's delta. (dmex)
+                entry->HaveFirstSample = FALSE;
+
+                entry->CurrentBytesRead = 0;
+                entry->CurrentBytesWritten = 0;
                 entry->ResponseTime = 0;
                 entry->ActiveTime = 0.0f;
                 entry->QueueDepth = 0;
@@ -163,6 +169,12 @@ VOID DiskDevicesUpdate(
             PhInitializeDelta(&entry->WriteCountDelta);
             PhInitializeDelta(&entry->QueryTimeDelta);
 
+            // Re-arm the first sample, otherwise the counters of the device we reconnect to are
+            // reported as a single tick's delta. (dmex)
+            entry->HaveFirstSample = FALSE;
+
+            entry->CurrentBytesRead = 0;
+            entry->CurrentBytesWritten = 0;
             entry->ResponseTime = 0;
             entry->ActiveTime = 0.0f;
             entry->QueueDepth = 0;
@@ -172,7 +184,11 @@ VOID DiskDevicesUpdate(
             PhClearReference(&entry->DiskIndexName);
         }
 
-        if (!entry->HaveFirstSample)
+        // Note: the DevicePresent check keeps the first sample armed across the ticks where the
+        // device is missing, so the counters of the device we reconnect to are not reported as a
+        // single tick's delta. (dmex)
+
+        if (entry->DevicePresent && !entry->HaveFirstSample)
         {
             // The first sample must be zero.
             entry->BytesReadDelta.Delta = 0;
@@ -186,10 +202,30 @@ VOID DiskDevicesUpdate(
             entry->HaveFirstSample = TRUE;
         }
 
+        // Scale the byte deltas into per-second rates. The device reports the time it measured
+        // over (QueryTime, in 100ns units) which is more accurate than the provider interval;
+        // fall back to the provider interval when the device didn't report one. (dmex)
+
+        if (entry->QueryTimeDelta.Delta != 0)
+        {
+            entry->CurrentBytesRead = entry->BytesReadDelta.Delta * PH_TICKS_PER_SEC / entry->QueryTimeDelta.Delta;
+            entry->CurrentBytesWritten = entry->BytesWrittenDelta.Delta * PH_TICKS_PER_SEC / entry->QueryTimeDelta.Delta;
+        }
+        else if (NetRateIntervalMs != 0)
+        {
+            entry->CurrentBytesRead = entry->BytesReadDelta.Delta * 1000 / NetRateIntervalMs;
+            entry->CurrentBytesWritten = entry->BytesWrittenDelta.Delta * 1000 / NetRateIntervalMs;
+        }
+        else
+        {
+            entry->CurrentBytesRead = 0;
+            entry->CurrentBytesWritten = 0;
+        }
+
         if (RunCount != 0)
         {
-            PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->BytesReadDelta.Delta);
-            PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->BytesWrittenDelta.Delta);
+            PhAddItemCircularBuffer_ULONG64(&entry->ReadBuffer, entry->CurrentBytesRead);
+            PhAddItemCircularBuffer_ULONG64(&entry->WriteBuffer, entry->CurrentBytesWritten);
         }
 
         PhDereferenceObjectDeferDelete(entry);

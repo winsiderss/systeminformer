@@ -1389,7 +1389,7 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
             PPH_LAYOUT_ITEM graphItem;
             PPH_LAYOUT_ITEM panelItem;
             PPH_STRING adapterDescription;
-            PPH_STRING description;
+            PPH_STRING deviceName;
 
             context->GpuDialog = WindowHandle;
 
@@ -1411,14 +1411,16 @@ INT_PTR CALLBACK GraphicsDeviceDialogProc(
 
             PhSetDialogItemText(WindowHandle, IDC_TITLE, PhGetString(adapterDescription));
 
-            if (GraphicsQueryDeviceProperties(PhGetString(context->DeviceEntry->Id.DevicePath), &description, NULL, NULL, NULL, NULL, NULL))
-                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(PH_AUTO_T(PH_STRING, description)));
+            // Show the adapter name below the title, falling back to the title text
+            // when the device cannot be resolved. (dmex)
+            if (deviceName = PH_AUTO_T(PH_STRING, GraphicsDeviceGetName(context->DeviceEntry)))
+                PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(deviceName));
             else
                 PhSetDialogItemText(WindowHandle, IDC_GPUNAME, PhGetString(adapterDescription));
 
             context->GpuPanel = PhCreateDialog(PluginInstance->DllBase, MAKEINTRESOURCE(IDD_GPUDEVICE_PANEL), WindowHandle, GraphicsDevicePanelDialogProc, context);
             ShowWindow(context->GpuPanel, SW_SHOW);
-            PhAddLayoutItemEx(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
+            PhAddLayoutItemExLogical(&context->GpuLayoutManager, context->GpuPanel, NULL, PH_ANCHOR_LEFT | PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM, &panelItem->Margin);
 
             GraphicsDeviceCreateGraphs(context);
             GraphicsDeviceUpdateGraphs(context);
