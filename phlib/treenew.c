@@ -4206,6 +4206,13 @@ BOOLEAN PhTnpAddColumn(
         updateHeaders = FALSE;
 
         assert(Context->NumberOfColumnsByDisplay == (ULONG)Header_GetItemCount(Context->HeaderHandle));
+
+        // A visible column without a valid display index (e.g. ULONG_MAX) is appended, the same as
+        // PhTnpChangeColumn does. Otherwise the header item is created with iOrder -1, the index reads
+        // back as ULONG_MAX, PhTnpUpdateColumnMaps skips the column and the header no longer matches
+        // the display map. (dmex)
+        if (!realColumn->Fixed && realColumn->DisplayIndex > Context->NumberOfColumnsByDisplay)
+            realColumn->DisplayIndex = Context->NumberOfColumnsByDisplay;
         //if (!realColumn->Fixed && realColumn->DisplayIndex != Header_GetItemCount(Context->HeaderHandle))
         if (!realColumn->Fixed && realColumn->DisplayIndex != Context->NumberOfColumnsByDisplay)
             updateHeaders = TRUE;
