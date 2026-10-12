@@ -63,7 +63,7 @@ jobs:
       - name: Download Windows Driver Query Packs
         shell: pwsh
         run: |
-          & "${{ steps.init.outputs.codeql-path }}" pack download microsoft/windows-drivers microsoft/cpp-queries
+          & "${{ steps.init.outputs.codeql-path }}" pack download microsoft/windows-drivers microsoft/cpp-queries microsoft/cpp-queries@0.0.5
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Run Windows Driver Analysis
