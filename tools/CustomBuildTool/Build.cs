@@ -1285,19 +1285,25 @@ namespace CustomBuildTool
                 foreach (var zipEntry in buildZipFilesMap)
                 {
                     string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
+                    string sevenZipFilePath = Path.ChangeExtension(zipFilePath, ".7z");
 
                     Win32.DeleteFile(zipFilePath, Flags);
+                    Win32.DeleteFile(sevenZipFilePath, Flags);
                 }
 
-                // Create zips
+                // Create zips and 7z archives
 
                 foreach (var zipEntry in buildZipFilesMap)
                 {
                     string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
+                    string sevenZipFilePath = Path.ChangeExtension(zipFilePath, ".7z");
+                    bool filterPlatforms = string.Equals(zipEntry.Key, buildDirectory, StringComparison.OrdinalIgnoreCase);
 
                     Program.PrintColorMessage($"Building {zipEntry.Value}... ", ConsoleColor.Cyan);
+                    Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags, filterPlatforms);
 
-                    Zip.CreateCompressedFolder(zipEntry.Key, zipFilePath, Flags, string.Equals(zipEntry.Key, buildDirectory, StringComparison.OrdinalIgnoreCase));
+                    Program.PrintColorMessage($"Building {Path.GetFileName(sevenZipFilePath)}... ", ConsoleColor.Cyan);
+                    Zip.CreateCompressed7zFolder(zipEntry.Key, sevenZipFilePath, Flags, filterPlatforms);
                 }
 
                 // Total stats
@@ -1305,10 +1311,15 @@ namespace CustomBuildTool
                 foreach (var zipEntry in buildZipFilesMap)
                 {
                     string zipFilePath = Path.Join([BuildOutputFolder, zipEntry.Value]);
+                    string sevenZipFilePath = Path.ChangeExtension(zipFilePath, ".7z");
 
                     Program.PrintColorMessage($"{zipEntry.Value}: ", ConsoleColor.Green, false);
                     Program.PrintColorMessage("...", ConsoleColor.Gray, false);
                     Program.PrintColorMessage($" {Win32.GetFileSize(zipFilePath).ToPrettySize()}", ConsoleColor.Yellow);
+
+                    Program.PrintColorMessage($"{Path.GetFileName(sevenZipFilePath)}: ", ConsoleColor.Green, false);
+                    Program.PrintColorMessage("...", ConsoleColor.Gray, false);
+                    Program.PrintColorMessage($" {Win32.GetFileSize(sevenZipFilePath).ToPrettySize()}", ConsoleColor.Yellow);
                 }
             }
             catch (Exception exception)
