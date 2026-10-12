@@ -325,9 +325,9 @@ PPH_STRING WeGetClientIdName(
     BOOLEAN threadIsTerminated = FALSE;
 
     PhInitializeStringRef(&processNameStringRef, L"terminated process");
-    PhInitializeStringRef(&threadNameStringRef, L"terminated thread");
+    PhInitializeStringRef(&threadNameStringRef, L"Thread");
 
-    if (ClientId->UniqueProcess)
+    if (ClientId->UniqueProcess && !ClientId->UniqueThread)
     {
         HANDLE processHandle;
 
@@ -385,10 +385,11 @@ PPH_STRING WeGetClientIdName(
             )))
         {
             // Check if the thread is alive
-            PhGetThreadIsTerminated(threadHandle, &threadIsTerminated);
+            if (!NT_SUCCESS(PhGetThreadIsTerminated(threadHandle, &threadIsTerminated)))
+                threadIsTerminated = FALSE;
 
             // Use the name of the thread if available
-            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)))
+            if (NT_SUCCESS(PhGetThreadName(threadHandle, &threadName)) && !PhIsNullOrEmptyString(threadName))
             {
                 threadNameStringRef.Length = threadName->Length;
                 threadNameStringRef.Buffer = threadName->Buffer;
@@ -400,25 +401,7 @@ PPH_STRING WeGetClientIdName(
 
     // Combine everything
 
-    if (ClientId->UniqueProcess && ClientId->UniqueThread)
-    {
-        PH_FORMAT format[10];
-
-        // L"%s%.*s (%lu): %s%.*s (%lu)"
-        PhInitFormatS(&format[0], processIsTerminated ? L"Terminated " : L"");
-        PhInitFormatSR(&format[1], processNameStringRef);
-        PhInitFormatS(&format[2], L" (");
-        PhInitFormatU(&format[3], HandleToUlong(ClientId->UniqueProcess));
-        PhInitFormatS(&format[4], L"): ");
-        PhInitFormatS(&format[5], threadIsTerminated ? L"Terminated " : L"");
-        PhInitFormatSR(&format[6], threadNameStringRef);
-        PhInitFormatS(&format[7], L" (");
-        PhInitFormatU(&format[8], HandleToUlong(ClientId->UniqueThread));
-        PhInitFormatC(&format[9], L')');
-
-        result = PhFormat(format, RTL_NUMBER_OF(format), 0);
-    }
-    else if (ClientId->UniqueThread)
+    if (ClientId->UniqueThread)
     {
         PH_FORMAT format[5];
 
@@ -444,18 +427,6 @@ PPH_STRING WeGetClientIdName(
 
         result = PhFormat(format, RTL_NUMBER_OF(format), 0);
     }
-
-    //result = PhFormatString(
-    //    ClientId->UniqueThread ? L"%s%.*s (%lu): %s%.*s (%lu)" : L"%s%.*s (%lu)",
-    //    processIsTerminated ? L"Terminated " : L"",
-    //    processNameStringRef.Length / sizeof(WCHAR),
-    //    processNameStringRef.Buffer,
-    //    HandleToUlong(ClientId->UniqueProcess),
-    //    threadIsTerminated ? L"terminated " : L"",
-    //    threadNameStringRef.Length / sizeof(WCHAR),
-    //    threadNameStringRef.Buffer,
-    //    HandleToUlong(ClientId->UniqueThread)
-    //    );
 
     PhClearReference(&processName);
     PhClearReference(&threadName);
