@@ -642,6 +642,7 @@ EXPORTS
     PhGetJobBasicUiRestrictions
     PhGetJobExtendedLimits
     PhGetJobProcessIdList
+    PhGetKernelDebuggerInformation
     PhGetKernelFileName
     PhGetKernelFileNameEx
     PhGetModuleProcAddress
@@ -711,6 +712,7 @@ EXPORTS
     PhGetTokenPrimaryGroup
     PhGetTokenPrivileges
     PhGetTokenUser
+    PhGetVirtualStatus
     PhImpersonateClientOfNamedPipe
     PhImpersonateToken
     PhIsDebuggerPresent
