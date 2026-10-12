@@ -25,6 +25,65 @@ typedef union _NT_SYSTEMCALL_NUMBER
     };
 } NT_SYSTEMCALL_NUMBER, *PNT_SYSTEMCALL_NUMBER;
 
+//
+// System call dispatch value (the value loaded into EAX before the syscall
+// instruction).
+//
+// The normal kernel (ntoskrnl!KiSystemCall64) only consumes bits 0-15: the
+// service index (bits 0-11) and the service table selector (bits 12-15, where
+// bit 12 chooses ntoskrnl vs win32k). Bits 16-31 are masked off and ignored.
+//
+// SecureKernelCall (bit 27, 0x08000000) is consumed by the secure kernel's own
+// dispatcher (securekernel!KiSystemCall64): when set it selects
+// SkiSecureServiceTable (a secure-kernel service), when clear it selects
+// IumSyscallDispatchTable (a normal NT syscall proxied for a trustlet). The
+// stubs that set it live in the IUM trustlet libraries shipped in System32
+// (e.g. iumdll.dll: "mov eax, 0x0800000N; syscall") and execute in VTL1 user
+// mode. The ntdll/win32u syscall numbers decoded by this file come from a
+// normal VTL0 process and never set this bit, so it is always zero here.
+//
+typedef union _NT_SYSCALL_DISPATCH
+{
+    ULONG EAX;
+    struct
+    {
+        USHORT SystemCallIndex : 12;    // Bits 0-11: service index within the selected table
+        USHORT SystemServiceIndex : 4;  // Bits 12-15: service table selector (ntoskrnl vs win32k)
+        USHORT Reserved : 11;           // Bits 16-26
+        USHORT SecureKernelCall : 1;    // Bit 27: secure-kernel service selector (secure kernel only)
+        USHORT Reserved2 : 4;           // Bits 28-31
+    };
+} NT_SYSCALL_DISPATCH, *PNT_SYSCALL_DISPATCH;
+
+/**
+ * Extracts the individual fields from a raw system call dispatch value.
+ *
+ * \param Dispatch The raw dispatch value (the contents of EAX at the syscall instruction).
+ * \param ServiceIndex Optionally receives the service table selector (bits 12-15).
+ * \param SecureKernelCall Optionally receives the secure-kernel service selector (bit 27).
+ *
+ * \return The service index within the selected table (bits 0-11).
+ */
+FORCEINLINE
+USHORT
+PhExtractSystemCallDispatch(
+    _In_ ULONG Dispatch,
+    _Out_opt_ PUSHORT ServiceIndex,
+    _Out_opt_ PBOOLEAN SecureKernelCall
+    )
+{
+    NT_SYSCALL_DISPATCH dispatch;
+
+    dispatch.EAX = Dispatch;
+
+    if (ServiceIndex)
+        *ServiceIndex = dispatch.SystemServiceIndex;
+    if (SecureKernelCall)
+        *SecureKernelCall = !!dispatch.SecureKernelCall;
+
+    return dispatch.SystemCallIndex;
+}
+
 typedef struct _PH_SYSCALL_NAME_ENTRY
 {
     ULONG_PTR Address;
@@ -41,6 +100,85 @@ static int __cdecl PhpSystemCallListIndexSort(
     PPH_SYSCALL_NAME_ENTRY entry2 = *(PPH_SYSCALL_NAME_ENTRY*)elem2;
 
     return uintptrcmp(entry1->Address, entry2->Address);
+}
+
+/**
+ * Decodes the system call number from a win32u.dll export stub.
+ *
+ * \param MappedImage The mapped win32u.dll image.
+ * \param ExportAddress The mapped address of the export.
+ * \param SystemCallNumber A variable which receives the system call number.
+ *
+ * \return TRUE if the prologue matched a system call stub for the architecture
+ * of the image, otherwise FALSE.
+ *
+ * \remarks The architecture is taken from the image rather than the host since the
+ * file is opened by path and is not subject to WOW64 or emulation redirection. (dmex)
+ */
+static BOOLEAN PhpGetWin32uSystemCallNumber(
+    _In_ PPH_MAPPED_IMAGE MappedImage,
+    _In_ PVOID ExportAddress,
+    _Out_ PNT_SYSTEMCALL_NUMBER SystemCallNumber
+    )
+{
+    NT_SYSTEMCALL_NUMBER systemCallNumber = { 0 };
+    BOOLEAN decoded = FALSE;
+
+    __try
+    {
+        switch (MappedImage->NtHeaders->FileHeader.Machine)
+        {
+        case IMAGE_FILE_MACHINE_AMD64:
+            {
+                static CONST BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 }; // mov r10, rcx ; mov eax, imm32
+
+                PhMappedImageProbe(MappedImage, ExportAddress, sizeof(prologue) + sizeof(USHORT));
+
+                if (RtlEqualMemory(ExportAddress, prologue, sizeof(prologue)))
+                {
+                    systemCallNumber.SystemCallNumber = *(USHORT UNALIGNED*)PTR_ADD_OFFSET(ExportAddress, sizeof(prologue));
+                    decoded = TRUE;
+                }
+            }
+            break;
+        case IMAGE_FILE_MACHINE_I386:
+            {
+                static CONST BYTE prologue[1] = { 0xB8 }; // mov eax, imm32
+
+                PhMappedImageProbe(MappedImage, ExportAddress, sizeof(prologue) + sizeof(USHORT));
+
+                if (RtlEqualMemory(ExportAddress, prologue, sizeof(prologue)))
+                {
+                    systemCallNumber.SystemCallNumber = *(USHORT UNALIGNED*)PTR_ADD_OFFSET(ExportAddress, sizeof(prologue));
+                    decoded = TRUE;
+                }
+            }
+            break;
+        case IMAGE_FILE_MACHINE_ARM64:
+            {
+                CONST ULONG UNALIGNED* instruction = ExportAddress;
+
+                PhMappedImageProbe(MappedImage, ExportAddress, sizeof(ULONG) * 2);
+
+                // mov w8, #imm16 (or mov x8, #imm16) ; svc #0
+                // The MOVZ sf bit is masked since either width encodes the same immediate. (dmex)
+                if ((instruction[0] & 0x7FE0001F) == 0x52800008 && instruction[1] == 0xD4000001)
+                {
+                    systemCallNumber.SystemCallNumber = (USHORT)((instruction[0] >> 5) & 0xFFFF);
+                    decoded = TRUE;
+                }
+            }
+            break;
+        }
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        decoded = FALSE;
+    }
+
+    *SystemCallNumber = systemCallNumber;
+
+    return decoded;
 }
 
 VOID PhGenerateSyscallLists(
@@ -188,27 +326,12 @@ VOID PhGenerateSyscallLists(
 
                                 if (NT_SUCCESS(PhMappedImageRvaToVa(&mappedImage, PtrToUlong(exportFunction.Function), (PVOID *)&exportAddress)))
                                 {
-                                    PNT_SYSTEMCALL_NUMBER systemCallEntry = NULL;
+                                    NT_SYSTEMCALL_NUMBER systemCallNumber;
 
-                                #ifdef _WIN64
-                                    const BYTE prologue[4] = { 0x4C, 0x8B, 0xD1, 0xB8 };
-
-                                    if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
+                                    if (PhpGetWin32uSystemCallNumber(&mappedImage, exportAddress, &systemCallNumber) &&
+                                        systemCallNumber.SystemServiceIndex == WIN32K_SERVICE_INDEX)
                                     {
-                                        systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
-                                    }
-                                #else
-                                    const BYTE prologue[1] = { 0xB8 };
-
-                                    if (RtlEqualMemory(exportAddress, prologue, sizeof(prologue)))
-                                    {
-                                        systemCallEntry = PTR_ADD_OFFSET(exportAddress, sizeof(prologue));
-                                    }
-                                #endif
-
-                                    if (systemCallEntry && systemCallEntry->SystemServiceIndex == WIN32K_SERVICE_INDEX)
-                                    {
-                                        entry->Address = systemCallEntry->SystemCallIndex;
+                                        entry->Address = systemCallNumber.SystemCallIndex;
                                         PhAddItemList(list, entry);
                                         added = TRUE;
                                     }
@@ -260,7 +383,8 @@ PPH_STRING PhGetSystemCallNumberName(
     static PH_INITONCE initOnce = PH_INITONCE_INIT;
     static PPH_LIST ntdllSystemCallList = NULL;
     static PPH_LIST win32kSystemCallList = NULL;
-    PNT_SYSTEMCALL_NUMBER systemCallEntry = (PNT_SYSTEMCALL_NUMBER)&SystemCallNumber;
+    USHORT serviceIndex;
+    USHORT systemCallIndex;
 
     if (PhBeginInitOnce(&initOnce))
     {
@@ -268,13 +392,15 @@ PPH_STRING PhGetSystemCallNumberName(
         PhEndInitOnce(&initOnce);
     }
 
-    switch (systemCallEntry->SystemServiceIndex)
+    systemCallIndex = PhExtractSystemCallDispatch(SystemCallNumber, &serviceIndex, NULL);
+
+    switch (serviceIndex)
     {
     case NTOS_SERVICE_INDEX:
         {
-            if (ntdllSystemCallList && systemCallEntry->SystemCallIndex < ntdllSystemCallList->Count)
+            if (ntdllSystemCallList && systemCallIndex < ntdllSystemCallList->Count)
             {
-                PPH_STRING entry = ntdllSystemCallList->Items[systemCallEntry->SystemCallIndex];
+                PPH_STRING entry = ntdllSystemCallList->Items[systemCallIndex];
 
                 return PhReferenceObject(entry);
             }
@@ -282,9 +408,9 @@ PPH_STRING PhGetSystemCallNumberName(
         break;
     case WIN32K_SERVICE_INDEX:
         {
-            if (win32kSystemCallList && systemCallEntry->SystemCallIndex < win32kSystemCallList->Count)
+            if (win32kSystemCallList && systemCallIndex < win32kSystemCallList->Count)
             {
-                PPH_STRING entry = win32kSystemCallList->Items[systemCallEntry->SystemCallIndex];
+                PPH_STRING entry = win32kSystemCallList->Items[systemCallIndex];
 
                 return PhReferenceObject(entry);
             }
