@@ -290,6 +290,7 @@ VOID PphProcessGeneralDlgUpdateIcons(
     SET_BUTTON_ICON(IDC_OPENFILENAME2, folder);
     SET_BUTTON_ICON(IDC_VIEWCOMMANDLINE, magnifier);
     SET_BUTTON_ICON(IDC_VIEWPARENTPROCESS, magnifier);
+    SET_BUTTON_ICON(IDC_VIEWPARENTCONSOLE, magnifier);
 }
 
 VOID PphProcessGeneralDlgUpdateProcessIcon(
@@ -387,6 +388,20 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
     switch (uMsg)
     {
+    case WM_ERASEBKGND:
+        {
+            HDC hdc = (HDC)wParam;
+            RECT clipRect;
+
+            SetBkMode(hdc, TRANSPARENT);
+
+            if (GetClipBox(hdc, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            FillRect(hdc, &clipRect, PhThemeWindowBackgroundBrush ? PhThemeWindowBackgroundBrush : GetSysColorBrush(COLOR_BTNFACE));
+
+            return TRUE;
+        }
     case WM_INITDIALOG:
         {
             HANDLE processHandle = NULL;
@@ -400,18 +415,17 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             context->StartedLabelHandle = GetDlgItem(hwndDlg, IDC_STARTED);
             context->Enabled = TRUE;
 
+            if (PhEnableThemeSupport)
+                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
             PphProcessGeneralDlgUpdateIcons(hwndDlg);
 
-            PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
-
             HWND fileGroupHandle = GetDlgItem(hwndDlg, IDC_FILE);
-            PhSetWindowExStyle(fileGroupHandle, WS_EX_TRANSPARENT, 0);
             PhSetWindowStyle(fileGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(fileGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             PhInitializeThemeWindowGroupBoxEx(fileGroupHandle);
 
             HWND processGroupHandle = GetDlgItem(hwndDlg, IDC_PROCESS);
-            PhSetWindowExStyle(processGroupHandle, WS_EX_TRANSPARENT, 0);
             PhSetWindowStyle(processGroupHandle, WS_CLIPSIBLINGS, WS_CLIPSIBLINGS);
             SetWindowPos(processGroupHandle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             PhInitializeThemeWindowGroupBoxEx(processGroupHandle);
@@ -623,6 +637,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 if (parentProcess->ProcessId == SYSTEM_IDLE_PROCESS_ID)
                 {
                     PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
+                    EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), FALSE);
                 }
                 else
                 {
@@ -641,6 +656,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             else
             {
                 PhSetDialogItemText(hwndDlg, IDC_PARENTCONSOLE, L"N/A");
+                EnableWindow(GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), FALSE);
             }
 
             // Mitigation policies
@@ -656,12 +672,6 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
             // Image type
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
-
-            if (PhEnableThemeSupport)
-            {
-                PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
-            }
-
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
         }
         break;
@@ -710,6 +720,7 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTCONSOLE), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_PARENTPROCESS), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTPROCESS), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
+                PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWPARENTCONSOLE), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_MITIGATION), dialogItem, PH_ANCHOR_LEFT | PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_VIEWMITIGATION), dialogItem, PH_ANCHOR_TOP | PH_ANCHOR_RIGHT);
                 PhAddPropPageLayoutItem(hwndDlg, GetDlgItem(hwndDlg, IDC_INTEGRITY), dialogItem, PH_ANCHOR_RIGHT | PH_ANCHOR_TOP);
@@ -815,6 +826,22 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
                     PPH_PROCESS_ITEM parentProcessItem;
 
                     if (parentProcessItem = PhReferenceProcessItem(processItem->ParentProcessId))
+                    {
+                        SystemInformer_ShowProcessProperties(parentProcessItem);
+                        PhDereferenceObject(parentProcessItem);
+                    }
+                    else
+                    {
+                        PhShowStatus(hwndDlg, L"The process does not exist.", STATUS_NOT_FOUND, 0);
+                    }
+                }
+                break;
+            case IDC_VIEWPARENTCONSOLE:
+                {
+                    PPH_PROCESS_ITEM parentProcessItem;
+                    HANDLE consoleHostProcessId = (HANDLE)((ULONG_PTR)processItem->ConsoleHostProcessId & ~3);
+
+                    if (parentProcessItem = PhReferenceProcessItem(consoleHostProcessId))
                     {
                         SystemInformer_ShowProcessProperties(parentProcessItem);
                         PhDereferenceObject(parentProcessItem);
