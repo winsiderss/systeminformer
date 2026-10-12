@@ -1105,10 +1105,16 @@ EXPORTS
     PhIconToBitmap
     PhImageListAddBitmap
     PhImageListAddIcon
+    PhImageListBeginDrag
     PhImageListCreate
     PhImageListDestroy
+    PhImageListDragEnter
+    PhImageListDragLeave
+    PhImageListDragMove
+    PhImageListDragShowNolock
     PhImageListDrawEx
     PhImageListDrawIcon
+    PhImageListEndDrag
     PhImageListGetIcon
     PhImageListGetIconSize
     PhImageListRemoveIcon
