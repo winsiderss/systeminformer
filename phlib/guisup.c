@@ -8501,11 +8501,17 @@ BOOLEAN PhBufferedPaintInit(
     if (PhBeginInitOnce(&PhpBufferedPaintInitOnce))
     {
         PhpBufferedPaintUxThemeInitialized = HR_SUCCESS(BufferedPaintInit());
+#ifdef PHLIB_PAINT_BUFFER
         PhBufferedPaintFlsIndex = FlsAlloc(PhFreeBufferedPaintCache);
+#endif
         PhEndInitOnce(&PhpBufferedPaintInitOnce);
     }
 
+#ifndef PHLIB_PAINT_BUFFER
+    return PhpBufferedPaintUxThemeInitialized;
+#else
     return PhBufferedPaintFlsIndex != FLS_OUT_OF_INDEXES;
+#endif
 }
 
 /**
@@ -8553,7 +8559,9 @@ BOOLEAN PhBeginBufferedPaint(
 {
     LONG width;
     LONG height;
+#ifdef PHLIB_PAINT_BUFFER
     PPH_BP_CACHE cache;
+#endif
 
     memset(BufferedPaint, 0, sizeof(PH_BUFFERED_PAINT));
     *PaintHdc = NULL;
@@ -8564,6 +8572,32 @@ BOOLEAN PhBeginBufferedPaint(
     if (width <= 0 || height <= 0)
         return FALSE;
 
+#ifndef PHLIB_PAINT_BUFFER
+    {
+        HPAINTBUFFER paintBuffer;
+        HDC paintHdc;
+
+        if (!(paintBuffer = BeginBufferedPaint(
+            TargetHdc,
+            TargetRect,
+            (BP_BUFFERFORMAT)Format,
+            (PBP_PAINTPARAMS)PaintParams,
+            &paintHdc
+            )))
+        {
+            return FALSE;
+        }
+
+        BufferedPaint->PaintBuffer = paintBuffer;
+        BufferedPaint->TargetHdc = TargetHdc;
+        BufferedPaint->TargetRect = *TargetRect;
+        BufferedPaint->PaintWidth = width;
+        BufferedPaint->PaintHeight = height;
+        BufferedPaint->Valid = TRUE;
+        *PaintHdc = paintHdc;
+        return TRUE;
+    }
+#else
     cache = PhGetBufferedPaintCache();
 
     // Reuse the per-thread DC and DIB. Creating them on every call and storing them in the
@@ -8632,6 +8666,7 @@ BOOLEAN PhBeginBufferedPaint(
 
     *PaintHdc = cache->Hdc;
     return TRUE;
+#endif
 }
 
 /**
@@ -8649,7 +8684,16 @@ VOID PhEndBufferedPaint(
     if (!BufferedPaint || !BufferedPaint->Valid)
         return;
 
-    if (UpdateTarget && BufferedPaint->PaintWidth > 0 && BufferedPaint->PaintHeight > 0)
+#ifndef PHLIB_PAINT_BUFFER
+    if (BufferedPaint->PaintBuffer)
+    {
+        EndBufferedPaint(BufferedPaint->PaintBuffer, UpdateTarget);
+        BufferedPaint->PaintBuffer = NULL;
+    }
+
+    BufferedPaint->Valid = FALSE;
+#else
+    if (UpdateTarget &&BufferedPaint->PaintWidth > 0 && BufferedPaint->PaintHeight > 0)
     {
         BitBlt(
             BufferedPaint->TargetHdc,
@@ -8692,6 +8736,7 @@ VOID PhEndBufferedPaint(
     {
         BufferedPaint->Cache->InUse = FALSE;
     }
+#endif
 }
 
 /**
@@ -8704,6 +8749,12 @@ BOOLEAN PhBufferedPaintClear(
     _In_opt_ const RECT* Rect
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    return HR_SUCCESS(BufferedPaintClear(BufferedPaint->PaintBuffer, Rect));
+#else
     RECT clearRect;
 
     if (!BufferedPaint || !BufferedPaint->Valid)
@@ -8747,6 +8798,7 @@ BOOLEAN PhBufferedPaintClear(
 
         return !!PatBlt(BufferedPaint->Cache->Hdc, x, y, width, height, BLACKNESS);
     }
+#endif
 }
 
 /**
@@ -8763,6 +8815,12 @@ BOOLEAN PhBufferedPaintSetAlpha(
     _In_ BYTE Alpha
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    return HR_SUCCESS(BufferedPaintSetAlpha(BufferedPaint->PaintBuffer, Rect, Alpha));
+#else
     RECT setRect;
     LONG x0, y0, x1, y1, row, col;
     PBYTE base;
@@ -8798,6 +8856,7 @@ BOOLEAN PhBufferedPaintSetAlpha(
     }
 
     return TRUE;
+#endif
 }
 
 /**
@@ -8819,6 +8878,20 @@ BOOLEAN PhGetBufferedPaintBits(
     *Bits = NULL;
     *WidthInPixels = 0;
 
+#ifndef PHLIB_PAINT_BUFFER
+    RGBQUAD* bits;
+    INT widthInPixels;
+
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return FALSE;
+
+    if (!HR_SUCCESS(GetBufferedPaintBits(BufferedPaint->PaintBuffer, &bits, &widthInPixels)))
+        return FALSE;
+
+    *Bits = bits;
+    *WidthInPixels = widthInPixels;
+    return TRUE;
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
         return FALSE;
 
@@ -8828,6 +8901,7 @@ BOOLEAN PhGetBufferedPaintBits(
     *Bits = BufferedPaint->Cache->Bits;
     *WidthInPixels = BufferedPaint->Cache->AllocWidth;
     return TRUE;
+#endif
 }
 
 /**
@@ -8859,6 +8933,26 @@ BOOLEAN PhGetBufferedPaintBitsEx(
     *WidthInBytes = 0;
     *FirstPaintPixel = NULL;
 
+#ifndef PHLIB_PAINT_BUFFER
+    {
+        RGBQUAD* bits;
+        INT widthInPixels;
+
+        if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+            return FALSE;
+
+        if (!HR_SUCCESS(GetBufferedPaintBits(BufferedPaint->PaintBuffer, &bits, &widthInPixels)))
+            return FALSE;
+
+        // UxTheme's buffer covers exactly the target rectangle, so the first
+        // paint pixel is the start of the bits.
+        *Bits = bits;
+        *WidthInPixels = widthInPixels;
+        *WidthInBytes = widthInPixels * 4;
+        *FirstPaintPixel = bits;
+        return TRUE;
+    }
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache || !BufferedPaint->Cache->Bits)
         return FALSE;
 
@@ -8871,6 +8965,7 @@ BOOLEAN PhGetBufferedPaintBitsEx(
     // the surface.
     *FirstPaintPixel = BufferedPaint->Cache->Bits;
     return TRUE;
+#endif
 }
 
 /**
@@ -8881,10 +8976,17 @@ HDC PhGetBufferedPaintDC(
     _In_ const PH_BUFFERED_PAINT* BufferedPaint
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return NULL;
+
+    return GetBufferedPaintDC(BufferedPaint->PaintBuffer);
+#else
     if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->Cache)
         return NULL;
 
     return BufferedPaint->Cache->Hdc;
+#endif
 }
 
 /**
@@ -8894,10 +8996,17 @@ HDC PhGetBufferedPaintTargetDC(
     _In_ const PH_BUFFERED_PAINT* BufferedPaint
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer)
+        return NULL;
+
+    return GetBufferedPaintTargetDC(BufferedPaint->PaintBuffer);
+#else
     if (!BufferedPaint || !BufferedPaint->Valid)
         return NULL;
 
     return BufferedPaint->TargetHdc;
+#endif
 }
 
 /**
@@ -8908,6 +9017,16 @@ BOOLEAN PhGetBufferedPaintTargetRect(
     _Out_ PRECT Rect
     )
 {
+#ifndef PHLIB_PAINT_BUFFER
+    if (!BufferedPaint || !BufferedPaint->Valid || !BufferedPaint->PaintBuffer ||
+        !HR_SUCCESS(GetBufferedPaintTargetRect(BufferedPaint->PaintBuffer, Rect)))
+    {
+        memset(Rect, 0, sizeof(RECT));
+        return FALSE;
+    }
+
+    return TRUE;
+#else
     if (!BufferedPaint || !BufferedPaint->Valid)
     {
         memset(Rect, 0, sizeof(RECT));
@@ -8916,6 +9035,7 @@ BOOLEAN PhGetBufferedPaintTargetRect(
 
     *Rect = BufferedPaint->TargetRect;
     return TRUE;
+#endif
 }
 
 COLORREF NTAPI PhHeatMapColor(

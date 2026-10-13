@@ -154,8 +154,6 @@ PhBeginPropPageLayout(
 {
     if (!PropPageContext->LayoutInitialized)
     {
-        PhSetWindowStyle(hwndDlg, WS_CLIPCHILDREN | WS_CLIPSIBLINGS, WS_CLIPCHILDREN | WS_CLIPSIBLINGS);
-
         return PhAddPropPageLayoutItem(
             hwndDlg,
             hwndDlg,

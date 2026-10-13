@@ -904,7 +904,7 @@ NTSTATUS PhHttpReadDataToBuffer(
     ULONG returnLength;
     BYTE buffer[PAGE_SIZE];
 
-    // Reject a declared length we would refuse to buffer anyway. (SEC-12)
+    // Reject a declared length we would refuse to buffer anyway. (dmex)
     if (TotalLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
         return STATUS_BUFFER_OVERFLOW;
 
@@ -928,7 +928,7 @@ NTSTATUS PhHttpReadDataToBuffer(
         if (returnLength == 0)
             break;
 
-        // Checked growth against a hard ceiling instead of unbounded doubling. (SEC-12)
+        // Checked growth against a hard ceiling instead of unbounded doubling. (dmex)
         requiredLength = dataLength + returnLength;
 
         if (requiredLength > PH_HTTP_MAX_DOWNLOAD_LENGTH)
@@ -971,7 +971,7 @@ NTSTATUS PhHttpReadDataToBuffer(
             PhFree(data);
 
         if (BufferLength)
-            *BufferLength = (ULONG)dataLength; // bounded by PH_HTTP_MAX_DOWNLOAD_LENGTH (SEC-12)
+            *BufferLength = (ULONG)dataLength; // bounded by PH_HTTP_MAX_DOWNLOAD_LENGTH (dmex)
 
         return STATUS_SUCCESS;
     }

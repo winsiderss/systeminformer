@@ -465,6 +465,7 @@ typedef struct _PH_BP_CACHE PH_BP_CACHE, *PPH_BP_CACHE;
 typedef struct _PH_BUFFERED_PAINT
 {
     PPH_BP_CACHE Cache;     // FLS cache slot (or heap allocation for oversized)
+    PVOID PaintBuffer;      // UxTheme HPAINTBUFFER (when PHLIB_PAINT_BUFFER is not defined)
     HDC TargetHdc;          // original DC supplied by the caller
     RECT TargetRect;        // paint rect in TargetHdc coordinates
     HBITMAP OldBitmap;      // stock bitmap deselected on End

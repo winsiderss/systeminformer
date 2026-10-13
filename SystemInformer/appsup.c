@@ -66,6 +66,7 @@ BOOLEAN PhIsThemeModeDark(
     case PhThemeModeDark:
     case PhThemeModeCustom:
         return TRUE;
+    case PhThemeModeExplorer: // follows the Windows light/dark preference
     case PhThemeModeAutomatic:
         return PhQueryWindowsUseDarkMode();
     }

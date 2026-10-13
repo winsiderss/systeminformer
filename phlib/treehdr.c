@@ -931,6 +931,10 @@ VOID PhHeaderNewPaint(
     if (Context->NeedsLayout)
         PhHeaderNewLayoutItems(Context);
 
+    // The theme can be enabled after the header was created (e.g. plugin tabs),
+    // so refresh the cached state to keep the text and background colors in sync.
+    Context->ThemeDark = PhHeaderNewUseDarkTheme();
+
     PhHeaderNewGetColors(Context, &colors);
 
     if (PhHeaderNewCreateBuffer(Context, Hdc))

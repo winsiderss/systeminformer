@@ -26,8 +26,6 @@
 #define SETTING_NAME_DISK_SIZE (PLUGIN_NAME L".DiskWindowSize")
 #define SETTING_NAME_DISK_COUNTERS_COLUMNS (PLUGIN_NAME L".DiskListColumns")
 #define SETTING_NAME_SMART_COUNTERS_COLUMNS (PLUGIN_NAME L".SmartListColumns")
-#define SETTING_NAME_DISK_CACHE_EVENTS_COLUMNS (PLUGIN_NAME L".DiskCacheEventsColumns")
-#define SETTING_NAME_DISK_CACHE_EVENT_DETAILS_COLUMNS (PLUGIN_NAME L".DiskCacheEventDetailsColumns")
 #define SETTING_NAME_RAPL_LIST (PLUGIN_NAME L".RaplList")
 #define SETTING_NAME_GRAPHICS_LIST (PLUGIN_NAME L".GraphicsList")
 #define SETTING_NAME_GRAPHICS_DETAILS_WINDOW_POSITION (PLUGIN_NAME L".GraphicsDetailsWindowPosition")
@@ -873,13 +871,6 @@ typedef enum _DISKDRIVE_DETAILS_INDEX
 
 VOID ShowDiskDeviceDetailsDialog(
     _In_ PDV_DISK_SYSINFO_CONTEXT Context
-    );
-
-INT_PTR CALLBACK DiskDeviceCacheEventsDlgProc(
-    _In_ HWND WindowHandle,
-    _In_ UINT WindowMessage,
-    _In_ WPARAM wParam,
-    _In_ LPARAM lParam
     );
 
 // disknotify.c

@@ -2120,6 +2120,7 @@ INT_PTR CALLBACK WepWindowsPageProc(
             context->TreeNewHandle = GetDlgItem(WindowHandle, IDC_LIST);
             context->SearchBoxHandle = GetDlgItem(WindowHandle, IDC_SEARCHEDIT);
             context->FindWindowButtonHandle = GetDlgItem(WindowHandle, IDC_FINDWINDOW);
+            context->PauseResumeButtonHandle = GetDlgItem(WindowHandle, IDC_PAUSERESUME);
             context->TreeWindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
 
             WeInitializeWindowTree(WindowHandle, context->TreeNewHandle, &context->TreeContext);
@@ -2906,6 +2907,22 @@ INT_PTR CALLBACK WepWindowsPageProc(
                                 break;
                             }
                         }
+                    }
+                }
+                break;
+            case IDC_PAUSERESUME:
+                {
+                    context->ProviderPaused = !context->ProviderPaused;
+
+                    PhSetEnabledProvider(&context->ProviderRegistration, !context->ProviderPaused);
+
+                    if (context->ProviderPaused)
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Resume");
+                    }
+                    else
+                    {
+                        SetWindowText(context->PauseResumeButtonHandle, L"Pause");
                     }
                 }
                 break;

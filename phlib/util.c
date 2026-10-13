@@ -2205,6 +2205,7 @@ PPH_STRING PhIncrementCorrelationVector(
 
     return PhZeroExtendToUtf16(Context->Vector.Vector);
 #else
+    PH_FORMAT format[3];
     LONG newIndex;
 
     if (PhIsNullOrEmptyString(Context->BaseVector))
@@ -2212,11 +2213,11 @@ PPH_STRING PhIncrementCorrelationVector(
 
     newIndex = _InterlockedIncrement(&Context->CurrentIndex);
 
-    return PhFormatString(
-        L"%s.%lu",
-        Context->BaseVector->Buffer,
-        (ULONG)newIndex
-        );
+    PhInitFormatSR(&format[0], Context->BaseVector->sr);
+    PhInitFormatC(&format[1], L'.');
+    PhInitFormatU(&format[2], (ULONG)newIndex);
+
+    return PhFormat(format, RTL_NUMBER_OF(format), 0);
 #endif
 }
 
@@ -4810,6 +4811,82 @@ PPH_STRING PhGetSystemDirectoryWin32(
     }
 
     return PhConcatStringRef2(&systemRootString, &system32String);
+}
+
+/**
+ * Retrieves the build string of the current operating system.
+ *
+ * \return A string in the format "Major.Minor.Build.UBR", or "Major.Minor.Build"
+ * if the update build revision is unavailable.
+ */
+PPH_STRING PhGetWindowsBuildString(
+    VOID
+    )
+{
+    RTL_OSVERSIONINFOEX3 versionInfo;
+    USHORT layerCount = 1;
+    BOOLEAN found = FALSE;
+    ULONG majorVersion = PhOsVersion.MajorVersion;
+    ULONG minorVersion = PhOsVersion.MinorVersion;
+    ULONG buildNumber = PhOsVersion.BuildNumber;
+    ULONG updateBuildRevision = 0;
+    PH_FORMAT format[7];
+    ULONG count = 0;
+
+    // Query the top-level build layer for current version information.
+    // RTL_OSVERSIONINFOEX3 is only supported on newer builds.
+    for (USHORT i = 0; i < layerCount; i++)
+    {
+        memset(&versionInfo, 0, sizeof(RTL_OSVERSIONINFOEX3));
+        versionInfo.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX3);
+        versionInfo.Input.LayerNumber = i;
+        versionInfo.Input.AttribSelector = RTL_OSVERSIONINFO_ATTRIB_LAYER_NAME;
+
+        if (!NT_SUCCESS(RtlGetVersion(&versionInfo)))
+            break;
+
+        if (versionInfo.IsTopLevel)
+        {
+            majorVersion = versionInfo.MajorVersion;
+            minorVersion = versionInfo.MinorVersion;
+            buildNumber = versionInfo.BuildNumber;
+            updateBuildRevision = versionInfo.QfeNumber;
+            found = TRUE;
+            break;
+        }
+
+        layerCount = versionInfo.LayerCount;
+    }
+
+    // Fall back to RTL_OSVERSIONINFOEX for major/minor/build (no UBR).
+    if (!found)
+    {
+        RTL_OSVERSIONINFOEX versionInfoEx;
+
+        memset(&versionInfoEx, 0, sizeof(RTL_OSVERSIONINFOEX));
+        versionInfoEx.OSVersionInfoSize = sizeof(RTL_OSVERSIONINFOEX);
+
+        if (NT_SUCCESS(RtlGetVersion(&versionInfoEx)))
+        {
+            majorVersion = versionInfoEx.MajorVersion;
+            minorVersion = versionInfoEx.MinorVersion;
+            buildNumber = versionInfoEx.BuildNumber;
+        }
+    }
+
+    PhInitFormatU(&format[count++], majorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], minorVersion);
+    PhInitFormatC(&format[count++], L'.');
+    PhInitFormatU(&format[count++], buildNumber);
+
+    if (updateBuildRevision)
+    {
+        PhInitFormatC(&format[count++], L'.');
+        PhInitFormatU(&format[count++], updateBuildRevision);
+    }
+
+    return PhFormat(format, count, 0);
 }
 
 /**

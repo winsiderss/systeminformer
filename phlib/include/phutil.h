@@ -1468,6 +1468,13 @@ PhGetSystemDirectoryWin32Z(
 }
 
 PHLIBAPI
+PPH_STRING
+NTAPI
+PhGetWindowsBuildString(
+    VOID
+    );
+
+PHLIBAPI
 VOID
 NTAPI
 PhGetSystemRoot(

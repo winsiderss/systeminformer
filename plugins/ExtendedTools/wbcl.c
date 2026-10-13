@@ -1095,7 +1095,7 @@ PPH_STRING EtWbclFormatLeaf(
 }
 
 // A crafted log can nest aggregation records arbitrarily deeply and describe an
-// unbounded number of them, so decoding is capped on all three axes. (SEC-09)
+// unbounded number of them, so decoding is capped on all three axes. (dmex)
 #define ET_WBCL_SIPA_MAX_DEPTH 32
 #define ET_WBCL_SIPA_MAX_RECORDS 0x10000
 #define ET_WBCL_SIPA_MAX_OUTPUT (1 * 1024 * 1024)

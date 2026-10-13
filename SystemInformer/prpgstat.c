@@ -2414,6 +2414,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
             PhpUpdateProcessStatistics(processItem, statisticsContext);
 
             PhInitializeWindowTheme(hwndDlg, PhEnableThemeSupport);
+
+            PhSetDialogFocus(hwndDlg, statisticsContext->ListViewHandle);
         }
         break;
     case WM_DESTROY:

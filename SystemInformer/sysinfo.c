@@ -569,7 +569,21 @@ INT_PTR CALLBACK PhSipContainerDialogProc(
             //    PhSetWindowExStyle(hwndDlg, WS_EX_COMPOSITED, WS_EX_COMPOSITED);
             //}
 
-            PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+            //PhSetWindowStyle(WindowHandle, WS_CLIPCHILDREN, WS_CLIPCHILDREN);
+        }
+        break;
+    case WM_ERASEBKGND:
+        {
+            RECT clipRect;
+
+            SetBkMode((HDC)wParam, TRANSPARENT);
+
+            if (GetClipBox((HDC)wParam, &clipRect) <= NULLREGION)
+                return TRUE;
+
+            PhSipFillContainerBackground((HDC)wParam, &clipRect);
+
+            return TRUE;
         }
         break;
     case WM_CTLCOLORBTN:

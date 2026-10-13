@@ -992,13 +992,6 @@ NTSTATUS ShowDiskDeviceDetailsDialogThread(
             pageContext);
         PvAddPropPage(propContext, newPage);
 
-        // Cache Events page
-        newPage = PvCreatePropPageContext(
-            MAKEINTRESOURCE(IDD_DISKDRIVE_DETAILS_CACHE),
-            DiskDeviceCacheEventsDlgProc,
-            pageContext);
-        PvAddPropPage(propContext, newPage);
-
         PhModalPropertySheet(&propContext->PropSheetHeader);
         PhDereferenceObject(propContext);
     }

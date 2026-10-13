@@ -673,6 +673,8 @@ INT_PTR CALLBACK PhpProcessGeneralDlgProc(
 
             PhSetDialogItemText(hwndDlg, IDC_PROCESSTYPETEXT, PH_AUTO_T(PH_STRING, PhGetProcessItemImageTypeText(processItem))->Buffer);
             PhSetTimer(hwndDlg, PH_WINDOW_TIMER_DEFAULT, 1000, NULL);
+
+            PhSetDialogFocus(hwndDlg, GetDlgItem(hwndDlg, IDC_FILENAME));
         }
         break;
     case WM_DESTROY:
