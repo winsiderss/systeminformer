@@ -909,38 +909,39 @@ EXTERN_C BOOLEAN EtGpuD3DEnumProcesses;
 EXTERN_C BOOLEAN EtFramesEnabled;
 EXTERN_C PPH_LIST EtpGpuAdapterList;
 
-extern ULONG EtGpuTotalNodeCount;
-extern ULONG EtGpuTotalSegmentCount;
-extern ULONG64 EtGpuDedicatedLimit;
-extern ULONG64 EtGpuSharedLimit;
+EXTERN_C ULONG EtGpuTotalNodeCount;
+EXTERN_C ULONG EtGpuTotalSegmentCount;
+EXTERN_C ULONG64 EtGpuDedicatedLimit;
+EXTERN_C ULONG64 EtGpuSharedLimit;
 
-extern FLOAT EtGpuNodeUsage;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
-extern PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
-extern PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
+EXTERN_C FLOAT EtGpuNodeUsage;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuNodeHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG EtMaxGpuNodeHistory; // ID of max. GPU usage process
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtMaxGpuNodeUsageHistory;
 
-extern PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
-extern PPH_UINT64_DELTA EtGpuNodesSystemRunningTimeDelta;
-extern ULONG64 EtGpuSystemRunningTimeDelta;
-extern PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
+EXTERN_C PPH_UINT64_DELTA EtGpuNodesTotalRunningTimeDelta;
+EXTERN_C PPH_UINT64_DELTA EtGpuNodesSystemRunningTimeDelta;
+EXTERN_C ULONG64 EtGpuSystemRunningTimeDelta;
+EXTERN_C PPH_CIRCULAR_BUFFER_FLOAT EtGpuNodesHistory;
 
-extern ULONG64 EtGpuDedicatedUsage;
-extern ULONG64 EtGpuSharedUsage;
-extern FLOAT EtGpuPowerUsageLimit;
-extern FLOAT EtGpuPowerUsage;
-extern FLOAT EtGpuTemperatureLimit;
-extern FLOAT EtGpuTemperature;
-extern ULONG64 EtGpuFanRpmLimit;
-extern ULONG64 EtGpuFanRpm;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
-extern PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
-extern PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
+EXTERN_C ULONG64 EtGpuDedicatedUsage;
+EXTERN_C ULONG64 EtGpuSharedUsage;
+EXTERN_C FLOAT EtGpuPowerUsageLimit;
+EXTERN_C FLOAT EtGpuPowerUsage;
+EXTERN_C FLOAT EtGpuTemperatureLimit;
+EXTERN_C FLOAT EtGpuTemperature;
+EXTERN_C ULONG64 EtGpuFanRpmLimit;
+EXTERN_C ULONG64 EtGpuFanRpm;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuDedicatedHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuSharedHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuPowerUsageHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_FLOAT EtGpuTemperatureHistory;
+EXTERN_C PH_CIRCULAR_BUFFER_ULONG64 EtGpuFanRpmHistory;
 
 // Lazy-allocation helpers for per-process circular history buffers.
-// The buffer's Data is NULL until the first sample is added; processes
-// that never produce a sample never allocate the backing storage.
+// Data remains NULL until the first sample is added, so processes that
+// never produce a sample do not allocate backing storage. This can save
+// several hundred MB on systems with many running processes. (dmex)
 #define ET_CIRCULAR_BUFFER_ADD_ULONG64(CircularBuffer, Value) \
 do { \
     if (!(CircularBuffer)->Data) PhInitializeCircularBuffer_ULONG64((CircularBuffer), EtSampleCount); \
@@ -960,7 +961,7 @@ do { \
 } while (0)
 
 VOID EtGpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 typedef struct _ET_PROCESS_GPU_STATISTICS
@@ -1092,7 +1093,7 @@ extern PH_CIRCULAR_BUFFER_FLOAT EtNpuTemperatureHistory;
 extern PH_CIRCULAR_BUFFER_ULONG64 EtNpuFanRpmHistory;
 
 VOID EtNpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     );
 
 PPH_STRING EtGetDeviceInterfaceFromLuid(
@@ -1940,8 +1941,8 @@ VOID EtShowFirmwareDialog(
 
 extern HWND EtObjectManagerDialogHandle;
 extern PPH_LIST EtObjectManagerOwnHandles;
+extern PH_QUEUED_LOCK EtObjectManagerOwnHandlesLock;
 extern HICON EtObjectManagerPropIcon;
-extern BOOLEAN EtObjectManagerShowHandlesPage;
 
 extern ULONG EtAlpcPortTypeIndex;
 extern ULONG EtDeviceTypeIndex;

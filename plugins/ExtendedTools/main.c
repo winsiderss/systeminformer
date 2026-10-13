@@ -243,7 +243,7 @@ VOID NTAPI MenuItemCallback(
         break;
     case ID_OBJMGR:
         {
-            //EtShowObjectManagerDialog(menuItem->OwnerWindow);
+            EtShowObjectManagerDialog(menuItem->OwnerWindow);
         }
         break;
     case ID_POOL_TABLE:

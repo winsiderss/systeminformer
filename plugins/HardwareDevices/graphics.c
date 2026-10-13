@@ -458,6 +458,20 @@ NTSTATUS GraphicsQueryAdapterVidPnSourceFrames(
     return status;
 }
 
+typedef struct _GX_PRESENT_STATS
+{
+    ULONG64 RedirectedFlipCount;
+    ULONG64 IndependentFlipCount;
+    ULONG64 FlipRestartCount;
+    ULONG64 VrrEligibleCount;
+    ULONG64 Interval0Count;
+    ULONG64 Interval1Count;
+    ULONG64 Interval2PlusCount;
+    ULONG64 RedirectedBltCount;
+    ULONG64 CompositionCount;
+    ULONG64 FlipManagerCount;
+} GX_PRESENT_STATS, *PGX_PRESENT_STATS;
+
 /**
  * Drains the adapter's present history ring buffer in batches and
  * accumulates per-VidPN-source and adapter-level token statistics.
