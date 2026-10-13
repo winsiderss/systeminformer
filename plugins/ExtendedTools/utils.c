@@ -162,6 +162,28 @@ VOID EtFormatDouble(
     }
 }
 
+/**
+ * Converts a per-update-period value into a per-second rate.
+ *
+ * \param ValuePerPeriod The value accumulated during the last provider run.
+ * \return The per-second rate, or 0 when the elapsed time is unknown.
+ */
+ULONG64 EtCalculateRate(
+    _In_ ULONG64 ValuePerPeriod
+    )
+{
+    ULONG64 number;
+
+    if (EtRateIntervalMs == 0)
+        return 0;
+
+    number = ValuePerPeriod;
+    number *= 1000;
+    number /= EtRateIntervalMs;
+
+    return number;
+}
+
 VOID EtFormatRate(
     _In_ ULONG64 ValuePerPeriod,
     _In_ PET_PROCESS_BLOCK Block,
@@ -170,9 +192,7 @@ VOID EtFormatRate(
 {
     ULONG64 number;
 
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= EtUpdateInterval;
+    number = EtCalculateRate(ValuePerPeriod);
 
     if (number != 0)
     {
@@ -197,9 +217,7 @@ VOID EtFormatNetworkRate(
 {
     ULONG64 number;
 
-    number = ValuePerPeriod;
-    number *= 1000;
-    number /= EtUpdateInterval;
+    number = EtCalculateRate(ValuePerPeriod);
 
     if (number != 0)
     {
@@ -664,7 +682,7 @@ BOOLEAN EtQueryDeviceProperties(
     if (HR_FAILED(PhDevGetObjectProperties(
         DevObjectTypeDevice,
         PhGetString(instanceIdString),
-        DevQueryFlagLocalize,
+        DevQueryFlagNone,
         RTL_NUMBER_OF(deviceProperties),
         deviceProperties,
         &devicePropertyCount,

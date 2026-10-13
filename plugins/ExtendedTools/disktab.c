@@ -739,12 +739,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->ReadAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->ReadAverage);
 
                     if (number != 0)
                     {
@@ -766,12 +761,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->WriteAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->WriteAverage);
 
                     if (number != 0)
                     {
@@ -793,12 +783,7 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->ReadAverage + diskItem->WriteAverage;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->ReadAverage + diskItem->WriteAverage);
 
                     if (number != 0)
                     {
@@ -820,12 +805,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->ReadHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->ReadHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {
@@ -847,12 +828,8 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->WriteHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->WriteHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {
@@ -874,12 +851,9 @@ BOOLEAN NTAPI EtpDiskTreeNewCallback(
                 {
                     ULONG64 number;
 
-                    if (EtUpdateInterval == 0)
-                        break;
-
-                    number = diskItem->HistoryCount != 0 ? diskItem->ReadHistory[diskItem->HistoryPosition] + diskItem->WriteHistory[diskItem->HistoryPosition] : 0;
-                    number *= 1000;
-                    number /= EtUpdateInterval;
+                    number = EtCalculateRate(diskItem->HistoryCount != 0 ?
+                        diskItem->ReadHistory[diskItem->HistoryPosition] +
+                        diskItem->WriteHistory[diskItem->HistoryPosition] : 0);
 
                     if (number != 0)
                     {

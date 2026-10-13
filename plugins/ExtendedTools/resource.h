@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by ExtendedTools.rc
 //
@@ -67,7 +67,7 @@
 #define IDC_ENABLEETWMONITOR            1035
 #define IDC_ENABLE                      1036
 #define IDC_WSWATCHENABLED              1037
-#define IDC_ENABLEFAHRENHEITTEMP        1038
+#define IDC_TEMPERATUREUNIT             1038
 #define IDC_NODES                       1048
 #define IDC_ENABLEGPUMONITOR            1049
 #define IDC_ENABLESYSINFOGRAPHS         1050
@@ -197,6 +197,7 @@
 #define IDC_WCT_TREE                    8004
 #define IDD_PROCNET_PANEL               8004
 #define IDD_OBJWINSTA                   8005
+#define IDD_OBJGENERAL                  8006
 #define ID_WCT_MENU_PROPERTIES          8007
 #define ID_WCT_MENU_COPY                8008
 #define IDD_POWER_POLICIES              9000
@@ -213,10 +214,20 @@
 #define IDD_CACHE_LATENCY               9010
 #define IDC_CACHE_LATENCY_LIST          9011
 #define IDC_CACHE_LATENCY_STATUS        9012
-#define IDC_CACHE_LATENCY_L1            9013
-#define IDC_CACHE_LATENCY_L2            9014
-#define IDC_CACHE_LATENCY_L3            9015
-#define IDC_CACHE_LATENCY_DRAM          9016
+#define IDC_CACHE_LATENCY_TAB           9070
+#define IDC_CACHE_LATENCY_L1_GROUP      9071
+#define IDC_CACHE_LATENCY_L2_GROUP      9072
+#define IDC_CACHE_LATENCY_L3_GROUP      9073
+#define IDC_CACHE_LATENCY_DRAM_GROUP    9074
+#define IDC_CACHE_LATENCY_PANEL         9075
+#define IDC_CACHE_LATENCY_L1_INFO       9076
+#define IDC_CACHE_LATENCY_L1_VALUE      9077
+#define IDC_CACHE_LATENCY_L2_INFO       9078
+#define IDC_CACHE_LATENCY_L2_VALUE      9079
+#define IDC_CACHE_LATENCY_L3_INFO       9080
+#define IDC_CACHE_LATENCY_L3_VALUE      9081
+#define IDC_CACHE_LATENCY_DRAM_INFO     9082
+#define IDC_CACHE_LATENCY_DRAM_VALUE    9083
 #define IDD_SRUM                        9017
 #define IDC_SRUM_LIST                   9018
 #define IDC_SRUM_PROVIDER               9019
@@ -255,6 +266,27 @@
 #define IDC_WBCL_LIST                   60032
 #define IDC_WBCL_REFRESH                60033
 #define IDC_WBCL_OPENFILE               60034
+#define IDD_WBCL_GENERAL                60035
+#define IDD_WBCL_RAW                    60036
+#define IDC_WBCL_PROP_LIST              60037
+#define IDC_WBCL_PROP_TEXT              60038
+#define IDC_WBCL_BANK                   60039
+#define ID_FWCERT                       60060
+#define IDD_FIRMWARE_CERT               60061
+#define IDC_FWCERT_LIST                 60062
+#define IDC_FWCERT_REFRESH              60063
+#define IDD_FWCERT_GENERAL              60064
+#define IDD_FWCERT_RAW                  60065
+#define IDC_FWCERT_PROP_LIST            60066
+#define IDC_FWCERT_PROP_TEXT            60067
+#define ID_ATTESTATION                  60050
+#define IDD_ATTESTATION                 60051
+#define IDC_ATTESTATION_LIST            60052
+#define IDC_ATTESTATION_REFRESH         60053
+#define IDD_ATTESTATION_GENERAL         60054
+#define IDD_ATTESTATION_RAW             60055
+#define IDC_ATTESTATION_PROP_LIST       60056
+#define IDC_ATTESTATION_PROP_TEXT       60057
 #define IDC_ENV_ADD                     60035
 #define IDC_ENV_EDIT                    60036
 #define IDC_ENV_DELETE                  60037
@@ -267,12 +299,12 @@
 #define IDC_ENV_VALUE                   60044
 
 // Next default values for new objects
-// 
+//
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        60043
-#define _APS_NEXT_COMMAND_VALUE         60043
-#define _APS_NEXT_CONTROL_VALUE         60043
+#define _APS_NEXT_RESOURCE_VALUE        61061
+#define _APS_NEXT_COMMAND_VALUE         61061
+#define _APS_NEXT_CONTROL_VALUE         61061
 #define _APS_NEXT_SYMED_VALUE           135
 #endif
 #endif

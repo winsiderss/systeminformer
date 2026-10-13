@@ -54,8 +54,15 @@ PH_CIRCULAR_BUFFER_FLOAT EtNpuPowerUsageHistory;
 PH_CIRCULAR_BUFFER_FLOAT EtNpuTemperatureHistory;
 PH_CIRCULAR_BUFFER_ULONG64 EtNpuFanRpmHistory;
 
+/**
+ * Initializes NPU monitoring functionality, allocating history buffers
+ * and registering necessary callbacks if monitoring is supported.
+ *
+ * \param DiscoveredAdapterList The transient adapter discovery list owned by
+ * the load callback.
+ */
 VOID EtNpuMonitorInitialization(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
     if (PhGetIntegerSetting(SETTING_NAME_ENABLE_NPU_MONITOR))
@@ -65,7 +72,7 @@ VOID EtNpuMonitorInitialization(
 
         EtpNpuAdapterList = PhCreateList(4);
 
-        if (EtpNpuInitializeD3DStatistics())
+        if (EtpNpuInitializeD3DStatistics(DiscoveredAdapterList))
             EtNpuEnabled = TRUE;
     }
 
@@ -170,22 +177,27 @@ PETP_NPU_ADAPTER EtpAddNpuAdapter(
     return adapter;
 }
 
+/**
+ * Initializes NPU D3D statistics from a previously discovered adapter list.
+ *
+ * \param DiscoveredAdapterList The adapter discovery list to inspect. Only
+ * adapters identified as pure NPUs are processed.
+ * \return TRUE if at least one adapter was successfully initialized, FALSE otherwise.
+ */
 BOOLEAN EtpNpuInitializeD3DStatistics(
-    VOID
+    _In_opt_ PPH_LIST DiscoveredAdapterList
     )
 {
-    PPH_LIST discoveredAdapterList;
     D3DKMT_QUERYSTATISTICS queryStatistics;
     D3DKMT_ADAPTER_PERFDATACAPS perfCaps;
     ULONG processedCount = 0;
 
-    discoveredAdapterList = EtInitializeGraphicsAdapters();
-    if (!discoveredAdapterList)
+    if (!DiscoveredAdapterList)
         return FALSE;
 
-    for (ULONG i = 0; i < discoveredAdapterList->Count; i++)
+    for (ULONG i = 0; i < DiscoveredAdapterList->Count; i++)
     {
-        PET_DISCOVERED_ADAPTER entry = discoveredAdapterList->Items[i];
+        PET_DISCOVERED_ADAPTER entry = DiscoveredAdapterList->Items[i];
         D3DKMT_HANDLE adapterHandle = 0;
         LUID adapterLuid;
 
@@ -339,8 +351,6 @@ BOOLEAN EtpNpuInitializeD3DStatistics(
         if (EtNpuTemperatureLimit == 0)
             EtNpuTemperatureLimit = 100;
     }
-
-    EtUninitializeGraphicsAdapters(discoveredAdapterList);
 
     if (EtNpuTotalNodeCount == 0)
         return FALSE;

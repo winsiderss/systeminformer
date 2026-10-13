@@ -27,7 +27,7 @@ typedef struct _POWER_GRID_WINDOW_CONTEXT
     HWND HeaderHandle;
     HWND SummaryHandle;
     HWND ParentWindowHandle;
-    HFONT WindowFont;
+    PPH_FONT WindowFont;
     PH_LAYOUT_MANAGER LayoutManager;
 } POWER_GRID_WINDOW_CONTEXT, *PPOWER_GRID_WINDOW_CONTEXT;
 
@@ -66,6 +66,11 @@ typedef struct _ET_POWER_GRID_ENTRY
     __x_ABI_CWindows_CFoundation_CDateTime BlockEndTime;
 } ET_POWER_GRID_ENTRY, *PET_POWER_GRID_ENTRY;
 
+/**
+ * Frees a power grid entry.
+ *
+ * \param[in] Entry A pointer to the power grid entry to free.
+ */
 VOID EtpFreePowerGridEntry(
     _In_ PET_POWER_GRID_ENTRY Entry
     )
@@ -81,6 +86,11 @@ VOID EtpFreePowerGridEntry(
     PhFree(Entry);
 }
 
+/**
+ * Frees a power grid list and its entries.
+ *
+ * \param[in] List A pointer to the power grid list to free.
+ */
 VOID EtpFreePowerGridList(
     _In_opt_ PPH_LIST List
     )
@@ -96,6 +106,11 @@ VOID EtpFreePowerGridList(
     PhDereferenceObject(List);
 }
 
+/**
+ * Clears the power grid list view.
+ *
+ * \param[in] ListViewHandle A handle to the list view control.
+ */
 VOID EtpClearPowerGridListView(
     _In_ HWND ListViewHandle
     )
@@ -103,9 +118,16 @@ VOID EtpClearPowerGridListView(
     ListView_DeleteAllItems(ListViewHandle);
 }
 
+/**
+ * Adds ticks to a date and time.
+ *
+ * \param[in] DateTime The base date and time.
+ * \param[in] Ticks The number of ticks to add.
+ * \return A new date and time with the ticks added.
+ */
 __x_ABI_CWindows_CFoundation_CDateTime EtpAddTicks(
-    __x_ABI_CWindows_CFoundation_CDateTime DateTime,
-    INT64 Ticks
+    _In_ __x_ABI_CWindows_CFoundation_CDateTime DateTime,
+    _In_ INT64 Ticks
     )
 {
     __x_ABI_CWindows_CFoundation_CDateTime Result = DateTime;
@@ -114,6 +136,13 @@ __x_ABI_CWindows_CFoundation_CDateTime EtpAddTicks(
     return Result;
 }
 
+/**
+ * Formats a power grid date and time to a string buffer.
+ *
+ * \param[in] DateTime The date and time to format.
+ * \param[out] Buffer The buffer to receive the formatted string.
+ * \param[out] ReturnLength Optional. The length of the formatted string.
+ */
 VOID EtpFormatPowerGridDateTime(
     _In_ __x_ABI_CWindows_CFoundation_CDateTime DateTime,
     _Out_writes_(PH_DATETIME_STR_LEN_1) PWSTR Buffer,
@@ -145,6 +174,12 @@ VOID EtpFormatPowerGridDateTime(
     wcscpy_s(Buffer, PH_DATETIME_STR_LEN_1, L"N/A");
 }
 
+/**
+ * Formats a power grid duration to a string buffer.
+ *
+ * \param[in] Duration The duration to format.
+ * \param[out] Buffer The buffer to receive the formatted string.
+ */
 VOID EtpFormatPowerGridDuration(
     _In_ __x_ABI_CWindows_CFoundation_CTimeSpan Duration,
     _Out_writes_(PH_TIMESPAN_STR_LEN_1) PWSTR Buffer
@@ -159,9 +194,15 @@ VOID EtpFormatPowerGridDuration(
     PhPrintTimeSpan(Buffer, (ULONG64)Duration.Duration, PH_TIMESPAN_DHMS);
 }
 
+/**
+ * Updates the summary window text.
+ *
+ * \param[in] SummaryHandle A handle to the summary window control.
+ * \param[in] Summary A pointer to the power grid summary data.
+ */
 VOID EtAddSummaryWindowText(
     _In_ HWND SummaryHandle,
-    _In_ const ET_POWER_GRID_SUMMARY* Summary
+    _In_opt_ const ET_POWER_GRID_SUMMARY* Summary
     )
 {
     PH_STRING_BUILDER sb;
@@ -212,6 +253,13 @@ VOID EtAddSummaryWindowText(
     PhDeleteStringBuilder(&sb);
 }
 
+/**
+ * Formats a relative time string.
+ *
+ * \param[in] Target The target date and time.
+ * \param[in] Reference The reference date and time.
+ * \return A pointer to a new string containing the formatted relative time.
+ */
 PPH_STRING EtpFormatRelativeTimeString(
     _In_ __x_ABI_CWindows_CFoundation_CDateTime Target,
     _In_ __x_ABI_CWindows_CFoundation_CDateTime Reference
@@ -259,6 +307,14 @@ PPH_STRING EtpFormatRelativeTimeString(
     return PhFormatString(future ? L"in %u s" : L"%u s ago", seconds);
 }
 
+/**
+ * Checks if a power grid entry is currently active.
+ *
+ * \param[in] Start The start date and time of the entry.
+ * \param[in] End The end date and time of the entry.
+ * \param[in] Reference The reference date and time to check against.
+ * \return TRUE if the entry is active, otherwise FALSE.
+ */
 BOOLEAN EtpIsPowerGridEntryActive(
     _In_ __x_ABI_CWindows_CFoundation_CDateTime Start,
     _In_ __x_ABI_CWindows_CFoundation_CDateTime End,
@@ -271,6 +327,14 @@ BOOLEAN EtpIsPowerGridEntryActive(
     return (Reference.UniversalTime >= Start.UniversalTime) && (Reference.UniversalTime < End.UniversalTime);
 }
 
+/**
+ * Publishes the power grid list to the list view control.
+ *
+ * \param[in] ListViewHandle A handle to the list view control.
+ * \param[in] SummaryHandle A handle to the summary window control.
+ * \param[in] List A pointer to the power grid list.
+ * \param[in] Summary A pointer to the power grid summary data.
+ */
 VOID EtpPublishPowerGridList(
     _In_ HWND ListViewHandle,
     _In_ HWND SummaryHandle,
@@ -307,6 +371,12 @@ VOID EtpPublishPowerGridList(
     ExtendedListView_SetRedraw(ListViewHandle, TRUE);
 }
 
+/**
+ * Enumerates the power grid forecast data.
+ *
+ * \param[in] ThreadParameter A pointer to the parent window handle.
+ * \return STATUS_SUCCESS on success, or an appropriate error code.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS NTAPI EtpEnumeratePowerGridForecast(
     _In_ PVOID ThreadParameter
@@ -517,6 +587,15 @@ CleanupExit:
     return STATUS_SUCCESS;
 }
 
+/**
+ * The dialog procedure for the power grid dialog.
+ *
+ * \param[in] WindowHandle A handle to the dialog box.
+ * \param[in] WindowMessage The message.
+ * \param[in] wParam Additional message-specific information.
+ * \param[in] lParam Additional message-specific information.
+ * \return TRUE if the message was processed, otherwise FALSE.
+ */
 INT_PTR CALLBACK EtPowerGridDlgProc(
     _In_ HWND WindowHandle,
     _In_ UINT WindowMessage,
@@ -547,7 +626,7 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
             context->ListViewHandle = GetDlgItem(WindowHandle, IDC_POWER_GRID_LIST);
             context->SummaryHandle = GetDlgItem(WindowHandle, IDC_POWER_GRID_SUMMARY);
             context->HeaderHandle = ListView_GetHeader(context->ListViewHandle);
-            context->WindowFont = PhCreateTreeWindowFont(PhGetWindowDpi(WindowHandle));
+            context->WindowFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(WindowHandle));
 
             PhSetApplicationWindowIcon(WindowHandle);
 
@@ -566,8 +645,8 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDOK), NULL, PH_ANCHOR_RIGHT | PH_ANCHOR_BOTTOM);
             PhAddLayoutItem(&context->LayoutManager, GetDlgItem(WindowHandle, IDC_REFRESH), NULL, PH_ANCHOR_LEFT | PH_ANCHOR_BOTTOM);
 
-            SetWindowFont(context->ListViewHandle, context->WindowFont, FALSE);
-            SetWindowFont(context->SummaryHandle, context->WindowFont, FALSE);
+            SetWindowFont(context->ListViewHandle, PhGetFontHandle(context->WindowFont), FALSE);
+            SetWindowFont(context->SummaryHandle, PhGetFontHandle(context->WindowFont), FALSE);
 
             if (PhValidWindowPlacementFromSetting(SETTING_NAME_POWER_GRID_WINDOW_POSITION))
                 PhLoadWindowPlacementFromSetting(SETTING_NAME_POWER_GRID_WINDOW_POSITION, SETTING_NAME_POWER_GRID_WINDOW_SIZE, WindowHandle);
@@ -590,7 +669,7 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
 
             PhDeleteLayoutManager(&context->LayoutManager);
 
-            if (context->WindowFont) DeleteFont(context->WindowFont);
+            if (context->WindowFont) PhDereferenceObject(context->WindowFont);
 
             PhFree(context);
 
@@ -606,12 +685,12 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
         break;
     case WM_DPICHANGED:
         {
-            HFONT windowFont;
+            PPH_FONT windowFont;
 
-            if (windowFont = PhCreateTreeWindowFont(LOWORD(wParam)))
+            if (windowFont = PhCreateTreeWindowFontObject(LOWORD(wParam)))
             {
-                PhSwapReferenceFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
-                SetWindowFont(context->SummaryHandle, context->WindowFont, TRUE);
+                PhSwapOwnedFont(&context->WindowFont, context->ListViewHandle, windowFont, TRUE);
+                SetWindowFont(context->SummaryHandle, PhGetFontHandle(context->WindowFont), TRUE);
             }
 
             PhLayoutManagerUpdate(&context->LayoutManager, LOWORD(wParam));
@@ -844,6 +923,12 @@ INT_PTR CALLBACK EtPowerGridDlgProc(
     return FALSE;
 }
 
+/**
+ * The thread start routine for the power grid dialog.
+ *
+ * \param[in] Parameter A pointer to the dialog context.fix 
+ * \return STATUS_SUCCESS on success, or an appropriate error code.
+ */
 _Function_class_(USER_THREAD_START_ROUTINE)
 NTSTATUS EtPowerGridDialogThreadStart(
     _In_ PVOID Parameter
@@ -887,6 +972,11 @@ NTSTATUS EtPowerGridDialogThreadStart(
     return STATUS_SUCCESS;
 }
 
+/**
+ * Shows the power grid dialog.
+ *
+ * \param[in] ParentWindowHandle A handle to the parent window.
+ */
 VOID EtShowPowerGridDialog(
     _In_ HWND ParentWindowHandle
     )

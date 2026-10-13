@@ -119,6 +119,11 @@ typedef struct _KCONTINUE_ARGUMENT
  * \param ContextRecord A pointer to the processor context from which execution is to continue.
  * \param ContinueArgument Either a pointer to a KCONTINUE_ARGUMENT structure or a BOOLEAN value encoded as a pointer for the legacy TestAlert form.
  * \return NTSTATUS Successful or errant status.
+ *
+ * \remarks Restores execution context through special syscall/trap-frame return machinery, not an
+ * ordinary function epilogue. The inspected helper distinguishes a small second-argument value (at most 0xFF)
+ * from a continuation-argument pointer; user CONTEXT storage is 16-byte aligned and the pointer form is
+ * 8-byte aligned. Full context/XSTATE validation and APC delivery remain separate helper contracts.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -154,6 +159,10 @@ NtContinue(
  * \param ContextRecord A pointer to the processor context at which the exception occurred.
  * \param FirstChance TRUE to process the exception as a first-chance exception; FALSE to process it as a second-chance exception.
  * \return NTSTATUS Successful or errant status.
+ *
+ * \remarks The inspected user-mode exception capture rejects NumberParameters above 15 and
+ * captures the variable exception information before context restoration and exception dispatch. It is not
+ * a harmless logging API: successful dispatch may transfer control to a handler or debugger rather than return normally.
  */
 _Kernel_entry_
 NTSYSCALLAPI

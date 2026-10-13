@@ -176,10 +176,6 @@ typedef struct _FW_ITEM_QUERY_DATA
     PPH_STRING HostString;
 } FW_ITEM_QUERY_DATA, *PFW_ITEM_QUERY_DATA;
 
-VOID EtFwQueryHostnameForEntry(
-    _In_ PFW_EVENT_ITEM Entry
-    );
-
 /**
  * Compares two hostname resolve cache entries.
  *
@@ -470,6 +466,15 @@ BOOLEAN FwProcessEventType(
     _Out_ PUSHORT LayerId
     )
 {
+    if (IsLoopback)
+        *IsLoopback = FALSE;
+    if (Direction)
+        *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
+    if (FilterId)
+        *FilterId = 0;
+    if (LayerId)
+        *LayerId = FWPS_BUILTIN_LAYER_MAX;
+
     switch ((ULONG)FwEvent->type)
     {
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP:
@@ -552,8 +557,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeMmFailureEvent->mmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_QM_FAILURE:
@@ -564,8 +567,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeQmFailureEvent->qmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IKEEXT_EM_FAILURE:
@@ -576,8 +577,6 @@ BOOLEAN FwProcessEventType(
 
             if (FilterId)
                 *FilterId = fwIkeEmFailureEvent->qmFilterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_IPSEC_KERNEL_DROP:
@@ -635,9 +634,6 @@ BOOLEAN FwProcessEventType(
                 *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
                 break;
             }
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_DROP:
@@ -653,8 +649,6 @@ BOOLEAN FwProcessEventType(
                 *IsLoopback = !!fwCapabilityDropEvent->isLoopback;
             if (FilterId)
                 *FilterId = fwCapabilityDropEvent->filterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CAPABILITY_ALLOW:
@@ -670,8 +664,6 @@ BOOLEAN FwProcessEventType(
                 *IsLoopback = !!fwCapabilityAllowEvent->isLoopback;
             if (FilterId)
                 *FilterId = fwCapabilityAllowEvent->filterId;
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_CLASSIFY_DROP_MAC:
@@ -713,9 +705,6 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_LPM_PACKET_ARRIVAL:
         {
             *Direction = FW_EVENT_DIRECTION_INBOUND;
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_MM_ESTABLISHED:
@@ -728,9 +717,6 @@ BOOLEAN FwProcessEventType(
     case FWPM_NET_EVENT_TYPE_INTERNAL_IKEEXT_POLICY_CHANGE:
         {
             *Direction = FW_EVENT_DIRECTION_BIDIRECTIONAL;
-
-            if (LayerId)
-                *LayerId = FWPS_BUILTIN_LAYER_MAX;
         }
         return TRUE;
     }
@@ -867,9 +853,10 @@ NTSTATUS EtFwNetworkItemQueryWorker(
 
     PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
     cacheItem = EtFwLookupResolveCacheItem(&data->Address);
+    hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
     PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-    if (!cacheItem)
+    if (!hostString)
     {
         hostString = EtFwGetNameFromAddress(&data->Address);
 
@@ -898,8 +885,7 @@ NTSTATUS EtFwNetworkItemQueryWorker(
     }
     else
     {
-        PhReferenceObject(cacheItem->HostString);
-        data->HostString = cacheItem->HostString;
+        data->HostString = hostString;
     }
 
     RtlInterlockedPushEntrySList(&EtFwQueryListHead, &data->ListEntry);
@@ -1002,6 +988,7 @@ VOID EtFwQueryHostnameForEntry(
     )
 {
     PFW_RESOLVE_CACHE_ITEM cacheItem;
+    PPH_STRING hostString;
 
     if (!FlagOn(EtFwFlagsMask, FW_PROVIDER_FLAG_HOSTNAME))
         return;
@@ -1012,12 +999,12 @@ VOID EtFwQueryHostnameForEntry(
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
         cacheItem = EtFwLookupResolveCacheItem(&Entry->LocalEndpoint.Address);
+        hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
         PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-        if (cacheItem)
+        if (hostString)
         {
-            PhReferenceObject(cacheItem->HostString);
-            Entry->LocalHostnameString = cacheItem->HostString;
+            Entry->LocalHostnameString = hostString;
             Entry->LocalHostnameResolved = TRUE;
         }
         else
@@ -1036,12 +1023,12 @@ VOID EtFwQueryHostnameForEntry(
     {
         PhAcquireQueuedLockShared(&EtFwCacheHashtableLock);
         cacheItem = EtFwLookupResolveCacheItem(&Entry->RemoteEndpoint.Address);
+        hostString = cacheItem ? PhReferenceObject(cacheItem->HostString) : NULL;
         PhReleaseQueuedLockShared(&EtFwCacheHashtableLock);
 
-        if (cacheItem)
+        if (hostString)
         {
-            PhReferenceObject(cacheItem->HostString);
-            Entry->RemoteHostnameString = cacheItem->HostString;
+            Entry->RemoteHostnameString = hostString;
             Entry->RemoteHostnameResolved = TRUE;
         }
         else
@@ -2330,8 +2317,8 @@ VOID CALLBACK EtFwEventCallback(
     PPH_STRING ruleName;
     PPH_STRING ruleDescription;
 
-    if (!EtFwEnabled)
-        return;
+    //if (!EtFwEnabled)
+    //    return;
 
     if (!FwProcessEventType(
         FwEvent,
