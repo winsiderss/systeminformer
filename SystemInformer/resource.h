@@ -1000,6 +1000,15 @@
 #define ID_TOOLS_RUNCONTAINER           10325
 #define ID_HACKER_ATTACHTOPROCESS       10326
 #define ID_TOOLS_ENVIRONMENT_VARIABLES  10327
+#define ID_SERVICE_GROUP_NONE           10328
+#define ID_SERVICE_GROUP_TYPE           10329
+#define ID_SERVICE_GROUP_LOADORDER      10330
+#define ID_SERVICE_GROUP_SVCHOST        10331
+#define ID_SERVICE_GROUP_STARTTYPE      10332
+#define ID_MENUBAR_UPDATE               10333
+#define ID_MENUBAR_PAUSE                10334
+#define ID_MENUBAR_DRIVERSTATUS         10335
+#define ID_MENUBAR_ELEVATE              10336
 
 #define IDDYNAMIC                       50000
 #define IDPLUGINS                       55000
