@@ -3099,18 +3099,6 @@ static NTSTATUS PhParseDnsMessageBuffer(
     return STATUS_UNSUCCESSFUL;
 }
 
-    if (requestHandle)
-        WinHttpCloseHandle(requestHandle);
-    if (connectionHandle)
-        WinHttpCloseHandle(connectionHandle);
-    if (sessionHandle)
-        WinHttpCloseHandle(sessionHandle);
-    if (asyncContext.EventHandle)
-        CloseHandle(asyncContext.EventHandle);
-
-    return status;
-}
-
 // Cloudflare DNS over HTTPs (DoH)
 // https://developers.cloudflare.com/1.1.1.1/dns-over-https/wireformat/
 // host: cloudflare-dns.com
