@@ -274,6 +274,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_ENABLE_STREAMER_MODE                                L"EnableStreamerMode"
 #define SETTING_ENABLE_START_AS_ADMIN                               L"EnableStartAsAdmin"
 #define SETTING_ENABLE_START_AS_ADMIN_ALWAYS_ON_TOP                 L"EnableStartAsAdminAlwaysOnTop"
+#define SETTING_ENABLE_START_AS_ADMIN_ISOLATED                      L"EnableStartAsAdminIsolated"
 #define SETTING_ENABLE_DEFAULT_SAFE_PLUGINS                         L"EnableDefaultSafePlugins"
 #define SETTING_ENABLE_SECURITY_ADVANCED_DIALOG                     L"EnableSecurityAdvancedDialog"
 #define SETTING_ENABLE_SHORT_RELATIVE_START_TIME                    L"EnableShortRelativeStartTime"
