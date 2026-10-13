@@ -1182,8 +1182,8 @@ typedef struct _SE_SET_FILE_CACHE_INFORMATION
 /**
  * The NtSetCachedSigningLevel2 routine sets the cached signing level of a file.
  *
- * \param Flags Pointer to the flags set on the file.
- * \param InputSigningLevel Pointer to the signing level.
+ * \param Flags The flags set on the file.
+ * \param InputSigningLevel The signing level.
  * \param SourceFiles Pointer to a set of source file handles.
  * \param SourceFileCount The source file count.
  * \param TargetFile The target file.
