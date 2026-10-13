@@ -19,6 +19,15 @@
 #include <phapp.h>
 #include <procprv.h>
 #include <thrdprv.h>
+#include <emenu.h>
+#include <phsettings.h>
+#include <settings.h>
+
+KAFFINITY PhGetAffinityPresetMaskEx(
+    _In_ USHORT Group,
+    _In_ ULONG PresetId,
+    _In_opt_ KAFFINITY CurrentMaskForSave
+    );
 
 typedef struct _PH_AFFINITY_DIALOG_CONTEXT
 {
@@ -703,6 +712,66 @@ INT_PTR CALLBACK PhpProcessAffinityDlgProc(
                     }
                 }
                 break;
+            case IDC_PRESETS:
+                {
+                    PPH_EMENU menu;
+                    PPH_EMENU_ITEM selectedItem;
+                    POINT point;
+                    RECT rect;
+
+                    menu = PhCreateEMenu();
+                    PhAddAffinityPresetsToEMenu(menu, context->AffinityGroup, TRUE);
+
+                    GetWindowRect(GetDlgItem(hwndDlg, IDC_PRESETS), &rect);
+                    point.x = rect.left;
+                    point.y = rect.bottom;
+
+                    selectedItem = PhShowEMenu(
+                        menu,
+                        hwndDlg,
+                        PH_EMENU_SHOW_LEFTRIGHT,
+                        PH_ALIGN_LEFT | PH_ALIGN_TOP,
+                        point.x,
+                        point.y
+                        );
+
+                    if (selectedItem && selectedItem->Id)
+                    {
+                        if (selectedItem->Id >= ID_AFFINITY_SAVE_PRESET_1 && selectedItem->Id <= ID_AFFINITY_SAVE_PRESET_4)
+                        {
+                            KAFFINITY currentMask = 0;
+                            for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
+                            {
+                                if (Button_GetCheck(context->CpuControlList->Items[i]) == BST_CHECKED)
+                                    currentMask |= AFFINITY_MASK(i);
+                            }
+                            PhGetAffinityPresetMaskEx(context->AffinityGroup, selectedItem->Id, currentMask);
+                        }
+                        else
+                        {
+                            KAFFINITY mask = PhGetAffinityPresetMaskEx(context->AffinityGroup, selectedItem->Id, 0);
+
+                            if (mask != 0)
+                            {
+                                for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
+                                {
+                                    HWND checkBox = context->CpuControlList->Items[i];
+
+                                    if (IsWindowEnabled(checkBox))
+                                    {
+                                        if ((mask >> i) & 1)
+                                            Button_SetCheck(checkBox, BST_CHECKED);
+                                        else
+                                            Button_SetCheck(checkBox, BST_UNCHECKED);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    PhDestroyEMenu(menu);
+                }
+                break;
             case IDC_GROUPCPU:
                 {
                     LONG index;
@@ -920,4 +989,541 @@ NTSTATUS PhSetProcessItemThrottlingState(
     }
 
     return status;
+}
+
+BOOLEAN PhGetSystemProcessorEfficiencyMasks(
+    _In_ USHORT Group,
+    _Out_ PKAFFINITY PerformanceMask,
+    _Out_ PKAFFINITY EfficiencyMask
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
+    ULONG bufferLength = 0;
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = NULL;
+    UCHAR maxEfficiencyClass = 0;
+    UCHAR minEfficiencyClass = 0xFF;
+    BOOLEAN hasEfficiencyClasses = FALSE;
+    KAFFINITY systemAffinityMask = 0;
+    KAFFINITY perfMask = 0;
+    KAFFINITY effMask = 0;
+
+    *PerformanceMask = 0;
+    *EfficiencyMask = 0;
+
+    if (!NT_SUCCESS(PhGetProcessorGroupActiveAffinityMask(Group, &systemAffinityMask)))
+    {
+        if (!NT_SUCCESS(PhGetProcessorSystemAffinityMask(&systemAffinityMask)))
+            return FALSE;
+    }
+
+    if (!NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationProcessorCore, &logicalInformation, &bufferLength)))
+    {
+        *PerformanceMask = systemAffinityMask;
+        return TRUE;
+    }
+
+    for (
+        processorInfo = logicalInformation;
+        (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+        processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+        )
+    {
+        if (processorInfo->Relationship == RelationProcessorCore)
+        {
+            if (processorInfo->Processor.EfficiencyClass > maxEfficiencyClass)
+                maxEfficiencyClass = processorInfo->Processor.EfficiencyClass;
+            if (processorInfo->Processor.EfficiencyClass < minEfficiencyClass)
+                minEfficiencyClass = processorInfo->Processor.EfficiencyClass;
+        }
+    }
+
+    if (maxEfficiencyClass > minEfficiencyClass)
+        hasEfficiencyClasses = TRUE;
+
+    for (
+        processorInfo = logicalInformation;
+        (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+        processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+        )
+    {
+        if (processorInfo->Relationship == RelationProcessorCore)
+        {
+            for (USHORT j = 0; j < processorInfo->Processor.GroupCount; j++)
+            {
+                if (processorInfo->Processor.GroupMask[j].Group == Group)
+                {
+                    if (hasEfficiencyClasses && processorInfo->Processor.EfficiencyClass < maxEfficiencyClass)
+                    {
+                        effMask |= processorInfo->Processor.GroupMask[j].Mask;
+                    }
+                    else
+                    {
+                        perfMask |= processorInfo->Processor.GroupMask[j].Mask;
+                    }
+                }
+            }
+        }
+    }
+
+    PhFree(logicalInformation);
+
+    perfMask &= systemAffinityMask;
+    effMask &= systemAffinityMask;
+
+    if (perfMask == 0)
+        perfMask = systemAffinityMask;
+
+    *PerformanceMask = perfMask;
+    *EfficiencyMask = effMask;
+    return TRUE;
+}
+
+KAFFINITY PhGetAffinityPresetMaskEx(
+    _In_ USHORT Group,
+    _In_ ULONG PresetId,
+    _In_opt_ KAFFINITY CurrentMaskForSave
+    )
+{
+    KAFFINITY systemAffinityMask = 0;
+    KAFFINITY perfMask = 0;
+    KAFFINITY effMask = 0;
+
+    if (!NT_SUCCESS(PhGetProcessorGroupActiveAffinityMask(Group, &systemAffinityMask)))
+    {
+        if (!NT_SUCCESS(PhGetProcessorSystemAffinityMask(&systemAffinityMask)))
+            return 0;
+    }
+
+    if (PresetId >= ID_AFFINITY_CCD_FIRST && PresetId <= ID_AFFINITY_CCD_LAST)
+    {
+        ULONG ccdIndex = PresetId - ID_AFFINITY_CCD_FIRST;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
+        ULONG bufferLength = 0;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = NULL;
+        ULONG currentIndex = 0;
+        KAFFINITY ccdMask = 0;
+
+        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationCache, &logicalInformation, &bufferLength)))
+        {
+            for (
+                processorInfo = logicalInformation;
+                (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                )
+            {
+                if (processorInfo->Relationship == RelationCache && processorInfo->Cache.Level == 3)
+                {
+                    if (currentIndex == ccdIndex)
+                    {
+                        if (processorInfo->Cache.GroupMask.Group == Group)
+                        {
+                            ccdMask |= processorInfo->Cache.GroupMask.Mask;
+                        }
+                        break;
+                    }
+                    currentIndex++;
+                }
+            }
+            PhFree(logicalInformation);
+        }
+        return ccdMask;
+    }
+    else if (PresetId >= ID_AFFINITY_NUMA_FIRST && PresetId <= ID_AFFINITY_NUMA_LAST)
+    {
+        ULONG numaIndex = PresetId - ID_AFFINITY_NUMA_FIRST;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
+        ULONG bufferLength = 0;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = NULL;
+        ULONG currentIndex = 0;
+        KAFFINITY numaMask = 0;
+
+        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationNumaNode, &logicalInformation, &bufferLength)))
+        {
+            for (
+                processorInfo = logicalInformation;
+                (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                )
+            {
+                if (processorInfo->Relationship == RelationNumaNode)
+                {
+                    if (currentIndex == numaIndex)
+                    {
+                        if (processorInfo->NumaNode.GroupMask.Group == Group)
+                        {
+                            numaMask |= processorInfo->NumaNode.GroupMask.Mask;
+                        }
+                        break;
+                    }
+                    currentIndex++;
+                }
+            }
+            PhFree(logicalInformation);
+        }
+        return numaMask;
+    }
+    else if (PresetId >= ID_AFFINITY_CUSTOM_1 && PresetId <= ID_AFFINITY_CUSTOM_4)
+    {
+        ULONG index = PresetId - ID_AFFINITY_CUSTOM_1 + 1;
+        PH_FORMAT format[2];
+        WCHAR settingName[64];
+        PhInitFormatS(&format[0], L"AffinityPresetMask");
+        PhInitFormatU(&format[1], index);
+        PhFormatToBuffer(format, RTL_NUMBER_OF(format), settingName, sizeof(settingName), NULL);
+        return (KAFFINITY)PhGetIntegerSetting(settingName);
+    }
+    else if (PresetId >= ID_AFFINITY_SAVE_PRESET_1 && PresetId <= ID_AFFINITY_SAVE_PRESET_4)
+    {
+        ULONG index = PresetId - ID_AFFINITY_SAVE_PRESET_1 + 1;
+        PH_FORMAT format[2];
+        WCHAR settingName[64];
+        PhInitFormatS(&format[0], L"AffinityPresetMask");
+        PhInitFormatU(&format[1], index);
+        PhFormatToBuffer(format, RTL_NUMBER_OF(format), settingName, sizeof(settingName), NULL);
+        PhSetIntegerSetting(settingName, (ULONG)CurrentMaskForSave);
+        return 0;
+    }
+    else if (PresetId >= ID_AFFINITY_CLEAR_PRESET_1 && PresetId <= ID_AFFINITY_CLEAR_PRESET_4)
+    {
+        ULONG index = PresetId - ID_AFFINITY_CLEAR_PRESET_1 + 1;
+        PH_FORMAT format[2];
+        WCHAR settingName[64];
+        PhInitFormatS(&format[0], L"AffinityPresetMask");
+        PhInitFormatU(&format[1], index);
+        PhFormatToBuffer(format, RTL_NUMBER_OF(format), settingName, sizeof(settingName), NULL);
+        PhSetIntegerSetting(settingName, 0);
+        return 0;
+    }
+    else if (PresetId == ID_AFFINITY_CLEAR_ALL_PRESETS)
+    {
+        for (ULONG i = 1; i <= 4; i++)
+        {
+            PH_FORMAT format[2];
+            WCHAR settingName[64];
+            PhInitFormatS(&format[0], L"AffinityPresetMask");
+            PhInitFormatU(&format[1], i);
+            PhFormatToBuffer(format, RTL_NUMBER_OF(format), settingName, sizeof(settingName), NULL);
+            PhSetIntegerSetting(settingName, 0);
+        }
+        return 0;
+    }
+
+    switch (PresetId)
+    {
+    case ID_AFFINITY_ALL:
+        return systemAffinityMask;
+    case ID_AFFINITY_PCORES:
+        PhGetSystemProcessorEfficiencyMasks(Group, &perfMask, &effMask);
+        return perfMask != 0 ? perfMask : systemAffinityMask;
+    case ID_AFFINITY_ECORES:
+        PhGetSystemProcessorEfficiencyMasks(Group, &perfMask, &effMask);
+        return effMask != 0 ? effMask : systemAffinityMask;
+    case ID_AFFINITY_EVEN:
+        return (KAFFINITY)0x5555555555555555ULL & systemAffinityMask;
+    case ID_AFFINITY_ODD:
+        return (KAFFINITY)0xAAAAAAAAAAAAAAAAULL & systemAffinityMask;
+    case ID_AFFINITY_FIRSTHALF:
+        {
+            ULONG activeCount = PhCountBitsUlongPtr(systemAffinityMask);
+            ULONG halfCount = activeCount / 2;
+            KAFFINITY mask = 0;
+            ULONG count = 0;
+            for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
+            {
+                if ((systemAffinityMask >> i) & 1)
+                {
+                    mask |= AFFINITY_MASK(i);
+                    count++;
+                    if (count >= halfCount && halfCount > 0)
+                        break;
+                }
+            }
+            return mask;
+        }
+    case ID_AFFINITY_SECONDHALF:
+        {
+            ULONG activeCount = PhCountBitsUlongPtr(systemAffinityMask);
+            ULONG halfCount = activeCount / 2;
+            KAFFINITY mask = 0;
+            ULONG count = 0;
+            for (ULONG i = 0; i < MAXIMUM_PROC_PER_GROUP; i++)
+            {
+                if ((systemAffinityMask >> i) & 1)
+                {
+                    count++;
+                    if (count > halfCount)
+                    {
+                        mask |= AFFINITY_MASK(i);
+                    }
+                }
+            }
+            return mask;
+        }
+    }
+
+    return systemAffinityMask;
+}
+
+VOID PhAddAffinityPresetsToEMenu(
+    _In_ PPH_EMENU_ITEM Menu,
+    _In_ USHORT Group,
+    _In_ BOOLEAN IncludeSaveItems
+    )
+{
+    KAFFINITY perfMask = 0, effMask = 0;
+    BOOLEAN hasHybrid = PhGetSystemProcessorEfficiencyMasks(Group, &perfMask, &effMask) && effMask != 0;
+
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_ALL, L"&All cores", NULL, NULL), ULONG_MAX);
+
+    if (hasHybrid)
+    {
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_PCORES, L"&Performance cores (P-Cores)", NULL, NULL), ULONG_MAX);
+        PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_ECORES, L"&Efficiency cores (E-Cores)", NULL, NULL), ULONG_MAX);
+    }
+
+    // CCDs (Core Complex Dies / L3 Caches)
+    {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
+        ULONG bufferLength = 0;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = NULL;
+        ULONG ccdCount = 0;
+
+        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationCache, &logicalInformation, &bufferLength)))
+        {
+            for (
+                processorInfo = logicalInformation;
+                (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                )
+            {
+                if (processorInfo->Relationship == RelationCache && processorInfo->Cache.Level == 3)
+                {
+                    ccdCount++;
+                }
+            }
+
+            if (ccdCount > 1)
+            {
+                PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                ULONG index = 0;
+                for (
+                    processorInfo = logicalInformation;
+                    (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                    processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                    )
+                {
+                    if (processorInfo->Relationship == RelationCache && processorInfo->Cache.Level == 3)
+                    {
+                        if (index <= (ID_AFFINITY_CCD_LAST - ID_AFFINITY_CCD_FIRST))
+                        {
+                            PH_FORMAT format[5];
+                            WCHAR label[64];
+                            PhInitFormatS(&format[0], L"CCD &");
+                            PhInitFormatU(&format[1], index);
+                            PhInitFormatS(&format[2], L" (L3 Cluster ");
+                            PhInitFormatU(&format[3], index);
+                            PhInitFormatS(&format[4], L")");
+                            PhFormatToBuffer(format, RTL_NUMBER_OF(format), label, sizeof(label), NULL);
+                            PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_AFFINITY_CCD_FIRST + index, PhAllocateCopy(label, sizeof(label)), NULL, NULL), ULONG_MAX);
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            PhFree(logicalInformation);
+        }
+    }
+
+    // NUMA Nodes
+    {
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX logicalInformation = NULL;
+        ULONG bufferLength = 0;
+        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX processorInfo = NULL;
+        ULONG numaCount = 0;
+
+        if (NT_SUCCESS(PhGetSystemLogicalProcessorInformation(RelationNumaNode, &logicalInformation, &bufferLength)))
+        {
+            for (
+                processorInfo = logicalInformation;
+                (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                )
+            {
+                if (processorInfo->Relationship == RelationNumaNode)
+                {
+                    numaCount++;
+                }
+            }
+
+            if (numaCount > 1)
+            {
+                PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+
+                ULONG index = 0;
+                for (
+                    processorInfo = logicalInformation;
+                    (ULONG_PTR)processorInfo < (ULONG_PTR)PTR_ADD_OFFSET(logicalInformation, bufferLength);
+                    processorInfo = PTR_ADD_OFFSET(processorInfo, processorInfo->Size)
+                    )
+                {
+                    if (processorInfo->Relationship == RelationNumaNode)
+                    {
+                        if (index <= (ID_AFFINITY_NUMA_LAST - ID_AFFINITY_NUMA_FIRST))
+                        {
+                            PH_FORMAT format[2];
+                            WCHAR label[64];
+                            PhInitFormatS(&format[0], L"NUMA Node &");
+                            PhInitFormatU(&format[1], (ULONG)processorInfo->NumaNode.NodeNumber);
+                            PhFormatToBuffer(format, RTL_NUMBER_OF(format), label, sizeof(label), NULL);
+                            PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_AFFINITY_NUMA_FIRST + index, PhAllocateCopy(label, sizeof(label)), NULL, NULL), ULONG_MAX);
+                        }
+                        index++;
+                    }
+                }
+            }
+
+            PhFree(logicalInformation);
+        }
+    }
+
+    PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_EVEN, L"E&ven cores", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_ODD, L"O&dd cores", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_FIRSTHALF, L"&First half of cores", NULL, NULL), ULONG_MAX);
+    PhInsertEMenuItem(Menu, PhCreateEMenuItem(0, ID_AFFINITY_SECONDHALF, L"&Second half of cores", NULL, NULL), ULONG_MAX);
+
+    // Custom Presets
+    {
+        BOOLEAN hasCustomPresets = FALSE;
+        for (ULONG i = 1; i <= 4; i++)
+        {
+            PH_FORMAT formatMask[2];
+            PH_FORMAT formatName[2];
+            WCHAR settingMaskName[64];
+            WCHAR settingName[64];
+            PhInitFormatS(&formatMask[0], L"AffinityPresetMask");
+            PhInitFormatU(&formatMask[1], i);
+            PhFormatToBuffer(formatMask, RTL_NUMBER_OF(formatMask), settingMaskName, sizeof(settingMaskName), NULL);
+
+            PhInitFormatS(&formatName[0], L"AffinityPresetName");
+            PhInitFormatU(&formatName[1], i);
+            PhFormatToBuffer(formatName, RTL_NUMBER_OF(formatName), settingName, sizeof(settingName), NULL);
+
+            KAFFINITY customMask = (KAFFINITY)PhGetIntegerSetting(settingMaskName);
+            if (customMask != 0)
+            {
+                if (!hasCustomPresets)
+                {
+                    PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+                    hasCustomPresets = TRUE;
+                }
+                PPH_STRING nameString = PhGetStringSetting(settingName);
+                PH_FORMAT formatLabel[4];
+                WCHAR label[128];
+                PhInitFormatS(&formatLabel[0], L"Preset ");
+                PhInitFormatU(&formatLabel[1], i);
+                PhInitFormatS(&formatLabel[2], L": ");
+                PhInitFormatSR(&formatLabel[3], nameString->sr);
+                PhFormatToBuffer(formatLabel, RTL_NUMBER_OF(formatLabel), label, sizeof(label), NULL);
+                PhDereferenceObject(nameString);
+                PhInsertEMenuItem(Menu, PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_AFFINITY_CUSTOM_1 + (i - 1), PhAllocateCopy(label, sizeof(label)), NULL, NULL), ULONG_MAX);
+            }
+        }
+
+        if (IncludeSaveItems)
+        {
+            PhInsertEMenuItem(Menu, PhCreateEMenuSeparator(), ULONG_MAX);
+            PPH_EMENU_ITEM saveMenu = PhCreateEMenuItem(0, 0, L"Save selection as preset...", NULL, NULL);
+            for (ULONG i = 1; i <= 4; i++)
+            {
+                PH_FORMAT formatSave[2];
+                WCHAR label[64];
+                PhInitFormatS(&formatSave[0], L"Save as Preset ");
+                PhInitFormatU(&formatSave[1], i);
+                PhFormatToBuffer(formatSave, RTL_NUMBER_OF(formatSave), label, sizeof(label), NULL);
+                PhInsertEMenuItem(saveMenu, PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_AFFINITY_SAVE_PRESET_1 + (i - 1), PhAllocateCopy(label, sizeof(label)), NULL, NULL), ULONG_MAX);
+            }
+            PhInsertEMenuItem(Menu, saveMenu, ULONG_MAX);
+
+            if (hasCustomPresets)
+            {
+                PPH_EMENU_ITEM clearMenu = PhCreateEMenuItem(0, 0, L"Clear preset...", NULL, NULL);
+                for (ULONG i = 1; i <= 4; i++)
+                {
+                    PH_FORMAT formatMask[2];
+                    WCHAR settingMaskName[64];
+                    PhInitFormatS(&formatMask[0], L"AffinityPresetMask");
+                    PhInitFormatU(&formatMask[1], i);
+                    PhFormatToBuffer(formatMask, RTL_NUMBER_OF(formatMask), settingMaskName, sizeof(settingMaskName), NULL);
+
+                    if ((KAFFINITY)PhGetIntegerSetting(settingMaskName) != 0)
+                    {
+                        PH_FORMAT formatClear[2];
+                        WCHAR label[64];
+                        PhInitFormatS(&formatClear[0], L"Clear Preset ");
+                        PhInitFormatU(&formatClear[1], i);
+                        PhFormatToBuffer(formatClear, RTL_NUMBER_OF(formatClear), label, sizeof(label), NULL);
+                        PhInsertEMenuItem(clearMenu, PhCreateEMenuItem(PH_EMENU_TEXT_OWNED, ID_AFFINITY_CLEAR_PRESET_1 + (i - 1), PhAllocateCopy(label, sizeof(label)), NULL, NULL), ULONG_MAX);
+                    }
+                }
+                PhInsertEMenuItem(clearMenu, PhCreateEMenuSeparator(), ULONG_MAX);
+                PhInsertEMenuItem(clearMenu, PhCreateEMenuItem(0, ID_AFFINITY_CLEAR_ALL_PRESETS, L"Clear all presets", NULL, NULL), ULONG_MAX);
+                PhInsertEMenuItem(Menu, clearMenu, ULONG_MAX);
+            }
+        }
+    }
+}
+
+VOID PhUiSetAffinityPresetProcesses(
+    _In_ HWND ParentWindowHandle,
+    _In_ PPH_PROCESS_ITEM *Processes,
+    _In_ ULONG NumberOfProcesses,
+    _In_ ULONG PresetId
+    )
+{
+    for (ULONG i = 0; i < NumberOfProcesses; i++)
+    {
+        PPH_PROCESS_ITEM processItem = Processes[i];
+        HANDLE processHandle;
+        GROUP_AFFINITY groupAffinity = { 0 };
+        USHORT group = 0;
+
+        if (NT_SUCCESS(PhOpenProcess(
+            &processHandle,
+            PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_SET_INFORMATION,
+            processItem->ProcessId
+            )))
+        {
+            if (NT_SUCCESS(PhGetProcessGroupAffinity(processHandle, &groupAffinity)))
+            {
+                group = groupAffinity.Group;
+            }
+
+            KAFFINITY currentProcessMask = 0;
+            if (PresetId >= ID_AFFINITY_SAVE_PRESET_1 && PresetId <= ID_AFFINITY_SAVE_PRESET_4)
+            {
+                currentProcessMask = groupAffinity.Mask;
+            }
+
+            KAFFINITY presetMask = PhGetAffinityPresetMaskEx(group, PresetId, currentProcessMask);
+
+            if (presetMask != 0)
+            {
+                if (PhSystemProcessorInformation.SingleProcessorGroup)
+                {
+                    PhSetProcessAffinityMask(processHandle, presetMask);
+                }
+                else
+                {
+                    groupAffinity.Group = group;
+                    groupAffinity.Mask = presetMask;
+                    PhSetProcessGroupAffinity(processHandle, groupAffinity);
+                }
+            }
+
+            NtClose(processHandle);
+        }
+    }
 }
