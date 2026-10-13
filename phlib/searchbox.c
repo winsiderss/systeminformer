@@ -156,7 +156,7 @@ VOID PhSearchControlInitializeColors(
     Context->WindowBorderOuterColor = PhThemeWindowBackground2Color;
     Context->WindowBorderInnerColor = PhSearchControlSelectColor(WindowBorderInnerThemeColor, WindowBorderInnerClassicColor);
     Context->WindowBackgroundColor = PhSearchControlSelectColor(PhThemeWindowBackgroundColor, GetSysColor(COLOR_WINDOW));
-    Context->FrameDefaultColor = PhSearchControlSelectColor(PhThemeWindowBackground2Color, GetSysColor(COLOR_WINDOWFRAME));
+    Context->FrameDefaultColor = PhSearchControlSelectColor(PhThemeWindowWindowFrameColor, GetSysColor(COLOR_WINDOWFRAME));
     Context->ButtonPushedColor = PhSearchControlSelectColor(ButtonPushedThemeColor, ButtonPushedClassicColor);
     Context->ButtonHotActiveColor = PhSearchControlSelectColor(ButtonHotActiveThemeColor, ButtonHotActiveClassicColor);
     Context->ButtonHotColor = PhSearchControlSelectColor(ButtonHotThemeColor, ButtonHotClassicColor);
@@ -622,7 +622,7 @@ VOID PhSearchControlPaintFrame(
     SetDCBrushColor(Hdc, PhSearchControlFrameColor(Context, WindowHandle));
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 
-    SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
+    SetDCBrushColor(Hdc, Context->CueBannerBackgroundColor);
     PhInflateRect(&frameRect, -1, -1);
     FrameRect(Hdc, &frameRect, Context->DcBrush);
 }
@@ -833,7 +833,7 @@ VOID PhSearchControlPaintNonClient(
 {
     PhSearchControlExcludeClient(Context, WindowHandle, Hdc, WindowRect);
 
-    SetDCBrushColor(Hdc, Context->WindowBackgroundColor);
+    SetDCBrushColor(Hdc, Context->CueBannerBackgroundColor);
     FillRect(Hdc, BufferRect, Context->DcBrush);
 
     PhSearchControlPaintFrame(Context, WindowHandle, Hdc, WindowRect);
