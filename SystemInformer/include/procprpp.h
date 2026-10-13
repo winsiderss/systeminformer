@@ -323,7 +323,7 @@ typedef struct _PH_HANDLES_CONTEXT
 // end_phapppub
     HWND TreeNewHandle;
     HWND SearchWindowHandle;
-    HFONT TreeNewFont;
+    PPH_FONT TreeNewFont;
 
     union
     {
@@ -386,7 +386,7 @@ typedef struct _PH_STATISTICS_CONTEXT
     PH_CALLBACK_REGISTRATION ProcessesUpdatedRegistration;
     HWND WindowHandle;
     HWND ListViewHandle;
-    HFONT TreeNewFont;
+    PPH_FONT TreeNewFont;
 
     PPH_LISTVIEW_CONTEXT ListViewContext;
 

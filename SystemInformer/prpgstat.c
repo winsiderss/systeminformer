@@ -354,11 +354,11 @@ VOID PhpUpdateProcessStatisticDeltaBytes(
 {
     ULONG64 number = 0;
 
-    if (DeltaBuffer.Delta != DeltaBuffer.Value)
+    if (DeltaBuffer.Delta != DeltaBuffer.Value && PhProcessProviderElapsedMilliseconds != 0)
     {
         number = DeltaBuffer.Delta;
         number *= 1000;
-        number /= PhCsUpdateInterval;
+        number /= PhProcessProviderElapsedMilliseconds;
     }
 
     if (number != 0)
@@ -457,6 +457,49 @@ VOID PH_PROCESS_STATISTICS_FORMAT_SIZE_PER_SEC(
 
     PhInitFormatSize(&format[0], Value);
     PhInitFormatS(&format[1], L"/s");
+
+    if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, buffer, _TRUNCATE);
+    }
+}
+
+// Renders Numerator/Denominator as a "%.2f%%" ratio. The value is not clamped: timeline fields are
+// quantized to 4096ms buckets, so a short-lived process can legitimately read slightly over 100% and
+// we expose that rather than hide it. A zero denominator renders blank.
+VOID PH_PROCESS_STATISTICS_FORMAT_RATIO(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Numerator,
+    _In_ ULONG64 Denominator
+    )
+{
+    if (Denominator == 0)
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        return;
+    }
+
+    PH_PROCESS_STATISTICS_FORMAT_F(Entry, (FLOAT)((DOUBLE)Numerator / (DOUBLE)Denominator * 100.0));
+}
+
+// Renders Count events over the given running-time tick span as an events-per-second rate ("N.NN /s").
+VOID PH_PROCESS_STATISTICS_FORMAT_RATE(
+    _In_ NMLVDISPINFO* Entry,
+    _In_ ULONG64 Count,
+    _In_ ULONG64 RunningTimeTicks
+    )
+{
+    PH_FORMAT format[2];
+    WCHAR buffer[PH_INT64_STR_LEN_1];
+
+    if (Count == 0 || RunningTimeTicks == 0)
+    {
+        wcsncpy_s(Entry->item.pszText, Entry->item.cchTextMax, L"", _TRUNCATE);
+        return;
+    }
+
+    PhInitFormatFD(&format[0], (DOUBLE)Count / ((DOUBLE)RunningTimeTicks / PH_TICKS_PER_SEC), 2);
+    PhInitFormatS(&format[1], L" /s");
 
     if (PhFormatToBuffer(format, RTL_NUMBER_OF(format), buffer, sizeof(buffer), NULL))
     {
@@ -830,8 +873,7 @@ static BOOLEAN PhpGetProcessStatisticsNumericValue(
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTHOURS:
         if (!Context->GotExtendedEnergyValues)
             return FALSE;
-        *Value = (DOUBLE)Context->EnergyNetworkTail / 3600000;
-        //*Value = (DOUBLE)Context->EnergyNetworkTail / 3600000000.0;
+        *Value = (DOUBLE)Context->EnergyNetworkTail / 3600000000.0;
         return TRUE;
     case PH_PROCESS_STATISTICS_INDEX_ENERGYNETWORKTAILWATTS:
         if (!Context->GotExtendedEnergyValues || !PhCsUpdateInterval)
@@ -2332,8 +2374,8 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             if (PhTreeWindowFont)
             {
-                statisticsContext->TreeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg));
-                SetWindowFont(statisticsContext->ListViewHandle, statisticsContext->TreeNewFont, FALSE);
+                statisticsContext->TreeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg));
+                SetWindowFont(statisticsContext->ListViewHandle, PhGetFontHandle(statisticsContext->TreeNewFont), FALSE);
             }
 
             PhSetListViewStyle(statisticsContext->ListViewHandle, TRUE, TRUE);
@@ -2393,7 +2435,7 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
 
             if (statisticsContext->TreeNewFont)
             {
-                DeleteFont(statisticsContext->TreeNewFont);
+                PhDereferenceObject(statisticsContext->TreeNewFont);
                 statisticsContext->TreeNewFont = NULL;
             }
 
@@ -2414,11 +2456,11 @@ INT_PTR CALLBACK PhpProcessStatisticsDlgProc(
         {
             if (PhTreeWindowFont)
             {
-                HFONT treeNewFont;
+                PPH_FONT treeNewFont;
 
-                if (treeNewFont = PhCreateTreeWindowFont(PhGetWindowDpi(hwndDlg)))
+                if (treeNewFont = PhCreateTreeWindowFontObject(PhGetWindowDpi(hwndDlg)))
                 {
-                    PhSwapReferenceFont(&statisticsContext->TreeNewFont, statisticsContext->ListViewHandle, treeNewFont, TRUE);
+                    PhSwapOwnedFont(&statisticsContext->TreeNewFont, statisticsContext->ListViewHandle, treeNewFont, TRUE);
                 }
             }
         }

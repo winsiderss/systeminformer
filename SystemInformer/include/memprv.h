@@ -121,6 +121,7 @@ typedef struct _PH_MEMORY_ITEM
     SIZE_T SharedWorkingSetPages;
     SIZE_T ShareableWorkingSetPages;
     SIZE_T LockedWorkingSetPages;
+    SIZE_T ModifiedWorkingSetPages;
 
     SIZE_T SharedOriginalPages;
 

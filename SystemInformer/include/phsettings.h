@@ -173,6 +173,8 @@ EXT ULONG PhCsUseColorMemoryCfgPages;
 EXT ULONG PhCsColorMemoryCfgPages;
 EXT ULONG PhCsUseColorMemoryExecutePages;
 EXT ULONG PhCsColorMemoryExecutePages;
+EXT ULONG PhCsUseColorMemoryModifiedPages;
+EXT ULONG PhCsColorMemoryModifiedPages;
 EXT ULONG PhCsUseColorRelocatedModules;
 EXT ULONG PhCsColorRelocatedModules;
 EXT ULONG PhCsUseColorProtectedHandles;
@@ -461,6 +463,7 @@ EXT ULONG PhCsProcessMonitorCacheLimit;
 #define SETTING_PROCESS_TREE_LIST_COLUMNS                           L"ProcessTreeListColumns"
 #define SETTING_PROCESS_TREE_LIST_SORT                              L"ProcessTreeListSort"
 #define SETTING_PROCESS_TREE_LIST_NAME_DEFAULT                      L"ProcessTreeListNameDefault"
+#define SETTING_PROCESS_TREE_LIST_HEATMAP                           L"ProcessTreeListHeatmap"
 #define SETTING_PROC_PROP_PAGE                                      L"ProcPropPage"
 #define SETTING_PROC_PROP_POSITION                                  L"ProcPropPosition"
 #define SETTING_PROC_PROP_SIZE                                      L"ProcPropSize"

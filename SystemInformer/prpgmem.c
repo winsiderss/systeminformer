@@ -884,6 +884,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PPH_EMENU_ITEM systemItem;
                     PPH_EMENU_ITEM cfgItem;
                     PPH_EMENU_ITEM typeItem;
+                    PPH_EMENU_ITEM modifiedItem;
                     PPH_EMENU_ITEM zeroPadItem;
                     PPH_EMENU_ITEM selectedItem;
 
@@ -898,6 +899,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG,
                         PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE,
+                        PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED,
                         PH_MEMORY_FILTER_MENU_HIDE_GUARD,
                         // Non-standard PH_MEMORY_FLAG options.
                         PH_MEMORY_FILTER_MENU_READ_ADDRESS,
@@ -918,6 +920,7 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                     PhInsertEMenuItem(menu, systemItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM, L"Highlight system pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, cfgItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG, L"Highlight CFG pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, typeItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE, L"Highlight executable pages", NULL, NULL), ULONG_MAX);
+                    PhInsertEMenuItem(menu, modifiedItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED, L"Highlight modified/COW pages", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
                     PhInsertEMenuItem(menu, zeroPadItem = PhCreateEMenuItem(0, PH_MEMORY_FILTER_MENU_ZERO_PAD_ADDRESSES, L"Zero pad addresses", NULL, NULL), ULONG_MAX);
                     PhInsertEMenuItem(menu, PhCreateEMenuSeparator(), ULONG_MAX);
@@ -944,6 +947,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                         cfgItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.HighlightExecutePages)
                         typeItem->Flags |= PH_EMENU_CHECKED;
+                    if (memoryContext->ListContext.HighlightModifiedPages)
+                        modifiedItem->Flags |= PH_EMENU_CHECKED;
                     if (memoryContext->ListContext.ZeroPadAddresses)
                         zeroPadItem->Flags |= PH_EMENU_CHECKED;
 
@@ -964,7 +969,8 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_PRIVATE ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_SYSTEM ||
                             selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_CFG ||
-                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE)
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE ||
+                            selectedItem->Id == PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED)
                         {
                             ULONG id = ULONG_MAX;
 
@@ -990,6 +996,9 @@ INT_PTR CALLBACK PhpProcessMemoryDlgProc(
                                 break;
                             case PH_MEMORY_FILTER_MENU_HIGHLIGHT_EXECUTE:
                                 id = PH_MEMORY_FLAGS_EXECUTE_OPTION;
+                                break;
+                            case PH_MEMORY_FILTER_MENU_HIGHLIGHT_MODIFIED:
+                                id = PH_MEMORY_FLAGS_MODIFIED_OPTION;
                                 break;
                             }
 
