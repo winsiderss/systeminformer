@@ -21,6 +21,9 @@
 #include <apiimport.h>
 #include <mapldr.h>
 
+#include <mainwnd.h>
+#include <mainwndp.h>
+
 #include <trace.h>
 
 typedef struct _PHP_SERVICE_NAME_ENTRY
