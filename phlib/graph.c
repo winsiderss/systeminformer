@@ -88,6 +88,26 @@ RTL_ATOM PhGraphControlInitialization(
     return RegisterClassEx(&wcex);
 }
 
+#ifndef PH_GRAPH_LABEL_MAX_Y_PIXEL
+FORCEINLINE FLOAT PhpGetGraphLabelValue(
+    _In_ PPH_GRAPH_DRAW_INFO DrawInfo,
+    _In_ ULONG Index
+    )
+{
+    FLOAT value;
+
+    if (Index >= DrawInfo->LineDataCount)
+        return 0;
+
+    value = DrawInfo->LineData1[Index];
+
+    if (DrawInfo->Flags & PH_GRAPH_USE_LINE_2)
+        value += DrawInfo->LineData2[Index];
+
+    return value;
+}
+#endif
+
 FORCEINLINE VOID PhpGetGraphPoint(
     _In_ PPH_GRAPH_DRAW_INFO PH_RESTRICT DrawInfo,
     _In_ ULONG Index,
@@ -196,6 +216,9 @@ VOID PhDrawGraphDirect(
 
     ULONG yLabelMax;
     ULONG yLabelDataIndex;
+#ifndef PH_GRAPH_LABEL_MAX_Y_PIXEL
+    FLOAT yLabelValue = 0;
+#endif
 
     lineColor1 = COLORREF_TO_BITS(DrawInfo->LineColor1);
     lineBackColor1 = COLORREF_TO_BITS(DrawInfo->LineBackColor1);
@@ -261,6 +284,9 @@ VOID PhDrawGraphDirect(
     {
         yLabelMax = h2_i;
         yLabelDataIndex = 0;
+#ifndef PH_GRAPH_LABEL_MAX_Y_PIXEL
+        yLabelValue = PhpGetGraphLabelValue(DrawInfo, 0);
+#endif
     }
 
     while (x >= 0)
@@ -283,11 +309,27 @@ VOID PhDrawGraphDirect(
 
             if ((flags & PH_GRAPH_LABEL_MAX_Y) && dataIndex < DrawInfo->LabelMaxYIndexLimit)
             {
+#ifndef PH_GRAPH_LABEL_MAX_Y_PIXEL
+                FLOAT value;
+
+                // Compare the raw data instead of the scaled pixel height. Peaks with
+                // similar values round to the same height and the selected peak would
+                // change with every resize. Ties keep the newest point. (dmex)
+                value = PhpGetGraphLabelValue(DrawInfo, dataIndex);
+
+                if (yLabelValue < value)
+                {
+                    yLabelValue = value;
+                    yLabelMax = h2_i;
+                    yLabelDataIndex = dataIndex;
+                }
+#else
                 if (yLabelMax <= h2_i)
                 {
                     yLabelMax = h2_i;
                     yLabelDataIndex = dataIndex;
                 }
+#endif
             }
         }
         else
