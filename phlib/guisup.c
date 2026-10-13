@@ -1452,6 +1452,55 @@ LONG PhGetWindowDpi(
 }
 
 /**
+ * Retrieves the DPI user32 uses for the non-client area (caption, menu bar) of a window.
+ *
+ * Mirrors user32!NcGetWindowDPI: the window DPI is used only when the window receives
+ * non-client DPI scaling (top-level) or child DPI messages (child), otherwise the system DPI.
+ * Both conditions are approximated with per-monitor v2 awareness since the internal
+ * flags (EnableNonClientDpiScaling, EnableChildWindowDpiMessage) are not queryable.
+ *
+ * \param WindowHandle Window handle to query DPI for.
+ * \return Non-client DPI for the window.
+ */
+LONG PhGetWindowNcDpi(
+    _In_ HWND WindowHandle
+    )
+{
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static typeof(&GetWindowDpiAwarenessContext) GetWindowDpiAwarenessContext_I = NULL;
+    static typeof(&AreDpiAwarenessContextsEqual) AreDpiAwarenessContextsEqual_I = NULL;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        PVOID baseAddress;
+
+        if (WindowsVersion >= WINDOWS_10_RS1 && (baseAddress = PhGetLoaderEntryDllBaseZ(L"user32.dll")))
+        {
+            GetWindowDpiAwarenessContext_I = PhGetDllBaseProcedureAddress(baseAddress, "GetWindowDpiAwarenessContext", 0);
+            AreDpiAwarenessContextsEqual_I = PhGetDllBaseProcedureAddress(baseAddress, "AreDpiAwarenessContextsEqual", 0);
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (WindowHandle && GetWindowDpiAwarenessContext_I && AreDpiAwarenessContextsEqual_I)
+    {
+        DPI_AWARENESS_CONTEXT context;
+
+        if (context = GetWindowDpiAwarenessContext_I(WindowHandle))
+        {
+            if (AreDpiAwarenessContextsEqual_I(context, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+                return PhGetWindowDpi(WindowHandle);
+        }
+
+        return PhGetDpiValue(NULL, NULL);
+    }
+
+    // Windows 7, 8 and 10 TH: non-client area is always drawn at the system DPI.
+    return PhGetWindowDpi(WindowHandle);
+}
+
+/**
  * Attempts to determine DPI using modern APIs and fallbacks.
  *
  * \param WindowHandle Optional window handle to query.
@@ -8517,75 +8566,72 @@ BOOLEAN PhBeginBufferedPaint(
 
     cache = PhGetBufferedPaintCache();
 
-#if defined(_DEBUG) || defined(DBG)
-    if (cache)
+    // Reuse the per-thread DC and DIB. Creating them on every call and storing them in the
+    // cache leaked one DC and one bitmap per paint until the process hit the GDI quota. (dmex)
+    if (cache && !cache->InUse)
     {
-        assert(!cache->InUse && "Nested PhBeginBufferedPaint on same thread!");
-    }
-#endif
+        if (!cache->Hdc)
+            cache->Hdc = CreateCompatibleDC(TargetHdc);
 
-    if (cache)
-    {
-        cache->Hdc = CreateCompatibleDC(TargetHdc);
-        cache->Bitmap = PhCreateDIBSection(
-            TargetHdc,
-            PHBF_TOPDOWNDIB,
-            width,
-            height,
-            &cache->Bits
-            );
-
-        BufferedPaint->Cache = cache;
-        BufferedPaint->TargetHdc = TargetHdc;
-        BufferedPaint->TargetRect = *TargetRect;
-        BufferedPaint->PaintWidth = width;
-        BufferedPaint->PaintHeight = height;
-        BufferedPaint->OwnsDc = FALSE;
-        BufferedPaint->OwnsBitmap = FALSE;
-        BufferedPaint->Valid = TRUE;
-        BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
-
-        // Shift the logical origin so GDI and GDI+ map our original RECT coordinates 
-        // down to (0,0) on the memory bitmap automatically.
-        SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
-
-        // Note: Copy the existing screen pixels into our buffer first.
-        // This ensures translucent overlays (like button hovers) don't draw over blackness.
-        BitBlt(
-            cache->Hdc,
-            TargetRect->left,
-            TargetRect->top,
-            width,
-            height,
-            TargetHdc,
-            TargetRect->left,
-            TargetRect->top,
-            SRCCOPY
-            );
-
-        // Note: The bitmap is a per-thread cache shared by every unrelated control that
-        // calls PhBeginBufferedPaint, and it is never reset between acquisitions. If the
-        // caller's paint routine doesn't cover its whole TargetRect (a clipped sub-region,
-        // a gap between fills, an early-out), the uncovered pixels are whatever a
-        // completely different control last painted there - visible as unrelated stale
-        // content (e.g. solid black blocks) bleeding through. Clear the whole DIB surface
-        // every time so callers always start from a deterministic blank canvas. Bits is a
-        // flat buffer (AllocWidth x AllocHeight, 32bpp) we own directly, so a straight
-        // memset is simpler and cheaper than a PatBlt and sidesteps any confusion between
-        // logical and device coordinates from the SetWindowOrgEx above. (dmex)
-        if (cache->Bits)
+        // Snapshot the DC so End can undo whatever the caller selected into it (fonts,
+        // brushes, clip, origin); otherwise those objects stay selected in the reused DC
+        // and their owners can't delete them.
+        if (cache->Hdc && PhEnsureBufferedPaintBitmap(cache, TargetHdc, width, height) && SaveDC(cache->Hdc))
         {
-            memset(cache->Bits, RGB(255, 0, 0), (SIZE_T)cache->AllocWidth * cache->AllocHeight * sizeof(ULONG));
+            BufferedPaint->OwnsDc = FALSE;
+            BufferedPaint->OwnsBitmap = FALSE;
+            cache->InUse = TRUE;
         }
-
-        cache->InUse = TRUE;
-        *PaintHdc = cache->Hdc;
-        return TRUE;
+        else
+        {
+            cache = NULL;
+        }
+    }
+    else
+    {
+        cache = NULL;
     }
 
-    // GDI failure - fall through to the transient path.
+    // Nested paint on this thread or cache failure: use a transient buffer owned (and
+    // destroyed) by PhEndBufferedPaint.
+    if (!cache)
+    {
+        if (!(cache = PhAllocateTransientBufferedPaint(TargetHdc, width, height)))
+            return FALSE;
 
-    return FALSE;
+        BufferedPaint->OwnsDc = TRUE;
+        BufferedPaint->OwnsBitmap = TRUE;
+    }
+
+    BufferedPaint->Cache = cache;
+    BufferedPaint->TargetHdc = TargetHdc;
+    BufferedPaint->TargetRect = *TargetRect;
+    BufferedPaint->PaintWidth = width;
+    BufferedPaint->PaintHeight = height;
+    BufferedPaint->Valid = TRUE;
+    BufferedPaint->OldBitmap = SelectBitmap(cache->Hdc, cache->Bitmap);
+
+    // Shift the logical origin so GDI and GDI+ map our original RECT coordinates
+    // down to (0,0) on the memory bitmap automatically.
+    SetWindowOrgEx(cache->Hdc, TargetRect->left, TargetRect->top, NULL);
+
+    // Copy the existing screen pixels into the buffer. This initializes the whole paint
+    // rectangle, so stale content from another control sharing the cached bitmap can't
+    // bleed through, and translucent overlays (like button hovers) don't draw over blackness.
+    BitBlt(
+        cache->Hdc,
+        TargetRect->left,
+        TargetRect->top,
+        width,
+        height,
+        TargetHdc,
+        TargetRect->left,
+        TargetRect->top,
+        SRCCOPY
+        );
+
+    *PaintHdc = cache->Hdc;
+    return TRUE;
 }
 
 /**
@@ -8620,6 +8666,10 @@ VOID PhEndBufferedPaint(
         SelectBitmap(BufferedPaint->Cache->Hdc, BufferedPaint->OldBitmap);
         BufferedPaint->OldBitmap = NULL;
     }
+
+    // The cached DC is reused by the next paint on this thread; restore the state saved by Begin.
+    if (!BufferedPaint->OwnsDc)
+        RestoreDC(BufferedPaint->Cache->Hdc, -1);
 
     if (BufferedPaint->OwnsDc || BufferedPaint->OwnsBitmap)
     {

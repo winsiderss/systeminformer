@@ -2112,22 +2112,6 @@ VOID PhInitializeThemeWindowGroupBox(
     )
 {
     PPHP_THEME_WINDOW_GROUPBOX_CONTEXT context;
-    WNDPROC windowProcedure;
-
-    windowProcedure = PhGetWindowProcedure(GroupBoxHandle);
-
-    if (windowProcedure == PhThemeWindowGroupBoxExSubclassProc)
-        return;
-
-    // Remove the generic groupbox subclass applied by PhInitializeWindowTheme so its context isn't leaked. (dmex)
-    if (
-        windowProcedure == PhpThemeWindowGroupBoxSubclassProc &&
-        (context = PhGetWindowContext(GroupBoxHandle, LONG_MAX))
-        )
-    {
-        PhpThemeRestoreSubclassWindowProcedure(GroupBoxHandle, context->DefaultWindowProc, LONG_MAX);
-        PhFree(context);
-    }
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_GROUPBOX_CONTEXT));
     context->DefaultWindowProc = PhGetWindowProcedure(GroupBoxHandle);
@@ -2145,6 +2129,22 @@ VOID PhInitializeThemeWindowGroupBoxEx(
     )
 {
     PPHP_THEME_WINDOW_GROUPBOX_CONTEXT context;
+    WNDPROC windowProcedure;
+
+    windowProcedure = PhGetWindowProcedure(GroupBoxHandle);
+
+    if (windowProcedure == PhThemeWindowGroupBoxExSubclassProc)
+        return;
+
+    // Remove the generic groupbox subclass applied by PhInitializeWindowTheme so its context isn't leaked. (dmex)
+    if (
+        windowProcedure == PhpThemeWindowGroupBoxSubclassProc &&
+        (context = PhGetWindowContext(GroupBoxHandle, LONG_MAX))
+        )
+    {
+        PhpThemeRestoreSubclassWindowProcedure(GroupBoxHandle, context->DefaultWindowProc, LONG_MAX);
+        PhFree(context);
+    }
 
     context = PhAllocateZero(sizeof(PHP_THEME_WINDOW_GROUPBOX_CONTEXT));
     context->DefaultWindowProc = PhGetWindowProcedure(GroupBoxHandle);
