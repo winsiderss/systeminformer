@@ -183,7 +183,7 @@
 #define IDD_PIPEDIALOG                  6001
 #define IDC_ATOMLIST                    6002
 #define IDC_PIPELIST                    6002
-#define IDC_PIPESEARCH                  6003
+#define IDC_PIPE_WATCH                  6003
 #define ID_REPARSE_POINTS               7000
 #define ID_REPARSE_OBJID                7001
 #define ID_REPARSE_SDDL                 7002
