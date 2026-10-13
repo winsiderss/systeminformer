@@ -1725,6 +1725,30 @@ static BOOLEAN PhDeleteDirectoryCallback(
         if (PATH_IS_WIN32_RELATIVE_PREFIX(&fileName))
             return TRUE;
 
+        // Delete junctions and directory symlinks themselves. Never follow them,
+        // otherwise the contents of the target (outside this tree) get deleted. (dmex)
+        if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_REPARSE_POINT))
+        {
+            if (NT_SUCCESS(PhCreateFileEx(
+                &fileHandle,
+                &fileName,
+                FILE_READ_ATTRIBUTES | DELETE | SYNCHRONIZE,
+                RootDirectory,
+                NULL,
+                FILE_ATTRIBUTE_NORMAL,
+                FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                FILE_OPEN,
+                FILE_SYNCHRONOUS_IO_NONALERT | FILE_OPEN_FOR_BACKUP_INTENT | FILE_OPEN_REPARSE_POINT,
+                NULL
+                )))
+            {
+                PhSetFileDelete(fileHandle);
+                NtClose(fileHandle);
+            }
+
+            return TRUE;
+        }
+
         if (NT_SUCCESS(PhCreateFileEx(
             &fileHandle,
             &fileName,
@@ -1747,6 +1771,12 @@ static BOOLEAN PhDeleteDirectoryCallback(
     }
     else
     {
+        ULONG openOptions = FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT;
+
+        // Delete file symlinks (and other reparse points) themselves, not their targets. (dmex)
+        if (FlagOn(Information->FileAttributes, FILE_ATTRIBUTE_REPARSE_POINT))
+            SetFlag(openOptions, FILE_OPEN_REPARSE_POINT);
+
         if (NT_SUCCESS(PhCreateFileEx(
             &fileHandle,
             &fileName,
@@ -1756,7 +1786,7 @@ static BOOLEAN PhDeleteDirectoryCallback(
             FILE_ATTRIBUTE_NORMAL,
             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
             FILE_OPEN,
-            FILE_NON_DIRECTORY_FILE | FILE_SYNCHRONOUS_IO_NONALERT, // | FILE_OPEN_REPARSE_POINT
+            openOptions,
             NULL
             )))
         {
