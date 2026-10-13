@@ -14,6 +14,7 @@
 #include <taskschd.h>
 #include <secwmi.h>
 #include <phconsole.h>
+#include <svcsup.h>
 #include <trace.h>
 
 DEFINE_GUID(CLSID_TaskScheduler, 0x0f87369f, 0xa4e5, 0x4cfc, 0xbd, 0x3e, 0x73, 0xe6, 0x15, 0x45, 0x72, 0xdd);
