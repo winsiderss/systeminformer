@@ -2079,18 +2079,54 @@ BOOLEAN PhGenerateRandomSeed(
 {
     memset(Seed, 0, sizeof(LARGE_INTEGER));
 
-//#ifndef _M_ARM64
-//    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
-//    {
-//#ifdef _M_X64
-//        if (_rdseed64_step(&Seed->QuadPart))
-//            return TRUE;
-//#else
-//        if (_rdseed32_step(&Seed->LowPart))
-//            return TRUE;
-//#endif
-//    }
-//#endif
+#ifdef _M_ARM64
+    static PH_INITONCE initOnce = PH_INITONCE_INIT;
+    static BOOLEAN randomSeedAvailable = FALSE;
+
+    if (PhBeginInitOnce(&initOnce))
+    {
+        // Detect instruction availability, even if entropy is temporarily unavailable.
+        __try
+        {
+            ULONG64 value;
+
+            PhArm64ReadRandomNumber64(&value);
+            randomSeedAvailable = TRUE;
+        }
+        __except (
+            GetExceptionCode() == STATUS_ILLEGAL_INSTRUCTION ||
+            GetExceptionCode() == STATUS_PRIVILEGED_INSTRUCTION
+            ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH
+            )
+        {
+            NOTHING;
+        }
+
+        PhEndInitOnce(&initOnce);
+    }
+
+    if (randomSeedAvailable)
+    {
+        ULONG64 value;
+
+        if (PhArm64ReadRandomNumber64(&value))
+        {
+            Seed->QuadPart = value;
+            return TRUE;
+        }
+    }
+#else
+    if (PhIsProcessorFeaturePresent(PF_RDRAND_INSTRUCTION_AVAILABLE))
+    {
+#ifdef _M_X64
+        if (_rdseed64_step(&Seed->QuadPart))
+            return TRUE;
+#else
+        if (_rdseed32_step(&Seed->LowPart))
+            return TRUE;
+#endif
+    }
+#endif
 
     return PhQueryPerformanceCounter(Seed);
 }
