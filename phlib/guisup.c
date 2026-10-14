@@ -673,7 +673,8 @@ HDC PhGetDC(
     _In_opt_ HWND WindowHandle
     )
 {
-    return GetDC(WindowHandle);
+    //return GetDC(WindowHandle);
+    return GetDCEx(WindowHandle, NULL, DCX_USESTYLE);
 }
 
 /**
@@ -5243,57 +5244,63 @@ NTSTATUS PhBuildHwndList(
     )
 {
     NTSTATUS status;
-    PVOID buffer = NULL;
-    ULONG bufferSize = 0x1000;
-    ULONG returnLength = 0;
+    HWND *buffer;
+    ULONG entryCount = 0x1000 / sizeof(HWND);
+    ULONG returnCount;
+
+    *NumberOfHandles = 0;
+    *Handles = NULL;
 
     if (!NtUserBuildHwndList_Import())
         return STATUS_PROCEDURE_NOT_FOUND;
 
-    buffer = PhAllocateZeroSafe(bufferSize);
-    if (!buffer) return STATUS_NO_MEMORY;
-        
     while (TRUE)
     {
+        if (entryCount > (SIZE_T)-1 / sizeof(HWND))
+            return STATUS_INTEGER_OVERFLOW;
+
+        buffer = (HWND *)PhAllocateZeroSafe((SIZE_T)entryCount * sizeof(HWND));
+        if (!buffer)
+            return STATUS_NO_MEMORY;
+
+        returnCount = 0;
         status = NtUserBuildHwndList_Import()(
-            DesktopHandle,
+            (HDESK)DesktopHandle,
             ParentWindowHandle,
             IncludeChildren,
             ExcludeImmersive,
             HandleToUlong(ThreadId),
-            bufferSize,
+            entryCount,
             buffer,
-            &returnLength
+            &returnCount
             );
 
         if (status == STATUS_BUFFER_TOO_SMALL)
         {
             PhFree(buffer);
-            bufferSize = returnLength;
-            buffer = PhAllocateZeroSafe(bufferSize);
-            if (!buffer) return STATUS_NO_MEMORY;
+            if (returnCount <= entryCount)
+                return status;
+            entryCount = returnCount;
+            continue;
         }
-        else
+
+        if (!NT_SUCCESS(status))
         {
-            break;
+            PhFree(buffer);
+            return status;
         }
+
+        // The native count is in HWND elements and includes the (HWND)1 terminator.
+        if (returnCount == 0 || returnCount > entryCount || buffer[returnCount - 1] != (HWND)1)
+        {
+            PhFree(buffer);
+            return STATUS_DATA_ERROR;
+        }
+
+        *NumberOfHandles = returnCount - 1;
+        *Handles = buffer;
+        return STATUS_SUCCESS;
     }
-
-    if (!NT_SUCCESS(status) && status != STATUS_INVALID_HANDLE)
-    {
-        PhFree(buffer);
-        return status;
-    }
-
-    //if (returnLength < sizeof(HWND) || (returnLength % sizeof(HWND)) != 0)
-    //{
-    //    PhFree(buffer);
-    //    return STATUS_INVALID_THREAD;
-    //}
-
-    *NumberOfHandles = returnLength / sizeof(HWND);
-    *Handles = PTR_ADD_OFFSET(buffer, 0);
-    return STATUS_SUCCESS;
 }
 
 typedef struct _GET_PROCESS_MAIN_WINDOW_CONTEXT
