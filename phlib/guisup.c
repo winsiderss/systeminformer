@@ -5256,7 +5256,7 @@ NTSTATUS PhBuildHwndList(
 
     while (TRUE)
     {
-        if (entryCount > (SIZE_T)-1 / sizeof(HWND))
+        if ((SIZE_T)entryCount > SIZE_MAX / sizeof(HWND))
             return STATUS_INTEGER_OVERFLOW;
 
         buffer = (HWND *)PhAllocateZeroSafe((SIZE_T)entryCount * sizeof(HWND));
