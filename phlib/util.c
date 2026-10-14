@@ -2073,6 +2073,11 @@ BOOLEAN PhGenerateRandomNumber(
  * \param Seed Receives the random seed.
  * \return TRUE if the random seed was generated, otherwise FALSE.
  */
+// clang requires the rdseed target feature for the intrinsic; callers must
+// check the processor feature before calling. (dmex)
+#if defined(__clang__) && !defined(_M_ARM64)
+__attribute__((target("rdseed")))
+#endif
 BOOLEAN PhGenerateRandomSeed(
     _Out_ PLARGE_INTEGER Seed
     )
