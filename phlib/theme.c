@@ -4641,10 +4641,15 @@ VOID ThemeWindowRenderTabControl(
     cxPad = cxEdge * 3;
     cyPad = (cyEdge * 3) / 2;
 
+    // Only take the header height from TabCtrl_AdjustRect. comctl32 caches its edge
+    // metrics at creation and doesn't update them on DPI changes, so the left/right/bottom
+    // margins it returns are stale and leave an unframed strip along the edges. (dmex)
     contentRect = *clientRect;
     TabCtrl_AdjustRect(WindowHandle, FALSE, &contentRect);
-    PhInflateRect(&contentRect, cxEdge * 2, cyEdge * 2);
-    contentRect.top += cyEdge;
+    contentRect.left = clientRect->left;
+    contentRect.right = clientRect->right;
+    contentRect.bottom = clientRect->bottom;
+    contentRect.top -= cyEdge;
 
     SetDCBrushColor(bufferDc, PhThemeWindowBackground2Color);
     FrameRect(bufferDc, &contentRect, PhpStockDCBrush);
@@ -5509,7 +5514,7 @@ VOID PhTheme_PaintControlBorder(
     }
     else
     {
-        outerColor = PhEnableThemeSupport ? PhThemeWindowBackground2Color : PhThemeWindowScrollbarColor;
+        outerColor = PhEnableThemeSupport ? PhThemeWindowWindowFrameColor : GetSysColor(COLOR_WINDOWFRAME);
         //innerColor = PhThemeWindowEditNormalBorderColor;
     }
 
