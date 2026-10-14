@@ -65,8 +65,8 @@
 #define ARM64_NZCV ARM64_SYSREG(3, 3, 4, 2, 0)
 #endif
 
-#ifndef NZCV_C
-#define NZCV_C 0x20000000
+#ifndef NZCV_Z
+#define NZCV_Z 0x40000000
 #endif
 
 FORCEINLINE
@@ -78,9 +78,18 @@ PhArm64ReadRandomNumber64(
 #if defined(__clang__) && defined(__ARM_FEATURE_RNG)
     return !!__rndrrs(Number);
 #else
-    *Number = (ULONG64)_ReadStatusReg(ARM64_RNDRRS);
+    ULONG64 value;
+    ULONG flags;
 
-    return !!FlagOn((ULONG)_ReadStatusReg(ARM64_NZCV), NZCV_C);
+    value = (ULONG64)_ReadStatusReg(ARM64_RNDRRS);
+    flags = (ULONG)_ReadStatusReg(ARM64_NZCV);
+
+    // RNDRRS clears Z on success and sets Z when entropy is unavailable.
+    if (FlagOn(flags, NZCV_Z))
+        return FALSE;
+
+    *Number = value;
+    return TRUE;
 #endif
 }
 #endif
