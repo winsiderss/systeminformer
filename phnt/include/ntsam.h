@@ -2007,6 +2007,14 @@ typedef struct _USER_PARAMETERS_INFORMATION
     USER_ALL_PASSWORDMUSTCHANGE | \
     USER_ALL_UNDEFINED_MASK)
 
+/**
+ * Full account-information record used by the SAM query/set information APIs.
+ * The outer record uses 4-byte packing; the previously declared nested string,
+ * security-descriptor and logon-hours types retain their own layouts.
+ * samlib.dll and ntdll.dll symbols give 0x13C bytes on x64, with the final
+ * PrivateDataSensitive byte at 0x13B; SamSetInformationUser uses a 0x13C-byte record.
+ */
+#pragma pack(push, 4)
 typedef struct _USER_ALL_INFORMATION
 {
     LARGE_INTEGER LastLogon;
@@ -2043,6 +2051,7 @@ typedef struct _USER_ALL_INFORMATION
     BOOLEAN PasswordExpired;
     BOOLEAN PrivateDataSensitive;
 } USER_ALL_INFORMATION, *PUSER_ALL_INFORMATION;
+#pragma pack(pop)
 
 typedef struct _USER_INTERNAL3_INFORMATION
 {
