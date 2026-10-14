@@ -148,6 +148,16 @@ NTSTATUS KphConnect(
         PhCloseServiceHandle(serviceHandle);
         serviceHandle = NULL;
 
+        //
+        // The service entry was created by a native or filter load which sets
+        // the start type to disabled (SCM refuses to start it). Load the driver
+        // natively using the existing entry instead. (dmex)
+        //
+        if (status == STATUS_PLUGPLAY_NO_DEVICE && Config->FileName && Config->ObjectName)
+        {
+            status = KsiLoadUnloadService(Config, TRUE);
+        }
+
         if (status != STATUS_SUCCESS)
             goto CreateAndConnectEnd;
 
