@@ -82,7 +82,6 @@ EXPORTS
     PhGetBuildVersionNumbers
     PhGetClientIdName
     PhGetClientIdNameEx
-    PhGetCorrelationVectorString
     PhGetDeviceIcon
     PhGetDeviceProperty
     PhGetFilterSupportNetworkTreeList
