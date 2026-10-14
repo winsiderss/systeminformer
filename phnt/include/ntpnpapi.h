@@ -77,8 +77,6 @@ typedef struct _PLUGPLAY_EVENT_BLOCK
         {
             WCHAR ParentId[1];
         } InvalidIDNotification;
-#if (PHNT_VERSION >= PHNT_WINDOWS_11_24H2)
-        // symbols: retained in the current union, even though PowerEvent is no longer a category.
         struct
         {
             GUID PowerSettingGuid;
@@ -95,7 +93,6 @@ typedef struct _PLUGPLAY_EVENT_BLOCK
         {
             WCHAR DeviceId[1];
         } DeviceInstanceNotification;
-#endif
     } u;
 } PLUGPLAY_EVENT_BLOCK, *PPLUGPLAY_EVENT_BLOCK;
 
