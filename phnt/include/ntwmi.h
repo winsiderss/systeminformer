@@ -214,7 +214,11 @@ typedef ULONG64 CONTROLTRACE_ID;
 // LoggerMode flags on Win8 and above.
 //
 #define EVENT_TRACE_REALTIME_RELOG_MODE     0x00100000  // Private logger, relogging real-time events
-                                                        // This is same as EVENT_TRACE_MODE_RESERVED
+                                                        // This is same as EVENT_TRACE_MODE_RESERVED (evntrace.h).
+                                                        // Masked out of LoggerMode by nt!EtwpStartLogger. Consumers
+                                                        // (sechost!EtwpProcessLogHeader) treat it like
+                                                        // EVENT_TRACE_PRIVATE_LOGGER_MODE when it is set in the
+                                                        // TRACE_LOGFILE_HEADER LogFileMode.
 
 #define EVENT_TRACE_LOST_EVENTS_DEBUG_MODE  0x00200000  // Break on lost events
 #define EVENT_TRACE_COMPRESSED_MODE         0x04000000  // Compress relogged file
@@ -366,9 +370,8 @@ typedef struct _SYSTEM_TRACE_HEADER
 //
 typedef struct _WMI_TRACE_MESSAGE_PACKET
 {
-    USHORT  MessageNumber;                  // The message Number, index of messages by GUID
-                                            // Or ComponentID
-    USHORT  OptionFlags ;                   // Flags associated with the message
+    USHORT MessageNumber;         // The message Number, index of messages by GUID or ComponentID
+    USHORT OptionFlags;           // Flags associated with the message
 } WMI_TRACE_MESSAGE_PACKET, *PWMI_TRACE_MESSAGE_PACKET;
 
 static_assert(sizeof(WMI_TRACE_MESSAGE_PACKET) == sizeof(ULONG), "WMI_TRACE_MESSAGE_PACKET must equal sizeof(ULONG)");
@@ -380,14 +383,14 @@ typedef struct _MESSAGE_TRACE_HEADER
         ULONG Marker;
         struct
         {
-            USHORT Size;                           // Total Size of the message including header
+            USHORT Size;                  // Total Size of the message including header
             UCHAR Reserved;               // Unused and reserved
             UCHAR Version;                // The message structure type (TRACE_MESSAGE_FLAG)
         } DUMMYSTRUCTNAME;
     } DUMMYUNIONNAME;
     union
     {
-        ULONG Header;            // both sizes must be the same!
+        ULONG Header;
         WMI_TRACE_MESSAGE_PACKET Packet;
     } DUMMYUNIONNAME2;
 } MESSAGE_TRACE_HEADER, *PMESSAGE_TRACE_HEADER;
@@ -429,7 +432,10 @@ typedef enum _ETW_BUFFER_STATE
    EtwBufferStateGeneralLogging,
    EtwBufferStateCSwitch,
    EtwBufferStateFlush,
-   EtwBufferStateMaximum //MaxState should always be the last enum
+   EtwBufferStatePendingCompression = 4, // Awaiting compression, not available for logging.
+   EtwBufferStateCompressed = 5,         // Compressed buffer ready for the compressed path.
+   EtwBufferStatePlaceholder = 6,        // Placeholder buffer state.
+   EtwBufferStateMaximum = 7
 } ETW_BUFFER_STATE, *PETW_BUFFER_STATE;
 
 #define ETW_BUFFER_TYPE_GENERIC             0
@@ -6258,25 +6264,19 @@ typedef struct _ETW_SYSTEM_LOGGER
     UCHAR ClockType;
 } ETW_SYSTEM_LOGGER, *PETW_SYSTEM_LOGGER;
 
-//
-// ETW per-silo driver state (partial reconstruction). The kernel group-mask
-// machinery lives deep inside _ETW_SILODRIVERSTATE; the offsets below are the
-// only ones verified against EtwpUpdateGlobalGroupMasks (ntoskrnl):
-//
-//   +0x010  ULONG  ActiveSystemLoggers;  // system-logger count; loop/index bound (LoggerId, GroupIndex both < 8)
-//   +0x2C8  PVOID  LoggerContext[8];     // per-logger context pointers; (entry & 1) => slot busy/reserved
-//   +0x11AC ETW_SYSTEM_LOGGER_SETTINGS SystemLoggerSettings;  // group-mask block, see below
-//
-// NOTE: the previous definition of this struct (masks at +0x14/+0x34, size 372)
-// was incorrect - EtwpUpdateGlobalGroupMasks reads the per-group masks from
-// silo+0x11CC and writes the accumulated mask to silo+0x11AC.
-//
-// Group-mask block, embedded at _ETW_SILODRIVERSTATE + 0x11AC:
-//
+/**
+ * ETW per-silo logger settings
+ * Maps eight system-logger slots to session IDs and clock types, tracks active
+ * slots, and stores each silo's aggregate and per-group trace masks.
+ * Size is 0x174 (372) bytes. EtwpActiveSystemLoggers is an active-slot bitmap;
+ * the ten per-group masks are each PERFINFO_GROUPMASK (32 bytes).
+ */
 typedef struct _ETW_SYSTEM_LOGGER_SETTINGS
 {
-    PERFINFO_GROUPMASK SiloGlobalGroupMask;         // +0x000 (silo +0x11AC) OR of this silo's EtwpGroupMasks[10]
-    PERFINFO_GROUPMASK EtwpGroupMasks[10];          // +0x020 (silo +0x11CC) per-group-index masks (10 x 32 bytes)
+    ETW_SYSTEM_LOGGER EtwpSystemLogger[8];         // +0x000 (silo +0x1198)
+    volatile ULONG EtwpActiveSystemLoggers;       // +0x010 (silo +0x11A8)
+    PERFINFO_GROUPMASK SiloGlobalGroupMask;       // +0x014 (silo +0x11AC)
+    PERFINFO_GROUPMASK EtwpGroupMasks[10];        // +0x034 (silo +0x11CC)
 } ETW_SYSTEM_LOGGER_SETTINGS, *PETW_SYSTEM_LOGGER_SETTINGS;
 
 //
@@ -6508,7 +6508,8 @@ typedef enum _ETW_NOTIFICATION_TYPE
     EtwNotificationTypeReserved,        // For internal use (test)
     EtwNotificationTypeCredentialUI,    // Private notification for media center elevation detection
     EtwNotificationTypeInProcSession,   // Private in-proc session related ETW notifications
-    EtwNotificationTypeMax
+    EtwNotificationTypeFilteredPrivateLogger = 11, // Filtered private-logger notification; kernel symbols.
+    EtwNotificationTypeMax = 12
 } ETW_NOTIFICATION_TYPE;
 
 #define ETW_MAX_DATA_BLOCK_BUFFER_SIZE (65536)
@@ -6602,6 +6603,8 @@ typedef const EVENT_DESCRIPTOR* PCEVENT_DESCRIPTOR;
  * \param MarkInfo A pointer to the mark information structure describing the mark to inject.
  * \param Size The size of the mark information structure in bytes.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6625,6 +6628,10 @@ typedef struct _EVENT_DATA_DESCRIPTOR EVENT_DATA_DESCRIPTOR, *PEVENT_DATA_DESCRI
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element 
+ * counts and payload lengths are bytes; user data pointers remain caller-owned for the call. 
+ * Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6657,16 +6664,20 @@ VOID NTAPI ENABLECALLBACK(
 typedef ENABLECALLBACK* PENABLECALLBACK;
 
 /**
- * Registers an ETW event provider.
+ * EtwEventRegister contract.
  *
- * \param ProviderId A pointer to the provider ID.
- * \param EnableCallback Optional. A pointer to the enable callback function.
- * \param CallbackContext Optional. A pointer to the callback context.
- * \param RegHandle A pointer to a variable that receives the registration handle.
- * \return NTSTATUS Successful or errant status.
+ * \param ProviderId Provider GUID.
+ * \param EnableCallback Optional enablement callback.
+ * \param CallbackContext Optional borrowed callback context.
+ * \param RegHandle Receives the registration handle on success.
+ * \remarks Returns a Win32 error code (ULONG), not NTSTATUS: 
+ * ERROR_SUCCESS is zero and ERROR_INVALID_PARAMETER is 87. 
+ * Registration alone does not enable a provider. On success 
+ * balance the registration with EtwEventUnregister and retain 
+ * callback/context for its registered lifetime.
  */
 NTSYSAPI
-NTSTATUS
+ULONG
 NTAPI
 EtwEventRegister(
     _In_ LPCGUID ProviderId,
@@ -6680,6 +6691,9 @@ EtwEventRegister(
  *
  * \param RegHandle The registration handle returned by EtwEventRegister.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Unregisters the provider/notification handle through the ETW runtime. 
+ * The result is a Win32 error code, not NTSTATUS. A registration handle is not a
+ * kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
  */
 NTSYSAPI
 ULONG
@@ -6698,6 +6712,11 @@ typedef enum _EVENT_INFO_CLASS EVENT_INFO_CLASS;
  * \param EventInformation A pointer to the buffer containing the configuration information.
  * \param InformationLength The size of the configuration information buffer in bytes.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns Win32 errors. On the inspected build, unsupported information 
+ * classes return ERROR_NOT_SUPPORTED (50). Provider traits (class 2) 
+ * require non-NULL data and a length from 3 through 65535 bytes; 
+ * descriptor-type selection (class 3) requires exactly 1 byte. 
+ * Classes 0 and 4 require zero data length. Invalid class-specific payloads return ERROR_INVALID_PARAMETER (87).
  */
 NTSYSAPI
 ULONG
@@ -6713,6 +6732,8 @@ EtwEventSetInformation(
  * The EtwRegisterSecurityProvider routine registers the ETW user-mode security event provider.
  *
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6728,6 +6749,8 @@ EtwRegisterSecurityProvider(
  * \param Level The logging level to test.
  * \param Keyword The keyword bitmask to test.
  * \return TRUE if the provider is enabled for the specified level and keyword; otherwise, FALSE.
+ * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee. 
+ * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6744,6 +6767,8 @@ EtwEventProviderEnabled(
  * \param RegHandle The registration handle of the provider.
  * \param EventDescriptor A pointer to the descriptor of the event to test.
  * \return TRUE if the event is enabled; otherwise, FALSE.
+ * \remarks Returns an enablement predicate for the registration and event filtering, not a delivery guarantee.
+ * A disabled provider can make a subsequent event write succeed without recording anything. Enablement can change between query and write.
  */
 NTSYSAPI
 BOOLEAN
@@ -6761,6 +6786,9 @@ EtwEventEnabled(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: a disabled provider takes a successful no-delivery path. 
+ * Descriptor counts are element counts and payload lengths are bytes; user data pointers remain caller-owned for the call. 
+ * Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6782,6 +6810,9 @@ EtwEventWrite(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and payload lengths are bytes; 
+ * user data pointers remain caller-owned for the call. Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6803,6 +6834,10 @@ EtwEventWriteTransfer(
  * \param Keyword The keyword bitmask of the event.
  * \param String The null-terminated string to write.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and
+ * payload lengths are bytes; user data pointers remain caller-owned for the call. Full consumer/session
+ * delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6826,6 +6861,9 @@ EtwEventWriteString(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Returns a Win32 error code. ERROR_SUCCESS does not prove an event was recorded: 
+ * A disabled provider takes a successful no-delivery path. Descriptor counts are element counts and payload lengths are bytes; 
+ * user data pointers remain caller-owned for the call. Full consumer/session delivery is separate from provider registration.
  */
 NTSYSAPI
 ULONG
@@ -6849,6 +6887,8 @@ EtwEventWriteEx(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -6868,6 +6908,8 @@ EtwEventWriteStartScenario(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Uses scenario-specific activity and trace-control operations in addition to ordinary event writing. 
+ * Do not infer scenario/session lifecycle behavior from successful disabled-provider writes; it is a distinct instrumentation protocol.
  */
 NTSYSAPI
 ULONG
@@ -6887,6 +6929,8 @@ EtwEventWriteEndScenario(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6906,6 +6950,8 @@ EtwWriteUMSecurityEvent(
  * \param UserDataCount The number of user data descriptor items in UserData.
  * \param UserData Optional pointer to an array of event data descriptor items.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks This path can call NtTraceEvent or NtTraceControl and convert NTSTATUS to Win32 errors. 
+ * It is not equivalent to writing through a known-disabled ordinary provider, and may have system/security tracing effects.
  */
 NTSYSAPI
 ULONG
@@ -6923,6 +6969,8 @@ EtwEventWriteNoRegistration(
  * \param ControlCode The activity identifier control code to perform.
  * \param ActivityId A pointer to a GUID that specifies or receives the activity identifier.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Controls the calling thread activity identifier. GET_ID, SET_ID and CREATE_ID have different input/output use of ActivityId; 
+ * preserve and restore an existing identifier around temporary instrumentation. The result is a Win32 error code, not NTSTATUS.
  */
 NTSYSAPI
 ULONG
@@ -6941,6 +6989,8 @@ EtwEventActivityIdControl(
  * \param Context Optional context value passed to the callback function.
  * \param RegHandle Receives the registration handle.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors. 
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -6959,6 +7009,8 @@ EtwNotificationRegister(
  * \param RegHandle The registration handle returned by EtwNotificationRegister.
  * \param Context Optional pointer receiving the context previously supplied during registration.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Unregisters the provider/notification handle through the ETW runtime. 
+ * The result is a Win32 error code, not NTSTATUS. A registration handle is not a kernel HANDLE for NtClose; use the corresponding ETW lifetime operation.
  */
 NTSYSAPI
 ULONG
@@ -6977,6 +7029,9 @@ EtwNotificationUnregister(
  * \param ReplyReceived Receives the size of the reply received in bytes.
  * \param ReplySizeNeeded Receives the required buffer size in bytes if ReceiveDataBlockSize was insufficient.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors.
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, 
+ * callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -6994,6 +7049,9 @@ EtwSendNotification(
  *
  * \param Notification A pointer to the notification header and reply data.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Participates in the ETW provider notification/request/reply protocol and reports Win32 errors. 
+ * It is not an event-payload write or an arbitrary IPC replacement. Notification buffers, 
+ * callback lifetimes and reply ownership must follow their specific protocol.
  */
 NTSYSAPI
 ULONG
@@ -7009,6 +7067,8 @@ EtwReplyNotification(
  * \param OutBufferSize The size of OutBuffer in bytes.
  * \param ReturnLength Receives the number of bytes written or required.
  * \return A Win32 error code. ERROR_SUCCESS on success.
+ * \remarks Enumerates process registrations, with Win32 sizing/error conventions. 
+ * This exposes registration metadata rather than captured events or a list of enabled consumers. Respect output capacity and the reported size/count.
  */
 NTSYSAPI
 ULONG
@@ -7545,6 +7605,7 @@ typedef struct _TELEMETRY_COVERAGE_POINT
  *
  * \param CoveragePoint A pointer to a TELEMETRY_COVERAGE_POINT structure.
  * \return BOOLEAN TRUE if the coverage point is covered, FALSE otherwise.
+ * \remarks Queries the runtime telemetry-coverage helper. A Boolean result here is not an ETW consumer health or event-delivery acknowledgement.
  */
 NTSYSAPI
 BOOLEAN
