@@ -82,6 +82,7 @@ EXPORTS
     PhGetBuildVersionNumbers
     PhGetClientIdName
     PhGetClientIdNameEx
+    PhGetCorrelationVectorString
     PhGetDeviceIcon
     PhGetDeviceProperty
     PhGetFilterSupportNetworkTreeList
@@ -858,6 +859,8 @@ EXPORTS
     PhGetApplicationFileNameWin32
     PhGetBaseDirectory
     PhGetBaseName
+    PhGetBaseNameChangeExtension
+    PhGetBasePath
     PhGetClassObject
     PhGetDllFileName
     PhGetDpiValue
@@ -947,6 +950,8 @@ EXPORTS
     PhTaskbarListSetProgressValue
     PhUpdateHash
     PhUpdateProcThreadAttribute
+    PhWaitForAsyncOperation
+    PhWaitForAsyncOperationWithProgress
     PhWaitForMultipleObjectsAndPump
 
 ; circbuf
