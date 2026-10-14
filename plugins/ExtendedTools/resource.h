@@ -296,6 +296,12 @@
 #define IDC_ENV_EDITTEXT                60042
 #define IDC_ENV_NAME                    60043
 #define IDC_ENV_VALUE                   60044
+#define IDC_ETW_DETAILS                  61060
+#define IDC_PIPE_WATCH                   61061
+#define ID_OBJTYPES                      61062
+#define IDD_OBJTYPES                     61063
+#define IDC_OBJTYPES_LIST                61064
+#define IDC_OBJTYPES_DETAILS             61065
 
 // Next default values for new objects
 //
