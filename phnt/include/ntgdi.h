@@ -372,7 +372,7 @@ NtGdiGetOutlineTextMetricsInternalW(
 /**
  * NtGdiGetAndSetDCULONG contract notes.
  *
- * Historical declaration: this name was not located in either inspected win32u export table or matching
+ * Historical declaration: this name was not located in either win32u export table or matching
  * WIN32KBASE/WIN32KFULL names. Do not assume it is callable merely because the prototype is available.
  */
 _Kernel_entry_
@@ -608,8 +608,7 @@ NtGdiPolyPolyDraw(
  *
  * Dispatches palette operations by iFunc: 0 AnimatePalette, 1 SetPaletteEntries, 2 GetPaletteEntries, 3
  * GetSystemPaletteEntries, 4 GetDIBColorTable, 5 SetDIBColorTable. Selectors 0/1/5 consume entries; 2/3/4
- * produce entries. The first handle is interpreted according to the selector. Values above 5 return zero on
- * the inspected build; bUnused is not consumed by the native worker.
+ * produce entries. The first handle is interpreted according to the selector. Values above 5 return zero; bUnused is not consumed by the native worker.
  */
 _Kernel_entry_
 NTSYSCALLAPI
@@ -651,7 +650,7 @@ NtGdiGetWidthTable(
 /**
  * NtGdiDescribePixelFormat contract notes.
  *
- * With cjpfd=0, permits ppfd=NULL for a format-count query. On the inspected native entry output copying is
+ * With cjpfd=0, permits ppfd=NULL for a format-count query. On the native entry output copying is
  * capped at the 40-byte PIXELFORMATDESCRIPTOR; the return value is a format count, not bytes copied.
  * Availability depends on the DC/device.
  */
@@ -863,7 +862,7 @@ typedef enum _ICM_DIB_INFO_CMD
 /**
  * NtGdiFlush contract notes.
  *
- * Runs the current GDI flush callbacks and returns STATUS_SUCCESS (zero) on the inspected build. This return
+ * Runs the current GDI flush callbacks and returns STATUS_SUCCESS (zero). This return
  * must not be tested as a BOOL; it does not establish that every possible device operation succeeded.
  */
 _Kernel_entry_ 
@@ -926,9 +925,9 @@ NtGdiGetBitmapBits(
 /**
  * NtGdiDeleteObjectApp contract notes.
  *
- * Deletes a GDI object through its object-kind dispatch, including owned memory DCs in the tested subset.
- * Restore selected objects before deleting caller-owned resources. Do not use NtClose for GDI handles or
- * delete borrowed stock objects.
+ * Deletes a GDI object through its object-kind dispatch, including owned memory DCs. Restore selected objects
+ * before deleting caller-owned resources. Do not use NtClose for GDI handles or delete borrowed stock
+ * objects.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -941,9 +940,9 @@ NtGdiDeleteObjectApp(
 /**
  * NtGdiGetPath contract notes.
  *
- * Queries a completed DC path as POINTs and one-byte type codes. cptBuf=0 is a point-count query. A nonzero
+ * Queries a completed DC path as POINTs and one-byte type codes. CptBuf=0 is a point-count query. A nonzero
  * buffer must accommodate the complete path; short capacity returns -1 rather than a successfully truncated
- * path. Both arrays are probed with 4-byte alignment on the inspected native entry.
+ * path. Both arrays are probed with 4-byte alignment on the native entry.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -1564,7 +1563,7 @@ NtGdiPathToRegion(
  *
  * Sets the miter limit using IEEE-754 single-precision bits carried in ULONG, not an integer-valued limit or
  * a floating-point ABI argument. The optional old-limit output is write-only. Values below 1.0 fail without
- * changing that output on the inspected build.
+ * changing that output.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -1860,8 +1859,8 @@ NtGdiGetFontData(
  * NtGdiGetFontFileData contract notes.
  *
  * Copies bytes from a font file selected by collection ID and file index. The return is a Win32 error code:
- * zero on success, ERROR_INVALID_PARAMETER (87) for an invalid selection/range on the inspected path. It is
- * neither BOOL nor a byte count.
+ * zero on success, ERROR_INVALID_PARAMETER (87) for an invalid selection/range. It is neither BOOL nor a byte
+ * count.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -2052,8 +2051,8 @@ NtGdiOpenDCW(
 /**
  * NtGdiGetDCULONG contract notes.
  *
- * Historical declaration: not found in the inspected x64/x86 win32u exports or matching
- * WIN32KBASE/WIN32KFULL names. Availability on other versions/modules is not established by this review.
+ * Historical declaration: not found in the x64/x86 win32u exports or matching WIN32KBASE/WIN32KFULL names.
+ * Availability varies by Windows version and exporting module.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -2371,8 +2370,7 @@ NtGdiGetTextExtent(
 /**
  * NtGdiGetTextMetricsW contract notes.
  *
- * Retrieves the selected font metrics using the internal record, not just TEXTMETRICW. On the inspected
- * build cj must be at least 68; success copies exactly 68 bytes and leaves any larger buffer tail unchanged.
+ * Retrieves the selected font metrics using the internal record, not just TEXTMETRICW. Cj must be at least 68; success copies exactly 68 bytes and leaves any larger buffer tail unchanged.
  */
 _Kernel_entry_ 
 NTSYSCALLAPI
@@ -2442,7 +2440,7 @@ NtGdiIntersectClipRect(
 /**
  * NtGdiCreateRectRgn contract notes.
  *
- * Low-level region creation is not the complete GDI32 CreateRectRgn protocol. The inspected kernel allocates
+ * Low-level region creation is not the complete GDI32 CreateRectRgn protocol. The kernel allocates
  * a user attribute block without the GDI32 initialization; direct use of the returned handle in region
  * queries can fail until the client state is initialized. GDI32 initializes the 24-byte attribute record
  * (flags 0x30, complexity, rectangle). Coordinates are restricted to -134217728..134217727. Prefer the
@@ -3068,7 +3066,7 @@ NtGdiGetFontUnicodeRanges(
  * NtGdiGetRealizationInfo contract notes.
  *
  * Reads the caller's size field before producing font-realization metadata, so pri is input/output. The
- * inspected native entry accepts record sizes 16, 24 and 812 bytes and copies the selected extent on
+ * native entry accepts record sizes 16, 24 and 812 bytes and copies the selected extent on
  * success. Do not advertise a larger size than the actual backing allocation.
  */
 _Kernel_entry_ 
@@ -4061,7 +4059,7 @@ NtGdiScaleRgn(
 /**
  * NtGdiScaleValues contract notes.
  *
- * Applies the DC DPI scaling to a writable array of signed LONGs. The inspected entry copies cl*4 input
+ * Applies the DC DPI scaling to a writable array of signed LONGs. The entry copies cl*4 input
  * bytes into temporary storage and copies the transformed values back on success, so pl is input/output. A
  * scale factor of one leaves the values unchanged.
  */
@@ -4118,7 +4116,7 @@ NtGdiDisableUMPDSandboxing(
 /**
  * NtGdiIsDcInXfer contract notes.
  *
- * This declaration was not located in the inspected x64/x86 win32u exports or matching WIN32KBASE/WIN32KFULL
+ * This declaration was not located in the x64/x86 win32u exports or matching WIN32KBASE/WIN32KFULL
  * names; do not treat that bounded absence as proof about every Windows version.
  */
 _Kernel_entry_ 
